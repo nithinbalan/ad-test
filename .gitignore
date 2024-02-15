@@ -1,0 +1,40 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+
+# Output of the go build command
+/main.exe
+/migrate.exe
+
+# Dependency directories (remove the "/" prefix to ignore the directory wherever it appears)
+/vendor/
+/Godeps/
+
+# Log files
+*.log
+
+# Environment files
+.env
+
+# Temporary files
+tmp/
+
+# IDE / Editor specific files
+*.swp
+*.swo
+.idea/
+.vscode/
+*.sublime-workspace
+
+# OS generated files
+.DS_Store*
+ehthumbs.db
+Icon?
+Thumbs.db
+
+# Ignore the binary directory
+/bin/
