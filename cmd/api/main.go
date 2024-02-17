@@ -26,6 +26,7 @@ func main() {
 	r.Use(middleware.DatabaseMiddleware())
 	r.Use(middleware.LocalizerMiddleware(bundle))
 	r.Use(middleware.RecoveryWithDatabaseLog())
+	r.Use(middleware.ThrottleMiddleware(1, 5))
 
 	r.GET("/compliance", func(c *gin.Context) {
 		// panic("Test")
