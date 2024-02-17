@@ -33,7 +33,7 @@ func RecoveryWithDatabaseLog() gin.HandlerFunc {
 				localizedError := utility.LocalizeMessage(c, "internal_server_error", "Internal server error!")
 
 				// Respond with a 500 Internal Server Error status code and localized message
-				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": localizedError})
+				utility.SendErrorResponse(c, http.StatusInternalServerError, localizedError)
 			}
 		}()
 		c.Next()
