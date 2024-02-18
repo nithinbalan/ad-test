@@ -39,4 +39,4 @@ Thumbs.db
 # Ignore the binary directory
 /bin/
 
-/seeders/output.txt
+output.txt

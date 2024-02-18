@@ -36,7 +36,7 @@ if /I "%operation%"=="createmigration" (
     %goosePath% -dir=%migrationDir% create %name% sql 
 )else if /I "%operation%"=="migrateup" (
     echo Running migrations up...
-    %goosePath% -dir=%migrationDir% mssql "%connectionString%" up
+    %goosePath% -dir=%migrationDir% mssql "%connectionString%" up > %migrationDir%/output.txt 2>&1
 ) else if /I "%operation%"=="migratedown" (
     echo Rolling back migrations...
     %goosePath% -dir=%migrationDir% mssql "%connectionString%" down
