@@ -4,30 +4,37 @@ import (
 	models "jethur/grc/common/models"
 	"log"
 	"net/http"
+	"runtime/debug"
 	"time"
 
-	"gorm.io/gorm"
+	"github.com/gin-gonic/gin"
 )
 
-func LogException(db *gorm.DB, req *http.Request, level, message string) {
+func LogException(c *gin.Context, level, errorMessage string) {
 
-	url := "Unknown"
-	if req != nil {
-		url = req.URL.String()
+	db, err := GetDBFromContext(c)
+	if err != nil {
+		return
 	}
+
+	httpRequestMethod := c.Request.Method
+	URL := c.Request.URL.String()
+	stackTrace := string(debug.Stack())
 
 	errorLogEntry := models.ErrorLog{
-		Level:     level,
-		URL:       url,
-		Message:   message,
-		CreatedAt: time.Now(),
+		HTTPStatusCode:    http.StatusInternalServerError,
+		HTTPRequestMethod: httpRequestMethod,
+		URL:               URL,
+		ErrorMessage:      errorMessage,
+		StackTrace:        stackTrace,
+		UserID:            nil, // @todo
+		CreatedAt:         time.Now(),
 	}
 
-	err := db.Create(&errorLogEntry).Error
+	err = db.Create(&errorLogEntry).Error
 	if err != nil {
 		// If the database is not available, fall back to standard logging
-		log.Printf("Unable to log to database: %v, original message: %s", err, message)
+		log.Printf("Unable to log to database: %v, original message: %s", err, errorMessage)
 	}
 
-	log.Printf(message)
 }

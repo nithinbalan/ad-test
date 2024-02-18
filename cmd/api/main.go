@@ -2,6 +2,7 @@ package main
 
 import (
 	"jethur/config"
+	"jethur/grc/masters/routes"
 	"jethur/middleware"
 	"jethur/utility"
 	"log"
@@ -28,31 +29,7 @@ func main() {
 	r.Use(middleware.RecoveryWithDatabaseLog())
 	r.Use(middleware.ThrottleMiddleware(1, 5))
 
-	r.GET("/compliance", func(c *gin.Context) {
-		// Sample data to encrypt
-		plaintext := "Sensitive information here"
-
-		// Encrypt the data
-		encryptedData, err := utility.Encrypt([]byte(plaintext))
-		if err != nil {
-			log.Panic("Encryption error:", err)
-			return
-		}
-
-		// Decrypt the data
-		decryptedData, err := utility.Decrypt("sadfasdf")
-		if err != nil {
-			log.Panic("Decryption error:", err)
-			return
-		}
-
-		// Respond with the original, encrypted, and decrypted data
-		c.JSON(200, gin.H{
-			"original":  plaintext,
-			"encrypted": encryptedData,
-			"decrypted": string(decryptedData),
-		})
-	})
+	routes.RegisterMasterRoutes(r)
 
 	// Start the server on specified port
 	if err := r.Run(":" + port); err != nil {

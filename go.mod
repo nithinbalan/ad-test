@@ -10,7 +10,7 @@ require (
 	gorm.io/gorm v1.25.7
 )
 
-require golang.org/x/time v0.5.0 // indirect
+require golang.org/x/time v0.5.0
 
 require (
 	github.com/bytedance/sonic v1.10.2 // indirect
@@ -20,7 +20,7 @@ require (
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
-	github.com/go-playground/validator/v10 v10.18.0 // indirect
+	github.com/go-playground/validator/v10 v10.18.0
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/golang-sql/civil v0.0.0-20220223132316-b832511892a9 // indirect
 	github.com/golang-sql/sqlexp v0.1.0 // indirect
