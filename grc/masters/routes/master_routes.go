@@ -2,7 +2,7 @@ package routes
 
 import (
 	"jethur/grc/masters/controllers"
-	"jethur/grc/masters/respository/implementations"
+	"jethur/grc/masters/repositories/implementations"
 
 	"github.com/gin-gonic/gin"
 )
