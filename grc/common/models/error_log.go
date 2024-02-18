@@ -4,11 +4,19 @@ import (
 	"time"
 )
 
-// ErrorLog represents the schema of the 'error_logs' table with validation rules
+// ErrorLog represents the error_logs table in GORM
 type ErrorLog struct {
-	ID        int       `gorm:"primaryKey;autoIncrement"`
-	Level     string    `gorm:"size:45" validate:"required,max=45"`
-	URL       string    `gorm:"size:45" validate:"max=45"`
-	Message   string    `gorm:"type:varchar(MAX)" validate:"required"`
-	CreatedAt time.Time `gorm:"type:datetime" validate:"required"`
+	ID                uint      `gorm:"primaryKey" json:"id"`
+	HTTPStatusCode    int       `json:"http_status_code" validate:"required,numeric"`
+	HTTPRequestMethod string    `gorm:"size:10" json:"http_request_method" validate:"required,oneof=GET POST PUT DELETE PATCH OPTIONS"`
+	URL               string    `gorm:"size:2048" json:"url" validate:"required,url"`
+	ErrorMessage      string    `gorm:"type:text" json:"error_message" validate:"required"`
+	StackTrace        string    `gorm:"type:text" json:"stack_trace"`
+	UserID            *uint     `json:"user_id" validate:"omitempty,numeric"`
+	CreatedAt         time.Time `json:"created_at" validate:"required"`
+}
+
+// TableName overrides the table name
+func (ErrorLog) TableName() string {
+	return "error_logs"
 }
