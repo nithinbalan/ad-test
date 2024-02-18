@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	"jethur/grc/masters/respository/interfaces"
+	"jethur/grc/masters/repositories/interfaces"
 	"jethur/utility"
 	"net/http"
 
