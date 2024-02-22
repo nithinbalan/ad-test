@@ -2,5 +2,25 @@
   {
     "id": "internal_server_error",
     "translation": "Internal Server Error"
+  },
+  {
+    "id": "invalid_request",
+    "translation": "Invalid Request"
+  },
+  {
+    "id": "field_required",
+    "translation": "The {{.Field}} field is required."
+  },
+  {
+    "id": "field_email",
+    "translation": "The {{.Field}} field must be a valid email address."
+  },
+  {
+    "id": "field_invalid",
+    "translation": "The {{.Field}} field is invalid."
+  },
+  {
+    "id": "login_failed",
+    "translation": "Login failed. Please check your credentials and try again"
   }
 ]

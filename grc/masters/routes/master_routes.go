@@ -7,7 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterMasterRoutes(router *gin.Engine) {
+func RegisterRoutes(router *gin.Engine) {
 
 	//Review Frequency
 	reviewFrequencyRepository := implementations.NewReviewFrequencyRepository()

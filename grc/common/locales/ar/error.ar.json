@@ -2,5 +2,25 @@
   {
     "id": "internal_server_error",
     "translation": "خطأ داخلي في الخادم"
+  },
+  {
+    "id": "invalid_request",
+    "translation": "طلب غير صالح"
+  },
+  {
+    "id": "field_required",
+    "translation": "The {{.Field}} field is required"
+  },
+  {
+    "id": "field_email",
+    "translation": "يجب أن يكون حقل {{.Field}} عنوان بريد إلكتروني صالح."
+  },
+  {
+    "id": "field_invalid",
+    "translation": "The {{.Field}} field is invalid."
+  },
+  {
+    "id": "login_failed",
+    "translation": "فشل تسجيل الدخول. يرجى التحقق من بيانات الاعتماد الخاصة بك والمحاولة مرة أخرى"
   }
 ]
