@@ -24,16 +24,23 @@ func (repo *ComplianceCategoryRepository) GetAll(c *gin.Context) ([]models.Compl
 
 	// Get parameters from the request query string
     sortBy := c.Query("sortBy")
-    sortOrder := c.Query("sortOrder")
+    sortOrder := c.Query("sortOrder") 
+    if sortOrder == "" {
+    	sortOrder = "asc"
+	}
     search := c.Query("search")
+    status := c.Query("status")
 
-    // Build the query based on sorting and search parameters
+    // Build the query based on sorting, search and filter parameters
     query := gormDB.Model(&models.ComplianceCategory{})
-    if sortBy != "" && sortOrder != "" {
+    if sortBy != "" {
         query = query.Order(sortBy + " " + sortOrder)
     }
     if search != "" {
         query = query.Where("title_en LIKE ?", "%"+search+"%")
+    }
+    if status != "" {
+        query = query.Where("status = ?", status)
     }
 
 	result := query.Find(&complianceCategories)
