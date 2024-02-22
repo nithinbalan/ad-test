@@ -27,7 +27,7 @@ func main() {
 	}
 
 	// Specify the directory where your migration files are located
-	migrationsDir := "C:/Users/user/Desktop/Projects/go/jethur/migrations"
+	migrationsDir := os.Getenv("MIGRATION_DIRECTORY")
 
 	// Construct the Goose command, using the argument passed to determine the migration direction
 	cmd := exec.Command("goose", "-dir", migrationsDir, "mssql", dbURL, migrationDirection)
