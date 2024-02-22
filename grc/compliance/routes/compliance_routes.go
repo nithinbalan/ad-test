@@ -13,4 +13,8 @@ func RegisterRoutes(router *gin.Engine) {
 	complianceCategoryRepository := implementations.NewComplianceCategoryRepository()
 	complianceCategoryController := controllers.NewComplianceCategoryController(complianceCategoryRepository)
 	router.GET("/compliance-categories", complianceCategoryController.GetAllComplianceCategories)
+	//Compliance requirement Category
+	complianceRequirementCategoryRepository := implementations.NewComplianceRequirementCategoryRepository()
+	complianceRequirementCategoryController := controllers.NewComplianceRequirementCategoryController(complianceRequirementCategoryRepository)
+	router.GET("/compliance-requirement-categories", complianceRequirementCategoryController.GetAllComplianceRequirementCategories)
 }
