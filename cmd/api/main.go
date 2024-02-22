@@ -31,7 +31,7 @@ func main() {
 	r.Use(middleware.ThrottleMiddleware(1, 5))
 
 	masterRoutes.RegisterMasterRoutes(r)
-	complianceRoutes.RegisterComplianceRoutes(r)
+	complianceRoutes.RegisterRoutes(r)
 
 	// Start the server on specified port
 	if err := r.Run(":" + port); err != nil {

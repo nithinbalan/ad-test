@@ -7,7 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterComplianceRoutes(router *gin.Engine) {
+func RegisterRoutes(router *gin.Engine) {
 
 	//Compliance Category
 	complianceCategoryRepository := implementations.NewComplianceCategoryRepository()
