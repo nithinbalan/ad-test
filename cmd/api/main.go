@@ -5,7 +5,7 @@ import (
 	authRoutes "jethur/grc/auth/routes"
 	masterRoutes "jethur/grc/masters/routes"
 	complianceRoutes "jethur/grc/compliance/routes"
-	"jethur/middleware"
+ 	"jethur/middlewares"
 	"jethur/utility"
 	"log"
 
@@ -28,9 +28,9 @@ func main() {
 	db := config.GetDatabaseInstance() // Obtain the database instance
 
 	//middlewares
-	r.Use(middleware.LocalizerMiddleware(bundle))
-	r.Use(middleware.RecoveryWithDatabaseLog(db))
-	r.Use(middleware.ThrottleMiddleware(1, 5))
+	r.Use(middlewares.LocalizerMiddleware(bundle))
+	r.Use(middlewares.RecoveryWithDatabaseLog(db))
+	r.Use(middlewares.ThrottleMiddleware(1, 5))
 
   masterRoutes.RegisterRoutes(db, r)
 	authRoutes.RegisterRoutes(db, r)
