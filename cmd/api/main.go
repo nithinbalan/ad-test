@@ -2,6 +2,7 @@ package main
 
 import (
 	"jethur/config"
+	authRoutes "jethur/grc/auth/routes"
 	masterRoutes "jethur/grc/masters/routes"
 	complianceRoutes "jethur/grc/compliance/routes"
 	"jethur/middleware"
@@ -24,13 +25,15 @@ func main() {
 
 	r := gin.Default()
 
+	db := config.GetDatabaseInstance() // Obtain the database instance
+
 	//middlewares
-	r.Use(middleware.DatabaseMiddleware())
 	r.Use(middleware.LocalizerMiddleware(bundle))
-	r.Use(middleware.RecoveryWithDatabaseLog())
+	r.Use(middleware.RecoveryWithDatabaseLog(db))
 	r.Use(middleware.ThrottleMiddleware(1, 5))
 
-	masterRoutes.RegisterMasterRoutes(r)
+  masterRoutes.RegisterRoutes(db, r)
+	authRoutes.RegisterRoutes(db, r)
 	complianceRoutes.RegisterRoutes(r)
 
 	// Start the server on specified port

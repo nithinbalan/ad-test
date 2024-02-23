@@ -8,14 +8,10 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
-func LogException(c *gin.Context, level, errorMessage string) {
-
-	db, err := GetDBFromContext(c)
-	if err != nil {
-		return
-	}
+func LogException(db *gorm.DB, c *gin.Context, level, errorMessage string) {
 
 	httpRequestMethod := c.Request.Method
 	URL := c.Request.URL.String()
@@ -31,7 +27,7 @@ func LogException(c *gin.Context, level, errorMessage string) {
 		CreatedAt:         time.Now(),
 	}
 
-	err = db.Create(&errorLogEntry).Error
+	err := db.Create(&errorLogEntry).Error
 	if err != nil {
 		// If the database is not available, fall back to standard logging
 		log.Printf("Unable to log to database: %v, original message: %s", err, errorMessage)

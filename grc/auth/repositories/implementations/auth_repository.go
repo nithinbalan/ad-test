@@ -12,22 +12,21 @@ import (
 	"gorm.io/gorm"
 )
 
-type AuthRepository struct{}
+type AuthRepository struct {
+	db *gorm.DB
+}
 
-func NewAuthRepository() *AuthRepository {
-	return &AuthRepository{}
+func NewAuthRepository(db *gorm.DB) *AuthRepository {
+	return &AuthRepository{
+		db: db,
+	}
 }
 
 func (repo *AuthRepository) Authenticate(c *gin.Context, email, password string) (map[string]string, error) {
 
 	var user models.User
 
-	gormDB, err := utility.GetDBFromContext(c)
-	if err != nil {
-		return nil, utility.NewInternalServerError(err)
-	}
-
-	result := gormDB.First(&user, "email = ?", email)
+	result := repo.db.First(&user, "email = ?", email)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, errors.New("invalid credentials")
 	} else if result.Error != nil {
@@ -35,7 +34,7 @@ func (repo *AuthRepository) Authenticate(c *gin.Context, email, password string)
 	}
 
 	// Compare the provided password with the stored hashed password
-	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password))
+	err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password))
 	if err != nil {
 		return nil, errors.New("invalid credentials")
 	}

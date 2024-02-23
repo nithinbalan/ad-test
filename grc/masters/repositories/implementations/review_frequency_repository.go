@@ -2,27 +2,26 @@ package implementations
 
 import (
 	"jethur/grc/masters/models"
-	"jethur/utility"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
-type ReviewFrequencyRepository struct{}
+type ReviewFrequencyRepository struct {
+	db *gorm.DB
+}
 
-func NewReviewFrequencyRepository() *ReviewFrequencyRepository {
-	return &ReviewFrequencyRepository{}
+func NewReviewFrequencyRepository(db *gorm.DB) *ReviewFrequencyRepository {
+	return &ReviewFrequencyRepository{
+		db: db,
+	}
 }
 
 func (repo *ReviewFrequencyRepository) GetAll(c *gin.Context) ([]models.ReviewFrequency, error) {
 
-	gormDB, err := utility.GetDBFromContext(c)
-	if err != nil {
-		return nil, err
-	}
-
 	var reviewFrequencies []models.ReviewFrequency
 
-	result := gormDB.Find(&reviewFrequencies)
+	result := repo.db.Find(&reviewFrequencies)
 
 	return reviewFrequencies, result.Error
 }
