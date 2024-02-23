@@ -21,7 +21,7 @@ if "%operation%"=="" (
     echo   %0 migratedown - Apply all down migrations
     echo   %0 createseeder [name] - Create a new seeder file
     echo   %0 seed - Seed the database
-    echo   %0 unseed - Reemove seed data from the database
+    echo   %0 unseed - Remove seed data from the database
     exit /b 1
 )
 

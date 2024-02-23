@@ -25,9 +25,13 @@ go mod tidy
 cp .env.example .env
 # Then edit .env to contain your environment-specific configurations
 
-# Run migrations
-go run cmd/api/migrate.go
+# Install goose in the system
+go install github.com/pressly/goose/v3/cmd/goose@latest
 
+# Run migrations
+go run cmd/migrate/migrate.go up/down
+
+# Update .env ROOT_PATH with project folder
 # Start the server
 go run cmd/api/main.go
 ```
