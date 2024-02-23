@@ -5,12 +5,13 @@ import (
 	"jethur/grc/auth/repositories/implementations"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
-func RegisterRoutes(router *gin.Engine) {
+func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 
-	authRepository := implementations.NewAuthRepository()
-	authController := controllers.NewAuthController(authRepository)
+	authRepository := implementations.NewAuthRepository(db)
+	authController := controllers.NewAuthController(authRepository, db)
 
 	router.POST("/auth/login", authController.Login)
 	router.POST("/auth/verify-otp", authController.Login)

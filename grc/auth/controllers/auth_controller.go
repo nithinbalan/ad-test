@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type LoginRequest struct {
@@ -15,11 +16,13 @@ type LoginRequest struct {
 
 type AuthController struct {
 	repo interfaces.AuthRepositoryInterface
+	db   *gorm.DB
 }
 
-func NewAuthController(repo interfaces.AuthRepositoryInterface) *AuthController {
+func NewAuthController(repo interfaces.AuthRepositoryInterface, db *gorm.DB) *AuthController {
 	return &AuthController{
 		repo: repo,
+		db:   db,
 	}
 }
 
@@ -31,16 +34,16 @@ func (ac *AuthController) Login(c *gin.Context) {
 	var loginReq LoginRequest
 
 	if err := c.ShouldBindJSON(&loginReq); err != nil {
-		utility.SendErrorResponse(c, http.StatusBadRequest, "Invalid Request", err)
+		utility.SendErrorResponse(ac.db, c, http.StatusBadRequest, "Invalid Request", err)
 		return
 	}
 
 	tokens, err := ac.repo.Authenticate(c, loginReq.Email, loginReq.Password)
 	if err != nil {
 		if _, ok := err.(*utility.InternalServerError); ok {
-			utility.SendErrorResponse(c, http.StatusInternalServerError, err.Error())
+			utility.SendErrorResponse(ac.db, c, http.StatusInternalServerError, err.Error())
 		} else {
-			utility.SendErrorResponse(c, http.StatusUnauthorized, "Authentication failed")
+			utility.SendErrorResponse(ac.db, c, http.StatusUnauthorized, "Authentication failed")
 		}
 		return
 	}

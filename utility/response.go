@@ -4,13 +4,14 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type ErrorResponse struct {
 	Error string `json:"error"`
 }
 
-func SendErrorResponse(c *gin.Context, statusCode int, errMsg string, errs ...error) {
+func SendErrorResponse(db *gorm.DB, c *gin.Context, statusCode int, errMsg string, errs ...error) {
 
 	var err error
 	if len(errs) > 0 {
@@ -24,7 +25,7 @@ func SendErrorResponse(c *gin.Context, statusCode int, errMsg string, errs ...er
 		errorType = "500"
 		localizedErrorMsg = LocalizeMessage(c, "internal_server_error", "Internal server error!")
 		//log 500 error on database
-		go LogException(c, errorType, errMsg)
+		go LogException(db, c, errorType, errMsg)
 	} else if statusCode == http.StatusBadRequest {
 		localizedErrorMsg = LocalizeMessage(c, "invalid_request", "Invalid Request!")
 		errorMessages := ExtractValidationErrors(c, err)
