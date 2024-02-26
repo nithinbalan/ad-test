@@ -2,46 +2,45 @@ package implementations
 
 import (
 	"jethur/grc/compliance/models"
-	"jethur/utility"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
-type ComplianceCategoryRepository struct{}
+type ComplianceCategoryRepository struct {
+	db *gorm.DB
+}
 
-func NewComplianceCategoryRepository() *ComplianceCategoryRepository {
-	return &ComplianceCategoryRepository{}
+func NewComplianceCategoryRepository(db *gorm.DB) *ComplianceCategoryRepository {
+	return &ComplianceCategoryRepository{
+		db: db,
+	}
 }
 
 func (repo *ComplianceCategoryRepository) GetAll(c *gin.Context) ([]models.ComplianceCategory, error) {
 
-	gormDB, err := utility.GetDBFromContext(c)
-	if err != nil {
-		return nil, err
-	}
-
 	var complianceCategories []models.ComplianceCategory
 
 	// Get parameters from the request query string
-    sortBy := c.Query("sortBy")
-    sortOrder := c.Query("sortOrder") 
-    if sortOrder == "" {
-    	sortOrder = "asc"
+	sortBy := c.Query("sortBy")
+	sortOrder := c.Query("sortOrder")
+	if sortOrder == "" {
+		sortOrder = "asc"
 	}
-    search := c.Query("search")
-    status := c.Query("status")
+	search := c.Query("search")
+	status := c.Query("status")
 
-    // Build the query based on sorting, search and filter parameters
-    query := gormDB.Model(&models.ComplianceCategory{})
-    if sortBy != "" {
-        query = query.Order(sortBy + " " + sortOrder)
-    }
-    if search != "" {
-        query = query.Where("title_en LIKE ?", "%"+search+"%")
-    }
-    if status != "" {
-        query = query.Where("status = ?", status)
-    }
+	// Build the query based on sorting, search and filter parameters
+	query := repo.db.Model(&models.ComplianceCategory{})
+	if sortBy != "" {
+		query = query.Order(sortBy + " " + sortOrder)
+	}
+	if search != "" {
+		query = query.Where("title_en LIKE ?", "%"+search+"%")
+	}
+	if status != "" {
+		query = query.Where("status = ?", status)
+	}
 
 	result := query.Find(&complianceCategories)
 
