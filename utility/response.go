@@ -1,6 +1,8 @@
 package utility
 
 import (
+	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -16,6 +18,7 @@ func SendErrorResponse(db *gorm.DB, c *gin.Context, statusCode int, errMsg strin
 	var err error
 	if len(errs) > 0 {
 		err = errs[0] // Use the first error if any are provided
+		log.Fatalf(fmt.Sprintf("%+v", err))
 	}
 
 	var errorType string = ""

@@ -3,18 +3,21 @@ package routes
 import (
 	"jethur/grc/compliance/controllers"
 	"jethur/grc/compliance/repositories/implementations"
+	"jethur/middlewares"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
-func RegisterRoutes(router *gin.Engine) {
+func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 
 	//Compliance Category
-	complianceCategoryRepository := implementations.NewComplianceCategoryRepository()
-	complianceCategoryController := controllers.NewComplianceCategoryController(complianceCategoryRepository)
-	router.GET("/compliance-categories", complianceCategoryController.GetAllComplianceCategories)
-	//Compliance requirement Category
-	complianceRequirementCategoryRepository := implementations.NewComplianceRequirementCategoryRepository()
-	complianceRequirementCategoryController := controllers.NewComplianceRequirementCategoryController(complianceRequirementCategoryRepository)
-	router.GET("/compliance-requirement-categories", complianceRequirementCategoryController.GetAllComplianceRequirementCategories)
+	complianceCategoryRepository := implementations.NewComplianceCategoryRepository(db)
+	complianceCategoryController := controllers.NewComplianceCategoryController(complianceCategoryRepository, db)
+
+	complianceRoutes := router.Group("/")
+
+	complianceRoutes.Use(middlewares.AuthMiddleware())
+
+	complianceRoutes.GET("/compliance-categories", complianceCategoryController.GetAllComplianceCategories)
 }

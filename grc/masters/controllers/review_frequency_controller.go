@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	"jethur/grc/masters/repositories/interfaces"
+	"jethur/grc/masters/services"
 	"jethur/utility"
 	"net/http"
 
@@ -10,19 +10,18 @@ import (
 )
 
 type ReviewFrequencyController struct {
-	repo interfaces.ReviewFrequencyRepositoryInterface
-	db   *gorm.DB
+	service services.ReviewFrequencyServiceInterface
+	db      *gorm.DB
 }
 
-func NewReviewFrequencyController(repo interfaces.ReviewFrequencyRepositoryInterface, db *gorm.DB) *ReviewFrequencyController {
+func NewReviewFrequencyController(service services.ReviewFrequencyServiceInterface) *ReviewFrequencyController {
 	return &ReviewFrequencyController{
-		repo: repo,
-		db:   db,
+		service: service,
 	}
 }
 
 func (rfc *ReviewFrequencyController) GetAllReviewFrequencies(c *gin.Context) {
-	articles, err := rfc.repo.GetAll(c)
+	articles, err := rfc.service.GetAll()
 	if err != nil {
 		utility.SendErrorResponse(rfc.db, c, http.StatusInternalServerError, err.Error(), nil)
 		return
