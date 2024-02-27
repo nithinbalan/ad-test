@@ -4,13 +4,19 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type ErrorResponse struct {
 	Error string `json:"error"`
 }
 
-func SendErrorResponse(c *gin.Context, statusCode int, errMsg string) {
+func SendErrorResponse(db *gorm.DB, c *gin.Context, statusCode int, errMsg string, errs ...error) {
+
+	var err error
+	if len(errs) > 0 {
+		err = errs[0] // Use the first error if any are provided
+	}
 
 	var errorType string = ""
 	var localizedErrorMsg string = ""
@@ -18,10 +24,19 @@ func SendErrorResponse(c *gin.Context, statusCode int, errMsg string) {
 	if statusCode == http.StatusInternalServerError {
 		errorType = "500"
 		localizedErrorMsg = LocalizeMessage(c, "internal_server_error", "Internal server error!")
+		//log 500 error on database
+		go LogException(db, c, errorType, errMsg)
+	} else if statusCode == http.StatusBadRequest {
+		localizedErrorMsg = LocalizeMessage(c, "invalid_request", "Invalid Request!")
+		errorMessages := ExtractValidationErrors(c, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":  localizedErrorMsg, // Single error message
+			"errors": errorMessages,     // Array of error messages
+		})
+		return
+	} else if statusCode == http.StatusUnauthorized {
+		localizedErrorMsg = LocalizeMessage(c, "login_failed", "Login failed")
 	}
-
-	//log error on database
-	go LogException(c, errorType, errMsg)
 
 	resp := ErrorResponse{
 		Error: localizedErrorMsg,
