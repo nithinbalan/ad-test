@@ -8,8 +8,12 @@
     "translation": "طلب غير صالح"
   },
   {
+    "id": "resource_not_found",
+    "translation": "الموارد غير موجود"
+  },
+  {
     "id": "field_required",
-    "translation": "The {{.Field}} field is required"
+    "translation": "الحقل {{.Field}} مطلوب"
   },
   {
     "id": "field_email",
@@ -17,10 +21,22 @@
   },
   {
     "id": "field_invalid",
-    "translation": "The {{.Field}} field is invalid."
+    "translation": "ال {{.Field}} الحقل غير صالح"
   },
   {
     "id": "login_failed",
     "translation": "فشل تسجيل الدخول. يرجى التحقق من بيانات الاعتماد الخاصة بك والمحاولة مرة أخرى"
+  },
+  {
+    "id": "resource_already_exists",
+    "translation": "يوجد بالفعل إدخال بهذا {{.Field}}. يرجى استخدام {{.Field}} فريد"
+  },
+  {
+    "id": "invalid_json_format",
+    "translation": "تنسيق JSON غير صالح. يرجى التحقق من بنية الطلب."
+  },
+  {
+    "id": "incorrect_json_field_type",
+    "translation": "نوع البيانات غير صحيح لحقل معين. يرجى مراجعة الأنواع المتوقعة لكل حقل."
   }
 ]

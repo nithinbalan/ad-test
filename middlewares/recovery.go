@@ -2,7 +2,6 @@ package middlewares
 
 import (
 	"fmt"
-	"net/http"
 	"runtime/debug"
 
 	"jethur/utility"
@@ -19,7 +18,7 @@ func RecoveryWithDatabaseLog(db *gorm.DB) gin.HandlerFunc {
 				stack := string(debug.Stack())
 
 				// Respond with a 500 Internal Server Error status code and localized message
-				utility.SendErrorResponse(db, c, http.StatusInternalServerError, fmt.Sprintf("%v\n%s", err, stack))
+				utility.SendInternalErrResp(db, c, fmt.Sprintf("%v\n%s", err, stack))
 			}
 		}()
 		c.Next()

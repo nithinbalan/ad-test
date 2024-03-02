@@ -12,6 +12,11 @@ import (
 )
 
 func LogException(db *gorm.DB, c *gin.Context, level, errorMessage string) {
+	// Check if the context is nil
+	if c == nil {
+		log.Printf("Context is nil, unable to log error: %s", errorMessage)
+		return
+	}
 
 	httpRequestMethod := c.Request.Method
 	URL := c.Request.URL.String()
@@ -27,10 +32,15 @@ func LogException(db *gorm.DB, c *gin.Context, level, errorMessage string) {
 		CreatedAt:         time.Now(),
 	}
 
-	err := db.Create(&errorLogEntry).Error
-	if err != nil {
-		// If the database is not available, fall back to standard logging
-		log.Printf("Unable to log to database: %v, original message: %s", err, errorMessage)
+	// Check if the db object is nil before trying to use it
+	if db != nil {
+		err := db.Create(&errorLogEntry).Error
+		if err != nil {
+			// If the database is not available, fall back to standard logging
+			log.Printf("Unable to log to database: %v, original message: %s", err, errorMessage)
+		}
+	} else {
+		// Fallback to standard logging if db is nil
+		log.Printf("DB object is nil, fallback to standard logging: %s", errorMessage)
 	}
-
 }

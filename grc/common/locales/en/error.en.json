@@ -8,6 +8,10 @@
     "translation": "Invalid Request"
   },
   {
+    "id": "resource_not_found",
+    "translation": "Resource not Found"
+  },
+  {
     "id": "field_required",
     "translation": "The {{.Field}} field is required."
   },
@@ -22,5 +26,17 @@
   {
     "id": "login_failed",
     "translation": "Login failed. Please check your credentials and try again"
+  },
+  {
+    "id": "resource_already_exists",
+    "translation": "An entry with this {{.Field}} already exists. Please use a unique {{.Field}}."
+  },
+  {
+    "id": "invalid_json_format",
+    "translation": "The JSON format is invalid. Please check the request structure."
+  },
+  {
+    "id": "incorrect_json_field_type",
+    "translation": "The data type is incorrect for a specific field. Please review the expected types for each field."
   }
 ]
