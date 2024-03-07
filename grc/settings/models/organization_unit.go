@@ -1,9 +1,9 @@
 package models
 
 type OrganizationUnit struct {
-	ID                  int                `gorm:"primaryKey;autoIncrement"`
-	OrganizationLevelID int                `gorm:"not null;index:,foreignKey:OrganizationLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
-	OrganizationUnitID  *int               `gorm:""`
+	ID                  uint               `gorm:"primaryKey;autoIncrement"`
+	OrganizationLevelID uint               `gorm:"not null;index:,foreignKey:OrganizationLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
+	OrganizationUnitID  *uint              `gorm:""`
 	TitleEn             string             `gorm:"size:100;not null"`
 	TitleAr             string             `gorm:"size:100;not null"`
 	Status              string             `gorm:"size:10;not null;check:Status IN ('active', 'inactive')"`

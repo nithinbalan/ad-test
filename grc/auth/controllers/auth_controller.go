@@ -34,7 +34,7 @@ func (ac *AuthController) Login(c *gin.Context) {
 	var loginReq LoginRequest
 
 	if err := c.ShouldBindJSON(&loginReq); err != nil {
-		utility.SendInvalidErrResp(ac.db, c, err)
+		utility.SendInvalidErrResp(c, err)
 		return
 	}
 
@@ -43,7 +43,7 @@ func (ac *AuthController) Login(c *gin.Context) {
 		if _, ok := err.(*utility.InternalServerError); ok {
 			utility.SendInternalErrResp(ac.db, c, err.Error())
 		} else {
-			utility.SendUnauthorizedErrResp(ac.db, c, "Authentication failed")
+			utility.SendUnauthorizedErrResp(c, "Authentication failed")
 		}
 		return
 	}

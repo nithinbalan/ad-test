@@ -8,6 +8,10 @@
     "translation": "طلب غير صالح"
   },
   {
+    "id": "unauthorized_request",
+    "translation": "طلب غير مصرح به"
+  },
+  {
     "id": "resource_not_found",
     "translation": "الموارد غير موجود"
   },
