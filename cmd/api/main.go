@@ -3,9 +3,9 @@ package main
 import (
 	"jethur/config"
 	authRoutes "jethur/grc/auth/routes"
-	masterRoutes "jethur/grc/masters/routes"
 	complianceRoutes "jethur/grc/compliance/routes"
- 	"jethur/middlewares"
+	masterRoutes "jethur/grc/masters/routes"
+	"jethur/middlewares"
 	"jethur/utility"
 	"log"
 
@@ -32,9 +32,9 @@ func main() {
 	r.Use(middlewares.RecoveryWithDatabaseLog(db))
 	r.Use(middlewares.ThrottleMiddleware(1, 5))
 
-  masterRoutes.RegisterRoutes(db, r)
+	masterRoutes.RegisterRoutes(db, r)
 	authRoutes.RegisterRoutes(db, r)
-	complianceRoutes.RegisterRoutes(r)
+	complianceRoutes.RegisterRoutes(db, r)
 
 	// Start the server on specified port
 	if err := r.Run(":" + port); err != nil {

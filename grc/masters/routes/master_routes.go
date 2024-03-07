@@ -2,7 +2,8 @@ package routes
 
 import (
 	"jethur/grc/masters/controllers"
-	"jethur/grc/masters/repositories/implementations"
+	"jethur/grc/masters/repositories"
+	"jethur/grc/masters/services"
 	"jethur/middlewares"
 
 	"github.com/gin-gonic/gin"
@@ -12,8 +13,10 @@ import (
 func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 
 	//Review Frequency
-	reviewFrequencyRepository := implementations.NewReviewFrequencyRepository(db)
-	reviewFrequencyController := controllers.NewReviewFrequencyController(reviewFrequencyRepository, db)
+	reviewFrequencyRepository := repositories.NewReviewFrequencyRepository(db)
+	reviewFrequencyService := services.NewReviewFrequencyService(reviewFrequencyRepository)
+
+	reviewFrequencyController := controllers.NewReviewFrequencyController(reviewFrequencyService)
 
 	masterRoutes := router.Group("/")
 
