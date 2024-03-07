@@ -34,16 +34,16 @@ func (ac *AuthController) Login(c *gin.Context) {
 	var loginReq LoginRequest
 
 	if err := c.ShouldBindJSON(&loginReq); err != nil {
-		utility.SendErrorResponse(ac.db, c, http.StatusBadRequest, "Invalid Request", err)
+		utility.SendInvalidErrResp(ac.db, c, err)
 		return
 	}
 
 	tokens, err := ac.repo.Authenticate(c, loginReq.Email, loginReq.Password)
 	if err != nil {
 		if _, ok := err.(*utility.InternalServerError); ok {
-			utility.SendErrorResponse(ac.db, c, http.StatusInternalServerError, err.Error())
+			utility.SendInternalErrResp(ac.db, c, err.Error())
 		} else {
-			utility.SendErrorResponse(ac.db, c, http.StatusUnauthorized, "Authentication failed")
+			utility.SendUnauthorizedErrResp(ac.db, c, "Authentication failed")
 		}
 		return
 	}
