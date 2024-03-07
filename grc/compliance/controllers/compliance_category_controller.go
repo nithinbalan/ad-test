@@ -43,36 +43,38 @@ func (ccc *ComplianceCategoryController) GetComplianceCategoryDetails(c *gin.Con
 
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
-		utility.SendNotFoundErrResp(ccc.db, c)
+		utility.SendNotFoundErrResp(c)
 		return
 	}
 
 	complianceCategory, err := ccc.service.GetByID(uint(id))
 	if err != nil {
-		utility.SendNotFoundErrResp(ccc.db, c)
+		utility.SendNotFoundErrResp(c)
 		return
 	}
 
-	// If everything is okay, return the compliance category.
 	c.JSON(http.StatusOK, complianceCategory)
 }
 
 func (ccc *ComplianceCategoryController) CreateCategory(c *gin.Context) {
 
-	var category models.ComplianceCategory
+	var category *models.ComplianceCategory
 
-	// Bind the JSON payload to the ComplianceCategory struct
 	if err := c.ShouldBindJSON(&category); err != nil {
-		utility.SendInvalidErrResp(ccc.db, c, err)
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(ccc.db, c, err.Error())
 		return
 	}
 
-	// Call the service to create the category
-	createdCategory, err := ccc.service.Create(category)
+	createdCategory, err := ccc.service.Create(currentUserID, category)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:
-			utility.SendInvalidErrResp(ccc.db, c, e)
+			utility.SendInvalidErrResp(c, e)
 			return
 		default:
 			utility.SendInternalErrResp(ccc.db, c, e.Error())
@@ -85,29 +87,31 @@ func (ccc *ComplianceCategoryController) CreateCategory(c *gin.Context) {
 
 func (ccc *ComplianceCategoryController) UpdateCategory(c *gin.Context) {
 
-	// Extract the category ID from the URL parameter
 	categoryID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		utility.SendNotFoundErrResp(ccc.db, c)
+		utility.SendNotFoundErrResp(c)
 		return
 	}
 
-	// Bind the incoming JSON to a ComplianceCategory struct
-	var updatedCategory models.ComplianceCategory
+	var updatedCategory *models.ComplianceCategory
 	if err := c.ShouldBindJSON(&updatedCategory); err != nil {
-		utility.SendInvalidErrResp(ccc.db, c, err)
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(ccc.db, c, err.Error())
 		return
 	}
 
-	// Update the category using the service layer
-	updatedCategory, err = ccc.service.Update(uint(categoryID), updatedCategory)
+	updatedCategory, err = ccc.service.Update(uint(categoryID), currentUserID, updatedCategory)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
-			utility.SendNotFoundErrResp(ccc.db, c)
+			utility.SendNotFoundErrResp(c)
 			return
 		case *utility.ValidationError:
-			utility.SendInvalidErrResp(ccc.db, c, e)
+			utility.SendInvalidErrResp(c, e)
 			return
 		default:
 			utility.SendInternalErrResp(ccc.db, c, e.Error())
@@ -125,11 +129,17 @@ func (ccc *ComplianceCategoryController) DeleteComplianceCategories(c *gin.Conte
 	}
 
 	if err := c.ShouldBindJSON(&request); err != nil {
-		utility.SendInvalidErrResp(ccc.db, c, err)
+		utility.SendInvalidErrResp(c, err)
 		return
 	}
 
-	failedIDs, err := ccc.service.Delete(request.IDs)
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(ccc.db, c, err.Error())
+		return
+	}
+
+	failedIDs, err := ccc.service.Delete(request.IDs, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(ccc.db, c, err.Error())
 		return
@@ -144,11 +154,17 @@ func (ccc *ComplianceCategoryController) ActivateComplianceCategories(c *gin.Con
 	}
 
 	if err := c.ShouldBindJSON(&request); err != nil {
-		utility.SendInvalidErrResp(ccc.db, c, err)
+		utility.SendInvalidErrResp(c, err)
 		return
 	}
 
-	err := ccc.service.Activate(request.IDs)
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(ccc.db, c, err.Error())
+		return
+	}
+
+	err = ccc.service.Activate(request.IDs, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(ccc.db, c, err.Error())
 		return
@@ -163,11 +179,17 @@ func (ccc *ComplianceCategoryController) DeactivateComplianceCategories(c *gin.C
 	}
 
 	if err := c.ShouldBindJSON(&request); err != nil {
-		utility.SendInvalidErrResp(ccc.db, c, err)
+		utility.SendInvalidErrResp(c, err)
 		return
 	}
 
-	err := ccc.service.Deactivate(request.IDs)
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(ccc.db, c, err.Error())
+		return
+	}
+
+	err = ccc.service.Deactivate(request.IDs, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(ccc.db, c, err.Error())
 		return

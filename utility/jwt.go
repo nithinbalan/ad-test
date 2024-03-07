@@ -2,14 +2,19 @@ package utility
 
 import (
 	"errors"
+	"jethur/config"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
 )
 
-type JWTManager struct {
-	secretKey     string
-	tokenDuration time.Duration
+const (
+	AccessTokenDuration  = 15 * time.Minute
+	RefreshTokenDuration = 7 * 24 * time.Hour // 7 days, adjust as needed
+)
+
+func getSecretKey() string {
+	return config.GetEnv("ENCRYPTION_KEY", "")
 }
 
 type UserClaims struct {
@@ -17,50 +22,35 @@ type UserClaims struct {
 	UserID uint `json:"user_id"`
 }
 
-// NewJWTManager creates a new JWTManager with a secret key and token duration
-func NewJWTManager(secretKey string, tokenDuration time.Duration) *JWTManager {
-	return &JWTManager{
-		secretKey:     secretKey,
-		tokenDuration: tokenDuration,
-	}
+func GenerateToken(userID uint) (string, error) {
+	return generateTokenWithExpiry(userID, AccessTokenDuration)
 }
 
-// GenerateToken generates a JWT token for a given user ID
-func (manager *JWTManager) GenerateToken(userID uint) (string, error) {
+func GenerateRefreshToken(userID uint) (string, error) {
+	return generateTokenWithExpiry(userID, RefreshTokenDuration)
+}
+
+func generateTokenWithExpiry(userID uint, duration time.Duration) (string, error) {
 	claims := UserClaims{
 		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(manager.tokenDuration).Unix(),
+			ExpiresAt: time.Now().Add(duration).Unix(),
 			IssuedAt:  time.Now().Unix(),
 		},
 		UserID: userID,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(manager.secretKey))
+	secretKey := getSecretKey() // Retrieve the secret key
+	return token.SignedString([]byte(secretKey))
 }
 
-func (manager *JWTManager) GenerateRefreshToken(userID uint) (string, error) {
-	// Set a longer lifespan for the refresh token compared to the access token
-	var refreshTokenLifetime = 15 * 24 * time.Hour // Example: 15 days
-
-	// Create a new token with claims
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"user_id": userID,
-		"exp":     time.Now().Add(refreshTokenLifetime).Unix(),
-	})
-
-	// Sign the token with the secret key
-	return token.SignedString([]byte(manager.secretKey))
-}
-
-// VerifyToken verifies the JWT token and returns the user claims
-func (manager *JWTManager) VerifyToken(tokenStr string) (*UserClaims, error) {
+func VerifyToken(tokenStr string) (*UserClaims, error) {
+	secretKey := getSecretKey() // Retrieve the secret key for verification
 	token, err := jwt.ParseWithClaims(tokenStr, &UserClaims{}, func(token *jwt.Token) (interface{}, error) {
-		_, ok := token.Method.(*jwt.SigningMethodHMAC)
-		if !ok {
-			return nil, errors.New("unexpected signing method")
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, errors.New("unexpected signing method in token")
 		}
-		return []byte(manager.secretKey), nil
+		return []byte(secretKey), nil
 	})
 
 	if err != nil {

@@ -7,7 +7,7 @@ import (
 
 // interfaces
 type ReviewFrequencyServiceInterface interface {
-	GetAll() ([]models.ReviewFrequency, error)
+	GetAll() ([]*models.ReviewFrequency, error)
 }
 
 // Service and implementations
@@ -21,6 +21,6 @@ func NewReviewFrequencyService(repo repositories.ReviewFrequencyRepositoryInterf
 	}
 }
 
-func (rs *ReviewFrequencyService) GetAll() ([]models.ReviewFrequency, error) {
+func (rs *ReviewFrequencyService) GetAll() ([]*models.ReviewFrequency, error) {
 	return rs.repo.GetAll()
 }

@@ -8,6 +8,10 @@
     "translation": "Invalid Request"
   },
   {
+    "id": "unauthorized_request",
+    "translation": "Unauthorized Request"
+  },
+  {
     "id": "resource_not_found",
     "translation": "Resource not Found"
   },

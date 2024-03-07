@@ -5,7 +5,7 @@ import (
 )
 
 type ReviewFrequency struct {
-	ID      int    `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
+	ID      uint   `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	TitleEn string `json:"title_en" binding:"required,max=100" gorm:"type:nvarchar(100);not null"`
 	TitleAr string `json:"title_ar" binding:"required,max=100" gorm:"type:nvarchar(100);not null"`
 	Type    string `json:"type" binding:"required,oneof=daily weekly monthly quarterly half-yearly annually" gorm:"type:nvarchar(50);not null"`
@@ -27,8 +27,6 @@ func typeValidation(fl validator.FieldLevel) bool {
 }
 
 func init() {
-	// Get the Gin validator instance
 	validate := validator.New()
-	// Register custom validation for the 'type' field
 	validate.RegisterValidation("reviewfrequencytype", typeValidation)
 }

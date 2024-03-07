@@ -6,16 +6,10 @@ import (
 	"gorm.io/gorm"
 )
 
-// Repository Interfaces
 type ReviewFrequencyRepositoryInterface interface {
-	GetAll() ([]models.ReviewFrequency, error)
-	// GetByID(c *gin.Context, id uint) (models.ReviewFrequency, error)
-	// Create(c *gin.Context, article models.ReviewFrequency) (models.ReviewFrequency, error)
-	// Update(c *gin.Context, id uint, article models.ReviewFrequency) (models.ReviewFrequency, error)
-	// Delete(c *gin.Context, id uint) error
+	GetAll() ([]*models.ReviewFrequency, error)
 }
 
-// Repository & Impelmentation
 type ReviewFrequencyRepository struct {
 	db *gorm.DB
 }
@@ -26,9 +20,9 @@ func NewReviewFrequencyRepository(db *gorm.DB) *ReviewFrequencyRepository {
 	}
 }
 
-func (repo *ReviewFrequencyRepository) GetAll() ([]models.ReviewFrequency, error) {
+func (repo *ReviewFrequencyRepository) GetAll() ([]*models.ReviewFrequency, error) {
 
-	var reviewFrequencies []models.ReviewFrequency
+	var reviewFrequencies []*models.ReviewFrequency
 
 	result := repo.db.Find(&reviewFrequencies)
 

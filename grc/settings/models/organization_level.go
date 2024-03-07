@@ -1,7 +1,7 @@
 package models
 
 type OrganizationLevel struct {
-	ID        int    `gorm:"primaryKey;autoIncrement"`
+	ID        uint   `gorm:"primaryKey;autoIncrement"`
 	Level     uint8  `gorm:"not null;check:Level BETWEEN 1 AND 10"`
 	TitleEn   string `gorm:"size:45;not null"`
 	TitleAr   string `gorm:"size:45;not null"`

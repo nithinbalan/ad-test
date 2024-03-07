@@ -2,8 +2,10 @@ package routes
 
 import (
 	"jethur/grc/compliance/controllers"
-	"jethur/grc/compliance/repositories"
-	"jethur/grc/compliance/services"
+	complianceRepo "jethur/grc/compliance/repositories"
+	complianceService "jethur/grc/compliance/services"
+	activityLogRepository "jethur/grc/logs/repositories"
+	activityLogServie "jethur/grc/logs/services"
 	"jethur/middlewares"
 
 	"github.com/gin-gonic/gin"
@@ -12,10 +14,12 @@ import (
 
 func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 
-	//Compliance Category
-	complianceCategoryRepository := repositories.NewComplianceCategoryRepository(db)
-	complianceCategoryService := services.NewComplianceCategoryService(complianceCategoryRepository)
-	complianceCategoryController := controllers.NewComplianceCategoryController(complianceCategoryService)
+	activityLogRepo := activityLogRepository.NewActivityLogRepository(db)
+	activityLogSvc := activityLogServie.NewActivityLogService(activityLogRepo)
+
+	complianceCategoryRepo := complianceRepo.NewComplianceCategoryRepository(db)
+	complianceCategorySvc := complianceService.NewComplianceCategoryService(complianceCategoryRepo, activityLogSvc)
+	complianceCategoryController := controllers.NewComplianceCategoryController(complianceCategorySvc)
 
 	complianceRoutes := router.Group("/")
 

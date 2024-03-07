@@ -2,10 +2,8 @@ package implementations
 
 import (
 	"errors"
-	"jethur/config"
 	"jethur/grc/organization/models"
 	"jethur/utility"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
@@ -38,16 +36,14 @@ func (repo *AuthRepository) Authenticate(c *gin.Context, email, password string)
 	if err != nil {
 		return nil, errors.New("invalid credentials")
 	}
-	jwtKey := config.GetEnv("ENCRYPTION_KEY", "")
-	jwtManager := utility.NewJWTManager(jwtKey, 24*time.Hour)
 
 	//generate access token
-	accessToken, err := jwtManager.GenerateToken(user.ID)
+	accessToken, err := utility.GenerateToken(user.ID)
 	if err != nil {
 		return nil, utility.NewInternalServerError(err)
 	}
 
-	refreshToken, err := jwtManager.GenerateRefreshToken(user.ID)
+	refreshToken, err := utility.GenerateRefreshToken(user.ID)
 	if err != nil {
 		return nil, utility.NewInternalServerError(err)
 	}

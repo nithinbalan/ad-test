@@ -10,13 +10,13 @@ import (
 
 // Interfaces
 type ComplianceCategoryRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]models.ComplianceCategory, error)
-	GetByID(id uint) (models.ComplianceCategory, error)
-	Create(article models.ComplianceCategory) (models.ComplianceCategory, error)
-	Update(id uint, category models.ComplianceCategory) (models.ComplianceCategory, error)
+	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ComplianceCategory, error)
+	GetByID(id uint) (*models.ComplianceCategory, error)
+	Create(article *models.ComplianceCategory) (*models.ComplianceCategory, error)
+	Update(id uint, category *models.ComplianceCategory) (*models.ComplianceCategory, error)
 	Delete(id uint) error
-	Activate(ids []uint) error
-	Deactivate(ids []uint) error
+	Activate(ids []uint) ([]uint, error)
+	Deactivate(ids []uint) ([]uint, error)
 	ExistsByTitle(titleEn string, titleAr string) (bool, error)
 	ExistsByTitleExcludingID(id uint, titleEn, titleAr string) (bool, error)
 }
@@ -32,9 +32,9 @@ func NewComplianceCategoryRepository(db *gorm.DB) *ComplianceCategoryRepository 
 	}
 }
 
-func (repo *ComplianceCategoryRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]models.ComplianceCategory, error) {
+func (repo *ComplianceCategoryRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ComplianceCategory, error) {
 
-	var categories []models.ComplianceCategory
+	var categories []*models.ComplianceCategory
 
 	query := repo.db
 
@@ -58,40 +58,46 @@ func (repo *ComplianceCategoryRepository) GetAll(sort string, sortBy string, key
 	return categories, result.Error
 }
 
-func (repo *ComplianceCategoryRepository) GetByID(id uint) (models.ComplianceCategory, error) {
-	var category models.ComplianceCategory
+func (repo *ComplianceCategoryRepository) GetByID(id uint) (*models.ComplianceCategory, error) {
+	var category *models.ComplianceCategory
 	result := repo.db.First(&category, id)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return models.ComplianceCategory{}, utility.NewResourceNotFoundError(result.Error, id)
+		return nil, utility.NewResourceNotFoundError(result.Error, id)
 	} else if result.Error != nil {
-		return models.ComplianceCategory{}, result.Error
+		return nil, result.Error
 	}
 
 	return category, result.Error
 }
 
-func (repo *ComplianceCategoryRepository) Create(category models.ComplianceCategory) (models.ComplianceCategory, error) {
+func (repo *ComplianceCategoryRepository) Create(category *models.ComplianceCategory) (*models.ComplianceCategory, error) {
 	result := repo.db.Create(&category)
 
 	return category, result.Error
 }
 
-func (repo *ComplianceCategoryRepository) Update(id uint, updatedCategory models.ComplianceCategory) (models.ComplianceCategory, error) {
-	var category models.ComplianceCategory
+func (repo *ComplianceCategoryRepository) Update(id uint, updatedCategory *models.ComplianceCategory) (*models.ComplianceCategory, error) {
+	var category *models.ComplianceCategory
 
 	if err := repo.db.First(&category, id).Error; err != nil {
-		return models.ComplianceCategory{}, err
+		return nil, err
 	}
 
 	if err := repo.db.Model(&category).Updates(updatedCategory).Error; err != nil {
-		return models.ComplianceCategory{}, err
+		return nil, err
 	}
 
 	return category, nil
 }
 
 func (repo *ComplianceCategoryRepository) Delete(id uint) error {
+
+	var category *models.ComplianceCategory
+	if err := repo.db.First(&category, id).Error; err != nil {
+		return err
+	}
+
 	result := repo.db.Delete(&models.ComplianceCategory{}, id)
 	if result.Error != nil {
 		return result.Error
@@ -100,14 +106,52 @@ func (repo *ComplianceCategoryRepository) Delete(id uint) error {
 	return nil
 }
 
-func (repo *ComplianceCategoryRepository) Activate(ids []uint) error {
-	result := repo.db.Model(&models.ComplianceCategory{}).Where("id IN ?", ids).Update("Status", "active")
-	return result.Error
+func (repo *ComplianceCategoryRepository) Activate(ids []uint) ([]uint, error) {
+	var idsToUpdate []uint
+
+	// Step 1: Fetch the IDs of records that are currently 'inactive' and within the provided 'ids' slice
+	if err := repo.db.Model(&models.ComplianceCategory{}).
+		Where("id IN ? AND status = ?", ids, "inactive").
+		Pluck("id", &idsToUpdate).Error; err != nil {
+		return nil, err // Return error if the query fails
+	}
+
+	// Step 2: If there are any IDs to update, perform the update operation
+	if len(idsToUpdate) > 0 {
+		if err := repo.db.Model(&models.ComplianceCategory{}).
+			Where("id IN ?", idsToUpdate).
+			Update("status", "active").Error; err != nil {
+			return nil, err // Return error if the update operation fails
+		}
+	}
+
+	// Return the IDs of the records that were activated
+	return idsToUpdate, nil
 }
 
-func (repo *ComplianceCategoryRepository) Deactivate(ids []uint) error {
-	result := repo.db.Model(&models.ComplianceCategory{}).Where("id IN ?", ids).Update("Status", "inactive")
-	return result.Error
+func (repo *ComplianceCategoryRepository) Deactivate(ids []uint) ([]uint, error) {
+
+	var idsToUpdate []uint
+
+	// Step 1: Fetch the IDs of records that are currently 'inactive' and within the provided 'ids' slice
+	if err := repo.db.Model(&models.ComplianceCategory{}).
+		Where("id IN ? AND status = ?", ids, "active").
+		Pluck("id", &idsToUpdate).Error; err != nil {
+		return nil, err // Return error if the query fails
+	}
+
+	// Step 2: If there are any IDs to update, perform the update operation
+	if len(idsToUpdate) > 0 {
+		if err := repo.db.Model(&models.ComplianceCategory{}).
+			Where("id IN ?", idsToUpdate).
+			Update("status", "inactive").Error; err != nil {
+			return nil, err // Return error if the update operation fails
+		}
+	}
+
+	// Return the IDs of the records that were activated
+	return idsToUpdate, nil
+
 }
 
 func (repo *ComplianceCategoryRepository) ExistsByTitle(titleEn, titleAr string) (bool, error) {
