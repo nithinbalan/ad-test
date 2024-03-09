@@ -20,12 +20,14 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	reviewFrequencyRepository := repositories.NewReviewFrequencyRepository(db)
 	reviewFrequencyService := services.NewReviewFrequencyService(reviewFrequencyRepository)
 	reviewFrequencyController := controllers.NewReviewFrequencyController(reviewFrequencyService)
+
 	masterRoutes.GET("/review-frequencies", reviewFrequencyController.GetAllReviewFrequencies)
 
 	//Severity Level
 	severityLevelRepository := repositories.NewSeverityLevelRepository(db)
 	severityLevelService := services.NewSeverityLevelService(severityLevelRepository)
 	severityLevelController := controllers.NewSeverityLevelController(severityLevelService)
+
 	masterRoutes.GET("/severity-levels", severityLevelController.GetAllSeverityLevels)
 
 }
