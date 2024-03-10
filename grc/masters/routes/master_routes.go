@@ -30,4 +30,11 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 
 	masterRoutes.GET("/severity-levels", severityLevelController.GetAllSeverityLevels)
 
+	//Lifecycle Status
+	lifecycleStatusRepository := repositories.NewLifecycleStatusRepository(db)
+	lifecycleStatusService := services.NewLifecycleStatusService(lifecycleStatusRepository)
+	lifecycleStatusController := controllers.NewLifecycleStatusController(lifecycleStatusService)
+
+	masterRoutes.GET("/lifecycle-statuses", lifecycleStatusController.GetAllLifecycleStatuses)
+
 }
