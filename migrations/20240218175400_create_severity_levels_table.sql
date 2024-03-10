@@ -7,7 +7,7 @@ CREATE TABLE severity_levels (
     color_code VARCHAR(45) NOT NULL,
     type VARCHAR(10) NOT NULL,
         CONSTRAINT CHK_severity_levels_type CHECK (type IN ('high', 'medium', 'low')),
-    status VARCHAR(10) NOT NULL,
+    status VARCHAR(10) NOT NULL DEFAULT 'active',
         CONSTRAINT CHK_severity_levels_status CHECK (status IN ('active', 'inactive'))
 );
 -- +goose StatementEnd
