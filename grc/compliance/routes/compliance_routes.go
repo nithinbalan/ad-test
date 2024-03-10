@@ -14,16 +14,17 @@ import (
 
 func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 
-	activityLogRepo := activityLogRepository.NewActivityLogRepository(db)
-	activityLogSvc := activityLogServie.NewActivityLogService(activityLogRepo)
-
-	complianceCategoryRepo := complianceRepo.NewComplianceCategoryRepository(db)
-	complianceCategorySvc := complianceService.NewComplianceCategoryService(complianceCategoryRepo, activityLogSvc)
-	complianceCategoryController := controllers.NewComplianceCategoryController(complianceCategorySvc)
-
 	complianceRoutes := router.Group("/")
 
 	complianceRoutes.Use(middlewares.AuthMiddleware())
+
+	activityLogRepo := activityLogRepository.NewActivityLogRepository(db)
+	activityLogSvc := activityLogServie.NewActivityLogService(activityLogRepo)
+
+	//Compliance Category
+	complianceCategoryRepo := complianceRepo.NewComplianceCategoryRepository(db)
+	complianceCategorySvc := complianceService.NewComplianceCategoryService(complianceCategoryRepo, activityLogSvc)
+	complianceCategoryController := controllers.NewComplianceCategoryController(complianceCategorySvc)
 
 	complianceRoutes.GET("/compliance-categories", complianceCategoryController.GetAllComplianceCategories)
 	complianceRoutes.GET("/compliance-categories/:id", complianceCategoryController.GetComplianceCategoryDetails)
@@ -32,4 +33,11 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	complianceRoutes.POST("/compliance-categories/delete", complianceCategoryController.DeleteComplianceCategories)
 	complianceRoutes.POST("/compliance-categories/activate", complianceCategoryController.ActivateComplianceCategories)
 	complianceRoutes.POST("/compliance-categories/deactivate", complianceCategoryController.DeactivateComplianceCategories)
+
+	//Compliance Status
+	complianceStatusRepo := complianceRepo.NewComplianceStatusRepository(db)
+	complianceStatusSvc := complianceService.NewComplianceStatusService(complianceStatusRepo)
+	complianceStatusController := controllers.NewComplianceStatusController(complianceStatusSvc)
+
+	complianceRoutes.GET("/compliance-statuses", complianceStatusController.GetAllComplianceStatuses)
 }
