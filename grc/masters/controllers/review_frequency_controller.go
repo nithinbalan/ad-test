@@ -21,10 +21,17 @@ func NewReviewFrequencyController(service services.ReviewFrequencyServiceInterfa
 }
 
 func (rfc *ReviewFrequencyController) GetAllReviewFrequencies(c *gin.Context) {
-	articles, err := rfc.service.GetAll()
+
+	sort := c.Query("sort")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+	status := c.Query("status")
+
+	reviewFrequencies, err := rfc.service.GetAll(sort, sortBy, keyword, status)
+
 	if err != nil {
 		utility.SendInternalErrResp(rfc.db, c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, articles)
+	c.JSON(http.StatusOK, reviewFrequencies)
 }
