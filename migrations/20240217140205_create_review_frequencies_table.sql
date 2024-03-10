@@ -6,7 +6,7 @@ CREATE TABLE review_frequencies (
     title_ar NVARCHAR(100) NOT NULL,
     type VARCHAR(45) NOT NULL,
         CONSTRAINT CHK_review_frequencies_type CHECK (type IN ('daily', 'weekly', 'monthly', 'quarterly', 'half-yearly', 'annually')),
-    status VARCHAR(10) NOT NULL,
+    status VARCHAR(10) NOT NULL DEFAULT 'active',
         CONSTRAINT CHK_review_frequencies_status CHECK (status IN ('active', 'inactive'))
 );
 -- +goose StatementEnd
