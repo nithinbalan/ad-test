@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"jethur/grc/compliance/models"
 	"jethur/grc/compliance/repositories"
-	activityLogModels "jethur/grc/logs/models"
+	activityLogModel "jethur/grc/logs/models"
 	"jethur/grc/logs/services"
 	"jethur/utility"
 	"log"
@@ -56,9 +56,9 @@ func (ccs *ComplianceCategoryService) Create(currentUserID uint, category *model
 
 	go func() {
 		err := ccs.activityLogSvc.LogActivity(
-			activityLogModels.CreateAction,
+			activityLogModel.CreateAction,
 			models.ComplianceCategory{}.TableName(),
-			category.ID,
+			createdCategory.ID,
 			createdCategory,
 			currentUserID,
 			nil,
@@ -109,7 +109,7 @@ func (ccs *ComplianceCategoryService) Update(id uint, currentUserID uint, update
 
 	go func() {
 		err := ccs.activityLogSvc.LogActivity(
-			activityLogModels.UpdateAction,
+			activityLogModel.UpdateAction,
 			models.ComplianceCategory{}.TableName(),
 			result.ID,
 			changedDataJSON,
@@ -132,6 +132,7 @@ func (ccs *ComplianceCategoryService) Delete(ids []uint, currentUserID uint) ([]
 		_, err := ccs.repo.GetByID(id)
 
 		if err != nil {
+			fmt.Print(err)
 			continue
 		}
 
@@ -147,7 +148,7 @@ func (ccs *ComplianceCategoryService) Delete(ids []uint, currentUserID uint) ([]
 
 		go func() {
 			err := ccs.activityLogSvc.LogBulkActivities(
-				activityLogModels.DeleteAction, // Make sure this action constant is defined appropriately
+				activityLogModel.DeleteAction, // Make sure this action constant is defined appropriately
 				models.ComplianceCategory{}.TableName(),
 				successfulIds,
 				nil,
@@ -171,7 +172,7 @@ func (ccs *ComplianceCategoryService) Activate(ids []uint, currentUserID uint) e
 
 		go func() {
 			err := ccs.activityLogSvc.LogBulkActivities(
-				activityLogModels.ActivateAction,
+				activityLogModel.ActivateAction,
 				models.ComplianceCategory{}.TableName(),
 				successfulIds,
 				nil,
@@ -195,7 +196,7 @@ func (ccs *ComplianceCategoryService) Deactivate(ids []uint, currentUserID uint)
 
 		go func() {
 			err := ccs.activityLogSvc.LogBulkActivities(
-				activityLogModels.DeactivateAction,
+				activityLogModel.DeactivateAction,
 				models.ComplianceCategory{}.TableName(),
 				successfulIds,
 				nil,
