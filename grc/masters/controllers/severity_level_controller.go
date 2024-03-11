@@ -27,11 +27,11 @@ func (slc *SeverityLevelController) GetAllSeverityLevels(c *gin.Context) {
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 
-	SeverityLevels, err := slc.service.GetAll(sort, sortBy, keyword, status)
+	severityLevels, err := slc.service.GetAll(sort, sortBy, keyword, status)
 
 	if err != nil {
 		utility.SendInternalErrResp(slc.db, c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, SeverityLevels)
+	c.JSON(http.StatusOK, severityLevels)
 }
