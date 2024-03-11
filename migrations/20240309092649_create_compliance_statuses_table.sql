@@ -6,8 +6,8 @@ CREATE TABLE compliance_statuses (
     title_ar NVARCHAR(100) NOT NULL,
     description_en VARCHAR(MAX),
     description_ar NVARCHAR(MAX),
-    color_code VARCHAR(45) NOT NULL,
-    type VARCHAR(45) NOT NULL DEFAULT 'not_implemented',
+    color_code VARCHAR(25) NOT NULL,
+    type VARCHAR(25) NOT NULL DEFAULT 'not_implemented',
         CONSTRAINT CHK_compliance_statuses_type CHECK (type IN ('not_implemented', 'in_progress', 'partially_compliant', 'compliant', 'exempt', 'not_applicable')),
     status VARCHAR(10) NOT NULL DEFAULT 'active',
         CONSTRAINT CHK_compliance_statuses_status CHECK (status IN ('active', 'inactive'))
