@@ -33,29 +33,29 @@ func NewSLACategoryService(repo repositories.SLACategoryRepositoryInterface, act
 	}
 }
 
-func (ccs *SLACategoryService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.SLACategory, error) {
-	return ccs.repo.GetAll(sort, sortBy, keyword, status)
+func (scs *SLACategoryService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.SLACategory, error) {
+	return scs.repo.GetAll(sort, sortBy, keyword, status)
 }
 
-func (ccs SLACategoryService) GetByID(id uint) (*models.SLACategory, error) {
-	return ccs.repo.GetByID(id)
+func (scs SLACategoryService) GetByID(id uint) (*models.SLACategory, error) {
+	return scs.repo.GetByID(id)
 }
 
-func (ccs *SLACategoryService) Create(currentUserID uint, category *models.SLACategory) (*models.SLACategory, error) {
+func (scs *SLACategoryService) Create(currentUserID uint, category *models.SLACategory) (*models.SLACategory, error) {
 
-	if exists, err := ccs.repo.ExistsByTitle(category.TitleEn, category.TitleAr); err != nil {
+	if exists, err := scs.repo.ExistsByTitle(category.TitleEn, category.TitleAr); err != nil {
 		return nil, err
 	} else if exists {
 		return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 	}
 
-	createdCategory, err := ccs.repo.Create(category)
+	createdCategory, err := scs.repo.Create(category)
 	if err != nil {
 		return nil, err
 	}
 
 	go func() {
-		err := ccs.activityLogSvc.LogActivity(
+		err := scs.activityLogSvc.LogActivity(
 			activityLogModels.CreateAction,
 			models.SLACategory{}.TableName(),
 			category.ID,
@@ -73,15 +73,15 @@ func (ccs *SLACategoryService) Create(currentUserID uint, category *models.SLACa
 	return createdCategory, nil
 }
 
-func (ccs *SLACategoryService) Update(id uint, currentUserID uint, updatedCategory *models.SLACategory) (*models.SLACategory, error) {
-	existingCategory, err := ccs.repo.GetByID(id)
+func (scs *SLACategoryService) Update(id uint, currentUserID uint, updatedCategory *models.SLACategory) (*models.SLACategory, error) {
+	existingCategory, err := scs.repo.GetByID(id)
 
 	if err != nil {
 		return nil, err
 	}
 
 	if updatedCategory.TitleEn != existingCategory.TitleEn || updatedCategory.TitleAr != existingCategory.TitleAr {
-		if exists, err := ccs.repo.ExistsByTitleExcludingID(id, updatedCategory.TitleEn, updatedCategory.TitleAr); err != nil {
+		if exists, err := scs.repo.ExistsByTitleExcludingID(id, updatedCategory.TitleEn, updatedCategory.TitleAr); err != nil {
 			return nil, err
 		} else if exists {
 			return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
@@ -89,7 +89,7 @@ func (ccs *SLACategoryService) Update(id uint, currentUserID uint, updatedCatego
 
 	}
 
-	result, err := ccs.repo.Update(id, updatedCategory)
+	result, err := scs.repo.Update(id, updatedCategory)
 
 	if err != nil {
 		return nil, err
@@ -108,7 +108,7 @@ func (ccs *SLACategoryService) Update(id uint, currentUserID uint, updatedCatego
 	}
 
 	go func() {
-		err := ccs.activityLogSvc.LogActivity(
+		err := scs.activityLogSvc.LogActivity(
 			activityLogModels.UpdateAction,
 			models.SLACategory{}.TableName(),
 			result.ID,
@@ -118,24 +118,24 @@ func (ccs *SLACategoryService) Update(id uint, currentUserID uint, updatedCatego
 		)
 		if err != nil {
 			// @todo - save to log file
-			fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+			fmt.Printf("Failed to log activity: %v\n", err)
 		}
 	}()
 	return result, err
 }
 
-func (ccs *SLACategoryService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
+func (scs *SLACategoryService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
 	for _, id := range ids {
 
-		_, err := ccs.repo.GetByID(id)
+		_, err := scs.repo.GetByID(id)
 
 		if err != nil {
 			continue
 		}
 
-		err = ccs.repo.Delete(id)
+		err = scs.repo.Delete(id)
 		if err != nil {
 			failedIds = append(failedIds, id)
 		} else {
@@ -146,8 +146,8 @@ func (ccs *SLACategoryService) Delete(ids []uint, currentUserID uint) ([]uint, e
 	if len(successfulIds) > 0 {
 
 		go func() {
-			err := ccs.activityLogSvc.LogBulkActivities(
-				activityLogModels.DeleteAction, // Make sure this action constant is defined appropriately
+			err := scs.activityLogSvc.LogBulkActivities(
+				activityLogModels.DeleteAction,
 				models.SLACategory{}.TableName(),
 				successfulIds,
 				nil,
@@ -156,7 +156,7 @@ func (ccs *SLACategoryService) Delete(ids []uint, currentUserID uint) ([]uint, e
 			)
 			if err != nil {
 				// @todo - save to log file
-				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+				fmt.Printf("Failed to log activity: %v\n", err)
 			}
 		}()
 	}
@@ -164,13 +164,13 @@ func (ccs *SLACategoryService) Delete(ids []uint, currentUserID uint) ([]uint, e
 	return failedIds, nil
 }
 
-func (ccs *SLACategoryService) Activate(ids []uint, currentUserID uint) error {
-	successfulIds, err := ccs.repo.Activate(ids)
+func (scs *SLACategoryService) Activate(ids []uint, currentUserID uint) error {
+	successfulIds, err := scs.repo.Activate(ids)
 
 	if len(successfulIds) > 0 {
 
 		go func() {
-			err := ccs.activityLogSvc.LogBulkActivities(
+			err := scs.activityLogSvc.LogBulkActivities(
 				activityLogModels.ActivateAction,
 				models.SLACategory{}.TableName(),
 				successfulIds,
@@ -180,7 +180,7 @@ func (ccs *SLACategoryService) Activate(ids []uint, currentUserID uint) error {
 			)
 			if err != nil {
 				// @todo - save to log file
-				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+				fmt.Printf("Failed to log activity: %v\n", err)
 			}
 		}()
 	}
@@ -188,13 +188,13 @@ func (ccs *SLACategoryService) Activate(ids []uint, currentUserID uint) error {
 	return err
 }
 
-func (ccs *SLACategoryService) Deactivate(ids []uint, currentUserID uint) error {
-	successfulIds, err := ccs.repo.Deactivate(ids)
+func (scs *SLACategoryService) Deactivate(ids []uint, currentUserID uint) error {
+	successfulIds, err := scs.repo.Deactivate(ids)
 
 	if len(successfulIds) > 0 {
 
 		go func() {
-			err := ccs.activityLogSvc.LogBulkActivities(
+			err := scs.activityLogSvc.LogBulkActivities(
 				activityLogModels.DeactivateAction,
 				models.SLACategory{}.TableName(),
 				successfulIds,
@@ -205,7 +205,7 @@ func (ccs *SLACategoryService) Deactivate(ids []uint, currentUserID uint) error 
 			if err != nil {
 				// @todo - save to log file
 				// You might want to log this error or handle it appropriately
-				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+				fmt.Printf("Failed to log activity: %v\n", err)
 			}
 		}()
 	}

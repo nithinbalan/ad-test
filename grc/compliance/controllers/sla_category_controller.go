@@ -22,23 +22,23 @@ func NewSLACategoryController(service services.SLACategoryServiceInterface) *SLA
 	}
 }
 
-func (ccc *SLACategoryController) GetAllSLACategories(c *gin.Context) {
+func (scc *SLACategoryController) GetAllSLACategories(c *gin.Context) {
 
 	sort := c.Query("sort")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 
-	slaCategories, err := ccc.service.GetAll(sort, sortBy, keyword, status)
+	slaCategories, err := scc.service.GetAll(sort, sortBy, keyword, status)
 
 	if err != nil {
-		utility.SendInternalErrResp(ccc.db, c, err.Error())
+		utility.SendInternalErrResp(scc.db, c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, slaCategories)
 }
 
-func (ccc *SLACategoryController) GetSLACategoryDetails(c *gin.Context) {
+func (scc *SLACategoryController) GetSLACategoryDetails(c *gin.Context) {
 	idStr := c.Param("id")
 
 	id, err := strconv.ParseUint(idStr, 10, 32)
@@ -47,7 +47,7 @@ func (ccc *SLACategoryController) GetSLACategoryDetails(c *gin.Context) {
 		return
 	}
 
-	slaCategory, err := ccc.service.GetByID(uint(id))
+	slaCategory, err := scc.service.GetByID(uint(id))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -56,7 +56,7 @@ func (ccc *SLACategoryController) GetSLACategoryDetails(c *gin.Context) {
 	c.JSON(http.StatusOK, slaCategory)
 }
 
-func (ccc *SLACategoryController) CreateCategory(c *gin.Context) {
+func (scc *SLACategoryController) CreateCategory(c *gin.Context) {
 
 	var category *models.SLACategory
 
@@ -66,18 +66,18 @@ func (ccc *SLACategoryController) CreateCategory(c *gin.Context) {
 	}
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(ccc.db, c, err.Error())
+		utility.SendInternalErrResp(scc.db, c, err.Error())
 		return
 	}
 
-	createdCategory, err := ccc.service.Create(currentUserID, category)
+	createdCategory, err := scc.service.Create(currentUserID, category)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
 			return
 		default:
-			utility.SendInternalErrResp(ccc.db, c, e.Error())
+			utility.SendInternalErrResp(scc.db, c, e.Error())
 			return
 		}
 	}
@@ -85,7 +85,7 @@ func (ccc *SLACategoryController) CreateCategory(c *gin.Context) {
 	c.JSON(http.StatusCreated, createdCategory)
 }
 
-func (ccc *SLACategoryController) UpdateCategory(c *gin.Context) {
+func (scc *SLACategoryController) UpdateCategory(c *gin.Context) {
 
 	categoryID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -100,11 +100,11 @@ func (ccc *SLACategoryController) UpdateCategory(c *gin.Context) {
 	}
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(ccc.db, c, err.Error())
+		utility.SendInternalErrResp(scc.db, c, err.Error())
 		return
 	}
 
-	updatedCategory, err = ccc.service.Update(uint(categoryID), currentUserID, updatedCategory)
+	updatedCategory, err = scc.service.Update(uint(categoryID), currentUserID, updatedCategory)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -114,7 +114,7 @@ func (ccc *SLACategoryController) UpdateCategory(c *gin.Context) {
 			utility.SendInvalidErrResp(c, e)
 			return
 		default:
-			utility.SendInternalErrResp(ccc.db, c, e.Error())
+			utility.SendInternalErrResp(scc.db, c, e.Error())
 			return
 		}
 	}
@@ -122,7 +122,7 @@ func (ccc *SLACategoryController) UpdateCategory(c *gin.Context) {
 	c.JSON(http.StatusOK, updatedCategory)
 }
 
-func (ccc *SLACategoryController) DeleteSLACategories(c *gin.Context) {
+func (scc *SLACategoryController) DeleteSLACategories(c *gin.Context) {
 
 	var request struct {
 		IDs []uint `json:"ids"`
@@ -135,20 +135,20 @@ func (ccc *SLACategoryController) DeleteSLACategories(c *gin.Context) {
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(ccc.db, c, err.Error())
+		utility.SendInternalErrResp(scc.db, c, err.Error())
 		return
 	}
 
-	failedIDs, err := ccc.service.Delete(request.IDs, currentUserID)
+	failedIDs, err := scc.service.Delete(request.IDs, currentUserID)
 	if err != nil {
-		utility.SendInternalErrResp(ccc.db, c, err.Error())
+		utility.SendInternalErrResp(scc.db, c, err.Error())
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
 
-func (ccc *SLACategoryController) ActivateSLACategories(c *gin.Context) {
+func (scc *SLACategoryController) ActivateSLACategories(c *gin.Context) {
 	var request struct {
 		IDs []uint `json:"ids"`
 	}
@@ -160,20 +160,20 @@ func (ccc *SLACategoryController) ActivateSLACategories(c *gin.Context) {
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(ccc.db, c, err.Error())
+		utility.SendInternalErrResp(scc.db, c, err.Error())
 		return
 	}
 
-	err = ccc.service.Activate(request.IDs, currentUserID)
+	err = scc.service.Activate(request.IDs, currentUserID)
 	if err != nil {
-		utility.SendInternalErrResp(ccc.db, c, err.Error())
+		utility.SendInternalErrResp(scc.db, c, err.Error())
 		return
 	}
 
 	c.Status(http.StatusOK)
 }
 
-func (ccc *SLACategoryController) DeactivateSLACategories(c *gin.Context) {
+func (scc *SLACategoryController) DeactivateSLACategories(c *gin.Context) {
 	var request struct {
 		IDs []uint `json:"ids"`
 	}
@@ -185,13 +185,13 @@ func (ccc *SLACategoryController) DeactivateSLACategories(c *gin.Context) {
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(ccc.db, c, err.Error())
+		utility.SendInternalErrResp(scc.db, c, err.Error())
 		return
 	}
 
-	err = ccc.service.Deactivate(request.IDs, currentUserID)
+	err = scc.service.Deactivate(request.IDs, currentUserID)
 	if err != nil {
-		utility.SendInternalErrResp(ccc.db, c, err.Error())
+		utility.SendInternalErrResp(scc.db, c, err.Error())
 		return
 	}
 
