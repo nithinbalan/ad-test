@@ -20,6 +20,6 @@ func NewReviewFrequencyService(repo repositories.ReviewFrequencyRepositoryInterf
 	}
 }
 
-func (sls *ReviewFrequencyService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ReviewFrequency, error) {
-	return sls.repo.GetAll(sort, sortBy, keyword, status)
+func (rfs *ReviewFrequencyService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ReviewFrequency, error) {
+	return rfs.repo.GetAll(sort, sortBy, keyword, status)
 }

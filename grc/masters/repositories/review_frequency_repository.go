@@ -24,7 +24,7 @@ func NewReviewFrequencyRepository(db *gorm.DB) *ReviewFrequencyRepository {
 
 func (repo *ReviewFrequencyRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ReviewFrequency, error) {
 
-	var severityLevels []*models.ReviewFrequency
+	var reviewFrequencies []*models.ReviewFrequency
 
 	query := repo.db
 
@@ -43,7 +43,7 @@ func (repo *ReviewFrequencyRepository) GetAll(sort string, sortBy string, keywor
 	}
 
 	query = query.Order(sortBy + " " + sort)
-	result := query.Find(&severityLevels)
+	result := query.Find(&reviewFrequencies)
 
-	return severityLevels, result.Error
+	return reviewFrequencies, result.Error
 }
