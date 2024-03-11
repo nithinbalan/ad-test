@@ -45,11 +45,11 @@ if /I "%operation%"=="createmigration" (
     %goosePath% -dir=%seederDir% create %name% sql
 ) else if /I "%operation%"=="seed" (
     echo Running seeders...
-    %goosePath% -dir=%seederDir% mssql "%connectionString%" up > %seederDir%/output.txt 2>&1
+    %goosePath%  -table=goose_seeder_versions -dir=%seederDir% mssql "%connectionString%"  up > %seederDir%/output.txt 2>&1
 ) else if /I "%operation%"=="unseed" (
     REM Run the seeder down migrations to remove the seeded data from the database.
     echo Removing seeded data...
-    %goosePath% -dir=%seederDir% mssql "%connectionString%" down
+    %goosePath% -table=goose_seeder_versions -dir=%seederDir% mssql "%connectionString%" down
 ) else (
     echo Invalid operation specified.
     exit /b 1
