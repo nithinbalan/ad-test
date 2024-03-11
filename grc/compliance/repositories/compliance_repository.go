@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"errors"
+	"fmt"
 	"jethur/grc/compliance/models"
 	"jethur/utility"
 
@@ -70,7 +71,7 @@ func (repo *ComplianceRepository) GetByID(id uint) (*models.ComplianceRegister, 
 
 func (repo *ComplianceRepository) Create(compliance *models.ComplianceRegister) (*models.ComplianceRegister, error) {
 	result := repo.db.Create(&compliance)
-
+	fmt.Println(result)
 	return compliance, result.Error
 }
 

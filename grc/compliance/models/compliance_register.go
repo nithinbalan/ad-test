@@ -16,15 +16,15 @@ type ComplianceRegister struct {
 	DescriptionEn           string `json:"description_en" gorm:"type:varchar(max)"`
 	DescriptionAr           string `json:"description_ar" gorm:"type:nvarchar(max)"`
 	Version                 string `json:"version" gorm:"size:45"`
-	Deadline                string `json:"deadline" gorm:"type:date"`
-	IssueDate               string `json:"issue_date" gorm:"type:date"`
-	ExpiryDate              string `json:"expiry_date" gorm:"type:date"`
-	NextReviewDate          string `json:"next_review_date" gorm:"type:date"`
-	CreatedAt               string `json:"created_at" gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP"`
-	UpdatedAt               string `json:"updated_at" gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"`
-	CreatedBy               uint   `json:"created_by" gorm:"not null"`
-	UpdatedBy               uint   `json:"updated_by" gorm:"default:null"`
-	LifecycleStatusID       uint   `json:"lifecycle_status_id" gorm:"not null"`
+	// Deadline                string `json:"deadline" gorm:"type:date"`
+	// IssueDate               string `json:"issue_date" gorm:"type:date"`
+	// ExpiryDate              string `json:"expiry_date" gorm:"type:date"`
+	// NextReviewDate          string `json:"next_review_date" gorm:"type:date"`
+	// CreatedAt               string `json:"created_at" gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP"`
+	// UpdatedAt               string `json:"updated_at" gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"`
+	CreatedBy         uint `json:"created_by" gorm:"not null"`
+	UpdatedBy         uint `json:"updated_by" gorm:"default:null"`
+	LifecycleStatusID uint `json:"lifecycle_status_id" gorm:"not null"`
 }
 
 // TableName overrides the table name used by ComplianceRegister to `compliance_register`
