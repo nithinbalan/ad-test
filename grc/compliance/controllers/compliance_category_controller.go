@@ -56,7 +56,7 @@ func (ccc *ComplianceCategoryController) GetComplianceCategoryDetails(c *gin.Con
 	c.JSON(http.StatusOK, complianceCategory)
 }
 
-func (ccc *ComplianceCategoryController) CreateCategory(c *gin.Context) {
+func (ccc *ComplianceCategoryController) CreateComplianceCategory(c *gin.Context) {
 
 	var category *models.ComplianceCategory
 
@@ -85,7 +85,7 @@ func (ccc *ComplianceCategoryController) CreateCategory(c *gin.Context) {
 	c.JSON(http.StatusCreated, createdCategory)
 }
 
-func (ccc *ComplianceCategoryController) UpdateCategory(c *gin.Context) {
+func (ccc *ComplianceCategoryController) UpdateComplianceCategory(c *gin.Context) {
 
 	categoryID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {

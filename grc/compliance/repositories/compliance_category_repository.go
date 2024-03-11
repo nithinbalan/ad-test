@@ -34,7 +34,7 @@ func NewComplianceCategoryRepository(db *gorm.DB) *ComplianceCategoryRepository 
 
 func (repo *ComplianceCategoryRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ComplianceCategory, error) {
 
-	var categories []*models.ComplianceCategory
+	var complianceCategories []*models.ComplianceCategory
 
 	query := repo.db
 
@@ -53,9 +53,9 @@ func (repo *ComplianceCategoryRepository) GetAll(sort string, sortBy string, key
 	}
 
 	query = query.Order(sortBy + " " + sort)
-	result := query.Find(&categories)
+	result := query.Find(&complianceCategories)
 
-	return categories, result.Error
+	return complianceCategories, result.Error
 }
 
 func (repo *ComplianceCategoryRepository) GetByID(id uint) (*models.ComplianceCategory, error) {

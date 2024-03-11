@@ -5,7 +5,7 @@ import (
 	complianceRepo "jethur/grc/compliance/repositories"
 	complianceService "jethur/grc/compliance/services"
 	activityLogRepository "jethur/grc/logs/repositories"
-	activityLogServie "jethur/grc/logs/services"
+	activityLogService "jethur/grc/logs/services"
 	"jethur/middlewares"
 
 	"github.com/gin-gonic/gin"
@@ -19,7 +19,7 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	complianceRoutes.Use(middlewares.AuthMiddleware())
 
 	activityLogRepo := activityLogRepository.NewActivityLogRepository(db)
-	activityLogSvc := activityLogServie.NewActivityLogService(activityLogRepo)
+	activityLogSvc := activityLogService.NewActivityLogService(activityLogRepo)
 
 	//Compliance Category
 	complianceCategoryRepo := complianceRepo.NewComplianceCategoryRepository(db)
@@ -28,11 +28,11 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 
 	complianceRoutes.GET("/compliance-categories", complianceCategoryController.GetAllComplianceCategories)
 	complianceRoutes.GET("/compliance-categories/:id", complianceCategoryController.GetComplianceCategoryDetails)
-	complianceRoutes.POST("/compliance-categories", complianceCategoryController.CreateCategory)
-	complianceRoutes.PUT("/compliance-categories/:id", complianceCategoryController.UpdateCategory)
+	complianceRoutes.POST("/compliance-categories", complianceCategoryController.CreateComplianceCategory)
+	complianceRoutes.PUT("/compliance-categories/:id", complianceCategoryController.UpdateComplianceCategory)
 	complianceRoutes.POST("/compliance-categories/delete", complianceCategoryController.DeleteComplianceCategories)
-	complianceRoutes.POST("/compliance-categories/activate", complianceCategoryController.ActivateComplianceCategories)
-	complianceRoutes.POST("/compliance-categories/deactivate", complianceCategoryController.DeactivateComplianceCategories)
+	complianceRoutes.PUT("/compliance-categories/activate", complianceCategoryController.ActivateComplianceCategories)
+	complianceRoutes.PUT("/compliance-categories/deactivate", complianceCategoryController.DeactivateComplianceCategories)
 
 	//Compliance Status
 	complianceStatusRepo := complianceRepo.NewComplianceStatusRepository(db)
