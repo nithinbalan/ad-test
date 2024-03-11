@@ -11,18 +11,18 @@ import (
 	"gorm.io/gorm"
 )
 
-type SlaCategoryController struct {
-	service services.SlaCategoryServiceInterface
+type SLACategoryController struct {
+	service services.SLACategoryServiceInterface
 	db      *gorm.DB
 }
 
-func NewSlaCategoryController(service services.SlaCategoryServiceInterface) *SlaCategoryController {
-	return &SlaCategoryController{
+func NewSLACategoryController(service services.SLACategoryServiceInterface) *SLACategoryController {
+	return &SLACategoryController{
 		service: service,
 	}
 }
 
-func (ccc *SlaCategoryController) GetAllSlaCategories(c *gin.Context) {
+func (ccc *SLACategoryController) GetAllSLACategories(c *gin.Context) {
 
 	sort := c.Query("sort")
 	sortBy := c.Query("sort_by")
@@ -38,7 +38,7 @@ func (ccc *SlaCategoryController) GetAllSlaCategories(c *gin.Context) {
 	c.JSON(http.StatusOK, slaCategories)
 }
 
-func (ccc *SlaCategoryController) GetSlaCategoryDetails(c *gin.Context) {
+func (ccc *SLACategoryController) GetSLACategoryDetails(c *gin.Context) {
 	idStr := c.Param("id")
 
 	id, err := strconv.ParseUint(idStr, 10, 32)
@@ -56,9 +56,9 @@ func (ccc *SlaCategoryController) GetSlaCategoryDetails(c *gin.Context) {
 	c.JSON(http.StatusOK, slaCategory)
 }
 
-func (ccc *SlaCategoryController) CreateCategory(c *gin.Context) {
+func (ccc *SLACategoryController) CreateCategory(c *gin.Context) {
 
-	var category *models.SlaCategory
+	var category *models.SLACategory
 
 	if err := c.ShouldBindJSON(&category); err != nil {
 		utility.SendInvalidErrResp(c, err)
@@ -85,7 +85,7 @@ func (ccc *SlaCategoryController) CreateCategory(c *gin.Context) {
 	c.JSON(http.StatusCreated, createdCategory)
 }
 
-func (ccc *SlaCategoryController) UpdateCategory(c *gin.Context) {
+func (ccc *SLACategoryController) UpdateCategory(c *gin.Context) {
 
 	categoryID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -93,7 +93,7 @@ func (ccc *SlaCategoryController) UpdateCategory(c *gin.Context) {
 		return
 	}
 
-	var updatedCategory *models.SlaCategory
+	var updatedCategory *models.SLACategory
 	if err := c.ShouldBindJSON(&updatedCategory); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
@@ -122,7 +122,7 @@ func (ccc *SlaCategoryController) UpdateCategory(c *gin.Context) {
 	c.JSON(http.StatusOK, updatedCategory)
 }
 
-func (ccc *SlaCategoryController) DeleteSlaCategories(c *gin.Context) {
+func (ccc *SLACategoryController) DeleteSLACategories(c *gin.Context) {
 
 	var request struct {
 		IDs []uint `json:"ids"`
@@ -148,7 +148,7 @@ func (ccc *SlaCategoryController) DeleteSlaCategories(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
 
-func (ccc *SlaCategoryController) ActivateSlaCategories(c *gin.Context) {
+func (ccc *SLACategoryController) ActivateSLACategories(c *gin.Context) {
 	var request struct {
 		IDs []uint `json:"ids"`
 	}
@@ -173,7 +173,7 @@ func (ccc *SlaCategoryController) ActivateSlaCategories(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-func (ccc *SlaCategoryController) DeactivateSlaCategories(c *gin.Context) {
+func (ccc *SLACategoryController) DeactivateSLACategories(c *gin.Context) {
 	var request struct {
 		IDs []uint `json:"ids"`
 	}

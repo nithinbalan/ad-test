@@ -9,11 +9,11 @@ import (
 )
 
 // Interfaces
-type SlaCategoryRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.SlaCategory, error)
-	GetByID(id uint) (*models.SlaCategory, error)
-	Create(article *models.SlaCategory) (*models.SlaCategory, error)
-	Update(id uint, category *models.SlaCategory) (*models.SlaCategory, error)
+type SLACategoryRepositoryInterface interface {
+	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.SLACategory, error)
+	GetByID(id uint) (*models.SLACategory, error)
+	Create(article *models.SLACategory) (*models.SLACategory, error)
+	Update(id uint, category *models.SLACategory) (*models.SLACategory, error)
 	Delete(id uint) error
 	Activate(ids []uint) ([]uint, error)
 	Deactivate(ids []uint) ([]uint, error)
@@ -22,19 +22,19 @@ type SlaCategoryRepositoryInterface interface {
 }
 
 // implementation
-type SlaCategoryRepository struct {
+type SLACategoryRepository struct {
 	db *gorm.DB
 }
 
-func NewSlaCategoryRepository(db *gorm.DB) *SlaCategoryRepository {
-	return &SlaCategoryRepository{
+func NewSLACategoryRepository(db *gorm.DB) *SLACategoryRepository {
+	return &SLACategoryRepository{
 		db: db,
 	}
 }
 
-func (repo *SlaCategoryRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.SlaCategory, error) {
+func (repo *SLACategoryRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.SLACategory, error) {
 
-	var categories []*models.SlaCategory
+	var categories []*models.SLACategory
 
 	query := repo.db
 
@@ -58,8 +58,8 @@ func (repo *SlaCategoryRepository) GetAll(sort string, sortBy string, keyword st
 	return categories, result.Error
 }
 
-func (repo *SlaCategoryRepository) GetByID(id uint) (*models.SlaCategory, error) {
-	var category *models.SlaCategory
+func (repo *SLACategoryRepository) GetByID(id uint) (*models.SLACategory, error) {
+	var category *models.SLACategory
 	result := repo.db.First(&category, id)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -71,14 +71,14 @@ func (repo *SlaCategoryRepository) GetByID(id uint) (*models.SlaCategory, error)
 	return category, result.Error
 }
 
-func (repo *SlaCategoryRepository) Create(category *models.SlaCategory) (*models.SlaCategory, error) {
+func (repo *SLACategoryRepository) Create(category *models.SLACategory) (*models.SLACategory, error) {
 	result := repo.db.Create(&category)
 
 	return category, result.Error
 }
 
-func (repo *SlaCategoryRepository) Update(id uint, updatedCategory *models.SlaCategory) (*models.SlaCategory, error) {
-	var category *models.SlaCategory
+func (repo *SLACategoryRepository) Update(id uint, updatedCategory *models.SLACategory) (*models.SLACategory, error) {
+	var category *models.SLACategory
 
 	if err := repo.db.First(&category, id).Error; err != nil {
 		return nil, err
@@ -91,14 +91,14 @@ func (repo *SlaCategoryRepository) Update(id uint, updatedCategory *models.SlaCa
 	return category, nil
 }
 
-func (repo *SlaCategoryRepository) Delete(id uint) error {
+func (repo *SLACategoryRepository) Delete(id uint) error {
 
-	var category *models.SlaCategory
+	var category *models.SLACategory
 	if err := repo.db.First(&category, id).Error; err != nil {
 		return err
 	}
 
-	result := repo.db.Delete(&models.SlaCategory{}, id)
+	result := repo.db.Delete(&models.SLACategory{}, id)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -106,11 +106,11 @@ func (repo *SlaCategoryRepository) Delete(id uint) error {
 	return nil
 }
 
-func (repo *SlaCategoryRepository) Activate(ids []uint) ([]uint, error) {
+func (repo *SLACategoryRepository) Activate(ids []uint) ([]uint, error) {
 	var idsToUpdate []uint
 
 	// Step 1: Fetch the IDs of records that are currently 'inactive' and within the provided 'ids' slice
-	if err := repo.db.Model(&models.SlaCategory{}).
+	if err := repo.db.Model(&models.SLACategory{}).
 		Where("id IN ? AND status = ?", ids, "inactive").
 		Pluck("id", &idsToUpdate).Error; err != nil {
 		return nil, err // Return error if the query fails
@@ -118,7 +118,7 @@ func (repo *SlaCategoryRepository) Activate(ids []uint) ([]uint, error) {
 
 	// Step 2: If there are any IDs to update, perform the update operation
 	if len(idsToUpdate) > 0 {
-		if err := repo.db.Model(&models.SlaCategory{}).
+		if err := repo.db.Model(&models.SLACategory{}).
 			Where("id IN ?", idsToUpdate).
 			Update("status", "active").Error; err != nil {
 			return nil, err // Return error if the update operation fails
@@ -129,12 +129,12 @@ func (repo *SlaCategoryRepository) Activate(ids []uint) ([]uint, error) {
 	return idsToUpdate, nil
 }
 
-func (repo *SlaCategoryRepository) Deactivate(ids []uint) ([]uint, error) {
+func (repo *SLACategoryRepository) Deactivate(ids []uint) ([]uint, error) {
 
 	var idsToUpdate []uint
 
 	// Step 1: Fetch the IDs of records that are currently 'inactive' and within the provided 'ids' slice
-	if err := repo.db.Model(&models.SlaCategory{}).
+	if err := repo.db.Model(&models.SLACategory{}).
 		Where("id IN ? AND status = ?", ids, "active").
 		Pluck("id", &idsToUpdate).Error; err != nil {
 		return nil, err // Return error if the query fails
@@ -142,7 +142,7 @@ func (repo *SlaCategoryRepository) Deactivate(ids []uint) ([]uint, error) {
 
 	// Step 2: If there are any IDs to update, perform the update operation
 	if len(idsToUpdate) > 0 {
-		if err := repo.db.Model(&models.SlaCategory{}).
+		if err := repo.db.Model(&models.SLACategory{}).
 			Where("id IN ?", idsToUpdate).
 			Update("status", "inactive").Error; err != nil {
 			return nil, err // Return error if the update operation fails
@@ -154,11 +154,11 @@ func (repo *SlaCategoryRepository) Deactivate(ids []uint) ([]uint, error) {
 
 }
 
-func (repo *SlaCategoryRepository) ExistsByTitle(titleEn, titleAr string) (bool, error) {
+func (repo *SLACategoryRepository) ExistsByTitle(titleEn, titleAr string) (bool, error) {
 	var count int64
 
 	// Check for the existence of titleEn or titleAr in a single query
-	err := repo.db.Model(&models.SlaCategory{}).
+	err := repo.db.Model(&models.SLACategory{}).
 		Where("title_en = ? OR title_ar = ?", titleEn, titleAr).
 		Count(&count).Error
 
@@ -170,10 +170,10 @@ func (repo *SlaCategoryRepository) ExistsByTitle(titleEn, titleAr string) (bool,
 	return count > 0, nil
 }
 
-func (repo *SlaCategoryRepository) ExistsByTitleExcludingID(id uint, titleEn, titleAr string) (bool, error) {
+func (repo *SLACategoryRepository) ExistsByTitleExcludingID(id uint, titleEn, titleAr string) (bool, error) {
 	var count int64
 
-	err := repo.db.Model(&models.SlaCategory{}).
+	err := repo.db.Model(&models.SLACategory{}).
 		Where("id <> ? AND (title_en = ? OR title_ar = ?)", id, titleEn, titleAr).
 		Count(&count).Error
 

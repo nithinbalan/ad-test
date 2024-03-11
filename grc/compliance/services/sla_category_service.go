@@ -10,38 +10,38 @@ import (
 	"log"
 )
 
-type SlaCategoryServiceInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.SlaCategory, error)
-	GetByID(id uint) (*models.SlaCategory, error)
-	Create(currentUserID uint, category *models.SlaCategory) (*models.SlaCategory, error)
-	Update(id uint, currentUserID uint, category *models.SlaCategory) (*models.SlaCategory, error)
+type SLACategoryServiceInterface interface {
+	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.SLACategory, error)
+	GetByID(id uint) (*models.SLACategory, error)
+	Create(currentUserID uint, category *models.SLACategory) (*models.SLACategory, error)
+	Update(id uint, currentUserID uint, category *models.SLACategory) (*models.SLACategory, error)
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	Activate(ids []uint, currentUserID uint) error
 	Deactivate(ids []uint, currentUserID uint) error
 }
 
 // Service and implementations
-type SlaCategoryService struct {
-	repo           repositories.SlaCategoryRepositoryInterface
+type SLACategoryService struct {
+	repo           repositories.SLACategoryRepositoryInterface
 	activityLogSvc services.ActivityLogServiceInterface
 }
 
-func NewSlaCategoryService(repo repositories.SlaCategoryRepositoryInterface, activityLogSvc services.ActivityLogServiceInterface) SlaCategoryServiceInterface {
-	return &SlaCategoryService{
+func NewSLACategoryService(repo repositories.SLACategoryRepositoryInterface, activityLogSvc services.ActivityLogServiceInterface) SLACategoryServiceInterface {
+	return &SLACategoryService{
 		repo:           repo,
 		activityLogSvc: activityLogSvc,
 	}
 }
 
-func (ccs *SlaCategoryService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.SlaCategory, error) {
+func (ccs *SLACategoryService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.SLACategory, error) {
 	return ccs.repo.GetAll(sort, sortBy, keyword, status)
 }
 
-func (ccs SlaCategoryService) GetByID(id uint) (*models.SlaCategory, error) {
+func (ccs SLACategoryService) GetByID(id uint) (*models.SLACategory, error) {
 	return ccs.repo.GetByID(id)
 }
 
-func (ccs *SlaCategoryService) Create(currentUserID uint, category *models.SlaCategory) (*models.SlaCategory, error) {
+func (ccs *SLACategoryService) Create(currentUserID uint, category *models.SLACategory) (*models.SLACategory, error) {
 
 	if exists, err := ccs.repo.ExistsByTitle(category.TitleEn, category.TitleAr); err != nil {
 		return nil, err
@@ -57,7 +57,7 @@ func (ccs *SlaCategoryService) Create(currentUserID uint, category *models.SlaCa
 	go func() {
 		err := ccs.activityLogSvc.LogActivity(
 			activityLogModels.CreateAction,
-			models.SlaCategory{}.TableName(),
+			models.SLACategory{}.TableName(),
 			category.ID,
 			createdCategory,
 			currentUserID,
@@ -73,7 +73,7 @@ func (ccs *SlaCategoryService) Create(currentUserID uint, category *models.SlaCa
 	return createdCategory, nil
 }
 
-func (ccs *SlaCategoryService) Update(id uint, currentUserID uint, updatedCategory *models.SlaCategory) (*models.SlaCategory, error) {
+func (ccs *SLACategoryService) Update(id uint, currentUserID uint, updatedCategory *models.SLACategory) (*models.SLACategory, error) {
 	existingCategory, err := ccs.repo.GetByID(id)
 
 	if err != nil {
@@ -110,7 +110,7 @@ func (ccs *SlaCategoryService) Update(id uint, currentUserID uint, updatedCatego
 	go func() {
 		err := ccs.activityLogSvc.LogActivity(
 			activityLogModels.UpdateAction,
-			models.SlaCategory{}.TableName(),
+			models.SLACategory{}.TableName(),
 			result.ID,
 			changedDataJSON,
 			currentUserID,
@@ -124,7 +124,7 @@ func (ccs *SlaCategoryService) Update(id uint, currentUserID uint, updatedCatego
 	return result, err
 }
 
-func (ccs *SlaCategoryService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
+func (ccs *SLACategoryService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
 	for _, id := range ids {
@@ -148,7 +148,7 @@ func (ccs *SlaCategoryService) Delete(ids []uint, currentUserID uint) ([]uint, e
 		go func() {
 			err := ccs.activityLogSvc.LogBulkActivities(
 				activityLogModels.DeleteAction, // Make sure this action constant is defined appropriately
-				models.SlaCategory{}.TableName(),
+				models.SLACategory{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,
@@ -164,7 +164,7 @@ func (ccs *SlaCategoryService) Delete(ids []uint, currentUserID uint) ([]uint, e
 	return failedIds, nil
 }
 
-func (ccs *SlaCategoryService) Activate(ids []uint, currentUserID uint) error {
+func (ccs *SLACategoryService) Activate(ids []uint, currentUserID uint) error {
 	successfulIds, err := ccs.repo.Activate(ids)
 
 	if len(successfulIds) > 0 {
@@ -172,7 +172,7 @@ func (ccs *SlaCategoryService) Activate(ids []uint, currentUserID uint) error {
 		go func() {
 			err := ccs.activityLogSvc.LogBulkActivities(
 				activityLogModels.ActivateAction,
-				models.SlaCategory{}.TableName(),
+				models.SLACategory{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,
@@ -188,7 +188,7 @@ func (ccs *SlaCategoryService) Activate(ids []uint, currentUserID uint) error {
 	return err
 }
 
-func (ccs *SlaCategoryService) Deactivate(ids []uint, currentUserID uint) error {
+func (ccs *SLACategoryService) Deactivate(ids []uint, currentUserID uint) error {
 	successfulIds, err := ccs.repo.Deactivate(ids)
 
 	if len(successfulIds) > 0 {
@@ -196,7 +196,7 @@ func (ccs *SlaCategoryService) Deactivate(ids []uint, currentUserID uint) error 
 		go func() {
 			err := ccs.activityLogSvc.LogBulkActivities(
 				activityLogModels.DeactivateAction,
-				models.SlaCategory{}.TableName(),
+				models.SLACategory{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,
