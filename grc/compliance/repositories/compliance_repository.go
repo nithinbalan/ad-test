@@ -2,18 +2,18 @@ package repositories
 
 import (
 	"errors"
-	"fmt"
-	"jethur/grc/compliance/models"
+	complianceModels "jethur/grc/compliance/models"
+	masterModels "jethur/grc/masters/models"
 	"jethur/utility"
 
 	"gorm.io/gorm"
 )
 
 type ComplianceRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ComplianceRegister, error)
-	GetByID(id uint) (*models.ComplianceRegister, error)
-	Create(compliance *models.ComplianceRegister) (*models.ComplianceRegister, error)
-	Update(id uint, compliance *models.ComplianceRegister) (*models.ComplianceRegister, error)
+	GetAll(sort string, sortBy string, keyword string, status string) ([]*complianceModels.ComplianceRegister, error)
+	GetByID(id uint) (*complianceModels.ComplianceRegister, error)
+	Create(currentUserID uint, compliance *complianceModels.ComplianceRegister) (*complianceModels.ComplianceRegister, error)
+	Update(id uint, compliance *complianceModels.ComplianceRegister) (*complianceModels.ComplianceRegister, error)
 	Delete(id uint) error
 	Activate(ids []uint) ([]uint, error)
 	Deactivate(ids []uint) ([]uint, error)
@@ -31,8 +31,8 @@ func NewComplianceRepository(db *gorm.DB) *ComplianceRepository {
 	}
 }
 
-func (repo *ComplianceRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ComplianceRegister, error) {
-	var compliances []*models.ComplianceRegister
+func (repo *ComplianceRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*complianceModels.ComplianceRegister, error) {
+	var compliances []*complianceModels.ComplianceRegister
 
 	query := repo.db
 
@@ -56,8 +56,8 @@ func (repo *ComplianceRepository) GetAll(sort string, sortBy string, keyword str
 	return compliances, result.Error
 }
 
-func (repo *ComplianceRepository) GetByID(id uint) (*models.ComplianceRegister, error) {
-	var compliance *models.ComplianceRegister
+func (repo *ComplianceRepository) GetByID(id uint) (*complianceModels.ComplianceRegister, error) {
+	var compliance *complianceModels.ComplianceRegister
 	result := repo.db.First(&compliance, id)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -69,14 +69,30 @@ func (repo *ComplianceRepository) GetByID(id uint) (*models.ComplianceRegister, 
 	return compliance, result.Error
 }
 
-func (repo *ComplianceRepository) Create(compliance *models.ComplianceRegister) (*models.ComplianceRegister, error) {
+func (repo *ComplianceRepository) Create(currentUserID uint, compliance *complianceModels.ComplianceRegister) (*complianceModels.ComplianceRegister, error) {
+
+	var lifecycleStatus masterModels.LifecycleStatus
+	err := repo.db.Where("type = ?", "archived").First(&lifecycleStatus).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("no active lifecycle status found")
+		}
+		// // Handle other errors
+		// return nil, errors.Wrap(err, "error finding active lifecycle status")
+
+	}
+
+	compliance.ReferenceNumber = utility.GenerateReferenceNumber(compliance.ID)
+	compliance.CreatedBy = currentUserID
+
+	compliance.LifecycleStatusID = lifecycleStatus.ID
+
 	result := repo.db.Create(&compliance)
-	fmt.Println(result)
 	return compliance, result.Error
 }
 
-func (repo *ComplianceRepository) Update(id uint, updatedCompliance *models.ComplianceRegister) (*models.ComplianceRegister, error) {
-	var compliance *models.ComplianceRegister
+func (repo *ComplianceRepository) Update(id uint, updatedCompliance *complianceModels.ComplianceRegister) (*complianceModels.ComplianceRegister, error) {
+	var compliance *complianceModels.ComplianceRegister
 
 	if err := repo.db.First(&compliance, id).Error; err != nil {
 		return nil, err
@@ -91,12 +107,12 @@ func (repo *ComplianceRepository) Update(id uint, updatedCompliance *models.Comp
 
 func (repo *ComplianceRepository) Delete(id uint) error {
 
-	var compliance *models.ComplianceRegister
+	var compliance *complianceModels.ComplianceRegister
 	if err := repo.db.First(&compliance, id).Error; err != nil {
 		return err
 	}
 
-	result := repo.db.Delete(&models.ComplianceRegister{}, id)
+	result := repo.db.Delete(&complianceModels.ComplianceRegister{}, id)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -107,14 +123,14 @@ func (repo *ComplianceRepository) Delete(id uint) error {
 func (repo *ComplianceRepository) Activate(ids []uint) ([]uint, error) {
 	var idsToUpdate []uint
 
-	if err := repo.db.Model(&models.ComplianceRegister{}).
+	if err := repo.db.Model(&complianceModels.ComplianceRegister{}).
 		Where("id IN ? AND status = ?", ids, "inactive").
 		Pluck("id", &idsToUpdate).Error; err != nil {
 		return nil, err
 	}
 
 	if len(idsToUpdate) > 0 {
-		if err := repo.db.Model(&models.ComplianceRegister{}).
+		if err := repo.db.Model(&complianceModels.ComplianceRegister{}).
 			Where("id IN ?", idsToUpdate).
 			Update("status", "active").Error; err != nil {
 			return nil, err
@@ -127,14 +143,14 @@ func (repo *ComplianceRepository) Activate(ids []uint) ([]uint, error) {
 func (repo *ComplianceRepository) Deactivate(ids []uint) ([]uint, error) {
 	var idsToUpdate []uint
 
-	if err := repo.db.Model(&models.ComplianceRegister{}).
+	if err := repo.db.Model(&complianceModels.ComplianceRegister{}).
 		Where("id IN ? AND status = ?", ids, "active").
 		Pluck("id", &idsToUpdate).Error; err != nil {
 		return nil, err
 	}
 
 	if len(idsToUpdate) > 0 {
-		if err := repo.db.Model(&models.ComplianceRegister{}).
+		if err := repo.db.Model(&complianceModels.ComplianceRegister{}).
 			Where("id IN ?", idsToUpdate).
 			Update("status", "inactive").Error; err != nil {
 			return nil, err
@@ -147,7 +163,7 @@ func (repo *ComplianceRepository) Deactivate(ids []uint) ([]uint, error) {
 func (repo *ComplianceRepository) ExistsByTitle(titleEn, titleAr string) (bool, error) {
 	var count int64
 
-	err := repo.db.Model(&models.ComplianceRegister{}).
+	err := repo.db.Model(&complianceModels.ComplianceRegister{}).
 		Where("title_en = ? OR title_ar = ?", titleEn, titleAr).
 		Count(&count).Error
 
@@ -161,7 +177,7 @@ func (repo *ComplianceRepository) ExistsByTitle(titleEn, titleAr string) (bool, 
 func (repo *ComplianceRepository) ExistsByTitleExcludingID(id uint, titleEn, titleAr string) (bool, error) {
 	var count int64
 
-	err := repo.db.Model(&models.ComplianceRegister{}).
+	err := repo.db.Model(&complianceModels.ComplianceRegister{}).
 		Where("id <> ? AND (title_en = ? OR title_ar = ?)", id, titleEn, titleAr).
 		Count(&count).Error
 

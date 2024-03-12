@@ -99,3 +99,9 @@ func ChangesToJSON(changes []ChangeDetail) (string, error) {
 	}
 	return string(changesJSON), nil
 }
+
+// This function generates Reference Number
+func GenerateReferenceNumber(id uint) string {
+	// Format the reference number using a prefix (e.g., "GDPR-2024-") and the primary key ID
+	return fmt.Sprintf("GDPR-%d", id)
+}

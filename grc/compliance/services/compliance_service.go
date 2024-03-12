@@ -49,7 +49,7 @@ func (ccs *ComplianceService) Create(currentUserID uint, compliance *models.Comp
 		return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 	}
 
-	createdCompliance, err := ccs.repo.Create(compliance)
+	createdCompliance, err := ccs.repo.Create(currentUserID, compliance)
 	if err != nil {
 		return nil, err
 	}
