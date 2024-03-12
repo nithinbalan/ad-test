@@ -53,4 +53,15 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	complianceRoutes.POST("/sla-categories/delete", SLACategoryController.DeleteSLACategories)
 	complianceRoutes.POST("/sla-categories/activate", SLACategoryController.ActivateSLACategories)
 	complianceRoutes.POST("/sla-categories/deactivate", SLACategoryController.DeactivateSLACategories)
+
+	//SLA Register
+	SLARegisterRepo := complianceRepo.NewSLARegisterRepository(db)
+	SLARegisterSvc := complianceService.NewSLARegisterService(SLARegisterRepo, activityLogSvc)
+	SLARegisterController := controllers.NewSLARegisterController(SLARegisterSvc)
+
+	complianceRoutes.GET("/sla-registers/:id", SLARegisterController.GetSLARegisterDetails)
+	complianceRoutes.POST("/sla-registers", SLARegisterController.CreateSLARegister)
+	complianceRoutes.GET("/sla-registers", SLARegisterController.GetAllSLARegisters)
+	complianceRoutes.PUT("/sla-registers/:id", SLARegisterController.UpdateSLARegister)
+	complianceRoutes.POST("/sla-registers/delete", SLARegisterController.DeleteSLARegisters)
 }
