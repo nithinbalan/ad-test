@@ -1,9 +1,9 @@
 package routes
 
 import (
-	questionGroupController "jethur/grc/libraries/controllers"
-	questionGroupRepo "jethur/grc/libraries/repositories"
-	questionGroupSvc "jethur/grc/libraries/services"
+	libraryController "jethur/grc/libraries/controllers"
+	libraryRepo "jethur/grc/libraries/repositories"
+	libraryService "jethur/grc/libraries/services"
 	activityLogRepository "jethur/grc/logs/repositories"
 	activityLogServie "jethur/grc/logs/services"
 	middlewares "jethur/middlewares"
@@ -22,9 +22,9 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	activityLogSvc := activityLogServie.NewActivityLogService(activityLogRepo)
 
 	//Question Groups
-	questionGroupRepository := questionGroupRepo.NewQuestionGroupRepository(db)
-	questionGroupService := questionGroupSvc.NewQuestionGroupService(questionGroupRepository, activityLogSvc)
-	questionGroupController := questionGroupController.NewQuestionGroupController(questionGroupService)
+	questionGroupRepository := libraryRepo.NewQuestionGroupRepository(db)
+	questionGroupService := libraryService.NewQuestionGroupService(questionGroupRepository, activityLogSvc)
+	questionGroupController := libraryController.NewQuestionGroupController(questionGroupService)
 
 	libraryRoutes.GET("/question-groups", questionGroupController.GetAllQuestionGroups)
 	libraryRoutes.POST("/question-groups", questionGroupController.CreateQuestionGroup)
@@ -33,5 +33,16 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	libraryRoutes.POST("/question-groups/delete", questionGroupController.DeleteQuestionGroups)
 	libraryRoutes.POST("/question-groups/activate", questionGroupController.ActivateQuestionGroups)
 	libraryRoutes.POST("/question-groups/deactivate", questionGroupController.DeactivateQuestionGroups)
+
+	//Question Library
+	questionLibraryRepository := libraryRepo.NewQuestionLibraryRepository(db)
+	questionLibraryService := libraryService.NewQuestionLibraryService(questionLibraryRepository, activityLogSvc)
+	questionLibraryController := libraryController.NewQuestionLibraryController(questionLibraryService)
+
+	libraryRoutes.GET("/question-library", questionLibraryController.GetAllQuestionLibrary)
+	libraryRoutes.POST("/question-library", questionLibraryController.CreateQuestionLibrary)
+	libraryRoutes.GET("/question-library/:id", questionLibraryController.GetQuestionLibraryDetails)
+	libraryRoutes.PUT("/question-library/:id", questionLibraryController.UpdateQuestionLibrary)
+	libraryRoutes.POST("/question-library/delete", questionLibraryController.DeleteQuestionLibraries)
 
 }
