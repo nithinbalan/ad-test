@@ -34,10 +34,20 @@ func (repo *QuestionLibraryRepository) GetAll(sort string, sortBy string, keywor
 
 	var questionLibrary []*models.QuestionLibraryWithGroupTitle
 
-	query := repo.db
+	query := repo.db.Table("question_library").
+		Select(
+			"question_library.id",
+			"question_library.question_group_id",
+			"question_library.question_en",
+			"question_library.question_ar",
+			"question_library.question_group_id",
+			"question_groups.title_en AS question_group_title_en",
+			"question_groups.title_ar AS question_group_title_ar",
+		).
+		Joins("INNER JOIN question_groups ON question_library.question_group_id = question_groups.id")
 
 	if keyword != "" {
-		query = query.Where("(question_en LIKE ? OR question_ar LIKE ?)", "%"+keyword+"%", "%"+keyword+"%")
+		query = query.Where("(question_en LIKE ? OR question_en LIKE ?)", "%"+keyword+"%", "%"+keyword+"%")
 	}
 	if sortBy == "" {
 		sortBy = "question_en"
@@ -46,20 +56,14 @@ func (repo *QuestionLibraryRepository) GetAll(sort string, sortBy string, keywor
 		sort = "asc"
 	}
 
-	// Join the QuestionGroup table by raw SQL query and select title_ar and title_en
-	query = query.Joins("INNER JOIN question_groups ON question_library.question_group_id = question_groups.id").
-		Select("question_library.id, question_groups.title_ar AS question_group_title_ar, question_groups.title_en AS question_group_title_en").
-		Order(sortBy + " " + sort)
+	// Order the results
+	query = query.Order("question_library." + sortBy + " " + sort)
 
+	// Execute the query and return result/error
 	result := query.Find(&questionLibrary)
 
 	return questionLibrary, result.Error
 
-	// query = query.Order(sortBy + " " + sort).Preload("QuestionGroup")
-
-	// result := query.Find(&questionLibrary)
-
-	// return questionLibrary, result.Error
 }
 
 func (repo *QuestionLibraryRepository) GetByID(id uint) (*models.QuestionLibrary, error) {

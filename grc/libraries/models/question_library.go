@@ -11,7 +11,10 @@ type QuestionLibrary struct {
 }
 
 type QuestionLibraryWithGroupTitle struct {
-	QuestionLibrary
+	ID                   uint   `json:"id"`
+	QuestionGroupID      uint   `json:"question_group_id"`
+	QuestionEn           string `json:"question_en"`
+	QuestionAr           string `json:"question_ar"`
 	QuestionGroupTitleAr string `json:"question_group_title_ar"`
 	QuestionGroupTitleEn string `json:"question_group_title_en"`
 }
