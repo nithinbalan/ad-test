@@ -56,7 +56,12 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 
 	//Compliance Register
 	complianceRepo := complianceRepo.NewComplianceRepository(db)
-	complianceSvc := complianceService.NewComplianceService(complianceRepo, activityLogSvc)
+	complianceSvc := complianceService.NewComplianceService(complianceRepo,
+		activityLogSvc,
+		complianceCategoryRepo) //@todo add org unit and user repo
+	// complianceStatusRepo,
+	// reviewFrequencyRepo,
+	// severityLevelRepo)
 	complianceController := controllers.NewComplianceController(complianceSvc)
 
 	complianceRoutes.GET("/compliance-register", complianceController.GetAllCompliances)
