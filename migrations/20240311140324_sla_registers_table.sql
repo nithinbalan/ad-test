@@ -2,7 +2,7 @@
 -- +goose StatementBegin
 CREATE TABLE sla_registers (
     id INT PRIMARY KEY IDENTITY(1,1),
-    reference_id VARCHAR(45) NOT NULL,
+    reference_number VARCHAR(45) NOT NULL,
     sla_category_id INT NOT NULL,
     severity_level_id INT NOT NULL,
     responsible_unit_id INT NOT NULL,

@@ -36,7 +36,7 @@ func (repo *SLARepository) GetAll(sort string, sortBy string, keyword string) ([
     query := repo.db.Table("sla_registers").
         Select(
             "sla_registers.id",
-            "sla_registers.reference_id",
+            "sla_registers.reference_number",
             "sla_registers.sla_category_id",
             "sla_registers.severity_level_id",
             "sla_registers.responsible_unit_id",
@@ -130,8 +130,8 @@ func (repo *SLARepository) Create(slaRegister *models.SLARegister) (*models.SLAR
     }
  
     // Generate reference number using the last ID
-    referenceNumber := utility.GenerateReferenceNumber(slaRegister.ReferenceID, lastID)
-	slaRegister.ReferenceID=referenceNumber
+    referenceNumber := utility.GenerateReferenceNumber(slaRegister.ReferenceNumber, lastID)
+	slaRegister.ReferenceNumber=referenceNumber
 	result := repo.db.Create(&slaRegister)
 	
 	return slaRegister, result.Error

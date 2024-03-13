@@ -11,7 +11,7 @@ import (
 
 type SLARegister struct {
     ID                 uint        `json:"id" gorm:"primary_key;auto_increment"`
-    ReferenceID        string      `json:"reference_id" gorm:"type:varchar(45)"` 
+    ReferenceNumber        string      `json:"reference_number" gorm:"type:varchar(45)"` 
     SLACategoryID      uint        `json:"sla_category_id" binding:"required" gorm:"column:sla_category_id"`
     SeverityLevelID    uint        `json:"severity_level_id" binding:"required" gorm:"column:severity_level_id"`
     ResponsibleUnitID  uint        `json:"responsible_unit_id" binding:"required" gorm:"column:responsible_unit_id"`
@@ -32,13 +32,13 @@ type SLARegister struct {
     ResponsibleUnit    *settingsModel.OrganizationUnit `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
     ResponsibleUser    *organizationModel.User `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
     LifecycleStatus    *masterModel.LifecycleStatus `gorm:"foreignKey:LifecycleStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
-	CreatedByUser   *organizationModel.User            `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser   *organizationModel.User            `gorm:"foreignKey:UpdatedBy"`
+	CreatedByUser      *organizationModel.User            `gorm:"foreignKey:CreatedBy"`
+	UpdatedByUser      *organizationModel.User            `gorm:"foreignKey:UpdatedBy"`
 }
 
 type SLARegisterWithAllField struct {
     ID                 uint        `json:"id"`
-    ReferenceID        string      `json:"reference_id"` 
+    ReferenceNumber    string      `json:"reference_number"` 
     SLACategoryID      uint        `json:"sla_category_id"`
     SeverityLevelID    uint        `json:"severity_level_id"`
     ResponsibleUnitID  uint        `json:"responsible_unit_id"`
