@@ -27,8 +27,9 @@ func (qlc *QuestionLibraryController) GetAllQuestionLibrary(c *gin.Context) {
 	sort := c.Query("sort")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
+	status := c.Query("status")
 
-	questionLibrary, err := qlc.service.GetAll(sort, sortBy, keyword)
+	questionLibrary, err := qlc.service.GetAll(sort, sortBy, keyword, status)
 
 	if err != nil {
 		utility.SendInternalErrResp(qlc.db, c, err.Error())
@@ -145,4 +146,54 @@ func (qlc *QuestionLibraryController) DeleteQuestionLibraries(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}
+
+func (qlc *QuestionLibraryController) ActivateQuestionLibraries(c *gin.Context) {
+	var request struct {
+		IDs []uint `json:"ids"`
+	}
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(qlc.db, c, err.Error())
+		return
+	}
+
+	err = qlc.service.Activate(request.IDs, currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(qlc.db, c, err.Error())
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (qlc *QuestionLibraryController) DeactivateQuestionLibraries(c *gin.Context) {
+	var request struct {
+		IDs []uint `json:"ids"`
+	}
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(qlc.db, c, err.Error())
+		return
+	}
+
+	err = qlc.service.Deactivate(request.IDs, currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(qlc.db, c, err.Error())
+		return
+	}
+
+	c.Status(http.StatusOK)
 }

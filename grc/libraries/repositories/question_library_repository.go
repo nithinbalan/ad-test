@@ -10,11 +10,13 @@ import (
 
 // Interfaces
 type QuestionLibraryRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string) ([]*models.QuestionLibraryWithGroupTitle, error)
+	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.QuestionLibraryWithGroupTitle, error)
 	GetByID(id uint) (*models.QuestionLibrary, error)
 	Create(article *models.QuestionLibrary) (*models.QuestionLibrary, error)
 	Update(id uint, questionLibrary *models.QuestionLibrary) (*models.QuestionLibrary, error)
 	Delete(id uint) error
+	Activate(ids []uint) ([]uint, error)
+	Deactivate(ids []uint) ([]uint, error)
 	ExistsByTitle(QuestionEn string, QuestionAr string, QuestionGroupID uint) (bool, error)
 	ExistsByTitleExcludingID(id uint, QuestionEn, QuestionAr string, QuestionGroupID uint) (bool, error)
 }
@@ -30,7 +32,7 @@ func NewQuestionLibraryRepository(db *gorm.DB) *QuestionLibraryRepository {
 	}
 }
 
-func (repo *QuestionLibraryRepository) GetAll(sort string, sortBy string, keyword string) ([]*models.QuestionLibraryWithGroupTitle, error) {
+func (repo *QuestionLibraryRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.QuestionLibraryWithGroupTitle, error) {
 
 	var questionLibrary []*models.QuestionLibraryWithGroupTitle
 
@@ -40,6 +42,7 @@ func (repo *QuestionLibraryRepository) GetAll(sort string, sortBy string, keywor
 			"question_library.question_group_id",
 			"question_library.question_en",
 			"question_library.question_ar",
+			"question_library.status",
 			"question_library.question_group_id",
 			"question_groups.title_en AS question_group_title_en",
 			"question_groups.title_ar AS question_group_title_ar",
@@ -47,13 +50,17 @@ func (repo *QuestionLibraryRepository) GetAll(sort string, sortBy string, keywor
 		Joins("INNER JOIN question_groups ON question_library.question_group_id = question_groups.id")
 
 	if keyword != "" {
-		query = query.Where("(question_en LIKE ? OR question_en LIKE ?)", "%"+keyword+"%", "%"+keyword+"%")
+		query = query.Where("(question_library.question_en LIKE ? OR question_library.question_en LIKE ? OR question_groups.title_en LIKE ? OR question_groups.title_ar LIKE ?)", "%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%")
 	}
 	if sortBy == "" {
 		sortBy = "question_en"
 	}
 	if sort != "asc" && sort != "desc" {
 		sort = "asc"
+	}
+
+	if status == "active" || status == "inactive" {
+		query = query.Where("question_library.status = ?", status)
 	}
 
 	// Order the results
@@ -112,6 +119,54 @@ func (repo *QuestionLibraryRepository) Delete(id uint) error {
 	}
 
 	return nil
+}
+
+func (repo *QuestionLibraryRepository) Activate(ids []uint) ([]uint, error) {
+	var idsToUpdate []uint
+
+	// Step 1: Fetch the IDs of records that are currently 'inactive' and within the provided 'ids' slice
+	if err := repo.db.Model(&models.QuestionLibrary{}).
+		Where("id IN ? AND status = ?", ids, "inactive").
+		Pluck("id", &idsToUpdate).Error; err != nil {
+		return nil, err // Return error if the query fails
+	}
+
+	// Step 2: If there are any IDs to update, perform the update operation
+	if len(idsToUpdate) > 0 {
+		if err := repo.db.Model(&models.QuestionLibrary{}).
+			Where("id IN ?", idsToUpdate).
+			Update("status", "active").Error; err != nil {
+			return nil, err // Return error if the update operation fails
+		}
+	}
+
+	// Return the IDs of the records that were activated
+	return idsToUpdate, nil
+}
+
+func (repo *QuestionLibraryRepository) Deactivate(ids []uint) ([]uint, error) {
+
+	var idsToUpdate []uint
+
+	// Step 1: Fetch the IDs of records that are currently 'inactive' and within the provided 'ids' slice
+	if err := repo.db.Model(&models.QuestionLibrary{}).
+		Where("id IN ? AND status = ?", ids, "active").
+		Pluck("id", &idsToUpdate).Error; err != nil {
+		return nil, err // Return error if the query fails
+	}
+
+	// Step 2: If there are any IDs to update, perform the update operation
+	if len(idsToUpdate) > 0 {
+		if err := repo.db.Model(&models.QuestionLibrary{}).
+			Where("id IN ?", idsToUpdate).
+			Update("status", "inactive").Error; err != nil {
+			return nil, err // Return error if the update operation fails
+		}
+	}
+
+	// Return the IDs of the records that were activated
+	return idsToUpdate, nil
+
 }
 
 func (repo *QuestionLibraryRepository) ExistsByTitle(QuestionEn string, QuestionAr string, QuestionGroupID uint) (bool, error) {

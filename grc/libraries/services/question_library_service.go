@@ -11,11 +11,13 @@ import (
 )
 
 type QuestionLibraryServiceInterface interface {
-	GetAll(sort string, sortBy string, keyword string) ([]*models.QuestionLibraryWithGroupTitle, error)
+	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.QuestionLibraryWithGroupTitle, error)
 	GetByID(id uint) (*models.QuestionLibrary, error)
 	Create(currentUserID uint, questionLibrary *models.QuestionLibrary) (*models.QuestionLibrary, error)
 	Update(id uint, currentUserID uint, questionLibrary *models.QuestionLibrary) (*models.QuestionLibrary, error)
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	Activate(ids []uint, currentUserID uint) error
+	Deactivate(ids []uint, currentUserID uint) error
 }
 
 // Service and implementations
@@ -31,8 +33,8 @@ func NewQuestionLibraryService(repo repositories.QuestionLibraryRepositoryInterf
 	}
 }
 
-func (qls *QuestionLibraryService) GetAll(sort string, sortBy string, keyword string) ([]*models.QuestionLibraryWithGroupTitle, error) {
-	return qls.repo.GetAll(sort, sortBy, keyword)
+func (qls *QuestionLibraryService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.QuestionLibraryWithGroupTitle, error) {
+	return qls.repo.GetAll(sort, sortBy, keyword, status)
 }
 
 func (qls QuestionLibraryService) GetByID(id uint) (*models.QuestionLibrary, error) {
@@ -160,4 +162,53 @@ func (qls *QuestionLibraryService) Delete(ids []uint, currentUserID uint) ([]uin
 	}
 
 	return failedIds, nil
+}
+
+func (qls *QuestionLibraryService) Activate(ids []uint, currentUserID uint) error {
+	successfulIds, err := qls.repo.Activate(ids)
+
+	if len(successfulIds) > 0 {
+
+		go func() {
+			err := qls.activityLogSvc.LogBulkActivities(
+				activityLogModels.ActivateAction,
+				models.QuestionLibrary{}.TableName(),
+				successfulIds,
+				nil,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				// @todo - save to log file
+				fmt.Printf("Failed to log activity: %v\n", err)
+			}
+		}()
+	}
+
+	return err
+}
+
+func (qls *QuestionLibraryService) Deactivate(ids []uint, currentUserID uint) error {
+	successfulIds, err := qls.repo.Deactivate(ids)
+
+	if len(successfulIds) > 0 {
+
+		go func() {
+			err := qls.activityLogSvc.LogBulkActivities(
+				activityLogModels.DeactivateAction,
+				models.QuestionLibrary{}.TableName(),
+				successfulIds,
+				nil,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				// @todo - save to log file
+				// You might want to log this error or handle it appropriately
+				fmt.Printf("Failed to log activity: %v\n", err)
+			}
+		}()
+	}
+
+	return err
 }

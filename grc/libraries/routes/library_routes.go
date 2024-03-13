@@ -44,5 +44,7 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	libraryRoutes.GET("/question-library/:id", questionLibraryController.GetQuestionLibraryDetails)
 	libraryRoutes.PUT("/question-library/:id", questionLibraryController.UpdateQuestionLibrary)
 	libraryRoutes.POST("/question-library/delete", questionLibraryController.DeleteQuestionLibraries)
+	libraryRoutes.POST("/question-library/activate", questionLibraryController.ActivateQuestionLibraries)
+	libraryRoutes.POST("/question-library/deactivate", questionLibraryController.DeactivateQuestionLibraries)
 
 }
