@@ -40,6 +40,7 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	complianceStatusController := controllers.NewComplianceStatusController(complianceStatusSvc)
 
 	complianceRoutes.GET("/compliance-statuses", complianceStatusController.GetAllComplianceStatuses)
+	complianceRoutes.GET("/compliance-statuses/:id", complianceStatusController.GetComplianceStatusDetails)
 
 	//SLA Category
 	SLACategoryRepo := complianceRepo.NewSLACategoryRepository(db)

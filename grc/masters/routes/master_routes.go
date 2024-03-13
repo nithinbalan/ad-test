@@ -22,13 +22,14 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	reviewFrequencyController := controllers.NewReviewFrequencyController(reviewFrequencyService)
 
 	masterRoutes.GET("/review-frequencies", reviewFrequencyController.GetAllReviewFrequencies)
-
+	masterRoutes.GET("/review-frequencies/:id", reviewFrequencyController.GetReviewFrequencyDetails)
 	//Severity Level
 	severityLevelRepository := repositories.NewSeverityLevelRepository(db)
 	severityLevelService := services.NewSeverityLevelService(severityLevelRepository)
 	severityLevelController := controllers.NewSeverityLevelController(severityLevelService)
 
 	masterRoutes.GET("/severity-levels", severityLevelController.GetAllSeverityLevels)
+	masterRoutes.GET("/severity-levels/:id", severityLevelController.GetSeverityLevelDetails)
 
 	//Lifecycle Status
 	lifecycleStatusRepository := repositories.NewLifecycleStatusRepository(db)
@@ -36,5 +37,6 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	lifecycleStatusController := controllers.NewLifecycleStatusController(lifecycleStatusService)
 
 	masterRoutes.GET("/lifecycle-statuses", lifecycleStatusController.GetAllLifecycleStatuses)
+	masterRoutes.GET("/lifecycle-statuses/:id", lifecycleStatusController.GetLifecycleStatusDetails)
 
 }
