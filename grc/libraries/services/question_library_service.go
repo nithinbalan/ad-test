@@ -11,7 +11,7 @@ import (
 )
 
 type QuestionLibraryServiceInterface interface {
-	GetAll(sort string, sortBy string, keyword string) ([]*models.QuestionLibrary, error)
+	GetAll(sort string, sortBy string, keyword string) ([]*models.QuestionLibraryWithGroupTitle, error)
 	GetByID(id uint) (*models.QuestionLibrary, error)
 	Create(currentUserID uint, questionLibrary *models.QuestionLibrary) (*models.QuestionLibrary, error)
 	Update(id uint, currentUserID uint, questionLibrary *models.QuestionLibrary) (*models.QuestionLibrary, error)
@@ -31,7 +31,7 @@ func NewQuestionLibraryService(repo repositories.QuestionLibraryRepositoryInterf
 	}
 }
 
-func (qls *QuestionLibraryService) GetAll(sort string, sortBy string, keyword string) ([]*models.QuestionLibrary, error) {
+func (qls *QuestionLibraryService) GetAll(sort string, sortBy string, keyword string) ([]*models.QuestionLibraryWithGroupTitle, error) {
 	return qls.repo.GetAll(sort, sortBy, keyword)
 }
 

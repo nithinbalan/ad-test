@@ -10,6 +10,12 @@ type QuestionLibrary struct {
 	QuestionGroup *QuestionGroup `gorm:"foreignKey:QuestionGroupID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION;"`
 }
 
+type QuestionLibraryWithGroupTitle struct {
+	QuestionLibrary
+	QuestionGroupTitleAr string `json:"question_group_title_ar"`
+	QuestionGroupTitleEn string `json:"question_group_title_en"`
+}
+
 // TableName overrides the table name used by QuestionLibrary to `question_library`
 func (QuestionLibrary) TableName() string {
 	return "question_library"

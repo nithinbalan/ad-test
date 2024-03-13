@@ -10,7 +10,7 @@ import (
 
 // Interfaces
 type QuestionLibraryRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string) ([]*models.QuestionLibrary, error)
+	GetAll(sort string, sortBy string, keyword string) ([]*models.QuestionLibraryWithGroupTitle, error)
 	GetByID(id uint) (*models.QuestionLibrary, error)
 	Create(article *models.QuestionLibrary) (*models.QuestionLibrary, error)
 	Update(id uint, questionLibrary *models.QuestionLibrary) (*models.QuestionLibrary, error)
@@ -30,9 +30,9 @@ func NewQuestionLibraryRepository(db *gorm.DB) *QuestionLibraryRepository {
 	}
 }
 
-func (repo *QuestionLibraryRepository) GetAll(sort string, sortBy string, keyword string) ([]*models.QuestionLibrary, error) {
+func (repo *QuestionLibraryRepository) GetAll(sort string, sortBy string, keyword string) ([]*models.QuestionLibraryWithGroupTitle, error) {
 
-	var questionLibrary []*models.QuestionLibrary
+	var questionLibrary []*models.QuestionLibraryWithGroupTitle
 
 	query := repo.db
 
@@ -46,11 +46,20 @@ func (repo *QuestionLibraryRepository) GetAll(sort string, sortBy string, keywor
 		sort = "asc"
 	}
 
-	query = query.Order(sortBy + " " + sort).Preload("QuestionGroup")
+	// Join the QuestionGroup table by raw SQL query and select title_ar and title_en
+	query = query.Joins("INNER JOIN question_groups ON question_library.question_group_id = question_groups.id").
+		Select("question_library.id, question_groups.title_ar AS question_group_title_ar, question_groups.title_en AS question_group_title_en").
+		Order(sortBy + " " + sort)
 
 	result := query.Find(&questionLibrary)
 
 	return questionLibrary, result.Error
+
+	// query = query.Order(sortBy + " " + sort).Preload("QuestionGroup")
+
+	// result := query.Find(&questionLibrary)
+
+	// return questionLibrary, result.Error
 }
 
 func (repo *QuestionLibraryRepository) GetByID(id uint) (*models.QuestionLibrary, error) {
