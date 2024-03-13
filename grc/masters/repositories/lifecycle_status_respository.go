@@ -1,7 +1,9 @@
 package repositories
 
 import (
+	"errors"
 	"jethur/grc/masters/models"
+	"jethur/utility"
 
 	"gorm.io/gorm"
 )
@@ -9,6 +11,7 @@ import (
 // Interfaces
 type LifecycleStatusRepositoryInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.LifecycleStatus, error)
+	GetByID(id uint) (*models.LifecycleStatus, error)
 }
 
 // implementation
@@ -46,4 +49,17 @@ func (repo *LifecycleStatusRepository) GetAll(sort string, sortBy string, keywor
 	result := query.Find(&lifecycleStatuses)
 
 	return lifecycleStatuses, result.Error
+}
+
+func (repo *LifecycleStatusRepository) GetByID(id uint) (*models.LifecycleStatus, error) {
+	var status *models.LifecycleStatus
+	result := repo.db.First(&status, id)
+
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, utility.NewResourceNotFoundError(result.Error, id)
+	} else if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return status, result.Error
 }

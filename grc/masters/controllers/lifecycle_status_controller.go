@@ -4,6 +4,7 @@ import (
 	"jethur/grc/masters/services"
 	"jethur/utility"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -34,4 +35,22 @@ func (lsc *LifecycleStatusController) GetAllLifecycleStatuses(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, lifecycleStatuses)
+}
+
+func (lsc *LifecycleStatusController) GetLifecycleStatusDetails(c *gin.Context) {
+	idStr := c.Param("id")
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	lifecycleStatus, err := lsc.service.GetByID(uint(id))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	c.JSON(http.StatusOK, lifecycleStatus)
 }

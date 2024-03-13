@@ -7,6 +7,7 @@ import (
 
 type LifecycleStatusServiceInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.LifecycleStatus, error)
+	GetByID(id uint) (*models.LifecycleStatus, error)
 }
 
 // Service and implementations
@@ -22,4 +23,9 @@ func NewLifecycleStatusService(repo repositories.LifecycleStatusRepositoryInterf
 
 func (lss *LifecycleStatusService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.LifecycleStatus, error) {
 	return lss.repo.GetAll(sort, sortBy, keyword, status)
+}
+
+
+func (lss LifecycleStatusService) GetByID(id uint) (*models.LifecycleStatus, error) {
+	return lss.repo.GetByID(id)
 }
