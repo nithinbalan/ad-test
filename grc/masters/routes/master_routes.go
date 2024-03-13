@@ -1,6 +1,8 @@
 package routes
 
 import (
+	activityLogRepository "jethur/grc/logs/repositories"
+	activityLogServie "jethur/grc/logs/services"
 	"jethur/grc/masters/controllers"
 	"jethur/grc/masters/repositories"
 	"jethur/grc/masters/services"
@@ -15,6 +17,9 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	masterRoutes := router.Group("/")
 
 	masterRoutes.Use(middlewares.AuthMiddleware())
+
+	activityLogRepo := activityLogRepository.NewActivityLogRepository(db)
+	activityLogSvc := activityLogServie.NewActivityLogService(activityLogRepo)
 
 	//Review Frequency
 	reviewFrequencyRepository := repositories.NewReviewFrequencyRepository(db)
@@ -36,5 +41,18 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	lifecycleStatusController := controllers.NewLifecycleStatusController(lifecycleStatusService)
 
 	masterRoutes.GET("/lifecycle-statuses", lifecycleStatusController.GetAllLifecycleStatuses)
+
+	//Checklist
+	checklistRepository := repositories.NewChecklistRepository(db)
+	checklistService := services.NewChecklistService(checklistRepository, activityLogSvc)
+	checklistController := controllers.NewChecklistController(checklistService)
+
+	masterRoutes.GET("/checklists", checklistController.GetAllChecklists)
+	masterRoutes.POST("/checklists", checklistController.CreateChecklist)
+	masterRoutes.GET("/checklists/:id", checklistController.GetChecklistDetails)
+	masterRoutes.PUT("/checklists/:id", checklistController.UpdateChecklist)
+	masterRoutes.POST("/checklists/delete", checklistController.DeleteChecklists)
+	masterRoutes.POST("/checklists/activate", checklistController.ActivateChecklists)
+	masterRoutes.POST("/checklists/deactivate", checklistController.DeactivateChecklists)
 
 }
