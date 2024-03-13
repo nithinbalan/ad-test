@@ -1,7 +1,9 @@
 package repositories
 
 import (
+	"errors"
 	"jethur/grc/masters/models"
+	"jethur/utility"
 
 	"gorm.io/gorm"
 )
@@ -9,6 +11,7 @@ import (
 // Interfaces
 type SeverityLevelRepositoryInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.SeverityLevel, error)
+	GetByID(id uint) (*models.SeverityLevel, error)
 }
 
 // implementation
@@ -46,4 +49,17 @@ func (repo *SeverityLevelRepository) GetAll(sort string, sortBy string, keyword 
 	result := query.Find(&severityLevels)
 
 	return severityLevels, result.Error
+}
+
+func (repo *SeverityLevelRepository) GetByID(id uint) (*models.SeverityLevel, error) {
+	var severityLevel *models.SeverityLevel
+	result := repo.db.First(&severityLevel, id)
+
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, utility.NewResourceNotFoundError(result.Error, id)
+	} else if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return severityLevel, result.Error
 }
