@@ -10,7 +10,7 @@ import (
 	"log"
 )
 
-type SLARegisterServiceInterface interface {
+type SLAServiceInterface interface {
 	GetAll(sort string, sortBy string, keyword string) ([]*models.SLARegisterWithAllField, error)
 	GetByID(id uint) (*models.SLARegister, error)
 	Create(currentUserID uint, slaRegister *models.SLARegister) (*models.SLARegister, error)
@@ -19,27 +19,27 @@ type SLARegisterServiceInterface interface {
 }
 
 // Service and implementations
-type SLARegisterService struct {
-	repo           repositories.SLARegisterRepositoryInterface
+type SLAService struct {
+	repo           repositories.SLARepositoryInterface
 	activityLogSvc services.ActivityLogServiceInterface
 }
 
-func NewSLARegisterService(repo repositories.SLARegisterRepositoryInterface, activityLogSvc services.ActivityLogServiceInterface) SLARegisterServiceInterface {
-	return &SLARegisterService{
+func NewSLAService(repo repositories.SLARepositoryInterface, activityLogSvc services.ActivityLogServiceInterface) SLAServiceInterface {
+	return &SLAService{
 		repo:           repo,
 		activityLogSvc: activityLogSvc,
 	}
 }
 
-func (srs *SLARegisterService) GetAll(sort string, sortBy string, keyword string) ([]*models.SLARegisterWithAllField, error) {
+func (srs *SLAService) GetAll(sort string, sortBy string, keyword string) ([]*models.SLARegisterWithAllField, error) {
 	return srs.repo.GetAll(sort, sortBy, keyword)
 }
 
-func (srs SLARegisterService) GetByID(id uint) (*models.SLARegister, error) {
+func (srs SLAService) GetByID(id uint) (*models.SLARegister, error) {
 	return srs.repo.GetByID(id)
 }
 
-func (srs *SLARegisterService) Create(currentUserID uint, slaRegister *models.SLARegister) (*models.SLARegister, error) {
+func (srs *SLAService) Create(currentUserID uint, slaRegister *models.SLARegister) (*models.SLARegister, error) {
 
 	if exists, err := srs.repo.ExistsByTitle(slaRegister.TitleEn, slaRegister.TitleAr); err != nil {
 		return nil, err
@@ -47,21 +47,18 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegister *models.SL
 		return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 	} 
 	
-	createdSLARegister, err := srs.repo.Create(slaRegister)
+	createdSLA, err := srs.repo.Create(slaRegister)
 	if err != nil {
 		return nil, err
 	}
 
-	// Generate and save the reference ID
-	referenceID := utility.GenerateReferenceID(createdSLARegister.ID)
-	createdSLARegister.ReferenceID = referenceID
 	
 	go func() {
 		err := srs.activityLogSvc.LogActivity(
 			activityLogModels.CreateAction,
 			models.SLARegister{}.TableName(),
 			slaRegister.ID,
-			createdSLARegister,
+			createdSLA,
 			currentUserID,
 			nil,
 		)
@@ -72,18 +69,18 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegister *models.SL
 		}
 	}()
 
-	return createdSLARegister, nil
+	return createdSLA, nil
 }
 
-func (srs *SLARegisterService) Update(id uint, currentUserID uint, updatedSLARegister *models.SLARegister) (*models.SLARegister, error) {
-	existingSLARegister, err := srs.repo.GetByID(id)
+func (srs *SLAService) Update(id uint, currentUserID uint, updatedSLA *models.SLARegister) (*models.SLARegister, error) {
+	existingSLA, err := srs.repo.GetByID(id)
 
 	if err != nil {
 		return nil, err
 	}
 
-	if updatedSLARegister.TitleEn != existingSLARegister.TitleEn || updatedSLARegister.TitleAr != existingSLARegister.TitleAr {
-		if exists, err := srs.repo.ExistsByTitleExcludingID(id, updatedSLARegister.TitleEn, updatedSLARegister.TitleAr); err != nil {
+	if updatedSLA.TitleEn != existingSLA.TitleEn || updatedSLA.TitleAr != existingSLA.TitleAr {
+		if exists, err := srs.repo.ExistsByTitleExcludingID(id, updatedSLA.TitleEn, updatedSLA.TitleAr); err != nil {
 			return nil, err
 		} else if exists {
 			return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
@@ -91,7 +88,7 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, updatedSLAReg
 
 	}
 
-	result, err := srs.repo.Update(id, updatedSLARegister)
+	result, err := srs.repo.Update(id, updatedSLA)
 
 	if err != nil {
 		return nil, err
@@ -107,7 +104,7 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, updatedSLAReg
 		"Description",
 		"Client",
 	}
-	changes, err := utility.CompareFields(existingSLARegister, updatedSLARegister, fieldsToCompare)
+	changes, err := utility.CompareFields(existingSLA, updatedSLA, fieldsToCompare)
 
 	if err != nil {
 		log.Println("error :", err.Error())
@@ -135,7 +132,7 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, updatedSLAReg
 	return result, err
 }
 
-func (srs *SLARegisterService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
+func (srs *SLAService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
 	for _, id := range ids {

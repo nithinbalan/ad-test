@@ -9,7 +9,7 @@ import (
 )
 
 // Interfaces
-type SLARegisterRepositoryInterface interface {
+type SLARepositoryInterface interface {
 	GetAll(sort string, sortBy string, keyword string) ([]*models.SLARegisterWithAllField, error)
 	GetByID(id uint) (*models.SLARegister, error)
 	Create(article *models.SLARegister) (*models.SLARegister, error)
@@ -20,17 +20,17 @@ type SLARegisterRepositoryInterface interface {
 }
 
 // implementation
-type SLARegisterRepository struct {
+type SLARepository struct {
 	db *gorm.DB
 }
 
-func NewSLARegisterRepository(db *gorm.DB) *SLARegisterRepository {
-	return &SLARegisterRepository{
+func NewSLARepository(db *gorm.DB) *SLARepository {
+	return &SLARepository{
 		db: db,
 	}
 }
 
-func (repo *SLARegisterRepository) GetAll(sort string, sortBy string, keyword string) ([]*models.SLARegisterWithAllField, error) {
+func (repo *SLARepository) GetAll(sort string, sortBy string, keyword string) ([]*models.SLARegisterWithAllField, error) {
     var slaRegisters []*models.SLARegisterWithAllField
 
     query := repo.db.Table("sla_registers").
@@ -101,7 +101,7 @@ func (repo *SLARegisterRepository) GetAll(sort string, sortBy string, keyword st
 }
 
 
-func (repo *SLARegisterRepository) GetByID(id uint) (*models.SLARegister, error) {
+func (repo *SLARepository) GetByID(id uint) (*models.SLARegister, error) {
 	var slaRegister *models.SLARegister
 	// result := repo.db.First(&slaRegister, id)
 	result := repo.db.Preload("SLACategory").
@@ -122,13 +122,22 @@ func (repo *SLARegisterRepository) GetByID(id uint) (*models.SLARegister, error)
 	return slaRegister, result.Error
 }
 
-func (repo *SLARegisterRepository) Create(slaRegister *models.SLARegister) (*models.SLARegister, error) {
+func (repo *SLARepository) Create(slaRegister *models.SLARegister) (*models.SLARegister, error) {
+	// Retrieve the last SLA entry
+    var lastID uint
+    if err := repo.db.Model(&models.SLARegister{}).Select("id").Order("id desc").Limit(1).Pluck("id", &lastID).Error; err != nil {
+        return nil, err
+    }
+ 
+    // Generate reference number using the last ID
+    referenceNumber := utility.GenerateReferenceNumber(slaRegister.ReferenceID, lastID)
+	slaRegister.ReferenceID=referenceNumber
 	result := repo.db.Create(&slaRegister)
 	
 	return slaRegister, result.Error
 }
 
-func (repo *SLARegisterRepository) Update(id uint, updatedRegister *models.SLARegister) (*models.SLARegister, error) {
+func (repo *SLARepository) Update(id uint, updatedRegister *models.SLARegister) (*models.SLARegister, error) {
 	var slaRegister *models.SLARegister
 
 	if err := repo.db.First(&slaRegister, id).Error; err != nil {
@@ -142,7 +151,7 @@ func (repo *SLARegisterRepository) Update(id uint, updatedRegister *models.SLARe
 	return slaRegister, nil
 }
 
-func (repo *SLARegisterRepository) Delete(id uint) error {
+func (repo *SLARepository) Delete(id uint) error {
 
 	var slaRegister *models.SLARegister
 	if err := repo.db.First(&slaRegister, id).Error; err != nil {
@@ -158,7 +167,7 @@ func (repo *SLARegisterRepository) Delete(id uint) error {
 }
 
 
-func (repo *SLARegisterRepository) ExistsByTitle(titleEn, titleAr string) (bool, error) {
+func (repo *SLARepository) ExistsByTitle(titleEn, titleAr string) (bool, error) {
 	var count int64
 
 	// Check for the existence of titleEn or titleAr in a single query
@@ -175,7 +184,7 @@ func (repo *SLARegisterRepository) ExistsByTitle(titleEn, titleAr string) (bool,
 }
 
 
-func (repo *SLARegisterRepository) ExistsByTitleExcludingID(id uint, titleEn, titleAr string) (bool, error) {
+func (repo *SLARepository) ExistsByTitleExcludingID(id uint, titleEn, titleAr string) (bool, error) {
 	var count int64
 
 	err := repo.db.Model(&models.SLARegister{}).

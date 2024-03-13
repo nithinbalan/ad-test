@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -100,9 +101,8 @@ func ChangesToJSON(changes []ChangeDetail) (string, error) {
 	return string(changesJSON), nil
 }
 
-func GenerateReferenceID(id uint) string {
-    // Format the ID with leading zeros if necessary
-    idStr := fmt.Sprintf("%03d", id)
-    // Construct the reference ID using a predefined prefix and the formatted ID
-    return "JETHUR-000-" + idStr
+// Function to generate reference number based on the last ID
+func GenerateReferenceNumber(code string, lastID uint) string {
+	currentYear := time.Now().Year()
+	return fmt.Sprintf("%s-%d-%04d", code, currentYear, lastID+1)
 }

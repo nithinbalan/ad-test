@@ -11,18 +11,18 @@ import (
 	"gorm.io/gorm"
 )
 
-type SLARegisterController struct {
-	service services.SLARegisterServiceInterface
+type SLAController struct {
+	service services.SLAServiceInterface
 	db      *gorm.DB
 }
 
-func NewSLARegisterController(service services.SLARegisterServiceInterface) *SLARegisterController {
-	return &SLARegisterController{
+func NewSLAController(service services.SLAServiceInterface) *SLAController {
+	return &SLAController{
 		service: service,
 	}
 }
 
-func (src *SLARegisterController) GetAllSLARegisters(c *gin.Context) {
+func (src *SLAController) GetAllSLA(c *gin.Context) {
 
 	sort := c.Query("sort")
 	sortBy := c.Query("sort_by")
@@ -37,7 +37,7 @@ func (src *SLARegisterController) GetAllSLARegisters(c *gin.Context) {
 	c.JSON(http.StatusOK, slaRegisters)
 }
 
-func (src *SLARegisterController) GetSLARegisterDetails(c *gin.Context) {
+func (src *SLAController) GetSLADetails(c *gin.Context) {
 	idStr := c.Param("id")
 
 	id, err := strconv.ParseUint(idStr, 10, 32)
@@ -46,16 +46,16 @@ func (src *SLARegisterController) GetSLARegisterDetails(c *gin.Context) {
 		return
 	}
 
-	slaRegister, err := src.service.GetByID(uint(id))
+	sla, err := src.service.GetByID(uint(id))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
 
-	c.JSON(http.StatusOK, slaRegister)
+	c.JSON(http.StatusOK, sla)
 }
 
-func (src *SLARegisterController) CreateSLARegister(c *gin.Context) {
+func (src *SLAController) CreateSLA(c *gin.Context) {
 
 	var slaRegister *models.SLARegister
 
@@ -69,7 +69,7 @@ func (src *SLARegisterController) CreateSLARegister(c *gin.Context) {
 		return
 	}
 
-	createdRegister, err := src.service.Create(currentUserID, slaRegister)
+	createdSLA, err := src.service.Create(currentUserID, slaRegister)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:
@@ -81,19 +81,19 @@ func (src *SLARegisterController) CreateSLARegister(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusCreated, createdRegister)
+	c.JSON(http.StatusCreated, createdSLA)
 }
 
-func (src *SLARegisterController) UpdateSLARegister(c *gin.Context) {
+func (src *SLAController) UpdateSLA(c *gin.Context) {
 
-	slaRegisterID, err := strconv.Atoi(c.Param("id"))
+	slaID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
 
-	var updatedRegister *models.SLARegister
-	if err := c.ShouldBindJSON(&updatedRegister); err != nil {
+	var updatedSLA *models.SLARegister
+	if err := c.ShouldBindJSON(&updatedSLA); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
@@ -103,7 +103,7 @@ func (src *SLARegisterController) UpdateSLARegister(c *gin.Context) {
 		return
 	}
 
-	updatedRegister, err = src.service.Update(uint(slaRegisterID), currentUserID, updatedRegister)
+	updatedSLA, err = src.service.Update(uint(slaID), currentUserID, updatedSLA)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -118,10 +118,10 @@ func (src *SLARegisterController) UpdateSLARegister(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, updatedRegister)
+	c.JSON(http.StatusOK, updatedSLA)
 }
 
-func (src *SLARegisterController) DeleteSLARegisters(c *gin.Context) {
+func (src *SLAController) DeleteSLA(c *gin.Context) {
 
 	var request struct {
 		IDs []uint `json:"ids"`
