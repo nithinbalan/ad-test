@@ -2,6 +2,7 @@
 -- +goose StatementBegin
 CREATE TABLE sla_registers (
     id INT PRIMARY KEY IDENTITY(1,1),
+    reference_id VARCHAR(45) NOT NULL,
     sla_category_id INT,
     severity_level_id INT,
     responsible_unit_id INT,
@@ -19,7 +20,10 @@ CREATE TABLE sla_registers (
     CONSTRAINT FK_sla_registers_severity_levels_key1 FOREIGN KEY (severity_level_id) REFERENCES severity_levels(id),
     CONSTRAINT FK_sla_registers_responsible_units_key1 FOREIGN KEY (responsible_unit_id) REFERENCES organization_units(id),
     CONSTRAINT FK_sla_registers_responsible_users_key1 FOREIGN KEY (responsible_user_id) REFERENCES users(id),
-    CONSTRAINT FK_sla_registers_lifecycle_statuses_key1 FOREIGN KEY (lifecycle_status_id) REFERENCES lifecycle_statuses(id)
+    CONSTRAINT FK_sla_registers_lifecycle_statuses_key1 FOREIGN KEY (lifecycle_status_id) REFERENCES lifecycle_statuses(id),
+    CONSTRAINT FK_sla_registers_created_by1 FOREIGN KEY (created_by) REFERENCES users(id),
+    CONSTRAINT FK_sla_registers_updated_by1 FOREIGN KEY (updated_by) REFERENCES users(id)
+
 );
 
 -- +goose StatementEnd

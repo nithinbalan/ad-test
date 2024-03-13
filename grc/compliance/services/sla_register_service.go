@@ -11,7 +11,7 @@ import (
 )
 
 type SLARegisterServiceInterface interface {
-	GetAll(sort string, sortBy string, keyword string) ([]*models.SLARegister, error)
+	GetAll(sort string, sortBy string, keyword string) ([]*models.SLARegisterWithAllField, error)
 	GetByID(id uint) (*models.SLARegister, error)
 	Create(currentUserID uint, slaRegister *models.SLARegister) (*models.SLARegister, error)
 	Update(id uint, currentUserID uint, slaRegister *models.SLARegister) (*models.SLARegister, error)
@@ -31,7 +31,7 @@ func NewSLARegisterService(repo repositories.SLARegisterRepositoryInterface, act
 	}
 }
 
-func (srs *SLARegisterService) GetAll(sort string, sortBy string, keyword string) ([]*models.SLARegister, error) {
+func (srs *SLARegisterService) GetAll(sort string, sortBy string, keyword string) ([]*models.SLARegisterWithAllField, error) {
 	return srs.repo.GetAll(sort, sortBy, keyword)
 }
 
@@ -52,6 +52,10 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegister *models.SL
 		return nil, err
 	}
 
+	// Generate and save the reference ID
+	referenceID := utility.GenerateReferenceID(createdSLARegister.ID)
+	createdSLARegister.ReferenceID = referenceID
+	
 	go func() {
 		err := srs.activityLogSvc.LogActivity(
 			activityLogModels.CreateAction,

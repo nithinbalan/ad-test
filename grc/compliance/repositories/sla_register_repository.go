@@ -10,7 +10,7 @@ import (
 
 // Interfaces
 type SLARegisterRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string) ([]*models.SLARegister, error)
+	GetAll(sort string, sortBy string, keyword string) ([]*models.SLARegisterWithAllField, error)
 	GetByID(id uint) (*models.SLARegister, error)
 	Create(article *models.SLARegister) (*models.SLARegister, error)
 	Update(id uint, slaRegister *models.SLARegister) (*models.SLARegister, error)
@@ -30,36 +30,76 @@ func NewSLARegisterRepository(db *gorm.DB) *SLARegisterRepository {
 	}
 }
 
-func (repo *SLARegisterRepository) GetAll(sort string, sortBy string, keyword string) ([]*models.SLARegister, error) {
+func (repo *SLARegisterRepository) GetAll(sort string, sortBy string, keyword string) ([]*models.SLARegisterWithAllField, error) {
+    var slaRegisters []*models.SLARegisterWithAllField
 
-	var slaRegisters []*models.SLARegister
+    query := repo.db.Table("sla_registers").
+        Select(
+            "sla_registers.id",
+            "sla_registers.reference_id",
+            "sla_registers.sla_category_id",
+            "sla_registers.severity_level_id",
+            "sla_registers.responsible_unit_id",
+            "sla_registers.responsible_user_id",
+            "sla_registers.lifecycle_status_id",
+            "sla_registers.title_en",
+            "sla_registers.title_ar",
+            "sla_registers.description",
+            "sla_registers.client",
+            "sla_registers.created_by",
+            "sla_registers.updated_by",
+            "sla_registers.created_at",
+            "sla_registers.updated_at",
+            "sla_categories.title_en as sla_category_title_en",
+            "sla_categories.title_ar as sla_category_title_ar",
+            "severity_levels.title_en as severity_level_title_en",
+            "severity_levels.title_ar as severity_level_title_ar",
+            "organization_units.title_en as responsible_unit_title_en",
+            "organization_units.title_ar as responsible_unit_title_ar",
+            "responsible_users.first_name_en as responsible_user_first_name_en",
+            "responsible_users.first_name_ar as responsible_user_first_name_ar",
+            "responsible_users.last_name_en as responsible_user_last_name_en",
+            "responsible_users.last_name_ar as responsible_user_last_name_ar",
+            "lifecycle_statuses.title_en as lifecycle_status_title_en",
+            "lifecycle_statuses.title_ar as lifecycle_status_title_ar",
+            "created_by_users.first_name_en as created_by_first_name_en",
+            "created_by_users.first_name_ar as created_by_first_name_ar",
+            "created_by_users.last_name_en as created_by_last_name_en",
+            "created_by_users.last_name_ar as created_by_last_name_ar",
+            "updated_by_users.first_name_en as updated_by_first_name_en",
+            "updated_by_users.first_name_ar as updated_by_first_name_ar",
+            "updated_by_users.last_name_en as updated_by_last_name_en",
+            "updated_by_users.last_name_ar as updated_by_last_name_ar",
+        ).
+		Joins("LEFT JOIN sla_categories ON sla_registers.sla_category_id = sla_categories.id").
+        Joins("LEFT JOIN severity_levels ON sla_registers.severity_level_id = severity_levels.id").
+        Joins("LEFT JOIN organization_units ON sla_registers.responsible_unit_id = organization_units.id").
+        Joins("LEFT JOIN users AS responsible_users ON sla_registers.responsible_user_id = responsible_users.id").
+        Joins("LEFT JOIN lifecycle_statuses ON sla_registers.lifecycle_status_id = lifecycle_statuses.id").
+        Joins("LEFT JOIN users AS created_by_users ON sla_registers.created_by = created_by_users.id").
+        Joins("LEFT JOIN users AS updated_by_users ON sla_registers.updated_by = updated_by_users.id")
+    if keyword != "" {
+        query = query.Where("sla_registers.title_en LIKE ? OR sla_registers.title_ar LIKE ? OR sla_registers.description LIKE ? OR sla_registers.client LIKE ?",
+            "%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%")
+    }
+    if sortBy == "" {
+        sortBy = "title_en"
+    }
+    if sort != "asc" && sort != "desc" {
+        sort = "asc"
+    }
 
-	query := repo.db
+    // Order the results
+    query = query.Order("sla_registers." + sortBy + " " + sort)
 
-	if keyword != "" {
-		query = query.Where("title_en LIKE ? OR title_ar LIKE ? OR description LIKE ? OR client LIKE ?",
-			"%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%")
-	}
-	if sortBy == "" {
-		sortBy = "title_en"
-	}
-	if sort != "asc" && sort != "desc" {
-		sort = "asc"
-	}
+    // Execute the query and return result/error
+    if err := query.Find(&slaRegisters).Error; err != nil {
+        return nil, err
+    }
 
-	// Preload relationships
-	result := query.Order(sortBy + " " + sort).
-		Preload("SLACategory").
-		Preload("SeverityLevel").
-		Preload("ResponsibleUnit").
-		Preload("ResponsibleUser").
-		Preload("LifecycleStatus").
-		Preload("CreatedByUser").
-		Preload("UpdatedByUser").
-		Find(&slaRegisters)
-	return slaRegisters, result.Error
-
+    return slaRegisters, nil
 }
+
 
 func (repo *SLARegisterRepository) GetByID(id uint) (*models.SLARegister, error) {
 	var slaRegister *models.SLARegister
@@ -84,7 +124,7 @@ func (repo *SLARegisterRepository) GetByID(id uint) (*models.SLARegister, error)
 
 func (repo *SLARegisterRepository) Create(slaRegister *models.SLARegister) (*models.SLARegister, error) {
 	result := repo.db.Create(&slaRegister)
-
+	
 	return slaRegister, result.Error
 }
 

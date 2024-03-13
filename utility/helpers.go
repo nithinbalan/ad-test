@@ -99,3 +99,10 @@ func ChangesToJSON(changes []ChangeDetail) (string, error) {
 	}
 	return string(changesJSON), nil
 }
+
+func GenerateReferenceID(id uint) string {
+    // Format the ID with leading zeros if necessary
+    idStr := fmt.Sprintf("%03d", id)
+    // Construct the reference ID using a predefined prefix and the formatted ID
+    return "JETHUR-000-" + idStr
+}
