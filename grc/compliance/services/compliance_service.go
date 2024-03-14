@@ -95,6 +95,21 @@ func (ccs *ComplianceService) Create(currentUserID uint, compliance *models.Comp
 		return nil, utility.NewValidationError(fmt.Errorf("invalid deadline"), "invalid_date", "deadline")
 	}
 
+	// Validation for issue date field
+	if !utility.IsValidDate(compliance.IssueDate) {
+		return nil, utility.NewValidationError(fmt.Errorf("invalid issue date"), "invalid_date", "issue date")
+	}
+
+	// Validation for expiry date field
+	if !utility.IsValidDate(compliance.ExpiryDate) {
+		return nil, utility.NewValidationError(fmt.Errorf("invalid expiry date"), "invalid_date", "expiry date")
+	}
+
+	// Validation for next review date field
+	if !utility.IsValidDate(compliance.NextReviewDate) {
+		return nil, utility.NewValidationError(fmt.Errorf("invalid next review date"), "invalid_date", "next review date")
+	}
+
 	// Proceed with creating the compliance record
 	createdCompliance, err := ccs.repo.Create(currentUserID, compliance)
 	if err != nil {
