@@ -7,6 +7,7 @@ import (
 
 type ComplianceStatusServiceInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ComplianceStatus, error)
+	GetByID(id uint) (*models.ComplianceStatus, error)
 }
 
 // Service and implementations
@@ -22,4 +23,8 @@ func NewComplianceStatusService(repo repositories.ComplianceStatusRepositoryInte
 
 func (css *ComplianceStatusService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ComplianceStatus, error) {
 	return css.repo.GetAll(sort, sortBy, keyword, status)
+}
+
+func (css ComplianceStatusService) GetByID(id uint) (*models.ComplianceStatus, error) {
+	return css.repo.GetByID(id)
 }

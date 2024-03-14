@@ -1,7 +1,9 @@
 package repositories
 
 import (
+	"errors"
 	"jethur/grc/masters/models"
+	"jethur/utility"
 
 	"gorm.io/gorm"
 )
@@ -9,6 +11,7 @@ import (
 // Interfaces
 type ReviewFrequencyRepositoryInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ReviewFrequency, error)
+	GetByID(id uint) (*models.ReviewFrequency, error)
 }
 
 // implementation
@@ -46,4 +49,17 @@ func (repo *ReviewFrequencyRepository) GetAll(sort string, sortBy string, keywor
 	result := query.Find(&reviewFrequencies)
 
 	return reviewFrequencies, result.Error
+}
+
+func (repo *ReviewFrequencyRepository) GetByID(id uint) (*models.ReviewFrequency, error) {
+	var reviewFrequency *models.ReviewFrequency
+	result := repo.db.First(&reviewFrequency, id)
+
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, utility.NewResourceNotFoundError(result.Error, id)
+	} else if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return reviewFrequency, result.Error
 }

@@ -1,7 +1,9 @@
 package repositories
 
 import (
+	"errors"
 	"jethur/grc/compliance/models"
+	"jethur/utility"
 
 	"gorm.io/gorm"
 )
@@ -9,6 +11,8 @@ import (
 // Interfaces
 type ComplianceStatusRepositoryInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ComplianceStatus, error)
+	GetByID(id uint) (*models.ComplianceStatus, error)
+
 }
 
 // implementation
@@ -46,4 +50,17 @@ func (repo *ComplianceStatusRepository) GetAll(sort string, sortBy string, keywo
 	result := query.Find(&complianceStatuses)
 
 	return complianceStatuses, result.Error
+}
+
+func (repo *ComplianceStatusRepository) GetByID(id uint) (*models.ComplianceStatus, error) {
+	var status *models.ComplianceStatus
+	result := repo.db.First(&status, id)
+
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, utility.NewResourceNotFoundError(result.Error, id)
+	} else if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return status, result.Error
 }
