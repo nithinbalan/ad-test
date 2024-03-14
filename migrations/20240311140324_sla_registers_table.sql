@@ -2,14 +2,14 @@
 -- +goose StatementBegin
 CREATE TABLE sla_registers (
     id INT PRIMARY KEY IDENTITY(1,1),
-    reference_number VARCHAR(45) NOT NULL,
+    reference_number VARCHAR(45) NOT NULL UNIQUE,
     sla_category_id INT NOT NULL,
     severity_level_id INT NOT NULL,
     responsible_unit_id INT NOT NULL,
     responsible_user_id INT NOT NULL,
     lifecycle_status_id INT NOT NULL,
-    title_en VARCHAR(100) NOT NULL,
-    title_ar NVARCHAR(100) NOT NULL,
+    title_en VARCHAR(250) NOT NULL,
+    title_ar NVARCHAR(250) NOT NULL,
     description VARCHAR(MAX) NULL,
     client VARCHAR(100) NULL,
     created_by INT,
