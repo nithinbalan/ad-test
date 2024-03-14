@@ -10,7 +10,7 @@ import (
 )
 
 type ComplianceRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*complianceModels.ComplianceRegister, error)
+	GetAll(sort string, sortBy string, keyword string, status string) ([]*complianceModels.ComplianceRegisterWithAllFields, error)
 	GetByID(id uint) (*complianceModels.ComplianceRegister, error)
 	Create(currentUserID uint, compliance *complianceModels.ComplianceRegister) (*complianceModels.ComplianceRegister, error)
 	Update(id uint, compliance *complianceModels.ComplianceRegister) (*complianceModels.ComplianceRegister, error)
@@ -31,14 +31,82 @@ func NewComplianceRepository(db *gorm.DB) *ComplianceRepository {
 	}
 }
 
-func (repo *ComplianceRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*complianceModels.ComplianceRegister, error) {
-	var compliances []*complianceModels.ComplianceRegister
+func (repo *ComplianceRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*complianceModels.ComplianceRegisterWithAllFields, error) {
+	var ComplianceRegisters []*complianceModels.ComplianceRegisterWithAllFields
 
-	query := repo.db
+	query := repo.db.Table("compliance_register").
+		Select(`
+            compliance_register.*,
+			compliance_categories.title_en AS compliance_category_title_en,
+			compliance_categories.title_ar AS compliance_category_title_ar,
+			compliance_statuses.title_en AS compliance_status_title_en,
+			compliance_statuses.title_ar AS compliance_status_title_ar,
+			compliance_statuses.color_code AS compliance_status_color_code,
+			organization_units.title_en AS responsible_unit_title_en,
+			organization_units.title_ar AS responsible_unit_title_ar,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+            responsible_user.first_name_ar AS responsible_user_first_name_ar,
+            responsible_user.last_name_en AS responsible_user_last_name_en,
+            responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			review_frequencies.title_en AS review_frequency_title_en,
+			review_frequencies.title_ar AS review_frequency_title_ar,
+			review_responsible_user.first_name_en AS review_responsible_user_first_name_en,
+            review_responsible_user.first_name_ar AS review_responsible_user_first_name_ar,
+            review_responsible_user.last_name_en AS review_responsible_user_last_name_en,
+            review_responsible_user.last_name_ar AS review_responsible_user_last_name_ar,
+			severity_levels.title_en AS severity_level_title_en,
+			severity_levels.title_ar AS severity_level_title_ar,
+			severity_levels.color_code AS severity_level_color_code,
+			lifecycle_statuses.title_en AS lifecycle_status_title_en,
+			lifecycle_statuses.title_ar AS lifecycle_status_title_ar,
+			lifecycle_statuses.color_code AS lifecycle_status_color_code,
+			created_user.first_name_en AS created_user_first_name_en,
+            created_user.first_name_ar AS created_user_first_name_ar,
+            created_user.last_name_en AS created_user_last_name_en,
+            created_user.last_name_ar AS created_user_last_name_ar           
+        `).
+		Joins(`
+		    LEFT JOIN compliance_categories ON compliance_categories.id = compliance_register.compliance_category_id
+		    LEFT JOIN compliance_statuses ON compliance_statuses.id = compliance_register.compliance_status_id
+		    LEFT JOIN organization_units ON organization_units.id = compliance_register.responsible_unit_id
+		    LEFT JOIN users AS responsible_user ON responsible_user.id = compliance_register.responsible_user_id
+		    LEFT JOIN review_frequencies ON review_frequencies.id = compliance_register.review_frequency_id
+			LEFT JOIN users AS review_responsible_user ON review_responsible_user.id = compliance_register.review_responsible_user_id
+		    LEFT JOIN severity_levels ON severity_levels.id = compliance_register.severity_level_id
+			LEFT JOIN lifecycle_statuses ON lifecycle_statuses.id = compliance_register.lifecycle_status_id
+			LEFT JOIN users AS created_user ON created_user.id = compliance_register.created_by
+		`)
 
+	// //search
 	if keyword != "" {
-		query = query.Where("(title_en LIKE ? OR title_ar LIKE ?)", "%"+keyword+"%", "%"+keyword+"%")
+		query = query.Where(`
+			(compliance_register.title_en LIKE ? OR
+			compliance_register.title_ar LIKE ? OR
+			compliance_register.reference_number LIKE ? OR
+			compliance_register.description_en LIKE ? OR
+			compliance_register.description_ar LIKE ? OR
+			compliance_register.standard_code LIKE ? OR
+			compliance_categories.title_en LIKE ? OR
+			compliance_categories.title_ar LIKE ? OR
+			compliance_statuses.title_en LIKE ? OR
+			compliance_statuses.title_ar LIKE ? OR
+			organization_units.title_en LIKE ? OR
+			organization_units.title_ar LIKE ? OR
+			responsible_user.first_name_en LIKE ? OR
+			responsible_user.first_name_ar LIKE ? OR
+			responsible_user.last_name_en LIKE ? OR
+			responsible_user.last_name_ar LIKE ? OR
+			severity_levels.title_en LIKE ? OR
+			severity_levels.title_ar LIKE ? OR
+			lifecycle_statuses.title_en LIKE ? OR
+			lifecycle_statuses.title_ar LIKE ?)`,
+			"%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%",
+			"%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%",
+			"%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%",
+			"%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%",
+			"%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%")
 	}
+
 	if sortBy == "" {
 		sortBy = "title_en"
 	}
@@ -47,13 +115,13 @@ func (repo *ComplianceRepository) GetAll(sort string, sortBy string, keyword str
 	}
 
 	if status == "active" || status == "inactive" {
-		query = query.Where("status = ?", status)
+		query = query.Where("compliance_register.status = ?", status)
 	}
 
 	query = query.Order(sortBy + " " + sort)
-	result := query.Find(&compliances)
+	result := query.Find(&ComplianceRegisters)
 
-	return compliances, result.Error
+	return ComplianceRegisters, result.Error
 }
 
 func (repo *ComplianceRepository) GetByID(id uint) (*complianceModels.ComplianceRegister, error) {
