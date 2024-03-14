@@ -42,5 +42,9 @@
   {
     "id": "incorrect_json_field_type",
     "translation": "نوع البيانات غير صحيح لحقل معين. يرجى مراجعة الأنواع المتوقعة لكل حقل."
+  },
+  {
+    "id": "resource_does_not_exist",
+    "translation": "ال{{.Field}} المحدد غير موجود. يرجى التحقق من إدخالك والمحاولة مرة أخرى."
   }
 ]

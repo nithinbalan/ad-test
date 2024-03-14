@@ -6,6 +6,7 @@ import (
 	complianceService "jethur/grc/compliance/services"
 	activityLogRepository "jethur/grc/logs/repositories"
 	activityLogService "jethur/grc/logs/services"
+	masterRepositories "jethur/grc/masters/repositories"
 	"jethur/middlewares"
 
 	"github.com/gin-gonic/gin"
@@ -57,12 +58,14 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 
 	//Compliance Register
 	complianceRepo := complianceRepo.NewComplianceRepository(db)
+	reviewFrequencyRepo := masterRepositories.NewReviewFrequencyRepository(db)
+	severityLevelRepo := masterRepositories.NewSeverityLevelRepository(db)
 	complianceSvc := complianceService.NewComplianceService(complianceRepo,
 		activityLogSvc,
-		complianceCategoryRepo) //@todo add org unit and user repo
-	// complianceStatusRepo,
-	// reviewFrequencyRepo,
-	// severityLevelRepo)
+		complianceCategoryRepo, //@todo add org unit and user repo
+		complianceStatusRepo,
+		reviewFrequencyRepo,
+		severityLevelRepo)
 	complianceController := controllers.NewComplianceController(complianceSvc)
 
 	complianceRoutes.GET("/compliance-register", complianceController.GetAllCompliances)

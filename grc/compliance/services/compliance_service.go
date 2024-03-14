@@ -6,6 +6,7 @@ import (
 	"jethur/grc/compliance/repositories"
 	activityLogModels "jethur/grc/logs/models"
 	"jethur/grc/logs/services"
+	masterRepositories "jethur/grc/masters/repositories"
 	"jethur/utility"
 	"log"
 )
@@ -22,14 +23,28 @@ type ComplianceServiceInterface interface {
 
 // Service and implementations
 type ComplianceService struct {
-	repo           repositories.ComplianceRepositoryInterface
-	activityLogSvc services.ActivityLogServiceInterface
+	repo                   repositories.ComplianceRepositoryInterface
+	activityLogSvc         services.ActivityLogServiceInterface
+	complianceCategoryRepo repositories.ComplianceCategoryRepositoryInterface
+	complianceStatusRepo   repositories.ComplianceStatusRepositoryInterface
+	reviewFrequencyRepo    masterRepositories.ReviewFrequencyRepositoryInterface
+	severityLevelRepo      masterRepositories.SeverityLevelRepositoryInterface
 }
 
-func NewComplianceService(repo repositories.ComplianceRepositoryInterface, activityLogSvc services.ActivityLogServiceInterface) ComplianceServiceInterface {
+func NewComplianceService(
+	repo repositories.ComplianceRepositoryInterface,
+	activityLogSvc services.ActivityLogServiceInterface,
+	complianceCategoryRepo repositories.ComplianceCategoryRepositoryInterface,
+	complianceStatusRepo repositories.ComplianceStatusRepositoryInterface,
+	reviewFrequencyRepo masterRepositories.ReviewFrequencyRepositoryInterface,
+	severityLevelRepo masterRepositories.SeverityLevelRepositoryInterface) ComplianceServiceInterface {
 	return &ComplianceService{
-		repo:           repo,
-		activityLogSvc: activityLogSvc,
+		repo:                   repo,
+		activityLogSvc:         activityLogSvc,
+		complianceCategoryRepo: complianceCategoryRepo,
+		complianceStatusRepo:   complianceStatusRepo,
+		reviewFrequencyRepo:    reviewFrequencyRepo,
+		severityLevelRepo:      severityLevelRepo,
 	}
 }
 
@@ -42,13 +57,40 @@ func (ccs ComplianceService) GetByID(id uint) (*models.ComplianceRegister, error
 }
 
 func (ccs *ComplianceService) Create(currentUserID uint, compliance *models.ComplianceRegister) (*models.ComplianceRegister, error) {
-
+	// validation for title
 	if exists, err := ccs.repo.ExistsByTitle(compliance.TitleEn, compliance.TitleAr); err != nil {
 		return nil, err
 	} else if exists {
 		return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 	}
 
+	// Validation for compliance category
+	complianceCategory, err := ccs.complianceCategoryRepo.GetByID(compliance.ComplianceCategoryID)
+	if err != nil {
+		return nil, utility.NewValidationError(fmt.Errorf("compliance category does not exist"), "not exist", "compliance category")
+	}
+
+	// Validation for compliance status
+	complianceStatus, err := ccs.complianceStatusRepo.GetByID(compliance.ComplianceStatusID)
+	if err != nil {
+		return nil, utility.NewValidationError(fmt.Errorf("compliance status does not exist"), "not exist", "compliance status")
+	}
+
+	// Validation for review frequency
+	reviewFrequency, err := ccs.reviewFrequencyRepo.GetByID(compliance.ReviewFrequencyID)
+	if err != nil {
+		return nil, utility.NewValidationError(fmt.Errorf("review frequency does not exist"), "not exist", "review frequency")
+	}
+
+	// // Validation for severity level
+	severityLevel, err := ccs.severityLevelRepo.GetByID(compliance.SeverityLevelID)
+	if err != nil {
+		return nil, utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not exist", "severity level")
+	}
+
+	_, _, _, _ = complianceCategory, complianceStatus, reviewFrequency, severityLevel
+
+	// Proceed with creating the compliance record
 	createdCompliance, err := ccs.repo.Create(currentUserID, compliance)
 	if err != nil {
 		return nil, err
@@ -86,7 +128,6 @@ func (ccs *ComplianceService) Update(id uint, currentUserID uint, updatedComplia
 		} else if exists {
 			return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 		}
-
 	}
 
 	result, err := ccs.repo.Update(id, updatedCompliance)

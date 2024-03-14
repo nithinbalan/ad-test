@@ -72,19 +72,25 @@ func (repo *ComplianceRepository) GetByID(id uint) (*complianceModels.Compliance
 func (repo *ComplianceRepository) Create(currentUserID uint, compliance *complianceModels.ComplianceRegister) (*complianceModels.ComplianceRegister, error) {
 
 	var lifecycleStatus masterModels.LifecycleStatus
-	err := repo.db.Where("type = ?", "archived").First(&lifecycleStatus).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.New("no active lifecycle status found")
-		}
-		// // Handle other errors
-		// return nil, errors.Wrap(err, "error finding active lifecycle status")
+	err := repo.db.Where("type = ?", "active").First(&lifecycleStatus).Error
 
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, utility.NewResourceNotFoundError(err, lifecycleStatus.ID)
+	} else if err != nil {
+		return nil, err
 	}
 
-	compliance.ReferenceNumber = utility.GenerateReferenceNumber(compliance.ID)
-	compliance.CreatedBy = currentUserID
+	// Retrieve the last compliance entry
+	var lastID uint
+	if err := repo.db.Model(&complianceModels.ComplianceRegister{}).Select("id").Order("id desc").Limit(1).Pluck("id", &lastID).Error; err != nil {
+		return nil, err
+	}
 
+	// Generate reference number using the last ID
+	referenceNumber := utility.GenerateReferenceNumber(compliance.StandardCode, lastID)
+
+	compliance.ReferenceNumber = referenceNumber
+	compliance.CreatedBy = currentUserID
 	compliance.LifecycleStatusID = lifecycleStatus.ID
 
 	result := repo.db.Create(&compliance)
