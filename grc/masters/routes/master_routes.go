@@ -22,32 +22,31 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	activityLogSvc := activityLogServie.NewActivityLogService(activityLogRepo)
 
 	//Review Frequency
-	reviewFrequencyRepository := repositories.NewReviewFrequencyRepository(db)
-	reviewFrequencyService := services.NewReviewFrequencyService(reviewFrequencyRepository)
-	reviewFrequencyController := controllers.NewReviewFrequencyController(reviewFrequencyService)
+	reviewFrequencyRepo := repositories.NewReviewFrequencyRepository(db)
+	reviewFrequencySvc := services.NewReviewFrequencyService(reviewFrequencyRepo)
+	reviewFrequencyController := controllers.NewReviewFrequencyController(reviewFrequencySvc)
 
 	masterRoutes.GET("/review-frequencies", reviewFrequencyController.GetAllReviewFrequencies)
 	masterRoutes.GET("/review-frequencies/:id", reviewFrequencyController.GetReviewFrequencyDetails)
 	//Severity Level
-	severityLevelRepository := repositories.NewSeverityLevelRepository(db)
-	severityLevelService := services.NewSeverityLevelService(severityLevelRepository)
-	severityLevelController := controllers.NewSeverityLevelController(severityLevelService)
+	severityLevelRepo := repositories.NewSeverityLevelRepository(db)
+	severityLevelSvc := services.NewSeverityLevelService(severityLevelRepo)
+	severityLevelController := controllers.NewSeverityLevelController(severityLevelSvc)
 
 	masterRoutes.GET("/severity-levels", severityLevelController.GetAllSeverityLevels)
 	masterRoutes.GET("/severity-levels/:id", severityLevelController.GetSeverityLevelDetails)
 
 	//Lifecycle Status
-	lifecycleStatusRepository := repositories.NewLifecycleStatusRepository(db)
-	lifecycleStatusService := services.NewLifecycleStatusService(lifecycleStatusRepository)
-	lifecycleStatusController := controllers.NewLifecycleStatusController(lifecycleStatusService)
+	lifecycleStatusRepo := repositories.NewLifecycleStatusRepository(db)
+	lifecycleStatusSvc := services.NewLifecycleStatusService(lifecycleStatusRepo)
+	lifecycleStatusController := controllers.NewLifecycleStatusController(lifecycleStatusSvc)
 
 	masterRoutes.GET("/lifecycle-statuses", lifecycleStatusController.GetAllLifecycleStatuses)
 	masterRoutes.GET("/lifecycle-statuses/:id", lifecycleStatusController.GetLifecycleStatusDetails)
 
-	//Checklist
-	checklistRepository := repositories.NewChecklistRepository(db)
-	checklistService := services.NewChecklistService(checklistRepository, activityLogSvc)
-	checklistController := controllers.NewChecklistController(checklistService)
+	checklistRepo := repositories.NewChecklistRepository(db)
+	checklistSvc := services.NewChecklistService(checklistRepo, activityLogSvc)
+	checklistController := controllers.NewChecklistController(checklistSvc)
 
 	masterRoutes.GET("/checklists", checklistController.GetAllChecklists)
 	masterRoutes.POST("/checklists", checklistController.CreateChecklist)
