@@ -1,7 +1,8 @@
 package utility
 
 import (
-	"log"
+	"jethur/grc/logs/repositories"
+	"jethur/grc/logs/services"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -14,8 +15,13 @@ type ErrorResponse struct {
 
 func SendInternalErrResp(db *gorm.DB, c *gin.Context, errMsg string) {
 	localizedErrorMsg := LocalizeMessage(c, "internal_server_error", "Internal Server Error!")
-	log.Printf("Recovered from panic: %v\nStack trace: %s", errMsg)
-	go LogException(db, c, "internal_error", errMsg)
+
+	// log.Printf("Recovered from panic: %v\nStack trace: %s", errMsg)
+
+	errorLogRepo := repositories.NewErrorLogRepository(db)
+	errorLogSvc := services.NewErrorLoggerService(errorLogRepo)
+
+	go LogErrorToDB(errorLogSvc, c, errMsg)
 
 	resp := ErrorResponse{Error: localizedErrorMsg}
 	c.JSON(http.StatusInternalServerError, resp)
