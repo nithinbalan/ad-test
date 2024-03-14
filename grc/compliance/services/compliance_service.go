@@ -57,7 +57,7 @@ func (ccs ComplianceService) GetByID(id uint) (*models.ComplianceRegister, error
 }
 
 func (ccs *ComplianceService) Create(currentUserID uint, compliance *models.ComplianceRegister) (*models.ComplianceRegister, error) {
-	// validation for title
+	// Validation for title
 	if exists, err := ccs.repo.ExistsByTitle(compliance.TitleEn, compliance.TitleAr); err != nil {
 		return nil, err
 	} else if exists {
@@ -67,28 +67,33 @@ func (ccs *ComplianceService) Create(currentUserID uint, compliance *models.Comp
 	// Validation for compliance category
 	complianceCategory, err := ccs.complianceCategoryRepo.GetByID(compliance.ComplianceCategoryID)
 	if err != nil {
-		return nil, utility.NewValidationError(fmt.Errorf("compliance category does not exist"), "not exist", "compliance category")
+		return nil, utility.NewValidationError(fmt.Errorf("compliance category does not exist"), "not_exist", "compliance category")
 	}
 
 	// Validation for compliance status
 	complianceStatus, err := ccs.complianceStatusRepo.GetByID(compliance.ComplianceStatusID)
 	if err != nil {
-		return nil, utility.NewValidationError(fmt.Errorf("compliance status does not exist"), "not exist", "compliance status")
+		return nil, utility.NewValidationError(fmt.Errorf("compliance status does not exist"), "not_exist", "compliance status")
 	}
 
 	// Validation for review frequency
 	reviewFrequency, err := ccs.reviewFrequencyRepo.GetByID(compliance.ReviewFrequencyID)
 	if err != nil {
-		return nil, utility.NewValidationError(fmt.Errorf("review frequency does not exist"), "not exist", "review frequency")
+		return nil, utility.NewValidationError(fmt.Errorf("review frequency does not exist"), "not_exist", "review frequency")
 	}
 
-	// // Validation for severity level
+	// Validation for severity level
 	severityLevel, err := ccs.severityLevelRepo.GetByID(compliance.SeverityLevelID)
 	if err != nil {
-		return nil, utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not exist", "severity level")
+		return nil, utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
 	}
 
 	_, _, _, _ = complianceCategory, complianceStatus, reviewFrequency, severityLevel
+
+	// Validation for deadline field
+	if !utility.IsValidDate(compliance.Deadline) {
+		return nil, utility.NewValidationError(fmt.Errorf("invalid deadline"), "invalid_date", "deadline")
+	}
 
 	// Proceed with creating the compliance record
 	createdCompliance, err := ccs.repo.Create(currentUserID, compliance)

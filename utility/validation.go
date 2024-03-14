@@ -2,6 +2,7 @@ package utility
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -54,10 +55,19 @@ func ExtractValidationErrors(c *gin.Context, err error) []string {
 				},
 			})
 			errors = append(errors, errorMessage)
-		case "not exist":
+		case "not_exist":
 			var errorMessage string
 			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
 				MessageID: "resource_does_not_exist",
+				TemplateData: map[string]interface{}{
+					"Field": translatedFieldName,
+				},
+			})
+			errors = append(errors, errorMessage)
+		case "invalid_date":
+			var errorMessage string
+			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
+				MessageID: "invalid_date",
 				TemplateData: map[string]interface{}{
 					"Field": translatedFieldName,
 				},
@@ -105,4 +115,9 @@ func ExtractValidationErrors(c *gin.Context, err error) []string {
 	}
 
 	return errors
+}
+
+func IsValidDate(dateString string) bool {
+	_, err := time.Parse("2006-01-02", dateString)
+	return err == nil
 }
