@@ -31,8 +31,8 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	libraryRoutes.GET("/question-groups/:id", questionGroupController.GetQuestionGroupDetails)
 	libraryRoutes.PUT("/question-groups/:id", questionGroupController.UpdateQuestionGroup)
 	libraryRoutes.POST("/question-groups/delete", questionGroupController.DeleteQuestionGroups)
-	libraryRoutes.POST("/question-groups/activate", questionGroupController.ActivateQuestionGroups)
-	libraryRoutes.POST("/question-groups/deactivate", questionGroupController.DeactivateQuestionGroups)
+	libraryRoutes.PUT("/question-groups/activate", questionGroupController.ActivateQuestionGroups)
+	libraryRoutes.PUT("/question-groups/deactivate", questionGroupController.DeactivateQuestionGroups)
 
 	//Question Library
 	questionLibraryRepository := libraryRepo.NewQuestionLibraryRepository(db)
@@ -44,7 +44,7 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	libraryRoutes.GET("/question-library/:id", questionLibraryController.GetQuestionLibraryDetails)
 	libraryRoutes.PUT("/question-library/:id", questionLibraryController.UpdateQuestionLibrary)
 	libraryRoutes.POST("/question-library/delete", questionLibraryController.DeleteQuestionLibraries)
-	libraryRoutes.POST("/question-library/activate", questionLibraryController.ActivateQuestionLibraries)
-	libraryRoutes.POST("/question-library/deactivate", questionLibraryController.DeactivateQuestionLibraries)
+	libraryRoutes.PUT("/question-library/activate", questionLibraryController.ActivateQuestionLibraries)
+	libraryRoutes.PUT("/question-library/deactivate", questionLibraryController.DeactivateQuestionLibraries)
 
 }
