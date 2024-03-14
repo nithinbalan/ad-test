@@ -44,7 +44,6 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	masterRoutes.GET("/lifecycle-statuses", lifecycleStatusController.GetAllLifecycleStatuses)
 	masterRoutes.GET("/lifecycle-statuses/:id", lifecycleStatusController.GetLifecycleStatusDetails)
 
-	//Checklist
 	checklistRepo := repositories.NewChecklistRepository(db)
 	checklistSvc := services.NewChecklistService(checklistRepo, activityLogSvc)
 	checklistController := controllers.NewChecklistController(checklistSvc)
