@@ -15,8 +15,6 @@ type SLARepositoryInterface interface {
 	Create(article *models.SLARegister) (*models.SLARegister, error)
 	Update(id uint, slaRegister *models.SLARegister) (*models.SLARegister, error)
 	Delete(id uint) error
-	ExistsByTitle(titleEn string, titleAr string) (bool, error)
-	ExistsByTitleExcludingID(id uint, titleEn, titleAr string) (bool, error)
 }
 
 // implementation
@@ -167,35 +165,5 @@ func (repo *SLARepository) Delete(id uint) error {
 }
 
 
-func (repo *SLARepository) ExistsByTitle(titleEn, titleAr string) (bool, error) {
-	var count int64
-
-	// Check for the existence of titleEn or titleAr in a single query
-	err := repo.db.Model(&models.SLARegister{}).
-		Where("title_en = ? OR title_ar = ?", titleEn, titleAr).
-		Count(&count).Error
-
-	if err != nil {
-		return false, utility.NewInternalServerError(err)
-
-	}
-	// Return true if either title exists, otherwise false
-	return count > 0, nil
-}
-
-
-func (repo *SLARepository) ExistsByTitleExcludingID(id uint, titleEn, titleAr string) (bool, error) {
-	var count int64
-
-	err := repo.db.Model(&models.SLARegister{}).
-		Where("id <> ? AND (title_en = ? OR title_ar = ?)", id, titleEn, titleAr).
-		Count(&count).Error
-
-	if err != nil {
-		return false, utility.NewInternalServerError(err)
-	}
-
-	return count > 0, nil
-}
 
 

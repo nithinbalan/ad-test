@@ -40,12 +40,6 @@ func (srs SLAService) GetByID(id uint) (*models.SLARegister, error) {
 }
 
 func (srs *SLAService) Create(currentUserID uint, slaRegister *models.SLARegister) (*models.SLARegister, error) {
-
-	if exists, err := srs.repo.ExistsByTitle(slaRegister.TitleEn, slaRegister.TitleAr); err != nil {
-		return nil, err
-	} else if exists {
-		return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
-	} 
 	
 	createdSLA, err := srs.repo.Create(slaRegister)
 	if err != nil {
@@ -77,15 +71,6 @@ func (srs *SLAService) Update(id uint, currentUserID uint, updatedSLA *models.SL
 
 	if err != nil {
 		return nil, err
-	}
-
-	if updatedSLA.TitleEn != existingSLA.TitleEn || updatedSLA.TitleAr != existingSLA.TitleAr {
-		if exists, err := srs.repo.ExistsByTitleExcludingID(id, updatedSLA.TitleEn, updatedSLA.TitleAr); err != nil {
-			return nil, err
-		} else if exists {
-			return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
-		}
-
 	}
 
 	result, err := srs.repo.Update(id, updatedSLA)
