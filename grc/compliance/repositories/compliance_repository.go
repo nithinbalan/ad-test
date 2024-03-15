@@ -148,14 +148,18 @@ func (repo *ComplianceRepository) Create(currentUserID uint, compliance *complia
 		return nil, err
 	}
 
-	// Retrieve the last compliance entry
-	var lastID uint
-	if err := repo.db.Model(&complianceModels.ComplianceRegister{}).Select("id").Order("id desc").Limit(1).Pluck("id", &lastID).Error; err != nil {
+	var lastReferenceNumber string
+
+	// Retrieve the last reference number from the database
+	if err := repo.db.Model(&complianceModels.ComplianceRegister{}).Select("reference_number").Order("reference_number desc").Limit(1).Pluck("reference_number", &lastReferenceNumber).Error; err != nil {
 		return nil, err
 	}
 
-	// Generate reference number using the last ID
-	referenceNumber := utility.GenerateReferenceNumber(compliance.StandardCode, lastID)
+	// Extract the last 4 digits of the reference number
+	lastDigits := lastReferenceNumber[len(lastReferenceNumber)-4:]
+
+	// Generate reference number using the last 4 digits
+	referenceNumber := utility.GenerateReferenceNumber(compliance.StandardCode, lastDigits)
 
 	compliance.ReferenceNumber = referenceNumber
 	compliance.CreatedBy = currentUserID

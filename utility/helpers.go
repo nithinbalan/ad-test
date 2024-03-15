@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 
@@ -102,7 +103,11 @@ func ChangesToJSON(changes []ChangeDetail) (string, error) {
 }
 
 // Function to generate reference number based on the last ID
-func GenerateReferenceNumber(code string, lastID uint) string {
+func GenerateReferenceNumber(code string, lastReferenceNumber string) string {
 	currentYear := time.Now().Year()
-	return fmt.Sprintf("%s-%d-%04d", code, currentYear, lastID+1)
+	// Extract the last 4 digits of the reference number
+	lastDigits := lastReferenceNumber[len(lastReferenceNumber)-4:]
+	// Convert the last 4 digits to uint
+	lastReferenceID, _ := strconv.ParseUint(lastDigits, 10, 64)
+	return fmt.Sprintf("%s-%d-%04d", code, currentYear, lastReferenceID+1)
 }
