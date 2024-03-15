@@ -10,7 +10,7 @@ import (
 )
 
 type ComplianceRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*complianceModels.ComplianceRegisterWithAllFields, error)
+	GetAll(sort string, sortBy string, keyword string, status string) ([]*complianceModels.ComplianceRegister, error)
 	GetByID(id uint) (*complianceModels.ComplianceRegister, error)
 	Create(currentUserID uint, compliance *complianceModels.ComplianceRegister) (*complianceModels.ComplianceRegister, error)
 	Update(id uint, compliance *complianceModels.ComplianceRegister) (*complianceModels.ComplianceRegister, error)
@@ -31,8 +31,8 @@ func NewComplianceRepository(db *gorm.DB) *ComplianceRepository {
 	}
 }
 
-func (repo *ComplianceRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*complianceModels.ComplianceRegisterWithAllFields, error) {
-	var ComplianceRegisters []*complianceModels.ComplianceRegisterWithAllFields
+func (repo *ComplianceRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*complianceModels.ComplianceRegister, error) {
+	var ComplianceRegisters []*complianceModels.ComplianceRegister
 
 	query := repo.db.Table("compliance_register").
 		Select(`
@@ -143,7 +143,7 @@ func (repo *ComplianceRepository) Create(currentUserID uint, compliance *complia
 	err := repo.db.Where("type = ?", "active").First(&lifecycleStatus).Error
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, utility.NewResourceNotFoundError(err, lifecycleStatus.ID)
+		return nil, utility.NewInternalServerError(err)
 	} else if err != nil {
 		return nil, err
 	}
@@ -171,6 +171,17 @@ func (repo *ComplianceRepository) Update(id uint, updatedCompliance *complianceM
 	if err := repo.db.First(&compliance, id).Error; err != nil {
 		return nil, err
 	}
+
+	var lifecycleStatus masterModels.LifecycleStatus
+	err := repo.db.Where("type = ?", "active").First(&lifecycleStatus).Error
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, utility.NewInternalServerError(err)
+	} else if err != nil {
+		return nil, err
+	}
+
+	updatedCompliance.LifecycleStatusID = lifecycleStatus.ID
 
 	if err := repo.db.Model(&compliance).Updates(updatedCompliance).Error; err != nil {
 		return nil, err

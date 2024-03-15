@@ -34,6 +34,35 @@ type ComplianceRegister struct {
 	UpdatedBy               uint      `json:"updated_by" gorm:"default:null"`
 	LifecycleStatusID       uint      `json:"lifecycle_status_id" gorm:"not null"`
 
+	// Additional fields for GET request
+	ComplianceCategoryTitleEn        string `json:"compliance_category_title_en,omitempty" gorm:"-"`
+	ComplianceCategoryTitleAr        string `json:"compliance_category_title_ar,omitempty" gorm:"-"`
+	ComplianceStatusTitleEn          string `json:"compliance_status_title_en,omitempty" gorm:"-"`
+	ComplianceStatusTitleAr          string `json:"compliance_status_title_ar,omitempty" gorm:"-"`
+	ComplianceStatusColorCode        string `json:"compliance_status_color_code,omitempty" gorm:"-"`
+	ResponsibleUnitTitleEn           string `json:"responsible_unit_title_en,omitempty" gorm:"-"`
+	ResponsibleUnitTitleAr           string `json:"responsible_unit_title_ar,omitempty" gorm:"-"`
+	ResponsibleUserFirstNameEn       string `json:"responsible_user_first_name_en,omitempty" gorm:"-"`
+	ResponsibleUserFirstNameAr       string `json:"responsible_user_first_name_ar,omitempty" gorm:"-"`
+	ResponsibleUserLastNameEn        string `json:"responsible_user_last_name_en,omitempty" gorm:"-"`
+	ResponsibleUserLastNameAr        string `json:"responsible_user_last_name_ar,omitempty" gorm:"-"`
+	ReviewFrequencyTitleEn           string `json:"review_frequency_title_en,omitempty" gorm:"-"`
+	ReviewFrequencyTitleAr           string `json:"review_frequency_title_ar,omitempty" gorm:"-"`
+	ReviewResponsibleUserFirstNameEn string `json:"review_responsible_user_first_name_en,omitempty" gorm:"-"`
+	ReviewResponsibleUserFirstNameAr string `json:"review_responsible_user_first_name_ar,omitempty" gorm:"-"`
+	ReviewResponsibleUserLastNameEn  string `json:"review_responsible_user_last_name_en,omitempty" gorm:"-"`
+	ReviewResponsibleUserLastNameAr  string `json:"review_responsible_user_last_name_ar,omitempty" gorm:"-"`
+	SeverityLevelTitleEn             string `json:"severity_level_title_en,omitempty" gorm:"-"`
+	SeverityLevelTitleAr             string `json:"severity_level_title_ar,omitempty" gorm:"-"`
+	SeverityLevelColorCode           string `json:"severity_level_color_code,omitempty" gorm:"-"`
+	LifecycleStatusTitleEn           string `json:"lifecycle_status_title_en,omitempty" gorm:"-"`
+	LifecycleStatusTitleAr           string `json:"lifecycle_status_title_ar,omitempty" gorm:"-"`
+	LifecycleStatusColorCode         string `json:"lifecycle_status_color_code,omitempty" gorm:"-"`
+	CreatedUserFirstNameEn           string `json:"created_user_first_name_en,omitempty" gorm:"-"`
+	CreatedUserFirstNameAr           string `json:"created_user_first_name_ar,omitempty" gorm:"-"`
+	CreatedUserLastNameEn            string `json:"created_user_last_name_en,omitempty" gorm:"-"`
+	CreatedUserLastNameAr            string `json:"created_user_last_name_ar,omitempty" gorm:"-"`
+
 	// Relationships
 	ComplianceCategory    *ComplianceCategory             `gorm:"foreignkey:ComplianceCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ComplianceStatus      *ComplianceStatus               `gorm:"foreignkey:ComplianceStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
@@ -47,44 +76,7 @@ type ComplianceRegister struct {
 	UpdatedByUser         *organizationModel.User         `gorm:"foreignKey:UpdatedBy"`
 }
 
-type ComplianceRegisterWithAllFields struct {
-	*ComplianceRegister
-	ComplianceCategoryTitleEn        string `json:"compliance_category_title_en"`
-	ComplianceCategoryTitleAr        string `json:"compliance_category_title_ar"`
-	ComplianceStatusTitleEn          string `json:"compliance_status_title_en"`
-	ComplianceStatusTitleAr          string `json:"compliance_status_title_ar"`
-	ComplianceStatusColorCode        string `json:"compliance_status_color_code"`
-	ResponsibleUnitTitleEn           string `json:"responsible_unit_title_en"`
-	ResponsibleUnitTitleAr           string `json:"responsible_unit_title_ar"`
-	ResponsibleUserFirstNameEn       string `json:"responsible_user_first_name_en"`
-	ResponsibleUserFirstNameAr       string `json:"responsible_user_first_name_ar"`
-	ResponsibleUserLastNameEn        string `json:"responsible_user_last_name_en"`
-	ResponsibleUserLastNameAr        string `json:"responsible_user_last_name_ar"`
-	ReviewFrequencyTitleEn           string `json:"review_frequency_title_en"`
-	ReviewFrequencyTitleAr           string `json:"review_frequency_title_ar"`
-	ReviewResponsibleUserFirstNameEn string `json:"review_responsible_user_first_name_en"`
-	ReviewResponsibleUserFirstNameAr string `json:"review_responsible_user_first_name_ar"`
-	ReviewResponsibleUserLastNameEn  string `json:"review_responsible_user_last_name_en"`
-	ReviewResponsibleUserLastNameAr  string `json:"review_responsible_user_last_name_ar"`
-	SeverityLevelTitleEn             string `json:"severity_level_title_en"`
-	SeverityLevelTitleAr             string `json:"severity_level_title_ar"`
-	SeverityLevelColorCode           string `json:"severity_level_color_code"`
-	LifecycleStatusTitleEn           string `json:"lifecycle_status_title_en"`
-	LifecycleStatusTitleAr           string `json:"lifecycle_status_title_ar"`
-	LifecycleStatusColorCode         string `json:"lifecycle_status_color_code"`
-	CreatedUserFirstNameEn           string `json:"created_user_first_name_en"`
-	CreatedUserFirstNameAr           string `json:"created_user_first_name_ar"`
-	CreatedUserLastNameEn            string `json:"created_user_last_name_en"`
-	CreatedUserLastNameAr            string `json:"created_user_last_name_ar"`
-}
-
 // TableName overrides the table name used by ComplianceRegister to `compliance_register`
 func (ComplianceRegister) TableName() string {
 	return "compliance_register"
-}
-
-func (ComplianceRegisterWithAllFields) TableName() string {
-	// Return an empty string to indicate that ComplianceRegisterWithAllFields
-	// does not have its own table name
-	return ""
 }

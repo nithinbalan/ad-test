@@ -12,7 +12,7 @@ import (
 )
 
 type ComplianceServiceInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ComplianceRegisterWithAllFields, error)
+	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ComplianceRegister, error)
 	GetByID(id uint) (*models.ComplianceRegister, error)
 	Create(currentUserID uint, compliance *models.ComplianceRegister) (*models.ComplianceRegister, error)
 	Update(id uint, currentUserID uint, compliance *models.ComplianceRegister) (*models.ComplianceRegister, error)
@@ -48,7 +48,7 @@ func NewComplianceService(
 	}
 }
 
-func (ccs *ComplianceService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ComplianceRegisterWithAllFields, error) {
+func (ccs *ComplianceService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ComplianceRegister, error) {
 	return ccs.repo.GetAll(sort, sortBy, keyword, status)
 }
 
