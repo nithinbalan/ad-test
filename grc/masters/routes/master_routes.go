@@ -44,6 +44,7 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	masterRoutes.GET("/lifecycle-statuses", lifecycleStatusController.GetAllLifecycleStatuses)
 	masterRoutes.GET("/lifecycle-statuses/:id", lifecycleStatusController.GetLifecycleStatusDetails)
 
+	//Checklists
 	checklistRepo := repositories.NewChecklistRepository(db)
 	checklistSvc := services.NewChecklistService(checklistRepo, activityLogSvc)
 	checklistController := controllers.NewChecklistController(checklistSvc)
@@ -53,7 +54,18 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	masterRoutes.GET("/checklists/:id", checklistController.GetChecklistDetails)
 	masterRoutes.PUT("/checklists/:id", checklistController.UpdateChecklist)
 	masterRoutes.POST("/checklists/delete", checklistController.DeleteChecklists)
-	masterRoutes.POST("/checklists/activate", checklistController.ActivateChecklists)
-	masterRoutes.POST("/checklists/deactivate", checklistController.DeactivateChecklists)
+	masterRoutes.PUT("/checklists/activate", checklistController.ActivateChecklists)
+	masterRoutes.PUT("/checklists/deactivate", checklistController.DeactivateChecklists)
+
+	//Checklist Questions
+	checklistQuestionRepo := repositories.NewChecklistQuestionRepository(db)
+	checklistQuestionSvc := services.NewChecklistQuestionService(checklistQuestionRepo, activityLogSvc)
+	checklistQuestionController := controllers.NewChecklistQuestionController(checklistQuestionSvc)
+
+	masterRoutes.GET("/checklist-questions", checklistQuestionController.GetAllChecklistQuestions)
+	masterRoutes.POST("/checklist-questions", checklistQuestionController.CreateChecklistQuestion)
+	masterRoutes.GET("/checklist-questions/:id", checklistQuestionController.GetChecklistQuestionDetails)
+	masterRoutes.PUT("/checklist-questions/:id", checklistQuestionController.UpdateChecklistQuestion)
+	masterRoutes.POST("/checklist-questions/delete", checklistQuestionController.DeleteChecklistQuestions)
 
 }

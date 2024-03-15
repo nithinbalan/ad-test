@@ -10,15 +10,15 @@ import (
 
 // Interfaces
 type ChecklistQuestionRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ChecklistQuestion, error)
+	GetAll(sort string, sortBy string, keyword string) ([]*models.ChecklistQuestionWithChecklistTitle, error)
 	GetByID(id uint) (*models.ChecklistQuestion, error)
 	Create(article *models.ChecklistQuestion) (*models.ChecklistQuestion, error)
 	Update(id uint, checklistQuestion *models.ChecklistQuestion) (*models.ChecklistQuestion, error)
 	Delete(id uint) error
-	Activate(ids []uint) ([]uint, error)
-	Deactivate(ids []uint) ([]uint, error)
-	ExistsByTitle(titleEn string, titleAr string) (bool, error)
-	ExistsByTitleExcludingID(id uint, titleEn, titleAr string) (bool, error)
+	ExistsByTitle(QuestionEn string, QuestionAr string, ChecklistID uint) (bool, error)
+	ExistsQuestionLibrary(QuestionLibraryID uint) (bool, error)
+	ExistsByTitleExcludingID(id uint, QuestionEn, QuestionAr string, ChecklistID uint) (bool, error)
+	ExistsQuestionLibraryExcludingID(id uint, QuestionLibraryID uint) (bool, error)
 }
 
 // implementation
@@ -32,24 +32,30 @@ func NewChecklistQuestionRepository(db *gorm.DB) *ChecklistQuestionRepository {
 	}
 }
 
-func (repo *ChecklistQuestionRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ChecklistQuestion, error) {
+func (repo *ChecklistQuestionRepository) GetAll(sort string, sortBy string, keyword string) ([]*models.ChecklistQuestionWithChecklistTitle, error) {
 
-	var checklistQuestions []*models.ChecklistQuestion
+	var checklistQuestions []*models.ChecklistQuestionWithChecklistTitle
 
-	query := repo.db
+	query := repo.db.Table("checklist_questions").
+		Select(
+			"checklist_questions.id",
+			"checklist_questions.checklist_id",
+			"checklist_questions.question_library_id",
+			"checklist_questions.question_en",
+			"checklist_questions.question_ar",
+			"checklists.title_en AS checklist_title_en",
+			"checklists.title_ar AS checklist_title_ar",
+		).
+		Joins("INNER JOIN checklists ON checklist_questions.checklist_id = checklists.id")
 
 	if keyword != "" {
-		query = query.Where("(title_en LIKE ? OR title_ar LIKE ?)", "%"+keyword+"%", "%"+keyword+"%")
+		query = query.Where("(checklist_questions.question_en LIKE ? OR checklist_questions.question_ar LIKE ?)", "%"+keyword+"%", "%"+keyword+"%")
 	}
 	if sortBy == "" {
-		sortBy = "title_en"
+		sortBy = "checklist_questions.question_en"
 	}
 	if sort != "asc" && sort != "desc" {
 		sort = "asc"
-	}
-
-	if status == "active" || status == "inactive" {
-		query = query.Where("status = ?", status)
 	}
 
 	query = query.Order(sortBy + " " + sort)
@@ -60,7 +66,7 @@ func (repo *ChecklistQuestionRepository) GetAll(sort string, sortBy string, keyw
 
 func (repo *ChecklistQuestionRepository) GetByID(id uint) (*models.ChecklistQuestion, error) {
 	var checklistQuestion *models.ChecklistQuestion
-	result := repo.db.First(&checklistQuestion, id)
+	result := repo.db.Preload("Checklist").Preload("QuestionLibrary").First(&checklistQuestion, id)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, utility.NewResourceNotFoundError(result.Error, id)
@@ -106,60 +112,12 @@ func (repo *ChecklistQuestionRepository) Delete(id uint) error {
 	return nil
 }
 
-func (repo *ChecklistQuestionRepository) Activate(ids []uint) ([]uint, error) {
-	var idsToUpdate []uint
-
-	// Step 1: Fetch the IDs of records that are currently 'inactive' and within the provided 'ids' slice
-	if err := repo.db.Model(&models.ChecklistQuestion{}).
-		Where("id IN ? AND status = ?", ids, "inactive").
-		Pluck("id", &idsToUpdate).Error; err != nil {
-		return nil, err // Return error if the query fails
-	}
-
-	// Step 2: If there are any IDs to update, perform the update operation
-	if len(idsToUpdate) > 0 {
-		if err := repo.db.Model(&models.ChecklistQuestion{}).
-			Where("id IN ?", idsToUpdate).
-			Update("status", "active").Error; err != nil {
-			return nil, err // Return error if the update operation fails
-		}
-	}
-
-	// Return the IDs of the records that were activated
-	return idsToUpdate, nil
-}
-
-func (repo *ChecklistQuestionRepository) Deactivate(ids []uint) ([]uint, error) {
-
-	var idsToUpdate []uint
-
-	// Step 1: Fetch the IDs of records that are currently 'inactive' and within the provided 'ids' slice
-	if err := repo.db.Model(&models.ChecklistQuestion{}).
-		Where("id IN ? AND status = ?", ids, "active").
-		Pluck("id", &idsToUpdate).Error; err != nil {
-		return nil, err // Return error if the query fails
-	}
-
-	// Step 2: If there are any IDs to update, perform the update operation
-	if len(idsToUpdate) > 0 {
-		if err := repo.db.Model(&models.ChecklistQuestion{}).
-			Where("id IN ?", idsToUpdate).
-			Update("status", "inactive").Error; err != nil {
-			return nil, err // Return error if the update operation fails
-		}
-	}
-
-	// Return the IDs of the records that were activated
-	return idsToUpdate, nil
-
-}
-
-func (repo *ChecklistQuestionRepository) ExistsByTitle(titleEn, titleAr string) (bool, error) {
+func (repo *ChecklistQuestionRepository) ExistsByTitle(QuestionEn, QuestionAr string, ChecklistID uint) (bool, error) {
 	var count int64
 
-	// Check for the existence of titleEn or titleAr in a single query
+	// Check for the existence of QuestionEn or QuestionAr in a single query
 	err := repo.db.Model(&models.ChecklistQuestion{}).
-		Where("title_en = ? OR title_ar = ?", titleEn, titleAr).
+		Where("(question_en = ? OR question_ar = ?) AND checklist_id = ?", QuestionEn, QuestionAr, ChecklistID).
 		Count(&count).Error
 
 	if err != nil {
@@ -170,16 +128,44 @@ func (repo *ChecklistQuestionRepository) ExistsByTitle(titleEn, titleAr string) 
 	return count > 0, nil
 }
 
-func (repo *ChecklistQuestionRepository) ExistsByTitleExcludingID(id uint, titleEn, titleAr string) (bool, error) {
+func (repo *ChecklistQuestionRepository) ExistsQuestionLibrary(QuestionLibraryID uint) (bool, error) {
 	var count int64
 
 	err := repo.db.Model(&models.ChecklistQuestion{}).
-		Where("id <> ? AND (title_en = ? OR title_ar = ?)", id, titleEn, titleAr).
+		Where("question_library_id = ?", QuestionLibraryID).
+		Count(&count).Error
+
+	if err != nil {
+		return false, utility.NewInternalServerError(err)
+
+	}
+	return count > 0, nil
+}
+
+func (repo *ChecklistQuestionRepository) ExistsByTitleExcludingID(id uint, QuestionEn, QuestionAr string, ChecklistID uint) (bool, error) {
+	var count int64
+
+	err := repo.db.Model(&models.ChecklistQuestion{}).
+		Where("id <> ? AND (question_en = ? OR question_ar = ?) AND checklist_id = ?", id, QuestionEn, QuestionAr, ChecklistID).
 		Count(&count).Error
 
 	if err != nil {
 		return false, utility.NewInternalServerError(err)
 	}
 
+	return count > 0, nil
+}
+
+func (repo *ChecklistQuestionRepository) ExistsQuestionLibraryExcludingID(id uint, QuestionLibraryID uint) (bool, error) {
+	var count int64
+
+	err := repo.db.Model(&models.ChecklistQuestion{}).
+		Where("id <> ? AND question_library_id = ?", id, QuestionLibraryID).
+		Count(&count).Error
+
+	if err != nil {
+		return false, utility.NewInternalServerError(err)
+
+	}
 	return count > 0, nil
 }

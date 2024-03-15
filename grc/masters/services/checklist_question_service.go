@@ -11,13 +11,11 @@ import (
 )
 
 type ChecklistQuestionServiceInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ChecklistQuestion, error)
+	GetAll(sort string, sortBy string, keyword string) ([]*models.ChecklistQuestionWithChecklistTitle, error)
 	GetByID(id uint) (*models.ChecklistQuestion, error)
 	Create(currentUserID uint, checklistQuestion *models.ChecklistQuestion) (*models.ChecklistQuestion, error)
 	Update(id uint, currentUserID uint, checklistQuestion *models.ChecklistQuestion) (*models.ChecklistQuestion, error)
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
-	Activate(ids []uint, currentUserID uint) error
-	Deactivate(ids []uint, currentUserID uint) error
 }
 
 // Service and implementations
@@ -33,8 +31,8 @@ func NewChecklistQuestionService(repo repositories.ChecklistQuestionRepositoryIn
 	}
 }
 
-func (cqs *ChecklistQuestionService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ChecklistQuestion, error) {
-	return cqs.repo.GetAll(sort, sortBy, keyword, status)
+func (cqs *ChecklistQuestionService) GetAll(sort string, sortBy string, keyword string) ([]*models.ChecklistQuestionWithChecklistTitle, error) {
+	return cqs.repo.GetAll(sort, sortBy, keyword)
 }
 
 func (cqs ChecklistQuestionService) GetByID(id uint) (*models.ChecklistQuestion, error) {
@@ -43,10 +41,16 @@ func (cqs ChecklistQuestionService) GetByID(id uint) (*models.ChecklistQuestion,
 
 func (cqs *ChecklistQuestionService) Create(currentUserID uint, checklistQuestion *models.ChecklistQuestion) (*models.ChecklistQuestion, error) {
 
-	if exists, err := cqs.repo.ExistsByTitle(checklistQuestion.TitleEn, checklistQuestion.TitleAr); err != nil {
+	if exists, err := cqs.repo.ExistsByTitle(checklistQuestion.QuestionEn, checklistQuestion.QuestionAr, checklistQuestion.ChecklistID); err != nil {
 		return nil, err
 	} else if exists {
-		return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
+		return nil, utility.NewValidationError(fmt.Errorf("the question must be unique"), "unique", "question")
+	}
+
+	if existsInLibrary, err := cqs.repo.ExistsQuestionLibrary(checklistQuestion.QuestionLibraryID); err != nil {
+		return nil, err
+	} else if existsInLibrary {
+		return nil, utility.NewValidationError(fmt.Errorf("the question already exists in this checklist"), "unique", "question")
 	}
 
 	createdChecklistQuestion, err := cqs.repo.Create(checklistQuestion)
@@ -80,13 +84,18 @@ func (cqs *ChecklistQuestionService) Update(id uint, currentUserID uint, updated
 		return nil, err
 	}
 
-	if updatedChecklistQuestion.TitleEn != existingChecklistQuestion.TitleEn || updatedChecklistQuestion.TitleAr != existingChecklistQuestion.TitleAr {
-		if exists, err := cqs.repo.ExistsByTitleExcludingID(id, updatedChecklistQuestion.TitleEn, updatedChecklistQuestion.TitleAr); err != nil {
+	if updatedChecklistQuestion.QuestionEn != existingChecklistQuestion.QuestionEn || updatedChecklistQuestion.QuestionAr != existingChecklistQuestion.QuestionAr || updatedChecklistQuestion.ChecklistID != existingChecklistQuestion.ChecklistID {
+		if exists, err := cqs.repo.ExistsByTitleExcludingID(id, updatedChecklistQuestion.QuestionEn, updatedChecklistQuestion.QuestionAr, updatedChecklistQuestion.ChecklistID); err != nil {
 			return nil, err
 		} else if exists {
-			return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
+			return nil, utility.NewValidationError(fmt.Errorf("the question must be unique"), "unique", "question")
 		}
+	}
 
+	if existsInLibrary, err := cqs.repo.ExistsQuestionLibraryExcludingID(id, updatedChecklistQuestion.QuestionLibraryID); err != nil {
+		return nil, err
+	} else if existsInLibrary {
+		return nil, utility.NewValidationError(fmt.Errorf("the question already exists in this checklist"), "unique", "question")
 	}
 
 	result, err := cqs.repo.Update(id, updatedChecklistQuestion)
@@ -95,7 +104,7 @@ func (cqs *ChecklistQuestionService) Update(id uint, currentUserID uint, updated
 		return nil, err
 	}
 
-	fieldsToCompare := []string{"TitleEn", "TitleAr", "Status"}
+	fieldsToCompare := []string{"QuestionEn", "QuestionAr"}
 	changes, err := utility.CompareFields(existingChecklistQuestion, updatedChecklistQuestion, fieldsToCompare)
 
 	if err != nil {
@@ -162,53 +171,4 @@ func (cqs *ChecklistQuestionService) Delete(ids []uint, currentUserID uint) ([]u
 	}
 
 	return failedIds, nil
-}
-
-func (cqs *ChecklistQuestionService) Activate(ids []uint, currentUserID uint) error {
-	successfulIds, err := cqs.repo.Activate(ids)
-
-	if len(successfulIds) > 0 {
-
-		go func() {
-			err := cqs.activityLogSvc.LogBulkActivities(
-				activityLogModels.ActivateAction,
-				models.ChecklistQuestion{}.TableName(),
-				successfulIds,
-				nil,
-				currentUserID,
-				nil,
-			)
-			if err != nil {
-				// @todo - save to log file
-				fmt.Printf("Failed to log activity: %v\n", err)
-			}
-		}()
-	}
-
-	return err
-}
-
-func (cqs *ChecklistQuestionService) Deactivate(ids []uint, currentUserID uint) error {
-	successfulIds, err := cqs.repo.Deactivate(ids)
-
-	if len(successfulIds) > 0 {
-
-		go func() {
-			err := cqs.activityLogSvc.LogBulkActivities(
-				activityLogModels.DeactivateAction,
-				models.ChecklistQuestion{}.TableName(),
-				successfulIds,
-				nil,
-				currentUserID,
-				nil,
-			)
-			if err != nil {
-				// @todo - save to log file
-				// You might want to log this error or handle it appropriately
-				fmt.Printf("Failed to log activity: %v\n", err)
-			}
-		}()
-	}
-
-	return err
 }

@@ -27,9 +27,8 @@ func (cqc *ChecklistQuestionController) GetAllChecklistQuestions(c *gin.Context)
 	sort := c.Query("sort")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	status := c.Query("status")
 
-	checklistQuestions, err := cqc.service.GetAll(sort, sortBy, keyword, status)
+	checklistQuestions, err := cqc.service.GetAll(sort, sortBy, keyword)
 
 	if err != nil {
 		utility.SendInternalErrResp(cqc.db, c, err.Error())
@@ -146,54 +145,4 @@ func (cqc *ChecklistQuestionController) DeleteChecklistQuestions(c *gin.Context)
 	}
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
-}
-
-func (cqc *ChecklistQuestionController) ActivateChecklistQuestions(c *gin.Context) {
-	var request struct {
-		IDs []uint `json:"ids"`
-	}
-
-	if err := c.ShouldBindJSON(&request); err != nil {
-		utility.SendInvalidErrResp(c, err)
-		return
-	}
-
-	currentUserID, err := utility.GetCurrentUserID(c)
-	if err != nil {
-		utility.SendInternalErrResp(cqc.db, c, err.Error())
-		return
-	}
-
-	err = cqc.service.Activate(request.IDs, currentUserID)
-	if err != nil {
-		utility.SendInternalErrResp(cqc.db, c, err.Error())
-		return
-	}
-
-	c.Status(http.StatusOK)
-}
-
-func (cqc *ChecklistQuestionController) DeactivateChecklistQuestions(c *gin.Context) {
-	var request struct {
-		IDs []uint `json:"ids"`
-	}
-
-	if err := c.ShouldBindJSON(&request); err != nil {
-		utility.SendInvalidErrResp(c, err)
-		return
-	}
-
-	currentUserID, err := utility.GetCurrentUserID(c)
-	if err != nil {
-		utility.SendInternalErrResp(cqc.db, c, err.Error())
-		return
-	}
-
-	err = cqc.service.Deactivate(request.IDs, currentUserID)
-	if err != nil {
-		utility.SendInternalErrResp(cqc.db, c, err.Error())
-		return
-	}
-
-	c.Status(http.StatusOK)
 }
