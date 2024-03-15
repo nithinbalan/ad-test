@@ -10,7 +10,7 @@ import (
 
 // Interfaces
 type ChecklistQuestionRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string) ([]*models.ChecklistQuestionWithChecklistTitle, error)
+	GetAll(sort string, sortBy string, keyword string) ([]*models.ChecklistQuestion, error)
 	GetByID(id uint) (*models.ChecklistQuestion, error)
 	Create(article *models.ChecklistQuestion) (*models.ChecklistQuestion, error)
 	Update(id uint, checklistQuestion *models.ChecklistQuestion) (*models.ChecklistQuestion, error)
@@ -32,9 +32,9 @@ func NewChecklistQuestionRepository(db *gorm.DB) *ChecklistQuestionRepository {
 	}
 }
 
-func (repo *ChecklistQuestionRepository) GetAll(sort string, sortBy string, keyword string) ([]*models.ChecklistQuestionWithChecklistTitle, error) {
+func (repo *ChecklistQuestionRepository) GetAll(sort string, sortBy string, keyword string) ([]*models.ChecklistQuestion, error) {
 
-	var checklistQuestions []*models.ChecklistQuestionWithChecklistTitle
+	var checklistQuestions []*models.ChecklistQuestion
 
 	query := repo.db.Table("checklist_questions").
 		Select(

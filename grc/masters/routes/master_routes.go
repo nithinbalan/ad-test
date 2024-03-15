@@ -1,8 +1,8 @@
 package routes
 
 import (
-	activityLogRepository "jethur/grc/logs/repositories"
-	activityLogServie "jethur/grc/logs/services"
+	logRepositories "jethur/grc/logs/repositories"
+	logServices "jethur/grc/logs/services"
 	"jethur/grc/masters/controllers"
 	"jethur/grc/masters/repositories"
 	"jethur/grc/masters/services"
@@ -18,8 +18,8 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 
 	masterRoutes.Use(middlewares.AuthMiddleware())
 
-	activityLogRepo := activityLogRepository.NewActivityLogRepository(db)
-	activityLogSvc := activityLogServie.NewActivityLogService(activityLogRepo)
+	activityLogRepo := logRepositories.NewActivityLogRepository(db)
+	activityLogSvc := logServices.NewActivityLogService(activityLogRepo)
 
 	//Review Frequency
 	reviewFrequencyRepo := repositories.NewReviewFrequencyRepository(db)
@@ -59,7 +59,7 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 
 	//Checklist Questions
 	checklistQuestionRepo := repositories.NewChecklistQuestionRepository(db)
-	checklistQuestionSvc := services.NewChecklistQuestionService(checklistQuestionRepo, activityLogSvc)
+	checklistQuestionSvc := services.NewChecklistQuestionService(checklistQuestionRepo, activityLogSvc, checklistRepo)
 	checklistQuestionController := controllers.NewChecklistQuestionController(checklistQuestionSvc)
 
 	masterRoutes.GET("/checklist-questions", checklistQuestionController.GetAllChecklistQuestions)

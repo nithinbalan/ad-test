@@ -2,7 +2,7 @@ package services
 
 import (
 	"fmt"
-	activityLogModels "jethur/grc/logs/models"
+	logModels "jethur/grc/logs/models"
 	"jethur/grc/logs/services"
 	"jethur/grc/masters/models"
 	"jethur/grc/masters/repositories"
@@ -11,7 +11,7 @@ import (
 )
 
 type ChecklistQuestionServiceInterface interface {
-	GetAll(sort string, sortBy string, keyword string) ([]*models.ChecklistQuestionWithChecklistTitle, error)
+	GetAll(sort string, sortBy string, keyword string) ([]*models.ChecklistQuestion, error)
 	GetByID(id uint) (*models.ChecklistQuestion, error)
 	Create(currentUserID uint, checklistQuestion *models.ChecklistQuestion) (*models.ChecklistQuestion, error)
 	Update(id uint, currentUserID uint, checklistQuestion *models.ChecklistQuestion) (*models.ChecklistQuestion, error)
@@ -22,16 +22,22 @@ type ChecklistQuestionServiceInterface interface {
 type ChecklistQuestionService struct {
 	repo           repositories.ChecklistQuestionRepositoryInterface
 	activityLogSvc services.ActivityLogServiceInterface
+	checklistRepo  repositories.ChecklistRepositoryInterface
 }
 
-func NewChecklistQuestionService(repo repositories.ChecklistQuestionRepositoryInterface, activityLogSvc services.ActivityLogServiceInterface) ChecklistQuestionServiceInterface {
+func NewChecklistQuestionService(
+	repo repositories.ChecklistQuestionRepositoryInterface,
+	activityLogSvc services.ActivityLogServiceInterface,
+	checklistRepo repositories.ChecklistRepositoryInterface,
+) ChecklistQuestionServiceInterface {
 	return &ChecklistQuestionService{
 		repo:           repo,
 		activityLogSvc: activityLogSvc,
+		checklistRepo:  checklistRepo,
 	}
 }
 
-func (cqs *ChecklistQuestionService) GetAll(sort string, sortBy string, keyword string) ([]*models.ChecklistQuestionWithChecklistTitle, error) {
+func (cqs *ChecklistQuestionService) GetAll(sort string, sortBy string, keyword string) ([]*models.ChecklistQuestion, error) {
 	return cqs.repo.GetAll(sort, sortBy, keyword)
 }
 
@@ -40,6 +46,12 @@ func (cqs ChecklistQuestionService) GetByID(id uint) (*models.ChecklistQuestion,
 }
 
 func (cqs *ChecklistQuestionService) Create(currentUserID uint, checklistQuestion *models.ChecklistQuestion) (*models.ChecklistQuestion, error) {
+
+	// Validation for checklist
+	checklist, err := cqs.checklistRepo.GetByID(checklistQuestion.ChecklistID)
+	if err != nil {
+		return nil, utility.NewValidationError(fmt.Errorf("review checklist does not exist"), "not_exist", "checklist")
+	}
 
 	if exists, err := cqs.repo.ExistsByTitle(checklistQuestion.QuestionEn, checklistQuestion.QuestionAr, checklistQuestion.ChecklistID); err != nil {
 		return nil, err
@@ -52,6 +64,7 @@ func (cqs *ChecklistQuestionService) Create(currentUserID uint, checklistQuestio
 	} else if existsInLibrary {
 		return nil, utility.NewValidationError(fmt.Errorf("the question already exists in this checklist"), "unique", "question")
 	}
+	_ = checklist
 
 	createdChecklistQuestion, err := cqs.repo.Create(checklistQuestion)
 	if err != nil {
@@ -60,7 +73,7 @@ func (cqs *ChecklistQuestionService) Create(currentUserID uint, checklistQuestio
 
 	go func() {
 		err := cqs.activityLogSvc.LogActivity(
-			activityLogModels.CreateAction,
+			logModels.CreateAction,
 			models.ChecklistQuestion{}.TableName(),
 			checklistQuestion.ID,
 			createdChecklistQuestion,
@@ -118,7 +131,7 @@ func (cqs *ChecklistQuestionService) Update(id uint, currentUserID uint, updated
 
 	go func() {
 		err := cqs.activityLogSvc.LogActivity(
-			activityLogModels.UpdateAction,
+			logModels.UpdateAction,
 			models.ChecklistQuestion{}.TableName(),
 			result.ID,
 			changedDataJSON,
@@ -156,7 +169,7 @@ func (cqs *ChecklistQuestionService) Delete(ids []uint, currentUserID uint) ([]u
 
 		go func() {
 			err := cqs.activityLogSvc.LogBulkActivities(
-				activityLogModels.DeleteAction, // Make sure this action constant is defined appropriately
+				logModels.DeleteAction, // Make sure this action constant is defined appropriately
 				models.ChecklistQuestion{}.TableName(),
 				successfulIds,
 				nil,
