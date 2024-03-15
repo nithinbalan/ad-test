@@ -154,7 +154,7 @@ func (repo *QuestionGroupRepository) Deactivate(ids []uint) ([]uint, error) {
 
 }
 
-func (repo *QuestionGroupRepository) ExistsByTitle(titleEn, titleAr string) (bool, error) {
+func (repo *QuestionGroupRepository) ExistsByTitle(titleEn string, titleAr string) (bool, error) {
 	var count int64
 
 	// Check for the existence of titleEn or titleAr in a single query
