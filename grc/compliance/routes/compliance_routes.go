@@ -2,10 +2,10 @@ package routes
 
 import (
 	"jethur/grc/compliance/controllers"
-	complianceRepo "jethur/grc/compliance/repositories"
-	complianceService "jethur/grc/compliance/services"
-	activityLogRepository "jethur/grc/logs/repositories"
-	activityLogService "jethur/grc/logs/services"
+	complianceRepositories "jethur/grc/compliance/repositories"
+	complianceServices "jethur/grc/compliance/services"
+	logRepositories "jethur/grc/logs/repositories"
+	logServices "jethur/grc/logs/services"
 	masterRepositories "jethur/grc/masters/repositories"
 	"jethur/middlewares"
 
@@ -19,12 +19,12 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 
 	complianceRoutes.Use(middlewares.AuthMiddleware())
 
-	activityLogRepo := activityLogRepository.NewActivityLogRepository(db)
-	activityLogSvc := activityLogService.NewActivityLogService(activityLogRepo)
+	activityLogRepo := logRepositories.NewActivityLogRepository(db)
+	activityLogSvc := logServices.NewActivityLogService(activityLogRepo)
 
 	//Compliance Category
-	complianceCategoryRepo := complianceRepo.NewComplianceCategoryRepository(db)
-	complianceCategorySvc := complianceService.NewComplianceCategoryService(complianceCategoryRepo, activityLogSvc)
+	complianceCategoryRepo := complianceRepositories.NewComplianceCategoryRepository(db)
+	complianceCategorySvc := complianceServices.NewComplianceCategoryService(complianceCategoryRepo, activityLogSvc)
 	complianceCategoryController := controllers.NewComplianceCategoryController(complianceCategorySvc)
 
 	complianceRoutes.GET("/compliance-categories", complianceCategoryController.GetAllComplianceCategories)
@@ -36,16 +36,16 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	complianceRoutes.PUT("/compliance-categories/deactivate", complianceCategoryController.DeactivateComplianceCategories)
 
 	//Compliance Status
-	complianceStatusRepo := complianceRepo.NewComplianceStatusRepository(db)
-	complianceStatusSvc := complianceService.NewComplianceStatusService(complianceStatusRepo)
+	complianceStatusRepo := complianceRepositories.NewComplianceStatusRepository(db)
+	complianceStatusSvc := complianceServices.NewComplianceStatusService(complianceStatusRepo)
 	complianceStatusController := controllers.NewComplianceStatusController(complianceStatusSvc)
 
 	complianceRoutes.GET("/compliance-statuses", complianceStatusController.GetAllComplianceStatuses)
 	complianceRoutes.GET("/compliance-statuses/:id", complianceStatusController.GetComplianceStatusDetails)
 
 	//SLA Category
-	SLACategoryRepo := complianceRepo.NewSLACategoryRepository(db)
-	SLACategorySvc := complianceService.NewSLACategoryService(SLACategoryRepo, activityLogSvc)
+	SLACategoryRepo := complianceRepositories.NewSLACategoryRepository(db)
+	SLACategorySvc := complianceServices.NewSLACategoryService(SLACategoryRepo, activityLogSvc)
 	SLACategoryController := controllers.NewSLACategoryController(SLACategorySvc)
 
 	complianceRoutes.GET("/sla-categories/:id", SLACategoryController.GetSLACategoryDetails)
@@ -57,10 +57,10 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	complianceRoutes.POST("/sla-categories/deactivate", SLACategoryController.DeactivateSLACategories)
 
 	//Compliance Register
-	complianceRepo := complianceRepo.NewComplianceRepository(db)
+	complianceRepositories := complianceRepositories.NewComplianceRepository(db)
 	reviewFrequencyRepo := masterRepositories.NewReviewFrequencyRepository(db)
 	severityLevelRepo := masterRepositories.NewSeverityLevelRepository(db)
-	complianceSvc := complianceService.NewComplianceService(complianceRepo,
+	complianceSvc := complianceServices.NewComplianceService(complianceRepositories,
 		activityLogSvc,
 		complianceCategoryRepo, //@todo add org unit and user repo
 		complianceStatusRepo,

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"jethur/grc/compliance/models"
 	"jethur/grc/compliance/repositories"
-	activityLogModels "jethur/grc/logs/models"
+	logModels "jethur/grc/logs/models"
 	"jethur/grc/logs/services"
 	masterRepositories "jethur/grc/masters/repositories"
 	"jethur/utility"
@@ -118,7 +118,7 @@ func (ccs *ComplianceService) Create(currentUserID uint, compliance *models.Comp
 
 	go func() {
 		err := ccs.activityLogSvc.LogActivity(
-			activityLogModels.CreateAction,
+			logModels.CreateAction,
 			models.ComplianceRegister{}.TableName(),
 			compliance.ID,
 			createdCompliance,
@@ -170,7 +170,7 @@ func (ccs *ComplianceService) Update(id uint, currentUserID uint, updatedComplia
 
 	go func() {
 		err := ccs.activityLogSvc.LogActivity(
-			activityLogModels.UpdateAction,
+			logModels.UpdateAction,
 			models.ComplianceRegister{}.TableName(),
 			result.ID,
 			changedDataJSON,
@@ -208,7 +208,7 @@ func (ccs *ComplianceService) Delete(ids []uint, currentUserID uint) ([]uint, er
 
 		go func() {
 			err := ccs.activityLogSvc.LogBulkActivities(
-				activityLogModels.DeleteAction, // Make sure this action constant is defined appropriately
+				logModels.DeleteAction, // Make sure this action constant is defined appropriately
 				models.ComplianceRegister{}.TableName(),
 				successfulIds,
 				nil,
@@ -232,7 +232,7 @@ func (ccs *ComplianceService) Activate(ids []uint, currentUserID uint) error {
 
 		go func() {
 			err := ccs.activityLogSvc.LogBulkActivities(
-				activityLogModels.ActivateAction,
+				logModels.ActivateAction,
 				models.ComplianceRegister{}.TableName(),
 				successfulIds,
 				nil,
@@ -256,7 +256,7 @@ func (ccs *ComplianceService) Deactivate(ids []uint, currentUserID uint) error {
 
 		go func() {
 			err := ccs.activityLogSvc.LogBulkActivities(
-				activityLogModels.DeactivateAction,
+				logModels.DeactivateAction,
 				models.ComplianceRegister{}.TableName(),
 				successfulIds,
 				nil,
