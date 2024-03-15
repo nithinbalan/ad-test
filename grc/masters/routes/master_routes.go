@@ -1,8 +1,8 @@
 package routes
 
 import (
-	activityLogRepository "jethur/grc/logs/repositories"
-	activityLogServie "jethur/grc/logs/services"
+	activityLogRepositories "jethur/grc/logs/repositories"
+	activityLogServies "jethur/grc/logs/services"
 	"jethur/grc/masters/controllers"
 	"jethur/grc/masters/repositories"
 	"jethur/grc/masters/services"
@@ -18,8 +18,8 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 
 	masterRoutes.Use(middlewares.AuthMiddleware())
 
-	activityLogRepo := activityLogRepository.NewActivityLogRepository(db)
-	activityLogSvc := activityLogServie.NewActivityLogService(activityLogRepo)
+	activityLogRepo := activityLogRepositories.NewActivityLogRepository(db)
+	activityLogSvc := activityLogServies.NewActivityLogService(activityLogRepo)
 
 	//Review Frequency
 	reviewFrequencyRepo := repositories.NewReviewFrequencyRepository(db)
