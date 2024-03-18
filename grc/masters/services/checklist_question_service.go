@@ -97,6 +97,12 @@ func (cqs *ChecklistQuestionService) Update(id uint, currentUserID uint, updated
 		return nil, err
 	}
 
+	// Validation for checklist
+	checklist, err := cqs.checklistRepo.GetByID(updatedChecklistQuestion.ChecklistID)
+	if err != nil {
+		return nil, utility.NewValidationError(fmt.Errorf("review checklist does not exist"), "not_exist", "checklist")
+	}
+
 	if updatedChecklistQuestion.QuestionEn != existingChecklistQuestion.QuestionEn || updatedChecklistQuestion.QuestionAr != existingChecklistQuestion.QuestionAr || updatedChecklistQuestion.ChecklistID != existingChecklistQuestion.ChecklistID {
 		if exists, err := cqs.repo.ExistsByTitleExcludingID(id, updatedChecklistQuestion.QuestionEn, updatedChecklistQuestion.QuestionAr, updatedChecklistQuestion.ChecklistID); err != nil {
 			return nil, err
@@ -110,6 +116,8 @@ func (cqs *ChecklistQuestionService) Update(id uint, currentUserID uint, updated
 	} else if existsInLibrary {
 		return nil, utility.NewValidationError(fmt.Errorf("the question already exists in this checklist"), "unique", "question")
 	}
+
+	_ = checklist
 
 	result, err := cqs.repo.Update(id, updatedChecklistQuestion)
 
