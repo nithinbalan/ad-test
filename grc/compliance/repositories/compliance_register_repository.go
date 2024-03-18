@@ -2,7 +2,10 @@ package repositories
 
 import (
 	"errors"
+	commonDTOs "jethur/grc/common/dtos"
+	complianceDTOs "jethur/grc/compliance/dtos"
 	complianceModels "jethur/grc/compliance/models"
+
 	masterModels "jethur/grc/masters/models"
 	"jethur/utility"
 
@@ -10,10 +13,10 @@ import (
 )
 
 type ComplianceRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*complianceModels.ComplianceRegister, error)
+	GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int) (*complianceDTOs.ComplianceRegisterListResponseDTO, error)
 	GetByID(id uint) (*complianceModels.ComplianceRegister, error)
-	Create(currentUserID uint, compliance *complianceModels.ComplianceRegister) (*complianceModels.ComplianceRegister, error)
-	Update(id uint, compliance *complianceModels.ComplianceRegister) (*complianceModels.ComplianceRegister, error)
+	Create(currentUserID uint, complianceRegFormDTO *complianceDTOs.ComplianceRegisterFormDTO) (uint, error)
+	Update(id uint, complianceRegFormDTO *complianceDTOs.ComplianceRegisterFormDTO) error
 	Delete(id uint) error
 	Activate(ids []uint) ([]uint, error)
 	Deactivate(ids []uint) ([]uint, error)
@@ -31,8 +34,10 @@ func NewComplianceRepository(db *gorm.DB) *ComplianceRepository {
 	}
 }
 
-func (repo *ComplianceRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*complianceModels.ComplianceRegister, error) {
-	var ComplianceRegisters []*complianceModels.ComplianceRegister
+func (repo *ComplianceRepository) GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int) (*complianceDTOs.ComplianceRegisterListResponseDTO, error) {
+
+	var complianceRegisters []*complianceDTOs.ComplianceRegisterListDTO
+	var totalCount int64
 
 	query := repo.db.Table("compliance_register").
 		Select(`
@@ -77,7 +82,12 @@ func (repo *ComplianceRepository) GetAll(sort string, sortBy string, keyword str
 			LEFT JOIN users AS created_user ON created_user.id = compliance_register.created_by
 		`)
 
-	// //search
+	// Calculate total count for pagination
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
+	// Apply search keyword if exists
 	if keyword != "" {
 		query = query.Where(`
 			(compliance_register.title_en LIKE ? OR
@@ -107,21 +117,43 @@ func (repo *ComplianceRepository) GetAll(sort string, sortBy string, keyword str
 			"%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%")
 	}
 
+	// Sort by the specified column and order
 	if sortBy == "" {
-		sortBy = "title_en"
+		sortBy = "title_en" // Default sort by title_en if no sortBy is specified
 	}
 	if sort != "asc" && sort != "desc" {
-		sort = "asc"
-	}
-
-	if status == "active" || status == "inactive" {
-		query = query.Where("compliance_register.status = ?", status)
+		sort = "asc" // Default order is ascending if not specified
 	}
 
 	query = query.Order(sortBy + " " + sort)
-	result := query.Find(&ComplianceRegisters)
 
-	return ComplianceRegisters, result.Error
+	// Apply pagination
+	if page <= 0 {
+		page = 1
+	}
+	if pageSize <= 0 {
+		pageSize = 10
+	}
+	offset := (page - 1) * pageSize
+
+	// Execute the queryc
+	err := query.Offset(offset).Limit(pageSize).Find(&complianceRegisters).Error
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := int((totalCount + int64(pageSize) - 1) / int64(pageSize))
+
+	response := &complianceDTOs.ComplianceRegisterListResponseDTO{
+		Items: complianceRegisters,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: page,
+			PageSize:    pageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+	return response, nil
 }
 
 func (repo *ComplianceRepository) GetByID(id uint) (*complianceModels.ComplianceRegister, error) {
@@ -137,61 +169,83 @@ func (repo *ComplianceRepository) GetByID(id uint) (*complianceModels.Compliance
 	return compliance, result.Error
 }
 
-func (repo *ComplianceRepository) Create(currentUserID uint, compliance *complianceModels.ComplianceRegister) (*complianceModels.ComplianceRegister, error) {
+func (repo *ComplianceRepository) Create(currentUserID uint, complianceRegFormDTO *complianceDTOs.ComplianceRegisterFormDTO) (uint, error) {
 
+	// Lookup for active lifecycle status
 	var lifecycleStatus masterModels.LifecycleStatus
-	err := repo.db.Where("type = ?", "active").First(&lifecycleStatus).Error
+	// if err := repo.db.Where("type = ?", "active").First(&lifecycleStatus).Error; err != nil {
+	// 	return 0, utility.HandleDBError(err)
+	// }
 
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, utility.NewInternalServerError(err)
-	} else if err != nil {
-		return nil, err
-	}
-
+	// Generate a new reference number
 	var lastReferenceNumber string
-
-	// Retrieve the last reference number from the database
 	if err := repo.db.Model(&complianceModels.ComplianceRegister{}).Select("reference_number").Order("reference_number desc").Limit(1).Pluck("reference_number", &lastReferenceNumber).Error; err != nil {
-		return nil, err
+		return 0, err
+	}
+	lastDigits := "0001" // Default if no previous record exists
+	// if lastReferenceNumber != "" {
+	// 	lastDigits = utility.IncrementReferenceNumber(lastReferenceNumber[len(lastReferenceNumber)-4:])
+	// }
+	referenceNumber := utility.GenerateReferenceNumber(complianceRegFormDTO.StandardCode, lastDigits)
+
+	// Map DTO to ComplianceRegister model
+	complianceRegister := &complianceModels.ComplianceRegister{
+		ComplianceCategoryID:    complianceRegFormDTO.ComplianceCategoryID,
+		ComplianceStatusID:      complianceRegFormDTO.ComplianceStatusID,
+		ResponsibleUnitID:       complianceRegFormDTO.ResponsibleUnitID,
+		ResponsibleUserID:       complianceRegFormDTO.ResponsibleUserID,
+		ReviewFrequencyID:       complianceRegFormDTO.ReviewFrequencyID,
+		ReviewResponsibleUserID: complianceRegFormDTO.ReviewResponsibleUserID,
+		SeverityLevelID:         complianceRegFormDTO.SeverityLevelID,
+		StandardCode:            complianceRegFormDTO.StandardCode,
+		TitleEn:                 complianceRegFormDTO.TitleEn,
+		TitleAr:                 complianceRegFormDTO.TitleAr,
+		DescriptionEn:           complianceRegFormDTO.DescriptionEn,
+		DescriptionAr:           complianceRegFormDTO.DescriptionAr,
+		ReferenceNumber:         referenceNumber,
+		CreatedBy:               currentUserID,
+		LifecycleStatusID:       lifecycleStatus.ID,
 	}
 
-	// Extract the last 4 digits of the reference number
-	lastDigits := lastReferenceNumber[len(lastReferenceNumber)-4:]
+	if err := repo.db.Create(complianceRegister).Error; err != nil {
+		return 0, err
+	}
 
-	// Generate reference number using the last 4 digits
-	referenceNumber := utility.GenerateReferenceNumber(compliance.StandardCode, lastDigits)
-
-	compliance.ReferenceNumber = referenceNumber
-	compliance.CreatedBy = currentUserID
-	compliance.LifecycleStatusID = lifecycleStatus.ID
-
-	result := repo.db.Create(&compliance)
-	return compliance, result.Error
+	return complianceRegister.ID, nil
 }
 
-func (repo *ComplianceRepository) Update(id uint, updatedCompliance *complianceModels.ComplianceRegister) (*complianceModels.ComplianceRegister, error) {
-	var compliance *complianceModels.ComplianceRegister
-
-	if err := repo.db.First(&compliance, id).Error; err != nil {
-		return nil, err
+func (repo *ComplianceRepository) Update(id uint, complianceRegFormDTO *complianceDTOs.ComplianceRegisterFormDTO) error {
+	var lifecycleStatusID uint
+	err := repo.db.Model(&masterModels.LifecycleStatus{}).Select("id").Where("type = ?", "active").Take(&lifecycleStatusID).Error
+	if err != nil {
+		return utility.NewInternalServerError(err)
 	}
 
-	var lifecycleStatus masterModels.LifecycleStatus
-	err := repo.db.Where("type = ?", "active").First(&lifecycleStatus).Error
-
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, utility.NewInternalServerError(err)
-	} else if err != nil {
-		return nil, err
+	// Prepare the update map
+	updateFields := map[string]interface{}{
+		"ComplianceCategoryID":    complianceRegFormDTO.ComplianceCategoryID,
+		"ComplianceStatusID":      complianceRegFormDTO.ComplianceStatusID,
+		"ResponsibleUnitID":       complianceRegFormDTO.ResponsibleUnitID,
+		"ResponsibleUserID":       complianceRegFormDTO.ResponsibleUserID,
+		"ReviewFrequencyID":       complianceRegFormDTO.ReviewFrequencyID,
+		"ReviewResponsibleUserID": complianceRegFormDTO.ReviewResponsibleUserID,
+		"SeverityLevelID":         complianceRegFormDTO.SeverityLevelID,
+		"StandardCode":            complianceRegFormDTO.StandardCode,
+		"TitleEn":                 complianceRegFormDTO.TitleEn,
+		"TitleAr":                 complianceRegFormDTO.TitleAr,
+		"DescriptionEn":           complianceRegFormDTO.DescriptionEn,
+		"DescriptionAr":           complianceRegFormDTO.DescriptionAr,
+		"LifecycleStatusID":       lifecycleStatusID,
 	}
 
-	updatedCompliance.LifecycleStatusID = lifecycleStatus.ID
-
-	if err := repo.db.Model(&compliance).Updates(updatedCompliance).Error; err != nil {
-		return nil, err
+	// Perform the update
+	if err := repo.db.Model(&complianceModels.ComplianceRegister{}).
+		Where("id = ?", id).
+		Updates(updateFields).Error; err != nil {
+		return err
 	}
 
-	return compliance, nil
+	return nil
 }
 
 func (repo *ComplianceRepository) Delete(id uint) error {

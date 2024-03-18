@@ -66,13 +66,13 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 		complianceStatusRepo,
 		reviewFrequencyRepo,
 		severityLevelRepo)
-	complianceController := controllers.NewComplianceController(complianceSvc)
+	complianceRegController := controllers.NewComplianceRegisterController(complianceSvc)
 
-	complianceRoutes.GET("/compliance-register", complianceController.GetAllCompliances)
-	complianceRoutes.GET("/compliance-register/:id", complianceController.GetComplianceDetails)
-	complianceRoutes.POST("/compliance-register", complianceController.CreateCompliance)
-	complianceRoutes.PUT("/compliance-register/:id", complianceController.UpdateCompliance)
-	complianceRoutes.POST("/compliance-register/delete", complianceController.DeleteCompliances)
-	complianceRoutes.PUT("/compliance-register/activate", complianceController.ActivateCompliances)
-	complianceRoutes.PUT("/compliance-register/deactivate", complianceController.DeactivateCompliances)
+	complianceRoutes.GET("/compliance-register", complianceRegController.GetAllComplianceRegisters)
+	complianceRoutes.GET("/compliance-register/:id", complianceRegController.GetComplianceRegisterDetails)
+	complianceRoutes.POST("/compliance-register", complianceRegController.CreateComplianceRegister)
+	complianceRoutes.PUT("/compliance-register/:id", complianceRegController.UpdateComplianceRegister)
+	complianceRoutes.POST("/compliance-register/delete", complianceRegController.DeleteComplianceRegisters)
+	complianceRoutes.PUT("/compliance-register/activate", complianceRegController.ActivateComplianceRegisters)
+	complianceRoutes.PUT("/compliance-register/deactivate", complianceRegController.DeactivateComplianceRegisters)
 }
