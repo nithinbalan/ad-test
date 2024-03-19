@@ -80,5 +80,5 @@ func (ac *AuthController) GetOtpForgotPasswordRecovery(c *gin.Context) {
 	}
 
 	// Return response with status OK
-	c.JSON(http.StatusOK, gin.H{"message": "Password recovery email sent successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "Password recovery otp sent to your email successfully"})
 }
