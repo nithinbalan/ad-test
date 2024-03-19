@@ -89,6 +89,7 @@ func (repo *AuthRepository) GetOtpForgotPasswordRecovery(c *gin.Context, email s
 	from := config.GetEnv("SMTP_EMAIL_FROM", "no-reply@jethur.com")
 	username := config.GetEnv("SMTP_EMAIL_USERNAME", "username")
 	password := config.GetEnv("SMTP_EMAIL_PASSWORD", "password")
+	host := config.GetEnv("SMTP_EMAIL_HOST", "smtp.gmail.com")
 
 	// Prepare the email body
 	emailBody := fmt.Sprintf(`
@@ -112,7 +113,7 @@ func (repo *AuthRepository) GetOtpForgotPasswordRecovery(c *gin.Context, email s
 		msg.SetBody("text/html", emailBody)
 
 		// Create a dialer and configure it
-		n := gomail.NewDialer("smtp.gmail.com", 587, username, password)
+		n := gomail.NewDialer(host, 587, username, password)
 		n.TLSConfig = &tls.Config{InsecureSkipVerify: true}
 
 		// Send the email
