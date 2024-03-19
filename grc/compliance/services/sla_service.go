@@ -6,12 +6,13 @@ import (
 	"jethur/grc/compliance/repositories"
 	activityLogModels "jethur/grc/logs/models"
 	"jethur/grc/logs/services"
+	masterRepositories "jethur/grc/masters/repositories"
 	"jethur/utility"
 	"log"
 )
 
 type SLAServiceInterface interface {
-	GetAll(sort string, sortBy string, keyword string) ([]*models.SLARegisterWithAllField, error)
+	GetAll(sort string, sortBy string, keyword string) ([]*models.SLARegister, error)
 	GetByID(id uint) (*models.SLARegister, error)
 	Create(currentUserID uint, slaRegister *models.SLARegister) (*models.SLARegister, error)
 	Update(id uint, currentUserID uint, slaRegister *models.SLARegister) (*models.SLARegister, error)
@@ -22,16 +23,23 @@ type SLAServiceInterface interface {
 type SLAService struct {
 	repo           repositories.SLARepositoryInterface
 	activityLogSvc services.ActivityLogServiceInterface
+	slaCategoryRepo   repositories.SLACategoryRepositoryInterface
+	severityLevelRepo masterRepositories.SeverityLevelRepositoryInterface
+	lifecycleStatusRepo masterRepositories.LifecycleStatusRepositoryInterface
+	
 }
 
-func NewSLAService(repo repositories.SLARepositoryInterface, activityLogSvc services.ActivityLogServiceInterface) SLAServiceInterface {
+func NewSLAService(repo repositories.SLARepositoryInterface,slaCategoryRepo repositories.SLACategoryRepositoryInterface,severityLevelRepo masterRepositories.SeverityLevelRepositoryInterface,lifecycleStatusRepo masterRepositories.LifecycleStatusRepositoryInterface, activityLogSvc services.ActivityLogServiceInterface) SLAServiceInterface {
 	return &SLAService{
 		repo:           repo,
+		slaCategoryRepo: slaCategoryRepo,
+		severityLevelRepo: severityLevelRepo,
+		lifecycleStatusRepo: lifecycleStatusRepo,
 		activityLogSvc: activityLogSvc,
 	}
 }
 
-func (srs *SLAService) GetAll(sort string, sortBy string, keyword string) ([]*models.SLARegisterWithAllField, error) {
+func (srs *SLAService) GetAll(sort string, sortBy string, keyword string) ([]*models.SLARegister, error) {
 	return srs.repo.GetAll(sort, sortBy, keyword)
 }
 
@@ -41,6 +49,18 @@ func (srs SLAService) GetByID(id uint) (*models.SLARegister, error) {
 
 func (srs *SLAService) Create(currentUserID uint, slaRegister *models.SLARegister) (*models.SLARegister, error) {
 	
+	// Validation for sla category field
+	if _, err := srs.slaCategoryRepo.GetByID(slaRegister.SLACategoryID); err != nil {
+		return nil, utility.NewValidationError(fmt.Errorf("sla category does not exist"), "not_exist", "sla category")
+	}
+	// Validation for Severity Level
+    if _, err := srs.severityLevelRepo.GetByID(slaRegister.SeverityLevelID); err != nil {
+        return nil, utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
+    }
+	// Validation for lifecycle status 
+    if _, err := srs.lifecycleStatusRepo.GetByID(slaRegister.LifecycleStatusID); err != nil {
+        return nil, utility.NewValidationError(fmt.Errorf("status does not exist"), "not_exist", "lifecycle_status")
+    }
 	createdSLA, err := srs.repo.Create(slaRegister)
 	if err != nil {
 		return nil, err
@@ -73,6 +93,18 @@ func (srs *SLAService) Update(id uint, currentUserID uint, updatedSLA *models.SL
 		return nil, err
 	}
 
+	// Validation for sla category field
+	if _, err := srs.slaCategoryRepo.GetByID(updatedSLA.SLACategoryID); err != nil {
+		return nil, utility.NewValidationError(fmt.Errorf("sla category does not exist"), "not_exist", "sla category")
+	}
+	// Validation for Severity Level
+    if _, err := srs.severityLevelRepo.GetByID(updatedSLA.SeverityLevelID); err != nil {
+        return nil, utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
+    }
+	// Validation for lifecycle status 
+    if _, err := srs.lifecycleStatusRepo.GetByID(updatedSLA.LifecycleStatusID); err != nil {
+        return nil, utility.NewValidationError(fmt.Errorf("status does not exist"), "not_exist", "lifecycle_status")
+    }
 	result, err := srs.repo.Update(id, updatedSLA)
 
 	if err != nil {

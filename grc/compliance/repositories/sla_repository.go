@@ -10,7 +10,7 @@ import (
 
 // Interfaces
 type SLARepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string) ([]*models.SLARegisterWithAllField, error)
+	GetAll(sort string, sortBy string, keyword string) ([]*models.SLARegister, error)
 	GetByID(id uint) (*models.SLARegister, error)
 	Create(article *models.SLARegister) (*models.SLARegister, error)
 	Update(id uint, slaRegister *models.SLARegister) (*models.SLARegister, error)
@@ -28,8 +28,8 @@ func NewSLARepository(db *gorm.DB) *SLARepository {
 	}
 }
 
-func (repo *SLARepository) GetAll(sort string, sortBy string, keyword string) ([]*models.SLARegisterWithAllField, error) {
-    var slaRegisters []*models.SLARegisterWithAllField
+func (repo *SLARepository) GetAll(sort string, sortBy string, keyword string) ([]*models.SLARegister, error) {
+    var slaRegisters []*models.SLARegister
 
     query := repo.db.Table("sla_registers").
         Select(
@@ -87,15 +87,20 @@ func (repo *SLARepository) GetAll(sort string, sortBy string, keyword string) ([
         sort = "asc"
     }
 
-    // Order the results
-    query = query.Order("sla_registers." + sortBy + " " + sort)
+    // // Order the results
+    // query = query.Order("sla_registers." + sortBy + " " + sort)
 
-    // Execute the query and return result/error
-    if err := query.Find(&slaRegisters).Error; err != nil {
-        return nil, err
-    }
+    // // Execute the query and return result/error
+    // if err := query.Find(&slaRegisters).Error; err != nil {
+    //     return nil, err
+    // }
 
-    return slaRegisters, nil
+    // return slaRegisters, nil
+
+	query = query.Order(sortBy + " " + sort)
+	result := query.Find(&slaRegisters)
+
+	return slaRegisters, result.Error
 }
 
 
@@ -121,14 +126,17 @@ func (repo *SLARepository) GetByID(id uint) (*models.SLARegister, error) {
 }
 
 func (repo *SLARepository) Create(slaRegister *models.SLARegister) (*models.SLARegister, error) {
-	// Retrieve the last SLA entry
-    var lastID uint
-    if err := repo.db.Model(&models.SLARegister{}).Select("id").Order("id desc").Limit(1).Pluck("id", &lastID).Error; err != nil {
+	var lastReferenceNumber string
+	// Retrieve the last reference number from the database
+    if err := repo.db.Model(&models.SLARegister{}).Select("reference_number").Order("reference_number desc").Limit(1).Pluck("reference_number", &lastReferenceNumber).Error; err != nil {
         return nil, err
     }
  
-    // Generate reference number using the last ID
-    referenceNumber := utility.GenerateReferenceNumber(slaRegister.ReferenceNumber, lastID)
+    // Extract the last 4 digits of the reference number
+    lastDigits := lastReferenceNumber[len(lastReferenceNumber)-4:]
+ 
+    // Generate reference number using the last 4 digits
+    referenceNumber := utility.GenerateReferenceNumber("SLA-JETHUR", lastDigits)
 	slaRegister.ReferenceNumber=referenceNumber
 	result := repo.db.Create(&slaRegister)
 	
