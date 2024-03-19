@@ -136,13 +136,29 @@ func (ccs *ComplianceService) Update(id uint, currentUserID uint, complianceRegF
 
 	_, _, _, _ = complianceCategory, complianceStatus, reviewFrequency, severityLevel
 
-	err = ccs.repo.Update(id, complianceRegFormDTO)
+	err = ccs.repo.Update(id, currentUserID, complianceRegFormDTO)
 
 	if err != nil {
 		return err
 	}
 
-	fieldsToCompare := []string{"TitleEn", "TitleAr", "Status"}
+	fieldsToCompare := []string{"ComplianceCategoryID",
+		"ComplianceStatusID",
+		"ResponsibleUnitID",
+		"ResponsibleUserID",
+		"ReviewFrequencyID",
+		"ReviewResponsibleUserID",
+		"SeverityLevelID",
+		"StandardCode",
+		"TitleEn",
+		"TitleAr",
+		"DescriptionEn",
+		"DescriptionAr",
+		"Version",
+		"Deadline",
+		"IssueDate",
+		"ExpiryDate",
+		"NextReviewDate"}
 	changes, err := utility.CompareFields(existingComplianceRegister, complianceRegFormDTO, fieldsToCompare)
 
 	if err != nil {

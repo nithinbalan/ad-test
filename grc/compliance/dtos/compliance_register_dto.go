@@ -1,9 +1,7 @@
 package dtos
 
 import (
-	"errors"
 	commonDTOs "jethur/grc/common/dtos"
-	"jethur/utility"
 )
 
 type ComplianceRegisterListDTO struct {
@@ -77,20 +75,4 @@ type ComplianceRegisterFormDTO struct {
 	ExpiryDate              string `json:"expiry_date" binding:"omitempty,datetime=2006-01-02"`
 	NextReviewDate          string `json:"next_review_date" binding:"omitempty,datetime=2006-01-02"`
 	StandardCode            string `json:"standard_code" binding:"omitempty,max=45"`
-}
-
-func (dto *ComplianceRegisterFormDTO) Validate() error {
-	if !utility.IsValidDate(dto.Deadline) {
-		return utility.NewValidationError(errors.New("invalid deadline"), "invalid_date", "deadline")
-	}
-	if !utility.IsValidDate(dto.IssueDate) {
-		return utility.NewValidationError(errors.New("invalid issue date"), "invalid_date", "issue date")
-	}
-	if !utility.IsValidDate(dto.ExpiryDate) {
-		return utility.NewValidationError(errors.New("invalid expiry date"), "invalid_date", "expiry date")
-	}
-	if !utility.IsValidDate(dto.NextReviewDate) {
-		return utility.NewValidationError(errors.New("invalid next review date"), "invalid_date", "next review date")
-	}
-	return nil
 }

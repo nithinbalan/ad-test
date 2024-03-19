@@ -24,7 +24,7 @@ type ComplianceRegister struct {
 	DescriptionEn           string    `json:"description_en" gorm:"type:varchar(max)"`
 	DescriptionAr           string    `json:"description_ar" gorm:"type:nvarchar(max)"`
 	Version                 string    `json:"version" binding:"omitempty,max=45" gorm:"size:45"`
-	Deadline                string    `json:"deadline" binding:"omitempty" gorm:"type:date"`
+	Deadline                string    `json:"deadline" binding:"omitempty" gorm:"type:date,default:null"`
 	IssueDate               string    `json:"issue_date" binding:"omitempty" gorm:"type:date"`
 	ExpiryDate              string    `json:"expiry_date" binding:"omitempty" gorm:"type:date"`
 	NextReviewDate          string    `json:"next_review_date" binding:"omitempty" gorm:"type:date"`

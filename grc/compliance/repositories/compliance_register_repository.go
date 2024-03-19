@@ -16,7 +16,7 @@ type ComplianceRepositoryInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int) (*complianceDTOs.ComplianceRegisterListResponseDTO, error)
 	GetByID(id uint) (*complianceModels.ComplianceRegister, error)
 	Create(currentUserID uint, complianceRegFormDTO *complianceDTOs.ComplianceRegisterFormDTO) (uint, error)
-	Update(id uint, complianceRegFormDTO *complianceDTOs.ComplianceRegisterFormDTO) error
+	Update(id uint, currentUserID uint, complianceRegFormDTO *complianceDTOs.ComplianceRegisterFormDTO) error
 	Delete(id uint) error
 	Activate(ids []uint) ([]uint, error)
 	Deactivate(ids []uint) ([]uint, error)
@@ -174,15 +174,16 @@ func (repo *ComplianceRepository) Create(currentUserID uint, complianceRegFormDT
 		return 0, utility.NewInternalServerError(err)
 	}
 
+	lastDigits := "0000" // Default if no previous record exists
+
 	// Generate a new reference number
 	var lastReferenceNumber string
 	if err := repo.db.Model(&complianceModels.ComplianceRegister{}).Select("reference_number").Order("reference_number desc").Limit(1).Pluck("reference_number", &lastReferenceNumber).Error; err != nil {
 		return 0, err
+	} else if lastReferenceNumber != "" {
+		lastDigits = lastReferenceNumber[len(lastReferenceNumber)-4:]
 	}
-	lastDigits := "0001" // Default if no previous record exists
-	// if lastReferenceNumber != "" {
-	// 	lastDigits = utility.IncrementReferenceNumber(lastReferenceNumber[len(lastReferenceNumber)-4:])
-	// }
+
 	referenceNumber := utility.GenerateReferenceNumber(complianceRegFormDTO.StandardCode, lastDigits)
 
 	// Map DTO to ComplianceRegister model
@@ -216,7 +217,7 @@ func (repo *ComplianceRepository) Create(currentUserID uint, complianceRegFormDT
 	return complianceRegister.ID, nil
 }
 
-func (repo *ComplianceRepository) Update(id uint, complianceRegFormDTO *complianceDTOs.ComplianceRegisterFormDTO) error {
+func (repo *ComplianceRepository) Update(id uint, currentUserID uint, complianceRegFormDTO *complianceDTOs.ComplianceRegisterFormDTO) error {
 	// Prepare the update map
 	updateFields := map[string]interface{}{
 		"ComplianceCategoryID":    complianceRegFormDTO.ComplianceCategoryID,
@@ -231,6 +232,12 @@ func (repo *ComplianceRepository) Update(id uint, complianceRegFormDTO *complian
 		"TitleAr":                 complianceRegFormDTO.TitleAr,
 		"DescriptionEn":           complianceRegFormDTO.DescriptionEn,
 		"DescriptionAr":           complianceRegFormDTO.DescriptionAr,
+		"Version":                 complianceRegFormDTO.Version,
+		"Deadline":                complianceRegFormDTO.Deadline,
+		"IssueDate":               complianceRegFormDTO.IssueDate,
+		"ExpiryDate":              complianceRegFormDTO.ExpiryDate,
+		"NextReviewDate":          complianceRegFormDTO.NextReviewDate,
+		"UpdatedBy":               currentUserID,
 	}
 
 	// Perform the update
