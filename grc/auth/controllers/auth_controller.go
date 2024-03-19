@@ -56,6 +56,7 @@ func (ac *AuthController) Login(c *gin.Context) {
 		"refresh_token": tokens["refresh_token"],
 	})
 }
+
 func (ac *AuthController) GetOtpForgotPasswordRecovery(c *gin.Context) {
 	var forgotPasswordReq ForgotPasswordRequest
 
@@ -64,9 +65,11 @@ func (ac *AuthController) GetOtpForgotPasswordRecovery(c *gin.Context) {
 		return
 	}
 
-	email := forgotPasswordReq.Email // Retrieve email from form data
+	// Retrieve email from the request body
+	email := forgotPasswordReq.Email
 
-	otp, err := ac.repo.GetOtpForgotPasswordRecovery(c, email)
+	// Get OTP for password recovery
+	_, err := ac.repo.GetOtpForgotPasswordRecovery(c, email)
 	if err != nil {
 		if _, ok := err.(*utility.InternalServerError); ok {
 			utility.SendInternalErrResp(ac.db, c, err.Error())
@@ -75,8 +78,7 @@ func (ac *AuthController) GetOtpForgotPasswordRecovery(c *gin.Context) {
 		}
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{
-		"access_token": otp["otp"],
-	})
 
+	// Return response with status OK
+	c.JSON(http.StatusOK, gin.H{"message": "Password recovery email sent successfully"})
 }
