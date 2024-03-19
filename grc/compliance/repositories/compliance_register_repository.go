@@ -168,22 +168,34 @@ func (repo *ComplianceRepository) GetByID(id uint) (*complianceModels.Compliance
 }
 
 func (repo *ComplianceRepository) Create(currentUserID uint, complianceRegFormDTO *complianceDTOs.ComplianceRegisterFormDTO) (uint, error) {
-	// Lookup for active lifecycle status
+
 	var lifecycleStatus masterModels.LifecycleStatus
 	if err := repo.db.Where("type = ?", "active").First(&lifecycleStatus).Error; err != nil {
 		return 0, utility.NewInternalServerError(err)
 	}
 
-	lastDigits := "0000" // Default if no previous record exists
-
-	// Generate a new reference number
+	// Retrieve the last reference number from the database
 	var lastReferenceNumber string
-	if err := repo.db.Model(&complianceModels.ComplianceRegister{}).Select("reference_number").Order("reference_number desc").Limit(1).Pluck("reference_number", &lastReferenceNumber).Error; err != nil {
+	err := repo.db.Model(&complianceModels.ComplianceRegister{}).
+		Select("reference_number").
+		Order("reference_number desc").
+		Limit(1).
+		Pluck("reference_number", &lastReferenceNumber).
+		Error
+
+	// Handle potential errors from the database query
+	if err != nil {
 		return 0, err
-	} else if lastReferenceNumber != "" {
+	}
+
+	// Default suffix for the reference number if no previous record exists
+	lastDigits := "0000"
+	// Update lastDigits based on the last reference number if available
+	if lastReferenceNumber != "" && len(lastReferenceNumber) >= 4 {
 		lastDigits = lastReferenceNumber[len(lastReferenceNumber)-4:]
 	}
 
+	// Generate the new reference number using a utility function
 	referenceNumber := utility.GenerateReferenceNumber(complianceRegFormDTO.StandardCode, lastDigits)
 
 	// Map DTO to ComplianceRegister model
