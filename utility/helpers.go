@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/rand"
 	"reflect"
 	"strings"
 
@@ -98,4 +99,14 @@ func ChangesToJSON(changes []ChangeDetail) (string, error) {
 		return "", err
 	}
 	return string(changesJSON), nil
+}
+
+// GenerateOTP generates a random OTP of specified length
+func GenerateOTP(length int) string {
+	const charset = "0123456789" // Use digits for OTP generation
+	otp := make([]byte, length)
+	for i := range otp {
+		otp[i] = charset[rand.Intn(len(charset))]
+	}
+	return string(otp)
 }

@@ -17,6 +17,8 @@ type User struct {
 	FirstNameAR         string    `gorm:"column:first_name_ar;size:45;not null"`
 	LastNameAR          string    `gorm:"column:last_name_ar;size:45;not null"`
 	Email               string    `gorm:"column:email;size:100;not null"`
+	Otp                 string    `gorm:"column:otp;size:10;null"`
+	SentAt              time.Time `gorm:"column:sent_at;null"`
 	PasswordHash        string    `gorm:"column:password_hash;not null"`
 	ProfileImagePath    *string   `gorm:"column:profile_image_path;size:255"`
 	CreatedAt           time.Time `gorm:"column:created_at;not null;default:current_timestamp"`

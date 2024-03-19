@@ -13,6 +13,9 @@ type LoginRequest struct {
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required"`
 }
+type ForgotPasswordRequest struct {
+	Email string `json:"email" binding:"required,email"`
+}
 
 type AuthController struct {
 	repo interfaces.AuthRepositoryInterface
@@ -52,4 +55,28 @@ func (ac *AuthController) Login(c *gin.Context) {
 		"access_token":  tokens["access_token"],
 		"refresh_token": tokens["refresh_token"],
 	})
+}
+func (ac *AuthController) GetOtpForgotPasswordRecovery(c *gin.Context) {
+	var forgotPasswordReq ForgotPasswordRequest
+
+	if err := c.ShouldBindJSON(&forgotPasswordReq); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	email := forgotPasswordReq.Email // Retrieve email from form data
+
+	otp, err := ac.repo.GetOtpForgotPasswordRecovery(c, email)
+	if err != nil {
+		if _, ok := err.(*utility.InternalServerError); ok {
+			utility.SendInternalErrResp(ac.db, c, err.Error())
+		} else {
+			utility.SendUnauthorizedErrResp(c, "Authentication failed")
+		}
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"access_token": otp["otp"],
+	})
+
 }
