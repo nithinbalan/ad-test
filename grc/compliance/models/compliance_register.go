@@ -34,35 +34,6 @@ type ComplianceRegister struct {
 	UpdatedBy               uint      `json:"updated_by" gorm:"default:null"`
 	LifecycleStatusID       uint      `json:"lifecycle_status_id" gorm:"not null"`
 
-	// Additional fields for GET request
-	ComplianceCategoryTitleEn        string `json:"compliance_category_title_en,omitempty" gorm:"-"`
-	ComplianceCategoryTitleAr        string `json:"compliance_category_title_ar,omitempty" gorm:"-"`
-	ComplianceStatusTitleEn          string `json:"compliance_status_title_en,omitempty" gorm:"-"`
-	ComplianceStatusTitleAr          string `json:"compliance_status_title_ar,omitempty" gorm:"-"`
-	ComplianceStatusColorCode        string `json:"compliance_status_color_code,omitempty" gorm:"-"`
-	ResponsibleUnitTitleEn           string `json:"responsible_unit_title_en,omitempty" gorm:"-"`
-	ResponsibleUnitTitleAr           string `json:"responsible_unit_title_ar,omitempty" gorm:"-"`
-	ResponsibleUserFirstNameEn       string `json:"responsible_user_first_name_en,omitempty" gorm:"-"`
-	ResponsibleUserFirstNameAr       string `json:"responsible_user_first_name_ar,omitempty" gorm:"-"`
-	ResponsibleUserLastNameEn        string `json:"responsible_user_last_name_en,omitempty" gorm:"-"`
-	ResponsibleUserLastNameAr        string `json:"responsible_user_last_name_ar,omitempty" gorm:"-"`
-	ReviewFrequencyTitleEn           string `json:"review_frequency_title_en,omitempty" gorm:"-"`
-	ReviewFrequencyTitleAr           string `json:"review_frequency_title_ar,omitempty" gorm:"-"`
-	ReviewResponsibleUserFirstNameEn string `json:"review_responsible_user_first_name_en,omitempty" gorm:"-"`
-	ReviewResponsibleUserFirstNameAr string `json:"review_responsible_user_first_name_ar,omitempty" gorm:"-"`
-	ReviewResponsibleUserLastNameEn  string `json:"review_responsible_user_last_name_en,omitempty" gorm:"-"`
-	ReviewResponsibleUserLastNameAr  string `json:"review_responsible_user_last_name_ar,omitempty" gorm:"-"`
-	SeverityLevelTitleEn             string `json:"severity_level_title_en,omitempty" gorm:"-"`
-	SeverityLevelTitleAr             string `json:"severity_level_title_ar,omitempty" gorm:"-"`
-	SeverityLevelColorCode           string `json:"severity_level_color_code,omitempty" gorm:"-"`
-	LifecycleStatusTitleEn           string `json:"lifecycle_status_title_en,omitempty" gorm:"-"`
-	LifecycleStatusTitleAr           string `json:"lifecycle_status_title_ar,omitempty" gorm:"-"`
-	LifecycleStatusColorCode         string `json:"lifecycle_status_color_code,omitempty" gorm:"-"`
-	CreatedUserFirstNameEn           string `json:"created_user_first_name_en,omitempty" gorm:"-"`
-	CreatedUserFirstNameAr           string `json:"created_user_first_name_ar,omitempty" gorm:"-"`
-	CreatedUserLastNameEn            string `json:"created_user_last_name_en,omitempty" gorm:"-"`
-	CreatedUserLastNameAr            string `json:"created_user_last_name_ar,omitempty" gorm:"-"`
-
 	// Relationships
 	ComplianceCategory    *ComplianceCategory              `gorm:"foreignkey:ComplianceCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ComplianceStatus      *ComplianceStatus                `gorm:"foreignkey:ComplianceStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`

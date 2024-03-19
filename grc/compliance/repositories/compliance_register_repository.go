@@ -68,7 +68,11 @@ func (repo *ComplianceRepository) GetAll(sort string, sortBy string, keyword str
 			created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
             created_user.last_name_en AS created_user_last_name_en,
-            created_user.last_name_ar AS created_user_last_name_ar           
+            created_user.last_name_ar AS created_user_last_name_ar,   
+			updated_user.first_name_en AS updated_user_first_name_en,
+            updated_user.first_name_ar AS updated_user_first_name_ar,
+            updated_user.last_name_en AS updated_user_last_name_en,
+            updated_user.last_name_ar AS updated_user_last_name_ar          
         `).
 		Joins(`
 		    LEFT JOIN compliance_categories ON compliance_categories.id = compliance_register.compliance_category_id
@@ -80,6 +84,7 @@ func (repo *ComplianceRepository) GetAll(sort string, sortBy string, keyword str
 		    LEFT JOIN severity_levels ON severity_levels.id = compliance_register.severity_level_id
 			LEFT JOIN lifecycle_statuses ON lifecycle_statuses.id = compliance_register.lifecycle_status_id
 			LEFT JOIN users AS created_user ON created_user.id = compliance_register.created_by
+			LEFT JOIN users AS updated_user ON updated_user.id = compliance_register.updated_by
 		`)
 
 	// Calculate total count for pagination
@@ -173,9 +178,9 @@ func (repo *ComplianceRepository) Create(currentUserID uint, complianceRegFormDT
 
 	// Lookup for active lifecycle status
 	var lifecycleStatus masterModels.LifecycleStatus
-	// if err := repo.db.Where("type = ?", "active").First(&lifecycleStatus).Error; err != nil {
-	// 	return 0, utility.HandleDBError(err)
-	// }
+	if err := repo.db.Where("type = ?", "active").First(&lifecycleStatus).Error; err != nil {
+		return 0, utility.NewInternalServerError(err)
+	}
 
 	// Generate a new reference number
 	var lastReferenceNumber string
@@ -197,14 +202,19 @@ func (repo *ComplianceRepository) Create(currentUserID uint, complianceRegFormDT
 		ReviewFrequencyID:       complianceRegFormDTO.ReviewFrequencyID,
 		ReviewResponsibleUserID: complianceRegFormDTO.ReviewResponsibleUserID,
 		SeverityLevelID:         complianceRegFormDTO.SeverityLevelID,
+		ReferenceNumber:         referenceNumber,
 		StandardCode:            complianceRegFormDTO.StandardCode,
 		TitleEn:                 complianceRegFormDTO.TitleEn,
 		TitleAr:                 complianceRegFormDTO.TitleAr,
 		DescriptionEn:           complianceRegFormDTO.DescriptionEn,
 		DescriptionAr:           complianceRegFormDTO.DescriptionAr,
-		ReferenceNumber:         referenceNumber,
+		Version:                 complianceRegFormDTO.Version,
+		Deadline:                complianceRegFormDTO.Deadline,
+		IssueDate:               complianceRegFormDTO.IssueDate,
+		ExpiryDate:              complianceRegFormDTO.ExpiryDate,
+		NextReviewDate:          complianceRegFormDTO.NextReviewDate,
 		CreatedBy:               currentUserID,
-		LifecycleStatusID:       lifecycleStatus.ID,
+		LifecycleStatusID:       1,
 	}
 
 	if err := repo.db.Create(complianceRegister).Error; err != nil {
@@ -215,12 +225,6 @@ func (repo *ComplianceRepository) Create(currentUserID uint, complianceRegFormDT
 }
 
 func (repo *ComplianceRepository) Update(id uint, complianceRegFormDTO *complianceDTOs.ComplianceRegisterFormDTO) error {
-	var lifecycleStatusID uint
-	err := repo.db.Model(&masterModels.LifecycleStatus{}).Select("id").Where("type = ?", "active").Take(&lifecycleStatusID).Error
-	if err != nil {
-		return utility.NewInternalServerError(err)
-	}
-
 	// Prepare the update map
 	updateFields := map[string]interface{}{
 		"ComplianceCategoryID":    complianceRegFormDTO.ComplianceCategoryID,
@@ -235,7 +239,6 @@ func (repo *ComplianceRepository) Update(id uint, complianceRegFormDTO *complian
 		"TitleAr":                 complianceRegFormDTO.TitleAr,
 		"DescriptionEn":           complianceRegFormDTO.DescriptionEn,
 		"DescriptionAr":           complianceRegFormDTO.DescriptionAr,
-		"LifecycleStatusID":       lifecycleStatusID,
 	}
 
 	// Perform the update
