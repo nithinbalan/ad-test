@@ -132,13 +132,6 @@ func (repo *ComplianceRepository) GetAll(sort string, sortBy string, keyword str
 
 	query = query.Order(sortBy + " " + sort)
 
-	// Apply pagination
-	if page <= 0 {
-		page = 1
-	}
-	if pageSize <= 0 {
-		pageSize = 10
-	}
 	offset := (page - 1) * pageSize
 
 	// Execute the queryc
@@ -175,7 +168,6 @@ func (repo *ComplianceRepository) GetByID(id uint) (*complianceModels.Compliance
 }
 
 func (repo *ComplianceRepository) Create(currentUserID uint, complianceRegFormDTO *complianceDTOs.ComplianceRegisterFormDTO) (uint, error) {
-
 	// Lookup for active lifecycle status
 	var lifecycleStatus masterModels.LifecycleStatus
 	if err := repo.db.Where("type = ?", "active").First(&lifecycleStatus).Error; err != nil {
@@ -214,7 +206,7 @@ func (repo *ComplianceRepository) Create(currentUserID uint, complianceRegFormDT
 		ExpiryDate:              complianceRegFormDTO.ExpiryDate,
 		NextReviewDate:          complianceRegFormDTO.NextReviewDate,
 		CreatedBy:               currentUserID,
-		LifecycleStatusID:       1,
+		LifecycleStatusID:       lifecycleStatus.ID,
 	}
 
 	if err := repo.db.Create(complianceRegister).Error; err != nil {

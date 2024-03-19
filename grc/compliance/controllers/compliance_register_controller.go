@@ -28,8 +28,27 @@ func (crc *ComplianceRegisterController) GetAllComplianceRegisters(c *gin.Contex
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
-	page := 1      // Set default or get from request
-	pageSize := 10 // Set default or get from request
+	// Set default values for page and pageSize
+	page := 1
+	pageSize := 10
+
+	if pageParam := c.Query("page"); pageParam != "" {
+		parsedPage, err := strconv.Atoi(pageParam)
+		if err != nil {
+			utility.SendInternalErrResp(crc.db, c, err.Error())
+			return
+		}
+		page = parsedPage
+	}
+
+	if pageSizeParam := c.Query("page_size"); pageSizeParam != "" {
+		parsedPageSize, err := strconv.Atoi(pageSizeParam)
+		if err != nil {
+			utility.SendInternalErrResp(crc.db, c, err.Error())
+			return
+		}
+		pageSize = parsedPageSize
+	}
 
 	compliances, err := crc.service.GetAll(sort, sortBy, keyword, status, page, pageSize)
 
