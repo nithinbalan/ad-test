@@ -61,18 +61,21 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	severityLevelRepo := masterRepositories.NewSeverityLevelRepository(db)
 	lifecycleStatusRepo := masterRepositories.NewLifecycleStatusRepository(db)
 	SLARepo := complianceRepositories.NewSLARepository(db)
-	SLASvc := complianceServices.NewSLAService(SLARepo,SLACategoryRepo,severityLevelRepo,lifecycleStatusRepo, activityLogSvc)
-	SLAController := controllers.NewSLAController(SLASvc)
+	SLASvc := complianceServices.NewSLAService(SLARepo,
+		SLACategoryRepo,
+		severityLevelRepo,
+		lifecycleStatusRepo, 
+		activityLogSvc)
+	SLARegController := controllers.NewSLARegisterController(SLASvc)
 
-	complianceRoutes.GET("/sla-registers/:id", SLAController.GetSLADetails)
-	complianceRoutes.POST("/sla-registers", SLAController.CreateSLA)
-	complianceRoutes.GET("/sla-registers", SLAController.GetAllSLA)
-	complianceRoutes.PUT("/sla-registers/:id", SLAController.UpdateSLA)
-	complianceRoutes.POST("/sla-registers/delete", SLAController.DeleteSLA)
+	complianceRoutes.GET("/sla-registers/:id", SLARegController.GetSLARegisterDetails)
+	complianceRoutes.POST("/sla-registers", SLARegController.CreateSLARegister)
+	complianceRoutes.GET("/sla-registers", SLARegController.GetAllSLARegisters)
+	complianceRoutes.PUT("/sla-registers/:id", SLARegController.UpdateSLARegister)
+	complianceRoutes.POST("/sla-registers/delete", SLARegController.DeleteSLARegisters)
 	//Compliance Register
 	complianceRepositories := complianceRepositories.NewComplianceRepository(db)
 	reviewFrequencyRepo := masterRepositories.NewReviewFrequencyRepository(db)
-	severityLevelRepo := masterRepositories.NewSeverityLevelRepository(db)
 	complianceSvc := complianceServices.NewComplianceService(complianceRepositories,
 		activityLogSvc,
 		complianceCategoryRepo, //@todo add org unit and user repo

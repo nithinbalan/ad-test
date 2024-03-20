@@ -1,7 +1,8 @@
 package controllers
 
 import (
-	"jethur/grc/compliance/models"
+	commonDTOs "jethur/grc/common/dtos"
+	slaDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/services"
 	"jethur/utility"
 	"net/http"
@@ -11,33 +12,46 @@ import (
 	"gorm.io/gorm"
 )
 
-type SLAController struct {
+type SLARegisterController struct {
 	service services.SLAServiceInterface
 	db      *gorm.DB
 }
 
-func NewSLAController(service services.SLAServiceInterface) *SLAController {
-	return &SLAController{
+func NewSLARegisterController(service services.SLAServiceInterface) *SLARegisterController {
+	return &SLARegisterController{
 		service: service,
 	}
 }
 
-func (src *SLAController) GetAllSLA(c *gin.Context) {
+func (src *SLARegisterController) GetAllSLARegisters(c *gin.Context) {
 
 	sort := c.Query("sort")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 
-	slaRegisters, err := src.service.GetAll(sort, sortBy, keyword)
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(src.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(src.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	slaRegisters, err := src.service.GetAll(sort, sortBy, keyword, page, pageSize)
 
 	if err != nil {
 		utility.SendInternalErrResp(src.db, c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, slaRegisters)
+	
 }
 
-func (src *SLAController) GetSLADetails(c *gin.Context) {
+func (src *SLARegisterController) GetSLARegisterDetails(c *gin.Context) {
 	idStr := c.Param("id")
 
 	id, err := strconv.ParseUint(idStr, 10, 32)
@@ -55,21 +69,23 @@ func (src *SLAController) GetSLADetails(c *gin.Context) {
 	c.JSON(http.StatusOK, sla)
 }
 
-func (src *SLAController) CreateSLA(c *gin.Context) {
+func (src *SLARegisterController) CreateSLARegister(c *gin.Context) {
 
-	var slaRegister *models.SLARegister
+	var slaRegFormDTO slaDTOs.SLARegisterFormDTO
 
-	if err := c.ShouldBindJSON(&slaRegister); err != nil {
+	if err := c.ShouldBindJSON(&slaRegFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
+
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(src.db, c, err.Error())
 		return
 	}
 
-	createdSLA, err := src.service.Create(currentUserID, slaRegister)
+	id, err := src.service.Create(currentUserID, &slaRegFormDTO)
+
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:
@@ -81,10 +97,10 @@ func (src *SLAController) CreateSLA(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusCreated, createdSLA)
+	c.JSON(http.StatusCreated, commonDTOs.IDResponse{ID: id})
 }
 
-func (src *SLAController) UpdateSLA(c *gin.Context) {
+func (src *SLARegisterController) UpdateSLARegister(c *gin.Context) {
 
 	slaID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -92,18 +108,19 @@ func (src *SLAController) UpdateSLA(c *gin.Context) {
 		return
 	}
 
-	var updatedSLA *models.SLARegister
-	if err := c.ShouldBindJSON(&updatedSLA); err != nil {
+	var slaRegFormDTO slaDTOs.SLARegisterFormDTO
+	if err := c.ShouldBindJSON(&slaRegFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
+
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(src.db, c, err.Error())
 		return
 	}
 
-	updatedSLA, err = src.service.Update(uint(slaID), currentUserID, updatedSLA)
+	err = src.service.Update(uint(slaID), currentUserID, &slaRegFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -118,10 +135,10 @@ func (src *SLAController) UpdateSLA(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, updatedSLA)
+	c.Status(http.StatusOK)
 }
 
-func (src *SLAController) DeleteSLA(c *gin.Context) {
+func (src *SLARegisterController) DeleteSLARegisters(c *gin.Context) {
 
 	var request struct {
 		IDs []uint `json:"ids"`
