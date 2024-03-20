@@ -5,8 +5,7 @@ CREATE TABLE organization_levels (
     level TINYINT NOT NULL CHECK (level BETWEEN 1 AND 10),
     title_en VARCHAR(45) NOT NULL,
     title_ar VARCHAR(45) NOT NULL,
-    is_primary TINYINT NOT NULL DEFAULT 0 CHECK (is_primary IN (0, 1)),
-    type VARCHAR(45) NOT NULL CHECK (type IN ('division', 'department','section','subsection')) 
+    is_primary TINYINT NOT NULL DEFAULT 0 CHECK (is_primary IN (0, 1))
 );
 -- +goose StatementEnd
 -- +goose Down
