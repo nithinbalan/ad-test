@@ -77,11 +77,6 @@ func (crc *ComplianceRegisterController) CreateComplianceRegister(c *gin.Context
 		return
 	}
 
-	// if err := complianceRegFormDTO.Validate(); err != nil {
-	// 	utility.SendInvalidErrResp(c, err)
-	// 	return
-	// }
-
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(crc.db, c, err.Error())
