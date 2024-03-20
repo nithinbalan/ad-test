@@ -4,6 +4,7 @@ import (
 	"jethur/grc/compliance/services"
 	"jethur/utility"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -34,4 +35,22 @@ func (csc *ComplianceStatusController) GetAllComplianceStatuses(c *gin.Context) 
 		return
 	}
 	c.JSON(http.StatusOK, complianceStatuses)
+}
+
+func (csc *ComplianceStatusController) GetComplianceStatusDetails(c *gin.Context) {
+	idStr := c.Param("id")
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	complianceStatus, err := csc.service.GetByID(uint(id))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	c.JSON(http.StatusOK, complianceStatus)
 }

@@ -42,5 +42,13 @@
   {
     "id": "incorrect_json_field_type",
     "translation": "The data type is incorrect for a specific field. Please review the expected types for each field."
+  },
+  {
+    "id": "resource_does_not_exist",
+    "translation": "The specified {{.Field}} does not exist. Please verify your input and try again."
+  },
+  {
+    "id": "invalid_date",
+    "translation": "Invalid {{.Field}}. Please provide a valid date in YYYY-MM-DD format."
   }
 ]
