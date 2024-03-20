@@ -10,8 +10,6 @@ type ChecklistQuestion struct {
 	QuestionLibraryID uint   `json:"question_library_id,omitempty" binding:"omitempty" gorm:"default:null"`
 	QuestionEn        string `json:"question_en" binding:"required,max=500" gorm:"type:varchar(500);not null"`
 	QuestionAr        string `json:"question_ar" binding:"required,max=500" gorm:"type:nvarchar(500);not null"`
-	ChecklistTitleEn  string `json:"checklist_title_en,omitempty" gorm:"_"`
-	ChecklistTitleAr  string `json:"checklist_title_ar,omitempty" gorm:"_"`
 
 	// Relationships
 	Checklist       *Checklist                    `gorm:"foreignKey:ChecklistID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`

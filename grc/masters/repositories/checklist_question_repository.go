@@ -2,6 +2,8 @@ package repositories
 
 import (
 	"errors"
+	commonDTOs "jethur/grc/common/dtos"
+	checklistQuestionDTOs "jethur/grc/masters/dtos"
 	"jethur/grc/masters/models"
 	"jethur/utility"
 
@@ -10,10 +12,10 @@ import (
 
 // Interfaces
 type ChecklistQuestionRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string) ([]*models.ChecklistQuestion, error)
+	GetAll(sort string, sortBy string, keyword string, page int, pageSize int) (*checklistQuestionDTOs.ChecklistQuestionListResponseDTO, error)
 	GetByID(id uint) (*models.ChecklistQuestion, error)
-	Create(article *models.ChecklistQuestion) (*models.ChecklistQuestion, error)
-	Update(id uint, checklistQuestion *models.ChecklistQuestion) (*models.ChecklistQuestion, error)
+	Create(checklistQuestionFormDTO *checklistQuestionDTOs.ChecklistQuestionFormDTO) (uint, error)
+	Update(id uint, checklistQuestionFormDTO *checklistQuestionDTOs.ChecklistQuestionFormDTO) error
 	Delete(id uint) error
 	ExistsByTitle(QuestionEn string, QuestionAr string, ChecklistID uint) (bool, error)
 	ExistsQuestionLibrary(QuestionLibraryID uint) (bool, error)
@@ -32,9 +34,10 @@ func NewChecklistQuestionRepository(db *gorm.DB) *ChecklistQuestionRepository {
 	}
 }
 
-func (repo *ChecklistQuestionRepository) GetAll(sort string, sortBy string, keyword string) ([]*models.ChecklistQuestion, error) {
+func (repo *ChecklistQuestionRepository) GetAll(sort string, sortBy string, keyword string, page int, pageSize int) (*checklistQuestionDTOs.ChecklistQuestionListResponseDTO, error) {
 
-	var checklistQuestions []*models.ChecklistQuestion
+	var checklistQuestions []*checklistQuestionDTOs.ChecklistQuestionListDTO
+	var totalCount int64
 
 	query := repo.db.Table("checklist_questions").
 		Select(
@@ -58,10 +61,33 @@ func (repo *ChecklistQuestionRepository) GetAll(sort string, sortBy string, keyw
 		sort = "asc"
 	}
 
+	// Calculate total count for pagination
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
 	query = query.Order(sortBy + " " + sort)
-	result := query.Find(&checklistQuestions)
 
-	return checklistQuestions, result.Error
+	offset := (page - 1) * pageSize
+
+	// Execute the queryc
+	err := query.Offset(offset).Limit(pageSize).Find(&checklistQuestions).Error
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := int((totalCount + int64(pageSize) - 1) / int64(pageSize))
+
+	response := &checklistQuestionDTOs.ChecklistQuestionListResponseDTO{
+		Items: checklistQuestions,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: page,
+			PageSize:    pageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+	return response, nil
+
 }
 
 func (repo *ChecklistQuestionRepository) GetByID(id uint) (*models.ChecklistQuestion, error) {
@@ -77,24 +103,48 @@ func (repo *ChecklistQuestionRepository) GetByID(id uint) (*models.ChecklistQues
 	return checklistQuestion, result.Error
 }
 
-func (repo *ChecklistQuestionRepository) Create(checklistQuestion *models.ChecklistQuestion) (*models.ChecklistQuestion, error) {
-	result := repo.db.Create(&checklistQuestion)
+func (repo *ChecklistQuestionRepository) Create(checklistQuestionFormDTO *checklistQuestionDTOs.ChecklistQuestionFormDTO) (uint, error) {
 
-	return checklistQuestion, result.Error
+	// Map DTO to ComplianceRegister model
+	checklistQuestion := &models.ChecklistQuestion{
+		ChecklistID:       checklistQuestionFormDTO.ChecklistID,
+		QuestionLibraryID: checklistQuestionFormDTO.QuestionLibraryID,
+		QuestionEn:        checklistQuestionFormDTO.QuestionEn,
+		QuestionAr:        checklistQuestionFormDTO.QuestionAr,
+	}
+
+	if err := repo.db.Create(checklistQuestion).Error; err != nil {
+		return 0, err
+	}
+
+	return checklistQuestion.ID, nil
+
 }
 
-func (repo *ChecklistQuestionRepository) Update(id uint, updatedChecklistQuestion *models.ChecklistQuestion) (*models.ChecklistQuestion, error) {
-	var checklistQuestion *models.ChecklistQuestion
+func (repo *ChecklistQuestionRepository) Update(id uint, checklistQuestionFormDTO *checklistQuestionDTOs.ChecklistQuestionFormDTO) error {
 
-	if err := repo.db.First(&checklistQuestion, id).Error; err != nil {
-		return nil, err
+	// Prepare the update map
+	updateFields := map[string]interface{}{
+		"ChecklistID": checklistQuestionFormDTO.ChecklistID,
+		"QuestionEn":  checklistQuestionFormDTO.QuestionEn,
+		"QuestionAr":  checklistQuestionFormDTO.QuestionAr,
 	}
 
-	if err := repo.db.Model(&checklistQuestion).Updates(updatedChecklistQuestion).Error; err != nil {
-		return nil, err
+	// Conditionally include QuestionLibraryID if it's present
+	if checklistQuestionFormDTO.QuestionLibraryID != 0 {
+		updateFields["QuestionLibraryID"] = checklistQuestionFormDTO.QuestionLibraryID
+	} else {
+		updateFields["QuestionLibraryID"] = nil // Set to NULL
 	}
 
-	return checklistQuestion, nil
+	// Perform the update
+	if err := repo.db.Model(&models.ChecklistQuestion{}).
+		Where("id = ?", id).
+		Updates(updateFields).Error; err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (repo *ChecklistQuestionRepository) Delete(id uint) error {

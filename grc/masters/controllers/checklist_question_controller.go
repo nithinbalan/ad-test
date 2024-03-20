@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	"jethur/grc/masters/models"
+	checklistQuestionDTOs "jethur/grc/masters/dtos"
 	"jethur/grc/masters/services"
 	"jethur/utility"
 	"net/http"
@@ -28,7 +28,19 @@ func (cqc *ChecklistQuestionController) GetAllChecklistQuestions(c *gin.Context)
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 
-	checklistQuestions, err := cqc.service.GetAll(sort, sortBy, keyword)
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(cqc.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(cqc.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	checklistQuestions, err := cqc.service.GetAll(sort, sortBy, keyword, page, pageSize)
 
 	if err != nil {
 		utility.SendInternalErrResp(cqc.db, c, err.Error())
@@ -57,9 +69,9 @@ func (cqc *ChecklistQuestionController) GetChecklistQuestionDetails(c *gin.Conte
 
 func (cqc *ChecklistQuestionController) CreateChecklistQuestion(c *gin.Context) {
 
-	var checklistQuestion *models.ChecklistQuestion
+	var checklistQuestionFormDTO *checklistQuestionDTOs.ChecklistQuestionFormDTO
 
-	if err := c.ShouldBindJSON(&checklistQuestion); err != nil {
+	if err := c.ShouldBindJSON(&checklistQuestionFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
@@ -69,7 +81,7 @@ func (cqc *ChecklistQuestionController) CreateChecklistQuestion(c *gin.Context) 
 		return
 	}
 
-	createdChecklistQuestion, err := cqc.service.Create(currentUserID, checklistQuestion)
+	createdChecklistQuestion, err := cqc.service.Create(currentUserID, checklistQuestionFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:
@@ -92,8 +104,8 @@ func (cqc *ChecklistQuestionController) UpdateChecklistQuestion(c *gin.Context) 
 		return
 	}
 
-	var updatedChecklistQuestion *models.ChecklistQuestion
-	if err := c.ShouldBindJSON(&updatedChecklistQuestion); err != nil {
+	var checklistQuestionFormDT checklistQuestionDTOs.ChecklistQuestionFormDTO
+	if err := c.ShouldBindJSON(&checklistQuestionFormDT); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
@@ -103,7 +115,7 @@ func (cqc *ChecklistQuestionController) UpdateChecklistQuestion(c *gin.Context) 
 		return
 	}
 
-	updatedChecklistQuestion, err = cqc.service.Update(uint(checklistQuestionID), currentUserID, updatedChecklistQuestion)
+	err = cqc.service.Update(uint(checklistQuestionID), currentUserID, &checklistQuestionFormDT)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -118,7 +130,7 @@ func (cqc *ChecklistQuestionController) UpdateChecklistQuestion(c *gin.Context) 
 		}
 	}
 
-	c.JSON(http.StatusOK, updatedChecklistQuestion)
+	c.Status(http.StatusOK)
 }
 
 func (cqc *ChecklistQuestionController) DeleteChecklistQuestions(c *gin.Context) {
