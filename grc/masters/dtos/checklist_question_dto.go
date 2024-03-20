@@ -10,6 +10,7 @@ type ChecklistQuestionListDTO struct {
 	QuestionAr       string `json:"question_ar"`
 	ChecklistTitleEn string `json:"checklist_title_en"`
 	ChecklistTitleAr string `json:"checklist_title_ar"`
+	ChecklistID      uint   `json:"checklist_id"`
 }
 
 type ChecklistQuestionListResponseDTO struct {

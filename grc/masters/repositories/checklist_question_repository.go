@@ -43,7 +43,6 @@ func (repo *ChecklistQuestionRepository) GetAll(sort string, sortBy string, keyw
 		Select(
 			"checklist_questions.id",
 			"checklist_questions.checklist_id",
-			"checklist_questions.question_library_id",
 			"checklist_questions.question_en",
 			"checklist_questions.question_ar",
 			"checklists.title_en AS checklist_title_en",
