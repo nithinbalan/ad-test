@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"jethur/grc/compliance/models"
 	"jethur/grc/compliance/repositories"
-	activityLogModels "jethur/grc/logs/models"
+	logModels "jethur/grc/logs/models"
 	"jethur/grc/logs/services"
 	"jethur/utility"
 	"log"
@@ -56,7 +56,7 @@ func (scs *SLACategoryService) Create(currentUserID uint, category *models.SLACa
 
 	go func() {
 		err := scs.activityLogSvc.LogActivity(
-			activityLogModels.CreateAction,
+			logModels.CreateAction,
 			models.SLACategory{}.TableName(),
 			category.ID,
 			createdCategory,
@@ -109,7 +109,7 @@ func (scs *SLACategoryService) Update(id uint, currentUserID uint, updatedCatego
 
 	go func() {
 		err := scs.activityLogSvc.LogActivity(
-			activityLogModels.UpdateAction,
+			logModels.UpdateAction,
 			models.SLACategory{}.TableName(),
 			result.ID,
 			changedDataJSON,
@@ -147,7 +147,7 @@ func (scs *SLACategoryService) Delete(ids []uint, currentUserID uint) ([]uint, e
 
 		go func() {
 			err := scs.activityLogSvc.LogBulkActivities(
-				activityLogModels.DeleteAction,
+				logModels.DeleteAction,
 				models.SLACategory{}.TableName(),
 				successfulIds,
 				nil,
@@ -171,7 +171,7 @@ func (scs *SLACategoryService) Activate(ids []uint, currentUserID uint) error {
 
 		go func() {
 			err := scs.activityLogSvc.LogBulkActivities(
-				activityLogModels.ActivateAction,
+				logModels.ActivateAction,
 				models.SLACategory{}.TableName(),
 				successfulIds,
 				nil,
@@ -195,7 +195,7 @@ func (scs *SLACategoryService) Deactivate(ids []uint, currentUserID uint) error 
 
 		go func() {
 			err := scs.activityLogSvc.LogBulkActivities(
-				activityLogModels.DeactivateAction,
+				logModels.DeactivateAction,
 				models.SLACategory{}.TableName(),
 				successfulIds,
 				nil,
