@@ -4,8 +4,8 @@ import (
 	"jethur/grc/compliance/controllers"
 	complianceRepositories "jethur/grc/compliance/repositories"
 	complianceServices "jethur/grc/compliance/services"
-	activityLogRepositories "jethur/grc/logs/repositories"
-	activityLogServices "jethur/grc/logs/services"
+	logRepositories "jethur/grc/logs/repositories"
+	logServices "jethur/grc/logs/services"
 	masterRepositories "jethur/grc/masters/repositories"
 	"jethur/middlewares"
 
@@ -19,8 +19,8 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 
 	complianceRoutes.Use(middlewares.AuthMiddleware())
 
-	activityLogRepo := activityLogRepositories.NewActivityLogRepository(db)
-	activityLogSvc := activityLogServices.NewActivityLogService(activityLogRepo)
+	activityLogRepo := logRepositories.NewActivityLogRepository(db)
+	activityLogSvc := logServices.NewActivityLogService(activityLogRepo)
 
 	//Compliance Category
 	complianceCategoryRepo := complianceRepositories.NewComplianceCategoryRepository(db)
@@ -69,4 +69,23 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	complianceRoutes.GET("/sla-registers", SLAController.GetAllSLA)
 	complianceRoutes.PUT("/sla-registers/:id", SLAController.UpdateSLA)
 	complianceRoutes.POST("/sla-registers/delete", SLAController.DeleteSLA)
+	//Compliance Register
+	complianceRepositories := complianceRepositories.NewComplianceRepository(db)
+	reviewFrequencyRepo := masterRepositories.NewReviewFrequencyRepository(db)
+	severityLevelRepo := masterRepositories.NewSeverityLevelRepository(db)
+	complianceSvc := complianceServices.NewComplianceService(complianceRepositories,
+		activityLogSvc,
+		complianceCategoryRepo, //@todo add org unit and user repo
+		complianceStatusRepo,
+		reviewFrequencyRepo,
+		severityLevelRepo)
+	complianceRegController := controllers.NewComplianceRegisterController(complianceSvc)
+
+	complianceRoutes.GET("/compliance-register", complianceRegController.GetAllComplianceRegisters)
+	complianceRoutes.GET("/compliance-register/:id", complianceRegController.GetComplianceRegisterDetails)
+	complianceRoutes.POST("/compliance-register", complianceRegController.CreateComplianceRegister)
+	complianceRoutes.PUT("/compliance-register/:id", complianceRegController.UpdateComplianceRegister)
+	complianceRoutes.POST("/compliance-register/delete", complianceRegController.DeleteComplianceRegisters)
+	complianceRoutes.PUT("/compliance-register/activate", complianceRegController.ActivateComplianceRegisters)
+	complianceRoutes.PUT("/compliance-register/deactivate", complianceRegController.DeactivateComplianceRegisters)
 }
