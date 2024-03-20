@@ -2,7 +2,8 @@ package routes
 
 import (
 	"jethur/grc/auth/controllers"
-	"jethur/grc/auth/repositories/implementations"
+	"jethur/grc/auth/repositories"
+	"jethur/grc/auth/services"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -10,8 +11,9 @@ import (
 
 func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 
-	authRepository := implementations.NewAuthRepository(db)
-	authController := controllers.NewAuthController(authRepository, db)
+	authRepository := repositories.NewAuthRepository(db)
+	authService := services.NewAuthService(authRepository)
+	authController := controllers.NewAuthController(authService)
 
 	authRoutes := router.Group("/")
 

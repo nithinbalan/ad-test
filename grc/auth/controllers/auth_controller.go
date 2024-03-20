@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	"jethur/grc/auth/repositories/interfaces"
+	"jethur/grc/auth/services"
 	"jethur/utility"
 	"net/http"
 
@@ -18,14 +18,13 @@ type ForgotPasswordRequest struct {
 }
 
 type AuthController struct {
-	repo interfaces.AuthRepositoryInterface
-	db   *gorm.DB
+	service services.AuthServiceInterface
+	db      *gorm.DB
 }
 
-func NewAuthController(repo interfaces.AuthRepositoryInterface, db *gorm.DB) *AuthController {
+func NewAuthController(service services.AuthServiceInterface) *AuthController {
 	return &AuthController{
-		repo: repo,
-		db:   db,
+		service: service,
 	}
 }
 
@@ -41,7 +40,7 @@ func (ac *AuthController) Login(c *gin.Context) {
 		return
 	}
 
-	tokens, err := ac.repo.Authenticate(c, loginReq.Email, loginReq.Password)
+	tokens, err := ac.service.Authenticate(loginReq.Email, loginReq.Password)
 	if err != nil {
 		if _, ok := err.(*utility.InternalServerError); ok {
 			utility.SendInternalErrResp(ac.db, c, err.Error())
@@ -69,7 +68,7 @@ func (ac *AuthController) GetOtpForgotPasswordRecovery(c *gin.Context) {
 	email := forgotPasswordReq.Email
 
 	// Get OTP for password recovery
-	_, err := ac.repo.GetOtpForgotPasswordRecovery(c, email)
+	_, err := ac.service.GetOtpForgotPasswordRecovery(email)
 	if err != nil {
 		if _, ok := err.(*utility.InternalServerError); ok {
 			utility.SendInternalErrResp(ac.db, c, err.Error())
