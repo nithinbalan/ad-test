@@ -12,29 +12,29 @@ import (
 	"gorm.io/gorm"
 )
 
-type ComplianceRepositoryInterface interface {
+type ComplianceRegisterRepositoryInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int) (*complianceDTOs.ComplianceRegisterListResponseDTO, error)
 	GetByID(id uint) (*complianceModels.ComplianceRegister, error)
 	Create(currentUserID uint, complianceRegFormDTO *complianceDTOs.ComplianceRegisterFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, complianceRegFormDTO *complianceDTOs.ComplianceRegisterFormDTO) error
 	Delete(id uint) error
-	Activate(ids []uint) ([]uint, error)
-	Deactivate(ids []uint) ([]uint, error)
+	Archive(ids []uint) ([]uint, error)
+	Restore(ids []uint) ([]uint, error)
 	ExistsByTitle(titleEn string, titleAr string) (bool, error)
 	ExistsByTitleExcludingID(id uint, titleEn, titleAr string) (bool, error)
 }
 
-type ComplianceRepository struct {
+type ComplianceRegisterRepository struct {
 	db *gorm.DB
 }
 
-func NewComplianceRepository(db *gorm.DB) *ComplianceRepository {
-	return &ComplianceRepository{
+func NewComplianceRegisterRepository(db *gorm.DB) *ComplianceRegisterRepository {
+	return &ComplianceRegisterRepository{
 		db: db,
 	}
 }
 
-func (repo *ComplianceRepository) GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int) (*complianceDTOs.ComplianceRegisterListResponseDTO, error) {
+func (repo *ComplianceRegisterRepository) GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int) (*complianceDTOs.ComplianceRegisterListResponseDTO, error) {
 
 	var complianceRegisters []*complianceDTOs.ComplianceRegisterListDTO
 	var totalCount int64
@@ -154,7 +154,7 @@ func (repo *ComplianceRepository) GetAll(sort string, sortBy string, keyword str
 	return response, nil
 }
 
-func (repo *ComplianceRepository) GetByID(id uint) (*complianceModels.ComplianceRegister, error) {
+func (repo *ComplianceRegisterRepository) GetByID(id uint) (*complianceModels.ComplianceRegister, error) {
 	var compliance *complianceModels.ComplianceRegister
 	result := repo.db.First(&compliance, id)
 
@@ -167,7 +167,7 @@ func (repo *ComplianceRepository) GetByID(id uint) (*complianceModels.Compliance
 	return compliance, result.Error
 }
 
-func (repo *ComplianceRepository) Create(currentUserID uint, complianceRegFormDTO *complianceDTOs.ComplianceRegisterFormDTO) (uint, error) {
+func (repo *ComplianceRegisterRepository) Create(currentUserID uint, complianceRegFormDTO *complianceDTOs.ComplianceRegisterFormDTO) (uint, error) {
 
 	var lifecycleStatus masterModels.LifecycleStatus
 	if err := repo.db.Where("type = ?", "active").First(&lifecycleStatus).Error; err != nil {
@@ -229,7 +229,7 @@ func (repo *ComplianceRepository) Create(currentUserID uint, complianceRegFormDT
 	return complianceRegister.ID, nil
 }
 
-func (repo *ComplianceRepository) Update(id uint, currentUserID uint, complianceRegFormDTO *complianceDTOs.ComplianceRegisterFormDTO) error {
+func (repo *ComplianceRegisterRepository) Update(id uint, currentUserID uint, complianceRegFormDTO *complianceDTOs.ComplianceRegisterFormDTO) error {
 	// Prepare the update map
 	updateFields := map[string]interface{}{
 		"ComplianceCategoryID":    complianceRegFormDTO.ComplianceCategoryID,
@@ -262,7 +262,7 @@ func (repo *ComplianceRepository) Update(id uint, currentUserID uint, compliance
 	return nil
 }
 
-func (repo *ComplianceRepository) Delete(id uint) error {
+func (repo *ComplianceRegisterRepository) Delete(id uint) error {
 
 	var compliance *complianceModels.ComplianceRegister
 	if err := repo.db.First(&compliance, id).Error; err != nil {
@@ -277,19 +277,30 @@ func (repo *ComplianceRepository) Delete(id uint) error {
 	return nil
 }
 
-func (repo *ComplianceRepository) Activate(ids []uint) ([]uint, error) {
+func (repo *ComplianceRegisterRepository) Archive(ids []uint) ([]uint, error) {
 	var idsToUpdate []uint
 
+	// Retrieve IDs of ComplianceRegisters with lifecycle status "active"
 	if err := repo.db.Model(&complianceModels.ComplianceRegister{}).
-		Where("id IN ? AND status = ?", ids, "inactive").
-		Pluck("id", &idsToUpdate).Error; err != nil {
+		Joins("JOIN lifecycle_statuses ON compliance_register.lifecycle_status_id = lifecycle_statuses.id").
+		Where("compliance_register.id IN ? AND lifecycle_statuses.type = ?", ids, "active").
+		Pluck("compliance_register.id", &idsToUpdate).Error; err != nil {
 		return nil, err
 	}
 
 	if len(idsToUpdate) > 0 {
+		// Retrieve the ID of the "archived" LifecycleStatus
+		var archivedLifecycleStatusID uint
+		if err := repo.db.Model(&masterModels.LifecycleStatus{}).
+			Where("type = ?", "archived").
+			Pluck("id", &archivedLifecycleStatusID).Error; err != nil {
+			return nil, err
+		}
+
+		// Update ComplianceRegisters with the retrieved archivedLifecycleStatusID
 		if err := repo.db.Model(&complianceModels.ComplianceRegister{}).
 			Where("id IN ?", idsToUpdate).
-			Update("status", "active").Error; err != nil {
+			Update("lifecycle_status_id", archivedLifecycleStatusID).Error; err != nil {
 			return nil, err
 		}
 	}
@@ -297,19 +308,30 @@ func (repo *ComplianceRepository) Activate(ids []uint) ([]uint, error) {
 	return idsToUpdate, nil
 }
 
-func (repo *ComplianceRepository) Deactivate(ids []uint) ([]uint, error) {
+func (repo *ComplianceRegisterRepository) Restore(ids []uint) ([]uint, error) {
 	var idsToUpdate []uint
 
+	// Retrieve IDs of ComplianceRegisters with lifecycle status "archived"
 	if err := repo.db.Model(&complianceModels.ComplianceRegister{}).
-		Where("id IN ? AND status = ?", ids, "active").
-		Pluck("id", &idsToUpdate).Error; err != nil {
+		Joins("JOIN lifecycle_statuses ON compliance_register.lifecycle_status_id = lifecycle_statuses.id").
+		Where("compliance_register.id IN ? AND lifecycle_statuses.type = ?", ids, "archived").
+		Pluck("compliance_register.id", &idsToUpdate).Error; err != nil {
 		return nil, err
 	}
 
 	if len(idsToUpdate) > 0 {
+		// Retrieve the ID of the "active" LifecycleStatus
+		var activeLifecycleStatusID uint
+		if err := repo.db.Model(&masterModels.LifecycleStatus{}).
+			Where("type = ?", "active").
+			Pluck("id", &activeLifecycleStatusID).Error; err != nil {
+			return nil, err
+		}
+
+		// Update ComplianceRegisters with the retrieved activeLifecycleStatusID
 		if err := repo.db.Model(&complianceModels.ComplianceRegister{}).
 			Where("id IN ?", idsToUpdate).
-			Update("status", "inactive").Error; err != nil {
+			Update("lifecycle_status_id", activeLifecycleStatusID).Error; err != nil {
 			return nil, err
 		}
 	}
@@ -317,7 +339,7 @@ func (repo *ComplianceRepository) Deactivate(ids []uint) ([]uint, error) {
 	return idsToUpdate, nil
 }
 
-func (repo *ComplianceRepository) ExistsByTitle(titleEn, titleAr string) (bool, error) {
+func (repo *ComplianceRegisterRepository) ExistsByTitle(titleEn, titleAr string) (bool, error) {
 	var count int64
 
 	err := repo.db.Model(&complianceModels.ComplianceRegister{}).
@@ -331,7 +353,7 @@ func (repo *ComplianceRepository) ExistsByTitle(titleEn, titleAr string) (bool, 
 	return count > 0, nil
 }
 
-func (repo *ComplianceRepository) ExistsByTitleExcludingID(id uint, titleEn, titleAr string) (bool, error) {
+func (repo *ComplianceRegisterRepository) ExistsByTitleExcludingID(id uint, titleEn, titleAr string) (bool, error) {
 	var count int64
 
 	err := repo.db.Model(&complianceModels.ComplianceRegister{}).
