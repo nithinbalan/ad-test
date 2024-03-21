@@ -17,9 +17,9 @@ type ChecklistQuestionRepositoryInterface interface {
 	Create(checklistQuestionFormDTO *checklistQuestionDTOs.ChecklistQuestionFormDTO) (uint, error)
 	Update(id uint, checklistQuestionFormDTO *checklistQuestionDTOs.ChecklistQuestionFormDTO) error
 	Delete(id uint) error
-	ExistsByTitle(QuestionEn string, QuestionAr string, ChecklistID uint) (bool, error)
+	ExistsByTitle(QuestionEn string, QuestionAr string, ChecklistID uint, QuestionGroupID uint) (bool, error)
 	ExistsQuestionLibrary(QuestionLibraryID uint) (bool, error)
-	ExistsByTitleExcludingID(id uint, QuestionEn, QuestionAr string, ChecklistID uint) (bool, error)
+	ExistsByTitleExcludingID(id uint, QuestionEn, QuestionAr string, ChecklistID uint, QuestionGroupID uint) (bool, error)
 	ExistsQuestionLibraryExcludingID(id uint, QuestionLibraryID uint) (bool, error)
 }
 
@@ -47,8 +47,11 @@ func (repo *ChecklistQuestionRepository) GetAll(sort string, sortBy string, keyw
 			"checklist_questions.question_ar",
 			"checklists.title_en AS checklist_title_en",
 			"checklists.title_ar AS checklist_title_ar",
+			"question_groups.title_en AS question_group_title_en",
+			"question_groups.title_ar AS question_group_title_ar",
 		).
-		Joins("INNER JOIN checklists ON checklist_questions.checklist_id = checklists.id")
+		Joins("INNER JOIN checklists ON checklist_questions.checklist_id = checklists.id").
+		Joins("INNER JOIN question_groups ON checklist_questions.question_group_id = question_groups.id")
 
 	if keyword != "" {
 		query = query.Where("(checklist_questions.question_en LIKE ? OR checklist_questions.question_ar LIKE ?)", "%"+keyword+"%", "%"+keyword+"%")
@@ -91,7 +94,7 @@ func (repo *ChecklistQuestionRepository) GetAll(sort string, sortBy string, keyw
 
 func (repo *ChecklistQuestionRepository) GetByID(id uint) (*models.ChecklistQuestion, error) {
 	var checklistQuestion *models.ChecklistQuestion
-	result := repo.db.Preload("Checklist").Preload("QuestionLibrary").First(&checklistQuestion, id)
+	result := repo.db.Preload("Checklist").Preload("QuestionGroup").Preload("QuestionLibrary").First(&checklistQuestion, id)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, utility.NewResourceNotFoundError(result.Error, id)
@@ -107,6 +110,7 @@ func (repo *ChecklistQuestionRepository) Create(checklistQuestionFormDTO *checkl
 	// Map DTO to ComplianceRegister model
 	checklistQuestion := &models.ChecklistQuestion{
 		ChecklistID:       checklistQuestionFormDTO.ChecklistID,
+		QuestionGroupID:   checklistQuestionFormDTO.QuestionGroupID,
 		QuestionLibraryID: checklistQuestionFormDTO.QuestionLibraryID,
 		QuestionEn:        checklistQuestionFormDTO.QuestionEn,
 		QuestionAr:        checklistQuestionFormDTO.QuestionAr,
@@ -124,9 +128,10 @@ func (repo *ChecklistQuestionRepository) Update(id uint, checklistQuestionFormDT
 
 	// Prepare the update map
 	updateFields := map[string]interface{}{
-		"ChecklistID": checklistQuestionFormDTO.ChecklistID,
-		"QuestionEn":  checklistQuestionFormDTO.QuestionEn,
-		"QuestionAr":  checklistQuestionFormDTO.QuestionAr,
+		"ChecklistID":     checklistQuestionFormDTO.ChecklistID,
+		"QuestionGroupID": checklistQuestionFormDTO.QuestionGroupID,
+		"QuestionEn":      checklistQuestionFormDTO.QuestionEn,
+		"QuestionAr":      checklistQuestionFormDTO.QuestionAr,
 	}
 
 	// Conditionally include QuestionLibraryID if it's present
@@ -161,12 +166,12 @@ func (repo *ChecklistQuestionRepository) Delete(id uint) error {
 	return nil
 }
 
-func (repo *ChecklistQuestionRepository) ExistsByTitle(QuestionEn, QuestionAr string, ChecklistID uint) (bool, error) {
+func (repo *ChecklistQuestionRepository) ExistsByTitle(QuestionEn, QuestionAr string, ChecklistID uint, QuestionGroupID uint) (bool, error) {
 	var count int64
 
 	// Check for the existence of QuestionEn or QuestionAr in a single query
 	err := repo.db.Model(&models.ChecklistQuestion{}).
-		Where("(question_en = ? OR question_ar = ?) AND checklist_id = ?", QuestionEn, QuestionAr, ChecklistID).
+		Where("(question_en = ? OR question_ar = ?) AND checklist_id = ? AND question_group_id = ?", QuestionEn, QuestionAr, ChecklistID, QuestionGroupID).
 		Count(&count).Error
 
 	if err != nil {
@@ -191,11 +196,11 @@ func (repo *ChecklistQuestionRepository) ExistsQuestionLibrary(QuestionLibraryID
 	return count > 0, nil
 }
 
-func (repo *ChecklistQuestionRepository) ExistsByTitleExcludingID(id uint, QuestionEn, QuestionAr string, ChecklistID uint) (bool, error) {
+func (repo *ChecklistQuestionRepository) ExistsByTitleExcludingID(id uint, QuestionEn, QuestionAr string, ChecklistID uint, QuestionGroupID uint) (bool, error) {
 	var count int64
 
 	err := repo.db.Model(&models.ChecklistQuestion{}).
-		Where("id <> ? AND (question_en = ? OR question_ar = ?) AND checklist_id = ?", id, QuestionEn, QuestionAr, ChecklistID).
+		Where("id <> ? AND (question_en = ? OR question_ar = ?) AND checklist_id = ? AND question_group_id = ?", id, QuestionEn, QuestionAr, ChecklistID, QuestionGroupID).
 		Count(&count).Error
 
 	if err != nil {

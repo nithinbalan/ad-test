@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	libraryRepositories "jethur/grc/libraries/repositories"
 	logModels "jethur/grc/logs/models"
 	"jethur/grc/logs/services"
 	checklistQuestionDTOs "jethur/grc/masters/dtos"
@@ -23,17 +24,20 @@ type ChecklistQuestionServiceInterface interface {
 type ChecklistQuestionService struct {
 	repo           repositories.ChecklistQuestionRepositoryInterface
 	activityLogSvc services.ActivityLogServiceInterface
+	libraryRepo    libraryRepositories.QuestionGroupRepositoryInterface
 	checklistRepo  repositories.ChecklistRepositoryInterface
 }
 
 func NewChecklistQuestionService(
 	repo repositories.ChecklistQuestionRepositoryInterface,
 	activityLogSvc services.ActivityLogServiceInterface,
+	libraryRepo libraryRepositories.QuestionGroupRepositoryInterface,
 	checklistRepo repositories.ChecklistRepositoryInterface,
 ) ChecklistQuestionServiceInterface {
 	return &ChecklistQuestionService{
 		repo:           repo,
 		activityLogSvc: activityLogSvc,
+		libraryRepo:    libraryRepo,
 		checklistRepo:  checklistRepo,
 	}
 }
@@ -54,7 +58,12 @@ func (cqs *ChecklistQuestionService) Create(currentUserID uint, checklistQuestio
 		return 0, utility.NewValidationError(fmt.Errorf("review checklist does not exist"), "not_exist", "checklist")
 	}
 
-	if exists, err := cqs.repo.ExistsByTitle(checklistQuestionFormDTO.QuestionEn, checklistQuestionFormDTO.QuestionAr, checklistQuestionFormDTO.ChecklistID); err != nil {
+	questionGroup, err := cqs.libraryRepo.GetByID(checklistQuestionFormDTO.QuestionGroupID)
+	if err != nil {
+		return 0, utility.NewValidationError(fmt.Errorf("question group does not exist"), "not_exist", "question group")
+	}
+
+	if exists, err := cqs.repo.ExistsByTitle(checklistQuestionFormDTO.QuestionEn, checklistQuestionFormDTO.QuestionAr, checklistQuestionFormDTO.ChecklistID, checklistQuestionFormDTO.QuestionGroupID); err != nil {
 		return 0, err
 	} else if exists {
 		return 0, utility.NewValidationError(fmt.Errorf("the question must be unique"), "unique", "question")
@@ -65,7 +74,7 @@ func (cqs *ChecklistQuestionService) Create(currentUserID uint, checklistQuestio
 	} else if existsInLibrary {
 		return 0, utility.NewValidationError(fmt.Errorf("the question already exists in this checklist"), "unique", "question")
 	}
-	_ = checklist
+	_, _ = checklist, questionGroup
 
 	id, err := cqs.repo.Create(checklistQuestionFormDTO)
 	if err != nil {
@@ -104,8 +113,13 @@ func (cqs *ChecklistQuestionService) Update(id uint, currentUserID uint, checkli
 		return utility.NewValidationError(fmt.Errorf("review checklist does not exist"), "not_exist", "checklist")
 	}
 
-	if checklistQuestionFormDTO.QuestionEn != existingChecklistQuestion.QuestionEn || checklistQuestionFormDTO.QuestionAr != existingChecklistQuestion.QuestionAr || checklistQuestionFormDTO.ChecklistID != existingChecklistQuestion.ChecklistID {
-		if exists, err := cqs.repo.ExistsByTitleExcludingID(id, checklistQuestionFormDTO.QuestionEn, checklistQuestionFormDTO.QuestionAr, checklistQuestionFormDTO.ChecklistID); err != nil {
+	questionGroup, err := cqs.libraryRepo.GetByID(checklistQuestionFormDTO.QuestionGroupID)
+	if err != nil {
+		return utility.NewValidationError(fmt.Errorf("question group does not exist"), "not_exist", "question group")
+	}
+
+	if checklistQuestionFormDTO.QuestionEn != existingChecklistQuestion.QuestionEn || checklistQuestionFormDTO.QuestionAr != existingChecklistQuestion.QuestionAr || checklistQuestionFormDTO.ChecklistID != existingChecklistQuestion.ChecklistID || checklistQuestionFormDTO.QuestionGroupID != existingChecklistQuestion.QuestionGroupID {
+		if exists, err := cqs.repo.ExistsByTitleExcludingID(id, checklistQuestionFormDTO.QuestionEn, checklistQuestionFormDTO.QuestionAr, checklistQuestionFormDTO.ChecklistID, checklistQuestionFormDTO.QuestionGroupID); err != nil {
 			return err
 		} else if exists {
 			return utility.NewValidationError(fmt.Errorf("the question must be unique"), "unique", "question")
@@ -118,7 +132,7 @@ func (cqs *ChecklistQuestionService) Update(id uint, currentUserID uint, checkli
 		return utility.NewValidationError(fmt.Errorf("the question already exists in this checklist"), "unique", "question")
 	}
 
-	_ = checklist
+	_, _ = checklist, questionGroup
 
 	err = cqs.repo.Update(id, checklistQuestionFormDTO)
 
@@ -128,6 +142,7 @@ func (cqs *ChecklistQuestionService) Update(id uint, currentUserID uint, checkli
 
 	fieldsToCompare := []string{
 		"ChecklistID",
+		"QuestionGroupID",
 		"QuestionLibraryID",
 		"QuestionEn",
 		"QuestionAr"}
