@@ -59,9 +59,11 @@ func (crs ComplianceRegisterService) GetByID(id uint) (*models.ComplianceRegiste
 
 func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegFormDTO *complianceDTOs.ComplianceRegisterFormDTO) (uint, error) {
 
-	complianceCategory, err := crs.complianceCategoryRepo.GetByID(complianceRegFormDTO.ComplianceCategoryID)
-	if err != nil {
-		return 0, utility.NewValidationError(fmt.Errorf("compliance category does not exist"), "not_exist", "compliance category")
+	if complianceRegFormDTO.ComplianceCategoryID != 0 {
+		_, err := ccs.complianceCategoryRepo.GetByID(complianceRegFormDTO.ComplianceCategoryID)
+		if err != nil {
+			return 0, utility.NewValidationError(fmt.Errorf("compliance category does not exist"), "not_exist", "compliance category")
+		}
 	}
 
 	complianceStatus, err := crs.complianceStatusRepo.GetByID(complianceRegFormDTO.ComplianceStatusID)
@@ -79,7 +81,7 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegFo
 		return 0, utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
 	}
 
-	_, _, _, _ = complianceCategory, complianceStatus, reviewFrequency, severityLevel
+	_, _, _ = complianceStatus, reviewFrequency, severityLevel
 
 	// Proceed with creating the compliance record
 	id, err := crs.repo.Create(currentUserID, complianceRegFormDTO)
