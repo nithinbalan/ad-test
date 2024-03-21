@@ -18,8 +18,8 @@ type ComplianceServiceInterface interface {
 	Create(currentUserID uint, complianceRegFormDTO *complianceDTOs.ComplianceRegisterFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, compliance *complianceDTOs.ComplianceRegisterFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
-	Activate(ids []uint, currentUserID uint) error
-	Deactivate(ids []uint, currentUserID uint) error
+	Activate(ids []uint, currentUserID uint) ([]uint, error)
+	Archive(ids []uint, currentUserID uint) ([]uint, error)
 }
 
 // Service and implementations
@@ -227,11 +227,14 @@ func (ccs *ComplianceService) Delete(ids []uint, currentUserID uint) ([]uint, er
 	return failedIds, nil
 }
 
-func (ccs *ComplianceService) Activate(ids []uint, currentUserID uint) error {
+func (ccs *ComplianceService) Activate(ids []uint, currentUserID uint) ([]uint, error) {
 	successfulIds, err := ccs.repo.Activate(ids)
 
-	if len(successfulIds) > 0 {
+	if err != nil {
+		return nil, err
+	}
 
+	if len(successfulIds) > 0 {
 		go func() {
 			err := ccs.activityLogSvc.LogBulkActivities(
 				logModels.ActivateAction,
@@ -248,14 +251,17 @@ func (ccs *ComplianceService) Activate(ids []uint, currentUserID uint) error {
 		}()
 	}
 
-	return err
+	return successfulIds, nil
 }
 
-func (ccs *ComplianceService) Deactivate(ids []uint, currentUserID uint) error {
-	successfulIds, err := ccs.repo.Deactivate(ids)
+func (ccs *ComplianceService) Archive(ids []uint, currentUserID uint) ([]uint, error) {
+	successfulIds, err := ccs.repo.Archive(ids)
+
+	if err != nil {
+		return nil, err
+	}
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := ccs.activityLogSvc.LogBulkActivities(
 				logModels.DeactivateAction,
@@ -267,11 +273,10 @@ func (ccs *ComplianceService) Deactivate(ids []uint, currentUserID uint) error {
 			)
 			if err != nil {
 				// @todo - save to log file
-				// You might want to log this error or handle it appropriately
 				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
 			}
 		}()
 	}
 
-	return err
+	return successfulIds, nil
 }

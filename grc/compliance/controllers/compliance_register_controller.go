@@ -179,16 +179,16 @@ func (crc *ComplianceRegisterController) ActivateComplianceRegisters(c *gin.Cont
 		return
 	}
 
-	err = crc.service.Activate(request.IDs, currentUserID)
+	successfulIds, err := crc.service.Activate(request.IDs, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(crc.db, c, err.Error())
 		return
 	}
 
-	c.Status(http.StatusOK)
+	c.JSON(http.StatusOK, gin.H{"successfulIds": successfulIds})
 }
 
-func (crc *ComplianceRegisterController) DeactivateComplianceRegisters(c *gin.Context) {
+func (crc *ComplianceRegisterController) ArchiveComplianceRegisters(c *gin.Context) {
 	var request struct {
 		IDs []uint `json:"ids"`
 	}
@@ -204,11 +204,11 @@ func (crc *ComplianceRegisterController) DeactivateComplianceRegisters(c *gin.Co
 		return
 	}
 
-	err = crc.service.Deactivate(request.IDs, currentUserID)
+	successfulIds, err := crc.service.Archive(request.IDs, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(crc.db, c, err.Error())
 		return
 	}
 
-	c.Status(http.StatusOK)
+	c.JSON(http.StatusOK, gin.H{"successfulIds": successfulIds})
 }
