@@ -13,8 +13,6 @@ import (
 type OrganizationLevelServiceInterface interface {
 	GetAll() ([]*models.OrganizationLevel, error)
 	Create(currentUserID uint, organizationLevels []*models.OrganizationLevel) ([]*models.OrganizationLevel, error)
-	Update(currentUserID uint, organizationLevels []*models.OrganizationLevel) ([]*models.OrganizationLevel, error)
-	Delete(id uint, currentUserID uint) error
 }
 
 // Service and implementations
@@ -35,64 +33,10 @@ func (ols *OrganizationLevelService) GetAll() ([]*models.OrganizationLevel, erro
 }
 
 func (ols *OrganizationLevelService) Create(currentUserID uint, organizationLevels []*models.OrganizationLevel) ([]*models.OrganizationLevel, error) {
-
 	titleEnMap := make(map[string]bool)
 	titleArMap := make(map[string]bool)
 	isPrimaryFound := false
-
-	for _, level := range organizationLevels {
-		if titleEnMap[level.TitleEn] {
-			return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
-		}
-		titleEnMap[level.TitleEn] = true
-
-		if titleArMap[level.TitleAr] {
-			return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
-		}
-		titleArMap[level.TitleAr] = true
-
-		if level.IsPrimary {
-			if isPrimaryFound {
-				return nil, utility.NewValidationError(fmt.Errorf("only one object can have primary"), "unique", "primary")
-			}
-			isPrimaryFound = true
-		}
-	}
-
-	if !isPrimaryFound {
-		return nil, utility.NewValidationError(fmt.Errorf("at least one object must have primary true"), "required", "primary")
-	}
-
-	createdOrganizationLevel, err := ols.repo.Create(organizationLevels)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, orgLevel := range createdOrganizationLevel {
-		go func(level *models.OrganizationLevel) {
-			err := ols.activityLogSvc.LogActivity(
-				activityLogModel.CreateAction,
-				models.OrganizationLevel{}.TableName(),
-				level.ID,
-				level,
-				currentUserID,
-				nil,
-			)
-
-			if err != nil {
-				// @todo - save to log file
-				log.Printf("Failed to log activity: %v", err)
-			}
-		}(orgLevel)
-	}
-
-	return createdOrganizationLevel, nil
-}
-
-func (ols *OrganizationLevelService) Update(currentUserID uint, organizationLevels []*models.OrganizationLevel) ([]*models.OrganizationLevel, error) {
-	titleEnMap := make(map[string]bool)
-	titleArMap := make(map[string]bool)
-	isPrimaryFound := false
+	updatedIds := make(map[uint]bool)
 
 	var toCreate, toUpdate []*models.OrganizationLevel
 
@@ -133,7 +77,7 @@ func (ols *OrganizationLevelService) Update(currentUserID uint, organizationLeve
 		return nil, utility.NewValidationError(fmt.Errorf("at least one object must have primary true"), "required", "primary")
 	}
 
-	updatedOrganizationLevel, err := ols.repo.Update(organizationLevels)
+	updatedOrganizationLevel, err := ols.repo.Create(organizationLevels)
 	if err != nil {
 		return nil, err
 	}
@@ -152,14 +96,12 @@ func (ols *OrganizationLevelService) Update(currentUserID uint, organizationLeve
 			)
 
 			if err != nil {
-				// @todo - save to log file
 				log.Printf("Failed to log activity: %v", err)
 			}
 		}(newOrgLevel)
 	}
 
 	for _, updateOrgLevel := range toUpdate {
-		// Find the matching existing record
 		var existingMatch *models.OrganizationLevel
 		for _, existing := range existingOrganizationLevels {
 			if existing.ID == updateOrgLevel.ID {
@@ -169,15 +111,12 @@ func (ols *OrganizationLevelService) Update(currentUserID uint, organizationLeve
 		}
 
 		if existingMatch != nil {
-			// Compare the existing record with the updated data
 			changes, err := utility.CompareFields(existingMatch, updateOrgLevel, fieldsToCompare)
 			if err != nil {
-				// Handle error
 				log.Printf("Failed to compare fields: %v", err)
 				continue
 			}
 
-			// Assuming changes is a meaningful representation of what changed
 			if len(changes) > 0 {
 				go func(level *models.OrganizationLevel, changes interface{}) {
 					err := ols.activityLogSvc.LogActivity(
@@ -195,38 +134,30 @@ func (ols *OrganizationLevelService) Update(currentUserID uint, organizationLeve
 				}(updateOrgLevel, changes)
 			}
 		} else {
-			// Handle the case where no matching existing record is found
 			log.Printf("No existing organization level found with ID: %d", updateOrgLevel.ID)
+		}
+
+		updatedIds[updateOrgLevel.ID] = true
+	}
+
+	for _, existingLevel := range existingOrganizationLevels {
+		if !updatedIds[existingLevel.ID] {
+			go func(level *models.OrganizationLevel) {
+				err := ols.activityLogSvc.LogActivity(
+					activityLogModel.DeleteAction,
+					models.OrganizationLevel{}.TableName(),
+					level.ID,
+					level,
+					currentUserID,
+					nil,
+				)
+
+				if err != nil {
+					log.Printf("Failed to log delete activity: %v", err)
+				}
+			}(existingLevel)
 		}
 	}
 
 	return updatedOrganizationLevel, nil
-}
-
-func (ols *OrganizationLevelService) Delete(id uint, currentUserID uint) error {
-	organizationLevel, err := ols.repo.GetByID(id)
-	if err != nil {
-		return err
-	}
-	err = ols.repo.Delete(id)
-
-	if err != nil {
-		return err
-	}
-	go func(organizationLevel *models.OrganizationLevel) {
-		err := ols.activityLogSvc.LogActivity(
-			activityLogModel.DeleteAction,
-			models.OrganizationLevel{}.TableName(),
-			organizationLevel.ID,
-			organizationLevel,
-			currentUserID,
-			nil,
-		)
-
-		if err != nil {
-			// @todo - save to log file
-			log.Printf("Failed to log activity: %v", err)
-		}
-	}(organizationLevel)
-	return nil
 }

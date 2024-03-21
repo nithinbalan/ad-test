@@ -27,7 +27,4 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 
 	settingRoute.GET("/settings/organization-level", OrganizationLevelController.GetAllOrganizationLevel)
 	settingRoute.POST("/settings/organization-level", OrganizationLevelController.CreateOrganizationLevel)
-	settingRoute.PUT("/settings/organization-level", OrganizationLevelController.UpdateOrganizationLevel)
-	settingRoute.DELETE("/settings/organization-level/:id", OrganizationLevelController.DeleteOrganizationLevel)
-
 }

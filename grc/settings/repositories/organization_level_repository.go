@@ -1,9 +1,7 @@
 package repositories
 
 import (
-	"errors"
 	"jethur/grc/settings/models"
-	"jethur/utility"
 
 	"gorm.io/gorm"
 )
@@ -11,10 +9,7 @@ import (
 // Interfaces
 type OrganizationLevelRepositoryInterface interface {
 	GetAll() ([]*models.OrganizationLevel, error)
-	GetByID(id uint) (*models.OrganizationLevel, error)
 	Create(organizationLevels []*models.OrganizationLevel) ([]*models.OrganizationLevel, error)
-	Update(organizationLevels []*models.OrganizationLevel) ([]*models.OrganizationLevel, error)
-	Delete(id uint) error
 }
 
 // implementation
@@ -39,25 +34,7 @@ func (repo *OrganizationLevelRepository) GetAll() ([]*models.OrganizationLevel, 
 	return organizationLevels, result.Error
 }
 
-func (repo *OrganizationLevelRepository) GetByID(id uint) (*models.OrganizationLevel, error) {
-	var organizationLevel *models.OrganizationLevel
-	result := repo.db.First(&organizationLevel, id)
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, utility.NewResourceNotFoundError(result.Error, id)
-	} else if result.Error != nil {
-		return nil, result.Error
-	}
-
-	return organizationLevel, result.Error
-}
-
 func (repo *OrganizationLevelRepository) Create(organizationLevels []*models.OrganizationLevel) ([]*models.OrganizationLevel, error) {
-	result := repo.db.Create(&organizationLevels)
-
-	return organizationLevels, result.Error
-}
-
-func (repo *OrganizationLevelRepository) Update(organizationLevels []*models.OrganizationLevel) ([]*models.OrganizationLevel, error) {
 	var updatedOrganizationLevels []*models.OrganizationLevel
 	var idsForRetention []uint
 
@@ -108,19 +85,4 @@ func (repo *OrganizationLevelRepository) Update(organizationLevels []*models.Org
 	}
 
 	return updatedOrganizationLevels, nil
-}
-
-func (repo *OrganizationLevelRepository) Delete(id uint) error {
-	var organizationLevel *models.OrganizationLevel
-
-	if err := repo.db.First(&organizationLevel, id).Error; err != nil {
-		return err
-	}
-
-	result := repo.db.Delete(&models.OrganizationLevel{}, id)
-	if result.Error != nil {
-		return result.Error
-	}
-
-	return nil
 }
