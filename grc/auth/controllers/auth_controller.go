@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	authDTOs "jethur/grc/auth/dtos"
 	"jethur/grc/auth/services"
 	"jethur/utility"
 	"net/http"
@@ -8,14 +9,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
-
-type LoginRequest struct {
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required"`
-}
-type ForgotPasswordRequest struct {
-	Email string `json:"email" binding:"required,email"`
-}
 
 type AuthController struct {
 	service services.AuthServiceInterface
@@ -33,14 +26,14 @@ type ErrorResponse struct {
 }
 
 func (ac *AuthController) Login(c *gin.Context) {
-	var loginReq LoginRequest
+	var authDTO authDTOs.AuthFormDTO
 
-	if err := c.ShouldBindJSON(&loginReq); err != nil {
+	if err := c.ShouldBindJSON(&authDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
 
-	tokens, err := ac.service.Authenticate(loginReq.Email, loginReq.Password)
+	tokens, err := ac.service.Authenticate(authDTO.Email, authDTO.Password)
 	if err != nil {
 		if _, ok := err.(*utility.InternalServerError); ok {
 			utility.SendInternalErrResp(ac.db, c, err.Error())
@@ -57,27 +50,25 @@ func (ac *AuthController) Login(c *gin.Context) {
 }
 
 func (ac *AuthController) GetOtpForgotPasswordRecovery(c *gin.Context) {
-	var forgotPasswordReq ForgotPasswordRequest
+	var forgotPasswordFormDTO authDTOs.ForgotPasswordFormDTO
 
-	if err := c.ShouldBindJSON(&forgotPasswordReq); err != nil {
+	if err := c.ShouldBindJSON(&forgotPasswordFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
 
 	// Retrieve email from the request body
-	email := forgotPasswordReq.Email
+	email := forgotPasswordFormDTO.Email
 
 	// Get OTP for password recovery
-	_, err := ac.service.GetOtpForgotPasswordRecovery(email)
+	err := ac.service.GetOtpForgotPasswordRecovery(email)
 	if err != nil {
 		if _, ok := err.(*utility.InternalServerError); ok {
 			utility.SendInternalErrResp(ac.db, c, err.Error())
-		} else {
-			utility.SendUnauthorizedErrResp(c, "Authentication failed")
 		}
 		return
 	}
 
 	// Return response with status OK
-	c.JSON(http.StatusOK, gin.H{"message": "Password recovery otp sent to your email successfully"})
+	c.Status(http.StatusOK)
 }

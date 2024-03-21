@@ -71,7 +71,7 @@ func (repo *AuthRepository) GetOtpForgotPasswordRecovery(email string) (*models.
 
 	result := repo.db.First(&user, "email = ?", email)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, errors.New("invalid email")
+		return nil, nil
 	} else if result.Error != nil {
 		return nil, utility.NewInternalServerError(result.Error)
 	}
