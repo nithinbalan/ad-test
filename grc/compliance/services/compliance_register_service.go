@@ -12,7 +12,7 @@ import (
 	"log"
 )
 
-type ComplianceServiceInterface interface {
+type ComplianceRegisterServiceInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int) (*complianceDTOs.ComplianceRegisterListResponseDTO, error)
 	GetByID(id uint) (*models.ComplianceRegister, error)
 	Create(currentUserID uint, complianceRegFormDTO *complianceDTOs.ComplianceRegisterFormDTO) (uint, error)
@@ -23,8 +23,8 @@ type ComplianceServiceInterface interface {
 }
 
 // Service and implementations
-type ComplianceService struct {
-	repo                   repositories.ComplianceRepositoryInterface
+type ComplianceRegisterService struct {
+	repo                   repositories.ComplianceRegisterRepositoryInterface
 	activityLogSvc         services.ActivityLogServiceInterface
 	complianceCategoryRepo repositories.ComplianceCategoryRepositoryInterface
 	complianceStatusRepo   repositories.ComplianceStatusRepositoryInterface
@@ -32,14 +32,14 @@ type ComplianceService struct {
 	severityLevelRepo      masterRepositories.SeverityLevelRepositoryInterface
 }
 
-func NewComplianceService(
-	repo repositories.ComplianceRepositoryInterface,
+func NewComplianceRegisterService(
+	repo repositories.ComplianceRegisterRepositoryInterface,
 	activityLogSvc services.ActivityLogServiceInterface,
 	complianceCategoryRepo repositories.ComplianceCategoryRepositoryInterface,
 	complianceStatusRepo repositories.ComplianceStatusRepositoryInterface,
 	reviewFrequencyRepo masterRepositories.ReviewFrequencyRepositoryInterface,
-	severityLevelRepo masterRepositories.SeverityLevelRepositoryInterface) ComplianceServiceInterface {
-	return &ComplianceService{
+	severityLevelRepo masterRepositories.SeverityLevelRepositoryInterface) ComplianceRegisterServiceInterface {
+	return &ComplianceRegisterService{
 		repo:                   repo,
 		activityLogSvc:         activityLogSvc,
 		complianceCategoryRepo: complianceCategoryRepo,
@@ -49,32 +49,32 @@ func NewComplianceService(
 	}
 }
 
-func (ccs *ComplianceService) GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int) (*complianceDTOs.ComplianceRegisterListResponseDTO, error) {
-	return ccs.repo.GetAll(sort, sortBy, keyword, status, page, pageSize)
+func (crs *ComplianceRegisterService) GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int) (*complianceDTOs.ComplianceRegisterListResponseDTO, error) {
+	return crs.repo.GetAll(sort, sortBy, keyword, status, page, pageSize)
 }
 
-func (ccs ComplianceService) GetByID(id uint) (*models.ComplianceRegister, error) {
-	return ccs.repo.GetByID(id)
+func (crs ComplianceRegisterService) GetByID(id uint) (*models.ComplianceRegister, error) {
+	return crs.repo.GetByID(id)
 }
 
-func (ccs *ComplianceService) Create(currentUserID uint, complianceRegFormDTO *complianceDTOs.ComplianceRegisterFormDTO) (uint, error) {
+func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegFormDTO *complianceDTOs.ComplianceRegisterFormDTO) (uint, error) {
 
-	complianceCategory, err := ccs.complianceCategoryRepo.GetByID(complianceRegFormDTO.ComplianceCategoryID)
+	complianceCategory, err := crs.complianceCategoryRepo.GetByID(complianceRegFormDTO.ComplianceCategoryID)
 	if err != nil {
 		return 0, utility.NewValidationError(fmt.Errorf("compliance category does not exist"), "not_exist", "compliance category")
 	}
 
-	complianceStatus, err := ccs.complianceStatusRepo.GetByID(complianceRegFormDTO.ComplianceStatusID)
+	complianceStatus, err := crs.complianceStatusRepo.GetByID(complianceRegFormDTO.ComplianceStatusID)
 	if err != nil {
 		return 0, utility.NewValidationError(fmt.Errorf("compliance status does not exist"), "not_exist", "compliance status")
 	}
 
-	reviewFrequency, err := ccs.reviewFrequencyRepo.GetByID(complianceRegFormDTO.ReviewFrequencyID)
+	reviewFrequency, err := crs.reviewFrequencyRepo.GetByID(complianceRegFormDTO.ReviewFrequencyID)
 	if err != nil {
 		return 0, utility.NewValidationError(fmt.Errorf("review frequency does not exist"), "not_exist", "review frequency")
 	}
 
-	severityLevel, err := ccs.severityLevelRepo.GetByID(complianceRegFormDTO.SeverityLevelID)
+	severityLevel, err := crs.severityLevelRepo.GetByID(complianceRegFormDTO.SeverityLevelID)
 	if err != nil {
 		return 0, utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
 	}
@@ -82,13 +82,13 @@ func (ccs *ComplianceService) Create(currentUserID uint, complianceRegFormDTO *c
 	_, _, _, _ = complianceCategory, complianceStatus, reviewFrequency, severityLevel
 
 	// Proceed with creating the compliance record
-	id, err := ccs.repo.Create(currentUserID, complianceRegFormDTO)
+	id, err := crs.repo.Create(currentUserID, complianceRegFormDTO)
 	if err != nil {
 		return 0, err
 	}
 
 	go func() {
-		err := ccs.activityLogSvc.LogActivity(
+		err := crs.activityLogSvc.LogActivity(
 			logModels.CreateAction,
 			models.ComplianceRegister{}.TableName(),
 			id,
@@ -106,37 +106,37 @@ func (ccs *ComplianceService) Create(currentUserID uint, complianceRegFormDTO *c
 	return id, nil
 }
 
-func (ccs *ComplianceService) Update(id uint, currentUserID uint, complianceRegFormDTO *complianceDTOs.ComplianceRegisterFormDTO) error {
+func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, complianceRegFormDTO *complianceDTOs.ComplianceRegisterFormDTO) error {
 
-	existingComplianceRegister, err := ccs.repo.GetByID(id)
+	existingComplianceRegister, err := crs.repo.GetByID(id)
 
 	if err != nil {
 		return err
 	}
 
-	complianceCategory, err := ccs.complianceCategoryRepo.GetByID(complianceRegFormDTO.ComplianceCategoryID)
+	complianceCategory, err := crs.complianceCategoryRepo.GetByID(complianceRegFormDTO.ComplianceCategoryID)
 	if err != nil {
 		return utility.NewValidationError(fmt.Errorf("compliance category does not exist"), "not_exist", "compliance category")
 	}
 
-	complianceStatus, err := ccs.complianceStatusRepo.GetByID(complianceRegFormDTO.ComplianceStatusID)
+	complianceStatus, err := crs.complianceStatusRepo.GetByID(complianceRegFormDTO.ComplianceStatusID)
 	if err != nil {
 		return utility.NewValidationError(fmt.Errorf("compliance status does not exist"), "not_exist", "compliance status")
 	}
 
-	reviewFrequency, err := ccs.reviewFrequencyRepo.GetByID(complianceRegFormDTO.ReviewFrequencyID)
+	reviewFrequency, err := crs.reviewFrequencyRepo.GetByID(complianceRegFormDTO.ReviewFrequencyID)
 	if err != nil {
 		return utility.NewValidationError(fmt.Errorf("review frequency does not exist"), "not_exist", "review frequency")
 	}
 
-	severityLevel, err := ccs.severityLevelRepo.GetByID(complianceRegFormDTO.SeverityLevelID)
+	severityLevel, err := crs.severityLevelRepo.GetByID(complianceRegFormDTO.SeverityLevelID)
 	if err != nil {
 		return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
 	}
 
 	_, _, _, _ = complianceCategory, complianceStatus, reviewFrequency, severityLevel
 
-	err = ccs.repo.Update(id, currentUserID, complianceRegFormDTO)
+	err = crs.repo.Update(id, currentUserID, complianceRegFormDTO)
 
 	if err != nil {
 		return err
@@ -171,7 +171,7 @@ func (ccs *ComplianceService) Update(id uint, currentUserID uint, complianceRegF
 	}
 
 	go func() {
-		err := ccs.activityLogSvc.LogActivity(
+		err := crs.activityLogSvc.LogActivity(
 			logModels.UpdateAction,
 			models.ComplianceRegister{}.TableName(),
 			id,
@@ -187,18 +187,18 @@ func (ccs *ComplianceService) Update(id uint, currentUserID uint, complianceRegF
 	return nil
 }
 
-func (ccs *ComplianceService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
+func (crs *ComplianceRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
 	for _, id := range ids {
 
-		_, err := ccs.repo.GetByID(id)
+		_, err := crs.repo.GetByID(id)
 
 		if err != nil {
 			continue
 		}
 
-		err = ccs.repo.Delete(id)
+		err = crs.repo.Delete(id)
 		if err != nil {
 			failedIds = append(failedIds, id)
 		} else {
@@ -209,7 +209,7 @@ func (ccs *ComplianceService) Delete(ids []uint, currentUserID uint) ([]uint, er
 	if len(successfulIds) > 0 {
 
 		go func() {
-			err := ccs.activityLogSvc.LogBulkActivities(
+			err := crs.activityLogSvc.LogBulkActivities(
 				logModels.DeleteAction, // Make sure this action constant is defined appropriately
 				models.ComplianceRegister{}.TableName(),
 				successfulIds,
@@ -227,8 +227,8 @@ func (ccs *ComplianceService) Delete(ids []uint, currentUserID uint) ([]uint, er
 	return failedIds, nil
 }
 
-func (ccs *ComplianceService) Archive(ids []uint, currentUserID uint) ([]uint, error) {
-	successfulIds, err := ccs.repo.Archive(ids)
+func (crs *ComplianceRegisterService) Archive(ids []uint, currentUserID uint) ([]uint, error) {
+	successfulIds, err := crs.repo.Archive(ids)
 
 	if err != nil {
 		return nil, err
@@ -236,7 +236,7 @@ func (ccs *ComplianceService) Archive(ids []uint, currentUserID uint) ([]uint, e
 
 	if len(successfulIds) > 0 {
 		go func() {
-			err := ccs.activityLogSvc.LogBulkActivities(
+			err := crs.activityLogSvc.LogBulkActivities(
 				logModels.ArchiveAction,
 				models.ComplianceRegister{}.TableName(),
 				successfulIds,
@@ -254,8 +254,8 @@ func (ccs *ComplianceService) Archive(ids []uint, currentUserID uint) ([]uint, e
 	return successfulIds, nil
 }
 
-func (ccs *ComplianceService) Restore(ids []uint, currentUserID uint) ([]uint, error) {
-	successfulIds, err := ccs.repo.Restore(ids)
+func (crs *ComplianceRegisterService) Restore(ids []uint, currentUserID uint) ([]uint, error) {
+	successfulIds, err := crs.repo.Restore(ids)
 
 	if err != nil {
 		return nil, err
@@ -263,7 +263,7 @@ func (ccs *ComplianceService) Restore(ids []uint, currentUserID uint) ([]uint, e
 
 	if len(successfulIds) > 0 {
 		go func() {
-			err := ccs.activityLogSvc.LogBulkActivities(
+			err := crs.activityLogSvc.LogBulkActivities(
 				logModels.RestoreAction,
 				models.ComplianceRegister{}.TableName(),
 				successfulIds,

@@ -13,11 +13,11 @@ import (
 )
 
 type ComplianceRegisterController struct {
-	service services.ComplianceServiceInterface
+	service services.ComplianceRegisterServiceInterface
 	db      *gorm.DB
 }
 
-func NewComplianceRegisterController(service services.ComplianceServiceInterface) *ComplianceRegisterController {
+func NewComplianceRegisterController(service services.ComplianceRegisterServiceInterface) *ComplianceRegisterController {
 	return &ComplianceRegisterController{
 		service: service,
 	}
