@@ -18,8 +18,8 @@ type ComplianceServiceInterface interface {
 	Create(currentUserID uint, complianceRegFormDTO *complianceDTOs.ComplianceRegisterFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, compliance *complianceDTOs.ComplianceRegisterFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
-	Activate(ids []uint, currentUserID uint) ([]uint, error)
 	Archive(ids []uint, currentUserID uint) ([]uint, error)
+	Restore(ids []uint, currentUserID uint) ([]uint, error)
 }
 
 // Service and implementations
@@ -227,33 +227,6 @@ func (ccs *ComplianceService) Delete(ids []uint, currentUserID uint) ([]uint, er
 	return failedIds, nil
 }
 
-func (ccs *ComplianceService) Activate(ids []uint, currentUserID uint) ([]uint, error) {
-	successfulIds, err := ccs.repo.Activate(ids)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if len(successfulIds) > 0 {
-		go func() {
-			err := ccs.activityLogSvc.LogBulkActivities(
-				logModels.ActivateAction,
-				models.ComplianceRegister{}.TableName(),
-				successfulIds,
-				nil,
-				currentUserID,
-				nil,
-			)
-			if err != nil {
-				// @todo - save to log file
-				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
-			}
-		}()
-	}
-
-	return successfulIds, nil
-}
-
 func (ccs *ComplianceService) Archive(ids []uint, currentUserID uint) ([]uint, error) {
 	successfulIds, err := ccs.repo.Archive(ids)
 
@@ -264,7 +237,7 @@ func (ccs *ComplianceService) Archive(ids []uint, currentUserID uint) ([]uint, e
 	if len(successfulIds) > 0 {
 		go func() {
 			err := ccs.activityLogSvc.LogBulkActivities(
-				logModels.DeactivateAction,
+				logModels.ArchiveAction,
 				models.ComplianceRegister{}.TableName(),
 				successfulIds,
 				nil,
@@ -273,7 +246,34 @@ func (ccs *ComplianceService) Archive(ids []uint, currentUserID uint) ([]uint, e
 			)
 			if err != nil {
 				// @todo - save to log file
-				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+				fmt.Printf("Failed to log bulk archive activity: %v\n", err)
+			}
+		}()
+	}
+
+	return successfulIds, nil
+}
+
+func (ccs *ComplianceService) Restore(ids []uint, currentUserID uint) ([]uint, error) {
+	successfulIds, err := ccs.repo.Restore(ids)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(successfulIds) > 0 {
+		go func() {
+			err := ccs.activityLogSvc.LogBulkActivities(
+				logModels.RestoreAction,
+				models.ComplianceRegister{}.TableName(),
+				successfulIds,
+				nil,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				// @todo - save to log file
+				fmt.Printf("Failed to log bulk restore activity: %v\n", err)
 			}
 		}()
 	}

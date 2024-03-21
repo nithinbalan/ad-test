@@ -163,31 +163,6 @@ func (crc *ComplianceRegisterController) DeleteComplianceRegisters(c *gin.Contex
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
 
-func (crc *ComplianceRegisterController) ActivateComplianceRegisters(c *gin.Context) {
-	var request struct {
-		IDs []uint `json:"ids"`
-	}
-
-	if err := c.ShouldBindJSON(&request); err != nil {
-		utility.SendInvalidErrResp(c, err)
-		return
-	}
-
-	currentUserID, err := utility.GetCurrentUserID(c)
-	if err != nil {
-		utility.SendInternalErrResp(crc.db, c, err.Error())
-		return
-	}
-
-	successfulIds, err := crc.service.Activate(request.IDs, currentUserID)
-	if err != nil {
-		utility.SendInternalErrResp(crc.db, c, err.Error())
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"successfulIds": successfulIds})
-}
-
 func (crc *ComplianceRegisterController) ArchiveComplianceRegisters(c *gin.Context) {
 	var request struct {
 		IDs []uint `json:"ids"`
@@ -205,6 +180,31 @@ func (crc *ComplianceRegisterController) ArchiveComplianceRegisters(c *gin.Conte
 	}
 
 	successfulIds, err := crc.service.Archive(request.IDs, currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"successfulIds": successfulIds})
+}
+
+func (crc *ComplianceRegisterController) RestoreComplianceRegisters(c *gin.Context) {
+	var request struct {
+		IDs []uint `json:"ids"`
+	}
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, err.Error())
+		return
+	}
+
+	successfulIds, err := crc.service.Restore(request.IDs, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(crc.db, c, err.Error())
 		return

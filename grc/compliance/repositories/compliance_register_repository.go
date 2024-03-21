@@ -18,8 +18,8 @@ type ComplianceRepositoryInterface interface {
 	Create(currentUserID uint, complianceRegFormDTO *complianceDTOs.ComplianceRegisterFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, complianceRegFormDTO *complianceDTOs.ComplianceRegisterFormDTO) error
 	Delete(id uint) error
-	Activate(ids []uint) ([]uint, error)
 	Archive(ids []uint) ([]uint, error)
+	Restore(ids []uint) ([]uint, error)
 	ExistsByTitle(titleEn string, titleAr string) (bool, error)
 	ExistsByTitleExcludingID(id uint, titleEn, titleAr string) (bool, error)
 }
@@ -277,37 +277,6 @@ func (repo *ComplianceRepository) Delete(id uint) error {
 	return nil
 }
 
-func (repo *ComplianceRepository) Activate(ids []uint) ([]uint, error) {
-	var idsToUpdate []uint
-
-	// Retrieve IDs of ComplianceRegisters with lifecycle status "archived"
-	if err := repo.db.Model(&complianceModels.ComplianceRegister{}).
-		Joins("JOIN lifecycle_statuses ON compliance_register.lifecycle_status_id = lifecycle_statuses.id").
-		Where("compliance_register.id IN ? AND lifecycle_statuses.type = ?", ids, "archived").
-		Pluck("compliance_register.id", &idsToUpdate).Error; err != nil {
-		return nil, err
-	}
-
-	if len(idsToUpdate) > 0 {
-		// Retrieve the ID of the "active" LifecycleStatus
-		var activeLifecycleStatusID uint
-		if err := repo.db.Model(&masterModels.LifecycleStatus{}).
-			Where("type = ?", "active").
-			Pluck("id", &activeLifecycleStatusID).Error; err != nil {
-			return nil, err
-		}
-
-		// Update ComplianceRegisters with the retrieved activeLifecycleStatusID
-		if err := repo.db.Model(&complianceModels.ComplianceRegister{}).
-			Where("id IN ?", idsToUpdate).
-			Update("lifecycle_status_id", activeLifecycleStatusID).Error; err != nil {
-			return nil, err
-		}
-	}
-
-	return idsToUpdate, nil
-}
-
 func (repo *ComplianceRepository) Archive(ids []uint) ([]uint, error) {
 	var idsToUpdate []uint
 
@@ -332,6 +301,37 @@ func (repo *ComplianceRepository) Archive(ids []uint) ([]uint, error) {
 		if err := repo.db.Model(&complianceModels.ComplianceRegister{}).
 			Where("id IN ?", idsToUpdate).
 			Update("lifecycle_status_id", archivedLifecycleStatusID).Error; err != nil {
+			return nil, err
+		}
+	}
+
+	return idsToUpdate, nil
+}
+
+func (repo *ComplianceRepository) Restore(ids []uint) ([]uint, error) {
+	var idsToUpdate []uint
+
+	// Retrieve IDs of ComplianceRegisters with lifecycle status "archived"
+	if err := repo.db.Model(&complianceModels.ComplianceRegister{}).
+		Joins("JOIN lifecycle_statuses ON compliance_register.lifecycle_status_id = lifecycle_statuses.id").
+		Where("compliance_register.id IN ? AND lifecycle_statuses.type = ?", ids, "archived").
+		Pluck("compliance_register.id", &idsToUpdate).Error; err != nil {
+		return nil, err
+	}
+
+	if len(idsToUpdate) > 0 {
+		// Retrieve the ID of the "active" LifecycleStatus
+		var activeLifecycleStatusID uint
+		if err := repo.db.Model(&masterModels.LifecycleStatus{}).
+			Where("type = ?", "active").
+			Pluck("id", &activeLifecycleStatusID).Error; err != nil {
+			return nil, err
+		}
+
+		// Update ComplianceRegisters with the retrieved activeLifecycleStatusID
+		if err := repo.db.Model(&complianceModels.ComplianceRegister{}).
+			Where("id IN ?", idsToUpdate).
+			Update("lifecycle_status_id", activeLifecycleStatusID).Error; err != nil {
 			return nil, err
 		}
 	}
