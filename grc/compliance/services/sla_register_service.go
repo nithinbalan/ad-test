@@ -13,49 +13,48 @@ import (
 	"log"
 )
 
-type SLAServiceInterface interface {
+type SLARegisterServiceInterface interface {
 	GetAll(sort string, sortBy string, keyword string, page int, pageSize int) (*slaDTOs.SLARegisterListResponseDTO, error)
 	GetByID(id uint) (*models.SLARegister, error)
-	Create(currentUserID uint, slaRegFormDTO *slaDTOs.SLARegisterFormDTO) (uint, error)
-	Update(id uint, currentUserID uint, sla *slaDTOs.SLARegisterFormDTO) error
+	Create(currentUserID uint, slaRegFormDTO *slaDTOs.SLARegisterFormDTO, documents []*slaDTOs.SLADocumentFormDTO) (uint, error)
+	Update(id uint, currentUserID uint, sla *slaDTOs.SLARegisterFormDTO, documents []*slaDTOs.SLADocumentFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 }
 
 // Service and implementations
-type SLAService struct {
-	repo           repositories.SLARepositoryInterface
-	slaCategoryRepo   repositories.SLACategoryRepositoryInterface
-	severityLevelRepo masterRepositories.SeverityLevelRepositoryInterface
+type SLARegisterService struct {
+	repo                repositories.SLARegisterRepositoryInterface
+	slaCategoryRepo     repositories.SLACategoryRepositoryInterface
+	severityLevelRepo   masterRepositories.SeverityLevelRepositoryInterface
 	lifecycleStatusRepo masterRepositories.LifecycleStatusRepositoryInterface
-	activityLogSvc services.ActivityLogServiceInterface
+	activityLogSvc      services.ActivityLogServiceInterface
 }
 
-func NewSLAService(
-	repo repositories.SLARepositoryInterface,
+func NewSLARegisterService(
+	repo repositories.SLARegisterRepositoryInterface,
 	slaCategoryRepo repositories.SLACategoryRepositoryInterface,
 	severityLevelRepo masterRepositories.SeverityLevelRepositoryInterface,
 	lifecycleStatusRepo masterRepositories.LifecycleStatusRepositoryInterface,
-	activityLogSvc services.ActivityLogServiceInterface) SLAServiceInterface {
-	return &SLAService{
-		repo:           repo,
-		slaCategoryRepo: slaCategoryRepo,
-		severityLevelRepo: severityLevelRepo,
+	activityLogSvc services.ActivityLogServiceInterface) SLARegisterServiceInterface {
+	return &SLARegisterService{
+		repo:                repo,
+		slaCategoryRepo:     slaCategoryRepo,
+		severityLevelRepo:   severityLevelRepo,
 		lifecycleStatusRepo: lifecycleStatusRepo,
-		activityLogSvc: activityLogSvc,
+		activityLogSvc:      activityLogSvc,
 	}
 }
 
-func (srs *SLAService) GetAll(sort string, sortBy string, keyword string, page int, pageSize int) (*slaDTOs.SLARegisterListResponseDTO, error) {
+func (srs *SLARegisterService) GetAll(sort string, sortBy string, keyword string, page int, pageSize int) (*slaDTOs.SLARegisterListResponseDTO, error) {
 	return srs.repo.GetAll(sort, sortBy, keyword, page, pageSize)
 }
 
-func (srs SLAService) GetByID(id uint) (*models.SLARegister, error) {
+func (srs SLARegisterService) GetByID(id uint) (*models.SLARegister, error) {
 	return srs.repo.GetByID(id)
 }
 
+func (srs *SLARegisterService) Create(currentUserID uint, slaRegFormDTO *slaDTOs.SLARegisterFormDTO, documents []*slaDTOs.SLADocumentFormDTO) (uint, error) {
 
-func (srs *SLAService) Create(currentUserID uint, slaRegFormDTO *slaDTOs.SLARegisterFormDTO) (uint, error) {
-	
 	// Validation for sla category field
 	slaCategory, err := srs.slaCategoryRepo.GetByID(slaRegFormDTO.SLACategoryID)
 	if err != nil {
@@ -66,19 +65,19 @@ func (srs *SLAService) Create(currentUserID uint, slaRegFormDTO *slaDTOs.SLARegi
 	if err != nil {
 		return 0, utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
 	}
-	// Validation for lifecycle status 
+	// Validation for lifecycle status
 	lifecycleStatus, err := srs.lifecycleStatusRepo.GetByID(slaRegFormDTO.LifecycleStatusID)
 	if err != nil {
 		return 0, utility.NewValidationError(fmt.Errorf("status does not exist"), "not_exist", "lifecycle_status")
 	}
 	_, _, _ = slaCategory, severityLevel, lifecycleStatus
-	
-	id, err := srs.repo.Create(currentUserID, slaRegFormDTO)
+
+	// id, err := srs.repo.Create(currentUserID, slaRegFormDTO)
+	id, err := srs.repo.Create(currentUserID, slaRegFormDTO, documents)
 	if err != nil {
 		return 0, err
 	}
 
-	
 	go func() {
 		err := srs.activityLogSvc.LogActivity(
 			activityLogModels.CreateAction,
@@ -98,8 +97,7 @@ func (srs *SLAService) Create(currentUserID uint, slaRegFormDTO *slaDTOs.SLARegi
 	return id, nil
 }
 
-func (srs *SLAService) Update(id uint, currentUserID uint, slaRegFormDTO *slaDTOs.SLARegisterFormDTO) error {
-
+func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegFormDTO *slaDTOs.SLARegisterFormDTO, documents []*slaDTOs.SLADocumentFormDTO) error {
 	existingSLARegister, err := srs.repo.GetByID(id)
 
 	if err != nil {
@@ -115,14 +113,14 @@ func (srs *SLAService) Update(id uint, currentUserID uint, slaRegFormDTO *slaDTO
 	if err != nil {
 		return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
 	}
-	// Validation for lifecycle status 
+	// Validation for lifecycle status
 	lifecycleStatus, err := srs.lifecycleStatusRepo.GetByID(slaRegFormDTO.LifecycleStatusID)
-    if err != nil {
-        return utility.NewValidationError(fmt.Errorf("status does not exist"), "not_exist", "lifecycle status")
-    }
+	if err != nil {
+		return utility.NewValidationError(fmt.Errorf("status does not exist"), "not_exist", "lifecycle status")
+	}
 	_, _, _ = slaCategory, severityLevel, lifecycleStatus
 
-	err = srs.repo.Update(id, currentUserID, slaRegFormDTO)
+	err = srs.repo.Update(id, currentUserID, slaRegFormDTO, documents)
 
 	if err != nil {
 		return err
@@ -131,8 +129,8 @@ func (srs *SLAService) Update(id uint, currentUserID uint, slaRegFormDTO *slaDTO
 	fieldsToCompare := []string{
 		"TitleEn",
 		"TitleAr",
-		"SLACategoryID",   
-		"SeverityLevelID", 
+		"SLACategoryID",
+		"SeverityLevelID",
 		"ResponsibleUnitID",
 		"ResponsibleUserID",
 		"Description",
@@ -165,7 +163,7 @@ func (srs *SLAService) Update(id uint, currentUserID uint, slaRegFormDTO *slaDTO
 	return nil
 }
 
-func (srs *SLAService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
+func (srs *SLARegisterService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
 	for _, id := range ids {
@@ -203,6 +201,3 @@ func (srs *SLAService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 
 	return failedIds, nil
 }
-
-
-

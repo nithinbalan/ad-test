@@ -11,33 +11,47 @@ import (
 )
 
 // Interfaces
-type SLARepositoryInterface interface {
-    GetAll(sort string, sortBy string, keyword string, page int, pageSize int) (*slaDTOs.SLARegisterListResponseDTO, error)
+type SLARegisterRepositoryInterface interface {
+	GetAll(sort string, sortBy string, keyword string, page int, pageSize int) (*slaDTOs.SLARegisterListResponseDTO, error)
 	GetByID(id uint) (*models.SLARegister, error)
-	Create(currentUserID uint, slaRegFormDTO *slaDTOs.SLARegisterFormDTO) (uint, error)
-	Update(id uint, currentUserID uint, slaRegFormDTO *slaDTOs.SLARegisterFormDTO) error
+	Create(currentUserID uint, slaRegFormDTO *slaDTOs.SLARegisterFormDTO, documents []*slaDTOs.SLADocumentFormDTO) (uint, error)
+	Update(id uint, currentUserID uint, slaRegFormDTO *slaDTOs.SLARegisterFormDTO, documents []*slaDTOs.SLADocumentFormDTO) error
 	Delete(id uint) error
 }
 
 // implementation
-type SLARepository struct {
+type SLARegisterRepository struct {
 	db *gorm.DB
 }
 
-func NewSLARepository(db *gorm.DB) *SLARepository {
-	return &SLARepository{
+func NewSLARegisterRepository(db *gorm.DB) *SLARegisterRepository {
+	return &SLARegisterRepository{
 		db: db,
 	}
 }
 
-func (repo *SLARepository) GetAll(sort string, sortBy string, keyword string, page int, pageSize int) (*slaDTOs.SLARegisterListResponseDTO, error) {
+func (repo *SLARegisterRepository) GetAll(sort string, sortBy string, keyword string, page int, pageSize int) (*slaDTOs.SLARegisterListResponseDTO, error) {
 
 	var slaRegisters []*slaDTOs.SLARegisterListDTO
 	var totalCount int64
 
-    query := repo.db.Table("sla_registers").
-        Select(`
+	query := repo.db.Table("sla_registers").
+		Select(`
             sla_registers.*,
+			sla_documents.version,
+			sla_documents.issue_date,
+			sla_documents.expiry_date,
+			sla_documents.sa1_date,
+			sla_documents.sa2_date,
+			sla_documents.comment,
+			sla_documents.language,
+			sla_documents.url,
+			sla_documents.name,
+			sla_documents.size,
+			sla_documents.token,
+			sla_documents.type,
+			sla_documents.icon,
+			sla_documents.is_latest,
             sla_categories.title_en AS sla_category_title_en,
             sla_categories.title_ar AS sla_category_title_ar,
             severity_levels.title_en AS severity_level_title_en,
@@ -59,7 +73,7 @@ func (repo *SLARepository) GetAll(sort string, sortBy string, keyword string, pa
             updated_by_users.last_name_en AS updated_by_last_name_en,
             updated_by_users.last_name_ar AS updated_by_last_name_ar
         `).
-        Joins(`
+		Joins(`
             LEFT JOIN sla_categories ON sla_registers.sla_category_id = sla_categories.id
             LEFT JOIN severity_levels ON sla_registers.severity_level_id = severity_levels.id
             LEFT JOIN organization_units ON sla_registers.responsible_unit_id = organization_units.id
@@ -67,13 +81,15 @@ func (repo *SLARepository) GetAll(sort string, sortBy string, keyword string, pa
             LEFT JOIN lifecycle_statuses ON sla_registers.lifecycle_status_id = lifecycle_statuses.id
             LEFT JOIN users AS created_by_users ON sla_registers.created_by = created_by_users.id
             LEFT JOIN users AS updated_by_users ON sla_registers.updated_by = updated_by_users.id
-        `)
+			LEFT JOIN sla_documents ON sla_registers.id = sla_documents.sla_register_id AND sla_documents.is_latest = 1
+
+    `)
 
 	// Calculate total count for pagination
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
-    // Apply search keyword if exists
+	// Apply search keyword if exists
 	if keyword != "" {
 		query = query.Where(`
 			(sla_registers.title_en LIKE ? OR
@@ -132,8 +148,7 @@ func (repo *SLARepository) GetAll(sort string, sortBy string, keyword string, pa
 	return response, nil
 }
 
-
-func (repo *SLARepository) GetByID(id uint) (*models.SLARegister, error) {
+func (repo *SLARegisterRepository) GetByID(id uint) (*models.SLARegister, error) {
 	var slaRegister *models.SLARegister
 	// result := repo.db.First(&slaRegister, id)
 	result := repo.db.Preload("SLACategory").
@@ -154,8 +169,7 @@ func (repo *SLARepository) GetByID(id uint) (*models.SLARegister, error) {
 	return slaRegister, result.Error
 }
 
-func (repo *SLARepository) Create(currentUserID uint, slaRegFormDTO *slaDTOs.SLARegisterFormDTO) (uint, error) {
-
+func (repo *SLARegisterRepository) Create(currentUserID uint, slaRegFormDTO *slaDTOs.SLARegisterFormDTO, documents []*slaDTOs.SLADocumentFormDTO) (uint, error) {
 	// Retrieve the last reference number from the database
 	var lastReferenceNumber string
 	err := repo.db.Model(&models.SLARegister{}).
@@ -183,55 +197,117 @@ func (repo *SLARepository) Create(currentUserID uint, slaRegFormDTO *slaDTOs.SLA
 
 	// Map DTO to SLARegister model
 	slaRegister := &models.SLARegister{
-		SLACategoryID:           slaRegFormDTO.SLACategoryID,
-		SeverityLevelID:         slaRegFormDTO.SeverityLevelID,
-		ResponsibleUnitID:       slaRegFormDTO.ResponsibleUnitID,
-		ResponsibleUserID:       slaRegFormDTO.ResponsibleUserID,
-		LifecycleStatusID:       slaRegFormDTO.LifecycleStatusID,
-		ReferenceNumber:         referenceNumber,
-		TitleEn:                 slaRegFormDTO.TitleEn,
-		TitleAr:                 slaRegFormDTO.TitleAr,
-		Description:             slaRegFormDTO.Description,
-		Client:                  slaRegFormDTO.Client,
-		CreatedBy:               currentUserID,
+		SLACategoryID:     slaRegFormDTO.SLACategoryID,
+		SeverityLevelID:   slaRegFormDTO.SeverityLevelID,
+		ResponsibleUnitID: slaRegFormDTO.ResponsibleUnitID,
+		ResponsibleUserID: slaRegFormDTO.ResponsibleUserID,
+		LifecycleStatusID: slaRegFormDTO.LifecycleStatusID,
+		ReferenceNumber:   referenceNumber,
+		TitleEn:           slaRegFormDTO.TitleEn,
+		TitleAr:           slaRegFormDTO.TitleAr,
+		Description:       slaRegFormDTO.Description,
+		Client:            slaRegFormDTO.Client,
+		CreatedBy:         currentUserID,
 	}
-    
+
 	if err := repo.db.Create(slaRegister).Error; err != nil {
 		return 0, err
 	}
+	// Create SLA documents associated with the SLA register
+	for _, doc := range documents {
+		slaDocument := &models.SLADocument{
+			SLARegisterID: slaRegister.ID,
+			Version:       doc.Version,
+			IssueDate:     doc.IssueDate,
+			ExpiryDate:    doc.ExpiryDate,
+			SA1Date:       doc.SA1Date,
+			SA2Date:       doc.SA2Date,
+			Comment:       doc.Comment,
+			Language:      doc.Language,
+			IsLatest:      true,
+			URL:           doc.URL,
+			Name:          doc.Name,
+			Size:          doc.Size,
+			Token:         doc.Token,
+			Type:          doc.Type,
+			Icon:          doc.Icon,
+			CreatedBy:     currentUserID,
+		}
 
+		if err := repo.db.Create(slaDocument).Error; err != nil {
+			return 0, err
+		}
+	}
 	return slaRegister.ID, nil
 }
 
-func (repo *SLARepository) Update(id uint, currentUserID uint, slaRegFormDTO *slaDTOs.SLARegisterFormDTO) error {
+func (repo *SLARegisterRepository) Update(id uint, currentUserID uint, slaRegFormDTO *slaDTOs.SLARegisterFormDTO, documents []*slaDTOs.SLADocumentFormDTO) error {
 	// Prepare the update map
 	updateFields := map[string]interface{}{
-		"SLACategoryID":    slaRegFormDTO.SLACategoryID,
-		"SeverityLevelID":         slaRegFormDTO.SeverityLevelID,
-		"ResponsibleUnitID":       slaRegFormDTO.ResponsibleUnitID,
-		"ResponsibleUserID":       slaRegFormDTO.ResponsibleUserID,
-		"LifecycleStatusID":       slaRegFormDTO.LifecycleStatusID,
-		"TitleEn":                 slaRegFormDTO.TitleEn,
-		"TitleAr":                 slaRegFormDTO.TitleAr,
-		"Description":             slaRegFormDTO.Description,
-		"Client":                  slaRegFormDTO.Client,
-		"UpdatedBy":               currentUserID,
+		"SLACategoryID":     slaRegFormDTO.SLACategoryID,
+		"SeverityLevelID":   slaRegFormDTO.SeverityLevelID,
+		"ResponsibleUnitID": slaRegFormDTO.ResponsibleUnitID,
+		"ResponsibleUserID": slaRegFormDTO.ResponsibleUserID,
+		"LifecycleStatusID": slaRegFormDTO.LifecycleStatusID,
+		"TitleEn":           slaRegFormDTO.TitleEn,
+		"TitleAr":           slaRegFormDTO.TitleAr,
+		"Description":       slaRegFormDTO.Description,
+		"Client":            slaRegFormDTO.Client,
+		"UpdatedBy":         currentUserID,
 	}
-	// Perform the update
 	if err := repo.db.Model(&models.SLARegister{}).
 		Where("id = ?", id).
 		Updates(updateFields).Error; err != nil {
 		return err
 	}
+	// Update SLA documents fields in the updateFields map
+	for _, doc := range documents {
+		// Only update the document if ID is provided
+		if doc.ID != nil {
+			updateFields := map[string]interface{}{
+				"Version":    doc.Version,
+				"IssueDate":  doc.IssueDate,
+				"ExpiryDate": doc.ExpiryDate,
+				"SA1Date":    doc.SA1Date,
+				"SA2Date":    doc.SA2Date,
+				"Comment":    doc.Comment,
+				"URL":        doc.URL,
+				"Name":       doc.Name,
+				"Size":       doc.Size,
+				"Token":      doc.Token,
+				"Type":       doc.Type,
+				"UpdatedBy":  currentUserID,
+				// Update other fields similarly
+			}
+
+			// Update the document fields
+			if err := repo.db.Model(&models.SLADocument{}).
+				Where("id = ?", *doc.ID).
+				Updates(updateFields).Error; err != nil {
+				return err
+			}
+		}
+	}
 
 	return nil
 }
 
-func (repo *SLARepository) Delete(id uint) error {
+func (repo *SLARegisterRepository) Delete(id uint) error {
 
 	var slaRegister *models.SLARegister
 	if err := repo.db.First(&slaRegister, id).Error; err != nil {
 		return err
+	}
+	// Find all SLA documents associated with the SLA register
+	var slaDocuments []*models.SLADocument
+	if err := repo.db.Where("sla_register_id = ?", id).Find(&slaDocuments).Error; err != nil {
+		return err
+	}
+	// Delete each SLA document associated with the SLA register
+	for _, slaDocument := range slaDocuments {
+		if err := repo.db.Delete(slaDocument).Error; err != nil {
+			return err
+		}
 	}
 
 	result := repo.db.Delete(&models.SLARegister{}, id)
@@ -241,7 +317,3 @@ func (repo *SLARepository) Delete(id uint) error {
 
 	return nil
 }
-
-
-
-

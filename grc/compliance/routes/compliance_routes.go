@@ -60,8 +60,8 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	//SLA Register
 	severityLevelRepo := masterRepositories.NewSeverityLevelRepository(db)
 	lifecycleStatusRepo := masterRepositories.NewLifecycleStatusRepository(db)
-	SLARepo := complianceRepositories.NewSLARepository(db)
-	SLASvc := complianceServices.NewSLAService(SLARepo,
+	SLARepo := complianceRepositories.NewSLARegisterRepository(db)
+	SLASvc := complianceServices.NewSLARegisterService(SLARepo,
 		SLACategoryRepo,
 		severityLevelRepo,
 		lifecycleStatusRepo, 
@@ -76,7 +76,6 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	//Compliance Register
 	complianceRepositories := complianceRepositories.NewComplianceRegisterRepository(db)
 	reviewFrequencyRepo := masterRepositories.NewReviewFrequencyRepository(db)
-	severityLevelRepo := masterRepositories.NewSeverityLevelRepository(db)
 	complianceSvc := complianceServices.NewComplianceRegisterService(complianceRepositories,
 		activityLogSvc,
 		complianceCategoryRepo, //@todo add org unit and user repo

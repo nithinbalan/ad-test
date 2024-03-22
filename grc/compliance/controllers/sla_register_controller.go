@@ -13,11 +13,11 @@ import (
 )
 
 type SLARegisterController struct {
-	service services.SLAServiceInterface
+	service services.SLARegisterServiceInterface
 	db      *gorm.DB
 }
 
-func NewSLARegisterController(service services.SLAServiceInterface) *SLARegisterController {
+func NewSLARegisterController(service services.SLARegisterServiceInterface) *SLARegisterController {
 	return &SLARegisterController{
 		service: service,
 	}
@@ -48,7 +48,7 @@ func (src *SLARegisterController) GetAllSLARegisters(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, slaRegisters)
-	
+
 }
 
 func (src *SLARegisterController) GetSLARegisterDetails(c *gin.Context) {
@@ -84,7 +84,7 @@ func (src *SLARegisterController) CreateSLARegister(c *gin.Context) {
 		return
 	}
 
-	id, err := src.service.Create(currentUserID, &slaRegFormDTO)
+	id, err := src.service.Create(currentUserID, &slaRegFormDTO, slaRegFormDTO.Documents)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -101,7 +101,6 @@ func (src *SLARegisterController) CreateSLARegister(c *gin.Context) {
 }
 
 func (src *SLARegisterController) UpdateSLARegister(c *gin.Context) {
-
 	slaID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -119,8 +118,7 @@ func (src *SLARegisterController) UpdateSLARegister(c *gin.Context) {
 		utility.SendInternalErrResp(src.db, c, err.Error())
 		return
 	}
-
-	err = src.service.Update(uint(slaID), currentUserID, &slaRegFormDTO)
+	err = src.service.Update(uint(slaID), currentUserID, &slaRegFormDTO, slaRegFormDTO.Documents)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -163,5 +161,3 @@ func (src *SLARegisterController) DeleteSLARegisters(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
-
-
