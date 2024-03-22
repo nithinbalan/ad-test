@@ -14,7 +14,7 @@ import (
 // Interfaces
 type AuthRepositoryInterface interface {
 	Authenticate(email string, password string) (map[string]string, error)
-	GetOtpForgotPasswordRecovery(email string) (*models.User, error)
+	SendPasswordRecoveryOTP(email string) (*models.User, error)
 }
 
 type AuthRepository struct {
@@ -65,7 +65,7 @@ func (repo *AuthRepository) Authenticate(email, password string) (map[string]str
 
 }
 
-func (repo *AuthRepository) GetOtpForgotPasswordRecovery(email string) (*models.User, error) {
+func (repo *AuthRepository) SendPasswordRecoveryOTP(email string) (*models.User, error) {
 
 	var user *models.User
 

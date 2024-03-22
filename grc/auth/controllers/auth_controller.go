@@ -49,7 +49,7 @@ func (ac *AuthController) Login(c *gin.Context) {
 	})
 }
 
-func (ac *AuthController) GetOtpForgotPasswordRecovery(c *gin.Context) {
+func (ac *AuthController) SendPasswordRecoveryOTP(c *gin.Context) {
 	var forgotPasswordFormDTO authDTOs.ForgotPasswordFormDTO
 
 	if err := c.ShouldBindJSON(&forgotPasswordFormDTO); err != nil {
@@ -61,7 +61,7 @@ func (ac *AuthController) GetOtpForgotPasswordRecovery(c *gin.Context) {
 	email := forgotPasswordFormDTO.Email
 
 	// Get OTP for password recovery
-	err := ac.service.GetOtpForgotPasswordRecovery(email)
+	err := ac.service.SendPasswordRecoveryOTP(email)
 	if err != nil {
 		if _, ok := err.(*utility.InternalServerError); ok {
 			utility.SendInternalErrResp(ac.db, c, err.Error())

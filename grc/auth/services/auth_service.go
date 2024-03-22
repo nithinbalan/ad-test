@@ -1,12 +1,14 @@
 package services
 
 import (
+	authDTOs "jethur/grc/auth/dtos"
 	"jethur/grc/auth/repositories"
+	"jethur/utility"
 )
 
 type AuthServiceInterface interface {
 	Authenticate(email string, password string) (map[string]string, error)
-	GetOtpForgotPasswordRecovery(email string) error
+	SendPasswordRecoveryOTP(email string) error
 }
 
 // Service and implementations
@@ -24,14 +26,29 @@ func (as *AuthService) Authenticate(email string, password string) (map[string]s
 	return as.repo.Authenticate(email, password)
 }
 
-func (as AuthService) GetOtpForgotPasswordRecovery(email string) error {
-	_, err := as.repo.GetOtpForgotPasswordRecovery(email)
+func (as AuthService) SendPasswordRecoveryOTP(email string) error {
+	user, err := as.repo.SendPasswordRecoveryOTP(email)
 
 	if err != nil {
 		return err
 	}
 
-	//@todo Mail otp to respecticve user
+	emailData := authDTOs.ForgotPasswordDataDTO{
+		FirstNameEN: user.FirstNameEN,
+		LastNameEN:  user.LastNameEN,
+		Otp:         user.Otp,
+	}
+
+	to := []string{user.Email}
+	subject := "Password Reset Verification Code"
+	templateRelativePath := "auth/templates/email/forgot_password.html"
+	// Attachments, if any
+	attachments := []string{}
+
+	err = utility.SendTemplatedEmail(to, subject, templateRelativePath, emailData, attachments)
+	if err != nil {
+		return err
+	}
 
 	return nil
 
