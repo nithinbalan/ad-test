@@ -13,7 +13,7 @@ import (
 )
 
 type ComplianceRegisterRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int, filters map[string][]string) (*complianceDTOs.ComplianceRegisterListResponseDTO, error)
+	GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int, filters map[string][]string, quickFilters []string) (*complianceDTOs.ComplianceRegisterListResponseDTO, error)
 	GetByID(id uint) (*complianceModels.ComplianceRegister, error)
 	Create(currentUserID uint, complianceRegFormDTO *complianceDTOs.ComplianceRegisterFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, complianceRegFormDTO *complianceDTOs.ComplianceRegisterFormDTO) error
@@ -34,7 +34,7 @@ func NewComplianceRegisterRepository(db *gorm.DB) *ComplianceRegisterRepository 
 	}
 }
 
-func (repo *ComplianceRegisterRepository) GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int, filters map[string][]string) (*complianceDTOs.ComplianceRegisterListResponseDTO, error) {
+func (repo *ComplianceRegisterRepository) GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int, filters map[string][]string, quickFilters []string) (*complianceDTOs.ComplianceRegisterListResponseDTO, error) {
 
 	var complianceRegisters []*complianceDTOs.ComplianceRegisterListDTO
 	var totalCount int64
@@ -87,11 +87,20 @@ func (repo *ComplianceRegisterRepository) GetAll(sort string, sortBy string, key
 			LEFT JOIN users AS updated_user ON updated_user.id = compliance_register.updated_by
 		`)
 
-	// Assuming filters is a map[string][]string
+	//  Dynamic filters
 	for key, values := range filters {
 		if len(values) > 0 {
 			columnName := strings.TrimPrefix(key, "filter_")
 			query = query.Where(columnName+" IN (?)", values)
+		}
+	}
+
+	// Apply quick filters
+	for _, filter := range quickFilters {
+		switch filter {
+		case "fully_compliant":
+			query = query.Where("compliance_statuses.type = ?", "compliant")
+			// Add more cases for other quick filters as needed
 		}
 	}
 

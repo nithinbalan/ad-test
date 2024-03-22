@@ -25,13 +25,16 @@ func NewComplianceRegisterController(service services.ComplianceRegisterServiceI
 }
 
 func (crc *ComplianceRegisterController) GetAllComplianceRegisters(c *gin.Context) {
-	// Parse filter parameters
+	// Parse dynamic filter parameters
 	filters := make(map[string][]string)
 	for key, values := range c.Request.URL.Query() {
 		if strings.HasPrefix(key, "filter_") {
 			filters[key] = values
 		}
 	}
+
+	// Parse quick filters
+	quickFilters := c.QueryArray("quick_filter")
 
 	sort := c.Query("sort")
 	sortBy := c.Query("sort_by")
@@ -50,7 +53,7 @@ func (crc *ComplianceRegisterController) GetAllComplianceRegisters(c *gin.Contex
 		return
 	}
 
-	compliances, err := crc.service.GetAll(sort, sortBy, keyword, status, page, pageSize, filters)
+	compliances, err := crc.service.GetAll(sort, sortBy, keyword, status, page, pageSize, filters, quickFilters)
 
 	if err != nil {
 		utility.SendInternalErrResp(crc.db, c, err.Error())
