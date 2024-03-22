@@ -5,7 +5,7 @@ type AuthFormDTO struct {
 	Password string `json:"password" binding:"required"`
 }
 
-type ForgotPasswordFormDTO struct {
+type PasswordRecoveryFormDTO struct {
 	Email string `json:"email" binding:"required,email"`
 }
 
