@@ -7,6 +7,7 @@ import (
 	"jethur/utility"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -24,6 +25,14 @@ func NewComplianceRegisterController(service services.ComplianceRegisterServiceI
 }
 
 func (crc *ComplianceRegisterController) GetAllComplianceRegisters(c *gin.Context) {
+	// Parse filter parameters
+	filters := make(map[string][]string)
+	for key, values := range c.Request.URL.Query() {
+		if strings.HasPrefix(key, "filter_") {
+			filters[key] = values
+		}
+	}
+
 	sort := c.Query("sort")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
@@ -41,7 +50,7 @@ func (crc *ComplianceRegisterController) GetAllComplianceRegisters(c *gin.Contex
 		return
 	}
 
-	compliances, err := crc.service.GetAll(sort, sortBy, keyword, status, page, pageSize)
+	compliances, err := crc.service.GetAll(sort, sortBy, keyword, status, page, pageSize, filters)
 
 	if err != nil {
 		utility.SendInternalErrResp(crc.db, c, err.Error())

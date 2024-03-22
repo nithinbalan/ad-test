@@ -5,15 +5,15 @@ import (
 	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	complianceModels "jethur/grc/compliance/models"
-
 	masterModels "jethur/grc/masters/models"
 	"jethur/utility"
+	"strings"
 
 	"gorm.io/gorm"
 )
 
 type ComplianceRegisterRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int) (*complianceDTOs.ComplianceRegisterListResponseDTO, error)
+	GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int, filters map[string][]string) (*complianceDTOs.ComplianceRegisterListResponseDTO, error)
 	GetByID(id uint) (*complianceModels.ComplianceRegister, error)
 	Create(currentUserID uint, complianceRegFormDTO *complianceDTOs.ComplianceRegisterFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, complianceRegFormDTO *complianceDTOs.ComplianceRegisterFormDTO) error
@@ -34,7 +34,7 @@ func NewComplianceRegisterRepository(db *gorm.DB) *ComplianceRegisterRepository 
 	}
 }
 
-func (repo *ComplianceRegisterRepository) GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int) (*complianceDTOs.ComplianceRegisterListResponseDTO, error) {
+func (repo *ComplianceRegisterRepository) GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int, filters map[string][]string) (*complianceDTOs.ComplianceRegisterListResponseDTO, error) {
 
 	var complianceRegisters []*complianceDTOs.ComplianceRegisterListDTO
 	var totalCount int64
@@ -86,6 +86,14 @@ func (repo *ComplianceRegisterRepository) GetAll(sort string, sortBy string, key
 			LEFT JOIN users AS created_user ON created_user.id = compliance_register.created_by
 			LEFT JOIN users AS updated_user ON updated_user.id = compliance_register.updated_by
 		`)
+
+	// Assuming filters is a map[string][]string
+	for key, values := range filters {
+		if len(values) > 0 {
+			columnName := strings.TrimPrefix(key, "filter_")
+			query = query.Where(columnName+" IN (?)", values)
+		}
+	}
 
 	// Calculate total count for pagination
 	if err := query.Count(&totalCount).Error; err != nil {
