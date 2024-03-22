@@ -60,7 +60,7 @@ func (crs ComplianceRegisterService) GetByID(id uint) (*models.ComplianceRegiste
 func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegFormDTO *complianceDTOs.ComplianceRegisterFormDTO) (uint, error) {
 
 	if complianceRegFormDTO.ComplianceCategoryID != 0 {
-		_, err := ccs.complianceCategoryRepo.GetByID(complianceRegFormDTO.ComplianceCategoryID)
+		_, err := crs.complianceCategoryRepo.GetByID(complianceRegFormDTO.ComplianceCategoryID)
 		if err != nil {
 			return 0, utility.NewValidationError(fmt.Errorf("compliance category does not exist"), "not_exist", "compliance category")
 		}
