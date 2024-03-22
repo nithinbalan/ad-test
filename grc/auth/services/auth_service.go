@@ -40,12 +40,10 @@ func (as AuthService) SendPasswordRecoveryOTP(email string) error {
 	}
 
 	to := []string{user.Email}
-	subject := "Password Reset Verification Code"
+	subject := "Your Password Reset Verification Code"
 	templateRelativePath := "auth/templates/email/forgot_password.html"
-	// Attachments, if any
-	attachments := []string{}
 
-	err = utility.SendTemplatedEmail(to, subject, templateRelativePath, emailData, attachments)
+	err = utility.SendTemplatedEmail(to, subject, templateRelativePath, emailData, nil)
 	if err != nil {
 		return err
 	}

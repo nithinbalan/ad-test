@@ -67,6 +67,5 @@ func (ac *AuthController) SendPasswordRecoveryOTP(c *gin.Context) {
 		return
 	}
 
-	// Return response with status OK
 	c.Status(http.StatusOK)
 }
