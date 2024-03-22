@@ -74,9 +74,10 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	complianceRoutes.PUT("/sla-registers/:id", SLARegController.UpdateSLARegister)
 	complianceRoutes.POST("/sla-registers/delete", SLARegController.DeleteSLARegisters)
 	//Compliance Register
-	complianceRepositories := complianceRepositories.NewComplianceRepository(db)
+	complianceRepositories := complianceRepositories.NewComplianceRegisterRepository(db)
 	reviewFrequencyRepo := masterRepositories.NewReviewFrequencyRepository(db)
-	complianceSvc := complianceServices.NewComplianceService(complianceRepositories,
+	severityLevelRepo := masterRepositories.NewSeverityLevelRepository(db)
+	complianceSvc := complianceServices.NewComplianceRegisterService(complianceRepositories,
 		activityLogSvc,
 		complianceCategoryRepo, //@todo add org unit and user repo
 		complianceStatusRepo,
@@ -89,6 +90,6 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	complianceRoutes.POST("/compliance-register", complianceRegController.CreateComplianceRegister)
 	complianceRoutes.PUT("/compliance-register/:id", complianceRegController.UpdateComplianceRegister)
 	complianceRoutes.POST("/compliance-register/delete", complianceRegController.DeleteComplianceRegisters)
-	complianceRoutes.PUT("/compliance-register/activate", complianceRegController.ActivateComplianceRegisters)
-	complianceRoutes.PUT("/compliance-register/deactivate", complianceRegController.DeactivateComplianceRegisters)
+	complianceRoutes.PUT("/compliance-register/archive", complianceRegController.ArchiveComplianceRegisters)
+	complianceRoutes.PUT("/compliance-register/restore", complianceRegController.RestoreComplianceRegisters)
 }
