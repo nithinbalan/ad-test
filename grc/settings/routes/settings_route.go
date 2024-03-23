@@ -1,11 +1,11 @@
 package routes
 
 import (
-	activityLogRepository "jethur/grc/logs/repositories"
-	activityLogService "jethur/grc/logs/services"
+	logRepositories "jethur/grc/logs/repositories"
+	logServices "jethur/grc/logs/services"
 	"jethur/grc/settings/controllers"
-	organizationLevelRepository "jethur/grc/settings/repositories"
-	organizationLevelService "jethur/grc/settings/services"
+	settingRepositories "jethur/grc/settings/repositories"
+	settingServices "jethur/grc/settings/services"
 	"jethur/middlewares"
 
 	"github.com/gin-gonic/gin"
@@ -14,17 +14,17 @@ import (
 
 func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 
-	settingRoute := router.Group("/")
+	settingRoutes := router.Group("/")
 
-	settingRoute.Use(middlewares.AuthMiddleware())
+	settingRoutes.Use(middlewares.AuthMiddleware())
 
-	activityLogRepo := activityLogRepository.NewActivityLogRepository(db)
-	activityLogSvc := activityLogService.NewActivityLogService(activityLogRepo)
+	activityLogRepo := logRepositories.NewActivityLogRepository(db)
+	activityLogSvc := logServices.NewActivityLogService(activityLogRepo)
 
-	organizationLevelRepo := organizationLevelRepository.NewOrganizationLevelRepository(db)
-	organizationLevelSvc := organizationLevelService.NewOrganizationLevelService(organizationLevelRepo, activityLogSvc)
+	organizationLevelRepo := settingRepositories.NewOrganizationLevelRepository(db)
+	organizationLevelSvc := settingServices.NewOrganizationLevelService(organizationLevelRepo, activityLogSvc)
 	OrganizationLevelController := controllers.NewOrganizationLevelController(organizationLevelSvc)
 
-	settingRoute.GET("/settings/organization-level", OrganizationLevelController.GetAllOrganizationLevel)
-	settingRoute.POST("/settings/organization-level", OrganizationLevelController.CreateOrganizationLevel)
+	settingRoutes.GET("/rganization-level", OrganizationLevelController.GetAllOrganizationLevel)
+	settingRoutes.POST("/organization-level", OrganizationLevelController.CreateOrganizationLevel)
 }
