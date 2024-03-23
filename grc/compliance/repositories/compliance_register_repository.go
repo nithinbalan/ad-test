@@ -7,7 +7,6 @@ import (
 	complianceModels "jethur/grc/compliance/models"
 	masterModels "jethur/grc/masters/models"
 	"jethur/utility"
-	"strings"
 
 	"gorm.io/gorm"
 )
@@ -87,10 +86,9 @@ func (repo *ComplianceRegisterRepository) GetAll(sort string, sortBy string, key
 			LEFT JOIN users AS updated_user ON updated_user.id = compliance_register.updated_by
 		`)
 
-	//  Dynamic filters
-	for key, values := range filters {
+	// Apply dynamic filters to the query
+	for columnName, values := range filters {
 		if len(values) > 0 {
-			columnName := strings.TrimPrefix(key, "filter_")
 			query = query.Where(columnName+" IN (?)", values)
 		}
 	}

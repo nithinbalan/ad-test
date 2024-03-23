@@ -25,11 +25,31 @@ func NewComplianceRegisterController(service services.ComplianceRegisterServiceI
 }
 
 func (crc *ComplianceRegisterController) GetAllComplianceRegisters(c *gin.Context) {
+	// Define an array of allowed parameter names
+	allowedParams := []string{
+		"compliance_category_ids",
+		"severity_level_ids",
+		"compliance_status_ids",
+		"responsible_unit_ids",
+		"review_frequency_ids",
+		"review_responsible_user_ids",
+	}
+
 	// Parse dynamic filter parameters
 	filters := make(map[string][]string)
 	for key, values := range c.Request.URL.Query() {
-		if strings.HasPrefix(key, "filter_") {
-			filters[key] = values
+		// Check if the key is one of the allowed parameters
+		for _, allowedParam := range allowedParams {
+			if key == allowedParam {
+				// Extract column name
+				columnName := strings.TrimSuffix(key, "s") // Remove the 's' at the end of the key
+				if len(columnName) > 0 {
+					// Split values by comma
+					valueList := strings.Split(values[0], ",")
+					// Add filtering condition only if the column name is not empty
+					filters[columnName] = valueList
+				}
+			}
 		}
 	}
 
