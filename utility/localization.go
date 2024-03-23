@@ -14,11 +14,15 @@ func LoadBundle(rootPath string) *i18n.Bundle {
 	bundle.RegisterUnmarshalFunc("json", json.Unmarshal)
 
 	// Load message files for each language
-	arabicLocalePath := filepath.Join(rootPath, "grc", "common", "locales", "ar", "error.ar.json")
-	englishLocalePath := filepath.Join(rootPath, "grc", "common", "locales", "en", "error.en.json")
+	commonArErrorPath := filepath.Join(rootPath, "grc", "common", "locales", "ar", "error.ar.json")
+	commonArLabelsPath := filepath.Join(rootPath, "grc", "common", "locales", "ar", "labels.ar.json")
+	commonEnErrorPath := filepath.Join(rootPath, "grc", "common", "locales", "en", "error.en.json")
+	commonEnLabelsPath := filepath.Join(rootPath, "grc", "common", "locales", "en", "labels.en.json")
 
-	bundle.MustLoadMessageFile(arabicLocalePath)
-	bundle.MustLoadMessageFile(englishLocalePath)
+	bundle.MustLoadMessageFile(commonArErrorPath)
+	bundle.MustLoadMessageFile(commonArLabelsPath)
+	bundle.MustLoadMessageFile(commonEnErrorPath)
+	bundle.MustLoadMessageFile(commonEnLabelsPath)
 
 	return bundle
 }

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4;
+  }
+  .email-container {
+    max-width: 600px;
+    margin: auto;
+    background: #ffffff;
+    border: 1px solid #ddd;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  .header {
+    background: #165D31; /* Green color from the attached colors */
+    color: white;
+    padding: 10px;
+    text-align: center;
+  }
+  .footer {
+    background: #165D31; /* Same green color for the footer for consistency */
+    color: white;
+    padding: 10px;
+    text-align: center;
+  }
+  .content {
+    padding: 20px;
+    color: #333333;
+  }
+  /* Compliance status uses the green color */
+  .compliance-status {
+    color: #165D31;
+    font-weight: bold;
+  }
+  /* High severity or important items use the orange color */
+  .severity-high {
+    color: #BC8E48;
+    font-weight: bold;
+  }
+</style>
+</head>
+<body>
+  <div class="email-container">
+    {{ template "header" . }}
+    <div class="content">
+      {{ block "content" . }}
+      <!-- The dynamic content will be inserted here -->
+      {{ end }}
+    </div>
+    {{ template "footer" . }}
+  </div>
+</body>
+</html>

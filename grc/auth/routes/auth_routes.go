@@ -2,7 +2,8 @@ package routes
 
 import (
 	"jethur/grc/auth/controllers"
-	"jethur/grc/auth/repositories/implementations"
+	"jethur/grc/auth/repositories"
+	"jethur/grc/auth/services"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -10,15 +11,16 @@ import (
 
 func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 
-	authRepository := implementations.NewAuthRepository(db)
-	authController := controllers.NewAuthController(authRepository, db)
+	authRepository := repositories.NewAuthRepository(db)
+	authService := services.NewAuthService(authRepository)
+	authController := controllers.NewAuthController(authService)
 
 	authRoutes := router.Group("/")
 
 	authRoutes.POST("/auth/login", authController.Login)
 	authRoutes.POST("/auth/verify-otp", authController.Login)
 
-	authRoutes.POST("/auth/password-recovery/get-otp", authController.Login)
+	authRoutes.POST("/auth/password-recovery/send-otp", authController.SendPasswordRecoveryOTP)
 	authRoutes.GET("/auth/password-recovery/resend-otp", authController.Login)
 	authRoutes.GET("/auth/password-recovery/verify-otp", authController.Login)
 	authRoutes.POST("/auth/password-recovery/set-password", authController.Login)

@@ -4,6 +4,7 @@ import (
 	"jethur/grc/masters/services"
 	"jethur/utility"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -21,10 +22,35 @@ func NewReviewFrequencyController(service services.ReviewFrequencyServiceInterfa
 }
 
 func (rfc *ReviewFrequencyController) GetAllReviewFrequencies(c *gin.Context) {
-	articles, err := rfc.service.GetAll()
+
+	sort := c.Query("sort")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+	status := c.Query("status")
+
+	reviewFrequencies, err := rfc.service.GetAll(sort, sortBy, keyword, status)
+
 	if err != nil {
-		utility.SendErrorResponse(rfc.db, c, http.StatusInternalServerError, err.Error(), nil)
+		utility.SendInternalErrResp(rfc.db, c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, articles)
+	c.JSON(http.StatusOK, reviewFrequencies)
+}
+
+func (rfc *ReviewFrequencyController) GetReviewFrequencyDetails(c *gin.Context) {
+	idStr := c.Param("id")
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	reviewFrequency, err := rfc.service.GetByID(uint(id))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	c.JSON(http.StatusOK, reviewFrequency)
 }

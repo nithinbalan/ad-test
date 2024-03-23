@@ -5,9 +5,9 @@ import (
 	"jethur/grc/masters/repositories"
 )
 
-// interfaces
 type ReviewFrequencyServiceInterface interface {
-	GetAll() ([]models.ReviewFrequency, error)
+	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ReviewFrequency, error)
+	GetByID(id uint) (*models.ReviewFrequency, error)
 }
 
 // Service and implementations
@@ -15,12 +15,17 @@ type ReviewFrequencyService struct {
 	repo repositories.ReviewFrequencyRepositoryInterface
 }
 
-func NewReviewFrequencyService(repo repositories.ReviewFrequencyRepositoryInterface) *ReviewFrequencyService {
+func NewReviewFrequencyService(repo repositories.ReviewFrequencyRepositoryInterface) ReviewFrequencyServiceInterface {
 	return &ReviewFrequencyService{
 		repo: repo,
 	}
 }
 
-func (rs *ReviewFrequencyService) GetAll() ([]models.ReviewFrequency, error) {
-	return rs.repo.GetAll()
+func (rfs *ReviewFrequencyService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ReviewFrequency, error) {
+	return rfs.repo.GetAll(sort, sortBy, keyword, status)
+}
+
+
+func (rfs ReviewFrequencyService) GetByID(id uint) (*models.ReviewFrequency, error) {
+	return rfs.repo.GetByID(id)
 }
