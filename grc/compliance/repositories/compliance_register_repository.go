@@ -12,7 +12,7 @@ import (
 )
 
 type ComplianceRegisterRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int, filters map[string][]string, quickFilters []string) (*complianceDTOs.ComplianceRegisterListResponseDTO, error)
+	GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int, filters map[string][]string, quickFilter []string, deadlineFrom string, deadlineTo string, issueDateFrom string, issueDateTo string, expiryDateFrom string, expiryDateTo string, nextReviewDateFrom string, nextReviewDateTo string) (*complianceDTOs.ComplianceRegisterListResponseDTO, error)
 	GetByID(id uint) (*complianceModels.ComplianceRegister, error)
 	Create(currentUserID uint, complianceRegFormDTO *complianceDTOs.ComplianceRegisterFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, complianceRegFormDTO *complianceDTOs.ComplianceRegisterFormDTO) error
@@ -33,7 +33,7 @@ func NewComplianceRegisterRepository(db *gorm.DB) *ComplianceRegisterRepository 
 	}
 }
 
-func (repo *ComplianceRegisterRepository) GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int, filters map[string][]string, quickFilters []string) (*complianceDTOs.ComplianceRegisterListResponseDTO, error) {
+func (repo *ComplianceRegisterRepository) GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int, filters map[string][]string, quickFilter []string, deadlineFrom string, deadlineTo string, issueDateFrom string, issueDateTo string, expiryDateFrom string, expiryDateTo string, nextReviewDateFrom string, nextReviewDateTo string) (*complianceDTOs.ComplianceRegisterListResponseDTO, error) {
 
 	var complianceRegisters []*complianceDTOs.ComplianceRegisterListDTO
 	var totalCount int64
@@ -93,12 +93,48 @@ func (repo *ComplianceRegisterRepository) GetAll(sort string, sortBy string, key
 		}
 	}
 
+	// Apply deadline filters
+	if deadlineFrom != "" {
+		query = query.Where("deadline >= ?", deadlineFrom)
+	}
+	if deadlineTo != "" {
+		query = query.Where("deadline <= ?", deadlineTo)
+	}
+
+	// Apply issue_date filters
+	if issueDateFrom != "" {
+		query = query.Where("issue_date >= ?", issueDateFrom)
+	}
+	if issueDateTo != "" {
+		query = query.Where("issue_date <= ?", issueDateTo)
+	}
+
+	// Apply expiry_date filters
+	if expiryDateFrom != "" {
+		query = query.Where("expiry_date >= ?", expiryDateFrom)
+	}
+	if expiryDateTo != "" {
+		query = query.Where("expiry_date <= ?", expiryDateTo)
+	}
+
+	// Apply next_review_date filters
+	if nextReviewDateFrom != "" {
+		query = query.Where("next_review_date >= ?", nextReviewDateFrom)
+	}
+	if nextReviewDateTo != "" {
+		query = query.Where("next_review_date <= ?", nextReviewDateTo)
+	}
+
 	// Apply quick filters
-	for _, filter := range quickFilters {
+	for _, filter := range quickFilter {
 		switch filter {
-		case "fully_compliant":
+		case "compliant":
 			query = query.Where("compliance_statuses.type = ?", "compliant")
-			// Add more cases for other quick filters as needed
+		case "non_compliant":
+			query = query.Where("compliance_statuses.type = ?", "not_implemented")
+		case "archived":
+			query = query.Where("lifecycle_statuses.type = ?", "archived")
+
 		}
 	}
 

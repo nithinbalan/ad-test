@@ -33,6 +33,7 @@ func (crc *ComplianceRegisterController) GetAllComplianceRegisters(c *gin.Contex
 		"responsible_unit_ids",
 		"review_frequency_ids",
 		"review_responsible_user_ids",
+		"lifecycle_status_ids",
 	}
 
 	// Parse dynamic filter parameters
@@ -54,7 +55,17 @@ func (crc *ComplianceRegisterController) GetAllComplianceRegisters(c *gin.Contex
 	}
 
 	// Parse quick filters
-	quickFilters := c.QueryArray("quick_filter")
+	quickFilter := c.QueryArray("quick_filter")
+
+	// Parse deadline_from, deadline_to, issue_date_from, issue_date_to, expiry_date_from, expiry_date_to, next_review_date_from, next_review_date_to parameters
+	deadlineFrom := c.Query("deadline_from")
+	deadlineTo := c.Query("deadline_to")
+	issueDateFrom := c.Query("issue_date_from")
+	issueDateTo := c.Query("issue_date_to")
+	expiryDateFrom := c.Query("expiry_date_from")
+	expiryDateTo := c.Query("expiry_date_to")
+	nextReviewDateFrom := c.Query("next_review_date_from")
+	nextReviewDateTo := c.Query("next_review_date_to")
 
 	sort := c.Query("sort")
 	sortBy := c.Query("sort_by")
@@ -73,7 +84,7 @@ func (crc *ComplianceRegisterController) GetAllComplianceRegisters(c *gin.Contex
 		return
 	}
 
-	compliances, err := crc.service.GetAll(sort, sortBy, keyword, status, page, pageSize, filters, quickFilters)
+	compliances, err := crc.service.GetAll(sort, sortBy, keyword, status, page, pageSize, filters, quickFilter, deadlineFrom, deadlineTo, issueDateFrom, issueDateTo, expiryDateFrom, expiryDateTo, nextReviewDateFrom, nextReviewDateTo)
 
 	if err != nil {
 		utility.SendInternalErrResp(crc.db, c, err.Error())

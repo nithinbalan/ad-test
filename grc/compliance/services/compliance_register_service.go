@@ -13,7 +13,7 @@ import (
 )
 
 type ComplianceRegisterServiceInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int, filters map[string][]string, quickFilters []string) (*complianceDTOs.ComplianceRegisterListResponseDTO, error)
+	GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int, filters map[string][]string, quickFilter []string, deadlineFrom string, deadlineTo string, issueDateFrom string, issueDateTo string, expiryDateFrom string, expiryDateTo string, nextReviewDateFrom string, nextReviewDateTo string) (*complianceDTOs.ComplianceRegisterListResponseDTO, error)
 	GetByID(id uint) (*models.ComplianceRegister, error)
 	Create(currentUserID uint, complianceRegFormDTO *complianceDTOs.ComplianceRegisterFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, compliance *complianceDTOs.ComplianceRegisterFormDTO) error
@@ -49,8 +49,8 @@ func NewComplianceRegisterService(
 	}
 }
 
-func (crs *ComplianceRegisterService) GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int, filters map[string][]string, quickFilters []string) (*complianceDTOs.ComplianceRegisterListResponseDTO, error) {
-	return crs.repo.GetAll(sort, sortBy, keyword, status, page, pageSize, filters, quickFilters)
+func (crs *ComplianceRegisterService) GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int, filters map[string][]string, quickFilter []string, deadlineFrom string, deadlineTo string, issueDateFrom string, issueDateTo string, expiryDateFrom string, expiryDateTo string, nextReviewDateFrom string, nextReviewDateTo string) (*complianceDTOs.ComplianceRegisterListResponseDTO, error) {
+	return crs.repo.GetAll(sort, sortBy, keyword, status, page, pageSize, filters, quickFilter, deadlineFrom, deadlineTo, issueDateFrom, issueDateTo, expiryDateFrom, expiryDateTo, nextReviewDateFrom, nextReviewDateTo)
 }
 
 func (crs ComplianceRegisterService) GetByID(id uint) (*models.ComplianceRegister, error) {
