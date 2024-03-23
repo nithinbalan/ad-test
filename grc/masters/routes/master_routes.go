@@ -1,6 +1,7 @@
 package routes
 
 import (
+	libraryRepositories "jethur/grc/libraries/repositories"
 	logRepositories "jethur/grc/logs/repositories"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/masters/controllers"
@@ -58,8 +59,9 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	masterRoutes.PUT("/checklists/deactivate", checklistController.DeactivateChecklists)
 
 	//Checklist Questions
+	libraryRepo := libraryRepositories.NewQuestionGroupRepository(db)
 	checklistQuestionRepo := repositories.NewChecklistQuestionRepository(db)
-	checklistQuestionSvc := services.NewChecklistQuestionService(checklistQuestionRepo, activityLogSvc, checklistRepo)
+	checklistQuestionSvc := services.NewChecklistQuestionService(checklistQuestionRepo, activityLogSvc, libraryRepo, checklistRepo)
 	checklistQuestionController := controllers.NewChecklistQuestionController(checklistQuestionSvc)
 
 	masterRoutes.GET("/checklist-questions", checklistQuestionController.GetAllChecklistQuestions)
