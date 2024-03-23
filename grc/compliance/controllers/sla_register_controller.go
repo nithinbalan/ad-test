@@ -86,7 +86,7 @@ func (src *SLARegisterController) CreateSLARegister(c *gin.Context) {
 		return
 	}
 
-	id, err := src.service.Create(currentUserID, &slaRegFormDTO, slaRegFormDTO.Documents)
+	id, err := src.service.Create(currentUserID, &slaRegFormDTO)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -120,7 +120,7 @@ func (src *SLARegisterController) UpdateSLARegister(c *gin.Context) {
 		utility.SendInternalErrResp(src.db, c, err.Error())
 		return
 	}
-	err = src.service.Update(uint(slaID), currentUserID, &slaRegFormDTO, slaRegFormDTO.Documents)
+	err = src.service.Update(uint(slaID), currentUserID, &slaRegFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

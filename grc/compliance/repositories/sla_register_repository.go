@@ -14,8 +14,8 @@ import (
 type SLARegisterRepositoryInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int) (*slaDTOs.SLARegisterListResponseDTO, error)
 	GetByID(id uint) (*models.SLARegister, error)
-	Create(currentUserID uint, slaRegFormDTO *slaDTOs.SLARegisterFormDTO, documents []*slaDTOs.SLADocumentFormDTO) (uint, error)
-	Update(id uint, currentUserID uint, slaRegFormDTO *slaDTOs.SLARegisterFormDTO, documents []*slaDTOs.SLADocumentFormDTO) error
+	Create(currentUserID uint, slaRegFormDTO *slaDTOs.SLARegisterFormDTO) (uint, error)
+	Update(id uint, currentUserID uint, slaRegFormDTO *slaDTOs.SLARegisterFormDTO) error
 	Delete(id uint) error
 }
 
@@ -169,7 +169,8 @@ func (repo *SLARegisterRepository) GetByID(id uint) (*models.SLARegister, error)
 	return slaRegister, result.Error
 }
 
-func (repo *SLARegisterRepository) Create(currentUserID uint, slaRegFormDTO *slaDTOs.SLARegisterFormDTO, documents []*slaDTOs.SLADocumentFormDTO) (uint, error) {
+func (repo *SLARegisterRepository) Create(currentUserID uint, slaRegFormDTO *slaDTOs.SLARegisterFormDTO) (uint, error) {
+	documents := slaRegFormDTO.Documents
 	// Retrieve the last reference number from the database
 	var lastReferenceNumber string
 	err := repo.db.Model(&models.SLARegister{}).
@@ -241,7 +242,7 @@ func (repo *SLARegisterRepository) Create(currentUserID uint, slaRegFormDTO *sla
 	return slaRegister.ID, nil
 }
 
-func (repo *SLARegisterRepository) Update(id uint, currentUserID uint, slaRegFormDTO *slaDTOs.SLARegisterFormDTO, documents []*slaDTOs.SLADocumentFormDTO) error {
+func (repo *SLARegisterRepository) Update(id uint, currentUserID uint, slaRegFormDTO *slaDTOs.SLARegisterFormDTO) error {
 	// Prepare the update map
 	updateFields := map[string]interface{}{
 		"SLACategoryID":     slaRegFormDTO.SLACategoryID,
@@ -260,6 +261,7 @@ func (repo *SLARegisterRepository) Update(id uint, currentUserID uint, slaRegFor
 		Updates(updateFields).Error; err != nil {
 		return err
 	}
+	documents := slaRegFormDTO.Documents
 	// Update SLA documents fields in the updateFields map
 	for _, doc := range documents {
 		// Only update the document if ID is provided

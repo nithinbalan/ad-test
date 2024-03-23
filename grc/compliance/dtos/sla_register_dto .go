@@ -69,7 +69,7 @@ type SLARegisterFormDTO struct {
 	TitleEn           string `json:"title_en" binding:"required,max=250"`
 	TitleAr           string `json:"title_ar" binding:"required,max=250"`
 	Description       string `json:"description"`
-	Client            string `json:"client"`
+	Client            string `json:"client" binding:"max=250"`
 
 	// New field for SLA documents
 	Documents []*SLADocumentFormDTO `json:"documents,omitempty"`
@@ -82,12 +82,12 @@ type SLADocumentFormDTO struct {
 	ExpiryDate string `json:"expiry_date" binding:"required"`
 	SA1Date    string `json:"sa1_date" binding:"required"`
 	SA2Date    string `json:"sa2_date" binding:"required"`
-	Comment    string `json:"comment,omitempty"`
+	Comment    string `json:"comment"`
 	Language   string `json:"language" binding:"required"`
-	URL        string `json:"url,omitempty"`
-	Name       string `json:"name,omitempty"`
-	Size       int    `json:"size,omitempty"`
-	Token      string `json:"token,omitempty"`
-	Type       string `json:"type,omitempty"`
+	URL        string `json:"url"`
+	Name       string `json:"name"`
+	Size       int    `json:"size"`
+	Token      string `json:"token"`
+	Type       string `json:"type"`
 	Icon       string `json:"icon" binding:"required"`
 }

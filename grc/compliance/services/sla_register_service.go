@@ -16,8 +16,8 @@ import (
 type SLARegisterServiceInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int) (*slaDTOs.SLARegisterListResponseDTO, error)
 	GetByID(id uint) (*models.SLARegister, error)
-	Create(currentUserID uint, slaRegFormDTO *slaDTOs.SLARegisterFormDTO, documents []*slaDTOs.SLADocumentFormDTO) (uint, error)
-	Update(id uint, currentUserID uint, sla *slaDTOs.SLARegisterFormDTO, documents []*slaDTOs.SLADocumentFormDTO) error
+	Create(currentUserID uint, slaRegFormDTO *slaDTOs.SLARegisterFormDTO) (uint, error)
+	Update(id uint, currentUserID uint, sla *slaDTOs.SLARegisterFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 }
 
@@ -46,14 +46,14 @@ func NewSLARegisterService(
 }
 
 func (srs *SLARegisterService) GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int) (*slaDTOs.SLARegisterListResponseDTO, error) {
-	return srs.repo.GetAll(sort, sortBy, keyword, page, pageSize)
+	return srs.repo.GetAll(sort, sortBy, keyword,status, page, pageSize)
 }
 
 func (srs SLARegisterService) GetByID(id uint) (*models.SLARegister, error) {
 	return srs.repo.GetByID(id)
 }
 
-func (srs *SLARegisterService) Create(currentUserID uint, slaRegFormDTO *slaDTOs.SLARegisterFormDTO, documents []*slaDTOs.SLADocumentFormDTO) (uint, error) {
+func (srs *SLARegisterService) Create(currentUserID uint, slaRegFormDTO *slaDTOs.SLARegisterFormDTO) (uint, error) {
 
 	// Validation for sla category field
 	slaCategory, err := srs.slaCategoryRepo.GetByID(slaRegFormDTO.SLACategoryID)
@@ -73,7 +73,7 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegFormDTO *slaDTOs
 	_, _, _ = slaCategory, severityLevel, lifecycleStatus
 
 	// id, err := srs.repo.Create(currentUserID, slaRegFormDTO)
-	id, err := srs.repo.Create(currentUserID, slaRegFormDTO, documents)
+	id, err := srs.repo.Create(currentUserID, slaRegFormDTO)
 	if err != nil {
 		return 0, err
 	}
@@ -97,7 +97,7 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegFormDTO *slaDTOs
 	return id, nil
 }
 
-func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegFormDTO *slaDTOs.SLARegisterFormDTO, documents []*slaDTOs.SLADocumentFormDTO) error {
+func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegFormDTO *slaDTOs.SLARegisterFormDTO) error {
 	existingSLARegister, err := srs.repo.GetByID(id)
 
 	if err != nil {
@@ -120,7 +120,7 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegFormDTO
 	}
 	_, _, _ = slaCategory, severityLevel, lifecycleStatus
 
-	err = srs.repo.Update(id, currentUserID, slaRegFormDTO, documents)
+	err = srs.repo.Update(id, currentUserID, slaRegFormDTO)
 
 	if err != nil {
 		return err
