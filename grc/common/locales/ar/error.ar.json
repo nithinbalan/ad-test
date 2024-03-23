@@ -50,5 +50,9 @@
   {
     "id": "invalid_date",
     "translation": "تاريخ غير صالح لـ {{.Field}}. يرجى تقديم تاريخ صالح بتنسيق YYYY-MM-DD."
+  },
+  {
+    "id": "expired",
+    "translation": "انتهت صلاحية كلمة المرور لمرة واحدة {{.Field}} المقدمة."
   }
 ]

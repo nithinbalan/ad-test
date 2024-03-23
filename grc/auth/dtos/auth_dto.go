@@ -14,3 +14,7 @@ type ForgotPasswordDataDTO struct {
 	LastNameEN  string `json:"last_name_en"`
 	Otp         string `json:"otp"`
 }
+type VerifyPasswordRecoveryDataDTO struct {
+	Email string `json:"email" binding:"required,email"`
+	Otp   string `json:"otp" binding:"required"`
+}

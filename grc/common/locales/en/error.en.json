@@ -50,5 +50,9 @@
   {
     "id": "invalid_date",
     "translation": "Invalid {{.Field}}. Please provide a valid date in YYYY-MM-DD format."
+  },
+  {
+    "id": "expired",
+    "translation": "The provided {{.Field}} has expired."
   }
 ]
