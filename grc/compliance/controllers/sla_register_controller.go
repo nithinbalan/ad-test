@@ -28,6 +28,8 @@ func (src *SLARegisterController) GetAllSLARegisters(c *gin.Context) {
 	sort := c.Query("sort")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
+	status := c.Query("status")
+
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -41,7 +43,7 @@ func (src *SLARegisterController) GetAllSLARegisters(c *gin.Context) {
 		return
 	}
 
-	slaRegisters, err := src.service.GetAll(sort, sortBy, keyword, page, pageSize)
+	slaRegisters, err := src.service.GetAll(sort, sortBy, keyword, status, page, pageSize)
 
 	if err != nil {
 		utility.SendInternalErrResp(src.db, c, err.Error())

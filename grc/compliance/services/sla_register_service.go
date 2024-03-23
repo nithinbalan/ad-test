@@ -14,7 +14,7 @@ import (
 )
 
 type SLARegisterServiceInterface interface {
-	GetAll(sort string, sortBy string, keyword string, page int, pageSize int) (*slaDTOs.SLARegisterListResponseDTO, error)
+	GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int) (*slaDTOs.SLARegisterListResponseDTO, error)
 	GetByID(id uint) (*models.SLARegister, error)
 	Create(currentUserID uint, slaRegFormDTO *slaDTOs.SLARegisterFormDTO, documents []*slaDTOs.SLADocumentFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, sla *slaDTOs.SLARegisterFormDTO, documents []*slaDTOs.SLADocumentFormDTO) error
@@ -45,7 +45,7 @@ func NewSLARegisterService(
 	}
 }
 
-func (srs *SLARegisterService) GetAll(sort string, sortBy string, keyword string, page int, pageSize int) (*slaDTOs.SLARegisterListResponseDTO, error) {
+func (srs *SLARegisterService) GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int) (*slaDTOs.SLARegisterListResponseDTO, error) {
 	return srs.repo.GetAll(sort, sortBy, keyword, page, pageSize)
 }
 

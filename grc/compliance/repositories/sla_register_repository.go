@@ -12,7 +12,7 @@ import (
 
 // Interfaces
 type SLARegisterRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string, page int, pageSize int) (*slaDTOs.SLARegisterListResponseDTO, error)
+	GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int) (*slaDTOs.SLARegisterListResponseDTO, error)
 	GetByID(id uint) (*models.SLARegister, error)
 	Create(currentUserID uint, slaRegFormDTO *slaDTOs.SLARegisterFormDTO, documents []*slaDTOs.SLADocumentFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, slaRegFormDTO *slaDTOs.SLARegisterFormDTO, documents []*slaDTOs.SLADocumentFormDTO) error
@@ -30,7 +30,7 @@ func NewSLARegisterRepository(db *gorm.DB) *SLARegisterRepository {
 	}
 }
 
-func (repo *SLARegisterRepository) GetAll(sort string, sortBy string, keyword string, page int, pageSize int) (*slaDTOs.SLARegisterListResponseDTO, error) {
+func (repo *SLARegisterRepository) GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int) (*slaDTOs.SLARegisterListResponseDTO, error) {
 
 	var slaRegisters []*slaDTOs.SLARegisterListDTO
 	var totalCount int64
