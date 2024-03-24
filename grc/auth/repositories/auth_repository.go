@@ -79,7 +79,7 @@ func (repo *AuthRepository) SendPasswordRecoveryOTP(email string) (*models.User,
 	otpLength := 6
 	otp := utility.GenerateOTP(otpLength)
 	user.Otp = otp
-	user.SentAt = time.Now()
+	user.SentAt = time.Now().UTC()
 
 	if err := repo.db.Save(&user).Error; err != nil {
 		return nil, utility.NewInternalServerError(err)

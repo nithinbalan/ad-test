@@ -81,7 +81,7 @@ func (ac *AuthController) VerifyPasswordRecoveryOTP(c *gin.Context) {
 
 	otp := verifyPasswordRecoveryDataDTO.Otp
 
-	err := ac.service.VerifyPasswordRecoveryOTP(email, otp)
+	encryptedData, err := ac.service.VerifyPasswordRecoveryOTP(email, otp)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -96,5 +96,5 @@ func (ac *AuthController) VerifyPasswordRecoveryOTP(c *gin.Context) {
 		}
 	}
 
-	c.Status(http.StatusOK)
+	c.JSON(http.StatusOK, gin.H{"token": encryptedData})
 }

@@ -13,7 +13,7 @@ import (
 type AuthServiceInterface interface {
 	Authenticate(email string, password string) (map[string]string, error)
 	SendPasswordRecoveryOTP(email string) error
-	VerifyPasswordRecoveryOTP(email, otp string) error
+	VerifyPasswordRecoveryOTP(email, otp string) (string, error)
 }
 
 // Service and implementations
@@ -38,7 +38,7 @@ func (as AuthService) SendPasswordRecoveryOTP(email string) error {
 		return err
 	}
 
-	emailData := authDTOs.ForgotPasswordDataDTO{
+	emailData := authDTOs.PasswordRecoveryDataDTO{
 		FirstNameEN: user.FirstNameEN,
 		LastNameEN:  user.LastNameEN,
 		Otp:         user.Otp,
@@ -57,11 +57,11 @@ func (as AuthService) SendPasswordRecoveryOTP(email string) error {
 
 }
 
-func (as *AuthService) VerifyPasswordRecoveryOTP(email, otp string) error {
+func (as *AuthService) VerifyPasswordRecoveryOTP(email, otp string) (string, error) {
 
 	user, err := as.repo.VerifyPasswordRecoveryOTP(email, otp)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	// Calculate expiration time based on configuration
@@ -71,10 +71,16 @@ func (as *AuthService) VerifyPasswordRecoveryOTP(email, otp string) error {
 	expirationTime := user.SentAt.Add(time.Duration(verifyOTPDuration) * time.Minute)
 	currentTime := time.Now().UTC()
 
-	if expirationTime.After(currentTime) {
-		return utility.NewValidationError(fmt.Errorf("OTP has expired"), "expired", "otp")
+	if expirationTime.Before(currentTime) {
+		return "", utility.NewValidationError(fmt.Errorf("OTP has expired"), "expired", "otp")
 	}
 
-	return nil
+	encryptedData, err := utility.EncryptUser(int(user.ID), currentTime)
+
+	if err != nil {
+		return "", err
+	}
+
+	return encryptedData, nil
 
 }

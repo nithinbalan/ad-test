@@ -9,7 +9,7 @@ type PasswordRecoveryFormDTO struct {
 	Email string `json:"email" binding:"required,email"`
 }
 
-type ForgotPasswordDataDTO struct {
+type PasswordRecoveryDataDTO struct {
 	FirstNameEN string `json:"first_name_en"`
 	LastNameEN  string `json:"last_name_en"`
 	Otp         string `json:"otp"`
