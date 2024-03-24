@@ -12,6 +12,8 @@ CREATE TABLE users (
     first_name_ar NVARCHAR(100) NOT NULL,
     last_name_ar NVARCHAR(100) NOT NULL,
     email VARCHAR(100) NOT NULL,
+    otp VARCHAR(10) NULL,
+    sent_at DATETIME NULL,
     password_hash VARCHAR(MAX) NOT NULL,
     profile_image_path VARCHAR(255),
     created_at DATETIME NOT NULL DEFAULT GETDATE(),
