@@ -13,7 +13,7 @@ import (
 )
 
 type ComplianceRegisterServiceInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int) (*complianceDTOs.ComplianceRegisterListResponseDTO, error)
+	GetAll(params *complianceDTOs.ComplianceRegisterListQueryParamsDTO) (*complianceDTOs.ComplianceRegisterListResponseDTO, error)
 	GetByID(id uint) (*models.ComplianceRegister, error)
 	Create(currentUserID uint, complianceRegFormDTO *complianceDTOs.ComplianceRegisterFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, compliance *complianceDTOs.ComplianceRegisterFormDTO) error
@@ -49,8 +49,8 @@ func NewComplianceRegisterService(
 	}
 }
 
-func (crs *ComplianceRegisterService) GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int) (*complianceDTOs.ComplianceRegisterListResponseDTO, error) {
-	return crs.repo.GetAll(sort, sortBy, keyword, status, page, pageSize)
+func (crs *ComplianceRegisterService) GetAll(params *complianceDTOs.ComplianceRegisterListQueryParamsDTO) (*complianceDTOs.ComplianceRegisterListResponseDTO, error) {
+	return crs.repo.GetAll(params)
 }
 
 func (crs ComplianceRegisterService) GetByID(id uint) (*models.ComplianceRegister, error) {
