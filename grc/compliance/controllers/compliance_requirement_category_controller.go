@@ -47,20 +47,20 @@ func (crcc *ComplianceRequirementCategoryController) GetComplianceRequirementCat
 		return
 	}
 
-	complianceCategory, err := crcc.service.GetByID(uint(id))
+	ComplianceRequirementCategory, err := crcc.service.GetByID(uint(id))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
 
-	c.JSON(http.StatusOK, complianceCategory)
+	c.JSON(http.StatusOK, ComplianceRequirementCategory)
 }
 
 func (crcc *ComplianceRequirementCategoryController) CreateComplianceRequirementCategory(c *gin.Context) {
 
-	var requirementCategory *models.ComplianceRequirementCategory
+	var complianceRequirementCategory *models.ComplianceRequirementCategory
 
-	if err := c.ShouldBindJSON(&requirementCategory); err != nil {
+	if err := c.ShouldBindJSON(&complianceRequirementCategory); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
@@ -70,7 +70,7 @@ func (crcc *ComplianceRequirementCategoryController) CreateComplianceRequirement
 		return
 	}
 
-	createdRequirementCategory, err := crcc.service.Create(currentUserID, requirementCategory)
+	createdRequirementCategory, err := crcc.service.Create(currentUserID, complianceRequirementCategory)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:
@@ -87,14 +87,14 @@ func (crcc *ComplianceRequirementCategoryController) CreateComplianceRequirement
 
 func (crcc *ComplianceRequirementCategoryController) UpdateComplianceRequirementCategory(c *gin.Context) {
 
-	requirementCategoryID, err := strconv.Atoi(c.Param("id"))
+	complianceRequirementCategoryID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
 
-	var updatedRequirementCategory *models.ComplianceRequirementCategory
-	if err := c.ShouldBindJSON(&updatedRequirementCategory); err != nil {
+	var updatedComplianceRequirementCategory *models.ComplianceRequirementCategory
+	if err := c.ShouldBindJSON(&updatedComplianceRequirementCategory); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
@@ -104,7 +104,7 @@ func (crcc *ComplianceRequirementCategoryController) UpdateComplianceRequirement
 		return
 	}
 
-	updatedRequirementCategory, err = crcc.service.Update(uint(requirementCategoryID), currentUserID, updatedRequirementCategory)
+	updatedComplianceRequirementCategory, err = crcc.service.Update(uint(complianceRequirementCategoryID), currentUserID, updatedComplianceRequirementCategory)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -119,7 +119,7 @@ func (crcc *ComplianceRequirementCategoryController) UpdateComplianceRequirement
 		}
 	}
 
-	c.JSON(http.StatusOK, updatedRequirementCategory)
+	c.JSON(http.StatusOK, updatedComplianceRequirementCategory)
 }
 
 func (crcc *ComplianceRequirementCategoryController) DeleteComplianceRequirementCategories(c *gin.Context) {

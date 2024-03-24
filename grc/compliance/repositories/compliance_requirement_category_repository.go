@@ -13,7 +13,7 @@ type ComplianceRequirementCategoryRepositoryInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ComplianceRequirementCategory, error)
 	GetByID(id uint) (*models.ComplianceRequirementCategory, error)
 	Create(article *models.ComplianceRequirementCategory) (*models.ComplianceRequirementCategory, error)
-	Update(id uint, requirementCategory *models.ComplianceRequirementCategory) (*models.ComplianceRequirementCategory, error)
+	Update(id uint, complianceRequirementCategory *models.ComplianceRequirementCategory) (*models.ComplianceRequirementCategory, error)
 	Delete(id uint) error
 	Activate(ids []uint) ([]uint, error)
 	Deactivate(ids []uint) ([]uint, error)
@@ -59,8 +59,8 @@ func (repo *ComplianceRequirementCategoryRepository) GetAll(sort string, sortBy 
 }
 
 func (repo *ComplianceRequirementCategoryRepository) GetByID(id uint) (*models.ComplianceRequirementCategory, error) {
-	var requirementCategory *models.ComplianceRequirementCategory
-	result := repo.db.First(&requirementCategory, id)
+	var complianceRequirementCategory *models.ComplianceRequirementCategory
+	result := repo.db.First(&complianceRequirementCategory, id)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, utility.NewResourceNotFoundError(result.Error, id)
@@ -68,33 +68,33 @@ func (repo *ComplianceRequirementCategoryRepository) GetByID(id uint) (*models.C
 		return nil, result.Error
 	}
 
-	return requirementCategory, result.Error
+	return complianceRequirementCategory, result.Error
 }
 
-func (repo *ComplianceRequirementCategoryRepository) Create(requirementCategory *models.ComplianceRequirementCategory) (*models.ComplianceRequirementCategory, error) {
-	result := repo.db.Create(&requirementCategory)
+func (repo *ComplianceRequirementCategoryRepository) Create(complianceRequirementCategory *models.ComplianceRequirementCategory) (*models.ComplianceRequirementCategory, error) {
+	result := repo.db.Create(&complianceRequirementCategory)
 
-	return requirementCategory, result.Error
+	return complianceRequirementCategory, result.Error
 }
 
 func (repo *ComplianceRequirementCategoryRepository) Update(id uint, updatedCategory *models.ComplianceRequirementCategory) (*models.ComplianceRequirementCategory, error) {
-	var requirementCategory *models.ComplianceRequirementCategory
+	var complianceRequirementCategory *models.ComplianceRequirementCategory
 
-	if err := repo.db.First(&requirementCategory, id).Error; err != nil {
+	if err := repo.db.First(&complianceRequirementCategory, id).Error; err != nil {
 		return nil, err
 	}
 
-	if err := repo.db.Model(&requirementCategory).Updates(updatedCategory).Error; err != nil {
+	if err := repo.db.Model(&complianceRequirementCategory).Updates(updatedCategory).Error; err != nil {
 		return nil, err
 	}
 
-	return requirementCategory, nil
+	return complianceRequirementCategory, nil
 }
 
 func (repo *ComplianceRequirementCategoryRepository) Delete(id uint) error {
 
-	var requirementCategory *models.ComplianceRequirementCategory
-	if err := repo.db.First(&requirementCategory, id).Error; err != nil {
+	var complianceRequirementCategory *models.ComplianceRequirementCategory
+	if err := repo.db.First(&complianceRequirementCategory, id).Error; err != nil {
 		return err
 	}
 

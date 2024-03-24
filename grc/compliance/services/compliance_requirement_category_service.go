@@ -13,8 +13,8 @@ import (
 type ComplianceRequirementCategoryServiceInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ComplianceRequirementCategory, error)
 	GetByID(id uint) (*models.ComplianceRequirementCategory, error)
-	Create(currentUserID uint, requirementCategory *models.ComplianceRequirementCategory) (*models.ComplianceRequirementCategory, error)
-	Update(id uint, currentUserID uint, requirementCategory *models.ComplianceRequirementCategory) (*models.ComplianceRequirementCategory, error)
+	Create(currentUserID uint, complianceRequirementCategory *models.ComplianceRequirementCategory) (*models.ComplianceRequirementCategory, error)
+	Update(id uint, currentUserID uint, complianceRequirementCategory *models.ComplianceRequirementCategory) (*models.ComplianceRequirementCategory, error)
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	Activate(ids []uint, currentUserID uint) error
 	Deactivate(ids []uint, currentUserID uint) error
@@ -41,15 +41,15 @@ func (crcs ComplianceRequirementCategoryService) GetByID(id uint) (*models.Compl
 	return crcs.repo.GetByID(id)
 }
 
-func (crcs *ComplianceRequirementCategoryService) Create(currentUserID uint, requirementCategory *models.ComplianceRequirementCategory) (*models.ComplianceRequirementCategory, error) {
+func (crcs *ComplianceRequirementCategoryService) Create(currentUserID uint, complianceRequirementCategory *models.ComplianceRequirementCategory) (*models.ComplianceRequirementCategory, error) {
 
-	if exists, err := crcs.repo.ExistsByTitle(requirementCategory.TitleEn, requirementCategory.TitleAr); err != nil {
+	if exists, err := crcs.repo.ExistsByTitle(complianceRequirementCategory.TitleEn, complianceRequirementCategory.TitleAr); err != nil {
 		return nil, err
 	} else if exists {
 		return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 	}
 
-	createdRequirementCategory, err := crcs.repo.Create(requirementCategory)
+	createdRequirementCategory, err := crcs.repo.Create(complianceRequirementCategory)
 	if err != nil {
 		return nil, err
 	}
