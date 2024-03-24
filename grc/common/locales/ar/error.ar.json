@@ -50,5 +50,9 @@
   {
     "id": "invalid_date",
     "translation": "تاريخ غير صالح لـ {{.Field}}. يرجى تقديم تاريخ صالح بتنسيق YYYY-MM-DD."
+  },
+  {
+    "id": "resend_time_not_reached",
+    "translation": "لم يتم الوصول إلى وقت إعادة الإرسال بعد"
   }
 ]

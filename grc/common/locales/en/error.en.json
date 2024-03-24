@@ -50,5 +50,9 @@
   {
     "id": "invalid_date",
     "translation": "Invalid {{.Field}}. Please provide a valid date in YYYY-MM-DD format."
+  },
+  {
+    "id": "resend_time_not_reached",
+    "translation": "The resend time has not yet been reached"
   }
 ]

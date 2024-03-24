@@ -80,7 +80,7 @@ func (repo *AuthRepository) SendPasswordRecoveryOTP(email string) (*models.User,
 	otpLength := 6
 	otp := utility.GenerateOTP(otpLength)
 	user.Otp = otp
-	user.SentAt = time.Now().UTC()
+	user.SentAt = time.Now()
 
 	if err := repo.db.Save(&user).Error; err != nil {
 		return nil, utility.NewInternalServerError(err)
@@ -103,7 +103,6 @@ func (repo *AuthRepository) ReSendPasswordRecoveryOTP(email string) (*models.Use
 	resendTime := user.SentAt.Add(1 * time.Minute)
 	currentTime := time.Now().UTC()
 	if currentTime.Before(resendTime) {
-		//@todo  Do validation here in language
 		return nil, utility.NewValidationError(fmt.Errorf("resend time has not reached yet"), "resend_time_not_reached", "resend_time")
 	}
 
