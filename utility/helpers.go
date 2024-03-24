@@ -109,11 +109,3 @@ func GenerateReferenceNumber(code string, lastDigits string) string {
 	lastReferenceID, _ := strconv.ParseUint(lastDigits, 10, 64)
 	return fmt.Sprintf("%s-%d-%04d", code, currentYear, lastReferenceID+1)
 }
-
-func ParseQueryParamToInt(c *gin.Context, paramName string, defaultValue int) (int, error) {
-	paramValue := c.Query(paramName)
-	if paramValue == "" {
-		return defaultValue, nil
-	}
-	return strconv.Atoi(paramValue)
-}

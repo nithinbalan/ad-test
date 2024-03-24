@@ -57,10 +57,10 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	complianceRoutes.POST("/sla-categories/deactivate", SLACategoryController.DeactivateSLACategories)
 
 	//Compliance Register
-	complianceRepositories := complianceRepositories.NewComplianceRegisterRepository(db)
+	complianceRegisterRepo := complianceRepositories.NewComplianceRegisterRepository(db)
 	reviewFrequencyRepo := masterRepositories.NewReviewFrequencyRepository(db)
 	severityLevelRepo := masterRepositories.NewSeverityLevelRepository(db)
-	complianceSvc := complianceServices.NewComplianceRegisterService(complianceRepositories,
+	complianceSvc := complianceServices.NewComplianceRegisterService(complianceRegisterRepo,
 		activityLogSvc,
 		complianceCategoryRepo, //@todo add org unit and user repo
 		complianceStatusRepo,

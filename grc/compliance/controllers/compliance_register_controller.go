@@ -7,7 +7,6 @@ import (
 	"jethur/utility"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -25,6 +24,13 @@ func NewComplianceRegisterController(service services.ComplianceRegisterServiceI
 }
 
 func (crc *ComplianceRegisterController) GetAllComplianceRegisters(c *gin.Context) {
+
+	sort := c.Query("sort")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+	status := c.Query("status")
+	quickFilter := c.QueryArray("quick_filter")
+
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"compliance_category_ids",
@@ -36,26 +42,7 @@ func (crc *ComplianceRegisterController) GetAllComplianceRegisters(c *gin.Contex
 		"lifecycle_status_ids",
 	}
 
-	// Parse dynamic filter parameters
-	filters := make(map[string][]string)
-	for key, values := range c.Request.URL.Query() {
-		// Check if the key is one of the allowed parameters
-		for _, allowedParam := range allowedParams {
-			if key == allowedParam {
-				// Extract column name
-				columnName := strings.TrimSuffix(key, "s") // Remove the 's' at the end of the key
-				if len(columnName) > 0 {
-					// Split values by comma
-					valueList := strings.Split(values[0], ",")
-					// Add filtering condition only if the column name is not empty
-					filters[columnName] = valueList
-				}
-			}
-		}
-	}
-
-	// Parse quick filters
-	quickFilter := c.QueryArray("quick_filter")
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
 	// Parse deadline_from, deadline_to, issue_date_from, issue_date_to, expiry_date_from, expiry_date_to, next_review_date_from, next_review_date_to parameters
 	deadlineFrom := c.Query("deadline_from")
@@ -66,11 +53,6 @@ func (crc *ComplianceRegisterController) GetAllComplianceRegisters(c *gin.Contex
 	expiryDateTo := c.Query("expiry_date_to")
 	nextReviewDateFrom := c.Query("next_review_date_from")
 	nextReviewDateTo := c.Query("next_review_date_to")
-
-	sort := c.Query("sort")
-	sortBy := c.Query("sort_by")
-	keyword := c.Query("keyword")
-	status := c.Query("status")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -84,7 +66,25 @@ func (crc *ComplianceRegisterController) GetAllComplianceRegisters(c *gin.Contex
 		return
 	}
 
-	compliances, err := crc.service.GetAll(sort, sortBy, keyword, status, page, pageSize, filters, quickFilter, deadlineFrom, deadlineTo, issueDateFrom, issueDateTo, expiryDateFrom, expiryDateTo, nextReviewDateFrom, nextReviewDateTo)
+	queryParams := complianceDTOs.ComplianceRegisterListQueryParamsDTO{
+		Sort:               sort,
+		SortBy:             sortBy,
+		Keyword:            keyword,
+		Status:             status,
+		Page:               page,
+		PageSize:           pageSize,
+		Filters:            filters,
+		QuickFilter:        quickFilter,
+		DeadlineFrom:       deadlineFrom,
+		DeadlineTo:         deadlineTo,
+		IssueDateFrom:      issueDateFrom,
+		IssueDateTo:        issueDateTo,
+		ExpiryDateFrom:     expiryDateFrom,
+		ExpiryDateTo:       expiryDateTo,
+		NextReviewDateFrom: nextReviewDateFrom,
+		NextReviewDateTo:   nextReviewDateTo,
+	}
+	compliances, err := crc.service.GetAll(&queryParams)
 
 	if err != nil {
 		utility.SendInternalErrResp(crc.db, c, err.Error())
