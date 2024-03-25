@@ -12,7 +12,7 @@ import (
 
 // Interfaces
 type SLARegisterRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int) (*slaDTOs.SLARegisterListResponseDTO, error)
+	GetAll(params *slaDTOs.SLARegisterListQueryParamsDTO) (*slaDTOs.SLARegisterListResponseDTO, error)
 	GetByID(id uint) (*models.SLARegister, error)
 	Create(currentUserID uint, slaRegFormDTO *slaDTOs.SLARegisterFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, slaRegFormDTO *slaDTOs.SLARegisterFormDTO) error
@@ -29,12 +29,9 @@ func NewSLARegisterRepository(db *gorm.DB) *SLARegisterRepository {
 		db: db,
 	}
 }
-
-func (repo *SLARegisterRepository) GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int) (*slaDTOs.SLARegisterListResponseDTO, error) {
-
+func (repo *SLARegisterRepository) GetAll(params *slaDTOs.SLARegisterListQueryParamsDTO) (*slaDTOs.SLARegisterListResponseDTO, error) {
 	var slaRegisters []*slaDTOs.SLARegisterListDTO
 	var totalCount int64
-
 	query := repo.db.Table("sla_registers").
 		Select(`
             sla_registers.*,
@@ -85,62 +82,101 @@ func (repo *SLARegisterRepository) GetAll(sort string, sortBy string, keyword st
 
     `)
 
+	// Apply dynamic filters to the query
+	for columnName, values := range params.Filters {
+		if len(values) > 0 {
+			query = query.Where(columnName+" IN (?)", values)
+		}
+	}
+
+	// Apply issue_date filters
+	if params.IssueDateFrom != "" {
+		query = query.Where("issue_date >= ?", params.IssueDateFrom)
+	}
+	if params.IssueDateTo != "" {
+		query = query.Where("issue_date <= ?", params.IssueDateTo)
+	}
+
+	// Apply expiry_date filters
+	if params.IssueDateFrom != "" {
+		query = query.Where("expiry_date >= ?", params.IssueDateFrom)
+	}
+	if params.ExpiryDateTo != "" {
+		query = query.Where("expiry_date <= ?", params.ExpiryDateTo)
+	}
+
+	// Apply quick filters
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "archived":
+			query = query.Where("lifecycle_statuses.type = ?", "archived")
+		}
+	}
+
 	// Calculate total count for pagination
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
-	// Apply search keyword if exists
-	if keyword != "" {
+	// Apply search Keyword if exists
+	if params.Keyword != "" {
 		query = query.Where(`
 			(sla_registers.title_en LIKE ? OR
 			sla_registers.title_ar LIKE ? OR
 			sla_registers.reference_number LIKE ? OR
 			sla_registers.description LIKE ? OR
 			sla_registers.client LIKE ? OR
+			sla_documents.issue_date LIKE ? OR
+			sla_documents.expiry_date LIKE ? OR
+			sla_documents.sa1_date LIKE ? OR
+			sla_documents.sa2_date LIKE ? OR
+			sla_documents.name LIKE ? OR
+			sla_documents.type LIKE ? OR
 			sla_categories.title_en LIKE ? OR
 			sla_categories.title_ar LIKE ? OR
 			organization_units.title_en LIKE ? OR
 			organization_units.title_ar LIKE ? OR
-			responsible_user.first_name_en LIKE ? OR
-			responsible_user.first_name_ar LIKE ? OR
-			responsible_user.last_name_en LIKE ? OR
-			responsible_user.last_name_ar LIKE ? OR
+			responsible_users.first_name_en LIKE ? OR
+			responsible_users.first_name_ar LIKE ? OR
+			responsible_users.last_name_en LIKE ? OR
+			responsible_users.last_name_ar LIKE ? OR
 			severity_levels.title_en LIKE ? OR
 			severity_levels.title_ar LIKE ? OR
 			lifecycle_statuses.title_en LIKE ? OR
 			lifecycle_statuses.title_ar LIKE ?)`,
-			"%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%",
-			"%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%",
-			"%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%",
-			"%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%",
-			"%"+keyword+"%")
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
 	}
 
 	// Sort by the specified column and order
-	if sortBy == "" {
-		sortBy = "title_en" // Default sort by title_en if no sortBy is specified
+	if params.SortBy == "" {
+		params.SortBy = "title_en" // Default Sort by title_en if no SortBy is specified
 	}
-	if sort != "asc" && sort != "desc" {
-		sort = "asc" // Default order is ascending if not specified
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc" // Default order is ascending if not specified
 	}
 
-	query = query.Order(sortBy + " " + sort)
+	query = query.Order(params.SortBy + " " + params.Sort)
 
-	offset := (page - 1) * pageSize
+	offset := (params.Page - 1) * params.PageSize
 
 	// Execute the queryc
-	err := query.Offset(offset).Limit(pageSize).Find(&slaRegisters).Error
+	err := query.Offset(offset).Limit(params.PageSize).Find(&slaRegisters).Error
+
 	if err != nil {
 		return nil, err
 	}
 
-	totalPages := int((totalCount + int64(pageSize) - 1) / int64(pageSize))
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
 
 	response := &slaDTOs.SLARegisterListResponseDTO{
 		Items: slaRegisters,
 		Pagination: commonDTOs.PaginationInfoDTO{
-			CurrentPage: page,
-			PageSize:    pageSize,
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
 			TotalPages:  totalPages,
 			TotalCount:  totalCount,
 		},

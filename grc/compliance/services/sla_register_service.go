@@ -14,7 +14,7 @@ import (
 )
 
 type SLARegisterServiceInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int) (*slaDTOs.SLARegisterListResponseDTO, error)
+	GetAll(params *slaDTOs.SLARegisterListQueryParamsDTO) (*slaDTOs.SLARegisterListResponseDTO, error)
 	GetByID(id uint) (*models.SLARegister, error)
 	Create(currentUserID uint, slaRegFormDTO *slaDTOs.SLARegisterFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, sla *slaDTOs.SLARegisterFormDTO) error
@@ -45,8 +45,8 @@ func NewSLARegisterService(
 	}
 }
 
-func (srs *SLARegisterService) GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int) (*slaDTOs.SLARegisterListResponseDTO, error) {
-	return srs.repo.GetAll(sort, sortBy, keyword,status, page, pageSize)
+func (srs *SLARegisterService) GetAll(params *slaDTOs.SLARegisterListQueryParamsDTO) (*slaDTOs.SLARegisterListResponseDTO, error) {
+	return srs.repo.GetAll(params)
 }
 
 func (srs SLARegisterService) GetByID(id uint) (*models.SLARegister, error) {
@@ -54,11 +54,12 @@ func (srs SLARegisterService) GetByID(id uint) (*models.SLARegister, error) {
 }
 
 func (srs *SLARegisterService) Create(currentUserID uint, slaRegFormDTO *slaDTOs.SLARegisterFormDTO) (uint, error) {
-
-	// Validation for sla category field
-	slaCategory, err := srs.slaCategoryRepo.GetByID(slaRegFormDTO.SLACategoryID)
-	if err != nil {
-		return 0, utility.NewValidationError(fmt.Errorf("sla category does not exist"), "not_exist", "sla category")
+	if slaRegFormDTO.SLACategoryID != 0 {
+		slaCategory, err := srs.slaCategoryRepo.GetByID(slaRegFormDTO.SLACategoryID)
+		if err != nil || slaCategory == nil {
+			return 0, utility.NewValidationError(fmt.Errorf("sla category does not exist"), "not_exist", "sla category")
+		}
+		_ = slaCategory
 	}
 	// Validation for Severity Level
 	severityLevel, err := srs.severityLevelRepo.GetByID(slaRegFormDTO.SeverityLevelID)
@@ -70,7 +71,7 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegFormDTO *slaDTOs
 	if err != nil {
 		return 0, utility.NewValidationError(fmt.Errorf("status does not exist"), "not_exist", "lifecycle_status")
 	}
-	_, _, _ = slaCategory, severityLevel, lifecycleStatus
+	_, _ = severityLevel, lifecycleStatus
 
 	// id, err := srs.repo.Create(currentUserID, slaRegFormDTO)
 	id, err := srs.repo.Create(currentUserID, slaRegFormDTO)

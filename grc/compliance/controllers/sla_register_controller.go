@@ -29,7 +29,23 @@ func (src *SLARegisterController) GetAllSLARegisters(c *gin.Context) {
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
+	quickFilter := c.QueryArray("quick_filter")
 
+	// Define an array of allowed parameter names
+	allowedParams := []string{
+		"sla_category_ids",
+		"severity_level_ids",
+		"responsible_unit_ids",
+		"lifecycle_status_ids",
+	}
+
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+
+	// Parse  issue_date_from, issue_date_to, expiry_date_from, expiry_date_to parameters
+	issueDateFrom := c.Query("issue_date_from")
+	issueDateTo := c.Query("issue_date_to")
+	expiryDateFrom := c.Query("expiry_date_from")
+	expiryDateTo := c.Query("expiry_date_to")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -43,7 +59,21 @@ func (src *SLARegisterController) GetAllSLARegisters(c *gin.Context) {
 		return
 	}
 
-	slaRegisters, err := src.service.GetAll(sort, sortBy, keyword, status, page, pageSize)
+	queryParams := slaDTOs.SLARegisterListQueryParamsDTO{
+		Sort:           sort,
+		SortBy:         sortBy,
+		Keyword:        keyword,
+		Status:         status,
+		Page:           page,
+		PageSize:       pageSize,
+		Filters:        filters,
+		QuickFilter:    quickFilter,
+		IssueDateFrom:  issueDateFrom,
+		IssueDateTo:    issueDateTo,
+		ExpiryDateFrom: expiryDateFrom,
+		ExpiryDateTo:   expiryDateTo,
+	}
+	slaRegisters, err := src.service.GetAll(&queryParams)
 
 	if err != nil {
 		utility.SendInternalErrResp(src.db, c, err.Error())

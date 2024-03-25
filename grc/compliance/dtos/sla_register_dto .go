@@ -54,6 +54,20 @@ type SLARegisterListDTO struct {
 	Icon       string `json:"icon"`
 	IsLatest   bool   `json:"is_latest"`
 }
+type SLARegisterListQueryParamsDTO struct {
+	Sort           string
+	SortBy         string
+	Keyword        string
+	Status         string
+	Page           int
+	PageSize       int
+	Filters        map[string][]string
+	QuickFilter    []string
+	IssueDateFrom  string
+	IssueDateTo    string
+	ExpiryDateFrom string
+	ExpiryDateTo   string
+}
 
 type SLARegisterListResponseDTO struct {
 	Items      []*SLARegisterListDTO        `json:"items"`
