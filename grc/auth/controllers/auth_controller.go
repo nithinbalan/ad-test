@@ -69,3 +69,21 @@ func (ac *AuthController) SendPasswordRecoveryOTP(c *gin.Context) {
 
 	c.Status(http.StatusOK)
 }
+func (ac *AuthController) SetPassword(c *gin.Context) {
+	var passwordDataDTO authDTOs.PasswordRecoveryPasswordDataDTO
+
+	if err := c.ShouldBindJSON(&passwordDataDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	err := ac.service.SetPassword(passwordDataDTO)
+	if err != nil {
+		if _, ok := err.(*utility.InternalServerError); ok {
+			utility.SendInternalErrResp(ac.db, c, err.Error())
+		}
+		return
+	}
+
+	c.Status(http.StatusOK)
+}

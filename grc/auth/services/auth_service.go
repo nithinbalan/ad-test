@@ -9,6 +9,7 @@ import (
 type AuthServiceInterface interface {
 	Authenticate(email string, password string) (map[string]string, error)
 	SendPasswordRecoveryOTP(email string) error
+	SetPassword(passwordDataDTO authDTOs.PasswordRecoveryPasswordDataDTO) error
 }
 
 // Service and implementations
@@ -38,6 +39,28 @@ func (as AuthService) SendPasswordRecoveryOTP(email string) error {
 		LastNameEN:  user.LastNameEN,
 		Otp:         user.Otp,
 	}
+
+	to := []string{user.Email}
+	subject := "Your Password Reset Verification Code"
+	templateRelativePath := "auth/templates/email/forgot_password.html"
+
+	err = utility.SendTemplatedEmail(to, subject, templateRelativePath, emailData, nil)
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+func (as AuthService) SetPassword(passwordDataDTO authDTOs.PasswordRecoveryPasswordDataDTO) error {
+	err := as.repo.SetPassword(passwordDataDTO)
+
+	if err != nil {
+		return err
+	}
+
+	
 
 	to := []string{user.Email}
 	subject := "Your Password Reset Verification Code"

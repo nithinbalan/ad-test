@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"errors"
+	authDTOs "jethur/grc/auth/dtos"
 	"jethur/grc/organization/models"
 	"jethur/utility"
 	"time"
@@ -15,6 +16,7 @@ import (
 type AuthRepositoryInterface interface {
 	Authenticate(email string, password string) (map[string]string, error)
 	SendPasswordRecoveryOTP(email string) (*models.User, error)
+	SetPassword(passwordDataDTO authDTOs.PasswordRecoveryPasswordDataDTO) error
 }
 
 type AuthRepository struct {
@@ -85,5 +87,12 @@ func (repo *AuthRepository) SendPasswordRecoveryOTP(email string) (*models.User,
 	}
 
 	return user, nil
+
+}
+func (repo *AuthRepository) SetPassword(passwordDataDTO authDTOs.PasswordRecoveryPasswordDataDTO) error {
+
+	var user *models.User
+
+	return user
 
 }
