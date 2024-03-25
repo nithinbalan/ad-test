@@ -53,6 +53,6 @@
   },
   {
     "id": "resend_time_not_reached",
-    "translation": "The resend time has not yet been reached"
+    "translation": "Please wait before requesting OTP resend again"
   }
 ]

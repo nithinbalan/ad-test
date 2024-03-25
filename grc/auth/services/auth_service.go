@@ -61,8 +61,8 @@ func (as AuthService) ReSendPasswordRecoveryOTP(email string) error {
 	}
 
 	emailData := authDTOs.ForgotPasswordDataDTO{
-		FirstNameEN: user.FirstNameEN,
-		LastNameEN:  user.LastNameEN,
+		FirstNameEn: user.FirstNameEN,
+		LastNameEn:  user.LastNameEN,
 		Otp:         user.Otp,
 	}
 
