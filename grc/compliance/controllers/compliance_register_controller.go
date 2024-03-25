@@ -24,10 +24,35 @@ func NewComplianceRegisterController(service services.ComplianceRegisterServiceI
 }
 
 func (crc *ComplianceRegisterController) GetAllComplianceRegisters(c *gin.Context) {
+
 	sort := c.Query("sort")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
+	quickFilter := c.QueryArray("quick_filter")
+
+	// Define an array of allowed parameter names
+	allowedParams := []string{
+		"compliance_category_ids",
+		"severity_level_ids",
+		"compliance_status_ids",
+		"responsible_unit_ids",
+		"review_frequency_ids",
+		"review_responsible_user_ids",
+		"lifecycle_status_ids",
+	}
+
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+
+	// Parse deadline_from, deadline_to, issue_date_from, issue_date_to, expiry_date_from, expiry_date_to, next_review_date_from, next_review_date_to parameters
+	deadlineFrom := c.Query("deadline_from")
+	deadlineTo := c.Query("deadline_to")
+	issueDateFrom := c.Query("issue_date_from")
+	issueDateTo := c.Query("issue_date_to")
+	expiryDateFrom := c.Query("expiry_date_from")
+	expiryDateTo := c.Query("expiry_date_to")
+	nextReviewDateFrom := c.Query("next_review_date_from")
+	nextReviewDateTo := c.Query("next_review_date_to")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -41,7 +66,25 @@ func (crc *ComplianceRegisterController) GetAllComplianceRegisters(c *gin.Contex
 		return
 	}
 
-	compliances, err := crc.service.GetAll(sort, sortBy, keyword, status, page, pageSize)
+	queryParams := complianceDTOs.ComplianceRegisterListQueryParamsDTO{
+		Sort:               sort,
+		SortBy:             sortBy,
+		Keyword:            keyword,
+		Status:             status,
+		Page:               page,
+		PageSize:           pageSize,
+		Filters:            filters,
+		QuickFilter:        quickFilter,
+		DeadlineFrom:       deadlineFrom,
+		DeadlineTo:         deadlineTo,
+		IssueDateFrom:      issueDateFrom,
+		IssueDateTo:        issueDateTo,
+		ExpiryDateFrom:     expiryDateFrom,
+		ExpiryDateTo:       expiryDateTo,
+		NextReviewDateFrom: nextReviewDateFrom,
+		NextReviewDateTo:   nextReviewDateTo,
+	}
+	compliances, err := crc.service.GetAll(&queryParams)
 
 	if err != nil {
 		utility.SendInternalErrResp(crc.db, c, err.Error())

@@ -52,6 +52,25 @@ type ComplianceRegisterListDTO struct {
 	LifecycleStatusColorCode         string `json:"lifecycle_status_color_code"`
 }
 
+type ComplianceRegisterListQueryParamsDTO struct {
+	Sort               string
+	SortBy             string
+	Keyword            string
+	Status             string
+	Page               int
+	PageSize           int
+	Filters            map[string][]string
+	QuickFilter        []string
+	DeadlineFrom       string
+	DeadlineTo         string
+	IssueDateFrom      string
+	IssueDateTo        string
+	ExpiryDateFrom     string
+	ExpiryDateTo       string
+	NextReviewDateFrom string
+	NextReviewDateTo   string
+}
+
 type ComplianceRegisterListResponseDTO struct {
 	Items      []*ComplianceRegisterListDTO `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`

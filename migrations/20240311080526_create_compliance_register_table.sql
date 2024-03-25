@@ -25,16 +25,16 @@ CREATE TABLE compliance_register (
     created_by INT NOT NULL,
     updated_by INT NULL,
     lifecycle_status_id INT NOT NULL,
-    CONSTRAINT fk_compliance_registers_compliance_categories1 FOREIGN KEY (compliance_category_id) REFERENCES compliance_categories (id),
-    CONSTRAINT fk_compliance_registers_severity_levels1 FOREIGN KEY (severity_level_id) REFERENCES severity_levels (id),
-    CONSTRAINT fk_compliance_registers_compliance_statuses1 FOREIGN KEY (compliance_status_id) REFERENCES compliance_statuses (id),
-    CONSTRAINT fk_compliance_registers_organization_units1 FOREIGN KEY (responsible_unit_id) REFERENCES organization_units (id),
-    CONSTRAINT fk_compliance_registers_users1 FOREIGN KEY (responsible_user_id) REFERENCES users (id),
-    CONSTRAINT fk_compliance_registers_review_frequencies1 FOREIGN KEY (review_frequency_id) REFERENCES review_frequencies (id),
-    CONSTRAINT fk_compliance_registers_users2 FOREIGN KEY (review_responsible_user_id) REFERENCES users (id),
-    CONSTRAINT fk_compliance_registers_users3 FOREIGN KEY (created_by) REFERENCES users (id),
-    CONSTRAINT fk_compliance_registers_users4 FOREIGN KEY (updated_by) REFERENCES users (id),
-    CONSTRAINT fk_compliance_registers_lifecycle_statuses1 FOREIGN KEY (lifecycle_status_id) REFERENCES lifecycle_statuses (id)
+    CONSTRAINT FK_compliance_registers_compliance_categories FOREIGN KEY (compliance_category_id) REFERENCES compliance_categories (id),
+    CONSTRAINT FK_compliance_registers_severity_levels FOREIGN KEY (severity_level_id) REFERENCES severity_levels (id),
+    CONSTRAINT FK_compliance_registers_compliance_statuses FOREIGN KEY (compliance_status_id) REFERENCES compliance_statuses (id),
+    CONSTRAINT FK_compliance_registers_organization_units FOREIGN KEY (responsible_unit_id) REFERENCES organization_units (id),
+    CONSTRAINT FK_compliance_registers_users1 FOREIGN KEY (responsible_user_id) REFERENCES users (id),
+    CONSTRAINT FK_compliance_registers_review_frequencies FOREIGN KEY (review_frequency_id) REFERENCES review_frequencies (id),
+    CONSTRAINT FK_compliance_registers_users2 FOREIGN KEY (review_responsible_user_id) REFERENCES users (id),
+    CONSTRAINT FK_compliance_registers_users3 FOREIGN KEY (created_by) REFERENCES users (id),
+    CONSTRAINT FK_compliance_registers_users4 FOREIGN KEY (updated_by) REFERENCES users (id),
+    CONSTRAINT FK_compliance_registers_lifecycle_statuses FOREIGN KEY (lifecycle_status_id) REFERENCES lifecycle_statuses (id)
 );
 -- +goose StatementEnd
 

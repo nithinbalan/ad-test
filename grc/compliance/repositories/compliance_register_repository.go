@@ -5,7 +5,6 @@ import (
 	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	complianceModels "jethur/grc/compliance/models"
-
 	masterModels "jethur/grc/masters/models"
 	"jethur/utility"
 
@@ -13,7 +12,7 @@ import (
 )
 
 type ComplianceRegisterRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int) (*complianceDTOs.ComplianceRegisterListResponseDTO, error)
+	GetAll(params *complianceDTOs.ComplianceRegisterListQueryParamsDTO) (*complianceDTOs.ComplianceRegisterListResponseDTO, error)
 	GetByID(id uint) (*complianceModels.ComplianceRegister, error)
 	Create(currentUserID uint, complianceRegFormDTO *complianceDTOs.ComplianceRegisterFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, complianceRegFormDTO *complianceDTOs.ComplianceRegisterFormDTO) error
@@ -34,7 +33,7 @@ func NewComplianceRegisterRepository(db *gorm.DB) *ComplianceRegisterRepository 
 	}
 }
 
-func (repo *ComplianceRegisterRepository) GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int) (*complianceDTOs.ComplianceRegisterListResponseDTO, error) {
+func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.ComplianceRegisterListQueryParamsDTO) (*complianceDTOs.ComplianceRegisterListResponseDTO, error) {
 
 	var complianceRegisters []*complianceDTOs.ComplianceRegisterListDTO
 	var totalCount int64
@@ -87,13 +86,65 @@ func (repo *ComplianceRegisterRepository) GetAll(sort string, sortBy string, key
 			LEFT JOIN users AS updated_user ON updated_user.id = compliance_register.updated_by
 		`)
 
+	// Apply dynamic filters to the query
+	for columnName, values := range params.Filters {
+		if len(values) > 0 {
+			query = query.Where(columnName+" IN (?)", values)
+		}
+	}
+
+	// Apply deadline filters
+	if params.DeadlineFrom != "" {
+		query = query.Where("deadline >= ?", params.DeadlineFrom)
+	}
+	if params.DeadlineTo != "" {
+		query = query.Where("deadline <= ?", params.DeadlineTo)
+	}
+
+	// Apply issue_date filters
+	if params.IssueDateFrom != "" {
+		query = query.Where("issue_date >= ?", params.IssueDateFrom)
+	}
+	if params.IssueDateTo != "" {
+		query = query.Where("issue_date <= ?", params.IssueDateTo)
+	}
+
+	// Apply expiry_date filters
+	if params.IssueDateFrom != "" {
+		query = query.Where("expiry_date >= ?", params.IssueDateFrom)
+	}
+	if params.ExpiryDateTo != "" {
+		query = query.Where("expiry_date <= ?", params.ExpiryDateTo)
+	}
+
+	// Apply next_review_date filters
+	if params.NextReviewDateFrom != "" {
+		query = query.Where("next_review_date >= ?", params.NextReviewDateFrom)
+	}
+	if params.NextReviewDateTo != "" {
+		query = query.Where("next_review_date <= ?", params.NextReviewDateTo)
+	}
+
+	// Apply quick filters
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "compliant":
+			query = query.Where("compliance_statuses.type = ?", "compliant")
+		case "non_compliant":
+			query = query.Where("compliance_statuses.type = ?", "not_implemented")
+		case "archived":
+			query = query.Where("lifecycle_statuses.type = ?", "archived")
+
+		}
+	}
+
 	// Calculate total count for pagination
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
 
 	// Apply search keyword if exists
-	if keyword != "" {
+	if params.Keyword != "" {
 		query = query.Where(`
 			(compliance_register.title_en LIKE ? OR
 			compliance_register.title_ar LIKE ? OR
@@ -115,38 +166,38 @@ func (repo *ComplianceRegisterRepository) GetAll(sort string, sortBy string, key
 			severity_levels.title_ar LIKE ? OR
 			lifecycle_statuses.title_en LIKE ? OR
 			lifecycle_statuses.title_ar LIKE ?)`,
-			"%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%",
-			"%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%",
-			"%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%",
-			"%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%",
-			"%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%")
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
 	}
 
 	// Sort by the specified column and order
-	if sortBy == "" {
-		sortBy = "title_en" // Default sort by title_en if no sortBy is specified
+	if params.SortBy == "" {
+		params.SortBy = "title_en" // Default sort by title_en if no sortBy is specified
 	}
-	if sort != "asc" && sort != "desc" {
-		sort = "asc" // Default order is ascending if not specified
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc" // Default order is ascending if not specified
 	}
 
-	query = query.Order(sortBy + " " + sort)
+	query = query.Order(params.SortBy + " " + params.Sort)
 
-	offset := (page - 1) * pageSize
+	offset := (params.Page - 1) * params.PageSize
 
 	// Execute the queryc
-	err := query.Offset(offset).Limit(pageSize).Find(&complianceRegisters).Error
+	err := query.Offset(offset).Limit(params.PageSize).Find(&complianceRegisters).Error
 	if err != nil {
 		return nil, err
 	}
 
-	totalPages := int((totalCount + int64(pageSize) - 1) / int64(pageSize))
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
 
 	response := &complianceDTOs.ComplianceRegisterListResponseDTO{
 		Items: complianceRegisters,
 		Pagination: commonDTOs.PaginationInfoDTO{
-			CurrentPage: page,
-			PageSize:    pageSize,
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
 			TotalPages:  totalPages,
 			TotalCount:  totalCount,
 		},
