@@ -33,4 +33,12 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	organizationRoutes.POST("/designations/delete", designationController.DeleteDesignations)
 	organizationRoutes.PUT("/designations/activate", designationController.ActivateDesignations)
 	organizationRoutes.PUT("/designations/deactivate", designationController.DeactivateDesignations)
+
+	//User Status
+	userStatusRepo := organizationRepositories.NewUserStatusRepository(db)
+	userStatusSvc := organizationServices.NewUserStatusService(userStatusRepo)
+	userStatusController := controllers.NewUserStatusController(userStatusSvc)
+
+	organizationRoutes.GET("/user-statuses", userStatusController.GetAllUserStatuses)
+	organizationRoutes.GET("/user-statuses/:id", userStatusController.GetUserStatusDetails)
 }
