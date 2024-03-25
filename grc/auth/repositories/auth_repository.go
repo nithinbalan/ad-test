@@ -15,6 +15,7 @@ import (
 type AuthRepositoryInterface interface {
 	Authenticate(email string, password string) (map[string]string, error)
 	SendPasswordRecoveryOTP(email string) (*models.User, error)
+	VerifyPasswordRecoveryOTP(email, otp string) (*models.User, error)
 }
 
 type AuthRepository struct {
@@ -78,7 +79,7 @@ func (repo *AuthRepository) SendPasswordRecoveryOTP(email string) (*models.User,
 	otpLength := 6
 	otp := utility.GenerateOTP(otpLength)
 	user.Otp = otp
-	user.SentAt = time.Now()
+	user.SentAt = time.Now().UTC()
 
 	if err := repo.db.Save(&user).Error; err != nil {
 		return nil, utility.NewInternalServerError(err)
@@ -86,4 +87,18 @@ func (repo *AuthRepository) SendPasswordRecoveryOTP(email string) (*models.User,
 
 	return user, nil
 
+}
+
+func (repo *AuthRepository) VerifyPasswordRecoveryOTP(email, otp string) (*models.User, error) {
+	var user models.User
+
+	// Get the user with the given email and OTP
+	result := repo.db.Where("email = ? AND otp = ?", email, otp).First(&user)
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, utility.NewResourceNotFoundError(result.Error, email)
+	} else if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return &user, nil
 }

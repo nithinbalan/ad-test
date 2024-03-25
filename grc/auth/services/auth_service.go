@@ -1,14 +1,19 @@
 package services
 
 import (
+	"fmt"
+	"jethur/config"
 	authDTOs "jethur/grc/auth/dtos"
 	"jethur/grc/auth/repositories"
 	"jethur/utility"
+	"strconv"
+	"time"
 )
 
 type AuthServiceInterface interface {
 	Authenticate(email string, password string) (map[string]string, error)
 	SendPasswordRecoveryOTP(email string) error
+	VerifyPasswordRecoveryOTP(email, otp string) (string, error)
 }
 
 // Service and implementations
@@ -33,7 +38,7 @@ func (as AuthService) SendPasswordRecoveryOTP(email string) error {
 		return err
 	}
 
-	emailData := authDTOs.ForgotPasswordDataDTO{
+	emailData := authDTOs.PasswordRecoveryDataDTO{
 		FirstNameEN: user.FirstNameEN,
 		LastNameEN:  user.LastNameEN,
 		Otp:         user.Otp,
@@ -49,5 +54,33 @@ func (as AuthService) SendPasswordRecoveryOTP(email string) error {
 	}
 
 	return nil
+
+}
+
+func (as *AuthService) VerifyPasswordRecoveryOTP(email, otp string) (string, error) {
+
+	user, err := as.repo.VerifyPasswordRecoveryOTP(email, otp)
+	if err != nil {
+		return "", err
+	}
+
+	// Calculate expiration time based on configuration
+	verifyOTPDurationStr := config.GetEnv("VERIFY_OTP_DURATION", "10")
+	verifyOTPDuration, _ := strconv.Atoi(verifyOTPDurationStr)
+
+	expirationTime := user.SentAt.Add(time.Duration(verifyOTPDuration) * time.Minute)
+	currentTime := time.Now().UTC()
+
+	if expirationTime.Before(currentTime) {
+		return "", utility.NewValidationError(fmt.Errorf("OTP has expired"), "expired", "otp")
+	}
+
+	encryptedData, err := utility.EncryptUser(int(user.ID), currentTime)
+
+	if err != nil {
+		return "", err
+	}
+
+	return encryptedData, nil
 
 }
