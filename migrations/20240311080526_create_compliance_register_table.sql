@@ -1,13 +1,13 @@
 -- +goose Up
 -- +goose StatementBegin
 CREATE TABLE compliance_register (
-    id INT PRIMARY KEY IDENTITY(1,1),
+    id INT PRIMARY KEY IDENTITY(1, 1),
     compliance_category_id INT NOT NULL,
     compliance_status_id INT NOT NULL,
     responsible_unit_id INT NOT NULL,
     responsible_user_id INT NOT NULL,
-    review_frequency_id INT NOT NULL,
-    review_responsible_user_id INT NULL,
+    review_frequency_id INT NULL,
+    review_responsible_user_id NULL,
     severity_level_id INT NULL,
     reference_number VARCHAR(45) NULL,
     standard_code VARCHAR(45) NULL,
@@ -36,9 +36,10 @@ CREATE TABLE compliance_register (
     CONSTRAINT FK_compliance_registers_users4 FOREIGN KEY (updated_by) REFERENCES users (id),
     CONSTRAINT FK_compliance_registers_lifecycle_statuses FOREIGN KEY (lifecycle_status_id) REFERENCES lifecycle_statuses (id)
 );
--- +goose StatementEnd
 
+-- +goose StatementEnd
 -- +goose Down
 -- +goose StatementBegin
 DROP TABLE compliance_register;
+
 -- +goose StatementEnd
