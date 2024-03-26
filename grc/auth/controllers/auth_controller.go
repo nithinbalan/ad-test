@@ -69,6 +69,65 @@ func (ac *AuthController) SendPasswordRecoveryOTP(c *gin.Context) {
 
 	c.Status(http.StatusOK)
 }
+
+func (ac *AuthController) ReSendPasswordRecoveryOTP(c *gin.Context) {
+	var passwordRecoveryFormDTO authDTOs.PasswordRecoveryFormDTO
+
+	if err := c.ShouldBindJSON(&passwordRecoveryFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	email := passwordRecoveryFormDTO.Email
+
+	err := ac.service.ReSendPasswordRecoveryOTP(email)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(ac.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (ac *AuthController) VerifyPasswordRecoveryOTP(c *gin.Context) {
+	var verifyPasswordRecoveryDataDTO authDTOs.VerifyPasswordRecoveryDataDTO
+
+	if err := c.ShouldBindJSON(&verifyPasswordRecoveryDataDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	email := verifyPasswordRecoveryDataDTO.Email
+
+	otp := verifyPasswordRecoveryDataDTO.Otp
+
+	encryptedData, err := ac.service.VerifyPasswordRecoveryOTP(email, otp)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(ac.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"token": encryptedData})
+}
+
 func (ac *AuthController) SetPassword(c *gin.Context) {
 	var passwordDataDTO authDTOs.PasswordRecoveryPasswordDataDTO
 
@@ -79,10 +138,17 @@ func (ac *AuthController) SetPassword(c *gin.Context) {
 
 	err := ac.service.SetPassword(passwordDataDTO)
 	if err != nil {
-		if _, ok := err.(*utility.InternalServerError); ok {
-			utility.SendInternalErrResp(ac.db, c, err.Error())
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(ac.db, c, e.Error())
+			return
 		}
-		return
 	}
 
 	c.Status(http.StatusOK)

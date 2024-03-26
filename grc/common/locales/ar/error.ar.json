@@ -50,5 +50,25 @@
   {
     "id": "invalid_date",
     "translation": "تاريخ غير صالح لـ {{.Field}}. يرجى تقديم تاريخ صالح بتنسيق YYYY-MM-DD."
+  },
+  {
+    "id": "resend_time_not_reached",
+    "translation": "يرجى الانتظار قبل طلب إعادة إرسال كلمة المرور لمرة واحدة مرة أخرى"
+  },
+  {
+    "id": "otp_expired",
+    "translation": "انتهت صلاحية كلمة المرور لمرة واحدة {{.Field}} المقدمة."
+  },
+  {
+    "id": "password_match",
+    "translation": "كلمة المرور وتأكيد كلمة المرور غير متطابقين"
+  },
+  {
+    "id": "session_expired",
+    "translation": "انتهت الجلسة"
+  },
+  {
+    "id": "password_complexity",
+    "translation": "كلمة المرور لا تلبي المتطلبات"
   }
 ]
