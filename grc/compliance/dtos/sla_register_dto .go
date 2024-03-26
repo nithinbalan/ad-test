@@ -30,6 +30,8 @@ type SLARegisterListDTO struct {
 	ResponsibleUserLastNameAr  string    `json:"responsible_user_last_name_ar"`
 	LifecycleStatusTitleEn     string    `json:"lifecycle_status_title_en"`
 	LifecycleStatusTitleAr     string    `json:"lifecycle_status_title_ar"`
+	ComplianceStatusTitleEn    string    `json:"compliance_status_title_en"`
+	ComplianceStatusTitleAr    string    `json:"compliance_status_title_ar"`
 	CreatedByFirstNameEn       string    `json:"created_by_first_name_en"`
 	CreatedByFirstNameAr       string    `json:"created_by_first_name_ar"`
 	CreatedByLastNameEn        string    `json:"created_by_last_name_en"`
@@ -75,15 +77,15 @@ type SLARegisterListResponseDTO struct {
 }
 
 type SLARegisterFormDTO struct {
-	SLACategoryID     uint   `json:"sla_category_id" binding:"required"`
-	SeverityLevelID   uint   `json:"severity_level_id" binding:"required"`
-	ResponsibleUnitID uint   `json:"responsible_unit_id" binding:"required"`
-	ResponsibleUserID uint   `json:"responsible_user_id" binding:"required"`
-	LifecycleStatusID uint   `json:"lifecycle_status_id" binding:"required"`
-	TitleEn           string `json:"title_en" binding:"required,max=250"`
-	TitleAr           string `json:"title_ar" binding:"required,max=250"`
-	Description       string `json:"description"`
-	Client            string `json:"client" binding:"max=250"`
+	SLACategoryID      uint   `json:"sla_category_id" binding:"required"`
+	SeverityLevelID    uint   `json:"severity_level_id" binding:"required"`
+	ResponsibleUnitID  uint   `json:"responsible_unit_id" binding:"required"`
+	ResponsibleUserID  uint   `json:"responsible_user_id" binding:"required"`
+	LifecycleStatusID  uint   `json:"lifecycle_status_id" binding:"required"`
+	TitleEn            string `json:"title_en" binding:"required,max=250"`
+	TitleAr            string `json:"title_ar" binding:"required,max=250"`
+	Description        string `json:"description"`
+	Client             string `json:"client" binding:"max=250"`
 
 	// New field for SLA documents
 	Documents []*SLADocumentFormDTO `json:"documents,omitempty"`

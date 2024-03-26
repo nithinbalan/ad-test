@@ -61,6 +61,9 @@ func (repo *SLARegisterRepository) GetAll(params *slaDTOs.SLARegisterListQueryPa
             responsible_users.last_name_ar AS responsible_user_last_name_ar,
             lifecycle_statuses.title_en AS lifecycle_status_title_en,
             lifecycle_statuses.title_ar AS lifecycle_status_title_ar,
+			compliance_statuses.title_en AS compliance_status_title_en,
+			compliance_statuses.title_ar AS compliance_status_title_ar,
+			compliance_statuses.color_code AS compliance_status_color_code,
             created_by_users.first_name_en AS created_by_first_name_en,
             created_by_users.first_name_ar AS created_by_first_name_ar,
             created_by_users.last_name_en AS created_by_last_name_en,
@@ -76,6 +79,7 @@ func (repo *SLARegisterRepository) GetAll(params *slaDTOs.SLARegisterListQueryPa
             LEFT JOIN organization_units ON sla_registers.responsible_unit_id = organization_units.id
             LEFT JOIN users AS responsible_users ON sla_registers.responsible_user_id = responsible_users.id
             LEFT JOIN lifecycle_statuses ON sla_registers.lifecycle_status_id = lifecycle_statuses.id
+		    LEFT JOIN compliance_statuses ON compliance_statuses.id = sla_registers.compliance_status_id
             LEFT JOIN users AS created_by_users ON sla_registers.created_by = created_by_users.id
             LEFT JOIN users AS updated_by_users ON sla_registers.updated_by = updated_by_users.id
 			LEFT JOIN sla_documents ON sla_registers.id = sla_documents.sla_register_id AND sla_documents.is_latest = 1
@@ -108,8 +112,13 @@ func (repo *SLARegisterRepository) GetAll(params *slaDTOs.SLARegisterListQueryPa
 	// Apply quick filters
 	for _, filter := range params.QuickFilter {
 		switch filter {
+		case "compliant":
+			query = query.Where("compliance_statuses.type = ?", "compliant")
+		case "non_compliant":
+			query = query.Where("compliance_statuses.type = ?", "not_implemented")
 		case "archived":
 			query = query.Where("lifecycle_statuses.type = ?", "archived")
+
 		}
 	}
 
@@ -141,6 +150,8 @@ func (repo *SLARegisterRepository) GetAll(params *slaDTOs.SLARegisterListQueryPa
 			responsible_users.last_name_ar LIKE ? OR
 			severity_levels.title_en LIKE ? OR
 			severity_levels.title_ar LIKE ? OR
+			compliance_statuses.title_en LIKE ? OR
+			compliance_statuses.title_ar LIKE ? OR
 			lifecycle_statuses.title_en LIKE ? OR
 			lifecycle_statuses.title_ar LIKE ?)`,
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
@@ -148,7 +159,8 @@ func (repo *SLARegisterRepository) GetAll(params *slaDTOs.SLARegisterListQueryPa
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
-			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%")
 	}
 
 	// Sort by the specified column and order
@@ -231,20 +243,19 @@ func (repo *SLARegisterRepository) Create(currentUserID uint, slaRegFormDTO *sla
 
 	// Generate the new reference number using a utility function
 	referenceNumber := utility.GenerateReferenceNumber(code, lastDigits)
-
 	// Map DTO to SLARegister model
 	slaRegister := &models.SLARegister{
-		SLACategoryID:     slaRegFormDTO.SLACategoryID,
-		SeverityLevelID:   slaRegFormDTO.SeverityLevelID,
-		ResponsibleUnitID: slaRegFormDTO.ResponsibleUnitID,
-		ResponsibleUserID: slaRegFormDTO.ResponsibleUserID,
-		LifecycleStatusID: slaRegFormDTO.LifecycleStatusID,
-		ReferenceNumber:   referenceNumber,
-		TitleEn:           slaRegFormDTO.TitleEn,
-		TitleAr:           slaRegFormDTO.TitleAr,
-		Description:       slaRegFormDTO.Description,
-		Client:            slaRegFormDTO.Client,
-		CreatedBy:         currentUserID,
+		SLACategoryID:      slaRegFormDTO.SLACategoryID,
+		SeverityLevelID:    slaRegFormDTO.SeverityLevelID,
+		ResponsibleUnitID:  slaRegFormDTO.ResponsibleUnitID,
+		ResponsibleUserID:  slaRegFormDTO.ResponsibleUserID,
+		LifecycleStatusID:  slaRegFormDTO.LifecycleStatusID,
+		ReferenceNumber:    referenceNumber,
+		TitleEn:            slaRegFormDTO.TitleEn,
+		TitleAr:            slaRegFormDTO.TitleAr,
+		Description:        slaRegFormDTO.Description,
+		Client:             slaRegFormDTO.Client,
+		CreatedBy:          currentUserID,
 	}
 
 	if err := repo.db.Create(slaRegister).Error; err != nil {

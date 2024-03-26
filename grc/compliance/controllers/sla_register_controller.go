@@ -37,6 +37,7 @@ func (src *SLARegisterController) GetAllSLARegisters(c *gin.Context) {
 		"severity_level_ids",
 		"responsible_unit_ids",
 		"lifecycle_status_ids",
+		"compliance_status_ids",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
