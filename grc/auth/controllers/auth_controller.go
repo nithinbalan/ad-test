@@ -58,12 +58,41 @@ func (ac *AuthController) SendPasswordRecoveryOTP(c *gin.Context) {
 	}
 
 	email := passwordRecoveryFormDTO.Email
+
 	err := ac.service.SendPasswordRecoveryOTP(email)
 	if err != nil {
 		if _, ok := err.(*utility.InternalServerError); ok {
 			utility.SendInternalErrResp(ac.db, c, err.Error())
 		}
 		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (ac *AuthController) ReSendPasswordRecoveryOTP(c *gin.Context) {
+	var passwordRecoveryFormDTO authDTOs.PasswordRecoveryFormDTO
+
+	if err := c.ShouldBindJSON(&passwordRecoveryFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	email := passwordRecoveryFormDTO.Email
+
+	err := ac.service.ReSendPasswordRecoveryOTP(email)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(ac.db, c, e.Error())
+			return
+		}
 	}
 
 	c.Status(http.StatusOK)
