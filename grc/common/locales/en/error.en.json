@@ -52,6 +52,10 @@
     "translation": "Invalid {{.Field}}. Please provide a valid date in YYYY-MM-DD format."
   },
   {
+    "id": "resend_time_not_reached",
+    "translation": "Please wait before requesting OTP resend again"
+  },
+  {
     "id": "expired",
     "translation": "The provided {{.Field}} has expired."
   }
