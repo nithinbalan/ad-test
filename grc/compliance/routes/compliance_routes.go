@@ -56,7 +56,6 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	complianceRoutes.POST("/compliance-requirement-categories/activate", complianceRequirementCategoryController.ActivateComplianceRequirementCategories)
 	complianceRoutes.POST("/compliance-requirement-categories/deactivate", complianceRequirementCategoryController.DeactivateComplianceRequirementCategories)
 
-
 	//SLA Category
 	SLACategoryRepo := complianceRepositories.NewSLACategoryRepository(db)
 	SLACategorySvc := complianceServices.NewSLACategoryService(SLACategoryRepo, activityLogSvc)
@@ -89,4 +88,16 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	complianceRoutes.POST("/compliance-register/delete", complianceRegController.DeleteComplianceRegisters)
 	complianceRoutes.PUT("/compliance-register/archive", complianceRegController.ArchiveComplianceRegisters)
 	complianceRoutes.PUT("/compliance-register/restore", complianceRegController.RestoreComplianceRegisters)
+
+	//Compliance Requirement
+	complianceRequirementRepo := complianceRepositories.NewComplianceRequirementRepository(db)
+	complianceRequirementSvc := complianceServices.NewComplianceRequirementService(complianceRequirementRepo,
+		activityLogSvc)
+	complianceReqController := controllers.NewComplianceRequirementController(complianceRequirementSvc)
+
+	complianceRoutes.GET("/compliances/:complianceId/requirements", complianceReqController.GetAllComplianceRequirements)
+	complianceRoutes.GET("/compliances/:complianceId/requirements/:id", complianceReqController.GetComplianceRequirementDetails)
+	complianceRoutes.POST("/compliances/:complianceId/requirements", complianceReqController.CreateComplianceRequirement)
+	complianceRoutes.PUT("/compliances/:complianceId/requirements/:id", complianceReqController.UpdateComplianceRequirement)
+	complianceRoutes.POST("/compliances/:complianceId/requirements/delete", complianceReqController.DeleteComplianceRequirements)
 }
