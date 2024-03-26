@@ -16,7 +16,7 @@ type AuthServiceInterface interface {
 	SendPasswordRecoveryOTP(email string) error
 	ReSendPasswordRecoveryOTP(email string) error
 	VerifyPasswordRecoveryOTP(email, otp string) (string, error)
-	SetPassword(passwordDataDTO authDTOs.PasswordRecoveryPasswordDataDTO) error
+	SetPassword(setPasswordFormDTO authDTOs.PasswordRecoverySetPasswordFormDTO) error
 }
 
 // Service and implementations
@@ -85,6 +85,7 @@ func (as AuthService) ReSendPasswordRecoveryOTP(email string) error {
 	return nil
 }
 func (as *AuthService) VerifyPasswordRecoveryOTP(email, otp string) (string, error) {
+
 	user, err := as.repo.VerifyPasswordRecoveryOTP(email, otp)
 	if err != nil {
 		return "", err
@@ -110,16 +111,16 @@ func (as *AuthService) VerifyPasswordRecoveryOTP(email, otp string) (string, err
 	return encryptedData, nil
 }
 
-func (as AuthService) SetPassword(passwordDataDTO authDTOs.PasswordRecoveryPasswordDataDTO) error {
+func (as AuthService) SetPassword(setPasswordFormDTO authDTOs.PasswordRecoverySetPasswordFormDTO) error {
 
-	if passwordDataDTO.Password != passwordDataDTO.ConfirmPassword {
+	if setPasswordFormDTO.Password != setPasswordFormDTO.ConfirmPassword {
 		return utility.NewValidationError(fmt.Errorf("password and confirm password do not match"), "password_match", "password")
 	}
-	if !isValidPassword(passwordDataDTO.Password) {
+	if !isValidPassword(setPasswordFormDTO.Password) {
 		return utility.NewValidationError(fmt.Errorf("password does not meet the requirements"), "password_complexity", "password")
 	}
 
-	userId, expirationTime, err := utility.DecryptUser(passwordDataDTO.Token)
+	userId, expirationTime, err := utility.DecryptUser(setPasswordFormDTO.Token)
 	if err != nil {
 		return err
 	}
@@ -132,7 +133,7 @@ func (as AuthService) SetPassword(passwordDataDTO authDTOs.PasswordRecoveryPassw
 	}
 
 	// Call repository to set password
-	err = as.repo.SetPassword(userId, passwordDataDTO.Password)
+	err = as.repo.SetPassword(userId, setPasswordFormDTO.Password)
 	if err != nil {
 		return err
 	}

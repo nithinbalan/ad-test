@@ -99,16 +99,16 @@ func (ac *AuthController) ReSendPasswordRecoveryOTP(c *gin.Context) {
 }
 
 func (ac *AuthController) VerifyPasswordRecoveryOTP(c *gin.Context) {
-	var verifyPasswordRecoveryDataDTO authDTOs.VerifyPasswordRecoveryDataDTO
+	var passwordRecoveryOTPVerifyFormDTO authDTOs.PasswordRecoveryOTPVerifyFormDTO
 
-	if err := c.ShouldBindJSON(&verifyPasswordRecoveryDataDTO); err != nil {
+	if err := c.ShouldBindJSON(&passwordRecoveryOTPVerifyFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
 
-	email := verifyPasswordRecoveryDataDTO.Email
+	email := passwordRecoveryOTPVerifyFormDTO.Email
 
-	otp := verifyPasswordRecoveryDataDTO.Otp
+	otp := passwordRecoveryOTPVerifyFormDTO.Otp
 
 	encryptedData, err := ac.service.VerifyPasswordRecoveryOTP(email, otp)
 	if err != nil {
@@ -129,14 +129,14 @@ func (ac *AuthController) VerifyPasswordRecoveryOTP(c *gin.Context) {
 }
 
 func (ac *AuthController) SetPassword(c *gin.Context) {
-	var passwordDataDTO authDTOs.PasswordRecoveryPasswordDataDTO
+	var setPasswordFormDTO authDTOs.PasswordRecoverySetPasswordFormDTO
 
-	if err := c.ShouldBindJSON(&passwordDataDTO); err != nil {
+	if err := c.ShouldBindJSON(&setPasswordFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
 
-	err := ac.service.SetPassword(passwordDataDTO)
+	err := ac.service.SetPassword(setPasswordFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

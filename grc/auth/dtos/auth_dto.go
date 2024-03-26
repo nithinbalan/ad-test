@@ -15,12 +15,12 @@ type PasswordRecoveryDataDTO struct {
 	Otp         string `json:"otp"`
 }
 
-type VerifyPasswordRecoveryDataDTO struct {
+type PasswordRecoveryOTPVerifyFormDTO struct {
 	Email string `json:"email" binding:"required,email"`
 	Otp   string `json:"otp" binding:"required"`
 }
 
-type PasswordRecoveryPasswordDataDTO struct {
+type PasswordRecoverySetPasswordFormDTO struct {
 	Token           string `json:"token"`
 	Password        string `json:"password" binding:"required"`
 	ConfirmPassword string `json:"confirm_password" binding:"required"`
