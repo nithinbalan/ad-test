@@ -79,7 +79,7 @@ func (repo *SLARegisterRepository) GetAll(params *slaDTOs.SLARegisterListQueryPa
             LEFT JOIN organization_units ON sla_registers.responsible_unit_id = organization_units.id
             LEFT JOIN users AS responsible_users ON sla_registers.responsible_user_id = responsible_users.id
             LEFT JOIN lifecycle_statuses ON sla_registers.lifecycle_status_id = lifecycle_statuses.id
-		    LEFT JOIN compliance_statuses ON compliance_statuses.id = sla_registers.compliance_status_id
+		    LEFT JOIN compliance_statuses ON sla_registers.compliance_status_id = compliance_statuses.id 
             LEFT JOIN users AS created_by_users ON sla_registers.created_by = created_by_users.id
             LEFT JOIN users AS updated_by_users ON sla_registers.updated_by = updated_by_users.id
 			LEFT JOIN sla_documents ON sla_registers.id = sla_documents.sla_register_id AND sla_documents.is_latest = 1
@@ -218,10 +218,19 @@ func (repo *SLARegisterRepository) GetByID(id uint) (*models.SLARegister, error)
 }
 
 func (repo *SLARegisterRepository) Create(currentUserID uint, slaRegFormDTO *slaDTOs.SLARegisterFormDTO) (uint, error) {
-	documents := slaRegFormDTO.Documents
+	// Begin a transaction
+	tx := repo.db.Begin()
+
+	// Defer a function to handle the transaction rollback in case of an error
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
 	// Retrieve the last reference number from the database
 	var lastReferenceNumber string
-	err := repo.db.Model(&models.SLARegister{}).
+	err := tx.Model(&models.SLARegister{}).
 		Select("reference_number").
 		Order("reference_number desc").
 		Limit(1).
@@ -230,6 +239,7 @@ func (repo *SLARegisterRepository) Create(currentUserID uint, slaRegFormDTO *sla
 
 	// Handle potential errors from the database query
 	if err != nil {
+		tx.Rollback() // Rollback the transaction
 		return 0, err
 	}
 
@@ -243,26 +253,30 @@ func (repo *SLARegisterRepository) Create(currentUserID uint, slaRegFormDTO *sla
 
 	// Generate the new reference number using a utility function
 	referenceNumber := utility.GenerateReferenceNumber(code, lastDigits)
+
 	// Map DTO to SLARegister model
 	slaRegister := &models.SLARegister{
-		SLACategoryID:      slaRegFormDTO.SLACategoryID,
-		SeverityLevelID:    slaRegFormDTO.SeverityLevelID,
-		ResponsibleUnitID:  slaRegFormDTO.ResponsibleUnitID,
-		ResponsibleUserID:  slaRegFormDTO.ResponsibleUserID,
-		LifecycleStatusID:  slaRegFormDTO.LifecycleStatusID,
-		ReferenceNumber:    referenceNumber,
-		TitleEn:            slaRegFormDTO.TitleEn,
-		TitleAr:            slaRegFormDTO.TitleAr,
-		Description:        slaRegFormDTO.Description,
-		Client:             slaRegFormDTO.Client,
-		CreatedBy:          currentUserID,
+		SLACategoryID:     slaRegFormDTO.SLACategoryID,
+		SeverityLevelID:   slaRegFormDTO.SeverityLevelID,
+		ResponsibleUnitID: slaRegFormDTO.ResponsibleUnitID,
+		ResponsibleUserID: slaRegFormDTO.ResponsibleUserID,
+		LifecycleStatusID: slaRegFormDTO.LifecycleStatusID,
+		ReferenceNumber:   referenceNumber,
+		TitleEn:           slaRegFormDTO.TitleEn,
+		TitleAr:           slaRegFormDTO.TitleAr,
+		Description:       slaRegFormDTO.Description,
+		Client:            slaRegFormDTO.Client,
+		CreatedBy:         currentUserID,
 	}
 
-	if err := repo.db.Create(slaRegister).Error; err != nil {
+	// Create SLARegister record
+	if err := tx.Create(slaRegister).Error; err != nil {
+		tx.Rollback() // Rollback the transaction
 		return 0, err
 	}
+
 	// Create SLA documents associated with the SLA register
-	for _, doc := range documents {
+	for _, doc := range slaRegFormDTO.Documents {
 		slaDocument := &models.SLADocument{
 			SLARegisterID: slaRegister.ID,
 			Version:       doc.Version,
@@ -282,14 +296,31 @@ func (repo *SLARegisterRepository) Create(currentUserID uint, slaRegFormDTO *sla
 			CreatedBy:     currentUserID,
 		}
 
-		if err := repo.db.Create(slaDocument).Error; err != nil {
+		if err := tx.Create(slaDocument).Error; err != nil {
+			tx.Rollback() // Rollback the transaction
 			return 0, err
 		}
 	}
+
+	// Commit the transaction
+	if err := tx.Commit().Error; err != nil {
+		return 0, err
+	}
+
 	return slaRegister.ID, nil
 }
 
 func (repo *SLARegisterRepository) Update(id uint, currentUserID uint, slaRegFormDTO *slaDTOs.SLARegisterFormDTO) error {
+	// Begin a new transaction
+	tx := repo.db.Begin()
+
+	// Defer a rollback in case of error
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
 	// Prepare the update map
 	updateFields := map[string]interface{}{
 		"SLACategoryID":     slaRegFormDTO.SLACategoryID,
@@ -303,14 +334,17 @@ func (repo *SLARegisterRepository) Update(id uint, currentUserID uint, slaRegFor
 		"Client":            slaRegFormDTO.Client,
 		"UpdatedBy":         currentUserID,
 	}
-	if err := repo.db.Model(&models.SLARegister{}).
+
+	// Update SLA register
+	if err := tx.Model(&models.SLARegister{}).
 		Where("id = ?", id).
 		Updates(updateFields).Error; err != nil {
+		tx.Rollback()
 		return err
 	}
-	documents := slaRegFormDTO.Documents
-	// Update SLA documents fields in the updateFields map
-	for _, doc := range documents {
+
+	// Update SLA documents fields
+	for _, doc := range slaRegFormDTO.Documents {
 		// Only update the document if ID is provided
 		if doc.ID != nil {
 			updateFields := map[string]interface{}{
@@ -330,38 +364,64 @@ func (repo *SLARegisterRepository) Update(id uint, currentUserID uint, slaRegFor
 			}
 
 			// Update the document fields
-			if err := repo.db.Model(&models.SLADocument{}).
+			if err := tx.Model(&models.SLADocument{}).
 				Where("id = ?", *doc.ID).
 				Updates(updateFields).Error; err != nil {
+				tx.Rollback()
 				return err
 			}
 		}
+	}
+
+	// Commit the transaction if all updates are successful
+	if err := tx.Commit().Error; err != nil {
+		return err
 	}
 
 	return nil
 }
 
 func (repo *SLARegisterRepository) Delete(id uint) error {
+	// Begin a transaction
+	tx := repo.db.Begin()
+
+	// Defer a function to handle the transaction rollback in case of an error
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
 
 	var slaRegister *models.SLARegister
-	if err := repo.db.First(&slaRegister, id).Error; err != nil {
+	if err := tx.First(&slaRegister, id).Error; err != nil {
+		tx.Rollback() // Rollback the transaction
 		return err
 	}
+
 	// Find all SLA documents associated with the SLA register
 	var slaDocuments []*models.SLADocument
-	if err := repo.db.Where("sla_register_id = ?", id).Find(&slaDocuments).Error; err != nil {
+	if err := tx.Where("sla_register_id = ?", id).Find(&slaDocuments).Error; err != nil {
+		tx.Rollback() // Rollback the transaction
 		return err
 	}
+
 	// Delete each SLA document associated with the SLA register
 	for _, slaDocument := range slaDocuments {
-		if err := repo.db.Delete(slaDocument).Error; err != nil {
+		if err := tx.Delete(slaDocument).Error; err != nil {
+			tx.Rollback() // Rollback the transaction
 			return err
 		}
 	}
 
-	result := repo.db.Delete(&models.SLARegister{}, id)
-	if result.Error != nil {
-		return result.Error
+	// Delete the SLA register
+	if err := tx.Delete(&models.SLARegister{}, id).Error; err != nil {
+		tx.Rollback() // Rollback the transaction
+		return err
+	}
+
+	// Commit the transaction
+	if err := tx.Commit().Error; err != nil {
+		return err
 	}
 
 	return nil

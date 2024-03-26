@@ -56,6 +56,7 @@ type SLARegisterListDTO struct {
 	Icon       string `json:"icon"`
 	IsLatest   bool   `json:"is_latest"`
 }
+
 type SLARegisterListQueryParamsDTO struct {
 	Sort           string
 	SortBy         string
@@ -77,15 +78,15 @@ type SLARegisterListResponseDTO struct {
 }
 
 type SLARegisterFormDTO struct {
-	SLACategoryID      uint   `json:"sla_category_id" binding:"required"`
-	SeverityLevelID    uint   `json:"severity_level_id" binding:"required"`
-	ResponsibleUnitID  uint   `json:"responsible_unit_id" binding:"required"`
-	ResponsibleUserID  uint   `json:"responsible_user_id" binding:"required"`
-	LifecycleStatusID  uint   `json:"lifecycle_status_id" binding:"required"`
-	TitleEn            string `json:"title_en" binding:"required,max=250"`
-	TitleAr            string `json:"title_ar" binding:"required,max=250"`
-	Description        string `json:"description"`
-	Client             string `json:"client" binding:"max=250"`
+	SLACategoryID      uint                  `json:"sla_category_id" binding:"required"`
+	SeverityLevelID    uint                  `json:"severity_level_id" binding:"required"`
+	ResponsibleUnitID  uint                  `json:"responsible_unit_id" binding:"required"`
+	ResponsibleUserID  uint                  `json:"responsible_user_id" binding:"required"`
+	LifecycleStatusID  uint                  `json:"lifecycle_status_id" binding:"required"`
+	TitleEn            string                `json:"title_en" binding:"required,max=250"`
+	TitleAr            string                `json:"title_ar" binding:"required,max=250"`
+	Description        string                `json:"description"`
+	Client             string                `json:"client" binding:"max=250"`
 
 	// New field for SLA documents
 	Documents []*SLADocumentFormDTO `json:"documents,omitempty"`

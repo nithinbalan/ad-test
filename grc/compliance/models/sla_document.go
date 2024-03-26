@@ -9,15 +9,15 @@ type SLADocument struct {
 	ID            uint      `json:"id" gorm:"primary_key;auto_increment"`
 	SLARegisterID uint      `json:"sla_register_id" binding:"required" gorm:"column:sla_register_id"`
 	Version       string    `json:"version" binding:"required"`
-	IssueDate     string    `json:"issue_date" binding:"omitempty" gorm:"type:date"`
-	ExpiryDate    string    `json:"expiry_date" binding:"omitempty" gorm:"type:date"`
-	Comment       string    `json:"comment,omitempty"`
+	IssueDate     string    `json:"issue_date" binding:"required" gorm:"type:date"`
+	ExpiryDate    string    `json:"expiry_date" binding:"required" gorm:"type:date"`
+	Comment       string    `json:"comment"`
 	Language      string    `json:"language" binding:"required"`
-	URL           string    `json:"url,omitempty"`
-	Name          string    `json:"name,omitempty"`
-	Size          int       `json:"size,omitempty"`
-	Token         string    `json:"token,omitempty"`
-	Type          string    `json:"type,omitempty"`
+	URL           string    `json:"url"`
+	Name          string    `json:"name" binding:"required"`
+	Size          int       `json:"size"`
+	Token         string    `json:"token"`
+	Type          string    `json:"type"`
 	Icon          string    `json:"icon" binding:"required"`
 	IsLatest      bool      `json:"is_latest" gorm:"default:1"`
 	SA1Date       string    `json:"sa1_date" binding:"omitempty" gorm:"type:date"`
