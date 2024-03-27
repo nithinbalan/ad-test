@@ -2,11 +2,14 @@ package repositories
 
 import (
 	"errors"
+	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	complianceModels "jethur/grc/compliance/models"
 	masterModels "jethur/grc/masters/models"
 	"jethur/utility"
+	"strconv"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -360,7 +363,10 @@ func (repo *ComplianceRegisterRepository) GenerateReferenceNumber() (string, err
 		lastDigits = lastReferenceNumber[len(lastReferenceNumber)-4:]
 	}
 
-	newReferenceNumber := utility.GenerateReferenceNumber("CR", lastDigits)
+	currentYear := time.Now().Year()
+	lastReferenceID, _ := strconv.ParseUint(lastDigits, 10, 64)
+
+	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "CR", currentYear, lastReferenceID+1)
 
 	return newReferenceNumber, nil
 }
