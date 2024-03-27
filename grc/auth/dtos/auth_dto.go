@@ -1,6 +1,6 @@
 package dtos
 
-type AuthFormDTO struct {
+type LoginFormDTO struct {
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required"`
 }
@@ -24,4 +24,10 @@ type PasswordRecoverySetPasswordFormDTO struct {
 	Token           string `json:"token"`
 	Password        string `json:"password" binding:"required"`
 	ConfirmPassword string `json:"confirm_password" binding:"required"`
+}
+
+type PasswordRecoverySetPasswordEmailDTO struct {
+	FirstNameEn string `json:"first_name_en"`
+	LastNameEn  string `json:"last_name_en"`
+	Email       string `json:"email"`
 }

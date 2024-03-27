@@ -133,7 +133,24 @@ func (as AuthService) SetPassword(setPasswordFormDTO authDTOs.PasswordRecoverySe
 	}
 
 	// Call repository to set password
-	err = as.repo.SetPassword(userId, setPasswordFormDTO.Password)
+	user, err := as.repo.SetPassword(userId, setPasswordFormDTO.Password)
+	if err != nil {
+		return err
+	}
+
+	// Prepare data for the email template
+	emailData := authDTOs.PasswordRecoverySetPasswordEmailDTO{
+		FirstNameEn: user.FirstNameEN,
+		LastNameEn:  user.LastNameEN,
+		Email:       user.Email,
+	}
+
+	to := []string{user.Email}
+	subject := "Security alert"
+	templateRelativePath := "auth/templates/email/reset_password.html"
+
+	// Send email with the template
+	err = utility.SendTemplatedEmail(to, subject, templateRelativePath, emailData, nil)
 	if err != nil {
 		return err
 	}

@@ -26,7 +26,7 @@ type ErrorResponse struct {
 }
 
 func (ac *AuthController) Login(c *gin.Context) {
-	var authDTO authDTOs.AuthFormDTO
+	var authDTO authDTOs.LoginFormDTO
 
 	if err := c.ShouldBindJSON(&authDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)

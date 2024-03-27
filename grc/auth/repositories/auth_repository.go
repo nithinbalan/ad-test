@@ -18,7 +18,7 @@ type AuthRepositoryInterface interface {
 	SendPasswordRecoveryOTP(email string) (*models.User, error)
 	ReSendPasswordRecoveryOTP(email string) (*models.User, error)
 	VerifyPasswordRecoveryOTP(email, otp string) (*models.User, error)
-	SetPassword(userID uint, newPassword string) error
+	SetPassword(userID uint, newPassword string) (*models.User, error)
 }
 
 type AuthRepository struct {
@@ -133,28 +133,28 @@ func (repo *AuthRepository) VerifyPasswordRecoveryOTP(email, otp string) (*model
 	return &user, nil
 }
 
-func (repo *AuthRepository) SetPassword(userId uint, newPassword string) error {
+func (repo *AuthRepository) SetPassword(userId uint, newPassword string) (*models.User, error) {
 
-	var user models.User
+	var user *models.User
 
 	result := repo.db.First(&user, userId)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return utility.NewResourceNotFoundError(result.Error, userId)
+		return nil, utility.NewResourceNotFoundError(result.Error, userId)
 	} else if result.Error != nil {
-		return utility.NewInternalServerError(result.Error)
+		return nil, utility.NewInternalServerError(result.Error)
 	}
 	// Hash the password using bcrypt
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
 	if err != nil {
-		return utility.NewInternalServerError(err)
+		return nil, utility.NewInternalServerError(err)
 	}
 	// Set the hashed password
 	user.PasswordHash = string(hashedPassword)
 
 	if err := repo.db.Save(&user).Error; err != nil {
-		return utility.NewInternalServerError(err)
+		return nil, utility.NewInternalServerError(err)
 	}
 
-	return nil
+	return user, nil
 
 }
