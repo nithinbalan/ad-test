@@ -24,22 +24,6 @@ type UserListDTO struct {
 	DesignationTitleAr       string `json:"designation_title_ar"`
 }
 
-type UserFormDTO struct {
-	OrganizationUnit1ID uint    `json:"organization_unit_1_id" binding:"required"`
-	OrganizationUnit2ID *uint   `json:"organization_unit_2_id" binding:"omitempty"`
-	OrganizationUnit3ID *uint   `json:"organization_unit_3_id" binding:"omitempty"`
-	OrganizationUnit4ID *uint   `json:"organization_unit_4_id" binding:"omitempty"`
-	OrganizationUnit5ID *uint   `json:"organization_unit_5_id" binding:"omitempty"`
-	DesignationID       uint    `json:"designation_id" binding:"required"`
-	FirstNameEn         string  `json:"first_name_en" binding:"required,max=255"`
-	LastNameEn          string  `json:"last_name_en" binding:"required,max=255"`
-	FirstNameAr         string  `json:"first_name_ar" binding:"required,max=255"`
-	LastNameAr          string  `json:"last_name_ar" binding:"required,max=255"`
-	Email               string  `json:"email" binding:"required,email"`
-	MobileNumber        *string `json:"mobile_number" binding:"omitempty,max=45"`
-	ProfileImagePath    *string `json:"profile_image_path" binding:"omitempty"`
-}
-
 type UserListQueryParamsDTO struct {
 	Sort        string
 	SortBy      string
@@ -54,4 +38,20 @@ type UserListQueryParamsDTO struct {
 type UserListResponseDTO struct {
 	Items      []*UserListDTO               `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
+}
+
+type UserFormDTO struct {
+	OrganizationUnit1ID uint    `json:"organization_unit_1_id" binding:"required"`
+	OrganizationUnit2ID *uint   `json:"organization_unit_2_id" binding:"omitempty"`
+	OrganizationUnit3ID *uint   `json:"organization_unit_3_id" binding:"omitempty"`
+	OrganizationUnit4ID *uint   `json:"organization_unit_4_id" binding:"omitempty"`
+	OrganizationUnit5ID *uint   `json:"organization_unit_5_id" binding:"omitempty"`
+	DesignationID       uint    `json:"designation_id" binding:"required"`
+	FirstNameEn         string  `json:"first_name_en" binding:"required,max=255"`
+	LastNameEn          string  `json:"last_name_en" binding:"required,max=255"`
+	FirstNameAr         string  `json:"first_name_ar" binding:"required,max=255"`
+	LastNameAr          string  `json:"last_name_ar" binding:"required,max=255"`
+	Email               string  `json:"email" binding:"required,email"`
+	MobileNumber        *string `json:"mobile_number" binding:"omitempty,max=45"`
+	ProfileImagePath    *string `json:"profile_image_path" binding:"omitempty"`
 }

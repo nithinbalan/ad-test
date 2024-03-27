@@ -7,9 +7,8 @@ import (
 	logServices "jethur/grc/logs/services"
 	userDTOs "jethur/grc/organization/dtos"
 	organizationModels "jethur/grc/organization/models"
-	"jethur/grc/organization/repositories"
+	organizationRepositories "jethur/grc/organization/repositories"
 	"jethur/utility"
-	"log"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -23,14 +22,14 @@ type UserServiceInterface interface {
 }
 
 type UserService struct {
-	repo           repositories.UserRepositoryInterface
+	repo           organizationRepositories.UserRepositoryInterface
 	designationSvc DesignationServiceInterface
 	userStatusSvc  UserStatusServiceInterface
 	activityLogSvc logServices.ActivityLogServiceInterface
 }
 
 func NewUserService(
-	repo repositories.UserRepositoryInterface,
+	repo organizationRepositories.UserRepositoryInterface,
 	designationSvc DesignationServiceInterface,
 	userStatusSvc UserStatusServiceInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface) UserServiceInterface {
@@ -52,25 +51,21 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 		return 0, err
 	}
 
-	// Generate a random password
-	password, err := us.generateRandomPassword(12) // Adjust length as needed
+	password, err := us.generateRandomPassword(12)
 	if err != nil {
 		return 0, err
 	}
 
-	// Hash the generated password
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return 0, fmt.Errorf("failed to hash password: %w", err)
+		return 0, err
 	}
 
 	userStatus, err := us.userStatusSvc.GetByStatus("active")
 	if err != nil {
-		log.Println("Error parsing next review date:", err)
 		return 0, err
 	}
 
-	// Direct mapping from UserFormDTO to User model
 	user := &organizationModels.User{
 		OrganizationUnit1ID: userFormDTO.OrganizationUnit1ID,
 		OrganizationUnit2ID: userFormDTO.OrganizationUnit2ID,
@@ -86,9 +81,8 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 		Email:               userFormDTO.Email,
 		MobileNumber:        userFormDTO.MobileNumber,
 		ProfileImagePath:    userFormDTO.ProfileImagePath,
-		PasswordHash:        string(passwordHash), // Set the hashed password here
+		PasswordHash:        string(passwordHash),
 		CreatedBy:           currentUserID,
-		// Initialize other fields as necessary
 	}
 	id, err := us.repo.Create(user)
 	if err != nil {
@@ -122,7 +116,7 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 }
 
 func (us *UserService) Update(id uint, currentUserID uint, userFormDTO *userDTOs.UserFormDTO) error {
-	fmt.Println("hiiiiii")
+
 	existingUser, err := us.repo.GetByID(id)
 
 	if err != nil {
@@ -133,7 +127,6 @@ func (us *UserService) Update(id uint, currentUserID uint, userFormDTO *userDTOs
 		return err
 	}
 
-	// Update the existingUser fields
 	existingUser.OrganizationUnit1ID = userFormDTO.OrganizationUnit1ID
 	existingUser.OrganizationUnit2ID = userFormDTO.OrganizationUnit2ID
 	existingUser.OrganizationUnit3ID = userFormDTO.OrganizationUnit3ID
@@ -149,7 +142,6 @@ func (us *UserService) Update(id uint, currentUserID uint, userFormDTO *userDTOs
 	existingUser.ProfileImagePath = userFormDTO.ProfileImagePath
 	existingUser.UpdatedBy = currentUserID
 
-	// Make sure to call the update method on the correct repository
 	err = us.repo.Update(existingUser)
 	if err != nil {
 		return err
@@ -159,17 +151,13 @@ func (us *UserService) Update(id uint, currentUserID uint, userFormDTO *userDTOs
 }
 
 func (us *UserService) validateUserFormDTO(userFormDTO *userDTOs.UserFormDTO) error {
-	if userFormDTO.DesignationID != 0 {
-		_, err := us.designationSvc.GetByID(userFormDTO.DesignationID)
-		if err != nil {
-			return utility.NewValidationError(fmt.Errorf("designation does not exist"), "not_exist", "designation")
-		}
+	_, err := us.designationSvc.GetByID(userFormDTO.DesignationID)
+	if err != nil {
+		return utility.NewValidationError(fmt.Errorf("designation does not exist"), "not_exist", "designation")
 	}
-
 	return nil
 }
 
-// generateRandomPassword creates a secure, random password of a specified length.
 func (us *UserService) generateRandomPassword(length int) (string, error) {
 	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*"
 	b := make([]byte, length)
