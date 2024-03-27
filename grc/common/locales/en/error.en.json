@@ -59,11 +59,7 @@
     "id": "otp_expired",
     "translation": "The provided {{.Field}} has expired."
   },
-  {
-    "id": "password_match",
-    "translation": "password and confirm password does not match"
-  },
-  {
+   {
     "id": "session_expired",
     "translation": "The session expired"
   },
@@ -74,5 +70,9 @@
   {
     "id": "invalid_otp",
     "translation": "Invalid OTP"
+  },
+  {
+    "id": "field_confirm_password",
+    "translation": "password and confirm password does not match."
   }
 ]

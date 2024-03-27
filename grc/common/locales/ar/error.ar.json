@@ -60,10 +60,6 @@
     "translation": "انتهت صلاحية كلمة المرور لمرة واحدة {{.Field}} المقدمة."
   },
   {
-    "id": "password_match",
-    "translation": "كلمة المرور وتأكيد كلمة المرور غير متطابقين"
-  },
-  {
     "id": "session_expired",
     "translation": "انتهت الجلسة"
   },
@@ -74,5 +70,9 @@
   {
     "id": "invalid_otp",
     "translation": "كلمة المرور لمرة واحدة غير صالحة"
+  },
+  {
+    "id": "field_confirm_password",
+    "translation": "كلمة المرور وتأكيد كلمة المرور غير متطابقين"
   }
 ]

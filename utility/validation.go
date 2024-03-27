@@ -100,15 +100,6 @@ func ExtractValidationErrors(c *gin.Context, err error) []string {
 				},
 			})
 			errors = append(errors, errorMessage)
-		case "password_match":
-			var errorMessage string
-			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
-				MessageID: "password_match",
-				TemplateData: map[string]interface{}{
-					"Field": translatedFieldName,
-				},
-			})
-			errors = append(errors, errorMessage)
 		case "session_expired":
 			var errorMessage string
 			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
@@ -161,6 +152,13 @@ func ExtractValidationErrors(c *gin.Context, err error) []string {
 			case "email":
 				errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
 					MessageID: "field_email",
+					TemplateData: map[string]interface{}{
+						"Field": translatedFieldName,
+					},
+				})
+			case "eqfield":
+				errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
+					MessageID: "field_confirm_password",
 					TemplateData: map[string]interface{}{
 						"Field": translatedFieldName,
 					},

@@ -23,7 +23,7 @@ type PasswordRecoveryOTPVerifyFormDTO struct {
 type PasswordRecoverySetPasswordFormDTO struct {
 	Token           string `json:"token"`
 	Password        string `json:"password" binding:"required"`
-	ConfirmPassword string `json:"confirm_password" binding:"required"`
+	ConfirmPassword string `json:"confirm_password" binding:"required,eqfield=Password"`
 }
 
 type PasswordRecoverySetPasswordEmailDTO struct {

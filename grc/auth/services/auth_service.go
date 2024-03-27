@@ -117,9 +117,6 @@ func (as *AuthService) VerifyPasswordRecoveryOTP(email, otp string) (string, err
 
 func (as AuthService) SetPassword(setPasswordFormDTO authDTOs.PasswordRecoverySetPasswordFormDTO) error {
 
-	if setPasswordFormDTO.Password != setPasswordFormDTO.ConfirmPassword {
-		return utility.NewValidationError(fmt.Errorf("password and confirm password do not match"), "password_match", "password")
-	}
 	if !isValidPassword(setPasswordFormDTO.Password) {
 		return utility.NewValidationError(fmt.Errorf("password does not meet the requirements"), "password_complexity", "password")
 	}
