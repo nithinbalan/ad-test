@@ -12,6 +12,7 @@ import (
 type UserStatusRepositoryInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.UserStatus, error)
 	GetByID(id uint) (*models.UserStatus, error)
+	GetByStatus(status string) (*models.UserStatus, error)
 }
 
 // implementation
@@ -62,4 +63,18 @@ func (repo *UserStatusRepository) GetByID(id uint) (*models.UserStatus, error) {
 	}
 
 	return status, result.Error
+}
+
+func (repo *UserStatusRepository) GetByStatus(status string) (*models.UserStatus, error) {
+	var userStatus *models.UserStatus
+
+	result := repo.db.Where("status = ?", status).First(&userStatus)
+
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, utility.NewResourceNotFoundError(result.Error, "User Status with status "+status)
+	} else if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return userStatus, nil
 }
