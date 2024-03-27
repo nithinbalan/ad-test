@@ -6,9 +6,7 @@ import (
 	"fmt"
 	"math/rand"
 	"reflect"
-	"strconv"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
@@ -112,13 +110,6 @@ func GenerateOTP(length int) string {
 		otp[i] = charset[rand.Intn(len(charset))]
 	}
 	return string(otp)
-}
-
-// Function to generate reference number based on the last ID
-func GenerateReferenceNumber(code string, lastDigits string) string {
-	currentYear := time.Now().Year()
-	lastReferenceID, _ := strconv.ParseUint(lastDigits, 10, 64)
-	return fmt.Sprintf("%s-%d-%04d", code, currentYear, lastReferenceID+1)
 }
 
 // @todo to be removed
