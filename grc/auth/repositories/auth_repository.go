@@ -123,7 +123,7 @@ func (repo *AuthRepository) VerifyPasswordRecoveryOTP(email, otp string) (*model
 	var user models.User
 
 	// Get the user with the given email and OTP
-	result := repo.db.Where("email = ? AND otp = ?", email, otp).First(&user)
+	result := repo.db.First(&user, "email = ?", email)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, utility.NewResourceNotFoundError(result.Error, email)
 	} else if result.Error != nil {

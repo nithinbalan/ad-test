@@ -70,5 +70,9 @@
   {
     "id": "password_complexity",
     "translation": "password does not meet the requirements"
+  },
+  {
+    "id": "invalid_otp",
+    "translation": "Invalid OTP"
   }
 ]

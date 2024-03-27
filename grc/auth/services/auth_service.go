@@ -91,6 +91,10 @@ func (as *AuthService) VerifyPasswordRecoveryOTP(email, otp string) (string, err
 		return "", err
 	}
 
+	if user.Otp != otp {
+		return "", utility.NewValidationError(fmt.Errorf("invalid OTP"), "invalid_otp", "otp")
+	}
+
 	// Calculate expiration time based on configuration
 	verifyOTPDurationStr := config.GetEnv("VERIFY_OTP_DURATION", "10")
 	verifyOTPDuration, _ := strconv.Atoi(verifyOTPDurationStr)

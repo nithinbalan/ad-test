@@ -70,5 +70,9 @@
   {
     "id": "password_complexity",
     "translation": "كلمة المرور لا تلبي المتطلبات"
+  },
+  {
+    "id": "invalid_otp",
+    "translation": "كلمة المرور لمرة واحدة غير صالحة"
   }
 ]
