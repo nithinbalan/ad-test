@@ -22,8 +22,6 @@ type ComplianceRegisterRepositoryInterface interface {
 	Delete(id uint) error
 	Archive(ids []uint) ([]uint, error)
 	Restore(ids []uint) ([]uint, error)
-	ExistsByTitle(titleEn string, titleAr string) (bool, error)
-	ExistsByTitleExcludingID(id uint, titleEn, titleAr string) (bool, error)
 	GenerateReferenceNumber() (string, error)
 }
 
@@ -315,34 +313,6 @@ func (repo *ComplianceRegisterRepository) Restore(ids []uint) ([]uint, error) {
 	}
 
 	return idsToUpdate, nil
-}
-
-func (repo *ComplianceRegisterRepository) ExistsByTitle(titleEn, titleAr string) (bool, error) {
-	var count int64
-
-	err := repo.db.Model(&complianceModels.ComplianceRegister{}).
-		Where("title_en = ? OR title_ar = ?", titleEn, titleAr).
-		Count(&count).Error
-
-	if err != nil {
-		return false, utility.NewInternalServerError(err)
-	}
-
-	return count > 0, nil
-}
-
-func (repo *ComplianceRegisterRepository) ExistsByTitleExcludingID(id uint, titleEn, titleAr string) (bool, error) {
-	var count int64
-
-	err := repo.db.Model(&complianceModels.ComplianceRegister{}).
-		Where("id <> ? AND (title_en = ? OR title_ar = ?)", id, titleEn, titleAr).
-		Count(&count).Error
-
-	if err != nil {
-		return false, utility.NewInternalServerError(err)
-	}
-
-	return count > 0, nil
 }
 
 func (repo *ComplianceRegisterRepository) GenerateReferenceNumber() (string, error) {
