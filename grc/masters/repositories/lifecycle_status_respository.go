@@ -12,6 +12,7 @@ import (
 type LifecycleStatusRepositoryInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.LifecycleStatus, error)
 	GetByID(id uint) (*models.LifecycleStatus, error)
+	GetByStatus(status string) (*models.LifecycleStatus, error)
 }
 
 // implementation
@@ -52,8 +53,8 @@ func (repo *LifecycleStatusRepository) GetAll(sort string, sortBy string, keywor
 }
 
 func (repo *LifecycleStatusRepository) GetByID(id uint) (*models.LifecycleStatus, error) {
-	var status *models.LifecycleStatus
-	result := repo.db.First(&status, id)
+	var lifecycleStatus *models.LifecycleStatus
+	result := repo.db.First(&lifecycleStatus, id)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, utility.NewResourceNotFoundError(result.Error, id)
@@ -61,5 +62,19 @@ func (repo *LifecycleStatusRepository) GetByID(id uint) (*models.LifecycleStatus
 		return nil, result.Error
 	}
 
-	return status, result.Error
+	return lifecycleStatus, result.Error
+}
+
+func (repo *LifecycleStatusRepository) GetByStatus(status string) (*models.LifecycleStatus, error) {
+	var lifecycleStatus *models.LifecycleStatus
+
+	result := repo.db.Where("status = ?", status).First(&lifecycleStatus)
+
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, utility.NewResourceNotFoundError(result.Error, "Lifecycle Status with status "+status)
+	} else if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return lifecycleStatus, nil
 }
