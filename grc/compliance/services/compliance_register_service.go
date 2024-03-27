@@ -10,13 +10,12 @@ import (
 	masterRepositories "jethur/grc/masters/repositories"
 	masterServices "jethur/grc/masters/services"
 	"jethur/utility"
-	"log"
 )
 
 type ComplianceRegisterServiceInterface interface {
 	GetAll(params *complianceDTOs.ComplianceRegisterListQueryParamsDTO) (*complianceDTOs.ComplianceRegisterListResponseDTO, error)
 	GetByID(id uint) (*complianceModels.ComplianceRegister, error)
-	Create(currentUserID uint, complianceRegFormDTO *complianceDTOs.ComplianceRegisterFormDTO) (uint, error)
+	Create(currentUserID uint, complianceRegisterFormDTO *complianceDTOs.ComplianceRegisterFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, compliance *complianceDTOs.ComplianceRegisterFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	Archive(ids []uint, currentUserID uint) ([]uint, error)
@@ -61,13 +60,13 @@ func (crs ComplianceRegisterService) GetByID(id uint) (*complianceModels.Complia
 	return crs.repo.GetByID(id)
 }
 
-func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegFormDTO *complianceDTOs.ComplianceRegisterFormDTO) (uint, error) {
+func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegisterFormDTO *complianceDTOs.ComplianceRegisterFormDTO) (uint, error) {
 
-	if err := crs.validateComplianceRegisterFormDTO(complianceRegFormDTO); err != nil {
+	if err := crs.validateComplianceRegisterFormDTO(complianceRegisterFormDTO); err != nil {
 		return 0, err
 	}
 
-	dates, err := crs.parseComplianceRegisterDates(complianceRegFormDTO)
+	dates, err := crs.parseComplianceRegisterDates(complianceRegisterFormDTO)
 	if err != nil {
 		return 0, err
 	}
@@ -79,25 +78,24 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegFo
 
 	lifecycleStatus, err := crs.lifecycleStatusSvc.GetByStatus("active")
 	if err != nil {
-		log.Println("Error parsing next review date:", err)
 		return 0, err
 	}
 
 	complianceRegister := &complianceModels.ComplianceRegister{
-		ComplianceCategoryID:    complianceRegFormDTO.ComplianceCategoryID,
-		ComplianceStatusID:      complianceRegFormDTO.ComplianceStatusID,
-		ResponsibleUnitID:       complianceRegFormDTO.ResponsibleUnitID,
-		ResponsibleUserID:       complianceRegFormDTO.ResponsibleUserID,
-		ReviewFrequencyID:       complianceRegFormDTO.ReviewFrequencyID,
-		ReviewResponsibleUserID: complianceRegFormDTO.ReviewResponsibleUserID,
-		SeverityLevelID:         complianceRegFormDTO.SeverityLevelID,
+		ComplianceCategoryID:    complianceRegisterFormDTO.ComplianceCategoryID,
+		ComplianceStatusID:      complianceRegisterFormDTO.ComplianceStatusID,
+		ResponsibleUnitID:       complianceRegisterFormDTO.ResponsibleUnitID,
+		ResponsibleUserID:       complianceRegisterFormDTO.ResponsibleUserID,
+		ReviewFrequencyID:       complianceRegisterFormDTO.ReviewFrequencyID,
+		ReviewResponsibleUserID: complianceRegisterFormDTO.ReviewResponsibleUserID,
+		SeverityLevelID:         complianceRegisterFormDTO.SeverityLevelID,
 		ReferenceNumber:         referenceNumber,
-		StandardCode:            complianceRegFormDTO.StandardCode,
-		TitleEn:                 complianceRegFormDTO.TitleEn,
-		TitleAr:                 complianceRegFormDTO.TitleAr,
-		DescriptionEn:           complianceRegFormDTO.DescriptionEn,
-		DescriptionAr:           complianceRegFormDTO.DescriptionAr,
-		Version:                 complianceRegFormDTO.Version,
+		StandardCode:            complianceRegisterFormDTO.StandardCode,
+		TitleEn:                 complianceRegisterFormDTO.TitleEn,
+		TitleAr:                 complianceRegisterFormDTO.TitleAr,
+		DescriptionEn:           complianceRegisterFormDTO.DescriptionEn,
+		DescriptionAr:           complianceRegisterFormDTO.DescriptionAr,
+		Version:                 complianceRegisterFormDTO.Version,
 		Deadline:                dates.Deadline,
 		IssueDate:               dates.IssueDate,
 		ExpiryDate:              dates.ExpiryDate,
@@ -116,7 +114,7 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegFo
 			logModels.CreateAction,
 			complianceModels.ComplianceRegister{}.TableName(),
 			id,
-			complianceRegFormDTO,
+			complianceRegisterFormDTO,
 			currentUserID,
 			nil,
 		)
@@ -137,7 +135,7 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegFo
 	return id, nil
 }
 
-func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, complianceRegFormDTO *complianceDTOs.ComplianceRegisterFormDTO) error {
+func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, complianceRegisterFormDTO *complianceDTOs.ComplianceRegisterFormDTO) error {
 
 	existingComplianceRegister, err := crs.repo.GetByID(id)
 
@@ -145,28 +143,28 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 		return err
 	}
 
-	if err := crs.validateComplianceRegisterFormDTO(complianceRegFormDTO); err != nil {
+	if err := crs.validateComplianceRegisterFormDTO(complianceRegisterFormDTO); err != nil {
 		return err
 	}
 
-	dates, err := crs.parseComplianceRegisterDates(complianceRegFormDTO)
+	dates, err := crs.parseComplianceRegisterDates(complianceRegisterFormDTO)
 	if err != nil {
 		return err
 	}
 
-	existingComplianceRegister.ComplianceCategoryID = complianceRegFormDTO.ComplianceCategoryID
-	existingComplianceRegister.ComplianceStatusID = complianceRegFormDTO.ComplianceStatusID
-	existingComplianceRegister.ResponsibleUnitID = complianceRegFormDTO.ResponsibleUnitID
-	existingComplianceRegister.ResponsibleUserID = complianceRegFormDTO.ResponsibleUserID
-	existingComplianceRegister.ReviewFrequencyID = complianceRegFormDTO.ReviewFrequencyID
-	existingComplianceRegister.ReviewResponsibleUserID = complianceRegFormDTO.ReviewResponsibleUserID
-	existingComplianceRegister.SeverityLevelID = complianceRegFormDTO.SeverityLevelID
-	existingComplianceRegister.StandardCode = complianceRegFormDTO.StandardCode
-	existingComplianceRegister.TitleEn = complianceRegFormDTO.TitleEn
-	existingComplianceRegister.TitleAr = complianceRegFormDTO.TitleAr
-	existingComplianceRegister.DescriptionEn = complianceRegFormDTO.DescriptionEn
-	existingComplianceRegister.DescriptionAr = complianceRegFormDTO.DescriptionAr
-	existingComplianceRegister.Version = complianceRegFormDTO.Version
+	existingComplianceRegister.ComplianceCategoryID = complianceRegisterFormDTO.ComplianceCategoryID
+	existingComplianceRegister.ComplianceStatusID = complianceRegisterFormDTO.ComplianceStatusID
+	existingComplianceRegister.ResponsibleUnitID = complianceRegisterFormDTO.ResponsibleUnitID
+	existingComplianceRegister.ResponsibleUserID = complianceRegisterFormDTO.ResponsibleUserID
+	existingComplianceRegister.ReviewFrequencyID = complianceRegisterFormDTO.ReviewFrequencyID
+	existingComplianceRegister.ReviewResponsibleUserID = complianceRegisterFormDTO.ReviewResponsibleUserID
+	existingComplianceRegister.SeverityLevelID = complianceRegisterFormDTO.SeverityLevelID
+	existingComplianceRegister.StandardCode = complianceRegisterFormDTO.StandardCode
+	existingComplianceRegister.TitleEn = complianceRegisterFormDTO.TitleEn
+	existingComplianceRegister.TitleAr = complianceRegisterFormDTO.TitleAr
+	existingComplianceRegister.DescriptionEn = complianceRegisterFormDTO.DescriptionEn
+	existingComplianceRegister.DescriptionAr = complianceRegisterFormDTO.DescriptionAr
+	existingComplianceRegister.Version = complianceRegisterFormDTO.Version
 	existingComplianceRegister.Deadline = dates.Deadline
 	existingComplianceRegister.IssueDate = dates.IssueDate
 	existingComplianceRegister.ExpiryDate = dates.ExpiryDate
@@ -276,22 +274,22 @@ func (crs *ComplianceRegisterService) Restore(ids []uint, currentUserID uint) ([
 	return successfulIds, nil
 }
 
-func (crs *ComplianceRegisterService) validateComplianceRegisterFormDTO(complianceRegFormDTO *complianceDTOs.ComplianceRegisterFormDTO) error {
-	if _, err := crs.complianceCategorySvc.GetByID(complianceRegFormDTO.ComplianceCategoryID); err != nil {
+func (crs *ComplianceRegisterService) validateComplianceRegisterFormDTO(complianceRegisterFormDTO *complianceDTOs.ComplianceRegisterFormDTO) error {
+	if _, err := crs.complianceCategorySvc.GetByID(complianceRegisterFormDTO.ComplianceCategoryID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("compliance category does not exist"), "not_exist", "compliance category")
 	}
 
-	if _, err := crs.complianceStatusSvc.GetByID(complianceRegFormDTO.ComplianceStatusID); err != nil {
+	if _, err := crs.complianceStatusSvc.GetByID(complianceRegisterFormDTO.ComplianceStatusID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("compliance status does not exist"), "not_exist", "compliance status")
 	}
 
-	if complianceRegFormDTO.ReviewFrequencyID != nil {
-		if _, err := crs.reviewFrequencySvc.GetByID(*complianceRegFormDTO.ReviewFrequencyID); err != nil {
+	if complianceRegisterFormDTO.ReviewFrequencyID != nil {
+		if _, err := crs.reviewFrequencySvc.GetByID(*complianceRegisterFormDTO.ReviewFrequencyID); err != nil {
 			return utility.NewValidationError(fmt.Errorf("review frequency does not exist"), "not_exist", "review frequency")
 		}
 	}
-	if complianceRegFormDTO.SeverityLevelID != nil {
-		if _, err := crs.severityLevelSvc.GetByID(*complianceRegFormDTO.SeverityLevelID); err != nil {
+	if complianceRegisterFormDTO.SeverityLevelID != nil {
+		if _, err := crs.severityLevelSvc.GetByID(*complianceRegisterFormDTO.SeverityLevelID); err != nil {
 			return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
 		}
 	}
