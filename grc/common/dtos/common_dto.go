@@ -10,3 +10,10 @@ type PaginationInfoDTO struct {
 type IDResponse struct {
 	ID uint `json:"id"`
 }
+
+type FileDTO struct {
+	FileName     string `json:"fileName"`
+	OriginalName string `json:"originalName"`
+	FileType     string `json:"fileType"`
+	SizeInBytes  int64  `json:"sizeInBytes"`
+}

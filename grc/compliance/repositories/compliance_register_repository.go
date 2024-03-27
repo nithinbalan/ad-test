@@ -14,13 +14,14 @@ import (
 type ComplianceRegisterRepositoryInterface interface {
 	GetAll(params *complianceDTOs.ComplianceRegisterListQueryParamsDTO) (*complianceDTOs.ComplianceRegisterListResponseDTO, error)
 	GetByID(id uint) (*complianceModels.ComplianceRegister, error)
-	Create(currentUserID uint, complianceRegFormDTO *complianceDTOs.ComplianceRegisterFormDTO) (uint, error)
-	Update(id uint, currentUserID uint, complianceRegFormDTO *complianceDTOs.ComplianceRegisterFormDTO) error
+	Create(complianceRegister *complianceModels.ComplianceRegister) (uint, error)
+	Update(complianceRegister *complianceModels.ComplianceRegister) error
 	Delete(id uint) error
 	Archive(ids []uint) ([]uint, error)
 	Restore(ids []uint) ([]uint, error)
 	ExistsByTitle(titleEn string, titleAr string) (bool, error)
 	ExistsByTitleExcludingID(id uint, titleEn, titleAr string) (bool, error)
+	GenerateReferenceNumber() (string, error)
 }
 
 type ComplianceRegisterRepository struct {
@@ -218,60 +219,7 @@ func (repo *ComplianceRegisterRepository) GetByID(id uint) (*complianceModels.Co
 	return compliance, result.Error
 }
 
-func (repo *ComplianceRegisterRepository) Create(currentUserID uint, complianceRegFormDTO *complianceDTOs.ComplianceRegisterFormDTO) (uint, error) {
-
-	var lifecycleStatus masterModels.LifecycleStatus
-	if err := repo.db.Where("type = ?", "active").First(&lifecycleStatus).Error; err != nil {
-		return 0, utility.NewInternalServerError(err)
-	}
-
-	// Retrieve the last reference number from the database
-	var lastReferenceNumber string
-	err := repo.db.Model(&complianceModels.ComplianceRegister{}).
-		Select("reference_number").
-		Order("reference_number desc").
-		Limit(1).
-		Pluck("reference_number", &lastReferenceNumber).
-		Error
-
-	// Handle potential errors from the database query
-	if err != nil {
-		return 0, err
-	}
-
-	// Default suffix for the reference number if no previous record exists
-	lastDigits := "0000"
-	// Update lastDigits based on the last reference number if available
-	if lastReferenceNumber != "" && len(lastReferenceNumber) >= 4 {
-		lastDigits = lastReferenceNumber[len(lastReferenceNumber)-4:]
-	}
-
-	// Generate the new reference number using a utility function
-	referenceNumber := utility.GenerateReferenceNumber(complianceRegFormDTO.StandardCode, lastDigits)
-
-	// Map DTO to ComplianceRegister model
-	complianceRegister := &complianceModels.ComplianceRegister{
-		ComplianceCategoryID:    complianceRegFormDTO.ComplianceCategoryID,
-		ComplianceStatusID:      complianceRegFormDTO.ComplianceStatusID,
-		ResponsibleUnitID:       complianceRegFormDTO.ResponsibleUnitID,
-		ResponsibleUserID:       complianceRegFormDTO.ResponsibleUserID,
-		ReviewFrequencyID:       complianceRegFormDTO.ReviewFrequencyID,
-		ReviewResponsibleUserID: complianceRegFormDTO.ReviewResponsibleUserID,
-		SeverityLevelID:         complianceRegFormDTO.SeverityLevelID,
-		ReferenceNumber:         referenceNumber,
-		StandardCode:            complianceRegFormDTO.StandardCode,
-		TitleEn:                 complianceRegFormDTO.TitleEn,
-		TitleAr:                 complianceRegFormDTO.TitleAr,
-		DescriptionEn:           complianceRegFormDTO.DescriptionEn,
-		DescriptionAr:           complianceRegFormDTO.DescriptionAr,
-		Version:                 complianceRegFormDTO.Version,
-		Deadline:                complianceRegFormDTO.Deadline,
-		IssueDate:               complianceRegFormDTO.IssueDate,
-		ExpiryDate:              complianceRegFormDTO.ExpiryDate,
-		NextReviewDate:          complianceRegFormDTO.NextReviewDate,
-		CreatedBy:               currentUserID,
-		LifecycleStatusID:       lifecycleStatus.ID,
-	}
+func (repo *ComplianceRegisterRepository) Create(complianceRegister *complianceModels.ComplianceRegister) (uint, error) {
 
 	if err := repo.db.Create(complianceRegister).Error; err != nil {
 		return 0, err
@@ -280,33 +228,9 @@ func (repo *ComplianceRegisterRepository) Create(currentUserID uint, complianceR
 	return complianceRegister.ID, nil
 }
 
-func (repo *ComplianceRegisterRepository) Update(id uint, currentUserID uint, complianceRegFormDTO *complianceDTOs.ComplianceRegisterFormDTO) error {
-	// Prepare the update map
-	updateFields := map[string]interface{}{
-		"ComplianceCategoryID":    complianceRegFormDTO.ComplianceCategoryID,
-		"ComplianceStatusID":      complianceRegFormDTO.ComplianceStatusID,
-		"ResponsibleUnitID":       complianceRegFormDTO.ResponsibleUnitID,
-		"ResponsibleUserID":       complianceRegFormDTO.ResponsibleUserID,
-		"ReviewFrequencyID":       complianceRegFormDTO.ReviewFrequencyID,
-		"ReviewResponsibleUserID": complianceRegFormDTO.ReviewResponsibleUserID,
-		"SeverityLevelID":         complianceRegFormDTO.SeverityLevelID,
-		"StandardCode":            complianceRegFormDTO.StandardCode,
-		"TitleEn":                 complianceRegFormDTO.TitleEn,
-		"TitleAr":                 complianceRegFormDTO.TitleAr,
-		"DescriptionEn":           complianceRegFormDTO.DescriptionEn,
-		"DescriptionAr":           complianceRegFormDTO.DescriptionAr,
-		"Version":                 complianceRegFormDTO.Version,
-		"Deadline":                complianceRegFormDTO.Deadline,
-		"IssueDate":               complianceRegFormDTO.IssueDate,
-		"ExpiryDate":              complianceRegFormDTO.ExpiryDate,
-		"NextReviewDate":          complianceRegFormDTO.NextReviewDate,
-		"UpdatedBy":               currentUserID,
-	}
+func (repo *ComplianceRegisterRepository) Update(complianceRegister *complianceModels.ComplianceRegister) error {
 
-	// Perform the update
-	if err := repo.db.Model(&complianceModels.ComplianceRegister{}).
-		Where("id = ?", id).
-		Updates(updateFields).Error; err != nil {
+	if err := repo.db.Save(complianceRegister).Error; err != nil {
 		return err
 	}
 
@@ -416,4 +340,27 @@ func (repo *ComplianceRegisterRepository) ExistsByTitleExcludingID(id uint, titl
 	}
 
 	return count > 0, nil
+}
+
+func (repo *ComplianceRegisterRepository) GenerateReferenceNumber() (string, error) {
+	var lastReferenceNumber string
+	err := repo.db.Model(&complianceModels.ComplianceRegister{}).
+		Select("reference_number").
+		Order("reference_number desc").
+		Limit(1).
+		Pluck("reference_number", &lastReferenceNumber).
+		Error
+
+	if err != nil {
+		return "", err
+	}
+
+	lastDigits := "0000"
+	if lastReferenceNumber != "" && len(lastReferenceNumber) >= 4 {
+		lastDigits = lastReferenceNumber[len(lastReferenceNumber)-4:]
+	}
+
+	newReferenceNumber := utility.GenerateReferenceNumber("CR", lastDigits)
+
+	return newReferenceNumber, nil
 }
