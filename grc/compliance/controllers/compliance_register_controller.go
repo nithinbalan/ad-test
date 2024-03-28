@@ -36,6 +36,7 @@ func (crc *ComplianceRegisterController) GetAllComplianceRegisters(c *gin.Contex
 		"compliance_category_ids",
 		"severity_level_ids",
 		"compliance_status_ids",
+		"responsible_user_ids",
 		"responsible_unit_ids",
 		"review_frequency_ids",
 		"review_responsible_user_ids",
@@ -113,9 +114,9 @@ func (crc *ComplianceRegisterController) GetComplianceRegisterDetails(c *gin.Con
 
 func (crc *ComplianceRegisterController) CreateComplianceRegister(c *gin.Context) {
 
-	var complianceRegFormDTO complianceDTOs.ComplianceRegisterFormDTO
+	var complianceRegisterFormDTO complianceDTOs.ComplianceRegisterFormDTO
 
-	if err := c.ShouldBindJSON(&complianceRegFormDTO); err != nil {
+	if err := c.ShouldBindJSON(&complianceRegisterFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
@@ -126,7 +127,7 @@ func (crc *ComplianceRegisterController) CreateComplianceRegister(c *gin.Context
 		return
 	}
 
-	id, err := crc.service.Create(currentUserID, &complianceRegFormDTO)
+	id, err := crc.service.Create(currentUserID, &complianceRegisterFormDTO)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -150,8 +151,8 @@ func (crc *ComplianceRegisterController) UpdateComplianceRegister(c *gin.Context
 		return
 	}
 
-	var complianceRegFormDTO complianceDTOs.ComplianceRegisterFormDTO
-	if err := c.ShouldBindJSON(&complianceRegFormDTO); err != nil {
+	var complianceRegisterFormDTO complianceDTOs.ComplianceRegisterFormDTO
+	if err := c.ShouldBindJSON(&complianceRegisterFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
@@ -162,7 +163,7 @@ func (crc *ComplianceRegisterController) UpdateComplianceRegister(c *gin.Context
 		return
 	}
 
-	err = crc.service.Update(uint(complianceID), currentUserID, &complianceRegFormDTO)
+	err = crc.service.Update(uint(complianceID), currentUserID, &complianceRegisterFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

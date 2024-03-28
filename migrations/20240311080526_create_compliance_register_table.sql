@@ -7,7 +7,7 @@ CREATE TABLE compliance_register (
     responsible_unit_id INT NOT NULL,
     responsible_user_id INT NOT NULL,
     review_frequency_id INT NULL,
-    review_responsible_user_id NULL,
+    review_responsible_user_id INT NULL,
     severity_level_id INT NULL,
     reference_number VARCHAR(45) NULL,
     standard_code VARCHAR(45) NULL,

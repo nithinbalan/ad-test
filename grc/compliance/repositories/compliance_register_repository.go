@@ -2,11 +2,14 @@ package repositories
 
 import (
 	"errors"
+	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	complianceModels "jethur/grc/compliance/models"
 	masterModels "jethur/grc/masters/models"
 	"jethur/utility"
+	"strconv"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -19,8 +22,6 @@ type ComplianceRegisterRepositoryInterface interface {
 	Delete(id uint) error
 	Archive(ids []uint) ([]uint, error)
 	Restore(ids []uint) ([]uint, error)
-	ExistsByTitle(titleEn string, titleAr string) (bool, error)
-	ExistsByTitleExcludingID(id uint, titleEn, titleAr string) (bool, error)
 	GenerateReferenceNumber() (string, error)
 }
 
@@ -314,34 +315,6 @@ func (repo *ComplianceRegisterRepository) Restore(ids []uint) ([]uint, error) {
 	return idsToUpdate, nil
 }
 
-func (repo *ComplianceRegisterRepository) ExistsByTitle(titleEn, titleAr string) (bool, error) {
-	var count int64
-
-	err := repo.db.Model(&complianceModels.ComplianceRegister{}).
-		Where("title_en = ? OR title_ar = ?", titleEn, titleAr).
-		Count(&count).Error
-
-	if err != nil {
-		return false, utility.NewInternalServerError(err)
-	}
-
-	return count > 0, nil
-}
-
-func (repo *ComplianceRegisterRepository) ExistsByTitleExcludingID(id uint, titleEn, titleAr string) (bool, error) {
-	var count int64
-
-	err := repo.db.Model(&complianceModels.ComplianceRegister{}).
-		Where("id <> ? AND (title_en = ? OR title_ar = ?)", id, titleEn, titleAr).
-		Count(&count).Error
-
-	if err != nil {
-		return false, utility.NewInternalServerError(err)
-	}
-
-	return count > 0, nil
-}
-
 func (repo *ComplianceRegisterRepository) GenerateReferenceNumber() (string, error) {
 	var lastReferenceNumber string
 	err := repo.db.Model(&complianceModels.ComplianceRegister{}).
@@ -360,7 +333,10 @@ func (repo *ComplianceRegisterRepository) GenerateReferenceNumber() (string, err
 		lastDigits = lastReferenceNumber[len(lastReferenceNumber)-4:]
 	}
 
-	newReferenceNumber := utility.GenerateReferenceNumber("CR", lastDigits)
+	currentYear := time.Now().Year()
+	lastReferenceID, _ := strconv.ParseUint(lastDigits, 10, 64)
+
+	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "CR", currentYear, lastReferenceID+1)
 
 	return newReferenceNumber, nil
 }

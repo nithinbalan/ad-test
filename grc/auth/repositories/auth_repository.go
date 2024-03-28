@@ -80,8 +80,9 @@ func (repo *AuthRepository) SendPasswordRecoveryOTP(email string) (*models.User,
 	}
 	otpLength := 6
 	otp := utility.GenerateOTP(otpLength)
-	user.Otp = otp
-	user.SentAt = time.Now().UTC()
+	currentTime := time.Now().UTC()
+	user.Otp = &otp
+	user.SentAt = &currentTime
 
 	if err := repo.db.Save(&user).Error; err != nil {
 		return nil, utility.NewInternalServerError(err)
@@ -109,8 +110,8 @@ func (repo *AuthRepository) ReSendPasswordRecoveryOTP(email string) (*models.Use
 
 	otpLength := 6
 	otp := utility.GenerateOTP(otpLength)
-	user.Otp = otp
-	user.SentAt = time.Now().UTC()
+	user.Otp = &otp
+	user.SentAt = &currentTime
 
 	if err := repo.db.Save(&user).Error; err != nil {
 		return nil, utility.NewInternalServerError(err)
