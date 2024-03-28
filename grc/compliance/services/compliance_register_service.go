@@ -174,7 +174,7 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 	existingComplianceRegister.IssueDate = dates.IssueDate
 	existingComplianceRegister.ExpiryDate = dates.ExpiryDate
 	existingComplianceRegister.NextReviewDate = dates.NextReviewDate
-	existingComplianceRegister.UpdatedBy = currentUserID
+	existingComplianceRegister.UpdatedBy = &currentUserID
 
 	err = crs.repo.Update(existingComplianceRegister)
 
