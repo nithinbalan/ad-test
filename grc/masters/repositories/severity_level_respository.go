@@ -19,7 +19,7 @@ type SeverityLevelRepository struct {
 	db *gorm.DB
 }
 
-func NewSeverityLevelRepository(db *gorm.DB) *SeverityLevelRepository {
+func NewSeverityLevelRepository(db *gorm.DB) SeverityLevelRepositoryInterface {
 	return &SeverityLevelRepository{
 		db: db,
 	}

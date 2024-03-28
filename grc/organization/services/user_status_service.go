@@ -8,6 +8,7 @@ import (
 type UserStatusServiceInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.UserStatus, error)
 	GetByID(id uint) (*models.UserStatus, error)
+	GetByStatus(status string) (*models.UserStatus, error) // Renamed method
 }
 
 // Service and implementations
@@ -27,4 +28,15 @@ func (uss *UserStatusService) GetAll(sort string, sortBy string, keyword string,
 
 func (uss UserStatusService) GetByID(id uint) (*models.UserStatus, error) {
 	return uss.repo.GetByID(id)
+}
+
+func (lss *UserStatusService) GetByStatus(status string) (*models.UserStatus, error) {
+	// Fetch the lifecycle status by its status
+	statusResult, err := lss.repo.GetByStatus(status)
+	if err != nil {
+		// Handle error appropriately
+		return nil, err
+	}
+
+	return statusResult, nil
 }

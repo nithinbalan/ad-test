@@ -2,7 +2,6 @@ package utility
 
 import (
 	"encoding/json"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -178,9 +177,4 @@ func ExtractValidationErrors(c *gin.Context, err error) []string {
 	}
 
 	return errors
-}
-
-func IsValidDate(dateString string) bool {
-	_, err := time.Parse("2006-01-02", dateString)
-	return err == nil
 }

@@ -42,9 +42,9 @@ func (as AuthService) SendPasswordRecoveryOTP(email string) error {
 	}
 
 	emailData := authDTOs.PasswordRecoveryDataDTO{
-		FirstNameEn: user.FirstNameEN,
-		LastNameEn:  user.LastNameEN,
-		Otp:         user.Otp,
+		FirstNameEn: user.FirstNameEn,
+		LastNameEn:  user.LastNameEn,
+		Otp:         *user.Otp,
 	}
 
 	to := []string{user.Email}
@@ -68,9 +68,9 @@ func (as AuthService) ReSendPasswordRecoveryOTP(email string) error {
 	}
 
 	emailData := authDTOs.PasswordRecoveryDataDTO{
-		FirstNameEn: user.FirstNameEN,
-		LastNameEn:  user.LastNameEN,
-		Otp:         user.Otp,
+		FirstNameEn: user.FirstNameEn,
+		LastNameEn:  user.LastNameEn,
+		Otp:         *user.Otp,
 	}
 
 	to := []string{user.Email}

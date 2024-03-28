@@ -6,11 +6,10 @@ import (
 	"fmt"
 	"math/rand"
 	"reflect"
-	"strconv"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func SetDefault(value string, defaultValue string) string {
@@ -113,10 +112,13 @@ func GenerateOTP(length int) string {
 	return string(otp)
 }
 
-// Function to generate reference number based on the last ID
-func GenerateReferenceNumber(code string, lastDigits string) string {
-	currentYear := time.Now().Year()
-	// Convert the last 4 digits to uint
-	lastReferenceID, _ := strconv.ParseUint(lastDigits, 10, 64)
-	return fmt.Sprintf("%s-%d-%04d", code, currentYear, lastReferenceID+1)
+// @todo to be removed
+func GeneratePassword() {
+	password := "12345678" // Your plaintext password
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		fmt.Println("Error hashing password:", err)
+		return
+	}
+	fmt.Println("Hashed Password:", string(hashedPassword))
 }
