@@ -15,6 +15,7 @@ type UserRepositoryInterface interface {
 	GetByID(id uint) (*organizationModels.User, error)
 	Create(user *organizationModels.User) (uint, error)
 	Update(user *organizationModels.User) error
+	UpdatePartial(id uint, updates map[string]interface{}) error
 	GetByEmail(email string) (*organizationModels.User, error)
 	// Delete(id uint) error
 }
@@ -125,9 +126,16 @@ func (repo *UserRepository) Update(user *organizationModels.User) error {
 	return nil
 }
 
+func (repo *UserRepository) UpdatePartial(id uint, updates map[string]interface{}) error {
+	if err := repo.db.Model(&organizationModels.User{}).Where("id = ?", id).Updates(updates).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
 func (repo *UserRepository) GetByEmail(email string) (*organizationModels.User, error) {
 	var user *organizationModels.User
-	result := repo.db.First(&user, email)
+	result := repo.db.Where("email = ?", email).First(&user)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, utility.NewResourceNotFoundError(result.Error, email)

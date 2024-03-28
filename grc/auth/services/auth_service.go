@@ -5,6 +5,8 @@ import (
 	"jethur/config"
 	authDTOs "jethur/grc/auth/dtos"
 	"jethur/grc/auth/repositories"
+	organizationDTOs "jethur/grc/organization/dtos"
+	"jethur/grc/organization/services"
 	"jethur/utility"
 	"strconv"
 	"strings"
@@ -21,12 +23,14 @@ type AuthServiceInterface interface {
 
 // Service and implementations
 type AuthService struct {
-	repo repositories.AuthRepositoryInterface
+	repo        repositories.AuthRepositoryInterface
+	userService services.UserServiceInterface
 }
 
-func NewAuthService(repo repositories.AuthRepositoryInterface) AuthServiceInterface {
+func NewAuthService(repo repositories.AuthRepositoryInterface, userService services.UserServiceInterface) AuthServiceInterface {
 	return &AuthService{
-		repo: repo,
+		repo:        repo,
+		userService: userService,
 	}
 }
 
@@ -35,8 +39,22 @@ func (as *AuthService) Authenticate(email string, password string) (map[string]s
 }
 
 func (as AuthService) SendPasswordRecoveryOTP(email string) error {
-	user, err := as.repo.SendPasswordRecoveryOTP(email)
 
+	fmt.Println("Reached recovery otp service")
+	//get user
+	user, err := as.userService.GetByEmail(email)
+	if err != nil {
+		return nil
+	}
+
+	//otp generate
+	//update user security (using userSvc)
+	//send email
+	updateDTO := organizationDTOs.UserUpdateDTO{
+		FirstNameEn: StringPtr("shihab updated"),
+	}
+
+	err = as.userService.UpdatePartial(user.ID, &updateDTO)
 	if err != nil {
 		return err
 	}
@@ -182,4 +200,12 @@ func isValidPassword(password string) bool {
 	}
 
 	return hasUpperCase && hasLowerCase && hasNumber && hasSpecial
+}
+
+func StringPtr(s string) *string {
+	return &s
+}
+
+func IntPtr(i int) *int {
+	return &i
 }

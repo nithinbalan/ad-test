@@ -15,8 +15,9 @@ type AuthController struct {
 	db      *gorm.DB
 }
 
-func NewAuthController(service services.AuthServiceInterface) *AuthController {
+func NewAuthController(db *gorm.DB, service services.AuthServiceInterface) *AuthController {
 	return &AuthController{
+		db:      db,
 		service: service,
 	}
 }
