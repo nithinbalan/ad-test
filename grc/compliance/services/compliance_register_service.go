@@ -10,6 +10,7 @@ import (
 	masterRepositories "jethur/grc/masters/repositories"
 	masterServices "jethur/grc/masters/services"
 	"jethur/utility"
+	"time"
 )
 
 type ComplianceRegisterServiceInterface interface {
@@ -81,6 +82,8 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 		return 0, err
 	}
 
+	currentTime := time.Now().UTC()
+
 	complianceRegister := &complianceModels.ComplianceRegister{
 		ComplianceCategoryID:    complianceRegisterFormDTO.ComplianceCategoryID,
 		ComplianceStatusID:      complianceRegisterFormDTO.ComplianceStatusID,
@@ -101,6 +104,8 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 		ExpiryDate:              dates.ExpiryDate,
 		NextReviewDate:          dates.NextReviewDate,
 		CreatedBy:               currentUserID,
+		CreatedAt:               currentTime,
+		UpdatedAt:               currentTime,
 		LifecycleStatusID:       lifecycleStatus.ID,
 	}
 
@@ -169,7 +174,7 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 	existingComplianceRegister.IssueDate = dates.IssueDate
 	existingComplianceRegister.ExpiryDate = dates.ExpiryDate
 	existingComplianceRegister.NextReviewDate = dates.NextReviewDate
-	existingComplianceRegister.UpdatedBy = currentUserID
+	existingComplianceRegister.UpdatedBy = &currentUserID
 
 	err = crs.repo.Update(existingComplianceRegister)
 
@@ -304,28 +309,28 @@ func (crs *ComplianceRegisterService) parseComplianceRegisterDates(dto *complian
 	if dto.Deadline != "" {
 		parsed.Deadline, err = utility.ParseDate(dto.Deadline)
 		if err != nil {
-			return nil, fmt.Errorf("invalid deadline: %w", err)
+			return nil, utility.NewValidationError(fmt.Errorf("invalid deadline"), "invalid_date", "deadline")
 		}
 	}
 
 	if dto.IssueDate != "" {
 		parsed.IssueDate, err = utility.ParseDate(dto.IssueDate)
 		if err != nil {
-			return nil, fmt.Errorf("invalid issue date: %w", err)
+			return nil, utility.NewValidationError(fmt.Errorf("invalid issue date"), "invalid_date", "issue date")
 		}
 	}
 
 	if dto.ExpiryDate != "" {
 		parsed.ExpiryDate, err = utility.ParseDate(dto.ExpiryDate)
 		if err != nil {
-			return nil, fmt.Errorf("invalid expiry date: %w", err)
+			return nil, utility.NewValidationError(fmt.Errorf("invalid expiry date"), "invalid_date", "expiry date")
 		}
 	}
 
 	if dto.NextReviewDate != "" {
 		parsed.NextReviewDate, err = utility.ParseDate(dto.NextReviewDate)
 		if err != nil {
-			return nil, fmt.Errorf("invalid next review date: %w", err)
+			return nil, utility.NewValidationError(fmt.Errorf("invalid next review date"), "invalid_date", "next review date")
 		}
 	}
 
