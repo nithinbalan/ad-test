@@ -18,6 +18,7 @@ type UserServiceInterface interface {
 	// GetByID(id uint) (*models.ComplianceRegister, error)
 	Create(currentUserID uint, userFormDTO *userDTOs.UserFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, user *userDTOs.UserFormDTO) error
+	GetByEmail(email string) (*organizationModels.User, error)
 	// Delete(ids []uint, currentUserID uint) ([]uint, error)
 }
 
@@ -140,7 +141,7 @@ func (us *UserService) Update(id uint, currentUserID uint, userFormDTO *userDTOs
 	existingUser.Email = userFormDTO.Email
 	existingUser.MobileNumber = userFormDTO.MobileNumber
 	existingUser.ProfileImagePath = userFormDTO.ProfileImagePath
-	existingUser.UpdatedBy = currentUserID
+	existingUser.UpdatedBy = &currentUserID
 
 	err = us.repo.Update(existingUser)
 	if err != nil {
@@ -171,4 +172,8 @@ func (us *UserService) generateRandomPassword(length int) (string, error) {
 	}
 
 	return string(b), nil
+}
+
+func (us *UserService) GetByEmail(email string) (*organizationModels.User, error) {
+	return us.repo.GetByEmail(email)
 }

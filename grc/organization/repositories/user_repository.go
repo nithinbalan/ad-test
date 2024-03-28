@@ -15,6 +15,7 @@ type UserRepositoryInterface interface {
 	GetByID(id uint) (*organizationModels.User, error)
 	Create(user *organizationModels.User) (uint, error)
 	Update(user *organizationModels.User) error
+	GetByEmail(email string) (*organizationModels.User, error)
 	// Delete(id uint) error
 }
 
@@ -122,4 +123,17 @@ func (repo *UserRepository) Update(user *organizationModels.User) error {
 	}
 
 	return nil
+}
+
+func (repo *UserRepository) GetByEmail(email string) (*organizationModels.User, error) {
+	var user *organizationModels.User
+	result := repo.db.First(&user, email)
+
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, utility.NewResourceNotFoundError(result.Error, email)
+	} else if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return user, nil
 }

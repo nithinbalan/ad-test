@@ -91,7 +91,7 @@ func (as *AuthService) VerifyPasswordRecoveryOTP(email, otp string) (string, err
 		return "", err
 	}
 
-	if user.Otp != otp {
+	if user.Otp != &otp {
 		return "", utility.NewValidationError(fmt.Errorf("invalid OTP"), "invalid_otp", "otp")
 	}
 
@@ -141,8 +141,8 @@ func (as AuthService) SetPassword(setPasswordFormDTO authDTOs.PasswordRecoverySe
 
 	// Prepare data for the email template
 	emailData := authDTOs.PasswordRecoverySetPasswordEmailDTO{
-		FirstNameEn: user.FirstNameEN,
-		LastNameEn:  user.LastNameEN,
+		FirstNameEn: user.FirstNameEn,
+		LastNameEn:  user.LastNameEn,
 		Email:       user.Email,
 	}
 

@@ -21,13 +21,13 @@ type User struct {
 	Email               string     `json:"email" binding:"require, max:255" gorm:"type:varchar(255);not null"`
 	MobileNumber        *string    `json:"mobile_number" binding:"require, max:45" gorm:"type:varchar(45);not null"`
 	Otp                 *string    `json:"otp" gorm:"type:varchar(10);default:null"`
-	SentAt              *time.Time `json:"otp_sent_at" gorm:"type:datetime;default:null"`
+	SentAt              *time.Time `json:"sent_at" gorm:"type:datetime;default:null"`
 	PasswordHash        string     `json:"password_hash" binding:"required" gorm:"type:text;not null"`
 	ProfileImagePath    *string    `json:"profile_image_path" gorm:"type:varchar(500);default:null"`
 	CreatedAt           time.Time  `json:"created_at" gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP"`
 	UpdatedAt           time.Time  `json:"updated_at" gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"`
 	CreatedBy           uint       `json:"created_by" gorm:"not null"`
-	UpdatedBy           uint       `json:"updated_by" gorm:"default:null"`
+	UpdatedBy           *uint      `json:"updated_by" gorm:"default:null"`
 
 	// Relationships
 	OrganizationUnit1 *settingsModels.OrganizationUnit `gorm:"foreignKey:OrganizationUnit1ID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`

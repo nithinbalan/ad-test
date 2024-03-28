@@ -75,7 +75,7 @@ func (repo *AuthRepository) SendPasswordRecoveryOTP(email string) (*models.User,
 
 	result := repo.db.First(&user, "email = ?", email)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, nil
+		return nil, utility.NewResourceNotFoundError(result.Error, email)
 	} else if result.Error != nil {
 		return nil, utility.NewInternalServerError(result.Error)
 	}
@@ -84,7 +84,6 @@ func (repo *AuthRepository) SendPasswordRecoveryOTP(email string) (*models.User,
 	currentTime := time.Now().UTC()
 	user.Otp = &otp
 	user.SentAt = &currentTime
-
 	if err := repo.db.Save(&user).Error; err != nil {
 		return nil, utility.NewInternalServerError(err)
 	}
