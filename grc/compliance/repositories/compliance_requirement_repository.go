@@ -192,11 +192,21 @@ func (repo *ComplianceRequirementRepository) GetByID(id uint) (*complianceModels
 
 func (repo *ComplianceRequirementRepository) Create(complianceClause *complianceModels.ComplianceClause, complianceRequirement *complianceModels.ComplianceRequirement) (uint, error) {
 
-	if err := repo.db.Create(complianceClause).Error; err != nil {
-		return 0, err
+	var existingClause complianceModels.ComplianceClause
+	err := repo.db.Where("clause_no = ? AND title = ?", complianceClause.ClauseNo, complianceClause.Title).First(&existingClause).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			if err := repo.db.Create(complianceClause).Error; err != nil {
+				return 0, err
+			}
+			complianceRequirement.ComplianceClauseID = complianceClause.ID
+		} else {
+			return 0, err
+		}
+	} else {
+		// If the clause exists, use its ID for the compliance requirement
+		complianceRequirement.ComplianceClauseID = existingClause.ID
 	}
-
-	complianceRequirement.ComplianceClauseID = complianceClause.ID
 
 	if err := repo.db.Create(complianceRequirement).Error; err != nil {
 		return 0, err
