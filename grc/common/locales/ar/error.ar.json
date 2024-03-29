@@ -74,5 +74,9 @@
   {
     "id": "field_confirm_password",
     "translation": "كلمة المرور وتأكيد كلمة المرور غير متطابقين"
+  },
+  {
+    "id": "invalid_credentials",
+    "translation": "خطأ في اسم المستخدم أو كلمة مرور"
   }
 ]

@@ -1,24 +1,16 @@
 package repositories
 
 import (
-	"errors"
-	"fmt"
-	"jethur/grc/organization/models"
-	"jethur/utility"
-	"time"
-
-	"golang.org/x/crypto/bcrypt"
-
 	"gorm.io/gorm"
 )
 
 // Interfaces
 type AuthRepositoryInterface interface {
-	Authenticate(email string, password string) (map[string]string, error)
-	SendPasswordRecoveryOTP(email string) (*models.User, error)
-	ReSendPasswordRecoveryOTP(email string) (*models.User, error)
-	VerifyPasswordRecoveryOTP(email, otp string) (*models.User, error)
-	SetPassword(userID uint, newPassword string) (*models.User, error)
+	// Authenticate(email string, password string) (map[string]string, error)
+	// SendPasswordRecoveryOTP(email string) (*models.User, error)
+	// ReSendPasswordRecoveryOTP(email string) (*models.User, error)
+	// VerifyPasswordRecoveryOTP(email, otp string) (*models.User, error)
+	// SetPassword(userID uint, newPassword string) (*models.User, error)
 }
 
 type AuthRepository struct {
@@ -31,6 +23,7 @@ func NewAuthRepository(db *gorm.DB) *AuthRepository {
 	}
 }
 
+/*
 func (repo *AuthRepository) Authenticate(email, password string) (map[string]string, error) {
 
 	var user models.User
@@ -76,6 +69,7 @@ func (repo *AuthRepository) Authenticate(email, password string) (map[string]str
 	return authTokens, nil
 
 }
+
 
 func (repo *AuthRepository) SendPasswordRecoveryOTP(email string) (*models.User, error) {
 
@@ -166,3 +160,5 @@ func (repo *AuthRepository) SetPassword(userId uint, newPassword string) (*model
 	return user, nil
 
 }
+
+*/

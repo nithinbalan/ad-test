@@ -61,11 +61,11 @@
   },
    {
     "id": "session_expired",
-    "translation": "The session expired"
+    "translation": "The session expired."
   },
   {
     "id": "password_complexity",
-    "translation": "password does not meet the requirements"
+    "translation": "password does not meet the requirements."
   },
   {
     "id": "invalid_otp",
@@ -74,5 +74,9 @@
   {
     "id": "field_confirm_password",
     "translation": "password and confirm password does not match."
+  },
+  {
+    "id": "invalid_credentials",
+    "translation": "Invalid username or password."
   }
 ]

@@ -36,12 +36,17 @@ func (ac *AuthController) Login(c *gin.Context) {
 
 	tokens, err := ac.service.Authenticate(authDTO.Email, authDTO.Password)
 	if err != nil {
-		if _, ok := err.(*utility.InternalServerError); ok {
-			utility.SendInternalErrResp(ac.db, c, err.Error())
-		} else {
+		switch e := err.(type) {
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.InternalServerError:
+			utility.SendInternalErrResp(ac.db, c, e.Error())
+			return
+		default:
 			utility.SendUnauthorizedErrResp(c, "Authentication failed")
+			return
 		}
-		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -62,10 +67,17 @@ func (ac *AuthController) SendPasswordRecoveryOTP(c *gin.Context) {
 
 	err := ac.service.SendPasswordRecoveryOTP(email)
 	if err != nil {
-		if _, ok := err.(*utility.InternalServerError); ok {
-			utility.SendInternalErrResp(ac.db, c, err.Error())
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(ac.db, c, e.Error())
+			return
 		}
-		return
 	}
 
 	c.Status(http.StatusOK)

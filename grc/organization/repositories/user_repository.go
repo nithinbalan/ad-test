@@ -17,9 +17,11 @@ type UserRepositoryInterface interface {
 	Update(user *organizationModels.User) error
 	UpdatePartial(id uint, updates map[string]interface{}) error
 	GetByEmail(email string) (*organizationModels.User, error)
+	GetUserSecurityByUserID(userId uint) (*organizationModels.UserSecurity, error)
 	// Delete(id uint) error
 	CreateUserSecurity(userSecurity *organizationModels.UserSecurity) error
 	CreateUserSetting(userSetting *organizationModels.UserSetting) error
+	UpdateUserSecurity(userSecurity *organizationModels.UserSecurity) error
 }
 
 type UserRepository struct {
@@ -162,5 +164,28 @@ func (repo *UserRepository) CreateUserSetting(userSetting *organizationModels.Us
 	if err := repo.db.Create(userSetting).Error; err != nil {
 		return err
 	}
+	return nil
+}
+
+func (repo *UserRepository) GetUserSecurityByUserID(userId uint) (*organizationModels.UserSecurity, error) {
+	var userSecurity *organizationModels.UserSecurity
+	result := repo.db.Where("user_id = ?", userId).First(&userSecurity)
+
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, utility.NewResourceNotFoundError(result.Error, userId)
+	} else if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return userSecurity, nil
+
+}
+
+func (repo *UserRepository) UpdateUserSecurity(userSecurity *organizationModels.UserSecurity) error {
+
+	if err := repo.db.Save(userSecurity).Error; err != nil {
+		return err
+	}
+
 	return nil
 }

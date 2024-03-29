@@ -5,9 +5,11 @@ import (
 	"jethur/config"
 	authDTOs "jethur/grc/auth/dtos"
 	"jethur/grc/auth/repositories"
-	organizationDTOs "jethur/grc/organization/dtos"
 	"jethur/grc/organization/services"
 	"jethur/utility"
+
+	"golang.org/x/crypto/bcrypt"
+
 	"strconv"
 	"strings"
 	"time"
@@ -35,26 +37,73 @@ func NewAuthService(repo repositories.AuthRepositoryInterface, userService servi
 }
 
 func (as *AuthService) Authenticate(email string, password string) (map[string]string, error) {
-	return as.repo.Authenticate(email, password)
+	//get user
+	user, err := as.userService.GetByEmail(email)
+	if err != nil {
+		return nil, err
+	}
+
+	//get userSecurity
+	userSecurity, err := as.userService.GetUserSecurityByUserID(user.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Compare the provided password with the stored hashed password
+	err = bcrypt.CompareHashAndPassword([]byte(userSecurity.PasswordHash), []byte(password))
+	if err != nil {
+		return nil, utility.NewValidationError(fmt.Errorf("invalid username or password"), "invalid_credentials", "email")
+	}
+
+	//generate access token
+	accessToken, err := utility.GenerateToken(user.ID)
+	if err != nil {
+		return nil, utility.NewInternalServerError(err)
+	}
+
+	refreshToken, err := utility.GenerateRefreshToken(user.ID)
+	if err != nil {
+		return nil, utility.NewInternalServerError(err)
+	}
+
+	// Return both access and refresh tokens
+	authTokens := map[string]string{
+		"access_token":  accessToken,
+		"refresh_token": refreshToken,
+	}
+
+	return authTokens, nil
+
 }
 
 func (as AuthService) SendPasswordRecoveryOTP(email string) error {
 
-	fmt.Println("Reached recovery otp service")
 	//get user
 	user, err := as.userService.GetByEmail(email)
 	if err != nil {
-		return nil
+		return err
 	}
 
-	//otp generate
-	//update user security (using userSvc)
-	//send email
-	updateDTO := organizationDTOs.UserUpdateDTO{
-		FirstNameEn: StringPtr("shihab updated"),
+	//get userSecurity
+	userSecurity, err := as.userService.GetUserSecurityByUserID(user.ID)
+	if err != nil {
+		return err
 	}
 
-	err = as.userService.UpdatePartial(user.ID, &updateDTO)
+	otpLength := 6
+	otp := utility.GenerateOTP(otpLength)
+	currentTime := time.Now().UTC()
+
+	verifyOTPDurationStr := config.GetEnv("VERIFY_OTP_DURATION", "10")
+	verifyOTPDuration, _ := strconv.Atoi(verifyOTPDurationStr)
+
+	expirationTime := currentTime.Add(time.Duration(verifyOTPDuration) * time.Minute)
+
+	userSecurity.OTP = &otp
+	userSecurity.OTPExpiryAt = &expirationTime
+
+	err = as.userService.UpdateUserSecurity(userSecurity)
+
 	if err != nil {
 		return err
 	}
@@ -62,7 +111,7 @@ func (as AuthService) SendPasswordRecoveryOTP(email string) error {
 	emailData := authDTOs.PasswordRecoveryDataDTO{
 		FirstNameEn: user.FirstNameEn,
 		LastNameEn:  user.LastNameEn,
-		Otp:         *user.Otp,
+		Otp:         otp,
 	}
 
 	to := []string{user.Email}
@@ -70,7 +119,6 @@ func (as AuthService) SendPasswordRecoveryOTP(email string) error {
 	templateRelativePath := "auth/templates/email/forgot_password.html"
 
 	err = utility.SendTemplatedEmail(to, subject, templateRelativePath, emailData, nil)
-	fmt.Println("err", err)
 	if err != nil {
 		return err
 	}
@@ -78,8 +126,38 @@ func (as AuthService) SendPasswordRecoveryOTP(email string) error {
 	return nil
 
 }
+
 func (as AuthService) ReSendPasswordRecoveryOTP(email string) error {
-	user, err := as.repo.ReSendPasswordRecoveryOTP(email)
+	//get user
+	user, err := as.userService.GetByEmail(email)
+	if err != nil {
+		return err
+	}
+
+	//get userSecurity
+	userSecurity, err := as.userService.GetUserSecurityByUserID(user.ID)
+	if err != nil {
+		return err
+	}
+
+	resendTime := userSecurity.OTPExpiryAt.Add(-9 * time.Minute)
+	currentTime := time.Now().UTC()
+	if currentTime.Before(resendTime) {
+		return utility.NewValidationError(fmt.Errorf("resend time has not reached yet"), "resend_time_not_reached", "resend_time")
+	}
+
+	otpLength := 6
+	otp := utility.GenerateOTP(otpLength)
+
+	verifyOTPDurationStr := config.GetEnv("VERIFY_OTP_DURATION", "10")
+	verifyOTPDuration, _ := strconv.Atoi(verifyOTPDurationStr)
+
+	expirationTime := currentTime.Add(time.Duration(verifyOTPDuration) * time.Minute)
+
+	userSecurity.OTP = &otp
+	userSecurity.OTPExpiryAt = &expirationTime
+
+	err = as.userService.UpdateUserSecurity(userSecurity)
 
 	if err != nil {
 		return err
@@ -88,7 +166,7 @@ func (as AuthService) ReSendPasswordRecoveryOTP(email string) error {
 	emailData := authDTOs.PasswordRecoveryDataDTO{
 		FirstNameEn: user.FirstNameEn,
 		LastNameEn:  user.LastNameEn,
-		Otp:         *user.Otp,
+		Otp:         otp,
 	}
 
 	to := []string{user.Email}
@@ -102,25 +180,29 @@ func (as AuthService) ReSendPasswordRecoveryOTP(email string) error {
 
 	return nil
 }
+
 func (as *AuthService) VerifyPasswordRecoveryOTP(email, otp string) (string, error) {
 
-	user, err := as.repo.VerifyPasswordRecoveryOTP(email, otp)
+	//get user
+	user, err := as.userService.GetByEmail(email)
 	if err != nil {
 		return "", err
 	}
 
-	if user.Otp != &otp {
+	//get userSecurity
+	userSecurity, err := as.userService.GetUserSecurityByUserID(user.ID)
+	if err != nil {
+		return "", err
+	}
+
+	if *userSecurity.OTP != otp {
 		return "", utility.NewValidationError(fmt.Errorf("invalid OTP"), "invalid_otp", "otp")
 	}
 
-	// Calculate expiration time based on configuration
-	verifyOTPDurationStr := config.GetEnv("VERIFY_OTP_DURATION", "10")
-	verifyOTPDuration, _ := strconv.Atoi(verifyOTPDurationStr)
-
-	expirationTime := user.SentAt.Add(time.Duration(verifyOTPDuration) * time.Minute)
+	expirationTime := userSecurity.OTPExpiryAt
 	currentTime := time.Now().UTC()
 
-	if expirationTime.Before(currentTime) {
+	if currentTime.After(*expirationTime) {
 		return "", utility.NewValidationError(fmt.Errorf("OTP has expired"), "otp_expired", "otp")
 	}
 
@@ -151,8 +233,27 @@ func (as AuthService) SetPassword(setPasswordFormDTO authDTOs.PasswordRecoverySe
 		return utility.NewValidationError(fmt.Errorf("session has expired"), "session_expired", "session")
 	}
 
-	// Call repository to set password
-	user, err := as.repo.SetPassword(userId, setPasswordFormDTO.Password)
+	//get userSecurity
+	userSecurity, err := as.userService.GetUserSecurityByUserID(userId)
+	if err != nil {
+		return err
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(setPasswordFormDTO.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return utility.NewInternalServerError(err)
+	}
+	// Set the hashed password
+	userSecurity.PasswordHash = string(hashedPassword)
+
+	err = as.userService.UpdateUserSecurity(userSecurity)
+
+	if err != nil {
+		return err
+	}
+
+	//get user
+	user, err := as.userService.GetByID(userId)
 	if err != nil {
 		return err
 	}

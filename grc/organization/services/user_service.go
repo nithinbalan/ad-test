@@ -17,11 +17,13 @@ import (
 
 type UserServiceInterface interface {
 	GetAll(params *userDTOs.UserListQueryParamsDTO) (*userDTOs.UserListResponseDTO, error)
-	// GetByID(id uint) (*models.ComplianceRegister, error)
+	GetByID(id uint) (*organizationModels.User, error)
 	Create(currentUserID uint, userFormDTO *userDTOs.UserFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, user *userDTOs.UserFormDTO) error
 	UpdatePartial(id uint, dto *userDTOs.UserUpdateDTO) error
 	GetByEmail(email string) (*organizationModels.User, error)
+	GetUserSecurityByUserID(userID uint) (*organizationModels.UserSecurity, error)
+	UpdateUserSecurity(userSecurity *organizationModels.UserSecurity) error
 	// Delete(ids []uint, currentUserID uint) ([]uint, error)
 }
 
@@ -196,6 +198,10 @@ func (us *UserService) UpdatePartial(id uint, userUpdateDTO *userDTOs.UserUpdate
 	return nil
 }
 
+func (us *UserService) GetByID(id uint) (*organizationModels.User, error) {
+	return us.repo.GetByID(id)
+}
+
 func (us *UserService) validateUserFormDTO(userFormDTO *userDTOs.UserFormDTO) error {
 	_, err := us.designationSvc.GetByID(userFormDTO.DesignationID)
 	if err != nil {
@@ -221,4 +227,12 @@ func (us *UserService) generateRandomPassword(length int) (string, error) {
 
 func (us *UserService) GetByEmail(email string) (*organizationModels.User, error) {
 	return us.repo.GetByEmail(email)
+}
+
+func (us *UserService) GetUserSecurityByUserID(userId uint) (*organizationModels.UserSecurity, error) {
+	return us.repo.GetUserSecurityByUserID(userId)
+}
+
+func (us *UserService) UpdateUserSecurity(userSecurity *organizationModels.UserSecurity) error {
+	return us.repo.UpdateUserSecurity(userSecurity)
 }
