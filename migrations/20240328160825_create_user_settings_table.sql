@@ -1,0 +1,19 @@
+-- +goose Up
+-- +goose StatementBegin
+CREATE TABLE user_settings (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    user_id INT NOT NULL,
+    timezone_id INT NOT NULL,
+    language VARCHAR(2) NOT NULL DEFAULT 'en' 
+           CONSTRAINT CK_user_settings_language CHECK (language IN ('en', 'ar')) ,
+    timeout INT NOT NULL,
+    updated_at DATETIME
+    CONSTRAINT FK_user_settings_user_id FOREIGN KEY (user_id) REFERENCES users(id),
+    CONSTRAINT FK_user_settings_timezone_id FOREIGN KEY (timezone_id) REFERENCES timezones(id)
+);
+-- +goose StatementEnd
+
+-- +goose Down
+-- +goose StatementBegin
+DROP TABLE dbo.user_settings;
+-- +goose StatementEnd

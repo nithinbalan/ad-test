@@ -16,6 +16,8 @@ type UserRepositoryInterface interface {
 	Create(user *organizationModels.User) (uint, error)
 	Update(user *organizationModels.User) error
 	// Delete(id uint) error
+	CreateUserSecurity(userSecurity *organizationModels.UserSecurity) error
+	CreateUserSetting(userSetting *organizationModels.UserSetting) error
 }
 
 type UserRepository struct {
@@ -35,7 +37,7 @@ func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*us
 
 	query := repo.db.Table("users").
 		Select(`
-			users.*
+			users.*,
 			org1.title_en AS organization_unit_1_title_en,
 			org2.title_en AS organization_unit_2_title_en,
 			org3.title_en AS organization_unit_3_title_en,
@@ -46,8 +48,8 @@ func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*us
 			org3.title_ar AS organization_unit_3_title_ar,
 			org4.title_ar AS organization_unit_4_title_ar,
 			org5.title_ar AS organization_unit_5_title_ar,
-			designation.title_en AS designation_title_en,
-			designation.title_ar AS designation_title_ar
+			designations.title_en AS designation_title_en,
+			designations.title_ar AS designation_title_ar
 		`).
 		Joins("LEFT JOIN organization_units org1 ON org1.id = users.organization_unit_1_id").
 		Joins("LEFT JOIN organization_units org2 ON org2.id = users.organization_unit_2_id").
@@ -63,13 +65,13 @@ func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*us
 
 	// Sort by the specified column and order
 	if params.SortBy == "" {
-		params.SortBy = "title_en" // Default sort by title_en if no sortBy is specified
+		params.SortBy = "first_name_en" // Default sort by title_en if no sortBy is specified
 	}
 	if params.Sort != "asc" && params.Sort != "desc" {
 		params.Sort = "asc" // Default order is ascending if not specified
 	}
 
-	query = query.Order(params.SortBy + " " + params.Sort)
+	//query = query.Order(params.SortBy + " " + params.Sort)
 
 	offset := (params.Page - 1) * params.PageSize
 
@@ -121,5 +123,21 @@ func (repo *UserRepository) Update(user *organizationModels.User) error {
 		return err
 	}
 
+	return nil
+}
+
+// CreateUserSecurity creates a new UserSecurity record associated with a user.
+func (repo *UserRepository) CreateUserSecurity(userSecurity *organizationModels.UserSecurity) error {
+	if err := repo.db.Create(userSecurity).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+// CreateUserSetting creates a new UserSetting record.
+func (repo *UserRepository) CreateUserSetting(userSetting *organizationModels.UserSetting) error {
+	if err := repo.db.Create(userSetting).Error; err != nil {
+		return err
+	}
 	return nil
 }
