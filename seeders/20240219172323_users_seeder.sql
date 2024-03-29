@@ -1,8 +1,8 @@
 -- +goose Up
 -- +goose StatementBegin
-DECLARE @PasswordHash VARBINARY(MAX);
-SET @PasswordHash = HASHBYTES('SHA2_256', '12345678');
+DECLARE @UserID INT;
 
+-- Insert a user
 INSERT INTO users (
     organization_unit_1_id,
     organization_unit_2_id,
@@ -11,7 +11,6 @@ INSERT INTO users (
     first_name_ar,
     last_name_ar,
     email,
-    password_hash,
     profile_image_path,
     created_at,
     updated_at
@@ -23,15 +22,35 @@ INSERT INTO users (
     'سوبر',
     'أدمن',
     'admin@jethur.com',
-    CAST('' AS XML).value('xs:base64Binary(sql:variable("@PasswordHash"))', 'VARCHAR(MAX)'),
     NULL,
     GETDATE(),
     GETDATE()
 );
 
+-- Get the ID of the inserted user
+SET @UserID = SCOPE_IDENTITY();
+
+-- Insert a corresponding user_security record with the bcrypt hash
+INSERT INTO user_securities (
+    user_id,
+    password_hash,
+    is_mfa,
+    otp,
+    otp_expiry_at,
+    updated_at
+) VALUES (
+    @UserID,
+    '$2a$10$lD/krN00lAIwGgy4gBVcPuG2lnY6xIdM8Xq74.eDgPDQ8g/rj8scq', -- Replace with your actual bcrypt hash
+    0,
+    NULL,
+    NULL,
+    GETDATE()
+);
 -- +goose StatementEnd
 
 -- +goose Down
 -- +goose StatementBegin
-TRUNCATE TABLE users;
+-- Here, add your logic to clean up the data for the Down migration
+DELETE FROM user_securities WHERE user_id = @UserID;
+DELETE FROM users WHERE id = @UserID;
 -- +goose StatementEnd

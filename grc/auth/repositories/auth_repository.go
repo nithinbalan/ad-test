@@ -33,6 +33,7 @@ func NewAuthRepository(db *gorm.DB) *AuthRepository {
 func (repo *AuthRepository) Authenticate(email, password string) (map[string]string, error) {
 
 	var user models.User
+	var userSecurity models.UserSecurity
 
 	result := repo.db.First(&user, "email = ?", email)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -41,8 +42,15 @@ func (repo *AuthRepository) Authenticate(email, password string) (map[string]str
 		return nil, utility.NewInternalServerError(result.Error)
 	}
 
+	// Next, find the user's security information by user ID
+	result = repo.db.Where("user_id = ?", user.ID).First(&userSecurity)
+	if result.Error != nil {
+		// Consider how you want to handle errors here, this could be a missing record or a database error
+		return nil, utility.NewInternalServerError(result.Error)
+	}
+
 	// Compare the provided password with the stored hashed password
-	err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password))
+	err := bcrypt.CompareHashAndPassword([]byte(userSecurity.PasswordHash), []byte(password))
 	if err != nil {
 		return nil, errors.New("invalid credentials")
 	}
@@ -80,8 +88,9 @@ func (repo *AuthRepository) SendPasswordRecoveryOTP(email string) (*models.User,
 	}
 	otpLength := 6
 	otp := utility.GenerateOTP(otpLength)
-	user.Otp = otp
-	user.SentAt = time.Now().UTC()
+	currentTime := time.Now().UTC()
+	user.Otp = &otp
+	user.SentAt = &currentTime
 
 	if err := repo.db.Save(&user).Error; err != nil {
 		return nil, utility.NewInternalServerError(err)
@@ -109,8 +118,8 @@ func (repo *AuthRepository) ReSendPasswordRecoveryOTP(email string) (*models.Use
 
 	otpLength := 6
 	otp := utility.GenerateOTP(otpLength)
-	user.Otp = otp
-	user.SentAt = time.Now().UTC()
+	user.Otp = &otp
+	user.SentAt = &currentTime
 
 	if err := repo.db.Save(&user).Error; err != nil {
 		return nil, utility.NewInternalServerError(err)

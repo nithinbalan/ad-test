@@ -22,8 +22,8 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	activityLogSvc := logServices.NewActivityLogService(activityLogRepo)
 
 	//Designations
-	organizationRepo := organizationRepositories.NewDesignationRepository(db)
-	designationSvc := organizationServices.NewDesignationService(organizationRepo, activityLogSvc)
+	designationRepo := organizationRepositories.NewDesignationRepository(db)
+	designationSvc := organizationServices.NewDesignationService(designationRepo, activityLogSvc)
 	designationController := controllers.NewDesignationController(designationSvc)
 
 	organizationRoutes.GET("/designations", designationController.GetAllDesignations)
@@ -41,4 +41,13 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 
 	organizationRoutes.GET("/user-statuses", userStatusController.GetAllUserStatuses)
 	organizationRoutes.GET("/user-statuses/:id", userStatusController.GetUserStatusDetails)
+
+	//user
+	userRepo := organizationRepositories.NewUserRepository(db)
+	userSvc := organizationServices.NewUserService(userRepo, designationSvc, userStatusSvc, activityLogSvc)
+	userController := controllers.NewUSerController(userSvc)
+
+	organizationRoutes.GET("/users", userController.GetAllUsers)
+	organizationRoutes.POST("/users", userController.CreateUser)
+	organizationRoutes.PUT("/users/:id", userController.UpdateUser)
 }
