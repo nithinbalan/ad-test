@@ -5,7 +5,6 @@ import (
 	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	complianceModels "jethur/grc/compliance/models"
-	masterModels "jethur/grc/masters/models"
 	"strconv"
 	"time"
 
@@ -19,9 +18,11 @@ type ComplianceRegisterRepositoryInterface interface {
 	Create(complianceRegister *complianceModels.ComplianceRegister) (uint, error)
 	Update(complianceRegister *complianceModels.ComplianceRegister) error
 	Delete(id uint) error
-	Archive(ids []uint) ([]uint, error)
-	Restore(ids []uint) ([]uint, error)
 	GenerateReferenceNumber() (string, error)
+
+	//lifecycle
+	GetIDsByLifecycleStatus(ids []uint, status string) ([]uint, error)
+	UpdateLifecycleStatusForIDs(ids []uint, statusId uint) ([]uint, error)
 }
 
 type ComplianceRegisterRepository struct {
@@ -274,66 +275,28 @@ func (repo *ComplianceRegisterRepository) Delete(id uint) error {
 	return nil
 }
 
-func (repo *ComplianceRegisterRepository) Archive(ids []uint) ([]uint, error) {
-	var idsToUpdate []uint
+func (repo *ComplianceRegisterRepository) GetIDsByLifecycleStatus(ids []uint, status string) ([]uint, error) {
+	var matchingIDs []uint
 
-	// Retrieve IDs of ComplianceRegisters with lifecycle status "active"
 	if err := repo.db.Model(&complianceModels.ComplianceRegister{}).
-		Joins("JOIN lifecycle_statuses ON compliance_register.lifecycle_status_id = lifecycle_statuses.id").
-		Where("compliance_register.id IN ? AND lifecycle_statuses.type = ?", ids, "active").
-		Pluck("compliance_register.id", &idsToUpdate).Error; err != nil {
+		Joins("JOIN lifecycle_statuses ON compliance_registers.lifecycle_status_id = lifecycle_statuses.id").
+		Where("compliance_registers.id IN ? AND lifecycle_statuses.type = ?", ids, status).
+		Pluck("compliance_registers.id", &matchingIDs).Error; err != nil {
 		return nil, err
 	}
 
-	if len(idsToUpdate) > 0 {
-		// Retrieve the ID of the "archived" LifecycleStatus
-		var archivedLifecycleStatusID uint
-		if err := repo.db.Model(&masterModels.LifecycleStatus{}).
-			Where("type = ?", "archived").
-			Pluck("id", &archivedLifecycleStatusID).Error; err != nil {
-			return nil, err
-		}
-
-		// Update ComplianceRegisters with the retrieved archivedLifecycleStatusID
-		if err := repo.db.Model(&complianceModels.ComplianceRegister{}).
-			Where("id IN ?", idsToUpdate).
-			Update("lifecycle_status_id", archivedLifecycleStatusID).Error; err != nil {
-			return nil, err
-		}
-	}
-
-	return idsToUpdate, nil
+	return matchingIDs, nil
 }
 
-func (repo *ComplianceRegisterRepository) Restore(ids []uint) ([]uint, error) {
-	var idsToUpdate []uint
+func (repo *ComplianceRegisterRepository) UpdateLifecycleStatusForIDs(ids []uint, statusId uint) ([]uint, error) {
 
-	// Retrieve IDs of ComplianceRegisters with lifecycle status "archived"
 	if err := repo.db.Model(&complianceModels.ComplianceRegister{}).
-		Joins("JOIN lifecycle_statuses ON compliance_register.lifecycle_status_id = lifecycle_statuses.id").
-		Where("compliance_register.id IN ? AND lifecycle_statuses.type = ?", ids, "archived").
-		Pluck("compliance_register.id", &idsToUpdate).Error; err != nil {
+		Where("id IN ?", ids).
+		Update("lifecycle_status_id", statusId).Error; err != nil {
 		return nil, err
 	}
 
-	if len(idsToUpdate) > 0 {
-		// Retrieve the ID of the "active" LifecycleStatus
-		var activeLifecycleStatusID uint
-		if err := repo.db.Model(&masterModels.LifecycleStatus{}).
-			Where("type = ?", "active").
-			Pluck("id", &activeLifecycleStatusID).Error; err != nil {
-			return nil, err
-		}
-
-		// Update ComplianceRegisters with the retrieved activeLifecycleStatusID
-		if err := repo.db.Model(&complianceModels.ComplianceRegister{}).
-			Where("id IN ?", idsToUpdate).
-			Update("lifecycle_status_id", activeLifecycleStatusID).Error; err != nil {
-			return nil, err
-		}
-	}
-
-	return idsToUpdate, nil
+	return ids, nil
 }
 
 func (repo *ComplianceRegisterRepository) GenerateReferenceNumber() (string, error) {
@@ -355,8 +318,10 @@ func (repo *ComplianceRegisterRepository) GenerateReferenceNumber() (string, err
 	}
 
 	currentYear := time.Now().Year()
-	lastReferenceID, _ := strconv.ParseUint(lastDigits, 10, 64)
-
+	lastReferenceID, err := strconv.ParseUint(lastDigits, 10, 64)
+	if err != nil {
+		return "", err
+	}
 	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "CR", currentYear, lastReferenceID+1)
 
 	return newReferenceNumber, nil

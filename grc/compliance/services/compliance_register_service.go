@@ -246,7 +246,17 @@ func (crs *ComplianceRegisterService) Delete(ids []uint, currentUserID uint) ([]
 }
 
 func (crs *ComplianceRegisterService) Archive(ids []uint, currentUserID uint) ([]uint, error) {
-	successfulIds, err := crs.repo.Archive(ids)
+
+	lifecycleStatus, err := crs.lifecycleStatusSvc.GetByStatus("archive")
+	if err != nil {
+		return nil, err
+	}
+	idsToUpdate, err := crs.repo.GetIDsByLifecycleStatus(ids, "active")
+	if err != nil {
+		return nil, err
+	}
+
+	successfulIds, err := crs.repo.UpdateLifecycleStatusForIDs(idsToUpdate, lifecycleStatus.ID)
 
 	if err != nil {
 		return nil, err
@@ -273,7 +283,17 @@ func (crs *ComplianceRegisterService) Archive(ids []uint, currentUserID uint) ([
 }
 
 func (crs *ComplianceRegisterService) Restore(ids []uint, currentUserID uint) ([]uint, error) {
-	successfulIds, err := crs.repo.Restore(ids)
+
+	lifecycleStatus, err := crs.lifecycleStatusSvc.GetByStatus("active")
+	if err != nil {
+		return nil, err
+	}
+	idsToUpdate, err := crs.repo.GetIDsByLifecycleStatus(ids, "archived")
+	if err != nil {
+		return nil, err
+	}
+
+	successfulIds, err := crs.repo.UpdateLifecycleStatusForIDs(idsToUpdate, lifecycleStatus.ID)
 
 	if err != nil {
 		return nil, err
@@ -291,7 +311,7 @@ func (crs *ComplianceRegisterService) Restore(ids []uint, currentUserID uint) ([
 			)
 			if err != nil {
 				// @todo - save to log file
-				fmt.Printf("Failed to log bulk restore activity: %v\n", err)
+				fmt.Printf("Failed to log bulk archive activity: %v\n", err)
 			}
 		}()
 	}
