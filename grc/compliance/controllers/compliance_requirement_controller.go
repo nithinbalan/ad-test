@@ -113,9 +113,10 @@ func (crc *ComplianceRequirementController) CreateComplianceRequirement(c *gin.C
 	}
 
 	complianceIDStr := c.Param("complianceId")
+
 	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid complianceId"})
+		utility.SendInvalidErrResp(c, err)
 		return
 	}
 

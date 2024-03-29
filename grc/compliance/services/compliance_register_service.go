@@ -20,6 +20,7 @@ type ComplianceRegisterServiceInterface interface {
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	Archive(ids []uint, currentUserID uint) ([]uint, error)
 	Restore(ids []uint, currentUserID uint) ([]uint, error)
+	IsValidID(id uint) error
 }
 
 // Service and implementations
@@ -330,4 +331,12 @@ func (crs *ComplianceRegisterService) parseComplianceRegisterDates(dto *complian
 	}
 
 	return parsed, nil
+}
+
+func (crs ComplianceRegisterService) IsValidID(id uint) error {
+	err := crs.repo.IsValidID(id)
+	if err != nil {
+		utility.NewInternalServerError(err)
+	}
+	return nil
 }

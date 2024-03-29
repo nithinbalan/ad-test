@@ -23,6 +23,7 @@ type ComplianceRegisterRepositoryInterface interface {
 	Archive(ids []uint) ([]uint, error)
 	Restore(ids []uint) ([]uint, error)
 	GenerateReferenceNumber() (string, error)
+	IsValidID(id uint) error
 }
 
 type ComplianceRegisterRepository struct {
@@ -339,4 +340,14 @@ func (repo *ComplianceRegisterRepository) GenerateReferenceNumber() (string, err
 	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "CR", currentYear, lastReferenceID+1)
 
 	return newReferenceNumber, nil
+}
+
+func (repo *ComplianceRegisterRepository) IsValidID(id uint) error {
+	var compliance complianceModels.ComplianceRegister
+
+	if err := repo.db.First(&compliance, id).Error; err != nil {
+		return utility.NewInternalServerError(err)
+	}
+
+	return nil
 }

@@ -60,6 +60,7 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	complianceRequirementSvc := complianceServices.NewComplianceRequirementService(
 		complianceRequirementRepo,
 		activityLogSvc,
+		complianceRegisterSvc,
 		complianceRequirementCategorySvc,
 		complianceStatusSvc,
 		severityLevelSvc,

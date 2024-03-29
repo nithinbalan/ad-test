@@ -25,6 +25,7 @@ type ComplianceRequirementServiceInterface interface {
 type ComplianceRequirementService struct {
 	repo                             complianceRepositories.ComplianceRequirementRepositoryInterface
 	activityLogSvc                   logServices.ActivityLogServiceInterface
+	complianceRegisterSvc            ComplianceRegisterServiceInterface
 	complianceRequirementCategorySvc ComplianceRequirementCategoryServiceInterface
 	complianceStatusSvc              ComplianceStatusServiceInterface
 	severityLevelSvc                 masterServices.SeverityLevelServiceInterface
@@ -33,12 +34,14 @@ type ComplianceRequirementService struct {
 func NewComplianceRequirementService(
 	repo complianceRepositories.ComplianceRequirementRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
+	complianceRegisterSvc ComplianceRegisterServiceInterface,
 	complianceRequirementCategorySvc ComplianceRequirementCategoryServiceInterface,
 	complianceStatusSvc ComplianceStatusServiceInterface,
 	severityLevelSvc masterRepositories.SeverityLevelRepositoryInterface) ComplianceRequirementServiceInterface {
 	return &ComplianceRequirementService{
 		repo:                             repo,
 		activityLogSvc:                   activityLogSvc,
+		complianceRegisterSvc:            complianceRegisterSvc,
 		complianceRequirementCategorySvc: complianceRequirementCategorySvc,
 		complianceStatusSvc:              complianceStatusSvc,
 		severityLevelSvc:                 severityLevelSvc,
@@ -55,7 +58,9 @@ func (crs ComplianceRequirementService) GetByID(id uint) (*complianceModels.Comp
 
 func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID uint, ComplianceRequirementFormDTO *complianceDTOs.ComplianceRequirementFormDTO) (uint, error) {
 
-	fmt.Println("Compliance ID:", complianceID)
+	if err := crs.complianceRegisterSvc.IsValidID(complianceID); err != nil {
+		return 0, err
+	}
 
 	if err := crs.validateComplianceRequirementFormDTO(ComplianceRequirementFormDTO); err != nil {
 		return 0, err
