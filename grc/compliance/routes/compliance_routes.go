@@ -97,9 +97,9 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	//SLA Register
 	SLARepo := complianceRepositories.NewSLARegisterRepository(db)
 	SLASvc := complianceServices.NewSLARegisterService(SLARepo,
-		SLACategoryRepo,
-		severityLevelRepo,
-		lifecycleStatusRepo, 
+		SLACategorySvc,
+		severityLevelSvc,
+		lifecycleStatusSvc,
 		activityLogSvc)
 	SLARegController := controllers.NewSLARegisterController(SLASvc)
 

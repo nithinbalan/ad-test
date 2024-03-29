@@ -16,10 +16,10 @@ type SLARegister struct {
 	ResponsibleUnitID  uint      `json:"responsible_unit_id" binding:"required" gorm:"column:responsible_unit_id"`
 	ResponsibleUserID  uint      `json:"responsible_user_id" binding:"required" gorm:"column:responsible_user_id"`
 	LifecycleStatusID  uint      `json:"lifecycle_status_id" binding:"required" gorm:"column:lifecycle_status_id"`
-	ComplianceStatusID uint      `json:"compliance_status_id" gorm:"default:null"`
+	ComplianceStatusID *uint     `json:"compliance_status_id" gorm:"default:null"`
 	TitleEn            string    `json:"title_en" binding:"required,max=250" gorm:"type:varchar(250);not null"`
 	TitleAr            string    `json:"title_ar" binding:"required,max=250" gorm:"type:nvarchar(250);not null"`
-	Description        string    `json:"description" binding:"max=250" gorm:"type:varchar(max)"`
+	Description        *string   `json:"description" binding:"max=250" gorm:"type:varchar(max)"`
 	Client             string    `json:"client" gorm:"type:varchar(250)"`
 	CreatedAt          time.Time `json:"created_at" gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP"`
 	UpdatedAt          time.Time `json:"updated_at" gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"`

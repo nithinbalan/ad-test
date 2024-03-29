@@ -2,10 +2,14 @@ package repositories
 
 import (
 	"errors"
+	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	slaDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/models"
+	complianceModels "jethur/grc/compliance/models"
 	"jethur/utility"
+	"strconv"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -14,9 +18,12 @@ import (
 type SLARegisterRepositoryInterface interface {
 	GetAll(params *slaDTOs.SLARegisterListQueryParamsDTO) (*slaDTOs.SLARegisterListResponseDTO, error)
 	GetByID(id uint) (*models.SLARegister, error)
-	Create(currentUserID uint, slaRegFormDTO *slaDTOs.SLARegisterFormDTO) (uint, error)
-	Update(id uint, currentUserID uint, slaRegFormDTO *slaDTOs.SLARegisterFormDTO) error
+	Create(slaRegister *complianceModels.SLARegister) (uint, error)
+	Update(slaRegister *complianceModels.SLARegister) error
 	Delete(id uint) error
+	GenerateReferenceNumber() (string, error)
+	AssociateDocumentsWithSLARegister(documents []*complianceModels.SLADocument) error
+	GetSLADocumentByID(id uint) (*models.SLADocument, error)
 }
 
 // implementation
@@ -217,164 +224,18 @@ func (repo *SLARegisterRepository) GetByID(id uint) (*models.SLARegister, error)
 	return slaRegister, result.Error
 }
 
-func (repo *SLARegisterRepository) Create(currentUserID uint, slaRegFormDTO *slaDTOs.SLARegisterFormDTO) (uint, error) {
-	// Begin a transaction
-	tx := repo.db.Begin()
+func (repo *SLARegisterRepository) Create(slaRegister *complianceModels.SLARegister) (uint, error) {
 
-	// Defer a function to handle the transaction rollback in case of an error
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
-
-	// Retrieve the last reference number from the database
-	var lastReferenceNumber string
-	err := tx.Model(&models.SLARegister{}).
-		Select("reference_number").
-		Order("reference_number desc").
-		Limit(1).
-		Pluck("reference_number", &lastReferenceNumber).
-		Error
-
-	// Handle potential errors from the database query
-	if err != nil {
-		tx.Rollback() // Rollback the transaction
-		return 0, err
-	}
-
-	// Default suffix for the reference number if no previous record exists
-	lastDigits := "0000"
-	code := "SLA-JETHUR"
-	// Update lastDigits based on the last reference number if available
-	if lastReferenceNumber != "" && len(lastReferenceNumber) >= 4 {
-		lastDigits = lastReferenceNumber[len(lastReferenceNumber)-4:]
-	}
-
-	// Generate the new reference number using a utility function
-	referenceNumber := utility.GenerateReferenceNumber(code, lastDigits)
-
-	// Map DTO to SLARegister model
-	slaRegister := &models.SLARegister{
-		SLACategoryID:     slaRegFormDTO.SLACategoryID,
-		SeverityLevelID:   slaRegFormDTO.SeverityLevelID,
-		ResponsibleUnitID: slaRegFormDTO.ResponsibleUnitID,
-		ResponsibleUserID: slaRegFormDTO.ResponsibleUserID,
-		LifecycleStatusID: slaRegFormDTO.LifecycleStatusID,
-		ReferenceNumber:   referenceNumber,
-		TitleEn:           slaRegFormDTO.TitleEn,
-		TitleAr:           slaRegFormDTO.TitleAr,
-		Description:       slaRegFormDTO.Description,
-		Client:            slaRegFormDTO.Client,
-		CreatedBy:         currentUserID,
-	}
-
-	// Create SLARegister record
-	if err := tx.Create(slaRegister).Error; err != nil {
-		tx.Rollback() // Rollback the transaction
-		return 0, err
-	}
-
-	// Create SLA documents associated with the SLA register
-	for _, doc := range slaRegFormDTO.Documents {
-		slaDocument := &models.SLADocument{
-			SLARegisterID: slaRegister.ID,
-			Version:       doc.Version,
-			IssueDate:     doc.IssueDate,
-			ExpiryDate:    doc.ExpiryDate,
-			SA1Date:       doc.SA1Date,
-			SA2Date:       doc.SA2Date,
-			Comment:       doc.Comment,
-			Language:      doc.Language,
-			IsLatest:      true,
-			URL:           doc.URL,
-			Name:          doc.Name,
-			Size:          doc.Size,
-			Token:         doc.Token,
-			Type:          doc.Type,
-			Icon:          doc.Icon,
-			CreatedBy:     currentUserID,
-		}
-
-		if err := tx.Create(slaDocument).Error; err != nil {
-			tx.Rollback() // Rollback the transaction
-			return 0, err
-		}
-	}
-
-	// Commit the transaction
-	if err := tx.Commit().Error; err != nil {
+	if err := repo.db.Create(slaRegister).Error; err != nil {
 		return 0, err
 	}
 
 	return slaRegister.ID, nil
 }
 
-func (repo *SLARegisterRepository) Update(id uint, currentUserID uint, slaRegFormDTO *slaDTOs.SLARegisterFormDTO) error {
-	// Begin a new transaction
-	tx := repo.db.Begin()
+func (repo *SLARegisterRepository) Update(slaRegister *complianceModels.SLARegister) error {
 
-	// Defer a rollback in case of error
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
-
-	// Prepare the update map
-	updateFields := map[string]interface{}{
-		"SLACategoryID":     slaRegFormDTO.SLACategoryID,
-		"SeverityLevelID":   slaRegFormDTO.SeverityLevelID,
-		"ResponsibleUnitID": slaRegFormDTO.ResponsibleUnitID,
-		"ResponsibleUserID": slaRegFormDTO.ResponsibleUserID,
-		"LifecycleStatusID": slaRegFormDTO.LifecycleStatusID,
-		"TitleEn":           slaRegFormDTO.TitleEn,
-		"TitleAr":           slaRegFormDTO.TitleAr,
-		"Description":       slaRegFormDTO.Description,
-		"Client":            slaRegFormDTO.Client,
-		"UpdatedBy":         currentUserID,
-	}
-
-	// Update SLA register
-	if err := tx.Model(&models.SLARegister{}).
-		Where("id = ?", id).
-		Updates(updateFields).Error; err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	// Update SLA documents fields
-	for _, doc := range slaRegFormDTO.Documents {
-		// Only update the document if ID is provided
-		if doc.ID != nil {
-			updateFields := map[string]interface{}{
-				"Version":    doc.Version,
-				"IssueDate":  doc.IssueDate,
-				"ExpiryDate": doc.ExpiryDate,
-				"SA1Date":    doc.SA1Date,
-				"SA2Date":    doc.SA2Date,
-				"Comment":    doc.Comment,
-				"URL":        doc.URL,
-				"Name":       doc.Name,
-				"Size":       doc.Size,
-				"Token":      doc.Token,
-				"Type":       doc.Type,
-				"UpdatedBy":  currentUserID,
-				// Update other fields similarly
-			}
-
-			// Update the document fields
-			if err := tx.Model(&models.SLADocument{}).
-				Where("id = ?", *doc.ID).
-				Updates(updateFields).Error; err != nil {
-				tx.Rollback()
-				return err
-			}
-		}
-	}
-
-	// Commit the transaction if all updates are successful
-	if err := tx.Commit().Error; err != nil {
+	if err := repo.db.Save(slaRegister).Error; err != nil {
 		return err
 	}
 
@@ -425,4 +286,48 @@ func (repo *SLARegisterRepository) Delete(id uint) error {
 	}
 
 	return nil
+}
+
+func (repo *SLARegisterRepository) GenerateReferenceNumber() (string, error) {
+	var lastReferenceNumber string
+	err := repo.db.Model(&complianceModels.SLARegister{}).
+		Select("reference_number").
+		Order("reference_number desc").
+		Limit(1).
+		Pluck("reference_number", &lastReferenceNumber).
+		Error
+
+	if err != nil {
+		return "", err
+	}
+
+	lastDigits := "0000"
+	if lastReferenceNumber != "" && len(lastReferenceNumber) >= 4 {
+		lastDigits = lastReferenceNumber[len(lastReferenceNumber)-4:]
+	}
+
+	currentYear := time.Now().Year()
+	lastReferenceID, _ := strconv.ParseUint(lastDigits, 10, 64)
+
+	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "SLA", currentYear, lastReferenceID+1)
+
+	return newReferenceNumber, nil
+}
+
+func (repo *SLARegisterRepository) AssociateDocumentsWithSLARegister(documents []*models.SLADocument) error {
+	// Update each document
+	for _, doc := range documents {
+		if err := repo.db.Save(doc).Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (repo *SLARegisterRepository) GetSLADocumentByID(id uint) (*models.SLADocument, error) {
+	var document models.SLADocument
+	if err := repo.db.Where("id = ?", id).First(&document).Error; err != nil {
+		return nil, err
+	}
+	return &document, nil
 }

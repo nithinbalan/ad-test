@@ -4,8 +4,8 @@ CREATE TABLE sla_documents (
     id INT PRIMARY KEY IDENTITY(1,1),
     sla_register_id INT NOT NULL,
     version VARCHAR(100) NOT NULL,
-    issue_date DATE NOT NULL,
-    expiry_date DATE NOT NULL,
+    issue_date DATE NULL,
+    expiry_date DATE NULL,
     comment VARCHAR(MAX) NULL,
     language VARCHAR(10) NOT NULL, -- Assuming language codes like 'en' and 'ar'
         CONSTRAINT CHK_sla_documents_language CHECK (language IN ('en', 'ar')),
