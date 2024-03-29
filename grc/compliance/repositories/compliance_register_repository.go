@@ -1,13 +1,11 @@
 package repositories
 
 import (
-	"errors"
 	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	complianceModels "jethur/grc/compliance/models"
 	masterModels "jethur/grc/masters/models"
-	"jethur/utility"
 	"strconv"
 	"time"
 
@@ -17,6 +15,7 @@ import (
 type ComplianceRegisterRepositoryInterface interface {
 	GetAll(params *complianceDTOs.ComplianceRegisterListQueryParamsDTO) (*complianceDTOs.ComplianceRegisterListResponseDTO, error)
 	GetByID(id uint) (*complianceModels.ComplianceRegister, error)
+	GetFullDetailsByID(id uint) (*complianceModels.ComplianceRegister, error)
 	Create(complianceRegister *complianceModels.ComplianceRegister) (uint, error)
 	Update(complianceRegister *complianceModels.ComplianceRegister) error
 	Delete(id uint) error
@@ -209,15 +208,37 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
 
 func (repo *ComplianceRegisterRepository) GetByID(id uint) (*complianceModels.ComplianceRegister, error) {
 	var compliance *complianceModels.ComplianceRegister
-	result := repo.db.First(&compliance, id)
 
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, utility.NewResourceNotFoundError(result.Error, id)
-	} else if result.Error != nil {
+	result := repo.db.First(&compliance, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return compliance, nil
+
+}
+
+func (repo *ComplianceRegisterRepository) GetFullDetailsByID(id uint) (*complianceModels.ComplianceRegister, error) {
+	var compliance *complianceModels.ComplianceRegister // Declare the variable inside the function
+
+	result := repo.db.
+		Preload("ComplianceCategory").
+		Preload("ComplianceStatus").
+		Preload("ResponsibleUnit").
+		Preload("ResponsibleUser").
+		Preload("ResponsibleUser.OrganizationUnit1").
+		Preload("ReviewFrequency").
+		Preload("ReviewResponsibleUser").
+		Preload("SeverityLevel").
+		Preload("LifecycleStatus").
+		Preload("CreatedByUser").
+		Preload("UpdatedByUser").
+		First(&compliance, id)
+
+	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	return compliance, result.Error
+	return compliance, nil
 }
 
 func (repo *ComplianceRegisterRepository) Create(complianceRegister *complianceModels.ComplianceRegister) (uint, error) {

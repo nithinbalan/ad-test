@@ -103,12 +103,17 @@ func (crc *ComplianceRegisterController) GetComplianceRegisterDetails(c *gin.Con
 		return
 	}
 
-	compliance, err := crc.service.GetByID(uint(id))
+	compliance, err := crc.service.GetFullDetailsByID(uint(id))
 	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(crc.db, c, e.Error())
+			return
+		}
 	}
-
 	c.JSON(http.StatusOK, compliance)
 }
 
