@@ -85,19 +85,39 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 		Email:               userFormDTO.Email,
 		MobileNumber:        userFormDTO.MobileNumber,
 		ProfileImagePath:    userFormDTO.ProfileImagePath,
-		PasswordHash:        string(passwordHash),
 		CreatedBy:           currentUserID,
 	}
-	id, err := us.repo.Create(user)
+
+	userID, err := us.repo.Create(user)
 	if err != nil {
-		return 0, err
+		return 0, err // Only return the error
+	}
+
+	userSecurity := &organizationModels.UserSecurity{
+		UserID:       userID,
+		PasswordHash: string(passwordHash),
+	}
+
+	if err = us.repo.CreateUserSecurity(userSecurity); err != nil {
+		return userID, err
+	}
+
+	userSetting := &organizationModels.UserSetting{
+		UserID:     userID,
+		TimezoneID: 5,
+		Language:   "en",
+		Timeout:    5,
+	}
+	err = us.repo.CreateUserSetting(userSetting)
+	if err != nil {
+		return userID, err
 	}
 
 	go func() {
 		err := us.activityLogSvc.LogActivity(
 			logModels.CreateAction,
 			organizationModels.User{}.TableName(),
-			id,
+			userID, // use userID instead of id
 			userFormDTO,
 			currentUserID,
 			nil,
@@ -107,7 +127,7 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 			fields := map[string]interface{}{
 				"action":    logModels.CreateAction,
 				"tableName": organizationModels.User{}.TableName(),
-				"recordID":  id,
+				"recordID":  userID, // use userID instead of id
 				"userID":    currentUserID,
 				"error":     err.Error(),
 			}
@@ -116,7 +136,7 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 		}
 	}()
 
-	return id, nil
+	return userID, nil // Use userID, which was modified within the transaction block
 }
 
 func (us *UserService) Update(id uint, currentUserID uint, userFormDTO *userDTOs.UserFormDTO) error {

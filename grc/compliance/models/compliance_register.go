@@ -31,7 +31,7 @@ type ComplianceRegister struct {
 	CreatedAt               time.Time  `json:"created_at" gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP"`
 	UpdatedAt               time.Time  `json:"updated_at" gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"`
 	CreatedBy               uint       `json:"created_by" gorm:"not null"`
-	UpdatedBy               uint       `json:"updated_by" gorm:"default:null"`
+	UpdatedBy               *uint      `json:"updated_by" gorm:"default:null"`
 	LifecycleStatusID       uint       `json:"lifecycle_status_id" gorm:"not null"`
 
 	// Relationships
