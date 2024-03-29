@@ -57,7 +57,13 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	complianceRequirementCategoryController := controllers.NewComplianceRequirementCategoryController(complianceRequirementCategorySvc)
 
 	complianceRequirementRepo := complianceRepositories.NewComplianceRequirementRepository(db)
-	complianceRequirementSvc := complianceServices.NewComplianceRequirementService(complianceRequirementRepo, activityLogSvc)
+	complianceRequirementSvc := complianceServices.NewComplianceRequirementService(
+		complianceRequirementRepo,
+		activityLogSvc,
+		complianceRequirementCategorySvc,
+		complianceStatusSvc,
+		severityLevelSvc,
+	)
 	complianceRequirementController := controllers.NewComplianceRequirementController(complianceRequirementSvc)
 
 	SLACategoryRepo := complianceRepositories.NewSLACategoryRepository(db)

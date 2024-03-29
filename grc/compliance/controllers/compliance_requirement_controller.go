@@ -33,16 +33,16 @@ func (crc *ComplianceRequirementController) GetAllComplianceRequirements(c *gin.
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
-		"compliance_clause_ids",
 		"compliance_requirement_category_ids",
+		"compliance_clause_ids",
 		"severity_level_ids",
-		"responsible_user_ids",
 		"compliance_status_ids",
+		"responsible_user_ids",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
-	// Parse deadline_from, deadline_to parameters
+	// Parse deadline_from, deadline_to
 	deadlineFrom := c.Query("deadline_from")
 	deadlineTo := c.Query("deadline_to")
 
@@ -88,20 +88,20 @@ func (crc *ComplianceRequirementController) GetComplianceRequirementDetails(c *g
 		return
 	}
 
-	complianceRequirement, err := crc.service.GetByID(uint(id))
+	compliance, err := crc.service.GetByID(uint(id))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
 
-	c.JSON(http.StatusOK, complianceRequirement)
+	c.JSON(http.StatusOK, compliance)
 }
 
 func (crc *ComplianceRequirementController) CreateComplianceRequirement(c *gin.Context) {
 
-	var complianceRequirementFormDTO complianceDTOs.ComplianceRequirementFormDTO
+	var ComplianceRequirementFormDTO complianceDTOs.ComplianceRequirementFormDTO
 
-	if err := c.ShouldBindJSON(&complianceRequirementFormDTO); err != nil {
+	if err := c.ShouldBindJSON(&ComplianceRequirementFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
@@ -112,7 +112,14 @@ func (crc *ComplianceRequirementController) CreateComplianceRequirement(c *gin.C
 		return
 	}
 
-	id, err := crc.service.Create(currentUserID, &complianceRequirementFormDTO)
+	complianceIDStr := c.Param("complianceId")
+	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid complianceId"})
+		return
+	}
+
+	id, err := crc.service.Create(uint(complianceID), currentUserID, &ComplianceRequirementFormDTO)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -136,8 +143,8 @@ func (crc *ComplianceRequirementController) UpdateComplianceRequirement(c *gin.C
 		return
 	}
 
-	var complianceRegFormDTO complianceDTOs.ComplianceRequirementFormDTO
-	if err := c.ShouldBindJSON(&complianceRegFormDTO); err != nil {
+	var ComplianceRequirementFormDTO complianceDTOs.ComplianceRequirementFormDTO
+	if err := c.ShouldBindJSON(&ComplianceRequirementFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
@@ -148,7 +155,7 @@ func (crc *ComplianceRequirementController) UpdateComplianceRequirement(c *gin.C
 		return
 	}
 
-	err = crc.service.Update(uint(complianceID), currentUserID, &complianceRegFormDTO)
+	err = crc.service.Update(uint(complianceID), currentUserID, &ComplianceRequirementFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

@@ -5,6 +5,7 @@ import (
 	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	complianceModels "jethur/grc/compliance/models"
+	masterModels "jethur/grc/masters/models"
 	"jethur/utility"
 
 	"gorm.io/gorm"
@@ -13,8 +14,8 @@ import (
 type ComplianceRequirementRepositoryInterface interface {
 	GetAll(params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementListResponseDTO, error)
 	GetByID(id uint) (*complianceModels.ComplianceRequirement, error)
-	Create(currentUserID uint, complianceRequirementFormDTO *complianceDTOs.ComplianceRequirementFormDTO) (uint, error)
-	Update(id uint, currentUserID uint, complianceRequirementFormDTO *complianceDTOs.ComplianceRequirementFormDTO) error
+	Create(complianceClause *complianceModels.ComplianceClause, complianceRequirement *complianceModels.ComplianceRequirement) (uint, error)
+	Update(complianceRequirement *complianceModels.ComplianceRequirement) error
 	Delete(id uint) error
 }
 
@@ -62,11 +63,11 @@ func (repo *ComplianceRequirementRepository) GetAll(params *complianceDTOs.Compl
 			created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
             created_user.last_name_en AS created_user_last_name_en,
-            created_user.last_name_ar AS created_user_last_name_ar,
+            created_user.last_name_ar AS created_user_last_name_ar,   
 			updated_user.first_name_en AS updated_user_first_name_en,
             updated_user.first_name_ar AS updated_user_first_name_ar,
             updated_user.last_name_en AS updated_user_last_name_en,
-            updated_user.last_name_ar AS updated_user_last_name_ar
+            updated_user.last_name_ar AS updated_user_last_name_ar          
         `).
 		Joins(`
 		    LEFT JOIN compliance_categories ON compliance_categories.id = compliance_register.compliance_category_id
@@ -189,29 +190,13 @@ func (repo *ComplianceRequirementRepository) GetByID(id uint) (*complianceModels
 	return compliance, result.Error
 }
 
-func (repo *ComplianceRequirementRepository) Create(currentUserID uint, complianceRequirementFormDTO *complianceDTOs.ComplianceRequirementFormDTO) (uint, error) {
-
-	// Map DTO to ComplianceClause model
-	complianceClause := &complianceModels.ComplianceClause{
-		ClauseNo: complianceRequirementFormDTO.ComplianceClauseNo,
-		Title:    complianceRequirementFormDTO.ComplianceClauseTitle,
-	}
+func (repo *ComplianceRequirementRepository) Create(complianceClause *complianceModels.ComplianceClause, complianceRequirement *complianceModels.ComplianceRequirement) (uint, error) {
 
 	if err := repo.db.Create(complianceClause).Error; err != nil {
 		return 0, err
 	}
 
-	// Map DTO to ComplianceRequirement model
-	complianceRequirement := &complianceModels.ComplianceRequirement{
-		ComplianceClauseID:              complianceClause.ID,
-		Title:                           complianceRequirementFormDTO.Title,
-		ComplianceRequirementCategoryID: complianceRequirementFormDTO.ComplianceRequirementCategoryID,
-		SeverityLevelID:                 complianceRequirementFormDTO.SeverityLevelID,
-		ResponsibleUserID:               complianceRequirementFormDTO.ResponsibleUserID,
-		Deadline:                        complianceRequirementFormDTO.Deadline,
-		ComplianceStatusID:              complianceRequirementFormDTO.ComplianceStatusID,
-		CreatedBy:                       currentUserID,
-	}
+	complianceRequirement.ComplianceClauseID = complianceClause.ID
 
 	if err := repo.db.Create(complianceRequirement).Error; err != nil {
 		return 0, err
@@ -220,34 +205,9 @@ func (repo *ComplianceRequirementRepository) Create(currentUserID uint, complian
 	return complianceRequirement.ID, nil
 }
 
-func (repo *ComplianceRequirementRepository) Update(id uint, currentUserID uint, complianceRequirementFormDTO *complianceDTOs.ComplianceRequirementFormDTO) error {
-	// Prepare the update map for rquirement
-	updateClauseFields := map[string]interface{}{
-		"ClauseNo": complianceRequirementFormDTO.ComplianceClauseNo,
-		"Title":    complianceRequirementFormDTO.ComplianceClauseNo,
-	}
+func (repo *ComplianceRequirementRepository) Update(complianceRequirement *complianceModels.ComplianceRequirement) error {
 
-	// Perform the update
-	if err := repo.db.Model(&complianceModels.ComplianceClause{}).
-		Where("id = ?", id).
-		Updates(updateClauseFields).Error; err != nil {
-		return err
-	}
-	// Prepare the update map for rquirement
-	updateRequirementFields := map[string]interface{}{
-		"Title":                           complianceRequirementFormDTO.Title,
-		"ComplianceRequirementCategoryID": complianceRequirementFormDTO.ComplianceRequirementCategoryID,
-		"SeverityLevelID":                 complianceRequirementFormDTO.SeverityLevelID,
-		"ResponsibleUserID":               complianceRequirementFormDTO.ResponsibleUserID,
-		"Deadline":                        complianceRequirementFormDTO.Deadline,
-		"ComplianceStatusID":              complianceRequirementFormDTO.ComplianceStatusID,
-		"UpdatedBy":                       currentUserID,
-	}
-
-	// Perform the update
-	if err := repo.db.Model(&complianceModels.ComplianceRequirement{}).
-		Where("id = ?", id).
-		Updates(updateRequirementFields).Error; err != nil {
+	if err := repo.db.Save(complianceRequirement).Error; err != nil {
 		return err
 	}
 
@@ -267,4 +227,66 @@ func (repo *ComplianceRequirementRepository) Delete(id uint) error {
 	}
 
 	return nil
+}
+
+func (repo *ComplianceRequirementRepository) Archive(ids []uint) ([]uint, error) {
+	var idsToUpdate []uint
+
+	// Retrieve IDs of ComplianceRequirements with lifecycle status "active"
+	if err := repo.db.Model(&complianceModels.ComplianceRequirement{}).
+		Joins("JOIN lifecycle_statuses ON compliance_register.lifecycle_status_id = lifecycle_statuses.id").
+		Where("compliance_register.id IN ? AND lifecycle_statuses.type = ?", ids, "active").
+		Pluck("compliance_register.id", &idsToUpdate).Error; err != nil {
+		return nil, err
+	}
+
+	if len(idsToUpdate) > 0 {
+		// Retrieve the ID of the "archived" LifecycleStatus
+		var archivedLifecycleStatusID uint
+		if err := repo.db.Model(&masterModels.LifecycleStatus{}).
+			Where("type = ?", "archived").
+			Pluck("id", &archivedLifecycleStatusID).Error; err != nil {
+			return nil, err
+		}
+
+		// Update ComplianceRequirements with the retrieved archivedLifecycleStatusID
+		if err := repo.db.Model(&complianceModels.ComplianceRequirement{}).
+			Where("id IN ?", idsToUpdate).
+			Update("lifecycle_status_id", archivedLifecycleStatusID).Error; err != nil {
+			return nil, err
+		}
+	}
+
+	return idsToUpdate, nil
+}
+
+func (repo *ComplianceRequirementRepository) Restore(ids []uint) ([]uint, error) {
+	var idsToUpdate []uint
+
+	// Retrieve IDs of ComplianceRequirements with lifecycle status "archived"
+	if err := repo.db.Model(&complianceModels.ComplianceRequirement{}).
+		Joins("JOIN lifecycle_statuses ON compliance_register.lifecycle_status_id = lifecycle_statuses.id").
+		Where("compliance_register.id IN ? AND lifecycle_statuses.type = ?", ids, "archived").
+		Pluck("compliance_register.id", &idsToUpdate).Error; err != nil {
+		return nil, err
+	}
+
+	if len(idsToUpdate) > 0 {
+		// Retrieve the ID of the "active" LifecycleStatus
+		var activeLifecycleStatusID uint
+		if err := repo.db.Model(&masterModels.LifecycleStatus{}).
+			Where("type = ?", "active").
+			Pluck("id", &activeLifecycleStatusID).Error; err != nil {
+			return nil, err
+		}
+
+		// Update ComplianceRequirements with the retrieved activeLifecycleStatusID
+		if err := repo.db.Model(&complianceModels.ComplianceRequirement{}).
+			Where("id IN ?", idsToUpdate).
+			Update("lifecycle_status_id", activeLifecycleStatusID).Error; err != nil {
+			return nil, err
+		}
+	}
+
+	return idsToUpdate, nil
 }
