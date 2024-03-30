@@ -33,6 +33,7 @@ func NewAuthRepository(db *gorm.DB) *AuthRepository {
 func (repo *AuthRepository) Authenticate(email, password string) (map[string]string, error) {
 
 	var user models.User
+	var userSecurity models.UserSecurity
 
 	result := repo.db.First(&user, "email = ?", email)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -41,8 +42,15 @@ func (repo *AuthRepository) Authenticate(email, password string) (map[string]str
 		return nil, utility.NewInternalServerError(result.Error)
 	}
 
+	// Next, find the user's security information by user ID
+	result = repo.db.Where("user_id = ?", user.ID).First(&userSecurity)
+	if result.Error != nil {
+		// Consider how you want to handle errors here, this could be a missing record or a database error
+		return nil, utility.NewInternalServerError(result.Error)
+	}
+
 	// Compare the provided password with the stored hashed password
-	err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password))
+	err := bcrypt.CompareHashAndPassword([]byte(userSecurity.PasswordHash), []byte(password))
 	if err != nil {
 		return nil, errors.New("invalid credentials")
 	}
