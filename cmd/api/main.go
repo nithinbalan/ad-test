@@ -12,6 +12,7 @@ import (
 	"jethur/middlewares"
 	"jethur/utility"
 	"log"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -19,6 +20,8 @@ import (
 func main() {
 
 	config.LoadEnv() // Load environment variables
+
+	time.Local = time.UTC
 
 	port := config.GetEnv("PORT", "8080")
 	rootPath := config.GetEnv("ROOT_PATH", "")

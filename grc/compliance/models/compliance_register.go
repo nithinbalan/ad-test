@@ -28,8 +28,8 @@ type ComplianceRegister struct {
 	IssueDate               *time.Time `json:"issue_date" binding:"omitempty" gorm:"type:date"`
 	ExpiryDate              *time.Time `json:"expiry_date" binding:"omitempty" gorm:"type:date"`
 	NextReviewDate          *time.Time `json:"next_review_date" binding:"omitempty" gorm:"type:date"`
-	CreatedAt               time.Time  `json:"created_at" gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP"`
-	UpdatedAt               time.Time  `json:"updated_at" gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"`
+	CreatedAt               time.Time  `json:"created_at" gorm:"type:datetime;not null"`
+	UpdatedAt               *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 	CreatedBy               uint       `json:"created_by" gorm:"not null"`
 	UpdatedBy               *uint      `json:"updated_by" gorm:"default:null"`
 	LifecycleStatusID       uint       `json:"lifecycle_status_id" gorm:"not null"`
