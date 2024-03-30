@@ -68,7 +68,7 @@ func (repo *LifecycleStatusRepository) GetByID(id uint) (*models.LifecycleStatus
 func (repo *LifecycleStatusRepository) GetByStatus(status string) (*models.LifecycleStatus, error) {
 	var lifecycleStatus *models.LifecycleStatus
 
-	result := repo.db.Where("status = ?", status).First(&lifecycleStatus)
+	result := repo.db.Where("type = ?", status).First(&lifecycleStatus)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, utility.NewResourceNotFoundError(result.Error, "Lifecycle Status with status "+status)

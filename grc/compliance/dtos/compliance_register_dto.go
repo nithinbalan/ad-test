@@ -2,6 +2,8 @@ package dtos
 
 import (
 	commonDTOs "jethur/grc/common/dtos"
+	"jethur/grc/compliance/models"
+	masterModels "jethur/grc/masters/models"
 	"time"
 )
 
@@ -97,9 +99,54 @@ type ComplianceRegisterFormDTO struct {
 	StandardCode            *string `json:"standard_code" binding:"omitempty,max=45"`
 }
 
-type ParsedDates struct {
+type ComplianceRegisterParsedDates struct {
 	Deadline       *time.Time
 	IssueDate      *time.Time
 	ExpiryDate     *time.Time
 	NextReviewDate *time.Time
+}
+
+// @todo all need to move new files
+type ComplianceCategoryDTO struct {
+	ID      int    `json:"id"`
+	TitleEn string `json:"title_en"`
+	TitleAr string `json:"title_ar"`
+	Status  string `json:"status"`
+}
+
+type OrganizationUnit1DTO struct {
+	ID      int    `json:"id"`
+	TitleEn string `json:"title_en"`
+	TitleAr string `json:"title_ar"`
+	Status  string `json:"status"`
+}
+
+// @todo moved to userdto
+type UserMinimalDTO struct {
+	ID                int                  `json:"id"`
+	FirstNameEN       string               `json:"first_name_en"`
+	LastNameEN        string               `json:"last_name_en"`
+	FirstNameAR       string               `json:"first_name_ar"`
+	LastNameAR        string               `json:"last_name_ar"`
+	OrganizationUnit1 OrganizationUnit1DTO `json:"organization_unit_1"`
+}
+
+// create dto for all tables and change modal to dto
+type ComplianceRegisterDetailDTO struct {
+	ID                    int                          `json:"id"`
+	ReferenceNumber       string                       `json:"reference_number"`
+	StandardCode          string                       `json:"standard_code"`
+	TitleEn               string                       `json:"title_en"`
+	TitleAr               string                       `json:"title_ar"`
+	DescriptionEn         string                       `json:"description_en"`
+	DescriptionAr         string                       `json:"description_ar"`
+	ComplianceCategory    models.ComplianceCategory    `json:"compliance_category"`
+	ComplianceStatus      models.ComplianceStatus      `json:"compliance_status"`
+	ResponsibleUser       UserMinimalDTO               `json:"responsible_user"`
+	ReviewFrequency       masterModels.ReviewFrequency `json:"review_frequency"`
+	ReviewResponsibleUser UserMinimalDTO               `json:"review_responsible_user"`
+	SeverityLevel         masterModels.SeverityLevel   `json:"severity_level"`
+	CreatedByUser         UserMinimalDTO               `json:"created_by"`
+	UpdatedByUser         UserMinimalDTO               `json:"updated_by"`
+	LifecycleStatus       masterModels.LifecycleStatus `json:"status"`
 }
