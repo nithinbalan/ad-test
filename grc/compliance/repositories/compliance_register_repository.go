@@ -279,9 +279,9 @@ func (repo *ComplianceRegisterRepository) GetIDsByLifecycleStatus(ids []uint, st
 	var matchingIDs []uint
 
 	if err := repo.db.Model(&complianceModels.ComplianceRegister{}).
-		Joins("JOIN lifecycle_statuses ON compliance_registers.lifecycle_status_id = lifecycle_statuses.id").
-		Where("compliance_registers.id IN ? AND lifecycle_statuses.type = ?", ids, status).
-		Pluck("compliance_registers.id", &matchingIDs).Error; err != nil {
+		Joins("JOIN lifecycle_statuses ON compliance_register.lifecycle_status_id = lifecycle_statuses.id").
+		Where("compliance_register.id IN ? AND lifecycle_statuses.type = ?", ids, status).
+		Pluck("compliance_register.id", &matchingIDs).Error; err != nil {
 		return nil, err
 	}
 
