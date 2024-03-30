@@ -13,10 +13,11 @@ import (
 
 type ComplianceRequirementRepositoryInterface interface {
 	GetAll(params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementListResponseDTO, error)
-	GetByID(id uint) (*complianceModels.ComplianceRequirement, error)
+	GetByID(complianceID uint, id uint) (*complianceModels.ComplianceRequirement, error)
 	Create(complianceClause *complianceModels.ComplianceClause, complianceRequirement *complianceModels.ComplianceRequirement) (uint, error)
 	Update(complianceRequirement *complianceModels.ComplianceRequirement) error
 	Delete(id uint) error
+	IsValidID(id uint) (*complianceModels.ComplianceRequirement, error)
 }
 
 type ComplianceRequirementRepository struct {
@@ -177,9 +178,9 @@ func (repo *ComplianceRequirementRepository) GetAll(params *complianceDTOs.Compl
 	return response, nil
 }
 
-func (repo *ComplianceRequirementRepository) GetByID(id uint) (*complianceModels.ComplianceRequirement, error) {
-	var compliance *complianceModels.ComplianceRequirement
-	result := repo.db.First(&compliance, id)
+func (repo *ComplianceRequirementRepository) GetByID(complianceID uint, id uint) (*complianceModels.ComplianceRequirement, error) {
+	var complianceRequirement *complianceModels.ComplianceRequirement
+	result := repo.db.First(&complianceRequirement, id)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, utility.NewResourceNotFoundError(result.Error, id)
@@ -187,7 +188,7 @@ func (repo *ComplianceRequirementRepository) GetByID(id uint) (*complianceModels
 		return nil, result.Error
 	}
 
-	return compliance, result.Error
+	return complianceRequirement, result.Error
 }
 
 func (repo *ComplianceRequirementRepository) Create(complianceClause *complianceModels.ComplianceClause, complianceRequirement *complianceModels.ComplianceRequirement) (uint, error) {
@@ -218,6 +219,7 @@ func (repo *ComplianceRequirementRepository) Create(complianceClause *compliance
 func (repo *ComplianceRequirementRepository) Update(complianceRequirement *complianceModels.ComplianceRequirement) error {
 
 	if err := repo.db.Save(complianceRequirement).Error; err != nil {
+
 		return err
 	}
 
@@ -299,4 +301,14 @@ func (repo *ComplianceRequirementRepository) Restore(ids []uint) ([]uint, error)
 	}
 
 	return idsToUpdate, nil
+}
+
+func (repo *ComplianceRequirementRepository) IsValidID(id uint) (*complianceModels.ComplianceRequirement, error) {
+	var complianceRequirement complianceModels.ComplianceRequirement
+
+	if err := repo.db.First(&complianceRequirement, id).Error; err != nil {
+		return nil, utility.NewInternalServerError(err)
+	}
+
+	return &complianceRequirement, nil
 }

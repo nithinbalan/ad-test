@@ -57,6 +57,6 @@ type ComplianceRequirementFormDTO struct {
 	ComplianceRequirementCategoryID uint   `json:"compliance_requirement_category_id" binding:"required"`
 	SeverityLevelID                 uint   `json:"severity_level_id"`
 	ResponsibleUserID               uint   `json:"responsible_user_id" binding:"required"`
-	Deadline                        string `json:"deadline"`
+	Deadline                        string `json:"deadline" binding:"omitempty,datetime=2006-01-02"`
 	ComplianceStatusID              uint   `json:"compliance_status_id" binding:"required"`
 }

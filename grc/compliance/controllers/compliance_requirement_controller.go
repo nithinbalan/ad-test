@@ -80,15 +80,23 @@ func (crc *ComplianceRequirementController) GetAllComplianceRequirements(c *gin.
 }
 
 func (crc *ComplianceRequirementController) GetComplianceRequirementDetails(c *gin.Context) {
+	complianceIDStr := c.Param("complianceId")
+
+	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
+	if err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
 	idStr := c.Param("id")
 
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
-		utility.SendNotFoundErrResp(c)
+		utility.SendInvalidErrResp(c, err)
 		return
 	}
 
-	compliance, err := crc.service.GetByID(uint(id))
+	compliance, err := crc.service.GetByID(uint(complianceID), uint(id))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -138,9 +146,19 @@ func (crc *ComplianceRequirementController) CreateComplianceRequirement(c *gin.C
 
 func (crc *ComplianceRequirementController) UpdateComplianceRequirement(c *gin.Context) {
 
-	complianceID, err := strconv.Atoi(c.Param("id"))
+	complianceIDStr := c.Param("complianceId")
+
+	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
 	if err != nil {
-		utility.SendNotFoundErrResp(c)
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	idStr := c.Param("id")
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendInvalidErrResp(c, err)
 		return
 	}
 
@@ -156,7 +174,7 @@ func (crc *ComplianceRequirementController) UpdateComplianceRequirement(c *gin.C
 		return
 	}
 
-	err = crc.service.Update(uint(complianceID), currentUserID, &ComplianceRequirementFormDTO)
+	err = crc.service.Update(uint(complianceID), uint(id), currentUserID, &ComplianceRequirementFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

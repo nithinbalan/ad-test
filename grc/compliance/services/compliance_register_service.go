@@ -335,9 +335,4 @@ func (crs *ComplianceRegisterService) parseComplianceRegisterDates(dto *complian
 
 func (crs ComplianceRegisterService) IsValidID(id uint) error {
 	return crs.repo.IsValidID(id)
-	// err := crs.repo.IsValidID(id)
-	// if err != nil {
-	// 	return utility.NewInternalServerError(err)
-	// }
-	// return nil
 }

@@ -10,14 +10,13 @@ import (
 	masterRepositories "jethur/grc/masters/repositories"
 	masterServices "jethur/grc/masters/services"
 	"jethur/utility"
-	"time"
 )
 
 type ComplianceRequirementServiceInterface interface {
 	GetAll(params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementListResponseDTO, error)
-	GetByID(id uint) (*complianceModels.ComplianceRequirement, error)
+	GetByID(complianceID uint, id uint) (*complianceModels.ComplianceRequirement, error)
 	Create(complianceID uint, currentUserID uint, ComplianceRequirementFormDTO *complianceDTOs.ComplianceRequirementFormDTO) (uint, error)
-	Update(id uint, currentUserID uint, compliance *complianceDTOs.ComplianceRequirementFormDTO) error
+	Update(complianceID uint, id uint, currentUserID uint, compliance *complianceDTOs.ComplianceRequirementFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 }
 
@@ -52,8 +51,8 @@ func (crs *ComplianceRequirementService) GetAll(params *complianceDTOs.Complianc
 	return crs.repo.GetAll(params)
 }
 
-func (crs ComplianceRequirementService) GetByID(id uint) (*complianceModels.ComplianceRequirement, error) {
-	return crs.repo.GetByID(id)
+func (crs ComplianceRequirementService) GetByID(complianceID uint, id uint) (*complianceModels.ComplianceRequirement, error) {
+	return crs.repo.GetByID(complianceID, id)
 }
 
 func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID uint, ComplianceRequirementFormDTO *complianceDTOs.ComplianceRequirementFormDTO) (uint, error) {
@@ -77,8 +76,6 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		Title:                ComplianceRequirementFormDTO.ComplianceClauseTitle,
 	}
 
-	currentTime := time.Now().UTC()
-
 	complianceRequirement := &complianceModels.ComplianceRequirement{
 		ComplianceRequirementCategoryID: ComplianceRequirementFormDTO.ComplianceRequirementCategoryID,
 		ComplianceStatusID:              ComplianceRequirementFormDTO.ComplianceStatusID,
@@ -87,8 +84,6 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		Title:                           ComplianceRequirementFormDTO.Title,
 		Deadline:                        dates.Deadline,
 		CreatedBy:                       currentUserID,
-		CreatedAt:                       currentTime,
-		UpdatedAt:                       currentTime,
 	}
 
 	id, err := crs.repo.Create(complianceClause, complianceRequirement)
@@ -122,9 +117,8 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 	return id, nil
 }
 
-func (crs *ComplianceRequirementService) Update(id uint, currentUserID uint, ComplianceRequirementFormDTO *complianceDTOs.ComplianceRequirementFormDTO) error {
-
-	existingComplianceRequirement, err := crs.repo.GetByID(id)
+func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, currentUserID uint, ComplianceRequirementFormDTO *complianceDTOs.ComplianceRequirementFormDTO) error {
+	existingComplianceRequirement, err := crs.repo.GetByID(complianceID, id)
 
 	if err != nil {
 		return err
@@ -161,7 +155,7 @@ func (crs *ComplianceRequirementService) Delete(ids []uint, currentUserID uint) 
 	var successfulIds []uint
 	for _, id := range ids {
 
-		_, err := crs.repo.GetByID(id)
+		_, err := crs.repo.GetByID(id, id)
 
 		if err != nil {
 			continue
@@ -219,7 +213,7 @@ func (crs *ComplianceRequirementService) parseComplianceRequirementDates(dto *co
 	if dto.Deadline != "" {
 		parsed.Deadline, err = utility.ParseDate(dto.Deadline)
 		if err != nil {
-			return nil, fmt.Errorf("invalid deadline: %w", err)
+			return nil, utility.NewValidationError(fmt.Errorf("invalid deadline"), "invalid_date", "deadline")
 		}
 	}
 
