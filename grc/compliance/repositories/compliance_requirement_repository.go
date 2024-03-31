@@ -5,7 +5,6 @@ import (
 	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	complianceModels "jethur/grc/compliance/models"
-	masterModels "jethur/grc/masters/models"
 	"jethur/utility"
 
 	"gorm.io/gorm"
@@ -15,9 +14,10 @@ type ComplianceRequirementRepositoryInterface interface {
 	GetAll(params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementListResponseDTO, error)
 	GetByID(complianceID uint, id uint) (*complianceModels.ComplianceRequirement, error)
 	GetFullDetailsByID(complianceID uint, id uint) (*complianceModels.ComplianceRequirement, error)
-	Create(complianceClause *complianceModels.ComplianceClause, complianceRequirement *complianceModels.ComplianceRequirement) (uint, error)
+	Create(complianceRequirement *complianceModels.ComplianceRequirement) (uint, error)
 	Update(complianceRequirement *complianceModels.ComplianceRequirement) error
 	Delete(id uint) error
+	GetOrCreateComplianceClause(complianceClause *complianceModels.ComplianceClause) (*complianceModels.ComplianceClause, error)
 }
 
 type ComplianceRequirementRepository struct {
@@ -215,38 +215,17 @@ func (repo *ComplianceRequirementRepository) GetFullDetailsByID(complianceId uin
 	return compliance, nil
 }
 
-func (repo *ComplianceRequirementRepository) Create(complianceClause *complianceModels.ComplianceClause, complianceRequirement *complianceModels.ComplianceRequirement) (uint, error) {
-
-	var existingClause complianceModels.ComplianceClause
-	err := repo.db.Where("clause_no = ? AND title = ?", complianceClause.ClauseNo, complianceClause.Title).First(&existingClause).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			if err := repo.db.Create(complianceClause).Error; err != nil {
-				return 0, err
-			}
-			complianceRequirement.ComplianceClauseID = complianceClause.ID
-		} else {
-			return 0, err
-		}
-	} else {
-		// If the clause exists, use its ID for the compliance requirement
-		complianceRequirement.ComplianceClauseID = existingClause.ID
-	}
-
+func (repo *ComplianceRequirementRepository) Create(complianceRequirement *complianceModels.ComplianceRequirement) (uint, error) {
 	if err := repo.db.Create(complianceRequirement).Error; err != nil {
 		return 0, err
 	}
-
 	return complianceRequirement.ID, nil
 }
 
 func (repo *ComplianceRequirementRepository) Update(complianceRequirement *complianceModels.ComplianceRequirement) error {
-
 	if err := repo.db.Save(complianceRequirement).Error; err != nil {
-
 		return err
 	}
-
 	return nil
 }
 
@@ -265,64 +244,19 @@ func (repo *ComplianceRequirementRepository) Delete(id uint) error {
 	return nil
 }
 
-func (repo *ComplianceRequirementRepository) Archive(ids []uint) ([]uint, error) {
-	var idsToUpdate []uint
-
-	// Retrieve IDs of ComplianceRequirements with lifecycle status "active"
-	if err := repo.db.Model(&complianceModels.ComplianceRequirement{}).
-		Joins("JOIN lifecycle_statuses ON compliance_register.lifecycle_status_id = lifecycle_statuses.id").
-		Where("compliance_register.id IN ? AND lifecycle_statuses.type = ?", ids, "active").
-		Pluck("compliance_register.id", &idsToUpdate).Error; err != nil {
+func (repo *ComplianceRequirementRepository) GetOrCreateComplianceClause(complianceClause *complianceModels.ComplianceClause) (*complianceModels.ComplianceClause, error) {
+	var existingClause complianceModels.ComplianceClause
+	err := repo.db.Where("clause_no = ? AND title = ? AND compliance_register_id = ?", complianceClause.ClauseNo, complianceClause.Title, complianceClause.ComplianceRegisterID).First(&existingClause).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			if err := repo.db.Create(complianceClause).Error; err != nil {
+				return nil, err
+			}
+			return complianceClause, nil
+		}
 		return nil, err
 	}
 
-	if len(idsToUpdate) > 0 {
-		// Retrieve the ID of the "archived" LifecycleStatus
-		var archivedLifecycleStatusID uint
-		if err := repo.db.Model(&masterModels.LifecycleStatus{}).
-			Where("type = ?", "archived").
-			Pluck("id", &archivedLifecycleStatusID).Error; err != nil {
-			return nil, err
-		}
-
-		// Update ComplianceRequirements with the retrieved archivedLifecycleStatusID
-		if err := repo.db.Model(&complianceModels.ComplianceRequirement{}).
-			Where("id IN ?", idsToUpdate).
-			Update("lifecycle_status_id", archivedLifecycleStatusID).Error; err != nil {
-			return nil, err
-		}
-	}
-
-	return idsToUpdate, nil
-}
-
-func (repo *ComplianceRequirementRepository) Restore(ids []uint) ([]uint, error) {
-	var idsToUpdate []uint
-
-	// Retrieve IDs of ComplianceRequirements with lifecycle status "archived"
-	if err := repo.db.Model(&complianceModels.ComplianceRequirement{}).
-		Joins("JOIN lifecycle_statuses ON compliance_register.lifecycle_status_id = lifecycle_statuses.id").
-		Where("compliance_register.id IN ? AND lifecycle_statuses.type = ?", ids, "archived").
-		Pluck("compliance_register.id", &idsToUpdate).Error; err != nil {
-		return nil, err
-	}
-
-	if len(idsToUpdate) > 0 {
-		// Retrieve the ID of the "active" LifecycleStatus
-		var activeLifecycleStatusID uint
-		if err := repo.db.Model(&masterModels.LifecycleStatus{}).
-			Where("type = ?", "active").
-			Pluck("id", &activeLifecycleStatusID).Error; err != nil {
-			return nil, err
-		}
-
-		// Update ComplianceRequirements with the retrieved activeLifecycleStatusID
-		if err := repo.db.Model(&complianceModels.ComplianceRequirement{}).
-			Where("id IN ?", idsToUpdate).
-			Update("lifecycle_status_id", activeLifecycleStatusID).Error; err != nil {
-			return nil, err
-		}
-	}
-
-	return idsToUpdate, nil
+	// If the clause exists, return it
+	return &existingClause, nil
 }

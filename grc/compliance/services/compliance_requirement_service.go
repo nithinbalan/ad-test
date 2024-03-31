@@ -107,10 +107,16 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		return 0, err
 	}
 
+	// Create or retrieve the compliance clause
 	complianceClause := &complianceModels.ComplianceClause{
 		ComplianceRegisterID: complianceID,
 		ClauseNo:             ComplianceRequirementFormDTO.ComplianceClauseNo,
 		Title:                ComplianceRequirementFormDTO.ComplianceClauseTitle,
+	}
+
+	clause, err := crs.repo.GetOrCreateComplianceClause(complianceClause)
+	if err != nil {
+		return 0, err
 	}
 
 	complianceRequirement := &complianceModels.ComplianceRequirement{
@@ -121,9 +127,10 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		Title:                           ComplianceRequirementFormDTO.Title,
 		Deadline:                        dates.Deadline,
 		CreatedBy:                       currentUserID,
+		ComplianceClauseID:              clause.ID, // Use the clause ID
 	}
 
-	id, err := crs.repo.Create(complianceClause, complianceRequirement)
+	id, err := crs.repo.Create(complianceRequirement)
 	if err != nil {
 		return 0, err
 	}
@@ -175,6 +182,19 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 		return err
 	}
 
+	// Create or retrieve the compliance clause
+	complianceClause := &complianceModels.ComplianceClause{
+		ComplianceRegisterID: complianceID,
+		ClauseNo:             ComplianceRequirementFormDTO.ComplianceClauseNo,
+		Title:                ComplianceRequirementFormDTO.ComplianceClauseTitle,
+	}
+
+	clause, err := crs.repo.GetOrCreateComplianceClause(complianceClause)
+	if err != nil {
+		return err
+	}
+
+	// Update Compliance Requirement
 	existingComplianceRequirement.ComplianceRequirementCategoryID = ComplianceRequirementFormDTO.ComplianceRequirementCategoryID
 	existingComplianceRequirement.ComplianceStatusID = ComplianceRequirementFormDTO.ComplianceStatusID
 	existingComplianceRequirement.ResponsibleUserID = ComplianceRequirementFormDTO.ResponsibleUserID
@@ -182,6 +202,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 	existingComplianceRequirement.Title = ComplianceRequirementFormDTO.Title
 	existingComplianceRequirement.Deadline = dates.Deadline
 	existingComplianceRequirement.UpdatedBy = &currentUserID
+	existingComplianceRequirement.ComplianceClauseID = clause.ID
 
 	err = crs.repo.Update(existingComplianceRequirement)
 
