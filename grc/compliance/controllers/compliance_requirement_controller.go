@@ -132,6 +132,9 @@ func (crc *ComplianceRequirementController) CreateComplianceRequirement(c *gin.C
 
 	if err != nil {
 		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
 			return

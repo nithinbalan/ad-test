@@ -2,6 +2,7 @@ package dtos
 
 import (
 	commonDTOs "jethur/grc/common/dtos"
+	"time"
 )
 
 type ComplianceRequirementListDTO struct {
@@ -51,12 +52,16 @@ type ComplianceRequirementListResponseDTO struct {
 }
 
 type ComplianceRequirementFormDTO struct {
-	ComplianceClauseNo              string `json:"compliance_clause_no"`
-	ComplianceClauseTitle           string `json:"compliance_clause_title"`
-	Title                           string `json:"title"`
+	ComplianceClauseNo              string `json:"compliance_clause_no" binding:"required"`
+	ComplianceClauseTitle           string `json:"compliance_clause_title" binding:"required"`
+	Title                           string `json:"title" binding:"required"`
 	ComplianceRequirementCategoryID uint   `json:"compliance_requirement_category_id" binding:"required"`
-	SeverityLevelID                 uint   `json:"severity_level_id"`
+	SeverityLevelID                 uint   `json:"severity_level_id" binding:"required"`
 	ResponsibleUserID               uint   `json:"responsible_user_id" binding:"required"`
 	Deadline                        string `json:"deadline" binding:"omitempty,datetime=2006-01-02"`
 	ComplianceStatusID              uint   `json:"compliance_status_id" binding:"required"`
+}
+
+type ComplianceRequirementParsedDates struct {
+	Deadline *time.Time
 }

@@ -127,7 +127,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		Title:                           ComplianceRequirementFormDTO.Title,
 		Deadline:                        dates.Deadline,
 		CreatedBy:                       currentUserID,
-		ComplianceClauseID:              clause.ID, // Use the clause ID
+		ComplianceClauseID:              clause.ID,
 	}
 
 	id, err := crs.repo.Create(complianceRequirement)
@@ -182,7 +182,6 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 		return err
 	}
 
-	// Create or retrieve the compliance clause
 	complianceClause := &complianceModels.ComplianceClause{
 		ComplianceRegisterID: complianceID,
 		ClauseNo:             ComplianceRequirementFormDTO.ComplianceClauseNo,
@@ -216,24 +215,42 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 func (crs *ComplianceRequirementService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
+
+	// Track clause IDs for deletion
+	clauseIDsToDelete := make(map[uint]bool)
+
 	for _, id := range ids {
-
-		_, err := crs.repo.GetByID(id, id)
-
+		req, err := crs.repo.GetByID(id, id)
 		if err != nil {
+			failedIds = append(failedIds, id)
 			continue
 		}
 
-		err = crs.repo.Delete(id)
-		if err != nil {
+		if err := crs.repo.Delete(id); err != nil {
 			failedIds = append(failedIds, id)
 		} else {
 			successfulIds = append(successfulIds, id)
+			// Track the clause IDs
+			clauseIDsToDelete[req.ComplianceClauseID] = true
 		}
 	}
 
-	if len(successfulIds) > 0 {
+	// Delete clauses if all their requirements are deleted
+	for clauseID := range clauseIDsToDelete {
+		count, err := crs.repo.CountRequirementsByClauseID(clauseID)
+		if err != nil {
+			// Log error, but proceed with deletion as it might be recoverable later
+			fmt.Printf("Error counting requirements for clause %d: %v\n", clauseID, err)
+		} else if count == 0 {
+			if err := crs.repo.DeleteClause(clauseID); err != nil {
+				// Log error, but proceed with other deletions
+				fmt.Printf("Error deleting clause %d: %v\n", clauseID, err)
+			}
+		}
+	}
 
+	// Log successful deletions
+	if len(successfulIds) > 0 {
 		go func() {
 			err := crs.activityLogSvc.LogBulkActivities(
 				logModels.DeleteAction, // Make sure this action constant is defined appropriately
@@ -244,7 +261,7 @@ func (crs *ComplianceRequirementService) Delete(ids []uint, currentUserID uint) 
 				nil,
 			)
 			if err != nil {
-				// @todo - save to log file
+				// Log error, but proceed as it might be recoverable later
 				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
 			}
 		}()
