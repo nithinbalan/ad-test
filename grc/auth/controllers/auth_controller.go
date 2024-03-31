@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	authDTOs "jethur/grc/auth/dtos"
 	"jethur/grc/auth/services"
 	"jethur/utility"
@@ -69,6 +70,7 @@ func (ac *AuthController) SendPasswordRecoveryOTP(c *gin.Context) {
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
+			fmt.Println(err)
 			utility.SendNotFoundErrResp(c)
 			return
 		case *utility.ValidationError:

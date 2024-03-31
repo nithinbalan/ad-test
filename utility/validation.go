@@ -81,10 +81,10 @@ func ExtractValidationErrors(c *gin.Context, err error) []string {
 				},
 			})
 			errors = append(errors, errorMessage)
-		case "resend_time_not_reached":
+		case "resend_not_yet_allowed":
 			var errorMessage string
 			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
-				MessageID: "resend_time_not_reached",
+				MessageID: "resend_not_yet_allowed",
 				TemplateData: map[string]interface{}{
 					"Field": translatedFieldName,
 				},
