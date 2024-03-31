@@ -14,10 +14,10 @@ import (
 type ComplianceRequirementRepositoryInterface interface {
 	GetAll(params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementListResponseDTO, error)
 	GetByID(complianceID uint, id uint) (*complianceModels.ComplianceRequirement, error)
+	GetFullDetailsByID(complianceID uint, id uint) (*complianceModels.ComplianceRequirement, error)
 	Create(complianceClause *complianceModels.ComplianceClause, complianceRequirement *complianceModels.ComplianceRequirement) (uint, error)
 	Update(complianceRequirement *complianceModels.ComplianceRequirement) error
 	Delete(id uint) error
-	IsValidID(id uint) (*complianceModels.ComplianceRequirement, error)
 }
 
 type ComplianceRequirementRepository struct {
@@ -191,6 +191,30 @@ func (repo *ComplianceRequirementRepository) GetByID(complianceID uint, id uint)
 	return complianceRequirement, result.Error
 }
 
+func (repo *ComplianceRequirementRepository) GetFullDetailsByID(complianceId uint, id uint) (*complianceModels.ComplianceRequirement, error) {
+	var compliance *complianceModels.ComplianceRequirement // Declare the variable inside the function
+
+	result := repo.db.
+		Preload("ComplianceCategory").
+		Preload("ComplianceStatus").
+		Preload("ResponsibleUnit").
+		Preload("ResponsibleUser").
+		Preload("ResponsibleUser.OrganizationUnit1").
+		Preload("ReviewFrequency").
+		Preload("ReviewResponsibleUser").
+		Preload("SeverityLevel").
+		Preload("LifecycleStatus").
+		Preload("CreatedByUser").
+		Preload("UpdatedByUser").
+		First(&compliance, id)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return compliance, nil
+}
+
 func (repo *ComplianceRequirementRepository) Create(complianceClause *complianceModels.ComplianceClause, complianceRequirement *complianceModels.ComplianceRequirement) (uint, error) {
 
 	var existingClause complianceModels.ComplianceClause
@@ -301,14 +325,4 @@ func (repo *ComplianceRequirementRepository) Restore(ids []uint) ([]uint, error)
 	}
 
 	return idsToUpdate, nil
-}
-
-func (repo *ComplianceRequirementRepository) IsValidID(id uint) (*complianceModels.ComplianceRequirement, error) {
-	var complianceRequirement complianceModels.ComplianceRequirement
-
-	if err := repo.db.First(&complianceRequirement, id).Error; err != nil {
-		return nil, utility.NewInternalServerError(err)
-	}
-
-	return &complianceRequirement, nil
 }

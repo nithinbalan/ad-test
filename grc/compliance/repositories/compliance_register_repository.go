@@ -5,7 +5,6 @@ import (
 	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	complianceModels "jethur/grc/compliance/models"
-	"jethur/utility"
 	"strconv"
 	"time"
 
@@ -19,8 +18,6 @@ type ComplianceRegisterRepositoryInterface interface {
 	Create(complianceRegister *complianceModels.ComplianceRegister) (uint, error)
 	Update(complianceRegister *complianceModels.ComplianceRegister) error
 	Delete(id uint) error
-	Archive(ids []uint) ([]uint, error)
-	Restore(ids []uint) ([]uint, error)
 	GenerateReferenceNumber() (string, error)
 
 	//lifecycle
@@ -328,14 +325,4 @@ func (repo *ComplianceRegisterRepository) GenerateReferenceNumber() (string, err
 	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "CR", currentYear, lastReferenceID+1)
 
 	return newReferenceNumber, nil
-}
-
-func (repo *ComplianceRegisterRepository) IsValidID(id uint) error {
-	var compliance complianceModels.ComplianceRegister
-
-	if err := repo.db.First(&compliance, id).Error; err != nil {
-		return utility.NewInternalServerError(err)
-	}
-
-	return nil
 }

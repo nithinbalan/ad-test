@@ -19,12 +19,12 @@ import (
 type ComplianceRegisterServiceInterface interface {
 	GetAll(params *complianceDTOs.ComplianceRegisterListQueryParamsDTO) (*complianceDTOs.ComplianceRegisterListResponseDTO, error)
 	GetFullDetailsByID(id uint) (*complianceDTOs.ComplianceRegisterDetailDTO, error)
+	GetByID(id uint) (*complianceModels.ComplianceRegister, error)
 	Create(currentUserID uint, complianceRegisterFormDTO *complianceDTOs.ComplianceRegisterFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, compliance *complianceDTOs.ComplianceRegisterFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	Archive(ids []uint, currentUserID uint) ([]uint, error)
 	Restore(ids []uint, currentUserID uint) ([]uint, error)
-	IsValidID(id uint) error
 }
 
 // Service and implementations
@@ -59,6 +59,18 @@ func NewComplianceRegisterService(
 
 func (crs *ComplianceRegisterService) GetAll(params *complianceDTOs.ComplianceRegisterListQueryParamsDTO) (*complianceDTOs.ComplianceRegisterListResponseDTO, error) {
 	return crs.repo.GetAll(params)
+}
+
+func (crs ComplianceRegisterService) GetByID(id uint) (*complianceModels.ComplianceRegister, error) {
+	compliance, err := crs.repo.GetByID(id)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+	return compliance, nil
 }
 
 func (crs ComplianceRegisterService) GetFullDetailsByID(id uint) (*complianceDTOs.ComplianceRegisterDetailDTO, error) {
@@ -248,7 +260,7 @@ func (crs *ComplianceRegisterService) Delete(ids []uint, currentUserID uint) ([]
 
 func (crs *ComplianceRegisterService) Archive(ids []uint, currentUserID uint) ([]uint, error) {
 
-	lifecycleStatus, err := crs.lifecycleStatusSvc.GetByStatus("archived")
+	lifecycleStatus, err := crs.lifecycleStatusSvc.GetByStatus("archived|")
 	if err != nil {
 		return nil, err
 	}
@@ -376,8 +388,4 @@ func (crs *ComplianceRegisterService) parseComplianceRegisterDates(dto *complian
 	}
 
 	return parsed, nil
-}
-
-func (crs ComplianceRegisterService) IsValidID(id uint) error {
-	return crs.repo.IsValidID(id)
 }

@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"fmt"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	complianceModels "jethur/grc/compliance/models"
@@ -10,6 +11,9 @@ import (
 	masterRepositories "jethur/grc/masters/repositories"
 	masterServices "jethur/grc/masters/services"
 	"jethur/utility"
+
+	"github.com/mitchellh/mapstructure"
+	"gorm.io/gorm"
 )
 
 type ComplianceRequirementServiceInterface interface {
@@ -52,12 +56,45 @@ func (crs *ComplianceRequirementService) GetAll(params *complianceDTOs.Complianc
 }
 
 func (crs ComplianceRequirementService) GetByID(complianceID uint, id uint) (*complianceModels.ComplianceRequirement, error) {
-	return crs.repo.GetByID(complianceID, id)
+	complianceRequirement, err := crs.repo.GetByID(complianceID, id)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+	return complianceRequirement, nil
+}
+
+func (crs ComplianceRequirementService) GetFullDetailsByID(complianceID uint, id uint) (*complianceDTOs.ComplianceRegisterDetailDTO, error) {
+
+	// Initialize your DTO
+	var complianceDTO complianceDTOs.ComplianceRegisterDetailDTO
+
+	compliance, err := crs.repo.GetFullDetailsByID(complianceID, id)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+
+	// Map the result to your DTO
+	err = mapstructure.Decode(compliance, &complianceDTO)
+	if err != nil {
+		return nil, err
+	}
+
+	//todo :- also add extra fields which required in details screen
+
+	return &complianceDTO, nil
 }
 
 func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID uint, ComplianceRequirementFormDTO *complianceDTOs.ComplianceRequirementFormDTO) (uint, error) {
 
-	if err := crs.complianceRegisterSvc.IsValidID(complianceID); err != nil {
+	if _, err := crs.complianceRegisterSvc.GetByID(complianceID); err != nil {
 		return 0, err
 	}
 
@@ -118,6 +155,11 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 }
 
 func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, currentUserID uint, ComplianceRequirementFormDTO *complianceDTOs.ComplianceRequirementFormDTO) error {
+
+	if _, err := crs.complianceRegisterSvc.GetByID(complianceID); err != nil {
+		return err
+	}
+
 	existingComplianceRequirement, err := crs.repo.GetByID(complianceID, id)
 
 	if err != nil {
@@ -206,8 +248,8 @@ func (crs *ComplianceRequirementService) validateComplianceRequirementFormDTO(Co
 	return nil
 }
 
-func (crs *ComplianceRequirementService) parseComplianceRequirementDates(dto *complianceDTOs.ComplianceRequirementFormDTO) (*complianceDTOs.ParsedDates, error) {
-	parsed := &complianceDTOs.ParsedDates{}
+func (crs *ComplianceRequirementService) parseComplianceRequirementDates(dto *complianceDTOs.ComplianceRequirementFormDTO) (*complianceDTOs.ComplianceRequirementParsedDates, error) {
+	parsed := &complianceDTOs.ComplianceRequirementParsedDates{}
 
 	var err error
 	if dto.Deadline != "" {

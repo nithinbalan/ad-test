@@ -16,8 +16,8 @@ type ComplianceRequirement struct {
 	ResponsibleUserID               uint       `json:"responsible_user_id" binding:"required" gorm:"not null"`
 	Deadline                        *time.Time `json:"deadline" binding:"omitempty" gorm:"type:date"`
 	ComplianceStatusID              uint       `json:"compliance_status_id" binding:"required" gorm:"not null"`
-	CreatedAt                       time.Time  `json:"created_at" gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP"`
-	UpdatedAt                       time.Time  `json:"updated_at" gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"`
+	CreatedAt                       time.Time  `json:"created_at" gorm:"type:datetime;not null"`
+	UpdatedAt                       *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 	CreatedBy                       uint       `json:"created_by" gorm:"not null"`
 	UpdatedBy                       *uint      `json:"updated_by" gorm:"default:null"`
 

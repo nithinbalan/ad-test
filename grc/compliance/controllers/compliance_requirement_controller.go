@@ -84,7 +84,7 @@ func (crc *ComplianceRequirementController) GetComplianceRequirementDetails(c *g
 
 	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
 	if err != nil {
-		utility.SendInvalidErrResp(c, err)
+		utility.SendInternalErrResp(crc.db, c, "Invalid complianceId")
 		return
 	}
 
@@ -92,22 +92,30 @@ func (crc *ComplianceRequirementController) GetComplianceRequirementDetails(c *g
 
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
-		utility.SendInvalidErrResp(c, err)
+		utility.SendInternalErrResp(crc.db, c, "Invalid id")
 		return
 	}
 
-	compliance, err := crc.service.GetByID(uint(complianceID), uint(id))
+	complianceRequirement, err := crc.service.GetByID(uint(complianceID), uint(id))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
 
-	c.JSON(http.StatusOK, compliance)
+	c.JSON(http.StatusOK, complianceRequirement)
 }
 
 func (crc *ComplianceRequirementController) CreateComplianceRequirement(c *gin.Context) {
 
 	var ComplianceRequirementFormDTO complianceDTOs.ComplianceRequirementFormDTO
+
+	complianceIDStr := c.Param("complianceId")
+
+	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, "Invalid complianceId")
+		return
+	}
 
 	if err := c.ShouldBindJSON(&ComplianceRequirementFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
@@ -117,14 +125,6 @@ func (crc *ComplianceRequirementController) CreateComplianceRequirement(c *gin.C
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(crc.db, c, err.Error())
-		return
-	}
-
-	complianceIDStr := c.Param("complianceId")
-
-	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
-	if err != nil {
-		utility.SendInvalidErrResp(c, err)
 		return
 	}
 
@@ -150,7 +150,7 @@ func (crc *ComplianceRequirementController) UpdateComplianceRequirement(c *gin.C
 
 	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
 	if err != nil {
-		utility.SendInvalidErrResp(c, err)
+		utility.SendInternalErrResp(crc.db, c, "Invalid complianceId")
 		return
 	}
 
@@ -158,7 +158,7 @@ func (crc *ComplianceRequirementController) UpdateComplianceRequirement(c *gin.C
 
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
-		utility.SendInvalidErrResp(c, err)
+		utility.SendInternalErrResp(crc.db, c, "Invalid id")
 		return
 	}
 
