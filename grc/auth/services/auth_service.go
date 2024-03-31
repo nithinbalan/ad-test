@@ -156,6 +156,7 @@ func (as AuthService) SetPassword(setPasswordFormDTO authDTOs.PasswordRecoverySe
 
 	decryptedBytes, err := utility.DecryptData(setPasswordFormDTO.Token)
 	if err != nil {
+		// @todo add language key
 		return utility.NewValidationError(fmt.Errorf("failed to decrypt data: %w", err), "invalid_request", "token")
 	}
 
