@@ -9,15 +9,21 @@ import (
 	organizationModels "jethur/grc/organization/models"
 	organizationRepositories "jethur/grc/organization/repositories"
 	"jethur/utility"
+	"reflect"
+	"strings"
 
 	"golang.org/x/crypto/bcrypt"
 )
 
 type UserServiceInterface interface {
 	GetAll(params *userDTOs.UserListQueryParamsDTO) (*userDTOs.UserListResponseDTO, error)
-	// GetByID(id uint) (*models.ComplianceRegister, error)
+	GetByID(id uint) (*organizationModels.User, error)
 	Create(currentUserID uint, userFormDTO *userDTOs.UserFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, user *userDTOs.UserFormDTO) error
+	UpdatePartial(id uint, dto *userDTOs.UserUpdateDTO) error
+	GetByEmail(email string) (*organizationModels.User, error)
+	GetUserSecurityByUserID(userID uint) (*organizationModels.UserSecurity, error)
+	UpdateUserSecurity(userSecurity *organizationModels.UserSecurity) error
 	// Delete(ids []uint, currentUserID uint) ([]uint, error)
 }
 
@@ -160,7 +166,7 @@ func (us *UserService) Update(id uint, currentUserID uint, userFormDTO *userDTOs
 	existingUser.Email = userFormDTO.Email
 	existingUser.MobileNumber = userFormDTO.MobileNumber
 	existingUser.ProfileImagePath = userFormDTO.ProfileImagePath
-	existingUser.UpdatedBy = currentUserID
+	existingUser.UpdatedBy = &currentUserID
 
 	err = us.repo.Update(existingUser)
 	if err != nil {
@@ -168,6 +174,32 @@ func (us *UserService) Update(id uint, currentUserID uint, userFormDTO *userDTOs
 	}
 
 	return nil
+}
+
+func (us *UserService) UpdatePartial(id uint, userUpdateDTO *userDTOs.UserUpdateDTO) error {
+
+	updates := make(map[string]interface{})
+
+	v := reflect.ValueOf(userUpdateDTO).Elem()
+	t := v.Type()
+	for i := 0; i < v.NumField(); i++ {
+		field := v.Field(i)
+		if field.IsValid() && !field.IsNil() {
+			jsonTag := t.Field(i).Tag.Get("json")
+			tagKey := strings.Split(jsonTag, ",")[0]
+			updates[tagKey] = field.Elem().Interface()
+		}
+	}
+	err := us.repo.UpdatePartial(id, updates)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (us *UserService) GetByID(id uint) (*organizationModels.User, error) {
+	return us.repo.GetByID(id)
 }
 
 func (us *UserService) validateUserFormDTO(userFormDTO *userDTOs.UserFormDTO) error {
@@ -191,4 +223,16 @@ func (us *UserService) generateRandomPassword(length int) (string, error) {
 	}
 
 	return string(b), nil
+}
+
+func (us *UserService) GetByEmail(email string) (*organizationModels.User, error) {
+	return us.repo.GetByEmail(email)
+}
+
+func (us *UserService) GetUserSecurityByUserID(userId uint) (*organizationModels.UserSecurity, error) {
+	return us.repo.GetUserSecurityByUserID(userId)
+}
+
+func (us *UserService) UpdateUserSecurity(userSecurity *organizationModels.UserSecurity) error {
+	return us.repo.UpdateUserSecurity(userSecurity)
 }

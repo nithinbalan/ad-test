@@ -1,23 +1,16 @@
 package repositories
 
 import (
-	"errors"
-	"fmt"
-	"jethur/grc/organization/models"
-	"jethur/utility"
-	"time"
-
-	"golang.org/x/crypto/bcrypt"
-
 	"gorm.io/gorm"
 )
 
 // Interfaces
 type AuthRepositoryInterface interface {
-	Authenticate(email string, password string) (map[string]string, error)
-	SendPasswordRecoveryOTP(email string) (*models.User, error)
-	ReSendPasswordRecoveryOTP(email string) (*models.User, error)
-	VerifyPasswordRecoveryOTP(email, otp string) (*models.User, error)
+	// Authenticate(email string, password string) (map[string]string, error)
+	// SendPasswordRecoveryOTP(email string) (*models.User, error)
+	// ReSendPasswordRecoveryOTP(email string) (*models.User, error)
+	// VerifyPasswordRecoveryOTP(email, otp string) (*models.User, error)
+	// SetPassword(userID uint, newPassword string) (*models.User, error)
 }
 
 type AuthRepository struct {
@@ -30,6 +23,7 @@ func NewAuthRepository(db *gorm.DB) *AuthRepository {
 	}
 }
 
+/*
 func (repo *AuthRepository) Authenticate(email, password string) (map[string]string, error) {
 
 	var user models.User
@@ -76,13 +70,14 @@ func (repo *AuthRepository) Authenticate(email, password string) (map[string]str
 
 }
 
+
 func (repo *AuthRepository) SendPasswordRecoveryOTP(email string) (*models.User, error) {
 
 	var user *models.User
 
 	result := repo.db.First(&user, "email = ?", email)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, nil
+		return nil, utility.NewResourceNotFoundError(result.Error, email)
 	} else if result.Error != nil {
 		return nil, utility.NewInternalServerError(result.Error)
 	}
@@ -91,7 +86,6 @@ func (repo *AuthRepository) SendPasswordRecoveryOTP(email string) (*models.User,
 	currentTime := time.Now().UTC()
 	user.Otp = &otp
 	user.SentAt = &currentTime
-
 	if err := repo.db.Save(&user).Error; err != nil {
 		return nil, utility.NewInternalServerError(err)
 	}
@@ -100,7 +94,6 @@ func (repo *AuthRepository) SendPasswordRecoveryOTP(email string) (*models.User,
 
 }
 func (repo *AuthRepository) ReSendPasswordRecoveryOTP(email string) (*models.User, error) {
-
 	var user *models.User
 
 	result := repo.db.First(&user, "email = ?", email)
@@ -132,7 +125,7 @@ func (repo *AuthRepository) VerifyPasswordRecoveryOTP(email, otp string) (*model
 	var user models.User
 
 	// Get the user with the given email and OTP
-	result := repo.db.Where("email = ? AND otp = ?", email, otp).First(&user)
+	result := repo.db.First(&user, "email = ?", email)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, utility.NewResourceNotFoundError(result.Error, email)
 	} else if result.Error != nil {
@@ -141,3 +134,31 @@ func (repo *AuthRepository) VerifyPasswordRecoveryOTP(email, otp string) (*model
 
 	return &user, nil
 }
+
+func (repo *AuthRepository) SetPassword(userId uint, newPassword string) (*models.User, error) {
+
+	var user *models.User
+
+	result := repo.db.First(&user, userId)
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, utility.NewResourceNotFoundError(result.Error, userId)
+	} else if result.Error != nil {
+		return nil, utility.NewInternalServerError(result.Error)
+	}
+	// Hash the password using bcrypt
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, utility.NewInternalServerError(err)
+	}
+	// Set the hashed password
+	user.PasswordHash = string(hashedPassword)
+
+	if err := repo.db.Save(&user).Error; err != nil {
+		return nil, utility.NewInternalServerError(err)
+	}
+
+	return user, nil
+
+}
+
+*/
