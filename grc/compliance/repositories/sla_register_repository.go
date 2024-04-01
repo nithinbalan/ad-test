@@ -24,6 +24,8 @@ type SLARegisterRepositoryInterface interface {
 	GenerateReferenceNumber() (string, error)
 	AssociateDocumentsWithSLARegister(documents []*complianceModels.SLADocument) error
 	GetSLADocumentByID(id uint) (*models.SLADocument, error)
+	GetIDsByLifecycleStatus(ids []uint, status string) ([]uint, error)
+	UpdateLifecycleStatusForIDs(ids []uint, statusId uint) ([]uint, error)
 }
 
 // implementation
@@ -288,6 +290,29 @@ func (repo *SLARegisterRepository) Delete(id uint) error {
 	return nil
 }
 
+func (repo *SLARegisterRepository) GetIDsByLifecycleStatus(ids []uint, status string) ([]uint, error) {
+	var matchingIDs []uint
+
+	if err := repo.db.Model(&complianceModels.SLARegister{}).
+		Joins("JOIN lifecycle_statuses ON sla_registers.lifecycle_status_id = lifecycle_statuses.id").
+		Where("sla_registers.id IN ? AND lifecycle_statuses.type = ?", ids, status).
+		Pluck("sla_registers.id", &matchingIDs).Error; err != nil {
+		return nil, err
+	}
+
+	return matchingIDs, nil
+}
+
+func (repo *SLARegisterRepository) UpdateLifecycleStatusForIDs(ids []uint, statusId uint) ([]uint, error) {
+
+	if err := repo.db.Model(&complianceModels.SLARegister{}).
+		Where("id IN ?", ids).
+		Update("lifecycle_status_id", statusId).Error; err != nil {
+		return nil, err
+	}
+
+	return ids, nil
+}
 func (repo *SLARegisterRepository) GenerateReferenceNumber() (string, error) {
 	var lastReferenceNumber string
 	err := repo.db.Model(&complianceModels.SLARegister{}).

@@ -194,3 +194,53 @@ func (src *SLARegisterController) DeleteSLARegisters(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
+
+
+func (src *SLARegisterController) ArchiveSLARegisters(c *gin.Context) {
+	var request struct {
+		IDs []uint `json:"ids"`
+	}
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(src.db, c, err.Error())
+		return
+	}
+	successfulIds, err := src.service.Archive(request.IDs, currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(src.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"successfulIds": successfulIds})
+}
+
+func (src *SLARegisterController) RestoreSLARegisters(c *gin.Context) {
+	var request struct {
+		IDs []uint `json:"ids"`
+	}
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(src.db, c, err.Error())
+		return
+	}
+
+	successfulIds, err := src.service.Restore(request.IDs, currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(src.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"successfulIds": successfulIds})
+}

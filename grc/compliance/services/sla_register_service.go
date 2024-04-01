@@ -19,6 +19,8 @@ type SLARegisterServiceInterface interface {
 	Create(currentUserID uint, slaRegisterFormDTO *slaDTOs.SLARegisterFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, sla *slaDTOs.SLARegisterFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	Archive(ids []uint, currentUserID uint) ([]uint, error)
+	Restore(ids []uint, currentUserID uint) ([]uint, error)
 }
 
 // Service and implementations
@@ -249,6 +251,80 @@ func (srs *SLARegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 	}
 
 	return failedIds, nil
+}
+
+func (srs *SLARegisterService) Archive(ids []uint, currentUserID uint) ([]uint, error) {
+	lifecycleStatus, err := srs.lifecycleStatusSvc.GetByStatus("archived")
+	if err != nil {
+		return nil, err
+	}
+
+	idsToUpdate, err := srs.repo.GetIDsByLifecycleStatus(ids, "active")
+	if err != nil {
+		return nil, err
+	}
+
+	successfulIds, err := srs.repo.UpdateLifecycleStatusForIDs(idsToUpdate, lifecycleStatus.ID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(successfulIds) > 0 {
+		go func() {
+			err := srs.activityLogSvc.LogBulkActivities(
+				logModels.ArchiveAction,
+				complianceModels.SLARegister{}.TableName(),
+				successfulIds,
+				nil,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				// @todo - save to log file
+				fmt.Printf("Failed to log bulk archive activity: %v\n", err)
+			}
+		}()
+	}
+
+	return successfulIds, nil
+}
+
+func (srs *SLARegisterService) Restore(ids []uint, currentUserID uint) ([]uint, error) {
+
+	lifecycleStatus, err := srs.lifecycleStatusSvc.GetByStatus("active")
+	if err != nil {
+		return nil, err
+	}
+	idsToUpdate, err := srs.repo.GetIDsByLifecycleStatus(ids, "archived")
+	if err != nil {
+		return nil, err
+	}
+
+	successfulIds, err := srs.repo.UpdateLifecycleStatusForIDs(idsToUpdate, lifecycleStatus.ID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(successfulIds) > 0 {
+		go func() {
+			err := srs.activityLogSvc.LogBulkActivities(
+				logModels.RestoreAction,
+				complianceModels.SLARegister{}.TableName(),
+				successfulIds,
+				nil,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				// @todo - save to log file
+				fmt.Printf("Failed to log bulk archive activity: %v\n", err)
+			}
+		}()
+	}
+
+	return successfulIds, nil
 }
 
 func (srs *SLARegisterService) validateSLARegisterFormDTO(slaRegisterFormDTO *slaDTOs.SLARegisterFormDTO) error {
