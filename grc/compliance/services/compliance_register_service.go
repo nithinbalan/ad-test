@@ -166,7 +166,7 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 	existingComplianceRegister, err := crs.repo.GetByID(id)
 
 	if err != nil {
-		return err
+		return utility.NewResourceNotFoundError(err, id)
 	}
 
 	if err := crs.validateComplianceRegisterFormDTO(complianceRegisterFormDTO); err != nil {
