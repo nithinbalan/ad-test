@@ -105,21 +105,29 @@ func (repo *ComplianceRequirementRepository) GetAll(params *complianceDTOs.Compl
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
-
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
-			(compliance_clauses.title LIKE ? OR
-			compliance_clauses.clause_no LIKE ? OR
+			(compliance_clauses.clause_no LIKE ? OR
+			compliance_clauses.title LIKE ? OR
 			compliance_requirements.title LIKE ? OR
-			compliance_requirements.description LIKE ? OR
-			compliance_requirement_categories.title LIKE ? OR
-			severity_levels.title LIKE ? OR
-			compliance_statuses.title LIKE ? OR
-			responsible_user.first_name LIKE ? OR
-			responsible_user.last_name LIKE ?)`,
-			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+			compliance_requirement_categories.title_en LIKE ? OR
+			compliance_requirement_categories.title_ar LIKE ? OR
+			severity_levels.title_en LIKE ? OR
+			severity_levels.title_ar LIKE ? OR
+			compliance_requirements.deadline LIKE ? OR
+			compliance_statuses.title_en LIKE ? OR
+			compliance_statuses.title_ar LIKE ? OR
+			responsible_user.first_name_en LIKE ? OR
+			responsible_user.first_name_en LIKE ? OR
+			responsible_user.first_name_ar LIKE ? OR
+			responsible_user.last_name_en LIKE ? OR
+			responsible_user.last_name_ar LIKE ?)`,
+			keyword, keyword, keyword, keyword,
+			keyword, keyword, keyword, keyword,
+			keyword, keyword, keyword, keyword,
+			keyword, keyword, keyword)
 	}
 
 	// Sort by the specified column and order
