@@ -17,8 +17,12 @@ type UserRepositoryInterface interface {
 	GetByID(id uint) (*organizationModels.User, error)
 	Create(tx db.DatabaseTransaction, user *organizationModels.User) (uint, error)
 	Update(tx db.DatabaseTransaction, user *organizationModels.User) error
+	UpdatePartial(id uint, updates map[string]interface{}) error
+	GetByEmail(email string) (*organizationModels.User, error)
+	GetUserSecurityByUserID(userId uint) (*organizationModels.UserSecurity, error)
 	// Delete(id uint) error
 	CreateUserSecurity(tx db.DatabaseTransaction, userSecurity organizationModels.UserSecurity) error
+	UpdateUserSecurity(userSecurity *organizationModels.UserSecurity) error
 	CreateUserSetting(tx db.DatabaseTransaction, userSetting organizationModels.UserSetting) error
 	CreateUserRole(tx db.DatabaseTransaction, userRoles []organizationModels.UserRole) error
 	UpdateUserRoles(tx db.DatabaseTransaction, userID uint, desiredRoleIDs []uint) error
@@ -160,6 +164,26 @@ func (repo *UserRepository) CreateUserSecurity(tx db.DatabaseTransaction, userSe
 	}
 	return nil
 }
+func (repo *UserRepository) UpdatePartial(id uint, updates map[string]interface{}) error {
+	if err := repo.db.Model(&organizationModels.User{}).Where("id = ?", id).Updates(updates).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *UserRepository) GetByEmail(email string) (*organizationModels.User, error) {
+	var user *organizationModels.User
+	result := repo.db.Where("email = ?", email).First(&user)
+
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, utility.NewResourceNotFoundError(result.Error, email)
+	} else if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return user, nil
+
+}
 
 func (repo *UserRepository) CreateUserSetting(tx db.DatabaseTransaction, userSetting organizationModels.UserSetting) error {
 	var db *gorm.DB
@@ -274,4 +298,26 @@ func contains(slice []uint, val uint) bool {
 		}
 	}
 	return false
+}
+func (repo *UserRepository) GetUserSecurityByUserID(userId uint) (*organizationModels.UserSecurity, error) {
+	var userSecurity *organizationModels.UserSecurity
+	result := repo.db.Where("user_id = ?", userId).First(&userSecurity)
+
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, utility.NewResourceNotFoundError(result.Error, userId)
+	} else if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return userSecurity, nil
+
+}
+
+func (repo *UserRepository) UpdateUserSecurity(userSecurity *organizationModels.UserSecurity) error {
+
+	if err := repo.db.Save(userSecurity).Error; err != nil {
+		return err
+	}
+
+	return nil
 }

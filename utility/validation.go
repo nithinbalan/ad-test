@@ -81,24 +81,61 @@ func ExtractValidationErrors(c *gin.Context, err error) []string {
 				},
 			})
 			errors = append(errors, errorMessage)
-		case "resend_time_not_reached":
+		case "resend_not_yet_allowed":
 			var errorMessage string
 			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
-				MessageID: "resend_time_not_reached",
+				MessageID: "resend_not_yet_allowed",
 				TemplateData: map[string]interface{}{
 					"Field": translatedFieldName,
 				},
 			})
 			errors = append(errors, errorMessage)
-		case "expired":
+		case "otp_expired":
 			var errorMessage string
 			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
-				MessageID: "expired",
+				MessageID: "otp_expired",
 				TemplateData: map[string]interface{}{
 					"Field": translatedFieldName,
 				},
 			})
 			errors = append(errors, errorMessage)
+		case "session_expired":
+			var errorMessage string
+			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
+				MessageID: "session_expired",
+				TemplateData: map[string]interface{}{
+					"Field": translatedFieldName,
+				},
+			})
+			errors = append(errors, errorMessage)
+		case "password_complexity":
+			var errorMessage string
+			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
+				MessageID: "password_complexity",
+				TemplateData: map[string]interface{}{
+					"Field": translatedFieldName,
+				},
+			})
+			errors = append(errors, errorMessage)
+		case "invalid_otp":
+			var errorMessage string
+			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
+				MessageID: "invalid_otp",
+				TemplateData: map[string]interface{}{
+					"Field": translatedFieldName,
+				},
+			})
+			errors = append(errors, errorMessage)
+		case "invalid_credentials":
+			var errorMessage string
+			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
+				MessageID: "invalid_credentials",
+				TemplateData: map[string]interface{}{
+					"Field": translatedFieldName,
+				},
+			})
+			errors = append(errors, errorMessage)
+
 		}
 
 		return errors
@@ -123,6 +160,13 @@ func ExtractValidationErrors(c *gin.Context, err error) []string {
 			case "email":
 				errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
 					MessageID: "field_email",
+					TemplateData: map[string]interface{}{
+						"Field": translatedFieldName,
+					},
+				})
+			case "eqfield":
+				errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
+					MessageID: "field_confirm_password",
 					TemplateData: map[string]interface{}{
 						"Field": translatedFieldName,
 					},

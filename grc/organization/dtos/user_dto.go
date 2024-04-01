@@ -56,3 +56,19 @@ type UserFormDTO struct {
 	ProfileImagePath    *string `json:"profile_image_path" binding:"omitempty"`
 	RoleIDs             []uint  `json:"role_ids" binding:"required"`
 }
+
+type UserUpdateDTO struct {
+	OrganizationUnit1ID *uint   `json:"organization_unit_1_id,omitempty"`
+	OrganizationUnit2ID *uint   `json:"organization_unit_2_id,omitempty"`
+	OrganizationUnit3ID *uint   `json:"organization_unit_3_id,omitempty"`
+	OrganizationUnit4ID *uint   `json:"organization_unit_4_id,omitempty"`
+	OrganizationUnit5ID *uint   `json:"organization_unit_5_id,omitempty"`
+	DesignationID       *uint   `json:"designation_id,omitempty"`
+	FirstNameEn         *string `json:"first_name_en,omitempty"`
+	LastNameEn          *string `json:"last_name_en,omitempty"`
+	FirstNameAr         *string `json:"first_name_ar,omitempty"`
+	LastNameAr          *string `json:"last_name_ar,omitempty"`
+	Email               *string `json:"email,omitempty"`
+	MobileNumber        *string `json:"mobile_number,omitempty"`
+	ProfileImagePath    *string `json:"profile_image_path,omitempty"`
+}
