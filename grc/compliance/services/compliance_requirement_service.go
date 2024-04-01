@@ -57,6 +57,10 @@ func (crs *ComplianceRequirementService) GetAll(params *complianceDTOs.Complianc
 }
 
 func (crs ComplianceRequirementService) GetByID(complianceID uint, id uint) (*complianceModels.ComplianceRequirement, error) {
+	if _, err := crs.complianceRegisterSvc.GetByID(complianceID); err != nil {
+		return nil, err
+	}
+
 	complianceRequirement, err := crs.repo.GetByID(complianceID, id)
 
 	if err != nil {
@@ -69,7 +73,9 @@ func (crs ComplianceRequirementService) GetByID(complianceID uint, id uint) (*co
 }
 
 func (crs ComplianceRequirementService) GetFullDetailsByID(complianceID uint, id uint) (*complianceDTOs.ComplianceRequirementDetailDTO, error) {
-
+	if _, err := crs.complianceRegisterSvc.GetByID(complianceID); err != nil {
+		return nil, err
+	}
 	// Initialize your DTO
 	var complianceRequirementDTO complianceDTOs.ComplianceRequirementDetailDTO
 
