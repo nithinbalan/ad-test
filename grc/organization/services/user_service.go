@@ -8,6 +8,7 @@ import (
 	userDTOs "jethur/grc/organization/dtos"
 	organizationModels "jethur/grc/organization/models"
 	organizationRepositories "jethur/grc/organization/repositories"
+	settingService "jethur/grc/settings/services"
 	"jethur/utility"
 
 	"golang.org/x/crypto/bcrypt"
@@ -26,18 +27,21 @@ type UserService struct {
 	designationSvc DesignationServiceInterface
 	userStatusSvc  UserStatusServiceInterface
 	activityLogSvc logServices.ActivityLogServiceInterface
+	roleSvc        settingService.RoleServiceInterface
 }
 
 func NewUserService(
 	repo organizationRepositories.UserRepositoryInterface,
 	designationSvc DesignationServiceInterface,
 	userStatusSvc UserStatusServiceInterface,
-	activityLogSvc logServices.ActivityLogServiceInterface) UserServiceInterface {
+	activityLogSvc logServices.ActivityLogServiceInterface,
+	roleSvc settingService.RoleServiceInterface) UserServiceInterface {
 	return &UserService{
 		repo:           repo,
 		designationSvc: designationSvc,
 		userStatusSvc:  userStatusSvc,
 		activityLogSvc: activityLogSvc,
+		roleSvc:        roleSvc,
 	}
 }
 
@@ -47,7 +51,9 @@ func (us *UserService) GetAll(params *userDTOs.UserListQueryParamsDTO) (*userDTO
 
 func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserFormDTO) (uint, error) {
 
-	if err := us.validateUserFormDTO(userFormDTO); err != nil {
+	tx := us.repo.BeginTransaction()
+
+	if err := us.validateUserFormDTO(nil, userFormDTO); err != nil {
 		return 0, err
 	}
 
@@ -84,30 +90,50 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 		CreatedBy:           currentUserID,
 	}
 
-	userID, err := us.repo.Create(user)
+	userID, err := us.repo.Create(tx, user)
 	if err != nil {
+		tx.Rollback()
 		return 0, err // Only return the error
 	}
 
-	userSecurity := &organizationModels.UserSecurity{
+	userSecurity := organizationModels.UserSecurity{
 		UserID:       userID,
 		PasswordHash: string(passwordHash),
 	}
 
-	if err = us.repo.CreateUserSecurity(userSecurity); err != nil {
-		return userID, err
+	if err = us.repo.CreateUserSecurity(tx, userSecurity); err != nil {
+		tx.Rollback()
+		return 0, err
 	}
 
-	userSetting := &organizationModels.UserSetting{
+	userSetting := organizationModels.UserSetting{
 		UserID:     userID,
 		TimezoneID: 5,
 		Language:   "en",
 		Timeout:    5,
 	}
-	err = us.repo.CreateUserSetting(userSetting)
-	if err != nil {
-		return userID, err
+
+	if err = us.repo.CreateUserSetting(tx, userSetting); err != nil {
+		tx.Rollback()
+		return 0, err
 	}
+
+	// Prepare a slice of UserRole for bulk insert
+	userRoles := make([]organizationModels.UserRole, len(userFormDTO.RoleIDs))
+	for i, roleID := range userFormDTO.RoleIDs {
+		userRoles[i] = organizationModels.UserRole{
+			UserID: userID,
+			RoleID: roleID,
+		}
+	}
+
+	// Now pass the entire array to add roles
+	if err = us.repo.CreateUserRole(tx, userRoles); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	tx.Commit()
 
 	go func() {
 		err := us.activityLogSvc.LogActivity(
@@ -137,13 +163,14 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 
 func (us *UserService) Update(id uint, currentUserID uint, userFormDTO *userDTOs.UserFormDTO) error {
 
+	tx := us.repo.BeginTransaction()
 	existingUser, err := us.repo.GetByID(id)
 
 	if err != nil {
 		return err
 	}
 
-	if err := us.validateUserFormDTO(userFormDTO); err != nil {
+	if err := us.validateUserFormDTO(&id, userFormDTO); err != nil {
 		return err
 	}
 
@@ -162,19 +189,56 @@ func (us *UserService) Update(id uint, currentUserID uint, userFormDTO *userDTOs
 	existingUser.ProfileImagePath = userFormDTO.ProfileImagePath
 	existingUser.UpdatedBy = currentUserID
 
-	err = us.repo.Update(existingUser)
+	err = us.repo.Update(tx, existingUser)
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
+
+	if err = us.repo.UpdateUserRoles(tx, id, userFormDTO.RoleIDs); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
 
 	return nil
 }
 
-func (us *UserService) validateUserFormDTO(userFormDTO *userDTOs.UserFormDTO) error {
+func (us *UserService) validateUserFormDTO(id *uint, userFormDTO *userDTOs.UserFormDTO) error {
 	_, err := us.designationSvc.GetByID(userFormDTO.DesignationID)
 	if err != nil {
 		return utility.NewValidationError(fmt.Errorf("designation does not exist"), "not_exist", "designation")
 	}
+
+	if len(userFormDTO.RoleIDs) == 0 {
+		return utility.NewValidationError(fmt.Errorf("no roles provided, at least one role is required"), "required", "role")
+	} else {
+		for _, roleID := range userFormDTO.RoleIDs {
+			// Attempt to fetch each role by ID
+			_, err := us.roleSvc.GetByID(roleID)
+			if err != nil {
+				// If any role ID is invalid, return an error
+				return utility.NewValidationError(fmt.Errorf("role does not exist"), "not_exist", "role")
+			}
+
+		}
+	}
+
+	if id == nil {
+		if exists, err := us.repo.ExistsByEmail(userFormDTO.Email); err != nil {
+			return err // Handle error from checking email existence
+		} else if exists {
+			return utility.NewValidationError(fmt.Errorf("email already exists: %s", userFormDTO.Email), "unique", "email")
+		}
+	} else {
+		if exists, err := us.repo.ExistsByEmailExcludingID(*id, userFormDTO.Email); err != nil {
+			return err // Handle error from checking email existence
+		} else if exists {
+			return utility.NewValidationError(fmt.Errorf("email already exists: %s", userFormDTO.Email), "unique", "email")
+		}
+	}
+
 	return nil
 }
 

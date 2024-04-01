@@ -6,6 +6,8 @@ import (
 	"jethur/grc/organization/controllers"
 	organizationRepositories "jethur/grc/organization/repositories"
 	organizationServices "jethur/grc/organization/services"
+	settingRepositories "jethur/grc/settings/repositories"
+	settingService "jethur/grc/settings/services"
 	"jethur/middlewares"
 
 	"github.com/gin-gonic/gin"
@@ -20,6 +22,9 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 
 	activityLogRepo := logRepositories.NewActivityLogRepository(db)
 	activityLogSvc := logServices.NewActivityLogService(activityLogRepo)
+
+	roleRepo := settingRepositories.NewRoleRepository(db)
+	roleSvc := settingService.NewRoleService(roleRepo, activityLogSvc)
 
 	//Designations
 	designationRepo := organizationRepositories.NewDesignationRepository(db)
@@ -44,7 +49,7 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 
 	//user
 	userRepo := organizationRepositories.NewUserRepository(db)
-	userSvc := organizationServices.NewUserService(userRepo, designationSvc, userStatusSvc, activityLogSvc)
+	userSvc := organizationServices.NewUserService(userRepo, designationSvc, userStatusSvc, activityLogSvc, roleSvc)
 	userController := controllers.NewUSerController(userSvc)
 
 	organizationRoutes.GET("/users", userController.GetAllUsers)

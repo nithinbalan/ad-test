@@ -54,4 +54,5 @@ type UserFormDTO struct {
 	Email               string  `json:"email" binding:"required,email"`
 	MobileNumber        *string `json:"mobile_number" binding:"omitempty,max=45"`
 	ProfileImagePath    *string `json:"profile_image_path" binding:"omitempty"`
+	RoleIDs             []uint  `json:"role_ids" binding:"required"`
 }

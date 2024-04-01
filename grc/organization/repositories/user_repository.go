@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"errors"
+	"jethur/grc/common/db"
 	commonDTOs "jethur/grc/common/dtos"
 	userDTOs "jethur/grc/organization/dtos"
 	organizationModels "jethur/grc/organization/models"
@@ -11,13 +12,18 @@ import (
 )
 
 type UserRepositoryInterface interface {
+	BeginTransaction() db.DatabaseTransaction
 	GetAll(params *userDTOs.UserListQueryParamsDTO) (*userDTOs.UserListResponseDTO, error)
 	GetByID(id uint) (*organizationModels.User, error)
-	Create(user *organizationModels.User) (uint, error)
-	Update(user *organizationModels.User) error
+	Create(tx db.DatabaseTransaction, user *organizationModels.User) (uint, error)
+	Update(tx db.DatabaseTransaction, user *organizationModels.User) error
 	// Delete(id uint) error
-	CreateUserSecurity(userSecurity *organizationModels.UserSecurity) error
-	CreateUserSetting(userSetting *organizationModels.UserSetting) error
+	CreateUserSecurity(tx db.DatabaseTransaction, userSecurity organizationModels.UserSecurity) error
+	CreateUserSetting(tx db.DatabaseTransaction, userSetting organizationModels.UserSetting) error
+	CreateUserRole(tx db.DatabaseTransaction, userRoles []organizationModels.UserRole) error
+	UpdateUserRoles(tx db.DatabaseTransaction, userID uint, desiredRoleIDs []uint) error
+	ExistsByEmail(email string) (bool, error)
+	ExistsByEmailExcludingID(id uint, email string) (bool, error)
 }
 
 type UserRepository struct {
@@ -28,6 +34,11 @@ func NewUserRepository(db *gorm.DB) *UserRepository {
 	return &UserRepository{
 		db: db,
 	}
+}
+
+// BeginTransaction starts a new transaction.
+func (repo *UserRepository) BeginTransaction() db.DatabaseTransaction {
+	return db.NewGormDatabaseTransaction(repo.db)
 }
 
 func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*userDTOs.UserListResponseDTO, error) {
@@ -109,35 +120,158 @@ func (repo *UserRepository) GetByID(id uint) (*organizationModels.User, error) {
 	return user, result.Error
 }
 
-func (repo *UserRepository) Create(user *organizationModels.User) (uint, error) {
-	if err := repo.db.Create(user).Error; err != nil {
+func (repo *UserRepository) Create(tx db.DatabaseTransaction, user *organizationModels.User) (uint, error) {
+	var db *gorm.DB
+	if tx != nil {
+		db = tx.DB() // Use the transaction's DB instance if available
+	} else {
+		db = repo.db // Fall back to the repository's DB instance
+	}
+	if err := db.Create(user).Error; err != nil {
 		return 0, err
 	}
 
 	return user.ID, nil
 }
 
-func (repo *UserRepository) Update(user *organizationModels.User) error {
-
-	if err := repo.db.Save(user).Error; err != nil {
+func (repo *UserRepository) Update(tx db.DatabaseTransaction, user *organizationModels.User) error {
+	var db *gorm.DB
+	if tx != nil {
+		db = tx.DB() // Use the transaction's DB instance if available
+	} else {
+		db = repo.db // Fall back to the repository's DB instance
+	}
+	if err := db.Save(user).Error; err != nil {
 		return err
 	}
 
 	return nil
 }
 
-// CreateUserSecurity creates a new UserSecurity record associated with a user.
-func (repo *UserRepository) CreateUserSecurity(userSecurity *organizationModels.UserSecurity) error {
-	if err := repo.db.Create(userSecurity).Error; err != nil {
+func (repo *UserRepository) CreateUserSecurity(tx db.DatabaseTransaction, userSecurity organizationModels.UserSecurity) error {
+	var db *gorm.DB
+	if tx != nil {
+		db = tx.DB() // Use the transaction's DB instance if available
+	} else {
+		db = repo.db // Fall back to the repository's DB instance
+	}
+	if err := db.Create(&userSecurity).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
-// CreateUserSetting creates a new UserSetting record.
-func (repo *UserRepository) CreateUserSetting(userSetting *organizationModels.UserSetting) error {
-	if err := repo.db.Create(userSetting).Error; err != nil {
+func (repo *UserRepository) CreateUserSetting(tx db.DatabaseTransaction, userSetting organizationModels.UserSetting) error {
+	var db *gorm.DB
+	if tx != nil {
+		db = tx.DB() // Use the transaction's DB instance if available
+	} else {
+		db = repo.db // Fall back to the repository's DB instance
+	}
+	if err := db.Create(&userSetting).Error; err != nil {
 		return err
 	}
 	return nil
+}
+
+func (repo *UserRepository) CreateUserRole(tx db.DatabaseTransaction, userRoles []organizationModels.UserRole) error {
+	var db *gorm.DB
+	if tx != nil {
+		db = tx.DB() // Use the transaction's DB instance if available
+	} else {
+		db = repo.db // Fall back to the repository's DB instance
+	}
+	// Perform the bulk insert in a transaction
+
+	if err := db.CreateInBatches(userRoles, 100).Error; err != nil {
+		// If there's an error, roll back the transaction
+		return err
+	}
+	// If the insert is successful, commit the transaction
+	return nil
+
+}
+
+func (repo *UserRepository) UpdateUserRoles(tx db.DatabaseTransaction, userID uint, desiredRoleIDs []uint) error {
+	var db *gorm.DB
+	if tx != nil {
+		db = tx.DB() // Use the transaction's DB instance if available
+	} else {
+		db = repo.db // Fall back to the repository's DB instance
+	}
+
+	// Fetch current roles of the user
+	var currentRoles []organizationModels.UserRole
+	if err := db.Where("user_id = ?", userID).Find(&currentRoles).Error; err != nil {
+		return err
+	}
+
+	currentRoleIDs := make(map[uint]bool)
+	for _, role := range currentRoles {
+		currentRoleIDs[role.RoleID] = true
+	}
+
+	// Determine roles to add
+	for _, roleID := range desiredRoleIDs {
+		if _, exists := currentRoleIDs[roleID]; !exists {
+			// This role is not assigned to the user, so add it
+			if err := db.Create(&organizationModels.UserRole{UserID: userID, RoleID: roleID}).Error; err != nil {
+				return err // Rollback on error
+			}
+		}
+		// If the role exists, do nothing (it's already assigned)
+	}
+
+	// Determine roles to remove
+	for _, role := range currentRoles {
+		if !contains(desiredRoleIDs, role.RoleID) {
+			// This current role is not in the desired set, so remove it
+			if err := db.Where("user_id = ? AND role_id = ?", userID, role.RoleID).Delete(&organizationModels.UserRole{}).Error; err != nil {
+				return err // Rollback on error
+			}
+		}
+	}
+
+	return nil // Commit the transaction if all operations were successful
+
+}
+
+func (repo *UserRepository) ExistsByEmail(email string) (bool, error) {
+	var count int64
+
+	// Check for the existence of titleEn or titleAr in a single query
+	err := repo.db.Model(&organizationModels.User{}).
+		Where("email = ?", email).
+		Count(&count).Error
+
+	if err != nil {
+		return false, utility.NewInternalServerError(err)
+
+	}
+	// Return true if either email exists, otherwise false
+	return count > 0, nil
+}
+
+func (repo *UserRepository) ExistsByEmailExcludingID(id uint, email string) (bool, error) {
+	var count int64
+
+	err := repo.db.Model(&organizationModels.User{}).
+		Where("id <> ? AND email = ?", id, email).
+		Count(&count).Error
+
+	if err != nil {
+		return false, utility.NewInternalServerError(err)
+	}
+
+	return count > 0, nil
+}
+
+// Helper function to check if a slice contains a given uint value
+func contains(slice []uint, val uint) bool {
+	for _, item := range slice {
+		if item == val {
+			return true
+		}
+	}
+	return false
 }
