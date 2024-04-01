@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	authDTOs "jethur/grc/auth/dtos"
 	"jethur/grc/auth/services"
 	"jethur/utility"
@@ -15,8 +16,9 @@ type AuthController struct {
 	db      *gorm.DB
 }
 
-func NewAuthController(service services.AuthServiceInterface) *AuthController {
+func NewAuthController(db *gorm.DB, service services.AuthServiceInterface) *AuthController {
 	return &AuthController{
+		db:      db,
 		service: service,
 	}
 }
@@ -26,7 +28,7 @@ type ErrorResponse struct {
 }
 
 func (ac *AuthController) Login(c *gin.Context) {
-	var authDTO authDTOs.AuthFormDTO
+	var authDTO authDTOs.LoginFormDTO
 
 	if err := c.ShouldBindJSON(&authDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
@@ -35,12 +37,17 @@ func (ac *AuthController) Login(c *gin.Context) {
 
 	tokens, err := ac.service.Authenticate(authDTO.Email, authDTO.Password)
 	if err != nil {
-		if _, ok := err.(*utility.InternalServerError); ok {
-			utility.SendInternalErrResp(ac.db, c, err.Error())
-		} else {
+		switch e := err.(type) {
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.InternalServerError:
+			utility.SendInternalErrResp(ac.db, c, e.Error())
+			return
+		default:
 			utility.SendUnauthorizedErrResp(c, "Authentication failed")
+			return
 		}
-		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -61,10 +68,18 @@ func (ac *AuthController) SendPasswordRecoveryOTP(c *gin.Context) {
 
 	err := ac.service.SendPasswordRecoveryOTP(email)
 	if err != nil {
-		if _, ok := err.(*utility.InternalServerError); ok {
-			utility.SendInternalErrResp(ac.db, c, err.Error())
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			fmt.Println(err)
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(ac.db, c, e.Error())
+			return
 		}
-		return
 	}
 
 	c.Status(http.StatusOK)
@@ -99,16 +114,16 @@ func (ac *AuthController) ReSendPasswordRecoveryOTP(c *gin.Context) {
 }
 
 func (ac *AuthController) VerifyPasswordRecoveryOTP(c *gin.Context) {
-	var verifyPasswordRecoveryDataDTO authDTOs.VerifyPasswordRecoveryDataDTO
+	var passwordRecoveryOTPVerifyFormDTO authDTOs.PasswordRecoveryOTPVerifyFormDTO
 
-	if err := c.ShouldBindJSON(&verifyPasswordRecoveryDataDTO); err != nil {
+	if err := c.ShouldBindJSON(&passwordRecoveryOTPVerifyFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
 
-	email := verifyPasswordRecoveryDataDTO.Email
+	email := passwordRecoveryOTPVerifyFormDTO.Email
 
-	otp := verifyPasswordRecoveryDataDTO.Otp
+	otp := passwordRecoveryOTPVerifyFormDTO.Otp
 
 	encryptedData, err := ac.service.VerifyPasswordRecoveryOTP(email, otp)
 	if err != nil {
@@ -126,4 +141,30 @@ func (ac *AuthController) VerifyPasswordRecoveryOTP(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"token": encryptedData})
+}
+
+func (ac *AuthController) SetPassword(c *gin.Context) {
+	var setPasswordFormDTO authDTOs.PasswordRecoverySetPasswordFormDTO
+
+	if err := c.ShouldBindJSON(&setPasswordFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	err := ac.service.SetPassword(setPasswordFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(ac.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
 }

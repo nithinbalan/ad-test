@@ -56,7 +56,27 @@
     "translation": "Please wait before requesting OTP resend again"
   },
   {
-    "id": "expired",
+    "id": "otp_expired",
     "translation": "The provided {{.Field}} has expired."
+  },
+   {
+    "id": "session_expired",
+    "translation": "The session expired."
+  },
+  {
+    "id": "password_complexity",
+    "translation": "password does not meet the requirements."
+  },
+  {
+    "id": "invalid_otp",
+    "translation": "Invalid OTP"
+  },
+  {
+    "id": "field_confirm_password",
+    "translation": "password and confirm password does not match."
+  },
+  {
+    "id": "invalid_credentials",
+    "translation": "Invalid username or password."
   }
 ]

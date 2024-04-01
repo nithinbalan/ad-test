@@ -56,7 +56,27 @@
     "translation": "يرجى الانتظار قبل طلب إعادة إرسال كلمة المرور لمرة واحدة مرة أخرى"
   },
   {
-    "id": "expired",
+    "id": "otp_expired",
     "translation": "انتهت صلاحية كلمة المرور لمرة واحدة {{.Field}} المقدمة."
+  },
+  {
+    "id": "session_expired",
+    "translation": "انتهت الجلسة"
+  },
+  {
+    "id": "password_complexity",
+    "translation": "كلمة المرور لا تلبي المتطلبات"
+  },
+  {
+    "id": "invalid_otp",
+    "translation": "كلمة المرور لمرة واحدة غير صالحة"
+  },
+  {
+    "id": "field_confirm_password",
+    "translation": "كلمة المرور وتأكيد كلمة المرور غير متطابقين"
+  },
+  {
+    "id": "invalid_credentials",
+    "translation": "خطأ في اسم المستخدم أو كلمة مرور"
   }
 ]
