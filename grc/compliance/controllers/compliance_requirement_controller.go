@@ -70,13 +70,13 @@ func (crc *ComplianceRequirementController) GetAllComplianceRequirements(c *gin.
 		DeadlineFrom: deadlineFrom,
 		DeadlineTo:   deadlineTo,
 	}
-	compliances, err := crc.service.GetAll(&queryParams)
+	complianceRequirements, err := crc.service.GetAll(&queryParams)
 
 	if err != nil {
 		utility.SendInternalErrResp(crc.db, c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, compliances)
+	c.JSON(http.StatusOK, complianceRequirements)
 }
 
 func (crc *ComplianceRequirementController) GetComplianceRequirementDetails(c *gin.Context) {
@@ -96,7 +96,7 @@ func (crc *ComplianceRequirementController) GetComplianceRequirementDetails(c *g
 		return
 	}
 
-	complianceRequirement, err := crc.service.GetByID(uint(complianceID), uint(id))
+	complianceRequirement, err := crc.service.GetFullDetailsByID(uint(complianceID), uint(id))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return

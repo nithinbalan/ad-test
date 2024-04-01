@@ -176,27 +176,21 @@ func (repo *ComplianceRequirementRepository) GetByID(complianceID uint, id uint)
 }
 
 func (repo *ComplianceRequirementRepository) GetFullDetailsByID(complianceId uint, id uint) (*complianceModels.ComplianceRequirement, error) {
-	var compliance *complianceModels.ComplianceRequirement // Declare the variable inside the function
+	var complianceRequirement *complianceModels.ComplianceRequirement
 
 	result := repo.db.
-		Preload("ComplianceCategory").
+		Preload("ComplianceClause").
 		Preload("ComplianceStatus").
-		Preload("ResponsibleUnit").
-		Preload("ResponsibleUser").
-		Preload("ResponsibleUser.OrganizationUnit1").
-		Preload("ReviewFrequency").
-		Preload("ReviewResponsibleUser").
+		Preload("ComplianceRequirementCategory").
 		Preload("SeverityLevel").
-		Preload("LifecycleStatus").
-		Preload("CreatedByUser").
-		Preload("UpdatedByUser").
-		First(&compliance, id)
+		Preload("ResponsibleUser").
+		First(&complianceRequirement, id)
 
 	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	return compliance, nil
+	return complianceRequirement, nil
 }
 
 func (repo *ComplianceRequirementRepository) Create(complianceRequirement *complianceModels.ComplianceRequirement) (uint, error) {

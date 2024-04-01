@@ -27,6 +27,8 @@ type ComplianceRequirement struct {
 	ComplianceRequirementCategory *ComplianceRequirementCategory `gorm:"foreignkey:ComplianceRequirementCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	SeverityLevel                 *masterModels.SeverityLevel    `gorm:"foreignkey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ResponsibleUser               *organizationModels.User       `gorm:"foreignkey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	CreatedByUser                 *organizationModels.User       `gorm:"foreignKey:CreatedBy"`
+	UpdatedByUser                 *organizationModels.User       `gorm:"foreignKey:UpdatedBy"`
 }
 
 // TableName overrides the table name used by ComplianceRequirement to `compliance_requirements`

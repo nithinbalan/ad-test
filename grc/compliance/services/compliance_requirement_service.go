@@ -19,6 +19,7 @@ import (
 type ComplianceRequirementServiceInterface interface {
 	GetAll(params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementListResponseDTO, error)
 	GetByID(complianceID uint, id uint) (*complianceModels.ComplianceRequirement, error)
+	GetFullDetailsByID(complianceID uint, id uint) (*complianceDTOs.ComplianceRequirementDetailDTO, error)
 	Create(complianceID uint, currentUserID uint, ComplianceRequirementFormDTO *complianceDTOs.ComplianceRequirementFormDTO) (uint, error)
 	Update(complianceID uint, id uint, currentUserID uint, compliance *complianceDTOs.ComplianceRequirementFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
@@ -67,12 +68,12 @@ func (crs ComplianceRequirementService) GetByID(complianceID uint, id uint) (*co
 	return complianceRequirement, nil
 }
 
-func (crs ComplianceRequirementService) GetFullDetailsByID(complianceID uint, id uint) (*complianceDTOs.ComplianceRegisterDetailDTO, error) {
+func (crs ComplianceRequirementService) GetFullDetailsByID(complianceID uint, id uint) (*complianceDTOs.ComplianceRequirementDetailDTO, error) {
 
 	// Initialize your DTO
-	var complianceDTO complianceDTOs.ComplianceRegisterDetailDTO
+	var complianceRequirementDTO complianceDTOs.ComplianceRequirementDetailDTO
 
-	compliance, err := crs.repo.GetFullDetailsByID(complianceID, id)
+	complianceRequirement, err := crs.repo.GetFullDetailsByID(complianceID, id)
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -82,14 +83,14 @@ func (crs ComplianceRequirementService) GetFullDetailsByID(complianceID uint, id
 	}
 
 	// Map the result to your DTO
-	err = mapstructure.Decode(compliance, &complianceDTO)
+	err = mapstructure.Decode(complianceRequirement, &complianceRequirementDTO)
 	if err != nil {
 		return nil, err
 	}
 
 	//todo :- also add extra fields which required in details screen
 
-	return &complianceDTO, nil
+	return &complianceRequirementDTO, nil
 }
 
 func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID uint, ComplianceRequirementFormDTO *complianceDTOs.ComplianceRequirementFormDTO) (uint, error) {
