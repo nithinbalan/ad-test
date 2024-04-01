@@ -23,6 +23,9 @@ type AuthServiceInterface interface {
 	ReSendPasswordRecoveryOTP(email string) error
 	VerifyPasswordRecoveryOTP(email, otp string) (string, error)
 	SetPassword(setPasswordFormDTO authDTOs.PasswordRecoverySetPasswordFormDTO) error
+	MFAReSendOTP(email string, password string) error
+	MFAVerifyOTP(email string, password string, otp string) (map[string]string, error)
+	GetTokenFromRefreshToken(refreshToken string) (map[string]string, error)
 }
 
 // Service and implementations
@@ -50,30 +53,47 @@ func (as *AuthService) Authenticate(email string, password string) (map[string]s
 	if err != nil {
 		return nil, err
 	}
-
 	// Compare the provided password with the stored hashed password
 	err = bcrypt.CompareHashAndPassword([]byte(userSecurity.PasswordHash), []byte(password))
 	if err != nil {
 		return nil, utility.NewValidationError(fmt.Errorf("invalid username or password"), "invalid_credentials", "email")
 	}
 
-	accessToken, err := utility.GenerateToken(user.ID)
-	if err != nil {
-		return nil, utility.NewInternalServerError(err)
-	}
+	if userSecurity.IsMFA {
 
-	refreshToken, err := utility.GenerateRefreshToken(user.ID)
-	if err != nil {
-		return nil, utility.NewInternalServerError(err)
-	}
+		subject := "MFA Verification Code"
+		templateRelativePath := "auth/templates/email/send_mfa_otp.html"
 
-	// Return both access and refresh tokens
-	authTokens := map[string]string{
-		"access_token":  accessToken,
-		"refresh_token": refreshToken,
-	}
+		as.sendOTP(userSecurity, user, subject, templateRelativePath)
 
-	return authTokens, nil
+		authTokens := map[string]string{
+			"is_mfa_enabled": "1",
+		}
+
+		return authTokens, nil
+
+	} else {
+
+		//generate access token
+		accessToken, err := utility.GenerateToken(user.ID)
+		if err != nil {
+			return nil, utility.NewInternalServerError(err)
+		}
+
+		refreshToken, err := utility.GenerateRefreshToken(user.ID)
+		if err != nil {
+			return nil, utility.NewInternalServerError(err)
+		}
+
+		// Return both access and refresh tokens
+		authTokens := map[string]string{
+			"access_token":   accessToken,
+			"refresh_token":  refreshToken,
+			"is_mfa_enabled": "0",
+		}
+
+		return authTokens, nil
+	}
 
 }
 
@@ -89,7 +109,10 @@ func (as AuthService) SendPasswordRecoveryOTP(email string) error {
 		return err
 	}
 
-	return as.sendOTP(userSecurity, user)
+	subject := "Your Password Reset Verification Code"
+	templateRelativePath := "auth/templates/email/send_password_recovery_otp.html"
+
+	return as.sendOTP(userSecurity, user, subject, templateRelativePath)
 
 }
 
@@ -112,7 +135,10 @@ func (as AuthService) ReSendPasswordRecoveryOTP(email string) error {
 		return utility.NewValidationError(errors.New(errorMessage), "resend_not_yet_allowed", "resend_time")
 	}
 
-	return as.sendOTP(userSecurity, user)
+	subject := "Your Password Reset Verification Code"
+	templateRelativePath := "auth/templates/email/send_password_recovery_otp.html"
+
+	return as.sendOTP(userSecurity, user, subject, templateRelativePath)
 }
 
 func (as *AuthService) VerifyPasswordRecoveryOTP(email, otp string) (string, error) {
@@ -156,8 +182,7 @@ func (as AuthService) SetPassword(setPasswordFormDTO authDTOs.PasswordRecoverySe
 
 	decryptedBytes, err := utility.DecryptData(setPasswordFormDTO.Token)
 	if err != nil {
-		// @todo add language key
-		return utility.NewValidationError(fmt.Errorf("failed to decrypt data: %w", err), "invalid_request", "token")
+		return utility.NewValidationError(fmt.Errorf("failed to decrypt data: %w", err), "decryption_failed", "token")
 	}
 
 	decryptedText := string(decryptedBytes)
@@ -221,6 +246,117 @@ func (as AuthService) SetPassword(setPasswordFormDTO authDTOs.PasswordRecoverySe
 	return nil
 }
 
+func (as AuthService) MFAReSendOTP(email string, password string) error {
+	user, err := as.userService.GetByEmail(email)
+	if err != nil {
+		return err
+	}
+
+	userSecurity, err := as.userService.GetUserSecurityByUserID(user.ID)
+	if err != nil {
+		return err
+	}
+
+	// Compare the provided password with the stored hashed password
+	err = bcrypt.CompareHashAndPassword([]byte(userSecurity.PasswordHash), []byte(password))
+	if err != nil {
+		return utility.NewValidationError(fmt.Errorf("invalid username or password"), "invalid_credentials", "email")
+	}
+
+	resendTime := userSecurity.OTPExpiryAt.Add(-9 * time.Minute)
+	currentTime := time.Now().UTC()
+	if currentTime.Before(resendTime) {
+		timeRemaining := resendTime.Sub(currentTime).Round(time.Minute)
+		errorMessage := fmt.Sprintf("Resend request cannot be processed yet. Please wait %v more before trying again.", timeRemaining)
+		return utility.NewValidationError(errors.New(errorMessage), "resend_not_yet_allowed", "resend_time")
+	}
+
+	subject := "MFA Verification Code"
+	templateRelativePath := "auth/templates/email/send_mfa_otp.html"
+
+	return as.sendOTP(userSecurity, user, subject, templateRelativePath)
+}
+
+func (as *AuthService) MFAVerifyOTP(email, password, otp string) (map[string]string, error) {
+
+	user, err := as.userService.GetByEmail(email)
+	if err != nil {
+		return nil, err
+	}
+
+	userSecurity, err := as.userService.GetUserSecurityByUserID(user.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Compare the provided password with the stored hashed password
+	err = bcrypt.CompareHashAndPassword([]byte(userSecurity.PasswordHash), []byte(password))
+	if err != nil {
+		return nil, utility.NewValidationError(fmt.Errorf("invalid username or password"), "invalid_credentials", "email")
+	}
+
+	if *userSecurity.OTP != otp {
+		return nil, utility.NewValidationError(fmt.Errorf("invalid OTP"), "invalid_otp", "otp")
+	}
+
+	expirationTime := userSecurity.OTPExpiryAt
+	currentTime := time.Now().UTC()
+
+	if currentTime.After(*expirationTime) {
+		return nil, utility.NewValidationError(fmt.Errorf("OTP has expired"), "otp_expired", "otp")
+	}
+
+	//generate access token
+	accessToken, err := utility.GenerateToken(user.ID)
+	if err != nil {
+		return nil, utility.NewInternalServerError(err)
+	}
+
+	refreshToken, err := utility.GenerateRefreshToken(user.ID)
+	if err != nil {
+		return nil, utility.NewInternalServerError(err)
+	}
+
+	// Return both access and refresh tokens
+	authTokens := map[string]string{
+		"access_token":  accessToken,
+		"refresh_token": refreshToken,
+	}
+
+	return authTokens, nil
+
+}
+
+func (as *AuthService) GetTokenFromRefreshToken(refreshToken string) (map[string]string, error) {
+
+	//generate access token
+
+	userClims, err := utility.VerifyToken(refreshToken)
+	if err != nil {
+		return nil, utility.NewInternalServerError(err)
+	}
+
+	//generate access token
+	accessToken, err := utility.GenerateToken(userClims.UserID)
+	if err != nil {
+		return nil, utility.NewInternalServerError(err)
+	}
+
+	newRefreshToken, err := utility.GenerateRefreshToken(userClims.UserID)
+	if err != nil {
+		return nil, utility.NewInternalServerError(err)
+	}
+
+	// Return both access and refresh tokens
+	authTokens := map[string]string{
+		"access_token":  accessToken,
+		"refresh_token": newRefreshToken,
+	}
+
+	return authTokens, nil
+
+}
+
 func isValidPassword(password string) bool {
 	// Password should contain at least 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character
 	var (
@@ -247,7 +383,7 @@ func isValidPassword(password string) bool {
 }
 
 // Private method to handle the common functionality of sending OTP.
-func (as AuthService) sendOTP(userSecurity *organizationModels.UserSecurity, user *organizationModels.User) error {
+func (as AuthService) sendOTP(userSecurity *organizationModels.UserSecurity, user *organizationModels.User, mailSubject string, mailRelativePath string) error {
 	otpLength := 6
 	otp := utility.GenerateOTP(otpLength)
 	currentTime := time.Now().UTC()
@@ -275,8 +411,8 @@ func (as AuthService) sendOTP(userSecurity *organizationModels.UserSecurity, use
 	}
 
 	to := []string{user.Email}
-	subject := "Your Password Reset Verification Code"
-	templateRelativePath := "auth/templates/email/send_password_recovery_otp.html"
+	subject := mailSubject
+	templateRelativePath := mailRelativePath
 
 	err = utility.SendTemplatedEmail(to, subject, templateRelativePath, emailData, nil)
 	if err != nil {
