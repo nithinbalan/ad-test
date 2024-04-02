@@ -25,6 +25,14 @@ func NewComplianceRequirementController(service services.ComplianceRequirementSe
 
 func (crc *ComplianceRequirementController) GetAllComplianceRequirements(c *gin.Context) {
 
+	complianceIDStr := c.Param("complianceId")
+
+	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, "Invalid complianceId")
+		return
+	}
+
 	sort := c.Query("sort")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
@@ -70,7 +78,7 @@ func (crc *ComplianceRequirementController) GetAllComplianceRequirements(c *gin.
 		DeadlineFrom: deadlineFrom,
 		DeadlineTo:   deadlineTo,
 	}
-	complianceRequirements, err := crc.service.GetAll(&queryParams)
+	complianceRequirements, err := crc.service.GetAll(uint(complianceID), &queryParams)
 
 	if err != nil {
 		utility.SendInternalErrResp(crc.db, c, err.Error())

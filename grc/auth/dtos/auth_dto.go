@@ -6,9 +6,9 @@ type LoginFormDTO struct {
 }
 
 type LoginResponseDTO struct {
-	AccessToken  *string
-	RefreshToken *string
-	IsMFAEnabled bool
+	AccessToken  *string `json:"access_token"`
+	RefreshToken *string `json:"refresh_token"`
+	IsMFAEnabled bool    `json:"is_mfa_enabled"`
 }
 type PasswordRecoveryFormDTO struct {
 	Email string `json:"email" binding:"required,email"`
