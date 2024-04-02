@@ -40,7 +40,9 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	authRoutes := router.Group("/")
 
 	authRoutes.POST("/auth/login", authController.Login)
-	authRoutes.POST("/auth/verify-otp", authController.Login)
+	authRoutes.POST("/auth/token", authController.GetTokenFromRefreshToken)
+	authRoutes.POST("/auth/mfa/resend-otp", authController.MFAReSendOTP)
+	authRoutes.POST("/auth/mfa/verify-otp", authController.MFAVerifyOTP)
 
 	authRoutes.POST("/auth/password-recovery/send-otp", authController.SendPasswordRecoveryOTP)
 	authRoutes.POST("/auth/password-recovery/resend-otp", authController.ReSendPasswordRecoveryOTP)

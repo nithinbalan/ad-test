@@ -52,7 +52,7 @@
     "translation": "تاريخ غير صالح لـ {{.Field}}. يرجى تقديم تاريخ صالح بتنسيق YYYY-MM-DD."
   },
   {
-    "id": "resend_time_not_reached",
+    "id": "resend_not_yet_allowed",
     "translation": "يرجى الانتظار قبل طلب إعادة إرسال كلمة المرور لمرة واحدة مرة أخرى"
   },
   {
@@ -78,5 +78,9 @@
   {
     "id": "invalid_credentials",
     "translation": "خطأ في اسم المستخدم أو كلمة مرور"
+  },
+  {
+    "id": "decryption_failed",
+    "translation": "فشل في فك تشفير البيانات"
   }
 ]

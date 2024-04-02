@@ -1,0 +1,20 @@
+{{ define "content" }}
+<p>Hello {{ .FirstNameEn }} {{ .LastNameEn }},</p>
+
+<p>
+  As an additional layer of security, you've opted for Multi-Factor
+  Authentication (MFA) for your account. To proceed with your login, please use
+  the One-Time Password (OTP) provided below:
+</p>
+
+<p style="font-size: 18px; font-weight: bold">Your OTP: {{ .Otp }}</p>
+
+<p>
+  This OTP will expire after 10 minutes and is for one-time use only. If this
+  request wasn't made by you, it's important to notify our support team
+  immediately to safeguard your account.
+</p>
+
+<p>Thank you for taking steps to maintain the security of your account.</p>
+
+{{ end }}
