@@ -56,15 +56,15 @@ func (srs SLARegisterService) GetByID(id uint) (*models.SLARegister, error) {
 }
 
 func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *slaDTOs.SLARegisterFormDTO) (uint, error) {
-
 	if err := srs.validateSLARegisterFormDTO(slaRegisterFormDTO); err != nil {
 		return 0, err
 	}
-
+	
 	dates, err := srs.parseSLARegisterDates(slaRegisterFormDTO)
 	if err != nil {
 		return 0, err
 	}
+
 	referenceNumber, err := srs.repo.GenerateReferenceNumber()
 	if err != nil {
 		return 0, err
@@ -74,6 +74,7 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *sl
 	if err != nil {
 		return 0, err
 	}
+
 	// Create SLA register
 	slaRegister := &models.SLARegister{
 		SLACategoryID:     slaRegisterFormDTO.SLACategoryID,
@@ -88,38 +89,35 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *sl
 		Client:            slaRegisterFormDTO.Client,
 		CreatedBy:         currentUserID,
 	}
+
 	id, err := srs.repo.Create(slaRegister)
 	if err != nil {
 		return 0, err
 	}
-	// Create SLA documents
-	var documents []*models.SLADocument
-	for _, docDTO := range slaRegisterFormDTO.Documents {
-		doc := &models.SLADocument{
-			SLARegisterID: slaRegister.ID, // Use the ID of the created SLA register
-			Version:       docDTO.Version,
-			IssueDate:     dates.IssueDate,
-			ExpiryDate:    dates.ExpiryDate,
-			SA1Date:       dates.SA1Date,
-			SA2Date:       dates.SA2Date,
-			Comment:       docDTO.Comment,
-			Language:      docDTO.Language,
-			IsLatest:      true,
-			URL:           docDTO.URL,
-			Name:          docDTO.Name,
-			Size:          docDTO.Size,
-			Token:         docDTO.Token,
-			Type:          docDTO.Type,
-			Icon:          docDTO.Icon,
-			CreatedBy:     currentUserID,
-		}
-		documents = append(documents, doc)
+
+	// Create SLA document
+	slaDocument := &models.SLADocument{
+		SLARegisterID: id,
+		Version:       slaRegisterFormDTO.Document.Version,
+		IssueDate:     dates.IssueDate,
+		ExpiryDate:    dates.ExpiryDate,
+		SA1Date:       dates.SA1Date,
+		SA2Date:       dates.SA2Date,
+		Comment:       slaRegisterFormDTO.Document.Comment,
+		Language:      slaRegisterFormDTO.Document.Language,
+		URL:           slaRegisterFormDTO.Document.URL,
+		Name:          slaRegisterFormDTO.Document.Name,
+		Size:          slaRegisterFormDTO.Document.Size,
+		Token:         slaRegisterFormDTO.Document.Token,
+		Type:          slaRegisterFormDTO.Document.Type,
+		Icon:          slaRegisterFormDTO.Document.Icon,
+		CreatedBy:     currentUserID,
 	}
 
-	if err := srs.repo.SaveSLADocuments(documents); err != nil {
+	if err := srs.repo.SaveSLADocument(slaDocument); err != nil {
 		return 0, err
 	}
-
+	// Log activity
 	go func() {
 		err := srs.activityLogSvc.LogActivity(
 			logModels.CreateAction,
@@ -147,9 +145,7 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *sl
 }
 
 func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFormDTO *slaDTOs.SLARegisterFormDTO) error {
-
 	existingSLARegister, err := srs.repo.GetByID(id)
-
 	if err != nil {
 		return err
 	}
@@ -175,12 +171,13 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 	existingSLARegister.UpdatedBy = currentUserID
 
 	err = srs.repo.Update(existingSLARegister)
-
 	if err != nil {
 		return err
 	}
 
-	for _, docDTO := range slaRegisterFormDTO.Documents {
+	docDTO := slaRegisterFormDTO.Document
+
+	if docDTO != nil {
 		existingSLADocument, err := srs.repo.GetSLADocumentByID(*docDTO.ID)
 		if err != nil {
 			return err
@@ -202,12 +199,13 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 		existingSLADocument.Icon = docDTO.Icon
 		existingSLADocument.UpdatedBy = currentUserID
 
-		// Update SLA document in the repository by passing it as a slice
-		err = srs.repo.SaveSLADocuments([]*complianceModels.SLADocument{existingSLADocument})
+		// Update SLA document in the repository
+		err = srs.repo.SaveSLADocument(existingSLADocument)
 		if err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -346,38 +344,38 @@ func (srs *SLARegisterService) validateSLARegisterFormDTO(slaRegisterFormDTO *sl
 func (srs *SLARegisterService) parseSLARegisterDates(dto *slaDTOs.SLARegisterFormDTO) (*slaDTOs.ParsedSLADates, error) {
 	parsed := &slaDTOs.ParsedSLADates{}
 	var err error
-	if dto.Documents != nil {
-		for _, doc := range dto.Documents {
-			// Validate issue_date
-			if doc.IssueDate != "" {
-				parsed.IssueDate, err = utility.ParseDate(doc.IssueDate)
-				if err != nil {
-					return nil, utility.NewValidationError(fmt.Errorf("invalid issue date"), "invalid_date", "issue date")
-				}
-			}
 
-			// Validate expiry_date
-			if doc.ExpiryDate != "" {
-				parsed.ExpiryDate, err = utility.ParseDate(doc.ExpiryDate)
-				if err != nil {
-					return nil, utility.NewValidationError(fmt.Errorf("invalid expiry date"), "invalid_date", "expiry date")
-				}
-			}
-			// Validate SA1Date
-			if doc.SA1Date != "" {
-				parsed.SA1Date, err = utility.ParseDate(doc.SA1Date)
-				if err != nil {
-					return nil, utility.NewValidationError(fmt.Errorf("invalid sa1 date"), "invalid_date", "sa1 date")
-				}
-			}
-			// Validate SA2Date
-			if doc.SA2Date != "" {
-				parsed.SA2Date, err = utility.ParseDate(doc.SA2Date)
-				if err != nil {
-					return nil, utility.NewValidationError(fmt.Errorf("invalid sa2 date"), "invalid_date", "sa2 date")
-				}
-			}
+	// Validate issue_date
+	if dto.Document.IssueDate != "" {
+		parsed.IssueDate, err = utility.ParseDate(dto.Document.IssueDate)
+		if err != nil {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid issue date"), "invalid_date", "issue date")
 		}
 	}
+
+	// Validate expiry_date
+	if dto.Document.ExpiryDate != "" {
+		parsed.ExpiryDate, err = utility.ParseDate(dto.Document.ExpiryDate)
+		if err != nil {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid expiry date"), "invalid_date", "expiry date")
+		}
+	}
+
+	// Validate SA1Date
+	if dto.Document.SA1Date != "" {
+		parsed.SA1Date, err = utility.ParseDate(dto.Document.SA1Date)
+		if err != nil {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid sa1 date"), "invalid_date", "sa1 date")
+		}
+	}
+
+	// Validate SA2Date
+	if dto.Document.SA2Date != "" {
+		parsed.SA2Date, err = utility.ParseDate(dto.Document.SA2Date)
+		if err != nil {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid sa2 date"), "invalid_date", "sa2 date")
+		}
+	}
+
 	return parsed, nil
 }

@@ -88,8 +88,7 @@ type SLARegisterFormDTO struct {
 	Description       *string `json:"description"`
 	Client            string  `json:"client" binding:"max=250"`
 
-	// New field for SLA documents
-	Documents []*SLADocumentFormDTO `json:"documents,omitempty"`
+	Document *SLADocumentFormDTO `json:"document"`
 }
 
 type SLADocumentFormDTO struct {

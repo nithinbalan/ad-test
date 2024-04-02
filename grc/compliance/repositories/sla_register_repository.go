@@ -22,7 +22,7 @@ type SLARegisterRepositoryInterface interface {
 	Update(slaRegister *complianceModels.SLARegister) error
 	Delete(id uint) error
 	GenerateReferenceNumber() (string, error)
-	SaveSLADocuments(documents []*complianceModels.SLADocument) error
+	SaveSLADocument(doc *models.SLADocument) error
 	GetSLADocumentByID(id uint) (*models.SLADocument, error)
 	GetIDsByLifecycleStatus(ids []uint, status string) ([]uint, error)
 	UpdateLifecycleStatusForIDs(ids []uint, statusId uint) ([]uint, error)
@@ -339,11 +339,9 @@ func (repo *SLARegisterRepository) GenerateReferenceNumber() (string, error) {
 	return newReferenceNumber, nil
 }
 
-func (repo *SLARegisterRepository) SaveSLADocuments(documents []*models.SLADocument) error {
-	for _, doc := range documents {
-		if err := repo.db.Save(doc).Error; err != nil {
-			return err
-		}
+func (repo *SLARegisterRepository) SaveSLADocument(doc *models.SLADocument) error {
+	if err := repo.db.Save(doc).Error; err != nil {
+		return err
 	}
 	return nil
 }
