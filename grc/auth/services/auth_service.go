@@ -18,7 +18,7 @@ import (
 )
 
 type AuthServiceInterface interface {
-	Authenticate(email string, password string) (map[string]string, error)
+	Authenticate(email string, password string) (*authDTOs.LoginResponseDTO, error)
 	SendPasswordRecoveryOTP(email string) error
 	ReSendPasswordRecoveryOTP(email string) error
 	VerifyPasswordRecoveryOTP(email, otp string) (string, error)
@@ -41,60 +41,49 @@ func NewAuthService(repo repositories.AuthRepositoryInterface, userService servi
 	}
 }
 
-func (as *AuthService) Authenticate(email string, password string) (map[string]string, error) {
-	//get user
+func (as *AuthService) Authenticate(email string, password string) (*authDTOs.LoginResponseDTO, error) {
+	// Get user
 	user, err := as.userService.GetByEmail(email)
 	if err != nil {
 		return nil, err
 	}
 
-	//get userSecurity
+	// Get userSecurity
 	userSecurity, err := as.userService.GetUserSecurityByUserID(user.ID)
 	if err != nil {
 		return nil, err
 	}
+
 	// Compare the provided password with the stored hashed password
 	err = bcrypt.CompareHashAndPassword([]byte(userSecurity.PasswordHash), []byte(password))
 	if err != nil {
 		return nil, utility.NewValidationError(fmt.Errorf("invalid username or password"), "invalid_credentials", "email")
 	}
 
-	if userSecurity.IsMFA {
+	responseDTO := &authDTOs.LoginResponseDTO{}
 
+	if userSecurity.IsMFA {
 		subject := "MFA Verification Code"
 		templateRelativePath := "auth/templates/email/send_mfa_otp.html"
-
 		as.sendOTP(userSecurity, user, subject, templateRelativePath)
-
-		authTokens := map[string]string{
-			"is_mfa_enabled": "1",
-		}
-
-		return authTokens, nil
-
+		responseDTO.IsMFAEnabled = true
 	} else {
-
-		//generate access token
 		accessToken, err := utility.GenerateToken(user.ID)
 		if err != nil {
 			return nil, utility.NewInternalServerError(err)
 		}
+		responseDTO.AccessToken = &accessToken
 
 		refreshToken, err := utility.GenerateRefreshToken(user.ID)
 		if err != nil {
 			return nil, utility.NewInternalServerError(err)
 		}
+		responseDTO.RefreshToken = &refreshToken
 
-		// Return both access and refresh tokens
-		authTokens := map[string]string{
-			"access_token":   accessToken,
-			"refresh_token":  refreshToken,
-			"is_mfa_enabled": "0",
-		}
+		responseDTO.IsMFAEnabled = false
 
-		return authTokens, nil
 	}
-
+	return responseDTO, nil
 }
 
 func (as AuthService) SendPasswordRecoveryOTP(email string) error {

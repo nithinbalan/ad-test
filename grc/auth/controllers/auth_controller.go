@@ -6,7 +6,6 @@ import (
 	"jethur/grc/auth/services"
 	"jethur/utility"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -36,7 +35,7 @@ func (ac *AuthController) Login(c *gin.Context) {
 		return
 	}
 
-	tokens, err := ac.service.Authenticate(authDTO.Email, authDTO.Password)
+	responseDTO, err := ac.service.Authenticate(authDTO.Email, authDTO.Password)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:
@@ -51,13 +50,7 @@ func (ac *AuthController) Login(c *gin.Context) {
 		}
 	}
 
-	isMFAEnabled, _ := strconv.Atoi(tokens["is_mfa_enabled"])
-	c.JSON(http.StatusOK, gin.H{
-		"access_token":   tokens["access_token"],
-		"refresh_token":  tokens["refresh_token"],
-		"is_mfa_enabled": isMFAEnabled,
-	})
-
+	c.JSON(http.StatusOK, responseDTO)
 }
 
 func (ac *AuthController) SendPasswordRecoveryOTP(c *gin.Context) {

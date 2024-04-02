@@ -5,6 +5,11 @@ type LoginFormDTO struct {
 	Password string `json:"password" binding:"required"`
 }
 
+type LoginResponseDTO struct {
+	AccessToken  *string
+	RefreshToken *string
+	IsMFAEnabled bool
+}
 type PasswordRecoveryFormDTO struct {
 	Email string `json:"email" binding:"required,email"`
 }
