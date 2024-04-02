@@ -25,7 +25,7 @@ type UserServiceInterface interface {
 	GetByEmail(email string) (*organizationModels.User, error)
 	GetUserSecurityByUserID(userID uint) (*organizationModels.UserSecurity, error)
 	UpdateUserSecurity(userSecurity *organizationModels.UserSecurity) error
-	// Delete(ids []uint, currentUserID uint) ([]uint, error)
+	Delete(ids []uint, currentUserID uint) ([]uint, error)
 }
 
 type UserService struct {
@@ -235,6 +235,46 @@ func (us *UserService) UpdatePartial(id uint, userUpdateDTO *userDTOs.UserUpdate
 
 func (us *UserService) GetByID(id uint) (*organizationModels.User, error) {
 	return us.repo.GetByID(id)
+}
+
+func (crs *UserService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
+	var failedIds []uint
+	var successfulIds []uint
+	for _, id := range ids {
+
+		_, err := crs.repo.GetByID(id)
+
+		if err != nil {
+			continue
+		}
+
+		err = crs.repo.Delete(id)
+		if err != nil {
+			failedIds = append(failedIds, id)
+		} else {
+			successfulIds = append(successfulIds, id)
+		}
+	}
+
+	if len(successfulIds) > 0 {
+
+		go func() {
+			err := crs.activityLogSvc.LogBulkActivities(
+				logModels.DeleteAction, // Make sure this action constant is defined appropriately
+				organizationModels.User{}.TableName(),
+				successfulIds,
+				nil,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				// @todo - save to log file
+				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+			}
+		}()
+	}
+
+	return failedIds, nil
 }
 
 func (us *UserService) validateUserFormDTO(id *uint, userFormDTO *userDTOs.UserFormDTO) error {

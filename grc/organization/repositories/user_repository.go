@@ -20,7 +20,7 @@ type UserRepositoryInterface interface {
 	UpdatePartial(id uint, updates map[string]interface{}) error
 	GetByEmail(email string) (*organizationModels.User, error)
 	GetUserSecurityByUserID(userId uint) (*organizationModels.UserSecurity, error)
-	// Delete(id uint) error
+	Delete(id uint) error
 	CreateUserSecurity(tx db.DatabaseTransaction, userSecurity organizationModels.UserSecurity) error
 	UpdateUserSecurity(userSecurity *organizationModels.UserSecurity) error
 	CreateUserSetting(tx db.DatabaseTransaction, userSetting organizationModels.UserSetting) error
@@ -64,16 +64,52 @@ func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*us
 			org4.title_ar AS organization_unit_4_title_ar,
 			org5.title_ar AS organization_unit_5_title_ar,
 			designations.title_en AS designation_title_en,
-			designations.title_ar AS designation_title_ar
+			designations.title_ar AS designation_title_ar,
+			roles_agg.roles_en,
+			roles_agg.roles_ar,
+			user_statuses.title_en AS user_status_title_en,
+			user_statuses.title_ar AS user_status_title_ar,
+			user_statuses.color_code AS user_status_color_code
 		`).
-		Joins("LEFT JOIN organization_units org1 ON org1.id = users.organization_unit_1_id").
+		Joins("INNER JOIN organization_units org1 ON org1.id = users.organization_unit_1_id").
 		Joins("LEFT JOIN organization_units org2 ON org2.id = users.organization_unit_2_id").
 		Joins("LEFT JOIN organization_units org3 ON org3.id = users.organization_unit_3_id").
 		Joins("LEFT JOIN organization_units org4 ON org4.id = users.organization_unit_4_id").
 		Joins("LEFT JOIN organization_units org5 ON org5.id = users.organization_unit_5_id").
-		Joins("LEFT JOIN designations ON designations.id = users.designation_id")
+		Joins("INNER JOIN designations ON designations.id = users.designation_id").
+		Joins("INNER JOIN user_statuses ON user_statuses.id = users.user_status_id").
+		Joins("INNER JOIN (SELECT user_roles.user_id, STRING_AGG(roles.title_en, ', ') AS roles_en, STRING_AGG(roles.title_ar, ', ') AS roles_ar FROM user_roles JOIN roles ON roles.id = user_roles.role_id GROUP BY user_roles.user_id) roles_agg ON roles_agg.user_id = users.id")
 
-		// Calculate total count for pagination
+		// Apply search keyword if exists
+	if params.Keyword != "" {
+		query = query.Where(`
+			(users.first_name_en LIKE ? OR
+			 users.last_name_en LIKE ? OR
+			 users.first_name_ar LIKE ? OR
+			 users.last_name_ar LIKE ? OR
+			 users.email LIKE ? OR
+			 users.mobile_number LIKE ? OR
+			 org1.title_en LIKE ? OR
+			 org1.title_ar LIKE ? OR
+			 org2.title_en LIKE ? OR
+			 org2.title_ar LIKE ? OR
+			 org3.title_en LIKE ? OR
+			 org3.title_ar LIKE ? OR
+			 org4.title_en LIKE ? OR
+			 org4.title_ar LIKE ? OR
+			 org5.title_en LIKE ? OR
+			 org5.title_ar LIKE ? OR
+			 designations.title_en LIKE ? OR
+			 designations.title_ar LIKE ? OR
+			 user_statuses.title_en LIKE ? OR
+			 user_statuses.title_ar LIKE ?)`,
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
+	}
+	// Calculate total count for pagination
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
@@ -150,6 +186,42 @@ func (repo *UserRepository) Update(tx db.DatabaseTransaction, user *organization
 	}
 
 	return nil
+}
+
+func (repo *UserRepository) Delete(id uint) error {
+
+	// Start a transaction
+	tx := repo.db.Begin()
+
+	// Check for errors starting the transaction
+	if tx.Error != nil {
+		return tx.Error
+	}
+
+	// Attempt to delete related records first to maintain referential integrity
+	if err := tx.Where("user_id = ?", id).Delete(&organizationModels.UserSecurity{}).Error; err != nil {
+		tx.Rollback() // Rollback if there's an error
+		return err
+	}
+
+	if err := tx.Where("user_id = ?", id).Delete(&organizationModels.UserSetting{}).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := tx.Where("user_id = ?", id).Delete(&organizationModels.UserRole{}).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Finally, attempt to delete the user
+	if err := tx.Delete(&organizationModels.User{}, id).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Commit the transaction if all deletions were successful
+	return tx.Commit().Error
 }
 
 func (repo *UserRepository) CreateUserSecurity(tx db.DatabaseTransaction, userSecurity organizationModels.UserSecurity) error {

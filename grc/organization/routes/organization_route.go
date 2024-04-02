@@ -55,4 +55,5 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	organizationRoutes.GET("/users", userController.GetAllUsers)
 	organizationRoutes.POST("/users", userController.CreateUser)
 	organizationRoutes.PUT("/users/:id", userController.UpdateUser)
+	organizationRoutes.POST("/users/delete", userController.DeleteUsers)
 }

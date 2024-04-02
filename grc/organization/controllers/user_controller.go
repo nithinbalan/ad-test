@@ -145,3 +145,29 @@ func (uc *UserController) UpdateUser(c *gin.Context) {
 
 	c.Status(http.StatusOK)
 }
+
+func (uc *UserController) DeleteUsers(c *gin.Context) {
+
+	var request struct {
+		IDs []uint `json:"ids"`
+	}
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(uc.db, c, err.Error())
+		return
+	}
+
+	failedIDs, err := uc.service.Delete(request.IDs, currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(uc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}
