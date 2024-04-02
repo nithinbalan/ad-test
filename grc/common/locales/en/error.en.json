@@ -52,7 +52,7 @@
     "translation": "Invalid {{.Field}}. Please provide a valid date in YYYY-MM-DD format."
   },
   {
-    "id": "resend_time_not_reached",
+    "id": "resend_not_yet_allowed",
     "translation": "Please wait before requesting OTP resend again"
   },
   {
@@ -78,5 +78,9 @@
   {
     "id": "invalid_credentials",
     "translation": "Invalid username or password."
+  },
+  {
+    "id": "decryption_failed",
+    "translation": "Failed to decrypt data"
   }
 ]

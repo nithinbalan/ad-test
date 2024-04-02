@@ -5,8 +5,22 @@ type LoginFormDTO struct {
 	Password string `json:"password" binding:"required"`
 }
 
+type LoginResponseDTO struct {
+	AccessToken  *string
+	RefreshToken *string
+	IsMFAEnabled bool
+}
 type PasswordRecoveryFormDTO struct {
 	Email string `json:"email" binding:"required,email"`
+}
+
+type RefreshTokenFormDTO struct {
+	RefreshToken string `json:"refresh_token" binding:"required"`
+}
+type MFAVerifyOTPFormDTO struct {
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required"`
+	Otp      string `json:"otp"`
 }
 
 type PasswordRecoveryDataDTO struct {
