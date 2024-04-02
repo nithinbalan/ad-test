@@ -73,14 +73,15 @@ func (crs ComplianceRequirementService) GetByID(complianceID uint, id uint) (*co
 }
 
 func (crs ComplianceRequirementService) GetFullDetailsByID(complianceID uint, id uint) (*complianceDTOs.ComplianceRequirementDetailDTO, error) {
+
+	// @todo , custom error need to move here from repo
 	if _, err := crs.complianceRegisterSvc.GetByID(complianceID); err != nil {
 		return nil, err
 	}
-	// Initialize your DTO
+
 	var complianceRequirementDTO complianceDTOs.ComplianceRequirementDetailDTO
 
 	complianceRequirement, err := crs.repo.GetFullDetailsByID(complianceID, id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
