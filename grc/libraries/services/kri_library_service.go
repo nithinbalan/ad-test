@@ -259,9 +259,7 @@ func (kls *KRILibraryService) validateKRILibraryFormDTO(libraryFormDTO *libraryD
 		}
 
 	} else {
-		fmt.Println("DI", &id)
-		fmt.Println("libraryFormDTO.ID", libraryFormDTO.ID)
-		if exists, err := kls.repo.ExistsByTitleExcludingID(libraryFormDTO.ID, libraryFormDTO.Title, libraryFormDTO.KRICategoryID); err != nil {
+		if exists, err := kls.repo.ExistsByTitleExcludingID(*id, libraryFormDTO.Title, libraryFormDTO.KRICategoryID); err != nil {
 			return err
 		} else if exists {
 			return utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
