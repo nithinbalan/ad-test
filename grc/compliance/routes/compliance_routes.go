@@ -56,6 +56,17 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	complianceRequirementCategorySvc := complianceServices.NewComplianceRequirementCategoryService(complianceRequirementCategoryRepo, activityLogSvc)
 	complianceRequirementCategoryController := controllers.NewComplianceRequirementCategoryController(complianceRequirementCategorySvc)
 
+	complianceRequirementRepo := complianceRepositories.NewComplianceRequirementRepository(db)
+	complianceRequirementSvc := complianceServices.NewComplianceRequirementService(
+		complianceRequirementRepo,
+		activityLogSvc,
+		complianceRegisterSvc,
+		complianceRequirementCategorySvc,
+		complianceStatusSvc,
+		severityLevelSvc,
+	)
+	complianceRequirementController := controllers.NewComplianceRequirementController(complianceRequirementSvc)
+
 	SLACategoryRepo := complianceRepositories.NewSLACategoryRepository(db)
 	SLACategorySvc := complianceServices.NewSLACategoryService(SLACategoryRepo, activityLogSvc)
 	SLACategoryController := controllers.NewSLACategoryController(SLACategorySvc)
@@ -94,4 +105,10 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	complianceRoutes.POST("/compliance-register/delete", complianceRegisterController.DeleteComplianceRegisters)
 	complianceRoutes.PUT("/compliance-register/archive", complianceRegisterController.ArchiveComplianceRegisters)
 	complianceRoutes.PUT("/compliance-register/restore", complianceRegisterController.RestoreComplianceRegisters)
+
+	complianceRoutes.GET("/compliances/:complianceId/requirements", complianceRequirementController.GetAllComplianceRequirements)
+	complianceRoutes.GET("/compliances/:complianceId/requirements/:id", complianceRequirementController.GetComplianceRequirementDetails)
+	complianceRoutes.POST("/compliances/:complianceId/requirements", complianceRequirementController.CreateComplianceRequirement)
+	complianceRoutes.PUT("/compliances/:complianceId/requirements/:id", complianceRequirementController.UpdateComplianceRequirement)
+	complianceRoutes.POST("/compliances/:complianceId/requirements/delete", complianceRequirementController.DeleteComplianceRequirements)
 }

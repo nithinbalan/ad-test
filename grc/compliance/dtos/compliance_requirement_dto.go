@@ -1,0 +1,83 @@
+package dtos
+
+import (
+	commonDTOs "jethur/grc/common/dtos"
+	masterDTOs "jethur/grc/masters/dtos"
+	"time"
+)
+
+type ComplianceRequirementListDTO struct {
+	ID                                   uint   `json:"id"`
+	ComplianceClauseNo                   string `json:"compliance_clause_no"`
+	ComplianceClauseTitle                string `json:"compliance_clause_title"`
+	Title                                string `json:"title"`
+	ComplianceRequirementCategoryTitleEn string `json:"compliance_requirement_category_title_en"`
+	ComplianceRequirementCategoryTitleAr string `json:"compliance_requirement_category_title_ar"`
+	SeverityLevelTitleEn                 string `json:"severity_level_title_en"`
+	SeverityLevelTitleAr                 string `json:"severity_level_title_ar"`
+	SeverityLevelColorCode               string `json:"severity_level_color_code"`
+	ResponsibleUserFirstName             string `json:"responsible_user_first_name"`
+	ResponsibleUserLastName              string `json:"responsible_user_last_name"`
+	Deadline                             string `json:"deadline"`
+	ComplianceStatusTitleEn              string `json:"compliance_status_title_en"`
+	ComplianceStatusTitleAr              string `json:"compliance_status_title_ar"`
+	ComplianceStatusColorCode            string `json:"compliance_status_color_code"`
+	CreatedAt                            string `json:"created_at"`
+	UpdatedAt                            string `json:"updated_at"`
+	CreatedUserFirstNameEn               string `json:"created_user_first_name_en"`
+	CreatedUserFirstNameAr               string `json:"created_user_first_name_ar"`
+	CreatedUserLastNameEn                string `json:"created_user_last_name_en"`
+	CreatedUserLastNameAr                string `json:"created_user_last_name_ar"`
+	UpdatedUserFirstNameEn               string `json:"updated_user_first_name_en"`
+	UpdatedUserFirstNameAr               string `json:"updated_user_first_name_ar"`
+	UpdatedUserLastNameEn                string `json:"updated_user_last_name_en"`
+	UpdatedUserLastNameAr                string `json:"updated_user_last_name_ar"`
+}
+
+type ComplianceRequirementListQueryParamsDTO struct {
+	Sort         string
+	SortBy       string
+	Keyword      string
+	Status       string
+	Page         int
+	PageSize     int
+	Filters      map[string][]string
+	QuickFilter  []string
+	DeadlineFrom string
+	DeadlineTo   string
+}
+
+type ComplianceRequirementListResponseDTO struct {
+	Items      []*ComplianceRequirementListDTO `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO    `json:"pagination"`
+}
+
+type ComplianceRequirementFormDTO struct {
+	ComplianceClauseNo              string `json:"compliance_clause_no" binding:"required"`
+	ComplianceClauseTitle           string `json:"compliance_clause_title" binding:"required"`
+	Title                           string `json:"title" binding:"required"`
+	ComplianceRequirementCategoryID uint   `json:"compliance_requirement_category_id" binding:"required"`
+	SeverityLevelID                 uint   `json:"severity_level_id" binding:"required"`
+	ResponsibleUserID               uint   `json:"responsible_user_id" binding:"required"`
+	Deadline                        string `json:"deadline" binding:"omitempty,datetime=2006-01-02"`
+	ComplianceStatusID              uint   `json:"compliance_status_id" binding:"required"`
+}
+
+type ComplianceRequirementParsedDates struct {
+	Deadline *time.Time
+}
+
+type ComplianceRequirementDetailDTO struct {
+	ID                            int                              `json:"id"`
+	ComplianceClause              ComplianceClauseDTO              `json:"compliance_clause"`
+	Title                         string                           `json:"title"`
+	ComplianceRequirementCategory ComplianceRequirementCategoryDTO `json:"compliance_requirement_category"`
+	SeverityLevel                 *masterDTOs.SeverityLevelDTO     `json:"severity_level"`
+	ResponsibleUser               UserMinimalDTO                   `json:"responsible_user"`
+	ComplianceStatus              ComplianceStatusDTO              `json:"compliance_status"`
+	Deadline                      *time.Time                       `json:"deadline"`
+	CreatedAt                     time.Time                        `json:"created_at"`
+	UpdatedAt                     *time.Time                       `json:"updated_at"`
+	CreatedByUser                 UserMinimalDTO                   `json:"created_by"`
+	UpdatedByUser                 UserMinimalDTO                   `json:"updated_by"`
+}
