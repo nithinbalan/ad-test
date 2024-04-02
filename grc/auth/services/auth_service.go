@@ -63,7 +63,7 @@ func (as *AuthService) Authenticate(email string, password string) (*authDTOs.Lo
 	responseDTO := &authDTOs.LoginResponseDTO{}
 
 	if userSecurity.IsMFA {
-		subject := "MFA Verification Code"
+		subject := "Verify Your Login: Your One-Time Password"
 		templateRelativePath := "auth/templates/email/send_mfa_otp.html"
 		as.sendOTP(userSecurity, user, subject, templateRelativePath)
 		responseDTO.IsMFAEnabled = true
