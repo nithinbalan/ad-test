@@ -70,4 +70,12 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	masterRoutes.PUT("/checklist-questions/:id", checklistQuestionController.UpdateChecklistQuestion)
 	masterRoutes.POST("/checklist-questions/delete", checklistQuestionController.DeleteChecklistQuestions)
 
+	// Action Plan Status
+	actionPlanStatusRepo := repositories.NewActionPlanStatusRepository(db)
+	actionPlanStatusSvc := services.NewActionPlanStatusService(actionPlanStatusRepo)
+	actionPlanStatusController := controllers.NewActionPlanStatusController(actionPlanStatusSvc)
+
+	masterRoutes.GET("/action-plan-statuses", actionPlanStatusController.GetAllActionPlanStatuses)
+	masterRoutes.GET("/action-plan-statuses/:id", actionPlanStatusController.GetActionPlanStatusDetails)
+
 }
