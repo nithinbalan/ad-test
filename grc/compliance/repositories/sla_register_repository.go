@@ -22,7 +22,7 @@ type SLARegisterRepositoryInterface interface {
 	Update(slaRegister *complianceModels.SLARegister) error
 	Delete(id uint) error
 	GenerateReferenceNumber() (string, error)
-	AssociateDocumentsWithSLARegister(documents []*complianceModels.SLADocument) error
+	SaveSLADocuments(documents []*complianceModels.SLADocument) error
 	GetSLADocumentByID(id uint) (*models.SLADocument, error)
 	GetIDsByLifecycleStatus(ids []uint, status string) ([]uint, error)
 	UpdateLifecycleStatusForIDs(ids []uint, statusId uint) ([]uint, error)
@@ -87,9 +87,9 @@ func (repo *SLARegisterRepository) GetAll(params *slaDTOs.SLARegisterListQueryPa
             LEFT JOIN severity_levels ON sla_registers.severity_level_id = severity_levels.id
             LEFT JOIN organization_units ON sla_registers.responsible_unit_id = organization_units.id
             LEFT JOIN users AS responsible_users ON sla_registers.responsible_user_id = responsible_users.id
-            LEFT JOIN lifecycle_statuses ON sla_registers.lifecycle_status_id = lifecycle_statuses.id
+            JOIN lifecycle_statuses ON sla_registers.lifecycle_status_id = lifecycle_statuses.id
 		    LEFT JOIN compliance_statuses ON sla_registers.compliance_status_id = compliance_statuses.id 
-            LEFT JOIN users AS created_by_users ON sla_registers.created_by = created_by_users.id
+            JOIN users AS created_by_users ON sla_registers.created_by = created_by_users.id
             LEFT JOIN users AS updated_by_users ON sla_registers.updated_by = updated_by_users.id
 			LEFT JOIN sla_documents ON sla_registers.id = sla_documents.sla_register_id AND sla_documents.is_latest = 1
 
@@ -339,8 +339,7 @@ func (repo *SLARegisterRepository) GenerateReferenceNumber() (string, error) {
 	return newReferenceNumber, nil
 }
 
-func (repo *SLARegisterRepository) AssociateDocumentsWithSLARegister(documents []*models.SLADocument) error {
-	// Update each document
+func (repo *SLARegisterRepository) SaveSLADocuments(documents []*models.SLADocument) error {
 	for _, doc := range documents {
 		if err := repo.db.Save(doc).Error; err != nil {
 			return err

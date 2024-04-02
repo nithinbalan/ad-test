@@ -103,9 +103,9 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 		activityLogSvc)
 	SLARegController := controllers.NewSLARegisterController(SLASvc)
 
+	complianceRoutes.GET("/sla-registers", SLARegController.GetAllSLARegisters)
 	complianceRoutes.GET("/sla-registers/:id", SLARegController.GetSLARegisterDetails)
 	complianceRoutes.POST("/sla-registers", SLARegController.CreateSLARegister)
-	complianceRoutes.GET("/sla-registers", SLARegController.GetAllSLARegisters)
 	complianceRoutes.PUT("/sla-registers/:id", SLARegController.UpdateSLARegister)
 	complianceRoutes.POST("/sla-registers/delete", SLARegController.DeleteSLARegisters)
 	complianceRoutes.PUT("/sla-registers/archive", SLARegController.ArchiveSLARegisters)

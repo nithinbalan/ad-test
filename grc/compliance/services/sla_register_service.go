@@ -56,7 +56,6 @@ func (srs SLARegisterService) GetByID(id uint) (*models.SLARegister, error) {
 }
 
 func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *slaDTOs.SLARegisterFormDTO) (uint, error) {
-	// Validation and error handling code omitted for brevity
 
 	if err := srs.validateSLARegisterFormDTO(slaRegisterFormDTO); err != nil {
 		return 0, err
@@ -117,8 +116,7 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *sl
 		documents = append(documents, doc)
 	}
 
-	// Create SLA documents in a single transaction
-	if err := srs.repo.AssociateDocumentsWithSLARegister(documents); err != nil {
+	if err := srs.repo.SaveSLADocuments(documents); err != nil {
 		return 0, err
 	}
 
@@ -181,9 +179,8 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 	if err != nil {
 		return err
 	}
-	// Update SLA document details
+
 	for _, docDTO := range slaRegisterFormDTO.Documents {
-		// Get the existing SLA document by ID
 		existingSLADocument, err := srs.repo.GetSLADocumentByID(*docDTO.ID)
 		if err != nil {
 			return err
@@ -206,7 +203,7 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 		existingSLADocument.UpdatedBy = currentUserID
 
 		// Update SLA document in the repository by passing it as a slice
-		err = srs.repo.AssociateDocumentsWithSLARegister([]*complianceModels.SLADocument{existingSLADocument})
+		err = srs.repo.SaveSLADocuments([]*complianceModels.SLADocument{existingSLADocument})
 		if err != nil {
 			return err
 		}
