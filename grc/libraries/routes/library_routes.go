@@ -47,4 +47,17 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	libraryRoutes.PUT("/question-library/activate", questionLibraryController.ActivateQuestionLibraries)
 	libraryRoutes.PUT("/question-library/deactivate", questionLibraryController.DeactivateQuestionLibraries)
 
+	//KRI Categories
+	KRICategoryRepository := libraryRepo.NewKRICategoryRepository(db)
+	KRICategoryService := libraryService.NewKRICategoryService(KRICategoryRepository, activityLogSvc)
+	KRICategoryController := libraryController.NewKRICategoryController(KRICategoryService)
+
+	libraryRoutes.GET("/kri-categories", KRICategoryController.GetAllKRICategories)
+	libraryRoutes.POST("/kri-categories", KRICategoryController.CreateKRICategory)
+	libraryRoutes.GET("/kri-categories/:id", KRICategoryController.GetKRICategoryDetails)
+	libraryRoutes.PUT("/kri-categories/:id", KRICategoryController.UpdateKRICategory)
+	libraryRoutes.POST("/kri-categories/delete", KRICategoryController.DeleteKRICategories)
+	libraryRoutes.PUT("/kri-categories/activate", KRICategoryController.ActivateKRICategories)
+	libraryRoutes.PUT("/kri-categories/deactivate", KRICategoryController.DeactivateKRICategories)
+
 }
