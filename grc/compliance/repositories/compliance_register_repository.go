@@ -214,6 +214,7 @@ func (repo *ComplianceRegisterRepository) GetByID(id uint) (*complianceModels.Co
 	if result.Error != nil {
 		return nil, result.Error
 	}
+
 	return compliance, nil
 
 }
