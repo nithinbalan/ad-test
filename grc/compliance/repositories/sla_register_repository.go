@@ -24,6 +24,7 @@ type SLARegisterRepositoryInterface interface {
 	GenerateReferenceNumber() (string, error)
 	SaveSLADocument(doc *models.SLADocument) error
 	GetSLADocumentByID(id uint) (*models.SLADocument, error)
+	GetLatestSLADocumentBySLARegisterID(id uint) (*models.SLADocument, error)
 	GetIDsByLifecycleStatus(ids []uint, status string) ([]uint, error)
 	UpdateLifecycleStatusForIDs(ids []uint, statusId uint) ([]uint, error)
 }
@@ -349,6 +350,16 @@ func (repo *SLARegisterRepository) SaveSLADocument(doc *models.SLADocument) erro
 func (repo *SLARegisterRepository) GetSLADocumentByID(id uint) (*models.SLADocument, error) {
 	var document models.SLADocument
 	if err := repo.db.Where("id = ?", id).First(&document).Error; err != nil {
+		return nil, err
+	}
+	return &document, nil
+}
+
+func (repo *SLARegisterRepository) GetLatestSLADocumentBySLARegisterID(id uint) (*models.SLADocument, error) {
+	var document models.SLADocument
+	if err := repo.db.Where("sla_register_id = ?", id).
+		Where("is_latest = ?", true).
+		First(&document).Error; err != nil {
 		return nil, err
 	}
 	return &document, nil
