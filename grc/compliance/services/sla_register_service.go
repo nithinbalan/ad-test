@@ -25,6 +25,8 @@ type SLARegisterServiceInterface interface {
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	Archive(ids []uint, currentUserID uint) ([]uint, error)
 	Restore(ids []uint, currentUserID uint) ([]uint, error)
+	Renew(id uint, currentUserID uint, document *slaDTOs.SLADocumentFormDTO) (*models.SLADocument, error)
+	// Revert(ids []uint, currentUserID uint) ([]uint, error)
 }
 
 // Service and implementations
@@ -284,6 +286,45 @@ func (srs *SLARegisterService) Restore(ids []uint, currentUserID uint) ([]uint, 
 
 	return successfulIds, nil
 }
+
+func (srs *SLARegisterService) Renew(id uint, currentUserID uint, document *slaDTOs.SLADocumentFormDTO) (*models.SLADocument, error) {
+	// Parse SLA register dates
+    dates, err := srs.parseSLARegisterDates(document)
+    if err != nil {
+        return nil, err
+    }
+	// Create new SLA document
+	slaDocument = &models.SLADocument{
+		SLARegisterID: id,
+		Version:       document.Version,
+		IssueDate:     dates.IssueDate,
+		ExpiryDate:    dates.ExpiryDate,
+		SA1Date:       dates.SA1Date,
+		SA2Date:       dates.SA2Date,
+		Comment:       document.Comment,
+		Language:      document.Language,
+		URL:           document.URL,
+		Name:          document.Name,
+		Size:          document.Size,
+		Token:         document.Token,
+		Type:          document.Type,
+		Icon:          document.Icon,
+		IsLatest:      true,
+		CreatedBy:     currentUserID,
+	}
+    // Save updated SLA document
+    if err := srs.repo.Renew(slaDocument); err != nil {
+        return nil, err
+    }
+
+    // Set is_latest to false for remaining SLA documents associated with the same register
+    if err := srs.repo.SetIsLatestToFalseForRemainingDocuments(slaDocument.ID, slaDocument.SLARegisterID); err != nil {
+        return nil, err
+    }
+
+    return id, nil
+}
+
 
 func (srs *SLARegisterService) validateSLARegisterFormDTO(slaRegisterFormDTO *slaDTOs.SLARegisterFormDTO) error {
 	if _, err := srs.slaCategorySvc.GetByID(slaRegisterFormDTO.SLACategoryID); err != nil {

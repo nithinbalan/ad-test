@@ -23,10 +23,12 @@ type SLARegisterRepositoryInterface interface {
 	Delete(id uint) error
 	GenerateReferenceNumber() (string, error)
 	SaveSLADocument(doc *models.SLADocument) error
+	Renew(doc *models.SLADocument) error
 	GetSLADocumentByID(id uint) (*models.SLADocument, error)
 	GetLatestSLADocumentBySLARegisterID(id uint) (*models.SLADocument, error)
 	GetIDsByLifecycleStatus(ids []uint, status string) ([]uint, error)
 	UpdateLifecycleStatusForIDs(ids []uint, statusId uint) ([]uint, error)
+	SetIsLatestToFalseForRemainingDocuments(docID, registerID uint) error
 }
 
 // implementation
@@ -291,6 +293,14 @@ func (repo *SLARegisterRepository) Delete(id uint) error {
 	return nil
 }
 
+func (repo *SLARegisterRepository) Renew(doc *models.SLADocument) error {
+    // Save the updated SLA document
+    if err := repo.db.Save(doc).Error; err != nil {
+        return err
+    }
+    return nil
+}
+
 func (repo *SLARegisterRepository) GetIDsByLifecycleStatus(ids []uint, status string) ([]uint, error) {
 	var matchingIDs []uint
 
@@ -363,4 +373,14 @@ func (repo *SLARegisterRepository) GetLatestSLADocumentBySLARegisterID(id uint) 
 		return nil, err
 	}
 	return &document, nil
+}
+
+func (repo *SLARegisterRepository) SetIsLatestToFalseForRemainingDocuments(docID, registerID uint) error {
+    // Set is_latest to false for remaining SLA documents associated with the same register
+    if err := repo.db.Model(&models.SLADocument{}).
+        Where("id != ? AND sla_register_id = ?", docID, registerID).
+        Update("is_latest", false).Error; err != nil {
+        return err
+    }
+    return nil
 }
