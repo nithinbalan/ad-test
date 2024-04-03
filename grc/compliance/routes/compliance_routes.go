@@ -114,6 +114,22 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	complianceRoutes.POST("/compliance-register/delete", complianceRegisterController.DeleteComplianceRegisters)
 	complianceRoutes.PUT("/compliance-register/archive", complianceRegisterController.ArchiveComplianceRegisters)
 	complianceRoutes.PUT("/compliance-register/restore", complianceRegisterController.RestoreComplianceRegisters)
+	//SLA Register
+	SLARepo := complianceRepositories.NewSLARegisterRepository(db)
+	SLASvc := complianceServices.NewSLARegisterService(SLARepo,
+		SLACategorySvc,
+		severityLevelSvc,
+		lifecycleStatusSvc,
+		activityLogSvc)
+	SLARegController := controllers.NewSLARegisterController(SLASvc)
+
+	complianceRoutes.GET("/sla-registers", SLARegController.GetAllSLARegisters)
+	complianceRoutes.GET("/sla-registers/:id", SLARegController.GetSLARegisterDetails)
+	complianceRoutes.POST("/sla-registers", SLARegController.CreateSLARegister)
+	complianceRoutes.PUT("/sla-registers/:id", SLARegController.UpdateSLARegister)
+	complianceRoutes.POST("/sla-registers/delete", SLARegController.DeleteSLARegisters)
+	complianceRoutes.PUT("/sla-registers/archive", SLARegController.ArchiveSLARegisters)
+	complianceRoutes.PUT("/sla-registers/restore", SLARegController.RestoreSLARegisters)
 
 	complianceRoutes.GET("/compliances/:complianceId/requirements", complianceRequirementController.GetAllComplianceRequirements)
 	complianceRoutes.GET("/compliances/:complianceId/requirements/:id", complianceRequirementController.GetComplianceRequirementDetails)

@@ -11,6 +11,9 @@ import (
 func LocalizerMiddleware(bundle *i18n.Bundle) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		accept := c.GetHeader("Accept-Language")
+		if accept == "" {
+			accept = "en"
+		}
 		tags, _, err := language.ParseAcceptLanguage(accept)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid Accept-Language header"})
