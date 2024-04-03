@@ -53,6 +53,9 @@ func NewComplianceRequirementService(
 }
 
 func (crs *ComplianceRequirementService) GetAll(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementListResponseDTO, error) {
+	if _, err := crs.complianceRegisterSvc.GetByID(complianceID); err != nil {
+		return nil, err
+	}
 	return crs.repo.GetAll(complianceID, params)
 }
 
