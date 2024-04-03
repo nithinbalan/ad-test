@@ -56,4 +56,13 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	organizationRoutes.POST("/users", userController.CreateUser)
 	organizationRoutes.PUT("/users/:id", userController.UpdateUser)
 	organizationRoutes.POST("/users/delete", userController.DeleteUsers)
+
+	//strategic profile
+	strategicProfileRepo := organizationRepositories.NewStrategicProfileRepository(db)
+	strategicProfileSvc := organizationServices.NewStrategicProfileService(strategicProfileRepo)
+	strategicProfileController := controllers.NewStrategicProfileController(strategicProfileSvc)
+
+	organizationRoutes.GET("/strategic-profiles", strategicProfileController.GetStrategicProfile)
+	organizationRoutes.PUT("/strategic-profiles/:id", strategicProfileController.UpdateStrategicProfile)
+
 }
