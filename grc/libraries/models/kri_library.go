@@ -1,8 +1,8 @@
 package models
 
-import (
-	masterModels "jethur/grc/masters/models"
-)
+// import (
+// 	masterModels "jethur/grc/masters/models"
+// )
 
 type KRILibrary struct {
 	ID                uint    `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
@@ -15,8 +15,8 @@ type KRILibrary struct {
 	Status            string  `json:"status" binding:"required,oneof=active inactive" gorm:"type:varchar(10);not null"`
 
 	// Relationships
-	KRICategory     *KRICategory                  `gorm:"foreignkey:KRICategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ReviewFrequency *masterModels.ReviewFrequency `gorm:"foreignkey:ReviewFrequencyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	KRICategory *KRICategory `gorm:"foreignkey:KRICategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	// ReviewFrequency *masterModels.ReviewFrequency `gorm:"foreignkey:ReviewFrequencyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 }
 
 // TableName overrides the table name used by KRILibrary to `kri_library`

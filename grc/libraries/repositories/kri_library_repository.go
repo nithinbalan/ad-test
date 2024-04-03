@@ -106,7 +106,7 @@ func (repo *KRILibraryRepository) GetByID(id uint) (*models.KRILibrary, error) {
 
 	result := repo.db.
 		Preload("KRICategory").
-		Preload("ReviewFrequency").
+		// Preload("ReviewFrequency").
 		First(&kriLibrary, id)
 
 	if result.Error != nil {
