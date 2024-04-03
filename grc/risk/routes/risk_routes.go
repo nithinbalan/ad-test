@@ -6,6 +6,10 @@ import (
 	"jethur/grc/risk/controllers"
 	riskRepositories "jethur/grc/risk/repositories"
 	riskServices "jethur/grc/risk/services"
+
+	masterRepositories "jethur/grc/masters/repositories"
+	masterServices "jethur/grc/masters/services"
+
 	"jethur/middlewares"
 
 	"github.com/gin-gonic/gin"
@@ -20,6 +24,9 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 
 	activityLogRepo := logRepositories.NewActivityLogRepository(db)
 	activityLogSvc := logServices.NewActivityLogService(activityLogRepo)
+
+	severityLevelRepo := masterRepositories.NewSeverityLevelRepository(db)
+	severityLevelSvc := masterServices.NewSeverityLevelService(severityLevelRepo)
 
 	riskCategoryRepo := riskRepositories.NewRiskCategoryRepository(db)
 	riskCategorySvc := riskServices.NewRiskCategoryService(riskCategoryRepo, activityLogSvc)
@@ -40,5 +47,21 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 
 	riskRoutes.GET("/potential-risk-statuses", potentialRiskStatusController.GetAllPotentialRiskStatuses)
 	riskRoutes.GET("/potential-risk-statuses/:id", potentialRiskStatusController.GetPotentialRiskStatusDetails)
+
+	potentialRiskRepo := riskRepositories.NewPotentialRiskRepository(db)
+	potentialRiskSvc := riskServices.NewPotentialRiskService(
+		potentialRiskRepo,
+		activityLogSvc,
+		severityLevelSvc,
+		riskCategorySvc,
+		potentialRiskStatusSvc,
+	)
+	potentialRiskController := controllers.NewPotentialRiskController(potentialRiskSvc)
+
+	riskRoutes.GET("/potential-risks", potentialRiskController.GetAllPotentialRisks)
+	riskRoutes.GET("/potential-risks/:id", potentialRiskController.GetPotentialRiskDetails)
+	riskRoutes.POST("/potential-risks", potentialRiskController.CreatePotentialRisk)
+	riskRoutes.PUT("/potential-risks/:id", potentialRiskController.UpdatePotentialRisk)
+	riskRoutes.POST("/potential-risks/delete", potentialRiskController.DeletePotentialRisks)
 
 }

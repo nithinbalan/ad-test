@@ -1,5 +1,12 @@
 package dtos
 
+import (
+	commonDTOs "jethur/grc/common/dtos"
+	masterDTOs "jethur/grc/masters/dtos"
+
+	"time"
+)
+
 type PotentialRiskListDTO struct {
 	ID                         uint    `json:"id"`
 	RiskCategoryTitleEn        string  `json:"risk_category_title_en"`
@@ -21,4 +28,42 @@ type PotentialRiskListDTO struct {
 	UpdatedUserFirstNameAr     *string `json:"updated_user_first_name_ar"`
 	UpdatedUserLastNameEn      *string `json:"updated_user_last_name_en"`
 	UpdatedUserLastNameAr      *string `json:"updated_user_last_name_ar"`
+}
+
+type PotentialRiskListQueryParamsDTO struct {
+	Sort        string
+	SortBy      string
+	Keyword     string
+	Status      string
+	Page        int
+	PageSize    int
+	Filters     map[string][]string
+	QuickFilter []string
+}
+
+type PotentialRiskListResponseDTO struct {
+	Items      []*PotentialRiskListDTO      `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
+}
+
+type PotentialRiskFormDTO struct {
+	RiskCategoryID  uint    `json:"risk_category_id" binding:"required"`
+	SeverityLevelID *uint   `json:"severity_level_id" binding:"required"`
+	Title           string  `json:"title" binding:"required,max=100"`
+	Description     *string `json:"description"`
+	RiskSource      *string `json:"risk_source"`
+}
+
+type PotentialRiskDetailsDTO struct {
+	ID                  uint                         `json:"id"`
+	RiskCategory        RiskCategoryDTO              `json:"risk_category"`
+	SeverityLevel       *masterDTOs.SeverityLevelDTO `json:"severity_level"`
+	PotentialRiskStatus PotentialRiskStatusDTO       `json:"potential_risk_status"`
+	Title               string                       `json:"title"`
+	Description         *string                      `json:"description"`
+	RiskSource          string                       `json:"risk_source"`
+	CreatedAt           time.Time                    `json:"created_at"`
+	UpdatedAt           *time.Time                   `json:"updated_at"`
+	// CreatedByUser         UserMinimalDTO                `json:"created_by"`
+	// UpdatedByUser         UserMinimalDTO                `json:"updated_by"`
 }
