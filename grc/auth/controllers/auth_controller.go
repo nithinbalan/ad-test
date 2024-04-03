@@ -208,7 +208,7 @@ func (ac *AuthController) MFAVerifyOTP(c *gin.Context) {
 
 	otp := verifyOTPFormDTO.Otp
 
-	tokens, err := ac.service.MFAVerifyOTP(email, password, otp)
+	responseDTO, err := ac.service.MFAVerifyOTP(email, password, otp)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -223,10 +223,7 @@ func (ac *AuthController) MFAVerifyOTP(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"access_token":  tokens["access_token"],
-		"refresh_token": tokens["refresh_token"],
-	})
+	c.JSON(http.StatusOK, responseDTO)
 }
 
 func (ac *AuthController) GetTokenFromRefreshToken(c *gin.Context) {
@@ -237,7 +234,7 @@ func (ac *AuthController) GetTokenFromRefreshToken(c *gin.Context) {
 		return
 	}
 
-	tokens, err := ac.service.GetTokenFromRefreshToken(refreshTokenFormDTO.RefreshToken)
+	responseDTO, err := ac.service.GetTokenFromRefreshToken(refreshTokenFormDTO.RefreshToken)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.InternalServerError:
@@ -249,9 +246,6 @@ func (ac *AuthController) GetTokenFromRefreshToken(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"access_token":  tokens["access_token"],
-		"refresh_token": tokens["refresh_token"],
-	})
+	c.JSON(http.StatusOK, responseDTO)
 
 }
