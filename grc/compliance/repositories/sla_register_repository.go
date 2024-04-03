@@ -3,11 +3,14 @@ package repositories
 import (
 	"errors"
 	"fmt"
+	"jethur/config"
 	commonDTOs "jethur/grc/common/dtos"
 	slaDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/models"
 	complianceModels "jethur/grc/compliance/models"
 	"jethur/utility"
+	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -27,6 +30,7 @@ type SLARegisterRepositoryInterface interface {
 	GetLatestSLADocumentBySLARegisterID(id uint) (*models.SLADocument, error)
 	GetIDsByLifecycleStatus(ids []uint, status string) ([]uint, error)
 	UpdateLifecycleStatusForIDs(ids []uint, statusId uint) ([]uint, error)
+	SaveSLADocumentFile(slaID uint, fileName string) error
 }
 
 // implementation
@@ -340,12 +344,7 @@ func (repo *SLARegisterRepository) GenerateReferenceNumber() (string, error) {
 	return newReferenceNumber, nil
 }
 
-func (repo *SLARegisterRepository) SaveSLADocument(doc *models.SLADocument) error {
-	if err := repo.db.Save(doc).Error; err != nil {
-		return err
-	}
-	return nil
-}
+//Documents
 
 func (repo *SLARegisterRepository) GetSLADocumentByID(id uint) (*models.SLADocument, error) {
 	var document models.SLADocument
@@ -363,4 +362,24 @@ func (repo *SLARegisterRepository) GetLatestSLADocumentBySLARegisterID(id uint) 
 		return nil, err
 	}
 	return &document, nil
+}
+
+func (repo *SLARegisterRepository) SaveSLADocumentFile(id uint, fileName string) error {
+
+	storagePath := config.GetEnv("STORAGE_PATH", "")
+	temporaryStoragePath := filepath.Join(storagePath, "tmp", fileName)
+	directoryPath := filepath.Join(storagePath, "compliance", "sla", strconv.FormatUint(uint64(id), 10), "document")
+	destinationPath := filepath.Join(directoryPath, fileName)
+
+	if err := os.Rename(temporaryStoragePath, destinationPath); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *SLARegisterRepository) SaveSLADocument(doc *models.SLADocument) error {
+	if err := repo.db.Save(doc).Error; err != nil {
+		return err
+	}
+	return nil
 }
