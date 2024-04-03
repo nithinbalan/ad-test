@@ -80,8 +80,14 @@ func (crc *ComplianceRequirementController) GetAllComplianceRequirements(c *gin.
 	complianceRequirements, err := crc.service.GetAll(uint(complianceID), &queryParams)
 
 	if err != nil {
-		utility.SendInternalErrResp(crc.db, c, err.Error())
-		return
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(crc.db, c, e.Error())
+			return
+		}
 	}
 	c.JSON(http.StatusOK, complianceRequirements)
 }
@@ -233,8 +239,14 @@ func (crc *ComplianceRequirementController) DeleteComplianceRequirements(c *gin.
 
 	failedIDs, err := crc.service.Delete(uint(complianceID), request.IDs, currentUserID)
 	if err != nil {
-		utility.SendInternalErrResp(crc.db, c, err.Error())
-		return
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(crc.db, c, e.Error())
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
