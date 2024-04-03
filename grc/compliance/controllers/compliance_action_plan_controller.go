@@ -195,6 +195,13 @@ func (capc *ComplianceActionPlanController) UpdateComplianceActionPlan(c *gin.Co
 }
 
 func (capc *ComplianceActionPlanController) DeleteComplianceActionPlans(c *gin.Context) {
+	complianceIDStr := c.Param("complianceId")
+
+	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
+	if err != nil {
+		utility.SendInternalErrResp(capc.db, c, "Invalid complianceId")
+		return
+	}
 
 	var request struct {
 		IDs []uint `json:"ids"`
@@ -211,7 +218,7 @@ func (capc *ComplianceActionPlanController) DeleteComplianceActionPlans(c *gin.C
 		return
 	}
 
-	failedIDs, err := capc.service.Delete(request.IDs, currentUserID)
+	failedIDs, err := capc.service.Delete(uint(complianceID), request.IDs, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(capc.db, c, err.Error())
 		return

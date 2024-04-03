@@ -1,11 +1,9 @@
 package repositories
 
 import (
-	"errors"
 	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	complianceModels "jethur/grc/compliance/models"
-	"jethur/utility"
 	"time"
 
 	"gorm.io/gorm"
@@ -18,9 +16,6 @@ type ComplianceActionPlanRepositoryInterface interface {
 	Create(complianceActionPlan *complianceModels.ComplianceActionPlan) (uint, error)
 	Update(complianceActionPlan *complianceModels.ComplianceActionPlan) error
 	Delete(id uint) error
-	GetOrCreateComplianceClause(complianceClause *complianceModels.ComplianceClause) (*complianceModels.ComplianceClause, error)
-	CountActionPlansByClauseID(clauseID uint) (int64, error)
-	DeleteClause(clauseID uint) error
 }
 
 type ComplianceActionPlanRepository struct {
@@ -166,24 +161,22 @@ func (repo *ComplianceActionPlanRepository) GetByID(complianceID uint, id uint) 
 	var complianceActionPlan *complianceModels.ComplianceActionPlan
 	result := repo.db.First(&complianceActionPlan, id)
 
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, utility.NewResourceNotFoundError(result.Error, id)
-	} else if result.Error != nil {
+	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	return complianceActionPlan, result.Error
+	return complianceActionPlan, nil
 }
 
 func (repo *ComplianceActionPlanRepository) GetFullDetailsByID(complianceId uint, id uint) (*complianceModels.ComplianceActionPlan, error) {
 	var complianceActionPlan *complianceModels.ComplianceActionPlan
 
 	result := repo.db.
-		Preload("ComplianceClause").
-		Preload("ComplianceStatus").
-		Preload("ComplianceActionPlanCategory").
+		Preload("ComplianceRequirement").
 		Preload("SeverityLevel").
 		Preload("ResponsibleUser").
+		Preload("SeverityLevel").
+		Preload("ActionPlanStatus").
 		First(&complianceActionPlan, id)
 
 	if result.Error != nil {
@@ -219,37 +212,5 @@ func (repo *ComplianceActionPlanRepository) Delete(id uint) error {
 		return result.Error
 	}
 
-	return nil
-}
-
-func (repo *ComplianceActionPlanRepository) GetOrCreateComplianceClause(complianceClause *complianceModels.ComplianceClause) (*complianceModels.ComplianceClause, error) {
-	var existingClause complianceModels.ComplianceClause
-	err := repo.db.Where("clause_no = ? AND title = ? AND compliance_register_id = ?", complianceClause.ClauseNo, complianceClause.Title, complianceClause.ComplianceRegisterID).First(&existingClause).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			if err := repo.db.Create(complianceClause).Error; err != nil {
-				return nil, err
-			}
-			return complianceClause, nil
-		}
-		return nil, err
-	}
-
-	// If the clause exists, return it
-	return &existingClause, nil
-}
-
-func (repo *ComplianceActionPlanRepository) CountActionPlansByClauseID(clauseID uint) (int64, error) {
-	var count int64
-	if err := repo.db.Model(&complianceModels.ComplianceActionPlan{}).Where("compliance_clause_id = ?", clauseID).Count(&count).Error; err != nil {
-		return 0, err
-	}
-	return count, nil
-}
-
-func (repo *ComplianceActionPlanRepository) DeleteClause(clauseID uint) error {
-	if err := repo.db.Delete(&complianceModels.ComplianceClause{}, clauseID).Error; err != nil {
-		return err
-	}
 	return nil
 }

@@ -22,7 +22,7 @@ type ComplianceActionPlanServiceInterface interface {
 	GetFullDetailsByID(complianceID uint, id uint) (*complianceDTOs.ComplianceActionPlanDetailDTO, error)
 	Create(complianceID uint, currentUserID uint, ComplianceActionPlanFormDTO *complianceDTOs.ComplianceActionPlanFormDTO) (uint, error)
 	Update(complianceID uint, id uint, currentUserID uint, compliance *complianceDTOs.ComplianceActionPlanFormDTO) error
-	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	Delete(complianceID uint, ids []uint, currentUserID uint) ([]uint, error)
 }
 
 // Service and implementations
@@ -190,7 +190,7 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 	return nil
 }
 
-func (caps *ComplianceActionPlanService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
+func (caps *ComplianceActionPlanService) Delete(complianceID uint, ids []uint, currentUserID uint) ([]uint, error) {
 	// var failedIds []uint
 	// var successfulIds []uint
 
@@ -236,7 +236,7 @@ func (caps *ComplianceActionPlanService) Delete(ids []uint, currentUserID uint) 
 	var successfulIds []uint
 	for _, id := range ids {
 
-		_, err := caps.repo.GetByID(id)
+		_, err := caps.repo.GetByID(complianceID, id)
 
 		if err != nil {
 			continue
@@ -273,12 +273,10 @@ func (caps *ComplianceActionPlanService) Delete(ids []uint, currentUserID uint) 
 
 func (caps *ComplianceActionPlanService) validateComplianceActionPlanFormDTO(ComplianceActionPlanFormDTO *complianceDTOs.ComplianceActionPlanFormDTO) error {
 
-	if _, err := caps.complianceStatusSvc.GetByID(ComplianceActionPlanFormDTO.ComplianceStatusID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("compliance status does not exist"), "not_exist", "compliance status")
-	}
-
-	if _, err := caps.severityLevelSvc.GetByID(ComplianceActionPlanFormDTO.SeverityLevelID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
+	if ComplianceActionPlanFormDTO.SeverityLevelID != nil {
+		if _, err := caps.severityLevelSvc.GetByID(*ComplianceActionPlanFormDTO.SeverityLevelID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
+		}
 	}
 
 	return nil
