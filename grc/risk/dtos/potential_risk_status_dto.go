@@ -1,6 +1,6 @@
 package dtos
 
-type PotentialRiskStatus struct {
+type PotentialRiskStatusDTO struct {
 	ID        uint   `json:"id"`
 	TitleEn   string `json:"title_en"`
 	TitleAr   string `json:"title_ar"`
