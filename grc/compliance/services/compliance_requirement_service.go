@@ -17,12 +17,12 @@ import (
 )
 
 type ComplianceRequirementServiceInterface interface {
-	GetAll(params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementListResponseDTO, error)
+	GetAll(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementListResponseDTO, error)
 	GetByID(complianceID uint, id uint) (*complianceModels.ComplianceRequirement, error)
 	GetFullDetailsByID(complianceID uint, id uint) (*complianceDTOs.ComplianceRequirementDetailDTO, error)
 	Create(complianceID uint, currentUserID uint, ComplianceRequirementFormDTO *complianceDTOs.ComplianceRequirementFormDTO) (uint, error)
 	Update(complianceID uint, id uint, currentUserID uint, compliance *complianceDTOs.ComplianceRequirementFormDTO) error
-	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	Delete(complianceID uint, ids []uint, currentUserID uint) ([]uint, error)
 }
 
 // Service and implementations
@@ -52,8 +52,11 @@ func NewComplianceRequirementService(
 	}
 }
 
-func (crs *ComplianceRequirementService) GetAll(params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementListResponseDTO, error) {
-	return crs.repo.GetAll(params)
+func (crs *ComplianceRequirementService) GetAll(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementListResponseDTO, error) {
+	if _, err := crs.complianceRegisterSvc.GetByID(complianceID); err != nil {
+		return nil, err
+	}
+	return crs.repo.GetAll(complianceID, params)
 }
 
 func (crs ComplianceRequirementService) GetByID(complianceID uint, id uint) (*complianceModels.ComplianceRequirement, error) {
@@ -76,11 +79,10 @@ func (crs ComplianceRequirementService) GetFullDetailsByID(complianceID uint, id
 	if _, err := crs.complianceRegisterSvc.GetByID(complianceID); err != nil {
 		return nil, err
 	}
-	// Initialize your DTO
+
 	var complianceRequirementDTO complianceDTOs.ComplianceRequirementDetailDTO
 
 	complianceRequirement, err := crs.repo.GetFullDetailsByID(complianceID, id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -100,7 +102,6 @@ func (crs ComplianceRequirementService) GetFullDetailsByID(complianceID uint, id
 }
 
 func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID uint, ComplianceRequirementFormDTO *complianceDTOs.ComplianceRequirementFormDTO) (uint, error) {
-
 	if _, err := crs.complianceRegisterSvc.GetByID(complianceID); err != nil {
 		return 0, err
 	}
@@ -169,7 +170,6 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 }
 
 func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, currentUserID uint, ComplianceRequirementFormDTO *complianceDTOs.ComplianceRequirementFormDTO) error {
-
 	if _, err := crs.complianceRegisterSvc.GetByID(complianceID); err != nil {
 		return err
 	}
@@ -219,7 +219,11 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 	return nil
 }
 
-func (crs *ComplianceRequirementService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
+func (crs *ComplianceRequirementService) Delete(complianceID uint, ids []uint, currentUserID uint) ([]uint, error) {
+	if _, err := crs.complianceRegisterSvc.GetByID(complianceID); err != nil {
+		return nil, err
+	}
+
 	var failedIds []uint
 	var successfulIds []uint
 
@@ -227,7 +231,7 @@ func (crs *ComplianceRequirementService) Delete(ids []uint, currentUserID uint) 
 	clauseIDsToDelete := make(map[uint]bool)
 
 	for _, id := range ids {
-		req, err := crs.repo.GetByID(id, id)
+		req, err := crs.repo.GetByID(complianceID, id)
 		if err != nil {
 			failedIds = append(failedIds, id)
 			continue
