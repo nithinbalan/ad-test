@@ -8,6 +8,7 @@ import (
 	libraryRoutes "jethur/grc/libraries/routes"
 	masterRoutes "jethur/grc/masters/routes"
 	organizationRoutes "jethur/grc/organization/routes"
+	riskRoutes "jethur/grc/risk/routes"
 	settingRoutes "jethur/grc/settings/routes"
 	"jethur/middlewares"
 	"jethur/utility"
@@ -46,6 +47,7 @@ func main() {
 	libraryRoutes.RegisterRoutes(db, r)
 	settingRoutes.RegisterRoutes(db, r)
 	commonRoutes.RegisterRoutes(db, r)
+	riskRoutes.RegisterRoutes(db, r)
 
 	// Start the server on specified port
 	if err := r.Run(":" + port); err != nil {
