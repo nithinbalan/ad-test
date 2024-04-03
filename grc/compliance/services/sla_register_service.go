@@ -2,7 +2,6 @@ package services
 
 import (
 	"fmt"
-	"jethur/config"
 	slaDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/models"
 	complianceModels "jethur/grc/compliance/models"
@@ -12,9 +11,6 @@ import (
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	"jethur/utility"
-	"os"
-	"path/filepath"
-	"strconv"
 )
 
 type SLARegisterServiceInterface interface {
@@ -60,10 +56,15 @@ func (srs SLARegisterService) GetByID(id uint) (*models.SLARegister, error) {
 }
 
 func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *slaDTOs.SLARegisterFormDTO) (uint, error) {
+
 	if err := srs.validateSLARegisterFormDTO(slaRegisterFormDTO); err != nil {
 		return 0, err
 	}
 
+	dates, err := srs.parseSLARegisterDates(slaRegisterFormDTO)
+	if err != nil {
+		return 0, err
+	}
 	referenceNumber, err := srs.repo.GenerateReferenceNumber()
 	if err != nil {
 		return 0, err
@@ -73,8 +74,11 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *sl
 	if err != nil {
 		return 0, err
 	}
+	// Document is provided, validate it
+	if err := srs.validateSLADocumentFormDTO(slaRegisterFormDTO.Document); err != nil {
+		return 0, err
+	}
 
-	// Create SLA register
 	slaRegister := &models.SLARegister{
 		SLACategoryID:     slaRegisterFormDTO.SLACategoryID,
 		SeverityLevelID:   slaRegisterFormDTO.SeverityLevelID,
@@ -94,19 +98,34 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *sl
 		return 0, err
 	}
 
-	//file move to storage folder.
-
-	// srs.repo.SaveSLADocumentFile(id,slaRegisterFormDTO.Document)
-
-	uploadedDocument, err := srs.UploadDocument(currentUserID, id, slaRegisterFormDTO.Document)
-	if err != nil {
+	if err := srs.repo.SaveSLADocumentFile(id, slaRegisterFormDTO.Document.FileName); err != nil {
 		return 0, err
 	}
 
-	if err := srs.repo.SaveSLADocument(uploadedDocument); err != nil {
+	// Create SLA document
+	slaDocument := &models.SLADocument{
+		SLARegisterID: id,
+		Version:       slaRegisterFormDTO.Version,
+		IssueDate:     dates.IssueDate,
+		ExpiryDate:    dates.ExpiryDate,
+		SA1Date:       dates.SA1Date,
+		SA2Date:       dates.SA2Date,
+		Language:      slaRegisterFormDTO.Document.Language,
+		URL:           slaRegisterFormDTO.Document.URL,
+		Icon:          slaRegisterFormDTO.Document.Icon,
+		Name:          slaRegisterFormDTO.Document.FileName,
+		Size:          slaRegisterFormDTO.Document.Size,
+		Token:         slaRegisterFormDTO.Document.FileName, // Assuming token is same as fileName
+		Type:          slaRegisterFormDTO.Document.Type,
+		IsLatest:      true,
+		CreatedBy:     currentUserID,
+	}
+
+	// Save SLA document
+	if err := srs.repo.SaveSLADocument(slaDocument); err != nil {
 		return 0, err
 	}
-	// Log activity
+
 	go func() {
 		err := srs.activityLogSvc.LogActivity(
 			logModels.CreateAction,
@@ -143,6 +162,15 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 		return err
 	}
 
+	if err := srs.validateSLADocumentFormDTO(slaRegisterFormDTO.Document); err != nil {
+		return err
+	}
+
+	dates, err := srs.parseSLARegisterDates(slaRegisterFormDTO)
+	if err != nil {
+		return err
+	}
+
 	existingSLARegister.SLACategoryID = slaRegisterFormDTO.SLACategoryID
 	existingSLARegister.ResponsibleUnitID = slaRegisterFormDTO.ResponsibleUnitID
 	existingSLARegister.ResponsibleUserID = slaRegisterFormDTO.ResponsibleUserID
@@ -154,18 +182,62 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 	existingSLARegister.Client = slaRegisterFormDTO.Client
 	existingSLARegister.UpdatedBy = currentUserID
 
-	err = srs.repo.Update(existingSLARegister)
+	if err := srs.repo.Update(existingSLARegister); err != nil {
+		return err
+	}
+
+	if err := srs.repo.SaveSLADocumentFile(id, slaRegisterFormDTO.Document.FileName); err != nil {
+		return err
+	}
+	// Fetch existing SLA document
+	existingSLADocument, err := srs.repo.GetSLADocumentByID(*slaRegisterFormDTO.Document.ID)
 	if err != nil {
 		return err
 	}
 
-	if slaRegisterFormDTO.Document != nil {
-		// Upload or update SLA document
-		_, err := srs.UploadDocument(currentUserID, id, slaRegisterFormDTO.Document)
-		if err != nil {
-			return err
-		}
+	// Update existing SLA document fields
+	existingSLADocument.SLARegisterID = id
+	existingSLADocument.Version = slaRegisterFormDTO.Version
+	existingSLADocument.IssueDate = dates.IssueDate
+	existingSLADocument.ExpiryDate = dates.ExpiryDate
+	existingSLADocument.SA1Date = dates.SA1Date
+	existingSLADocument.SA2Date = dates.SA2Date
+	existingSLADocument.Language = slaRegisterFormDTO.Document.Language
+	existingSLADocument.URL = slaRegisterFormDTO.Document.URL
+	existingSLADocument.Icon = slaRegisterFormDTO.Document.Icon
+	existingSLADocument.Name = slaRegisterFormDTO.Document.FileName
+	existingSLADocument.Size = slaRegisterFormDTO.Document.Size
+	existingSLADocument.Token = slaRegisterFormDTO.Document.FileName // Assuming token is same as fileName
+	existingSLADocument.Type = slaRegisterFormDTO.Document.Type
+	existingSLADocument.IsLatest = true
+	existingSLADocument.UpdatedBy = currentUserID
+	// Save SLA document
+	if err := srs.repo.SaveSLADocument(existingSLADocument); err != nil {
+		return err
 	}
+
+	go func() {
+		err := srs.activityLogSvc.LogActivity(
+			logModels.UpdateAction,
+			complianceModels.SLARegister{}.TableName(),
+			id,
+			slaRegisterFormDTO,
+			currentUserID,
+			nil,
+		)
+
+		if err != nil {
+			fields := map[string]interface{}{
+				"action":    logModels.UpdateAction,
+				"tableName": complianceModels.SLARegister{}.TableName(),
+				"recordID":  id,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			}
+
+			utility.LogError("Failed to log activity", fields)
+		}
+	}()
 
 	return nil
 }
@@ -174,18 +246,25 @@ func (srs *SLARegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 	var failedIds []uint
 	var successfulIds []uint
 	for _, id := range ids {
-
 		_, err := srs.repo.GetByID(id)
-
 		if err != nil {
 			continue
 		}
-		// Delete associated documents
-		err = srs.DeleteDocument(id)
+
+		// Fetch the SLA document by ID
+		slaDocument, err := srs.repo.GetLatestSLADocumentBySLARegisterID(id)
 		if err != nil {
 			failedIds = append(failedIds, id)
 			continue
 		}
+
+		// Delete associated documents
+		err = srs.repo.DeleteSLADocumentFile(slaDocument.ID)
+		if err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+
 		err = srs.repo.Delete(id)
 		if err != nil {
 			failedIds = append(failedIds, id)
@@ -195,7 +274,6 @@ func (srs *SLARegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 	}
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := srs.activityLogSvc.LogBulkActivities(
 				activityLogModels.DeleteAction,
@@ -289,6 +367,10 @@ func (srs *SLARegisterService) Restore(ids []uint, currentUserID uint) ([]uint, 
 }
 
 func (srs *SLARegisterService) validateSLARegisterFormDTO(slaRegisterFormDTO *slaDTOs.SLARegisterFormDTO) error {
+	// Check if Document is provided
+	if slaRegisterFormDTO.Document == nil {
+		return utility.NewValidationError(fmt.Errorf("document is required"), "required", "document")
+	}
 	if _, err := srs.slaCategorySvc.GetByID(slaRegisterFormDTO.SLACategoryID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("sla category does not exist"), "not_exist", "sla category")
 	}
@@ -307,37 +389,37 @@ func (srs *SLARegisterService) validateSLARegisterFormDTO(slaRegisterFormDTO *sl
 	return nil
 }
 
-func (srs *SLARegisterService) parseSLARegisterDates(document *slaDTOs.SLADocumentFormDTO) (*slaDTOs.ParsedSLADates, error) {
+func (srs *SLARegisterService) parseSLARegisterDates(slaRegisterForm *slaDTOs.SLARegisterFormDTO) (*slaDTOs.ParsedSLADates, error) {
 	parsed := &slaDTOs.ParsedSLADates{}
 	var err error
 
 	// Validate issue_date
-	if document.IssueDate != "" {
-		parsed.IssueDate, err = utility.ParseDate(document.IssueDate)
+	if slaRegisterForm.IssueDate != "" {
+		parsed.IssueDate, err = utility.ParseDate(slaRegisterForm.IssueDate)
 		if err != nil {
 			return nil, utility.NewValidationError(fmt.Errorf("invalid issue date"), "invalid_date", "issue date")
 		}
 	}
 
 	// Validate expiry_date
-	if document.ExpiryDate != "" {
-		parsed.ExpiryDate, err = utility.ParseDate(document.ExpiryDate)
+	if slaRegisterForm.ExpiryDate != "" {
+		parsed.ExpiryDate, err = utility.ParseDate(slaRegisterForm.ExpiryDate)
 		if err != nil {
 			return nil, utility.NewValidationError(fmt.Errorf("invalid expiry date"), "invalid_date", "expiry date")
 		}
 	}
 
 	// Validate SA1Date
-	if document.SA1Date != "" {
-		parsed.SA1Date, err = utility.ParseDate(document.SA1Date)
+	if slaRegisterForm.SA1Date != "" {
+		parsed.SA1Date, err = utility.ParseDate(slaRegisterForm.SA1Date)
 		if err != nil {
 			return nil, utility.NewValidationError(fmt.Errorf("invalid sa1 date"), "invalid_date", "sa1 date")
 		}
 	}
 
 	// Validate SA2Date
-	if document.SA2Date != "" {
-		parsed.SA2Date, err = utility.ParseDate(document.SA2Date)
+	if slaRegisterForm.SA2Date != "" {
+		parsed.SA2Date, err = utility.ParseDate(slaRegisterForm.SA2Date)
 		if err != nil {
 			return nil, utility.NewValidationError(fmt.Errorf("invalid sa2 date"), "invalid_date", "sa2 date")
 		}
@@ -346,108 +428,33 @@ func (srs *SLARegisterService) parseSLARegisterDates(document *slaDTOs.SLADocume
 	return parsed, nil
 }
 
-func (srs *SLARegisterService) UploadDocument(currentUserID uint, id uint, document *slaDTOs.SLADocumentFormDTO) (*models.SLADocument, error) {
-	storagePath := config.GetEnv("STORAGE_PATH", "")
+func (srs *SLARegisterService) validateSLADocumentFormDTO(document *slaDTOs.SLADocumentFormDTO) error {
 
-	// Construct the directory path for the SLA register
-	directoryPath := filepath.Join(storagePath, "compliance", "sla", strconv.FormatUint(uint64(id), 10), "document")
-
-	// Create the directory if it doesn't exist
-	if err := os.MkdirAll(directoryPath, os.ModePerm); err != nil {
-		return nil, err
+	// Validate language
+	if document.Language == "" {
+		return utility.NewValidationError(fmt.Errorf("language is required"), "required", "language")
 	}
 
-	// Read the file from temporary storage
-	fileBytes, err := os.ReadFile(filepath.Join(storagePath, "tmp", document.Name))
-	if err != nil {
-		return nil, err
+	// Validate URL
+	if document.URL == "" {
+		return utility.NewValidationError(fmt.Errorf("URL is required"), "required", "URL")
 	}
 
-	// Determine the destination path in permanent storage
-	permanentStoragePath := filepath.Join(directoryPath, document.Name)
-
-	// Write the file to permanent storage
-	if err := os.WriteFile(permanentStoragePath, fileBytes, 0644); err != nil {
-		return nil, err
+	// Validate icon
+	if document.Icon == "" {
+		return utility.NewValidationError(fmt.Errorf("icon is required"), "required", "icon")
 	}
 
-	// Parse SLA register dates
-	dates, err := srs.parseSLARegisterDates(document)
-	if err != nil {
-		return nil, err
-	}
-	// Create or update SLA document based on whether it already exists
-	var slaDocument *models.SLADocument
-	if document.ID != nil && *document.ID != 0 {
-		// Fetch existing SLA document
-		existingSLADocument, err := srs.repo.GetSLADocumentByID(*document.ID)
-		if err != nil {
-			return nil, err
-		}
-
-		// Update SLA document details
-		existingSLADocument.Version = document.Version
-		existingSLADocument.IssueDate = dates.IssueDate
-		existingSLADocument.ExpiryDate = dates.ExpiryDate
-		existingSLADocument.SA1Date = dates.SA1Date
-		existingSLADocument.SA2Date = dates.SA2Date
-		existingSLADocument.Comment = document.Comment
-		existingSLADocument.Language = document.Language
-		existingSLADocument.URL = document.URL
-		existingSLADocument.Name = document.Name
-		existingSLADocument.Size = document.Size
-		existingSLADocument.Token = document.Token
-		existingSLADocument.Type = document.Type
-		existingSLADocument.Icon = document.Icon
-		existingSLADocument.UpdatedBy = currentUserID
-
-		// Update SLA document in the repository
-		err = srs.repo.SaveSLADocument(existingSLADocument)
-		if err != nil {
-			return nil, err
-		}
-
-		slaDocument = existingSLADocument
-	} else {
-		// Create new SLA document
-		slaDocument = &models.SLADocument{
-			SLARegisterID: id,
-			Version:       document.Version,
-			IssueDate:     dates.IssueDate,
-			ExpiryDate:    dates.ExpiryDate,
-			SA1Date:       dates.SA1Date,
-			SA2Date:       dates.SA2Date,
-			Comment:       document.Comment,
-			Language:      document.Language,
-			URL:           document.URL,
-			Name:          document.Name,
-			Size:          document.Size,
-			Token:         document.Token,
-			Type:          document.Type,
-			Icon:          document.Icon,
-			IsLatest:      true,
-			CreatedBy:     currentUserID,
-		}
+	// Validate file type (PDF)
+	if document.Type != ".pdf" {
+		return utility.NewValidationError(fmt.Errorf("only PDF files are allowed"), "invalid_file_type", "type")
 	}
 
-	return slaDocument, nil
-}
-
-func (srs *SLARegisterService) DeleteDocument(id uint) error {
-	// Fetch the SLA document by ID
-	slaDocument, err := srs.repo.GetLatestSLADocumentBySLARegisterID(id)
-	if err != nil {
-		return err
-	}
-
-	// Determine the path of the file to delete
-	storagePath := config.GetEnv("STORAGE_PATH", "")
-	filePath := filepath.Join(storagePath, "compliance", "sla", strconv.FormatUint(uint64(slaDocument.SLARegisterID), 10), "document", slaDocument.Name)
-
-	// Delete the file from storage
-	if err := os.Remove(filePath); err != nil {
-		return err
-	}
+	// Validate file size (if needed)
+	// For example:
+	// if document.Size > MaxFileSize {
+	//     return utility.NewValidationError(fmt.Errorf("file size exceeds the limit"), "invalid_file_size", "file_size")
+	// }
 
 	return nil
 }

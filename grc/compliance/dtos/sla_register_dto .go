@@ -78,34 +78,33 @@ type SLARegisterListResponseDTO struct {
 }
 
 type SLARegisterFormDTO struct {
-	SLACategoryID     uint    `json:"sla_category_id" binding:"required"`
-	SeverityLevelID   uint    `json:"severity_level_id"`
-	ResponsibleUnitID uint    `json:"responsible_unit_id"`
-	ResponsibleUserID uint    `json:"responsible_user_id"`
-	LifecycleStatusID uint    `json:"lifecycle_status_id"`
-	TitleEn           string  `json:"title_en" binding:"required,max=250"`
-	TitleAr           string  `json:"title_ar" binding:"required,max=250"`
-	Description       *string `json:"description"`
-	Client            string  `json:"client" binding:"max=250"`
-
-	Document *SLADocumentFormDTO `json:"document"`
+	SLACategoryID     uint               `json:"sla_category_id" binding:"required"`
+	SeverityLevelID   uint               `json:"severity_level_id"`
+	ResponsibleUnitID uint               `json:"responsible_unit_id"`
+	ResponsibleUserID uint               `json:"responsible_user_id"`
+	LifecycleStatusID uint               `json:"lifecycle_status_id"`
+	TitleEn           string             `json:"title_en" binding:"required,max=250"`
+	TitleAr           string             `json:"title_ar" binding:"required,max=250"`
+	Description       *string            `json:"description"`
+	Client            string             `json:"client" binding:"max=250"`
+	Version           string             `json:"version" binding:"required"`
+	IssueDate         string             `json:"issue_date" binding:"omitempty,datetime=2006-01-02"`
+	ExpiryDate        string             `json:"expiry_date" binding:"omitempty,datetime=2006-01-02"`
+	SA1Date           string             `json:"sa1_date" binding:"omitempty,datetime=2006-01-02"`
+	SA2Date           string             `json:"sa2_date" binding:"omitempty,datetime=2006-01-02"`
+	Comment           *string            `json:"comment"`
+	Document          *SLADocumentFormDTO `json:"document" binding:"required"`
 }
 
 type SLADocumentFormDTO struct {
-	ID         *uint  `json:"id,omitempty"`
-	Version    string `json:"version" binding:"required"`
-	IssueDate  string `json:"issue_date" binding:"omitempty,datetime=2006-01-02"`
-	ExpiryDate string `json:"expiry_date" binding:"omitempty,datetime=2006-01-02"`
-	SA1Date    string `json:"sa1_date" binding:"omitempty,datetime=2006-01-02"`
-	SA2Date    string `json:"sa2_date" binding:"omitempty,datetime=2006-01-02"`
-	Comment    string `json:"comment"`
-	Language   string `json:"language" binding:"required"`
-	URL        string `json:"url"`
-	Name       string `json:"name"`
-	Size       int    `json:"size"`
-	Token      string `json:"token"`
-	Type       string `json:"type"`
-	Icon       string `json:"icon" binding:"required"`
+	ID           *uint  `json:"id,omitempty"`
+	Language     string `json:"language" binding:"required"`
+	URL          string `json:"url"`
+	Icon         string `json:"icon" binding:"required"`
+	FileName     string `json:"file_name"`
+	OriginalName string `json:"original_name"`
+	Type         string `json:"type"`
+	Size         int    `json:"size"`
 }
 
 type ParsedSLADates struct {
