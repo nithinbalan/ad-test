@@ -33,4 +33,12 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	riskRoutes.PUT("/risk-categories/activate", riskCategoryController.ActivateRiskCategories)
 	riskRoutes.PUT("/risk-categories/deactivate", riskCategoryController.DeactivateRiskCategories)
 
+	// Potential Risk Status
+	potentialRiskStatusRepo := riskRepositories.NewPotentialRiskStatusRepository(db)
+	potentialRiskStatusSvc := riskServices.NewPotentialRiskStatusService(potentialRiskStatusRepo)
+	potentialRiskStatusController := controllers.NewPotentialRiskStatusController(potentialRiskStatusSvc)
+
+	riskRoutes.GET("/potential-risk-statuses", potentialRiskStatusController.GetAllPotentialRiskStatuses)
+	riskRoutes.GET("/potential-risk-statuses/:id", potentialRiskStatusController.GetPotentialRiskStatusDetails)
+
 }
