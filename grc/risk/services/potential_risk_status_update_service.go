@@ -37,11 +37,20 @@ func NewPotentialRiskStatusUpdateService(
 	}
 }
 
-func (prsus *PotentialRiskStatusUpdateService) GetAll(id uint, sort string, sortBy string, keyword string) ([]*riskDTOs.PotentialRiskStatusUpdateListDTO, error) {
-	return prsus.repo.GetAll(id, sort, sortBy, keyword)
+func (prsus *PotentialRiskStatusUpdateService) GetAll(potentialRiskID uint, sort string, sortBy string, keyword string) ([]*riskDTOs.PotentialRiskStatusUpdateListDTO, error) {
+	if _, err := prsus.potentialRiskSvc.GetByID(potentialRiskID); err != nil {
+		return nil, utility.NewValidationError(fmt.Errorf("potential risk does not exist"), "not_exist", "potential risk")
+	}
+
+	return prsus.repo.GetAll(potentialRiskID, sort, sortBy, keyword)
 }
 
 func (prsus *PotentialRiskStatusUpdateService) Create(potentialRiskID uint, currentUserID uint, potentialRiskUpdateFormDTO *riskDTOs.PotentialRiskStatusUpdateFormDTO) (uint, error) {
+
+	if _, err := prsus.potentialRiskSvc.GetByID(potentialRiskID); err != nil {
+		return 0, utility.NewValidationError(fmt.Errorf("potential risk does not exist"), "not_exist", "potential risk")
+	}
+
 	if err := prsus.validatePotentialRiskUpdateFormDTO(potentialRiskID, potentialRiskUpdateFormDTO); err != nil {
 		return 0, err
 	}
@@ -90,9 +99,6 @@ func (prsus *PotentialRiskStatusUpdateService) Create(potentialRiskID uint, curr
 }
 
 func (prsus *PotentialRiskStatusUpdateService) validatePotentialRiskUpdateFormDTO(potentialRiskID uint, potentialRiskUpdateFormDTO *riskDTOs.PotentialRiskStatusUpdateFormDTO) error {
-	if _, err := prsus.potentialRiskSvc.GetByID(potentialRiskID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("potential risk does not exist"), "not_exist", "potential risk")
-	}
 
 	if _, err := prsus.potentialRiskStatusSvc.GetByID(potentialRiskUpdateFormDTO.PotentialRiskStatusID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("potential risk status does not exist"), "not_exist", "potential risk status")
