@@ -55,14 +55,15 @@ type ComplianceActionPlanListResponseDTO struct {
 }
 
 type ComplianceActionPlanFormDTO struct {
-	Title              string  `json:"title" binding:"required"`
-	Description        *string `json:"description" binding:"omitempty"`
-	SeverityLevelID    *uint   `json:"severity_level_id" binding:"omitempty"`
-	ResponsibleUserID  uint    `json:"responsible_user_id" binding:"required"`
-	TargetDate         *string `json:"target_date" binding:"omitempty,datetime=2006-01-02"`
-	Percentage         *uint   `json:"percentage" binding:"omitempty"`
-	Comments           *string `json:"comments" binding:"omitempty"`
-	ActionPlanStatusID uint    `json:"action_plan_status_id" binding:"required"`
+	ComplianceRequirementID *uint   `json:"compliance_requirement_id" binding:"required"`
+	Title                   string  `json:"title" binding:"required"`
+	Description             *string `json:"description" binding:"omitempty"`
+	SeverityLevelID         *uint   `json:"severity_level_id" binding:"omitempty"`
+	ResponsibleUserID       uint    `json:"responsible_user_id" binding:"required"`
+	TargetDate              *string `json:"target_date" binding:"omitempty,datetime=2006-01-02"`
+	Percentage              *uint   `json:"percentage" binding:"omitempty"`
+	Comments                *string `json:"comments" binding:"omitempty"`
+	ActionPlanStatusID      uint    `json:"action_plan_status_id" binding:"required"`
 }
 
 type ComplianceActionPlanParsedDates struct {

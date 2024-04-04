@@ -90,7 +90,7 @@ func (crs ComplianceRequirementService) GetFullDetailsByID(complianceID uint, id
 		return nil, err
 	}
 
-	// Map the result to your DTO
+	// Map the result to DTO
 	err = mapstructure.Decode(complianceRequirement, &complianceRequirementDTO)
 	if err != nil {
 		return nil, err

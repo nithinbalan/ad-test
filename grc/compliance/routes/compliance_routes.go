@@ -26,6 +26,9 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	lifecycleStatusRepo := masterRepositories.NewLifecycleStatusRepository(db)
 	lifecycleStatusSvc := masterServices.NewLifecycleStatusService(lifecycleStatusRepo)
 
+	actionPlanStatusRepo := masterRepositories.NewActionPlanStatusRepository(db)
+	actionPlanStatusSvc := masterServices.NewActionPlanStatusService(actionPlanStatusRepo)
+
 	reviewFrequencyRepo := masterRepositories.NewReviewFrequencyRepository(db)
 	reviewFrequencySvc := masterServices.NewReviewFrequencyService(reviewFrequencyRepo)
 
@@ -72,6 +75,8 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 		complianceActionPlanRepo,
 		activityLogSvc,
 		complianceRegisterSvc,
+		complianceRequirementSvc,
+		actionPlanStatusSvc,
 		severityLevelSvc,
 	)
 	complianceActionPlanController := controllers.NewComplianceActionPlanController(complianceActionPlanSvc)

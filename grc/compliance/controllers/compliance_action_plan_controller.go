@@ -24,6 +24,13 @@ func NewComplianceActionPlanController(service services.ComplianceActionPlanServ
 }
 
 func (capc *ComplianceActionPlanController) GetAllComplianceActionPlans(c *gin.Context) {
+	complianceIDStr := c.Param("complianceId")
+
+	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
 
 	sort := c.Query("sort")
 	sortBy := c.Query("sort_by")
@@ -69,11 +76,17 @@ func (capc *ComplianceActionPlanController) GetAllComplianceActionPlans(c *gin.C
 		TargetDateFrom: targetDateFrom,
 		TargetDateTo:   targetDateTo,
 	}
-	complianceActionPlans, err := capc.service.GetAll(&queryParams)
+	complianceActionPlans, err := capc.service.GetAll(uint(complianceID), &queryParams)
 
 	if err != nil {
-		utility.SendInternalErrResp(capc.db, c, err.Error())
-		return
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(capc.db, c, e.Error())
+			return
+		}
 	}
 	c.JSON(http.StatusOK, complianceActionPlans)
 }
@@ -83,7 +96,7 @@ func (capc *ComplianceActionPlanController) GetComplianceActionPlanDetails(c *gi
 
 	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
 	if err != nil {
-		utility.SendInternalErrResp(capc.db, c, "Invalid complianceId")
+		utility.SendNotFoundErrResp(c)
 		return
 	}
 
@@ -91,28 +104,33 @@ func (capc *ComplianceActionPlanController) GetComplianceActionPlanDetails(c *gi
 
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
-		utility.SendInternalErrResp(capc.db, c, "Invalid id")
+		utility.SendNotFoundErrResp(c)
 		return
 	}
 
 	complianceActionPlan, err := capc.service.GetFullDetailsByID(uint(complianceID), uint(id))
 	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(capc.db, c, e.Error())
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, complianceActionPlan)
 }
 
 func (capc *ComplianceActionPlanController) CreateComplianceActionPlan(c *gin.Context) {
-
 	var ComplianceActionPlanFormDTO complianceDTOs.ComplianceActionPlanFormDTO
 
 	complianceIDStr := c.Param("complianceId")
 
 	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
 	if err != nil {
-		utility.SendInternalErrResp(capc.db, c, "Invalid complianceId")
+		utility.SendNotFoundErrResp(c)
 		return
 	}
 
@@ -147,12 +165,11 @@ func (capc *ComplianceActionPlanController) CreateComplianceActionPlan(c *gin.Co
 }
 
 func (capc *ComplianceActionPlanController) UpdateComplianceActionPlan(c *gin.Context) {
-
 	complianceIDStr := c.Param("complianceId")
 
 	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
 	if err != nil {
-		utility.SendInternalErrResp(capc.db, c, "Invalid complianceId")
+		utility.SendNotFoundErrResp(c)
 		return
 	}
 
@@ -160,7 +177,7 @@ func (capc *ComplianceActionPlanController) UpdateComplianceActionPlan(c *gin.Co
 
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
-		utility.SendInternalErrResp(capc.db, c, "Invalid id")
+		utility.SendNotFoundErrResp(c)
 		return
 	}
 
@@ -199,7 +216,7 @@ func (capc *ComplianceActionPlanController) DeleteComplianceActionPlans(c *gin.C
 
 	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
 	if err != nil {
-		utility.SendInternalErrResp(capc.db, c, "Invalid complianceId")
+		utility.SendNotFoundErrResp(c)
 		return
 	}
 
@@ -220,8 +237,17 @@ func (capc *ComplianceActionPlanController) DeleteComplianceActionPlans(c *gin.C
 
 	failedIDs, err := capc.service.Delete(uint(complianceID), request.IDs, currentUserID)
 	if err != nil {
-		utility.SendInternalErrResp(capc.db, c, err.Error())
-		return
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(capc.db, c, e.Error())
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})

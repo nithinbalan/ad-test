@@ -10,9 +10,9 @@ import (
 )
 
 type ComplianceActionPlanRepositoryInterface interface {
-	GetAll(params *complianceDTOs.ComplianceActionPlanListQueryParamsDTO) (*complianceDTOs.ComplianceActionPlanListResponseDTO, error)
-	GetByID(complianceID uint, id uint) (*complianceModels.ComplianceActionPlan, error)
-	GetFullDetailsByID(complianceID uint, id uint) (*complianceModels.ComplianceActionPlan, error)
+	GetAll(complianceID uint, params *complianceDTOs.ComplianceActionPlanListQueryParamsDTO) (*complianceDTOs.ComplianceActionPlanListResponseDTO, error)
+	GetByID(id uint) (*complianceModels.ComplianceActionPlan, error)
+	GetFullDetailsByID(id uint) (*complianceModels.ComplianceActionPlan, error)
 	Create(complianceActionPlan *complianceModels.ComplianceActionPlan) (uint, error)
 	Update(complianceActionPlan *complianceModels.ComplianceActionPlan) error
 	Delete(id uint) error
@@ -28,7 +28,7 @@ func NewComplianceActionPlanRepository(db *gorm.DB) *ComplianceActionPlanReposit
 	}
 }
 
-func (repo *ComplianceActionPlanRepository) GetAll(params *complianceDTOs.ComplianceActionPlanListQueryParamsDTO) (*complianceDTOs.ComplianceActionPlanListResponseDTO, error) {
+func (repo *ComplianceActionPlanRepository) GetAll(complianceID uint, params *complianceDTOs.ComplianceActionPlanListQueryParamsDTO) (*complianceDTOs.ComplianceActionPlanListResponseDTO, error) {
 
 	var complianceActionPlans []*complianceDTOs.ComplianceActionPlanListDTO
 	var totalCount int64
@@ -157,7 +157,7 @@ func (repo *ComplianceActionPlanRepository) GetAll(params *complianceDTOs.Compli
 	return response, nil
 }
 
-func (repo *ComplianceActionPlanRepository) GetByID(complianceID uint, id uint) (*complianceModels.ComplianceActionPlan, error) {
+func (repo *ComplianceActionPlanRepository) GetByID(id uint) (*complianceModels.ComplianceActionPlan, error) {
 	var complianceActionPlan *complianceModels.ComplianceActionPlan
 	result := repo.db.First(&complianceActionPlan, id)
 
@@ -168,7 +168,7 @@ func (repo *ComplianceActionPlanRepository) GetByID(complianceID uint, id uint) 
 	return complianceActionPlan, nil
 }
 
-func (repo *ComplianceActionPlanRepository) GetFullDetailsByID(complianceId uint, id uint) (*complianceModels.ComplianceActionPlan, error) {
+func (repo *ComplianceActionPlanRepository) GetFullDetailsByID(id uint) (*complianceModels.ComplianceActionPlan, error) {
 	var complianceActionPlan *complianceModels.ComplianceActionPlan
 
 	result := repo.db.

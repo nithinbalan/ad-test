@@ -34,7 +34,7 @@ type ComplianceActionPlan struct {
 	UpdatedByUser         *organizationModels.User       `gorm:"foreignKey:UpdatedBy"`
 }
 
-// TableName overrides the table name used by ActionPlan to `action_plans`
+// TableName overrides the table name used by ComplianceActionPlan to `compliance_action_plans`
 func (ComplianceActionPlan) TableName() string {
-	return "action_plans"
+	return "compliance_action_plans"
 }
