@@ -64,6 +64,7 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 	if err := us.validateUserFormDTO(nil, userFormDTO); err != nil {
 		return 0, err
 	}
+	// @todo - need to validate organization unit in validateUserFormDTO
 
 	password, err := us.generateRandomPassword(12)
 	if err != nil {
@@ -109,7 +110,7 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 		PasswordHash: string(passwordHash),
 	}
 
-	if err = us.repo.CreateUserSecurity(tx, userSecurity); err != nil {
+	if err = us.repo.CreateUserSecurity(userSecurity, tx); err != nil {
 		tx.Rollback()
 		return 0, err
 	}
@@ -122,7 +123,7 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 		Timeout:    5,
 	}
 
-	if err = us.repo.CreateUserSetting(tx, userSetting); err != nil {
+	if err = us.repo.CreateUserSetting(userSetting, tx); err != nil {
 		tx.Rollback()
 		return 0, err
 	}
@@ -135,7 +136,7 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 		}
 	}
 
-	if err = us.repo.CreateUserRole(tx, userRoles); err != nil {
+	if err = us.repo.CreateUserRole(userRoles, tx); err != nil {
 		tx.Rollback()
 		return 0, err
 	}
@@ -167,7 +168,7 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 		}
 	}()
 
-	return userID, nil // Use userID, which was modified within the transaction block
+	return userID, nil
 }
 
 func (us *UserService) Update(id uint, currentUserID uint, userFormDTO *userDTOs.UserFormDTO) error {
@@ -198,16 +199,18 @@ func (us *UserService) Update(id uint, currentUserID uint, userFormDTO *userDTOs
 	existingUser.ProfileImagePath = userFormDTO.ProfileImagePath
 	existingUser.UpdatedBy = &currentUserID
 
-	err = us.repo.Update(tx, existingUser)
+	err = us.repo.Update(existingUser, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	if err = us.repo.UpdateUserRoles(tx, id, userFormDTO.RoleIDs); err != nil {
+	if err = us.repo.UpdateUserRoles(id, userFormDTO.RoleIDs, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
+
+	// @todo profile image update
 
 	tx.Commit()
 
@@ -263,7 +266,7 @@ func (crs *UserService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 
 		go func() {
 			err := crs.activityLogSvc.LogBulkActivities(
-				logModels.DeleteAction, // Make sure this action constant is defined appropriately
+				logModels.DeleteAction,
 				organizationModels.User{}.TableName(),
 				successfulIds,
 				nil,
