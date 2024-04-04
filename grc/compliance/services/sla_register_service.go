@@ -185,38 +185,46 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 		return err
 	}
 
-	//first check is file updated flag in request body
-	// if yes, then delete existing file
-	// move new file from temp to storage
-	//update document data
-	if err := srs.repo.StoreSLADocumentFile(id, slaRegisterFormDTO.Document.FileName); err != nil {
-		return err
-	}
+	// Check if the file is updated
+	if slaRegisterFormDTO.Document != nil && slaRegisterFormDTO.Document.ID != nil {
+		existingSLADocument, err := srs.repo.GetSLADocumentByID(*slaRegisterFormDTO.Document.ID)
+		if err != nil {
+			return err
+		}
+		// Update existing SLA document fields
+		existingSLADocument.SLARegisterID = id
+		existingSLADocument.Version = slaRegisterFormDTO.Version
+		existingSLADocument.IssueDate = dates.IssueDate
+		existingSLADocument.ExpiryDate = dates.ExpiryDate
+		existingSLADocument.SA1Date = dates.SA1Date
+		existingSLADocument.SA2Date = dates.SA2Date
+		existingSLADocument.UpdatedBy = currentUserID
 
-	existingSLADocument, err := srs.repo.GetSLADocumentByID(*slaRegisterFormDTO.Document.ID)
-	if err != nil {
-		return err
-	}
+		// Check if is_new_file flag is set to true
+		if slaRegisterFormDTO.Document.IsNewFile != nil && *slaRegisterFormDTO.Document.IsNewFile {
+			// File is updated, delete existing file
+			if err := srs.repo.RemoveSLADocumentFile(existingSLADocument.ID,existingSLADocument.SLARegisterID, existingSLADocument.Name); err != nil {
+				return err
+			}
+			// Move new file from temp to storage
+			if err := srs.repo.StoreSLADocumentFile(existingSLADocument.SLARegisterID, slaRegisterFormDTO.Document.FileName); err != nil {
+				return err
+			}
 
-	// Update existing SLA document fields
-	existingSLADocument.SLARegisterID = id
-	existingSLADocument.Version = slaRegisterFormDTO.Version
-	existingSLADocument.IssueDate = dates.IssueDate
-	existingSLADocument.ExpiryDate = dates.ExpiryDate
-	existingSLADocument.SA1Date = dates.SA1Date
-	existingSLADocument.SA2Date = dates.SA2Date
-	existingSLADocument.Language = slaRegisterFormDTO.Document.Language
-	existingSLADocument.URL = slaRegisterFormDTO.Document.URL
-	existingSLADocument.Icon = slaRegisterFormDTO.Document.Icon
-	existingSLADocument.Name = slaRegisterFormDTO.Document.FileName
-	existingSLADocument.Size = slaRegisterFormDTO.Document.Size
-	existingSLADocument.Token = slaRegisterFormDTO.Document.FileName // Assuming token is same as fileName
-	existingSLADocument.Type = slaRegisterFormDTO.Document.Type
-	existingSLADocument.IsLatest = true
-	existingSLADocument.UpdatedBy = currentUserID
-	// Save SLA document
-	if err := srs.repo.SaveSLADocument(existingSLADocument); err != nil {
-		return err
+			// Update existing SLA document fields
+			existingSLADocument.Language = slaRegisterFormDTO.Document.Language
+			existingSLADocument.URL = slaRegisterFormDTO.Document.URL
+			existingSLADocument.Icon = slaRegisterFormDTO.Document.Icon
+			existingSLADocument.Name = slaRegisterFormDTO.Document.FileName
+			existingSLADocument.Size = slaRegisterFormDTO.Document.Size
+			existingSLADocument.Token = slaRegisterFormDTO.Document.FileName // Assuming token is same as fileName
+			existingSLADocument.Type = slaRegisterFormDTO.Document.Type
+			existingSLADocument.IsLatest = true
+		}
+		// Save updated SLA document
+		if err := srs.repo.SaveSLADocument(existingSLADocument); err != nil {
+			return err
+		}
 	}
 
 	go func() {
@@ -262,7 +270,7 @@ func (srs *SLARegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 		}
 
 		// Delete associated documents
-		err = srs.repo.RemoveSLADocumentFile(slaDocument.ID, slaDocument.Name)
+		err = srs.repo.RemoveSLADocumentFile(slaDocument.ID,slaDocument.SLARegisterID, slaDocument.Name)
 		if err != nil {
 			failedIds = append(failedIds, id)
 			continue

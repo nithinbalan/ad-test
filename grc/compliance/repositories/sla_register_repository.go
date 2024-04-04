@@ -33,7 +33,7 @@ type SLARegisterRepositoryInterface interface {
 	GetSLADocumentByID(id uint) (*models.SLADocument, error)
 	GetLatestSLADocumentBySLARegisterID(id uint) (*models.SLADocument, error)
 	StoreSLADocumentFile(slaID uint, fileName string) error
-	RemoveSLADocumentFile(id uint, fileNames ...string) error
+	RemoveSLADocumentFile(id uint,slaID uint, fileNames ...string) error
 }
 
 // implementation
@@ -387,18 +387,18 @@ func (repo *SLARegisterRepository) SaveSLADocument(doc *models.SLADocument) erro
 	return nil
 }
 
-func (repo *SLARegisterRepository) RemoveSLADocumentFile(id uint, fileNames ...string) error {
+func (repo *SLARegisterRepository) RemoveSLADocumentFile(id uint,slaID uint, fileNames ...string) error {
 	var filePath string
 	storagePath := config.GetEnv("STORAGE_PATH", "")
 
 	if len(fileNames) > 0 && fileNames[0] != "" {
-		filePath = filepath.Join(storagePath, "compliance", "sla", strconv.FormatUint(uint64(id), 10), "document", fileNames[0])
+		filePath = filepath.Join(storagePath, "compliance", "sla", strconv.FormatUint(uint64(slaID), 10), "document", fileNames[0])
 	} else {
 		slaDocument, err := repo.GetSLADocumentByID(id)
 		if err != nil {
 			return err
 		}
-		filePath = filepath.Join(storagePath, "compliance", "sla", strconv.FormatUint(uint64(slaDocument.SLARegisterID), 10), "document", slaDocument.Name)
+		filePath = filepath.Join(storagePath, "compliance", "sla", strconv.FormatUint(uint64(slaID), 10), "document", slaDocument.Name)
 	}
 
 	if err := os.Remove(filePath); err != nil {
