@@ -64,7 +64,7 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 
 	organizationRoutes.GET("/strategic-profiles", strategicProfileController.GetStrategicProfile)
 	organizationRoutes.PUT("/strategic-profiles/:id", strategicProfileController.UpdateStrategicProfile)
-	organizationRoutes.PUT("/strategic-profiles/update-vision/:id", strategicProfileController.UpdateVision)
-	organizationRoutes.PUT("/strategic-profiles/update-mission/:id", strategicProfileController.UpdateMission)
+	organizationRoutes.PUT("/strategic-profiles/:id/update-vision", strategicProfileController.UpdateVision)
+	organizationRoutes.PUT("/strategic-profiles/:id/update-mission", strategicProfileController.UpdateMission)
 
 }
