@@ -23,7 +23,7 @@ func NewPotentialRiskStatusUpdateController(service services.PotentialRiskStatus
 	}
 }
 
-func (prsuc *PotentialRiskStatusUpdateController) GetPotentialRiskStatusUpdateHistory(c *gin.Context) {
+func (prsuc *PotentialRiskStatusUpdateController) GetAllPotentialRiskStatusUpdates(c *gin.Context) {
 
 	idStr := c.Param("id")
 
