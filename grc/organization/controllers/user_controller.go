@@ -84,8 +84,6 @@ func (uc *UserController) CreateUser(c *gin.Context) {
 		return
 	}
 
-	//c.JSON(http.StatusOK, userFormDTO)
-
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(uc.db, c, err.Error())

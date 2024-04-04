@@ -15,19 +15,25 @@ type UserRepositoryInterface interface {
 	BeginTransaction() db.DatabaseTransaction
 	GetAll(params *userDTOs.UserListQueryParamsDTO) (*userDTOs.UserListResponseDTO, error)
 	GetByID(id uint) (*organizationModels.User, error)
-	Create(tx db.DatabaseTransaction, user *organizationModels.User) (uint, error)
+	GetByEmail(email string) (*organizationModels.User, error)
+	Create(user *organizationModels.User, tx ...db.DatabaseTransaction) (uint, error)
 	Update(tx db.DatabaseTransaction, user *organizationModels.User) error
 	UpdatePartial(id uint, updates map[string]interface{}) error
-	GetByEmail(email string) (*organizationModels.User, error)
-	GetUserSecurityByUserID(userId uint) (*organizationModels.UserSecurity, error)
 	Delete(id uint) error
-	CreateUserSecurity(tx db.DatabaseTransaction, userSecurity organizationModels.UserSecurity) error
-	UpdateUserSecurity(userSecurity *organizationModels.UserSecurity) error
-	CreateUserSetting(tx db.DatabaseTransaction, userSetting organizationModels.UserSetting) error
-	CreateUserRole(tx db.DatabaseTransaction, userRoles []organizationModels.UserRole) error
-	UpdateUserRoles(tx db.DatabaseTransaction, userID uint, desiredRoleIDs []uint) error
 	ExistsByEmail(email string) (bool, error)
 	ExistsByEmailExcludingID(id uint, email string) (bool, error)
+
+	//User security
+	GetUserSecurityByUserID(userId uint) (*organizationModels.UserSecurity, error)
+	CreateUserSecurity(tx db.DatabaseTransaction, userSecurity organizationModels.UserSecurity) error
+	UpdateUserSecurity(userSecurity *organizationModels.UserSecurity) error
+
+	//User settings
+	CreateUserSetting(tx db.DatabaseTransaction, userSetting organizationModels.UserSetting) error
+
+	//User roles
+	CreateUserRole(tx db.DatabaseTransaction, userRoles []organizationModels.UserRole) error
+	UpdateUserRoles(tx db.DatabaseTransaction, userID uint, desiredRoleIDs []uint) error
 }
 
 type UserRepository struct {
@@ -160,26 +166,23 @@ func (repo *UserRepository) GetByID(id uint) (*organizationModels.User, error) {
 	return user, result.Error
 }
 
-func (repo *UserRepository) Create(tx db.DatabaseTransaction, user *organizationModels.User) (uint, error) {
-	var db *gorm.DB
-	if tx != nil {
-		db = tx.DB() // Use the transaction's DB instance if available
-	} else {
-		db = repo.db // Fall back to the repository's DB instance
+func (repo *UserRepository) Create(user *organizationModels.User, tx ...db.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
 	}
 	if err := db.Create(user).Error; err != nil {
 		return 0, err
 	}
-
 	return user.ID, nil
 }
 
 func (repo *UserRepository) Update(tx db.DatabaseTransaction, user *organizationModels.User) error {
 	var db *gorm.DB
 	if tx != nil {
-		db = tx.DB() // Use the transaction's DB instance if available
+		db = tx.DB()
 	} else {
-		db = repo.db // Fall back to the repository's DB instance
+		db = repo.db
 	}
 	if err := db.Save(user).Error; err != nil {
 		return err
@@ -273,17 +276,13 @@ func (repo *UserRepository) CreateUserSetting(tx db.DatabaseTransaction, userSet
 func (repo *UserRepository) CreateUserRole(tx db.DatabaseTransaction, userRoles []organizationModels.UserRole) error {
 	var db *gorm.DB
 	if tx != nil {
-		db = tx.DB() // Use the transaction's DB instance if available
+		db = tx.DB()
 	} else {
-		db = repo.db // Fall back to the repository's DB instance
+		db = repo.db
 	}
-	// Perform the bulk insert in a transaction
-
 	if err := db.CreateInBatches(userRoles, 100).Error; err != nil {
-		// If there's an error, roll back the transaction
 		return err
 	}
-	// If the insert is successful, commit the transaction
 	return nil
 
 }

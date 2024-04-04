@@ -19,13 +19,15 @@ import (
 type UserServiceInterface interface {
 	GetAll(params *userDTOs.UserListQueryParamsDTO) (*userDTOs.UserListResponseDTO, error)
 	GetByID(id uint) (*organizationModels.User, error)
+	GetByEmail(email string) (*organizationModels.User, error)
 	Create(currentUserID uint, userFormDTO *userDTOs.UserFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, user *userDTOs.UserFormDTO) error
 	UpdatePartial(id uint, dto *userDTOs.UserUpdateDTO) error
-	GetByEmail(email string) (*organizationModels.User, error)
+	Delete(ids []uint, currentUserID uint) ([]uint, error)
+
+	//User Security
 	GetUserSecurityByUserID(userID uint) (*organizationModels.UserSecurity, error)
 	UpdateUserSecurity(userSecurity *organizationModels.UserSecurity) error
-	Delete(ids []uint, currentUserID uint) ([]uint, error)
 }
 
 type UserService struct {
@@ -96,10 +98,10 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 		CreatedBy:           currentUserID,
 	}
 
-	userID, err := us.repo.Create(tx, user)
+	userID, err := us.repo.Create(user, tx)
 	if err != nil {
 		tx.Rollback()
-		return 0, err // Only return the error
+		return 0, err
 	}
 
 	userSecurity := organizationModels.UserSecurity{
@@ -112,6 +114,7 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 		return 0, err
 	}
 
+	//@todo - timezone to be corrected
 	userSetting := organizationModels.UserSetting{
 		UserID:     userID,
 		TimezoneID: 5,
@@ -124,7 +127,6 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 		return 0, err
 	}
 
-	// Prepare a slice of UserRole for bulk insert
 	userRoles := make([]organizationModels.UserRole, len(userFormDTO.RoleIDs))
 	for i, roleID := range userFormDTO.RoleIDs {
 		userRoles[i] = organizationModels.UserRole{
@@ -133,11 +135,12 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 		}
 	}
 
-	// Now pass the entire array to add roles
 	if err = us.repo.CreateUserRole(tx, userRoles); err != nil {
 		tx.Rollback()
 		return 0, err
 	}
+
+	// @todo profile image upload
 
 	tx.Commit()
 
@@ -287,10 +290,8 @@ func (us *UserService) validateUserFormDTO(id *uint, userFormDTO *userDTOs.UserF
 		return utility.NewValidationError(fmt.Errorf("no roles provided, at least one role is required"), "required", "role")
 	} else {
 		for _, roleID := range userFormDTO.RoleIDs {
-			// Attempt to fetch each role by ID
 			_, err := us.roleSvc.GetByID(roleID)
 			if err != nil {
-				// If any role ID is invalid, return an error
 				return utility.NewValidationError(fmt.Errorf("role does not exist"), "not_exist", "role")
 			}
 
@@ -299,13 +300,13 @@ func (us *UserService) validateUserFormDTO(id *uint, userFormDTO *userDTOs.UserF
 
 	if id == nil {
 		if exists, err := us.repo.ExistsByEmail(userFormDTO.Email); err != nil {
-			return err // Handle error from checking email existence
+			return err
 		} else if exists {
 			return utility.NewValidationError(fmt.Errorf("email already exists: %s", userFormDTO.Email), "unique", "email")
 		}
 	} else {
 		if exists, err := us.repo.ExistsByEmailExcludingID(*id, userFormDTO.Email); err != nil {
-			return err // Handle error from checking email existence
+			return err
 		} else if exists {
 			return utility.NewValidationError(fmt.Errorf("email already exists: %s", userFormDTO.Email), "unique", "email")
 		}
