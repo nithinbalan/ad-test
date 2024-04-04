@@ -98,11 +98,10 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *sl
 		return 0, err
 	}
 
-	if err := srs.repo.SaveSLADocumentFile(id, slaRegisterFormDTO.Document.FileName); err != nil {
+	if err := srs.repo.StoreSLADocumentFile(id, slaRegisterFormDTO.Document.FileName); err != nil {
 		return 0, err
 	}
 
-	// Create SLA document
 	slaDocument := &models.SLADocument{
 		SLARegisterID: id,
 		Version:       slaRegisterFormDTO.Version,
@@ -111,7 +110,7 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *sl
 		SA1Date:       dates.SA1Date,
 		SA2Date:       dates.SA2Date,
 		Language:      slaRegisterFormDTO.Document.Language,
-		URL:           slaRegisterFormDTO.Document.URL,
+		URL:           slaRegisterFormDTO.Document.URL, //URL To be decided
 		Icon:          slaRegisterFormDTO.Document.Icon,
 		Name:          slaRegisterFormDTO.Document.FileName,
 		Size:          slaRegisterFormDTO.Document.Size,
@@ -186,10 +185,14 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 		return err
 	}
 
-	if err := srs.repo.SaveSLADocumentFile(id, slaRegisterFormDTO.Document.FileName); err != nil {
+	//first check is file updated flag in request body
+	// if yes, then delete existing file
+	// move new file from temp to storage
+	//update document data
+	if err := srs.repo.StoreSLADocumentFile(id, slaRegisterFormDTO.Document.FileName); err != nil {
 		return err
 	}
-	// Fetch existing SLA document
+
 	existingSLADocument, err := srs.repo.GetSLADocumentByID(*slaRegisterFormDTO.Document.ID)
 	if err != nil {
 		return err
@@ -259,7 +262,7 @@ func (srs *SLARegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 		}
 
 		// Delete associated documents
-		err = srs.repo.DeleteSLADocumentFile(slaDocument.ID)
+		err = srs.repo.RemoveSLADocumentFile(slaDocument.ID, slaDocument.Name)
 		if err != nil {
 			failedIds = append(failedIds, id)
 			continue
@@ -450,6 +453,7 @@ func (srs *SLARegisterService) validateSLADocumentFormDTO(document *slaDTOs.SLAD
 		return utility.NewValidationError(fmt.Errorf("only PDF files are allowed"), "invalid_file_type", "type")
 	}
 
+	// @todo
 	// Validate file size (if needed)
 	// For example:
 	// if document.Size > MaxFileSize {
