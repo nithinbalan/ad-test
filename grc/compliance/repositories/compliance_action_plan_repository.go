@@ -35,39 +35,37 @@ func (repo *ComplianceActionPlanRepository) GetAll(complianceID uint, params *co
 
 	query := repo.db.Table("compliance_action_plans").
 		Select(`
-			compliance_action_plans.*,
-			compliance_clauses.clause_no AS compliance_clause_no,
-			compliance_clauses.title AS compliance_clause_title,
-			compliance_action_plan_categories.title_en AS compliance_action_plan_category_title_en,
-			compliance_action_plan_categories.title_ar AS compliance_action_plan_category_title_ar,
-			severity_levels.title_en AS severity_level_title_en,
-			severity_levels.title_ar AS severity_level_title_ar,
-			severity_levels.color_code AS severity_level_color_code,
-			compliance_statuses.title_en AS compliance_status_title_en,
-			compliance_statuses.title_ar AS compliance_status_title_ar,
-			compliance_statuses.color_code AS compliance_status_color_code,
-			responsible_user.first_name_en AS responsible_user_first_name_en,
-            responsible_user.first_name_ar AS responsible_user_first_name_ar,
-            responsible_user.last_name_en AS responsible_user_last_name_en,
-            responsible_user.last_name_ar AS responsible_user_last_name_ar,
-			created_user.first_name_en AS created_user_first_name_en,
-            created_user.first_name_ar AS created_user_first_name_ar,
-            created_user.last_name_en AS created_user_last_name_en,
-            created_user.last_name_ar AS created_user_last_name_ar,   
-			updated_user.first_name_en AS updated_user_first_name_en,
-            updated_user.first_name_ar AS updated_user_first_name_ar,
-            updated_user.last_name_en AS updated_user_last_name_en,
-            updated_user.last_name_ar AS updated_user_last_name_ar 
-		`).
+        compliance_action_plans.*,
+        compliance_requirements.title AS compliance_requirement_title,
+        compliance_clauses.clause_no AS compliance_clause_no,
+        compliance_clauses.title AS compliance_clause_title,
+        action_plan_statuses.title_en AS action_plan_status_title_en,
+        action_plan_statuses.title_ar AS action_plan_status_title_ar,
+        severity_levels.title_en AS severity_level_title_en,
+        severity_levels.title_ar AS severity_level_title_ar,
+        severity_levels.color_code AS severity_level_color_code,
+        responsible_user.first_name_en AS responsible_user_first_name_en,
+        responsible_user.first_name_ar AS responsible_user_first_name_ar,
+        responsible_user.last_name_en AS responsible_user_last_name_en,
+        responsible_user.last_name_ar AS responsible_user_last_name_ar,
+        created_user.first_name_en AS created_user_first_name_en,
+        created_user.first_name_ar AS created_user_first_name_ar,
+        created_user.last_name_en AS created_user_last_name_en,
+        created_user.last_name_ar AS created_user_last_name_ar,   
+        updated_user.first_name_en AS updated_user_first_name_en,
+        updated_user.first_name_ar AS updated_user_first_name_ar,
+        updated_user.last_name_en AS updated_user_last_name_en,
+        updated_user.last_name_ar AS updated_user_last_name_ar 
+    `).
 		Joins(`
-			LEFT JOIN compliance_action_plan_categories ON compliance_action_plan_categories.id = compliance_action_plans.compliance_action_plan_category_id
-			LEFT JOIN severity_levels ON severity_levels.id = compliance_action_plans.severity_level_id
-			LEFT JOIN compliance_statuses ON compliance_statuses.id = compliance_action_plans.compliance_status_id
-			LEFT JOIN users AS responsible_user ON responsible_user.id = compliance_action_plans.responsible_user_id
-			LEFT JOIN users AS created_user ON created_user.id = compliance_action_plans.created_by
-			LEFT JOIN users AS updated_user ON updated_user.id = compliance_action_plans.updated_by
-			LEFT JOIN compliance_clauses ON compliance_clauses.id = compliance_action_plans.compliance_clause_id
-		`)
+        LEFT JOIN action_plan_statuses ON action_plan_statuses.id = compliance_action_plans.action_plan_status_id
+        LEFT JOIN severity_levels ON severity_levels.id = compliance_action_plans.severity_level_id
+        LEFT JOIN users AS responsible_user ON responsible_user.id = compliance_action_plans.responsible_user_id
+        LEFT JOIN users AS created_user ON created_user.id = compliance_action_plans.created_by
+        LEFT JOIN users AS updated_user ON updated_user.id = compliance_action_plans.updated_by
+        LEFT JOIN compliance_requirements ON compliance_requirements.id = compliance_action_plans.compliance_requirement_id
+        JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id
+    `)
 
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
@@ -87,12 +85,12 @@ func (repo *ComplianceActionPlanRepository) GetAll(complianceID uint, params *co
 	// Apply quick filters
 	for _, filter := range params.QuickFilter {
 		switch filter {
-		case "severe":
-			query = query.Where("severity_levels.type = ?", "high")
-		case "non_compliant":
-			query = query.Where("compliance_statuses.type = ?", "not_implemented")
-		case "non_compliant_due":
-			query = query.Where("compliance_statuses.type = ? AND compliance_action_plans.target_date < ?", "not_implemented", time.Now())
+		case "overdue":
+			query = query.Where("target_date < ?", time.Now())
+		case "completed":
+			query = query.Where("action_plan_statuses.type = ?", "completed")
+		case "in_progress":
+			query = query.Where("action_plan_statuses.type = ?", "in_progress")
 		}
 	}
 
@@ -104,25 +102,17 @@ func (repo *ComplianceActionPlanRepository) GetAll(complianceID uint, params *co
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
-			(compliance_clauses.clause_no LIKE ? OR
-			compliance_clauses.title LIKE ? OR
-			compliance_action_plans.title LIKE ? OR
-			compliance_action_plan_categories.title_en LIKE ? OR
-			compliance_action_plan_categories.title_ar LIKE ? OR
-			severity_levels.title_en LIKE ? OR
-			severity_levels.title_ar LIKE ? OR
-			compliance_action_plans.target_date LIKE ? OR
-			compliance_statuses.title_en LIKE ? OR
-			compliance_statuses.title_ar LIKE ? OR
-			responsible_user.first_name_en LIKE ? OR
-			responsible_user.first_name_en LIKE ? OR
-			responsible_user.first_name_ar LIKE ? OR
-			responsible_user.last_name_en LIKE ? OR
-			responsible_user.last_name_ar LIKE ?)`,
+            (compliance_action_plans.title LIKE ? OR
+            action_plan_statuses.title_en LIKE ? OR
+            action_plan_statuses.title_ar LIKE ? OR
+            compliance_action_plans.target_date LIKE ? OR
+            responsible_user.first_name_en LIKE ? OR
+            responsible_user.first_name_ar LIKE ? OR
+            responsible_user.last_name_en LIKE ? OR
+            responsible_user.last_name_ar LIKE ?)`,
 			keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword)
+			keyword)
 	}
 
 	// Sort by the specified column and order

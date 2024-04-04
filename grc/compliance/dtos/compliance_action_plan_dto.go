@@ -77,6 +77,8 @@ type ComplianceActionPlanDetailDTO struct {
 	SeverityLevel    *masterDTOs.SeverityLevelDTO   `json:"severity_level"`
 	ResponsibleUser  UserMinimalDTO                 `json:"responsible_user"`
 	ActionPlanStatus masterDTOs.ActionPlanStatusDTO `json:"compliance_status"`
+	Percentage       *uint                          `json:"percentage"`
+	Comments         *string                        `json:"comments"`
 	TargetDate       *time.Time                     `json:"target_date"`
 	CreatedAt        time.Time                      `json:"created_at"`
 	UpdatedAt        *time.Time                     `json:"updated_at"`
