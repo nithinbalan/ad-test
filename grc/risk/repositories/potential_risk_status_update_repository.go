@@ -43,7 +43,8 @@ func (repo *PotentialRiskStatusUpdateRepository) GetAll(potentialRiskID uint, so
 		    LEFT JOIN potential_risks ON potential_risks.id = potential_risk_status_updates.potential_risk_id
 		    LEFT JOIN potential_risk_statuses ON potential_risk_statuses.id = potential_risk_status_updates.potential_risk_status_id
 			LEFT JOIN users AS created_user ON created_user.id = potential_risk_status_updates.created_by
-		`)
+		`).
+		Where("potential_risk_status_updates.potential_risk_id = ?", potentialRiskID)
 
 	if keyword != "" {
 		query = query.Where(`
@@ -59,7 +60,6 @@ func (repo *PotentialRiskStatusUpdateRepository) GetAll(potentialRiskID uint, so
 	if sort != "asc" && sort != "desc" {
 		sort = "asc"
 	}
-	query = query.Where("potential_risk_status_updates.potential_risk_id = ?", potentialRiskID)
 	query = query.Order(sortBy + " " + sort)
 	result := query.Find(&potentialRiskUpdates)
 
