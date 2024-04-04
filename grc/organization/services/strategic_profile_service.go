@@ -17,6 +17,8 @@ import (
 type StrategicProfileServiceInterface interface {
 	GetStrategicProfile() (*organizationDTOs.StrategicProfileDetailsDTO, error)
 	Update(id uint, currentUserID uint, strategicProfile *organizationDTOs.StrategicProfileFormDTO) error
+	UpdateVision(id uint, currentUserID uint, strategicProfileVision *organizationDTOs.StrategicProfileVisionFormDTO) error
+	UpdateMission(id uint, currentUserID uint, strategicProfileMission *organizationDTOs.StrategicProfileMisionFormDTO) error
 }
 
 type StrategicProfileService struct {
@@ -80,6 +82,48 @@ func (sps *StrategicProfileService) Update(id uint, currentUserID uint, strategi
 	existingStrategicProfile.Youtube = strategicProfileDTO.Youtube
 	existingStrategicProfile.AboutEn = strategicProfileDTO.AboutEn
 	existingStrategicProfile.AboutAr = strategicProfileDTO.AboutAr
+	existingStrategicProfile.UpdatedBy = &currentUserID
+
+	err = sps.repo.Update(existingStrategicProfile)
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+func (sps *StrategicProfileService) UpdateVision(id uint, currentUserID uint, strategicProfileVisionDTO *organizationDTOs.StrategicProfileVisionFormDTO) error {
+
+	existingStrategicProfile, err := sps.repo.GetByID(id)
+
+	if err != nil {
+		return err
+	}
+
+	existingStrategicProfile.VisionEn = strategicProfileVisionDTO.VisionEn
+	existingStrategicProfile.VisionAr = strategicProfileVisionDTO.VisionAr
+	existingStrategicProfile.UpdatedBy = &currentUserID
+
+	err = sps.repo.Update(existingStrategicProfile)
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+func (sps *StrategicProfileService) UpdateMission(id uint, currentUserID uint, strategicProfileMissionDTO *organizationDTOs.StrategicProfileMisionFormDTO) error {
+
+	existingStrategicProfile, err := sps.repo.GetByID(id)
+
+	if err != nil {
+		return err
+	}
+
+	existingStrategicProfile.MissionEn = strategicProfileMissionDTO.MissionEn
+	existingStrategicProfile.MissionAr = strategicProfileMissionDTO.MissionAr
 	existingStrategicProfile.UpdatedBy = &currentUserID
 
 	err = sps.repo.Update(existingStrategicProfile)

@@ -38,3 +38,13 @@ type StrategicProfileDetailsDTO struct {
 	MissionEn *string `json:"mission_en,omitempty"`
 	MissionAr *string `json:"mission_ar,omitempty"`
 }
+
+type StrategicProfileVisionFormDTO struct {
+	VisionEn *string `json:"vision_en"`
+	VisionAr *string `json:"vision_ar"`
+}
+
+type StrategicProfileMisionFormDTO struct {
+	MissionEn *string `json:"mission_en"`
+	MissionAr *string `json:"mission_ar"`
+}

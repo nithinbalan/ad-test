@@ -39,7 +39,7 @@ func (spc *StrategicProfileController) GetStrategicProfile(c *gin.Context) {
 }
 
 func (spc *StrategicProfileController) UpdateStrategicProfile(c *gin.Context) {
-	userID, err := strconv.Atoi(c.Param("id"))
+	strategicProfileID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -57,7 +57,7 @@ func (spc *StrategicProfileController) UpdateStrategicProfile(c *gin.Context) {
 		return
 	}
 
-	err = spc.service.Update(uint(userID), currentUserID, &strategicProfileFormDTO)
+	err = spc.service.Update(uint(strategicProfileID), currentUserID, &strategicProfileFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -73,4 +73,82 @@ func (spc *StrategicProfileController) UpdateStrategicProfile(c *gin.Context) {
 	}
 
 	c.Status(http.StatusOK)
+}
+
+func (spc *StrategicProfileController) UpdateVision(c *gin.Context) {
+	strategicProfileID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(spc.db, c, err.Error())
+		return
+	}
+
+	var strategicProfileVisionFormDTO organizationDTOs.StrategicProfileVisionFormDTO
+	if err := c.ShouldBindJSON(&strategicProfileVisionFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	err = spc.service.UpdateVision(uint(strategicProfileID), currentUserID, &strategicProfileVisionFormDTO)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(spc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+
+}
+
+func (spc *StrategicProfileController) UpdateMission(c *gin.Context) {
+	strategicProfileID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(spc.db, c, err.Error())
+		return
+	}
+
+	var strategicProfileMissionFormDTO organizationDTOs.StrategicProfileMisionFormDTO
+	if err := c.ShouldBindJSON(&strategicProfileMissionFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	err = spc.service.UpdateMission(uint(strategicProfileID), currentUserID, &strategicProfileMissionFormDTO)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(spc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+
 }
