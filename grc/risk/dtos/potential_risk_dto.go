@@ -48,22 +48,22 @@ type PotentialRiskListResponseDTO struct {
 
 type PotentialRiskFormDTO struct {
 	RiskCategoryID  uint    `json:"risk_category_id" binding:"required"`
-	SeverityLevelID *uint   `json:"severity_level_id" binding:"required"`
+	SeverityLevelID uint    `json:"severity_level_id" binding:"required"`
 	Title           string  `json:"title" binding:"required,max=100"`
 	Description     *string `json:"description"`
 	RiskSource      *string `json:"risk_source"`
 }
 
 type PotentialRiskDetailsDTO struct {
-	ID                  uint                         `json:"id"`
-	RiskCategory        RiskCategoryDTO              `json:"risk_category"`
-	SeverityLevel       *masterDTOs.SeverityLevelDTO `json:"severity_level"`
-	PotentialRiskStatus PotentialRiskStatusDTO       `json:"potential_risk_status"`
-	Title               string                       `json:"title"`
-	Description         *string                      `json:"description"`
-	RiskSource          string                       `json:"risk_source"`
-	CreatedAt           time.Time                    `json:"created_at"`
-	UpdatedAt           *time.Time                   `json:"updated_at"`
+	ID                  uint                        `json:"id"`
+	RiskCategory        RiskCategoryDTO             `json:"risk_category"`
+	SeverityLevel       masterDTOs.SeverityLevelDTO `json:"severity_level"`
+	PotentialRiskStatus PotentialRiskStatusDTO      `json:"potential_risk_status"`
+	Title               string                      `json:"title"`
+	Description         *string                     `json:"description"`
+	RiskSource          string                      `json:"risk_source"`
+	CreatedAt           time.Time                   `json:"created_at"`
+	UpdatedAt           *time.Time                  `json:"updated_at"`
 	// CreatedByUser         UserMinimalDTO                `json:"created_by"`
 	// UpdatedByUser         UserMinimalDTO                `json:"updated_by"`
 }

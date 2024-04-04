@@ -66,7 +66,6 @@ func (prs PotentialRiskService) GetByID(id uint) (*models.PotentialRisk, error) 
 
 func (prs PotentialRiskService) GetFullDetailsByID(id uint) (*riskDTOs.PotentialRiskDetailsDTO, error) {
 
-	// Initialize your DTO
 	var potentialRiskDTO riskDTOs.PotentialRiskDetailsDTO
 
 	potentialRisk, err := prs.repo.GetFullDetailsByID(id)
@@ -78,7 +77,6 @@ func (prs PotentialRiskService) GetFullDetailsByID(id uint) (*riskDTOs.Potential
 		return nil, err
 	}
 
-	// Map the result to your DTO
 	err = mapstructure.Decode(potentialRisk, &potentialRiskDTO)
 	if err != nil {
 		return nil, err
@@ -102,7 +100,7 @@ func (prs *PotentialRiskService) Create(currentUserID uint, potentialRiskFormDTO
 
 	potentialRisk := &models.PotentialRisk{
 		RiskCategoryID:        potentialRiskFormDTO.RiskCategoryID,
-		SeverityLevelID:       *potentialRiskFormDTO.SeverityLevelID,
+		SeverityLevelID:       potentialRiskFormDTO.SeverityLevelID,
 		PotentialRiskStatusID: potentialRiskStatus.ID,
 		Title:                 potentialRiskFormDTO.Title,
 		Description:           potentialRiskFormDTO.Description,
@@ -155,7 +153,7 @@ func (prs *PotentialRiskService) Update(id uint, currentUserID uint, potentialRi
 	}
 
 	existingPotentialRisk.RiskCategoryID = potentialRiskFormDTO.RiskCategoryID
-	existingPotentialRisk.SeverityLevelID = *potentialRiskFormDTO.SeverityLevelID
+	existingPotentialRisk.SeverityLevelID = potentialRiskFormDTO.SeverityLevelID
 	existingPotentialRisk.Title = potentialRiskFormDTO.Title
 	existingPotentialRisk.Description = potentialRiskFormDTO.Description
 	existingPotentialRisk.UpdatedBy = &currentUserID
@@ -214,10 +212,8 @@ func (prs *PotentialRiskService) validatePotentialRiskFormDTO(potentialRiskFormD
 		return utility.NewValidationError(fmt.Errorf("risk category does not exist"), "not_exist", "risk category")
 	}
 
-	if potentialRiskFormDTO.SeverityLevelID != nil {
-		if _, err := prs.severityLevelSvc.GetByID(*potentialRiskFormDTO.SeverityLevelID); err != nil {
-			return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
-		}
+	if _, err := prs.severityLevelSvc.GetByID(potentialRiskFormDTO.SeverityLevelID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
 	}
 
 	if id == nil {
