@@ -142,10 +142,10 @@ func (prs *PotentialRiskService) Create(currentUserID uint, potentialRiskFormDTO
 
 func (prs *PotentialRiskService) Update(id uint, currentUserID uint, potentialRiskFormDTO *riskDTOs.PotentialRiskFormDTO) error {
 
-	existingPotentialRisk, err := prs.repo.GetByID(id)
+	existingPotentialRisk, err := prs.GetByID(id)
 
 	if err != nil {
-		return utility.NewResourceNotFoundError(err, id)
+		return err
 	}
 
 	if err := prs.validatePotentialRiskFormDTO(potentialRiskFormDTO, &id); err != nil {
