@@ -22,6 +22,7 @@ type PotentialRiskServiceInterface interface {
 	Create(currentUserID uint, potentialRiskFormDTO *riskDTOs.PotentialRiskFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, potentialRiskFormDTO *riskDTOs.PotentialRiskFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	StatusUpdate(id uint, currentUserID uint, potentialRiskStatusID uint) error
 }
 
 // Service and implementations
@@ -93,7 +94,7 @@ func (prs *PotentialRiskService) Create(currentUserID uint, potentialRiskFormDTO
 		return 0, err
 	}
 
-	potentialRiskStatus, err := prs.potentialRiskStatusSvc.GetByStatus("new")
+	potentialRiskStatus, err := prs.potentialRiskStatusSvc.GetByType("new")
 	if err != nil {
 		return 0, err
 	}
@@ -205,6 +206,26 @@ func (prs *PotentialRiskService) Delete(ids []uint, currentUserID uint) ([]uint,
 	}
 
 	return failedIds, nil
+}
+
+func (prs *PotentialRiskService) StatusUpdate(id uint, currentUserID uint, potentialRiskStatusID uint) error {
+	fmt.Println("Implementing GetPage", id)
+	existingPotentialRisk, err := prs.GetByID(id)
+
+	if err != nil {
+		return err
+	}
+
+	existingPotentialRisk.PotentialRiskStatusID = potentialRiskStatusID
+	existingPotentialRisk.UpdatedBy = &currentUserID
+
+	err = prs.repo.Update(existingPotentialRisk)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (prs *PotentialRiskService) validatePotentialRiskFormDTO(potentialRiskFormDTO *riskDTOs.PotentialRiskFormDTO, id *uint) error {
