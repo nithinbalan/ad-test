@@ -12,8 +12,8 @@ type IDResponse struct {
 }
 
 type FileDTO struct {
-	FileName     string `json:"fileName"`
-	OriginalName string `json:"originalName"`
-	FileType     string `json:"fileType"`
-	SizeInBytes  int64  `json:"sizeInBytes"`
+	FileName     string `json:"file_name"`
+	OriginalName string `json:"original_name"`
+	FileType     string `json:"type"`
+	SizeInBytes  int64  `json:"size"`
 }

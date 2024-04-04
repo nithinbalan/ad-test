@@ -3,11 +3,14 @@ package repositories
 import (
 	"errors"
 	"fmt"
+	"jethur/config"
 	commonDTOs "jethur/grc/common/dtos"
 	slaDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/models"
 	complianceModels "jethur/grc/compliance/models"
 	"jethur/utility"
+	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -21,14 +24,17 @@ type SLARegisterRepositoryInterface interface {
 	Create(slaRegister *complianceModels.SLARegister) (uint, error)
 	Update(slaRegister *complianceModels.SLARegister) error
 	Delete(id uint) error
+	GetIDsByLifecycleStatus(ids []uint, status string) ([]uint, error)
+	UpdateLifecycleStatusForIDs(ids []uint, statusId uint) ([]uint, error)
 	GenerateReferenceNumber() (string, error)
+
+	//Document
 	SaveSLADocument(doc *models.SLADocument) error
 	Renew(doc *models.SLADocument) error
 	GetSLADocumentByID(id uint) (*models.SLADocument, error)
 	GetLatestSLADocumentBySLARegisterID(id uint) (*models.SLADocument, error)
-	GetIDsByLifecycleStatus(ids []uint, status string) ([]uint, error)
-	UpdateLifecycleStatusForIDs(ids []uint, statusId uint) ([]uint, error)
-	SetIsLatestToFalseForRemainingDocuments(docID, registerID uint) error
+	StoreSLADocumentFile(slaID uint, fileName string) error
+	RemoveSLADocumentFile(id uint,slaID uint, fileNames ...string) error
 }
 
 // implementation
@@ -350,13 +356,6 @@ func (repo *SLARegisterRepository) GenerateReferenceNumber() (string, error) {
 	return newReferenceNumber, nil
 }
 
-func (repo *SLARegisterRepository) SaveSLADocument(doc *models.SLADocument) error {
-	if err := repo.db.Save(doc).Error; err != nil {
-		return err
-	}
-	return nil
-}
-
 func (repo *SLARegisterRepository) GetSLADocumentByID(id uint) (*models.SLADocument, error) {
 	var document models.SLADocument
 	if err := repo.db.Where("id = ?", id).First(&document).Error; err != nil {
@@ -375,12 +374,45 @@ func (repo *SLARegisterRepository) GetLatestSLADocumentBySLARegisterID(id uint) 
 	return &document, nil
 }
 
-func (repo *SLARegisterRepository) SetIsLatestToFalseForRemainingDocuments(docID, registerID uint) error {
-    // Set is_latest to false for remaining SLA documents associated with the same register
-    if err := repo.db.Model(&models.SLADocument{}).
-        Where("id != ? AND sla_register_id = ?", docID, registerID).
-        Update("is_latest", false).Error; err != nil {
-        return err
-    }
-    return nil
+func (repo *SLARegisterRepository) StoreSLADocumentFile(id uint, fileName string) error {
+
+	storagePath := config.GetEnv("STORAGE_PATH", "")
+	temporaryStoragePath := filepath.Join(storagePath, "tmp", fileName)
+	directoryPath := filepath.Join(storagePath, "compliance", "sla", strconv.FormatUint(uint64(id), 10), "document")
+	destinationPath := filepath.Join(directoryPath, fileName)
+	if err := os.MkdirAll(directoryPath, os.ModePerm); err != nil {
+		return err
+	}
+	if err := os.Rename(temporaryStoragePath, destinationPath); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *SLARegisterRepository) SaveSLADocument(doc *models.SLADocument) error {
+	if err := repo.db.Save(doc).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *SLARegisterRepository) RemoveSLADocumentFile(id uint,slaID uint, fileNames ...string) error {
+	var filePath string
+	storagePath := config.GetEnv("STORAGE_PATH", "")
+
+	if len(fileNames) > 0 && fileNames[0] != "" {
+		filePath = filepath.Join(storagePath, "compliance", "sla", strconv.FormatUint(uint64(slaID), 10), "document", fileNames[0])
+	} else {
+		slaDocument, err := repo.GetSLADocumentByID(id)
+		if err != nil {
+			return err
+		}
+		filePath = filepath.Join(storagePath, "compliance", "sla", strconv.FormatUint(uint64(slaID), 10), "document", slaDocument.Name)
+	}
+
+	if err := os.Remove(filePath); err != nil {
+		return err
+	}
+
+	return nil
 }

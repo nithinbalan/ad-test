@@ -5,16 +5,15 @@ import (
 	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	complianceModels "jethur/grc/compliance/models"
-	"jethur/utility"
 	"time"
 
 	"gorm.io/gorm"
 )
 
 type ComplianceRequirementRepositoryInterface interface {
-	GetAll(params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementListResponseDTO, error)
-	GetByID(complianceID uint, id uint) (*complianceModels.ComplianceRequirement, error)
-	GetFullDetailsByID(complianceID uint, id uint) (*complianceModels.ComplianceRequirement, error)
+	GetAll(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementListResponseDTO, error)
+	GetByID(id uint) (*complianceModels.ComplianceRequirement, error)
+	GetFullDetailsByID(id uint) (*complianceModels.ComplianceRequirement, error)
 	Create(complianceRequirement *complianceModels.ComplianceRequirement) (uint, error)
 	Update(complianceRequirement *complianceModels.ComplianceRequirement) error
 	Delete(id uint) error
@@ -33,8 +32,7 @@ func NewComplianceRequirementRepository(db *gorm.DB) *ComplianceRequirementRepos
 	}
 }
 
-func (repo *ComplianceRequirementRepository) GetAll(params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementListResponseDTO, error) {
-
+func (repo *ComplianceRequirementRepository) GetAll(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementListResponseDTO, error) {
 	var complianceRequirements []*complianceDTOs.ComplianceRequirementListDTO
 	var totalCount int64
 
@@ -72,7 +70,7 @@ func (repo *ComplianceRequirementRepository) GetAll(params *complianceDTOs.Compl
 			LEFT JOIN users AS created_user ON created_user.id = compliance_requirements.created_by
 			LEFT JOIN users AS updated_user ON updated_user.id = compliance_requirements.updated_by
 			LEFT JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id
-		`)
+		`).Where(`compliance_clauses.compliance_register_id`, complianceID)
 
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
@@ -162,20 +160,18 @@ func (repo *ComplianceRequirementRepository) GetAll(params *complianceDTOs.Compl
 	return response, nil
 }
 
-func (repo *ComplianceRequirementRepository) GetByID(complianceID uint, id uint) (*complianceModels.ComplianceRequirement, error) {
+func (repo *ComplianceRequirementRepository) GetByID(id uint) (*complianceModels.ComplianceRequirement, error) {
 	var complianceRequirement *complianceModels.ComplianceRequirement
 	result := repo.db.First(&complianceRequirement, id)
 
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, utility.NewResourceNotFoundError(result.Error, id)
-	} else if result.Error != nil {
+	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	return complianceRequirement, result.Error
+	return complianceRequirement, nil
 }
 
-func (repo *ComplianceRequirementRepository) GetFullDetailsByID(complianceId uint, id uint) (*complianceModels.ComplianceRequirement, error) {
+func (repo *ComplianceRequirementRepository) GetFullDetailsByID(id uint) (*complianceModels.ComplianceRequirement, error) {
 	var complianceRequirement *complianceModels.ComplianceRequirement
 
 	result := repo.db.
@@ -208,8 +204,8 @@ func (repo *ComplianceRequirementRepository) Update(complianceRequirement *compl
 }
 
 func (repo *ComplianceRequirementRepository) Delete(id uint) error {
-
 	var complianceRequirement *complianceModels.ComplianceRequirement
+
 	if err := repo.db.First(&complianceRequirement, id).Error; err != nil {
 		return err
 	}
@@ -224,7 +220,9 @@ func (repo *ComplianceRequirementRepository) Delete(id uint) error {
 
 func (repo *ComplianceRequirementRepository) GetOrCreateComplianceClause(complianceClause *complianceModels.ComplianceClause) (*complianceModels.ComplianceClause, error) {
 	var existingClause complianceModels.ComplianceClause
+
 	err := repo.db.Where("clause_no = ? AND title = ? AND compliance_register_id = ?", complianceClause.ClauseNo, complianceClause.Title, complianceClause.ComplianceRegisterID).First(&existingClause).Error
+
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			if err := repo.db.Create(complianceClause).Error; err != nil {
@@ -241,6 +239,7 @@ func (repo *ComplianceRequirementRepository) GetOrCreateComplianceClause(complia
 
 func (repo *ComplianceRequirementRepository) CountRequirementsByClauseID(clauseID uint) (int64, error) {
 	var count int64
+
 	if err := repo.db.Model(&complianceModels.ComplianceRequirement{}).Where("compliance_clause_id = ?", clauseID).Count(&count).Error; err != nil {
 		return 0, err
 	}
@@ -251,5 +250,6 @@ func (repo *ComplianceRequirementRepository) DeleteClause(clauseID uint) error {
 	if err := repo.db.Delete(&complianceModels.ComplianceClause{}, clauseID).Error; err != nil {
 		return err
 	}
+
 	return nil
 }
