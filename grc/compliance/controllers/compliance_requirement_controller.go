@@ -24,6 +24,13 @@ func NewComplianceRequirementController(service services.ComplianceRequirementSe
 }
 
 func (crc *ComplianceRequirementController) GetAllComplianceRequirements(c *gin.Context) {
+	complianceIDStr := c.Param("complianceId")
+
+	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
 
 	sort := c.Query("sort")
 	sortBy := c.Query("sort_by")
@@ -70,11 +77,17 @@ func (crc *ComplianceRequirementController) GetAllComplianceRequirements(c *gin.
 		DeadlineFrom: deadlineFrom,
 		DeadlineTo:   deadlineTo,
 	}
-	complianceRequirements, err := crc.service.GetAll(&queryParams)
+	complianceRequirements, err := crc.service.GetAll(uint(complianceID), &queryParams)
 
 	if err != nil {
-		utility.SendInternalErrResp(crc.db, c, err.Error())
-		return
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(crc.db, c, e.Error())
+			return
+		}
 	}
 	c.JSON(http.StatusOK, complianceRequirements)
 }
@@ -84,7 +97,7 @@ func (crc *ComplianceRequirementController) GetComplianceRequirementDetails(c *g
 
 	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
 	if err != nil {
-		utility.SendInternalErrResp(crc.db, c, "Invalid complianceId")
+		utility.SendNotFoundErrResp(c)
 		return
 	}
 
@@ -92,28 +105,33 @@ func (crc *ComplianceRequirementController) GetComplianceRequirementDetails(c *g
 
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
-		utility.SendInternalErrResp(crc.db, c, "Invalid id")
+		utility.SendNotFoundErrResp(c)
 		return
 	}
 
 	complianceRequirement, err := crc.service.GetFullDetailsByID(uint(complianceID), uint(id))
 	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(crc.db, c, e.Error())
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, complianceRequirement)
 }
 
 func (crc *ComplianceRequirementController) CreateComplianceRequirement(c *gin.Context) {
-
 	var ComplianceRequirementFormDTO complianceDTOs.ComplianceRequirementFormDTO
 
 	complianceIDStr := c.Param("complianceId")
 
 	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
 	if err != nil {
-		utility.SendInternalErrResp(crc.db, c, "Invalid complianceId")
+		utility.SendNotFoundErrResp(c)
 		return
 	}
 
@@ -148,24 +166,24 @@ func (crc *ComplianceRequirementController) CreateComplianceRequirement(c *gin.C
 }
 
 func (crc *ComplianceRequirementController) UpdateComplianceRequirement(c *gin.Context) {
+	var ComplianceRequirementFormDTO complianceDTOs.ComplianceRequirementFormDTO
 
 	complianceIDStr := c.Param("complianceId")
 
 	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
 	if err != nil {
-		utility.SendInternalErrResp(crc.db, c, "Invalid complianceId")
+		utility.SendNotFoundErrResp(c)
 		return
 	}
 
 	idStr := c.Param("id")
 
-	id, err := strconv.ParseUint(idStr, 10, 32)
+	id, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
-		utility.SendInternalErrResp(crc.db, c, "Invalid id")
+		utility.SendNotFoundErrResp(c)
 		return
 	}
 
-	var ComplianceRequirementFormDTO complianceDTOs.ComplianceRequirementFormDTO
 	if err := c.ShouldBindJSON(&ComplianceRequirementFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
@@ -196,6 +214,13 @@ func (crc *ComplianceRequirementController) UpdateComplianceRequirement(c *gin.C
 }
 
 func (crc *ComplianceRequirementController) DeleteComplianceRequirements(c *gin.Context) {
+	complianceIDStr := c.Param("complianceId")
+
+	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
 
 	var request struct {
 		IDs []uint `json:"ids"`
@@ -212,10 +237,16 @@ func (crc *ComplianceRequirementController) DeleteComplianceRequirements(c *gin.
 		return
 	}
 
-	failedIDs, err := crc.service.Delete(request.IDs, currentUserID)
+	failedIDs, err := crc.service.Delete(uint(complianceID), request.IDs, currentUserID)
 	if err != nil {
-		utility.SendInternalErrResp(crc.db, c, err.Error())
-		return
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(crc.db, c, e.Error())
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})

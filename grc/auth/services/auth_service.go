@@ -24,8 +24,8 @@ type AuthServiceInterface interface {
 	VerifyPasswordRecoveryOTP(email, otp string) (string, error)
 	SetPassword(setPasswordFormDTO authDTOs.PasswordRecoverySetPasswordFormDTO) error
 	MFAReSendOTP(email string, password string) error
-	MFAVerifyOTP(email string, password string, otp string) (map[string]string, error)
-	GetTokenFromRefreshToken(refreshToken string) (map[string]string, error)
+	MFAVerifyOTP(email string, password string, otp string) (*authDTOs.LoginResponseDTO, error)
+	GetTokenFromRefreshToken(refreshToken string) (*authDTOs.LoginResponseDTO, error)
 }
 
 // Service and implementations
@@ -64,7 +64,7 @@ func (as *AuthService) Authenticate(email string, password string) (*authDTOs.Lo
 
 	if userSecurity.IsMFA {
 		subject := "Verify Your Login: Your One-Time Password"
-		templateRelativePath := "auth/templates/email/send_mfa_otp.html"
+		templateRelativePath := "auth/templates/email/send_mfa_login_otp.html"
 		as.sendOTP(userSecurity, user, subject, templateRelativePath)
 		responseDTO.IsMFAEnabled = true
 	} else {
@@ -260,13 +260,13 @@ func (as AuthService) MFAReSendOTP(email string, password string) error {
 		return utility.NewValidationError(errors.New(errorMessage), "resend_not_yet_allowed", "resend_time")
 	}
 
-	subject := "MFA Verification Code"
-	templateRelativePath := "auth/templates/email/send_mfa_otp.html"
+	subject := "Verify Your Login: Your One-Time Password"
+	templateRelativePath := "auth/templates/email/send_mfa_login_otp.html"
 
 	return as.sendOTP(userSecurity, user, subject, templateRelativePath)
 }
 
-func (as *AuthService) MFAVerifyOTP(email, password, otp string) (map[string]string, error) {
+func (as *AuthService) MFAVerifyOTP(email, password, otp string) (*authDTOs.LoginResponseDTO, error) {
 
 	user, err := as.userService.GetByEmail(email)
 	if err != nil {
@@ -306,17 +306,17 @@ func (as *AuthService) MFAVerifyOTP(email, password, otp string) (map[string]str
 		return nil, utility.NewInternalServerError(err)
 	}
 
-	// Return both access and refresh tokens
-	authTokens := map[string]string{
-		"access_token":  accessToken,
-		"refresh_token": refreshToken,
+	responseDTO := &authDTOs.LoginResponseDTO{
+		AccessToken:  &accessToken,
+		RefreshToken: &refreshToken,
+		IsMFAEnabled: true,
 	}
 
-	return authTokens, nil
+	return responseDTO, nil
 
 }
 
-func (as *AuthService) GetTokenFromRefreshToken(refreshToken string) (map[string]string, error) {
+func (as *AuthService) GetTokenFromRefreshToken(refreshToken string) (*authDTOs.LoginResponseDTO, error) {
 
 	//generate access token
 
@@ -336,13 +336,13 @@ func (as *AuthService) GetTokenFromRefreshToken(refreshToken string) (map[string
 		return nil, utility.NewInternalServerError(err)
 	}
 
-	// Return both access and refresh tokens
-	authTokens := map[string]string{
-		"access_token":  accessToken,
-		"refresh_token": newRefreshToken,
+	responseDTO := &authDTOs.LoginResponseDTO{
+		AccessToken:  &accessToken,
+		RefreshToken: &newRefreshToken,
+		IsMFAEnabled: false,
 	}
 
-	return authTokens, nil
+	return responseDTO, nil
 
 }
 
