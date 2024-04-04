@@ -165,7 +165,7 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 		return err
 	}
 
-	existingComplianceActionPlan, err := caps.repo.GetByID(id)
+	existingComplianceActionPlan, err := caps.GetByID(complianceID, id)
 
 	if err != nil {
 		return err

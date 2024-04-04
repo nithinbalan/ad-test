@@ -12,8 +12,8 @@ import (
 
 type ComplianceRequirementRepositoryInterface interface {
 	GetAll(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementListResponseDTO, error)
-	GetByID(complianceID uint, id uint) (*complianceModels.ComplianceRequirement, error)
-	GetFullDetailsByID(complianceID uint, id uint) (*complianceModels.ComplianceRequirement, error)
+	GetByID(id uint) (*complianceModels.ComplianceRequirement, error)
+	GetFullDetailsByID(id uint) (*complianceModels.ComplianceRequirement, error)
 	Create(complianceRequirement *complianceModels.ComplianceRequirement) (uint, error)
 	Update(complianceRequirement *complianceModels.ComplianceRequirement) error
 	Delete(id uint) error
@@ -70,7 +70,7 @@ func (repo *ComplianceRequirementRepository) GetAll(complianceID uint, params *c
 			LEFT JOIN users AS created_user ON created_user.id = compliance_requirements.created_by
 			LEFT JOIN users AS updated_user ON updated_user.id = compliance_requirements.updated_by
 			LEFT JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id
-		`).Where(`compliance_clauses.compliance_register_id`, 1)
+		`).Where(`compliance_clauses.compliance_register_id`, complianceID)
 
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
@@ -160,7 +160,7 @@ func (repo *ComplianceRequirementRepository) GetAll(complianceID uint, params *c
 	return response, nil
 }
 
-func (repo *ComplianceRequirementRepository) GetByID(complianceID uint, id uint) (*complianceModels.ComplianceRequirement, error) {
+func (repo *ComplianceRequirementRepository) GetByID(id uint) (*complianceModels.ComplianceRequirement, error) {
 	var complianceRequirement *complianceModels.ComplianceRequirement
 	result := repo.db.First(&complianceRequirement, id)
 
@@ -171,7 +171,7 @@ func (repo *ComplianceRequirementRepository) GetByID(complianceID uint, id uint)
 	return complianceRequirement, nil
 }
 
-func (repo *ComplianceRequirementRepository) GetFullDetailsByID(complianceId uint, id uint) (*complianceModels.ComplianceRequirement, error) {
+func (repo *ComplianceRequirementRepository) GetFullDetailsByID(id uint) (*complianceModels.ComplianceRequirement, error) {
 	var complianceRequirement *complianceModels.ComplianceRequirement
 
 	result := repo.db.
