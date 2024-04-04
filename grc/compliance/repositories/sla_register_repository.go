@@ -24,14 +24,16 @@ type SLARegisterRepositoryInterface interface {
 	Create(slaRegister *complianceModels.SLARegister) (uint, error)
 	Update(slaRegister *complianceModels.SLARegister) error
 	Delete(id uint) error
+	GetIDsByLifecycleStatus(ids []uint, status string) ([]uint, error)
+	UpdateLifecycleStatusForIDs(ids []uint, statusId uint) ([]uint, error)
 	GenerateReferenceNumber() (string, error)
+
+	//Document
 	SaveSLADocument(doc *models.SLADocument) error
 	GetSLADocumentByID(id uint) (*models.SLADocument, error)
 	GetLatestSLADocumentBySLARegisterID(id uint) (*models.SLADocument, error)
-	GetIDsByLifecycleStatus(ids []uint, status string) ([]uint, error)
-	UpdateLifecycleStatusForIDs(ids []uint, statusId uint) ([]uint, error)
-	SaveSLADocumentFile(slaID uint, fileName string) error
-	DeleteSLADocumentFile(id uint) error
+	StoreSLADocumentFile(slaID uint, fileName string) error
+	RemoveSLADocumentFile(id uint, fileNames ...string) error
 }
 
 // implementation
@@ -345,8 +347,6 @@ func (repo *SLARegisterRepository) GenerateReferenceNumber() (string, error) {
 	return newReferenceNumber, nil
 }
 
-//Documents
-
 func (repo *SLARegisterRepository) GetSLADocumentByID(id uint) (*models.SLADocument, error) {
 	var document models.SLADocument
 	if err := repo.db.Where("id = ?", id).First(&document).Error; err != nil {
@@ -365,15 +365,13 @@ func (repo *SLARegisterRepository) GetLatestSLADocumentBySLARegisterID(id uint) 
 	return &document, nil
 }
 
-func (repo *SLARegisterRepository) SaveSLADocumentFile(id uint, fileName string) error {
+func (repo *SLARegisterRepository) StoreSLADocumentFile(id uint, fileName string) error {
 
 	storagePath := config.GetEnv("STORAGE_PATH", "")
 	temporaryStoragePath := filepath.Join(storagePath, "tmp", fileName)
 	directoryPath := filepath.Join(storagePath, "compliance", "sla", strconv.FormatUint(uint64(id), 10), "document")
 	destinationPath := filepath.Join(directoryPath, fileName)
-	// Create the destination directory if it doesn't exist
 	if err := os.MkdirAll(directoryPath, os.ModePerm); err != nil {
-		fmt.Println("Failed to rename file:")
 		return err
 	}
 	if err := os.Rename(temporaryStoragePath, destinationPath); err != nil {
@@ -389,18 +387,20 @@ func (repo *SLARegisterRepository) SaveSLADocument(doc *models.SLADocument) erro
 	return nil
 }
 
-func (repo *SLARegisterRepository) DeleteSLADocumentFile(id uint) error {
-	// Fetch the SLA document by ID
-	slaDocument, err := repo.GetSLADocumentByID(id)
-	if err != nil {
-		return err
+func (repo *SLARegisterRepository) RemoveSLADocumentFile(id uint, fileNames ...string) error {
+	var filePath string
+	storagePath := config.GetEnv("STORAGE_PATH", "")
+
+	if len(fileNames) > 0 && fileNames[0] != "" {
+		filePath = filepath.Join(storagePath, "compliance", "sla", strconv.FormatUint(uint64(id), 10), "document", fileNames[0])
+	} else {
+		slaDocument, err := repo.GetSLADocumentByID(id)
+		if err != nil {
+			return err
+		}
+		filePath = filepath.Join(storagePath, "compliance", "sla", strconv.FormatUint(uint64(slaDocument.SLARegisterID), 10), "document", slaDocument.Name)
 	}
 
-	// Determine the path of the file to delete
-	storagePath := config.GetEnv("STORAGE_PATH", "")
-	filePath := filepath.Join(storagePath, "compliance", "sla", strconv.FormatUint(uint64(slaDocument.SLARegisterID), 10), "document", slaDocument.Name)
-
-	// Delete the file from storage
 	if err := os.Remove(filePath); err != nil {
 		return err
 	}
