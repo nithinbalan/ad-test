@@ -8,7 +8,7 @@ import (
 type PotentialRiskStatusServiceInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.PotentialRiskStatus, error)
 	GetByID(id uint) (*models.PotentialRiskStatus, error)
-	GetByStatus(status string) (*models.PotentialRiskStatus, error)
+	GetByType(status string) (*models.PotentialRiskStatus, error)
 }
 
 // Service and implementations
@@ -30,9 +30,9 @@ func (prss PotentialRiskStatusService) GetByID(id uint) (*models.PotentialRiskSt
 	return prss.repo.GetByID(id)
 }
 
-func (prss *PotentialRiskStatusService) GetByStatus(status string) (*models.PotentialRiskStatus, error) {
+func (prss *PotentialRiskStatusService) GetByType(status string) (*models.PotentialRiskStatus, error) {
 	// Fetch the potential risk status by its status
-	statusResult, err := prss.repo.GetByStatus(status)
+	statusResult, err := prss.repo.GetByType(status)
 	if err != nil {
 		// Handle error appropriately
 		return nil, err
