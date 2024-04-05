@@ -64,7 +64,7 @@ func (klc *KRILibraryController) GetKRILibraryDetails(c *gin.Context) {
 
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
-		utility.SendInternalErrResp(klc.db, c, "Invalid id")
+		utility.SendNotFoundErrResp(c)
 		return
 	}
 
