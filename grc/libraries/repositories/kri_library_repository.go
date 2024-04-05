@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"errors"
 	commonDTOs "jethur/grc/common/dtos"
 	libraryDTOs "jethur/grc/libraries/dtos"
 	"jethur/grc/libraries/models"
@@ -106,13 +107,15 @@ func (repo *KRILibraryRepository) GetByID(id uint) (*models.KRILibrary, error) {
 
 	result := repo.db.
 		Preload("KRICategory").
-		// Preload("ReviewFrequency").
+		Preload("ReviewFrequency").
 		First(&kriLibrary, id)
 
-	if result.Error != nil {
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, utility.NewResourceNotFoundError(result.Error, id)
+	} else if result.Error != nil {
 		return nil, result.Error
 	}
-	return kriLibrary, nil
+	return kriLibrary, result.Error
 
 }
 
