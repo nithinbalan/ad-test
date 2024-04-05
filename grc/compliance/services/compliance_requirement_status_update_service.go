@@ -86,10 +86,10 @@ func (crsus *ComplianceRequirementStatusUpdateService) Create(ComplianceID uint,
 		return 0, err
 	}
 
-	// err = crsus.complianceRequirementSvc.StatusUpdate(ComplianceRequirementID, currentUserID, complianceRequirementStatusUpdateFormDTO.ComplianceStatusID)
-	// if err != nil {
-	// 	return 0, err
-	// }
+	err = crsus.complianceRequirementSvc.StatusUpdate(ComplianceID, ComplianceRequirementID, currentUserID, complianceRequirementStatusUpdateFormDTO.ComplianceStatusID)
+	if err != nil {
+		return 0, err
+	}
 
 	go func() {
 		err := crsus.activityLogSvc.LogActivity(
@@ -143,10 +143,10 @@ func (crsus *ComplianceRequirementStatusUpdateService) Update(ComplianceID uint,
 		return err
 	}
 
-	// err = crsus.complianceRequirementSvc.StatusUpdate(ComplianceID, ComplianceRequirementID, currentUserID, ComplianceRequirementStatusUpdateFormDTO.ComplianceStatusID)
-	// if err != nil {
-	// 	return err
-	// }
+	err = crsus.complianceRequirementSvc.StatusUpdate(ComplianceID, ComplianceRequirementID, currentUserID, ComplianceRequirementStatusUpdateFormDTO.ComplianceStatusID)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
