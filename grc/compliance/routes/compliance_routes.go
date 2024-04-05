@@ -26,6 +26,9 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	lifecycleStatusRepo := masterRepositories.NewLifecycleStatusRepository(db)
 	lifecycleStatusSvc := masterServices.NewLifecycleStatusService(lifecycleStatusRepo)
 
+	actionPlanStatusRepo := masterRepositories.NewActionPlanStatusRepository(db)
+	actionPlanStatusSvc := masterServices.NewActionPlanStatusService(actionPlanStatusRepo)
+
 	reviewFrequencyRepo := masterRepositories.NewReviewFrequencyRepository(db)
 	reviewFrequencySvc := masterServices.NewReviewFrequencyService(reviewFrequencyRepo)
 
@@ -55,6 +58,28 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	complianceRequirementCategoryRepo := complianceRepositories.NewComplianceRequirementCategoryRepository(db)
 	complianceRequirementCategorySvc := complianceServices.NewComplianceRequirementCategoryService(complianceRequirementCategoryRepo, activityLogSvc)
 	complianceRequirementCategoryController := controllers.NewComplianceRequirementCategoryController(complianceRequirementCategorySvc)
+
+	complianceRequirementRepo := complianceRepositories.NewComplianceRequirementRepository(db)
+	complianceRequirementSvc := complianceServices.NewComplianceRequirementService(
+		complianceRequirementRepo,
+		activityLogSvc,
+		complianceRegisterSvc,
+		complianceRequirementCategorySvc,
+		complianceStatusSvc,
+		severityLevelSvc,
+	)
+	complianceRequirementController := controllers.NewComplianceRequirementController(complianceRequirementSvc)
+
+	complianceActionPlanRepo := complianceRepositories.NewComplianceActionPlanRepository(db)
+	complianceActionPlanSvc := complianceServices.NewComplianceActionPlanService(
+		complianceActionPlanRepo,
+		activityLogSvc,
+		complianceRegisterSvc,
+		complianceRequirementSvc,
+		actionPlanStatusSvc,
+		severityLevelSvc,
+	)
+	complianceActionPlanController := controllers.NewComplianceActionPlanController(complianceActionPlanSvc)
 
 	SLACategoryRepo := complianceRepositories.NewSLACategoryRepository(db)
 	SLACategorySvc := complianceServices.NewSLACategoryService(SLACategoryRepo, activityLogSvc)
@@ -94,4 +119,32 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	complianceRoutes.POST("/compliance-register/delete", complianceRegisterController.DeleteComplianceRegisters)
 	complianceRoutes.PUT("/compliance-register/archive", complianceRegisterController.ArchiveComplianceRegisters)
 	complianceRoutes.PUT("/compliance-register/restore", complianceRegisterController.RestoreComplianceRegisters)
+	//SLA Register
+	SLARepo := complianceRepositories.NewSLARegisterRepository(db)
+	SLASvc := complianceServices.NewSLARegisterService(SLARepo,
+		SLACategorySvc,
+		severityLevelSvc,
+		lifecycleStatusSvc,
+		activityLogSvc)
+	SLARegController := controllers.NewSLARegisterController(SLASvc)
+
+	complianceRoutes.GET("/sla-registers", SLARegController.GetAllSLARegisters)
+	complianceRoutes.GET("/sla-registers/:id", SLARegController.GetSLARegisterDetails)
+	complianceRoutes.POST("/sla-registers", SLARegController.CreateSLARegister)
+	complianceRoutes.PUT("/sla-registers/:id", SLARegController.UpdateSLARegister)
+	complianceRoutes.POST("/sla-registers/delete", SLARegController.DeleteSLARegisters)
+	complianceRoutes.PUT("/sla-registers/archive", SLARegController.ArchiveSLARegisters)
+	complianceRoutes.PUT("/sla-registers/restore", SLARegController.RestoreSLARegisters)
+
+	complianceRoutes.GET("/compliances/:complianceId/requirements", complianceRequirementController.GetAllComplianceRequirements)
+	complianceRoutes.GET("/compliances/:complianceId/requirements/:id", complianceRequirementController.GetComplianceRequirementDetails)
+	complianceRoutes.POST("/compliances/:complianceId/requirements", complianceRequirementController.CreateComplianceRequirement)
+	complianceRoutes.PUT("/compliances/:complianceId/requirements/:id", complianceRequirementController.UpdateComplianceRequirement)
+	complianceRoutes.POST("/compliances/:complianceId/requirements/delete", complianceRequirementController.DeleteComplianceRequirements)
+
+	complianceRoutes.GET("/compliances/:complianceId/action-plans", complianceActionPlanController.GetAllComplianceActionPlans)
+	complianceRoutes.GET("/compliances/:complianceId/action-plans/:id", complianceActionPlanController.GetComplianceActionPlanDetails)
+	complianceRoutes.POST("/compliances/:complianceId/action-plans", complianceActionPlanController.CreateComplianceActionPlan)
+	complianceRoutes.PUT("/compliances/:complianceId/action-plans/:id", complianceActionPlanController.UpdateComplianceActionPlan)
+	complianceRoutes.POST("/compliances/:complianceId/action-plans/delete", complianceActionPlanController.DeleteComplianceActionPlans)
 }

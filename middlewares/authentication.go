@@ -1,6 +1,7 @@
 package middlewares
 
 import (
+	"fmt"
 	"jethur/utility"
 	"strings"
 
@@ -26,6 +27,7 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		claims, err := utility.VerifyToken(tokenString)
 		if err != nil {
+			fmt.Println(err)
 			utility.SendUnauthorizedErrResp(c, "invalid token")
 			c.Abort()
 			return
