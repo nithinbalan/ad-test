@@ -46,6 +46,10 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	)
 	potentialRiskController := controllers.NewPotentialRiskController(potentialRiskSvc)
 
+	potentialRiskStatusUpdateRepo := riskRepositories.NewPotentialRiskStatusUpdateRepository(db)
+	potentialRiskStatusUpdateSvc := riskServices.NewPotentialRiskStatusUpdateService(potentialRiskStatusUpdateRepo, activityLogSvc, potentialRiskSvc, potentialRiskStatusSvc)
+	potentialRiskStatusUpdateController := controllers.NewPotentialRiskStatusUpdateController(potentialRiskStatusUpdateSvc)
+
 	riskRoutes.GET("/risk-categories", riskCategoryController.GetAllRiskCategories)
 	riskRoutes.GET("/risk-categories/:id", riskCategoryController.GetRiskCategoryDetails)
 	riskRoutes.POST("/risk-categories", riskCategoryController.CreateRiskCategory)
@@ -62,5 +66,8 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	riskRoutes.POST("/potential-risks", potentialRiskController.CreatePotentialRisk)
 	riskRoutes.PUT("/potential-risks/:id", potentialRiskController.UpdatePotentialRisk)
 	riskRoutes.POST("/potential-risks/delete", potentialRiskController.DeletePotentialRisks)
+
+	riskRoutes.GET("/potential-risks/:id/status-updates", potentialRiskStatusUpdateController.GetAllPotentialRiskStatusUpdates)
+	riskRoutes.POST("/potential-risks/:id/status-updates", potentialRiskStatusUpdateController.CreatePotentialRiskStatusUpdate)
 
 }

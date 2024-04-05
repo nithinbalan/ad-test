@@ -12,7 +12,7 @@ import (
 type PotentialRiskStatusRepositoryInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.PotentialRiskStatus, error)
 	GetByID(id uint) (*models.PotentialRiskStatus, error)
-	GetByStatus(status string) (*models.PotentialRiskStatus, error)
+	GetByType(status string) (*models.PotentialRiskStatus, error)
 }
 
 // Implementation
@@ -64,7 +64,7 @@ func (repo *PotentialRiskStatusRepository) GetByID(id uint) (*models.PotentialRi
 	return potentialRiskStatus, result.Error
 }
 
-func (repo *PotentialRiskStatusRepository) GetByStatus(status string) (*models.PotentialRiskStatus, error) {
+func (repo *PotentialRiskStatusRepository) GetByType(status string) (*models.PotentialRiskStatus, error) {
 	var potentialRiskStatus *models.PotentialRiskStatus
 
 	result := repo.db.Where("type = ?", status).First(&potentialRiskStatus)

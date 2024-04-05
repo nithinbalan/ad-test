@@ -81,6 +81,10 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	)
 	complianceActionPlanController := controllers.NewComplianceActionPlanController(complianceActionPlanSvc)
 
+	complianceStatusUpdateRepo := complianceRepositories.NewComplianceStatusUpdateRepository(db)
+	complianceStatusUpdateSvc := complianceServices.NewComplianceStatusUpdateService(complianceStatusUpdateRepo, activityLogSvc, complianceRegisterSvc, complianceStatusSvc)
+	complianceStatusUpdateController := controllers.NewComplianceStatusUpdateController(complianceStatusUpdateSvc)
+
 	SLACategoryRepo := complianceRepositories.NewSLACategoryRepository(db)
 	SLACategorySvc := complianceServices.NewSLACategoryService(SLACategoryRepo, activityLogSvc)
 	SLACategoryController := controllers.NewSLACategoryController(SLACategorySvc)
@@ -156,4 +160,8 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	complianceRoutes.POST("/compliances/:complianceId/action-plans", complianceActionPlanController.CreateComplianceActionPlan)
 	complianceRoutes.PUT("/compliances/:complianceId/action-plans/:id", complianceActionPlanController.UpdateComplianceActionPlan)
 	complianceRoutes.POST("/compliances/:complianceId/action-plans/delete", complianceActionPlanController.DeleteComplianceActionPlans)
+
+	complianceRoutes.GET("/compliances/:complianceId/status-updates", complianceStatusUpdateController.GetAllComplianceStatusUpdates)
+	complianceRoutes.POST("/compliances/:complianceId/status-updates", complianceStatusUpdateController.CreateComplianceStatusUpdate)
+	complianceRoutes.PUT("/compliances/:complianceId/status-updates/:id", complianceStatusUpdateController.UpdateComplianceStatusUpdate)
 }
