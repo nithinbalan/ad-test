@@ -25,9 +25,9 @@ func NewComplianceStatusUpdateController(service services.ComplianceStatusUpdate
 
 func (csuc *ComplianceStatusUpdateController) GetAllComplianceStatusUpdates(c *gin.Context) {
 
-	idStr := c.Param("id")
+	complianceIdStr := c.Param("complianceId")
 
-	id, err := strconv.ParseUint(idStr, 10, 32)
+	complianceId, err := strconv.ParseUint(complianceIdStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -37,11 +37,17 @@ func (csuc *ComplianceStatusUpdateController) GetAllComplianceStatusUpdates(c *g
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 
-	complianceStatuses, err := csuc.service.GetAll(uint(id), sort, sortBy, keyword)
+	complianceStatuses, err := csuc.service.GetAll(uint(complianceId), sort, sortBy, keyword)
 
 	if err != nil {
-		utility.SendInternalErrResp(csuc.db, c, err.Error())
-		return
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(csuc.db, c, e.Error())
+			return
+		}
 	}
 	c.JSON(http.StatusOK, complianceStatuses)
 }
@@ -50,8 +56,9 @@ func (csuc *ComplianceStatusUpdateController) CreateComplianceStatusUpdate(c *gi
 
 	var complianceStatusUpdateFormDTO complianceDTOs.ComplianceStatusUpdateFormDTO
 
-	idStr := c.Param("id")
-	id, err := strconv.ParseUint(idStr, 10, 32)
+	complianceIdStr := c.Param("complianceId")
+
+	complianceId, err := strconv.ParseUint(complianceIdStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -68,10 +75,13 @@ func (csuc *ComplianceStatusUpdateController) CreateComplianceStatusUpdate(c *gi
 		return
 	}
 
-	createdID, err := csuc.service.Create(uint(id), currentUserID, &complianceStatusUpdateFormDTO)
+	createdID, err := csuc.service.Create(uint(complianceId), currentUserID, &complianceStatusUpdateFormDTO)
 
 	if err != nil {
 		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
 			return
@@ -82,4 +92,52 @@ func (csuc *ComplianceStatusUpdateController) CreateComplianceStatusUpdate(c *gi
 	}
 
 	c.JSON(http.StatusCreated, commonDTOs.IDResponse{ID: createdID})
+}
+
+func (csuc *ComplianceStatusUpdateController) UpdateComplianceStatusUpdate(c *gin.Context) {
+	var complianceStatusUpdateFormDTO complianceDTOs.ComplianceStatusUpdateFormDTO
+
+	complianceIDStr := c.Param("complianceId")
+
+	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	idStr := c.Param("id")
+
+	id, err := strconv.ParseUint(idStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&complianceStatusUpdateFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(csuc.db, c, err.Error())
+		return
+	}
+
+	err = csuc.service.Update(uint(complianceID), uint(id), currentUserID, &complianceStatusUpdateFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(csuc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
 }
