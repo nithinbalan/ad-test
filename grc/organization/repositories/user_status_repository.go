@@ -12,7 +12,7 @@ import (
 type UserStatusRepositoryInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.UserStatus, error)
 	GetByID(id uint) (*models.UserStatus, error)
-	GetByStatus(status string) (*models.UserStatus, error)
+	GetByType(status string) (*models.UserStatus, error)
 }
 
 // implementation
@@ -65,7 +65,7 @@ func (repo *UserStatusRepository) GetByID(id uint) (*models.UserStatus, error) {
 	return status, result.Error
 }
 
-func (repo *UserStatusRepository) GetByStatus(status string) (*models.UserStatus, error) {
+func (repo *UserStatusRepository) GetByType(status string) (*models.UserStatus, error) {
 	var userStatus *models.UserStatus
 
 	result := repo.db.Where("status = ?", status).First(&userStatus)

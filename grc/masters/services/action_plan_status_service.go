@@ -8,7 +8,7 @@ import (
 type ActionPlanStatusServiceInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ActionPlanStatus, error)
 	GetByID(id uint) (*models.ActionPlanStatus, error)
-	GetByStatus(status string) (*models.ActionPlanStatus, error)
+	GetByType(status string) (*models.ActionPlanStatus, error)
 }
 
 // Service and implementations
@@ -30,9 +30,9 @@ func (apss ActionPlanStatusService) GetByID(id uint) (*models.ActionPlanStatus, 
 	return apss.repo.GetByID(id)
 }
 
-func (apss *ActionPlanStatusService) GetByStatus(status string) (*models.ActionPlanStatus, error) {
+func (apss *ActionPlanStatusService) GetByType(status string) (*models.ActionPlanStatus, error) {
 	// Fetch the action plan status by its status
-	statusResult, err := apss.repo.GetByStatus(status)
+	statusResult, err := apss.repo.GetByType(status)
 	if err != nil {
 		// Handle error appropriately
 		return nil, err

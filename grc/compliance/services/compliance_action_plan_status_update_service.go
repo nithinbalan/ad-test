@@ -85,10 +85,10 @@ func (casus *ComplianceActionPlanStatusUpdateService) Create(ComplianceID uint, 
 		return 0, err
 	}
 
-	// err = casus.complianceActionPlanSvc.StatusUpdate(ComplianceID, ComplianceActionPlanID, currentUserID, complianceActionPlanStatusUpdateFormDTO.ComplianceStatusID)
-	// if err != nil {
-	// 	return 0, err
-	// }
+	err = casus.complianceActionPlanSvc.StatusUpdate(ComplianceID, ComplianceActionPlanID, currentUserID, complianceActionPlanStatusUpdateFormDTO.ComplianceStatusID)
+	if err != nil {
+		return 0, err
+	}
 
 	go func() {
 		err := casus.activityLogSvc.LogActivity(
@@ -142,10 +142,10 @@ func (casus *ComplianceActionPlanStatusUpdateService) Update(ComplianceID uint, 
 		return err
 	}
 
-	// err = casus.complianceActionPlanSvc.StatusUpdate(ComplianceID, ComplianceActionPlanID, currentUserID, ComplianceActionPlanStatusUpdateFormDTO.ComplianceStatusID)
-	// if err != nil {
-	// 	return err
-	// }
+	err = casus.complianceActionPlanSvc.StatusUpdate(ComplianceID, ComplianceActionPlanID, currentUserID, ComplianceActionPlanStatusUpdateFormDTO.ComplianceStatusID)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
