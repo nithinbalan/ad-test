@@ -64,7 +64,7 @@ func (crs ComplianceRequirementService) GetByID(complianceID uint, id uint) (*co
 		return nil, err
 	}
 
-	complianceRequirement, err := crs.repo.GetByID(complianceID, id)
+	complianceRequirement, err := crs.repo.GetByID(id)
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -82,7 +82,7 @@ func (crs ComplianceRequirementService) GetFullDetailsByID(complianceID uint, id
 
 	var complianceRequirementDTO complianceDTOs.ComplianceRequirementDetailDTO
 
-	complianceRequirement, err := crs.repo.GetFullDetailsByID(complianceID, id)
+	complianceRequirement, err := crs.repo.GetFullDetailsByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -90,7 +90,7 @@ func (crs ComplianceRequirementService) GetFullDetailsByID(complianceID uint, id
 		return nil, err
 	}
 
-	// Map the result to your DTO
+	// Map the result to DTO
 	err = mapstructure.Decode(complianceRequirement, &complianceRequirementDTO)
 	if err != nil {
 		return nil, err
@@ -174,7 +174,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 		return err
 	}
 
-	existingComplianceRequirement, err := crs.repo.GetByID(complianceID, id)
+	existingComplianceRequirement, err := crs.GetByID(complianceID, id)
 
 	if err != nil {
 		return err
@@ -231,7 +231,7 @@ func (crs *ComplianceRequirementService) Delete(complianceID uint, ids []uint, c
 	clauseIDsToDelete := make(map[uint]bool)
 
 	for _, id := range ids {
-		req, err := crs.repo.GetByID(complianceID, id)
+		req, err := crs.repo.GetByID(id)
 		if err != nil {
 			failedIds = append(failedIds, id)
 			continue
