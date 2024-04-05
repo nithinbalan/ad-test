@@ -152,3 +152,40 @@ func (spc *StrategicProfileController) UpdateMission(c *gin.Context) {
 	c.Status(http.StatusOK)
 
 }
+
+func (spc *StrategicProfileController) UpdateValue(c *gin.Context) {
+	strategicProfileID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	var strategicProfileValueFormDTOs []*organizationDTOs.StrategicProfileValueFormDTO
+	if err := c.ShouldBindJSON(&strategicProfileValueFormDTOs); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	strategicProfileValueFormDTOPointers := make([]*organizationDTOs.StrategicProfileValueFormDTO, len(strategicProfileValueFormDTOs))
+	for i := range strategicProfileValueFormDTOs {
+		strategicProfileValueFormDTOPointers[i] = strategicProfileValueFormDTOs[i]
+	}
+
+	err = spc.service.UpdateValue(uint(strategicProfileID), strategicProfileValueFormDTOPointers)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(spc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}

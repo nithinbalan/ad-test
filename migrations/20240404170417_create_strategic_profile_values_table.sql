@@ -6,7 +6,7 @@ CREATE TABLE strategic_profile_values (
     title_en VARCHAR(255) NOT NULL,
     title_ar NVARCHAR(255) NOT NULL,
     description_en VARCHAR(500),
-    description_ar VARCHAR(500),
+    description_ar NVARCHAR(500),
     created_at DATETIME NOT NULL,
     updated_at DATETIME,
     CONSTRAINT FK_strategic_profile_values_strategic_profile_id FOREIGN KEY (strategic_profile_id) REFERENCES strategic_profiles(id)

@@ -30,4 +30,6 @@ type StrategicProfile struct {
 	// Relationships
 	CreatedByUser User  `gorm:"foreignKey:CreatedBy"`
 	UpdatedByUser *User `gorm:"foreignKey:UpdatedBy"` // Pointer for nullable relationship
+
+	StrategicProfileValues []StrategicProfileValue `json:"strategic_profile_values" gorm:"foreignKey:StrategicProfileID"`
 }

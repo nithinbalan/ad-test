@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"strings"
 
+	organizationModels "jethur/grc/organization/models"
 	organizationRepositories "jethur/grc/organization/repositories"
 
 	"github.com/mitchellh/mapstructure"
@@ -19,6 +20,7 @@ type StrategicProfileServiceInterface interface {
 	Update(id uint, currentUserID uint, strategicProfile *organizationDTOs.StrategicProfileFormDTO) error
 	UpdateVision(id uint, currentUserID uint, strategicProfileVision *organizationDTOs.StrategicProfileVisionFormDTO) error
 	UpdateMission(id uint, currentUserID uint, strategicProfileMission *organizationDTOs.StrategicProfileMisionFormDTO) error
+	UpdateValue(id uint, strategicProfileValues []*organizationDTOs.StrategicProfileValueFormDTO) error
 }
 
 type StrategicProfileService struct {
@@ -49,6 +51,16 @@ func (sps *StrategicProfileService) GetStrategicProfile() (*organizationDTOs.Str
 	err = mapstructure.Decode(strategicProfile, &strategicProfileDTO)
 	if err != nil {
 		return nil, err
+	}
+
+	for _, value := range strategicProfile.StrategicProfileValues {
+		var valueDTO organizationDTOs.StrategicProfileValueFormDTO
+		err := mapstructure.Decode(value, &valueDTO)
+		if err != nil {
+			return nil, err // Handle error appropriately
+		}
+
+		strategicProfileDTO.Values = append(strategicProfileDTO.Values, valueDTO)
 	}
 
 	//todo :- also add extra fields which required in details screen
@@ -133,6 +145,45 @@ func (sps *StrategicProfileService) UpdateMission(id uint, currentUserID uint, s
 
 	return nil
 
+}
+
+func (sps *StrategicProfileService) UpdateValue(strategicProfileID uint, strategicProfileValuesDTO []*organizationDTOs.StrategicProfileValueFormDTO) error {
+	seenTitlesEn := make(map[string]bool)
+	seenTitlesAr := make(map[string]bool)
+
+	var values []*organizationModels.StrategicProfileValue
+	for _, dto := range strategicProfileValuesDTO {
+
+		if _, found := seenTitlesEn[dto.TitleEn]; found {
+			return utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title_en")
+		}
+		seenTitlesEn[dto.TitleEn] = true
+
+		if _, found := seenTitlesAr[dto.TitleAr]; found {
+			return utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title_ar")
+		}
+		seenTitlesAr[dto.TitleAr] = true
+
+		value := &organizationModels.StrategicProfileValue{}
+
+		if dto.ID != nil {
+			value.ID = *dto.ID // Existing record
+		}
+		value.StrategicProfileID = strategicProfileID
+		value.TitleEn = dto.TitleEn
+		value.TitleAr = dto.TitleAr
+		value.DescriptionEn = dto.DescriptionEn
+		value.DescriptionAr = dto.DescriptionAr
+
+		values = append(values, value)
+
+	}
+	err := sps.repo.UpdateValue(strategicProfileID, values)
+	if err != nil {
+		return err
+	}
+	//@todo- activity log need to capture
+	return nil
 }
 
 func (us *StrategicProfileService) validateStrategicProfileFormDTO(strategicProfileDTO *organizationDTOs.StrategicProfileFormDTO) error {
