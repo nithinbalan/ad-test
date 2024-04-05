@@ -40,8 +40,14 @@ func (prsuc *PotentialRiskStatusUpdateController) GetPotentialRiskStatusUpdateHi
 	potentialRiskStatuses, err := prsuc.service.GetAll(uint(id), sort, sortBy, keyword)
 
 	if err != nil {
-		utility.SendInternalErrResp(prsuc.db, c, err.Error())
-		return
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(prsuc.db, c, e.Error())
+			return
+		}
 	}
 	c.JSON(http.StatusOK, potentialRiskStatuses)
 }
@@ -73,6 +79,9 @@ func (prsuc *PotentialRiskStatusUpdateController) CreatePotentialRiskStatusUpdat
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ResourceNotFoundError:
 			utility.SendInvalidErrResp(c, e)
 			return
 		default:

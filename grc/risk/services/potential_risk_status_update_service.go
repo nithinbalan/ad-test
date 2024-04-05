@@ -12,7 +12,7 @@ import (
 
 type PotentialRiskStatusUpdateServiceInterface interface {
 	GetAll(potentialRiskID uint, sort string, sortBy string, keyword string) ([]*riskDTOs.PotentialRiskStatusUpdateListDTO, error)
-	Create(potentialRiskID uint, currentUserID uint, potentialRiskStatusUpdateFormDTO *riskDTOs.PotentialRiskStatusUpdateFormDTO) (uint, error)
+	Create(potentialRiskID uint, currentUserID uint, statusUpdateFormDTO *riskDTOs.PotentialRiskStatusUpdateFormDTO) (uint, error)
 }
 
 // Service and implementations
@@ -39,26 +39,26 @@ func NewPotentialRiskStatusUpdateService(
 
 func (prsus *PotentialRiskStatusUpdateService) GetAll(potentialRiskID uint, sort string, sortBy string, keyword string) ([]*riskDTOs.PotentialRiskStatusUpdateListDTO, error) {
 	if _, err := prsus.potentialRiskSvc.GetByID(potentialRiskID); err != nil {
-		return nil, utility.NewValidationError(fmt.Errorf("potential risk does not exist"), "not_exist", "potential risk")
+		return nil, err
 	}
 
 	return prsus.repo.GetAll(potentialRiskID, sort, sortBy, keyword)
 }
 
-func (prsus *PotentialRiskStatusUpdateService) Create(potentialRiskID uint, currentUserID uint, potentialRiskUpdateFormDTO *riskDTOs.PotentialRiskStatusUpdateFormDTO) (uint, error) {
+func (prsus *PotentialRiskStatusUpdateService) Create(potentialRiskID uint, currentUserID uint, statusUpdateFormDTO *riskDTOs.PotentialRiskStatusUpdateFormDTO) (uint, error) {
 
 	if _, err := prsus.potentialRiskSvc.GetByID(potentialRiskID); err != nil {
-		return 0, utility.NewValidationError(fmt.Errorf("potential risk does not exist"), "not_exist", "potential risk")
+		return 0, err
 	}
 
-	if err := prsus.validatePotentialRiskUpdateFormDTO(potentialRiskID, potentialRiskUpdateFormDTO); err != nil {
+	if err := prsus.validatePotentialRiskUpdateFormDTO(statusUpdateFormDTO); err != nil {
 		return 0, err
 	}
 
 	potentialRiskUpdate := &models.PotentialRiskStatusUpdate{
 		PotentialRiskID:       potentialRiskID,
-		PotentialRiskStatusID: potentialRiskUpdateFormDTO.PotentialRiskStatusID,
-		Comment:               potentialRiskUpdateFormDTO.Comment,
+		PotentialRiskStatusID: statusUpdateFormDTO.PotentialRiskStatusID,
+		Comment:               statusUpdateFormDTO.Comment,
 		CreatedBy:             currentUserID,
 	}
 
@@ -67,7 +67,7 @@ func (prsus *PotentialRiskStatusUpdateService) Create(potentialRiskID uint, curr
 		return 0, err
 	}
 
-	err = prsus.potentialRiskSvc.StatusUpdate(potentialRiskID, currentUserID, potentialRiskUpdateFormDTO.PotentialRiskStatusID)
+	err = prsus.potentialRiskSvc.StatusUpdate(potentialRiskID, currentUserID, statusUpdateFormDTO.PotentialRiskStatusID)
 	if err != nil {
 		return 0, err
 	}
@@ -98,9 +98,9 @@ func (prsus *PotentialRiskStatusUpdateService) Create(potentialRiskID uint, curr
 	return id, nil
 }
 
-func (prsus *PotentialRiskStatusUpdateService) validatePotentialRiskUpdateFormDTO(potentialRiskID uint, potentialRiskUpdateFormDTO *riskDTOs.PotentialRiskStatusUpdateFormDTO) error {
+func (prsus *PotentialRiskStatusUpdateService) validatePotentialRiskUpdateFormDTO(statusUpdateFormDTO *riskDTOs.PotentialRiskStatusUpdateFormDTO) error {
 
-	if _, err := prsus.potentialRiskStatusSvc.GetByID(potentialRiskUpdateFormDTO.PotentialRiskStatusID); err != nil {
+	if _, err := prsus.potentialRiskStatusSvc.GetByID(statusUpdateFormDTO.PotentialRiskStatusID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("potential risk status does not exist"), "not_exist", "potential risk status")
 	}
 

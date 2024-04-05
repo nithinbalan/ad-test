@@ -209,7 +209,6 @@ func (prs *PotentialRiskService) Delete(ids []uint, currentUserID uint) ([]uint,
 }
 
 func (prs *PotentialRiskService) StatusUpdate(id uint, currentUserID uint, potentialRiskStatusID uint) error {
-	fmt.Println("Implementing GetPage", id)
 	existingPotentialRisk, err := prs.GetByID(id)
 
 	if err != nil {

@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+	organizationModels "jethur/grc/organization/models"
+	"time"
+)
 
 type PotentialRiskStatusUpdate struct {
 	ID                    uint      `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
@@ -11,8 +14,9 @@ type PotentialRiskStatusUpdate struct {
 	CreatedBy             uint      `json:"created_by" gorm:"not null"`
 
 	//Relationships
-	PotentialRisk       *PotentialRisk       `gorm:"foreignkey:PotentialRiskID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	PotentialRiskStatus *PotentialRiskStatus `gorm:"foreignkey:PotentialRiskStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	PotentialRisk       *PotentialRisk           `gorm:"foreignkey:PotentialRiskID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	PotentialRiskStatus *PotentialRiskStatus     `gorm:"foreignkey:PotentialRiskStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	CreatedByUser       *organizationModels.User `gorm:"foreignKey:CreatedBy"`
 }
 
 // TableName overrides the table name used by PotentialRiskStatusUpdate to `potential_risk_status_updates`
