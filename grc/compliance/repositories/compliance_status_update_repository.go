@@ -10,7 +10,7 @@ import (
 type ComplianceStatusUpdateRepositoryInterface interface {
 	GetAll(complianceID uint, sort string, sortBy string, keyword string) ([]*complianceDTOs.ComplianceStatusUpdateListDTO, error)
 	GetByID(id uint) (*models.ComplianceStatusUpdate, error)
-	Create(complianceUpdate *models.ComplianceStatusUpdate) (uint, error)
+	Create(ComplianceStatusUpdate *models.ComplianceStatusUpdate) (uint, error)
 	Update(ComplianceStatusUpdate *models.ComplianceStatusUpdate) error
 }
 
@@ -86,13 +86,13 @@ func (repo *ComplianceStatusUpdateRepository) GetByID(id uint) (*models.Complian
 	return complianceStatusUpdate, nil
 }
 
-func (repo *ComplianceStatusUpdateRepository) Create(complianceUpdate *models.ComplianceStatusUpdate) (uint, error) {
+func (repo *ComplianceStatusUpdateRepository) Create(ComplianceStatusUpdate *models.ComplianceStatusUpdate) (uint, error) {
 
-	if err := repo.db.Create(complianceUpdate).Error; err != nil {
+	if err := repo.db.Create(ComplianceStatusUpdate).Error; err != nil {
 		return 0, err
 	}
 
-	return complianceUpdate.ID, nil
+	return ComplianceStatusUpdate.ID, nil
 }
 
 func (repo *ComplianceStatusUpdateRepository) Update(ComplianceStatusUpdate *models.ComplianceStatusUpdate) error {

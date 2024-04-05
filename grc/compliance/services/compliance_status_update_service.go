@@ -79,7 +79,6 @@ func (csus *ComplianceStatusUpdateService) Create(complianceID uint, currentUser
 		ComplianceStatusID:   complianceStatusUpdateFormDTO.ComplianceStatusID,
 		Comment:              complianceStatusUpdateFormDTO.Comment,
 		CreatedBy:            currentUserID,
-		UpdatedBy:            &currentUserID,
 	}
 
 	id, err := csus.repo.Create(complianceUpdate)
