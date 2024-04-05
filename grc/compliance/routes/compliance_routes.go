@@ -135,8 +135,15 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	complianceRoutes.POST("/sla-registers/delete", SLARegController.DeleteSLARegisters)
 	complianceRoutes.PUT("/sla-registers/archive", SLARegController.ArchiveSLARegisters)
 	complianceRoutes.PUT("/sla-registers/restore", SLARegController.RestoreSLARegisters)
-	complianceRoutes.PUT("/sla-registers/renew", SLARegController.RenewSLARegister)
-	// complianceRoutes.PUT("/sla-registers/revert", SLARegController.RevertSLARegister)
+	//SLA Renew
+	SLARenewRepo := complianceRepositories.NewSLARenewRepository(db)
+	SLARenewSvc := complianceServices.NewSLARenewService(SLARenewRepo,
+		activityLogSvc)
+	SLARenewController := controllers.NewSLARenewController(SLARenewSvc)
+
+	complianceRoutes.GET("/sla-registers/renew-history/:id", SLARenewController.GetAllSLARenews)//sla reg id
+	complianceRoutes.PUT("/sla-registers/renew/:id", SLARenewController.Renew)//sla doc id
+	complianceRoutes.PUT("/sla-registers/revert/:id", SLARenewController.Revert)//sla doc id
 
 	complianceRoutes.GET("/compliances/:complianceId/requirements", complianceRequirementController.GetAllComplianceRequirements)
 	complianceRoutes.GET("/compliances/:complianceId/requirements/:id", complianceRequirementController.GetComplianceRequirementDetails)

@@ -3,7 +3,6 @@ package services
 import (
 	"fmt"
 	slaDTOs "jethur/grc/compliance/dtos"
-	"jethur/grc/compliance/models"
 	complianceModels "jethur/grc/compliance/models"
 	"jethur/grc/compliance/repositories"
 	activityLogModels "jethur/grc/logs/models"
@@ -15,14 +14,12 @@ import (
 
 type SLARegisterServiceInterface interface {
 	GetAll(params *slaDTOs.SLARegisterListQueryParamsDTO) (*slaDTOs.SLARegisterListResponseDTO, error)
-	GetByID(id uint) (*models.SLARegister, error)
+	GetByID(id uint) (*complianceModels.SLARegister, error)
 	Create(currentUserID uint, slaRegisterFormDTO *slaDTOs.SLARegisterFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, sla *slaDTOs.SLARegisterFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	Archive(ids []uint, currentUserID uint) ([]uint, error)
 	Restore(ids []uint, currentUserID uint) ([]uint, error)
-	Renew(id uint, currentUserID uint, document *slaDTOs.SLADocumentFormDTO) (*models.SLADocument, error)
-	// Revert(ids []uint, currentUserID uint) ([]uint, error)
 }
 
 // Service and implementations
@@ -53,7 +50,7 @@ func (srs *SLARegisterService) GetAll(params *slaDTOs.SLARegisterListQueryParams
 	return srs.repo.GetAll(params)
 }
 
-func (srs SLARegisterService) GetByID(id uint) (*models.SLARegister, error) {
+func (srs SLARegisterService) GetByID(id uint) (*complianceModels.SLARegister, error) {
 	return srs.repo.GetByID(id)
 }
 
@@ -81,7 +78,7 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *sl
 		return 0, err
 	}
 
-	slaRegister := &models.SLARegister{
+	slaRegister := &complianceModels.SLARegister{
 		SLACategoryID:     slaRegisterFormDTO.SLACategoryID,
 		SeverityLevelID:   slaRegisterFormDTO.SeverityLevelID,
 		ResponsibleUnitID: slaRegisterFormDTO.ResponsibleUnitID,
@@ -104,7 +101,7 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *sl
 		return 0, err
 	}
 
-	slaDocument := &models.SLADocument{
+	slaDocument := &complianceModels.SLADocument{
 		SLARegisterID: id,
 		Version:       slaRegisterFormDTO.Version,
 		IssueDate:     dates.IssueDate,
@@ -205,7 +202,7 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 		// Check if is_new_file flag is set to true
 		if slaRegisterFormDTO.Document.IsNewFile != nil && *slaRegisterFormDTO.Document.IsNewFile {
 			// File is updated, delete existing file
-			if err := srs.repo.RemoveSLADocumentFile(existingSLADocument.ID,existingSLADocument.SLARegisterID, existingSLADocument.Name); err != nil {
+			if err := srs.repo.RemoveSLADocumentFile(existingSLADocument.ID, existingSLADocument.SLARegisterID, existingSLADocument.Name); err != nil {
 				return err
 			}
 			// Move new file from temp to storage
@@ -272,7 +269,7 @@ func (srs *SLARegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 		}
 
 		// Delete associated documents
-		err = srs.repo.RemoveSLADocumentFile(slaDocument.ID,slaDocument.SLARegisterID, slaDocument.Name)
+		err = srs.repo.RemoveSLADocumentFile(slaDocument.ID, slaDocument.SLARegisterID, slaDocument.Name)
 		if err != nil {
 			failedIds = append(failedIds, id)
 			continue
@@ -290,7 +287,7 @@ func (srs *SLARegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 		go func() {
 			err := srs.activityLogSvc.LogBulkActivities(
 				activityLogModels.DeleteAction,
-				models.SLARegister{}.TableName(),
+				complianceModels.SLARegister{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,
@@ -378,45 +375,6 @@ func (srs *SLARegisterService) Restore(ids []uint, currentUserID uint) ([]uint, 
 
 	return successfulIds, nil
 }
-
-func (srs *SLARegisterService) Renew(id uint, currentUserID uint, document *slaDTOs.SLADocumentFormDTO) (*models.SLADocument, error) {
-	// Parse SLA register dates
-    dates, err := srs.parseSLARegisterDates(document)
-    if err != nil {
-        return nil, err
-    }
-	// Create new SLA document
-	slaDocument = &models.SLADocument{
-		SLARegisterID: id,
-		Version:       document.Version,
-		IssueDate:     dates.IssueDate,
-		ExpiryDate:    dates.ExpiryDate,
-		SA1Date:       dates.SA1Date,
-		SA2Date:       dates.SA2Date,
-		Comment:       document.Comment,
-		Language:      document.Language,
-		URL:           document.URL,
-		Name:          document.Name,
-		Size:          document.Size,
-		Token:         document.Token,
-		Type:          document.Type,
-		Icon:          document.Icon,
-		IsLatest:      true,
-		CreatedBy:     currentUserID,
-	}
-    // Save updated SLA document
-    if err := srs.repo.Renew(slaDocument); err != nil {
-        return nil, err
-    }
-
-    // Set is_latest to false for remaining SLA documents associated with the same register
-    if err := srs.repo.SetIsLatestToFalseForRemainingDocuments(slaDocument.ID, slaDocument.SLARegisterID); err != nil {
-        return nil, err
-    }
-
-    return id, nil
-}
-
 
 func (srs *SLARegisterService) validateSLARegisterFormDTO(slaRegisterFormDTO *slaDTOs.SLARegisterFormDTO) error {
 	// Check if Document is provided
