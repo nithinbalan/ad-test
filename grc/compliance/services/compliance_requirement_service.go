@@ -281,6 +281,25 @@ func (crs *ComplianceRequirementService) Delete(complianceID uint, ids []uint, c
 	return failedIds, nil
 }
 
+// func (crs *ComplianceRequirementService) StatusUpdate(id uint, currentUserID uint, complianceStatusID uint) error {
+// 	existingComplianceRequirement, err := crs.GetByID(id)
+
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	existingComplianceRequirement.ComplianceStatusID = complianceStatusID
+// 	existingComplianceRequirement.UpdatedBy = &currentUserID
+
+// 	err = crs.repo.Update(existingComplianceRequirement)
+
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	return nil
+// }
+
 func (crs *ComplianceRequirementService) validateComplianceRequirementFormDTO(ComplianceRequirementFormDTO *complianceDTOs.ComplianceRequirementFormDTO) error {
 	if _, err := crs.complianceRequirementCategorySvc.GetByID(ComplianceRequirementFormDTO.ComplianceRequirementCategoryID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("compliance requirement category does not exist"), "not_exist", "compliance requirement category")

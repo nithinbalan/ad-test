@@ -101,7 +101,7 @@ func (crc *ComplianceRequirementController) GetComplianceRequirementDetails(c *g
 		return
 	}
 
-	idStr := c.Param("id")
+	idStr := c.Param("requirementId")
 
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -176,7 +176,7 @@ func (crc *ComplianceRequirementController) UpdateComplianceRequirement(c *gin.C
 		return
 	}
 
-	idStr := c.Param("id")
+	idStr := c.Param("requirementId")
 
 	id, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
