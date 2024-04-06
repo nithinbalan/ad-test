@@ -100,7 +100,7 @@ func (capc *ComplianceActionPlanController) GetComplianceActionPlanDetails(c *gi
 		return
 	}
 
-	idStr := c.Param("id")
+	idStr := c.Param("actionPlanId")
 
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -173,7 +173,7 @@ func (capc *ComplianceActionPlanController) UpdateComplianceActionPlan(c *gin.Co
 		return
 	}
 
-	idStr := c.Param("id")
+	idStr := c.Param("actionPlanId")
 
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
