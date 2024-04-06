@@ -33,7 +33,7 @@ type SLARegisterRepositoryInterface interface {
 	GetSLADocumentByID(id uint) (*models.SLADocument, error)
 	GetLatestSLADocumentBySLARegisterID(id uint) (*models.SLADocument, error)
 	StoreSLADocumentFile(slaID uint, fileName string) error
-	RemoveSLADocumentFile(id uint,slaID uint, fileNames ...string) error
+	RemoveSLADocumentFile(slaID uint, fileNames string) error
 }
 
 // implementation
@@ -369,7 +369,7 @@ func (repo *SLARegisterRepository) StoreSLADocumentFile(id uint, fileName string
 
 	storagePath := config.GetEnv("STORAGE_PATH", "")
 	temporaryStoragePath := filepath.Join(storagePath, "tmp", fileName)
-	directoryPath := filepath.Join(storagePath, "compliance", "sla", strconv.FormatUint(uint64(id), 10), "document")
+	directoryPath := filepath.Join(storagePath, "compliance", "sla", strconv.FormatUint(uint64(id), 10), "agreements")
 	destinationPath := filepath.Join(directoryPath, fileName)
 	if err := os.MkdirAll(directoryPath, os.ModePerm); err != nil {
 		return err
@@ -387,23 +387,11 @@ func (repo *SLARegisterRepository) SaveSLADocument(doc *models.SLADocument) erro
 	return nil
 }
 
-func (repo *SLARegisterRepository) RemoveSLADocumentFile(id uint,slaID uint, fileNames ...string) error {
-	var filePath string
+func (repo *SLARegisterRepository) RemoveSLADocumentFile(slaID uint, fileName string) error {
 	storagePath := config.GetEnv("STORAGE_PATH", "")
-
-	if len(fileNames) > 0 && fileNames[0] != "" {
-		filePath = filepath.Join(storagePath, "compliance", "sla", strconv.FormatUint(uint64(slaID), 10), "document", fileNames[0])
-	} else {
-		slaDocument, err := repo.GetSLADocumentByID(id)
-		if err != nil {
-			return err
-		}
-		filePath = filepath.Join(storagePath, "compliance", "sla", strconv.FormatUint(uint64(slaID), 10), "document", slaDocument.Name)
-	}
-
+	filePath := filepath.Join(storagePath, "compliance", "sla", strconv.FormatUint(uint64(slaID), 10), "agreements", fileName)
 	if err := os.Remove(filePath); err != nil {
 		return err
 	}
-
 	return nil
 }
