@@ -13,7 +13,7 @@ import (
 type UserRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *userDTOs.UserListQueryParamsDTO) (*userDTOs.UserListResponseDTO, error)
-	GetByID(id uint) (*organizationModels.User, error)
+	GetByID(id uint, preloads ...string) (*organizationModels.User, error)
 	GetByEmail(email string) (*organizationModels.User, error)
 	Create(user *organizationModels.User, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(user *organizationModels.User, tx ...utility.DatabaseTransaction) error
@@ -152,9 +152,21 @@ func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*us
 
 }
 
-func (repo *UserRepository) GetByID(id uint) (*organizationModels.User, error) {
+// @Review
+// We can provide preload string as optional parameter.
+// So you can fetch user roles in same function by passing as param
+// Here just return db error as it is, and manage custom error at service level.
+
+func (repo *UserRepository) GetByID(id uint, preloads ...string) (*organizationModels.User, error) {
 	var user *organizationModels.User
-	result := repo.db.First(&user, id)
+
+	query := repo.db
+
+	for _, preload := range preloads {
+		query = query.Preload(preload)
+	}
+
+	result := query.First(&user, id)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, utility.NewResourceNotFoundError(result.Error, id)
@@ -162,7 +174,7 @@ func (repo *UserRepository) GetByID(id uint) (*organizationModels.User, error) {
 		return nil, result.Error
 	}
 
-	return user, result.Error
+	return user, nil
 }
 
 func (repo *UserRepository) Create(user *organizationModels.User, tx ...utility.DatabaseTransaction) (uint, error) {
@@ -284,6 +296,11 @@ func (repo *UserRepository) UpdateUserRoles(userID uint, desiredRoleIDs []uint, 
 		db = tx[0].DB()
 	}
 
+	// @review
+	// Role id comparison can be moved to service layer
+	// So the id to be updated (desiredIds) can be used for logs purpsose also
+	// Here just update role with ids.
+
 	// Fetch current roles of the user
 	var currentRoles []organizationModels.UserRole
 	if err := db.Where("user_id = ?", userID).Find(&currentRoles).Error; err != nil {
@@ -347,7 +364,9 @@ func (repo *UserRepository) ExistsByEmailExcludingID(id uint, email string) (boo
 	return count > 0, nil
 }
 
-// Helper function to check if a slice contains a given uint value
+// @Review
+// Move this funciton in ot utilty helper, so we cna use everywhere, (if it is common otherwise is fine)
+// Choose name which is easy to understand as a common purpsose.
 func contains(slice []uint, val uint) bool {
 	for _, item := range slice {
 		if item == val {
@@ -356,6 +375,7 @@ func contains(slice []uint, val uint) bool {
 	}
 	return false
 }
+
 func (repo *UserRepository) GetUserSecurityByUserID(userId uint) (*organizationModels.UserSecurity, error) {
 	var userSecurity *organizationModels.UserSecurity
 	result := repo.db.Where("user_id = ?", userId).First(&userSecurity)

@@ -174,6 +174,10 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 func (us *UserService) Update(id uint, currentUserID uint, userFormDTO *userDTOs.UserFormDTO) error {
 
 	tx := us.repo.BeginTransaction()
+
+	//@Review
+	// Fetch roles as part of user
+	// existingUser, err := us.repo.GetByID(id, "Roles")
 	existingUser, err := us.repo.GetByID(id)
 
 	if err != nil {
@@ -205,6 +209,10 @@ func (us *UserService) Update(id uint, currentUserID uint, userFormDTO *userDTOs
 		return err
 	}
 
+	//@review
+	//Get user final role ids
+	//delete existing user roles
+	//create new set of roles.
 	if err = us.repo.UpdateUserRoles(id, userFormDTO.RoleIDs, tx); err != nil {
 		tx.Rollback()
 		return err
