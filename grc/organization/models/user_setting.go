@@ -12,7 +12,7 @@ type UserSetting struct {
 	TimezoneID uint      `gorm:"not null" json:"timezone_id"`
 	Language   string    `gorm:"type:varchar(2);not null;default:'en'" json:"language"`
 	Timeout    int       `gorm:"not null" json:"timeout"`
-	UpdatedAt  time.Time `gorm:"type:datetime; not null; default:CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" json:"updated_at"`
+	UpdatedAt  time.Time `gorm:"type:timestamp; not null; default:CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" json:"updated_at"`
 
 	// Foreign key relationships
 	User     User                        `gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`

@@ -11,17 +11,28 @@ import (
 )
 
 type UserRepositoryInterface interface {
+	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *userDTOs.UserListQueryParamsDTO) (*userDTOs.UserListResponseDTO, error)
-	GetByID(id uint) (*organizationModels.User, error)
-	Create(user *organizationModels.User) (uint, error)
-	Update(user *organizationModels.User) error
-	UpdatePartial(id uint, updates map[string]interface{}) error
+	GetByID(id uint, preloads ...string) (*organizationModels.User, error)
 	GetByEmail(email string) (*organizationModels.User, error)
+	Create(user *organizationModels.User, tx ...utility.DatabaseTransaction) (uint, error)
+	Update(user *organizationModels.User, tx ...utility.DatabaseTransaction) error
+	UpdatePartial(id uint, updates map[string]interface{}) error
+	Delete(id uint) error
+	ExistsByEmail(email string) (bool, error)
+	ExistsByEmailExcludingID(id uint, email string) (bool, error)
+
+	//User security
 	GetUserSecurityByUserID(userId uint) (*organizationModels.UserSecurity, error)
-	// Delete(id uint) error
-	CreateUserSecurity(userSecurity *organizationModels.UserSecurity) error
-	CreateUserSetting(userSetting *organizationModels.UserSetting) error
+	CreateUserSecurity(userSecurity organizationModels.UserSecurity, tx ...utility.DatabaseTransaction) error
 	UpdateUserSecurity(userSecurity *organizationModels.UserSecurity) error
+
+	//User settings
+	CreateUserSetting(userSetting organizationModels.UserSetting, tx ...utility.DatabaseTransaction) error
+
+	//User roles
+	CreateUserRole(userRoles []organizationModels.UserRole, tx ...utility.DatabaseTransaction) error
+	UpdateUserRoles(userID uint, desiredRoleIDs []uint, tx ...utility.DatabaseTransaction) error
 }
 
 type UserRepository struct {
@@ -32,6 +43,11 @@ func NewUserRepository(db *gorm.DB) *UserRepository {
 	return &UserRepository{
 		db: db,
 	}
+}
+
+// BeginTransaction starts a new transaction.
+func (repo *UserRepository) BeginTransaction() utility.DatabaseTransaction {
+	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
 func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*userDTOs.UserListResponseDTO, error) {
@@ -53,16 +69,52 @@ func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*us
 			org4.title_ar AS organization_unit_4_title_ar,
 			org5.title_ar AS organization_unit_5_title_ar,
 			designations.title_en AS designation_title_en,
-			designations.title_ar AS designation_title_ar
+			designations.title_ar AS designation_title_ar,
+			roles_agg.roles_en,
+			roles_agg.roles_ar,
+			user_statuses.title_en AS user_status_title_en,
+			user_statuses.title_ar AS user_status_title_ar,
+			user_statuses.color_code AS user_status_color_code
 		`).
-		Joins("LEFT JOIN organization_units org1 ON org1.id = users.organization_unit_1_id").
+		Joins("INNER JOIN organization_units org1 ON org1.id = users.organization_unit_1_id").
 		Joins("LEFT JOIN organization_units org2 ON org2.id = users.organization_unit_2_id").
 		Joins("LEFT JOIN organization_units org3 ON org3.id = users.organization_unit_3_id").
 		Joins("LEFT JOIN organization_units org4 ON org4.id = users.organization_unit_4_id").
 		Joins("LEFT JOIN organization_units org5 ON org5.id = users.organization_unit_5_id").
-		Joins("LEFT JOIN designations ON designations.id = users.designation_id")
+		Joins("INNER JOIN designations ON designations.id = users.designation_id").
+		Joins("INNER JOIN user_statuses ON user_statuses.id = users.user_status_id").
+		Joins("INNER JOIN (SELECT user_roles.user_id, STRING_AGG(roles.title_en, ', ') AS roles_en, STRING_AGG(roles.title_ar, ', ') AS roles_ar FROM user_roles JOIN roles ON roles.id = user_roles.role_id GROUP BY user_roles.user_id) roles_agg ON roles_agg.user_id = users.id")
 
-		// Calculate total count for pagination
+		// Apply search keyword if exists
+	if params.Keyword != "" {
+		query = query.Where(`
+			(users.first_name_en LIKE ? OR
+			 users.last_name_en LIKE ? OR
+			 users.first_name_ar LIKE ? OR
+			 users.last_name_ar LIKE ? OR
+			 users.email LIKE ? OR
+			 users.mobile_number LIKE ? OR
+			 org1.title_en LIKE ? OR
+			 org1.title_ar LIKE ? OR
+			 org2.title_en LIKE ? OR
+			 org2.title_ar LIKE ? OR
+			 org3.title_en LIKE ? OR
+			 org3.title_ar LIKE ? OR
+			 org4.title_en LIKE ? OR
+			 org4.title_ar LIKE ? OR
+			 org5.title_en LIKE ? OR
+			 org5.title_ar LIKE ? OR
+			 designations.title_en LIKE ? OR
+			 designations.title_ar LIKE ? OR
+			 user_statuses.title_en LIKE ? OR
+			 user_statuses.title_ar LIKE ?)`,
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
+	}
+	// Calculate total count for pagination
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
@@ -100,9 +152,21 @@ func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*us
 
 }
 
-func (repo *UserRepository) GetByID(id uint) (*organizationModels.User, error) {
+// @Review
+// We can provide preload string as optional parameter.
+// So you can fetch user roles in same function by passing as param
+// Here just return db error as it is, and manage custom error at service level.
+
+func (repo *UserRepository) GetByID(id uint, preloads ...string) (*organizationModels.User, error) {
 	var user *organizationModels.User
-	result := repo.db.First(&user, id)
+
+	query := repo.db
+
+	for _, preload := range preloads {
+		query = query.Preload(preload)
+	}
+
+	result := query.First(&user, id)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, utility.NewResourceNotFoundError(result.Error, id)
@@ -110,26 +174,78 @@ func (repo *UserRepository) GetByID(id uint) (*organizationModels.User, error) {
 		return nil, result.Error
 	}
 
-	return user, result.Error
+	return user, nil
 }
 
-func (repo *UserRepository) Create(user *organizationModels.User) (uint, error) {
-	if err := repo.db.Create(user).Error; err != nil {
+func (repo *UserRepository) Create(user *organizationModels.User, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(user).Error; err != nil {
 		return 0, err
 	}
-
 	return user.ID, nil
 }
 
-func (repo *UserRepository) Update(user *organizationModels.User) error {
-
-	if err := repo.db.Save(user).Error; err != nil {
+func (repo *UserRepository) Update(user *organizationModels.User, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(user).Error; err != nil {
 		return err
 	}
 
 	return nil
 }
 
+func (repo *UserRepository) Delete(id uint) error {
+
+	// Start a transaction
+	tx := repo.db.Begin()
+
+	// Check for errors starting the transaction
+	if tx.Error != nil {
+		return tx.Error
+	}
+
+	// Attempt to delete related records first to maintain referential integrity
+	if err := tx.Where("user_id = ?", id).Delete(&organizationModels.UserSecurity{}).Error; err != nil {
+		tx.Rollback() // Rollback if there's an error
+		return err
+	}
+
+	if err := tx.Where("user_id = ?", id).Delete(&organizationModels.UserSetting{}).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := tx.Where("user_id = ?", id).Delete(&organizationModels.UserRole{}).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Finally, attempt to delete the user
+	if err := tx.Delete(&organizationModels.User{}, id).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Commit the transaction if all deletions were successful
+	return tx.Commit().Error
+}
+
+func (repo *UserRepository) CreateUserSecurity(userSecurity organizationModels.UserSecurity, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&userSecurity).Error; err != nil {
+		return err
+	}
+	return nil
+}
 func (repo *UserRepository) UpdatePartial(id uint, updates map[string]interface{}) error {
 	if err := repo.db.Model(&organizationModels.User{}).Where("id = ?", id).Updates(updates).Error; err != nil {
 		return err
@@ -151,20 +267,113 @@ func (repo *UserRepository) GetByEmail(email string) (*organizationModels.User, 
 
 }
 
-// CreateUserSecurity creates a new UserSecurity record associated with a user.
-func (repo *UserRepository) CreateUserSecurity(userSecurity *organizationModels.UserSecurity) error {
-	if err := repo.db.Create(userSecurity).Error; err != nil {
+func (repo *UserRepository) CreateUserSetting(userSetting organizationModels.UserSetting, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&userSetting).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
-// CreateUserSetting creates a new UserSetting record.
-func (repo *UserRepository) CreateUserSetting(userSetting *organizationModels.UserSetting) error {
-	if err := repo.db.Create(userSetting).Error; err != nil {
+func (repo *UserRepository) CreateUserRole(userRoles []organizationModels.UserRole, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.CreateInBatches(userRoles, 100).Error; err != nil {
 		return err
 	}
 	return nil
+
+}
+
+func (repo *UserRepository) UpdateUserRoles(userID uint, desiredRoleIDs []uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// @review
+	// Role id comparison can be moved to service layer
+	// So the id to be updated (desiredIds) can be used for logs purpsose also
+	// Here just update role with ids.
+
+	// Fetch current roles of the user
+	var currentRoles []organizationModels.UserRole
+	if err := db.Where("user_id = ?", userID).Find(&currentRoles).Error; err != nil {
+		return err
+	}
+
+	currentRoleIDs := make(map[uint]bool)
+	for _, role := range currentRoles {
+		currentRoleIDs[role.RoleID] = true
+	}
+
+	// Determine roles to add
+	for _, roleID := range desiredRoleIDs {
+		if _, exists := currentRoleIDs[roleID]; !exists {
+			if err := db.Create(&organizationModels.UserRole{UserID: userID, RoleID: roleID}).Error; err != nil {
+				return err
+			}
+		}
+	}
+
+	// Determine roles to remove
+	for _, role := range currentRoles {
+		if !contains(desiredRoleIDs, role.RoleID) {
+			if err := db.Where("user_id = ? AND role_id = ?", userID, role.RoleID).Delete(&organizationModels.UserRole{}).Error; err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+
+}
+
+func (repo *UserRepository) ExistsByEmail(email string) (bool, error) {
+	var count int64
+
+	// Check for the existence of titleEn or titleAr in a single query
+	err := repo.db.Model(&organizationModels.User{}).
+		Where("email = ?", email).
+		Count(&count).Error
+
+	if err != nil {
+		return false, utility.NewInternalServerError(err)
+
+	}
+	// Return true if either email exists, otherwise false
+	return count > 0, nil
+}
+
+func (repo *UserRepository) ExistsByEmailExcludingID(id uint, email string) (bool, error) {
+	var count int64
+
+	err := repo.db.Model(&organizationModels.User{}).
+		Where("id <> ? AND email = ?", id, email).
+		Count(&count).Error
+
+	if err != nil {
+		return false, utility.NewInternalServerError(err)
+	}
+
+	return count > 0, nil
+}
+
+// @Review
+// Move this funciton in ot utilty helper, so we cna use everywhere, (if it is common otherwise is fine)
+// Choose name which is easy to understand as a common purpsose.
+func contains(slice []uint, val uint) bool {
+	for _, item := range slice {
+		if item == val {
+			return true
+		}
+	}
+	return false
 }
 
 func (repo *UserRepository) GetUserSecurityByUserID(userId uint) (*organizationModels.UserSecurity, error) {
