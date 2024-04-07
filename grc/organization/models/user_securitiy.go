@@ -11,8 +11,8 @@ type UserSecurity struct {
 	PasswordHash string     `gorm:"type:text;not null" json:"password_hash" binding:"required"`
 	IsMFA        bool       `gorm:"type:tinyint;not null; default:0" json:"is_mfa"`
 	OTP          *string    `gorm:"type:varchar(45);default:null" json:"otp"`
-	OTPExpiryAt  *time.Time `gorm:"type:datetime;default:null" json:"otp_expiry_at"`
-	UpdatedAt    time.Time  `gorm:"type:datetime;not null; default:CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" json:"updated_at"`
+	OTPExpiryAt  *time.Time `gorm:"type:timestamps;default:null" json:"otp_expiry_at"`
+	UpdatedAt    time.Time  `gorm:"type:timestamps;not null; default:CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" json:"updated_at"`
 
 	// User is a reference to the User model for the foreign key constraint
 	User User `gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
