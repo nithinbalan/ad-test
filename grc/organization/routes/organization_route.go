@@ -62,12 +62,15 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	strategicProfileSvc := organizationServices.NewStrategicProfileService(strategicProfileRepo)
 	strategicProfileController := controllers.NewStrategicProfileController(strategicProfileSvc)
 
+	// @Review
+	// You can remove id from URL as we have only one strategic profile data
+	// so it will be easy to call API from client side.
 	organizationRoutes.GET("/strategic-profiles", strategicProfileController.GetStrategicProfile)
-	organizationRoutes.PUT("/strategic-profiles/:id", strategicProfileController.UpdateStrategicProfile)
-	organizationRoutes.PUT("/strategic-profiles/:id/update-vision", strategicProfileController.UpdateVision)
-	organizationRoutes.PUT("/strategic-profiles/:id/update-mission", strategicProfileController.UpdateMission)
+	organizationRoutes.PUT("/strategic-profiles", strategicProfileController.UpdateStrategicProfile)
+	organizationRoutes.PUT("/strategic-profiles/vision", strategicProfileController.UpdateVision)
+	organizationRoutes.PUT("/strategic-profiles/mission", strategicProfileController.UpdateMission)
 	//@review
 	//Change to values.
-	organizationRoutes.PUT("/strategic-profiles/values", strategicProfileController.UpdateValue)
+	organizationRoutes.PUT("/strategic-profiles/values", strategicProfileController.UpdateValues)
 
 }

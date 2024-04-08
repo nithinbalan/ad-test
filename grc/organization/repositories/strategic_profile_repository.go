@@ -1,19 +1,17 @@
 package repositories
 
 import (
-	"errors"
 	"jethur/grc/organization/models"
 	organizationModels "jethur/grc/organization/models"
-	"jethur/utility"
 
 	"gorm.io/gorm"
 )
 
 type StrategicProfileRepositoryInterface interface {
-	GetByID(id uint) (*organizationModels.StrategicProfile, error)
-	GetStrategicProfile() (*organizationModels.StrategicProfile, error)
+	Get() (*organizationModels.StrategicProfile, error)
+	GetStrategicProfileDetails() (*organizationModels.StrategicProfile, error)
 	Update(strategicProfile *organizationModels.StrategicProfile) error
-	UpdateValue(strategicProfileID uint, values []*organizationModels.StrategicProfileValue) error
+	UpdateValues(values []*organizationModels.StrategicProfileValue) error
 }
 
 type StrategicProfileRepository struct {
@@ -26,20 +24,20 @@ func NewStrategicProfileRepository(db *gorm.DB) *StrategicProfileRepository {
 	}
 }
 
-func (repo *StrategicProfileRepository) GetByID(id uint) (*organizationModels.StrategicProfile, error) {
+func (repo *StrategicProfileRepository) Get() (*organizationModels.StrategicProfile, error) {
 	var strategicProfile *organizationModels.StrategicProfile
-	result := repo.db.First(&strategicProfile, id)
-
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, utility.NewResourceNotFoundError(result.Error, id)
-	} else if result.Error != nil {
+	result := repo.db.First(&strategicProfile)
+	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	return strategicProfile, result.Error
+	// @review
+	// please move this error return to service, here just return error as it is
+	// everywhere we used to follow method you used, but we have to move to service layer from new apis
+	return strategicProfile, nil
 }
 
-func (repo *StrategicProfileRepository) GetStrategicProfile() (*organizationModels.StrategicProfile, error) {
+func (repo *StrategicProfileRepository) GetStrategicProfileDetails() (*organizationModels.StrategicProfile, error) {
 	var strategicProfile *organizationModels.StrategicProfile
 
 	result := repo.db.Preload("StrategicProfileValues").First(&strategicProfile)
@@ -59,7 +57,7 @@ func (repo *StrategicProfileRepository) Update(strategicProfile *organizationMod
 	return nil
 }
 
-func (repo *StrategicProfileRepository) UpdateValue(strategicProfileID uint, values []*organizationModels.StrategicProfileValue) error {
+func (repo *StrategicProfileRepository) UpdateValues(values []*organizationModels.StrategicProfileValue) error {
 	tx := repo.db.Begin()
 	if tx.Error != nil {
 		return tx.Error
@@ -67,7 +65,7 @@ func (repo *StrategicProfileRepository) UpdateValue(strategicProfileID uint, val
 
 	// Fetch existing values for the strategic profile
 	var existingValues []organizationModels.StrategicProfileValue
-	tx.Where("strategic_profile_id = ?", strategicProfileID).Find(&existingValues)
+	tx.Where("strategic_profile_id = ?", values[0].StrategicProfileID).Find(&existingValues)
 
 	// Map existing values by ID for easy lookup
 	existingByID := make(map[uint]organizationModels.StrategicProfileValue)
@@ -98,7 +96,7 @@ func (repo *StrategicProfileRepository) UpdateValue(strategicProfileID uint, val
 	}
 
 	// Delete values not present in the incoming data
-	if err := tx.Where("strategic_profile_id = ? AND id NOT IN ?", strategicProfileID, toKeepIDs).Delete(&models.StrategicProfileValue{}).Error; err != nil {
+	if err := tx.Where("strategic_profile_id = ? AND id NOT IN ?", values[0].StrategicProfileID, toKeepIDs).Delete(&models.StrategicProfileValue{}).Error; err != nil {
 		tx.Rollback()
 		return err
 	}

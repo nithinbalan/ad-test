@@ -17,10 +17,10 @@ import (
 
 type StrategicProfileServiceInterface interface {
 	GetStrategicProfile() (*organizationDTOs.StrategicProfileDetailsDTO, error)
-	Update(id uint, currentUserID uint, strategicProfile *organizationDTOs.StrategicProfileFormDTO) error
-	UpdateVision(id uint, currentUserID uint, strategicProfileVision *organizationDTOs.StrategicProfileVisionFormDTO) error
-	UpdateMission(id uint, currentUserID uint, strategicProfileMission *organizationDTOs.StrategicProfileMisionFormDTO) error
-	UpdateValue(id uint, strategicProfileValues []*organizationDTOs.StrategicProfileValueFormDTO) error
+	Update(currentUserID uint, strategicProfile *organizationDTOs.StrategicProfileFormDTO) error
+	UpdateVision(currentUserID uint, strategicProfileVision *organizationDTOs.StrategicProfileVisionFormDTO) error
+	UpdateMission(currentUserID uint, strategicProfileMission *organizationDTOs.StrategicProfileMisionFormDTO) error
+	UpdateValues(strategicProfileValues []*organizationDTOs.StrategicProfileValueFormDTO) error
 }
 
 type StrategicProfileService struct {
@@ -38,7 +38,7 @@ func (sps *StrategicProfileService) GetStrategicProfile() (*organizationDTOs.Str
 	// Initialize your DTO
 	var strategicProfileDTO organizationDTOs.StrategicProfileDetailsDTO
 
-	strategicProfile, err := sps.repo.GetStrategicProfile()
+	strategicProfile, err := sps.repo.GetStrategicProfileDetails()
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -68,12 +68,16 @@ func (sps *StrategicProfileService) GetStrategicProfile() (*organizationDTOs.Str
 	return &strategicProfileDTO, nil
 }
 
-func (sps *StrategicProfileService) Update(id uint, currentUserID uint, strategicProfileDTO *organizationDTOs.StrategicProfileFormDTO) error {
+func (sps *StrategicProfileService) Update(currentUserID uint, strategicProfileDTO *organizationDTOs.StrategicProfileFormDTO) error {
 
-	existingStrategicProfile, err := sps.repo.GetByID(id)
+	// @review
+	// there will be only one profile, so we can use latets one without id.
+	// we an remove get by id option
+	//also we can remove id from url during udpate
+	existingStrategicProfile, err := sps.repo.Get()
 
 	if err != nil {
-		return err
+		return utility.NewResourceNotFoundError(err, nil)
 	}
 
 	if err := sps.validateStrategicProfileFormDTO(strategicProfileDTO); err != nil {
@@ -105,12 +109,12 @@ func (sps *StrategicProfileService) Update(id uint, currentUserID uint, strategi
 
 }
 
-func (sps *StrategicProfileService) UpdateVision(id uint, currentUserID uint, strategicProfileVisionDTO *organizationDTOs.StrategicProfileVisionFormDTO) error {
+func (sps *StrategicProfileService) UpdateVision(currentUserID uint, strategicProfileVisionDTO *organizationDTOs.StrategicProfileVisionFormDTO) error {
 
-	existingStrategicProfile, err := sps.repo.GetByID(id)
+	existingStrategicProfile, err := sps.repo.Get()
 
 	if err != nil {
-		return err
+		return utility.NewResourceNotFoundError(err, nil)
 	}
 
 	existingStrategicProfile.VisionEn = strategicProfileVisionDTO.VisionEn
@@ -126,12 +130,12 @@ func (sps *StrategicProfileService) UpdateVision(id uint, currentUserID uint, st
 
 }
 
-func (sps *StrategicProfileService) UpdateMission(id uint, currentUserID uint, strategicProfileMissionDTO *organizationDTOs.StrategicProfileMisionFormDTO) error {
+func (sps *StrategicProfileService) UpdateMission(currentUserID uint, strategicProfileMissionDTO *organizationDTOs.StrategicProfileMisionFormDTO) error {
 
-	existingStrategicProfile, err := sps.repo.GetByID(id)
+	existingStrategicProfile, err := sps.repo.Get()
 
 	if err != nil {
-		return err
+		return utility.NewResourceNotFoundError(err, nil)
 	}
 
 	existingStrategicProfile.MissionEn = strategicProfileMissionDTO.MissionEn
@@ -147,29 +151,40 @@ func (sps *StrategicProfileService) UpdateMission(id uint, currentUserID uint, s
 
 }
 
-func (sps *StrategicProfileService) UpdateValue(strategicProfileID uint, strategicProfileValuesDTO []*organizationDTOs.StrategicProfileValueFormDTO) error {
-	seenTitlesEn := make(map[string]bool)
-	seenTitlesAr := make(map[string]bool)
+func (sps *StrategicProfileService) UpdateValues(strategicProfileValuesDTO []*organizationDTOs.StrategicProfileValueFormDTO) error {
+	// seenTitlesEn := make(map[string]bool)
+	// seenTitlesAr := make(map[string]bool)
+
+	existingStrategicProfile, err := sps.repo.Get()
+
+	if err != nil {
+		return utility.NewResourceNotFoundError(err, nil)
+	}
+
+	err = utility.CheckUniqueFields(strategicProfileValuesDTO, "TitleEn", "TitleAr")
+	if err != nil {
+		return utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
+	}
 
 	var values []*organizationModels.StrategicProfileValue
 	for _, dto := range strategicProfileValuesDTO {
 
-		if _, found := seenTitlesEn[dto.TitleEn]; found {
-			return utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title_en")
-		}
-		seenTitlesEn[dto.TitleEn] = true
+		// if _, found := seenTitlesEn[dto.TitleEn]; found {
+		// 	return utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title_en")
+		// }
+		// seenTitlesEn[dto.TitleEn] = true
 
-		if _, found := seenTitlesAr[dto.TitleAr]; found {
-			return utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title_ar")
-		}
-		seenTitlesAr[dto.TitleAr] = true
+		// if _, found := seenTitlesAr[dto.TitleAr]; found {
+		// 	return utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title_ar")
+		// }
+		// seenTitlesAr[dto.TitleAr] = true
 
 		value := &organizationModels.StrategicProfileValue{}
 
 		if dto.ID != nil {
 			value.ID = *dto.ID // Existing record
 		}
-		value.StrategicProfileID = strategicProfileID
+		value.StrategicProfileID = existingStrategicProfile.ID
 		value.TitleEn = dto.TitleEn
 		value.TitleAr = dto.TitleAr
 		value.DescriptionEn = dto.DescriptionEn
@@ -178,7 +193,7 @@ func (sps *StrategicProfileService) UpdateValue(strategicProfileID uint, strateg
 		values = append(values, value)
 
 	}
-	err := sps.repo.UpdateValue(strategicProfileID, values)
+	err = sps.repo.UpdateValues(values)
 	if err != nil {
 		return err
 	}
@@ -207,6 +222,8 @@ func (us *StrategicProfileService) validateStrategicProfileFormDTO(strategicProf
 
 }
 
+// @review
+// what about moving this in to helper function called  url_validations or existing validation one.
 // Helper function to parse and validate a URL's scheme and host.
 func isValidURL(toTest string) (bool, *url.URL) {
 	u, err := url.Parse(toTest)

@@ -5,7 +5,6 @@ import (
 	"jethur/grc/organization/services"
 	"jethur/utility"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -39,11 +38,6 @@ func (spc *StrategicProfileController) GetStrategicProfile(c *gin.Context) {
 }
 
 func (spc *StrategicProfileController) UpdateStrategicProfile(c *gin.Context) {
-	strategicProfileID, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
 
 	var strategicProfileFormDTO organizationDTOs.StrategicProfileFormDTO
 	if err := c.ShouldBindJSON(&strategicProfileFormDTO); err != nil {
@@ -57,7 +51,7 @@ func (spc *StrategicProfileController) UpdateStrategicProfile(c *gin.Context) {
 		return
 	}
 
-	err = spc.service.Update(uint(strategicProfileID), currentUserID, &strategicProfileFormDTO)
+	err = spc.service.Update(currentUserID, &strategicProfileFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -76,11 +70,6 @@ func (spc *StrategicProfileController) UpdateStrategicProfile(c *gin.Context) {
 }
 
 func (spc *StrategicProfileController) UpdateVision(c *gin.Context) {
-	strategicProfileID, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
@@ -94,7 +83,7 @@ func (spc *StrategicProfileController) UpdateVision(c *gin.Context) {
 		return
 	}
 
-	err = spc.service.UpdateVision(uint(strategicProfileID), currentUserID, &strategicProfileVisionFormDTO)
+	err = spc.service.UpdateVision(currentUserID, &strategicProfileVisionFormDTO)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -115,11 +104,6 @@ func (spc *StrategicProfileController) UpdateVision(c *gin.Context) {
 }
 
 func (spc *StrategicProfileController) UpdateMission(c *gin.Context) {
-	strategicProfileID, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
@@ -133,7 +117,7 @@ func (spc *StrategicProfileController) UpdateMission(c *gin.Context) {
 		return
 	}
 
-	err = spc.service.UpdateMission(uint(strategicProfileID), currentUserID, &strategicProfileMissionFormDTO)
+	err = spc.service.UpdateMission(currentUserID, &strategicProfileMissionFormDTO)
 
 	if err != nil {
 		switch e := err.(type) {
