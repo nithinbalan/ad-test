@@ -137,12 +137,7 @@ func (spc *StrategicProfileController) UpdateMission(c *gin.Context) {
 
 }
 
-func (spc *StrategicProfileController) UpdateValue(c *gin.Context) {
-	strategicProfileID, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
+func (spc *StrategicProfileController) UpdateValues(c *gin.Context) {
 
 	var strategicProfileValueFormDTOs []*organizationDTOs.StrategicProfileValueFormDTO
 	if err := c.ShouldBindJSON(&strategicProfileValueFormDTOs); err != nil {
@@ -155,7 +150,7 @@ func (spc *StrategicProfileController) UpdateValue(c *gin.Context) {
 		strategicProfileValueFormDTOPointers[i] = strategicProfileValueFormDTOs[i]
 	}
 
-	err = spc.service.UpdateValue(uint(strategicProfileID), strategicProfileValueFormDTOPointers)
+	err := spc.service.UpdateValues(strategicProfileValueFormDTOPointers)
 
 	if err != nil {
 		switch e := err.(type) {

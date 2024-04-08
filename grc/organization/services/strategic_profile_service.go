@@ -152,9 +152,6 @@ func (sps *StrategicProfileService) UpdateMission(currentUserID uint, strategicP
 }
 
 func (sps *StrategicProfileService) UpdateValues(strategicProfileValuesDTO []*organizationDTOs.StrategicProfileValueFormDTO) error {
-	// seenTitlesEn := make(map[string]bool)
-	// seenTitlesAr := make(map[string]bool)
-
 	existingStrategicProfile, err := sps.repo.Get()
 
 	if err != nil {
@@ -168,16 +165,6 @@ func (sps *StrategicProfileService) UpdateValues(strategicProfileValuesDTO []*or
 
 	var values []*organizationModels.StrategicProfileValue
 	for _, dto := range strategicProfileValuesDTO {
-
-		// if _, found := seenTitlesEn[dto.TitleEn]; found {
-		// 	return utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title_en")
-		// }
-		// seenTitlesEn[dto.TitleEn] = true
-
-		// if _, found := seenTitlesAr[dto.TitleAr]; found {
-		// 	return utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title_ar")
-		// }
-		// seenTitlesAr[dto.TitleAr] = true
 
 		value := &organizationModels.StrategicProfileValue{}
 
