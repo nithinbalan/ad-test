@@ -12,7 +12,7 @@ import (
 type ActionPlanStatusRepositoryInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ActionPlanStatus, error)
 	GetByID(id uint) (*models.ActionPlanStatus, error)
-	GetByStatus(status string) (*models.ActionPlanStatus, error)
+	GetByType(status string) (*models.ActionPlanStatus, error)
 }
 
 // Implementation
@@ -64,7 +64,7 @@ func (repo *ActionPlanStatusRepository) GetByID(id uint) (*models.ActionPlanStat
 	return actionPlanStatus, result.Error
 }
 
-func (repo *ActionPlanStatusRepository) GetByStatus(status string) (*models.ActionPlanStatus, error) {
+func (repo *ActionPlanStatusRepository) GetByType(status string) (*models.ActionPlanStatus, error) {
 	var actionPlanStatus *models.ActionPlanStatus
 
 	result := repo.db.Where("type = ?", status).First(&actionPlanStatus)

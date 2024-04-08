@@ -59,7 +59,7 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *sl
 	if err := srs.validateSLARegisterFormDTO(slaRegisterFormDTO); err != nil {
 		return 0, err
 	}
-	
+
 	dates, err := srs.parseSLARegisterDates(slaRegisterFormDTO)
 	if err != nil {
 		return 0, err
@@ -70,7 +70,7 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *sl
 		return 0, err
 	}
 
-	lifecycleStatus, err := srs.lifecycleStatusSvc.GetByStatus("active")
+	lifecycleStatus, err := srs.lifecycleStatusSvc.GetByType("active")
 	if err != nil {
 		return 0, err
 	}
@@ -249,7 +249,7 @@ func (srs *SLARegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 }
 
 func (srs *SLARegisterService) Archive(ids []uint, currentUserID uint) ([]uint, error) {
-	lifecycleStatus, err := srs.lifecycleStatusSvc.GetByStatus("archived")
+	lifecycleStatus, err := srs.lifecycleStatusSvc.GetByType("archived")
 	if err != nil {
 		return nil, err
 	}
@@ -287,7 +287,7 @@ func (srs *SLARegisterService) Archive(ids []uint, currentUserID uint) ([]uint, 
 
 func (srs *SLARegisterService) Restore(ids []uint, currentUserID uint) ([]uint, error) {
 
-	lifecycleStatus, err := srs.lifecycleStatusSvc.GetByStatus("active")
+	lifecycleStatus, err := srs.lifecycleStatusSvc.GetByType("active")
 	if err != nil {
 		return nil, err
 	}
