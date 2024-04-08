@@ -43,7 +43,7 @@ func (kcc *KRICategoryController) GetKRICategoryDetails(c *gin.Context) {
 
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
-		utility.SendInternalErrResp(kcc.db, c, "Invalid id")
+		utility.SendNotFoundErrResp(c)
 		return
 	}
 

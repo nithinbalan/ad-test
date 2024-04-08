@@ -6,6 +6,8 @@ import (
 	libraryService "jethur/grc/libraries/services"
 	activityLogRepository "jethur/grc/logs/repositories"
 	activityLogServie "jethur/grc/logs/services"
+	masterRepositories "jethur/grc/masters/repositories"
+	masterServices "jethur/grc/masters/services"
 	middlewares "jethur/middlewares"
 
 	"github.com/gin-gonic/gin"
@@ -20,6 +22,9 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 
 	activityLogRepo := activityLogRepository.NewActivityLogRepository(db)
 	activityLogSvc := activityLogServie.NewActivityLogService(activityLogRepo)
+
+	reviewFrequencyRepo := masterRepositories.NewReviewFrequencyRepository(db)
+	reviewFrequencySvc := masterServices.NewReviewFrequencyService(reviewFrequencyRepo)
 
 	//Question Groups
 	questionGroupRepository := libraryRepo.NewQuestionGroupRepository(db)
@@ -59,5 +64,18 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	libraryRoutes.POST("/kri-categories/delete", KRICategoryController.DeleteKRICategories)
 	libraryRoutes.PUT("/kri-categories/activate", KRICategoryController.ActivateKRICategories)
 	libraryRoutes.PUT("/kri-categories/deactivate", KRICategoryController.DeactivateKRICategories)
+
+	//KRI Library
+	KRILibraryRepository := libraryRepo.NewKRILibraryRepository(db)
+	KRILibraryService := libraryService.NewKRILibraryService(KRILibraryRepository, KRICategoryService, reviewFrequencySvc, activityLogSvc)
+	KRILibraryController := libraryController.NewKRILibraryController(KRILibraryService)
+
+	libraryRoutes.GET("/kri-library", KRILibraryController.GetAllKRILibrary)
+	libraryRoutes.POST("/kri-library", KRILibraryController.CreateKRILibrary)
+	libraryRoutes.GET("/kri-library/:id", KRILibraryController.GetKRILibraryDetails)
+	libraryRoutes.PUT("/kri-library/:id", KRILibraryController.UpdateKRILibrary)
+	libraryRoutes.POST("/kri-library/delete", KRILibraryController.DeleteKRILibraries)
+	libraryRoutes.PUT("/kri-library/activate", KRILibraryController.ActivateKRILibraries)
+	libraryRoutes.PUT("/kri-library/deactivate", KRILibraryController.DeactivateKRILibraries)
 
 }
