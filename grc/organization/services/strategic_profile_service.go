@@ -16,9 +16,9 @@ import (
 
 type StrategicProfileServiceInterface interface {
 	GetStrategicProfile() (*organizationDTOs.StrategicProfileDetailsDTO, error)
-	Update(id uint, currentUserID uint, strategicProfile *organizationDTOs.StrategicProfileFormDTO) error
-	UpdateVision(id uint, currentUserID uint, strategicProfileVision *organizationDTOs.StrategicProfileVisionFormDTO) error
-	UpdateMission(id uint, currentUserID uint, strategicProfileMission *organizationDTOs.StrategicProfileMisionFormDTO) error
+	Update(currentUserID uint, strategicProfile *organizationDTOs.StrategicProfileFormDTO) error
+	UpdateVision(currentUserID uint, strategicProfileVision *organizationDTOs.StrategicProfileVisionFormDTO) error
+	UpdateMission(currentUserID uint, strategicProfileMission *organizationDTOs.StrategicProfileMisionFormDTO) error
 }
 
 type StrategicProfileService struct {
@@ -36,7 +36,7 @@ func (sps *StrategicProfileService) GetStrategicProfile() (*organizationDTOs.Str
 	// Initialize your DTO
 	var strategicProfileDTO organizationDTOs.StrategicProfileDetailsDTO
 
-	strategicProfile, err := sps.repo.GetStrategicProfile()
+	strategicProfile, err := sps.repo.GetStrategicProfileDetails()
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -56,16 +56,16 @@ func (sps *StrategicProfileService) GetStrategicProfile() (*organizationDTOs.Str
 	return &strategicProfileDTO, nil
 }
 
-func (sps *StrategicProfileService) Update(id uint, currentUserID uint, strategicProfileDTO *organizationDTOs.StrategicProfileFormDTO) error {
+func (sps *StrategicProfileService) Update(currentUserID uint, strategicProfileDTO *organizationDTOs.StrategicProfileFormDTO) error {
 
 	// @review
 	// there will be only one profile, so we can use latets one without id.
 	// we an remove get by id option
 	//also we can remove id from url during udpate
-	existingStrategicProfile, err := sps.repo.GetByID(id)
+	existingStrategicProfile, err := sps.repo.Get()
 
 	if err != nil {
-		return err
+		return utility.NewResourceNotFoundError(err, nil)
 	}
 
 	if err := sps.validateStrategicProfileFormDTO(strategicProfileDTO); err != nil {
@@ -97,12 +97,12 @@ func (sps *StrategicProfileService) Update(id uint, currentUserID uint, strategi
 
 }
 
-func (sps *StrategicProfileService) UpdateVision(id uint, currentUserID uint, strategicProfileVisionDTO *organizationDTOs.StrategicProfileVisionFormDTO) error {
+func (sps *StrategicProfileService) UpdateVision(currentUserID uint, strategicProfileVisionDTO *organizationDTOs.StrategicProfileVisionFormDTO) error {
 
-	existingStrategicProfile, err := sps.repo.GetByID(id)
+	existingStrategicProfile, err := sps.repo.Get()
 
 	if err != nil {
-		return err
+		return utility.NewResourceNotFoundError(err, nil)
 	}
 
 	existingStrategicProfile.VisionEn = strategicProfileVisionDTO.VisionEn
@@ -118,12 +118,12 @@ func (sps *StrategicProfileService) UpdateVision(id uint, currentUserID uint, st
 
 }
 
-func (sps *StrategicProfileService) UpdateMission(id uint, currentUserID uint, strategicProfileMissionDTO *organizationDTOs.StrategicProfileMisionFormDTO) error {
+func (sps *StrategicProfileService) UpdateMission(currentUserID uint, strategicProfileMissionDTO *organizationDTOs.StrategicProfileMisionFormDTO) error {
 
-	existingStrategicProfile, err := sps.repo.GetByID(id)
+	existingStrategicProfile, err := sps.repo.Get()
 
 	if err != nil {
-		return err
+		return utility.NewResourceNotFoundError(err, nil)
 	}
 
 	existingStrategicProfile.MissionEn = strategicProfileMissionDTO.MissionEn

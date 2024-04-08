@@ -1,16 +1,14 @@
 package repositories
 
 import (
-	"errors"
 	organizationModels "jethur/grc/organization/models"
-	"jethur/utility"
 
 	"gorm.io/gorm"
 )
 
 type StrategicProfileRepositoryInterface interface {
-	GetByID(id uint) (*organizationModels.StrategicProfile, error)
-	GetStrategicProfile() (*organizationModels.StrategicProfile, error)
+	Get() (*organizationModels.StrategicProfile, error)
+	GetStrategicProfileDetails() (*organizationModels.StrategicProfile, error)
 	Update(strategicProfile *organizationModels.StrategicProfile) error
 }
 
@@ -24,22 +22,20 @@ func NewStrategicProfileRepository(db *gorm.DB) *StrategicProfileRepository {
 	}
 }
 
-func (repo *StrategicProfileRepository) GetByID(id uint) (*organizationModels.StrategicProfile, error) {
+func (repo *StrategicProfileRepository) Get() (*organizationModels.StrategicProfile, error) {
 	var strategicProfile *organizationModels.StrategicProfile
-	result := repo.db.First(&strategicProfile, id)
-	// @review
-	// please move this error return to service, here just return error as it is
-	// everywhere we used to follow method you used, but we have to move to service layer from new apis
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, utility.NewResourceNotFoundError(result.Error, id)
-	} else if result.Error != nil {
+	result := repo.db.First(&strategicProfile)
+	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	return strategicProfile, result.Error
+	// @review
+	// please move this error return to service, here just return error as it is
+	// everywhere we used to follow method you used, but we have to move to service layer from new apis
+	return strategicProfile, nil
 }
 
-func (repo *StrategicProfileRepository) GetStrategicProfile() (*organizationModels.StrategicProfile, error) {
+func (repo *StrategicProfileRepository) GetStrategicProfileDetails() (*organizationModels.StrategicProfile, error) {
 	var strategicProfile *organizationModels.StrategicProfile
 
 	result := repo.db.First(&strategicProfile)
