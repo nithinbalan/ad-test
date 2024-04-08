@@ -2,10 +2,10 @@ package services
 
 import (
 	"fmt"
-	"jethur/grc/libraries/models"
-	"jethur/grc/libraries/repositories"
 	logModels "jethur/grc/logs/models"
 	"jethur/grc/logs/services"
+	"jethur/grc/masters/models"
+	"jethur/grc/masters/repositories"
 	"jethur/utility"
 	"log"
 )

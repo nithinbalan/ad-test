@@ -2,19 +2,20 @@ package services
 
 import (
 	"fmt"
-	"jethur/grc/libraries/models"
-	"jethur/grc/libraries/repositories"
 	activityLogModels "jethur/grc/logs/models"
 	"jethur/grc/logs/services"
+	masterDTOs "jethur/grc/masters/dtos"
+	masterModels "jethur/grc/masters/models"
+	"jethur/grc/masters/repositories"
 	"jethur/utility"
 	"log"
 )
 
 type QuestionLibraryServiceInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.QuestionLibraryWithGroupTitle, error)
-	GetByID(id uint) (*models.QuestionLibrary, error)
-	Create(currentUserID uint, questionLibrary *models.QuestionLibrary) (*models.QuestionLibrary, error)
-	Update(id uint, currentUserID uint, questionLibrary *models.QuestionLibrary) (*models.QuestionLibrary, error)
+	GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int) (*masterDTOs.QuestionLibraryListResponseDTO, error)
+	GetByID(id uint) (*masterModels.QuestionLibrary, error)
+	Create(currentUserID uint, questionLibraryForm *masterDTOs.QuestionLibraryFormDTO) (uint, error)
+	Update(id uint, currentUserID uint, questionLibraryForm *masterDTOs.QuestionLibraryFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	Activate(ids []uint, currentUserID uint) error
 	Deactivate(ids []uint, currentUserID uint) error
@@ -33,70 +34,90 @@ func NewQuestionLibraryService(repo repositories.QuestionLibraryRepositoryInterf
 	}
 }
 
-func (qls *QuestionLibraryService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.QuestionLibraryWithGroupTitle, error) {
-	return qls.repo.GetAll(sort, sortBy, keyword, status)
+func (qls *QuestionLibraryService) GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int) (*masterDTOs.QuestionLibraryListResponseDTO, error) {
+	return qls.repo.GetAll(sort, sortBy, keyword, status, page, pageSize)
 }
 
-func (qls QuestionLibraryService) GetByID(id uint) (*models.QuestionLibrary, error) {
+func (qls QuestionLibraryService) GetByID(id uint) (*masterModels.QuestionLibrary, error) {
 	return qls.repo.GetByID(id)
 }
 
-func (qls *QuestionLibraryService) Create(currentUserID uint, questionLibrary *models.QuestionLibrary) (*models.QuestionLibrary, error) {
+func (qls *QuestionLibraryService) Create(currentUserID uint, questionLibraryForm *masterDTOs.QuestionLibraryFormDTO) (uint, error) {
 
-	if exists, err := qls.repo.ExistsByTitle(questionLibrary.QuestionEn, questionLibrary.QuestionAr, questionLibrary.QuestionGroupID); err != nil {
-		return nil, err
+	if exists, err := qls.repo.ExistsByTitle(questionLibraryForm.QuestionEn, questionLibraryForm.QuestionAr, questionLibraryForm.QuestionGroupID); err != nil {
+		return 0, err
 	} else if exists {
-		return nil, utility.NewValidationError(fmt.Errorf("the question must be unique"), "unique", "question")
+		return 0, utility.NewValidationError(fmt.Errorf("the question must be unique"), "unique", "question")
 	}
 
-	createdQuestionLibrary, err := qls.repo.Create(questionLibrary)
+	questionLibrary := &masterModels.QuestionLibrary{
+		QuestionGroupID: questionLibraryForm.QuestionGroupID,
+		QuestionEn:      questionLibraryForm.QuestionEn,
+		QuestionAr:      questionLibraryForm.QuestionAr,
+		Status:          questionLibraryForm.Status,
+	}
+
+	id, err := qls.repo.Create(questionLibrary)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
 	go func() {
 		err := qls.activityLogSvc.LogActivity(
 			activityLogModels.CreateAction,
-			models.QuestionLibrary{}.TableName(),
-			questionLibrary.ID,
-			createdQuestionLibrary,
+			masterModels.QuestionLibrary{}.TableName(),
+			id,
+			questionLibraryForm,
 			currentUserID,
 			nil,
 		)
 
 		if err != nil {
-			// @todo - save to log file
-			log.Printf("Failed to log activity: %v", err)
+			fields := map[string]interface{}{
+				"action":    activityLogModels.CreateAction,
+				"tableName": masterModels.QuestionLibrary{}.TableName(),
+				"recordID":  id,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			}
+
+			utility.LogError("Failed to log activity", fields)
 		}
 	}()
 
-	return createdQuestionLibrary, nil
+	return id, nil
+
 }
 
-func (qls *QuestionLibraryService) Update(id uint, currentUserID uint, updatedQuestionLibrary *models.QuestionLibrary) (*models.QuestionLibrary, error) {
+func (qls *QuestionLibraryService) Update(id uint, currentUserID uint, updatedQuestionLibraryForm *masterDTOs.QuestionLibraryFormDTO) error {
 	existingQuestionLibrary, err := qls.repo.GetByID(id)
 
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	if updatedQuestionLibrary.QuestionEn != existingQuestionLibrary.QuestionEn || updatedQuestionLibrary.QuestionAr != existingQuestionLibrary.QuestionAr || updatedQuestionLibrary.QuestionGroupID != existingQuestionLibrary.QuestionGroupID {
-		if exists, err := qls.repo.ExistsByTitleExcludingID(id, updatedQuestionLibrary.QuestionEn, updatedQuestionLibrary.QuestionAr, updatedQuestionLibrary.QuestionGroupID); err != nil {
-			return nil, err
+	if updatedQuestionLibraryForm.QuestionEn != existingQuestionLibrary.QuestionEn || updatedQuestionLibraryForm.QuestionAr != existingQuestionLibrary.QuestionAr || updatedQuestionLibraryForm.QuestionGroupID != existingQuestionLibrary.QuestionGroupID {
+		if exists, err := qls.repo.ExistsByTitleExcludingID(id, updatedQuestionLibraryForm.QuestionEn, updatedQuestionLibraryForm.QuestionAr, updatedQuestionLibraryForm.QuestionGroupID); err != nil {
+			return err
 		} else if exists {
-			return nil, utility.NewValidationError(fmt.Errorf("the question must be unique"), "unique", "question")
+			return utility.NewValidationError(fmt.Errorf("the question must be unique"), "unique", "question")
 		}
 
 	}
 
-	result, err := qls.repo.Update(id, updatedQuestionLibrary)
+	existingQuestionLibrary.QuestionGroupID = updatedQuestionLibraryForm.QuestionGroupID
+	existingQuestionLibrary.QuestionEn = updatedQuestionLibraryForm.QuestionEn
+	existingQuestionLibrary.QuestionAr = updatedQuestionLibraryForm.QuestionAr
+	existingQuestionLibrary.Status = updatedQuestionLibraryForm.Status
+
+	result, err := qls.repo.Update(id, existingQuestionLibrary)
 
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	fieldsToCompare := []string{"QuestionEn", "QuestionAr", "QuestionGroupID"}
-	changes, err := utility.CompareFields(existingQuestionLibrary, updatedQuestionLibrary, fieldsToCompare)
+	changes, err := utility.CompareFields(existingQuestionLibrary, updatedQuestionLibraryForm, fieldsToCompare)
 
 	if err != nil {
 		log.Println("error :", err.Error())
@@ -110,7 +131,7 @@ func (qls *QuestionLibraryService) Update(id uint, currentUserID uint, updatedQu
 	go func() {
 		err := qls.activityLogSvc.LogActivity(
 			activityLogModels.UpdateAction,
-			models.QuestionLibrary{}.TableName(),
+			masterModels.QuestionLibrary{}.TableName(),
 			result.ID,
 			changedDataJSON,
 			currentUserID,
@@ -121,7 +142,7 @@ func (qls *QuestionLibraryService) Update(id uint, currentUserID uint, updatedQu
 			fmt.Printf("Failed to log activity: %v\n", err)
 		}
 	}()
-	return result, err
+	return err
 }
 
 func (qls *QuestionLibraryService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
@@ -148,7 +169,7 @@ func (qls *QuestionLibraryService) Delete(ids []uint, currentUserID uint) ([]uin
 		go func() {
 			err := qls.activityLogSvc.LogBulkActivities(
 				activityLogModels.DeleteAction, // Make sure this action constant is defined appropriately
-				models.QuestionLibrary{}.TableName(),
+				masterModels.QuestionLibrary{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,
@@ -172,7 +193,7 @@ func (qls *QuestionLibraryService) Activate(ids []uint, currentUserID uint) erro
 		go func() {
 			err := qls.activityLogSvc.LogBulkActivities(
 				activityLogModels.ActivateAction,
-				models.QuestionLibrary{}.TableName(),
+				masterModels.QuestionLibrary{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,
@@ -196,7 +217,7 @@ func (qls *QuestionLibraryService) Deactivate(ids []uint, currentUserID uint) er
 		go func() {
 			err := qls.activityLogSvc.LogBulkActivities(
 				activityLogModels.DeactivateAction,
-				models.QuestionLibrary{}.TableName(),
+				masterModels.QuestionLibrary{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,

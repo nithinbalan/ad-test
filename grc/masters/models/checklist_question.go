@@ -1,9 +1,5 @@
 package models
 
-import (
-	libraryModel "jethur/grc/libraries/models"
-)
-
 type ChecklistQuestion struct {
 	ID                uint   `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	ChecklistID       uint   `json:"checklist_id" binding:"required" gorm:"not null"`
@@ -13,9 +9,9 @@ type ChecklistQuestion struct {
 	QuestionAr        string `json:"question_ar" binding:"required,max=500" gorm:"type:nvarchar(500);not null"`
 
 	// Relationships
-	Checklist       *Checklist                    `gorm:"foreignKey:ChecklistID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
-	QuestionGroup   *libraryModel.QuestionGroup   `gorm:"foreignKey:QuestionGroupID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
-	QuestionLibrary *libraryModel.QuestionLibrary `gorm:"foreignKey:QuestionLibraryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
+	Checklist       *Checklist       `gorm:"foreignKey:ChecklistID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
+	QuestionGroup   *QuestionGroup   `gorm:"foreignKey:QuestionGroupID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
+	QuestionLibrary *QuestionLibrary `gorm:"foreignKey:QuestionLibraryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
 }
 
 // TableName overrides the table name used by ChecklistQuestion to `checklist_questions`

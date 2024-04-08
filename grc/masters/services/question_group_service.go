@@ -2,19 +2,19 @@ package services
 
 import (
 	"fmt"
-	"jethur/grc/libraries/models"
-	"jethur/grc/libraries/repositories"
 	activityLogModels "jethur/grc/logs/models"
 	"jethur/grc/logs/services"
+	masterModels "jethur/grc/masters/models"
+	"jethur/grc/masters/repositories"
 	"jethur/utility"
 	"log"
 )
 
 type QuestionGroupServiceInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.QuestionGroup, error)
-	GetByID(id uint) (*models.QuestionGroup, error)
-	Create(currentUserID uint, questionGroup *models.QuestionGroup) (*models.QuestionGroup, error)
-	Update(id uint, currentUserID uint, questionGroup *models.QuestionGroup) (*models.QuestionGroup, error)
+	GetAll(sort string, sortBy string, keyword string, status string) ([]*masterModels.QuestionGroup, error)
+	GetByID(id uint) (*masterModels.QuestionGroup, error)
+	Create(currentUserID uint, questionGroup *masterModels.QuestionGroup) (*masterModels.QuestionGroup, error)
+	Update(id uint, currentUserID uint, questionGroup *masterModels.QuestionGroup) (*masterModels.QuestionGroup, error)
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	Activate(ids []uint, currentUserID uint) error
 	Deactivate(ids []uint, currentUserID uint) error
@@ -33,15 +33,15 @@ func NewQuestionGroupService(repo repositories.QuestionGroupRepositoryInterface,
 	}
 }
 
-func (qgs *QuestionGroupService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.QuestionGroup, error) {
+func (qgs *QuestionGroupService) GetAll(sort string, sortBy string, keyword string, status string) ([]*masterModels.QuestionGroup, error) {
 	return qgs.repo.GetAll(sort, sortBy, keyword, status)
 }
 
-func (qgs QuestionGroupService) GetByID(id uint) (*models.QuestionGroup, error) {
+func (qgs QuestionGroupService) GetByID(id uint) (*masterModels.QuestionGroup, error) {
 	return qgs.repo.GetByID(id)
 }
 
-func (qgs *QuestionGroupService) Create(currentUserID uint, questionGroup *models.QuestionGroup) (*models.QuestionGroup, error) {
+func (qgs *QuestionGroupService) Create(currentUserID uint, questionGroup *masterModels.QuestionGroup) (*masterModels.QuestionGroup, error) {
 
 	if exists, err := qgs.repo.ExistsByTitle(questionGroup.TitleEn, questionGroup.TitleAr); err != nil {
 		return nil, err
@@ -57,7 +57,7 @@ func (qgs *QuestionGroupService) Create(currentUserID uint, questionGroup *model
 	go func() {
 		err := qgs.activityLogSvc.LogActivity(
 			activityLogModels.CreateAction,
-			models.QuestionGroup{}.TableName(),
+			masterModels.QuestionGroup{}.TableName(),
 			questionGroup.ID,
 			createdQuestionGroup,
 			currentUserID,
@@ -73,7 +73,7 @@ func (qgs *QuestionGroupService) Create(currentUserID uint, questionGroup *model
 	return createdQuestionGroup, nil
 }
 
-func (qgs *QuestionGroupService) Update(id uint, currentUserID uint, updatedQuestionGroup *models.QuestionGroup) (*models.QuestionGroup, error) {
+func (qgs *QuestionGroupService) Update(id uint, currentUserID uint, updatedQuestionGroup *masterModels.QuestionGroup) (*masterModels.QuestionGroup, error) {
 	existingQuestionGroup, err := qgs.repo.GetByID(id)
 
 	if err != nil {
@@ -110,7 +110,7 @@ func (qgs *QuestionGroupService) Update(id uint, currentUserID uint, updatedQues
 	go func() {
 		err := qgs.activityLogSvc.LogActivity(
 			activityLogModels.UpdateAction,
-			models.QuestionGroup{}.TableName(),
+			masterModels.QuestionGroup{}.TableName(),
 			result.ID,
 			changedDataJSON,
 			currentUserID,
@@ -148,7 +148,7 @@ func (qgs *QuestionGroupService) Delete(ids []uint, currentUserID uint) ([]uint,
 		go func() {
 			err := qgs.activityLogSvc.LogBulkActivities(
 				activityLogModels.DeleteAction, // Make sure this action constant is defined appropriately
-				models.QuestionGroup{}.TableName(),
+				masterModels.QuestionGroup{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,
@@ -172,7 +172,7 @@ func (qgs *QuestionGroupService) Activate(ids []uint, currentUserID uint) error 
 		go func() {
 			err := qgs.activityLogSvc.LogBulkActivities(
 				activityLogModels.ActivateAction,
-				models.QuestionGroup{}.TableName(),
+				masterModels.QuestionGroup{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,
@@ -196,7 +196,7 @@ func (qgs *QuestionGroupService) Deactivate(ids []uint, currentUserID uint) erro
 		go func() {
 			err := qgs.activityLogSvc.LogBulkActivities(
 				activityLogModels.DeactivateAction,
-				models.QuestionGroup{}.TableName(),
+				masterModels.QuestionGroup{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,
