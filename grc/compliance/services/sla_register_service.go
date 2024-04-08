@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"jethur/config"
 	slaDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/models"
 	complianceModels "jethur/grc/compliance/models"
@@ -56,7 +57,8 @@ func (srs SLARegisterService) GetByID(id uint) (*models.SLARegister, error) {
 }
 
 func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *slaDTOs.SLARegisterFormDTO) (uint, error) {
-
+	tx := srs.repo.BeginTransaction()
+	//validation for sla form
 	if err := srs.validateSLARegisterFormDTO(slaRegisterFormDTO); err != nil {
 		return 0, err
 	}
@@ -95,12 +97,14 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *sl
 		CreatedBy:         currentUserID,
 	}
 
-	id, err := srs.repo.Create(slaRegister)
+	id, err := srs.repo.Create(slaRegister, tx)
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
 	if err := srs.repo.StoreSLADocumentFile(id, slaRegisterFormDTO.Document.FileName); err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
@@ -111,7 +115,6 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *sl
 	//@Review
 	//Add API_URL in .env
 	//Construct URL using .env variable, URL:=  API_URL/sla-contracts/1/token
-
 	//@Review
 	//Please add db transaciton by refering ranjith code.
 
@@ -120,6 +123,17 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *sl
 	if err != nil {
 		return 0, err
 	}
+	// Decrypt token
+	// decryptedFilenameBytes, err := utility.DecryptData(encryptedFilename)
+	// if err != nil {
+	// 	fmt.Println("Decryption failed:", err)
+	// }
+	// // Convert decrypted byte slice to string
+	// decryptedFilename := string(decryptedFilenameBytes)
+	// fmt.Println("Decryption:", decryptedFilename)
+
+	//Construct URL using .env variable, URL:=  API_URL/sla-contracts/1/token
+	url := fmt.Sprintf("%s/sla-registers/%d/%s", config.GetEnv("API_URL", "http://localhost:8080"), slaRegister.ID, encryptedFilename)
 
 	slaDocument := &models.SLADocument{
 		SLARegisterID: id,
@@ -129,7 +143,7 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *sl
 		SA1Date:       dates.SA1Date,
 		SA2Date:       dates.SA2Date,
 		Language:      slaRegisterFormDTO.Document.Language,
-		URL:           slaRegisterFormDTO.Document.URL,
+		URL:           url,
 		Icon:          slaRegisterFormDTO.Document.Icon,
 		Name:          slaRegisterFormDTO.Document.FileName,
 		Size:          slaRegisterFormDTO.Document.Size,
@@ -140,9 +154,12 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *sl
 	}
 
 	// Save SLA document
-	if err := srs.repo.SaveSLADocument(slaDocument); err != nil {
+	if err := srs.repo.SaveSLADocument(slaDocument, tx); err != nil {
+		tx.Rollback()
 		return 0, err
 	}
+
+	tx.Commit()
 
 	go func() {
 		err := srs.activityLogSvc.LogActivity(
@@ -171,6 +188,7 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *sl
 }
 
 func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFormDTO *slaDTOs.SLARegisterFormDTO) error {
+	tx := srs.repo.BeginTransaction()
 	existingSLARegister, err := srs.repo.GetByID(id)
 	if err != nil {
 		return err
@@ -200,7 +218,8 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 	existingSLARegister.Client = slaRegisterFormDTO.Client
 	existingSLARegister.UpdatedBy = currentUserID
 
-	if err := srs.repo.Update(existingSLARegister); err != nil {
+	if err := srs.repo.Update(existingSLARegister, tx); err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -232,28 +251,39 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 		if slaRegisterFormDTO.Document.IsNewFile != nil && *slaRegisterFormDTO.Document.IsNewFile {
 			// File is updated, delete existing file
 			if err := srs.repo.RemoveSLADocumentFile(existingSLADocument.SLARegisterID, existingSLADocument.Name); err != nil {
+				tx.Rollback()
 				return err
 			}
 			// Move new file from temp to storage
 			if err := srs.repo.StoreSLADocumentFile(existingSLADocument.SLARegisterID, slaRegisterFormDTO.Document.FileName); err != nil {
+				tx.Rollback()
 				return err
 			}
+			dataToEncrypt := []byte(slaRegisterFormDTO.Document.FileName)
+			encryptedFilename, err := utility.EncryptData(dataToEncrypt)
+			if err != nil {
+				return err
+			}
+			//Construct URL using .env variable, URL:=  API_URL/sla-contracts/1/token
+			url := fmt.Sprintf("%s/sla-registers/%d/%s", config.GetEnv("API_URL", "http://localhost:8080"), id, encryptedFilename)
 
 			// Update existing SLA document fields
 			existingSLADocument.Language = slaRegisterFormDTO.Document.Language
-			existingSLADocument.URL = slaRegisterFormDTO.Document.URL
+			existingSLADocument.URL = url
 			existingSLADocument.Icon = slaRegisterFormDTO.Document.Icon
 			existingSLADocument.Name = slaRegisterFormDTO.Document.FileName
 			existingSLADocument.Size = slaRegisterFormDTO.Document.Size
-			existingSLADocument.Token = slaRegisterFormDTO.Document.FileName // Assuming token is same as fileName
+			existingSLADocument.Token = encryptedFilename
 			existingSLADocument.Type = slaRegisterFormDTO.Document.Type
 			existingSLADocument.IsLatest = true
 		}
 		// Save updated SLA document
-		if err := srs.repo.SaveSLADocument(existingSLADocument); err != nil {
+		if err := srs.repo.SaveSLADocument(existingSLADocument, tx); err != nil {
+			tx.Rollback()
 			return err
 		}
 	}
+	tx.Commit()
 
 	go func() {
 		err := srs.activityLogSvc.LogActivity(
@@ -474,11 +504,6 @@ func (srs *SLARegisterService) validateSLADocumentFormDTO(document *slaDTOs.SLAD
 	// Validate language
 	if document.Language == "" {
 		return utility.NewValidationError(fmt.Errorf("language is required"), "required", "language")
-	}
-
-	// Validate URL
-	if document.URL == "" {
-		return utility.NewValidationError(fmt.Errorf("URL is required"), "required", "URL")
 	}
 
 	// Validate icon
