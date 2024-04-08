@@ -58,6 +58,10 @@ func (sps *StrategicProfileService) GetStrategicProfile() (*organizationDTOs.Str
 
 func (sps *StrategicProfileService) Update(id uint, currentUserID uint, strategicProfileDTO *organizationDTOs.StrategicProfileFormDTO) error {
 
+	// @review
+	// there will be only one profile, so we can use latets one without id.
+	// we an remove get by id option
+	//also we can remove id from url during udpate
 	existingStrategicProfile, err := sps.repo.GetByID(id)
 
 	if err != nil {
@@ -156,6 +160,8 @@ func (us *StrategicProfileService) validateStrategicProfileFormDTO(strategicProf
 
 }
 
+// @review
+// what about moving this in to helper function called  url_validations or existing validation one.
 // Helper function to parse and validate a URL's scheme and host.
 func isValidURL(toTest string) (bool, *url.URL) {
 	u, err := url.Parse(toTest)

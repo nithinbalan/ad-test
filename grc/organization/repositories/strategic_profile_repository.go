@@ -27,7 +27,9 @@ func NewStrategicProfileRepository(db *gorm.DB) *StrategicProfileRepository {
 func (repo *StrategicProfileRepository) GetByID(id uint) (*organizationModels.StrategicProfile, error) {
 	var strategicProfile *organizationModels.StrategicProfile
 	result := repo.db.First(&strategicProfile, id)
-
+	// @review
+	// please move this error return to service, here just return error as it is
+	// everywhere we used to follow method you used, but we have to move to service layer from new apis
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, utility.NewResourceNotFoundError(result.Error, id)
 	} else if result.Error != nil {
