@@ -66,6 +66,9 @@ func (crsus ComplianceRequirementStatusUpdateService) GetByID(ComplianceID uint,
 }
 
 func (crsus *ComplianceRequirementStatusUpdateService) Create(ComplianceID uint, ComplianceRequirementID uint, currentUserID uint, complianceRequirementStatusUpdateFormDTO *complianceDTOs.ComplianceRequirementStatusUpdateFormDTO) (uint, error) {
+
+	// @todo file upload?
+
 	// @Review
 	// please move custom error return from repo to here
 	if _, err := crsus.complianceRequirementSvc.GetByID(ComplianceID, ComplianceRequirementID); err != nil {
