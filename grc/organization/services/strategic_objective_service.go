@@ -4,6 +4,7 @@ import (
 	"fmt"
 	logModels "jethur/grc/logs/models"
 	"jethur/grc/logs/services"
+	"jethur/grc/organization/dtos"
 	"jethur/grc/organization/models"
 	"jethur/grc/organization/repositories"
 	"jethur/utility"
@@ -11,10 +12,10 @@ import (
 )
 
 type StrategicObjectiveServiceInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.StrategicObjective, error)
+	GetAll(sort string, sortBy string, keyword string, status string) ([]*dtos.StrategicObjectiveListDTO, error)
 	GetByID(id uint) (*models.StrategicObjective, error)
-	Create(currentUserID uint, strategicObjective *models.StrategicObjective) (*models.StrategicObjective, error)
-	Update(id uint, currentUserID uint, strategicObjective *models.StrategicObjective) (*models.StrategicObjective, error)
+	Create(currentUserID uint, strategicObjectiveFormDTO *dtos.StrategicObjectiveFormDTO) (uint, error)
+	Update(id uint, currentUserID uint, strategicObjectiveFormDTO *dtos.StrategicObjectiveFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	Activate(ids []uint, currentUserID uint) error
 	Deactivate(ids []uint, currentUserID uint) error
@@ -33,112 +34,98 @@ func NewStrategicObjectiveService(repo repositories.StrategicObjectiveRepository
 	}
 }
 
-func (ccs *StrategicObjectiveService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.StrategicObjective, error) {
-	return ccs.repo.GetAll(sort, sortBy, keyword, status)
+func (sos *StrategicObjectiveService) GetAll(sort string, sortBy string, keyword string, status string) ([]*dtos.StrategicObjectiveListDTO, error) {
+	return sos.repo.GetAll(sort, sortBy, keyword, status)
 }
 
-func (ccs StrategicObjectiveService) GetByID(id uint) (*models.StrategicObjective, error) {
-	return ccs.repo.GetByID(id)
+func (sos StrategicObjectiveService) GetByID(id uint) (*models.StrategicObjective, error) {
+	return sos.repo.GetByID(id)
 }
 
-func (ccs *StrategicObjectiveService) Create(currentUserID uint, strategicObjective *models.StrategicObjective) (*models.StrategicObjective, error) {
+func (sos *StrategicObjectiveService) Create(currentUserID uint, strategicObjectiveFormDTO *dtos.StrategicObjectiveFormDTO) (uint, error) {
 
-	if exists, err := ccs.repo.ExistsByTitle(strategicObjective.TitleEn, strategicObjective.TitleAr); err != nil {
-		return nil, err
+	if exists, err := sos.repo.ExistsByTitle(strategicObjectiveFormDTO.TitleEn, strategicObjectiveFormDTO.TitleAr); err != nil {
+		return 0, err
 	} else if exists {
-		return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
+		return 0, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 	}
 
-	strategicObjective.CreatedBy = currentUserID
+	//strategicObjective.CreatedBy = currentUserID
+	strategicObjective := &models.StrategicObjective{
+		TitleEn:   strategicObjectiveFormDTO.TitleEn,
+		TitleAr:   strategicObjectiveFormDTO.TitleAr,
+		Status:    strategicObjectiveFormDTO.Status,
+		CreatedBy: currentUserID,
+	}
 
-	createdStrategicObjective, err := ccs.repo.Create(strategicObjective)
+	createdStrategicObjectiveID, err := sos.repo.Create(strategicObjective)
 	if err != nil {
-		return nil, err
-	}
-
-	// go func() {
-	// 	err := ccs.activityLogSvc.LogActivity(
-	// 		logModels.CreateAction,
-	// 		models.StrategicObjective{}.TableName(),
-	// 		createdStrategicObjective.ID,
-	// 		createdStrategicObjective,
-	// 		currentUserID,
-	// 		nil,
-	// 	)
-
-	// 	if err != nil {
-	// 		// @todo - save to log file
-	// 		log.Printf("Failed to log activity: %v", err)
-	// 	}
-	// }()
-
-	return createdStrategicObjective, nil
-}
-
-func (ccs *StrategicObjectiveService) Update(id uint, currentUserID uint, updatedStrategicObjective *models.StrategicObjective) (*models.StrategicObjective, error) {
-	existingStrategicObjective, err := ccs.repo.GetByID(id)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if updatedStrategicObjective.TitleEn != existingStrategicObjective.TitleEn || updatedStrategicObjective.TitleAr != existingStrategicObjective.TitleAr {
-		if exists, err := ccs.repo.ExistsByTitleExcludingID(id, updatedStrategicObjective.TitleEn, updatedStrategicObjective.TitleAr); err != nil {
-			return nil, err
-		} else if exists {
-			return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
-		}
-
-	}
-
-	result, err := ccs.repo.Update(id, updatedStrategicObjective)
-
-	if err != nil {
-		return nil, err
-	}
-
-	fieldsToCompare := []string{"TitleEn", "TitleAr", "Status"}
-	changes, err := utility.CompareFields(existingStrategicObjective, updatedStrategicObjective, fieldsToCompare)
-
-	if err != nil {
-		log.Println("error :", err.Error())
-	}
-
-	changedDataJSON, err := utility.ChangesToJSON(changes)
-	if err != nil {
-		log.Println("error :", err.Error())
+		return 0, err
 	}
 
 	go func() {
-		err := ccs.activityLogSvc.LogActivity(
-			logModels.UpdateAction,
+		err := sos.activityLogSvc.LogActivity(
+			logModels.CreateAction,
 			models.StrategicObjective{}.TableName(),
-			result.ID,
-			changedDataJSON,
+			createdStrategicObjectiveID,
+			strategicObjectiveFormDTO,
 			currentUserID,
 			nil,
 		)
+
 		if err != nil {
 			// @todo - save to log file
-			fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+			log.Printf("Failed to log activity: %v", err)
 		}
 	}()
-	return result, err
+
+	return createdStrategicObjectiveID, nil
 }
 
-func (ccs *StrategicObjectiveService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
+func (sos *StrategicObjectiveService) Update(id uint, currentUserID uint, strategicObjectiveFormDTO *dtos.StrategicObjectiveFormDTO) error {
+	existingStrategicObjective, err := sos.repo.GetByID(id)
+
+	if err != nil {
+		return err
+	}
+
+	if strategicObjectiveFormDTO.TitleEn != existingStrategicObjective.TitleEn || strategicObjectiveFormDTO.TitleAr != existingStrategicObjective.TitleAr {
+		if exists, err := sos.repo.ExistsByTitleExcludingID(id, strategicObjectiveFormDTO.TitleEn, strategicObjectiveFormDTO.TitleAr); err != nil {
+			return err
+		} else if exists {
+			return utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
+		}
+
+	}
+
+	existingStrategicObjective.TitleEn = strategicObjectiveFormDTO.TitleEn
+	existingStrategicObjective.TitleAr = strategicObjectiveFormDTO.TitleAr
+	existingStrategicObjective.Status = strategicObjectiveFormDTO.Status
+	existingStrategicObjective.UpdatedBy = &currentUserID
+
+	err = sos.repo.Update(existingStrategicObjective)
+
+	if err != nil {
+		return err
+	}
+
+	//@todo - need to capture activity log
+	return nil
+}
+
+func (sos *StrategicObjectiveService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
 	for _, id := range ids {
 
-		_, err := ccs.repo.GetByID(id)
+		_, err := sos.repo.GetByID(id)
 
 		if err != nil {
 			fmt.Print(err)
 			continue
 		}
 
-		err = ccs.repo.Delete(id)
+		err = sos.repo.Delete(id)
 		if err != nil {
 			failedIds = append(failedIds, id)
 		} else {
@@ -149,7 +136,7 @@ func (ccs *StrategicObjectiveService) Delete(ids []uint, currentUserID uint) ([]
 	if len(successfulIds) > 0 {
 
 		go func() {
-			err := ccs.activityLogSvc.LogBulkActivities(
+			err := sos.activityLogSvc.LogBulkActivities(
 				logModels.DeleteAction, // Make sure this action constant is defined appropriately
 				models.StrategicObjective{}.TableName(),
 				successfulIds,
@@ -167,13 +154,13 @@ func (ccs *StrategicObjectiveService) Delete(ids []uint, currentUserID uint) ([]
 	return failedIds, nil
 }
 
-func (ccs *StrategicObjectiveService) Activate(ids []uint, currentUserID uint) error {
-	successfulIds, err := ccs.repo.Activate(ids)
+func (sos *StrategicObjectiveService) Activate(ids []uint, currentUserID uint) error {
+	successfulIds, err := sos.repo.Activate(ids)
 
 	if len(successfulIds) > 0 {
 
 		go func() {
-			err := ccs.activityLogSvc.LogBulkActivities(
+			err := sos.activityLogSvc.LogBulkActivities(
 				logModels.ActivateAction,
 				models.StrategicObjective{}.TableName(),
 				successfulIds,
@@ -191,13 +178,13 @@ func (ccs *StrategicObjectiveService) Activate(ids []uint, currentUserID uint) e
 	return err
 }
 
-func (ccs *StrategicObjectiveService) Deactivate(ids []uint, currentUserID uint) error {
-	successfulIds, err := ccs.repo.Deactivate(ids)
+func (sos *StrategicObjectiveService) Deactivate(ids []uint, currentUserID uint) error {
+	successfulIds, err := sos.repo.Deactivate(ids)
 
 	if len(successfulIds) > 0 {
 
 		go func() {
-			err := ccs.activityLogSvc.LogBulkActivities(
+			err := sos.activityLogSvc.LogBulkActivities(
 				logModels.DeactivateAction,
 				models.StrategicObjective{}.TableName(),
 				successfulIds,

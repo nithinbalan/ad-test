@@ -15,7 +15,7 @@ type StrategicObjective struct {
 	UpdatedBy *uint      `json:"updated_by" gorm:"default:null" binding:"omitempty"`
 
 	// Relationships
-	CreatedByUser User  `gorm:"foreignKey:CreatedBy"`
+	CreatedByUser *User `gorm:"foreignKey:CreatedBy"`
 	UpdatedByUser *User `gorm:"foreignKey:UpdatedBy"`
 }
 

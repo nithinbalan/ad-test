@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"errors"
+	"jethur/grc/organization/dtos"
 	"jethur/grc/organization/models"
 	"jethur/utility"
 
@@ -10,10 +11,10 @@ import (
 
 // Interfaces
 type StrategicObjectiveRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.StrategicObjective, error)
+	GetAll(sort string, sortBy string, keyword string, status string) ([]*dtos.StrategicObjectiveListDTO, error)
 	GetByID(id uint) (*models.StrategicObjective, error)
-	Create(strategicObjective *models.StrategicObjective) (*models.StrategicObjective, error)
-	Update(id uint, strategicObjective *models.StrategicObjective) (*models.StrategicObjective, error)
+	Create(strategicObjective *models.StrategicObjective) (uint, error)
+	Update(strategicObjective *models.StrategicObjective) error
 	Delete(id uint) error
 	Activate(ids []uint) ([]uint, error)
 	Deactivate(ids []uint) ([]uint, error)
@@ -32,11 +33,11 @@ func NewStrategicObjectiveRepository(db *gorm.DB) *StrategicObjectiveRepository 
 	}
 }
 
-func (repo *StrategicObjectiveRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.StrategicObjective, error) {
+func (repo *StrategicObjectiveRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*dtos.StrategicObjectiveListDTO, error) {
 
-	var strategicObjectives []*models.StrategicObjective
+	var strategicObjectivesListDTO []*dtos.StrategicObjectiveListDTO
 
-	query := repo.db
+	query := repo.db.Model(&models.StrategicObjective{})
 
 	if keyword != "" {
 		query = query.Where("(title_en LIKE ? OR title_ar LIKE ?)", "%"+keyword+"%", "%"+keyword+"%")
@@ -53,9 +54,9 @@ func (repo *StrategicObjectiveRepository) GetAll(sort string, sortBy string, key
 	}
 
 	query = query.Order(sortBy + " " + sort)
-	result := query.Find(&strategicObjectives)
+	result := query.Find(&strategicObjectivesListDTO)
 
-	return strategicObjectives, result.Error
+	return strategicObjectivesListDTO, result.Error
 }
 
 func (repo *StrategicObjectiveRepository) GetByID(id uint) (*models.StrategicObjective, error) {
@@ -71,24 +72,18 @@ func (repo *StrategicObjectiveRepository) GetByID(id uint) (*models.StrategicObj
 	return strategicObjective, result.Error
 }
 
-func (repo *StrategicObjectiveRepository) Create(strategicObjective *models.StrategicObjective) (*models.StrategicObjective, error) {
+func (repo *StrategicObjectiveRepository) Create(strategicObjective *models.StrategicObjective) (uint, error) {
 	result := repo.db.Create(&strategicObjective)
 
-	return strategicObjective, result.Error
+	return strategicObjective.ID, result.Error
 }
 
-func (repo *StrategicObjectiveRepository) Update(id uint, updatedStrategicObjective *models.StrategicObjective) (*models.StrategicObjective, error) {
-	var strategicObjective *models.StrategicObjective
-
-	if err := repo.db.First(&strategicObjective, id).Error; err != nil {
-		return nil, err
+func (repo *StrategicObjectiveRepository) Update(updatedStrategicObjective *models.StrategicObjective) error {
+	if err := repo.db.Save(updatedStrategicObjective).Error; err != nil {
+		return err
 	}
 
-	if err := repo.db.Model(&strategicObjective).Updates(updatedStrategicObjective).Error; err != nil {
-		return nil, err
-	}
-
-	return strategicObjective, nil
+	return nil
 }
 
 func (repo *StrategicObjectiveRepository) Delete(id uint) error {
