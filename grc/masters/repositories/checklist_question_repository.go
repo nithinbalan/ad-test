@@ -3,7 +3,7 @@ package repositories
 import (
 	"errors"
 	commonDTOs "jethur/grc/common/dtos"
-	checklistQuestionDTOs "jethur/grc/masters/dtos"
+	masterDTOs "jethur/grc/masters/dtos"
 	"jethur/grc/masters/models"
 	"jethur/utility"
 
@@ -12,15 +12,15 @@ import (
 
 // Interfaces
 type ChecklistQuestionRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string, page int, pageSize int) (*checklistQuestionDTOs.ChecklistQuestionListResponseDTO, error)
+	GetAll(sort string, sortBy string, keyword string, page int, pageSize int) (*masterDTOs.ChecklistQuestionListResponseDTO, error)
 	GetByID(id uint) (*models.ChecklistQuestion, error)
-	Create(checklistQuestionFormDTO *checklistQuestionDTOs.ChecklistQuestionFormDTO) (uint, error)
-	Update(id uint, checklistQuestionFormDTO *checklistQuestionDTOs.ChecklistQuestionFormDTO) error
+	Create(checklistQuestionFormDTO *masterDTOs.ChecklistQuestionFormDTO) (uint, error)
+	Update(id uint, checklistQuestionFormDTO *masterDTOs.ChecklistQuestionFormDTO) error
 	Delete(id uint) error
 	ExistsByTitle(QuestionEn string, QuestionAr string, ChecklistID uint, QuestionGroupID uint) (bool, error)
-	ExistsQuestionLibrary(QuestionLibraryID uint) (bool, error)
+	ExistsQuestionLibrary(QuestionLibraryID uint, QuestionEn, QuestionAr string) (bool, error)
 	ExistsByTitleExcludingID(id uint, QuestionEn, QuestionAr string, ChecklistID uint, QuestionGroupID uint) (bool, error)
-	ExistsQuestionLibraryExcludingID(id uint, QuestionLibraryID uint) (bool, error)
+	ExistsQuestionLibraryExcludingID(id uint, QuestionEn, QuestionAr string, QuestionLibraryID uint) (bool, error)
 }
 
 // implementation
@@ -34,9 +34,9 @@ func NewChecklistQuestionRepository(db *gorm.DB) *ChecklistQuestionRepository {
 	}
 }
 
-func (repo *ChecklistQuestionRepository) GetAll(sort string, sortBy string, keyword string, page int, pageSize int) (*checklistQuestionDTOs.ChecklistQuestionListResponseDTO, error) {
+func (repo *ChecklistQuestionRepository) GetAll(sort string, sortBy string, keyword string, page int, pageSize int) (*masterDTOs.ChecklistQuestionListResponseDTO, error) {
 
-	var checklistQuestions []*checklistQuestionDTOs.ChecklistQuestionListDTO
+	var checklistQuestions []*masterDTOs.ChecklistQuestionListDTO
 	var totalCount int64
 
 	query := repo.db.Table("checklist_questions").
@@ -79,7 +79,7 @@ func (repo *ChecklistQuestionRepository) GetAll(sort string, sortBy string, keyw
 
 	totalPages := int((totalCount + int64(pageSize) - 1) / int64(pageSize))
 
-	response := &checklistQuestionDTOs.ChecklistQuestionListResponseDTO{
+	response := &masterDTOs.ChecklistQuestionListResponseDTO{
 		Items: checklistQuestions,
 		Pagination: commonDTOs.PaginationInfoDTO{
 			CurrentPage: page,
@@ -105,7 +105,7 @@ func (repo *ChecklistQuestionRepository) GetByID(id uint) (*models.ChecklistQues
 	return checklistQuestion, result.Error
 }
 
-func (repo *ChecklistQuestionRepository) Create(checklistQuestionFormDTO *checklistQuestionDTOs.ChecklistQuestionFormDTO) (uint, error) {
+func (repo *ChecklistQuestionRepository) Create(checklistQuestionFormDTO *masterDTOs.ChecklistQuestionFormDTO) (uint, error) {
 
 	// Map DTO to ComplianceRegister model
 	checklistQuestion := &models.ChecklistQuestion{
@@ -124,7 +124,7 @@ func (repo *ChecklistQuestionRepository) Create(checklistQuestionFormDTO *checkl
 
 }
 
-func (repo *ChecklistQuestionRepository) Update(id uint, checklistQuestionFormDTO *checklistQuestionDTOs.ChecklistQuestionFormDTO) error {
+func (repo *ChecklistQuestionRepository) Update(id uint, checklistQuestionFormDTO *masterDTOs.ChecklistQuestionFormDTO) error {
 
 	// Prepare the update map
 	updateFields := map[string]interface{}{
@@ -182,11 +182,11 @@ func (repo *ChecklistQuestionRepository) ExistsByTitle(QuestionEn, QuestionAr st
 	return count > 0, nil
 }
 
-func (repo *ChecklistQuestionRepository) ExistsQuestionLibrary(QuestionLibraryID uint) (bool, error) {
+func (repo *ChecklistQuestionRepository) ExistsQuestionLibrary(QuestionLibraryID uint, QuestionEn, QuestionAr string) (bool, error) {
 	var count int64
 
 	err := repo.db.Model(&models.ChecklistQuestion{}).
-		Where("question_library_id = ?", QuestionLibraryID).
+		Where("question_library_id = ? AND (question_en = ? OR question_ar = ?)", QuestionLibraryID, QuestionEn, QuestionAr).
 		Count(&count).Error
 
 	if err != nil {
@@ -210,11 +210,12 @@ func (repo *ChecklistQuestionRepository) ExistsByTitleExcludingID(id uint, Quest
 	return count > 0, nil
 }
 
-func (repo *ChecklistQuestionRepository) ExistsQuestionLibraryExcludingID(id uint, QuestionLibraryID uint) (bool, error) {
+func (repo *ChecklistQuestionRepository) ExistsQuestionLibraryExcludingID(id uint, QuestionEn, QuestionAr string, QuestionLibraryID uint) (bool, error) {
 	var count int64
+	repo.db = repo.db.Debug()
 
 	err := repo.db.Model(&models.ChecklistQuestion{}).
-		Where("id <> ? AND question_library_id = ?", id, QuestionLibraryID).
+		Where("id <> ? AND (question_en = ? OR question_ar = ?) AND question_library_id = ?", id, QuestionEn, QuestionAr, QuestionLibraryID).
 		Count(&count).Error
 
 	if err != nil {

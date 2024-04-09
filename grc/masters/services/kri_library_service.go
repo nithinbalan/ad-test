@@ -2,21 +2,19 @@ package services
 
 import (
 	"fmt"
-	libraryDTOs "jethur/grc/libraries/dtos"
-	"jethur/grc/libraries/models"
-	"jethur/grc/libraries/repositories"
-
 	logModels "jethur/grc/logs/models"
 	logServices "jethur/grc/logs/services"
-	masterServices "jethur/grc/masters/services"
+	masterDTOs "jethur/grc/masters/dtos"
+	"jethur/grc/masters/models"
+	"jethur/grc/masters/repositories"
 	"jethur/utility"
 )
 
 type KRILibraryServiceInterface interface {
-	GetAll(params *libraryDTOs.KRILibraryListQueryParamsDTO) (*libraryDTOs.KRILibraryListResponseDTO, error)
+	GetAll(params *masterDTOs.KRILibraryListQueryParamsDTO) (*masterDTOs.KRILibraryListResponseDTO, error)
 	GetByID(id uint) (*models.KRILibrary, error)
-	Create(currentUserID uint, libraryFormDTO *libraryDTOs.KRILibraryFormDTO) (uint, error)
-	Update(id uint, currentUserID uint, kriLibrary *libraryDTOs.KRILibraryFormDTO) error
+	Create(currentUserID uint, kriLibraryFormDTO *masterDTOs.KRILibraryFormDTO) (uint, error)
+	Update(id uint, currentUserID uint, kriLibrary *masterDTOs.KRILibraryFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	Activate(ids []uint, currentUserID uint) error
 	Deactivate(ids []uint, currentUserID uint) error
@@ -26,14 +24,14 @@ type KRILibraryServiceInterface interface {
 type KRILibraryService struct {
 	repo               repositories.KRILibraryRepositoryInterface
 	kriCategorySvc     KRICategoryServiceInterface
-	reviewFrequencySvc masterServices.ReviewFrequencyServiceInterface
+	reviewFrequencySvc ReviewFrequencyServiceInterface
 	activityLogSvc     logServices.ActivityLogServiceInterface
 }
 
 func NewKRILibraryService(
 	repo repositories.KRILibraryRepositoryInterface,
 	kriCategorySvc KRICategoryServiceInterface,
-	reviewFrequencySvc masterServices.ReviewFrequencyServiceInterface,
+	reviewFrequencySvc ReviewFrequencyServiceInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
 ) KRILibraryServiceInterface {
 	return &KRILibraryService{
@@ -44,7 +42,7 @@ func NewKRILibraryService(
 	}
 }
 
-func (kls *KRILibraryService) GetAll(params *libraryDTOs.KRILibraryListQueryParamsDTO) (*libraryDTOs.KRILibraryListResponseDTO, error) {
+func (kls *KRILibraryService) GetAll(params *masterDTOs.KRILibraryListQueryParamsDTO) (*masterDTOs.KRILibraryListResponseDTO, error) {
 	return kls.repo.GetAll(params)
 }
 
@@ -52,20 +50,20 @@ func (kls KRILibraryService) GetByID(id uint) (*models.KRILibrary, error) {
 	return kls.repo.GetByID(id)
 }
 
-func (kls *KRILibraryService) Create(currentUserID uint, libraryFormDTO *libraryDTOs.KRILibraryFormDTO) (uint, error) {
+func (kls *KRILibraryService) Create(currentUserID uint, kriLibraryFormDTO *masterDTOs.KRILibraryFormDTO) (uint, error) {
 
-	if err := kls.validateKRILibraryFormDTO(libraryFormDTO, nil); err != nil {
+	if err := kls.validateKRILibraryFormDTO(kriLibraryFormDTO, nil); err != nil {
 		return 0, err
 	}
 
 	kriLibrary := &models.KRILibrary{
-		KRICategoryID:     libraryFormDTO.KRICategoryID,
-		ReviewFrequencyID: libraryFormDTO.ReviewFrequencyID,
-		Title:             libraryFormDTO.Title,
-		Description:       libraryFormDTO.Description,
-		CalculationType:   libraryFormDTO.CalculationType,
-		Source:            libraryFormDTO.Source,
-		Status:            libraryFormDTO.Status,
+		KRICategoryID:     kriLibraryFormDTO.KRICategoryID,
+		ReviewFrequencyID: kriLibraryFormDTO.ReviewFrequencyID,
+		Title:             kriLibraryFormDTO.Title,
+		Description:       kriLibraryFormDTO.Description,
+		CalculationType:   kriLibraryFormDTO.CalculationType,
+		Source:            kriLibraryFormDTO.Source,
+		Status:            kriLibraryFormDTO.Status,
 	}
 
 	id, err := kls.repo.Create(kriLibrary)
@@ -78,7 +76,7 @@ func (kls *KRILibraryService) Create(currentUserID uint, libraryFormDTO *library
 			logModels.CreateAction,
 			models.KRILibrary{}.TableName(),
 			id,
-			libraryFormDTO,
+			kriLibraryFormDTO,
 			currentUserID,
 			nil,
 		)
@@ -99,7 +97,7 @@ func (kls *KRILibraryService) Create(currentUserID uint, libraryFormDTO *library
 	return id, nil
 }
 
-func (kls *KRILibraryService) Update(id uint, currentUserID uint, libraryFormDTO *libraryDTOs.KRILibraryFormDTO) error {
+func (kls *KRILibraryService) Update(id uint, currentUserID uint, kriLibraryFormDTO *masterDTOs.KRILibraryFormDTO) error {
 
 	existingKRILibrary, err := kls.repo.GetByID(id)
 
@@ -107,17 +105,17 @@ func (kls *KRILibraryService) Update(id uint, currentUserID uint, libraryFormDTO
 		return err
 	}
 
-	if err := kls.validateKRILibraryFormDTO(libraryFormDTO, &id); err != nil {
+	if err := kls.validateKRILibraryFormDTO(kriLibraryFormDTO, &id); err != nil {
 		return err
 	}
 
-	existingKRILibrary.KRICategoryID = libraryFormDTO.KRICategoryID
-	existingKRILibrary.ReviewFrequencyID = libraryFormDTO.ReviewFrequencyID
-	existingKRILibrary.Title = libraryFormDTO.Title
-	existingKRILibrary.Description = libraryFormDTO.Description
-	existingKRILibrary.CalculationType = libraryFormDTO.CalculationType
-	existingKRILibrary.Source = libraryFormDTO.Source
-	existingKRILibrary.Status = libraryFormDTO.Status
+	existingKRILibrary.KRICategoryID = kriLibraryFormDTO.KRICategoryID
+	existingKRILibrary.ReviewFrequencyID = kriLibraryFormDTO.ReviewFrequencyID
+	existingKRILibrary.Title = kriLibraryFormDTO.Title
+	existingKRILibrary.Description = kriLibraryFormDTO.Description
+	existingKRILibrary.CalculationType = kriLibraryFormDTO.CalculationType
+	existingKRILibrary.Source = kriLibraryFormDTO.Source
+	existingKRILibrary.Status = kriLibraryFormDTO.Status
 
 	err = kls.repo.Update(existingKRILibrary)
 
@@ -130,7 +128,7 @@ func (kls *KRILibraryService) Update(id uint, currentUserID uint, libraryFormDTO
 			logModels.UpdateAction,
 			models.KRILibrary{}.TableName(),
 			id,
-			libraryFormDTO,
+			kriLibraryFormDTO,
 			currentUserID,
 			nil,
 		)
@@ -240,26 +238,26 @@ func (kls *KRILibraryService) Deactivate(ids []uint, currentUserID uint) error {
 	return err
 }
 
-func (kls *KRILibraryService) validateKRILibraryFormDTO(libraryFormDTO *libraryDTOs.KRILibraryFormDTO, id *uint) error {
-	if _, err := kls.kriCategorySvc.GetByID(libraryFormDTO.KRICategoryID); err != nil {
+func (kls *KRILibraryService) validateKRILibraryFormDTO(kriLibraryFormDTO *masterDTOs.KRILibraryFormDTO, id *uint) error {
+	if _, err := kls.kriCategorySvc.GetByID(kriLibraryFormDTO.KRICategoryID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("KRI category does not exist"), "not_exist", "kri category")
 	}
 
-	if libraryFormDTO.ReviewFrequencyID != nil {
-		if _, err := kls.reviewFrequencySvc.GetByID(*libraryFormDTO.ReviewFrequencyID); err != nil {
+	if kriLibraryFormDTO.ReviewFrequencyID != nil {
+		if _, err := kls.reviewFrequencySvc.GetByID(*kriLibraryFormDTO.ReviewFrequencyID); err != nil {
 			return utility.NewValidationError(fmt.Errorf("review frequency does not exist"), "not_exist", "review frequency")
 		}
 	}
 
 	if id == nil {
-		if exists, err := kls.repo.ExistsByTitle(libraryFormDTO.Title, libraryFormDTO.KRICategoryID); err != nil {
+		if exists, err := kls.repo.ExistsByTitle(kriLibraryFormDTO.Title, kriLibraryFormDTO.KRICategoryID); err != nil {
 			return err
 		} else if exists {
 			return utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 		}
 
 	} else {
-		if exists, err := kls.repo.ExistsByTitleExcludingID(*id, libraryFormDTO.Title, libraryFormDTO.KRICategoryID); err != nil {
+		if exists, err := kls.repo.ExistsByTitleExcludingID(*id, kriLibraryFormDTO.Title, kriLibraryFormDTO.KRICategoryID); err != nil {
 			return err
 		} else if exists {
 			return utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
