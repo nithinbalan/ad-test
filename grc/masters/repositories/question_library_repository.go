@@ -2,7 +2,9 @@ package repositories
 
 import (
 	"errors"
-	"jethur/grc/libraries/models"
+	commonDTOs "jethur/grc/common/dtos"
+	masterDTOs "jethur/grc/masters/dtos"
+	"jethur/grc/masters/models"
 	"jethur/utility"
 
 	"gorm.io/gorm"
@@ -10,9 +12,9 @@ import (
 
 // Interfaces
 type QuestionLibraryRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.QuestionLibraryWithGroupTitle, error)
+	GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int) (*masterDTOs.QuestionLibraryListResponseDTO, error)
 	GetByID(id uint) (*models.QuestionLibrary, error)
-	Create(article *models.QuestionLibrary) (*models.QuestionLibrary, error)
+	Create(article *models.QuestionLibrary) (uint, error)
 	Update(id uint, questionLibrary *models.QuestionLibrary) (*models.QuestionLibrary, error)
 	Delete(id uint) error
 	Activate(ids []uint) ([]uint, error)
@@ -32,9 +34,10 @@ func NewQuestionLibraryRepository(db *gorm.DB) *QuestionLibraryRepository {
 	}
 }
 
-func (repo *QuestionLibraryRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.QuestionLibraryWithGroupTitle, error) {
+func (repo *QuestionLibraryRepository) GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int) (*masterDTOs.QuestionLibraryListResponseDTO, error) {
 
-	var questionLibrary []*models.QuestionLibraryWithGroupTitle
+	var questionLibrary []*masterDTOs.QuestionLibraryListDTO
+	var totalCount int64
 
 	query := repo.db.Table("question_library").
 		Select(
@@ -63,13 +66,32 @@ func (repo *QuestionLibraryRepository) GetAll(sort string, sortBy string, keywor
 		query = query.Where("question_library.status = ?", status)
 	}
 
-	// Order the results
-	query = query.Order("question_library." + sortBy + " " + sort)
+	// Calculate total count for pagination
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+	query = query.Order(sortBy + " " + sort)
 
-	// Execute the query and return result/error
-	result := query.Find(&questionLibrary)
-	// @todo - Pagination to be added
-	return questionLibrary, result.Error
+	offset := (page - 1) * pageSize
+
+	// Execute the queryc
+	err := query.Offset(offset).Limit(pageSize).Find(&questionLibrary).Error
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := int((totalCount + int64(pageSize) - 1) / int64(pageSize))
+
+	response := &masterDTOs.QuestionLibraryListResponseDTO{
+		Items: questionLibrary,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: page,
+			PageSize:    pageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+	return response, nil
 
 }
 
@@ -86,10 +108,14 @@ func (repo *QuestionLibraryRepository) GetByID(id uint) (*models.QuestionLibrary
 	return questionLibrary, result.Error
 }
 
-func (repo *QuestionLibraryRepository) Create(questionLibrary *models.QuestionLibrary) (*models.QuestionLibrary, error) {
-	result := repo.db.Create(&questionLibrary)
+func (repo *QuestionLibraryRepository) Create(questionLibrary *models.QuestionLibrary) (uint, error) {
 
-	return questionLibrary, result.Error
+	if err := repo.db.Create(questionLibrary).Error; err != nil {
+		return 0, err
+	}
+
+	return questionLibrary.ID, nil
+
 }
 
 func (repo *QuestionLibraryRepository) Update(id uint, updatedQuestionLibrary *models.QuestionLibrary) (*models.QuestionLibrary, error) {

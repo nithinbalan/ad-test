@@ -43,10 +43,8 @@ func (cs ChecklistService) GetByID(id uint) (*models.Checklist, error) {
 
 func (cs *ChecklistService) Create(currentUserID uint, checklist *models.Checklist) (*models.Checklist, error) {
 
-	if exists, err := cs.repo.ExistsByTitle(checklist.TitleEn, checklist.TitleAr); err != nil {
+	if err := cs.validateChecklistForm(checklist, nil); err != nil {
 		return nil, err
-	} else if exists {
-		return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 	}
 
 	createdChecklist, err := cs.repo.Create(checklist)
@@ -80,13 +78,8 @@ func (cs *ChecklistService) Update(id uint, currentUserID uint, updatedChecklist
 		return nil, err
 	}
 
-	if updatedChecklist.TitleEn != existingChecklist.TitleEn || updatedChecklist.TitleAr != existingChecklist.TitleAr {
-		if exists, err := cs.repo.ExistsByTitleExcludingID(id, updatedChecklist.TitleEn, updatedChecklist.TitleAr); err != nil {
-			return nil, err
-		} else if exists {
-			return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
-		}
-
+	if err := cs.validateChecklistForm(updatedChecklist, &id); err != nil {
+		return nil, err
 	}
 
 	result, err := cs.repo.Update(id, updatedChecklist)
@@ -211,4 +204,25 @@ func (cs *ChecklistService) Deactivate(ids []uint, currentUserID uint) error {
 	}
 
 	return err
+}
+
+func (cs *ChecklistService) validateChecklistForm(checklistForm *models.Checklist, id *uint) error {
+
+	if id == nil {
+		if exists, err := cs.repo.ExistsByTitle(checklistForm.TitleEn, checklistForm.TitleAr); err != nil {
+			return err
+		} else if exists {
+			return utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
+		}
+
+	} else {
+		if exists, err := cs.repo.ExistsByTitleExcludingID(*id, checklistForm.TitleEn, checklistForm.TitleAr); err != nil {
+			return err
+		} else if exists {
+			return utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
+		}
+
+	}
+
+	return nil
 }
