@@ -3,10 +3,8 @@ package services
 import (
 	"fmt"
 	slaDTOs "jethur/grc/compliance/dtos"
-	"jethur/grc/compliance/models"
 	complianceModels "jethur/grc/compliance/models"
 	"jethur/grc/compliance/repositories"
-	activityLogModels "jethur/grc/logs/models"
 	logModels "jethur/grc/logs/models"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
@@ -15,7 +13,7 @@ import (
 
 type SLARegisterServiceInterface interface {
 	GetAll(params *slaDTOs.SLARegisterListQueryParamsDTO) (*slaDTOs.SLARegisterListResponseDTO, error)
-	GetByID(id uint) (*models.SLARegister, error)
+	GetByID(id uint) (*complianceModels.SLARegister, error)
 	Create(currentUserID uint, slaRegisterFormDTO *slaDTOs.SLARegisterFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, sla *slaDTOs.SLARegisterFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
@@ -51,7 +49,7 @@ func (srs *SLARegisterService) GetAll(params *slaDTOs.SLARegisterListQueryParams
 	return srs.repo.GetAll(params)
 }
 
-func (srs SLARegisterService) GetByID(id uint) (*models.SLARegister, error) {
+func (srs SLARegisterService) GetByID(id uint) (*complianceModels.SLARegister, error) {
 	return srs.repo.GetByID(id)
 }
 
@@ -76,7 +74,7 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *sl
 	}
 
 	// Create SLA register
-	slaRegister := &models.SLARegister{
+	slaRegister := &complianceModels.SLARegister{
 		SLACategoryID:     slaRegisterFormDTO.SLACategoryID,
 		SeverityLevelID:   slaRegisterFormDTO.SeverityLevelID,
 		ResponsibleUnitID: slaRegisterFormDTO.ResponsibleUnitID,
@@ -96,7 +94,7 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *sl
 	}
 
 	// Create SLA document
-	slaDocument := &models.SLADocument{
+	slaDocument := &complianceModels.SLADocument{
 		SLARegisterID: id,
 		Version:       slaRegisterFormDTO.Document.Version,
 		IssueDate:     dates.IssueDate,
@@ -232,8 +230,8 @@ func (srs *SLARegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 
 		go func() {
 			err := srs.activityLogSvc.LogBulkActivities(
-				activityLogModels.DeleteAction,
-				models.SLARegister{}.TableName(),
+				logModels.DeleteAction,
+				complianceModels.SLARegister{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,
