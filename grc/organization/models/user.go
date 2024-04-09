@@ -18,7 +18,7 @@ type User struct {
 	LastNameEn          string    `json:"last_name_en" binding:"require, max:255" gorm:"type:varchar(255);not null"`
 	FirstNameAr         string    `json:"first_name_ar" binding:"require, max:255" gorm:"type:nvarchar(255);not null"`
 	LastNameAr          string    `json:"last_name_ar" binding:"require, max:255" gorm:"type:nvarchar(255);not null"`
-	Email               string    `json:"email" binding:"require, max:255" gorm:"type:varchar(255);not null"`
+	Email               string    `json:"email" binding:"require, email, max:255" gorm:"type:varchar(255);not null"`
 	MobileNumber        *string   `json:"mobile_number" binding:"require, max:45" gorm:"type:varchar(45);not null"`
 	ProfileImagePath    *string   `json:"profile_image_path" gorm:"type:varchar(500);default:null"`
 	CreatedAt           time.Time `json:"created_at" gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP"`

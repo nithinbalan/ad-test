@@ -2,7 +2,9 @@ package services
 
 import (
 	"fmt"
+	"jethur/config"
 	slaDTOs "jethur/grc/compliance/dtos"
+	"jethur/grc/compliance/models"
 	complianceModels "jethur/grc/compliance/models"
 	"jethur/grc/compliance/repositories"
 	activityLogModels "jethur/grc/logs/models"
@@ -55,7 +57,8 @@ func (srs SLARegisterService) GetByID(id uint) (*complianceModels.SLARegister, e
 }
 
 func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *slaDTOs.SLARegisterFormDTO) (uint, error) {
-
+	tx := srs.repo.BeginTransaction()
+	//validation for sla form
 	if err := srs.validateSLARegisterFormDTO(slaRegisterFormDTO); err != nil {
 		return 0, err
 	}
@@ -73,6 +76,8 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *sl
 	if err != nil {
 		return 0, err
 	}
+	// @Review
+	//Validation must , during creation document is mandatory for SLA & Contract.
 	// Document is provided, validate it
 	if err := srs.validateSLADocumentFormDTO(slaRegisterFormDTO.Document); err != nil {
 		return 0, err
@@ -92,16 +97,45 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *sl
 		CreatedBy:         currentUserID,
 	}
 
-	id, err := srs.repo.Create(slaRegister)
+	id, err := srs.repo.Create(slaRegister, tx)
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
 	if err := srs.repo.StoreSLADocumentFile(id, slaRegisterFormDTO.Document.FileName); err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
-	slaDocument := &complianceModels.SLADocument{
+	//@Review
+	//We have to encrypt file name as token , so during dipsplay, we can by pass authentication using token
+	//Please test below code, also test decription of token
+
+	//@Review
+	//Add API_URL in .env
+	//Construct URL using .env variable, URL:=  API_URL/sla-contracts/1/token
+	//@Review
+	//Please add db transaciton by refering ranjith code.
+
+	dataToEncrypt := []byte(slaRegisterFormDTO.Document.FileName)
+	encryptedFilename, err := utility.EncryptData(dataToEncrypt)
+	if err != nil {
+		return 0, err
+	}
+	// Decrypt token
+	// decryptedFilenameBytes, err := utility.DecryptData(encryptedFilename)
+	// if err != nil {
+	// 	fmt.Println("Decryption failed:", err)
+	// }
+	// // Convert decrypted byte slice to string
+	// decryptedFilename := string(decryptedFilenameBytes)
+	// fmt.Println("Decryption:", decryptedFilename)
+
+	//Construct URL using .env variable, URL:=  API_URL/sla-contracts/1/token
+	url := fmt.Sprintf("%s/sla-registers/%d/%s", config.GetEnv("API_URL", "http://localhost:8080"), slaRegister.ID, encryptedFilename)
+
+	slaDocument := &models.SLADocument{
 		SLARegisterID: id,
 		Version:       slaRegisterFormDTO.Version,
 		IssueDate:     dates.IssueDate,
@@ -109,20 +143,23 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *sl
 		SA1Date:       dates.SA1Date,
 		SA2Date:       dates.SA2Date,
 		Language:      slaRegisterFormDTO.Document.Language,
-		URL:           slaRegisterFormDTO.Document.URL, //URL To be decided
+		URL:           url,
 		Icon:          slaRegisterFormDTO.Document.Icon,
 		Name:          slaRegisterFormDTO.Document.FileName,
 		Size:          slaRegisterFormDTO.Document.Size,
-		Token:         slaRegisterFormDTO.Document.FileName, // Assuming token is same as fileName
+		Token:         encryptedFilename,
 		Type:          slaRegisterFormDTO.Document.Type,
 		IsLatest:      true,
 		CreatedBy:     currentUserID,
 	}
 
 	// Save SLA document
-	if err := srs.repo.SaveSLADocument(slaDocument); err != nil {
+	if err := srs.repo.SaveSLADocument(slaDocument, tx); err != nil {
+		tx.Rollback()
 		return 0, err
 	}
+
+	tx.Commit()
 
 	go func() {
 		err := srs.activityLogSvc.LogActivity(
@@ -151,6 +188,7 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *sl
 }
 
 func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFormDTO *slaDTOs.SLARegisterFormDTO) error {
+	tx := srs.repo.BeginTransaction()
 	existingSLARegister, err := srs.repo.GetByID(id)
 	if err != nil {
 		return err
@@ -180,11 +218,21 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 	existingSLARegister.Client = slaRegisterFormDTO.Client
 	existingSLARegister.UpdatedBy = currentUserID
 
-	if err := srs.repo.Update(existingSLARegister); err != nil {
+	if err := srs.repo.Update(existingSLARegister, tx); err != nil {
+		tx.Rollback()
 		return err
 	}
 
-	// Check if the file is updated
+	// @review
+	//get latest document from preload (instead of new query if possible otherwise is fine)
+	//check if request body has new flag (is_new_document)
+	//if is_new_document is true
+	//upload new document to storage
+	//update SLA Document from database with new url, name, size, token etc.
+	//delete old document from storage.
+	//if is_new_document is false
+	//update SLA Document from database excluding url,name,size and token etc.
+
 	if slaRegisterFormDTO.Document != nil && slaRegisterFormDTO.Document.ID != nil {
 		existingSLADocument, err := srs.repo.GetSLADocumentByID(*slaRegisterFormDTO.Document.ID)
 		if err != nil {
@@ -202,29 +250,40 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 		// Check if is_new_file flag is set to true
 		if slaRegisterFormDTO.Document.IsNewFile != nil && *slaRegisterFormDTO.Document.IsNewFile {
 			// File is updated, delete existing file
-			if err := srs.repo.RemoveSLADocumentFile(existingSLADocument.ID, existingSLADocument.SLARegisterID, existingSLADocument.Name); err != nil {
+			if err := srs.repo.RemoveSLADocumentFile(existingSLADocument.SLARegisterID, existingSLADocument.Name); err != nil {
+				tx.Rollback()
 				return err
 			}
 			// Move new file from temp to storage
 			if err := srs.repo.StoreSLADocumentFile(existingSLADocument.SLARegisterID, slaRegisterFormDTO.Document.FileName); err != nil {
+				tx.Rollback()
 				return err
 			}
+			dataToEncrypt := []byte(slaRegisterFormDTO.Document.FileName)
+			encryptedFilename, err := utility.EncryptData(dataToEncrypt)
+			if err != nil {
+				return err
+			}
+			//Construct URL using .env variable, URL:=  API_URL/sla-contracts/1/token
+			url := fmt.Sprintf("%s/sla-registers/%d/%s", config.GetEnv("API_URL", "http://localhost:8080"), id, encryptedFilename)
 
 			// Update existing SLA document fields
 			existingSLADocument.Language = slaRegisterFormDTO.Document.Language
-			existingSLADocument.URL = slaRegisterFormDTO.Document.URL
+			existingSLADocument.URL = url
 			existingSLADocument.Icon = slaRegisterFormDTO.Document.Icon
 			existingSLADocument.Name = slaRegisterFormDTO.Document.FileName
 			existingSLADocument.Size = slaRegisterFormDTO.Document.Size
-			existingSLADocument.Token = slaRegisterFormDTO.Document.FileName // Assuming token is same as fileName
+			existingSLADocument.Token = encryptedFilename
 			existingSLADocument.Type = slaRegisterFormDTO.Document.Type
 			existingSLADocument.IsLatest = true
 		}
 		// Save updated SLA document
-		if err := srs.repo.SaveSLADocument(existingSLADocument); err != nil {
+		if err := srs.repo.SaveSLADocument(existingSLADocument, tx); err != nil {
+			tx.Rollback()
 			return err
 		}
 	}
+	tx.Commit()
 
 	go func() {
 		err := srs.activityLogSvc.LogActivity(
@@ -269,7 +328,7 @@ func (srs *SLARegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 		}
 
 		// Delete associated documents
-		err = srs.repo.RemoveSLADocumentFile(slaDocument.ID, slaDocument.SLARegisterID, slaDocument.Name)
+		err = srs.repo.RemoveSLADocumentFile(slaDocument.SLARegisterID, slaDocument.Name)
 		if err != nil {
 			failedIds = append(failedIds, id)
 			continue
@@ -440,14 +499,11 @@ func (srs *SLARegisterService) parseSLARegisterDates(slaRegisterForm *slaDTOs.SL
 
 func (srs *SLARegisterService) validateSLADocumentFormDTO(document *slaDTOs.SLADocumentFormDTO) error {
 
+	//@Review
+	//All items are mandatory during creation
 	// Validate language
 	if document.Language == "" {
 		return utility.NewValidationError(fmt.Errorf("language is required"), "required", "language")
-	}
-
-	// Validate URL
-	if document.URL == "" {
-		return utility.NewValidationError(fmt.Errorf("URL is required"), "required", "URL")
 	}
 
 	// Validate icon

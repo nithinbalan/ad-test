@@ -8,6 +8,8 @@ import (
 	logServices "jethur/grc/logs/services"
 	organizationRepositories "jethur/grc/organization/repositories"
 	organizationServices "jethur/grc/organization/services"
+	settingRepositories "jethur/grc/settings/repositories"
+	settingService "jethur/grc/settings/services"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -24,8 +26,11 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	userStatusRepo := organizationRepositories.NewUserStatusRepository(db)
 	userStatusSvc := organizationServices.NewUserStatusService(userStatusRepo)
 
+	roleRepo := settingRepositories.NewRoleRepository(db)
+	roleSvc := settingService.NewRoleService(roleRepo, activityLogSvc)
+
 	userRepo := organizationRepositories.NewUserRepository(db)
-	userSvc := organizationServices.NewUserService(userRepo, designationSvc, userStatusSvc, activityLogSvc)
+	userSvc := organizationServices.NewUserService(userRepo, designationSvc, userStatusSvc, activityLogSvc, roleSvc)
 
 	authRepo := repositories.NewAuthRepository(db)
 	authService := services.NewAuthService(authRepo, userSvc)

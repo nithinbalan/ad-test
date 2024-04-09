@@ -23,6 +23,7 @@ type ComplianceRequirementServiceInterface interface {
 	Create(complianceID uint, currentUserID uint, ComplianceRequirementFormDTO *complianceDTOs.ComplianceRequirementFormDTO) (uint, error)
 	Update(complianceID uint, id uint, currentUserID uint, compliance *complianceDTOs.ComplianceRequirementFormDTO) error
 	Delete(complianceID uint, ids []uint, currentUserID uint) ([]uint, error)
+	StatusUpdate(complianceID uint, id uint, currentUserID uint, complianceStatusID uint) error
 }
 
 // Service and implementations
@@ -279,6 +280,25 @@ func (crs *ComplianceRequirementService) Delete(complianceID uint, ids []uint, c
 	}
 
 	return failedIds, nil
+}
+
+func (crs *ComplianceRequirementService) StatusUpdate(complianceID uint, id uint, currentUserID uint, complianceStatusID uint) error {
+	existingComplianceRequirement, err := crs.GetByID(complianceID, id)
+
+	if err != nil {
+		return err
+	}
+
+	existingComplianceRequirement.ComplianceStatusID = complianceStatusID
+	existingComplianceRequirement.UpdatedBy = &currentUserID
+
+	err = crs.repo.Update(existingComplianceRequirement)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (crs *ComplianceRequirementService) validateComplianceRequirementFormDTO(ComplianceRequirementFormDTO *complianceDTOs.ComplianceRequirementFormDTO) error {
