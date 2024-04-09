@@ -44,10 +44,8 @@ func (qls QuestionLibraryService) GetByID(id uint) (*masterModels.QuestionLibrar
 
 func (qls *QuestionLibraryService) Create(currentUserID uint, questionLibraryForm *masterDTOs.QuestionLibraryFormDTO) (uint, error) {
 
-	if exists, err := qls.repo.ExistsByTitle(questionLibraryForm.QuestionEn, questionLibraryForm.QuestionAr, questionLibraryForm.QuestionGroupID); err != nil {
+	if err := qls.validateQuestionLibraryForm(questionLibraryForm, nil); err != nil {
 		return 0, err
-	} else if exists {
-		return 0, utility.NewValidationError(fmt.Errorf("the question must be unique"), "unique", "question")
 	}
 
 	questionLibrary := &masterModels.QuestionLibrary{
@@ -96,13 +94,8 @@ func (qls *QuestionLibraryService) Update(id uint, currentUserID uint, updatedQu
 		return err
 	}
 
-	if updatedQuestionLibraryForm.QuestionEn != existingQuestionLibrary.QuestionEn || updatedQuestionLibraryForm.QuestionAr != existingQuestionLibrary.QuestionAr || updatedQuestionLibraryForm.QuestionGroupID != existingQuestionLibrary.QuestionGroupID {
-		if exists, err := qls.repo.ExistsByTitleExcludingID(id, updatedQuestionLibraryForm.QuestionEn, updatedQuestionLibraryForm.QuestionAr, updatedQuestionLibraryForm.QuestionGroupID); err != nil {
-			return err
-		} else if exists {
-			return utility.NewValidationError(fmt.Errorf("the question must be unique"), "unique", "question")
-		}
-
+	if err := qls.validateQuestionLibraryForm(updatedQuestionLibraryForm, &id); err != nil {
+		return err
 	}
 
 	existingQuestionLibrary.QuestionGroupID = updatedQuestionLibraryForm.QuestionGroupID
@@ -232,4 +225,27 @@ func (qls *QuestionLibraryService) Deactivate(ids []uint, currentUserID uint) er
 	}
 
 	return err
+}
+
+func (qls *QuestionLibraryService) validateQuestionLibraryForm(questionLibraryForm *masterDTOs.QuestionLibraryFormDTO, id *uint) error {
+
+	if id == nil {
+
+		if exists, err := qls.repo.ExistsByTitle(questionLibraryForm.QuestionEn, questionLibraryForm.QuestionAr, questionLibraryForm.QuestionGroupID); err != nil {
+			return err
+		} else if exists {
+			return utility.NewValidationError(fmt.Errorf("the question must be unique"), "unique", "question")
+		}
+
+	} else {
+
+		if exists, err := qls.repo.ExistsByTitleExcludingID(*id, questionLibraryForm.QuestionEn, questionLibraryForm.QuestionAr, questionLibraryForm.QuestionGroupID); err != nil {
+			return err
+		} else if exists {
+			return utility.NewValidationError(fmt.Errorf("the question must be unique"), "unique", "question")
+		}
+
+	}
+
+	return nil
 }

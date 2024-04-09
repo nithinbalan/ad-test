@@ -4,6 +4,7 @@ import (
 	"fmt"
 	activityLogModels "jethur/grc/logs/models"
 	"jethur/grc/logs/services"
+	"jethur/grc/masters/models"
 	masterModels "jethur/grc/masters/models"
 	"jethur/grc/masters/repositories"
 	"jethur/utility"
@@ -43,10 +44,8 @@ func (qgs QuestionGroupService) GetByID(id uint) (*masterModels.QuestionGroup, e
 
 func (qgs *QuestionGroupService) Create(currentUserID uint, questionGroup *masterModels.QuestionGroup) (*masterModels.QuestionGroup, error) {
 
-	if exists, err := qgs.repo.ExistsByTitle(questionGroup.TitleEn, questionGroup.TitleAr); err != nil {
+	if err := qgs.validateQuestionGroupForm(questionGroup, nil); err != nil {
 		return nil, err
-	} else if exists {
-		return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 	}
 
 	createdQuestionGroup, err := qgs.repo.Create(questionGroup)
@@ -80,13 +79,8 @@ func (qgs *QuestionGroupService) Update(id uint, currentUserID uint, updatedQues
 		return nil, err
 	}
 
-	if updatedQuestionGroup.TitleEn != existingQuestionGroup.TitleEn || updatedQuestionGroup.TitleAr != existingQuestionGroup.TitleAr {
-		if exists, err := qgs.repo.ExistsByTitleExcludingID(id, updatedQuestionGroup.TitleEn, updatedQuestionGroup.TitleAr); err != nil {
-			return nil, err
-		} else if exists {
-			return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
-		}
-
+	if err := qgs.validateQuestionGroupForm(updatedQuestionGroup, &id); err != nil {
+		return nil, err
 	}
 
 	result, err := qgs.repo.Update(id, updatedQuestionGroup)
@@ -211,4 +205,27 @@ func (qgs *QuestionGroupService) Deactivate(ids []uint, currentUserID uint) erro
 	}
 
 	return err
+}
+
+func (qgs *QuestionGroupService) validateQuestionGroupForm(questionGroup *models.QuestionGroup, id *uint) error {
+
+	if id == nil {
+
+		if exists, err := qgs.repo.ExistsByTitle(questionGroup.TitleEn, questionGroup.TitleAr); err != nil {
+			return err
+		} else if exists {
+			return utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
+		}
+
+	} else {
+
+		if exists, err := qgs.repo.ExistsByTitleExcludingID(*id, questionGroup.TitleEn, questionGroup.TitleAr); err != nil {
+			return err
+		} else if exists {
+			return utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
+		}
+
+	}
+
+	return nil
 }
