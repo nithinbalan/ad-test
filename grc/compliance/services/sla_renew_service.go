@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"jethur/config"
 	slaDTOs "jethur/grc/compliance/dtos"
 	complianceModels "jethur/grc/compliance/models"
 	"jethur/grc/compliance/repositories"
@@ -36,7 +37,7 @@ func (srs *SLARenewService) GetAll(id uint, params *slaDTOs.SLARenewListQueryPar
 }
 
 func (srs *SLARenewService) Renew(docID uint, currentUserID uint, slaRenewFormDTO *slaDTOs.SLARenewFormDTO) error {
-
+	tx := srs.repo.BeginTransaction()
 	// Check if Document is provided
 	if slaRenewFormDTO.Document == nil {
 		return utility.NewValidationError(fmt.Errorf("document is required"), "required", "document")
@@ -56,8 +57,18 @@ func (srs *SLARenewService) Renew(docID uint, currentUserID uint, slaRenewFormDT
 		return err
 	}
 	if err := srs.repo.StoreSLADocumentFile(existingSLADocument.SLARegisterID, slaRenewFormDTO.Document.FileName); err != nil {
+		tx.Rollback()
 		return err
 	}
+	//encrypt FileName for token
+	dataToEncrypt := []byte(slaRenewFormDTO.Document.FileName)
+	encryptedFilename, err := utility.EncryptData(dataToEncrypt)
+	if err != nil {
+		return err
+	}
+	//Construct URL using .env variable, URL:=  API_URL/sla-contracts/1/token
+	url := fmt.Sprintf("%s/sla-registers/%d/%s", config.GetEnv("API_URL", "http://localhost:8080"), existingSLADocument.SLARegisterID, encryptedFilename)
+
 	//renew document
 	slaDocument := &complianceModels.SLADocument{
 		SLARegisterID: existingSLADocument.SLARegisterID,
@@ -67,24 +78,28 @@ func (srs *SLARenewService) Renew(docID uint, currentUserID uint, slaRenewFormDT
 		SA1Date:       dates.SA1Date,
 		SA2Date:       dates.SA2Date,
 		Language:      slaRenewFormDTO.Document.Language,
-		URL:           slaRenewFormDTO.Document.URL, //URL To be decided
+		URL:           url, //URL To be decided
 		Icon:          slaRenewFormDTO.Document.Icon,
 		Name:          slaRenewFormDTO.Document.FileName,
 		Size:          slaRenewFormDTO.Document.Size,
-		Token:         slaRenewFormDTO.Document.FileName, // Assuming token is same as fileName
+		Token:         encryptedFilename, // Assuming token is same as fileName
 		Type:          slaRenewFormDTO.Document.Type,
 		IsLatest:      true,
 		CreatedBy:     currentUserID,
 	}
 
 	// Save SLA document
-	if err := srs.repo.SaveSLADocument(slaDocument); err != nil {
+	if err := srs.repo.SaveSLADocument(slaDocument,tx); err != nil {
+		tx.Rollback()
 		return err
 	}
 	// Update is_latest=false for all other documents of the same SLA register
-	if err := srs.repo.UpdateOtherSLADocumentsIsLatest(slaDocument.ID, slaDocument.SLARegisterID); err != nil {
+	if err := srs.repo.UpdateOtherSLADocumentsIsLatest(slaDocument.ID, slaDocument.SLARegisterID,tx); err != nil {
+		tx.Rollback()
 		return err
 	}
+
+	tx.Commit()
 
 	go func() {
 		err := srs.activityLogSvc.LogActivity(
@@ -112,6 +127,8 @@ func (srs *SLARenewService) Renew(docID uint, currentUserID uint, slaRenewFormDT
 	return nil
 }
 func (srs *SLARenewService) Revert(docID uint, currentUserID uint) error {
+	tx := srs.repo.BeginTransaction()
+
 	// Check if the file is updated
 	existingSLADocument, err := srs.repo.GetSLADocumentByID(docID)
 	if err != nil {
@@ -124,13 +141,17 @@ func (srs *SLARenewService) Revert(docID uint, currentUserID uint) error {
 	previousSLADocument.IsLatest = true
 	previousSLADocument.UpdatedBy = currentUserID
 	// Save updated SLA document
-	if err := srs.repo.SaveSLADocument(previousSLADocument); err != nil {
+	if err := srs.repo.SaveSLADocument(previousSLADocument,tx); err != nil {
+		tx.Rollback()
 		return err
 	}
 	// Update is_latest=false for all other documents of the same SLA register
-	if err := srs.repo.UpdateOtherSLADocumentsIsLatest(previousSLADocument.ID, previousSLADocument.SLARegisterID); err != nil {
+	if err := srs.repo.UpdateOtherSLADocumentsIsLatest(previousSLADocument.ID, previousSLADocument.SLARegisterID,tx); err != nil {
+		tx.Rollback()
 		return err
 	}
+
+	tx.Commit()
 	go func() {
 		err := srs.activityLogSvc.LogActivity(
 			logModels.UpdateAction,

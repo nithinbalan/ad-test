@@ -5,6 +5,7 @@ import (
 	commonDTOs "jethur/grc/common/dtos"
 	slaDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/models"
+	"jethur/utility"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -14,14 +15,15 @@ import (
 
 // Interfaces
 type SLARenewRepositoryInterface interface {
+	BeginTransaction() utility.DatabaseTransaction
 	GetAll(id uint, params *slaDTOs.SLARenewListQueryParamsDTO) (*slaDTOs.SLARenewListResponseDTO, error)
 
 	//Document
-	SaveSLADocument(doc *models.SLADocument) error
-	Renew(doc *models.SLADocument) error
+	SaveSLADocument(doc *models.SLADocument, tx ...utility.DatabaseTransaction) error
+	Renew(doc *models.SLADocument, tx ...utility.DatabaseTransaction) error
 	GetSLADocumentByID(id uint) (*models.SLADocument, error)
 	StoreSLADocumentFile(slaID uint, fileName string) error
-	UpdateOtherSLADocumentsIsLatest(currentDocID uint, slaRegisterID uint) error
+	UpdateOtherSLADocumentsIsLatest(currentDocID uint, slaRegisterID uint, tx ...utility.DatabaseTransaction) error
 	FindPreviousDocument(docId uint,slaRegisterID uint) (*models.SLADocument, error)
 
 }
@@ -36,6 +38,11 @@ func NewSLARenewRepository(db *gorm.DB) *SLARenewRepository {
 		db: db,
 	}
 }
+// BeginTransaction starts a new transaction.
+func (repo *SLARenewRepository) BeginTransaction() utility.DatabaseTransaction {
+	return utility.NewGormDatabaseTransaction(repo.db)
+}
+
 func (repo *SLARenewRepository) GetAll(id uint, params *slaDTOs.SLARenewListQueryParamsDTO) (*slaDTOs.SLARenewListResponseDTO, error) {
 	var slaRenews []*slaDTOs.SLARenewListDTO
 	var totalCount int64
@@ -124,9 +131,13 @@ func (repo *SLARenewRepository) GetAll(id uint, params *slaDTOs.SLARenewListQuer
 	return response, nil
 }
 
-func (repo *SLARenewRepository) Renew(doc *models.SLADocument) error {
+func (repo *SLARenewRepository) Renew(doc *models.SLADocument, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 	// Save the updated SLA document
-	if err := repo.db.Save(doc).Error; err != nil {
+	if err := db.Save(doc).Error; err != nil {
 		return err
 	}
 	return nil
@@ -155,16 +166,24 @@ func (repo *SLARenewRepository) StoreSLADocumentFile(id uint, fileName string) e
 	return nil
 }
 
-func (repo *SLARenewRepository) SaveSLADocument(doc *models.SLADocument) error {
-	if err := repo.db.Save(doc).Error; err != nil {
+func (repo *SLARenewRepository) SaveSLADocument(doc *models.SLADocument, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(doc).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
-func (repo *SLARenewRepository) UpdateOtherSLADocumentsIsLatest(currentDocID uint, slaRegisterID uint) error {
+func (repo *SLARenewRepository) UpdateOtherSLADocumentsIsLatest(currentDocID uint, slaRegisterID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 	// Update is_latest=false for all other documents of the same SLA register
-	if err := repo.db.Model(&models.SLADocument{}).
+	if err := db.Model(&models.SLADocument{}).
 		Where("id != ? AND sla_register_id = ?", currentDocID, slaRegisterID).
 		Update("is_latest", false).
 		Error; err != nil {
