@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	checklistQuestionDTOs "jethur/grc/masters/dtos"
+	masterDTOs "jethur/grc/masters/dtos"
 	"jethur/grc/masters/services"
 	"jethur/utility"
 	"net/http"
@@ -69,7 +69,7 @@ func (cqc *ChecklistQuestionController) GetChecklistQuestionDetails(c *gin.Conte
 
 func (cqc *ChecklistQuestionController) CreateChecklistQuestion(c *gin.Context) {
 
-	var checklistQuestionFormDTO *checklistQuestionDTOs.ChecklistQuestionFormDTO
+	var checklistQuestionFormDTO *masterDTOs.ChecklistQuestionFormDTO
 
 	if err := c.ShouldBindJSON(&checklistQuestionFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
@@ -104,7 +104,7 @@ func (cqc *ChecklistQuestionController) UpdateChecklistQuestion(c *gin.Context) 
 		return
 	}
 
-	var checklistQuestionFormDT checklistQuestionDTOs.ChecklistQuestionFormDTO
+	var checklistQuestionFormDT masterDTOs.ChecklistQuestionFormDTO
 	if err := c.ShouldBindJSON(&checklistQuestionFormDT); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return

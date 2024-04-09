@@ -2,7 +2,7 @@ package repositories
 
 import (
 	"errors"
-	"jethur/grc/libraries/models"
+	"jethur/grc/masters/models"
 	"jethur/utility"
 
 	"gorm.io/gorm"
