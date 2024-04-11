@@ -86,4 +86,8 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	organizationRoutes.PUT("/strategic-objectives/activate", strategicObjectiveController.ActivateStrategicObjectives)
 	organizationRoutes.PUT("/strategic-objectives/deactivate", strategicObjectiveController.DeactivateStrategicObjectives)
 
+	//user settings
+	organizationRoutes.GET("/users/:id/settings", userController.GetSetting)
+	organizationRoutes.PUT("/users/:id/settings", userController.UpdateSetting)
+
 }

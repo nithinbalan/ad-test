@@ -3,7 +3,7 @@
 CREATE TABLE strategic_profiles (
   id INT PRIMARY KEY IDENTITY(1,1),
   title_en VARCHAR(255) NOT NULL,
-  title_ar NNVARCHAR(255) NOT NULL,
+  title_ar NVARCHAR(255) NOT NULL,
   address VARCHAR(MAX) NOT NULL,
   location VARCHAR(255),
   email VARCHAR(100),

@@ -13,6 +13,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/mitchellh/mapstructure"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -28,6 +29,10 @@ type UserServiceInterface interface {
 	//User Security
 	GetUserSecurityByUserID(userID uint) (*organizationModels.UserSecurity, error)
 	UpdateUserSecurity(userSecurity *organizationModels.UserSecurity) error
+
+	//user Settings
+	GetUserSetting(userID uint) (*userDTOs.UserSettingDTO, error)
+	UpdateUserSetting(userID uint, currentUserID uint, userSettingFormDTO *userDTOs.UserSettingFormDTO) error
 }
 
 type UserService struct {
@@ -351,4 +356,41 @@ func (us *UserService) GetUserSecurityByUserID(userId uint) (*organizationModels
 
 func (us *UserService) UpdateUserSecurity(userSecurity *organizationModels.UserSecurity) error {
 	return us.repo.UpdateUserSecurity(userSecurity)
+}
+
+func (us *UserService) GetUserSetting(userID uint) (*userDTOs.UserSettingDTO, error) {
+	var userSettingDTO *userDTOs.UserSettingDTO
+	userSetting, err := us.repo.GetUserSettingsByUserID(userID)
+
+	if err != nil {
+		return nil, utility.NewResourceNotFoundError(err, userID)
+	}
+
+	// Map the result to your DTO
+	err = mapstructure.Decode(userSetting, &userSettingDTO)
+	if err != nil {
+		return nil, err
+	}
+
+	return userSettingDTO, nil
+}
+
+func (us *UserService) UpdateUserSetting(userID uint, currentUserID uint, userSettingFormDTO *userDTOs.UserSettingFormDTO) error {
+	existingUserSetting, err := us.repo.GetUserSettingsByUserID(userID)
+
+	if err != nil {
+		return utility.NewResourceNotFoundError(err, nil)
+	}
+
+	existingUserSetting.Language = userSettingFormDTO.Language
+	existingUserSetting.TimezoneID = userSettingFormDTO.TimezoneID
+	existingUserSetting.Timeout = userSettingFormDTO.Timeout
+	existingUserSetting.UpdatedBy = &currentUserID
+
+	if err = us.repo.UpdateUserSetting(existingUserSetting); err != nil {
+		return err
+	}
+
+	return nil
+
 }
