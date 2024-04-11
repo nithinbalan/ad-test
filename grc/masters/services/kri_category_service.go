@@ -2,10 +2,10 @@ package services
 
 import (
 	"fmt"
-	"jethur/grc/libraries/models"
-	"jethur/grc/libraries/repositories"
 	logModels "jethur/grc/logs/models"
 	"jethur/grc/logs/services"
+	"jethur/grc/masters/models"
+	"jethur/grc/masters/repositories"
 	"jethur/utility"
 	"log"
 )
@@ -43,10 +43,8 @@ func (kcs KRICategoryService) GetByID(id uint) (*models.KRICategory, error) {
 
 func (kcs *KRICategoryService) Create(currentUserID uint, category *models.KRICategory) (*models.KRICategory, error) {
 
-	if exists, err := kcs.repo.ExistsByTitle(category.TitleEn, category.TitleAr); err != nil {
+	if err := kcs.validateKRICategoryForm(category, nil); err != nil {
 		return nil, err
-	} else if exists {
-		return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 	}
 
 	createdCategory, err := kcs.repo.Create(category)
@@ -80,13 +78,8 @@ func (kcs *KRICategoryService) Update(id uint, currentUserID uint, updatedCatego
 		return nil, err
 	}
 
-	if updatedCategory.TitleEn != existingCategory.TitleEn || updatedCategory.TitleAr != existingCategory.TitleAr {
-		if exists, err := kcs.repo.ExistsByTitleExcludingID(id, updatedCategory.TitleEn, updatedCategory.TitleAr); err != nil {
-			return nil, err
-		} else if exists {
-			return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
-		}
-
+	if err := kcs.validateKRICategoryForm(updatedCategory, &id); err != nil {
+		return nil, err
 	}
 
 	result, err := kcs.repo.Update(id, updatedCategory)
@@ -211,4 +204,27 @@ func (kcs *KRICategoryService) Deactivate(ids []uint, currentUserID uint) error 
 	}
 
 	return err
+}
+
+func (kcs *KRICategoryService) validateKRICategoryForm(category *models.KRICategory, id *uint) error {
+
+	if id == nil {
+
+		if exists, err := kcs.repo.ExistsByTitle(category.TitleEn, category.TitleAr); err != nil {
+			return err
+		} else if exists {
+			return utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
+		}
+
+	} else {
+
+		if exists, err := kcs.repo.ExistsByTitleExcludingID(*id, category.TitleEn, category.TitleAr); err != nil {
+			return err
+		} else if exists {
+			return utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
+		}
+
+	}
+
+	return nil
 }

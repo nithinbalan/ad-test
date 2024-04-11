@@ -1,8 +1,9 @@
 package controllers
 
 import (
-	"jethur/grc/libraries/models"
-	"jethur/grc/libraries/services"
+	commonDTOs "jethur/grc/common/dtos"
+	masterDTOs "jethur/grc/masters/dtos"
+	"jethur/grc/masters/services"
 	"jethur/utility"
 	"net/http"
 	"strconv"
@@ -29,7 +30,19 @@ func (qlc *QuestionLibraryController) GetAllQuestionLibrary(c *gin.Context) {
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 
-	questionLibrary, err := qlc.service.GetAll(sort, sortBy, keyword, status)
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(qlc.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(qlc.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	questionLibrary, err := qlc.service.GetAll(sort, sortBy, keyword, status, page, pageSize)
 
 	if err != nil {
 		utility.SendInternalErrResp(qlc.db, c, err.Error())
@@ -58,7 +71,7 @@ func (qlc *QuestionLibraryController) GetQuestionLibraryDetails(c *gin.Context) 
 
 func (qlc *QuestionLibraryController) CreateQuestionLibrary(c *gin.Context) {
 
-	var questionLibrary *models.QuestionLibrary
+	var questionLibrary *masterDTOs.QuestionLibraryFormDTO
 
 	if err := c.ShouldBindJSON(&questionLibrary); err != nil {
 		utility.SendInvalidErrResp(c, err)
@@ -70,7 +83,7 @@ func (qlc *QuestionLibraryController) CreateQuestionLibrary(c *gin.Context) {
 		return
 	}
 
-	createdQuestionLibrary, err := qlc.service.Create(currentUserID, questionLibrary)
+	id, err := qlc.service.Create(currentUserID, questionLibrary)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:
@@ -82,7 +95,7 @@ func (qlc *QuestionLibraryController) CreateQuestionLibrary(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusCreated, createdQuestionLibrary)
+	c.JSON(http.StatusCreated, commonDTOs.IDResponse{ID: id})
 }
 
 func (qlc *QuestionLibraryController) UpdateQuestionLibrary(c *gin.Context) {
@@ -93,7 +106,7 @@ func (qlc *QuestionLibraryController) UpdateQuestionLibrary(c *gin.Context) {
 		return
 	}
 
-	var updatedQuestionLibrary *models.QuestionLibrary
+	var updatedQuestionLibrary *masterDTOs.QuestionLibraryFormDTO
 	if err := c.ShouldBindJSON(&updatedQuestionLibrary); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
@@ -104,7 +117,7 @@ func (qlc *QuestionLibraryController) UpdateQuestionLibrary(c *gin.Context) {
 		return
 	}
 
-	updatedQuestionLibrary, err = qlc.service.Update(uint(questionLibraryID), currentUserID, updatedQuestionLibrary)
+	err = qlc.service.Update(uint(questionLibraryID), currentUserID, updatedQuestionLibrary)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -119,7 +132,7 @@ func (qlc *QuestionLibraryController) UpdateQuestionLibrary(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, updatedQuestionLibrary)
+	c.Status(http.StatusOK)
 }
 
 func (qlc *QuestionLibraryController) DeleteQuestionLibraries(c *gin.Context) {

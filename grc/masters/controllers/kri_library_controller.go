@@ -2,8 +2,8 @@ package controllers
 
 import (
 	commonDTOs "jethur/grc/common/dtos"
-	libraryDTOs "jethur/grc/libraries/dtos"
-	"jethur/grc/libraries/services"
+	masterDTOs "jethur/grc/masters/dtos"
+	"jethur/grc/masters/services"
 	"jethur/utility"
 	"net/http"
 	"strconv"
@@ -42,7 +42,7 @@ func (klc *KRILibraryController) GetAllKRILibrary(c *gin.Context) {
 		return
 	}
 
-	queryParams := libraryDTOs.KRILibraryListQueryParamsDTO{
+	queryParams := masterDTOs.KRILibraryListQueryParamsDTO{
 		Sort:     sort,
 		SortBy:   sortBy,
 		Keyword:  keyword,
@@ -84,7 +84,7 @@ func (klc *KRILibraryController) GetKRILibraryDetails(c *gin.Context) {
 
 func (klc *KRILibraryController) CreateKRILibrary(c *gin.Context) {
 
-	var libraryFormDTOO libraryDTOs.KRILibraryFormDTO
+	var libraryFormDTOO masterDTOs.KRILibraryFormDTO
 
 	if err := c.ShouldBindJSON(&libraryFormDTOO); err != nil {
 		utility.SendInvalidErrResp(c, err)
@@ -121,7 +121,7 @@ func (klc *KRILibraryController) UpdateKRILibrary(c *gin.Context) {
 		return
 	}
 
-	var libraryFormDTOO libraryDTOs.KRILibraryFormDTO
+	var libraryFormDTOO masterDTOs.KRILibraryFormDTO
 	if err := c.ShouldBindJSON(&libraryFormDTOO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
