@@ -239,9 +239,20 @@ func (uc *UserController) EnableMFA(c *gin.Context) {
 		return
 	}
 
-	if err := uc.service.EnableMFA(uint(userID)); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+	err = uc.service.EnableMFA(uint(userID))
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(uc.db, c, e.Error())
+			return
+		}
 	}
 
 	c.Status(http.StatusOK)
@@ -254,9 +265,71 @@ func (uc *UserController) DisableMFA(c *gin.Context) {
 		return
 	}
 
-	if err := uc.service.DisableMFA(uint(userID)); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	err = uc.service.DisableMFA(uint(userID))
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(uc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (uc *UserController) EnableNotification(c *gin.Context) {
+	userID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
 		return
+	}
+
+	err = uc.service.EnableNotification(uint(userID))
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(uc.db, c, e.Error())
+			return
+		}
+	}
+	c.Status(http.StatusOK)
+}
+
+func (uc *UserController) DisableNotification(c *gin.Context) {
+	userID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	err = uc.service.DisableNotification(uint(userID))
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(uc.db, c, e.Error())
+			return
+		}
 	}
 
 	c.Status(http.StatusOK)
