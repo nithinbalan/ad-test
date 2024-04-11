@@ -89,5 +89,7 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	//user settings
 	organizationRoutes.GET("/users/:id/settings", userController.GetSetting)
 	organizationRoutes.PUT("/users/:id/settings", userController.UpdateSetting)
+	organizationRoutes.PUT("/users/:id/enable-mfa", userController.EnableMFA)
+	organizationRoutes.PUT("/users/:id/disable-mfa", userController.DisableMFA)
 
 }

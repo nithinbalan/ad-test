@@ -33,6 +33,8 @@ type UserServiceInterface interface {
 	//user Settings
 	GetUserSetting(userID uint) (*userDTOs.UserSettingDTO, error)
 	UpdateUserSetting(userID uint, currentUserID uint, userSettingFormDTO *userDTOs.UserSettingFormDTO) error
+	EnableMFA(userID uint) error
+	DisableMFA(userID uint) error
 }
 
 type UserService struct {
@@ -393,4 +395,39 @@ func (us *UserService) UpdateUserSetting(userID uint, currentUserID uint, userSe
 
 	return nil
 
+}
+
+func (us *UserService) EnableMFA(userID uint) error {
+	existingUserSecurity, err := us.repo.GetUserSecurityByUserID(userID)
+	if err != nil {
+		return utility.NewResourceNotFoundError(err, nil)
+	}
+
+	existingUserSecurity.IsMFA = true
+
+	if err = us.repo.UpdateUserSecurity(existingUserSecurity); err != nil {
+		return err
+	}
+	//@todo - send email to user
+	//@todo - need capture activity log
+
+	return nil
+
+}
+
+func (us *UserService) DisableMFA(userID uint) error {
+	existingUserSecurity, err := us.repo.GetUserSecurityByUserID(userID)
+	if err != nil {
+		return utility.NewResourceNotFoundError(err, nil)
+	}
+
+	existingUserSecurity.IsMFA = false
+
+	if err = us.repo.UpdateUserSecurity(existingUserSecurity); err != nil {
+		return err
+	}
+	//@todo - send email to user
+	//@todo - need capture activity log
+
+	return nil
 }
