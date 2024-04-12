@@ -152,6 +152,8 @@ func (src *SLARegisterController) UpdateSLARegister(c *gin.Context) {
 		return
 	}
 	err = src.service.Update(uint(slaID), currentUserID, &slaRegFormDTO)
+	// @Review
+	// We have to manage file upload failure error message,
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -192,9 +194,12 @@ func (src *SLARegisterController) DeleteSLARegisters(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
-}
+	response := commonDTOs.FailedIDsResponse{
+		FailedIds: failedIDs,
+	}
 
+	c.JSON(http.StatusOK, response)
+}
 
 func (src *SLARegisterController) ArchiveSLARegisters(c *gin.Context) {
 	var request struct {
@@ -211,13 +216,18 @@ func (src *SLARegisterController) ArchiveSLARegisters(c *gin.Context) {
 		utility.SendInternalErrResp(src.db, c, err.Error())
 		return
 	}
+
 	successfulIds, err := src.service.Archive(request.IDs, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(src.db, c, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"successfulIds": successfulIds})
+	response := commonDTOs.SuccessfulIDsResponse{
+		SuccessfulIds: successfulIds,
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
 func (src *SLARegisterController) RestoreSLARegisters(c *gin.Context) {
@@ -242,5 +252,9 @@ func (src *SLARegisterController) RestoreSLARegisters(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"successfulIds": successfulIds})
+	response := commonDTOs.SuccessfulIDsResponse{
+		SuccessfulIds: successfulIds,
+	}
+
+	c.JSON(http.StatusOK, response)
 }

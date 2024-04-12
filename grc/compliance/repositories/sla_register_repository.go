@@ -3,11 +3,14 @@ package repositories
 import (
 	"errors"
 	"fmt"
+	"jethur/config"
 	commonDTOs "jethur/grc/common/dtos"
 	slaDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/models"
 	complianceModels "jethur/grc/compliance/models"
 	"jethur/utility"
+	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -16,16 +19,22 @@ import (
 
 // Interfaces
 type SLARegisterRepositoryInterface interface {
+	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *slaDTOs.SLARegisterListQueryParamsDTO) (*slaDTOs.SLARegisterListResponseDTO, error)
 	GetByID(id uint) (*models.SLARegister, error)
-	Create(slaRegister *complianceModels.SLARegister) (uint, error)
-	Update(slaRegister *complianceModels.SLARegister) error
+	Create(slaRegister *complianceModels.SLARegister, tx ...utility.DatabaseTransaction) (uint, error)
+	Update(slaRegister *complianceModels.SLARegister, tx ...utility.DatabaseTransaction) error
 	Delete(id uint) error
-	GenerateReferenceNumber() (string, error)
-	SaveSLADocument(doc *models.SLADocument) error
-	GetSLADocumentByID(id uint) (*models.SLADocument, error)
 	GetIDsByLifecycleStatus(ids []uint, status string) ([]uint, error)
 	UpdateLifecycleStatusForIDs(ids []uint, statusId uint) ([]uint, error)
+	GenerateReferenceNumber() (string, error)
+
+	//Document
+	SaveSLADocument(doc *models.SLADocument, tx ...utility.DatabaseTransaction) error
+	GetSLADocumentByID(id uint) (*models.SLADocument, error)
+	GetLatestSLADocumentBySLARegisterID(id uint) (*models.SLADocument, error)
+	StoreSLADocumentFile(slaID uint, fileName string) error
+	RemoveSLADocumentFile(slaID uint, fileNames string) error
 }
 
 // implementation
@@ -38,6 +47,12 @@ func NewSLARegisterRepository(db *gorm.DB) *SLARegisterRepository {
 		db: db,
 	}
 }
+
+// BeginTransaction starts a new transaction.
+func (repo *SLARegisterRepository) BeginTransaction() utility.DatabaseTransaction {
+	return utility.NewGormDatabaseTransaction(repo.db)
+}
+
 func (repo *SLARegisterRepository) GetAll(params *slaDTOs.SLARegisterListQueryParamsDTO) (*slaDTOs.SLARegisterListResponseDTO, error) {
 	var slaRegisters []*slaDTOs.SLARegisterListDTO
 	var totalCount int64
@@ -226,18 +241,24 @@ func (repo *SLARegisterRepository) GetByID(id uint) (*models.SLARegister, error)
 	return slaRegister, result.Error
 }
 
-func (repo *SLARegisterRepository) Create(slaRegister *complianceModels.SLARegister) (uint, error) {
-
-	if err := repo.db.Create(slaRegister).Error; err != nil {
+func (repo *SLARegisterRepository) Create(slaRegister *complianceModels.SLARegister, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(slaRegister).Error; err != nil {
 		return 0, err
 	}
 
 	return slaRegister.ID, nil
 }
 
-func (repo *SLARegisterRepository) Update(slaRegister *complianceModels.SLARegister) error {
-
-	if err := repo.db.Save(slaRegister).Error; err != nil {
+func (repo *SLARegisterRepository) Update(slaRegister *complianceModels.SLARegister, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(slaRegister).Error; err != nil {
 		return err
 	}
 
@@ -339,17 +360,54 @@ func (repo *SLARegisterRepository) GenerateReferenceNumber() (string, error) {
 	return newReferenceNumber, nil
 }
 
-func (repo *SLARegisterRepository) SaveSLADocument(doc *models.SLADocument) error {
-	if err := repo.db.Save(doc).Error; err != nil {
-		return err
-	}
-	return nil
-}
-
 func (repo *SLARegisterRepository) GetSLADocumentByID(id uint) (*models.SLADocument, error) {
 	var document models.SLADocument
 	if err := repo.db.Where("id = ?", id).First(&document).Error; err != nil {
 		return nil, err
 	}
 	return &document, nil
+}
+
+func (repo *SLARegisterRepository) GetLatestSLADocumentBySLARegisterID(id uint) (*models.SLADocument, error) {
+	var document models.SLADocument
+	if err := repo.db.Where("sla_register_id = ?", id).
+		Where("is_latest = ?", true).
+		First(&document).Error; err != nil {
+		return nil, err
+	}
+	return &document, nil
+}
+
+func (repo *SLARegisterRepository) StoreSLADocumentFile(id uint, fileName string) error {
+	storagePath := config.GetEnv("STORAGE_PATH", "")
+	temporaryStoragePath := filepath.Join(storagePath, "tmp", fileName)
+	directoryPath := filepath.Join(storagePath, "compliance", "sla", strconv.FormatUint(uint64(id), 10), "agreements")
+	destinationPath := filepath.Join(directoryPath, fileName)
+	if err := os.MkdirAll(directoryPath, os.ModePerm); err != nil {
+		return err
+	}
+	if err := os.Rename(temporaryStoragePath, destinationPath); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *SLARegisterRepository) SaveSLADocument(doc *models.SLADocument, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(doc).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *SLARegisterRepository) RemoveSLADocumentFile(slaID uint, fileName string) error {
+	storagePath := config.GetEnv("STORAGE_PATH", "")
+	filePath := filepath.Join(storagePath, "compliance", "sla", strconv.FormatUint(uint64(slaID), 10), "agreements", fileName)
+	if err := os.Remove(filePath); err != nil {
+		return err
+	}
+	return nil
 }
