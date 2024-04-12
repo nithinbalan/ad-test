@@ -2,12 +2,10 @@ package services
 
 import (
 	"fmt"
-	slaDTOs "jethur/grc/compliance/dtos"
+	"jethur/config"
+	complianceDTOs "jethur/grc/compliance/dtos"
 	complianceModels "jethur/grc/compliance/models"
-	complinceRepositories "jethur/grc/compliance/repositories"
-
-	// @review
-	// please check we using activityLogModels or just logModels
+	complianceRepositories "jethur/grc/compliance/repositories"
 	logModels "jethur/grc/logs/models"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
@@ -15,10 +13,10 @@ import (
 )
 
 type SLARegisterServiceInterface interface {
-	GetAll(params *slaDTOs.SLARegisterListQueryParamsDTO) (*slaDTOs.SLARegisterListResponseDTO, error)
+	GetAll(params *complianceDTOs.SLARegisterListQueryParamsDTO) (*complianceDTOs.SLARegisterListResponseDTO, error)
 	GetByID(id uint) (*complianceModels.SLARegister, error)
-	Create(currentUserID uint, slaRegisterFormDTO *slaDTOs.SLARegisterFormDTO) (uint, error)
-	Update(id uint, currentUserID uint, sla *slaDTOs.SLARegisterFormDTO) error
+	Create(currentUserID uint, slaRegisterFormDTO *complianceDTOs.SLARegisterFormDTO) (uint, error)
+	Update(id uint, currentUserID uint, sla *complianceDTOs.SLARegisterFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	Archive(ids []uint, currentUserID uint) ([]uint, error)
 	Restore(ids []uint, currentUserID uint) ([]uint, error)
@@ -26,7 +24,7 @@ type SLARegisterServiceInterface interface {
 
 // Service and implementations
 type SLARegisterService struct {
-	repo               complinceRepositories.SLARegisterRepositoryInterface
+	repo               complianceRepositories.SLARegisterRepositoryInterface
 	slaCategorySvc     SLACategoryServiceInterface
 	severityLevelSvc   masterServices.SeverityLevelServiceInterface
 	lifecycleStatusSvc masterServices.LifecycleStatusServiceInterface
@@ -34,7 +32,7 @@ type SLARegisterService struct {
 }
 
 func NewSLARegisterService(
-	repo complinceRepositories.SLARegisterRepositoryInterface,
+	repo complianceRepositories.SLARegisterRepositoryInterface,
 	slaCategorySvc SLACategoryServiceInterface,
 	severityLevelSvc masterServices.SeverityLevelServiceInterface,
 	lifecycleStatusSvc masterServices.LifecycleStatusServiceInterface,
@@ -48,7 +46,7 @@ func NewSLARegisterService(
 	}
 }
 
-func (srs *SLARegisterService) GetAll(params *slaDTOs.SLARegisterListQueryParamsDTO) (*slaDTOs.SLARegisterListResponseDTO, error) {
+func (srs *SLARegisterService) GetAll(params *complianceDTOs.SLARegisterListQueryParamsDTO) (*complianceDTOs.SLARegisterListResponseDTO, error) {
 	return srs.repo.GetAll(params)
 }
 
@@ -56,7 +54,9 @@ func (srs SLARegisterService) GetByID(id uint) (*complianceModels.SLARegister, e
 	return srs.repo.GetByID(id)
 }
 
-func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *slaDTOs.SLARegisterFormDTO) (uint, error) {
+func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *complianceDTOs.SLARegisterFormDTO) (uint, error) {
+	tx := srs.repo.BeginTransaction()
+
 	if err := srs.validateSLARegisterFormDTO(slaRegisterFormDTO); err != nil {
 		return 0, err
 	}
@@ -65,7 +65,6 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *sl
 	if err != nil {
 		return 0, err
 	}
-
 	referenceNumber, err := srs.repo.GenerateReferenceNumber()
 	if err != nil {
 		return 0, err
@@ -76,7 +75,10 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *sl
 		return 0, err
 	}
 
-	// Create SLA register
+	if err := srs.validateSLADocumentFormDTO(slaRegisterFormDTO.Document); err != nil {
+		return 0, err
+	}
+
 	slaRegister := &complianceModels.SLARegister{
 		SLACategoryID:     slaRegisterFormDTO.SLACategoryID,
 		SeverityLevelID:   slaRegisterFormDTO.SeverityLevelID,
@@ -91,34 +93,51 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *sl
 		CreatedBy:         currentUserID,
 	}
 
-	id, err := srs.repo.Create(slaRegister)
+	id, err := srs.repo.Create(slaRegister, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	if err := srs.repo.StoreSLADocumentFile(id, slaRegisterFormDTO.Document.FileName); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	dataToEncrypt := []byte(slaRegisterFormDTO.Document.FileName)
+	encryptedFilename, err := utility.EncryptData(dataToEncrypt)
 	if err != nil {
 		return 0, err
 	}
 
-	// Create SLA document
+	url := fmt.Sprintf("%s/sla-registers/%d/%s", config.GetEnv("API_URL", "http://localhost:8080"), slaRegister.ID, encryptedFilename)
+
 	slaDocument := &complianceModels.SLADocument{
 		SLARegisterID: id,
-		Version:       slaRegisterFormDTO.Document.Version,
+		Version:       slaRegisterFormDTO.Version,
 		IssueDate:     dates.IssueDate,
 		ExpiryDate:    dates.ExpiryDate,
 		SA1Date:       dates.SA1Date,
 		SA2Date:       dates.SA2Date,
-		Comment:       slaRegisterFormDTO.Document.Comment,
 		Language:      slaRegisterFormDTO.Document.Language,
-		URL:           slaRegisterFormDTO.Document.URL,
-		Name:          slaRegisterFormDTO.Document.Name,
-		Size:          slaRegisterFormDTO.Document.Size,
-		Token:         slaRegisterFormDTO.Document.Token,
-		Type:          slaRegisterFormDTO.Document.Type,
+		URL:           url,
 		Icon:          slaRegisterFormDTO.Document.Icon,
+		Name:          slaRegisterFormDTO.Document.FileName,
+		Size:          slaRegisterFormDTO.Document.Size,
+		Token:         encryptedFilename,
+		Type:          slaRegisterFormDTO.Document.Type,
+		IsLatest:      true,
 		CreatedBy:     currentUserID,
 	}
 
-	if err := srs.repo.SaveSLADocument(slaDocument); err != nil {
+	// Save SLA document
+	if err := srs.repo.SaveSLADocument(slaDocument, tx); err != nil {
+		tx.Rollback()
 		return 0, err
 	}
-	// Log activity
+
+	tx.Commit()
+
 	go func() {
 		err := srs.activityLogSvc.LogActivity(
 			logModels.CreateAction,
@@ -145,13 +164,18 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *sl
 	return id, nil
 }
 
-func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFormDTO *slaDTOs.SLARegisterFormDTO) error {
+func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFormDTO *complianceDTOs.SLARegisterFormDTO) error {
+	tx := srs.repo.BeginTransaction()
 	existingSLARegister, err := srs.repo.GetByID(id)
 	if err != nil {
 		return err
 	}
 
 	if err := srs.validateSLARegisterFormDTO(slaRegisterFormDTO); err != nil {
+		return err
+	}
+
+	if err := srs.validateSLADocumentFormDTO(slaRegisterFormDTO.Document); err != nil {
 		return err
 	}
 
@@ -171,41 +195,81 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 	existingSLARegister.Client = slaRegisterFormDTO.Client
 	existingSLARegister.UpdatedBy = currentUserID
 
-	err = srs.repo.Update(existingSLARegister)
-	if err != nil {
+	if err := srs.repo.Update(existingSLARegister, tx); err != nil {
+		tx.Rollback()
 		return err
 	}
 
-	docDTO := slaRegisterFormDTO.Document
-
-	if docDTO != nil {
-		existingSLADocument, err := srs.repo.GetSLADocumentByID(*docDTO.ID)
+	if slaRegisterFormDTO.Document != nil && slaRegisterFormDTO.Document.ID != nil {
+		existingSLADocument, err := srs.repo.GetSLADocumentByID(*slaRegisterFormDTO.Document.ID)
 		if err != nil {
 			return err
 		}
-
-		// Update SLA document details
-		existingSLADocument.Version = docDTO.Version
+		existingSLADocument.SLARegisterID = id
+		existingSLADocument.Version = slaRegisterFormDTO.Version
 		existingSLADocument.IssueDate = dates.IssueDate
 		existingSLADocument.ExpiryDate = dates.ExpiryDate
 		existingSLADocument.SA1Date = dates.SA1Date
 		existingSLADocument.SA2Date = dates.SA2Date
-		existingSLADocument.Comment = docDTO.Comment
-		existingSLADocument.Language = docDTO.Language
-		existingSLADocument.URL = docDTO.URL
-		existingSLADocument.Name = docDTO.Name
-		existingSLADocument.Size = docDTO.Size
-		existingSLADocument.Token = docDTO.Token
-		existingSLADocument.Type = docDTO.Type
-		existingSLADocument.Icon = docDTO.Icon
 		existingSLADocument.UpdatedBy = currentUserID
+		existingSLADocument.IsLatest = true
 
-		// Update SLA document in the repository
-		err = srs.repo.SaveSLADocument(existingSLADocument)
-		if err != nil {
+		if slaRegisterFormDTO.Document.IsNewFile != nil && *slaRegisterFormDTO.Document.IsNewFile {
+			if err := srs.repo.RemoveSLADocumentFile(existingSLADocument.SLARegisterID, existingSLADocument.Name); err != nil {
+				tx.Rollback()
+				return err
+			}
+			if err := srs.repo.StoreSLADocumentFile(existingSLADocument.SLARegisterID, slaRegisterFormDTO.Document.FileName); err != nil {
+				tx.Rollback()
+				return err
+			}
+			dataToEncrypt := []byte(slaRegisterFormDTO.Document.FileName)
+			encryptedFilename, err := utility.EncryptData(dataToEncrypt)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+			url := fmt.Sprintf("%s/sla-registers/%d/%s", config.GetEnv("API_URL", "http://localhost:8080"), id, encryptedFilename)
+
+			existingSLADocument.Language = slaRegisterFormDTO.Document.Language
+			existingSLADocument.URL = url
+			existingSLADocument.Icon = slaRegisterFormDTO.Document.Icon
+			existingSLADocument.Name = slaRegisterFormDTO.Document.FileName
+			existingSLADocument.Size = slaRegisterFormDTO.Document.Size
+			existingSLADocument.Token = encryptedFilename
+			existingSLADocument.Type = slaRegisterFormDTO.Document.Type
+
+		}
+		if err := srs.repo.SaveSLADocument(existingSLADocument, tx); err != nil {
+			tx.Rollback()
 			return err
 		}
 	}
+
+	tx.Commit()
+
+	go func() {
+		err := srs.activityLogSvc.LogActivity(
+			logModels.UpdateAction,
+			complianceModels.SLARegister{}.TableName(),
+			id,
+			slaRegisterFormDTO,
+			currentUserID,
+			nil,
+		)
+
+		if err != nil {
+			fields := map[string]interface{}{
+				"action":    logModels.UpdateAction,
+				"tableName": complianceModels.SLARegister{}.TableName(),
+				"recordID":  id,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			}
+
+			utility.LogError("Failed to log activity", fields)
+		}
+	}()
 
 	return nil
 }
@@ -214,10 +278,22 @@ func (srs *SLARegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 	var failedIds []uint
 	var successfulIds []uint
 	for _, id := range ids {
-
 		_, err := srs.repo.GetByID(id)
-
 		if err != nil {
+			continue
+		}
+
+		// Fetch the SLA document by ID
+		slaDocument, err := srs.repo.GetLatestSLADocumentBySLARegisterID(id)
+		if err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+
+		// Delete associated documents
+		err = srs.repo.RemoveSLADocumentFile(slaDocument.SLARegisterID, slaDocument.Name)
+		if err != nil {
+			failedIds = append(failedIds, id)
 			continue
 		}
 
@@ -230,7 +306,6 @@ func (srs *SLARegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 	}
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := srs.activityLogSvc.LogBulkActivities(
 				logModels.DeleteAction,
@@ -323,7 +398,11 @@ func (srs *SLARegisterService) Restore(ids []uint, currentUserID uint) ([]uint, 
 	return successfulIds, nil
 }
 
-func (srs *SLARegisterService) validateSLARegisterFormDTO(slaRegisterFormDTO *slaDTOs.SLARegisterFormDTO) error {
+func (srs *SLARegisterService) validateSLARegisterFormDTO(slaRegisterFormDTO *complianceDTOs.SLARegisterFormDTO) error {
+	// Check if Document is provided
+	if slaRegisterFormDTO.Document == nil {
+		return utility.NewValidationError(fmt.Errorf("document is required"), "required", "document")
+	}
 	if _, err := srs.slaCategorySvc.GetByID(slaRegisterFormDTO.SLACategoryID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("sla category does not exist"), "not_exist", "sla category")
 	}
@@ -342,41 +421,70 @@ func (srs *SLARegisterService) validateSLARegisterFormDTO(slaRegisterFormDTO *sl
 	return nil
 }
 
-func (srs *SLARegisterService) parseSLARegisterDates(dto *slaDTOs.SLARegisterFormDTO) (*slaDTOs.ParsedSLADates, error) {
-	parsed := &slaDTOs.ParsedSLADates{}
+func (srs *SLARegisterService) parseSLARegisterDates(slaRegisterForm *complianceDTOs.SLARegisterFormDTO) (*complianceDTOs.ParsedSLADates, error) {
+	parsed := &complianceDTOs.ParsedSLADates{}
 	var err error
 
 	// Validate issue_date
-	if dto.Document.IssueDate != "" {
-		parsed.IssueDate, err = utility.ParseDate(dto.Document.IssueDate)
+	if slaRegisterForm.IssueDate != "" {
+		parsed.IssueDate, err = utility.ParseDate(slaRegisterForm.IssueDate)
 		if err != nil {
 			return nil, utility.NewValidationError(fmt.Errorf("invalid issue date"), "invalid_date", "issue date")
 		}
 	}
 
 	// Validate expiry_date
-	if dto.Document.ExpiryDate != "" {
-		parsed.ExpiryDate, err = utility.ParseDate(dto.Document.ExpiryDate)
+	if slaRegisterForm.ExpiryDate != "" {
+		parsed.ExpiryDate, err = utility.ParseDate(slaRegisterForm.ExpiryDate)
 		if err != nil {
 			return nil, utility.NewValidationError(fmt.Errorf("invalid expiry date"), "invalid_date", "expiry date")
 		}
 	}
 
 	// Validate SA1Date
-	if dto.Document.SA1Date != "" {
-		parsed.SA1Date, err = utility.ParseDate(dto.Document.SA1Date)
+	if slaRegisterForm.SA1Date != "" {
+		parsed.SA1Date, err = utility.ParseDate(slaRegisterForm.SA1Date)
 		if err != nil {
 			return nil, utility.NewValidationError(fmt.Errorf("invalid sa1 date"), "invalid_date", "sa1 date")
 		}
 	}
 
 	// Validate SA2Date
-	if dto.Document.SA2Date != "" {
-		parsed.SA2Date, err = utility.ParseDate(dto.Document.SA2Date)
+	if slaRegisterForm.SA2Date != "" {
+		parsed.SA2Date, err = utility.ParseDate(slaRegisterForm.SA2Date)
 		if err != nil {
 			return nil, utility.NewValidationError(fmt.Errorf("invalid sa2 date"), "invalid_date", "sa2 date")
 		}
 	}
 
 	return parsed, nil
+}
+
+func (srs *SLARegisterService) validateSLADocumentFormDTO(document *complianceDTOs.SLADocumentFormDTO) error {
+
+	//@Review
+	//All items are mandatory during creation
+	// Validate language
+	if document.Language == "" {
+		return utility.NewValidationError(fmt.Errorf("language is required"), "required", "language")
+	}
+
+	// Validate icon
+	if document.Icon == "" {
+		return utility.NewValidationError(fmt.Errorf("icon is required"), "required", "icon")
+	}
+
+	// Validate file type (PDF)
+	if document.Type != ".pdf" {
+		return utility.NewValidationError(fmt.Errorf("only PDF files are allowed"), "invalid_file_type", "type")
+	}
+
+	// @todo
+	// Validate file size (if needed)
+	// For example:
+	// if document.Size > MaxFileSize {
+	//     return utility.NewValidationError(fmt.Errorf("file size exceeds the limit"), "invalid_file_size", "file_size")
+	// }
+
+	return nil
 }

@@ -93,5 +93,6 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	organizationRoutes.PUT("/users/:id/disable-mfa", userController.DisableMFA)
 	organizationRoutes.PUT("/users/:id/enable-notification", userController.EnableNotification)
 	organizationRoutes.PUT("/users/:id/disable-notification", userController.DisableNotification)
+	organizationRoutes.POST("/users/:id/send-new-password", userController.NewPassword)
 
 }
