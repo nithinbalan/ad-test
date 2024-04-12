@@ -194,7 +194,11 @@ func (src *SLARegisterController) DeleteSLARegisters(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+	response := commonDTOs.FailedIDsResponse{
+		FailedIds: failedIDs,
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
 func (src *SLARegisterController) ArchiveSLARegisters(c *gin.Context) {
@@ -212,13 +216,18 @@ func (src *SLARegisterController) ArchiveSLARegisters(c *gin.Context) {
 		utility.SendInternalErrResp(src.db, c, err.Error())
 		return
 	}
+
 	successfulIds, err := src.service.Archive(request.IDs, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(src.db, c, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"successfulIds": successfulIds})
+	response := commonDTOs.SuccessfulIDsResponse{
+		SuccessfulIds: successfulIds,
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
 func (src *SLARegisterController) RestoreSLARegisters(c *gin.Context) {
@@ -243,5 +252,9 @@ func (src *SLARegisterController) RestoreSLARegisters(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"successfulIds": successfulIds})
+	response := commonDTOs.SuccessfulIDsResponse{
+		SuccessfulIds: successfulIds,
+	}
+
+	c.JSON(http.StatusOK, response)
 }
