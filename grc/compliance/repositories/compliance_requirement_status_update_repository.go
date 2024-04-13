@@ -26,7 +26,7 @@ func NewComplianceRequirementStatusUpdateRepository(db *gorm.DB) *ComplianceRequ
 
 func (repo *ComplianceRequirementStatusUpdateRepository) GetAll(complianceRequirementID uint, sort string, sortBy string, keyword string) ([]*complianceDTOs.ComplianceRequirementStatusUpdateListDTO, error) {
 
-	var complianceUpdates []*complianceDTOs.ComplianceRequirementStatusUpdateListDTO
+	var complianceRequirementStatusUpdates []*complianceDTOs.ComplianceRequirementStatusUpdateListDTO
 
 	query := repo.db.Table("compliance_requirement_status_updates").
 		Select(`
@@ -67,9 +67,9 @@ func (repo *ComplianceRequirementStatusUpdateRepository) GetAll(complianceRequir
 		sort = "asc"
 	}
 	query = query.Order(sortBy + " " + sort)
-	result := query.Find(&complianceUpdates)
+	result := query.Find(&complianceRequirementStatusUpdates)
 
-	return complianceUpdates, result.Error
+	return complianceRequirementStatusUpdates, result.Error
 }
 
 func (repo *ComplianceRequirementStatusUpdateRepository) GetByID(id uint) (*models.ComplianceRequirementStatusUpdate, error) {

@@ -76,7 +76,7 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 		return 0, err
 	}
 
-	userStatus, err := us.userStatusSvc.GetByStatus("active")
+	userStatus, err := us.userStatusSvc.GetByType("active")
 	if err != nil {
 		return 0, err
 	}
