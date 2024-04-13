@@ -79,6 +79,10 @@ func (crs *ComplianceReviewService) Create(complianceID uint, currentUserID uint
 		return 0, err
 	}
 
+	// @review
+	// @we have to update next review date of compliance register.``
+	// add transaction
+
 	go func() {
 		err := crs.activityLogSvc.LogActivity(
 			logModels.CreateAction,
@@ -119,6 +123,8 @@ func (crs *ComplianceReviewService) Update(complianceID uint, id uint, currentUs
 	// Update Compliance Review
 	existingComplianceReview.Comment = complianceReviewFormDTO.Comment
 	existingComplianceReview.ReviewedBy = currentUserID
+	//@review
+	// we have to provide updated by and updated at right?
 
 	err = crs.repo.Update(existingComplianceReview)
 
