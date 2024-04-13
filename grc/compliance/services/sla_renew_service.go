@@ -38,7 +38,9 @@ func (srs *SLARenewService) GetAll(id uint, params *slaDTOs.SLARenewListQueryPar
 
 func (srs *SLARenewService) Renew(docID uint, currentUserID uint, slaRenewFormDTO *slaDTOs.SLARenewFormDTO) error {
 	tx := srs.repo.BeginTransaction()
-	// Check if Document is provided
+
+	//@review
+	//we can move this checking in to validateSLARenewDocumentFormDTO function.
 	if slaRenewFormDTO.Document == nil {
 		return utility.NewValidationError(fmt.Errorf("document is required"), "required", "document")
 	}
@@ -51,50 +53,52 @@ func (srs *SLARenewService) Renew(docID uint, currentUserID uint, slaRenewFormDT
 	if err != nil {
 		return err
 	}
-	// Check if the file is updated
+
 	existingSLADocument, err := srs.repo.GetSLADocumentByID(docID)
 	if err != nil {
 		return err
 	}
+
 	if err := srs.repo.StoreSLADocumentFile(existingSLADocument.SLARegisterID, slaRenewFormDTO.Document.FileName); err != nil {
 		tx.Rollback()
 		return err
 	}
+
 	//encrypt FileName for token
 	dataToEncrypt := []byte(slaRenewFormDTO.Document.FileName)
 	encryptedFilename, err := utility.EncryptData(dataToEncrypt)
 	if err != nil {
 		return err
 	}
-	//Construct URL using .env variable, URL:=  API_URL/sla-contracts/1/token
+
 	url := fmt.Sprintf("%s/sla-registers/%d/%s", config.GetEnv("API_URL", "http://localhost:8080"), existingSLADocument.SLARegisterID, encryptedFilename)
 
 	//renew document
 	slaDocument := &complianceModels.SLADocument{
 		SLARegisterID: existingSLADocument.SLARegisterID,
-		Version:       slaRenewFormDTO.Version,
+		Version:       slaRenewFormDTO.Version, //@review, Need to increment version
 		IssueDate:     dates.IssueDate,
 		ExpiryDate:    dates.ExpiryDate,
 		SA1Date:       dates.SA1Date,
 		SA2Date:       dates.SA2Date,
-		Language:      slaRenewFormDTO.Document.Language,
-		URL:           url, //URL To be decided
+		Language:      slaRenewFormDTO.Document.Language, // remove language throught
+		URL:           url,
 		Icon:          slaRenewFormDTO.Document.Icon,
 		Name:          slaRenewFormDTO.Document.FileName,
 		Size:          slaRenewFormDTO.Document.Size,
-		Token:         encryptedFilename, // Assuming token is same as fileName
+		Token:         encryptedFilename,
 		Type:          slaRenewFormDTO.Document.Type,
 		IsLatest:      true,
 		CreatedBy:     currentUserID,
+		// @add comment
 	}
 
 	// Save SLA document
-	if err := srs.repo.SaveSLADocument(slaDocument,tx); err != nil {
+	if err := srs.repo.SaveSLADocument(slaDocument, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
-	// Update is_latest=false for all other documents of the same SLA register
-	if err := srs.repo.UpdateOtherSLADocumentsIsLatest(slaDocument.ID, slaDocument.SLARegisterID,tx); err != nil {
+	if err := srs.repo.SetOlderSLADocsToNotLatest(slaDocument.ID, slaDocument.SLARegisterID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -129,11 +133,19 @@ func (srs *SLARenewService) Renew(docID uint, currentUserID uint, slaRenewFormDT
 func (srs *SLARenewService) Revert(docID uint, currentUserID uint) error {
 	tx := srs.repo.BeginTransaction()
 
+	//@review
+	//get sla register and validate status. (archiave check)
+	//get latest document
+	//delete file from storage
+	//delete latest dcoument
+	//updte previous one as is latest true
+
 	// Check if the file is updated
 	existingSLADocument, err := srs.repo.GetSLADocumentByID(docID)
 	if err != nil {
 		return err
 	}
+
 	previousSLADocument, err := srs.repo.FindPreviousDocument(docID, existingSLADocument.SLARegisterID)
 	if err != nil {
 		return err
@@ -141,12 +153,12 @@ func (srs *SLARenewService) Revert(docID uint, currentUserID uint) error {
 	previousSLADocument.IsLatest = true
 	previousSLADocument.UpdatedBy = currentUserID
 	// Save updated SLA document
-	if err := srs.repo.SaveSLADocument(previousSLADocument,tx); err != nil {
+	if err := srs.repo.SaveSLADocument(previousSLADocument, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
 	// Update is_latest=false for all other documents of the same SLA register
-	if err := srs.repo.UpdateOtherSLADocumentsIsLatest(previousSLADocument.ID, previousSLADocument.SLARegisterID,tx); err != nil {
+	if err := srs.repo.SetOlderSLADocsToNotLatest(previousSLADocument.ID, previousSLADocument.SLARegisterID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}

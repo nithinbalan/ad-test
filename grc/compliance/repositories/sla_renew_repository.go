@@ -23,9 +23,8 @@ type SLARenewRepositoryInterface interface {
 	Renew(doc *models.SLADocument, tx ...utility.DatabaseTransaction) error
 	GetSLADocumentByID(id uint) (*models.SLADocument, error)
 	StoreSLADocumentFile(slaID uint, fileName string) error
-	UpdateOtherSLADocumentsIsLatest(currentDocID uint, slaRegisterID uint, tx ...utility.DatabaseTransaction) error
-	FindPreviousDocument(docId uint,slaRegisterID uint) (*models.SLADocument, error)
-
+	SetOlderSLADocsToNotLatest(currentDocID uint, slaRegisterID uint, tx ...utility.DatabaseTransaction) error
+	FindPreviousDocument(docId uint, slaRegisterID uint) (*models.SLADocument, error)
 }
 
 // implementation
@@ -38,6 +37,7 @@ func NewSLARenewRepository(db *gorm.DB) *SLARenewRepository {
 		db: db,
 	}
 }
+
 // BeginTransaction starts a new transaction.
 func (repo *SLARenewRepository) BeginTransaction() utility.DatabaseTransaction {
 	return utility.NewGormDatabaseTransaction(repo.db)
@@ -177,7 +177,7 @@ func (repo *SLARenewRepository) SaveSLADocument(doc *models.SLADocument, tx ...u
 	return nil
 }
 
-func (repo *SLARenewRepository) UpdateOtherSLADocumentsIsLatest(currentDocID uint, slaRegisterID uint, tx ...utility.DatabaseTransaction) error {
+func (repo *SLARenewRepository) SetOlderSLADocsToNotLatest(currentDocID uint, slaRegisterID uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -204,4 +204,3 @@ func (repo *SLARenewRepository) FindPreviousDocument(currentDocID uint, slaRegis
 	}
 	return &previousDocument, nil
 }
-
