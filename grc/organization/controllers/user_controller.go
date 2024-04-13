@@ -2,7 +2,7 @@ package controllers
 
 import (
 	commonDTOs "jethur/grc/common/dtos"
-	userDTOs "jethur/grc/organization/dtos"
+	organizationDTOs "jethur/grc/organization/dtos"
 	"jethur/grc/organization/services"
 	"jethur/utility"
 	"net/http"
@@ -55,7 +55,7 @@ func (uc *UserController) GetAllUsers(c *gin.Context) {
 		return
 	}
 
-	queryParams := userDTOs.UserListQueryParamsDTO{
+	queryParams := organizationDTOs.UserListQueryParamsDTO{
 		Sort:        sort,
 		SortBy:      sortBy,
 		Keyword:     keyword,
@@ -77,7 +77,7 @@ func (uc *UserController) GetAllUsers(c *gin.Context) {
 
 func (uc *UserController) CreateUser(c *gin.Context) {
 
-	var userFormDTO userDTOs.UserFormDTO
+	var userFormDTO organizationDTOs.UserFormDTO
 
 	if err := c.ShouldBindJSON(&userFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
@@ -114,7 +114,7 @@ func (uc *UserController) UpdateUser(c *gin.Context) {
 		return
 	}
 
-	var userFormDTO userDTOs.UserFormDTO
+	var userFormDTO organizationDTOs.UserFormDTO
 	if err := c.ShouldBindJSON(&userFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return

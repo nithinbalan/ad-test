@@ -3,11 +3,9 @@ package services
 import (
 	"fmt"
 	"jethur/config"
-	slaDTOs "jethur/grc/compliance/dtos"
-	"jethur/grc/compliance/models"
+	complianceDTOs "jethur/grc/compliance/dtos"
 	complianceModels "jethur/grc/compliance/models"
-	"jethur/grc/compliance/repositories"
-	activityLogModels "jethur/grc/logs/models"
+	complianceRepositories "jethur/grc/compliance/repositories"
 	logModels "jethur/grc/logs/models"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
@@ -15,10 +13,10 @@ import (
 )
 
 type SLARegisterServiceInterface interface {
-	GetAll(params *slaDTOs.SLARegisterListQueryParamsDTO) (*slaDTOs.SLARegisterListResponseDTO, error)
+	GetAll(params *complianceDTOs.SLARegisterListQueryParamsDTO) (*complianceDTOs.SLARegisterListResponseDTO, error)
 	GetByID(id uint) (*complianceModels.SLARegister, error)
-	Create(currentUserID uint, slaRegisterFormDTO *slaDTOs.SLARegisterFormDTO) (uint, error)
-	Update(id uint, currentUserID uint, sla *slaDTOs.SLARegisterFormDTO) error
+	Create(currentUserID uint, slaRegisterFormDTO *complianceDTOs.SLARegisterFormDTO) (uint, error)
+	Update(id uint, currentUserID uint, sla *complianceDTOs.SLARegisterFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	Archive(ids []uint, currentUserID uint) ([]uint, error)
 	Restore(ids []uint, currentUserID uint) ([]uint, error)
@@ -26,7 +24,7 @@ type SLARegisterServiceInterface interface {
 
 // Service and implementations
 type SLARegisterService struct {
-	repo               repositories.SLARegisterRepositoryInterface
+	repo               complianceRepositories.SLARegisterRepositoryInterface
 	slaCategorySvc     SLACategoryServiceInterface
 	severityLevelSvc   masterServices.SeverityLevelServiceInterface
 	lifecycleStatusSvc masterServices.LifecycleStatusServiceInterface
@@ -34,7 +32,7 @@ type SLARegisterService struct {
 }
 
 func NewSLARegisterService(
-	repo repositories.SLARegisterRepositoryInterface,
+	repo complianceRepositories.SLARegisterRepositoryInterface,
 	slaCategorySvc SLACategoryServiceInterface,
 	severityLevelSvc masterServices.SeverityLevelServiceInterface,
 	lifecycleStatusSvc masterServices.LifecycleStatusServiceInterface,
@@ -48,7 +46,7 @@ func NewSLARegisterService(
 	}
 }
 
-func (srs *SLARegisterService) GetAll(params *slaDTOs.SLARegisterListQueryParamsDTO) (*slaDTOs.SLARegisterListResponseDTO, error) {
+func (srs *SLARegisterService) GetAll(params *complianceDTOs.SLARegisterListQueryParamsDTO) (*complianceDTOs.SLARegisterListResponseDTO, error) {
 	return srs.repo.GetAll(params)
 }
 
@@ -56,9 +54,9 @@ func (srs SLARegisterService) GetByID(id uint) (*complianceModels.SLARegister, e
 	return srs.repo.GetByID(id)
 }
 
-func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *slaDTOs.SLARegisterFormDTO) (uint, error) {
+func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *complianceDTOs.SLARegisterFormDTO) (uint, error) {
 	tx := srs.repo.BeginTransaction()
-	//validation for sla form
+
 	if err := srs.validateSLARegisterFormDTO(slaRegisterFormDTO); err != nil {
 		return 0, err
 	}
@@ -76,9 +74,7 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *sl
 	if err != nil {
 		return 0, err
 	}
-	// @Review
-	//Validation must , during creation document is mandatory for SLA & Contract.
-	// Document is provided, validate it
+
 	if err := srs.validateSLADocumentFormDTO(slaRegisterFormDTO.Document); err != nil {
 		return 0, err
 	}
@@ -108,34 +104,15 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *sl
 		return 0, err
 	}
 
-	//@Review
-	//We have to encrypt file name as token , so during dipsplay, we can by pass authentication using token
-	//Please test below code, also test decription of token
-
-	//@Review
-	//Add API_URL in .env
-	//Construct URL using .env variable, URL:=  API_URL/sla-contracts/1/token
-	//@Review
-	//Please add db transaciton by refering ranjith code.
-
 	dataToEncrypt := []byte(slaRegisterFormDTO.Document.FileName)
 	encryptedFilename, err := utility.EncryptData(dataToEncrypt)
 	if err != nil {
 		return 0, err
 	}
-	// Decrypt token
-	// decryptedFilenameBytes, err := utility.DecryptData(encryptedFilename)
-	// if err != nil {
-	// 	fmt.Println("Decryption failed:", err)
-	// }
-	// // Convert decrypted byte slice to string
-	// decryptedFilename := string(decryptedFilenameBytes)
-	// fmt.Println("Decryption:", decryptedFilename)
 
-	//Construct URL using .env variable, URL:=  API_URL/sla-contracts/1/token
 	url := fmt.Sprintf("%s/sla-registers/%d/%s", config.GetEnv("API_URL", "http://localhost:8080"), slaRegister.ID, encryptedFilename)
 
-	slaDocument := &models.SLADocument{
+	slaDocument := &complianceModels.SLADocument{
 		SLARegisterID: id,
 		Version:       slaRegisterFormDTO.Version,
 		IssueDate:     dates.IssueDate,
@@ -187,7 +164,7 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *sl
 	return id, nil
 }
 
-func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFormDTO *slaDTOs.SLARegisterFormDTO) error {
+func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFormDTO *complianceDTOs.SLARegisterFormDTO) error {
 	tx := srs.repo.BeginTransaction()
 	existingSLARegister, err := srs.repo.GetByID(id)
 	if err != nil {
@@ -223,22 +200,11 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 		return err
 	}
 
-	// @review
-	//get latest document from preload (instead of new query if possible otherwise is fine)
-	//check if request body has new flag (is_new_document)
-	//if is_new_document is true
-	//upload new document to storage
-	//update SLA Document from database with new url, name, size, token etc.
-	//delete old document from storage.
-	//if is_new_document is false
-	//update SLA Document from database excluding url,name,size and token etc.
-
 	if slaRegisterFormDTO.Document != nil && slaRegisterFormDTO.Document.ID != nil {
 		existingSLADocument, err := srs.repo.GetSLADocumentByID(*slaRegisterFormDTO.Document.ID)
 		if err != nil {
 			return err
 		}
-		// Update existing SLA document fields
 		existingSLADocument.SLARegisterID = id
 		existingSLADocument.Version = slaRegisterFormDTO.Version
 		existingSLADocument.IssueDate = dates.IssueDate
@@ -246,15 +212,13 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 		existingSLADocument.SA1Date = dates.SA1Date
 		existingSLADocument.SA2Date = dates.SA2Date
 		existingSLADocument.UpdatedBy = currentUserID
+		existingSLADocument.IsLatest = true
 
-		// Check if is_new_file flag is set to true
 		if slaRegisterFormDTO.Document.IsNewFile != nil && *slaRegisterFormDTO.Document.IsNewFile {
-			// File is updated, delete existing file
 			if err := srs.repo.RemoveSLADocumentFile(existingSLADocument.SLARegisterID, existingSLADocument.Name); err != nil {
 				tx.Rollback()
 				return err
 			}
-			// Move new file from temp to storage
 			if err := srs.repo.StoreSLADocumentFile(existingSLADocument.SLARegisterID, slaRegisterFormDTO.Document.FileName); err != nil {
 				tx.Rollback()
 				return err
@@ -262,12 +226,11 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 			dataToEncrypt := []byte(slaRegisterFormDTO.Document.FileName)
 			encryptedFilename, err := utility.EncryptData(dataToEncrypt)
 			if err != nil {
+				tx.Rollback()
 				return err
 			}
-			//Construct URL using .env variable, URL:=  API_URL/sla-contracts/1/token
 			url := fmt.Sprintf("%s/sla-registers/%d/%s", config.GetEnv("API_URL", "http://localhost:8080"), id, encryptedFilename)
 
-			// Update existing SLA document fields
 			existingSLADocument.Language = slaRegisterFormDTO.Document.Language
 			existingSLADocument.URL = url
 			existingSLADocument.Icon = slaRegisterFormDTO.Document.Icon
@@ -275,14 +238,14 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 			existingSLADocument.Size = slaRegisterFormDTO.Document.Size
 			existingSLADocument.Token = encryptedFilename
 			existingSLADocument.Type = slaRegisterFormDTO.Document.Type
-			existingSLADocument.IsLatest = true
+
 		}
-		// Save updated SLA document
 		if err := srs.repo.SaveSLADocument(existingSLADocument, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
 	}
+
 	tx.Commit()
 
 	go func() {
@@ -345,7 +308,7 @@ func (srs *SLARegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 	if len(successfulIds) > 0 {
 		go func() {
 			err := srs.activityLogSvc.LogBulkActivities(
-				activityLogModels.DeleteAction,
+				logModels.DeleteAction,
 				complianceModels.SLARegister{}.TableName(),
 				successfulIds,
 				nil,
@@ -435,7 +398,7 @@ func (srs *SLARegisterService) Restore(ids []uint, currentUserID uint) ([]uint, 
 	return successfulIds, nil
 }
 
-func (srs *SLARegisterService) validateSLARegisterFormDTO(slaRegisterFormDTO *slaDTOs.SLARegisterFormDTO) error {
+func (srs *SLARegisterService) validateSLARegisterFormDTO(slaRegisterFormDTO *complianceDTOs.SLARegisterFormDTO) error {
 	// Check if Document is provided
 	if slaRegisterFormDTO.Document == nil {
 		return utility.NewValidationError(fmt.Errorf("document is required"), "required", "document")
@@ -458,8 +421,8 @@ func (srs *SLARegisterService) validateSLARegisterFormDTO(slaRegisterFormDTO *sl
 	return nil
 }
 
-func (srs *SLARegisterService) parseSLARegisterDates(slaRegisterForm *slaDTOs.SLARegisterFormDTO) (*slaDTOs.ParsedSLADates, error) {
-	parsed := &slaDTOs.ParsedSLADates{}
+func (srs *SLARegisterService) parseSLARegisterDates(slaRegisterForm *complianceDTOs.SLARegisterFormDTO) (*complianceDTOs.ParsedSLADates, error) {
+	parsed := &complianceDTOs.ParsedSLADates{}
 	var err error
 
 	// Validate issue_date
@@ -497,7 +460,7 @@ func (srs *SLARegisterService) parseSLARegisterDates(slaRegisterForm *slaDTOs.SL
 	return parsed, nil
 }
 
-func (srs *SLARegisterService) validateSLADocumentFormDTO(document *slaDTOs.SLADocumentFormDTO) error {
+func (srs *SLARegisterService) validateSLADocumentFormDTO(document *complianceDTOs.SLADocumentFormDTO) error {
 
 	//@Review
 	//All items are mandatory during creation
