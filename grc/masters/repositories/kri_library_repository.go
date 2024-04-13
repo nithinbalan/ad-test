@@ -3,15 +3,15 @@ package repositories
 import (
 	"errors"
 	commonDTOs "jethur/grc/common/dtos"
-	libraryDTOs "jethur/grc/libraries/dtos"
-	"jethur/grc/libraries/models"
+	masterDTOs "jethur/grc/masters/dtos"
+	"jethur/grc/masters/models"
 	"jethur/utility"
 
 	"gorm.io/gorm"
 )
 
 type KRILibraryRepositoryInterface interface {
-	GetAll(params *libraryDTOs.KRILibraryListQueryParamsDTO) (*libraryDTOs.KRILibraryListResponseDTO, error)
+	GetAll(params *masterDTOs.KRILibraryListQueryParamsDTO) (*masterDTOs.KRILibraryListResponseDTO, error)
 	GetByID(id uint) (*models.KRILibrary, error)
 	Create(kriLibrary *models.KRILibrary) (uint, error)
 	Update(kriLibrary *models.KRILibrary) error
@@ -32,9 +32,9 @@ func NewKRILibraryRepository(db *gorm.DB) *KRILibraryRepository {
 	}
 }
 
-func (repo *KRILibraryRepository) GetAll(params *libraryDTOs.KRILibraryListQueryParamsDTO) (*libraryDTOs.KRILibraryListResponseDTO, error) {
+func (repo *KRILibraryRepository) GetAll(params *masterDTOs.KRILibraryListQueryParamsDTO) (*masterDTOs.KRILibraryListResponseDTO, error) {
 
-	var kriLibrary []*libraryDTOs.KRILibraryDTO
+	var kriLibrary []*masterDTOs.KRILibraryDTO
 	var totalCount int64
 
 	query := repo.db.Table("kri_library").
@@ -90,7 +90,7 @@ func (repo *KRILibraryRepository) GetAll(params *libraryDTOs.KRILibraryListQuery
 
 	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
 
-	response := &libraryDTOs.KRILibraryListResponseDTO{
+	response := &masterDTOs.KRILibraryListResponseDTO{
 		Items: kriLibrary,
 		Pagination: commonDTOs.PaginationInfoDTO{
 			CurrentPage: params.Page,
