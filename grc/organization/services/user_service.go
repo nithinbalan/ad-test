@@ -29,10 +29,14 @@ type UserServiceInterface interface {
 	//User Security
 	GetUserSecurityByUserID(userID uint) (*organizationModels.UserSecurity, error)
 	UpdateUserSecurity(userSecurity *organizationModels.UserSecurity) error
+	EnableMFA(userID uint) error
+	DisableMFA(userID uint) error
 
 	//user Settings
 	GetUserSetting(userID uint) (*userDTOs.UserSettingDTO, error)
 	UpdateUserSetting(userID uint, currentUserID uint, userSettingFormDTO *userDTOs.UserSettingFormDTO) error
+	EnableNotification(userID uint) error
+	DisableNotification(userID uint) error
 }
 
 type UserService struct {
@@ -394,4 +398,74 @@ func (us *UserService) UpdateUserSetting(userID uint, currentUserID uint, userSe
 
 	return nil
 
+}
+
+func (us *UserService) EnableMFA(userID uint) error {
+	existingUserSecurity, err := us.repo.GetUserSecurityByUserID(userID)
+	if err != nil {
+		return utility.NewResourceNotFoundError(err, nil)
+	}
+
+	existingUserSecurity.IsMFA = true
+
+	if err = us.repo.UpdateUserSecurity(existingUserSecurity); err != nil {
+		return err
+	}
+	//@todo - send email to user
+	//@todo - need capture activity log
+
+	return nil
+
+}
+
+func (us *UserService) DisableMFA(userID uint) error {
+	existingUserSecurity, err := us.repo.GetUserSecurityByUserID(userID)
+	if err != nil {
+		return utility.NewResourceNotFoundError(err, nil)
+	}
+
+	existingUserSecurity.IsMFA = false
+
+	if err = us.repo.UpdateUserSecurity(existingUserSecurity); err != nil {
+		return err
+	}
+	//@todo - send email to user
+	//@todo - need capture activity log
+
+	return nil
+}
+
+func (us *UserService) EnableNotification(userID uint) error {
+	existingUserSetting, err := us.repo.GetUserSettingsByUserID(userID)
+	if err != nil {
+		return utility.NewResourceNotFoundError(err, nil)
+	}
+
+	existingUserSetting.IsNotification = true
+
+	if err = us.repo.UpdateUserSetting(existingUserSetting); err != nil {
+		return err
+	}
+	//@todo - send email to user
+	//@todo - need capture activity log
+
+	return nil
+
+}
+
+func (us *UserService) DisableNotification(userID uint) error {
+	existingUserSetting, err := us.repo.GetUserSettingsByUserID(userID)
+	if err != nil {
+		return utility.NewResourceNotFoundError(err, nil)
+	}
+
+	existingUserSetting.IsNotification = false
+
+	if err = us.repo.UpdateUserSetting(existingUserSetting); err != nil {
+		return err
+	}
+	//@todo - send email to user
+	//@todo - need capture activity log
+
+	return nil
 }
