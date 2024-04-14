@@ -381,7 +381,8 @@ func (us *UserService) UpdateUserSetting(userID uint, currentUserID uint, userSe
 	if err != nil {
 		return utility.NewResourceNotFoundError(err, nil)
 	}
-
+	// @review
+	//do we need to validate timezone
 	existingUserSetting.Language = userSettingFormDTO.Language
 	existingUserSetting.TimezoneID = userSettingFormDTO.TimezoneID
 	existingUserSetting.Timeout = userSettingFormDTO.Timeout
