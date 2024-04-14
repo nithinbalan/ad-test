@@ -82,5 +82,9 @@
   {
     "id": "decryption_failed",
     "translation": "فشل في فك تشفير البيانات"
+  },
+  {
+    "id": "invalid_file_type",
+    "translation": "الملفات الـ PDF فقط مسموح بها"
   }
 ]
