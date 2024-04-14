@@ -82,7 +82,7 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	organizationRoutes.PUT("/strategic-objectives/deactivate", strategicObjectiveController.DeactivateStrategicObjectives)
 
 	//user settings
-	// @review
+	// @review.
 	// @move to user settings controller
 	// use preference for normal settings.
 	//if suggest we can change table name also
