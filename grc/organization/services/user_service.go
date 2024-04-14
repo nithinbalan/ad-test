@@ -85,7 +85,7 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 		return 0, err
 	}
 
-	userStatus, err := us.userStatusSvc.GetByStatus("active")
+	userStatus, err := us.userStatusSvc.GetByType("active")
 	if err != nil {
 		return 0, err
 	}
@@ -385,7 +385,8 @@ func (us *UserService) UpdateUserSetting(userID uint, currentUserID uint, userSe
 	if err != nil {
 		return utility.NewResourceNotFoundError(err, nil)
 	}
-
+	// @review
+	//do we need to validate timezone
 	existingUserSetting.Language = userSettingFormDTO.Language
 	existingUserSetting.TimezoneID = userSettingFormDTO.TimezoneID
 	existingUserSetting.Timeout = userSettingFormDTO.Timeout

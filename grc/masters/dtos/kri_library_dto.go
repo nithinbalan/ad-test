@@ -18,13 +18,13 @@ type KRILibraryDTO struct {
 }
 type KRILibraryFormDTO struct {
 	ID                uint    `json:"id"`
-	KRICategoryID     uint    `json:"kri_category_id"`
-	ReviewFrequencyID *uint   `json:"review_frequency_id"`
-	Title             string  `json:"title"`
+	KRICategoryID     uint    `json:"kri_category_id" binding:"required"`
+	ReviewFrequencyID *uint   `json:"review_frequency_id" binding:"required"`
+	Title             string  `json:"title" binding:"required,max=255"`
 	Description       *string `json:"description"`
-	CalculationType   string  `json:"calculation_type"`
+	CalculationType   string  `json:"calculation_type" binding:"required"`
 	Source            *string `json:"source"`
-	Status            string  `json:"status"`
+	Status            string  `json:"status" binding:"required"`
 }
 
 type KRILibraryListQueryParamsDTO struct {

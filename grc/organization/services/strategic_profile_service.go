@@ -5,8 +5,6 @@ import (
 	"fmt"
 	organizationDTOs "jethur/grc/organization/dtos"
 	"jethur/utility"
-	"net/url"
-	"strings"
 
 	organizationModels "jethur/grc/organization/models"
 	organizationRepositories "jethur/grc/organization/repositories"
@@ -34,6 +32,7 @@ func NewStrategicProfileService(repo organizationRepositories.StrategicProfileRe
 	}
 }
 
+// @todo - image support to be added
 func (sps *StrategicProfileService) GetStrategicProfile() (*organizationDTOs.StrategicProfileDetailsDTO, error) {
 	// Initialize your DTO
 	var strategicProfileDTO organizationDTOs.StrategicProfileDetailsDTO
@@ -70,10 +69,6 @@ func (sps *StrategicProfileService) GetStrategicProfile() (*organizationDTOs.Str
 
 func (sps *StrategicProfileService) Update(currentUserID uint, strategicProfileDTO *organizationDTOs.StrategicProfileFormDTO) error {
 
-	// @review
-	// there will be only one profile, so we can use latets one without id.
-	// we an remove get by id option
-	//also we can remove id from url during udpate
 	existingStrategicProfile, err := sps.repo.Get()
 
 	if err != nil {
@@ -189,79 +184,22 @@ func (sps *StrategicProfileService) UpdateValues(strategicProfileValuesDTO []*or
 }
 
 func (us *StrategicProfileService) validateStrategicProfileFormDTO(strategicProfileDTO *organizationDTOs.StrategicProfileFormDTO) error {
-	if strategicProfileDTO.Linkedin != nil && !isValidLinkedInURL(*strategicProfileDTO.Linkedin) {
+	if strategicProfileDTO.Linkedin != nil && !utility.IsValidLinkedInURL(*strategicProfileDTO.Linkedin) {
 		return utility.NewValidationError(fmt.Errorf("invalid LinkedIn URL"), "not_exist", "linkedin")
 	}
-	if strategicProfileDTO.Instagram != nil && !isValidInstagramURL(*strategicProfileDTO.Instagram) {
+	if strategicProfileDTO.Instagram != nil && !utility.IsValidInstagramURL(*strategicProfileDTO.Instagram) {
 		return utility.NewValidationError(fmt.Errorf("invalid Instagram URL"), "not_exist", "instagram")
 	}
-	if strategicProfileDTO.Youtube != nil && !isValidYouTubeURL(*strategicProfileDTO.Youtube) {
+	if strategicProfileDTO.Youtube != nil && !utility.IsValidYouTubeURL(*strategicProfileDTO.Youtube) {
 		return utility.NewValidationError(fmt.Errorf("invalid YouTube URL"), "not_exist", "youtube")
 	}
-	if strategicProfileDTO.Facebook != nil && !isValidFacebookURL(*strategicProfileDTO.Facebook) {
+	if strategicProfileDTO.Facebook != nil && !utility.IsValidFacebookURL(*strategicProfileDTO.Facebook) {
 		return utility.NewValidationError(fmt.Errorf("invalid Facebook URL"), "not_exist", "facebook")
 	}
-	if strategicProfileDTO.X != nil && !isValidTwitterURL(*strategicProfileDTO.X) {
-		return utility.NewValidationError(fmt.Errorf("invalid Twitter URL"), "not_exist", "twitter")
+	if strategicProfileDTO.X != nil && !utility.IsValidTwitterURL(*strategicProfileDTO.X) {
+		return utility.NewValidationError(fmt.Errorf("invalid X URL"), "not_exist", "twitter")
 	}
 
 	return nil
 
-}
-
-// @review
-// what about moving this in to helper function called  url_validations or existing validation one.
-// Helper function to parse and validate a URL's scheme and host.
-func isValidURL(toTest string) (bool, *url.URL) {
-	u, err := url.Parse(toTest)
-	if err != nil || u.Scheme == "" || u.Host == "" {
-		return false, nil
-	}
-	return true, u
-}
-
-// Specific validation functions for each platform
-func isValidLinkedInURL(toTest string) bool {
-	ok, u := isValidURL(toTest)
-	if !ok {
-		return false
-	}
-	host := strings.ToLower(u.Host)
-	return host == "www.linkedin.com" || host == "linkedin.com" || strings.HasSuffix(host, ".linkedin.com")
-}
-
-func isValidInstagramURL(toTest string) bool {
-	ok, u := isValidURL(toTest)
-	if !ok {
-		return false
-	}
-	host := strings.ToLower(u.Host)
-	return host == "www.instagram.com" || host == "instagram.com"
-}
-
-func isValidYouTubeURL(toTest string) bool {
-	ok, u := isValidURL(toTest)
-	if !ok {
-		return false
-	}
-	host := strings.ToLower(u.Host)
-	return host == "www.youtube.com" || host == "youtube.com" || strings.HasPrefix(host, "youtu.be")
-}
-
-func isValidFacebookURL(toTest string) bool {
-	ok, u := isValidURL(toTest)
-	if !ok {
-		return false
-	}
-	host := strings.ToLower(u.Host)
-	return host == "www.facebook.com" || host == "facebook.com"
-}
-
-func isValidTwitterURL(toTest string) bool {
-	ok, u := isValidURL(toTest)
-	if !ok {
-		return false
-	}
-	host := strings.ToLower(u.Host)
-	return host == "www.twitter.com" || host == "twitter.com" || strings.HasPrefix(host, "m.twitter.com")
 }

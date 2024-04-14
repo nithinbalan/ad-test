@@ -14,8 +14,8 @@ import (
 type ChecklistQuestionRepositoryInterface interface {
 	GetAll(sort string, sortBy string, keyword string, page int, pageSize int) (*masterDTOs.ChecklistQuestionListResponseDTO, error)
 	GetByID(id uint) (*models.ChecklistQuestion, error)
-	Create(checklistQuestionFormDTO *masterDTOs.ChecklistQuestionFormDTO) (uint, error)
-	Update(id uint, checklistQuestionFormDTO *masterDTOs.ChecklistQuestionFormDTO) error
+	Create(checklistQuestion *models.ChecklistQuestion) (uint, error)
+	Update(id uint, checklistQuestion *models.ChecklistQuestion) error
 	Delete(id uint) error
 	ExistsByTitle(QuestionEn string, QuestionAr string, ChecklistID uint, QuestionGroupID uint) (bool, error)
 	ExistsQuestionLibrary(QuestionLibraryID uint, QuestionEn, QuestionAr string) (bool, error)
@@ -105,16 +105,7 @@ func (repo *ChecklistQuestionRepository) GetByID(id uint) (*models.ChecklistQues
 	return checklistQuestion, result.Error
 }
 
-func (repo *ChecklistQuestionRepository) Create(checklistQuestionFormDTO *masterDTOs.ChecklistQuestionFormDTO) (uint, error) {
-
-	// Map DTO to ComplianceRegister model
-	checklistQuestion := &models.ChecklistQuestion{
-		ChecklistID:       checklistQuestionFormDTO.ChecklistID,
-		QuestionGroupID:   checklistQuestionFormDTO.QuestionGroupID,
-		QuestionLibraryID: checklistQuestionFormDTO.QuestionLibraryID,
-		QuestionEn:        checklistQuestionFormDTO.QuestionEn,
-		QuestionAr:        checklistQuestionFormDTO.QuestionAr,
-	}
+func (repo *ChecklistQuestionRepository) Create(checklistQuestion *models.ChecklistQuestion) (uint, error) {
 
 	if err := repo.db.Create(checklistQuestion).Error; err != nil {
 		return 0, err
@@ -124,31 +115,14 @@ func (repo *ChecklistQuestionRepository) Create(checklistQuestionFormDTO *master
 
 }
 
-func (repo *ChecklistQuestionRepository) Update(id uint, checklistQuestionFormDTO *masterDTOs.ChecklistQuestionFormDTO) error {
+func (repo *ChecklistQuestionRepository) Update(id uint, checklistQuestion *models.ChecklistQuestion) error {
 
-	// Prepare the update map
-	updateFields := map[string]interface{}{
-		"ChecklistID":     checklistQuestionFormDTO.ChecklistID,
-		"QuestionGroupID": checklistQuestionFormDTO.QuestionGroupID,
-		"QuestionEn":      checklistQuestionFormDTO.QuestionEn,
-		"QuestionAr":      checklistQuestionFormDTO.QuestionAr,
-	}
-
-	// Conditionally include QuestionLibraryID if it's present
-	if checklistQuestionFormDTO.QuestionLibraryID != 0 {
-		updateFields["QuestionLibraryID"] = checklistQuestionFormDTO.QuestionLibraryID
-	} else {
-		updateFields["QuestionLibraryID"] = nil // Set to NULL
-	}
-
-	// Perform the update
-	if err := repo.db.Model(&models.ChecklistQuestion{}).
-		Where("id = ?", id).
-		Updates(updateFields).Error; err != nil {
+	if err := repo.db.Save(checklistQuestion).Error; err != nil {
 		return err
 	}
 
 	return nil
+
 }
 
 func (repo *ChecklistQuestionRepository) Delete(id uint) error {
@@ -212,7 +186,6 @@ func (repo *ChecklistQuestionRepository) ExistsByTitleExcludingID(id uint, Quest
 
 func (repo *ChecklistQuestionRepository) ExistsQuestionLibraryExcludingID(id uint, QuestionEn, QuestionAr string, QuestionLibraryID uint) (bool, error) {
 	var count int64
-	repo.db = repo.db.Debug()
 
 	err := repo.db.Model(&models.ChecklistQuestion{}).
 		Where("id <> ? AND (question_en = ? OR question_ar = ?) AND question_library_id = ?", id, QuestionEn, QuestionAr, QuestionLibraryID).
