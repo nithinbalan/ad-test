@@ -89,9 +89,13 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	//user settings
 	organizationRoutes.GET("/users/:id/settings", userController.GetSetting)
 	organizationRoutes.PUT("/users/:id/settings", userController.UpdateSetting)
-	organizationRoutes.PUT("/users/:id/enable-mfa", userController.EnableMFA)
-	organizationRoutes.PUT("/users/:id/disable-mfa", userController.DisableMFA)
-	organizationRoutes.PUT("/users/:id/enable-notification", userController.EnableNotification)
-	organizationRoutes.PUT("/users/:id/disable-notification", userController.DisableNotification)
+	//@review
+	//updated url
+	organizationRoutes.PUT("/users/:id/settings/security/enable-mfa", userController.EnableMFA)
+	organizationRoutes.PUT("/users/:id/settings/security/disable-mfa", userController.DisableMFA)
+	//@review
+	//you can change this notification url once individual notification enable/disable url ready if required.
+	organizationRoutes.PUT("/users/:id/settings/enable-notification", userController.EnableNotification)
+	organizationRoutes.PUT("/users/:id/settings/disable-notification", userController.DisableNotification)
 
 }
