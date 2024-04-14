@@ -28,7 +28,9 @@ type UserRepositoryInterface interface {
 	UpdateUserSecurity(userSecurity *organizationModels.UserSecurity) error
 
 	//User settings
+	GetUserSettingsByUserID(userId uint) (*organizationModels.UserSetting, error)
 	CreateUserSetting(userSetting organizationModels.UserSetting, tx ...utility.DatabaseTransaction) error
+	UpdateUserSetting(userSetting *organizationModels.UserSetting) error
 
 	//User roles
 	CreateUserRole(userRoles []organizationModels.UserRole, tx ...utility.DatabaseTransaction) error
@@ -396,5 +398,21 @@ func (repo *UserRepository) UpdateUserSecurity(userSecurity *organizationModels.
 		return err
 	}
 
+	return nil
+}
+
+func (repo *UserRepository) GetUserSettingsByUserID(userID uint) (*organizationModels.UserSetting, error) {
+	var userSetting *organizationModels.UserSetting
+	result := repo.db.Where("user_id = ?", userID).First(&userSetting)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return userSetting, nil
+}
+
+func (repo *UserRepository) UpdateUserSetting(userSetting *organizationModels.UserSetting) error {
+	if err := repo.db.Save(userSetting).Error; err != nil {
+		return err
+	}
 	return nil
 }

@@ -7,9 +7,12 @@ CREATE TABLE user_settings (
     language VARCHAR(2) NOT NULL DEFAULT 'en' 
            CONSTRAINT CK_user_settings_language CHECK (language IN ('en', 'ar')) ,
     timeout INT NOT NULL,
-    updated_at DATETIME
+    is_notification TINYINT DEFAULT 0,
+    updated_at DATETIME,
+    updated_by INT,
     CONSTRAINT FK_user_settings_user_id FOREIGN KEY (user_id) REFERENCES users(id),
-    CONSTRAINT FK_user_settings_timezone_id FOREIGN KEY (timezone_id) REFERENCES timezones(id)
+    CONSTRAINT FK_user_settings_timezone_id FOREIGN KEY (timezone_id) REFERENCES timezones(id),
+    CONSTRAINT FK_user_settings_updated_by FOREIGN KEY (updated_by) REFERENCES users(id)
 );
 -- +goose StatementEnd
 
