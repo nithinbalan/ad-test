@@ -91,6 +91,7 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	// @move to user settings controller
 	// use preference for normal settings.
 	//if suggest we can change table name also
+	//updated
 	organizationRoutes.GET("/users/:userId/settings/preferences", userController.GetSetting)
 	organizationRoutes.PUT("/users/:userId/settings/preferences", userController.UpdateSetting)
 
