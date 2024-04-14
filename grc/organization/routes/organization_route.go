@@ -62,15 +62,10 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	strategicProfileSvc := organizationServices.NewStrategicProfileService(strategicProfileRepo)
 	strategicProfileController := controllers.NewStrategicProfileController(strategicProfileSvc)
 
-	// @Review
-	// You can remove id from URL as we have only one strategic profile data
-	// so it will be easy to call API from client side.
 	organizationRoutes.GET("/strategic-profiles", strategicProfileController.GetStrategicProfile)
 	organizationRoutes.PUT("/strategic-profiles", strategicProfileController.UpdateStrategicProfile)
 	organizationRoutes.PUT("/strategic-profiles/vision", strategicProfileController.UpdateVision)
 	organizationRoutes.PUT("/strategic-profiles/mission", strategicProfileController.UpdateMission)
-	//@review
-	//Change to values.
 	organizationRoutes.PUT("/strategic-profiles/values", strategicProfileController.UpdateValues)
 
 	//strategic Objectives
@@ -87,12 +82,22 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	organizationRoutes.PUT("/strategic-objectives/deactivate", strategicObjectiveController.DeactivateStrategicObjectives)
 
 	//user settings
-	organizationRoutes.GET("/users/:id/settings", userController.GetSetting)
-	organizationRoutes.PUT("/users/:id/settings", userController.UpdateSetting)
-	organizationRoutes.PUT("/users/:id/enable-mfa", userController.EnableMFA)
-	organizationRoutes.PUT("/users/:id/disable-mfa", userController.DisableMFA)
-	organizationRoutes.PUT("/users/:id/enable-notification", userController.EnableNotification)
-	organizationRoutes.PUT("/users/:id/disable-notification", userController.DisableNotification)
+	// @review.
+	// @move to user settings controller
+	// use preference for normal settings.
+	//if suggest we can change table name also
+	//updated
+	organizationRoutes.GET("/users/:userId/settings/preferences", userController.GetSetting)
+	organizationRoutes.PUT("/users/:userId/settings/preferences", userController.UpdateSetting)
+
+	//@review
+	//updated url
+	organizationRoutes.PUT("/users/:id/settings/security/enable-mfa", userController.EnableMFA)
+	organizationRoutes.PUT("/users/:id/settings/security/disable-mfa", userController.DisableMFA)
+	//@review
+	//you can change this notification url once individual notification enable/disable url ready if required.
+	organizationRoutes.PUT("/users/:id/settings/enable-notification", userController.EnableNotification)
+	organizationRoutes.PUT("/users/:id/settings/disable-notification", userController.DisableNotification)
 	organizationRoutes.POST("/users/:id/send-new-password", userController.NewPassword)
 
 }
