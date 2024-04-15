@@ -30,7 +30,6 @@ type SLARegisterRepositoryInterface interface {
 	GenerateReferenceNumber() (string, error)
 
 	//Document
-	Renew(doc *models.SLADocument) error
 	SaveSLADocument(doc *models.SLADocument, tx ...utility.DatabaseTransaction) error
 	GetSLADocumentByID(id uint) (*models.SLADocument, error)
 	GetLatestSLADocumentBySLARegisterID(id uint) (*models.SLADocument, error)
@@ -310,14 +309,6 @@ func (repo *SLARegisterRepository) Delete(id uint) error {
 	}
 
 	return nil
-}
-
-func (repo *SLARegisterRepository) Renew(doc *models.SLADocument) error {
-    // Save the updated SLA document
-    if err := repo.db.Save(doc).Error; err != nil {
-        return err
-    }
-    return nil
 }
 
 func (repo *SLARegisterRepository) GetIDsByLifecycleStatus(ids []uint, status string) ([]uint, error) {

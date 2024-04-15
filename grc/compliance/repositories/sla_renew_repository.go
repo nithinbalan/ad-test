@@ -1,14 +1,10 @@
 package repositories
 
 import (
-	"jethur/config"
 	commonDTOs "jethur/grc/common/dtos"
 	slaDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/models"
 	"jethur/utility"
-	"os"
-	"path/filepath"
-	"strconv"
 
 	"gorm.io/gorm"
 )
@@ -19,10 +15,8 @@ type SLARenewRepositoryInterface interface {
 	GetAll(id uint, params *slaDTOs.SLARenewListQueryParamsDTO) (*slaDTOs.SLARenewListResponseDTO, error)
 
 	//Document
-	SaveSLADocument(doc *models.SLADocument, tx ...utility.DatabaseTransaction) error
 	Renew(doc *models.SLADocument, tx ...utility.DatabaseTransaction) error
-	GetSLADocumentByID(id uint) (*models.SLADocument, error)
-	StoreSLADocumentFile(slaID uint, fileName string) error
+	DeleteSLADocumentByID(docId uint, tx ...utility.DatabaseTransaction) error
 	SetOlderSLADocsToNotLatest(currentDocID uint, slaRegisterID uint, tx ...utility.DatabaseTransaction) error
 	FindPreviousDocument(docId uint, slaRegisterID uint) (*models.SLADocument, error)
 }
@@ -143,40 +137,6 @@ func (repo *SLARenewRepository) Renew(doc *models.SLADocument, tx ...utility.Dat
 	return nil
 }
 
-func (repo *SLARenewRepository) GetSLADocumentByID(id uint) (*models.SLADocument, error) {
-	var document models.SLADocument
-	if err := repo.db.Where("id = ?", id).First(&document).Error; err != nil {
-		return nil, err
-	}
-	return &document, nil
-}
-
-func (repo *SLARenewRepository) StoreSLADocumentFile(id uint, fileName string) error {
-
-	storagePath := config.GetEnv("STORAGE_PATH", "")
-	temporaryStoragePath := filepath.Join(storagePath, "tmp", fileName)
-	directoryPath := filepath.Join(storagePath, "compliance", "sla", strconv.FormatUint(uint64(id), 10), "document")
-	destinationPath := filepath.Join(directoryPath, fileName)
-	if err := os.MkdirAll(directoryPath, os.ModePerm); err != nil {
-		return err
-	}
-	if err := os.Rename(temporaryStoragePath, destinationPath); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (repo *SLARenewRepository) SaveSLADocument(doc *models.SLADocument, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-	if err := db.Save(doc).Error; err != nil {
-		return err
-	}
-	return nil
-}
-
 func (repo *SLARenewRepository) SetOlderSLADocsToNotLatest(currentDocID uint, slaRegisterID uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
@@ -204,3 +164,17 @@ func (repo *SLARenewRepository) FindPreviousDocument(currentDocID uint, slaRegis
 	}
 	return &previousDocument, nil
 }
+
+func (repo *SLARenewRepository) DeleteSLADocumentByID(docID uint, tx ...utility.DatabaseTransaction) error {
+    db := repo.db
+    if len(tx) > 0 && tx[0] != nil {
+        db = tx[0].DB()
+    }
+
+    if err := db.Delete(&models.SLADocument{}, docID).Error; err != nil {
+        return err
+    }
+
+    return nil
+}
+

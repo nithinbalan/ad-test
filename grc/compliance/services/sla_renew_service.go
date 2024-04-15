@@ -8,27 +8,36 @@ import (
 	"jethur/grc/compliance/repositories"
 	logModels "jethur/grc/logs/models"
 	logServices "jethur/grc/logs/services"
+	masterServices "jethur/grc/masters/services"
 	"jethur/utility"
+	"log"
+	"strconv"
 )
 
 type SLARenewServiceInterface interface {
 	GetAll(id uint, params *slaDTOs.SLARenewListQueryParamsDTO) (*slaDTOs.SLARenewListResponseDTO, error)
-	Renew(docID uint, currentUserID uint, document *slaDTOs.SLARenewFormDTO) error
-	Revert(docID uint, currentUserID uint) error
+	Renew(slaId uint, currentUserID uint, document *slaDTOs.SLARenewFormDTO) error
+	Revert(slaId uint, currentUserID uint) error
 }
 
 // Service and implementations
 type SLARenewService struct {
-	repo           repositories.SLARenewRepositoryInterface
-	activityLogSvc logServices.ActivityLogServiceInterface
+	repo               repositories.SLARenewRepositoryInterface
+	slaRegRepo         repositories.SLARegisterRepositoryInterface
+	lifecycleStatusSvc masterServices.LifecycleStatusServiceInterface
+	activityLogSvc     logServices.ActivityLogServiceInterface
 }
 
 func NewSLARenewService(
 	repo repositories.SLARenewRepositoryInterface,
+	slaRegRepo repositories.SLARegisterRepositoryInterface,
+	lifecycleStatusSvc masterServices.LifecycleStatusServiceInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface) SLARenewServiceInterface {
 	return &SLARenewService{
-		repo:           repo,
-		activityLogSvc: activityLogSvc,
+		repo:               repo,
+		slaRegRepo:         slaRegRepo,
+		lifecycleStatusSvc: lifecycleStatusSvc,
+		activityLogSvc:     activityLogSvc,
 	}
 }
 
@@ -36,14 +45,11 @@ func (srs *SLARenewService) GetAll(id uint, params *slaDTOs.SLARenewListQueryPar
 	return srs.repo.GetAll(id, params)
 }
 
-func (srs *SLARenewService) Renew(docID uint, currentUserID uint, slaRenewFormDTO *slaDTOs.SLARenewFormDTO) error {
+func (srs *SLARenewService) Renew(slaId uint, currentUserID uint, slaRenewFormDTO *slaDTOs.SLARenewFormDTO) error {
 	tx := srs.repo.BeginTransaction()
 
 	//@review
 	//we can move this checking in to validateSLARenewDocumentFormDTO function.
-	if slaRenewFormDTO.Document == nil {
-		return utility.NewValidationError(fmt.Errorf("document is required"), "required", "document")
-	}
 
 	if err := srs.validateSLARenewDocumentFormDTO(slaRenewFormDTO.Document); err != nil {
 		return err
@@ -53,13 +59,25 @@ func (srs *SLARenewService) Renew(docID uint, currentUserID uint, slaRenewFormDT
 	if err != nil {
 		return err
 	}
-
-	existingSLADocument, err := srs.repo.GetSLADocumentByID(docID)
+	slaRegister, err := srs.slaRegRepo.GetByID(slaId)
+	if err != nil {
+		return err
+	}
+	// Check if the SLA status is not archived
+	lifecycleStatus, err := srs.lifecycleStatusSvc.GetByType("archived")
 	if err != nil {
 		return err
 	}
 
-	if err := srs.repo.StoreSLADocumentFile(existingSLADocument.SLARegisterID, slaRenewFormDTO.Document.FileName); err != nil {
+	if slaRegister.LifecycleStatusID == lifecycleStatus.ID {
+		return utility.NewForbiddenError("Cannot renew SLA with archived status")
+	}
+	existingSLADocument, err := srs.slaRegRepo.GetLatestSLADocumentBySLARegisterID(slaId)
+	if err != nil {
+		return err
+	}
+
+	if err := srs.slaRegRepo.StoreSLADocumentFile(slaId, slaRenewFormDTO.Document.FileName); err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -73,16 +91,34 @@ func (srs *SLARenewService) Renew(docID uint, currentUserID uint, slaRenewFormDT
 
 	url := fmt.Sprintf("%s/sla-registers/%d/%s", config.GetEnv("API_URL", "http://localhost:8080"), existingSLADocument.SLARegisterID, encryptedFilename)
 
+	// Get the current version of the SLA document
+	currentVersionStr := existingSLADocument.Version
+
+	// Parse the current version as a float
+	currentVersionFloat, err := strconv.ParseFloat(currentVersionStr, 64)
+	if err != nil {
+		log.Printf("Failed to parse current version string as float: %v", err)
+		return err
+	}
+
+	// Convert the float version to an integer (truncate the decimal part)
+	currentVersion := int(currentVersionFloat)
+	// Increment the version by one
+	newVersion := currentVersion + 1.0
+	// Convert the new version back to a string
+	newVersionStr := strconv.Itoa(newVersion)
+
 	//renew document
 	slaDocument := &complianceModels.SLADocument{
 		SLARegisterID: existingSLADocument.SLARegisterID,
-		Version:       slaRenewFormDTO.Version, //@review, Need to increment version
+		Version:       newVersionStr, //@review, Need to increment version
+		Language:      "en",
 		IssueDate:     dates.IssueDate,
 		ExpiryDate:    dates.ExpiryDate,
 		SA1Date:       dates.SA1Date,
 		SA2Date:       dates.SA2Date,
-		Language:      slaRenewFormDTO.Document.Language, // remove language throught
 		URL:           url,
+		Comment:       slaRenewFormDTO.Comment,
 		Icon:          slaRenewFormDTO.Document.Icon,
 		Name:          slaRenewFormDTO.Document.FileName,
 		Size:          slaRenewFormDTO.Document.Size,
@@ -94,7 +130,7 @@ func (srs *SLARenewService) Renew(docID uint, currentUserID uint, slaRenewFormDT
 	}
 
 	// Save SLA document
-	if err := srs.repo.SaveSLADocument(slaDocument, tx); err != nil {
+	if err := srs.slaRegRepo.SaveSLADocument(slaDocument, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -109,7 +145,7 @@ func (srs *SLARenewService) Renew(docID uint, currentUserID uint, slaRenewFormDT
 		err := srs.activityLogSvc.LogActivity(
 			logModels.UpdateAction,
 			complianceModels.SLADocument{}.TableName(),
-			docID,
+			slaId,
 			slaRenewFormDTO,
 			currentUserID,
 			nil,
@@ -119,7 +155,7 @@ func (srs *SLARenewService) Renew(docID uint, currentUserID uint, slaRenewFormDT
 			fields := map[string]interface{}{
 				"action":    logModels.UpdateAction,
 				"tableName": complianceModels.SLADocument{}.TableName(),
-				"recordID":  docID,
+				"recordID":  slaId,
 				"userID":    currentUserID,
 				"error":     err.Error(),
 			}
@@ -130,7 +166,7 @@ func (srs *SLARenewService) Renew(docID uint, currentUserID uint, slaRenewFormDT
 
 	return nil
 }
-func (srs *SLARenewService) Revert(docID uint, currentUserID uint) error {
+func (srs *SLARenewService) Revert(slaId uint, currentUserID uint) error {
 	tx := srs.repo.BeginTransaction()
 
 	//@review
@@ -140,25 +176,43 @@ func (srs *SLARenewService) Revert(docID uint, currentUserID uint) error {
 	//delete latest dcoument
 	//updte previous one as is latest true
 
-	// Check if the file is updated
-	existingSLADocument, err := srs.repo.GetSLADocumentByID(docID)
+	slaRegister, err := srs.slaRegRepo.GetByID(slaId)
 	if err != nil {
 		return err
+	}
+	// Check if the SLA status is not archived
+	lifecycleStatus, err := srs.lifecycleStatusSvc.GetByType("archived")
+	if err != nil {
+		return err
+	}
+	if slaRegister.LifecycleStatusID == lifecycleStatus.ID {
+		return utility.NewForbiddenError("Cannot revert SLA with archived status")
 	}
 
-	previousSLADocument, err := srs.repo.FindPreviousDocument(docID, existingSLADocument.SLARegisterID)
+	// Check if the file is updated
+	existingSLADocument, err := srs.slaRegRepo.GetLatestSLADocumentBySLARegisterID(slaId)
 	if err != nil {
 		return err
 	}
-	previousSLADocument.IsLatest = true
-	previousSLADocument.UpdatedBy = currentUserID
-	// Save updated SLA document
-	if err := srs.repo.SaveSLADocument(previousSLADocument, tx); err != nil {
+	if err := srs.slaRegRepo.RemoveSLADocumentFile(slaId, existingSLADocument.Name); err != nil {
 		tx.Rollback()
 		return err
 	}
-	// Update is_latest=false for all other documents of the same SLA register
-	if err := srs.repo.SetOlderSLADocsToNotLatest(previousSLADocument.ID, previousSLADocument.SLARegisterID, tx); err != nil {
+
+	previousSLADocument, err := srs.repo.FindPreviousDocument(existingSLADocument.ID, existingSLADocument.SLARegisterID)
+	if err != nil {
+		return err
+	}
+	// Delete existing SLA document
+	if err := srs.repo.DeleteSLADocumentByID(existingSLADocument.ID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	previousSLADocument.IsLatest = true
+	previousSLADocument.UpdatedBy = currentUserID
+	// Update SLA document with IsLatest true
+	if err := srs.slaRegRepo.SaveSLADocument(previousSLADocument, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -229,17 +283,10 @@ func (srs *SLARenewService) parseSLARenewDates(slaRenewForm *slaDTOs.SLARenewFor
 }
 
 func (srs *SLARenewService) validateSLARenewDocumentFormDTO(document *slaDTOs.SLARenewDocumentFormDTO) error {
-
-	// Validate language
-	if document.Language == "" {
-		return utility.NewValidationError(fmt.Errorf("language is required"), "required", "language")
+	// Validate document
+	if document == nil {
+		return utility.NewValidationError(fmt.Errorf("document is required"), "required", "document")
 	}
-
-	// Validate URL
-	if document.URL == "" {
-		return utility.NewValidationError(fmt.Errorf("URL is required"), "required", "URL")
-	}
-
 	// Validate icon
 	if document.Icon == "" {
 		return utility.NewValidationError(fmt.Errorf("icon is required"), "required", "icon")

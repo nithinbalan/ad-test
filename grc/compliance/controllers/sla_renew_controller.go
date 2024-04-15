@@ -22,8 +22,8 @@ func NewSLARenewController(service services.SLARenewServiceInterface) *SLARenewC
 	}
 }
 
-func (src *SLARenewController) GetAllSLARenews(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
+func (src *SLARenewController) GetSLARenewHistory(c *gin.Context) {
+	slaId, err := strconv.Atoi(c.Param("id"))
 	sort := c.Query("sort")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
@@ -58,7 +58,7 @@ func (src *SLARenewController) GetAllSLARenews(c *gin.Context) {
 		ExpiryDateFrom: expiryDateFrom,
 		ExpiryDateTo:   expiryDateTo,
 	}
-	slaRenewHistories, err := src.service.GetAll(uint(id), &queryParams)
+	slaRenewHistories, err := src.service.GetAll(uint(slaId), &queryParams)
 
 	if err != nil {
 		utility.SendInternalErrResp(src.db, c, err.Error())
@@ -69,7 +69,7 @@ func (src *SLARenewController) GetAllSLARenews(c *gin.Context) {
 }
 
 func (src *SLARenewController) Renew(c *gin.Context) {
-	docID, err := strconv.Atoi(c.Param("id"))
+	slaId, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -86,7 +86,7 @@ func (src *SLARenewController) Renew(c *gin.Context) {
 		utility.SendInternalErrResp(src.db, c, err.Error())
 		return
 	}
-	err = src.service.Renew(uint(docID), currentUserID, &slaRenewFormDTO)
+	err = src.service.Renew(uint(slaId), currentUserID, &slaRenewFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -95,6 +95,9 @@ func (src *SLARenewController) Renew(c *gin.Context) {
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
 			return
+		case *utility.ForbiddenError:
+			// Return a 403 Forbidden response with the error message
+			utility.SendForbiddenErrResp(c, e.Error())
 		default:
 			utility.SendInternalErrResp(src.db, c, e.Error())
 			return
@@ -105,7 +108,7 @@ func (src *SLARenewController) Renew(c *gin.Context) {
 }
 
 func (src *SLARenewController) Revert(c *gin.Context) {
-	docID, err := strconv.Atoi(c.Param("id"))
+	slaId, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -117,10 +120,22 @@ func (src *SLARenewController) Revert(c *gin.Context) {
 		return
 	}
 
-	err = src.service.Revert(uint(docID), currentUserID)
+	err = src.service.Revert(uint(slaId), currentUserID)
 	if err != nil {
-		utility.SendInternalErrResp(src.db, c, err.Error())
-		return
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			// Return a 403 Forbidden response with the error message
+			utility.SendForbiddenErrResp(c, e.Error())
+		default:
+			utility.SendInternalErrResp(src.db, c, e.Error())
+			return
+		}
 	}
 
 	c.Status(http.StatusOK)

@@ -55,7 +55,6 @@ type SLARenewListResponseDTO struct {
 }
 
 type SLARenewFormDTO struct {
-	Version    string                   `json:"version" binding:"required"`
 	IssueDate  string                   `json:"issue_date" binding:"omitempty,datetime=2006-01-02"`
 	ExpiryDate string                   `json:"expiry_date" binding:"omitempty,datetime=2006-01-02"`
 	SA1Date    string                   `json:"sa1_date" binding:"omitempty,datetime=2006-01-02"`
@@ -66,7 +65,6 @@ type SLARenewFormDTO struct {
 
 type SLARenewDocumentFormDTO struct {
 	ID           *uint  `json:"id,omitempty"`
-	Language     string `json:"language" binding:"required"`
 	URL          string `json:"url"`
 	Icon         string `json:"icon" binding:"required"`
 	FileName     string `json:"file_name"`

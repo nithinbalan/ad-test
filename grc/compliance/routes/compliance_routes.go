@@ -153,16 +153,16 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	complianceRoutes.PUT("/sla-registers/restore", SLARegController.RestoreSLARegisters)
 	//SLA Renew
 	SLARenewRepo := complianceRepositories.NewSLARenewRepository(db)
-	SLARenewSvc := complianceServices.NewSLARenewService(SLARenewRepo,
+	SLARenewSvc := complianceServices.NewSLARenewService(SLARenewRepo, SLARepo, lifecycleStatusSvc,
 		activityLogSvc)
 	SLARenewController := controllers.NewSLARenewController(SLARenewSvc)
 
 	// @Review
 	// please move all these function in to sla controller
 	// change function name to  GetAllSLARenews -->  GetSLARenewHistory
-	complianceRoutes.GET("/sla-registers/:slaId/renew-history", SLARenewController.GetAllSLARenews)
-	complianceRoutes.PUT("/sla-registers/:slaId/renew", SLARenewController.Renew)
-	complianceRoutes.PUT("/sla-registers/:slaId/revert", SLARenewController.Revert)
+	complianceRoutes.GET("/sla-registers/:id/renew-history", SLARenewController.GetSLARenewHistory)
+	complianceRoutes.PUT("/sla-registers/:id/renew", SLARenewController.Renew)
+	complianceRoutes.PUT("/sla-registers/:id/revert", SLARenewController.Revert)
 
 	complianceRoutes.GET("/compliances/:complianceId/requirements", complianceRequirementController.GetAllComplianceRequirements)
 	complianceRoutes.GET("/compliances/:complianceId/requirements/:requirementId", complianceRequirementController.GetComplianceRequirementDetails)
