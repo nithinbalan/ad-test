@@ -11,7 +11,7 @@ type SLADocument struct {
 	Version       string     `json:"version" binding:"required"`
 	IssueDate     *time.Time `json:"issue_date" binding:"omitempty" gorm:"type:date"`
 	ExpiryDate    *time.Time `json:"expiry_date" binding:"omitempty" gorm:"type:date"`
-	Comment       string     `json:"comment"`
+	Comment       *string    `json:"comment"`
 	Language      string     `json:"language" binding:"required"`
 	URL           string     `json:"url"`
 	Name          string     `json:"name" binding:"required"`

@@ -13,6 +13,8 @@ import (
 	"gorm.io/gorm"
 )
 
+// @todo - @document support to be added
+// @todo - transaction to be added
 type ComplianceActionPlanStatusUpdateServiceInterface interface {
 	GetAll(ComplianceID uint, ComplianceActionPlanID uint, sort string, sortBy string, keyword string) ([]*complianceDTOs.ComplianceActionPlanStatusUpdateListDTO, error)
 	Create(ComplianceID uint, ComplianceActionPlanID uint, currentUserID uint, complianceActionPlanStatusUpdateFormDTO *complianceDTOs.ComplianceActionPlanStatusUpdateFormDTO) (uint, error)
@@ -142,6 +144,8 @@ func (casus *ComplianceActionPlanStatusUpdateService) Update(ComplianceID uint, 
 		return err
 	}
 
+	// @review
+	//update main action plan staus only if latest status updates is updated
 	err = casus.complianceActionPlanSvc.StatusUpdate(ComplianceID, ComplianceActionPlanID, currentUserID, ComplianceActionPlanStatusUpdateFormDTO.ComplianceStatusID)
 	if err != nil {
 		return err

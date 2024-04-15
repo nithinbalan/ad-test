@@ -56,4 +56,48 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	organizationRoutes.POST("/users", userController.CreateUser)
 	organizationRoutes.PUT("/users/:id", userController.UpdateUser)
 	organizationRoutes.POST("/users/delete", userController.DeleteUsers)
+
+	//strategic profile
+	strategicProfileRepo := organizationRepositories.NewStrategicProfileRepository(db)
+	strategicProfileSvc := organizationServices.NewStrategicProfileService(strategicProfileRepo)
+	strategicProfileController := controllers.NewStrategicProfileController(strategicProfileSvc)
+
+	organizationRoutes.GET("/strategic-profiles", strategicProfileController.GetStrategicProfile)
+	organizationRoutes.PUT("/strategic-profiles", strategicProfileController.UpdateStrategicProfile)
+	organizationRoutes.PUT("/strategic-profiles/vision", strategicProfileController.UpdateVision)
+	organizationRoutes.PUT("/strategic-profiles/mission", strategicProfileController.UpdateMission)
+	organizationRoutes.PUT("/strategic-profiles/values", strategicProfileController.UpdateValues)
+
+	//strategic Objectives
+	strategicObjectiveRepo := organizationRepositories.NewStrategicObjectiveRepository(db)
+	strategicObjectiveSvc := organizationServices.NewStrategicObjectiveService(strategicObjectiveRepo, activityLogSvc)
+	strategicObjectiveController := controllers.NewStrategicOBjectiveController(strategicObjectiveSvc)
+
+	organizationRoutes.GET("/strategic-objectives", strategicObjectiveController.GetAllStrategicObjectives)
+	organizationRoutes.GET("/strategic-objectives/:id", strategicObjectiveController.GetStrategicObjectiveDetails)
+	organizationRoutes.POST("/strategic-objectives", strategicObjectiveController.CreateStrategicObjective)
+	organizationRoutes.PUT("/strategic-objectives/:id", strategicObjectiveController.UpdateStrategicObjective)
+	organizationRoutes.POST("/strategic-objectives/delete", strategicObjectiveController.DeleteStrategicObjectives)
+	organizationRoutes.PUT("/strategic-objectives/activate", strategicObjectiveController.ActivateStrategicObjectives)
+	organizationRoutes.PUT("/strategic-objectives/deactivate", strategicObjectiveController.DeactivateStrategicObjectives)
+
+	//user settings
+  // @review.
+	// @move to user settings controller
+	// use preference for normal settings.
+	//if suggest we can change table name also
+	//updated
+	organizationRoutes.GET("/users/:userId/settings/preferences", userController.GetSetting)
+	organizationRoutes.PUT("/users/:userId/settings/preferences", userController.UpdateSetting)
+
+	//@review
+	//updated url
+	organizationRoutes.PUT("/users/:id/settings/security/enable-mfa", userController.EnableMFA)
+	organizationRoutes.PUT("/users/:id/settings/security/disable-mfa", userController.DisableMFA)
+	//@review
+	//you can change this notification url once individual notification enable/disable url ready if required.
+	organizationRoutes.PUT("/users/:id/settings/enable-notification", userController.EnableNotification)
+	organizationRoutes.PUT("/users/:id/settings/disable-notification", userController.DisableNotification)
+
+
 }

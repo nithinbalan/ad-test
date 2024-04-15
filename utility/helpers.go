@@ -122,3 +122,40 @@ func GeneratePassword() {
 	}
 	fmt.Println("Hashed Password:", string(hashedPassword))
 }
+
+// CheckUniqueFields checks if the specified fields in a slice of struct objects are unique.
+// It returns an error if duplicate values are found for any of the specified fields.
+func CheckUniqueFields(slice interface{}, fields ...string) error {
+	seen := make(map[string]struct{})
+	val := reflect.ValueOf(slice)
+
+	if val.Kind() != reflect.Slice {
+		return fmt.Errorf("provided value is not a slice")
+	}
+
+	for i := 0; i < val.Len(); i++ {
+		item := val.Index(i)
+
+		// If the item is a pointer to a struct, get the struct it points to
+		if item.Kind() == reflect.Ptr {
+			item = item.Elem()
+		}
+
+		for _, field := range fields {
+			fieldValue := item.FieldByName(field)
+
+			// Ensure the field exists
+			if !fieldValue.IsValid() {
+				return fmt.Errorf("field %s does not exist in the item", field)
+			}
+
+			key := fmt.Sprintf("%s_%v", field, fieldValue.Interface())
+			if _, found := seen[key]; found {
+				return fmt.Errorf("duplicate value found for field %s", field)
+			}
+			seen[key] = struct{}{}
+		}
+	}
+
+	return nil
+}

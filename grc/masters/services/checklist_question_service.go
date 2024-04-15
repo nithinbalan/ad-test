@@ -8,7 +8,6 @@ import (
 	"jethur/grc/masters/models"
 	"jethur/grc/masters/repositories"
 	"jethur/utility"
-	"log"
 )
 
 type ChecklistQuestionServiceInterface interface {
@@ -58,7 +57,22 @@ func (cqs *ChecklistQuestionService) Create(currentUserID uint, checklistQuestio
 		return 0, err
 	}
 
-	id, err := cqs.repo.Create(checklistQuestionFormDTO)
+	var libraryID *uint
+	if checklistQuestionFormDTO.QuestionLibraryID != 0 {
+		libraryID = &checklistQuestionFormDTO.QuestionLibraryID
+	} else {
+		libraryID = nil // Set to NULL
+	}
+	// Map DTO to ChecklistQuestion model
+	checklistQuestion := &models.ChecklistQuestion{
+		ChecklistID:       checklistQuestionFormDTO.ChecklistID,
+		QuestionGroupID:   checklistQuestionFormDTO.QuestionGroupID,
+		QuestionLibraryID: libraryID,
+		QuestionEn:        checklistQuestionFormDTO.QuestionEn,
+		QuestionAr:        checklistQuestionFormDTO.QuestionAr,
+	}
+
+	id, err := cqs.repo.Create(checklistQuestion)
 	if err != nil {
 		return 0, err
 	}
@@ -74,8 +88,15 @@ func (cqs *ChecklistQuestionService) Create(currentUserID uint, checklistQuestio
 		)
 
 		if err != nil {
-			// @todo - save to log file
-			log.Printf("Failed to log activity: %v", err)
+			fields := map[string]interface{}{
+				"action":    logModels.CreateAction,
+				"tableName": models.ChecklistQuestion{}.TableName(),
+				"recordID":  id,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			}
+
+			utility.LogError("Failed to log activity", fields)
 		}
 	}()
 
@@ -93,43 +114,18 @@ func (cqs *ChecklistQuestionService) Update(id uint, currentUserID uint, checkli
 		return err
 	}
 
-	err = cqs.repo.Update(id, checklistQuestionFormDTO)
+	existingChecklistQuestion.ChecklistID = checklistQuestionFormDTO.ChecklistID
+	existingChecklistQuestion.QuestionGroupID = checklistQuestionFormDTO.QuestionGroupID
+	existingChecklistQuestion.QuestionEn = checklistQuestionFormDTO.QuestionEn
+	existingChecklistQuestion.QuestionAr = checklistQuestionFormDTO.QuestionAr
+	existingChecklistQuestion.QuestionLibraryID = &checklistQuestionFormDTO.QuestionLibraryID
+
+	err = cqs.repo.Update(id, existingChecklistQuestion)
 
 	if err != nil {
 		return err
 	}
 
-	fieldsToCompare := []string{
-		"ChecklistID",
-		"QuestionGroupID",
-		"QuestionLibraryID",
-		"QuestionEn",
-		"QuestionAr"}
-	changes, err := utility.CompareFields(existingChecklistQuestion, checklistQuestionFormDTO, fieldsToCompare)
-
-	if err != nil {
-		log.Println("error :", err.Error())
-	}
-
-	changedDataJSON, err := utility.ChangesToJSON(changes)
-	if err != nil {
-		log.Println("error :", err.Error())
-	}
-
-	go func() {
-		err := cqs.activityLogSvc.LogActivity(
-			logModels.UpdateAction,
-			models.ChecklistQuestion{}.TableName(),
-			id,
-			changedDataJSON,
-			currentUserID,
-			nil,
-		)
-		if err != nil {
-			// @todo - save to log file
-			fmt.Printf("Failed to log bulk delete activity: %v\n", err)
-		}
-	}()
 	return nil
 
 }
