@@ -2,7 +2,9 @@ package repositories
 
 import (
 	// complianceDTOs "jethur/grc/compliance/dtos"
+	"errors"
 	"jethur/grc/compliance/models"
+	masterModels "jethur/grc/masters/models"
 
 	"gorm.io/gorm"
 )
@@ -13,6 +15,8 @@ type SLACheckQuestionRepositoryInterface interface {
 	CreateQuestionGroup(slaCheckQuestionGroup *models.SLACheckQuestionGroup) (uint, error)
 	CreateQuestion(slaCheckQuestion *models.SLACheckQuestion) (uint, error)
 	Update(SLACheckQuestion *models.SLACheckQuestion) error
+	GetQuestionGroupByTitleAndCheckID(title string, checkID uint) (*models.SLACheckQuestionGroup, error)
+	GetSimilarQuestion(checkID uint, question *masterModels.ChecklistQuestion) (*models.SLACheckQuestion, error)
 }
 
 type SLACheckQuestionRepository struct {
@@ -107,4 +111,28 @@ func (repo *SLACheckQuestionRepository) Update(SLACheckQuestion *models.SLACheck
 		return err
 	}
 	return nil
+}
+
+func (repo *SLACheckQuestionRepository) GetQuestionGroupByTitleAndCheckID(title string, checkID uint) (*models.SLACheckQuestionGroup, error) {
+	var group models.SLACheckQuestionGroup
+	if err := repo.db.Where("title_en = ? AND sla_check_id = ?", title, checkID).First(&group).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil // Group not found
+		}
+		return nil, err
+	}
+	return &group, nil
+}
+
+func (repo *SLACheckQuestionRepository) GetSimilarQuestion(checkID uint, question *masterModels.ChecklistQuestion) (*models.SLACheckQuestion, error) {
+	var slaCheckQuestion models.SLACheckQuestion
+	if err := repo.db.
+		Where("sla_check_question_group_id IN (SELECT id FROM sla_check_question_groups WHERE sla_check_id = ?) AND (title_en = ? OR title_ar = ?)", checkID, question.QuestionEn, question.QuestionAr).
+		First(&slaCheckQuestion).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil // No similar question found
+		}
+		return nil, err
+	}
+	return &slaCheckQuestion, nil
 }

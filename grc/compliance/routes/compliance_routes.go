@@ -35,6 +35,18 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	severityLevelRepo := masterRepositories.NewSeverityLevelRepository(db)
 	severityLevelSvc := masterServices.NewSeverityLevelService(severityLevelRepo)
 
+	questionGroupRepository := masterRepositories.NewQuestionGroupRepository(db)
+	questionGroupService := masterServices.NewQuestionGroupService(questionGroupRepository, activityLogSvc)
+
+	questionLibraryRepository := masterRepositories.NewQuestionLibraryRepository(db)
+	questionLibraryService := masterServices.NewQuestionLibraryService(questionLibraryRepository, activityLogSvc)
+
+	checklistRepo := masterRepositories.NewChecklistRepository(db)
+	checklistSvc := masterServices.NewChecklistService(checklistRepo, activityLogSvc)
+
+	checklistQuestionRepo := masterRepositories.NewChecklistQuestionRepository(db)
+	checklistQuestionSvc := masterServices.NewChecklistQuestionService(checklistQuestionRepo, activityLogSvc, questionGroupService, checklistSvc, questionLibraryService)
+
 	complianceCategoryRepo := complianceRepositories.NewComplianceCategoryRepository(db)
 	complianceCategorySvc := complianceServices.NewComplianceCategoryService(complianceCategoryRepo, activityLogSvc)
 	complianceCategoryController := controllers.NewComplianceCategoryController(complianceCategorySvc)
@@ -112,7 +124,9 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	SLACheckQuestionRepo := complianceRepositories.NewSLACheckQuestionRepository(db)
 	SLACheckQuestionSvc := complianceServices.NewSLACheckQuestionService(SLACheckQuestionRepo,
 		activityLogSvc,
-		SLARegisterSvc)
+		SLARegisterSvc,
+		checklistQuestionSvc,
+		questionGroupService)
 	SLACheckQuestionController := controllers.NewSLACheckQuestionController(SLACheckQuestionSvc)
 
 	complianceRoutes.GET("/compliance-categories", complianceCategoryController.GetAllComplianceCategories)
@@ -187,7 +201,7 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	complianceRoutes.PUT("/compliances/:complianceId/reviews/:id", complianceReviewController.UpdateComplianceReview)
 
 	// complianceRoutes.GET("/sla-register/:slaId/checks/:checkId/questions", SLACheckQuestionController.GetAllSLACheckQuestions)
-	// complianceRoutes.POST("/sla-register/:slaId/checks/:checkId/choose-questions", SLACheckQuestionController.ChooseSLACheckQuestions)
+	complianceRoutes.POST("/sla-register/:slaId/checks/:checkId/choose-questions", SLACheckQuestionController.ChooseSLACheckQuestions)
 	complianceRoutes.POST("/sla-register/:slaId/checks/:checkId/questions", SLACheckQuestionController.CreateSLACheckQuestion)
 	// complianceRoutes.PUT("/sla-register/:slaId/checks/:checkId/questions/:id", SLACheckQuestionController.UpdateSLACheckQuestion)
 	// complianceRoutes.DELETE("/sla-register/:slaId/checks/:checkId/questions/:id", SLACheckQuestionRepo.DeleteSLACheckQuestion)
