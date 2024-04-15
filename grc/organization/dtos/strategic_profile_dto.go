@@ -1,5 +1,7 @@
 package dtos
 
+import "time"
+
 type StrategicProfileFormDTO struct {
 	TitleEn   string  `json:"title_en" binding:"required"`
 	TitleAr   string  `json:"title_ar" binding:"required"`
@@ -37,6 +39,8 @@ type StrategicProfileDetailsDTO struct {
 	VisionAr  *string                        `json:"vision_ar,omitempty"`
 	MissionEn *string                        `json:"mission_en,omitempty"`
 	MissionAr *string                        `json:"mission_ar,omitempty"`
+	CreatedAt *time.Time                     `json:"created_at"`
+	UpdatedAt *time.Time                     `json:"updated_at"`
 	Values    []StrategicProfileValueFormDTO `json:"values,omitempty"`
 }
 

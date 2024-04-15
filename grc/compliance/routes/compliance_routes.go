@@ -89,6 +89,14 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	complianceRequirementStatusUpdateSvc := complianceServices.NewComplianceRequirementStatusUpdateService(complianceRequirementStatusUpdateRepo, activityLogSvc, complianceRequirementSvc, complianceStatusSvc)
 	complianceRequirementStatusUpdateController := controllers.NewComplianceRequirementStatusUpdateController(complianceRequirementStatusUpdateSvc)
 
+	complianceActionPlanStatusUpdateRepo := complianceRepositories.NewComplianceActionPlanStatusUpdateRepository(db)
+	complianceActionPlanStatusUpdateSvc := complianceServices.NewComplianceActionPlanStatusUpdateService(complianceActionPlanStatusUpdateRepo, activityLogSvc, complianceActionPlanSvc, complianceStatusSvc)
+	complianceActionPlanStatusUpdateController := controllers.NewComplianceActionPlanStatusUpdateController(complianceActionPlanStatusUpdateSvc)
+
+	complianceReviewRepo := complianceRepositories.NewComplianceReviewRepository(db)
+	complianceReviewSvc := complianceServices.NewComplianceReviewService(complianceReviewRepo, activityLogSvc, complianceRegisterSvc)
+	complianceReviewController := controllers.NewComplianceReviewController(complianceReviewSvc)
+
 	SLACategoryRepo := complianceRepositories.NewSLACategoryRepository(db)
 	SLACategorySvc := complianceServices.NewSLACategoryService(SLACategoryRepo, activityLogSvc)
 	SLACategoryController := controllers.NewSLACategoryController(SLACategorySvc)
@@ -163,9 +171,9 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	complianceRoutes.POST("/compliances/:complianceId/requirements/delete", complianceRequirementController.DeleteComplianceRequirements)
 
 	complianceRoutes.GET("/compliances/:complianceId/action-plans", complianceActionPlanController.GetAllComplianceActionPlans)
-	complianceRoutes.GET("/compliances/:complianceId/action-plans/:id", complianceActionPlanController.GetComplianceActionPlanDetails)
+	complianceRoutes.GET("/compliances/:complianceId/action-plans/:actionPlanId", complianceActionPlanController.GetComplianceActionPlanDetails)
 	complianceRoutes.POST("/compliances/:complianceId/action-plans", complianceActionPlanController.CreateComplianceActionPlan)
-	complianceRoutes.PUT("/compliances/:complianceId/action-plans/:id", complianceActionPlanController.UpdateComplianceActionPlan)
+	complianceRoutes.PUT("/compliances/:complianceId/action-plans/:actionPlanId", complianceActionPlanController.UpdateComplianceActionPlan)
 	complianceRoutes.POST("/compliances/:complianceId/action-plans/delete", complianceActionPlanController.DeleteComplianceActionPlans)
 
 	complianceRoutes.GET("/compliances/:complianceId/status-updates", complianceStatusUpdateController.GetAllComplianceStatusUpdates)
@@ -175,4 +183,13 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	complianceRoutes.GET("/compliances/:complianceId/requirements/:requirementId/status-updates", complianceRequirementStatusUpdateController.GetAllComplianceRequirementStatusUpdates)
 	complianceRoutes.POST("/compliances/:complianceId/requirements/:requirementId/status-updates", complianceRequirementStatusUpdateController.CreateComplianceRequirementStatusUpdate)
 	complianceRoutes.PUT("/compliances/:complianceId/requirements/:requirementId/status-updates/:id", complianceRequirementStatusUpdateController.UpdateComplianceRequirementStatusUpdate)
+
+	complianceRoutes.GET("/compliances/:complianceId/action-plans/:actionPlanId/status-updates", complianceActionPlanStatusUpdateController.GetAllComplianceActionPlanStatusUpdates)
+	complianceRoutes.POST("/compliances/:complianceId/action-plans/:actionPlanId/status-updates", complianceActionPlanStatusUpdateController.CreateComplianceActionPlanStatusUpdate)
+	complianceRoutes.PUT("/compliances/:complianceId/action-plans/:actionPlanId/status-updates/:id", complianceActionPlanStatusUpdateController.UpdateComplianceActionPlanStatusUpdate)
+
+	complianceRoutes.GET("/compliances/:complianceId/reviews", complianceReviewController.GetAllComplianceReviews)
+	complianceRoutes.POST("/compliances/:complianceId/reviews", complianceReviewController.CreateComplianceReview)
+	complianceRoutes.PUT("/compliances/:complianceId/reviews/:id", complianceReviewController.UpdateComplianceReview)
+
 }

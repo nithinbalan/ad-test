@@ -115,7 +115,7 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 		return 0, err
 	}
 
-	lifecycleStatus, err := crs.lifecycleStatusSvc.GetByStatus("active")
+	lifecycleStatus, err := crs.lifecycleStatusSvc.GetByType("active")
 	if err != nil {
 		return 0, err
 	}
@@ -261,7 +261,7 @@ func (crs *ComplianceRegisterService) Delete(ids []uint, currentUserID uint) ([]
 
 func (crs *ComplianceRegisterService) Archive(ids []uint, currentUserID uint) ([]uint, error) {
 
-	lifecycleStatus, err := crs.lifecycleStatusSvc.GetByStatus("archived|")
+	lifecycleStatus, err := crs.lifecycleStatusSvc.GetByType("archived|")
 	if err != nil {
 		return nil, err
 	}
@@ -298,7 +298,7 @@ func (crs *ComplianceRegisterService) Archive(ids []uint, currentUserID uint) ([
 
 func (crs *ComplianceRegisterService) Restore(ids []uint, currentUserID uint) ([]uint, error) {
 
-	lifecycleStatus, err := crs.lifecycleStatusSvc.GetByStatus("active")
+	lifecycleStatus, err := crs.lifecycleStatusSvc.GetByType("active")
 	if err != nil {
 		return nil, err
 	}

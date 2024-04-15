@@ -28,7 +28,7 @@ type StrategicProfile struct {
 	UpdatedBy *uint      `json:"updated_by,omitempty" gorm:"default:null" binding:"omitempty"`
 
 	// Relationships
-	CreatedByUser User  `gorm:"foreignKey:CreatedBy"`
+	CreatedByUser *User `gorm:"foreignKey:CreatedBy"`
 	UpdatedByUser *User `gorm:"foreignKey:UpdatedBy"` // Pointer for nullable relationship
 
 	StrategicProfileValues []StrategicProfileValue `json:"strategic_profile_values" gorm:"foreignKey:StrategicProfileID"`

@@ -13,6 +13,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/mitchellh/mapstructure"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -28,6 +29,14 @@ type UserServiceInterface interface {
 	//User Security
 	GetUserSecurityByUserID(userID uint) (*organizationModels.UserSecurity, error)
 	UpdateUserSecurity(userSecurity *organizationModels.UserSecurity) error
+	EnableMFA(userID uint) error
+	DisableMFA(userID uint) error
+
+	//user Settings
+	GetUserSetting(userID uint) (*userDTOs.UserSettingDTO, error)
+	UpdateUserSetting(userID uint, currentUserID uint, userSettingFormDTO *userDTOs.UserSettingFormDTO) error
+	EnableNotification(userID uint) error
+	DisableNotification(userID uint) error
 }
 
 type UserService struct {
@@ -76,7 +85,7 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 		return 0, err
 	}
 
-	userStatus, err := us.userStatusSvc.GetByStatus("active")
+	userStatus, err := us.userStatusSvc.GetByType("active")
 	if err != nil {
 		return 0, err
 	}
@@ -351,4 +360,112 @@ func (us *UserService) GetUserSecurityByUserID(userId uint) (*organizationModels
 
 func (us *UserService) UpdateUserSecurity(userSecurity *organizationModels.UserSecurity) error {
 	return us.repo.UpdateUserSecurity(userSecurity)
+}
+
+func (us *UserService) GetUserSetting(userID uint) (*userDTOs.UserSettingDTO, error) {
+	var userSettingDTO *userDTOs.UserSettingDTO
+	userSetting, err := us.repo.GetUserSettingsByUserID(userID)
+
+	if err != nil {
+		return nil, utility.NewResourceNotFoundError(err, userID)
+	}
+
+	// Map the result to your DTO
+	err = mapstructure.Decode(userSetting, &userSettingDTO)
+	if err != nil {
+		return nil, err
+	}
+
+	return userSettingDTO, nil
+}
+
+func (us *UserService) UpdateUserSetting(userID uint, currentUserID uint, userSettingFormDTO *userDTOs.UserSettingFormDTO) error {
+	existingUserSetting, err := us.repo.GetUserSettingsByUserID(userID)
+
+	if err != nil {
+		return utility.NewResourceNotFoundError(err, nil)
+	}
+	// @review
+	//do we need to validate timezone
+	existingUserSetting.Language = userSettingFormDTO.Language
+	existingUserSetting.TimezoneID = userSettingFormDTO.TimezoneID
+	existingUserSetting.Timeout = userSettingFormDTO.Timeout
+	existingUserSetting.UpdatedBy = &currentUserID
+
+	if err = us.repo.UpdateUserSetting(existingUserSetting); err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+func (us *UserService) EnableMFA(userID uint) error {
+	existingUserSecurity, err := us.repo.GetUserSecurityByUserID(userID)
+	if err != nil {
+		return utility.NewResourceNotFoundError(err, nil)
+	}
+
+	existingUserSecurity.IsMFA = true
+
+	if err = us.repo.UpdateUserSecurity(existingUserSecurity); err != nil {
+		return err
+	}
+	//@todo - send email to user
+	//@todo - need capture activity log
+
+	return nil
+
+}
+
+func (us *UserService) DisableMFA(userID uint) error {
+	existingUserSecurity, err := us.repo.GetUserSecurityByUserID(userID)
+	if err != nil {
+		return utility.NewResourceNotFoundError(err, nil)
+	}
+
+	existingUserSecurity.IsMFA = false
+
+	if err = us.repo.UpdateUserSecurity(existingUserSecurity); err != nil {
+		return err
+	}
+	//@todo - send email to user
+	//@todo - need capture activity log
+
+	return nil
+}
+
+func (us *UserService) EnableNotification(userID uint) error {
+	existingUserSetting, err := us.repo.GetUserSettingsByUserID(userID)
+	if err != nil {
+		return utility.NewResourceNotFoundError(err, nil)
+	}
+
+	existingUserSetting.IsNotification = true
+
+	if err = us.repo.UpdateUserSetting(existingUserSetting); err != nil {
+		return err
+	}
+	//@todo - send email to user
+	//@todo - need capture activity log
+
+	return nil
+
+}
+
+func (us *UserService) DisableNotification(userID uint) error {
+	existingUserSetting, err := us.repo.GetUserSettingsByUserID(userID)
+	if err != nil {
+		return utility.NewResourceNotFoundError(err, nil)
+	}
+
+	existingUserSetting.IsNotification = false
+
+	if err = us.repo.UpdateUserSetting(existingUserSetting); err != nil {
+		return err
+	}
+	//@todo - send email to user
+	//@todo - need capture activity log
+
+	return nil
 }
