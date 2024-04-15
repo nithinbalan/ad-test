@@ -12,7 +12,7 @@ import (
 type LifecycleStatusRepositoryInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.LifecycleStatus, error)
 	GetByID(id uint) (*models.LifecycleStatus, error)
-	GetByStatus(status string) (*models.LifecycleStatus, error)
+	GetByType(status string) (*models.LifecycleStatus, error)
 }
 
 // implementation
@@ -65,7 +65,7 @@ func (repo *LifecycleStatusRepository) GetByID(id uint) (*models.LifecycleStatus
 	return lifecycleStatus, result.Error
 }
 
-func (repo *LifecycleStatusRepository) GetByStatus(status string) (*models.LifecycleStatus, error) {
+func (repo *LifecycleStatusRepository) GetByType(status string) (*models.LifecycleStatus, error) {
 	var lifecycleStatus *models.LifecycleStatus
 
 	result := repo.db.Where("type = ?", status).First(&lifecycleStatus)
