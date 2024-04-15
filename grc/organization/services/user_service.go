@@ -31,6 +31,7 @@ type UserServiceInterface interface {
 	UpdateUserSecurity(userSecurity *organizationModels.UserSecurity) error
 	EnableMFA(userID uint) error
 	DisableMFA(userID uint) error
+	ResetPassword(userID uint) error
 
 	//user Settings
 	GetUserSetting(userID uint) (*userDTOs.UserSettingDTO, error)
@@ -467,5 +468,52 @@ func (us *UserService) DisableNotification(userID uint) error {
 	//@todo - send email to user
 	//@todo - need capture activity log
 
+	return nil
+}
+
+func (us *UserService) ResetPassword(userID uint) error {
+
+	existingUserSecurity, err := us.repo.GetUserSecurityByUserID(userID)
+	if err != nil {
+		return utility.NewResourceNotFoundError(err, nil)
+	}
+
+	newPassword, err := us.generateRandomPassword(12) // Assume you have this function implemented
+	if err != nil {
+		return err
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	existingUserSecurity.PasswordHash = string(hashedPassword)
+
+	if err = us.repo.UpdateUserSecurity(existingUserSecurity); err != nil {
+		return err
+	}
+
+	user, err := us.repo.GetByID(userID)
+	if err != nil {
+		return err
+	}
+
+	emailData := userDTOs.SendNewPasswordEmailDTO{
+		FirstNameEn: user.FirstNameEn,
+		LastNameEn:  user.LastNameEn,
+		Email:       user.Email,
+		Password:    newPassword,
+	}
+
+	to := []string{user.Email}
+	subject := "Important: Your Account Password Has Been Updated"
+	templateRelativePath := "organization/templates/email/send_new_password.html"
+
+	err = utility.SendTemplatedEmail(to, subject, templateRelativePath, emailData, nil)
+
+	if err != nil {
+		return err
+	}
 	return nil
 }

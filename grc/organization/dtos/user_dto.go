@@ -77,3 +77,10 @@ type UserUpdateDTO struct {
 	MobileNumber        *string `json:"mobile_number,omitempty"`
 	ProfileImagePath    *string `json:"profile_image_path,omitempty"`
 }
+
+type SendNewPasswordEmailDTO struct {
+	FirstNameEn string `json:"first_name_en"`
+	LastNameEn  string `json:"last_name_en"`
+	Email       string `json:"email"`
+	Password    string `json:"password"`
+}
