@@ -157,9 +157,6 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 		activityLogSvc)
 	SLARenewController := controllers.NewSLARenewController(SLARenewSvc)
 
-	// @Review
-	// please move all these function in to sla controller
-	// change function name to  GetAllSLARenews -->  GetSLARenewHistory
 	complianceRoutes.GET("/sla-registers/:id/renew-history", SLARenewController.GetSLARenewHistory)
 	complianceRoutes.PUT("/sla-registers/:id/renew", SLARenewController.Renew)
 	complianceRoutes.PUT("/sla-registers/:id/revert", SLARenewController.Revert)

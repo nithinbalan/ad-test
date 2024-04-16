@@ -59,7 +59,6 @@ func (repo *SLARenewRepository) GetAll(id uint, params *slaDTOs.SLARenewListQuer
     `).
 		Where("sla_documents.sla_register_id = ? AND sla_documents.is_latest = ?", id, false)
 
-	// Apply issue_date filters
 	if params.IssueDateFrom != "" {
 		query = query.Where("issue_date >= ?", params.IssueDateFrom)
 	}
@@ -67,7 +66,6 @@ func (repo *SLARenewRepository) GetAll(id uint, params *slaDTOs.SLARenewListQuer
 		query = query.Where("issue_date <= ?", params.IssueDateTo)
 	}
 
-	// Apply expiry_date filters
 	if params.IssueDateFrom != "" {
 		query = query.Where("expiry_date >= ?", params.IssueDateFrom)
 	}
@@ -75,11 +73,10 @@ func (repo *SLARenewRepository) GetAll(id uint, params *slaDTOs.SLARenewListQuer
 		query = query.Where("expiry_date <= ?", params.ExpiryDateTo)
 	}
 
-	// Calculate total count for pagination
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
-	// Apply search Keyword if exists
+
 	if params.Keyword != "" {
 		query = query.Where(`
 			(sla_documents.issue_date LIKE ? OR
@@ -92,19 +89,17 @@ func (repo *SLARenewRepository) GetAll(id uint, params *slaDTOs.SLARenewListQuer
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%")
 	}
 
-	// Sort by the specified column and order
 	if params.SortBy == "" {
-		params.SortBy = "name" // Default Sort by name if no SortBy is specified
+		params.SortBy = "name"
 	}
 	if params.Sort != "asc" && params.Sort != "desc" {
-		params.Sort = "asc" // Default order is ascending if not specified
+		params.Sort = "asc"
 	}
 
 	query = query.Order(params.SortBy + " " + params.Sort)
 
 	offset := (params.Page - 1) * params.PageSize
 
-	// Execute the queryc
 	err := query.Offset(offset).Limit(params.PageSize).Find(&slaRenews).Error
 
 	if err != nil {
@@ -130,7 +125,6 @@ func (repo *SLARenewRepository) Renew(doc *models.SLADocument, tx ...utility.Dat
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	// Save the updated SLA document
 	if err := db.Save(doc).Error; err != nil {
 		return err
 	}
@@ -142,7 +136,6 @@ func (repo *SLARenewRepository) SetOlderSLADocsToNotLatest(currentDocID uint, sl
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	// Update is_latest=false for all other documents of the same SLA register
 	if err := db.Model(&models.SLADocument{}).
 		Where("id != ? AND sla_register_id = ?", currentDocID, slaRegisterID).
 		Update("is_latest", false).
@@ -153,11 +146,9 @@ func (repo *SLARenewRepository) SetOlderSLADocsToNotLatest(currentDocID uint, sl
 }
 
 func (repo *SLARenewRepository) FindPreviousDocument(currentDocID uint, slaRegisterID uint) (*models.SLADocument, error) {
-	// Find the previous document
 	var previousDocument models.SLADocument
 	if err := repo.db.Model(&models.SLADocument{}).
 		Where("sla_register_id = ? AND id != ?", slaRegisterID, currentDocID).
-		// Order("id DESC").
 		First(&previousDocument).
 		Error; err != nil {
 		return nil, err
@@ -166,15 +157,14 @@ func (repo *SLARenewRepository) FindPreviousDocument(currentDocID uint, slaRegis
 }
 
 func (repo *SLARenewRepository) DeleteSLADocumentByID(docID uint, tx ...utility.DatabaseTransaction) error {
-    db := repo.db
-    if len(tx) > 0 && tx[0] != nil {
-        db = tx[0].DB()
-    }
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 
-    if err := db.Delete(&models.SLADocument{}, docID).Error; err != nil {
-        return err
-    }
+	if err := db.Delete(&models.SLADocument{}, docID).Error; err != nil {
+		return err
+	}
 
-    return nil
+	return nil
 }
-

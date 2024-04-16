@@ -130,7 +130,6 @@ func (src *SLARenewController) Revert(c *gin.Context) {
 			utility.SendInvalidErrResp(c, e)
 			return
 		case *utility.ForbiddenError:
-			// Return a 403 Forbidden response with the error message
 			utility.SendForbiddenErrResp(c, e.Error())
 		default:
 			utility.SendInternalErrResp(src.db, c, e.Error())
