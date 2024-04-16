@@ -10,17 +10,16 @@ import (
 )
 
 type SLACheckQuestionRepositoryInterface interface {
-	GetByID(id uint) (*models.SLACheckQuestion, error)
+	GetQuestionByID(id uint) (*models.SLACheckQuestion, error)
 	CreateQuestion(slaCheckQuestion *models.SLACheckQuestion) (uint, error)
 	UpdateQuestion(SLACheckQuestion *models.SLACheckQuestion) error
 	DeleteQuestion(id uint) error
+	GetQuestionGroupByID(groupID uint) (*models.SLACheckQuestionGroup, error)
 	CreateQuestionGroup(slaCheckQuestionGroup *models.SLACheckQuestionGroup) (uint, error)
 	UpdateQuestionGroup(group *models.SLACheckQuestionGroup) error
 	DeleteQuestionGroup(id uint) error
 	GetSimilarQuestion(checkID uint, question *masterModels.ChecklistQuestion) (*models.SLACheckQuestion, error)
-	GetQuestionGroupByTitleAndCheckID(title string, checkID uint) (*models.SLACheckQuestionGroup, error)
-	GetQuestionGroupByID(groupID uint) (*models.SLACheckQuestionGroup, error)
-	GetQuestionByID(groupID uint) (*models.SLACheckQuestion, error)
+	GetSimilarQuestionGroup(titleEn string, titleAr string, checkID uint) (*models.SLACheckQuestionGroup, error)
 	GetQuestionsByGroupID(groupID uint) ([]models.SLACheckQuestion, error)
 }
 
@@ -34,7 +33,7 @@ func NewSLACheckQuestionRepository(db *gorm.DB) *SLACheckQuestionRepository {
 	}
 }
 
-func (repo *SLACheckQuestionRepository) GetByID(id uint) (*models.SLACheckQuestion, error) {
+func (repo *SLACheckQuestionRepository) GetQuestionByID(id uint) (*models.SLACheckQuestion, error) {
 	var SLACheckQuestion *models.SLACheckQuestion
 
 	result := repo.db.First(&SLACheckQuestion, id)
@@ -44,15 +43,6 @@ func (repo *SLACheckQuestionRepository) GetByID(id uint) (*models.SLACheckQuesti
 
 	return SLACheckQuestion, nil
 
-}
-
-func (repo *SLACheckQuestionRepository) CreateQuestionGroup(slaCheckQuestionGroup *models.SLACheckQuestionGroup) (uint, error) {
-
-	if err := repo.db.Create(slaCheckQuestionGroup).Error; err != nil {
-		return 0, err
-	}
-
-	return slaCheckQuestionGroup.ID, nil
 }
 
 func (repo *SLACheckQuestionRepository) CreateQuestion(slaCheckQuestion *models.SLACheckQuestion) (uint, error) {
@@ -86,31 +76,6 @@ func (repo *SLACheckQuestionRepository) DeleteQuestion(id uint) error {
 	return nil
 }
 
-// Choose qn
-func (repo *SLACheckQuestionRepository) GetSimilarQuestion(checkID uint, question *masterModels.ChecklistQuestion) (*models.SLACheckQuestion, error) {
-	var slaCheckQuestion models.SLACheckQuestion
-	if err := repo.db.
-		Where("sla_check_question_group_id IN (SELECT id FROM sla_check_question_groups WHERE sla_check_id = ?) AND (title_en = ? OR title_ar = ?)", checkID, question.QuestionEn, question.QuestionAr).
-		First(&slaCheckQuestion).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return &slaCheckQuestion, nil
-}
-
-func (repo *SLACheckQuestionRepository) GetQuestionGroupByTitleAndCheckID(title string, checkID uint) (*models.SLACheckQuestionGroup, error) {
-	var group models.SLACheckQuestionGroup
-	if err := repo.db.Where("title_en = ? AND sla_check_id = ?", title, checkID).First(&group).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return &group, nil
-}
-
 func (repo *SLACheckQuestionRepository) GetQuestionGroupByID(groupID uint) (*models.SLACheckQuestionGroup, error) {
 	var group models.SLACheckQuestionGroup
 	if err := repo.db.First(&group, groupID).Error; err != nil {
@@ -120,6 +85,15 @@ func (repo *SLACheckQuestionRepository) GetQuestionGroupByID(groupID uint) (*mod
 		return nil, err
 	}
 	return &group, nil
+}
+
+func (repo *SLACheckQuestionRepository) CreateQuestionGroup(slaCheckQuestionGroup *models.SLACheckQuestionGroup) (uint, error) {
+
+	if err := repo.db.Create(slaCheckQuestionGroup).Error; err != nil {
+		return 0, err
+	}
+
+	return slaCheckQuestionGroup.ID, nil
 }
 
 func (repo *SLACheckQuestionRepository) UpdateQuestionGroup(group *models.SLACheckQuestionGroup) error {
@@ -144,21 +118,34 @@ func (repo *SLACheckQuestionRepository) DeleteQuestionGroup(id uint) error {
 	return nil
 }
 
+func (repo *SLACheckQuestionRepository) GetSimilarQuestion(checkID uint, question *masterModels.ChecklistQuestion) (*models.SLACheckQuestion, error) {
+	var slaCheckQuestion models.SLACheckQuestion
+	if err := repo.db.
+		Where("sla_check_question_group_id IN (SELECT id FROM sla_check_question_groups WHERE sla_check_id = ?) AND (title_en = ? OR title_ar = ?)", checkID, question.QuestionEn, question.QuestionAr).
+		First(&slaCheckQuestion).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &slaCheckQuestion, nil
+}
+
+func (repo *SLACheckQuestionRepository) GetSimilarQuestionGroup(titleEn string, titleAr string, checkID uint) (*models.SLACheckQuestionGroup, error) {
+	var group models.SLACheckQuestionGroup
+	if err := repo.db.Where("(title_en = ? OR title_ar = ?) AND sla_check_id = ?", titleEn, titleAr, checkID).First(&group).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &group, nil
+}
+
 func (repo *SLACheckQuestionRepository) GetQuestionsByGroupID(groupID uint) ([]models.SLACheckQuestion, error) {
 	var questions []models.SLACheckQuestion
 	if err := repo.db.Where("sla_check_question_group_id = ?", groupID).Find(&questions).Error; err != nil {
 		return nil, err
 	}
 	return questions, nil
-}
-
-func (repo *SLACheckQuestionRepository) GetQuestionByID(questionID uint) (*models.SLACheckQuestion, error) {
-	var SLACheckQuestion models.SLACheckQuestion
-	if err := repo.db.First(&SLACheckQuestion, questionID).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return &SLACheckQuestion, nil
 }

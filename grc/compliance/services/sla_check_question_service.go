@@ -50,7 +50,7 @@ func NewSLACheckQuestionService(
 }
 
 func (scqs SLACheckQuestionService) GetQuestionByID(id uint) (*models.SLACheckQuestion, error) {
-	slaCheckQuestion, err := scqs.repo.GetByID(id)
+	slaCheckQuestion, err := scqs.repo.GetQuestionByID(id)
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -85,7 +85,7 @@ func (scqs SLACheckQuestionService) ChooseQuestions(slaID uint, checkID uint, cu
 		}
 
 		// Check if a group with the same title already exists for the given check ID
-		existingGroup, err := scqs.repo.GetQuestionGroupByTitleAndCheckID(checklistQuestion.QuestionGroup.TitleEn, checkID)
+		existingGroup, err := scqs.repo.GetSimilarQuestionGroup(checklistQuestion.QuestionGroup.TitleEn, checklistQuestion.QuestionGroup.TitleAr, checkID)
 		if err != nil {
 			return nil, err
 		}
