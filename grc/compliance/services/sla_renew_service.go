@@ -10,7 +10,6 @@ import (
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	"jethur/utility"
-	"log"
 	"strconv"
 )
 
@@ -48,9 +47,6 @@ func (srs *SLARenewService) GetAll(id uint, params *slaDTOs.SLARenewListQueryPar
 func (srs *SLARenewService) Renew(slaId uint, currentUserID uint, slaRenewFormDTO *slaDTOs.SLARenewFormDTO) error {
 	tx := srs.repo.BeginTransaction()
 
-	//@review
-	//we can move this checking in to validateSLARenewDocumentFormDTO function.
-
 	if err := srs.validateSLARenewDocumentFormDTO(slaRenewFormDTO.Document); err != nil {
 		return err
 	}
@@ -63,7 +59,7 @@ func (srs *SLARenewService) Renew(slaId uint, currentUserID uint, slaRenewFormDT
 	if err != nil {
 		return err
 	}
-	// Check if the SLA status is not archived
+
 	lifecycleStatus, err := srs.lifecycleStatusSvc.GetByType("archived")
 	if err != nil {
 		return err
@@ -82,7 +78,6 @@ func (srs *SLARenewService) Renew(slaId uint, currentUserID uint, slaRenewFormDT
 		return err
 	}
 
-	//encrypt FileName for token
 	dataToEncrypt := []byte(slaRenewFormDTO.Document.FileName)
 	encryptedFilename, err := utility.EncryptData(dataToEncrypt)
 	if err != nil {
@@ -91,21 +86,15 @@ func (srs *SLARenewService) Renew(slaId uint, currentUserID uint, slaRenewFormDT
 
 	url := fmt.Sprintf("%s/sla-registers/%d/%s", config.GetEnv("API_URL", "http://localhost:8080"), existingSLADocument.SLARegisterID, encryptedFilename)
 
-	// Get the current version of the SLA document
 	currentVersionStr := existingSLADocument.Version
 
-	// Parse the current version as a float
 	currentVersionFloat, err := strconv.ParseFloat(currentVersionStr, 64)
 	if err != nil {
-		log.Printf("Failed to parse current version string as float: %v", err)
 		return err
 	}
 
-	// Convert the float version to an integer (truncate the decimal part)
 	currentVersion := int(currentVersionFloat)
-	// Increment the version by one
 	newVersion := currentVersion + 1.0
-	// Convert the new version back to a string
 	newVersionStr := strconv.Itoa(newVersion)
 
 	//renew document
@@ -128,7 +117,6 @@ func (srs *SLARenewService) Renew(slaId uint, currentUserID uint, slaRenewFormDT
 		// @add comment
 	}
 
-	// Save SLA document
 	if err := srs.slaRegRepo.SaveSLADocument(slaDocument, tx); err != nil {
 		tx.Rollback()
 		return err
@@ -168,18 +156,10 @@ func (srs *SLARenewService) Renew(slaId uint, currentUserID uint, slaRenewFormDT
 func (srs *SLARenewService) Revert(slaId uint, currentUserID uint) error {
 	tx := srs.repo.BeginTransaction()
 
-	//@review
-	//get sla register and validate status. (archiave check)
-	//get latest document
-	//delete file from storage
-	//delete latest dcoument
-	//updte previous one as is latest true
-
 	slaRegister, err := srs.slaRegRepo.GetByID(slaId)
 	if err != nil {
 		return err
 	}
-	// Check if the SLA status is not archived
 	lifecycleStatus, err := srs.lifecycleStatusSvc.GetByType("archived")
 	if err != nil {
 		return err
@@ -188,7 +168,6 @@ func (srs *SLARenewService) Revert(slaId uint, currentUserID uint) error {
 		return utility.NewForbiddenError("Cannot revert SLA with archived status")
 	}
 
-	// Check if the file is updated
 	existingSLADocument, err := srs.slaRegRepo.GetLatestSLADocumentBySLARegisterID(slaId)
 	if err != nil {
 		return err
@@ -200,17 +179,17 @@ func (srs *SLARenewService) Revert(slaId uint, currentUserID uint) error {
 
 	previousSLADocument, err := srs.repo.FindPreviousDocument(existingSLADocument.ID, existingSLADocument.SLARegisterID)
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
-	// Delete existing SLA document
-	if err := srs.slaRegRepo.DeleteSLADocumentByID(existingSLADocument.ID, tx); err != nil {
+
+	if err := srs.repo.DeleteSLADocumentByID(existingSLADocument.ID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
 
 	previousSLADocument.IsLatest = true
 	previousSLADocument.UpdatedBy = currentUserID
-	// Update SLA document with IsLatest true
 	if err := srs.slaRegRepo.SaveSLADocument(previousSLADocument, tx); err != nil {
 		tx.Rollback()
 		return err
