@@ -98,5 +98,6 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	//you can change this notification url once individual notification enable/disable url ready if required.
 	organizationRoutes.PUT("/users/:userId/settings/enable-notification", userController.EnableNotification)
 	organizationRoutes.PUT("/users/:userId/settings/disable-notification", userController.DisableNotification)
+	organizationRoutes.POST("/users/:userId/reset-password", userController.NewPassword)
 
 }

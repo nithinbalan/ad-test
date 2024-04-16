@@ -171,7 +171,7 @@ func (uc *UserController) DeleteUsers(c *gin.Context) {
 }
 
 func (uc *UserController) GetSetting(c *gin.Context) {
-	userID, err := strconv.Atoi(c.Param("id"))
+	userID, err := strconv.Atoi(c.Param("userId"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -196,7 +196,7 @@ func (uc *UserController) GetSetting(c *gin.Context) {
 }
 
 func (uc *UserController) UpdateSetting(c *gin.Context) {
-	userID, err := strconv.Atoi(c.Param("id"))
+	userID, err := strconv.Atoi(c.Param("userId"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -233,7 +233,7 @@ func (uc *UserController) UpdateSetting(c *gin.Context) {
 }
 
 func (uc *UserController) EnableMFA(c *gin.Context) {
-	userID, err := strconv.Atoi(c.Param("id"))
+	userID, err := strconv.Atoi(c.Param("userId"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -259,7 +259,7 @@ func (uc *UserController) EnableMFA(c *gin.Context) {
 }
 
 func (uc *UserController) DisableMFA(c *gin.Context) {
-	userID, err := strconv.Atoi(c.Param("id"))
+	userID, err := strconv.Atoi(c.Param("userId"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -285,7 +285,7 @@ func (uc *UserController) DisableMFA(c *gin.Context) {
 }
 
 func (uc *UserController) EnableNotification(c *gin.Context) {
-	userID, err := strconv.Atoi(c.Param("id"))
+	userID, err := strconv.Atoi(c.Param("userId"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -310,7 +310,7 @@ func (uc *UserController) EnableNotification(c *gin.Context) {
 }
 
 func (uc *UserController) DisableNotification(c *gin.Context) {
-	userID, err := strconv.Atoi(c.Param("id"))
+	userID, err := strconv.Atoi(c.Param("userId"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -318,6 +318,31 @@ func (uc *UserController) DisableNotification(c *gin.Context) {
 
 	err = uc.service.DisableNotification(uint(userID))
 
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(uc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (uc *UserController) NewPassword(c *gin.Context) {
+	userID, err := strconv.Atoi(c.Param("userId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	err = uc.service.ResetPassword(uint(userID))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

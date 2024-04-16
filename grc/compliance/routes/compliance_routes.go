@@ -129,6 +129,11 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 		questionGroupService)
 	SLACheckQuestionController := controllers.NewSLACheckQuestionController(SLACheckQuestionSvc)
 
+	SLARenewRepo := complianceRepositories.NewSLARenewRepository(db)
+	SLARenewSvc := complianceServices.NewSLARenewService(SLARenewRepo, SLARegisterRepo, lifecycleStatusSvc,
+		activityLogSvc)
+	SLARenewController := controllers.NewSLARenewController(SLARenewSvc)
+
 	complianceRoutes.GET("/compliance-categories", complianceCategoryController.GetAllComplianceCategories)
 	complianceRoutes.GET("/compliance-categories/:id", complianceCategoryController.GetComplianceCategoryDetails)
 	complianceRoutes.POST("/compliance-categories", complianceCategoryController.CreateComplianceCategory)
@@ -171,6 +176,10 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	complianceRoutes.POST("/sla-register/delete", SLARegisterController.DeleteSLARegisters)
 	complianceRoutes.PUT("/sla-register/archive", SLARegisterController.ArchiveSLARegisters)
 	complianceRoutes.PUT("/sla-register/restore", SLARegisterController.RestoreSLARegisters)
+
+	complianceRoutes.GET("/sla-registers/:id/renew-history", SLARenewController.GetSLARenewHistory)
+	complianceRoutes.PUT("/sla-registers/:id/renew", SLARenewController.Renew)
+	complianceRoutes.PUT("/sla-registers/:id/revert", SLARenewController.Revert)
 
 	complianceRoutes.GET("/compliances/:complianceId/requirements", complianceRequirementController.GetAllComplianceRequirements)
 	complianceRoutes.GET("/compliances/:complianceId/requirements/:requirementId", complianceRequirementController.GetComplianceRequirementDetails)
