@@ -94,7 +94,7 @@ func (srs *SLARenewService) Renew(slaId uint, currentUserID uint, slaRenewFormDT
 	}
 
 	currentVersion := int(currentVersionFloat)
-	newVersion := currentVersion + 1.0
+	newVersion := currentVersion + 1
 	newVersionStr := strconv.Itoa(newVersion)
 
 	//renew document
@@ -114,7 +114,7 @@ func (srs *SLARenewService) Renew(slaId uint, currentUserID uint, slaRenewFormDT
 		Type:          slaRenewFormDTO.Document.Type,
 		IsLatest:      true,
 		CreatedBy:     currentUserID,
-		// @add comment
+		UpdatedBy:     currentUserID,
 	}
 
 	if err := srs.slaRegRepo.SaveSLADocument(slaDocument, tx); err != nil {

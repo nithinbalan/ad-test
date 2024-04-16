@@ -18,6 +18,8 @@ type SLARenewRepositoryInterface interface {
 	Renew(doc *models.SLADocument, tx ...utility.DatabaseTransaction) error
 	SetOlderSLADocsToNotLatest(currentDocID uint, slaRegisterID uint, tx ...utility.DatabaseTransaction) error
 	FindPreviousDocument(docId uint, slaRegisterID uint) (*models.SLADocument, error)
+	DeleteSLADocumentByID(docId uint, tx ...utility.DatabaseTransaction) error
+
 }
 
 // implementation

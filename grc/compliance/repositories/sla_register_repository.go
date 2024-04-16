@@ -35,7 +35,6 @@ type SLARegisterRepositoryInterface interface {
 	GetLatestSLADocumentBySLARegisterID(id uint) (*models.SLADocument, error)
 	StoreSLADocumentFile(slaID uint, fileName string) error
 	RemoveSLADocumentFile(slaID uint, fileNames string) error
-	DeleteSLADocumentByID(docId uint, tx ...utility.DatabaseTransaction) error
 }
 
 // implementation
@@ -412,16 +411,3 @@ func (repo *SLARegisterRepository) RemoveSLADocumentFile(slaID uint, fileName st
 	return nil
 }
 
-
-func (repo *SLARenewRepository) DeleteSLADocumentByID(docID uint, tx ...utility.DatabaseTransaction) error {
-    db := repo.db
-    if len(tx) > 0 && tx[0] != nil {
-        db = tx[0].DB()
-    }
-
-    if err := db.Delete(&models.SLADocument{}, docID).Error; err != nil {
-        return err
-    }
-
-    return nil
-}
