@@ -165,9 +165,9 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	complianceRoutes.PUT("/compliance-register/restore", complianceRegisterController.RestoreComplianceRegisters)
 
 	complianceRoutes.GET("/sla-register", SLARegisterController.GetAllSLARegisters)
-	complianceRoutes.GET("/sla-register/:id", SLARegisterController.GetSLARegisterDetails)
+	complianceRoutes.GET("/sla-register/:slaId", SLARegisterController.GetSLARegisterDetails)
 	complianceRoutes.POST("/sla-register", SLARegisterController.CreateSLARegister)
-	complianceRoutes.PUT("/sla-register/:id", SLARegisterController.UpdateSLARegister)
+	complianceRoutes.PUT("/sla-register/:slaId", SLARegisterController.UpdateSLARegister)
 	complianceRoutes.POST("/sla-register/delete", SLARegisterController.DeleteSLARegisters)
 	complianceRoutes.PUT("/sla-register/archive", SLARegisterController.ArchiveSLARegisters)
 	complianceRoutes.PUT("/sla-register/restore", SLARegisterController.RestoreSLARegisters)
@@ -200,10 +200,11 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	complianceRoutes.POST("/compliances/:complianceId/reviews", complianceReviewController.CreateComplianceReview)
 	complianceRoutes.PUT("/compliances/:complianceId/reviews/:id", complianceReviewController.UpdateComplianceReview)
 
-	// complianceRoutes.GET("/sla-register/:slaId/checks/:checkId/questions", SLACheckQuestionController.GetAllSLACheckQuestions)
 	complianceRoutes.POST("/sla-register/:slaId/checks/:checkId/choose-questions", SLACheckQuestionController.ChooseSLACheckQuestions)
-	complianceRoutes.POST("/sla-register/:slaId/checks/:checkId/questions", SLACheckQuestionController.CreateSLACheckQuestion)
-	// complianceRoutes.PUT("/sla-register/:slaId/checks/:checkId/questions/:id", SLACheckQuestionController.UpdateSLACheckQuestion)
-	// complianceRoutes.DELETE("/sla-register/:slaId/checks/:checkId/questions/:id", SLACheckQuestionRepo.DeleteSLACheckQuestion)
+	complianceRoutes.POST("/sla-register/:slaId/checks/:checkId/add-question", SLACheckQuestionController.CreateSLACheckQuestion)
+	complianceRoutes.PUT("/sla-register/:slaId/checks/:checkId/questions/:id", SLACheckQuestionController.UpdateSLACheckQuestion)
+	complianceRoutes.DELETE("/sla-register/:slaId/checks/:checkId/questions/:id", SLACheckQuestionController.DeleteSLACheckQuestion)
+	complianceRoutes.PUT("/sla-register/:slaId/checks/:checkId/question-groups/:id", SLACheckQuestionController.UpdateSLACheckQuestionGroup)
+	complianceRoutes.DELETE("/sla-register/:slaId/checks/:checkId/question-groups/:id", SLACheckQuestionController.DeleteSLACheckQuestionGroup)
 
 }

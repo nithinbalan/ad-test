@@ -23,6 +23,12 @@ type SLACheckQuestionFormDTO struct {
 	QuestionTitleAr      string `json:"question_title_ar" binding:"required"`
 }
 
-type UpdateSLACheckDTO struct {
-	UpdatedAt *string `json:"updated_at,omitempty"`
+type SLACheckUpdateQuestionGroupDTO struct {
+	QuestionGroupTitleEn string `json:"question_group_title_en" binding:"required"`
+	QuestionGroupTitleAr string `json:"question_group_title_ar" binding:"required"`
+}
+
+type SLACheckUpdateQuestionDTO struct {
+	QuestionTitleEn string `json:"question_title_en" binding:"required"`
+	QuestionTitleAr string `json:"question_title_ar" binding:"required"`
 }

@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"fmt"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/models"
@@ -9,14 +10,18 @@ import (
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	"jethur/utility"
+
+	"gorm.io/gorm"
 )
 
 type SLACheckQuestionServiceInterface interface {
-	// GetAll(slaID uint, checkID uint, sort string, sortBy string, keyword string) ([]*complianceDTOs.SLACheckQuestionListDTO, error)
-	ChooseQuestion(slaID uint, checkID uint, currentUserID uint, checklistQuestionIds []uint) ([]uint, error)
-	Create(slaID uint, checkID uint, currentUserID uint, slaCheckQuestionFormDTO *complianceDTOs.SLACheckQuestionFormDTO) (uint, error)
-	// Update(slaID uint, checkID uint, id uint, currentUserID uint, slaCheckQuestionFormDTO *complianceDTOs.SLACheckQuestionFormDTO) error
-	// Delete(slaID uint, checkID uint, id uint, currentUserID uint) error
+	GetQuestionByID(id uint) (*models.SLACheckQuestion, error)
+	ChooseQuestions(slaID uint, checkID uint, currentUserID uint, checklistQuestionIds []uint) ([]uint, error)
+	CreateQuestion(slaID uint, checkID uint, currentUserID uint, slaCheckQuestionFormDTO *complianceDTOs.SLACheckQuestionFormDTO) (uint, error)
+	UpdateQuestion(slaID uint, checkID uint, groupID uint, currentUserID uint, slaCheckUpdateQuestionDTO *complianceDTOs.SLACheckUpdateQuestionDTO) error
+	DeleteQuestion(slaID, checkId, questionId, currentUserID uint) (uint, error)
+	UpdateQuestionGroup(slaID uint, checkID uint, groupID uint, currentUserID uint, slaCheckUpdateQuestionGroupDTO *complianceDTOs.SLACheckUpdateQuestionGroupDTO) error
+	DeleteQuestionGroup(slaID, checkID, questionGroupID, currentUserID uint) (uint, error)
 }
 
 // Service and implementations
@@ -44,41 +49,43 @@ func NewSLACheckQuestionService(
 	}
 }
 
-// func (sqs *SLACheckQuestionService) GetAll(slaID uint, checkID uint, sort string, sortBy string, keyword string) ([]*complianceDTOs.SLACheckQuestionListDTO, error) {
-// 	// if _, err := sqs.complianceRequirementSvc.GetByID(slaID, checkID); err != nil {
-// 	// 	return nil, err
-// 	// }
+func (scqs SLACheckQuestionService) GetQuestionByID(id uint) (*models.SLACheckQuestion, error) {
+	slaCheckQuestion, err := scqs.repo.GetByID(id)
 
-// 	return sqs.repo.GetAll(checkID, sort, sortBy, keyword)
-// }
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+	return slaCheckQuestion, nil
+}
 
-func (sqs SLACheckQuestionService) ChooseQuestion(slaID uint, checkID uint, currentUserID uint, checklistQuestionIds []uint) ([]uint, error) {
-	if _, err := sqs.slaRegisterSvc.GetByID(slaID); err != nil {
+func (scqs SLACheckQuestionService) ChooseQuestions(slaID uint, checkID uint, currentUserID uint, checklistQuestionIds []uint) ([]uint, error) {
+	if _, err := scqs.slaRegisterSvc.GetByID(slaID); err != nil {
 		return nil, err
 	}
 
 	var failedIds []uint
 	var successfulIds []uint
 	for _, checklistQuestionID := range checklistQuestionIds {
-		checklistQuestion, err := sqs.checklistQuestionSvc.GetByID(checklistQuestionID)
+		checklistQuestion, err := scqs.checklistQuestionSvc.GetByID(checklistQuestionID)
 		if err != nil {
 			return nil, err
 		}
 
 		// Check if a similar question already exists under a similar group
-		existingQuestion, err := sqs.repo.GetSimilarQuestion(checkID, checklistQuestion)
+		existingQuestion, err := scqs.repo.GetSimilarQuestion(checkID, checklistQuestion)
 		if err != nil {
 			return nil, err
 		}
 
 		if existingQuestion != nil {
-			// Skip adding the question
-			successfulIds = append(successfulIds, checklistQuestionID)
 			continue
 		}
 
 		// Check if a group with the same title already exists for the given check ID
-		existingGroup, err := sqs.repo.GetQuestionGroupByTitleAndCheckID(checklistQuestion.QuestionGroup.TitleEn, checkID)
+		existingGroup, err := scqs.repo.GetQuestionGroupByTitleAndCheckID(checklistQuestion.QuestionGroup.TitleEn, checkID)
 		if err != nil {
 			return nil, err
 		}
@@ -97,7 +104,7 @@ func (sqs SLACheckQuestionService) ChooseQuestion(slaID uint, checkID uint, curr
 			}
 
 			// Create the new group
-			groupID, err := sqs.repo.CreateQuestionGroup(slaCheckQuestionGroup)
+			groupID, err := scqs.repo.CreateQuestionGroup(slaCheckQuestionGroup)
 			if err != nil {
 				return nil, err
 			}
@@ -112,7 +119,7 @@ func (sqs SLACheckQuestionService) ChooseQuestion(slaID uint, checkID uint, curr
 			CreatedBy:               currentUserID,
 		}
 
-		_, err = sqs.repo.CreateQuestion(slaCheckQuestion)
+		_, err = scqs.repo.CreateQuestion(slaCheckQuestion)
 
 		if err != nil {
 			failedIds = append(failedIds, checklistQuestionID)
@@ -123,7 +130,7 @@ func (sqs SLACheckQuestionService) ChooseQuestion(slaID uint, checkID uint, curr
 
 	if len(successfulIds) > 0 {
 		go func() {
-			err := sqs.activityLogSvc.LogBulkActivities(
+			err := scqs.activityLogSvc.LogBulkActivities(
 				logModels.CreateAction,
 				models.SLACheckQuestion{}.TableName(),
 				successfulIds,
@@ -141,15 +148,15 @@ func (sqs SLACheckQuestionService) ChooseQuestion(slaID uint, checkID uint, curr
 	return failedIds, nil
 }
 
-func (sqs *SLACheckQuestionService) Create(slaID uint, checkID uint, currentUserID uint, slaCheckQuestionFormDTO *complianceDTOs.SLACheckQuestionFormDTO) (uint, error) {
-	if _, err := sqs.slaRegisterSvc.GetByID(slaID); err != nil {
+func (scqs *SLACheckQuestionService) CreateQuestion(slaID uint, checkID uint, currentUserID uint, slaCheckQuestionFormDTO *complianceDTOs.SLACheckQuestionFormDTO) (uint, error) {
+	if _, err := scqs.slaRegisterSvc.GetByID(slaID); err != nil {
 		return 0, err
 	}
 
 	var slaCheckQuestionGroupId uint
 	if slaCheckQuestionFormDTO.QuestionGroupID != 0 {
 		// Use the provided question group ID to fetch the title
-		group, err := sqs.questionGroupSvc.GetByID(slaCheckQuestionFormDTO.QuestionGroupID)
+		group, err := scqs.questionGroupSvc.GetByID(slaCheckQuestionFormDTO.QuestionGroupID)
 		if err != nil {
 			return 0, err
 		}
@@ -165,7 +172,7 @@ func (sqs *SLACheckQuestionService) Create(slaID uint, checkID uint, currentUser
 		CreatedBy:  currentUserID,
 	}
 
-	groupID, err := sqs.repo.CreateQuestionGroup(slaCheckQuestionGroup)
+	groupID, err := scqs.repo.CreateQuestionGroup(slaCheckQuestionGroup)
 	if err != nil {
 		return 0, err
 	}
@@ -178,13 +185,13 @@ func (sqs *SLACheckQuestionService) Create(slaID uint, checkID uint, currentUser
 		CreatedBy:               currentUserID,
 	}
 
-	slaCheckQuestionId, err := sqs.repo.CreateQuestion(slaCheckQuestion)
+	slaCheckQuestionId, err := scqs.repo.CreateQuestion(slaCheckQuestion)
 	if err != nil {
 		return 0, err
 	}
 
 	go func() {
-		err := sqs.activityLogSvc.LogActivity(
+		err := scqs.activityLogSvc.LogActivity(
 			logModels.CreateAction,
 			models.SLACheckQuestion{}.TableName(),
 			slaCheckQuestionId,
@@ -209,40 +216,215 @@ func (sqs *SLACheckQuestionService) Create(slaID uint, checkID uint, currentUser
 	return slaCheckQuestionGroupId, nil
 }
 
-func (sqs *SLACheckQuestionService) Update(slaID uint, checkID uint, id uint, currentUserID uint, slaCheckQuestionFormDTO *complianceDTOs.SLACheckQuestionFormDTO) error {
-	if _, err := sqs.slaRegisterSvc.GetByID(slaID); err != nil {
+func (scqs *SLACheckQuestionService) UpdateQuestion(slaID uint, checkID uint, questionID uint, currentUserID uint, slaCheckUpdateQuestionDTO *complianceDTOs.SLACheckUpdateQuestionDTO) error {
+	if _, err := scqs.slaRegisterSvc.GetByID(slaID); err != nil {
+		return err
+	}
+	// Fetch the SLACheckQuestion by ID
+	question, err := scqs.GetQuestionByID(questionID)
+
+	if err != nil {
 		return err
 	}
 
-	// existingSLACheckQuestion, err := sqs.GetByID(slaID, checkID, id)
+	// Update the titles if provided
+	if slaCheckUpdateQuestionDTO.QuestionTitleEn != "" {
+		question.TitleEn = slaCheckUpdateQuestionDTO.QuestionTitleEn
+	}
+	if slaCheckUpdateQuestionDTO.QuestionTitleAr != "" {
+		question.TitleAr = slaCheckUpdateQuestionDTO.QuestionTitleAr
+	}
 
-	// if err != nil {
-	// 	return err
-	// }
+	// Update the SLACheckQuestionGroup
+	err = scqs.repo.UpdateQuestion(question)
+	if err != nil {
+		return err
+	}
 
-	// if err := sqs.validateSLACheckQuestionFormDTO(slaCheckQuestionFormDTO); err != nil {
-	// 	return err
-	// }
+	// Log the activity
+	go func() {
+		err := scqs.activityLogSvc.LogActivity(
+			logModels.UpdateAction,
+			models.SLACheckQuestion{}.TableName(),
+			questionID,
+			question,
+			currentUserID,
+			nil,
+		)
 
-	// // Update SLACheckQuestion
-	// existingSLACheckQuestion.ComplianceStatusID = slaCheckQuestionFormDTO.ComplianceStatusID
-	// existingSLACheckQuestion.Comment = slaCheckQuestionFormDTO.Comment
-	// existingSLACheckQuestion.UpdatedBy = &currentUserID
+		if err != nil {
+			fields := map[string]interface{}{
+				"action":    logModels.UpdateAction,
+				"tableName": models.SLACheckQuestion{}.TableName(),
+				"recordID":  questionID,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			}
 
-	// err = sqs.repo.Update(existingSLACheckQuestion)
-
-	// if err != nil {
-	// 	return err
-	// }
+			utility.LogError("Failed to log activity", fields)
+		}
+	}()
 
 	return nil
 }
 
-// func (sqs *SLACheckQuestionService) validateSLACheckQuestionFormDTO(slaCheckQuestionFormDTO *complianceDTOs.SLACheckQuestionFormDTO) error {
+func (scqs *SLACheckQuestionService) DeleteQuestion(slaID, checkId, questionId, currentUserID uint) (uint, error) {
+	var failedId uint
+	var successfulId uint
 
-// 	if _, err := sqs.complianceStatusSvc.GetByID(slaCheckQuestionFormDTO.ComplianceStatusID); err != nil {
-// 		return utility.NewValidationError(fmt.Errorf("compliance status does not exist"), "not_exist", "compliance status")
-// 	}
+	question, err := scqs.GetQuestionByID(questionId)
+	if err != nil {
+		return 0, err
+	}
 
-// 	return nil
-// }
+	err = scqs.repo.DeleteQuestion(questionId)
+	if err != nil {
+		failedId = questionId
+	} else {
+		successfulId = questionId
+	}
+
+	if successfulId != 0 {
+		go func() {
+			err := scqs.activityLogSvc.LogActivity(
+				logModels.DeleteAction,
+				models.SLACheckQuestion{}.TableName(),
+				successfulId,
+				question,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				fmt.Printf("Failed to log activity: %v\n", err)
+			}
+		}()
+	}
+
+	return failedId, nil
+}
+
+func (scqs *SLACheckQuestionService) UpdateQuestionGroup(slaID uint, checkID uint, groupID uint, currentUserID uint, slaCheckUpdateQuestionGroupDTO *complianceDTOs.SLACheckUpdateQuestionGroupDTO) error {
+	if _, err := scqs.slaRegisterSvc.GetByID(slaID); err != nil {
+		return err
+	}
+	// Fetch the SLACheckQuestionGroup by ID
+	group, err := scqs.repo.GetQuestionGroupByID(groupID)
+	if err != nil {
+		return err
+	}
+
+	// Update the titles if provided
+	if slaCheckUpdateQuestionGroupDTO.QuestionGroupTitleEn != "" {
+		group.TitleEn = slaCheckUpdateQuestionGroupDTO.QuestionGroupTitleEn
+	}
+	if slaCheckUpdateQuestionGroupDTO.QuestionGroupTitleAr != "" {
+		group.TitleAr = slaCheckUpdateQuestionGroupDTO.QuestionGroupTitleAr
+	}
+
+	// Update the SLACheckQuestionGroup
+	err = scqs.repo.UpdateQuestionGroup(group)
+	if err != nil {
+		return err
+	}
+
+	// Log the activity
+	go func() {
+		err := scqs.activityLogSvc.LogActivity(
+			logModels.UpdateAction,
+			models.SLACheckQuestionGroup{}.TableName(),
+			groupID,
+			group,
+			currentUserID,
+			nil,
+		)
+
+		if err != nil {
+			fields := map[string]interface{}{
+				"action":    logModels.UpdateAction,
+				"tableName": models.SLACheckQuestionGroup{}.TableName(),
+				"recordID":  groupID,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			}
+
+			utility.LogError("Failed to log activity", fields)
+		}
+	}()
+
+	return nil
+}
+
+func (scqs *SLACheckQuestionService) DeleteQuestionGroup(slaID, checkID, questionGroupID, currentUserID uint) (uint, error) {
+	var failedQuestionIDs []uint
+	var successfulQuestionIDs []uint
+	var failedGroupID uint
+	var successfulGroupID uint
+
+	// Fetch the SLACheckQuestionGroup by ID
+	questionGroup, err := scqs.repo.GetQuestionGroupByID(questionGroupID)
+	if err != nil {
+		return 0, err
+	}
+
+	// Fetch all questions under the question group
+	questions, err := scqs.repo.GetQuestionsByGroupID(questionGroupID)
+	if err != nil {
+		return 0, err
+	}
+
+	// Delete each question
+	for _, question := range questions {
+		err = scqs.repo.DeleteQuestion(question.ID)
+		if err != nil {
+			failedQuestionIDs = append(failedQuestionIDs, question.ID)
+		} else {
+			successfulQuestionIDs = append(successfulQuestionIDs, question.ID)
+		}
+	}
+
+	// If all questions were successfully deleted, delete the question group
+	if len(failedQuestionIDs) == 0 {
+		err = scqs.repo.DeleteQuestionGroup(questionGroupID)
+		if err != nil {
+			failedGroupID = questionGroupID
+		} else {
+			successfulGroupID = questionGroupID
+		}
+	}
+
+	// Log the activity for successful deletion
+	if len(successfulQuestionIDs) > 0 {
+		go func() {
+			err := scqs.activityLogSvc.LogBulkActivities(
+				logModels.DeleteAction,
+				models.SLACheckQuestion{}.TableName(),
+				successfulQuestionIDs,
+				nil,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				// @todo - save to log file
+				fmt.Printf("Failed to log activity: %v\n", err)
+			}
+		}()
+	}
+
+	if successfulGroupID != 0 {
+		go func() {
+			err := scqs.activityLogSvc.LogActivity(
+				logModels.DeleteAction,
+				models.SLACheckQuestionGroup{}.TableName(),
+				successfulGroupID,
+				questionGroup,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				fmt.Printf("Failed to log activity: %v\n", err)
+			}
+		}()
+	}
+
+	return failedGroupID, nil
+}
