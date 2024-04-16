@@ -12,7 +12,6 @@ type SLADocument struct {
 	IssueDate     *time.Time `json:"issue_date" binding:"omitempty" gorm:"type:date"`
 	ExpiryDate    *time.Time `json:"expiry_date" binding:"omitempty" gorm:"type:date"`
 	Comment       *string    `json:"comment"`
-	Language      string     `json:"language" binding:"required"`
 	URL           string     `json:"url"`
 	Name          string     `json:"name" binding:"required"`
 	Size          int        `json:"size"`

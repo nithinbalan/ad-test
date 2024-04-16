@@ -112,7 +112,6 @@ func (srs *SLARenewService) Renew(slaId uint, currentUserID uint, slaRenewFormDT
 	slaDocument := &complianceModels.SLADocument{
 		SLARegisterID: existingSLADocument.SLARegisterID,
 		Version:       newVersionStr, //@review, Need to increment version
-		Language:      "en",
 		IssueDate:     dates.IssueDate,
 		ExpiryDate:    dates.ExpiryDate,
 		SA1Date:       dates.SA1Date,
@@ -204,7 +203,7 @@ func (srs *SLARenewService) Revert(slaId uint, currentUserID uint) error {
 		return err
 	}
 	// Delete existing SLA document
-	if err := srs.repo.DeleteSLADocumentByID(existingSLADocument.ID, tx); err != nil {
+	if err := srs.slaRegRepo.DeleteSLADocumentByID(existingSLADocument.ID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}

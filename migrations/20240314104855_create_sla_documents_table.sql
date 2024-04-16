@@ -7,8 +7,6 @@ CREATE TABLE sla_documents (
     issue_date DATE NULL,
     expiry_date DATE NULL,
     comment VARCHAR(MAX) NULL,
-    language VARCHAR(10) NOT NULL, -- Assuming language codes like 'en' and 'ar'
-        CONSTRAINT CHK_sla_documents_language CHECK (language IN ('en', 'ar')),
     url VARCHAR(255) DEFAULT NULL,
     name VARCHAR(255) NULL,
     size INT DEFAULT NULL,
