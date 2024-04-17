@@ -110,7 +110,7 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *co
 		return 0, err
 	}
 
-	url := fmt.Sprintf("%s/sla-registers/%d/%s", config.GetEnv("API_URL", "http://localhost:8080"), slaRegister.ID, encryptedFilename)
+	url := fmt.Sprintf("%s/sla-register/%d/%s", config.GetEnv("API_URL", "http://localhost:8080"), slaRegister.ID, encryptedFilename)
 
 	slaDocument := &complianceModels.SLADocument{
 		SLARegisterID: id,
@@ -228,7 +228,7 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 				tx.Rollback()
 				return err
 			}
-			url := fmt.Sprintf("%s/sla-registers/%d/%s", config.GetEnv("API_URL", "http://localhost:8080"), id, encryptedFilename)
+			url := fmt.Sprintf("%s/sla-register/%d/%s", config.GetEnv("API_URL", "http://localhost:8080"), id, encryptedFilename)
 
 			existingSLADocument.URL = url
 			existingSLADocument.Icon = slaRegisterFormDTO.Document.Icon
