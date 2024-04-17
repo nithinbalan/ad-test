@@ -4,7 +4,6 @@ import (
 	"errors"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/models"
-	masterModels "jethur/grc/masters/models"
 
 	"gorm.io/gorm"
 )
@@ -19,9 +18,10 @@ type SLACheckQuestionRepositoryInterface interface {
 	CreateQuestionGroup(slaCheckQuestionGroup *models.SLACheckQuestionGroup) (uint, error)
 	UpdateQuestionGroup(group *models.SLACheckQuestionGroup) error
 	DeleteQuestionGroup(id uint) error
-	GetSimilarQuestion(checkID uint, question *masterModels.ChecklistQuestion) (*models.SLACheckQuestion, error)
+	GetSimilarQuestion(checkID uint, titleEn string, titleAr string) (*models.SLACheckQuestion, error)
 	GetSimilarQuestionGroup(titleEn string, titleAr string, checkID uint) (*models.SLACheckQuestionGroup, error)
 	GetQuestionsByGroupID(groupID uint) ([]models.SLACheckQuestion, error)
+	IncrementTotalCount(groupID uint) error
 }
 
 type SLACheckQuestionRepository struct {
@@ -129,10 +129,10 @@ func (repo *SLACheckQuestionRepository) DeleteQuestionGroup(id uint) error {
 	return nil
 }
 
-func (repo *SLACheckQuestionRepository) GetSimilarQuestion(checkID uint, question *masterModels.ChecklistQuestion) (*models.SLACheckQuestion, error) {
+func (repo *SLACheckQuestionRepository) GetSimilarQuestion(checkID uint, titleEn string, titleAr string) (*models.SLACheckQuestion, error) {
 	var slaCheckQuestion models.SLACheckQuestion
 	if err := repo.db.
-		Where("sla_check_question_group_id IN (SELECT id FROM sla_check_question_groups WHERE sla_check_id = ?) AND (title_en = ? OR title_ar = ?)", checkID, question.QuestionEn, question.QuestionAr).
+		Where("sla_check_question_group_id IN (SELECT id FROM sla_check_question_groups WHERE sla_check_id = ?) AND (title_en = ? OR title_ar = ?)", checkID, titleEn, titleAr).
 		First(&slaCheckQuestion).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
@@ -159,4 +159,20 @@ func (repo *SLACheckQuestionRepository) GetQuestionsByGroupID(groupID uint) ([]m
 		return nil, err
 	}
 	return questions, nil
+}
+
+// IncrementTotalCount increments the total count of SLACheckQuestionGroup by 1
+func (repo *SLACheckQuestionRepository) IncrementTotalCount(groupID uint) error {
+	var group models.SLACheckQuestionGroup
+	if err := repo.db.First(&group, groupID).Error; err != nil {
+		return err
+	}
+
+	group.TotalCount++
+
+	if err := repo.db.Save(&group).Error; err != nil {
+		return err
+	}
+
+	return nil
 }

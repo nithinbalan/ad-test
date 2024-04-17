@@ -76,7 +76,7 @@ func (scqs SLACheckQuestionService) ChooseQuestions(slaID uint, checkID uint, cu
 		}
 
 		// Check if a similar question already exists under a similar group
-		existingQuestion, err := scqs.repo.GetSimilarQuestion(checkID, checklistQuestion)
+		existingQuestion, err := scqs.repo.GetSimilarQuestion(checkID, checklistQuestion.QuestionEn, checklistQuestion.QuestionAr)
 		if err != nil {
 			return nil, err
 		}
@@ -118,6 +118,12 @@ func (scqs SLACheckQuestionService) ChooseQuestions(slaID uint, checkID uint, cu
 			TitleEn:                 checklistQuestion.QuestionEn,
 			TitleAr:                 checklistQuestion.QuestionAr,
 			CreatedBy:               currentUserID,
+		}
+
+		// Update total count of the SLACheckQuestionGroup
+		err = scqs.repo.IncrementTotalCount(slaCheckQuestionGroupId)
+		if err != nil {
+			return nil, err
 		}
 
 		_, err = scqs.repo.CreateQuestion(slaCheckQuestion)
@@ -177,6 +183,7 @@ func (scqs *SLACheckQuestionService) CreateQuestion(slaID uint, checkID uint, cu
 	if err != nil {
 		return 0, err
 	}
+
 	slaCheckQuestionGroupId = groupID
 
 	slaCheckQuestion := &models.SLACheckQuestion{
@@ -187,6 +194,12 @@ func (scqs *SLACheckQuestionService) CreateQuestion(slaID uint, checkID uint, cu
 	}
 
 	slaCheckQuestionId, err := scqs.repo.CreateQuestion(slaCheckQuestion)
+	if err != nil {
+		return 0, err
+	}
+
+	// Update total count of the SLACheckQuestionGroup
+	err = scqs.repo.IncrementTotalCount(slaCheckQuestionGroupId)
 	if err != nil {
 		return 0, err
 	}
