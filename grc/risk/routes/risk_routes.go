@@ -50,6 +50,14 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	potentialRiskStatusUpdateSvc := riskServices.NewPotentialRiskStatusUpdateService(potentialRiskStatusUpdateRepo, activityLogSvc, potentialRiskSvc, potentialRiskStatusSvc)
 	potentialRiskStatusUpdateController := controllers.NewPotentialRiskStatusUpdateController(potentialRiskStatusUpdateSvc)
 
+	riskAppetiteStatementRepo := riskRepositories.NewRiskAppetiteStatementRepository(db)
+	riskAppetiteStatementSvc := riskServices.NewRiskAppetiteStatementService(
+		riskAppetiteStatementRepo,
+		activityLogSvc,
+		riskCategorySvc,
+	)
+	riskAppetiteStatementController := controllers.NewRiskAppetiteStatementController(riskAppetiteStatementSvc)
+
 	riskRoutes.GET("/risk-categories", riskCategoryController.GetAllRiskCategories)
 	riskRoutes.GET("/risk-categories/:id", riskCategoryController.GetRiskCategoryDetails)
 	riskRoutes.POST("/risk-categories", riskCategoryController.CreateRiskCategory)
@@ -70,4 +78,11 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	riskRoutes.GET("/potential-risks/:id/status-updates", potentialRiskStatusUpdateController.GetAllPotentialRiskStatusUpdates)
 	riskRoutes.POST("/potential-risks/:id/status-updates", potentialRiskStatusUpdateController.CreatePotentialRiskStatusUpdate)
 
+	riskRoutes.GET("/risk-appetite-statments", riskAppetiteStatementController.GetAllRiskAppetiteStatements)
+	riskRoutes.GET("/risk-appetite-statments/:id", riskAppetiteStatementController.GetRiskAppetiteStatementDetails)
+	riskRoutes.POST("/risk-appetite-statments", riskAppetiteStatementController.CreateRiskAppetiteStatement)
+	riskRoutes.PUT("/risk-appetite-statments/:id", riskAppetiteStatementController.UpdateRiskAppetiteStatement)
+	riskRoutes.POST("/risk-appetite-statments/delete", riskAppetiteStatementController.DeleteRiskAppetiteStatements)
+	riskRoutes.PUT("/risk-appetite-statments/activate", riskAppetiteStatementController.ActivateRiskAppetiteStatements)
+	riskRoutes.PUT("/risk-appetite-statments/deactivate", riskAppetiteStatementController.DeactivateRiskAppetiteStatements)
 }
