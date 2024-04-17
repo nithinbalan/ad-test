@@ -9,18 +9,18 @@ import (
 )
 
 type SLACheckQuestionRepositoryInterface interface {
-	GetQuestionByID(id uint) (*models.SLACheckQuestion, error)
-	CreateQuestion(slaCheckQuestion *models.SLACheckQuestion) (uint, error)
-	UpdateQuestion(SLACheckQuestion *models.SLACheckQuestion) error
-	DeleteQuestion(id uint) error
 	GetAllQuestionGroups(checkID uint) ([]*complianceDTOs.SLACheckQuestionGroupListDTO, error)
 	GetQuestionGroupByID(groupID uint) (*models.SLACheckQuestionGroup, error)
 	CreateQuestionGroup(slaCheckQuestionGroup *models.SLACheckQuestionGroup) (uint, error)
 	UpdateQuestionGroup(group *models.SLACheckQuestionGroup) error
 	DeleteQuestionGroup(id uint) error
+	GetQuestionsByGroupID(groupID uint) ([]models.SLACheckQuestion, error)
+	GetQuestionByID(id uint) (*models.SLACheckQuestion, error)
+	CreateQuestion(slaCheckQuestion *models.SLACheckQuestion) (uint, error)
+	UpdateQuestion(SLACheckQuestion *models.SLACheckQuestion) error
+	DeleteQuestion(id uint) error
 	GetSimilarQuestion(checkID uint, titleEn string, titleAr string) (*models.SLACheckQuestion, error)
 	GetSimilarQuestionGroup(titleEn string, titleAr string, checkID uint) (*models.SLACheckQuestionGroup, error)
-	GetQuestionsByGroupID(groupID uint) ([]models.SLACheckQuestion, error)
 	IncrementTotalCount(groupID uint) error
 }
 
@@ -32,49 +32,6 @@ func NewSLACheckQuestionRepository(db *gorm.DB) *SLACheckQuestionRepository {
 	return &SLACheckQuestionRepository{
 		db: db,
 	}
-}
-
-func (repo *SLACheckQuestionRepository) GetQuestionByID(id uint) (*models.SLACheckQuestion, error) {
-	var SLACheckQuestion *models.SLACheckQuestion
-
-	result := repo.db.First(&SLACheckQuestion, id)
-	if result.Error != nil {
-		return nil, result.Error
-	}
-
-	return SLACheckQuestion, nil
-
-}
-
-func (repo *SLACheckQuestionRepository) CreateQuestion(slaCheckQuestion *models.SLACheckQuestion) (uint, error) {
-
-	if err := repo.db.Create(slaCheckQuestion).Error; err != nil {
-		return 0, err
-	}
-
-	return slaCheckQuestion.ID, nil
-}
-
-func (repo *SLACheckQuestionRepository) UpdateQuestion(SLACheckQuestion *models.SLACheckQuestion) error {
-	if err := repo.db.Save(SLACheckQuestion).Error; err != nil {
-		return err
-	}
-	return nil
-}
-
-func (repo *SLACheckQuestionRepository) DeleteQuestion(id uint) error {
-
-	var slaCheckQuestion *models.SLACheckQuestion
-	if err := repo.db.First(&slaCheckQuestion, id).Error; err != nil {
-		return err
-	}
-
-	result := repo.db.Delete(&models.SLACheckQuestion{}, id)
-	if result.Error != nil {
-		return result.Error
-	}
-
-	return nil
 }
 
 func (repo *SLACheckQuestionRepository) GetAllQuestionGroups(checkID uint) ([]*complianceDTOs.SLACheckQuestionGroupListDTO, error) {
@@ -122,6 +79,49 @@ func (repo *SLACheckQuestionRepository) DeleteQuestionGroup(id uint) error {
 	}
 
 	result := repo.db.Delete(&models.SLACheckQuestionGroup{}, id)
+	if result.Error != nil {
+		return result.Error
+	}
+
+	return nil
+}
+
+func (repo *SLACheckQuestionRepository) GetQuestionByID(id uint) (*models.SLACheckQuestion, error) {
+	var SLACheckQuestion *models.SLACheckQuestion
+
+	result := repo.db.First(&SLACheckQuestion, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return SLACheckQuestion, nil
+
+}
+
+func (repo *SLACheckQuestionRepository) CreateQuestion(slaCheckQuestion *models.SLACheckQuestion) (uint, error) {
+
+	if err := repo.db.Create(slaCheckQuestion).Error; err != nil {
+		return 0, err
+	}
+
+	return slaCheckQuestion.ID, nil
+}
+
+func (repo *SLACheckQuestionRepository) UpdateQuestion(SLACheckQuestion *models.SLACheckQuestion) error {
+	if err := repo.db.Save(SLACheckQuestion).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *SLACheckQuestionRepository) DeleteQuestion(id uint) error {
+
+	var slaCheckQuestion *models.SLACheckQuestion
+	if err := repo.db.First(&slaCheckQuestion, id).Error; err != nil {
+		return err
+	}
+
+	result := repo.db.Delete(&models.SLACheckQuestion{}, id)
 	if result.Error != nil {
 		return result.Error
 	}

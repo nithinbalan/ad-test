@@ -23,6 +23,161 @@ func NewSLACheckQuestionController(service services.SLACheckQuestionServiceInter
 	}
 }
 
+func (scqc *SLACheckQuestionController) GetAllSLACheckQuestionGroups(c *gin.Context) {
+	slaIDStr := c.Param("slaId")
+
+	slaID, err := strconv.ParseUint(slaIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	checkIdStr := c.Param("checkId")
+
+	checkId, err := strconv.ParseUint(checkIdStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	slaCheckQuestionGroups, err := scqc.service.GetAllQuestionGroups(uint(slaID), uint(checkId))
+
+	if err != nil {
+		utility.SendInternalErrResp(scqc.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, slaCheckQuestionGroups)
+}
+
+func (scqc *SLACheckQuestionController) UpdateSLACheckQuestionGroup(c *gin.Context) {
+	var slaCheckUpdateQuestionGroupDTO complianceDTOs.SLACheckUpdateQuestionGroupDTO
+
+	slaIDStr := c.Param("slaId")
+
+	slaID, err := strconv.ParseUint(slaIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	checkIdStr := c.Param("checkId")
+
+	checkId, err := strconv.ParseUint(checkIdStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	questionGroupIdStr := c.Param("id")
+
+	questionGroupId, err := strconv.ParseUint(questionGroupIdStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&slaCheckUpdateQuestionGroupDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(scqc.db, c, err.Error())
+		return
+	}
+
+	err = scqc.service.UpdateQuestionGroup(uint(slaID), uint(checkId), uint(questionGroupId), currentUserID, &slaCheckUpdateQuestionGroupDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(scqc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (scqc *SLACheckQuestionController) DeleteSLACheckQuestionGroup(c *gin.Context) {
+	slaIDStr := c.Param("slaId")
+
+	slaID, err := strconv.ParseUint(slaIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	checkIdStr := c.Param("checkId")
+
+	checkId, err := strconv.ParseUint(checkIdStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	questionGroupIdStr := c.Param("id")
+
+	questionGroupId, err := strconv.ParseUint(questionGroupIdStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(scqc.db, c, err.Error())
+		return
+	}
+
+	failedID, err := scqc.service.DeleteQuestionGroup(uint(slaID), uint(checkId), uint(questionGroupId), currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(scqc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"failed_id": failedID})
+}
+
+func (scqc *SLACheckQuestionController) GetSLACheckQuestionsByGroup(c *gin.Context) {
+	slaIDStr := c.Param("slaId")
+
+	slaID, err := strconv.ParseUint(slaIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	checkIdStr := c.Param("checkId")
+
+	checkId, err := strconv.ParseUint(checkIdStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	groupIdStr := c.Param("id")
+
+	groupId, err := strconv.ParseUint(groupIdStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	slaCheckQuestions, err := scqc.service.GetQuestionsByGroupID(uint(slaID), uint(checkId), uint(groupId))
+
+	if err != nil {
+		utility.SendInternalErrResp(scqc.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, slaCheckQuestions)
+}
+
 func (scqc *SLACheckQuestionController) ChooseSLACheckQuestions(c *gin.Context) {
 
 	var request struct {
@@ -212,127 +367,6 @@ func (scqc *SLACheckQuestionController) DeleteSLACheckQuestion(c *gin.Context) {
 	}
 
 	failedID, err := scqc.service.DeleteQuestion(uint(slaID), uint(checkId), uint(questionId), currentUserID)
-	if err != nil {
-		utility.SendInternalErrResp(scqc.db, c, err.Error())
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"failed_id": failedID})
-}
-
-func (scqc *SLACheckQuestionController) GetAllSLACheckQuestionGroups(c *gin.Context) {
-	slaIDStr := c.Param("slaId")
-
-	slaID, err := strconv.ParseUint(slaIDStr, 10, 64)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	checkIdStr := c.Param("checkId")
-
-	checkId, err := strconv.ParseUint(checkIdStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	slaCheckQuestionGroups, err := scqc.service.GetAllQuestionGroups(uint(slaID), uint(checkId))
-
-	if err != nil {
-		utility.SendInternalErrResp(scqc.db, c, err.Error())
-		return
-	}
-	c.JSON(http.StatusOK, slaCheckQuestionGroups)
-}
-
-func (scqc *SLACheckQuestionController) UpdateSLACheckQuestionGroup(c *gin.Context) {
-	var slaCheckUpdateQuestionGroupDTO complianceDTOs.SLACheckUpdateQuestionGroupDTO
-
-	slaIDStr := c.Param("slaId")
-
-	slaID, err := strconv.ParseUint(slaIDStr, 10, 64)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	checkIdStr := c.Param("checkId")
-
-	checkId, err := strconv.ParseUint(checkIdStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	questionGroupIdStr := c.Param("id")
-
-	questionGroupId, err := strconv.ParseUint(questionGroupIdStr, 10, 64)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	if err := c.ShouldBindJSON(&slaCheckUpdateQuestionGroupDTO); err != nil {
-		utility.SendInvalidErrResp(c, err)
-		return
-	}
-
-	currentUserID, err := utility.GetCurrentUserID(c)
-	if err != nil {
-		utility.SendInternalErrResp(scqc.db, c, err.Error())
-		return
-	}
-
-	err = scqc.service.UpdateQuestionGroup(uint(slaID), uint(checkId), uint(questionGroupId), currentUserID, &slaCheckUpdateQuestionGroupDTO)
-	if err != nil {
-		switch e := err.(type) {
-		case *utility.ResourceNotFoundError:
-			utility.SendNotFoundErrResp(c)
-			return
-		case *utility.ValidationError:
-			utility.SendInvalidErrResp(c, e)
-			return
-		default:
-			utility.SendInternalErrResp(scqc.db, c, e.Error())
-			return
-		}
-	}
-
-	c.Status(http.StatusOK)
-}
-
-func (scqc *SLACheckQuestionController) DeleteSLACheckQuestionGroup(c *gin.Context) {
-	slaIDStr := c.Param("slaId")
-
-	slaID, err := strconv.ParseUint(slaIDStr, 10, 64)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	checkIdStr := c.Param("checkId")
-
-	checkId, err := strconv.ParseUint(checkIdStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	questionGroupIdStr := c.Param("id")
-
-	questionGroupId, err := strconv.ParseUint(questionGroupIdStr, 10, 64)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-	currentUserID, err := utility.GetCurrentUserID(c)
-	if err != nil {
-		utility.SendInternalErrResp(scqc.db, c, err.Error())
-		return
-	}
-
-	failedID, err := scqc.service.DeleteQuestionGroup(uint(slaID), uint(checkId), uint(questionGroupId), currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(scqc.db, c, err.Error())
 		return
