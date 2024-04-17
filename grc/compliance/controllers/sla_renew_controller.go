@@ -23,7 +23,7 @@ func NewSLARenewController(service services.SLARenewServiceInterface) *SLARenewC
 }
 
 func (src *SLARenewController) GetSLARenewHistory(c *gin.Context) {
-	slaId, err := strconv.Atoi(c.Param("id"))
+	slaId, err := strconv.Atoi(c.Param("slaId"))
 	sort := c.Query("sort")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
@@ -69,7 +69,7 @@ func (src *SLARenewController) GetSLARenewHistory(c *gin.Context) {
 }
 
 func (src *SLARenewController) Renew(c *gin.Context) {
-	slaId, err := strconv.Atoi(c.Param("id"))
+	slaId, err := strconv.Atoi(c.Param("slaId"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -108,7 +108,7 @@ func (src *SLARenewController) Renew(c *gin.Context) {
 }
 
 func (src *SLARenewController) Revert(c *gin.Context) {
-	slaId, err := strconv.Atoi(c.Param("id"))
+	slaId, err := strconv.Atoi(c.Param("slaId"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
