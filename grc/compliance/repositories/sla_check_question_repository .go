@@ -1,8 +1,8 @@
 package repositories
 
 import (
-	// complianceDTOs "jethur/grc/compliance/dtos"
 	"errors"
+	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/models"
 	masterModels "jethur/grc/masters/models"
 
@@ -14,6 +14,7 @@ type SLACheckQuestionRepositoryInterface interface {
 	CreateQuestion(slaCheckQuestion *models.SLACheckQuestion) (uint, error)
 	UpdateQuestion(SLACheckQuestion *models.SLACheckQuestion) error
 	DeleteQuestion(id uint) error
+	GetAllQuestionGroups(checkID uint) ([]*complianceDTOs.SLACheckQuestionGroupListDTO, error)
 	GetQuestionGroupByID(groupID uint) (*models.SLACheckQuestionGroup, error)
 	CreateQuestionGroup(slaCheckQuestionGroup *models.SLACheckQuestionGroup) (uint, error)
 	UpdateQuestionGroup(group *models.SLACheckQuestionGroup) error
@@ -74,6 +75,16 @@ func (repo *SLACheckQuestionRepository) DeleteQuestion(id uint) error {
 	}
 
 	return nil
+}
+
+func (repo *SLACheckQuestionRepository) GetAllQuestionGroups(checkID uint) ([]*complianceDTOs.SLACheckQuestionGroupListDTO, error) {
+	var slaCheckQuestionGroups []*complianceDTOs.SLACheckQuestionGroupListDTO
+
+	if err := repo.db.Table("sla_check_question_groups").Where("sla_check_id = ?", checkID).Find(&slaCheckQuestionGroups).Error; err != nil {
+		return nil, err
+	}
+
+	return slaCheckQuestionGroups, nil
 }
 
 func (repo *SLACheckQuestionRepository) GetQuestionGroupByID(groupID uint) (*models.SLACheckQuestionGroup, error) {

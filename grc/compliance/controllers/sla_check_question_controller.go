@@ -220,6 +220,32 @@ func (scqc *SLACheckQuestionController) DeleteSLACheckQuestion(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"failed_id": failedID})
 }
 
+func (scqc *SLACheckQuestionController) GetAllSLACheckQuestionGroups(c *gin.Context) {
+	slaIDStr := c.Param("slaId")
+
+	slaID, err := strconv.ParseUint(slaIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	checkIdStr := c.Param("checkId")
+
+	checkId, err := strconv.ParseUint(checkIdStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	slaCheckQuestionGroups, err := scqc.service.GetAllQuestionGroups(uint(slaID), uint(checkId))
+
+	if err != nil {
+		utility.SendInternalErrResp(scqc.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, slaCheckQuestionGroups)
+}
+
 func (scqc *SLACheckQuestionController) UpdateSLACheckQuestionGroup(c *gin.Context) {
 	var slaCheckUpdateQuestionGroupDTO complianceDTOs.SLACheckUpdateQuestionGroupDTO
 

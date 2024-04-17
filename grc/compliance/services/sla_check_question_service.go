@@ -20,6 +20,7 @@ type SLACheckQuestionServiceInterface interface {
 	CreateQuestion(slaID uint, checkID uint, currentUserID uint, slaCheckQuestionFormDTO *complianceDTOs.SLACheckQuestionFormDTO) (uint, error)
 	UpdateQuestion(slaID uint, checkID uint, groupID uint, currentUserID uint, slaCheckUpdateQuestionDTO *complianceDTOs.SLACheckUpdateQuestionDTO) error
 	DeleteQuestion(slaID, checkId, questionId, currentUserID uint) (uint, error)
+	GetAllQuestionGroups(slaID uint, checkID uint) ([]*complianceDTOs.SLACheckQuestionGroupListDTO, error)
 	UpdateQuestionGroup(slaID uint, checkID uint, groupID uint, currentUserID uint, slaCheckUpdateQuestionGroupDTO *complianceDTOs.SLACheckUpdateQuestionGroupDTO) error
 	DeleteQuestionGroup(slaID, checkID, questionGroupID, currentUserID uint) (uint, error)
 }
@@ -269,6 +270,9 @@ func (scqs *SLACheckQuestionService) UpdateQuestion(slaID uint, checkID uint, qu
 }
 
 func (scqs *SLACheckQuestionService) DeleteQuestion(slaID, checkId, questionId, currentUserID uint) (uint, error) {
+	if _, err := scqs.slaRegisterSvc.GetByID(slaID); err != nil {
+		return 0, err
+	}
 	var failedId uint
 	var successfulId uint
 
@@ -301,6 +305,13 @@ func (scqs *SLACheckQuestionService) DeleteQuestion(slaID, checkId, questionId, 
 	}
 
 	return failedId, nil
+}
+
+func (scqs *SLACheckQuestionService) GetAllQuestionGroups(slaID uint, checkID uint) ([]*complianceDTOs.SLACheckQuestionGroupListDTO, error) {
+	if _, err := scqs.slaRegisterSvc.GetByID(slaID); err != nil {
+		return nil, err
+	}
+	return scqs.repo.GetAllQuestionGroups(checkID)
 }
 
 func (scqs *SLACheckQuestionService) UpdateQuestionGroup(slaID uint, checkID uint, groupID uint, currentUserID uint, slaCheckUpdateQuestionGroupDTO *complianceDTOs.SLACheckUpdateQuestionGroupDTO) error {
@@ -355,6 +366,9 @@ func (scqs *SLACheckQuestionService) UpdateQuestionGroup(slaID uint, checkID uin
 }
 
 func (scqs *SLACheckQuestionService) DeleteQuestionGroup(slaID, checkID, questionGroupID, currentUserID uint) (uint, error) {
+	if _, err := scqs.slaRegisterSvc.GetByID(slaID); err != nil {
+		return 0, err
+	}
 	var failedQuestionIDs []uint
 	var successfulQuestionIDs []uint
 	var failedGroupID uint
