@@ -515,6 +515,5 @@ func (us *UserService) ResetPassword(userID uint) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("hiiiiiiiiiiiiiiiiiiiiiii12346")
 	return nil
 }

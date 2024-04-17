@@ -258,3 +258,4 @@ func (src *SLARegisterController) RestoreSLARegisters(c *gin.Context) {
 
 	c.JSON(http.StatusOK, response)
 }
+

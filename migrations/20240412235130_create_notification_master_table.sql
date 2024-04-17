@@ -2,7 +2,7 @@
 -- +goose StatementBegin
 CREATE TABLE notification_masters (
     id INT PRIMARY KEY IDENTITY(1,1),
-    modules_id INT,
+    module_id INT,
     identifier VARCHAR(100),
     title_en VARCHAR(100),
     title_ar NVARCHAR(100),

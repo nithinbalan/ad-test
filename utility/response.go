@@ -52,3 +52,8 @@ func SendUnauthorizedErrResp(c *gin.Context, errMsg string) {
 	resp := ErrorResponse{Error: LocalizeMessage(c, "unauthorized_request", "Unauthorized Request")}
 	c.JSON(http.StatusUnauthorized, resp)
 }
+
+func SendForbiddenErrResp(c *gin.Context, errorMessage string) {
+    resp := ErrorResponse{Error: errorMessage}
+    c.JSON(http.StatusForbidden, resp)
+}
