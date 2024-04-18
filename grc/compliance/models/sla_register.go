@@ -37,7 +37,7 @@ type SLARegister struct {
 	UpdatedByUser    *organizationModels.User         `gorm:"foreignKey:UpdatedBy"`
 }
 
-// TableName overrides the table name used by SLARegister to `sla_registers`
+// TableName overrides the table name used by SLARegister to `sla_register`
 func (SLARegister) TableName() string {
-	return "sla_registers"
+	return "sla_register"
 }

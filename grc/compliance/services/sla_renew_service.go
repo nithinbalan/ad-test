@@ -84,7 +84,7 @@ func (srs *SLARenewService) Renew(slaId uint, currentUserID uint, slaRenewFormDT
 		return err
 	}
 
-	url := fmt.Sprintf("%s/sla-registers/%d/%s", config.GetEnv("API_URL", "http://localhost:8080"), existingSLADocument.SLARegisterID, encryptedFilename)
+	url := fmt.Sprintf("%s/sla-register/%d/%s", config.GetEnv("API_URL", "http://localhost:8080"), existingSLADocument.SLARegisterID, encryptedFilename)
 
 	currentVersionStr := existingSLADocument.Version
 
@@ -94,14 +94,13 @@ func (srs *SLARenewService) Renew(slaId uint, currentUserID uint, slaRenewFormDT
 	}
 
 	currentVersion := int(currentVersionFloat)
-	newVersion := currentVersion + 1.0
+	newVersion := currentVersion + 1
 	newVersionStr := strconv.Itoa(newVersion)
 
 	//renew document
 	slaDocument := &complianceModels.SLADocument{
 		SLARegisterID: existingSLADocument.SLARegisterID,
 		Version:       newVersionStr, //@review, Need to increment version
-		Language:      "en",
 		IssueDate:     dates.IssueDate,
 		ExpiryDate:    dates.ExpiryDate,
 		SA1Date:       dates.SA1Date,
@@ -115,7 +114,7 @@ func (srs *SLARenewService) Renew(slaId uint, currentUserID uint, slaRenewFormDT
 		Type:          slaRenewFormDTO.Document.Type,
 		IsLatest:      true,
 		CreatedBy:     currentUserID,
-		// @add comment
+		UpdatedBy:     currentUserID,
 	}
 
 	if err := srs.slaRegRepo.SaveSLADocument(slaDocument, tx); err != nil {
