@@ -69,9 +69,7 @@ func (repo *RiskLevelRepository) GetByType(status string) (*models.RiskLevel, er
 
 	result := repo.db.Where("type = ?", status).First(&riskLevel)
 
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, utility.NewResourceNotFoundError(result.Error, "Risk Level with status "+status)
-	} else if result.Error != nil {
+	if result.Error != nil {
 		return nil, result.Error
 	}
 

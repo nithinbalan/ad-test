@@ -1,8 +1,12 @@
 package services
 
 import (
+	"errors"
 	"jethur/grc/risk/models"
 	"jethur/grc/risk/repositories"
+	"jethur/utility"
+
+	"gorm.io/gorm"
 )
 
 type RiskLevelServiceInterface interface {
@@ -34,8 +38,14 @@ func (rls *RiskLevelService) GetByType(status string) (*models.RiskLevel, error)
 	// Fetch the risk level by its status
 	statusResult, err := rls.repo.GetByType(status)
 	if err != nil {
-		// Handle error appropriately
-		return nil, err
+		// Check if the error is a record not found error
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, "Risk Level with status "+status)
+		} else {
+			// Handle other errors
+			return nil, err
+		}
+
 	}
 
 	return statusResult, nil
