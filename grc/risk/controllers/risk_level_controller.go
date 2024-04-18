@@ -21,7 +21,7 @@ func NewRiskLevelController(service services.RiskLevelServiceInterface) *RiskLev
 	}
 }
 
-func (rlc *RiskLevelController) GetAllRiskLeveles(c *gin.Context) {
+func (rlc *RiskLevelController) GetAllRiskLevels(c *gin.Context) {
 
 	sort := c.Query("sort")
 	sortBy := c.Query("sort_by")

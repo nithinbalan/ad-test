@@ -71,7 +71,7 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	riskRoutes.PUT("/potential-risks/:id", potentialRiskController.UpdatePotentialRisk)
 	riskRoutes.POST("/potential-risks/delete", potentialRiskController.DeletePotentialRisks)
 
-	riskRoutes.GET("/risk-levels", riskLevelController.GetAllRiskLeveles)
+	riskRoutes.GET("/risk-levels", riskLevelController.GetAllRiskLevels)
 	riskRoutes.GET("/risk-levels/:id", riskLevelController.GetRiskLevelDetails)
 
 	riskRoutes.GET("/potential-risks/:id/status-updates", potentialRiskStatusUpdateController.GetAllPotentialRiskStatusUpdates)
