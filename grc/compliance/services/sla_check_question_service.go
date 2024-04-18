@@ -379,22 +379,20 @@ func (scqs *SLACheckQuestionService) UpdateQuestion(slaID uint, checkID uint, qu
 		return err
 	}
 	// Fetch the SLACheckQuestion by ID
-	question, err := scqs.GetQuestionByID(questionID)
+	existingQuestion, err := scqs.GetQuestionByID(questionID)
 
 	if err != nil {
 		return err
 	}
 
 	// Update the titles if provided
-	if slaCheckUpdateQuestionDTO.QuestionTitleEn != "" {
-		question.TitleEn = slaCheckUpdateQuestionDTO.QuestionTitleEn
-	}
-	if slaCheckUpdateQuestionDTO.QuestionTitleAr != "" {
-		question.TitleAr = slaCheckUpdateQuestionDTO.QuestionTitleAr
-	}
+
+	existingQuestion.TitleEn = slaCheckUpdateQuestionDTO.QuestionTitleEn
+	existingQuestion.TitleAr = slaCheckUpdateQuestionDTO.QuestionTitleAr
+	existingQuestion.UpdatedBy = &currentUserID
 
 	// Update the SLACheckQuestionGroup
-	err = scqs.repo.UpdateQuestion(question)
+	err = scqs.repo.UpdateQuestion(existingQuestion)
 	if err != nil {
 		return err
 	}
@@ -405,7 +403,7 @@ func (scqs *SLACheckQuestionService) UpdateQuestion(slaID uint, checkID uint, qu
 			logModels.UpdateAction,
 			models.SLACheckQuestion{}.TableName(),
 			questionID,
-			question,
+			existingQuestion,
 			currentUserID,
 			nil,
 		)

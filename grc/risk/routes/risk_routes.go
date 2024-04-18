@@ -36,6 +36,10 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	potentialRiskStatusSvc := riskServices.NewPotentialRiskStatusService(potentialRiskStatusRepo)
 	potentialRiskStatusController := controllers.NewPotentialRiskStatusController(potentialRiskStatusSvc)
 
+	riskLevelRepo := riskRepositories.NewRiskLevelRepository(db)
+	riskLevelSvc := riskServices.NewRiskLevelService(riskLevelRepo)
+	riskLevelController := controllers.NewRiskLevelController(riskLevelSvc)
+
 	potentialRiskRepo := riskRepositories.NewPotentialRiskRepository(db)
 	potentialRiskSvc := riskServices.NewPotentialRiskService(
 		potentialRiskRepo,
@@ -49,6 +53,14 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	potentialRiskStatusUpdateRepo := riskRepositories.NewPotentialRiskStatusUpdateRepository(db)
 	potentialRiskStatusUpdateSvc := riskServices.NewPotentialRiskStatusUpdateService(potentialRiskStatusUpdateRepo, activityLogSvc, potentialRiskSvc, potentialRiskStatusSvc)
 	potentialRiskStatusUpdateController := controllers.NewPotentialRiskStatusUpdateController(potentialRiskStatusUpdateSvc)
+
+	riskAppetiteStatementRepo := riskRepositories.NewRiskAppetiteStatementRepository(db)
+	riskAppetiteStatementSvc := riskServices.NewRiskAppetiteStatementService(
+		riskAppetiteStatementRepo,
+		activityLogSvc,
+		riskCategorySvc,
+	)
+	riskAppetiteStatementController := controllers.NewRiskAppetiteStatementController(riskAppetiteStatementSvc)
 
 	riskRoutes.GET("/risk-categories", riskCategoryController.GetAllRiskCategories)
 	riskRoutes.GET("/risk-categories/:id", riskCategoryController.GetRiskCategoryDetails)
@@ -67,7 +79,17 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	riskRoutes.PUT("/potential-risks/:id", potentialRiskController.UpdatePotentialRisk)
 	riskRoutes.POST("/potential-risks/delete", potentialRiskController.DeletePotentialRisks)
 
+	riskRoutes.GET("/risk-levels", riskLevelController.GetAllRiskLevels)
+	riskRoutes.GET("/risk-levels/:id", riskLevelController.GetRiskLevelDetails)
+
 	riskRoutes.GET("/potential-risks/:id/status-updates", potentialRiskStatusUpdateController.GetAllPotentialRiskStatusUpdates)
 	riskRoutes.POST("/potential-risks/:id/status-updates", potentialRiskStatusUpdateController.CreatePotentialRiskStatusUpdate)
 
+	riskRoutes.GET("/risk-appetite-statements", riskAppetiteStatementController.GetAllRiskAppetiteStatements)
+	riskRoutes.GET("/risk-appetite-statements/:id", riskAppetiteStatementController.GetRiskAppetiteStatementDetails)
+	riskRoutes.POST("/risk-appetite-statements", riskAppetiteStatementController.CreateRiskAppetiteStatement)
+	riskRoutes.PUT("/risk-appetite-statements/:id", riskAppetiteStatementController.UpdateRiskAppetiteStatement)
+	riskRoutes.POST("/risk-appetite-statements/delete", riskAppetiteStatementController.DeleteRiskAppetiteStatements)
+	riskRoutes.PUT("/risk-appetite-statements/activate", riskAppetiteStatementController.ActivateRiskAppetiteStatements)
+	riskRoutes.PUT("/risk-appetite-statements/deactivate", riskAppetiteStatementController.DeactivateRiskAppetiteStatements)
 }

@@ -64,7 +64,6 @@ func (repo *SLARegisterRepository) GetAll(params *slaDTOs.SLARegisterListQueryPa
 			sla_documents.sa1_date,
 			sla_documents.sa2_date,
 			sla_documents.comment,
-			sla_documents.language,
 			sla_documents.url,
 			sla_documents.name,
 			sla_documents.size,
@@ -410,3 +409,4 @@ func (repo *SLARegisterRepository) RemoveSLADocumentFile(slaID uint, fileName st
 	}
 	return nil
 }
+

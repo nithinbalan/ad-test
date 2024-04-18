@@ -14,7 +14,6 @@ type SLARenewListDTO struct {
 	SA1Date              string    `json:"sa1_date"`
 	SA2Date              string    `json:"sa2_date"`
 	Comment              string    `json:"comment"`
-	Language             string    `json:"language"`
 	URL                  string    `json:"url"`
 	Name                 string    `json:"name"`
 	Size                 int       `json:"size"`
