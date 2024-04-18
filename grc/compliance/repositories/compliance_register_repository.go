@@ -2,9 +2,13 @@ package repositories
 
 import (
 	"fmt"
+	"jethur/config"
 	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	complianceModels "jethur/grc/compliance/models"
+	"jethur/utility"
+	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -12,17 +16,24 @@ import (
 )
 
 type ComplianceRegisterRepositoryInterface interface {
+	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *complianceDTOs.ComplianceRegisterListQueryParamsDTO) (*complianceDTOs.ComplianceRegisterListResponseDTO, error)
 	GetByID(id uint) (*complianceModels.ComplianceRegister, error)
 	GetFullDetailsByID(id uint) (*complianceModels.ComplianceRegister, error)
-	Create(complianceRegister *complianceModels.ComplianceRegister) (uint, error)
-	Update(complianceRegister *complianceModels.ComplianceRegister) error
+	Create(complianceRegister *complianceModels.ComplianceRegister, tx ...utility.DatabaseTransaction) (uint, error)
+	Update(complianceRegister *complianceModels.ComplianceRegister, tx ...utility.DatabaseTransaction) error
 	Delete(id uint) error
 	GenerateReferenceNumber() (string, error)
 
 	//lifecycle
 	GetIDsByLifecycleStatus(ids []uint, status string) ([]uint, error)
 	UpdateLifecycleStatusForIDs(ids []uint, statusId uint) ([]uint, error)
+	//Document
+	SaveComplianceDocument(doc *complianceModels.ComplianceDocument, tx ...utility.DatabaseTransaction) error
+	GetComplianceDocumentByID(id uint) (*complianceModels.ComplianceDocument, error)
+	GetComplianceDocumentByComplianceID(id uint) (*complianceModels.ComplianceDocument, error)
+	StoreComplianceDocumentFile(complianceId uint, fileName string) error
+	RemoveComplianceDocumentFile(complianceId uint, fileNames string) error
 }
 
 type ComplianceRegisterRepository struct {
@@ -35,6 +46,11 @@ func NewComplianceRegisterRepository(db *gorm.DB) *ComplianceRegisterRepository 
 	}
 }
 
+// BeginTransaction starts a new transaction.
+func (repo *ComplianceRegisterRepository) BeginTransaction() utility.DatabaseTransaction {
+	return utility.NewGormDatabaseTransaction(repo.db)
+}
+
 func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.ComplianceRegisterListQueryParamsDTO) (*complianceDTOs.ComplianceRegisterListResponseDTO, error) {
 
 	var complianceRegisters []*complianceDTOs.ComplianceRegisterListDTO
@@ -43,6 +59,13 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
 	query := repo.db.Table("compliance_register").
 		Select(`
             compliance_register.*,
+			compliance_documents.language,
+			compliance_documents.url,
+			compliance_documents.name,
+			compliance_documents.size,
+			compliance_documents.token,
+			compliance_documents.type,
+			compliance_documents.icon,
 			compliance_categories.title_en AS compliance_category_title_en,
 			compliance_categories.title_ar AS compliance_category_title_ar,
 			compliance_statuses.title_en AS compliance_status_title_en,
@@ -86,6 +109,8 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
 			LEFT JOIN lifecycle_statuses ON lifecycle_statuses.id = compliance_register.lifecycle_status_id
 			LEFT JOIN users AS created_user ON created_user.id = compliance_register.created_by
 			LEFT JOIN users AS updated_user ON updated_user.id = compliance_register.updated_by
+			LEFT JOIN compliance_documents ON compliance_register.id = compliance_documents.compliance_register_id
+
 		`)
 
 	// Apply dynamic filters to the query
@@ -154,6 +179,8 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
 			compliance_register.description_en LIKE ? OR
 			compliance_register.description_ar LIKE ? OR
 			compliance_register.standard_code LIKE ? OR
+			compliance_documents.name LIKE ? OR
+			compliance_documents.type LIKE ? OR
 			compliance_categories.title_en LIKE ? OR
 			compliance_categories.title_ar LIKE ? OR
 			compliance_statuses.title_en LIKE ? OR
@@ -172,7 +199,8 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
-			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%")
 	}
 
 	// Sort by the specified column and order
@@ -232,6 +260,7 @@ func (repo *ComplianceRegisterRepository) GetFullDetailsByID(id uint) (*complian
 		Preload("ReviewResponsibleUser").
 		Preload("SeverityLevel").
 		Preload("LifecycleStatus").
+		Preload("ComplianceDocument").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&compliance, id)
@@ -243,18 +272,24 @@ func (repo *ComplianceRegisterRepository) GetFullDetailsByID(id uint) (*complian
 	return compliance, nil
 }
 
-func (repo *ComplianceRegisterRepository) Create(complianceRegister *complianceModels.ComplianceRegister) (uint, error) {
-
-	if err := repo.db.Create(complianceRegister).Error; err != nil {
+func (repo *ComplianceRegisterRepository) Create(complianceRegister *complianceModels.ComplianceRegister, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(complianceRegister).Error; err != nil {
 		return 0, err
 	}
 
 	return complianceRegister.ID, nil
 }
 
-func (repo *ComplianceRegisterRepository) Update(complianceRegister *complianceModels.ComplianceRegister) error {
-
-	if err := repo.db.Save(complianceRegister).Error; err != nil {
+func (repo *ComplianceRegisterRepository) Update(complianceRegister *complianceModels.ComplianceRegister, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(complianceRegister).Error; err != nil {
 		return err
 	}
 
@@ -262,15 +297,46 @@ func (repo *ComplianceRegisterRepository) Update(complianceRegister *complianceM
 }
 
 func (repo *ComplianceRegisterRepository) Delete(id uint) error {
+	// Begin a transaction
+	tx := repo.db.Begin()
 
-	var compliance *complianceModels.ComplianceRegister
-	if err := repo.db.First(&compliance, id).Error; err != nil {
+	// Defer a function to handle the transaction rollback in case of an error
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	var complianceRegister *complianceModels.ComplianceRegister
+	if err := tx.First(&complianceRegister, id).Error; err != nil {
+		tx.Rollback() // Rollback the transaction
 		return err
 	}
 
-	result := repo.db.Delete(&complianceModels.ComplianceRegister{}, id)
-	if result.Error != nil {
-		return result.Error
+	// Find all Compliance documents associated with the Compliance register
+	var complianceDocuments []*complianceModels.ComplianceDocument
+	if err := tx.Where("compliance_register_id = ?", id).Find(&complianceDocuments).Error; err != nil {
+		tx.Rollback() // Rollback the transaction
+		return err
+	}
+
+	// Delete each Compliance document associated with the Compliance register
+	for _, complianceDocument := range complianceDocuments {
+		if err := tx.Delete(complianceDocument).Error; err != nil {
+			tx.Rollback() // Rollback the transaction
+			return err
+		}
+	}
+
+	// Delete the Compliance register
+	if err := tx.Delete(&complianceModels.ComplianceRegister{}, id).Error; err != nil {
+		tx.Rollback() // Rollback the transaction
+		return err
+	}
+
+	// Commit the transaction
+	if err := tx.Commit().Error; err != nil {
+		return err
 	}
 
 	return nil
@@ -326,4 +392,57 @@ func (repo *ComplianceRegisterRepository) GenerateReferenceNumber() (string, err
 	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "CR", currentYear, lastReferenceID+1)
 
 	return newReferenceNumber, nil
+}
+
+//Document func
+
+func (repo *ComplianceRegisterRepository) GetComplianceDocumentByID(id uint) (*complianceModels.ComplianceDocument, error) {
+	var document complianceModels.ComplianceDocument
+	if err := repo.db.Where("id = ?", id).First(&document).Error; err != nil {
+		return nil, err
+	}
+	return &document, nil
+}
+
+func (repo *ComplianceRegisterRepository) GetComplianceDocumentByComplianceID(id uint) (*complianceModels.ComplianceDocument, error) {
+	var document complianceModels.ComplianceDocument
+	if err := repo.db.Where("compliance_register_id = ?", id).
+		First(&document).Error; err != nil {
+		return nil, err
+	}
+	return &document, nil
+}
+
+func (repo *ComplianceRegisterRepository) StoreComplianceDocumentFile(id uint, fileName string) error {
+	storagePath := config.GetEnv("STORAGE_PATH", "")
+	temporaryStoragePath := filepath.Join(storagePath, "tmp", fileName)
+	directoryPath := filepath.Join(storagePath, "compliance", "compliance", strconv.FormatUint(uint64(id), 10), "documents")
+	destinationPath := filepath.Join(directoryPath, fileName)
+	if err := os.MkdirAll(directoryPath, os.ModePerm); err != nil {
+		return err
+	}
+	if err := os.Rename(temporaryStoragePath, destinationPath); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *ComplianceRegisterRepository) SaveComplianceDocument(doc *complianceModels.ComplianceDocument, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(doc).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *ComplianceRegisterRepository) RemoveComplianceDocumentFile(complianceID uint, fileName string) error {
+	storagePath := config.GetEnv("STORAGE_PATH", "")
+	filePath := filepath.Join(storagePath, "compliance", "compliance", strconv.FormatUint(uint64(complianceID), 10), "documents", fileName)
+	if err := os.Remove(filePath); err != nil {
+		return err
+	}
+	return nil
 }
