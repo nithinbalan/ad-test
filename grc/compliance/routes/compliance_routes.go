@@ -102,7 +102,7 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	complianceRequirementStatusUpdateController := controllers.NewComplianceRequirementStatusUpdateController(complianceRequirementStatusUpdateSvc)
 
 	complianceActionPlanStatusUpdateRepo := complianceRepositories.NewComplianceActionPlanStatusUpdateRepository(db)
-	complianceActionPlanStatusUpdateSvc := complianceServices.NewComplianceActionPlanStatusUpdateService(complianceActionPlanStatusUpdateRepo, activityLogSvc, complianceActionPlanSvc, complianceStatusSvc)
+	complianceActionPlanStatusUpdateSvc := complianceServices.NewComplianceActionPlanStatusUpdateService(complianceActionPlanStatusUpdateRepo, activityLogSvc, complianceActionPlanSvc, actionPlanStatusSvc)
 	complianceActionPlanStatusUpdateController := controllers.NewComplianceActionPlanStatusUpdateController(complianceActionPlanStatusUpdateSvc)
 
 	complianceReviewRepo := complianceRepositories.NewComplianceReviewRepository(db)
