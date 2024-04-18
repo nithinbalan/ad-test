@@ -7,7 +7,7 @@ import (
 
 type SLADocument struct {
 	ID            uint       `json:"id" gorm:"primary_key;auto_increment"`
-	SLARegisterID uint       `json:"sla_register_id" binding:"required" gorm:"column:sla_register_id"`
+	SLARegisterID uint       `json:"sla_register_id"`
 	Version       string     `json:"version" binding:"required"`
 	IssueDate     *time.Time `json:"issue_date" binding:"omitempty" gorm:"type:date"`
 	ExpiryDate    *time.Time `json:"expiry_date" binding:"omitempty" gorm:"type:date"`

@@ -7,7 +7,7 @@ import (
 
 type ComplianceDocument struct {
 	ID                   uint      `json:"id" gorm:"primary_key;auto_increment"`
-	ComplianceRegisterID uint      `json:"compliance_register_id" binding:"required" gorm:"column:compliance_register_id"`
+	ComplianceRegisterID uint      `json:"compliance_register_id"`
 	Language             string    `json:"language" binding:"required"`
 	URL                  string    `json:"url"`
 	Name                 string    `json:"name" binding:"required"`

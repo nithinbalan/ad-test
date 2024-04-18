@@ -52,14 +52,6 @@ type ComplianceRegisterListDTO struct {
 	LifecycleStatusTitleEn           string `json:"lifecycle_status_title_en"`
 	LifecycleStatusTitleAr           string `json:"lifecycle_status_title_ar"`
 	LifecycleStatusColorCode         string `json:"lifecycle_status_color_code"`
-	//document fields
-	Language string `json:"language"`
-	URL      string `json:"url"`
-	Name     string `json:"name"`
-	Size     int    `json:"size"`
-	Token    string `json:"token"`
-	Type     string `json:"type"`
-	Icon     string `json:"icon"`
 }
 
 type ComplianceRegisterListQueryParamsDTO struct {
@@ -176,5 +168,5 @@ type ComplianceRegisterDetailDTO struct {
 	CreatedByUser         UserMinimalDTO                `json:"created_by"`
 	UpdatedByUser         UserMinimalDTO                `json:"updated_by"`
 	LifecycleStatus       masterDTOs.LifecycleStatusDTO `json:"status"`
-	ComplianceDocument    ComplianceDocumentDTO         `json:"compliance_document"`
+	ComplianceDocuments   []ComplianceDocumentDTO       `json:"compliance_documents"`
 }

@@ -59,13 +59,6 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
 	query := repo.db.Table("compliance_register").
 		Select(`
             compliance_register.*,
-			compliance_documents.language,
-			compliance_documents.url,
-			compliance_documents.name,
-			compliance_documents.size,
-			compliance_documents.token,
-			compliance_documents.type,
-			compliance_documents.icon,
 			compliance_categories.title_en AS compliance_category_title_en,
 			compliance_categories.title_ar AS compliance_category_title_ar,
 			compliance_statuses.title_en AS compliance_status_title_en,
@@ -109,8 +102,6 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
 			LEFT JOIN lifecycle_statuses ON lifecycle_statuses.id = compliance_register.lifecycle_status_id
 			LEFT JOIN users AS created_user ON created_user.id = compliance_register.created_by
 			LEFT JOIN users AS updated_user ON updated_user.id = compliance_register.updated_by
-			LEFT JOIN compliance_documents ON compliance_register.id = compliance_documents.compliance_register_id
-
 		`)
 
 	// Apply dynamic filters to the query
@@ -179,8 +170,6 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
 			compliance_register.description_en LIKE ? OR
 			compliance_register.description_ar LIKE ? OR
 			compliance_register.standard_code LIKE ? OR
-			compliance_documents.name LIKE ? OR
-			compliance_documents.type LIKE ? OR
 			compliance_categories.title_en LIKE ? OR
 			compliance_categories.title_ar LIKE ? OR
 			compliance_statuses.title_en LIKE ? OR
@@ -199,8 +188,7 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
-			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
-			"%"+params.Keyword+"%", "%"+params.Keyword+"%")
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
 	}
 
 	// Sort by the specified column and order
@@ -260,7 +248,7 @@ func (repo *ComplianceRegisterRepository) GetFullDetailsByID(id uint) (*complian
 		Preload("ReviewResponsibleUser").
 		Preload("SeverityLevel").
 		Preload("LifecycleStatus").
-		Preload("ComplianceDocument").
+		Preload("ComplianceDocuments").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&compliance, id)
