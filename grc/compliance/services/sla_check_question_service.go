@@ -221,22 +221,20 @@ func (scqs *SLACheckQuestionService) UpdateQuestion(slaID uint, checkID uint, qu
 		return err
 	}
 	// Fetch the SLACheckQuestion by ID
-	question, err := scqs.GetQuestionByID(questionID)
+	existingQuestion, err := scqs.GetQuestionByID(questionID)
 
 	if err != nil {
 		return err
 	}
 
 	// Update the titles if provided
-	if slaCheckUpdateQuestionDTO.QuestionTitleEn != "" {
-		question.TitleEn = slaCheckUpdateQuestionDTO.QuestionTitleEn
-	}
-	if slaCheckUpdateQuestionDTO.QuestionTitleAr != "" {
-		question.TitleAr = slaCheckUpdateQuestionDTO.QuestionTitleAr
-	}
+
+	existingQuestion.TitleEn = slaCheckUpdateQuestionDTO.QuestionTitleEn
+	existingQuestion.TitleAr = slaCheckUpdateQuestionDTO.QuestionTitleAr
+	existingQuestion.UpdatedBy = &currentUserID
 
 	// Update the SLACheckQuestionGroup
-	err = scqs.repo.UpdateQuestion(question)
+	err = scqs.repo.UpdateQuestion(existingQuestion)
 	if err != nil {
 		return err
 	}
@@ -247,7 +245,7 @@ func (scqs *SLACheckQuestionService) UpdateQuestion(slaID uint, checkID uint, qu
 			logModels.UpdateAction,
 			models.SLACheckQuestion{}.TableName(),
 			questionID,
-			question,
+			existingQuestion,
 			currentUserID,
 			nil,
 		)
@@ -308,21 +306,17 @@ func (scqs *SLACheckQuestionService) UpdateQuestionGroup(slaID uint, checkID uin
 		return err
 	}
 	// Fetch the SLACheckQuestionGroup by ID
-	group, err := scqs.repo.GetQuestionGroupByID(groupID)
+	existingGroup, err := scqs.repo.GetQuestionGroupByID(groupID)
 	if err != nil {
 		return err
 	}
 
-	// Update the titles if provided
-	if slaCheckUpdateQuestionGroupDTO.QuestionGroupTitleEn != "" {
-		group.TitleEn = slaCheckUpdateQuestionGroupDTO.QuestionGroupTitleEn
-	}
-	if slaCheckUpdateQuestionGroupDTO.QuestionGroupTitleAr != "" {
-		group.TitleAr = slaCheckUpdateQuestionGroupDTO.QuestionGroupTitleAr
-	}
+	existingGroup.TitleEn = slaCheckUpdateQuestionGroupDTO.QuestionGroupTitleEn
+	existingGroup.TitleAr = slaCheckUpdateQuestionGroupDTO.QuestionGroupTitleAr
+	existingGroup.UpdatedBy = &currentUserID
 
 	// Update the SLACheckQuestionGroup
-	err = scqs.repo.UpdateQuestionGroup(group)
+	err = scqs.repo.UpdateQuestionGroup(existingGroup)
 	if err != nil {
 		return err
 	}
@@ -333,7 +327,7 @@ func (scqs *SLACheckQuestionService) UpdateQuestionGroup(slaID uint, checkID uin
 			logModels.UpdateAction,
 			models.SLACheckQuestionGroup{}.TableName(),
 			groupID,
-			group,
+			existingGroup,
 			currentUserID,
 			nil,
 		)
