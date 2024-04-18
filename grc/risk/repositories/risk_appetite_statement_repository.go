@@ -1,10 +1,13 @@
 package repositories
 
 import (
+	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	riskDTOs "jethur/grc/risk/dtos"
 	"jethur/grc/risk/models"
 	"jethur/utility"
+	"strconv"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -20,6 +23,7 @@ type RiskAppetiteStatementRepositoryInterface interface {
 	Deactivate(ids []uint) ([]uint, error)
 	ExistsByStatement(StatementEn, StatementAr string, RiskCategoryID uint) (bool, error)
 	ExistsByStatementExcludingID(id uint, StatementEn, StatementAr string, RiskCategoryID uint) (bool, error)
+	GenerateReferenceNumber() (string, error)
 }
 
 type RiskAppetiteStatementRepository struct {
@@ -252,4 +256,32 @@ func (repo *RiskAppetiteStatementRepository) ExistsByStatementExcludingID(id uin
 	}
 
 	return count > 0, nil
+}
+
+func (repo *RiskAppetiteStatementRepository) GenerateReferenceNumber() (string, error) {
+	var lastReferenceNumber string
+	err := repo.db.Model(&models.RiskAppetiteStatement{}).
+		Select("reference_number").
+		Order("reference_number desc").
+		Limit(1).
+		Pluck("reference_number", &lastReferenceNumber).
+		Error
+
+	if err != nil {
+		return "", err
+	}
+
+	lastDigits := "0000"
+	if lastReferenceNumber != "" && len(lastReferenceNumber) >= 4 {
+		lastDigits = lastReferenceNumber[len(lastReferenceNumber)-4:]
+	}
+
+	currentYear := time.Now().Year()
+	lastReferenceID, err := strconv.ParseUint(lastDigits, 10, 64)
+	if err != nil {
+		return "", err
+	}
+	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "RAS", currentYear, lastReferenceID+1)
+
+	return newReferenceNumber, nil
 }

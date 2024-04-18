@@ -78,11 +78,11 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	riskRoutes.GET("/potential-risks/:id/status-updates", potentialRiskStatusUpdateController.GetAllPotentialRiskStatusUpdates)
 	riskRoutes.POST("/potential-risks/:id/status-updates", potentialRiskStatusUpdateController.CreatePotentialRiskStatusUpdate)
 
-	riskRoutes.GET("/risk-appetite-statments", riskAppetiteStatementController.GetAllRiskAppetiteStatements)
-	riskRoutes.GET("/risk-appetite-statments/:id", riskAppetiteStatementController.GetRiskAppetiteStatementDetails)
-	riskRoutes.POST("/risk-appetite-statments", riskAppetiteStatementController.CreateRiskAppetiteStatement)
-	riskRoutes.PUT("/risk-appetite-statments/:id", riskAppetiteStatementController.UpdateRiskAppetiteStatement)
-	riskRoutes.POST("/risk-appetite-statments/delete", riskAppetiteStatementController.DeleteRiskAppetiteStatements)
-	riskRoutes.PUT("/risk-appetite-statments/activate", riskAppetiteStatementController.ActivateRiskAppetiteStatements)
-	riskRoutes.PUT("/risk-appetite-statments/deactivate", riskAppetiteStatementController.DeactivateRiskAppetiteStatements)
+	riskRoutes.GET("/risk-appetite-statements", riskAppetiteStatementController.GetAllRiskAppetiteStatements)
+	riskRoutes.GET("/risk-appetite-statements/:id", riskAppetiteStatementController.GetRiskAppetiteStatementDetails)
+	riskRoutes.POST("/risk-appetite-statements", riskAppetiteStatementController.CreateRiskAppetiteStatement)
+	riskRoutes.PUT("/risk-appetite-statements/:id", riskAppetiteStatementController.UpdateRiskAppetiteStatement)
+	riskRoutes.POST("/risk-appetite-statements/delete", riskAppetiteStatementController.DeleteRiskAppetiteStatements)
+	riskRoutes.PUT("/risk-appetite-statements/activate", riskAppetiteStatementController.ActivateRiskAppetiteStatements)
+	riskRoutes.PUT("/risk-appetite-statements/deactivate", riskAppetiteStatementController.DeactivateRiskAppetiteStatements)
 }

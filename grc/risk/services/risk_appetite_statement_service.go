@@ -88,13 +88,19 @@ func (rass *RiskAppetiteStatementService) Create(currentUserID uint, riskAppetit
 		return 0, err
 	}
 
+	referenceNumber, err := rass.repo.GenerateReferenceNumber()
+	if err != nil {
+		return 0, err
+	}
+
 	riskAppetiteStatement := &models.RiskAppetiteStatement{
-		RiskCategoryID: riskAppetiteStatementFormDTO.RiskCategoryID,
-		StatementEn:    riskAppetiteStatementFormDTO.StatementEn,
-		StatementAr:    riskAppetiteStatementFormDTO.StatementAr,
-		Status:         riskAppetiteStatementFormDTO.Status,
-		CreatedBy:      currentUserID,
-		UpdatedAt:      nil,
+		ReferenceNumber: referenceNumber,
+		RiskCategoryID:  riskAppetiteStatementFormDTO.RiskCategoryID,
+		StatementEn:     riskAppetiteStatementFormDTO.StatementEn,
+		StatementAr:     riskAppetiteStatementFormDTO.StatementAr,
+		Status:          riskAppetiteStatementFormDTO.Status,
+		CreatedBy:       currentUserID,
+		UpdatedAt:       nil,
 	}
 
 	id, err := rass.repo.Create(riskAppetiteStatement)
