@@ -129,6 +129,14 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 		questionGroupService)
 	SLACheckQuestionController := controllers.NewSLACheckQuestionController(SLACheckQuestionSvc)
 
+	SLACheckAnswerRepo := complianceRepositories.NewSLACheckAnswerRepository(db)
+	SLACheckAnswerSvc := complianceServices.NewSLACheckAnswerService(SLACheckAnswerRepo,
+		activityLogSvc,
+		SLARegisterSvc,
+		checklistAnswerSvc,
+		questionGroupService)
+	SLACheckAnswerController := controllers.NewSLACheckAnswerController(SLACheckAnswerSvc)
+
 	SLARenewRepo := complianceRepositories.NewSLARenewRepository(db)
 	SLARenewSvc := complianceServices.NewSLARenewService(SLARenewRepo, SLARegisterRepo, lifecycleStatusSvc,
 		activityLogSvc)
@@ -217,5 +225,7 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	complianceRoutes.POST("/sla-register/:slaId/checks/:checkId/add-question", SLACheckQuestionController.CreateSLACheckQuestion)
 	complianceRoutes.PUT("/sla-register/:slaId/checks/:checkId/questions/:id", SLACheckQuestionController.UpdateSLACheckQuestion)
 	complianceRoutes.DELETE("/sla-register/:slaId/checks/:checkId/questions/:id", SLACheckQuestionController.DeleteSLACheckQuestion)
+
+	complianceRoutes.POST("/sla-register/:slaId/questions/:questionId/answers", SLACheckAnswerController.SLACheckAnswer)
 
 }
