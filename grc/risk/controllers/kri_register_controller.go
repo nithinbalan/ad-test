@@ -33,7 +33,7 @@ func (krc *KRIRegisterController) GetAllKRIRegisters(c *gin.Context) {
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
-		"kri_category_id",
+		"kri_category_ids",
 		"risk_level_ids",
 		"review_frequency_ids",
 		"owner_ids",
