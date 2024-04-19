@@ -102,10 +102,8 @@ func (krs *KRIRegisterService) Create(currentUserID uint, kriRegisterFormDTO *ri
 	}
 	referenceNumber, err := krs.repo.GenerateReferenceNumber()
 	if err != nil {
-		fmt.Println("Ref ERRRR: ", err)
 		return 0, err
 	}
-	fmt.Println("Ref Number: ", referenceNumber)
 	kriRegister := &models.KRIRegister{
 		ReferenceNumber:   referenceNumber,
 		KRICategoryID:     kriRegisterFormDTO.KRICategoryID,
@@ -131,7 +129,6 @@ func (krs *KRIRegisterService) Create(currentUserID uint, kriRegisterFormDTO *ri
 	if err != nil {
 		return 0, err
 	}
-	fmt.Println("errr", err)
 	go func() {
 		err := krs.activityLogSvc.LogActivity(
 			logModels.CreateAction,
@@ -260,11 +257,11 @@ func (krs *KRIRegisterService) validateKRIRegisterFormDTO(kriRegisterFormDTO *ri
 	}
 
 	if id == nil {
-		// if exists, err := krs.repo.ExistsByTitle(kriRegisterFormDTO.Title, kriRegisterFormDTO.KRICategoryID); err != nil {
-		// 	return err
-		// } else if exists {
-		// 	return utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
-		// }
+		if exists, err := krs.repo.ExistsByTitle(kriRegisterFormDTO.Title, kriRegisterFormDTO.KRICategoryID); err != nil {
+			return err
+		} else if exists {
+			return utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
+		}
 
 	} else {
 		if exists, err := krs.repo.ExistsByTitleExcludingID(*id, kriRegisterFormDTO.Title, kriRegisterFormDTO.KRICategoryID); err != nil {

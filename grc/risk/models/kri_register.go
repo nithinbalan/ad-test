@@ -14,8 +14,8 @@ type KRIRegister struct {
 	KRICategoryID     uint       `json:"kri_category_id" binding:"required" gorm:"not null"`
 	OwnerUnitID       uint       `json:"owner_unit_id" binding:"required" gorm:"not null"`
 	OwnerID           uint       `json:"owner_id" gorm:"not null"`
-	ReviewFrequencyID uint       `json:"review_frequency_id" binding:"required" gorm:"default:not null"`
-	RiskLevelID       uint       `json:"risk_level_id" binding:"required" gorm:"default:not null"`
+	ReviewFrequencyID uint       `json:"review_frequency_id" binding:"required" gorm:"not null"`
+	RiskLevelID       uint       `json:"risk_level_id" binding:"required" gorm:"not null"`
 	Title             string     `json:"title" binding:"required,max=500" gorm:"type:nvarchar(500);not null"`
 	Description       string     `json:"description" gorm:"type:nvarchar(max)"`
 	CalculationType   string     `json:"calculation_type" binding:"required,oneof=automatic, manual" gorm:"type:varchar(10);not null"`
@@ -23,7 +23,7 @@ type KRIRegister struct {
 	MediumThreshold   *string    `json:"medium_threshold" gorm:"type:varchar(455);null"`
 	HighThreshold     *string    `json:"high_threshold" gorm:"type:varchar(455);null"`
 	CurrentValue      *string    `json:"current_value" gorm:"type:varchar(455);null"`
-	LastReviewDate    time.Time  `json:"last_review_date" binding:"omitempty" gorm:"type:date"`
+	LastReviewDate    time.Time  `json:"last_review_date" gorm:"type:date"`
 	NextReviewDate    time.Time  `json:"next_review_date" binding:"required" gorm:"type:date;not null"`
 	LastReviewNote    *string    `json:"last_review_note" gorm:"type:nvarchar(max)"`
 	CreatedAt         time.Time  `json:"created_at" gorm:"type:datetime;not null"`

@@ -114,9 +114,6 @@ func (krc *KRIRegisterController) CreateKRIRegister(c *gin.Context) {
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
 			return
-		case *utility.ResourceNotFoundError:
-			utility.SendNotFoundErrResp(c)
-			return
 		default:
 			utility.SendInternalErrResp(krc.db, c, e.Error())
 			return

@@ -195,9 +195,7 @@ func (repo *KRIRegisterRepository) GetFullDetailsByID(id uint) (*models.KRIRegis
 }
 
 func (repo *KRIRegisterRepository) Create(kriRegister *models.KRIRegister) (uint, error) {
-	fmt.Println("HHHHHHHHHHHHHHHH")
 	if err := repo.db.Create(kriRegister).Error; err != nil {
-		fmt.Println("ERRRRR111", err)
 		return 0, err
 	}
 	return kriRegister.ID, nil
@@ -229,15 +227,11 @@ func (repo *KRIRegisterRepository) Delete(id uint) error {
 
 func (repo *KRIRegisterRepository) ExistsByTitle(Title string, KRICategoryID uint) (bool, error) {
 	var count int64
-	fmt.Println("KRICateagoryID", KRICategoryID)
-
-	// repo.db = repo.db.Debug()
 
 	// Check for the existence of Title or QuestionAr in a single query
 	err := repo.db.Model(&models.KRIRegister{}).
-		Where("title = ?", Title).
+		Where("title = ? AND kri_category_id = ? ", Title, KRICategoryID).
 		Count(&count).Error
-	fmt.Println("ERRRR", err)
 	if err != nil {
 		return false, utility.NewInternalServerError(err)
 
