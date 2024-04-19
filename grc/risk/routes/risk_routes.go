@@ -89,6 +89,14 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	)
 	kriRegisterController := controllers.NewKRIRegisterController(kriRegisterSvc)
 
+	riskAppetiteStatementRepo := riskRepositories.NewRiskAppetiteStatementRepository(db)
+	riskAppetiteStatementSvc := riskServices.NewRiskAppetiteStatementService(
+		riskAppetiteStatementRepo,
+		activityLogSvc,
+		riskCategorySvc,
+	)
+	riskAppetiteStatementController := controllers.NewRiskAppetiteStatementController(riskAppetiteStatementSvc)
+
 	riskRoutes.GET("/risk-categories", riskCategoryController.GetAllRiskCategories)
 	riskRoutes.GET("/risk-categories/:id", riskCategoryController.GetRiskCategoryDetails)
 	riskRoutes.POST("/risk-categories", riskCategoryController.CreateRiskCategory)
@@ -112,10 +120,17 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	riskRoutes.GET("/potential-risks/:id/status-updates", potentialRiskStatusUpdateController.GetAllPotentialRiskStatusUpdates)
 	riskRoutes.POST("/potential-risks/:id/status-updates", potentialRiskStatusUpdateController.CreatePotentialRiskStatusUpdate)
 
+	riskRoutes.GET("/risk-appetite-statements", riskAppetiteStatementController.GetAllRiskAppetiteStatements)
+	riskRoutes.GET("/risk-appetite-statements/:id", riskAppetiteStatementController.GetRiskAppetiteStatementDetails)
+	riskRoutes.POST("/risk-appetite-statements", riskAppetiteStatementController.CreateRiskAppetiteStatement)
+	riskRoutes.PUT("/risk-appetite-statements/:id", riskAppetiteStatementController.UpdateRiskAppetiteStatement)
+	riskRoutes.POST("/risk-appetite-statements/delete", riskAppetiteStatementController.DeleteRiskAppetiteStatements)
+	riskRoutes.PUT("/risk-appetite-statements/activate", riskAppetiteStatementController.ActivateRiskAppetiteStatements)
+	riskRoutes.PUT("/risk-appetite-statements/deactivate", riskAppetiteStatementController.DeactivateRiskAppetiteStatements)
+
 	riskRoutes.GET("/kri-register", kriRegisterController.GetAllKRIRegisters)
 	riskRoutes.GET("/kri-register/:id", kriRegisterController.GetKRIRegisterDetails)
 	riskRoutes.POST("/kri-register", kriRegisterController.CreateKRIRegister)
 	riskRoutes.PUT("/kri-register/:id", kriRegisterController.UpdateKRIRegister)
 	riskRoutes.POST("/kri-register/delete", kriRegisterController.DeleteKRIRegisters)
-
 }
