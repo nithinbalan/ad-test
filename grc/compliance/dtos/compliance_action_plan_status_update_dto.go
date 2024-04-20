@@ -20,6 +20,18 @@ type ComplianceActionPlanStatusUpdateListDTO struct {
 }
 
 type ComplianceActionPlanStatusUpdateFormDTO struct {
-	ComplianceStatusID uint   `json:"compliance_status_id" binding:"required"`
-	Comment            string `json:"comment" binding:"required"`
+	ComplianceStatusID uint                                              `json:"compliance_status_id" binding:"required"`
+	Comment            string                                            `json:"comment" binding:"required"`
+	Documents          []ComplianceActionPlanStatusUpdateDocumentFormDTO `json:"documents" binding:"required"`
+}
+
+type ComplianceActionPlanStatusUpdateDocumentFormDTO struct {
+	ID           *uint  `json:"id,omitempty"`
+	URL          string `json:"url"`
+	Icon         string `json:"icon" binding:"required"`
+	FileName     string `json:"file_name"`
+	OriginalName string `json:"original_name"`
+	Type         string `json:"type"`
+	Size         int    `json:"size"`
+	IsNewFile    *bool  `json:"is_new_file,omitempty"` // Optional field for indicating if the file is new or updated
 }
