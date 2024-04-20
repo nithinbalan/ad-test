@@ -3,10 +3,11 @@ package dtos
 type ComplianceActionPlanStatusUpdateListDTO struct {
 	ID                        uint    `json:"id"`
 	ComplianceActionPlanTitle string  `json:"compliance_action_plan_title"`
-	ComplianceStatusTitleEn   string  `json:"compliance_status_title_en"`
-	ComplianceStatusTitleAr   string  `json:"compliance_status_title_ar"`
-	ComplianceStatusColorCode string  `json:"compliance_status_color_code"`
+	ActionPlanStatusTitleEn   string  `json:"action_plan_status_title_en"`
+	ActionPlanStatusTitleAr   string  `json:"action_plan_status_title_ar"`
+	ActionPlanStatusColorCode string  `json:"action_plan_status_color_code"`
 	Comment                   string  `json:"comment"`
+	Percentage                string  `json:"percentage"`
 	CreatedAt                 string  `json:"created_at"`
 	UpdatedAt                 string  `json:"updated_at"`
 	CreatedUserFirstNameEn    string  `json:"created_user_first_name_en"`
@@ -20,9 +21,11 @@ type ComplianceActionPlanStatusUpdateListDTO struct {
 }
 
 type ComplianceActionPlanStatusUpdateFormDTO struct {
-	ComplianceStatusID uint                                              `json:"compliance_status_id" binding:"required"`
-	Comment            string                                            `json:"comment" binding:"required"`
-	Documents          []ComplianceActionPlanStatusUpdateDocumentFormDTO `json:"documents" binding:"required"`
+	ComplianceStatusID uint                                               `json:"compliance_status_id" binding:"required"`
+	ActionPlanStatusID uint                                               `json:"action_plan_status_id" binding:"required"`
+	Comment            string                                             `json:"comment" binding:"required"`
+	Percentage         *uint                                              `json:"percentage" binding:"required"`
+	Documents          []*ComplianceActionPlanStatusUpdateDocumentFormDTO `json:"documents" binding:"required"`
 }
 
 type ComplianceActionPlanStatusUpdateDocumentFormDTO struct {
@@ -34,4 +37,5 @@ type ComplianceActionPlanStatusUpdateDocumentFormDTO struct {
 	Type         string `json:"type"`
 	Size         int    `json:"size"`
 	IsNewFile    *bool  `json:"is_new_file,omitempty"` // Optional field for indicating if the file is new or updated
+
 }

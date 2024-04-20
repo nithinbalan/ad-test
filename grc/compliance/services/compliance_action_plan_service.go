@@ -125,6 +125,8 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 		SeverityLevelID:         ComplianceActionPlanFormDTO.SeverityLevelID,
 		ResponsibleUserID:       ComplianceActionPlanFormDTO.ResponsibleUserID,
 		TargetDate:              dates.TargetDate,
+		Percentage:              ComplianceActionPlanFormDTO.Percentage,
+		Comments:                ComplianceActionPlanFormDTO.Comments,
 		ActionPlanStatusID:      ComplianceActionPlanFormDTO.ActionPlanStatusID,
 		CreatedBy:               currentUserID,
 	}

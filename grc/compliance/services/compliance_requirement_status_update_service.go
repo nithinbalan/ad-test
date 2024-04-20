@@ -67,10 +67,6 @@ func (crsus ComplianceRequirementStatusUpdateService) GetByID(ComplianceID uint,
 
 func (crsus *ComplianceRequirementStatusUpdateService) Create(ComplianceID uint, ComplianceRequirementID uint, currentUserID uint, complianceRequirementStatusUpdateFormDTO *complianceDTOs.ComplianceRequirementStatusUpdateFormDTO) (uint, error) {
 
-	// @todo file upload?
-
-	// @Review
-	// please move custom error return from repo to here
 	if _, err := crsus.complianceRequirementSvc.GetByID(ComplianceID, ComplianceRequirementID); err != nil {
 		return 0, err
 	}
@@ -79,9 +75,6 @@ func (crsus *ComplianceRequirementStatusUpdateService) Create(ComplianceID uint,
 		return 0, err
 	}
 
-	//@review
-	//Please ensure updated by  and udpated at will be null initially
-	//please add transaction
 	complianceStatusID := complianceRequirementStatusUpdateFormDTO.ComplianceStatusID
 	complianceRequirementUpdate := &models.ComplianceRequirementStatusUpdate{
 		ComplianceRequirementID: ComplianceRequirementID,
@@ -136,23 +129,12 @@ func (crsus *ComplianceRequirementStatusUpdateService) Update(ComplianceID uint,
 		return err
 	}
 
-	if err := crsus.validateComplianceRequirementStatusUpdateFormDTO(ComplianceRequirementStatusUpdateFormDTO); err != nil {
-		return err
-	}
-
-	// Update Compliance StatusUpdate
-	complianceStatusID := ComplianceRequirementStatusUpdateFormDTO.ComplianceStatusID
-	existingComplianceRequirementStatusUpdate.ComplianceStatusID = complianceStatusID
+	// Update Compliance StatusUpdate -- update comment only
 	existingComplianceRequirementStatusUpdate.Comment = ComplianceRequirementStatusUpdateFormDTO.Comment
 	existingComplianceRequirementStatusUpdate.UpdatedBy = &currentUserID
 
 	err = crsus.repo.Update(existingComplianceRequirementStatusUpdate)
 
-	if err != nil {
-		return err
-	}
-
-	err = crsus.complianceRequirementSvc.StatusUpdate(ComplianceID, ComplianceRequirementID, currentUserID, complianceStatusID)
 	if err != nil {
 		return err
 	}

@@ -9,6 +9,7 @@ import (
 	"jethur/grc/compliance/repositories"
 	logModels "jethur/grc/logs/models"
 	logServices "jethur/grc/logs/services"
+	masterServices "jethur/grc/masters/services"
 	"jethur/utility"
 
 	"gorm.io/gorm"
@@ -26,20 +27,20 @@ type ComplianceActionPlanStatusUpdateService struct {
 	repo                    repositories.ComplianceActionPlanStatusUpdateRepositoryInterface
 	activityLogSvc          logServices.ActivityLogServiceInterface
 	complianceActionPlanSvc ComplianceActionPlanServiceInterface
-	complianceStatusSvc     ComplianceStatusServiceInterface
+	actionPlanStatusSvc     masterServices.ActionPlanStatusServiceInterface
 }
 
 func NewComplianceActionPlanStatusUpdateService(
 	repo repositories.ComplianceActionPlanStatusUpdateRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	complianceActionPlanSvc ComplianceActionPlanServiceInterface,
-	complianceStatusSvc ComplianceStatusServiceInterface,
+	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
 ) ComplianceActionPlanStatusUpdateServiceInterface {
 	return &ComplianceActionPlanStatusUpdateService{
 		repo:                    repo,
 		activityLogSvc:          activityLogSvc,
 		complianceActionPlanSvc: complianceActionPlanSvc,
-		complianceStatusSvc:     complianceStatusSvc,
+		actionPlanStatusSvc:     actionPlanStatusSvc,
 	}
 }
 
@@ -84,8 +85,9 @@ func (casus *ComplianceActionPlanStatusUpdateService) Create(ComplianceID uint, 
 
 	complianceActionPlanUpdate := &models.ComplianceActionPlanStatusUpdate{
 		ComplianceActionPlanID: ComplianceActionPlanID,
-		ComplianceStatusID:     complianceActionPlanStatusUpdateFormDTO.ComplianceStatusID,
+		ActionPlanStatusID:     complianceActionPlanStatusUpdateFormDTO.ActionPlanStatusID,
 		Comment:                complianceActionPlanStatusUpdateFormDTO.Comment,
+		Percentage:             complianceActionPlanStatusUpdateFormDTO.Percentage,
 		CreatedBy:              currentUserID,
 	}
 
@@ -95,7 +97,7 @@ func (casus *ComplianceActionPlanStatusUpdateService) Create(ComplianceID uint, 
 		return 0, err
 	}
 
-	err = casus.complianceActionPlanSvc.StatusUpdate(ComplianceID, ComplianceActionPlanID, currentUserID, complianceActionPlanStatusUpdateFormDTO.ComplianceStatusID)
+	err = casus.complianceActionPlanSvc.StatusUpdate(ComplianceID, ComplianceActionPlanID, currentUserID, complianceActionPlanStatusUpdateFormDTO.ActionPlanStatusID)
 	if err != nil {
 		return 0, err
 	}
@@ -186,7 +188,9 @@ func (casus *ComplianceActionPlanStatusUpdateService) Update(ComplianceID uint, 
 
 	// Update Compliance StatusUpdate
 	existingComplianceActionPlanStatusUpdate.ComplianceStatusID = ComplianceActionPlanStatusUpdateFormDTO.ComplianceStatusID
+	// Update Compliance StatusUpdate-- only comments and percentage
 	existingComplianceActionPlanStatusUpdate.Comment = ComplianceActionPlanStatusUpdateFormDTO.Comment
+	existingComplianceActionPlanStatusUpdate.Percentage = ComplianceActionPlanStatusUpdateFormDTO.Percentage
 	existingComplianceActionPlanStatusUpdate.UpdatedBy = &currentUserID
 
 	err = casus.repo.Update(existingComplianceActionPlanStatusUpdate, tx)
@@ -252,8 +256,8 @@ func (casus *ComplianceActionPlanStatusUpdateService) Update(ComplianceID uint, 
 
 func (casus *ComplianceActionPlanStatusUpdateService) validateComplianceActionPlanStatusUpdateFormDTO(complianceActionPlanStatusUpdateFormDTO *complianceDTOs.ComplianceActionPlanStatusUpdateFormDTO) error {
 
-	if _, err := casus.complianceStatusSvc.GetByID(complianceActionPlanStatusUpdateFormDTO.ComplianceStatusID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("compliance status does not exist"), "not_exist", "compliance status")
+	if _, err := casus.actionPlanStatusSvc.GetByID(complianceActionPlanStatusUpdateFormDTO.ActionPlanStatusID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("action plan status does not exist"), "not_exist", "action plan status")
 	}
 
 	return nil
