@@ -22,6 +22,7 @@ type SLACheckQuestionRepositoryInterface interface {
 	GetSimilarQuestion(checkID uint, titleEn string, titleAr string) (*models.SLACheckQuestion, error)
 	GetSimilarQuestionGroup(titleEn string, titleAr string, checkID uint) (*models.SLACheckQuestionGroup, error)
 	IncrementTotalCount(groupID uint) error
+	IncrementCompletedCount(groupID uint) error
 }
 
 type SLACheckQuestionRepository struct {
@@ -169,6 +170,22 @@ func (repo *SLACheckQuestionRepository) IncrementTotalCount(groupID uint) error 
 	}
 
 	group.TotalCount++
+
+	if err := repo.db.Save(&group).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// IncrementCompletedCount increments the total count of SLACheckQuestionGroup by 1
+func (repo *SLACheckQuestionRepository) IncrementCompletedCount(groupID uint) error {
+	var group models.SLACheckQuestionGroup
+	if err := repo.db.First(&group, groupID).Error; err != nil {
+		return err
+	}
+
+	group.CompletedCount++
 
 	if err := repo.db.Save(&group).Error; err != nil {
 		return err
