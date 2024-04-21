@@ -22,7 +22,6 @@ type ComplianceActionPlanStatusUpdateRepositoryInterface interface {
 	//Document
 	SaveComplianceActionPlanStatusUpdateDocument(doc *models.ComplianceActionPlanStatusUpdateDocument, tx ...utility.DatabaseTransaction) error
 	GetComplianceActionPlanStatusUpdateDocumentByID(id uint) (*models.ComplianceActionPlanStatusUpdateDocument, error)
-	GetLatestComplianceActionPlanStatusUpdateDocumentByID(id uint) (*models.ComplianceActionPlanStatusUpdateDocument, error)
 	StoreComplianceActionPlanStatusUpdateDocumentFile(complianceId uint, actionId uint, updatesId uint, fileName string) error
 	RemoveComplianceActionPlanStatusUpdateDocumentFile(complianceId uint, actionId uint, updatesId uint, fileNames string) error
 	DeleteComplianceActionPlanStatusUpdateDocumentId(docId uint, tx ...utility.DatabaseTransaction) error
@@ -128,15 +127,6 @@ func (repo *ComplianceActionPlanStatusUpdateRepository) Update(ComplianceActionP
 func (repo *ComplianceActionPlanStatusUpdateRepository) GetComplianceActionPlanStatusUpdateDocumentByID(id uint) (*models.ComplianceActionPlanStatusUpdateDocument, error) {
 	var document models.ComplianceActionPlanStatusUpdateDocument
 	if err := repo.db.Where("id = ?", id).First(&document).Error; err != nil {
-		return nil, err
-	}
-	return &document, nil
-}
-
-func (repo *ComplianceActionPlanStatusUpdateRepository) GetLatestComplianceActionPlanStatusUpdateDocumentByID(id uint) (*models.ComplianceActionPlanStatusUpdateDocument, error) {
-	var document models.ComplianceActionPlanStatusUpdateDocument
-	if err := repo.db.Where("compliance_action_plan_status_update_id = ?", id).
-		First(&document).Error; err != nil {
 		return nil, err
 	}
 	return &document, nil
