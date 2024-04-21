@@ -210,42 +210,70 @@ func (casus *ComplianceActionPlanStatusUpdateService) Update(ComplianceID uint, 
 	// Iterate over each document in the array
 	for _, doc := range ComplianceActionPlanStatusUpdateFormDTO.Documents {
 
-		if doc.ID != nil {
-			existingDocument, err := casus.repo.GetComplianceActionPlanStatusUpdateDocumentByID(*doc.ID)
-			if err != nil {
+		if doc.IsNewFile != nil && *doc.IsNewFile {
+			// Handle new file case
+			if err := casus.repo.StoreComplianceActionPlanStatusUpdateDocumentFile(ComplianceID, ComplianceActionPlanID, id, doc.FileName); err != nil {
+				tx.Rollback()
 				return err
 			}
-			existingDocument.ComplianceActionPlanStatusUpdateID = id
-			existingDocument.UpdatedBy = currentUserID
-
-			if doc.IsNewFile != nil && *doc.IsNewFile {
+			dataToEncrypt := []byte(doc.FileName)
+			encryptedFilename, err := utility.EncryptData(dataToEncrypt)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+			url := fmt.Sprintf("%s/compliances/%d/action-plans/%d/status-updates/%s", config.GetEnv("API_URL", "http://localhost:8080"), ComplianceID, ComplianceActionPlanID, encryptedFilename)
+			// Create a new ComplianceActionPlanStatusUpdateDocument instance
+			document := &models.ComplianceActionPlanStatusUpdateDocument{
+				ComplianceActionPlanStatusUpdateID: id,
+				URL:                                url,
+				Icon:                               doc.Icon,
+				Name:                               doc.FileName,
+				Size:                               doc.Size,
+				Token:                              encryptedFilename,
+				Type:                               doc.Type,
+				CreatedBy:                          currentUserID,
+			}
+			if err := casus.repo.SaveComplianceActionPlanStatusUpdateDocument(document, tx); err != nil {
+				tx.Rollback()
+				return err
+			}
+		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
+			// Handle deleted file case
+			if doc.ID != nil {
+				existingDocument, err := casus.repo.GetComplianceActionPlanStatusUpdateDocumentByID(*doc.ID)
+				if err != nil {
+					return err
+				}
+				if existingDocument == nil {
+					tx.Rollback()
+					return fmt.Errorf("existing document not found for ID: %d", *doc.ID)
+				}
 				if err := casus.repo.RemoveComplianceActionPlanStatusUpdateDocumentFile(ComplianceID, ComplianceActionPlanID, id, existingDocument.Name); err != nil {
 					tx.Rollback()
 					return err
 				}
-				if err := casus.repo.StoreComplianceActionPlanStatusUpdateDocumentFile(ComplianceID, ComplianceActionPlanID, id, doc.FileName); err != nil {
+				if err := casus.repo.DeleteComplianceActionPlanStatusUpdateDocumentId(existingDocument.ID, tx); err != nil {
 					tx.Rollback()
 					return err
 				}
-				dataToEncrypt := []byte(doc.FileName)
-				encryptedFilename, err := utility.EncryptData(dataToEncrypt)
-				if err != nil {
-					tx.Rollback()
-					return err
-				}
-				url := fmt.Sprintf("%s/compliances/%d/action-plans/%d/status-updates/%s", config.GetEnv("API_URL", "http://localhost:8080"), ComplianceID, ComplianceActionPlanID, encryptedFilename)
-
-				existingDocument.URL = url
-				existingDocument.Icon = doc.Icon
-				existingDocument.Name = doc.FileName
-				existingDocument.Size = doc.Size
-				existingDocument.Token = encryptedFilename
-				existingDocument.Type = doc.Type
-
 			}
-			if err := casus.repo.SaveComplianceActionPlanStatusUpdateDocument(existingDocument, tx); err != nil {
-				tx.Rollback()
-				return err
+		} else {
+			// Handle existing document update case
+			if doc.ID != nil {
+				existingDocument, err := casus.repo.GetComplianceActionPlanStatusUpdateDocumentByID(*doc.ID)
+				if err != nil {
+					return err
+				}
+				if existingDocument == nil {
+					tx.Rollback()
+					return fmt.Errorf("existing document not found for ID: %d", *doc.ID)
+				}
+				existingDocument.UpdatedBy = currentUserID
+				if err := casus.repo.SaveComplianceActionPlanStatusUpdateDocument(existingDocument, tx); err != nil {
+					tx.Rollback()
+					return err
+				}
 			}
 		}
 	}
@@ -263,7 +291,7 @@ func (casus *ComplianceActionPlanStatusUpdateService) validateComplianceActionPl
 	return nil
 }
 
-func (casus *ComplianceActionPlanStatusUpdateService) validateComplianceActionPlanStatusUpdateDocumentsFormDTO(documents []*complianceDTOs.ComplianceActionPlanStatusUpdateFormDTO) error {
+func (casus *ComplianceActionPlanStatusUpdateService) validateComplianceActionPlanStatusUpdateDocumentsFormDTO(documents []*complianceDTOs.ComplianceActionPlanStatusUpdateDocumentFormDTO) error {
 	// Check if documents array is nil or empty
 	if documents == nil || len(documents) == 0 {
 		return utility.NewValidationError(fmt.Errorf("documents array is required"), "required", "documents")

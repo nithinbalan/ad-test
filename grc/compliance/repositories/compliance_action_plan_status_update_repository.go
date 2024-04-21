@@ -25,6 +25,7 @@ type ComplianceActionPlanStatusUpdateRepositoryInterface interface {
 	GetLatestComplianceActionPlanStatusUpdateDocumentByID(id uint) (*models.ComplianceActionPlanStatusUpdateDocument, error)
 	StoreComplianceActionPlanStatusUpdateDocumentFile(complianceId uint, actionId uint, updatesId uint, fileName string) error
 	RemoveComplianceActionPlanStatusUpdateDocumentFile(complianceId uint, actionId uint, updatesId uint, fileNames string) error
+	DeleteComplianceActionPlanStatusUpdateDocumentId(docId uint, tx ...utility.DatabaseTransaction) error
 }
 
 type ComplianceActionPlanStatusUpdateRepository struct {
@@ -144,7 +145,7 @@ func (repo *ComplianceActionPlanStatusUpdateRepository) GetLatestComplianceActio
 func (repo *ComplianceActionPlanStatusUpdateRepository) StoreComplianceActionPlanStatusUpdateDocumentFile(id uint, actionId uint, updatesId uint, fileName string) error {
 	storagePath := config.GetEnv("STORAGE_PATH", "")
 	temporaryStoragePath := filepath.Join(storagePath, "tmp", fileName)
-	directoryPath := filepath.Join(storagePath, "compliance", "compliance", strconv.FormatUint(uint64(id), 10), "action-plan", strconv.FormatUint(uint64(actionId), 10), "updates", strconv.FormatUint(uint64(updatesId), 10), "documents")
+	directoryPath := filepath.Join(storagePath, "compliance", "compliance", strconv.FormatUint(uint64(id), 10), "action-plans", strconv.FormatUint(uint64(actionId), 10), "updates", strconv.FormatUint(uint64(updatesId), 10), "documents")
 	destinationPath := filepath.Join(directoryPath, fileName)
 	if err := os.MkdirAll(directoryPath, os.ModePerm); err != nil {
 		return err
@@ -168,9 +169,22 @@ func (repo *ComplianceActionPlanStatusUpdateRepository) SaveComplianceActionPlan
 
 func (repo *ComplianceActionPlanStatusUpdateRepository) RemoveComplianceActionPlanStatusUpdateDocumentFile(complianceId uint, actionId uint, updatesId uint, fileName string) error {
 	storagePath := config.GetEnv("STORAGE_PATH", "")
-	filePath := filepath.Join(storagePath, "compliance", "compliance", strconv.FormatUint(uint64(complianceId), 10), "action-plan", strconv.FormatUint(uint64(actionId), 10), "updates", strconv.FormatUint(uint64(updatesId), 10), "documents", fileName)
+	filePath := filepath.Join(storagePath, "compliance", "compliance", strconv.FormatUint(uint64(complianceId), 10), "action-plans", strconv.FormatUint(uint64(actionId), 10), "updates", strconv.FormatUint(uint64(updatesId), 10), "documents", fileName)
 	if err := os.Remove(filePath); err != nil {
 		return err
 	}
+	return nil
+}
+
+func (repo *ComplianceActionPlanStatusUpdateRepository) DeleteComplianceActionPlanStatusUpdateDocumentId(docID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Delete(&models.ComplianceActionPlanStatusUpdateDocument{}, docID).Error; err != nil {
+		return err
+	}
+
 	return nil
 }
