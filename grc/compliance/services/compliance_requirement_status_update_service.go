@@ -102,7 +102,7 @@ func (crsus *ComplianceRequirementStatusUpdateService) Create(ComplianceID uint,
 	// Iterate over each document in the array
 	for _, doc := range complianceRequirementStatusUpdateFormDTO.Documents {
 
-		if err := crsus.repo.StoreComplianceRequirementStatusUpdateDocumentFile(ComplianceID, id, doc.FileName); err != nil {
+		if err := crsus.repo.StoreComplianceRequirementStatusUpdateDocumentFile(ComplianceID, ComplianceRequirementID, id, doc.FileName); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
@@ -192,48 +192,75 @@ func (crsus *ComplianceRequirementStatusUpdateService) Update(ComplianceID uint,
 	}
 	// Iterate over each document in the array
 	for _, doc := range ComplianceRequirementStatusUpdateFormDTO.Documents {
-
-		if doc.ID != nil {
-			existingDocument, err := crsus.repo.GetComplianceRequirementStatusUpdateDocumentByID(*doc.ID)
-			if err != nil {
-				return err
-			}
-			existingDocument.ComplianceRequirementStatusUpdateID = id
-			existingDocument.UpdatedBy = currentUserID
-
-			if doc.IsNewFile != nil && *doc.IsNewFile {
-				if err := crsus.repo.RemoveComplianceRequirementStatusUpdateDocumentFile(ComplianceID, id, existingDocument.Name); err != nil {
-					tx.Rollback()
-					return err
-				}
-				if err := crsus.repo.StoreComplianceRequirementStatusUpdateDocumentFile(ComplianceID, id, doc.FileName); err != nil {
-					tx.Rollback()
-					return err
-				}
-				dataToEncrypt := []byte(doc.FileName)
-				encryptedFilename, err := utility.EncryptData(dataToEncrypt)
-				if err != nil {
-					tx.Rollback()
-					return err
-				}
-				url := fmt.Sprintf("%s/compliances/%d/requirements/%d/status-updates/%s", config.GetEnv("API_URL", "http://localhost:8080"), ComplianceID, ComplianceRequirementID, encryptedFilename)
-
-				existingDocument.URL = url
-				existingDocument.Icon = doc.Icon
-				existingDocument.Name = doc.FileName
-				existingDocument.Size = doc.Size
-				existingDocument.Token = encryptedFilename
-				existingDocument.Type = doc.Type
-
-			}
-			if err := crsus.repo.SaveComplianceRequirementStatusUpdateDocument(existingDocument, tx); err != nil {
+		if doc.IsNewFile != nil && *doc.IsNewFile {
+			// Handle new file case
+			if err := crsus.repo.StoreComplianceRequirementStatusUpdateDocumentFile(ComplianceID, ComplianceRequirementID, id, doc.FileName); err != nil {
 				tx.Rollback()
 				return err
 			}
+			dataToEncrypt := []byte(doc.FileName)
+			encryptedFilename, err := utility.EncryptData(dataToEncrypt)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+			url := fmt.Sprintf("%s/compliances/%d/requirements/%d/status-updates/%s", config.GetEnv("API_URL", "http://localhost:8080"), ComplianceID, ComplianceRequirementID, encryptedFilename)
+			// Create a new ComplianceRequirementStatusUpdateDocument instance
+			document := &models.ComplianceRequirementStatusUpdateDocument{
+				ComplianceRequirementStatusUpdateID: id,
+				URL:                                 url,
+				Icon:                                doc.Icon,
+				Name:                                doc.FileName,
+				Size:                                doc.Size,
+				Token:                               encryptedFilename,
+				Type:                                doc.Type,
+				CreatedBy:                           currentUserID,
+			}
+			if err := crsus.repo.SaveComplianceRequirementStatusUpdateDocument(document, tx); err != nil {
+				tx.Rollback()
+				return err
+			}
+		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
+			// Handle deleted file case
+			if doc.ID != nil {
+				existingDocument, err := crsus.repo.GetComplianceRequirementStatusUpdateDocumentByID(*doc.ID)
+				if err != nil {
+					return err
+				}
+				if existingDocument == nil {
+					tx.Rollback()
+					return fmt.Errorf("existing document not found for ID: %d", *doc.ID)
+				}
+				if err := crsus.repo.RemoveComplianceRequirementStatusUpdateDocumentFile(ComplianceID, ComplianceRequirementID, id, existingDocument.Name); err != nil {
+					tx.Rollback()
+					return err
+				}
+				if err := crsus.repo.DeleteComplianceRequirementStatusUpdateDocumentID(existingDocument.ID, tx); err != nil {
+					tx.Rollback()
+					return err
+				}
+			}
+		} else {
+			// Handle existing document update case
+			if doc.ID != nil {
+				existingDocument, err := crsus.repo.GetComplianceRequirementStatusUpdateDocumentByID(*doc.ID)
+				if err != nil {
+					return err
+				}
+				if existingDocument == nil {
+					tx.Rollback()
+					return fmt.Errorf("existing document not found for ID: %d", *doc.ID)
+				}
+				existingDocument.UpdatedBy = currentUserID
+				if err := crsus.repo.SaveComplianceRequirementStatusUpdateDocument(existingDocument, tx); err != nil {
+					tx.Rollback()
+					return err
+				}
+			}
 		}
 	}
-
 	tx.Commit()
+
 	return nil
 }
 

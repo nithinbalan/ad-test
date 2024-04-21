@@ -22,8 +22,9 @@ type ComplianceRequirementStatusUpdateRepositoryInterface interface {
 	SaveComplianceRequirementStatusUpdateDocument(doc *models.ComplianceRequirementStatusUpdateDocument, tx ...utility.DatabaseTransaction) error
 	GetComplianceRequirementStatusUpdateDocumentByID(id uint) (*models.ComplianceRequirementStatusUpdateDocument, error)
 	GetLatestComplianceRequirementStatusUpdateDocumentByID(id uint) (*models.ComplianceRequirementStatusUpdateDocument, error)
-	StoreComplianceRequirementStatusUpdateDocumentFile(complianceId uint, updatesId uint, fileName string) error
-	RemoveComplianceRequirementStatusUpdateDocumentFile(complianceId uint, updatesId uint, fileNames string) error
+	StoreComplianceRequirementStatusUpdateDocumentFile(complianceId uint, requirementId uint, updatesId uint, fileName string) error
+	RemoveComplianceRequirementStatusUpdateDocumentFile(complianceId uint, requirementId uint, updatesId uint, fileNames string) error
+	DeleteComplianceRequirementStatusUpdateDocumentID(docId uint, tx ...utility.DatabaseTransaction) error
 }
 
 type ComplianceRequirementStatusUpdateRepository struct {
@@ -140,10 +141,10 @@ func (repo *ComplianceRequirementStatusUpdateRepository) GetLatestComplianceRequ
 	return &document, nil
 }
 
-func (repo *ComplianceRequirementStatusUpdateRepository) StoreComplianceRequirementStatusUpdateDocumentFile(id uint, updatesId uint, fileName string) error {
+func (repo *ComplianceRequirementStatusUpdateRepository) StoreComplianceRequirementStatusUpdateDocumentFile(id uint, requirementId uint, updatesId uint, fileName string) error {
 	storagePath := config.GetEnv("STORAGE_PATH", "")
 	temporaryStoragePath := filepath.Join(storagePath, "tmp", fileName)
-	directoryPath := filepath.Join(storagePath, "compliance", "compliance", strconv.FormatUint(uint64(id), 10), "updates", strconv.FormatUint(uint64(updatesId), 10), "documents")
+	directoryPath := filepath.Join(storagePath, "compliance", "compliance", strconv.FormatUint(uint64(id), 10), "requirements", strconv.FormatUint(uint64(requirementId), 10), "updates", strconv.FormatUint(uint64(updatesId), 10), "documents")
 	destinationPath := filepath.Join(directoryPath, fileName)
 	if err := os.MkdirAll(directoryPath, os.ModePerm); err != nil {
 		return err
@@ -165,11 +166,24 @@ func (repo *ComplianceRequirementStatusUpdateRepository) SaveComplianceRequireme
 	return nil
 }
 
-func (repo *ComplianceRequirementStatusUpdateRepository) RemoveComplianceRequirementStatusUpdateDocumentFile(complianceId uint, updatesId uint, fileName string) error {
+func (repo *ComplianceRequirementStatusUpdateRepository) RemoveComplianceRequirementStatusUpdateDocumentFile(complianceId uint, requirementId uint, updatesId uint, fileName string) error {
 	storagePath := config.GetEnv("STORAGE_PATH", "")
-	filePath := filepath.Join(storagePath, "compliance", "compliance", strconv.FormatUint(uint64(complianceId), 10), "updates", strconv.FormatUint(uint64(updatesId), 10), "documents", fileName)
+	filePath := filepath.Join(storagePath, "compliance", "compliance", strconv.FormatUint(uint64(complianceId), 10), "requirements", strconv.FormatUint(uint64(requirementId), 10), "updates", strconv.FormatUint(uint64(updatesId), 10), "documents", fileName)
 	if err := os.Remove(filePath); err != nil {
 		return err
 	}
+	return nil
+}
+
+func (repo *ComplianceRequirementStatusUpdateRepository) DeleteComplianceRequirementStatusUpdateDocumentID(docID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Delete(&models.ComplianceRequirementStatusUpdateDocument{}, docID).Error; err != nil {
+		return err
+	}
+
 	return nil
 }
