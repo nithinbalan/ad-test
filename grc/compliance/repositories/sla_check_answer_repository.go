@@ -10,6 +10,7 @@ type SLACheckAnswerRepositoryInterface interface {
 	GetByID(id uint) (*models.SLACheckAnswer, error)
 	Create(slaCheckAnswer *models.SLACheckAnswer) (*models.SLACheckAnswer, error)
 	Update(slaCheckAnswer *models.SLACheckAnswer) error
+	Delete(id uint) error
 }
 
 type SLACheckAnswerRepository struct {
@@ -46,6 +47,21 @@ func (repo *SLACheckAnswerRepository) Update(slaCheckAnswer *models.SLACheckAnsw
 
 	if err := repo.db.Save(slaCheckAnswer).Error; err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (repo *SLACheckAnswerRepository) Delete(id uint) error {
+
+	var slaCheckAnswer *models.SLACheckAnswer
+	if err := repo.db.First(&slaCheckAnswer, id).Error; err != nil {
+		return err
+	}
+
+	result := repo.db.Delete(&models.SLACheckAnswer{}, id)
+	if result.Error != nil {
+		return result.Error
 	}
 
 	return nil

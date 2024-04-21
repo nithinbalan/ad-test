@@ -17,6 +17,7 @@ type SLACheckAnswerServiceInterface interface {
 	GetByID(slaID uint, questionID uint, answerID uint) (*models.SLACheckAnswer, error)
 	CreateAnswer(slaID uint, questionID uint, currentUserID uint, slaCheckAnswerFormDTO *complianceDTOs.SLACheckAnswerFormDTO) (uint, error)
 	UpdateAnswer(slaID uint, questionID uint, answerID uint, currentUserID uint, slaCheckAnswerFormDTO *complianceDTOs.SLACheckAnswerFormDTO) error
+	DeleteAnswer(slaID uint, questionID uint, answerID uint, currentUserID uint) (uint, error)
 }
 
 // Service and implementations
@@ -168,6 +169,48 @@ func (scas *SLACheckAnswerService) UpdateAnswer(slaID uint, questionID uint, ans
 	}()
 
 	return nil
+}
+
+func (scqs *SLACheckAnswerService) DeleteAnswer(slaID uint, questionID uint, answerID uint, currentUserID uint) (uint, error) {
+	if _, err := scqs.slaRegisterSvc.GetByID(slaID); err != nil {
+		return 0, err
+	}
+
+	if _, err := scqs.slaCheckQuestionSvc.GetQuestionByID(questionID); err != nil {
+		return 0, err
+	}
+	var failedId uint
+	var successfulId uint
+
+	answer, err := scqs.GetByID(slaID, questionID, answerID)
+	if err != nil {
+		return 0, err
+	}
+
+	err = scqs.repo.Delete(answerID)
+	if err != nil {
+		failedId = answerID
+	} else {
+		successfulId = answerID
+	}
+
+	if successfulId != 0 {
+		go func() {
+			err := scqs.activityLogSvc.LogActivity(
+				logModels.DeleteAction,
+				models.SLACheckAnswer{}.TableName(),
+				successfulId,
+				answer,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				fmt.Printf("Failed to log activity: %v\n", err)
+			}
+		}()
+	}
+
+	return failedId, nil
 }
 
 func (scas *SLACheckAnswerService) validateSlaCheckAnswerFormDTO(slaCheckAnswerFormDTO *complianceDTOs.SLACheckAnswerFormDTO) error {

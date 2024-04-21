@@ -130,41 +130,41 @@ func (scac *SLACheckAnswerController) UpdateSLACheckAnswer(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-// func (scac *SLACheckAnswerController) DeleteSLACheckAnswer(c *gin.Context) {
-// 	slaIDStr := c.Param("slaId")
+func (scac *SLACheckAnswerController) DeleteSLACheckAnswer(c *gin.Context) {
+	slaIDStr := c.Param("slaId")
 
-// 	slaID, err := strconv.ParseUint(slaIDStr, 10, 64)
-// 	if err != nil {
-// 		utility.SendNotFoundErrResp(c)
-// 		return
-// 	}
+	slaID, err := strconv.ParseUint(slaIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
 
-// 	questionIdStr := c.Param("questionId")
+	questionIdStr := c.Param("questionId")
 
-// 	questionId, err := strconv.ParseUint(questionIdStr, 10, 32)
-// 	if err != nil {
-// 		utility.SendNotFoundErrResp(c)
-// 		return
-// 	}
+	questionId, err := strconv.ParseUint(questionIdStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
 
-// 	answerIdStr := c.Param("answerId")
+	answerIdStr := c.Param("answerId")
 
-// 	answerId, err := strconv.ParseUint(answerIdStr, 10, 64)
-// 	if err != nil {
-// 		utility.SendNotFoundErrResp(c)
-// 		return
-// 	}
-// 	currentUserID, err := utility.GetCurrentUserID(c)
-// 	if err != nil {
-// 		utility.SendInternalErrResp(scac.db, c, err.Error())
-// 		return
-// 	}
+	answerId, err := strconv.ParseUint(answerIdStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(scac.db, c, err.Error())
+		return
+	}
 
-// 	failedID, err := scac.service.DeleteAnswer(uint(slaID), uint(questionId), uint(answerId), currentUserID)
-// 	if err != nil {
-// 		utility.SendInternalErrResp(scac.db, c, err.Error())
-// 		return
-// 	}
+	failedID, err := scac.service.DeleteAnswer(uint(slaID), uint(questionId), uint(answerId), currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(scac.db, c, err.Error())
+		return
+	}
 
-// 	c.JSON(http.StatusOK, gin.H{"failed_id": failedID})
-// }
+	c.JSON(http.StatusOK, gin.H{"failed_id": failedID})
+}
