@@ -21,7 +21,6 @@ type ComplianceRequirementStatusUpdateRepositoryInterface interface {
 	//Document
 	SaveComplianceRequirementStatusUpdateDocument(doc *models.ComplianceRequirementStatusUpdateDocument, tx ...utility.DatabaseTransaction) error
 	GetComplianceRequirementStatusUpdateDocumentByID(id uint) (*models.ComplianceRequirementStatusUpdateDocument, error)
-	GetLatestComplianceRequirementStatusUpdateDocumentByID(id uint) (*models.ComplianceRequirementStatusUpdateDocument, error)
 	StoreComplianceRequirementStatusUpdateDocumentFile(complianceId uint, requirementId uint, updatesId uint, fileName string) error
 	RemoveComplianceRequirementStatusUpdateDocumentFile(complianceId uint, requirementId uint, updatesId uint, fileNames string) error
 	DeleteComplianceRequirementStatusUpdateDocumentID(docId uint, tx ...utility.DatabaseTransaction) error
@@ -127,15 +126,6 @@ func (repo *ComplianceRequirementStatusUpdateRepository) Update(ComplianceRequir
 func (repo *ComplianceRequirementStatusUpdateRepository) GetComplianceRequirementStatusUpdateDocumentByID(id uint) (*models.ComplianceRequirementStatusUpdateDocument, error) {
 	var document models.ComplianceRequirementStatusUpdateDocument
 	if err := repo.db.Where("id = ?", id).First(&document).Error; err != nil {
-		return nil, err
-	}
-	return &document, nil
-}
-
-func (repo *ComplianceRequirementStatusUpdateRepository) GetLatestComplianceRequirementStatusUpdateDocumentByID(id uint) (*models.ComplianceRequirementStatusUpdateDocument, error) {
-	var document models.ComplianceRequirementStatusUpdateDocument
-	if err := repo.db.Where("compliance_requirement_status_update_id = ?", id).
-		First(&document).Error; err != nil {
 		return nil, err
 	}
 	return &document, nil
