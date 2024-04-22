@@ -290,8 +290,8 @@ func (casus *ComplianceActionPlanStatusUpdateService) validateComplianceActionPl
 }
 
 func (casus *ComplianceActionPlanStatusUpdateService) validateComplianceActionPlanStatusUpdateDocumentsFormDTO(documents []*complianceDTOs.ComplianceActionPlanStatusUpdateDocumentFormDTO) error {
-	// Check if documents array is nil or empty
-	if documents == nil || len(documents) == 0 {
+	// Check if documents array is empty
+	if len(documents) == 0 {
 		return utility.NewValidationError(fmt.Errorf("documents array is required"), "required", "documents")
 	}
 
