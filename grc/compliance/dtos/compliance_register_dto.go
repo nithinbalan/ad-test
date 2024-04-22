@@ -79,23 +79,45 @@ type ComplianceRegisterListResponseDTO struct {
 }
 
 type ComplianceRegisterFormDTO struct {
-	ComplianceCategoryID    uint    `json:"compliance_category_id" binding:"required"`
-	ComplianceStatusID      uint    `json:"compliance_status_id" binding:"required"`
-	ResponsibleUnitID       uint    `json:"responsible_unit_id" binding:"required"`
-	ResponsibleUserID       uint    `json:"responsible_user_id" binding:"required"`
-	ReviewFrequencyID       *uint   `json:"review_frequency_id"`
-	ReviewResponsibleUserID *uint   `json:"review_responsible_user_id"`
-	SeverityLevelID         *uint   `json:"severity_level_id"`
-	TitleEn                 string  `json:"title_en" binding:"required,max=255"`
-	TitleAr                 string  `json:"title_ar" binding:"required,max=255"`
-	DescriptionEn           *string `json:"description_en"`
-	DescriptionAr           *string `json:"description_ar"`
-	Version                 *string `json:"version" binding:"omitempty,max=45"`
-	Deadline                string  `json:"deadline" binding:"omitempty,datetime=2006-01-02"`
-	IssueDate               string  `json:"issue_date" binding:"omitempty,datetime=2006-01-02"`
-	ExpiryDate              string  `json:"expiry_date" binding:"omitempty,datetime=2006-01-02"`
-	NextReviewDate          string  `json:"next_review_date" binding:"omitempty,datetime=2006-01-02"`
-	StandardCode            *string `json:"standard_code" binding:"omitempty,max=45"`
+	ComplianceCategoryID    uint                       `json:"compliance_category_id" binding:"required"`
+	ComplianceStatusID      uint                       `json:"compliance_status_id" binding:"required"`
+	ResponsibleUnitID       uint                       `json:"responsible_unit_id" binding:"required"`
+	ResponsibleUserID       uint                       `json:"responsible_user_id" binding:"required"`
+	ReviewFrequencyID       *uint                      `json:"review_frequency_id"`
+	ReviewResponsibleUserID *uint                      `json:"review_responsible_user_id"`
+	SeverityLevelID         *uint                      `json:"severity_level_id"`
+	TitleEn                 string                     `json:"title_en" binding:"required,max=255"`
+	TitleAr                 string                     `json:"title_ar" binding:"required,max=255"`
+	DescriptionEn           *string                    `json:"description_en"`
+	DescriptionAr           *string                    `json:"description_ar"`
+	Version                 *string                    `json:"version" binding:"omitempty,max=45"`
+	Deadline                string                     `json:"deadline" binding:"omitempty,datetime=2006-01-02"`
+	IssueDate               string                     `json:"issue_date" binding:"omitempty,datetime=2006-01-02"`
+	ExpiryDate              string                     `json:"expiry_date" binding:"omitempty,datetime=2006-01-02"`
+	NextReviewDate          string                     `json:"next_review_date" binding:"omitempty,datetime=2006-01-02"`
+	StandardCode            *string                    `json:"standard_code" binding:"omitempty,max=45"`
+	Document                *ComplianceDocumentFormDTO `json:"document" binding:"required"`
+}
+type ComplianceDocumentFormDTO struct {
+	ID           *uint  `json:"id,omitempty"`
+	Language     string `json:"language" binding:"required"`
+	URL          string `json:"url"`
+	Icon         string `json:"icon" binding:"required"`
+	FileName     string `json:"file_name"`
+	OriginalName string `json:"original_name"`
+	Type         string `json:"type"`
+	Size         int    `json:"size"`
+	IsNewFile    *bool  `json:"is_new_file,omitempty"` // Optional field for indicating if the file is new or updated
+}
+type ComplianceDocumentDTO struct {
+	ID           int    `json:"id"`
+	Language     string `json:"language"`
+	URL          string `json:"url"`
+	Icon         string `json:"icon"`
+	FileName     string `json:"file_name"`
+	OriginalName string `json:"original_name"`
+	Type         string `json:"type"`
+	Size         int    `json:"size"`
 }
 
 type ComplianceRegisterParsedDates struct {
@@ -146,4 +168,5 @@ type ComplianceRegisterDetailDTO struct {
 	CreatedByUser         UserMinimalDTO                `json:"created_by"`
 	UpdatedByUser         UserMinimalDTO                `json:"updated_by"`
 	LifecycleStatus       masterDTOs.LifecycleStatusDTO `json:"status"`
+	ComplianceDocuments   []ComplianceDocumentDTO       `json:"compliance_documents"`
 }
