@@ -275,7 +275,7 @@ func (crsus *ComplianceRequirementStatusUpdateService) validateComplianceRequire
 
 func (crsus *ComplianceRequirementStatusUpdateService) validateComplianceRequirementStatusUpdateDocumentsFormDTO(documents []*complianceDTOs.ComplianceRequirementStatusUpdateDocumentFormDTO) error {
 	// Check if documents array is nil or empty
-	if documents == nil || len(documents) == 0 {
+	if len(documents) == 0 {
 		return utility.NewValidationError(fmt.Errorf("documents is required"), "required", "documents")
 	}
 	for _, document := range documents {
