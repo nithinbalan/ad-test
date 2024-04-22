@@ -186,8 +186,6 @@ func (casus *ComplianceActionPlanStatusUpdateService) Update(ComplianceID uint, 
 		return err
 	}
 
-	// Update Compliance StatusUpdate
-	existingComplianceActionPlanStatusUpdate.ComplianceStatusID = ComplianceActionPlanStatusUpdateFormDTO.ComplianceStatusID
 	// Update Compliance StatusUpdate-- only comments and percentage
 	existingComplianceActionPlanStatusUpdate.Comment = ComplianceActionPlanStatusUpdateFormDTO.Comment
 	existingComplianceActionPlanStatusUpdate.Percentage = ComplianceActionPlanStatusUpdateFormDTO.Percentage
