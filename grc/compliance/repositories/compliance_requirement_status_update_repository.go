@@ -1,17 +1,29 @@
 package repositories
 
 import (
+	"jethur/config"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/models"
+	"jethur/utility"
+	"os"
+	"path/filepath"
+	"strconv"
 
 	"gorm.io/gorm"
 )
 
 type ComplianceRequirementStatusUpdateRepositoryInterface interface {
+	BeginTransaction() utility.DatabaseTransaction
 	GetAll(complianceRequirementID uint, sort string, sortBy string, keyword string) ([]*complianceDTOs.ComplianceRequirementStatusUpdateListDTO, error)
 	GetByID(id uint) (*models.ComplianceRequirementStatusUpdate, error)
-	Create(ComplianceRequirementStatusUpdate *models.ComplianceRequirementStatusUpdate) (uint, error)
-	Update(ComplianceRequirementStatusUpdate *models.ComplianceRequirementStatusUpdate) error
+	Create(ComplianceRequirementStatusUpdate *models.ComplianceRequirementStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
+	Update(ComplianceRequirementStatusUpdate *models.ComplianceRequirementStatusUpdate, tx ...utility.DatabaseTransaction) error
+	//Document
+	SaveComplianceRequirementStatusUpdateDocument(doc *models.ComplianceRequirementStatusUpdateDocument, tx ...utility.DatabaseTransaction) error
+	GetComplianceRequirementStatusUpdateDocumentByID(id uint) (*models.ComplianceRequirementStatusUpdateDocument, error)
+	StoreComplianceRequirementStatusUpdateDocumentFile(complianceId uint, requirementId uint, updatesId uint, fileName string) error
+	RemoveComplianceRequirementStatusUpdateDocumentFile(complianceId uint, requirementId uint, updatesId uint, fileNames string) error
+	DeleteComplianceRequirementStatusUpdateDocumentID(docId uint, tx ...utility.DatabaseTransaction) error
 }
 
 type ComplianceRequirementStatusUpdateRepository struct {
@@ -22,6 +34,11 @@ func NewComplianceRequirementStatusUpdateRepository(db *gorm.DB) *ComplianceRequ
 	return &ComplianceRequirementStatusUpdateRepository{
 		db: db,
 	}
+}
+
+// BeginTransaction starts a new transaction.
+func (repo *ComplianceRequirementStatusUpdateRepository) BeginTransaction() utility.DatabaseTransaction {
+	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
 func (repo *ComplianceRequirementStatusUpdateRepository) GetAll(complianceRequirementID uint, sort string, sortBy string, keyword string) ([]*complianceDTOs.ComplianceRequirementStatusUpdateListDTO, error) {
@@ -83,18 +100,80 @@ func (repo *ComplianceRequirementStatusUpdateRepository) GetByID(id uint) (*mode
 	return complianceRequirementStatusUpdate, nil
 }
 
-func (repo *ComplianceRequirementStatusUpdateRepository) Create(ComplianceRequirementStatusUpdate *models.ComplianceRequirementStatusUpdate) (uint, error) {
-
-	if err := repo.db.Create(ComplianceRequirementStatusUpdate).Error; err != nil {
+func (repo *ComplianceRequirementStatusUpdateRepository) Create(ComplianceRequirementStatusUpdate *models.ComplianceRequirementStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(ComplianceRequirementStatusUpdate).Error; err != nil {
 		return 0, err
 	}
 
 	return ComplianceRequirementStatusUpdate.ID, nil
 }
 
-func (repo *ComplianceRequirementStatusUpdateRepository) Update(ComplianceRequirementStatusUpdate *models.ComplianceRequirementStatusUpdate) error {
-	if err := repo.db.Save(ComplianceRequirementStatusUpdate).Error; err != nil {
+func (repo *ComplianceRequirementStatusUpdateRepository) Update(ComplianceRequirementStatusUpdate *models.ComplianceRequirementStatusUpdate, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(ComplianceRequirementStatusUpdate).Error; err != nil {
 		return err
 	}
+	return nil
+}
+
+func (repo *ComplianceRequirementStatusUpdateRepository) GetComplianceRequirementStatusUpdateDocumentByID(id uint) (*models.ComplianceRequirementStatusUpdateDocument, error) {
+	var document models.ComplianceRequirementStatusUpdateDocument
+	if err := repo.db.Where("id = ?", id).First(&document).Error; err != nil {
+		return nil, err
+	}
+	return &document, nil
+}
+
+func (repo *ComplianceRequirementStatusUpdateRepository) StoreComplianceRequirementStatusUpdateDocumentFile(id uint, requirementId uint, updatesId uint, fileName string) error {
+	storagePath := config.GetEnv("STORAGE_PATH", "")
+	temporaryStoragePath := filepath.Join(storagePath, "tmp", fileName)
+	directoryPath := filepath.Join(storagePath, "compliance", "compliance", strconv.FormatUint(uint64(id), 10), "requirements", strconv.FormatUint(uint64(requirementId), 10), "updates", strconv.FormatUint(uint64(updatesId), 10), "documents")
+	destinationPath := filepath.Join(directoryPath, fileName)
+	if err := os.MkdirAll(directoryPath, os.ModePerm); err != nil {
+		return err
+	}
+	if err := os.Rename(temporaryStoragePath, destinationPath); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *ComplianceRequirementStatusUpdateRepository) SaveComplianceRequirementStatusUpdateDocument(doc *models.ComplianceRequirementStatusUpdateDocument, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(doc).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *ComplianceRequirementStatusUpdateRepository) RemoveComplianceRequirementStatusUpdateDocumentFile(complianceId uint, requirementId uint, updatesId uint, fileName string) error {
+	storagePath := config.GetEnv("STORAGE_PATH", "")
+	filePath := filepath.Join(storagePath, "compliance", "compliance", strconv.FormatUint(uint64(complianceId), 10), "requirements", strconv.FormatUint(uint64(requirementId), 10), "updates", strconv.FormatUint(uint64(updatesId), 10), "documents", fileName)
+	if err := os.Remove(filePath); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *ComplianceRequirementStatusUpdateRepository) DeleteComplianceRequirementStatusUpdateDocumentID(docID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Delete(&models.ComplianceRequirementStatusUpdateDocument{}, docID).Error; err != nil {
+		return err
+	}
+
 	return nil
 }

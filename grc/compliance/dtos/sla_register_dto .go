@@ -47,7 +47,6 @@ type SLARegisterListDTO struct {
 	SA1Date    string `json:"sa1_date"`
 	SA2Date    string `json:"sa2_date"`
 	Comment    string `json:"comment"`
-	Language   string `json:"language"`
 	URL        string `json:"url"`
 	Name       string `json:"name"`
 	Size       int    `json:"size"`
@@ -98,7 +97,6 @@ type SLARegisterFormDTO struct {
 
 type SLADocumentFormDTO struct {
 	ID           *uint  `json:"id,omitempty"`
-	Language     string `json:"language" binding:"required"`
 	URL          string `json:"url"`
 	Icon         string `json:"icon" binding:"required"`
 	FileName     string `json:"file_name"`
