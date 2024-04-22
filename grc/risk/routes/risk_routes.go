@@ -7,8 +7,14 @@ import (
 	riskRepositories "jethur/grc/risk/repositories"
 	riskServices "jethur/grc/risk/services"
 
+	organizationRepositories "jethur/grc/organization/repositories"
+	organizationServices "jethur/grc/organization/services"
+
 	masterRepositories "jethur/grc/masters/repositories"
 	masterServices "jethur/grc/masters/services"
+
+	settingRepositories "jethur/grc/settings/repositories"
+	settingService "jethur/grc/settings/services"
 
 	"jethur/middlewares"
 
@@ -27,6 +33,24 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 
 	severityLevelRepo := masterRepositories.NewSeverityLevelRepository(db)
 	severityLevelSvc := masterServices.NewSeverityLevelService(severityLevelRepo)
+
+	kriCategoryRepo := masterRepositories.NewKRICategoryRepository(db)
+	kriCategorySvc := masterServices.NewKRICategoryService(kriCategoryRepo, activityLogSvc)
+
+	designationRepo := organizationRepositories.NewDesignationRepository(db)
+	designationSvc := organizationServices.NewDesignationService(designationRepo, activityLogSvc)
+
+	userStatusRepo := organizationRepositories.NewUserStatusRepository(db)
+	userStatusSvc := organizationServices.NewUserStatusService(userStatusRepo)
+
+	roleRepo := settingRepositories.NewRoleRepository(db)
+	roleSvc := settingService.NewRoleService(roleRepo, activityLogSvc)
+
+	userRepo := organizationRepositories.NewUserRepository(db)
+	userSvc := organizationServices.NewUserService(userRepo, designationSvc, userStatusSvc, activityLogSvc, roleSvc)
+
+	reviewFrequencyRepo := masterRepositories.NewReviewFrequencyRepository(db)
+	reviewFrequencySvc := masterServices.NewReviewFrequencyService(reviewFrequencyRepo)
 
 	riskCategoryRepo := riskRepositories.NewRiskCategoryRepository(db)
 	riskCategorySvc := riskServices.NewRiskCategoryService(riskCategoryRepo, activityLogSvc)
@@ -53,6 +77,17 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	potentialRiskStatusUpdateRepo := riskRepositories.NewPotentialRiskStatusUpdateRepository(db)
 	potentialRiskStatusUpdateSvc := riskServices.NewPotentialRiskStatusUpdateService(potentialRiskStatusUpdateRepo, activityLogSvc, potentialRiskSvc, potentialRiskStatusSvc)
 	potentialRiskStatusUpdateController := controllers.NewPotentialRiskStatusUpdateController(potentialRiskStatusUpdateSvc)
+
+	kriRegisterRepo := riskRepositories.NewKRIRegisterRepository(db)
+	kriRegisterSvc := riskServices.NewKRIRegisterService(
+		kriRegisterRepo,
+		activityLogSvc,
+		kriCategorySvc,
+		userSvc,
+		riskLevelSvc,
+		reviewFrequencySvc,
+	)
+	kriRegisterController := controllers.NewKRIRegisterController(kriRegisterSvc)
 
 	riskAppetiteStatementRepo := riskRepositories.NewRiskAppetiteStatementRepository(db)
 	riskAppetiteStatementSvc := riskServices.NewRiskAppetiteStatementService(
@@ -92,4 +127,10 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	riskRoutes.POST("/risk-appetite-statements/delete", riskAppetiteStatementController.DeleteRiskAppetiteStatements)
 	riskRoutes.PUT("/risk-appetite-statements/activate", riskAppetiteStatementController.ActivateRiskAppetiteStatements)
 	riskRoutes.PUT("/risk-appetite-statements/deactivate", riskAppetiteStatementController.DeactivateRiskAppetiteStatements)
+
+	riskRoutes.GET("/kri-register", kriRegisterController.GetAllKRIRegisters)
+	riskRoutes.GET("/kri-register/:id", kriRegisterController.GetKRIRegisterDetails)
+	riskRoutes.POST("/kri-register", kriRegisterController.CreateKRIRegister)
+	riskRoutes.PUT("/kri-register/:id", kriRegisterController.UpdateKRIRegister)
+	riskRoutes.POST("/kri-register/delete", kriRegisterController.DeleteKRIRegisters)
 }
