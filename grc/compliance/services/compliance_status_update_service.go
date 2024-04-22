@@ -128,22 +128,12 @@ func (csus *ComplianceStatusUpdateService) Update(complianceID uint, id uint, cu
 		return err
 	}
 
-	if err := csus.validateComplianceStatusUpdateFormDTO(ComplianceStatusUpdateFormDTO); err != nil {
-		return err
-	}
-
-	// Update Compliance StatusUpdate
-	existingComplianceStatusUpdate.ComplianceStatusID = ComplianceStatusUpdateFormDTO.ComplianceStatusID
+	// Update Compliance StatusUpdate -- update only comments
 	existingComplianceStatusUpdate.Comment = ComplianceStatusUpdateFormDTO.Comment
 	existingComplianceStatusUpdate.UpdatedBy = &currentUserID
 
 	err = csus.repo.Update(existingComplianceStatusUpdate)
 
-	if err != nil {
-		return err
-	}
-
-	err = csus.complianceRegisterSvc.StatusUpdate(complianceID, currentUserID, ComplianceStatusUpdateFormDTO.ComplianceStatusID)
 	if err != nil {
 		return err
 	}
