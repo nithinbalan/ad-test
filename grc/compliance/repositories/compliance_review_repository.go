@@ -75,13 +75,13 @@ func (repo *ComplianceReviewRepository) GetByID(id uint) (*models.ComplianceRevi
 	return complianceReview, nil
 }
 
-func (repo *ComplianceReviewRepository) Create(ComplianceReview *models.ComplianceReview) (uint, error) {
+func (repo *ComplianceReviewRepository) Create(complianceReview *models.ComplianceReview) (uint, error) {
 
-	if err := repo.db.Create(ComplianceReview).Error; err != nil {
+	if err := repo.db.Create(complianceReview).Error; err != nil {
 		return 0, err
 	}
 
-	return ComplianceReview.ID, nil
+	return complianceReview.ID, nil
 }
 
 func (repo *ComplianceReviewRepository) Update(ComplianceReview *models.ComplianceReview) error {

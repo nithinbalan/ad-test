@@ -27,6 +27,7 @@ type SLARegisterRepositoryInterface interface {
 	GetIDsByLifecycleStatus(ids []uint, status string) ([]uint, error)
 	UpdateLifecycleStatusForIDs(ids []uint, statusId uint) ([]uint, error)
 	GenerateReferenceNumber() (string, error)
+	CreateSLACheck(slaCheck *complianceModels.SLACheck, tx ...utility.DatabaseTransaction) error
 
 	//Document
 	SaveSLADocument(doc *complianceModels.SLADocument, tx ...utility.DatabaseTransaction) error
@@ -410,3 +411,14 @@ func (repo *SLARegisterRepository) RemoveSLADocumentFile(slaID uint, fileName st
 	return nil
 }
 
+func (repo *SLARegisterRepository) CreateSLACheck(slaCheck *complianceModels.SLACheck, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(slaCheck).Error; err != nil {
+		return err
+	}
+
+	return nil
+}

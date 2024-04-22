@@ -99,6 +99,16 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *co
 		return 0, err
 	}
 
+	slaCheck := &complianceModels.SLACheck{
+		SLARegisterID: id,
+		CreatedBy:     currentUserID,
+	}
+
+	if err := srs.repo.CreateSLACheck(slaCheck, tx); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
 	if err := srs.repo.StoreSLADocumentFile(id, slaRegisterFormDTO.Document.FileName); err != nil {
 		tx.Rollback()
 		return 0, err
