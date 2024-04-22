@@ -114,33 +114,44 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	SLACategoryController := controllers.NewSLACategoryController(SLACategorySvc)
 
 	SLARegisterRepo := complianceRepositories.NewSLARegisterRepository(db)
-	SLARegisterSvc := complianceServices.NewSLARegisterService(SLARegisterRepo,
+	slaRegisterSvc := complianceServices.NewSLARegisterService(SLARegisterRepo,
 		SLACategorySvc,
 		severityLevelSvc,
 		lifecycleStatusSvc,
 		activityLogSvc)
-	SLARegisterController := controllers.NewSLARegisterController(SLARegisterSvc)
+	SLARegisterController := controllers.NewSLARegisterController(slaRegisterSvc)
 
 	SLACheckQuestionRepo := complianceRepositories.NewSLACheckQuestionRepository(db)
-	SLACheckQuestionSvc := complianceServices.NewSLACheckQuestionService(SLACheckQuestionRepo,
+	slaCheckQuestionSvc := complianceServices.NewSLACheckQuestionService(SLACheckQuestionRepo,
 		activityLogSvc,
-		SLARegisterSvc,
+		slaRegisterSvc,
 		checklistQuestionSvc,
 		questionGroupService)
-	SLACheckQuestionController := controllers.NewSLACheckQuestionController(SLACheckQuestionSvc)
+	SLACheckQuestionController := controllers.NewSLACheckQuestionController(slaCheckQuestionSvc)
 
 	SLACheckAnswerRepo := complianceRepositories.NewSLACheckAnswerRepository(db)
 	SLACheckAnswerSvc := complianceServices.NewSLACheckAnswerService(SLACheckAnswerRepo,
 		activityLogSvc,
-		SLARegisterSvc,
+		slaRegisterSvc,
 		complianceStatusSvc,
-		SLACheckQuestionSvc)
+		slaCheckQuestionSvc)
 	SLACheckAnswerController := controllers.NewSLACheckAnswerController(SLACheckAnswerSvc)
 
 	SLARenewRepo := complianceRepositories.NewSLARenewRepository(db)
 	SLARenewSvc := complianceServices.NewSLARenewService(SLARenewRepo, SLARegisterRepo, lifecycleStatusSvc,
 		activityLogSvc)
 	SLARenewController := controllers.NewSLARenewController(SLARenewSvc)
+
+	slaActionPlanRepo := complianceRepositories.NewSLAActionPlanRepository(db)
+	slaActionPlanSvc := complianceServices.NewSLAActionPlanService(
+		slaActionPlanRepo,
+		activityLogSvc,
+		slaRegisterSvc,
+		slaCheckQuestionSvc,
+		actionPlanStatusSvc,
+		severityLevelSvc,
+	)
+	slaActionPlanController := controllers.NewSLAActionPlanController(slaActionPlanSvc)
 
 	complianceRoutes.GET("/compliance-categories", complianceCategoryController.GetAllComplianceCategories)
 	complianceRoutes.GET("/compliance-categories/:id", complianceCategoryController.GetComplianceCategoryDetails)
@@ -229,5 +240,11 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	complianceRoutes.POST("/sla-register/:slaId/questions/:questionId/answers", SLACheckAnswerController.CreateSLACheckAnswer)
 	complianceRoutes.PUT("/sla-register/:slaId/questions/:questionId/answers/:answerId", SLACheckAnswerController.UpdateSLACheckAnswer)
 	complianceRoutes.DELETE("/sla-register/:slaId/questions/:questionId/answers/:answerId", SLACheckAnswerController.DeleteSLACheckAnswer)
+
+	complianceRoutes.GET("/sla-register/:slaId/action-plans", slaActionPlanController.GetAllSLAActionPlans)
+	complianceRoutes.GET("/sla-register/:slaId/action-plans/:actionPlanId", slaActionPlanController.GetSLAActionPlanDetails)
+	complianceRoutes.POST("/sla-register/:slaId/action-plans", slaActionPlanController.CreateSLAActionPlan)
+	complianceRoutes.PUT("/sla-register/:slaId/action-plans/:actionPlanId", slaActionPlanController.UpdateSLAActionPlan)
+	complianceRoutes.POST("/sla-register/:slaId/action-plans/delete", slaActionPlanController.DeleteSLAActionPlans)
 
 }
