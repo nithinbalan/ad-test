@@ -204,11 +204,10 @@ func (ac *AuthController) MFAVerifyOTP(c *gin.Context) {
 	}
 
 	email := verifyOTPFormDTO.Email
-	password := verifyOTPFormDTO.Password
 
 	otp := verifyOTPFormDTO.Otp
 
-	responseDTO, err := ac.service.MFAVerifyOTP(email, password, otp)
+	responseDTO, err := ac.service.MFAVerifyOTP(email, otp)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

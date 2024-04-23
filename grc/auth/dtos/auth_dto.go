@@ -19,9 +19,8 @@ type RefreshTokenFormDTO struct {
 	RefreshToken string `json:"refresh_token" binding:"required"`
 }
 type MFAVerifyOTPFormDTO struct {
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required"`
-	Otp      string `json:"otp"`
+	Email string `json:"email" binding:"required,email"`
+	Otp   string `json:"otp"`
 }
 
 type PasswordRecoveryDataDTO struct {

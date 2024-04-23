@@ -24,7 +24,7 @@ type AuthServiceInterface interface {
 	VerifyPasswordRecoveryOTP(email, otp string) (string, error)
 	SetPassword(setPasswordFormDTO authDTOs.PasswordRecoverySetPasswordFormDTO) error
 	MFAReSendOTP(email string, password string) error
-	MFAVerifyOTP(email string, password string, otp string) (*authDTOs.LoginResponseDTO, error)
+	MFAVerifyOTP(email string, otp string) (*authDTOs.LoginResponseDTO, error)
 	GetTokenFromRefreshToken(refreshToken string) (*authDTOs.LoginResponseDTO, error)
 }
 
@@ -266,7 +266,7 @@ func (as AuthService) MFAReSendOTP(email string, password string) error {
 	return as.sendOTP(userSecurity, user, subject, templateRelativePath)
 }
 
-func (as *AuthService) MFAVerifyOTP(email, password, otp string) (*authDTOs.LoginResponseDTO, error) {
+func (as *AuthService) MFAVerifyOTP(email, otp string) (*authDTOs.LoginResponseDTO, error) {
 
 	user, err := as.userService.GetByEmail(email)
 	if err != nil {
@@ -276,12 +276,6 @@ func (as *AuthService) MFAVerifyOTP(email, password, otp string) (*authDTOs.Logi
 	userSecurity, err := as.userService.GetUserSecurityByUserID(user.ID)
 	if err != nil {
 		return nil, err
-	}
-
-	// Compare the provided password with the stored hashed password
-	err = bcrypt.CompareHashAndPassword([]byte(userSecurity.PasswordHash), []byte(password))
-	if err != nil {
-		return nil, utility.NewValidationError(fmt.Errorf("invalid username or password"), "invalid_credentials", "email")
 	}
 
 	if *userSecurity.OTP != otp {
