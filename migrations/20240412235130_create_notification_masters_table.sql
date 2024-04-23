@@ -6,7 +6,7 @@ CREATE TABLE notification_masters (
     identifier VARCHAR(100),
     title_en VARCHAR(100),
     title_ar NVARCHAR(100),
-    CONSTRAINT FK_notification_masters_modules_id FOREIGN KEY (modules_id) REFERENCES modules(id)
+    CONSTRAINT FK_notification_masters_modules_id FOREIGN KEY (module_id) REFERENCES modules(id)
 );
 -- +goose StatementEnd
 
