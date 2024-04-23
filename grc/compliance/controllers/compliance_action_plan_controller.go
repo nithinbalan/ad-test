@@ -12,21 +12,21 @@ import (
 	"gorm.io/gorm"
 )
 
-type ComplianceActionPlanController struct {
-	service services.ComplianceActionPlanServiceInterface
+type SLAActionPlanController struct {
+	service services.SLAActionPlanServiceInterface
 	db      *gorm.DB
 }
 
-func NewComplianceActionPlanController(service services.ComplianceActionPlanServiceInterface) *ComplianceActionPlanController {
-	return &ComplianceActionPlanController{
+func NewSLAActionPlanController(service services.SLAActionPlanServiceInterface) *SLAActionPlanController {
+	return &SLAActionPlanController{
 		service: service,
 	}
 }
 
-func (capc *ComplianceActionPlanController) GetAllComplianceActionPlans(c *gin.Context) {
-	complianceIDStr := c.Param("complianceId")
+func (capc *SLAActionPlanController) GetAllSLAActionPlans(c *gin.Context) {
+	slaIDStr := c.Param("slaId")
 
-	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
+	slaID, err := strconv.ParseUint(slaIDStr, 10, 64)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -40,7 +40,7 @@ func (capc *ComplianceActionPlanController) GetAllComplianceActionPlans(c *gin.C
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
-		"compliance_requirement_ids",
+		"sla_check_question_ids",
 		"severity_level_ids",
 		"responsible_user_ids",
 		"action_plan_status_ids",
@@ -64,7 +64,7 @@ func (capc *ComplianceActionPlanController) GetAllComplianceActionPlans(c *gin.C
 		return
 	}
 
-	queryParams := complianceDTOs.ComplianceActionPlanListQueryParamsDTO{
+	queryParams := complianceDTOs.SLAActionPlanListQueryParamsDTO{
 		Sort:           sort,
 		SortBy:         sortBy,
 		Keyword:        keyword,
@@ -76,7 +76,7 @@ func (capc *ComplianceActionPlanController) GetAllComplianceActionPlans(c *gin.C
 		TargetDateFrom: targetDateFrom,
 		TargetDateTo:   targetDateTo,
 	}
-	complianceActionPlans, err := capc.service.GetAll(uint(complianceID), &queryParams)
+	slaActionPlans, err := capc.service.GetAll(uint(slaID), &queryParams)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -88,13 +88,13 @@ func (capc *ComplianceActionPlanController) GetAllComplianceActionPlans(c *gin.C
 			return
 		}
 	}
-	c.JSON(http.StatusOK, complianceActionPlans)
+	c.JSON(http.StatusOK, slaActionPlans)
 }
 
-func (capc *ComplianceActionPlanController) GetComplianceActionPlanDetails(c *gin.Context) {
-	complianceIDStr := c.Param("complianceId")
+func (capc *SLAActionPlanController) GetSLAActionPlanDetails(c *gin.Context) {
+	slaIDStr := c.Param("slaId")
 
-	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
+	slaID, err := strconv.ParseUint(slaIDStr, 10, 64)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -108,7 +108,7 @@ func (capc *ComplianceActionPlanController) GetComplianceActionPlanDetails(c *gi
 		return
 	}
 
-	complianceActionPlan, err := capc.service.GetFullDetailsByID(uint(complianceID), uint(id))
+	slaActionPlan, err := capc.service.GetFullDetailsByID(uint(slaID), uint(id))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -120,21 +120,21 @@ func (capc *ComplianceActionPlanController) GetComplianceActionPlanDetails(c *gi
 		}
 	}
 
-	c.JSON(http.StatusOK, complianceActionPlan)
+	c.JSON(http.StatusOK, slaActionPlan)
 }
 
-func (capc *ComplianceActionPlanController) CreateComplianceActionPlan(c *gin.Context) {
-	var ComplianceActionPlanFormDTO complianceDTOs.ComplianceActionPlanFormDTO
+func (capc *SLAActionPlanController) CreateSLAActionPlan(c *gin.Context) {
+	var slaActionPlanFormDTO complianceDTOs.SLAActionPlanFormDTO
 
-	complianceIDStr := c.Param("complianceId")
+	slaIDStr := c.Param("slaId")
 
-	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
+	slaID, err := strconv.ParseUint(slaIDStr, 10, 64)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
 
-	if err := c.ShouldBindJSON(&ComplianceActionPlanFormDTO); err != nil {
+	if err := c.ShouldBindJSON(&slaActionPlanFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
@@ -145,7 +145,7 @@ func (capc *ComplianceActionPlanController) CreateComplianceActionPlan(c *gin.Co
 		return
 	}
 
-	id, err := capc.service.Create(uint(complianceID), currentUserID, &ComplianceActionPlanFormDTO)
+	id, err := capc.service.Create(uint(slaID), currentUserID, &slaActionPlanFormDTO)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -164,10 +164,10 @@ func (capc *ComplianceActionPlanController) CreateComplianceActionPlan(c *gin.Co
 	c.JSON(http.StatusCreated, commonDTOs.IDResponse{ID: id})
 }
 
-func (capc *ComplianceActionPlanController) UpdateComplianceActionPlan(c *gin.Context) {
-	complianceIDStr := c.Param("complianceId")
+func (capc *SLAActionPlanController) UpdateSLAActionPlan(c *gin.Context) {
+	slaIDStr := c.Param("slaId")
 
-	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
+	slaID, err := strconv.ParseUint(slaIDStr, 10, 64)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -181,8 +181,8 @@ func (capc *ComplianceActionPlanController) UpdateComplianceActionPlan(c *gin.Co
 		return
 	}
 
-	var ComplianceActionPlanFormDTO complianceDTOs.ComplianceActionPlanFormDTO
-	if err := c.ShouldBindJSON(&ComplianceActionPlanFormDTO); err != nil {
+	var slaActionPlanFormDTO complianceDTOs.SLAActionPlanFormDTO
+	if err := c.ShouldBindJSON(&slaActionPlanFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
@@ -193,7 +193,7 @@ func (capc *ComplianceActionPlanController) UpdateComplianceActionPlan(c *gin.Co
 		return
 	}
 
-	err = capc.service.Update(uint(complianceID), uint(id), currentUserID, &ComplianceActionPlanFormDTO)
+	err = capc.service.Update(uint(slaID), uint(id), currentUserID, &slaActionPlanFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -211,10 +211,10 @@ func (capc *ComplianceActionPlanController) UpdateComplianceActionPlan(c *gin.Co
 	c.Status(http.StatusOK)
 }
 
-func (capc *ComplianceActionPlanController) DeleteComplianceActionPlans(c *gin.Context) {
-	complianceIDStr := c.Param("complianceId")
+func (capc *SLAActionPlanController) DeleteSLAActionPlans(c *gin.Context) {
+	slaIDStr := c.Param("slaId")
 
-	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
+	slaID, err := strconv.ParseUint(slaIDStr, 10, 64)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -235,7 +235,7 @@ func (capc *ComplianceActionPlanController) DeleteComplianceActionPlans(c *gin.C
 		return
 	}
 
-	failedIDs, err := capc.service.Delete(uint(complianceID), request.IDs, currentUserID)
+	failedIDs, err := capc.service.Delete(uint(slaID), request.IDs, currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
