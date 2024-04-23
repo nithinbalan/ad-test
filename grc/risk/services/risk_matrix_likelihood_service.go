@@ -35,22 +35,22 @@ func NewRiskMatrixLikelihoodService(repo repositories.RiskMatrixLikelihoodReposi
 	}
 }
 
-func (rmis *RiskMatrixLikelihoodService) GetAll(sort string, sortBy string, keyword string, status string) ([]*riskDTOs.RiskMatrixLikelihoodDTO, error) {
-	return rmis.repo.GetAll(sort, sortBy, keyword, status)
+func (rmls *RiskMatrixLikelihoodService) GetAll(sort string, sortBy string, keyword string, status string) ([]*riskDTOs.RiskMatrixLikelihoodDTO, error) {
+	return rmls.repo.GetAll(sort, sortBy, keyword, status)
 }
 
-func (rmis RiskMatrixLikelihoodService) GetByID(id uint) (*models.RiskMatrixLikelihood, error) {
-	return rmis.repo.GetByID(id)
+func (rmls RiskMatrixLikelihoodService) GetByID(id uint) (*models.RiskMatrixLikelihood, error) {
+	return rmls.repo.GetByID(id)
 }
 
-func (rmis *RiskMatrixLikelihoodService) Create(currentUserID uint, riskMatrixLikelihoodFormDTO *riskDTOs.RiskMatrixLikelihoodFormDTO) (uint, error) {
+func (rmls *RiskMatrixLikelihoodService) Create(currentUserID uint, riskMatrixLikelihoodFormDTO *riskDTOs.RiskMatrixLikelihoodFormDTO) (uint, error) {
 
-	riskMatrix, err := rmis.riskMatrixSvc.GetByType("erm")
+	riskMatrix, err := rmls.riskMatrixSvc.GetByType("erm")
 	if err != nil {
 		return 0, err
 	}
 
-	if err := rmis.validateRiskMatrixLikelihoodFormDTO(riskMatrixLikelihoodFormDTO, riskMatrix.ID, nil); err != nil {
+	if err := rmls.validateRiskMatrixLikelihoodFormDTO(riskMatrixLikelihoodFormDTO, riskMatrix.ID, nil); err != nil {
 		return 0, err
 	}
 
@@ -63,13 +63,13 @@ func (rmis *RiskMatrixLikelihoodService) Create(currentUserID uint, riskMatrixLi
 		Status:        riskMatrixLikelihoodFormDTO.Status,
 	}
 
-	id, err := rmis.repo.Create(likelihood)
+	id, err := rmls.repo.Create(likelihood)
 	if err != nil {
 		return 0, err
 	}
 
 	go func() {
-		err := rmis.activityLogSvc.LogActivity(
+		err := rmls.activityLogSvc.LogActivity(
 			logModels.CreateAction,
 			models.RiskMatrixLikelihood{}.TableName(),
 			id,
@@ -95,15 +95,15 @@ func (rmis *RiskMatrixLikelihoodService) Create(currentUserID uint, riskMatrixLi
 
 }
 
-func (rmis *RiskMatrixLikelihoodService) Update(id uint, currentUserID uint, riskMatrixLikelihoodFormDTO *riskDTOs.RiskMatrixLikelihoodFormDTO) error {
+func (rmls *RiskMatrixLikelihoodService) Update(id uint, currentUserID uint, riskMatrixLikelihoodFormDTO *riskDTOs.RiskMatrixLikelihoodFormDTO) error {
 
-	existingLikelihood, err := rmis.GetByID(id)
+	existingLikelihood, err := rmls.GetByID(id)
 
 	if err != nil {
 		return err
 	}
 
-	if err := rmis.validateRiskMatrixLikelihoodFormDTO(riskMatrixLikelihoodFormDTO, existingLikelihood.RiskMatrixID, &id); err != nil {
+	if err := rmls.validateRiskMatrixLikelihoodFormDTO(riskMatrixLikelihoodFormDTO, existingLikelihood.RiskMatrixID, &id); err != nil {
 		return err
 	}
 
@@ -113,7 +113,7 @@ func (rmis *RiskMatrixLikelihoodService) Update(id uint, currentUserID uint, ris
 	existingLikelihood.DescriptionAr = riskMatrixLikelihoodFormDTO.DescriptionAr
 	existingLikelihood.Status = riskMatrixLikelihoodFormDTO.Status
 
-	err = rmis.repo.Update(existingLikelihood)
+	err = rmls.repo.Update(existingLikelihood)
 
 	if err != nil {
 		return err
@@ -123,19 +123,19 @@ func (rmis *RiskMatrixLikelihoodService) Update(id uint, currentUserID uint, ris
 
 }
 
-func (rmis *RiskMatrixLikelihoodService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
+func (rmls *RiskMatrixLikelihoodService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
 	for _, id := range ids {
 
-		_, err := rmis.repo.GetByID(id)
+		_, err := rmls.repo.GetByID(id)
 
 		if err != nil {
 			fmt.Print(err)
 			continue
 		}
 
-		err = rmis.repo.Delete(id)
+		err = rmls.repo.Delete(id)
 		if err != nil {
 			failedIds = append(failedIds, id)
 		} else {
@@ -146,7 +146,7 @@ func (rmis *RiskMatrixLikelihoodService) Delete(ids []uint, currentUserID uint) 
 	if len(successfulIds) > 0 {
 
 		go func() {
-			err := rmis.activityLogSvc.LogBulkActivities(
+			err := rmls.activityLogSvc.LogBulkActivities(
 				logModels.DeleteAction, // Make sure this action constant is defined appropriately
 				models.RiskMatrixLikelihood{}.TableName(),
 				successfulIds,
@@ -164,13 +164,13 @@ func (rmis *RiskMatrixLikelihoodService) Delete(ids []uint, currentUserID uint) 
 	return failedIds, nil
 }
 
-func (rmis *RiskMatrixLikelihoodService) Activate(ids []uint, currentUserID uint) error {
-	successfulIds, err := rmis.repo.Activate(ids)
+func (rmls *RiskMatrixLikelihoodService) Activate(ids []uint, currentUserID uint) error {
+	successfulIds, err := rmls.repo.Activate(ids)
 
 	if len(successfulIds) > 0 {
 
 		go func() {
-			err := rmis.activityLogSvc.LogBulkActivities(
+			err := rmls.activityLogSvc.LogBulkActivities(
 				logModels.ActivateAction,
 				models.RiskMatrixLikelihood{}.TableName(),
 				successfulIds,
@@ -188,13 +188,13 @@ func (rmis *RiskMatrixLikelihoodService) Activate(ids []uint, currentUserID uint
 	return err
 }
 
-func (rmis *RiskMatrixLikelihoodService) Deactivate(ids []uint, currentUserID uint) error {
-	successfulIds, err := rmis.repo.Deactivate(ids)
+func (rmls *RiskMatrixLikelihoodService) Deactivate(ids []uint, currentUserID uint) error {
+	successfulIds, err := rmls.repo.Deactivate(ids)
 
 	if len(successfulIds) > 0 {
 
 		go func() {
-			err := rmis.activityLogSvc.LogBulkActivities(
+			err := rmls.activityLogSvc.LogBulkActivities(
 				logModels.DeactivateAction,
 				models.RiskMatrixLikelihood{}.TableName(),
 				successfulIds,
@@ -213,17 +213,17 @@ func (rmis *RiskMatrixLikelihoodService) Deactivate(ids []uint, currentUserID ui
 	return err
 }
 
-func (rmis *RiskMatrixLikelihoodService) validateRiskMatrixLikelihoodFormDTO(riskMatrixLikelihoodFormDTO *riskDTOs.RiskMatrixLikelihoodFormDTO, riskMatrixID uint, id *uint) error {
+func (rmls *RiskMatrixLikelihoodService) validateRiskMatrixLikelihoodFormDTO(riskMatrixLikelihoodFormDTO *riskDTOs.RiskMatrixLikelihoodFormDTO, riskMatrixID uint, id *uint) error {
 
 	if id == nil {
-		if exists, err := rmis.repo.ExistsByTitle(riskMatrixLikelihoodFormDTO.TitleEn, riskMatrixLikelihoodFormDTO.TitleAr, riskMatrixID); err != nil {
+		if exists, err := rmls.repo.ExistsByTitle(riskMatrixLikelihoodFormDTO.TitleEn, riskMatrixLikelihoodFormDTO.TitleAr, riskMatrixID); err != nil {
 			return err
 		} else if exists {
 			return utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 		}
 
 	} else {
-		if exists, err := rmis.repo.ExistsByTitleExcludingID(*id, riskMatrixLikelihoodFormDTO.TitleEn, riskMatrixLikelihoodFormDTO.TitleAr, riskMatrixID); err != nil {
+		if exists, err := rmls.repo.ExistsByTitleExcludingID(*id, riskMatrixLikelihoodFormDTO.TitleEn, riskMatrixLikelihoodFormDTO.TitleAr, riskMatrixID); err != nil {
 			return err
 		} else if exists {
 			return utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")

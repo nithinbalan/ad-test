@@ -22,23 +22,23 @@ func NewRiskMatrixLikelihoodController(service services.RiskMatrixLikelihoodServ
 	}
 }
 
-func (rmic *RiskMatrixLikelihoodController) GetAllRiskMatrixLikelihood(c *gin.Context) {
+func (rmlc *RiskMatrixLikelihoodController) GetAllRiskMatrixLikelihoods(c *gin.Context) {
 
 	sort := c.Query("sort")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 
-	likelihoods, err := rmic.service.GetAll(sort, sortBy, keyword, status)
+	likelihoods, err := rmlc.service.GetAll(sort, sortBy, keyword, status)
 
 	if err != nil {
-		utility.SendInternalErrResp(rmic.db, c, err.Error())
+		utility.SendInternalErrResp(rmlc.db, c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, likelihoods)
 }
 
-func (rmic *RiskMatrixLikelihoodController) GetRiskMatrixLikelihoodDetails(c *gin.Context) {
+func (rmlc *RiskMatrixLikelihoodController) GetRiskMatrixLikelihoodDetails(c *gin.Context) {
 	idStr := c.Param("id")
 
 	id, err := strconv.ParseUint(idStr, 10, 32)
@@ -47,7 +47,7 @@ func (rmic *RiskMatrixLikelihoodController) GetRiskMatrixLikelihoodDetails(c *gi
 		return
 	}
 
-	riskLikelihood, err := rmic.service.GetByID(uint(id))
+	riskLikelihood, err := rmlc.service.GetByID(uint(id))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -56,7 +56,7 @@ func (rmic *RiskMatrixLikelihoodController) GetRiskMatrixLikelihoodDetails(c *gi
 	c.JSON(http.StatusOK, riskLikelihood)
 }
 
-func (rmic *RiskMatrixLikelihoodController) CreateRiskMatrixLikelihood(c *gin.Context) {
+func (rmlc *RiskMatrixLikelihoodController) CreateRiskMatrixLikelihood(c *gin.Context) {
 
 	var likelihood *riskDTOs.RiskMatrixLikelihoodFormDTO
 
@@ -66,18 +66,18 @@ func (rmic *RiskMatrixLikelihoodController) CreateRiskMatrixLikelihood(c *gin.Co
 	}
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(rmic.db, c, err.Error())
+		utility.SendInternalErrResp(rmlc.db, c, err.Error())
 		return
 	}
 
-	createdLikelihood, err := rmic.service.Create(currentUserID, likelihood)
+	createdLikelihood, err := rmlc.service.Create(currentUserID, likelihood)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
 			return
 		default:
-			utility.SendInternalErrResp(rmic.db, c, e.Error())
+			utility.SendInternalErrResp(rmlc.db, c, e.Error())
 			return
 		}
 	}
@@ -85,7 +85,7 @@ func (rmic *RiskMatrixLikelihoodController) CreateRiskMatrixLikelihood(c *gin.Co
 	c.JSON(http.StatusCreated, createdLikelihood)
 }
 
-func (rmic *RiskMatrixLikelihoodController) UpdateRiskMatrixLikelihood(c *gin.Context) {
+func (rmlc *RiskMatrixLikelihoodController) UpdateRiskMatrixLikelihood(c *gin.Context) {
 
 	likelihoodID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -100,11 +100,11 @@ func (rmic *RiskMatrixLikelihoodController) UpdateRiskMatrixLikelihood(c *gin.Co
 	}
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(rmic.db, c, err.Error())
+		utility.SendInternalErrResp(rmlc.db, c, err.Error())
 		return
 	}
 
-	err = rmic.service.Update(uint(likelihoodID), currentUserID, updatedLikelihood)
+	err = rmlc.service.Update(uint(likelihoodID), currentUserID, updatedLikelihood)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -114,7 +114,7 @@ func (rmic *RiskMatrixLikelihoodController) UpdateRiskMatrixLikelihood(c *gin.Co
 			utility.SendInvalidErrResp(c, e)
 			return
 		default:
-			utility.SendInternalErrResp(rmic.db, c, e.Error())
+			utility.SendInternalErrResp(rmlc.db, c, e.Error())
 			return
 		}
 	}
@@ -122,7 +122,7 @@ func (rmic *RiskMatrixLikelihoodController) UpdateRiskMatrixLikelihood(c *gin.Co
 	c.Status(http.StatusOK)
 }
 
-func (rmic *RiskMatrixLikelihoodController) DeleteRiskMatrixLikelihoods(c *gin.Context) {
+func (rmlc *RiskMatrixLikelihoodController) DeleteRiskMatrixLikelihoods(c *gin.Context) {
 
 	var request struct {
 		IDs []uint `json:"ids"`
@@ -135,20 +135,20 @@ func (rmic *RiskMatrixLikelihoodController) DeleteRiskMatrixLikelihoods(c *gin.C
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(rmic.db, c, err.Error())
+		utility.SendInternalErrResp(rmlc.db, c, err.Error())
 		return
 	}
 
-	failedIDs, err := rmic.service.Delete(request.IDs, currentUserID)
+	failedIDs, err := rmlc.service.Delete(request.IDs, currentUserID)
 	if err != nil {
-		utility.SendInternalErrResp(rmic.db, c, err.Error())
+		utility.SendInternalErrResp(rmlc.db, c, err.Error())
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
 
-func (rmic *RiskMatrixLikelihoodController) ActivateRiskMatrixLikelihood(c *gin.Context) {
+func (rmlc *RiskMatrixLikelihoodController) ActivateRiskMatrixLikelihood(c *gin.Context) {
 	var request struct {
 		IDs []uint `json:"ids"`
 	}
@@ -160,20 +160,20 @@ func (rmic *RiskMatrixLikelihoodController) ActivateRiskMatrixLikelihood(c *gin.
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(rmic.db, c, err.Error())
+		utility.SendInternalErrResp(rmlc.db, c, err.Error())
 		return
 	}
 
-	err = rmic.service.Activate(request.IDs, currentUserID)
+	err = rmlc.service.Activate(request.IDs, currentUserID)
 	if err != nil {
-		utility.SendInternalErrResp(rmic.db, c, err.Error())
+		utility.SendInternalErrResp(rmlc.db, c, err.Error())
 		return
 	}
 
 	c.Status(http.StatusOK)
 }
 
-func (rmic *RiskMatrixLikelihoodController) DeactivateRiskMatrixLikelihood(c *gin.Context) {
+func (rmlc *RiskMatrixLikelihoodController) DeactivateRiskMatrixLikelihood(c *gin.Context) {
 	var request struct {
 		IDs []uint `json:"ids"`
 	}
@@ -185,13 +185,13 @@ func (rmic *RiskMatrixLikelihoodController) DeactivateRiskMatrixLikelihood(c *gi
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(rmic.db, c, err.Error())
+		utility.SendInternalErrResp(rmlc.db, c, err.Error())
 		return
 	}
 
-	err = rmic.service.Deactivate(request.IDs, currentUserID)
+	err = rmlc.service.Deactivate(request.IDs, currentUserID)
 	if err != nil {
-		utility.SendInternalErrResp(rmic.db, c, err.Error())
+		utility.SendInternalErrResp(rmlc.db, c, err.Error())
 		return
 	}
 

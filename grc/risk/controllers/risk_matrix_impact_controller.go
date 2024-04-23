@@ -22,7 +22,7 @@ func NewRiskMatrixImpactController(service services.RiskMatrixImpactServiceInter
 	}
 }
 
-func (rmic *RiskMatrixImpactController) GetAllRiskMatrixImpact(c *gin.Context) {
+func (rmic *RiskMatrixImpactController) GetAllRiskMatrixImpacts(c *gin.Context) {
 
 	sort := c.Query("sort")
 	sortBy := c.Query("sort_by")
