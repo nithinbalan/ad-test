@@ -15,7 +15,7 @@ func CORSMiddleware() gin.HandlerFunc {
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 		AllowOriginFunc: func(origin string) bool {
-			return origin == "http://localhost:3000" // Implement your own origin-check logic
+			return true // here custom logic can be added
 		},
 		MaxAge: 12 * time.Hour,
 	})
