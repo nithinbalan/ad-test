@@ -7,7 +7,7 @@ CREATE TABLE user_securities (
     is_mfa TINYINT DEFAULT 0,
     otp VARCHAR(45),
     otp_expiry_at DATETIME,
-    updated_at DATETIME,
+    updated_at DATETIME NULL,
     CONSTRAINT FK_user_securities_users FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 -- +goose StatementEnd

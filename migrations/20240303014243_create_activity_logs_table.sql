@@ -7,7 +7,7 @@ CREATE TABLE activity_logs (
     record_id INT,
     changed_data NVARCHAR(MAX),
     user_id INT,
-    created_at DATETIME NOT NULL DEFAULT GETDATE(),
+    created_at DATETIME NOT NULL,
         CONSTRAINT CHK_activity_logs_action CHECK (action IN (
             'view', 'download', 'import', 'export', 'create', 'update', 'delete', 'activate', 'deactivate',
             'login', 'logout', 'access', 'edit_permissions', 'change_role', 'approve', 'reject',
