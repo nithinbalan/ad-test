@@ -112,6 +112,14 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	)
 	riskMatrixImpactController := controllers.NewRiskMatrixImpactController(riskMatrixImpactSvc)
 
+	riskMatrixLikelihoodRepo := riskRepositories.NewRiskMatrixLikelihoodRepository(db)
+	riskMatrixLikelihoodSvc := riskServices.NewRiskMatrixLikelihoodService(
+		riskMatrixLikelihoodRepo,
+		activityLogSvc,
+		riskMatrixSvc,
+	)
+	riskMatrixLikelihoodController := controllers.NewRiskMatrixLikelihoodController(riskMatrixLikelihoodSvc)
+
 	riskRoutes.GET("/risk-categories", riskCategoryController.GetAllRiskCategories)
 	riskRoutes.GET("/risk-categories/:id", riskCategoryController.GetRiskCategoryDetails)
 	riskRoutes.POST("/risk-categories", riskCategoryController.CreateRiskCategory)
@@ -156,6 +164,14 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	riskRoutes.POST("/impacts/delete", riskMatrixImpactController.DeleteRiskMatrixImpacts)
 	riskRoutes.PUT("/impacts/activate", riskMatrixImpactController.ActivateRiskMatrixImpact)
 	riskRoutes.PUT("/impacts/deactivate", riskMatrixImpactController.DeactivateRiskMatrixImpact)
+
+	riskRoutes.GET("/likelihood", riskMatrixLikelihoodController.GetAllRiskMatrixLikelihood)
+	riskRoutes.GET("/likelihood/:id", riskMatrixLikelihoodController.GetRiskMatrixLikelihoodDetails)
+	riskRoutes.POST("/likelihood", riskMatrixLikelihoodController.CreateRiskMatrixLikelihood)
+	riskRoutes.PUT("/likelihood/:id", riskMatrixLikelihoodController.UpdateRiskMatrixLikelihood)
+	riskRoutes.POST("/likelihood/delete", riskMatrixLikelihoodController.DeleteRiskMatrixLikelihoods)
+	riskRoutes.PUT("/likelihood/activate", riskMatrixLikelihoodController.ActivateRiskMatrixLikelihood)
+	riskRoutes.PUT("/likelihood/deactivate", riskMatrixLikelihoodController.DeactivateRiskMatrixLikelihood)
 
 	riskRoutes.GET("/risk-impact-categories", riskImpactCategoryController.GetAllRiskImpactCategories)
 	riskRoutes.GET("/risk-impact-categories/:id", riskImpactCategoryController.GetRiskImpactCategoryDetails)
