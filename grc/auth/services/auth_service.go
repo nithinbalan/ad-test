@@ -23,8 +23,8 @@ type AuthServiceInterface interface {
 	ReSendPasswordRecoveryOTP(email string) error
 	VerifyPasswordRecoveryOTP(email, otp string) (string, error)
 	SetPassword(setPasswordFormDTO authDTOs.PasswordRecoverySetPasswordFormDTO) error
-	MFAReSendOTP(email string, password string) error
-	MFAVerifyOTP(email string, password string, otp string) (*authDTOs.LoginResponseDTO, error)
+	LoginResendOTP(email string) error
+	LoginVerifyOTP(email string, otp string) (*authDTOs.LoginResponseDTO, error)
 	GetTokenFromRefreshToken(refreshToken string) (*authDTOs.LoginResponseDTO, error)
 }
 
@@ -86,6 +86,75 @@ func (as *AuthService) Authenticate(email string, password string) (*authDTOs.Lo
 	return responseDTO, nil
 }
 
+func (as AuthService) LoginResendOTP(email string) error {
+	user, err := as.userService.GetByEmail(email)
+	if err != nil {
+		return err
+	}
+
+	userSecurity, err := as.userService.GetUserSecurityByUserID(user.ID)
+	if err != nil {
+		return err
+	}
+
+	resendTime := userSecurity.OTPExpiryAt.Add(-9 * time.Minute)
+	currentTime := time.Now()
+	if currentTime.Before(resendTime) {
+		timeRemaining := resendTime.Sub(currentTime).Round(time.Minute)
+		errorMessage := fmt.Sprintf("Resend request cannot be processed yet. Please wait %v more before trying again.", timeRemaining)
+		return utility.NewValidationError(errors.New(errorMessage), "resend_not_yet_allowed", "resend_time")
+	}
+
+	subject := "Verify Your Login: Your One-Time Password"
+	templateRelativePath := "auth/templates/email/send_mfa_login_otp.html"
+
+	return as.sendOTP(userSecurity, user, subject, templateRelativePath)
+}
+
+func (as *AuthService) LoginVerifyOTP(email, otp string) (*authDTOs.LoginResponseDTO, error) {
+
+	user, err := as.userService.GetByEmail(email)
+	if err != nil {
+		return nil, err
+	}
+
+	userSecurity, err := as.userService.GetUserSecurityByUserID(user.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	if *userSecurity.OTP != otp {
+		return nil, utility.NewValidationError(fmt.Errorf("invalid OTP"), "invalid_otp", "otp")
+	}
+
+	expirationTime := userSecurity.OTPExpiryAt
+	currentTime := time.Now()
+
+	if currentTime.After(*expirationTime) {
+		return nil, utility.NewValidationError(fmt.Errorf("OTP has expired"), "otp_expired", "otp")
+	}
+
+	//generate access token
+	accessToken, err := utility.GenerateToken(user.ID)
+	if err != nil {
+		return nil, utility.NewInternalServerError(err)
+	}
+
+	refreshToken, err := utility.GenerateRefreshToken(user.ID)
+	if err != nil {
+		return nil, utility.NewInternalServerError(err)
+	}
+
+	responseDTO := &authDTOs.LoginResponseDTO{
+		AccessToken:  &accessToken,
+		RefreshToken: &refreshToken,
+		IsMFAEnabled: true,
+	}
+
+	return responseDTO, nil
+
+}
+
 func (as AuthService) SendPasswordRecoveryOTP(email string) error {
 
 	user, err := as.userService.GetByEmail(email)
@@ -117,7 +186,7 @@ func (as AuthService) ReSendPasswordRecoveryOTP(email string) error {
 	}
 
 	resendTime := userSecurity.OTPExpiryAt.Add(-9 * time.Minute)
-	currentTime := time.Now().UTC()
+	currentTime := time.Now()
 	if currentTime.Before(resendTime) {
 		timeRemaining := resendTime.Sub(currentTime).Round(time.Minute)
 		errorMessage := fmt.Sprintf("Resend request cannot be processed yet. Please wait %v more before trying again.", timeRemaining)
@@ -147,7 +216,7 @@ func (as *AuthService) VerifyPasswordRecoveryOTP(email, otp string) (string, err
 	}
 
 	expirationTime := userSecurity.OTPExpiryAt
-	currentTime := time.Now().UTC()
+	currentTime := time.Now()
 
 	if currentTime.After(*expirationTime) {
 		return "", utility.NewValidationError(fmt.Errorf("OTP has expired"), "otp_expired", "otp")
@@ -235,87 +304,6 @@ func (as AuthService) SetPassword(setPasswordFormDTO authDTOs.PasswordRecoverySe
 	return nil
 }
 
-func (as AuthService) MFAReSendOTP(email string, password string) error {
-	user, err := as.userService.GetByEmail(email)
-	if err != nil {
-		return err
-	}
-
-	userSecurity, err := as.userService.GetUserSecurityByUserID(user.ID)
-	if err != nil {
-		return err
-	}
-
-	// Compare the provided password with the stored hashed password
-	err = bcrypt.CompareHashAndPassword([]byte(userSecurity.PasswordHash), []byte(password))
-	if err != nil {
-		return utility.NewValidationError(fmt.Errorf("invalid username or password"), "invalid_credentials", "email")
-	}
-
-	resendTime := userSecurity.OTPExpiryAt.Add(-9 * time.Minute)
-	currentTime := time.Now().UTC()
-	if currentTime.Before(resendTime) {
-		timeRemaining := resendTime.Sub(currentTime).Round(time.Minute)
-		errorMessage := fmt.Sprintf("Resend request cannot be processed yet. Please wait %v more before trying again.", timeRemaining)
-		return utility.NewValidationError(errors.New(errorMessage), "resend_not_yet_allowed", "resend_time")
-	}
-
-	subject := "Verify Your Login: Your One-Time Password"
-	templateRelativePath := "auth/templates/email/send_mfa_login_otp.html"
-
-	return as.sendOTP(userSecurity, user, subject, templateRelativePath)
-}
-
-func (as *AuthService) MFAVerifyOTP(email, password, otp string) (*authDTOs.LoginResponseDTO, error) {
-
-	user, err := as.userService.GetByEmail(email)
-	if err != nil {
-		return nil, err
-	}
-
-	userSecurity, err := as.userService.GetUserSecurityByUserID(user.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	// Compare the provided password with the stored hashed password
-	err = bcrypt.CompareHashAndPassword([]byte(userSecurity.PasswordHash), []byte(password))
-	if err != nil {
-		return nil, utility.NewValidationError(fmt.Errorf("invalid username or password"), "invalid_credentials", "email")
-	}
-
-	if *userSecurity.OTP != otp {
-		return nil, utility.NewValidationError(fmt.Errorf("invalid OTP"), "invalid_otp", "otp")
-	}
-
-	expirationTime := userSecurity.OTPExpiryAt
-	currentTime := time.Now().UTC()
-
-	if currentTime.After(*expirationTime) {
-		return nil, utility.NewValidationError(fmt.Errorf("OTP has expired"), "otp_expired", "otp")
-	}
-
-	//generate access token
-	accessToken, err := utility.GenerateToken(user.ID)
-	if err != nil {
-		return nil, utility.NewInternalServerError(err)
-	}
-
-	refreshToken, err := utility.GenerateRefreshToken(user.ID)
-	if err != nil {
-		return nil, utility.NewInternalServerError(err)
-	}
-
-	responseDTO := &authDTOs.LoginResponseDTO{
-		AccessToken:  &accessToken,
-		RefreshToken: &refreshToken,
-		IsMFAEnabled: true,
-	}
-
-	return responseDTO, nil
-
-}
-
 func (as *AuthService) GetTokenFromRefreshToken(refreshToken string) (*authDTOs.LoginResponseDTO, error) {
 
 	//generate access token
@@ -375,7 +363,7 @@ func isValidPassword(password string) bool {
 func (as AuthService) sendOTP(userSecurity *organizationModels.UserSecurity, user *organizationModels.User, mailSubject string, mailRelativePath string) error {
 	otpLength := 6
 	otp := utility.GenerateOTP(otpLength)
-	currentTime := time.Now().UTC()
+	currentTime := time.Now()
 
 	verifyOTPDurationStr := config.GetEnv("VERIFY_OTP_DURATION", "10")
 	verifyOTPDuration, err := strconv.Atoi(verifyOTPDurationStr)
