@@ -27,14 +27,14 @@ type ErrorResponse struct {
 }
 
 func (ac *AuthController) Login(c *gin.Context) {
-	var authDTO authDTOs.LoginFormDTO
+	var loginFormDTO authDTOs.LoginFormDTO
 
-	if err := c.ShouldBindJSON(&authDTO); err != nil {
+	if err := c.ShouldBindJSON(&loginFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
 
-	responseDTO, err := ac.service.Authenticate(authDTO.Email, authDTO.Password)
+	responseDTO, err := ac.service.Authenticate(loginFormDTO.Email, loginFormDTO.Password)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:
@@ -53,14 +53,14 @@ func (ac *AuthController) Login(c *gin.Context) {
 }
 
 func (ac *AuthController) LoginResendOTP(c *gin.Context) {
-	var loginFormDTO authDTOs.SendOTPFormDTO
+	var sendOTPFormDTO authDTOs.SendOTPFormDTO
 
-	if err := c.ShouldBindJSON(&loginFormDTO); err != nil {
+	if err := c.ShouldBindJSON(&sendOTPFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
 
-	email := loginFormDTO.Email
+	email := sendOTPFormDTO.Email
 
 	err := ac.service.LoginResendOTP(email)
 	if err != nil {
