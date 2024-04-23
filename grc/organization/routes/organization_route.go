@@ -128,4 +128,13 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 
 	organizationRoutes.GET("/control-types", controlTypeController.GetAllControlTypes)
 
+	//control implementation status
+
+	controlImplementationStatusRepo := organizationRepositories.NewControlImplementationStatusRepository(db)
+	controlImplementationStatusSvc := organizationServices.NewControlImplementationStatusService(controlImplementationStatusRepo)
+	controlImplementationStatusController := controllers.NewControlIMplementationStatusController(controlImplementationStatusSvc)
+
+	organizationRoutes.GET("/control-implementation-statuses", controlImplementationStatusController.GetAllControlImplementationStatuses)
+	organizationRoutes.GET("/control-implementation-statuses/:id", controlImplementationStatusController.GetControlImplementationStatusDetails)
+
 }
