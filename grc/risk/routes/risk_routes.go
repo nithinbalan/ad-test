@@ -97,6 +97,10 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	)
 	riskAppetiteStatementController := controllers.NewRiskAppetiteStatementController(riskAppetiteStatementSvc)
 
+	riskImpactCategoryRepo := riskRepositories.NewRiskImpactCategoryRepository(db)
+	riskImpactCategorySvc := riskServices.NewRiskImpactCategoryService(riskImpactCategoryRepo, activityLogSvc)
+	riskImpactCategoryController := controllers.NewRiskImpactCategoryController(riskImpactCategorySvc)
+
 	riskMatrixRepo := riskRepositories.NewRiskMatrixRepository(db)
 	riskMatrixSvc := riskServices.NewRiskMatrixService(riskMatrixRepo)
 
@@ -152,5 +156,13 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	riskRoutes.POST("/impacts/delete", riskMatrixImpactController.DeleteRiskMatrixImpacts)
 	riskRoutes.PUT("/impacts/activate", riskMatrixImpactController.ActivateRiskMatrixImpact)
 	riskRoutes.PUT("/impacts/deactivate", riskMatrixImpactController.DeactivateRiskMatrixImpact)
+
+	riskRoutes.GET("/risk-impact-categories", riskImpactCategoryController.GetAllRiskImpactCategories)
+	riskRoutes.GET("/risk-impact-categories/:id", riskImpactCategoryController.GetRiskImpactCategoryDetails)
+	riskRoutes.POST("/risk-impact-categories", riskImpactCategoryController.CreateRiskImpactCategory)
+	riskRoutes.PUT("/risk-impact-categories/:id", riskImpactCategoryController.UpdateRiskImpactCategory)
+	riskRoutes.POST("/risk-impact-categories/delete", riskImpactCategoryController.DeleteRiskImpactCategories)
+	riskRoutes.PUT("/risk-impact-categories/activate", riskImpactCategoryController.ActivateRiskImpactCategories)
+	riskRoutes.PUT("/risk-impact-categories/deactivate", riskImpactCategoryController.DeactivateRiskImpactCategories)
 
 }

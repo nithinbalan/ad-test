@@ -16,7 +16,7 @@ CREATE TABLE compliance_action_plans (
     updated_at DATETIME NULL,
     created_by INT NOT NULL,
     updated_by INT NULL,
-    CONSTRAINT FK_compliance_action_plans_compliance_registers FOREIGN KEY (compliance_register_id) REFERENCES compliance_register (id),
+    CONSTRAINT FK_compliance_action_plans_compliance_register FOREIGN KEY (compliance_register_id) REFERENCES compliance_register (id),
     CONSTRAINT FK_compliance_action_plans_compliance_requirements FOREIGN KEY (compliance_requirement_id) REFERENCES compliance_requirements (id),
     CONSTRAINT FK_compliance_action_plans_severity_levels FOREIGN KEY (severity_level_id) REFERENCES severity_levels (id),
     CONSTRAINT FK_compliance_action_plans_users1 FOREIGN KEY (responsible_user_id) REFERENCES users (id),
