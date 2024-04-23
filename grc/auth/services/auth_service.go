@@ -23,7 +23,7 @@ type AuthServiceInterface interface {
 	ReSendPasswordRecoveryOTP(email string) error
 	VerifyPasswordRecoveryOTP(email, otp string) (string, error)
 	SetPassword(setPasswordFormDTO authDTOs.PasswordRecoverySetPasswordFormDTO) error
-	MFAReSendOTP(email string, password string) error
+	MFAReSendOTP(email string) error
 	MFAVerifyOTP(email string, otp string) (*authDTOs.LoginResponseDTO, error)
 	GetTokenFromRefreshToken(refreshToken string) (*authDTOs.LoginResponseDTO, error)
 }
@@ -235,7 +235,7 @@ func (as AuthService) SetPassword(setPasswordFormDTO authDTOs.PasswordRecoverySe
 	return nil
 }
 
-func (as AuthService) MFAReSendOTP(email string, password string) error {
+func (as AuthService) MFAReSendOTP(email string) error {
 	user, err := as.userService.GetByEmail(email)
 	if err != nil {
 		return err
@@ -244,12 +244,6 @@ func (as AuthService) MFAReSendOTP(email string, password string) error {
 	userSecurity, err := as.userService.GetUserSecurityByUserID(user.ID)
 	if err != nil {
 		return err
-	}
-
-	// Compare the provided password with the stored hashed password
-	err = bcrypt.CompareHashAndPassword([]byte(userSecurity.PasswordHash), []byte(password))
-	if err != nil {
-		return utility.NewValidationError(fmt.Errorf("invalid username or password"), "invalid_credentials", "email")
 	}
 
 	resendTime := userSecurity.OTPExpiryAt.Add(-9 * time.Minute)

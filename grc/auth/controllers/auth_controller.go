@@ -167,7 +167,7 @@ func (ac *AuthController) SetPassword(c *gin.Context) {
 }
 
 func (ac *AuthController) MFAReSendOTP(c *gin.Context) {
-	var loginFormDTO authDTOs.LoginFormDTO
+	var loginFormDTO authDTOs.PasswordRecoveryFormDTO
 
 	if err := c.ShouldBindJSON(&loginFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
@@ -175,9 +175,8 @@ func (ac *AuthController) MFAReSendOTP(c *gin.Context) {
 	}
 
 	email := loginFormDTO.Email
-	password := loginFormDTO.Password
 
-	err := ac.service.MFAReSendOTP(email, password)
+	err := ac.service.MFAReSendOTP(email)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
