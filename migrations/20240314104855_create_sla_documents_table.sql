@@ -21,9 +21,9 @@ CREATE TABLE sla_documents (
     is_latest TINYINT DEFAULT 1,
     sa1_date DATE DEFAULT NULL,
     sa2_date DATE DEFAULT NULL,
-    CONSTRAINT FK_sla_documents_sla_register FOREIGN KEY (sla_register_id) REFERENCES sla_register(id),
-    CONSTRAINT FK_sla_documents_users_1 FOREIGN KEY (created_by) REFERENCES users(id),
-    CONSTRAINT FK_sla_documents_users_2 FOREIGN KEY (updated_by) REFERENCES users(id)
+    CONSTRAINT FK_sla_documents_sla_register FOREIGN KEY (sla_register_id) REFERENCES sla_register(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_sla_documents_users_1 FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_sla_documents_users_2 FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 
 -- +goose StatementEnd

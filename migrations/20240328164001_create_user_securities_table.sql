@@ -8,7 +8,7 @@ CREATE TABLE user_securities (
     otp VARCHAR(45),
     otp_expiry_at DATETIME,
     updated_at DATETIME,
-    CONSTRAINT FK_user_securities_users FOREIGN KEY (user_id) REFERENCES users(id)
+    CONSTRAINT FK_user_securities_users FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 -- +goose StatementEnd
 

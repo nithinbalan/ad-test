@@ -11,8 +11,8 @@ CREATE TABLE kri_library (
     source VARCHAR(45) NOT NULL,
     status VARCHAR(10) NOT NULL DEFAULT 'active',
         CONSTRAINT CHK_kri_library_status CHECK (status IN ('active', 'inactive')),
-    CONSTRAINT FK_kri_library_kri_categories FOREIGN KEY (kri_category_id) REFERENCES kri_categories(id),
-    CONSTRAINT FK_kri_library_review_frequencies FOREIGN KEY (review_frequency_id) REFERENCES review_frequencies(id)
+    CONSTRAINT FK_kri_library_kri_categories FOREIGN KEY (kri_category_id) REFERENCES kri_categories(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_kri_library_review_frequencies FOREIGN KEY (review_frequency_id) REFERENCES review_frequencies(id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 -- +goose StatementEnd
 

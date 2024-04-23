@@ -7,7 +7,7 @@ CREATE TABLE question_library (
     question_ar NVARCHAR(500) NOT NULL,    
     status VARCHAR(10) NOT NULL DEFAULT 'active',
         CONSTRAINT CHK_question_library_status CHECK (status IN ('active', 'inactive')),
-    CONSTRAINT FK_question_library_question_groups FOREIGN KEY (question_group_id) REFERENCES question_groups(id)
+    CONSTRAINT FK_question_library_question_groups FOREIGN KEY (question_group_id) REFERENCES question_groups(id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 -- +goose StatementEnd
 

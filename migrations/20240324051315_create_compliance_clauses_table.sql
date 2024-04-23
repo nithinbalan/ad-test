@@ -5,7 +5,7 @@ CREATE TABLE compliance_clauses (
     compliance_register_id INT NOT NULL,
     clause_no VARCHAR(45) NOT NULL,
     title NVARCHAR(MAX) NOT NULL,
-    CONSTRAINT FK_compliance_register_clauses_compliance_register FOREIGN KEY (compliance_register_id) REFERENCES compliance_register(id)
+    CONSTRAINT FK_compliance_register_clauses_compliance_register FOREIGN KEY (compliance_register_id) REFERENCES compliance_register(id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 -- +goose StatementEnd
 

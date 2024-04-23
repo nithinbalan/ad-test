@@ -14,9 +14,9 @@ CREATE TABLE compliance_requirement_status_update_documents (
     updated_by INT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT FK_compliance_requirement_status_update_documents FOREIGN KEY (compliance_requirement_status_update_id) REFERENCES compliance_requirement_status_updates(id),
-    CONSTRAINT FK_compliance_requirement_status_update_documents_user_1 FOREIGN KEY (created_by) REFERENCES users(id),
-    CONSTRAINT FK_compliance_requirement_status_update_documents_user_2 FOREIGN KEY (updated_by) REFERENCES users(id)
+    CONSTRAINT FK_compliance_requirement_status_update_documents FOREIGN KEY (compliance_requirement_status_update_id) REFERENCES compliance_requirement_status_updates(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_compliance_requirement_status_update_documents_user_1 FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_compliance_requirement_status_update_documents_user_2 FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 
 -- +goose StatementEnd

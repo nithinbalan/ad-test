@@ -25,16 +25,16 @@ CREATE TABLE compliance_register (
     created_by INT NOT NULL,
     updated_by INT NULL,
     lifecycle_status_id INT NOT NULL,
-    CONSTRAINT FK_compliance_register_compliance_categories FOREIGN KEY (compliance_category_id) REFERENCES compliance_categories (id),
-    CONSTRAINT FK_compliance_register_severity_levels FOREIGN KEY (severity_level_id) REFERENCES severity_levels (id),
-    CONSTRAINT FK_compliance_register_compliance_statuses FOREIGN KEY (compliance_status_id) REFERENCES compliance_statuses (id),
-    CONSTRAINT FK_compliance_register_organization_units FOREIGN KEY (responsible_unit_id) REFERENCES organization_units (id),
-    CONSTRAINT FK_compliance_register_users_1 FOREIGN KEY (responsible_user_id) REFERENCES users (id),
-    CONSTRAINT FK_compliance_register_review_frequencies FOREIGN KEY (review_frequency_id) REFERENCES review_frequencies (id),
-    CONSTRAINT FK_compliance_register_users_2 FOREIGN KEY (review_responsible_user_id) REFERENCES users (id),
-    CONSTRAINT FK_compliance_register_users_3 FOREIGN KEY (created_by) REFERENCES users (id),
-    CONSTRAINT FK_compliance_register_users_4 FOREIGN KEY (updated_by) REFERENCES users (id),
-    CONSTRAINT FK_compliance_register_lifecycle_statuses FOREIGN KEY (lifecycle_status_id) REFERENCES lifecycle_statuses (id)
+    CONSTRAINT FK_compliance_register_compliance_categories FOREIGN KEY (compliance_category_id) REFERENCES compliance_categories (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_compliance_register_severity_levels FOREIGN KEY (severity_level_id) REFERENCES severity_levels (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_compliance_register_compliance_statuses FOREIGN KEY (compliance_status_id) REFERENCES compliance_statuses (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_compliance_register_organization_units FOREIGN KEY (responsible_unit_id) REFERENCES organization_units (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_compliance_register_users_1 FOREIGN KEY (responsible_user_id) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_compliance_register_review_frequencies FOREIGN KEY (review_frequency_id) REFERENCES review_frequencies (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_compliance_register_users_2 FOREIGN KEY (review_responsible_user_id) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_compliance_register_users_3 FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_compliance_register_users_4 FOREIGN KEY (updated_by) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_compliance_register_lifecycle_statuses FOREIGN KEY (lifecycle_status_id) REFERENCES lifecycle_statuses (id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 
 -- +goose StatementEnd

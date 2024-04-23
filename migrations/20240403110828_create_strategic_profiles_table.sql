@@ -24,8 +24,8 @@ CREATE TABLE strategic_profiles (
   updated_at DATETIME,
   created_by INT NOT NULL,
   updated_by INT,
-  CONSTRAINT FK_strategic_profiles_users_1 FOREIGN KEY (created_by) REFERENCES users(id),
-  CONSTRAINT FK_strategic_profiles_users_2 FOREIGN KEY (updated_by) REFERENCES users(id)
+  CONSTRAINT FK_strategic_profiles_users_1 FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT FK_strategic_profiles_users_2 FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 -- +goose StatementEnd
 

@@ -16,9 +16,9 @@ CREATE TABLE compliance_documents (
     updated_by INT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT FK_compliance_documents_compliance_register FOREIGN KEY (compliance_register_id) REFERENCES compliance_register(id),
-    CONSTRAINT FK_compliance_documents_users_1 FOREIGN KEY (created_by) REFERENCES users(id),
-    CONSTRAINT FK_compliance_documents_users_2 FOREIGN KEY (updated_by) REFERENCES users(id)
+    CONSTRAINT FK_compliance_documents_compliance_register FOREIGN KEY (compliance_register_id) REFERENCES compliance_register(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_compliance_documents_users_1 FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_compliance_documents_users_2 FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 
 -- +goose StatementEnd

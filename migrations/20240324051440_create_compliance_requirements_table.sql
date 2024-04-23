@@ -13,13 +13,13 @@ CREATE TABLE compliance_requirements (
     updated_at DATETIME NULL,
     created_by INT NOT NULL,
     updated_by INT NULL,
-    CONSTRAINT FK_compliance_requirements_compliance_clauses FOREIGN KEY (compliance_clause_id) REFERENCES compliance_clauses(id),
-    CONSTRAINT FK_compliance_requirements_compliance_requirement_categories FOREIGN KEY (compliance_requirement_category_id) REFERENCES compliance_requirement_categories(id),
-    CONSTRAINT FK_compliance_requirements_severity_levels FOREIGN KEY (severity_level_id) REFERENCES severity_levels(id),
-    CONSTRAINT FK_compliance_requirements_users_1 FOREIGN KEY (responsible_user_id) REFERENCES users(id),
-    CONSTRAINT FK_compliance_requirements_compliance_statuses FOREIGN KEY (compliance_status_id) REFERENCES compliance_statuses(id),
-    CONSTRAINT FK_compliance_requirements_users_2 FOREIGN KEY (created_by) REFERENCES users(id),
-    CONSTRAINT FK_compliance_requirements_users_3 FOREIGN KEY (updated_by) REFERENCES users(id)
+    CONSTRAINT FK_compliance_requirements_compliance_clauses FOREIGN KEY (compliance_clause_id) REFERENCES compliance_clauses(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_compliance_requirements_compliance_requirement_categories FOREIGN KEY (compliance_requirement_category_id) REFERENCES compliance_requirement_categories(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_compliance_requirements_severity_levels FOREIGN KEY (severity_level_id) REFERENCES severity_levels(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_compliance_requirements_users_1 FOREIGN KEY (responsible_user_id) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_compliance_requirements_compliance_statuses FOREIGN KEY (compliance_status_id) REFERENCES compliance_statuses(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_compliance_requirements_users_2 FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_compliance_requirements_users_3 FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 -- +goose StatementEnd
 

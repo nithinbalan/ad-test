@@ -13,12 +13,12 @@ CREATE TABLE potential_risks (
     updated_at DATETIME NULL,
     created_by INT NOT NULL,
     updated_by INT NULL,
-    CONSTRAINT FK_potential_risks_risk_categories FOREIGN KEY (risk_category_id) REFERENCES risk_categories(id),
-    CONSTRAINT FK_potential_risks_severity_levels FOREIGN KEY (severity_level_id) REFERENCES severity_levels(id),
-    CONSTRAINT FK_potential_risks_potential_risk_statuses FOREIGN KEY (potential_risk_status_id) REFERENCES potential_risk_statuses(id),
-    CONSTRAINT FK_potential_risks_sla_register FOREIGN KEY (sla_register_id) REFERENCES sla_register(id),
-    CONSTRAINT FK_potential_risks_users_1 FOREIGN KEY (created_by) REFERENCES users(id),
-    CONSTRAINT FK_potential_risks_users_2 FOREIGN KEY (updated_by) REFERENCES users(id)
+    CONSTRAINT FK_potential_risks_risk_categories FOREIGN KEY (risk_category_id) REFERENCES risk_categories(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_potential_risks_severity_levels FOREIGN KEY (severity_level_id) REFERENCES severity_levels(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_potential_risks_potential_risk_statuses FOREIGN KEY (potential_risk_status_id) REFERENCES potential_risk_statuses(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_potential_risks_sla_register FOREIGN KEY (sla_register_id) REFERENCES sla_register(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_potential_risks_users_1 FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_potential_risks_users_2 FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 -- +goose StatementEnd
 

@@ -17,14 +17,14 @@ CREATE TABLE sla_register (
     updated_by INT NULL,
     created_at DATETIME NOT NULL DEFAULT GETDATE(),
     updated_at DATETIME NOT NULL DEFAULT GETDATE(),
-    CONSTRAINT FK_sla_register_sla_categories FOREIGN KEY (sla_category_id) REFERENCES sla_categories(id) ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT FK_sla_register_severity_levels FOREIGN KEY (severity_level_id) REFERENCES severity_levels(id) ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT FK_sla_register_responsible_units FOREIGN KEY (responsible_unit_id) REFERENCES organization_units(id) ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT FK_sla_register_users_1 FOREIGN KEY (responsible_user_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT FK_sla_register_lifecycle_statuses1 FOREIGN KEY (lifecycle_status_id) REFERENCES lifecycle_statuses(id) ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT FK_sla_register_compliance_statuses FOREIGN KEY (compliance_status_id) REFERENCES compliance_statuses (id) ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT FK_sla_register_user_2 FOREIGN KEY (created_by) REFERENCES users(id),
-    CONSTRAINT FK_sla_register_user_3 FOREIGN KEY (updated_by) REFERENCES users(id)
+    CONSTRAINT FK_sla_register_sla_categories FOREIGN KEY (sla_category_id) REFERENCES sla_categories(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_sla_register_severity_levels FOREIGN KEY (severity_level_id) REFERENCES severity_levels(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_sla_register_responsible_units FOREIGN KEY (responsible_unit_id) REFERENCES organization_units(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_sla_register_users_1 FOREIGN KEY (responsible_user_id) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_sla_register_lifecycle_statuses1 FOREIGN KEY (lifecycle_status_id) REFERENCES lifecycle_statuses(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_sla_register_compliance_statuses FOREIGN KEY (compliance_status_id) REFERENCES compliance_statuses (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_sla_register_user_2 FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_sla_register_user_3 FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 
 -- +goose StatementEnd

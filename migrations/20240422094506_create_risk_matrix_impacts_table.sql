@@ -9,7 +9,7 @@ CREATE TABLE risk_matrix_impacts (
     description_ar NVARCHAR(max) NOT NULL,
     status VARCHAR(10) NOT NULL DEFAULT 'active',
         CONSTRAINT CHK_risk_matrix_impacts_status CHECK (status IN ('active', 'inactive')),
-    CONSTRAINT FK_risk_matrix_impacts_risk_matrix FOREIGN KEY (risk_matrix_id) REFERENCES risk_matrix(id)
+    CONSTRAINT FK_risk_matrix_impacts_risk_matrix FOREIGN KEY (risk_matrix_id) REFERENCES risk_matrix(id) ON DELETE NO ACTION ON UPDATE NO ACTION
    
 );
 -- +goose StatementEnd

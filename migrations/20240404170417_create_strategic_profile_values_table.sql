@@ -9,7 +9,7 @@ CREATE TABLE strategic_profile_values (
     description_ar NVARCHAR(500),
     created_at DATETIME NOT NULL,
     updated_at DATETIME,
-    CONSTRAINT FK_strategic_profile_values_strategic_profiles FOREIGN KEY (strategic_profile_id) REFERENCES strategic_profiles(id)
+    CONSTRAINT FK_strategic_profile_values_strategic_profiles FOREIGN KEY (strategic_profile_id) REFERENCES strategic_profiles(id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 -- +goose StatementEnd
 

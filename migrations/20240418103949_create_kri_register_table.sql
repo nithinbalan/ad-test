@@ -23,13 +23,13 @@ CREATE TABLE kri_register (
     updated_at DATETIME,
     created_by INT NOT NULL,
     updated_by INT,
-    CONSTRAINT FK_kri_register_kri_categories FOREIGN KEY (kri_category_id) REFERENCES kri_categories (id),
-    CONSTRAINT FK_kri_register_organization_units FOREIGN KEY (owner_unit_id) REFERENCES organization_units (id),
-    CONSTRAINT FK_kri_register_users_1 FOREIGN KEY (owner_id) REFERENCES users (id),
-    CONSTRAINT FK_kri_register_review_frequencies FOREIGN KEY (review_frequency_id) REFERENCES review_frequencies (id),
-    CONSTRAINT FK_kri_register_risk_levels FOREIGN KEY (risk_level_id) REFERENCES risk_levels (id),
-    CONSTRAINT FK_kri_register_users_2 FOREIGN KEY (created_by) REFERENCES users (id),
-    CONSTRAINT FK_kri_register_users_3 FOREIGN KEY (updated_by) REFERENCES users (id)
+    CONSTRAINT FK_kri_register_kri_categories FOREIGN KEY (kri_category_id) REFERENCES kri_categories (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_kri_register_organization_units FOREIGN KEY (owner_unit_id) REFERENCES organization_units (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_kri_register_users_1 FOREIGN KEY (owner_id) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_kri_register_review_frequencies FOREIGN KEY (review_frequency_id) REFERENCES review_frequencies (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_kri_register_risk_levels FOREIGN KEY (risk_level_id) REFERENCES risk_levels (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_kri_register_users_2 FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_kri_register_users_3 FOREIGN KEY (updated_by) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 -- +goose StatementEnd
 
