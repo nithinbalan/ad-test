@@ -34,7 +34,7 @@ func main() {
 
 	db := config.GetDatabaseInstance() // Obtain the database instance
 
-	//middlewares
+	r.Use(middlewares.CORSMiddleware())
 	r.Use(middlewares.LocalizerMiddleware(bundle))
 	r.Use(middlewares.RecoveryWithDatabaseLog(db))
 	r.Use(middlewares.ThrottleMiddleware(1, 5))

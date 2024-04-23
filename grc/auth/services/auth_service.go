@@ -57,7 +57,7 @@ func (as *AuthService) Authenticate(email string, password string) (*authDTOs.Lo
 	// Compare the provided password with the stored hashed password
 	err = bcrypt.CompareHashAndPassword([]byte(userSecurity.PasswordHash), []byte(password))
 	if err != nil {
-		return nil, utility.NewValidationError(fmt.Errorf("invalid username or password"), "invalid_credentials", "email")
+		return nil, err
 	}
 
 	responseDTO := &authDTOs.LoginResponseDTO{}
