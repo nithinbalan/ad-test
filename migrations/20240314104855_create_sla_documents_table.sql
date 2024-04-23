@@ -7,8 +7,6 @@ CREATE TABLE sla_documents (
     issue_date DATE NULL,
     expiry_date DATE NULL,
     comment VARCHAR(MAX) NULL,
-    language VARCHAR(10) NOT NULL, -- Assuming language codes like 'en' and 'ar'
-        CONSTRAINT CHK_sla_documents_language CHECK (language IN ('en', 'ar')),
     url VARCHAR(255) DEFAULT NULL,
     name VARCHAR(255) NULL,
     size INT DEFAULT NULL,
@@ -23,9 +21,9 @@ CREATE TABLE sla_documents (
     is_latest TINYINT DEFAULT 1,
     sa1_date DATE DEFAULT NULL,
     sa2_date DATE DEFAULT NULL,
-    CONSTRAINT FK_sla_documents_sla_registers FOREIGN KEY (sla_register_id) REFERENCES sla_registers(id),
-    CONSTRAINT FK_sla_documents_created_by FOREIGN KEY (created_by) REFERENCES users(id),
-    CONSTRAINT FK_sla_documents_updated_by FOREIGN KEY (updated_by) REFERENCES users(id)
+    CONSTRAINT FK_sla_documents_sla_register FOREIGN KEY (sla_register_id) REFERENCES sla_register(id),
+    CONSTRAINT FK_sla_documents_user1 FOREIGN KEY (created_by) REFERENCES users(id),
+    CONSTRAINT FK_sla_documents_user2 FOREIGN KEY (updated_by) REFERENCES users(id)
 );
 
 -- +goose StatementEnd

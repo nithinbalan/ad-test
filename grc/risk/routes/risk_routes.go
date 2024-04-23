@@ -7,8 +7,14 @@ import (
 	riskRepositories "jethur/grc/risk/repositories"
 	riskServices "jethur/grc/risk/services"
 
+	organizationRepositories "jethur/grc/organization/repositories"
+	organizationServices "jethur/grc/organization/services"
+
 	masterRepositories "jethur/grc/masters/repositories"
 	masterServices "jethur/grc/masters/services"
+
+	settingRepositories "jethur/grc/settings/repositories"
+	settingService "jethur/grc/settings/services"
 
 	"jethur/middlewares"
 
@@ -28,6 +34,24 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	severityLevelRepo := masterRepositories.NewSeverityLevelRepository(db)
 	severityLevelSvc := masterServices.NewSeverityLevelService(severityLevelRepo)
 
+	kriCategoryRepo := masterRepositories.NewKRICategoryRepository(db)
+	kriCategorySvc := masterServices.NewKRICategoryService(kriCategoryRepo, activityLogSvc)
+
+	designationRepo := organizationRepositories.NewDesignationRepository(db)
+	designationSvc := organizationServices.NewDesignationService(designationRepo, activityLogSvc)
+
+	userStatusRepo := organizationRepositories.NewUserStatusRepository(db)
+	userStatusSvc := organizationServices.NewUserStatusService(userStatusRepo)
+
+	roleRepo := settingRepositories.NewRoleRepository(db)
+	roleSvc := settingService.NewRoleService(roleRepo, activityLogSvc)
+
+	userRepo := organizationRepositories.NewUserRepository(db)
+	userSvc := organizationServices.NewUserService(userRepo, designationSvc, userStatusSvc, activityLogSvc, roleSvc)
+
+	reviewFrequencyRepo := masterRepositories.NewReviewFrequencyRepository(db)
+	reviewFrequencySvc := masterServices.NewReviewFrequencyService(reviewFrequencyRepo)
+
 	riskCategoryRepo := riskRepositories.NewRiskCategoryRepository(db)
 	riskCategorySvc := riskServices.NewRiskCategoryService(riskCategoryRepo, activityLogSvc)
 	riskCategoryController := controllers.NewRiskCategoryController(riskCategorySvc)
@@ -35,6 +59,10 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	potentialRiskStatusRepo := riskRepositories.NewPotentialRiskStatusRepository(db)
 	potentialRiskStatusSvc := riskServices.NewPotentialRiskStatusService(potentialRiskStatusRepo)
 	potentialRiskStatusController := controllers.NewPotentialRiskStatusController(potentialRiskStatusSvc)
+
+	riskLevelRepo := riskRepositories.NewRiskLevelRepository(db)
+	riskLevelSvc := riskServices.NewRiskLevelService(riskLevelRepo)
+	riskLevelController := controllers.NewRiskLevelController(riskLevelSvc)
 
 	potentialRiskRepo := riskRepositories.NewPotentialRiskRepository(db)
 	potentialRiskSvc := riskServices.NewPotentialRiskService(
@@ -49,6 +77,29 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	potentialRiskStatusUpdateRepo := riskRepositories.NewPotentialRiskStatusUpdateRepository(db)
 	potentialRiskStatusUpdateSvc := riskServices.NewPotentialRiskStatusUpdateService(potentialRiskStatusUpdateRepo, activityLogSvc, potentialRiskSvc, potentialRiskStatusSvc)
 	potentialRiskStatusUpdateController := controllers.NewPotentialRiskStatusUpdateController(potentialRiskStatusUpdateSvc)
+
+	kriRegisterRepo := riskRepositories.NewKRIRegisterRepository(db)
+	kriRegisterSvc := riskServices.NewKRIRegisterService(
+		kriRegisterRepo,
+		activityLogSvc,
+		kriCategorySvc,
+		userSvc,
+		riskLevelSvc,
+		reviewFrequencySvc,
+	)
+	kriRegisterController := controllers.NewKRIRegisterController(kriRegisterSvc)
+
+	riskAppetiteStatementRepo := riskRepositories.NewRiskAppetiteStatementRepository(db)
+	riskAppetiteStatementSvc := riskServices.NewRiskAppetiteStatementService(
+		riskAppetiteStatementRepo,
+		activityLogSvc,
+		riskCategorySvc,
+	)
+	riskAppetiteStatementController := controllers.NewRiskAppetiteStatementController(riskAppetiteStatementSvc)
+	
+	riskImpactCategoryRepo := riskRepositories.NewRiskImpactCategoryRepository(db)
+	riskImpactCategorySvc := riskServices.NewRiskImpactCategoryService(riskImpactCategoryRepo, activityLogSvc)
+	riskImpactCategoryController := controllers.NewRiskImpactCategoryController(riskImpactCategorySvc)
 
 	riskRoutes.GET("/risk-categories", riskCategoryController.GetAllRiskCategories)
 	riskRoutes.GET("/risk-categories/:id", riskCategoryController.GetRiskCategoryDetails)
@@ -67,7 +118,32 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	riskRoutes.PUT("/potential-risks/:id", potentialRiskController.UpdatePotentialRisk)
 	riskRoutes.POST("/potential-risks/delete", potentialRiskController.DeletePotentialRisks)
 
+	riskRoutes.GET("/risk-levels", riskLevelController.GetAllRiskLevels)
+	riskRoutes.GET("/risk-levels/:id", riskLevelController.GetRiskLevelDetails)
+
 	riskRoutes.GET("/potential-risks/:id/status-updates", potentialRiskStatusUpdateController.GetAllPotentialRiskStatusUpdates)
 	riskRoutes.POST("/potential-risks/:id/status-updates", potentialRiskStatusUpdateController.CreatePotentialRiskStatusUpdate)
+
+	riskRoutes.GET("/risk-appetite-statements", riskAppetiteStatementController.GetAllRiskAppetiteStatements)
+	riskRoutes.GET("/risk-appetite-statements/:id", riskAppetiteStatementController.GetRiskAppetiteStatementDetails)
+	riskRoutes.POST("/risk-appetite-statements", riskAppetiteStatementController.CreateRiskAppetiteStatement)
+	riskRoutes.PUT("/risk-appetite-statements/:id", riskAppetiteStatementController.UpdateRiskAppetiteStatement)
+	riskRoutes.POST("/risk-appetite-statements/delete", riskAppetiteStatementController.DeleteRiskAppetiteStatements)
+	riskRoutes.PUT("/risk-appetite-statements/activate", riskAppetiteStatementController.ActivateRiskAppetiteStatements)
+	riskRoutes.PUT("/risk-appetite-statements/deactivate", riskAppetiteStatementController.DeactivateRiskAppetiteStatements)
+
+	riskRoutes.GET("/kri-register", kriRegisterController.GetAllKRIRegisters)
+	riskRoutes.GET("/kri-register/:id", kriRegisterController.GetKRIRegisterDetails)
+	riskRoutes.POST("/kri-register", kriRegisterController.CreateKRIRegister)
+	riskRoutes.PUT("/kri-register/:id", kriRegisterController.UpdateKRIRegister)
+	riskRoutes.POST("/kri-register/delete", kriRegisterController.DeleteKRIRegisters)
+
+	riskRoutes.GET("/risk-impact-categories", riskImpactCategoryController.GetAllRiskImpactCategories)
+	riskRoutes.GET("/risk-impact-categories/:id", riskImpactCategoryController.GetRiskImpactCategoryDetails)
+	riskRoutes.POST("/risk-impact-categories", riskImpactCategoryController.CreateRiskImpactCategory)
+	riskRoutes.PUT("/risk-impact-categories/:id", riskImpactCategoryController.UpdateRiskImpactCategory)
+	riskRoutes.POST("/risk-impact-categories/delete", riskImpactCategoryController.DeleteRiskImpactCategories)
+	riskRoutes.PUT("/risk-impact-categories/activate", riskImpactCategoryController.ActivateRiskImpactCategories)
+	riskRoutes.PUT("/risk-impact-categories/deactivate", riskImpactCategoryController.DeactivateRiskImpactCategories)
 
 }

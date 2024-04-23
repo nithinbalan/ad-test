@@ -99,6 +99,16 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *co
 		return 0, err
 	}
 
+	slaCheck := &complianceModels.SLACheck{
+		SLARegisterID: id,
+		CreatedBy:     currentUserID,
+	}
+
+	if err := srs.repo.CreateSLACheck(slaCheck, tx); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
 	if err := srs.repo.StoreSLADocumentFile(id, slaRegisterFormDTO.Document.FileName); err != nil {
 		tx.Rollback()
 		return 0, err
@@ -110,7 +120,7 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *co
 		return 0, err
 	}
 
-	url := fmt.Sprintf("%s/sla-registers/%d/%s", config.GetEnv("API_URL", "http://localhost:8080"), slaRegister.ID, encryptedFilename)
+	url := fmt.Sprintf("%s/sla-register/%d/%s", config.GetEnv("API_URL", "http://localhost:8080"), slaRegister.ID, encryptedFilename)
 
 	slaDocument := &complianceModels.SLADocument{
 		SLARegisterID: id,
@@ -119,7 +129,6 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *co
 		ExpiryDate:    dates.ExpiryDate,
 		SA1Date:       dates.SA1Date,
 		SA2Date:       dates.SA2Date,
-		Language:      slaRegisterFormDTO.Document.Language,
 		URL:           url,
 		Icon:          slaRegisterFormDTO.Document.Icon,
 		Name:          slaRegisterFormDTO.Document.FileName,
@@ -229,9 +238,8 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 				tx.Rollback()
 				return err
 			}
-			url := fmt.Sprintf("%s/sla-registers/%d/%s", config.GetEnv("API_URL", "http://localhost:8080"), id, encryptedFilename)
+			url := fmt.Sprintf("%s/sla-register/%d/%s", config.GetEnv("API_URL", "http://localhost:8080"), id, encryptedFilename)
 
-			existingSLADocument.Language = slaRegisterFormDTO.Document.Language
 			existingSLADocument.URL = url
 			existingSLADocument.Icon = slaRegisterFormDTO.Document.Icon
 			existingSLADocument.Name = slaRegisterFormDTO.Document.FileName
@@ -464,10 +472,6 @@ func (srs *SLARegisterService) validateSLADocumentFormDTO(document *complianceDT
 
 	//@Review
 	//All items are mandatory during creation
-	// Validate language
-	if document.Language == "" {
-		return utility.NewValidationError(fmt.Errorf("language is required"), "required", "language")
-	}
 
 	// Validate icon
 	if document.Icon == "" {

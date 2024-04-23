@@ -6,7 +6,6 @@ import (
 	"jethur/config"
 	commonDTOs "jethur/grc/common/dtos"
 	slaDTOs "jethur/grc/compliance/dtos"
-	"jethur/grc/compliance/models"
 	complianceModels "jethur/grc/compliance/models"
 	"jethur/utility"
 	"os"
@@ -21,18 +20,19 @@ import (
 type SLARegisterRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *slaDTOs.SLARegisterListQueryParamsDTO) (*slaDTOs.SLARegisterListResponseDTO, error)
-	GetByID(id uint) (*models.SLARegister, error)
+	GetByID(id uint) (*complianceModels.SLARegister, error)
 	Create(slaRegister *complianceModels.SLARegister, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(slaRegister *complianceModels.SLARegister, tx ...utility.DatabaseTransaction) error
 	Delete(id uint) error
 	GetIDsByLifecycleStatus(ids []uint, status string) ([]uint, error)
 	UpdateLifecycleStatusForIDs(ids []uint, statusId uint) ([]uint, error)
 	GenerateReferenceNumber() (string, error)
+	CreateSLACheck(slaCheck *complianceModels.SLACheck, tx ...utility.DatabaseTransaction) error
 
 	//Document
-	SaveSLADocument(doc *models.SLADocument, tx ...utility.DatabaseTransaction) error
-	GetSLADocumentByID(id uint) (*models.SLADocument, error)
-	GetLatestSLADocumentBySLARegisterID(id uint) (*models.SLADocument, error)
+	SaveSLADocument(doc *complianceModels.SLADocument, tx ...utility.DatabaseTransaction) error
+	GetSLADocumentByID(id uint) (*complianceModels.SLADocument, error)
+	GetLatestSLADocumentBySLARegisterID(id uint) (*complianceModels.SLADocument, error)
 	StoreSLADocumentFile(slaID uint, fileName string) error
 	RemoveSLADocumentFile(slaID uint, fileNames string) error
 }
@@ -56,16 +56,15 @@ func (repo *SLARegisterRepository) BeginTransaction() utility.DatabaseTransactio
 func (repo *SLARegisterRepository) GetAll(params *slaDTOs.SLARegisterListQueryParamsDTO) (*slaDTOs.SLARegisterListResponseDTO, error) {
 	var slaRegisters []*slaDTOs.SLARegisterListDTO
 	var totalCount int64
-	query := repo.db.Table("sla_registers").
+	query := repo.db.Table("sla_register").
 		Select(`
-            sla_registers.*,
+            sla_register.*,
 			sla_documents.version,
 			sla_documents.issue_date,
 			sla_documents.expiry_date,
 			sla_documents.sa1_date,
 			sla_documents.sa2_date,
 			sla_documents.comment,
-			sla_documents.language,
 			sla_documents.url,
 			sla_documents.name,
 			sla_documents.size,
@@ -98,15 +97,15 @@ func (repo *SLARegisterRepository) GetAll(params *slaDTOs.SLARegisterListQueryPa
             updated_by_users.last_name_ar AS updated_by_last_name_ar
         `).
 		Joins(`
-            LEFT JOIN sla_categories ON sla_registers.sla_category_id = sla_categories.id
-            LEFT JOIN severity_levels ON sla_registers.severity_level_id = severity_levels.id
-            LEFT JOIN organization_units ON sla_registers.responsible_unit_id = organization_units.id
-            LEFT JOIN users AS responsible_users ON sla_registers.responsible_user_id = responsible_users.id
-            JOIN lifecycle_statuses ON sla_registers.lifecycle_status_id = lifecycle_statuses.id
-		    LEFT JOIN compliance_statuses ON sla_registers.compliance_status_id = compliance_statuses.id 
-            JOIN users AS created_by_users ON sla_registers.created_by = created_by_users.id
-            LEFT JOIN users AS updated_by_users ON sla_registers.updated_by = updated_by_users.id
-			LEFT JOIN sla_documents ON sla_registers.id = sla_documents.sla_register_id AND sla_documents.is_latest = 1
+            LEFT JOIN sla_categories ON sla_register.sla_category_id = sla_categories.id
+            LEFT JOIN severity_levels ON sla_register.severity_level_id = severity_levels.id
+            LEFT JOIN organization_units ON sla_register.responsible_unit_id = organization_units.id
+            LEFT JOIN users AS responsible_users ON sla_register.responsible_user_id = responsible_users.id
+            JOIN lifecycle_statuses ON sla_register.lifecycle_status_id = lifecycle_statuses.id
+		    LEFT JOIN compliance_statuses ON sla_register.compliance_status_id = compliance_statuses.id 
+            JOIN users AS created_by_users ON sla_register.created_by = created_by_users.id
+            LEFT JOIN users AS updated_by_users ON sla_register.updated_by = updated_by_users.id
+			LEFT JOIN sla_documents ON sla_register.id = sla_documents.sla_register_id AND sla_documents.is_latest = 1
 
     `)
 
@@ -153,11 +152,11 @@ func (repo *SLARegisterRepository) GetAll(params *slaDTOs.SLARegisterListQueryPa
 	// Apply search Keyword if exists
 	if params.Keyword != "" {
 		query = query.Where(`
-			(sla_registers.title_en LIKE ? OR
-			sla_registers.title_ar LIKE ? OR
-			sla_registers.reference_number LIKE ? OR
-			sla_registers.description LIKE ? OR
-			sla_registers.client LIKE ? OR
+			(sla_register.title_en LIKE ? OR
+			sla_register.title_ar LIKE ? OR
+			sla_register.reference_number LIKE ? OR
+			sla_register.description LIKE ? OR
+			sla_register.client LIKE ? OR
 			sla_documents.issue_date LIKE ? OR
 			sla_documents.expiry_date LIKE ? OR
 			sla_documents.sa1_date LIKE ? OR
@@ -220,8 +219,8 @@ func (repo *SLARegisterRepository) GetAll(params *slaDTOs.SLARegisterListQueryPa
 	return response, nil
 }
 
-func (repo *SLARegisterRepository) GetByID(id uint) (*models.SLARegister, error) {
-	var slaRegister *models.SLARegister
+func (repo *SLARegisterRepository) GetByID(id uint) (*complianceModels.SLARegister, error) {
+	var slaRegister *complianceModels.SLARegister
 	// result := repo.db.First(&slaRegister, id)
 	result := repo.db.Preload("SLACategory").
 		Preload("SeverityLevel").
@@ -276,14 +275,14 @@ func (repo *SLARegisterRepository) Delete(id uint) error {
 		}
 	}()
 
-	var slaRegister *models.SLARegister
+	var slaRegister *complianceModels.SLARegister
 	if err := tx.First(&slaRegister, id).Error; err != nil {
 		tx.Rollback() // Rollback the transaction
 		return err
 	}
 
 	// Find all SLA documents associated with the SLA register
-	var slaDocuments []*models.SLADocument
+	var slaDocuments []*complianceModels.SLADocument
 	if err := tx.Where("sla_register_id = ?", id).Find(&slaDocuments).Error; err != nil {
 		tx.Rollback() // Rollback the transaction
 		return err
@@ -298,7 +297,7 @@ func (repo *SLARegisterRepository) Delete(id uint) error {
 	}
 
 	// Delete the SLA register
-	if err := tx.Delete(&models.SLARegister{}, id).Error; err != nil {
+	if err := tx.Delete(&complianceModels.SLARegister{}, id).Error; err != nil {
 		tx.Rollback() // Rollback the transaction
 		return err
 	}
@@ -315,9 +314,9 @@ func (repo *SLARegisterRepository) GetIDsByLifecycleStatus(ids []uint, status st
 	var matchingIDs []uint
 
 	if err := repo.db.Model(&complianceModels.SLARegister{}).
-		Joins("JOIN lifecycle_statuses ON sla_registers.lifecycle_status_id = lifecycle_statuses.id").
-		Where("sla_registers.id IN ? AND lifecycle_statuses.type = ?", ids, status).
-		Pluck("sla_registers.id", &matchingIDs).Error; err != nil {
+		Joins("JOIN lifecycle_statuses ON sla_register.lifecycle_status_id = lifecycle_statuses.id").
+		Where("sla_register.id IN ? AND lifecycle_statuses.type = ?", ids, status).
+		Pluck("sla_register.id", &matchingIDs).Error; err != nil {
 		return nil, err
 	}
 
@@ -360,16 +359,16 @@ func (repo *SLARegisterRepository) GenerateReferenceNumber() (string, error) {
 	return newReferenceNumber, nil
 }
 
-func (repo *SLARegisterRepository) GetSLADocumentByID(id uint) (*models.SLADocument, error) {
-	var document models.SLADocument
+func (repo *SLARegisterRepository) GetSLADocumentByID(id uint) (*complianceModels.SLADocument, error) {
+	var document complianceModels.SLADocument
 	if err := repo.db.Where("id = ?", id).First(&document).Error; err != nil {
 		return nil, err
 	}
 	return &document, nil
 }
 
-func (repo *SLARegisterRepository) GetLatestSLADocumentBySLARegisterID(id uint) (*models.SLADocument, error) {
-	var document models.SLADocument
+func (repo *SLARegisterRepository) GetLatestSLADocumentBySLARegisterID(id uint) (*complianceModels.SLADocument, error) {
+	var document complianceModels.SLADocument
 	if err := repo.db.Where("sla_register_id = ?", id).
 		Where("is_latest = ?", true).
 		First(&document).Error; err != nil {
@@ -392,7 +391,7 @@ func (repo *SLARegisterRepository) StoreSLADocumentFile(id uint, fileName string
 	return nil
 }
 
-func (repo *SLARegisterRepository) SaveSLADocument(doc *models.SLADocument, tx ...utility.DatabaseTransaction) error {
+func (repo *SLARegisterRepository) SaveSLADocument(doc *complianceModels.SLADocument, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -409,5 +408,17 @@ func (repo *SLARegisterRepository) RemoveSLADocumentFile(slaID uint, fileName st
 	if err := os.Remove(filePath); err != nil {
 		return err
 	}
+	return nil
+}
+
+func (repo *SLARegisterRepository) CreateSLACheck(slaCheck *complianceModels.SLACheck, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(slaCheck).Error; err != nil {
+		return err
+	}
+
 	return nil
 }

@@ -1,17 +1,30 @@
 package repositories
 
 import (
+	"jethur/config"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/models"
+	"jethur/utility"
+	"os"
+	"path/filepath"
+	"strconv"
 
 	"gorm.io/gorm"
 )
 
 type ComplianceActionPlanStatusUpdateRepositoryInterface interface {
+	BeginTransaction() utility.DatabaseTransaction
 	GetAll(complianceActionPlanID uint, sort string, sortBy string, keyword string) ([]*complianceDTOs.ComplianceActionPlanStatusUpdateListDTO, error)
 	GetByID(id uint) (*models.ComplianceActionPlanStatusUpdate, error)
-	Create(ComplianceActionPlanStatusUpdate *models.ComplianceActionPlanStatusUpdate) (uint, error)
-	Update(ComplianceActionPlanStatusUpdate *models.ComplianceActionPlanStatusUpdate) error
+	Create(ComplianceActionPlanStatusUpdate *models.ComplianceActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
+	Update(ComplianceActionPlanStatusUpdate *models.ComplianceActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) error
+
+	//Document
+	SaveComplianceActionPlanStatusUpdateDocument(doc *models.ComplianceActionPlanStatusUpdateDocument, tx ...utility.DatabaseTransaction) error
+	GetComplianceActionPlanStatusUpdateDocumentByID(id uint) (*models.ComplianceActionPlanStatusUpdateDocument, error)
+	StoreComplianceActionPlanStatusUpdateDocumentFile(complianceId uint, actionId uint, updatesId uint, fileName string) error
+	RemoveComplianceActionPlanStatusUpdateDocumentFile(complianceId uint, actionId uint, updatesId uint, fileNames string) error
+	DeleteComplianceActionPlanStatusUpdateDocumentId(docId uint, tx ...utility.DatabaseTransaction) error
 }
 
 type ComplianceActionPlanStatusUpdateRepository struct {
@@ -22,6 +35,11 @@ func NewComplianceActionPlanStatusUpdateRepository(db *gorm.DB) *ComplianceActio
 	return &ComplianceActionPlanStatusUpdateRepository{
 		db: db,
 	}
+}
+
+// BeginTransaction starts a new transaction.
+func (repo *ComplianceActionPlanStatusUpdateRepository) BeginTransaction() utility.DatabaseTransaction {
+	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
 func (repo *ComplianceActionPlanStatusUpdateRepository) GetAll(complianceActionPlanID uint, sort string, sortBy string, keyword string) ([]*complianceDTOs.ComplianceActionPlanStatusUpdateListDTO, error) {
@@ -83,18 +101,80 @@ func (repo *ComplianceActionPlanStatusUpdateRepository) GetByID(id uint) (*model
 	return complianceActionPlanStatusUpdate, nil
 }
 
-func (repo *ComplianceActionPlanStatusUpdateRepository) Create(ComplianceActionPlanStatusUpdate *models.ComplianceActionPlanStatusUpdate) (uint, error) {
-
-	if err := repo.db.Create(ComplianceActionPlanStatusUpdate).Error; err != nil {
+func (repo *ComplianceActionPlanStatusUpdateRepository) Create(ComplianceActionPlanStatusUpdate *models.ComplianceActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(ComplianceActionPlanStatusUpdate).Error; err != nil {
 		return 0, err
 	}
 
 	return ComplianceActionPlanStatusUpdate.ID, nil
 }
 
-func (repo *ComplianceActionPlanStatusUpdateRepository) Update(ComplianceActionPlanStatusUpdate *models.ComplianceActionPlanStatusUpdate) error {
-	if err := repo.db.Save(ComplianceActionPlanStatusUpdate).Error; err != nil {
+func (repo *ComplianceActionPlanStatusUpdateRepository) Update(ComplianceActionPlanStatusUpdate *models.ComplianceActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(ComplianceActionPlanStatusUpdate).Error; err != nil {
 		return err
 	}
+	return nil
+}
+
+func (repo *ComplianceActionPlanStatusUpdateRepository) GetComplianceActionPlanStatusUpdateDocumentByID(id uint) (*models.ComplianceActionPlanStatusUpdateDocument, error) {
+	var document models.ComplianceActionPlanStatusUpdateDocument
+	if err := repo.db.Where("id = ?", id).First(&document).Error; err != nil {
+		return nil, err
+	}
+	return &document, nil
+}
+
+func (repo *ComplianceActionPlanStatusUpdateRepository) StoreComplianceActionPlanStatusUpdateDocumentFile(id uint, actionId uint, updatesId uint, fileName string) error {
+	storagePath := config.GetEnv("STORAGE_PATH", "")
+	temporaryStoragePath := filepath.Join(storagePath, "tmp", fileName)
+	directoryPath := filepath.Join(storagePath, "compliance", "compliance", strconv.FormatUint(uint64(id), 10), "action-plans", strconv.FormatUint(uint64(actionId), 10), "updates", strconv.FormatUint(uint64(updatesId), 10), "documents")
+	destinationPath := filepath.Join(directoryPath, fileName)
+	if err := os.MkdirAll(directoryPath, os.ModePerm); err != nil {
+		return err
+	}
+	if err := os.Rename(temporaryStoragePath, destinationPath); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *ComplianceActionPlanStatusUpdateRepository) SaveComplianceActionPlanStatusUpdateDocument(doc *models.ComplianceActionPlanStatusUpdateDocument, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(doc).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *ComplianceActionPlanStatusUpdateRepository) RemoveComplianceActionPlanStatusUpdateDocumentFile(complianceId uint, actionId uint, updatesId uint, fileName string) error {
+	storagePath := config.GetEnv("STORAGE_PATH", "")
+	filePath := filepath.Join(storagePath, "compliance", "compliance", strconv.FormatUint(uint64(complianceId), 10), "action-plans", strconv.FormatUint(uint64(actionId), 10), "updates", strconv.FormatUint(uint64(updatesId), 10), "documents", fileName)
+	if err := os.Remove(filePath); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *ComplianceActionPlanStatusUpdateRepository) DeleteComplianceActionPlanStatusUpdateDocumentId(docID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Delete(&models.ComplianceActionPlanStatusUpdateDocument{}, docID).Error; err != nil {
+		return err
+	}
+
 	return nil
 }
