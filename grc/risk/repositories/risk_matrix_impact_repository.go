@@ -68,7 +68,7 @@ func (repo *RiskMatrixImpactRepository) GetAll(sort string, sortBy string, keywo
 
 func (repo *RiskMatrixImpactRepository) GetByID(id uint) (*models.RiskMatrixImpact, error) {
 	var impact *models.RiskMatrixImpact
-	result := repo.db.First(&impact, id)
+	result := repo.db.Preload("RiskMatrix").First(&impact, id)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, utility.NewResourceNotFoundError(result.Error, id)
