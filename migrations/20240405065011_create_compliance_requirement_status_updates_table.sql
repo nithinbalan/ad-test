@@ -11,8 +11,8 @@ CREATE TABLE compliance_requirement_status_updates (
     updated_by INT NULL,
     CONSTRAINT FK_compliance_requirement_status_updates_compliance_requirements FOREIGN KEY (compliance_requirement_id) REFERENCES compliance_requirements (id),
     CONSTRAINT FK_compliance_requirement_status_updates_compliance_statuses FOREIGN KEY (compliance_status_id) REFERENCES compliance_statuses (id),
-    CONSTRAINT FK_compliance_requirement_status_updates_users1 FOREIGN KEY (created_by) REFERENCES users (id),
-    CONSTRAINT FK_compliance_requirement_status_updates_users2 FOREIGN KEY (updated_by) REFERENCES users (id)
+    CONSTRAINT FK_compliance_requirement_status_updates_users_1 FOREIGN KEY (created_by) REFERENCES users (id),
+    CONSTRAINT FK_compliance_requirement_status_updates_users_2 FOREIGN KEY (updated_by) REFERENCES users (id)
 );
 -- +goose StatementEnd
 

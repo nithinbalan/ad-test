@@ -4,7 +4,7 @@ CREATE TABLE compliance_requirement_status_update_documents (
     id INT PRIMARY KEY IDENTITY(1,1),
     compliance_requirement_status_update_id INT NOT NULL,
     url VARCHAR(255) DEFAULT NULL,
-    name VARCHAR(255) NULL,
+    name NVARCHAR(255) NULL,
     size INT DEFAULT NULL,
     token VARCHAR(255) DEFAULT NULL,
     type VARCHAR(255) DEFAULT NULL,
@@ -15,8 +15,8 @@ CREATE TABLE compliance_requirement_status_update_documents (
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT FK_compliance_requirement_status_update_documents FOREIGN KEY (compliance_requirement_status_update_id) REFERENCES compliance_requirement_status_updates(id),
-    CONSTRAINT FK_compliance_requirement_status_update_documents_user1 FOREIGN KEY (created_by) REFERENCES users(id),
-    CONSTRAINT FK_compliance_requirement_status_update_documents_user2 FOREIGN KEY (updated_by) REFERENCES users(id)
+    CONSTRAINT FK_compliance_requirement_status_update_documents_user_1 FOREIGN KEY (created_by) REFERENCES users(id),
+    CONSTRAINT FK_compliance_requirement_status_update_documents_user_2 FOREIGN KEY (updated_by) REFERENCES users(id)
 );
 
 -- +goose StatementEnd

@@ -8,7 +8,6 @@ CREATE TABLE risk_matrix_risk_rating_values (
 );
 -- +goose StatementEnd
 
-
 -- +goose Down
 -- +goose StatementBegin
 DROP TABLE risk_matrix_risk_rating_values;

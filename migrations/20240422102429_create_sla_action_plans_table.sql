@@ -21,8 +21,8 @@ CREATE TABLE sla_action_plans (
     CONSTRAINT FK_sla_action_plans_severity_levels FOREIGN KEY (severity_level_id) REFERENCES severity_levels (id),
     CONSTRAINT FK_sla_action_plans_users1 FOREIGN KEY (responsible_user_id) REFERENCES users (id),
     CONSTRAINT FK_sla_action_plans_action_plan_statuses FOREIGN KEY (action_plan_status_id) REFERENCES action_plan_statuses (id),
-    CONSTRAINT FK_sla_action_plans_users2 FOREIGN KEY (created_by) REFERENCES users (id),
-    CONSTRAINT FK_sla_action_plans_users3 FOREIGN KEY (updated_by) REFERENCES users (id)
+    CONSTRAINT FK_sla_action_plans_users_2 FOREIGN KEY (created_by) REFERENCES users (id),
+    CONSTRAINT FK_sla_action_plans_users_3 FOREIGN KEY (updated_by) REFERENCES users (id)
 );
 -- +goose StatementEnd
 

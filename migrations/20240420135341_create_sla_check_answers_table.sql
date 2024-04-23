@@ -11,8 +11,8 @@ CREATE TABLE sla_check_answers (
     updated_by INT NULL,
     CONSTRAINT FK_sla_check_answers_sla_check_questions FOREIGN KEY (sla_check_question_id) REFERENCES sla_check_questions (id),
     CONSTRAINT FK_sla_check_answers_compliance_statuses FOREIGN KEY (compliance_status_id) REFERENCES compliance_statuses (id),
-    CONSTRAINT FK_sla_check_answers_users1 FOREIGN KEY (created_by) REFERENCES users (id),
-    CONSTRAINT FK_sla_check_answers_users2 FOREIGN KEY (updated_by) REFERENCES users (id)
+    CONSTRAINT FK_sla_check_answers_users_1 FOREIGN KEY (created_by) REFERENCES users (id),
+    CONSTRAINT FK_sla_check_answers_users_2 FOREIGN KEY (updated_by) REFERENCES users (id)
 );
 -- +goose StatementEnd
 

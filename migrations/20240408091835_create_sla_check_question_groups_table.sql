@@ -12,8 +12,8 @@ CREATE TABLE sla_check_question_groups (
     created_by INT NOT NULL,
     updated_by INT NULL,
     CONSTRAINT FK_sla_check_question_groups_sla_checks FOREIGN KEY (sla_check_id) REFERENCES sla_checks (id),
-    CONSTRAINT FK_sla_check_question_groups_users1 FOREIGN KEY (created_by) REFERENCES users (id),
-    CONSTRAINT FK_sla_check_question_groups_users2 FOREIGN KEY (updated_by) REFERENCES users (id)
+    CONSTRAINT FK_sla_check_question_groups_users_1 FOREIGN KEY (created_by) REFERENCES users (id),
+    CONSTRAINT FK_sla_check_question_groups_users_2 FOREIGN KEY (updated_by) REFERENCES users (id)
 );
 -- +goose StatementEnd
 

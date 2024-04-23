@@ -5,7 +5,9 @@ CREATE TABLE compliance_reviews (
     compliance_register_id INT NOT NULL,
     comment NVARCHAR(MAX) NOT NULL,
     reviewed_at DATETIME NOT NULL,
+    updated_at DATETIME NULL,
     reviewed_by INT NOT NULL,
+    updated_by INT NULL,
     CONSTRAINT FK_compliance_reviews_compliance_register FOREIGN KEY (compliance_register_id) REFERENCES compliance_register (id),
     CONSTRAINT FK_compliance_reviews_users FOREIGN KEY (reviewed_by) REFERENCES users (id)
 );
