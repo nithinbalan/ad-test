@@ -11,14 +11,14 @@ type LoginResponseDTO struct {
 	IsMFAEnabled bool    `json:"is_mfa_enabled"`
 }
 
-type PasswordRecoveryFormDTO struct {
+type SendOTPFormDTO struct {
 	Email string `json:"email" binding:"required,email"`
 }
 
 type RefreshTokenFormDTO struct {
 	RefreshToken string `json:"refresh_token" binding:"required"`
 }
-type MFAVerifyOTPFormDTO struct {
+type VerifyOTPFormDTO struct {
 	Email string `json:"email" binding:"required,email"`
 	Otp   string `json:"otp"`
 }
@@ -27,11 +27,6 @@ type PasswordRecoveryDataDTO struct {
 	FirstNameEn string `json:"first_name_en"`
 	LastNameEn  string `json:"last_name_en"`
 	Otp         string `json:"otp"`
-}
-
-type PasswordRecoveryOTPVerifyFormDTO struct {
-	Email string `json:"email" binding:"required,email"`
-	Otp   string `json:"otp" binding:"required"`
 }
 
 type PasswordRecoverySetPasswordFormDTO struct {
