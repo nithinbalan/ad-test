@@ -1,7 +1,6 @@
 package repositories
 
 import (
-	"errors"
 	riskDTOs "jethur/grc/risk/dtos"
 	"jethur/grc/risk/models"
 	"jethur/utility"
@@ -69,13 +68,11 @@ func (repo *RiskMatrixImpactRepository) GetByID(id uint) (*models.RiskMatrixImpa
 	var impact *models.RiskMatrixImpact
 	result := repo.db.Preload("RiskMatrix").First(&impact, id)
 
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, utility.NewResourceNotFoundError(result.Error, id)
-	} else if result.Error != nil {
+	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	return impact, result.Error
+	return impact, nil
 }
 
 func (repo *RiskMatrixImpactRepository) Create(impact *models.RiskMatrixImpact) (uint, error) {

@@ -68,7 +68,7 @@ func (rmlc *RiskMatrixLikelihoodController) CreateRiskMatrixLikelihood(c *gin.Co
 		return
 	}
 
-	createdLikelihood, err := rmlc.service.Create(currentUserID, likelihood)
+	id, err := rmlc.service.Create(currentUserID, likelihood)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:
@@ -80,7 +80,7 @@ func (rmlc *RiskMatrixLikelihoodController) CreateRiskMatrixLikelihood(c *gin.Co
 		}
 	}
 
-	c.JSON(http.StatusCreated, createdLikelihood)
+	c.JSON(http.StatusCreated, id)
 }
 
 func (rmlc *RiskMatrixLikelihoodController) UpdateRiskMatrixLikelihood(c *gin.Context) {

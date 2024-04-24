@@ -1,9 +1,7 @@
 package repositories
 
 import (
-	"errors"
 	"jethur/grc/risk/models"
-	"jethur/utility"
 
 	"gorm.io/gorm"
 )
@@ -28,10 +26,7 @@ func (repo *RiskMatrixRepository) GetByType(status string) (*models.RiskMatrix, 
 	var riskMatrix *models.RiskMatrix
 
 	result := repo.db.Where("type = ?", status).First(&riskMatrix)
-
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, utility.NewResourceNotFoundError(result.Error, "Risk matrix with status "+status)
-	} else if result.Error != nil {
+	if result.Error != nil {
 		return nil, result.Error
 	}
 
