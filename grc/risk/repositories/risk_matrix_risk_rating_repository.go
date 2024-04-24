@@ -12,8 +12,8 @@ import (
 type RiskMatrixRiskRatingRepositoryInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string) ([]*riskDTOs.RiskMatrixRiskRatingDTO, error)
 	GetByID(id uint) (*models.RiskMatrixRiskRating, error)
-	Create(risk_rating *models.RiskMatrixRiskRating) (uint, error)
-	Update(risk_rating *models.RiskMatrixRiskRating) error
+	Create(riskRating *models.RiskMatrixRiskRating) (uint, error)
+	Update(riskRating *models.RiskMatrixRiskRating) error
 	Delete(id uint) error
 	Activate(ids []uint) ([]uint, error)
 	Deactivate(ids []uint) ([]uint, error)
@@ -76,12 +76,12 @@ func (repo *RiskMatrixRiskRatingRepository) GetByID(id uint) (*models.RiskMatrix
 	return riskRating, result.Error
 }
 
-func (repo *RiskMatrixRiskRatingRepository) Create(risk_rating *models.RiskMatrixRiskRating) (uint, error) {
-	if err := repo.db.Create(risk_rating).Error; err != nil {
+func (repo *RiskMatrixRiskRatingRepository) Create(riskRating *models.RiskMatrixRiskRating) (uint, error) {
+	if err := repo.db.Create(riskRating).Error; err != nil {
 		return 0, err
 	}
 
-	return risk_rating.ID, nil
+	return riskRating.ID, nil
 }
 
 func (repo *RiskMatrixRiskRatingRepository) Update(updatedRiskRating *models.RiskMatrixRiskRating) error {
@@ -93,8 +93,8 @@ func (repo *RiskMatrixRiskRatingRepository) Update(updatedRiskRating *models.Ris
 }
 
 func (repo *RiskMatrixRiskRatingRepository) Delete(id uint) error {
-	var risk_rating *models.RiskMatrixRiskRating
-	if err := repo.db.First(&risk_rating, id).Error; err != nil {
+	var riskRating *models.RiskMatrixRiskRating
+	if err := repo.db.First(&riskRating, id).Error; err != nil {
 		return err
 	}
 
