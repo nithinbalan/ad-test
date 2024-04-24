@@ -52,6 +52,30 @@ func (ac *AuthController) Login(c *gin.Context) {
 	c.JSON(http.StatusOK, responseDTO)
 }
 
+func (ac *AuthController) GetTokenFromRefreshToken(c *gin.Context) {
+	var refreshTokenFormDTO authDTOs.RefreshTokenFormDTO
+
+	if err := c.ShouldBindJSON(&refreshTokenFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	responseDTO, err := ac.service.GetTokenFromRefreshToken(refreshTokenFormDTO.RefreshToken)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.InternalServerError:
+			utility.SendInternalErrResp(ac.db, c, e.Error())
+			return
+		default:
+			utility.SendUnauthorizedErrResp(c, "Authentication failed")
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, responseDTO)
+
+}
+
 func (ac *AuthController) LoginResendOTP(c *gin.Context) {
 	var sendOTPFormDTO authDTOs.SendOTPFormDTO
 
@@ -220,28 +244,4 @@ func (ac *AuthController) SetPassword(c *gin.Context) {
 	}
 
 	c.Status(http.StatusOK)
-}
-
-func (ac *AuthController) GetTokenFromRefreshToken(c *gin.Context) {
-	var refreshTokenFormDTO authDTOs.RefreshTokenFormDTO
-
-	if err := c.ShouldBindJSON(&refreshTokenFormDTO); err != nil {
-		utility.SendInvalidErrResp(c, err)
-		return
-	}
-
-	responseDTO, err := ac.service.GetTokenFromRefreshToken(refreshTokenFormDTO.RefreshToken)
-	if err != nil {
-		switch e := err.(type) {
-		case *utility.InternalServerError:
-			utility.SendInternalErrResp(ac.db, c, e.Error())
-			return
-		default:
-			utility.SendUnauthorizedErrResp(c, "Authentication failed")
-			return
-		}
-	}
-
-	c.JSON(http.StatusOK, responseDTO)
-
 }
