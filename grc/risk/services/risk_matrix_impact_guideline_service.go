@@ -244,9 +244,7 @@ func (rmigs *RiskMatrixImpactGuidelineService) validateRiskMatrixImpactGuideline
 	if len(riskMatrixImpactGuidelineUpdateFormDTO.Guideline) == 0 {
 		return utility.NewValidationError(fmt.Errorf("guideline is required"), "required", "guideline")
 	}
-	if len(riskMatrixImpactGuidelineUpdateFormDTO.Guideline) > 500 {
-		return utility.NewValidationError(fmt.Errorf("guideline exceeds maximum length of 500 characters"), "max_length_exceeded", "guideline")
-	}
+	
 
 	return nil
 }

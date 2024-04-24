@@ -14,8 +14,8 @@ CREATE TABLE risk_matrix_impact_guidelines
     updated_at DATETIME NULL,
     CONSTRAINT FK_risk_matrix_impact_guidelines_risk_impact_categories FOREIGN KEY (risk_impact_category_id) REFERENCES risk_impact_categories(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_risk_matrix_impact_guidelines_risk_matrix_impacts FOREIGN KEY (risk_matrix_impact_id) REFERENCES risk_matrix_impacts(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
-    CONSTRAINT FK_risk_matrix_impact_guidelines_users1 FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
-    CONSTRAINT FK_risk_matrix_impact_guidelines_users2 FOREIGN KEY (updated_by) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION
+    CONSTRAINT FK_risk_matrix_impact_guidelines_users_1 FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_risk_matrix_impact_guidelines_users_2 FOREIGN KEY (updated_by) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION
 
 );
 -- +goose StatementEnd
