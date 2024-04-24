@@ -146,7 +146,6 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 		ExpiryDate:              dates.ExpiryDate,
 		NextReviewDate:          dates.NextReviewDate,
 		CreatedBy:               currentUserID,
-		UpdatedAt:               nil,
 		LifecycleStatusID:       lifecycleStatus.ID,
 	}
 
@@ -171,14 +170,14 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 
 	complianceDocument := &complianceModels.ComplianceDocument{
 		ComplianceRegisterID: id,
-		Language:      complianceRegisterFormDTO.Document.Language,
-		URL:           url,
-		Icon:          complianceRegisterFormDTO.Document.Icon,
-		Name:          complianceRegisterFormDTO.Document.FileName,
-		Size:          complianceRegisterFormDTO.Document.Size,
-		Token:         encryptedFilename,
-		Type:          complianceRegisterFormDTO.Document.Type,
-		CreatedBy:     currentUserID,
+		Language:             complianceRegisterFormDTO.Document.Language,
+		URL:                  url,
+		Icon:                 complianceRegisterFormDTO.Document.Icon,
+		Name:                 complianceRegisterFormDTO.Document.FileName,
+		Size:                 complianceRegisterFormDTO.Document.Size,
+		Token:                encryptedFilename,
+		Type:                 complianceRegisterFormDTO.Document.Type,
+		CreatedBy:            currentUserID,
 	}
 
 	// Save Compliance document
@@ -188,7 +187,7 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 	}
 
 	tx.Commit()
-	
+
 	go func() {
 		err := crs.activityLogSvc.LogActivity(
 			logModels.CreateAction,
@@ -315,7 +314,7 @@ func (crs *ComplianceRegisterService) Delete(ids []uint, currentUserID uint) ([]
 		if err != nil {
 			continue
 		}
-		
+
 		// Fetch the Compliance document by ID
 		complianceDocument, err := crs.repo.GetComplianceDocumentByComplianceID(id)
 		if err != nil {
