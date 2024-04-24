@@ -38,7 +38,12 @@ func (ccs *ControlCategoryService) GetAll(sort string, sortBy string, keyword st
 }
 
 func (ccs *ControlCategoryService) GetByID(id uint) (*models.ControlCategory, error) {
-	return ccs.repo.GetByID(id)
+	controlCategory, err := ccs.repo.GetByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	return controlCategory, nil
 }
 
 func (ccs *ControlCategoryService) Create(currentUserID uint, controlCategory *models.ControlCategory) (*models.ControlCategory, error) {

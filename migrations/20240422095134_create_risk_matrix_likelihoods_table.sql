@@ -8,8 +8,8 @@ CREATE TABLE risk_matrix_likelihoods (
     description_en NVARCHAR(max) NOT NULL,
     description_ar NVARCHAR(max) NOT NULL,
     status VARCHAR(10) NOT NULL DEFAULT 'active',
-    CONSTRAINT FK_risk_matrix_likelihoods_risk_matrix FOREIGN KEY (risk_matrix_id) REFERENCES risk_matrix(id),
-    CONSTRAINT CHK_risk_matrix_likelihoods_status CHECK (status IN ('active', 'inactive'))
+        CONSTRAINT CHK_risk_matrix_likelihoods_status CHECK (status IN ('active', 'inactive')),
+    CONSTRAINT FK_risk_matrix_likelihoods_risk_matrix FOREIGN KEY (risk_matrix_id) REFERENCES risk_matrix(id) ON DELETE NO ACTION ON UPDATE NO ACTION
    
 );
 -- +goose StatementEnd
