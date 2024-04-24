@@ -100,4 +100,12 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	organizationRoutes.PUT("/users/:userId/settings/disable-notification", userController.DisableNotification)
 	organizationRoutes.POST("/users/:userId/reset-password", userController.NewPassword)
 
+	userSettingRepo := organizationRepositories.NewUserSettingRepository(db)
+	userSettingSvc := organizationServices.NewUserSettingService(userSettingRepo, activityLogSvc)
+	userSettingController := controllers.NewUserSettingController(userSettingSvc)
+
+	organizationRoutes.GET("/users/:userId/settings/notifications", userSettingController.GetNotificationSettings)
+	organizationRoutes.POST("/users/:userId/settings/notifications/:notificationMasterId/enable", userSettingController.EnableNotification)
+	organizationRoutes.POST("/users/:userId/settings/notifications/:notificationMasterId/disable", userSettingController.DisableNotification)
+
 }
