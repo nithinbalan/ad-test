@@ -89,6 +89,10 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	)
 	kriRegisterController := controllers.NewKRIRegisterController(kriRegisterSvc)
 
+	kriValueUpdateRepo := riskRepositories.NewKRIValueUpdateRepository(db)
+	kriValueUpdateSvc := riskServices.NewKRIValueUpdateService(kriValueUpdateRepo, activityLogSvc, kriRegisterSvc)
+	kriValueUpdateController := controllers.NewKRIValueUpdateController(kriValueUpdateSvc)
+
 	riskAppetiteStatementRepo := riskRepositories.NewRiskAppetiteStatementRepository(db)
 	riskAppetiteStatementSvc := riskServices.NewRiskAppetiteStatementService(
 		riskAppetiteStatementRepo,
@@ -96,7 +100,7 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 		riskCategorySvc,
 	)
 	riskAppetiteStatementController := controllers.NewRiskAppetiteStatementController(riskAppetiteStatementSvc)
-	
+
 	riskImpactCategoryRepo := riskRepositories.NewRiskImpactCategoryRepository(db)
 	riskImpactCategorySvc := riskServices.NewRiskImpactCategoryService(riskImpactCategoryRepo, activityLogSvc)
 	riskImpactCategoryController := controllers.NewRiskImpactCategoryController(riskImpactCategorySvc)
@@ -137,6 +141,11 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	riskRoutes.POST("/kri-register", kriRegisterController.CreateKRIRegister)
 	riskRoutes.PUT("/kri-register/:id", kriRegisterController.UpdateKRIRegister)
 	riskRoutes.POST("/kri-register/delete", kriRegisterController.DeleteKRIRegisters)
+
+	riskRoutes.GET("/kri-register/:id/updates", kriValueUpdateController.GetAllKRIValueUpdates)
+	riskRoutes.POST("/kri-register/:id/updates", kriValueUpdateController.CreateKRIValueUpdate)
+	riskRoutes.PUT("/kri-register/:id/updates/:updateId", kriValueUpdateController.UpdateKRIValueUpdate)
+	riskRoutes.POST("/kri-register/:id/updates/delete", kriValueUpdateController.DeleteKRIValueUpdates)
 
 	riskRoutes.GET("/risk-impact-categories", riskImpactCategoryController.GetAllRiskImpactCategories)
 	riskRoutes.GET("/risk-impact-categories/:id", riskImpactCategoryController.GetRiskImpactCategoryDetails)

@@ -1,0 +1,25 @@
+-- +goose Up
+-- +goose StatementBegin
+CREATE TABLE kri_value_updates (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    kri_register_id INT NOT NULL,
+    review_date DATE NOT NULL,
+    value VARCHAR(455),
+    low_threshold VARCHAR(455),
+    medium_threshold VARCHAR(455),
+    high_threshold VARCHAR(455),
+    remarks NVARCHAR(MAX),
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME,
+    created_by INT NOT NULL,
+    updated_by INT NULL,
+    CONSTRAINT FK_kri_value_updates_kri_register FOREIGN KEY (kri_register_id) REFERENCES kri_register (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_kri_value_updates_users_1 FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_kri_value_updates_users_2 FOREIGN KEY (updated_by) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION
+);
+-- +goose StatementEnd
+
+-- +goose Down
+-- +goose StatementBegin
+DROP TABLE IF EXISTS kri_value_updates;
+-- +goose StatementEnd

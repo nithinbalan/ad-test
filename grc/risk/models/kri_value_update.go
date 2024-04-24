@@ -6,7 +6,7 @@ import (
 	organizationModels "jethur/grc/organization/models"
 )
 
-type KRIValue struct {
+type KRIValueUpdate struct {
 	ID              uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	KRIRegisterID   uint       `json:"kri_register_id" binding:"required" gorm:"not null"`
 	ReviewDate      time.Time  `json:"review_date" binding:"required" gorm:"type:date;not null"`
@@ -21,12 +21,13 @@ type KRIValue struct {
 	UpdatedBy       *uint      `json:"updated_by" gorm:"default:null"`
 
 	// Relationships
-	KRIRegister   *KRIRegister             `gorm:"foreignkey:KRIRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser *organizationModels.User `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser *organizationModels.User `gorm:"foreignKey:UpdatedBy"`
+	KRIRegister             *KRIRegister             `gorm:"foreignkey:KRIRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	KRIValueUpdateDocuments []KRIValueUpdateDocument `gorm:"foreignKey:KRIValueUpdateID"`
+	CreatedByUser           *organizationModels.User `gorm:"foreignKey:CreatedBy"`
+	UpdatedByUser           *organizationModels.User `gorm:"foreignKey:UpdatedBy"`
 }
 
-// TableName overrides the table name used by KRIValue to `kri_values`
-func (KRIValue) TableName() string {
-	return "kri_values"
+// TableName overrides the table name used by KRIValueUpdate to `kri_value_updates`
+func (KRIValueUpdate) TableName() string {
+	return "kri_value_updates"
 }
