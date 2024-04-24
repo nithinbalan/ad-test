@@ -74,7 +74,7 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	organizationRoutes.GET("/user-statuses/:id", userStatusController.GetUserStatusDetails)
 
 	//user
-	userController := controllers.NewUSerController(userSvc)
+	userController := controllers.NewUserController(userSvc)
 
 	organizationRoutes.GET("/users", userController.GetAllUsers)
 	organizationRoutes.POST("/users", userController.CreateUser)
@@ -91,7 +91,7 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	organizationRoutes.PUT("/strategic-profiles/values", strategicProfileController.UpdateValues)
 
 	//strategic Objectives
-	strategicObjectiveController := controllers.NewStrategicOBjectiveController(strategicObjectiveSvc)
+	strategicObjectiveController := controllers.NewStrategicObjectiveController(strategicObjectiveSvc)
 
 	organizationRoutes.GET("/strategic-objectives", strategicObjectiveController.GetAllStrategicObjectives)
 	organizationRoutes.GET("/strategic-objectives/:id", strategicObjectiveController.GetStrategicObjectiveDetails)
@@ -144,7 +144,7 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	organizationRoutes.GET("/control-types", controlTypeController.GetAllControlTypes)
 
 	//control implementation status
-	controlImplementationStatusController := controllers.NewControlIMplementationStatusController(controlImplementationStatusSvc)
+	controlImplementationStatusController := controllers.NewControlImplementationStatusController(controlImplementationStatusSvc)
 
 	organizationRoutes.GET("/control-implementation-statuses", controlImplementationStatusController.GetAllControlImplementationStatuses)
 	organizationRoutes.GET("/control-implementation-statuses/:id", controlImplementationStatusController.GetControlImplementationStatusDetails)
