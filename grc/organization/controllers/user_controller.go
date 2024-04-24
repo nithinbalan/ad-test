@@ -108,7 +108,7 @@ func (uc *UserController) CreateUser(c *gin.Context) {
 
 func (uc *UserController) UpdateUser(c *gin.Context) {
 
-	userID, err := strconv.Atoi(c.Param("id"))
+	userID, err := strconv.Atoi(c.Param("userId"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return

@@ -2,7 +2,7 @@
 -- +goose StatementBegin
 CREATE TABLE strategic_profiles (
   id INT PRIMARY KEY IDENTITY(1,1),
-  title_en VARCHAR(255) NOT NULL,
+  title_en NVARCHAR(255) NOT NULL,
   title_ar NVARCHAR(255) NOT NULL,
   address VARCHAR(MAX) NOT NULL,
   location VARCHAR(255),
@@ -21,11 +21,11 @@ CREATE TABLE strategic_profiles (
   mission_en VARCHAR(500),
   mission_ar NVARCHAR(500),
   created_at DATETIME NOT NULL,
-  updated_at DATETIME,
+  updated_at DATETIME NULL,
   created_by INT NOT NULL,
-  updated_by INT,
-  CONSTRAINT FK_strategic_profiles_created_by FOREIGN KEY (created_by) REFERENCES users(id),
-  CONSTRAINT FK_strategic_profiles_updated_by FOREIGN KEY (updated_by) REFERENCES users(id)
+  updated_by INT NULL,
+  CONSTRAINT FK_strategic_profiles_users_1 FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT FK_strategic_profiles_users_2 FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 -- +goose StatementEnd
 
