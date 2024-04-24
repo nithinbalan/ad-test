@@ -1,7 +1,6 @@
 package repositories
 
 import (
-	"errors"
 	"jethur/grc/organization/models"
 	"jethur/utility"
 
@@ -33,7 +32,6 @@ func NewControlCategoryRepository(db *gorm.DB) *ControlCategoryRepository {
 }
 
 func (repo *ControlCategoryRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ControlCategory, error) {
-
 	var controlCategories []*models.ControlCategory
 
 	query := repo.db
@@ -62,13 +60,10 @@ func (repo *ControlCategoryRepository) GetByID(id uint) (*models.ControlCategory
 	var controlCategory *models.ControlCategory
 	result := repo.db.First(&controlCategory, id)
 
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, utility.NewResourceNotFoundError(result.Error, id)
-	} else if result.Error != nil {
+	if result.Error != nil {
 		return nil, result.Error
 	}
-
-	return controlCategory, result.Error
+	return controlCategory, nil
 }
 
 func (repo *ControlCategoryRepository) Create(controlCategory *models.ControlCategory) (*models.ControlCategory, error) {
@@ -92,7 +87,6 @@ func (repo *ControlCategoryRepository) Update(id uint, updatedControlCategory *m
 }
 
 func (repo *ControlCategoryRepository) Delete(id uint) error {
-
 	var controlCategory *models.ControlCategory
 	if err := repo.db.First(&controlCategory, id).Error; err != nil {
 		return err
@@ -130,7 +124,6 @@ func (repo *ControlCategoryRepository) Activate(ids []uint) ([]uint, error) {
 }
 
 func (repo *ControlCategoryRepository) Deactivate(ids []uint) ([]uint, error) {
-
 	var idsToUpdate []uint
 
 	// Step 1: Fetch the IDs of records that are currently 'inactive' and within the provided 'ids' slice
