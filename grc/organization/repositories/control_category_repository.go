@@ -157,7 +157,7 @@ func (repo *ControlCategoryRepository) Deactivate(ids []uint) ([]uint, error) {
 func (repo *ControlCategoryRepository) ExistsByTitle(titleEn, titleAr string) (bool, error) {
 	var count int64
 
-	// Check for the existence of titleEn or titleAr in a single query
+	// Check for the existence of titleEn or titleAr in a single query.
 	err := repo.db.Model(&models.ControlCategory{}).
 		Where("title_en = ? OR title_ar = ?", titleEn, titleAr).
 		Count(&count).Error
