@@ -121,4 +121,11 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	organizationRoutes.PUT("/control-categories/activate", controlCategoryController.ActivateControlCategories)
 	organizationRoutes.PUT("/control-categories/deactivate", controlCategoryController.DeactivateControlCategories)
 
+	//control type
+	controlTypeRepo := organizationRepositories.NewControlTypeRepository(db)
+	controlTypeSvc := organizationServices.NewControlTypeService(controlTypeRepo)
+	controlTypeController := controllers.NewControlTypeController(controlTypeSvc)
+
+	organizationRoutes.GET("/control-types", controlTypeController.GetAllControlTypes)
+
 }
