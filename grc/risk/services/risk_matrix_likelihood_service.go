@@ -44,7 +44,6 @@ func (rmls RiskMatrixLikelihoodService) GetByID(id uint) (*models.RiskMatrixLike
 }
 
 func (rmls *RiskMatrixLikelihoodService) Create(currentUserID uint, riskMatrixLikelihoodFormDTO *riskDTOs.RiskMatrixLikelihoodFormDTO) (uint, error) {
-
 	riskMatrix, err := rmls.riskMatrixSvc.GetByType("erm")
 	if err != nil {
 		return 0, err
@@ -96,7 +95,6 @@ func (rmls *RiskMatrixLikelihoodService) Create(currentUserID uint, riskMatrixLi
 }
 
 func (rmls *RiskMatrixLikelihoodService) Update(id uint, currentUserID uint, riskMatrixLikelihoodFormDTO *riskDTOs.RiskMatrixLikelihoodFormDTO) error {
-
 	existingLikelihood, err := rmls.GetByID(id)
 
 	if err != nil {
@@ -214,7 +212,6 @@ func (rmls *RiskMatrixLikelihoodService) Deactivate(ids []uint, currentUserID ui
 }
 
 func (rmls *RiskMatrixLikelihoodService) validateRiskMatrixLikelihoodFormDTO(riskMatrixLikelihoodFormDTO *riskDTOs.RiskMatrixLikelihoodFormDTO, riskMatrixID uint, id *uint) error {
-
 	if id == nil {
 		if exists, err := rmls.repo.ExistsByTitle(riskMatrixLikelihoodFormDTO.TitleEn, riskMatrixLikelihoodFormDTO.TitleAr, riskMatrixID); err != nil {
 			return err

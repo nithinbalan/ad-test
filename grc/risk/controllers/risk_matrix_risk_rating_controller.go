@@ -23,7 +23,6 @@ func NewRiskMatrixRiskRatingController(service services.RiskMatrixRiskRatingServ
 }
 
 func (rmrrc *RiskMatrixRiskRatingController) GetAllRiskMatrixRiskRatings(c *gin.Context) {
-
 	sort := c.Query("sort")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
@@ -57,7 +56,6 @@ func (rmrrc *RiskMatrixRiskRatingController) GetRiskMatrixRiskRatingDetails(c *g
 }
 
 func (rmrrc *RiskMatrixRiskRatingController) CreateRiskMatrixRiskRating(c *gin.Context) {
-
 	var riskRating *riskDTOs.RiskMatrixRiskRatingFormDTO
 
 	if err := c.ShouldBindJSON(&riskRating); err != nil {
@@ -86,7 +84,6 @@ func (rmrrc *RiskMatrixRiskRatingController) CreateRiskMatrixRiskRating(c *gin.C
 }
 
 func (rmrrc *RiskMatrixRiskRatingController) UpdateRiskMatrixRiskRating(c *gin.Context) {
-
 	riskRatingID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -123,7 +120,6 @@ func (rmrrc *RiskMatrixRiskRatingController) UpdateRiskMatrixRiskRating(c *gin.C
 }
 
 func (rmrrc *RiskMatrixRiskRatingController) DeleteRiskMatrixRiskRatings(c *gin.Context) {
-
 	var request struct {
 		IDs []uint `json:"ids"`
 	}

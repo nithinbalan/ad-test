@@ -44,7 +44,6 @@ func (rmrrs RiskMatrixRiskRatingService) GetByID(id uint) (*models.RiskMatrixRis
 }
 
 func (rmrrs *RiskMatrixRiskRatingService) Create(currentUserID uint, riskMatrixRiskRatingFormDTO *riskDTOs.RiskMatrixRiskRatingFormDTO) (uint, error) {
-
 	riskMatrix, err := rmrrs.riskMatrixSvc.GetByType("erm")
 	if err != nil {
 		return 0, err
@@ -96,7 +95,6 @@ func (rmrrs *RiskMatrixRiskRatingService) Create(currentUserID uint, riskMatrixR
 }
 
 func (rmrrs *RiskMatrixRiskRatingService) Update(id uint, currentUserID uint, riskMatrixRiskRatingFormDTO *riskDTOs.RiskMatrixRiskRatingFormDTO) error {
-
 	existingRiskRating, err := rmrrs.GetByID(id)
 
 	if err != nil {
@@ -214,7 +212,6 @@ func (rmrrs *RiskMatrixRiskRatingService) Deactivate(ids []uint, currentUserID u
 }
 
 func (rmrrs *RiskMatrixRiskRatingService) validateRiskMatrixRiskRatingFormDTO(riskMatrixRiskRatingFormDTO *riskDTOs.RiskMatrixRiskRatingFormDTO, riskMatrixID uint, id *uint) error {
-
 	if id == nil {
 		if exists, err := rmrrs.repo.ExistsByTitle(riskMatrixRiskRatingFormDTO.TitleEn, riskMatrixRiskRatingFormDTO.TitleAr, riskMatrixID); err != nil {
 			return err

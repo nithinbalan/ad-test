@@ -34,7 +34,6 @@ func NewRiskMatrixLikelihoodRepository(db *gorm.DB) *RiskMatrixLikelihoodReposit
 }
 
 func (repo *RiskMatrixLikelihoodRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*riskDTOs.RiskMatrixLikelihoodDTO, error) {
-
 	var likelihoods []*riskDTOs.RiskMatrixLikelihoodDTO
 
 	query := repo.db.Table("risk_matrix_likelihoods").
@@ -80,7 +79,6 @@ func (repo *RiskMatrixLikelihoodRepository) GetByID(id uint) (*models.RiskMatrix
 }
 
 func (repo *RiskMatrixLikelihoodRepository) Create(likelihood *models.RiskMatrixLikelihood) (uint, error) {
-
 	if err := repo.db.Create(likelihood).Error; err != nil {
 		return 0, err
 	}
@@ -98,7 +96,6 @@ func (repo *RiskMatrixLikelihoodRepository) Update(updatedLikelihood *models.Ris
 }
 
 func (repo *RiskMatrixLikelihoodRepository) Delete(id uint) error {
-
 	var likelihood *models.RiskMatrixLikelihood
 	if err := repo.db.First(&likelihood, id).Error; err != nil {
 		return err
@@ -136,7 +133,6 @@ func (repo *RiskMatrixLikelihoodRepository) Activate(ids []uint) ([]uint, error)
 }
 
 func (repo *RiskMatrixLikelihoodRepository) Deactivate(ids []uint) ([]uint, error) {
-
 	var idsToUpdate []uint
 
 	// Step 1: Fetch the IDs of records that are currently 'inactive' and within the provided 'ids' slice

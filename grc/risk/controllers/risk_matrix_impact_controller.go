@@ -23,7 +23,6 @@ func NewRiskMatrixImpactController(service services.RiskMatrixImpactServiceInter
 }
 
 func (rmic *RiskMatrixImpactController) GetAllRiskMatrixImpacts(c *gin.Context) {
-
 	sort := c.Query("sort")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
@@ -57,7 +56,6 @@ func (rmic *RiskMatrixImpactController) GetRiskMatrixImpactDetails(c *gin.Contex
 }
 
 func (rmic *RiskMatrixImpactController) CreateRiskMatrixImpact(c *gin.Context) {
-
 	var impact *riskDTOs.RiskMatrixImpactFormDTO
 
 	if err := c.ShouldBindJSON(&impact); err != nil {
@@ -86,7 +84,6 @@ func (rmic *RiskMatrixImpactController) CreateRiskMatrixImpact(c *gin.Context) {
 }
 
 func (rmic *RiskMatrixImpactController) UpdateRiskMatrixImpact(c *gin.Context) {
-
 	impactID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -123,7 +120,6 @@ func (rmic *RiskMatrixImpactController) UpdateRiskMatrixImpact(c *gin.Context) {
 }
 
 func (rmic *RiskMatrixImpactController) DeleteRiskMatrixImpacts(c *gin.Context) {
-
 	var request struct {
 		IDs []uint `json:"ids"`
 	}

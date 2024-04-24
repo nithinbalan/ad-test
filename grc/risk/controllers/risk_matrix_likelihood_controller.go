@@ -23,7 +23,6 @@ func NewRiskMatrixLikelihoodController(service services.RiskMatrixLikelihoodServ
 }
 
 func (rmlc *RiskMatrixLikelihoodController) GetAllRiskMatrixLikelihoods(c *gin.Context) {
-
 	sort := c.Query("sort")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
@@ -57,7 +56,6 @@ func (rmlc *RiskMatrixLikelihoodController) GetRiskMatrixLikelihoodDetails(c *gi
 }
 
 func (rmlc *RiskMatrixLikelihoodController) CreateRiskMatrixLikelihood(c *gin.Context) {
-
 	var likelihood *riskDTOs.RiskMatrixLikelihoodFormDTO
 
 	if err := c.ShouldBindJSON(&likelihood); err != nil {
@@ -86,7 +84,6 @@ func (rmlc *RiskMatrixLikelihoodController) CreateRiskMatrixLikelihood(c *gin.Co
 }
 
 func (rmlc *RiskMatrixLikelihoodController) UpdateRiskMatrixLikelihood(c *gin.Context) {
-
 	likelihoodID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -123,7 +120,6 @@ func (rmlc *RiskMatrixLikelihoodController) UpdateRiskMatrixLikelihood(c *gin.Co
 }
 
 func (rmlc *RiskMatrixLikelihoodController) DeleteRiskMatrixLikelihoods(c *gin.Context) {
-
 	var request struct {
 		IDs []uint `json:"ids"`
 	}

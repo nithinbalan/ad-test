@@ -36,8 +36,7 @@ func NewRiskMatrixRiskRatingRepository(db *gorm.DB) *RiskMatrixRiskRatingReposit
 }
 
 func (repo *RiskMatrixRiskRatingRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*riskDTOs.RiskMatrixRiskRatingDTO, error) {
-
-	var risk_ratings []*riskDTOs.RiskMatrixRiskRatingDTO
+	var riskRatings []*riskDTOs.RiskMatrixRiskRatingDTO
 
 	query := repo.db.Table("risk_matrix_risk_ratings").
 		Select(`
@@ -61,15 +60,15 @@ func (repo *RiskMatrixRiskRatingRepository) GetAll(sort string, sortBy string, k
 		sort = "asc"
 	}
 	query = query.Order(sortBy + " " + sort)
-	result := query.Find(&risk_ratings)
+	result := query.Find(&riskRatings)
 
-	return risk_ratings, result.Error
+	return riskRatings, result.Error
 
 }
 
 func (repo *RiskMatrixRiskRatingRepository) GetByID(id uint) (*models.RiskMatrixRiskRating, error) {
-	var risk_rating *models.RiskMatrixRiskRating
-	result := repo.db.Preload("RiskMatrix").First(&risk_rating, id)
+	var riskRating *models.RiskMatrixRiskRating
+	result := repo.db.Preload("RiskMatrix").First(&riskRating, id)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, utility.NewResourceNotFoundError(result.Error, id)
@@ -77,11 +76,10 @@ func (repo *RiskMatrixRiskRatingRepository) GetByID(id uint) (*models.RiskMatrix
 		return nil, result.Error
 	}
 
-	return risk_rating, result.Error
+	return riskRating, result.Error
 }
 
 func (repo *RiskMatrixRiskRatingRepository) Create(risk_rating *models.RiskMatrixRiskRating) (uint, error) {
-
 	if err := repo.db.Create(risk_rating).Error; err != nil {
 		return 0, err
 	}
@@ -90,7 +88,6 @@ func (repo *RiskMatrixRiskRatingRepository) Create(risk_rating *models.RiskMatri
 }
 
 func (repo *RiskMatrixRiskRatingRepository) Update(updatedRiskRating *models.RiskMatrixRiskRating) error {
-
 	if err := repo.db.Save(updatedRiskRating).Error; err != nil {
 		return err
 	}
@@ -99,7 +96,6 @@ func (repo *RiskMatrixRiskRatingRepository) Update(updatedRiskRating *models.Ris
 }
 
 func (repo *RiskMatrixRiskRatingRepository) Delete(id uint) error {
-
 	var risk_rating *models.RiskMatrixRiskRating
 	if err := repo.db.First(&risk_rating, id).Error; err != nil {
 		return err
@@ -137,7 +133,6 @@ func (repo *RiskMatrixRiskRatingRepository) Activate(ids []uint) ([]uint, error)
 }
 
 func (repo *RiskMatrixRiskRatingRepository) Deactivate(ids []uint) ([]uint, error) {
-
 	var idsToUpdate []uint
 
 	// Step 1: Fetch the IDs of records that are currently 'inactive' and within the provided 'ids' slice
