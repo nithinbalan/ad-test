@@ -22,7 +22,6 @@ func NewControlIMplementationStatusController(service services.ControlImplementa
 }
 
 func (cisc *ControlImplementationStatusController) GetAllControlImplementationStatuses(c *gin.Context) {
-
 	sort := c.Query("sort")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")

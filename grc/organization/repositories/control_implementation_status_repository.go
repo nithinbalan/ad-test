@@ -1,9 +1,7 @@
 package repositories
 
 import (
-	"errors"
 	"jethur/grc/organization/models"
-	"jethur/utility"
 
 	"gorm.io/gorm"
 )
@@ -27,7 +25,6 @@ func NewControlImplementationStatusRepository(db *gorm.DB) *ControlImplementatio
 }
 
 func (repo *ControlImplementationStatusRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ControlImplementationStatus, error) {
-
 	var controlImplementationStatuses []*models.ControlImplementationStatus
 
 	query := repo.db
@@ -56,9 +53,7 @@ func (repo *ControlImplementationStatusRepository) GetByID(id uint) (*models.Con
 	var status *models.ControlImplementationStatus
 	result := repo.db.First(&status, id)
 
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, utility.NewResourceNotFoundError(result.Error, id)
-	} else if result.Error != nil {
+	if result.Error != nil {
 		return nil, result.Error
 	}
 
@@ -70,9 +65,7 @@ func (repo *ControlImplementationStatusRepository) GetByType(status string) (*mo
 
 	result := repo.db.Where("status = ?", status).First(&controlImplementationStatus)
 
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, utility.NewResourceNotFoundError(result.Error, "Control implementation status with status "+status)
-	} else if result.Error != nil {
+	if result.Error != nil {
 		return nil, result.Error
 	}
 

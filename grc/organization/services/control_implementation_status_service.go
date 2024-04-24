@@ -23,7 +23,12 @@ func NewControlImplementationStatusService(repo repositories.ControlImplementati
 }
 
 func (ciss *ControlImplementationStatusService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ControlImplementationStatus, error) {
-	return ciss.repo.GetAll(sort, sortBy, keyword, status)
+	statusResult, err := ciss.repo.GetAll(sort, sortBy, keyword, status)
+	if err != nil {
+		return nil, err
+	}
+
+	return statusResult, nil
 }
 
 func (ciss ControlImplementationStatusService) GetByID(id uint) (*models.ControlImplementationStatus, error) {
