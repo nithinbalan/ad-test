@@ -16,13 +16,13 @@ CREATE TABLE sla_action_plans (
     updated_at DATETIME NULL,
     created_by INT NOT NULL,
     updated_by INT NULL,
-    CONSTRAINT FK_sla_action_plans_sla_register FOREIGN KEY (sla_register_id) REFERENCES sla_register (id),
-    CONSTRAINT FK_sla_action_plans_sla_check_questions FOREIGN KEY (sla_check_question_id) REFERENCES sla_check_questions (id),
-    CONSTRAINT FK_sla_action_plans_severity_levels FOREIGN KEY (severity_level_id) REFERENCES severity_levels (id),
-    CONSTRAINT FK_sla_action_plans_users1 FOREIGN KEY (responsible_user_id) REFERENCES users (id),
-    CONSTRAINT FK_sla_action_plans_action_plan_statuses FOREIGN KEY (action_plan_status_id) REFERENCES action_plan_statuses (id),
-    CONSTRAINT FK_sla_action_plans_users2 FOREIGN KEY (created_by) REFERENCES users (id),
-    CONSTRAINT FK_sla_action_plans_users3 FOREIGN KEY (updated_by) REFERENCES users (id)
+    CONSTRAINT FK_sla_action_plans_sla_register FOREIGN KEY (sla_register_id) REFERENCES sla_register (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_sla_action_plans_sla_check_questions FOREIGN KEY (sla_check_question_id) REFERENCES sla_check_questions (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_sla_action_plans_severity_levels FOREIGN KEY (severity_level_id) REFERENCES severity_levels (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_sla_action_plans_users1 FOREIGN KEY (responsible_user_id) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_sla_action_plans_action_plan_statuses FOREIGN KEY (action_plan_status_id) REFERENCES action_plan_statuses (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_sla_action_plans_users_2 FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_sla_action_plans_users_3 FOREIGN KEY (updated_by) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 -- +goose StatementEnd
 
