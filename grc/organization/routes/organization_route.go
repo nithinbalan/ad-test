@@ -108,4 +108,17 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	organizationRoutes.POST("/users/:userId/settings/notifications/:notificationMasterId/enable", userSettingController.EnableNotification)
 	organizationRoutes.POST("/users/:userId/settings/notifications/:notificationMasterId/disable", userSettingController.DisableNotification)
 
+	//Control Categories
+	controlCategoryRepo := organizationRepositories.NewControlCategoryRepository(db)
+	controlCategorySvc := organizationServices.NewControlCategoryService(controlCategoryRepo, activityLogSvc)
+	controlCategoryController := controllers.NewControlCategoryController(controlCategorySvc)
+
+	organizationRoutes.GET("/control-categories", controlCategoryController.GetAllControlCategories)
+	organizationRoutes.GET("/control-categories/:id", controlCategoryController.GetControlCategoryDetails)
+	organizationRoutes.POST("/control-categories", controlCategoryController.CreateControlCategory)
+	organizationRoutes.PUT("/control-categories/:id", controlCategoryController.UpdateControlCategory)
+	organizationRoutes.POST("/control-categories/delete", controlCategoryController.DeleteControlCategory)
+	organizationRoutes.PUT("/control-categories/activate", controlCategoryController.ActivateControlCategories)
+	organizationRoutes.PUT("/control-categories/deactivate", controlCategoryController.DeactivateControlCategories)
+
 }

@@ -6,7 +6,7 @@ CREATE TABLE modules (
     title_en VARCHAR(100) NOT NULL,
     title_ar NVARCHAR(100) NOT NULL,
     module_id INT,
-    [order] INT,
+    order INT,
     CONSTRAINT FK_modules_module_id FOREIGN KEY (module_id) REFERENCES modules(id)
 );
 -- +goose StatementEnd
