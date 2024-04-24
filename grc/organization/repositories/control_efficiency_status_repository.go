@@ -1,9 +1,7 @@
 package repositories
 
 import (
-	"errors"
 	"jethur/grc/organization/models"
-	"jethur/utility"
 
 	"gorm.io/gorm"
 )
@@ -26,9 +24,8 @@ func NewControlEfficiencyStatusRepository(db *gorm.DB) *ControlEfficiencyStatusR
 	}
 }
 
-func (repo *ControlEfficiencyStatusRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ControlImplementationStatus, error) {
-
-	var controlImplementationStatuses []*models.ControlImplementationStatus
+func (repo *ControlEfficiencyStatusRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ControlEfficiencyStatus, error) {
+	var controlEfficiencyStatuses []*models.ControlEfficiencyStatus
 
 	query := repo.db
 
@@ -47,34 +44,30 @@ func (repo *ControlEfficiencyStatusRepository) GetAll(sort string, sortBy string
 	}
 
 	query = query.Order(sortBy + " " + sort)
-	result := query.Find(&controlImplementationStatuses)
+	result := query.Find(&controlEfficiencyStatuses)
 
-	return controlImplementationStatuses, result.Error
+	return controlEfficiencyStatuses, result.Error
 }
 
-func (repo *ControlEfficiencyStatusRepository) GetByID(id uint) (*models.ControlImplementationStatus, error) {
-	var status *models.ControlImplementationStatus
+func (repo *ControlEfficiencyStatusRepository) GetByID(id uint) (*models.ControlEfficiencyStatus, error) {
+	var status *models.ControlEfficiencyStatus
 	result := repo.db.First(&status, id)
 
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, utility.NewResourceNotFoundError(result.Error, id)
-	} else if result.Error != nil {
+	if result.Error != nil {
 		return nil, result.Error
 	}
 
 	return status, result.Error
 }
 
-func (repo *ControlEfficiencyStatusRepository) GetByType(status string) (*models.ControlImplementationStatus, error) {
-	var controlImplementationStatus *models.ControlImplementationStatus
+func (repo *ControlEfficiencyStatusRepository) GetByType(status string) (*models.ControlEfficiencyStatus, error) {
+	var controlEfficiencyStatus *models.ControlEfficiencyStatus
 
-	result := repo.db.Where("status = ?", status).First(&controlImplementationStatus)
+	result := repo.db.Where("status = ?", status).First(&controlEfficiencyStatus)
 
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, utility.NewResourceNotFoundError(result.Error, "Control implementation status with status "+status)
-	} else if result.Error != nil {
+	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	return controlImplementationStatus, nil
+	return controlEfficiencyStatus, nil
 }
