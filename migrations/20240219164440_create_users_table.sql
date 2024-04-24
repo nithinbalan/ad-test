@@ -16,19 +16,19 @@ CREATE TABLE users (
     email VARCHAR(255) NOT NULL,
     mobile_number VARCHAR(45),
     profile_image_path VARCHAR(500),
-    created_at DATETIME NOT NULL DEFAULT GETDATE(),
-    updated_at DATETIME NOT NULL DEFAULT GETDATE(),
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NULL,
     created_by INT,
-    updated_by INT,
-    CONSTRAINT FK_users_organization_unit_1 FOREIGN KEY (organization_unit_1_id) REFERENCES organization_units(id),
-    CONSTRAINT FK_users_organization_unit_2 FOREIGN KEY (organization_unit_2_id) REFERENCES organization_units(id),
-    CONSTRAINT FK_users_organization_unit_3 FOREIGN KEY (organization_unit_3_id) REFERENCES organization_units(id),
-    CONSTRAINT FK_users_organization_unit_4 FOREIGN KEY (organization_unit_4_id) REFERENCES organization_units(id),
-    CONSTRAINT FK_users_organization_unit_5 FOREIGN KEY (organization_unit_5_id) REFERENCES organization_units(id),
-    CONSTRAINT FK_users_user_status FOREIGN KEY (user_status_id) REFERENCES user_statuses(id),
-    CONSTRAINT FK_users_designation FOREIGN KEY (designation_id) REFERENCES designations(id),
-    CONSTRAINT FK_users_created_by FOREIGN KEY (created_by) REFERENCES users(id),
-    CONSTRAINT FK_users_updated_by FOREIGN KEY (updated_by) REFERENCES users(id)
+    updated_by INT NULL,
+    CONSTRAINT FK_users_organization_units_1 FOREIGN KEY (organization_unit_1_id) REFERENCES organization_units(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_users_organization_units_2 FOREIGN KEY (organization_unit_2_id) REFERENCES organization_units(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_users_organization_units_3 FOREIGN KEY (organization_unit_3_id) REFERENCES organization_units(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_users_organization_units_4 FOREIGN KEY (organization_unit_4_id) REFERENCES organization_units(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_users_organization_units_5 FOREIGN KEY (organization_unit_5_id) REFERENCES organization_units(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_users_user_statuses FOREIGN KEY (user_status_id) REFERENCES user_statuses(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_users_designations FOREIGN KEY (designation_id) REFERENCES designations(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_users_created_by FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_users_updated_by FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 -- +goose StatementEnd
 
