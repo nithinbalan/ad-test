@@ -1,7 +1,6 @@
 package repositories
 
 import (
-	"errors"
 	riskDTOs "jethur/grc/risk/dtos"
 	"jethur/grc/risk/models"
 	"jethur/utility"
@@ -34,7 +33,6 @@ func NewRiskMatrixImpactRepository(db *gorm.DB) *RiskMatrixImpactRepository {
 }
 
 func (repo *RiskMatrixImpactRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*riskDTOs.RiskMatrixImpactDTO, error) {
-
 	var impacts []*riskDTOs.RiskMatrixImpactDTO
 
 	query := repo.db.Table("risk_matrix_impacts").
@@ -70,17 +68,14 @@ func (repo *RiskMatrixImpactRepository) GetByID(id uint) (*models.RiskMatrixImpa
 	var impact *models.RiskMatrixImpact
 	result := repo.db.Preload("RiskMatrix").First(&impact, id)
 
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, utility.NewResourceNotFoundError(result.Error, id)
-	} else if result.Error != nil {
+	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	return impact, result.Error
+	return impact, nil
 }
 
 func (repo *RiskMatrixImpactRepository) Create(impact *models.RiskMatrixImpact) (uint, error) {
-
 	if err := repo.db.Create(impact).Error; err != nil {
 		return 0, err
 	}
@@ -89,7 +84,6 @@ func (repo *RiskMatrixImpactRepository) Create(impact *models.RiskMatrixImpact) 
 }
 
 func (repo *RiskMatrixImpactRepository) Update(updatedImpact *models.RiskMatrixImpact) error {
-
 	if err := repo.db.Save(updatedImpact).Error; err != nil {
 		return err
 	}
@@ -98,7 +92,6 @@ func (repo *RiskMatrixImpactRepository) Update(updatedImpact *models.RiskMatrixI
 }
 
 func (repo *RiskMatrixImpactRepository) Delete(id uint) error {
-
 	var impact *models.RiskMatrixImpact
 	if err := repo.db.First(&impact, id).Error; err != nil {
 		return err
@@ -136,7 +129,6 @@ func (repo *RiskMatrixImpactRepository) Activate(ids []uint) ([]uint, error) {
 }
 
 func (repo *RiskMatrixImpactRepository) Deactivate(ids []uint) ([]uint, error) {
-
 	var idsToUpdate []uint
 
 	// Step 1: Fetch the IDs of records that are currently 'inactive' and within the provided 'ids' slice

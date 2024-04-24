@@ -1,7 +1,6 @@
 package repositories
 
 import (
-	"errors"
 	riskDTOs "jethur/grc/risk/dtos"
 	"jethur/grc/risk/models"
 	"jethur/utility"
@@ -34,7 +33,6 @@ func NewRiskMatrixLikelihoodRepository(db *gorm.DB) *RiskMatrixLikelihoodReposit
 }
 
 func (repo *RiskMatrixLikelihoodRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*riskDTOs.RiskMatrixLikelihoodDTO, error) {
-
 	var likelihoods []*riskDTOs.RiskMatrixLikelihoodDTO
 
 	query := repo.db.Table("risk_matrix_likelihoods").
@@ -70,17 +68,14 @@ func (repo *RiskMatrixLikelihoodRepository) GetByID(id uint) (*models.RiskMatrix
 	var likelihood *models.RiskMatrixLikelihood
 	result := repo.db.Preload("RiskMatrix").First(&likelihood, id)
 
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, utility.NewResourceNotFoundError(result.Error, id)
-	} else if result.Error != nil {
+	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	return likelihood, result.Error
+	return likelihood, nil
 }
 
 func (repo *RiskMatrixLikelihoodRepository) Create(likelihood *models.RiskMatrixLikelihood) (uint, error) {
-
 	if err := repo.db.Create(likelihood).Error; err != nil {
 		return 0, err
 	}
@@ -89,7 +84,6 @@ func (repo *RiskMatrixLikelihoodRepository) Create(likelihood *models.RiskMatrix
 }
 
 func (repo *RiskMatrixLikelihoodRepository) Update(updatedLikelihood *models.RiskMatrixLikelihood) error {
-
 	if err := repo.db.Save(updatedLikelihood).Error; err != nil {
 		return err
 	}
@@ -98,7 +92,6 @@ func (repo *RiskMatrixLikelihoodRepository) Update(updatedLikelihood *models.Ris
 }
 
 func (repo *RiskMatrixLikelihoodRepository) Delete(id uint) error {
-
 	var likelihood *models.RiskMatrixLikelihood
 	if err := repo.db.First(&likelihood, id).Error; err != nil {
 		return err
@@ -136,7 +129,6 @@ func (repo *RiskMatrixLikelihoodRepository) Activate(ids []uint) ([]uint, error)
 }
 
 func (repo *RiskMatrixLikelihoodRepository) Deactivate(ids []uint) ([]uint, error) {
-
 	var idsToUpdate []uint
 
 	// Step 1: Fetch the IDs of records that are currently 'inactive' and within the provided 'ids' slice

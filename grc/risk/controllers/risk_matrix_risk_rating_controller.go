@@ -70,7 +70,7 @@ func (rmrrc *RiskMatrixRiskRatingController) CreateRiskMatrixRiskRating(c *gin.C
 		return
 	}
 
-	createdRiskRating, err := rmrrc.service.Create(currentUserID, riskRating)
+	id, err := rmrrc.service.Create(currentUserID, riskRating)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:
@@ -82,7 +82,7 @@ func (rmrrc *RiskMatrixRiskRatingController) CreateRiskMatrixRiskRating(c *gin.C
 		}
 	}
 
-	c.JSON(http.StatusCreated, createdRiskRating)
+	c.JSON(http.StatusCreated, id)
 }
 
 func (rmrrc *RiskMatrixRiskRatingController) UpdateRiskMatrixRiskRating(c *gin.Context) {

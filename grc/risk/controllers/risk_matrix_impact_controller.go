@@ -70,7 +70,7 @@ func (rmic *RiskMatrixImpactController) CreateRiskMatrixImpact(c *gin.Context) {
 		return
 	}
 
-	createdImpact, err := rmic.service.Create(currentUserID, impact)
+	id, err := rmic.service.Create(currentUserID, impact)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:
@@ -82,7 +82,7 @@ func (rmic *RiskMatrixImpactController) CreateRiskMatrixImpact(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusCreated, createdImpact)
+	c.JSON(http.StatusCreated, id)
 }
 
 func (rmic *RiskMatrixImpactController) UpdateRiskMatrixImpact(c *gin.Context) {
