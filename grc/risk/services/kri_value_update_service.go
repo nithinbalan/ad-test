@@ -70,34 +70,35 @@ func (kvus *KRIValueUpdateService) Create(currentUserID uint, kriValueUpdateForm
 		return 0, err
 	}
 
-	existingKRIRegister, err := kvus.kriRegisterSvc.GetByID(kriValueUpdateFormDTO.KRIRegisterID)
-	if err != nil {
-		tx.Rollback()
-		return 0, err
-	}
+	// existingKRIRegister, err := kvus.kriRegisterSvc.GetByID(kriValueUpdateFormDTO.KRIRegisterID)
+	// if err != nil {
+	// 	tx.Rollback()
+	// 	return 0, err
+	// }
 
-	kriRegister := &riskDTOs.KRIRegisterFormDTO{
-		KRICategoryID:     existingKRIRegister.KRICategoryID,
-		OwnerUnitID:       existingKRIRegister.OwnerUnitID,
-		OwnerID:           existingKRIRegister.OwnerID,
-		ReviewFrequencyID: existingKRIRegister.ReviewFrequencyID,
-		RiskLevelID:       existingKRIRegister.RiskLevelID,
-		Title:             existingKRIRegister.Title,
-		Description:       existingKRIRegister.Description,
-		CalculationType:   existingKRIRegister.CalculationType,
-		LowThreshold:      &kriValueUpdateFormDTO.LowThreshold,
-		MediumThreshold:   &kriValueUpdateFormDTO.MediumThreshold,
-		HighThreshold:     &kriValueUpdateFormDTO.HighThreshold,
-		CurrentValue:      &kriValueUpdateFormDTO.Value,
-		LastReviewDate:    kriValueUpdateFormDTO.ReviewDate,
-		NextReviewDate:    kriValueUpdateFormDTO.ReviewDate,
-		LastReviewNote:    kriValueUpdateFormDTO.Remarks,
-	}
-	err = kvus.kriRegisterSvc.Update(kriValueUpdateFormDTO.KRIRegisterID, currentUserID, kriRegister)
-	if err != nil {
-		tx.Rollback()
-		return 0, err
-	}
+	// kriRegister := &riskDTOs.KRIRegisterFormDTO{
+	// 	KRICategoryID:     existingKRIRegister.KRICategoryID,
+	// 	OwnerUnitID:       existingKRIRegister.OwnerUnitID,
+	// 	OwnerID:           existingKRIRegister.OwnerID,
+	// 	ReviewFrequencyID: existingKRIRegister.ReviewFrequencyID,
+	// 	RiskLevelID:       existingKRIRegister.RiskLevelID,
+	// 	Title:             existingKRIRegister.Title,
+	// 	Description:       existingKRIRegister.Description,
+	// 	CalculationType:   existingKRIRegister.CalculationType,
+	// 	LowThreshold:      &kriValueUpdateFormDTO.LowThreshold,
+	// 	MediumThreshold:   &kriValueUpdateFormDTO.MediumThreshold,
+	// 	HighThreshold:     &kriValueUpdateFormDTO.HighThreshold,
+	// 	CurrentValue:      &kriValueUpdateFormDTO.Value,
+	// 	LastReviewDate:    kriValueUpdateFormDTO.ReviewDate,
+	// 	NextReviewDate:    kriValueUpdateFormDTO.ReviewDate,
+	// 	LastReviewNote:    kriValueUpdateFormDTO.Remarks,
+	// }
+	// err = kvus.kriRegisterSvc.Update(kriValueUpdateFormDTO.KRIRegisterID, currentUserID, kriRegister)
+	// if err != nil {
+	// 	tx.Rollback()
+	// 	return 0, err
+	// }
+
 	var documents []*models.KRIValueUpdateDocument
 	// Iterate over each document in the array
 	for _, doc := range kriValueUpdateFormDTO.Documents {
@@ -202,29 +203,29 @@ func (kvus *KRIValueUpdateService) Update(updateId uint, currentUserID uint, kri
 		return err
 	}
 
-	kriRegister := &riskDTOs.KRIRegisterFormDTO{
-		KRICategoryID:     existingKRIRegister.KRICategoryID,
-		OwnerUnitID:       existingKRIRegister.OwnerUnitID,
-		OwnerID:           existingKRIRegister.OwnerID,
-		ReviewFrequencyID: existingKRIRegister.ReviewFrequencyID,
-		RiskLevelID:       existingKRIRegister.RiskLevelID,
-		Title:             existingKRIRegister.Title,
-		Description:       existingKRIRegister.Description,
-		CalculationType:   existingKRIRegister.CalculationType,
-		LowThreshold:      existingKRIRegister.LowThreshold,
-		MediumThreshold:   existingKRIRegister.MediumThreshold,
-		HighThreshold:     existingKRIRegister.HighThreshold,
-		CurrentValue:      existingKRIRegister.CurrentValue,
-		LastReviewDate:    kriValueUpdateFormDTO.ReviewDate,
-		NextReviewDate:    kriValueUpdateFormDTO.ReviewDate,
-		LastReviewNote:    kriValueUpdateFormDTO.Remarks,
-	}
+	// kriRegister := &riskDTOs.KRIRegisterFormDTO{
+	// 	KRICategoryID:     existingKRIRegister.KRICategoryID,
+	// 	OwnerUnitID:       existingKRIRegister.OwnerUnitID,
+	// 	OwnerID:           existingKRIRegister.OwnerID,
+	// 	ReviewFrequencyID: existingKRIRegister.ReviewFrequencyID,
+	// 	RiskLevelID:       existingKRIRegister.RiskLevelID,
+	// 	Title:             existingKRIRegister.Title,
+	// 	Description:       existingKRIRegister.Description,
+	// 	CalculationType:   existingKRIRegister.CalculationType,
+	// 	LowThreshold:      existingKRIRegister.LowThreshold,
+	// 	MediumThreshold:   existingKRIRegister.MediumThreshold,
+	// 	HighThreshold:     existingKRIRegister.HighThreshold,
+	// 	CurrentValue:      existingKRIRegister.CurrentValue,
+	// 	LastReviewDate:    kriValueUpdateFormDTO.ReviewDate,
+	// 	NextReviewDate:    kriValueUpdateFormDTO.ReviewDate,
+	// 	LastReviewNote:    kriValueUpdateFormDTO.Remarks,
+	// }
 
-	err = kvus.kriRegisterSvc.Update(kriValueUpdateFormDTO.KRIRegisterID, currentUserID, kriRegister)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
+	// err = kvus.kriRegisterSvc.Update(kriValueUpdateFormDTO.KRIRegisterID, currentUserID, kriRegister)
+	// if err != nil {
+	// 	tx.Rollback()
+	// 	return err
+	// }
 
 	var documents []*models.KRIValueUpdateDocument
 	var deleteDocumentIds []*uint
