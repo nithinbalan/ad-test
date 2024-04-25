@@ -44,7 +44,6 @@ func (rmis RiskMatrixImpactService) GetByID(id uint) (*models.RiskMatrixImpact, 
 }
 
 func (rmis *RiskMatrixImpactService) Create(currentUserID uint, riskMatrixImpactFormDTO *riskDTOs.RiskMatrixImpactFormDTO) (uint, error) {
-
 	riskMatrix, err := rmis.riskMatrixSvc.GetByType("erm")
 	if err != nil {
 		return 0, err
@@ -96,7 +95,6 @@ func (rmis *RiskMatrixImpactService) Create(currentUserID uint, riskMatrixImpact
 }
 
 func (rmis *RiskMatrixImpactService) Update(id uint, currentUserID uint, riskMatrixImpactFormDTO *riskDTOs.RiskMatrixImpactFormDTO) error {
-
 	existingImpact, err := rmis.GetByID(id)
 
 	if err != nil {
@@ -214,7 +212,6 @@ func (rmis *RiskMatrixImpactService) Deactivate(ids []uint, currentUserID uint) 
 }
 
 func (rmis *RiskMatrixImpactService) validateRiskMatrixImpactFormDTO(riskMatrixImpactFormDTO *riskDTOs.RiskMatrixImpactFormDTO, riskMatrixID uint, id *uint) error {
-
 	if id == nil {
 		if exists, err := rmis.repo.ExistsByTitle(riskMatrixImpactFormDTO.TitleEn, riskMatrixImpactFormDTO.TitleAr, riskMatrixID); err != nil {
 			return err
