@@ -101,13 +101,6 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	riskImpactCategorySvc := riskServices.NewRiskImpactCategoryService(riskImpactCategoryRepo, activityLogSvc)
 	riskImpactCategoryController := controllers.NewRiskImpactCategoryController(riskImpactCategorySvc)
 
-	riskMatrixImpactGuidelineRepo := riskRepositories.NewRiskMatrixImpactGuidelineRepository(db)
-	riskMatrixImpactGuidelineSvc := riskServices.NewRiskMatrixImpactGuidelineService(
-		riskMatrixImpactGuidelineRepo,
-		activityLogSvc,
-		riskImpactCategorySvc,
-	)
-	riskMatrixImpactGuidelineController := controllers.NewRiskMatrixImpactGuidelineController(riskMatrixImpactGuidelineSvc)
 	riskMatrixRepo := riskRepositories.NewRiskMatrixRepository(db)
 	riskMatrixSvc := riskServices.NewRiskMatrixService(riskMatrixRepo)
 
@@ -118,6 +111,15 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 		riskMatrixSvc,
 	)
 	riskMatrixImpactController := controllers.NewRiskMatrixImpactController(riskMatrixImpactSvc)
+
+	riskMatrixImpactGuidelineRepo := riskRepositories.NewRiskMatrixImpactGuidelineRepository(db)
+	riskMatrixImpactGuidelineSvc := riskServices.NewRiskMatrixImpactGuidelineService(
+		riskMatrixImpactGuidelineRepo,
+		activityLogSvc,
+		riskImpactCategorySvc,
+		riskMatrixImpactSvc,
+	)
+	riskMatrixImpactGuidelineController := controllers.NewRiskMatrixImpactGuidelineController(riskMatrixImpactGuidelineSvc)
 
 	riskMatrixLikelihoodRepo := riskRepositories.NewRiskMatrixLikelihoodRepository(db)
 	riskMatrixLikelihoodSvc := riskServices.NewRiskMatrixLikelihoodService(

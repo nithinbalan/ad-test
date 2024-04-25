@@ -14,7 +14,7 @@ type RiskMatrixImpactGuidelineRepositoryInterface interface {
 	GetAll(params *riskDTOs.RiskMatrixImpactGuidelineListQueryParamsDTO) (*riskDTOs.RiskMatrixImpactGuidelineListResponseDTO, error)
 	GetByID(id uint) (*models.RiskMatrixImpactGuideline, error)
 	GetFullDetailsByID(id uint) (*models.RiskMatrixImpactGuideline, error)
-	CreateBatch(guidelines []*models.RiskMatrixImpactGuideline, tx ...utility.DatabaseTransaction) ([]uint, error)
+	Create(guidelines []*models.RiskMatrixImpactGuideline, tx ...utility.DatabaseTransaction) ([]uint, error)
 	Update(riskMatrixImpactGuideline *models.RiskMatrixImpactGuideline) error
 	Delete(id uint) error
 }
@@ -148,7 +148,7 @@ func (repo *RiskMatrixImpactGuidelineRepository) GetFullDetailsByID(id uint) (*m
 	return riskMatrixImpactGuideline, nil
 }
 
-func (repo *RiskMatrixImpactGuidelineRepository) CreateBatch(guidelines []*models.RiskMatrixImpactGuideline, tx ...utility.DatabaseTransaction) ([]uint, error) {
+func (repo *RiskMatrixImpactGuidelineRepository) Create(guidelines []*models.RiskMatrixImpactGuideline, tx ...utility.DatabaseTransaction) ([]uint, error) {
     db := repo.db
     if len(tx) > 0 && tx[0] != nil {
         db = tx[0].DB()

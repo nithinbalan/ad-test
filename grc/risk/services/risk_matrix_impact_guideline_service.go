@@ -28,20 +28,20 @@ type RiskMatrixImpactGuidelineService struct {
 	repo                  riskRepositories.RiskMatrixImpactGuidelineRepositoryInterface
 	activityLogSvc        logServices.ActivityLogServiceInterface
 	riskImpactCategorySvc RiskImpactCategoryServiceInterface
-	// riskMatrixImpactSvc     RiskMatrixImpactServiceInterface
+	riskMatrixImpactSvc     RiskMatrixImpactServiceInterface
 }
 
 func NewRiskMatrixImpactGuidelineService(
 	repo riskRepositories.RiskMatrixImpactGuidelineRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	riskImpactCategorySvc RiskImpactCategoryServiceInterface,
-	// riskMatrixImpactSvc     RiskMatrixImpactServiceInterface,
+	riskMatrixImpactSvc     RiskMatrixImpactServiceInterface,
 ) RiskMatrixImpactGuidelineServiceInterface {
 	return &RiskMatrixImpactGuidelineService{
 		repo:                  repo,
 		activityLogSvc:        activityLogSvc,
 		riskImpactCategorySvc: riskImpactCategorySvc,
-		// riskMatrixImpactSvc:     riskMatrixImpactSvc,
+		riskMatrixImpactSvc:     riskMatrixImpactSvc,
 	}
 }
 
@@ -106,7 +106,7 @@ func (rmigs *RiskMatrixImpactGuidelineService) Create(currentUserID uint, riskMa
 	}
 
 	// Call the repository method to create the records in batch
-	ids, err := rmigs.repo.CreateBatch(guidelinesToCreate, tx)
+	ids, err := rmigs.repo.Create(guidelinesToCreate, tx)
 
 	if err != nil {
 		tx.Rollback()
@@ -208,23 +208,15 @@ func (rmigs *RiskMatrixImpactGuidelineService) validateRiskMatrixImpactGuideline
 		return utility.NewValidationError(fmt.Errorf("guidelines array is required and cannot be empty"), "required", "guidelines")
 	}
 
-	// Validate Guidelines array
-	for _, guideline := range riskMatrixImpactGuidelineFormDTO.Guidelines {
-		if len(guideline) > 500 {
-			return utility.NewValidationError(fmt.Errorf("guideline exceeds maximum length of 500 characters"), "max_length_exceeded", "guidelines")
-		}
-		// You can add more validation rules for each guideline here if needed
-	}
-
 	// Validate RiskImpactCategoryID
 	if _, err := rmigs.riskImpactCategorySvc.GetByID(riskMatrixImpactGuidelineFormDTO.RiskImpactCategoryID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("risk impact category does not exist"), "not_exist", "risk impact category")
 	}
 
 	// Validate RiskMatrixImpactID
-	// if _, err := rmigs.riskMatrixImpactSvc.GetByID(riskMatrixImpactGuidelineFormDTO.RiskMatrixImpactID); err != nil {
-	//     return utility.NewValidationError(fmt.Errorf("risk matrix impact does not exist"), "not_exist", "risk matrix impact")
-	// }
+	if _, err := rmigs.riskMatrixImpactSvc.GetByID(riskMatrixImpactGuidelineFormDTO.RiskMatrixImpactID); err != nil {
+	    return utility.NewValidationError(fmt.Errorf("risk matrix impact does not exist"), "not_exist", "risk matrix impact")
+	}
 
 	return nil
 }
@@ -234,11 +226,6 @@ func (rmigs *RiskMatrixImpactGuidelineService) validateRiskMatrixImpactGuideline
 	if _, err := rmigs.riskImpactCategorySvc.GetByID(riskMatrixImpactGuidelineUpdateFormDTO.RiskImpactCategoryID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("risk impact category does not exist"), "not_exist", "risk impact category")
 	}
-
-	// Validate RiskMatrixImpactID
-	// if _, err := rmigs.riskMatrixImpactSvc.GetByID(riskMatrixImpactGuidelineUpdateFormDTO.RiskMatrixImpactID); err != nil {
-	//     return utility.NewValidationError(fmt.Errorf("risk matrix impact does not exist"), "not_exist", "risk matrix impact")
-	// }
 
 	// Validate Guideline
 	if len(riskMatrixImpactGuidelineUpdateFormDTO.Guideline) == 0 {
