@@ -9,7 +9,7 @@ import (
 type KRIValueUpdate struct {
 	ID              uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	KRIRegisterID   uint       `json:"kri_register_id" binding:"required" gorm:"not null"`
-	ReviewDate      time.Time  `json:"review_date" binding:"required" gorm:"type:date;not null"`
+	ReviewedDate    time.Time  `json:"reviewed_date" binding:"required" gorm:"type:date;not null"`
 	Value           string     `json:"value" gorm:"type:varchar(455);not null"`
 	LowThreshold    string     `json:"low_threshold" gorm:"type:varchar(455);null"`
 	MediumThreshold string     `json:"medium_threshold" gorm:"type:varchar(455);null"`

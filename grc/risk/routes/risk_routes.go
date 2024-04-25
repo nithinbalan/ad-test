@@ -90,7 +90,7 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	kriRegisterController := controllers.NewKRIRegisterController(kriRegisterSvc)
 
 	kriValueUpdateRepo := riskRepositories.NewKRIValueUpdateRepository(db)
-	kriValueUpdateSvc := riskServices.NewKRIValueUpdateService(kriValueUpdateRepo, activityLogSvc, kriRegisterSvc)
+	kriValueUpdateSvc := riskServices.NewKRIValueUpdateService(kriValueUpdateRepo, activityLogSvc, kriRegisterSvc, reviewFrequencySvc)
 	kriValueUpdateController := controllers.NewKRIValueUpdateController(kriValueUpdateSvc)
 
 	riskAppetiteStatementRepo := riskRepositories.NewRiskAppetiteStatementRepository(db)

@@ -82,11 +82,11 @@ func (repo *KRIRegisterRepository) GetAll(params *riskDTOs.KRIRegisterListQueryP
 	}
 
 	// Apply LastReviewDate filters
-	if params.LastReviewDateFrom != "" {
-		query = query.Where("kri_register.last_review_date >= ?", params.LastReviewDateFrom)
+	if params.LastReviewedDateFrom != "" {
+		query = query.Where("kri_register.last_reviewed_date >= ?", params.LastReviewedDateFrom)
 	}
-	if params.LastReviewDateTo != "" {
-		query = query.Where("kri_register.last_review_date <= ?", params.LastReviewDateTo)
+	if params.LastReviewedDateTo != "" {
+		query = query.Where("kri_register.last_reviewed_date <= ?", params.LastReviewedDateTo)
 	}
 
 	// Apply next_review_date filters

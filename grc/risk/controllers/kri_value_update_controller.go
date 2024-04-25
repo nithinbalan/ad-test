@@ -35,8 +35,8 @@ func (kvuc *KRIValueUpdateController) GetAllKRIValueUpdates(c *gin.Context) {
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 
-	reviewDateFrom := c.Query("review_date_from")
-	reviewDateTO := c.Query("review_date_to")
+	reviewedDateFrom := c.Query("reviewed_date_from")
+	reviewedDateTO := c.Query("reviewed_date_to")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -51,14 +51,14 @@ func (kvuc *KRIValueUpdateController) GetAllKRIValueUpdates(c *gin.Context) {
 	}
 
 	queryParams := riskDTOs.KRIValueUpdateListQueryParamsDTO{
-		Sort:           sort,
-		SortBy:         sortBy,
-		Keyword:        keyword,
-		Status:         status,
-		Page:           page,
-		PageSize:       pageSize,
-		ReviewDateFrom: reviewDateFrom,
-		ReviewDateTo:   reviewDateTO,
+		Sort:             sort,
+		SortBy:           sortBy,
+		Keyword:          keyword,
+		Status:           status,
+		Page:             page,
+		PageSize:         pageSize,
+		ReviewedDateFrom: reviewedDateFrom,
+		ReviewedDateTo:   reviewedDateTO,
 	}
 	kriRegisterUpdates, err := kvuc.service.GetAll(uint(kriRegisterID), &queryParams)
 

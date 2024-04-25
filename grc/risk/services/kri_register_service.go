@@ -118,7 +118,7 @@ func (krs *KRIRegisterService) Create(currentUserID uint, kriRegisterFormDTO *ri
 		MediumThreshold:   kriRegisterFormDTO.MediumThreshold,
 		HighThreshold:     kriRegisterFormDTO.HighThreshold,
 		CurrentValue:      kriRegisterFormDTO.CurrentValue,
-		LastReviewDate:    *dates.LastReviewDate,
+		LastReviewedDate:  *dates.LastReviewedDate,
 		NextReviewDate:    *dates.NextReviewDate,
 		LastReviewNote:    kriRegisterFormDTO.LastReviewNote,
 		CreatedBy:         currentUserID,
@@ -184,7 +184,7 @@ func (krs *KRIRegisterService) Update(id uint, currentUserID uint, kriRegisterFo
 	existingKRIRegister.MediumThreshold = kriRegisterFormDTO.MediumThreshold
 	existingKRIRegister.HighThreshold = kriRegisterFormDTO.HighThreshold
 	existingKRIRegister.CurrentValue = kriRegisterFormDTO.CurrentValue
-	existingKRIRegister.LastReviewDate = *dates.LastReviewDate
+	existingKRIRegister.LastReviewedDate = *dates.LastReviewedDate
 	existingKRIRegister.NextReviewDate = *dates.NextReviewDate
 	existingKRIRegister.LastReviewNote = kriRegisterFormDTO.LastReviewNote
 	existingKRIRegister.UpdatedBy = &currentUserID
@@ -278,8 +278,8 @@ func (krs *KRIRegisterService) parseKRIRegisterDates(dto *riskDTOs.KRIRegisterFo
 	parsed := &riskDTOs.KRIRegisterParsedDates{}
 
 	var err error
-	if dto.LastReviewDate != "" {
-		parsed.LastReviewDate, err = utility.ParseDate(dto.LastReviewDate)
+	if dto.LastReviewedDate != "" {
+		parsed.LastReviewedDate, err = utility.ParseDate(dto.LastReviewedDate)
 		if err != nil {
 			return nil, utility.NewValidationError(fmt.Errorf("invalid last review date"), "invalid_date", "last review date")
 		}

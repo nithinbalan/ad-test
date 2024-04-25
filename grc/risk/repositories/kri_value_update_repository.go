@@ -69,12 +69,12 @@ func (repo *KRIValueUpdateRepository) GetAll(kriRegisterID uint, params *riskDTO
 		`).
 		Where("kri_value_updates.kri_register_id = ?", kriRegisterID)
 
-	// Apply LastReviewDate filters
-	if params.ReviewDateFrom != "" {
-		query = query.Where("kri_value_updates.review_date >= ?", params.ReviewDateFrom)
+	// Apply LastReviewedDate filters
+	if params.ReviewedDateFrom != "" {
+		query = query.Where("kri_value_updates.reviewed_date >= ?", params.ReviewedDateFrom)
 	}
-	if params.ReviewDateTo != "" {
-		query = query.Where("kri_value_updates.review_date <= ?", params.ReviewDateTo)
+	if params.ReviewedDateTo != "" {
+		query = query.Where("kri_value_updates.reviewed_date <= ?", params.ReviewedDateTo)
 	}
 
 	// Apply search keyword if exists

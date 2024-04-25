@@ -5,6 +5,7 @@ import (
 	"jethur/config"
 	logModels "jethur/grc/logs/models"
 	logServices "jethur/grc/logs/services"
+	masterServices "jethur/grc/masters/services"
 	riskDTOs "jethur/grc/risk/dtos"
 	"jethur/grc/risk/models"
 	riskRepositories "jethur/grc/risk/repositories"
@@ -20,25 +21,29 @@ type KRIValueUpdateServiceInterface interface {
 
 // Service and implementations
 type KRIValueUpdateService struct {
-	repo           riskRepositories.KRIValueUpdateRepositoryInterface
-	activityLogSvc logServices.ActivityLogServiceInterface
-	kriRegisterSvc KRIRegisterServiceInterface
+	repo               riskRepositories.KRIValueUpdateRepositoryInterface
+	activityLogSvc     logServices.ActivityLogServiceInterface
+	kriRegisterSvc     KRIRegisterServiceInterface
+	reviewFrequencySvc masterServices.ReviewFrequencyServiceInterface
 }
 
 func NewKRIValueUpdateService(
 	repo riskRepositories.KRIValueUpdateRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	kriRegisterSvc KRIRegisterServiceInterface,
+	reviewFrequencySvc masterServices.ReviewFrequencyServiceInterface,
 ) KRIValueUpdateServiceInterface {
 	return &KRIValueUpdateService{
-		repo:           repo,
-		activityLogSvc: activityLogSvc,
-		kriRegisterSvc: kriRegisterSvc,
+		repo:               repo,
+		activityLogSvc:     activityLogSvc,
+		kriRegisterSvc:     kriRegisterSvc,
+		reviewFrequencySvc: reviewFrequencySvc,
 	}
 }
 
 func (kvus *KRIValueUpdateService) GetAll(kriRegisterID uint, params *riskDTOs.KRIValueUpdateListQueryParamsDTO) (*riskDTOs.KRIValueUpdateListResponseDTO, error) {
-	if err := kvus.validateKRIRegister(kriRegisterID); err != nil {
+	_, err := kvus.kriRegisterSvc.GetByID(kriRegisterID)
+	if err != nil {
 		return nil, err
 	}
 
@@ -47,23 +52,30 @@ func (kvus *KRIValueUpdateService) GetAll(kriRegisterID uint, params *riskDTOs.K
 
 func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kriValueUpdateFormDTO *riskDTOs.KRIValueUpdateFormDTO) (uint, error) {
 	tx := kvus.repo.BeginTransaction()
-
-	if err := kvus.validateKRIRegister(kriRegisterID); err != nil {
+	existingKRIRegister, err := kvus.kriRegisterSvc.GetByID(kriRegisterID)
+	if err != nil {
 		return 0, err
 	}
+
+	reviewFrequency, err := kvus.reviewFrequencySvc.GetByID(existingKRIRegister.ReviewFrequencyID)
+	if err != nil {
+		return 0, err
+	}
+
+	nextReviewDate := utility.CalculateNextReviewDate(reviewFrequency.Type)
+	nextReviewDateStr := nextReviewDate.Format("2006-01-02")
 
 	dates, err := kvus.parseKRIValueUpdateDates(kriValueUpdateFormDTO)
 	if err != nil {
 		return 0, err
 	}
-
 	kriValueUpdate := &models.KRIValueUpdate{
 		KRIRegisterID:   kriRegisterID,
-		ReviewDate:      *dates.ReviewDate,
+		ReviewedDate:    *dates.ReviewedDate,
 		Value:           kriValueUpdateFormDTO.Value,
-		LowThreshold:    kriValueUpdateFormDTO.LowThreshold,
-		MediumThreshold: kriValueUpdateFormDTO.MediumThreshold,
-		HighThreshold:   kriValueUpdateFormDTO.HighThreshold,
+		LowThreshold:    *existingKRIRegister.LowThreshold,
+		MediumThreshold: *existingKRIRegister.MediumThreshold,
+		HighThreshold:   *existingKRIRegister.HighThreshold,
 		Remarks:         kriValueUpdateFormDTO.Remarks,
 		CreatedBy:       currentUserID,
 	}
@@ -73,35 +85,28 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 		tx.Rollback()
 		return 0, err
 	}
-
-	// existingKRIRegister, err := kvus.kriRegisterSvc.GetByID(kriRegisterID)
-	// if err != nil {
-	// 	tx.Rollback()
-	// 	return 0, err
-	// }
-
-	// kriRegister := &riskDTOs.KRIRegisterFormDTO{
-	// 	KRICategoryID:     existingKRIRegister.KRICategoryID,
-	// 	OwnerUnitID:       existingKRIRegister.OwnerUnitID,
-	// 	OwnerID:           existingKRIRegister.OwnerID,
-	// 	ReviewFrequencyID: existingKRIRegister.ReviewFrequencyID,
-	// 	RiskLevelID:       existingKRIRegister.RiskLevelID,
-	// 	Title:             existingKRIRegister.Title,
-	// 	Description:       existingKRIRegister.Description,
-	// 	CalculationType:   existingKRIRegister.CalculationType,
-	// 	LowThreshold:      &kriValueUpdateFormDTO.LowThreshold,
-	// 	MediumThreshold:   &kriValueUpdateFormDTO.MediumThreshold,
-	// 	HighThreshold:     &kriValueUpdateFormDTO.HighThreshold,
-	// 	CurrentValue:      &kriValueUpdateFormDTO.Value,
-	// 	LastReviewDate:    kriValueUpdateFormDTO.ReviewDate,
-	// 	NextReviewDate:    kriValueUpdateFormDTO.ReviewDate,
-	// 	LastReviewNote:    kriValueUpdateFormDTO.Remarks,
-	// }
-	// err = kvus.kriRegisterSvc.Update(kriRegisterID, currentUserID, kriRegister)
-	// if err != nil {
-	// 	tx.Rollback()
-	// 	return 0, err
-	// }
+	kriRegister := &riskDTOs.KRIRegisterFormDTO{
+		KRICategoryID:     existingKRIRegister.KRICategoryID,
+		OwnerUnitID:       existingKRIRegister.OwnerUnitID,
+		OwnerID:           existingKRIRegister.OwnerID,
+		ReviewFrequencyID: existingKRIRegister.ReviewFrequencyID,
+		RiskLevelID:       existingKRIRegister.RiskLevelID,
+		Title:             existingKRIRegister.Title,
+		Description:       existingKRIRegister.Description,
+		CalculationType:   existingKRIRegister.CalculationType,
+		LowThreshold:      existingKRIRegister.LowThreshold,
+		MediumThreshold:   existingKRIRegister.MediumThreshold,
+		HighThreshold:     existingKRIRegister.HighThreshold,
+		CurrentValue:      &kriValueUpdateFormDTO.Value,
+		LastReviewedDate:  kriValueUpdateFormDTO.ReviewedDate,
+		NextReviewDate:    nextReviewDateStr,
+		LastReviewNote:    kriValueUpdateFormDTO.Remarks,
+	}
+	err = kvus.kriRegisterSvc.Update(kriRegisterID, currentUserID, kriRegister)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
 
 	var documents []*models.KRIValueUpdateDocument
 	// Iterate over each document in the array
@@ -175,7 +180,9 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentUserID uint, kriValueUpdateFormDTO *riskDTOs.KRIValueUpdateFormDTO) error {
 	tx := kvus.repo.BeginTransaction()
 
-	if err := kvus.validateKRIRegister(kriRegisterID); err != nil {
+	existingKRIRegister, err := kvus.kriRegisterSvc.GetByID(kriRegisterID)
+	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -191,11 +198,11 @@ func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentU
 
 	// Update KRI Value Update
 	existingKRIUpdate.KRIRegisterID = kriRegisterID
-	existingKRIUpdate.ReviewDate = *dates.ReviewDate
+	existingKRIUpdate.ReviewedDate = *dates.ReviewedDate
 	existingKRIUpdate.Value = kriValueUpdateFormDTO.Value
-	existingKRIUpdate.LowThreshold = kriValueUpdateFormDTO.LowThreshold
-	existingKRIUpdate.MediumThreshold = kriValueUpdateFormDTO.MediumThreshold
-	existingKRIUpdate.HighThreshold = kriValueUpdateFormDTO.HighThreshold
+	// existingKRIUpdate.LowThreshold = *existingKRIRegister.LowThreshold
+	// existingKRIUpdate.MediumThreshold = *existingKRIRegister.MediumThreshold
+	// existingKRIUpdate.HighThreshold = *existingKRIRegister.HighThreshold
 	existingKRIUpdate.Remarks = kriValueUpdateFormDTO.Remarks
 
 	err = kvus.repo.Update(existingKRIUpdate, tx)
@@ -205,35 +212,29 @@ func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentU
 		return err
 	}
 
-	existingKRIRegister, err := kvus.kriRegisterSvc.GetByID(kriRegisterID)
+	kriRegister := &riskDTOs.KRIRegisterFormDTO{
+		KRICategoryID:     existingKRIRegister.KRICategoryID,
+		OwnerUnitID:       existingKRIRegister.OwnerUnitID,
+		OwnerID:           existingKRIRegister.OwnerID,
+		ReviewFrequencyID: existingKRIRegister.ReviewFrequencyID,
+		RiskLevelID:       existingKRIRegister.RiskLevelID,
+		Title:             existingKRIRegister.Title,
+		Description:       existingKRIRegister.Description,
+		CalculationType:   existingKRIRegister.CalculationType,
+		LowThreshold:      existingKRIRegister.LowThreshold,
+		MediumThreshold:   existingKRIRegister.MediumThreshold,
+		HighThreshold:     existingKRIRegister.HighThreshold,
+		LastReviewedDate:  existingKRIRegister.LastReviewedDate.Format("2006-01-02"), //Date Format Converting to String
+		NextReviewDate:    existingKRIRegister.NextReviewDate.Format("2006-01-02"),   //Date Format Converting to String
+		CurrentValue:      &kriValueUpdateFormDTO.Value,
+		LastReviewNote:    kriValueUpdateFormDTO.Remarks,
+	}
+
+	err = kvus.kriRegisterSvc.Update(kriRegisterID, currentUserID, kriRegister)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
-
-	// kriRegister := &riskDTOs.KRIRegisterFormDTO{
-	// 	KRICategoryID:     existingKRIRegister.KRICategoryID,
-	// 	OwnerUnitID:       existingKRIRegister.OwnerUnitID,
-	// 	OwnerID:           existingKRIRegister.OwnerID,
-	// 	ReviewFrequencyID: existingKRIRegister.ReviewFrequencyID,
-	// 	RiskLevelID:       existingKRIRegister.RiskLevelID,
-	// 	Title:             existingKRIRegister.Title,
-	// 	Description:       existingKRIRegister.Description,
-	// 	CalculationType:   existingKRIRegister.CalculationType,
-	// 	LowThreshold:      existingKRIRegister.LowThreshold,
-	// 	MediumThreshold:   existingKRIRegister.MediumThreshold,
-	// 	HighThreshold:     existingKRIRegister.HighThreshold,
-	// 	CurrentValue:      existingKRIRegister.CurrentValue,
-	// 	LastReviewDate:    kriValueUpdateFormDTO.ReviewDate,
-	// 	NextReviewDate:    kriValueUpdateFormDTO.ReviewDate,
-	// 	LastReviewNote:    kriValueUpdateFormDTO.Remarks,
-	// }
-
-	// err = kvus.kriRegisterSvc.Update(kriRegisterID, currentUserID, kriRegister)
-	// if err != nil {
-	// 	tx.Rollback()
-	// 	return err
-	// }
 
 	var documents []*models.KRIValueUpdateDocument
 	var deleteDocumentIds []*uint
@@ -309,8 +310,8 @@ func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentU
 
 func (kvus *KRIValueUpdateService) Delete(kriRegisterID uint, ids []uint, currentUserID uint) ([]uint, error) {
 	tx := kvus.repo.BeginTransaction()
-
-	if err := kvus.validateKRIRegister(kriRegisterID); err != nil {
+	_, err := kvus.kriRegisterSvc.GetByID(kriRegisterID)
+	if err != nil {
 		return nil, err
 	}
 
@@ -386,21 +387,12 @@ func (kvus *KRIValueUpdateService) parseKRIValueUpdateDates(dto *riskDTOs.KRIVal
 	parsed := &riskDTOs.KRIValueUpdateParsedDates{}
 
 	var err error
-	if dto.ReviewDate != "" {
-		parsed.ReviewDate, err = utility.ParseDate(dto.ReviewDate)
+	if dto.ReviewedDate != "" {
+		parsed.ReviewedDate, err = utility.ParseDate(dto.ReviewedDate)
 		if err != nil {
 			return nil, utility.NewValidationError(fmt.Errorf("invalid review date"), "invalid_date", "review date")
 		}
 	}
 
 	return parsed, nil
-}
-
-func (kvus *KRIValueUpdateService) validateKRIRegister(kriRegisterID uint) error {
-
-	if _, err := kvus.kriRegisterSvc.GetByID(kriRegisterID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("kri register does not exist"), "not_exist", "kri register")
-	}
-
-	return nil
 }

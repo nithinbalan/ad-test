@@ -9,7 +9,7 @@ import (
 type KRIValueUpdateListDTO struct {
 	ID                     uint    `json:"id"`
 	KRIRegisterID          uint    `json:"kri_register_id"`
-	ReviewDate             string  `json:"review_date"`
+	ReviewedDate           string  `json:"reviewed_date"`
 	Value                  string  `json:"value"`
 	LowThreshold           string  `json:"low_threshold"`
 	MediumThreshold        string  `json:"medium_threshold"`
@@ -28,7 +28,7 @@ type KRIValueUpdateListDTO struct {
 }
 
 type KRIValueUpdateFormDTO struct {
-	ReviewDate      string                           `json:"review_date" binding:"required" gorm:"type:date;not null"`
+	ReviewedDate    string                           `json:"reviewed_date" binding:"required" gorm:"type:date;not null"`
 	Value           string                           `json:"value" gorm:"type:varchar(455);not null"`
 	LowThreshold    string                           `json:"low_threshold" gorm:"type:varchar(455);null"`
 	MediumThreshold string                           `json:"medium_threshold" gorm:"type:varchar(455);null"`
@@ -38,14 +38,14 @@ type KRIValueUpdateFormDTO struct {
 }
 
 type KRIValueUpdateListQueryParamsDTO struct {
-	Sort           string
-	SortBy         string
-	Keyword        string
-	Status         string
-	Page           int
-	PageSize       int
-	ReviewDateFrom string
-	ReviewDateTo   string
+	Sort             string
+	SortBy           string
+	Keyword          string
+	Status           string
+	Page             int
+	PageSize         int
+	ReviewedDateFrom string
+	ReviewedDateTo   string
 }
 
 type KRIValueUpdateListResponseDTO struct {
@@ -57,7 +57,7 @@ type KRIValueUpdateDetailsDTO struct {
 	ID              uint                  `json:"id"`
 	KRIRegisterID   uint                  `json:"kri_register_id"`
 	KRIRegister     KRIRegisterDetailsDTO `json:"kri_register"`
-	ReviewDate      string                `json:"review_date"`
+	ReviewedDate    string                `json:"reviewed_date"`
 	Value           string                `json:"value"`
 	LowThreshold    string                `json:"low_threshold"`
 	MediumThreshold string                `json:"medium_threshold"`
@@ -68,7 +68,7 @@ type KRIValueUpdateDetailsDTO struct {
 }
 
 type KRIValueUpdateParsedDates struct {
-	ReviewDate *time.Time
+	ReviewedDate *time.Time
 }
 
 type KRIValueUpdateDocumentFormDTO struct {

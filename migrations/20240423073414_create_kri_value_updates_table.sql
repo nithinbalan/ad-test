@@ -3,7 +3,7 @@
 CREATE TABLE kri_value_updates (
     id INT PRIMARY KEY IDENTITY(1,1),
     kri_register_id INT NOT NULL,
-    review_date DATE NOT NULL,
+    reviewed_date DATE NOT NULL,
     value VARCHAR(455),
     low_threshold VARCHAR(455),
     medium_threshold VARCHAR(455),
