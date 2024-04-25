@@ -13,8 +13,8 @@ import (
 
 type KRIValueUpdateServiceInterface interface {
 	GetAll(params *riskDTOs.KRIValueUpdateListQueryParamsDTO) (*riskDTOs.KRIValueUpdateListResponseDTO, error)
-	Create(currentUserID uint, kriValueUpdateFormDTO *riskDTOs.KRIValueUpdateFormDTO) (uint, error)
-	Update(updateId, currentUserID uint, kriValueUpdateFormDTO *riskDTOs.KRIValueUpdateFormDTO) error
+	Create(kriRegisterID, currentUserID uint, kriValueUpdateFormDTO *riskDTOs.KRIValueUpdateFormDTO) (uint, error)
+	Update(kriRegisterID, updateId, currentUserID uint, kriValueUpdateFormDTO *riskDTOs.KRIValueUpdateFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 }
 
@@ -41,7 +41,7 @@ func (kvus *KRIValueUpdateService) GetAll(params *riskDTOs.KRIValueUpdateListQue
 	return kvus.repo.GetAll(params)
 }
 
-func (kvus *KRIValueUpdateService) Create(currentUserID uint, kriValueUpdateFormDTO *riskDTOs.KRIValueUpdateFormDTO) (uint, error) {
+func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kriValueUpdateFormDTO *riskDTOs.KRIValueUpdateFormDTO) (uint, error) {
 	tx := kvus.repo.BeginTransaction()
 
 	dates, err := kvus.parseKRIValueUpdateDates(kriValueUpdateFormDTO)
@@ -49,12 +49,12 @@ func (kvus *KRIValueUpdateService) Create(currentUserID uint, kriValueUpdateForm
 		return 0, err
 	}
 
-	if err := kvus.validateKRIValueUpdateFormDTO(kriValueUpdateFormDTO); err != nil {
+	if err := kvus.validateKRIValueUpdateFormDTO(kriRegisterID); err != nil {
 		return 0, err
 	}
 
 	kriValueUpdate := &models.KRIValueUpdate{
-		KRIRegisterID:   kriValueUpdateFormDTO.KRIRegisterID,
+		KRIRegisterID:   kriRegisterID,
 		ReviewDate:      *dates.ReviewDate,
 		Value:           kriValueUpdateFormDTO.Value,
 		LowThreshold:    kriValueUpdateFormDTO.LowThreshold,
@@ -70,7 +70,7 @@ func (kvus *KRIValueUpdateService) Create(currentUserID uint, kriValueUpdateForm
 		return 0, err
 	}
 
-	// existingKRIRegister, err := kvus.kriRegisterSvc.GetByID(kriValueUpdateFormDTO.KRIRegisterID)
+	// existingKRIRegister, err := kvus.kriRegisterSvc.GetByID(kriRegisterID)
 	// if err != nil {
 	// 	tx.Rollback()
 	// 	return 0, err
@@ -93,7 +93,7 @@ func (kvus *KRIValueUpdateService) Create(currentUserID uint, kriValueUpdateForm
 	// 	NextReviewDate:    kriValueUpdateFormDTO.ReviewDate,
 	// 	LastReviewNote:    kriValueUpdateFormDTO.Remarks,
 	// }
-	// err = kvus.kriRegisterSvc.Update(kriValueUpdateFormDTO.KRIRegisterID, currentUserID, kriRegister)
+	// err = kvus.kriRegisterSvc.Update(kriRegisterID, currentUserID, kriRegister)
 	// if err != nil {
 	// 	tx.Rollback()
 	// 	return 0, err
@@ -103,7 +103,7 @@ func (kvus *KRIValueUpdateService) Create(currentUserID uint, kriValueUpdateForm
 	// Iterate over each document in the array
 	for _, doc := range kriValueUpdateFormDTO.Documents {
 
-		if err := kvus.repo.StoreKRIValueUpdateDocumentFile(kriValueUpdateFormDTO.KRIRegisterID, id, doc.FileName); err != nil {
+		if err := kvus.repo.StoreKRIValueUpdateDocumentFile(kriRegisterID, id, doc.FileName); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
@@ -117,7 +117,7 @@ func (kvus *KRIValueUpdateService) Create(currentUserID uint, kriValueUpdateForm
 		}
 
 		// Construct the URL for the document
-		url := fmt.Sprintf("%s/kri-register/%d/updates/%s", config.GetEnv("API_URL", "http://localhost:8080"), kriValueUpdateFormDTO.KRIRegisterID, encryptedFilename)
+		url := fmt.Sprintf("%s/kri-register/%d/updates/%s", config.GetEnv("API_URL", "http://localhost:8080"), kriRegisterID, encryptedFilename)
 
 		// Create a new KRIValueUpdateDocument instance
 		document := &models.KRIValueUpdateDocument{
@@ -168,8 +168,12 @@ func (kvus *KRIValueUpdateService) Create(currentUserID uint, kriValueUpdateForm
 	return id, nil
 }
 
-func (kvus *KRIValueUpdateService) Update(updateId uint, currentUserID uint, kriValueUpdateFormDTO *riskDTOs.KRIValueUpdateFormDTO) error {
+func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentUserID uint, kriValueUpdateFormDTO *riskDTOs.KRIValueUpdateFormDTO) error {
 	tx := kvus.repo.BeginTransaction()
+
+	if err := kvus.validateKRIValueUpdateFormDTO(kriRegisterID); err != nil {
+		return err
+	}
 
 	dates, err := kvus.parseKRIValueUpdateDates(kriValueUpdateFormDTO)
 	if err != nil {
@@ -182,7 +186,7 @@ func (kvus *KRIValueUpdateService) Update(updateId uint, currentUserID uint, kri
 	}
 
 	// Update KRI Value Update
-	existingKRIUpdate.KRIRegisterID = kriValueUpdateFormDTO.KRIRegisterID
+	existingKRIUpdate.KRIRegisterID = kriRegisterID
 	existingKRIUpdate.ReviewDate = *dates.ReviewDate
 	existingKRIUpdate.Value = kriValueUpdateFormDTO.Value
 	existingKRIUpdate.LowThreshold = kriValueUpdateFormDTO.LowThreshold
@@ -197,7 +201,7 @@ func (kvus *KRIValueUpdateService) Update(updateId uint, currentUserID uint, kri
 		return err
 	}
 
-	existingKRIRegister, err := kvus.kriRegisterSvc.GetByID(kriValueUpdateFormDTO.KRIRegisterID)
+	existingKRIRegister, err := kvus.kriRegisterSvc.GetByID(kriRegisterID)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -221,7 +225,7 @@ func (kvus *KRIValueUpdateService) Update(updateId uint, currentUserID uint, kri
 	// 	LastReviewNote:    kriValueUpdateFormDTO.Remarks,
 	// }
 
-	// err = kvus.kriRegisterSvc.Update(kriValueUpdateFormDTO.KRIRegisterID, currentUserID, kriRegister)
+	// err = kvus.kriRegisterSvc.Update(kriRegisterID, currentUserID, kriRegister)
 	// if err != nil {
 	// 	tx.Rollback()
 	// 	return err
@@ -244,7 +248,7 @@ func (kvus *KRIValueUpdateService) Update(updateId uint, currentUserID uint, kri
 				tx.Rollback()
 				return err
 			}
-			url := fmt.Sprintf("%s/kri-register/%d/updates/%s", config.GetEnv("API_URL", "http://localhost:8080"), kriValueUpdateFormDTO.KRIRegisterID, encryptedFilename)
+			url := fmt.Sprintf("%s/kri-register/%d/updates/%s", config.GetEnv("API_URL", "http://localhost:8080"), kriRegisterID, encryptedFilename)
 
 			// Create a new KRIValueUpdateDocument instance
 			document := &models.KRIValueUpdateDocument{
@@ -384,9 +388,9 @@ func (kvus *KRIValueUpdateService) parseKRIValueUpdateDates(dto *riskDTOs.KRIVal
 	return parsed, nil
 }
 
-func (kvus *KRIValueUpdateService) validateKRIValueUpdateFormDTO(kriValueUpdateFormDTO *riskDTOs.KRIValueUpdateFormDTO) error {
+func (kvus *KRIValueUpdateService) validateKRIValueUpdateFormDTO(kriRegisterID uint) error {
 
-	if _, err := kvus.kriRegisterSvc.GetByID(kriValueUpdateFormDTO.KRIRegisterID); err != nil {
+	if _, err := kvus.kriRegisterSvc.GetByID(kriRegisterID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("kri register does not exist"), "not_exist", "kri register")
 	}
 

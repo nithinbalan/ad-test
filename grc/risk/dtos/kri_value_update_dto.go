@@ -28,7 +28,6 @@ type KRIValueUpdateListDTO struct {
 }
 
 type KRIValueUpdateFormDTO struct {
-	KRIRegisterID   uint                             `json:"kri_register_id" binding:"required" gorm:"not null"`
 	ReviewDate      string                           `json:"review_date" binding:"required" gorm:"type:date;not null"`
 	Value           string                           `json:"value" gorm:"type:varchar(455);not null"`
 	LowThreshold    string                           `json:"low_threshold" gorm:"type:varchar(455);null"`

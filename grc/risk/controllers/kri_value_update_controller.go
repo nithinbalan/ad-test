@@ -65,6 +65,11 @@ func (kvuc *KRIValueUpdateController) GetAllKRIValueUpdates(c *gin.Context) {
 }
 
 func (kvuc *KRIValueUpdateController) CreateKRIValueUpdate(c *gin.Context) {
+	kriRegisterID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
 
 	var kriValueUpdateFormDTO riskDTOs.KRIValueUpdateFormDTO
 	if err := c.ShouldBindJSON(&kriValueUpdateFormDTO); err != nil {
@@ -76,7 +81,7 @@ func (kvuc *KRIValueUpdateController) CreateKRIValueUpdate(c *gin.Context) {
 		utility.SendInternalErrResp(kvuc.db, c, err.Error())
 		return
 	}
-	id, err := kvuc.service.Create(currentUserID, &kriValueUpdateFormDTO)
+	id, err := kvuc.service.Create(uint(kriRegisterID), currentUserID, &kriValueUpdateFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:
@@ -92,6 +97,11 @@ func (kvuc *KRIValueUpdateController) CreateKRIValueUpdate(c *gin.Context) {
 }
 
 func (kvuc *KRIValueUpdateController) UpdateKRIValueUpdate(c *gin.Context) {
+	kriRegisterID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
 
 	kriValueUpdateID, err := strconv.Atoi(c.Param("updateId"))
 	if err != nil {
@@ -110,7 +120,7 @@ func (kvuc *KRIValueUpdateController) UpdateKRIValueUpdate(c *gin.Context) {
 		return
 	}
 
-	err = kvuc.service.Update(uint(kriValueUpdateID), currentUserID, &kriValueUpdateFormDTO)
+	err = kvuc.service.Update(uint(kriRegisterID), uint(kriValueUpdateID), currentUserID, &kriValueUpdateFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
