@@ -15,7 +15,7 @@ type KRIValueUpdateServiceInterface interface {
 	GetAll(kriRegisterID uint, params *riskDTOs.KRIValueUpdateListQueryParamsDTO) (*riskDTOs.KRIValueUpdateListResponseDTO, error)
 	Create(kriRegisterID, currentUserID uint, kriValueUpdateFormDTO *riskDTOs.KRIValueUpdateFormDTO) (uint, error)
 	Update(kriRegisterID, updateId, currentUserID uint, kriValueUpdateFormDTO *riskDTOs.KRIValueUpdateFormDTO) error
-	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	Delete(kriRegisterID uint, ids []uint, currentUserID uint) ([]uint, error)
 }
 
 // Service and implementations
@@ -307,8 +307,12 @@ func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentU
 	return nil
 }
 
-func (kvus *KRIValueUpdateService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
+func (kvus *KRIValueUpdateService) Delete(kriRegisterID uint, ids []uint, currentUserID uint) ([]uint, error) {
 	tx := kvus.repo.BeginTransaction()
+
+	if err := kvus.validateKRIRegister(kriRegisterID); err != nil {
+		return nil, err
+	}
 
 	var failedIds []uint
 	var successfulIds []uint

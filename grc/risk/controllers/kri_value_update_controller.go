@@ -145,6 +145,12 @@ func (kvuc *KRIValueUpdateController) UpdateKRIValueUpdate(c *gin.Context) {
 
 func (kvuc *KRIValueUpdateController) DeleteKRIValueUpdates(c *gin.Context) {
 
+	kriRegisterID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
 	var request struct {
 		IDs []uint `json:"ids"`
 	}
@@ -160,7 +166,7 @@ func (kvuc *KRIValueUpdateController) DeleteKRIValueUpdates(c *gin.Context) {
 		return
 	}
 
-	failedIDs, err := kvuc.service.Delete(request.IDs, currentUserID)
+	failedIDs, err := kvuc.service.Delete(uint(kriRegisterID), request.IDs, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(kvuc.db, c, err.Error())
 		return
