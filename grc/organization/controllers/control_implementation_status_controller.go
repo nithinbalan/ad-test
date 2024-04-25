@@ -15,7 +15,7 @@ type ControlImplementationStatusController struct {
 	db      *gorm.DB
 }
 
-func NewControlIMplementationStatusController(service services.ControlImplementationStatusServiceInterface) *ControlImplementationStatusController {
+func NewControlImplementationStatusController(service services.ControlImplementationStatusServiceInterface) *ControlImplementationStatusController {
 	return &ControlImplementationStatusController{
 		service: service,
 	}
