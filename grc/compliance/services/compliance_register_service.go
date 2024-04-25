@@ -276,20 +276,16 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 		existingComplianceDocument.UpdatedBy = currentUserID
 
 		if complianceRegisterFormDTO.Document.IsNewFile != nil && *complianceRegisterFormDTO.Document.IsNewFile {
-
 			storagePath := filepath.Join("compliance", "compliance", strconv.FormatUint(uint64(id), 10), "documents")
-
 			if err := utility.RemoveFile(existingComplianceDocument.Name, storagePath); err != nil {
 				tx.Rollback()
 				return err
 			}
 			// Store Compliance Document File using utility.StoreFile
-
 			if err := utility.StoreFile(complianceRegisterFormDTO.Document.FileName, storagePath); err != nil {
 				tx.Rollback()
 				return err
 			}
-
 			//generate token
 			dataToEncrypt := []byte(complianceRegisterFormDTO.Document.FileName)
 			encryptedFilename, err := utility.EncryptData(dataToEncrypt)

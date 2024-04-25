@@ -2,7 +2,6 @@ package services
 
 import (
 	"fmt"
-	"jethur/config"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	complianceModels "jethur/grc/compliance/models"
 	complianceRepositories "jethur/grc/compliance/repositories"
@@ -10,6 +9,8 @@ import (
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	"jethur/utility"
+	"path/filepath"
+	"strconv"
 )
 
 type SLARegisterServiceInterface interface {
@@ -75,7 +76,7 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *co
 		return 0, err
 	}
 
-	if err := srs.validateSLADocumentFormDTO(slaRegisterFormDTO.Document); err != nil {
+	if err := srs.validateSLADocumentFormDTO(&slaRegisterFormDTO.Document); err != nil {
 		return 0, err
 	}
 
@@ -109,7 +110,10 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *co
 		return 0, err
 	}
 
-	if err := srs.repo.StoreSLADocumentFile(id, slaRegisterFormDTO.Document.FileName); err != nil {
+	// Store SLA Document File using utility.StoreFile
+	storagePath := filepath.Join("compliance", "sla", strconv.FormatUint(uint64(id), 10), "agreements")
+
+	if err := utility.StoreFile(slaRegisterFormDTO.Document.FileName, storagePath); err != nil {
 		tx.Rollback()
 		return 0, err
 	}
@@ -119,8 +123,7 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *co
 	if err != nil {
 		return 0, err
 	}
-
-	url := fmt.Sprintf("%s/sla-register/%d/%s", config.GetEnv("API_URL", "http://localhost:8080"), slaRegister.ID, encryptedFilename)
+	url := utility.GenerateDocumentURL("sla-register", strconv.FormatUint(uint64(slaRegister.ID), 10), encryptedFilename)
 
 	slaDocument := &complianceModels.SLADocument{
 		SLARegisterID: id,
@@ -184,7 +187,7 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 		return err
 	}
 
-	if err := srs.validateSLADocumentFormDTO(slaRegisterFormDTO.Document); err != nil {
+	if err := srs.validateSLADocumentFormDTO(&slaRegisterFormDTO.Document); err != nil {
 		return err
 	}
 
@@ -209,7 +212,7 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 		return err
 	}
 
-	if slaRegisterFormDTO.Document != nil && slaRegisterFormDTO.Document.ID != nil {
+	if slaRegisterFormDTO.Document.ID != nil {
 		existingSLADocument, err := srs.repo.GetSLADocumentByID(*slaRegisterFormDTO.Document.ID)
 		if err != nil {
 			return err
@@ -224,11 +227,13 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 		existingSLADocument.IsLatest = true
 
 		if slaRegisterFormDTO.Document.IsNewFile != nil && *slaRegisterFormDTO.Document.IsNewFile {
-			if err := srs.repo.RemoveSLADocumentFile(existingSLADocument.SLARegisterID, existingSLADocument.Name); err != nil {
+			storagePath := filepath.Join("compliance", "sla", strconv.FormatUint(uint64(existingSLADocument.SLARegisterID), 10), "agreements")
+			if err := utility.RemoveFile(existingSLADocument.Name, storagePath); err != nil {
 				tx.Rollback()
 				return err
 			}
-			if err := srs.repo.StoreSLADocumentFile(existingSLADocument.SLARegisterID, slaRegisterFormDTO.Document.FileName); err != nil {
+			// Store SLA Document File using utility.StoreFile
+			if err := utility.StoreFile(slaRegisterFormDTO.Document.FileName, storagePath); err != nil {
 				tx.Rollback()
 				return err
 			}
@@ -238,7 +243,7 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 				tx.Rollback()
 				return err
 			}
-			url := fmt.Sprintf("%s/sla-register/%d/%s", config.GetEnv("API_URL", "http://localhost:8080"), id, encryptedFilename)
+			url := utility.GenerateDocumentURL("sla-register", strconv.FormatUint(uint64(id), 10), encryptedFilename)
 
 			existingSLADocument.URL = url
 			existingSLADocument.Icon = slaRegisterFormDTO.Document.Icon
@@ -297,10 +302,9 @@ func (srs *SLARegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 			failedIds = append(failedIds, id)
 			continue
 		}
-
+		storagePath := filepath.Join("compliance", "sla", strconv.FormatUint(uint64(id), 10), "agreements")
 		// Delete associated documents
-		err = srs.repo.RemoveSLADocumentFile(slaDocument.SLARegisterID, slaDocument.Name)
-		if err != nil {
+		if err := utility.RemoveFile(slaDocument.Name, storagePath); err != nil {
 			failedIds = append(failedIds, id)
 			continue
 		}
