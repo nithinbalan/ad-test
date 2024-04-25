@@ -112,6 +112,15 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	)
 	riskMatrixImpactController := controllers.NewRiskMatrixImpactController(riskMatrixImpactSvc)
 
+	riskMatrixImpactGuidelineRepo := riskRepositories.NewRiskMatrixImpactGuidelineRepository(db)
+	riskMatrixImpactGuidelineSvc := riskServices.NewRiskMatrixImpactGuidelineService(
+		riskMatrixImpactGuidelineRepo,
+		activityLogSvc,
+		riskImpactCategorySvc,
+		riskMatrixImpactSvc,
+	)
+	riskMatrixImpactGuidelineController := controllers.NewRiskMatrixImpactGuidelineController(riskMatrixImpactGuidelineSvc)
+
 	riskMatrixLikelihoodRepo := riskRepositories.NewRiskMatrixLikelihoodRepository(db)
 	riskMatrixLikelihoodSvc := riskServices.NewRiskMatrixLikelihoodService(
 		riskMatrixLikelihoodRepo,
@@ -197,4 +206,9 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	riskRoutes.PUT("/risk-impact-categories/activate", riskImpactCategoryController.ActivateRiskImpactCategories)
 	riskRoutes.PUT("/risk-impact-categories/deactivate", riskImpactCategoryController.DeactivateRiskImpactCategories)
 
+	riskRoutes.GET("/risk-matrix-impact-guidelines", riskMatrixImpactGuidelineController.GetAllRiskMatrixImpactGuidelines)
+	riskRoutes.GET("/risk-matrix-impact-guidelines/:id", riskMatrixImpactGuidelineController.GetRiskMatrixImpactGuidelineDetails)
+	riskRoutes.POST("/risk-matrix-impact-guidelines", riskMatrixImpactGuidelineController.CreateRiskMatrixImpactGuideline)
+	riskRoutes.PUT("/risk-matrix-impact-guidelines/:id", riskMatrixImpactGuidelineController.UpdateRiskMatrixImpactGuideline)
+	riskRoutes.POST("/risk-matrix-impact-guidelines/delete", riskMatrixImpactGuidelineController.DeleteRiskMatrixImpactGuidelines)
 }
