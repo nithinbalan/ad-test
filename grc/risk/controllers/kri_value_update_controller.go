@@ -24,6 +24,11 @@ func NewKRIValueUpdateController(service services.KRIValueUpdateServiceInterface
 }
 
 func (kvuc *KRIValueUpdateController) GetAllKRIValueUpdates(c *gin.Context) {
+	kriRegisterID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
 
 	sort := c.Query("sort")
 	sortBy := c.Query("sort_by")
@@ -55,7 +60,7 @@ func (kvuc *KRIValueUpdateController) GetAllKRIValueUpdates(c *gin.Context) {
 		ReviewDateFrom: reviewDateFrom,
 		ReviewDateTo:   reviewDateTO,
 	}
-	kriRegisterUpdates, err := kvuc.service.GetAll(&queryParams)
+	kriRegisterUpdates, err := kvuc.service.GetAll(uint(kriRegisterID), &queryParams)
 
 	if err != nil {
 		utility.SendInternalErrResp(kvuc.db, c, err.Error())

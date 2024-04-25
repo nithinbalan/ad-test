@@ -12,7 +12,7 @@ import (
 )
 
 type KRIValueUpdateServiceInterface interface {
-	GetAll(params *riskDTOs.KRIValueUpdateListQueryParamsDTO) (*riskDTOs.KRIValueUpdateListResponseDTO, error)
+	GetAll(kriRegisterID uint, params *riskDTOs.KRIValueUpdateListQueryParamsDTO) (*riskDTOs.KRIValueUpdateListResponseDTO, error)
 	Create(kriRegisterID, currentUserID uint, kriValueUpdateFormDTO *riskDTOs.KRIValueUpdateFormDTO) (uint, error)
 	Update(kriRegisterID, updateId, currentUserID uint, kriValueUpdateFormDTO *riskDTOs.KRIValueUpdateFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
@@ -37,19 +37,23 @@ func NewKRIValueUpdateService(
 	}
 }
 
-func (kvus *KRIValueUpdateService) GetAll(params *riskDTOs.KRIValueUpdateListQueryParamsDTO) (*riskDTOs.KRIValueUpdateListResponseDTO, error) {
-	return kvus.repo.GetAll(params)
+func (kvus *KRIValueUpdateService) GetAll(kriRegisterID uint, params *riskDTOs.KRIValueUpdateListQueryParamsDTO) (*riskDTOs.KRIValueUpdateListResponseDTO, error) {
+	if err := kvus.validateKRIRegister(kriRegisterID); err != nil {
+		return nil, err
+	}
+
+	return kvus.repo.GetAll(kriRegisterID, params)
 }
 
 func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kriValueUpdateFormDTO *riskDTOs.KRIValueUpdateFormDTO) (uint, error) {
 	tx := kvus.repo.BeginTransaction()
 
-	dates, err := kvus.parseKRIValueUpdateDates(kriValueUpdateFormDTO)
-	if err != nil {
+	if err := kvus.validateKRIRegister(kriRegisterID); err != nil {
 		return 0, err
 	}
 
-	if err := kvus.validateKRIValueUpdateFormDTO(kriRegisterID); err != nil {
+	dates, err := kvus.parseKRIValueUpdateDates(kriValueUpdateFormDTO)
+	if err != nil {
 		return 0, err
 	}
 
@@ -171,7 +175,7 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentUserID uint, kriValueUpdateFormDTO *riskDTOs.KRIValueUpdateFormDTO) error {
 	tx := kvus.repo.BeginTransaction()
 
-	if err := kvus.validateKRIValueUpdateFormDTO(kriRegisterID); err != nil {
+	if err := kvus.validateKRIRegister(kriRegisterID); err != nil {
 		return err
 	}
 
@@ -388,7 +392,7 @@ func (kvus *KRIValueUpdateService) parseKRIValueUpdateDates(dto *riskDTOs.KRIVal
 	return parsed, nil
 }
 
-func (kvus *KRIValueUpdateService) validateKRIValueUpdateFormDTO(kriRegisterID uint) error {
+func (kvus *KRIValueUpdateService) validateKRIRegister(kriRegisterID uint) error {
 
 	if _, err := kvus.kriRegisterSvc.GetByID(kriRegisterID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("kri register does not exist"), "not_exist", "kri register")

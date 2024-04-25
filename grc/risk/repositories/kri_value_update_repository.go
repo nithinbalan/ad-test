@@ -15,7 +15,7 @@ import (
 
 type KRIValueUpdateRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(params *riskDTOs.KRIValueUpdateListQueryParamsDTO) (*riskDTOs.KRIValueUpdateListResponseDTO, error)
+	GetAll(kriRegisterID uint, params *riskDTOs.KRIValueUpdateListQueryParamsDTO) (*riskDTOs.KRIValueUpdateListResponseDTO, error)
 	Create(kriValueUpdate *models.KRIValueUpdate, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(kriValueUpdate *models.KRIValueUpdate, tx ...utility.DatabaseTransaction) error
 	GetByID(id uint) (*models.KRIValueUpdate, error)
@@ -44,7 +44,7 @@ func (repo *KRIValueUpdateRepository) BeginTransaction() utility.DatabaseTransac
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *KRIValueUpdateRepository) GetAll(params *riskDTOs.KRIValueUpdateListQueryParamsDTO) (*riskDTOs.KRIValueUpdateListResponseDTO, error) {
+func (repo *KRIValueUpdateRepository) GetAll(kriRegisterID uint, params *riskDTOs.KRIValueUpdateListQueryParamsDTO) (*riskDTOs.KRIValueUpdateListResponseDTO, error) {
 
 	var kriValueUpdates []*riskDTOs.KRIValueUpdateListDTO
 	var totalCount int64
@@ -66,7 +66,8 @@ func (repo *KRIValueUpdateRepository) GetAll(params *riskDTOs.KRIValueUpdateList
 		    LEFT JOIN kri_register ON kri_register.id = kri_value_updates.kri_register_id
 			LEFT JOIN users AS created_user ON created_user.id = kri_register.created_by
 			LEFT JOIN users AS updated_user ON updated_user.id = kri_register.updated_by
-		`)
+		`).
+		Where("kri_value_updates.kri_register_id = ?", kriRegisterID)
 
 	// Apply LastReviewDate filters
 	if params.ReviewDateFrom != "" {
