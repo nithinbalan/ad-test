@@ -96,10 +96,37 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 		riskCategorySvc,
 	)
 	riskAppetiteStatementController := controllers.NewRiskAppetiteStatementController(riskAppetiteStatementSvc)
-	
+
 	riskImpactCategoryRepo := riskRepositories.NewRiskImpactCategoryRepository(db)
 	riskImpactCategorySvc := riskServices.NewRiskImpactCategoryService(riskImpactCategoryRepo, activityLogSvc)
 	riskImpactCategoryController := controllers.NewRiskImpactCategoryController(riskImpactCategorySvc)
+
+	riskMatrixRepo := riskRepositories.NewRiskMatrixRepository(db)
+	riskMatrixSvc := riskServices.NewRiskMatrixService(riskMatrixRepo)
+
+	riskMatrixImpactRepo := riskRepositories.NewRiskMatrixImpactRepository(db)
+	riskMatrixImpactSvc := riskServices.NewRiskMatrixImpactService(
+		riskMatrixImpactRepo,
+		activityLogSvc,
+		riskMatrixSvc,
+	)
+	riskMatrixImpactController := controllers.NewRiskMatrixImpactController(riskMatrixImpactSvc)
+
+	riskMatrixLikelihoodRepo := riskRepositories.NewRiskMatrixLikelihoodRepository(db)
+	riskMatrixLikelihoodSvc := riskServices.NewRiskMatrixLikelihoodService(
+		riskMatrixLikelihoodRepo,
+		activityLogSvc,
+		riskMatrixSvc,
+	)
+	riskMatrixLikelihoodController := controllers.NewRiskMatrixLikelihoodController(riskMatrixLikelihoodSvc)
+
+	riskMatrixRiskRatingRepo := riskRepositories.NewRiskMatrixRiskRatingRepository(db)
+	riskMatrixRiskRatingSvc := riskServices.NewRiskMatrixRiskRatingService(
+		riskMatrixRiskRatingRepo,
+		activityLogSvc,
+		riskMatrixSvc,
+	)
+	riskMatrixRiskRatingController := controllers.NewRiskMatrixRiskRatingController(riskMatrixRiskRatingSvc)
 
 	riskRoutes.GET("/risk-categories", riskCategoryController.GetAllRiskCategories)
 	riskRoutes.GET("/risk-categories/:id", riskCategoryController.GetRiskCategoryDetails)
@@ -137,6 +164,30 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	riskRoutes.POST("/kri-register", kriRegisterController.CreateKRIRegister)
 	riskRoutes.PUT("/kri-register/:id", kriRegisterController.UpdateKRIRegister)
 	riskRoutes.POST("/kri-register/delete", kriRegisterController.DeleteKRIRegisters)
+
+	riskRoutes.GET("/risk-matrix-impacts", riskMatrixImpactController.GetAllRiskMatrixImpacts)
+	riskRoutes.GET("/risk-matrix-impacts/:id", riskMatrixImpactController.GetRiskMatrixImpactDetails)
+	riskRoutes.POST("/risk-matrix-impacts", riskMatrixImpactController.CreateRiskMatrixImpact)
+	riskRoutes.PUT("/risk-matrix-impacts/:id", riskMatrixImpactController.UpdateRiskMatrixImpact)
+	riskRoutes.POST("/risk-matrix-impacts/delete", riskMatrixImpactController.DeleteRiskMatrixImpacts)
+	riskRoutes.PUT("/risk-matrix-impacts/activate", riskMatrixImpactController.ActivateRiskMatrixImpact)
+	riskRoutes.PUT("/risk-matrix-impacts/deactivate", riskMatrixImpactController.DeactivateRiskMatrixImpact)
+
+	riskRoutes.GET("/risk-matrix-likelihood", riskMatrixLikelihoodController.GetAllRiskMatrixLikelihoods)
+	riskRoutes.GET("/risk-matrix-likelihood/:id", riskMatrixLikelihoodController.GetRiskMatrixLikelihoodDetails)
+	riskRoutes.POST("/risk-matrix-likelihood", riskMatrixLikelihoodController.CreateRiskMatrixLikelihood)
+	riskRoutes.PUT("/risk-matrix-likelihood/:id", riskMatrixLikelihoodController.UpdateRiskMatrixLikelihood)
+	riskRoutes.POST("/risk-matrix-likelihood/delete", riskMatrixLikelihoodController.DeleteRiskMatrixLikelihoods)
+	riskRoutes.PUT("/risk-matrix-likelihood/activate", riskMatrixLikelihoodController.ActivateRiskMatrixLikelihood)
+	riskRoutes.PUT("/risk-matrix-likelihood/deactivate", riskMatrixLikelihoodController.DeactivateRiskMatrixLikelihood)
+
+	riskRoutes.GET("/risk-matrix-risk-ratings", riskMatrixRiskRatingController.GetAllRiskMatrixRiskRatings)
+	riskRoutes.GET("/risk-matrix-risk-ratings/:id", riskMatrixRiskRatingController.GetRiskMatrixRiskRatingDetails)
+	riskRoutes.POST("/risk-matrix-risk-ratings", riskMatrixRiskRatingController.CreateRiskMatrixRiskRating)
+	riskRoutes.PUT("/risk-matrix-risk-ratings/:id", riskMatrixRiskRatingController.UpdateRiskMatrixRiskRating)
+	riskRoutes.POST("/risk-matrix-risk-ratings/delete", riskMatrixRiskRatingController.DeleteRiskMatrixRiskRatings)
+	riskRoutes.PUT("/risk-matrix-risk-ratings/activate", riskMatrixRiskRatingController.ActivateRiskMatrixRiskRating)
+	riskRoutes.PUT("/risk-matrix-risk-ratings/deactivate", riskMatrixRiskRatingController.DeactivateRiskMatrixRiskRating)
 
 	riskRoutes.GET("/risk-impact-categories", riskImpactCategoryController.GetAllRiskImpactCategories)
 	riskRoutes.GET("/risk-impact-categories/:id", riskImpactCategoryController.GetRiskImpactCategoryDetails)
