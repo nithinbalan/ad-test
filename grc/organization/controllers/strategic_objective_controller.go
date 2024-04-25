@@ -16,7 +16,7 @@ type StrategicOBjectiveController struct {
 	db      *gorm.DB
 }
 
-func NewStrategicOBjectiveController(service services.StrategicObjectiveServiceInterface) *StrategicOBjectiveController {
+func NewStrategicObjectiveController(service services.StrategicObjectiveServiceInterface) *StrategicOBjectiveController {
 	return &StrategicOBjectiveController{
 		service: service,
 	}

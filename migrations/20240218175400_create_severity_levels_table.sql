@@ -2,7 +2,7 @@
 -- +goose StatementBegin
 CREATE TABLE severity_levels (
     id INT PRIMARY KEY IDENTITY(1, 1),
-    title_en VARCHAR(45) NOT NULL,
+    title_en NVARCHAR(45) NOT NULL,
     title_ar NVARCHAR(45) NOT NULL,
     color_code VARCHAR(25) NOT NULL,
     type VARCHAR(10) NOT NULL,

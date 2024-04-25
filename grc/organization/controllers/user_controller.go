@@ -17,7 +17,7 @@ type UserController struct {
 	db      *gorm.DB
 }
 
-func NewUSerController(service services.UserServiceInterface) *UserController {
+func NewUserController(service services.UserServiceInterface) *UserController {
 	return &UserController{
 		service: service,
 	}
@@ -108,7 +108,7 @@ func (uc *UserController) CreateUser(c *gin.Context) {
 
 func (uc *UserController) UpdateUser(c *gin.Context) {
 
-	userID, err := strconv.Atoi(c.Param("id"))
+	userID, err := strconv.Atoi(c.Param("userId"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return

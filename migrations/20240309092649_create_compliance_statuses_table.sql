@@ -2,9 +2,9 @@
 -- +goose StatementBegin
 CREATE TABLE compliance_statuses (
     id INT PRIMARY KEY IDENTITY(1, 1),
-    title_en VARCHAR(100) NOT NULL,
+    title_en NVARCHAR(100) NOT NULL,
     title_ar NVARCHAR(100) NOT NULL,
-    description_en VARCHAR(MAX),
+    description_en NVARCHAR(MAX),
     description_ar NVARCHAR(MAX),
     color_code VARCHAR(25) NOT NULL,
     type VARCHAR(25) NOT NULL DEFAULT 'not_implemented',
