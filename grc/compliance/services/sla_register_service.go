@@ -411,10 +411,6 @@ func (srs *SLARegisterService) Restore(ids []uint, currentUserID uint) ([]uint, 
 }
 
 func (srs *SLARegisterService) validateSLARegisterFormDTO(slaRegisterFormDTO *complianceDTOs.SLARegisterFormDTO) error {
-	// Check if Document is provided
-	if slaRegisterFormDTO.Document == nil {
-		return utility.NewValidationError(fmt.Errorf("document is required"), "required", "document")
-	}
 	if _, err := srs.slaCategorySvc.GetByID(slaRegisterFormDTO.SLACategoryID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("sla category does not exist"), "not_exist", "sla category")
 	}
