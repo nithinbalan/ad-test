@@ -1,9 +1,13 @@
 package services
 
 import (
+	"errors"
 	"jethur/grc/logs/services"
 	"jethur/grc/settings/repositories"
 	settingsModel "jethur/models/settings"
+	"jethur/utility"
+
+	"gorm.io/gorm"
 )
 
 type RoleServiceInterface interface {
@@ -24,5 +28,13 @@ func NewRoleService(repo repositories.RoleRepositoryInterface, activityLogSvc se
 }
 
 func (rs RoleService) GetByID(id uint) (*settingsModel.Role, error) {
-	return rs.repo.GetByID(id)
+	role, err := rs.repo.GetByID(id)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+	return role, nil
 }

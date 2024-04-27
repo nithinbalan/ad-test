@@ -6,13 +6,11 @@ import (
 	"gorm.io/gorm"
 )
 
-// Interfaces
 type OrganizationLevelRepositoryInterface interface {
 	GetAll() ([]*settingsModel.OrganizationLevel, error)
 	Create(organizationLevels []*settingsModel.OrganizationLevel) ([]*settingsModel.OrganizationLevel, error)
 }
 
-// implementation
 type OrganizationLevelRepository struct {
 	db *gorm.DB
 }
@@ -24,7 +22,6 @@ func NewOrganizationLevelRepository(db *gorm.DB) *OrganizationLevelRepository {
 }
 
 func (repo *OrganizationLevelRepository) GetAll() ([]*settingsModel.OrganizationLevel, error) {
-
 	var organizationLevels []*settingsModel.OrganizationLevel
 
 	query := repo.db
