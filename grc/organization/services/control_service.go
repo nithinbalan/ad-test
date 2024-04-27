@@ -17,6 +17,7 @@ import (
 
 type ControlServiceInterface interface {
 	GetAll(params *organizationDTOs.ControlListQueryParamsDTO) (*organizationDTOs.ControlListResponseDTO, error)
+	GetByID(id uint) (*organizationModels.Control, error)
 	GetFullDetailsByID(id uint) (*organizationDTOs.ControlDetailDTO, error)
 	Create(currentUserID uint, controlFormDTO *organizationDTOs.ControlFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, controlFormDTO *organizationDTOs.ControlFormDTO) error
@@ -63,6 +64,18 @@ func NewControlService(
 
 func (cs *ControlService) GetAll(params *organizationDTOs.ControlListQueryParamsDTO) (*organizationDTOs.ControlListResponseDTO, error) {
 	return cs.repo.GetAll(params)
+}
+
+func (crs *ControlService) GetByID(id uint) (*organizationModels.Control, error) {
+	control, err := crs.repo.GetByID(id)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+	return control, nil
 }
 
 func (cs *ControlService) GetFullDetailsByID(id uint) (*organizationDTOs.ControlDetailDTO, error) {
@@ -169,10 +182,10 @@ func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizatio
 }
 
 func (cs *ControlService) Update(id uint, currentUserID uint, controlFormDTO *organizationDTOs.ControlFormDTO) error {
-	existingControl, err := cs.repo.GetByID(id)
+	existingControl, err := cs.GetByID(id)
 
 	if err != nil {
-		return utility.NewResourceNotFoundError(err, id)
+		return err
 	}
 
 	if err := cs.validateControlFormDTO(controlFormDTO); err != nil {
@@ -360,7 +373,7 @@ func (cs *ControlService) validateControlFormDTO(controlFormDTO *organizationDTO
 		}
 	}
 
-	if _, err := cs.userSvc.GetByID(uint(*&controlFormDTO.TestResponsibleUserID)); err != nil {
+	if _, err := cs.userSvc.GetByID(uint(controlFormDTO.TestResponsibleUserID)); err != nil {
 		return utility.NewValidationError(fmt.Errorf("control test responsible user does not exist"), "not_exist", "test responsible user")
 	}
 
