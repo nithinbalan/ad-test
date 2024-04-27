@@ -9,6 +9,7 @@ import (
 // Interfaces
 type ControlTypeRepositoryInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ControlType, error)
+	GetByID(id uint) (*models.ControlType, error)
 }
 
 // implementation
@@ -45,4 +46,15 @@ func (repo *ControlTypeRepository) GetAll(sort string, sortBy string, keyword st
 	result := query.Find(&controlTypes)
 
 	return controlTypes, result.Error
+}
+
+func (repo *ControlTypeRepository) GetByID(id uint) (*models.ControlType, error) {
+	var controlType *models.ControlType
+	result := repo.db.First(&controlType, id)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return controlType, result.Error
 }
