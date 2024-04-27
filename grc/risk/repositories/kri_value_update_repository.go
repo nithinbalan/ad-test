@@ -81,7 +81,7 @@ func (repo *KRIValueUpdateRepository) GetAll(kriRegisterID uint, params *riskDTO
 	if params.Keyword != "" {
 		query = query.Where(`
 			(kri_register.title LIKE ? OR
-				kri_value_updates.value LIKE ? OR
+			kri_value_updates.value LIKE ? OR
 			kri_value_updates.low_threshold LIKE ? OR
 			kri_value_updates.medium_threshold LIKE ? OR
 			organization_units.high_threshold LIKE ? OR

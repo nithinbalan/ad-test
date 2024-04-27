@@ -81,11 +81,13 @@ func (kvuc *KRIValueUpdateController) CreateKRIValueUpdate(c *gin.Context) {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
+
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(kvuc.db, c, err.Error())
 		return
 	}
+
 	id, err := kvuc.service.Create(uint(kriRegisterID), currentUserID, &kriValueUpdateFormDTO)
 	if err != nil {
 		switch e := err.(type) {
@@ -119,6 +121,7 @@ func (kvuc *KRIValueUpdateController) UpdateKRIValueUpdate(c *gin.Context) {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
+
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(kvuc.db, c, err.Error())
@@ -144,7 +147,6 @@ func (kvuc *KRIValueUpdateController) UpdateKRIValueUpdate(c *gin.Context) {
 }
 
 func (kvuc *KRIValueUpdateController) DeleteKRIValueUpdates(c *gin.Context) {
-
 	kriRegisterID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)

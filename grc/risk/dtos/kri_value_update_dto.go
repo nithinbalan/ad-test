@@ -28,13 +28,10 @@ type KRIValueUpdateListDTO struct {
 }
 
 type KRIValueUpdateFormDTO struct {
-	ReviewedDate    string                           `json:"reviewed_date" binding:"required" gorm:"type:date;not null"`
-	Value           string                           `json:"value" gorm:"type:varchar(455);not null"`
-	LowThreshold    string                           `json:"low_threshold" gorm:"type:varchar(455);null"`
-	MediumThreshold string                           `json:"medium_threshold" gorm:"type:varchar(455);null"`
-	HighThreshold   string                           `json:"high_threshold" gorm:"type:varchar(455);null"`
-	Remarks         *string                          `json:"remarks" gorm:"type:nvarchar(max)"`
-	Documents       []*KRIValueUpdateDocumentFormDTO `json:"documents"`
+	ReviewedDate string                           `json:"reviewed_date" binding:"required" gorm:"type:date;not null"`
+	Value        string                           `json:"value" binding:"required" gorm:"type:varchar(455);not null"`
+	Remarks      *string                          `json:"remarks" gorm:"type:nvarchar(max)"`
+	Documents    []*KRIValueUpdateDocumentFormDTO `json:"documents"`
 }
 
 type KRIValueUpdateListQueryParamsDTO struct {
