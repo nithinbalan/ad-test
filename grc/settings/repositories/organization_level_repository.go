@@ -1,14 +1,14 @@
 package repositories
 
 import (
-	settingsModel "jethur/models/settings"
+	"jethur/grc/models"
 
 	"gorm.io/gorm"
 )
 
 type OrganizationLevelRepositoryInterface interface {
-	GetAll() ([]*settingsModel.OrganizationLevel, error)
-	Create(organizationLevels []*settingsModel.OrganizationLevel) ([]*settingsModel.OrganizationLevel, error)
+	GetAll() ([]*models.OrganizationLevel, error)
+	Create(organizationLevels []*models.OrganizationLevel) ([]*models.OrganizationLevel, error)
 }
 
 type OrganizationLevelRepository struct {
@@ -21,8 +21,8 @@ func NewOrganizationLevelRepository(db *gorm.DB) *OrganizationLevelRepository {
 	}
 }
 
-func (repo *OrganizationLevelRepository) GetAll() ([]*settingsModel.OrganizationLevel, error) {
-	var organizationLevels []*settingsModel.OrganizationLevel
+func (repo *OrganizationLevelRepository) GetAll() ([]*models.OrganizationLevel, error) {
+	var organizationLevels []*models.OrganizationLevel
 
 	query := repo.db
 
@@ -31,8 +31,8 @@ func (repo *OrganizationLevelRepository) GetAll() ([]*settingsModel.Organization
 	return organizationLevels, result.Error
 }
 
-func (repo *OrganizationLevelRepository) Create(organizationLevels []*settingsModel.OrganizationLevel) ([]*settingsModel.OrganizationLevel, error) {
-	var updatedOrganizationLevels []*settingsModel.OrganizationLevel
+func (repo *OrganizationLevelRepository) Create(organizationLevels []*models.OrganizationLevel) ([]*models.OrganizationLevel, error) {
+	var updatedOrganizationLevels []*models.OrganizationLevel
 	var idsForRetention []uint
 
 	// Start a new transaction
@@ -59,7 +59,7 @@ func (repo *OrganizationLevelRepository) Create(organizationLevels []*settingsMo
 			}
 		} else {
 			// ID is present, update the existing record
-			err := tx.Model(&settingsModel.OrganizationLevel{}).Where("id = ?", orgLevel.ID).Updates(orgLevel).Error
+			err := tx.Model(&models.OrganizationLevel{}).Where("id = ?", orgLevel.ID).Updates(orgLevel).Error
 			if err != nil {
 				tx.Rollback()
 				return nil, err
@@ -70,7 +70,7 @@ func (repo *OrganizationLevelRepository) Create(organizationLevels []*settingsMo
 	}
 
 	// Delete any records not in the list of idsForRetention
-	if err := tx.Not("id", idsForRetention).Delete(&settingsModel.OrganizationLevel{}).Error; err != nil {
+	if err := tx.Not("id", idsForRetention).Delete(&models.OrganizationLevel{}).Error; err != nil {
 		tx.Rollback()
 		return nil, err
 	}

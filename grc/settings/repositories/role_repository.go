@@ -1,13 +1,13 @@
 package repositories
 
 import (
-	settingsModel "jethur/models/settings"
+	"jethur/grc/models"
 
 	"gorm.io/gorm"
 )
 
 type RoleRepositoryInterface interface {
-	GetByID(id uint) (*settingsModel.Role, error)
+	GetByID(id uint) (*models.Role, error)
 }
 
 type RoleRepository struct {
@@ -20,8 +20,8 @@ func NewRoleRepository(db *gorm.DB) *RoleRepository {
 	}
 }
 
-func (repo *RoleRepository) GetByID(id uint) (*settingsModel.Role, error) {
-	var role *settingsModel.Role
+func (repo *RoleRepository) GetByID(id uint) (*models.Role, error) {
+	var role *models.Role
 
 	result := repo.db.First(&role, id)
 

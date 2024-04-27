@@ -1,8 +1,8 @@
 package controllers
 
 import (
+	"jethur/grc/models"
 	"jethur/grc/settings/services"
-	models "jethur/models/settings"
 	"jethur/utility"
 	"net/http"
 
