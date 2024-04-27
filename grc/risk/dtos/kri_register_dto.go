@@ -3,7 +3,7 @@ package dtos
 import (
 	commonDTOs "jethur/grc/common/dtos"
 	masterDTOs "jethur/grc/masters/dtos"
-	settingsModels "jethur/grc/settings/models"
+	settingsModels "jethur/models/settings"
 	"time"
 )
 

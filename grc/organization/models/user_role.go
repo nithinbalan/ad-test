@@ -1,7 +1,7 @@
 package models
 
 import (
-	settingModels "jethur/grc/settings/models"
+	settingModels "jethur/models/settings"
 )
 
 // UserRole represents the 'user_roles' table that links users and roles in a many-to-many relationship

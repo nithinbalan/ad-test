@@ -5,7 +5,7 @@ import (
 
 	masterModels "jethur/grc/masters/models"
 	organizationModels "jethur/grc/organization/models"
-	settingsModels "jethur/grc/settings/models"
+	settingsModels "jethur/models/settings"
 )
 
 type ComplianceRegister struct {

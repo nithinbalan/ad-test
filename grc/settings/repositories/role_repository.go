@@ -2,7 +2,7 @@ package repositories
 
 import (
 	"errors"
-	"jethur/grc/settings/models"
+	settingsModel "jethur/models/settings"
 	"jethur/utility"
 
 	"gorm.io/gorm"
@@ -10,7 +10,7 @@ import (
 
 // Interfaces
 type RoleRepositoryInterface interface {
-	GetByID(id uint) (*models.Role, error)
+	GetByID(id uint) (*settingsModel.Role, error)
 }
 
 // implementation
@@ -24,8 +24,8 @@ func NewRoleRepository(db *gorm.DB) *RoleRepository {
 	}
 }
 
-func (repo *RoleRepository) GetByID(id uint) (*models.Role, error) {
-	var role *models.Role
+func (repo *RoleRepository) GetByID(id uint) (*settingsModel.Role, error) {
+	var role *settingsModel.Role
 	result := repo.db.First(&role, id)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {

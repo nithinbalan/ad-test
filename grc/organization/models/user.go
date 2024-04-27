@@ -1,7 +1,7 @@
 package models
 
 import (
-	settingsModels "jethur/grc/settings/models"
+	settingsModels "jethur/models/settings"
 	"time"
 )
 
