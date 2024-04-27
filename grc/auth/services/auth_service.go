@@ -3,7 +3,6 @@ package services
 import (
 	"errors"
 	"fmt"
-	"jethur/config"
 	authDTOs "jethur/grc/auth/dtos"
 	organizationModels "jethur/grc/organization/models"
 	"jethur/grc/organization/services"
@@ -11,7 +10,6 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
-	"strconv"
 	"strings"
 	"time"
 )
@@ -350,21 +348,17 @@ func isValidPassword(password string) bool {
 // Private method to handle the common functionality of sending OTP.
 func (as AuthService) sendOTP(userSecurity *organizationModels.UserSecurity, user *organizationModels.User, mailSubject string, mailRelativePath string) error {
 	otpLength := 6
+	verifyOTPDuration := 10
+
 	otp := utility.GenerateOTP(otpLength)
 	currentTime := time.Now()
-
-	verifyOTPDurationStr := config.GetEnv("VERIFY_OTP_DURATION", "10")
-	verifyOTPDuration, err := strconv.Atoi(verifyOTPDurationStr)
-	if err != nil {
-		verifyOTPDuration = 10 // Default to 10 minutes if conversion fails.
-	}
 
 	expirationTime := currentTime.Add(time.Duration(verifyOTPDuration) * time.Minute)
 
 	userSecurity.OTP = &otp
 	userSecurity.OTPExpiryAt = &expirationTime
 
-	err = as.userService.UpdateUserSecurity(userSecurity)
+	err := as.userService.UpdateUserSecurity(userSecurity)
 	if err != nil {
 		return err
 	}
