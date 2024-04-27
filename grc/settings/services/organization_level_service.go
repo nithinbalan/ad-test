@@ -4,15 +4,15 @@ import (
 	"fmt"
 	activityLogModel "jethur/grc/logs/models"
 	"jethur/grc/logs/services"
-	"jethur/grc/settings/models"
 	"jethur/grc/settings/repositories"
+	settingsModel "jethur/models/settings"
 	"jethur/utility"
 	"log"
 )
 
 type OrganizationLevelServiceInterface interface {
-	GetAll() ([]*models.OrganizationLevel, error)
-	Create(currentUserID uint, organizationLevels []*models.OrganizationLevel) ([]*models.OrganizationLevel, error)
+	GetAll() ([]*settingsModel.OrganizationLevel, error)
+	Create(currentUserID uint, organizationLevels []*settingsModel.OrganizationLevel) ([]*settingsModel.OrganizationLevel, error)
 }
 
 // Service and implementations
@@ -28,17 +28,17 @@ func NewOrganizationLevelService(repo repositories.OrganizationLevelRepositoryIn
 	}
 }
 
-func (ols *OrganizationLevelService) GetAll() ([]*models.OrganizationLevel, error) {
+func (ols *OrganizationLevelService) GetAll() ([]*settingsModel.OrganizationLevel, error) {
 	return ols.repo.GetAll()
 }
 
-func (ols *OrganizationLevelService) Create(currentUserID uint, organizationLevels []*models.OrganizationLevel) ([]*models.OrganizationLevel, error) {
+func (ols *OrganizationLevelService) Create(currentUserID uint, organizationLevels []*settingsModel.OrganizationLevel) ([]*settingsModel.OrganizationLevel, error) {
 	titleEnMap := make(map[string]bool)
 	titleArMap := make(map[string]bool)
 	isPrimaryFound := false
 	updatedIds := make(map[uint]bool)
 
-	var toCreate, toUpdate []*models.OrganizationLevel
+	var toCreate, toUpdate []*settingsModel.OrganizationLevel
 
 	for _, level := range organizationLevels {
 		if level.ID == 0 {
@@ -85,10 +85,10 @@ func (ols *OrganizationLevelService) Create(currentUserID uint, organizationLeve
 	fieldsToCompare := []string{"TitleEn", "TitleAr", "IsPrimary"}
 
 	for _, newOrgLevel := range toCreate {
-		go func(level *models.OrganizationLevel) {
+		go func(level *settingsModel.OrganizationLevel) {
 			err := ols.activityLogSvc.LogActivity(
 				activityLogModel.CreateAction,
-				models.OrganizationLevel{}.TableName(),
+				settingsModel.OrganizationLevel{}.TableName(),
 				level.ID,
 				level,
 				currentUserID,
@@ -102,7 +102,7 @@ func (ols *OrganizationLevelService) Create(currentUserID uint, organizationLeve
 	}
 
 	for _, updateOrgLevel := range toUpdate {
-		var existingMatch *models.OrganizationLevel
+		var existingMatch *settingsModel.OrganizationLevel
 		for _, existing := range existingOrganizationLevels {
 			if existing.ID == updateOrgLevel.ID {
 				existingMatch = existing
@@ -118,10 +118,10 @@ func (ols *OrganizationLevelService) Create(currentUserID uint, organizationLeve
 			}
 
 			if len(changes) > 0 {
-				go func(level *models.OrganizationLevel, changes interface{}) {
+				go func(level *settingsModel.OrganizationLevel, changes interface{}) {
 					err := ols.activityLogSvc.LogActivity(
 						activityLogModel.UpdateAction,
-						models.OrganizationLevel{}.TableName(),
+						settingsModel.OrganizationLevel{}.TableName(),
 						level.ID,
 						changes,
 						currentUserID,
@@ -142,10 +142,10 @@ func (ols *OrganizationLevelService) Create(currentUserID uint, organizationLeve
 
 	for _, existingLevel := range existingOrganizationLevels {
 		if !updatedIds[existingLevel.ID] {
-			go func(level *models.OrganizationLevel) {
+			go func(level *settingsModel.OrganizationLevel) {
 				err := ols.activityLogSvc.LogActivity(
 					activityLogModel.DeleteAction,
-					models.OrganizationLevel{}.TableName(),
+					settingsModel.OrganizationLevel{}.TableName(),
 					level.ID,
 					level,
 					currentUserID,

@@ -2,12 +2,12 @@ package services
 
 import (
 	"jethur/grc/logs/services"
-	"jethur/grc/settings/models"
 	"jethur/grc/settings/repositories"
+	settingsModel "jethur/models/settings"
 )
 
 type RoleServiceInterface interface {
-	GetByID(id uint) (*models.Role, error)
+	GetByID(id uint) (*settingsModel.Role, error)
 }
 
 // Service and implementations
@@ -23,6 +23,6 @@ func NewRoleService(repo repositories.RoleRepositoryInterface, activityLogSvc se
 	}
 }
 
-func (rs RoleService) GetByID(id uint) (*models.Role, error) {
+func (rs RoleService) GetByID(id uint) (*settingsModel.Role, error) {
 	return rs.repo.GetByID(id)
 }
