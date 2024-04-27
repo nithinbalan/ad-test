@@ -66,8 +66,6 @@ func (cs *ControlService) GetAll(params *organizationDTOs.ControlListQueryParams
 }
 
 func (cs *ControlService) GetFullDetailsByID(id uint) (*organizationDTOs.ControlDetailDTO, error) {
-
-	// Initialize your DTO
 	var controlDetailDTO organizationDTOs.ControlDetailDTO
 
 	control, err := cs.repo.GetFullDetailsByID(id)
@@ -91,7 +89,6 @@ func (cs *ControlService) GetFullDetailsByID(id uint) (*organizationDTOs.Control
 }
 
 func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizationDTOs.ControlFormDTO) (uint, error) {
-
 	if err := cs.validateControlFormDTO(controlFormDTO); err != nil {
 		return 0, err
 	}
@@ -260,6 +257,7 @@ func (cs *ControlService) Archive(ids []uint, currentUserID uint) ([]uint, error
 	if err != nil {
 		return nil, err
 	}
+
 	idsToUpdate, err := cs.repo.GetIDsByLifecycleStatus(ids, "active")
 	if err != nil {
 		return nil, err
@@ -296,6 +294,7 @@ func (cs *ControlService) Restore(ids []uint, currentUserID uint) ([]uint, error
 	if err != nil {
 		return nil, err
 	}
+
 	idsToUpdate, err := cs.repo.GetIDsByLifecycleStatus(ids, "archived")
 	if err != nil {
 		return nil, err
@@ -360,7 +359,7 @@ func (cs *ControlService) validateControlFormDTO(controlFormDTO *organizationDTO
 		}
 	}
 
-	if _, err := cs.userSvc.GetByID(uint(*&controlFormDTO.TestResponsibleUserID)); err != nil {
+	if _, err := cs.userSvc.GetByID(uint(controlFormDTO.TestResponsibleUserID)); err != nil {
 		return utility.NewValidationError(fmt.Errorf("control test responsible user does not exist"), "not_exist", "test responsible user")
 	}
 

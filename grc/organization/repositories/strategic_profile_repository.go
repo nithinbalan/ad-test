@@ -1,7 +1,6 @@
 package repositories
 
 import (
-	"jethur/grc/organization/models"
 	organizationModels "jethur/grc/organization/models"
 
 	"gorm.io/gorm"
@@ -96,7 +95,7 @@ func (repo *StrategicProfileRepository) UpdateValues(values []*organizationModel
 	}
 
 	// Delete values not present in the incoming data
-	if err := tx.Where("strategic_profile_id = ? AND id NOT IN ?", values[0].StrategicProfileID, toKeepIDs).Delete(&models.StrategicProfileValue{}).Error; err != nil {
+	if err := tx.Where("strategic_profile_id = ? AND id NOT IN ?", values[0].StrategicProfileID, toKeepIDs).Delete(&organizationModels.StrategicProfileValue{}).Error; err != nil {
 		tx.Rollback()
 		return err
 	}

@@ -24,7 +24,6 @@ func NewControlController(service services.ControlServiceInterface) *ControlCont
 }
 
 func (cc *ControlController) GetAllControls(c *gin.Context) {
-
 	sort := c.Query("sort")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
