@@ -36,7 +36,6 @@ func NewControlRepository(db *gorm.DB) *ControlRepository {
 }
 
 func (repo *ControlRepository) GetAll(params *organizationDTOs.ControlListQueryParamsDTO) (*organizationDTOs.ControlListResponseDTO, error) {
-
 	var controls []*organizationDTOs.ControlListDTO
 	var totalCount int64
 
@@ -71,8 +70,8 @@ func (repo *ControlRepository) GetAll(params *organizationDTOs.ControlListQueryP
 				test_responsible_user.first_name_ar AS test_responsible_user_first_name_ar,
 				test_responsible_user.last_name_en AS test_responsible_user_last_name_en,
 				test_responsible_user.last_name_ar AS test_responsible_user_last_name_ar,
-				review_frequencies2.title_en AS test_frequency_title_en,
-				review_frequencies2.title_ar AS test_frequency_title_ar,
+				test_frequencies.title_en AS test_frequency_title_en,
+				test_frequencies.title_ar AS test_frequency_title_ar,
 				lifecycle_statuses.title_en AS lifecycle_status_title_en,
 				lifecycle_statuses.title_ar AS lifecycle_status_title_ar,
 				lifecycle_statuses.color_code AS lifecycle_status_color_code,
@@ -95,7 +94,7 @@ func (repo *ControlRepository) GetAll(params *organizationDTOs.ControlListQueryP
 		Joins("LEFT JOIN control_efficiency_statuses ON control_efficiency_statuses.id = controls.control_efficiency_status_id").
 		Joins("LEFT JOIN review_frequencies ON review_frequencies.id = controls.review_frequency_id").
 		Joins("LEFT JOIN users AS test_responsible_user ON test_responsible_user.id = controls.test_responsible_user_id").
-		Joins("LEFT JOIN review_frequencies AS review_frequencies2 ON review_frequencies2.id = controls.test_frequency_id").
+		Joins("LEFT JOIN review_frequencies AS test_frequencies ON test_frequencies.id = controls.test_frequency_id").
 		Joins("LEFT JOIN lifecycle_statuses ON lifecycle_statuses.id = controls.lifecycle_status_id").
 		Joins("LEFT JOIN users AS created_user ON created_user.id = controls.created_by").
 		Joins("LEFT JOIN users AS updated_user ON updated_user.id = controls.updated_by")

@@ -9,7 +9,7 @@ import (
 	organizationRepositories "jethur/grc/organization/repositories"
 	organizationServices "jethur/grc/organization/services"
 	settingRepositories "jethur/grc/settings/repositories"
-	settingService "jethur/grc/settings/services"
+	settingServices "jethur/grc/settings/services"
 	"jethur/middlewares"
 
 	"github.com/gin-gonic/gin"
@@ -32,7 +32,7 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	lifecycleStatusSvc := masterServices.NewLifecycleStatusService(lifecycleStatusRepo)
 
 	roleRepo := settingRepositories.NewRoleRepository(db)
-	roleSvc := settingService.NewRoleService(roleRepo, activityLogSvc)
+	roleSvc := settingServices.NewRoleService(roleRepo, activityLogSvc)
 
 	designationRepo := organizationRepositories.NewDesignationRepository(db)
 	designationSvc := organizationServices.NewDesignationService(designationRepo, activityLogSvc)
