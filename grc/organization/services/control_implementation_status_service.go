@@ -31,7 +31,7 @@ func (ciss *ControlImplementationStatusService) GetAll(sort string, sortBy strin
 	return statusResult, nil
 }
 
-func (ciss ControlImplementationStatusService) GetByID(id uint) (*models.ControlImplementationStatus, error) {
+func (ciss *ControlImplementationStatusService) GetByID(id uint) (*models.ControlImplementationStatus, error) {
 	return ciss.repo.GetByID(id)
 }
 
