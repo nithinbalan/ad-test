@@ -28,7 +28,22 @@ func (rmrrc *RiskMatrixRiskRatingController) GetAllRiskMatrixRiskRatings(c *gin.
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 
-	riskRatings, err := rmrrc.service.GetAll(sort, sortBy, keyword, status)
+	// Define an array of allowed parameter names
+	allowedParams := []string{
+		"risk_matrix_ids",
+	}
+
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+
+	queryParams := riskDTOs.RiskMatrixRiskRatingListQueryParamsDTO{
+		Sort:    sort,
+		SortBy:  sortBy,
+		Keyword: keyword,
+		Status:  status,
+		Filters: filters,
+	}
+
+	riskRatings, err := rmrrc.service.GetAll(&queryParams)
 
 	if err != nil {
 		utility.SendInternalErrResp(rmrrc.db, c, err.Error())

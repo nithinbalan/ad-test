@@ -8,7 +8,9 @@ import (
 
 // Interfaces
 type RiskMatrixRepositoryInterface interface {
+	GetByID(id uint) (*models.RiskMatrix, error)
 	GetByType(status string) (*models.RiskMatrix, error)
+	Update(matrix *models.RiskMatrix) error
 }
 
 // Implementation
@@ -22,6 +24,17 @@ func NewRiskMatrixRepository(db *gorm.DB) *RiskMatrixRepository {
 	}
 }
 
+func (repo *RiskMatrixRepository) GetByID(id uint) (*models.RiskMatrix, error) {
+	var riskMatrix *models.RiskMatrix
+
+	result := repo.db.First(&riskMatrix, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return riskMatrix, nil
+}
+
 func (repo *RiskMatrixRepository) GetByType(status string) (*models.RiskMatrix, error) {
 	var riskMatrix *models.RiskMatrix
 
@@ -31,4 +44,12 @@ func (repo *RiskMatrixRepository) GetByType(status string) (*models.RiskMatrix, 
 	}
 
 	return riskMatrix, nil
+}
+
+func (repo *RiskMatrixRepository) Update(riskMatrix *models.RiskMatrix) error {
+	if err := repo.db.Save(riskMatrix).Error; err != nil {
+		return err
+	}
+
+	return nil
 }

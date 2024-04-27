@@ -11,7 +11,8 @@ import (
 )
 
 type RiskMatrixRiskRatingServiceInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*riskDTOs.RiskMatrixRiskRatingDTO, error)
+	GetAll(params *riskDTOs.RiskMatrixRiskRatingListQueryParamsDTO) ([]*riskDTOs.RiskMatrixRiskRatingDTO, error)
+	GetAllByRiskMatrix(riskMatrxId uint) ([]*riskDTOs.RiskMatrixRiskRatingDTO, error)
 	GetByID(id uint) (*models.RiskMatrixRiskRating, error)
 	Create(currentUserID uint, riskMatrixRiskRatingFormDTO *riskDTOs.RiskMatrixRiskRatingFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, riskMatrixRiskRatingFormDTO *riskDTOs.RiskMatrixRiskRatingFormDTO) error
@@ -35,8 +36,12 @@ func NewRiskMatrixRiskRatingService(repo repositories.RiskMatrixRiskRatingReposi
 	}
 }
 
-func (rmrrs *RiskMatrixRiskRatingService) GetAll(sort string, sortBy string, keyword string, status string) ([]*riskDTOs.RiskMatrixRiskRatingDTO, error) {
-	return rmrrs.repo.GetAll(sort, sortBy, keyword, status)
+func (rmrrs *RiskMatrixRiskRatingService) GetAll(params *riskDTOs.RiskMatrixRiskRatingListQueryParamsDTO) ([]*riskDTOs.RiskMatrixRiskRatingDTO, error) {
+	return rmrrs.repo.GetAll(params)
+}
+
+func (rmrrs *RiskMatrixRiskRatingService) GetAllByRiskMatrix(riskMatrxId uint) ([]*riskDTOs.RiskMatrixRiskRatingDTO, error) {
+	return rmrrs.repo.GetAllByRiskMatrix(riskMatrxId)
 }
 
 func (rmrrs RiskMatrixRiskRatingService) GetByID(id uint) (*models.RiskMatrixRiskRating, error) {

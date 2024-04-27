@@ -18,3 +18,11 @@ type RiskMatrixRiskRatingFormDTO struct {
 	Type      string `json:"type" binding:"required,max=10,oneof=very_low low medium high very_high" gorm:"type:varchar(10);not null"`
 	Status    string `json:"status" binding:"required,max=10,oneof=active inactive" gorm:"type:varchar(10);not null"`
 }
+
+type RiskMatrixRiskRatingListQueryParamsDTO struct {
+	Sort    string
+	SortBy  string
+	Keyword string
+	Status  string
+	Filters map[string][]string
+}
