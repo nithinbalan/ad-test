@@ -1,7 +1,7 @@
 package services
 
 import (
-	"jethur/grc/organization/models"
+	"jethur/grc/models"
 	"jethur/grc/organization/repositories"
 )
 

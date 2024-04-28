@@ -3,8 +3,8 @@ package repositories
 import (
 	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
+	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
-	oraganizationModels "jethur/grc/organization/models"
 	"strconv"
 	"time"
 
@@ -13,10 +13,10 @@ import (
 
 type ControlRepositoryInterface interface {
 	GetAll(params *organizationDTOs.ControlListQueryParamsDTO) (*organizationDTOs.ControlListResponseDTO, error)
-	GetByID(id uint) (*oraganizationModels.Control, error)
-	GetFullDetailsByID(id uint) (*oraganizationModels.Control, error)
-	Create(control *oraganizationModels.Control) (uint, error)
-	Update(complianceRegister *oraganizationModels.Control) error
+	GetByID(id uint) (*models.Control, error)
+	GetFullDetailsByID(id uint) (*models.Control, error)
+	Create(control *models.Control) (uint, error)
+	Update(complianceRegister *models.Control) error
 	Delete(id uint) error
 	GenerateReferenceNumber() (string, error)
 
@@ -238,8 +238,8 @@ func (repo *ControlRepository) GetAll(params *organizationDTOs.ControlListQueryP
 	return response, nil
 }
 
-func (repo *ControlRepository) GetByID(id uint) (*oraganizationModels.Control, error) {
-	var control *oraganizationModels.Control
+func (repo *ControlRepository) GetByID(id uint) (*models.Control, error) {
+	var control *models.Control
 
 	result := repo.db.First(&control, id)
 	if result.Error != nil {
@@ -250,8 +250,8 @@ func (repo *ControlRepository) GetByID(id uint) (*oraganizationModels.Control, e
 
 }
 
-func (repo *ControlRepository) GetFullDetailsByID(id uint) (*oraganizationModels.Control, error) {
-	var control *oraganizationModels.Control // Declare the variable inside the function
+func (repo *ControlRepository) GetFullDetailsByID(id uint) (*models.Control, error) {
+	var control *models.Control // Declare the variable inside the function
 
 	result := repo.db.
 		Preload("ControlType").
@@ -276,7 +276,7 @@ func (repo *ControlRepository) GetFullDetailsByID(id uint) (*oraganizationModels
 	return control, nil
 }
 
-func (repo *ControlRepository) Create(control *oraganizationModels.Control) (uint, error) {
+func (repo *ControlRepository) Create(control *models.Control) (uint, error) {
 	if err := repo.db.Create(control).Error; err != nil {
 		return 0, err
 	}
@@ -284,7 +284,7 @@ func (repo *ControlRepository) Create(control *oraganizationModels.Control) (uin
 	return control.ID, nil
 }
 
-func (repo *ControlRepository) Update(control *oraganizationModels.Control) error {
+func (repo *ControlRepository) Update(control *models.Control) error {
 	if err := repo.db.Save(control).Error; err != nil {
 		return err
 	}
@@ -293,7 +293,7 @@ func (repo *ControlRepository) Update(control *oraganizationModels.Control) erro
 }
 
 func (repo *ControlRepository) Delete(id uint) error {
-	if err := repo.db.Delete(&oraganizationModels.Control{}, id).Error; err != nil {
+	if err := repo.db.Delete(&models.Control{}, id).Error; err != nil {
 		return err
 	}
 
@@ -303,7 +303,7 @@ func (repo *ControlRepository) Delete(id uint) error {
 func (repo *ControlRepository) GetIDsByLifecycleStatus(ids []uint, status string) ([]uint, error) {
 	var matchingIDs []uint
 
-	if err := repo.db.Model(&oraganizationModels.Control{}).
+	if err := repo.db.Model(&models.Control{}).
 		Joins("JOIN lifecycle_statuses ON controls.lifecycle_status_id = lifecycle_statuses.id").
 		Where("controls.id IN ? AND lifecycle_statuses.type = ?", ids, status).
 		Pluck("controls.id", &matchingIDs).Error; err != nil {
@@ -314,7 +314,7 @@ func (repo *ControlRepository) GetIDsByLifecycleStatus(ids []uint, status string
 }
 
 func (repo *ControlRepository) UpdateLifecycleStatusForIDs(ids []uint, statusId uint) ([]uint, error) {
-	if err := repo.db.Model(&oraganizationModels.Control{}).
+	if err := repo.db.Model(&models.Control{}).
 		Where("id IN ?", ids).
 		Update("lifecycle_status_id", statusId).Error; err != nil {
 		return nil, err
@@ -325,7 +325,7 @@ func (repo *ControlRepository) UpdateLifecycleStatusForIDs(ids []uint, statusId 
 
 func (repo *ControlRepository) GenerateReferenceNumber() (string, error) {
 	var lastReferenceNumber string
-	err := repo.db.Model(&oraganizationModels.Control{}).
+	err := repo.db.Model(&models.Control{}).
 		Select("reference_number").
 		Order("reference_number desc").
 		Limit(1).

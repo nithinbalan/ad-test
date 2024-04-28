@@ -6,7 +6,7 @@ import (
 	organizationDTOs "jethur/grc/organization/dtos"
 	"jethur/utility"
 
-	organizationModels "jethur/grc/organization/models"
+	"jethur/grc/models"
 	organizationRepositories "jethur/grc/organization/repositories"
 
 	"github.com/mitchellh/mapstructure"
@@ -158,10 +158,10 @@ func (sps *StrategicProfileService) UpdateValues(strategicProfileValuesDTO []*or
 		return utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 	}
 
-	var values []*organizationModels.StrategicProfileValue
+	var values []*models.StrategicProfileValue
 	for _, dto := range strategicProfileValuesDTO {
 
-		value := &organizationModels.StrategicProfileValue{}
+		value := &models.StrategicProfileValue{}
 
 		if dto.ID != nil {
 			value.ID = *dto.ID // Existing record

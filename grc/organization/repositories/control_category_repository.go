@@ -1,7 +1,7 @@
 package repositories
 
 import (
-	"jethur/grc/organization/models"
+	"jethur/grc/models"
 	"jethur/utility"
 
 	"gorm.io/gorm"

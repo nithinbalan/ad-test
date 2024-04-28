@@ -6,8 +6,8 @@ import (
 	logModels "jethur/grc/logs/models"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
+	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
-	organizationModels "jethur/grc/organization/models"
 	organizationRepositories "jethur/grc/organization/repositories"
 	"jethur/utility"
 
@@ -17,7 +17,7 @@ import (
 
 type ControlServiceInterface interface {
 	GetAll(params *organizationDTOs.ControlListQueryParamsDTO) (*organizationDTOs.ControlListResponseDTO, error)
-	GetByID(id uint) (*organizationModels.Control, error)
+	GetByID(id uint) (*models.Control, error)
 	GetFullDetailsByID(id uint) (*organizationDTOs.ControlDetailDTO, error)
 	Create(currentUserID uint, controlFormDTO *organizationDTOs.ControlFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, controlFormDTO *organizationDTOs.ControlFormDTO) error
@@ -66,7 +66,7 @@ func (cs *ControlService) GetAll(params *organizationDTOs.ControlListQueryParams
 	return cs.repo.GetAll(params)
 }
 
-func (crs *ControlService) GetByID(id uint) (*organizationModels.Control, error) {
+func (crs *ControlService) GetByID(id uint) (*models.Control, error) {
 	control, err := crs.repo.GetByID(id)
 
 	if err != nil {
@@ -121,7 +121,7 @@ func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizatio
 		return 0, err
 	}
 
-	control := &organizationModels.Control{
+	control := &models.Control{
 		ControlTypeID:                 controlFormDTO.ControlTypeID,
 		ControlCategoryID:             controlFormDTO.ControlCategoryID,
 		OwnerUnitID:                   controlFormDTO.OwnerUnitID,
@@ -155,7 +155,7 @@ func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizatio
 	go func() {
 		err := cs.activityLogSvc.LogActivity(
 			logModels.CreateAction,
-			organizationModels.Control{}.TableName(),
+			models.Control{}.TableName(),
 			id,
 			controlFormDTO,
 			currentUserID,
@@ -165,7 +165,7 @@ func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizatio
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    logModels.CreateAction,
-				"tableName": organizationModels.Control{}.TableName(),
+				"tableName": models.Control{}.TableName(),
 				"recordID":  id,
 				"userID":    currentUserID,
 				"error":     err.Error(),
@@ -249,7 +249,7 @@ func (cs *ControlService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 		go func() {
 			err := cs.activityLogSvc.LogBulkActivities(
 				logModels.DeleteAction, // Make sure this action constant is defined appropriately
-				organizationModels.Control{}.TableName(),
+				models.Control{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,
@@ -286,7 +286,7 @@ func (cs *ControlService) Archive(ids []uint, currentUserID uint) ([]uint, error
 		go func() {
 			err := cs.activityLogSvc.LogBulkActivities(
 				logModels.ArchiveAction,
-				organizationModels.Control{}.TableName(),
+				models.Control{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,
@@ -323,7 +323,7 @@ func (cs *ControlService) Restore(ids []uint, currentUserID uint) ([]uint, error
 		go func() {
 			err := cs.activityLogSvc.LogBulkActivities(
 				logModels.RestoreAction,
-				organizationModels.Control{}.TableName(),
+				models.Control{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,

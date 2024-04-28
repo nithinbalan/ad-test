@@ -5,8 +5,8 @@ import (
 	"fmt"
 	logModels "jethur/grc/logs/models"
 	logServices "jethur/grc/logs/services"
+	"jethur/grc/models"
 	userDTOs "jethur/grc/organization/dtos"
-	organizationModels "jethur/grc/organization/models"
 	organizationRepositories "jethur/grc/organization/repositories"
 	settingService "jethur/grc/settings/services"
 	"jethur/utility"
@@ -19,16 +19,16 @@ import (
 
 type UserServiceInterface interface {
 	GetAll(params *userDTOs.UserListQueryParamsDTO) (*userDTOs.UserListResponseDTO, error)
-	GetByID(id uint) (*organizationModels.User, error)
-	GetByEmail(email string) (*organizationModels.User, error)
+	GetByID(id uint) (*models.User, error)
+	GetByEmail(email string) (*models.User, error)
 	Create(currentUserID uint, userFormDTO *userDTOs.UserFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, user *userDTOs.UserFormDTO) error
 	UpdatePartial(id uint, dto *userDTOs.UserUpdateDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 
 	//User Security
-	GetUserSecurityByUserID(userID uint) (*organizationModels.UserSecurity, error)
-	UpdateUserSecurity(userSecurity *organizationModels.UserSecurity) error
+	GetUserSecurityByUserID(userID uint) (*models.UserSecurity, error)
+	UpdateUserSecurity(userSecurity *models.UserSecurity) error
 	EnableMFA(userID uint) error
 	DisableMFA(userID uint) error
 	ResetPassword(userID uint) error
@@ -91,7 +91,7 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 		return 0, err
 	}
 
-	user := &organizationModels.User{
+	user := &models.User{
 		OrganizationUnit1ID: userFormDTO.OrganizationUnit1ID,
 		OrganizationUnit2ID: userFormDTO.OrganizationUnit2ID,
 		OrganizationUnit3ID: userFormDTO.OrganizationUnit3ID,
@@ -115,7 +115,7 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 		return 0, err
 	}
 
-	userSecurity := organizationModels.UserSecurity{
+	userSecurity := models.UserSecurity{
 		UserID:       userID,
 		PasswordHash: string(passwordHash),
 	}
@@ -126,7 +126,7 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 	}
 
 	//@todo - timezone to be corrected
-	userSetting := organizationModels.UserSetting{
+	userSetting := models.UserSetting{
 		UserID:     userID,
 		TimezoneID: 5,
 		Language:   "en",
@@ -138,9 +138,9 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 		return 0, err
 	}
 
-	userRoles := make([]organizationModels.UserRole, len(userFormDTO.RoleIDs))
+	userRoles := make([]models.UserRole, len(userFormDTO.RoleIDs))
 	for i, roleID := range userFormDTO.RoleIDs {
-		userRoles[i] = organizationModels.UserRole{
+		userRoles[i] = models.UserRole{
 			UserID: userID,
 			RoleID: roleID,
 		}
@@ -158,7 +158,7 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 	go func() {
 		err := us.activityLogSvc.LogActivity(
 			logModels.CreateAction,
-			organizationModels.User{}.TableName(),
+			models.User{}.TableName(),
 			userID, // use userID instead of id
 			userFormDTO,
 			currentUserID,
@@ -168,7 +168,7 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    logModels.CreateAction,
-				"tableName": organizationModels.User{}.TableName(),
+				"tableName": models.User{}.TableName(),
 				"recordID":  userID, // use userID instead of id
 				"userID":    currentUserID,
 				"error":     err.Error(),
@@ -257,7 +257,7 @@ func (us *UserService) UpdatePartial(id uint, userUpdateDTO *userDTOs.UserUpdate
 	return nil
 }
 
-func (us *UserService) GetByID(id uint) (*organizationModels.User, error) {
+func (us *UserService) GetByID(id uint) (*models.User, error) {
 	return us.repo.GetByID(id)
 }
 
@@ -285,7 +285,7 @@ func (crs *UserService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 		go func() {
 			err := crs.activityLogSvc.LogBulkActivities(
 				logModels.DeleteAction,
-				organizationModels.User{}.TableName(),
+				models.User{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,
@@ -351,15 +351,15 @@ func (us *UserService) generateRandomPassword(length int) (string, error) {
 	return string(b), nil
 }
 
-func (us *UserService) GetByEmail(email string) (*organizationModels.User, error) {
+func (us *UserService) GetByEmail(email string) (*models.User, error) {
 	return us.repo.GetByEmail(email)
 }
 
-func (us *UserService) GetUserSecurityByUserID(userId uint) (*organizationModels.UserSecurity, error) {
+func (us *UserService) GetUserSecurityByUserID(userId uint) (*models.UserSecurity, error) {
 	return us.repo.GetUserSecurityByUserID(userId)
 }
 
-func (us *UserService) UpdateUserSecurity(userSecurity *organizationModels.UserSecurity) error {
+func (us *UserService) UpdateUserSecurity(userSecurity *models.UserSecurity) error {
 	return us.repo.UpdateUserSecurity(userSecurity)
 }
 

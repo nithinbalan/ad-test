@@ -1,7 +1,7 @@
 package models
 
 import (
-	organizationModels "jethur/grc/organization/models"
+	"jethur/grc/models"
 	"time"
 )
 
@@ -18,9 +18,9 @@ type RiskAppetiteStatement struct {
 	UpdatedBy       *uint      `json:"updated_by" gorm:"default:null"`
 
 	// Relationships
-	RiskCategory  *RiskCategory            `gorm:"foreignkey:RiskCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser *organizationModels.User `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser *organizationModels.User `gorm:"foreignKey:UpdatedBy"`
+	RiskCategory  *RiskCategory `gorm:"foreignkey:RiskCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	CreatedByUser *models.User  `gorm:"foreignKey:CreatedBy"`
+	UpdatedByUser *models.User  `gorm:"foreignKey:UpdatedBy"`
 }
 
 // TableName overrides the table name used by RiskAppetiteStatement to `risk_appetite_statements`

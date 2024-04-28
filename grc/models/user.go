@@ -1,7 +1,6 @@
 package models
 
 import (
-	"jethur/grc/models"
 	"time"
 )
 
@@ -27,15 +26,15 @@ type User struct {
 	UpdatedBy           *uint     `json:"updated_by" gorm:"default:null"`
 
 	// Relationships
-	OrganizationUnit1 *models.OrganizationUnit `gorm:"foreignKey:OrganizationUnit1ID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
-	OrganizationUnit2 *models.OrganizationUnit `gorm:"foreignKey:OrganizationUnit2ID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
-	OrganizationUnit3 *models.OrganizationUnit `gorm:"foreignKey:OrganizationUnit3ID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
-	OrganizationUnit4 *models.OrganizationUnit `gorm:"foreignKey:OrganizationUnit4ID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
-	OrganizationUnit5 *models.OrganizationUnit `gorm:"foreignKey:OrganizationUnit5ID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
-	UserStatus        *UserStatus              `gorm:"foreignKey:UserStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
-	Designation       *Designation             `gorm:"foreignKey:DesignationID"`
-	CreatedByUser     *User                    `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser     *User                    `gorm:"foreignKey:UpdatedBy"`
+	OrganizationUnit1 *OrganizationUnit `gorm:"foreignKey:OrganizationUnit1ID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
+	OrganizationUnit2 *OrganizationUnit `gorm:"foreignKey:OrganizationUnit2ID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
+	OrganizationUnit3 *OrganizationUnit `gorm:"foreignKey:OrganizationUnit3ID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
+	OrganizationUnit4 *OrganizationUnit `gorm:"foreignKey:OrganizationUnit4ID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
+	OrganizationUnit5 *OrganizationUnit `gorm:"foreignKey:OrganizationUnit5ID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
+	UserStatus        *UserStatus       `gorm:"foreignKey:UserStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
+	Designation       *Designation      `gorm:"foreignKey:DesignationID"`
+	CreatedByUser     *User             `gorm:"foreignKey:CreatedBy"`
+	UpdatedByUser     *User             `gorm:"foreignKey:UpdatedBy"`
 }
 
 // TableName overrides the table name used by User to `users`

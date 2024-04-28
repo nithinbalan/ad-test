@@ -2,8 +2,8 @@ package services
 
 import (
 	logServices "jethur/grc/logs/services"
+	"jethur/grc/models"
 	userDTOs "jethur/grc/organization/dtos"
-	"jethur/grc/organization/models"
 	organizationRepositories "jethur/grc/organization/repositories"
 
 	"gorm.io/gorm"
