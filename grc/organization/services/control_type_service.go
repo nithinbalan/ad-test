@@ -1,8 +1,12 @@
 package services
 
 import (
+	"errors"
 	"jethur/grc/models"
 	"jethur/grc/organization/repositories"
+	"jethur/utility"
+
+	"gorm.io/gorm"
 )
 
 type ControlTypeServiceInterface interface {
@@ -26,5 +30,14 @@ func (cts *ControlTypeService) GetAll(sort string, sortBy string, keyword string
 }
 
 func (cts *ControlTypeService) GetByID(id uint) (*models.ControlType, error) {
-	return cts.repo.GetByID(id)
+	controlType, err := cts.repo.GetByID(id)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+
+	return controlType, nil
 }

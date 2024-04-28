@@ -25,14 +25,13 @@ func NewStrategicProfileRepository(db *gorm.DB) *StrategicProfileRepository {
 
 func (repo *StrategicProfileRepository) Get() (*models.StrategicProfile, error) {
 	var strategicProfile *models.StrategicProfile
+
 	result := repo.db.First(&strategicProfile)
+
 	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	// @review
-	// please move this error return to service, here just return error as it is
-	// everywhere we used to follow method you used, but we have to move to service layer from new apis
 	return strategicProfile, nil
 }
 

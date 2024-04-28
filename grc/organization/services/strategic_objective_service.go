@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"fmt"
 	logModels "jethur/grc/logs/models"
 	"jethur/grc/logs/services"
@@ -9,6 +10,8 @@ import (
 	"jethur/grc/organization/repositories"
 	"jethur/utility"
 	"log"
+
+	"gorm.io/gorm"
 )
 
 type StrategicObjectiveServiceInterface interface {
@@ -39,18 +42,26 @@ func (sos *StrategicObjectiveService) GetAll(sort string, sortBy string, keyword
 }
 
 func (sos StrategicObjectiveService) GetByID(id uint) (*models.StrategicObjective, error) {
-	return sos.repo.GetByID(id)
+	strategicObjective, err := sos.repo.GetByID(id)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+
+	return strategicObjective, nil
+
 }
 
 func (sos *StrategicObjectiveService) Create(currentUserID uint, strategicObjectiveFormDTO *dtos.StrategicObjectiveFormDTO) (uint, error) {
-
 	if exists, err := sos.repo.ExistsByTitle(strategicObjectiveFormDTO.TitleEn, strategicObjectiveFormDTO.TitleAr); err != nil {
 		return 0, err
 	} else if exists {
 		return 0, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 	}
 
-	//strategicObjective.CreatedBy = currentUserID
 	strategicObjective := &models.StrategicObjective{
 		TitleEn:   strategicObjectiveFormDTO.TitleEn,
 		TitleAr:   strategicObjectiveFormDTO.TitleAr,

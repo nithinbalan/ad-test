@@ -90,7 +90,6 @@ func (cs *ControlService) GetFullDetailsByID(id uint) (*organizationDTOs.Control
 		return nil, err
 	}
 
-	// Map the result to your DTO
 	err = mapstructure.Decode(control, &controlDetailDTO)
 	if err != nil {
 		return nil, err

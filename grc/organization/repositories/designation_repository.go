@@ -1,7 +1,6 @@
 package repositories
 
 import (
-	"errors"
 	"jethur/grc/models"
 	"jethur/utility"
 
@@ -33,7 +32,6 @@ func NewDesignationRepository(db *gorm.DB) *DesignationRepository {
 }
 
 func (repo *DesignationRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.Designation, error) {
-
 	var designations []*models.Designation
 
 	query := repo.db
@@ -62,13 +60,11 @@ func (repo *DesignationRepository) GetByID(id uint) (*models.Designation, error)
 	var designation *models.Designation
 	result := repo.db.First(&designation, id)
 
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, utility.NewResourceNotFoundError(result.Error, id)
-	} else if result.Error != nil {
+	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	return designation, result.Error
+	return designation, nil
 }
 
 func (repo *DesignationRepository) Create(designation *models.Designation) (*models.Designation, error) {

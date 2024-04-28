@@ -29,7 +29,7 @@ func NewUserSettingService(
 }
 
 func (uss *UserSettingService) GetNotificationSettings(userID uint) ([]userDTOs.NotificationSettingListResponseDTO, error) {
-	modules, err := uss.repo.GetNotificationSetting(userID) // Make sure this method name is correctly spelled
+	modules, err := uss.repo.GetNotificationSetting(userID)
 	if err != nil {
 		return nil, err
 	}

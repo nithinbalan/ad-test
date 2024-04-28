@@ -34,7 +34,9 @@ func (repo *UserSettingRepository) GetNotificationSetting(userID uint) ([]master
 
 func (repo *UserSettingRepository) FindNotificationSetting(userID, notificationMasterID uint) (*models.UserNotificationSetting, error) {
 	var setting models.UserNotificationSetting
+
 	err := repo.db.Where("user_id = ? AND notification_master_id = ?", userID, notificationMasterID).First(&setting).Error
+
 	return &setting, err
 }
 

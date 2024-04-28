@@ -2,6 +2,7 @@ package services
 
 import (
 	"crypto/rand"
+	"errors"
 	"fmt"
 	logModels "jethur/grc/logs/models"
 	logServices "jethur/grc/logs/services"
@@ -15,6 +16,7 @@ import (
 
 	"github.com/mitchellh/mapstructure"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 type UserServiceInterface interface {
@@ -33,7 +35,7 @@ type UserServiceInterface interface {
 	DisableMFA(userID uint) error
 	ResetPassword(userID uint) error
 
-	//user Settings
+	//User Settings
 	GetUserSetting(userID uint) (*userDTOs.UserSettingDTO, error)
 	UpdateUserSetting(userID uint, currentUserID uint, userSettingFormDTO *userDTOs.UserSettingFormDTO) error
 	EnableNotification(userID uint) error
@@ -65,6 +67,23 @@ func NewUserService(
 
 func (us *UserService) GetAll(params *userDTOs.UserListQueryParamsDTO) (*userDTOs.UserListResponseDTO, error) {
 	return us.repo.GetAll(params)
+}
+
+func (us *UserService) GetByID(id uint) (*models.User, error) {
+	user, err := us.repo.GetByID(id)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+
+	return user, nil
+}
+
+func (us *UserService) GetByEmail(email string) (*models.User, error) {
+	return us.repo.GetByEmail(email)
 }
 
 func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserFormDTO) (uint, error) {
@@ -257,10 +276,6 @@ func (us *UserService) UpdatePartial(id uint, userUpdateDTO *userDTOs.UserUpdate
 	return nil
 }
 
-func (us *UserService) GetByID(id uint) (*models.User, error) {
-	return us.repo.GetByID(id)
-}
-
 func (crs *UserService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
@@ -351,54 +366,21 @@ func (us *UserService) generateRandomPassword(length int) (string, error) {
 	return string(b), nil
 }
 
-func (us *UserService) GetByEmail(email string) (*models.User, error) {
-	return us.repo.GetByEmail(email)
-}
-
 func (us *UserService) GetUserSecurityByUserID(userId uint) (*models.UserSecurity, error) {
-	return us.repo.GetUserSecurityByUserID(userId)
+	userSecurity, err := us.repo.GetUserSecurityByUserID(userId)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, userId)
+		}
+		return nil, err
+	}
+
+	return userSecurity, nil
 }
 
 func (us *UserService) UpdateUserSecurity(userSecurity *models.UserSecurity) error {
 	return us.repo.UpdateUserSecurity(userSecurity)
-}
-
-func (us *UserService) GetUserSetting(userID uint) (*userDTOs.UserSettingDTO, error) {
-	var userSettingDTO *userDTOs.UserSettingDTO
-	userSetting, err := us.repo.GetUserSettingsByUserID(userID)
-
-	if err != nil {
-		return nil, utility.NewResourceNotFoundError(err, userID)
-	}
-
-	// Map the result to your DTO
-	err = mapstructure.Decode(userSetting, &userSettingDTO)
-	if err != nil {
-		return nil, err
-	}
-
-	return userSettingDTO, nil
-}
-
-func (us *UserService) UpdateUserSetting(userID uint, currentUserID uint, userSettingFormDTO *userDTOs.UserSettingFormDTO) error {
-	existingUserSetting, err := us.repo.GetUserSettingsByUserID(userID)
-
-	if err != nil {
-		return utility.NewResourceNotFoundError(err, nil)
-	}
-	// @review
-	//do we need to validate timezone
-	existingUserSetting.Language = userSettingFormDTO.Language
-	existingUserSetting.TimezoneID = userSettingFormDTO.TimezoneID
-	existingUserSetting.Timeout = userSettingFormDTO.Timeout
-	existingUserSetting.UpdatedBy = &currentUserID
-
-	if err = us.repo.UpdateUserSetting(existingUserSetting); err != nil {
-		return err
-	}
-
-	return nil
-
 }
 
 func (us *UserService) EnableMFA(userID uint) error {
@@ -416,7 +398,6 @@ func (us *UserService) EnableMFA(userID uint) error {
 	//@todo - need capture activity log
 
 	return nil
-
 }
 
 func (us *UserService) DisableMFA(userID uint) error {
@@ -428,41 +409,6 @@ func (us *UserService) DisableMFA(userID uint) error {
 	existingUserSecurity.IsMFA = false
 
 	if err = us.repo.UpdateUserSecurity(existingUserSecurity); err != nil {
-		return err
-	}
-	//@todo - send email to user
-	//@todo - need capture activity log
-
-	return nil
-}
-
-func (us *UserService) EnableNotification(userID uint) error {
-	existingUserSetting, err := us.repo.GetUserSettingsByUserID(userID)
-	if err != nil {
-		return utility.NewResourceNotFoundError(err, nil)
-	}
-
-	existingUserSetting.IsNotification = true
-
-	if err = us.repo.UpdateUserSetting(existingUserSetting); err != nil {
-		return err
-	}
-	//@todo - send email to user
-	//@todo - need capture activity log
-
-	return nil
-
-}
-
-func (us *UserService) DisableNotification(userID uint) error {
-	existingUserSetting, err := us.repo.GetUserSettingsByUserID(userID)
-	if err != nil {
-		return utility.NewResourceNotFoundError(err, nil)
-	}
-
-	existingUserSetting.IsNotification = false
-
-	if err = us.repo.UpdateUserSetting(existingUserSetting); err != nil {
 		return err
 	}
 	//@todo - send email to user
@@ -515,5 +461,76 @@ func (us *UserService) ResetPassword(userID uint) error {
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func (us *UserService) GetUserSetting(userID uint) (*userDTOs.UserSettingDTO, error) {
+	var userSettingDTO *userDTOs.UserSettingDTO
+	userSetting, err := us.repo.GetUserSettingsByUserID(userID)
+
+	if err != nil {
+		return nil, utility.NewResourceNotFoundError(err, userID)
+	}
+
+	// Map the result to your DTO
+	err = mapstructure.Decode(userSetting, &userSettingDTO)
+	if err != nil {
+		return nil, err
+	}
+
+	return userSettingDTO, nil
+}
+
+func (us *UserService) UpdateUserSetting(userID uint, currentUserID uint, userSettingFormDTO *userDTOs.UserSettingFormDTO) error {
+	existingUserSetting, err := us.repo.GetUserSettingsByUserID(userID)
+
+	if err != nil {
+		return utility.NewResourceNotFoundError(err, nil)
+	}
+	// @review
+	//do we need to validate timezone
+	existingUserSetting.Language = userSettingFormDTO.Language
+	existingUserSetting.TimezoneID = userSettingFormDTO.TimezoneID
+	existingUserSetting.Timeout = userSettingFormDTO.Timeout
+	existingUserSetting.UpdatedBy = &currentUserID
+
+	if err = us.repo.UpdateUserSetting(existingUserSetting); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (us *UserService) EnableNotification(userID uint) error {
+	existingUserSetting, err := us.repo.GetUserSettingsByUserID(userID)
+	if err != nil {
+		return utility.NewResourceNotFoundError(err, nil)
+	}
+
+	existingUserSetting.IsNotification = true
+
+	if err = us.repo.UpdateUserSetting(existingUserSetting); err != nil {
+		return err
+	}
+	//@todo - send email to user
+	//@todo - need capture activity log
+
+	return nil
+}
+
+func (us *UserService) DisableNotification(userID uint) error {
+	existingUserSetting, err := us.repo.GetUserSettingsByUserID(userID)
+	if err != nil {
+		return utility.NewResourceNotFoundError(err, nil)
+	}
+
+	existingUserSetting.IsNotification = false
+
+	if err = us.repo.UpdateUserSetting(existingUserSetting); err != nil {
+		return err
+	}
+	//@todo - send email to user
+	//@todo - need capture activity log
+
 	return nil
 }

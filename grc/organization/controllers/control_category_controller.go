@@ -23,7 +23,6 @@ func NewControlCategoryController(service services.ControlCategoryServiceInterfa
 }
 
 func (ccc *ControlCategoryController) GetAllControlCategories(c *gin.Context) {
-
 	sort := c.Query("sort")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
@@ -57,7 +56,6 @@ func (ccc *ControlCategoryController) GetControlCategoryDetails(c *gin.Context) 
 }
 
 func (ccc *ControlCategoryController) CreateControlCategory(c *gin.Context) {
-
 	var controlCategory *models.ControlCategory
 
 	if err := c.ShouldBindJSON(&controlCategory); err != nil {
@@ -86,7 +84,6 @@ func (ccc *ControlCategoryController) CreateControlCategory(c *gin.Context) {
 }
 
 func (ccc *ControlCategoryController) UpdateControlCategory(c *gin.Context) {
-
 	controlCategoryID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -123,7 +120,6 @@ func (ccc *ControlCategoryController) UpdateControlCategory(c *gin.Context) {
 }
 
 func (ccc *ControlCategoryController) DeleteControlCategory(c *gin.Context) {
-
 	var request struct {
 		IDs []uint `json:"ids"`
 	}

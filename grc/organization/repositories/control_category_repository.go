@@ -63,6 +63,7 @@ func (repo *ControlCategoryRepository) GetByID(id uint) (*models.ControlCategory
 	if result.Error != nil {
 		return nil, result.Error
 	}
+
 	return controlCategory, nil
 }
 
@@ -103,46 +104,40 @@ func (repo *ControlCategoryRepository) Delete(id uint) error {
 func (repo *ControlCategoryRepository) Activate(ids []uint) ([]uint, error) {
 	var idsToUpdate []uint
 
-	// Step 1: Fetch the IDs of records that are currently 'inactive' and within the provided 'ids' slice
 	if err := repo.db.Model(&models.ControlCategory{}).
 		Where("id IN ? AND status = ?", ids, "inactive").
 		Pluck("id", &idsToUpdate).Error; err != nil {
-		return nil, err // Return error if the query fails
+		return nil, err
 	}
 
-	// Step 2: If there are any IDs to update, perform the update operation
 	if len(idsToUpdate) > 0 {
 		if err := repo.db.Model(&models.ControlCategory{}).
 			Where("id IN ?", idsToUpdate).
 			Update("status", "active").Error; err != nil {
-			return nil, err // Return error if the update operation fails
+			return nil, err
 		}
 	}
 
-	// Return the IDs of the records that were activated
 	return idsToUpdate, nil
 }
 
 func (repo *ControlCategoryRepository) Deactivate(ids []uint) ([]uint, error) {
 	var idsToUpdate []uint
 
-	// Step 1: Fetch the IDs of records that are currently 'inactive' and within the provided 'ids' slice
 	if err := repo.db.Model(&models.ControlCategory{}).
 		Where("id IN ? AND status = ?", ids, "active").
 		Pluck("id", &idsToUpdate).Error; err != nil {
-		return nil, err // Return error if the query fails
+		return nil, err
 	}
 
-	// Step 2: If there are any IDs to update, perform the update operation
 	if len(idsToUpdate) > 0 {
 		if err := repo.db.Model(&models.ControlCategory{}).
 			Where("id IN ?", idsToUpdate).
 			Update("status", "inactive").Error; err != nil {
-			return nil, err // Return error if the update operation fails
+			return nil, err
 		}
 	}
 
-	// Return the IDs of the records that were activated
 	return idsToUpdate, nil
 
 }
@@ -150,7 +145,6 @@ func (repo *ControlCategoryRepository) Deactivate(ids []uint) ([]uint, error) {
 func (repo *ControlCategoryRepository) ExistsByTitle(titleEn, titleAr string) (bool, error) {
 	var count int64
 
-	// Check for the existence of titleEn or titleAr in a single query.
 	err := repo.db.Model(&models.ControlCategory{}).
 		Where("title_en = ? OR title_ar = ?", titleEn, titleAr).
 		Count(&count).Error
@@ -159,7 +153,7 @@ func (repo *ControlCategoryRepository) ExistsByTitle(titleEn, titleAr string) (b
 		return false, utility.NewInternalServerError(err)
 
 	}
-	// Return true if either title exists, otherwise false
+
 	return count > 0, nil
 }
 

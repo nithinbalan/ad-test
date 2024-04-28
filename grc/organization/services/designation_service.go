@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"fmt"
 	logModels "jethur/grc/logs/models"
 	"jethur/grc/logs/services"
@@ -8,6 +9,8 @@ import (
 	"jethur/grc/organization/repositories"
 	"jethur/utility"
 	"log"
+
+	"gorm.io/gorm"
 )
 
 type DesignationServiceInterface interface {
@@ -38,11 +41,19 @@ func (ds *DesignationService) GetAll(sort string, sortBy string, keyword string,
 }
 
 func (ds DesignationService) GetByID(id uint) (*models.Designation, error) {
-	return ds.repo.GetByID(id)
+	designation, err := ds.repo.GetByID(id)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+
+	return designation, nil
 }
 
 func (ds *DesignationService) Create(currentUserID uint, designation *models.Designation) (*models.Designation, error) {
-
 	if exists, err := ds.repo.ExistsByTitle(designation.TitleEn, designation.TitleAr); err != nil {
 		return nil, err
 	} else if exists {
