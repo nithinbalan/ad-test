@@ -36,33 +36,43 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 
 	designationRepo := organizationRepositories.NewDesignationRepository(db)
 	designationSvc := organizationServices.NewDesignationService(designationRepo, activityLogSvc)
+	designationController := controllers.NewDesignationController(designationSvc)
 
 	userStatusRepo := organizationRepositories.NewUserStatusRepository(db)
 	userStatusSvc := organizationServices.NewUserStatusService(userStatusRepo)
+	userStatusController := controllers.NewUserStatusController(userStatusSvc)
 
 	userRepo := organizationRepositories.NewUserRepository(db)
 	userSvc := organizationServices.NewUserService(userRepo, designationSvc, userStatusSvc, activityLogSvc, roleSvc)
+	userController := controllers.NewUserController(userSvc)
 
 	strategicProfileRepo := organizationRepositories.NewStrategicProfileRepository(db)
 	strategicProfileSvc := organizationServices.NewStrategicProfileService(strategicProfileRepo)
+	strategicProfileController := controllers.NewStrategicProfileController(strategicProfileSvc)
 
 	strategicObjectiveRepo := organizationRepositories.NewStrategicObjectiveRepository(db)
 	strategicObjectiveSvc := organizationServices.NewStrategicObjectiveService(strategicObjectiveRepo, activityLogSvc)
+	strategicObjectiveController := controllers.NewStrategicObjectiveController(strategicObjectiveSvc)
 
 	userSettingRepo := organizationRepositories.NewUserSettingRepository(db)
 	userSettingSvc := organizationServices.NewUserSettingService(userSettingRepo, activityLogSvc)
+	userSettingController := controllers.NewUserSettingController(userSettingSvc)
 
 	controlCategoryRepo := organizationRepositories.NewControlCategoryRepository(db)
 	controlCategorySvc := organizationServices.NewControlCategoryService(controlCategoryRepo, activityLogSvc)
+	controlCategoryController := controllers.NewControlCategoryController(controlCategorySvc)
 
 	controlTypeRepo := organizationRepositories.NewControlTypeRepository(db)
 	controlTypeSvc := organizationServices.NewControlTypeService(controlTypeRepo)
+	controlTypeController := controllers.NewControlTypeController(controlTypeSvc)
 
 	controlImplementationStatusRepo := organizationRepositories.NewControlImplementationStatusRepository(db)
 	controlImplementationStatusSvc := organizationServices.NewControlImplementationStatusService(controlImplementationStatusRepo)
+	controlImplementationStatusController := controllers.NewControlImplementationStatusController(controlImplementationStatusSvc)
 
 	controlEfficiencyStatusRepo := organizationRepositories.NewControlEfficiencyStatusRepository(db)
 	controlEfficiencyStatusSvc := organizationServices.NewControlEfficiencyStatusService(controlEfficiencyStatusRepo)
+	controlEfficiencyStatusController := controllers.NewControlEfficiencyStatusController(controlEfficiencyStatusSvc)
 
 	controlRepo := organizationRepositories.NewControlRepository(db)
 	controlSvc := organizationServices.NewControlService(
@@ -75,10 +85,9 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 		userSvc,
 		reviewFrequiencySvc,
 		lifecycleStatusSvc)
+	controlController := controllers.NewControlController(controlSvc)
 
-	//Designations
-	designationController := controllers.NewDesignationController(designationSvc)
-
+	//Designation
 	organizationRoutes.GET("/designations", designationController.GetAllDesignations)
 	organizationRoutes.GET("/designations/:id", designationController.GetDesignationDetails)
 	organizationRoutes.POST("/designations", designationController.CreateDesignation)
@@ -88,31 +97,24 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	organizationRoutes.PUT("/designations/deactivate", designationController.DeactivateDesignations)
 
 	//User Status
-	userStatusController := controllers.NewUserStatusController(userStatusSvc)
-
 	organizationRoutes.GET("/user-statuses", userStatusController.GetAllUserStatuses)
 	organizationRoutes.GET("/user-statuses/:id", userStatusController.GetUserStatusDetails)
 
-	//user
-	userController := controllers.NewUserController(userSvc)
-
+	//User
 	organizationRoutes.GET("/users", userController.GetAllUsers)
 	organizationRoutes.POST("/users", userController.CreateUser)
 	organizationRoutes.PUT("/users/:userId", userController.UpdateUser)
 	organizationRoutes.POST("/users/delete", userController.DeleteUsers)
+	organizationRoutes.POST("/users/:userId/reset-password", userController.NewPassword)
 
-	//strategic profile
-	strategicProfileController := controllers.NewStrategicProfileController(strategicProfileSvc)
-
+	//Strategic Profile
 	organizationRoutes.GET("/strategic-profiles", strategicProfileController.GetStrategicProfile)
 	organizationRoutes.PUT("/strategic-profiles", strategicProfileController.UpdateStrategicProfile)
 	organizationRoutes.PUT("/strategic-profiles/vision", strategicProfileController.UpdateVision)
 	organizationRoutes.PUT("/strategic-profiles/mission", strategicProfileController.UpdateMission)
 	organizationRoutes.PUT("/strategic-profiles/values", strategicProfileController.UpdateValues)
 
-	//strategic Objectives
-	strategicObjectiveController := controllers.NewStrategicObjectiveController(strategicObjectiveSvc)
-
+	//Strategic Objective
 	organizationRoutes.GET("/strategic-objectives", strategicObjectiveController.GetAllStrategicObjectives)
 	organizationRoutes.GET("/strategic-objectives/:id", strategicObjectiveController.GetStrategicObjectiveDetails)
 	organizationRoutes.POST("/strategic-objectives", strategicObjectiveController.CreateStrategicObjective)
@@ -121,35 +123,22 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	organizationRoutes.PUT("/strategic-objectives/activate", strategicObjectiveController.ActivateStrategicObjectives)
 	organizationRoutes.PUT("/strategic-objectives/deactivate", strategicObjectiveController.DeactivateStrategicObjectives)
 
-	//user settings
-	// @review.
-	// @move to user settings controller
-	// use preference for normal settings.
-	//if suggest we can change table name also
-	//updated
+	//User Settings
 	organizationRoutes.GET("/users/:userId/settings/preferences", userController.GetSetting)
 	organizationRoutes.PUT("/users/:userId/settings/preferences", userController.UpdateSetting)
 
-	//@review
-	//updated url
 	organizationRoutes.PUT("/users/:userId/settings/security/enable-mfa", userController.EnableMFA)
 	organizationRoutes.PUT("/users/:userId/settings/security/disable-mfa", userController.DisableMFA)
 	//@review
 	//you can change this notification url once individual notification enable/disable url ready if required.
 	organizationRoutes.PUT("/users/:userId/settings/enable-notification", userController.EnableNotification)
 	organizationRoutes.PUT("/users/:userId/settings/disable-notification", userController.DisableNotification)
-	organizationRoutes.POST("/users/:userId/reset-password", userController.NewPassword)
-
-	//user settings
-	userSettingController := controllers.NewUserSettingController(userSettingSvc)
 
 	organizationRoutes.GET("/users/:userId/settings/notifications", userSettingController.GetNotificationSettings)
 	organizationRoutes.POST("/users/:userId/settings/notifications/:notificationMasterId/enable", userSettingController.EnableNotification)
 	organizationRoutes.POST("/users/:userId/settings/notifications/:notificationMasterId/disable", userSettingController.DisableNotification)
 
-	//Control Categories
-	controlCategoryController := controllers.NewControlCategoryController(controlCategorySvc)
-
+	//Control Category
 	organizationRoutes.GET("/control-categories", controlCategoryController.GetAllControlCategories)
 	organizationRoutes.GET("/control-categories/:id", controlCategoryController.GetControlCategoryDetails)
 	organizationRoutes.POST("/control-categories", controlCategoryController.CreateControlCategory)
@@ -158,26 +147,18 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	organizationRoutes.PUT("/control-categories/activate", controlCategoryController.ActivateControlCategories)
 	organizationRoutes.PUT("/control-categories/deactivate", controlCategoryController.DeactivateControlCategories)
 
-	//control type
-	controlTypeController := controllers.NewControlTypeController(controlTypeSvc)
-
+	//Control Type
 	organizationRoutes.GET("/control-types", controlTypeController.GetAllControlTypes)
 
-	//control implementation status
-	controlImplementationStatusController := controllers.NewControlImplementationStatusController(controlImplementationStatusSvc)
-
+	//Control Implementation Status
 	organizationRoutes.GET("/control-implementation-statuses", controlImplementationStatusController.GetAllControlImplementationStatuses)
 	organizationRoutes.GET("/control-implementation-statuses/:id", controlImplementationStatusController.GetControlImplementationStatusDetails)
 
-	//control efficiency status
-	controlEfficiencyStatusController := controllers.NewControlEfficiencyStatusController(controlEfficiencyStatusSvc)
-
+	//Control Efficiency Status
 	organizationRoutes.GET("/control-efficiency-statuses", controlEfficiencyStatusController.GetAllControlEfficiencyStatuses)
 	organizationRoutes.GET("/control-efficiency-statuses/:id", controlEfficiencyStatusController.GetControlEfficiencyStatusDetails)
 
-	//control
-	controlController := controllers.NewControlController(controlSvc)
-
+	//Control
 	organizationRoutes.GET("/controls", controlController.GetAllControls)
 	organizationRoutes.GET("/controls/:id", controlController.GetControlDetails)
 	organizationRoutes.POST("/controls", controlController.CreateControl)
