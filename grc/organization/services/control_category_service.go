@@ -85,7 +85,7 @@ func (ccs *ControlCategoryService) Create(currentUserID uint, controlCategory *m
 }
 
 func (ccs *ControlCategoryService) Update(id uint, currentUserID uint, updatedControlCategory *models.ControlCategory) (*models.ControlCategory, error) {
-	existingControlCategory, err := ccs.repo.GetByID(id)
+	existingControlCategory, err := ccs.GetByID(id)
 
 	if err != nil {
 		return nil, err

@@ -94,7 +94,7 @@ func (sos *StrategicObjectiveService) Create(currentUserID uint, strategicObject
 }
 
 func (sos *StrategicObjectiveService) Update(id uint, currentUserID uint, strategicObjectiveFormDTO *dtos.StrategicObjectiveFormDTO) error {
-	existingStrategicObjective, err := sos.repo.GetByID(id)
+	existingStrategicObjective, err := sos.GetByID(id)
 
 	if err != nil {
 		return err

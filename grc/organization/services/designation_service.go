@@ -85,7 +85,7 @@ func (ds *DesignationService) Create(currentUserID uint, designation *models.Des
 }
 
 func (ds *DesignationService) Update(id uint, currentUserID uint, updatedDesignation *models.Designation) (*models.Designation, error) {
-	existingDesignation, err := ds.repo.GetByID(id)
+	existingDesignation, err := ds.GetByID(id)
 
 	if err != nil {
 		return nil, err
