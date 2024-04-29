@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"fmt"
 	logModels "jethur/grc/logs/models"
 	activityLogServices "jethur/grc/logs/services"
@@ -8,6 +9,8 @@ import (
 	"jethur/grc/risk/models"
 	"jethur/grc/risk/repositories"
 	"jethur/utility"
+
+	"gorm.io/gorm"
 )
 
 type RiskMatrixRiskRatingServiceInterface interface {
@@ -45,7 +48,14 @@ func (rmrrs *RiskMatrixRiskRatingService) GetAllByRiskMatrix(riskMatrxId uint) (
 }
 
 func (rmrrs RiskMatrixRiskRatingService) GetByID(id uint) (*models.RiskMatrixRiskRating, error) {
-	return rmrrs.repo.GetByID(id)
+	riskMatrixRiskRating, err := rmrrs.repo.GetByID(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+	return riskMatrixRiskRating, nil
 }
 
 func (rmrrs *RiskMatrixRiskRatingService) Create(currentUserID uint, riskMatrixRiskRatingFormDTO *riskDTOs.RiskMatrixRiskRatingFormDTO) (uint, error) {
