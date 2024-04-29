@@ -1,7 +1,7 @@
 package repositories
 
 import (
-	"jethur/grc/settings/models"
+	"jethur/grc/models"
 
 	"gorm.io/gorm"
 )
@@ -24,14 +24,14 @@ func NewSystemPreferenceRepository(db *gorm.DB) *SystemPreferenceRepository {
 }
 
 func (repo *SystemPreferenceRepository) GetByID(id uint) (*models.SystemPreference, error) {
-	var status *models.SystemPreference
-	result := repo.db.First(&status, id)
+	var systemPreference *models.SystemPreference
+	result := repo.db.First(&systemPreference, id)
 
 	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	return status, result.Error
+	return systemPreference, result.Error
 }
 
 func (repo *SystemPreferenceRepository) Update(systemPreference *models.SystemPreference) error {

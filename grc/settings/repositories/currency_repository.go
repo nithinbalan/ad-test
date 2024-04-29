@@ -1,7 +1,7 @@
 package repositories
 
 import (
-	"jethur/grc/settings/models"
+	"jethur/grc/models"
 
 	"gorm.io/gorm"
 )
@@ -45,12 +45,12 @@ func (repo *CurrencyRepository) GetAll(sort string, sortBy string, keyword strin
 }
 
 func (repo *CurrencyRepository) GetByID(id uint) (*models.Currency, error) {
-	var status *models.Currency
-	result := repo.db.First(&status, id)
+	var currency *models.Currency
+	result := repo.db.First(&currency, id)
 
 	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	return status, result.Error
+	return currency, result.Error
 }

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	logModels "jethur/grc/logs/models"
 	"jethur/grc/logs/services"
+	"jethur/grc/models"
 	"jethur/grc/settings/dtos"
-	"jethur/grc/settings/models"
 	"jethur/grc/settings/repositories"
 	"jethur/utility"
 )
@@ -46,12 +46,13 @@ func (sps *SystemPreferenceService) Update(id uint, currentUserID uint, systemPr
 
 	// Update fields with values from DTO
 	existingSystemPreference.CurrencyID = systemPreferenceFormDTO.CurrencyID
+	existingSystemPreference.TimezoneID = systemPreferenceFormDTO.TimezoneID
 	existingSystemPreference.DateFormat = systemPreferenceFormDTO.DateFormat
 	existingSystemPreference.TimeFormat = systemPreferenceFormDTO.TimeFormat
 	existingSystemPreference.DocUploadSize = systemPreferenceFormDTO.DocUploadSize
 	existingSystemPreference.LogoUploadSize = systemPreferenceFormDTO.LogoUploadSize
 	existingSystemPreference.IdleTimeout = systemPreferenceFormDTO.IdleTimeout
-	existingSystemPreference.IsMaintanceModeOn = systemPreferenceFormDTO.IsMaintanceModeOn
+	existingSystemPreference.IsMaintenanceModeOn = systemPreferenceFormDTO.IsMaintanceModeOn
 	existingSystemPreference.UpdatedBy = &currentUserID
 
 	// Update system preference in the repository

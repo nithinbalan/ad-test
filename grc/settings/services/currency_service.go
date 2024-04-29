@@ -1,7 +1,7 @@
 package services
 
 import (
-	"jethur/grc/settings/models"
+	"jethur/grc/models"
 	"jethur/grc/settings/repositories"
 )
 
@@ -22,12 +22,12 @@ func NewCurrencyService(repo repositories.CurrencyRepositoryInterface) CurrencyS
 }
 
 func (cs *CurrencyService) GetAll(sort string, sortBy string, keyword string) ([]*models.Currency, error) {
-	statusResult, err := cs.repo.GetAll(sort, sortBy, keyword)
+	currencies, err := cs.repo.GetAll(sort, sortBy, keyword)
 	if err != nil {
 		return nil, err
 	}
 
-	return statusResult, nil
+	return currencies, nil
 }
 
 func (cs CurrencyService) GetByID(id uint) (*models.Currency, error) {
