@@ -6,8 +6,8 @@ import (
 	logModels "jethur/grc/logs/models"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
+	"jethur/grc/models"
 	riskDTOs "jethur/grc/risk/dtos"
-	"jethur/grc/risk/models"
 	riskRepositories "jethur/grc/risk/repositories"
 	"jethur/utility"
 

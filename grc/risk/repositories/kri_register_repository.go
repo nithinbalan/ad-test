@@ -3,8 +3,8 @@ package repositories
 import (
 	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
+	"jethur/grc/models"
 	riskDTOs "jethur/grc/risk/dtos"
-	"jethur/grc/risk/models"
 	"jethur/utility"
 	"strconv"
 	"time"

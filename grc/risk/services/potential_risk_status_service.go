@@ -2,7 +2,7 @@ package services
 
 import (
 	"errors"
-	"jethur/grc/risk/models"
+	"jethur/grc/models"
 	"jethur/grc/risk/repositories"
 	"jethur/utility"
 

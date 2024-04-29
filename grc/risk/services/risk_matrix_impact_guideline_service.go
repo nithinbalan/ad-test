@@ -5,8 +5,8 @@ import (
 	"fmt"
 	logModels "jethur/grc/logs/models"
 	logServices "jethur/grc/logs/services"
+	"jethur/grc/models"
 	riskDTOs "jethur/grc/risk/dtos"
-	"jethur/grc/risk/models"
 	riskRepositories "jethur/grc/risk/repositories"
 	"jethur/utility"
 
@@ -28,20 +28,20 @@ type RiskMatrixImpactGuidelineService struct {
 	repo                  riskRepositories.RiskMatrixImpactGuidelineRepositoryInterface
 	activityLogSvc        logServices.ActivityLogServiceInterface
 	riskImpactCategorySvc RiskImpactCategoryServiceInterface
-	riskMatrixImpactSvc     RiskMatrixImpactServiceInterface
+	riskMatrixImpactSvc   RiskMatrixImpactServiceInterface
 }
 
 func NewRiskMatrixImpactGuidelineService(
 	repo riskRepositories.RiskMatrixImpactGuidelineRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	riskImpactCategorySvc RiskImpactCategoryServiceInterface,
-	riskMatrixImpactSvc     RiskMatrixImpactServiceInterface,
+	riskMatrixImpactSvc RiskMatrixImpactServiceInterface,
 ) RiskMatrixImpactGuidelineServiceInterface {
 	return &RiskMatrixImpactGuidelineService{
 		repo:                  repo,
 		activityLogSvc:        activityLogSvc,
 		riskImpactCategorySvc: riskImpactCategorySvc,
-		riskMatrixImpactSvc:     riskMatrixImpactSvc,
+		riskMatrixImpactSvc:   riskMatrixImpactSvc,
 	}
 }
 
@@ -215,7 +215,7 @@ func (rmigs *RiskMatrixImpactGuidelineService) validateRiskMatrixImpactGuideline
 
 	// Validate RiskMatrixImpactID
 	if _, err := rmigs.riskMatrixImpactSvc.GetByID(riskMatrixImpactGuidelineFormDTO.RiskMatrixImpactID); err != nil {
-	    return utility.NewValidationError(fmt.Errorf("risk matrix impact does not exist"), "not_exist", "risk matrix impact")
+		return utility.NewValidationError(fmt.Errorf("risk matrix impact does not exist"), "not_exist", "risk matrix impact")
 	}
 
 	return nil
@@ -231,7 +231,6 @@ func (rmigs *RiskMatrixImpactGuidelineService) validateRiskMatrixImpactGuideline
 	if len(riskMatrixImpactGuidelineUpdateFormDTO.Guideline) == 0 {
 		return utility.NewValidationError(fmt.Errorf("guideline is required"), "required", "guideline")
 	}
-	
 
 	return nil
 }

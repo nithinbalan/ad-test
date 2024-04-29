@@ -4,7 +4,6 @@ import (
 	"time"
 
 	masterModels "jethur/grc/masters/models"
-	"jethur/grc/models"
 )
 
 type PotentialRisk struct {
@@ -24,8 +23,8 @@ type PotentialRisk struct {
 	RiskCategory        *RiskCategory               `gorm:"foreignkey:RiskCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	SeverityLevel       *masterModels.SeverityLevel `gorm:"foreignkey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	PotentialRiskStatus *PotentialRiskStatus        `gorm:"foreignkey:PotentialRiskStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser       *models.User                `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser       *models.User                `gorm:"foreignKey:UpdatedBy"`
+	CreatedByUser       *User                       `gorm:"foreignKey:CreatedBy"`
+	UpdatedByUser       *User                       `gorm:"foreignKey:UpdatedBy"`
 }
 
 // TableName overrides the table name used by PotentialRisk to `potential_risks`
