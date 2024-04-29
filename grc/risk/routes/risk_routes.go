@@ -89,6 +89,10 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	)
 	kriRegisterController := controllers.NewKRIRegisterController(kriRegisterSvc)
 
+	kriValueUpdateRepo := riskRepositories.NewKRIValueUpdateRepository(db)
+	kriValueUpdateSvc := riskServices.NewKRIValueUpdateService(kriValueUpdateRepo, activityLogSvc, kriRegisterSvc, reviewFrequencySvc)
+	kriValueUpdateController := controllers.NewKRIValueUpdateController(kriValueUpdateSvc)
+
 	riskAppetiteStatementRepo := riskRepositories.NewRiskAppetiteStatementRepository(db)
 	riskAppetiteStatementSvc := riskServices.NewRiskAppetiteStatementService(
 		riskAppetiteStatementRepo,
@@ -173,6 +177,11 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	riskRoutes.POST("/kri-register", kriRegisterController.CreateKRIRegister)
 	riskRoutes.PUT("/kri-register/:id", kriRegisterController.UpdateKRIRegister)
 	riskRoutes.POST("/kri-register/delete", kriRegisterController.DeleteKRIRegisters)
+
+	riskRoutes.GET("/kri-register/:id/value-updates", kriValueUpdateController.GetAllKRIValueUpdates)
+	riskRoutes.POST("/kri-register/:id/value-updates", kriValueUpdateController.CreateKRIValueUpdate)
+	riskRoutes.PUT("/kri-register/:id/value-updates/:updateId", kriValueUpdateController.UpdateKRIValueUpdate)
+	riskRoutes.POST("/kri-register/:id/value-updates/delete", kriValueUpdateController.DeleteKRIValueUpdates)
 
 	riskRoutes.GET("/risk-matrix-impacts", riskMatrixImpactController.GetAllRiskMatrixImpacts)
 	riskRoutes.GET("/risk-matrix-impacts/:id", riskMatrixImpactController.GetRiskMatrixImpactDetails)
