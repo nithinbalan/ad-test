@@ -9,7 +9,7 @@ type SystemPreference struct {
 	ID                  uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	CurrencyID          uint       `json:"currency_id" binding:"required" gorm:"not null"`
 	TimezoneID          uint       `json:"timezone_id" binding:"required" gorm:"not null"`
-	DateFormat          *string    `json:"date_format" binding:"required" gorm:"size:45"`
+	DateFormat          string     `json:"date_format" binding:"required" gorm:"size:45;not null"`
 	TimeFormat          string     `json:"time_format" binding:"required" gorm:"type:varchar(10);not null;default:12;check:time_format IN ('12', '24')"`
 	DocUploadSize       int        `json:"doc_upload_size" binding:"required" gorm:"not null"`
 	LogoUploadSize      int        `json:"logo_upload_size" binding:"required" gorm:"not null"`
@@ -21,10 +21,10 @@ type SystemPreference struct {
 	UpdatedAt           *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 
 	// Relationships
-	Currency      *Currency `gorm:"foreignkey:CurrencyID;constraint:OnDelete:NO ACTION,OnUpdate:NO ACTION"`
+	Currency      *Currency        `gorm:"foreignkey:CurrencyID;constraint:OnDelete:NO ACTION,OnUpdate:NO ACTION"`
 	Timezone      *models.Timezone `gorm:"foreignkey:TimezoneID;constraint:OnDelete:NO ACTION,OnUpdate:NO ACTION"`
-	CreatedByUser *User     `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser *User     `gorm:"foreignKey:UpdatedBy"`
+	CreatedByUser *User            `gorm:"foreignKey:CreatedBy"`
+	UpdatedByUser *User            `gorm:"foreignKey:UpdatedBy"`
 }
 
 // TableName overrides the table name used by SystemPreference to `system_preferences`
