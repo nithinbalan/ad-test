@@ -63,7 +63,6 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 	}
 
 	nextReviewDate := utility.CalculateNextReviewDate(reviewFrequency.Type)
-	nextReviewDateStr := nextReviewDate.Format("2006-01-02")
 
 	dates, err := kvus.parseKRIValueUpdateDates(kriValueUpdateFormDTO)
 	if err != nil {
@@ -85,26 +84,14 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 		tx.Rollback()
 		return 0, err
 	}
-	kriRegister := &riskDTOs.KRIRegisterFormDTO{
-		KRICategoryID:     existingKRIRegister.KRICategoryID,
-		OwnerUnitID:       existingKRIRegister.OwnerUnitID,
-		OwnerID:           existingKRIRegister.OwnerID,
-		ReviewFrequencyID: existingKRIRegister.ReviewFrequencyID,
-		RiskLevelID:       existingKRIRegister.RiskLevelID,
-		Title:             existingKRIRegister.Title,
-		Description:       existingKRIRegister.Description,
-		CalculationType:   existingKRIRegister.CalculationType,
-		LowThreshold:      existingKRIRegister.LowThreshold,
-		MediumThreshold:   existingKRIRegister.MediumThreshold,
-		HighThreshold:     existingKRIRegister.HighThreshold,
-		CurrentValue:      &kriValueUpdateFormDTO.Value,
-		LastReviewedDate:  kriValueUpdateFormDTO.ReviewedDate,
-		NextReviewDate:    nextReviewDateStr,
-		LastReviewNote:    kriValueUpdateFormDTO.Remarks,
-	}
-	err = kvus.kriRegisterSvc.Update(kriRegisterID, currentUserID, kriRegister)
+
+	existingKRIRegister.CurrentValue = &kriValueUpdateFormDTO.Value
+	existingKRIRegister.LastReviewNote = kriValueUpdateFormDTO.Remarks
+	existingKRIRegister.LastReviewedDate = *dates.ReviewedDate
+	existingKRIRegister.NextReviewDate = nextReviewDate
+
+	err = kvus.kriRegisterSvc.UpdateValue(existingKRIRegister, tx)
 	if err != nil {
-		tx.Rollback()
 		return 0, err
 	}
 
@@ -200,9 +187,6 @@ func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentU
 	existingKRIUpdate.KRIRegisterID = kriRegisterID
 	existingKRIUpdate.ReviewedDate = *dates.ReviewedDate
 	existingKRIUpdate.Value = kriValueUpdateFormDTO.Value
-	// existingKRIUpdate.LowThreshold = *existingKRIRegister.LowThreshold
-	// existingKRIUpdate.MediumThreshold = *existingKRIRegister.MediumThreshold
-	// existingKRIUpdate.HighThreshold = *existingKRIRegister.HighThreshold
 	existingKRIUpdate.Remarks = kriValueUpdateFormDTO.Remarks
 
 	err = kvus.repo.Update(existingKRIUpdate, tx)
@@ -212,25 +196,10 @@ func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentU
 		return err
 	}
 
-	kriRegister := &riskDTOs.KRIRegisterFormDTO{
-		KRICategoryID:     existingKRIRegister.KRICategoryID,
-		OwnerUnitID:       existingKRIRegister.OwnerUnitID,
-		OwnerID:           existingKRIRegister.OwnerID,
-		ReviewFrequencyID: existingKRIRegister.ReviewFrequencyID,
-		RiskLevelID:       existingKRIRegister.RiskLevelID,
-		Title:             existingKRIRegister.Title,
-		Description:       existingKRIRegister.Description,
-		CalculationType:   existingKRIRegister.CalculationType,
-		LowThreshold:      existingKRIRegister.LowThreshold,
-		MediumThreshold:   existingKRIRegister.MediumThreshold,
-		HighThreshold:     existingKRIRegister.HighThreshold,
-		LastReviewedDate:  existingKRIRegister.LastReviewedDate.Format("2006-01-02"), //Date Format Converting to String
-		NextReviewDate:    existingKRIRegister.NextReviewDate.Format("2006-01-02"),   //Date Format Converting to String
-		CurrentValue:      &kriValueUpdateFormDTO.Value,
-		LastReviewNote:    kriValueUpdateFormDTO.Remarks,
-	}
+	existingKRIRegister.CurrentValue = &kriValueUpdateFormDTO.Value
+	existingKRIRegister.LastReviewNote = kriValueUpdateFormDTO.Remarks
 
-	err = kvus.kriRegisterSvc.Update(kriRegisterID, currentUserID, kriRegister)
+	err = kvus.kriRegisterSvc.UpdateValue(existingKRIRegister, tx)
 	if err != nil {
 		tx.Rollback()
 		return err

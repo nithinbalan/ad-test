@@ -17,7 +17,7 @@ type KRIRegisterRepositoryInterface interface {
 	GetByID(id uint) (*models.KRIRegister, error)
 	GetFullDetailsByID(id uint) (*models.KRIRegister, error)
 	Create(kriRegister *models.KRIRegister) (uint, error)
-	Update(kriRegister *models.KRIRegister) error
+	Update(kriRegister *models.KRIRegister, tx ...utility.DatabaseTransaction) error
 	Delete(id uint) error
 	ExistsByTitle(Title string, KRICategoryID uint) (bool, error)
 	ExistsByTitleExcludingID(id uint, Title string, KRICategoryID uint) (bool, error)
@@ -201,12 +201,14 @@ func (repo *KRIRegisterRepository) Create(kriRegister *models.KRIRegister) (uint
 	return kriRegister.ID, nil
 }
 
-func (repo *KRIRegisterRepository) Update(kriRegister *models.KRIRegister) error {
-
-	if err := repo.db.Save(kriRegister).Error; err != nil {
+func (repo *KRIRegisterRepository) Update(kriRegister *models.KRIRegister, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(kriRegister).Error; err != nil {
 		return err
 	}
-
 	return nil
 }
 

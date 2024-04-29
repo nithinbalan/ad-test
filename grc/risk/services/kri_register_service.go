@@ -22,6 +22,7 @@ type KRIRegisterServiceInterface interface {
 	GetByID(id uint) (*models.KRIRegister, error)
 	Create(currentUserID uint, kriRegisterFormDTO *riskDTOs.KRIRegisterFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, kriRegisterFormDTO *riskDTOs.KRIRegisterFormDTO) error
+	UpdateValue(kriRegister *models.KRIRegister, tx utility.DatabaseTransaction) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 }
 
@@ -171,7 +172,6 @@ func (krs *KRIRegisterService) Update(id uint, currentUserID uint, kriRegisterFo
 	if err != nil {
 		return err
 	}
-
 	existingKRIRegister.KRICategoryID = kriRegisterFormDTO.KRICategoryID
 	existingKRIRegister.OwnerUnitID = kriRegisterFormDTO.OwnerUnitID
 	existingKRIRegister.OwnerID = kriRegisterFormDTO.OwnerID
@@ -190,7 +190,15 @@ func (krs *KRIRegisterService) Update(id uint, currentUserID uint, kriRegisterFo
 	existingKRIRegister.UpdatedBy = &currentUserID
 
 	err = krs.repo.Update(existingKRIRegister)
+	if err != nil {
+		return err
+	}
 
+	return nil
+}
+
+func (krs *KRIRegisterService) UpdateValue(kriRegister *models.KRIRegister, tx utility.DatabaseTransaction) error {
+	err := krs.repo.Update(kriRegister, tx)
 	if err != nil {
 		return err
 	}
