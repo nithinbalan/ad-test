@@ -87,7 +87,7 @@ func (rmigs RiskMatrixImpactGuidelineService) GetFullDetailsByID(id uint) (*risk
 func (rmigs *RiskMatrixImpactGuidelineService) Create(currentUserID uint, riskMatrixImpactGuidelineFormDTO *riskDTOs.RiskMatrixImpactGuidelineFormDTO) ([]uint, error) {
 	tx := rmigs.repo.BeginTransaction()
 
-	if err := rmigs.validateRiskMatrixImpactGuidelineFormDTO(riskMatrixImpactGuidelineFormDTO, nil); err != nil {
+	if err := rmigs.validateRiskMatrixImpactGuidelineFormDTO(riskMatrixImpactGuidelineFormDTO); err != nil {
 		return nil, err
 	}
 
@@ -202,7 +202,7 @@ func (rmigs *RiskMatrixImpactGuidelineService) Delete(ids []uint, currentUserID 
 	return failedIds, nil
 }
 
-func (rmigs *RiskMatrixImpactGuidelineService) validateRiskMatrixImpactGuidelineFormDTO(riskMatrixImpactGuidelineFormDTO *riskDTOs.RiskMatrixImpactGuidelineFormDTO, id *uint) error {
+func (rmigs *RiskMatrixImpactGuidelineService) validateRiskMatrixImpactGuidelineFormDTO(riskMatrixImpactGuidelineFormDTO *riskDTOs.RiskMatrixImpactGuidelineFormDTO) error {
 	// Check if Guidelines array exists and is not null
 	if riskMatrixImpactGuidelineFormDTO.Guidelines == nil || len(riskMatrixImpactGuidelineFormDTO.Guidelines) == 0 {
 		return utility.NewValidationError(fmt.Errorf("guidelines array is required and cannot be empty"), "required", "guidelines")
