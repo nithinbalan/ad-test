@@ -107,7 +107,7 @@ func (spc *StrategicProfileController) UpdateMission(c *gin.Context) {
 		return
 	}
 
-	var strategicProfileMissionFormDTO organizationDTOs.StrategicProfileMisionFormDTO
+	var strategicProfileMissionFormDTO organizationDTOs.StrategicProfileMissionFormDTO
 	if err := c.ShouldBindJSON(&strategicProfileMissionFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return

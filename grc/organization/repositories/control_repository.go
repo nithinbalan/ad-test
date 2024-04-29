@@ -251,7 +251,7 @@ func (repo *ControlRepository) GetByID(id uint) (*models.Control, error) {
 }
 
 func (repo *ControlRepository) GetFullDetailsByID(id uint) (*models.Control, error) {
-	var control *models.Control // Declare the variable inside the function
+	var control *models.Control
 
 	result := repo.db.
 		Preload("ControlType").
