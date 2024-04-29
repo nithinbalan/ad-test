@@ -1,9 +1,7 @@
 package repositories
 
 import (
-	"errors"
 	"jethur/grc/risk/models"
-	"jethur/utility"
 
 	"gorm.io/gorm"
 )
@@ -55,13 +53,12 @@ func (repo *RiskLevelRepository) GetByID(id uint) (*models.RiskLevel, error) {
 	var riskLevel *models.RiskLevel
 	result := repo.db.First(&riskLevel, id)
 
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, utility.NewResourceNotFoundError(result.Error, id)
-	} else if result.Error != nil {
+	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	return riskLevel, result.Error
+	return riskLevel, nil
+
 }
 
 func (repo *RiskLevelRepository) GetByType(status string) (*models.RiskLevel, error) {

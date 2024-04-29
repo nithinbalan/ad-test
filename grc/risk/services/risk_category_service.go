@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"fmt"
 	logModels "jethur/grc/logs/models"
 	"jethur/grc/logs/services"
@@ -8,6 +9,8 @@ import (
 	"jethur/grc/risk/repositories"
 	"jethur/utility"
 	"log"
+
+	"gorm.io/gorm"
 )
 
 type RiskCategoryServiceInterface interface {
@@ -38,7 +41,14 @@ func (rcs *RiskCategoryService) GetAll(sort string, sortBy string, keyword strin
 }
 
 func (rcs RiskCategoryService) GetByID(id uint) (*models.RiskCategory, error) {
-	return rcs.repo.GetByID(id)
+	riskCategory, err := rcs.repo.GetByID(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+	return riskCategory, nil
 }
 
 func (rcs *RiskCategoryService) Create(currentUserID uint, category *models.RiskCategory) (*models.RiskCategory, error) {
