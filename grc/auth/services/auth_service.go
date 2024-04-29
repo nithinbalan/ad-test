@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	authDTOs "jethur/grc/auth/dtos"
-	organizationModels "jethur/grc/organization/models"
+	"jethur/grc/models"
 	"jethur/grc/organization/services"
 	"jethur/utility"
 
@@ -346,7 +346,7 @@ func isValidPassword(password string) bool {
 }
 
 // Private method to handle the common functionality of sending OTP.
-func (as AuthService) sendOTP(userSecurity *organizationModels.UserSecurity, user *organizationModels.User, mailSubject string, mailRelativePath string) error {
+func (as AuthService) sendOTP(userSecurity *models.UserSecurity, user *models.User, mailSubject string, mailRelativePath string) error {
 	otpLength := 6
 	verifyOTPDuration := 10
 

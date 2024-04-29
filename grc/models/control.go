@@ -2,7 +2,6 @@ package models
 
 import (
 	masterModels "jethur/grc/masters/models"
-	settingsModels "jethur/grc/models"
 	"time"
 )
 
@@ -36,18 +35,18 @@ type Control struct {
 	LifecycleStatusID             uint       `json:"lifecycle_status_id" gorm:"not null"`
 
 	// Relationships
-	ControlType                 *ControlType                     `gorm:"foreignKey:ControlTypeID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ControlCategory             *ControlCategory                 `gorm:"foreignKey:ControlCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	OwnerUnit                   *settingsModels.OrganizationUnit `gorm:"foreignKey:OwnerUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	Owner                       *User                            `gorm:"foreignKey:OwnerID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ControlImplementationStatus *ControlImplementationStatus     `gorm:"foreignKey:ControlImplementationStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ControlEfficiencyStatus     *ControlEfficiencyStatus         `gorm:"foreignKey:ControlEfficiencyStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ReviewFrequency             *masterModels.ReviewFrequency    `gorm:"foreignKey:ReviewFrequencyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	TestResponsibleUser         *User                            `gorm:"foreignKey:TestResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	TestFrequency               *masterModels.ReviewFrequency    `gorm:"foreignKey:TestFrequencyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	LifecycleStatus             *masterModels.LifecycleStatus    `gorm:"foreignkey:LifecycleStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser               *User                            `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser               *User                            `gorm:"foreignKey:UpdatedBy"`
+	ControlType                 *ControlType                  `gorm:"foreignKey:ControlTypeID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ControlCategory             *ControlCategory              `gorm:"foreignKey:ControlCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	OwnerUnit                   *OrganizationUnit             `gorm:"foreignKey:OwnerUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Owner                       *User                         `gorm:"foreignKey:OwnerID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ControlImplementationStatus *ControlImplementationStatus  `gorm:"foreignKey:ControlImplementationStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ControlEfficiencyStatus     *ControlEfficiencyStatus      `gorm:"foreignKey:ControlEfficiencyStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ReviewFrequency             *masterModels.ReviewFrequency `gorm:"foreignKey:ReviewFrequencyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	TestResponsibleUser         *User                         `gorm:"foreignKey:TestResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	TestFrequency               *masterModels.ReviewFrequency `gorm:"foreignKey:TestFrequencyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	LifecycleStatus             *masterModels.LifecycleStatus `gorm:"foreignkey:LifecycleStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	CreatedByUser               *User                         `gorm:"foreignKey:CreatedBy"`
+	UpdatedByUser               *User                         `gorm:"foreignKey:UpdatedBy"`
 }
 
 func (Control) TableName() string {

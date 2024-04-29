@@ -3,7 +3,7 @@ package models
 import (
 	"time"
 
-	organizationModels "jethur/grc/organization/models"
+	"jethur/grc/models"
 )
 
 type ComplianceStatusUpdate struct {
@@ -17,10 +17,10 @@ type ComplianceStatusUpdate struct {
 	UpdatedBy            *uint      `json:"updated_by" gorm:"default:null"`
 
 	//Relationships
-	ComplianceRegister *ComplianceRegister      `gorm:"foreignkey:ComplianceRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ComplianceStatus   *ComplianceStatus        `gorm:"foreignkey:ComplianceStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser      *organizationModels.User `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser      *organizationModels.User `gorm:"foreignKey:UpdatedBy"`
+	ComplianceRegister *ComplianceRegister `gorm:"foreignkey:ComplianceRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ComplianceStatus   *ComplianceStatus   `gorm:"foreignkey:ComplianceStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	CreatedByUser      *models.User        `gorm:"foreignKey:CreatedBy"`
+	UpdatedByUser      *models.User        `gorm:"foreignKey:UpdatedBy"`
 }
 
 // TableName overrides the table name used by ComplianceStatusUpdate to `compliance_status_updates`

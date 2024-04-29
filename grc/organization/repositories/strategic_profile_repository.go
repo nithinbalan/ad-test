@@ -1,16 +1,16 @@
 package repositories
 
 import (
-	organizationModels "jethur/grc/organization/models"
+	"jethur/grc/models"
 
 	"gorm.io/gorm"
 )
 
 type StrategicProfileRepositoryInterface interface {
-	Get() (*organizationModels.StrategicProfile, error)
-	GetStrategicProfileDetails() (*organizationModels.StrategicProfile, error)
-	Update(strategicProfile *organizationModels.StrategicProfile) error
-	UpdateValues(values []*organizationModels.StrategicProfileValue) error
+	Get() (*models.StrategicProfile, error)
+	GetStrategicProfileDetails() (*models.StrategicProfile, error)
+	Update(strategicProfile *models.StrategicProfile) error
+	UpdateValues(values []*models.StrategicProfileValue) error
 }
 
 type StrategicProfileRepository struct {
@@ -23,21 +23,20 @@ func NewStrategicProfileRepository(db *gorm.DB) *StrategicProfileRepository {
 	}
 }
 
-func (repo *StrategicProfileRepository) Get() (*organizationModels.StrategicProfile, error) {
-	var strategicProfile *organizationModels.StrategicProfile
+func (repo *StrategicProfileRepository) Get() (*models.StrategicProfile, error) {
+	var strategicProfile *models.StrategicProfile
+
 	result := repo.db.First(&strategicProfile)
+
 	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	// @review
-	// please move this error return to service, here just return error as it is
-	// everywhere we used to follow method you used, but we have to move to service layer from new apis
 	return strategicProfile, nil
 }
 
-func (repo *StrategicProfileRepository) GetStrategicProfileDetails() (*organizationModels.StrategicProfile, error) {
-	var strategicProfile *organizationModels.StrategicProfile
+func (repo *StrategicProfileRepository) GetStrategicProfileDetails() (*models.StrategicProfile, error) {
+	var strategicProfile *models.StrategicProfile
 
 	result := repo.db.Preload("StrategicProfileValues").First(&strategicProfile)
 
@@ -48,7 +47,7 @@ func (repo *StrategicProfileRepository) GetStrategicProfileDetails() (*organizat
 	return strategicProfile, nil
 }
 
-func (repo *StrategicProfileRepository) Update(strategicProfile *organizationModels.StrategicProfile) error {
+func (repo *StrategicProfileRepository) Update(strategicProfile *models.StrategicProfile) error {
 	if err := repo.db.Save(strategicProfile).Error; err != nil {
 		return err
 	}
@@ -56,18 +55,18 @@ func (repo *StrategicProfileRepository) Update(strategicProfile *organizationMod
 	return nil
 }
 
-func (repo *StrategicProfileRepository) UpdateValues(values []*organizationModels.StrategicProfileValue) error {
+func (repo *StrategicProfileRepository) UpdateValues(values []*models.StrategicProfileValue) error {
 	tx := repo.db.Begin()
 	if tx.Error != nil {
 		return tx.Error
 	}
 
 	// Fetch existing values for the strategic profile
-	var existingValues []organizationModels.StrategicProfileValue
+	var existingValues []models.StrategicProfileValue
 	tx.Where("strategic_profile_id = ?", values[0].StrategicProfileID).Find(&existingValues)
 
 	// Map existing values by ID for easy lookup
-	existingByID := make(map[uint]organizationModels.StrategicProfileValue)
+	existingByID := make(map[uint]models.StrategicProfileValue)
 	for _, val := range existingValues {
 		existingByID[val.ID] = val
 	}
@@ -79,7 +78,7 @@ func (repo *StrategicProfileRepository) UpdateValues(values []*organizationModel
 	for _, value := range values {
 		if value.ID > 0 && existingByID[value.ID].ID != 0 {
 			// Update existing value
-			if err := tx.Model(&organizationModels.StrategicProfileValue{}).Where("id = ?", value.ID).Updates(value).Error; err != nil {
+			if err := tx.Model(&models.StrategicProfileValue{}).Where("id = ?", value.ID).Updates(value).Error; err != nil {
 				tx.Rollback()
 				return err
 			}
@@ -95,7 +94,7 @@ func (repo *StrategicProfileRepository) UpdateValues(values []*organizationModel
 	}
 
 	// Delete values not present in the incoming data
-	if err := tx.Where("strategic_profile_id = ? AND id NOT IN ?", values[0].StrategicProfileID, toKeepIDs).Delete(&organizationModels.StrategicProfileValue{}).Error; err != nil {
+	if err := tx.Where("strategic_profile_id = ? AND id NOT IN ?", values[0].StrategicProfileID, toKeepIDs).Delete(&models.StrategicProfileValue{}).Error; err != nil {
 		tx.Rollback()
 		return err
 	}

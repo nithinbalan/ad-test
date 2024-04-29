@@ -1,7 +1,7 @@
 package models
 
 import (
-	organizationModels "jethur/grc/organization/models"
+	"jethur/grc/models"
 	"time"
 )
 
@@ -17,10 +17,10 @@ type RiskMatrixImpactGuideline struct {
 	UpdatedBy            *uint      `json:"updated_by" gorm:"default:null"`
 
 	// Relationships
-	RiskImpactCategory *RiskImpactCategory      `gorm:"foreignkey:RiskImpactCategoryID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	RiskMatrixImpact   *RiskMatrixImpact        `gorm:"foreignkey:RiskMatrixImpactID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	CreatedByUser      *organizationModels.User `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser      *organizationModels.User `gorm:"foreignKey:UpdatedBy"`
+	RiskImpactCategory *RiskImpactCategory `gorm:"foreignkey:RiskImpactCategoryID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	RiskMatrixImpact   *RiskMatrixImpact   `gorm:"foreignkey:RiskMatrixImpactID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	CreatedByUser      *models.User        `gorm:"foreignKey:CreatedBy"`
+	UpdatedByUser      *models.User        `gorm:"foreignKey:UpdatedBy"`
 }
 
 // TableName overrides the table name used by RiskMatrixImpactGuideline to `risk_matrix_impact_guidelines`

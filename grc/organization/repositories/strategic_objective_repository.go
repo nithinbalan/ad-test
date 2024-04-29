@@ -1,9 +1,8 @@
 package repositories
 
 import (
-	"errors"
+	"jethur/grc/models"
 	"jethur/grc/organization/dtos"
-	"jethur/grc/organization/models"
 	"jethur/utility"
 
 	"gorm.io/gorm"
@@ -34,7 +33,6 @@ func NewStrategicObjectiveRepository(db *gorm.DB) *StrategicObjectiveRepository 
 }
 
 func (repo *StrategicObjectiveRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*dtos.StrategicObjectiveListDTO, error) {
-
 	var strategicObjectivesListDTO []*dtos.StrategicObjectiveListDTO
 
 	query := repo.db.Model(&models.StrategicObjective{})
@@ -63,13 +61,11 @@ func (repo *StrategicObjectiveRepository) GetByID(id uint) (*models.StrategicObj
 	var strategicObjective *models.StrategicObjective
 	result := repo.db.First(&strategicObjective, id)
 
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, utility.NewResourceNotFoundError(result.Error, id)
-	} else if result.Error != nil {
+	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	return strategicObjective, result.Error
+	return strategicObjective, nil
 }
 
 func (repo *StrategicObjectiveRepository) Create(strategicObjective *models.StrategicObjective) (uint, error) {
@@ -87,7 +83,6 @@ func (repo *StrategicObjectiveRepository) Update(updatedStrategicObjective *mode
 }
 
 func (repo *StrategicObjectiveRepository) Delete(id uint) error {
-
 	var strategicObjective *models.StrategicObjective
 	if err := repo.db.First(&strategicObjective, id).Error; err != nil {
 		return err
@@ -104,23 +99,20 @@ func (repo *StrategicObjectiveRepository) Delete(id uint) error {
 func (repo *StrategicObjectiveRepository) Activate(ids []uint) ([]uint, error) {
 	var idsToUpdate []uint
 
-	// Step 1: Fetch the IDs of records that are currently 'inactive' and within the provided 'ids' slice
 	if err := repo.db.Model(&models.StrategicObjective{}).
 		Where("id IN ? AND status = ?", ids, "inactive").
 		Pluck("id", &idsToUpdate).Error; err != nil {
-		return nil, err // Return error if the query fails
+		return nil, err
 	}
 
-	// Step 2: If there are any IDs to update, perform the update operation
 	if len(idsToUpdate) > 0 {
 		if err := repo.db.Model(&models.StrategicObjective{}).
 			Where("id IN ?", idsToUpdate).
 			Update("status", "active").Error; err != nil {
-			return nil, err // Return error if the update operation fails
+			return nil, err
 		}
 	}
 
-	// Return the IDs of the records that were activated
 	return idsToUpdate, nil
 }
 
@@ -128,23 +120,20 @@ func (repo *StrategicObjectiveRepository) Deactivate(ids []uint) ([]uint, error)
 
 	var idsToUpdate []uint
 
-	// Step 1: Fetch the IDs of records that are currently 'inactive' and within the provided 'ids' slice
 	if err := repo.db.Model(&models.StrategicObjective{}).
 		Where("id IN ? AND status = ?", ids, "active").
 		Pluck("id", &idsToUpdate).Error; err != nil {
-		return nil, err // Return error if the query fails
+		return nil, err
 	}
 
-	// Step 2: If there are any IDs to update, perform the update operation
 	if len(idsToUpdate) > 0 {
 		if err := repo.db.Model(&models.StrategicObjective{}).
 			Where("id IN ?", idsToUpdate).
 			Update("status", "inactive").Error; err != nil {
-			return nil, err // Return error if the update operation fails
+			return nil, err
 		}
 	}
 
-	// Return the IDs of the records that were activated
 	return idsToUpdate, nil
 
 }
@@ -152,7 +141,6 @@ func (repo *StrategicObjectiveRepository) Deactivate(ids []uint) ([]uint, error)
 func (repo *StrategicObjectiveRepository) ExistsByTitle(titleEn, titleAr string) (bool, error) {
 	var count int64
 
-	// Check for the existence of titleEn or titleAr in a single query
 	err := repo.db.Model(&models.StrategicObjective{}).
 		Where("title_en = ? OR title_ar = ?", titleEn, titleAr).
 		Count(&count).Error
@@ -161,7 +149,7 @@ func (repo *StrategicObjectiveRepository) ExistsByTitle(titleEn, titleAr string)
 		return false, utility.NewInternalServerError(err)
 
 	}
-	// Return true if either title exists, otherwise false
+
 	return count > 0, nil
 }
 
