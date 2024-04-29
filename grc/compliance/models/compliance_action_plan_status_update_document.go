@@ -1,7 +1,7 @@
 package models
 
 import (
-	organizationModel "jethur/grc/organization/models"
+	organizationModel "jethur/grc/models"
 	"time"
 )
 

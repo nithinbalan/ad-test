@@ -1,8 +1,12 @@
 package services
 
 import (
-	"jethur/grc/organization/models"
+	"errors"
+	"jethur/grc/models"
 	"jethur/grc/organization/repositories"
+	"jethur/utility"
+
+	"gorm.io/gorm"
 )
 
 type UserStatusServiceInterface interface {
@@ -27,14 +31,22 @@ func (uss *UserStatusService) GetAll(sort string, sortBy string, keyword string,
 }
 
 func (uss UserStatusService) GetByID(id uint) (*models.UserStatus, error) {
-	return uss.repo.GetByID(id)
+	userStatus, err := uss.repo.GetByID(id)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+
+	return userStatus, nil
+
 }
 
-func (lss *UserStatusService) GetByType(status string) (*models.UserStatus, error) {
-	// Fetch the lifecycle status by its status
-	statusResult, err := lss.repo.GetByType(status)
+func (uss *UserStatusService) GetByType(status string) (*models.UserStatus, error) {
+	statusResult, err := uss.repo.GetByType(status)
 	if err != nil {
-		// Handle error appropriately
 		return nil, err
 	}
 
