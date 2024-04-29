@@ -1,7 +1,6 @@
 package models
 
 import (
-	"jethur/grc/models"
 	"time"
 )
 
@@ -19,8 +18,8 @@ type RiskAppetiteStatement struct {
 
 	// Relationships
 	RiskCategory  *RiskCategory `gorm:"foreignkey:RiskCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser *models.User  `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser *models.User  `gorm:"foreignKey:UpdatedBy"`
+	CreatedByUser *User         `gorm:"foreignKey:CreatedBy"`
+	UpdatedByUser *User         `gorm:"foreignKey:UpdatedBy"`
 }
 
 // TableName overrides the table name used by RiskAppetiteStatement to `risk_appetite_statements`

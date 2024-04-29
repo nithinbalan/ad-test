@@ -1,7 +1,6 @@
 package models
 
 import (
-	"jethur/grc/models"
 	"time"
 )
 
@@ -16,7 +15,7 @@ type PotentialRiskStatusUpdate struct {
 	//Relationships
 	PotentialRisk       *PotentialRisk       `gorm:"foreignkey:PotentialRiskID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	PotentialRiskStatus *PotentialRiskStatus `gorm:"foreignkey:PotentialRiskStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser       *models.User         `gorm:"foreignKey:CreatedBy"`
+	CreatedByUser       *User                `gorm:"foreignKey:CreatedBy"`
 }
 
 // TableName overrides the table name used by PotentialRiskStatusUpdate to `potential_risk_status_updates`

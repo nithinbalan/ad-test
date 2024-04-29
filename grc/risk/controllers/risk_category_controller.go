@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	"jethur/grc/risk/models"
+	"jethur/grc/models"
 	"jethur/grc/risk/services"
 	"jethur/utility"
 	"net/http"

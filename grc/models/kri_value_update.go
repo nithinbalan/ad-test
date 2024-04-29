@@ -2,8 +2,6 @@ package models
 
 import (
 	"time"
-
-	models "jethur/grc/models"
 )
 
 type KRIValueUpdate struct {
@@ -23,8 +21,8 @@ type KRIValueUpdate struct {
 	// Relationships
 	KRIRegister             *KRIRegister             `gorm:"foreignkey:KRIRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	KRIValueUpdateDocuments []KRIValueUpdateDocument `gorm:"foreignKey:KRIValueUpdateID"`
-	CreatedByUser           *models.User             `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser           *models.User             `gorm:"foreignKey:UpdatedBy"`
+	CreatedByUser           *User                    `gorm:"foreignKey:CreatedBy"`
+	UpdatedByUser           *User                    `gorm:"foreignKey:UpdatedBy"`
 }
 
 // TableName overrides the table name used by KRIValueUpdate to `kri_value_updates`
