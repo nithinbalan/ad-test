@@ -360,7 +360,7 @@ func (crs *ComplianceRegisterService) Delete(ids []uint, currentUserID uint) ([]
 
 func (crs *ComplianceRegisterService) Archive(ids []uint, currentUserID uint) ([]uint, error) {
 
-	lifecycleStatus, err := crs.lifecycleStatusSvc.GetByType("archived|")
+	lifecycleStatus, err := crs.lifecycleStatusSvc.GetByType("archived")
 	if err != nil {
 		return nil, err
 	}

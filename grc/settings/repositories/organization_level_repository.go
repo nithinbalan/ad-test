@@ -1,18 +1,16 @@
 package repositories
 
 import (
-	"jethur/grc/settings/models"
+	"jethur/grc/models"
 
 	"gorm.io/gorm"
 )
 
-// Interfaces
 type OrganizationLevelRepositoryInterface interface {
 	GetAll() ([]*models.OrganizationLevel, error)
 	Create(organizationLevels []*models.OrganizationLevel) ([]*models.OrganizationLevel, error)
 }
 
-// implementation
 type OrganizationLevelRepository struct {
 	db *gorm.DB
 }
@@ -24,7 +22,6 @@ func NewOrganizationLevelRepository(db *gorm.DB) *OrganizationLevelRepository {
 }
 
 func (repo *OrganizationLevelRepository) GetAll() ([]*models.OrganizationLevel, error) {
-
 	var organizationLevels []*models.OrganizationLevel
 
 	query := repo.db

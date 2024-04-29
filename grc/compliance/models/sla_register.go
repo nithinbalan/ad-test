@@ -4,8 +4,8 @@ import (
 	"time"
 
 	masterModels "jethur/grc/masters/models"
+	"jethur/grc/models"
 	organizationModels "jethur/grc/organization/models"
-	settingsModels "jethur/grc/settings/models"
 )
 
 type SLARegister struct {
@@ -27,14 +27,14 @@ type SLARegister struct {
 	UpdatedBy          uint      `json:"updated_by" gorm:"default:null"`
 
 	// Relationships
-	SLACategory      *SLACategory                     `gorm:"foreignKey:SLACategoryID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
-	SeverityLevel    *masterModels.SeverityLevel      `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
-	ResponsibleUnit  *settingsModels.OrganizationUnit `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
-	ResponsibleUser  *organizationModels.User         `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
-	LifecycleStatus  *masterModels.LifecycleStatus    `gorm:"foreignKey:LifecycleStatusID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
-	ComplianceStatus *ComplianceStatus                `gorm:"foreignkey:ComplianceStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser    *organizationModels.User         `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser    *organizationModels.User         `gorm:"foreignKey:UpdatedBy"`
+	SLACategory      *SLACategory                  `gorm:"foreignKey:SLACategoryID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
+	SeverityLevel    *masterModels.SeverityLevel   `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
+	ResponsibleUnit  *models.OrganizationUnit      `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
+	ResponsibleUser  *organizationModels.User      `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
+	LifecycleStatus  *masterModels.LifecycleStatus `gorm:"foreignKey:LifecycleStatusID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
+	ComplianceStatus *ComplianceStatus             `gorm:"foreignkey:ComplianceStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	CreatedByUser    *organizationModels.User      `gorm:"foreignKey:CreatedBy"`
+	UpdatedByUser    *organizationModels.User      `gorm:"foreignKey:UpdatedBy"`
 }
 
 // TableName overrides the table name used by SLARegister to `sla_register`

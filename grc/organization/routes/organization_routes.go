@@ -3,11 +3,13 @@ package routes
 import (
 	logRepositories "jethur/grc/logs/repositories"
 	logServices "jethur/grc/logs/services"
+	masterRepositories "jethur/grc/masters/repositories"
+	masterServices "jethur/grc/masters/services"
 	"jethur/grc/organization/controllers"
 	organizationRepositories "jethur/grc/organization/repositories"
 	organizationServices "jethur/grc/organization/services"
 	settingRepositories "jethur/grc/settings/repositories"
-	settingService "jethur/grc/settings/services"
+	settingServices "jethur/grc/settings/services"
 	"jethur/middlewares"
 
 	"github.com/gin-gonic/gin"
@@ -23,8 +25,14 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	activityLogRepo := logRepositories.NewActivityLogRepository(db)
 	activityLogSvc := logServices.NewActivityLogService(activityLogRepo)
 
+	reviewFrequiencyRepo := masterRepositories.NewReviewFrequencyRepository(db)
+	reviewFrequiencySvc := masterServices.NewReviewFrequencyService(reviewFrequiencyRepo)
+
+	lifecycleStatusRepo := masterRepositories.NewLifecycleStatusRepository(db)
+	lifecycleStatusSvc := masterServices.NewLifecycleStatusService(lifecycleStatusRepo)
+
 	roleRepo := settingRepositories.NewRoleRepository(db)
-	roleSvc := settingService.NewRoleService(roleRepo, activityLogSvc)
+	roleSvc := settingServices.NewRoleService(roleRepo, activityLogSvc)
 
 	designationRepo := organizationRepositories.NewDesignationRepository(db)
 	designationSvc := organizationServices.NewDesignationService(designationRepo, activityLogSvc)
@@ -55,6 +63,18 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 
 	controlEfficiencyStatusRepo := organizationRepositories.NewControlEfficiencyStatusRepository(db)
 	controlEfficiencyStatusSvc := organizationServices.NewControlEfficiencyStatusService(controlEfficiencyStatusRepo)
+
+	controlRepo := organizationRepositories.NewControlRepository(db)
+	controlSvc := organizationServices.NewControlService(
+		controlRepo,
+		activityLogSvc,
+		controlTypeSvc,
+		controlCategorySvc,
+		controlImplementationStatusSvc,
+		controlEfficiencyStatusSvc,
+		userSvc,
+		reviewFrequiencySvc,
+		lifecycleStatusSvc)
 
 	//Designations
 	designationController := controllers.NewDesignationController(designationSvc)
@@ -154,5 +174,16 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 
 	organizationRoutes.GET("/control-efficiency-statuses", controlEfficiencyStatusController.GetAllControlEfficiencyStatuses)
 	organizationRoutes.GET("/control-efficiency-statuses/:id", controlEfficiencyStatusController.GetControlEfficiencyStatusDetails)
+
+	//control
+	controlController := controllers.NewControlController(controlSvc)
+
+	organizationRoutes.GET("/controls", controlController.GetAllControls)
+	organizationRoutes.GET("/controls/:id", controlController.GetControlDetails)
+	organizationRoutes.POST("/controls", controlController.CreateControl)
+	organizationRoutes.PUT("/controls/:id", controlController.UpdateControl)
+	organizationRoutes.POST("/controls/delete", controlController.DeleteControls)
+	organizationRoutes.PUT("/controls/archive", controlController.ArchiveControls)
+	organizationRoutes.PUT("/controls/restore", controlController.RestoreControls)
 
 }

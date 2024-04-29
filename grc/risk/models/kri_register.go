@@ -4,8 +4,8 @@ import (
 	"time"
 
 	masterModels "jethur/grc/masters/models"
+	"jethur/grc/models"
 	organizationModels "jethur/grc/organization/models"
-	settingsModels "jethur/grc/settings/models"
 )
 
 type KRIRegister struct {
@@ -32,13 +32,13 @@ type KRIRegister struct {
 	UpdatedBy         *uint      `json:"updated_by" gorm:"default:null"`
 
 	// Relationships
-	KRICategory     *masterModels.KRICategory        `gorm:"foreignkey:KRICategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	OwnerUnit       *settingsModels.OrganizationUnit `gorm:"foreignkey:OwnerUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	Owner           *organizationModels.User         `gorm:"foreignkey:OwnerID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ReviewFrequency *masterModels.ReviewFrequency    `gorm:"foreignkey:ReviewFrequencyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	RiskLevel       *RiskLevel                       `gorm:"foreignkey:RiskLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser   *organizationModels.User         `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser   *organizationModels.User         `gorm:"foreignKey:UpdatedBy"`
+	KRICategory     *masterModels.KRICategory     `gorm:"foreignkey:KRICategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	OwnerUnit       *models.OrganizationUnit      `gorm:"foreignkey:OwnerUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Owner           *organizationModels.User      `gorm:"foreignkey:OwnerID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ReviewFrequency *masterModels.ReviewFrequency `gorm:"foreignkey:ReviewFrequencyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	RiskLevel       *RiskLevel                    `gorm:"foreignkey:RiskLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	CreatedByUser   *organizationModels.User      `gorm:"foreignKey:CreatedBy"`
+	UpdatedByUser   *organizationModels.User      `gorm:"foreignKey:UpdatedBy"`
 }
 
 // TableName overrides the table name used by KRIRegister to `kri_register`

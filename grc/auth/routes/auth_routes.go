@@ -2,7 +2,6 @@ package routes
 
 import (
 	"jethur/grc/auth/controllers"
-	"jethur/grc/auth/repositories"
 	"jethur/grc/auth/services"
 	logRepositories "jethur/grc/logs/repositories"
 	logServices "jethur/grc/logs/services"
@@ -32,8 +31,7 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	userRepo := organizationRepositories.NewUserRepository(db)
 	userSvc := organizationServices.NewUserService(userRepo, designationSvc, userStatusSvc, activityLogSvc, roleSvc)
 
-	authRepo := repositories.NewAuthRepository(db)
-	authService := services.NewAuthService(authRepo, userSvc)
+	authService := services.NewAuthService(userSvc)
 
 	authController := controllers.NewAuthController(db, authService)
 

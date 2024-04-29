@@ -3,7 +3,7 @@ package dtos
 import (
 	commonDTOs "jethur/grc/common/dtos"
 	masterDTOs "jethur/grc/masters/dtos"
-	settingsModels "jethur/grc/settings/models"
+	"jethur/grc/models"
 	"time"
 )
 
@@ -84,24 +84,24 @@ type KRIRegisterFormDTO struct {
 }
 
 type KRIRegisterDetailsDTO struct {
-	ID               uint                            `json:"id"`
-	ReferenceNumber  string                          `json:"reference_number"`
-	KRICategory      masterDTOs.KRICategoryDTO       `json:"kri_category"`
-	OwnerUnit        settingsModels.OrganizationUnit `json:"organization_unit"`
-	ReviewFrequency  masterDTOs.ReviewFrequencyDTO   `json:"review_frequency"`
-	RiskLevel        RiskLevelDTO                    `json:"risk_level"`
-	Title            string                          `json:"title"`
-	Description      *string                         `json:"description"`
-	CalculationType  string                          `json:"calculation_type"`
-	LowThreshold     *string                         `json:"low_threshold"`
-	MediumThreshold  *string                         `json:"medium_threshold"`
-	HighThreshold    *string                         `json:"high_threshold"`
-	CurrentValue     *string                         `json:"current_value"`
-	LastReviewedDate time.Time                       `json:"last_reviewed_date"`
-	NextReviewDate   time.Time                       `json:"next_review_date"`
-	LastReviewNote   *string                         `json:"last_review_note"`
-	CreatedAt        time.Time                       `json:"created_at"`
-	UpdatedAt        *time.Time                      `json:"updated_at"`
+	ID               uint                          `json:"id"`
+	ReferenceNumber  string                        `json:"reference_number"`
+	KRICategory      masterDTOs.KRICategoryDTO     `json:"kri_category"`
+	OwnerUnit        models.OrganizationUnit       `json:"organization_unit"`
+	ReviewFrequency  masterDTOs.ReviewFrequencyDTO `json:"review_frequency"`
+	RiskLevel        RiskLevelDTO                  `json:"risk_level"`
+	Title            string                        `json:"title"`
+	Description      *string                       `json:"description"`
+	CalculationType  string                        `json:"calculation_type"`
+	LowThreshold     *string                       `json:"low_threshold"`
+	MediumThreshold  *string                       `json:"medium_threshold"`
+	HighThreshold    *string                       `json:"high_threshold"`
+	CurrentValue     *string                       `json:"current_value"`
+	LastReviewedDate time.Time                     `json:"last_reviewed_date"`
+	NextReviewDate   time.Time                     `json:"next_review_date"`
+	LastReviewNote   *string                       `json:"last_review_note"`
+	CreatedAt        time.Time                     `json:"created_at"`
+	UpdatedAt        *time.Time                    `json:"updated_at"`
 	// CreatedByUser         UserMinimalDTO                `json:"created_by"`
 	// UpdatedByUser         UserMinimalDTO                `json:"updated_by"`
 }

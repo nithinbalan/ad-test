@@ -4,7 +4,7 @@ import (
 	"fmt"
 	activityLogModel "jethur/grc/logs/models"
 	"jethur/grc/logs/services"
-	"jethur/grc/settings/models"
+	"jethur/grc/models"
 	"jethur/grc/settings/repositories"
 	"jethur/utility"
 	"log"
