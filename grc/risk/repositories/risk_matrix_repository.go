@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"jethur/grc/risk/models"
+	"jethur/utility"
 
 	"gorm.io/gorm"
 )
@@ -10,7 +11,7 @@ import (
 type RiskMatrixRepositoryInterface interface {
 	GetByID(id uint) (*models.RiskMatrix, error)
 	GetByType(status string) (*models.RiskMatrix, error)
-	Update(matrix *models.RiskMatrix) error
+	Update(matrix *models.RiskMatrix, tx ...utility.DatabaseTransaction) error
 }
 
 // Implementation
@@ -46,8 +47,12 @@ func (repo *RiskMatrixRepository) GetByType(status string) (*models.RiskMatrix, 
 	return riskMatrix, nil
 }
 
-func (repo *RiskMatrixRepository) Update(riskMatrix *models.RiskMatrix) error {
-	if err := repo.db.Save(riskMatrix).Error; err != nil {
+func (repo *RiskMatrixRepository) Update(riskMatrix *models.RiskMatrix, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(riskMatrix).Error; err != nil {
 		return err
 	}
 

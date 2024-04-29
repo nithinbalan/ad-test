@@ -4,11 +4,12 @@ import (
 	"jethur/grc/risk/models"
 	riskModels "jethur/grc/risk/models"
 	"jethur/grc/risk/repositories"
+	"jethur/utility"
 )
 
 type RiskMatrixServiceInterface interface {
 	GetByType(status string) (*models.RiskMatrix, error)
-	Update(id uint, riskMatrix *riskModels.RiskMatrix) error
+	Update(id uint, riskMatrix *riskModels.RiskMatrix, tx utility.DatabaseTransaction) error
 }
 
 // Service and implementations
@@ -33,7 +34,7 @@ func (rms *RiskMatrixService) GetByType(status string) (*models.RiskMatrix, erro
 	return result, nil
 }
 
-func (rms *RiskMatrixService) Update(id uint, riskMatrix *riskModels.RiskMatrix) error {
+func (rms *RiskMatrixService) Update(id uint, riskMatrix *riskModels.RiskMatrix, tx utility.DatabaseTransaction) error {
 	existingRiskMatrix, err := rms.repo.GetByID(id)
 	if err != nil {
 		return err
@@ -41,7 +42,7 @@ func (rms *RiskMatrixService) Update(id uint, riskMatrix *riskModels.RiskMatrix)
 
 	existingRiskMatrix.CalculationType = riskMatrix.CalculationType
 
-	err = rms.repo.Update(existingRiskMatrix)
+	err = rms.repo.Update(existingRiskMatrix, tx)
 	if err != nil {
 		return err
 	}

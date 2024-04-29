@@ -32,6 +32,9 @@ func (rmrrvc *RiskMatrixRiskRatingValueController) CreateRiskMatrixRiskRatingVal
 	err := rmrrvc.service.Create(riskRatingValue)
 	if err != nil {
 		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
 			return

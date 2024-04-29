@@ -85,7 +85,7 @@ func (repo *RiskMatrixRiskRatingRepository) GetAllByRiskMatrix(riskMatrixId uint
             risk_matrix_risk_ratings.*, risk_matrix.title as risk_matrix_title`).
 		Joins(`
 		    LEFT JOIN risk_matrix ON risk_matrix.id = risk_matrix_risk_ratings.risk_matrix_id
-		`).Where(`risk_matrix_risk_ratings.risk_matrix_id`, riskMatrixId)
+		`).Where("risk_matrix_risk_ratings.risk_matrix_id = ?", riskMatrixId)
 
 	result := query.Find(&riskRatings)
 

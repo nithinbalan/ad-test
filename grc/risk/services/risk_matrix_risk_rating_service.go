@@ -100,7 +100,7 @@ func (rmrrs *RiskMatrixRiskRatingService) Create(currentUserID uint, riskMatrixR
 }
 
 func (rmrrs *RiskMatrixRiskRatingService) Update(id uint, currentUserID uint, riskMatrixRiskRatingFormDTO *riskDTOs.RiskMatrixRiskRatingFormDTO) error {
-	existingRiskRating, err := rmrrs.GetByID(id)
+	existingRiskRating, err := rmrrs.repo.GetByID(id)
 
 	if err != nil {
 		return err

@@ -34,19 +34,13 @@ func NewRiskMatrixRiskRatingValueService(
 }
 
 func (rmrrvs *RiskMatrixRiskRatingValueService) Create(riskMatrixRiskRatingValueFormDTO *riskDTOs.RiskMatrixRiskRatingValueFormDTO) error {
+	tx := rmrrvs.repo.BeginTransaction()
 	riskMatrix, err := rmrrvs.riskMatrixSvc.GetByType("erm")
 	if err != nil {
 		return err
 	}
 
-	riskMatrix.CalculationType = riskMatrixRiskRatingValueFormDTO.CalculationType
-	err = rmrrvs.riskMatrixSvc.Update(riskMatrix.ID, riskMatrix)
-	if err != nil {
-		return err
-	}
-
 	var riskMatrixRiskRatings []*riskDTOs.RiskMatrixRiskRatingDTO
-
 	riskMatrixRiskRatings, err = rmrrvs.riskMatrixRiskRatingSvc.GetAllByRiskMatrix(riskMatrix.ID)
 	if err != nil {
 		return err
@@ -75,11 +69,21 @@ func (rmrrvs *RiskMatrixRiskRatingValueService) Create(riskMatrixRiskRatingValue
 			riskValues = append(riskValues, riskValue)
 		}
 	}
+
+	riskMatrix.CalculationType = riskMatrixRiskRatingValueFormDTO.CalculationType
+	err = rmrrvs.riskMatrixSvc.Update(riskMatrix.ID, riskMatrix, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	if len(riskValues) > 0 {
-		if err := rmrrvs.repo.Create(riskValues, riskMatrixRiskRatingIds); err != nil {
+		if err := rmrrvs.repo.Create(riskValues, riskMatrixRiskRatingIds, tx); err != nil {
+			tx.Rollback()
 			return err
 		}
 	}
 
+	tx.Commit()
 	return nil
 }

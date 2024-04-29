@@ -9,7 +9,7 @@ import (
 
 type RiskMatrixRiskRatingValueRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	Create(riskMatrixRiskRatingValue []*models.RiskMatrixRiskRatingValue, riskMatrixRiskRatingIds []uint) error
+	Create(riskMatrixRiskRatingValue []*models.RiskMatrixRiskRatingValue, riskMatrixRiskRatingIds []uint, tx ...utility.DatabaseTransaction) error
 }
 
 type RiskMatrixRiskRatingValueRepository struct {
@@ -27,15 +27,19 @@ func (repo *RiskMatrixRiskRatingValueRepository) BeginTransaction() utility.Data
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *RiskMatrixRiskRatingValueRepository) Create(riskMatrixRiskRatingValue []*models.RiskMatrixRiskRatingValue, riskMatrixRiskRatingIds []uint) error {
+func (repo *RiskMatrixRiskRatingValueRepository) Create(riskMatrixRiskRatingValue []*models.RiskMatrixRiskRatingValue, riskMatrixRiskRatingIds []uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 
-	result := repo.db.Where("risk_matrix_risk_rating_values.risk_matrix_risk_rating_id IN (?)", riskMatrixRiskRatingIds).Delete(&models.RiskMatrixRiskRatingValue{})
+	result := db.Where("risk_matrix_risk_rating_values.risk_matrix_risk_rating_id IN (?)", riskMatrixRiskRatingIds).Delete(&models.RiskMatrixRiskRatingValue{})
 	if result.Error != nil {
 		return result.Error
 	}
 
 	// Save all values in a single transaction
-	if err := repo.db.Create(&riskMatrixRiskRatingValue).Error; err != nil {
+	if err := db.Create(&riskMatrixRiskRatingValue).Error; err != nil {
 		return err
 	}
 	return nil
