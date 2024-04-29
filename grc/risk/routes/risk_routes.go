@@ -141,6 +141,15 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	)
 	riskMatrixRiskRatingController := controllers.NewRiskMatrixRiskRatingController(riskMatrixRiskRatingSvc)
 
+	riskMatrixRiskRatingValueRepo := riskRepositories.NewRiskMatrixRiskRatingValueRepository(db)
+	riskMatrixRiskRatingValueSvc := riskServices.NewRiskMatrixRiskRatingValueService(
+		riskMatrixRiskRatingValueRepo,
+		activityLogSvc,
+		riskMatrixSvc,
+		riskMatrixRiskRatingSvc,
+	)
+	riskMatrixRiskRatingValueController := controllers.NewRiskMatrixRiskRatingValueController(riskMatrixRiskRatingValueSvc)
+
 	riskRoutes.GET("/risk-categories", riskCategoryController.GetAllRiskCategories)
 	riskRoutes.GET("/risk-categories/:id", riskCategoryController.GetRiskCategoryDetails)
 	riskRoutes.POST("/risk-categories", riskCategoryController.CreateRiskCategory)
@@ -206,6 +215,8 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	riskRoutes.POST("/risk-matrix-risk-ratings/delete", riskMatrixRiskRatingController.DeleteRiskMatrixRiskRatings)
 	riskRoutes.PUT("/risk-matrix-risk-ratings/activate", riskMatrixRiskRatingController.ActivateRiskMatrixRiskRating)
 	riskRoutes.PUT("/risk-matrix-risk-ratings/deactivate", riskMatrixRiskRatingController.DeactivateRiskMatrixRiskRating)
+
+	riskRoutes.POST("/risk-matrix-risk-rating-value", riskMatrixRiskRatingValueController.CreateRiskMatrixRiskRatingValue)
 
 	riskRoutes.GET("/risk-impact-categories", riskImpactCategoryController.GetAllRiskImpactCategories)
 	riskRoutes.GET("/risk-impact-categories/:id", riskImpactCategoryController.GetRiskImpactCategoryDetails)

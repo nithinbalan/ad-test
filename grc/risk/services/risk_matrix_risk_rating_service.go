@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"fmt"
 	logModels "jethur/grc/logs/models"
 	activityLogServices "jethur/grc/logs/services"
@@ -8,10 +9,13 @@ import (
 	"jethur/grc/risk/models"
 	"jethur/grc/risk/repositories"
 	"jethur/utility"
+
+	"gorm.io/gorm"
 )
 
 type RiskMatrixRiskRatingServiceInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*riskDTOs.RiskMatrixRiskRatingDTO, error)
+	GetAll(params *riskDTOs.RiskMatrixRiskRatingListQueryParamsDTO) ([]*riskDTOs.RiskMatrixRiskRatingDTO, error)
+	GetAllByRiskMatrix(riskMatrxId uint) ([]*riskDTOs.RiskMatrixRiskRatingDTO, error)
 	GetByID(id uint) (*models.RiskMatrixRiskRating, error)
 	Create(currentUserID uint, riskMatrixRiskRatingFormDTO *riskDTOs.RiskMatrixRiskRatingFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, riskMatrixRiskRatingFormDTO *riskDTOs.RiskMatrixRiskRatingFormDTO) error
@@ -35,12 +39,23 @@ func NewRiskMatrixRiskRatingService(repo repositories.RiskMatrixRiskRatingReposi
 	}
 }
 
-func (rmrrs *RiskMatrixRiskRatingService) GetAll(sort string, sortBy string, keyword string, status string) ([]*riskDTOs.RiskMatrixRiskRatingDTO, error) {
-	return rmrrs.repo.GetAll(sort, sortBy, keyword, status)
+func (rmrrs *RiskMatrixRiskRatingService) GetAll(params *riskDTOs.RiskMatrixRiskRatingListQueryParamsDTO) ([]*riskDTOs.RiskMatrixRiskRatingDTO, error) {
+	return rmrrs.repo.GetAll(params)
+}
+
+func (rmrrs *RiskMatrixRiskRatingService) GetAllByRiskMatrix(riskMatrxId uint) ([]*riskDTOs.RiskMatrixRiskRatingDTO, error) {
+	return rmrrs.repo.GetAllByRiskMatrix(riskMatrxId)
 }
 
 func (rmrrs RiskMatrixRiskRatingService) GetByID(id uint) (*models.RiskMatrixRiskRating, error) {
-	return rmrrs.repo.GetByID(id)
+	riskMatrixRiskRating, err := rmrrs.repo.GetByID(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+	return riskMatrixRiskRating, nil
 }
 
 func (rmrrs *RiskMatrixRiskRatingService) Create(currentUserID uint, riskMatrixRiskRatingFormDTO *riskDTOs.RiskMatrixRiskRatingFormDTO) (uint, error) {
@@ -95,7 +110,7 @@ func (rmrrs *RiskMatrixRiskRatingService) Create(currentUserID uint, riskMatrixR
 }
 
 func (rmrrs *RiskMatrixRiskRatingService) Update(id uint, currentUserID uint, riskMatrixRiskRatingFormDTO *riskDTOs.RiskMatrixRiskRatingFormDTO) error {
-	existingRiskRating, err := rmrrs.GetByID(id)
+	existingRiskRating, err := rmrrs.repo.GetByID(id)
 
 	if err != nil {
 		return err

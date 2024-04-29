@@ -31,7 +31,15 @@ func (rls *RiskLevelService) GetAll(sort string, sortBy string, keyword string, 
 }
 
 func (rls RiskLevelService) GetByID(id uint) (*models.RiskLevel, error) {
-	return rls.repo.GetByID(id)
+	riskLevel, err := rls.repo.GetByID(id)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+	return riskLevel, nil
 }
 
 func (rls *RiskLevelService) GetByType(status string) (*models.RiskLevel, error) {
