@@ -2,7 +2,6 @@ package services
 
 import (
 	"fmt"
-	"jethur/config"
 	slaDTOs "jethur/grc/compliance/dtos"
 	complianceModels "jethur/grc/compliance/models"
 	"jethur/grc/compliance/repositories"
@@ -10,6 +9,7 @@ import (
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	"jethur/utility"
+	"path/filepath"
 	"strconv"
 )
 
@@ -47,7 +47,7 @@ func (srs *SLARenewService) GetAll(id uint, params *slaDTOs.SLARenewListQueryPar
 func (srs *SLARenewService) Renew(slaId uint, currentUserID uint, slaRenewFormDTO *slaDTOs.SLARenewFormDTO) error {
 	tx := srs.repo.BeginTransaction()
 
-	if err := srs.validateSLARenewDocumentFormDTO(slaRenewFormDTO.Document); err != nil {
+	if err := srs.validateSLARenewDocumentFormDTO(&slaRenewFormDTO.Document); err != nil {
 		return err
 	}
 
@@ -72,8 +72,10 @@ func (srs *SLARenewService) Renew(slaId uint, currentUserID uint, slaRenewFormDT
 	if err != nil {
 		return err
 	}
+	// Store SLA Document File using utility.StoreFile
+	storagePath := filepath.Join("compliance", "sla", strconv.FormatUint(uint64(slaId), 10), "agreements")
 
-	if err := srs.slaRegRepo.StoreSLADocumentFile(slaId, slaRenewFormDTO.Document.FileName); err != nil {
+	if err := utility.StoreFile(existingSLADocument.Name, storagePath); err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -83,11 +85,9 @@ func (srs *SLARenewService) Renew(slaId uint, currentUserID uint, slaRenewFormDT
 	if err != nil {
 		return err
 	}
-
-	url := fmt.Sprintf("%s/sla-register/%d/%s", config.GetEnv("API_URL", "http://localhost:8080"), existingSLADocument.SLARegisterID, encryptedFilename)
+	url := utility.GenerateDocumentURL("sla-register", strconv.FormatUint(uint64(existingSLADocument.SLARegisterID), 10), encryptedFilename)
 
 	currentVersionStr := existingSLADocument.Version
-
 	currentVersionFloat, err := strconv.ParseFloat(currentVersionStr, 64)
 	if err != nil {
 		return err
@@ -172,7 +172,8 @@ func (srs *SLARenewService) Revert(slaId uint, currentUserID uint) error {
 	if err != nil {
 		return err
 	}
-	if err := srs.slaRegRepo.RemoveSLADocumentFile(slaId, existingSLADocument.Name); err != nil {
+	storagePath := filepath.Join("compliance", "sla", strconv.FormatUint(uint64(slaId), 10), "agreements")
+	if err := utility.RemoveFile(existingSLADocument.Name, storagePath); err != nil {
 		tx.Rollback()
 		return err
 	}

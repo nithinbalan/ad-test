@@ -2,13 +2,10 @@ package repositories
 
 import (
 	"fmt"
-	"jethur/config"
 	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	complianceModels "jethur/grc/compliance/models"
 	"jethur/utility"
-	"os"
-	"path/filepath"
 	"strconv"
 	"time"
 
@@ -32,8 +29,6 @@ type ComplianceRegisterRepositoryInterface interface {
 	SaveComplianceDocument(doc *complianceModels.ComplianceDocument, tx ...utility.DatabaseTransaction) error
 	GetComplianceDocumentByID(id uint) (*complianceModels.ComplianceDocument, error)
 	GetComplianceDocumentByComplianceID(id uint) (*complianceModels.ComplianceDocument, error)
-	StoreComplianceDocumentFile(complianceId uint, fileName string) error
-	RemoveComplianceDocumentFile(complianceId uint, fileNames string) error
 }
 
 type ComplianceRegisterRepository struct {
@@ -401,19 +396,6 @@ func (repo *ComplianceRegisterRepository) GetComplianceDocumentByComplianceID(id
 	return &document, nil
 }
 
-func (repo *ComplianceRegisterRepository) StoreComplianceDocumentFile(id uint, fileName string) error {
-	storagePath := config.GetEnv("STORAGE_PATH", "")
-	temporaryStoragePath := filepath.Join(storagePath, "tmp", fileName)
-	directoryPath := filepath.Join(storagePath, "compliance", "compliance", strconv.FormatUint(uint64(id), 10), "documents")
-	destinationPath := filepath.Join(directoryPath, fileName)
-	if err := os.MkdirAll(directoryPath, os.ModePerm); err != nil {
-		return err
-	}
-	if err := os.Rename(temporaryStoragePath, destinationPath); err != nil {
-		return err
-	}
-	return nil
-}
 
 func (repo *ComplianceRegisterRepository) SaveComplianceDocument(doc *complianceModels.ComplianceDocument, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
@@ -421,15 +403,6 @@ func (repo *ComplianceRegisterRepository) SaveComplianceDocument(doc *compliance
 		db = tx[0].DB()
 	}
 	if err := db.Save(doc).Error; err != nil {
-		return err
-	}
-	return nil
-}
-
-func (repo *ComplianceRegisterRepository) RemoveComplianceDocumentFile(complianceID uint, fileName string) error {
-	storagePath := config.GetEnv("STORAGE_PATH", "")
-	filePath := filepath.Join(storagePath, "compliance", "compliance", strconv.FormatUint(uint64(complianceID), 10), "documents", fileName)
-	if err := os.Remove(filePath); err != nil {
 		return err
 	}
 	return nil
