@@ -4,8 +4,7 @@ import (
 	"time"
 
 	masterModels "jethur/grc/masters/models"
-	organizationModels "jethur/grc/organization/models"
-	settingsModels "jethur/grc/settings/models"
+	"jethur/grc/models"
 )
 
 type KRIRegister struct {
@@ -23,7 +22,7 @@ type KRIRegister struct {
 	MediumThreshold   *string    `json:"medium_threshold" gorm:"type:varchar(455);null"`
 	HighThreshold     *string    `json:"high_threshold" gorm:"type:varchar(455);null"`
 	CurrentValue      *string    `json:"current_value" gorm:"type:varchar(455);null"`
-	LastReviewDate    time.Time  `json:"last_review_date" gorm:"type:date"`
+	LastReviewedDate  time.Time  `json:"last_reviewed_date" gorm:"type:date"`
 	NextReviewDate    time.Time  `json:"next_review_date" binding:"required" gorm:"type:date;not null"`
 	LastReviewNote    *string    `json:"last_review_note" gorm:"type:nvarchar(max)"`
 	CreatedAt         time.Time  `json:"created_at" gorm:"type:datetime;not null"`
@@ -32,13 +31,13 @@ type KRIRegister struct {
 	UpdatedBy         *uint      `json:"updated_by" gorm:"default:null"`
 
 	// Relationships
-	KRICategory     *masterModels.KRICategory        `gorm:"foreignkey:KRICategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	OwnerUnit       *settingsModels.OrganizationUnit `gorm:"foreignkey:OwnerUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	Owner           *organizationModels.User         `gorm:"foreignkey:OwnerID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ReviewFrequency *masterModels.ReviewFrequency    `gorm:"foreignkey:ReviewFrequencyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	RiskLevel       *RiskLevel                       `gorm:"foreignkey:RiskLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser   *organizationModels.User         `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser   *organizationModels.User         `gorm:"foreignKey:UpdatedBy"`
+	KRICategory     *masterModels.KRICategory     `gorm:"foreignkey:KRICategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	OwnerUnit       *models.OrganizationUnit      `gorm:"foreignkey:OwnerUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Owner           *models.User                  `gorm:"foreignkey:OwnerID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ReviewFrequency *masterModels.ReviewFrequency `gorm:"foreignkey:ReviewFrequencyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	RiskLevel       *RiskLevel                    `gorm:"foreignkey:RiskLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	CreatedByUser   *models.User                  `gorm:"foreignKey:CreatedBy"`
+	UpdatedByUser   *models.User                  `gorm:"foreignKey:UpdatedBy"`
 }
 
 // TableName overrides the table name used by KRIRegister to `kri_register`

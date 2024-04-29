@@ -3,40 +3,35 @@ package services
 import (
 	"errors"
 	"fmt"
-	"jethur/config"
 	authDTOs "jethur/grc/auth/dtos"
-	"jethur/grc/auth/repositories"
-	organizationModels "jethur/grc/organization/models"
+	"jethur/grc/models"
 	"jethur/grc/organization/services"
 	"jethur/utility"
 
 	"golang.org/x/crypto/bcrypt"
 
-	"strconv"
 	"strings"
 	"time"
 )
 
 type AuthServiceInterface interface {
 	Authenticate(email string, password string) (*authDTOs.LoginResponseDTO, error)
+	GetTokenFromRefreshToken(refreshToken string) (*authDTOs.LoginResponseDTO, error)
+	LoginResendOTP(email string) error
+	LoginVerifyOTP(email string, otp string) (*authDTOs.LoginResponseDTO, error)
 	SendPasswordRecoveryOTP(email string) error
 	ReSendPasswordRecoveryOTP(email string) error
 	VerifyPasswordRecoveryOTP(email, otp string) (string, error)
 	SetPassword(setPasswordFormDTO authDTOs.PasswordRecoverySetPasswordFormDTO) error
-	LoginResendOTP(email string) error
-	LoginVerifyOTP(email string, otp string) (*authDTOs.LoginResponseDTO, error)
-	GetTokenFromRefreshToken(refreshToken string) (*authDTOs.LoginResponseDTO, error)
 }
 
 // Service and implementations
 type AuthService struct {
-	repo        repositories.AuthRepositoryInterface
 	userService services.UserServiceInterface
 }
 
-func NewAuthService(repo repositories.AuthRepositoryInterface, userService services.UserServiceInterface) AuthServiceInterface {
+func NewAuthService(userService services.UserServiceInterface) AuthServiceInterface {
 	return &AuthService{
-		repo:        repo,
 		userService: userService,
 	}
 }
@@ -86,6 +81,33 @@ func (as *AuthService) Authenticate(email string, password string) (*authDTOs.Lo
 	return responseDTO, nil
 }
 
+func (as *AuthService) GetTokenFromRefreshToken(refreshToken string) (*authDTOs.LoginResponseDTO, error) {
+	//generate access token
+	userClaims, err := utility.VerifyToken(refreshToken)
+	if err != nil {
+		return nil, utility.NewInternalServerError(err)
+	}
+
+	//generate access token
+	accessToken, err := utility.GenerateToken(userClaims.UserID)
+	if err != nil {
+		return nil, utility.NewInternalServerError(err)
+	}
+
+	newRefreshToken, err := utility.GenerateRefreshToken(userClaims.UserID)
+	if err != nil {
+		return nil, utility.NewInternalServerError(err)
+	}
+
+	responseDTO := &authDTOs.LoginResponseDTO{
+		AccessToken:  &accessToken,
+		RefreshToken: &newRefreshToken,
+		IsMFAEnabled: false,
+	}
+
+	return responseDTO, nil
+}
+
 func (as AuthService) LoginResendOTP(email string) error {
 	user, err := as.userService.GetByEmail(email)
 	if err != nil {
@@ -112,7 +134,6 @@ func (as AuthService) LoginResendOTP(email string) error {
 }
 
 func (as *AuthService) LoginVerifyOTP(email, otp string) (*authDTOs.LoginResponseDTO, error) {
-
 	user, err := as.userService.GetByEmail(email)
 	if err != nil {
 		return nil, err
@@ -152,11 +173,9 @@ func (as *AuthService) LoginVerifyOTP(email, otp string) (*authDTOs.LoginRespons
 	}
 
 	return responseDTO, nil
-
 }
 
 func (as AuthService) SendPasswordRecoveryOTP(email string) error {
-
 	user, err := as.userService.GetByEmail(email)
 	if err != nil {
 		return err
@@ -171,7 +190,6 @@ func (as AuthService) SendPasswordRecoveryOTP(email string) error {
 	templateRelativePath := "auth/templates/email/send_password_recovery_otp.html"
 
 	return as.sendOTP(userSecurity, user, subject, templateRelativePath)
-
 }
 
 func (as AuthService) ReSendPasswordRecoveryOTP(email string) error {
@@ -200,7 +218,6 @@ func (as AuthService) ReSendPasswordRecoveryOTP(email string) error {
 }
 
 func (as *AuthService) VerifyPasswordRecoveryOTP(email, otp string) (string, error) {
-
 	user, err := as.userService.GetByEmail(email)
 	if err != nil {
 		return "", err
@@ -233,7 +250,6 @@ func (as *AuthService) VerifyPasswordRecoveryOTP(email, otp string) (string, err
 }
 
 func (as AuthService) SetPassword(setPasswordFormDTO authDTOs.PasswordRecoverySetPasswordFormDTO) error {
-
 	if !isValidPassword(setPasswordFormDTO.Password) {
 		return utility.NewValidationError(fmt.Errorf("password does not meet the requirements"), "password_complexity", "password")
 	}
@@ -304,36 +320,6 @@ func (as AuthService) SetPassword(setPasswordFormDTO authDTOs.PasswordRecoverySe
 	return nil
 }
 
-func (as *AuthService) GetTokenFromRefreshToken(refreshToken string) (*authDTOs.LoginResponseDTO, error) {
-
-	//generate access token
-
-	userClims, err := utility.VerifyToken(refreshToken)
-	if err != nil {
-		return nil, utility.NewInternalServerError(err)
-	}
-
-	//generate access token
-	accessToken, err := utility.GenerateToken(userClims.UserID)
-	if err != nil {
-		return nil, utility.NewInternalServerError(err)
-	}
-
-	newRefreshToken, err := utility.GenerateRefreshToken(userClims.UserID)
-	if err != nil {
-		return nil, utility.NewInternalServerError(err)
-	}
-
-	responseDTO := &authDTOs.LoginResponseDTO{
-		AccessToken:  &accessToken,
-		RefreshToken: &newRefreshToken,
-		IsMFAEnabled: false,
-	}
-
-	return responseDTO, nil
-
-}
-
 func isValidPassword(password string) bool {
 	// Password should contain at least 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character
 	var (
@@ -360,23 +346,19 @@ func isValidPassword(password string) bool {
 }
 
 // Private method to handle the common functionality of sending OTP.
-func (as AuthService) sendOTP(userSecurity *organizationModels.UserSecurity, user *organizationModels.User, mailSubject string, mailRelativePath string) error {
+func (as AuthService) sendOTP(userSecurity *models.UserSecurity, user *models.User, mailSubject string, mailRelativePath string) error {
 	otpLength := 6
+	verifyOTPDuration := 10
+
 	otp := utility.GenerateOTP(otpLength)
 	currentTime := time.Now()
-
-	verifyOTPDurationStr := config.GetEnv("VERIFY_OTP_DURATION", "10")
-	verifyOTPDuration, err := strconv.Atoi(verifyOTPDurationStr)
-	if err != nil {
-		verifyOTPDuration = 10 // Default to 10 minutes if conversion fails.
-	}
 
 	expirationTime := currentTime.Add(time.Duration(verifyOTPDuration) * time.Minute)
 
 	userSecurity.OTP = &otp
 	userSecurity.OTPExpiryAt = &expirationTime
 
-	err = as.userService.UpdateUserSecurity(userSecurity)
+	err := as.userService.UpdateUserSecurity(userSecurity)
 	if err != nil {
 		return err
 	}

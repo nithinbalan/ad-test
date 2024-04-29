@@ -1,9 +1,5 @@
 package models
 
-import (
-	settingModels "jethur/grc/settings/models"
-)
-
 // UserRole represents the 'user_roles' table that links users and roles in a many-to-many relationship
 type UserRole struct {
 	ID     uint `gorm:"primary_key;AUTO_INCREMENT" json:"id"`
@@ -11,8 +7,8 @@ type UserRole struct {
 	RoleID uint `gorm:"not null" json:"role_id"`
 
 	// You can also include navigation properties to User and Role if needed
-	User User               `gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
-	Role settingModels.Role `gorm:"foreignKey:RoleID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
+	User User `gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
+	Role Role `gorm:"foreignKey:RoleID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
 }
 
 // TableName overrides the table name used by UserRole to `user_roles`

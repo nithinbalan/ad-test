@@ -4,7 +4,7 @@ import (
 	"time"
 
 	masterModels "jethur/grc/masters/models"
-	organizationModels "jethur/grc/organization/models"
+	"jethur/grc/models"
 )
 
 type ComplianceActionPlanStatusUpdate struct {
@@ -21,8 +21,8 @@ type ComplianceActionPlanStatusUpdate struct {
 	// Relationships
 	ComplianceActionPlan *ComplianceActionPlan          `gorm:"foreignkey:ComplianceActionPlanID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ActionPlanStatus     *masterModels.ActionPlanStatus `gorm:"foreignkey:ActionPlanStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser        *organizationModels.User       `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser        *organizationModels.User       `gorm:"foreignKey:UpdatedBy"`
+	CreatedByUser        *models.User                   `gorm:"foreignKey:CreatedBy"`
+	UpdatedByUser        *models.User                   `gorm:"foreignKey:UpdatedBy"`
 }
 
 // TableName overrides the table name used by ComplianceActionPlanStatusUpdate to `compliance_action_plan_status_updates`

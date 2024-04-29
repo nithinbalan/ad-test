@@ -25,6 +25,6 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	organizationLevelSvc := settingServices.NewOrganizationLevelService(organizationLevelRepo, activityLogSvc)
 	OrganizationLevelController := controllers.NewOrganizationLevelController(organizationLevelSvc)
 
-	settingRoutes.GET("/rganization-level", OrganizationLevelController.GetAllOrganizationLevel)
-	settingRoutes.POST("/organization-level", OrganizationLevelController.CreateOrganizationLevel)
+	settingRoutes.GET("/organization-levels", OrganizationLevelController.GetAllOrganizationLevels)
+	settingRoutes.POST("/organization-levels", OrganizationLevelController.CreateOrganizationLevel)
 }

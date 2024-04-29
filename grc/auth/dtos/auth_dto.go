@@ -1,23 +1,24 @@
 package dtos
 
-type LoginFormDTO struct {
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required"`
-}
-
 type LoginResponseDTO struct {
 	AccessToken  *string `json:"access_token"`
 	RefreshToken *string `json:"refresh_token"`
 	IsMFAEnabled bool    `json:"is_mfa_enabled"`
 }
 
-type SendOTPFormDTO struct {
-	Email string `json:"email" binding:"required,email"`
+type LoginFormDTO struct {
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required"`
 }
 
 type RefreshTokenFormDTO struct {
 	RefreshToken string `json:"refresh_token" binding:"required"`
 }
+
+type SendOTPFormDTO struct {
+	Email string `json:"email" binding:"required,email"`
+}
+
 type VerifyOTPFormDTO struct {
 	Email string `json:"email" binding:"required,email"`
 	Otp   string `json:"otp"`
