@@ -5,7 +5,6 @@ import (
 
 	masterModels "jethur/grc/masters/models"
 	"jethur/grc/models"
-	organizationModels "jethur/grc/organization/models"
 )
 
 type ComplianceRegister struct {
@@ -38,14 +37,14 @@ type ComplianceRegister struct {
 	ComplianceCategory    *ComplianceCategory           `gorm:"foreignkey:ComplianceCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ComplianceStatus      *ComplianceStatus             `gorm:"foreignkey:ComplianceStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ResponsibleUnit       *models.OrganizationUnit      `gorm:"foreignkey:ResponsibleUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ResponsibleUser       *organizationModels.User      `gorm:"foreignkey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ResponsibleUser       *models.User                  `gorm:"foreignkey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ReviewFrequency       *masterModels.ReviewFrequency `gorm:"foreignkey:ReviewFrequencyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ReviewResponsibleUser *organizationModels.User      `gorm:"foreignkey:ReviewResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ReviewResponsibleUser *models.User                  `gorm:"foreignkey:ReviewResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	SeverityLevel         *masterModels.SeverityLevel   `gorm:"foreignkey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	LifecycleStatus       *masterModels.LifecycleStatus `gorm:"foreignkey:LifecycleStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ComplianceDocuments   []ComplianceDocument          `gorm:"foreignKey:ComplianceRegisterID"`
-	CreatedByUser         *organizationModels.User      `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser         *organizationModels.User      `gorm:"foreignKey:UpdatedBy"`
+	CreatedByUser         *models.User                  `gorm:"foreignKey:CreatedBy"`
+	UpdatedByUser         *models.User                  `gorm:"foreignKey:UpdatedBy"`
 }
 
 // TableName overrides the table name used by ComplianceRegister to `compliance_register`

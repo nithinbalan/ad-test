@@ -2,8 +2,8 @@ package services
 
 import (
 	logServices "jethur/grc/logs/services"
+	"jethur/grc/models"
 	userDTOs "jethur/grc/organization/dtos"
-	"jethur/grc/organization/models"
 	organizationRepositories "jethur/grc/organization/repositories"
 
 	"gorm.io/gorm"
@@ -29,7 +29,7 @@ func NewUserSettingService(
 }
 
 func (uss *UserSettingService) GetNotificationSettings(userID uint) ([]userDTOs.NotificationSettingListResponseDTO, error) {
-	modules, err := uss.repo.GetNotificationSetting(userID) // Make sure this method name is correctly spelled
+	modules, err := uss.repo.GetNotificationSetting(userID)
 	if err != nil {
 		return nil, err
 	}

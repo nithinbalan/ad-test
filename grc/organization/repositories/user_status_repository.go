@@ -1,9 +1,7 @@
 package repositories
 
 import (
-	"errors"
-	"jethur/grc/organization/models"
-	"jethur/utility"
+	"jethur/grc/models"
 
 	"gorm.io/gorm"
 )
@@ -27,7 +25,6 @@ func NewUserStatusRepository(db *gorm.DB) *UserStatusRepository {
 }
 
 func (repo *UserStatusRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.UserStatus, error) {
-
 	var userStatuses []*models.UserStatus
 
 	query := repo.db
@@ -54,11 +51,10 @@ func (repo *UserStatusRepository) GetAll(sort string, sortBy string, keyword str
 
 func (repo *UserStatusRepository) GetByID(id uint) (*models.UserStatus, error) {
 	var status *models.UserStatus
+
 	result := repo.db.First(&status, id)
 
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, utility.NewResourceNotFoundError(result.Error, id)
-	} else if result.Error != nil {
+	if result.Error != nil {
 		return nil, result.Error
 	}
 
@@ -70,9 +66,7 @@ func (repo *UserStatusRepository) GetByType(status string) (*models.UserStatus, 
 
 	result := repo.db.Where("status = ?", status).First(&userStatus)
 
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, utility.NewResourceNotFoundError(result.Error, "User Status with status "+status)
-	} else if result.Error != nil {
+	if result.Error != nil {
 		return nil, result.Error
 	}
 

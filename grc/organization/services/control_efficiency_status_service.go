@@ -1,8 +1,12 @@
 package services
 
 import (
-	"jethur/grc/organization/models"
+	"errors"
+	"jethur/grc/models"
 	"jethur/grc/organization/repositories"
+	"jethur/utility"
+
+	"gorm.io/gorm"
 )
 
 type ControlEfficiencyStatusServiceInterface interface {
@@ -23,23 +27,28 @@ func NewControlEfficiencyStatusService(repo repositories.ControlEfficiencyStatus
 }
 
 func (cess *ControlEfficiencyStatusService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ControlEfficiencyStatus, error) {
-	statusResult, err := cess.repo.GetAll(sort, sortBy, keyword, status)
-	if err != nil {
-		return nil, err
-	}
-
-	return statusResult, nil
+	return cess.repo.GetAll(sort, sortBy, keyword, status)
 }
 
 func (cess ControlEfficiencyStatusService) GetByID(id uint) (*models.ControlEfficiencyStatus, error) {
-	return cess.repo.GetByID(id)
+	controlEfficiencyStatus, err := cess.repo.GetByID(id)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+
+	return controlEfficiencyStatus, nil
 }
 
 func (cess *ControlEfficiencyStatusService) GetByType(status string) (*models.ControlEfficiencyStatus, error) {
-	statusResult, err := cess.repo.GetByType(status)
+	controlEfficiencyStatus, err := cess.repo.GetByType(status)
+
 	if err != nil {
 		return nil, err
 	}
 
-	return statusResult, nil
+	return controlEfficiencyStatus, nil
 }

@@ -6,7 +6,7 @@ import (
 	organizationDTOs "jethur/grc/organization/dtos"
 	"jethur/utility"
 
-	organizationModels "jethur/grc/organization/models"
+	"jethur/grc/models"
 	organizationRepositories "jethur/grc/organization/repositories"
 
 	"github.com/mitchellh/mapstructure"
@@ -34,7 +34,6 @@ func NewStrategicProfileService(repo organizationRepositories.StrategicProfileRe
 
 // @todo - image support to be added
 func (sps *StrategicProfileService) GetStrategicProfile() (*organizationDTOs.StrategicProfileDetailsDTO, error) {
-	// Initialize your DTO
 	var strategicProfileDTO organizationDTOs.StrategicProfileDetailsDTO
 
 	strategicProfile, err := sps.repo.GetStrategicProfileDetails()
@@ -46,7 +45,6 @@ func (sps *StrategicProfileService) GetStrategicProfile() (*organizationDTOs.Str
 		return nil, err
 	}
 
-	// Map the result to your DTO
 	err = mapstructure.Decode(strategicProfile, &strategicProfileDTO)
 	if err != nil {
 		return nil, err
@@ -68,7 +66,6 @@ func (sps *StrategicProfileService) GetStrategicProfile() (*organizationDTOs.Str
 }
 
 func (sps *StrategicProfileService) Update(currentUserID uint, strategicProfileDTO *organizationDTOs.StrategicProfileFormDTO) error {
-
 	existingStrategicProfile, err := sps.repo.Get()
 
 	if err != nil {
@@ -105,7 +102,6 @@ func (sps *StrategicProfileService) Update(currentUserID uint, strategicProfileD
 }
 
 func (sps *StrategicProfileService) UpdateVision(currentUserID uint, strategicProfileVisionDTO *organizationDTOs.StrategicProfileVisionFormDTO) error {
-
 	existingStrategicProfile, err := sps.repo.Get()
 
 	if err != nil {
@@ -126,7 +122,6 @@ func (sps *StrategicProfileService) UpdateVision(currentUserID uint, strategicPr
 }
 
 func (sps *StrategicProfileService) UpdateMission(currentUserID uint, strategicProfileMissionDTO *organizationDTOs.StrategicProfileMisionFormDTO) error {
-
 	existingStrategicProfile, err := sps.repo.Get()
 
 	if err != nil {
@@ -158,10 +153,10 @@ func (sps *StrategicProfileService) UpdateValues(strategicProfileValuesDTO []*or
 		return utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 	}
 
-	var values []*organizationModels.StrategicProfileValue
+	var values []*models.StrategicProfileValue
 	for _, dto := range strategicProfileValuesDTO {
 
-		value := &organizationModels.StrategicProfileValue{}
+		value := &models.StrategicProfileValue{}
 
 		if dto.ID != nil {
 			value.ID = *dto.ID // Existing record
@@ -187,15 +182,19 @@ func (us *StrategicProfileService) validateStrategicProfileFormDTO(strategicProf
 	if strategicProfileDTO.Linkedin != nil && !utility.IsValidLinkedInURL(*strategicProfileDTO.Linkedin) {
 		return utility.NewValidationError(fmt.Errorf("invalid LinkedIn URL"), "not_exist", "linkedin")
 	}
+
 	if strategicProfileDTO.Instagram != nil && !utility.IsValidInstagramURL(*strategicProfileDTO.Instagram) {
 		return utility.NewValidationError(fmt.Errorf("invalid Instagram URL"), "not_exist", "instagram")
 	}
+
 	if strategicProfileDTO.Youtube != nil && !utility.IsValidYouTubeURL(*strategicProfileDTO.Youtube) {
 		return utility.NewValidationError(fmt.Errorf("invalid YouTube URL"), "not_exist", "youtube")
 	}
+
 	if strategicProfileDTO.Facebook != nil && !utility.IsValidFacebookURL(*strategicProfileDTO.Facebook) {
 		return utility.NewValidationError(fmt.Errorf("invalid Facebook URL"), "not_exist", "facebook")
 	}
+
 	if strategicProfileDTO.X != nil && !utility.IsValidTwitterURL(*strategicProfileDTO.X) {
 		return utility.NewValidationError(fmt.Errorf("invalid X URL"), "not_exist", "twitter")
 	}

@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	"jethur/grc/organization/models"
+	"jethur/grc/models"
 	"jethur/grc/organization/services"
 	"jethur/utility"
 	"net/http"
@@ -23,7 +23,6 @@ func NewDesignationController(service services.DesignationServiceInterface) *Des
 }
 
 func (dc *DesignationController) GetAllDesignations(c *gin.Context) {
-
 	sort := c.Query("sort")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
@@ -57,7 +56,6 @@ func (dc *DesignationController) GetDesignationDetails(c *gin.Context) {
 }
 
 func (dc *DesignationController) CreateDesignation(c *gin.Context) {
-
 	var designation *models.Designation
 
 	if err := c.ShouldBindJSON(&designation); err != nil {
@@ -86,7 +84,6 @@ func (dc *DesignationController) CreateDesignation(c *gin.Context) {
 }
 
 func (dc *DesignationController) UpdateDesignation(c *gin.Context) {
-
 	designationID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -123,7 +120,6 @@ func (dc *DesignationController) UpdateDesignation(c *gin.Context) {
 }
 
 func (dc *DesignationController) DeleteDesignations(c *gin.Context) {
-
 	var request struct {
 		IDs []uint `json:"ids"`
 	}

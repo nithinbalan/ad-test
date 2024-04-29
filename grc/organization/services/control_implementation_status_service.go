@@ -1,8 +1,12 @@
 package services
 
 import (
-	"jethur/grc/organization/models"
+	"errors"
+	"jethur/grc/models"
 	"jethur/grc/organization/repositories"
+	"jethur/utility"
+
+	"gorm.io/gorm"
 )
 
 type ControlImplementationStatusServiceInterface interface {
@@ -23,23 +27,27 @@ func NewControlImplementationStatusService(repo repositories.ControlImplementati
 }
 
 func (ciss *ControlImplementationStatusService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ControlImplementationStatus, error) {
-	statusResult, err := ciss.repo.GetAll(sort, sortBy, keyword, status)
-	if err != nil {
-		return nil, err
-	}
-
-	return statusResult, nil
+	return ciss.repo.GetAll(sort, sortBy, keyword, status)
 }
 
 func (ciss *ControlImplementationStatusService) GetByID(id uint) (*models.ControlImplementationStatus, error) {
-	return ciss.repo.GetByID(id)
+	controlImplementationStatus, err := ciss.repo.GetByID(id)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+
+	return controlImplementationStatus, nil
 }
 
 func (ciss *ControlImplementationStatusService) GetByType(status string) (*models.ControlImplementationStatus, error) {
-	statusResult, err := ciss.repo.GetByType(status)
+	controlImplementationStatus, err := ciss.repo.GetByType(status)
 	if err != nil {
 		return nil, err
 	}
 
-	return statusResult, nil
+	return controlImplementationStatus, nil
 }

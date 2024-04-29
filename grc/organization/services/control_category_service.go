@@ -1,13 +1,16 @@
 package services
 
 import (
+	"errors"
 	"fmt"
 	logModels "jethur/grc/logs/models"
 	"jethur/grc/logs/services"
-	"jethur/grc/organization/models"
+	"jethur/grc/models"
 	"jethur/grc/organization/repositories"
 	"jethur/utility"
 	"log"
+
+	"gorm.io/gorm"
 )
 
 type ControlCategoryServiceInterface interface {
@@ -39,7 +42,11 @@ func (ccs *ControlCategoryService) GetAll(sort string, sortBy string, keyword st
 
 func (ccs *ControlCategoryService) GetByID(id uint) (*models.ControlCategory, error) {
 	controlCategory, err := ccs.repo.GetByID(id)
+
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
 		return nil, err
 	}
 
@@ -47,7 +54,6 @@ func (ccs *ControlCategoryService) GetByID(id uint) (*models.ControlCategory, er
 }
 
 func (ccs *ControlCategoryService) Create(currentUserID uint, controlCategory *models.ControlCategory) (*models.ControlCategory, error) {
-
 	if exists, err := ccs.repo.ExistsByTitle(controlCategory.TitleEn, controlCategory.TitleAr); err != nil {
 		return nil, err
 	} else if exists {
@@ -79,7 +85,7 @@ func (ccs *ControlCategoryService) Create(currentUserID uint, controlCategory *m
 }
 
 func (ccs *ControlCategoryService) Update(id uint, currentUserID uint, updatedControlCategory *models.ControlCategory) (*models.ControlCategory, error) {
-	existingControlCategory, err := ccs.repo.GetByID(id)
+	existingControlCategory, err := ccs.GetByID(id)
 
 	if err != nil {
 		return nil, err

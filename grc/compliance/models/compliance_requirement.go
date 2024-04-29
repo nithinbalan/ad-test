@@ -4,7 +4,7 @@ import (
 	"time"
 
 	masterModels "jethur/grc/masters/models"
-	organizationModels "jethur/grc/organization/models"
+	"jethur/grc/models"
 )
 
 type ComplianceRequirement struct {
@@ -26,9 +26,9 @@ type ComplianceRequirement struct {
 	ComplianceStatus              *ComplianceStatus              `gorm:"foreignkey:ComplianceStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ComplianceRequirementCategory *ComplianceRequirementCategory `gorm:"foreignkey:ComplianceRequirementCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	SeverityLevel                 *masterModels.SeverityLevel    `gorm:"foreignkey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ResponsibleUser               *organizationModels.User       `gorm:"foreignkey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser                 *organizationModels.User       `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser                 *organizationModels.User       `gorm:"foreignKey:UpdatedBy"`
+	ResponsibleUser               *models.User                   `gorm:"foreignkey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	CreatedByUser                 *models.User                   `gorm:"foreignKey:CreatedBy"`
+	UpdatedByUser                 *models.User                   `gorm:"foreignKey:UpdatedBy"`
 }
 
 // TableName overrides the table name used by ComplianceRequirement to `compliance_requirements`
