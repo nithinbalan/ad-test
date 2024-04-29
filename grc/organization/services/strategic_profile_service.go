@@ -17,7 +17,7 @@ type StrategicProfileServiceInterface interface {
 	GetStrategicProfile() (*organizationDTOs.StrategicProfileDetailsDTO, error)
 	Update(currentUserID uint, strategicProfile *organizationDTOs.StrategicProfileFormDTO) error
 	UpdateVision(currentUserID uint, strategicProfileVision *organizationDTOs.StrategicProfileVisionFormDTO) error
-	UpdateMission(currentUserID uint, strategicProfileMission *organizationDTOs.StrategicProfileMisionFormDTO) error
+	UpdateMission(currentUserID uint, strategicProfileMission *organizationDTOs.StrategicProfileMissionFormDTO) error
 	UpdateValues(strategicProfileValues []*organizationDTOs.StrategicProfileValueFormDTO) error
 }
 
@@ -121,7 +121,7 @@ func (sps *StrategicProfileService) UpdateVision(currentUserID uint, strategicPr
 
 }
 
-func (sps *StrategicProfileService) UpdateMission(currentUserID uint, strategicProfileMissionDTO *organizationDTOs.StrategicProfileMisionFormDTO) error {
+func (sps *StrategicProfileService) UpdateMission(currentUserID uint, strategicProfileMissionDTO *organizationDTOs.StrategicProfileMissionFormDTO) error {
 	existingStrategicProfile, err := sps.repo.Get()
 
 	if err != nil {

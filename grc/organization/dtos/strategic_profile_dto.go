@@ -49,7 +49,7 @@ type StrategicProfileVisionFormDTO struct {
 	VisionAr *string `json:"vision_ar"`
 }
 
-type StrategicProfileMisionFormDTO struct {
+type StrategicProfileMissionFormDTO struct {
 	MissionEn *string `json:"mission_en"`
 	MissionAr *string `json:"mission_ar"`
 }
