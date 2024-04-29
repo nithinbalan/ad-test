@@ -71,7 +71,6 @@ func (krs KRIRegisterService) GetByID(id uint) (*models.KRIRegister, error) {
 }
 
 func (krs KRIRegisterService) GetFullDetailsByID(id uint) (*riskDTOs.KRIRegisterDetailsDTO, error) {
-
 	var kriRegisterDTO riskDTOs.KRIRegisterDetailsDTO
 
 	kriRegister, err := krs.repo.GetFullDetailsByID(id)
@@ -157,7 +156,6 @@ func (krs *KRIRegisterService) Create(currentUserID uint, kriRegisterFormDTO *ri
 }
 
 func (krs *KRIRegisterService) Update(id uint, currentUserID uint, kriRegisterFormDTO *riskDTOs.KRIRegisterFormDTO) error {
-
 	existingKRIRegister, err := krs.GetByID(id)
 
 	if err != nil {
@@ -247,7 +245,6 @@ func (krs *KRIRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 }
 
 func (krs *KRIRegisterService) validateKRIRegisterFormDTO(kriRegisterFormDTO *riskDTOs.KRIRegisterFormDTO, id *uint) error {
-
 	if _, err := krs.kriCategorySvc.GetByID(kriRegisterFormDTO.KRICategoryID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("kri category does not exist"), "not_exist", "kri category")
 	}

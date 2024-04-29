@@ -3,7 +3,7 @@ package models
 import (
 	"time"
 
-	organizationModels "jethur/grc/organization/models"
+	models "jethur/grc/models"
 )
 
 type KRIValueUpdate struct {
@@ -23,8 +23,8 @@ type KRIValueUpdate struct {
 	// Relationships
 	KRIRegister             *KRIRegister             `gorm:"foreignkey:KRIRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	KRIValueUpdateDocuments []KRIValueUpdateDocument `gorm:"foreignKey:KRIValueUpdateID"`
-	CreatedByUser           *organizationModels.User `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser           *organizationModels.User `gorm:"foreignKey:UpdatedBy"`
+	CreatedByUser           *models.User             `gorm:"foreignKey:CreatedBy"`
+	UpdatedByUser           *models.User             `gorm:"foreignKey:UpdatedBy"`
 }
 
 // TableName overrides the table name used by KRIValueUpdate to `kri_value_updates`
