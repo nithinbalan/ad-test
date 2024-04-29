@@ -24,7 +24,6 @@ func NewComplianceRequirementStatusUpdateController(service services.ComplianceR
 }
 
 func (crsuc *ComplianceRequirementStatusUpdateController) GetAllComplianceRequirementStatusUpdates(c *gin.Context) {
-
 	complianceIdStr := c.Param("complianceId")
 
 	complianceId, err := strconv.ParseUint(complianceIdStr, 10, 32)
@@ -61,7 +60,6 @@ func (crsuc *ComplianceRequirementStatusUpdateController) GetAllComplianceRequir
 }
 
 func (crsuc *ComplianceRequirementStatusUpdateController) CreateComplianceRequirementStatusUpdate(c *gin.Context) {
-
 	var complianceStatusUpdateFormDTO complianceDTOs.ComplianceRequirementStatusUpdateFormDTO
 
 	complianceIdStr := c.Param("complianceId")

@@ -24,7 +24,6 @@ func NewComplianceReviewController(service services.ComplianceReviewServiceInter
 }
 
 func (crc *ComplianceReviewController) GetAllComplianceReviews(c *gin.Context) {
-
 	complianceIDStr := c.Param("complianceId")
 
 	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 32)
@@ -53,7 +52,6 @@ func (crc *ComplianceReviewController) GetAllComplianceReviews(c *gin.Context) {
 }
 
 func (crc *ComplianceReviewController) CreateComplianceReview(c *gin.Context) {
-
 	var complianceReviewFormDTO complianceDTOs.ComplianceReviewFormDTO
 
 	complianceIDStr := c.Param("complianceId")

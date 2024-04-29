@@ -23,7 +23,6 @@ func NewComplianceCategoryController(service services.ComplianceCategoryServiceI
 }
 
 func (ccc *ComplianceCategoryController) GetAllComplianceCategories(c *gin.Context) {
-
 	sort := c.Query("sort")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
@@ -57,7 +56,6 @@ func (ccc *ComplianceCategoryController) GetComplianceCategoryDetails(c *gin.Con
 }
 
 func (ccc *ComplianceCategoryController) CreateComplianceCategory(c *gin.Context) {
-
 	var category *models.ComplianceCategory
 
 	if err := c.ShouldBindJSON(&category); err != nil {
@@ -86,6 +84,7 @@ func (ccc *ComplianceCategoryController) CreateComplianceCategory(c *gin.Context
 }
 
 func (ccc *ComplianceCategoryController) UpdateComplianceCategory(c *gin.Context) {
+	var updatedCategory *models.ComplianceCategory
 
 	categoryID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -93,11 +92,11 @@ func (ccc *ComplianceCategoryController) UpdateComplianceCategory(c *gin.Context
 		return
 	}
 
-	var updatedCategory *models.ComplianceCategory
 	if err := c.ShouldBindJSON(&updatedCategory); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
+
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(ccc.db, c, err.Error())
@@ -123,7 +122,6 @@ func (ccc *ComplianceCategoryController) UpdateComplianceCategory(c *gin.Context
 }
 
 func (ccc *ComplianceCategoryController) DeleteComplianceCategories(c *gin.Context) {
-
 	var request struct {
 		IDs []uint `json:"ids"`
 	}

@@ -24,7 +24,6 @@ func NewSLACheckAnswerController(service services.SLACheckAnswerServiceInterface
 }
 
 func (scac *SLACheckAnswerController) CreateSLACheckAnswer(c *gin.Context) {
-
 	var slaCheckAnswerFormDTO complianceDTOs.SLACheckAnswerFormDTO
 
 	slaIdStr := c.Param("slaId")
@@ -154,6 +153,7 @@ func (scac *SLACheckAnswerController) DeleteSLACheckAnswer(c *gin.Context) {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
+
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(scac.db, c, err.Error())

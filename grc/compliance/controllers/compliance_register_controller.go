@@ -24,7 +24,6 @@ func NewComplianceRegisterController(service services.ComplianceRegisterServiceI
 }
 
 func (crc *ComplianceRegisterController) GetAllComplianceRegisters(c *gin.Context) {
-
 	sort := c.Query("sort")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
@@ -118,7 +117,6 @@ func (crc *ComplianceRegisterController) GetComplianceRegisterDetails(c *gin.Con
 }
 
 func (crc *ComplianceRegisterController) CreateComplianceRegister(c *gin.Context) {
-
 	var complianceRegisterFormDTO complianceDTOs.ComplianceRegisterFormDTO
 
 	if err := c.ShouldBindJSON(&complianceRegisterFormDTO); err != nil {
@@ -149,6 +147,7 @@ func (crc *ComplianceRegisterController) CreateComplianceRegister(c *gin.Context
 }
 
 func (crc *ComplianceRegisterController) UpdateComplianceRegister(c *gin.Context) {
+	var complianceRegisterFormDTO complianceDTOs.ComplianceRegisterFormDTO
 
 	complianceID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -156,7 +155,6 @@ func (crc *ComplianceRegisterController) UpdateComplianceRegister(c *gin.Context
 		return
 	}
 
-	var complianceRegisterFormDTO complianceDTOs.ComplianceRegisterFormDTO
 	if err := c.ShouldBindJSON(&complianceRegisterFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
@@ -187,7 +185,6 @@ func (crc *ComplianceRegisterController) UpdateComplianceRegister(c *gin.Context
 }
 
 func (crc *ComplianceRegisterController) DeleteComplianceRegisters(c *gin.Context) {
-
 	var request struct {
 		IDs []uint `json:"ids"`
 	}
