@@ -22,7 +22,7 @@ type KRIRegister struct {
 	MediumThreshold   *string    `json:"medium_threshold" gorm:"type:varchar(455);null"`
 	HighThreshold     *string    `json:"high_threshold" gorm:"type:varchar(455);null"`
 	CurrentValue      *string    `json:"current_value" gorm:"type:varchar(455);null"`
-	LastReviewDate    time.Time  `json:"last_review_date" gorm:"type:date"`
+	LastReviewedDate  time.Time  `json:"last_reviewed_date" gorm:"type:date"`
 	NextReviewDate    time.Time  `json:"next_review_date" binding:"required" gorm:"type:date;not null"`
 	LastReviewNote    *string    `json:"last_review_note" gorm:"type:nvarchar(max)"`
 	CreatedAt         time.Time  `json:"created_at" gorm:"type:datetime;not null"`

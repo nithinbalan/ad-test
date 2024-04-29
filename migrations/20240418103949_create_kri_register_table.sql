@@ -16,7 +16,7 @@ CREATE TABLE kri_register (
     medium_threshold VARCHAR(455),
     high_threshold VARCHAR(455),
     current_value VARCHAR(455),
-    last_review_date DATE,
+    last_reviewed_date DATE,
     next_review_date DATE NOT NULL,
     last_review_note NVARCHAR(MAX),
     created_at DATETIME NOT NULL,
