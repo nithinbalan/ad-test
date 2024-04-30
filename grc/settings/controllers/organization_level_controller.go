@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	"jethur/grc/settings/models"
+	"jethur/grc/models"
 	"jethur/grc/settings/services"
 	"jethur/utility"
 	"net/http"
@@ -21,8 +21,7 @@ func NewOrganizationLevelController(service services.OrganizationLevelServiceInt
 	}
 }
 
-func (olc *OrganizationLevelController) GetAllOrganizationLevel(c *gin.Context) {
-
+func (olc *OrganizationLevelController) GetAllOrganizationLevels(c *gin.Context) {
 	organizationLevels, err := olc.service.GetAll()
 
 	if err != nil {
@@ -33,12 +32,13 @@ func (olc *OrganizationLevelController) GetAllOrganizationLevel(c *gin.Context) 
 }
 
 func (olc *OrganizationLevelController) CreateOrganizationLevel(c *gin.Context) {
-
 	var updatedOrganizationLevel []*models.OrganizationLevel
+
 	if err := c.ShouldBindJSON(&updatedOrganizationLevel); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
+
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(olc.db, c, err.Error())

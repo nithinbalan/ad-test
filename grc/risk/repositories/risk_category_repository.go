@@ -1,8 +1,7 @@
 package repositories
 
 import (
-	"errors"
-	"jethur/grc/risk/models"
+	"jethur/grc/models"
 	"jethur/utility"
 
 	"gorm.io/gorm"
@@ -60,15 +59,13 @@ func (repo *RiskCategoryRepository) GetAll(sort string, sortBy string, keyword s
 
 func (repo *RiskCategoryRepository) GetByID(id uint) (*models.RiskCategory, error) {
 	var category *models.RiskCategory
-	result := repo.db.First(&category, id)
 
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, utility.NewResourceNotFoundError(result.Error, id)
-	} else if result.Error != nil {
+	result := repo.db.First(&category, id)
+	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	return category, result.Error
+	return category, nil
 }
 
 func (repo *RiskCategoryRepository) Create(category *models.RiskCategory) (*models.RiskCategory, error) {

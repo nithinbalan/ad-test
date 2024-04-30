@@ -22,7 +22,6 @@ func NewStrategicProfileController(service services.StrategicProfileServiceInter
 }
 
 func (spc *StrategicProfileController) GetStrategicProfile(c *gin.Context) {
-
 	strategicProfile, err := spc.service.GetStrategicProfile()
 	if err != nil {
 		switch e := err.(type) {
@@ -38,7 +37,6 @@ func (spc *StrategicProfileController) GetStrategicProfile(c *gin.Context) {
 }
 
 func (spc *StrategicProfileController) UpdateStrategicProfile(c *gin.Context) {
-
 	var strategicProfileFormDTO organizationDTOs.StrategicProfileFormDTO
 	if err := c.ShouldBindJSON(&strategicProfileFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
@@ -70,7 +68,6 @@ func (spc *StrategicProfileController) UpdateStrategicProfile(c *gin.Context) {
 }
 
 func (spc *StrategicProfileController) UpdateVision(c *gin.Context) {
-
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(spc.db, c, err.Error())
@@ -104,14 +101,13 @@ func (spc *StrategicProfileController) UpdateVision(c *gin.Context) {
 }
 
 func (spc *StrategicProfileController) UpdateMission(c *gin.Context) {
-
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(spc.db, c, err.Error())
 		return
 	}
 
-	var strategicProfileMissionFormDTO organizationDTOs.StrategicProfileMisionFormDTO
+	var strategicProfileMissionFormDTO organizationDTOs.StrategicProfileMissionFormDTO
 	if err := c.ShouldBindJSON(&strategicProfileMissionFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
@@ -138,7 +134,6 @@ func (spc *StrategicProfileController) UpdateMission(c *gin.Context) {
 }
 
 func (spc *StrategicProfileController) UpdateValues(c *gin.Context) {
-
 	var strategicProfileValueFormDTOs []*organizationDTOs.StrategicProfileValueFormDTO
 	if err := c.ShouldBindJSON(&strategicProfileValueFormDTOs); err != nil {
 		utility.SendInvalidErrResp(c, err)

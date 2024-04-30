@@ -2,7 +2,7 @@ package repositories
 
 import (
 	"errors"
-	"jethur/grc/risk/models"
+	"jethur/grc/models"
 	"jethur/utility"
 
 	"gorm.io/gorm"
@@ -53,15 +53,13 @@ func (repo *PotentialRiskStatusRepository) GetAll(sort string, sortBy string, ke
 
 func (repo *PotentialRiskStatusRepository) GetByID(id uint) (*models.PotentialRiskStatus, error) {
 	var potentialRiskStatus *models.PotentialRiskStatus
-	result := repo.db.First(&potentialRiskStatus, id)
 
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, utility.NewResourceNotFoundError(result.Error, id)
-	} else if result.Error != nil {
+	result := repo.db.First(&potentialRiskStatus, id)
+	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	return potentialRiskStatus, result.Error
+	return potentialRiskStatus, nil
 }
 
 func (repo *PotentialRiskStatusRepository) GetByType(status string) (*models.PotentialRiskStatus, error) {

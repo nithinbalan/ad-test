@@ -16,14 +16,13 @@ type StrategicOBjectiveController struct {
 	db      *gorm.DB
 }
 
-func NewStrategicOBjectiveController(service services.StrategicObjectiveServiceInterface) *StrategicOBjectiveController {
+func NewStrategicObjectiveController(service services.StrategicObjectiveServiceInterface) *StrategicOBjectiveController {
 	return &StrategicOBjectiveController{
 		service: service,
 	}
 }
 
 func (soc *StrategicOBjectiveController) GetAllStrategicObjectives(c *gin.Context) {
-
 	sort := c.Query("sort")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
@@ -57,7 +56,6 @@ func (soc *StrategicOBjectiveController) GetStrategicObjectiveDetails(c *gin.Con
 }
 
 func (soc *StrategicOBjectiveController) CreateStrategicObjective(c *gin.Context) {
-
 	var strategicObjectiveFormDTO *dtos.StrategicObjectiveFormDTO
 
 	if err := c.ShouldBindJSON(&strategicObjectiveFormDTO); err != nil {
@@ -87,7 +85,6 @@ func (soc *StrategicOBjectiveController) CreateStrategicObjective(c *gin.Context
 }
 
 func (soc *StrategicOBjectiveController) UpdateStrategicObjective(c *gin.Context) {
-
 	strategicObjectiveID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -124,7 +121,6 @@ func (soc *StrategicOBjectiveController) UpdateStrategicObjective(c *gin.Context
 }
 
 func (soc *StrategicOBjectiveController) DeleteStrategicObjectives(c *gin.Context) {
-
 	var request struct {
 		IDs []uint `json:"ids"`
 	}

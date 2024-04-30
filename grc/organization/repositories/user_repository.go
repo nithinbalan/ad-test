@@ -1,10 +1,9 @@
 package repositories
 
 import (
-	"errors"
 	commonDTOs "jethur/grc/common/dtos"
+	"jethur/grc/models"
 	userDTOs "jethur/grc/organization/dtos"
-	organizationModels "jethur/grc/organization/models"
 	"jethur/utility"
 
 	"gorm.io/gorm"
@@ -13,27 +12,27 @@ import (
 type UserRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *userDTOs.UserListQueryParamsDTO) (*userDTOs.UserListResponseDTO, error)
-	GetByID(id uint, preloads ...string) (*organizationModels.User, error)
-	GetByEmail(email string) (*organizationModels.User, error)
-	Create(user *organizationModels.User, tx ...utility.DatabaseTransaction) (uint, error)
-	Update(user *organizationModels.User, tx ...utility.DatabaseTransaction) error
+	GetByID(id uint, preloads ...string) (*models.User, error)
+	GetByEmail(email string) (*models.User, error)
+	Create(user *models.User, tx ...utility.DatabaseTransaction) (uint, error)
+	Update(user *models.User, tx ...utility.DatabaseTransaction) error
 	UpdatePartial(id uint, updates map[string]interface{}) error
 	Delete(id uint) error
 	ExistsByEmail(email string) (bool, error)
 	ExistsByEmailExcludingID(id uint, email string) (bool, error)
 
 	//User security
-	GetUserSecurityByUserID(userId uint) (*organizationModels.UserSecurity, error)
-	CreateUserSecurity(userSecurity organizationModels.UserSecurity, tx ...utility.DatabaseTransaction) error
-	UpdateUserSecurity(userSecurity *organizationModels.UserSecurity) error
+	GetUserSecurityByUserID(userId uint) (*models.UserSecurity, error)
+	CreateUserSecurity(userSecurity models.UserSecurity, tx ...utility.DatabaseTransaction) error
+	UpdateUserSecurity(userSecurity *models.UserSecurity) error
 
 	//User settings
-	GetUserSettingsByUserID(userId uint) (*organizationModels.UserSetting, error)
-	CreateUserSetting(userSetting organizationModels.UserSetting, tx ...utility.DatabaseTransaction) error
-	UpdateUserSetting(userSetting *organizationModels.UserSetting) error
+	GetUserSettingsByUserID(userId uint) (*models.UserSetting, error)
+	CreateUserSetting(userSetting models.UserSetting, tx ...utility.DatabaseTransaction) error
+	UpdateUserSetting(userSetting *models.UserSetting) error
 
 	//User roles
-	CreateUserRole(userRoles []organizationModels.UserRole, tx ...utility.DatabaseTransaction) error
+	CreateUserRole(userRoles []models.UserRole, tx ...utility.DatabaseTransaction) error
 	UpdateUserRoles(userID uint, desiredRoleIDs []uint, tx ...utility.DatabaseTransaction) error
 }
 
@@ -53,7 +52,6 @@ func (repo *UserRepository) BeginTransaction() utility.DatabaseTransaction {
 }
 
 func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*userDTOs.UserListResponseDTO, error) {
-
 	var users []*userDTOs.UserListDTO
 	var totalCount int64
 
@@ -151,16 +149,13 @@ func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*us
 		},
 	}
 	return response, nil
-
 }
 
 // @Review
 // We can provide preload string as optional parameter.
 // So you can fetch user roles in same function by passing as param
-// Here just return db error as it is, and manage custom error at service level.
-
-func (repo *UserRepository) GetByID(id uint, preloads ...string) (*organizationModels.User, error) {
-	var user *organizationModels.User
+func (repo *UserRepository) GetByID(id uint, preloads ...string) (*models.User, error) {
+	var user *models.User
 
 	query := repo.db
 
@@ -170,16 +165,27 @@ func (repo *UserRepository) GetByID(id uint, preloads ...string) (*organizationM
 
 	result := query.First(&user, id)
 
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, utility.NewResourceNotFoundError(result.Error, id)
-	} else if result.Error != nil {
+	if result.Error != nil {
 		return nil, result.Error
 	}
 
 	return user, nil
 }
 
-func (repo *UserRepository) Create(user *organizationModels.User, tx ...utility.DatabaseTransaction) (uint, error) {
+func (repo *UserRepository) GetByEmail(email string) (*models.User, error) {
+	var user *models.User
+
+	result := repo.db.Where("email = ?", email).First(&user)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return user, nil
+
+}
+
+func (repo *UserRepository) Create(user *models.User, tx ...utility.DatabaseTransaction) (uint, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -190,7 +196,7 @@ func (repo *UserRepository) Create(user *organizationModels.User, tx ...utility.
 	return user.ID, nil
 }
 
-func (repo *UserRepository) Update(user *organizationModels.User, tx ...utility.DatabaseTransaction) error {
+func (repo *UserRepository) Update(user *models.User, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -202,145 +208,49 @@ func (repo *UserRepository) Update(user *organizationModels.User, tx ...utility.
 	return nil
 }
 
-func (repo *UserRepository) Delete(id uint) error {
+func (repo *UserRepository) UpdatePartial(id uint, updates map[string]interface{}) error {
+	if err := repo.db.Model(&models.User{}).Where("id = ?", id).Updates(updates).Error; err != nil {
+		return err
+	}
 
-	// Start a transaction
+	return nil
+}
+
+func (repo *UserRepository) Delete(id uint) error {
 	tx := repo.db.Begin()
 
-	// Check for errors starting the transaction
 	if tx.Error != nil {
 		return tx.Error
 	}
 
-	// Attempt to delete related records first to maintain referential integrity
-	if err := tx.Where("user_id = ?", id).Delete(&organizationModels.UserSecurity{}).Error; err != nil {
-		tx.Rollback() // Rollback if there's an error
-		return err
-	}
-
-	if err := tx.Where("user_id = ?", id).Delete(&organizationModels.UserSetting{}).Error; err != nil {
+	if err := tx.Where("user_id = ?", id).Delete(&models.UserSecurity{}).Error; err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	if err := tx.Where("user_id = ?", id).Delete(&organizationModels.UserRole{}).Error; err != nil {
+	if err := tx.Where("user_id = ?", id).Delete(&models.UserSetting{}).Error; err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	// Finally, attempt to delete the user
-	if err := tx.Delete(&organizationModels.User{}, id).Error; err != nil {
+	if err := tx.Where("user_id = ?", id).Delete(&models.UserRole{}).Error; err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	// Commit the transaction if all deletions were successful
+	if err := tx.Delete(&models.User{}, id).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	return tx.Commit().Error
-}
-
-func (repo *UserRepository) CreateUserSecurity(userSecurity organizationModels.UserSecurity, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-	if err := db.Create(&userSecurity).Error; err != nil {
-		return err
-	}
-	return nil
-}
-func (repo *UserRepository) UpdatePartial(id uint, updates map[string]interface{}) error {
-	if err := repo.db.Model(&organizationModels.User{}).Where("id = ?", id).Updates(updates).Error; err != nil {
-		return err
-	}
-	return nil
-}
-
-func (repo *UserRepository) GetByEmail(email string) (*organizationModels.User, error) {
-	var user *organizationModels.User
-	result := repo.db.Where("email = ?", email).First(&user)
-
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, utility.NewResourceNotFoundError(result.Error, email)
-	} else if result.Error != nil {
-		return nil, result.Error
-	}
-
-	return user, nil
-
-}
-
-func (repo *UserRepository) CreateUserSetting(userSetting organizationModels.UserSetting, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-	if err := db.Create(&userSetting).Error; err != nil {
-		return err
-	}
-	return nil
-}
-
-func (repo *UserRepository) CreateUserRole(userRoles []organizationModels.UserRole, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-	if err := db.CreateInBatches(userRoles, 100).Error; err != nil {
-		return err
-	}
-	return nil
-
-}
-
-func (repo *UserRepository) UpdateUserRoles(userID uint, desiredRoleIDs []uint, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-
-	// @review
-	// Role id comparison can be moved to service layer
-	// So the id to be updated (desiredIds) can be used for logs purpsose also
-	// Here just update role with ids.
-
-	// Fetch current roles of the user
-	var currentRoles []organizationModels.UserRole
-	if err := db.Where("user_id = ?", userID).Find(&currentRoles).Error; err != nil {
-		return err
-	}
-
-	currentRoleIDs := make(map[uint]bool)
-	for _, role := range currentRoles {
-		currentRoleIDs[role.RoleID] = true
-	}
-
-	// Determine roles to add
-	for _, roleID := range desiredRoleIDs {
-		if _, exists := currentRoleIDs[roleID]; !exists {
-			if err := db.Create(&organizationModels.UserRole{UserID: userID, RoleID: roleID}).Error; err != nil {
-				return err
-			}
-		}
-	}
-
-	// Determine roles to remove
-	for _, role := range currentRoles {
-		if !contains(desiredRoleIDs, role.RoleID) {
-			if err := db.Where("user_id = ? AND role_id = ?", userID, role.RoleID).Delete(&organizationModels.UserRole{}).Error; err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-
 }
 
 func (repo *UserRepository) ExistsByEmail(email string) (bool, error) {
 	var count int64
 
 	// Check for the existence of titleEn or titleAr in a single query
-	err := repo.db.Model(&organizationModels.User{}).
+	err := repo.db.Model(&models.User{}).
 		Where("email = ?", email).
 		Count(&count).Error
 
@@ -355,7 +265,7 @@ func (repo *UserRepository) ExistsByEmail(email string) (bool, error) {
 func (repo *UserRepository) ExistsByEmailExcludingID(id uint, email string) (bool, error) {
 	var count int64
 
-	err := repo.db.Model(&organizationModels.User{}).
+	err := repo.db.Model(&models.User{}).
 		Where("id <> ? AND email = ?", id, email).
 		Count(&count).Error
 
@@ -364,6 +274,129 @@ func (repo *UserRepository) ExistsByEmailExcludingID(id uint, email string) (boo
 	}
 
 	return count > 0, nil
+}
+
+func (repo *UserRepository) GetUserSecurityByUserID(userId uint) (*models.UserSecurity, error) {
+	var userSecurity *models.UserSecurity
+	result := repo.db.Where("user_id = ?", userId).First(&userSecurity)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return userSecurity, nil
+
+}
+
+func (repo *UserRepository) CreateUserSecurity(userSecurity models.UserSecurity, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Create(&userSecurity).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *UserRepository) UpdateUserSecurity(userSecurity *models.UserSecurity) error {
+
+	if err := repo.db.Save(userSecurity).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *UserRepository) GetUserSettingsByUserID(userID uint) (*models.UserSetting, error) {
+	var userSetting *models.UserSetting
+	result := repo.db.Where("user_id = ?", userID).First(&userSetting)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return userSetting, nil
+}
+
+func (repo *UserRepository) CreateUserSetting(userSetting models.UserSetting, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Create(&userSetting).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *UserRepository) UpdateUserSetting(userSetting *models.UserSetting) error {
+	if err := repo.db.Save(userSetting).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *UserRepository) CreateUserRole(userRoles []models.UserRole, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.CreateInBatches(userRoles, 100).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *UserRepository) UpdateUserRoles(userID uint, desiredRoleIDs []uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// @review
+	// Role id comparison can be moved to service layer
+	// So the id to be updated (desiredIds) can be used for logs purpsose also
+	// Here just update role with ids.
+
+	// Fetch current roles of the user
+	var currentRoles []models.UserRole
+	if err := db.Where("user_id = ?", userID).Find(&currentRoles).Error; err != nil {
+		return err
+	}
+
+	currentRoleIDs := make(map[uint]bool)
+	for _, role := range currentRoles {
+		currentRoleIDs[role.RoleID] = true
+	}
+
+	// Determine roles to add
+	for _, roleID := range desiredRoleIDs {
+		if _, exists := currentRoleIDs[roleID]; !exists {
+			if err := db.Create(&models.UserRole{UserID: userID, RoleID: roleID}).Error; err != nil {
+				return err
+			}
+		}
+	}
+
+	// Determine roles to remove
+	for _, role := range currentRoles {
+		if !contains(desiredRoleIDs, role.RoleID) {
+			if err := db.Where("user_id = ? AND role_id = ?", userID, role.RoleID).Delete(&models.UserRole{}).Error; err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 // @Review
@@ -376,43 +409,4 @@ func contains(slice []uint, val uint) bool {
 		}
 	}
 	return false
-}
-
-func (repo *UserRepository) GetUserSecurityByUserID(userId uint) (*organizationModels.UserSecurity, error) {
-	var userSecurity *organizationModels.UserSecurity
-	result := repo.db.Where("user_id = ?", userId).First(&userSecurity)
-
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, utility.NewResourceNotFoundError(result.Error, userId)
-	} else if result.Error != nil {
-		return nil, result.Error
-	}
-
-	return userSecurity, nil
-
-}
-
-func (repo *UserRepository) UpdateUserSecurity(userSecurity *organizationModels.UserSecurity) error {
-
-	if err := repo.db.Save(userSecurity).Error; err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (repo *UserRepository) GetUserSettingsByUserID(userID uint) (*organizationModels.UserSetting, error) {
-	var userSetting *organizationModels.UserSetting
-	result := repo.db.Where("user_id = ?", userID).First(&userSetting)
-	if result.Error != nil {
-		return nil, result.Error
-	}
-	return userSetting, nil
-}
-
-func (repo *UserRepository) UpdateUserSetting(userSetting *organizationModels.UserSetting) error {
-	if err := repo.db.Save(userSetting).Error; err != nil {
-		return err
-	}
-	return nil
 }

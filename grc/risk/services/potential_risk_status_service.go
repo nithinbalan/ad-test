@@ -1,8 +1,12 @@
 package services
 
 import (
-	"jethur/grc/risk/models"
+	"errors"
+	"jethur/grc/models"
 	"jethur/grc/risk/repositories"
+	"jethur/utility"
+
+	"gorm.io/gorm"
 )
 
 type PotentialRiskStatusServiceInterface interface {
@@ -27,7 +31,15 @@ func (prss *PotentialRiskStatusService) GetAll(sort string, sortBy string, keywo
 }
 
 func (prss PotentialRiskStatusService) GetByID(id uint) (*models.PotentialRiskStatus, error) {
-	return prss.repo.GetByID(id)
+	potentialRisk, err := prss.repo.GetByID(id)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+	return potentialRisk, nil
 }
 
 func (prss *PotentialRiskStatusService) GetByType(status string) (*models.PotentialRiskStatus, error) {

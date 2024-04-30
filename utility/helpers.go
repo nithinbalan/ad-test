@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
@@ -158,4 +159,25 @@ func CheckUniqueFields(slice interface{}, fields ...string) error {
 	}
 
 	return nil
+}
+
+func CalculateNextReviewDate(frequency string) time.Time {
+	currentDate := time.Now()
+
+	switch frequency {
+	case "daily":
+		return currentDate.AddDate(0, 0, 1)
+	case "weekly":
+		return currentDate.AddDate(0, 0, 7)
+	case "monthly":
+		return currentDate.AddDate(0, 1, 0)
+	case "quarterly":
+		return currentDate.AddDate(0, 3, 0)
+	case "half-yearly":
+		return currentDate.AddDate(0, 6, 0)
+	case "annually":
+		return currentDate.AddDate(1, 0, 0)
+	default:
+		return currentDate
+	}
 }

@@ -3,7 +3,7 @@ package dtos
 import (
 	commonDTOs "jethur/grc/common/dtos"
 	masterDTOs "jethur/grc/masters/dtos"
-	settingsModels "jethur/grc/settings/models"
+	"jethur/grc/models"
 	"time"
 )
 
@@ -30,7 +30,7 @@ type KRIRegisterListDTO struct {
 	MediumThreshold        string  `json:"medium_threshold"`
 	HighThreshold          string  `json:"high_threshold"`
 	CurrentValue           string  `json:"current_value"`
-	LastReviewDate         string  `json:"last_review_date"`
+	LastReviewedDate       string  `json:"last_reviewed_date"`
 	NextReviewDate         string  `json:"next_review_date"`
 	LastReviewNote         string  `json:"last_review_note"`
 	CreatedAt              string  `json:"created_at"`
@@ -46,18 +46,18 @@ type KRIRegisterListDTO struct {
 }
 
 type KRIRegisterListQueryParamsDTO struct {
-	Sort               string
-	SortBy             string
-	Keyword            string
-	Status             string
-	Page               int
-	PageSize           int
-	Filters            map[string][]string
-	QuickFilter        []string
-	LastReviewDateFrom string
-	LastReviewDateTo   string
-	NextReviewDateFrom string
-	NextReviewDateTo   string
+	Sort                 string
+	SortBy               string
+	Keyword              string
+	Status               string
+	Page                 int
+	PageSize             int
+	Filters              map[string][]string
+	QuickFilter          []string
+	LastReviewedDateFrom string
+	LastReviewedDateTo   string
+	NextReviewDateFrom   string
+	NextReviewDateTo     string
 }
 
 type KRIRegisterListResponseDTO struct {
@@ -78,35 +78,35 @@ type KRIRegisterFormDTO struct {
 	MediumThreshold   *string `json:"medium_threshold" gorm:"type:varchar(455);null"`
 	HighThreshold     *string `json:"high_threshold" gorm:"type:varchar(455);null"`
 	CurrentValue      *string `json:"current_value" gorm:"type:varchar(455);null"`
-	LastReviewDate    string  `json:"last_review_date" binding:"omitempty" gorm:"type:date"`
+	LastReviewedDate  string  `json:"last_reviewed_date" binding:"omitempty" gorm:"type:date"`
 	NextReviewDate    string  `json:"next_review_date" binding:"required" gorm:"type:date;not null"`
 	LastReviewNote    *string `json:"last_review_note" gorm:"type:nvarchar(max)"`
 }
 
 type KRIRegisterDetailsDTO struct {
-	ID              uint                            `json:"id"`
-	ReferenceNumber string                          `json:"reference_number"`
-	KRICategory     masterDTOs.KRICategoryDTO       `json:"kri_category"`
-	OwnerUnit       settingsModels.OrganizationUnit `json:"organization_unit"`
-	ReviewFrequency masterDTOs.ReviewFrequencyDTO   `json:"review_frequency"`
-	RiskLevel       RiskLevelDTO                    `json:"risk_level"`
-	Title           string                          `json:"title"`
-	Description     *string                         `json:"description"`
-	CalculationType string                          `json:"calculation_type"`
-	LowThreshold    *string                         `json:"low_threshold"`
-	MediumThreshold *string                         `json:"medium_threshold"`
-	HighThreshold   *string                         `json:"high_threshold"`
-	CurrentValue    *string                         `json:"current_value"`
-	LastReviewDate  time.Time                       `json:"last_review_date"`
-	NextReviewDate  time.Time                       `json:"next_review_date"`
-	LastReviewNote  *string                         `json:"last_review_note"`
-	CreatedAt       time.Time                       `json:"created_at"`
-	UpdatedAt       *time.Time                      `json:"updated_at"`
+	ID               uint                          `json:"id"`
+	ReferenceNumber  string                        `json:"reference_number"`
+	KRICategory      masterDTOs.KRICategoryDTO     `json:"kri_category"`
+	OwnerUnit        models.OrganizationUnit       `json:"organization_unit"`
+	ReviewFrequency  masterDTOs.ReviewFrequencyDTO `json:"review_frequency"`
+	RiskLevel        RiskLevelDTO                  `json:"risk_level"`
+	Title            string                        `json:"title"`
+	Description      *string                       `json:"description"`
+	CalculationType  string                        `json:"calculation_type"`
+	LowThreshold     *string                       `json:"low_threshold"`
+	MediumThreshold  *string                       `json:"medium_threshold"`
+	HighThreshold    *string                       `json:"high_threshold"`
+	CurrentValue     *string                       `json:"current_value"`
+	LastReviewedDate time.Time                     `json:"last_reviewed_date"`
+	NextReviewDate   time.Time                     `json:"next_review_date"`
+	LastReviewNote   *string                       `json:"last_review_note"`
+	CreatedAt        time.Time                     `json:"created_at"`
+	UpdatedAt        *time.Time                    `json:"updated_at"`
 	// CreatedByUser         UserMinimalDTO                `json:"created_by"`
 	// UpdatedByUser         UserMinimalDTO                `json:"updated_by"`
 }
 
 type KRIRegisterParsedDates struct {
-	LastReviewDate *time.Time
-	NextReviewDate *time.Time
+	LastReviewedDate *time.Time
+	NextReviewDate   *time.Time
 }

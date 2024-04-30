@@ -17,7 +17,7 @@ type UserController struct {
 	db      *gorm.DB
 }
 
-func NewUSerController(service services.UserServiceInterface) *UserController {
+func NewUserController(service services.UserServiceInterface) *UserController {
 	return &UserController{
 		service: service,
 	}
@@ -76,7 +76,6 @@ func (uc *UserController) GetAllUsers(c *gin.Context) {
 }
 
 func (uc *UserController) CreateUser(c *gin.Context) {
-
 	var userFormDTO organizationDTOs.UserFormDTO
 
 	if err := c.ShouldBindJSON(&userFormDTO); err != nil {
@@ -107,8 +106,7 @@ func (uc *UserController) CreateUser(c *gin.Context) {
 }
 
 func (uc *UserController) UpdateUser(c *gin.Context) {
-
-	userID, err := strconv.Atoi(c.Param("id"))
+	userID, err := strconv.Atoi(c.Param("userId"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -145,7 +143,6 @@ func (uc *UserController) UpdateUser(c *gin.Context) {
 }
 
 func (uc *UserController) DeleteUsers(c *gin.Context) {
-
 	var request struct {
 		IDs []uint `json:"ids"`
 	}

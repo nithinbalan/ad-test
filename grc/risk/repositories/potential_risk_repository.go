@@ -2,8 +2,8 @@ package repositories
 
 import (
 	commonDTOs "jethur/grc/common/dtos"
+	"jethur/grc/models"
 	riskDTOs "jethur/grc/risk/dtos"
-	"jethur/grc/risk/models"
 	"jethur/utility"
 
 	"gorm.io/gorm"

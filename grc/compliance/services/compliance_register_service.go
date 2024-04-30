@@ -3,7 +3,6 @@ package services
 import (
 	"errors"
 	"fmt"
-	"jethur/config"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	complianceModels "jethur/grc/compliance/models"
 	complianceRepositories "jethur/grc/compliance/repositories"
@@ -12,6 +11,8 @@ import (
 	masterRepositories "jethur/grc/masters/repositories"
 	masterServices "jethur/grc/masters/services"
 	"jethur/utility"
+	"path/filepath"
+	"strconv"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -122,7 +123,7 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 		return 0, err
 	}
 
-	if err := crs.validateComplianceDocumentFormDTO(complianceRegisterFormDTO.Document); err != nil {
+	if err := crs.validateComplianceDocumentFormDTO(&complianceRegisterFormDTO.Document); err != nil {
 		return 0, err
 	}
 
@@ -146,7 +147,6 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 		ExpiryDate:              dates.ExpiryDate,
 		NextReviewDate:          dates.NextReviewDate,
 		CreatedBy:               currentUserID,
-		UpdatedAt:               nil,
 		LifecycleStatusID:       lifecycleStatus.ID,
 	}
 
@@ -156,29 +156,35 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 		return 0, err
 	}
 
-	if err := crs.repo.StoreComplianceDocumentFile(id, complianceRegisterFormDTO.Document.FileName); err != nil {
+	// Store Compliance Document File using utility.StoreFile
+	storagePath := filepath.Join("compliance", "compliance", strconv.FormatUint(uint64(id), 10), "documents")
+
+	if err := utility.StoreFile(complianceRegisterFormDTO.Document.FileName, storagePath); err != nil {
 		tx.Rollback()
 		return 0, err
 	}
 
+	//generate token
 	dataToEncrypt := []byte(complianceRegisterFormDTO.Document.FileName)
 	encryptedFilename, err := utility.EncryptData(dataToEncrypt)
 	if err != nil {
 		return 0, err
 	}
 
-	url := fmt.Sprintf("%s/compliance-register/%d/%s", config.GetEnv("API_URL", "http://localhost:8080"), complianceRegister.ID, encryptedFilename)
+	//genereate URL
+	url := utility.GenerateDocumentURL("compliance-register", strconv.FormatUint(uint64(complianceRegister.ID), 10), encryptedFilename)
+	// url := fmt.Sprintf("%s/compliance-register/%d/%s", config.GetEnv("API_URL", "http://localhost:8080"), complianceRegister.ID, encryptedFilename)
 
 	complianceDocument := &complianceModels.ComplianceDocument{
 		ComplianceRegisterID: id,
-		Language:      complianceRegisterFormDTO.Document.Language,
-		URL:           url,
-		Icon:          complianceRegisterFormDTO.Document.Icon,
-		Name:          complianceRegisterFormDTO.Document.FileName,
-		Size:          complianceRegisterFormDTO.Document.Size,
-		Token:         encryptedFilename,
-		Type:          complianceRegisterFormDTO.Document.Type,
-		CreatedBy:     currentUserID,
+		Language:             complianceRegisterFormDTO.Document.Language,
+		URL:                  url,
+		Icon:                 complianceRegisterFormDTO.Document.Icon,
+		Name:                 complianceRegisterFormDTO.Document.FileName,
+		Size:                 complianceRegisterFormDTO.Document.Size,
+		Token:                encryptedFilename,
+		Type:                 complianceRegisterFormDTO.Document.Type,
+		CreatedBy:            currentUserID,
 	}
 
 	// Save Compliance document
@@ -188,7 +194,7 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 	}
 
 	tx.Commit()
-	
+
 	go func() {
 		err := crs.activityLogSvc.LogActivity(
 			logModels.CreateAction,
@@ -232,7 +238,7 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 	if err != nil {
 		return err
 	}
-	if err := crs.validateComplianceDocumentFormDTO(complianceRegisterFormDTO.Document); err != nil {
+	if err := crs.validateComplianceDocumentFormDTO(&complianceRegisterFormDTO.Document); err != nil {
 		return err
 	}
 	existingComplianceRegister.ComplianceCategoryID = complianceRegisterFormDTO.ComplianceCategoryID
@@ -261,7 +267,7 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 		return err
 	}
 
-	if complianceRegisterFormDTO.Document != nil && complianceRegisterFormDTO.Document.ID != nil {
+	if complianceRegisterFormDTO.Document.ID != nil {
 		existingComplianceDocument, err := crs.repo.GetComplianceDocumentByID(*complianceRegisterFormDTO.Document.ID)
 		if err != nil {
 			return err
@@ -270,21 +276,26 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 		existingComplianceDocument.UpdatedBy = currentUserID
 
 		if complianceRegisterFormDTO.Document.IsNewFile != nil && *complianceRegisterFormDTO.Document.IsNewFile {
-			if err := crs.repo.RemoveComplianceDocumentFile(existingComplianceDocument.ComplianceRegisterID, existingComplianceDocument.Name); err != nil {
+			storagePath := filepath.Join("compliance", "compliance", strconv.FormatUint(uint64(id), 10), "documents")
+			if err := utility.RemoveFile(existingComplianceDocument.Name, storagePath); err != nil {
 				tx.Rollback()
 				return err
 			}
-			if err := crs.repo.StoreComplianceDocumentFile(existingComplianceDocument.ComplianceRegisterID, complianceRegisterFormDTO.Document.FileName); err != nil {
+			// Store Compliance Document File using utility.StoreFile
+			if err := utility.StoreFile(complianceRegisterFormDTO.Document.FileName, storagePath); err != nil {
 				tx.Rollback()
 				return err
 			}
+			//generate token
 			dataToEncrypt := []byte(complianceRegisterFormDTO.Document.FileName)
 			encryptedFilename, err := utility.EncryptData(dataToEncrypt)
 			if err != nil {
 				tx.Rollback()
 				return err
 			}
-			url := fmt.Sprintf("%s/compliance-register/%d/%s", config.GetEnv("API_URL", "http://localhost:8080"), id, encryptedFilename)
+
+			//genereate URL
+			url := utility.GenerateDocumentURL("compliance-register", strconv.FormatUint(uint64(id), 10), encryptedFilename)
 
 			existingComplianceDocument.Language = complianceRegisterFormDTO.Document.Language
 			existingComplianceDocument.URL = url
@@ -315,7 +326,7 @@ func (crs *ComplianceRegisterService) Delete(ids []uint, currentUserID uint) ([]
 		if err != nil {
 			continue
 		}
-		
+
 		// Fetch the Compliance document by ID
 		complianceDocument, err := crs.repo.GetComplianceDocumentByComplianceID(id)
 		if err != nil {
@@ -323,9 +334,9 @@ func (crs *ComplianceRegisterService) Delete(ids []uint, currentUserID uint) ([]
 			continue
 		}
 
-		// Delete associated documents
-		err = crs.repo.RemoveComplianceDocumentFile(complianceDocument.ComplianceRegisterID, complianceDocument.Name)
-		if err != nil {
+		storagePath := filepath.Join("compliance", "compliance", strconv.FormatUint(uint64(complianceDocument.ComplianceRegisterID), 10), "documents")
+
+		if err := utility.RemoveFile(complianceDocument.Name, storagePath); err != nil {
 			failedIds = append(failedIds, id)
 			continue
 		}
@@ -361,7 +372,7 @@ func (crs *ComplianceRegisterService) Delete(ids []uint, currentUserID uint) ([]
 
 func (crs *ComplianceRegisterService) Archive(ids []uint, currentUserID uint) ([]uint, error) {
 
-	lifecycleStatus, err := crs.lifecycleStatusSvc.GetByType("archived|")
+	lifecycleStatus, err := crs.lifecycleStatusSvc.GetByType("archived")
 	if err != nil {
 		return nil, err
 	}

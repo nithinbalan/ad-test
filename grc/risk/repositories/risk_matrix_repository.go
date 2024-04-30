@@ -1,8 +1,7 @@
 package repositories
 
 import (
-	"errors"
-	"jethur/grc/risk/models"
+	"jethur/grc/models"
 	"jethur/utility"
 
 	"gorm.io/gorm"
@@ -10,7 +9,9 @@ import (
 
 // Interfaces
 type RiskMatrixRepositoryInterface interface {
+	GetByID(id uint) (*models.RiskMatrix, error)
 	GetByType(status string) (*models.RiskMatrix, error)
+	Update(matrix *models.RiskMatrix, tx ...utility.DatabaseTransaction) error
 }
 
 // Implementation
@@ -24,16 +25,36 @@ func NewRiskMatrixRepository(db *gorm.DB) *RiskMatrixRepository {
 	}
 }
 
-func (repo *RiskMatrixRepository) GetByType(status string) (*models.RiskMatrix, error) {
+func (repo *RiskMatrixRepository) GetByID(id uint) (*models.RiskMatrix, error) {
 	var riskMatrix *models.RiskMatrix
 
-	result := repo.db.Where("type = ?", status).First(&riskMatrix)
-
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, utility.NewResourceNotFoundError(result.Error, "Risk matrix with status "+status)
-	} else if result.Error != nil {
+	result := repo.db.First(&riskMatrix, id)
+	if result.Error != nil {
 		return nil, result.Error
 	}
 
 	return riskMatrix, nil
+}
+
+func (repo *RiskMatrixRepository) GetByType(status string) (*models.RiskMatrix, error) {
+	var riskMatrix *models.RiskMatrix
+
+	result := repo.db.Where("type = ?", status).First(&riskMatrix)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return riskMatrix, nil
+}
+
+func (repo *RiskMatrixRepository) Update(riskMatrix *models.RiskMatrix, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(riskMatrix).Error; err != nil {
+		return err
+	}
+
+	return nil
 }

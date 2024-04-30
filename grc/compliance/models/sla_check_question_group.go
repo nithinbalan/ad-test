@@ -3,7 +3,7 @@ package models
 import (
 	"time"
 
-	organizationModels "jethur/grc/organization/models"
+	"jethur/grc/models"
 )
 
 type SLACheckQuestionGroup struct {
@@ -19,9 +19,9 @@ type SLACheckQuestionGroup struct {
 	UpdatedBy      *uint      `json:"updated_by,omitempty" gorm:"default:null"`
 
 	// Relationships
-	SLACheck      *SLACheck                `gorm:"foreignkey:SLACheckID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser *organizationModels.User `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser *organizationModels.User `gorm:"foreignKey:UpdatedBy"`
+	SLACheck      *SLACheck    `gorm:"foreignkey:SLACheckID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	CreatedByUser *models.User `gorm:"foreignKey:CreatedBy"`
+	UpdatedByUser *models.User `gorm:"foreignKey:UpdatedBy"`
 }
 
 // TableName overrides the table name used by SLACheckQuestionGroup to `sla_check_question_groups`

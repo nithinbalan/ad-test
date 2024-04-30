@@ -54,12 +54,12 @@ type SLARenewListResponseDTO struct {
 }
 
 type SLARenewFormDTO struct {
-	IssueDate  string                   `json:"issue_date" binding:"omitempty,datetime=2006-01-02"`
-	ExpiryDate string                   `json:"expiry_date" binding:"omitempty,datetime=2006-01-02"`
-	SA1Date    string                   `json:"sa1_date" binding:"omitempty,datetime=2006-01-02"`
-	SA2Date    string                   `json:"sa2_date" binding:"omitempty,datetime=2006-01-02"`
-	Comment    *string                  `json:"comment"`
-	Document   *SLARenewDocumentFormDTO `json:"document" binding:"required"`
+	IssueDate  string                  `json:"issue_date" binding:"omitempty,datetime=2006-01-02"`
+	ExpiryDate string                  `json:"expiry_date" binding:"omitempty,datetime=2006-01-02"`
+	SA1Date    string                  `json:"sa1_date" binding:"omitempty,datetime=2006-01-02"`
+	SA2Date    string                  `json:"sa2_date" binding:"omitempty,datetime=2006-01-02"`
+	Comment    *string                 `json:"comment"`
+	Document   SLARenewDocumentFormDTO `json:"document" binding:"required"`
 }
 
 type SLARenewDocumentFormDTO struct {

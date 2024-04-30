@@ -23,6 +23,9 @@
 # Temporary files
 tmp/
 
+# Ignore Storage folder
+/storage
+
 # IDE / Editor specific files
 *.swp
 *.swo

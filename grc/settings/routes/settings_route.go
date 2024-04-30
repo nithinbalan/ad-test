@@ -25,6 +25,20 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	organizationLevelSvc := settingServices.NewOrganizationLevelService(organizationLevelRepo, activityLogSvc)
 	OrganizationLevelController := controllers.NewOrganizationLevelController(organizationLevelSvc)
 
-	settingRoutes.GET("/rganization-level", OrganizationLevelController.GetAllOrganizationLevel)
-	settingRoutes.POST("/organization-level", OrganizationLevelController.CreateOrganizationLevel)
+	currencyRepo := settingRepositories.NewCurrencyRepository(db)
+	currencySvc := settingServices.NewCurrencyService(currencyRepo)
+
+	systemPreferenceRepo := settingRepositories.NewSystemPreferenceRepository(db)
+	systemPreferenceSvc := settingServices.NewSystemPreferenceService(systemPreferenceRepo,activityLogSvc,currencySvc)
+	currencyController := controllers.NewCurrencyController(currencySvc)
+	systemPreferenceController := controllers.NewSystemPreferenceController(systemPreferenceSvc)
+
+	settingRoutes.GET("/organization-levels", OrganizationLevelController.GetAllOrganizationLevels)
+	settingRoutes.POST("/organization-levels", OrganizationLevelController.CreateOrganizationLevel)
+	
+	settingRoutes.GET("/currencies", currencyController.GetAllCurrencies)
+	settingRoutes.GET("/currencies/:id", currencyController.GetCurrencyDetails)
+
+	settingRoutes.GET("/system-preferences/:id", systemPreferenceController.GetSystemPreferenceDetails)
+	settingRoutes.PUT("/system-preferences/:id", systemPreferenceController.UpdateSystemPreference)
 }

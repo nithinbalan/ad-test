@@ -3,7 +3,7 @@ package models
 import (
 	"time"
 
-	organizationModels "jethur/grc/organization/models"
+	"jethur/grc/models"
 )
 
 type ComplianceReview struct {
@@ -14,8 +14,8 @@ type ComplianceReview struct {
 	ReviewedBy           uint      `json:"reviewed_by" gorm:"tnot null"`
 
 	// Relationships
-	ComplianceRegister *ComplianceRegister      `gorm:"foreignkey:ComplianceRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ReviewedByUser     *organizationModels.User `gorm:"foreignKey:ReviewedBy"`
+	ComplianceRegister *ComplianceRegister `gorm:"foreignkey:ComplianceRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ReviewedByUser     *models.User        `gorm:"foreignKey:ReviewedBy"`
 }
 
 // TableName overrides the table name used by ComplianceReview to `compliance_reviews`

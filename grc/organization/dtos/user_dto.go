@@ -84,3 +84,18 @@ type SendNewPasswordEmailDTO struct {
 	Email       string `json:"email"`
 	Password    string `json:"password"`
 }
+
+type OrganizationUnit1DTO struct {
+	ID      int    `json:"id"`
+	TitleEn string `json:"title_en"`
+	TitleAr string `json:"title_ar"`
+	Status  string `json:"status"`
+}
+type UserMinimalDTO struct {
+	ID                int                  `json:"id"`
+	FirstNameEN       string               `json:"first_name_en"`
+	LastNameEN        string               `json:"last_name_en"`
+	FirstNameAR       string               `json:"first_name_ar"`
+	LastNameAR        string               `json:"last_name_ar"`
+	OrganizationUnit1 OrganizationUnit1DTO `json:"organization_unit_1"`
+}

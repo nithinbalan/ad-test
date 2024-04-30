@@ -2,7 +2,6 @@ package routes
 
 import (
 	"jethur/grc/auth/controllers"
-	"jethur/grc/auth/repositories"
 	"jethur/grc/auth/services"
 	logRepositories "jethur/grc/logs/repositories"
 	logServices "jethur/grc/logs/services"
@@ -32,8 +31,7 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	userRepo := organizationRepositories.NewUserRepository(db)
 	userSvc := organizationServices.NewUserService(userRepo, designationSvc, userStatusSvc, activityLogSvc, roleSvc)
 
-	authRepo := repositories.NewAuthRepository(db)
-	authService := services.NewAuthService(authRepo, userSvc)
+	authService := services.NewAuthService(userSvc)
 
 	authController := controllers.NewAuthController(db, authService)
 
@@ -41,8 +39,8 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 
 	authRoutes.POST("/auth/login", authController.Login)
 	authRoutes.POST("/auth/token", authController.GetTokenFromRefreshToken)
-	authRoutes.POST("/auth/mfa/resend-otp", authController.MFAReSendOTP)
-	authRoutes.POST("/auth/mfa/verify-otp", authController.MFAVerifyOTP)
+	authRoutes.POST("/auth/login/resend-otp", authController.LoginResendOTP)
+	authRoutes.POST("/auth/login/verify-otp", authController.LoginVerifyOTP)
 
 	authRoutes.POST("/auth/password-recovery/send-otp", authController.SendPasswordRecoveryOTP)
 	authRoutes.POST("/auth/password-recovery/resend-otp", authController.ReSendPasswordRecoveryOTP)
