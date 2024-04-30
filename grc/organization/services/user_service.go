@@ -83,7 +83,16 @@ func (us *UserService) GetByID(id uint) (*models.User, error) {
 }
 
 func (us *UserService) GetByEmail(email string) (*models.User, error) {
-	return us.repo.GetByEmail(email)
+	user, err := us.repo.GetByEmail(email)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, email)
+		}
+		return nil, err
+	}
+
+	return user, nil
 }
 
 func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserFormDTO) (uint, error) {

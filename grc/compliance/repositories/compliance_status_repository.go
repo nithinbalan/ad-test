@@ -2,7 +2,7 @@ package repositories
 
 import (
 	"errors"
-	"jethur/grc/compliance/models"
+	"jethur/grc/models"
 	"jethur/utility"
 
 	"gorm.io/gorm"
@@ -12,7 +12,6 @@ import (
 type ComplianceStatusRepositoryInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ComplianceStatus, error)
 	GetByID(id uint) (*models.ComplianceStatus, error)
-
 }
 
 // implementation

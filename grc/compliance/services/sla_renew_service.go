@@ -2,14 +2,14 @@ package services
 
 import (
 	"fmt"
-	"jethur/config"
 	slaDTOs "jethur/grc/compliance/dtos"
-	complianceModels "jethur/grc/compliance/models"
 	"jethur/grc/compliance/repositories"
 	logModels "jethur/grc/logs/models"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
+	"jethur/grc/models"
 	"jethur/utility"
+	"path/filepath"
 	"strconv"
 )
 
@@ -47,7 +47,7 @@ func (srs *SLARenewService) GetAll(id uint, params *slaDTOs.SLARenewListQueryPar
 func (srs *SLARenewService) Renew(slaId uint, currentUserID uint, slaRenewFormDTO *slaDTOs.SLARenewFormDTO) error {
 	tx := srs.repo.BeginTransaction()
 
-	if err := srs.validateSLARenewDocumentFormDTO(slaRenewFormDTO.Document); err != nil {
+	if err := srs.validateSLARenewDocumentFormDTO(&slaRenewFormDTO.Document); err != nil {
 		return err
 	}
 
@@ -72,8 +72,10 @@ func (srs *SLARenewService) Renew(slaId uint, currentUserID uint, slaRenewFormDT
 	if err != nil {
 		return err
 	}
+	// Store SLA Document File using utility.StoreFile
+	storagePath := filepath.Join("compliance", "sla", strconv.FormatUint(uint64(slaId), 10), "agreements")
 
-	if err := srs.slaRegRepo.StoreSLADocumentFile(slaId, slaRenewFormDTO.Document.FileName); err != nil {
+	if err := utility.StoreFile(existingSLADocument.Name, storagePath); err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -83,11 +85,9 @@ func (srs *SLARenewService) Renew(slaId uint, currentUserID uint, slaRenewFormDT
 	if err != nil {
 		return err
 	}
-
-	url := fmt.Sprintf("%s/sla-register/%d/%s", config.GetEnv("API_URL", "http://localhost:8080"), existingSLADocument.SLARegisterID, encryptedFilename)
+	url := utility.GenerateDocumentURL("sla-register", strconv.FormatUint(uint64(existingSLADocument.SLARegisterID), 10), encryptedFilename)
 
 	currentVersionStr := existingSLADocument.Version
-
 	currentVersionFloat, err := strconv.ParseFloat(currentVersionStr, 64)
 	if err != nil {
 		return err
@@ -98,7 +98,7 @@ func (srs *SLARenewService) Renew(slaId uint, currentUserID uint, slaRenewFormDT
 	newVersionStr := strconv.Itoa(newVersion)
 
 	//renew document
-	slaDocument := &complianceModels.SLADocument{
+	slaDocument := &models.SLADocument{
 		SLARegisterID: existingSLADocument.SLARegisterID,
 		Version:       newVersionStr, //@review, Need to increment version
 		IssueDate:     dates.IssueDate,
@@ -131,7 +131,7 @@ func (srs *SLARenewService) Renew(slaId uint, currentUserID uint, slaRenewFormDT
 	go func() {
 		err := srs.activityLogSvc.LogActivity(
 			logModels.UpdateAction,
-			complianceModels.SLADocument{}.TableName(),
+			models.SLADocument{}.TableName(),
 			slaId,
 			slaRenewFormDTO,
 			currentUserID,
@@ -141,7 +141,7 @@ func (srs *SLARenewService) Renew(slaId uint, currentUserID uint, slaRenewFormDT
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    logModels.UpdateAction,
-				"tableName": complianceModels.SLADocument{}.TableName(),
+				"tableName": models.SLADocument{}.TableName(),
 				"recordID":  slaId,
 				"userID":    currentUserID,
 				"error":     err.Error(),
@@ -172,7 +172,8 @@ func (srs *SLARenewService) Revert(slaId uint, currentUserID uint) error {
 	if err != nil {
 		return err
 	}
-	if err := srs.slaRegRepo.RemoveSLADocumentFile(slaId, existingSLADocument.Name); err != nil {
+	storagePath := filepath.Join("compliance", "sla", strconv.FormatUint(uint64(slaId), 10), "agreements")
+	if err := utility.RemoveFile(existingSLADocument.Name, storagePath); err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -199,7 +200,7 @@ func (srs *SLARenewService) Revert(slaId uint, currentUserID uint) error {
 	go func() {
 		err := srs.activityLogSvc.LogActivity(
 			logModels.UpdateAction,
-			complianceModels.SLADocument{}.TableName(),
+			models.SLADocument{}.TableName(),
 			previousSLADocument.ID,
 			previousSLADocument,
 			currentUserID,
@@ -209,7 +210,7 @@ func (srs *SLARenewService) Revert(slaId uint, currentUserID uint) error {
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    logModels.UpdateAction,
-				"tableName": complianceModels.SLADocument{}.TableName(),
+				"tableName": models.SLADocument{}.TableName(),
 				"recordID":  previousSLADocument.ID,
 				"userID":    currentUserID,
 				"error":     err.Error(),

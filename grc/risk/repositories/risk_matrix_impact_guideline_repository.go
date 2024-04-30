@@ -2,8 +2,8 @@ package repositories
 
 import (
 	commonDTOs "jethur/grc/common/dtos"
+	"jethur/grc/models"
 	riskDTOs "jethur/grc/risk/dtos"
-	"jethur/grc/risk/models"
 	"jethur/utility"
 
 	"gorm.io/gorm"
@@ -40,7 +40,7 @@ func (repo *RiskMatrixImpactGuidelineRepository) GetAll(params *riskDTOs.RiskMat
 	var totalCount int64
 
 	query := repo.db.Table("risk_matrix_impact_guidelines").
-	Select(`
+		Select(`
         risk_matrix_impact_guidelines.*,
         risk_impact_categories.title_en AS risk_impact_category_title_en,
         risk_impact_categories.title_ar AS risk_impact_category_title_ar,
@@ -55,14 +55,12 @@ func (repo *RiskMatrixImpactGuidelineRepository) GetAll(params *riskDTOs.RiskMat
         updated_user.last_name_en AS updated_user_last_name_en,
         updated_user.last_name_ar AS updated_user_last_name_ar
     `).
-    Joins(`
+		Joins(`
 		LEFT JOIN risk_impact_categories ON risk_impact_categories.id = risk_matrix_impact_guidelines.risk_impact_category_id
         LEFT JOIN risk_matrix_impacts ON risk_matrix_impacts.id = risk_matrix_impact_guidelines.risk_matrix_impact_id
         LEFT JOIN users AS created_user ON created_user.id = risk_matrix_impact_guidelines.created_by
         LEFT JOIN users AS updated_user ON updated_user.id = risk_matrix_impact_guidelines.updated_by
     `)
-
-
 
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
@@ -80,7 +78,6 @@ func (repo *RiskMatrixImpactGuidelineRepository) GetAll(params *riskDTOs.RiskMat
 			risk_matrix_impacts.title_ar LIKE ?)`,
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
 	}
-
 
 	// Calculate total count for pagination
 	if err := query.Count(&totalCount).Error; err != nil {
@@ -149,23 +146,22 @@ func (repo *RiskMatrixImpactGuidelineRepository) GetFullDetailsByID(id uint) (*m
 }
 
 func (repo *RiskMatrixImpactGuidelineRepository) Create(guidelines []*models.RiskMatrixImpactGuideline, tx ...utility.DatabaseTransaction) ([]uint, error) {
-    db := repo.db
-    if len(tx) > 0 && tx[0] != nil {
-        db = tx[0].DB()
-    }
-    
-    var ids []uint
-    if err := db.Create(&guidelines).Error; err != nil {
-        return nil, err
-    }
-    
-    for _, guideline := range guidelines {
-        ids = append(ids, guideline.ID)
-    }
-    
-    return ids, nil
-}
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 
+	var ids []uint
+	if err := db.Create(&guidelines).Error; err != nil {
+		return nil, err
+	}
+
+	for _, guideline := range guidelines {
+		ids = append(ids, guideline.ID)
+	}
+
+	return ids, nil
+}
 
 func (repo *RiskMatrixImpactGuidelineRepository) Update(riskMatrixImpactGuideline *models.RiskMatrixImpactGuideline) error {
 

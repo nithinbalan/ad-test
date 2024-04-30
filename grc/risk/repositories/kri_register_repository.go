@@ -3,8 +3,8 @@ package repositories
 import (
 	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
+	"jethur/grc/models"
 	riskDTOs "jethur/grc/risk/dtos"
-	"jethur/grc/risk/models"
 	"jethur/utility"
 	"strconv"
 	"time"
@@ -17,7 +17,7 @@ type KRIRegisterRepositoryInterface interface {
 	GetByID(id uint) (*models.KRIRegister, error)
 	GetFullDetailsByID(id uint) (*models.KRIRegister, error)
 	Create(kriRegister *models.KRIRegister) (uint, error)
-	Update(kriRegister *models.KRIRegister) error
+	Update(kriRegister *models.KRIRegister, tx ...utility.DatabaseTransaction) error
 	Delete(id uint) error
 	ExistsByTitle(Title string, KRICategoryID uint) (bool, error)
 	ExistsByTitleExcludingID(id uint, Title string, KRICategoryID uint) (bool, error)
@@ -82,11 +82,11 @@ func (repo *KRIRegisterRepository) GetAll(params *riskDTOs.KRIRegisterListQueryP
 	}
 
 	// Apply LastReviewDate filters
-	if params.LastReviewDateFrom != "" {
-		query = query.Where("kri_register.last_review_date >= ?", params.LastReviewDateFrom)
+	if params.LastReviewedDateFrom != "" {
+		query = query.Where("kri_register.last_reviewed_date >= ?", params.LastReviewedDateFrom)
 	}
-	if params.LastReviewDateTo != "" {
-		query = query.Where("kri_register.last_review_date <= ?", params.LastReviewDateTo)
+	if params.LastReviewedDateTo != "" {
+		query = query.Where("kri_register.last_reviewed_date <= ?", params.LastReviewedDateTo)
 	}
 
 	// Apply next_review_date filters
@@ -201,12 +201,14 @@ func (repo *KRIRegisterRepository) Create(kriRegister *models.KRIRegister) (uint
 	return kriRegister.ID, nil
 }
 
-func (repo *KRIRegisterRepository) Update(kriRegister *models.KRIRegister) error {
-
-	if err := repo.db.Save(kriRegister).Error; err != nil {
+func (repo *KRIRegisterRepository) Update(kriRegister *models.KRIRegister, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(kriRegister).Error; err != nil {
 		return err
 	}
-
 	return nil
 }
 

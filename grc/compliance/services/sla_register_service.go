@@ -2,19 +2,20 @@ package services
 
 import (
 	"fmt"
-	"jethur/config"
 	complianceDTOs "jethur/grc/compliance/dtos"
-	complianceModels "jethur/grc/compliance/models"
 	complianceRepositories "jethur/grc/compliance/repositories"
 	logModels "jethur/grc/logs/models"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
+	"jethur/grc/models"
 	"jethur/utility"
+	"path/filepath"
+	"strconv"
 )
 
 type SLARegisterServiceInterface interface {
 	GetAll(params *complianceDTOs.SLARegisterListQueryParamsDTO) (*complianceDTOs.SLARegisterListResponseDTO, error)
-	GetByID(id uint) (*complianceModels.SLARegister, error)
+	GetByID(id uint) (*models.SLARegister, error)
 	Create(currentUserID uint, slaRegisterFormDTO *complianceDTOs.SLARegisterFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, sla *complianceDTOs.SLARegisterFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
@@ -50,7 +51,7 @@ func (srs *SLARegisterService) GetAll(params *complianceDTOs.SLARegisterListQuer
 	return srs.repo.GetAll(params)
 }
 
-func (srs SLARegisterService) GetByID(id uint) (*complianceModels.SLARegister, error) {
+func (srs SLARegisterService) GetByID(id uint) (*models.SLARegister, error) {
 	return srs.repo.GetByID(id)
 }
 
@@ -75,11 +76,11 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *co
 		return 0, err
 	}
 
-	if err := srs.validateSLADocumentFormDTO(slaRegisterFormDTO.Document); err != nil {
+	if err := srs.validateSLADocumentFormDTO(&slaRegisterFormDTO.Document); err != nil {
 		return 0, err
 	}
 
-	slaRegister := &complianceModels.SLARegister{
+	slaRegister := &models.SLARegister{
 		SLACategoryID:     slaRegisterFormDTO.SLACategoryID,
 		SeverityLevelID:   slaRegisterFormDTO.SeverityLevelID,
 		ResponsibleUnitID: slaRegisterFormDTO.ResponsibleUnitID,
@@ -99,7 +100,7 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *co
 		return 0, err
 	}
 
-	slaCheck := &complianceModels.SLACheck{
+	slaCheck := &models.SLACheck{
 		SLARegisterID: id,
 		CreatedBy:     currentUserID,
 	}
@@ -109,7 +110,10 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *co
 		return 0, err
 	}
 
-	if err := srs.repo.StoreSLADocumentFile(id, slaRegisterFormDTO.Document.FileName); err != nil {
+	// Store SLA Document File using utility.StoreFile
+	storagePath := filepath.Join("compliance", "sla", strconv.FormatUint(uint64(id), 10), "agreements")
+
+	if err := utility.StoreFile(slaRegisterFormDTO.Document.FileName, storagePath); err != nil {
 		tx.Rollback()
 		return 0, err
 	}
@@ -119,10 +123,9 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *co
 	if err != nil {
 		return 0, err
 	}
+	url := utility.GenerateDocumentURL("sla-register", strconv.FormatUint(uint64(slaRegister.ID), 10), encryptedFilename)
 
-	url := fmt.Sprintf("%s/sla-register/%d/%s", config.GetEnv("API_URL", "http://localhost:8080"), slaRegister.ID, encryptedFilename)
-
-	slaDocument := &complianceModels.SLADocument{
+	slaDocument := &models.SLADocument{
 		SLARegisterID: id,
 		Version:       slaRegisterFormDTO.Version,
 		IssueDate:     dates.IssueDate,
@@ -150,7 +153,7 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *co
 	go func() {
 		err := srs.activityLogSvc.LogActivity(
 			logModels.CreateAction,
-			complianceModels.SLARegister{}.TableName(),
+			models.SLARegister{}.TableName(),
 			id,
 			slaRegisterFormDTO,
 			currentUserID,
@@ -160,7 +163,7 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *co
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    logModels.CreateAction,
-				"tableName": complianceModels.SLARegister{}.TableName(),
+				"tableName": models.SLARegister{}.TableName(),
 				"recordID":  id,
 				"userID":    currentUserID,
 				"error":     err.Error(),
@@ -184,7 +187,7 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 		return err
 	}
 
-	if err := srs.validateSLADocumentFormDTO(slaRegisterFormDTO.Document); err != nil {
+	if err := srs.validateSLADocumentFormDTO(&slaRegisterFormDTO.Document); err != nil {
 		return err
 	}
 
@@ -209,7 +212,7 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 		return err
 	}
 
-	if slaRegisterFormDTO.Document != nil && slaRegisterFormDTO.Document.ID != nil {
+	if slaRegisterFormDTO.Document.ID != nil {
 		existingSLADocument, err := srs.repo.GetSLADocumentByID(*slaRegisterFormDTO.Document.ID)
 		if err != nil {
 			return err
@@ -224,11 +227,13 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 		existingSLADocument.IsLatest = true
 
 		if slaRegisterFormDTO.Document.IsNewFile != nil && *slaRegisterFormDTO.Document.IsNewFile {
-			if err := srs.repo.RemoveSLADocumentFile(existingSLADocument.SLARegisterID, existingSLADocument.Name); err != nil {
+			storagePath := filepath.Join("compliance", "sla", strconv.FormatUint(uint64(existingSLADocument.SLARegisterID), 10), "agreements")
+			if err := utility.RemoveFile(existingSLADocument.Name, storagePath); err != nil {
 				tx.Rollback()
 				return err
 			}
-			if err := srs.repo.StoreSLADocumentFile(existingSLADocument.SLARegisterID, slaRegisterFormDTO.Document.FileName); err != nil {
+			// Store SLA Document File using utility.StoreFile
+			if err := utility.StoreFile(slaRegisterFormDTO.Document.FileName, storagePath); err != nil {
 				tx.Rollback()
 				return err
 			}
@@ -238,7 +243,7 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 				tx.Rollback()
 				return err
 			}
-			url := fmt.Sprintf("%s/sla-register/%d/%s", config.GetEnv("API_URL", "http://localhost:8080"), id, encryptedFilename)
+			url := utility.GenerateDocumentURL("sla-register", strconv.FormatUint(uint64(id), 10), encryptedFilename)
 
 			existingSLADocument.URL = url
 			existingSLADocument.Icon = slaRegisterFormDTO.Document.Icon
@@ -259,7 +264,7 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 	go func() {
 		err := srs.activityLogSvc.LogActivity(
 			logModels.UpdateAction,
-			complianceModels.SLARegister{}.TableName(),
+			models.SLARegister{}.TableName(),
 			id,
 			slaRegisterFormDTO,
 			currentUserID,
@@ -269,7 +274,7 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    logModels.UpdateAction,
-				"tableName": complianceModels.SLARegister{}.TableName(),
+				"tableName": models.SLARegister{}.TableName(),
 				"recordID":  id,
 				"userID":    currentUserID,
 				"error":     err.Error(),
@@ -297,10 +302,9 @@ func (srs *SLARegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 			failedIds = append(failedIds, id)
 			continue
 		}
-
+		storagePath := filepath.Join("compliance", "sla", strconv.FormatUint(uint64(id), 10), "agreements")
 		// Delete associated documents
-		err = srs.repo.RemoveSLADocumentFile(slaDocument.SLARegisterID, slaDocument.Name)
-		if err != nil {
+		if err := utility.RemoveFile(slaDocument.Name, storagePath); err != nil {
 			failedIds = append(failedIds, id)
 			continue
 		}
@@ -317,7 +321,7 @@ func (srs *SLARegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 		go func() {
 			err := srs.activityLogSvc.LogBulkActivities(
 				logModels.DeleteAction,
-				complianceModels.SLARegister{}.TableName(),
+				models.SLARegister{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,
@@ -353,7 +357,7 @@ func (srs *SLARegisterService) Archive(ids []uint, currentUserID uint) ([]uint, 
 		go func() {
 			err := srs.activityLogSvc.LogBulkActivities(
 				logModels.ArchiveAction,
-				complianceModels.SLARegister{}.TableName(),
+				models.SLARegister{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,
@@ -390,7 +394,7 @@ func (srs *SLARegisterService) Restore(ids []uint, currentUserID uint) ([]uint, 
 		go func() {
 			err := srs.activityLogSvc.LogBulkActivities(
 				logModels.RestoreAction,
-				complianceModels.SLARegister{}.TableName(),
+				models.SLARegister{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,
@@ -407,10 +411,6 @@ func (srs *SLARegisterService) Restore(ids []uint, currentUserID uint) ([]uint, 
 }
 
 func (srs *SLARegisterService) validateSLARegisterFormDTO(slaRegisterFormDTO *complianceDTOs.SLARegisterFormDTO) error {
-	// Check if Document is provided
-	if slaRegisterFormDTO.Document == nil {
-		return utility.NewValidationError(fmt.Errorf("document is required"), "required", "document")
-	}
 	if _, err := srs.slaCategorySvc.GetByID(slaRegisterFormDTO.SLACategoryID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("sla category does not exist"), "not_exist", "sla category")
 	}

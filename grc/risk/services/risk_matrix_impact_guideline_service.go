@@ -5,8 +5,8 @@ import (
 	"fmt"
 	logModels "jethur/grc/logs/models"
 	logServices "jethur/grc/logs/services"
+	"jethur/grc/models"
 	riskDTOs "jethur/grc/risk/dtos"
-	"jethur/grc/risk/models"
 	riskRepositories "jethur/grc/risk/repositories"
 	"jethur/utility"
 
@@ -28,20 +28,20 @@ type RiskMatrixImpactGuidelineService struct {
 	repo                  riskRepositories.RiskMatrixImpactGuidelineRepositoryInterface
 	activityLogSvc        logServices.ActivityLogServiceInterface
 	riskImpactCategorySvc RiskImpactCategoryServiceInterface
-	riskMatrixImpactSvc     RiskMatrixImpactServiceInterface
+	riskMatrixImpactSvc   RiskMatrixImpactServiceInterface
 }
 
 func NewRiskMatrixImpactGuidelineService(
 	repo riskRepositories.RiskMatrixImpactGuidelineRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	riskImpactCategorySvc RiskImpactCategoryServiceInterface,
-	riskMatrixImpactSvc     RiskMatrixImpactServiceInterface,
+	riskMatrixImpactSvc RiskMatrixImpactServiceInterface,
 ) RiskMatrixImpactGuidelineServiceInterface {
 	return &RiskMatrixImpactGuidelineService{
 		repo:                  repo,
 		activityLogSvc:        activityLogSvc,
 		riskImpactCategorySvc: riskImpactCategorySvc,
-		riskMatrixImpactSvc:     riskMatrixImpactSvc,
+		riskMatrixImpactSvc:   riskMatrixImpactSvc,
 	}
 }
 
@@ -87,7 +87,7 @@ func (rmigs RiskMatrixImpactGuidelineService) GetFullDetailsByID(id uint) (*risk
 func (rmigs *RiskMatrixImpactGuidelineService) Create(currentUserID uint, riskMatrixImpactGuidelineFormDTO *riskDTOs.RiskMatrixImpactGuidelineFormDTO) ([]uint, error) {
 	tx := rmigs.repo.BeginTransaction()
 
-	if err := rmigs.validateRiskMatrixImpactGuidelineFormDTO(riskMatrixImpactGuidelineFormDTO, nil); err != nil {
+	if err := rmigs.validateRiskMatrixImpactGuidelineFormDTO(riskMatrixImpactGuidelineFormDTO); err != nil {
 		return nil, err
 	}
 
@@ -202,7 +202,7 @@ func (rmigs *RiskMatrixImpactGuidelineService) Delete(ids []uint, currentUserID 
 	return failedIds, nil
 }
 
-func (rmigs *RiskMatrixImpactGuidelineService) validateRiskMatrixImpactGuidelineFormDTO(riskMatrixImpactGuidelineFormDTO *riskDTOs.RiskMatrixImpactGuidelineFormDTO, id *uint) error {
+func (rmigs *RiskMatrixImpactGuidelineService) validateRiskMatrixImpactGuidelineFormDTO(riskMatrixImpactGuidelineFormDTO *riskDTOs.RiskMatrixImpactGuidelineFormDTO) error {
 	// Check if Guidelines array exists and is not null
 	if riskMatrixImpactGuidelineFormDTO.Guidelines == nil || len(riskMatrixImpactGuidelineFormDTO.Guidelines) == 0 {
 		return utility.NewValidationError(fmt.Errorf("guidelines array is required and cannot be empty"), "required", "guidelines")
@@ -215,7 +215,7 @@ func (rmigs *RiskMatrixImpactGuidelineService) validateRiskMatrixImpactGuideline
 
 	// Validate RiskMatrixImpactID
 	if _, err := rmigs.riskMatrixImpactSvc.GetByID(riskMatrixImpactGuidelineFormDTO.RiskMatrixImpactID); err != nil {
-	    return utility.NewValidationError(fmt.Errorf("risk matrix impact does not exist"), "not_exist", "risk matrix impact")
+		return utility.NewValidationError(fmt.Errorf("risk matrix impact does not exist"), "not_exist", "risk matrix impact")
 	}
 
 	return nil
@@ -231,7 +231,6 @@ func (rmigs *RiskMatrixImpactGuidelineService) validateRiskMatrixImpactGuideline
 	if len(riskMatrixImpactGuidelineUpdateFormDTO.Guideline) == 0 {
 		return utility.NewValidationError(fmt.Errorf("guideline is required"), "required", "guideline")
 	}
-	
 
 	return nil
 }

@@ -1,13 +1,16 @@
 package services
 
 import (
+	"errors"
 	"fmt"
 	logModels "jethur/grc/logs/models"
 	activityLogServices "jethur/grc/logs/services"
+	"jethur/grc/models"
 	riskDTOs "jethur/grc/risk/dtos"
-	"jethur/grc/risk/models"
 	"jethur/grc/risk/repositories"
 	"jethur/utility"
+
+	"gorm.io/gorm"
 )
 
 type RiskMatrixLikelihoodServiceInterface interface {
@@ -40,7 +43,14 @@ func (rmls *RiskMatrixLikelihoodService) GetAll(sort string, sortBy string, keyw
 }
 
 func (rmls RiskMatrixLikelihoodService) GetByID(id uint) (*models.RiskMatrixLikelihood, error) {
-	return rmls.repo.GetByID(id)
+	riskMatrixLikelihood, err := rmls.repo.GetByID(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+	return riskMatrixLikelihood, nil
 }
 
 func (rmls *RiskMatrixLikelihoodService) Create(currentUserID uint, riskMatrixLikelihoodFormDTO *riskDTOs.RiskMatrixLikelihoodFormDTO) (uint, error) {

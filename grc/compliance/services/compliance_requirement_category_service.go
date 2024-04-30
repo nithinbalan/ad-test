@@ -2,10 +2,10 @@ package services
 
 import (
 	"fmt"
-	"jethur/grc/compliance/models"
 	"jethur/grc/compliance/repositories"
 	logModels "jethur/grc/logs/models"
 	"jethur/grc/logs/services"
+	"jethur/grc/models"
 	"jethur/utility"
 	"log"
 )

@@ -1,8 +1,8 @@
 package repositories
 
 import (
+	"jethur/grc/models"
 	riskDTOs "jethur/grc/risk/dtos"
-	"jethur/grc/risk/models"
 	"jethur/utility"
 
 	"gorm.io/gorm"
@@ -10,7 +10,8 @@ import (
 
 // Interfaces
 type RiskMatrixRiskRatingRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*riskDTOs.RiskMatrixRiskRatingDTO, error)
+	GetAll(params *riskDTOs.RiskMatrixRiskRatingListQueryParamsDTO) ([]*riskDTOs.RiskMatrixRiskRatingDTO, error)
+	GetAllByRiskMatrix(riskMatrxId uint) ([]*riskDTOs.RiskMatrixRiskRatingDTO, error)
 	GetByID(id uint) (*models.RiskMatrixRiskRating, error)
 	Create(riskRating *models.RiskMatrixRiskRating) (uint, error)
 	Update(riskRating *models.RiskMatrixRiskRating) error
@@ -34,7 +35,7 @@ func NewRiskMatrixRiskRatingRepository(db *gorm.DB) *RiskMatrixRiskRatingReposit
 	}
 }
 
-func (repo *RiskMatrixRiskRatingRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*riskDTOs.RiskMatrixRiskRatingDTO, error) {
+func (repo *RiskMatrixRiskRatingRepository) GetAll(params *riskDTOs.RiskMatrixRiskRatingListQueryParamsDTO) ([]*riskDTOs.RiskMatrixRiskRatingDTO, error) {
 	var riskRatings []*riskDTOs.RiskMatrixRiskRatingDTO
 
 	query := repo.db.Table("risk_matrix_risk_ratings").
@@ -44,21 +45,48 @@ func (repo *RiskMatrixRiskRatingRepository) GetAll(sort string, sortBy string, k
 		    LEFT JOIN risk_matrix ON risk_matrix.id = risk_matrix_risk_ratings.risk_matrix_id
 		`)
 
-	if keyword != "" {
-		query = query.Where(`
-				(risk_matrix_risk_ratings.title_en LIKE ? OR
-				risk_matrix_risk_ratings.title_ar LIKE ? OR
-				risk_matrix_risk_ratings.type LIKE ?)`,
-			"%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%")
+	// Apply dynamic filters to the query
+	for columnName, values := range params.Filters {
+		if len(values) > 0 {
+			query = query.Where(columnName+" IN (?)", values)
+		}
 	}
 
-	if sortBy == "" {
-		sortBy = "risk_matrix_risk_ratings.title_en"
+	// Apply search keyword if exists
+	if params.Keyword != "" {
+		query = query.Where(`
+			(risk_matrix_risk_ratings.title_en LIKE ? OR
+				risk_matrix_risk_ratings.title_ar LIKE ? OR
+				risk_matrix_risk_ratings.type LIKE ?)`,
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
 	}
-	if sort != "asc" && sort != "desc" {
-		sort = "asc"
+
+	// Sort by the specified column and order
+	if params.SortBy == "" {
+		params.SortBy = "risk_matrix_risk_ratings.title_en" // Default sort by title if no sortBy is specified
 	}
-	query = query.Order(sortBy + " " + sort)
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc" // Default order is ascending if not specified
+	}
+
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	result := query.Find(&riskRatings)
+
+	return riskRatings, result.Error
+
+}
+
+func (repo *RiskMatrixRiskRatingRepository) GetAllByRiskMatrix(riskMatrixId uint) ([]*riskDTOs.RiskMatrixRiskRatingDTO, error) {
+	var riskRatings []*riskDTOs.RiskMatrixRiskRatingDTO
+
+	query := repo.db.Table("risk_matrix_risk_ratings").
+		Select(`
+            risk_matrix_risk_ratings.*, risk_matrix.title as risk_matrix_title`).
+		Joins(`
+		    LEFT JOIN risk_matrix ON risk_matrix.id = risk_matrix_risk_ratings.risk_matrix_id
+		`).Where("risk_matrix_risk_ratings.risk_matrix_id = ?", riskMatrixId)
+
 	result := query.Find(&riskRatings)
 
 	return riskRatings, result.Error

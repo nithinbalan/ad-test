@@ -1,8 +1,8 @@
 package services
 
 import (
-	"jethur/grc/compliance/models"
 	"jethur/grc/compliance/repositories"
+	"jethur/grc/models"
 )
 
 type ComplianceStatusServiceInterface interface {

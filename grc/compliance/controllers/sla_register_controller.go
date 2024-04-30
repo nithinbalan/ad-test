@@ -24,7 +24,6 @@ func NewSLARegisterController(service services.SLARegisterServiceInterface) *SLA
 }
 
 func (src *SLARegisterController) GetAllSLARegisters(c *gin.Context) {
-
 	sort := c.Query("sort")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
@@ -103,7 +102,6 @@ func (src *SLARegisterController) GetSLARegisterDetails(c *gin.Context) {
 }
 
 func (src *SLARegisterController) CreateSLARegister(c *gin.Context) {
-
 	var slaRegFormDTO slaDTOs.SLARegisterFormDTO
 
 	if err := c.ShouldBindJSON(&slaRegFormDTO); err != nil {
@@ -134,13 +132,14 @@ func (src *SLARegisterController) CreateSLARegister(c *gin.Context) {
 }
 
 func (src *SLARegisterController) UpdateSLARegister(c *gin.Context) {
+	var slaRegFormDTO slaDTOs.SLARegisterFormDTO
+
 	slaID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
 
-	var slaRegFormDTO slaDTOs.SLARegisterFormDTO
 	if err := c.ShouldBindJSON(&slaRegFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
@@ -258,4 +257,3 @@ func (src *SLARegisterController) RestoreSLARegisters(c *gin.Context) {
 
 	c.JSON(http.StatusOK, response)
 }
-

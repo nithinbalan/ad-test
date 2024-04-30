@@ -1,8 +1,8 @@
 package controllers
 
 import (
-	"jethur/grc/compliance/models"
 	"jethur/grc/compliance/services"
+	"jethur/grc/models"
 	"jethur/utility"
 	"net/http"
 	"strconv"
@@ -23,7 +23,6 @@ func NewComplianceRequirementCategoryController(service services.ComplianceRequi
 }
 
 func (crcc *ComplianceRequirementCategoryController) GetAllComplianceRequirementCategories(c *gin.Context) {
-
 	sort := c.Query("sort")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
@@ -57,7 +56,6 @@ func (crcc *ComplianceRequirementCategoryController) GetComplianceRequirementCat
 }
 
 func (crcc *ComplianceRequirementCategoryController) CreateComplianceRequirementCategory(c *gin.Context) {
-
 	var complianceRequirementCategory *models.ComplianceRequirementCategory
 
 	if err := c.ShouldBindJSON(&complianceRequirementCategory); err != nil {
@@ -86,6 +84,7 @@ func (crcc *ComplianceRequirementCategoryController) CreateComplianceRequirement
 }
 
 func (crcc *ComplianceRequirementCategoryController) UpdateComplianceRequirementCategory(c *gin.Context) {
+	var updatedComplianceRequirementCategory *models.ComplianceRequirementCategory
 
 	complianceRequirementCategoryID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -93,11 +92,11 @@ func (crcc *ComplianceRequirementCategoryController) UpdateComplianceRequirement
 		return
 	}
 
-	var updatedComplianceRequirementCategory *models.ComplianceRequirementCategory
 	if err := c.ShouldBindJSON(&updatedComplianceRequirementCategory); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
+
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(crcc.db, c, err.Error())
@@ -123,7 +122,6 @@ func (crcc *ComplianceRequirementCategoryController) UpdateComplianceRequirement
 }
 
 func (crcc *ComplianceRequirementCategoryController) DeleteComplianceRequirementCategories(c *gin.Context) {
-
 	var request struct {
 		IDs []uint `json:"ids"`
 	}

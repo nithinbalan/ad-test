@@ -3,15 +3,16 @@ package services
 import (
 	"errors"
 	"fmt"
-	"jethur/config"
 	complianceDTOs "jethur/grc/compliance/dtos"
-	complianceModels "jethur/grc/compliance/models"
 	complianceRepositories "jethur/grc/compliance/repositories"
 	logModels "jethur/grc/logs/models"
 	logServices "jethur/grc/logs/services"
 	masterRepositories "jethur/grc/masters/repositories"
 	masterServices "jethur/grc/masters/services"
+	"jethur/grc/models"
 	"jethur/utility"
+	"path/filepath"
+	"strconv"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -20,7 +21,7 @@ import (
 type ComplianceRegisterServiceInterface interface {
 	GetAll(params *complianceDTOs.ComplianceRegisterListQueryParamsDTO) (*complianceDTOs.ComplianceRegisterListResponseDTO, error)
 	GetFullDetailsByID(id uint) (*complianceDTOs.ComplianceRegisterDetailDTO, error)
-	GetByID(id uint) (*complianceModels.ComplianceRegister, error)
+	GetByID(id uint) (*models.ComplianceRegister, error)
 	Create(currentUserID uint, complianceRegisterFormDTO *complianceDTOs.ComplianceRegisterFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, compliance *complianceDTOs.ComplianceRegisterFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
@@ -63,7 +64,7 @@ func (crs *ComplianceRegisterService) GetAll(params *complianceDTOs.ComplianceRe
 	return crs.repo.GetAll(params)
 }
 
-func (crs ComplianceRegisterService) GetByID(id uint) (*complianceModels.ComplianceRegister, error) {
+func (crs ComplianceRegisterService) GetByID(id uint) (*models.ComplianceRegister, error) {
 	compliance, err := crs.repo.GetByID(id)
 
 	if err != nil {
@@ -122,11 +123,11 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 		return 0, err
 	}
 
-	if err := crs.validateComplianceDocumentFormDTO(complianceRegisterFormDTO.Document); err != nil {
+	if err := crs.validateComplianceDocumentFormDTO(&complianceRegisterFormDTO.Document); err != nil {
 		return 0, err
 	}
 
-	complianceRegister := &complianceModels.ComplianceRegister{
+	complianceRegister := &models.ComplianceRegister{
 		ComplianceCategoryID:    complianceRegisterFormDTO.ComplianceCategoryID,
 		ComplianceStatusID:      complianceRegisterFormDTO.ComplianceStatusID,
 		ResponsibleUnitID:       complianceRegisterFormDTO.ResponsibleUnitID,
@@ -155,20 +156,26 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 		return 0, err
 	}
 
-	if err := crs.repo.StoreComplianceDocumentFile(id, complianceRegisterFormDTO.Document.FileName); err != nil {
+	// Store Compliance Document File using utility.StoreFile
+	storagePath := filepath.Join("compliance", "compliance", strconv.FormatUint(uint64(id), 10), "documents")
+
+	if err := utility.StoreFile(complianceRegisterFormDTO.Document.FileName, storagePath); err != nil {
 		tx.Rollback()
 		return 0, err
 	}
 
+	//generate token
 	dataToEncrypt := []byte(complianceRegisterFormDTO.Document.FileName)
 	encryptedFilename, err := utility.EncryptData(dataToEncrypt)
 	if err != nil {
 		return 0, err
 	}
 
-	url := fmt.Sprintf("%s/compliance-register/%d/%s", config.GetEnv("API_URL", "http://localhost:8080"), complianceRegister.ID, encryptedFilename)
+	//genereate URL
+	url := utility.GenerateDocumentURL("compliance-register", strconv.FormatUint(uint64(complianceRegister.ID), 10), encryptedFilename)
+	// url := fmt.Sprintf("%s/compliance-register/%d/%s", config.GetEnv("API_URL", "http://localhost:8080"), complianceRegister.ID, encryptedFilename)
 
-	complianceDocument := &complianceModels.ComplianceDocument{
+	complianceDocument := &models.ComplianceDocument{
 		ComplianceRegisterID: id,
 		Language:             complianceRegisterFormDTO.Document.Language,
 		URL:                  url,
@@ -191,7 +198,7 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 	go func() {
 		err := crs.activityLogSvc.LogActivity(
 			logModels.CreateAction,
-			complianceModels.ComplianceRegister{}.TableName(),
+			models.ComplianceRegister{}.TableName(),
 			id,
 			complianceRegisterFormDTO,
 			currentUserID,
@@ -201,7 +208,7 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    logModels.CreateAction,
-				"tableName": complianceModels.ComplianceRegister{}.TableName(),
+				"tableName": models.ComplianceRegister{}.TableName(),
 				"recordID":  id,
 				"userID":    currentUserID,
 				"error":     err.Error(),
@@ -231,7 +238,7 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 	if err != nil {
 		return err
 	}
-	if err := crs.validateComplianceDocumentFormDTO(complianceRegisterFormDTO.Document); err != nil {
+	if err := crs.validateComplianceDocumentFormDTO(&complianceRegisterFormDTO.Document); err != nil {
 		return err
 	}
 	existingComplianceRegister.ComplianceCategoryID = complianceRegisterFormDTO.ComplianceCategoryID
@@ -260,7 +267,7 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 		return err
 	}
 
-	if complianceRegisterFormDTO.Document != nil && complianceRegisterFormDTO.Document.ID != nil {
+	if complianceRegisterFormDTO.Document.ID != nil {
 		existingComplianceDocument, err := crs.repo.GetComplianceDocumentByID(*complianceRegisterFormDTO.Document.ID)
 		if err != nil {
 			return err
@@ -269,21 +276,26 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 		existingComplianceDocument.UpdatedBy = currentUserID
 
 		if complianceRegisterFormDTO.Document.IsNewFile != nil && *complianceRegisterFormDTO.Document.IsNewFile {
-			if err := crs.repo.RemoveComplianceDocumentFile(existingComplianceDocument.ComplianceRegisterID, existingComplianceDocument.Name); err != nil {
+			storagePath := filepath.Join("compliance", "compliance", strconv.FormatUint(uint64(id), 10), "documents")
+			if err := utility.RemoveFile(existingComplianceDocument.Name, storagePath); err != nil {
 				tx.Rollback()
 				return err
 			}
-			if err := crs.repo.StoreComplianceDocumentFile(existingComplianceDocument.ComplianceRegisterID, complianceRegisterFormDTO.Document.FileName); err != nil {
+			// Store Compliance Document File using utility.StoreFile
+			if err := utility.StoreFile(complianceRegisterFormDTO.Document.FileName, storagePath); err != nil {
 				tx.Rollback()
 				return err
 			}
+			//generate token
 			dataToEncrypt := []byte(complianceRegisterFormDTO.Document.FileName)
 			encryptedFilename, err := utility.EncryptData(dataToEncrypt)
 			if err != nil {
 				tx.Rollback()
 				return err
 			}
-			url := fmt.Sprintf("%s/compliance-register/%d/%s", config.GetEnv("API_URL", "http://localhost:8080"), id, encryptedFilename)
+
+			//genereate URL
+			url := utility.GenerateDocumentURL("compliance-register", strconv.FormatUint(uint64(id), 10), encryptedFilename)
 
 			existingComplianceDocument.Language = complianceRegisterFormDTO.Document.Language
 			existingComplianceDocument.URL = url
@@ -322,9 +334,9 @@ func (crs *ComplianceRegisterService) Delete(ids []uint, currentUserID uint) ([]
 			continue
 		}
 
-		// Delete associated documents
-		err = crs.repo.RemoveComplianceDocumentFile(complianceDocument.ComplianceRegisterID, complianceDocument.Name)
-		if err != nil {
+		storagePath := filepath.Join("compliance", "compliance", strconv.FormatUint(uint64(complianceDocument.ComplianceRegisterID), 10), "documents")
+
+		if err := utility.RemoveFile(complianceDocument.Name, storagePath); err != nil {
 			failedIds = append(failedIds, id)
 			continue
 		}
@@ -342,7 +354,7 @@ func (crs *ComplianceRegisterService) Delete(ids []uint, currentUserID uint) ([]
 		go func() {
 			err := crs.activityLogSvc.LogBulkActivities(
 				logModels.DeleteAction, // Make sure this action constant is defined appropriately
-				complianceModels.ComplianceRegister{}.TableName(),
+				models.ComplianceRegister{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,
@@ -379,7 +391,7 @@ func (crs *ComplianceRegisterService) Archive(ids []uint, currentUserID uint) ([
 		go func() {
 			err := crs.activityLogSvc.LogBulkActivities(
 				logModels.ArchiveAction,
-				complianceModels.ComplianceRegister{}.TableName(),
+				models.ComplianceRegister{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,
@@ -416,7 +428,7 @@ func (crs *ComplianceRegisterService) Restore(ids []uint, currentUserID uint) ([
 		go func() {
 			err := crs.activityLogSvc.LogBulkActivities(
 				logModels.RestoreAction,
-				complianceModels.ComplianceRegister{}.TableName(),
+				models.ComplianceRegister{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,
