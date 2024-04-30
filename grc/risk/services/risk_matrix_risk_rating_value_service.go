@@ -9,6 +9,7 @@ import (
 
 type RiskMatrixRiskRatingValueServiceInterface interface {
 	Create(riskMatrixRiskRatingValueFormDTO *riskDTOs.RiskMatrixRiskRatingValueFormDTO) error
+	RiskMatrix() ([][]*riskDTOs.RiskMatrixRiskRatingResponseDTO, error)
 }
 
 // Service and implementations
@@ -86,4 +87,89 @@ func (rmrrvs *RiskMatrixRiskRatingValueService) Create(riskMatrixRiskRatingValue
 
 	tx.Commit()
 	return nil
+}
+func (rmrrvs *RiskMatrixRiskRatingValueService) RiskMatrix() ([][]*riskDTOs.RiskMatrixRiskRatingResponseDTO, error) {
+	riskMatrixType, err := rmrrvs.riskMatrixSvc.GetByType("erm")
+	if err != nil {
+		return nil, err
+	}
+	riskMatrix, err := rmrrvs.riskMatrixSvc.GetDetailsByID(riskMatrixType.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	var riskRatingValueArray []*riskDTOs.RiskMatrixRiskRatingDataDTO
+
+	for _, riskRating := range riskMatrix.RiskMatrixRiskRating {
+		for _, value := range riskRating.RiskMatrixRiskRatingValue {
+			detail := &riskDTOs.RiskMatrixRiskRatingDataDTO{
+				RiskMatrixID:           riskRating.RiskMatrixID,
+				RiskMatrixRiskRatingID: value.RiskMatrixRiskRatingID,
+				RiskRatingTitleEN:      riskRating.TitleEn,
+				RiskRatingTitleAR:      riskRating.TitleAr,
+				RiskRatingTitleType:    riskRating.Type,
+				ColorCode:              riskRating.ColorCode,
+				Value:                  value.Value,
+			}
+			riskRatingValueArray = append(riskRatingValueArray, detail)
+		}
+	}
+
+	var riskMatrixResponse [][]*riskDTOs.RiskMatrixRiskRatingResponseDTO
+
+	calculationMethod := riskMatrix.CalculationType
+
+	for _, likelihood := range riskMatrix.RiskMatrixLikelihood {
+
+		if likelihood.Status == "active" {
+
+			var likelihoodDetails []*riskDTOs.RiskMatrixRiskRatingResponseDTO
+
+			// Iterate over each impact
+			for _, impact := range riskMatrix.RiskMatrixImpact {
+				if impact.Status == "active" {
+
+					score := evaluateScore(impact, likelihood, calculationMethod)
+					riskRating, _ := findRiskRatingValue(riskRatingValueArray, score)
+
+					impactDetail := &riskDTOs.RiskMatrixRiskRatingResponseDTO{
+						RiskMatrixImpactID:          impact.ID,
+						RiskMatrixImpactTitleEN:     impact.TitleEn,
+						RiskMatrixImpactTitleAR:     impact.TitleAr,
+						RiskMatrixLikelihoodID:      likelihood.ID,
+						RiskMatrixLikelihoodTitleEN: likelihood.TitleEn,
+						RiskMatrixLikelihoodTitleAR: likelihood.TitleAr,
+						RiskMatrixScore:             score,
+						RiskMatrixRiskRating:        *riskRating,
+					}
+
+					likelihoodDetails = append(likelihoodDetails, impactDetail)
+				}
+			}
+
+			riskMatrixResponse = append(riskMatrixResponse, likelihoodDetails)
+		}
+	}
+
+	return riskMatrixResponse, nil
+}
+
+func evaluateScore(impact *models.RiskMatrixImpact, likelihood *models.RiskMatrixLikelihood, calculationMethod string) uint {
+	var score uint
+	if calculationMethod == "addition" {
+		score = impact.Score + likelihood.Score
+	} else if calculationMethod == "multiplication" {
+		score = impact.Score * likelihood.Score
+	}
+
+	return score
+}
+
+func findRiskRatingValue(riskRatingValues []*riskDTOs.RiskMatrixRiskRatingDataDTO, score uint) (*riskDTOs.RiskMatrixRiskRatingDataDTO, bool) {
+	for _, riskRatingValues := range riskRatingValues {
+		if riskRatingValues.Value == score {
+			return riskRatingValues, true
+		}
+	}
+	return nil, false
 }

@@ -67,6 +67,7 @@ func (rmis *RiskMatrixImpactService) Create(currentUserID uint, riskMatrixImpact
 		RiskMatrixID:  riskMatrix.ID,
 		TitleEn:       riskMatrixImpactFormDTO.TitleEn,
 		TitleAr:       riskMatrixImpactFormDTO.TitleAr,
+		Score:         riskMatrixImpactFormDTO.Score,
 		DescriptionEn: riskMatrixImpactFormDTO.DescriptionEn,
 		DescriptionAr: riskMatrixImpactFormDTO.DescriptionAr,
 		Status:        riskMatrixImpactFormDTO.Status,
@@ -117,6 +118,7 @@ func (rmis *RiskMatrixImpactService) Update(id uint, currentUserID uint, riskMat
 
 	existingImpact.TitleEn = riskMatrixImpactFormDTO.TitleEn
 	existingImpact.TitleAr = riskMatrixImpactFormDTO.TitleAr
+	existingImpact.Score = riskMatrixImpactFormDTO.Score
 	existingImpact.DescriptionEn = riskMatrixImpactFormDTO.DescriptionEn
 	existingImpact.DescriptionAr = riskMatrixImpactFormDTO.DescriptionAr
 	existingImpact.Status = riskMatrixImpactFormDTO.Status

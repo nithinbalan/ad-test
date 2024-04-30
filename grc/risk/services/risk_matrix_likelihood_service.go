@@ -67,6 +67,7 @@ func (rmls *RiskMatrixLikelihoodService) Create(currentUserID uint, riskMatrixLi
 		RiskMatrixID:  riskMatrix.ID,
 		TitleEn:       riskMatrixLikelihoodFormDTO.TitleEn,
 		TitleAr:       riskMatrixLikelihoodFormDTO.TitleAr,
+		Score:         riskMatrixLikelihoodFormDTO.Score,
 		DescriptionEn: riskMatrixLikelihoodFormDTO.DescriptionEn,
 		DescriptionAr: riskMatrixLikelihoodFormDTO.DescriptionAr,
 		Status:        riskMatrixLikelihoodFormDTO.Status,
@@ -117,6 +118,7 @@ func (rmls *RiskMatrixLikelihoodService) Update(id uint, currentUserID uint, ris
 
 	existingLikelihood.TitleEn = riskMatrixLikelihoodFormDTO.TitleEn
 	existingLikelihood.TitleAr = riskMatrixLikelihoodFormDTO.TitleAr
+	existingLikelihood.Score = riskMatrixLikelihoodFormDTO.Score
 	existingLikelihood.DescriptionEn = riskMatrixLikelihoodFormDTO.DescriptionEn
 	existingLikelihood.DescriptionAr = riskMatrixLikelihoodFormDTO.DescriptionAr
 	existingLikelihood.Status = riskMatrixLikelihoodFormDTO.Status
