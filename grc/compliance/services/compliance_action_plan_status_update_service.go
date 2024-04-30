@@ -3,7 +3,6 @@ package services
 import (
 	"errors"
 	"fmt"
-	"jethur/config"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/repositories"
 	logModels "jethur/grc/logs/models"
@@ -11,6 +10,8 @@ import (
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
 	"jethur/utility"
+	"path/filepath"
+	"strconv"
 
 	"gorm.io/gorm"
 )
@@ -101,10 +102,13 @@ func (casus *ComplianceActionPlanStatusUpdateService) Create(ComplianceID uint, 
 	if err != nil {
 		return 0, err
 	}
+	var documents []*models.ComplianceActionPlanStatusUpdateDocument
+
 	// Iterate over each document in the array
 	for _, doc := range complianceActionPlanStatusUpdateFormDTO.Documents {
+		storagePath := filepath.Join("compliance", "compliance", strconv.FormatUint(uint64(ComplianceID), 10), "action-plans", strconv.FormatUint(uint64(ComplianceActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 
-		if err := casus.repo.StoreComplianceActionPlanStatusUpdateDocumentFile(ComplianceID, ComplianceActionPlanID, id, doc.FileName); err != nil {
+		if err := utility.StoreFile(doc.FileName, storagePath); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
@@ -117,7 +121,7 @@ func (casus *ComplianceActionPlanStatusUpdateService) Create(ComplianceID uint, 
 		}
 
 		// Construct the URL for the document
-		url := fmt.Sprintf("%s/compliances/%d/action-plans/%d/status-updates/%s", config.GetEnv("API_URL", "http://localhost:8080"), ComplianceID, ComplianceActionPlanID, encryptedFilename)
+		url := utility.GenerateDocumentURL("compliances", strconv.FormatUint(uint64(ComplianceID), 10), "action-plans", strconv.FormatUint(uint64(ComplianceActionPlanID), 10),"status-updates", encryptedFilename)
 
 		// Create a new ComplianceActionPlanStatusUpdateDocument instance
 		document := &models.ComplianceActionPlanStatusUpdateDocument{
@@ -131,8 +135,13 @@ func (casus *ComplianceActionPlanStatusUpdateService) Create(ComplianceID uint, 
 			CreatedBy:                          currentUserID,
 		}
 
+		
+		// Append the document to the slice
+		documents = append(documents, document)
+	}
+	if len(documents) > 0 {
 		// Save the ComplianceActionPlanStatusUpdateDocument
-		if err := casus.repo.SaveComplianceActionPlanStatusUpdateDocument(document, tx); err != nil {
+		if err := casus.repo.SaveComplianceActionPlanStatusUpdateDocument(documents, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
@@ -205,12 +214,14 @@ func (casus *ComplianceActionPlanStatusUpdateService) Update(ComplianceID uint, 
 		tx.Rollback()
 		return err
 	}
+	var documents []*models.ComplianceActionPlanStatusUpdateDocument
+	var deleteDocumentIds []*uint
+
 	// Iterate over each document in the array
 	for _, doc := range ComplianceActionPlanStatusUpdateFormDTO.Documents {
-
-		if doc.IsNewFile != nil && *doc.IsNewFile {
-			// Handle new file case
-			if err := casus.repo.StoreComplianceActionPlanStatusUpdateDocumentFile(ComplianceID, ComplianceActionPlanID, id, doc.FileName); err != nil {
+		storagePath := filepath.Join("compliance", "compliance", strconv.FormatUint(uint64(ComplianceID), 10), "action-plans", strconv.FormatUint(uint64(ComplianceActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
+		if doc.IsNewFile != nil && *doc.IsNewFile {	
+			if err := utility.StoreFile(doc.FileName, storagePath); err != nil {
 				tx.Rollback()
 				return err
 			}
@@ -220,7 +231,7 @@ func (casus *ComplianceActionPlanStatusUpdateService) Update(ComplianceID uint, 
 				tx.Rollback()
 				return err
 			}
-			url := fmt.Sprintf("%s/compliances/%d/action-plans/%d/status-updates/%s", config.GetEnv("API_URL", "http://localhost:8080"), ComplianceID, ComplianceActionPlanID, encryptedFilename)
+			url := utility.GenerateDocumentURL("compliances", strconv.FormatUint(uint64(ComplianceID), 10), "action-plans", strconv.FormatUint(uint64(ComplianceActionPlanID), 10),"status-updates", encryptedFilename)
 			// Create a new ComplianceActionPlanStatusUpdateDocument instance
 			document := &models.ComplianceActionPlanStatusUpdateDocument{
 				ComplianceActionPlanStatusUpdateID: id,
@@ -232,10 +243,8 @@ func (casus *ComplianceActionPlanStatusUpdateService) Update(ComplianceID uint, 
 				Type:                               doc.Type,
 				CreatedBy:                          currentUserID,
 			}
-			if err := casus.repo.SaveComplianceActionPlanStatusUpdateDocument(document, tx); err != nil {
-				tx.Rollback()
-				return err
-			}
+			documents = append(documents, document)
+
 		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
 			// Handle deleted file case
 			if doc.ID != nil {
@@ -247,32 +256,24 @@ func (casus *ComplianceActionPlanStatusUpdateService) Update(ComplianceID uint, 
 					tx.Rollback()
 					return fmt.Errorf("existing document not found for ID: %d", *doc.ID)
 				}
-				if err := casus.repo.RemoveComplianceActionPlanStatusUpdateDocumentFile(ComplianceID, ComplianceActionPlanID, id, existingDocument.Name); err != nil {
+				if err := utility.RemoveFile(existingDocument.Name, storagePath); err != nil {
 					tx.Rollback()
 					return err
 				}
-				if err := casus.repo.DeleteComplianceActionPlanStatusUpdateDocumentId(existingDocument.ID, tx); err != nil {
-					tx.Rollback()
-					return err
-				}
+				deleteDocumentIds = append(deleteDocumentIds, &existingDocument.ID)
 			}
-		} else {
-			// Handle existing document update case
-			if doc.ID != nil {
-				existingDocument, err := casus.repo.GetComplianceActionPlanStatusUpdateDocumentByID(*doc.ID)
-				if err != nil {
-					return err
-				}
-				if existingDocument == nil {
-					tx.Rollback()
-					return fmt.Errorf("existing document not found for ID: %d", *doc.ID)
-				}
-				existingDocument.UpdatedBy = currentUserID
-				if err := casus.repo.SaveComplianceActionPlanStatusUpdateDocument(existingDocument, tx); err != nil {
-					tx.Rollback()
-					return err
-				}
-			}
+		}
+	}
+	if len(documents) > 0 {
+		if err := casus.repo.SaveComplianceActionPlanStatusUpdateDocument(documents, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+	if len(deleteDocumentIds) > 0 {
+		if err := casus.repo.DeleteComplianceActionPlanStatusUpdateDocuments(deleteDocumentIds, tx); err != nil {
+			tx.Rollback()
+			return err
 		}
 	}
 	tx.Commit()

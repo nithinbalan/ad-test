@@ -1,13 +1,9 @@
 package repositories
 
 import (
-	"jethur/config"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
-	"os"
-	"path/filepath"
-	"strconv"
 
 	"gorm.io/gorm"
 )
@@ -20,11 +16,10 @@ type ComplianceActionPlanStatusUpdateRepositoryInterface interface {
 	Update(ComplianceActionPlanStatusUpdate *models.ComplianceActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) error
 
 	//Document
-	SaveComplianceActionPlanStatusUpdateDocument(doc *models.ComplianceActionPlanStatusUpdateDocument, tx ...utility.DatabaseTransaction) error
+	SaveComplianceActionPlanStatusUpdateDocument(docs []*models.ComplianceActionPlanStatusUpdateDocument, tx ...utility.DatabaseTransaction) error
 	GetComplianceActionPlanStatusUpdateDocumentByID(id uint) (*models.ComplianceActionPlanStatusUpdateDocument, error)
-	StoreComplianceActionPlanStatusUpdateDocumentFile(complianceId uint, actionId uint, updatesId uint, fileName string) error
-	RemoveComplianceActionPlanStatusUpdateDocumentFile(complianceId uint, actionId uint, updatesId uint, fileNames string) error
 	DeleteComplianceActionPlanStatusUpdateDocumentId(docId uint, tx ...utility.DatabaseTransaction) error
+	DeleteComplianceActionPlanStatusUpdateDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type ComplianceActionPlanStatusUpdateRepository struct {
@@ -50,9 +45,9 @@ func (repo *ComplianceActionPlanStatusUpdateRepository) GetAll(complianceActionP
 		Select(`
             compliance_action_plan_status_updates.*,
             compliance_action_plans.title AS compliance_action_plan_title,
-            compliance_statuses.title_en AS compliance_status_title_en,
-            compliance_statuses.title_ar AS compliance_status_title_ar,
-            compliance_statuses.color_code AS compliance_status_color_code,
+            action_plan_statuses.title_en AS action_plan_status_title_en,
+            action_plan_statuses.title_ar AS action_plan_status_title_ar,
+            action_plan_statuses.color_code AS action_plan_status_color_code,
             created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
             created_user.last_name_en AS created_user_last_name_en,
@@ -64,7 +59,7 @@ func (repo *ComplianceActionPlanStatusUpdateRepository) GetAll(complianceActionP
         `).
 		Joins(`
             LEFT JOIN compliance_action_plans ON compliance_action_plans.id = compliance_action_plan_status_updates.compliance_action_plan_id
-            LEFT JOIN compliance_statuses ON compliance_statuses.id = compliance_action_plan_status_updates.compliance_status_id
+            LEFT JOIN action_plan_statuses ON action_plan_statuses.id = compliance_action_plan_status_updates.action_plan_status_id
             LEFT JOIN users AS created_user ON created_user.id = compliance_action_plan_status_updates.created_by
             LEFT JOIN users AS updated_user ON updated_user.id = compliance_action_plan_status_updates.updated_by
         `).
@@ -74,8 +69,8 @@ func (repo *ComplianceActionPlanStatusUpdateRepository) GetAll(complianceActionP
 		query = query.Where(`
             (compliance_action_plans.title LIKE ? OR
             compliance_action_plan_status_updates.comment LIKE ? OR
-            compliance_statuses.title_en LIKE ? OR
-            compliance_statuses.title_ar LIKE ?)`,
+            action_plan_statuses.title_en LIKE ? OR
+            action_plan_statuses.title_ar LIKE ?)`,
 			"%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%")
 	}
 	if sortBy == "" {
@@ -132,35 +127,13 @@ func (repo *ComplianceActionPlanStatusUpdateRepository) GetComplianceActionPlanS
 	return &document, nil
 }
 
-func (repo *ComplianceActionPlanStatusUpdateRepository) StoreComplianceActionPlanStatusUpdateDocumentFile(id uint, actionId uint, updatesId uint, fileName string) error {
-	storagePath := config.GetEnv("STORAGE_PATH", "")
-	temporaryStoragePath := filepath.Join(storagePath, "tmp", fileName)
-	directoryPath := filepath.Join(storagePath, "compliance", "compliance", strconv.FormatUint(uint64(id), 10), "action-plans", strconv.FormatUint(uint64(actionId), 10), "updates", strconv.FormatUint(uint64(updatesId), 10), "documents")
-	destinationPath := filepath.Join(directoryPath, fileName)
-	if err := os.MkdirAll(directoryPath, os.ModePerm); err != nil {
-		return err
-	}
-	if err := os.Rename(temporaryStoragePath, destinationPath); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (repo *ComplianceActionPlanStatusUpdateRepository) SaveComplianceActionPlanStatusUpdateDocument(doc *models.ComplianceActionPlanStatusUpdateDocument, tx ...utility.DatabaseTransaction) error {
+func (repo *ComplianceActionPlanStatusUpdateRepository) SaveComplianceActionPlanStatusUpdateDocument(docs []*models.ComplianceActionPlanStatusUpdateDocument, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	if err := db.Save(doc).Error; err != nil {
-		return err
-	}
-	return nil
-}
-
-func (repo *ComplianceActionPlanStatusUpdateRepository) RemoveComplianceActionPlanStatusUpdateDocumentFile(complianceId uint, actionId uint, updatesId uint, fileName string) error {
-	storagePath := config.GetEnv("STORAGE_PATH", "")
-	filePath := filepath.Join(storagePath, "compliance", "compliance", strconv.FormatUint(uint64(complianceId), 10), "action-plans", strconv.FormatUint(uint64(actionId), 10), "updates", strconv.FormatUint(uint64(updatesId), 10), "documents", fileName)
-	if err := os.Remove(filePath); err != nil {
+	// Save all documents in a single transaction
+	if err := db.Create(&docs).Error; err != nil {
 		return err
 	}
 	return nil
@@ -173,6 +146,20 @@ func (repo *ComplianceActionPlanStatusUpdateRepository) DeleteComplianceActionPl
 	}
 
 	if err := db.Delete(&models.ComplianceActionPlanStatusUpdateDocument{}, docID).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *ComplianceActionPlanStatusUpdateRepository) DeleteComplianceActionPlanStatusUpdateDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Delete documents by IDs
+	if err := db.Where("id IN (?)", docIds).Delete(&models.ComplianceActionPlanStatusUpdateDocument{}).Error; err != nil {
 		return err
 	}
 
