@@ -1,14 +1,10 @@
 package services
 
 import (
-	"errors"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	riskDTOs "jethur/grc/risk/dtos"
 	riskRepositories "jethur/grc/risk/repositories"
-	"jethur/utility"
-
-	"gorm.io/gorm"
 )
 
 type RiskMatrixRiskRatingValueServiceInterface interface {
@@ -42,18 +38,12 @@ func (rmrrvs *RiskMatrixRiskRatingValueService) Create(riskMatrixRiskRatingValue
 	tx := rmrrvs.repo.BeginTransaction()
 	riskMatrix, err := rmrrvs.riskMatrixSvc.GetByType("erm")
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return utility.NewResourceNotFoundError(err, "erm")
-		}
 		return err
 	}
 
 	var riskMatrixRiskRatings []*riskDTOs.RiskMatrixRiskRatingDTO
 	riskMatrixRiskRatings, err = rmrrvs.riskMatrixRiskRatingSvc.GetAllByRiskMatrix(riskMatrix.ID)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return utility.NewResourceNotFoundError(err, riskMatrix.ID)
-		}
 		return err
 	}
 
@@ -101,16 +91,10 @@ func (rmrrvs *RiskMatrixRiskRatingValueService) Create(riskMatrixRiskRatingValue
 func (rmrrvs *RiskMatrixRiskRatingValueService) GetRiskMatrix() ([][]*riskDTOs.RiskMatrixRiskRatingResponseDTO, error) {
 	riskMatrixType, err := rmrrvs.riskMatrixSvc.GetByType("erm")
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, utility.NewResourceNotFoundError(err, "erm")
-		}
 		return nil, err
 	}
 	riskMatrix, err := rmrrvs.riskMatrixSvc.GetDetailsByID(riskMatrixType.ID)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, utility.NewResourceNotFoundError(err, riskMatrixType.ID)
-		}
 		return nil, err
 	}
 

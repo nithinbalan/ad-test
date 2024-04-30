@@ -47,13 +47,22 @@ func (rmrrvc *RiskMatrixRiskRatingValueController) CreateRiskMatrixRiskRatingVal
 	c.Status(http.StatusOK)
 }
 
-func (rmrrvc *RiskMatrixRiskRatingValueController) GetRiskMatrixRiskRatingValue(c *gin.Context) {
+func (rmrrvc *RiskMatrixRiskRatingValueController) GetRiskMatrix(c *gin.Context) {
 
 	riskMatrix, err := rmrrvc.service.GetRiskMatrix()
 
 	if err != nil {
-		utility.SendInternalErrResp(rmrrvc.db, c, err.Error())
-		return
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(rmrrvc.db, c, e.Error())
+			return
+		}
 	}
 	c.JSON(http.StatusOK, riskMatrix)
 
