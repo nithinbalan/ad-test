@@ -3,7 +3,7 @@ package repositories
 import (
 	"errors"
 	complianceDTOs "jethur/grc/compliance/dtos"
-	"jethur/grc/compliance/models"
+	"jethur/grc/models"
 
 	"gorm.io/gorm"
 )

@@ -4,12 +4,12 @@ import (
 	"errors"
 	"fmt"
 	complianceDTOs "jethur/grc/compliance/dtos"
-	complianceModels "jethur/grc/compliance/models"
 	complianceRepositories "jethur/grc/compliance/repositories"
 	logModels "jethur/grc/logs/models"
 	logServices "jethur/grc/logs/services"
 	masterRepositories "jethur/grc/masters/repositories"
 	masterServices "jethur/grc/masters/services"
+	"jethur/grc/models"
 	"jethur/utility"
 
 	"github.com/mitchellh/mapstructure"
@@ -18,7 +18,7 @@ import (
 
 type ComplianceRequirementServiceInterface interface {
 	GetAll(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementListResponseDTO, error)
-	GetByID(complianceID uint, id uint) (*complianceModels.ComplianceRequirement, error)
+	GetByID(complianceID uint, id uint) (*models.ComplianceRequirement, error)
 	GetFullDetailsByID(complianceID uint, id uint) (*complianceDTOs.ComplianceRequirementDetailDTO, error)
 	Create(complianceID uint, currentUserID uint, ComplianceRequirementFormDTO *complianceDTOs.ComplianceRequirementFormDTO) (uint, error)
 	Update(complianceID uint, id uint, currentUserID uint, compliance *complianceDTOs.ComplianceRequirementFormDTO) error
@@ -60,7 +60,7 @@ func (crs *ComplianceRequirementService) GetAll(complianceID uint, params *compl
 	return crs.repo.GetAll(complianceID, params)
 }
 
-func (crs ComplianceRequirementService) GetByID(complianceID uint, id uint) (*complianceModels.ComplianceRequirement, error) {
+func (crs ComplianceRequirementService) GetByID(complianceID uint, id uint) (*models.ComplianceRequirement, error) {
 	if _, err := crs.complianceRegisterSvc.GetByID(complianceID); err != nil {
 		return nil, err
 	}
@@ -117,7 +117,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 	}
 
 	// Create or retrieve the compliance clause
-	complianceClause := &complianceModels.ComplianceClause{
+	complianceClause := &models.ComplianceClause{
 		ComplianceRegisterID: complianceID,
 		ClauseNo:             ComplianceRequirementFormDTO.ComplianceClauseNo,
 		Title:                ComplianceRequirementFormDTO.ComplianceClauseTitle,
@@ -128,7 +128,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		return 0, err
 	}
 
-	complianceRequirement := &complianceModels.ComplianceRequirement{
+	complianceRequirement := &models.ComplianceRequirement{
 		ComplianceRequirementCategoryID: ComplianceRequirementFormDTO.ComplianceRequirementCategoryID,
 		ComplianceStatusID:              ComplianceRequirementFormDTO.ComplianceStatusID,
 		ResponsibleUserID:               ComplianceRequirementFormDTO.ResponsibleUserID,
@@ -147,7 +147,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 	go func() {
 		err := crs.activityLogSvc.LogActivity(
 			logModels.CreateAction,
-			complianceModels.ComplianceRequirement{}.TableName(),
+			models.ComplianceRequirement{}.TableName(),
 			id,
 			ComplianceRequirementFormDTO,
 			currentUserID,
@@ -157,7 +157,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    logModels.CreateAction,
-				"tableName": complianceModels.ComplianceRequirement{}.TableName(),
+				"tableName": models.ComplianceRequirement{}.TableName(),
 				"recordID":  id,
 				"userID":    currentUserID,
 				"error":     err.Error(),
@@ -190,7 +190,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 		return err
 	}
 
-	complianceClause := &complianceModels.ComplianceClause{
+	complianceClause := &models.ComplianceClause{
 		ComplianceRegisterID: complianceID,
 		ClauseNo:             ComplianceRequirementFormDTO.ComplianceClauseNo,
 		Title:                ComplianceRequirementFormDTO.ComplianceClauseTitle,
@@ -266,7 +266,7 @@ func (crs *ComplianceRequirementService) Delete(complianceID uint, ids []uint, c
 		go func() {
 			err := crs.activityLogSvc.LogBulkActivities(
 				logModels.DeleteAction, // Make sure this action constant is defined appropriately
-				complianceModels.ComplianceRequirement{}.TableName(),
+				models.ComplianceRequirement{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,

@@ -3,7 +3,7 @@ package repositories
 import (
 	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
-	complianceModels "jethur/grc/compliance/models"
+	"jethur/grc/models"
 	"time"
 
 	"gorm.io/gorm"
@@ -11,10 +11,10 @@ import (
 
 type SLAActionPlanRepositoryInterface interface {
 	GetAll(slaID uint, params *complianceDTOs.SLAActionPlanListQueryParamsDTO) (*complianceDTOs.SLAActionPlanListResponseDTO, error)
-	GetByID(id uint) (*complianceModels.SLAActionPlan, error)
-	GetFullDetailsByID(id uint) (*complianceModels.SLAActionPlan, error)
-	Create(slaActionPlan *complianceModels.SLAActionPlan) (uint, error)
-	Update(slaActionPlan *complianceModels.SLAActionPlan) error
+	GetByID(id uint) (*models.SLAActionPlan, error)
+	GetFullDetailsByID(id uint) (*models.SLAActionPlan, error)
+	Create(slaActionPlan *models.SLAActionPlan) (uint, error)
+	Update(slaActionPlan *models.SLAActionPlan) error
 	Delete(id uint) error
 }
 
@@ -145,8 +145,8 @@ func (repo *SLAActionPlanRepository) GetAll(slaID uint, params *complianceDTOs.S
 	return response, nil
 }
 
-func (repo *SLAActionPlanRepository) GetByID(id uint) (*complianceModels.SLAActionPlan, error) {
-	var slaActionPlan *complianceModels.SLAActionPlan
+func (repo *SLAActionPlanRepository) GetByID(id uint) (*models.SLAActionPlan, error) {
+	var slaActionPlan *models.SLAActionPlan
 	result := repo.db.First(&slaActionPlan, id)
 
 	if result.Error != nil {
@@ -156,8 +156,8 @@ func (repo *SLAActionPlanRepository) GetByID(id uint) (*complianceModels.SLAActi
 	return slaActionPlan, nil
 }
 
-func (repo *SLAActionPlanRepository) GetFullDetailsByID(id uint) (*complianceModels.SLAActionPlan, error) {
-	var slaActionPlan *complianceModels.SLAActionPlan
+func (repo *SLAActionPlanRepository) GetFullDetailsByID(id uint) (*models.SLAActionPlan, error) {
+	var slaActionPlan *models.SLAActionPlan
 
 	result := repo.db.
 		Preload("SLACheckQuestion").
@@ -174,14 +174,14 @@ func (repo *SLAActionPlanRepository) GetFullDetailsByID(id uint) (*complianceMod
 	return slaActionPlan, nil
 }
 
-func (repo *SLAActionPlanRepository) Create(slaActionPlan *complianceModels.SLAActionPlan) (uint, error) {
+func (repo *SLAActionPlanRepository) Create(slaActionPlan *models.SLAActionPlan) (uint, error) {
 	if err := repo.db.Create(slaActionPlan).Error; err != nil {
 		return 0, err
 	}
 	return slaActionPlan.ID, nil
 }
 
-func (repo *SLAActionPlanRepository) Update(slaActionPlan *complianceModels.SLAActionPlan) error {
+func (repo *SLAActionPlanRepository) Update(slaActionPlan *models.SLAActionPlan) error {
 	if err := repo.db.Save(slaActionPlan).Error; err != nil {
 		return err
 	}
@@ -190,12 +190,12 @@ func (repo *SLAActionPlanRepository) Update(slaActionPlan *complianceModels.SLAA
 
 func (repo *SLAActionPlanRepository) Delete(id uint) error {
 
-	var slaActionPlan *complianceModels.SLAActionPlan
+	var slaActionPlan *models.SLAActionPlan
 	if err := repo.db.First(&slaActionPlan, id).Error; err != nil {
 		return err
 	}
 
-	result := repo.db.Delete(&complianceModels.SLAActionPlan{}, id)
+	result := repo.db.Delete(&models.SLAActionPlan{}, id)
 	if result.Error != nil {
 		return result.Error
 	}

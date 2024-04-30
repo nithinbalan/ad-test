@@ -3,7 +3,7 @@ package repositories
 import (
 	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
-	complianceModels "jethur/grc/compliance/models"
+	"jethur/grc/models"
 	"time"
 
 	"gorm.io/gorm"
@@ -11,10 +11,10 @@ import (
 
 type ComplianceActionPlanRepositoryInterface interface {
 	GetAll(complianceID uint, params *complianceDTOs.ComplianceActionPlanListQueryParamsDTO) (*complianceDTOs.ComplianceActionPlanListResponseDTO, error)
-	GetByID(id uint) (*complianceModels.ComplianceActionPlan, error)
-	GetFullDetailsByID(id uint) (*complianceModels.ComplianceActionPlan, error)
-	Create(complianceActionPlan *complianceModels.ComplianceActionPlan) (uint, error)
-	Update(complianceActionPlan *complianceModels.ComplianceActionPlan) error
+	GetByID(id uint) (*models.ComplianceActionPlan, error)
+	GetFullDetailsByID(id uint) (*models.ComplianceActionPlan, error)
+	Create(complianceActionPlan *models.ComplianceActionPlan) (uint, error)
+	Update(complianceActionPlan *models.ComplianceActionPlan) error
 	Delete(id uint) error
 }
 
@@ -147,8 +147,8 @@ func (repo *ComplianceActionPlanRepository) GetAll(complianceID uint, params *co
 	return response, nil
 }
 
-func (repo *ComplianceActionPlanRepository) GetByID(id uint) (*complianceModels.ComplianceActionPlan, error) {
-	var complianceActionPlan *complianceModels.ComplianceActionPlan
+func (repo *ComplianceActionPlanRepository) GetByID(id uint) (*models.ComplianceActionPlan, error) {
+	var complianceActionPlan *models.ComplianceActionPlan
 	result := repo.db.First(&complianceActionPlan, id)
 
 	if result.Error != nil {
@@ -158,8 +158,8 @@ func (repo *ComplianceActionPlanRepository) GetByID(id uint) (*complianceModels.
 	return complianceActionPlan, nil
 }
 
-func (repo *ComplianceActionPlanRepository) GetFullDetailsByID(id uint) (*complianceModels.ComplianceActionPlan, error) {
-	var complianceActionPlan *complianceModels.ComplianceActionPlan
+func (repo *ComplianceActionPlanRepository) GetFullDetailsByID(id uint) (*models.ComplianceActionPlan, error) {
+	var complianceActionPlan *models.ComplianceActionPlan
 
 	result := repo.db.
 		Preload("ComplianceRequirement").
@@ -176,14 +176,14 @@ func (repo *ComplianceActionPlanRepository) GetFullDetailsByID(id uint) (*compli
 	return complianceActionPlan, nil
 }
 
-func (repo *ComplianceActionPlanRepository) Create(complianceActionPlan *complianceModels.ComplianceActionPlan) (uint, error) {
+func (repo *ComplianceActionPlanRepository) Create(complianceActionPlan *models.ComplianceActionPlan) (uint, error) {
 	if err := repo.db.Create(complianceActionPlan).Error; err != nil {
 		return 0, err
 	}
 	return complianceActionPlan.ID, nil
 }
 
-func (repo *ComplianceActionPlanRepository) Update(complianceActionPlan *complianceModels.ComplianceActionPlan) error {
+func (repo *ComplianceActionPlanRepository) Update(complianceActionPlan *models.ComplianceActionPlan) error {
 	if err := repo.db.Save(complianceActionPlan).Error; err != nil {
 		return err
 	}
@@ -192,12 +192,12 @@ func (repo *ComplianceActionPlanRepository) Update(complianceActionPlan *complia
 
 func (repo *ComplianceActionPlanRepository) Delete(id uint) error {
 
-	var complianceActionPlan *complianceModels.ComplianceActionPlan
+	var complianceActionPlan *models.ComplianceActionPlan
 	if err := repo.db.First(&complianceActionPlan, id).Error; err != nil {
 		return err
 	}
 
-	result := repo.db.Delete(&complianceModels.ComplianceActionPlan{}, id)
+	result := repo.db.Delete(&models.ComplianceActionPlan{}, id)
 	if result.Error != nil {
 		return result.Error
 	}

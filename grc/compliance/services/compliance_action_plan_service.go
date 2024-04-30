@@ -4,12 +4,12 @@ import (
 	"errors"
 	"fmt"
 	complianceDTOs "jethur/grc/compliance/dtos"
-	complianceModels "jethur/grc/compliance/models"
 	complianceRepositories "jethur/grc/compliance/repositories"
 	logModels "jethur/grc/logs/models"
 	logServices "jethur/grc/logs/services"
 	masterRepositories "jethur/grc/masters/repositories"
 	masterServices "jethur/grc/masters/services"
+	"jethur/grc/models"
 	"jethur/utility"
 
 	"github.com/mitchellh/mapstructure"
@@ -18,7 +18,7 @@ import (
 
 type ComplianceActionPlanServiceInterface interface {
 	GetAll(complianceID uint, params *complianceDTOs.ComplianceActionPlanListQueryParamsDTO) (*complianceDTOs.ComplianceActionPlanListResponseDTO, error)
-	GetByID(complianceID uint, id uint) (*complianceModels.ComplianceActionPlan, error)
+	GetByID(complianceID uint, id uint) (*models.ComplianceActionPlan, error)
 	GetFullDetailsByID(complianceID uint, id uint) (*complianceDTOs.ComplianceActionPlanDetailDTO, error)
 	Create(complianceID uint, currentUserID uint, ComplianceActionPlanFormDTO *complianceDTOs.ComplianceActionPlanFormDTO) (uint, error)
 	Update(complianceID uint, id uint, currentUserID uint, compliance *complianceDTOs.ComplianceActionPlanFormDTO) error
@@ -60,7 +60,7 @@ func (caps *ComplianceActionPlanService) GetAll(complianceID uint, params *compl
 	return caps.repo.GetAll(complianceID, params)
 }
 
-func (caps ComplianceActionPlanService) GetByID(complianceID uint, id uint) (*complianceModels.ComplianceActionPlan, error) {
+func (caps ComplianceActionPlanService) GetByID(complianceID uint, id uint) (*models.ComplianceActionPlan, error) {
 	if _, err := caps.complianceRegisterSvc.GetByID(complianceID); err != nil {
 		return nil, err
 	}
@@ -117,7 +117,7 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 		return 0, err
 	}
 
-	complianceActionPlan := &complianceModels.ComplianceActionPlan{
+	complianceActionPlan := &models.ComplianceActionPlan{
 		ComplianceRegisterID:    complianceID,
 		ComplianceRequirementID: ComplianceActionPlanFormDTO.ComplianceRequirementID,
 		Title:                   ComplianceActionPlanFormDTO.Title,
@@ -139,7 +139,7 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 	go func() {
 		err := caps.activityLogSvc.LogActivity(
 			logModels.CreateAction,
-			complianceModels.ComplianceActionPlan{}.TableName(),
+			models.ComplianceActionPlan{}.TableName(),
 			id,
 			ComplianceActionPlanFormDTO,
 			currentUserID,
@@ -149,7 +149,7 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    logModels.CreateAction,
-				"tableName": complianceModels.ComplianceActionPlan{}.TableName(),
+				"tableName": models.ComplianceActionPlan{}.TableName(),
 				"recordID":  id,
 				"userID":    currentUserID,
 				"error":     err.Error(),
@@ -231,7 +231,7 @@ func (caps *ComplianceActionPlanService) Delete(complianceID uint, ids []uint, c
 		go func() {
 			err := caps.activityLogSvc.LogBulkActivities(
 				logModels.DeleteAction,
-				complianceModels.ComplianceRegister{}.TableName(),
+				models.ComplianceRegister{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,

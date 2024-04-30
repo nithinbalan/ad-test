@@ -4,7 +4,7 @@ import (
 	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
-	complianceModels "jethur/grc/compliance/models"
+	"jethur/grc/models"
 	"jethur/utility"
 	"strconv"
 	"time"
@@ -15,10 +15,10 @@ import (
 type ComplianceRegisterRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *complianceDTOs.ComplianceRegisterListQueryParamsDTO) (*complianceDTOs.ComplianceRegisterListResponseDTO, error)
-	GetByID(id uint) (*complianceModels.ComplianceRegister, error)
-	GetFullDetailsByID(id uint) (*complianceModels.ComplianceRegister, error)
-	Create(complianceRegister *complianceModels.ComplianceRegister, tx ...utility.DatabaseTransaction) (uint, error)
-	Update(complianceRegister *complianceModels.ComplianceRegister, tx ...utility.DatabaseTransaction) error
+	GetByID(id uint) (*models.ComplianceRegister, error)
+	GetFullDetailsByID(id uint) (*models.ComplianceRegister, error)
+	Create(complianceRegister *models.ComplianceRegister, tx ...utility.DatabaseTransaction) (uint, error)
+	Update(complianceRegister *models.ComplianceRegister, tx ...utility.DatabaseTransaction) error
 	Delete(id uint) error
 	GenerateReferenceNumber() (string, error)
 
@@ -26,9 +26,9 @@ type ComplianceRegisterRepositoryInterface interface {
 	GetIDsByLifecycleStatus(ids []uint, status string) ([]uint, error)
 	UpdateLifecycleStatusForIDs(ids []uint, statusId uint) ([]uint, error)
 	//Document
-	SaveComplianceDocument(doc *complianceModels.ComplianceDocument, tx ...utility.DatabaseTransaction) error
-	GetComplianceDocumentByID(id uint) (*complianceModels.ComplianceDocument, error)
-	GetComplianceDocumentByComplianceID(id uint) (*complianceModels.ComplianceDocument, error)
+	SaveComplianceDocument(doc *models.ComplianceDocument, tx ...utility.DatabaseTransaction) error
+	GetComplianceDocumentByID(id uint) (*models.ComplianceDocument, error)
+	GetComplianceDocumentByComplianceID(id uint) (*models.ComplianceDocument, error)
 }
 
 type ComplianceRegisterRepository struct {
@@ -218,8 +218,8 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
 	return response, nil
 }
 
-func (repo *ComplianceRegisterRepository) GetByID(id uint) (*complianceModels.ComplianceRegister, error) {
-	var compliance *complianceModels.ComplianceRegister
+func (repo *ComplianceRegisterRepository) GetByID(id uint) (*models.ComplianceRegister, error) {
+	var compliance *models.ComplianceRegister
 
 	result := repo.db.First(&compliance, id)
 	if result.Error != nil {
@@ -230,8 +230,8 @@ func (repo *ComplianceRegisterRepository) GetByID(id uint) (*complianceModels.Co
 
 }
 
-func (repo *ComplianceRegisterRepository) GetFullDetailsByID(id uint) (*complianceModels.ComplianceRegister, error) {
-	var compliance *complianceModels.ComplianceRegister // Declare the variable inside the function
+func (repo *ComplianceRegisterRepository) GetFullDetailsByID(id uint) (*models.ComplianceRegister, error) {
+	var compliance *models.ComplianceRegister // Declare the variable inside the function
 
 	result := repo.db.
 		Preload("ComplianceCategory").
@@ -255,7 +255,7 @@ func (repo *ComplianceRegisterRepository) GetFullDetailsByID(id uint) (*complian
 	return compliance, nil
 }
 
-func (repo *ComplianceRegisterRepository) Create(complianceRegister *complianceModels.ComplianceRegister, tx ...utility.DatabaseTransaction) (uint, error) {
+func (repo *ComplianceRegisterRepository) Create(complianceRegister *models.ComplianceRegister, tx ...utility.DatabaseTransaction) (uint, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -267,7 +267,7 @@ func (repo *ComplianceRegisterRepository) Create(complianceRegister *complianceM
 	return complianceRegister.ID, nil
 }
 
-func (repo *ComplianceRegisterRepository) Update(complianceRegister *complianceModels.ComplianceRegister, tx ...utility.DatabaseTransaction) error {
+func (repo *ComplianceRegisterRepository) Update(complianceRegister *models.ComplianceRegister, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -290,14 +290,14 @@ func (repo *ComplianceRegisterRepository) Delete(id uint) error {
 		}
 	}()
 
-	var complianceRegister *complianceModels.ComplianceRegister
+	var complianceRegister *models.ComplianceRegister
 	if err := tx.First(&complianceRegister, id).Error; err != nil {
 		tx.Rollback() // Rollback the transaction
 		return err
 	}
 
 	// Find all Compliance documents associated with the Compliance register
-	var complianceDocuments []*complianceModels.ComplianceDocument
+	var complianceDocuments []*models.ComplianceDocument
 	if err := tx.Where("compliance_register_id = ?", id).Find(&complianceDocuments).Error; err != nil {
 		tx.Rollback() // Rollback the transaction
 		return err
@@ -312,7 +312,7 @@ func (repo *ComplianceRegisterRepository) Delete(id uint) error {
 	}
 
 	// Delete the Compliance register
-	if err := tx.Delete(&complianceModels.ComplianceRegister{}, id).Error; err != nil {
+	if err := tx.Delete(&models.ComplianceRegister{}, id).Error; err != nil {
 		tx.Rollback() // Rollback the transaction
 		return err
 	}
@@ -328,7 +328,7 @@ func (repo *ComplianceRegisterRepository) Delete(id uint) error {
 func (repo *ComplianceRegisterRepository) GetIDsByLifecycleStatus(ids []uint, status string) ([]uint, error) {
 	var matchingIDs []uint
 
-	if err := repo.db.Model(&complianceModels.ComplianceRegister{}).
+	if err := repo.db.Model(&models.ComplianceRegister{}).
 		Joins("JOIN lifecycle_statuses ON compliance_register.lifecycle_status_id = lifecycle_statuses.id").
 		Where("compliance_register.id IN ? AND lifecycle_statuses.type = ?", ids, status).
 		Pluck("compliance_register.id", &matchingIDs).Error; err != nil {
@@ -340,7 +340,7 @@ func (repo *ComplianceRegisterRepository) GetIDsByLifecycleStatus(ids []uint, st
 
 func (repo *ComplianceRegisterRepository) UpdateLifecycleStatusForIDs(ids []uint, statusId uint) ([]uint, error) {
 
-	if err := repo.db.Model(&complianceModels.ComplianceRegister{}).
+	if err := repo.db.Model(&models.ComplianceRegister{}).
 		Where("id IN ?", ids).
 		Update("lifecycle_status_id", statusId).Error; err != nil {
 		return nil, err
@@ -351,7 +351,7 @@ func (repo *ComplianceRegisterRepository) UpdateLifecycleStatusForIDs(ids []uint
 
 func (repo *ComplianceRegisterRepository) GenerateReferenceNumber() (string, error) {
 	var lastReferenceNumber string
-	err := repo.db.Model(&complianceModels.ComplianceRegister{}).
+	err := repo.db.Model(&models.ComplianceRegister{}).
 		Select("reference_number").
 		Order("reference_number desc").
 		Limit(1).
@@ -379,16 +379,16 @@ func (repo *ComplianceRegisterRepository) GenerateReferenceNumber() (string, err
 
 //Document func
 
-func (repo *ComplianceRegisterRepository) GetComplianceDocumentByID(id uint) (*complianceModels.ComplianceDocument, error) {
-	var document complianceModels.ComplianceDocument
+func (repo *ComplianceRegisterRepository) GetComplianceDocumentByID(id uint) (*models.ComplianceDocument, error) {
+	var document models.ComplianceDocument
 	if err := repo.db.Where("id = ?", id).First(&document).Error; err != nil {
 		return nil, err
 	}
 	return &document, nil
 }
 
-func (repo *ComplianceRegisterRepository) GetComplianceDocumentByComplianceID(id uint) (*complianceModels.ComplianceDocument, error) {
-	var document complianceModels.ComplianceDocument
+func (repo *ComplianceRegisterRepository) GetComplianceDocumentByComplianceID(id uint) (*models.ComplianceDocument, error) {
+	var document models.ComplianceDocument
 	if err := repo.db.Where("compliance_register_id = ?", id).
 		First(&document).Error; err != nil {
 		return nil, err
@@ -396,8 +396,7 @@ func (repo *ComplianceRegisterRepository) GetComplianceDocumentByComplianceID(id
 	return &document, nil
 }
 
-
-func (repo *ComplianceRegisterRepository) SaveComplianceDocument(doc *complianceModels.ComplianceDocument, tx ...utility.DatabaseTransaction) error {
+func (repo *ComplianceRegisterRepository) SaveComplianceDocument(doc *models.ComplianceDocument, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
