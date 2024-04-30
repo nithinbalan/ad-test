@@ -154,7 +154,6 @@ func (ac *AuthController) SendPasswordRecoveryOTP(c *gin.Context) {
 			utility.SendInvalidErrResp(c, e)
 			return
 		default:
-			fmt.Println(err)
 			utility.SendInternalErrResp(ac.db, c, e.Error())
 			return
 		}
