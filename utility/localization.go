@@ -2,7 +2,7 @@ package utility
 
 import (
 	"encoding/json"
-	"path/filepath"
+	"jethur/assets"
 
 	"github.com/gin-gonic/gin"
 	"github.com/nicksnyder/go-i18n/v2/i18n"
@@ -14,35 +14,48 @@ func LoadBundle(rootPath string) *i18n.Bundle {
 	bundle.RegisterUnmarshalFunc("json", json.Unmarshal)
 
 	// Load message files for each language
-	commonArErrorPath := filepath.Join(rootPath, "grc", "common", "locales", "ar", "error.ar.json")
-	commonArLabelsPath := filepath.Join(rootPath, "grc", "common", "locales", "ar", "labels.ar.json")
-	commonEnErrorPath := filepath.Join(rootPath, "grc", "common", "locales", "en", "error.en.json")
-	commonEnLabelsPath := filepath.Join(rootPath, "grc", "common", "locales", "en", "labels.en.json")
+	commonArErrorPath := "common/locales/ar/error.ar.json"
+	commonArLabelsPath := "common/locales/ar/labels.ar.json"
+	commonEnErrorPath := "common/locales/en/error.en.json"
+	commonEnLabelsPath := "common/locales/en/labels.en.json"
 
-	bundle.MustLoadMessageFile(commonArErrorPath)
-	bundle.MustLoadMessageFile(commonArLabelsPath)
-	bundle.MustLoadMessageFile(commonEnErrorPath)
-	bundle.MustLoadMessageFile(commonEnLabelsPath)
+	embeddedArError, err := assets.FS.ReadFile(commonArErrorPath)
+	if err != nil {
+		LogFatal(err.Error(), nil)
+	}
+	embeddedArLabels, err := assets.FS.ReadFile(commonArLabelsPath)
+	if err != nil {
+		LogFatal(err.Error(), nil)
+	}
+	embeddedEnError, err := assets.FS.ReadFile(commonEnErrorPath)
+	if err != nil {
+		LogFatal(err.Error(), nil)
+	}
+	embeddedEnLabels, err := assets.FS.ReadFile(commonEnLabelsPath)
+	if err != nil {
+		LogFatal(err.Error(), nil)
+	}
+
+	// Parse and load embedded JSON files into the bundle
+	bundle.MustParseMessageFileBytes(embeddedArError, commonArErrorPath)
+	bundle.MustParseMessageFileBytes(embeddedArLabels, commonArLabelsPath)
+	bundle.MustParseMessageFileBytes(embeddedEnError, commonEnErrorPath)
+	bundle.MustParseMessageFileBytes(embeddedEnLabels, commonEnLabelsPath)
 
 	return bundle
 }
 
-// This function attempts to localize a message ID based on the context's localizer.
-// If the localizer is not found or the localization fails, it returns a default message.
 func LocalizeMessage(c *gin.Context, messageID string, defaultMessage string) string {
-	// Attempt to get the localizer from the context
 	localizerInterface, exists := c.Get("localizer")
 	if !exists {
 		return defaultMessage
 	}
 
-	// Assert the localizer to the correct type
 	localizer, ok := localizerInterface.(*i18n.Localizer)
 	if !ok {
 		return defaultMessage
 	}
 
-	// Localize the error message
 	localizedMessage, err := localizer.Localize(&i18n.LocalizeConfig{MessageID: messageID})
 	if err != nil {
 		return defaultMessage

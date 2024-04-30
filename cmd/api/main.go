@@ -11,7 +11,6 @@ import (
 	settingRoutes "jethur/grc/settings/routes"
 	"jethur/middlewares"
 	"jethur/utility"
-	"log"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -19,14 +18,14 @@ import (
 
 func main() {
 
-	config.LoadEnv() // Load environment variables
+	config.LoadEnv()
 
 	time.Local = time.UTC
 
 	port := config.GetEnv("PORT", "8080")
 	rootPath := config.GetEnv("ROOT_PATH", "")
 	if rootPath == "" {
-		log.Fatal("ROOT_PATH is not set")
+		utility.LogFatal("ROOT_PATH missing in env file", nil)
 	}
 	bundle := utility.LoadBundle(rootPath) //loading language bundles
 
@@ -47,8 +46,10 @@ func main() {
 	commonRoutes.RegisterRoutes(db, r)
 	riskRoutes.RegisterRoutes(db, r)
 
-	// Start the server on specified port
 	if err := r.Run(":" + port); err != nil {
-		log.Fatal("Failed to run server: ", err)
+		utility.LogFatal("Failed to run server", map[string]interface{}{
+			"error": err.Error(),
+			"port":  port,
+		})
 	}
 }

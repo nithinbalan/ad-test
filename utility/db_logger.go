@@ -31,4 +31,8 @@ func LogErrorToDB(errorSvc services.ErrorLogServiceInterface, c *gin.Context, er
 			"details": errorLogEntry,
 		})
 	}
+
+	LogError(errorMessage, map[string]interface{}{
+		"details": errorLogEntry,
+	})
 }
