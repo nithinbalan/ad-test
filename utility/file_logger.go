@@ -2,6 +2,7 @@ package utility
 
 import (
 	"jethur/config"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -19,14 +20,18 @@ func getLogger() *logrus.Logger {
 		logger = logrus.New()
 		logger.SetFormatter(&logrus.JSONFormatter{})
 
-		currentDate := time.Now().Format("02-01-2006") // DD-MM-YYYY format
+		storagePath := config.GetEnv("STORAGE_PATH", "./storage")
+		logsPath := filepath.Join(storagePath, "logs")
+		currentDate := time.Now().Format("02-01-2006")
+		logFilename := filepath.Join(logsPath, currentDate+".log")
+
 		logger.SetOutput(&lumberjack.Logger{
-			Filename:   "./logs/" + currentDate + ".log",
-			MaxSize:    10,   // megabytes after which new file is created
-			MaxBackups: 3,    // number of backups
-			MaxAge:     28,   // days
-			Compress:   true, // whether to compress the rotated files
-			LocalTime:  true, // use local time for file naming
+			Filename:   logFilename,
+			MaxSize:    10,
+			MaxBackups: 3,
+			MaxAge:     28,
+			Compress:   true,
+			LocalTime:  true,
 		})
 	})
 
@@ -55,6 +60,16 @@ func LogWarning(message string, fields map[string]interface{}) {
 }
 
 func LogError(message string, fields map[string]interface{}) {
+	log := getLogger()
+	log.WithFields(fields).Error(message)
+}
+
+func LogFatal(message string, fields map[string]interface{}) {
+	log := getLogger()
+	log.WithFields(fields).Fatal(message)
+}
+
+func Log(message string, fields map[string]interface{}) {
 	log := getLogger()
 	log.WithFields(fields).Error(message)
 }
