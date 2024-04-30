@@ -49,7 +49,7 @@ func (rmrrvc *RiskMatrixRiskRatingValueController) CreateRiskMatrixRiskRatingVal
 
 func (rmrrvc *RiskMatrixRiskRatingValueController) GetRiskMatrixRiskRatingValue(c *gin.Context) {
 
-	riskMatrix, err := rmrrvc.service.RiskMatrix()
+	riskMatrix, err := rmrrvc.service.GetRiskMatrix()
 
 	if err != nil {
 		utility.SendInternalErrResp(rmrrvc.db, c, err.Error())
