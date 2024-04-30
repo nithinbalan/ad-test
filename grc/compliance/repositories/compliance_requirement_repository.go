@@ -4,7 +4,7 @@ import (
 	"errors"
 	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
-	complianceModels "jethur/grc/compliance/models"
+	"jethur/grc/models"
 	"time"
 
 	"gorm.io/gorm"
@@ -12,12 +12,12 @@ import (
 
 type ComplianceRequirementRepositoryInterface interface {
 	GetAll(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementListResponseDTO, error)
-	GetByID(id uint) (*complianceModels.ComplianceRequirement, error)
-	GetFullDetailsByID(id uint) (*complianceModels.ComplianceRequirement, error)
-	Create(complianceRequirement *complianceModels.ComplianceRequirement) (uint, error)
-	Update(complianceRequirement *complianceModels.ComplianceRequirement) error
+	GetByID(id uint) (*models.ComplianceRequirement, error)
+	GetFullDetailsByID(id uint) (*models.ComplianceRequirement, error)
+	Create(complianceRequirement *models.ComplianceRequirement) (uint, error)
+	Update(complianceRequirement *models.ComplianceRequirement) error
 	Delete(id uint) error
-	GetOrCreateComplianceClause(complianceClause *complianceModels.ComplianceClause) (*complianceModels.ComplianceClause, error)
+	GetOrCreateComplianceClause(complianceClause *models.ComplianceClause) (*models.ComplianceClause, error)
 	CountRequirementsByClauseID(clauseID uint) (int64, error)
 	DeleteClause(clauseID uint) error
 }
@@ -160,8 +160,8 @@ func (repo *ComplianceRequirementRepository) GetAll(complianceID uint, params *c
 	return response, nil
 }
 
-func (repo *ComplianceRequirementRepository) GetByID(id uint) (*complianceModels.ComplianceRequirement, error) {
-	var complianceRequirement *complianceModels.ComplianceRequirement
+func (repo *ComplianceRequirementRepository) GetByID(id uint) (*models.ComplianceRequirement, error) {
+	var complianceRequirement *models.ComplianceRequirement
 	result := repo.db.First(&complianceRequirement, id)
 
 	if result.Error != nil {
@@ -171,8 +171,8 @@ func (repo *ComplianceRequirementRepository) GetByID(id uint) (*complianceModels
 	return complianceRequirement, nil
 }
 
-func (repo *ComplianceRequirementRepository) GetFullDetailsByID(id uint) (*complianceModels.ComplianceRequirement, error) {
-	var complianceRequirement *complianceModels.ComplianceRequirement
+func (repo *ComplianceRequirementRepository) GetFullDetailsByID(id uint) (*models.ComplianceRequirement, error) {
+	var complianceRequirement *models.ComplianceRequirement
 
 	result := repo.db.
 		Preload("ComplianceClause").
@@ -189,14 +189,14 @@ func (repo *ComplianceRequirementRepository) GetFullDetailsByID(id uint) (*compl
 	return complianceRequirement, nil
 }
 
-func (repo *ComplianceRequirementRepository) Create(complianceRequirement *complianceModels.ComplianceRequirement) (uint, error) {
+func (repo *ComplianceRequirementRepository) Create(complianceRequirement *models.ComplianceRequirement) (uint, error) {
 	if err := repo.db.Create(complianceRequirement).Error; err != nil {
 		return 0, err
 	}
 	return complianceRequirement.ID, nil
 }
 
-func (repo *ComplianceRequirementRepository) Update(complianceRequirement *complianceModels.ComplianceRequirement) error {
+func (repo *ComplianceRequirementRepository) Update(complianceRequirement *models.ComplianceRequirement) error {
 	if err := repo.db.Save(complianceRequirement).Error; err != nil {
 		return err
 	}
@@ -204,13 +204,13 @@ func (repo *ComplianceRequirementRepository) Update(complianceRequirement *compl
 }
 
 func (repo *ComplianceRequirementRepository) Delete(id uint) error {
-	var complianceRequirement *complianceModels.ComplianceRequirement
+	var complianceRequirement *models.ComplianceRequirement
 
 	if err := repo.db.First(&complianceRequirement, id).Error; err != nil {
 		return err
 	}
 
-	result := repo.db.Delete(&complianceModels.ComplianceRequirement{}, id)
+	result := repo.db.Delete(&models.ComplianceRequirement{}, id)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -218,8 +218,8 @@ func (repo *ComplianceRequirementRepository) Delete(id uint) error {
 	return nil
 }
 
-func (repo *ComplianceRequirementRepository) GetOrCreateComplianceClause(complianceClause *complianceModels.ComplianceClause) (*complianceModels.ComplianceClause, error) {
-	var existingClause complianceModels.ComplianceClause
+func (repo *ComplianceRequirementRepository) GetOrCreateComplianceClause(complianceClause *models.ComplianceClause) (*models.ComplianceClause, error) {
+	var existingClause models.ComplianceClause
 
 	err := repo.db.Where("clause_no = ? AND title = ? AND compliance_register_id = ?", complianceClause.ClauseNo, complianceClause.Title, complianceClause.ComplianceRegisterID).First(&existingClause).Error
 
@@ -240,14 +240,14 @@ func (repo *ComplianceRequirementRepository) GetOrCreateComplianceClause(complia
 func (repo *ComplianceRequirementRepository) CountRequirementsByClauseID(clauseID uint) (int64, error) {
 	var count int64
 
-	if err := repo.db.Model(&complianceModels.ComplianceRequirement{}).Where("compliance_clause_id = ?", clauseID).Count(&count).Error; err != nil {
+	if err := repo.db.Model(&models.ComplianceRequirement{}).Where("compliance_clause_id = ?", clauseID).Count(&count).Error; err != nil {
 		return 0, err
 	}
 	return count, nil
 }
 
 func (repo *ComplianceRequirementRepository) DeleteClause(clauseID uint) error {
-	if err := repo.db.Delete(&complianceModels.ComplianceClause{}, clauseID).Error; err != nil {
+	if err := repo.db.Delete(&models.ComplianceClause{}, clauseID).Error; err != nil {
 		return err
 	}
 

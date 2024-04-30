@@ -2,8 +2,6 @@ package models
 
 import (
 	"time"
-
-	"jethur/grc/models"
 )
 
 type SLACheck struct {
@@ -16,8 +14,8 @@ type SLACheck struct {
 
 	// Relationships
 	SLARegister   *SLARegister `gorm:"foreignkey:SLARegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser *models.User `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser *models.User `gorm:"foreignKey:UpdatedBy"`
+	CreatedByUser *User        `gorm:"foreignKey:CreatedBy"`
+	UpdatedByUser *User        `gorm:"foreignKey:UpdatedBy"`
 }
 
 // TableName overrides the table name used by SLACheck to `sla_checks`

@@ -4,12 +4,12 @@ import (
 	"errors"
 	"fmt"
 	complianceDTOs "jethur/grc/compliance/dtos"
-	complianceModels "jethur/grc/compliance/models"
 	complianceRepositories "jethur/grc/compliance/repositories"
 	logModels "jethur/grc/logs/models"
 	logServices "jethur/grc/logs/services"
 	masterRepositories "jethur/grc/masters/repositories"
 	masterServices "jethur/grc/masters/services"
+	"jethur/grc/models"
 	"jethur/utility"
 
 	"github.com/mitchellh/mapstructure"
@@ -18,7 +18,7 @@ import (
 
 type SLAActionPlanServiceInterface interface {
 	GetAll(slaID uint, params *complianceDTOs.SLAActionPlanListQueryParamsDTO) (*complianceDTOs.SLAActionPlanListResponseDTO, error)
-	GetByID(slaID uint, id uint) (*complianceModels.SLAActionPlan, error)
+	GetByID(slaID uint, id uint) (*models.SLAActionPlan, error)
 	GetFullDetailsByID(slaID uint, id uint) (*complianceDTOs.SLAActionPlanDetailDTO, error)
 	Create(slaID uint, currentUserID uint, slaActionPlanFormDTO *complianceDTOs.SLAActionPlanFormDTO) (uint, error)
 	Update(slaID uint, id uint, currentUserID uint, slaActionPlanFormDTO *complianceDTOs.SLAActionPlanFormDTO) error
@@ -60,7 +60,7 @@ func (saps *SLAActionPlanService) GetAll(slaID uint, params *complianceDTOs.SLAA
 	return saps.repo.GetAll(slaID, params)
 }
 
-func (saps *SLAActionPlanService) GetByID(slaID uint, id uint) (*complianceModels.SLAActionPlan, error) {
+func (saps *SLAActionPlanService) GetByID(slaID uint, id uint) (*models.SLAActionPlan, error) {
 	if _, err := saps.slaRegisterSvc.GetByID(slaID); err != nil {
 		return nil, err
 	}
@@ -117,7 +117,7 @@ func (saps *SLAActionPlanService) Create(slaID uint, currentUserID uint, slaActi
 		return 0, err
 	}
 
-	slaActionPlan := &complianceModels.SLAActionPlan{
+	slaActionPlan := &models.SLAActionPlan{
 		SLARegisterID:      slaID,
 		SLACheckQuestionID: slaActionPlanFormDTO.SLACheckQuestionID,
 		Title:              slaActionPlanFormDTO.Title,
@@ -139,7 +139,7 @@ func (saps *SLAActionPlanService) Create(slaID uint, currentUserID uint, slaActi
 	go func() {
 		err := saps.activityLogSvc.LogActivity(
 			logModels.CreateAction,
-			complianceModels.SLAActionPlan{}.TableName(),
+			models.SLAActionPlan{}.TableName(),
 			id,
 			slaActionPlanFormDTO,
 			currentUserID,
@@ -149,7 +149,7 @@ func (saps *SLAActionPlanService) Create(slaID uint, currentUserID uint, slaActi
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    logModels.CreateAction,
-				"tableName": complianceModels.SLAActionPlan{}.TableName(),
+				"tableName": models.SLAActionPlan{}.TableName(),
 				"recordID":  id,
 				"userID":    currentUserID,
 				"error":     err.Error(),
@@ -232,7 +232,7 @@ func (saps *SLAActionPlanService) Delete(slaID uint, ids []uint, currentUserID u
 		go func() {
 			err := saps.activityLogSvc.LogBulkActivities(
 				logModels.DeleteAction,
-				complianceModels.SLARegister{}.TableName(),
+				models.SLARegister{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,

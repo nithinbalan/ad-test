@@ -1,7 +1,6 @@
 package models
 
 import (
-	organizationModel "jethur/grc/models"
 	"time"
 )
 
@@ -21,9 +20,9 @@ type ComplianceDocument struct {
 	UpdatedAt            time.Time `json:"updated_at" gorm:"type:datetime;not null"`
 
 	// Relationships
-	ComplianceRegister *ComplianceRegister     `gorm:"foreignkey:ComplianceRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser      *organizationModel.User `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser      *organizationModel.User `gorm:"foreignKey:UpdatedBy"`
+	ComplianceRegister *ComplianceRegister `gorm:"foreignkey:ComplianceRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	CreatedByUser      *User               `gorm:"foreignKey:CreatedBy"`
+	UpdatedByUser      *User               `gorm:"foreignKey:UpdatedBy"`
 }
 
 // TableName overrides the table name used by SLARegister to `sla_registers`

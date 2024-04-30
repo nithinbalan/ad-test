@@ -3,7 +3,7 @@ package repositories
 import (
 	commonDTOs "jethur/grc/common/dtos"
 	slaDTOs "jethur/grc/compliance/dtos"
-	"jethur/grc/compliance/models"
+	"jethur/grc/models"
 	"jethur/utility"
 
 	"gorm.io/gorm"
@@ -19,7 +19,6 @@ type SLARenewRepositoryInterface interface {
 	SetOlderSLADocsToNotLatest(currentDocID uint, slaRegisterID uint, tx ...utility.DatabaseTransaction) error
 	FindPreviousDocument(docId uint, slaRegisterID uint) (*models.SLADocument, error)
 	DeleteSLADocumentByID(docId uint, tx ...utility.DatabaseTransaction) error
-
 }
 
 // implementation

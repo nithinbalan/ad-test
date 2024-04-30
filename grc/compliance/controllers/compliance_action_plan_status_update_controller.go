@@ -24,7 +24,6 @@ func NewComplianceActionPlanStatusUpdateController(service services.ComplianceAc
 }
 
 func (casuc *ComplianceActionPlanStatusUpdateController) GetAllComplianceActionPlanStatusUpdates(c *gin.Context) {
-
 	complianceIDStr := c.Param("complianceId")
 
 	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 32)
@@ -61,7 +60,6 @@ func (casuc *ComplianceActionPlanStatusUpdateController) GetAllComplianceActionP
 }
 
 func (casuc *ComplianceActionPlanStatusUpdateController) CreateComplianceActionPlanStatusUpdate(c *gin.Context) {
-
 	var complianceStatusUpdateFormDTO complianceDTOs.ComplianceActionPlanStatusUpdateFormDTO
 
 	complianceIDStr := c.Param("complianceId")

@@ -4,7 +4,6 @@ import (
 	"time"
 
 	masterModels "jethur/grc/masters/models"
-	"jethur/grc/models"
 )
 
 type ComplianceRegister struct {
@@ -36,15 +35,15 @@ type ComplianceRegister struct {
 	// Relationships
 	ComplianceCategory    *ComplianceCategory           `gorm:"foreignkey:ComplianceCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ComplianceStatus      *ComplianceStatus             `gorm:"foreignkey:ComplianceStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ResponsibleUnit       *models.OrganizationUnit      `gorm:"foreignkey:ResponsibleUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ResponsibleUser       *models.User                  `gorm:"foreignkey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ResponsibleUnit       *OrganizationUnit             `gorm:"foreignkey:ResponsibleUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ResponsibleUser       *User                         `gorm:"foreignkey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ReviewFrequency       *masterModels.ReviewFrequency `gorm:"foreignkey:ReviewFrequencyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ReviewResponsibleUser *models.User                  `gorm:"foreignkey:ReviewResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ReviewResponsibleUser *User                         `gorm:"foreignkey:ReviewResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	SeverityLevel         *masterModels.SeverityLevel   `gorm:"foreignkey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	LifecycleStatus       *masterModels.LifecycleStatus `gorm:"foreignkey:LifecycleStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ComplianceDocuments   []ComplianceDocument          `gorm:"foreignKey:ComplianceRegisterID"`
-	CreatedByUser         *models.User                  `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser         *models.User                  `gorm:"foreignKey:UpdatedBy"`
+	CreatedByUser         *User                         `gorm:"foreignKey:CreatedBy"`
+	UpdatedByUser         *User                         `gorm:"foreignKey:UpdatedBy"`
 }
 
 // TableName overrides the table name used by ComplianceRegister to `compliance_register`

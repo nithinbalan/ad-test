@@ -3,7 +3,7 @@ package repositories
 import (
 	"jethur/config"
 	complianceDTOs "jethur/grc/compliance/dtos"
-	"jethur/grc/compliance/models"
+	"jethur/grc/models"
 	"jethur/utility"
 	"os"
 	"path/filepath"

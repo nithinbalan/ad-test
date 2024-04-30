@@ -179,7 +179,6 @@ func (scqc *SLACheckQuestionController) GetSLACheckQuestionsByGroup(c *gin.Conte
 }
 
 func (scqc *SLACheckQuestionController) ChooseSLACheckQuestions(c *gin.Context) {
-
 	var request struct {
 		ChecklistQuestionIDs []uint `json:"checklist_question_ids"`
 	}
@@ -231,7 +230,6 @@ func (scqc *SLACheckQuestionController) ChooseSLACheckQuestions(c *gin.Context) 
 }
 
 func (scqc *SLACheckQuestionController) CreateSLACheckQuestion(c *gin.Context) {
-
 	var slaCheckQuestionFormDTO complianceDTOs.SLACheckQuestionFormDTO
 
 	slaIdStr := c.Param("slaId")

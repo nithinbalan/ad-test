@@ -4,11 +4,11 @@ import (
 	"errors"
 	"fmt"
 	complianceDTOs "jethur/grc/compliance/dtos"
-	"jethur/grc/compliance/models"
 	"jethur/grc/compliance/repositories"
 	logModels "jethur/grc/logs/models"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
+	"jethur/grc/models"
 	"jethur/utility"
 
 	"gorm.io/gorm"

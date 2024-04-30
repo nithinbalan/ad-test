@@ -2,8 +2,6 @@ package models
 
 import (
 	"time"
-
-	"jethur/grc/models"
 )
 
 type ComplianceStatusUpdate struct {
@@ -19,8 +17,8 @@ type ComplianceStatusUpdate struct {
 	//Relationships
 	ComplianceRegister *ComplianceRegister `gorm:"foreignkey:ComplianceRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ComplianceStatus   *ComplianceStatus   `gorm:"foreignkey:ComplianceStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser      *models.User        `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser      *models.User        `gorm:"foreignKey:UpdatedBy"`
+	CreatedByUser      *User               `gorm:"foreignKey:CreatedBy"`
+	UpdatedByUser      *User               `gorm:"foreignKey:UpdatedBy"`
 }
 
 // TableName overrides the table name used by ComplianceStatusUpdate to `compliance_status_updates`

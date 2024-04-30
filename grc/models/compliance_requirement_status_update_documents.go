@@ -1,7 +1,6 @@
 package models
 
 import (
-	organizationModel "jethur/grc/models"
 	"time"
 )
 
@@ -21,8 +20,8 @@ type ComplianceRequirementStatusUpdateDocument struct {
 
 	// Relationships
 	ComplianceRequirementStatusUpdate *ComplianceRequirementStatusUpdate `gorm:"foreignKey:ComplianceRequirementStatusUpdateID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
-	CreatedByUser                     *organizationModel.User            `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser                     *organizationModel.User            `gorm:"foreignKey:UpdatedBy"`
+	CreatedByUser                     *User                              `gorm:"foreignKey:CreatedBy"`
+	UpdatedByUser                     *User                              `gorm:"foreignKey:UpdatedBy"`
 }
 
 // TableName overrides the table name used by ComplianceRequirementStatusUpdate to `compliance_requirement_status_updates`

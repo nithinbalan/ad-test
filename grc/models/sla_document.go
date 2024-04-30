@@ -1,7 +1,6 @@
 package models
 
 import (
-	organizationModel "jethur/grc/models"
 	"time"
 )
 
@@ -27,9 +26,9 @@ type SLADocument struct {
 	UpdatedAt     time.Time  `json:"updated_at" gorm:"type:datetime;not null"`
 
 	// Relationships
-	SLARegister   *SLARegister            `gorm:"foreignKey:SLARegisterID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
-	CreatedByUser *organizationModel.User `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser *organizationModel.User `gorm:"foreignKey:UpdatedBy"`
+	SLARegister   *SLARegister `gorm:"foreignKey:SLARegisterID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
+	CreatedByUser *User        `gorm:"foreignKey:CreatedBy"`
+	UpdatedByUser *User        `gorm:"foreignKey:UpdatedBy"`
 }
 
 // TableName overrides the table name used by SLARegister to `sla_register`

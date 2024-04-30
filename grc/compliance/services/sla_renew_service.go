@@ -3,11 +3,11 @@ package services
 import (
 	"fmt"
 	slaDTOs "jethur/grc/compliance/dtos"
-	complianceModels "jethur/grc/compliance/models"
 	"jethur/grc/compliance/repositories"
 	logModels "jethur/grc/logs/models"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
+	"jethur/grc/models"
 	"jethur/utility"
 	"path/filepath"
 	"strconv"
@@ -98,7 +98,7 @@ func (srs *SLARenewService) Renew(slaId uint, currentUserID uint, slaRenewFormDT
 	newVersionStr := strconv.Itoa(newVersion)
 
 	//renew document
-	slaDocument := &complianceModels.SLADocument{
+	slaDocument := &models.SLADocument{
 		SLARegisterID: existingSLADocument.SLARegisterID,
 		Version:       newVersionStr, //@review, Need to increment version
 		IssueDate:     dates.IssueDate,
@@ -131,7 +131,7 @@ func (srs *SLARenewService) Renew(slaId uint, currentUserID uint, slaRenewFormDT
 	go func() {
 		err := srs.activityLogSvc.LogActivity(
 			logModels.UpdateAction,
-			complianceModels.SLADocument{}.TableName(),
+			models.SLADocument{}.TableName(),
 			slaId,
 			slaRenewFormDTO,
 			currentUserID,
@@ -141,7 +141,7 @@ func (srs *SLARenewService) Renew(slaId uint, currentUserID uint, slaRenewFormDT
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    logModels.UpdateAction,
-				"tableName": complianceModels.SLADocument{}.TableName(),
+				"tableName": models.SLADocument{}.TableName(),
 				"recordID":  slaId,
 				"userID":    currentUserID,
 				"error":     err.Error(),
@@ -200,7 +200,7 @@ func (srs *SLARenewService) Revert(slaId uint, currentUserID uint) error {
 	go func() {
 		err := srs.activityLogSvc.LogActivity(
 			logModels.UpdateAction,
-			complianceModels.SLADocument{}.TableName(),
+			models.SLADocument{}.TableName(),
 			previousSLADocument.ID,
 			previousSLADocument,
 			currentUserID,
@@ -210,7 +210,7 @@ func (srs *SLARenewService) Revert(slaId uint, currentUserID uint) error {
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    logModels.UpdateAction,
-				"tableName": complianceModels.SLADocument{}.TableName(),
+				"tableName": models.SLADocument{}.TableName(),
 				"recordID":  previousSLADocument.ID,
 				"userID":    currentUserID,
 				"error":     err.Error(),
