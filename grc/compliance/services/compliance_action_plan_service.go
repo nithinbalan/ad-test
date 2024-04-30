@@ -77,11 +77,11 @@ func (caps ComplianceActionPlanService) GetByID(complianceID uint, id uint) (*mo
 }
 
 func (caps ComplianceActionPlanService) GetFullDetailsByID(complianceID uint, id uint) (*complianceDTOs.ComplianceActionPlanDetailDTO, error) {
+	var complianceActionPlanDTO complianceDTOs.ComplianceActionPlanDetailDTO
+
 	if _, err := caps.complianceRegisterSvc.GetByID(complianceID); err != nil {
 		return nil, err
 	}
-
-	var complianceActionPlanDTO complianceDTOs.ComplianceActionPlanDetailDTO
 
 	complianceActionPlan, err := caps.repo.GetFullDetailsByID(id)
 
@@ -103,7 +103,6 @@ func (caps ComplianceActionPlanService) GetFullDetailsByID(complianceID uint, id
 }
 
 func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID uint, ComplianceActionPlanFormDTO *complianceDTOs.ComplianceActionPlanFormDTO) (uint, error) {
-
 	if _, err := caps.complianceRegisterSvc.GetByID(complianceID); err != nil {
 		return 0, err
 	}
@@ -163,7 +162,6 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 }
 
 func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, currentUserID uint, ComplianceActionPlanFormDTO *complianceDTOs.ComplianceActionPlanFormDTO) error {
-
 	if _, err := caps.complianceRegisterSvc.GetByID(complianceID); err != nil {
 		return err
 	}
@@ -267,7 +265,6 @@ func (caps *ComplianceActionPlanService) StatusUpdate(complianceID uint, id uint
 }
 
 func (caps *ComplianceActionPlanService) validateComplianceActionPlanFormDTO(complianceID uint, ComplianceActionPlanFormDTO *complianceDTOs.ComplianceActionPlanFormDTO) error {
-
 	if ComplianceActionPlanFormDTO.SeverityLevelID != nil {
 		if _, err := caps.severityLevelSvc.GetByID(*ComplianceActionPlanFormDTO.SeverityLevelID); err != nil {
 			return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")

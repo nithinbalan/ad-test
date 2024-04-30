@@ -5,6 +5,7 @@ import (
 	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/models"
+	"jethur/utility"
 	"time"
 
 	"gorm.io/gorm"
@@ -14,8 +15,8 @@ type ComplianceRequirementRepositoryInterface interface {
 	GetAll(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementListResponseDTO, error)
 	GetByID(id uint) (*models.ComplianceRequirement, error)
 	GetFullDetailsByID(id uint) (*models.ComplianceRequirement, error)
-	Create(complianceRequirement *models.ComplianceRequirement) (uint, error)
-	Update(complianceRequirement *models.ComplianceRequirement) error
+	Create(complianceRequirement *models.ComplianceRequirement, tx ...utility.DatabaseTransaction) (uint, error)
+	Update(complianceRequirement *models.ComplianceRequirement, tx ...utility.DatabaseTransaction) error
 	Delete(id uint) error
 	GetOrCreateComplianceClause(complianceClause *models.ComplianceClause) (*models.ComplianceClause, error)
 	CountRequirementsByClauseID(clauseID uint) (int64, error)

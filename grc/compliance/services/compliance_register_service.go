@@ -77,8 +77,6 @@ func (crs ComplianceRegisterService) GetByID(id uint) (*models.ComplianceRegiste
 }
 
 func (crs ComplianceRegisterService) GetFullDetailsByID(id uint) (*complianceDTOs.ComplianceRegisterDetailDTO, error) {
-
-	// Initialize your DTO
 	var complianceDTO complianceDTOs.ComplianceRegisterDetailDTO
 
 	compliance, err := crs.repo.GetFullDetailsByID(id)
@@ -90,7 +88,6 @@ func (crs ComplianceRegisterService) GetFullDetailsByID(id uint) (*complianceDTO
 		return nil, err
 	}
 
-	// Map the result to your DTO
 	err = mapstructure.Decode(compliance, &complianceDTO)
 	if err != nil {
 		return nil, err

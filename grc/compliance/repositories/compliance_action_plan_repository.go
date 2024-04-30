@@ -4,6 +4,7 @@ import (
 	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/models"
+	"jethur/utility"
 	"time"
 
 	"gorm.io/gorm"
@@ -13,8 +14,8 @@ type ComplianceActionPlanRepositoryInterface interface {
 	GetAll(complianceID uint, params *complianceDTOs.ComplianceActionPlanListQueryParamsDTO) (*complianceDTOs.ComplianceActionPlanListResponseDTO, error)
 	GetByID(id uint) (*models.ComplianceActionPlan, error)
 	GetFullDetailsByID(id uint) (*models.ComplianceActionPlan, error)
-	Create(complianceActionPlan *models.ComplianceActionPlan) (uint, error)
-	Update(complianceActionPlan *models.ComplianceActionPlan) error
+	Create(complianceActionPlan *models.ComplianceActionPlan, tx ...utility.DatabaseTransaction) (uint, error)
+	Update(complianceActionPlan *models.ComplianceActionPlan, tx ...utility.DatabaseTransaction) error
 	Delete(id uint) error
 }
 
