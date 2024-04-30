@@ -121,7 +121,7 @@ func (casus *ComplianceActionPlanStatusUpdateService) Create(ComplianceID uint, 
 		}
 
 		// Construct the URL for the document
-		url := utility.GenerateDocumentURL("compliances", strconv.FormatUint(uint64(ComplianceID), 10), "action-plans", strconv.FormatUint(uint64(ComplianceActionPlanID), 10),"status-updates", encryptedFilename)
+		url := utility.GenerateDocumentURL("compliances", strconv.FormatUint(uint64(ComplianceID), 10), "action-plans", strconv.FormatUint(uint64(ComplianceActionPlanID), 10), "status-updates", encryptedFilename)
 
 		// Create a new ComplianceActionPlanStatusUpdateDocument instance
 		document := &models.ComplianceActionPlanStatusUpdateDocument{
@@ -135,7 +135,6 @@ func (casus *ComplianceActionPlanStatusUpdateService) Create(ComplianceID uint, 
 			CreatedBy:                          currentUserID,
 		}
 
-		
 		// Append the document to the slice
 		documents = append(documents, document)
 	}
@@ -220,7 +219,7 @@ func (casus *ComplianceActionPlanStatusUpdateService) Update(ComplianceID uint, 
 	// Iterate over each document in the array
 	for _, doc := range ComplianceActionPlanStatusUpdateFormDTO.Documents {
 		storagePath := filepath.Join("compliance", "compliance", strconv.FormatUint(uint64(ComplianceID), 10), "action-plans", strconv.FormatUint(uint64(ComplianceActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
-		if doc.IsNewFile != nil && *doc.IsNewFile {	
+		if doc.IsNewFile != nil && *doc.IsNewFile {
 			if err := utility.StoreFile(doc.FileName, storagePath); err != nil {
 				tx.Rollback()
 				return err
@@ -231,7 +230,7 @@ func (casus *ComplianceActionPlanStatusUpdateService) Update(ComplianceID uint, 
 				tx.Rollback()
 				return err
 			}
-			url := utility.GenerateDocumentURL("compliances", strconv.FormatUint(uint64(ComplianceID), 10), "action-plans", strconv.FormatUint(uint64(ComplianceActionPlanID), 10),"status-updates", encryptedFilename)
+			url := utility.GenerateDocumentURL("compliances", strconv.FormatUint(uint64(ComplianceID), 10), "action-plans", strconv.FormatUint(uint64(ComplianceActionPlanID), 10), "status-updates", encryptedFilename)
 			// Create a new ComplianceActionPlanStatusUpdateDocument instance
 			document := &models.ComplianceActionPlanStatusUpdateDocument{
 				ComplianceActionPlanStatusUpdateID: id,

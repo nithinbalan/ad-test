@@ -3,13 +3,14 @@ package services
 import (
 	"errors"
 	"fmt"
-	"jethur/config"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/repositories"
 	logModels "jethur/grc/logs/models"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
+	"path/filepath"
+	"strconv"
 
 	"gorm.io/gorm"
 )
@@ -99,10 +100,13 @@ func (crsus *ComplianceRequirementStatusUpdateService) Create(ComplianceID uint,
 		return 0, err
 	}
 
+	var documents []*models.ComplianceRequirementStatusUpdateDocument
+
 	// Iterate over each document in the array
 	for _, doc := range complianceRequirementStatusUpdateFormDTO.Documents {
+		storagePath := filepath.Join("compliance", "compliance", strconv.FormatUint(uint64(ComplianceID), 10), "requirements", strconv.FormatUint(uint64(ComplianceRequirementID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 
-		if err := crsus.repo.StoreComplianceRequirementStatusUpdateDocumentFile(ComplianceID, ComplianceRequirementID, id, doc.FileName); err != nil {
+		if err := utility.StoreFile(doc.FileName, storagePath); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
@@ -115,7 +119,7 @@ func (crsus *ComplianceRequirementStatusUpdateService) Create(ComplianceID uint,
 		}
 
 		// Construct the URL for the document
-		url := fmt.Sprintf("%s/compliances/%d/requirements/%d/status-updates/%s", config.GetEnv("API_URL", "http://localhost:8080"), ComplianceID, ComplianceRequirementID, encryptedFilename)
+		url := utility.GenerateDocumentURL("compliances", strconv.FormatUint(uint64(ComplianceID), 10), "requirements", strconv.FormatUint(uint64(ComplianceRequirementID), 10), "status-updates", encryptedFilename)
 
 		// Create a new ComplianceRequirementStatusUpdateDocument instance
 		document := &models.ComplianceRequirementStatusUpdateDocument{
@@ -128,14 +132,17 @@ func (crsus *ComplianceRequirementStatusUpdateService) Create(ComplianceID uint,
 			Type:                                doc.Type,
 			CreatedBy:                           currentUserID,
 		}
+		// Append the document to the slice
+		documents = append(documents, document)
 
+	}
+	if len(documents) > 0 {
 		// Save the ComplianceRequirementStatusUpdateDocument
-		if err := crsus.repo.SaveComplianceRequirementStatusUpdateDocument(document, tx); err != nil {
+		if err := crsus.repo.SaveComplianceRequirementStatusUpdateDocument(documents, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
 	}
-
 	tx.Commit()
 
 	go func() {
@@ -190,11 +197,15 @@ func (crsus *ComplianceRequirementStatusUpdateService) Update(ComplianceID uint,
 		tx.Rollback()
 		return err
 	}
+	var documents []*models.ComplianceRequirementStatusUpdateDocument
+	var deleteDocumentIds []*uint
 	// Iterate over each document in the array
 	for _, doc := range ComplianceRequirementStatusUpdateFormDTO.Documents {
+		storagePath := filepath.Join("compliance", "compliance", strconv.FormatUint(uint64(ComplianceID), 10), "requirements", strconv.FormatUint(uint64(ComplianceRequirementID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
+
 		if doc.IsNewFile != nil && *doc.IsNewFile {
 			// Handle new file case
-			if err := crsus.repo.StoreComplianceRequirementStatusUpdateDocumentFile(ComplianceID, ComplianceRequirementID, id, doc.FileName); err != nil {
+			if err := utility.StoreFile(doc.FileName, storagePath); err != nil {
 				tx.Rollback()
 				return err
 			}
@@ -204,7 +215,7 @@ func (crsus *ComplianceRequirementStatusUpdateService) Update(ComplianceID uint,
 				tx.Rollback()
 				return err
 			}
-			url := fmt.Sprintf("%s/compliances/%d/requirements/%d/status-updates/%s", config.GetEnv("API_URL", "http://localhost:8080"), ComplianceID, ComplianceRequirementID, encryptedFilename)
+			url := utility.GenerateDocumentURL("compliances", strconv.FormatUint(uint64(ComplianceID), 10), "requirements", strconv.FormatUint(uint64(ComplianceRequirementID), 10), "status-updates", encryptedFilename)
 			// Create a new ComplianceRequirementStatusUpdateDocument instance
 			document := &models.ComplianceRequirementStatusUpdateDocument{
 				ComplianceRequirementStatusUpdateID: id,
@@ -216,10 +227,8 @@ func (crsus *ComplianceRequirementStatusUpdateService) Update(ComplianceID uint,
 				Type:                                doc.Type,
 				CreatedBy:                           currentUserID,
 			}
-			if err := crsus.repo.SaveComplianceRequirementStatusUpdateDocument(document, tx); err != nil {
-				tx.Rollback()
-				return err
-			}
+			documents = append(documents, document)
+
 		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
 			// Handle deleted file case
 			if doc.ID != nil {
@@ -231,32 +240,25 @@ func (crsus *ComplianceRequirementStatusUpdateService) Update(ComplianceID uint,
 					tx.Rollback()
 					return fmt.Errorf("existing document not found for ID: %d", *doc.ID)
 				}
-				if err := crsus.repo.RemoveComplianceRequirementStatusUpdateDocumentFile(ComplianceID, ComplianceRequirementID, id, existingDocument.Name); err != nil {
-					tx.Rollback()
-					return err
-				}
-				if err := crsus.repo.DeleteComplianceRequirementStatusUpdateDocumentID(existingDocument.ID, tx); err != nil {
-					tx.Rollback()
-					return err
-				}
-			}
-		} else {
-			// Handle existing document update case
-			if doc.ID != nil {
-				existingDocument, err := crsus.repo.GetComplianceRequirementStatusUpdateDocumentByID(*doc.ID)
-				if err != nil {
-					return err
-				}
-				if existingDocument == nil {
-					tx.Rollback()
-					return fmt.Errorf("existing document not found for ID: %d", *doc.ID)
-				}
-				existingDocument.UpdatedBy = currentUserID
-				if err := crsus.repo.SaveComplianceRequirementStatusUpdateDocument(existingDocument, tx); err != nil {
+				deleteDocumentIds = append(deleteDocumentIds, &existingDocument.ID)
+
+				if err := utility.RemoveFile(existingDocument.Name, storagePath); err != nil {
 					tx.Rollback()
 					return err
 				}
 			}
+		}
+	}
+	if len(documents) > 0 {
+		if err := crsus.repo.SaveComplianceRequirementStatusUpdateDocument(documents, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+	if len(deleteDocumentIds) > 0 {
+		if err := crsus.repo.DeleteComplianceRequirementStatusUpdateDocuments(deleteDocumentIds, tx); err != nil {
+			tx.Rollback()
+			return err
 		}
 	}
 	tx.Commit()
