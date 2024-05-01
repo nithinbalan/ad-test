@@ -40,7 +40,7 @@ func (crsuc *ComplianceRequirementStatusUpdateController) GetAllComplianceRequir
 		return
 	}
 
-	sort := c.Query("sort")
+	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 

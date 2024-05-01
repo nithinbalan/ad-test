@@ -24,7 +24,7 @@ func NewChecklistQuestionController(service services.ChecklistQuestionServiceInt
 
 func (cqc *ChecklistQuestionController) GetAllChecklistQuestions(c *gin.Context) {
 
-	sort := c.Query("sort")
+	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 
