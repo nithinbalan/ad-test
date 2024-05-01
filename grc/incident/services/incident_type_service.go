@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"fmt"
 	"jethur/grc/incident/repositories"
 	logModels "jethur/grc/logs/models"
@@ -8,6 +9,8 @@ import (
 	"jethur/grc/models"
 	"jethur/utility"
 	"log"
+
+	"gorm.io/gorm"
 )
 
 type IncidentTypeServiceInterface interface {
@@ -38,7 +41,15 @@ func (its *IncidentTypeService) GetAll(sort string, sortBy string, keyword strin
 }
 
 func (its IncidentTypeService) GetByID(id uint) (*models.IncidentType, error) {
-	return its.repo.GetByID(id)
+	incidentType, err := its.repo.GetByID(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+	return incidentType, nil
+
 }
 
 func (its *IncidentTypeService) Create(currentUserID uint, incidentType *models.IncidentType) (*models.IncidentType, error) {

@@ -1,8 +1,12 @@
 package services
 
 import (
+	"errors"
 	"jethur/grc/incident/repositories"
 	"jethur/grc/models"
+	"jethur/utility"
+
+	"gorm.io/gorm"
 )
 
 type IncidentStatusServiceInterface interface {
@@ -26,5 +30,12 @@ func (iss *IncidentStatusService) GetAll(sort string, sortBy string, keyword str
 }
 
 func (iss IncidentStatusService) GetByID(id uint) (*models.IncidentStatus, error) {
-	return iss.repo.GetByID(id)
+	incidentStatus, err := iss.repo.GetByID(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+	return incidentStatus, nil
 }

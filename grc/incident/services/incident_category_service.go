@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"fmt"
 	"jethur/grc/incident/repositories"
 	logModels "jethur/grc/logs/models"
@@ -8,6 +9,8 @@ import (
 	"jethur/grc/models"
 	"jethur/utility"
 	"log"
+
+	"gorm.io/gorm"
 )
 
 type IncidentCategoryServiceInterface interface {
@@ -20,7 +23,7 @@ type IncidentCategoryServiceInterface interface {
 	Deactivate(ids []uint, currentUserID uint) error
 }
 
-// Service and implementations	
+// Service and implementations
 type IncidentCategoryService struct {
 	repo           repositories.IncidentCategoryRepositoryInterface
 	activityLogSvc services.ActivityLogServiceInterface
@@ -38,7 +41,14 @@ func (ics *IncidentCategoryService) GetAll(sort string, sortBy string, keyword s
 }
 
 func (ics IncidentCategoryService) GetByID(id uint) (*models.IncidentCategory, error) {
-	return ics.repo.GetByID(id)
+	incidentCategory, err := ics.repo.GetByID(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+	return incidentCategory, nil
 }
 
 func (ics *IncidentCategoryService) Create(currentUserID uint, category *models.IncidentCategory) (*models.IncidentCategory, error) {

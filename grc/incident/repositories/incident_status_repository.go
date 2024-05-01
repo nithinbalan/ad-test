@@ -1,9 +1,7 @@
 package repositories
 
 import (
-	"errors"
 	"jethur/grc/models"
-	"jethur/utility"
 
 	"gorm.io/gorm"
 )
@@ -55,11 +53,9 @@ func (repo *IncidentStatusRepository) GetByID(id uint) (*models.IncidentStatus, 
 	var status *models.IncidentStatus
 	result := repo.db.First(&status, id)
 
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, utility.NewResourceNotFoundError(result.Error, id)
-	} else if result.Error != nil {
+	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	return status, result.Error
+	return status, nil
 }

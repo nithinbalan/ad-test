@@ -2,7 +2,7 @@ package models
 
 type IncidentStatus struct {
 	ID            uint   `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
-	TitleEn       string `json:"title_en" binding:"required,max=100" gorm:"type:varchar(100);not null"`
+	TitleEn       string `json:"title_en" binding:"required,max=100" gorm:"type:nvarchar(100);not null"`
 	TitleAr       string `json:"title_ar" binding:"required,max=100" gorm:"type:nvarchar(100);not null"`
 	DescriptionEn string `json:"description_en" binding:"required" gorm:"type:text"`
 	DescriptionAr string `json:"description_ar" binding:"required" gorm:"type:text"`
