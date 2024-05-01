@@ -23,7 +23,7 @@ func NewDesignationController(service services.DesignationServiceInterface) *Des
 }
 
 func (dc *DesignationController) GetAllDesignations(c *gin.Context) {
-	sort := c.Query("sort")
+	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
