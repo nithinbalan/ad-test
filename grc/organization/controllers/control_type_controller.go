@@ -21,7 +21,7 @@ func NewControlTypeController(service services.ControlTypeServiceInterface) *Con
 }
 
 func (ctc *ControlTypeController) GetAllControlTypes(c *gin.Context) {
-	sort := c.Query("sort")
+	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
