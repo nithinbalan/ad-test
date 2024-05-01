@@ -1,7 +1,6 @@
 package repositories
 
 import (
-	"errors"
 	"jethur/grc/models"
 	"jethur/utility"
 
@@ -60,13 +59,11 @@ func (repo *IncidentCategoryRepository) GetByID(id uint) (*models.IncidentCatego
 	var category *models.IncidentCategory
 	result := repo.db.First(&category, id)
 
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, utility.NewResourceNotFoundError(result.Error, id)
-	} else if result.Error != nil {
+	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	return category, result.Error
+	return category, nil
 }
 
 func (repo *IncidentCategoryRepository) Create(category *models.IncidentCategory) (*models.IncidentCategory, error) {
