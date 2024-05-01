@@ -21,7 +21,6 @@ type ComplianceActionPlanStatusUpdateListDTO struct {
 }
 
 type ComplianceActionPlanStatusUpdateFormDTO struct {
-	ComplianceStatusID uint                                               `json:"compliance_status_id" binding:"required"`
 	ActionPlanStatusID uint                                               `json:"action_plan_status_id" binding:"required"`
 	Comment            string                                             `json:"comment" binding:"required"`
 	Percentage         *uint                                              `json:"percentage" binding:"required"`

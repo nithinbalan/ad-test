@@ -55,7 +55,7 @@ type ComplianceActionPlanListResponseDTO struct {
 }
 
 type ComplianceActionPlanFormDTO struct {
-	ComplianceRequirementID *uint   `json:"compliance_requirement_id" binding:"required"`
+	ComplianceRequirementID *uint   `json:"compliance_requirement_id"`
 	Title                   string  `json:"title" binding:"required"`
 	Description             *string `json:"description" binding:"omitempty"`
 	SeverityLevelID         *uint   `json:"severity_level_id" binding:"omitempty"`

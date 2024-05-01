@@ -98,32 +98,24 @@ func (casus *ComplianceActionPlanStatusUpdateService) Create(ComplianceID uint, 
 		return 0, err
 	}
 
-	err = casus.complianceActionPlanSvc.StatusUpdate(ComplianceID, ComplianceActionPlanID, currentUserID, complianceActionPlanStatusUpdateFormDTO.ActionPlanStatusID)
+	err = casus.complianceActionPlanSvc.StatusUpdate(ComplianceID, ComplianceActionPlanID, currentUserID, complianceActionPlanStatusUpdateFormDTO.ActionPlanStatusID, tx)
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
+
 	var documents []*models.ComplianceActionPlanStatusUpdateDocument
 
-	// Iterate over each document in the array
 	for _, doc := range complianceActionPlanStatusUpdateFormDTO.Documents {
-		storagePath := filepath.Join("compliance", "compliance", strconv.FormatUint(uint64(ComplianceID), 10), "action-plans", strconv.FormatUint(uint64(ComplianceActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 
-		if err := utility.StoreFile(doc.FileName, storagePath); err != nil {
-			tx.Rollback()
-			return 0, err
-		}
-		// Encrypt the filename
 		dataToEncrypt := []byte(doc.FileName)
 		encryptedFilename, err := utility.EncryptData(dataToEncrypt)
 		if err != nil {
-			tx.Rollback()
 			return 0, err
 		}
 
-		// Construct the URL for the document
 		url := utility.GenerateDocumentURL("compliances", strconv.FormatUint(uint64(ComplianceID), 10), "action-plans", strconv.FormatUint(uint64(ComplianceActionPlanID), 10), "status-updates", encryptedFilename)
 
-		// Create a new ComplianceActionPlanStatusUpdateDocument instance
 		document := &models.ComplianceActionPlanStatusUpdateDocument{
 			ComplianceActionPlanStatusUpdateID: id,
 			URL:                                url,
@@ -135,14 +127,21 @@ func (casus *ComplianceActionPlanStatusUpdateService) Create(ComplianceID uint, 
 			CreatedBy:                          currentUserID,
 		}
 
-		// Append the document to the slice
 		documents = append(documents, document)
 	}
+
 	if len(documents) > 0 {
-		// Save the ComplianceActionPlanStatusUpdateDocument
 		if err := casus.repo.SaveComplianceActionPlanStatusUpdateDocument(documents, tx); err != nil {
 			tx.Rollback()
 			return 0, err
+		}
+		//move file to storage
+		for _, doc := range documents {
+			storagePath := filepath.Join("compliance", "compliance", strconv.FormatUint(uint64(ComplianceID), 10), "action-plans", strconv.FormatUint(uint64(ComplianceActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
+			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
+				return 0, err
+			}
+
 		}
 	}
 	tx.Commit()
@@ -206,17 +205,9 @@ func (casus *ComplianceActionPlanStatusUpdateService) Update(ComplianceID uint, 
 		return err
 	}
 
-	// @review
-	//update main action plan staus only if latest status updates is updated
-	err = casus.complianceActionPlanSvc.StatusUpdate(ComplianceID, ComplianceActionPlanID, currentUserID, ComplianceActionPlanStatusUpdateFormDTO.ComplianceStatusID)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
 	var documents []*models.ComplianceActionPlanStatusUpdateDocument
 	var deleteDocumentIds []*uint
 
-	// Iterate over each document in the array
 	for _, doc := range ComplianceActionPlanStatusUpdateFormDTO.Documents {
 		storagePath := filepath.Join("compliance", "compliance", strconv.FormatUint(uint64(ComplianceID), 10), "action-plans", strconv.FormatUint(uint64(ComplianceActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 		if doc.IsNewFile != nil && *doc.IsNewFile {

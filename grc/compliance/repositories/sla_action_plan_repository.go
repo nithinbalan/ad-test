@@ -175,14 +175,14 @@ func (repo *SLAActionPlanRepository) GetFullDetailsByID(id uint) (*models.SLAAct
 	return slaActionPlan, nil
 }
 
-func (repo *SLAActionPlanRepository) Create(slaActionPlan *models.SLAActionPlan) (uint, error) {
+func (repo *SLAActionPlanRepository) Create(slaActionPlan *models.SLAActionPlan, tx ...utility.DatabaseTransaction) (uint, error) {
 	if err := repo.db.Create(slaActionPlan).Error; err != nil {
 		return 0, err
 	}
 	return slaActionPlan.ID, nil
 }
 
-func (repo *SLAActionPlanRepository) Update(slaActionPlan *models.SLAActionPlan) error {
+func (repo *SLAActionPlanRepository) Update(slaActionPlan *models.SLAActionPlan, tx ...utility.DatabaseTransaction) error {
 	if err := repo.db.Save(slaActionPlan).Error; err != nil {
 		return err
 	}

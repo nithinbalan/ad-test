@@ -190,14 +190,14 @@ func (repo *ComplianceRequirementRepository) GetFullDetailsByID(id uint) (*model
 	return complianceRequirement, nil
 }
 
-func (repo *ComplianceRequirementRepository) Create(complianceRequirement *models.ComplianceRequirement) (uint, error) {
+func (repo *ComplianceRequirementRepository) Create(complianceRequirement *models.ComplianceRequirement, tx ...utility.DatabaseTransaction) (uint, error) {
 	if err := repo.db.Create(complianceRequirement).Error; err != nil {
 		return 0, err
 	}
 	return complianceRequirement.ID, nil
 }
 
-func (repo *ComplianceRequirementRepository) Update(complianceRequirement *models.ComplianceRequirement) error {
+func (repo *ComplianceRequirementRepository) Update(complianceRequirement *models.ComplianceRequirement, tx ...utility.DatabaseTransaction) error {
 	if err := repo.db.Save(complianceRequirement).Error; err != nil {
 		return err
 	}

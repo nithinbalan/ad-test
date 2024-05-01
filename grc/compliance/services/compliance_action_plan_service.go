@@ -23,7 +23,7 @@ type ComplianceActionPlanServiceInterface interface {
 	Create(complianceID uint, currentUserID uint, ComplianceActionPlanFormDTO *complianceDTOs.ComplianceActionPlanFormDTO) (uint, error)
 	Update(complianceID uint, id uint, currentUserID uint, compliance *complianceDTOs.ComplianceActionPlanFormDTO) error
 	Delete(complianceID uint, ids []uint, currentUserID uint) ([]uint, error)
-	StatusUpdate(complianceID uint, id uint, currentUserID uint, ActionPlanStatusID uint) error
+	StatusUpdate(complianceID uint, id uint, currentUserID uint, ActionPlanStatusID uint, tx utility.DatabaseTransaction) error
 }
 
 // Service and implementations
@@ -245,7 +245,7 @@ func (caps *ComplianceActionPlanService) Delete(complianceID uint, ids []uint, c
 	return failedIds, nil
 }
 
-func (caps *ComplianceActionPlanService) StatusUpdate(complianceID uint, id uint, currentUserID uint, ActionPlanStatusID uint) error {
+func (caps *ComplianceActionPlanService) StatusUpdate(complianceID uint, id uint, currentUserID uint, ActionPlanStatusID uint, tx utility.DatabaseTransaction) error {
 	existingComplianceActionPlan, err := caps.GetByID(complianceID, id)
 
 	if err != nil {
@@ -255,7 +255,7 @@ func (caps *ComplianceActionPlanService) StatusUpdate(complianceID uint, id uint
 	existingComplianceActionPlan.ActionPlanStatusID = ActionPlanStatusID
 	existingComplianceActionPlan.UpdatedBy = &currentUserID
 
-	err = caps.repo.Update(existingComplianceActionPlan)
+	err = caps.repo.Update(existingComplianceActionPlan, tx)
 
 	if err != nil {
 		return err

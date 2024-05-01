@@ -177,14 +177,14 @@ func (repo *ComplianceActionPlanRepository) GetFullDetailsByID(id uint) (*models
 	return complianceActionPlan, nil
 }
 
-func (repo *ComplianceActionPlanRepository) Create(complianceActionPlan *models.ComplianceActionPlan) (uint, error) {
+func (repo *ComplianceActionPlanRepository) Create(complianceActionPlan *models.ComplianceActionPlan, tx ...utility.DatabaseTransaction) (uint, error) {
 	if err := repo.db.Create(complianceActionPlan).Error; err != nil {
 		return 0, err
 	}
 	return complianceActionPlan.ID, nil
 }
 
-func (repo *ComplianceActionPlanRepository) Update(complianceActionPlan *models.ComplianceActionPlan) error {
+func (repo *ComplianceActionPlanRepository) Update(complianceActionPlan *models.ComplianceActionPlan, tx ...utility.DatabaseTransaction) error {
 	if err := repo.db.Save(complianceActionPlan).Error; err != nil {
 		return err
 	}
