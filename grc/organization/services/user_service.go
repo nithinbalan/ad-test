@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
-	logModels "jethur/grc/logs/models"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	userDTOs "jethur/grc/organization/dtos"
@@ -185,7 +184,7 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 
 	go func() {
 		err := us.activityLogSvc.LogActivity(
-			logModels.CreateAction,
+			models.CreateAction,
 			models.User{}.TableName(),
 			userID, // use userID instead of id
 			userFormDTO,
@@ -195,7 +194,7 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 
 		if err != nil {
 			fields := map[string]interface{}{
-				"action":    logModels.CreateAction,
+				"action":    models.CreateAction,
 				"tableName": models.User{}.TableName(),
 				"recordID":  userID, // use userID instead of id
 				"userID":    currentUserID,
@@ -308,7 +307,7 @@ func (crs *UserService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 
 		go func() {
 			err := crs.activityLogSvc.LogBulkActivities(
-				logModels.DeleteAction,
+				models.DeleteAction,
 				models.User{}.TableName(),
 				successfulIds,
 				nil,

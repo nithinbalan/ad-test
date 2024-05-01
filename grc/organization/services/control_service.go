@@ -3,7 +3,6 @@ package services
 import (
 	"errors"
 	"fmt"
-	logModels "jethur/grc/logs/models"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
@@ -153,7 +152,7 @@ func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizatio
 
 	go func() {
 		err := cs.activityLogSvc.LogActivity(
-			logModels.CreateAction,
+			models.CreateAction,
 			models.Control{}.TableName(),
 			id,
 			controlFormDTO,
@@ -163,7 +162,7 @@ func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizatio
 
 		if err != nil {
 			fields := map[string]interface{}{
-				"action":    logModels.CreateAction,
+				"action":    models.CreateAction,
 				"tableName": models.Control{}.TableName(),
 				"recordID":  id,
 				"userID":    currentUserID,
@@ -247,7 +246,7 @@ func (cs *ControlService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 
 		go func() {
 			err := cs.activityLogSvc.LogBulkActivities(
-				logModels.DeleteAction, // Make sure this action constant is defined appropriately
+				models.DeleteAction, // Make sure this action constant is defined appropriately
 				models.Control{}.TableName(),
 				successfulIds,
 				nil,
@@ -284,7 +283,7 @@ func (cs *ControlService) Archive(ids []uint, currentUserID uint) ([]uint, error
 	if len(successfulIds) > 0 {
 		go func() {
 			err := cs.activityLogSvc.LogBulkActivities(
-				logModels.ArchiveAction,
+				models.ArchiveAction,
 				models.Control{}.TableName(),
 				successfulIds,
 				nil,
@@ -321,7 +320,7 @@ func (cs *ControlService) Restore(ids []uint, currentUserID uint) ([]uint, error
 	if len(successfulIds) > 0 {
 		go func() {
 			err := cs.activityLogSvc.LogBulkActivities(
-				logModels.RestoreAction,
+				models.RestoreAction,
 				models.Control{}.TableName(),
 				successfulIds,
 				nil,

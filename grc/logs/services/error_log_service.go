@@ -1,8 +1,8 @@
 package services
 
 import (
-	"jethur/grc/logs/models"
 	"jethur/grc/logs/repositories"
+	"jethur/grc/models"
 )
 
 type ErrorLogServiceInterface interface {

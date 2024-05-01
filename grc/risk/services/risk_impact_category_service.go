@@ -2,7 +2,6 @@ package services
 
 import (
 	"fmt"
-	logModels "jethur/grc/logs/models"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/grc/risk/repositories"
@@ -56,7 +55,7 @@ func (rics *RiskImpactCategoryService) Create(currentUserID uint, category *mode
 
 	go func() {
 		err := rics.activityLogSvc.LogActivity(
-			logModels.CreateAction,
+			models.CreateAction,
 			models.RiskImpactCategory{}.TableName(),
 			createdCategory.ID,
 			createdCategory,
@@ -109,7 +108,7 @@ func (rics *RiskImpactCategoryService) Update(id uint, currentUserID uint, updat
 
 	go func() {
 		err := rics.activityLogSvc.LogActivity(
-			logModels.UpdateAction,
+			models.UpdateAction,
 			models.RiskImpactCategory{}.TableName(),
 			result.ID,
 			changedDataJSON,
@@ -148,7 +147,7 @@ func (rics *RiskImpactCategoryService) Delete(ids []uint, currentUserID uint) ([
 
 		go func() {
 			err := rics.activityLogSvc.LogBulkActivities(
-				logModels.DeleteAction, // Make sure this action constant is defined appropriately
+				models.DeleteAction, // Make sure this action constant is defined appropriately
 				models.RiskImpactCategory{}.TableName(),
 				successfulIds,
 				nil,
@@ -172,7 +171,7 @@ func (rics *RiskImpactCategoryService) Activate(ids []uint, currentUserID uint) 
 
 		go func() {
 			err := rics.activityLogSvc.LogBulkActivities(
-				logModels.ActivateAction,
+				models.ActivateAction,
 				models.RiskImpactCategory{}.TableName(),
 				successfulIds,
 				nil,
@@ -196,7 +195,7 @@ func (rics *RiskImpactCategoryService) Deactivate(ids []uint, currentUserID uint
 
 		go func() {
 			err := rics.activityLogSvc.LogBulkActivities(
-				logModels.DeactivateAction,
+				models.DeactivateAction,
 				models.RiskImpactCategory{}.TableName(),
 				successfulIds,
 				nil,

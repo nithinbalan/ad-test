@@ -3,7 +3,6 @@ package services
 import (
 	"fmt"
 	"jethur/config"
-	logModels "jethur/grc/logs/models"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
@@ -140,7 +139,7 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 
 	go func() {
 		err := kvus.activityLogSvc.LogActivity(
-			logModels.CreateAction,
+			models.CreateAction,
 			models.KRIValueUpdate{}.TableName(),
 			id,
 			kriValueUpdate,
@@ -150,7 +149,7 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 
 		if err != nil {
 			fields := map[string]interface{}{
-				"action":    logModels.CreateAction,
+				"action":    models.CreateAction,
 				"tableName": models.KRIValueUpdate{}.TableName(),
 				"recordID":  id,
 				"userID":    currentUserID,
@@ -333,7 +332,7 @@ func (kvus *KRIValueUpdateService) Delete(kriRegisterID uint, ids []uint, curren
 
 		go func() {
 			err := kvus.activityLogSvc.LogBulkActivities(
-				logModels.DeleteAction, // Make sure this action constant is defined appropriately
+				models.DeleteAction, // Make sure this action constant is defined appropriately
 				models.KRIValueUpdate{}.TableName(),
 				successfulIds,
 				nil,

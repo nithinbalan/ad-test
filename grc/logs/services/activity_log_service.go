@@ -2,8 +2,8 @@ package services
 
 import (
 	"encoding/json"
-	"jethur/grc/logs/models"
 	"jethur/grc/logs/repositories"
+	"jethur/grc/models"
 	"time"
 
 	"gorm.io/gorm"

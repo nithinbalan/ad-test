@@ -2,19 +2,19 @@ package services
 
 import (
 	"fmt"
-	logModels "jethur/grc/logs/models"
 	"jethur/grc/logs/services"
-	"jethur/grc/masters/models"
+	masterModels "jethur/grc/masters/models"
 	"jethur/grc/masters/repositories"
+	"jethur/grc/models"
 	"jethur/utility"
 	"log"
 )
 
 type KRICategoryServiceInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.KRICategory, error)
-	GetByID(id uint) (*models.KRICategory, error)
-	Create(currentUserID uint, category *models.KRICategory) (*models.KRICategory, error)
-	Update(id uint, currentUserID uint, category *models.KRICategory) (*models.KRICategory, error)
+	GetAll(sort string, sortBy string, keyword string, status string) ([]*masterModels.KRICategory, error)
+	GetByID(id uint) (*masterModels.KRICategory, error)
+	Create(currentUserID uint, category *masterModels.KRICategory) (*masterModels.KRICategory, error)
+	Update(id uint, currentUserID uint, category *masterModels.KRICategory) (*masterModels.KRICategory, error)
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	Activate(ids []uint, currentUserID uint) error
 	Deactivate(ids []uint, currentUserID uint) error
@@ -33,15 +33,15 @@ func NewKRICategoryService(repo repositories.KRICategoryRepositoryInterface, act
 	}
 }
 
-func (kcs *KRICategoryService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.KRICategory, error) {
+func (kcs *KRICategoryService) GetAll(sort string, sortBy string, keyword string, status string) ([]*masterModels.KRICategory, error) {
 	return kcs.repo.GetAll(sort, sortBy, keyword, status)
 }
 
-func (kcs KRICategoryService) GetByID(id uint) (*models.KRICategory, error) {
+func (kcs KRICategoryService) GetByID(id uint) (*masterModels.KRICategory, error) {
 	return kcs.repo.GetByID(id)
 }
 
-func (kcs *KRICategoryService) Create(currentUserID uint, category *models.KRICategory) (*models.KRICategory, error) {
+func (kcs *KRICategoryService) Create(currentUserID uint, category *masterModels.KRICategory) (*masterModels.KRICategory, error) {
 
 	if err := kcs.validateKRICategoryForm(category, nil); err != nil {
 		return nil, err
@@ -54,8 +54,8 @@ func (kcs *KRICategoryService) Create(currentUserID uint, category *models.KRICa
 
 	go func() {
 		err := kcs.activityLogSvc.LogActivity(
-			logModels.CreateAction,
-			models.KRICategory{}.TableName(),
+			models.CreateAction,
+			masterModels.KRICategory{}.TableName(),
 			category.ID,
 			createdCategory,
 			currentUserID,
@@ -71,7 +71,7 @@ func (kcs *KRICategoryService) Create(currentUserID uint, category *models.KRICa
 	return createdCategory, nil
 }
 
-func (kcs *KRICategoryService) Update(id uint, currentUserID uint, updatedCategory *models.KRICategory) (*models.KRICategory, error) {
+func (kcs *KRICategoryService) Update(id uint, currentUserID uint, updatedCategory *masterModels.KRICategory) (*masterModels.KRICategory, error) {
 	existingCategory, err := kcs.repo.GetByID(id)
 
 	if err != nil {
@@ -102,8 +102,8 @@ func (kcs *KRICategoryService) Update(id uint, currentUserID uint, updatedCatego
 
 	go func() {
 		err := kcs.activityLogSvc.LogActivity(
-			logModels.UpdateAction,
-			models.KRICategory{}.TableName(),
+			models.UpdateAction,
+			masterModels.KRICategory{}.TableName(),
 			result.ID,
 			changedDataJSON,
 			currentUserID,
@@ -140,8 +140,8 @@ func (kcs *KRICategoryService) Delete(ids []uint, currentUserID uint) ([]uint, e
 
 		go func() {
 			err := kcs.activityLogSvc.LogBulkActivities(
-				logModels.DeleteAction,
-				models.KRICategory{}.TableName(),
+				models.DeleteAction,
+				masterModels.KRICategory{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,
@@ -164,8 +164,8 @@ func (kcs *KRICategoryService) Activate(ids []uint, currentUserID uint) error {
 
 		go func() {
 			err := kcs.activityLogSvc.LogBulkActivities(
-				logModels.ActivateAction,
-				models.KRICategory{}.TableName(),
+				models.ActivateAction,
+				masterModels.KRICategory{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,
@@ -188,8 +188,8 @@ func (kcs *KRICategoryService) Deactivate(ids []uint, currentUserID uint) error 
 
 		go func() {
 			err := kcs.activityLogSvc.LogBulkActivities(
-				logModels.DeactivateAction,
-				models.KRICategory{}.TableName(),
+				models.DeactivateAction,
+				masterModels.KRICategory{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,
@@ -206,7 +206,7 @@ func (kcs *KRICategoryService) Deactivate(ids []uint, currentUserID uint) error 
 	return err
 }
 
-func (kcs *KRICategoryService) validateKRICategoryForm(category *models.KRICategory, id *uint) error {
+func (kcs *KRICategoryService) validateKRICategoryForm(category *masterModels.KRICategory, id *uint) error {
 
 	if id == nil {
 

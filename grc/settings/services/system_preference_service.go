@@ -2,7 +2,6 @@ package services
 
 import (
 	"fmt"
-	logModels "jethur/grc/logs/models"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/grc/settings/dtos"
@@ -63,7 +62,7 @@ func (sps *SystemPreferenceService) Update(id uint, currentUserID uint, systemPr
 
 	go func() {
 		err := sps.activityLogSvc.LogActivity(
-			logModels.UpdateAction,
+			models.UpdateAction,
 			models.SystemPreference{}.TableName(),
 			id,
 			systemPreferenceFormDTO,
@@ -73,7 +72,7 @@ func (sps *SystemPreferenceService) Update(id uint, currentUserID uint, systemPr
 
 		if err != nil {
 			fields := map[string]interface{}{
-				"action":    logModels.UpdateAction,
+				"action":    models.UpdateAction,
 				"tableName": models.SystemPreference{}.TableName(),
 				"recordID":  id,
 				"userID":    currentUserID,

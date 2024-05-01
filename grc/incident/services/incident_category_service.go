@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"jethur/grc/incident/repositories"
-	logModels "jethur/grc/logs/models"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
@@ -66,7 +65,7 @@ func (ics *IncidentCategoryService) Create(currentUserID uint, category *models.
 
 	go func() {
 		err := ics.activityLogSvc.LogActivity(
-			logModels.CreateAction,
+			models.CreateAction,
 			models.IncidentCategory{}.TableName(),
 			createdCategory.ID,
 			createdCategory,
@@ -119,7 +118,7 @@ func (ics *IncidentCategoryService) Update(id uint, currentUserID uint, updatedC
 
 	go func() {
 		err := ics.activityLogSvc.LogActivity(
-			logModels.UpdateAction,
+			models.UpdateAction,
 			models.IncidentCategory{}.TableName(),
 			result.ID,
 			changedDataJSON,
@@ -158,7 +157,7 @@ func (ics *IncidentCategoryService) Delete(ids []uint, currentUserID uint) ([]ui
 
 		go func() {
 			err := ics.activityLogSvc.LogBulkActivities(
-				logModels.DeleteAction, // Make sure this action constant is defined appropriately
+				models.DeleteAction, // Make sure this action constant is defined appropriately
 				models.IncidentCategory{}.TableName(),
 				successfulIds,
 				nil,
@@ -182,7 +181,7 @@ func (ics *IncidentCategoryService) Activate(ids []uint, currentUserID uint) err
 
 		go func() {
 			err := ics.activityLogSvc.LogBulkActivities(
-				logModels.ActivateAction,
+				models.ActivateAction,
 				models.IncidentCategory{}.TableName(),
 				successfulIds,
 				nil,
@@ -206,7 +205,7 @@ func (ics *IncidentCategoryService) Deactivate(ids []uint, currentUserID uint) e
 
 		go func() {
 			err := ics.activityLogSvc.LogBulkActivities(
-				logModels.DeactivateAction,
+				models.DeactivateAction,
 				models.IncidentCategory{}.TableName(),
 				successfulIds,
 				nil,

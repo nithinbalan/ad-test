@@ -2,11 +2,11 @@ package services
 
 import (
 	"fmt"
-	activityLogModels "jethur/grc/logs/models"
 	"jethur/grc/logs/services"
 	masterDTOs "jethur/grc/masters/dtos"
 	masterModels "jethur/grc/masters/models"
 	"jethur/grc/masters/repositories"
+	"jethur/grc/models"
 	"jethur/utility"
 	"log"
 )
@@ -62,7 +62,7 @@ func (qls *QuestionLibraryService) Create(currentUserID uint, questionLibraryFor
 
 	go func() {
 		err := qls.activityLogSvc.LogActivity(
-			activityLogModels.CreateAction,
+			models.CreateAction,
 			masterModels.QuestionLibrary{}.TableName(),
 			id,
 			questionLibraryForm,
@@ -72,7 +72,7 @@ func (qls *QuestionLibraryService) Create(currentUserID uint, questionLibraryFor
 
 		if err != nil {
 			fields := map[string]interface{}{
-				"action":    activityLogModels.CreateAction,
+				"action":    models.CreateAction,
 				"tableName": masterModels.QuestionLibrary{}.TableName(),
 				"recordID":  id,
 				"userID":    currentUserID,
@@ -123,7 +123,7 @@ func (qls *QuestionLibraryService) Update(id uint, currentUserID uint, updatedQu
 
 	go func() {
 		err := qls.activityLogSvc.LogActivity(
-			activityLogModels.UpdateAction,
+			models.UpdateAction,
 			masterModels.QuestionLibrary{}.TableName(),
 			result.ID,
 			changedDataJSON,
@@ -161,7 +161,7 @@ func (qls *QuestionLibraryService) Delete(ids []uint, currentUserID uint) ([]uin
 
 		go func() {
 			err := qls.activityLogSvc.LogBulkActivities(
-				activityLogModels.DeleteAction, // Make sure this action constant is defined appropriately
+				models.DeleteAction, // Make sure this action constant is defined appropriately
 				masterModels.QuestionLibrary{}.TableName(),
 				successfulIds,
 				nil,
@@ -185,7 +185,7 @@ func (qls *QuestionLibraryService) Activate(ids []uint, currentUserID uint) erro
 
 		go func() {
 			err := qls.activityLogSvc.LogBulkActivities(
-				activityLogModels.ActivateAction,
+				models.ActivateAction,
 				masterModels.QuestionLibrary{}.TableName(),
 				successfulIds,
 				nil,
@@ -209,7 +209,7 @@ func (qls *QuestionLibraryService) Deactivate(ids []uint, currentUserID uint) er
 
 		go func() {
 			err := qls.activityLogSvc.LogBulkActivities(
-				activityLogModels.DeactivateAction,
+				models.DeactivateAction,
 				masterModels.QuestionLibrary{}.TableName(),
 				successfulIds,
 				nil,

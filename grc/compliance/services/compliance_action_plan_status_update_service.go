@@ -6,7 +6,6 @@ import (
 	"jethur/config"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/repositories"
-	logModels "jethur/grc/logs/models"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
@@ -141,7 +140,7 @@ func (casus *ComplianceActionPlanStatusUpdateService) Create(ComplianceID uint, 
 
 	go func() {
 		err := casus.activityLogSvc.LogActivity(
-			logModels.CreateAction,
+			models.CreateAction,
 			models.ComplianceActionPlanStatusUpdate{}.TableName(),
 			id,
 			complianceActionPlanUpdate,
@@ -151,7 +150,7 @@ func (casus *ComplianceActionPlanStatusUpdateService) Create(ComplianceID uint, 
 
 		if err != nil {
 			fields := map[string]interface{}{
-				"action":    logModels.CreateAction,
+				"action":    models.CreateAction,
 				"tableName": models.ComplianceActionPlanStatusUpdate{}.TableName(),
 				"recordID":  id,
 				"userID":    currentUserID,

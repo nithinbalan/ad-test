@@ -4,7 +4,6 @@ import (
 	"fmt"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	complianceRepositories "jethur/grc/compliance/repositories"
-	logModels "jethur/grc/logs/models"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
@@ -152,7 +151,7 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *co
 
 	go func() {
 		err := srs.activityLogSvc.LogActivity(
-			logModels.CreateAction,
+			models.CreateAction,
 			models.SLARegister{}.TableName(),
 			id,
 			slaRegisterFormDTO,
@@ -162,7 +161,7 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *co
 
 		if err != nil {
 			fields := map[string]interface{}{
-				"action":    logModels.CreateAction,
+				"action":    models.CreateAction,
 				"tableName": models.SLARegister{}.TableName(),
 				"recordID":  id,
 				"userID":    currentUserID,
@@ -263,7 +262,7 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 
 	go func() {
 		err := srs.activityLogSvc.LogActivity(
-			logModels.UpdateAction,
+			models.UpdateAction,
 			models.SLARegister{}.TableName(),
 			id,
 			slaRegisterFormDTO,
@@ -273,7 +272,7 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 
 		if err != nil {
 			fields := map[string]interface{}{
-				"action":    logModels.UpdateAction,
+				"action":    models.UpdateAction,
 				"tableName": models.SLARegister{}.TableName(),
 				"recordID":  id,
 				"userID":    currentUserID,
@@ -320,7 +319,7 @@ func (srs *SLARegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 	if len(successfulIds) > 0 {
 		go func() {
 			err := srs.activityLogSvc.LogBulkActivities(
-				logModels.DeleteAction,
+				models.DeleteAction,
 				models.SLARegister{}.TableName(),
 				successfulIds,
 				nil,
@@ -356,7 +355,7 @@ func (srs *SLARegisterService) Archive(ids []uint, currentUserID uint) ([]uint, 
 	if len(successfulIds) > 0 {
 		go func() {
 			err := srs.activityLogSvc.LogBulkActivities(
-				logModels.ArchiveAction,
+				models.ArchiveAction,
 				models.SLARegister{}.TableName(),
 				successfulIds,
 				nil,
@@ -393,7 +392,7 @@ func (srs *SLARegisterService) Restore(ids []uint, currentUserID uint) ([]uint, 
 	if len(successfulIds) > 0 {
 		go func() {
 			err := srs.activityLogSvc.LogBulkActivities(
-				logModels.RestoreAction,
+				models.RestoreAction,
 				models.SLARegister{}.TableName(),
 				successfulIds,
 				nil,
