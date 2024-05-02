@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"jethur/grc/logs/services"
 	masterDTOs "jethur/grc/masters/dtos"
-	masterModels "jethur/grc/masters/models"
 	"jethur/grc/masters/repositories"
 	"jethur/grc/models"
+	masterModels "jethur/grc/models"
 	"jethur/utility"
 )
 

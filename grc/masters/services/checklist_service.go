@@ -3,9 +3,9 @@ package services
 import (
 	"fmt"
 	"jethur/grc/logs/services"
-	masterModels "jethur/grc/masters/models"
 	"jethur/grc/masters/repositories"
 	"jethur/grc/models"
+	masterModels "jethur/grc/models"
 	"jethur/utility"
 	"log"
 )

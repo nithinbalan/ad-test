@@ -1,7 +1,6 @@
 package models
 
 import (
-	masterModelsModels "jethur/grc/masters/models"
 	"time"
 )
 
@@ -17,9 +16,9 @@ type UserSetting struct {
 	UpdatedBy      *uint      `gorm:"default:null" json:"updated_by"`
 
 	// Foreign key relationships
-	User          User                        `gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
-	Timezone      masterModelsModels.Timezone `gorm:"foreignKey:TimezoneID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
-	UpdatedByUser User                        `gorm:"foreignKey:UpdatedBy"`
+	User          User     `gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
+	Timezone      Timezone `gorm:"foreignKey:TimezoneID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
+	UpdatedByUser User     `gorm:"foreignKey:UpdatedBy"`
 }
 
 // TableName overrides the table name used by UserSetting to `user_settings`

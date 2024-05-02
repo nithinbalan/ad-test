@@ -1,8 +1,8 @@
 package services
 
 import (
-	"jethur/grc/masters/models"
 	"jethur/grc/masters/repositories"
+	"jethur/grc/models"
 )
 
 type ReviewFrequencyServiceInterface interface {
@@ -24,7 +24,6 @@ func NewReviewFrequencyService(repo repositories.ReviewFrequencyRepositoryInterf
 func (rfs *ReviewFrequencyService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ReviewFrequency, error) {
 	return rfs.repo.GetAll(sort, sortBy, keyword, status)
 }
-
 
 func (rfs ReviewFrequencyService) GetByID(id uint) (*models.ReviewFrequency, error) {
 	return rfs.repo.GetByID(id)

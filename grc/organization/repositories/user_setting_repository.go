@@ -1,8 +1,8 @@
 package repositories
 
 import (
-	masterModels "jethur/grc/masters/models"
 	"jethur/grc/models"
+	masterModels "jethur/grc/models"
 
 	"gorm.io/gorm"
 )
