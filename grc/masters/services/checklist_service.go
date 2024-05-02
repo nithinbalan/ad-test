@@ -5,16 +5,15 @@ import (
 	"jethur/grc/logs/services"
 	"jethur/grc/masters/repositories"
 	"jethur/grc/models"
-	masterModels "jethur/grc/models"
 	"jethur/utility"
 	"log"
 )
 
 type ChecklistServiceInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*masterModels.Checklist, error)
-	GetByID(id uint) (*masterModels.Checklist, error)
-	Create(currentUserID uint, checklist *masterModels.Checklist) (*masterModels.Checklist, error)
-	Update(id uint, currentUserID uint, checklist *masterModels.Checklist) (*masterModels.Checklist, error)
+	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.Checklist, error)
+	GetByID(id uint) (*models.Checklist, error)
+	Create(currentUserID uint, checklist *models.Checklist) (*models.Checklist, error)
+	Update(id uint, currentUserID uint, checklist *models.Checklist) (*models.Checklist, error)
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	Activate(ids []uint, currentUserID uint) error
 	Deactivate(ids []uint, currentUserID uint) error
@@ -33,15 +32,15 @@ func NewChecklistService(repo repositories.ChecklistRepositoryInterface, activit
 	}
 }
 
-func (cs *ChecklistService) GetAll(sort string, sortBy string, keyword string, status string) ([]*masterModels.Checklist, error) {
+func (cs *ChecklistService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.Checklist, error) {
 	return cs.repo.GetAll(sort, sortBy, keyword, status)
 }
 
-func (cs ChecklistService) GetByID(id uint) (*masterModels.Checklist, error) {
+func (cs ChecklistService) GetByID(id uint) (*models.Checklist, error) {
 	return cs.repo.GetByID(id)
 }
 
-func (cs *ChecklistService) Create(currentUserID uint, checklist *masterModels.Checklist) (*masterModels.Checklist, error) {
+func (cs *ChecklistService) Create(currentUserID uint, checklist *models.Checklist) (*models.Checklist, error) {
 
 	if err := cs.validateChecklistForm(checklist, nil); err != nil {
 		return nil, err
@@ -55,7 +54,7 @@ func (cs *ChecklistService) Create(currentUserID uint, checklist *masterModels.C
 	go func() {
 		err := cs.activityLogSvc.LogActivity(
 			models.CreateAction,
-			masterModels.Checklist{}.TableName(),
+			models.Checklist{}.TableName(),
 			checklist.ID,
 			createdChecklist,
 			currentUserID,
@@ -71,7 +70,7 @@ func (cs *ChecklistService) Create(currentUserID uint, checklist *masterModels.C
 	return createdChecklist, nil
 }
 
-func (cs *ChecklistService) Update(id uint, currentUserID uint, updatedChecklist *masterModels.Checklist) (*masterModels.Checklist, error) {
+func (cs *ChecklistService) Update(id uint, currentUserID uint, updatedChecklist *models.Checklist) (*models.Checklist, error) {
 	existingChecklist, err := cs.repo.GetByID(id)
 
 	if err != nil {
@@ -103,7 +102,7 @@ func (cs *ChecklistService) Update(id uint, currentUserID uint, updatedChecklist
 	go func() {
 		err := cs.activityLogSvc.LogActivity(
 			models.UpdateAction,
-			masterModels.Checklist{}.TableName(),
+			models.Checklist{}.TableName(),
 			result.ID,
 			changedDataJSON,
 			currentUserID,
@@ -141,7 +140,7 @@ func (cs *ChecklistService) Delete(ids []uint, currentUserID uint) ([]uint, erro
 		go func() {
 			err := cs.activityLogSvc.LogBulkActivities(
 				models.DeleteAction, // Make sure this action constant is defined appropriately
-				masterModels.Checklist{}.TableName(),
+				models.Checklist{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,
@@ -165,7 +164,7 @@ func (cs *ChecklistService) Activate(ids []uint, currentUserID uint) error {
 		go func() {
 			err := cs.activityLogSvc.LogBulkActivities(
 				models.ActivateAction,
-				masterModels.Checklist{}.TableName(),
+				models.Checklist{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,
@@ -189,7 +188,7 @@ func (cs *ChecklistService) Deactivate(ids []uint, currentUserID uint) error {
 		go func() {
 			err := cs.activityLogSvc.LogBulkActivities(
 				models.DeactivateAction,
-				masterModels.Checklist{}.TableName(),
+				models.Checklist{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,
@@ -206,7 +205,7 @@ func (cs *ChecklistService) Deactivate(ids []uint, currentUserID uint) error {
 	return err
 }
 
-func (cs *ChecklistService) validateChecklistForm(checklistForm *masterModels.Checklist, id *uint) error {
+func (cs *ChecklistService) validateChecklistForm(checklistForm *models.Checklist, id *uint) error {
 
 	if id == nil {
 		if exists, err := cs.repo.ExistsByTitle(checklistForm.TitleEn, checklistForm.TitleAr); err != nil {

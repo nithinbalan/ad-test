@@ -2,13 +2,12 @@ package repositories
 
 import (
 	"jethur/grc/models"
-	masterModels "jethur/grc/models"
 
 	"gorm.io/gorm"
 )
 
 type UserSettingRepositoryInterface interface {
-	GetNotificationSetting(userID uint) ([]masterModels.Module, error)
+	GetNotificationSetting(userID uint) ([]models.Module, error)
 	FindNotificationSetting(userID uint, notificationMasterID uint) (*models.UserNotificationSetting, error)
 	CreateNotificationSetting(setting *models.UserNotificationSetting) error
 	UpdateNotificationSetting(setting *models.UserNotificationSetting) error
@@ -24,8 +23,8 @@ func NewUserSettingRepository(db *gorm.DB) *UserSettingRepository {
 	}
 }
 
-func (repo *UserSettingRepository) GetNotificationSetting(userID uint) ([]masterModels.Module, error) {
-	var modules []masterModels.Module
+func (repo *UserSettingRepository) GetNotificationSetting(userID uint) ([]models.Module, error) {
+	var modules []models.Module
 	err := repo.db.Preload("NotificationMasters", func(db *gorm.DB) *gorm.DB {
 		return db.Preload("UserNotificationSettings", "user_id = ?", userID)
 	}).Find(&modules).Error
