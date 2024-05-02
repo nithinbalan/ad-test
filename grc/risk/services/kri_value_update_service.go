@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"fmt"
 	"jethur/config"
 	logServices "jethur/grc/logs/services"
@@ -9,6 +10,10 @@ import (
 	riskDTOs "jethur/grc/risk/dtos"
 	riskRepositories "jethur/grc/risk/repositories"
 	"jethur/utility"
+	"path/filepath"
+	"strconv"
+
+	"gorm.io/gorm"
 )
 
 type KRIValueUpdateServiceInterface interface {
@@ -98,11 +103,6 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 	// Iterate over each document in the array
 	for _, doc := range kriValueUpdateFormDTO.Documents {
 
-		if err := kvus.repo.StoreKRIValueUpdateDocumentFile(kriRegisterID, id, doc.FileName); err != nil {
-			tx.Rollback()
-			return 0, err
-		}
-
 		// Encrypt the filename
 		dataToEncrypt := []byte(doc.FileName)
 		encryptedFilename, err := utility.EncryptData(dataToEncrypt)
@@ -133,6 +133,17 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 			tx.Rollback()
 			return 0, err
 		}
+	}
+
+	for _, doc := range kriValueUpdateFormDTO.Documents {
+
+		storagePath := filepath.Join("risk", "kri-register", strconv.FormatUint(uint64(kriRegisterID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
+
+		if err := utility.StoreFile(doc.FileName, storagePath); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
 	}
 
 	tx.Commit()
@@ -179,6 +190,9 @@ func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentU
 
 	existingKRIUpdate, err := kvus.repo.GetByID(updateId)
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return utility.NewResourceNotFoundError(err, updateId)
+		}
 		return err
 	}
 
@@ -208,13 +222,7 @@ func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentU
 	var deleteDocumentIds []*uint
 	// Iterate over each document in the array
 	for _, doc := range kriValueUpdateFormDTO.Documents {
-
 		if doc.IsNewFile != nil && *doc.IsNewFile {
-			// Handle new file case
-			if err := kvus.repo.StoreKRIValueUpdateDocumentFile(existingKRIRegister.ID, updateId, doc.FileName); err != nil {
-				tx.Rollback()
-				return err
-			}
 			dataToEncrypt := []byte(doc.FileName)
 			encryptedFilename, err := utility.EncryptData(dataToEncrypt)
 			if err != nil {
@@ -238,22 +246,16 @@ func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentU
 			documents = append(documents, document)
 
 		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
-
 			// Handle deleted file case
 			if doc.ID != nil {
 				existingDocument, err := kvus.repo.GetKRIValueUpdateDocumentByID(*doc.ID)
 				if err != nil {
+					if errors.Is(err, gorm.ErrRecordNotFound) {
+						return utility.NewResourceNotFoundError(err, doc.ID)
+					}
 					return err
 				}
 
-				if existingDocument == nil {
-					tx.Rollback()
-					return fmt.Errorf("existing document not found for ID: %d", *doc.ID)
-				}
-				if err := kvus.repo.RemoveKRIValueUpdateDocumentFile(existingKRIRegister.ID, updateId, existingDocument.Name); err != nil {
-					tx.Rollback()
-					return err
-				}
 				deleteDocumentIds = append(deleteDocumentIds, &existingDocument.ID)
 			}
 		}
@@ -268,6 +270,28 @@ func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentU
 		if err := kvus.repo.DeleteKRIValueUpdateDocuments(deleteDocumentIds, tx); err != nil {
 			tx.Rollback()
 			return err
+		}
+	}
+
+	for _, doc := range kriValueUpdateFormDTO.Documents {
+		if doc.IsNewFile != nil && *doc.IsNewFile {
+			storagePath := filepath.Join("risk", "kri-register", strconv.FormatUint(uint64(kriRegisterID), 10), "updates", strconv.FormatUint(uint64(updateId), 10), "documents")
+
+			if err := utility.StoreFile(doc.FileName, storagePath); err != nil {
+				tx.Rollback()
+				return err
+			}
+
+		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
+			// Handle deleted file case
+			if doc.ID != nil {
+				storagePath := filepath.Join("risk", "kri-register", strconv.FormatUint(uint64(kriRegisterID), 10), "updates", strconv.FormatUint(uint64(updateId), 10), "documents")
+
+				if err := utility.RemoveFile(doc.FileName, storagePath); err != nil {
+					tx.Rollback()
+					return err
+				}
+			}
 		}
 	}
 
@@ -299,16 +323,18 @@ func (kvus *KRIValueUpdateService) Delete(kriRegisterID uint, ids []uint, curren
 
 			document, err := kvus.repo.GetKRIValueUpdateDocumentByID(updateDocument.ID)
 			if err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					return nil, utility.NewResourceNotFoundError(err, updateDocument.ID)
+				}
 				return nil, err
 			}
-			if document == nil {
-				tx.Rollback()
-				return nil, fmt.Errorf("existing document not found for ID: %d", updateDocument.ID)
-			}
-			if err := kvus.repo.RemoveKRIValueUpdateDocumentFile(valueUpdate.KRIRegisterID, valueUpdate.ID, document.Name); err != nil {
+
+			storagePath := filepath.Join("risk", "kri-register", strconv.FormatUint(uint64(valueUpdate.KRIRegisterID), 10), "updates", strconv.FormatUint(uint64(valueUpdate.ID), 10), "documents")
+			if err := utility.RemoveFile(document.Name, storagePath); err != nil {
 				tx.Rollback()
 				return nil, err
 			}
+
 			deleteDocumentIds = append(deleteDocumentIds, &document.ID)
 
 		}
