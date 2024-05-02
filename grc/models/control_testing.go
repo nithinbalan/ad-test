@@ -25,6 +25,7 @@ type ControlTest struct {
 	ControlEfficiencyStatus     *ControlEfficiencyStatus     `json:"control_efficiency_status" gorm:"foreignKey:ControlEfficiencyStatusID"`
 	TestedByUser                *User                        `json:"tested_by_user" gorm:"foreignKey:TestedBy"`
 	UpdatedByUser               *User                        `json:"updated_by_user" gorm:"foreignKey:UpdatedBy"`
+	Documents                   []*ControlTestDocument       `json:"documents" gorm:"foreignKey:ControlTestID"`
 }
 
 // TableName overrides the table name used by User to `control_tests`
