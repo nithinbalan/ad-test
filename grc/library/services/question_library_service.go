@@ -2,19 +2,19 @@ package services
 
 import (
 	"fmt"
+	libraryDTOs "jethur/grc/library/dtos"
+	"jethur/grc/library/repositories"
 	"jethur/grc/logs/services"
-	masterDTOs "jethur/grc/masters/dtos"
-	"jethur/grc/masters/repositories"
 	"jethur/grc/models"
 	"jethur/utility"
 	"log"
 )
 
 type QuestionLibraryServiceInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int) (*masterDTOs.QuestionLibraryListResponseDTO, error)
+	GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int) (*libraryDTOs.QuestionLibraryListResponseDTO, error)
 	GetByID(id uint) (*models.QuestionLibrary, error)
-	Create(currentUserID uint, questionLibraryForm *masterDTOs.QuestionLibraryFormDTO) (uint, error)
-	Update(id uint, currentUserID uint, questionLibraryForm *masterDTOs.QuestionLibraryFormDTO) error
+	Create(currentUserID uint, questionLibraryForm *libraryDTOs.QuestionLibraryFormDTO) (uint, error)
+	Update(id uint, currentUserID uint, questionLibraryForm *libraryDTOs.QuestionLibraryFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	Activate(ids []uint, currentUserID uint) error
 	Deactivate(ids []uint, currentUserID uint) error
@@ -33,7 +33,7 @@ func NewQuestionLibraryService(repo repositories.QuestionLibraryRepositoryInterf
 	}
 }
 
-func (qls *QuestionLibraryService) GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int) (*masterDTOs.QuestionLibraryListResponseDTO, error) {
+func (qls *QuestionLibraryService) GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int) (*libraryDTOs.QuestionLibraryListResponseDTO, error) {
 	return qls.repo.GetAll(sort, sortBy, keyword, status, page, pageSize)
 }
 
@@ -41,7 +41,7 @@ func (qls QuestionLibraryService) GetByID(id uint) (*models.QuestionLibrary, err
 	return qls.repo.GetByID(id)
 }
 
-func (qls *QuestionLibraryService) Create(currentUserID uint, questionLibraryForm *masterDTOs.QuestionLibraryFormDTO) (uint, error) {
+func (qls *QuestionLibraryService) Create(currentUserID uint, questionLibraryForm *libraryDTOs.QuestionLibraryFormDTO) (uint, error) {
 
 	if err := qls.validateQuestionLibraryForm(questionLibraryForm, nil); err != nil {
 		return 0, err
@@ -86,7 +86,7 @@ func (qls *QuestionLibraryService) Create(currentUserID uint, questionLibraryFor
 
 }
 
-func (qls *QuestionLibraryService) Update(id uint, currentUserID uint, updatedQuestionLibraryForm *masterDTOs.QuestionLibraryFormDTO) error {
+func (qls *QuestionLibraryService) Update(id uint, currentUserID uint, updatedQuestionLibraryForm *libraryDTOs.QuestionLibraryFormDTO) error {
 	existingQuestionLibrary, err := qls.repo.GetByID(id)
 
 	if err != nil {
@@ -226,7 +226,7 @@ func (qls *QuestionLibraryService) Deactivate(ids []uint, currentUserID uint) er
 	return err
 }
 
-func (qls *QuestionLibraryService) validateQuestionLibraryForm(questionLibraryForm *masterDTOs.QuestionLibraryFormDTO, id *uint) error {
+func (qls *QuestionLibraryService) validateQuestionLibraryForm(questionLibraryForm *libraryDTOs.QuestionLibraryFormDTO, id *uint) error {
 
 	if id == nil {
 
