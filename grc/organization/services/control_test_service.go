@@ -3,7 +3,6 @@ package services
 import (
 	"errors"
 	"fmt"
-	logModels "jethur/grc/logs/models"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
@@ -164,7 +163,7 @@ func (cts *ControlTestService) Create(controlID uint, currentUserID uint, contro
 
 	go func() {
 		err := cts.activityLogSvc.LogActivity(
-			logModels.CreateAction,
+			models.CreateAction,
 			models.ControlTest{}.TableName(),
 			id,
 			controlTestFormDTO,
@@ -174,7 +173,7 @@ func (cts *ControlTestService) Create(controlID uint, currentUserID uint, contro
 
 		if err != nil {
 			fields := map[string]interface{}{
-				"action":    logModels.CreateAction,
+				"action":    models.CreateAction,
 				"tableName": models.ControlTest{}.TableName(),
 				"recordID":  id,
 				"userID":    currentUserID,
@@ -324,15 +323,17 @@ func (cts *ControlTestService) Delete(controlID uint, ids []uint, currentUserID 
 			continue
 		}
 
-		for _, document := range controlTest.Documents {
-			documentsToDelete[id] = append(documentsToDelete[id], document)
-			deleteDocumentIds = append(deleteDocumentIds, document.ID)
-		}
+		if controlTest.Documents != nil && len(controlTest.Documents) > 0 {
+			for _, document := range controlTest.Documents {
+				documentsToDelete[id] = append(documentsToDelete[id], document)
+				deleteDocumentIds = append(deleteDocumentIds, document.ID)
+			}
 
-		if len(deleteDocumentIds) > 0 {
-			if err := cts.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
-				failedIds = append(failedIds, id)
-				continue
+			if len(deleteDocumentIds) > 0 {
+				if err := cts.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
+					failedIds = append(failedIds, id)
+					continue
+				}
 			}
 		}
 
@@ -366,8 +367,8 @@ func (cts *ControlTestService) Delete(controlID uint, ids []uint, currentUserID 
 
 	go func() {
 		err := cts.activityLogSvc.LogBulkActivities(
-			logModels.DeleteAction,
-			"control_tests",
+			models.DeleteAction,
+			models.ControlTest{}.TableName(),
 			successfulIds,
 			nil,
 			currentUserID,
