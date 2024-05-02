@@ -22,9 +22,8 @@ type ChecklistQuestionListResponseDTO struct {
 }
 
 type ChecklistQuestionFormDTO struct {
-	ChecklistID       uint   `json:"checklist_id" binding:"required"`
-	QuestionGroupID   uint   `json:"question_group_id" binding:"required"`
-	QuestionLibraryID uint   `json:"question_library_id"`
-	QuestionEn        string `json:"question_en" binding:"required,max=255"`
-	QuestionAr        string `json:"question_ar" binding:"required,max=255"`
+	ChecklistID     uint   `json:"checklist_id" binding:"required"`
+	QuestionGroupID uint   `json:"question_group_id" binding:"required"`
+	QuestionEn      string `json:"question_en" binding:"required,max=255"`
+	QuestionAr      string `json:"question_ar" binding:"required,max=255"`
 }

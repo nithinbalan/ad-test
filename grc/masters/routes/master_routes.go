@@ -41,11 +41,6 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	questionGroupService := services.NewQuestionGroupService(questionGroupRepository, activityLogSvc)
 	questionGroupController := controllers.NewQuestionGroupController(questionGroupService)
 
-	//Question Library
-	questionLibraryRepository := repositories.NewQuestionLibraryRepository(db)
-	questionLibraryService := services.NewQuestionLibraryService(questionLibraryRepository, activityLogSvc)
-	questionLibraryController := controllers.NewQuestionLibraryController(questionLibraryService)
-
 	//Checklists
 	checklistRepo := repositories.NewChecklistRepository(db)
 	checklistSvc := services.NewChecklistService(checklistRepo, activityLogSvc)
@@ -53,7 +48,7 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 
 	//Checklist Questions
 	checklistQuestionRepo := repositories.NewChecklistQuestionRepository(db)
-	checklistQuestionSvc := services.NewChecklistQuestionService(checklistQuestionRepo, activityLogSvc, questionGroupService, checklistSvc, questionLibraryService)
+	checklistQuestionSvc := services.NewChecklistQuestionService(checklistQuestionRepo, activityLogSvc, questionGroupService, checklistSvc)
 	checklistQuestionController := controllers.NewChecklistQuestionController(checklistQuestionSvc)
 
 	// Action Plan Status
@@ -65,11 +60,6 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	KRICategoryRepository := repositories.NewKRICategoryRepository(db)
 	KRICategoryService := services.NewKRICategoryService(KRICategoryRepository, activityLogSvc)
 	KRICategoryController := controllers.NewKRICategoryController(KRICategoryService)
-
-	//KRI Library
-	KRILibraryRepository := repositories.NewKRILibraryRepository(db)
-	KRILibraryService := services.NewKRILibraryService(KRILibraryRepository, KRICategoryService, reviewFrequencySvc, activityLogSvc)
-	KRILibraryController := controllers.NewKRILibraryController(KRILibraryService)
 
 	masterRoutes.GET("/review-frequencies", reviewFrequencyController.GetAllReviewFrequencies)
 	masterRoutes.GET("/review-frequencies/:id", reviewFrequencyController.GetReviewFrequencyDetails)
@@ -105,14 +95,6 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	masterRoutes.PUT("/question-groups/activate", questionGroupController.ActivateQuestionGroups)
 	masterRoutes.PUT("/question-groups/deactivate", questionGroupController.DeactivateQuestionGroups)
 
-	masterRoutes.GET("/question-library", questionLibraryController.GetAllQuestionLibrary)
-	masterRoutes.POST("/question-library", questionLibraryController.CreateQuestionLibrary)
-	masterRoutes.GET("/question-library/:id", questionLibraryController.GetQuestionLibraryDetails)
-	masterRoutes.PUT("/question-library/:id", questionLibraryController.UpdateQuestionLibrary)
-	masterRoutes.POST("/question-library/delete", questionLibraryController.DeleteQuestionLibraries)
-	masterRoutes.PUT("/question-library/activate", questionLibraryController.ActivateQuestionLibraries)
-	masterRoutes.PUT("/question-library/deactivate", questionLibraryController.DeactivateQuestionLibraries)
-
 	masterRoutes.GET("/kri-categories", KRICategoryController.GetAllKRICategories)
 	masterRoutes.POST("/kri-categories", KRICategoryController.CreateKRICategory)
 	masterRoutes.GET("/kri-categories/:id", KRICategoryController.GetKRICategoryDetails)
@@ -120,12 +102,4 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	masterRoutes.POST("/kri-categories/delete", KRICategoryController.DeleteKRICategories)
 	masterRoutes.PUT("/kri-categories/activate", KRICategoryController.ActivateKRICategories)
 	masterRoutes.PUT("/kri-categories/deactivate", KRICategoryController.DeactivateKRICategories)
-
-	masterRoutes.GET("/kri-library", KRILibraryController.GetAllKRILibrary)
-	masterRoutes.POST("/kri-library", KRILibraryController.CreateKRILibrary)
-	masterRoutes.GET("/kri-library/:id", KRILibraryController.GetKRILibraryDetails)
-	masterRoutes.PUT("/kri-library/:id", KRILibraryController.UpdateKRILibrary)
-	masterRoutes.POST("/kri-library/delete", KRILibraryController.DeleteKRILibraries)
-	masterRoutes.PUT("/kri-library/activate", KRILibraryController.ActivateKRILibraries)
-	masterRoutes.PUT("/kri-library/deactivate", KRILibraryController.DeactivateKRILibraries)
 }

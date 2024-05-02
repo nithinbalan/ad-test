@@ -2,18 +2,19 @@ package services
 
 import (
 	"fmt"
+	libraryDTOs "jethur/grc/library/dtos"
+	"jethur/grc/library/repositories"
 	logServices "jethur/grc/logs/services"
-	masterDTOs "jethur/grc/masters/dtos"
-	"jethur/grc/masters/repositories"
+	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
 	"jethur/utility"
 )
 
 type KRILibraryServiceInterface interface {
-	GetAll(params *masterDTOs.KRILibraryListQueryParamsDTO) (*masterDTOs.KRILibraryListResponseDTO, error)
+	GetAll(params *libraryDTOs.KRILibraryListQueryParamsDTO) (*libraryDTOs.KRILibraryListResponseDTO, error)
 	GetByID(id uint) (*models.KRILibrary, error)
-	Create(currentUserID uint, kriLibraryFormDTO *masterDTOs.KRILibraryFormDTO) (uint, error)
-	Update(id uint, currentUserID uint, kriLibrary *masterDTOs.KRILibraryFormDTO) error
+	Create(currentUserID uint, kriLibraryFormDTO *libraryDTOs.KRILibraryFormDTO) (uint, error)
+	Update(id uint, currentUserID uint, kriLibrary *libraryDTOs.KRILibraryFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	Activate(ids []uint, currentUserID uint) error
 	Deactivate(ids []uint, currentUserID uint) error
@@ -22,15 +23,15 @@ type KRILibraryServiceInterface interface {
 // Service and implementations
 type KRILibraryService struct {
 	repo               repositories.KRILibraryRepositoryInterface
-	kriCategorySvc     KRICategoryServiceInterface
-	reviewFrequencySvc ReviewFrequencyServiceInterface
+	kriCategorySvc     masterServices.KRICategoryServiceInterface
+	reviewFrequencySvc masterServices.ReviewFrequencyServiceInterface
 	activityLogSvc     logServices.ActivityLogServiceInterface
 }
 
 func NewKRILibraryService(
 	repo repositories.KRILibraryRepositoryInterface,
-	kriCategorySvc KRICategoryServiceInterface,
-	reviewFrequencySvc ReviewFrequencyServiceInterface,
+	kriCategorySvc masterServices.KRICategoryServiceInterface,
+	reviewFrequencySvc masterServices.ReviewFrequencyServiceInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
 ) KRILibraryServiceInterface {
 	return &KRILibraryService{
@@ -41,7 +42,7 @@ func NewKRILibraryService(
 	}
 }
 
-func (kls *KRILibraryService) GetAll(params *masterDTOs.KRILibraryListQueryParamsDTO) (*masterDTOs.KRILibraryListResponseDTO, error) {
+func (kls *KRILibraryService) GetAll(params *libraryDTOs.KRILibraryListQueryParamsDTO) (*libraryDTOs.KRILibraryListResponseDTO, error) {
 	return kls.repo.GetAll(params)
 }
 
@@ -49,7 +50,7 @@ func (kls KRILibraryService) GetByID(id uint) (*models.KRILibrary, error) {
 	return kls.repo.GetByID(id)
 }
 
-func (kls *KRILibraryService) Create(currentUserID uint, kriLibraryFormDTO *masterDTOs.KRILibraryFormDTO) (uint, error) {
+func (kls *KRILibraryService) Create(currentUserID uint, kriLibraryFormDTO *libraryDTOs.KRILibraryFormDTO) (uint, error) {
 
 	if err := kls.validateKRILibraryFormDTO(kriLibraryFormDTO, nil); err != nil {
 		return 0, err
@@ -96,7 +97,7 @@ func (kls *KRILibraryService) Create(currentUserID uint, kriLibraryFormDTO *mast
 	return id, nil
 }
 
-func (kls *KRILibraryService) Update(id uint, currentUserID uint, kriLibraryFormDTO *masterDTOs.KRILibraryFormDTO) error {
+func (kls *KRILibraryService) Update(id uint, currentUserID uint, kriLibraryFormDTO *libraryDTOs.KRILibraryFormDTO) error {
 
 	existingKRILibrary, err := kls.repo.GetByID(id)
 
@@ -237,7 +238,7 @@ func (kls *KRILibraryService) Deactivate(ids []uint, currentUserID uint) error {
 	return err
 }
 
-func (kls *KRILibraryService) validateKRILibraryFormDTO(kriLibraryFormDTO *masterDTOs.KRILibraryFormDTO, id *uint) error {
+func (kls *KRILibraryService) validateKRILibraryFormDTO(kriLibraryFormDTO *libraryDTOs.KRILibraryFormDTO, id *uint) error {
 	if _, err := kls.kriCategorySvc.GetByID(kriLibraryFormDTO.KRICategoryID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("KRI category does not exist"), "not_exist", "kri category")
 	}
