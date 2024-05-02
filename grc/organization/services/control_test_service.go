@@ -364,6 +364,20 @@ func (cts *ControlTestService) Delete(controlID uint, ids []uint, currentUserID 
 
 	tx.Commit()
 
+	go func() {
+		err := cts.activityLogSvc.LogBulkActivities(
+			logModels.DeleteAction,
+			"control_tests",
+			successfulIds,
+			nil,
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+		}
+	}()
+
 	return failedIds, nil
 }
 
