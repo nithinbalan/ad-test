@@ -38,14 +38,11 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	questionGroupRepository := masterRepositories.NewQuestionGroupRepository(db)
 	questionGroupService := masterServices.NewQuestionGroupService(questionGroupRepository, activityLogSvc)
 
-	questionLibraryRepository := masterRepositories.NewQuestionLibraryRepository(db)
-	questionLibraryService := masterServices.NewQuestionLibraryService(questionLibraryRepository, activityLogSvc)
-
 	checklistRepo := masterRepositories.NewChecklistRepository(db)
 	checklistSvc := masterServices.NewChecklistService(checklistRepo, activityLogSvc)
 
 	checklistQuestionRepo := masterRepositories.NewChecklistQuestionRepository(db)
-	checklistQuestionSvc := masterServices.NewChecklistQuestionService(checklistQuestionRepo, activityLogSvc, questionGroupService, checklistSvc, questionLibraryService)
+	checklistQuestionSvc := masterServices.NewChecklistQuestionService(checklistQuestionRepo, activityLogSvc, questionGroupService, checklistSvc)
 
 	complianceCategoryRepo := complianceRepositories.NewComplianceCategoryRepository(db)
 	complianceCategorySvc := complianceServices.NewComplianceCategoryService(complianceCategoryRepo, activityLogSvc)
