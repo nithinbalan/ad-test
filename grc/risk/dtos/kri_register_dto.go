@@ -86,7 +86,7 @@ type KRIRegisterFormDTO struct {
 type KRIRegisterDetailsDTO struct {
 	ID               uint                          `json:"id"`
 	ReferenceNumber  string                        `json:"reference_number"`
-	KRICategory      masterDTOs.KRICategoryDTO     `json:"kri_category"`
+	KRICategory      KRICategoryDTO                `json:"kri_category"`
 	OwnerUnit        models.OrganizationUnit       `json:"organization_unit"`
 	ReviewFrequency  masterDTOs.ReviewFrequencyDTO `json:"review_frequency"`
 	RiskLevel        RiskLevelDTO                  `json:"risk_level"`

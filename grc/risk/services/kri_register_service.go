@@ -29,7 +29,7 @@ type KRIRegisterServiceInterface interface {
 type KRIRegisterService struct {
 	repo               riskRepositories.KRIRegisterRepositoryInterface
 	activityLogSvc     logServices.ActivityLogServiceInterface
-	kriCategorySvc     masterServices.KRICategoryServiceInterface
+	kriCategorySvc     KRICategoryServiceInterface
 	userSvc            organizationServices.UserServiceInterface
 	riskLevelSvc       RiskLevelServiceInterface
 	reviewFrequencySvc masterServices.ReviewFrequencyServiceInterface
@@ -38,7 +38,7 @@ type KRIRegisterService struct {
 func NewKRIRegisterService(
 	repo riskRepositories.KRIRegisterRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
-	kriCategorySvc masterServices.KRICategoryServiceInterface,
+	kriCategorySvc KRICategoryServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	riskLevelSvc RiskLevelServiceInterface,
 	reviewFrequencySvc masterServices.ReviewFrequencyServiceInterface,

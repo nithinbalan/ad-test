@@ -8,6 +8,8 @@ import (
 	logServices "jethur/grc/logs/services"
 	masterRepositories "jethur/grc/masters/repositories"
 	masterServices "jethur/grc/masters/services"
+	riskRepositories "jethur/grc/risk/repositories"
+	riskServices "jethur/grc/risk/services"
 	"jethur/middlewares"
 
 	"github.com/gin-gonic/gin"
@@ -26,8 +28,8 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	reviewFrequencyRepo := masterRepositories.NewReviewFrequencyRepository(db)
 	reviewFrequencySvc := masterServices.NewReviewFrequencyService(reviewFrequencyRepo)
 
-	KRICategoryRepository := masterRepositories.NewKRICategoryRepository(db)
-	KRICategoryService := masterServices.NewKRICategoryService(KRICategoryRepository, activityLogSvc)
+	KRICategoryRepository := riskRepositories.NewKRICategoryRepository(db)
+	KRICategoryService := riskServices.NewKRICategoryService(KRICategoryRepository, activityLogSvc)
 
 	//Question Library
 	questionLibraryRepository := repositories.NewQuestionLibraryRepository(db)

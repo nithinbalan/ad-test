@@ -56,11 +56,6 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	actionPlanStatusSvc := services.NewActionPlanStatusService(actionPlanStatusRepo)
 	actionPlanStatusController := controllers.NewActionPlanStatusController(actionPlanStatusSvc)
 
-	//KRI Categories
-	KRICategoryRepository := repositories.NewKRICategoryRepository(db)
-	KRICategoryService := services.NewKRICategoryService(KRICategoryRepository, activityLogSvc)
-	KRICategoryController := controllers.NewKRICategoryController(KRICategoryService)
-
 	masterRoutes.GET("/review-frequencies", reviewFrequencyController.GetAllReviewFrequencies)
 	masterRoutes.GET("/review-frequencies/:id", reviewFrequencyController.GetReviewFrequencyDetails)
 
@@ -94,12 +89,4 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	masterRoutes.POST("/question-groups/delete", questionGroupController.DeleteQuestionGroups)
 	masterRoutes.PUT("/question-groups/activate", questionGroupController.ActivateQuestionGroups)
 	masterRoutes.PUT("/question-groups/deactivate", questionGroupController.DeactivateQuestionGroups)
-
-	masterRoutes.GET("/kri-categories", KRICategoryController.GetAllKRICategories)
-	masterRoutes.POST("/kri-categories", KRICategoryController.CreateKRICategory)
-	masterRoutes.GET("/kri-categories/:id", KRICategoryController.GetKRICategoryDetails)
-	masterRoutes.PUT("/kri-categories/:id", KRICategoryController.UpdateKRICategory)
-	masterRoutes.POST("/kri-categories/delete", KRICategoryController.DeleteKRICategories)
-	masterRoutes.PUT("/kri-categories/activate", KRICategoryController.ActivateKRICategories)
-	masterRoutes.PUT("/kri-categories/deactivate", KRICategoryController.DeactivateKRICategories)
 }

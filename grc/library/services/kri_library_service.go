@@ -7,6 +7,8 @@ import (
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
+	riskServices "jethur/grc/risk/services"
+
 	"jethur/utility"
 )
 
@@ -23,14 +25,14 @@ type KRILibraryServiceInterface interface {
 // Service and implementations
 type KRILibraryService struct {
 	repo               repositories.KRILibraryRepositoryInterface
-	kriCategorySvc     masterServices.KRICategoryServiceInterface
+	kriCategorySvc     riskServices.KRICategoryServiceInterface
 	reviewFrequencySvc masterServices.ReviewFrequencyServiceInterface
 	activityLogSvc     logServices.ActivityLogServiceInterface
 }
 
 func NewKRILibraryService(
 	repo repositories.KRILibraryRepositoryInterface,
-	kriCategorySvc masterServices.KRICategoryServiceInterface,
+	kriCategorySvc riskServices.KRICategoryServiceInterface,
 	reviewFrequencySvc masterServices.ReviewFrequencyServiceInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
 ) KRILibraryServiceInterface {
