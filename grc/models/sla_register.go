@@ -2,8 +2,6 @@ package models
 
 import (
 	"time"
-
-	masterModels "jethur/grc/masters/models"
 )
 
 type SLARegister struct {
@@ -25,14 +23,14 @@ type SLARegister struct {
 	UpdatedBy          uint      `json:"updated_by" gorm:"default:null"`
 
 	// Relationships
-	SLACategory      *SLACategory                  `gorm:"foreignKey:SLACategoryID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
-	SeverityLevel    *masterModels.SeverityLevel   `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
-	ResponsibleUnit  *OrganizationUnit             `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
-	ResponsibleUser  *User                         `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
-	LifecycleStatus  *masterModels.LifecycleStatus `gorm:"foreignKey:LifecycleStatusID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
-	ComplianceStatus *ComplianceStatus             `gorm:"foreignkey:ComplianceStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser    *User                         `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser    *User                         `gorm:"foreignKey:UpdatedBy"`
+	SLACategory      *SLACategory      `gorm:"foreignKey:SLACategoryID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
+	SeverityLevel    *SeverityLevel    `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
+	ResponsibleUnit  *OrganizationUnit `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
+	ResponsibleUser  *User             `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
+	LifecycleStatus  *LifecycleStatus  `gorm:"foreignKey:LifecycleStatusID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
+	ComplianceStatus *ComplianceStatus `gorm:"foreignkey:ComplianceStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	CreatedByUser    *User             `gorm:"foreignKey:CreatedBy"`
+	UpdatedByUser    *User             `gorm:"foreignKey:UpdatedBy"`
 }
 
 // TableName overrides the table name used by SLARegister to `sla_register`

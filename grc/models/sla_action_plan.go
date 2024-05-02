@@ -2,8 +2,6 @@ package models
 
 import (
 	"time"
-
-	masterModels "jethur/grc/masters/models"
 )
 
 type SLAActionPlan struct {
@@ -24,13 +22,13 @@ type SLAActionPlan struct {
 	UpdatedBy          *uint      `json:"updated_by" gorm:"default:null"`
 
 	// Relationships
-	SLARegister      *SLARegister                   `gorm:"foreignkey:SLARegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	SLACheckQuestion *SLACheckQuestion              `gorm:"foreignkey:SLACheckQuestionID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	SeverityLevel    *masterModels.SeverityLevel    `gorm:"foreignkey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ResponsibleUser  *User                          `gorm:"foreignkey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ActionPlanStatus *masterModels.ActionPlanStatus `gorm:"foreignkey:ActionPlanStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser    *User                          `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser    *User                          `gorm:"foreignKey:UpdatedBy"`
+	SLARegister      *SLARegister      `gorm:"foreignkey:SLARegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	SLACheckQuestion *SLACheckQuestion `gorm:"foreignkey:SLACheckQuestionID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	SeverityLevel    *SeverityLevel    `gorm:"foreignkey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ResponsibleUser  *User             `gorm:"foreignkey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ActionPlanStatus *ActionPlanStatus `gorm:"foreignkey:ActionPlanStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	CreatedByUser    *User             `gorm:"foreignKey:CreatedBy"`
+	UpdatedByUser    *User             `gorm:"foreignKey:UpdatedBy"`
 }
 
 // TableName overrides the table name used by SLAActionPlan to `sla_action_plans`

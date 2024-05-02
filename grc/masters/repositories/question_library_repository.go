@@ -4,7 +4,7 @@ import (
 	"errors"
 	commonDTOs "jethur/grc/common/dtos"
 	masterDTOs "jethur/grc/masters/dtos"
-	"jethur/grc/masters/models"
+	"jethur/grc/models"
 	"jethur/utility"
 
 	"gorm.io/gorm"

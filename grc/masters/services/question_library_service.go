@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"jethur/grc/logs/services"
 	masterDTOs "jethur/grc/masters/dtos"
-	masterModels "jethur/grc/masters/models"
 	"jethur/grc/masters/repositories"
 	"jethur/grc/models"
 	"jethur/utility"
@@ -13,7 +12,7 @@ import (
 
 type QuestionLibraryServiceInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int) (*masterDTOs.QuestionLibraryListResponseDTO, error)
-	GetByID(id uint) (*masterModels.QuestionLibrary, error)
+	GetByID(id uint) (*models.QuestionLibrary, error)
 	Create(currentUserID uint, questionLibraryForm *masterDTOs.QuestionLibraryFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, questionLibraryForm *masterDTOs.QuestionLibraryFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
@@ -38,7 +37,7 @@ func (qls *QuestionLibraryService) GetAll(sort string, sortBy string, keyword st
 	return qls.repo.GetAll(sort, sortBy, keyword, status, page, pageSize)
 }
 
-func (qls QuestionLibraryService) GetByID(id uint) (*masterModels.QuestionLibrary, error) {
+func (qls QuestionLibraryService) GetByID(id uint) (*models.QuestionLibrary, error) {
 	return qls.repo.GetByID(id)
 }
 
@@ -48,7 +47,7 @@ func (qls *QuestionLibraryService) Create(currentUserID uint, questionLibraryFor
 		return 0, err
 	}
 
-	questionLibrary := &masterModels.QuestionLibrary{
+	questionLibrary := &models.QuestionLibrary{
 		QuestionGroupID: questionLibraryForm.QuestionGroupID,
 		QuestionEn:      questionLibraryForm.QuestionEn,
 		QuestionAr:      questionLibraryForm.QuestionAr,
@@ -63,7 +62,7 @@ func (qls *QuestionLibraryService) Create(currentUserID uint, questionLibraryFor
 	go func() {
 		err := qls.activityLogSvc.LogActivity(
 			models.CreateAction,
-			masterModels.QuestionLibrary{}.TableName(),
+			models.QuestionLibrary{}.TableName(),
 			id,
 			questionLibraryForm,
 			currentUserID,
@@ -73,7 +72,7 @@ func (qls *QuestionLibraryService) Create(currentUserID uint, questionLibraryFor
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
-				"tableName": masterModels.QuestionLibrary{}.TableName(),
+				"tableName": models.QuestionLibrary{}.TableName(),
 				"recordID":  id,
 				"userID":    currentUserID,
 				"error":     err.Error(),
@@ -124,7 +123,7 @@ func (qls *QuestionLibraryService) Update(id uint, currentUserID uint, updatedQu
 	go func() {
 		err := qls.activityLogSvc.LogActivity(
 			models.UpdateAction,
-			masterModels.QuestionLibrary{}.TableName(),
+			models.QuestionLibrary{}.TableName(),
 			result.ID,
 			changedDataJSON,
 			currentUserID,
@@ -162,7 +161,7 @@ func (qls *QuestionLibraryService) Delete(ids []uint, currentUserID uint) ([]uin
 		go func() {
 			err := qls.activityLogSvc.LogBulkActivities(
 				models.DeleteAction, // Make sure this action constant is defined appropriately
-				masterModels.QuestionLibrary{}.TableName(),
+				models.QuestionLibrary{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,
@@ -186,7 +185,7 @@ func (qls *QuestionLibraryService) Activate(ids []uint, currentUserID uint) erro
 		go func() {
 			err := qls.activityLogSvc.LogBulkActivities(
 				models.ActivateAction,
-				masterModels.QuestionLibrary{}.TableName(),
+				models.QuestionLibrary{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,
@@ -210,7 +209,7 @@ func (qls *QuestionLibraryService) Deactivate(ids []uint, currentUserID uint) er
 		go func() {
 			err := qls.activityLogSvc.LogBulkActivities(
 				models.DeactivateAction,
-				masterModels.QuestionLibrary{}.TableName(),
+				models.QuestionLibrary{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"jethur/grc/logs/services"
 	masterDTOs "jethur/grc/masters/dtos"
-	masterModels "jethur/grc/masters/models"
 	"jethur/grc/masters/repositories"
 	"jethur/grc/models"
 	"jethur/utility"
@@ -12,7 +11,7 @@ import (
 
 type ChecklistQuestionServiceInterface interface {
 	GetAll(sort string, sortBy string, keyword string, page int, pageSize int) (*masterDTOs.ChecklistQuestionListResponseDTO, error)
-	GetByID(id uint) (*masterModels.ChecklistQuestion, error)
+	GetByID(id uint) (*models.ChecklistQuestion, error)
 	Create(currentUserID uint, checklistQuestion *masterDTOs.ChecklistQuestionFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, checklistQuestion *masterDTOs.ChecklistQuestionFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
@@ -47,7 +46,7 @@ func (cqs *ChecklistQuestionService) GetAll(sort string, sortBy string, keyword 
 	return cqs.repo.GetAll(sort, sortBy, keyword, page, pageSize)
 }
 
-func (cqs ChecklistQuestionService) GetByID(id uint) (*masterModels.ChecklistQuestion, error) {
+func (cqs ChecklistQuestionService) GetByID(id uint) (*models.ChecklistQuestion, error) {
 	return cqs.repo.GetByID(id)
 }
 
@@ -64,7 +63,7 @@ func (cqs *ChecklistQuestionService) Create(currentUserID uint, checklistQuestio
 		libraryID = nil // Set to NULL
 	}
 	// Map DTO to ChecklistQuestion model
-	checklistQuestion := &masterModels.ChecklistQuestion{
+	checklistQuestion := &models.ChecklistQuestion{
 		ChecklistID:       checklistQuestionFormDTO.ChecklistID,
 		QuestionGroupID:   checklistQuestionFormDTO.QuestionGroupID,
 		QuestionLibraryID: libraryID,
@@ -80,7 +79,7 @@ func (cqs *ChecklistQuestionService) Create(currentUserID uint, checklistQuestio
 	go func() {
 		err := cqs.activityLogSvc.LogActivity(
 			models.CreateAction,
-			masterModels.ChecklistQuestion{}.TableName(),
+			models.ChecklistQuestion{}.TableName(),
 			id,
 			checklistQuestionFormDTO,
 			currentUserID,
@@ -90,7 +89,7 @@ func (cqs *ChecklistQuestionService) Create(currentUserID uint, checklistQuestio
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
-				"tableName": masterModels.ChecklistQuestion{}.TableName(),
+				"tableName": models.ChecklistQuestion{}.TableName(),
 				"recordID":  id,
 				"userID":    currentUserID,
 				"error":     err.Error(),
@@ -154,7 +153,7 @@ func (cqs *ChecklistQuestionService) Delete(ids []uint, currentUserID uint) ([]u
 		go func() {
 			err := cqs.activityLogSvc.LogBulkActivities(
 				models.DeleteAction, // Make sure this action constant is defined appropriately
-				masterModels.ChecklistQuestion{}.TableName(),
+				models.ChecklistQuestion{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,

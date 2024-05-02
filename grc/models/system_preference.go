@@ -1,7 +1,6 @@
 package models
 
 import (
-	"jethur/grc/masters/models"
 	"time"
 )
 
@@ -21,10 +20,10 @@ type SystemPreference struct {
 	UpdatedAt           *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 
 	// Relationships
-	Currency      *Currency        `gorm:"foreignkey:CurrencyID;constraint:OnDelete:NO ACTION,OnUpdate:NO ACTION"`
-	Timezone      *models.Timezone `gorm:"foreignkey:TimezoneID;constraint:OnDelete:NO ACTION,OnUpdate:NO ACTION"`
-	CreatedByUser *User            `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser *User            `gorm:"foreignKey:UpdatedBy"`
+	Currency      *Currency `gorm:"foreignkey:CurrencyID;constraint:OnDelete:NO ACTION,OnUpdate:NO ACTION"`
+	Timezone      *Timezone `gorm:"foreignkey:TimezoneID;constraint:OnDelete:NO ACTION,OnUpdate:NO ACTION"`
+	CreatedByUser *User     `gorm:"foreignKey:CreatedBy"`
+	UpdatedByUser *User     `gorm:"foreignKey:UpdatedBy"`
 }
 
 // TableName overrides the table name used by SystemPreference to `system_preferences`
