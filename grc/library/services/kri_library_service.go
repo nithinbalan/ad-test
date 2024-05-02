@@ -2,19 +2,21 @@ package services
 
 import (
 	"fmt"
-	logModels "jethur/grc/logs/models"
+	libraryDTOs "jethur/grc/library/dtos"
+	"jethur/grc/library/repositories"
 	logServices "jethur/grc/logs/services"
-	masterDTOs "jethur/grc/masters/dtos"
-	"jethur/grc/masters/models"
-	"jethur/grc/masters/repositories"
+	masterServices "jethur/grc/masters/services"
+	"jethur/grc/models"
+	riskServices "jethur/grc/risk/services"
+
 	"jethur/utility"
 )
 
 type KRILibraryServiceInterface interface {
-	GetAll(params *masterDTOs.KRILibraryListQueryParamsDTO) (*masterDTOs.KRILibraryListResponseDTO, error)
+	GetAll(params *libraryDTOs.KRILibraryListQueryParamsDTO) (*libraryDTOs.KRILibraryListResponseDTO, error)
 	GetByID(id uint) (*models.KRILibrary, error)
-	Create(currentUserID uint, kriLibraryFormDTO *masterDTOs.KRILibraryFormDTO) (uint, error)
-	Update(id uint, currentUserID uint, kriLibrary *masterDTOs.KRILibraryFormDTO) error
+	Create(currentUserID uint, kriLibraryFormDTO *libraryDTOs.KRILibraryFormDTO) (uint, error)
+	Update(id uint, currentUserID uint, kriLibrary *libraryDTOs.KRILibraryFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	Activate(ids []uint, currentUserID uint) error
 	Deactivate(ids []uint, currentUserID uint) error
@@ -23,15 +25,15 @@ type KRILibraryServiceInterface interface {
 // Service and implementations
 type KRILibraryService struct {
 	repo               repositories.KRILibraryRepositoryInterface
-	kriCategorySvc     KRICategoryServiceInterface
-	reviewFrequencySvc ReviewFrequencyServiceInterface
+	kriCategorySvc     riskServices.KRICategoryServiceInterface
+	reviewFrequencySvc masterServices.ReviewFrequencyServiceInterface
 	activityLogSvc     logServices.ActivityLogServiceInterface
 }
 
 func NewKRILibraryService(
 	repo repositories.KRILibraryRepositoryInterface,
-	kriCategorySvc KRICategoryServiceInterface,
-	reviewFrequencySvc ReviewFrequencyServiceInterface,
+	kriCategorySvc riskServices.KRICategoryServiceInterface,
+	reviewFrequencySvc masterServices.ReviewFrequencyServiceInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
 ) KRILibraryServiceInterface {
 	return &KRILibraryService{
@@ -42,7 +44,7 @@ func NewKRILibraryService(
 	}
 }
 
-func (kls *KRILibraryService) GetAll(params *masterDTOs.KRILibraryListQueryParamsDTO) (*masterDTOs.KRILibraryListResponseDTO, error) {
+func (kls *KRILibraryService) GetAll(params *libraryDTOs.KRILibraryListQueryParamsDTO) (*libraryDTOs.KRILibraryListResponseDTO, error) {
 	return kls.repo.GetAll(params)
 }
 
@@ -50,7 +52,7 @@ func (kls KRILibraryService) GetByID(id uint) (*models.KRILibrary, error) {
 	return kls.repo.GetByID(id)
 }
 
-func (kls *KRILibraryService) Create(currentUserID uint, kriLibraryFormDTO *masterDTOs.KRILibraryFormDTO) (uint, error) {
+func (kls *KRILibraryService) Create(currentUserID uint, kriLibraryFormDTO *libraryDTOs.KRILibraryFormDTO) (uint, error) {
 
 	if err := kls.validateKRILibraryFormDTO(kriLibraryFormDTO, nil); err != nil {
 		return 0, err
@@ -73,7 +75,7 @@ func (kls *KRILibraryService) Create(currentUserID uint, kriLibraryFormDTO *mast
 
 	go func() {
 		err := kls.activityLogSvc.LogActivity(
-			logModels.CreateAction,
+			models.CreateAction,
 			models.KRILibrary{}.TableName(),
 			id,
 			kriLibraryFormDTO,
@@ -83,7 +85,7 @@ func (kls *KRILibraryService) Create(currentUserID uint, kriLibraryFormDTO *mast
 
 		if err != nil {
 			fields := map[string]interface{}{
-				"action":    logModels.CreateAction,
+				"action":    models.CreateAction,
 				"tableName": models.KRILibrary{}.TableName(),
 				"recordID":  id,
 				"userID":    currentUserID,
@@ -97,7 +99,7 @@ func (kls *KRILibraryService) Create(currentUserID uint, kriLibraryFormDTO *mast
 	return id, nil
 }
 
-func (kls *KRILibraryService) Update(id uint, currentUserID uint, kriLibraryFormDTO *masterDTOs.KRILibraryFormDTO) error {
+func (kls *KRILibraryService) Update(id uint, currentUserID uint, kriLibraryFormDTO *libraryDTOs.KRILibraryFormDTO) error {
 
 	existingKRILibrary, err := kls.repo.GetByID(id)
 
@@ -125,7 +127,7 @@ func (kls *KRILibraryService) Update(id uint, currentUserID uint, kriLibraryForm
 
 	go func() {
 		err := kls.activityLogSvc.LogActivity(
-			logModels.UpdateAction,
+			models.UpdateAction,
 			models.KRILibrary{}.TableName(),
 			id,
 			kriLibraryFormDTO,
@@ -135,7 +137,7 @@ func (kls *KRILibraryService) Update(id uint, currentUserID uint, kriLibraryForm
 
 		if err != nil {
 			fields := map[string]interface{}{
-				"action":    logModels.UpdateAction,
+				"action":    models.UpdateAction,
 				"tableName": models.KRILibrary{}.TableName(),
 				"recordID":  id,
 				"userID":    currentUserID,
@@ -172,7 +174,7 @@ func (kls *KRILibraryService) Delete(ids []uint, currentUserID uint) ([]uint, er
 
 		go func() {
 			err := kls.activityLogSvc.LogBulkActivities(
-				logModels.DeleteAction, // Make sure this action constant is defined appropriately
+				models.DeleteAction, // Make sure this action constant is defined appropriately
 				models.KRILibrary{}.TableName(),
 				successfulIds,
 				nil,
@@ -196,7 +198,7 @@ func (kls *KRILibraryService) Activate(ids []uint, currentUserID uint) error {
 
 		go func() {
 			err := kls.activityLogSvc.LogBulkActivities(
-				logModels.ActivateAction,
+				models.ActivateAction,
 				models.KRILibrary{}.TableName(),
 				successfulIds,
 				nil,
@@ -220,7 +222,7 @@ func (kls *KRILibraryService) Deactivate(ids []uint, currentUserID uint) error {
 
 		go func() {
 			err := kls.activityLogSvc.LogBulkActivities(
-				logModels.DeactivateAction,
+				models.DeactivateAction,
 				models.KRILibrary{}.TableName(),
 				successfulIds,
 				nil,
@@ -238,7 +240,7 @@ func (kls *KRILibraryService) Deactivate(ids []uint, currentUserID uint) error {
 	return err
 }
 
-func (kls *KRILibraryService) validateKRILibraryFormDTO(kriLibraryFormDTO *masterDTOs.KRILibraryFormDTO, id *uint) error {
+func (kls *KRILibraryService) validateKRILibraryFormDTO(kriLibraryFormDTO *libraryDTOs.KRILibraryFormDTO, id *uint) error {
 	if _, err := kls.kriCategorySvc.GetByID(kriLibraryFormDTO.KRICategoryID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("KRI category does not exist"), "not_exist", "kri category")
 	}

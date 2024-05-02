@@ -3,7 +3,6 @@ package services
 import (
 	"errors"
 	"fmt"
-	logModels "jethur/grc/logs/models"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
@@ -117,7 +116,7 @@ func (prs *PotentialRiskService) Create(currentUserID uint, potentialRiskFormDTO
 
 	go func() {
 		err := prs.activityLogSvc.LogActivity(
-			logModels.CreateAction,
+			models.CreateAction,
 			models.PotentialRisk{}.TableName(),
 			id,
 			potentialRiskFormDTO,
@@ -127,7 +126,7 @@ func (prs *PotentialRiskService) Create(currentUserID uint, potentialRiskFormDTO
 
 		if err != nil {
 			fields := map[string]interface{}{
-				"action":    logModels.CreateAction,
+				"action":    models.CreateAction,
 				"tableName": models.PotentialRisk{}.TableName(),
 				"recordID":  id,
 				"userID":    currentUserID,
@@ -191,7 +190,7 @@ func (prs *PotentialRiskService) Delete(ids []uint, currentUserID uint) ([]uint,
 
 		go func() {
 			err := prs.activityLogSvc.LogBulkActivities(
-				logModels.DeleteAction, // Make sure this action constant is defined appropriately
+				models.DeleteAction, // Make sure this action constant is defined appropriately
 				models.PotentialRisk{}.TableName(),
 				successfulIds,
 				nil,

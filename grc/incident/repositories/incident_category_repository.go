@@ -1,19 +1,18 @@
 package repositories
 
 import (
-	"errors"
-	"jethur/grc/masters/models"
+	"jethur/grc/models"
 	"jethur/utility"
 
 	"gorm.io/gorm"
 )
 
 // Interfaces
-type KRICategoryRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.KRICategory, error)
-	GetByID(id uint) (*models.KRICategory, error)
-	Create(article *models.KRICategory) (*models.KRICategory, error)
-	Update(id uint, category *models.KRICategory) (*models.KRICategory, error)
+type IncidentCategoryRepositoryInterface interface {
+	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.IncidentCategory, error)
+	GetByID(id uint) (*models.IncidentCategory, error)
+	Create(article *models.IncidentCategory) (*models.IncidentCategory, error)
+	Update(id uint, category *models.IncidentCategory) (*models.IncidentCategory, error)
 	Delete(id uint) error
 	Activate(ids []uint) ([]uint, error)
 	Deactivate(ids []uint) ([]uint, error)
@@ -22,20 +21,18 @@ type KRICategoryRepositoryInterface interface {
 }
 
 // implementation
-type KRICategoryRepository struct {
+type IncidentCategoryRepository struct {
 	db *gorm.DB
 }
 
-func NewKRICategoryRepository(db *gorm.DB) *KRICategoryRepository {
-	return &KRICategoryRepository{
+func NewIncidentCategoryRepository(db *gorm.DB) *IncidentCategoryRepository {
+	return &IncidentCategoryRepository{
 		db: db,
 	}
 }
 
-func (repo *KRICategoryRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.KRICategory, error) {
-
-	var kriCategories []*models.KRICategory
-
+func (repo *IncidentCategoryRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.IncidentCategory, error) {
+	var incidentCategories []*models.IncidentCategory
 	query := repo.db
 
 	if keyword != "" {
@@ -53,33 +50,30 @@ func (repo *KRICategoryRepository) GetAll(sort string, sortBy string, keyword st
 	}
 
 	query = query.Order(sortBy + " " + sort)
-	result := query.Find(&kriCategories)
+	result := query.Find(&incidentCategories)
 
-	return kriCategories, result.Error
+	return incidentCategories, result.Error
 }
 
-func (repo *KRICategoryRepository) GetByID(id uint) (*models.KRICategory, error) {
-	var category *models.KRICategory
+func (repo *IncidentCategoryRepository) GetByID(id uint) (*models.IncidentCategory, error) {
+	var category *models.IncidentCategory
 	result := repo.db.First(&category, id)
 
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, utility.NewResourceNotFoundError(result.Error, id)
-	} else if result.Error != nil {
+	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	return category, result.Error
+	return category, nil
 }
 
-func (repo *KRICategoryRepository) Create(category *models.KRICategory) (*models.KRICategory, error) {
+func (repo *IncidentCategoryRepository) Create(category *models.IncidentCategory) (*models.IncidentCategory, error) {
 	result := repo.db.Create(&category)
 
 	return category, result.Error
 }
 
-func (repo *KRICategoryRepository) Update(id uint, updatedCategory *models.KRICategory) (*models.KRICategory, error) {
-	var category *models.KRICategory
-
+func (repo *IncidentCategoryRepository) Update(id uint, updatedCategory *models.IncidentCategory) (*models.IncidentCategory, error) {
+	var category *models.IncidentCategory
 	if err := repo.db.First(&category, id).Error; err != nil {
 		return nil, err
 	}
@@ -91,14 +85,13 @@ func (repo *KRICategoryRepository) Update(id uint, updatedCategory *models.KRICa
 	return category, nil
 }
 
-func (repo *KRICategoryRepository) Delete(id uint) error {
-
-	var category *models.KRICategory
+func (repo *IncidentCategoryRepository) Delete(id uint) error {
+	var category *models.IncidentCategory
 	if err := repo.db.First(&category, id).Error; err != nil {
 		return err
 	}
 
-	result := repo.db.Delete(&models.KRICategory{}, id)
+	result := repo.db.Delete(&models.IncidentCategory{}, id)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -106,11 +99,10 @@ func (repo *KRICategoryRepository) Delete(id uint) error {
 	return nil
 }
 
-func (repo *KRICategoryRepository) Activate(ids []uint) ([]uint, error) {
+func (repo *IncidentCategoryRepository) Activate(ids []uint) ([]uint, error) {
 	var idsToUpdate []uint
-
 	// Step 1: Fetch the IDs of records that are currently 'inactive' and within the provided 'ids' slice
-	if err := repo.db.Model(&models.KRICategory{}).
+	if err := repo.db.Model(&models.IncidentCategory{}).
 		Where("id IN ? AND status = ?", ids, "inactive").
 		Pluck("id", &idsToUpdate).Error; err != nil {
 		return nil, err // Return error if the query fails
@@ -118,47 +110,41 @@ func (repo *KRICategoryRepository) Activate(ids []uint) ([]uint, error) {
 
 	// Step 2: If there are any IDs to update, perform the update operation
 	if len(idsToUpdate) > 0 {
-		if err := repo.db.Model(&models.KRICategory{}).
+		if err := repo.db.Model(&models.IncidentCategory{}).
 			Where("id IN ?", idsToUpdate).
 			Update("status", "active").Error; err != nil {
 			return nil, err // Return error if the update operation fails
 		}
 	}
-
 	// Return the IDs of the records that were activated
 	return idsToUpdate, nil
 }
 
-func (repo *KRICategoryRepository) Deactivate(ids []uint) ([]uint, error) {
-
+func (repo *IncidentCategoryRepository) Deactivate(ids []uint) ([]uint, error) {
 	var idsToUpdate []uint
-
 	// Step 1: Fetch the IDs of records that are currently 'inactive' and within the provided 'ids' slice
-	if err := repo.db.Model(&models.KRICategory{}).
+	if err := repo.db.Model(&models.IncidentCategory{}).
 		Where("id IN ? AND status = ?", ids, "active").
 		Pluck("id", &idsToUpdate).Error; err != nil {
-		return nil, err // Return error if the query fails
+		return nil, err
 	}
 
 	// Step 2: If there are any IDs to update, perform the update operation
 	if len(idsToUpdate) > 0 {
-		if err := repo.db.Model(&models.KRICategory{}).
+		if err := repo.db.Model(&models.IncidentCategory{}).
 			Where("id IN ?", idsToUpdate).
 			Update("status", "inactive").Error; err != nil {
-			return nil, err // Return error if the update operation fails
+			return nil, err
 		}
 	}
-
-	// Return the IDs of the records that were activated
 	return idsToUpdate, nil
-
 }
 
-func (repo *KRICategoryRepository) ExistsByTitle(titleEn, titleAr string) (bool, error) {
+func (repo *IncidentCategoryRepository) ExistsByTitle(titleEn, titleAr string) (bool, error) {
 	var count int64
 
 	// Check for the existence of titleEn or titleAr in a single query
-	err := repo.db.Model(&models.KRICategory{}).
+	err := repo.db.Model(&models.IncidentCategory{}).
 		Where("title_en = ? OR title_ar = ?", titleEn, titleAr).
 		Count(&count).Error
 
@@ -166,14 +152,12 @@ func (repo *KRICategoryRepository) ExistsByTitle(titleEn, titleAr string) (bool,
 		return false, utility.NewInternalServerError(err)
 
 	}
-	// Return true if either title exists, otherwise false
 	return count > 0, nil
 }
 
-func (repo *KRICategoryRepository) ExistsByTitleExcludingID(id uint, titleEn, titleAr string) (bool, error) {
+func (repo *IncidentCategoryRepository) ExistsByTitleExcludingID(id uint, titleEn, titleAr string) (bool, error) {
 	var count int64
-
-	err := repo.db.Model(&models.KRICategory{}).
+	err := repo.db.Model(&models.IncidentCategory{}).
 		Where("id <> ? AND (title_en = ? OR title_ar = ?)", id, titleEn, titleAr).
 		Count(&count).Error
 

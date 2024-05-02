@@ -3,7 +3,6 @@ package services
 import (
 	"errors"
 	"fmt"
-	logModels "jethur/grc/logs/models"
 	activityLogServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	riskDTOs "jethur/grc/risk/dtos"
@@ -84,7 +83,7 @@ func (rmrrs *RiskMatrixRiskRatingService) Create(currentUserID uint, riskMatrixR
 
 	go func() {
 		err := rmrrs.activityLogSvc.LogActivity(
-			logModels.CreateAction,
+			models.CreateAction,
 			models.RiskMatrixRiskRating{}.TableName(),
 			id,
 			riskMatrixRiskRatingFormDTO,
@@ -94,7 +93,7 @@ func (rmrrs *RiskMatrixRiskRatingService) Create(currentUserID uint, riskMatrixR
 
 		if err != nil {
 			fields := map[string]interface{}{
-				"action":    logModels.CreateAction,
+				"action":    models.CreateAction,
 				"tableName": models.RiskMatrixRiskRating{}.TableName(),
 				"recordID":  id,
 				"userID":    currentUserID,
@@ -160,7 +159,7 @@ func (rmrrs *RiskMatrixRiskRatingService) Delete(ids []uint, currentUserID uint)
 
 		go func() {
 			err := rmrrs.activityLogSvc.LogBulkActivities(
-				logModels.DeleteAction, // Make sure this action constant is defined appropriately
+				models.DeleteAction, // Make sure this action constant is defined appropriately
 				models.RiskMatrixRiskRating{}.TableName(),
 				successfulIds,
 				nil,
@@ -184,7 +183,7 @@ func (rmrrs *RiskMatrixRiskRatingService) Activate(ids []uint, currentUserID uin
 
 		go func() {
 			err := rmrrs.activityLogSvc.LogBulkActivities(
-				logModels.ActivateAction,
+				models.ActivateAction,
 				models.RiskMatrixRiskRating{}.TableName(),
 				successfulIds,
 				nil,
@@ -208,7 +207,7 @@ func (rmrrs *RiskMatrixRiskRatingService) Deactivate(ids []uint, currentUserID u
 
 		go func() {
 			err := rmrrs.activityLogSvc.LogBulkActivities(
-				logModels.DeactivateAction,
+				models.DeactivateAction,
 				models.RiskMatrixRiskRating{}.TableName(),
 				successfulIds,
 				nil,

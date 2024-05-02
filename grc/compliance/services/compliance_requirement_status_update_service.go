@@ -6,7 +6,6 @@ import (
 	"jethur/config"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/repositories"
-	logModels "jethur/grc/logs/models"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
@@ -140,7 +139,7 @@ func (crsus *ComplianceRequirementStatusUpdateService) Create(ComplianceID uint,
 
 	go func() {
 		err := crsus.activityLogSvc.LogActivity(
-			logModels.CreateAction,
+			models.CreateAction,
 			models.ComplianceRequirementStatusUpdate{}.TableName(),
 			id,
 			complianceRequirementUpdate,
@@ -150,7 +149,7 @@ func (crsus *ComplianceRequirementStatusUpdateService) Create(ComplianceID uint,
 
 		if err != nil {
 			fields := map[string]interface{}{
-				"action":    logModels.CreateAction,
+				"action":    models.CreateAction,
 				"tableName": models.ComplianceRequirementStatusUpdate{}.TableName(),
 				"recordID":  id,
 				"userID":    currentUserID,

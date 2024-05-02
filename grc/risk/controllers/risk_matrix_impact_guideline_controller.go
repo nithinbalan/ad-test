@@ -25,7 +25,7 @@ func NewRiskMatrixImpactGuidelineController(service services.RiskMatrixImpactGui
 
 func (rmigc *RiskMatrixImpactGuidelineController) GetAllRiskMatrixImpactGuidelines(c *gin.Context) {
 
-	sort := c.Query("sort")
+	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
@@ -105,8 +105,8 @@ func (rmigc *RiskMatrixImpactGuidelineController) CreateRiskMatrixImpactGuidelin
 		utility.SendInternalErrResp(rmigc.db, c, err.Error())
 		return
 	}
-	
-	ids , err := rmigc.service.Create(currentUserID, &riskMatrixImpactGuidelineFormDTO)
+
+	ids, err := rmigc.service.Create(currentUserID, &riskMatrixImpactGuidelineFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:

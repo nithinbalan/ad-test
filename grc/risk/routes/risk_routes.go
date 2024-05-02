@@ -34,9 +34,6 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	severityLevelRepo := masterRepositories.NewSeverityLevelRepository(db)
 	severityLevelSvc := masterServices.NewSeverityLevelService(severityLevelRepo)
 
-	kriCategoryRepo := masterRepositories.NewKRICategoryRepository(db)
-	kriCategorySvc := masterServices.NewKRICategoryService(kriCategoryRepo, activityLogSvc)
-
 	designationRepo := organizationRepositories.NewDesignationRepository(db)
 	designationSvc := organizationServices.NewDesignationService(designationRepo, activityLogSvc)
 
@@ -77,6 +74,11 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	potentialRiskStatusUpdateRepo := riskRepositories.NewPotentialRiskStatusUpdateRepository(db)
 	potentialRiskStatusUpdateSvc := riskServices.NewPotentialRiskStatusUpdateService(potentialRiskStatusUpdateRepo, activityLogSvc, potentialRiskSvc, potentialRiskStatusSvc)
 	potentialRiskStatusUpdateController := controllers.NewPotentialRiskStatusUpdateController(potentialRiskStatusUpdateSvc)
+
+	//KRI Categories
+	kriCategoryRepository := riskRepositories.NewKRICategoryRepository(db)
+	kriCategorySvc := riskServices.NewKRICategoryService(kriCategoryRepository, activityLogSvc)
+	kriCategoryController := controllers.NewKRICategoryController(kriCategorySvc)
 
 	kriRegisterRepo := riskRepositories.NewKRIRegisterRepository(db)
 	kriRegisterSvc := riskServices.NewKRIRegisterService(
@@ -180,6 +182,14 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	riskRoutes.POST("/risk-appetite-statements/delete", riskAppetiteStatementController.DeleteRiskAppetiteStatements)
 	riskRoutes.PUT("/risk-appetite-statements/activate", riskAppetiteStatementController.ActivateRiskAppetiteStatements)
 	riskRoutes.PUT("/risk-appetite-statements/deactivate", riskAppetiteStatementController.DeactivateRiskAppetiteStatements)
+
+	riskRoutes.GET("/kri-categories", kriCategoryController.GetAllKRICategories)
+	riskRoutes.POST("/kri-categories", kriCategoryController.CreateKRICategory)
+	riskRoutes.GET("/kri-categories/:id", kriCategoryController.GetKRICategoryDetails)
+	riskRoutes.PUT("/kri-categories/:id", kriCategoryController.UpdateKRICategory)
+	riskRoutes.POST("/kri-categories/delete", kriCategoryController.DeleteKRICategories)
+	riskRoutes.PUT("/kri-categories/activate", kriCategoryController.ActivateKRICategories)
+	riskRoutes.PUT("/kri-categories/deactivate", kriCategoryController.DeactivateKRICategories)
 
 	riskRoutes.GET("/kri-register", kriRegisterController.GetAllKRIRegisters)
 	riskRoutes.GET("/kri-register/:id", kriRegisterController.GetKRIRegisterDetails)

@@ -2,7 +2,6 @@ package services
 
 import (
 	"fmt"
-	activityLogModel "jethur/grc/logs/models"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/grc/settings/repositories"
@@ -87,7 +86,7 @@ func (ols *OrganizationLevelService) Create(currentUserID uint, organizationLeve
 	for _, newOrgLevel := range toCreate {
 		go func(level *models.OrganizationLevel) {
 			err := ols.activityLogSvc.LogActivity(
-				activityLogModel.CreateAction,
+				models.CreateAction,
 				models.OrganizationLevel{}.TableName(),
 				level.ID,
 				level,
@@ -120,7 +119,7 @@ func (ols *OrganizationLevelService) Create(currentUserID uint, organizationLeve
 			if len(changes) > 0 {
 				go func(level *models.OrganizationLevel, changes interface{}) {
 					err := ols.activityLogSvc.LogActivity(
-						activityLogModel.UpdateAction,
+						models.UpdateAction,
 						models.OrganizationLevel{}.TableName(),
 						level.ID,
 						changes,
@@ -144,7 +143,7 @@ func (ols *OrganizationLevelService) Create(currentUserID uint, organizationLeve
 		if !updatedIds[existingLevel.ID] {
 			go func(level *models.OrganizationLevel) {
 				err := ols.activityLogSvc.LogActivity(
-					activityLogModel.DeleteAction,
+					models.DeleteAction,
 					models.OrganizationLevel{}.TableName(),
 					level.ID,
 					level,

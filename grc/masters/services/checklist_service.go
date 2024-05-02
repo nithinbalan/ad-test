@@ -2,10 +2,9 @@ package services
 
 import (
 	"fmt"
-	activityLogModels "jethur/grc/logs/models"
 	"jethur/grc/logs/services"
-	"jethur/grc/masters/models"
 	"jethur/grc/masters/repositories"
+	"jethur/grc/models"
 	"jethur/utility"
 	"log"
 )
@@ -54,7 +53,7 @@ func (cs *ChecklistService) Create(currentUserID uint, checklist *models.Checkli
 
 	go func() {
 		err := cs.activityLogSvc.LogActivity(
-			activityLogModels.CreateAction,
+			models.CreateAction,
 			models.Checklist{}.TableName(),
 			checklist.ID,
 			createdChecklist,
@@ -102,7 +101,7 @@ func (cs *ChecklistService) Update(id uint, currentUserID uint, updatedChecklist
 
 	go func() {
 		err := cs.activityLogSvc.LogActivity(
-			activityLogModels.UpdateAction,
+			models.UpdateAction,
 			models.Checklist{}.TableName(),
 			result.ID,
 			changedDataJSON,
@@ -140,7 +139,7 @@ func (cs *ChecklistService) Delete(ids []uint, currentUserID uint) ([]uint, erro
 
 		go func() {
 			err := cs.activityLogSvc.LogBulkActivities(
-				activityLogModels.DeleteAction, // Make sure this action constant is defined appropriately
+				models.DeleteAction, // Make sure this action constant is defined appropriately
 				models.Checklist{}.TableName(),
 				successfulIds,
 				nil,
@@ -164,7 +163,7 @@ func (cs *ChecklistService) Activate(ids []uint, currentUserID uint) error {
 
 		go func() {
 			err := cs.activityLogSvc.LogBulkActivities(
-				activityLogModels.ActivateAction,
+				models.ActivateAction,
 				models.Checklist{}.TableName(),
 				successfulIds,
 				nil,
@@ -188,7 +187,7 @@ func (cs *ChecklistService) Deactivate(ids []uint, currentUserID uint) error {
 
 		go func() {
 			err := cs.activityLogSvc.LogBulkActivities(
-				activityLogModels.DeactivateAction,
+				models.DeactivateAction,
 				models.Checklist{}.TableName(),
 				successfulIds,
 				nil,

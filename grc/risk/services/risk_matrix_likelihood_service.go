@@ -3,7 +3,6 @@ package services
 import (
 	"errors"
 	"fmt"
-	logModels "jethur/grc/logs/models"
 	activityLogServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	riskDTOs "jethur/grc/risk/dtos"
@@ -79,7 +78,7 @@ func (rmls *RiskMatrixLikelihoodService) Create(currentUserID uint, riskMatrixLi
 
 	go func() {
 		err := rmls.activityLogSvc.LogActivity(
-			logModels.CreateAction,
+			models.CreateAction,
 			models.RiskMatrixLikelihood{}.TableName(),
 			id,
 			riskMatrixLikelihoodFormDTO,
@@ -89,7 +88,7 @@ func (rmls *RiskMatrixLikelihoodService) Create(currentUserID uint, riskMatrixLi
 
 		if err != nil {
 			fields := map[string]interface{}{
-				"action":    logModels.CreateAction,
+				"action":    models.CreateAction,
 				"tableName": models.RiskMatrixLikelihood{}.TableName(),
 				"recordID":  id,
 				"userID":    currentUserID,
@@ -155,7 +154,7 @@ func (rmls *RiskMatrixLikelihoodService) Delete(ids []uint, currentUserID uint) 
 
 		go func() {
 			err := rmls.activityLogSvc.LogBulkActivities(
-				logModels.DeleteAction, // Make sure this action constant is defined appropriately
+				models.DeleteAction, // Make sure this action constant is defined appropriately
 				models.RiskMatrixLikelihood{}.TableName(),
 				successfulIds,
 				nil,
@@ -179,7 +178,7 @@ func (rmls *RiskMatrixLikelihoodService) Activate(ids []uint, currentUserID uint
 
 		go func() {
 			err := rmls.activityLogSvc.LogBulkActivities(
-				logModels.ActivateAction,
+				models.ActivateAction,
 				models.RiskMatrixLikelihood{}.TableName(),
 				successfulIds,
 				nil,
@@ -203,7 +202,7 @@ func (rmls *RiskMatrixLikelihoodService) Deactivate(ids []uint, currentUserID ui
 
 		go func() {
 			err := rmls.activityLogSvc.LogBulkActivities(
-				logModels.DeactivateAction,
+				models.DeactivateAction,
 				models.RiskMatrixLikelihood{}.TableName(),
 				successfulIds,
 				nil,

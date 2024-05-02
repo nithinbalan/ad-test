@@ -2,8 +2,8 @@ package controllers
 
 import (
 	commonDTOs "jethur/grc/common/dtos"
-	masterDTOs "jethur/grc/masters/dtos"
-	"jethur/grc/masters/services"
+	libraryDTOs "jethur/grc/library/dtos"
+	"jethur/grc/library/services"
 	"jethur/utility"
 	"net/http"
 	"strconv"
@@ -25,7 +25,7 @@ func NewKRILibraryController(service services.KRILibraryServiceInterface) *KRILi
 
 func (klc *KRILibraryController) GetAllKRILibrary(c *gin.Context) {
 
-	sort := c.Query("sort")
+	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
@@ -42,7 +42,7 @@ func (klc *KRILibraryController) GetAllKRILibrary(c *gin.Context) {
 		return
 	}
 
-	queryParams := masterDTOs.KRILibraryListQueryParamsDTO{
+	queryParams := libraryDTOs.KRILibraryListQueryParamsDTO{
 		Sort:     sort,
 		SortBy:   sortBy,
 		Keyword:  keyword,
@@ -84,7 +84,7 @@ func (klc *KRILibraryController) GetKRILibraryDetails(c *gin.Context) {
 
 func (klc *KRILibraryController) CreateKRILibrary(c *gin.Context) {
 
-	var libraryFormDTOO masterDTOs.KRILibraryFormDTO
+	var libraryFormDTOO libraryDTOs.KRILibraryFormDTO
 
 	if err := c.ShouldBindJSON(&libraryFormDTOO); err != nil {
 		utility.SendInvalidErrResp(c, err)
@@ -121,7 +121,7 @@ func (klc *KRILibraryController) UpdateKRILibrary(c *gin.Context) {
 		return
 	}
 
-	var libraryFormDTOO masterDTOs.KRILibraryFormDTO
+	var libraryFormDTOO libraryDTOs.KRILibraryFormDTO
 	if err := c.ShouldBindJSON(&libraryFormDTOO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return

@@ -1,8 +1,8 @@
 package services
 
 import (
-	"jethur/grc/masters/models"
 	"jethur/grc/masters/repositories"
+	"jethur/grc/models"
 )
 
 type ActionPlanStatusServiceInterface interface {

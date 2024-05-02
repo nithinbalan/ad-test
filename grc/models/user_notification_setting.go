@@ -1,7 +1,6 @@
 package models
 
 import (
-	masterModels "jethur/grc/masters/models"
 	"time"
 )
 
@@ -14,8 +13,8 @@ type UserNotificationSetting struct {
 	UpdatedBy            *uint     `json:"updated_by" gorm:"default:null" binding:"omitempty"`
 
 	// Relationships
-	User               *User                            `gorm:"foreignKey:UserID"`
-	NotificationMaster *masterModels.NotificationMaster `gorm:"foreignKey:NotificationMasterID"`
+	User               *User               `gorm:"foreignKey:UserID"`
+	NotificationMaster *NotificationMaster `gorm:"foreignKey:NotificationMasterID"`
 }
 
 func (UserNotificationSetting) TableName() string {

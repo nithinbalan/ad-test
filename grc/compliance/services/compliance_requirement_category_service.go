@@ -3,7 +3,6 @@ package services
 import (
 	"fmt"
 	"jethur/grc/compliance/repositories"
-	logModels "jethur/grc/logs/models"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
@@ -56,7 +55,7 @@ func (crcs *ComplianceRequirementCategoryService) Create(currentUserID uint, com
 
 	go func() {
 		err := crcs.activityLogSvc.LogActivity(
-			logModels.CreateAction,
+			models.CreateAction,
 			models.ComplianceRequirementCategory{}.TableName(),
 			createdRequirementCategory.ID,
 			createdRequirementCategory,
@@ -109,7 +108,7 @@ func (crcs *ComplianceRequirementCategoryService) Update(id uint, currentUserID 
 
 	go func() {
 		err := crcs.activityLogSvc.LogActivity(
-			logModels.UpdateAction,
+			models.UpdateAction,
 			models.ComplianceRequirementCategory{}.TableName(),
 			result.ID,
 			changedDataJSON,
@@ -148,7 +147,7 @@ func (crcs *ComplianceRequirementCategoryService) Delete(ids []uint, currentUser
 
 		go func() {
 			err := crcs.activityLogSvc.LogBulkActivities(
-				logModels.DeleteAction, // Make sure this action constant is defined appropriately
+				models.DeleteAction, // Make sure this action constant is defined appropriately
 				models.ComplianceRequirementCategory{}.TableName(),
 				successfulIds,
 				nil,
@@ -172,7 +171,7 @@ func (crcs *ComplianceRequirementCategoryService) Activate(ids []uint, currentUs
 
 		go func() {
 			err := crcs.activityLogSvc.LogBulkActivities(
-				logModels.ActivateAction,
+				models.ActivateAction,
 				models.ComplianceRequirementCategory{}.TableName(),
 				successfulIds,
 				nil,
@@ -196,7 +195,7 @@ func (crcs *ComplianceRequirementCategoryService) Deactivate(ids []uint, current
 
 		go func() {
 			err := crcs.activityLogSvc.LogBulkActivities(
-				logModels.DeactivateAction,
+				models.DeactivateAction,
 				models.ComplianceRequirementCategory{}.TableName(),
 				successfulIds,
 				nil,

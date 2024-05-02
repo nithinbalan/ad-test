@@ -3,7 +3,6 @@ package services
 import (
 	"errors"
 	"fmt"
-	logModels "jethur/grc/logs/models"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/grc/organization/dtos"
@@ -76,7 +75,7 @@ func (sos *StrategicObjectiveService) Create(currentUserID uint, strategicObject
 
 	go func() {
 		err := sos.activityLogSvc.LogActivity(
-			logModels.CreateAction,
+			models.CreateAction,
 			models.StrategicObjective{}.TableName(),
 			createdStrategicObjectiveID,
 			strategicObjectiveFormDTO,
@@ -148,7 +147,7 @@ func (sos *StrategicObjectiveService) Delete(ids []uint, currentUserID uint) ([]
 
 		go func() {
 			err := sos.activityLogSvc.LogBulkActivities(
-				logModels.DeleteAction, // Make sure this action constant is defined appropriately
+				models.DeleteAction, // Make sure this action constant is defined appropriately
 				models.StrategicObjective{}.TableName(),
 				successfulIds,
 				nil,
@@ -172,7 +171,7 @@ func (sos *StrategicObjectiveService) Activate(ids []uint, currentUserID uint) e
 
 		go func() {
 			err := sos.activityLogSvc.LogBulkActivities(
-				logModels.ActivateAction,
+				models.ActivateAction,
 				models.StrategicObjective{}.TableName(),
 				successfulIds,
 				nil,
@@ -196,7 +195,7 @@ func (sos *StrategicObjectiveService) Deactivate(ids []uint, currentUserID uint)
 
 		go func() {
 			err := sos.activityLogSvc.LogBulkActivities(
-				logModels.DeactivateAction,
+				models.DeactivateAction,
 				models.StrategicObjective{}.TableName(),
 				successfulIds,
 				nil,

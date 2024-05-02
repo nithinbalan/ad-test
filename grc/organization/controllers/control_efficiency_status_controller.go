@@ -22,7 +22,7 @@ func NewControlEfficiencyStatusController(service services.ControlEfficiencyStat
 }
 
 func (cesc *ControlEfficiencyStatusController) GetAllControlEfficiencyStatuses(c *gin.Context) {
-	sort := c.Query("sort")
+	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 	status := c.Query("status")

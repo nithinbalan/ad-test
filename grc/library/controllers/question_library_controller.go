@@ -2,8 +2,8 @@ package controllers
 
 import (
 	commonDTOs "jethur/grc/common/dtos"
-	masterDTOs "jethur/grc/masters/dtos"
-	"jethur/grc/masters/services"
+	libraryDTOs "jethur/grc/library/dtos"
+	"jethur/grc/library/services"
 	"jethur/utility"
 	"net/http"
 	"strconv"
@@ -25,7 +25,7 @@ func NewQuestionLibraryController(service services.QuestionLibraryServiceInterfa
 
 func (qlc *QuestionLibraryController) GetAllQuestionLibrary(c *gin.Context) {
 
-	sort := c.Query("sort")
+	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
@@ -71,7 +71,7 @@ func (qlc *QuestionLibraryController) GetQuestionLibraryDetails(c *gin.Context) 
 
 func (qlc *QuestionLibraryController) CreateQuestionLibrary(c *gin.Context) {
 
-	var questionLibrary *masterDTOs.QuestionLibraryFormDTO
+	var questionLibrary *libraryDTOs.QuestionLibraryFormDTO
 
 	if err := c.ShouldBindJSON(&questionLibrary); err != nil {
 		utility.SendInvalidErrResp(c, err)
@@ -106,7 +106,7 @@ func (qlc *QuestionLibraryController) UpdateQuestionLibrary(c *gin.Context) {
 		return
 	}
 
-	var updatedQuestionLibrary *masterDTOs.QuestionLibraryFormDTO
+	var updatedQuestionLibrary *libraryDTOs.QuestionLibraryFormDTO
 	if err := c.ShouldBindJSON(&updatedQuestionLibrary); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return

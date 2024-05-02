@@ -1,8 +1,8 @@
 package utility
 
 import (
-	"jethur/grc/logs/models"
 	"jethur/grc/logs/services"
+	"jethur/grc/models"
 	"net/http"
 	"runtime/debug"
 	"time"

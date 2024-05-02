@@ -5,7 +5,6 @@ import (
 	"fmt"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	complianceRepositories "jethur/grc/compliance/repositories"
-	logModels "jethur/grc/logs/models"
 	logServices "jethur/grc/logs/services"
 	masterRepositories "jethur/grc/masters/repositories"
 	masterServices "jethur/grc/masters/services"
@@ -197,7 +196,7 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 
 	go func() {
 		err := crs.activityLogSvc.LogActivity(
-			logModels.CreateAction,
+			models.CreateAction,
 			models.ComplianceRegister{}.TableName(),
 			id,
 			complianceRegisterFormDTO,
@@ -207,7 +206,7 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 
 		if err != nil {
 			fields := map[string]interface{}{
-				"action":    logModels.CreateAction,
+				"action":    models.CreateAction,
 				"tableName": models.ComplianceRegister{}.TableName(),
 				"recordID":  id,
 				"userID":    currentUserID,
@@ -353,7 +352,7 @@ func (crs *ComplianceRegisterService) Delete(ids []uint, currentUserID uint) ([]
 
 		go func() {
 			err := crs.activityLogSvc.LogBulkActivities(
-				logModels.DeleteAction, // Make sure this action constant is defined appropriately
+				models.DeleteAction, // Make sure this action constant is defined appropriately
 				models.ComplianceRegister{}.TableName(),
 				successfulIds,
 				nil,
@@ -390,7 +389,7 @@ func (crs *ComplianceRegisterService) Archive(ids []uint, currentUserID uint) ([
 	if len(successfulIds) > 0 {
 		go func() {
 			err := crs.activityLogSvc.LogBulkActivities(
-				logModels.ArchiveAction,
+				models.ArchiveAction,
 				models.ComplianceRegister{}.TableName(),
 				successfulIds,
 				nil,
@@ -427,7 +426,7 @@ func (crs *ComplianceRegisterService) Restore(ids []uint, currentUserID uint) ([
 	if len(successfulIds) > 0 {
 		go func() {
 			err := crs.activityLogSvc.LogBulkActivities(
-				logModels.RestoreAction,
+				models.RestoreAction,
 				models.ComplianceRegister{}.TableName(),
 				successfulIds,
 				nil,

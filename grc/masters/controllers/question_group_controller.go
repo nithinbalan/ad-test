@@ -1,8 +1,8 @@
 package controllers
 
 import (
-	"jethur/grc/masters/models"
 	"jethur/grc/masters/services"
+	"jethur/grc/models"
 	"jethur/utility"
 	"net/http"
 	"strconv"
@@ -24,7 +24,7 @@ func NewQuestionGroupController(service services.QuestionGroupServiceInterface) 
 
 func (qgc *QuestionGroupController) GetAllQuestionGroups(c *gin.Context) {
 
-	sort := c.Query("sort")
+	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 	status := c.Query("status")

@@ -1,8 +1,8 @@
 package controllers
 
 import (
-	"jethur/grc/masters/models"
-	"jethur/grc/masters/services"
+	"jethur/grc/incident/services"
+	"jethur/grc/models"
 	"jethur/utility"
 	"net/http"
 	"strconv"
@@ -11,34 +11,33 @@ import (
 	"gorm.io/gorm"
 )
 
-type KRICategoryController struct {
-	service services.KRICategoryServiceInterface
+type IncidentCategoryController struct {
+	service services.IncidentCategoryServiceInterface
 	db      *gorm.DB
 }
 
-func NewKRICategoryController(service services.KRICategoryServiceInterface) *KRICategoryController {
-	return &KRICategoryController{
+func NewIncidentCategoryController(service services.IncidentCategoryServiceInterface) *IncidentCategoryController {
+	return &IncidentCategoryController{
 		service: service,
 	}
 }
 
-func (kcc *KRICategoryController) GetAllKRICategories(c *gin.Context) {
-
-	sort := c.Query("sort")
+func (icc *IncidentCategoryController) GetAllIncidentCategories(c *gin.Context) {
+	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 
-	categories, err := kcc.service.GetAll(sort, sortBy, keyword, status)
+	incidentCategories, err := icc.service.GetAll(sort, sortBy, keyword, status)
 
 	if err != nil {
-		utility.SendInternalErrResp(kcc.db, c, err.Error())
+		utility.SendInternalErrResp(icc.db, c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, categories)
+	c.JSON(http.StatusOK, incidentCategories)
 }
 
-func (kcc *KRICategoryController) GetKRICategoryDetails(c *gin.Context) {
+func (icc *IncidentCategoryController) GetIncidentCategoryDetails(c *gin.Context) {
 	idStr := c.Param("id")
 
 	id, err := strconv.ParseUint(idStr, 10, 32)
@@ -47,18 +46,17 @@ func (kcc *KRICategoryController) GetKRICategoryDetails(c *gin.Context) {
 		return
 	}
 
-	kriCategory, err := kcc.service.GetByID(uint(id))
+	incidentCategory, err := icc.service.GetByID(uint(id))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
 
-	c.JSON(http.StatusOK, kriCategory)
+	c.JSON(http.StatusOK, incidentCategory)
 }
 
-func (kcc *KRICategoryController) CreateKRICategory(c *gin.Context) {
-
-	var category *models.KRICategory
+func (icc *IncidentCategoryController) CreateIncidentCategory(c *gin.Context) {
+	var category *models.IncidentCategory
 
 	if err := c.ShouldBindJSON(&category); err != nil {
 		utility.SendInvalidErrResp(c, err)
@@ -66,18 +64,18 @@ func (kcc *KRICategoryController) CreateKRICategory(c *gin.Context) {
 	}
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(kcc.db, c, err.Error())
+		utility.SendInternalErrResp(icc.db, c, err.Error())
 		return
 	}
 
-	createdCategory, err := kcc.service.Create(currentUserID, category)
+	createdCategory, err := icc.service.Create(currentUserID, category)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
 			return
 		default:
-			utility.SendInternalErrResp(kcc.db, c, e.Error())
+			utility.SendInternalErrResp(icc.db, c, e.Error())
 			return
 		}
 	}
@@ -85,7 +83,8 @@ func (kcc *KRICategoryController) CreateKRICategory(c *gin.Context) {
 	c.JSON(http.StatusCreated, createdCategory)
 }
 
-func (kcc *KRICategoryController) UpdateKRICategory(c *gin.Context) {
+func (icc *IncidentCategoryController) UpdateIncidentCategory(c *gin.Context) {
+	var updatedCategory *models.IncidentCategory
 
 	categoryID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -93,18 +92,18 @@ func (kcc *KRICategoryController) UpdateKRICategory(c *gin.Context) {
 		return
 	}
 
-	var updatedCategory *models.KRICategory
 	if err := c.ShouldBindJSON(&updatedCategory); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
+
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(kcc.db, c, err.Error())
+		utility.SendInternalErrResp(icc.db, c, err.Error())
 		return
 	}
 
-	updatedCategory, err = kcc.service.Update(uint(categoryID), currentUserID, updatedCategory)
+	updatedCategory, err = icc.service.Update(uint(categoryID), currentUserID, updatedCategory)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -114,7 +113,7 @@ func (kcc *KRICategoryController) UpdateKRICategory(c *gin.Context) {
 			utility.SendInvalidErrResp(c, e)
 			return
 		default:
-			utility.SendInternalErrResp(kcc.db, c, e.Error())
+			utility.SendInternalErrResp(icc.db, c, e.Error())
 			return
 		}
 	}
@@ -122,8 +121,7 @@ func (kcc *KRICategoryController) UpdateKRICategory(c *gin.Context) {
 	c.JSON(http.StatusOK, updatedCategory)
 }
 
-func (kcc *KRICategoryController) DeleteKRICategories(c *gin.Context) {
-
+func (icc *IncidentCategoryController) DeleteIncidentCategories(c *gin.Context) {
 	var request struct {
 		IDs []uint `json:"ids"`
 	}
@@ -135,20 +133,20 @@ func (kcc *KRICategoryController) DeleteKRICategories(c *gin.Context) {
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(kcc.db, c, err.Error())
+		utility.SendInternalErrResp(icc.db, c, err.Error())
 		return
 	}
 
-	failedIDs, err := kcc.service.Delete(request.IDs, currentUserID)
+	failedIDs, err := icc.service.Delete(request.IDs, currentUserID)
 	if err != nil {
-		utility.SendInternalErrResp(kcc.db, c, err.Error())
+		utility.SendInternalErrResp(icc.db, c, err.Error())
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
 
-func (kcc *KRICategoryController) ActivateKRICategories(c *gin.Context) {
+func (icc *IncidentCategoryController) ActivateIncidentCategories(c *gin.Context) {
 	var request struct {
 		IDs []uint `json:"ids"`
 	}
@@ -160,20 +158,20 @@ func (kcc *KRICategoryController) ActivateKRICategories(c *gin.Context) {
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(kcc.db, c, err.Error())
+		utility.SendInternalErrResp(icc.db, c, err.Error())
 		return
 	}
 
-	err = kcc.service.Activate(request.IDs, currentUserID)
+	err = icc.service.Activate(request.IDs, currentUserID)
 	if err != nil {
-		utility.SendInternalErrResp(kcc.db, c, err.Error())
+		utility.SendInternalErrResp(icc.db, c, err.Error())
 		return
 	}
 
 	c.Status(http.StatusOK)
 }
 
-func (kcc *KRICategoryController) DeactivateKRICategories(c *gin.Context) {
+func (icc *IncidentCategoryController) DeactivateIncidentCategories(c *gin.Context) {
 	var request struct {
 		IDs []uint `json:"ids"`
 	}
@@ -185,13 +183,13 @@ func (kcc *KRICategoryController) DeactivateKRICategories(c *gin.Context) {
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(kcc.db, c, err.Error())
+		utility.SendInternalErrResp(icc.db, c, err.Error())
 		return
 	}
 
-	err = kcc.service.Deactivate(request.IDs, currentUserID)
+	err = icc.service.Deactivate(request.IDs, currentUserID)
 	if err != nil {
-		utility.SendInternalErrResp(kcc.db, c, err.Error())
+		utility.SendInternalErrResp(icc.db, c, err.Error())
 		return
 	}
 

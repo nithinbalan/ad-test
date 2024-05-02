@@ -29,7 +29,7 @@ func (src *SLARenewController) GetSLARenewHistory(c *gin.Context) {
 		return
 	}
 
-	sort := c.Query("sort")
+	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 	// quickFilter := c.QueryArray("quick_filter")

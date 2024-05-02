@@ -5,7 +5,6 @@ import (
 	"fmt"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/repositories"
-	logModels "jethur/grc/logs/models"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
@@ -93,7 +92,7 @@ func (csus *ComplianceStatusUpdateService) Create(complianceID uint, currentUser
 
 	go func() {
 		err := csus.activityLogSvc.LogActivity(
-			logModels.CreateAction,
+			models.CreateAction,
 			models.ComplianceStatusUpdate{}.TableName(),
 			id,
 			complianceUpdate,
@@ -103,7 +102,7 @@ func (csus *ComplianceStatusUpdateService) Create(complianceID uint, currentUser
 
 		if err != nil {
 			fields := map[string]interface{}{
-				"action":    logModels.CreateAction,
+				"action":    models.CreateAction,
 				"tableName": models.ComplianceStatusUpdate{}.TableName(),
 				"recordID":  id,
 				"userID":    currentUserID,
