@@ -3,7 +3,6 @@ package services
 import (
 	"errors"
 	"fmt"
-	logModels "jethur/grc/logs/models"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	riskDTOs "jethur/grc/risk/dtos"
@@ -115,7 +114,7 @@ func (rmigs *RiskMatrixImpactGuidelineService) Create(currentUserID uint, riskMa
 
 	go func() {
 		err := rmigs.activityLogSvc.LogBulkActivities(
-			logModels.CreateAction,
+			models.CreateAction,
 			models.RiskMatrixImpactGuideline{}.TableName(),
 			ids,
 			riskMatrixImpactGuidelineFormDTO,
@@ -185,7 +184,7 @@ func (rmigs *RiskMatrixImpactGuidelineService) Delete(ids []uint, currentUserID 
 
 		go func() {
 			err := rmigs.activityLogSvc.LogBulkActivities(
-				logModels.DeleteAction, // Make sure this action constant is defined appropriately
+				models.DeleteAction, // Make sure this action constant is defined appropriately
 				models.RiskMatrixImpactGuideline{}.TableName(),
 				successfulIds,
 				nil,

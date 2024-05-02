@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"jethur/grc/incident/repositories"
-	logModels "jethur/grc/logs/models"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
@@ -67,7 +66,7 @@ func (its *IncidentTypeService) Create(currentUserID uint, incidentType *models.
 
 	go func() {
 		err := its.activityLogSvc.LogActivity(
-			logModels.CreateAction,
+			models.CreateAction,
 			models.IncidentType{}.TableName(),
 			createdType.ID,
 			createdType,
@@ -120,7 +119,7 @@ func (its *IncidentTypeService) Update(id uint, currentUserID uint, updatedType 
 
 	go func() {
 		err := its.activityLogSvc.LogActivity(
-			logModels.UpdateAction,
+			models.UpdateAction,
 			models.IncidentType{}.TableName(),
 			result.ID,
 			changedDataJSON,
@@ -159,7 +158,7 @@ func (its *IncidentTypeService) Delete(ids []uint, currentUserID uint) ([]uint, 
 
 		go func() {
 			err := its.activityLogSvc.LogBulkActivities(
-				logModels.DeleteAction, // Make sure this action constant is defined appropriately
+				models.DeleteAction, // Make sure this action constant is defined appropriately
 				models.IncidentType{}.TableName(),
 				successfulIds,
 				nil,
@@ -183,7 +182,7 @@ func (its *IncidentTypeService) Activate(ids []uint, currentUserID uint) error {
 
 		go func() {
 			err := its.activityLogSvc.LogBulkActivities(
-				logModels.ActivateAction,
+				models.ActivateAction,
 				models.IncidentType{}.TableName(),
 				successfulIds,
 				nil,
@@ -207,7 +206,7 @@ func (its *IncidentTypeService) Deactivate(ids []uint, currentUserID uint) error
 
 		go func() {
 			err := its.activityLogSvc.LogBulkActivities(
-				logModels.DeactivateAction,
+				models.DeactivateAction,
 				models.IncidentType{}.TableName(),
 				successfulIds,
 				nil,

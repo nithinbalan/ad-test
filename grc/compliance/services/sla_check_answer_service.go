@@ -5,7 +5,6 @@ import (
 	"fmt"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/repositories"
-	logModels "jethur/grc/logs/models"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
@@ -96,7 +95,7 @@ func (scas *SLACheckAnswerService) CreateAnswer(slaID uint, questionID uint, cur
 
 	go func() {
 		err := scas.activityLogSvc.LogActivity(
-			logModels.CreateAction,
+			models.CreateAction,
 			models.SLACheckAnswer{}.TableName(),
 			answer.ID,
 			answer,
@@ -106,7 +105,7 @@ func (scas *SLACheckAnswerService) CreateAnswer(slaID uint, questionID uint, cur
 
 		if err != nil {
 			fields := map[string]interface{}{
-				"action":    logModels.CreateAction,
+				"action":    models.CreateAction,
 				"tableName": models.SLACheckAnswer{}.TableName(),
 				"recordID":  answer.ID,
 				"userID":    currentUserID,
@@ -147,7 +146,7 @@ func (scas *SLACheckAnswerService) UpdateAnswer(slaID uint, questionID uint, ans
 	// Log the activity
 	go func() {
 		err := scas.activityLogSvc.LogActivity(
-			logModels.UpdateAction,
+			models.UpdateAction,
 			models.SLACheckAnswer{}.TableName(),
 			existingAnswer.ID,
 			existingAnswer,
@@ -157,7 +156,7 @@ func (scas *SLACheckAnswerService) UpdateAnswer(slaID uint, questionID uint, ans
 
 		if err != nil {
 			fields := map[string]interface{}{
-				"action":    logModels.UpdateAction,
+				"action":    models.UpdateAction,
 				"tableName": models.SLACheckAnswer{}.TableName(),
 				"recordID":  existingAnswer.ID,
 				"userID":    currentUserID,
@@ -197,7 +196,7 @@ func (scqs *SLACheckAnswerService) DeleteAnswer(slaID uint, questionID uint, ans
 	if successfulId != 0 {
 		go func() {
 			err := scqs.activityLogSvc.LogActivity(
-				logModels.DeleteAction,
+				models.DeleteAction,
 				models.SLACheckAnswer{}.TableName(),
 				successfulId,
 				answer,

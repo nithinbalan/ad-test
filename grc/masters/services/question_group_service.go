@@ -2,11 +2,10 @@ package services
 
 import (
 	"fmt"
-	activityLogModels "jethur/grc/logs/models"
 	"jethur/grc/logs/services"
-	"jethur/grc/masters/models"
 	masterModels "jethur/grc/masters/models"
 	"jethur/grc/masters/repositories"
+	"jethur/grc/models"
 	"jethur/utility"
 	"log"
 )
@@ -55,7 +54,7 @@ func (qgs *QuestionGroupService) Create(currentUserID uint, questionGroup *maste
 
 	go func() {
 		err := qgs.activityLogSvc.LogActivity(
-			activityLogModels.CreateAction,
+			models.CreateAction,
 			masterModels.QuestionGroup{}.TableName(),
 			questionGroup.ID,
 			createdQuestionGroup,
@@ -103,7 +102,7 @@ func (qgs *QuestionGroupService) Update(id uint, currentUserID uint, updatedQues
 
 	go func() {
 		err := qgs.activityLogSvc.LogActivity(
-			activityLogModels.UpdateAction,
+			models.UpdateAction,
 			masterModels.QuestionGroup{}.TableName(),
 			result.ID,
 			changedDataJSON,
@@ -141,7 +140,7 @@ func (qgs *QuestionGroupService) Delete(ids []uint, currentUserID uint) ([]uint,
 
 		go func() {
 			err := qgs.activityLogSvc.LogBulkActivities(
-				activityLogModels.DeleteAction, // Make sure this action constant is defined appropriately
+				models.DeleteAction, // Make sure this action constant is defined appropriately
 				masterModels.QuestionGroup{}.TableName(),
 				successfulIds,
 				nil,
@@ -165,7 +164,7 @@ func (qgs *QuestionGroupService) Activate(ids []uint, currentUserID uint) error 
 
 		go func() {
 			err := qgs.activityLogSvc.LogBulkActivities(
-				activityLogModels.ActivateAction,
+				models.ActivateAction,
 				masterModels.QuestionGroup{}.TableName(),
 				successfulIds,
 				nil,
@@ -189,7 +188,7 @@ func (qgs *QuestionGroupService) Deactivate(ids []uint, currentUserID uint) erro
 
 		go func() {
 			err := qgs.activityLogSvc.LogBulkActivities(
-				activityLogModels.DeactivateAction,
+				models.DeactivateAction,
 				masterModels.QuestionGroup{}.TableName(),
 				successfulIds,
 				nil,
@@ -207,7 +206,7 @@ func (qgs *QuestionGroupService) Deactivate(ids []uint, currentUserID uint) erro
 	return err
 }
 
-func (qgs *QuestionGroupService) validateQuestionGroupForm(questionGroup *models.QuestionGroup, id *uint) error {
+func (qgs *QuestionGroupService) validateQuestionGroupForm(questionGroup *masterModels.QuestionGroup, id *uint) error {
 
 	if id == nil {
 

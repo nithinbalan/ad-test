@@ -5,7 +5,6 @@ import (
 	"fmt"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	complianceRepositories "jethur/grc/compliance/repositories"
-	logModels "jethur/grc/logs/models"
 	logServices "jethur/grc/logs/services"
 	masterRepositories "jethur/grc/masters/repositories"
 	masterServices "jethur/grc/masters/services"
@@ -138,7 +137,7 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 
 	go func() {
 		err := caps.activityLogSvc.LogActivity(
-			logModels.CreateAction,
+			models.CreateAction,
 			models.ComplianceActionPlan{}.TableName(),
 			id,
 			ComplianceActionPlanFormDTO,
@@ -148,7 +147,7 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 
 		if err != nil {
 			fields := map[string]interface{}{
-				"action":    logModels.CreateAction,
+				"action":    models.CreateAction,
 				"tableName": models.ComplianceActionPlan{}.TableName(),
 				"recordID":  id,
 				"userID":    currentUserID,
@@ -230,7 +229,7 @@ func (caps *ComplianceActionPlanService) Delete(complianceID uint, ids []uint, c
 
 		go func() {
 			err := caps.activityLogSvc.LogBulkActivities(
-				logModels.DeleteAction,
+				models.DeleteAction,
 				models.ComplianceRegister{}.TableName(),
 				successfulIds,
 				nil,

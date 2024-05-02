@@ -5,7 +5,6 @@ import (
 	"fmt"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	complianceRepositories "jethur/grc/compliance/repositories"
-	logModels "jethur/grc/logs/models"
 	logServices "jethur/grc/logs/services"
 	masterRepositories "jethur/grc/masters/repositories"
 	masterServices "jethur/grc/masters/services"
@@ -146,7 +145,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 
 	go func() {
 		err := crs.activityLogSvc.LogActivity(
-			logModels.CreateAction,
+			models.CreateAction,
 			models.ComplianceRequirement{}.TableName(),
 			id,
 			ComplianceRequirementFormDTO,
@@ -156,7 +155,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 
 		if err != nil {
 			fields := map[string]interface{}{
-				"action":    logModels.CreateAction,
+				"action":    models.CreateAction,
 				"tableName": models.ComplianceRequirement{}.TableName(),
 				"recordID":  id,
 				"userID":    currentUserID,
@@ -265,7 +264,7 @@ func (crs *ComplianceRequirementService) Delete(complianceID uint, ids []uint, c
 	if len(successfulIds) > 0 {
 		go func() {
 			err := crs.activityLogSvc.LogBulkActivities(
-				logModels.DeleteAction, // Make sure this action constant is defined appropriately
+				models.DeleteAction, // Make sure this action constant is defined appropriately
 				models.ComplianceRequirement{}.TableName(),
 				successfulIds,
 				nil,

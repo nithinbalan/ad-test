@@ -2,17 +2,17 @@ package services
 
 import (
 	"fmt"
-	logModels "jethur/grc/logs/models"
 	logServices "jethur/grc/logs/services"
 	masterDTOs "jethur/grc/masters/dtos"
-	"jethur/grc/masters/models"
+	masterModels "jethur/grc/masters/models"
 	"jethur/grc/masters/repositories"
+	"jethur/grc/models"
 	"jethur/utility"
 )
 
 type KRILibraryServiceInterface interface {
 	GetAll(params *masterDTOs.KRILibraryListQueryParamsDTO) (*masterDTOs.KRILibraryListResponseDTO, error)
-	GetByID(id uint) (*models.KRILibrary, error)
+	GetByID(id uint) (*masterModels.KRILibrary, error)
 	Create(currentUserID uint, kriLibraryFormDTO *masterDTOs.KRILibraryFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, kriLibrary *masterDTOs.KRILibraryFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
@@ -46,7 +46,7 @@ func (kls *KRILibraryService) GetAll(params *masterDTOs.KRILibraryListQueryParam
 	return kls.repo.GetAll(params)
 }
 
-func (kls KRILibraryService) GetByID(id uint) (*models.KRILibrary, error) {
+func (kls KRILibraryService) GetByID(id uint) (*masterModels.KRILibrary, error) {
 	return kls.repo.GetByID(id)
 }
 
@@ -56,7 +56,7 @@ func (kls *KRILibraryService) Create(currentUserID uint, kriLibraryFormDTO *mast
 		return 0, err
 	}
 
-	kriLibrary := &models.KRILibrary{
+	kriLibrary := &masterModels.KRILibrary{
 		KRICategoryID:     kriLibraryFormDTO.KRICategoryID,
 		ReviewFrequencyID: kriLibraryFormDTO.ReviewFrequencyID,
 		Title:             kriLibraryFormDTO.Title,
@@ -73,8 +73,8 @@ func (kls *KRILibraryService) Create(currentUserID uint, kriLibraryFormDTO *mast
 
 	go func() {
 		err := kls.activityLogSvc.LogActivity(
-			logModels.CreateAction,
-			models.KRILibrary{}.TableName(),
+			models.CreateAction,
+			masterModels.KRILibrary{}.TableName(),
 			id,
 			kriLibraryFormDTO,
 			currentUserID,
@@ -83,8 +83,8 @@ func (kls *KRILibraryService) Create(currentUserID uint, kriLibraryFormDTO *mast
 
 		if err != nil {
 			fields := map[string]interface{}{
-				"action":    logModels.CreateAction,
-				"tableName": models.KRILibrary{}.TableName(),
+				"action":    models.CreateAction,
+				"tableName": masterModels.KRILibrary{}.TableName(),
 				"recordID":  id,
 				"userID":    currentUserID,
 				"error":     err.Error(),
@@ -125,8 +125,8 @@ func (kls *KRILibraryService) Update(id uint, currentUserID uint, kriLibraryForm
 
 	go func() {
 		err := kls.activityLogSvc.LogActivity(
-			logModels.UpdateAction,
-			models.KRILibrary{}.TableName(),
+			models.UpdateAction,
+			masterModels.KRILibrary{}.TableName(),
 			id,
 			kriLibraryFormDTO,
 			currentUserID,
@@ -135,8 +135,8 @@ func (kls *KRILibraryService) Update(id uint, currentUserID uint, kriLibraryForm
 
 		if err != nil {
 			fields := map[string]interface{}{
-				"action":    logModels.UpdateAction,
-				"tableName": models.KRILibrary{}.TableName(),
+				"action":    models.UpdateAction,
+				"tableName": masterModels.KRILibrary{}.TableName(),
 				"recordID":  id,
 				"userID":    currentUserID,
 				"error":     err.Error(),
@@ -172,8 +172,8 @@ func (kls *KRILibraryService) Delete(ids []uint, currentUserID uint) ([]uint, er
 
 		go func() {
 			err := kls.activityLogSvc.LogBulkActivities(
-				logModels.DeleteAction, // Make sure this action constant is defined appropriately
-				models.KRILibrary{}.TableName(),
+				models.DeleteAction, // Make sure this action constant is defined appropriately
+				masterModels.KRILibrary{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,
@@ -196,8 +196,8 @@ func (kls *KRILibraryService) Activate(ids []uint, currentUserID uint) error {
 
 		go func() {
 			err := kls.activityLogSvc.LogBulkActivities(
-				logModels.ActivateAction,
-				models.KRILibrary{}.TableName(),
+				models.ActivateAction,
+				masterModels.KRILibrary{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,
@@ -220,8 +220,8 @@ func (kls *KRILibraryService) Deactivate(ids []uint, currentUserID uint) error {
 
 		go func() {
 			err := kls.activityLogSvc.LogBulkActivities(
-				logModels.DeactivateAction,
-				models.KRILibrary{}.TableName(),
+				models.DeactivateAction,
+				masterModels.KRILibrary{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,
