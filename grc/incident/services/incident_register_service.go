@@ -517,9 +517,9 @@ func (irs *IncidentRegisterService) validateIncidentRegisterFormDTO(incidentRegi
 		}
 
 		// Check if the requirement exists in the database
-		// if _, err := irs.complianceRequirementSvc.GetByID(requirement); err != nil {
-		// 	return utility.NewValidationError(fmt.Errorf("compliance requirement does not exist for ID: %d", requirement), "not_exist", "compliance requirement")
-		// }
+		if _, err := irs.complianceRequirementSvc.GetByComplianceRequirementID(requirement); err != nil {
+			return utility.NewValidationError(fmt.Errorf("compliance requirement does not exist for ID: %d", requirement), "not_exist", "compliance requirement")
+		}
 
 		// Add the requirement ID to the map
 		requirementIDs[requirement] = true
