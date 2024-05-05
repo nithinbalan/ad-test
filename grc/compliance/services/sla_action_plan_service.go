@@ -5,7 +5,6 @@ import (
 	"fmt"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	complianceRepositories "jethur/grc/compliance/repositories"
-	logModels "jethur/grc/logs/models"
 	logServices "jethur/grc/logs/services"
 	masterRepositories "jethur/grc/masters/repositories"
 	masterServices "jethur/grc/masters/services"
@@ -138,7 +137,7 @@ func (saps *SLAActionPlanService) Create(slaID uint, currentUserID uint, slaActi
 
 	go func() {
 		err := saps.activityLogSvc.LogActivity(
-			logModels.CreateAction,
+			models.CreateAction,
 			models.SLAActionPlan{}.TableName(),
 			id,
 			slaActionPlanFormDTO,
@@ -148,7 +147,7 @@ func (saps *SLAActionPlanService) Create(slaID uint, currentUserID uint, slaActi
 
 		if err != nil {
 			fields := map[string]interface{}{
-				"action":    logModels.CreateAction,
+				"action":    models.CreateAction,
 				"tableName": models.SLAActionPlan{}.TableName(),
 				"recordID":  id,
 				"userID":    currentUserID,
@@ -231,7 +230,7 @@ func (saps *SLAActionPlanService) Delete(slaID uint, ids []uint, currentUserID u
 
 		go func() {
 			err := saps.activityLogSvc.LogBulkActivities(
-				logModels.DeleteAction,
+				models.DeleteAction,
 				models.SLARegister{}.TableName(),
 				successfulIds,
 				nil,

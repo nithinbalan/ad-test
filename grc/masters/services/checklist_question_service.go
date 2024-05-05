@@ -2,11 +2,11 @@ package services
 
 import (
 	"fmt"
-	logModels "jethur/grc/logs/models"
 	"jethur/grc/logs/services"
+
 	masterDTOs "jethur/grc/masters/dtos"
-	"jethur/grc/masters/models"
 	"jethur/grc/masters/repositories"
+	"jethur/grc/models"
 	"jethur/utility"
 )
 
@@ -18,13 +18,11 @@ type ChecklistQuestionServiceInterface interface {
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 }
 
-// Service and implementations
 type ChecklistQuestionService struct {
-	repo               repositories.ChecklistQuestionRepositoryInterface
-	activityLogSvc     services.ActivityLogServiceInterface
-	masterSvc          QuestionGroupServiceInterface
-	checklistSvc       ChecklistServiceInterface
-	questionLibrarySvc QuestionLibraryServiceInterface
+	repo           repositories.ChecklistQuestionRepositoryInterface
+	activityLogSvc services.ActivityLogServiceInterface
+	masterSvc      QuestionGroupServiceInterface
+	checklistSvc   ChecklistServiceInterface
 }
 
 func NewChecklistQuestionService(
@@ -32,14 +30,12 @@ func NewChecklistQuestionService(
 	activityLogSvc services.ActivityLogServiceInterface,
 	masterSvc QuestionGroupServiceInterface,
 	checklistSvc ChecklistServiceInterface,
-	questionLibrarySvc QuestionLibraryServiceInterface,
 ) ChecklistQuestionServiceInterface {
 	return &ChecklistQuestionService{
-		repo:               repo,
-		activityLogSvc:     activityLogSvc,
-		masterSvc:          masterSvc,
-		checklistSvc:       checklistSvc,
-		questionLibrarySvc: questionLibrarySvc,
+		repo:           repo,
+		activityLogSvc: activityLogSvc,
+		masterSvc:      masterSvc,
+		checklistSvc:   checklistSvc,
 	}
 }
 
@@ -57,19 +53,11 @@ func (cqs *ChecklistQuestionService) Create(currentUserID uint, checklistQuestio
 		return 0, err
 	}
 
-	var libraryID *uint
-	if checklistQuestionFormDTO.QuestionLibraryID != 0 {
-		libraryID = &checklistQuestionFormDTO.QuestionLibraryID
-	} else {
-		libraryID = nil // Set to NULL
-	}
-	// Map DTO to ChecklistQuestion model
 	checklistQuestion := &models.ChecklistQuestion{
-		ChecklistID:       checklistQuestionFormDTO.ChecklistID,
-		QuestionGroupID:   checklistQuestionFormDTO.QuestionGroupID,
-		QuestionLibraryID: libraryID,
-		QuestionEn:        checklistQuestionFormDTO.QuestionEn,
-		QuestionAr:        checklistQuestionFormDTO.QuestionAr,
+		ChecklistID:     checklistQuestionFormDTO.ChecklistID,
+		QuestionGroupID: checklistQuestionFormDTO.QuestionGroupID,
+		QuestionEn:      checklistQuestionFormDTO.QuestionEn,
+		QuestionAr:      checklistQuestionFormDTO.QuestionAr,
 	}
 
 	id, err := cqs.repo.Create(checklistQuestion)
@@ -79,7 +67,7 @@ func (cqs *ChecklistQuestionService) Create(currentUserID uint, checklistQuestio
 
 	go func() {
 		err := cqs.activityLogSvc.LogActivity(
-			logModels.CreateAction,
+			models.CreateAction,
 			models.ChecklistQuestion{}.TableName(),
 			id,
 			checklistQuestionFormDTO,
@@ -89,7 +77,7 @@ func (cqs *ChecklistQuestionService) Create(currentUserID uint, checklistQuestio
 
 		if err != nil {
 			fields := map[string]interface{}{
-				"action":    logModels.CreateAction,
+				"action":    models.CreateAction,
 				"tableName": models.ChecklistQuestion{}.TableName(),
 				"recordID":  id,
 				"userID":    currentUserID,
@@ -118,7 +106,6 @@ func (cqs *ChecklistQuestionService) Update(id uint, currentUserID uint, checkli
 	existingChecklistQuestion.QuestionGroupID = checklistQuestionFormDTO.QuestionGroupID
 	existingChecklistQuestion.QuestionEn = checklistQuestionFormDTO.QuestionEn
 	existingChecklistQuestion.QuestionAr = checklistQuestionFormDTO.QuestionAr
-	existingChecklistQuestion.QuestionLibraryID = &checklistQuestionFormDTO.QuestionLibraryID
 
 	err = cqs.repo.Update(id, existingChecklistQuestion)
 
@@ -153,7 +140,7 @@ func (cqs *ChecklistQuestionService) Delete(ids []uint, currentUserID uint) ([]u
 
 		go func() {
 			err := cqs.activityLogSvc.LogBulkActivities(
-				logModels.DeleteAction, // Make sure this action constant is defined appropriately
+				models.DeleteAction, // Make sure this action constant is defined appropriately
 				models.ChecklistQuestion{}.TableName(),
 				successfulIds,
 				nil,
@@ -179,23 +166,11 @@ func (cqs *ChecklistQuestionService) validateChecklistQuestionFormDTO(checklistQ
 		return utility.NewValidationError(fmt.Errorf("question group does not exist"), "not_exist", "question group")
 	}
 
-	if checklistQuestionFormDTO.QuestionLibraryID != 0 {
-		if _, err := cqs.questionLibrarySvc.GetByID(checklistQuestionFormDTO.QuestionLibraryID); err != nil {
-			return utility.NewValidationError(fmt.Errorf("question library does not exist"), "not_exist", "question library")
-		}
-	}
-
 	if id == nil {
 		if exists, err := cqs.repo.ExistsByTitle(checklistQuestionFormDTO.QuestionEn, checklistQuestionFormDTO.QuestionAr, checklistQuestionFormDTO.ChecklistID, checklistQuestionFormDTO.QuestionGroupID); err != nil {
 			return err
 		} else if exists {
 			return utility.NewValidationError(fmt.Errorf("the question must be unique"), "unique", "question")
-		}
-
-		if existsInLibrary, err := cqs.repo.ExistsQuestionLibrary(checklistQuestionFormDTO.QuestionLibraryID, checklistQuestionFormDTO.QuestionEn, checklistQuestionFormDTO.QuestionAr); err != nil {
-			return err
-		} else if existsInLibrary {
-			return utility.NewValidationError(fmt.Errorf("the question already exists in this checklist"), "unique", "question")
 		}
 
 	} else {
@@ -204,13 +179,6 @@ func (cqs *ChecklistQuestionService) validateChecklistQuestionFormDTO(checklistQ
 		} else if exists {
 			return utility.NewValidationError(fmt.Errorf("the question must be unique"), "unique", "question")
 		}
-
-		if existsInLibrary, err := cqs.repo.ExistsQuestionLibraryExcludingID(*id, checklistQuestionFormDTO.QuestionEn, checklistQuestionFormDTO.QuestionAr, checklistQuestionFormDTO.QuestionLibraryID); err != nil {
-			return err
-		} else if existsInLibrary {
-			return utility.NewValidationError(fmt.Errorf("the question already exists in this checklist"), "unique", "question")
-		}
-
 	}
 
 	return nil

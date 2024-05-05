@@ -4,7 +4,6 @@ import (
 	"fmt"
 	slaDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/repositories"
-	logModels "jethur/grc/logs/models"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
@@ -130,7 +129,7 @@ func (srs *SLARenewService) Renew(slaId uint, currentUserID uint, slaRenewFormDT
 
 	go func() {
 		err := srs.activityLogSvc.LogActivity(
-			logModels.UpdateAction,
+			models.UpdateAction,
 			models.SLADocument{}.TableName(),
 			slaId,
 			slaRenewFormDTO,
@@ -140,7 +139,7 @@ func (srs *SLARenewService) Renew(slaId uint, currentUserID uint, slaRenewFormDT
 
 		if err != nil {
 			fields := map[string]interface{}{
-				"action":    logModels.UpdateAction,
+				"action":    models.UpdateAction,
 				"tableName": models.SLADocument{}.TableName(),
 				"recordID":  slaId,
 				"userID":    currentUserID,
@@ -199,7 +198,7 @@ func (srs *SLARenewService) Revert(slaId uint, currentUserID uint) error {
 	tx.Commit()
 	go func() {
 		err := srs.activityLogSvc.LogActivity(
-			logModels.UpdateAction,
+			models.UpdateAction,
 			models.SLADocument{}.TableName(),
 			previousSLADocument.ID,
 			previousSLADocument,
@@ -209,7 +208,7 @@ func (srs *SLARenewService) Revert(slaId uint, currentUserID uint) error {
 
 		if err != nil {
 			fields := map[string]interface{}{
-				"action":    logModels.UpdateAction,
+				"action":    models.UpdateAction,
 				"tableName": models.SLADocument{}.TableName(),
 				"recordID":  previousSLADocument.ID,
 				"userID":    currentUserID,

@@ -3,7 +3,6 @@ package services
 import (
 	"errors"
 	"fmt"
-	logModels "jethur/grc/logs/models"
 	activityLogServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	riskDTOs "jethur/grc/risk/dtos"
@@ -67,6 +66,7 @@ func (rmis *RiskMatrixImpactService) Create(currentUserID uint, riskMatrixImpact
 		RiskMatrixID:  riskMatrix.ID,
 		TitleEn:       riskMatrixImpactFormDTO.TitleEn,
 		TitleAr:       riskMatrixImpactFormDTO.TitleAr,
+		Score:         riskMatrixImpactFormDTO.Score,
 		DescriptionEn: riskMatrixImpactFormDTO.DescriptionEn,
 		DescriptionAr: riskMatrixImpactFormDTO.DescriptionAr,
 		Status:        riskMatrixImpactFormDTO.Status,
@@ -79,7 +79,7 @@ func (rmis *RiskMatrixImpactService) Create(currentUserID uint, riskMatrixImpact
 
 	go func() {
 		err := rmis.activityLogSvc.LogActivity(
-			logModels.CreateAction,
+			models.CreateAction,
 			models.RiskMatrixImpact{}.TableName(),
 			id,
 			riskMatrixImpactFormDTO,
@@ -89,7 +89,7 @@ func (rmis *RiskMatrixImpactService) Create(currentUserID uint, riskMatrixImpact
 
 		if err != nil {
 			fields := map[string]interface{}{
-				"action":    logModels.CreateAction,
+				"action":    models.CreateAction,
 				"tableName": models.RiskMatrixImpact{}.TableName(),
 				"recordID":  id,
 				"userID":    currentUserID,
@@ -117,6 +117,7 @@ func (rmis *RiskMatrixImpactService) Update(id uint, currentUserID uint, riskMat
 
 	existingImpact.TitleEn = riskMatrixImpactFormDTO.TitleEn
 	existingImpact.TitleAr = riskMatrixImpactFormDTO.TitleAr
+	existingImpact.Score = riskMatrixImpactFormDTO.Score
 	existingImpact.DescriptionEn = riskMatrixImpactFormDTO.DescriptionEn
 	existingImpact.DescriptionAr = riskMatrixImpactFormDTO.DescriptionAr
 	existingImpact.Status = riskMatrixImpactFormDTO.Status
@@ -155,7 +156,7 @@ func (rmis *RiskMatrixImpactService) Delete(ids []uint, currentUserID uint) ([]u
 
 		go func() {
 			err := rmis.activityLogSvc.LogBulkActivities(
-				logModels.DeleteAction, // Make sure this action constant is defined appropriately
+				models.DeleteAction, // Make sure this action constant is defined appropriately
 				models.RiskMatrixImpact{}.TableName(),
 				successfulIds,
 				nil,
@@ -179,7 +180,7 @@ func (rmis *RiskMatrixImpactService) Activate(ids []uint, currentUserID uint) er
 
 		go func() {
 			err := rmis.activityLogSvc.LogBulkActivities(
-				logModels.ActivateAction,
+				models.ActivateAction,
 				models.RiskMatrixImpact{}.TableName(),
 				successfulIds,
 				nil,
@@ -203,7 +204,7 @@ func (rmis *RiskMatrixImpactService) Deactivate(ids []uint, currentUserID uint) 
 
 		go func() {
 			err := rmis.activityLogSvc.LogBulkActivities(
-				logModels.DeactivateAction,
+				models.DeactivateAction,
 				models.RiskMatrixImpact{}.TableName(),
 				successfulIds,
 				nil,

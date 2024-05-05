@@ -3,7 +3,6 @@ package services
 import (
 	"errors"
 	"fmt"
-	logModels "jethur/grc/logs/models"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	riskDTOs "jethur/grc/risk/dtos"
@@ -110,7 +109,7 @@ func (rass *RiskAppetiteStatementService) Create(currentUserID uint, riskAppetit
 
 	go func() {
 		err := rass.activityLogSvc.LogActivity(
-			logModels.CreateAction,
+			models.CreateAction,
 			models.RiskAppetiteStatement{}.TableName(),
 			id,
 			riskAppetiteStatementFormDTO,
@@ -120,7 +119,7 @@ func (rass *RiskAppetiteStatementService) Create(currentUserID uint, riskAppetit
 
 		if err != nil {
 			fields := map[string]interface{}{
-				"action":    logModels.CreateAction,
+				"action":    models.CreateAction,
 				"tableName": models.RiskAppetiteStatement{}.TableName(),
 				"recordID":  id,
 				"userID":    currentUserID,
@@ -183,7 +182,7 @@ func (rass *RiskAppetiteStatementService) Delete(ids []uint, currentUserID uint)
 
 		go func() {
 			err := rass.activityLogSvc.LogBulkActivities(
-				logModels.DeleteAction, // Make sure this action constant is defined appropriately
+				models.DeleteAction, // Make sure this action constant is defined appropriately
 				models.RiskAppetiteStatement{}.TableName(),
 				successfulIds,
 				nil,
@@ -207,7 +206,7 @@ func (rass *RiskAppetiteStatementService) Activate(ids []uint, currentUserID uin
 
 		go func() {
 			err := rass.activityLogSvc.LogBulkActivities(
-				logModels.ActivateAction,
+				models.ActivateAction,
 				models.RiskAppetiteStatement{}.TableName(),
 				successfulIds,
 				nil,
@@ -231,7 +230,7 @@ func (rass *RiskAppetiteStatementService) Deactivate(ids []uint, currentUserID u
 
 		go func() {
 			err := rass.activityLogSvc.LogBulkActivities(
-				logModels.DeactivateAction,
+				models.DeactivateAction,
 				models.RiskAppetiteStatement{}.TableName(),
 				successfulIds,
 				nil,

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/repositories"
-	logModels "jethur/grc/logs/models"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
@@ -86,7 +85,7 @@ func (scqs *SLACheckQuestionService) UpdateQuestionGroup(slaID uint, checkID uin
 	// Log the activity
 	go func() {
 		err := scqs.activityLogSvc.LogActivity(
-			logModels.UpdateAction,
+			models.UpdateAction,
 			models.SLACheckQuestionGroup{}.TableName(),
 			groupID,
 			group,
@@ -96,7 +95,7 @@ func (scqs *SLACheckQuestionService) UpdateQuestionGroup(slaID uint, checkID uin
 
 		if err != nil {
 			fields := map[string]interface{}{
-				"action":    logModels.UpdateAction,
+				"action":    models.UpdateAction,
 				"tableName": models.SLACheckQuestionGroup{}.TableName(),
 				"recordID":  groupID,
 				"userID":    currentUserID,
@@ -155,7 +154,7 @@ func (scqs *SLACheckQuestionService) DeleteQuestionGroup(slaID uint, checkID uin
 	if len(successfulQuestionIDs) > 0 {
 		go func() {
 			err := scqs.activityLogSvc.LogBulkActivities(
-				logModels.DeleteAction,
+				models.DeleteAction,
 				models.SLACheckQuestion{}.TableName(),
 				successfulQuestionIDs,
 				nil,
@@ -172,7 +171,7 @@ func (scqs *SLACheckQuestionService) DeleteQuestionGroup(slaID uint, checkID uin
 	if successfulGroupID != 0 {
 		go func() {
 			err := scqs.activityLogSvc.LogActivity(
-				logModels.DeleteAction,
+				models.DeleteAction,
 				models.SLACheckQuestionGroup{}.TableName(),
 				successfulGroupID,
 				questionGroup,
@@ -283,7 +282,7 @@ func (scqs SLACheckQuestionService) ChooseQuestions(slaID uint, checkID uint, cu
 	if len(successfulIds) > 0 {
 		go func() {
 			err := scqs.activityLogSvc.LogBulkActivities(
-				logModels.CreateAction,
+				models.CreateAction,
 				models.SLACheckQuestion{}.TableName(),
 				successfulIds,
 				nil,
@@ -351,7 +350,7 @@ func (scqs *SLACheckQuestionService) CreateQuestion(slaID uint, checkID uint, cu
 
 	go func() {
 		err := scqs.activityLogSvc.LogActivity(
-			logModels.CreateAction,
+			models.CreateAction,
 			models.SLACheckQuestion{}.TableName(),
 			slaCheckQuestionId,
 			slaCheckQuestion,
@@ -361,7 +360,7 @@ func (scqs *SLACheckQuestionService) CreateQuestion(slaID uint, checkID uint, cu
 
 		if err != nil {
 			fields := map[string]interface{}{
-				"action":    logModels.CreateAction,
+				"action":    models.CreateAction,
 				"tableName": models.SLACheckQuestion{}.TableName(),
 				"recordID":  slaCheckQuestionId,
 				"userID":    currentUserID,
@@ -401,7 +400,7 @@ func (scqs *SLACheckQuestionService) UpdateQuestion(slaID uint, checkID uint, qu
 	// Log the activity
 	go func() {
 		err := scqs.activityLogSvc.LogActivity(
-			logModels.UpdateAction,
+			models.UpdateAction,
 			models.SLACheckQuestion{}.TableName(),
 			questionID,
 			existingQuestion,
@@ -411,7 +410,7 @@ func (scqs *SLACheckQuestionService) UpdateQuestion(slaID uint, checkID uint, qu
 
 		if err != nil {
 			fields := map[string]interface{}{
-				"action":    logModels.UpdateAction,
+				"action":    models.UpdateAction,
 				"tableName": models.SLACheckQuestion{}.TableName(),
 				"recordID":  questionID,
 				"userID":    currentUserID,
@@ -447,7 +446,7 @@ func (scqs *SLACheckQuestionService) DeleteQuestion(slaID uint, checkId uint, qu
 	if successfulId != 0 {
 		go func() {
 			err := scqs.activityLogSvc.LogActivity(
-				logModels.DeleteAction,
+				models.DeleteAction,
 				models.SLACheckQuestion{}.TableName(),
 				successfulId,
 				question,

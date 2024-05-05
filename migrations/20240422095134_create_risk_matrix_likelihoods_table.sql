@@ -5,6 +5,7 @@ CREATE TABLE risk_matrix_likelihoods (
     risk_matrix_id INT NOT NULL,
     title_en NVARCHAR(100) NOT NULL,
     title_ar NVARCHAR(100) NOT NULL,
+    score INT NOT NULL,
     description_en NVARCHAR(max) NOT NULL,
     description_ar NVARCHAR(max) NOT NULL,
     status VARCHAR(10) NOT NULL DEFAULT 'active',

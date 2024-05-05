@@ -3,7 +3,6 @@ package services
 import (
 	"errors"
 	"fmt"
-	logModels "jethur/grc/logs/models"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/grc/organization/repositories"
@@ -67,7 +66,7 @@ func (ds *DesignationService) Create(currentUserID uint, designation *models.Des
 
 	go func() {
 		err := ds.activityLogSvc.LogActivity(
-			logModels.CreateAction,
+			models.CreateAction,
 			models.Designation{}.TableName(),
 			createdDesignation.ID,
 			createdDesignation,
@@ -120,7 +119,7 @@ func (ds *DesignationService) Update(id uint, currentUserID uint, updatedDesigna
 
 	go func() {
 		err := ds.activityLogSvc.LogActivity(
-			logModels.UpdateAction,
+			models.UpdateAction,
 			models.Designation{}.TableName(),
 			result.ID,
 			changedDataJSON,
@@ -159,7 +158,7 @@ func (ds *DesignationService) Delete(ids []uint, currentUserID uint) ([]uint, er
 
 		go func() {
 			err := ds.activityLogSvc.LogBulkActivities(
-				logModels.DeleteAction, // Make sure this action constant is defined appropriately
+				models.DeleteAction, // Make sure this action constant is defined appropriately
 				models.Designation{}.TableName(),
 				successfulIds,
 				nil,
@@ -183,7 +182,7 @@ func (ds *DesignationService) Activate(ids []uint, currentUserID uint) error {
 
 		go func() {
 			err := ds.activityLogSvc.LogBulkActivities(
-				logModels.ActivateAction,
+				models.ActivateAction,
 				models.Designation{}.TableName(),
 				successfulIds,
 				nil,
@@ -207,7 +206,7 @@ func (ds *DesignationService) Deactivate(ids []uint, currentUserID uint) error {
 
 		go func() {
 			err := ds.activityLogSvc.LogBulkActivities(
-				logModels.DeactivateAction,
+				models.DeactivateAction,
 				models.Designation{}.TableName(),
 				successfulIds,
 				nil,

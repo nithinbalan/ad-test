@@ -2,10 +2,9 @@ package services
 
 import (
 	"fmt"
-	logModels "jethur/grc/logs/models"
 	"jethur/grc/logs/services"
-	"jethur/grc/masters/models"
-	"jethur/grc/masters/repositories"
+	"jethur/grc/models"
+	"jethur/grc/risk/repositories"
 	"jethur/utility"
 	"log"
 )
@@ -54,7 +53,7 @@ func (kcs *KRICategoryService) Create(currentUserID uint, category *models.KRICa
 
 	go func() {
 		err := kcs.activityLogSvc.LogActivity(
-			logModels.CreateAction,
+			models.CreateAction,
 			models.KRICategory{}.TableName(),
 			category.ID,
 			createdCategory,
@@ -102,7 +101,7 @@ func (kcs *KRICategoryService) Update(id uint, currentUserID uint, updatedCatego
 
 	go func() {
 		err := kcs.activityLogSvc.LogActivity(
-			logModels.UpdateAction,
+			models.UpdateAction,
 			models.KRICategory{}.TableName(),
 			result.ID,
 			changedDataJSON,
@@ -140,7 +139,7 @@ func (kcs *KRICategoryService) Delete(ids []uint, currentUserID uint) ([]uint, e
 
 		go func() {
 			err := kcs.activityLogSvc.LogBulkActivities(
-				logModels.DeleteAction,
+				models.DeleteAction,
 				models.KRICategory{}.TableName(),
 				successfulIds,
 				nil,
@@ -164,7 +163,7 @@ func (kcs *KRICategoryService) Activate(ids []uint, currentUserID uint) error {
 
 		go func() {
 			err := kcs.activityLogSvc.LogBulkActivities(
-				logModels.ActivateAction,
+				models.ActivateAction,
 				models.KRICategory{}.TableName(),
 				successfulIds,
 				nil,
@@ -188,7 +187,7 @@ func (kcs *KRICategoryService) Deactivate(ids []uint, currentUserID uint) error 
 
 		go func() {
 			err := kcs.activityLogSvc.LogBulkActivities(
-				logModels.DeactivateAction,
+				models.DeactivateAction,
 				models.KRICategory{}.TableName(),
 				successfulIds,
 				nil,

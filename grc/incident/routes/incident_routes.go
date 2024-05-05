@@ -29,6 +29,14 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	incidentSubCategorySvc := incidentServices.NewIncidentSubCategoryService(incidentSubCategoryRepo, activityLogSvc, incidentCategorySvc)
 	incidentSubCategoryController := controllers.NewIncidentSubCategoryController(incidentSubCategorySvc)
 
+	incidentTypeRepo := incidentRepositories.NewIncidentTypeRepository(db)
+	incidentTypeSvc := incidentServices.NewIncidentTypeService(incidentTypeRepo, activityLogSvc)
+	incidentTypeController := controllers.NewIncidentTypeController(incidentTypeSvc)
+
+	incidentStatusRepo := incidentRepositories.NewIncidentStatusRepository(db)
+	incidentStatusSvc := incidentServices.NewIncidentStatusService(incidentStatusRepo)
+	incidentStatusController := controllers.NewIncidentStatusController(incidentStatusSvc)
+
 	//Incident Category
 	incidentRoutes.GET("/incident-categories", incidentCategoryController.GetAllIncidentCategories)
 	incidentRoutes.GET("/incident-categories/:id", incidentCategoryController.GetIncidentCategoryDetails)
@@ -46,5 +54,18 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	incidentRoutes.POST("/incident-sub-categories/delete", incidentSubCategoryController.DeleteIncidentSubCategories)
 	incidentRoutes.PUT("/incident-sub-categories/activate", incidentSubCategoryController.ActivateIncidentSubCategories)
 	incidentRoutes.PUT("/incident-sub-categories/deactivate", incidentSubCategoryController.DeactivateIncidentSubCategories)
+	
+	//Incident Type
+	incidentRoutes.GET("/incident-types", incidentTypeController.GetAllIncidentTypes)
+	incidentRoutes.GET("/incident-types/:id", incidentTypeController.GetIncidentTypeDetails)
+	incidentRoutes.POST("/incident-types", incidentTypeController.CreateIncidentType)
+	incidentRoutes.PUT("/incident-types/:id", incidentTypeController.UpdateIncidentType)
+	incidentRoutes.POST("/incident-types/delete", incidentTypeController.DeleteIncidentTypes)
+	incidentRoutes.PUT("/incident-types/activate", incidentTypeController.ActivateIncidentTypes)
+	incidentRoutes.PUT("/incident-types/deactivate", incidentTypeController.DeactivateIncidentTypes)
+
+	//Incident Status
+	incidentRoutes.GET("/incident-statuses", incidentStatusController.GetAllIncidentStatuses)
+	incidentRoutes.GET("/incident-statuses/:id", incidentStatusController.GetIncidentStatusDetails)
 
 }

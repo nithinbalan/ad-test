@@ -2,8 +2,6 @@ package models
 
 import (
 	"time"
-
-	masterModels "jethur/grc/masters/models"
 )
 
 type KRIRegister struct {
@@ -30,13 +28,13 @@ type KRIRegister struct {
 	UpdatedBy         *uint      `json:"updated_by" gorm:"default:null"`
 
 	// Relationships
-	KRICategory     *masterModels.KRICategory     `gorm:"foreignkey:KRICategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	OwnerUnit       *OrganizationUnit             `gorm:"foreignkey:OwnerUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	Owner           *User                         `gorm:"foreignkey:OwnerID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ReviewFrequency *masterModels.ReviewFrequency `gorm:"foreignkey:ReviewFrequencyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	RiskLevel       *RiskLevel                    `gorm:"foreignkey:RiskLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser   *User                         `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser   *User                         `gorm:"foreignKey:UpdatedBy"`
+	KRICategory     *KRICategory      `gorm:"foreignkey:KRICategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	OwnerUnit       *OrganizationUnit `gorm:"foreignkey:OwnerUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Owner           *User             `gorm:"foreignkey:OwnerID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ReviewFrequency *ReviewFrequency  `gorm:"foreignkey:ReviewFrequencyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	RiskLevel       *RiskLevel        `gorm:"foreignkey:RiskLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	CreatedByUser   *User             `gorm:"foreignKey:CreatedBy"`
+	UpdatedByUser   *User             `gorm:"foreignKey:UpdatedBy"`
 }
 
 // TableName overrides the table name used by KRIRegister to `kri_register`

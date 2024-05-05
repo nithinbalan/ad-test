@@ -1,8 +1,8 @@
 package controllers
 
 import (
-	"jethur/grc/masters/models"
-	"jethur/grc/masters/services"
+	"jethur/grc/models"
+	"jethur/grc/risk/services"
 	"jethur/utility"
 	"net/http"
 	"strconv"

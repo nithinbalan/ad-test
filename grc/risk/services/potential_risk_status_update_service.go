@@ -2,7 +2,6 @@ package services
 
 import (
 	"fmt"
-	logModels "jethur/grc/logs/models"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	riskDTOs "jethur/grc/risk/dtos"
@@ -74,7 +73,7 @@ func (prsus *PotentialRiskStatusUpdateService) Create(potentialRiskID uint, curr
 
 	go func() {
 		err := prsus.activityLogSvc.LogActivity(
-			logModels.CreateAction,
+			models.CreateAction,
 			models.PotentialRiskStatusUpdate{}.TableName(),
 			id,
 			potentialRiskUpdate,
@@ -84,7 +83,7 @@ func (prsus *PotentialRiskStatusUpdateService) Create(potentialRiskID uint, curr
 
 		if err != nil {
 			fields := map[string]interface{}{
-				"action":    logModels.CreateAction,
+				"action":    models.CreateAction,
 				"tableName": models.PotentialRiskStatusUpdate{}.TableName(),
 				"recordID":  id,
 				"userID":    currentUserID,

@@ -3,8 +3,8 @@ package repositories
 import (
 	"errors"
 	commonDTOs "jethur/grc/common/dtos"
-	masterDTOs "jethur/grc/masters/dtos"
-	"jethur/grc/masters/models"
+	libraryDTOs "jethur/grc/library/dtos"
+	"jethur/grc/models"
 	"jethur/utility"
 
 	"gorm.io/gorm"
@@ -12,7 +12,7 @@ import (
 
 // Interfaces
 type QuestionLibraryRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int) (*masterDTOs.QuestionLibraryListResponseDTO, error)
+	GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int) (*libraryDTOs.QuestionLibraryListResponseDTO, error)
 	GetByID(id uint) (*models.QuestionLibrary, error)
 	Create(article *models.QuestionLibrary) (uint, error)
 	Update(id uint, questionLibrary *models.QuestionLibrary) (*models.QuestionLibrary, error)
@@ -34,9 +34,9 @@ func NewQuestionLibraryRepository(db *gorm.DB) *QuestionLibraryRepository {
 	}
 }
 
-func (repo *QuestionLibraryRepository) GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int) (*masterDTOs.QuestionLibraryListResponseDTO, error) {
+func (repo *QuestionLibraryRepository) GetAll(sort string, sortBy string, keyword string, status string, page int, pageSize int) (*libraryDTOs.QuestionLibraryListResponseDTO, error) {
 
-	var questionLibrary []*masterDTOs.QuestionLibraryListDTO
+	var questionLibrary []*libraryDTOs.QuestionLibraryListDTO
 	var totalCount int64
 
 	query := repo.db.Table("question_library").
@@ -82,7 +82,7 @@ func (repo *QuestionLibraryRepository) GetAll(sort string, sortBy string, keywor
 
 	totalPages := int((totalCount + int64(pageSize) - 1) / int64(pageSize))
 
-	response := &masterDTOs.QuestionLibraryListResponseDTO{
+	response := &libraryDTOs.QuestionLibraryListResponseDTO{
 		Items: questionLibrary,
 		Pagination: commonDTOs.PaginationInfoDTO{
 			CurrentPage: page,
