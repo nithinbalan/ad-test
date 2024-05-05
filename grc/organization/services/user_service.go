@@ -426,7 +426,6 @@ func (us *UserService) DisableMFA(userID uint) error {
 }
 
 func (us *UserService) ResetPassword(userID uint) error {
-
 	existingUserSecurity, err := us.repo.GetUserSecurityByUserID(userID)
 	if err != nil {
 		return utility.NewResourceNotFoundError(err, nil)

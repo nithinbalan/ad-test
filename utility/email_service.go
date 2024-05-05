@@ -2,6 +2,7 @@ package utility
 
 import (
 	"bytes"
+	"fmt"
 	"html/template"
 	"jethur/assets"
 	"jethur/config"
@@ -18,17 +19,21 @@ type EmailConfig struct {
 }
 
 func SendTemplatedEmail(to []string, subject, templateRelativePath string, templateData interface{}, attachments []string) error {
-
 	emailConfig := getEmailConfig()
 
 	templates, err := parseEmailTemplates(templateRelativePath)
 	if err != nil {
+		fmt.Printf("Failed to parse templates from path '%s': %v\n", templateRelativePath, err)
 		return err
+	} else {
+		fmt.Println("Templates parsed successfully.")
 	}
-
 	var body bytes.Buffer
 	if err := templates.Execute(&body, templateData); err != nil {
+		fmt.Printf("Failed to execute template with data %v: %v\n", templateData, err)
 		return err
+	} else {
+		fmt.Println("Template executed successfully, email body generated.")
 	}
 
 	message := createEmailMessage(to, subject, body.String(), attachments, emailConfig.From)
