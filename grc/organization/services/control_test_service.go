@@ -307,7 +307,6 @@ func (cts *ControlTestService) Delete(controlID uint, ids []uint, currentUserID 
 
 	_, err := cts.controlSvc.GetByID(controlID)
 	if err != nil {
-		tx.Rollback()
 		return nil, err
 	}
 
