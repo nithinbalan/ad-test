@@ -98,7 +98,7 @@ func (cc *ControlController) GetAllControls(c *gin.Context) {
 }
 
 func (crc *ControlController) GetControlDetails(c *gin.Context) {
-	idStr := c.Param("id")
+	idStr := c.Param("controlId")
 
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -151,7 +151,7 @@ func (cc *ControlController) CreateControl(c *gin.Context) {
 }
 
 func (cc *ControlController) UpdateControl(c *gin.Context) {
-	controlID, err := strconv.Atoi(c.Param("id"))
+	controlID, err := strconv.Atoi(c.Param("controlId"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
