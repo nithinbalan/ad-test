@@ -15,8 +15,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// @todo - @document support to be added
-// @todo - transaction to be added
 type ComplianceActionPlanStatusUpdateServiceInterface interface {
 	GetAll(ComplianceID uint, ComplianceActionPlanID uint, sort string, sortBy string, keyword string) ([]*complianceDTOs.ComplianceActionPlanStatusUpdateListDTO, error)
 	Create(ComplianceID uint, ComplianceActionPlanID uint, currentUserID uint, complianceActionPlanStatusUpdateFormDTO *complianceDTOs.ComplianceActionPlanStatusUpdateFormDTO) (uint, error)
@@ -79,9 +77,7 @@ func (casus *ComplianceActionPlanStatusUpdateService) Create(ComplianceID uint, 
 		return 0, err
 	}
 
-	if err := casus.validateComplianceActionPlanStatusUpdateDocumentsFormDTO(complianceActionPlanStatusUpdateFormDTO.Documents); err != nil {
-		return 0, err
-	}
+	//@todo validate document form
 
 	complianceActionPlanUpdate := &models.ComplianceActionPlanStatusUpdate{
 		ComplianceActionPlanID: ComplianceActionPlanID,
@@ -110,6 +106,7 @@ func (casus *ComplianceActionPlanStatusUpdateService) Create(ComplianceID uint, 
 		dataToEncrypt := []byte(doc.FileName)
 		encryptedFilename, err := utility.EncryptData(dataToEncrypt)
 		if err != nil {
+			tx.Rollback()
 			return 0, err
 		}
 
@@ -130,7 +127,7 @@ func (casus *ComplianceActionPlanStatusUpdateService) Create(ComplianceID uint, 
 	}
 
 	if len(documents) > 0 {
-		if err := casus.repo.SaveComplianceActionPlanStatusUpdateDocument(documents, tx); err != nil {
+		if err := casus.repo.CreateDocuments(documents, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
@@ -138,6 +135,7 @@ func (casus *ComplianceActionPlanStatusUpdateService) Create(ComplianceID uint, 
 		for _, doc := range documents {
 			storagePath := filepath.Join("compliance", "compliance", strconv.FormatUint(uint64(ComplianceID), 10), "action-plans", strconv.FormatUint(uint64(ComplianceActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
+				tx.Rollback()
 				return 0, err
 			}
 
@@ -188,9 +186,7 @@ func (casus *ComplianceActionPlanStatusUpdateService) Update(ComplianceID uint, 
 		return err
 	}
 
-	if err := casus.validateComplianceActionPlanStatusUpdateDocumentsFormDTO(ComplianceActionPlanStatusUpdateFormDTO.Documents); err != nil {
-		return err
-	}
+	//@todo validate docuemnt form
 
 	// Update Compliance StatusUpdate-- only comments and percentage
 	existingComplianceActionPlanStatusUpdate.Comment = ComplianceActionPlanStatusUpdateFormDTO.Comment
@@ -206,65 +202,83 @@ func (casus *ComplianceActionPlanStatusUpdateService) Update(ComplianceID uint, 
 
 	var documents []*models.ComplianceActionPlanStatusUpdateDocument
 	var deleteDocumentIds []*uint
+	var documentsToDelete []*models.ComplianceActionPlanStatusUpdateDocument
 
 	for _, doc := range ComplianceActionPlanStatusUpdateFormDTO.Documents {
-		storagePath := filepath.Join("compliance", "compliance", strconv.FormatUint(uint64(ComplianceID), 10), "action-plans", strconv.FormatUint(uint64(ComplianceActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
+
 		if doc.IsNewFile != nil && *doc.IsNewFile {
-			if err := utility.StoreFile(doc.FileName, storagePath); err != nil {
-				tx.Rollback()
-				return err
-			}
+			// Encrypt the filename
 			dataToEncrypt := []byte(doc.FileName)
-			encryptedFilename, err := utility.EncryptData(dataToEncrypt)
+			encryptedFileName, err := utility.EncryptData(dataToEncrypt)
+
 			if err != nil {
 				tx.Rollback()
 				return err
 			}
-			url := utility.GenerateDocumentURL("compliances", strconv.FormatUint(uint64(ComplianceID), 10), "action-plans", strconv.FormatUint(uint64(ComplianceActionPlanID), 10), "status-updates", encryptedFilename)
-			// Create a new ComplianceActionPlanStatusUpdateDocument instance
+
+			//genereate URL
+			url := utility.GenerateDocumentURL("compliances", strconv.FormatUint(uint64(ComplianceID), 10), "action-plans", strconv.FormatUint(uint64(ComplianceActionPlanID), 10), "status-updates", encryptedFileName)
+			// Create a new Control test Document instance
 			document := &models.ComplianceActionPlanStatusUpdateDocument{
 				ComplianceActionPlanStatusUpdateID: id,
 				URL:                                url,
 				Icon:                               doc.Icon,
 				Name:                               doc.FileName,
 				Size:                               doc.Size,
-				Token:                              encryptedFilename,
+				Token:                              encryptedFileName,
 				Type:                               doc.Type,
-				CreatedBy:                          currentUserID,
 			}
+
+			// Append the document to the slice
 			documents = append(documents, document)
 
 		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
-			// Handle deleted file case
 			if doc.ID != nil {
-				existingDocument, err := casus.repo.GetComplianceActionPlanStatusUpdateDocumentByID(*doc.ID)
+				existingDocument, err := casus.repo.GetDocumentByID(*doc.ID)
 				if err != nil {
+					if errors.Is(err, gorm.ErrRecordNotFound) {
+						return utility.NewResourceNotFoundError(err, id)
+					}
 					return err
 				}
-				if existingDocument == nil {
-					tx.Rollback()
-					return fmt.Errorf("existing document not found for ID: %d", *doc.ID)
-				}
-				if err := utility.RemoveFile(existingDocument.Name, storagePath); err != nil {
-					tx.Rollback()
-					return err
-				}
+
+				documentsToDelete = append(documentsToDelete, existingDocument)
 				deleteDocumentIds = append(deleteDocumentIds, &existingDocument.ID)
 			}
 		}
 	}
+
 	if len(documents) > 0 {
-		if err := casus.repo.SaveComplianceActionPlanStatusUpdateDocument(documents, tx); err != nil {
+		if err := casus.repo.CreateDocuments(documents, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
 	}
+
 	if len(deleteDocumentIds) > 0 {
-		if err := casus.repo.DeleteComplianceActionPlanStatusUpdateDocuments(deleteDocumentIds, tx); err != nil {
+		if err := casus.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
 	}
+
+	for _, doc := range documents {
+		storagePath := filepath.Join("compliance", "compliance", strconv.FormatUint(uint64(ComplianceID), 10), "action-plans", strconv.FormatUint(uint64(ComplianceActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
+
+		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	for _, document := range documentsToDelete {
+		storagePath := filepath.Join("compliance", "compliance", strconv.FormatUint(uint64(ComplianceID), 10), "action-plans", strconv.FormatUint(uint64(ComplianceActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
+		if err := utility.RemoveFile(document.Name, storagePath); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
 	tx.Commit()
 
 	return nil
@@ -274,37 +288,6 @@ func (casus *ComplianceActionPlanStatusUpdateService) validateComplianceActionPl
 
 	if _, err := casus.actionPlanStatusSvc.GetByID(complianceActionPlanStatusUpdateFormDTO.ActionPlanStatusID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("action plan status does not exist"), "not_exist", "action plan status")
-	}
-
-	return nil
-}
-
-func (casus *ComplianceActionPlanStatusUpdateService) validateComplianceActionPlanStatusUpdateDocumentsFormDTO(documents []*complianceDTOs.ComplianceActionPlanStatusUpdateDocumentFormDTO) error {
-	// Check if documents array is empty
-	if len(documents) == 0 {
-		return utility.NewValidationError(fmt.Errorf("documents array is required"), "required", "documents")
-	}
-
-	for _, document := range documents {
-		//@Review
-		//All items are mandatory during creation
-
-		// Validate icon
-		if document.Icon == "" {
-			return utility.NewValidationError(fmt.Errorf("icon is required"), "required", "icon")
-		}
-
-		// Validate file type (PDF)
-		// if document.Type != ".pdf" {
-		//     return utility.NewValidationError(fmt.Errorf("only PDF files are allowed"), "invalid_file_type", "type")
-		// }
-
-		// @todo
-		// Validate file size (if needed)
-		// For example:
-		// if document.Size > MaxFileSize {
-		//     return utility.NewValidationError(fmt.Errorf("file size exceeds the limit"), "invalid_file_size", "file_size")
-		// }
 	}
 
 	return nil

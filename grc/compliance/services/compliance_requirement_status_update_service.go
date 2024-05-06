@@ -76,9 +76,8 @@ func (crsus *ComplianceRequirementStatusUpdateService) Create(ComplianceID uint,
 	if err := crsus.validateComplianceRequirementStatusUpdateFormDTO(complianceRequirementStatusUpdateFormDTO); err != nil {
 		return 0, err
 	}
-	if err := crsus.validateComplianceRequirementStatusUpdateDocumentsFormDTO(complianceRequirementStatusUpdateFormDTO.Documents); err != nil {
-		return 0, err // Returning 0 and the error if validation fails
-	}
+
+	//@todo validate document form
 
 	complianceStatusID := complianceRequirementStatusUpdateFormDTO.ComplianceStatusID
 	complianceRequirementUpdate := &models.ComplianceRequirementStatusUpdate{
@@ -93,7 +92,7 @@ func (crsus *ComplianceRequirementStatusUpdateService) Create(ComplianceID uint,
 		tx.Rollback()
 		return 0, err
 	}
-	err = crsus.complianceRequirementSvc.StatusUpdate(ComplianceID, ComplianceRequirementID, currentUserID, complianceStatusID)
+	err = crsus.complianceRequirementSvc.StatusUpdate(ComplianceID, ComplianceRequirementID, currentUserID, complianceStatusID, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -182,9 +181,8 @@ func (crsus *ComplianceRequirementStatusUpdateService) Update(ComplianceID uint,
 	if err != nil {
 		return err
 	}
-	if err := crsus.validateComplianceRequirementStatusUpdateDocumentsFormDTO(ComplianceRequirementStatusUpdateFormDTO.Documents); err != nil {
-		return err // Returning 0 and the error if validation fails
-	}
+
+	//@todo validate document form
 
 	// Update Compliance StatusUpdate -- update comment only
 	existingComplianceRequirementStatusUpdate.Comment = ComplianceRequirementStatusUpdateFormDTO.Comment
@@ -269,36 +267,6 @@ func (crsus *ComplianceRequirementStatusUpdateService) validateComplianceRequire
 
 	if _, err := crsus.complianceStatusSvc.GetByID(complianceRequirementStatusUpdateFormDTO.ComplianceStatusID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("compliance status does not exist"), "not_exist", "compliance status")
-	}
-
-	return nil
-}
-
-func (crsus *ComplianceRequirementStatusUpdateService) validateComplianceRequirementStatusUpdateDocumentsFormDTO(documents []*complianceDTOs.ComplianceRequirementStatusUpdateDocumentFormDTO) error {
-	// Check if documents array is nil or empty
-	if len(documents) == 0 {
-		return utility.NewValidationError(fmt.Errorf("documents is required"), "required", "documents")
-	}
-	for _, document := range documents {
-		//@Review
-		//All items are mandatory during creation
-
-		// Validate icon
-		if document.Icon == "" {
-			return utility.NewValidationError(fmt.Errorf("icon is required"), "required", "icon")
-		}
-
-		// Validate file type (PDF)
-		// if document.Type != ".pdf" {
-		//     return utility.NewValidationError(fmt.Errorf("only PDF files are allowed"), "invalid_file_type", "type")
-		// }
-
-		// @todo
-		// Validate file size (if needed)
-		// For example:
-		// if document.Size > MaxFileSize {
-		//     return utility.NewValidationError(fmt.Errorf("file size exceeds the limit"), "invalid_file_size", "file_size")
-		// }
 	}
 
 	return nil

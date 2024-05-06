@@ -16,10 +16,9 @@ type ComplianceActionPlanStatusUpdateRepositoryInterface interface {
 	Update(ComplianceActionPlanStatusUpdate *models.ComplianceActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) error
 
 	//Document
-	SaveComplianceActionPlanStatusUpdateDocument(docs []*models.ComplianceActionPlanStatusUpdateDocument, tx ...utility.DatabaseTransaction) error
-	GetComplianceActionPlanStatusUpdateDocumentByID(id uint) (*models.ComplianceActionPlanStatusUpdateDocument, error)
-	DeleteComplianceActionPlanStatusUpdateDocumentId(docId uint, tx ...utility.DatabaseTransaction) error
-	DeleteComplianceActionPlanStatusUpdateDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
+	CreateDocuments(docs []*models.ComplianceActionPlanStatusUpdateDocument, tx ...utility.DatabaseTransaction) error
+	GetDocumentByID(id uint) (*models.ComplianceActionPlanStatusUpdateDocument, error)
+	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type ComplianceActionPlanStatusUpdateRepository struct {
@@ -119,15 +118,7 @@ func (repo *ComplianceActionPlanStatusUpdateRepository) Update(ComplianceActionP
 	return nil
 }
 
-func (repo *ComplianceActionPlanStatusUpdateRepository) GetComplianceActionPlanStatusUpdateDocumentByID(id uint) (*models.ComplianceActionPlanStatusUpdateDocument, error) {
-	var document models.ComplianceActionPlanStatusUpdateDocument
-	if err := repo.db.Where("id = ?", id).First(&document).Error; err != nil {
-		return nil, err
-	}
-	return &document, nil
-}
-
-func (repo *ComplianceActionPlanStatusUpdateRepository) SaveComplianceActionPlanStatusUpdateDocument(docs []*models.ComplianceActionPlanStatusUpdateDocument, tx ...utility.DatabaseTransaction) error {
+func (repo *ComplianceActionPlanStatusUpdateRepository) CreateDocuments(docs []*models.ComplianceActionPlanStatusUpdateDocument, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -139,20 +130,15 @@ func (repo *ComplianceActionPlanStatusUpdateRepository) SaveComplianceActionPlan
 	return nil
 }
 
-func (repo *ComplianceActionPlanStatusUpdateRepository) DeleteComplianceActionPlanStatusUpdateDocumentId(docID uint, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
+func (repo *ComplianceActionPlanStatusUpdateRepository) GetDocumentByID(id uint) (*models.ComplianceActionPlanStatusUpdateDocument, error) {
+	var document models.ComplianceActionPlanStatusUpdateDocument
+	if err := repo.db.Where("id = ?", id).First(&document).Error; err != nil {
+		return nil, err
 	}
-
-	if err := db.Delete(&models.ComplianceActionPlanStatusUpdateDocument{}, docID).Error; err != nil {
-		return err
-	}
-
-	return nil
+	return &document, nil
 }
 
-func (repo *ComplianceActionPlanStatusUpdateRepository) DeleteComplianceActionPlanStatusUpdateDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error {
+func (repo *ComplianceActionPlanStatusUpdateRepository) DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()

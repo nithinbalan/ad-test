@@ -26,7 +26,7 @@ type ComplianceRegisterServiceInterface interface {
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	Archive(ids []uint, currentUserID uint) ([]uint, error)
 	Restore(ids []uint, currentUserID uint) ([]uint, error)
-	StatusUpdate(id uint, currentUserID uint, complianceStatusID uint) error
+	StatusUpdate(id uint, currentUserID uint, complianceStatusID uint, tx utility.DatabaseTransaction) error
 }
 
 // Service and implementations
@@ -440,7 +440,7 @@ func (crs *ComplianceRegisterService) Restore(ids []uint, currentUserID uint) ([
 	return successfulIds, nil
 }
 
-func (crs *ComplianceRegisterService) StatusUpdate(id uint, currentUserID uint, complianceStatusID uint) error {
+func (crs *ComplianceRegisterService) StatusUpdate(id uint, currentUserID uint, complianceStatusID uint, tx utility.DatabaseTransaction) error {
 	existingCompliance, err := crs.GetByID(id)
 
 	if err != nil {
@@ -450,7 +450,7 @@ func (crs *ComplianceRegisterService) StatusUpdate(id uint, currentUserID uint, 
 	existingCompliance.ComplianceStatusID = complianceStatusID
 	existingCompliance.UpdatedBy = &currentUserID
 
-	err = crs.repo.Update(existingCompliance)
+	err = crs.repo.Update(existingCompliance, tx)
 
 	if err != nil {
 		return err

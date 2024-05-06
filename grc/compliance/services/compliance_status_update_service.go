@@ -65,6 +65,7 @@ func (csus ComplianceStatusUpdateService) GetByID(complianceID uint, id uint) (*
 }
 
 func (csus *ComplianceStatusUpdateService) Create(complianceID uint, currentUserID uint, complianceStatusUpdateFormDTO *complianceDTOs.ComplianceStatusUpdateFormDTO) (uint, error) {
+	tx := csus.repo.BeginTransaction()
 	if _, err := csus.complianceRegisterSvc.GetByID(complianceID); err != nil {
 		return 0, err
 	}
@@ -82,13 +83,17 @@ func (csus *ComplianceStatusUpdateService) Create(complianceID uint, currentUser
 
 	id, err := csus.repo.Create(complianceUpdate)
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
-	err = csus.complianceRegisterSvc.StatusUpdate(complianceID, currentUserID, complianceStatusUpdateFormDTO.ComplianceStatusID)
+	err = csus.complianceRegisterSvc.StatusUpdate(complianceID, currentUserID, complianceStatusUpdateFormDTO.ComplianceStatusID, tx)
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
+
+	tx.Commit()
 
 	go func() {
 		err := csus.activityLogSvc.LogActivity(

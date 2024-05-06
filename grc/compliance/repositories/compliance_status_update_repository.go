@@ -3,11 +3,13 @@ package repositories
 import (
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/models"
+	"jethur/utility"
 
 	"gorm.io/gorm"
 )
 
 type ComplianceStatusUpdateRepositoryInterface interface {
+	BeginTransaction() utility.DatabaseTransaction
 	GetAll(complianceID uint, sort string, sortBy string, keyword string) ([]*complianceDTOs.ComplianceStatusUpdateListDTO, error)
 	GetByID(id uint) (*models.ComplianceStatusUpdate, error)
 	Create(ComplianceStatusUpdate *models.ComplianceStatusUpdate) (uint, error)
@@ -22,6 +24,10 @@ func NewComplianceStatusUpdateRepository(db *gorm.DB) *ComplianceStatusUpdateRep
 	return &ComplianceStatusUpdateRepository{
 		db: db,
 	}
+}
+
+func (repo *ComplianceStatusUpdateRepository) BeginTransaction() utility.DatabaseTransaction {
+	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
 func (repo *ComplianceStatusUpdateRepository) GetAll(complianceID uint, sort string, sortBy string, keyword string) ([]*complianceDTOs.ComplianceStatusUpdateListDTO, error) {
