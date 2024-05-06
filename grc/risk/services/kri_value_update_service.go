@@ -133,17 +133,14 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 			tx.Rollback()
 			return 0, err
 		}
-	}
 
-	for _, doc := range kriValueUpdateFormDTO.Documents {
-
-		storagePath := filepath.Join("risk", "kri-register", strconv.FormatUint(uint64(kriRegisterID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
-
-		if err := utility.StoreFile(doc.FileName, storagePath); err != nil {
-			tx.Rollback()
-			return 0, err
+		for _, doc := range kriValueUpdateFormDTO.Documents {
+			storagePath := filepath.Join("risk", "kri-register", strconv.FormatUint(uint64(kriRegisterID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
+			if err := utility.StoreFile(doc.FileName, storagePath); err != nil {
+				tx.Rollback()
+				return 0, err
+			}
 		}
-
 	}
 
 	tx.Commit()
@@ -220,6 +217,7 @@ func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentU
 
 	var documents []*models.KRIValueUpdateDocument
 	var deleteDocumentIds []*uint
+	var documentsToDelete []*models.KRIValueUpdateDocument
 	// Iterate over each document in the array
 	for _, doc := range kriValueUpdateFormDTO.Documents {
 		if doc.IsNewFile != nil && *doc.IsNewFile {
@@ -256,6 +254,7 @@ func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentU
 					return err
 				}
 
+				documentsToDelete = append(documentsToDelete, existingDocument)
 				deleteDocumentIds = append(deleteDocumentIds, &existingDocument.ID)
 			}
 		}
@@ -273,25 +272,21 @@ func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentU
 		}
 	}
 
-	for _, doc := range kriValueUpdateFormDTO.Documents {
-		if doc.IsNewFile != nil && *doc.IsNewFile {
-			storagePath := filepath.Join("risk", "kri-register", strconv.FormatUint(uint64(kriRegisterID), 10), "updates", strconv.FormatUint(uint64(updateId), 10), "documents")
+	for _, doc := range documents {
+		storagePath := filepath.Join("risk", "kri-register", strconv.FormatUint(uint64(kriRegisterID), 10), "updates", strconv.FormatUint(uint64(updateId), 10), "documents")
 
-			if err := utility.StoreFile(doc.FileName, storagePath); err != nil {
-				tx.Rollback()
-				return err
-			}
+		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
 
-		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
-			// Handle deleted file case
-			if doc.ID != nil {
-				storagePath := filepath.Join("risk", "kri-register", strconv.FormatUint(uint64(kriRegisterID), 10), "updates", strconv.FormatUint(uint64(updateId), 10), "documents")
+	for _, document := range documentsToDelete {
+		storagePath := filepath.Join("risk", "kri-register", strconv.FormatUint(uint64(kriRegisterID), 10), "updates", strconv.FormatUint(uint64(updateId), 10), "documents")
 
-				if err := utility.RemoveFile(doc.FileName, storagePath); err != nil {
-					tx.Rollback()
-					return err
-				}
-			}
+		if err := utility.RemoveFile(document.Name, storagePath); err != nil {
+			tx.Rollback()
+			return err
 		}
 	}
 
@@ -302,6 +297,7 @@ func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentU
 
 func (kvus *KRIValueUpdateService) Delete(kriRegisterID uint, ids []uint, currentUserID uint) ([]uint, error) {
 	tx := kvus.repo.BeginTransaction()
+
 	_, err := kvus.kriRegisterSvc.GetByID(kriRegisterID)
 	if err != nil {
 		return nil, err
@@ -309,50 +305,60 @@ func (kvus *KRIValueUpdateService) Delete(kriRegisterID uint, ids []uint, curren
 
 	var failedIds []uint
 	var successfulIds []uint
-	var deleteDocumentIds []*uint
+
+	documentsToDelete := make(map[uint][]*models.KRIValueUpdateDocument)
 
 	for _, id := range ids {
-
-		valueUpdate, err := kvus.repo.GetByID(id)
-
+		var deleteDocumentIds []*uint
+		valueUpdate, err := kvus.repo.GetFullDetailsByID(id, tx)
 		if err != nil {
+			failedIds = append(failedIds, id)
 			continue
 		}
 
-		for _, updateDocument := range valueUpdate.KRIValueUpdateDocuments {
+		if valueUpdate.Documents != nil && len(valueUpdate.Documents) > 0 {
+			for _, updateDocument := range valueUpdate.Documents {
+				documentsToDelete[id] = append(documentsToDelete[id], &updateDocument)
+				deleteDocumentIds = append(deleteDocumentIds, &updateDocument.ID)
 
-			document, err := kvus.repo.GetKRIValueUpdateDocumentByID(updateDocument.ID)
-			if err != nil {
-				if errors.Is(err, gorm.ErrRecordNotFound) {
-					return nil, utility.NewResourceNotFoundError(err, updateDocument.ID)
+			}
+			if len(deleteDocumentIds) > 0 {
+				if err := kvus.repo.DeleteKRIValueUpdateDocuments(deleteDocumentIds, tx); err != nil {
+					failedIds = append(failedIds, id)
+					continue
 				}
-				return nil, err
 			}
-
-			storagePath := filepath.Join("risk", "kri-register", strconv.FormatUint(uint64(valueUpdate.KRIRegisterID), 10), "updates", strconv.FormatUint(uint64(valueUpdate.ID), 10), "documents")
-			if err := utility.RemoveFile(document.Name, storagePath); err != nil {
-				tx.Rollback()
-				return nil, err
-			}
-
-			deleteDocumentIds = append(deleteDocumentIds, &document.ID)
 
 		}
-		if len(deleteDocumentIds) > 0 {
-			if err := kvus.repo.DeleteKRIValueUpdateDocuments(deleteDocumentIds, tx); err != nil {
-				tx.Rollback()
-				return nil, err
-			}
-		}
 
-		err = kvus.repo.Delete(id, tx)
-		if err != nil {
-			tx.Rollback()
+		if err := kvus.repo.Delete(id, tx); err != nil {
 			failedIds = append(failedIds, id)
+			continue
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+
 	}
+
+	if len(failedIds) > 0 {
+		tx.Rollback()
+		return failedIds, nil
+	}
+
+	// Deleting files should not affect the main operation result
+	if len(successfulIds) > 0 {
+		for updateId, documents := range documentsToDelete {
+			for _, doc := range documents {
+				storagePath := filepath.Join("risk", "kri-register", strconv.FormatUint(uint64(kriRegisterID), 10), "updates", strconv.FormatUint(uint64(updateId), 10), "documents")
+				if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
+					tx.Rollback()
+					fmt.Printf("Failed to delete file at URL %s: %v\n", doc.URL, err)
+				}
+			}
+		}
+	}
+
+	tx.Commit()
 
 	if len(successfulIds) > 0 {
 
@@ -371,8 +377,6 @@ func (kvus *KRIValueUpdateService) Delete(kriRegisterID uint, ids []uint, curren
 			}
 		}()
 	}
-
-	tx.Commit()
 
 	return failedIds, nil
 }
