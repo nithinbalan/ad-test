@@ -11,6 +11,7 @@ import (
 type RiskMatrixRepositoryInterface interface {
 	GetByID(id uint) (*models.RiskMatrix, error)
 	GetByType(status string) (*models.RiskMatrix, error)
+	GetDetailsByID(id uint) (*models.RiskMatrix, error)
 	Update(matrix *models.RiskMatrix, tx ...utility.DatabaseTransaction) error
 }
 
@@ -40,6 +41,20 @@ func (repo *RiskMatrixRepository) GetByType(status string) (*models.RiskMatrix, 
 	var riskMatrix *models.RiskMatrix
 
 	result := repo.db.Where("type = ?", status).First(&riskMatrix)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return riskMatrix, nil
+}
+
+func (repo *RiskMatrixRepository) GetDetailsByID(id uint) (*models.RiskMatrix, error) {
+	var riskMatrix *models.RiskMatrix
+
+	result := repo.db.Preload("RiskMatrixImpact").
+		Preload("RiskMatrixLikelihood").
+		Preload("RiskMatrixRiskRating.RiskMatrixRiskRatingValue").
+		First(&riskMatrix, id)
 	if result.Error != nil {
 		return nil, result.Error
 	}
