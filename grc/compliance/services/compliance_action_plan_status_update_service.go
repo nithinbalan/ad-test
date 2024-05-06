@@ -227,6 +227,7 @@ func (casus *ComplianceActionPlanStatusUpdateService) Update(ComplianceID uint, 
 				Size:                               doc.Size,
 				Token:                              encryptedFileName,
 				Type:                               doc.Type,
+				CreatedBy:                          currentUserID,
 			}
 
 			// Append the document to the slice
