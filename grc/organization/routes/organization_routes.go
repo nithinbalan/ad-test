@@ -87,6 +87,19 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 		lifecycleStatusSvc)
 	controlController := controllers.NewControlController(controlSvc)
 
+	controlTestRepo := organizationRepositories.NewControlTestRepository(db)
+	controlTestSvc := organizationServices.NewControlTestService(
+		controlTestRepo,
+		activityLogSvc,
+		controlSvc,
+		controlImplementationStatusSvc,
+		controlEfficiencyStatusSvc)
+	controlTestController := controllers.NewControlTestController(controlTestSvc)
+
+	processGroupRepo := organizationRepositories.NewProcessGroupRepository(db)
+	processGroupSvc := organizationServices.NewProcessGroupService(processGroupRepo, activityLogSvc)
+	processGroupController := controllers.NewProcessGroupController(processGroupSvc)
+
 	//Designation
 	organizationRoutes.GET("/designations", designationController.GetAllDesignations)
 	organizationRoutes.GET("/designations/:id", designationController.GetDesignationDetails)
@@ -160,11 +173,27 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 
 	//Control
 	organizationRoutes.GET("/controls", controlController.GetAllControls)
-	organizationRoutes.GET("/controls/:id", controlController.GetControlDetails)
+	organizationRoutes.GET("/controls/:controlId", controlController.GetControlDetails)
 	organizationRoutes.POST("/controls", controlController.CreateControl)
-	organizationRoutes.PUT("/controls/:id", controlController.UpdateControl)
+	organizationRoutes.PUT("/controls/:controlId", controlController.UpdateControl)
 	organizationRoutes.POST("/controls/delete", controlController.DeleteControls)
 	organizationRoutes.PUT("/controls/archive", controlController.ArchiveControls)
 	organizationRoutes.PUT("/controls/restore", controlController.RestoreControls)
+
+	//control Test
+	organizationRoutes.GET("/controls/:controlId/test", controlTestController.GetAllControlTests)
+	organizationRoutes.GET("/controls/:controlId/test/:controlTestId", controlTestController.GetControlTestDetails)
+	organizationRoutes.POST("/controls/:controlId/test", controlTestController.CreateControlTest)
+	organizationRoutes.PUT("/controls/:controlId/test/:controlTestId", controlTestController.UpdateControlTest)
+	organizationRoutes.POST("/controls/:controlId/test/delete", controlTestController.DeleteControlTest)
+
+	//Process Group
+	organizationRoutes.GET("/process-groups", processGroupController.GetAllProcessGroups)
+	organizationRoutes.GET("/process-groups/:id", processGroupController.GetProcessGroupDetails)
+	organizationRoutes.POST("/process-groups", processGroupController.CreateProcessGroup)
+	organizationRoutes.PUT("/process-groups/:id", processGroupController.UpdateProcessGroup)
+	organizationRoutes.POST("/process-groups/delete", processGroupController.DeleteProcessGroups)
+	organizationRoutes.PUT("/process-groups/activate", processGroupController.ActivateProcessGroups)
+	organizationRoutes.PUT("/process-groups/deactivate", processGroupController.DeactivateProcessGroups)
 
 }
