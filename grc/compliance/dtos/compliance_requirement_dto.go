@@ -3,6 +3,8 @@ package dtos
 import (
 	commonDTOs "jethur/grc/common/dtos"
 	masterDTOs "jethur/grc/masters/dtos"
+	organizationDTOs "jethur/grc/organization/dtos"
+
 	"time"
 )
 
@@ -73,11 +75,11 @@ type ComplianceRequirementDetailDTO struct {
 	Title                         string                           `json:"title"`
 	ComplianceRequirementCategory ComplianceRequirementCategoryDTO `json:"compliance_requirement_category"`
 	SeverityLevel                 *masterDTOs.SeverityLevelDTO     `json:"severity_level"`
-	ResponsibleUser               UserMinimalDTO                   `json:"responsible_user"`
+	ResponsibleUser               organizationDTOs.UserMinimalDTO  `json:"responsible_user"`
 	ComplianceStatus              ComplianceStatusDTO              `json:"compliance_status"`
 	Deadline                      *time.Time                       `json:"deadline"`
 	CreatedAt                     time.Time                        `json:"created_at"`
 	UpdatedAt                     *time.Time                       `json:"updated_at"`
-	CreatedByUser                 UserMinimalDTO                   `json:"created_by"`
-	UpdatedByUser                 UserMinimalDTO                   `json:"updated_by"`
+	CreatedByUser                 organizationDTOs.UserMinimalDTO  `json:"created_by"`
+	UpdatedByUser                 organizationDTOs.UserMinimalDTO  `json:"updated_by"`
 }
