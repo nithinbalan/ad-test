@@ -129,7 +129,7 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 
 	}
 	if len(documents) > 0 {
-		if err := kvus.repo.SaveKRIValueUpdateDocuments(documents, tx); err != nil {
+		if err := kvus.repo.CreateDocuments(documents, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
@@ -246,7 +246,7 @@ func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentU
 		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
 			// Handle deleted file case
 			if doc.ID != nil {
-				existingDocument, err := kvus.repo.GetKRIValueUpdateDocumentByID(*doc.ID)
+				existingDocument, err := kvus.repo.GetDocumentByID(*doc.ID)
 				if err != nil {
 					if errors.Is(err, gorm.ErrRecordNotFound) {
 						return utility.NewResourceNotFoundError(err, doc.ID)
@@ -260,13 +260,13 @@ func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentU
 		}
 	}
 	if len(documents) > 0 {
-		if err := kvus.repo.SaveKRIValueUpdateDocuments(documents, tx); err != nil {
+		if err := kvus.repo.CreateDocuments(documents, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
 	}
 	if len(deleteDocumentIds) > 0 {
-		if err := kvus.repo.DeleteKRIValueUpdateDocuments(deleteDocumentIds, tx); err != nil {
+		if err := kvus.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
@@ -323,7 +323,7 @@ func (kvus *KRIValueUpdateService) Delete(kriRegisterID uint, ids []uint, curren
 
 			}
 			if len(deleteDocumentIds) > 0 {
-				if err := kvus.repo.DeleteKRIValueUpdateDocuments(deleteDocumentIds, tx); err != nil {
+				if err := kvus.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
 					failedIds = append(failedIds, id)
 					continue
 				}

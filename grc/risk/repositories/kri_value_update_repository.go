@@ -18,9 +18,9 @@ type KRIValueUpdateRepositoryInterface interface {
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.KRIValueUpdate, error)
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	//Document
-	SaveKRIValueUpdateDocuments(docs []*models.KRIValueUpdateDocument, tx ...utility.DatabaseTransaction) error
-	GetKRIValueUpdateDocumentByID(id uint) (*models.KRIValueUpdateDocument, error)
-	DeleteKRIValueUpdateDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
+	CreateDocuments(docs []*models.KRIValueUpdateDocument, tx ...utility.DatabaseTransaction) error
+	GetDocumentByID(id uint) (*models.KRIValueUpdateDocument, error)
+	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type KRIValueUpdateRepository struct {
@@ -190,7 +190,7 @@ func (repo *KRIValueUpdateRepository) Delete(id uint, tx ...utility.DatabaseTran
 	return nil
 }
 
-func (repo *KRIValueUpdateRepository) SaveKRIValueUpdateDocuments(docs []*models.KRIValueUpdateDocument, tx ...utility.DatabaseTransaction) error {
+func (repo *KRIValueUpdateRepository) CreateDocuments(docs []*models.KRIValueUpdateDocument, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -205,7 +205,7 @@ func (repo *KRIValueUpdateRepository) SaveKRIValueUpdateDocuments(docs []*models
 
 }
 
-func (repo *KRIValueUpdateRepository) GetKRIValueUpdateDocumentByID(id uint) (*models.KRIValueUpdateDocument, error) {
+func (repo *KRIValueUpdateRepository) GetDocumentByID(id uint) (*models.KRIValueUpdateDocument, error) {
 	var document models.KRIValueUpdateDocument
 	if err := repo.db.Where("id = ?", id).First(&document).Error; err != nil {
 		return nil, err
@@ -213,7 +213,7 @@ func (repo *KRIValueUpdateRepository) GetKRIValueUpdateDocumentByID(id uint) (*m
 	return &document, nil
 }
 
-func (repo *KRIValueUpdateRepository) DeleteKRIValueUpdateDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error {
+func (repo *KRIValueUpdateRepository) DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
