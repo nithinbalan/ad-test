@@ -15,10 +15,9 @@ type ComplianceRequirementStatusUpdateRepositoryInterface interface {
 	Create(ComplianceRequirementStatusUpdate *models.ComplianceRequirementStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(ComplianceRequirementStatusUpdate *models.ComplianceRequirementStatusUpdate, tx ...utility.DatabaseTransaction) error
 	//Document
-	SaveComplianceRequirementStatusUpdateDocument(docs []*models.ComplianceRequirementStatusUpdateDocument, tx ...utility.DatabaseTransaction) error
-	GetComplianceRequirementStatusUpdateDocumentByID(id uint) (*models.ComplianceRequirementStatusUpdateDocument, error)
-	DeleteComplianceRequirementStatusUpdateDocumentID(docId uint, tx ...utility.DatabaseTransaction) error
-	DeleteComplianceRequirementStatusUpdateDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
+	CreateDocuments(docs []*models.ComplianceRequirementStatusUpdateDocument, tx ...utility.DatabaseTransaction) error
+	GetDocumentByID(id uint) (*models.ComplianceRequirementStatusUpdateDocument, error)
+	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type ComplianceRequirementStatusUpdateRepository struct {
@@ -118,15 +117,7 @@ func (repo *ComplianceRequirementStatusUpdateRepository) Update(ComplianceRequir
 	return nil
 }
 
-func (repo *ComplianceRequirementStatusUpdateRepository) GetComplianceRequirementStatusUpdateDocumentByID(id uint) (*models.ComplianceRequirementStatusUpdateDocument, error) {
-	var document models.ComplianceRequirementStatusUpdateDocument
-	if err := repo.db.Where("id = ?", id).First(&document).Error; err != nil {
-		return nil, err
-	}
-	return &document, nil
-}
-
-func (repo *ComplianceRequirementStatusUpdateRepository) SaveComplianceRequirementStatusUpdateDocument(docs []*models.ComplianceRequirementStatusUpdateDocument, tx ...utility.DatabaseTransaction) error {
+func (repo *ComplianceRequirementStatusUpdateRepository) CreateDocuments(docs []*models.ComplianceRequirementStatusUpdateDocument, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -138,20 +129,15 @@ func (repo *ComplianceRequirementStatusUpdateRepository) SaveComplianceRequireme
 	return nil
 }
 
-func (repo *ComplianceRequirementStatusUpdateRepository) DeleteComplianceRequirementStatusUpdateDocumentID(docID uint, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
+func (repo *ComplianceRequirementStatusUpdateRepository) GetDocumentByID(id uint) (*models.ComplianceRequirementStatusUpdateDocument, error) {
+	var document models.ComplianceRequirementStatusUpdateDocument
+	if err := repo.db.Where("id = ?", id).First(&document).Error; err != nil {
+		return nil, err
 	}
-
-	if err := db.Delete(&models.ComplianceRequirementStatusUpdateDocument{}, docID).Error; err != nil {
-		return err
-	}
-
-	return nil
+	return &document, nil
 }
 
-func (repo *ComplianceRequirementStatusUpdateRepository) DeleteComplianceRequirementStatusUpdateDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error {
+func (repo *ComplianceRequirementStatusUpdateRepository) DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()

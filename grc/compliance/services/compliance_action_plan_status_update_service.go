@@ -194,7 +194,6 @@ func (casus *ComplianceActionPlanStatusUpdateService) Update(ComplianceID uint, 
 	existingComplianceActionPlanStatusUpdate.UpdatedBy = &currentUserID
 
 	err = casus.repo.Update(existingComplianceActionPlanStatusUpdate, tx)
-
 	if err != nil {
 		tx.Rollback()
 		return err

@@ -102,12 +102,6 @@ func (crsus *ComplianceRequirementStatusUpdateService) Create(ComplianceID uint,
 
 	// Iterate over each document in the array
 	for _, doc := range complianceRequirementStatusUpdateFormDTO.Documents {
-		storagePath := filepath.Join("compliance", "compliance", strconv.FormatUint(uint64(ComplianceID), 10), "requirements", strconv.FormatUint(uint64(ComplianceRequirementID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
-
-		if err := utility.StoreFile(doc.FileName, storagePath); err != nil {
-			tx.Rollback()
-			return 0, err
-		}
 		// Encrypt the filename
 		dataToEncrypt := []byte(doc.FileName)
 		encryptedFilename, err := utility.EncryptData(dataToEncrypt)
@@ -136,10 +130,19 @@ func (crsus *ComplianceRequirementStatusUpdateService) Create(ComplianceID uint,
 	}
 	if len(documents) > 0 {
 		// Save the ComplianceRequirementStatusUpdateDocument
-		if err := crsus.repo.SaveComplianceRequirementStatusUpdateDocument(documents, tx); err != nil {
+		if err := crsus.repo.CreateDocuments(documents, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
+		//move file to storage
+		for _, doc := range documents {
+			storagePath := filepath.Join("compliance", "compliance", strconv.FormatUint(uint64(ComplianceID), 10), "requirements", strconv.FormatUint(uint64(ComplianceRequirementID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
+			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+		}
+
 	}
 	tx.Commit()
 
@@ -189,75 +192,90 @@ func (crsus *ComplianceRequirementStatusUpdateService) Update(ComplianceID uint,
 	existingComplianceRequirementStatusUpdate.UpdatedBy = &currentUserID
 
 	err = crsus.repo.Update(existingComplianceRequirementStatusUpdate, tx)
-
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 	var documents []*models.ComplianceRequirementStatusUpdateDocument
 	var deleteDocumentIds []*uint
-	// Iterate over each document in the array
+	var documentsToDelete []*models.ComplianceRequirementStatusUpdateDocument
+
 	for _, doc := range ComplianceRequirementStatusUpdateFormDTO.Documents {
-		storagePath := filepath.Join("compliance", "compliance", strconv.FormatUint(uint64(ComplianceID), 10), "requirements", strconv.FormatUint(uint64(ComplianceRequirementID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 
 		if doc.IsNewFile != nil && *doc.IsNewFile {
-			// Handle new file case
-			if err := utility.StoreFile(doc.FileName, storagePath); err != nil {
-				tx.Rollback()
-				return err
-			}
+			// Encrypt the filename
 			dataToEncrypt := []byte(doc.FileName)
-			encryptedFilename, err := utility.EncryptData(dataToEncrypt)
+			encryptedFileName, err := utility.EncryptData(dataToEncrypt)
+
 			if err != nil {
 				tx.Rollback()
 				return err
 			}
-			url := utility.GenerateDocumentURL("compliances", strconv.FormatUint(uint64(ComplianceID), 10), "requirements", strconv.FormatUint(uint64(ComplianceRequirementID), 10), "status-updates", encryptedFilename)
-			// Create a new ComplianceRequirementStatusUpdateDocument instance
+
+			//genereate URL
+			url := utility.GenerateDocumentURL("compliances", strconv.FormatUint(uint64(ComplianceID), 10), "requirements", strconv.FormatUint(uint64(ComplianceRequirementID), 10), "status-updates", encryptedFileName)
+			// Create a new Control test Document instance
 			document := &models.ComplianceRequirementStatusUpdateDocument{
 				ComplianceRequirementStatusUpdateID: id,
 				URL:                                 url,
 				Icon:                                doc.Icon,
 				Name:                                doc.FileName,
 				Size:                                doc.Size,
-				Token:                               encryptedFilename,
+				Token:                               encryptedFileName,
 				Type:                                doc.Type,
 				CreatedBy:                           currentUserID,
 			}
+
+			// Append the document to the slice
 			documents = append(documents, document)
 
 		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
-			// Handle deleted file case
 			if doc.ID != nil {
-				existingDocument, err := crsus.repo.GetComplianceRequirementStatusUpdateDocumentByID(*doc.ID)
+				existingDocument, err := crsus.repo.GetDocumentByID(*doc.ID)
 				if err != nil {
+					if errors.Is(err, gorm.ErrRecordNotFound) {
+						return utility.NewResourceNotFoundError(err, id)
+					}
 					return err
 				}
-				if existingDocument == nil {
-					tx.Rollback()
-					return fmt.Errorf("existing document not found for ID: %d", *doc.ID)
-				}
-				deleteDocumentIds = append(deleteDocumentIds, &existingDocument.ID)
 
-				if err := utility.RemoveFile(existingDocument.Name, storagePath); err != nil {
-					tx.Rollback()
-					return err
-				}
+				documentsToDelete = append(documentsToDelete, existingDocument)
+				deleteDocumentIds = append(deleteDocumentIds, &existingDocument.ID)
 			}
 		}
 	}
+
 	if len(documents) > 0 {
-		if err := crsus.repo.SaveComplianceRequirementStatusUpdateDocument(documents, tx); err != nil {
+		if err := crsus.repo.CreateDocuments(documents, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
 	}
+
 	if len(deleteDocumentIds) > 0 {
-		if err := crsus.repo.DeleteComplianceRequirementStatusUpdateDocuments(deleteDocumentIds, tx); err != nil {
+		if err := crsus.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
 	}
+
+	for _, doc := range documents {
+		storagePath := filepath.Join("compliance", "compliance", strconv.FormatUint(uint64(ComplianceID), 10), "requirements", strconv.FormatUint(uint64(ComplianceRequirementID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
+
+		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	for _, document := range documentsToDelete {
+		storagePath := filepath.Join("compliance", "compliance", strconv.FormatUint(uint64(ComplianceID), 10), "requirements", strconv.FormatUint(uint64(ComplianceRequirementID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
+		if err := utility.RemoveFile(document.Name, storagePath); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
 	tx.Commit()
 
 	return nil
