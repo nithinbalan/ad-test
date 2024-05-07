@@ -2,11 +2,13 @@ package repositories
 
 import (
 	"jethur/grc/models"
+	"jethur/utility"
 
 	"gorm.io/gorm"
 )
 
 type SLACheckAnswerRepositoryInterface interface {
+	BeginTransaction() utility.DatabaseTransaction
 	GetByID(id uint) (*models.SLACheckAnswer, error)
 	Create(slaCheckAnswer *models.SLACheckAnswer) (*models.SLACheckAnswer, error)
 	Update(slaCheckAnswer *models.SLACheckAnswer) error
@@ -21,6 +23,10 @@ func NewSLACheckAnswerRepository(db *gorm.DB) *SLACheckAnswerRepository {
 	return &SLACheckAnswerRepository{
 		db: db,
 	}
+}
+
+func (repo *SLACheckAnswerRepository) BeginTransaction() utility.DatabaseTransaction {
+	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
 func (repo *SLACheckAnswerRepository) GetByID(id uint) (*models.SLACheckAnswer, error) {

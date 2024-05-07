@@ -23,7 +23,7 @@ type SLACheckQuestionServiceInterface interface {
 	CreateQuestion(slaID uint, checkID uint, currentUserID uint, slaCheckQuestionFormDTO *complianceDTOs.SLACheckQuestionFormDTO) (uint, error)
 	UpdateQuestion(slaID uint, checkID uint, groupID uint, currentUserID uint, slaCheckUpdateQuestionDTO *complianceDTOs.SLACheckUpdateQuestionDTO) error
 	DeleteQuestion(slaID uint, checkId uint, questionId uint, currentUserID uint) (uint, error)
-	IncrementCompletedCount(groupID uint) error
+	IncrementCompletedCount(groupID uint, tx utility.DatabaseTransaction) error
 }
 
 // Service and implementations
@@ -462,6 +462,6 @@ func (scqs *SLACheckQuestionService) DeleteQuestion(slaID uint, checkId uint, qu
 	return failedId, nil
 }
 
-func (scqs *SLACheckQuestionService) IncrementCompletedCount(groupID uint) error {
-	return scqs.repo.IncrementCompletedCount(groupID)
+func (scqs *SLACheckQuestionService) IncrementCompletedCount(groupID uint, tx utility.DatabaseTransaction) error {
+	return scqs.repo.IncrementCompletedCount(groupID, tx)
 }
