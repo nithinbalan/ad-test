@@ -152,6 +152,14 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	)
 	riskMatrixRiskRatingValueController := controllers.NewRiskMatrixRiskRatingValueController(riskMatrixRiskRatingValueSvc)
 
+	riskSourceRepo := riskRepositories.NewRiskSourceRepository(db)
+	riskSourceSvc := riskServices.NewRiskSourceService(riskSourceRepo, activityLogSvc)
+	riskSourceController := controllers.NewRiskSourceController(riskSourceSvc)
+
+	riskStatusRepo := riskRepositories.NewRiskStatusRepository(db)
+	riskStatusSvc := riskServices.NewRiskStatusService(riskStatusRepo)
+	riskStatusController := controllers.NewRiskStatusController(riskStatusSvc)
+
 	riskRoutes.GET("/risk-categories", riskCategoryController.GetAllRiskCategories)
 	riskRoutes.GET("/risk-categories/:id", riskCategoryController.GetRiskCategoryDetails)
 	riskRoutes.POST("/risk-categories", riskCategoryController.CreateRiskCategory)
@@ -242,4 +250,18 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	riskRoutes.POST("/risk-matrix-impact-guidelines", riskMatrixImpactGuidelineController.CreateRiskMatrixImpactGuideline)
 	riskRoutes.PUT("/risk-matrix-impact-guidelines/:id", riskMatrixImpactGuidelineController.UpdateRiskMatrixImpactGuideline)
 	riskRoutes.POST("/risk-matrix-impact-guidelines/delete", riskMatrixImpactGuidelineController.DeleteRiskMatrixImpactGuidelines)
+
+	// Risk Source
+	riskRoutes.GET("/risk-sources", riskSourceController.GetAllRiskSources)
+	riskRoutes.GET("/risk-sources/:id", riskSourceController.GetRiskSourceDetails)
+	riskRoutes.POST("/risk-sources", riskSourceController.CreateRiskSource)
+	riskRoutes.PUT("/risk-sources/:id", riskSourceController.UpdateRiskSource)
+	riskRoutes.POST("/risk-sources/delete", riskSourceController.DeleteRiskSources)
+	riskRoutes.PUT("/risk-sources/activate", riskSourceController.ActivateRiskSources)
+	riskRoutes.PUT("/risk-sources/deactivate", riskSourceController.DeactivateRiskSources)
+
+	// Risk Status
+	riskRoutes.GET("/risk-statuses", riskStatusController.GetAllRiskStatuses)
+	riskRoutes.GET("/risk-statuses/:id", riskStatusController.GetRiskStatusDetails)
+
 }

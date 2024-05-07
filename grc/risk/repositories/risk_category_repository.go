@@ -8,11 +8,11 @@ import (
 )
 
 // Interfaces
-type RiskCategoryRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.RiskCategory, error)
-	GetByID(id uint) (*models.RiskCategory, error)
-	Create(article *models.RiskCategory) (*models.RiskCategory, error)
-	Update(id uint, category *models.RiskCategory) (*models.RiskCategory, error)
+type RiskSourceRepositoryInterface interface {
+	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.RiskSource, error)
+	GetByID(id uint) (*models.RiskSource, error)
+	Create(article *models.RiskSource) (*models.RiskSource, error)
+	Update(id uint, source *models.RiskSource) (*models.RiskSource, error)
 	Delete(id uint) error
 	Activate(ids []uint) ([]uint, error)
 	Deactivate(ids []uint) ([]uint, error)
@@ -21,19 +21,19 @@ type RiskCategoryRepositoryInterface interface {
 }
 
 // implementation
-type RiskCategoryRepository struct {
+type RiskSourceRepository struct {
 	db *gorm.DB
 }
 
-func NewRiskCategoryRepository(db *gorm.DB) *RiskCategoryRepository {
-	return &RiskCategoryRepository{
+func NewRiskSourceRepository(db *gorm.DB) *RiskSourceRepository {
+	return &RiskSourceRepository{
 		db: db,
 	}
 }
 
-func (repo *RiskCategoryRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.RiskCategory, error) {
+func (repo *RiskSourceRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.RiskSource, error) {
 
-	var riskCategories []*models.RiskCategory
+	var riskSources []*models.RiskSource
 
 	query := repo.db
 
@@ -52,50 +52,50 @@ func (repo *RiskCategoryRepository) GetAll(sort string, sortBy string, keyword s
 	}
 
 	query = query.Order(sortBy + " " + sort)
-	result := query.Find(&riskCategories)
+	result := query.Find(&riskSources)
 
-	return riskCategories, result.Error
+	return riskSources, result.Error
 }
 
-func (repo *RiskCategoryRepository) GetByID(id uint) (*models.RiskCategory, error) {
-	var category *models.RiskCategory
+func (repo *RiskSourceRepository) GetByID(id uint) (*models.RiskSource, error) {
+	var source *models.RiskSource
 
-	result := repo.db.First(&category, id)
+	result := repo.db.First(&source, id)
 	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	return category, nil
+	return source, nil
 }
 
-func (repo *RiskCategoryRepository) Create(category *models.RiskCategory) (*models.RiskCategory, error) {
-	result := repo.db.Create(&category)
+func (repo *RiskSourceRepository) Create(source *models.RiskSource) (*models.RiskSource, error) {
+	result := repo.db.Create(&source)
 
-	return category, result.Error
+	return source, result.Error
 }
 
-func (repo *RiskCategoryRepository) Update(id uint, updatedCategory *models.RiskCategory) (*models.RiskCategory, error) {
-	var category *models.RiskCategory
+func (repo *RiskSourceRepository) Update(id uint, updatedSource *models.RiskSource) (*models.RiskSource, error) {
+	var source *models.RiskSource
 
-	if err := repo.db.First(&category, id).Error; err != nil {
+	if err := repo.db.First(&source, id).Error; err != nil {
 		return nil, err
 	}
 
-	if err := repo.db.Model(&category).Updates(updatedCategory).Error; err != nil {
+	if err := repo.db.Model(&source).Updates(updatedSource).Error; err != nil {
 		return nil, err
 	}
 
-	return category, nil
+	return source, nil
 }
 
-func (repo *RiskCategoryRepository) Delete(id uint) error {
+func (repo *RiskSourceRepository) Delete(id uint) error {
 
-	var category *models.RiskCategory
-	if err := repo.db.First(&category, id).Error; err != nil {
+	var source *models.RiskSource
+	if err := repo.db.First(&source, id).Error; err != nil {
 		return err
 	}
 
-	result := repo.db.Delete(&models.RiskCategory{}, id)
+	result := repo.db.Delete(&models.RiskSource{}, id)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -103,11 +103,11 @@ func (repo *RiskCategoryRepository) Delete(id uint) error {
 	return nil
 }
 
-func (repo *RiskCategoryRepository) Activate(ids []uint) ([]uint, error) {
+func (repo *RiskSourceRepository) Activate(ids []uint) ([]uint, error) {
 	var idsToUpdate []uint
 
 	// Step 1: Fetch the IDs of records that are currently 'inactive' and within the provided 'ids' slice
-	if err := repo.db.Model(&models.RiskCategory{}).
+	if err := repo.db.Model(&models.RiskSource{}).
 		Where("id IN ? AND status = ?", ids, "inactive").
 		Pluck("id", &idsToUpdate).Error; err != nil {
 		return nil, err // Return error if the query fails
@@ -115,7 +115,7 @@ func (repo *RiskCategoryRepository) Activate(ids []uint) ([]uint, error) {
 
 	// Step 2: If there are any IDs to update, perform the update operation
 	if len(idsToUpdate) > 0 {
-		if err := repo.db.Model(&models.RiskCategory{}).
+		if err := repo.db.Model(&models.RiskSource{}).
 			Where("id IN ?", idsToUpdate).
 			Update("status", "active").Error; err != nil {
 			return nil, err // Return error if the update operation fails
@@ -126,12 +126,12 @@ func (repo *RiskCategoryRepository) Activate(ids []uint) ([]uint, error) {
 	return idsToUpdate, nil
 }
 
-func (repo *RiskCategoryRepository) Deactivate(ids []uint) ([]uint, error) {
+func (repo *RiskSourceRepository) Deactivate(ids []uint) ([]uint, error) {
 
 	var idsToUpdate []uint
 
 	// Step 1: Fetch the IDs of records that are currently 'inactive' and within the provided 'ids' slice
-	if err := repo.db.Model(&models.RiskCategory{}).
+	if err := repo.db.Model(&models.RiskSource{}).
 		Where("id IN ? AND status = ?", ids, "active").
 		Pluck("id", &idsToUpdate).Error; err != nil {
 		return nil, err // Return error if the query fails
@@ -139,7 +139,7 @@ func (repo *RiskCategoryRepository) Deactivate(ids []uint) ([]uint, error) {
 
 	// Step 2: If there are any IDs to update, perform the update operation
 	if len(idsToUpdate) > 0 {
-		if err := repo.db.Model(&models.RiskCategory{}).
+		if err := repo.db.Model(&models.RiskSource{}).
 			Where("id IN ?", idsToUpdate).
 			Update("status", "inactive").Error; err != nil {
 			return nil, err // Return error if the update operation fails
@@ -151,11 +151,11 @@ func (repo *RiskCategoryRepository) Deactivate(ids []uint) ([]uint, error) {
 
 }
 
-func (repo *RiskCategoryRepository) ExistsByTitle(titleEn, titleAr string) (bool, error) {
+func (repo *RiskSourceRepository) ExistsByTitle(titleEn, titleAr string) (bool, error) {
 	var count int64
 
 	// Check for the existence of titleEn or titleAr in a single query
-	err := repo.db.Model(&models.RiskCategory{}).
+	err := repo.db.Model(&models.RiskSource{}).
 		Where("title_en = ? OR title_ar = ?", titleEn, titleAr).
 		Count(&count).Error
 
@@ -167,10 +167,10 @@ func (repo *RiskCategoryRepository) ExistsByTitle(titleEn, titleAr string) (bool
 	return count > 0, nil
 }
 
-func (repo *RiskCategoryRepository) ExistsByTitleExcludingID(id uint, titleEn, titleAr string) (bool, error) {
+func (repo *RiskSourceRepository) ExistsByTitleExcludingID(id uint, titleEn, titleAr string) (bool, error) {
 	var count int64
 
-	err := repo.db.Model(&models.RiskCategory{}).
+	err := repo.db.Model(&models.RiskSource{}).
 		Where("id <> ? AND (title_en = ? OR title_ar = ?)", id, titleEn, titleAr).
 		Count(&count).Error
 
