@@ -16,14 +16,16 @@ type IncidentRegisterRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *incidentDTOs.IncidentRegisterListQueryParamsDTO) (*incidentDTOs.IncidentRegisterListResponseDTO, error)
 	GetByID(id uint) (*models.IncidentRegister, error)
-	GetFullDetailsByID(id uint) (*models.IncidentRegister, error)
+	GetFullDetailsByID(id uint,tx ...utility.DatabaseTransaction) (*models.IncidentRegister, error)
 	Create(incidentRegister *models.IncidentRegister, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(incidentRegister *models.IncidentRegister, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
+	DeleteIncidentControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteIncidentComplianceRequirements(requirementIds []*uint, tx ...utility.DatabaseTransaction) error
 	GenerateReferenceNumber() (string, error)
 
 	//Document
-	SaveIncidentDocument(docs []*models.IncidentDocument, tx ...utility.DatabaseTransaction) error
+	SaveIncidentDocuments(docs []*models.IncidentDocument, tx ...utility.DatabaseTransaction) error
 	SaveIncidentComplianceRequirements(complianceRequirements []*models.IncidentComplianceRequirement, tx ...utility.DatabaseTransaction) error
 	SaveIncidentControls(controls []*models.IncidentControl, tx ...utility.DatabaseTransaction) error
 	GetIncidentDocumentByID(id uint) (*models.IncidentDocument, error)
@@ -48,12 +50,11 @@ func (repo *IncidentRegisterRepository) BeginTransaction() utility.DatabaseTrans
 }
 
 func (repo *IncidentRegisterRepository) GetAll(params *incidentDTOs.IncidentRegisterListQueryParamsDTO) (*incidentDTOs.IncidentRegisterListResponseDTO, error) {
-    var incidentRegisters []*incidentDTOs.IncidentRegisterListDTO
-    var totalCount int64
+	var incidentRegisters []*incidentDTOs.IncidentRegisterListDTO
+	var totalCount int64
 
-
-    query := repo.db.Table("incident_register").
-        Select(`
+	query := repo.db.Table("incident_register").
+		Select(`
             incident_register.id,
             incident_register.reference_number,
             incident_register.incident_category_id,
@@ -96,7 +97,7 @@ func (repo *IncidentRegisterRepository) GetAll(params *incidentDTOs.IncidentRegi
             updated_user.last_name_en AS updated_user_last_name_en,
             updated_user.last_name_ar AS updated_user_last_name_ar  
         `).
-        Joins(`
+		Joins(`
             LEFT JOIN incident_categories ON incident_categories.id = incident_register.incident_category_id
             LEFT JOIN incident_sub_categories ON incident_sub_categories.id = incident_register.incident_sub_category_id
             LEFT JOIN incident_types ON incident_types.id = incident_register.incident_type_id
@@ -106,21 +107,21 @@ func (repo *IncidentRegisterRepository) GetAll(params *incidentDTOs.IncidentRegi
 			LEFT JOIN users AS created_user ON created_user.id = incident_register.created_by
 			LEFT JOIN users AS updated_user ON updated_user.id = incident_register.updated_by
         `)
-    // Apply dynamic filters to the query
-    for columnName, values := range params.Filters {
-        if len(values) > 0 {
-            query = query.Where(columnName+" IN (?)", values)
-        }
-    }
+	// Apply dynamic filters to the query
+	for columnName, values := range params.Filters {
+		if len(values) > 0 {
+			query = query.Where(columnName+" IN (?)", values)
+		}
+	}
 
-    // Apply other filters as needed (e.g., date filters)
+	// Apply other filters as needed (e.g., date filters)
 	if params.ReportedAt != "" {
 		query = query.Where("reported_at >= ?", params.ReportedAt)
 	}
-    // Calculate total count for pagination
-    if err := query.Count(&totalCount).Error; err != nil {
-        return nil, err
-    }
+	// Calculate total count for pagination
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
@@ -155,38 +156,37 @@ func (repo *IncidentRegisterRepository) GetAll(params *incidentDTOs.IncidentRegi
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
-    // Sort by the specified column and order
-    if params.SortBy == "" {
-        params.SortBy = "title" // Default sort by title if no sortBy is specified
-    }
-    if params.Sort != "asc" && params.Sort != "desc" {
-        params.Sort = "asc" // Default order is ascending if not specified
-    }
+	// Sort by the specified column and order
+	if params.SortBy == "" {
+		params.SortBy = "title" // Default sort by title if no sortBy is specified
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc" // Default order is ascending if not specified
+	}
 
-    query = query.Order(params.SortBy + " " + params.Sort)
+	query = query.Order(params.SortBy + " " + params.Sort)
 
-    offset := (params.Page - 1) * params.PageSize
+	offset := (params.Page - 1) * params.PageSize
 
-    // Execute the query
-    err := query.Offset(offset).Limit(params.PageSize).Find(&incidentRegisters).Error
-    if err != nil {
-        return nil, err
-    }
+	// Execute the query
+	err := query.Offset(offset).Limit(params.PageSize).Find(&incidentRegisters).Error
+	if err != nil {
+		return nil, err
+	}
 
-    totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
 
-    response := &incidentDTOs.IncidentRegisterListResponseDTO{
-        Items: incidentRegisters,
-        Pagination: commonDTOs.PaginationInfoDTO{
-            CurrentPage: params.Page,
-            PageSize:    params.PageSize,
-            TotalPages:  totalPages,
-            TotalCount:  totalCount,
-        },
-    }
-    return response, nil
+	response := &incidentDTOs.IncidentRegisterListResponseDTO{
+		Items: incidentRegisters,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+	return response, nil
 }
-
 
 func (repo *IncidentRegisterRepository) GetByID(id uint) (*models.IncidentRegister, error) {
 	var incident *models.IncidentRegister
@@ -200,17 +200,23 @@ func (repo *IncidentRegisterRepository) GetByID(id uint) (*models.IncidentRegist
 
 }
 
-func (repo *IncidentRegisterRepository) GetFullDetailsByID(id uint) (*models.IncidentRegister, error) {
+func (repo *IncidentRegisterRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.IncidentRegister, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 	var incident *models.IncidentRegister
 
-	result := repo.db.
+	result := db.
 		Preload("IncidentCategory").
 		Preload("IncidentSubCategory").
 		Preload("IncidentType").
 		Preload("IncidentStatus").
 		Preload("ReportedByUser").
 		Preload("SeverityLevel").
-		Preload("IncidentDocuments").
+		Preload("Documents").
+		Preload("Controls").
+		Preload("ComplianceRequirements").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&incident, id)
@@ -247,16 +253,16 @@ func (repo *IncidentRegisterRepository) Update(incidentRegister *models.Incident
 }
 
 func (repo *IncidentRegisterRepository) Delete(id uint, tx ...utility.DatabaseTransaction) error {
-    db := repo.db
+	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
 	// Delete the Incident register
-    if err := db.Delete(&models.IncidentRegister{}, id).Error; err != nil {
-        return err
-    }
+	if err := db.Delete(&models.IncidentRegister{}, id).Error; err != nil {
+		return err
+	}
 
-    return nil
+	return nil
 }
 
 func (repo *IncidentRegisterRepository) GenerateReferenceNumber() (string, error) {
@@ -290,24 +296,24 @@ func (repo *IncidentRegisterRepository) GenerateReferenceNumber() (string, error
 //Document func
 
 func (repo *IncidentRegisterRepository) DeleteDocumentsByIncidentRegisterID(incidentRegisterID uint, tx ...utility.DatabaseTransaction) error {
-    db := repo.db
+	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
 	// Find all Incident documents associated with the Incident register
-    var incidentDocuments []*models.IncidentDocument
-    if err := db.Where("incident_register_id = ?", incidentRegisterID).Find(&incidentDocuments).Error; err != nil {
-        return err
-    }
+	var incidentDocuments []*models.IncidentDocument
+	if err := db.Where("incident_register_id = ?", incidentRegisterID).Find(&incidentDocuments).Error; err != nil {
+		return err
+	}
 
-    // Delete each Incident document associated with the Incident register
-    for _, incidentDocument := range incidentDocuments {
-        if err := db.Delete(incidentDocument).Error; err != nil {
-            return err
-        }
-    }
+	// Delete each Incident document associated with the Incident register
+	for _, incidentDocument := range incidentDocuments {
+		if err := db.Delete(incidentDocument).Error; err != nil {
+			return err
+		}
+	}
 
-    return nil
+	return nil
 }
 
 func (repo *IncidentRegisterRepository) GetIncidentDocumentByID(id uint) (*models.IncidentDocument, error) {
@@ -327,8 +333,7 @@ func (repo *IncidentRegisterRepository) GetIncidentDocumentsByIncidentID(id uint
 	return documents, nil
 }
 
-
-func (repo *IncidentRegisterRepository) SaveIncidentDocument(docs []*models.IncidentDocument, tx ...utility.DatabaseTransaction) error {
+func (repo *IncidentRegisterRepository) SaveIncidentDocuments(docs []*models.IncidentDocument, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -359,7 +364,6 @@ func (repo *IncidentRegisterRepository) SaveIncidentComplianceRequirements(compl
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	// Save all documents in a single transaction
 	if err := db.Create(&complianceRequirements).Error; err != nil {
 		return err
 	}
@@ -371,9 +375,36 @@ func (repo *IncidentRegisterRepository) SaveIncidentControls(controls []*models.
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	// Save all documents in a single transaction
 	if err := db.Create(&controls).Error; err != nil {
 		return err
 	}
+	return nil
+}
+
+func (repo *IncidentRegisterRepository) DeleteIncidentControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Delete controls by IDs
+	if err := db.Where("id IN (?)", controlIds).Delete(&models.IncidentControl{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *IncidentRegisterRepository) DeleteIncidentComplianceRequirements(requirementIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Delete compliance requirements by IDs
+	if err := db.Where("id IN (?)", requirementIds).Delete(&models.IncidentComplianceRequirement{}).Error; err != nil {
+		return err
+	}
+
 	return nil
 }

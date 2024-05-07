@@ -22,7 +22,7 @@ import (
 
 type IncidentRegisterServiceInterface interface {
 	GetAll(params *incidentDTOs.IncidentRegisterListQueryParamsDTO) (*incidentDTOs.IncidentRegisterListResponseDTO, error)
-	GetFullDetailsByID(id uint) (*incidentDTOs.IncidentRegisterDetailDTO, error)
+	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*incidentDTOs.IncidentRegisterDetailDTO, error)
 	GetByID(id uint) (*models.IncidentRegister, error)
 	Create(currentUserID uint, incidentRegisterFormDTO *incidentDTOs.IncidentRegisterFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, incident *incidentDTOs.IncidentRegisterFormDTO) error
@@ -82,11 +82,11 @@ func (irs IncidentRegisterService) GetByID(id uint) (*models.IncidentRegister, e
 	return incident, nil
 }
 
-func (irs IncidentRegisterService) GetFullDetailsByID(id uint) (*incidentDTOs.IncidentRegisterDetailDTO, error) {
+func (irs IncidentRegisterService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*incidentDTOs.IncidentRegisterDetailDTO, error) {
 	// Initialize your DTO
 	var incidentDTO incidentDTOs.IncidentRegisterDetailDTO
 
-	incident, err := irs.repo.GetFullDetailsByID(id)
+	incident, err := irs.repo.GetFullDetailsByID(id, tx...)
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -153,8 +153,8 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 	for _, req := range incidentRegisterFormDTO.ComplianceRequirements {
 		requirement := &models.IncidentComplianceRequirement{
 			IncidentRegisterID:      id,
-			ComplianceRequirementID: req,
-			CreatedBy:          currentUserID,
+			ComplianceRequirementID: *req,
+			CreatedBy:               currentUserID,
 		}
 		complianceRequirements = append(complianceRequirements, requirement)
 	}
@@ -170,7 +170,7 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 	for _, ctrl := range incidentRegisterFormDTO.Controls {
 		control := &models.IncidentControl{
 			IncidentRegisterID: id,
-			ControlID:          ctrl,
+			ControlID:          *ctrl,
 			CreatedBy:          currentUserID,
 		}
 		controls = append(controls, control)
@@ -186,12 +186,7 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 
 	// Iterate over each document in the array
 	for _, doc := range incidentRegisterFormDTO.Documents {
-		storagePath := filepath.Join("incident", "incident-register", strconv.FormatUint(uint64(incidentRegister.ID), 10), "documents")
 
-		if err := utility.StoreFile(doc.FileName, storagePath); err != nil {
-			tx.Rollback()
-			return 0, err
-		}
 		// Encrypt the filename
 		dataToEncrypt := []byte(doc.FileName)
 		encryptedFilename, err := utility.EncryptData(dataToEncrypt)
@@ -221,9 +216,16 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 	}
 	if len(documents) > 0 {
 		// Save the IncidentDocument
-		if err := irs.repo.SaveIncidentDocument(documents, tx); err != nil {
+		if err := irs.repo.SaveIncidentDocuments(documents, tx); err != nil {
 			tx.Rollback()
 			return 0, err
+		}
+		for _, doc := range documents {
+			storagePath := filepath.Join("incident", "incident-register", strconv.FormatUint(uint64(incidentRegister.ID), 10), "documents")
+			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
+				tx.Rollback()
+				return 0, err
+			}
 		}
 	}
 
@@ -298,15 +300,11 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 	//documents update
 	var documents []*models.IncidentDocument
 	var deleteDocumentIds []*uint
+	var documentsToDelete []*models.IncidentDocument
 
 	// Iterate over each document in the array
 	for _, doc := range incidentRegisterFormDTO.Documents {
-		storagePath := filepath.Join("incident", "incident-register", strconv.FormatUint(uint64(existingIncidentRegister.ID), 10), "documents")
 		if doc.IsNewFile != nil && *doc.IsNewFile {
-			if err := utility.StoreFile(doc.FileName, storagePath); err != nil {
-				tx.Rollback()
-				return err
-			}
 			dataToEncrypt := []byte(doc.FileName)
 			encryptedFilename, err := utility.EncryptData(dataToEncrypt)
 			if err != nil {
@@ -339,16 +337,13 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 					tx.Rollback()
 					return fmt.Errorf("existing document not found for ID: %d", *doc.ID)
 				}
-				if err := utility.RemoveFile(existingDocument.Name, storagePath); err != nil {
-					tx.Rollback()
-					return err
-				}
 				deleteDocumentIds = append(deleteDocumentIds, &existingDocument.ID)
+				documentsToDelete = append(documentsToDelete, existingDocument)
 			}
 		}
 	}
 	if len(documents) > 0 {
-		if err := irs.repo.SaveIncidentDocument(documents, tx); err != nil {
+		if err := irs.repo.SaveIncidentDocuments(documents, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
@@ -359,7 +354,24 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 			return err
 		}
 	}
-
+	if len(documents) > 0 {
+		for _, doc := range documents {
+			storagePath := filepath.Join("incident", "incident-register", strconv.FormatUint(uint64(existingIncidentRegister.ID), 10), "documents")
+			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+	}
+	if len(documentsToDelete) > 0 {
+		for _, document := range documentsToDelete {
+			storagePath := filepath.Join("incident", "incident-register", strconv.FormatUint(uint64(existingIncidentRegister.ID), 10), "documents")
+			if err := utility.RemoveFile(document.Name, storagePath); err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+	}
 	tx.Commit()
 
 	go func() {
@@ -392,39 +404,80 @@ func (irs *IncidentRegisterService) Delete(ids []uint, currentUserID uint) ([]ui
 	tx := irs.repo.BeginTransaction()
 	var failedIds []uint
 	var successfulIds []uint
+	documentsToDelete := make(map[uint][]*incidentDTOs.IncidentDocumentDTO)
 
 	for _, id := range ids {
-		// Fetch all incident documents associated with this incident
-		incidentDocuments, err := irs.repo.GetIncidentDocumentsByIncidentID(id)
+		incident, err := irs.GetFullDetailsByID(id, tx)
 		if err != nil {
-			failedIds = append(failedIds, id)
-			continue
-		}
-
-		// Delete each incident document
-		var deleteDocumentIds []*uint
-
-		for _, doc := range incidentDocuments {
-			storagePath := filepath.Join("incident", "incident-register", strconv.FormatUint(uint64(id), 10), "documents")
-			if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
-				continue
-			}
-			deleteDocumentIds = append(deleteDocumentIds, &doc.ID)
-		}
-
-		// Delete all incident documents associated with this incident
-		if err := irs.repo.DeleteIncidentDocuments(deleteDocumentIds, tx); err != nil {
 			tx.Rollback()
 			return nil, err
+		}
+		// Check if controls exist
+		if len(incident.Controls) > 0 {
+			var deleteControlIds []*uint
+			for _, ctrl := range incident.Controls {
+				deleteControlIds = append(deleteControlIds, ctrl.ID)
+			}
+			if err := irs.repo.DeleteIncidentControls(deleteControlIds, tx); err != nil {
+
+				tx.Rollback()
+				return nil, err
+			}
+		}
+
+		// Delete each compliance requirement if requirements exist
+		if len(incident.ComplianceRequirements) > 0 {
+			var deleteRequirementIds []*uint
+			for _, req := range incident.ComplianceRequirements {
+				deleteRequirementIds = append(deleteRequirementIds, req.ID)
+			}
+			if err := irs.repo.DeleteIncidentComplianceRequirements(deleteRequirementIds, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+
+		}
+
+		// Delete each incident document if documents exist
+		if len(incident.Documents) > 0 {
+			var deleteDocumentIds []*uint
+			for _, doc := range incident.Documents {
+				if doc != nil {
+					documentsToDelete[id] = append(documentsToDelete[id], doc)
+					deleteDocumentIds = append(deleteDocumentIds, doc.ID)
+				}
+			}
+			if err := irs.repo.DeleteIncidentDocuments(deleteDocumentIds, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+
 		}
 
 		// Delete the incident
 		if err := irs.repo.Delete(id, tx); err != nil {
-			tx.Rollback()
 			failedIds = append(failedIds, id)
-			return nil, err
+			continue
 		} else {
 			successfulIds = append(successfulIds, id)
+		}
+	}
+	if len(failedIds) > 0 {
+		tx.Rollback()
+		return failedIds, nil
+	}
+
+	// Deleting files should not affect the main operation result
+	if len(successfulIds) > 0 {
+		for incidentID, documents := range documentsToDelete {
+			for _, doc := range documents {
+				fmt.Println("filename=", doc.Name)
+				storagePath := filepath.Join("incident", "incident-register", strconv.FormatUint(uint64(incidentID), 10), "documents")
+				if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
+					tx.Rollback()
+					fmt.Printf("Failed to delete file at URL %s: %v\n", *doc.URL, err)
+				}
+			}
 		}
 	}
 
@@ -472,7 +525,7 @@ func (irs *IncidentRegisterService) validateIncidentRegisterFormDTO(incidentRegi
 		return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
 	}
 	//Controls exist
-	controls :=incidentRegisterFormDTO.Controls
+	controls := incidentRegisterFormDTO.Controls
 	// If no controls are provided, simply return nil to exit the function
 	if len(controls) == 0 {
 		return nil
@@ -484,21 +537,21 @@ func (irs *IncidentRegisterService) validateIncidentRegisterFormDTO(incidentRegi
 	// Check if each control exists
 	for _, control := range controls {
 		// Check if the control ID already exists in the map
-		if controlIDs[control] {
+		if controlIDs[*control] {
 			// If the control ID already exists, return a validation error
 			return utility.NewValidationError(fmt.Errorf("duplicate control ID: %d", control), "duplicate", "control")
 		}
 
 		// Check if the control exists in the database
-		if _, err := irs.controlSvc.GetByID(control); err != nil {
+		if _, err := irs.controlSvc.GetByID(*control); err != nil {
 			return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", control), "not_exist", "control")
 		}
 
 		// Add the control ID to the map
-		controlIDs[control] = true
+		controlIDs[*control] = true
 	}
 	//Compliance Requirements Exist
-	requirements :=incidentRegisterFormDTO.ComplianceRequirements
+	requirements := incidentRegisterFormDTO.ComplianceRequirements
 
 	// If no controls are provided, simply return nil to exit the function
 	if len(requirements) == 0 {
@@ -511,18 +564,18 @@ func (irs *IncidentRegisterService) validateIncidentRegisterFormDTO(incidentRegi
 	// Check if each requirement exists
 	for _, requirement := range requirements {
 		// Check if the requirement ID already exists in the map
-		if requirementIDs[requirement] {
+		if requirementIDs[*requirement] {
 			// If the requirement ID already exists, return a validation error
 			return utility.NewValidationError(fmt.Errorf("duplicate compliance requirement ID: %d", requirement), "duplicate", "compliance requirement")
 		}
 
 		// Check if the requirement exists in the database
-		if _, err := irs.complianceRequirementSvc.GetByComplianceRequirementID(requirement); err != nil {
+		if _, err := irs.complianceRequirementSvc.GetByComplianceRequirementID(*requirement); err != nil {
 			return utility.NewValidationError(fmt.Errorf("compliance requirement does not exist for ID: %d", requirement), "not_exist", "compliance requirement")
 		}
 
 		// Add the requirement ID to the map
-		requirementIDs[requirement] = true
+		requirementIDs[*requirement] = true
 	}
 
 	return nil

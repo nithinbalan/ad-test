@@ -3,6 +3,7 @@ package dtos
 import (
 	commonDTOs "jethur/grc/common/dtos"
 	masterDTOs "jethur/grc/masters/dtos"
+	organizationDTOs "jethur/grc/organization/dtos"
 
 	"time"
 )
@@ -37,8 +38,6 @@ type IncidentRegisterListDTO struct {
 	ReportedUserFirstNameAr    string     `json:"reported_user_first_name_ar"`
 	ReportedUserLastNameEn     string     `json:"reported_user_last_name_en"`
 	ReportedUserLastNameAr     string     `json:"reported_user_last_name_ar"`
-	CreatedBy                  uint       `json:"created_by"`
-	UpdatedBy                  *uint      `json:"updated_by"`
 	CreatedAt                  string     `json:"created_at"`
 	UpdatedAt                  string     `json:"updated_at"`
 	CreatedUserFirstNameEn     string     `json:"created_user_first_name_en"`
@@ -65,8 +64,8 @@ type IncidentRegisterFormDTO struct {
 	ReportedAt             string                     `json:"reported_at" binding:"required,datetime=2006-01-02"`
 	QuickAction            *string                    `json:"quick_action"`
 	Documents              []*IncidentDocumentFormDTO `json:"documents" binding:"required"`
-	ComplianceRequirements []uint                     `json:"compliance_requirements"`
-	Controls               []uint                     `json:"controls"`
+	ComplianceRequirements []*uint                    `json:"compliance_requirements"`
+	Controls               []*uint                    `json:"controls"`
 }
 
 type IncidentDocumentFormDTO struct {
@@ -83,14 +82,14 @@ type IncidentDocumentFormDTO struct {
 }
 
 type IncidentDocumentDTO struct {
-	ID           int    `json:"id"`
-	Language     string `json:"language"`
-	URL          string `json:"url"`
-	Icon         string `json:"icon"`
-	FileName     string `json:"file_name"`
-	OriginalName string `json:"original_name"`
-	Type         string `json:"type"`
-	Size         int    `json:"size"`
+	ID       *uint   `json:"id"`
+	Language string  `json:"language"`
+	URL      *string `json:"url"`
+	Icon     string  `json:"icon"`
+	Name     string  `json:"name"`
+	Token    string  `json:"token"`
+	Type     string  `json:"type"`
+	Size     int     `json:"size"`
 }
 
 type IncidentRegisterListQueryParamsDTO struct {
@@ -112,43 +111,28 @@ type IncidentRegisterListResponseDTO struct {
 }
 
 type IncidentRegisterDetailDTO struct {
-	ID                  int                          `json:"id"`
-	ReferenceNumber     string                       `json:"reference_number"`
-	Title               string                       `json:"title"`
-	Description         string                       `json:"description"`
-	IncidentAt          time.Time                    `json:"incident_at"`
-	Location            *string                      `json:"location"`
-	ReportedAt          *time.Time                   `json:"reported_at"`
-	QuickAction         *string                      `json:"quick_action"`
-	IncidentCategory    IncidentCategoryDTO          `json:"incident_category"`
-	IncidentSubCategory IncidentSubCategoryDTO       `json:"incident_sub_category"`
-	IncidentType        IncidentTypeDTO              `json:"incident_type"`
-	SeverityLevel       *masterDTOs.SeverityLevelDTO `json:"severity_level"`
-	IncidentStatus      IncidentStatusDTO            `json:"incident_status"`
-	ReportedByUser      UserMinimalDTO               `json:"reported_by"`
-	IncidentDocuments   []IncidentDocumentDTO        `json:"incident_documents"`
-	CreatedAt           time.Time                    `json:"created_at"`
-	UpdatedAt           *time.Time                   `json:"updated_at"`
-	CreatedByUser       UserMinimalDTO               `json:"created_by"`
-	UpdatedByUser       UserMinimalDTO               `json:"updated_by"`
+	ID                     int                                 `json:"id"`
+	ReferenceNumber        string                              `json:"reference_number"`
+	Title                  string                              `json:"title"`
+	Description            string                              `json:"description"`
+	IncidentAt             time.Time                           `json:"incident_at"`
+	Location               *string                             `json:"location"`
+	ReportedAt             *time.Time                          `json:"reported_at"`
+	QuickAction            *string                             `json:"quick_action"`
+	IncidentCategory       IncidentCategoryDTO                 `json:"incident_category"`
+	IncidentSubCategory    IncidentSubCategoryDTO              `json:"incident_sub_category"`
+	IncidentType           IncidentTypeDTO                     `json:"incident_type"`
+	SeverityLevel          *masterDTOs.SeverityLevelDTO        `json:"severity_level"`
+	IncidentStatus         IncidentStatusDTO                   `json:"incident_status"`
+	ReportedByUser         organizationDTOs.UserMinimalDTO     `json:"reported_by"`
+	Documents              []*IncidentDocumentDTO              `json:"documents"`
+	Controls               []*IncidentControlDTO               `json:"controls"`
+	ComplianceRequirements []*IncidentComplianceRequirementDTO `json:"compliance_requirements"`
+	CreatedAt              time.Time                           `json:"created_at"`
+	UpdatedAt              *time.Time                          `json:"updated_at"`
+	CreatedByUser          organizationDTOs.UserMinimalDTO     `json:"created_by"`
+	UpdatedByUser          organizationDTOs.UserMinimalDTO     `json:"updated_by"`
 }
-
-type UserMinimalDTO struct {
-	ID                int                 `json:"id"`
-	FirstNameEN       string              `json:"first_name_en"`
-	LastNameEN        string              `json:"last_name_en"`
-	FirstNameAR       string              `json:"first_name_ar"`
-	LastNameAR        string              `json:"last_name_ar"`
-	OrganizationUnit1 OrganizationUnitDTO `json:"organization_unit_1"`
-}
-
-type OrganizationUnitDTO struct {
-	ID      int    `json:"id"`
-	TitleEn string `json:"title_en"`
-	TitleAr string `json:"title_ar"`
-	Status  string `json:"status"`
-}
-
 type IncidentRegisterParsedDates struct {
 	ReportedAt *time.Time
 	IncidentAt *time.Time
