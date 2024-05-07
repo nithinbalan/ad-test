@@ -51,10 +51,10 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 
 	controlImplementationStatusRepo := organizationRepositories.NewControlImplementationStatusRepository(db)
 	controlImplementationStatusSvc := organizationServices.NewControlImplementationStatusService(controlImplementationStatusRepo)
-	
+
 	controlEfficiencyStatusRepo := organizationRepositories.NewControlEfficiencyStatusRepository(db)
 	controlEfficiencyStatusSvc := organizationServices.NewControlEfficiencyStatusService(controlEfficiencyStatusRepo)
-	
+
 	designationRepo := organizationRepositories.NewDesignationRepository(db)
 	designationSvc := organizationServices.NewDesignationService(designationRepo, activityLogSvc)
 
@@ -66,7 +66,7 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 
 	userRepo := organizationRepositories.NewUserRepository(db)
 	userSvc := organizationServices.NewUserService(userRepo, designationSvc, userStatusSvc, activityLogSvc, roleSvc)
-	
+
 	reviewFrequiencyRepo := masterRepositories.NewReviewFrequencyRepository(db)
 	reviewFrequiencySvc := masterServices.NewReviewFrequencyService(reviewFrequiencyRepo)
 
@@ -89,7 +89,7 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	//Compliance svc
 	complianceRequirementCategoryRepo := complianceRepositories.NewComplianceRequirementCategoryRepository(db)
 	complianceRequirementCategorySvc := complianceServices.NewComplianceRequirementCategoryService(complianceRequirementCategoryRepo, activityLogSvc)
-	
+
 	severityLevelRepo := masterRepositories.NewSeverityLevelRepository(db)
 	severityLevelSvc := masterServices.NewSeverityLevelService(severityLevelRepo)
 
@@ -101,7 +101,7 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 
 	reviewFrequencyRepo := masterRepositories.NewReviewFrequencyRepository(db)
 	reviewFrequencySvc := masterServices.NewReviewFrequencyService(reviewFrequencyRepo)
-	
+
 	complianceRegisterRepo := complianceRepositories.NewComplianceRegisterRepository(db)
 	complianceRegisterSvc := complianceServices.NewComplianceRegisterService(
 		complianceRegisterRepo,
@@ -124,8 +124,12 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	)
 
 	incidentRegisterRepo := incidentRepositories.NewIncidentRegisterRepository(db)
-	incidentRegisterSvc := incidentServices.NewIncidentRegisterService(incidentRegisterRepo,activityLogSvc,incidentCategorySvc,incidentSubCategorySvc,incidentTypeSvc,incidentStatusSvc,severityLevelSvc,controlSvc,complianceRequirementSvc)
+	incidentRegisterSvc := incidentServices.NewIncidentRegisterService(incidentRegisterRepo, activityLogSvc, incidentCategorySvc, incidentSubCategorySvc, incidentTypeSvc, incidentStatusSvc, severityLevelSvc, controlSvc, complianceRequirementSvc)
 	incidentRegisterController := controllers.NewIncidentRegisterController(incidentRegisterSvc)
+
+	incidentInvestigationStatusRepo := incidentRepositories.NewIncidentInvestigationStatusRepository(db)
+	incidentInvestigationStatusSvc := incidentServices.NewIncidentInvestigationStatusService(incidentInvestigationStatusRepo)
+	incidentInvestigationStatusController := controllers.NewIncidentInvestigationStatusController(incidentInvestigationStatusSvc)
 
 	//Incident Category
 	incidentRoutes.GET("/incident-categories", incidentCategoryController.GetAllIncidentCategories)
@@ -144,7 +148,7 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	incidentRoutes.POST("/incident-sub-categories/delete", incidentSubCategoryController.DeleteIncidentSubCategories)
 	incidentRoutes.PUT("/incident-sub-categories/activate", incidentSubCategoryController.ActivateIncidentSubCategories)
 	incidentRoutes.PUT("/incident-sub-categories/deactivate", incidentSubCategoryController.DeactivateIncidentSubCategories)
-	
+
 	//Incident Type
 	incidentRoutes.GET("/incident-types", incidentTypeController.GetAllIncidentTypes)
 	incidentRoutes.GET("/incident-types/:id", incidentTypeController.GetIncidentTypeDetails)
@@ -165,4 +169,7 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	incidentRoutes.PUT("/incident-register/:id", incidentRegisterController.UpdateIncidentRegister)
 	incidentRoutes.POST("/incident-register/delete", incidentRegisterController.DeleteIncidentRegisters)
 
+	//Incident Investigation Status
+	incidentRoutes.GET("/incident-investigation-statuses", incidentInvestigationStatusController.GetAllIncidentInvestigationStatuses)
+	incidentRoutes.GET("/incident-investigation-statuses/:id", incidentInvestigationStatusController.GetIncidentInvestigationStatusDetails)
 }
