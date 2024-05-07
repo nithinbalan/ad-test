@@ -19,10 +19,10 @@ type KRIValueUpdate struct {
 	UpdatedBy       *uint      `json:"updated_by" gorm:"default:null"`
 
 	// Relationships
-	KRIRegister             *KRIRegister             `gorm:"foreignkey:KRIRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	KRIValueUpdateDocuments []KRIValueUpdateDocument `gorm:"foreignKey:KRIValueUpdateID"`
-	CreatedByUser           *User                    `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser           *User                    `gorm:"foreignKey:UpdatedBy"`
+	KRIRegister   *KRIRegister             `gorm:"foreignkey:KRIRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Documents     []KRIValueUpdateDocument `gorm:"foreignKey:KRIValueUpdateID"`
+	CreatedByUser *User                    `gorm:"foreignKey:CreatedBy"`
+	UpdatedByUser *User                    `gorm:"foreignKey:UpdatedBy"`
 }
 
 // TableName overrides the table name used by KRIValueUpdate to `kri_value_updates`
