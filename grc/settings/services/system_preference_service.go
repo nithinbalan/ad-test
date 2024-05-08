@@ -10,7 +10,7 @@ import (
 )
 
 type SystemPreferenceServiceInterface interface {
-	GetByID(id uint) (*models.SystemPreference, error)
+	GetSystemPreference() (*models.SystemPreference, error)
 	Update(id uint, currentUserID uint, systemPreferenceFormDTO *dtos.SystemPreferenceFormDTO) error
 }
 
@@ -29,13 +29,13 @@ func NewSystemPreferenceService(repo repositories.SystemPreferenceRepositoryInte
 	}
 }
 
-func (sps SystemPreferenceService) GetByID(id uint) (*models.SystemPreference, error) {
-	return sps.repo.GetByID(id)
+func (sps SystemPreferenceService) GetSystemPreference() (*models.SystemPreference, error) {
+	return sps.repo.GetSystemPreference()
 }
 
 func (sps *SystemPreferenceService) Update(id uint, currentUserID uint, systemPreferenceFormDTO *dtos.SystemPreferenceFormDTO) error {
 	// Retrieve existing system preference by ID
-	existingSystemPreference, err := sps.repo.GetByID(id)
+	existingSystemPreference, err := sps.repo.GetSystemPreference()
 	if err != nil {
 		return err
 	}
