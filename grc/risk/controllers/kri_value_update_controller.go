@@ -63,9 +63,16 @@ func (kvuc *KRIValueUpdateController) GetAllKRIValueUpdates(c *gin.Context) {
 	kriRegisterUpdates, err := kvuc.service.GetAll(uint(kriRegisterID), &queryParams)
 
 	if err != nil {
-		utility.SendInternalErrResp(kvuc.db, c, err.Error())
-		return
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(kvuc.db, c, e.Error())
+			return
+		}
 	}
+
 	c.JSON(http.StatusOK, kriRegisterUpdates)
 }
 
@@ -91,6 +98,9 @@ func (kvuc *KRIValueUpdateController) CreateKRIValueUpdate(c *gin.Context) {
 	id, err := kvuc.service.Create(uint(kriRegisterID), currentUserID, &kriValueUpdateFormDTO)
 	if err != nil {
 		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
 			return
@@ -170,8 +180,14 @@ func (kvuc *KRIValueUpdateController) DeleteKRIValueUpdates(c *gin.Context) {
 
 	failedIDs, err := kvuc.service.Delete(uint(kriRegisterID), request.IDs, currentUserID)
 	if err != nil {
-		utility.SendInternalErrResp(kvuc.db, c, err.Error())
-		return
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(kvuc.db, c, e.Error())
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})

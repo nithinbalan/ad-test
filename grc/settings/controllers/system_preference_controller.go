@@ -22,15 +22,8 @@ func NewSystemPreferenceController(service services.SystemPreferenceServiceInter
 	}
 }
 
-func (spc *SystemPreferenceController) GetSystemPreferenceDetails(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := strconv.ParseUint(idStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	systemPreference, err := spc.service.GetByID(uint(id))
+func (spc *SystemPreferenceController) GetSystemPreference(c *gin.Context) {
+	systemPreference, err := spc.service.GetSystemPreference()
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return

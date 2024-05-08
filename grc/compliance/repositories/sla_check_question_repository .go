@@ -4,6 +4,7 @@ import (
 	"errors"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/models"
+	"jethur/utility"
 
 	"gorm.io/gorm"
 )
@@ -22,7 +23,7 @@ type SLACheckQuestionRepositoryInterface interface {
 	GetSimilarQuestion(checkID uint, titleEn string, titleAr string) (*models.SLACheckQuestion, error)
 	GetSimilarQuestionGroup(titleEn string, titleAr string, checkID uint) (*models.SLACheckQuestionGroup, error)
 	IncrementTotalCount(groupID uint) error
-	IncrementCompletedCount(groupID uint) error
+	IncrementCompletedCount(groupID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type SLACheckQuestionRepository struct {
@@ -179,15 +180,20 @@ func (repo *SLACheckQuestionRepository) IncrementTotalCount(groupID uint) error 
 }
 
 // IncrementCompletedCount increments the total count of SLACheckQuestionGroup by 1
-func (repo *SLACheckQuestionRepository) IncrementCompletedCount(groupID uint) error {
+func (repo *SLACheckQuestionRepository) IncrementCompletedCount(groupID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
 	var group models.SLACheckQuestionGroup
-	if err := repo.db.First(&group, groupID).Error; err != nil {
+	if err := db.First(&group, groupID).Error; err != nil {
 		return err
 	}
 
 	group.CompletedCount++
 
-	if err := repo.db.Save(&group).Error; err != nil {
+	if err := db.Save(&group).Error; err != nil {
 		return err
 	}
 

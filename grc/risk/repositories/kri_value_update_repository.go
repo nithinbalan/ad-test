@@ -1,14 +1,10 @@
 package repositories
 
 import (
-	"jethur/config"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	riskDTOs "jethur/grc/risk/dtos"
 	"jethur/utility"
-	"os"
-	"path/filepath"
-	"strconv"
 
 	"gorm.io/gorm"
 )
@@ -17,16 +13,14 @@ type KRIValueUpdateRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(kriRegisterID uint, params *riskDTOs.KRIValueUpdateListQueryParamsDTO) (*riskDTOs.KRIValueUpdateListResponseDTO, error)
 	Create(kriValueUpdate *models.KRIValueUpdate, tx ...utility.DatabaseTransaction) (uint, error)
-	Update(kriValueUpdate *models.KRIValueUpdate, tx ...utility.DatabaseTransaction) error
 	GetByID(id uint) (*models.KRIValueUpdate, error)
+	Update(kriValueUpdate *models.KRIValueUpdate, tx ...utility.DatabaseTransaction) error
+	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.KRIValueUpdate, error)
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	//Document
-	SaveKRIValueUpdateDocuments(docs []*models.KRIValueUpdateDocument, tx ...utility.DatabaseTransaction) error
-	GetKRIValueUpdateDocumentByID(id uint) (*models.KRIValueUpdateDocument, error)
-	StoreKRIValueUpdateDocumentFile(kriRegisterID uint, updatesId uint, fileName string) error
-	RemoveKRIValueUpdateDocumentFile(kriRegisterID uint, updatesId uint, fileNames string) error
-	DeleteKRIValueUpdateDocumentID(docId uint, tx ...utility.DatabaseTransaction) error
-	DeleteKRIValueUpdateDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
+	CreateDocuments(docs []*models.KRIValueUpdateDocument, tx ...utility.DatabaseTransaction) error
+	GetDocumentByID(id uint) (*models.KRIValueUpdateDocument, error)
+	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type KRIValueUpdateRepository struct {
@@ -143,7 +137,22 @@ func (repo *KRIValueUpdateRepository) Create(kriValueUpdate *models.KRIValueUpda
 func (repo *KRIValueUpdateRepository) GetByID(id uint) (*models.KRIValueUpdate, error) {
 	var kriValueUpdate *models.KRIValueUpdate
 
-	result := repo.db.Preload("KRIValueUpdateDocuments").First(&kriValueUpdate, id)
+	result := repo.db.First(&kriValueUpdate, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return kriValueUpdate, nil
+
+}
+func (repo *KRIValueUpdateRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.KRIValueUpdate, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	var kriValueUpdate *models.KRIValueUpdate
+
+	result := db.Preload("Documents").First(&kriValueUpdate, id)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -181,7 +190,7 @@ func (repo *KRIValueUpdateRepository) Delete(id uint, tx ...utility.DatabaseTran
 	return nil
 }
 
-func (repo *KRIValueUpdateRepository) SaveKRIValueUpdateDocuments(docs []*models.KRIValueUpdateDocument, tx ...utility.DatabaseTransaction) error {
+func (repo *KRIValueUpdateRepository) CreateDocuments(docs []*models.KRIValueUpdateDocument, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -196,7 +205,7 @@ func (repo *KRIValueUpdateRepository) SaveKRIValueUpdateDocuments(docs []*models
 
 }
 
-func (repo *KRIValueUpdateRepository) GetKRIValueUpdateDocumentByID(id uint) (*models.KRIValueUpdateDocument, error) {
+func (repo *KRIValueUpdateRepository) GetDocumentByID(id uint) (*models.KRIValueUpdateDocument, error) {
 	var document models.KRIValueUpdateDocument
 	if err := repo.db.Where("id = ?", id).First(&document).Error; err != nil {
 		return nil, err
@@ -204,30 +213,7 @@ func (repo *KRIValueUpdateRepository) GetKRIValueUpdateDocumentByID(id uint) (*m
 	return &document, nil
 }
 
-func (repo *KRIValueUpdateRepository) StoreKRIValueUpdateDocumentFile(kriRegisterID uint, updatesId uint, fileName string) error {
-	storagePath := config.GetEnv("STORAGE_PATH", "")
-	temporaryStoragePath := filepath.Join(storagePath, "tmp", fileName)
-	directoryPath := filepath.Join(storagePath, "risk", "kri-register", strconv.FormatUint(uint64(kriRegisterID), 10), "updates", strconv.FormatUint(uint64(updatesId), 10), "documents")
-	destinationPath := filepath.Join(directoryPath, fileName)
-	if err := os.MkdirAll(directoryPath, os.ModePerm); err != nil {
-		return err
-	}
-	if err := os.Rename(temporaryStoragePath, destinationPath); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (repo *KRIValueUpdateRepository) RemoveKRIValueUpdateDocumentFile(kriRegisterID uint, updatesId uint, fileName string) error {
-	storagePath := config.GetEnv("STORAGE_PATH", "")
-	filePath := filepath.Join(storagePath, "risk", "kri-register", strconv.FormatUint(uint64(kriRegisterID), 10), "updates", strconv.FormatUint(uint64(updatesId), 10), "documents", fileName)
-	if err := os.Remove(filePath); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (repo *KRIValueUpdateRepository) DeleteKRIValueUpdateDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error {
+func (repo *KRIValueUpdateRepository) DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -235,19 +221,6 @@ func (repo *KRIValueUpdateRepository) DeleteKRIValueUpdateDocuments(docIds []*ui
 
 	// Delete documents by IDs
 	if err := db.Where("id IN (?)", docIds).Delete(&models.KRIValueUpdateDocument{}).Error; err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (repo *KRIValueUpdateRepository) DeleteKRIValueUpdateDocumentID(docID uint, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-
-	if err := db.Delete(&models.KRIValueUpdateDocument{}, docID).Error; err != nil {
 		return err
 	}
 

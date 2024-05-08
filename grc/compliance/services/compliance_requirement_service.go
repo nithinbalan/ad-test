@@ -18,11 +18,12 @@ import (
 type ComplianceRequirementServiceInterface interface {
 	GetAll(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementListResponseDTO, error)
 	GetByID(complianceID uint, id uint) (*models.ComplianceRequirement, error)
+	GetByComplianceRequirementID(id uint) (*models.ComplianceRequirement, error)
 	GetFullDetailsByID(complianceID uint, id uint) (*complianceDTOs.ComplianceRequirementDetailDTO, error)
 	Create(complianceID uint, currentUserID uint, ComplianceRequirementFormDTO *complianceDTOs.ComplianceRequirementFormDTO) (uint, error)
 	Update(complianceID uint, id uint, currentUserID uint, compliance *complianceDTOs.ComplianceRequirementFormDTO) error
 	Delete(complianceID uint, ids []uint, currentUserID uint) ([]uint, error)
-	StatusUpdate(complianceID uint, id uint, currentUserID uint, complianceStatusID uint) error
+	StatusUpdate(complianceID uint, id uint, currentUserID uint, complianceStatusID uint, tx utility.DatabaseTransaction) error
 }
 
 // Service and implementations
@@ -64,6 +65,19 @@ func (crs ComplianceRequirementService) GetByID(complianceID uint, id uint) (*mo
 		return nil, err
 	}
 
+	complianceRequirement, err := crs.repo.GetByID(id)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+	return complianceRequirement, nil
+}
+
+func (crs ComplianceRequirementService) GetByComplianceRequirementID(id uint) (*models.ComplianceRequirement, error) {
+	
 	complianceRequirement, err := crs.repo.GetByID(id)
 
 	if err != nil {
@@ -281,7 +295,7 @@ func (crs *ComplianceRequirementService) Delete(complianceID uint, ids []uint, c
 	return failedIds, nil
 }
 
-func (crs *ComplianceRequirementService) StatusUpdate(complianceID uint, id uint, currentUserID uint, complianceStatusID uint) error {
+func (crs *ComplianceRequirementService) StatusUpdate(complianceID uint, id uint, currentUserID uint, complianceStatusID uint, tx utility.DatabaseTransaction) error {
 	existingComplianceRequirement, err := crs.GetByID(complianceID, id)
 
 	if err != nil {
@@ -291,7 +305,7 @@ func (crs *ComplianceRequirementService) StatusUpdate(complianceID uint, id uint
 	existingComplianceRequirement.ComplianceStatusID = complianceStatusID
 	existingComplianceRequirement.UpdatedBy = &currentUserID
 
-	err = crs.repo.Update(existingComplianceRequirement)
+	err = crs.repo.Update(existingComplianceRequirement, tx)
 
 	if err != nil {
 		return err

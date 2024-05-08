@@ -3,12 +3,13 @@ package services
 import (
 	"errors"
 	"fmt"
-	"jethur/config"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/repositories"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
+	"path/filepath"
+	"strconv"
 
 	"gorm.io/gorm"
 )
@@ -75,9 +76,8 @@ func (crsus *ComplianceRequirementStatusUpdateService) Create(ComplianceID uint,
 	if err := crsus.validateComplianceRequirementStatusUpdateFormDTO(complianceRequirementStatusUpdateFormDTO); err != nil {
 		return 0, err
 	}
-	if err := crsus.validateComplianceRequirementStatusUpdateDocumentsFormDTO(complianceRequirementStatusUpdateFormDTO.Documents); err != nil {
-		return 0, err // Returning 0 and the error if validation fails
-	}
+
+	//@todo validate document form
 
 	complianceStatusID := complianceRequirementStatusUpdateFormDTO.ComplianceStatusID
 	complianceRequirementUpdate := &models.ComplianceRequirementStatusUpdate{
@@ -92,19 +92,16 @@ func (crsus *ComplianceRequirementStatusUpdateService) Create(ComplianceID uint,
 		tx.Rollback()
 		return 0, err
 	}
-	err = crsus.complianceRequirementSvc.StatusUpdate(ComplianceID, ComplianceRequirementID, currentUserID, complianceStatusID)
+	err = crsus.complianceRequirementSvc.StatusUpdate(ComplianceID, ComplianceRequirementID, currentUserID, complianceStatusID, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
 	}
 
+	var documents []*models.ComplianceRequirementStatusUpdateDocument
+
 	// Iterate over each document in the array
 	for _, doc := range complianceRequirementStatusUpdateFormDTO.Documents {
-
-		if err := crsus.repo.StoreComplianceRequirementStatusUpdateDocumentFile(ComplianceID, ComplianceRequirementID, id, doc.FileName); err != nil {
-			tx.Rollback()
-			return 0, err
-		}
 		// Encrypt the filename
 		dataToEncrypt := []byte(doc.FileName)
 		encryptedFilename, err := utility.EncryptData(dataToEncrypt)
@@ -114,7 +111,7 @@ func (crsus *ComplianceRequirementStatusUpdateService) Create(ComplianceID uint,
 		}
 
 		// Construct the URL for the document
-		url := fmt.Sprintf("%s/compliances/%d/requirements/%d/status-updates/%s", config.GetEnv("API_URL", "http://localhost:8080"), ComplianceID, ComplianceRequirementID, encryptedFilename)
+		url := utility.GenerateDocumentURL("compliances", strconv.FormatUint(uint64(ComplianceID), 10), "requirements", strconv.FormatUint(uint64(ComplianceRequirementID), 10), "status-updates", encryptedFilename)
 
 		// Create a new ComplianceRequirementStatusUpdateDocument instance
 		document := &models.ComplianceRequirementStatusUpdateDocument{
@@ -127,14 +124,26 @@ func (crsus *ComplianceRequirementStatusUpdateService) Create(ComplianceID uint,
 			Type:                                doc.Type,
 			CreatedBy:                           currentUserID,
 		}
+		// Append the document to the slice
+		documents = append(documents, document)
 
+	}
+	if len(documents) > 0 {
 		// Save the ComplianceRequirementStatusUpdateDocument
-		if err := crsus.repo.SaveComplianceRequirementStatusUpdateDocument(document, tx); err != nil {
+		if err := crsus.repo.CreateDocuments(documents, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
-	}
+		//move file to storage
+		for _, doc := range documents {
+			storagePath := filepath.Join("compliance", "compliance", strconv.FormatUint(uint64(ComplianceID), 10), "requirements", strconv.FormatUint(uint64(ComplianceRequirementID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
+			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+		}
 
+	}
 	tx.Commit()
 
 	go func() {
@@ -175,89 +184,98 @@ func (crsus *ComplianceRequirementStatusUpdateService) Update(ComplianceID uint,
 	if err != nil {
 		return err
 	}
-	if err := crsus.validateComplianceRequirementStatusUpdateDocumentsFormDTO(ComplianceRequirementStatusUpdateFormDTO.Documents); err != nil {
-		return err // Returning 0 and the error if validation fails
-	}
+
+	//@todo validate document form
 
 	// Update Compliance StatusUpdate -- update comment only
 	existingComplianceRequirementStatusUpdate.Comment = ComplianceRequirementStatusUpdateFormDTO.Comment
 	existingComplianceRequirementStatusUpdate.UpdatedBy = &currentUserID
 
 	err = crsus.repo.Update(existingComplianceRequirementStatusUpdate, tx)
-
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
-	// Iterate over each document in the array
+	var documents []*models.ComplianceRequirementStatusUpdateDocument
+	var deleteDocumentIds []*uint
+	var documentsToDelete []*models.ComplianceRequirementStatusUpdateDocument
+
 	for _, doc := range ComplianceRequirementStatusUpdateFormDTO.Documents {
+
 		if doc.IsNewFile != nil && *doc.IsNewFile {
-			// Handle new file case
-			if err := crsus.repo.StoreComplianceRequirementStatusUpdateDocumentFile(ComplianceID, ComplianceRequirementID, id, doc.FileName); err != nil {
-				tx.Rollback()
-				return err
-			}
+			// Encrypt the filename
 			dataToEncrypt := []byte(doc.FileName)
-			encryptedFilename, err := utility.EncryptData(dataToEncrypt)
+			encryptedFileName, err := utility.EncryptData(dataToEncrypt)
+
 			if err != nil {
 				tx.Rollback()
 				return err
 			}
-			url := fmt.Sprintf("%s/compliances/%d/requirements/%d/status-updates/%s", config.GetEnv("API_URL", "http://localhost:8080"), ComplianceID, ComplianceRequirementID, encryptedFilename)
-			// Create a new ComplianceRequirementStatusUpdateDocument instance
+
+			//genereate URL
+			url := utility.GenerateDocumentURL("compliances", strconv.FormatUint(uint64(ComplianceID), 10), "requirements", strconv.FormatUint(uint64(ComplianceRequirementID), 10), "status-updates", encryptedFileName)
+			// Create a new Control test Document instance
 			document := &models.ComplianceRequirementStatusUpdateDocument{
 				ComplianceRequirementStatusUpdateID: id,
 				URL:                                 url,
 				Icon:                                doc.Icon,
 				Name:                                doc.FileName,
 				Size:                                doc.Size,
-				Token:                               encryptedFilename,
+				Token:                               encryptedFileName,
 				Type:                                doc.Type,
 				CreatedBy:                           currentUserID,
 			}
-			if err := crsus.repo.SaveComplianceRequirementStatusUpdateDocument(document, tx); err != nil {
-				tx.Rollback()
-				return err
-			}
+
+			// Append the document to the slice
+			documents = append(documents, document)
+
 		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
-			// Handle deleted file case
 			if doc.ID != nil {
-				existingDocument, err := crsus.repo.GetComplianceRequirementStatusUpdateDocumentByID(*doc.ID)
+				existingDocument, err := crsus.repo.GetDocumentByID(*doc.ID)
 				if err != nil {
+					if errors.Is(err, gorm.ErrRecordNotFound) {
+						return utility.NewResourceNotFoundError(err, id)
+					}
 					return err
 				}
-				if existingDocument == nil {
-					tx.Rollback()
-					return fmt.Errorf("existing document not found for ID: %d", *doc.ID)
-				}
-				if err := crsus.repo.RemoveComplianceRequirementStatusUpdateDocumentFile(ComplianceID, ComplianceRequirementID, id, existingDocument.Name); err != nil {
-					tx.Rollback()
-					return err
-				}
-				if err := crsus.repo.DeleteComplianceRequirementStatusUpdateDocumentID(existingDocument.ID, tx); err != nil {
-					tx.Rollback()
-					return err
-				}
-			}
-		} else {
-			// Handle existing document update case
-			if doc.ID != nil {
-				existingDocument, err := crsus.repo.GetComplianceRequirementStatusUpdateDocumentByID(*doc.ID)
-				if err != nil {
-					return err
-				}
-				if existingDocument == nil {
-					tx.Rollback()
-					return fmt.Errorf("existing document not found for ID: %d", *doc.ID)
-				}
-				existingDocument.UpdatedBy = currentUserID
-				if err := crsus.repo.SaveComplianceRequirementStatusUpdateDocument(existingDocument, tx); err != nil {
-					tx.Rollback()
-					return err
-				}
+
+				documentsToDelete = append(documentsToDelete, existingDocument)
+				deleteDocumentIds = append(deleteDocumentIds, &existingDocument.ID)
 			}
 		}
 	}
+
+	if len(documents) > 0 {
+		if err := crsus.repo.CreateDocuments(documents, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	if len(deleteDocumentIds) > 0 {
+		if err := crsus.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	for _, doc := range documents {
+		storagePath := filepath.Join("compliance", "compliance", strconv.FormatUint(uint64(ComplianceID), 10), "requirements", strconv.FormatUint(uint64(ComplianceRequirementID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
+
+		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	for _, document := range documentsToDelete {
+		storagePath := filepath.Join("compliance", "compliance", strconv.FormatUint(uint64(ComplianceID), 10), "requirements", strconv.FormatUint(uint64(ComplianceRequirementID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
+		if err := utility.RemoveFile(document.Name, storagePath); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
 	tx.Commit()
 
 	return nil
@@ -267,36 +285,6 @@ func (crsus *ComplianceRequirementStatusUpdateService) validateComplianceRequire
 
 	if _, err := crsus.complianceStatusSvc.GetByID(complianceRequirementStatusUpdateFormDTO.ComplianceStatusID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("compliance status does not exist"), "not_exist", "compliance status")
-	}
-
-	return nil
-}
-
-func (crsus *ComplianceRequirementStatusUpdateService) validateComplianceRequirementStatusUpdateDocumentsFormDTO(documents []*complianceDTOs.ComplianceRequirementStatusUpdateDocumentFormDTO) error {
-	// Check if documents array is nil or empty
-	if len(documents) == 0 {
-		return utility.NewValidationError(fmt.Errorf("documents is required"), "required", "documents")
-	}
-	for _, document := range documents {
-		//@Review
-		//All items are mandatory during creation
-
-		// Validate icon
-		if document.Icon == "" {
-			return utility.NewValidationError(fmt.Errorf("icon is required"), "required", "icon")
-		}
-
-		// Validate file type (PDF)
-		// if document.Type != ".pdf" {
-		//     return utility.NewValidationError(fmt.Errorf("only PDF files are allowed"), "invalid_file_type", "type")
-		// }
-
-		// @todo
-		// Validate file size (if needed)
-		// For example:
-		// if document.Size > MaxFileSize {
-		//     return utility.NewValidationError(fmt.Errorf("file size exceeds the limit"), "invalid_file_size", "file_size")
-		// }
 	}
 
 	return nil

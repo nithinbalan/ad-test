@@ -22,7 +22,7 @@ type ComplianceActionPlanServiceInterface interface {
 	Create(complianceID uint, currentUserID uint, ComplianceActionPlanFormDTO *complianceDTOs.ComplianceActionPlanFormDTO) (uint, error)
 	Update(complianceID uint, id uint, currentUserID uint, compliance *complianceDTOs.ComplianceActionPlanFormDTO) error
 	Delete(complianceID uint, ids []uint, currentUserID uint) ([]uint, error)
-	StatusUpdate(complianceID uint, id uint, currentUserID uint, ActionPlanStatusID uint) error
+	StatusUpdate(complianceID uint, id uint, currentUserID uint, ActionPlanStatusID uint, tx utility.DatabaseTransaction) error
 }
 
 // Service and implementations
@@ -76,11 +76,11 @@ func (caps ComplianceActionPlanService) GetByID(complianceID uint, id uint) (*mo
 }
 
 func (caps ComplianceActionPlanService) GetFullDetailsByID(complianceID uint, id uint) (*complianceDTOs.ComplianceActionPlanDetailDTO, error) {
+	var complianceActionPlanDTO complianceDTOs.ComplianceActionPlanDetailDTO
+
 	if _, err := caps.complianceRegisterSvc.GetByID(complianceID); err != nil {
 		return nil, err
 	}
-
-	var complianceActionPlanDTO complianceDTOs.ComplianceActionPlanDetailDTO
 
 	complianceActionPlan, err := caps.repo.GetFullDetailsByID(id)
 
@@ -102,7 +102,6 @@ func (caps ComplianceActionPlanService) GetFullDetailsByID(complianceID uint, id
 }
 
 func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID uint, ComplianceActionPlanFormDTO *complianceDTOs.ComplianceActionPlanFormDTO) (uint, error) {
-
 	if _, err := caps.complianceRegisterSvc.GetByID(complianceID); err != nil {
 		return 0, err
 	}
@@ -162,7 +161,6 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 }
 
 func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, currentUserID uint, ComplianceActionPlanFormDTO *complianceDTOs.ComplianceActionPlanFormDTO) error {
-
 	if _, err := caps.complianceRegisterSvc.GetByID(complianceID); err != nil {
 		return err
 	}
@@ -246,7 +244,7 @@ func (caps *ComplianceActionPlanService) Delete(complianceID uint, ids []uint, c
 	return failedIds, nil
 }
 
-func (caps *ComplianceActionPlanService) StatusUpdate(complianceID uint, id uint, currentUserID uint, ActionPlanStatusID uint) error {
+func (caps *ComplianceActionPlanService) StatusUpdate(complianceID uint, id uint, currentUserID uint, ActionPlanStatusID uint, tx utility.DatabaseTransaction) error {
 	existingComplianceActionPlan, err := caps.GetByID(complianceID, id)
 
 	if err != nil {
@@ -256,7 +254,7 @@ func (caps *ComplianceActionPlanService) StatusUpdate(complianceID uint, id uint
 	existingComplianceActionPlan.ActionPlanStatusID = ActionPlanStatusID
 	existingComplianceActionPlan.UpdatedBy = &currentUserID
 
-	err = caps.repo.Update(existingComplianceActionPlan)
+	err = caps.repo.Update(existingComplianceActionPlan, tx)
 
 	if err != nil {
 		return err
@@ -266,7 +264,6 @@ func (caps *ComplianceActionPlanService) StatusUpdate(complianceID uint, id uint
 }
 
 func (caps *ComplianceActionPlanService) validateComplianceActionPlanFormDTO(complianceID uint, ComplianceActionPlanFormDTO *complianceDTOs.ComplianceActionPlanFormDTO) error {
-
 	if ComplianceActionPlanFormDTO.SeverityLevelID != nil {
 		if _, err := caps.severityLevelSvc.GetByID(*ComplianceActionPlanFormDTO.SeverityLevelID); err != nil {
 			return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
