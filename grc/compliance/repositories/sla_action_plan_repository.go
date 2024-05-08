@@ -4,6 +4,7 @@ import (
 	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/models"
+	"jethur/utility"
 	"time"
 
 	"gorm.io/gorm"
@@ -13,8 +14,8 @@ type SLAActionPlanRepositoryInterface interface {
 	GetAll(slaID uint, params *complianceDTOs.SLAActionPlanListQueryParamsDTO) (*complianceDTOs.SLAActionPlanListResponseDTO, error)
 	GetByID(id uint) (*models.SLAActionPlan, error)
 	GetFullDetailsByID(id uint) (*models.SLAActionPlan, error)
-	Create(slaActionPlan *models.SLAActionPlan) (uint, error)
-	Update(slaActionPlan *models.SLAActionPlan) error
+	Create(slaActionPlan *models.SLAActionPlan, tx ...utility.DatabaseTransaction) (uint, error)
+	Update(slaActionPlan *models.SLAActionPlan, tx ...utility.DatabaseTransaction) error
 	Delete(id uint) error
 }
 
@@ -174,14 +175,14 @@ func (repo *SLAActionPlanRepository) GetFullDetailsByID(id uint) (*models.SLAAct
 	return slaActionPlan, nil
 }
 
-func (repo *SLAActionPlanRepository) Create(slaActionPlan *models.SLAActionPlan) (uint, error) {
+func (repo *SLAActionPlanRepository) Create(slaActionPlan *models.SLAActionPlan, tx ...utility.DatabaseTransaction) (uint, error) {
 	if err := repo.db.Create(slaActionPlan).Error; err != nil {
 		return 0, err
 	}
 	return slaActionPlan.ID, nil
 }
 
-func (repo *SLAActionPlanRepository) Update(slaActionPlan *models.SLAActionPlan) error {
+func (repo *SLAActionPlanRepository) Update(slaActionPlan *models.SLAActionPlan, tx ...utility.DatabaseTransaction) error {
 	if err := repo.db.Save(slaActionPlan).Error; err != nil {
 		return err
 	}

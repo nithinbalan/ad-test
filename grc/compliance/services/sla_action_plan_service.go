@@ -22,7 +22,7 @@ type SLAActionPlanServiceInterface interface {
 	Create(slaID uint, currentUserID uint, slaActionPlanFormDTO *complianceDTOs.SLAActionPlanFormDTO) (uint, error)
 	Update(slaID uint, id uint, currentUserID uint, slaActionPlanFormDTO *complianceDTOs.SLAActionPlanFormDTO) error
 	Delete(slaID uint, ids []uint, currentUserID uint) ([]uint, error)
-	StatusUpdate(slaID uint, id uint, currentUserID uint, ActionPlanStatusID uint) error
+	StatusUpdate(slaID uint, id uint, currentUserID uint, ActionPlanStatusID uint, tx utility.DatabaseTransaction) error
 }
 
 // Service and implementations
@@ -247,7 +247,7 @@ func (saps *SLAActionPlanService) Delete(slaID uint, ids []uint, currentUserID u
 	return failedIds, nil
 }
 
-func (saps *SLAActionPlanService) StatusUpdate(slaID uint, id uint, currentUserID uint, ActionPlanStatusID uint) error {
+func (saps *SLAActionPlanService) StatusUpdate(slaID uint, id uint, currentUserID uint, ActionPlanStatusID uint, tx utility.DatabaseTransaction) error {
 	existingSLAActionPlan, err := saps.GetByID(slaID, id)
 
 	if err != nil {
@@ -257,7 +257,7 @@ func (saps *SLAActionPlanService) StatusUpdate(slaID uint, id uint, currentUserI
 	existingSLAActionPlan.ActionPlanStatusID = ActionPlanStatusID
 	existingSLAActionPlan.UpdatedBy = &currentUserID
 
-	err = saps.repo.Update(existingSLAActionPlan)
+	err = saps.repo.Update(existingSLAActionPlan, tx)
 
 	if err != nil {
 		return err
