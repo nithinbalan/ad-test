@@ -16,19 +16,19 @@ type ComplianceRegisterRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *complianceDTOs.ComplianceRegisterListQueryParamsDTO) (*complianceDTOs.ComplianceRegisterListResponseDTO, error)
 	GetByID(id uint) (*models.ComplianceRegister, error)
-	GetFullDetailsByID(id uint) (*models.ComplianceRegister, error)
+	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceRegister, error)
 	Create(complianceRegister *models.ComplianceRegister, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(complianceRegister *models.ComplianceRegister, tx ...utility.DatabaseTransaction) error
-	Delete(id uint) error
+	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	GenerateReferenceNumber() (string, error)
 
 	//lifecycle
 	GetIDsByLifecycleStatus(ids []uint, status string) ([]uint, error)
 	UpdateLifecycleStatusForIDs(ids []uint, statusId uint) ([]uint, error)
 	//Document
-	SaveComplianceDocument(doc *models.ComplianceDocument, tx ...utility.DatabaseTransaction) error
-	GetComplianceDocumentByID(id uint) (*models.ComplianceDocument, error)
-	GetComplianceDocumentByComplianceID(id uint) (*models.ComplianceDocument, error)
+	CreateDocument(doc *models.ComplianceDocument, tx ...utility.DatabaseTransaction) error
+	GetDocumentByID(id uint) (*models.ComplianceDocument, error)
+	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type ComplianceRegisterRepository struct {
@@ -230,10 +230,14 @@ func (repo *ComplianceRegisterRepository) GetByID(id uint) (*models.ComplianceRe
 
 }
 
-func (repo *ComplianceRegisterRepository) GetFullDetailsByID(id uint) (*models.ComplianceRegister, error) {
+func (repo *ComplianceRegisterRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceRegister, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 	var compliance *models.ComplianceRegister // Declare the variable inside the function
 
-	result := repo.db.
+	result := db.
 		Preload("ComplianceCategory").
 		Preload("ComplianceStatus").
 		Preload("ResponsibleUnit").
@@ -243,7 +247,7 @@ func (repo *ComplianceRegisterRepository) GetFullDetailsByID(id uint) (*models.C
 		Preload("ReviewResponsibleUser").
 		Preload("SeverityLevel").
 		Preload("LifecycleStatus").
-		Preload("ComplianceDocuments").
+		Preload("Documents").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&compliance, id)
@@ -279,46 +283,13 @@ func (repo *ComplianceRegisterRepository) Update(complianceRegister *models.Comp
 	return nil
 }
 
-func (repo *ComplianceRegisterRepository) Delete(id uint) error {
-	// Begin a transaction
-	tx := repo.db.Begin()
-
-	// Defer a function to handle the transaction rollback in case of an error
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
-
-	var complianceRegister *models.ComplianceRegister
-	if err := tx.First(&complianceRegister, id).Error; err != nil {
-		tx.Rollback() // Rollback the transaction
-		return err
+func (repo *ComplianceRegisterRepository) Delete(id uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
 	}
-
-	// Find all Compliance documents associated with the Compliance register
-	var complianceDocuments []*models.ComplianceDocument
-	if err := tx.Where("compliance_register_id = ?", id).Find(&complianceDocuments).Error; err != nil {
-		tx.Rollback() // Rollback the transaction
-		return err
-	}
-
-	// Delete each Compliance document associated with the Compliance register
-	for _, complianceDocument := range complianceDocuments {
-		if err := tx.Delete(complianceDocument).Error; err != nil {
-			tx.Rollback() // Rollback the transaction
-			return err
-		}
-	}
-
-	// Delete the Compliance register
-	if err := tx.Delete(&models.ComplianceRegister{}, id).Error; err != nil {
-		tx.Rollback() // Rollback the transaction
-		return err
-	}
-
-	// Commit the transaction
-	if err := tx.Commit().Error; err != nil {
+	// Delete the SLA Register
+	if err := db.Delete(&models.ComplianceRegister{}, id).Error; err != nil {
 		return err
 	}
 
@@ -379,7 +350,7 @@ func (repo *ComplianceRegisterRepository) GenerateReferenceNumber() (string, err
 
 //Document func
 
-func (repo *ComplianceRegisterRepository) GetComplianceDocumentByID(id uint) (*models.ComplianceDocument, error) {
+func (repo *ComplianceRegisterRepository) GetDocumentByID(id uint) (*models.ComplianceDocument, error) {
 	var document models.ComplianceDocument
 	if err := repo.db.Where("id = ?", id).First(&document).Error; err != nil {
 		return nil, err
@@ -387,16 +358,7 @@ func (repo *ComplianceRegisterRepository) GetComplianceDocumentByID(id uint) (*m
 	return &document, nil
 }
 
-func (repo *ComplianceRegisterRepository) GetComplianceDocumentByComplianceID(id uint) (*models.ComplianceDocument, error) {
-	var document models.ComplianceDocument
-	if err := repo.db.Where("compliance_register_id = ?", id).
-		First(&document).Error; err != nil {
-		return nil, err
-	}
-	return &document, nil
-}
-
-func (repo *ComplianceRegisterRepository) SaveComplianceDocument(doc *models.ComplianceDocument, tx ...utility.DatabaseTransaction) error {
+func (repo *ComplianceRegisterRepository) CreateDocument(doc *models.ComplianceDocument, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -404,5 +366,19 @@ func (repo *ComplianceRegisterRepository) SaveComplianceDocument(doc *models.Com
 	if err := db.Save(doc).Error; err != nil {
 		return err
 	}
+	return nil
+}
+
+func (repo *ComplianceRegisterRepository) DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Delete Compliance documents by IDs
+	if err := db.Where("id IN (?)", docIds).Delete(&models.ComplianceDocument{}).Error; err != nil {
+		return err
+	}
+
 	return nil
 }

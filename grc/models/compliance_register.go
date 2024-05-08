@@ -39,7 +39,7 @@ type ComplianceRegister struct {
 	ReviewResponsibleUser *User                `gorm:"foreignkey:ReviewResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	SeverityLevel         *SeverityLevel       `gorm:"foreignkey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	LifecycleStatus       *LifecycleStatus     `gorm:"foreignkey:LifecycleStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ComplianceDocuments   []ComplianceDocument `gorm:"foreignKey:ComplianceRegisterID"`
+	Documents             []ComplianceDocument `gorm:"foreignKey:ComplianceRegisterID"`
 	CreatedByUser         *User                `gorm:"foreignKey:CreatedBy"`
 	UpdatedByUser         *User                `gorm:"foreignKey:UpdatedBy"`
 }

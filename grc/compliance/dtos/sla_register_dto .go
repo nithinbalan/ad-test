@@ -2,6 +2,8 @@ package dtos
 
 import (
 	commonDTOs "jethur/grc/common/dtos"
+	masterDTOs "jethur/grc/masters/dtos"
+	organizationDTOs "jethur/grc/organization/dtos"
 	"time"
 )
 
@@ -105,10 +107,50 @@ type SLADocumentFormDTO struct {
 	Size         int    `json:"size"`
 	IsNewFile    *bool  `json:"is_new_file,omitempty"` // Optional field for indicating if the file is new or updated
 }
+type SLADocumentDTO struct {
+	ID         *uint      `json:"id"`
+	Version    string     `json:"version"`
+	IssueDate  *time.Time `json:"issue_date,omitempty"`
+	ExpiryDate *time.Time `json:"expiry_date,omitempty"`
+	Comment    *string    `json:"comment,omitempty"`
+	URL        string     `json:"url"`
+	Name       string     `json:"name"`
+	Size       int        `json:"size"`
+	Token      string     `json:"token"`
+	Type       string     `json:"type"`
+	Icon       string     `json:"icon"`
+	IsLatest   bool       `json:"is_latest"`
+	SA1Date    *time.Time `json:"sa1_date,omitempty"`
+	SA2Date    *time.Time `json:"sa2_date,omitempty"`
+	CreatedAt  time.Time  `json:"created_at"`
+	UpdatedAt  time.Time  `json:"updated_at"`
+	CreatedBy  uint       `json:"created_by"`
+	UpdatedBy  uint       `json:"updated_by,omitempty"`
+}
 
 type ParsedSLADates struct {
 	IssueDate  *time.Time
 	ExpiryDate *time.Time
 	SA1Date    *time.Time
 	SA2Date    *time.Time
+}
+
+type SLARegisterDetailDTO struct {
+	ID               uint                                 `json:"id"`
+	ReferenceNumber  string                               `json:"reference_number"`
+	SLACategory      SLACategoryDTO                       `json:"sla_category"`
+	SeverityLevel    *masterDTOs.SeverityLevelDTO         `json:"severity_level"`
+	ResponsibleUnit  organizationDTOs.OrganizationUnitDTO `json:"responsible_unit"`
+	ResponsibleUser  organizationDTOs.UserMinimalDTO      `json:"responsible_user"`
+	LifecycleStatus  masterDTOs.LifecycleStatusDTO        `json:"lifecycle_status"`
+	ComplianceStatus *ComplianceStatusDTO                 `json:"compliance_status,omitempty"`
+	TitleEn          string                               `json:"title_en"`
+	TitleAr          string                               `json:"title_ar"`
+	Description      *string                              `json:"description,omitempty"`
+	Client           string                               `json:"client"`
+	CreatedAt        time.Time                            `json:"created_at"`
+	UpdatedAt        time.Time                            `json:"updated_at"`
+	CreatedByUser    organizationDTOs.UserMinimalDTO      `json:"created_by"`
+	UpdatedByUser    *organizationDTOs.UserMinimalDTO     `json:"updated_by,omitempty"`
+	Documents        []*SLADocumentDTO                    `json:"documents"`
 }

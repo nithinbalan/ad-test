@@ -19,14 +19,14 @@ import (
 
 type ComplianceRegisterServiceInterface interface {
 	GetAll(params *complianceDTOs.ComplianceRegisterListQueryParamsDTO) (*complianceDTOs.ComplianceRegisterListResponseDTO, error)
-	GetFullDetailsByID(id uint) (*complianceDTOs.ComplianceRegisterDetailDTO, error)
+	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.ComplianceRegisterDetailDTO, error)
 	GetByID(id uint) (*models.ComplianceRegister, error)
 	Create(currentUserID uint, complianceRegisterFormDTO *complianceDTOs.ComplianceRegisterFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, compliance *complianceDTOs.ComplianceRegisterFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	Archive(ids []uint, currentUserID uint) ([]uint, error)
 	Restore(ids []uint, currentUserID uint) ([]uint, error)
-	StatusUpdate(id uint, currentUserID uint, complianceStatusID uint) error
+	StatusUpdate(id uint, currentUserID uint, complianceStatusID uint, tx utility.DatabaseTransaction) error
 }
 
 // Service and implementations
@@ -75,12 +75,10 @@ func (crs ComplianceRegisterService) GetByID(id uint) (*models.ComplianceRegiste
 	return compliance, nil
 }
 
-func (crs ComplianceRegisterService) GetFullDetailsByID(id uint) (*complianceDTOs.ComplianceRegisterDetailDTO, error) {
-
-	// Initialize your DTO
+func (crs ComplianceRegisterService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.ComplianceRegisterDetailDTO, error) {
 	var complianceDTO complianceDTOs.ComplianceRegisterDetailDTO
 
-	compliance, err := crs.repo.GetFullDetailsByID(id)
+	compliance, err := crs.repo.GetFullDetailsByID(id, tx...)
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -89,7 +87,6 @@ func (crs ComplianceRegisterService) GetFullDetailsByID(id uint) (*complianceDTO
 		return nil, err
 	}
 
-	// Map the result to your DTO
 	err = mapstructure.Decode(compliance, &complianceDTO)
 	if err != nil {
 		return nil, err
@@ -155,14 +152,6 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 		return 0, err
 	}
 
-	// Store Compliance Document File using utility.StoreFile
-	storagePath := filepath.Join("compliance", "compliance", strconv.FormatUint(uint64(id), 10), "documents")
-
-	if err := utility.StoreFile(complianceRegisterFormDTO.Document.FileName, storagePath); err != nil {
-		tx.Rollback()
-		return 0, err
-	}
-
 	//generate token
 	dataToEncrypt := []byte(complianceRegisterFormDTO.Document.FileName)
 	encryptedFilename, err := utility.EncryptData(dataToEncrypt)
@@ -187,7 +176,14 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 	}
 
 	// Save Compliance document
-	if err := crs.repo.SaveComplianceDocument(complianceDocument, tx); err != nil {
+	if err := crs.repo.CreateDocument(complianceDocument, tx); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	// Store Compliance Document File using utility.StoreFile
+	storagePath := filepath.Join("compliance", "compliance", strconv.FormatUint(uint64(id), 10), "documents")
+
+	if err := utility.StoreFile(complianceRegisterFormDTO.Document.FileName, storagePath); err != nil {
 		tx.Rollback()
 		return 0, err
 	}
@@ -267,7 +263,7 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 	}
 
 	if complianceRegisterFormDTO.Document.ID != nil {
-		existingComplianceDocument, err := crs.repo.GetComplianceDocumentByID(*complianceRegisterFormDTO.Document.ID)
+		existingComplianceDocument, err := crs.repo.GetDocumentByID(*complianceRegisterFormDTO.Document.ID)
 		if err != nil {
 			return err
 		}
@@ -275,16 +271,8 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 		existingComplianceDocument.UpdatedBy = currentUserID
 
 		if complianceRegisterFormDTO.Document.IsNewFile != nil && *complianceRegisterFormDTO.Document.IsNewFile {
-			storagePath := filepath.Join("compliance", "compliance", strconv.FormatUint(uint64(id), 10), "documents")
-			if err := utility.RemoveFile(existingComplianceDocument.Name, storagePath); err != nil {
-				tx.Rollback()
-				return err
-			}
-			// Store Compliance Document File using utility.StoreFile
-			if err := utility.StoreFile(complianceRegisterFormDTO.Document.FileName, storagePath); err != nil {
-				tx.Rollback()
-				return err
-			}
+			existingComplianceDocumentFileName := existingComplianceDocument.Name
+
 			//generate token
 			dataToEncrypt := []byte(complianceRegisterFormDTO.Document.FileName)
 			encryptedFilename, err := utility.EncryptData(dataToEncrypt)
@@ -303,12 +291,28 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 			existingComplianceDocument.Size = complianceRegisterFormDTO.Document.Size
 			existingComplianceDocument.Token = encryptedFilename
 			existingComplianceDocument.Type = complianceRegisterFormDTO.Document.Type
+			if err := crs.repo.CreateDocument(existingComplianceDocument, tx); err != nil {
+				tx.Rollback()
+				return err
+			}
+			storagePath := filepath.Join("compliance", "compliance", strconv.FormatUint(uint64(id), 10), "documents")
+			if err := utility.RemoveFile(existingComplianceDocumentFileName, storagePath); err != nil {
+				tx.Rollback()
+				return err
+			}
+			// Store Compliance Document File using utility.StoreFile
+			if err := utility.StoreFile(complianceRegisterFormDTO.Document.FileName, storagePath); err != nil {
+				tx.Rollback()
+				return err
+			}
 
+		} else {
+			if err := crs.repo.CreateDocument(existingComplianceDocument, tx); err != nil {
+				tx.Rollback()
+				return err
+			}
 		}
-		if err := crs.repo.SaveComplianceDocument(existingComplianceDocument, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
+
 	}
 
 	tx.Commit()
@@ -316,40 +320,64 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 }
 
 func (crs *ComplianceRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
+	tx := crs.repo.BeginTransaction()
 	var failedIds []uint
 	var successfulIds []uint
+	documentsToDelete := make(map[uint][]*complianceDTOs.ComplianceDocumentDTO)
+
 	for _, id := range ids {
-
-		_, err := crs.repo.GetByID(id)
-
+		complianceRegister, err := crs.GetFullDetailsByID(id, tx)
 		if err != nil {
-			continue
+			tx.Rollback()
+			return nil, err
 		}
 
-		// Fetch the Compliance document by ID
-		complianceDocument, err := crs.repo.GetComplianceDocumentByComplianceID(id)
-		if err != nil {
-			failedIds = append(failedIds, id)
-			continue
+		// Delete each Compliance document if documents exist
+		if len(complianceRegister.Documents) > 0 {
+			var deleteDocumentIds []*uint
+			for _, doc := range complianceRegister.Documents {
+				if doc != nil {
+					documentsToDelete[id] = append(documentsToDelete[id], doc)
+					deleteDocumentIds = append(deleteDocumentIds, doc.ID)
+				}
+			}
+			if err := crs.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
 		}
 
-		storagePath := filepath.Join("compliance", "compliance", strconv.FormatUint(uint64(complianceDocument.ComplianceRegisterID), 10), "documents")
-
-		if err := utility.RemoveFile(complianceDocument.Name, storagePath); err != nil {
+		// Delete the Compliance Register
+		if err := crs.repo.Delete(id, tx); err != nil {
 			failedIds = append(failedIds, id)
 			continue
-		}
-
-		err = crs.repo.Delete(id)
-		if err != nil {
-			failedIds = append(failedIds, id)
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
 	}
 
-	if len(successfulIds) > 0 {
+	if len(failedIds) > 0 {
+		tx.Rollback()
+		return failedIds, nil
+	}
 
+	// Deleting files should not affect the main operation result
+	if len(successfulIds) > 0 {
+		for complianceID, documents := range documentsToDelete {
+			for _, doc := range documents {
+				storagePath := filepath.Join("compliance", "compliance", strconv.FormatUint(uint64(complianceID), 10), "documents")
+				if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
+					tx.Rollback()
+					fmt.Printf("Failed to delete file at URL %s: %v\n", doc.URL, err)
+				}
+			}
+		}
+	}
+
+	tx.Commit()
+
+	// Log bulk delete activities for successful deletions
+	if len(successfulIds) > 0 {
 		go func() {
 			err := crs.activityLogSvc.LogBulkActivities(
 				models.DeleteAction, // Make sure this action constant is defined appropriately
@@ -443,7 +471,7 @@ func (crs *ComplianceRegisterService) Restore(ids []uint, currentUserID uint) ([
 	return successfulIds, nil
 }
 
-func (crs *ComplianceRegisterService) StatusUpdate(id uint, currentUserID uint, complianceStatusID uint) error {
+func (crs *ComplianceRegisterService) StatusUpdate(id uint, currentUserID uint, complianceStatusID uint, tx utility.DatabaseTransaction) error {
 	existingCompliance, err := crs.GetByID(id)
 
 	if err != nil {
@@ -453,7 +481,7 @@ func (crs *ComplianceRegisterService) StatusUpdate(id uint, currentUserID uint, 
 	existingCompliance.ComplianceStatusID = complianceStatusID
 	existingCompliance.UpdatedBy = &currentUserID
 
-	err = crs.repo.Update(existingCompliance)
+	err = crs.repo.Update(existingCompliance, tx)
 
 	if err != nil {
 		return err

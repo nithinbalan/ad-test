@@ -61,6 +61,8 @@ func (scas SLACheckAnswerService) GetByID(slaID uint, questionID uint, answerID 
 }
 
 func (scas *SLACheckAnswerService) CreateAnswer(slaID uint, questionID uint, currentUserID uint, slaCheckAnswerFormDTO *complianceDTOs.SLACheckAnswerFormDTO) (uint, error) {
+	tx := scas.repo.BeginTransaction()
+
 	if _, err := scas.slaRegisterSvc.GetByID(slaID); err != nil {
 		return 0, err
 	}
@@ -84,14 +86,18 @@ func (scas *SLACheckAnswerService) CreateAnswer(slaID uint, questionID uint, cur
 
 	answer, err := scas.repo.Create(slaCheckAnswer)
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
 	// Update completed count of the SLACheckQuestionGroup
-	err = scas.slaCheckQuestionSvc.IncrementCompletedCount(slaCheckQuestion.SLACheckQuestionGroupID)
+	err = scas.slaCheckQuestionSvc.IncrementCompletedCount(slaCheckQuestion.SLACheckQuestionGroupID, tx)
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
+
+	tx.Commit()
 
 	go func() {
 		err := scas.activityLogSvc.LogActivity(

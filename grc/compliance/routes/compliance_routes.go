@@ -169,8 +169,8 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	complianceRoutes.POST("/compliance-requirement-categories", complianceRequirementCategoryController.CreateComplianceRequirementCategory)
 	complianceRoutes.PUT("/compliance-requirement-categories/:id", complianceRequirementCategoryController.UpdateComplianceRequirementCategory)
 	complianceRoutes.POST("/compliance-requirement-categories/delete", complianceRequirementCategoryController.DeleteComplianceRequirementCategories)
-	complianceRoutes.POST("/compliance-requirement-categories/activate", complianceRequirementCategoryController.ActivateComplianceRequirementCategories)
-	complianceRoutes.POST("/compliance-requirement-categories/deactivate", complianceRequirementCategoryController.DeactivateComplianceRequirementCategories)
+	complianceRoutes.PUT("/compliance-requirement-categories/activate", complianceRequirementCategoryController.ActivateComplianceRequirementCategories)
+	complianceRoutes.PUT("/compliance-requirement-categories/deactivate", complianceRequirementCategoryController.DeactivateComplianceRequirementCategories)
 
 	//SLA Category
 	complianceRoutes.GET("/sla-categories/:id", SLACategoryController.GetSLACategoryDetails)
@@ -178,8 +178,8 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	complianceRoutes.GET("/sla-categories", SLACategoryController.GetAllSLACategories)
 	complianceRoutes.PUT("/sla-categories/:id", SLACategoryController.UpdateCategory)
 	complianceRoutes.POST("/sla-categories/delete", SLACategoryController.DeleteSLACategories)
-	complianceRoutes.POST("/sla-categories/activate", SLACategoryController.ActivateSLACategories)
-	complianceRoutes.POST("/sla-categories/deactivate", SLACategoryController.DeactivateSLACategories)
+	complianceRoutes.PUT("/sla-categories/activate", SLACategoryController.ActivateSLACategories)
+	complianceRoutes.PUT("/sla-categories/deactivate", SLACategoryController.DeactivateSLACategories)
 
 	//Compliance Register
 	complianceRoutes.GET("/compliance-register", complianceRegisterController.GetAllComplianceRegisters)
@@ -192,9 +192,9 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 
 	//SLA Register
 	complianceRoutes.GET("/sla-register", SLARegisterController.GetAllSLARegisters)
-	complianceRoutes.GET("/sla-register/:slaId", SLARegisterController.GetSLARegisterDetails)
+	complianceRoutes.GET("/sla-register/:id", SLARegisterController.GetSLARegisterDetails)
 	complianceRoutes.POST("/sla-register", SLARegisterController.CreateSLARegister)
-	complianceRoutes.PUT("/sla-register/:slaId", SLARegisterController.UpdateSLARegister)
+	complianceRoutes.PUT("/sla-register/:id", SLARegisterController.UpdateSLARegister)
 	complianceRoutes.POST("/sla-register/delete", SLARegisterController.DeleteSLARegisters)
 	complianceRoutes.PUT("/sla-register/archive", SLARegisterController.ArchiveSLARegisters)
 	complianceRoutes.PUT("/sla-register/restore", SLARegisterController.RestoreSLARegisters)

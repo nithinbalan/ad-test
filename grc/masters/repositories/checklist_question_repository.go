@@ -94,8 +94,7 @@ func (repo *ChecklistQuestionRepository) GetAll(sort string, sortBy string, keyw
 
 func (repo *ChecklistQuestionRepository) GetByID(id uint) (*models.ChecklistQuestion, error) {
 	var checklistQuestion *models.ChecklistQuestion
-	result := repo.db.Preload("Checklist").Preload("QuestionGroup").Preload("QuestionLibrary").First(&checklistQuestion, id)
-
+	result := repo.db.Preload("Checklist").Preload("QuestionGroup").First(&checklistQuestion, id)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, utility.NewResourceNotFoundError(result.Error, id)
 	} else if result.Error != nil {

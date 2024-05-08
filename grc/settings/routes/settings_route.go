@@ -42,6 +42,6 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	settingRoutes.GET("/currencies/:id", currencyController.GetCurrencyDetails)
 
 	//System Preference
-	settingRoutes.GET("/system-preferences/:id", systemPreferenceController.GetSystemPreferenceDetails)
+	settingRoutes.GET("/system-preferences", systemPreferenceController.GetSystemPreference)
 	settingRoutes.PUT("/system-preferences/:id", systemPreferenceController.UpdateSystemPreference)
 }

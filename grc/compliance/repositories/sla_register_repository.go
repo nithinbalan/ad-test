@@ -1,7 +1,6 @@
 package repositories
 
 import (
-	"errors"
 	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	slaDTOs "jethur/grc/compliance/dtos"
@@ -18,18 +17,20 @@ type SLARegisterRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *slaDTOs.SLARegisterListQueryParamsDTO) (*slaDTOs.SLARegisterListResponseDTO, error)
 	GetByID(id uint) (*models.SLARegister, error)
+	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.SLARegister, error)
 	Create(slaRegister *models.SLARegister, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(slaRegister *models.SLARegister, tx ...utility.DatabaseTransaction) error
-	Delete(id uint) error
+	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	GetIDsByLifecycleStatus(ids []uint, status string) ([]uint, error)
 	UpdateLifecycleStatusForIDs(ids []uint, statusId uint) ([]uint, error)
 	GenerateReferenceNumber() (string, error)
 	CreateSLACheck(slaCheck *models.SLACheck, tx ...utility.DatabaseTransaction) error
+	DeleteSLAChecksBySLAID(slaID uint, tx ...utility.DatabaseTransaction) error
 
 	//Document
-	SaveSLADocument(doc *models.SLADocument, tx ...utility.DatabaseTransaction) error
-	GetSLADocumentByID(id uint) (*models.SLADocument, error)
-	GetLatestSLADocumentBySLARegisterID(id uint) (*models.SLADocument, error)
+	CreateDocument(doc *models.SLADocument, tx ...utility.DatabaseTransaction) error
+	GetDocumentByID(id uint) (*models.SLADocument, error)
+	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 // implementation
@@ -216,23 +217,39 @@ func (repo *SLARegisterRepository) GetAll(params *slaDTOs.SLARegisterListQueryPa
 
 func (repo *SLARegisterRepository) GetByID(id uint) (*models.SLARegister, error) {
 	var slaRegister *models.SLARegister
-	// result := repo.db.First(&slaRegister, id)
-	result := repo.db.Preload("SLACategory").
+
+	result := repo.db.First(&slaRegister, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return slaRegister, nil
+}
+
+func (repo *SLARegisterRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.SLARegister, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	var slaRegister *models.SLARegister
+
+	result := db.
+		Preload("SLACategory").
 		Preload("SeverityLevel").
 		Preload("ResponsibleUnit").
 		Preload("ResponsibleUser").
 		Preload("LifecycleStatus").
+		Preload("ComplianceStatus").
+		Preload("Documents").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&slaRegister, id)
 
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, utility.NewResourceNotFoundError(result.Error, id)
-	} else if result.Error != nil {
+	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	return slaRegister, result.Error
+	return slaRegister, nil
 }
 
 func (repo *SLARegisterRepository) Create(slaRegister *models.SLARegister, tx ...utility.DatabaseTransaction) (uint, error) {
@@ -259,46 +276,13 @@ func (repo *SLARegisterRepository) Update(slaRegister *models.SLARegister, tx ..
 	return nil
 }
 
-func (repo *SLARegisterRepository) Delete(id uint) error {
-	// Begin a transaction
-	tx := repo.db.Begin()
-
-	// Defer a function to handle the transaction rollback in case of an error
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
-
-	var slaRegister *models.SLARegister
-	if err := tx.First(&slaRegister, id).Error; err != nil {
-		tx.Rollback() // Rollback the transaction
-		return err
+func (repo *SLARegisterRepository) Delete(id uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
 	}
-
-	// Find all SLA documents associated with the SLA register
-	var slaDocuments []*models.SLADocument
-	if err := tx.Where("sla_register_id = ?", id).Find(&slaDocuments).Error; err != nil {
-		tx.Rollback() // Rollback the transaction
-		return err
-	}
-
-	// Delete each SLA document associated with the SLA register
-	for _, slaDocument := range slaDocuments {
-		if err := tx.Delete(slaDocument).Error; err != nil {
-			tx.Rollback() // Rollback the transaction
-			return err
-		}
-	}
-
-	// Delete the SLA register
-	if err := tx.Delete(&models.SLARegister{}, id).Error; err != nil {
-		tx.Rollback() // Rollback the transaction
-		return err
-	}
-
-	// Commit the transaction
-	if err := tx.Commit().Error; err != nil {
+	// Delete the SLA Register
+	if err := db.Delete(&models.SLARegister{}, id).Error; err != nil {
 		return err
 	}
 
@@ -354,7 +338,7 @@ func (repo *SLARegisterRepository) GenerateReferenceNumber() (string, error) {
 	return newReferenceNumber, nil
 }
 
-func (repo *SLARegisterRepository) GetSLADocumentByID(id uint) (*models.SLADocument, error) {
+func (repo *SLARegisterRepository) GetDocumentByID(id uint) (*models.SLADocument, error) {
 	var document models.SLADocument
 	if err := repo.db.Where("id = ?", id).First(&document).Error; err != nil {
 		return nil, err
@@ -362,17 +346,7 @@ func (repo *SLARegisterRepository) GetSLADocumentByID(id uint) (*models.SLADocum
 	return &document, nil
 }
 
-func (repo *SLARegisterRepository) GetLatestSLADocumentBySLARegisterID(id uint) (*models.SLADocument, error) {
-	var document models.SLADocument
-	if err := repo.db.Where("sla_register_id = ?", id).
-		Where("is_latest = ?", true).
-		First(&document).Error; err != nil {
-		return nil, err
-	}
-	return &document, nil
-}
-
-func (repo *SLARegisterRepository) SaveSLADocument(doc *models.SLADocument, tx ...utility.DatabaseTransaction) error {
+func (repo *SLARegisterRepository) CreateDocument(doc *models.SLADocument, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -389,6 +363,32 @@ func (repo *SLARegisterRepository) CreateSLACheck(slaCheck *models.SLACheck, tx 
 		db = tx[0].DB()
 	}
 	if err := db.Create(slaCheck).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *SLARegisterRepository) DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Delete SLA documents by IDs
+	if err := db.Where("id IN (?)", docIds).Delete(&models.SLADocument{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *SLARegisterRepository) DeleteSLAChecksBySLAID(slaID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Where("sla_register_id = ?", slaID).Delete(&models.SLACheck{}).Error; err != nil {
 		return err
 	}
 

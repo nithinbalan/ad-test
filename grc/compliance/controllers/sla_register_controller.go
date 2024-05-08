@@ -92,10 +92,16 @@ func (src *SLARegisterController) GetSLARegisterDetails(c *gin.Context) {
 		return
 	}
 
-	sla, err := src.service.GetByID(uint(id))
+	sla, err := src.service.GetFullDetailsByID(uint(id))
 	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(src.db, c, e.Error())
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, sla)
