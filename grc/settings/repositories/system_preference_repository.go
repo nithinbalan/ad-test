@@ -8,7 +8,7 @@ import (
 
 // Interfaces
 type SystemPreferenceRepositoryInterface interface {
-	GetByID(id uint) (*models.SystemPreference, error)
+	GetSystemPreference() (*models.SystemPreference, error)
 	Update(systemPreference *models.SystemPreference) error
 }
 
@@ -23,15 +23,15 @@ func NewSystemPreferenceRepository(db *gorm.DB) *SystemPreferenceRepository {
 	}
 }
 
-func (repo *SystemPreferenceRepository) GetByID(id uint) (*models.SystemPreference, error) {
+func (repo *SystemPreferenceRepository) GetSystemPreference() (*models.SystemPreference, error) {
 	var systemPreference *models.SystemPreference
-	result := repo.db.First(&systemPreference, id)
+	result := repo.db.First(&systemPreference)
 
 	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	return systemPreference, result.Error
+	return systemPreference, nil
 }
 
 func (repo *SystemPreferenceRepository) Update(systemPreference *models.SystemPreference) error {

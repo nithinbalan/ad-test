@@ -18,6 +18,7 @@ import (
 type ComplianceRequirementServiceInterface interface {
 	GetAll(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementListResponseDTO, error)
 	GetByID(complianceID uint, id uint) (*models.ComplianceRequirement, error)
+	GetByComplianceRequirementID(id uint) (*models.ComplianceRequirement, error)
 	GetFullDetailsByID(complianceID uint, id uint) (*complianceDTOs.ComplianceRequirementDetailDTO, error)
 	Create(complianceID uint, currentUserID uint, ComplianceRequirementFormDTO *complianceDTOs.ComplianceRequirementFormDTO) (uint, error)
 	Update(complianceID uint, id uint, currentUserID uint, compliance *complianceDTOs.ComplianceRequirementFormDTO) error
@@ -64,6 +65,19 @@ func (crs ComplianceRequirementService) GetByID(complianceID uint, id uint) (*mo
 		return nil, err
 	}
 
+	complianceRequirement, err := crs.repo.GetByID(id)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+	return complianceRequirement, nil
+}
+
+func (crs ComplianceRequirementService) GetByComplianceRequirementID(id uint) (*models.ComplianceRequirement, error) {
+	
 	complianceRequirement, err := crs.repo.GetByID(id)
 
 	if err != nil {
