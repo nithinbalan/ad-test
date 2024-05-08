@@ -12,7 +12,8 @@ import (
 type UserRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *userDTOs.UserListQueryParamsDTO) (*userDTOs.UserListResponseDTO, error)
-	GetByID(id uint, preloads ...string) (*models.User, error)
+	GetByID(id uint) (*models.User, error)
+	GetFullDetailsByID(id uint) (*models.User, error)
 	GetByEmail(email string) (*models.User, error)
 	Create(user *models.User, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(user *models.User, tx ...utility.DatabaseTransaction) error
@@ -22,14 +23,10 @@ type UserRepositoryInterface interface {
 	ExistsByEmailExcludingID(id uint, email string) (bool, error)
 
 	//User security
-	GetUserSecurityByUserID(userId uint) (*models.UserSecurity, error)
 	CreateUserSecurity(userSecurity models.UserSecurity, tx ...utility.DatabaseTransaction) error
-	UpdateUserSecurity(userSecurity *models.UserSecurity) error
 
 	//User settings
-	GetUserSettingsByUserID(userId uint) (*models.UserSetting, error)
 	CreateUserSetting(userSetting models.UserSetting, tx ...utility.DatabaseTransaction) error
-	UpdateUserSetting(userSetting *models.UserSetting) error
 
 	//User roles
 	CreateUserRole(userRoles []models.UserRole, tx ...utility.DatabaseTransaction) error
@@ -151,19 +148,35 @@ func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*us
 	return response, nil
 }
 
-// @Review
-// We can provide preload string as optional parameter.
-// So you can fetch user roles in same function by passing as param
-func (repo *UserRepository) GetByID(id uint, preloads ...string) (*models.User, error) {
+func (repo *UserRepository) GetByID(id uint) (*models.User, error) {
 	var user *models.User
 
-	query := repo.db
-
-	for _, preload := range preloads {
-		query = query.Preload(preload)
+	result := repo.db.First(&user, id)
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	result := query.First(&user, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return user, nil
+}
+
+func (repo *UserRepository) GetFullDetailsByID(id uint) (*models.User, error) {
+	var user *models.User
+
+	result := repo.db.
+		Preload("OrganizationUnit1").
+		Preload("OrganizationUnit2").
+		Preload("OrganizationUnit3").
+		Preload("OrganizationUnit4").
+		Preload("OrganizationUnit5").
+		Preload("UserStatus").
+		Preload("Designation").
+		Preload("CreatedByUser").
+		Preload("UpdatedByUser").
+		First(&user, id)
 
 	if result.Error != nil {
 		return nil, result.Error
@@ -276,18 +289,6 @@ func (repo *UserRepository) ExistsByEmailExcludingID(id uint, email string) (boo
 	return count > 0, nil
 }
 
-func (repo *UserRepository) GetUserSecurityByUserID(userId uint) (*models.UserSecurity, error) {
-	var userSecurity *models.UserSecurity
-	result := repo.db.Where("user_id = ?", userId).First(&userSecurity)
-
-	if result.Error != nil {
-		return nil, result.Error
-	}
-
-	return userSecurity, nil
-
-}
-
 func (repo *UserRepository) CreateUserSecurity(userSecurity models.UserSecurity, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 
@@ -302,24 +303,6 @@ func (repo *UserRepository) CreateUserSecurity(userSecurity models.UserSecurity,
 	return nil
 }
 
-func (repo *UserRepository) UpdateUserSecurity(userSecurity *models.UserSecurity) error {
-
-	if err := repo.db.Save(userSecurity).Error; err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (repo *UserRepository) GetUserSettingsByUserID(userID uint) (*models.UserSetting, error) {
-	var userSetting *models.UserSetting
-	result := repo.db.Where("user_id = ?", userID).First(&userSetting)
-	if result.Error != nil {
-		return nil, result.Error
-	}
-	return userSetting, nil
-}
-
 func (repo *UserRepository) CreateUserSetting(userSetting models.UserSetting, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 
@@ -331,13 +314,6 @@ func (repo *UserRepository) CreateUserSetting(userSetting models.UserSetting, tx
 		return err
 	}
 
-	return nil
-}
-
-func (repo *UserRepository) UpdateUserSetting(userSetting *models.UserSetting) error {
-	if err := repo.db.Save(userSetting).Error; err != nil {
-		return err
-	}
 	return nil
 }
 

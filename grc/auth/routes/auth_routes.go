@@ -19,6 +19,12 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	activityLogRepo := logRepositories.NewActivityLogRepository(db)
 	activityLogSvc := logServices.NewActivityLogService(activityLogRepo)
 
+	currencyRepo := settingRepositories.NewCurrencyRepository(db)
+	currencySvc := settingService.NewCurrencyService(currencyRepo)
+
+	systemPreferenceRepo := settingRepositories.NewSystemPreferenceRepository(db)
+	systemPreferenceSvc := settingService.NewSystemPreferenceService(systemPreferenceRepo, activityLogSvc, currencySvc)
+
 	designationRepo := organizationRepositories.NewDesignationRepository(db)
 	designationSvc := organizationServices.NewDesignationService(designationRepo, activityLogSvc)
 
@@ -29,9 +35,13 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	roleSvc := settingService.NewRoleService(roleRepo, activityLogSvc)
 
 	userRepo := organizationRepositories.NewUserRepository(db)
-	userSvc := organizationServices.NewUserService(userRepo, designationSvc, userStatusSvc, activityLogSvc, roleSvc)
+	userSvc := organizationServices.NewUserService(userRepo, designationSvc, userStatusSvc, activityLogSvc, roleSvc, systemPreferenceSvc)
 
-	authService := services.NewAuthService(userSvc)
+	userSettingRepo := organizationRepositories.NewUserSettingRepository(db)
+	userSettingSvc := organizationServices.NewUserSettingService(userSettingRepo, activityLogSvc)
+	userSettingSvc.SetUserService(userSvc)
+
+	authService := services.NewAuthService(userSvc, userSettingSvc)
 
 	authController := controllers.NewAuthController(db, authService)
 

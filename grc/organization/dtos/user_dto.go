@@ -2,6 +2,8 @@ package dtos
 
 import (
 	commonDTOs "jethur/grc/common/dtos"
+	settingDTOs "jethur/grc/settings/dtos"
+	"time"
 )
 
 type UserListDTO struct {
@@ -92,10 +94,43 @@ type OrganizationUnit1DTO struct {
 	Status  string `json:"status"`
 }
 type UserMinimalDTO struct {
-	ID                int                  `json:"id"`
-	FirstNameEN       string               `json:"first_name_en"`
-	LastNameEN        string               `json:"last_name_en"`
-	FirstNameAR       string               `json:"first_name_ar"`
-	LastNameAR        string               `json:"last_name_ar"`
-	OrganizationUnit1 OrganizationUnit1DTO `json:"organization_unit_1"`
+	ID                int                             `json:"id"`
+	FirstNameEN       string                          `json:"first_name_en"`
+	LastNameEN        string                          `json:"last_name_en"`
+	FirstNameAR       string                          `json:"first_name_ar"`
+	LastNameAR        string                          `json:"last_name_ar"`
+	OrganizationUnit1 settingDTOs.OrganizationUnitDTO `json:"organization_unit_1"`
+}
+
+type UserDetailsDTO struct {
+	ID                  uint      `json:"id"`
+	OrganizationUnit1ID uint      `json:"organization_unit_1_id"`
+	OrganizationUnit2ID *uint     `json:"organization_unit_2_id"`
+	OrganizationUnit3ID *uint     `json:"organization_unit_3_id"`
+	OrganizationUnit4ID *uint     `json:"organization_unit_4_id"`
+	OrganizationUnit5ID *uint     `json:"organization_unit_5_id"`
+	UserStatusID        uint      `json:"user_status_id"`
+	DesignationID       uint      `json:"designation_id"`
+	FirstNameEn         string    `json:"first_name_en"`
+	LastNameEn          string    `json:"last_name_en"`
+	FirstNameAr         string    `json:"first_name_ar"`
+	LastNameAr          string    `json:"last_name_ar"`
+	Email               string    `json:"email"`
+	MobileNumber        *string   `json:"mobile_number"`
+	ProfileImagePath    *string   `json:"profile_image_path"`
+	CreatedAt           time.Time `json:"created_at"`
+	UpdatedAt           time.Time `json:"updated_at"`
+	CreatedBy           uint      `json:"created_by"`
+	UpdatedBy           *uint     `json:"updated_by"`
+
+	// Relationship DTOs
+	OrganizationUnit1 settingDTOs.OrganizationUnitDTO  `json:"organization_unit_1"`
+	OrganizationUnit2 *settingDTOs.OrganizationUnitDTO `json:"organization_unit_2"`
+	OrganizationUnit3 *settingDTOs.OrganizationUnitDTO `json:"organization_unit_3"`
+	OrganizationUnit4 *settingDTOs.OrganizationUnitDTO `json:"organization_unit_4"`
+	OrganizationUnit5 *settingDTOs.OrganizationUnitDTO `json:"organization_unit_5"`
+	UserStatus        *UserStatusDTO                   `json:"user_status"`
+	Designation       *DesignationDTO                  `json:"designation"`
+	CreatedByUser     *UserMinimalDTO                  `json:"created_by_user"`
+	UpdatedByUser     *UserMinimalDTO                  `json:"updated_by_user"`
 }

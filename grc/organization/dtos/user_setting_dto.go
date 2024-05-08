@@ -9,9 +9,10 @@ type UserSettingDTO struct {
 }
 
 type UserSettingFormDTO struct {
-	TimezoneID uint   `json:"timezone_id" binding:"required"`
-	Language   string `json:"language" binding:"required"`
-	Timeout    int    `json:"timeout" binding:"required"`
+	TimezoneID     uint   `json:"timezone_id" binding:"required"`
+	Language       string `json:"language" binding:"required"`
+	Timeout        int    `json:"timeout" binding:"required"`
+	IsNotification bool   `json:"is_notification" binding:"omitempty"`
 }
 
 // notification list
