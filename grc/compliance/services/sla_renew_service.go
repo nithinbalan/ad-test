@@ -67,18 +67,11 @@ func (srs *SLARenewService) Renew(slaId uint, currentUserID uint, slaRenewFormDT
 	if slaRegister.LifecycleStatusID == lifecycleStatus.ID {
 		return utility.NewForbiddenError("Cannot renew SLA with archived status")
 	}
-	existingSLADocument, err := srs.slaRegRepo.GetLatestSLADocumentBySLARegisterID(slaId)
+	existingSLADocument, err := srs.repo.GetLatestSLADocumentBySLARegisterID(slaId)
 	if err != nil {
 		return err
 	}
-	// Store SLA Document File using utility.StoreFile
-	storagePath := filepath.Join("compliance", "sla", strconv.FormatUint(uint64(slaId), 10), "agreements")
-
-	if err := utility.StoreFile(existingSLADocument.Name, storagePath); err != nil {
-		tx.Rollback()
-		return err
-	}
-
+	//Encrypt FileName
 	dataToEncrypt := []byte(slaRenewFormDTO.Document.FileName)
 	encryptedFilename, err := utility.EncryptData(dataToEncrypt)
 	if err != nil {
@@ -116,7 +109,7 @@ func (srs *SLARenewService) Renew(slaId uint, currentUserID uint, slaRenewFormDT
 		UpdatedBy:     currentUserID,
 	}
 
-	if err := srs.slaRegRepo.SaveSLADocument(slaDocument, tx); err != nil {
+	if err := srs.slaRegRepo.CreateDocument(slaDocument, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -124,7 +117,13 @@ func (srs *SLARenewService) Renew(slaId uint, currentUserID uint, slaRenewFormDT
 		tx.Rollback()
 		return err
 	}
+	// Store SLA Document File using utility.StoreFile
+	storagePath := filepath.Join("compliance", "sla", strconv.FormatUint(uint64(slaId), 10), "agreements")
 
+	if err := utility.StoreFile(slaDocument.Name, storagePath); err != nil {
+		tx.Rollback()
+		return err
+	}
 	tx.Commit()
 
 	go func() {
@@ -167,30 +166,30 @@ func (srs *SLARenewService) Revert(slaId uint, currentUserID uint) error {
 		return utility.NewForbiddenError("Cannot revert SLA with archived status")
 	}
 
-	existingSLADocument, err := srs.slaRegRepo.GetLatestSLADocumentBySLARegisterID(slaId)
+	existingSLADocument, err := srs.repo.GetLatestSLADocumentBySLARegisterID(slaId)
 	if err != nil {
 		return err
 	}
-	storagePath := filepath.Join("compliance", "sla", strconv.FormatUint(uint64(slaId), 10), "agreements")
-	if err := utility.RemoveFile(existingSLADocument.Name, storagePath); err != nil {
-		tx.Rollback()
-		return err
-	}
 
-	previousSLADocument, err := srs.repo.FindPreviousDocument(existingSLADocument.ID, existingSLADocument.SLARegisterID)
+	previousSLADocument, err := srs.repo.FindPreviousDocument(existingSLADocument.ID, existingSLADocument.SLARegisterID, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	if err := srs.repo.DeleteSLADocumentByID(existingSLADocument.ID, tx); err != nil {
+	if err := srs.repo.DeleteDocumentByID(existingSLADocument.ID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
 
 	previousSLADocument.IsLatest = true
 	previousSLADocument.UpdatedBy = currentUserID
-	if err := srs.slaRegRepo.SaveSLADocument(previousSLADocument, tx); err != nil {
+	if err := srs.slaRegRepo.CreateDocument(previousSLADocument, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	storagePath := filepath.Join("compliance", "sla", strconv.FormatUint(uint64(slaId), 10), "agreements")
+	if err := utility.RemoveFile(existingSLADocument.Name, storagePath); err != nil {
 		tx.Rollback()
 		return err
 	}

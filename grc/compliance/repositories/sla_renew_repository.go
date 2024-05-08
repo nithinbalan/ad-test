@@ -17,8 +17,9 @@ type SLARenewRepositoryInterface interface {
 	//Document
 	Renew(doc *models.SLADocument, tx ...utility.DatabaseTransaction) error
 	SetOlderSLADocsToNotLatest(currentDocID uint, slaRegisterID uint, tx ...utility.DatabaseTransaction) error
-	FindPreviousDocument(docId uint, slaRegisterID uint) (*models.SLADocument, error)
-	DeleteSLADocumentByID(docId uint, tx ...utility.DatabaseTransaction) error
+	FindPreviousDocument(docId uint, slaRegisterID uint, tx ...utility.DatabaseTransaction) (*models.SLADocument, error)
+	GetLatestSLADocumentBySLARegisterID(id uint) (*models.SLADocument, error)
+	DeleteDocumentByID(docId uint, tx ...utility.DatabaseTransaction) error
 }
 
 // implementation
@@ -145,9 +146,13 @@ func (repo *SLARenewRepository) SetOlderSLADocsToNotLatest(currentDocID uint, sl
 	return nil
 }
 
-func (repo *SLARenewRepository) FindPreviousDocument(currentDocID uint, slaRegisterID uint) (*models.SLADocument, error) {
+func (repo *SLARenewRepository) FindPreviousDocument(currentDocID uint, slaRegisterID uint, tx ...utility.DatabaseTransaction) (*models.SLADocument, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 	var previousDocument models.SLADocument
-	if err := repo.db.Model(&models.SLADocument{}).
+	if err := db.Model(&models.SLADocument{}).
 		Where("sla_register_id = ? AND id != ?", slaRegisterID, currentDocID).
 		First(&previousDocument).
 		Error; err != nil {
@@ -156,7 +161,7 @@ func (repo *SLARenewRepository) FindPreviousDocument(currentDocID uint, slaRegis
 	return &previousDocument, nil
 }
 
-func (repo *SLARenewRepository) DeleteSLADocumentByID(docID uint, tx ...utility.DatabaseTransaction) error {
+func (repo *SLARenewRepository) DeleteDocumentByID(docID uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -167,4 +172,14 @@ func (repo *SLARenewRepository) DeleteSLADocumentByID(docID uint, tx ...utility.
 	}
 
 	return nil
+}
+
+func (repo *SLARenewRepository) GetLatestSLADocumentBySLARegisterID(id uint) (*models.SLADocument, error) {
+	var document models.SLADocument
+	if err := repo.db.Where("sla_register_id = ?", id).
+		Where("is_latest = ?", true).
+		First(&document).Error; err != nil {
+		return nil, err
+	}
+	return &document, nil
 }

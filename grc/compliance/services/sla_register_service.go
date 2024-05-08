@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"fmt"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	complianceRepositories "jethur/grc/compliance/repositories"
@@ -10,11 +11,15 @@ import (
 	"jethur/utility"
 	"path/filepath"
 	"strconv"
+
+	"github.com/mitchellh/mapstructure"
+	"gorm.io/gorm"
 )
 
 type SLARegisterServiceInterface interface {
 	GetAll(params *complianceDTOs.SLARegisterListQueryParamsDTO) (*complianceDTOs.SLARegisterListResponseDTO, error)
 	GetByID(id uint) (*models.SLARegister, error)
+	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.SLARegisterDetailDTO, error)
 	Create(currentUserID uint, slaRegisterFormDTO *complianceDTOs.SLARegisterFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, sla *complianceDTOs.SLARegisterFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
@@ -52,6 +57,30 @@ func (srs *SLARegisterService) GetAll(params *complianceDTOs.SLARegisterListQuer
 
 func (srs SLARegisterService) GetByID(id uint) (*models.SLARegister, error) {
 	return srs.repo.GetByID(id)
+}
+
+func (srs SLARegisterService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.SLARegisterDetailDTO, error) {
+	// Initialize your DTO
+	var slaRegisterDTO complianceDTOs.SLARegisterDetailDTO
+
+	slaRegister, err := srs.repo.GetFullDetailsByID(id, tx...)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+
+	// Map the result to your DTO
+	err = mapstructure.Decode(slaRegister, &slaRegisterDTO)
+	if err != nil {
+		return nil, err
+	}
+
+	//todo :- also add extra fields which required in details screen
+
+	return &slaRegisterDTO, nil
 }
 
 func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *complianceDTOs.SLARegisterFormDTO) (uint, error) {
@@ -108,15 +137,7 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *co
 		tx.Rollback()
 		return 0, err
 	}
-
-	// Store SLA Document File using utility.StoreFile
-	storagePath := filepath.Join("compliance", "sla", strconv.FormatUint(uint64(id), 10), "agreements")
-
-	if err := utility.StoreFile(slaRegisterFormDTO.Document.FileName, storagePath); err != nil {
-		tx.Rollback()
-		return 0, err
-	}
-
+	// Encrypt the filename
 	dataToEncrypt := []byte(slaRegisterFormDTO.Document.FileName)
 	encryptedFilename, err := utility.EncryptData(dataToEncrypt)
 	if err != nil {
@@ -142,11 +163,17 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *co
 	}
 
 	// Save SLA document
-	if err := srs.repo.SaveSLADocument(slaDocument, tx); err != nil {
+	if err := srs.repo.CreateDocument(slaDocument, tx); err != nil {
 		tx.Rollback()
 		return 0, err
 	}
+	// Store SLA Document File using utility.StoreFile
+	storagePath := filepath.Join("compliance", "sla", strconv.FormatUint(uint64(id), 10), "agreements")
 
+	if err := utility.StoreFile(slaRegisterFormDTO.Document.FileName, storagePath); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
 	tx.Commit()
 
 	go func() {
@@ -212,7 +239,7 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 	}
 
 	if slaRegisterFormDTO.Document.ID != nil {
-		existingSLADocument, err := srs.repo.GetSLADocumentByID(*slaRegisterFormDTO.Document.ID)
+		existingSLADocument, err := srs.repo.GetDocumentByID(*slaRegisterFormDTO.Document.ID)
 		if err != nil {
 			return err
 		}
@@ -226,16 +253,8 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 		existingSLADocument.IsLatest = true
 
 		if slaRegisterFormDTO.Document.IsNewFile != nil && *slaRegisterFormDTO.Document.IsNewFile {
-			storagePath := filepath.Join("compliance", "sla", strconv.FormatUint(uint64(existingSLADocument.SLARegisterID), 10), "agreements")
-			if err := utility.RemoveFile(existingSLADocument.Name, storagePath); err != nil {
-				tx.Rollback()
-				return err
-			}
-			// Store SLA Document File using utility.StoreFile
-			if err := utility.StoreFile(slaRegisterFormDTO.Document.FileName, storagePath); err != nil {
-				tx.Rollback()
-				return err
-			}
+			existingSLADocumentFileName := existingSLADocument.Name
+			//Encrypt the filename
 			dataToEncrypt := []byte(slaRegisterFormDTO.Document.FileName)
 			encryptedFilename, err := utility.EncryptData(dataToEncrypt)
 			if err != nil {
@@ -250,12 +269,28 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 			existingSLADocument.Size = slaRegisterFormDTO.Document.Size
 			existingSLADocument.Token = encryptedFilename
 			existingSLADocument.Type = slaRegisterFormDTO.Document.Type
+			if err := srs.repo.CreateDocument(existingSLADocument, tx); err != nil {
+				tx.Rollback()
+				return err
+			}
+			storagePath := filepath.Join("compliance", "sla", strconv.FormatUint(uint64(existingSLADocument.SLARegisterID), 10), "agreements")
+			if err := utility.RemoveFile(existingSLADocumentFileName, storagePath); err != nil {
+				tx.Rollback()
+				return err
+			}
+			// Store SLA Document File using utility.StoreFile
+			if err := utility.StoreFile(slaRegisterFormDTO.Document.FileName, storagePath); err != nil {
+				tx.Rollback()
+				return err
+			}
 
+		} else {
+			if err := srs.repo.CreateDocument(existingSLADocument, tx); err != nil {
+				tx.Rollback()
+				return err
+			}
 		}
-		if err := srs.repo.SaveSLADocument(existingSLADocument, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
+
 	}
 
 	tx.Commit()
@@ -287,35 +322,67 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 }
 
 func (srs *SLARegisterService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
+	tx := srs.repo.BeginTransaction()
 	var failedIds []uint
 	var successfulIds []uint
+	documentsToDelete := make(map[uint][]*complianceDTOs.SLADocumentDTO)
+
 	for _, id := range ids {
-		_, err := srs.repo.GetByID(id)
+		slaRegister, err := srs.GetFullDetailsByID(id, tx)
 		if err != nil {
-			continue
+			tx.Rollback()
+			return nil, err
 		}
 
-		// Fetch the SLA document by ID
-		slaDocument, err := srs.repo.GetLatestSLADocumentBySLARegisterID(id)
-		if err != nil {
+		// Delete each SLA document if documents exist
+		if len(slaRegister.Documents) > 0 {
+			var deleteDocumentIds []*uint
+			for _, doc := range slaRegister.Documents {
+				if doc != nil {
+					documentsToDelete[id] = append(documentsToDelete[id], doc)
+					deleteDocumentIds = append(deleteDocumentIds, doc.ID)
+				}
+			}
+			if err := srs.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+		}
+		// Delete the SLA Checks
+		if err := srs.repo.DeleteSLAChecksBySLAID(id, tx); err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+		// Delete the SLA Register
+		if err := srs.repo.Delete(id, tx); err != nil {
 			failedIds = append(failedIds, id)
 			continue
-		}
-		storagePath := filepath.Join("compliance", "sla", strconv.FormatUint(uint64(id), 10), "agreements")
-		// Delete associated documents
-		if err := utility.RemoveFile(slaDocument.Name, storagePath); err != nil {
-			failedIds = append(failedIds, id)
-			continue
-		}
-
-		err = srs.repo.Delete(id)
-		if err != nil {
-			failedIds = append(failedIds, id)
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
 	}
 
+	if len(failedIds) > 0 {
+		tx.Rollback()
+		return failedIds, nil
+	}
+
+	// Deleting files should not affect the main operation result
+	if len(successfulIds) > 0 {
+		for slaID, documents := range documentsToDelete {
+			for _, doc := range documents {
+				storagePath := filepath.Join("compliance", "sla", strconv.FormatUint(uint64(slaID), 10), "agreements")
+				if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
+					tx.Rollback()
+					fmt.Printf("Failed to delete file at URL %s: %v\n", doc.URL, err)
+				}
+			}
+		}
+	}
+
+	tx.Commit()
+
+	// Log bulk delete activities for successful deletions
 	if len(successfulIds) > 0 {
 		go func() {
 			err := srs.activityLogSvc.LogBulkActivities(
@@ -327,7 +394,8 @@ func (srs *SLARegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 				nil,
 			)
 			if err != nil {
-				fmt.Printf("Failed to log activity: %v\n", err)
+				// @todo - save to log file
+				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
 			}
 		}()
 	}
