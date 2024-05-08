@@ -31,6 +31,12 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	activityLogRepo := logRepositories.NewActivityLogRepository(db)
 	activityLogSvc := logServices.NewActivityLogService(activityLogRepo)
 
+	currencyRepo := settingRepositories.NewCurrencyRepository(db)
+	currencySvc := settingService.NewCurrencyService(currencyRepo)
+
+	systemPreferenceRepo := settingRepositories.NewSystemPreferenceRepository(db)
+	systemPreferenceSvc := settingService.NewSystemPreferenceService(systemPreferenceRepo, activityLogSvc, currencySvc)
+
 	severityLevelRepo := masterRepositories.NewSeverityLevelRepository(db)
 	severityLevelSvc := masterServices.NewSeverityLevelService(severityLevelRepo)
 
@@ -44,7 +50,7 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	roleSvc := settingService.NewRoleService(roleRepo, activityLogSvc)
 
 	userRepo := organizationRepositories.NewUserRepository(db)
-	userSvc := organizationServices.NewUserService(userRepo, designationSvc, userStatusSvc, activityLogSvc, roleSvc)
+	userSvc := organizationServices.NewUserService(userRepo, designationSvc, userStatusSvc, activityLogSvc, roleSvc, systemPreferenceSvc)
 
 	reviewFrequencyRepo := masterRepositories.NewReviewFrequencyRepository(db)
 	reviewFrequencySvc := masterServices.NewReviewFrequencyService(reviewFrequencyRepo)

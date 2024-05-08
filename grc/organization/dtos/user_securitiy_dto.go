@@ -4,6 +4,13 @@ import (
 	"time"
 )
 
+type UserSecurityFormDTO struct {
+	PasswordHash string     `json:"password_hash" binding:"required"`
+	IsMFA        bool       `json:"is_mfa" binding:"required"`
+	OTP          *string    `json:"otp" binding:"omitempty"`
+	OTPExpiryAt  *time.Time `json:"otp_expiry_at" binding:"omitempty"`
+}
+
 // UserSecurity represents the user_securities
 type UserSecurity struct {
 	ID           uint       `json:"id"`

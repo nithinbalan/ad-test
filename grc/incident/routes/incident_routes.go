@@ -29,6 +29,12 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	activityLogRepo := logRepositories.NewActivityLogRepository(db)
 	activityLogSvc := logServices.NewActivityLogService(activityLogRepo)
 
+	currencyRepo := settingRepositories.NewCurrencyRepository(db)
+	currencySvc := settingServices.NewCurrencyService(currencyRepo)
+
+	systemPreferenceRepo := settingRepositories.NewSystemPreferenceRepository(db)
+	systemPreferenceSvc := settingServices.NewSystemPreferenceService(systemPreferenceRepo, activityLogSvc, currencySvc)
+
 	incidentCategoryRepo := incidentRepositories.NewIncidentCategoryRepository(db)
 	incidentCategorySvc := incidentServices.NewIncidentCategoryService(incidentCategoryRepo, activityLogSvc)
 	incidentCategoryController := controllers.NewIncidentCategoryController(incidentCategorySvc)
@@ -51,10 +57,10 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 
 	controlImplementationStatusRepo := organizationRepositories.NewControlImplementationStatusRepository(db)
 	controlImplementationStatusSvc := organizationServices.NewControlImplementationStatusService(controlImplementationStatusRepo)
-	
+
 	controlEfficiencyStatusRepo := organizationRepositories.NewControlEfficiencyStatusRepository(db)
 	controlEfficiencyStatusSvc := organizationServices.NewControlEfficiencyStatusService(controlEfficiencyStatusRepo)
-	
+
 	designationRepo := organizationRepositories.NewDesignationRepository(db)
 	designationSvc := organizationServices.NewDesignationService(designationRepo, activityLogSvc)
 
@@ -65,8 +71,8 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	roleSvc := settingServices.NewRoleService(roleRepo, activityLogSvc)
 
 	userRepo := organizationRepositories.NewUserRepository(db)
-	userSvc := organizationServices.NewUserService(userRepo, designationSvc, userStatusSvc, activityLogSvc, roleSvc)
-	
+	userSvc := organizationServices.NewUserService(userRepo, designationSvc, userStatusSvc, activityLogSvc, roleSvc, systemPreferenceSvc)
+
 	reviewFrequiencyRepo := masterRepositories.NewReviewFrequencyRepository(db)
 	reviewFrequiencySvc := masterServices.NewReviewFrequencyService(reviewFrequiencyRepo)
 
@@ -89,7 +95,7 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	//Compliance svc
 	complianceRequirementCategoryRepo := complianceRepositories.NewComplianceRequirementCategoryRepository(db)
 	complianceRequirementCategorySvc := complianceServices.NewComplianceRequirementCategoryService(complianceRequirementCategoryRepo, activityLogSvc)
-	
+
 	severityLevelRepo := masterRepositories.NewSeverityLevelRepository(db)
 	severityLevelSvc := masterServices.NewSeverityLevelService(severityLevelRepo)
 
@@ -101,7 +107,7 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 
 	reviewFrequencyRepo := masterRepositories.NewReviewFrequencyRepository(db)
 	reviewFrequencySvc := masterServices.NewReviewFrequencyService(reviewFrequencyRepo)
-	
+
 	complianceRegisterRepo := complianceRepositories.NewComplianceRegisterRepository(db)
 	complianceRegisterSvc := complianceServices.NewComplianceRegisterService(
 		complianceRegisterRepo,
@@ -124,7 +130,7 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	)
 
 	incidentRegisterRepo := incidentRepositories.NewIncidentRegisterRepository(db)
-	incidentRegisterSvc := incidentServices.NewIncidentRegisterService(incidentRegisterRepo,activityLogSvc,incidentCategorySvc,incidentSubCategorySvc,incidentTypeSvc,incidentStatusSvc,severityLevelSvc,controlSvc,complianceRequirementSvc)
+	incidentRegisterSvc := incidentServices.NewIncidentRegisterService(incidentRegisterRepo, activityLogSvc, incidentCategorySvc, incidentSubCategorySvc, incidentTypeSvc, incidentStatusSvc, severityLevelSvc, controlSvc, complianceRequirementSvc)
 	incidentRegisterController := controllers.NewIncidentRegisterController(incidentRegisterSvc)
 
 	//Incident Category
@@ -144,7 +150,7 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	incidentRoutes.POST("/incident-sub-categories/delete", incidentSubCategoryController.DeleteIncidentSubCategories)
 	incidentRoutes.PUT("/incident-sub-categories/activate", incidentSubCategoryController.ActivateIncidentSubCategories)
 	incidentRoutes.PUT("/incident-sub-categories/deactivate", incidentSubCategoryController.DeactivateIncidentSubCategories)
-	
+
 	//Incident Type
 	incidentRoutes.GET("/incident-types", incidentTypeController.GetAllIncidentTypes)
 	incidentRoutes.GET("/incident-types/:id", incidentTypeController.GetIncidentTypeDetails)

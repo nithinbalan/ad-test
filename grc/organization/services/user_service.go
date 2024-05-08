@@ -21,32 +21,24 @@ import (
 type UserServiceInterface interface {
 	GetAll(params *userDTOs.UserListQueryParamsDTO) (*userDTOs.UserListResponseDTO, error)
 	GetByID(id uint) (*models.User, error)
+	GetFullDetailsByID(id uint) (*userDTOs.UserDetailsDTO, error)
 	GetByEmail(email string) (*models.User, error)
 	Create(currentUserID uint, userFormDTO *userDTOs.UserFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, user *userDTOs.UserFormDTO) error
 	UpdatePartial(id uint, dto *userDTOs.UserUpdateDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
-
-	//User Security
-	GetUserSecurityByUserID(userID uint) (*models.UserSecurity, error)
-	UpdateUserSecurity(userSecurity *models.UserSecurity) error
-	EnableMFA(userID uint) error
-	DisableMFA(userID uint) error
-	ResetPassword(userID uint) error
-
-	//User Settings
-	GetUserSetting(userID uint) (*userDTOs.UserSettingDTO, error)
-	UpdateUserSetting(userID uint, currentUserID uint, userSettingFormDTO *userDTOs.UserSettingFormDTO) error
-	EnableNotification(userID uint) error
-	DisableNotification(userID uint) error
+	GenerateRandomPassword(length int) (string, error)
+	SetUserSettingService(svc UserSettingServiceInterface)
 }
 
 type UserService struct {
-	repo           organizationRepositories.UserRepositoryInterface
-	designationSvc DesignationServiceInterface
-	userStatusSvc  UserStatusServiceInterface
-	activityLogSvc logServices.ActivityLogServiceInterface
-	roleSvc        settingService.RoleServiceInterface
+	repo                organizationRepositories.UserRepositoryInterface
+	designationSvc      DesignationServiceInterface
+	userStatusSvc       UserStatusServiceInterface
+	activityLogSvc      logServices.ActivityLogServiceInterface
+	roleSvc             settingService.RoleServiceInterface
+	userSettingSvc      UserSettingServiceInterface
+	systemPreferenceSvc settingService.SystemPreferenceServiceInterface
 }
 
 func NewUserService(
@@ -54,14 +46,20 @@ func NewUserService(
 	designationSvc DesignationServiceInterface,
 	userStatusSvc UserStatusServiceInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
-	roleSvc settingService.RoleServiceInterface) UserServiceInterface {
+	roleSvc settingService.RoleServiceInterface,
+	systemPreferenceSvc settingService.SystemPreferenceServiceInterface) UserServiceInterface {
 	return &UserService{
-		repo:           repo,
-		designationSvc: designationSvc,
-		userStatusSvc:  userStatusSvc,
-		activityLogSvc: activityLogSvc,
-		roleSvc:        roleSvc,
+		repo:                repo,
+		designationSvc:      designationSvc,
+		userStatusSvc:       userStatusSvc,
+		activityLogSvc:      activityLogSvc,
+		roleSvc:             roleSvc,
+		systemPreferenceSvc: systemPreferenceSvc,
 	}
+}
+
+func (us *UserService) SetUserSettingService(svc UserSettingServiceInterface) {
+	us.userSettingSvc = svc
 }
 
 func (us *UserService) GetAll(params *userDTOs.UserListQueryParamsDTO) (*userDTOs.UserListResponseDTO, error) {
@@ -79,6 +77,28 @@ func (us *UserService) GetByID(id uint) (*models.User, error) {
 	}
 
 	return user, nil
+}
+
+func (us *UserService) GetFullDetailsByID(id uint) (*userDTOs.UserDetailsDTO, error) {
+	var userDetailsDTO userDTOs.UserDetailsDTO
+
+	user, err := us.repo.GetFullDetailsByID(id)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+
+	err = mapstructure.Decode(user, &userDetailsDTO)
+	if err != nil {
+		return nil, err
+	}
+
+	//todo :- also add extra fields which required in details screen
+
+	return &userDetailsDTO, nil
 }
 
 func (us *UserService) GetByEmail(email string) (*models.User, error) {
@@ -103,7 +123,7 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 	}
 	// @todo - need to validate organization unit in validateUserFormDTO
 
-	password, err := us.generateRandomPassword(12)
+	password, err := us.GenerateRandomPassword(12)
 	if err != nil {
 		return 0, err
 	}
@@ -114,6 +134,11 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 	}
 
 	userStatus, err := us.userStatusSvc.GetByType("active")
+	if err != nil {
+		return 0, err
+	}
+
+	timezone, err := us.systemPreferenceSvc.GetSystemPreference()
 	if err != nil {
 		return 0, err
 	}
@@ -142,25 +167,24 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 		return 0, err
 	}
 
-	userSecurity := models.UserSecurity{
-		UserID:       userID,
+	userSecurityDTO := &userDTOs.UserSecurityFormDTO{
 		PasswordHash: string(passwordHash),
+		IsMFA:        false,
 	}
 
-	if err = us.repo.CreateUserSecurity(userSecurity, tx); err != nil {
+	if err = us.userSettingSvc.CreateUserSecurity(userID, userSecurityDTO, tx); err != nil {
 		tx.Rollback()
 		return 0, err
 	}
 
-	//@todo - timezone to be corrected
-	userSetting := models.UserSetting{
-		UserID:     userID,
-		TimezoneID: 5,
-		Language:   "en",
-		Timeout:    5,
+	userSettingDTO := &userDTOs.UserSettingFormDTO{
+		TimezoneID:     timezone.TimezoneID,
+		Language:       "en",
+		Timeout:        5,
+		IsNotification: false,
 	}
 
-	if err = us.repo.CreateUserSetting(userSetting, tx); err != nil {
+	if err = us.userSettingSvc.CreateUserSetting(userID, userSettingDTO, tx); err != nil {
 		tx.Rollback()
 		return 0, err
 	}
@@ -359,7 +383,7 @@ func (us *UserService) validateUserFormDTO(id *uint, userFormDTO *userDTOs.UserF
 	return nil
 }
 
-func (us *UserService) generateRandomPassword(length int) (string, error) {
+func (us *UserService) GenerateRandomPassword(length int) (string, error) {
 	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*"
 	b := make([]byte, length)
 	_, err := rand.Read(b)
@@ -372,172 +396,4 @@ func (us *UserService) generateRandomPassword(length int) (string, error) {
 	}
 
 	return string(b), nil
-}
-
-func (us *UserService) GetUserSecurityByUserID(userId uint) (*models.UserSecurity, error) {
-	userSecurity, err := us.repo.GetUserSecurityByUserID(userId)
-
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, utility.NewResourceNotFoundError(err, userId)
-		}
-		return nil, err
-	}
-
-	return userSecurity, nil
-}
-
-func (us *UserService) UpdateUserSecurity(userSecurity *models.UserSecurity) error {
-	return us.repo.UpdateUserSecurity(userSecurity)
-}
-
-func (us *UserService) EnableMFA(userID uint) error {
-	existingUserSecurity, err := us.repo.GetUserSecurityByUserID(userID)
-	if err != nil {
-		return utility.NewResourceNotFoundError(err, nil)
-	}
-
-	existingUserSecurity.IsMFA = true
-
-	if err = us.repo.UpdateUserSecurity(existingUserSecurity); err != nil {
-		return err
-	}
-	//@todo - send email to user
-	//@todo - need capture activity log
-
-	return nil
-}
-
-func (us *UserService) DisableMFA(userID uint) error {
-	existingUserSecurity, err := us.repo.GetUserSecurityByUserID(userID)
-	if err != nil {
-		return utility.NewResourceNotFoundError(err, nil)
-	}
-
-	existingUserSecurity.IsMFA = false
-
-	if err = us.repo.UpdateUserSecurity(existingUserSecurity); err != nil {
-		return err
-	}
-	//@todo - send email to user
-	//@todo - need capture activity log
-
-	return nil
-}
-
-func (us *UserService) ResetPassword(userID uint) error {
-	existingUserSecurity, err := us.repo.GetUserSecurityByUserID(userID)
-	if err != nil {
-		return utility.NewResourceNotFoundError(err, nil)
-	}
-
-	newPassword, err := us.generateRandomPassword(12) // Assume you have this function implemented
-	if err != nil {
-		return err
-	}
-
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
-	if err != nil {
-		return err
-	}
-
-	existingUserSecurity.PasswordHash = string(hashedPassword)
-
-	if err = us.repo.UpdateUserSecurity(existingUserSecurity); err != nil {
-		return err
-	}
-
-	user, err := us.repo.GetByID(userID)
-	if err != nil {
-		return err
-	}
-
-	emailData := userDTOs.SendNewPasswordEmailDTO{
-		FirstNameEn: user.FirstNameEn,
-		LastNameEn:  user.LastNameEn,
-		Email:       user.Email,
-		Password:    newPassword,
-	}
-
-	to := []string{user.Email}
-	subject := "Important: Your Account Password Has Been Updated"
-	templateRelativePath := "organization/templates/email/send_new_password.html"
-
-	err = utility.SendTemplatedEmail(to, subject, templateRelativePath, emailData, nil)
-
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (us *UserService) GetUserSetting(userID uint) (*userDTOs.UserSettingDTO, error) {
-	var userSettingDTO *userDTOs.UserSettingDTO
-	userSetting, err := us.repo.GetUserSettingsByUserID(userID)
-
-	if err != nil {
-		return nil, utility.NewResourceNotFoundError(err, userID)
-	}
-
-	// Map the result to your DTO
-	err = mapstructure.Decode(userSetting, &userSettingDTO)
-	if err != nil {
-		return nil, err
-	}
-
-	return userSettingDTO, nil
-}
-
-func (us *UserService) UpdateUserSetting(userID uint, currentUserID uint, userSettingFormDTO *userDTOs.UserSettingFormDTO) error {
-	existingUserSetting, err := us.repo.GetUserSettingsByUserID(userID)
-
-	if err != nil {
-		return utility.NewResourceNotFoundError(err, nil)
-	}
-	// @review
-	//do we need to validate timezone
-	existingUserSetting.Language = userSettingFormDTO.Language
-	existingUserSetting.TimezoneID = userSettingFormDTO.TimezoneID
-	existingUserSetting.Timeout = userSettingFormDTO.Timeout
-	existingUserSetting.UpdatedBy = &currentUserID
-
-	if err = us.repo.UpdateUserSetting(existingUserSetting); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (us *UserService) EnableNotification(userID uint) error {
-	existingUserSetting, err := us.repo.GetUserSettingsByUserID(userID)
-	if err != nil {
-		return utility.NewResourceNotFoundError(err, nil)
-	}
-
-	existingUserSetting.IsNotification = true
-
-	if err = us.repo.UpdateUserSetting(existingUserSetting); err != nil {
-		return err
-	}
-	//@todo - send email to user
-	//@todo - need capture activity log
-
-	return nil
-}
-
-func (us *UserService) DisableNotification(userID uint) error {
-	existingUserSetting, err := us.repo.GetUserSettingsByUserID(userID)
-	if err != nil {
-		return utility.NewResourceNotFoundError(err, nil)
-	}
-
-	existingUserSetting.IsNotification = false
-
-	if err = us.repo.UpdateUserSetting(existingUserSetting); err != nil {
-		return err
-	}
-	//@todo - send email to user
-	//@todo - need capture activity log
-
-	return nil
 }
