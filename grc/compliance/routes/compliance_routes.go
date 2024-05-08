@@ -192,9 +192,9 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 
 	//SLA Register
 	complianceRoutes.GET("/sla-register", SLARegisterController.GetAllSLARegisters)
-	complianceRoutes.GET("/sla-register/:slaId", SLARegisterController.GetSLARegisterDetails)
+	complianceRoutes.GET("/sla-register/:id", SLARegisterController.GetSLARegisterDetails)
 	complianceRoutes.POST("/sla-register", SLARegisterController.CreateSLARegister)
-	complianceRoutes.PUT("/sla-register/:slaId", SLARegisterController.UpdateSLARegister)
+	complianceRoutes.PUT("/sla-register/:id", SLARegisterController.UpdateSLARegister)
 	complianceRoutes.POST("/sla-register/delete", SLARegisterController.DeleteSLARegisters)
 	complianceRoutes.PUT("/sla-register/archive", SLARegisterController.ArchiveSLARegisters)
 	complianceRoutes.PUT("/sla-register/restore", SLARegisterController.RestoreSLARegisters)

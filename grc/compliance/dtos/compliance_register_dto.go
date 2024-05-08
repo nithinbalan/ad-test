@@ -111,14 +111,14 @@ type ComplianceDocumentFormDTO struct {
 	IsNewFile    *bool  `json:"is_new_file,omitempty"` // Optional field for indicating if the file is new or updated
 }
 type ComplianceDocumentDTO struct {
-	ID           int    `json:"id"`
-	Language     string `json:"language"`
-	URL          string `json:"url"`
-	Icon         string `json:"icon"`
-	FileName     string `json:"file_name"`
-	OriginalName string `json:"original_name"`
-	Type         string `json:"type"`
-	Size         int    `json:"size"`
+	ID       *uint  `json:"id,omitempty"`
+	Language string `json:"language"`
+	URL      string `json:"url"`
+	Icon     string `json:"icon"`
+	Name     string `json:"name"`
+	Token    string `json:"token"`
+	Type     string `json:"type"`
+	Size     int    `json:"size"`
 }
 
 type ComplianceRegisterParsedDates struct {
@@ -152,5 +152,5 @@ type ComplianceRegisterDetailDTO struct {
 	CreatedByUser         organizationDTOs.UserMinimalDTO      `json:"created_by"`
 	UpdatedByUser         organizationDTOs.UserMinimalDTO      `json:"updated_by"`
 	LifecycleStatus       masterDTOs.LifecycleStatusDTO        `json:"status"`
-	ComplianceDocuments   []ComplianceDocumentDTO              `json:"compliance_documents"`
+	Documents             []*ComplianceDocumentDTO             `json:"documents"`
 }
