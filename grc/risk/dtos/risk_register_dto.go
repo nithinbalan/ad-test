@@ -9,9 +9,8 @@ import (
 )
 
 type RiskRegisterListDTO struct {
-	ID              uint   `json:"id"`
-	ReferenceNumber string `json:"reference_number"`
-	// ReportedAt              *time.Time `json:"reported_at"`
+	ID                      uint       `json:"id"`
+	ReferenceNumber         string     `json:"reference_number"`
 	RiskCategoryTitleEn     string     `json:"risk_category_title_en"`
 	RiskCategoryTitleAr     string     `json:"risk_category_title_ar"`
 	RiskSourceTitleEn       string     `json:"risk_source_title_en"`
@@ -19,7 +18,7 @@ type RiskRegisterListDTO struct {
 	OwnerUnitTitleEn        string     `json:"owner_unit_title_en"`
 	OwnerUnitTitleAr        string     `json:"owner_unit_title_ar"`
 	OwnerFirstNameEn        string     `json:"owner_first_name_en"`
-	OwnerNameAr             string     `json:"owner_first_name_ar"`
+	OwnerFirstNameAr        string     `json:"owner_first_name_ar"`
 	OwnerLastNameEn         string     `json:"owner_last_name_en"`
 	OwnerLastNameAr         string     `json:"owner_last_name_ar"`
 	RiskStatusTitleEn       string     `json:"risk_status_title_en"`
@@ -49,16 +48,18 @@ type RiskRegisterListDTO struct {
 }
 
 type RiskRegisterListQueryParamsDTO struct {
-	Sort           string
-	SortBy         string
-	Keyword        string
-	Status         string
-	Page           int
-	PageSize       int
-	Filters        map[string][]string
-	QuickFilter    []string
-	ReportedAt     string
-	NextReviewDate string
+	Sort               string
+	SortBy             string
+	Keyword            string
+	Status             string
+	Page               int
+	PageSize           int
+	Filters            map[string][]string
+	QuickFilter        []string
+	ReportedAtFrom     string
+	ReportedAtTo       string
+	NextReviewDateFrom string
+	NextReviewDateTo   string
 }
 
 type RiskRegisterListResponseDTO struct {
@@ -87,7 +88,7 @@ type RiskRegisterDetailDTO struct {
 	Title           string                               `json:"title"`
 	Description     *string                              `json:"description"`
 	ReportedAt      *time.Time                           `json:"reported_at"`
-	ReportedBy      *organizationDTOs.UserMinimalDTO     `json:"reported_by"`
+	ReportedByUser  *organizationDTOs.UserMinimalDTO     `json:"reported_by"`
 	ReviewFrequency *masterDTOs.ReviewFrequencyDTO       `json:"review_frequency"`
 	Comments        *string                              `json:"comments"`
 	Documents       []*RiskDocumentDTO                   `json:"documents"`

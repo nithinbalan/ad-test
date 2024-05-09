@@ -42,8 +42,10 @@ func (rrc *RiskRegisterController) GetAllRiskRegisters(c *gin.Context) {
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
-	reportedAt := c.Query("reported_at")
-	nextReviewDate := c.Query("next_review_date")
+	reportedAtFrom := c.Query("reported_at")
+	reportedAtTo := c.Query("reported_at")
+	nextReviewDateFrom := c.Query("next_review_date_from")
+	nextReviewDateTo := c.Query("next_review_date_to")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -58,16 +60,18 @@ func (rrc *RiskRegisterController) GetAllRiskRegisters(c *gin.Context) {
 	}
 
 	queryParams := riskDTOs.RiskRegisterListQueryParamsDTO{
-		Sort:           sort,
-		SortBy:         sortBy,
-		Keyword:        keyword,
-		Status:         status,
-		Page:           page,
-		PageSize:       pageSize,
-		Filters:        filters,
-		QuickFilter:    quickFilter,
-		ReportedAt:     reportedAt,
-		NextReviewDate: nextReviewDate,
+		Sort:               sort,
+		SortBy:             sortBy,
+		Keyword:            keyword,
+		Status:             status,
+		Page:               page,
+		PageSize:           pageSize,
+		Filters:            filters,
+		QuickFilter:        quickFilter,
+		ReportedAtFrom:     reportedAtFrom,
+		ReportedAtTo:       reportedAtTo,
+		NextReviewDateFrom: nextReviewDateFrom,
+		NextReviewDateTo:   nextReviewDateTo,
 	}
 	risks, err := rrc.service.GetAll(&queryParams)
 

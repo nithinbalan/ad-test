@@ -54,55 +54,50 @@ func (repo *RiskRegisterRepository) GetAll(params *riskDTOs.RiskRegisterListQuer
 		Select(`
             risk_register.id,
             risk_register.reference_number,
-            risk_register.risk_category_id,
-            risk_register.risk_sub_category_id,
-            risk_register.risk_type_id,
-            risk_register.severity_level_id,
-            risk_register.risk_status_id,
             risk_register.title,
             risk_register.description,
-            risk_register.risk_at,
-            risk_register.location,
-            risk_register.reported_by,
             risk_register.reported_at,
-            risk_register.quick_action,
-            risk_register.created_by,
-            risk_register.updated_by,
             risk_register.created_at,
             risk_register.updated_at,
             risk_categories.title_en AS risk_category_title_en,
             risk_categories.title_ar AS risk_category_title_ar,
-            risk_sub_categories.title_en AS risk_sub_category_title_en,
-            risk_sub_categories.title_ar AS risk_sub_category_title_ar,
-            risk_types.title_en AS risk_type_title_en,
-            risk_types.title_ar AS risk_type_title_ar,
+            risk_sources.title_en AS risk_source_title_en,
+            risk_sources.title_ar AS risk_source_title_ar,
+            organization_units.title_en AS owner_unit_title_en,
+            organization_units.title_ar AS owner_unit_title_ar,
+            users.first_name_en AS owner_first_name_en,
+            users.first_name_ar AS owner_first_name_ar,
+            users.last_name_en AS owner_last_name_en,
+            users.last_name_ar AS owner_last_name_ar,
             risk_statuses.title_en AS risk_status_title_en,
             risk_statuses.title_ar AS risk_status_title_ar,
-			severity_levels.title_en AS severity_level_title_en,
-			severity_levels.title_ar AS severity_level_title_ar,
-			severity_levels.color_code AS severity_level_color_code,
-            reported_user.first_name_en AS reported_by_first_name_en,
-            reported_user.first_name_ar AS reported_by_first_name_ar,
-            reported_user.last_name_en AS reported_by_last_name_en,
-            reported_user.last_name_ar AS reported_by_last_name_ar,
-			created_user.first_name_en AS created_user_first_name_en,
+            risk_statuses.color_code AS risk_status_color_code,
+            users.first_name_en AS reported_user_first_name_en,
+            users.first_name_ar AS reported_user_first_name_ar,
+            users.last_name_en AS reported_user_last_name_en,
+            users.last_name_ar AS reported_user_last_name_ar,
+            review_frequencies.title_en AS review_frequency_title_en,
+            review_frequencies.title_ar AS review_frequency_title_ar,
+            risk_register.next_review_date,
+            risk_register.comments,
+            created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
             created_user.last_name_en AS created_user_last_name_en,
-            created_user.last_name_ar AS created_user_last_name_ar,   
-			updated_user.first_name_en AS updated_user_first_name_en,
+            created_user.last_name_ar AS created_user_last_name_ar,
+            updated_user.first_name_en AS updated_user_first_name_en,
             updated_user.first_name_ar AS updated_user_first_name_ar,
             updated_user.last_name_en AS updated_user_last_name_en,
             updated_user.last_name_ar AS updated_user_last_name_ar  
         `).
 		Joins(`
             LEFT JOIN risk_categories ON risk_categories.id = risk_register.risk_category_id
-            LEFT JOIN risk_sub_categories ON risk_sub_categories.id = risk_register.risk_sub_category_id
-            LEFT JOIN risk_types ON risk_types.id = risk_register.risk_type_id
+            LEFT JOIN risk_sources ON risk_sources.id = risk_register.risk_source_id
+            LEFT JOIN organization_units ON organization_units.id = risk_register.owner_unit_id
+            LEFT JOIN users ON users.id = risk_register.owner_id
             LEFT JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id
-		    LEFT JOIN severity_levels ON severity_levels.id = risk_register.severity_level_id
-            LEFT JOIN users AS reported_user ON reported_user.id = risk_register.reported_by
-			LEFT JOIN users AS created_user ON created_user.id = risk_register.created_by
-			LEFT JOIN users AS updated_user ON updated_user.id = risk_register.updated_by
+            LEFT JOIN users AS created_user ON created_user.id = risk_register.created_by
+            LEFT JOIN users AS updated_user ON updated_user.id = risk_register.updated_by
+            LEFT JOIN review_frequencies ON review_frequencies.id = risk_register.review_frequency_id
         `)
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
@@ -111,10 +106,32 @@ func (repo *RiskRegisterRepository) GetAll(params *riskDTOs.RiskRegisterListQuer
 		}
 	}
 
-	// Apply other filters as needed (e.g., date filters)
-	if params.ReportedAt != "" {
-		query = query.Where("reported_at >= ?", params.ReportedAt)
+	if params.ReportedAtFrom != "" {
+		query = query.Where("reported_at >= ?", params.ReportedAtFrom)
 	}
+
+	if params.ReportedAtTo != "" {
+		query = query.Where("reported_at >= ?", params.ReportedAtTo)
+	}
+
+	if params.NextReviewDateFrom != "" {
+		query = query.Where("reported_at >= ?", params.NextReviewDateFrom)
+	}
+
+	if params.NextReviewDateTo != "" {
+		query = query.Where("reported_at >= ?", params.NextReviewDateTo)
+	}
+
+	//@todo dynamic filters
+	// Apply quick filters
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "open_high_risk":
+			query = query.Where("risk_statuses.type = ?", "open")
+
+		}
+	}
+
 	// Calculate total count for pagination
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
@@ -128,26 +145,24 @@ func (repo *RiskRegisterRepository) GetAll(params *riskDTOs.RiskRegisterListQuer
 			risk_register.reference_number LIKE ? OR
 			risk_categories.title_en LIKE ? OR
 			risk_categories.title_ar LIKE ? OR
-			risk_sub_categories.title_en LIKE ? OR
-			risk_sub_categories.title_ar LIKE ? OR
-			risk_types.title_en LIKE ? OR
-			risk_types.title_ar LIKE ? OR
+			risk_sources.title_en LIKE ? OR
+			risk_sources.title_ar LIKE ? OR
+			users.first_name_en LIKE ? OR
+			users.first_name_ar LIKE ? OR
+			users.last_name_en LIKE ? OR
+			users.last_name_ar LIKE ? OR
 			risk_statuses.title_en LIKE ? OR
 			risk_statuses.title_ar LIKE ? OR
-			severity_levels.title_en LIKE ? OR
-			severity_levels.title_ar LIKE ? OR
-			reported_user.first_name_en LIKE ? OR
-			reported_user.first_name_ar LIKE ? OR
-			reported_user.last_name_en LIKE ? OR
-			reported_user.last_name_ar LIKE ? OR
-			created_user.first_name_en LIKE ? OR
-			created_user.first_name_ar LIKE ? OR
-			created_user.last_name_en LIKE ? OR
-			created_user.last_name_ar LIKE ? OR
-			updated_user.first_name_en LIKE ? OR
-			updated_user.first_name_ar LIKE ? OR
-			updated_user.last_name_en LIKE ? OR
-			updated_user.last_name_ar LIKE ?)`,
+			created_users.first_name_en LIKE ? OR
+			created_users.first_name_ar LIKE ? OR
+			created_users.last_name_en LIKE ? OR
+			created_users.last_name_ar LIKE ? OR
+			updated_users.first_name_en LIKE ? OR
+			updated_users.first_name_ar LIKE ? OR
+			updated_users.last_name_en LIKE ? OR
+			updated_users.last_name_ar LIKE ? OR
+			review_frequencies.title_en LIKE ? OR
+			review_frequencies.title_ar LIKE ?)`,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
@@ -206,14 +221,15 @@ func (repo *RiskRegisterRepository) GetFullDetailsByID(id uint, tx ...utility.Da
 
 	result := db.
 		Preload("RiskCategory").
-		Preload("RiskSubCategory").
-		Preload("RiskType").
-		Preload("RiskStatus").
+		Preload("RiskSource").
+		Preload("OwnerUnit").
+		Preload("Owner").
 		Preload("ReportedByUser").
-		Preload("SeverityLevel").
+		Preload("ReviewFrequency").
+		Preload("RiskStatus").
 		Preload("Documents").
-		Preload("Controls").
-		Preload("ComplianceRequirements").
+		// Preload("Controls").
+		// Preload("ComplianceRequirements").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&risk, id)

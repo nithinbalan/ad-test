@@ -510,6 +510,10 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 					tx.Rollback()
 				}
 			}
+			destinationPath := filepath.Join("risk", "risk-register", strconv.FormatUint(uint64(riskID), 10))
+			if err := utility.RemoveFolder(destinationPath); err != nil {
+				tx.Rollback()
+			}
 		}
 	}
 
