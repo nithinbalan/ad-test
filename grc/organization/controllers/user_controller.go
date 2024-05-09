@@ -75,6 +75,29 @@ func (uc *UserController) GetAllUsers(c *gin.Context) {
 	c.JSON(http.StatusOK, users)
 }
 
+func (uc *UserController) GetUserDetails(c *gin.Context) {
+	idStr := c.Param("userId")
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	control, err := uc.service.GetFullDetailsByID(uint(id))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(uc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, control)
+}
+
 func (uc *UserController) CreateUser(c *gin.Context) {
 	var userFormDTO organizationDTOs.UserFormDTO
 
@@ -165,194 +188,4 @@ func (uc *UserController) DeleteUsers(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
-}
-
-func (uc *UserController) GetSetting(c *gin.Context) {
-	userID, err := strconv.Atoi(c.Param("userId"))
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	userSetting, err := uc.service.GetUserSetting(uint(userID))
-	if err != nil {
-		switch e := err.(type) {
-		case *utility.ResourceNotFoundError:
-			utility.SendNotFoundErrResp(c)
-			return
-		case *utility.ValidationError:
-			utility.SendInvalidErrResp(c, e)
-			return
-		default:
-			utility.SendInternalErrResp(uc.db, c, e.Error())
-			return
-		}
-	}
-
-	c.JSON(http.StatusOK, userSetting)
-}
-
-func (uc *UserController) UpdateSetting(c *gin.Context) {
-	userID, err := strconv.Atoi(c.Param("userId"))
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	var userSettingFormDTO organizationDTOs.UserSettingFormDTO
-	if err := c.ShouldBindJSON(&userSettingFormDTO); err != nil {
-		utility.SendInvalidErrResp(c, err)
-		return
-	}
-
-	currentUserID, err := utility.GetCurrentUserID(c)
-	if err != nil {
-		utility.SendInternalErrResp(uc.db, c, err.Error())
-		return
-	}
-
-	err = uc.service.UpdateUserSetting(uint(userID), currentUserID, &userSettingFormDTO)
-	if err != nil {
-		switch e := err.(type) {
-		case *utility.ResourceNotFoundError:
-			utility.SendNotFoundErrResp(c)
-			return
-		case *utility.ValidationError:
-			utility.SendInvalidErrResp(c, e)
-			return
-		default:
-			utility.SendInternalErrResp(uc.db, c, e.Error())
-			return
-		}
-	}
-
-	c.Status(http.StatusOK)
-}
-
-func (uc *UserController) EnableMFA(c *gin.Context) {
-	userID, err := strconv.Atoi(c.Param("userId"))
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	err = uc.service.EnableMFA(uint(userID))
-
-	if err != nil {
-		switch e := err.(type) {
-		case *utility.ResourceNotFoundError:
-			utility.SendNotFoundErrResp(c)
-			return
-		case *utility.ValidationError:
-			utility.SendInvalidErrResp(c, e)
-			return
-		default:
-			utility.SendInternalErrResp(uc.db, c, e.Error())
-			return
-		}
-	}
-
-	c.Status(http.StatusOK)
-}
-
-func (uc *UserController) DisableMFA(c *gin.Context) {
-	userID, err := strconv.Atoi(c.Param("userId"))
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	err = uc.service.DisableMFA(uint(userID))
-
-	if err != nil {
-		switch e := err.(type) {
-		case *utility.ResourceNotFoundError:
-			utility.SendNotFoundErrResp(c)
-			return
-		case *utility.ValidationError:
-			utility.SendInvalidErrResp(c, e)
-			return
-		default:
-			utility.SendInternalErrResp(uc.db, c, e.Error())
-			return
-		}
-	}
-
-	c.Status(http.StatusOK)
-}
-
-func (uc *UserController) EnableNotification(c *gin.Context) {
-	userID, err := strconv.Atoi(c.Param("userId"))
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	err = uc.service.EnableNotification(uint(userID))
-
-	if err != nil {
-		switch e := err.(type) {
-		case *utility.ResourceNotFoundError:
-			utility.SendNotFoundErrResp(c)
-			return
-		case *utility.ValidationError:
-			utility.SendInvalidErrResp(c, e)
-			return
-		default:
-			utility.SendInternalErrResp(uc.db, c, e.Error())
-			return
-		}
-	}
-	c.Status(http.StatusOK)
-}
-
-func (uc *UserController) DisableNotification(c *gin.Context) {
-	userID, err := strconv.Atoi(c.Param("userId"))
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	err = uc.service.DisableNotification(uint(userID))
-
-	if err != nil {
-		switch e := err.(type) {
-		case *utility.ResourceNotFoundError:
-			utility.SendNotFoundErrResp(c)
-			return
-		case *utility.ValidationError:
-			utility.SendInvalidErrResp(c, e)
-			return
-		default:
-			utility.SendInternalErrResp(uc.db, c, e.Error())
-			return
-		}
-	}
-
-	c.Status(http.StatusOK)
-}
-
-func (uc *UserController) NewPassword(c *gin.Context) {
-	userID, err := strconv.Atoi(c.Param("userId"))
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	err = uc.service.ResetPassword(uint(userID))
-	if err != nil {
-		switch e := err.(type) {
-		case *utility.ResourceNotFoundError:
-			utility.SendNotFoundErrResp(c)
-			return
-		case *utility.ValidationError:
-			utility.SendInvalidErrResp(c, e)
-			return
-		default:
-			utility.SendInternalErrResp(uc.db, c, e.Error())
-			return
-		}
-	}
-
-	c.Status(http.StatusOK)
 }

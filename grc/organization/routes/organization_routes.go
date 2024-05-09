@@ -25,6 +25,12 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	activityLogRepo := logRepositories.NewActivityLogRepository(db)
 	activityLogSvc := logServices.NewActivityLogService(activityLogRepo)
 
+	currencyRepo := settingRepositories.NewCurrencyRepository(db)
+	currencySvc := settingServices.NewCurrencyService(currencyRepo)
+
+	systemPreferenceRepo := settingRepositories.NewSystemPreferenceRepository(db)
+	systemPreferenceSvc := settingServices.NewSystemPreferenceService(systemPreferenceRepo, activityLogSvc, currencySvc)
+
 	reviewFrequiencyRepo := masterRepositories.NewReviewFrequencyRepository(db)
 	reviewFrequiencySvc := masterServices.NewReviewFrequencyService(reviewFrequiencyRepo)
 
@@ -43,8 +49,13 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	userStatusController := controllers.NewUserStatusController(userStatusSvc)
 
 	userRepo := organizationRepositories.NewUserRepository(db)
-	userSvc := organizationServices.NewUserService(userRepo, designationSvc, userStatusSvc, activityLogSvc, roleSvc)
+	userSvc := organizationServices.NewUserService(userRepo, designationSvc, userStatusSvc, activityLogSvc, roleSvc, systemPreferenceSvc)
+	userSettingRepo := organizationRepositories.NewUserSettingRepository(db)
+	userSettingSvc := organizationServices.NewUserSettingService(userSettingRepo, activityLogSvc)
+	userSvc.SetUserSettingService(userSettingSvc)
+	userSettingSvc.SetUserService(userSvc)
 	userController := controllers.NewUserController(userSvc)
+	userSettingController := controllers.NewUserSettingController(userSettingSvc)
 
 	strategicProfileRepo := organizationRepositories.NewStrategicProfileRepository(db)
 	strategicProfileSvc := organizationServices.NewStrategicProfileService(strategicProfileRepo)
@@ -53,10 +64,6 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	strategicObjectiveRepo := organizationRepositories.NewStrategicObjectiveRepository(db)
 	strategicObjectiveSvc := organizationServices.NewStrategicObjectiveService(strategicObjectiveRepo, activityLogSvc)
 	strategicObjectiveController := controllers.NewStrategicObjectiveController(strategicObjectiveSvc)
-
-	userSettingRepo := organizationRepositories.NewUserSettingRepository(db)
-	userSettingSvc := organizationServices.NewUserSettingService(userSettingRepo, activityLogSvc)
-	userSettingController := controllers.NewUserSettingController(userSettingSvc)
 
 	controlCategoryRepo := organizationRepositories.NewControlCategoryRepository(db)
 	controlCategorySvc := organizationServices.NewControlCategoryService(controlCategoryRepo, activityLogSvc)
@@ -115,10 +122,10 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 
 	//User
 	organizationRoutes.GET("/users", userController.GetAllUsers)
+	organizationRoutes.GET("/users/:userId", userController.GetUserDetails)
 	organizationRoutes.POST("/users", userController.CreateUser)
 	organizationRoutes.PUT("/users/:userId", userController.UpdateUser)
 	organizationRoutes.POST("/users/delete", userController.DeleteUsers)
-	organizationRoutes.POST("/users/:userId/reset-password", userController.NewPassword)
 
 	//Strategic Profile
 	organizationRoutes.GET("/strategic-profiles", strategicProfileController.GetStrategicProfile)
@@ -137,15 +144,15 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	organizationRoutes.PUT("/strategic-objectives/deactivate", strategicObjectiveController.DeactivateStrategicObjectives)
 
 	//User Settings
-	organizationRoutes.GET("/users/:userId/settings/preferences", userController.GetSetting)
-	organizationRoutes.PUT("/users/:userId/settings/preferences", userController.UpdateSetting)
+	organizationRoutes.GET("/users/:userId/settings/preferences", userSettingController.GetSetting)
+	organizationRoutes.PUT("/users/:userId/settings/preferences", userSettingController.UpdateSetting)
 
-	organizationRoutes.PUT("/users/:userId/settings/security/enable-mfa", userController.EnableMFA)
-	organizationRoutes.PUT("/users/:userId/settings/security/disable-mfa", userController.DisableMFA)
-	//@review
-	//you can change this notification url once individual notification enable/disable url ready if required.
-	organizationRoutes.PUT("/users/:userId/settings/enable-notification", userController.EnableNotification)
-	organizationRoutes.PUT("/users/:userId/settings/disable-notification", userController.DisableNotification)
+	organizationRoutes.PUT("/users/:userId/settings/security/enable-mfa", userSettingController.EnableMFA)
+	organizationRoutes.PUT("/users/:userId/settings/security/disable-mfa", userSettingController.DisableMFA)
+	organizationRoutes.POST("/users/:userId/settings/security/reset-password", userSettingController.NewPassword)
+
+	organizationRoutes.PUT("/users/:userId/settings/enable-notification", userSettingController.EnableMainNotification)
+	organizationRoutes.PUT("/users/:userId/settings/disable-notification", userSettingController.DisableMainNotification)
 
 	organizationRoutes.GET("/users/:userId/settings/notifications", userSettingController.GetNotificationSettings)
 	organizationRoutes.POST("/users/:userId/settings/notifications/:notificationMasterId/enable", userSettingController.EnableNotification)

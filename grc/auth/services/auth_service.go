@@ -27,12 +27,14 @@ type AuthServiceInterface interface {
 
 // Service and implementations
 type AuthService struct {
-	userService services.UserServiceInterface
+	userService        services.UserServiceInterface
+	userSettingService services.UserSettingServiceInterface
 }
 
-func NewAuthService(userService services.UserServiceInterface) AuthServiceInterface {
+func NewAuthService(userService services.UserServiceInterface, userSettingService services.UserSettingServiceInterface) AuthServiceInterface {
 	return &AuthService{
-		userService: userService,
+		userService:        userService,
+		userSettingService: userSettingService,
 	}
 }
 
@@ -44,7 +46,7 @@ func (as *AuthService) Authenticate(email string, password string) (*authDTOs.Lo
 	}
 
 	// Get userSecurity
-	userSecurity, err := as.userService.GetUserSecurityByUserID(user.ID)
+	userSecurity, err := as.userSettingService.GetUserSecurityByUserID(user.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -114,7 +116,7 @@ func (as AuthService) LoginResendOTP(email string) error {
 		return err
 	}
 
-	userSecurity, err := as.userService.GetUserSecurityByUserID(user.ID)
+	userSecurity, err := as.userSettingService.GetUserSecurityByUserID(user.ID)
 	if err != nil {
 		return err
 	}
@@ -139,7 +141,7 @@ func (as *AuthService) LoginVerifyOTP(email, otp string) (*authDTOs.LoginRespons
 		return nil, err
 	}
 
-	userSecurity, err := as.userService.GetUserSecurityByUserID(user.ID)
+	userSecurity, err := as.userSettingService.GetUserSecurityByUserID(user.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -181,7 +183,7 @@ func (as AuthService) SendPasswordRecoveryOTP(email string) error {
 		return err
 	}
 
-	userSecurity, err := as.userService.GetUserSecurityByUserID(user.ID)
+	userSecurity, err := as.userSettingService.GetUserSecurityByUserID(user.ID)
 	if err != nil {
 		return err
 	}
@@ -198,7 +200,7 @@ func (as AuthService) ReSendPasswordRecoveryOTP(email string) error {
 		return err
 	}
 
-	userSecurity, err := as.userService.GetUserSecurityByUserID(user.ID)
+	userSecurity, err := as.userSettingService.GetUserSecurityByUserID(user.ID)
 	if err != nil {
 		return err
 	}
@@ -223,7 +225,7 @@ func (as *AuthService) VerifyPasswordRecoveryOTP(email, otp string) (string, err
 		return "", err
 	}
 
-	userSecurity, err := as.userService.GetUserSecurityByUserID(user.ID)
+	userSecurity, err := as.userSettingService.GetUserSecurityByUserID(user.ID)
 	if err != nil {
 		return "", err
 	}
@@ -279,7 +281,7 @@ func (as AuthService) SetPassword(setPasswordFormDTO authDTOs.PasswordRecoverySe
 		return utility.NewValidationError(fmt.Errorf("session has expired"), "session_expired", "session")
 	}
 
-	userSecurity, err := as.userService.GetUserSecurityByUserID(userId)
+	userSecurity, err := as.userSettingService.GetUserSecurityByUserID(userId)
 	if err != nil {
 		return err
 	}
@@ -291,7 +293,7 @@ func (as AuthService) SetPassword(setPasswordFormDTO authDTOs.PasswordRecoverySe
 
 	userSecurity.PasswordHash = string(hashedPassword)
 
-	err = as.userService.UpdateUserSecurity(userSecurity)
+	err = as.userSettingService.UpdateUserSecurity(userSecurity)
 
 	if err != nil {
 		return err
@@ -358,7 +360,7 @@ func (as AuthService) sendOTP(userSecurity *models.UserSecurity, user *models.Us
 	userSecurity.OTP = &otp
 	userSecurity.OTPExpiryAt = &expirationTime
 
-	err := as.userService.UpdateUserSecurity(userSecurity)
+	err := as.userSettingService.UpdateUserSecurity(userSecurity)
 	if err != nil {
 		return err
 	}

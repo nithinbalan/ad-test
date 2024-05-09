@@ -29,6 +29,12 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	activityLogRepo := logRepositories.NewActivityLogRepository(db)
 	activityLogSvc := logServices.NewActivityLogService(activityLogRepo)
 
+	currencyRepo := settingRepositories.NewCurrencyRepository(db)
+	currencySvc := settingServices.NewCurrencyService(currencyRepo)
+
+	systemPreferenceRepo := settingRepositories.NewSystemPreferenceRepository(db)
+	systemPreferenceSvc := settingServices.NewSystemPreferenceService(systemPreferenceRepo, activityLogSvc, currencySvc)
+
 	incidentCategoryRepo := incidentRepositories.NewIncidentCategoryRepository(db)
 	incidentCategorySvc := incidentServices.NewIncidentCategoryService(incidentCategoryRepo, activityLogSvc)
 	incidentCategoryController := controllers.NewIncidentCategoryController(incidentCategorySvc)
@@ -65,7 +71,7 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	roleSvc := settingServices.NewRoleService(roleRepo, activityLogSvc)
 
 	userRepo := organizationRepositories.NewUserRepository(db)
-	userSvc := organizationServices.NewUserService(userRepo, designationSvc, userStatusSvc, activityLogSvc, roleSvc)
+	userSvc := organizationServices.NewUserService(userRepo, designationSvc, userStatusSvc, activityLogSvc, roleSvc, systemPreferenceSvc)
 
 	reviewFrequiencyRepo := masterRepositories.NewReviewFrequencyRepository(db)
 	reviewFrequiencySvc := masterServices.NewReviewFrequencyService(reviewFrequiencyRepo)
