@@ -10,6 +10,7 @@ import (
 	organizationRoutes "jethur/grc/organization/routes"
 	riskRoutes "jethur/grc/risk/routes"
 	settingRoutes "jethur/grc/settings/routes"
+	"jethur/initializers"
 	"jethur/middlewares"
 	"jethur/utility"
 	"time"
@@ -34,6 +35,8 @@ func main() {
 
 	db := config.GetDatabaseInstance() // Obtain the database instance
 
+	app := initializers.NewApp(db)
+
 	r.Use(middlewares.CORSMiddleware())
 	r.Use(middlewares.LocalizerMiddleware(bundle))
 	r.Use(middlewares.RecoveryWithDatabaseLog(db))
@@ -42,7 +45,7 @@ func main() {
 	masterRoutes.RegisterRoutes(db, r)
 	authRoutes.RegisterRoutes(db, r)
 	complianceRoutes.RegisterRoutes(db, r)
-	organizationRoutes.RegisterRoutes(db, r)
+	organizationRoutes.RegisterRoutes(app, r)
 	settingRoutes.RegisterRoutes(db, r)
 	commonRoutes.RegisterRoutes(db, r)
 	riskRoutes.RegisterRoutes(db, r)
