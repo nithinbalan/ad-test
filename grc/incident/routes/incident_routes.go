@@ -131,6 +131,15 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	incidentInvestigationStatusSvc := incidentServices.NewIncidentInvestigationStatusService(incidentInvestigationStatusRepo)
 	incidentInvestigationStatusController := controllers.NewIncidentInvestigationStatusController(incidentInvestigationStatusSvc)
 
+	incidentInvestigationRepo := incidentRepositories.NewIncidentInvestigationRepository(db)
+	incidentInvestigationSvc := incidentServices.NewIncidentInvestigationService(
+		incidentInvestigationRepo,
+		activityLogSvc,
+		userSvc,
+		incidentInvestigationStatusSvc,
+	)
+	incidentInvestigationController := controllers.NewIncidentInvestigationController(incidentInvestigationSvc)
+
 	//Incident Category
 	incidentRoutes.GET("/incident-categories", incidentCategoryController.GetAllIncidentCategories)
 	incidentRoutes.GET("/incident-categories/:id", incidentCategoryController.GetIncidentCategoryDetails)
@@ -172,4 +181,12 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	//Incident Investigation Status
 	incidentRoutes.GET("/incident-investigation-statuses", incidentInvestigationStatusController.GetAllIncidentInvestigationStatuses)
 	incidentRoutes.GET("/incident-investigation-statuses/:id", incidentInvestigationStatusController.GetIncidentInvestigationStatusDetails)
+
+	//Incident Investigation
+	incidentRoutes.GET("/incident-investigations", incidentInvestigationController.GetAllIncidentInvestigations)
+	incidentRoutes.GET("/incident-investigations/:id", incidentInvestigationController.GetIncidentInvestigationDetails)
+	incidentRoutes.POST("/incident-investigations", incidentInvestigationController.CreateIncidentInvestigation)
+	incidentRoutes.PUT("/incident-investigations/:id", incidentInvestigationController.UpdateIncidentInvestigation)
+	incidentRoutes.POST("/incident-investigations/delete", incidentInvestigationController.DeleteIncidentInvestigations)
+
 }

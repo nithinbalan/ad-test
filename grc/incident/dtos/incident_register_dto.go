@@ -111,7 +111,7 @@ type IncidentRegisterListResponseDTO struct {
 }
 
 type IncidentRegisterDetailDTO struct {
-	ID                     int                                 `json:"id"`
+	ID                     uint                                `json:"id"`
 	ReferenceNumber        string                              `json:"reference_number"`
 	Title                  string                              `json:"title"`
 	Description            string                              `json:"description"`
