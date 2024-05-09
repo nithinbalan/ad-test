@@ -160,6 +160,10 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	riskStatusSvc := riskServices.NewRiskStatusService(riskStatusRepo)
 	riskStatusController := controllers.NewRiskStatusController(riskStatusSvc)
 
+	riskRegisterRepo := riskRepositories.NewRiskRegisterRepository(db)
+	riskRegisterSvc := riskServices.NewRiskRegisterService(riskRegisterRepo, activityLogSvc, riskCategorySvc, riskSourceSvc, userSvc, riskStatusSvc, reviewFrequencySvc)
+	riskRegisterController := controllers.NewRiskRegisterController(riskRegisterSvc)
+
 	riskRoutes.GET("/risk-categories", riskCategoryController.GetAllRiskCategories)
 	riskRoutes.GET("/risk-categories/:id", riskCategoryController.GetRiskCategoryDetails)
 	riskRoutes.POST("/risk-categories", riskCategoryController.CreateRiskCategory)
@@ -263,5 +267,12 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	// Risk Status
 	riskRoutes.GET("/risk-statuses", riskStatusController.GetAllRiskStatuses)
 	riskRoutes.GET("/risk-statuses/:id", riskStatusController.GetRiskStatusDetails)
+
+	// Risk Register
+	riskRoutes.GET("/risk-register", riskRegisterController.GetAllRiskRegisters)
+	riskRoutes.GET("/risk-register/:id", riskRegisterController.GetRiskRegisterDetails)
+	riskRoutes.POST("/risk-register", riskRegisterController.CreateRiskRegister)
+	riskRoutes.PUT("/risk-register/:id", riskRegisterController.UpdateRiskRegister)
+	riskRoutes.POST("/risk-register/delete", riskRegisterController.DeleteRiskRegisters)
 
 }
