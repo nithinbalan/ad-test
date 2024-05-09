@@ -256,6 +256,7 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	complianceRoutes.POST("/slas/:slaId/questions/:questionId/answers", SLACheckAnswerController.CreateSLACheckAnswer)
 	complianceRoutes.PUT("/slas/:slaId/questions/:questionId/answers/:answerId", SLACheckAnswerController.UpdateSLACheckAnswer)
 	complianceRoutes.DELETE("/slas/:slaId/questions/:questionId/answers/:answerId", SLACheckAnswerController.DeleteSLACheckAnswer)
+	complianceRoutes.GET("/slas/:slaId/assessment-summary", SLACheckAnswerController.AssessmentSummary)
 
 	//SLA Action plan
 	complianceRoutes.GET("/slas/:slaId/action-plans", slaActionPlanController.GetAllSLAActionPlans)
