@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
 
@@ -13,6 +14,7 @@ type SLACheckAnswerRepositoryInterface interface {
 	Create(slaCheckAnswer *models.SLACheckAnswer) (*models.SLACheckAnswer, error)
 	Update(slaCheckAnswer *models.SLACheckAnswer) error
 	Delete(id uint) error
+	AssessmentSummary(id uint) (*complianceDTOs.AssessmentSummaryDTO, error)
 }
 
 type SLACheckAnswerRepository struct {
@@ -71,4 +73,39 @@ func (repo *SLACheckAnswerRepository) Delete(id uint) error {
 	}
 
 	return nil
+}
+
+func (repo *SLACheckAnswerRepository) AssessmentSummary(id uint) (*complianceDTOs.AssessmentSummaryDTO, error) {
+	var questions []*models.SLACheckQuestion
+	var answers []*models.SLACheckAnswer
+
+	if err := repo.db.Where("sla_check_question_group_id IN (SELECT id FROM sla_check_question_groups WHERE sla_check_id IN (SELECT id FROM sla_checks WHERE sla_register_id = ?))", id).Find(&questions).Error; err != nil {
+		return nil, err
+	}
+
+	// Collect the IDs of the questions
+	var questionIDs []uint
+	for _, question := range questions {
+		questionIDs = append(questionIDs, question.ID)
+	}
+	if err := repo.db.Where("sla_check_question_id IN (?)", questionIDs).Find(&answers).Error; err != nil {
+		return nil, err
+	}
+
+	// Calculate statistics
+	totalQuestions := len(questions)
+	totalAnswers := len(answers)
+	answerCounts := make(map[uint]int)
+
+	for _, answer := range answers {
+		answerCounts[answer.ComplianceStatusID]++
+	}
+
+	statistics := &complianceDTOs.AssessmentSummaryDTO{
+		TotalQuestions: totalQuestions,
+		TotalAnswers:   totalAnswers,
+		AnswerCounts:   answerCounts,
+	}
+
+	return statistics, nil
 }

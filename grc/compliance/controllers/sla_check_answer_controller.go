@@ -168,3 +168,21 @@ func (scac *SLACheckAnswerController) DeleteSLACheckAnswer(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"failed_id": failedID})
 }
+
+func (scac *SLACheckAnswerController) AssessmentSummary(c *gin.Context) {
+	idStr := c.Param("slaId")
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	assessmentSummary, err := scac.service.AssessmentSummary(uint(id))
+	if err != nil {
+		utility.SendInternalErrResp(scac.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, assessmentSummary)
+}
