@@ -133,6 +133,20 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	incidentRegisterSvc := incidentServices.NewIncidentRegisterService(incidentRegisterRepo, activityLogSvc, incidentCategorySvc, incidentSubCategorySvc, incidentTypeSvc, incidentStatusSvc, severityLevelSvc, controlSvc, complianceRequirementSvc)
 	incidentRegisterController := controllers.NewIncidentRegisterController(incidentRegisterSvc)
 
+	incidentInvestigationStatusRepo := incidentRepositories.NewIncidentInvestigationStatusRepository(db)
+	incidentInvestigationStatusSvc := incidentServices.NewIncidentInvestigationStatusService(incidentInvestigationStatusRepo)
+	incidentInvestigationStatusController := controllers.NewIncidentInvestigationStatusController(incidentInvestigationStatusSvc)
+
+	incidentInvestigationRepo := incidentRepositories.NewIncidentInvestigationRepository(db)
+	incidentInvestigationSvc := incidentServices.NewIncidentInvestigationService(
+		incidentInvestigationRepo,
+		activityLogSvc,
+		incidentRegisterSvc,
+		userSvc,
+		incidentInvestigationStatusSvc,
+	)
+	incidentInvestigationController := controllers.NewIncidentInvestigationController(incidentInvestigationSvc)
+
 	//Incident Category
 	incidentRoutes.GET("/incident-categories", incidentCategoryController.GetAllIncidentCategories)
 	incidentRoutes.GET("/incident-categories/:id", incidentCategoryController.GetIncidentCategoryDetails)
@@ -170,5 +184,16 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	incidentRoutes.POST("/incident-register", incidentRegisterController.CreateIncidentRegister)
 	incidentRoutes.PUT("/incident-register/:id", incidentRegisterController.UpdateIncidentRegister)
 	incidentRoutes.POST("/incident-register/delete", incidentRegisterController.DeleteIncidentRegisters)
+
+	//Incident Investigation Status
+	incidentRoutes.GET("/incident-investigation-statuses", incidentInvestigationStatusController.GetAllIncidentInvestigationStatuses)
+	incidentRoutes.GET("/incident-investigation-statuses/:id", incidentInvestigationStatusController.GetIncidentInvestigationStatusDetails)
+
+	//Incident Investigation
+	incidentRoutes.GET("/incident/:incidentId/investigations", incidentInvestigationController.GetAllIncidentInvestigations)
+	incidentRoutes.GET("/incident/:incidentId/investigations/:id", incidentInvestigationController.GetIncidentInvestigationDetails)
+	incidentRoutes.POST("/incident/:incidentId/investigations", incidentInvestigationController.CreateIncidentInvestigation)
+	incidentRoutes.PUT("/incident/:incidentId/investigations/:id", incidentInvestigationController.UpdateIncidentInvestigation)
+	incidentRoutes.POST("/incident/:incidentId/investigations/delete", incidentInvestigationController.DeleteIncidentInvestigations)
 
 }

@@ -13,24 +13,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	settingRoutes.Use(middlewares.AuthMiddleware())
 
-	// activityLogRepo := logRepositories.NewActivityLogRepository(db)
-	// activityLogSvc := logServices.NewActivityLogService(activityLogRepo)
-
-	// organizationLevelRepo := settingRepositories.NewOrganizationLevelRepository(db)
-	// organizationLevelSvc := settingServices.NewOrganizationLevelService(organizationLevelRepo, activityLogSvc)
-	// OrganizationLevelController := controllers.NewOrganizationLevelController(organizationLevelSvc)
-
-	// currencyRepo := settingRepositories.NewCurrencyRepository(db)
-	// currencySvc := settingServices.NewCurrencyService(currencyRepo)
-	// currencyController := controllers.NewCurrencyController(currencySvc)
-
-	// systemPreferenceRepo := settingRepositories.NewSystemPreferenceRepository(db)
-	// systemPreferenceSvc := settingServices.NewSystemPreferenceService(systemPreferenceRepo, activityLogSvc, currencySvc)
-	// systemPreferenceController := controllers.NewSystemPreferenceController(systemPreferenceSvc)
-
 	organizationLevelController := app.SettingsModule.OrganizationLevelController
 	currencyController := app.SettingsModule.CurrencyController
 	systemPreferenceController := app.SettingsModule.SystemPreferenceController
+	timezoneController := app.SettingsModule.TimezoneController
 
 	//Organization Level
 	settingRoutes.GET("/organization-levels", organizationLevelController.GetAllOrganizationLevels)
@@ -39,6 +25,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	//Currency
 	settingRoutes.GET("/currencies", currencyController.GetAllCurrencies)
 	settingRoutes.GET("/currencies/:id", currencyController.GetCurrencyDetails)
+
+	// Timezones
+	settingRoutes.GET("/timezones", timezoneController.GetAllTimezones)
+	settingRoutes.GET("/timezones/:id", timezoneController.GetTimezoneDetails)
 
 	//System Preference
 	settingRoutes.GET("/system-preferences", systemPreferenceController.GetSystemPreference)

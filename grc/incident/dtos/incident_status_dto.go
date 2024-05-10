@@ -1,7 +1,7 @@
 package dtos
 
 type IncidentStatusDTO struct {
-	ID            int    `json:"id"`
+	ID            uint   `json:"id"`
 	TitleEn       string `json:"title_en"`
 	TitleAr       string `json:"title_ar"`
 	DescriptionEn string `json:"description_en"`

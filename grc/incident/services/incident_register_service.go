@@ -160,7 +160,7 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 	}
 
 	if len(complianceRequirements) > 0 {
-		if err := irs.repo.SaveIncidentComplianceRequirements(complianceRequirements, tx); err != nil {
+		if err := irs.repo.CreateIncidentComplianceRequirements(complianceRequirements, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
@@ -177,7 +177,7 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 	}
 
 	if len(controls) > 0 {
-		if err := irs.repo.SaveIncidentControls(controls, tx); err != nil {
+		if err := irs.repo.CreateIncidentControls(controls, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
@@ -216,7 +216,7 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 	}
 	if len(documents) > 0 {
 		// Save the IncidentDocument
-		if err := irs.repo.SaveIncidentDocuments(documents, tx); err != nil {
+		if err := irs.repo.CreateDocuments(documents, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
@@ -329,7 +329,7 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
 			// Handle deleted file case
 			if doc.ID != nil {
-				existingDocument, err := irs.repo.GetIncidentDocumentByID(*doc.ID)
+				existingDocument, err := irs.repo.GetDocumentByID(*doc.ID)
 				if err != nil {
 					return err
 				}
@@ -343,13 +343,13 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 		}
 	}
 	if len(documents) > 0 {
-		if err := irs.repo.SaveIncidentDocuments(documents, tx); err != nil {
+		if err := irs.repo.CreateDocuments(documents, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
 	}
 	if len(deleteDocumentIds) > 0 {
-		if err := irs.repo.DeleteIncidentDocuments(deleteDocumentIds, tx); err != nil {
+		if err := irs.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
@@ -447,7 +447,7 @@ func (irs *IncidentRegisterService) Delete(ids []uint, currentUserID uint) ([]ui
 					deleteDocumentIds = append(deleteDocumentIds, doc.ID)
 				}
 			}
-			if err := irs.repo.DeleteIncidentDocuments(deleteDocumentIds, tx); err != nil {
+			if err := irs.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
 				tx.Rollback()
 				return nil, err
 			}
