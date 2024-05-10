@@ -150,6 +150,10 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	)
 	slaActionPlanController := controllers.NewSLAActionPlanController(slaActionPlanSvc)
 
+	slaActionPlanStatusUpdateRepo := complianceRepositories.NewSLAActionPlanStatusUpdateRepository(db)
+	slaActionPlanStatusUpdateSvc := complianceServices.NewSLAActionPlanStatusUpdateService(slaActionPlanStatusUpdateRepo, activityLogSvc, slaActionPlanSvc, actionPlanStatusSvc)
+	slaActionPlanStatusUpdateController := controllers.NewSLAActionPlanStatusUpdateController(slaActionPlanStatusUpdateSvc)
+
 	//Compliance Category
 	complianceRoutes.GET("/compliance-categories", complianceCategoryController.GetAllComplianceCategories)
 	complianceRoutes.GET("/compliance-categories/:id", complianceCategoryController.GetComplianceCategoryDetails)
@@ -252,6 +256,7 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	complianceRoutes.POST("/slas/:slaId/questions/:questionId/answers", SLACheckAnswerController.CreateSLACheckAnswer)
 	complianceRoutes.PUT("/slas/:slaId/questions/:questionId/answers/:answerId", SLACheckAnswerController.UpdateSLACheckAnswer)
 	complianceRoutes.DELETE("/slas/:slaId/questions/:questionId/answers/:answerId", SLACheckAnswerController.DeleteSLACheckAnswer)
+	complianceRoutes.GET("/slas/:slaId/assessment-summary", SLACheckAnswerController.AssessmentSummary)
 
 	//SLA Action plan
 	complianceRoutes.GET("/slas/:slaId/action-plans", slaActionPlanController.GetAllSLAActionPlans)
@@ -259,5 +264,10 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	complianceRoutes.POST("/slas/:slaId/action-plans", slaActionPlanController.CreateSLAActionPlan)
 	complianceRoutes.PUT("/slas/:slaId/action-plans/:actionPlanId", slaActionPlanController.UpdateSLAActionPlan)
 	complianceRoutes.POST("/slas/:slaId/action-plans/delete", slaActionPlanController.DeleteSLAActionPlans)
+
+	// SLA Action Plan
+	complianceRoutes.GET("/slas/:slaId/action-plans/:actionPlanId/status-updates", slaActionPlanStatusUpdateController.GetAllSLAActionPlanStatusUpdates)
+	complianceRoutes.POST("/slas/:slaId/action-plans/:actionPlanId/status-updates", slaActionPlanStatusUpdateController.CreateSLAActionPlanStatusUpdate)
+	complianceRoutes.PUT("/slas/:slaId/action-plans/:actionPlanId/status-updates/:id", slaActionPlanStatusUpdateController.UpdateSLAActionPlanStatusUpdate)
 
 }

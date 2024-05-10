@@ -24,3 +24,9 @@ type SLACheckAnswerFormDTO struct {
 	ComplianceStatusID uint   `json:"compliance_status_id" binding:"required"`
 	Comment            string `json:"comment" binding:"required"`
 }
+
+type AssessmentSummaryDTO struct {
+	TotalQuestions int          `json:"totalQuestions"`
+	TotalAnswers   int          `json:"totalAnswers"`
+	AnswerCounts   map[uint]int `json:"answerCounts"`
+}
