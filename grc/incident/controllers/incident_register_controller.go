@@ -44,7 +44,6 @@ func (irc *IncidentRegisterController) GetAllIncidentRegisters(c *gin.Context) {
 
 	incidentAt := c.Query("incident_at")
 	reportedAt := c.Query("reported")
-	
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -59,16 +58,16 @@ func (irc *IncidentRegisterController) GetAllIncidentRegisters(c *gin.Context) {
 	}
 
 	queryParams := incidentDTOs.IncidentRegisterListQueryParamsDTO{
-		Sort:               sort,
-		SortBy:             sortBy,
-		Keyword:            keyword,
-		Status:             status,
-		Page:               page,
-		PageSize:           pageSize,
-		Filters:            filters,
-		QuickFilter:        quickFilter,
-		IncidentAt:       incidentAt,
-		ReportedAt:         reportedAt,
+		Sort:        sort,
+		SortBy:      sortBy,
+		Keyword:     keyword,
+		Status:      status,
+		Page:        page,
+		PageSize:    pageSize,
+		Filters:     filters,
+		QuickFilter: quickFilter,
+		IncidentAt:  incidentAt,
+		ReportedAt:  reportedAt,
 	}
 	incidents, err := irc.service.GetAll(&queryParams)
 
@@ -120,6 +119,9 @@ func (irc *IncidentRegisterController) CreateIncidentRegister(c *gin.Context) {
 
 	if err != nil {
 		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
 			return
