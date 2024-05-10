@@ -16,22 +16,20 @@ type IncidentRegisterRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *incidentDTOs.IncidentRegisterListQueryParamsDTO) (*incidentDTOs.IncidentRegisterListResponseDTO, error)
 	GetByID(id uint) (*models.IncidentRegister, error)
-	GetFullDetailsByID(id uint,tx ...utility.DatabaseTransaction) (*models.IncidentRegister, error)
+	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.IncidentRegister, error)
 	Create(incidentRegister *models.IncidentRegister, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(incidentRegister *models.IncidentRegister, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	DeleteIncidentControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error
 	DeleteIncidentComplianceRequirements(requirementIds []*uint, tx ...utility.DatabaseTransaction) error
 	GenerateReferenceNumber() (string, error)
+	CreateIncidentComplianceRequirements(complianceRequirements []*models.IncidentComplianceRequirement, tx ...utility.DatabaseTransaction) error
+	CreateIncidentControls(controls []*models.IncidentControl, tx ...utility.DatabaseTransaction) error
 
 	//Document
-	SaveIncidentDocuments(docs []*models.IncidentDocument, tx ...utility.DatabaseTransaction) error
-	SaveIncidentComplianceRequirements(complianceRequirements []*models.IncidentComplianceRequirement, tx ...utility.DatabaseTransaction) error
-	SaveIncidentControls(controls []*models.IncidentControl, tx ...utility.DatabaseTransaction) error
-	GetIncidentDocumentByID(id uint) (*models.IncidentDocument, error)
-	GetIncidentDocumentsByIncidentID(id uint) ([]models.IncidentDocument, error)
-	DeleteDocumentsByIncidentRegisterID(incidentRegisterID uint, tx ...utility.DatabaseTransaction) error
-	DeleteIncidentDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
+	CreateDocuments(docs []*models.IncidentDocument, tx ...utility.DatabaseTransaction) error
+	GetDocumentByID(id uint) (*models.IncidentDocument, error)
+	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type IncidentRegisterRepository struct {
@@ -293,30 +291,8 @@ func (repo *IncidentRegisterRepository) GenerateReferenceNumber() (string, error
 	return newReferenceNumber, nil
 }
 
-//Document func
-
-func (repo *IncidentRegisterRepository) DeleteDocumentsByIncidentRegisterID(incidentRegisterID uint, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-	// Find all Incident documents associated with the Incident register
-	var incidentDocuments []*models.IncidentDocument
-	if err := db.Where("incident_register_id = ?", incidentRegisterID).Find(&incidentDocuments).Error; err != nil {
-		return err
-	}
-
-	// Delete each Incident document associated with the Incident register
-	for _, incidentDocument := range incidentDocuments {
-		if err := db.Delete(incidentDocument).Error; err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (repo *IncidentRegisterRepository) GetIncidentDocumentByID(id uint) (*models.IncidentDocument, error) {
+// Document func
+func (repo *IncidentRegisterRepository) GetDocumentByID(id uint) (*models.IncidentDocument, error) {
 	var document models.IncidentDocument
 	if err := repo.db.Where("id = ?", id).First(&document).Error; err != nil {
 		return nil, err
@@ -324,16 +300,7 @@ func (repo *IncidentRegisterRepository) GetIncidentDocumentByID(id uint) (*model
 	return &document, nil
 }
 
-func (repo *IncidentRegisterRepository) GetIncidentDocumentsByIncidentID(id uint) ([]models.IncidentDocument, error) {
-	var documents []models.IncidentDocument
-	if err := repo.db.Where("incident_register_id = ?", id).
-		Find(&documents).Error; err != nil {
-		return nil, err
-	}
-	return documents, nil
-}
-
-func (repo *IncidentRegisterRepository) SaveIncidentDocuments(docs []*models.IncidentDocument, tx ...utility.DatabaseTransaction) error {
+func (repo *IncidentRegisterRepository) CreateDocuments(docs []*models.IncidentDocument, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -345,7 +312,7 @@ func (repo *IncidentRegisterRepository) SaveIncidentDocuments(docs []*models.Inc
 	return nil
 }
 
-func (repo *IncidentRegisterRepository) DeleteIncidentDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error {
+func (repo *IncidentRegisterRepository) DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -359,7 +326,7 @@ func (repo *IncidentRegisterRepository) DeleteIncidentDocuments(docIds []*uint, 
 	return nil
 }
 
-func (repo *IncidentRegisterRepository) SaveIncidentComplianceRequirements(complianceRequirements []*models.IncidentComplianceRequirement, tx ...utility.DatabaseTransaction) error {
+func (repo *IncidentRegisterRepository) CreateIncidentComplianceRequirements(complianceRequirements []*models.IncidentComplianceRequirement, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -370,7 +337,7 @@ func (repo *IncidentRegisterRepository) SaveIncidentComplianceRequirements(compl
 	return nil
 }
 
-func (repo *IncidentRegisterRepository) SaveIncidentControls(controls []*models.IncidentControl, tx ...utility.DatabaseTransaction) error {
+func (repo *IncidentRegisterRepository) CreateIncidentControls(controls []*models.IncidentControl, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
