@@ -24,6 +24,13 @@ func NewIncidentInvestigationController(service services.IncidentInvestigationSe
 }
 
 func (iic *IncidentInvestigationController) GetAllIncidentInvestigations(c *gin.Context) {
+	incidentIDStr := c.Param("incidentId")
+
+	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
@@ -32,11 +39,9 @@ func (iic *IncidentInvestigationController) GetAllIncidentInvestigations(c *gin.
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
-		"incidentInvestigation_register_ids",
-		"incidentInvestigation_investigation_status_ids",
 		"user_ids",
 		"team_lead_ids",
-		"incidentInvestigation_status_ids",
+		"investigation_status_ids",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
@@ -66,7 +71,7 @@ func (iic *IncidentInvestigationController) GetAllIncidentInvestigations(c *gin.
 		QuickFilter: quickFilter,
 		InitiatedAt: initiatedAt,
 	}
-	incidentInvestigations, err := iic.service.GetAll(&queryParams)
+	incidentInvestigations, err := iic.service.GetAll(uint(incidentID), &queryParams)
 
 	if err != nil {
 		utility.SendInternalErrResp(iic.db, c, err.Error())
@@ -76,6 +81,14 @@ func (iic *IncidentInvestigationController) GetAllIncidentInvestigations(c *gin.
 }
 
 func (iic *IncidentInvestigationController) GetIncidentInvestigationDetails(c *gin.Context) {
+	incidentIDStr := c.Param("incidentId")
+
+	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
 	idStr := c.Param("id")
 
 	id, err := strconv.ParseUint(idStr, 10, 32)
@@ -84,7 +97,7 @@ func (iic *IncidentInvestigationController) GetIncidentInvestigationDetails(c *g
 		return
 	}
 
-	incidentInvestigation, err := iic.service.GetFullDetailsByID(uint(id))
+	incidentInvestigation, err := iic.service.GetFullDetailsByID(uint(incidentID), uint(id))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -101,6 +114,14 @@ func (iic *IncidentInvestigationController) GetIncidentInvestigationDetails(c *g
 func (iic *IncidentInvestigationController) CreateIncidentInvestigation(c *gin.Context) {
 	var incidentInvestigationFormDTO incidentDTOs.IncidentInvestigationFormDTO
 
+	incidentIDStr := c.Param("incidentId")
+
+	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
 	if err := c.ShouldBindJSON(&incidentInvestigationFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
@@ -112,10 +133,13 @@ func (iic *IncidentInvestigationController) CreateIncidentInvestigation(c *gin.C
 		return
 	}
 
-	id, err := iic.service.Create(currentUserID, &incidentInvestigationFormDTO)
+	id, err := iic.service.Create(uint(incidentID), currentUserID, &incidentInvestigationFormDTO)
 
 	if err != nil {
 		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
 			return
@@ -130,6 +154,14 @@ func (iic *IncidentInvestigationController) CreateIncidentInvestigation(c *gin.C
 
 func (iic *IncidentInvestigationController) UpdateIncidentInvestigation(c *gin.Context) {
 	var incidentInvestigationFormDTO incidentDTOs.IncidentInvestigationFormDTO
+
+	incidentIDStr := c.Param("incidentId")
+
+	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
 
 	incidentInvestigationID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -148,7 +180,7 @@ func (iic *IncidentInvestigationController) UpdateIncidentInvestigation(c *gin.C
 		return
 	}
 
-	err = iic.service.Update(uint(incidentInvestigationID), currentUserID, &incidentInvestigationFormDTO)
+	err = iic.service.Update(uint(incidentID), uint(incidentInvestigationID), currentUserID, &incidentInvestigationFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -167,6 +199,13 @@ func (iic *IncidentInvestigationController) UpdateIncidentInvestigation(c *gin.C
 }
 
 func (iic *IncidentInvestigationController) DeleteIncidentInvestigations(c *gin.Context) {
+	incidentIDStr := c.Param("incidentId")
+
+	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
 	var request struct {
 		IDs []uint `json:"ids"`
 	}
@@ -182,7 +221,7 @@ func (iic *IncidentInvestigationController) DeleteIncidentInvestigations(c *gin.
 		return
 	}
 
-	failedIDs, err := iic.service.Delete(request.IDs, currentUserID)
+	failedIDs, err := iic.service.Delete(uint(incidentID), request.IDs, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(iic.db, c, err.Error())
 		return

@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/incident/dtos"
 	incidentDTOs "jethur/grc/incident/dtos"
 	incidentRepositories "jethur/grc/incident/repositories"
@@ -19,18 +20,19 @@ import (
 )
 
 type IncidentInvestigationServiceInterface interface {
-	GetAll(params *incidentDTOs.IncidentInvestigationListQueryParamsDTO) (*incidentDTOs.IncidentInvestigationListResponseDTO, error)
-	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*incidentDTOs.IncidentInvestigationDetailDTO, error)
+	GetAll(incidentID uint, params *incidentDTOs.IncidentInvestigationListQueryParamsDTO) (*incidentDTOs.IncidentInvestigationListResponseDTO, error)
+	GetFullDetailsByID(incidentID uint, id uint, tx ...utility.DatabaseTransaction) (*incidentDTOs.IncidentInvestigationDetailDTO, error)
 	GetByID(id uint) (*models.IncidentInvestigation, error)
-	Create(currentUserID uint, incidentInvestigationFormDTO *incidentDTOs.IncidentInvestigationFormDTO) (uint, error)
-	Update(id uint, currentUserID uint, incident *incidentDTOs.IncidentInvestigationFormDTO) error
-	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	Create(incidentID uint, currentUserID uint, incidentInvestigationFormDTO *incidentDTOs.IncidentInvestigationFormDTO) (uint, error)
+	Update(incidentID uint, id uint, currentUserID uint, incident *incidentDTOs.IncidentInvestigationFormDTO) error
+	Delete(incidentID uint, ids []uint, currentUserID uint) ([]uint, error)
 }
 
 // Service and implementations
 type IncidentInvestigationService struct {
 	repo                           incidentRepositories.IncidentInvestigationRepositoryInterface
 	activityLogSvc                 logServices.ActivityLogServiceInterface
+	incidentRegisterSvc            IncidentRegisterServiceInterface
 	userSvc                        organizationServices.UserServiceInterface
 	incidentInvestigationStatusSvc IncidentInvestigationStatusServiceInterface
 }
@@ -38,19 +40,24 @@ type IncidentInvestigationService struct {
 func NewIncidentInvestigationService(
 	repo incidentRepositories.IncidentInvestigationRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
+	incidentRegisterSvc IncidentRegisterServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	incidentInvestigationStatusSvc IncidentInvestigationStatusServiceInterface,
 ) IncidentInvestigationServiceInterface {
 	return &IncidentInvestigationService{
 		repo:                           repo,
 		activityLogSvc:                 activityLogSvc,
+		incidentRegisterSvc:            incidentRegisterSvc,
 		userSvc:                        userSvc,
 		incidentInvestigationStatusSvc: incidentInvestigationStatusSvc,
 	}
 }
 
-func (iis *IncidentInvestigationService) GetAll(params *incidentDTOs.IncidentInvestigationListQueryParamsDTO) (*incidentDTOs.IncidentInvestigationListResponseDTO, error) {
-	return iis.repo.GetAll(params)
+func (iis *IncidentInvestigationService) GetAll(incidentID uint, params *incidentDTOs.IncidentInvestigationListQueryParamsDTO) (*incidentDTOs.IncidentInvestigationListResponseDTO, error) {
+	if _, err := iis.incidentRegisterSvc.GetByID(incidentID); err != nil {
+		return nil, err
+	}
+	return iis.repo.GetAll(incidentID, params)
 }
 
 func (iis IncidentInvestigationService) GetByID(id uint) (*models.IncidentInvestigation, error) {
@@ -65,7 +72,10 @@ func (iis IncidentInvestigationService) GetByID(id uint) (*models.IncidentInvest
 	return incident, nil
 }
 
-func (iis IncidentInvestigationService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*incidentDTOs.IncidentInvestigationDetailDTO, error) {
+func (iis IncidentInvestigationService) GetFullDetailsByID(incidentID uint, id uint, tx ...utility.DatabaseTransaction) (*incidentDTOs.IncidentInvestigationDetailDTO, error) {
+	if _, err := iis.incidentRegisterSvc.GetByID(incidentID); err != nil {
+		return nil, err
+	}
 	// Initialize your DTO
 	var incidentInvestigationDTO incidentDTOs.IncidentInvestigationDetailDTO
 
@@ -89,8 +99,11 @@ func (iis IncidentInvestigationService) GetFullDetailsByID(id uint, tx ...utilit
 	return &incidentInvestigationDTO, nil
 }
 
-func (iis *IncidentInvestigationService) Create(currentUserID uint, incidentInvestigationFormDTO *dtos.IncidentInvestigationFormDTO) (uint, error) {
+func (iis *IncidentInvestigationService) Create(incidentID uint, currentUserID uint, incidentInvestigationFormDTO *dtos.IncidentInvestigationFormDTO) (uint, error) {
 	tx := iis.repo.BeginTransaction()
+	if _, err := iis.incidentRegisterSvc.GetByID(incidentID); err != nil {
+		return 0, err
+	}
 	if err := iis.validateIncidentInvestigationFormDTO(incidentInvestigationFormDTO); err != nil {
 		return 0, err
 	}
@@ -105,7 +118,7 @@ func (iis *IncidentInvestigationService) Create(currentUserID uint, incidentInve
 
 	//Create Incident Investigation
 	incidentInvestigation := &models.IncidentInvestigation{
-		IncidentRegisterID:            incidentInvestigationFormDTO.IncidentRegisterID,
+		IncidentRegisterID:            incidentID,
 		Description:                   incidentInvestigationFormDTO.Description,
 		InitiatedAt:                   *dates.InitiatedAt,
 		TeamLeadID:                    incidentInvestigationFormDTO.TeamLeadID,
@@ -132,7 +145,7 @@ func (iis *IncidentInvestigationService) Create(currentUserID uint, incidentInve
 	}
 
 	if len(users) > 0 {
-		if err := iis.repo.SaveIncidentInvestigationUsers(users, tx); err != nil {
+		if err := iis.repo.CreateMembers(users, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
@@ -150,7 +163,7 @@ func (iis *IncidentInvestigationService) Create(currentUserID uint, incidentInve
 	}
 
 	if len(findings) > 0 {
-		if err := iis.repo.SaveIncidentInvestigationFindings(findings, tx); err != nil {
+		if err := iis.repo.CreateFindings(findings, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
@@ -172,7 +185,6 @@ func (iis *IncidentInvestigationService) Create(currentUserID uint, incidentInve
 		// Create a new Incident Investigation Document instance
 		document := &models.IncidentInvestigationDocument{
 			IncidentInvestigationID: id,
-			Language:                doc.Language,
 			URL:                     url,
 			Icon:                    doc.Icon,
 			Name:                    doc.FileName,
@@ -186,7 +198,7 @@ func (iis *IncidentInvestigationService) Create(currentUserID uint, incidentInve
 		documents = append(documents, document)
 	}
 	if len(documents) > 0 {
-		if err := iis.repo.SaveDocuments(documents, tx); err != nil {
+		if err := iis.repo.CreateDocuments(documents, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
@@ -227,8 +239,11 @@ func (iis *IncidentInvestigationService) Create(currentUserID uint, incidentInve
 	return id, nil
 }
 
-func (iis *IncidentInvestigationService) Update(id uint, currentUserID uint, incidentInvestigationFormDTO *dtos.IncidentInvestigationFormDTO) error {
+func (iis *IncidentInvestigationService) Update(incidentID uint, id uint, currentUserID uint, incidentInvestigationFormDTO *dtos.IncidentInvestigationFormDTO) error {
 	tx := iis.repo.BeginTransaction()
+	if _, err := iis.incidentRegisterSvc.GetByID(incidentID); err != nil {
+		return err
+	}
 	if err := iis.validateIncidentInvestigationFormDTO(incidentInvestigationFormDTO); err != nil {
 		return err
 	}
@@ -248,7 +263,7 @@ func (iis *IncidentInvestigationService) Update(id uint, currentUserID uint, inc
 		return errors.New("existing incident investigation not found")
 	}
 
-	existingIncidentInvestigation.IncidentRegisterID = incidentInvestigationFormDTO.IncidentRegisterID
+	existingIncidentInvestigation.IncidentRegisterID = incidentID
 	existingIncidentInvestigation.Description = incidentInvestigationFormDTO.Description
 	existingIncidentInvestigation.InitiatedAt = *dates.InitiatedAt
 	existingIncidentInvestigation.TeamLeadID = incidentInvestigationFormDTO.TeamLeadID
@@ -287,7 +302,7 @@ func (iis *IncidentInvestigationService) Update(id uint, currentUserID uint, inc
 	}
 	// Save the new user
 	if len(users) > 0 {
-		if err := iis.repo.SaveIncidentInvestigationUsers(users, tx); err != nil {
+		if err := iis.repo.CreateMembers(users, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
@@ -303,7 +318,7 @@ func (iis *IncidentInvestigationService) Update(id uint, currentUserID uint, inc
 	}
 	// Delete the user
 	if len(deleteUserIDs) > 0 {
-		if err := iis.repo.DeleteIncidentInvestigationUsers(deleteUserIDs, tx); err != nil {
+		if err := iis.repo.DeleteMembers(deleteUserIDs, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
@@ -336,7 +351,7 @@ func (iis *IncidentInvestigationService) Update(id uint, currentUserID uint, inc
 
 	// Save the new findings
 	if len(findingsToAdd) > 0 {
-		if err := iis.repo.SaveIncidentInvestigationFindings(findingsToAdd, tx); err != nil {
+		if err := iis.repo.CreateFindings(findingsToAdd, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
@@ -353,7 +368,7 @@ func (iis *IncidentInvestigationService) Update(id uint, currentUserID uint, inc
 
 	// Delete the findings
 	if len(findingsToDelete) > 0 {
-		if err := iis.repo.DeleteIncidentInvestigationFindings(findingsToDelete, tx); err != nil {
+		if err := iis.repo.DeleteFindings(findingsToDelete, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
@@ -375,7 +390,6 @@ func (iis *IncidentInvestigationService) Update(id uint, currentUserID uint, inc
 
 			document := &models.IncidentInvestigationDocument{
 				IncidentInvestigationID: existingIncidentInvestigation.ID,
-				Language:                doc.Language,
 				URL:                     url,
 				Icon:                    doc.Icon,
 				Name:                    doc.FileName,
@@ -403,7 +417,7 @@ func (iis *IncidentInvestigationService) Update(id uint, currentUserID uint, inc
 
 	//Save Document
 	if len(documents) > 0 {
-		if err := iis.repo.SaveDocuments(documents, tx); err != nil {
+		if err := iis.repo.CreateDocuments(documents, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
@@ -465,14 +479,17 @@ func (iis *IncidentInvestigationService) Update(id uint, currentUserID uint, inc
 	return nil
 }
 
-func (iis *IncidentInvestigationService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
+func (iis *IncidentInvestigationService) Delete(incidentID uint, ids []uint, currentUserID uint) ([]uint, error) {
 	tx := iis.repo.BeginTransaction()
+	if _, err := iis.incidentRegisterSvc.GetByID(incidentID); err != nil {
+		return nil, err
+	}
 	var failedIds []uint
 	var successfulIds []uint
 	documentsToDelete := make(map[uint][]*incidentDTOs.IncidentInvestigationDocumentDTO)
 
 	for _, id := range ids {
-		incidentInvestigation, err := iis.GetFullDetailsByID(id, tx)
+		incidentInvestigation, err := iis.GetFullDetailsByID(incidentID, id, tx)
 		if err != nil {
 			tx.Rollback()
 			return nil, err
@@ -484,7 +501,7 @@ func (iis *IncidentInvestigationService) Delete(ids []uint, currentUserID uint) 
 			for _, user := range incidentInvestigation.Users {
 				deleteUserIds = append(deleteUserIds, &user.ID)
 			}
-			if err := iis.repo.DeleteIncidentInvestigationUsers(deleteUserIds, tx); err != nil {
+			if err := iis.repo.DeleteMembers(deleteUserIds, tx); err != nil {
 				tx.Rollback()
 				return nil, err
 			}
@@ -495,7 +512,7 @@ func (iis *IncidentInvestigationService) Delete(ids []uint, currentUserID uint) 
 			for _, finding := range incidentInvestigation.Findings {
 				deleteFindingIds = append(deleteFindingIds, &finding.ID)
 			}
-			if err := iis.repo.DeleteIncidentInvestigationFindings(deleteFindingIds, tx); err != nil {
+			if err := iis.repo.DeleteFindings(deleteFindingIds, tx); err != nil {
 				tx.Rollback()
 				return nil, err
 			}
@@ -614,7 +631,7 @@ func (iis *IncidentInvestigationService) parseIncidentInvestigationDates(dto *in
 	return parsed, nil
 }
 
-func (iis *IncidentInvestigationService) validateIncidentInvestigationDocumentFormDTO(documents []*incidentDTOs.IncidentInvestigationDocumentFormDTO) error {
+func (iis *IncidentInvestigationService) validateIncidentInvestigationDocumentFormDTO(documents []*commonDTOs.DocumentFormDTO) error {
 	// Check if documents array is empty
 	if len(documents) == 0 {
 		return utility.NewValidationError(fmt.Errorf("documents array is required"), "required", "documents")

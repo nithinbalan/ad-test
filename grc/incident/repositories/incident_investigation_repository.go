@@ -11,19 +11,19 @@ import (
 
 type IncidentInvestigationRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(params *incidentDTOs.IncidentInvestigationListQueryParamsDTO) (*incidentDTOs.IncidentInvestigationListResponseDTO, error)
+	GetAll(incidentID uint, params *incidentDTOs.IncidentInvestigationListQueryParamsDTO) (*incidentDTOs.IncidentInvestigationListResponseDTO, error)
 	GetByID(id uint) (*models.IncidentInvestigation, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.IncidentInvestigation, error)
 	Create(incidentInvestigation *models.IncidentInvestigation, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(incidentInvestigation *models.IncidentInvestigation, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
-	SaveIncidentInvestigationFindings(findings []*models.IncidentInvestigationFinding, tx ...utility.DatabaseTransaction) error
-	SaveIncidentInvestigationUsers(users []*models.IncidentInvestigationUser, tx ...utility.DatabaseTransaction) error
-	DeleteIncidentInvestigationUsers(investigationUserIds []*uint, tx ...utility.DatabaseTransaction) error
-	DeleteIncidentInvestigationFindings(investigationFindingIds []*uint, tx ...utility.DatabaseTransaction) error
+	CreateFindings(findings []*models.IncidentInvestigationFinding, tx ...utility.DatabaseTransaction) error
+	CreateMembers(users []*models.IncidentInvestigationUser, tx ...utility.DatabaseTransaction) error
+	DeleteMembers(investigationUserIds []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteFindings(investigationFindingIds []*uint, tx ...utility.DatabaseTransaction) error
 
 	//Document
-	SaveDocuments(docs []*models.IncidentInvestigationDocument, tx ...utility.DatabaseTransaction) error
+	CreateDocuments(docs []*models.IncidentInvestigationDocument, tx ...utility.DatabaseTransaction) error
 	GetDocumentByID(id uint) (*models.IncidentInvestigationDocument, error)
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
 }
@@ -43,7 +43,7 @@ func (repo *IncidentInvestigationRepository) BeginTransaction() utility.Database
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *IncidentInvestigationRepository) GetAll(params *incidentDTOs.IncidentInvestigationListQueryParamsDTO) (*incidentDTOs.IncidentInvestigationListResponseDTO, error) {
+func (repo *IncidentInvestigationRepository) GetAll(incidentID uint, params *incidentDTOs.IncidentInvestigationListQueryParamsDTO) (*incidentDTOs.IncidentInvestigationListResponseDTO, error) {
 	var incidentInvestigations []*incidentDTOs.IncidentInvestigationListDTO
 	var totalCount int64
 
@@ -65,6 +65,7 @@ func (repo *IncidentInvestigationRepository) GetAll(params *incidentDTOs.Inciden
 		team_lead.last_name_ar AS team_lead_last_name_ar,
 		incident_investigation_statuses.title_en AS incident_investigation_status_title_en,
 		incident_investigation_statuses.title_ar AS incident_investigation_status_title_ar,
+		incident_investigation_statuses.color_code AS incident_investigation_status_color_code,
 		created_user.first_name_en AS created_user_first_name_en,
 		created_user.first_name_ar AS created_user_first_name_ar,
 		created_user.last_name_en AS created_user_last_name_en,
@@ -80,7 +81,7 @@ func (repo *IncidentInvestigationRepository) GetAll(params *incidentDTOs.Inciden
 		LEFT JOIN users AS team_lead ON team_lead.id = incident_investigations.team_lead_id
 		LEFT JOIN users AS created_user ON created_user.id = incident_investigations.created_by
 		LEFT JOIN users AS updated_user ON updated_user.id = incident_investigations.updated_by
-    `)
+    `).Where(`incident_investigations.incident_register_id`, incidentID)
 
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
@@ -238,7 +239,7 @@ func (repo *IncidentInvestigationRepository) GetDocumentByID(id uint) (*models.I
 	return &document, nil
 }
 
-func (repo *IncidentInvestigationRepository) SaveDocuments(docs []*models.IncidentInvestigationDocument, tx ...utility.DatabaseTransaction) error {
+func (repo *IncidentInvestigationRepository) CreateDocuments(docs []*models.IncidentInvestigationDocument, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -264,7 +265,7 @@ func (repo *IncidentInvestigationRepository) DeleteDocuments(docIds []*uint, tx 
 	return nil
 }
 
-func (repo *IncidentInvestigationRepository) SaveIncidentInvestigationFindings(findings []*models.IncidentInvestigationFinding, tx ...utility.DatabaseTransaction) error {
+func (repo *IncidentInvestigationRepository) CreateFindings(findings []*models.IncidentInvestigationFinding, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -275,7 +276,7 @@ func (repo *IncidentInvestigationRepository) SaveIncidentInvestigationFindings(f
 	return nil
 }
 
-func (repo *IncidentInvestigationRepository) SaveIncidentInvestigationUsers(users []*models.IncidentInvestigationUser, tx ...utility.DatabaseTransaction) error {
+func (repo *IncidentInvestigationRepository) CreateMembers(users []*models.IncidentInvestigationUser, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -286,7 +287,7 @@ func (repo *IncidentInvestigationRepository) SaveIncidentInvestigationUsers(user
 	return nil
 }
 
-func (repo *IncidentInvestigationRepository) DeleteIncidentInvestigationUsers(investigationUserIds []*uint, tx ...utility.DatabaseTransaction) error {
+func (repo *IncidentInvestigationRepository) DeleteMembers(investigationUserIds []*uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -300,7 +301,7 @@ func (repo *IncidentInvestigationRepository) DeleteIncidentInvestigationUsers(in
 	return nil
 }
 
-func (repo *IncidentInvestigationRepository) DeleteIncidentInvestigationFindings(investigationFindingIds []*uint, tx ...utility.DatabaseTransaction) error {
+func (repo *IncidentInvestigationRepository) DeleteFindings(investigationFindingIds []*uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
