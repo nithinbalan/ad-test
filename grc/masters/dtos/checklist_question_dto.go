@@ -11,9 +11,9 @@ type ChecklistQuestionListDTO struct {
 	ChecklistTitleEn     string `json:"checklist_title_en"`
 	ChecklistTitleAr     string `json:"checklist_title_ar"`
 	ChecklistID          uint   `json:"checklist_id"`
-	QuestionGroupTitleEn string `json:"cquestion_group_title_en"`
-	QuestionGroupTitleAr string `json:"cquestion_group_title_ar"`
-	QuestionGroupID      uint   `json:"cquestion_group_id"`
+	QuestionGroupTitleEn string `json:"question_group_title_en"`
+	QuestionGroupTitleAr string `json:"question_group_title_ar"`
+	QuestionGroupID      uint   `json:"question_group_id"`
 }
 
 type ChecklistQuestionListResponseDTO struct {
