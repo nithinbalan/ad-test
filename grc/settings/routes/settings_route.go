@@ -1,41 +1,40 @@
 package routes
 
 import (
-	logRepositories "jethur/grc/logs/repositories"
-	logServices "jethur/grc/logs/services"
-	"jethur/grc/settings/controllers"
-	settingRepositories "jethur/grc/settings/repositories"
-	settingServices "jethur/grc/settings/services"
+	"jethur/initializers"
 	"jethur/middlewares"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
-func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
+func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	settingRoutes := router.Group("/")
 
 	settingRoutes.Use(middlewares.AuthMiddleware())
 
-	activityLogRepo := logRepositories.NewActivityLogRepository(db)
-	activityLogSvc := logServices.NewActivityLogService(activityLogRepo)
+	// activityLogRepo := logRepositories.NewActivityLogRepository(db)
+	// activityLogSvc := logServices.NewActivityLogService(activityLogRepo)
 
-	organizationLevelRepo := settingRepositories.NewOrganizationLevelRepository(db)
-	organizationLevelSvc := settingServices.NewOrganizationLevelService(organizationLevelRepo, activityLogSvc)
-	OrganizationLevelController := controllers.NewOrganizationLevelController(organizationLevelSvc)
+	// organizationLevelRepo := settingRepositories.NewOrganizationLevelRepository(db)
+	// organizationLevelSvc := settingServices.NewOrganizationLevelService(organizationLevelRepo, activityLogSvc)
+	// OrganizationLevelController := controllers.NewOrganizationLevelController(organizationLevelSvc)
 
-	currencyRepo := settingRepositories.NewCurrencyRepository(db)
-	currencySvc := settingServices.NewCurrencyService(currencyRepo)
-	currencyController := controllers.NewCurrencyController(currencySvc)
+	// currencyRepo := settingRepositories.NewCurrencyRepository(db)
+	// currencySvc := settingServices.NewCurrencyService(currencyRepo)
+	// currencyController := controllers.NewCurrencyController(currencySvc)
 
-	systemPreferenceRepo := settingRepositories.NewSystemPreferenceRepository(db)
-	systemPreferenceSvc := settingServices.NewSystemPreferenceService(systemPreferenceRepo, activityLogSvc, currencySvc)
-	systemPreferenceController := controllers.NewSystemPreferenceController(systemPreferenceSvc)
+	// systemPreferenceRepo := settingRepositories.NewSystemPreferenceRepository(db)
+	// systemPreferenceSvc := settingServices.NewSystemPreferenceService(systemPreferenceRepo, activityLogSvc, currencySvc)
+	// systemPreferenceController := controllers.NewSystemPreferenceController(systemPreferenceSvc)
+
+	organizationLevelController := app.SettingsModule.OrganizationLevelController
+	currencyController := app.SettingsModule.CurrencyController
+	systemPreferenceController := app.SettingsModule.SystemPreferenceController
 
 	//Organization Level
-	settingRoutes.GET("/organization-levels", OrganizationLevelController.GetAllOrganizationLevels)
-	settingRoutes.POST("/organization-levels", OrganizationLevelController.CreateOrganizationLevel)
+	settingRoutes.GET("/organization-levels", organizationLevelController.GetAllOrganizationLevels)
+	settingRoutes.POST("/organization-levels", organizationLevelController.CreateOrganizationLevel)
 
 	//Currency
 	settingRoutes.GET("/currencies", currencyController.GetAllCurrencies)

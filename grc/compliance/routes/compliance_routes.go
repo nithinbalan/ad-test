@@ -1,158 +1,35 @@
 package routes
 
 import (
-	"jethur/grc/compliance/controllers"
-	complianceRepositories "jethur/grc/compliance/repositories"
-	complianceServices "jethur/grc/compliance/services"
-	logRepositories "jethur/grc/logs/repositories"
-	logServices "jethur/grc/logs/services"
-	masterRepositories "jethur/grc/masters/repositories"
-	masterServices "jethur/grc/masters/services"
+	"jethur/initializers"
 	"jethur/middlewares"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
-func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
+func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	complianceRoutes := router.Group("/")
 
 	complianceRoutes.Use(middlewares.AuthMiddleware())
 
-	activityLogRepo := logRepositories.NewActivityLogRepository(db)
-	activityLogSvc := logServices.NewActivityLogService(activityLogRepo)
-
-	lifecycleStatusRepo := masterRepositories.NewLifecycleStatusRepository(db)
-	lifecycleStatusSvc := masterServices.NewLifecycleStatusService(lifecycleStatusRepo)
-
-	actionPlanStatusRepo := masterRepositories.NewActionPlanStatusRepository(db)
-	actionPlanStatusSvc := masterServices.NewActionPlanStatusService(actionPlanStatusRepo)
-
-	reviewFrequencyRepo := masterRepositories.NewReviewFrequencyRepository(db)
-	reviewFrequencySvc := masterServices.NewReviewFrequencyService(reviewFrequencyRepo)
-
-	severityLevelRepo := masterRepositories.NewSeverityLevelRepository(db)
-	severityLevelSvc := masterServices.NewSeverityLevelService(severityLevelRepo)
-
-	questionGroupRepository := masterRepositories.NewQuestionGroupRepository(db)
-	questionGroupService := masterServices.NewQuestionGroupService(questionGroupRepository, activityLogSvc)
-
-	checklistRepo := masterRepositories.NewChecklistRepository(db)
-	checklistSvc := masterServices.NewChecklistService(checklistRepo, activityLogSvc)
-
-	checklistQuestionRepo := masterRepositories.NewChecklistQuestionRepository(db)
-	checklistQuestionSvc := masterServices.NewChecklistQuestionService(checklistQuestionRepo, activityLogSvc, questionGroupService, checklistSvc)
-
-	complianceCategoryRepo := complianceRepositories.NewComplianceCategoryRepository(db)
-	complianceCategorySvc := complianceServices.NewComplianceCategoryService(complianceCategoryRepo, activityLogSvc)
-	complianceCategoryController := controllers.NewComplianceCategoryController(complianceCategorySvc)
-
-	complianceStatusRepo := complianceRepositories.NewComplianceStatusRepository(db)
-	complianceStatusSvc := complianceServices.NewComplianceStatusService(complianceStatusRepo)
-	complianceStatusController := controllers.NewComplianceStatusController(complianceStatusSvc)
-
-	complianceRegisterRepo := complianceRepositories.NewComplianceRegisterRepository(db)
-	complianceRegisterSvc := complianceServices.NewComplianceRegisterService(
-		complianceRegisterRepo,
-		activityLogSvc,
-		lifecycleStatusSvc,
-		complianceCategorySvc,
-		complianceStatusSvc,
-		reviewFrequencySvc,
-		severityLevelSvc,
-	)
-	complianceRegisterController := controllers.NewComplianceRegisterController(complianceRegisterSvc)
-
-	complianceRequirementCategoryRepo := complianceRepositories.NewComplianceRequirementCategoryRepository(db)
-	complianceRequirementCategorySvc := complianceServices.NewComplianceRequirementCategoryService(complianceRequirementCategoryRepo, activityLogSvc)
-	complianceRequirementCategoryController := controllers.NewComplianceRequirementCategoryController(complianceRequirementCategorySvc)
-
-	complianceRequirementRepo := complianceRepositories.NewComplianceRequirementRepository(db)
-	complianceRequirementSvc := complianceServices.NewComplianceRequirementService(
-		complianceRequirementRepo,
-		activityLogSvc,
-		complianceRegisterSvc,
-		complianceRequirementCategorySvc,
-		complianceStatusSvc,
-		severityLevelSvc,
-	)
-	complianceRequirementController := controllers.NewComplianceRequirementController(complianceRequirementSvc)
-
-	complianceActionPlanRepo := complianceRepositories.NewComplianceActionPlanRepository(db)
-	complianceActionPlanSvc := complianceServices.NewComplianceActionPlanService(
-		complianceActionPlanRepo,
-		activityLogSvc,
-		complianceRegisterSvc,
-		complianceRequirementSvc,
-		actionPlanStatusSvc,
-		severityLevelSvc,
-	)
-	complianceActionPlanController := controllers.NewComplianceActionPlanController(complianceActionPlanSvc)
-
-	complianceStatusUpdateRepo := complianceRepositories.NewComplianceStatusUpdateRepository(db)
-	complianceStatusUpdateSvc := complianceServices.NewComplianceStatusUpdateService(complianceStatusUpdateRepo, activityLogSvc, complianceRegisterSvc, complianceStatusSvc)
-	complianceStatusUpdateController := controllers.NewComplianceStatusUpdateController(complianceStatusUpdateSvc)
-
-	complianceRequirementStatusUpdateRepo := complianceRepositories.NewComplianceRequirementStatusUpdateRepository(db)
-	complianceRequirementStatusUpdateSvc := complianceServices.NewComplianceRequirementStatusUpdateService(complianceRequirementStatusUpdateRepo, activityLogSvc, complianceRequirementSvc, complianceStatusSvc)
-	complianceRequirementStatusUpdateController := controllers.NewComplianceRequirementStatusUpdateController(complianceRequirementStatusUpdateSvc)
-
-	complianceActionPlanStatusUpdateRepo := complianceRepositories.NewComplianceActionPlanStatusUpdateRepository(db)
-	complianceActionPlanStatusUpdateSvc := complianceServices.NewComplianceActionPlanStatusUpdateService(complianceActionPlanStatusUpdateRepo, activityLogSvc, complianceActionPlanSvc, actionPlanStatusSvc)
-	complianceActionPlanStatusUpdateController := controllers.NewComplianceActionPlanStatusUpdateController(complianceActionPlanStatusUpdateSvc)
-
-	complianceReviewRepo := complianceRepositories.NewComplianceReviewRepository(db)
-	complianceReviewSvc := complianceServices.NewComplianceReviewService(complianceReviewRepo, activityLogSvc, complianceRegisterSvc)
-	complianceReviewController := controllers.NewComplianceReviewController(complianceReviewSvc)
-
-	SLACategoryRepo := complianceRepositories.NewSLACategoryRepository(db)
-	SLACategorySvc := complianceServices.NewSLACategoryService(SLACategoryRepo, activityLogSvc)
-	SLACategoryController := controllers.NewSLACategoryController(SLACategorySvc)
-
-	SLARegisterRepo := complianceRepositories.NewSLARegisterRepository(db)
-	slaRegisterSvc := complianceServices.NewSLARegisterService(SLARegisterRepo,
-		SLACategorySvc,
-		severityLevelSvc,
-		lifecycleStatusSvc,
-		activityLogSvc)
-	SLARegisterController := controllers.NewSLARegisterController(slaRegisterSvc)
-
-	SLACheckQuestionRepo := complianceRepositories.NewSLACheckQuestionRepository(db)
-	slaCheckQuestionSvc := complianceServices.NewSLACheckQuestionService(SLACheckQuestionRepo,
-		activityLogSvc,
-		slaRegisterSvc,
-		checklistQuestionSvc,
-		questionGroupService)
-	SLACheckQuestionController := controllers.NewSLACheckQuestionController(slaCheckQuestionSvc)
-
-	SLACheckAnswerRepo := complianceRepositories.NewSLACheckAnswerRepository(db)
-	SLACheckAnswerSvc := complianceServices.NewSLACheckAnswerService(SLACheckAnswerRepo,
-		activityLogSvc,
-		slaRegisterSvc,
-		complianceStatusSvc,
-		slaCheckQuestionSvc)
-	SLACheckAnswerController := controllers.NewSLACheckAnswerController(SLACheckAnswerSvc)
-
-	SLARenewRepo := complianceRepositories.NewSLARenewRepository(db)
-	SLARenewSvc := complianceServices.NewSLARenewService(SLARenewRepo, SLARegisterRepo, lifecycleStatusSvc,
-		activityLogSvc)
-	SLARenewController := controllers.NewSLARenewController(SLARenewSvc)
-
-	slaActionPlanRepo := complianceRepositories.NewSLAActionPlanRepository(db)
-	slaActionPlanSvc := complianceServices.NewSLAActionPlanService(
-		slaActionPlanRepo,
-		activityLogSvc,
-		slaRegisterSvc,
-		slaCheckQuestionSvc,
-		actionPlanStatusSvc,
-		severityLevelSvc,
-	)
-	slaActionPlanController := controllers.NewSLAActionPlanController(slaActionPlanSvc)
-
-	slaActionPlanStatusUpdateRepo := complianceRepositories.NewSLAActionPlanStatusUpdateRepository(db)
-	slaActionPlanStatusUpdateSvc := complianceServices.NewSLAActionPlanStatusUpdateService(slaActionPlanStatusUpdateRepo, activityLogSvc, slaActionPlanSvc, actionPlanStatusSvc)
-	slaActionPlanStatusUpdateController := controllers.NewSLAActionPlanStatusUpdateController(slaActionPlanStatusUpdateSvc)
+	complianceCategoryController := app.ComplianceModule.ComplianceCategoryController
+	complianceStatusController := app.ComplianceModule.ComplianceStatusController
+	complianceRegisterController := app.ComplianceModule.ComplianceRegisterController
+	complianceRequirementCategoryController := app.ComplianceModule.ComplianceRequirementCategoryController
+	complianceRequirementController := app.ComplianceModule.ComplianceRequirementController
+	complianceActionPlanController := app.ComplianceModule.ComplianceActionPlanController
+	complianceStatusUpdateController := app.ComplianceModule.ComplianceStatusUpdateController
+	complianceRequirementStatusUpdateController := app.ComplianceModule.ComplianceRequirementStatusUpdateController
+	complianceActionPlanStatusUpdateController := app.ComplianceModule.ComplianceActionPlanStatusUpdateController
+	complianceReviewController := app.ComplianceModule.ComplianceReviewController
+	SLACategoryController := app.ComplianceModule.SLACategoryController
+	SLARegisterController := app.ComplianceModule.SLARegisterController
+	SLACheckQuestionController := app.ComplianceModule.SLACheckQuestionController
+	SLACheckAnswerController := app.ComplianceModule.SLACheckAnswerController
+	SLARenewController := app.ComplianceModule.SLARenewController
+	slaActionPlanController := app.ComplianceModule.SLAActionPlanController
+	slaActionPlanStatusUpdateController := app.ComplianceModule.SLAActionPlanStatusUpdateController
 
 	//Compliance Category
 	complianceRoutes.GET("/compliance-categories", complianceCategoryController.GetAllComplianceCategories)

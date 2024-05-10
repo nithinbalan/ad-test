@@ -1,60 +1,25 @@
 package routes
 
 import (
-	logRepositories "jethur/grc/logs/repositories"
-	logServices "jethur/grc/logs/services"
-	"jethur/grc/masters/controllers"
-	"jethur/grc/masters/repositories"
-	"jethur/grc/masters/services"
+	"jethur/initializers"
 	"jethur/middlewares"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
-func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
+func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	masterRoutes := router.Group("/")
 
 	masterRoutes.Use(middlewares.AuthMiddleware())
 
-	activityLogRepo := logRepositories.NewActivityLogRepository(db)
-	activityLogSvc := logServices.NewActivityLogService(activityLogRepo)
-
-	//Review Frequency
-	reviewFrequencyRepo := repositories.NewReviewFrequencyRepository(db)
-	reviewFrequencySvc := services.NewReviewFrequencyService(reviewFrequencyRepo)
-	reviewFrequencyController := controllers.NewReviewFrequencyController(reviewFrequencySvc)
-
-	//Severity Level
-	severityLevelRepo := repositories.NewSeverityLevelRepository(db)
-	severityLevelSvc := services.NewSeverityLevelService(severityLevelRepo)
-	severityLevelController := controllers.NewSeverityLevelController(severityLevelSvc)
-
-	//Lifecycle Status
-	lifecycleStatusRepo := repositories.NewLifecycleStatusRepository(db)
-	lifecycleStatusSvc := services.NewLifecycleStatusService(lifecycleStatusRepo)
-	lifecycleStatusController := controllers.NewLifecycleStatusController(lifecycleStatusSvc)
-
-	//Question Groups
-	questionGroupRepository := repositories.NewQuestionGroupRepository(db)
-	questionGroupService := services.NewQuestionGroupService(questionGroupRepository, activityLogSvc)
-	questionGroupController := controllers.NewQuestionGroupController(questionGroupService)
-
-	//Checklists
-	checklistRepo := repositories.NewChecklistRepository(db)
-	checklistSvc := services.NewChecklistService(checklistRepo, activityLogSvc)
-	checklistController := controllers.NewChecklistController(checklistSvc)
-
-	//Checklist Questions
-	checklistQuestionRepo := repositories.NewChecklistQuestionRepository(db)
-	checklistQuestionSvc := services.NewChecklistQuestionService(checklistQuestionRepo, activityLogSvc, questionGroupService, checklistSvc)
-	checklistQuestionController := controllers.NewChecklistQuestionController(checklistQuestionSvc)
-
-	// Action Plan Status
-	actionPlanStatusRepo := repositories.NewActionPlanStatusRepository(db)
-	actionPlanStatusSvc := services.NewActionPlanStatusService(actionPlanStatusRepo)
-	actionPlanStatusController := controllers.NewActionPlanStatusController(actionPlanStatusSvc)
+	reviewFrequencyController := app.MasterModule.ReviewFrequencyController
+	severityLevelController := app.MasterModule.SeverityLevelController
+	lifecycleStatusController := app.MasterModule.LifecycleStatusController
+	questionGroupController := app.MasterModule.QuestionGroupController
+	checklistController := app.MasterModule.ChecklistController
+	checklistQuestionController := app.MasterModule.ChecklistQuestionController
+	actionPlanStatusController := app.MasterModule.AtionPlanStatusController
 
 	masterRoutes.GET("/review-frequencies", reviewFrequencyController.GetAllReviewFrequencies)
 	masterRoutes.GET("/review-frequencies/:id", reviewFrequencyController.GetReviewFrequencyDetails)

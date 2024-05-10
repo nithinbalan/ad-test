@@ -1,0 +1,161 @@
+package initializers
+
+import (
+	"jethur/grc/compliance/controllers"
+	"jethur/grc/compliance/repositories"
+	"jethur/grc/compliance/services"
+
+	"gorm.io/gorm"
+)
+
+type ComplianceModule struct {
+	ComplianceCategoryController                *controllers.ComplianceCategoryController
+	ComplianceStatusController                  *controllers.ComplianceStatusController
+	ComplianceRegisterController                *controllers.ComplianceRegisterController
+	ComplianceRequirementCategoryController     *controllers.ComplianceRequirementCategoryController
+	ComplianceRequirementController             *controllers.ComplianceRequirementController
+	ComplianceActionPlanController              *controllers.ComplianceActionPlanController
+	ComplianceStatusUpdateController            *controllers.ComplianceStatusUpdateController
+	ComplianceRequirementStatusUpdateController *controllers.ComplianceRequirementStatusUpdateController
+	ComplianceActionPlanStatusUpdateController  *controllers.ComplianceActionPlanStatusUpdateController
+	ComplianceReviewController                  *controllers.ComplianceReviewController
+	SLACategoryController                       *controllers.SLACategoryController
+	SLARegisterController                       *controllers.SLARegisterController
+	SLACheckQuestionController                  *controllers.SLACheckQuestionController
+	SLACheckAnswerController                    *controllers.SLACheckAnswerController
+	SLARenewController                          *controllers.SLARenewController
+	SLAActionPlanController                     *controllers.SLAActionPlanController
+	SLAActionPlanStatusUpdateController         *controllers.SLAActionPlanStatusUpdateController
+}
+
+func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *MasterModule, organizationModule *OrganizationModule) *ComplianceModule {
+	complianceCategoryRepo := repositories.NewComplianceCategoryRepository(db)
+	complianceCategorySvc := services.NewComplianceCategoryService(complianceCategoryRepo, sharedModule.ActivityLogService)
+	complianceCategoryController := controllers.NewComplianceCategoryController(complianceCategorySvc)
+
+	complianceStatusRepo := repositories.NewComplianceStatusRepository(db)
+	complianceStatusSvc := services.NewComplianceStatusService(complianceStatusRepo)
+	complianceStatusController := controllers.NewComplianceStatusController(complianceStatusSvc)
+
+	complianceRegisterRepo := repositories.NewComplianceRegisterRepository(db)
+	complianceRegisterSvc := services.NewComplianceRegisterService(
+		complianceRegisterRepo,
+		sharedModule.ActivityLogService,
+		masterModule.LifecycleStatusSvc,
+		complianceCategorySvc,
+		complianceStatusSvc,
+		masterModule.ReviewFrequencySvc,
+		masterModule.SeverityLevelSvc,
+	)
+	complianceRegisterController := controllers.NewComplianceRegisterController(complianceRegisterSvc)
+
+	complianceRequirementCategoryRepo := repositories.NewComplianceRequirementCategoryRepository(db)
+	complianceRequirementCategorySvc := services.NewComplianceRequirementCategoryService(complianceRequirementCategoryRepo, sharedModule.ActivityLogService)
+	complianceRequirementCategoryController := controllers.NewComplianceRequirementCategoryController(complianceRequirementCategorySvc)
+
+	complianceRequirementRepo := repositories.NewComplianceRequirementRepository(db)
+	complianceRequirementSvc := services.NewComplianceRequirementService(
+		complianceRequirementRepo,
+		sharedModule.ActivityLogService,
+		complianceRegisterSvc,
+		complianceRequirementCategorySvc,
+		complianceStatusSvc,
+		masterModule.SeverityLevelSvc,
+	)
+	complianceRequirementController := controllers.NewComplianceRequirementController(complianceRequirementSvc)
+
+	complianceActionPlanRepo := repositories.NewComplianceActionPlanRepository(db)
+	complianceActionPlanSvc := services.NewComplianceActionPlanService(
+		complianceActionPlanRepo,
+		sharedModule.ActivityLogService,
+		complianceRegisterSvc,
+		complianceRequirementSvc,
+		masterModule.ActionPlanStatusSvc,
+		masterModule.SeverityLevelSvc,
+	)
+	complianceActionPlanController := controllers.NewComplianceActionPlanController(complianceActionPlanSvc)
+
+	complianceStatusUpdateRepo := repositories.NewComplianceStatusUpdateRepository(db)
+	complianceStatusUpdateSvc := services.NewComplianceStatusUpdateService(complianceStatusUpdateRepo, sharedModule.ActivityLogService, complianceRegisterSvc, complianceStatusSvc)
+	complianceStatusUpdateController := controllers.NewComplianceStatusUpdateController(complianceStatusUpdateSvc)
+
+	complianceRequirementStatusUpdateRepo := repositories.NewComplianceRequirementStatusUpdateRepository(db)
+	complianceRequirementStatusUpdateSvc := services.NewComplianceRequirementStatusUpdateService(complianceRequirementStatusUpdateRepo, sharedModule.ActivityLogService, complianceRequirementSvc, complianceStatusSvc)
+	complianceRequirementStatusUpdateController := controllers.NewComplianceRequirementStatusUpdateController(complianceRequirementStatusUpdateSvc)
+
+	complianceActionPlanStatusUpdateRepo := repositories.NewComplianceActionPlanStatusUpdateRepository(db)
+	complianceActionPlanStatusUpdateSvc := services.NewComplianceActionPlanStatusUpdateService(complianceActionPlanStatusUpdateRepo, sharedModule.ActivityLogService, complianceActionPlanSvc, masterModule.ActionPlanStatusSvc)
+	complianceActionPlanStatusUpdateController := controllers.NewComplianceActionPlanStatusUpdateController(complianceActionPlanStatusUpdateSvc)
+
+	complianceReviewRepo := repositories.NewComplianceReviewRepository(db)
+	complianceReviewSvc := services.NewComplianceReviewService(complianceReviewRepo, sharedModule.ActivityLogService, complianceRegisterSvc)
+	complianceReviewController := controllers.NewComplianceReviewController(complianceReviewSvc)
+
+	slaCategoryRepo := repositories.NewSLACategoryRepository(db)
+	slaCategorySvc := services.NewSLACategoryService(slaCategoryRepo, sharedModule.ActivityLogService)
+	slaCategoryController := controllers.NewSLACategoryController(slaCategorySvc)
+
+	slaRegisterRepo := repositories.NewSLARegisterRepository(db)
+	slaRegisterSvc := services.NewSLARegisterService(slaRegisterRepo,
+		slaCategorySvc,
+		masterModule.SeverityLevelSvc,
+		masterModule.LifecycleStatusSvc,
+		sharedModule.ActivityLogService)
+	slaRegisterController := controllers.NewSLARegisterController(slaRegisterSvc)
+
+	slaCheckQuestionRepo := repositories.NewSLACheckQuestionRepository(db)
+	slaCheckQuestionSvc := services.NewSLACheckQuestionService(slaCheckQuestionRepo,
+		sharedModule.ActivityLogService,
+		slaRegisterSvc,
+		masterModule.ChecklistQuestionSvc,
+		masterModule.QuestionGroupService)
+	slaCheckQuestionController := controllers.NewSLACheckQuestionController(slaCheckQuestionSvc)
+
+	slaCheckAnswerRepo := repositories.NewSLACheckAnswerRepository(db)
+	slaCheckAnswerSvc := services.NewSLACheckAnswerService(slaCheckAnswerRepo,
+		sharedModule.ActivityLogService,
+		slaRegisterSvc,
+		complianceStatusSvc,
+		slaCheckQuestionSvc)
+	slaCheckAnswerController := controllers.NewSLACheckAnswerController(slaCheckAnswerSvc)
+
+	slaRenewRepo := repositories.NewSLARenewRepository(db)
+	slaRenewSvc := services.NewSLARenewService(slaRenewRepo, slaRegisterRepo, masterModule.LifecycleStatusSvc,
+		sharedModule.ActivityLogService)
+	slaRenewController := controllers.NewSLARenewController(slaRenewSvc)
+
+	slaActionPlanRepo := repositories.NewSLAActionPlanRepository(db)
+	slaActionPlanSvc := services.NewSLAActionPlanService(
+		slaActionPlanRepo,
+		sharedModule.ActivityLogService,
+		slaRegisterSvc,
+		slaCheckQuestionSvc,
+		masterModule.ActionPlanStatusSvc,
+		masterModule.SeverityLevelSvc,
+	)
+	slaActionPlanController := controllers.NewSLAActionPlanController(slaActionPlanSvc)
+
+	slaActionPlanStatusUpdateRepo := repositories.NewSLAActionPlanStatusUpdateRepository(db)
+	slaActionPlanStatusUpdateSvc := services.NewSLAActionPlanStatusUpdateService(slaActionPlanStatusUpdateRepo, sharedModule.ActivityLogService, slaActionPlanSvc, masterModule.ActionPlanStatusSvc)
+	slaActionPlanStatusUpdateController := controllers.NewSLAActionPlanStatusUpdateController(slaActionPlanStatusUpdateSvc)
+
+	return &ComplianceModule{
+		ComplianceCategoryController:                complianceCategoryController,
+		ComplianceStatusController:                  complianceStatusController,
+		ComplianceRegisterController:                complianceRegisterController,
+		ComplianceRequirementCategoryController:     complianceRequirementCategoryController,
+		ComplianceRequirementController:             complianceRequirementController,
+		ComplianceActionPlanController:              complianceActionPlanController,
+		ComplianceStatusUpdateController:            complianceStatusUpdateController,
+		ComplianceRequirementStatusUpdateController: complianceRequirementStatusUpdateController,
+		ComplianceActionPlanStatusUpdateController:  complianceActionPlanStatusUpdateController,
+		ComplianceReviewController:                  complianceReviewController,
+		SLACategoryController:                       slaCategoryController,
+		SLARegisterController:                       slaRegisterController,
+		SLACheckQuestionController:                  slaCheckQuestionController,
+		SLACheckAnswerController:                    slaCheckAnswerController,
+		SLARenewController:                          slaRenewController,
+		SLAActionPlanController:                     slaActionPlanController,
+		SLAActionPlanStatusUpdateController:         slaActionPlanStatusUpdateController,
+	}
+}
