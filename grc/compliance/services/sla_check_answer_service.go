@@ -17,6 +17,7 @@ type SLACheckAnswerServiceInterface interface {
 	CreateAnswer(slaID uint, questionID uint, currentUserID uint, slaCheckAnswerFormDTO *complianceDTOs.SLACheckAnswerFormDTO) (uint, error)
 	UpdateAnswer(slaID uint, questionID uint, answerID uint, currentUserID uint, slaCheckAnswerFormDTO *complianceDTOs.SLACheckAnswerFormDTO) error
 	DeleteAnswer(slaID uint, questionID uint, answerID uint, currentUserID uint) (uint, error)
+	AssessmentSummary(slaID uint) (*complianceDTOs.AssessmentSummaryDTO, error)
 }
 
 // Service and implementations
@@ -225,4 +226,17 @@ func (scas *SLACheckAnswerService) validateSlaCheckAnswerFormDTO(slaCheckAnswerF
 	}
 
 	return nil
+}
+
+func (scas SLACheckAnswerService) AssessmentSummary(slaID uint) (*complianceDTOs.AssessmentSummaryDTO, error) {
+	if _, err := scas.slaRegisterSvc.GetByID(slaID); err != nil {
+		return nil, err
+	}
+
+	assessmentSummary, err := scas.repo.AssessmentSummary(slaID)
+
+	if err != nil {
+		return nil, err
+	}
+	return assessmentSummary, nil
 }
