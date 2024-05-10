@@ -1,42 +1,48 @@
 package initializers
 
 import (
-	settingControllers "jethur/grc/settings/controllers"
-	settingRepositories "jethur/grc/settings/repositories"
-	settingServices "jethur/grc/settings/services"
+	"jethur/grc/settings/controllers"
+	"jethur/grc/settings/repositories"
+	"jethur/grc/settings/services"
 
 	"gorm.io/gorm"
 )
 
 type SettingsModule struct {
-	OrganizationLevelController *settingControllers.OrganizationLevelController
-	CurrencyController          *settingControllers.CurrencyController
-	SystemPreferenceController  *settingControllers.SystemPreferenceController
+	OrganizationLevelController *controllers.OrganizationLevelController
+	CurrencyController          *controllers.CurrencyController
+	SystemPreferenceController  *controllers.SystemPreferenceController
+	TimezoneController          *controllers.TimezoneController
 
-	SystemPreferenceSvc settingServices.SystemPreferenceServiceInterface
-	RoleSvc             settingServices.RoleServiceInterface
+	SystemPreferenceSvc services.SystemPreferenceServiceInterface
+	RoleSvc             services.RoleServiceInterface
 }
 
 func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule) *SettingsModule {
-	organizationLevelRepo := settingRepositories.NewOrganizationLevelRepository(db)
-	organizationLevelSvc := settingServices.NewOrganizationLevelService(organizationLevelRepo, sharedModule.ActivityLogService)
-	organizationLevelController := settingControllers.NewOrganizationLevelController(organizationLevelSvc)
+	organizationLevelRepo := repositories.NewOrganizationLevelRepository(db)
+	organizationLevelSvc := services.NewOrganizationLevelService(organizationLevelRepo, sharedModule.ActivityLogService)
+	organizationLevelController := controllers.NewOrganizationLevelController(organizationLevelSvc)
 
-	currencyRepo := settingRepositories.NewCurrencyRepository(db)
-	currencySvc := settingServices.NewCurrencyService(currencyRepo)
-	currencyController := settingControllers.NewCurrencyController(currencySvc)
+	currencyRepo := repositories.NewCurrencyRepository(db)
+	currencySvc := services.NewCurrencyService(currencyRepo)
+	currencyController := controllers.NewCurrencyController(currencySvc)
 
-	systemPreferenceRepo := settingRepositories.NewSystemPreferenceRepository(db)
-	systemPreferenceSvc := settingServices.NewSystemPreferenceService(systemPreferenceRepo, sharedModule.ActivityLogService, currencySvc)
-	systemPreferenceController := settingControllers.NewSystemPreferenceController(systemPreferenceSvc)
+	systemPreferenceRepo := repositories.NewSystemPreferenceRepository(db)
+	systemPreferenceSvc := services.NewSystemPreferenceService(systemPreferenceRepo, sharedModule.ActivityLogService, currencySvc)
+	systemPreferenceController := controllers.NewSystemPreferenceController(systemPreferenceSvc)
 
-	roleRepo := settingRepositories.NewRoleRepository(db)
-	roleSvc := settingServices.NewRoleService(roleRepo, sharedModule.ActivityLogService)
+	roleRepo := repositories.NewRoleRepository(db)
+	roleSvc := services.NewRoleService(roleRepo, sharedModule.ActivityLogService)
+
+	timezoneRepo := repositories.NewTimezoneRepository(db)
+	timezoneSvc := services.NewTimezoneService(timezoneRepo)
+	timezoneController := controllers.NewTimezoneController(timezoneSvc)
 
 	return &SettingsModule{
 		OrganizationLevelController: organizationLevelController,
 		CurrencyController:          currencyController,
 		SystemPreferenceController:  systemPreferenceController,
+		TimezoneController:          timezoneController,
 
 		SystemPreferenceSvc: systemPreferenceSvc,
 		RoleSvc:             roleSvc,
