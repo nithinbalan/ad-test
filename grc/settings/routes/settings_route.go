@@ -29,6 +29,10 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	currencySvc := settingServices.NewCurrencyService(currencyRepo)
 	currencyController := controllers.NewCurrencyController(currencySvc)
 
+	timezoneRepo := settingRepositories.NewTimezoneRepository(db)
+	timezoneSvc := settingServices.NewTimezoneService(timezoneRepo)
+	timezoneController := controllers.NewTimezoneController(timezoneSvc)
+
 	systemPreferenceRepo := settingRepositories.NewSystemPreferenceRepository(db)
 	systemPreferenceSvc := settingServices.NewSystemPreferenceService(systemPreferenceRepo, activityLogSvc, currencySvc)
 	systemPreferenceController := controllers.NewSystemPreferenceController(systemPreferenceSvc)
@@ -40,6 +44,10 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	//Currency
 	settingRoutes.GET("/currencies", currencyController.GetAllCurrencies)
 	settingRoutes.GET("/currencies/:id", currencyController.GetCurrencyDetails)
+
+	// Timezones
+	settingRoutes.GET("/timezones", timezoneController.GetAllTimezones)
+	settingRoutes.GET("/timezones/:id", timezoneController.GetTimezoneDetails)
 
 	//System Preference
 	settingRoutes.GET("/system-preferences", systemPreferenceController.GetSystemPreference)
