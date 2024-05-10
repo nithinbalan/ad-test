@@ -1,174 +1,36 @@
 package routes
 
 import (
-	logRepositories "jethur/grc/logs/repositories"
-	logServices "jethur/grc/logs/services"
-	"jethur/grc/risk/controllers"
-	riskRepositories "jethur/grc/risk/repositories"
-	riskServices "jethur/grc/risk/services"
-
-	organizationRepositories "jethur/grc/organization/repositories"
-	organizationServices "jethur/grc/organization/services"
-
-	masterRepositories "jethur/grc/masters/repositories"
-	masterServices "jethur/grc/masters/services"
-
-	settingRepositories "jethur/grc/settings/repositories"
-	settingService "jethur/grc/settings/services"
-
+	"jethur/initializers"
 	"jethur/middlewares"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
-func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
+func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	riskRoutes := router.Group("/")
 
 	riskRoutes.Use(middlewares.AuthMiddleware())
 
-	activityLogRepo := logRepositories.NewActivityLogRepository(db)
-	activityLogSvc := logServices.NewActivityLogService(activityLogRepo)
-
-	currencyRepo := settingRepositories.NewCurrencyRepository(db)
-	currencySvc := settingService.NewCurrencyService(currencyRepo)
-
-	systemPreferenceRepo := settingRepositories.NewSystemPreferenceRepository(db)
-	systemPreferenceSvc := settingService.NewSystemPreferenceService(systemPreferenceRepo, activityLogSvc, currencySvc)
-
-	severityLevelRepo := masterRepositories.NewSeverityLevelRepository(db)
-	severityLevelSvc := masterServices.NewSeverityLevelService(severityLevelRepo)
-
-	designationRepo := organizationRepositories.NewDesignationRepository(db)
-	designationSvc := organizationServices.NewDesignationService(designationRepo, activityLogSvc)
-
-	userStatusRepo := organizationRepositories.NewUserStatusRepository(db)
-	userStatusSvc := organizationServices.NewUserStatusService(userStatusRepo)
-
-	roleRepo := settingRepositories.NewRoleRepository(db)
-	roleSvc := settingService.NewRoleService(roleRepo, activityLogSvc)
-
-	userRepo := organizationRepositories.NewUserRepository(db)
-	userSvc := organizationServices.NewUserService(userRepo, designationSvc, userStatusSvc, activityLogSvc, roleSvc, systemPreferenceSvc)
-
-	reviewFrequencyRepo := masterRepositories.NewReviewFrequencyRepository(db)
-	reviewFrequencySvc := masterServices.NewReviewFrequencyService(reviewFrequencyRepo)
-
-	riskCategoryRepo := riskRepositories.NewRiskCategoryRepository(db)
-	riskCategorySvc := riskServices.NewRiskCategoryService(riskCategoryRepo, activityLogSvc)
-	riskCategoryController := controllers.NewRiskCategoryController(riskCategorySvc)
-
-	potentialRiskStatusRepo := riskRepositories.NewPotentialRiskStatusRepository(db)
-	potentialRiskStatusSvc := riskServices.NewPotentialRiskStatusService(potentialRiskStatusRepo)
-	potentialRiskStatusController := controllers.NewPotentialRiskStatusController(potentialRiskStatusSvc)
-
-	riskLevelRepo := riskRepositories.NewRiskLevelRepository(db)
-	riskLevelSvc := riskServices.NewRiskLevelService(riskLevelRepo)
-	riskLevelController := controllers.NewRiskLevelController(riskLevelSvc)
-
-	potentialRiskRepo := riskRepositories.NewPotentialRiskRepository(db)
-	potentialRiskSvc := riskServices.NewPotentialRiskService(
-		potentialRiskRepo,
-		activityLogSvc,
-		severityLevelSvc,
-		riskCategorySvc,
-		potentialRiskStatusSvc,
-	)
-	potentialRiskController := controllers.NewPotentialRiskController(potentialRiskSvc)
-
-	potentialRiskStatusUpdateRepo := riskRepositories.NewPotentialRiskStatusUpdateRepository(db)
-	potentialRiskStatusUpdateSvc := riskServices.NewPotentialRiskStatusUpdateService(potentialRiskStatusUpdateRepo, activityLogSvc, potentialRiskSvc, potentialRiskStatusSvc)
-	potentialRiskStatusUpdateController := controllers.NewPotentialRiskStatusUpdateController(potentialRiskStatusUpdateSvc)
-
-	//KRI Categories
-	kriCategoryRepository := riskRepositories.NewKRICategoryRepository(db)
-	kriCategorySvc := riskServices.NewKRICategoryService(kriCategoryRepository, activityLogSvc)
-	kriCategoryController := controllers.NewKRICategoryController(kriCategorySvc)
-
-	kriRegisterRepo := riskRepositories.NewKRIRegisterRepository(db)
-	kriRegisterSvc := riskServices.NewKRIRegisterService(
-		kriRegisterRepo,
-		activityLogSvc,
-		kriCategorySvc,
-		userSvc,
-		riskLevelSvc,
-		reviewFrequencySvc,
-	)
-	kriRegisterController := controllers.NewKRIRegisterController(kriRegisterSvc)
-
-	kriValueUpdateRepo := riskRepositories.NewKRIValueUpdateRepository(db)
-	kriValueUpdateSvc := riskServices.NewKRIValueUpdateService(kriValueUpdateRepo, activityLogSvc, kriRegisterSvc, reviewFrequencySvc)
-	kriValueUpdateController := controllers.NewKRIValueUpdateController(kriValueUpdateSvc)
-
-	riskAppetiteStatementRepo := riskRepositories.NewRiskAppetiteStatementRepository(db)
-	riskAppetiteStatementSvc := riskServices.NewRiskAppetiteStatementService(
-		riskAppetiteStatementRepo,
-		activityLogSvc,
-		riskCategorySvc,
-	)
-	riskAppetiteStatementController := controllers.NewRiskAppetiteStatementController(riskAppetiteStatementSvc)
-
-	riskImpactCategoryRepo := riskRepositories.NewRiskImpactCategoryRepository(db)
-	riskImpactCategorySvc := riskServices.NewRiskImpactCategoryService(riskImpactCategoryRepo, activityLogSvc)
-	riskImpactCategoryController := controllers.NewRiskImpactCategoryController(riskImpactCategorySvc)
-
-	riskMatrixRepo := riskRepositories.NewRiskMatrixRepository(db)
-	riskMatrixSvc := riskServices.NewRiskMatrixService(riskMatrixRepo)
-
-	riskMatrixImpactRepo := riskRepositories.NewRiskMatrixImpactRepository(db)
-	riskMatrixImpactSvc := riskServices.NewRiskMatrixImpactService(
-		riskMatrixImpactRepo,
-		activityLogSvc,
-		riskMatrixSvc,
-	)
-	riskMatrixImpactController := controllers.NewRiskMatrixImpactController(riskMatrixImpactSvc)
-
-	riskMatrixImpactGuidelineRepo := riskRepositories.NewRiskMatrixImpactGuidelineRepository(db)
-	riskMatrixImpactGuidelineSvc := riskServices.NewRiskMatrixImpactGuidelineService(
-		riskMatrixImpactGuidelineRepo,
-		activityLogSvc,
-		riskImpactCategorySvc,
-		riskMatrixImpactSvc,
-	)
-	riskMatrixImpactGuidelineController := controllers.NewRiskMatrixImpactGuidelineController(riskMatrixImpactGuidelineSvc)
-
-	riskMatrixLikelihoodRepo := riskRepositories.NewRiskMatrixLikelihoodRepository(db)
-	riskMatrixLikelihoodSvc := riskServices.NewRiskMatrixLikelihoodService(
-		riskMatrixLikelihoodRepo,
-		activityLogSvc,
-		riskMatrixSvc,
-	)
-	riskMatrixLikelihoodController := controllers.NewRiskMatrixLikelihoodController(riskMatrixLikelihoodSvc)
-
-	riskMatrixRiskRatingRepo := riskRepositories.NewRiskMatrixRiskRatingRepository(db)
-	riskMatrixRiskRatingSvc := riskServices.NewRiskMatrixRiskRatingService(
-		riskMatrixRiskRatingRepo,
-		activityLogSvc,
-		riskMatrixSvc,
-	)
-	riskMatrixRiskRatingController := controllers.NewRiskMatrixRiskRatingController(riskMatrixRiskRatingSvc)
-
-	riskMatrixRiskRatingValueRepo := riskRepositories.NewRiskMatrixRiskRatingValueRepository(db)
-	riskMatrixRiskRatingValueSvc := riskServices.NewRiskMatrixRiskRatingValueService(
-		riskMatrixRiskRatingValueRepo,
-		activityLogSvc,
-		riskMatrixSvc,
-		riskMatrixRiskRatingSvc,
-	)
-	riskMatrixRiskRatingValueController := controllers.NewRiskMatrixRiskRatingValueController(riskMatrixRiskRatingValueSvc)
-
-	riskSourceRepo := riskRepositories.NewRiskSourceRepository(db)
-	riskSourceSvc := riskServices.NewRiskSourceService(riskSourceRepo, activityLogSvc)
-	riskSourceController := controllers.NewRiskSourceController(riskSourceSvc)
-
-	riskStatusRepo := riskRepositories.NewRiskStatusRepository(db)
-	riskStatusSvc := riskServices.NewRiskStatusService(riskStatusRepo)
-	riskStatusController := controllers.NewRiskStatusController(riskStatusSvc)
-
-	riskRegisterRepo := riskRepositories.NewRiskRegisterRepository(db)
-	riskRegisterSvc := riskServices.NewRiskRegisterService(riskRegisterRepo, activityLogSvc, riskCategorySvc, riskSourceSvc, userSvc, riskStatusSvc, reviewFrequencySvc)
-	riskRegisterController := controllers.NewRiskRegisterController(riskRegisterSvc)
+	riskCategoryController := app.RiskModule.RiskCategoryController
+	potentialRiskStatusController := app.RiskModule.PotentialRiskStatusController
+	riskLevelController := app.RiskModule.RiskLevelController
+	potentialRiskController := app.RiskModule.PotentialRiskController
+	potentialRiskStatusUpdateController := app.RiskModule.PotentialRiskStatusUpdateController
+	kriCategoryController := app.RiskModule.KriCategoryController
+	kriRegisterController := app.RiskModule.KriRegisterController
+	kriValueUpdateController := app.RiskModule.KriValueUpdateController
+	riskAppetiteStatementController := app.RiskModule.RiskAppetiteStatementController
+	riskImpactCategoryController := app.RiskModule.RiskImpactCategoryController
+	riskMatrixImpactController := app.RiskModule.RiskMatrixImpactController
+	riskMatrixImpactGuidelineController := app.RiskModule.RiskMatrixImpactGuidelineController
+	riskMatrixLikelihoodController := app.RiskModule.RiskMatrixLikelihoodController
+	riskMatrixRiskRatingController := app.RiskModule.RiskMatrixRiskRatingController
+	riskMatrixRiskRatingValueController := app.RiskModule.RiskMatrixRiskRatingValueController
+	riskSourceController := app.RiskModule.RiskSourceController
+	riskStatusController := app.RiskModule.RiskStatusController
+	riskRegisterController := app.RiskModule.RiskRegisterController
 
 	riskRoutes.GET("/risk-categories", riskCategoryController.GetAllRiskCategories)
 	riskRoutes.GET("/risk-categories/:id", riskCategoryController.GetRiskCategoryDetails)

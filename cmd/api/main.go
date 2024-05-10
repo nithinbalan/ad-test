@@ -48,8 +48,8 @@ func main() {
 	organizationRoutes.RegisterRoutes(app, r)
 	settingRoutes.RegisterRoutes(app, r)
 	commonRoutes.RegisterRoutes(db, r)
-	riskRoutes.RegisterRoutes(db, r)
-	incidentRoutes.RegisterRoutes(db, r)
+	riskRoutes.RegisterRoutes(app, r)
+	incidentRoutes.RegisterRoutes(app, r)
 
 	if err := r.Run(":" + port); err != nil {
 		utility.LogFatal("Failed to run server", map[string]interface{}{

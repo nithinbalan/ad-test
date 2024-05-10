@@ -13,6 +13,8 @@ import (
 )
 
 type KRILibraryServiceInterface interface {
+	SetKriCategoryService(svc riskServices.KRICategoryServiceInterface)
+
 	GetAll(params *libraryDTOs.KRILibraryListQueryParamsDTO) (*libraryDTOs.KRILibraryListResponseDTO, error)
 	GetByID(id uint) (*models.KRILibrary, error)
 	Create(currentUserID uint, kriLibraryFormDTO *libraryDTOs.KRILibraryFormDTO) (uint, error)
@@ -32,16 +34,18 @@ type KRILibraryService struct {
 
 func NewKRILibraryService(
 	repo repositories.KRILibraryRepositoryInterface,
-	kriCategorySvc riskServices.KRICategoryServiceInterface,
 	reviewFrequencySvc masterServices.ReviewFrequencyServiceInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
 ) KRILibraryServiceInterface {
 	return &KRILibraryService{
 		repo:               repo,
-		kriCategorySvc:     kriCategorySvc,
 		reviewFrequencySvc: reviewFrequencySvc,
 		activityLogSvc:     activityLogSvc,
 	}
+}
+
+func (kls *KRILibraryService) SetKriCategoryService(svc riskServices.KRICategoryServiceInterface) {
+	kls.kriCategorySvc = svc
 }
 
 func (kls *KRILibraryService) GetAll(params *libraryDTOs.KRILibraryListQueryParamsDTO) (*libraryDTOs.KRILibraryListResponseDTO, error) {

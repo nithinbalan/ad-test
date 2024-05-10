@@ -25,6 +25,7 @@ type OrganizationModule struct {
 
 	UserSvc        services.UserServiceInterface
 	UserSettingSvc services.UserSettingServiceInterface
+	ControlSvc     services.ControlServiceInterface
 }
 
 func NewOrganizationModule(
@@ -117,5 +118,6 @@ func NewOrganizationModule(
 
 		UserSvc:        userSvc,
 		UserSettingSvc: userSettingSvc,
+		ControlSvc:     controlSvc,
 	}
 }
