@@ -59,7 +59,7 @@ func (repo *OrganizationLevelRepository) Create(organizationLevels []*models.Org
 			}
 		} else {
 			// ID is present, update the existing record
-			err := tx.Model(&models.OrganizationLevel{}).Where("id = ?", orgLevel.ID).Updates(orgLevel).Error
+			err := tx.Save(orgLevel).Error
 			if err != nil {
 				tx.Rollback()
 				return nil, err
