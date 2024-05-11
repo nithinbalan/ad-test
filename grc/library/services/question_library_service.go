@@ -5,6 +5,7 @@ import (
 	libraryDTOs "jethur/grc/library/dtos"
 	"jethur/grc/library/repositories"
 	"jethur/grc/logs/services"
+	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
 	"jethur/utility"
 	"log"
@@ -22,14 +23,16 @@ type QuestionLibraryServiceInterface interface {
 
 // Service and implementations
 type QuestionLibraryService struct {
-	repo           repositories.QuestionLibraryRepositoryInterface
-	activityLogSvc services.ActivityLogServiceInterface
+	repo             repositories.QuestionLibraryRepositoryInterface
+	activityLogSvc   services.ActivityLogServiceInterface
+	questionGroupSvc masterServices.QuestionGroupServiceInterface
 }
 
-func NewQuestionLibraryService(repo repositories.QuestionLibraryRepositoryInterface, activityLogSvc services.ActivityLogServiceInterface) QuestionLibraryServiceInterface {
+func NewQuestionLibraryService(repo repositories.QuestionLibraryRepositoryInterface, activityLogSvc services.ActivityLogServiceInterface, questionGroupSvc masterServices.QuestionGroupServiceInterface) QuestionLibraryServiceInterface {
 	return &QuestionLibraryService{
-		repo:           repo,
-		activityLogSvc: activityLogSvc,
+		repo:             repo,
+		activityLogSvc:   activityLogSvc,
+		questionGroupSvc: questionGroupSvc,
 	}
 }
 
@@ -227,6 +230,9 @@ func (qls *QuestionLibraryService) Deactivate(ids []uint, currentUserID uint) er
 }
 
 func (qls *QuestionLibraryService) validateQuestionLibraryForm(questionLibraryForm *libraryDTOs.QuestionLibraryFormDTO, id *uint) error {
+	if _, err := qls.questionGroupSvc.GetByID(questionLibraryForm.QuestionGroupID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("question group does not exist"), "not_exist", "question group")
+	}
 
 	if id == nil {
 

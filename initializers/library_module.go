@@ -18,7 +18,7 @@ type LibraryModule struct {
 func NewLibraryModule(db *gorm.DB, sharedModule *SharedModule, MasterModule *MasterModule) *LibraryModule {
 	//Question Library
 	questionLibraryRepo := repositories.NewQuestionLibraryRepository(db)
-	questionLibrarySvc := services.NewQuestionLibraryService(questionLibraryRepo, sharedModule.ActivityLogService)
+	questionLibrarySvc := services.NewQuestionLibraryService(questionLibraryRepo, sharedModule.ActivityLogService, MasterModule.QuestionGroupService)
 	questionLibraryController := controllers.NewQuestionLibraryController(questionLibrarySvc)
 
 	//KRI Library
