@@ -3,9 +3,11 @@ package services
 import (
 	"fmt"
 	"jethur/grc/logs/services"
+	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
 	"jethur/grc/settings/dtos"
 	"jethur/grc/settings/repositories"
+
 	"jethur/utility"
 )
 
@@ -18,10 +20,10 @@ type SystemPreferenceServiceInterface interface {
 type SystemPreferenceService struct {
 	repo           repositories.SystemPreferenceRepositoryInterface
 	activityLogSvc services.ActivityLogServiceInterface
-	currencySvc    CurrencyServiceInterface
+	currencySvc    masterServices.CurrencyServiceInterface
 }
 
-func NewSystemPreferenceService(repo repositories.SystemPreferenceRepositoryInterface, activityLogSvc services.ActivityLogServiceInterface, currencySvc CurrencyServiceInterface) SystemPreferenceServiceInterface {
+func NewSystemPreferenceService(repo repositories.SystemPreferenceRepositoryInterface, activityLogSvc services.ActivityLogServiceInterface, currencySvc masterServices.CurrencyServiceInterface) SystemPreferenceServiceInterface {
 	return &SystemPreferenceService{
 		repo:           repo,
 		activityLogSvc: activityLogSvc,

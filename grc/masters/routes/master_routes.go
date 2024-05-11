@@ -20,6 +20,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	checklistController := app.MasterModule.ChecklistController
 	checklistQuestionController := app.MasterModule.ChecklistQuestionController
 	actionPlanStatusController := app.MasterModule.AtionPlanStatusController
+	currencyController := app.MasterModule.CurrencyController
+	timezoneController := app.MasterModule.TimezoneController
 
 	masterRoutes.GET("/review-frequencies", reviewFrequencyController.GetAllReviewFrequencies)
 	masterRoutes.GET("/review-frequencies/:id", reviewFrequencyController.GetReviewFrequencyDetails)
@@ -54,4 +56,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	masterRoutes.POST("/question-groups/delete", questionGroupController.DeleteQuestionGroups)
 	masterRoutes.PUT("/question-groups/activate", questionGroupController.ActivateQuestionGroups)
 	masterRoutes.PUT("/question-groups/deactivate", questionGroupController.DeactivateQuestionGroups)
+
+	masterRoutes.GET("/currencies", currencyController.GetAllCurrencies)
+	masterRoutes.GET("/currencies/:id", currencyController.GetCurrencyDetails)
+
+	masterRoutes.GET("/timezones", timezoneController.GetAllTimezones)
+	masterRoutes.GET("/timezones/:id", timezoneController.GetTimezoneDetails)
 }

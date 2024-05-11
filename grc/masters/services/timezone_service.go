@@ -1,8 +1,8 @@
 package services
 
 import (
+	"jethur/grc/masters/repositories"
 	"jethur/grc/models"
-	"jethur/grc/settings/repositories"
 )
 
 type TimezoneServiceInterface interface {

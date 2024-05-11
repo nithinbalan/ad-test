@@ -17,8 +17,8 @@ type App struct {
 
 func NewApp(db *gorm.DB) *App {
 	sharedModule := NewSharedModule(db)
-	settingsModule := NewSettingsModule(db, sharedModule)
 	masterModule := NewMasterModule(db, sharedModule)
+	settingsModule := NewSettingsModule(db, sharedModule, masterModule)
 	libraryModule := NewLibraryModule(db, sharedModule, masterModule)
 	organizationModule := NewOrganizationModule(db, sharedModule, settingsModule, masterModule)
 	authModule := NewAuthModule(db, organizationModule)

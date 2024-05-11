@@ -16,6 +16,8 @@ type MasterModule struct {
 	ChecklistController         *controllers.ChecklistController
 	ChecklistQuestionController *controllers.ChecklistQuestionController
 	AtionPlanStatusController   *controllers.ActionPlanStatusController
+	CurrencyController          *controllers.CurrencyController
+	TimezoneController          *controllers.TimezoneController
 
 	ReviewFrequencySvc   services.ReviewFrequencyServiceInterface
 	SeverityLevelSvc     services.SeverityLevelServiceInterface
@@ -24,6 +26,8 @@ type MasterModule struct {
 	ChecklistSvc         services.ChecklistServiceInterface
 	ChecklistQuestionSvc services.ChecklistQuestionServiceInterface
 	ActionPlanStatusSvc  services.ActionPlanStatusServiceInterface
+	CurrencySvc          services.CurrencyServiceInterface
+	TimezoneSvc          services.TimezoneServiceInterface
 }
 
 func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
@@ -62,6 +66,14 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 	actionPlanStatusSvc := services.NewActionPlanStatusService(actionPlanStatusRepo)
 	actionPlanStatusController := controllers.NewActionPlanStatusController(actionPlanStatusSvc)
 
+	currencyRepo := repositories.NewCurrencyRepository(db)
+	currencySvc := services.NewCurrencyService(currencyRepo)
+	currencyController := controllers.NewCurrencyController(currencySvc)
+
+	timezoneRepo := repositories.NewTimezoneRepository(db)
+	timezoneSvc := services.NewTimezoneService(timezoneRepo)
+	timezoneController := controllers.NewTimezoneController(timezoneSvc)
+
 	return &MasterModule{
 		ReviewFrequencyController:   reviewFrequencyController,
 		SeverityLevelController:     severityLevelController,
@@ -70,6 +82,8 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 		ChecklistController:         checklistController,
 		ChecklistQuestionController: checklistQuestionController,
 		AtionPlanStatusController:   actionPlanStatusController,
+		CurrencyController:          currencyController,
+		TimezoneController:          timezoneController,
 
 		ReviewFrequencySvc:   reviewFrequencySvc,
 		SeverityLevelSvc:     severityLevelSvc,
@@ -78,5 +92,7 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 		ChecklistSvc:         checklistSvc,
 		ChecklistQuestionSvc: checklistQuestionSvc,
 		ActionPlanStatusSvc:  actionPlanStatusSvc,
+		CurrencySvc:          currencySvc,
+		TimezoneSvc:          timezoneSvc,
 	}
 }
