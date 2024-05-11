@@ -10,6 +10,7 @@ import (
 	organizationRoutes "jethur/grc/organization/routes"
 	riskRoutes "jethur/grc/risk/routes"
 	settingRoutes "jethur/grc/settings/routes"
+	"jethur/initializers"
 	"jethur/middlewares"
 	"jethur/utility"
 	"time"
@@ -34,19 +35,21 @@ func main() {
 
 	db := config.GetDatabaseInstance() // Obtain the database instance
 
+	app := initializers.NewApp(db)
+
 	r.Use(middlewares.CORSMiddleware())
 	r.Use(middlewares.LocalizerMiddleware(bundle))
 	r.Use(middlewares.RecoveryWithDatabaseLog(db))
 	r.Use(middlewares.ThrottleMiddleware(1, 5))
 
-	masterRoutes.RegisterRoutes(db, r)
-	authRoutes.RegisterRoutes(db, r)
-	complianceRoutes.RegisterRoutes(db, r)
-	organizationRoutes.RegisterRoutes(db, r)
-	settingRoutes.RegisterRoutes(db, r)
+	masterRoutes.RegisterRoutes(app, r)
+	authRoutes.RegisterRoutes(app, r)
+	complianceRoutes.RegisterRoutes(app, r)
+	organizationRoutes.RegisterRoutes(app, r)
+	settingRoutes.RegisterRoutes(app, r)
 	commonRoutes.RegisterRoutes(db, r)
-	riskRoutes.RegisterRoutes(db, r)
-	incidentRoutes.RegisterRoutes(db, r)
+	riskRoutes.RegisterRoutes(app, r)
+	incidentRoutes.RegisterRoutes(app, r)
 
 	if err := r.Run(":" + port); err != nil {
 		utility.LogFatal("Failed to run server", map[string]interface{}{

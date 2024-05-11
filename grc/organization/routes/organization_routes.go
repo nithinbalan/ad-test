@@ -1,111 +1,31 @@
 package routes
 
 import (
-	logRepositories "jethur/grc/logs/repositories"
-	logServices "jethur/grc/logs/services"
-	masterRepositories "jethur/grc/masters/repositories"
-	masterServices "jethur/grc/masters/services"
-	"jethur/grc/organization/controllers"
-	organizationRepositories "jethur/grc/organization/repositories"
-	organizationServices "jethur/grc/organization/services"
-	settingRepositories "jethur/grc/settings/repositories"
-	settingServices "jethur/grc/settings/services"
+	"jethur/initializers"
 	"jethur/middlewares"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
-func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
+func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	organizationRoutes := router.Group("/")
 
 	organizationRoutes.Use(middlewares.AuthMiddleware())
 
-	activityLogRepo := logRepositories.NewActivityLogRepository(db)
-	activityLogSvc := logServices.NewActivityLogService(activityLogRepo)
-
-	currencyRepo := settingRepositories.NewCurrencyRepository(db)
-	currencySvc := settingServices.NewCurrencyService(currencyRepo)
-
-	systemPreferenceRepo := settingRepositories.NewSystemPreferenceRepository(db)
-	systemPreferenceSvc := settingServices.NewSystemPreferenceService(systemPreferenceRepo, activityLogSvc, currencySvc)
-
-	reviewFrequiencyRepo := masterRepositories.NewReviewFrequencyRepository(db)
-	reviewFrequiencySvc := masterServices.NewReviewFrequencyService(reviewFrequiencyRepo)
-
-	lifecycleStatusRepo := masterRepositories.NewLifecycleStatusRepository(db)
-	lifecycleStatusSvc := masterServices.NewLifecycleStatusService(lifecycleStatusRepo)
-
-	roleRepo := settingRepositories.NewRoleRepository(db)
-	roleSvc := settingServices.NewRoleService(roleRepo, activityLogSvc)
-
-	designationRepo := organizationRepositories.NewDesignationRepository(db)
-	designationSvc := organizationServices.NewDesignationService(designationRepo, activityLogSvc)
-	designationController := controllers.NewDesignationController(designationSvc)
-
-	userStatusRepo := organizationRepositories.NewUserStatusRepository(db)
-	userStatusSvc := organizationServices.NewUserStatusService(userStatusRepo)
-	userStatusController := controllers.NewUserStatusController(userStatusSvc)
-
-	userRepo := organizationRepositories.NewUserRepository(db)
-	userSvc := organizationServices.NewUserService(userRepo, designationSvc, userStatusSvc, activityLogSvc, roleSvc, systemPreferenceSvc)
-	userSettingRepo := organizationRepositories.NewUserSettingRepository(db)
-	userSettingSvc := organizationServices.NewUserSettingService(userSettingRepo, activityLogSvc)
-	userSvc.SetUserSettingService(userSettingSvc)
-	userSettingSvc.SetUserService(userSvc)
-	userController := controllers.NewUserController(userSvc)
-	userSettingController := controllers.NewUserSettingController(userSettingSvc)
-
-	strategicProfileRepo := organizationRepositories.NewStrategicProfileRepository(db)
-	strategicProfileSvc := organizationServices.NewStrategicProfileService(strategicProfileRepo)
-	strategicProfileController := controllers.NewStrategicProfileController(strategicProfileSvc)
-
-	strategicObjectiveRepo := organizationRepositories.NewStrategicObjectiveRepository(db)
-	strategicObjectiveSvc := organizationServices.NewStrategicObjectiveService(strategicObjectiveRepo, activityLogSvc)
-	strategicObjectiveController := controllers.NewStrategicObjectiveController(strategicObjectiveSvc)
-
-	controlCategoryRepo := organizationRepositories.NewControlCategoryRepository(db)
-	controlCategorySvc := organizationServices.NewControlCategoryService(controlCategoryRepo, activityLogSvc)
-	controlCategoryController := controllers.NewControlCategoryController(controlCategorySvc)
-
-	controlTypeRepo := organizationRepositories.NewControlTypeRepository(db)
-	controlTypeSvc := organizationServices.NewControlTypeService(controlTypeRepo)
-	controlTypeController := controllers.NewControlTypeController(controlTypeSvc)
-
-	controlImplementationStatusRepo := organizationRepositories.NewControlImplementationStatusRepository(db)
-	controlImplementationStatusSvc := organizationServices.NewControlImplementationStatusService(controlImplementationStatusRepo)
-	controlImplementationStatusController := controllers.NewControlImplementationStatusController(controlImplementationStatusSvc)
-
-	controlEfficiencyStatusRepo := organizationRepositories.NewControlEfficiencyStatusRepository(db)
-	controlEfficiencyStatusSvc := organizationServices.NewControlEfficiencyStatusService(controlEfficiencyStatusRepo)
-	controlEfficiencyStatusController := controllers.NewControlEfficiencyStatusController(controlEfficiencyStatusSvc)
-
-	controlRepo := organizationRepositories.NewControlRepository(db)
-	controlSvc := organizationServices.NewControlService(
-		controlRepo,
-		activityLogSvc,
-		controlTypeSvc,
-		controlCategorySvc,
-		controlImplementationStatusSvc,
-		controlEfficiencyStatusSvc,
-		userSvc,
-		reviewFrequiencySvc,
-		lifecycleStatusSvc)
-	controlController := controllers.NewControlController(controlSvc)
-
-	controlTestRepo := organizationRepositories.NewControlTestRepository(db)
-	controlTestSvc := organizationServices.NewControlTestService(
-		controlTestRepo,
-		activityLogSvc,
-		controlSvc,
-		controlImplementationStatusSvc,
-		controlEfficiencyStatusSvc)
-	controlTestController := controllers.NewControlTestController(controlTestSvc)
-
-	processGroupRepo := organizationRepositories.NewProcessGroupRepository(db)
-	processGroupSvc := organizationServices.NewProcessGroupService(processGroupRepo, activityLogSvc)
-	processGroupController := controllers.NewProcessGroupController(processGroupSvc)
+	designationController := app.OrganizationModule.DesignationController
+	userStatusController := app.OrganizationModule.UserStatusController
+	userController := app.OrganizationModule.UserController
+	userSettingController := app.OrganizationModule.UserSettingController
+	strategicProfileController := app.OrganizationModule.StrategicProfileController
+	strategicObjectiveController := app.OrganizationModule.StrategicObjectiveController
+	controlCategoryController := app.OrganizationModule.ControlCategoryController
+	controlTypeController := app.OrganizationModule.ControlTypeController
+	controlImplementationStatusController := app.OrganizationModule.ControlImplementationStatusController
+	controlEfficiencyStatusController := app.OrganizationModule.ControlEfficiencyStatusController
+	controlController := app.OrganizationModule.ControlController
+	controlTestController := app.OrganizationModule.ControlTestController
+	processGroupController := app.OrganizationModule.ProcessGroupController
 
 	//Designation
 	organizationRoutes.GET("/designations", designationController.GetAllDesignations)

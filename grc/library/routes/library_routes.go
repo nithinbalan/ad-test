@@ -1,45 +1,20 @@
 package routes
 
 import (
-	"jethur/grc/library/controllers"
-	"jethur/grc/library/repositories"
-	"jethur/grc/library/services"
-	logRepositories "jethur/grc/logs/repositories"
-	logServices "jethur/grc/logs/services"
-	masterRepositories "jethur/grc/masters/repositories"
-	masterServices "jethur/grc/masters/services"
-	riskRepositories "jethur/grc/risk/repositories"
-	riskServices "jethur/grc/risk/services"
+	"jethur/initializers"
 	"jethur/middlewares"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
-func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
+func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	masterRoutes := router.Group("/")
 
 	masterRoutes.Use(middlewares.AuthMiddleware())
 
-	activityLogRepo := logRepositories.NewActivityLogRepository(db)
-	activityLogSvc := logServices.NewActivityLogService(activityLogRepo)
-
-	reviewFrequencyRepo := masterRepositories.NewReviewFrequencyRepository(db)
-	reviewFrequencySvc := masterServices.NewReviewFrequencyService(reviewFrequencyRepo)
-
-	KRICategoryRepository := riskRepositories.NewKRICategoryRepository(db)
-	KRICategoryService := riskServices.NewKRICategoryService(KRICategoryRepository, activityLogSvc)
-
-	//Question Library
-	questionLibraryRepository := repositories.NewQuestionLibraryRepository(db)
-	questionLibraryService := services.NewQuestionLibraryService(questionLibraryRepository, activityLogSvc)
-	questionLibraryController := controllers.NewQuestionLibraryController(questionLibraryService)
-
-	//KRI Library
-	KRILibraryRepository := repositories.NewKRILibraryRepository(db)
-	KRILibraryService := services.NewKRILibraryService(KRILibraryRepository, KRICategoryService, reviewFrequencySvc, activityLogSvc)
-	KRILibraryController := controllers.NewKRILibraryController(KRILibraryService)
+	questionLibraryController := app.LibraryModule.QuestionLibraryController
+	KRILibraryController := app.LibraryModule.KriLibraryController
 
 	masterRoutes.GET("/question-library", questionLibraryController.GetAllQuestionLibrary)
 	masterRoutes.POST("/question-library", questionLibraryController.CreateQuestionLibrary)
