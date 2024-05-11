@@ -6,6 +6,7 @@ import (
 	commonRoutes "jethur/grc/common/routes"
 	complianceRoutes "jethur/grc/compliance/routes"
 	incidentRoutes "jethur/grc/incident/routes"
+	libraryRoutes "jethur/grc/library/routes"
 	masterRoutes "jethur/grc/masters/routes"
 	organizationRoutes "jethur/grc/organization/routes"
 	riskRoutes "jethur/grc/risk/routes"
@@ -47,6 +48,7 @@ func main() {
 	complianceRoutes.RegisterRoutes(app, r)
 	organizationRoutes.RegisterRoutes(app, r)
 	settingRoutes.RegisterRoutes(app, r)
+	libraryRoutes.RegisterRoutes(app, r)
 	commonRoutes.RegisterRoutes(db, r)
 	riskRoutes.RegisterRoutes(app, r)
 	incidentRoutes.RegisterRoutes(app, r)
