@@ -22,7 +22,7 @@ type IncidentActionPlanServiceInterface interface {
 	Create(incidentID uint, currentUserID uint, IncidentActionPlanFormDTO *incidentDTOs.IncidentActionPlanFormDTO) (uint, error)
 	Update(incidentID uint, id uint, currentUserID uint, incident *incidentDTOs.IncidentActionPlanFormDTO) error
 	Delete(incidentID uint, ids []uint, currentUserID uint) ([]uint, error)
-	StatusUpdate(incidentID uint, id uint, currentUserID uint, ActionPlanStatusID uint) error
+	StatusUpdate(incidentID uint, id uint, currentUserID uint, ActionPlanStatusID uint, tx utility.DatabaseTransaction) error
 }
 
 // Service and implementations
@@ -157,6 +157,8 @@ func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uin
 }
 
 func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentUserID uint, IncidentActionPlanFormDTO *incidentDTOs.IncidentActionPlanFormDTO) error {
+	tx := iaps.repo.BeginTransaction()
+
 	if _, err := iaps.incidentRegisterSvc.GetByID(incidentID); err != nil {
 		return err
 	}
@@ -187,7 +189,7 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 	existingIncidentActionPlan.ActionPlanStatusID = IncidentActionPlanFormDTO.ActionPlanStatusID
 	existingIncidentActionPlan.UpdatedBy = &currentUserID
 
-	err = iaps.repo.Update(existingIncidentActionPlan)
+	err = iaps.repo.Update(existingIncidentActionPlan, tx)
 
 	if err != nil {
 		return err
@@ -240,7 +242,8 @@ func (iaps *IncidentActionPlanService) Delete(incidentID uint, ids []uint, curre
 	return failedIds, nil
 }
 
-func (iaps *IncidentActionPlanService) StatusUpdate(incidentID uint, id uint, currentUserID uint, ActionPlanStatusID uint) error {
+func (iaps *IncidentActionPlanService) StatusUpdate(incidentID uint, id uint, currentUserID uint, ActionPlanStatusID uint, tx utility.DatabaseTransaction) error {
+
 	existingIncidentActionPlan, err := iaps.GetByID(incidentID, id)
 
 	if err != nil {
@@ -250,7 +253,7 @@ func (iaps *IncidentActionPlanService) StatusUpdate(incidentID uint, id uint, cu
 	existingIncidentActionPlan.ActionPlanStatusID = ActionPlanStatusID
 	existingIncidentActionPlan.UpdatedBy = &currentUserID
 
-	err = iaps.repo.Update(existingIncidentActionPlan)
+	err = iaps.repo.Update(existingIncidentActionPlan, tx)
 
 	if err != nil {
 		return err

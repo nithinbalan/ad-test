@@ -4,17 +4,19 @@ import (
 	commonDTOs "jethur/grc/common/dtos"
 	incidentDTOs "jethur/grc/incident/dtos"
 	"jethur/grc/models"
+	"jethur/utility"
 	"time"
 
 	"gorm.io/gorm"
 )
 
 type IncidentActionPlanRepositoryInterface interface {
+	BeginTransaction() utility.DatabaseTransaction
 	GetAll(incidentID uint, params *incidentDTOs.IncidentActionPlanListQueryParamsDTO) (*incidentDTOs.IncidentActionPlanListResponseDTO, error)
 	GetByID(id uint) (*models.IncidentActionPlan, error)
 	GetFullDetailsByID(id uint) (*models.IncidentActionPlan, error)
 	Create(incidentActionPlan *models.IncidentActionPlan) (uint, error)
-	Update(incidentActionPlan *models.IncidentActionPlan) error
+	Update(incidentActionPlan *models.IncidentActionPlan, tx ...utility.DatabaseTransaction) error
 	Delete(id uint) error
 }
 
@@ -26,6 +28,11 @@ func NewIncidentActionPlanRepository(db *gorm.DB) *IncidentActionPlanRepository 
 	return &IncidentActionPlanRepository{
 		db: db,
 	}
+}
+
+// BeginTransaction starts a new transaction.
+func (repo *IncidentActionPlanRepository) BeginTransaction() utility.DatabaseTransaction {
+	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
 func (repo *IncidentActionPlanRepository) GetAll(incidentID uint, params *incidentDTOs.IncidentActionPlanListQueryParamsDTO) (*incidentDTOs.IncidentActionPlanListResponseDTO, error) {
@@ -178,8 +185,12 @@ func (repo *IncidentActionPlanRepository) Create(incidentActionPlan *models.Inci
 	return incidentActionPlan.ID, nil
 }
 
-func (repo *IncidentActionPlanRepository) Update(incidentActionPlan *models.IncidentActionPlan) error {
-	if err := repo.db.Save(incidentActionPlan).Error; err != nil {
+func (repo *IncidentActionPlanRepository) Update(incidentActionPlan *models.IncidentActionPlan, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(incidentActionPlan).Error; err != nil {
 		return err
 	}
 	return nil

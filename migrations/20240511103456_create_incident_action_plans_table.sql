@@ -12,7 +12,7 @@ CREATE TABLE incident_action_plans
     percentage INT NOT NULL DEFAULT 0,
     comments NVARCHAR(MAX) NULL,
     action_plan_status_id INT NOT NULL,
-    created_at DATETIME NOT NULL ,
+    created_at DATETIME NOT NULL,
     updated_at DATETIME NULL,
     created_by INT NOT NULL,
     updated_by INT NULL,
