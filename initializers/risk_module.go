@@ -9,25 +9,26 @@ import (
 )
 
 type RiskModule struct {
-	RiskCategoryController              *controllers.RiskCategoryController
-	PotentialRiskStatusController       *controllers.PotentialRiskStatusController
-	RiskLevelController                 *controllers.RiskLevelController
-	PotentialRiskController             *controllers.PotentialRiskController
-	PotentialRiskStatusUpdateController *controllers.PotentialRiskStatusUpdateController
-	KriCategoryController               *controllers.KRICategoryController
-	KriRegisterController               *controllers.KRIRegisterController
-	KriValueUpdateController            *controllers.KRIValueUpdateController
-	RiskAppetiteStatementController     *controllers.RiskAppetiteStatementController
-	RiskImpactCategoryController        *controllers.RiskImpactCategoryController
-	RiskMatrixImpactController          *controllers.RiskMatrixImpactController
-	RiskMatrixImpactGuidelineController *controllers.RiskMatrixImpactGuidelineController
-	RiskMatrixLikelihoodController      *controllers.RiskMatrixLikelihoodController
-	RiskMatrixRiskRatingController      *controllers.RiskMatrixRiskRatingController
-	RiskMatrixRiskRatingValueController *controllers.RiskMatrixRiskRatingValueController
-	RiskSourceController                *controllers.RiskSourceController
-	RiskStatusController                *controllers.RiskStatusController
-	RiskRegisterController              *controllers.RiskRegisterController
-	RiskRootCauseAnalysisController     *controllers.RiskRootCauseAnalysisController
+	RiskCategoryController               *controllers.RiskCategoryController
+	PotentialRiskStatusController        *controllers.PotentialRiskStatusController
+	RiskLevelController                  *controllers.RiskLevelController
+	PotentialRiskController              *controllers.PotentialRiskController
+	PotentialRiskStatusUpdateController  *controllers.PotentialRiskStatusUpdateController
+	KriCategoryController                *controllers.KRICategoryController
+	KriRegisterController                *controllers.KRIRegisterController
+	KriValueUpdateController             *controllers.KRIValueUpdateController
+	RiskAppetiteStatementController      *controllers.RiskAppetiteStatementController
+	RiskImpactCategoryController         *controllers.RiskImpactCategoryController
+	RiskMatrixImpactController           *controllers.RiskMatrixImpactController
+	RiskMatrixImpactGuidelineController  *controllers.RiskMatrixImpactGuidelineController
+	RiskMatrixLikelihoodController       *controllers.RiskMatrixLikelihoodController
+	RiskMatrixRiskRatingController       *controllers.RiskMatrixRiskRatingController
+	RiskMatrixRiskRatingValueController  *controllers.RiskMatrixRiskRatingValueController
+	RiskSourceController                 *controllers.RiskSourceController
+	RiskStatusController                 *controllers.RiskStatusController
+	RiskRegisterController               *controllers.RiskRegisterController
+	RiskRootCauseAnalysisController      *controllers.RiskRootCauseAnalysisController
+	RiskAppetiteToleranceLevelController *controllers.RiskAppetiteToleranceLevelController
 }
 
 func NewRiskModule(db *gorm.DB,
@@ -169,26 +170,31 @@ func NewRiskModule(db *gorm.DB,
 	riskRootCauseAnalysisSvc := services.NewRiskRootCauseAnalysisService(riskRootCauseAnalysisRepo, sharedModule.ActivityLogService, riskRegisterSvc)
 	riskRootCauseAnalysisController := controllers.NewRiskRootCauseAnalysisController(riskRootCauseAnalysisSvc)
 
+	riskAppetiteToleranceLevelRepo := repositories.NewRiskAppetiteToleranceLevelRepository(db)
+	riskAppetiteToleranceLevelSvc := services.NewRiskAppetiteToleranceLevelService(riskAppetiteToleranceLevelRepo)
+	riskAppetiteToleranceLevelController := controllers.NewRiskAppetiteToleranceLevelController(riskAppetiteToleranceLevelSvc)
+
 	return &RiskModule{
-		RiskCategoryController:              riskCategoryController,
-		PotentialRiskStatusController:       potentialRiskStatusController,
-		RiskLevelController:                 riskLevelController,
-		PotentialRiskController:             potentialRiskController,
-		PotentialRiskStatusUpdateController: potentialRiskStatusUpdateController,
-		KriCategoryController:               kriCategoryController,
-		KriRegisterController:               kriRegisterController,
-		KriValueUpdateController:            kriValueUpdateController,
-		RiskAppetiteStatementController:     riskAppetiteStatementController,
-		RiskImpactCategoryController:        riskImpactCategoryController,
-		RiskMatrixImpactController:          riskMatrixImpactController,
-		RiskMatrixImpactGuidelineController: riskMatrixImpactGuidelineController,
-		RiskMatrixLikelihoodController:      riskMatrixLikelihoodController,
-		RiskMatrixRiskRatingController:      riskMatrixRiskRatingController,
-		RiskMatrixRiskRatingValueController: riskMatrixRiskRatingValueController,
-		RiskSourceController:                riskSourceController,
-		RiskStatusController:                riskStatusController,
-		RiskRegisterController:              riskRegisterController,
-		RiskRootCauseAnalysisController:     riskRootCauseAnalysisController,
+		RiskCategoryController:               riskCategoryController,
+		PotentialRiskStatusController:        potentialRiskStatusController,
+		RiskLevelController:                  riskLevelController,
+		PotentialRiskController:              potentialRiskController,
+		PotentialRiskStatusUpdateController:  potentialRiskStatusUpdateController,
+		KriCategoryController:                kriCategoryController,
+		KriRegisterController:                kriRegisterController,
+		KriValueUpdateController:             kriValueUpdateController,
+		RiskAppetiteStatementController:      riskAppetiteStatementController,
+		RiskImpactCategoryController:         riskImpactCategoryController,
+		RiskMatrixImpactController:           riskMatrixImpactController,
+		RiskMatrixImpactGuidelineController:  riskMatrixImpactGuidelineController,
+		RiskMatrixLikelihoodController:       riskMatrixLikelihoodController,
+		RiskMatrixRiskRatingController:       riskMatrixRiskRatingController,
+		RiskMatrixRiskRatingValueController:  riskMatrixRiskRatingValueController,
+		RiskSourceController:                 riskSourceController,
+		RiskStatusController:                 riskStatusController,
+		RiskRegisterController:               riskRegisterController,
+		RiskRootCauseAnalysisController:      riskRootCauseAnalysisController,
+		RiskAppetiteToleranceLevelController: riskAppetiteToleranceLevelController,
 	}
 
 }
