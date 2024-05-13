@@ -32,6 +32,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskStatusController := app.RiskModule.RiskStatusController
 	riskRegisterController := app.RiskModule.RiskRegisterController
 	riskRootCauseAnalysisController := app.RiskModule.RiskRootCauseAnalysisController
+	riskAppetiteToleranceLevelController := app.RiskModule.RiskAppetiteToleranceLevelController
 
 	riskRoutes.GET("/risk-categories", riskCategoryController.GetAllRiskCategories)
 	riskRoutes.GET("/risk-categories/:id", riskCategoryController.GetRiskCategoryDetails)
@@ -148,5 +149,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.POST("risks/:riskId/root-cause-analysis", riskRootCauseAnalysisController.CreateRiskRootCauseAnalysis)
 	riskRoutes.PUT("risks/:riskId/root-cause-analysis/:id", riskRootCauseAnalysisController.UpdateRiskRootCauseAnalysis)
 	riskRoutes.DELETE("risks/:riskId/root-cause-analysis/:id", riskRootCauseAnalysisController.DeleteRiskRootCauseAnalyses)
+
+	riskRoutes.GET("/risk-appetite-tolerance-levels", riskAppetiteToleranceLevelController.GetAllRiskAppetiteToleranceLevels)
+	riskRoutes.GET("/risk-appetite-tolerance-levels/:id", riskAppetiteToleranceLevelController.GetRiskAppetiteToleranceLevelDetails)
 
 }
