@@ -20,6 +20,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	incidentRegisterController := app.IncidentModule.IncidentRegisterController
 	incidentInvestigationStatusController := app.IncidentModule.IncidentInvestigationStatusController
 	incidentInvestigationController := app.IncidentModule.IncidentInvestigationController
+	incidentActionPlanController := app.IncidentModule.IncidentActionPlanController
+	incidentActionPlanStatusUpdateController := app.IncidentModule.IncidentActionPlanStatusUpdateController
 
 	//Incident Category
 	incidentRoutes.GET("/incident-categories", incidentCategoryController.GetAllIncidentCategories)
@@ -69,5 +71,17 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	incidentRoutes.POST("/incident/:incidentId/investigations", incidentInvestigationController.CreateIncidentInvestigation)
 	incidentRoutes.PUT("/incident/:incidentId/investigations/:id", incidentInvestigationController.UpdateIncidentInvestigation)
 	incidentRoutes.POST("/incident/:incidentId/investigations/delete", incidentInvestigationController.DeleteIncidentInvestigations)
+	
+	//Incident Action Plan
+	incidentRoutes.GET("/incident/:incidentId/action-plans", incidentActionPlanController.GetAllIncidentActionPlans)
+	incidentRoutes.GET("/incident/:incidentId/action-plans/:actionPlanId", incidentActionPlanController.GetIncidentActionPlanDetails)
+	incidentRoutes.POST("/incident/:incidentId/action-plans", incidentActionPlanController.CreateIncidentActionPlan)
+	incidentRoutes.PUT("/incident/:incidentId/action-plans/:actionPlanId", incidentActionPlanController.UpdateIncidentActionPlan)
+	incidentRoutes.POST("/incident/:incidentId/action-plans/delete", incidentActionPlanController.DeleteIncidentActionPlans)
+
+	//Incident Action Plan Status Updates
+	incidentRoutes.GET("/incident/:incidentId/action-plans/:actionPlanId/status-updates", incidentActionPlanStatusUpdateController.GetAllIncidentActionPlanStatusUpdates)
+	incidentRoutes.POST("/incident/:incidentId/action-plans/:actionPlanId/status-updates", incidentActionPlanStatusUpdateController.CreateIncidentActionPlanStatusUpdate)
+	incidentRoutes.PUT("/incident/:incidentId/action-plans/:actionPlanId/status-updates/:id", incidentActionPlanStatusUpdateController.UpdateIncidentActionPlanStatusUpdate)
 
 }

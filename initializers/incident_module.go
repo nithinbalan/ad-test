@@ -9,13 +9,15 @@ import (
 )
 
 type IncidentModule struct {
-	IncidentCategoryController            *controllers.IncidentCategoryController
-	IncidentSubCategoryController         *controllers.IncidentSubCategoryController
-	IncidentTypeController                *controllers.IncidentTypeController
-	IncidentStatusController              *controllers.IncidentStatusController
-	IncidentRegisterController            *controllers.IncidentRegisterController
-	IncidentInvestigationStatusController *controllers.IncidentInvestigationStatusController
-	IncidentInvestigationController       *controllers.IncidentInvestigationController
+	IncidentCategoryController               *controllers.IncidentCategoryController
+	IncidentSubCategoryController            *controllers.IncidentSubCategoryController
+	IncidentTypeController                   *controllers.IncidentTypeController
+	IncidentStatusController                 *controllers.IncidentStatusController
+	IncidentRegisterController               *controllers.IncidentRegisterController
+	IncidentInvestigationStatusController    *controllers.IncidentInvestigationStatusController
+	IncidentInvestigationController          *controllers.IncidentInvestigationController
+	IncidentActionPlanController             *controllers.IncidentActionPlanController
+	IncidentActionPlanStatusUpdateController *controllers.IncidentActionPlanStatusUpdateController
 }
 
 func NewIncidentModule(db *gorm.DB,
@@ -67,13 +69,29 @@ func NewIncidentModule(db *gorm.DB,
 	)
 	incidentInvestigationController := controllers.NewIncidentInvestigationController(incidentInvestigationSvc)
 
+	incidentActionPlanRepo := repositories.NewIncidentActionPlanRepository(db)
+	incidentActionPlanSvc := services.NewIncidentActionPlanService(
+		incidentActionPlanRepo,
+		sharedModule.ActivityLogService,
+		incidentRegisterSvc,
+		masterModule.ActionPlanStatusSvc,
+		masterModule.SeverityLevelSvc,
+	)
+	incidentActionPlanController := controllers.NewIncidentActionPlanController(incidentActionPlanSvc)
+
+	incidentActionPlanStatusUpdateRepo := repositories.NewIncidentActionPlanStatusUpdateRepository(db)
+	incidentActionPlanStatusUpdateSvc := services.NewIncidentActionPlanStatusUpdateService(incidentActionPlanStatusUpdateRepo, sharedModule.ActivityLogService, incidentActionPlanSvc, masterModule.ActionPlanStatusSvc)
+	incidentActionPlanStatusUpdateController := controllers.NewIncidentActionPlanStatusUpdateController(incidentActionPlanStatusUpdateSvc)
+
 	return &IncidentModule{
-		IncidentCategoryController:            incidentCategoryController,
-		IncidentSubCategoryController:         incidentSubCategoryController,
-		IncidentTypeController:                incidentTypeController,
-		IncidentStatusController:              incidentStatusController,
-		IncidentRegisterController:            incidentRegisterController,
-		IncidentInvestigationStatusController: incidentInvestigationStatusController,
-		IncidentInvestigationController:       incidentInvestigationController,
+		IncidentCategoryController:               incidentCategoryController,
+		IncidentSubCategoryController:            incidentSubCategoryController,
+		IncidentTypeController:                   incidentTypeController,
+		IncidentStatusController:                 incidentStatusController,
+		IncidentRegisterController:               incidentRegisterController,
+		IncidentInvestigationStatusController:    incidentInvestigationStatusController,
+		IncidentInvestigationController:          incidentInvestigationController,
+		IncidentActionPlanController:             incidentActionPlanController,
+		IncidentActionPlanStatusUpdateController: incidentActionPlanStatusUpdateController,
 	}
 }
