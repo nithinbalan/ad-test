@@ -1,0 +1,288 @@
+package services
+
+import (
+	"errors"
+	"fmt"
+	incidentDTOs "jethur/grc/incident/dtos"
+	incidentRepositories "jethur/grc/incident/repositories"
+	logServices "jethur/grc/logs/services"
+	masterRepositories "jethur/grc/masters/repositories"
+	masterServices "jethur/grc/masters/services"
+	"jethur/grc/models"
+	"jethur/utility"
+
+	"github.com/mitchellh/mapstructure"
+	"gorm.io/gorm"
+)
+
+type IncidentActionPlanServiceInterface interface {
+	GetAll(incidentID uint, params *incidentDTOs.IncidentActionPlanListQueryParamsDTO) (*incidentDTOs.IncidentActionPlanListResponseDTO, error)
+	GetByID(incidentID uint, id uint) (*models.IncidentActionPlan, error)
+	GetFullDetailsByID(incidentID uint, id uint) (*incidentDTOs.IncidentActionPlanDetailDTO, error)
+	Create(incidentID uint, currentUserID uint, IncidentActionPlanFormDTO *incidentDTOs.IncidentActionPlanFormDTO) (uint, error)
+	Update(incidentID uint, id uint, currentUserID uint, incident *incidentDTOs.IncidentActionPlanFormDTO) error
+	Delete(incidentID uint, ids []uint, currentUserID uint) ([]uint, error)
+	StatusUpdate(incidentID uint, id uint, currentUserID uint, ActionPlanStatusID uint) error
+}
+
+// Service and implementations
+type IncidentActionPlanService struct {
+	repo                incidentRepositories.IncidentActionPlanRepositoryInterface
+	activityLogSvc      logServices.ActivityLogServiceInterface
+	incidentRegisterSvc IncidentRegisterServiceInterface
+	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface
+	severityLevelSvc    masterServices.SeverityLevelServiceInterface
+}
+
+func NewIncidentActionPlanService(
+	repo incidentRepositories.IncidentActionPlanRepositoryInterface,
+	activityLogSvc logServices.ActivityLogServiceInterface,
+	incidentRegisterSvc IncidentRegisterServiceInterface,
+	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
+	severityLevelSvc masterRepositories.SeverityLevelRepositoryInterface) IncidentActionPlanServiceInterface {
+	return &IncidentActionPlanService{
+		repo:                repo,
+		activityLogSvc:      activityLogSvc,
+		incidentRegisterSvc: incidentRegisterSvc,
+		actionPlanStatusSvc: actionPlanStatusSvc,
+		severityLevelSvc:    severityLevelSvc,
+	}
+}
+
+func (iaps *IncidentActionPlanService) GetAll(incidentID uint, params *incidentDTOs.IncidentActionPlanListQueryParamsDTO) (*incidentDTOs.IncidentActionPlanListResponseDTO, error) {
+	if _, err := iaps.incidentRegisterSvc.GetByID(incidentID); err != nil {
+		return nil, err
+	}
+	return iaps.repo.GetAll(incidentID, params)
+}
+
+func (iaps IncidentActionPlanService) GetByID(incidentID uint, id uint) (*models.IncidentActionPlan, error) {
+	if _, err := iaps.incidentRegisterSvc.GetByID(incidentID); err != nil {
+		return nil, err
+	}
+
+	incidentActionPlan, err := iaps.repo.GetByID(id)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+	return incidentActionPlan, nil
+}
+
+func (iaps IncidentActionPlanService) GetFullDetailsByID(incidentID uint, id uint) (*incidentDTOs.IncidentActionPlanDetailDTO, error) {
+	var incidentActionPlanDTO incidentDTOs.IncidentActionPlanDetailDTO
+
+	if _, err := iaps.incidentRegisterSvc.GetByID(incidentID); err != nil {
+		return nil, err
+	}
+
+	incidentActionPlan, err := iaps.repo.GetFullDetailsByID(id)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+
+	err = mapstructure.Decode(incidentActionPlan, &incidentActionPlanDTO)
+	if err != nil {
+		return nil, err
+	}
+
+	//todo :- also add extra fields which required in details screen
+
+	return &incidentActionPlanDTO, nil
+}
+
+func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uint, IncidentActionPlanFormDTO *incidentDTOs.IncidentActionPlanFormDTO) (uint, error) {
+	if _, err := iaps.incidentRegisterSvc.GetByID(incidentID); err != nil {
+		return 0, err
+	}
+
+	if err := iaps.validateIncidentActionPlanFormDTO(incidentID, IncidentActionPlanFormDTO); err != nil {
+		return 0, err
+	}
+
+	dates, err := iaps.parseIncidentActionPlanDates(IncidentActionPlanFormDTO)
+	if err != nil {
+		return 0, err
+	}
+
+	incidentActionPlan := &models.IncidentActionPlan{
+		IncidentRegisterID: incidentID,
+		Title:              IncidentActionPlanFormDTO.Title,
+		Description:        IncidentActionPlanFormDTO.Description,
+		SeverityLevelID:    IncidentActionPlanFormDTO.SeverityLevelID,
+		ResponsibleUserID:  IncidentActionPlanFormDTO.ResponsibleUserID,
+		TargetDate:         dates.TargetDate,
+		Percentage:         IncidentActionPlanFormDTO.Percentage,
+		Comments:           IncidentActionPlanFormDTO.Comments,
+		ActionPlanStatusID: IncidentActionPlanFormDTO.ActionPlanStatusID,
+		CreatedBy:          currentUserID,
+	}
+
+	id, err := iaps.repo.Create(incidentActionPlan)
+	if err != nil {
+		return 0, err
+	}
+
+	go func() {
+		err := iaps.activityLogSvc.LogActivity(
+			models.CreateAction,
+			models.IncidentActionPlan{}.TableName(),
+			id,
+			IncidentActionPlanFormDTO,
+			currentUserID,
+			nil,
+		)
+
+		if err != nil {
+			fields := map[string]interface{}{
+				"action":    models.CreateAction,
+				"tableName": models.IncidentActionPlan{}.TableName(),
+				"recordID":  id,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			}
+
+			utility.LogError("Failed to log activity", fields)
+		}
+	}()
+
+	return id, nil
+}
+
+func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentUserID uint, IncidentActionPlanFormDTO *incidentDTOs.IncidentActionPlanFormDTO) error {
+	if _, err := iaps.incidentRegisterSvc.GetByID(incidentID); err != nil {
+		return err
+	}
+
+	existingIncidentActionPlan, err := iaps.GetByID(incidentID, id)
+
+	if err != nil {
+		return err
+	}
+
+	if err := iaps.validateIncidentActionPlanFormDTO(incidentID, IncidentActionPlanFormDTO); err != nil {
+		return err
+	}
+
+	dates, err := iaps.parseIncidentActionPlanDates(IncidentActionPlanFormDTO)
+	if err != nil {
+		return err
+	}
+
+	// Update Incident ActionPlan
+	existingIncidentActionPlan.Title = IncidentActionPlanFormDTO.Title
+	existingIncidentActionPlan.Description = IncidentActionPlanFormDTO.Description
+	existingIncidentActionPlan.SeverityLevelID = IncidentActionPlanFormDTO.SeverityLevelID
+	existingIncidentActionPlan.ResponsibleUserID = IncidentActionPlanFormDTO.ResponsibleUserID
+	existingIncidentActionPlan.TargetDate = dates.TargetDate
+	existingIncidentActionPlan.Percentage = IncidentActionPlanFormDTO.Percentage
+	existingIncidentActionPlan.Comments = IncidentActionPlanFormDTO.Comments
+	existingIncidentActionPlan.ActionPlanStatusID = IncidentActionPlanFormDTO.ActionPlanStatusID
+	existingIncidentActionPlan.UpdatedBy = &currentUserID
+
+	err = iaps.repo.Update(existingIncidentActionPlan)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (iaps *IncidentActionPlanService) Delete(incidentID uint, ids []uint, currentUserID uint) ([]uint, error) {
+	if _, err := iaps.incidentRegisterSvc.GetByID(incidentID); err != nil {
+		return nil, err
+	}
+
+	var failedIds []uint
+	var successfulIds []uint
+	for _, id := range ids {
+
+		_, err := iaps.repo.GetByID(id)
+
+		if err != nil {
+			continue
+		}
+
+		err = iaps.repo.Delete(id)
+		if err != nil {
+			failedIds = append(failedIds, id)
+		} else {
+			successfulIds = append(successfulIds, id)
+		}
+	}
+
+	if len(successfulIds) > 0 {
+
+		go func() {
+			err := iaps.activityLogSvc.LogBulkActivities(
+				models.DeleteAction,
+				models.IncidentRegister{}.TableName(),
+				successfulIds,
+				nil,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				// @todo - save to log file
+				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+			}
+		}()
+	}
+
+	return failedIds, nil
+}
+
+func (iaps *IncidentActionPlanService) StatusUpdate(incidentID uint, id uint, currentUserID uint, ActionPlanStatusID uint) error {
+	existingIncidentActionPlan, err := iaps.GetByID(incidentID, id)
+
+	if err != nil {
+		return err
+	}
+
+	existingIncidentActionPlan.ActionPlanStatusID = ActionPlanStatusID
+	existingIncidentActionPlan.UpdatedBy = &currentUserID
+
+	err = iaps.repo.Update(existingIncidentActionPlan)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (iaps *IncidentActionPlanService) validateIncidentActionPlanFormDTO(incidentID uint, IncidentActionPlanFormDTO *incidentDTOs.IncidentActionPlanFormDTO) error {
+	if IncidentActionPlanFormDTO.SeverityLevelID != nil {
+		if _, err := iaps.severityLevelSvc.GetByID(*IncidentActionPlanFormDTO.SeverityLevelID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
+		}
+	}
+
+	if _, err := iaps.actionPlanStatusSvc.GetByID(IncidentActionPlanFormDTO.ActionPlanStatusID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("action plan status does not exist"), "not_exist", "action plan status")
+	}
+
+	return nil
+}
+
+func (iaps *IncidentActionPlanService) parseIncidentActionPlanDates(dto *incidentDTOs.IncidentActionPlanFormDTO) (*incidentDTOs.IncidentActionPlanParsedDates, error) {
+	parsed := &incidentDTOs.IncidentActionPlanParsedDates{}
+
+	var err error
+	if *dto.TargetDate != "" {
+		parsed.TargetDate, err = utility.ParseDate(*dto.TargetDate)
+		if err != nil {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid target date"), "invalid_date", "target date")
+		}
+	}
+
+	return parsed, nil
+}

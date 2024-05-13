@@ -16,6 +16,7 @@ type IncidentModule struct {
 	IncidentRegisterController            *controllers.IncidentRegisterController
 	IncidentInvestigationStatusController *controllers.IncidentInvestigationStatusController
 	IncidentInvestigationController       *controllers.IncidentInvestigationController
+	IncidentActionPlanController          *controllers.IncidentActionPlanController
 }
 
 func NewIncidentModule(db *gorm.DB,
@@ -67,6 +68,16 @@ func NewIncidentModule(db *gorm.DB,
 	)
 	incidentInvestigationController := controllers.NewIncidentInvestigationController(incidentInvestigationSvc)
 
+	incidentActionPlanRepo := repositories.NewIncidentActionPlanRepository(db)
+	incidentActionPlanSvc := services.NewIncidentActionPlanService(
+		incidentActionPlanRepo,
+		sharedModule.ActivityLogService,
+		incidentRegisterSvc,
+		masterModule.ActionPlanStatusSvc,
+		masterModule.SeverityLevelSvc,
+	)
+	incidentActionPlanController := controllers.NewIncidentActionPlanController(incidentActionPlanSvc)
+
 	return &IncidentModule{
 		IncidentCategoryController:            incidentCategoryController,
 		IncidentSubCategoryController:         incidentSubCategoryController,
@@ -75,5 +86,6 @@ func NewIncidentModule(db *gorm.DB,
 		IncidentRegisterController:            incidentRegisterController,
 		IncidentInvestigationStatusController: incidentInvestigationStatusController,
 		IncidentInvestigationController:       incidentInvestigationController,
+		IncidentActionPlanController:          incidentActionPlanController,
 	}
 }
