@@ -31,6 +31,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskSourceController := app.RiskModule.RiskSourceController
 	riskStatusController := app.RiskModule.RiskStatusController
 	riskRegisterController := app.RiskModule.RiskRegisterController
+	riskRootCauseAnalysisController := app.RiskModule.RiskRootCauseAnalysisController
 
 	riskRoutes.GET("/risk-categories", riskCategoryController.GetAllRiskCategories)
 	riskRoutes.GET("/risk-categories/:id", riskCategoryController.GetRiskCategoryDetails)
@@ -142,5 +143,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.POST("/risk-register", riskRegisterController.CreateRiskRegister)
 	riskRoutes.PUT("/risk-register/:id", riskRegisterController.UpdateRiskRegister)
 	riskRoutes.POST("/risk-register/delete", riskRegisterController.DeleteRiskRegisters)
+
+	riskRoutes.GET("risks/:riskId/root-cause-analysis", riskRootCauseAnalysisController.GetAllRiskRootCauseAnalyses)
+	riskRoutes.POST("risks/:riskId/root-cause-analysis", riskRootCauseAnalysisController.CreateRiskRootCauseAnalysis)
+	riskRoutes.PUT("risks/:riskId/root-cause-analysis/:id", riskRootCauseAnalysisController.UpdateRiskRootCauseAnalysis)
+	riskRoutes.DELETE("risks/:riskId/root-cause-analysis/:id", riskRootCauseAnalysisController.DeleteRiskRootCauseAnalyses)
 
 }
