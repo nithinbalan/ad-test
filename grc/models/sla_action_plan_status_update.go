@@ -16,10 +16,11 @@ type SLAActionPlanStatusUpdate struct {
 	UpdatedBy          *uint      `json:"updated_by" gorm:"default:null"`
 
 	// Relationships
-	SLAActionPlan    *SLAActionPlan    `gorm:"foreignkey:SLAActionPlanID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ActionPlanStatus *ActionPlanStatus `gorm:"foreignkey:ActionPlanStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser    *User             `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser    *User             `gorm:"foreignKey:UpdatedBy"`
+	SLAActionPlan    *SLAActionPlan                       `gorm:"foreignkey:SLAActionPlanID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ActionPlanStatus *ActionPlanStatus                    `gorm:"foreignkey:ActionPlanStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	CreatedByUser    *User                                `gorm:"foreignKey:CreatedBy"`
+	UpdatedByUser    *User                                `gorm:"foreignKey:UpdatedBy"`
+	Documents        []*SLAActionPlanStatusUpdateDocument `gorm:"foreignKey:SLAActionPlanStatusUpdateID"`
 }
 
 // TableName overrides the table name used by SLAActionPlanStatusUpdate to `sla_action_plan_status_updates`

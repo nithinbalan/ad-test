@@ -8,6 +8,8 @@ import (
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
+	"path/filepath"
+	"strconv"
 
 	"gorm.io/gorm"
 )
@@ -91,6 +93,49 @@ func (scas *SLACheckAnswerService) CreateAnswer(slaID uint, questionID uint, cur
 		return 0, err
 	}
 
+	var documents []*models.SLACheckAnswerDocument
+
+	for _, doc := range slaCheckAnswerFormDTO.Documents {
+
+		dataToEncrypt := []byte(doc.FileName)
+		encryptedFilename, err := utility.EncryptData(dataToEncrypt)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
+		url := utility.GenerateDocumentURL("sla-register", strconv.FormatUint(uint64(slaID), 10), "questions", strconv.FormatUint(uint64(questionID), 10), "answers", encryptedFilename)
+
+		document := &models.SLACheckAnswerDocument{
+			SLACheckAnswerID: answer.ID,
+			URL:              url,
+			Icon:             doc.Icon,
+			Name:             doc.FileName,
+			Size:             doc.Size,
+			Token:            encryptedFilename,
+			Type:             doc.Type,
+			CreatedBy:        currentUserID,
+		}
+
+		documents = append(documents, document)
+	}
+
+	if len(documents) > 0 {
+		if err := scas.repo.CreateDocuments(documents, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+		//move file to storage
+		for _, doc := range documents {
+			storagePath := filepath.Join("compliance", "sla-register", strconv.FormatUint(uint64(slaID), 10), "questions", strconv.FormatUint(uint64(questionID), 10), "answers", strconv.FormatUint(uint64(answer.ID), 10), "documents")
+			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+
+		}
+	}
+
 	// Update completed count of the SLACheckQuestionGroup
 	err = scas.slaCheckQuestionSvc.IncrementCompletedCount(slaCheckQuestion.SLACheckQuestionGroupID, tx)
 	if err != nil {
@@ -127,6 +172,8 @@ func (scas *SLACheckAnswerService) CreateAnswer(slaID uint, questionID uint, cur
 }
 
 func (scas *SLACheckAnswerService) UpdateAnswer(slaID uint, questionID uint, answerID uint, currentUserID uint, slaCheckAnswerFormDTO *complianceDTOs.SLACheckAnswerFormDTO) error {
+	tx := scas.repo.BeginTransaction()
+
 	if _, err := scas.slaRegisterSvc.GetByID(slaID); err != nil {
 		return err
 	}
@@ -144,10 +191,90 @@ func (scas *SLACheckAnswerService) UpdateAnswer(slaID uint, questionID uint, ans
 	existingAnswer.Comment = slaCheckAnswerFormDTO.Comment
 	existingAnswer.UpdatedBy = &currentUserID
 
-	// Update the SLACheckQuestionGroup
+	// Update the answer
 	err = scas.repo.Update(existingAnswer)
 	if err != nil {
 		return err
+	}
+
+	var documents []*models.SLACheckAnswerDocument
+	var deleteDocumentIds []*uint
+	var documentsToDelete []*models.SLACheckAnswerDocument
+
+	for _, doc := range slaCheckAnswerFormDTO.Documents {
+
+		if doc.IsNewFile != nil && *doc.IsNewFile {
+			// Encrypt the filename
+			dataToEncrypt := []byte(doc.FileName)
+			encryptedFileName, err := utility.EncryptData(dataToEncrypt)
+
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			//genereate URL
+			url := utility.GenerateDocumentURL("sla-register", strconv.FormatUint(uint64(slaID), 10), "questions", strconv.FormatUint(uint64(questionID), 10), "answers", encryptedFileName)
+			// Create a new Control test Document instance
+			document := &models.SLACheckAnswerDocument{
+				SLACheckAnswerID: answerID,
+				URL:              url,
+				Icon:             doc.Icon,
+				Name:             doc.FileName,
+				Size:             doc.Size,
+				Token:            encryptedFileName,
+				Type:             doc.Type,
+				CreatedBy:        currentUserID,
+			}
+
+			// Append the document to the slice
+			documents = append(documents, document)
+
+		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
+			if doc.ID != nil {
+				existingDocument, err := scas.repo.GetDocumentByID(*doc.ID)
+				if err != nil {
+					if errors.Is(err, gorm.ErrRecordNotFound) {
+						return utility.NewResourceNotFoundError(err, doc.ID)
+					}
+					return err
+				}
+
+				documentsToDelete = append(documentsToDelete, existingDocument)
+				deleteDocumentIds = append(deleteDocumentIds, &existingDocument.ID)
+			}
+		}
+	}
+
+	if len(documents) > 0 {
+		if err := scas.repo.CreateDocuments(documents, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	if len(deleteDocumentIds) > 0 {
+		if err := scas.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	for _, doc := range documents {
+		storagePath := filepath.Join("compliance", "sla-register", strconv.FormatUint(uint64(slaID), 10), "questions", strconv.FormatUint(uint64(questionID), 10), "answers", strconv.FormatUint(uint64(answerID), 10), "documents")
+
+		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	for _, document := range documentsToDelete {
+		storagePath := filepath.Join("compliance", "sla-register", strconv.FormatUint(uint64(slaID), 10), "questions", strconv.FormatUint(uint64(questionID), 10), "answers", strconv.FormatUint(uint64(answerID), 10), "documents")
+		if err := utility.RemoveFile(document.Name, storagePath); err != nil {
+			tx.Rollback()
+			return err
+		}
 	}
 
 	// Log the activity

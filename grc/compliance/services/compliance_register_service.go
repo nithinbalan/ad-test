@@ -181,7 +181,7 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 		return 0, err
 	}
 	// Store Compliance Document File using utility.StoreFile
-	storagePath := filepath.Join("compliance", "compliance", strconv.FormatUint(uint64(id), 10), "documents")
+	storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(id), 10), "documents")
 
 	if err := utility.StoreFile(complianceRegisterFormDTO.Document.FileName, storagePath); err != nil {
 		tx.Rollback()
@@ -219,10 +219,10 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, complianceRegisterFormDTO *complianceDTOs.ComplianceRegisterFormDTO) error {
 	tx := crs.repo.BeginTransaction()
 
-	existingComplianceRegister, err := crs.repo.GetByID(id)
+	existingComplianceRegister, err := crs.GetByID(id)
 
 	if err != nil {
-		return utility.NewResourceNotFoundError(err, id)
+		return err
 	}
 
 	if err := crs.validateComplianceRegisterFormDTO(complianceRegisterFormDTO); err != nil {
@@ -233,9 +233,11 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 	if err != nil {
 		return err
 	}
+
 	if err := crs.validateComplianceDocumentFormDTO(&complianceRegisterFormDTO.Document); err != nil {
 		return err
 	}
+
 	existingComplianceRegister.ComplianceCategoryID = complianceRegisterFormDTO.ComplianceCategoryID
 	existingComplianceRegister.ComplianceStatusID = complianceRegisterFormDTO.ComplianceStatusID
 	existingComplianceRegister.ResponsibleUnitID = complianceRegisterFormDTO.ResponsibleUnitID
@@ -291,16 +293,18 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 			existingComplianceDocument.Size = complianceRegisterFormDTO.Document.Size
 			existingComplianceDocument.Token = encryptedFilename
 			existingComplianceDocument.Type = complianceRegisterFormDTO.Document.Type
+
 			if err := crs.repo.CreateDocument(existingComplianceDocument, tx); err != nil {
 				tx.Rollback()
 				return err
 			}
-			storagePath := filepath.Join("compliance", "compliance", strconv.FormatUint(uint64(id), 10), "documents")
+
+			storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(id), 10), "documents")
 			if err := utility.RemoveFile(existingComplianceDocumentFileName, storagePath); err != nil {
 				tx.Rollback()
 				return err
 			}
-			// Store Compliance Document File using utility.StoreFile
+
 			if err := utility.StoreFile(complianceRegisterFormDTO.Document.FileName, storagePath); err != nil {
 				tx.Rollback()
 				return err
@@ -321,6 +325,7 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 
 func (crs *ComplianceRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	tx := crs.repo.BeginTransaction()
+
 	var failedIds []uint
 	var successfulIds []uint
 	documentsToDelete := make(map[uint][]*complianceDTOs.ComplianceDocumentDTO)
@@ -365,11 +370,15 @@ func (crs *ComplianceRegisterService) Delete(ids []uint, currentUserID uint) ([]
 	if len(successfulIds) > 0 {
 		for complianceID, documents := range documentsToDelete {
 			for _, doc := range documents {
-				storagePath := filepath.Join("compliance", "compliance", strconv.FormatUint(uint64(complianceID), 10), "documents")
+				storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(complianceID), 10), "documents")
 				if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
 					tx.Rollback()
 					fmt.Printf("Failed to delete file at URL %s: %v\n", doc.URL, err)
 				}
+			}
+			destinationPath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(complianceID), 10))
+			if err := utility.RemoveFolder(destinationPath); err != nil {
+				tx.Rollback()
 			}
 		}
 	}

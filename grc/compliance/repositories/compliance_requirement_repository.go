@@ -12,15 +12,16 @@ import (
 )
 
 type ComplianceRequirementRepositoryInterface interface {
+	BeginTransaction() utility.DatabaseTransaction
 	GetAll(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementListResponseDTO, error)
 	GetByID(id uint) (*models.ComplianceRequirement, error)
 	GetFullDetailsByID(id uint) (*models.ComplianceRequirement, error)
 	Create(complianceRequirement *models.ComplianceRequirement, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(complianceRequirement *models.ComplianceRequirement, tx ...utility.DatabaseTransaction) error
-	Delete(id uint) error
-	GetOrCreateComplianceClause(complianceClause *models.ComplianceClause) (*models.ComplianceClause, error)
+	Delete(id uint, tx ...utility.DatabaseTransaction) error
+	GetOrCreateComplianceClause(complianceClause *models.ComplianceClause, tx ...utility.DatabaseTransaction) (*models.ComplianceClause, error)
 	CountRequirementsByClauseID(clauseID uint) (int64, error)
-	DeleteClause(clauseID uint) error
+	DeleteClause(clauseID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type ComplianceRequirementRepository struct {
@@ -31,6 +32,10 @@ func NewComplianceRequirementRepository(db *gorm.DB) *ComplianceRequirementRepos
 	return &ComplianceRequirementRepository{
 		db: db,
 	}
+}
+
+func (repo *ComplianceRequirementRepository) BeginTransaction() utility.DatabaseTransaction {
+	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
 func (repo *ComplianceRequirementRepository) GetAll(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementListResponseDTO, error) {
@@ -191,27 +196,39 @@ func (repo *ComplianceRequirementRepository) GetFullDetailsByID(id uint) (*model
 }
 
 func (repo *ComplianceRequirementRepository) Create(complianceRequirement *models.ComplianceRequirement, tx ...utility.DatabaseTransaction) (uint, error) {
-	if err := repo.db.Create(complianceRequirement).Error; err != nil {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(complianceRequirement).Error; err != nil {
 		return 0, err
 	}
 	return complianceRequirement.ID, nil
 }
 
 func (repo *ComplianceRequirementRepository) Update(complianceRequirement *models.ComplianceRequirement, tx ...utility.DatabaseTransaction) error {
-	if err := repo.db.Save(complianceRequirement).Error; err != nil {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(complianceRequirement).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
-func (repo *ComplianceRequirementRepository) Delete(id uint) error {
+func (repo *ComplianceRequirementRepository) Delete(id uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 	var complianceRequirement *models.ComplianceRequirement
 
-	if err := repo.db.First(&complianceRequirement, id).Error; err != nil {
+	if err := db.First(&complianceRequirement, id).Error; err != nil {
 		return err
 	}
 
-	result := repo.db.Delete(&models.ComplianceRequirement{}, id)
+	result := db.Delete(&models.ComplianceRequirement{}, id)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -219,14 +236,18 @@ func (repo *ComplianceRequirementRepository) Delete(id uint) error {
 	return nil
 }
 
-func (repo *ComplianceRequirementRepository) GetOrCreateComplianceClause(complianceClause *models.ComplianceClause) (*models.ComplianceClause, error) {
+func (repo *ComplianceRequirementRepository) GetOrCreateComplianceClause(complianceClause *models.ComplianceClause, tx ...utility.DatabaseTransaction) (*models.ComplianceClause, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 	var existingClause models.ComplianceClause
 
-	err := repo.db.Where("clause_no = ? AND title = ? AND compliance_register_id = ?", complianceClause.ClauseNo, complianceClause.Title, complianceClause.ComplianceRegisterID).First(&existingClause).Error
+	err := db.Where("clause_no = ? AND title = ? AND compliance_register_id = ?", complianceClause.ClauseNo, complianceClause.Title, complianceClause.ComplianceRegisterID).First(&existingClause).Error
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			if err := repo.db.Create(complianceClause).Error; err != nil {
+			if err := db.Create(complianceClause).Error; err != nil {
 				return nil, err
 			}
 			return complianceClause, nil
@@ -247,8 +268,12 @@ func (repo *ComplianceRequirementRepository) CountRequirementsByClauseID(clauseI
 	return count, nil
 }
 
-func (repo *ComplianceRequirementRepository) DeleteClause(clauseID uint) error {
-	if err := repo.db.Delete(&models.ComplianceClause{}, clauseID).Error; err != nil {
+func (repo *ComplianceRequirementRepository) DeleteClause(clauseID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Delete(&models.ComplianceClause{}, clauseID).Error; err != nil {
 		return err
 	}
 

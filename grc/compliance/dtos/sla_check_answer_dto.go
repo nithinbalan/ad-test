@@ -1,5 +1,7 @@
 package dtos
 
+import commonDTOs "jethur/grc/common/dtos"
+
 type SLACheckAnswerListDTO struct {
 	ID                      uint    `json:"id"`
 	SLACheckQuestionTitleEn string  `json:"sla_check_question_title_en"`
@@ -21,8 +23,9 @@ type SLACheckAnswerListDTO struct {
 }
 
 type SLACheckAnswerFormDTO struct {
-	ComplianceStatusID uint   `json:"compliance_status_id" binding:"required"`
-	Comment            string `json:"comment" binding:"required"`
+	ComplianceStatusID uint                          `json:"compliance_status_id" binding:"required"`
+	Comment            string                        `json:"comment" binding:"required"`
+	Documents          []*commonDTOs.DocumentFormDTO `json:"documents" binding:"omitempty"`
 }
 
 type AssessmentSummaryDTO struct {

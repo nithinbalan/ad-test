@@ -15,6 +15,11 @@ type SLACheckAnswerRepositoryInterface interface {
 	Update(slaCheckAnswer *models.SLACheckAnswer) error
 	Delete(id uint) error
 	AssessmentSummary(id uint) (*complianceDTOs.AssessmentSummaryDTO, error)
+
+	//Document
+	CreateDocuments(docs []*models.SLACheckAnswerDocument, tx ...utility.DatabaseTransaction) error
+	GetDocumentByID(id uint) (*models.SLACheckAnswerDocument, error)
+	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type SLACheckAnswerRepository struct {
@@ -33,7 +38,10 @@ func (repo *SLACheckAnswerRepository) BeginTransaction() utility.DatabaseTransac
 
 func (repo *SLACheckAnswerRepository) GetByID(id uint) (*models.SLACheckAnswer, error) {
 	var slaCheckAnswer *models.SLACheckAnswer
-	result := repo.db.First(&slaCheckAnswer, id)
+
+	result := repo.db.
+		Preload("Documents").
+		First(&slaCheckAnswer, id)
 
 	if result.Error != nil {
 		return nil, result.Error
@@ -108,4 +116,38 @@ func (repo *SLACheckAnswerRepository) AssessmentSummary(id uint) (*complianceDTO
 	}
 
 	return statistics, nil
+}
+
+func (repo *SLACheckAnswerRepository) CreateDocuments(docs []*models.SLACheckAnswerDocument, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	// Save all documents in a single transaction
+	if err := db.Create(&docs).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *SLACheckAnswerRepository) GetDocumentByID(id uint) (*models.SLACheckAnswerDocument, error) {
+	var document models.SLACheckAnswerDocument
+	if err := repo.db.Where("id = ?", id).First(&document).Error; err != nil {
+		return nil, err
+	}
+	return &document, nil
+}
+
+func (repo *SLACheckAnswerRepository) DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Delete documents by IDs
+	if err := db.Where("id IN (?)", docIds).Delete(&models.SLACheckAnswerDocument{}).Error; err != nil {
+		return err
+	}
+
+	return nil
 }
