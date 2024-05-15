@@ -110,7 +110,7 @@ func (sasus *SLAActionPlanStatusUpdateService) Create(SLAID uint, SLAActionPlanI
 			return 0, err
 		}
 
-		url := utility.GenerateDocumentURL("slas", strconv.FormatUint(uint64(SLAID), 10), "action-plans", strconv.FormatUint(uint64(SLAActionPlanID), 10), "status-updates", encryptedFilename)
+		url := utility.GenerateDocumentURL("sla-register", strconv.FormatUint(uint64(SLAID), 10), "action-plans", strconv.FormatUint(uint64(SLAActionPlanID), 10), "status-updates", encryptedFilename)
 
 		document := &models.SLAActionPlanStatusUpdateDocument{
 			SLAActionPlanStatusUpdateID: id,
@@ -133,7 +133,7 @@ func (sasus *SLAActionPlanStatusUpdateService) Create(SLAID uint, SLAActionPlanI
 		}
 		//move file to storage
 		for _, doc := range documents {
-			storagePath := filepath.Join("compliance", "sla", strconv.FormatUint(uint64(SLAID), 10), "action-plans", strconv.FormatUint(uint64(SLAActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
+			storagePath := filepath.Join("compliance", "sla-register", strconv.FormatUint(uint64(SLAID), 10), "action-plans", strconv.FormatUint(uint64(SLAActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
 				tx.Rollback()
 				return 0, err
@@ -216,7 +216,7 @@ func (sasus *SLAActionPlanStatusUpdateService) Update(SLAID uint, SLAActionPlanI
 			}
 
 			//genereate URL
-			url := utility.GenerateDocumentURL("slas", strconv.FormatUint(uint64(SLAID), 10), "action-plans", strconv.FormatUint(uint64(SLAActionPlanID), 10), "status-updates", encryptedFileName)
+			url := utility.GenerateDocumentURL("sla-register", strconv.FormatUint(uint64(SLAID), 10), "action-plans", strconv.FormatUint(uint64(SLAActionPlanID), 10), "status-updates", encryptedFileName)
 			// Create a new Control test Document instance
 			document := &models.SLAActionPlanStatusUpdateDocument{
 				SLAActionPlanStatusUpdateID: id,
@@ -263,7 +263,7 @@ func (sasus *SLAActionPlanStatusUpdateService) Update(SLAID uint, SLAActionPlanI
 	}
 
 	for _, doc := range documents {
-		storagePath := filepath.Join("compliance", "sla", strconv.FormatUint(uint64(SLAID), 10), "action-plans", strconv.FormatUint(uint64(SLAActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
+		storagePath := filepath.Join("compliance", "sla-register", strconv.FormatUint(uint64(SLAID), 10), "action-plans", strconv.FormatUint(uint64(SLAActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 
 		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
 			tx.Rollback()
@@ -272,7 +272,7 @@ func (sasus *SLAActionPlanStatusUpdateService) Update(SLAID uint, SLAActionPlanI
 	}
 
 	for _, document := range documentsToDelete {
-		storagePath := filepath.Join("compliance", "sla", strconv.FormatUint(uint64(SLAID), 10), "action-plans", strconv.FormatUint(uint64(SLAActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
+		storagePath := filepath.Join("compliance", "sla-register", strconv.FormatUint(uint64(SLAID), 10), "action-plans", strconv.FormatUint(uint64(SLAActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 		if err := utility.RemoveFile(document.Name, storagePath); err != nil {
 			tx.Rollback()
 			return err

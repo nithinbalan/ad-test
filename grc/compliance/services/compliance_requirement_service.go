@@ -77,7 +77,7 @@ func (crs ComplianceRequirementService) GetByID(complianceID uint, id uint) (*mo
 }
 
 func (crs ComplianceRequirementService) GetByComplianceRequirementID(id uint) (*models.ComplianceRequirement, error) {
-	
+
 	complianceRequirement, err := crs.repo.GetByID(id)
 
 	if err != nil {
@@ -116,6 +116,8 @@ func (crs ComplianceRequirementService) GetFullDetailsByID(complianceID uint, id
 }
 
 func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID uint, ComplianceRequirementFormDTO *complianceDTOs.ComplianceRequirementFormDTO) (uint, error) {
+	tx := crs.repo.BeginTransaction()
+
 	if _, err := crs.complianceRegisterSvc.GetByID(complianceID); err != nil {
 		return 0, err
 	}
@@ -136,8 +138,9 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		Title:                ComplianceRequirementFormDTO.ComplianceClauseTitle,
 	}
 
-	clause, err := crs.repo.GetOrCreateComplianceClause(complianceClause)
+	clause, err := crs.repo.GetOrCreateComplianceClause(complianceClause, tx)
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
@@ -152,11 +155,12 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		ComplianceClauseID:              clause.ID,
 	}
 
-	id, err := crs.repo.Create(complianceRequirement)
+	id, err := crs.repo.Create(complianceRequirement, tx)
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
-
+	tx.Commit()
 	go func() {
 		err := crs.activityLogSvc.LogActivity(
 			models.CreateAction,
@@ -184,6 +188,8 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 }
 
 func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, currentUserID uint, ComplianceRequirementFormDTO *complianceDTOs.ComplianceRequirementFormDTO) error {
+	tx := crs.repo.BeginTransaction()
+
 	if _, err := crs.complianceRegisterSvc.GetByID(complianceID); err != nil {
 		return err
 	}
@@ -211,6 +217,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 
 	clause, err := crs.repo.GetOrCreateComplianceClause(complianceClause)
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -227,13 +234,15 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 	err = crs.repo.Update(existingComplianceRequirement)
 
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
-
+	tx.Commit()
 	return nil
 }
 
 func (crs *ComplianceRequirementService) Delete(complianceID uint, ids []uint, currentUserID uint) ([]uint, error) {
+	tx := crs.repo.BeginTransaction()
 	if _, err := crs.complianceRegisterSvc.GetByID(complianceID); err != nil {
 		return nil, err
 	}
@@ -245,18 +254,18 @@ func (crs *ComplianceRequirementService) Delete(complianceID uint, ids []uint, c
 	clauseIDsToDelete := make(map[uint]bool)
 
 	for _, id := range ids {
-		req, err := crs.repo.GetByID(id)
+		requirement, err := crs.repo.GetByID(id)
 		if err != nil {
-			failedIds = append(failedIds, id)
 			continue
 		}
 
 		if err := crs.repo.Delete(id); err != nil {
+			tx.Rollback()
 			failedIds = append(failedIds, id)
 		} else {
 			successfulIds = append(successfulIds, id)
 			// Track the clause IDs
-			clauseIDsToDelete[req.ComplianceClauseID] = true
+			clauseIDsToDelete[requirement.ComplianceClauseID] = true
 		}
 	}
 
@@ -268,6 +277,7 @@ func (crs *ComplianceRequirementService) Delete(complianceID uint, ids []uint, c
 			fmt.Printf("Error counting requirements for clause %d: %v\n", clauseID, err)
 		} else if count == 0 {
 			if err := crs.repo.DeleteClause(clauseID); err != nil {
+				tx.Rollback()
 				// Log error, but proceed with other deletions
 				fmt.Printf("Error deleting clause %d: %v\n", clauseID, err)
 			}
@@ -291,6 +301,8 @@ func (crs *ComplianceRequirementService) Delete(complianceID uint, ids []uint, c
 			}
 		}()
 	}
+
+	tx.Commit()
 
 	return failedIds, nil
 }

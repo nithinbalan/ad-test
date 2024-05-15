@@ -235,7 +235,7 @@ func (repo *ComplianceRegisterRepository) GetFullDetailsByID(id uint, tx ...util
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	var compliance *models.ComplianceRegister // Declare the variable inside the function
+	var compliance *models.ComplianceRegister
 
 	result := db.
 		Preload("ComplianceCategory").

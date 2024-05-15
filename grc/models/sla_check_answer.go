@@ -15,10 +15,11 @@ type SLACheckAnswer struct {
 	UpdatedBy          *uint      `json:"updated_by,omitempty" gorm:"default:null"`
 
 	// Relationships
-	SLACheckQuestion *SLACheckQuestion `gorm:"foreignkey:SLACheckQuestionID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ComplianceStatus *ComplianceStatus `gorm:"foreignKey:ComplianceStatusID"`
-	CreatedByUser    *User             `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser    *User             `gorm:"foreignKey:UpdatedBy"`
+	SLACheckQuestion *SLACheckQuestion         `gorm:"foreignkey:SLACheckQuestionID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ComplianceStatus *ComplianceStatus         `gorm:"foreignKey:ComplianceStatusID"`
+	CreatedByUser    *User                     `gorm:"foreignKey:CreatedBy"`
+	UpdatedByUser    *User                     `gorm:"foreignKey:UpdatedBy"`
+	Documents        []*SLACheckAnswerDocument `gorm:"foreignKey:SLACheckAnswerID"`
 }
 
 // TableName overrides the table name used by SLACheckAnswer to `sla_check_answers`
