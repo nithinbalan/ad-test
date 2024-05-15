@@ -153,6 +153,7 @@ func (ircas *IncidentRootCauseAnalysisService) Update(incidentID uint, currentUs
 			addedAnalyses = append(addedAnalyses, newAnalysis)
 		} else if existingAnalysis, ok := existingAnalysisMap[*analysisData.ID]; ok {
 			// Analysis exists, update it
+			existingAnalysis.Why = analysisData.Why
 			existingAnalysis.Question = analysisData.Question
 			existingAnalysis.Answer = analysisData.Answer
 			updatedAnalyses = append(updatedAnalyses, existingAnalysis)
