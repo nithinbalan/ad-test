@@ -11,6 +11,7 @@ import (
 type SLACheckAnswerRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetByID(id uint) (*models.SLACheckAnswer, error)
+	GetFullDetailsByID(id uint) (*models.SLACheckAnswer, error)
 	Create(slaCheckAnswer *models.SLACheckAnswer) (*models.SLACheckAnswer, error)
 	Update(slaCheckAnswer *models.SLACheckAnswer) error
 	Delete(id uint) error
@@ -39,8 +40,23 @@ func (repo *SLACheckAnswerRepository) BeginTransaction() utility.DatabaseTransac
 func (repo *SLACheckAnswerRepository) GetByID(id uint) (*models.SLACheckAnswer, error) {
 	var slaCheckAnswer *models.SLACheckAnswer
 
+	result := repo.db.First(&slaCheckAnswer, id)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return slaCheckAnswer, nil
+}
+
+func (repo *SLACheckAnswerRepository) GetFullDetailsByID(id uint) (*models.SLACheckAnswer, error) {
+	var slaCheckAnswer *models.SLACheckAnswer
+
 	result := repo.db.
 		Preload("Documents").
+		Preload("ComplianceStatus").
+		Preload("CreatedByUser").
+		Preload("UpdatedByUser").
 		First(&slaCheckAnswer, id)
 
 	if result.Error != nil {

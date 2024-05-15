@@ -11,11 +11,13 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
 )
 
 type SLACheckAnswerServiceInterface interface {
 	GetByID(slaID uint, questionID uint, answerID uint) (*models.SLACheckAnswer, error)
+	GetFullDetailsByID(slaID uint, questionID uint, answerID uint) (*complianceDTOs.SLACheckAnswerDetailDTO, error)
 	CreateAnswer(slaID uint, questionID uint, currentUserID uint, slaCheckAnswerFormDTO *complianceDTOs.SLACheckAnswerFormDTO) (uint, error)
 	UpdateAnswer(slaID uint, questionID uint, answerID uint, currentUserID uint, slaCheckAnswerFormDTO *complianceDTOs.SLACheckAnswerFormDTO) error
 	DeleteAnswer(slaID uint, questionID uint, answerID uint, currentUserID uint) (uint, error)
@@ -61,6 +63,31 @@ func (scas SLACheckAnswerService) GetByID(slaID uint, questionID uint, answerID 
 		return nil, err
 	}
 	return slaCheckAnswer, nil
+
+}
+
+func (scas SLACheckAnswerService) GetFullDetailsByID(slaID uint, questionID uint, answerID uint) (*complianceDTOs.SLACheckAnswerDetailDTO, error) {
+	if _, err := scas.slaRegisterSvc.GetByID(slaID); err != nil {
+		return nil, err
+	}
+
+	var slaCheckAnswerDTO complianceDTOs.SLACheckAnswerDetailDTO
+
+	answer, err := scas.repo.GetFullDetailsByID(answerID)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, answerID)
+		}
+		return nil, err
+	}
+
+	err = mapstructure.Decode(answer, &slaCheckAnswerDTO)
+	if err != nil {
+		return nil, err
+	}
+
+	return &slaCheckAnswerDTO, nil
 }
 
 func (scas *SLACheckAnswerService) CreateAnswer(slaID uint, questionID uint, currentUserID uint, slaCheckAnswerFormDTO *complianceDTOs.SLACheckAnswerFormDTO) (uint, error) {
@@ -304,44 +331,119 @@ func (scas *SLACheckAnswerService) UpdateAnswer(slaID uint, questionID uint, ans
 	return nil
 }
 
-func (scqs *SLACheckAnswerService) DeleteAnswer(slaID uint, questionID uint, answerID uint, currentUserID uint) (uint, error) {
-	if _, err := scqs.slaRegisterSvc.GetByID(slaID); err != nil {
+// func (scas *SLACheckAnswerService) DeleteAnswer(slaID uint, questionID uint, answerID uint, currentUserID uint) (uint, error) {
+// 	if _, err := scas.slaRegisterSvc.GetByID(slaID); err != nil {
+// 		return 0, err
+// 	}
+
+// 	if _, err := scas.slaCheckQuestionSvc.GetQuestionByID(questionID); err != nil {
+// 		return 0, err
+// 	}
+// 	var failedId uint
+// 	var successfulId uint
+
+// 	answer, err := scas.GetByID(slaID, questionID, answerID)
+// 	if err != nil {
+// 		return 0, err
+// 	}
+
+// 	err = scas.repo.Delete(answerID)
+// 	if err != nil {
+// 		failedId = answerID
+// 	} else {
+// 		successfulId = answerID
+// 	}
+
+// 	if successfulId != 0 {
+// 		go func() {
+// 			err := scas.activityLogSvc.LogActivity(
+// 				models.DeleteAction,
+// 				models.SLACheckAnswer{}.TableName(),
+// 				successfulId,
+// 				answer,
+// 				currentUserID,
+// 				nil,
+// 			)
+// 			if err != nil {
+// 				fmt.Printf("Failed to log activity: %v\n", err)
+// 			}
+// 		}()
+// 	}
+
+// 	return failedId, nil
+// }
+
+func (scas *SLACheckAnswerService) DeleteAnswer(slaID uint, questionID uint, answerID uint, currentUserID uint) (uint, error) {
+	// tx := scas.repo.BeginTransaction()
+
+	_, err := scas.slaRegisterSvc.GetByID(slaID)
+	if err != nil {
 		return 0, err
 	}
 
-	if _, err := scqs.slaCheckQuestionSvc.GetQuestionByID(questionID); err != nil {
-		return 0, err
-	}
 	var failedId uint
 	var successfulId uint
+	var deleteDocumentIds []*uint
 
-	answer, err := scqs.GetByID(slaID, questionID, answerID)
+	answer, err := scas.GetFullDetailsByID(slaID, questionID, answerID)
 	if err != nil {
 		return 0, err
 	}
 
-	err = scqs.repo.Delete(answerID)
-	if err != nil {
-		failedId = answerID
-	} else {
-		successfulId = answerID
+	if answer.Documents != nil && len(answer.Documents) > 0 {
+		for _, document := range answer.Documents {
+			deleteDocumentIds = append(deleteDocumentIds, document.ID)
+		}
+
+		if len(deleteDocumentIds) > 0 {
+			if err := scas.repo.DeleteDocuments(deleteDocumentIds); err != nil {
+				// tx.Rollback()
+				return 0, err
+			}
+		}
 	}
 
-	if successfulId != 0 {
-		go func() {
-			err := scqs.activityLogSvc.LogActivity(
-				models.DeleteAction,
-				models.SLACheckAnswer{}.TableName(),
-				successfulId,
-				answer,
-				currentUserID,
-				nil,
-			)
-			if err != nil {
-				fmt.Printf("Failed to log activity: %v\n", err)
+	if err := scas.repo.Delete(answerID); err != nil {
+		failedId = answerID
+		// tx.Rollback()
+	} else {
+		successfulId = answerID
+		fmt.Println(answer.Documents)
+		for _, doc := range answer.Documents {
+			storagePath := filepath.Join("compliance", "sla-register", strconv.FormatUint(uint64(slaID), 10), "questions", strconv.FormatUint(uint64(questionID), 10), "answers", strconv.FormatUint(uint64(answerID), 10), "documents")
+			if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
+				return 0, err
+				// tx.Rollback()
 			}
-		}()
+		}
+
 	}
+
+	// if successfulId > 0 {
+	// 	for _, doc := range answer.Documents {
+	// 		storagePath := filepath.Join("compliance", "sla-register", strconv.FormatUint(uint64(slaID), 10), "questions", strconv.FormatUint(uint64(questionID), 10), "answers", strconv.FormatUint(uint64(answerID), 10), "documents")
+	// 		if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
+	// 			tx.Rollback()
+	// 		}
+	// 	}
+
+	// }
+
+	// tx.Commit()
+
+	go func() {
+		err := scas.activityLogSvc.LogActivity(
+			models.DeleteAction,
+			models.SLACheckAnswer{}.TableName(),
+			successfulId,
+			nil,
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+		}
+	}()
 
 	return failedId, nil
 }
