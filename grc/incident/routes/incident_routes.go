@@ -22,6 +22,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	incidentInvestigationController := app.IncidentModule.IncidentInvestigationController
 	incidentActionPlanController := app.IncidentModule.IncidentActionPlanController
 	incidentActionPlanStatusUpdateController := app.IncidentModule.IncidentActionPlanStatusUpdateController
+	incidentRootCauseAnalysisController := app.IncidentModule.IncidentRootCauseAnalysisController
 
 	//Incident Category
 	incidentRoutes.GET("/incident-categories", incidentCategoryController.GetAllIncidentCategories)
@@ -71,7 +72,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	incidentRoutes.POST("/incident/:incidentId/investigations", incidentInvestigationController.CreateIncidentInvestigation)
 	incidentRoutes.PUT("/incident/:incidentId/investigations/:id", incidentInvestigationController.UpdateIncidentInvestigation)
 	incidentRoutes.POST("/incident/:incidentId/investigations/delete", incidentInvestigationController.DeleteIncidentInvestigations)
-	
+
 	//Incident Action Plan
 	incidentRoutes.GET("/incident/:incidentId/action-plans", incidentActionPlanController.GetAllIncidentActionPlans)
 	incidentRoutes.GET("/incident/:incidentId/action-plans/:actionPlanId", incidentActionPlanController.GetIncidentActionPlanDetails)
@@ -83,5 +84,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	incidentRoutes.GET("/incident/:incidentId/action-plans/:actionPlanId/status-updates", incidentActionPlanStatusUpdateController.GetAllIncidentActionPlanStatusUpdates)
 	incidentRoutes.POST("/incident/:incidentId/action-plans/:actionPlanId/status-updates", incidentActionPlanStatusUpdateController.CreateIncidentActionPlanStatusUpdate)
 	incidentRoutes.PUT("/incident/:incidentId/action-plans/:actionPlanId/status-updates/:id", incidentActionPlanStatusUpdateController.UpdateIncidentActionPlanStatusUpdate)
+
+	//Incident Root Cause Analyses
+	incidentRoutes.GET("incident/:incidentId/root-cause-analysis", incidentRootCauseAnalysisController.GetAllIncidentRootCauseAnalyses)
+	incidentRoutes.POST("incident/:incidentId/root-cause-analysis", incidentRootCauseAnalysisController.CreateIncidentRootCauseAnalysis)
+	incidentRoutes.PUT("incident/:incidentId/root-cause-analysis", incidentRootCauseAnalysisController.UpdateIncidentRootCauseAnalysis)
+	incidentRoutes.DELETE("incident/:incidentId/root-cause-analysis/:id", incidentRootCauseAnalysisController.DeleteIncidentRootCauseAnalyses)
 
 }
