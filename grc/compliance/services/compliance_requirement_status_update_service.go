@@ -111,7 +111,7 @@ func (crsus *ComplianceRequirementStatusUpdateService) Create(ComplianceID uint,
 		}
 
 		// Construct the URL for the document
-		url := utility.GenerateDocumentURL("compliances", strconv.FormatUint(uint64(ComplianceID), 10), "requirements", strconv.FormatUint(uint64(ComplianceRequirementID), 10), "status-updates", encryptedFilename)
+		url := utility.GenerateDocumentURL("compliance-register", strconv.FormatUint(uint64(ComplianceID), 10), "requirements", strconv.FormatUint(uint64(ComplianceRequirementID), 10), "status-updates", encryptedFilename)
 
 		// Create a new ComplianceRequirementStatusUpdateDocument instance
 		document := &models.ComplianceRequirementStatusUpdateDocument{
@@ -136,7 +136,7 @@ func (crsus *ComplianceRequirementStatusUpdateService) Create(ComplianceID uint,
 		}
 		//move file to storage
 		for _, doc := range documents {
-			storagePath := filepath.Join("compliance", "compliance", strconv.FormatUint(uint64(ComplianceID), 10), "requirements", strconv.FormatUint(uint64(ComplianceRequirementID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
+			storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(ComplianceID), 10), "requirements", strconv.FormatUint(uint64(ComplianceRequirementID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
 				tx.Rollback()
 				return 0, err
@@ -213,7 +213,7 @@ func (crsus *ComplianceRequirementStatusUpdateService) Update(ComplianceID uint,
 			}
 
 			//genereate URL
-			url := utility.GenerateDocumentURL("compliances", strconv.FormatUint(uint64(ComplianceID), 10), "requirements", strconv.FormatUint(uint64(ComplianceRequirementID), 10), "status-updates", encryptedFileName)
+			url := utility.GenerateDocumentURL("compliance-register", strconv.FormatUint(uint64(ComplianceID), 10), "requirements", strconv.FormatUint(uint64(ComplianceRequirementID), 10), "status-updates", encryptedFileName)
 			// Create a new Control test Document instance
 			document := &models.ComplianceRequirementStatusUpdateDocument{
 				ComplianceRequirementStatusUpdateID: id,
@@ -260,7 +260,7 @@ func (crsus *ComplianceRequirementStatusUpdateService) Update(ComplianceID uint,
 	}
 
 	for _, doc := range documents {
-		storagePath := filepath.Join("compliance", "compliance", strconv.FormatUint(uint64(ComplianceID), 10), "requirements", strconv.FormatUint(uint64(ComplianceRequirementID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
+		storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(ComplianceID), 10), "requirements", strconv.FormatUint(uint64(ComplianceRequirementID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 
 		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
 			tx.Rollback()
@@ -269,7 +269,7 @@ func (crsus *ComplianceRequirementStatusUpdateService) Update(ComplianceID uint,
 	}
 
 	for _, document := range documentsToDelete {
-		storagePath := filepath.Join("compliance", "compliance", strconv.FormatUint(uint64(ComplianceID), 10), "requirements", strconv.FormatUint(uint64(ComplianceRequirementID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
+		storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(ComplianceID), 10), "requirements", strconv.FormatUint(uint64(ComplianceRequirementID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 		if err := utility.RemoveFile(document.Name, storagePath); err != nil {
 			tx.Rollback()
 			return err

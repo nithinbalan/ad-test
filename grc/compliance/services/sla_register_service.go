@@ -56,7 +56,15 @@ func (srs *SLARegisterService) GetAll(params *complianceDTOs.SLARegisterListQuer
 }
 
 func (srs SLARegisterService) GetByID(id uint) (*models.SLARegister, error) {
-	return srs.repo.GetByID(id)
+	sla, err := srs.repo.GetByID(id)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+	return sla, nil
 }
 
 func (srs SLARegisterService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.SLARegisterDetailDTO, error) {
@@ -168,7 +176,7 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *co
 		return 0, err
 	}
 	// Store SLA Document File using utility.StoreFile
-	storagePath := filepath.Join("compliance", "sla", strconv.FormatUint(uint64(id), 10), "agreements")
+	storagePath := filepath.Join("compliance", "sla-register", strconv.FormatUint(uint64(id), 10), "agreements")
 
 	if err := utility.StoreFile(slaRegisterFormDTO.Document.FileName, storagePath); err != nil {
 		tx.Rollback()
@@ -273,7 +281,7 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 				tx.Rollback()
 				return err
 			}
-			storagePath := filepath.Join("compliance", "sla", strconv.FormatUint(uint64(existingSLADocument.SLARegisterID), 10), "agreements")
+			storagePath := filepath.Join("compliance", "sla-register", strconv.FormatUint(uint64(existingSLADocument.SLARegisterID), 10), "agreements")
 			if err := utility.RemoveFile(existingSLADocumentFileName, storagePath); err != nil {
 				tx.Rollback()
 				return err
@@ -371,7 +379,7 @@ func (srs *SLARegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 	if len(successfulIds) > 0 {
 		for slaID, documents := range documentsToDelete {
 			for _, doc := range documents {
-				storagePath := filepath.Join("compliance", "sla", strconv.FormatUint(uint64(slaID), 10), "agreements")
+				storagePath := filepath.Join("compliance", "sla-register", strconv.FormatUint(uint64(slaID), 10), "agreements")
 				if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
 					tx.Rollback()
 					fmt.Printf("Failed to delete file at URL %s: %v\n", doc.URL, err)

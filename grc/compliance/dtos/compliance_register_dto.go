@@ -110,6 +110,7 @@ type ComplianceDocumentFormDTO struct {
 	Size         int    `json:"size"`
 	IsNewFile    *bool  `json:"is_new_file,omitempty"` // Optional field for indicating if the file is new or updated
 }
+
 type ComplianceDocumentDTO struct {
 	ID       *uint  `json:"id,omitempty"`
 	Language string `json:"language"`
