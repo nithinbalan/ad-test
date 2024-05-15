@@ -1,28 +1,38 @@
 package dtos
 
-type SLACheckAnswerListDTO struct {
-	ID                      uint    `json:"id"`
-	SLACheckQuestionTitleEn string  `json:"sla_check_question_title_en"`
-	SLACheckQuestionTitleAr string  `json:"sla_check_question_title_ar"`
-	ComplianceStatusTitleEn string  `json:"compliance_status_title_en"`
-	ComplianceStatusTitleAr string  `json:"compliance_status_title_ar"`
-	ComplianceStatusColor   string  `json:"compliance_status_color_code"`
-	Comment                 string  `json:"comment"`
-	CreatedAt               string  `json:"created_at"`
-	UpdatedAt               *string `json:"updated_at,omitempty"`
-	CreatedUserFirstNameEn  string  `json:"created_user_first_name_en"`
-	CreatedUserFirstNameAr  string  `json:"created_user_first_name_ar"`
-	CreatedUserLastNameEn   string  `json:"created_user_last_name_en"`
-	CreatedUserLastNameAr   *string `json:"created_user_last_name_ar,omitempty"`
-	UpdatedUserFirstNameEn  string  `json:"updated_user_first_name_en"`
-	UpdatedUserFirstNameAr  string  `json:"updated_user_first_name_ar"`
-	UpdatedUserLastNameEn   string  `json:"updated_user_last_name_en"`
-	UpdatedUserLastNameAr   string  `json:"updated_user_last_name_ar"`
+import (
+	commonDTOs "jethur/grc/common/dtos"
+	organizationDTOs "jethur/grc/organization/dtos"
+	"time"
+)
+
+type SLACheckAnswerDetailDTO struct {
+	ID                      uint                            `json:"id"`
+	SLACheckQuestionTitleEn string                          `json:"sla_check_question_title_en"`
+	SLACheckQuestionTitleAr string                          `json:"sla_check_question_title_ar"`
+	ComplianceStatus        ComplianceStatusDTO             `json:"compliance_status"`
+	Comment                 string                          `json:"comment"`
+	CreatedAt               time.Time                       `json:"created_at"`
+	UpdatedAt               *time.Time                      `json:"updated_at"`
+	CreatedByUser           organizationDTOs.UserMinimalDTO `json:"created_by"`
+	UpdatedByUser           organizationDTOs.UserMinimalDTO `json:"updated_by"`
+	Documents               []*SLACheckAnswerDocumentDTO    `json:"documents"`
+}
+
+type SLACheckAnswerDocumentDTO struct {
+	ID    *uint  `json:"id,omitempty"`
+	URL   string `json:"url"`
+	Icon  string `json:"icon"`
+	Name  string `json:"name"`
+	Token string `json:"token"`
+	Type  string `json:"type"`
+	Size  int    `json:"size"`
 }
 
 type SLACheckAnswerFormDTO struct {
-	ComplianceStatusID uint   `json:"compliance_status_id" binding:"required"`
-	Comment            string `json:"comment" binding:"required"`
+	ComplianceStatusID uint                          `json:"compliance_status_id" binding:"required"`
+	Comment            string                        `json:"comment" binding:"required"`
+	Documents          []*commonDTOs.DocumentFormDTO `json:"documents" binding:"omitempty"`
 }
 
 type AssessmentSummaryDTO struct {

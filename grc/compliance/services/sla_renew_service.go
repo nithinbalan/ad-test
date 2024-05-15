@@ -118,7 +118,7 @@ func (srs *SLARenewService) Renew(slaId uint, currentUserID uint, slaRenewFormDT
 		return err
 	}
 	// Store SLA Document File using utility.StoreFile
-	storagePath := filepath.Join("compliance", "sla", strconv.FormatUint(uint64(slaId), 10), "agreements")
+	storagePath := filepath.Join("compliance", "sla-register", strconv.FormatUint(uint64(slaId), 10), "agreements")
 
 	if err := utility.StoreFile(slaDocument.Name, storagePath); err != nil {
 		tx.Rollback()
@@ -188,7 +188,7 @@ func (srs *SLARenewService) Revert(slaId uint, currentUserID uint) error {
 		tx.Rollback()
 		return err
 	}
-	storagePath := filepath.Join("compliance", "sla", strconv.FormatUint(uint64(slaId), 10), "agreements")
+	storagePath := filepath.Join("compliance", "sla-register", strconv.FormatUint(uint64(slaId), 10), "agreements")
 	if err := utility.RemoveFile(existingSLADocument.Name, storagePath); err != nil {
 		tx.Rollback()
 		return err

@@ -19,9 +19,10 @@ type ComplianceRequirementStatusUpdateDocument struct {
 	UpdatedAt                           time.Time `json:"updated_at" gorm:"type:datetime;not null"`
 
 	// Relationships
-	ComplianceRequirementStatusUpdate *ComplianceRequirementStatusUpdate `gorm:"foreignKey:ComplianceRequirementStatusUpdateID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
-	CreatedByUser                     *User                              `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser                     *User                              `gorm:"foreignKey:UpdatedBy"`
+	ComplianceRequirementStatusUpdate *ComplianceRequirementStatusUpdate           `gorm:"foreignKey:ComplianceRequirementStatusUpdateID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
+	CreatedByUser                     *User                                        `gorm:"foreignKey:CreatedBy"`
+	UpdatedByUser                     *User                                        `gorm:"foreignKey:UpdatedBy"`
+	Documents                         []*ComplianceRequirementStatusUpdateDocument `gorm:"foreignKey:ComplianceRequirementStatusUpdateID"`
 }
 
 // TableName overrides the table name used by ComplianceRequirementStatusUpdate to `compliance_requirement_status_updates`
