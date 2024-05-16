@@ -23,6 +23,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	incidentActionPlanController := app.IncidentModule.IncidentActionPlanController
 	incidentActionPlanStatusUpdateController := app.IncidentModule.IncidentActionPlanStatusUpdateController
 	incidentRootCauseAnalysisController := app.IncidentModule.IncidentRootCauseAnalysisController
+	incidentCommunicationLogController := app.IncidentModule.IncidentCommunicationLogController
 
 	//Incident Category
 	incidentRoutes.GET("/incident-categories", incidentCategoryController.GetAllIncidentCategories)
@@ -86,9 +87,16 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	incidentRoutes.PUT("/incident/:incidentId/action-plans/:actionPlanId/status-updates/:id", incidentActionPlanStatusUpdateController.UpdateIncidentActionPlanStatusUpdate)
 
 	//Incident Root Cause Analyses
-	incidentRoutes.GET("incident/:incidentId/root-cause-analysis", incidentRootCauseAnalysisController.GetAllIncidentRootCauseAnalyses)
-	incidentRoutes.POST("incident/:incidentId/root-cause-analysis", incidentRootCauseAnalysisController.CreateIncidentRootCauseAnalysis)
-	incidentRoutes.PUT("incident/:incidentId/root-cause-analysis", incidentRootCauseAnalysisController.UpdateIncidentRootCauseAnalysis)
-	incidentRoutes.DELETE("incident/:incidentId/root-cause-analysis/:id", incidentRootCauseAnalysisController.DeleteIncidentRootCauseAnalyses)
+	incidentRoutes.GET("/incident/:incidentId/root-cause-analysis", incidentRootCauseAnalysisController.GetAllIncidentRootCauseAnalyses)
+	incidentRoutes.POST("/incident/:incidentId/root-cause-analysis", incidentRootCauseAnalysisController.CreateIncidentRootCauseAnalysis)
+	incidentRoutes.PUT("/incident/:incidentId/root-cause-analysis", incidentRootCauseAnalysisController.UpdateIncidentRootCauseAnalysis)
+	incidentRoutes.DELETE("/incident/:incidentId/root-cause-analysis/:id", incidentRootCauseAnalysisController.DeleteIncidentRootCauseAnalyses)
+
+	//Incident Communication logs
+	incidentRoutes.GET("/incident/:incidentId/communication-logs", incidentCommunicationLogController.GetAllIncidentCommunicationLogs)
+	incidentRoutes.GET("/incident/:incidentId/communication-logs/:id", incidentCommunicationLogController.GetIncidentCommunicationLogDetails)
+	incidentRoutes.POST("/incident/:incidentId/communication-logs", incidentCommunicationLogController.CreateIncidentCommunicationLog)
+	incidentRoutes.PUT("/incident/:incidentId/communication-logs/:id", incidentCommunicationLogController.UpdateIncidentCommunicationLog)
+	incidentRoutes.POST("/incident/:incidentId/communication-logs/delete", incidentCommunicationLogController.DeleteIncidentCommunicationLogs)
 
 }
