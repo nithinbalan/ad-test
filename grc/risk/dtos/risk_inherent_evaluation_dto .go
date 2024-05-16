@@ -1,7 +1,6 @@
 package dtos
 
 type RiskInherentEvaluationFormDTO struct {
-	RiskRegisterID                 uint                       `json:"risk_register_id"`
 	InherentRiskMatrixLikelihoodID uint                       `json:"inherent_risk_matrix_likelihood_id"`
 	InherentRiskMatrixImpactID     uint                       `json:"inherent_risk_matrix_impact_id"`
 	InherentRiskMatrixRiskRatingID uint                       `json:"inherent_risk_matrix_risk_rating_id"`

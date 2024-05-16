@@ -6,7 +6,7 @@ import (
 
 type RiskImpactEvaluation struct {
 	ID                          uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
-	RiskRegisterID              uint       `json:"risk_register_id" binding:"required" gorm:"not null"`
+	RiskEvaluationID            uint       `json:"risk_evaluation_id" binding:"required" gorm:"not null"`
 	RiskMatrixImpactGuidelineID uint       `json:"risk_matrix_impact_guideline_id" binding:"required" gorm:"not null"`
 	RiskImpactCategoryID        uint       `json:"risk_impact_category_id" binding:"required" gorm:"not null"`
 	RiskMatrixImpactID          uint       `json:"risk_matrix_impact_id" binding:"required" gorm:"not null"`
@@ -16,7 +16,7 @@ type RiskImpactEvaluation struct {
 	UpdatedAt                   *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 
 	// Relationships
-	RiskRegister              *RiskRegister              `gorm:"foreignkey:RiskRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	RiskEvaluation            *RiskRegister              `gorm:"foreignkey:RiskEvaluationID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	RiskMatrixImpactGuideline *RiskMatrixImpactGuideline `gorm:"foreignkey:RiskMatrixImpactGuidelineID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	RiskImpactCategory        *RiskImpactCategory        `gorm:"foreignkey:RiskImpactCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	RiskMatrixImpact          *RiskMatrixImpact          `gorm:"foreignkey:RiskMatrixImpactID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`

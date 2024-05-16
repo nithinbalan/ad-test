@@ -154,7 +154,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.GET("/risk-appetite-tolerance-levels", riskAppetiteToleranceLevelController.GetAllRiskAppetiteToleranceLevels)
 	riskRoutes.GET("/risk-appetite-tolerance-levels/:id", riskAppetiteToleranceLevelController.GetRiskAppetiteToleranceLevelDetails)
 
-	riskRoutes.GET("risks/:riskId/inherent-evaluation", riskInherentEvaluationController.GetRiskInherentEvaluation)
+	riskRoutes.GET("risks/:riskId/inherent-evaluation/:id", riskInherentEvaluationController.GetRiskInherentEvaluation)
 	riskRoutes.POST("risks/:riskId/inherent-evaluation", riskInherentEvaluationController.CreateRiskInherentEvaluation)
 	riskRoutes.PUT("risks/:riskId/inherent-evaluation/:id", riskInherentEvaluationController.UpdateRiskInherentEvaluation)
 	riskRoutes.DELETE("risks/:riskId/inherent-evaluation/:id", riskInherentEvaluationController.DeleteRiskInherentEvaluation)

@@ -2,7 +2,7 @@
 -- +goose StatementBegin
 CREATE TABLE risk_impact_evaluations (
     id INT PRIMARY KEY IDENTITY(1,1),
-    risk_register_id INT NOT NULL,
+    risk_evaluation_id INT NOT NULL,
     risk_matrix_impact_guideline_id INT NOT NULL,
     risk_impact_category_id INT NOT NULL,
     risk_matrix_impact_id INT NOT NULL,
@@ -10,7 +10,7 @@ CREATE TABLE risk_impact_evaluations (
     updated_by INT NULL,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NULL,
-    CONSTRAINT FK_risk_impact_evaluation_risk_register FOREIGN KEY (risk_register_id) REFERENCES risk_register(id),
+    CONSTRAINT FK_risk_impact_evaluation_risk_evaluation FOREIGN KEY (risk_evaluation_id) REFERENCES risk_evaluations(id),
     CONSTRAINT FK_risk_impact_evaluation_risk_impact_category FOREIGN KEY (risk_impact_category_id) REFERENCES risk_impact_categories(id),
     CONSTRAINT FK_risk_impact_evaluation_risk_matrix_impacts FOREIGN KEY (risk_matrix_impact_id) REFERENCES risk_matrix_impacts(id),
     CONSTRAINT FK_risk_impact_evaluation_risk_matrix_impact_guidelines FOREIGN KEY (risk_matrix_impact_guideline_id) REFERENCES risk_matrix_impact_guidelines(id),
