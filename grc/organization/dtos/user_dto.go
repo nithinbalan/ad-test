@@ -24,8 +24,10 @@ type UserListDTO struct {
 	OrganizationUnit5TitleAr string `json:"organization_unit_5_title_ar,omitempty" gorm:"column:organization_unit_5_title_ar"`
 	DesignationTitleEn       string `json:"designation_title_en"`
 	DesignationTitleAr       string `json:"designation_title_ar"`
-	RolesEn                  string `json:"roles_en,omitempty"`
-	RolesAr                  string `json:"roles_ar,omitempty"`
+	RolesEn                  string `json:"roles_en"`
+	RolesAr                  string `json:"roles_ar"`
+	Email                    string `json:"email"`
+	MobileNumber             string `json:"mobile_number"`
 	UserStatusTitleEn        string `json:"user_status_title_en"`
 	UserStatusTitleAr        string `json:"user_status_title_ar"`
 	UserStatusColorCode      string `json:"user_status_color_code"`
