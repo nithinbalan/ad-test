@@ -21,6 +21,7 @@ type ControlActionPlanServiceInterface interface {
 	Create(controlID uint, currentUserID uint, ControlActionPlanFormDTO *organizationDTOs.ControlActionPlanFormDTO) (uint, error)
 	Update(controlID uint, id uint, currentUserID uint, ControlActionPlanFormDTO *organizationDTOs.ControlActionPlanFormDTO) error
 	Delete(controlID uint, ids []uint, currentUserID uint) ([]uint, error)
+	StatusUpdate(controlID uint, id uint, currentUserID uint, actionPlanStatusID uint, percentage uint, tx ...utility.DatabaseTransaction) error
 }
 
 // Service and implementations
@@ -237,6 +238,26 @@ func (caps *ControlActionPlanService) Delete(controlID uint, ids []uint, current
 	}
 
 	return failedIds, nil
+}
+
+func (caps *ControlActionPlanService) StatusUpdate(controlID uint, id uint, currentUserID uint, actionPlanStatusID uint, percentage uint, tx ...utility.DatabaseTransaction) error {
+	existingControlActionPlan, err := caps.GetByID(controlID, id)
+
+	if err != nil {
+		return err
+	}
+
+	existingControlActionPlan.ActionPlanStatusID = actionPlanStatusID
+	existingControlActionPlan.Percentage = percentage
+	existingControlActionPlan.UpdatedByID = &currentUserID
+
+	err = caps.repo.Update(existingControlActionPlan, tx...)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (caps *ControlActionPlanService) validateControlActionPlanFormDTO(controlID uint, ControlActionPlanFormDTO *organizationDTOs.ControlActionPlanFormDTO) error {

@@ -4,6 +4,7 @@ import (
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
+	"jethur/utility"
 	"time"
 
 	"gorm.io/gorm"
@@ -14,7 +15,7 @@ type ControlActionPlanRepositoryInterface interface {
 	GetByID(id uint) (*models.ControlActionPlan, error)
 	GetFullDetailsByID(id uint) (*models.ControlActionPlan, error)
 	Create(complianceActionPlan *models.ControlActionPlan) (uint, error)
-	Update(complianceActionPlan *models.ControlActionPlan) error
+	Update(complianceActionPlan *models.ControlActionPlan, tx ...utility.DatabaseTransaction) error
 	Delete(id uint) error
 }
 
@@ -183,8 +184,12 @@ func (repo *ControlActionPlanRepository) Create(controlActionPlan *models.Contro
 	return controlActionPlan.ID, nil
 }
 
-func (repo *ControlActionPlanRepository) Update(controlActionPlan *models.ControlActionPlan) error {
-	if err := repo.db.Save(controlActionPlan).Error; err != nil {
+func (repo *ControlActionPlanRepository) Update(controlActionPlan *models.ControlActionPlan, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(controlActionPlan).Error; err != nil {
 		return err
 	}
 	return nil
