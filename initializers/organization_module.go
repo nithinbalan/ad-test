@@ -22,6 +22,7 @@ type OrganizationModule struct {
 	ControlController                     *controllers.ControlController
 	ControlTestController                 *controllers.ControlTestController
 	ProcessGroupController                *controllers.ProcessGroupController
+	ControlActionPlanController           *controllers.ControlActionPlanController
 
 	UserSvc        services.UserServiceInterface
 	UserSettingSvc services.UserSettingServiceInterface
@@ -101,6 +102,10 @@ func NewOrganizationModule(
 	processGroupSvc := services.NewProcessGroupService(processGroupRepo, sharedModule.ActivityLogService)
 	processGroupController := controllers.NewProcessGroupController(processGroupSvc)
 
+	controlActionPlanRepo := repositories.NewControlActionPlanRepository(db)
+	controlActionPlanSvc := services.NewControlActionPlanService(controlActionPlanRepo, sharedModule.ActivityLogService, controlSvc, masterModule.SeverityLevelSvc, masterModule.ActionPlanStatusSvc, userSvc)
+	controlActionPlanController := controllers.NewControlActionPlanController(controlActionPlanSvc)
+
 	return &OrganizationModule{
 		DesignationController:                 designationController,
 		UserStatusController:                  userStatusController,
@@ -115,6 +120,7 @@ func NewOrganizationModule(
 		ControlController:                     controlController,
 		ControlTestController:                 controlTestController,
 		ProcessGroupController:                processGroupController,
+		ControlActionPlanController:           controlActionPlanController,
 
 		UserSvc:        userSvc,
 		UserSettingSvc: userSettingSvc,
