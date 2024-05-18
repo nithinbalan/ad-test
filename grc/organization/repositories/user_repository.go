@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	userDTOs "jethur/grc/organization/dtos"
@@ -97,6 +98,7 @@ func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*us
 			thirtyDaysAgo := time.Now().AddDate(0, 0, -30)
 			query = query.Where("users.created_at >= ?", thirtyDaysAgo)
 		case "admin_users":
+			fmt.Println("124")
 			query = query.Where("roles_agg.roles_en = ? OR roles_agg.roles_ar = ?", "Admin", "مسؤول")
 		}
 	}
@@ -104,46 +106,27 @@ func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*us
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		query = query.Where(`
-			(users.first_name_en LIKE ? OR
+		(users.first_name_en LIKE ? OR
 			 users.last_name_en LIKE ? OR
 			 users.first_name_ar LIKE ? OR
 			 users.last_name_ar LIKE ? OR
 			 users.email LIKE ? OR
 			 users.mobile_number LIKE ? OR
-			 org1.title_en LIKE ? OR
-			 org1.title_ar LIKE ? OR
-			 org2.title_en LIKE ? OR
-			 org2.title_ar LIKE ? OR
-			 org3.title_en LIKE ? OR
-			 org3.title_ar LIKE ? OR
-			 org4.title_en LIKE ? OR
-			 org4.title_ar LIKE ? OR
-			 org5.title_en LIKE ? OR
-			 org5.title_ar LIKE ? OR
 			 designations.title_en LIKE ? OR
 			 designations.title_ar LIKE ? OR
 			 user_statuses.title_en LIKE ? OR
 			 user_statuses.title_ar LIKE ?)`,
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
-			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
-			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
-			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%")
 	}
+
 	// Calculate total count for pagination
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
 
-	// Sort by the specified column and order
-	if params.SortBy == "" {
-		params.SortBy = "first_name_en" // Default sort by title_en if no sortBy is specified
-	}
-	if params.Sort != "asc" && params.Sort != "desc" {
-		params.Sort = "asc" // Default order is ascending if not specified
-	}
-
-	//query = query.Order(params.SortBy + " " + params.Sort)
+	query = query.Order(params.SortBy + " " + params.Sort)
 
 	offset := (params.Page - 1) * params.PageSize
 
