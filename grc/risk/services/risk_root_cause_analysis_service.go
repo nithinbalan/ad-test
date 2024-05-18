@@ -169,6 +169,8 @@ func (rrcas *RiskRootCauseAnalysisService) Delete(riskID uint, id uint, currentU
 		return 0, err
 	}
 
+	tx.Commit()
+
 	// Log successful delete activity
 	go func() {
 		err := rrcas.activityLogSvc.LogActivity(

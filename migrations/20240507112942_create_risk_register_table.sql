@@ -11,7 +11,6 @@ CREATE TABLE risk_register (
     title NVARCHAR(255) NOT NULL,
     description NVARCHAR(MAX) NULL,
     reported_at DATE NULL,
-    reported_by_id INT NULL,
     review_frequency_id INT NULL,
     next_review_date DATE NULL,
     comments NVARCHAR(MAX) NULL,
@@ -22,11 +21,10 @@ CREATE TABLE risk_register (
     CONSTRAINT FK_risk_register_risk_categories FOREIGN KEY (risk_category_id) REFERENCES risk_categories (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_risk_register_risk_sources FOREIGN KEY (risk_source_id) REFERENCES risk_sources (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_risk_register_users_1 FOREIGN KEY (owner_id) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
-    CONSTRAINT FK_risk_register_users_2 FOREIGN KEY (reported_by_id) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_risk_register_organization_units FOREIGN KEY (owner_unit_id) REFERENCES organization_units (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_risk_register_review_frequencies FOREIGN KEY (review_frequency_id) REFERENCES review_frequencies (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
-    CONSTRAINT FK_risk_register_users_3 FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
-    CONSTRAINT FK_risk_register_users_4 FOREIGN KEY (updated_by) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION
+    CONSTRAINT FK_risk_register_users_2 FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_risk_register_users_3 FOREIGN KEY (updated_by) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 -- +goose StatementEnd
 
