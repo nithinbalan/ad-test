@@ -82,16 +82,6 @@ func (ries RiskInherentEvaluationService) GetFullDetailsByID(riskID uint, id uin
 		return nil, err
 	}
 
-	for _, evaluation := range *riskInherentEvaluation.RiskImpactEvaluations {
-		var evaluationDTO riskDTOs.RiskImpactEvaluationDTO
-		err := mapstructure.Decode(evaluation, &evaluationDTO)
-		if err != nil {
-			return nil, err // Handle error appropriately
-		}
-
-		riskInherentEvaluationDetailsDTO.RiskImpactEvaluations = append(riskInherentEvaluationDetailsDTO.RiskImpactEvaluations, &evaluationDTO)
-	}
-
 	//todo :- also add extra fields which required in details screen
 
 	return &riskInherentEvaluationDetailsDTO, nil

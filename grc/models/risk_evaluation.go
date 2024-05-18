@@ -27,7 +27,7 @@ type RiskEvaluation struct {
 	ResidualRiskMatrixImpact     *RiskMatrixImpact        `gorm:"foreignkey:ResidualRiskMatrixImpactID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ResidualRiskMatrixRiskRating *RiskMatrixRiskRating    `gorm:"foreignkey:ResidualRiskMatrixRiskRatingID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	RiskImpactEvaluations        *[]RiskImpactEvaluation  `gorm:"foreignkey:RiskEvaluationID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	RiskAppetitieAlignments      *[]RiskAppetiteAlignment `gorm:"foreignkey:RiskEvaluationID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	RiskAppetiteAlignments       *[]RiskAppetiteAlignment `gorm:"foreignkey:RiskEvaluationID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	CreatedByUser                *User                    `gorm:"foreignKey:CreatedBy"`
 	UpdatedByUser                *User                    `gorm:"foreignKey:UpdatedBy"`
 }

@@ -42,8 +42,11 @@ func (repo *RiskInherentEvaluationRepository) GetFullDetailsByID(id uint) (*mode
 		Preload("InherentRiskMatrixLikelihood").
 		Preload("InherentRiskMatrixImpact").
 		Preload("InherentRiskMatrixRiskRating").
-		Preload("RiskImpactEvaluations").
-		Preload("RiskAppetitieAlignments").
+		Preload("RiskImpactEvaluations.RiskMatrixImpactGuideline").
+		Preload("RiskImpactEvaluations.RiskImpactCategory").
+		Preload("RiskImpactEvaluations.RiskMatrixImpact").
+		Preload("RiskAppetiteAlignments.RiskAppetiteStatement").
+		Preload("RiskAppetiteAlignments.RiskAppetiteToleranceLevel").
 		First(&riskInherentEvaluation, id)
 	if result.Error != nil {
 		return nil, result.Error

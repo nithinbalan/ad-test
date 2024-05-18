@@ -19,8 +19,10 @@ type RiskImpactEvaluationDTO struct {
 }
 
 type RiskAppetiteAlignmentDTO struct {
-	RiskAppetiteStatementID      uint `json:"risk_appetite_statement_id"`
-	RiskAppetiteToleranceLevelID uint `json:"risk_appetite_tolerance_level_id"`
+	RiskAppetiteStatementID      uint                            `json:"risk_appetite_statement_id"`
+	RiskAppetiteToleranceLevelID uint                            `json:"risk_appetite_tolerance_level_id"`
+	RiskAppetiteStatement        RiskAppetiteStatementDetailsDTO `json:"risk_appetite_statement"`
+	RiskAppetiteToleranceLevel   RiskAppetiteToleranceLevelDTO   `json:"risk_appetite_tolerance_level"`
 }
 
 type RiskInherentEvaluationFormDTO struct {
