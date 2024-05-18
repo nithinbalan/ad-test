@@ -39,7 +39,7 @@ func (riec *RiskInherentEvaluationController) GetRiskInherentEvaluation(c *gin.C
 		return
 	}
 
-	riskInherentEvaluations, err := riec.service.GetByID(uint(riskID), uint(id))
+	riskInherentEvaluations, err := riec.service.GetFullDetailsByID(uint(riskID), uint(id))
 
 	if err != nil {
 		switch e := err.(type) {

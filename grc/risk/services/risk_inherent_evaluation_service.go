@@ -9,10 +9,12 @@ import (
 	riskRepositories "jethur/grc/risk/repositories"
 	"jethur/utility"
 
+	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
 )
 
 type RiskInherentEvaluationServiceInterface interface {
+	GetFullDetailsByID(riskID uint, id uint) (*riskDTOs.RiskInherentEvaluationDetailsDTO, error)
 	GetByID(riskID uint, id uint) (*models.RiskEvaluation, error)
 	Create(riskID uint, currentUserID uint, inherentEvaluationFormDTO *riskDTOs.RiskInherentEvaluationFormDTO) (uint, error)
 	Update(riskID uint, id uint, currentUserID uint, inherentEvaluationFormDTO *riskDTOs.RiskInherentEvaluationFormDTO) error
@@ -24,6 +26,8 @@ type RiskInherentEvaluationService struct {
 	repo                         riskRepositories.RiskInherentEvaluationRepositoryInterface
 	activityLogSvc               logServices.ActivityLogServiceInterface
 	riskRegisterSvc              RiskRegisterServiceInterface
+	riskMatrixSvc                RiskMatrixServiceInterface
+	riskMatrixRiskRatingValueSvc RiskMatrixRiskRatingValueServiceInterface
 	riskMatrixImpactSvc          RiskMatrixImpactServiceInterface
 	riskMatrixLikelihoodSvc      RiskMatrixLikelihoodServiceInterface
 	riskImpactCategorySvc        RiskImpactCategoryServiceInterface
@@ -35,6 +39,8 @@ func NewRiskInherentEvaluationService(
 	repo riskRepositories.RiskInherentEvaluationRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	riskRegisterSvc RiskRegisterServiceInterface,
+	riskMatrixSvc RiskMatrixServiceInterface,
+	riskMatrixRiskRatingValueSvc RiskMatrixRiskRatingValueServiceInterface,
 	riskMatrixImpactSvc RiskMatrixImpactServiceInterface,
 	riskMatrixLikelihoodSvc RiskMatrixLikelihoodServiceInterface,
 	riskImpactCategorySvc RiskImpactCategoryServiceInterface,
@@ -45,12 +51,50 @@ func NewRiskInherentEvaluationService(
 		repo:                         repo,
 		activityLogSvc:               activityLogSvc,
 		riskRegisterSvc:              riskRegisterSvc,
+		riskMatrixSvc:                riskMatrixSvc,
+		riskMatrixRiskRatingValueSvc: riskMatrixRiskRatingValueSvc,
 		riskMatrixImpactSvc:          riskMatrixImpactSvc,
 		riskMatrixLikelihoodSvc:      riskMatrixLikelihoodSvc,
 		riskImpactCategorySvc:        riskImpactCategorySvc,
 		riskMatrixImpactGuidelineSvc: riskMatrixImpactGuidelineSvc,
 		riskAppetiteStatementSvc:     riskAppetiteStatementSvc,
 	}
+}
+
+func (ries RiskInherentEvaluationService) GetFullDetailsByID(riskID uint, id uint) (*riskDTOs.RiskInherentEvaluationDetailsDTO, error) {
+	if _, err := ries.riskRegisterSvc.GetByID(riskID); err != nil {
+		return nil, err
+	}
+
+	var riskInherentEvaluationDetailsDTO riskDTOs.RiskInherentEvaluationDetailsDTO
+
+	riskInherentEvaluation, err := ries.repo.GetFullDetailsByID(id)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+
+	err = mapstructure.Decode(riskInherentEvaluation, &riskInherentEvaluationDetailsDTO)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, evaluation := range *riskInherentEvaluation.RiskImpactEvaluations {
+		var evaluationDTO riskDTOs.RiskImpactEvaluationDTO
+		err := mapstructure.Decode(evaluation, &evaluationDTO)
+		if err != nil {
+			return nil, err // Handle error appropriately
+		}
+
+		riskInherentEvaluationDetailsDTO.RiskImpactEvaluations = append(riskInherentEvaluationDetailsDTO.RiskImpactEvaluations, &evaluationDTO)
+	}
+
+	//todo :- also add extra fields which required in details screen
+
+	return &riskInherentEvaluationDetailsDTO, nil
 }
 
 func (ries *RiskInherentEvaluationService) GetByID(riskID uint, id uint) (*models.RiskEvaluation, error) {
@@ -80,11 +124,51 @@ func (ries *RiskInherentEvaluationService) Create(riskID uint, currentUserID uin
 		return 0, err
 	}
 
+	riskMatrixType, err := ries.riskMatrixSvc.GetByType("erm")
+	if err != nil {
+		return 0, err
+	}
+
+	riskMatrix, err := ries.riskMatrixSvc.GetDetailsByID(riskMatrixType.ID)
+	if err != nil {
+		return 0, err
+	}
+
+	var riskRatingValueArray []*riskDTOs.RiskMatrixRiskRatingDataDTO
+
+	for _, riskRating := range riskMatrix.RiskMatrixRiskRating {
+		for _, value := range riskRating.RiskMatrixRiskRatingValue {
+			detail := &riskDTOs.RiskMatrixRiskRatingDataDTO{
+				RiskMatrixID:           riskRating.RiskMatrixID,
+				RiskMatrixRiskRatingID: value.RiskMatrixRiskRatingID,
+				RiskRatingTitleEN:      riskRating.TitleEn,
+				RiskRatingTitleAR:      riskRating.TitleAr,
+				RiskRatingTitleType:    riskRating.Type,
+				ColorCode:              riskRating.ColorCode,
+				Value:                  value.Value,
+			}
+			riskRatingValueArray = append(riskRatingValueArray, detail)
+		}
+	}
+
+	impact, err := ries.riskMatrixImpactSvc.GetByID(inherentEvaluationFormDTO.InherentRiskMatrixImpactID)
+	if err != nil {
+		return 0, err
+	}
+	likelihood, err := ries.riskMatrixLikelihoodSvc.GetByID(inherentEvaluationFormDTO.InherentRiskMatrixLikelihoodID)
+	if err != nil {
+		return 0, err
+	}
+	calculationMethod := riskMatrix.CalculationType
+
+	score := ries.riskMatrixRiskRatingValueSvc.EvaluateScore(impact, likelihood, calculationMethod)
+	riskRating, _ := ries.riskMatrixRiskRatingValueSvc.FindRiskRatingValue(riskRatingValueArray, score)
+
 	riskInherentEvaluation := &models.RiskEvaluation{
 		RiskRegisterID:                 riskID,
 		InherentRiskMatrixLikelihoodID: inherentEvaluationFormDTO.InherentRiskMatrixLikelihoodID,
 		InherentRiskMatrixImpactID:     inherentEvaluationFormDTO.InherentRiskMatrixImpactID,
-		InherentRiskMatrixRiskRatingID: inherentEvaluationFormDTO.InherentRiskMatrixRiskRatingID,
+		InherentRiskMatrixRiskRatingID: riskRating.RiskMatrixRiskRatingID,
 		CreatedBy:                      currentUserID,
 	}
 
@@ -172,6 +256,46 @@ func (ries *RiskInherentEvaluationService) Update(riskID uint, id uint, currentU
 		return err
 	}
 
+	riskMatrixType, err := ries.riskMatrixSvc.GetByType("erm")
+	if err != nil {
+		return err
+	}
+
+	riskMatrix, err := ries.riskMatrixSvc.GetDetailsByID(riskMatrixType.ID)
+	if err != nil {
+		return err
+	}
+
+	var riskRatingValueArray []*riskDTOs.RiskMatrixRiskRatingDataDTO
+
+	for _, riskRating := range riskMatrix.RiskMatrixRiskRating {
+		for _, value := range riskRating.RiskMatrixRiskRatingValue {
+			detail := &riskDTOs.RiskMatrixRiskRatingDataDTO{
+				RiskMatrixID:           riskRating.RiskMatrixID,
+				RiskMatrixRiskRatingID: value.RiskMatrixRiskRatingID,
+				RiskRatingTitleEN:      riskRating.TitleEn,
+				RiskRatingTitleAR:      riskRating.TitleAr,
+				RiskRatingTitleType:    riskRating.Type,
+				ColorCode:              riskRating.ColorCode,
+				Value:                  value.Value,
+			}
+			riskRatingValueArray = append(riskRatingValueArray, detail)
+		}
+	}
+
+	impact, err := ries.riskMatrixImpactSvc.GetByID(inherentEvaluationFormDTO.InherentRiskMatrixImpactID)
+	if err != nil {
+		return err
+	}
+	likelihood, err := ries.riskMatrixLikelihoodSvc.GetByID(inherentEvaluationFormDTO.InherentRiskMatrixLikelihoodID)
+	if err != nil {
+		return err
+	}
+	calculationMethod := riskMatrix.CalculationType
+
+	score := ries.riskMatrixRiskRatingValueSvc.EvaluateScore(impact, likelihood, calculationMethod)
+	riskRating, _ := ries.riskMatrixRiskRatingValueSvc.FindRiskRatingValue(riskRatingValueArray, score)
+
 	existingRiskInherentEvaluation, err := ries.GetByID(riskID, id)
 	if err != nil {
 		return err
@@ -179,7 +303,7 @@ func (ries *RiskInherentEvaluationService) Update(riskID uint, id uint, currentU
 
 	existingRiskInherentEvaluation.InherentRiskMatrixImpactID = inherentEvaluationFormDTO.InherentRiskMatrixImpactID
 	existingRiskInherentEvaluation.InherentRiskMatrixLikelihoodID = inherentEvaluationFormDTO.InherentRiskMatrixLikelihoodID
-	existingRiskInherentEvaluation.InherentRiskMatrixRiskRatingID = inherentEvaluationFormDTO.InherentRiskMatrixRiskRatingID
+	existingRiskInherentEvaluation.InherentRiskMatrixRiskRatingID = riskRating.RiskMatrixRiskRatingID
 	existingRiskInherentEvaluation.UpdatedBy = &currentUserID
 
 	if err := ries.repo.Update(existingRiskInherentEvaluation, tx); err != nil {
@@ -239,6 +363,126 @@ func (ries *RiskInherentEvaluationService) Update(riskID uint, id uint, currentU
 	tx.Commit()
 	return nil
 }
+
+// func (ries *RiskInherentEvaluationService) Update(riskID uint, id uint, currentUserID uint, inherentEvaluationFormDTO *riskDTOs.RiskInherentEvaluationFormDTO) error {
+// 	tx := ries.repo.BeginTransaction()
+
+// 	if _, err := ries.riskRegisterSvc.GetByID(riskID); err != nil {
+// 		return err
+// 	}
+
+// 	if err := ries.validateRiskInherentEvaluationFormDTO(inherentEvaluationFormDTO); err != nil {
+// 		return err
+// 	}
+
+// 	riskMatrixType, err := ries.riskMatrixSvc.GetByType("erm")
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	riskMatrix, err := ries.riskMatrixSvc.GetDetailsByID(riskMatrixType.ID)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	var riskRatingValueArray []*riskDTOs.RiskMatrixRiskRatingDataDTO
+
+// 	for _, riskRating := range riskMatrix.RiskMatrixRiskRating {
+// 		for _, value := range riskRating.RiskMatrixRiskRatingValue {
+// 			detail := &riskDTOs.RiskMatrixRiskRatingDataDTO{
+// 				RiskMatrixID:           riskRating.RiskMatrixID,
+// 				RiskMatrixRiskRatingID: value.RiskMatrixRiskRatingID,
+// 				RiskRatingTitleEN:      riskRating.TitleEn,
+// 				RiskRatingTitleAR:      riskRating.TitleAr,
+// 				RiskRatingTitleType:    riskRating.Type,
+// 				ColorCode:              riskRating.ColorCode,
+// 				Value:                  value.Value,
+// 			}
+// 			riskRatingValueArray = append(riskRatingValueArray, detail)
+// 		}
+// 	}
+
+// 	impact, err := ries.riskMatrixImpactSvc.GetByID(inherentEvaluationFormDTO.InherentRiskMatrixImpactID)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	likelihood, err := ries.riskMatrixLikelihoodSvc.GetByID(inherentEvaluationFormDTO.InherentRiskMatrixLikelihoodID)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	calculationMethod := riskMatrix.CalculationType
+
+// 	score := ries.riskMatrixRiskRatingValueSvc.EvaluateScore(impact, likelihood, calculationMethod)
+// 	riskRating, _ := ries.riskMatrixRiskRatingValueSvc.FindRiskRatingValue(riskRatingValueArray, score)
+
+// 	existingRiskInherentEvaluation, err := ries.GetByID(riskID, id)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	existingRiskInherentEvaluation.InherentRiskMatrixImpactID = inherentEvaluationFormDTO.InherentRiskMatrixImpactID
+// 	existingRiskInherentEvaluation.InherentRiskMatrixLikelihoodID = inherentEvaluationFormDTO.InherentRiskMatrixLikelihoodID
+// 	existingRiskInherentEvaluation.InherentRiskMatrixRiskRatingID = riskRating.RiskMatrixRiskRatingID
+// 	existingRiskInherentEvaluation.UpdatedBy = &currentUserID
+// 	fmt.Println(existingRiskInherentEvaluation)
+
+// 	if err := ries.repo.Update(existingRiskInherentEvaluation, tx); err != nil {
+// 		tx.Rollback()
+// 		return err
+// 	}
+
+// 	// Delete existing RiskImpactEvaluations
+// 	if err := ries.repo.DeleteRiskImpactEvaluationsByRiskEvaluationID(id, tx); err != nil {
+// 		tx.Rollback()
+// 		return err
+// 	}
+
+// 	// Delete existing RiskAppetiteAlignments
+// 	if err := ries.repo.DeleteRiskAppetiteAlignmentsByRiskEvaluationID(id, tx); err != nil {
+// 		tx.Rollback()
+// 		return err
+// 	}
+
+// 	var riskImpactEvaluations []*models.RiskImpactEvaluation
+// 	for _, impactEval := range inherentEvaluationFormDTO.RiskImpactEvaluations {
+// 		riskImpactEvaluation := &models.RiskImpactEvaluation{
+// 			RiskEvaluationID:            id,
+// 			RiskMatrixImpactGuidelineID: impactEval.RiskMatrixImpactGuidelineID,
+// 			RiskImpactCategoryID:        impactEval.RiskImpactCategoryID,
+// 			RiskMatrixImpactID:          impactEval.RiskMatrixImpactID,
+// 			CreatedBy:                   currentUserID,
+// 		}
+// 		riskImpactEvaluations = append(riskImpactEvaluations, riskImpactEvaluation)
+// 	}
+
+// 	if len(riskImpactEvaluations) > 0 {
+// 		if err := ries.repo.CreateRiskImpactEvaluations(riskImpactEvaluations, tx); err != nil {
+// 			tx.Rollback()
+// 			return err
+// 		}
+// 	}
+
+// 	var riskAppetiteAlignments []*models.RiskAppetiteAlignment
+// 	for _, appetiteAlignment := range inherentEvaluationFormDTO.RiskAppetiteAlignments {
+// 		riskAppetiteAlignment := &models.RiskAppetiteAlignment{
+// 			RiskEvaluationID:             id,
+// 			RiskAppetiteStatementID:      appetiteAlignment.RiskAppetiteStatementID,
+// 			RiskAppetiteToleranceLevelID: appetiteAlignment.RiskAppetiteToleranceLevelID,
+// 			CreatedBy:                    currentUserID,
+// 		}
+// 		riskAppetiteAlignments = append(riskAppetiteAlignments, riskAppetiteAlignment)
+// 	}
+
+// 	if len(riskAppetiteAlignments) > 0 {
+// 		if err := ries.repo.CreateRiskAppetiteAlignments(riskAppetiteAlignments, tx); err != nil {
+// 			tx.Rollback()
+// 			return err
+// 		}
+// 	}
+
+// 	tx.Commit()
+// 	return nil
+// }
 
 func (ries *RiskInherentEvaluationService) Delete(riskID uint, id uint, currentUserID uint) (uint, error) {
 	tx := ries.repo.BeginTransaction()

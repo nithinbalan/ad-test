@@ -9,6 +9,7 @@ import (
 
 type RiskInherentEvaluationRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
+	GetFullDetailsByID(id uint) (*models.RiskEvaluation, error)
 	GetByID(id uint) (*models.RiskEvaluation, error)
 	Create(riskInherentEvaluation *models.RiskEvaluation, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(riskInherentEvaluation *models.RiskEvaluation, tx ...utility.DatabaseTransaction) error
@@ -34,7 +35,7 @@ func (repo *RiskInherentEvaluationRepository) BeginTransaction() utility.Databas
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *RiskInherentEvaluationRepository) GetByID(id uint) (*models.RiskEvaluation, error) {
+func (repo *RiskInherentEvaluationRepository) GetFullDetailsByID(id uint) (*models.RiskEvaluation, error) {
 	var riskInherentEvaluation *models.RiskEvaluation
 
 	result := repo.db.
@@ -43,6 +44,19 @@ func (repo *RiskInherentEvaluationRepository) GetByID(id uint) (*models.RiskEval
 		Preload("InherentRiskMatrixRiskRating").
 		Preload("RiskImpactEvaluations").
 		Preload("RiskAppetitieAlignments").
+		First(&riskInherentEvaluation, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return riskInherentEvaluation, nil
+
+}
+
+func (repo *RiskInherentEvaluationRepository) GetByID(id uint) (*models.RiskEvaluation, error) {
+	var riskInherentEvaluation *models.RiskEvaluation
+
+	result := repo.db.
 		First(&riskInherentEvaluation, id)
 	if result.Error != nil {
 		return nil, result.Error
