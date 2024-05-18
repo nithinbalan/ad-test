@@ -40,7 +40,7 @@ func (repo *ControlActionPlanStatusUpdateRepository) GetAll(controlActionPlanID 
 
 	var controlActionPlanUpdates []*organizationDTOs.ControlActionPlanStatusUpdateListDTO
 
-	query := repo.db.Table("compliance_action_plan_status_updates").
+	query := repo.db.Table("control_action_plan_status_updates").
 		Select(`
             control_action_plan_status_updates.*,
             control_action_plans.title AS control_action_plan_title,
@@ -79,14 +79,14 @@ func (repo *ControlActionPlanStatusUpdateRepository) GetAll(controlActionPlanID 
 		sort = "asc"
 	}
 	query = query.Order(sortBy + " " + sort)
-	result := query.Find(&controlActionPlanUpdates)
 
+	result := query.Find(&controlActionPlanUpdates)
 	return controlActionPlanUpdates, result.Error
 }
 
 func (repo *ControlActionPlanStatusUpdateRepository) GetByID(id uint) (*models.ControlActionPlanStatusUpdate, error) {
 	var controlActionPlanStatusUpdate *models.ControlActionPlanStatusUpdate
-	result := repo.db.First(&controlActionPlanStatusUpdate, id)
+	result := repo.db.Preload("Documents").First(&controlActionPlanStatusUpdate, id)
 
 	if result.Error != nil {
 		return nil, result.Error

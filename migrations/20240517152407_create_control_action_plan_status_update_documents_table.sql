@@ -4,7 +4,7 @@ CREATE TABLE control_action_plan_status_update_documents (
     id INT PRIMARY KEY IDENTITY(1,1),
     control_action_plan_status_update_id INT NOT NULL,
     url VARCHAR(1000) NOT NULL,
-    name NVARCHAR(255),
+    name NVARCHAR(255) NOT NULL,
     size INT NOT NULL,
     token VARCHAR(255) NOT NULL,
     type VARCHAR(255) NOT NULL,

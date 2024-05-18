@@ -17,10 +17,11 @@ type ControlActionPlanStatusUpdate struct {
 	UpdatedByID         *uint      `json:"updated_by" gorm:"default:null; column:updated_by" binding:"-"`
 
 	// Relationships
-	ControlActionPlan *ControlActionPlan `json:"control_action_plan" gorm:"foreignKey:ControlActionPlanID"`
-	ActionPlanStatus  *ActionPlanStatus  `json:"action_plan_status" gorm:"foreignKey:ActionPlanStatusID"`
-	CreateByUser      *User              `json:"creator" gorm:"foreignKey:CreatedByID"`
-	UpdateByUser      *User              `json:"updater" gorm:"foreignKey:UpdatedByID"`
+	ControlActionPlan *ControlActionPlan                       `json:"control_action_plan" gorm:"foreignKey:ControlActionPlanID"`
+	ActionPlanStatus  *ActionPlanStatus                        `json:"action_plan_status" gorm:"foreignKey:ActionPlanStatusID"`
+	CreateByUser      *User                                    `json:"create_by_user" gorm:"foreignKey:CreatedByID"`
+	UpdateByUser      *User                                    `json:"update_by_user" gorm:"foreignKey:UpdatedByID"`
+	Documents         []*ControlActionPlanStatusUpdateDocument `json:"documents" gorm:"foreignKey:ControlActionPlanStatusUpdateID"`
 }
 
 // TableName overrides the table name used by GORM

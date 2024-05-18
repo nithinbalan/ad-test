@@ -16,6 +16,7 @@ import (
 )
 
 type ControlActionPlanStatusUpdateServiceInterface interface {
+	GetByID(controlID uint, controlActionPlanID uint, id uint) (*models.ControlActionPlanStatusUpdate, error)
 	GetAll(controlID uint, controlActionPlanID uint, sort string, sortBy string, keyword string) ([]*organizationDTOs.ControlActionPlanStatusUpdateListDTO, error)
 	Create(controlID uint, controlActionPlanID uint, currentUserID uint, controlActionPlanStatusUpdateFormDTO *organizationDTOs.ControlActionPlanStatusUpdateFormDTO) (uint, error)
 	Update(controlID uint, controlActionPlanID uint, id uint, currentUserID uint, controlActionPlanStatusUpdateFormDTO *organizationDTOs.ControlActionPlanStatusUpdateFormDTO) error
@@ -99,28 +100,28 @@ func (casus *ControlActionPlanStatusUpdateService) Create(controlID uint, contro
 		return 0, err
 	}
 
-	var documents []*models.ComplianceActionPlanStatusUpdateDocument
+	var documents []*models.ControlActionPlanStatusUpdateDocument
 
-	for _, doc := range complianceActionPlanStatusUpdateFormDTO.Documents {
+	for _, doc := range controlActionPlanStatusUpdateFormDTO.Documents {
 
 		dataToEncrypt := []byte(doc.FileName)
-		encryptedFilename, err := utility.EncryptData(dataToEncrypt)
+		encryptedFileName, err := utility.EncryptData(dataToEncrypt)
 		if err != nil {
 			tx.Rollback()
 			return 0, err
 		}
 
-		url := utility.GenerateDocumentURL("compliance-register", strconv.FormatUint(uint64(ComplianceID), 10), "action-plans", strconv.FormatUint(uint64(ComplianceActionPlanID), 10), "status-updates", encryptedFilename)
+		url := utility.GenerateDocumentURL("organization", "control", strconv.FormatUint(uint64(controlID), 10), "action-plans", strconv.FormatUint(uint64(controlActionPlanID), 10), "action-plan-updates", strconv.FormatUint(uint64(id), 10), encryptedFileName)
 
-		document := &models.ComplianceActionPlanStatusUpdateDocument{
-			ComplianceActionPlanStatusUpdateID: id,
-			URL:                                url,
-			Icon:                               doc.Icon,
-			Name:                               doc.FileName,
-			Size:                               doc.Size,
-			Token:                              encryptedFilename,
-			Type:                               doc.Type,
-			CreatedBy:                          currentUserID,
+		document := &models.ControlActionPlanStatusUpdateDocument{
+			ControlActionPlanStatusUpdateID: id,
+			URL:                             url,
+			Icon:                            doc.Icon,
+			Name:                            doc.FileName,
+			Size:                            doc.Size,
+			Token:                           encryptedFileName,
+			Type:                            doc.Type,
+			CreatedByID:                     currentUserID,
 		}
 
 		documents = append(documents, document)
@@ -133,7 +134,7 @@ func (casus *ControlActionPlanStatusUpdateService) Create(controlID uint, contro
 		}
 		//move file to storage
 		for _, doc := range documents {
-			storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(ComplianceID), 10), "action-plans", strconv.FormatUint(uint64(ComplianceActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
+			storagePath := filepath.Join("organization", "control", strconv.FormatUint(uint64(controlID), 10), "action-plans", strconv.FormatUint(uint64(controlActionPlanID), 10), "action-plan-updates", strconv.FormatUint(uint64(id), 10), "documents")
 			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
 				tx.Rollback()
 				return 0, err
@@ -146,9 +147,9 @@ func (casus *ControlActionPlanStatusUpdateService) Create(controlID uint, contro
 	go func() {
 		err := casus.activityLogSvc.LogActivity(
 			models.CreateAction,
-			models.ComplianceActionPlanStatusUpdate{}.TableName(),
+			models.ControlActionPlanStatusUpdate{}.TableName(),
 			id,
-			complianceActionPlanUpdate,
+			controlActionPlanUpdate,
 			currentUserID,
 			nil,
 		)
@@ -156,7 +157,7 @@ func (casus *ControlActionPlanStatusUpdateService) Create(controlID uint, contro
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
-				"tableName": models.ComplianceActionPlanStatusUpdate{}.TableName(),
+				"tableName": models.ControlActionPlanStatusUpdate{}.TableName(),
 				"recordID":  id,
 				"userID":    currentUserID,
 				"error":     err.Error(),
@@ -169,29 +170,28 @@ func (casus *ControlActionPlanStatusUpdateService) Create(controlID uint, contro
 	return id, nil
 }
 
-func (casus *ControlActionPlanStatusUpdateService) Update(ComplianceID uint, ComplianceActionPlanID uint, id uint, currentUserID uint, ComplianceActionPlanStatusUpdateFormDTO *complianceDTOs.ComplianceActionPlanStatusUpdateFormDTO) error {
+func (casus *ControlActionPlanStatusUpdateService) Update(controlID uint, controlActionPlanID uint, id uint, currentUserID uint, controlActionPlanStatusUpdateFormDTO *organizationDTOs.ControlActionPlanStatusUpdateFormDTO) error {
 	tx := casus.repo.BeginTransaction()
 
-	if _, err := casus.complianceActionPlanSvc.GetByID(ComplianceID, ComplianceActionPlanID); err != nil {
+	if _, err := casus.controlActionPlanSvc.GetByID(controlID, controlActionPlanID); err != nil {
 		return err
 	}
 
-	existingComplianceActionPlanStatusUpdate, err := casus.GetByID(ComplianceID, ComplianceActionPlanID, id)
+	existingComplianceActionPlanStatusUpdate, err := casus.GetByID(controlID, controlActionPlanID, id)
 
 	if err != nil {
 		return err
 	}
 
-	if err := casus.validateComplianceActionPlanStatusUpdateFormDTO(ComplianceActionPlanStatusUpdateFormDTO); err != nil {
+	if err := casus.validateControlActionPlanStatusUpdateFormDTO(controlActionPlanStatusUpdateFormDTO); err != nil {
 		return err
 	}
 
 	//@todo validate docuemnt form
 
-	// Update Compliance StatusUpdate-- only comments and percentage
-	existingComplianceActionPlanStatusUpdate.Comment = ComplianceActionPlanStatusUpdateFormDTO.Comment
-	existingComplianceActionPlanStatusUpdate.Percentage = ComplianceActionPlanStatusUpdateFormDTO.Percentage
-	existingComplianceActionPlanStatusUpdate.UpdatedBy = &currentUserID
+	existingComplianceActionPlanStatusUpdate.Comment = controlActionPlanStatusUpdateFormDTO.Comment
+	existingComplianceActionPlanStatusUpdate.Percentage = controlActionPlanStatusUpdateFormDTO.Percentage
+	existingComplianceActionPlanStatusUpdate.UpdatedByID = &currentUserID
 
 	err = casus.repo.Update(existingComplianceActionPlanStatusUpdate, tx)
 	if err != nil {
@@ -199,11 +199,17 @@ func (casus *ControlActionPlanStatusUpdateService) Update(ComplianceID uint, Com
 		return err
 	}
 
-	var documents []*models.ComplianceActionPlanStatusUpdateDocument
-	var deleteDocumentIds []*uint
-	var documentsToDelete []*models.ComplianceActionPlanStatusUpdateDocument
+	err = casus.controlActionPlanSvc.StatusUpdate(controlID, controlActionPlanID, currentUserID, existingComplianceActionPlanStatusUpdate.ActionPlanStatusID, controlActionPlanStatusUpdateFormDTO.Percentage, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
 
-	for _, doc := range ComplianceActionPlanStatusUpdateFormDTO.Documents {
+	var documents []*models.ControlActionPlanStatusUpdateDocument
+	var deleteDocumentIds []*uint
+	var documentsToDelete []*models.ControlActionPlanStatusUpdateDocument
+
+	for _, doc := range controlActionPlanStatusUpdateFormDTO.Documents {
 
 		if doc.IsNewFile != nil && *doc.IsNewFile {
 			// Encrypt the filename
@@ -216,17 +222,17 @@ func (casus *ControlActionPlanStatusUpdateService) Update(ComplianceID uint, Com
 			}
 
 			//genereate URL
-			url := utility.GenerateDocumentURL("compliance-register", strconv.FormatUint(uint64(ComplianceID), 10), "action-plans", strconv.FormatUint(uint64(ComplianceActionPlanID), 10), "status-updates", encryptedFileName)
-			// Create a new Control test Document instance
-			document := &models.ComplianceActionPlanStatusUpdateDocument{
-				ComplianceActionPlanStatusUpdateID: id,
-				URL:                                url,
-				Icon:                               doc.Icon,
-				Name:                               doc.FileName,
-				Size:                               doc.Size,
-				Token:                              encryptedFileName,
-				Type:                               doc.Type,
-				CreatedBy:                          currentUserID,
+			url := utility.GenerateDocumentURL("organization", "control", strconv.FormatUint(uint64(controlID), 10), "action-plans", strconv.FormatUint(uint64(controlActionPlanID), 10), "action-plan-updates", strconv.FormatUint(uint64(id), 10), encryptedFileName)
+
+			document := &models.ControlActionPlanStatusUpdateDocument{
+				ControlActionPlanStatusUpdateID: id,
+				URL:                             url,
+				Icon:                            doc.Icon,
+				Name:                            doc.FileName,
+				Size:                            doc.Size,
+				Token:                           encryptedFileName,
+				Type:                            doc.Type,
+				CreatedByID:                     currentUserID,
 			}
 
 			// Append the document to the slice
@@ -263,7 +269,7 @@ func (casus *ControlActionPlanStatusUpdateService) Update(ComplianceID uint, Com
 	}
 
 	for _, doc := range documents {
-		storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(ComplianceID), 10), "action-plans", strconv.FormatUint(uint64(ComplianceActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
+		storagePath := filepath.Join("organization", "control", strconv.FormatUint(uint64(controlID), 10), "action-plans", strconv.FormatUint(uint64(controlActionPlanID), 10), "action-plan-updates", strconv.FormatUint(uint64(id), 10), "documents")
 
 		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
 			tx.Rollback()
@@ -272,7 +278,7 @@ func (casus *ControlActionPlanStatusUpdateService) Update(ComplianceID uint, Com
 	}
 
 	for _, document := range documentsToDelete {
-		storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(ComplianceID), 10), "action-plans", strconv.FormatUint(uint64(ComplianceActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
+		storagePath := filepath.Join("organization", "control", strconv.FormatUint(uint64(controlID), 10), "action-plans", strconv.FormatUint(uint64(controlActionPlanID), 10), "action-plan-updates", strconv.FormatUint(uint64(id), 10), "documents")
 		if err := utility.RemoveFile(document.Name, storagePath); err != nil {
 			tx.Rollback()
 			return err
@@ -284,9 +290,9 @@ func (casus *ControlActionPlanStatusUpdateService) Update(ComplianceID uint, Com
 	return nil
 }
 
-func (casus *ControlActionPlanStatusUpdateService) validateControlActionPlanStatusUpdateFormDTO(complianceActionPlanStatusUpdateFormDTO *complianceDTOs.ComplianceActionPlanStatusUpdateFormDTO) error {
+func (casus *ControlActionPlanStatusUpdateService) validateControlActionPlanStatusUpdateFormDTO(controlActionPlanStatusUpdateFormDTO *organizationDTOs.ControlActionPlanStatusUpdateFormDTO) error {
 
-	if _, err := casus.actionPlanStatusSvc.GetByID(complianceActionPlanStatusUpdateFormDTO.ActionPlanStatusID); err != nil {
+	if _, err := casus.actionPlanStatusSvc.GetByID(controlActionPlanStatusUpdateFormDTO.ActionPlanStatusID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("action plan status does not exist"), "not_exist", "action plan status")
 	}
 

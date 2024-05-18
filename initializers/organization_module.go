@@ -9,20 +9,21 @@ import (
 )
 
 type OrganizationModule struct {
-	DesignationController                 *controllers.DesignationController
-	UserStatusController                  *controllers.UserStatusController
-	UserController                        *controllers.UserController
-	UserSettingController                 *controllers.UserSettingController
-	StrategicProfileController            *controllers.StrategicProfileController
-	StrategicObjectiveController          *controllers.StrategicOBjectiveController
-	ControlCategoryController             *controllers.ControlCategoryController
-	ControlTypeController                 *controllers.ControlTypeController
-	ControlImplementationStatusController *controllers.ControlImplementationStatusController
-	ControlEfficiencyStatusController     *controllers.ControlEfficiencyStatusController
-	ControlController                     *controllers.ControlController
-	ControlTestController                 *controllers.ControlTestController
-	ProcessGroupController                *controllers.ProcessGroupController
-	ControlActionPlanController           *controllers.ControlActionPlanController
+	DesignationController                   *controllers.DesignationController
+	UserStatusController                    *controllers.UserStatusController
+	UserController                          *controllers.UserController
+	UserSettingController                   *controllers.UserSettingController
+	StrategicProfileController              *controllers.StrategicProfileController
+	StrategicObjectiveController            *controllers.StrategicOBjectiveController
+	ControlCategoryController               *controllers.ControlCategoryController
+	ControlTypeController                   *controllers.ControlTypeController
+	ControlImplementationStatusController   *controllers.ControlImplementationStatusController
+	ControlEfficiencyStatusController       *controllers.ControlEfficiencyStatusController
+	ControlController                       *controllers.ControlController
+	ControlTestController                   *controllers.ControlTestController
+	ProcessGroupController                  *controllers.ProcessGroupController
+	ControlActionPlanController             *controllers.ControlActionPlanController
+	ControlActionPlanStatusUpdateController *controllers.ControlActionPlanStatusUpdateController
 
 	UserSvc        services.UserServiceInterface
 	UserSettingSvc services.UserSettingServiceInterface
@@ -106,21 +107,26 @@ func NewOrganizationModule(
 	controlActionPlanSvc := services.NewControlActionPlanService(controlActionPlanRepo, sharedModule.ActivityLogService, controlSvc, masterModule.SeverityLevelSvc, masterModule.ActionPlanStatusSvc, userSvc)
 	controlActionPlanController := controllers.NewControlActionPlanController(controlActionPlanSvc)
 
+	controlActionPlanStatusUpdateRepo := repositories.NewControlActionPlanStatusUpdateRepository(db)
+	controlActionPlanStatusUpdateSvc := services.NewControlActionPlanStatusUpdateService(controlActionPlanStatusUpdateRepo, sharedModule.ActivityLogService, controlActionPlanSvc, masterModule.ActionPlanStatusSvc)
+	controlActionPlanStatusUpdateController := controllers.NewControlActionPlanStatusUpdateController(controlActionPlanStatusUpdateSvc)
+
 	return &OrganizationModule{
-		DesignationController:                 designationController,
-		UserStatusController:                  userStatusController,
-		UserController:                        userController,
-		UserSettingController:                 userSettingController,
-		StrategicProfileController:            strategicProfileController,
-		StrategicObjectiveController:          strategicObjectiveController,
-		ControlCategoryController:             controlCategoryController,
-		ControlTypeController:                 controlTypeController,
-		ControlImplementationStatusController: controlImplementationStatusController,
-		ControlEfficiencyStatusController:     controlEfficiencyStatusController,
-		ControlController:                     controlController,
-		ControlTestController:                 controlTestController,
-		ProcessGroupController:                processGroupController,
-		ControlActionPlanController:           controlActionPlanController,
+		DesignationController:                   designationController,
+		UserStatusController:                    userStatusController,
+		UserController:                          userController,
+		UserSettingController:                   userSettingController,
+		StrategicProfileController:              strategicProfileController,
+		StrategicObjectiveController:            strategicObjectiveController,
+		ControlCategoryController:               controlCategoryController,
+		ControlTypeController:                   controlTypeController,
+		ControlImplementationStatusController:   controlImplementationStatusController,
+		ControlEfficiencyStatusController:       controlEfficiencyStatusController,
+		ControlController:                       controlController,
+		ControlTestController:                   controlTestController,
+		ProcessGroupController:                  processGroupController,
+		ControlActionPlanController:             controlActionPlanController,
+		ControlActionPlanStatusUpdateController: controlActionPlanStatusUpdateController,
 
 		UserSvc:        userSvc,
 		UserSettingSvc: userSettingSvc,
