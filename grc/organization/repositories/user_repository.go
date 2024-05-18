@@ -5,6 +5,7 @@ import (
 	"jethur/grc/models"
 	userDTOs "jethur/grc/organization/dtos"
 	"jethur/utility"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -78,53 +79,52 @@ func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*us
 		Joins("LEFT JOIN organization_units org3 ON org3.id = users.organization_unit_3_id").
 		Joins("LEFT JOIN organization_units org4 ON org4.id = users.organization_unit_4_id").
 		Joins("LEFT JOIN organization_units org5 ON org5.id = users.organization_unit_5_id").
-		Joins("INNER JOIN designations ON designations.id = users.designation_id").
+		Joins("LEFT JOIN designations ON designations.id = users.designation_id").
 		Joins("INNER JOIN user_statuses ON user_statuses.id = users.user_status_id").
 		Joins("INNER JOIN (SELECT user_roles.user_id, STRING_AGG(roles.title_en, ', ') AS roles_en, STRING_AGG(roles.title_ar, ', ') AS roles_ar FROM user_roles JOIN roles ON roles.id = user_roles.role_id GROUP BY user_roles.user_id) roles_agg ON roles_agg.user_id = users.id")
 
-		// Apply search keyword if exists
+		// Apply dynamic filters to the query
+	for columnName, values := range params.Filters {
+		if len(values) > 0 {
+			query = query.Where(columnName+" IN (?)", values)
+		}
+	}
+
+	// Apply quick filters
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "recently_added":
+			thirtyDaysAgo := time.Now().AddDate(0, 0, -30)
+			query = query.Where("users.created_at >= ?", thirtyDaysAgo)
+		case "admin_users":
+			query = query.Where("roles_agg.roles_en = ? OR roles_agg.roles_ar = ?", "Admin", "مسؤول")
+		}
+	}
+
+	// Apply search keyword if exists
 	if params.Keyword != "" {
 		query = query.Where(`
-			(users.first_name_en LIKE ? OR
+		(users.first_name_en LIKE ? OR
 			 users.last_name_en LIKE ? OR
 			 users.first_name_ar LIKE ? OR
 			 users.last_name_ar LIKE ? OR
 			 users.email LIKE ? OR
 			 users.mobile_number LIKE ? OR
-			 org1.title_en LIKE ? OR
-			 org1.title_ar LIKE ? OR
-			 org2.title_en LIKE ? OR
-			 org2.title_ar LIKE ? OR
-			 org3.title_en LIKE ? OR
-			 org3.title_ar LIKE ? OR
-			 org4.title_en LIKE ? OR
-			 org4.title_ar LIKE ? OR
-			 org5.title_en LIKE ? OR
-			 org5.title_ar LIKE ? OR
 			 designations.title_en LIKE ? OR
 			 designations.title_ar LIKE ? OR
 			 user_statuses.title_en LIKE ? OR
 			 user_statuses.title_ar LIKE ?)`,
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
-			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
-			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
-			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%")
 	}
+
 	// Calculate total count for pagination
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
 
-	// Sort by the specified column and order
-	if params.SortBy == "" {
-		params.SortBy = "first_name_en" // Default sort by title_en if no sortBy is specified
-	}
-	if params.Sort != "asc" && params.Sort != "desc" {
-		params.Sort = "asc" // Default order is ascending if not specified
-	}
-
-	//query = query.Order(params.SortBy + " " + params.Sort)
+	query = query.Order(params.SortBy + " " + params.Sort)
 
 	offset := (params.Page - 1) * params.PageSize
 

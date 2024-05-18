@@ -72,10 +72,6 @@ func (repo *RiskRegisterRepository) GetAll(params *riskDTOs.RiskRegisterListQuer
             risk_statuses.title_en AS risk_status_title_en,
             risk_statuses.title_ar AS risk_status_title_ar,
             risk_statuses.color_code AS risk_status_color_code,
-            users.first_name_en AS reported_user_first_name_en,
-            users.first_name_ar AS reported_user_first_name_ar,
-            users.last_name_en AS reported_user_last_name_en,
-            users.last_name_ar AS reported_user_last_name_ar,
             review_frequencies.title_en AS review_frequency_title_en,
             review_frequencies.title_ar AS review_frequency_title_ar,
             risk_register.next_review_date,
@@ -224,7 +220,6 @@ func (repo *RiskRegisterRepository) GetFullDetailsByID(id uint, tx ...utility.Da
 		Preload("RiskSource").
 		Preload("OwnerUnit").
 		Preload("Owner").
-		Preload("ReportedByUser").
 		Preload("ReviewFrequency").
 		Preload("RiskStatus").
 		Preload("Documents").

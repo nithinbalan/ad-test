@@ -10,6 +10,8 @@ import (
 type RiskMatrixRiskRatingValueServiceInterface interface {
 	Create(riskMatrixRiskRatingValueFormDTO *riskDTOs.RiskMatrixRiskRatingValueFormDTO) error
 	GetRiskMatrix() ([][]*riskDTOs.RiskMatrixRiskRatingResponseDTO, error)
+	EvaluateScore(impact *models.RiskMatrixImpact, likelihood *models.RiskMatrixLikelihood, calculationMethod string) uint
+	FindRiskRatingValue(riskRatingValues []*riskDTOs.RiskMatrixRiskRatingDataDTO, score uint) (*riskDTOs.RiskMatrixRiskRatingDataDTO, bool)
 }
 
 // Service and implementations
@@ -129,8 +131,8 @@ func (rmrrvs *RiskMatrixRiskRatingValueService) GetRiskMatrix() ([][]*riskDTOs.R
 			for _, impact := range riskMatrix.RiskMatrixImpact {
 				if impact.Status == "active" {
 
-					score := evaluateScore(impact, likelihood, calculationMethod)
-					riskRating, _ := findRiskRatingValue(riskRatingValueArray, score)
+					score := rmrrvs.EvaluateScore(impact, likelihood, calculationMethod)
+					riskRating, _ := rmrrvs.FindRiskRatingValue(riskRatingValueArray, score)
 
 					impactDetail := &riskDTOs.RiskMatrixRiskRatingResponseDTO{
 						RiskMatrixImpactID:          impact.ID,
@@ -154,7 +156,7 @@ func (rmrrvs *RiskMatrixRiskRatingValueService) GetRiskMatrix() ([][]*riskDTOs.R
 	return riskMatrixResponse, nil
 }
 
-func evaluateScore(impact *models.RiskMatrixImpact, likelihood *models.RiskMatrixLikelihood, calculationMethod string) uint {
+func (rmrrvs *RiskMatrixRiskRatingValueService) EvaluateScore(impact *models.RiskMatrixImpact, likelihood *models.RiskMatrixLikelihood, calculationMethod string) uint {
 	var score uint
 	if calculationMethod == "addition" {
 		score = impact.Score + likelihood.Score
@@ -165,7 +167,7 @@ func evaluateScore(impact *models.RiskMatrixImpact, likelihood *models.RiskMatri
 	return score
 }
 
-func findRiskRatingValue(riskRatingValues []*riskDTOs.RiskMatrixRiskRatingDataDTO, score uint) (*riskDTOs.RiskMatrixRiskRatingDataDTO, bool) {
+func (rmrrvs *RiskMatrixRiskRatingValueService) FindRiskRatingValue(riskRatingValues []*riskDTOs.RiskMatrixRiskRatingDataDTO, score uint) (*riskDTOs.RiskMatrixRiskRatingDataDTO, bool) {
 	for _, riskRatingValues := range riskRatingValues {
 		if riskRatingValues.Value == score {
 			return riskRatingValues, true

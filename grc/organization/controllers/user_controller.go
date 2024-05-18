@@ -24,8 +24,8 @@ func NewUserController(service services.UserServiceInterface) *UserController {
 }
 
 func (uc *UserController) GetAllUsers(c *gin.Context) {
-	sort := c.Query("sort_order")
-	sortBy := c.Query("sort_by")
+	sort := c.DefaultQuery("sort_order", "asc")
+	sortBy := c.DefaultQuery("sort_by", "name")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
@@ -39,6 +39,15 @@ func (uc *UserController) GetAllUsers(c *gin.Context) {
 		"organization_unit_4_ids",
 		"organization_unit_5_ids",
 		"user_status_ids",
+	}
+
+	validSortFields := map[string]string{
+		"name":          "users.first_name_en",
+		"email":         "users.email",
+		"mobile_number": "users.mobile_number",
+		"designation":   "designations.title_en",
+		"role":          "roles_agg.roles_en",
+		"user_status":   "user_statuses.title_en",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
@@ -55,9 +64,15 @@ func (uc *UserController) GetAllUsers(c *gin.Context) {
 		return
 	}
 
+	dbField, valid := validSortFields[sortBy]
+	if !valid {
+		uc.sendErrorResponse(c, http.StatusBadRequest, "Invalid sort_order parameter")
+		return
+	}
+
 	queryParams := organizationDTOs.UserListQueryParamsDTO{
 		Sort:        sort,
-		SortBy:      sortBy,
+		SortBy:      dbField,
 		Keyword:     keyword,
 		Status:      status,
 		Page:        page,
@@ -73,6 +88,10 @@ func (uc *UserController) GetAllUsers(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, users)
+}
+
+func (uc *UserController) sendErrorResponse(c *gin.Context, statusCode int, msg string) {
+	c.JSON(statusCode, gin.H{"error": msg})
 }
 
 func (uc *UserController) GetUserDetails(c *gin.Context) {
