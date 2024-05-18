@@ -24,6 +24,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	incidentActionPlanStatusUpdateController := app.IncidentModule.IncidentActionPlanStatusUpdateController
 	incidentRootCauseAnalysisController := app.IncidentModule.IncidentRootCauseAnalysisController
 	incidentCommunicationLogController := app.IncidentModule.IncidentCommunicationLogController
+	incidentClosureController := app.IncidentModule.IncidentClosureController
 
 	//Incident Category
 	incidentRoutes.GET("/incident-categories", incidentCategoryController.GetAllIncidentCategories)
@@ -98,5 +99,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	incidentRoutes.POST("/incident/:incidentId/communication-logs", incidentCommunicationLogController.CreateIncidentCommunicationLog)
 	incidentRoutes.PUT("/incident/:incidentId/communication-logs/:id", incidentCommunicationLogController.UpdateIncidentCommunicationLog)
 	incidentRoutes.POST("/incident/:incidentId/communication-logs/delete", incidentCommunicationLogController.DeleteIncidentCommunicationLogs)
+
+	//Incident Closure
+	incidentRoutes.GET("/incident/:incidentId/closures/:id", incidentClosureController.GetIncidentClosureDetails)
+	incidentRoutes.POST("/incident/:incidentId/closures", incidentClosureController.CreateIncidentClosure)
+	incidentRoutes.PUT("/incident/:incidentId/closures/:id", incidentClosureController.UpdateIncidentClosure)
+	incidentRoutes.POST("/incident/:incidentId/closures/delete", incidentClosureController.DeleteIncidentClosures)
 
 }
