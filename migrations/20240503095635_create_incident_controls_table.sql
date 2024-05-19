@@ -1,7 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE TABLE incident_controls
-(
+CREATE TABLE incident_controls (
     id INT PRIMARY KEY IDENTITY(1, 1),
     incident_register_id INT NOT NULL,
     control_id INT NOT NULL,
