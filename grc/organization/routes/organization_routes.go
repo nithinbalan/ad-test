@@ -26,6 +26,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	controlController := app.OrganizationModule.ControlController
 	controlTestController := app.OrganizationModule.ControlTestController
 	processGroupController := app.OrganizationModule.ProcessGroupController
+	controlActionPlanController := app.OrganizationModule.ControlActionPlanController
+	controlActionPlanStatusUpdateController := app.OrganizationModule.ControlActionPlanStatusUpdateController
 
 	//Designation
 	organizationRoutes.GET("/designations", designationController.GetAllDesignations)
@@ -122,5 +124,18 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.POST("/process-groups/delete", processGroupController.DeleteProcessGroups)
 	organizationRoutes.PUT("/process-groups/activate", processGroupController.ActivateProcessGroups)
 	organizationRoutes.PUT("/process-groups/deactivate", processGroupController.DeactivateProcessGroups)
+
+	//control action plan
+	organizationRoutes.GET("/controls/:controlId/action-plan", controlActionPlanController.GetAllControlActionPlans)
+	organizationRoutes.GET("/controls/:controlId/action-plan/:controlActionPlanId", controlActionPlanController.GetControlActionPlanDetails)
+	organizationRoutes.POST("/controls/:controlId/action-plan", controlActionPlanController.CreateControlActionPlan)
+	organizationRoutes.PUT("/controls/:controlId/action-plan/:controlActionPlanId", controlActionPlanController.UpdateControlActionPlan)
+	organizationRoutes.POST("/controls/:controlId/action-plan/delete", controlActionPlanController.DeleteControlActionPlans)
+
+	//control action plan updates
+	organizationRoutes.GET("/controls/:controlId/action-plan/:controlActionPlanId/updates", controlActionPlanStatusUpdateController.GetAllControlActionPlanStatusUpdates)
+	organizationRoutes.GET("/controls/:controlId/action-plan/:controlActionPlanId/updates/:controlActionPlanUpdateId", controlActionPlanStatusUpdateController.GetControlActionPlanStatusUpdateDetails)
+	organizationRoutes.POST("/controls/:controlId/action-plan/:controlActionPlanId/updates", controlActionPlanStatusUpdateController.CreateControlActionPlanStatusUpdate)
+	organizationRoutes.PUT("/controls/:controlId/action-plan/:controlActionPlanId/updates/:controlActionPlanUpdateId", controlActionPlanStatusUpdateController.UpdateControlActionPlanStatusUpdate)
 
 }

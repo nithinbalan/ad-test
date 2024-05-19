@@ -145,7 +145,7 @@ func (rrcac *RiskRootCauseAnalysisController) UpdateRiskRootCauseAnalysis(c *gin
 	c.Status(http.StatusOK)
 }
 
-func (rrcac *RiskRootCauseAnalysisController) DeleteRiskRootCauseAnalyses(c *gin.Context) {
+func (rrcac *RiskRootCauseAnalysisController) DeleteRiskRootCauseAnalysis(c *gin.Context) {
 	riskIDStr := c.Param("riskId")
 
 	riskID, err := strconv.ParseUint(riskIDStr, 10, 64)

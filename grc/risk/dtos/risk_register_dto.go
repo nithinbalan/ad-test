@@ -9,42 +9,38 @@ import (
 )
 
 type RiskRegisterListDTO struct {
-	ID                      uint       `json:"id"`
-	ReferenceNumber         string     `json:"reference_number"`
-	RiskCategoryTitleEn     string     `json:"risk_category_title_en"`
-	RiskCategoryTitleAr     string     `json:"risk_category_title_ar"`
-	RiskSourceTitleEn       string     `json:"risk_source_title_en"`
-	RiskSourceTitleAr       string     `json:"risk_source_title_ar"`
-	OwnerUnitTitleEn        string     `json:"owner_unit_title_en"`
-	OwnerUnitTitleAr        string     `json:"owner_unit_title_ar"`
-	OwnerFirstNameEn        string     `json:"owner_first_name_en"`
-	OwnerFirstNameAr        string     `json:"owner_first_name_ar"`
-	OwnerLastNameEn         string     `json:"owner_last_name_en"`
-	OwnerLastNameAr         string     `json:"owner_last_name_ar"`
-	RiskStatusTitleEn       string     `json:"risk_status_title_en"`
-	RiskStatusTitleAr       string     `json:"risk_status_title_ar"`
-	RiskStatusColorCode     string     `json:"risk_status_color_code"`
-	Title                   string     `json:"title"`
-	Description             *string    `json:"description"`
-	ReportedAt              *time.Time `json:"reported_at"`
-	ReportedUserFirstNameEn *string    `json:"reported_user_first_name_en"`
-	ReportedUserFirstNameAr *string    `json:"reported_user_first_name_ar"`
-	ReportedUserLastNameEn  *string    `json:"reported_user_last_name_en"`
-	ReportedUserLastNameAr  *string    `json:"reported_user_last_name_ar"`
-	ReviewFrequencyTitleEn  *string    `json:"review_frequency_title_en"`
-	ReviewFrequencyTitleAr  *string    `json:"review_frequency_title_ar"`
-	NextReviewDate          *string    `json:"next_review_date"`
-	Comments                *string    `json:"comments"`
-	CreatedAt               string     `json:"created_at"`
-	UpdatedAt               *string    `json:"updated_at"`
-	CreatedUserFirstNameEn  string     `json:"created_user_first_name_en"`
-	CreatedUserFirstNameAr  string     `json:"created_user_first_name_ar"`
-	CreatedUserLastNameEn   string     `json:"created_user_last_name_en"`
-	CreatedUserLastNameAr   string     `json:"created_user_last_name_ar"`
-	UpdatedUserFirstNameEn  *string    `json:"updated_user_first_name_en"`
-	UpdatedUserFirstNameAr  *string    `json:"updated_user_first_name_ar"`
-	UpdatedUserLastNameEn   *string    `json:"updated_user_last_name_en"`
-	UpdatedUserLastNameAr   *string    `json:"updated_user_last_name_ar"`
+	ID                     uint       `json:"id"`
+	ReferenceNumber        string     `json:"reference_number"`
+	RiskCategoryTitleEn    string     `json:"risk_category_title_en"`
+	RiskCategoryTitleAr    string     `json:"risk_category_title_ar"`
+	RiskSourceTitleEn      string     `json:"risk_source_title_en"`
+	RiskSourceTitleAr      string     `json:"risk_source_title_ar"`
+	OwnerUnitTitleEn       string     `json:"owner_unit_title_en"`
+	OwnerUnitTitleAr       string     `json:"owner_unit_title_ar"`
+	OwnerFirstNameEn       string     `json:"owner_first_name_en"`
+	OwnerFirstNameAr       string     `json:"owner_first_name_ar"`
+	OwnerLastNameEn        string     `json:"owner_last_name_en"`
+	OwnerLastNameAr        string     `json:"owner_last_name_ar"`
+	RiskStatusTitleEn      string     `json:"risk_status_title_en"`
+	RiskStatusTitleAr      string     `json:"risk_status_title_ar"`
+	RiskStatusColorCode    string     `json:"risk_status_color_code"`
+	Title                  string     `json:"title"`
+	Description            *string    `json:"description"`
+	ReportedAt             *time.Time `json:"reported_at"`
+	ReviewFrequencyTitleEn *string    `json:"review_frequency_title_en"`
+	ReviewFrequencyTitleAr *string    `json:"review_frequency_title_ar"`
+	NextReviewDate         *string    `json:"next_review_date"`
+	Comments               *string    `json:"comments"`
+	CreatedAt              string     `json:"created_at"`
+	UpdatedAt              *string    `json:"updated_at"`
+	CreatedUserFirstNameEn string     `json:"created_user_first_name_en"`
+	CreatedUserFirstNameAr string     `json:"created_user_first_name_ar"`
+	CreatedUserLastNameEn  string     `json:"created_user_last_name_en"`
+	CreatedUserLastNameAr  string     `json:"created_user_last_name_ar"`
+	UpdatedUserFirstNameEn *string    `json:"updated_user_first_name_en"`
+	UpdatedUserFirstNameAr *string    `json:"updated_user_first_name_ar"`
+	UpdatedUserLastNameEn  *string    `json:"updated_user_last_name_en"`
+	UpdatedUserLastNameAr  *string    `json:"updated_user_last_name_ar"`
 }
 
 type RiskRegisterListQueryParamsDTO struct {
@@ -88,7 +84,6 @@ type RiskRegisterDetailDTO struct {
 	Title           string                               `json:"title"`
 	Description     *string                              `json:"description"`
 	ReportedAt      *time.Time                           `json:"reported_at"`
-	ReportedByUser  *organizationDTOs.UserMinimalDTO     `json:"reported_by"`
 	ReviewFrequency *masterDTOs.ReviewFrequencyDTO       `json:"review_frequency"`
 	Comments        *string                              `json:"comments"`
 	Documents       []*RiskDocumentDTO                   `json:"documents"`
@@ -109,7 +104,6 @@ type RiskRegisterFormDTO struct {
 	Title             string                        `json:"title" binding:"required,max=255"`
 	Description       *string                       `json:"description"`
 	ReportedAt        *string                       `json:"reported_at" binding:"required,datetime=2006-01-02"`
-	ReportedByID      *uint                         `json:"reported_by" binding:"required"`
 	ReviewFrequencyID *uint                         `json:"review_frequency_id"`
 	NextReviewDate    *string                       `json:"next_review_date" binding:"omitempty,datetime=2006-01-02"`
 	Comments          *string                       `json:"comments"`
