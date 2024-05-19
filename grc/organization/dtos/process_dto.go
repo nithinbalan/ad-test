@@ -2,6 +2,7 @@ package dtos
 
 import (
 	commonDTOs "jethur/grc/common/dtos"
+	masterDTOs "jethur/grc/masters/dtos"
 	"time"
 )
 
@@ -65,22 +66,17 @@ type ProcessFormDTO struct {
 
 // ProcessDetailDTO defines the detailed view of a process, typically used in detailed screens or reports
 type ProcessDetailDTO struct {
-	ID                       uint       `json:"id"`
-	ProcessGroupTitleEn      string     `json:"process_group_title_en"`
-	ProcessGroupTitleAr      string     `json:"process_group_title_ar"`
-	OwnerUnitTitleEn         *string    `json:"owner_unit_title_en"`
-	OwnerUnitTitleAr         *string    `json:"owner_unit_title_ar"`
-	OwnerFirstNameEn         *string    `json:"owner_first_name_en"`
-	OwnerFirstNameAr         *string    `json:"owner_first_name_ar"`
-	OwnerLastNameEn          *string    `json:"owner_last_name_en"`
-	OwnerLastNameAr          *string    `json:"owner_last_name_ar"`
-	LifecycleStatusTitleEn   string     `json:"lifecycle_status_title_en"`
-	LifecycleStatusTitleAr   string     `json:"lifecycle_status_title_ar"`
-	LifecycleStatusColorCode string     `json:"lifecycle_status_color_code"`
-	ReferenceNumber          string     `json:"reference_number"`
-	TitleEn                  string     `json:"title_en"`
-	TitleAr                  string     `json:"title_ar"`
-	Description              *string    `json:"description"`
-	CreatedAt                time.Time  `json:"created_at"`
-	UpdatedAt                *time.Time `json:"updated_at"`
+	ID              uint                          `json:"id"`
+	ReferenceNumber string                        `json:"reference_number"`
+	TitleEn         string                        `json:"title_en"`
+	TitleAr         string                        `json:"title_ar"`
+	Description     *string                       `json:"description"`
+	ProcessGroup    *ProcessGroupDTO              `json:"process_group"`
+	OwnerUnit       *OrganizationUnitDTO          `json:"owner_unit"`
+	Owner           *UserMinimalDTO               `json:"owner"`
+	CreatedByUser   UserMinimalDTO                `json:"created_by"`
+	UpdatedByUser   *UserMinimalDTO               `json:"updated_by"`
+	LifecycleStatus masterDTOs.LifecycleStatusDTO `json:"status"`
+	CreatedAt       time.Time                     `json:"created_at"`
+	UpdatedAt       *time.Time                    `json:"updated_at"`
 }
