@@ -1,7 +1,6 @@
 package repositories
 
 import (
-	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	userDTOs "jethur/grc/organization/dtos"
@@ -98,7 +97,6 @@ func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*us
 			thirtyDaysAgo := time.Now().AddDate(0, 0, -30)
 			query = query.Where("users.created_at >= ?", thirtyDaysAgo)
 		case "admin_users":
-			fmt.Println("124")
 			query = query.Where("roles_agg.roles_en = ? OR roles_agg.roles_ar = ?", "Admin", "مسؤول")
 		}
 	}

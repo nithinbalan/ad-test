@@ -29,6 +29,7 @@ type RiskModule struct {
 	RiskRegisterController               *controllers.RiskRegisterController
 	RiskRootCauseAnalysisController      *controllers.RiskRootCauseAnalysisController
 	RiskAppetiteToleranceLevelController *controllers.RiskAppetiteToleranceLevelController
+	RiskInherentEvaluationController     *controllers.RiskInherentEvaluationController
 }
 
 func NewRiskModule(db *gorm.DB,
@@ -174,6 +175,11 @@ func NewRiskModule(db *gorm.DB,
 	riskAppetiteToleranceLevelSvc := services.NewRiskAppetiteToleranceLevelService(riskAppetiteToleranceLevelRepo)
 	riskAppetiteToleranceLevelController := controllers.NewRiskAppetiteToleranceLevelController(riskAppetiteToleranceLevelSvc)
 
+	// Update variable names
+	riskInherentEvaluationRepo := repositories.NewRiskInherentEvaluationRepository(db)
+	riskInherentEvaluationSvc := services.NewRiskInherentEvaluationService(riskInherentEvaluationRepo, sharedModule.ActivityLogService, riskRegisterSvc, riskMatrixSvc, riskMatrixRiskRatingValueSvc, riskMatrixImpactSvc, riskMatrixLikelihoodSvc, riskImpactCategorySvc, riskMatrixImpactGuidelineSvc, riskAppetiteStatementSvc)
+	riskInherentEvaluationController := controllers.NewRiskInherentEvaluationController(riskInherentEvaluationSvc)
+
 	return &RiskModule{
 		RiskCategoryController:               riskCategoryController,
 		PotentialRiskStatusController:        potentialRiskStatusController,
@@ -195,6 +201,7 @@ func NewRiskModule(db *gorm.DB,
 		RiskRegisterController:               riskRegisterController,
 		RiskRootCauseAnalysisController:      riskRootCauseAnalysisController,
 		RiskAppetiteToleranceLevelController: riskAppetiteToleranceLevelController,
+		RiskInherentEvaluationController:     riskInherentEvaluationController,
 	}
 
 }

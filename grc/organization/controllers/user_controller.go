@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
 	"jethur/grc/organization/services"
@@ -67,11 +66,9 @@ func (uc *UserController) GetAllUsers(c *gin.Context) {
 
 	dbField, valid := validSortFields[sortBy]
 	if !valid {
-		fmt.Println("123")
 		uc.sendErrorResponse(c, http.StatusBadRequest, "Invalid sort_order parameter")
 		return
 	}
-	fmt.Println("124")
 
 	queryParams := organizationDTOs.UserListQueryParamsDTO{
 		Sort:        sort,

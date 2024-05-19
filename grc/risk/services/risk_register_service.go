@@ -131,7 +131,6 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 		Title:             riskRegisterFormDTO.Title,
 		Description:       riskRegisterFormDTO.Description,
 		ReportedAt:        dates.ReportedAt,
-		ReportedByID:      riskRegisterFormDTO.ReportedByID,
 		ReviewFrequencyID: riskRegisterFormDTO.ReviewFrequencyID,
 		NextReviewDate:    dates.NextReviewDate,
 		Comments:          riskRegisterFormDTO.Comments,
@@ -277,7 +276,6 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 	existingRiskRegister.Title = riskRegisterFormDTO.Title
 	existingRiskRegister.Description = riskRegisterFormDTO.Description
 	existingRiskRegister.ReportedAt = dates.ReportedAt
-	existingRiskRegister.ReportedByID = riskRegisterFormDTO.ReportedByID
 	existingRiskRegister.ReviewFrequencyID = riskRegisterFormDTO.ReviewFrequencyID
 	existingRiskRegister.NextReviewDate = dates.ReportedAt
 	existingRiskRegister.Comments = riskRegisterFormDTO.Comments
@@ -557,12 +555,6 @@ func (rrs *RiskRegisterService) validateRiskRegisterFormDTO(riskRegisterFormDTO 
 
 	if _, err := rrs.riskStatusSvc.GetByID(riskRegisterFormDTO.RiskStatusID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("risk status does not exist"), "not_exist", "risk status")
-	}
-
-	if riskRegisterFormDTO.ReportedByID != nil {
-		if _, err := rrs.userSvc.GetByID(*riskRegisterFormDTO.ReportedByID); err != nil {
-			return utility.NewValidationError(fmt.Errorf("reported by user does not exist"), "not_exist", "reported by user")
-		}
 	}
 
 	if riskRegisterFormDTO.ReviewFrequencyID != nil {
