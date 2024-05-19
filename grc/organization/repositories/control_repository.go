@@ -163,11 +163,6 @@ func (repo *ControlRepository) GetAll(params *organizationDTOs.ControlListQueryP
 		}
 	}
 
-	// Calculate total count for pagination
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
-
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		query = query.Where(`
@@ -204,6 +199,11 @@ func (repo *ControlRepository) GetAll(params *organizationDTOs.ControlListQueryP
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%")
+	}
+
+	// Calculate total count for pagination
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
 	}
 
 	// Sort by the specified column and order
