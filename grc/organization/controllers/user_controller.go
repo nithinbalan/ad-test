@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	commonDTOs "jethur/grc/common/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
 	"jethur/grc/organization/services"
@@ -66,7 +67,8 @@ func (uc *UserController) GetAllUsers(c *gin.Context) {
 
 	dbField, valid := validSortFields[sortBy]
 	if !valid {
-		uc.sendErrorResponse(c, http.StatusBadRequest, "Invalid sort_order parameter")
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
 		return
 	}
 
@@ -88,10 +90,6 @@ func (uc *UserController) GetAllUsers(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, users)
-}
-
-func (uc *UserController) sendErrorResponse(c *gin.Context, statusCode int, msg string) {
-	c.JSON(statusCode, gin.H{"error": msg})
 }
 
 func (uc *UserController) GetUserDetails(c *gin.Context) {
