@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	commonDTOs "jethur/grc/common/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
 	"jethur/grc/organization/services"
@@ -24,8 +25,8 @@ func NewProcessController(service services.ProcessServiceInterface) *ProcessCont
 }
 
 func (pc *ProcessController) GetAllProcesses(c *gin.Context) {
-	sort := c.Query("sort_order")
-	sortBy := c.Query("sort_by")
+	sort := c.DefaultQuery("sort_order", "asc")
+	sortBy := c.DefaultQuery("sort_by", "process_title")
 	keyword := c.Query("keyword")
 	quickFilter := c.QueryArray("quick_filter")
 
@@ -35,6 +36,14 @@ func (pc *ProcessController) GetAllProcesses(c *gin.Context) {
 		"owner_unit_ids",
 		"owner_ids",
 		"lifecycle_status_ids",
+	}
+
+	validSortFields := map[string]string{
+		"process_title":   "processes.title_en",
+		"refrence_number": "processes.reference_number",
+		"description":     "processes.description",
+		"process_group":   "process_groups.title_en",
+		"status":          "lifecycle_statuses.title_enn",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
@@ -51,9 +60,16 @@ func (pc *ProcessController) GetAllProcesses(c *gin.Context) {
 		return
 	}
 
+	dbField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
 	queryParams := organizationDTOs.ProcessListQueryParamsDTO{
 		Sort:        sort,
-		SortBy:      sortBy,
+		SortBy:      dbField,
 		Keyword:     keyword,
 		Page:        page,
 		PageSize:    pageSize,
@@ -140,17 +156,77 @@ func (pc *ProcessController) UpdateProcess(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-// func (pc *ProcessController) DeleteProcess(c *gin.Context) {
-// 	processID, err := strconv.Atoi(c.Param("processId"))
-// 	if err != nil {
-// 		utility.SendNotFoundErrResp(c)
-// 		return
-// 	}
+func (pc *ProcessController) DeleteProcesses(c *gin.Context) {
+	var request struct {
+		IDs []uint `json:"ids"`
+	}
 
-// 	err = pc.service.Delete(uint(processID))
-// 	if err != nil {
-// 		utility.SendInternalErrResp(pc.db, c, err.Error())
-// 		return
-// 	}
-// 	c.Status(http.StatusOK)
-// }
+	if err := c.ShouldBindJSON(&request); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(pc.db, c, err.Error())
+		return
+	}
+
+	failedIDs, err := pc.service.Delete(request.IDs, currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(pc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}
+
+func (pc *ProcessController) ArchiveProcesses(c *gin.Context) {
+	var request struct {
+		IDs []uint `json:"ids"`
+	}
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(pc.db, c, err.Error())
+		return
+	}
+
+	successfulIds, err := pc.service.Archive(request.IDs, currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(pc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"successfulIds": successfulIds})
+}
+
+func (pc *ProcessController) RestoreProcesses(c *gin.Context) {
+	var request struct {
+		IDs []uint `json:"ids"`
+	}
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(pc.db, c, err.Error())
+		return
+	}
+
+	successfulIds, err := pc.service.Restore(request.IDs, currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(pc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"successfulIds": successfulIds})
+}

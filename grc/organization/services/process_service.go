@@ -20,10 +20,10 @@ type ProcessServiceInterface interface {
 	GetFullDetailsByID(id uint) (*organizationDTOs.ProcessDetailDTO, error)
 	Create(currentUserID uint, processFormDTO *organizationDTOs.ProcessFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, processFormDTO *organizationDTOs.ProcessFormDTO) error
-	// Delete(ids []uint, currentUserID uint) ([]uint, error)
+	Delete(ids []uint, currentUserID uint) ([]uint, error)
 
-	// Archive(ids []uint, currentUserID uint) ([]uint, error)
-	// Restore(ids []uint, currentUserID uint) ([]uint, error)
+	Archive(ids []uint, currentUserID uint) ([]uint, error)
+	Restore(ids []uint, currentUserID uint) ([]uint, error)
 }
 
 type ProcessService struct {
@@ -173,6 +173,120 @@ func (cs *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 	}
 
 	return nil
+}
+
+func (ps *ProcessService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
+	var failedIds []uint
+	var successfulIds []uint
+	for _, id := range ids {
+
+		_, err := ps.repo.GetByID(id)
+
+		if err != nil {
+			continue
+		}
+
+		err = ps.repo.Delete(id)
+		if err != nil {
+			failedIds = append(failedIds, id)
+		} else {
+			successfulIds = append(successfulIds, id)
+		}
+	}
+
+	if len(successfulIds) > 0 {
+
+		go func() {
+			err := ps.activityLogSvc.LogBulkActivities(
+				models.DeleteAction, // Make sure this action constant is defined appropriately
+				models.Process{}.TableName(),
+				successfulIds,
+				nil,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				// @todo - save to log file
+				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+			}
+		}()
+	}
+
+	return failedIds, nil
+}
+
+func (ps *ProcessService) Archive(ids []uint, currentUserID uint) ([]uint, error) {
+	lifecycleStatus, err := ps.lifecycleStatusSvc.GetByType("archived")
+	if err != nil {
+		return nil, err
+	}
+
+	idsToUpdate, err := ps.repo.GetIDsByLifecycleStatus(ids, "active")
+	if err != nil {
+		return nil, err
+	}
+
+	successfulIds, err := ps.repo.UpdateLifecycleStatusForIDs(idsToUpdate, lifecycleStatus.ID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(successfulIds) > 0 {
+		go func() {
+			err := ps.activityLogSvc.LogBulkActivities(
+				models.ArchiveAction,
+				models.Process{}.TableName(),
+				successfulIds,
+				nil,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				// @todo - save to log file
+				fmt.Printf("Failed to log bulk archive activity: %v\n", err)
+			}
+		}()
+	}
+
+	return successfulIds, nil
+}
+
+func (cs *ProcessService) Restore(ids []uint, currentUserID uint) ([]uint, error) {
+	lifecycleStatus, err := cs.lifecycleStatusSvc.GetByType("active")
+	if err != nil {
+		return nil, err
+	}
+
+	idsToUpdate, err := cs.repo.GetIDsByLifecycleStatus(ids, "archived")
+	if err != nil {
+		return nil, err
+	}
+
+	successfulIds, err := cs.repo.UpdateLifecycleStatusForIDs(idsToUpdate, lifecycleStatus.ID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(successfulIds) > 0 {
+		go func() {
+			err := cs.activityLogSvc.LogBulkActivities(
+				models.RestoreAction,
+				models.Process{}.TableName(),
+				successfulIds,
+				nil,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				// @todo - save to log file
+				fmt.Printf("Failed to log bulk archive activity: %v\n", err)
+			}
+		}()
+	}
+
+	return successfulIds, nil
 }
 
 func (ps *ProcessService) validateProcessFormDTO(processFormDTO *organizationDTOs.ProcessFormDTO) error {

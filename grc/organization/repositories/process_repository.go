@@ -20,6 +20,10 @@ type ProcessRepositoryInterface interface {
 	Update(process *models.Process, tx ...utility.DatabaseTransaction) error
 	Delete(id uint) error
 	GenerateReferenceNumber() (string, error)
+
+	//lifecycle status
+	GetIDsByLifecycleStatus(ids []uint, status string) ([]uint, error)
+	UpdateLifecycleStatusForIDs(ids []uint, statusId uint) ([]uint, error)
 }
 
 type ProcessRepository struct {
@@ -113,7 +117,7 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 		return nil, err
 	}
 
-	//query = query.Order(params.SortBy + " " + params.Sort)
+	query = query.Order(params.SortBy + " " + params.Sort)
 
 	offset := (params.Page - 1) * params.PageSize
 
@@ -187,11 +191,34 @@ func (repo *ProcessRepository) Update(process *models.Process, tx ...utility.Dat
 }
 
 func (repo *ProcessRepository) Delete(id uint) error {
-	result := repo.db.Delete(&models.Process{}, id)
-	if result.Error != nil {
-		return result.Error
+	if err := repo.db.Delete(&models.Process{}, id).Error; err != nil {
+		return err
 	}
+
 	return nil
+}
+
+func (repo *ProcessRepository) GetIDsByLifecycleStatus(ids []uint, status string) ([]uint, error) {
+	var matchingIDs []uint
+
+	if err := repo.db.Model(&models.Process{}).
+		Joins("JOIN lifecycle_statuses ON process.lifecycle_status_id = lifecycle_statuses.id").
+		Where("process.id IN ? AND lifecycle_statuses.type = ?", ids, status).
+		Pluck("process.id", &matchingIDs).Error; err != nil {
+		return nil, err
+	}
+
+	return matchingIDs, nil
+}
+
+func (repo *ProcessRepository) UpdateLifecycleStatusForIDs(ids []uint, statusId uint) ([]uint, error) {
+	if err := repo.db.Model(&models.Process{}).
+		Where("id IN ?", ids).
+		Update("lifecycle_status_id", statusId).Error; err != nil {
+		return nil, err
+	}
+
+	return ids, nil
 }
 
 func (repo *ProcessRepository) GenerateReferenceNumber() (string, error) {
@@ -217,7 +244,7 @@ func (repo *ProcessRepository) GenerateReferenceNumber() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "CTRL", currentYear, lastReferenceID+1)
+	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "PR", currentYear, lastReferenceID+1)
 
 	return newReferenceNumber, nil
 }

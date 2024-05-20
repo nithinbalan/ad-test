@@ -144,8 +144,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.GET("/processes/:processId", processController.GetProcessDetails)
 	organizationRoutes.POST("/processes", processController.CreateProcess)
 	organizationRoutes.PUT("/processes/:processId", processController.UpdateProcess)
-	// organizationRoutes.POST("/processes/delete", processController.DeleteProcess)
-	// organizationRoutes.PUT("/processes/archive", processController.ArchiveProcess)
-	// organizationRoutes.PUT("/processes/restore", processController.RestoreProcess)
+	organizationRoutes.POST("/processes/delete", processController.DeleteProcesses)
+	organizationRoutes.PUT("/processes/archive", processController.ArchiveProcesses)
+	organizationRoutes.PUT("/processes/restore", processController.RestoreProcesses)
 
 }
