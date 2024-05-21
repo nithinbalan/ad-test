@@ -135,7 +135,7 @@ func (iis *IncidentInvestigationService) Create(incidentID uint, currentUserID u
 
 	// Save Team Members
 	var users []*models.IncidentInvestigationUser
-	for _, userId := range incidentInvestigationFormDTO.Users {
+	for _, userId := range incidentInvestigationFormDTO.UserIds {
 		user := &models.IncidentInvestigationUser{
 			IncidentInvestigationID: id,
 			UserID:                  *userId,
@@ -278,18 +278,22 @@ func (iis *IncidentInvestigationService) Update(incidentID uint, id uint, curren
 	}
 	// Collect existing user IDs
 	existingIncidentInvestigationDetails, err := iis.repo.GetFullDetailsByID(id, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
 	existingUserIDs := make(map[uint]bool)
 	for _, user := range existingIncidentInvestigationDetails.Users {
 		existingUserIDs[user.ID] = true
 	}
 	// Collect new user IDs
 	newUserIDs := make(map[uint]bool)
-	for _, user := range incidentInvestigationFormDTO.Users {
+	for _, user := range incidentInvestigationFormDTO.UserIds {
 		newUserIDs[*user] = true
 	}
 	// Add new users
 	var users []*models.IncidentInvestigationUser
-	for _, newUser := range incidentInvestigationFormDTO.Users {
+	for _, newUser := range incidentInvestigationFormDTO.UserIds {
 		if _, exists := existingUserIDs[*newUser]; !exists {
 			// Create a new incident investigation user record
 			user := &models.IncidentInvestigationUser{
@@ -588,7 +592,7 @@ func (iis *IncidentInvestigationService) validateIncidentInvestigationFormDTO(in
 		return utility.NewValidationError(fmt.Errorf("incident investigation status does not exist"), "not_exist", "incident investigation status")
 	}
 	//User exist
-	users := incidentInvestigationFormDTO.Users
+	users := incidentInvestigationFormDTO.UserIds
 	// If no user are provided, simply return nil to exit the function
 	if len(users) == 0 {
 		return nil

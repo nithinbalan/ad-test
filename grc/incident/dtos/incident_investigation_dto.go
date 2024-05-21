@@ -58,7 +58,7 @@ type IncidentInvestigationFormDTO struct {
 	ActionRecommendation          *string                       `json:"action_recommendation"`
 	IncidentInvestigationStatusID int                           `json:"incident_investigation_status_id" binding:"required"`
 	Documents                     []*commonDTOs.DocumentFormDTO `json:"documents" binding:"required"`
-	Users                         []*uint                       `json:"users"`
+	UserIds                       []*uint                       `json:"user_ids"`
 	Findings                      []*string                     `json:"findings" binding:"required,dive,max=500" gorm:"type:varchar(500);not null"`
 }
 type IncidentInvestigationDocumentDTO struct {
