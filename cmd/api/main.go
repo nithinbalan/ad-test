@@ -41,7 +41,7 @@ func main() {
 	r.Use(middlewares.CORSMiddleware())
 	r.Use(middlewares.LocalizerMiddleware(bundle))
 	r.Use(middlewares.RecoveryWithDatabaseLog(db))
-	r.Use(middlewares.ThrottleMiddleware(1, 5))
+	r.Use(middlewares.ThrottleMiddleware(10, 20))
 
 	masterRoutes.RegisterRoutes(app, r)
 	authRoutes.RegisterRoutes(app, r)
