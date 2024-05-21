@@ -38,14 +38,6 @@ func (pc *ProcessController) GetAllProcesses(c *gin.Context) {
 		"lifecycle_status_ids",
 	}
 
-	validSortFields := map[string]string{
-		"process_title":   "processes.title_en",
-		"refrence_number": "processes.reference_number",
-		"description":     "processes.description",
-		"process_group":   "process_groups.title_en",
-		"status":          "lifecycle_statuses.title_enn",
-	}
-
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
@@ -60,7 +52,15 @@ func (pc *ProcessController) GetAllProcesses(c *gin.Context) {
 		return
 	}
 
-	dbField, valid := validSortFields[sortBy]
+	validSortFields := map[string]string{
+		"process_title":   "processes.title_en",
+		"refrence_number": "processes.reference_number",
+		"description":     "processes.description",
+		"process_group":   "process_groups.title_en",
+		"status":          "lifecycle_statuses.title_enn",
+	}
+
+	sortField, valid := validSortFields[sortBy]
 	if !valid {
 		err := errors.New("invalid 'sort_by' parameter")
 		utility.SendInvalidErrResp(c, err)
@@ -69,7 +69,7 @@ func (pc *ProcessController) GetAllProcesses(c *gin.Context) {
 
 	queryParams := organizationDTOs.ProcessListQueryParamsDTO{
 		Sort:        sort,
-		SortBy:      dbField,
+		SortBy:      sortField,
 		Keyword:     keyword,
 		Page:        page,
 		PageSize:    pageSize,
