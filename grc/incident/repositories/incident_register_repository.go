@@ -20,11 +20,13 @@ type IncidentRegisterRepositoryInterface interface {
 	Create(incidentRegister *models.IncidentRegister, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(incidentRegister *models.IncidentRegister, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
-	DeleteIncidentControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error
-	DeleteIncidentComplianceRequirements(requirementIds []*uint, tx ...utility.DatabaseTransaction) error
 	GenerateReferenceNumber() (string, error)
 	CreateIncidentComplianceRequirements(complianceRequirements []*models.IncidentComplianceRequirement, tx ...utility.DatabaseTransaction) error
 	CreateIncidentControls(controls []*models.IncidentControl, tx ...utility.DatabaseTransaction) error
+	DeleteIncidentControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteIncidentComplianceRequirements(requirementIds []*uint, tx ...utility.DatabaseTransaction) error
+	CreateIncidentRisks(risks []*models.IncidentRisk, tx ...utility.DatabaseTransaction) error
+	DeleteIncidentRisks(riskIds []*uint, tx ...utility.DatabaseTransaction) error
 
 	//Document
 	CreateDocuments(docs []*models.IncidentDocument, tx ...utility.DatabaseTransaction) error
@@ -215,6 +217,7 @@ func (repo *IncidentRegisterRepository) GetFullDetailsByID(id uint, tx ...utilit
 		Preload("Documents").
 		Preload("Controls").
 		Preload("ComplianceRequirements").
+		Preload("Risks").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&incident, id)
@@ -370,6 +373,30 @@ func (repo *IncidentRegisterRepository) DeleteIncidentComplianceRequirements(req
 
 	// Delete compliance requirements by IDs
 	if err := db.Where("id IN (?)", requirementIds).Delete(&models.IncidentComplianceRequirement{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+func (repo *IncidentRegisterRepository) CreateIncidentRisks(risks []*models.IncidentRisk, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&risks).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *IncidentRegisterRepository) DeleteIncidentRisks(riskIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Delete risks by IDs
+	if err := db.Where("id IN (?)", riskIds).Delete(&models.IncidentRisk{}).Error; err != nil {
 		return err
 	}
 

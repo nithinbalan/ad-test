@@ -30,6 +30,8 @@ type RiskModule struct {
 	RiskRootCauseAnalysisController      *controllers.RiskRootCauseAnalysisController
 	RiskAppetiteToleranceLevelController *controllers.RiskAppetiteToleranceLevelController
 	RiskInherentEvaluationController     *controllers.RiskInherentEvaluationController
+
+	RiskRegisterSvc services.RiskRegisterServiceInterface
 }
 
 func NewRiskModule(db *gorm.DB,
@@ -202,6 +204,8 @@ func NewRiskModule(db *gorm.DB,
 		RiskRootCauseAnalysisController:      riskRootCauseAnalysisController,
 		RiskAppetiteToleranceLevelController: riskAppetiteToleranceLevelController,
 		RiskInherentEvaluationController:     riskInherentEvaluationController,
+
+		RiskRegisterSvc: riskRegisterSvc,
 	}
 
 }

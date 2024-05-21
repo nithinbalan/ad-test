@@ -24,7 +24,7 @@ func NewApp(db *gorm.DB) *App {
 	authModule := NewAuthModule(db, organizationModule)
 	complianceModule := NewComplianceModule(db, sharedModule, masterModule, organizationModule)
 	riskModule := NewRiskModule(db, sharedModule, settingsModule, masterModule, libraryModule, organizationModule)
-	incidentModule := NewIncidentModule(db, sharedModule, settingsModule, masterModule, organizationModule, complianceModule)
+	incidentModule := NewIncidentModule(db, sharedModule, settingsModule, masterModule, organizationModule, complianceModule, riskModule)
 
 	return &App{
 		SettingsModule:     settingsModule,
