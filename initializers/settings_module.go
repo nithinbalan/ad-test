@@ -11,6 +11,7 @@ import (
 type SettingsModule struct {
 	OrganizationLevelController *controllers.OrganizationLevelController
 	SystemPreferenceController  *controllers.SystemPreferenceController
+	RoleController              *controllers.RoleController
 
 	SystemPreferenceSvc services.SystemPreferenceServiceInterface
 	RoleSvc             services.RoleServiceInterface
@@ -27,10 +28,12 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 
 	roleRepo := repositories.NewRoleRepository(db)
 	roleSvc := services.NewRoleService(roleRepo, sharedModule.ActivityLogService)
+	roleController := controllers.NewRoleController(roleSvc)
 
 	return &SettingsModule{
 		OrganizationLevelController: organizationLevelController,
 		SystemPreferenceController:  systemPreferenceController,
+		RoleController:              roleController,
 
 		SystemPreferenceSvc: systemPreferenceSvc,
 		RoleSvc:             roleSvc,
