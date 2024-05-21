@@ -143,7 +143,7 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 
 func (repo *ProcessRepository) GetByID(id uint) (*models.Process, error) {
 	var process *models.Process
-	result := repo.db.Preload("Owner").Preload("LifecycleStatus").First(&process, id)
+	result := repo.db.First(&process, id)
 	if result.Error != nil {
 		return nil, result.Error
 	}
