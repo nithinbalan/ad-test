@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	commonDTOs "jethur/grc/common/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
 	"jethur/grc/organization/services"
@@ -42,6 +43,11 @@ func (cc *ControlController) GetAllControls(c *gin.Context) {
 		"lifecycle_status_ids",
 	}
 
+	validSortFields := map[string]string{
+		"title":           "controls.title_en",
+		"refrence_number": "controls.reference_number",
+	}
+
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
 	//Parse last_review_date_from, last_review_date_to, next_review_date_from, next_review_date_to, last_test_date_from, last_test_date_to, next_test_date_from, next_test_date_to, implemented_at_from, implemented_at_to parameters
@@ -68,9 +74,16 @@ func (cc *ControlController) GetAllControls(c *gin.Context) {
 		return
 	}
 
+	dbField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
 	queryParams := organizationDTOs.ControlListQueryParamsDTO{
 		Sort:               sort,
-		SortBy:             sortBy,
+		SortBy:             dbField,
 		Keyword:            keyword,
 		Status:             status,
 		Page:               page,
