@@ -28,7 +28,8 @@ func NewIncidentModule(db *gorm.DB,
 	settingsModule *SettingsModule,
 	masterModule *MasterModule,
 	organizationModule *OrganizationModule,
-	complianceModule *ComplianceModule) *IncidentModule {
+	complianceModule *ComplianceModule,
+	riskModule *RiskModule) *IncidentModule {
 
 	incidentCategoryRepo := repositories.NewIncidentCategoryRepository(db)
 	incidentCategorySvc := services.NewIncidentCategoryService(incidentCategoryRepo, sharedModule.ActivityLogService)
@@ -55,7 +56,8 @@ func NewIncidentModule(db *gorm.DB,
 		incidentStatusSvc,
 		masterModule.SeverityLevelSvc,
 		organizationModule.ControlSvc,
-		complianceModule.ComplianceRequirementSvc)
+		complianceModule.ComplianceRequirementSvc,
+		riskModule.RiskRegisterSvc)
 	incidentRegisterController := controllers.NewIncidentRegisterController(incidentRegisterSvc)
 
 	incidentInvestigationStatusRepo := repositories.NewIncidentInvestigationStatusRepository(db)

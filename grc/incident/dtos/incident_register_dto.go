@@ -2,8 +2,10 @@ package dtos
 
 import (
 	commonDTOs "jethur/grc/common/dtos"
+	complianceDTOs "jethur/grc/compliance/dtos"
 	masterDTOs "jethur/grc/masters/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
+	riskDTOs "jethur/grc/risk/dtos"
 
 	"time"
 )
@@ -51,21 +53,23 @@ type IncidentRegisterListDTO struct {
 }
 
 type IncidentRegisterFormDTO struct {
-	IncidentCategoryID     uint                       `json:"incident_category_id" binding:"required"`
-	IncidentSubCategoryID  uint                       `json:"incident_sub_category_id" binding:"required"`
-	IncidentTypeID         uint                       `json:"incident_type_id" binding:"required"`
-	SeverityLevelID        uint                       `json:"severity_level_id" binding:"required"`
-	IncidentStatusID       uint                       `json:"incident_status_id" binding:"required"`
-	Title                  string                     `json:"title" binding:"required,max=255"`
-	Description            *string                    `json:"description"`
-	IncidentAt             string                     `json:"incident_at" binding:"required,datetime=2006-01-02"`
-	Location               *string                    `json:"location"`
-	ReportedBy             uint                       `json:"reported_by" binding:"required"`
-	ReportedAt             string                     `json:"reported_at" binding:"required,datetime=2006-01-02"`
-	QuickAction            *string                    `json:"quick_action"`
-	Documents              []*IncidentDocumentFormDTO `json:"documents" binding:"required"`
-	ComplianceRequirements []*uint                    `json:"compliance_requirements"`
-	Controls               []*uint                    `json:"controls"`
+	IncidentCategoryID       uint                       `json:"incident_category_id" binding:"required"`
+	IncidentSubCategoryID    uint                       `json:"incident_sub_category_id" binding:"required"`
+	IncidentTypeID           uint                       `json:"incident_type_id" binding:"required"`
+	SeverityLevelID          uint                       `json:"severity_level_id" binding:"required"`
+	IncidentStatusID         uint                       `json:"incident_status_id" binding:"required"`
+	Title                    string                     `json:"title" binding:"required,max=255"`
+	Description              *string                    `json:"description"`
+	IncidentAt               string                     `json:"incident_at" binding:"required,datetime=2006-01-02"`
+	Location                 *string                    `json:"location"`
+	ReportedBy               uint                       `json:"reported_by" binding:"required"`
+	ReportedAt               string                     `json:"reported_at" binding:"required,datetime=2006-01-02"`
+	QuickAction              *string                    `json:"quick_action"`
+	Documents                []*IncidentDocumentFormDTO `json:"documents" binding:"required"`
+	ComplianceRequirementIds []*uint                    `json:"compliance_requirement_ids"`
+	ControlIds               []*uint                    `json:"control_ids"`
+	ProcessIds               []*uint                    `json:"process_ids"`
+	RiskIds                  []*uint                    `json:"risk_ids"`
 }
 
 type IncidentDocumentFormDTO struct {
@@ -128,6 +132,7 @@ type IncidentRegisterDetailDTO struct {
 	Documents              []*IncidentDocumentDTO              `json:"documents"`
 	Controls               []*IncidentControlDTO               `json:"controls"`
 	ComplianceRequirements []*IncidentComplianceRequirementDTO `json:"compliance_requirements"`
+	Risks                  []*IncidentRiskDTO                  `json:"risks"`
 	CreatedAt              time.Time                           `json:"created_at"`
 	UpdatedAt              *time.Time                          `json:"updated_at"`
 	CreatedByUser          organizationDTOs.UserMinimalDTO     `json:"created_by"`
@@ -136,4 +141,25 @@ type IncidentRegisterDetailDTO struct {
 type IncidentRegisterParsedDates struct {
 	ReportedAt *time.Time
 	IncidentAt *time.Time
+}
+
+type IncidentControlDTO struct {
+	ID                 *uint                             `json:"id"`
+	IncidentRegisterID uint                              `json:"incident_register_id"`
+	ControlID          uint                              `json:"control_id"`
+	Control            organizationDTOs.ControlDetailDTO `json:"control"`
+}
+
+type IncidentComplianceRequirementDTO struct {
+	ID                      *uint                                         `json:"id"`
+	IncidentRegisterID      uint                                          `json:"incident_register_id"`
+	ComplianceRequirementID uint                                          `json:"compliance_requirement_id"`
+	ComplianceRequirement   complianceDTOs.ComplianceRequirementDetailDTO `json:"compliance_requirement"`
+}
+
+type IncidentRiskDTO struct {
+	ID                 *uint                          `json:"id"`
+	IncidentRegisterID uint                           `json:"incident_register_id"`
+	RiskRegisterID     uint                           `json:"risk_register_id"`
+	RiskRegister       riskDTOs.RiskRegisterDetailDTO `json:"risk"`
 }
