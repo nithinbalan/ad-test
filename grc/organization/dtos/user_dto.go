@@ -104,26 +104,24 @@ type UserMinimalDTO struct {
 	OrganizationUnit1 settingDTOs.OrganizationUnitDTO `json:"organization_unit_1"`
 }
 
+type UserRoleDTO struct {
+	ID     uint                `json:"id"`
+	UserID uint                `json:"user_id"`
+	RoleID uint                `json:"role_id"`
+	Role   settingDTOs.RoleDTO `json:"role"`
+}
+
 type UserDetailsDTO struct {
-	ID                  uint      `json:"id"`
-	OrganizationUnit1ID uint      `json:"organization_unit_1_id"`
-	OrganizationUnit2ID *uint     `json:"organization_unit_2_id"`
-	OrganizationUnit3ID *uint     `json:"organization_unit_3_id"`
-	OrganizationUnit4ID *uint     `json:"organization_unit_4_id"`
-	OrganizationUnit5ID *uint     `json:"organization_unit_5_id"`
-	UserStatusID        uint      `json:"user_status_id"`
-	DesignationID       uint      `json:"designation_id"`
-	FirstNameEn         string    `json:"first_name_en"`
-	LastNameEn          string    `json:"last_name_en"`
-	FirstNameAr         string    `json:"first_name_ar"`
-	LastNameAr          string    `json:"last_name_ar"`
-	Email               string    `json:"email"`
-	MobileNumber        *string   `json:"mobile_number"`
-	ProfileImagePath    *string   `json:"profile_image_path"`
-	CreatedAt           time.Time `json:"created_at"`
-	UpdatedAt           time.Time `json:"updated_at"`
-	CreatedBy           uint      `json:"created_by"`
-	UpdatedBy           *uint     `json:"updated_by"`
+	ID               uint      `json:"id"`
+	FirstNameEn      string    `json:"first_name_en"`
+	LastNameEn       string    `json:"last_name_en"`
+	FirstNameAr      string    `json:"first_name_ar"`
+	LastNameAr       string    `json:"last_name_ar"`
+	Email            string    `json:"email"`
+	MobileNumber     *string   `json:"mobile_number"`
+	ProfileImagePath *string   `json:"profile_image_path"`
+	CreatedAt        time.Time `json:"created_at"`
+	UpdatedAt        time.Time `json:"updated_at"`
 
 	// Relationship DTOs
 	OrganizationUnit1 settingDTOs.OrganizationUnitDTO  `json:"organization_unit_1"`
@@ -133,6 +131,7 @@ type UserDetailsDTO struct {
 	OrganizationUnit5 *settingDTOs.OrganizationUnitDTO `json:"organization_unit_5"`
 	UserStatus        *UserStatusDTO                   `json:"user_status"`
 	Designation       *DesignationDTO                  `json:"designation"`
+	UserRoles         *[]UserRoleDTO                   `json:"user_roles"`
 	CreatedByUser     *UserMinimalDTO                  `json:"created_by_user"`
 	UpdatedByUser     *UserMinimalDTO                  `json:"updated_by_user"`
 }
