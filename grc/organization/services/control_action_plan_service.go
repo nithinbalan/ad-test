@@ -105,7 +105,7 @@ func (caps *ControlActionPlanService) Create(controlID uint, currentUserID uint,
 		return 0, err
 	}
 
-	if err := caps.validateControlActionPlanFormDTO(controlID, ControlActionPlanFormDTO); err != nil {
+	if err := caps.validateControlActionPlanFormDTO(ControlActionPlanFormDTO); err != nil {
 		return 0, err
 	}
 
@@ -168,7 +168,7 @@ func (caps *ControlActionPlanService) Update(controlID uint, id uint, currentUse
 		return err
 	}
 
-	if err := caps.validateControlActionPlanFormDTO(controlID, ControlActionPlanFormDTO); err != nil {
+	if err := caps.validateControlActionPlanFormDTO(ControlActionPlanFormDTO); err != nil {
 		return err
 	}
 
@@ -260,7 +260,7 @@ func (caps *ControlActionPlanService) StatusUpdate(controlID uint, id uint, curr
 	return nil
 }
 
-func (caps *ControlActionPlanService) validateControlActionPlanFormDTO(controlID uint, ControlActionPlanFormDTO *organizationDTOs.ControlActionPlanFormDTO) error {
+func (caps *ControlActionPlanService) validateControlActionPlanFormDTO(ControlActionPlanFormDTO *organizationDTOs.ControlActionPlanFormDTO) error {
 	if ControlActionPlanFormDTO.SeverityLevelID != nil {
 		if _, err := caps.severityLevelSvc.GetByID(*ControlActionPlanFormDTO.SeverityLevelID); err != nil {
 			return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
