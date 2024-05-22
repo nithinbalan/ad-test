@@ -50,8 +50,10 @@ func NewIncidentActionPlanService(
 }
 
 func (iaps *IncidentActionPlanService) GetAll(incidentID uint, params *incidentDTOs.IncidentActionPlanListQueryParamsDTO) (*incidentDTOs.IncidentActionPlanListResponseDTO, error) {
-	if _, err := iaps.incidentRegisterSvc.GetByID(incidentID); err != nil {
-		return nil, err
+	if incidentID != 0 {
+		if _, err := iaps.incidentRegisterSvc.GetByID(incidentID); err != nil {
+			return nil, err
+		}
 	}
 	return iaps.repo.GetAll(incidentID, params)
 }

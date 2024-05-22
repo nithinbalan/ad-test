@@ -229,6 +229,23 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 		}
 	}()
 
+	emailData := userDTOs.SendNewPasswordEmailDTO{
+		FirstNameEn: userFormDTO.FirstNameEn,
+		LastNameEn:  userFormDTO.LastNameEn,
+		Email:       userFormDTO.Email,
+		Password:    password,
+	}
+
+	to := []string{user.Email}
+	subject := "Important: Welcome to Jethur!"
+	templateRelativePath := "organization/templates/email/user_welcome.html"
+
+	err = utility.SendTemplatedEmail(to, subject, templateRelativePath, emailData, nil)
+
+	if err != nil {
+		return 0, err
+	}
+
 	return userID, nil
 }
 

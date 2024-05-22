@@ -1,0 +1,25 @@
+{{ define "content" }}
+<p>Dear {{ .FirstNameEn }} {{ .LastNameEn }},</p>
+
+<p>Welcome to Jethur! We're thrilled to have you on board.</p>
+
+<p>Your account associated with <a href="mailto:{{ .Email }}" target="_blank">{{ .Email }}</a> has been successfully created. As a new member of our community, you now have access to a range of features and resources designed to help you get the most out of our services.</p>
+
+<p><strong>Your temporary password is: {{ .Password }}</strong></p>
+
+<p>We recommend that you log in and change this temporary password to something only you know as soon as possible. Here are some tips for creating a strong password:</p>
+<ul>
+  <li>Use a mix of letters, numbers, and symbols.</li>
+  <li>Make it at least 12 characters long.</li>
+  <li>Avoid using easily guessed information like your name or birthdate.</li>
+  <li>Don't reuse passwords across different websites or applications.</li>
+</ul>
+
+<p>If you have any questions or need assistance, please don't hesitate to reach out to our support team at <a href="mailto:support@jethur.com">support@jethur.com</a>.</p>
+
+<p>Thank you for joining us, and we look forward to supporting you on your journey with Jethur.</p>
+
+<p>Best regards,</p>
+<p>The Jethur Team</p>
+
+{{ end }}
