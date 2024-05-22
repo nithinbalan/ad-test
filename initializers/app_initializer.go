@@ -7,6 +7,7 @@ import (
 type App struct {
 	SettingsModule     *SettingsModule
 	MasterModule       *MasterModule
+	MeetingModule      *MeetingModule
 	LibraryModule      *LibraryModule
 	OrganizationModule *OrganizationModule
 	AuthModule         *AuthModule
@@ -18,6 +19,7 @@ type App struct {
 func NewApp(db *gorm.DB) *App {
 	sharedModule := NewSharedModule(db)
 	masterModule := NewMasterModule(db, sharedModule)
+	meetingModule := NewMeetingModule(db, sharedModule)
 	settingsModule := NewSettingsModule(db, sharedModule, masterModule)
 	libraryModule := NewLibraryModule(db, sharedModule, masterModule)
 	organizationModule := NewOrganizationModule(db, sharedModule, settingsModule, masterModule)
@@ -29,6 +31,7 @@ func NewApp(db *gorm.DB) *App {
 	return &App{
 		SettingsModule:     settingsModule,
 		MasterModule:       masterModule,
+		MeetingModule:      meetingModule,
 		LibraryModule:      libraryModule,
 		OrganizationModule: organizationModule,
 		AuthModule:         authModule,
