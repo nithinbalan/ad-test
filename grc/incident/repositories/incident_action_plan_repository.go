@@ -67,7 +67,7 @@ func (repo *IncidentActionPlanRepository) GetAll(incidentID uint, params *incide
         LEFT JOIN users AS responsible_user ON responsible_user.id = incident_action_plans.responsible_user_id
         LEFT JOIN users AS created_user ON created_user.id = incident_action_plans.created_by
         LEFT JOIN users AS updated_user ON updated_user.id = incident_action_plans.updated_by
-    `).Where(`incident_action_plans.incident_register_id`, incidentID)
+    `)
 
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
@@ -115,6 +115,10 @@ func (repo *IncidentActionPlanRepository) GetAll(incidentID uint, params *incide
 			keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword,
 			keyword)
+	}
+	// Conditionally apply incident ID filter
+	if incidentID != 0 {
+		query = query.Where("incident_action_plans.incident_register_id = ?", incidentID)
 	}
 
 	// Sort by the specified column and order

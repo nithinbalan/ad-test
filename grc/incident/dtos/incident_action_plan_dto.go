@@ -10,6 +10,7 @@ import (
 
 type IncidentActionPlanListDTO struct {
 	ID                         uint   `json:"id"`
+	IncidentRegisterID         uint   `json:"incident_register_id"`
 	Title                      string `json:"title"`
 	Description                string `json:"description"`
 	SeverityLevelTitleEn       string `json:"severity_level_title_en"`
