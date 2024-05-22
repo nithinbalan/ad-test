@@ -76,6 +76,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	incidentRoutes.POST("/incident/:incidentId/investigations/delete", incidentInvestigationController.DeleteIncidentInvestigations)
 
 	//Incident Action Plan
+	incidentRoutes.GET("/incident-action-plans", incidentActionPlanController.GetAllIncidentActionPlans)
 	incidentRoutes.GET("/incident/:incidentId/action-plans", incidentActionPlanController.GetAllIncidentActionPlans)
 	incidentRoutes.GET("/incident/:incidentId/action-plans/:actionPlanId", incidentActionPlanController.GetIncidentActionPlanDetails)
 	incidentRoutes.POST("/incident/:incidentId/action-plans", incidentActionPlanController.CreateIncidentActionPlan)
