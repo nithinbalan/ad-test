@@ -9,13 +9,28 @@ import (
 
 func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
-	masterRoutes := router.Group("/")
+	meetingRoutes := router.Group("/")
 
-	masterRoutes.Use(middlewares.AuthMiddleware())
+	meetingRoutes.Use(middlewares.AuthMiddleware())
 
 	meetingFrequencyController := app.MeetingModule.MeetingFrequencyController
+	meetingStatusController := app.MeetingModule.MeetingStatusController
+	meetingTypeController := app.MeetingModule.MeetingTypeController
 
-	masterRoutes.GET("/meeting-frequencies", meetingFrequencyController.GetAllMeetingFrequencies)
-	masterRoutes.GET("/meeting-frequencies/:id", meetingFrequencyController.GetMeetingFrequencyDetails)
+	meetingRoutes.GET("/meeting-frequencies", meetingFrequencyController.GetAllMeetingFrequencies)
+	meetingRoutes.GET("/meeting-frequencies/:id", meetingFrequencyController.GetMeetingFrequencyDetails)
+
+	// Meeting Status
+	meetingRoutes.GET("/meeting-statuses", meetingStatusController.GetAllMeetingStatuses)
+	meetingRoutes.GET("/meeting-statuses/:id", meetingStatusController.GetMeetingStatusDetails)
+
+	// Meeting Type
+	meetingRoutes.GET("/meeting-types", meetingTypeController.GetAllMeetingTypes)
+	meetingRoutes.GET("/meeting-types/:id", meetingTypeController.GetMeetingTypeDetails)
+	meetingRoutes.POST("/meeting-types", meetingTypeController.CreateMeetingType)
+	meetingRoutes.PUT("/meeting-types/:id", meetingTypeController.UpdateMeetingType)
+	meetingRoutes.POST("/meeting-types/delete", meetingTypeController.DeleteMeetingTypes)
+	meetingRoutes.PUT("/meeting-types/activate", meetingTypeController.ActivateMeetingTypes)
+	meetingRoutes.PUT("/meeting-types/deactivate", meetingTypeController.DeactivateMeetingTypes)
 
 }
