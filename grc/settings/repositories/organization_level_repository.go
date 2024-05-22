@@ -8,6 +8,7 @@ import (
 
 type OrganizationLevelRepositoryInterface interface {
 	GetAll() ([]*models.OrganizationLevel, error)
+	GetByID(id uint) (*models.OrganizationLevel, error)
 	Create(organizationLevels []*models.OrganizationLevel) ([]*models.OrganizationLevel, error)
 }
 
@@ -29,6 +30,18 @@ func (repo *OrganizationLevelRepository) GetAll() ([]*models.OrganizationLevel, 
 	result := query.Find(&organizationLevels)
 
 	return organizationLevels, result.Error
+}
+
+func (repo *OrganizationLevelRepository) GetByID(id uint) (*models.OrganizationLevel, error) {
+	var organizationLevel *models.OrganizationLevel
+
+	result := repo.db.First(&organizationLevel, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return organizationLevel, nil
+
 }
 
 func (repo *OrganizationLevelRepository) Create(organizationLevels []*models.OrganizationLevel) ([]*models.OrganizationLevel, error) {

@@ -149,14 +149,14 @@ func (repo *RiskRegisterRepository) GetAll(params *riskDTOs.RiskRegisterListQuer
 			users.last_name_ar LIKE ? OR
 			risk_statuses.title_en LIKE ? OR
 			risk_statuses.title_ar LIKE ? OR
-			created_users.first_name_en LIKE ? OR
-			created_users.first_name_ar LIKE ? OR
-			created_users.last_name_en LIKE ? OR
-			created_users.last_name_ar LIKE ? OR
-			updated_users.first_name_en LIKE ? OR
-			updated_users.first_name_ar LIKE ? OR
-			updated_users.last_name_en LIKE ? OR
-			updated_users.last_name_ar LIKE ? OR
+			created_user.first_name_en LIKE ? OR
+			created_user.first_name_ar LIKE ? OR
+			created_user.last_name_en LIKE ? OR
+			created_user.last_name_ar LIKE ? OR
+			updated_user.first_name_en LIKE ? OR
+			updated_user.first_name_ar LIKE ? OR
+			updated_user.last_name_en LIKE ? OR
+			updated_user.last_name_ar LIKE ? OR
 			review_frequencies.title_en LIKE ? OR
 			review_frequencies.title_ar LIKE ?)`,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,

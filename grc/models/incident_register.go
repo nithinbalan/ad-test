@@ -33,6 +33,7 @@ type IncidentRegister struct {
 	Documents              []*IncidentDocument              `gorm:"foreignKey:IncidentRegisterID"`
 	Controls               []*IncidentControl               `gorm:"foreignKey:IncidentRegisterID"`
 	ComplianceRequirements []*IncidentComplianceRequirement `gorm:"foreignKey:IncidentRegisterID"`
+	Risks                  []*IncidentRisk                  `gorm:"foreignKey:IncidentRegisterID"`
 	ReportedByUser         *User                            `gorm:"foreignkey:ReportedBy"`
 	CreatedByUser          *User                            `gorm:"foreignkey:CreatedBy"`
 	UpdatedByUser          *User                            `gorm:"foreignkey:UpdatedBy"`

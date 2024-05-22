@@ -10,6 +10,7 @@ import (
 	masterRepositories "jethur/grc/masters/repositories"
 	masterServices "jethur/grc/masters/services"
 	organizationServices "jethur/grc/organization/services"
+	riskServices "jethur/grc/risk/services"
 
 	"jethur/grc/models"
 	"jethur/utility"
@@ -40,6 +41,7 @@ type IncidentRegisterService struct {
 	severityLevelSvc         masterServices.SeverityLevelServiceInterface
 	controlSvc               organizationServices.ControlServiceInterface
 	complianceRequirementSvc complianceServices.ComplianceRequirementServiceInterface
+	riskRegisterSvc          riskServices.RiskRegisterServiceInterface
 }
 
 func NewIncidentRegisterService(
@@ -52,6 +54,7 @@ func NewIncidentRegisterService(
 	severityLevelSvc masterRepositories.SeverityLevelRepositoryInterface,
 	controlSvc organizationServices.ControlServiceInterface,
 	complianceRequirementSvc complianceServices.ComplianceRequirementServiceInterface,
+	riskRegisterSvc riskServices.RiskRegisterServiceInterface,
 ) IncidentRegisterServiceInterface {
 	return &IncidentRegisterService{
 		repo:                     repo,
@@ -63,6 +66,7 @@ func NewIncidentRegisterService(
 		severityLevelSvc:         severityLevelSvc,
 		controlSvc:               controlSvc,
 		complianceRequirementSvc: complianceRequirementSvc,
+		riskRegisterSvc:          riskRegisterSvc,
 	}
 }
 
@@ -150,7 +154,7 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 	}
 	// Save ComplianceRequirements
 	var complianceRequirements []*models.IncidentComplianceRequirement
-	for _, req := range incidentRegisterFormDTO.ComplianceRequirements {
+	for _, req := range incidentRegisterFormDTO.ComplianceRequirementIds {
 		requirement := &models.IncidentComplianceRequirement{
 			IncidentRegisterID:      id,
 			ComplianceRequirementID: *req,
@@ -167,7 +171,7 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 	}
 	// Save Controls
 	var controls []*models.IncidentControl
-	for _, ctrl := range incidentRegisterFormDTO.Controls {
+	for _, ctrl := range incidentRegisterFormDTO.ControlIds {
 		control := &models.IncidentControl{
 			IncidentRegisterID: id,
 			ControlID:          *ctrl,
@@ -178,6 +182,23 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 
 	if len(controls) > 0 {
 		if err := irs.repo.CreateIncidentControls(controls, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+	// Save Risks
+	var risks []*models.IncidentRisk
+	for _, rsk := range incidentRegisterFormDTO.RiskIds {
+		risk := &models.IncidentRisk{
+			IncidentRegisterID: id,
+			RiskRegisterID:     *rsk,
+			CreatedBy:          currentUserID,
+		}
+		risks = append(risks, risk)
+	}
+
+	if len(risks) > 0 {
+		if err := irs.repo.CreateIncidentRisks(risks, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
@@ -296,6 +317,163 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 	if err != nil {
 		tx.Rollback()
 		return err
+	}
+	// Collect existing control IDs
+	existingIncident, err := irs.GetFullDetailsByID(id, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	existingControlIDs := make(map[uint]bool)
+	for _, ctrl := range existingIncident.Controls {
+		existingControlIDs[ctrl.ControlID] = true
+	}
+
+	// Collect new control IDs
+	newControlIDs := make(map[uint]bool)
+	for _, ctrl := range incidentRegisterFormDTO.ControlIds {
+		newControlIDs[*ctrl] = true
+	}
+
+	// Add new controls
+	var controlsToAdd []*models.IncidentControl
+	for _, newControlID := range incidentRegisterFormDTO.ControlIds {
+		if _, exists := existingControlIDs[*newControlID]; !exists {
+			// Create a new incident control record
+			control := &models.IncidentControl{
+				IncidentRegisterID: id,
+				ControlID:          *newControlID,
+				CreatedBy:          currentUserID,
+			}
+			controlsToAdd = append(controlsToAdd, control)
+		}
+	}
+
+	// Save the new controls
+	if len(controlsToAdd) > 0 {
+		if err := irs.repo.CreateIncidentControls(controlsToAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// Remove controls not in the new list
+	var deleteControlIDs []*uint
+
+	for _, existingControl := range existingIncident.Controls {
+		if _, exists := newControlIDs[existingControl.ControlID]; !exists {
+			// Append control to delete list
+			deleteControlIDs = append(deleteControlIDs, existingControl.ID)
+		}
+	}
+
+	// Delete controls not in the new list
+	if len(deleteControlIDs) > 0 {
+		if err := irs.repo.DeleteIncidentControls(deleteControlIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+	// Collect existing compliance requirement IDs
+	existingRequirementIDs := make(map[uint]bool)
+	for _, req := range existingIncident.ComplianceRequirements {
+		existingRequirementIDs[req.ComplianceRequirementID] = true
+	}
+
+	// Collect new compliance requirement IDs
+	newRequirementIDs := make(map[uint]bool)
+	for _, req := range incidentRegisterFormDTO.ComplianceRequirementIds {
+		newRequirementIDs[*req] = true
+	}
+
+	// Add new compliance requirements
+	var requirementsToAdd []*models.IncidentComplianceRequirement
+	for _, newRequirementID := range incidentRegisterFormDTO.ComplianceRequirementIds {
+		if _, exists := existingRequirementIDs[*newRequirementID]; !exists {
+			// Create a new incident compliance requirement record
+			requirement := &models.IncidentComplianceRequirement{
+				IncidentRegisterID:      id,
+				ComplianceRequirementID: *newRequirementID,
+				CreatedBy:               currentUserID,
+			}
+			requirementsToAdd = append(requirementsToAdd, requirement)
+		}
+	}
+
+	// Save the new compliance requirements
+	if len(requirementsToAdd) > 0 {
+		if err := irs.repo.CreateIncidentComplianceRequirements(requirementsToAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// Remove compliance requirements not in the new list
+	var deleteRequirementIDs []*uint
+	for _, existingRequirement := range existingIncident.ComplianceRequirements {
+		if _, exists := newRequirementIDs[existingRequirement.ComplianceRequirementID]; !exists {
+			// Append requirement to delete list
+			deleteRequirementIDs = append(deleteRequirementIDs, existingRequirement.ID)
+		}
+	}
+
+	// Delete compliance requirements not in the new list
+	if len(deleteRequirementIDs) > 0 {
+		if err := irs.repo.DeleteIncidentComplianceRequirements(deleteRequirementIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// Collect existing risk IDs
+	existingRiskIDs := make(map[uint]bool)
+	for _, risk := range existingIncident.Risks {
+		existingRiskIDs[risk.RiskRegisterID] = true
+	}
+
+	// Collect new risk IDs
+	newRiskIDs := make(map[uint]bool)
+	for _, riskID := range incidentRegisterFormDTO.RiskIds {
+		newRiskIDs[*riskID] = true
+	}
+
+	// Add new risks
+	var risksToAdd []*models.IncidentRisk
+	for _, newRiskID := range incidentRegisterFormDTO.RiskIds {
+		if _, exists := existingRiskIDs[*newRiskID]; !exists {
+			// Create a new incident risk record
+			risk := &models.IncidentRisk{
+				IncidentRegisterID: id,
+				RiskRegisterID:     *newRiskID,
+				CreatedBy:          currentUserID,
+			}
+			risksToAdd = append(risksToAdd, risk)
+		}
+	}
+
+	// Save the new risks
+	if len(risksToAdd) > 0 {
+		if err := irs.repo.CreateIncidentRisks(risksToAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// Remove risks not in the new list
+	var deleteRiskIDs []*uint
+	for _, existingRisk := range existingIncident.Risks {
+		if _, exists := newRiskIDs[existingRisk.RiskRegisterID]; !exists {
+			// Append risk ID to delete list
+			deleteRiskIDs = append(deleteRiskIDs, existingRisk.ID)
+		}
+	}
+
+	// Delete risks not in the new list
+	if len(deleteRiskIDs) > 0 {
+		if err := irs.repo.DeleteIncidentRisks(deleteRiskIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
 	}
 	//documents update
 	var documents []*models.IncidentDocument
@@ -437,6 +615,18 @@ func (irs *IncidentRegisterService) Delete(ids []uint, currentUserID uint) ([]ui
 			}
 
 		}
+		// Check if Risk exist
+		if len(incident.Risks) > 0 {
+			var deleteRiskIds []*uint
+			for _, rsk := range incident.Risks {
+				deleteRiskIds = append(deleteRiskIds, rsk.ID)
+			}
+			if err := irs.repo.DeleteIncidentRisks(deleteRiskIds, tx); err != nil {
+
+				tx.Rollback()
+				return nil, err
+			}
+		}
 
 		// Delete each incident document if documents exist
 		if len(incident.Documents) > 0 {
@@ -525,7 +715,7 @@ func (irs *IncidentRegisterService) validateIncidentRegisterFormDTO(incidentRegi
 		return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
 	}
 	//Controls exist
-	controls := incidentRegisterFormDTO.Controls
+	controls := incidentRegisterFormDTO.ControlIds
 	// If no controls are provided, simply return nil to exit the function
 	if len(controls) == 0 {
 		return nil
@@ -551,9 +741,9 @@ func (irs *IncidentRegisterService) validateIncidentRegisterFormDTO(incidentRegi
 		controlIDs[*control] = true
 	}
 	//Compliance Requirements Exist
-	requirements := incidentRegisterFormDTO.ComplianceRequirements
+	requirements := incidentRegisterFormDTO.ComplianceRequirementIds
 
-	// If no controls are provided, simply return nil to exit the function
+	// If no Requirements are provided, simply return nil to exit the function
 	if len(requirements) == 0 {
 		return nil
 	}
@@ -576,6 +766,32 @@ func (irs *IncidentRegisterService) validateIncidentRegisterFormDTO(incidentRegi
 
 		// Add the requirement ID to the map
 		requirementIDs[*requirement] = true
+	}
+	//Risks exist
+	risks := incidentRegisterFormDTO.RiskIds
+	// If no risks are provided, simply return nil to exit the function
+	if len(risks) == 0 {
+		return nil
+	}
+
+	// Create a map to store risk IDs
+	riskIDs := make(map[uint]bool)
+
+	// Check if each risk exists
+	for _, risk := range risks {
+		// Check if the risk ID already exists in the map
+		if riskIDs[*risk] {
+			// If the risk ID already exists, return a validation error
+			return utility.NewValidationError(fmt.Errorf("duplicate risk ID: %d", risk), "duplicate", "risk")
+		}
+
+		// Check if the risk exists in the database
+		if _, err := irs.riskRegisterSvc.GetByID(*risk); err != nil {
+			return utility.NewValidationError(fmt.Errorf("risk does not exist for ID: %d", risk), "not_exist", "risk")
+		}
+
+		// Add the risk ID to the map
+		riskIDs[*risk] = true
 	}
 
 	return nil

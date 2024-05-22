@@ -28,6 +28,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	processGroupController := app.OrganizationModule.ProcessGroupController
 	controlActionPlanController := app.OrganizationModule.ControlActionPlanController
 	controlActionPlanStatusUpdateController := app.OrganizationModule.ControlActionPlanStatusUpdateController
+	processController := app.OrganizationModule.ProcessController
 
 	//Designation
 	organizationRoutes.GET("/designations", designationController.GetAllDesignations)
@@ -137,5 +138,14 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.GET("/controls/:controlId/action-plan/:controlActionPlanId/updates/:controlActionPlanUpdateId", controlActionPlanStatusUpdateController.GetControlActionPlanStatusUpdateDetails)
 	organizationRoutes.POST("/controls/:controlId/action-plan/:controlActionPlanId/updates", controlActionPlanStatusUpdateController.CreateControlActionPlanStatusUpdate)
 	organizationRoutes.PUT("/controls/:controlId/action-plan/:controlActionPlanId/updates/:controlActionPlanUpdateId", controlActionPlanStatusUpdateController.UpdateControlActionPlanStatusUpdate)
+
+	//process
+	organizationRoutes.GET("/processes", processController.GetAllProcesses)
+	organizationRoutes.GET("/processes/:processId", processController.GetProcessDetails)
+	organizationRoutes.POST("/processes", processController.CreateProcess)
+	organizationRoutes.PUT("/processes/:processId", processController.UpdateProcess)
+	organizationRoutes.POST("/processes/delete", processController.DeleteProcesses)
+	organizationRoutes.PUT("/processes/archive", processController.ArchiveProcesses)
+	organizationRoutes.PUT("/processes/restore", processController.RestoreProcesses)
 
 }

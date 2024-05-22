@@ -26,12 +26,19 @@ func NewIncidentActionPlanController(service services.IncidentActionPlanServiceI
 func (iapc *IncidentActionPlanController) GetAllIncidentActionPlans(c *gin.Context) {
 	incidentIDStr := c.Param("incidentId")
 
-	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
+	var incidentID uint64
+	var err error
 
+	// Check if incidentId is provided in the URL
+	if incidentIDStr != "" {
+		incidentID, err = strconv.ParseUint(incidentIDStr, 10, 64)
+		if err != nil {
+			utility.SendNotFoundErrResp(c)
+			return
+		}
+	} else {
+		incidentID = 0
+	}
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
@@ -43,6 +50,7 @@ func (iapc *IncidentActionPlanController) GetAllIncidentActionPlans(c *gin.Conte
 		"severity_level_ids",
 		"responsible_user_ids",
 		"action_plan_status_ids",
+		"incident_register_ids",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
@@ -76,7 +84,7 @@ func (iapc *IncidentActionPlanController) GetAllIncidentActionPlans(c *gin.Conte
 		TargetDateTo:   targetDateTo,
 	}
 	incidentActionPlans, err := iapc.service.GetAll(uint(incidentID), &queryParams)
-
+	
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

@@ -1,16 +1,20 @@
 package services
 
 import (
+	"errors"
 	"fmt"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/grc/settings/repositories"
 	"jethur/utility"
 	"log"
+
+	"gorm.io/gorm"
 )
 
 type OrganizationLevelServiceInterface interface {
 	GetAll() ([]*models.OrganizationLevel, error)
+	GetByID(id uint) (*models.OrganizationLevel, error)
 	Create(currentUserID uint, organizationLevels []*models.OrganizationLevel) ([]*models.OrganizationLevel, error)
 }
 
@@ -29,6 +33,18 @@ func NewOrganizationLevelService(repo repositories.OrganizationLevelRepositoryIn
 
 func (ols *OrganizationLevelService) GetAll() ([]*models.OrganizationLevel, error) {
 	return ols.repo.GetAll()
+}
+
+func (ous OrganizationLevelService) GetByID(id uint) (*models.OrganizationLevel, error) {
+	orgLevel, err := ous.repo.GetByID(id)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+	return orgLevel, nil
 }
 
 func (ols *OrganizationLevelService) Create(currentUserID uint, organizationLevels []*models.OrganizationLevel) ([]*models.OrganizationLevel, error) {
