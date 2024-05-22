@@ -17,6 +17,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	systemPreferenceController := app.SettingsModule.SystemPreferenceController
 	roleController := app.SettingsModule.RoleController
 	organizationUnitController := app.SettingsModule.OrganizationUnitController
+	logSettingsController := app.SettingsModule.LogSettingsController
 
 	//Organization Level
 	settingRoutes.GET("/organization-levels", organizationLevelController.GetAllOrganizationLevels)
@@ -43,5 +44,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	settingRoutes.POST("/organization-units/delete", organizationUnitController.DeleteOrganizationUnits)
 	settingRoutes.PUT("/organization-units/activate", organizationUnitController.ActivateOrganizationUnits)
 	settingRoutes.PUT("/organization-units/deactivate", organizationUnitController.DeactivateOrganizationUnits)
+
+	// Log Settings
+	settingRoutes.GET("/log-settings", logSettingsController.GetLogSettings)
+	settingRoutes.PUT("/log-settings/:id", logSettingsController.UpdateLogSettings)
 
 }
