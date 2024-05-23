@@ -103,7 +103,7 @@ func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uin
 		return 0, err
 	}
 
-	if err := iaps.validateIncidentActionPlanFormDTO(incidentID, IncidentActionPlanFormDTO); err != nil {
+	if err := iaps.validateIncidentActionPlanFormDTO(IncidentActionPlanFormDTO); err != nil {
 		return 0, err
 	}
 
@@ -169,7 +169,7 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 		return err
 	}
 
-	if err := iaps.validateIncidentActionPlanFormDTO(incidentID, IncidentActionPlanFormDTO); err != nil {
+	if err := iaps.validateIncidentActionPlanFormDTO(IncidentActionPlanFormDTO); err != nil {
 		return err
 	}
 
@@ -262,7 +262,7 @@ func (iaps *IncidentActionPlanService) StatusUpdate(incidentID uint, id uint, cu
 	return nil
 }
 
-func (iaps *IncidentActionPlanService) validateIncidentActionPlanFormDTO(incidentID uint, IncidentActionPlanFormDTO *incidentDTOs.IncidentActionPlanFormDTO) error {
+func (iaps *IncidentActionPlanService) validateIncidentActionPlanFormDTO(IncidentActionPlanFormDTO *incidentDTOs.IncidentActionPlanFormDTO) error {
 	if IncidentActionPlanFormDTO.SeverityLevelID != nil {
 		if _, err := iaps.severityLevelSvc.GetByID(*IncidentActionPlanFormDTO.SeverityLevelID); err != nil {
 			return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
