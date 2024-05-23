@@ -16,6 +16,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	meetingFrequencyController := app.MeetingModule.MeetingFrequencyController
 	meetingStatusController := app.MeetingModule.MeetingStatusController
 	meetingTypeController := app.MeetingModule.MeetingTypeController
+	meetingController := app.MeetingModule.MeetingController
 
 	meetingRoutes.GET("/meeting-frequencies", meetingFrequencyController.GetAllMeetingFrequencies)
 	meetingRoutes.GET("/meeting-frequencies/:id", meetingFrequencyController.GetMeetingFrequencyDetails)
@@ -32,5 +33,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	meetingRoutes.POST("/meeting-types/delete", meetingTypeController.DeleteMeetingTypes)
 	meetingRoutes.PUT("/meeting-types/activate", meetingTypeController.ActivateMeetingTypes)
 	meetingRoutes.PUT("/meeting-types/deactivate", meetingTypeController.DeactivateMeetingTypes)
+
+	// Meetings
+	meetingRoutes.GET("/meetings", meetingController.GetAllMeetings)
+	meetingRoutes.GET("/meetings/:id", meetingController.GetMeetingDetails)
+	meetingRoutes.POST("/meetings", meetingController.CreateMeeting)
+	meetingRoutes.PUT("/meetings/:id", meetingController.UpdateMeeting)
+	meetingRoutes.POST("/meetings/delete", meetingController.DeleteMeetings)
 
 }
