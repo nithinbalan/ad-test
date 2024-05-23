@@ -16,7 +16,7 @@ import (
 )
 
 type MeetingServiceInterface interface {
-	GetAll(params *meetingDTOs.MeetingListQueryParamsDTO) (*meetingDTOs.MeetingListResponseDTO, error)
+	GetAll(currentUserID uint, params *meetingDTOs.MeetingListQueryParamsDTO) (*meetingDTOs.MeetingListResponseDTO, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*meetingDTOs.MeetingDetailDTO, error)
 	GetByID(id uint) (*models.Meeting, error)
 	Create(currentUserID uint, meetingFormDTO *meetingDTOs.MeetingFormDTO) (uint, error)
@@ -51,8 +51,8 @@ func NewMeetingService(
 	}
 }
 
-func (ms *MeetingService) GetAll(params *meetingDTOs.MeetingListQueryParamsDTO) (*meetingDTOs.MeetingListResponseDTO, error) {
-	return ms.repo.GetAll(params)
+func (ms *MeetingService) GetAll(currentUserID uint, params *meetingDTOs.MeetingListQueryParamsDTO) (*meetingDTOs.MeetingListResponseDTO, error) {
+	return ms.repo.GetAll(currentUserID, params)
 }
 
 func (ms MeetingService) GetByID(id uint) (*models.Meeting, error) {
@@ -106,6 +106,7 @@ func (ms *MeetingService) Create(currentUserID uint, meetingFormDTO *meetingDTOs
 		StartTime:          dates.StartTime,
 		EndTime:            dates.EndTime,
 		OrganizerID:        meetingFormDTO.OrganizerID,
+		IsPublic:           meetingFormDTO.IsPublic,
 		CreatedBy:          currentUserID,
 		MeetingTypeID:      meetingFormDTO.MeetingTypeID,
 		MeetingFrequencyID: meetingFormDTO.MeetingFrequencyID,
@@ -188,6 +189,7 @@ func (ms *MeetingService) Update(id uint, currentUserID uint, meetingFormDTO *me
 	existingMeeting.StartTime = dates.StartTime
 	existingMeeting.EndTime = dates.EndTime
 	existingMeeting.OrganizerID = meetingFormDTO.OrganizerID
+	existingMeeting.IsPublic = meetingFormDTO.IsPublic
 	existingMeeting.UpdatedBy = &currentUserID
 	existingMeeting.MeetingTypeID = meetingFormDTO.MeetingTypeID
 	existingMeeting.MeetingFrequencyID = meetingFormDTO.MeetingFrequencyID
@@ -353,6 +355,12 @@ func (ms *MeetingService) validateMeetingFormDTO(meetingFormDTO *meetingDTOs.Mee
 	if meetingFormDTO.MeetingFrequencyID != nil {
 		if _, err := ms.meetingFrequencySvc.GetByID(*meetingFormDTO.MeetingFrequencyID); err != nil {
 			return utility.NewValidationError(fmt.Errorf("meeting frequency does not exist"), "not_exist", "meeting frequency")
+		}
+	}
+
+	if meetingFormDTO.MeetingID != nil {
+		if _, err := ms.GetByID(*meetingFormDTO.MeetingID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("meeting does not exist"), "not_exist", "meeting")
 		}
 	}
 

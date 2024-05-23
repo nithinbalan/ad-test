@@ -15,6 +15,7 @@ type Meeting struct {
 	StartTime          time.Time  `json:"start_time" binding:"required" gorm:"type:time;not null"`
 	EndTime            time.Time  `json:"end_time" binding:"required" gorm:"type:time;not null"`
 	OrganizerID        uint       `json:"organizer_id" binding:"required" gorm:"not null"`
+	IsPublic           bool       `json:"is_public" gorm:"not null;default:false"` // Added is_public field
 	CreatedBy          uint       `json:"created_by" gorm:"not null"`
 	UpdatedBy          *uint      `json:"updated_by" gorm:"default:null"`
 	CreatedAt          time.Time  `json:"created_at" gorm:"type:datetime;not null"`

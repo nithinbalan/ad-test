@@ -67,7 +67,14 @@ func (mc *MeetingController) GetAllMeetings(c *gin.Context) {
 		DateFrom:    dateFrom,
 		DateTo:      dateTo,
 	}
-	meetings, err := mc.service.GetAll(&queryParams)
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(mc.db, c, err.Error())
+		return
+	}
+
+	meetings, err := mc.service.GetAll(currentUserID, &queryParams)
 
 	if err != nil {
 		utility.SendInternalErrResp(mc.db, c, err.Error())
