@@ -90,3 +90,16 @@ type IncidentInvestigationDetailDTO struct {
 type IncidentInvestigationParsedDates struct {
 	InitiatedAt *time.Time
 }
+
+type IncidentInvestigationUserDTO struct {
+	ID                      uint                            `json:"id"`
+	IncidentInvestigationID int                             `json:"incident_investigation_id"`
+	UserID                  int                             `json:"user_id"`
+	User                    organizationDTOs.UserDetailsDTO `json:"user"`
+}
+
+type IncidentInvestigationFindingDTO struct {
+	ID                      uint   `json:"id"`
+	IncidentInvestigationID uint   `json:"incident_investigation_id"`
+	Title                   string `json:"title"`
+}
