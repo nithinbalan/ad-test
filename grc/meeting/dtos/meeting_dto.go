@@ -34,6 +34,7 @@ type MeetingListDTO struct {
 	UpdatedUserFirstNameAr   string     `json:"updated_user_first_name_ar"`
 	UpdatedUserLastNameEn    string     `json:"updated_user_last_name_en"`
 	UpdatedUserLastNameAr    string     `json:"updated_user_last_name_ar"`
+	IsPublic                 bool       `json:"is_public"`
 }
 
 type MeetingListQueryParamsDTO struct {
@@ -94,6 +95,7 @@ type MeetingFormDTO struct {
 	StartTime          string  `json:"start_time" binding:"required"`
 	EndTime            string  `json:"end_time" binding:"required"`
 	OrganizerID        uint    `json:"organizer_id" binding:"required"`
+	IsPublic           bool    `json:"is_public"`
 	MeetingStatusID    uint    `json:"meeting_status_id" binding:"required"`
 	UserIDs            []*uint `json:"user_ids"`
 }

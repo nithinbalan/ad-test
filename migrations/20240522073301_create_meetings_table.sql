@@ -12,6 +12,7 @@ CREATE TABLE meetings (
     start_time TIME NOT NULL,
     end_time TIME NOT NULL,
     organizer_id INT NOT NULL,
+    is_public BIT NOT NULL DEFAULT 0,
     created_by INT NOT NULL,
     updated_by INT,
     created_at DATETIME NOT NULL,

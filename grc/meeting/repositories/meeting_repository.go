@@ -11,7 +11,7 @@ import (
 
 type MeetingRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(params *meetingDTOs.MeetingListQueryParamsDTO) (*meetingDTOs.MeetingListResponseDTO, error)
+	GetAll(currentUserID uint, params *meetingDTOs.MeetingListQueryParamsDTO) (*meetingDTOs.MeetingListResponseDTO, error)
 	GetByID(id uint) (*models.Meeting, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.Meeting, error)
 	Create(meeting *models.Meeting, tx ...utility.DatabaseTransaction) (uint, error)
@@ -35,7 +35,7 @@ func (repo *MeetingRepository) BeginTransaction() utility.DatabaseTransaction {
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *MeetingRepository) GetAll(params *meetingDTOs.MeetingListQueryParamsDTO) (*meetingDTOs.MeetingListResponseDTO, error) {
+func (repo *MeetingRepository) GetAll(currentUserID uint, params *meetingDTOs.MeetingListQueryParamsDTO) (*meetingDTOs.MeetingListResponseDTO, error) {
 	var meetings []*meetingDTOs.MeetingListDTO
 	var totalCount int64
 
@@ -58,6 +58,7 @@ func (repo *MeetingRepository) GetAll(params *meetingDTOs.MeetingListQueryParams
 			users.last_name_ar AS organizer_user_last_name_ar,
 			meetings.created_at,
 			meetings.updated_at,
+			meetings.is_public,
 			meeting_statuses.title_en AS meeting_status_title_en,
 			meeting_statuses.title_ar AS meeting_status_title_ar,
 			created_user.first_name_en AS created_user_first_name_en,
@@ -76,7 +77,7 @@ func (repo *MeetingRepository) GetAll(params *meetingDTOs.MeetingListQueryParams
 			LEFT JOIN meeting_statuses ON meetings.meeting_status_id = meeting_statuses.id
             LEFT JOIN users AS created_user ON created_user.id = meetings.created_by
             LEFT JOIN users AS updated_user ON updated_user.id = meetings.updated_by
-        `)
+        `).Where("(meetings.is_public = ? OR meetings.organizer_id = ? OR meetings.id IN (SELECT meeting_id FROM meeting_participants WHERE user_id = ?))", true, currentUserID, currentUserID)
 
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
