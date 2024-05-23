@@ -39,16 +39,43 @@ func (repo *MeetingRepository) GetAll(params *meetingDTOs.MeetingListQueryParams
 	var meetings []*meetingDTOs.MeetingListDTO
 	var totalCount int64
 
-	query := repo.db.Table("meeting").
+	query := repo.db.Table("meetings").
 		Select(`
-            meeting.id,
-            meeting.reference_number,
-            meeting.title,
-            meeting.description,
-            meeting.start_time,
-            meeting.end_time,
-            meeting.created_at,
-            meeting.updated_at
+			meetings.id,
+			meetings.meeting_id,
+			meeting_types.title_en AS meeting_type_title_en,
+			meeting_types.title_ar AS meeting_type_title_er,
+			meeting_frequencies.title_en AS meeting_frequency_title_en,
+			meeting_frequencies.title_ar AS meeting_frequency_title_ar,
+			meetings.title,
+			meetings.location,
+			meetings.date,
+			meetings.start_time,
+			meetings.end_time,
+			users.first_name_en AS organizer_user_first_name_en,
+			users.first_name_ar AS organizer_user_first_name_ar,
+			users.last_name_en AS organizer_user_last_name_en,
+			users.last_name_ar AS organizer_user_last_name_ar,
+			meetings.created_at,
+			meetings.updated_at,
+			meeting_statuses.title_en AS meeting_status_title_en,
+			meeting_statuses.title_ar AS meeting_status_title_ar,
+			created_user.first_name_en AS created_user_first_name_en,
+			created_user.first_name_ar AS created_user_first_name_ar,
+			created_user.last_name_en AS created_user_last_name_en,
+			created_user.last_name_ar AS created_user_last_name_ar,   
+			updated_user.first_name_en AS updated_user_first_name_en,
+			updated_user.first_name_ar AS updated_user_first_name_ar,
+			updated_user.last_name_en AS updated_user_last_name_en,
+			updated_user.last_name_ar AS updated_user_last_name_ar 
+		`).
+		Joins(`
+			LEFT JOIN meeting_types ON meetings.meeting_type_id = meeting_types.id
+			LEFT JOIN meeting_frequencies ON meetings.meeting_frequency_id = meeting_frequencies.id
+			LEFT JOIN users ON meetings.organizer_id = users.id
+			LEFT JOIN meeting_statuses ON meetings.meeting_status_id = meeting_statuses.id
+            LEFT JOIN users AS created_user ON created_user.id = meetings.created_by
+            LEFT JOIN users AS updated_user ON updated_user.id = meetings.updated_by
         `)
 
 	// Apply dynamic filters to the query
@@ -62,14 +89,19 @@ func (repo *MeetingRepository) GetAll(params *meetingDTOs.MeetingListQueryParams
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
+
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
-			(meeting.title LIKE ? OR
-			meeting.description LIKE ? OR
-			meeting.reference_number LIKE ?)`,
-			keyword, keyword, keyword)
+			(meetings.title LIKE ? OR
+			meetings.location LIKE ? OR
+			meeting_types.title LIKE ? OR
+			meeting_frequencies.title LIKE ? OR
+			users.first_name LIKE ? OR
+			users.last_name LIKE ? OR
+			meeting_statuses.title LIKE ?)`,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
 	// Sort by the specified column and order

@@ -7,21 +7,33 @@ import (
 )
 
 type MeetingListDTO struct {
-	ID                 uint       `json:"id"`
-	MeetingID          *uint      `json:"meeting_id"`
-	MeetingTypeID      uint       `json:"meeting_type_id"`
-	MeetingFrequencyID *uint      `json:"meeting_frequency_id"`
-	Title              string     `json:"title"`
-	Location           *string    `json:"location"`
-	Date               time.Time  `json:"date"`
-	StartTime          time.Time  `json:"start_time"`
-	EndTime            time.Time  `json:"end_time"`
-	OrganizerID        uint       `json:"organizer_id"`
-	CreatedBy          uint       `json:"created_by"`
-	UpdatedBy          *uint      `json:"updated_by"`
-	CreatedAt          time.Time  `json:"created_at"`
-	UpdatedAt          *time.Time `json:"updated_at"`
-	MeetingStatusID    uint       `json:"meeting_status_id"`
+	ID                       uint       `json:"id"`
+	MeetingID                *uint      `json:"meeting_id"`
+	MeetingTypeTitleEn       string     `json:"meeting_type_title_en"`
+	MeetingTypeTitleAr       string     `json:"meeting_type_title_ar"`
+	MeetingFrequencyTitleEn  string     `json:"meeting_frequency_title_en"`
+	MeetingFrequencyTitleAr  string     `json:"meeting_frequency_title_ar"`
+	Title                    string     `json:"title"`
+	Location                 *string    `json:"location"`
+	Date                     time.Time  `json:"date"`
+	StartTime                time.Time  `json:"start_time"`
+	EndTime                  time.Time  `json:"end_time"`
+	OrganizerUserFirstNameEn string     `json:"organizer_user_first_name_en"`
+	OrganizerUserFirstNameAr string     `json:"organizer_user_first_name_ar"`
+	OrganizerUserLastNameEn  string     `json:"organizer_user_last_name_en"`
+	OrganizerUserLastNameAr  string     `json:"organizer_user_last_name_ar"`
+	CreatedAt                time.Time  `json:"created_at"`
+	UpdatedAt                *time.Time `json:"updated_at"`
+	MeetingStatusTitleEn     string     `json:"meeting_status_title_en"`
+	MeetingStatusTitleAr     string     `json:"meeting_status_title_ar"`
+	CreatedUserFirstNameEn   string     `json:"created_user_first_name_en"`
+	CreatedUserFirstNameAr   string     `json:"created_user_first_name_ar"`
+	CreatedUserLastNameEn    string     `json:"created_user_last_name_en"`
+	CreatedUserLastNameAr    string     `json:"created_user_last_name_ar"`
+	UpdatedUserFirstNameEn   string     `json:"updated_user_first_name_en"`
+	UpdatedUserFirstNameAr   string     `json:"updated_user_first_name_ar"`
+	UpdatedUserLastNameEn    string     `json:"updated_user_last_name_en"`
+	UpdatedUserLastNameAr    string     `json:"updated_user_last_name_ar"`
 }
 
 type MeetingListQueryParamsDTO struct {
@@ -43,22 +55,26 @@ type MeetingListResponseDTO struct {
 }
 
 type MeetingDetailDTO struct {
-	ID               uint                             `json:"id"`
-	Meeting          *MeetingDetailDTO                `json:"meeting"`
-	MeetingType      MeetingTypeDTO                   `json:"meeting_type"`
-	MeetingFrequency *MeetingFrequencyDTO             `json:"meeting_frequency"`
-	Title            string                           `json:"title"`
-	Location         *string                          `json:"location"`
-	Date             time.Time                        `json:"date"`
-	StartTime        time.Time                        `json:"start_time"`
-	EndTime          time.Time                        `json:"end_time"`
-	Organizer        organizationDTOs.UserMinimalDTO  `json:"organizer"`
-	CreatedByUser    organizationDTOs.UserMinimalDTO  `json:"created_by"`
-	UpdatedByUser    *organizationDTOs.UserMinimalDTO `json:"updated_by"`
-	CreatedAt        time.Time                        `json:"created_at"`
-	UpdatedAt        *time.Time                       `json:"updated_at"`
-	MeetingStatus    MeetingStatusDTO                 `json:"meeting_status"`
-	Participants     []*MeetingParticipantDTO         `json:"participants"`
+	ID                 uint                             `json:"id"`
+	MeetingID          *uint                            `json:"meeting_id"`
+	MeetingTypeID      uint                             `json:"meeting_type_id"`
+	MeetingFrequencyID *uint                            `json:"meeting_frequency_id"`
+	Meeting            *MeetingDetailDTO                `json:"meeting"`
+	MeetingType        MeetingTypeDTO                   `json:"meeting_type"`
+	MeetingFrequency   *MeetingFrequencyDTO             `json:"meeting_frequency"`
+	Title              string                           `json:"title"`
+	Location           *string                          `json:"location"`
+	Date               time.Time                        `json:"date"`
+	StartTime          time.Time                        `json:"start_time"`
+	EndTime            time.Time                        `json:"end_time"`
+	Organizer          organizationDTOs.UserMinimalDTO  `json:"organizer"`
+	CreatedByUser      organizationDTOs.UserMinimalDTO  `json:"created_by"`
+	UpdatedByUser      *organizationDTOs.UserMinimalDTO `json:"updated_by"`
+	CreatedAt          time.Time                        `json:"created_at"`
+	UpdatedAt          *time.Time                       `json:"updated_at"`
+	MeetingStatusID    uint                             `json:"meeting_status_id"`
+	MeetingStatus      MeetingStatusDTO                 `json:"meeting_status"`
+	Participants       []*MeetingParticipantDTO         `json:"participants"`
 }
 
 type MeetingParticipantDTO struct {

@@ -46,7 +46,8 @@ func ParseMandatoryTime(timeStr string) (time.Time, error) {
 		return time.Time{}, nil
 	}
 
-	parsedTime, err := time.Parse("15:04:05", timeStr)
+	// Parse the time string with milliseconds (".0000000" for time(7))
+	parsedTime, err := time.Parse("15:04:05.9999999", timeStr)
 	if err != nil {
 		return time.Time{}, err
 	}
