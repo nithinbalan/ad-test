@@ -131,7 +131,7 @@ type UserDetailsDTO struct {
 	OrganizationUnit5 *settingDTOs.OrganizationUnitDTO `json:"organization_unit_5"`
 	UserStatus        *UserStatusDTO                   `json:"user_status"`
 	Designation       *DesignationDTO                  `json:"designation"`
-	UserRoles         *[]UserRoleDTO                   `json:"user_roles"`
+	Roles             *[]settingDTOs.RoleDTO           `json:"roles"`
 	CreatedByUser     *UserMinimalDTO                  `json:"created_by_user"`
 	UpdatedByUser     *UserMinimalDTO                  `json:"updated_by_user"`
 }

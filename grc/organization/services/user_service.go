@@ -8,6 +8,7 @@ import (
 	"jethur/grc/models"
 	userDTOs "jethur/grc/organization/dtos"
 	organizationRepositories "jethur/grc/organization/repositories"
+	settingDTOs "jethur/grc/settings/dtos"
 	settingService "jethur/grc/settings/services"
 	"jethur/utility"
 	"reflect"
@@ -95,6 +96,17 @@ func (us *UserService) GetFullDetailsByID(id uint) (*userDTOs.UserDetailsDTO, er
 	if err != nil {
 		return nil, err
 	}
+
+	roles := make([]settingDTOs.RoleDTO, 0, len(*user.UserRoles))
+	for _, userRole := range *user.UserRoles {
+		roles = append(roles, settingDTOs.RoleDTO{
+			ID:      userRole.Role.ID,
+			TitleEn: userRole.Role.TitleEn,
+			TitleAr: userRole.Role.TitleAr,
+			Status:  userRole.Role.Status,
+		})
+	}
+	userDetailsDTO.Roles = &roles
 
 	//todo :- also add extra fields which required in details screen
 
