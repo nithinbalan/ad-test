@@ -180,7 +180,7 @@ func (repo *IncidentInvestigationRepository) GetFullDetailsByID(id uint, tx ...u
 		Preload("TeamLead").
 		Preload("IncidentInvestigationStatus").
 		Preload("Documents").
-		Preload("Users").
+		Preload("Users.User").
 		Preload("Findings").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
