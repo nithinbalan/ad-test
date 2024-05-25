@@ -9,10 +9,12 @@ import (
 )
 
 type MeetingModule struct {
-	MeetingFrequencyController *controllers.MeetingFrequencyController
-	MeetingStatusController    *controllers.MeetingStatusController
-	MeetingTypeController      *controllers.MeetingTypeController
-	MeetingController          *controllers.MeetingController
+	MeetingFrequencyController              *controllers.MeetingFrequencyController
+	MeetingStatusController                 *controllers.MeetingStatusController
+	MeetingTypeController                   *controllers.MeetingTypeController
+	MeetingController                       *controllers.MeetingController
+	MeetingActionPlanController             *controllers.MeetingActionPlanController
+	MeetingActionPlanStatusUpdateController *controllers.MeetingActionPlanStatusUpdateController
 
 	MeetingFrequencySvc services.MeetingFrequencyServiceInterface
 	MeetingStatusSvc    services.MeetingStatusServiceInterface
@@ -20,7 +22,7 @@ type MeetingModule struct {
 	MeetingSvc          services.MeetingServiceInterface
 }
 
-func NewMeetingModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule) *MeetingModule {
+func NewMeetingModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, masterModule *MasterModule) *MeetingModule {
 	//Meeting Frequency
 	meetingFrequencyRepo := repositories.NewMeetingFrequencyRepository(db)
 	meetingFrequencySvc := services.NewMeetingFrequencyService(meetingFrequencyRepo)
@@ -44,11 +46,21 @@ func NewMeetingModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		meetingStatusSvc)
 	meetingController := controllers.NewMeetingController(meetingSvc)
 
+	meetingActionPlanRepo := repositories.NewMeetingActionPlanRepository(db)
+	meetingActionPlanSvc := services.NewMeetingActionPlanService(meetingActionPlanRepo, sharedModule.ActivityLogService, meetingSvc, masterModule.SeverityLevelSvc, masterModule.ActionPlanStatusSvc, organizationModule.UserSvc)
+	meetingActionPlanController := controllers.NewMeetingActionPlanController(meetingActionPlanSvc)
+
+	meetingActionPlanStatusUpdateRepo := repositories.NewMeetingActionPlanStatusUpdateRepository(db)
+	meetingActionPlanStatusUpdateSvc := services.NewMeetingActionPlanStatusUpdateService(meetingActionPlanStatusUpdateRepo, sharedModule.ActivityLogService, meetingActionPlanSvc, masterModule.ActionPlanStatusSvc)
+	meetingActionPlanStatusUpdateController := controllers.NewMeetingActionPlanStatusUpdateController(meetingActionPlanStatusUpdateSvc)
+
 	return &MeetingModule{
-		MeetingFrequencyController: meetingFrequencyController,
-		MeetingStatusController:    meetingStatusController,
-		MeetingTypeController:      meetingTypeController,
-		MeetingController:          meetingController,
+		MeetingFrequencyController:              meetingFrequencyController,
+		MeetingStatusController:                 meetingStatusController,
+		MeetingTypeController:                   meetingTypeController,
+		MeetingController:                       meetingController,
+		MeetingActionPlanController:             meetingActionPlanController,
+		MeetingActionPlanStatusUpdateController: meetingActionPlanStatusUpdateController,
 
 		MeetingFrequencySvc: meetingFrequencySvc,
 		MeetingStatusSvc:    meetingStatusSvc,

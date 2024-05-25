@@ -364,6 +364,25 @@ func (ms *MeetingService) validateMeetingFormDTO(meetingFormDTO *meetingDTOs.Mee
 		}
 	}
 
+	users := meetingFormDTO.UserIDs
+
+	if len(users) == 0 {
+		return nil
+	}
+
+	userIDs := make(map[uint]bool)
+
+	for _, user := range users {
+		if userIDs[*user] {
+			return utility.NewValidationError(fmt.Errorf("duplicate user ID: %d", user), "duplicate", "user")
+		}
+
+		if _, err := ms.userSvc.GetByID(*user); err != nil {
+			return utility.NewValidationError(fmt.Errorf("user does not exist for ID: %d", user), "not_exist", "user")
+		}
+		userIDs[*user] = true
+	}
+
 	return nil
 }
 

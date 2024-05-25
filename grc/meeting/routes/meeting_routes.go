@@ -17,6 +17,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	meetingStatusController := app.MeetingModule.MeetingStatusController
 	meetingTypeController := app.MeetingModule.MeetingTypeController
 	meetingController := app.MeetingModule.MeetingController
+	meetingActionPlanController := app.MeetingModule.MeetingActionPlanController
+	meetingActionPlanStatusUpdateController := app.MeetingModule.MeetingActionPlanStatusUpdateController
 
 	meetingRoutes.GET("/meeting-frequencies", meetingFrequencyController.GetAllMeetingFrequencies)
 	meetingRoutes.GET("/meeting-frequencies/:id", meetingFrequencyController.GetMeetingFrequencyDetails)
@@ -40,5 +42,18 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	meetingRoutes.POST("/meetings", meetingController.CreateMeeting)
 	meetingRoutes.PUT("/meetings/:id", meetingController.UpdateMeeting)
 	meetingRoutes.POST("/meetings/delete", meetingController.DeleteMeetings)
+
+	//Meeting action plan
+	meetingRoutes.GET("/meetings/:id/action-plans", meetingActionPlanController.GetAllMeetingActionPlans)
+	meetingRoutes.GET("/meetings/:id/action-plans/:meetingActionPlanId", meetingActionPlanController.GetMeetingActionPlanDetails)
+	meetingRoutes.POST("/meetings/:id/action-plans", meetingActionPlanController.CreateMeetingActionPlan)
+	meetingRoutes.PUT("/meetings/:id/action-plans/:meetingActionPlanId", meetingActionPlanController.UpdateMeetingActionPlan)
+	meetingRoutes.POST("/meetings/:id/action-plans/delete", meetingActionPlanController.DeleteMeetingActionPlans)
+
+	//Meeting action plan status updates
+	meetingRoutes.GET("/meetings/:id/action-plans/:meetingActionPlanId/status-updates", meetingActionPlanStatusUpdateController.GetAllMeetingActionPlanStatusUpdates)
+	meetingRoutes.GET("/meetings/:id/action-plans/:meetingActionPlanId/status-updates/:meetingActionPlanUpdateId", meetingActionPlanStatusUpdateController.GetMeetingActionPlanStatusUpdateDetails)
+	meetingRoutes.POST("/meetings/:id/action-plans/:meetingActionPlanId/status-updates", meetingActionPlanStatusUpdateController.CreateMeetingActionPlanStatusUpdate)
+	meetingRoutes.PUT("/meetings/:id/action-plans/:meetingActionPlanId/status-updates/:meetingActionPlanUpdateId", meetingActionPlanStatusUpdateController.UpdateMeetingActionPlanStatusUpdate)
 
 }
