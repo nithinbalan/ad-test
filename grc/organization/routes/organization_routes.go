@@ -127,17 +127,17 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.PUT("/process-groups/deactivate", processGroupController.DeactivateProcessGroups)
 
 	//control action plan
-	organizationRoutes.GET("/controls/:controlId/action-plan", controlActionPlanController.GetAllControlActionPlans)
-	organizationRoutes.GET("/controls/:controlId/action-plan/:controlActionPlanId", controlActionPlanController.GetControlActionPlanDetails)
-	organizationRoutes.POST("/controls/:controlId/action-plan", controlActionPlanController.CreateControlActionPlan)
-	organizationRoutes.PUT("/controls/:controlId/action-plan/:controlActionPlanId", controlActionPlanController.UpdateControlActionPlan)
-	organizationRoutes.POST("/controls/:controlId/action-plan/delete", controlActionPlanController.DeleteControlActionPlans)
+	organizationRoutes.GET("/controls/:controlId/action-plans", controlActionPlanController.GetAllControlActionPlans)
+	organizationRoutes.GET("/controls/:controlId/action-plans/:controlActionPlanId", controlActionPlanController.GetControlActionPlanDetails)
+	organizationRoutes.POST("/controls/:controlId/action-plans", controlActionPlanController.CreateControlActionPlan)
+	organizationRoutes.PUT("/controls/:controlId/action-plans/:controlActionPlanId", controlActionPlanController.UpdateControlActionPlan)
+	organizationRoutes.POST("/controls/:controlId/action-plans/delete", controlActionPlanController.DeleteControlActionPlans)
 
-	//control action plan updates
-	organizationRoutes.GET("/controls/:controlId/action-plan/:controlActionPlanId/updates", controlActionPlanStatusUpdateController.GetAllControlActionPlanStatusUpdates)
-	organizationRoutes.GET("/controls/:controlId/action-plan/:controlActionPlanId/updates/:controlActionPlanUpdateId", controlActionPlanStatusUpdateController.GetControlActionPlanStatusUpdateDetails)
-	organizationRoutes.POST("/controls/:controlId/action-plan/:controlActionPlanId/updates", controlActionPlanStatusUpdateController.CreateControlActionPlanStatusUpdate)
-	organizationRoutes.PUT("/controls/:controlId/action-plan/:controlActionPlanId/updates/:controlActionPlanUpdateId", controlActionPlanStatusUpdateController.UpdateControlActionPlanStatusUpdate)
+	//control action plan status-updates
+	organizationRoutes.GET("/controls/:controlId/action-plans/:controlActionPlanId/status-updates", controlActionPlanStatusUpdateController.GetAllControlActionPlanStatusUpdates)
+	organizationRoutes.GET("/controls/:controlId/action-plans/:controlActionPlanId/status-updates/:controlActionPlanUpdateId", controlActionPlanStatusUpdateController.GetControlActionPlanStatusUpdateDetails)
+	organizationRoutes.POST("/controls/:controlId/action-plans/:controlActionPlanId/status-updates", controlActionPlanStatusUpdateController.CreateControlActionPlanStatusUpdate)
+	organizationRoutes.PUT("/controls/:controlId/action-plans/:controlActionPlanId/status-updates/:controlActionPlanUpdateId", controlActionPlanStatusUpdateController.UpdateControlActionPlanStatusUpdate)
 
 	//process
 	organizationRoutes.GET("/processes", processController.GetAllProcesses)
