@@ -34,6 +34,7 @@ type User struct {
 	UserStatus        *UserStatus       `gorm:"foreignKey:UserStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
 	Designation       *Designation      `gorm:"foreignKey:DesignationID"`
 	UserRoles         *[]UserRole       `gorm:"foreignKey:UserID"`
+	Logins            *[]UserLogin      `gorm:"foreignKey:UserID"`
 	CreatedByUser     *User             `gorm:"foreignKey:CreatedBy"`
 	UpdatedByUser     *User             `gorm:"foreignKey:UpdatedBy"`
 }

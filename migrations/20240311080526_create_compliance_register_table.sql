@@ -20,6 +20,7 @@ CREATE TABLE compliance_register (
     issue_date DATE NULL,
     expiry_date DATE NULL,
     next_review_date DATE NULL,
+    last_review_note NVARCHAR(MAX) NULL,
     created_at DATETIME NOT NULL ,
     updated_at DATETIME NULL,
     created_by INT NOT NULL,

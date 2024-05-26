@@ -85,6 +85,12 @@ func (as *AuthService) Authenticate(email string, password string, ipAddress str
 
 		responseDTO.IsMFAEnabled = false
 
+		loginStatus := "success"
+		err = as.LogUserLogin(user, loginStatus, ipAddress, location, device, browser)
+		if err != nil {
+			return nil, utility.NewInternalServerError(err)
+		}
+
 	}
 	return responseDTO, nil
 }

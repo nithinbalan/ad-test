@@ -92,10 +92,11 @@ type ComplianceRegisterFormDTO struct {
 	DescriptionEn           *string                   `json:"description_en"`
 	DescriptionAr           *string                   `json:"description_ar"`
 	Version                 *string                   `json:"version" binding:"omitempty,max=45"`
-	Deadline                string                    `json:"deadline" binding:"omitempty,datetime=2006-01-02"`
-	IssueDate               string                    `json:"issue_date" binding:"omitempty,datetime=2006-01-02"`
-	ExpiryDate              string                    `json:"expiry_date" binding:"omitempty,datetime=2006-01-02"`
-	NextReviewDate          string                    `json:"next_review_date" binding:"omitempty,datetime=2006-01-02"`
+	Deadline                *string                   `json:"deadline" binding:"omitempty,datetime=2006-01-02"`
+	IssueDate               *string                   `json:"issue_date" binding:"omitempty,datetime=2006-01-02"`
+	ExpiryDate              *string                   `json:"expiry_date" binding:"omitempty,datetime=2006-01-02"`
+	NextReviewDate          *string                   `json:"next_review_date" binding:"omitempty,datetime=2006-01-02"`
+	LastReviewNote          *string                   `json:"last_review_note"`
 	StandardCode            *string                   `json:"standard_code" binding:"omitempty,max=45"`
 	Document                ComplianceDocumentFormDTO `json:"document" binding:"required"`
 }
@@ -135,19 +136,21 @@ type ComplianceRegisterDetailDTO struct {
 	StandardCode          string                               `json:"standard_code"`
 	TitleEn               string                               `json:"title_en"`
 	TitleAr               string                               `json:"title_ar"`
-	DescriptionEn         string                               `json:"description_en"`
-	DescriptionAr         string                               `json:"description_ar"`
+	DescriptionEn         *string                              `json:"description_en"`
+	DescriptionAr         *string                              `json:"description_ar"`
 	Deadline              *time.Time                           `json:"deadline"`
 	IssueDate             *time.Time                           `json:"issue_date"`
 	ExpiryDate            *time.Time                           `json:"expiry_date"`
 	NextReviewDate        *time.Time                           `json:"next_review_date"`
+	LastReviewNote        *string                              `json:"last_review_note"`
 	ComplianceCategory    ComplianceCategoryDTO                `json:"compliance_category"`
 	ComplianceStatus      ComplianceStatusDTO                  `json:"compliance_status"`
 	ResponsibleUnit       organizationDTOs.OrganizationUnitDTO `json:"responsible_unit"`
 	ResponsibleUser       organizationDTOs.UserMinimalDTO      `json:"responsible_user"`
-	ReviewFrequency       masterDTOs.ReviewFrequencyDTO        `json:"review_frequency"`
-	ReviewResponsibleUser organizationDTOs.UserMinimalDTO      `json:"review_responsible_user"`
+	ReviewFrequency       *masterDTOs.ReviewFrequencyDTO       `json:"review_frequency"`
+	ReviewResponsibleUser *organizationDTOs.UserMinimalDTO     `json:"review_responsible_user"`
 	SeverityLevel         *masterDTOs.SeverityLevelDTO         `json:"severity_level"`
+	Version               *string                              `json:"version"`
 	CreatedAt             time.Time                            `json:"created_at"`
 	UpdatedAt             *time.Time                           `json:"updated_at"`
 	CreatedByUser         organizationDTOs.UserMinimalDTO      `json:"created_by"`
