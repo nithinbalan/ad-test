@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	authDTOs "jethur/grc/auth/dtos"
+	"jethur/grc/auth/repositories"
 	"jethur/grc/models"
 	"jethur/grc/organization/services"
 	"jethur/utility"
@@ -15,7 +16,7 @@ import (
 )
 
 type AuthServiceInterface interface {
-	Authenticate(email string, password string) (*authDTOs.LoginResponseDTO, error)
+	Authenticate(email string, password string, ipAddress string, location string, device string, browser string) (*authDTOs.LoginResponseDTO, error)
 	GetTokenFromRefreshToken(refreshToken string) (*authDTOs.LoginResponseDTO, error)
 	LoginResendOTP(email string) error
 	LoginVerifyOTP(email string, otp string) (*authDTOs.LoginResponseDTO, error)
@@ -23,22 +24,25 @@ type AuthServiceInterface interface {
 	ReSendPasswordRecoveryOTP(email string) error
 	VerifyPasswordRecoveryOTP(email, otp string) (string, error)
 	SetPassword(setPasswordFormDTO authDTOs.PasswordRecoverySetPasswordFormDTO) error
+	LogUserLogin(user *models.User, loginStatus string, ipAddress string, location string, device string, browser string) error
 }
 
 // Service and implementations
 type AuthService struct {
+	repo               repositories.AuthRepository
 	userService        services.UserServiceInterface
 	userSettingService services.UserSettingServiceInterface
 }
 
-func NewAuthService(userService services.UserServiceInterface, userSettingService services.UserSettingServiceInterface) AuthServiceInterface {
+func NewAuthService(repo repositories.AuthRepository, userService services.UserServiceInterface, userSettingService services.UserSettingServiceInterface) AuthServiceInterface {
 	return &AuthService{
+		repo:               repo,
 		userService:        userService,
 		userSettingService: userSettingService,
 	}
 }
 
-func (as *AuthService) Authenticate(email string, password string) (*authDTOs.LoginResponseDTO, error) {
+func (as *AuthService) Authenticate(email string, password string, ipAddress string, location string, device string, browser string) (*authDTOs.LoginResponseDTO, error) {
 	// Get user
 	user, err := as.userService.GetByEmail(email)
 	if err != nil {
@@ -54,6 +58,8 @@ func (as *AuthService) Authenticate(email string, password string) (*authDTOs.Lo
 	// Compare the provided password with the stored hashed password
 	err = bcrypt.CompareHashAndPassword([]byte(userSecurity.PasswordHash), []byte(password))
 	if err != nil {
+		loginStatus := "failed"
+		as.LogUserLogin(user, loginStatus, ipAddress, location, device, browser)
 		return nil, err
 	}
 
@@ -78,6 +84,12 @@ func (as *AuthService) Authenticate(email string, password string) (*authDTOs.Lo
 		responseDTO.RefreshToken = &refreshToken
 
 		responseDTO.IsMFAEnabled = false
+
+		loginStatus := "success"
+		err = as.LogUserLogin(user, loginStatus, ipAddress, location, device, browser)
+		if err != nil {
+			return nil, utility.NewInternalServerError(err)
+		}
 
 	}
 	return responseDTO, nil
@@ -381,4 +393,26 @@ func (as AuthService) sendOTP(userSecurity *models.UserSecurity, user *models.Us
 	}
 
 	return nil
+}
+
+func (as *AuthService) LogUserLogin(user *models.User, loginStatus string, ipAddress string, location string, device string, browser string) error {
+
+	login := models.UserLogin{
+		UserID:      user.ID,
+		LoginAt:     time.Now(),
+		LoginStatus: loginStatus,
+		IPAddress:   ipAddress,
+		Location:    location,
+		DeviceInfo:  device,
+		BrowserInfo: browser,
+	}
+
+	err := as.repo.CreateUserLogin(&login)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+
 }

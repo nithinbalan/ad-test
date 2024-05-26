@@ -111,6 +111,16 @@ type UserRoleDTO struct {
 	Role   settingDTOs.RoleDTO `json:"role"`
 }
 
+type UserLoginDTO struct {
+	ID          uint      `json:"id"`
+	LoginAt     time.Time `json:"login_at"`
+	LoginStatus string    `json:"login_status"`
+	IPAddress   string    `json:"ip_address"`
+	Location    string    `json:"location"`
+	DeviceInfo  string    `json:"device_info"`
+	BrowserInfo string    `json:"browser_info"`
+}
+
 type UserDetailsDTO struct {
 	ID               uint      `json:"id"`
 	FirstNameEn      string    `json:"first_name_en"`
@@ -132,6 +142,7 @@ type UserDetailsDTO struct {
 	UserStatus        *UserStatusDTO                   `json:"user_status"`
 	Designation       *DesignationDTO                  `json:"designation"`
 	Roles             *[]settingDTOs.RoleDTO           `json:"roles"`
+	Logins            *[]UserLoginDTO                  `json:"logins"`
 	CreatedByUser     *UserMinimalDTO                  `json:"created_by_user"`
 	UpdatedByUser     *UserMinimalDTO                  `json:"updated_by_user"`
 }
