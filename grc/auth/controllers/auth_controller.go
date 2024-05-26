@@ -1,14 +1,27 @@
 package controllers
 
 import (
+	"fmt"
 	authDTOs "jethur/grc/auth/dtos"
 	"jethur/grc/auth/services"
 	"jethur/utility"
+	"net"
 	"net/http"
 
+	"github.com/avct/uasurfer"
 	"github.com/gin-gonic/gin"
+	"github.com/oschwald/geoip2-golang"
 	"gorm.io/gorm"
 )
+
+type Location struct {
+	Country struct {
+		ISOCode string
+	} `maxminddb:"country"`
+	City struct {
+		Names map[string]string
+	} `maxminddb:"city"`
+}
 
 type AuthController struct {
 	service services.AuthServiceInterface
@@ -27,14 +40,26 @@ type ErrorResponse struct {
 }
 
 func (ac *AuthController) Login(c *gin.Context) {
-	var loginFormDTO authDTOs.LoginFormDTO
+	// Extract additional information
+	ipAddress := c.ClientIP()
+	location, err := getLocationFromIPAddress(ipAddress)
+	if err != nil {
+		fmt.Println(err)
+	}
+	locationStr := ""
+	if location != nil {
+		locationStr = fmt.Sprintf("%s, %s", location.Country.ISOCode, location.City)
+	}
+	device := c.Request.Header.Get("User-Agent")
+	browser := parseBrowserFromUserAgent(device)
 
+	var loginFormDTO authDTOs.LoginFormDTO
 	if err := c.ShouldBindJSON(&loginFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
 
-	responseDTO, err := ac.service.Authenticate(loginFormDTO.Email, loginFormDTO.Password)
+	responseDTO, err := ac.service.Authenticate(loginFormDTO.Email, loginFormDTO.Password, ipAddress, locationStr, device, browser)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:
@@ -244,4 +269,36 @@ func (ac *AuthController) SetPassword(c *gin.Context) {
 	}
 
 	c.Status(http.StatusOK)
+}
+
+func getLocationFromIPAddress(ipAddress string) (*Location, error) {
+	db, err := geoip2.Open("GeoLite2-City.mmdb")
+	if err != nil {
+		return nil, err
+	}
+	defer db.Close()
+
+	ip := net.ParseIP(ipAddress)
+	if ip == nil {
+		return nil, fmt.Errorf("invalid IP address: %s", ipAddress)
+	}
+
+	record, err := db.City(ip)
+	if err != nil {
+		return nil, err
+	}
+
+	location := &Location{
+		Country: struct{ ISOCode string }{record.Country.IsoCode},
+		City:    struct{ Names map[string]string }{record.City.Names},
+	}
+
+	return location, nil
+}
+
+func parseBrowserFromUserAgent(userAgent string) string {
+	parser := uasurfer.Parse(userAgent)
+	browser := parser.Browser.Name.String()
+
+	return browser
 }
