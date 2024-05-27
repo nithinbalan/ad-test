@@ -197,7 +197,6 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 		document := &models.RiskDocument{
 			RiskRegisterID: id,
 			URL:            url,
-			Icon:           doc.Icon,
 			Name:           doc.FileName,
 			Size:           doc.Size,
 			Token:          encryptedFilename,
@@ -345,7 +344,6 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 			document := &models.RiskDocument{
 				RiskRegisterID: id,
 				URL:            url,
-				Icon:           doc.Icon,
 				Name:           doc.FileName,
 				Size:           doc.Size,
 				Token:          encryptedFilename,

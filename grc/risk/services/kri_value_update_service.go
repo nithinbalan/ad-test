@@ -118,7 +118,6 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 		document := &models.KRIValueUpdateDocument{
 			KRIValueUpdateID: id,
 			URL:              url,
-			Icon:             doc.Icon,
 			Name:             doc.FileName,
 			Size:             doc.Size,
 			Token:            encryptedFilename,
@@ -234,7 +233,6 @@ func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentU
 			document := &models.KRIValueUpdateDocument{
 				KRIValueUpdateID: updateId,
 				URL:              url,
-				Icon:             doc.Icon,
 				Name:             doc.FileName,
 				Size:             doc.Size,
 				Token:            encryptedFilename,

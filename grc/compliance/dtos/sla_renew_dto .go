@@ -19,7 +19,6 @@ type SLARenewListDTO struct {
 	Size                 int       `json:"size"`
 	Token                string    `json:"token"`
 	Type                 string    `json:"type"`
-	Icon                 string    `json:"icon"`
 	OriginalName         string    `json:"original_name"`
 	IsLatest             bool      `json:"is_latest"`
 	CreatedBy            uint      `json:"created_by"`
@@ -66,7 +65,6 @@ type SLARenewFormDTO struct {
 type SLARenewDocumentFormDTO struct {
 	ID           *uint  `json:"id,omitempty"`
 	URL          string `json:"url"`
-	Icon         string `json:"icon" binding:"required"`
 	FileName     string `json:"file_name"`
 	OriginalName string `json:"original_name"`
 	Type         string `json:"type"`

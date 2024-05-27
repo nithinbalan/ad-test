@@ -64,7 +64,6 @@ type IncidentInvestigationFormDTO struct {
 type IncidentInvestigationDocumentDTO struct {
 	ID           *uint   `json:"id"`
 	URL          *string `json:"url"`
-	Icon         string  `json:"icon"`
 	Name         string  `json:"name"`
 	Token        string  `json:"token"`
 	OriginalName string  `json:"original_name"`

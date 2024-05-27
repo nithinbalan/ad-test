@@ -72,7 +72,6 @@ type KRIValueUpdateParsedDates struct {
 type KRIValueUpdateDocumentDTO struct {
 	ID           *uint   `json:"id,omitempty"`
 	URL          *string `json:"url"`
-	Icon         string  `json:"icon"`
 	Name         string  `json:"file_name"`
 	OriginalName string  `json:"original_name"`
 	Type         string  `json:"type"`
@@ -81,7 +80,6 @@ type KRIValueUpdateDocumentDTO struct {
 type KRIValueUpdateDocumentFormDTO struct {
 	ID            *uint  `json:"id,omitempty"`
 	URL           string `json:"url"`
-	Icon          string `json:"icon"`
 	FileName      string `json:"file_name"`
 	OriginalName  string `json:"original_name"`
 	Type          string `json:"type"`

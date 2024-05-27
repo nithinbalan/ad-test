@@ -66,7 +66,6 @@ func (repo *SLARegisterRepository) GetAll(params *slaDTOs.SLARegisterListQueryPa
 			sla_documents.size,
 			sla_documents.token,
 			sla_documents.type,
-			sla_documents.icon,
 			sla_documents.original_name,
 			sla_documents.is_latest,
             sla_categories.title_en AS sla_category_title_en,

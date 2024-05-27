@@ -115,7 +115,6 @@ func (sasus *SLAActionPlanStatusUpdateService) Create(SLAID uint, SLAActionPlanI
 		document := &models.SLAActionPlanStatusUpdateDocument{
 			SLAActionPlanStatusUpdateID: id,
 			URL:                         url,
-			Icon:                        doc.Icon,
 			Name:                        doc.FileName,
 			Size:                        doc.Size,
 			Token:                       encryptedFilename,
@@ -222,7 +221,6 @@ func (sasus *SLAActionPlanStatusUpdateService) Update(SLAID uint, SLAActionPlanI
 			document := &models.SLAActionPlanStatusUpdateDocument{
 				SLAActionPlanStatusUpdateID: id,
 				URL:                         url,
-				Icon:                        doc.Icon,
 				Name:                        doc.FileName,
 				Size:                        doc.Size,
 				Token:                       encryptedFileName,

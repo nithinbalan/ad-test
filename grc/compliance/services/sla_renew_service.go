@@ -99,7 +99,6 @@ func (srs *SLARenewService) Renew(slaId uint, currentUserID uint, slaRenewFormDT
 		SA2Date:       dates.SA2Date,
 		URL:           url,
 		Comment:       slaRenewFormDTO.Comment,
-		Icon:          slaRenewFormDTO.Document.Icon,
 		Name:          slaRenewFormDTO.Document.FileName,
 		Size:          slaRenewFormDTO.Document.Size,
 		Token:         encryptedFilename,
@@ -264,10 +263,6 @@ func (srs *SLARenewService) validateSLARenewDocumentFormDTO(document *slaDTOs.SL
 	// Validate document
 	if document == nil {
 		return utility.NewValidationError(fmt.Errorf("document is required"), "required", "document")
-	}
-	// Validate icon
-	if document.Icon == "" {
-		return utility.NewValidationError(fmt.Errorf("icon is required"), "required", "icon")
 	}
 
 	// Validate file type (PDF)

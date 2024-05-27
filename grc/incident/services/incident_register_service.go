@@ -224,7 +224,6 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 			IncidentRegisterID: id,
 			Language:           doc.Language,
 			URL:                url,
-			Icon:               doc.Icon,
 			Name:               doc.FileName,
 			Size:               doc.Size,
 			Token:              encryptedFilename,
@@ -496,7 +495,6 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 				IncidentRegisterID: id,
 				Language:           doc.Language,
 				URL:                url,
-				Icon:               doc.Icon,
 				Name:               doc.FileName,
 				Size:               doc.Size,
 				Token:              encryptedFilename,
@@ -824,23 +822,6 @@ func (irs *IncidentRegisterService) validateIncidentDocumentFormDTO(documents []
 	// Check if documents array is empty
 	if len(documents) == 0 {
 		return utility.NewValidationError(fmt.Errorf("documents array is required"), "required", "documents")
-	}
-
-	for _, document := range documents {
-		//@Review
-		//All items are mandatory during creation
-
-		// Validate icon
-		if document.Icon == "" {
-			return utility.NewValidationError(fmt.Errorf("icon is required"), "required", "icon")
-		}
-
-		// @todo
-		// Validate file size (if needed)
-		// For example:
-		// if document.Size > MaxFileSize {
-		//     return utility.NewValidationError(fmt.Errorf("file size exceeds the limit"), "invalid_file_size", "file_size")
-		// }
 	}
 
 	return nil

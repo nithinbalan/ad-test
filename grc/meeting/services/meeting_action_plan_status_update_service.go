@@ -116,7 +116,6 @@ func (masus *MeetingActionPlanStatusUpdateService) Create(meetingID uint, meetin
 		document := &models.MeetingActionPlanStatusUpdateDocument{
 			MeetingActionPlanStatusUpdateID: id,
 			URL:                             url,
-			Icon:                            doc.Icon,
 			Name:                            doc.FileName,
 			Size:                            doc.Size,
 			Token:                           encryptedFileName,
@@ -228,7 +227,6 @@ func (masus *MeetingActionPlanStatusUpdateService) Update(meetingID uint, meetin
 			document := &models.MeetingActionPlanStatusUpdateDocument{
 				MeetingActionPlanStatusUpdateID: id,
 				URL:                             url,
-				Icon:                            doc.Icon,
 				Name:                            doc.FileName,
 				Size:                            doc.Size,
 				Token:                           encryptedFileName,

@@ -11,7 +11,6 @@ CREATE TABLE incident_documents (
     token VARCHAR(255) DEFAULT NULL,
     original_name NVARCHAR(255) NULL,
     type VARCHAR(255) DEFAULT NULL,
-    icon VARCHAR(10) NOT NULL,
     created_by INT,
     updated_by INT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

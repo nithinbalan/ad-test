@@ -56,7 +56,6 @@ type SLARegisterListDTO struct {
 	Size         int    `json:"size"`
 	Token        string `json:"token"`
 	Type         string `json:"type"`
-	Icon         string `json:"icon"`
 	OriginalName string `json:"original_name"`
 	IsLatest     bool   `json:"is_latest"`
 }
@@ -103,7 +102,6 @@ type SLARegisterFormDTO struct {
 type SLADocumentFormDTO struct {
 	ID           *uint  `json:"id,omitempty"`
 	URL          string `json:"url"`
-	Icon         string `json:"icon" binding:"required"`
 	FileName     string `json:"file_name"`
 	OriginalName string `json:"original_name"`
 	Type         string `json:"type"`
@@ -122,7 +120,6 @@ type SLADocumentDTO struct {
 	Token        string     `json:"token"`
 	OriginalName string     `json:"original_name"`
 	Type         string     `json:"type"`
-	Icon         string     `json:"icon"`
 	IsLatest     bool       `json:"is_latest"`
 	SA1Date      *time.Time `json:"sa1_date,omitempty"`
 	SA2Date      *time.Time `json:"sa2_date,omitempty"`

@@ -116,7 +116,6 @@ func (casus *ControlActionPlanStatusUpdateService) Create(controlID uint, contro
 		document := &models.ControlActionPlanStatusUpdateDocument{
 			ControlActionPlanStatusUpdateID: id,
 			URL:                             url,
-			Icon:                            doc.Icon,
 			Name:                            doc.FileName,
 			Size:                            doc.Size,
 			Token:                           encryptedFileName,
@@ -228,7 +227,6 @@ func (casus *ControlActionPlanStatusUpdateService) Update(controlID uint, contro
 			document := &models.ControlActionPlanStatusUpdateDocument{
 				ControlActionPlanStatusUpdateID: id,
 				URL:                             url,
-				Icon:                            doc.Icon,
 				Name:                            doc.FileName,
 				Size:                            doc.Size,
 				Token:                           encryptedFileName,

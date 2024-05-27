@@ -115,7 +115,6 @@ func (iasus *IncidentActionPlanStatusUpdateService) Create(IncidentID uint, Inci
 		document := &models.IncidentActionPlanStatusUpdateDocument{
 			IncidentActionPlanStatusUpdateID: id,
 			URL:                              url,
-			Icon:                             doc.Icon,
 			Name:                             doc.FileName,
 			Size:                             doc.Size,
 			Token:                            encryptedFilename,
@@ -220,7 +219,6 @@ func (iasus *IncidentActionPlanStatusUpdateService) Update(IncidentID uint, Inci
 			document := &models.IncidentActionPlanStatusUpdateDocument{
 				IncidentActionPlanStatusUpdateID: id,
 				URL:                              url,
-				Icon:                             doc.Icon,
 				Name:                             doc.FileName,
 				Size:                             doc.Size,
 				Token:                            encryptedFileName,

@@ -186,7 +186,6 @@ func (iis *IncidentInvestigationService) Create(incidentID uint, currentUserID u
 		document := &models.IncidentInvestigationDocument{
 			IncidentInvestigationID: id,
 			URL:                     url,
-			Icon:                    doc.Icon,
 			Name:                    doc.FileName,
 			Size:                    doc.Size,
 			Token:                   encryptedFilename,
@@ -396,7 +395,6 @@ func (iis *IncidentInvestigationService) Update(incidentID uint, id uint, curren
 			document := &models.IncidentInvestigationDocument{
 				IncidentInvestigationID: existingIncidentInvestigation.ID,
 				URL:                     url,
-				Icon:                    doc.Icon,
 				Name:                    doc.FileName,
 				Size:                    doc.Size,
 				Token:                   encryptedFilename,
@@ -641,15 +639,6 @@ func (iis *IncidentInvestigationService) validateIncidentInvestigationDocumentFo
 	// Check if documents array is empty
 	if len(documents) == 0 {
 		return utility.NewValidationError(fmt.Errorf("documents array is required"), "required", "documents")
-	}
-
-	for _, document := range documents {
-		// Validate icon
-		if document.Icon == "" {
-			return utility.NewValidationError(fmt.Errorf("icon is required"), "required", "icon")
-		}
-		// @todo
-		// Validate file size (if needed)
 	}
 
 	return nil
