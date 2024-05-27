@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	authDTOs "jethur/grc/auth/dtos"
-	"jethur/grc/auth/repositories"
 	"jethur/grc/models"
 	"jethur/grc/organization/services"
 	"jethur/utility"
@@ -24,19 +23,16 @@ type AuthServiceInterface interface {
 	ReSendPasswordRecoveryOTP(email string) error
 	VerifyPasswordRecoveryOTP(email, otp string) (string, error)
 	SetPassword(setPasswordFormDTO authDTOs.PasswordRecoverySetPasswordFormDTO) error
-	LogUserLogin(user *models.User, loginStatus string, ipAddress string, location string, device string, browser string) error
 }
 
 // Service and implementations
 type AuthService struct {
-	repo               repositories.AuthRepository
 	userService        services.UserServiceInterface
 	userSettingService services.UserSettingServiceInterface
 }
 
-func NewAuthService(repo repositories.AuthRepository, userService services.UserServiceInterface, userSettingService services.UserSettingServiceInterface) AuthServiceInterface {
+func NewAuthService(userService services.UserServiceInterface, userSettingService services.UserSettingServiceInterface) AuthServiceInterface {
 	return &AuthService{
-		repo:               repo,
 		userService:        userService,
 		userSettingService: userSettingService,
 	}
@@ -59,7 +55,10 @@ func (as *AuthService) Authenticate(email string, password string, ipAddress str
 	err = bcrypt.CompareHashAndPassword([]byte(userSecurity.PasswordHash), []byte(password))
 	if err != nil {
 		loginStatus := "failed"
-		as.LogUserLogin(user, loginStatus, ipAddress, location, device, browser)
+		logErr := as.userService.LogUserLogin(user, loginStatus, ipAddress, location, device, browser)
+		if logErr != nil {
+			return nil, utility.NewInternalServerError(logErr)
+		}
 		return nil, err
 	}
 
@@ -86,7 +85,7 @@ func (as *AuthService) Authenticate(email string, password string, ipAddress str
 		responseDTO.IsMFAEnabled = false
 
 		loginStatus := "success"
-		err = as.LogUserLogin(user, loginStatus, ipAddress, location, device, browser)
+		err = as.userService.LogUserLogin(user, loginStatus, ipAddress, location, device, browser)
 		if err != nil {
 			return nil, utility.NewInternalServerError(err)
 		}
@@ -393,26 +392,4 @@ func (as AuthService) sendOTP(userSecurity *models.UserSecurity, user *models.Us
 	}
 
 	return nil
-}
-
-func (as *AuthService) LogUserLogin(user *models.User, loginStatus string, ipAddress string, location string, device string, browser string) error {
-
-	login := models.UserLogin{
-		UserID:      user.ID,
-		LoginAt:     time.Now(),
-		LoginStatus: loginStatus,
-		IPAddress:   ipAddress,
-		Location:    location,
-		DeviceInfo:  device,
-		BrowserInfo: browser,
-	}
-
-	err := as.repo.CreateUserLogin(&login)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-
 }

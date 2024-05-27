@@ -206,3 +206,25 @@ func (uc *UserController) DeleteUsers(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
+
+func (uc *UserController) GetUserLogins(c *gin.Context) {
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(uc.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(uc.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	users, err := uc.service.GetUserLogins(int(page), int(pageSize))
+
+	if err != nil {
+		utility.SendInternalErrResp(uc.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, users)
+}

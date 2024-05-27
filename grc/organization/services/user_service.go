@@ -13,6 +13,7 @@ import (
 	"jethur/utility"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"golang.org/x/crypto/bcrypt"
@@ -28,6 +29,9 @@ type UserServiceInterface interface {
 	Update(id uint, currentUserID uint, user *userDTOs.UserFormDTO) error
 	UpdatePartial(id uint, dto *userDTOs.UserUpdateDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	GetUserLogins(page int, pageSize int) (*userDTOs.UserLoginListResponseDTO, error)
+	LogUserLogin(user *models.User, loginStatus string, ipAddress string, location string, device string, browser string) error
+
 	GenerateRandomPassword(length int) (string, error)
 	SetUserSettingService(svc UserSettingServiceInterface)
 }
@@ -377,6 +381,10 @@ func (crs *UserService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	return failedIds, nil
 }
 
+func (us *UserService) GetUserLogins(page int, pageSize int) (*userDTOs.UserLoginListResponseDTO, error) {
+	return us.repo.GetUserLogins(page, pageSize)
+}
+
 func (us *UserService) validateUserFormDTO(id *uint, userFormDTO *userDTOs.UserFormDTO) error {
 	_, err := us.designationSvc.GetByID(userFormDTO.DesignationID)
 	if err != nil {
@@ -425,4 +433,25 @@ func (us *UserService) GenerateRandomPassword(length int) (string, error) {
 	}
 
 	return string(b), nil
+}
+
+func (as *UserService) LogUserLogin(user *models.User, loginStatus string, ipAddress string, location string, device string, browser string) error {
+	login := models.UserLogin{
+		UserID:      user.ID,
+		LoginAt:     time.Now(),
+		LoginStatus: loginStatus,
+		IPAddress:   ipAddress,
+		Location:    &location,
+		DeviceInfo:  &device,
+		BrowserInfo: &browser,
+	}
+
+	err := as.repo.CreateUserLogin(&login)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+
 }

@@ -32,6 +32,8 @@ type UserRepositoryInterface interface {
 	//User roles
 	CreateUserRole(userRoles []models.UserRole, tx ...utility.DatabaseTransaction) error
 	UpdateUserRoles(userID uint, desiredRoleIDs []uint, tx ...utility.DatabaseTransaction) error
+	GetUserLogins(page int, pageSize int) (*userDTOs.UserLoginListResponseDTO, error)
+	CreateUserLogin(userLogin *models.UserLogin) error
 }
 
 type UserRepository struct {
@@ -175,7 +177,6 @@ func (repo *UserRepository) GetFullDetailsByID(id uint) (*models.User, error) {
 		Preload("UserStatus").
 		Preload("Designation").
 		Preload("UserRoles").
-		Preload("Logins").
 		Preload("UserRoles.Role").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
@@ -388,4 +389,46 @@ func contains(slice []uint, val uint) bool {
 		}
 	}
 	return false
+}
+
+func (repo *UserRepository) GetUserLogins(page int, pageSize int) (*userDTOs.UserLoginListResponseDTO, error) {
+	var userLogins []*userDTOs.UserLoginListDTO
+	var totalCount int64
+
+	// Initialize the query
+	query := repo.db.Table("user_logins").
+		Select("id, login_at, login_status, ip_address, location, device_info, browser_info")
+
+	// Calculate total count for pagination
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
+	offset := (page - 1) * pageSize
+
+	// Execute the query
+	err := query.Offset(offset).Limit(pageSize).Find(&userLogins).Error
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := int((totalCount + int64(pageSize) - 1) / int64(pageSize))
+
+	response := &userDTOs.UserLoginListResponseDTO{
+		Items: userLogins,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: page,
+			PageSize:    pageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+	return response, nil
+}
+
+func (repo *UserRepository) CreateUserLogin(userLogin *models.UserLogin) error {
+	if err := repo.db.Create(userLogin).Error; err != nil {
+		return err
+	}
+	return nil
 }
