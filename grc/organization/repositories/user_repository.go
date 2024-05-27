@@ -18,7 +18,7 @@ type UserRepositoryInterface interface {
 	GetByEmail(email string) (*models.User, error)
 	Create(user *models.User, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(user *models.User, tx ...utility.DatabaseTransaction) error
-	UpdatePartial(id uint, updates map[string]interface{}) error
+	UpdatePartial(id uint, updates map[string]interface{}, tx ...utility.DatabaseTransaction) error
 	Delete(id uint) error
 	ExistsByEmail(email string) (bool, error)
 	ExistsByEmailExcludingID(id uint, email string) (bool, error)
@@ -32,6 +32,8 @@ type UserRepositoryInterface interface {
 	//User roles
 	CreateUserRole(userRoles []models.UserRole, tx ...utility.DatabaseTransaction) error
 	UpdateUserRoles(userID uint, desiredRoleIDs []uint, tx ...utility.DatabaseTransaction) error
+	GetUserLogins(page int, pageSize int) (*userDTOs.UserLoginListResponseDTO, error)
+	CreateUserLogin(userLogin *models.UserLogin, tx ...utility.DatabaseTransaction) error
 }
 
 type UserRepository struct {
@@ -175,7 +177,6 @@ func (repo *UserRepository) GetFullDetailsByID(id uint) (*models.User, error) {
 		Preload("UserStatus").
 		Preload("Designation").
 		Preload("UserRoles").
-		Preload("Logins").
 		Preload("UserRoles.Role").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
@@ -224,8 +225,12 @@ func (repo *UserRepository) Update(user *models.User, tx ...utility.DatabaseTran
 	return nil
 }
 
-func (repo *UserRepository) UpdatePartial(id uint, updates map[string]interface{}) error {
-	if err := repo.db.Model(&models.User{}).Where("id = ?", id).Updates(updates).Error; err != nil {
+func (repo *UserRepository) UpdatePartial(id uint, updates map[string]interface{}, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Model(&models.User{}).Where("id = ?", id).Updates(updates).Error; err != nil {
 		return err
 	}
 
@@ -388,4 +393,52 @@ func contains(slice []uint, val uint) bool {
 		}
 	}
 	return false
+}
+
+func (repo *UserRepository) GetUserLogins(page int, pageSize int) (*userDTOs.UserLoginListResponseDTO, error) {
+	var userLogins []*userDTOs.UserLoginListDTO
+	var totalCount int64
+
+	// Initialize the query
+	query := repo.db.Table("user_logins").
+		Select("id, login_at, login_status, ip_address, location, device_info, browser_info")
+
+	// Calculate total count for pagination
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
+	offset := (page - 1) * pageSize
+
+	// Execute the query
+	err := query.Offset(offset).Limit(pageSize).Find(&userLogins).Error
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := int((totalCount + int64(pageSize) - 1) / int64(pageSize))
+
+	response := &userDTOs.UserLoginListResponseDTO{
+		Items: userLogins,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: page,
+			PageSize:    pageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+	return response, nil
+}
+
+func (repo *UserRepository) CreateUserLogin(userLogin *models.UserLogin, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Create(userLogin).Error; err != nil {
+		return err
+	}
+	return nil
 }
