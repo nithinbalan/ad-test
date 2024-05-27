@@ -18,7 +18,7 @@ type UserRepositoryInterface interface {
 	GetByEmail(email string) (*models.User, error)
 	Create(user *models.User, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(user *models.User, tx ...utility.DatabaseTransaction) error
-	UpdatePartial(id uint, updates map[string]interface{}) error
+	UpdatePartial(id uint, updates map[string]interface{}, tx ...utility.DatabaseTransaction) error
 	Delete(id uint) error
 	ExistsByEmail(email string) (bool, error)
 	ExistsByEmailExcludingID(id uint, email string) (bool, error)
@@ -33,7 +33,7 @@ type UserRepositoryInterface interface {
 	CreateUserRole(userRoles []models.UserRole, tx ...utility.DatabaseTransaction) error
 	UpdateUserRoles(userID uint, desiredRoleIDs []uint, tx ...utility.DatabaseTransaction) error
 	GetUserLogins(page int, pageSize int) (*userDTOs.UserLoginListResponseDTO, error)
-	CreateUserLogin(userLogin *models.UserLogin) error
+	CreateUserLogin(userLogin *models.UserLogin, tx ...utility.DatabaseTransaction) error
 }
 
 type UserRepository struct {
@@ -225,8 +225,12 @@ func (repo *UserRepository) Update(user *models.User, tx ...utility.DatabaseTran
 	return nil
 }
 
-func (repo *UserRepository) UpdatePartial(id uint, updates map[string]interface{}) error {
-	if err := repo.db.Model(&models.User{}).Where("id = ?", id).Updates(updates).Error; err != nil {
+func (repo *UserRepository) UpdatePartial(id uint, updates map[string]interface{}, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Model(&models.User{}).Where("id = ?", id).Updates(updates).Error; err != nil {
 		return err
 	}
 
@@ -426,8 +430,14 @@ func (repo *UserRepository) GetUserLogins(page int, pageSize int) (*userDTOs.Use
 	return response, nil
 }
 
-func (repo *UserRepository) CreateUserLogin(userLogin *models.UserLogin) error {
-	if err := repo.db.Create(userLogin).Error; err != nil {
+func (repo *UserRepository) CreateUserLogin(userLogin *models.UserLogin, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Create(userLogin).Error; err != nil {
 		return err
 	}
 	return nil

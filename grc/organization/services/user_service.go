@@ -27,7 +27,7 @@ type UserServiceInterface interface {
 	GetByEmail(email string) (*models.User, error)
 	Create(currentUserID uint, userFormDTO *userDTOs.UserFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, user *userDTOs.UserFormDTO) error
-	UpdatePartial(id uint, dto *userDTOs.UserUpdateDTO) error
+	UpdatePartial(id uint, dto *userDTOs.UserUpdateDTO, tx utility.DatabaseTransaction) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	GetUserLogins(page int, pageSize int) (*userDTOs.UserLoginListResponseDTO, error)
 	LogUserLogin(user *models.User, loginStatus string, ipAddress string, location string, device string, browser string) error
@@ -319,7 +319,7 @@ func (us *UserService) Update(id uint, currentUserID uint, userFormDTO *userDTOs
 	return nil
 }
 
-func (us *UserService) UpdatePartial(id uint, userUpdateDTO *userDTOs.UserUpdateDTO) error {
+func (us *UserService) UpdatePartial(id uint, userUpdateDTO *userDTOs.UserUpdateDTO, tx utility.DatabaseTransaction) error {
 
 	updates := make(map[string]interface{})
 
@@ -333,7 +333,7 @@ func (us *UserService) UpdatePartial(id uint, userUpdateDTO *userDTOs.UserUpdate
 			updates[tagKey] = field.Elem().Interface()
 		}
 	}
-	err := us.repo.UpdatePartial(id, updates)
+	err := us.repo.UpdatePartial(id, updates, tx)
 	if err != nil {
 		return err
 	}
@@ -436,6 +436,8 @@ func (us *UserService) GenerateRandomPassword(length int) (string, error) {
 }
 
 func (as *UserService) LogUserLogin(user *models.User, loginStatus string, ipAddress string, location string, device string, browser string) error {
+	tx := as.repo.BeginTransaction()
+
 	login := models.UserLogin{
 		UserID:      user.ID,
 		LoginAt:     time.Now(),
@@ -446,12 +448,20 @@ func (as *UserService) LogUserLogin(user *models.User, loginStatus string, ipAdd
 		BrowserInfo: &browser,
 	}
 
-	err := as.repo.CreateUserLogin(&login)
-
+	err := as.repo.CreateUserLogin(&login, tx)
 	if err != nil {
 		return err
 	}
 
+	loginAt := userDTOs.UserUpdateDTO{
+		LastLoginAt: &login.LoginAt,
+	}
+
+	err = as.UpdatePartial(user.ID, &loginAt, tx)
+	if err != nil {
+		return err
+	}
+	tx.Commit()
 	return nil
 
 }
