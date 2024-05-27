@@ -67,19 +67,20 @@ type UserFormDTO struct {
 }
 
 type UserUpdateDTO struct {
-	OrganizationUnit1ID *uint   `json:"organization_unit_1_id,omitempty"`
-	OrganizationUnit2ID *uint   `json:"organization_unit_2_id,omitempty"`
-	OrganizationUnit3ID *uint   `json:"organization_unit_3_id,omitempty"`
-	OrganizationUnit4ID *uint   `json:"organization_unit_4_id,omitempty"`
-	OrganizationUnit5ID *uint   `json:"organization_unit_5_id,omitempty"`
-	DesignationID       *uint   `json:"designation_id,omitempty"`
-	FirstNameEn         *string `json:"first_name_en,omitempty"`
-	LastNameEn          *string `json:"last_name_en,omitempty"`
-	FirstNameAr         *string `json:"first_name_ar,omitempty"`
-	LastNameAr          *string `json:"last_name_ar,omitempty"`
-	Email               *string `json:"email,omitempty"`
-	MobileNumber        *string `json:"mobile_number,omitempty"`
-	ProfileImagePath    *string `json:"profile_image_path,omitempty"`
+	OrganizationUnit1ID *uint      `json:"organization_unit_1_id,omitempty"`
+	OrganizationUnit2ID *uint      `json:"organization_unit_2_id,omitempty"`
+	OrganizationUnit3ID *uint      `json:"organization_unit_3_id,omitempty"`
+	OrganizationUnit4ID *uint      `json:"organization_unit_4_id,omitempty"`
+	OrganizationUnit5ID *uint      `json:"organization_unit_5_id,omitempty"`
+	DesignationID       *uint      `json:"designation_id,omitempty"`
+	FirstNameEn         *string    `json:"first_name_en,omitempty"`
+	LastNameEn          *string    `json:"last_name_en,omitempty"`
+	FirstNameAr         *string    `json:"first_name_ar,omitempty"`
+	LastNameAr          *string    `json:"last_name_ar,omitempty"`
+	Email               *string    `json:"email,omitempty"`
+	MobileNumber        *string    `json:"mobile_number,omitempty"`
+	ProfileImagePath    *string    `json:"profile_image_path,omitempty"`
+	LastLoginAt         *time.Time `json:"last_login_at,omitempty"`
 }
 
 type SendNewPasswordEmailDTO struct {
@@ -96,12 +97,13 @@ type OrganizationUnit1DTO struct {
 	Status  string `json:"status"`
 }
 type UserMinimalDTO struct {
-	ID                int                             `json:"id"`
-	FirstNameEN       string                          `json:"first_name_en"`
-	LastNameEN        string                          `json:"last_name_en"`
-	FirstNameAR       string                          `json:"first_name_ar"`
-	LastNameAR        string                          `json:"last_name_ar"`
-	OrganizationUnit1 settingDTOs.OrganizationUnitDTO `json:"organization_unit_1"`
+	ID               int     `json:"id"`
+	FirstNameEN      string  `json:"first_name_en"`
+	LastNameEN       string  `json:"last_name_en"`
+	FirstNameAR      string  `json:"first_name_ar"`
+	LastNameAR       string  `json:"last_name_ar"`
+	ProfileImagePath *string `json:"profile_image_path"`
+	Email            string  `json:"email"`
 }
 
 type UserRoleDTO struct {
@@ -111,27 +113,18 @@ type UserRoleDTO struct {
 	Role   settingDTOs.RoleDTO `json:"role"`
 }
 
-type UserLoginDTO struct {
-	ID          uint      `json:"id"`
-	LoginAt     time.Time `json:"login_at"`
-	LoginStatus string    `json:"login_status"`
-	IPAddress   string    `json:"ip_address"`
-	Location    string    `json:"location"`
-	DeviceInfo  string    `json:"device_info"`
-	BrowserInfo string    `json:"browser_info"`
-}
-
 type UserDetailsDTO struct {
-	ID               uint      `json:"id"`
-	FirstNameEn      string    `json:"first_name_en"`
-	LastNameEn       string    `json:"last_name_en"`
-	FirstNameAr      string    `json:"first_name_ar"`
-	LastNameAr       string    `json:"last_name_ar"`
-	Email            string    `json:"email"`
-	MobileNumber     *string   `json:"mobile_number"`
-	ProfileImagePath *string   `json:"profile_image_path"`
-	CreatedAt        time.Time `json:"created_at"`
-	UpdatedAt        time.Time `json:"updated_at"`
+	ID               uint       `json:"id"`
+	FirstNameEn      string     `json:"first_name_en"`
+	LastNameEn       string     `json:"last_name_en"`
+	FirstNameAr      string     `json:"first_name_ar"`
+	LastNameAr       string     `json:"last_name_ar"`
+	Email            string     `json:"email"`
+	MobileNumber     *string    `json:"mobile_number"`
+	ProfileImagePath *string    `json:"profile_image_path"`
+	LastLoginAt      *time.Time `json:"last_login_at"`
+	CreatedAt        time.Time  `json:"created_at"`
+	UpdatedAt        time.Time  `json:"updated_at"`
 
 	// Relationship DTOs
 	OrganizationUnit1 settingDTOs.OrganizationUnitDTO  `json:"organization_unit_1"`
@@ -142,7 +135,21 @@ type UserDetailsDTO struct {
 	UserStatus        *UserStatusDTO                   `json:"user_status"`
 	Designation       *DesignationDTO                  `json:"designation"`
 	Roles             *[]settingDTOs.RoleDTO           `json:"roles"`
-	Logins            *[]UserLoginDTO                  `json:"logins"`
 	CreatedByUser     *UserMinimalDTO                  `json:"created_by_user"`
 	UpdatedByUser     *UserMinimalDTO                  `json:"updated_by_user"`
+}
+
+type UserLoginListDTO struct {
+	ID          uint      `json:"id"`
+	LoginAt     time.Time `json:"login_at"`
+	LoginStatus string    `json:"login_status"`
+	IPAddress   string    `json:"ip_address"`
+	Location    *string   `json:"location"`
+	DeviceInfo  *string   `json:"device_info"`
+	BrowserInfo *string   `json:"browser_info"`
+}
+
+type UserLoginListResponseDTO struct {
+	Items      []*UserLoginListDTO          `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }

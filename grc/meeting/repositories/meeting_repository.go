@@ -97,12 +97,17 @@ func (repo *MeetingRepository) GetAll(currentUserID uint, params *meetingDTOs.Me
 		query = query.Where(`
 			(meetings.title LIKE ? OR
 			meetings.location LIKE ? OR
-			meeting_types.title LIKE ? OR
-			meeting_frequencies.title LIKE ? OR
-			users.first_name LIKE ? OR
-			users.last_name LIKE ? OR
-			meeting_statuses.title LIKE ?)`,
-			keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+			meeting_types.title_en LIKE ? OR
+			meeting_types.title_ar LIKE ? OR
+			meeting_frequencies.title_en LIKE ? OR
+			meeting_frequencies.title_ar LIKE ? OR
+			users.first_name_en LIKE ? OR
+			users.last_name_en LIKE ? OR
+			users.first_name_ar LIKE ? OR
+			users.last_name_ar LIKE ? OR
+			meeting_statuses.title_en LIKE ? OR
+			meeting_statuses.title_ar LIKE ?)`,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
 	// Sort by the specified column and order

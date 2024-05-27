@@ -16,6 +16,7 @@ CREATE TABLE users (
     email VARCHAR(255) NOT NULL,
     mobile_number VARCHAR(45),
     profile_image_path VARCHAR(500),
+    last_login_at DATETIME NULL,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NULL,
     created_by INT,

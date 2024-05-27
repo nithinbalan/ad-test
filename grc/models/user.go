@@ -20,6 +20,7 @@ type User struct {
 	Email               string     `json:"email" binding:"require, email, max:255" gorm:"type:varchar(255);not null"`
 	MobileNumber        *string    `json:"mobile_number" binding:"require, max:45" gorm:"type:varchar(45);not null"`
 	ProfileImagePath    *string    `json:"profile_image_path" gorm:"type:varchar(500);default:null"`
+	LastLoginAt         *time.Time `json:"last_login_at" gorm:"type:datetime;default:null"`
 	CreatedAt           time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt           *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 	CreatedBy           uint       `json:"created_by" gorm:"not null"`
