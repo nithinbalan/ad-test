@@ -115,10 +115,10 @@ func (casus *ComplianceActionPlanStatusUpdateService) Create(ComplianceID uint, 
 		document := &models.ComplianceActionPlanStatusUpdateDocument{
 			ComplianceActionPlanStatusUpdateID: id,
 			URL:                                url,
-			Icon:                               doc.Icon,
 			Name:                               doc.FileName,
 			Size:                               doc.Size,
 			Token:                              encryptedFilename,
+			OriginalName:                       doc.OriginalName,
 			Type:                               doc.Type,
 			CreatedBy:                          currentUserID,
 		}
@@ -221,10 +221,10 @@ func (casus *ComplianceActionPlanStatusUpdateService) Update(ComplianceID uint, 
 			document := &models.ComplianceActionPlanStatusUpdateDocument{
 				ComplianceActionPlanStatusUpdateID: id,
 				URL:                                url,
-				Icon:                               doc.Icon,
 				Name:                               doc.FileName,
 				Size:                               doc.Size,
 				Token:                              encryptedFileName,
+				OriginalName:                       doc.OriginalName,
 				Type:                               doc.Type,
 				CreatedBy:                          currentUserID,
 			}

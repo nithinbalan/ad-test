@@ -168,10 +168,10 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 		ComplianceRegisterID: id,
 		Language:             complianceRegisterFormDTO.Document.Language,
 		URL:                  url,
-		Icon:                 complianceRegisterFormDTO.Document.Icon,
 		Name:                 complianceRegisterFormDTO.Document.FileName,
 		Size:                 complianceRegisterFormDTO.Document.Size,
 		Token:                encryptedFilename,
+		OriginalName:         complianceRegisterFormDTO.Document.OriginalName,
 		Type:                 complianceRegisterFormDTO.Document.Type,
 		CreatedBy:            currentUserID,
 	}
@@ -290,10 +290,10 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 
 			existingComplianceDocument.Language = complianceRegisterFormDTO.Document.Language
 			existingComplianceDocument.URL = url
-			existingComplianceDocument.Icon = complianceRegisterFormDTO.Document.Icon
 			existingComplianceDocument.Name = complianceRegisterFormDTO.Document.FileName
 			existingComplianceDocument.Size = complianceRegisterFormDTO.Document.Size
 			existingComplianceDocument.Token = encryptedFilename
+			existingComplianceDocument.OriginalName = complianceRegisterFormDTO.Document.OriginalName
 			existingComplianceDocument.Type = complianceRegisterFormDTO.Document.Type
 
 			if err := crs.repo.CreateDocument(existingComplianceDocument, tx); err != nil {
@@ -557,11 +557,6 @@ func (crs *ComplianceRegisterService) validateComplianceDocumentFormDTO(document
 	if document == nil {
 		return utility.NewValidationError(fmt.Errorf("document is required"), "required", "document")
 	}
-	// Validate icon
-	if document.Icon == "" {
-		return utility.NewValidationError(fmt.Errorf("icon is required"), "required", "icon")
-	}
-
 	// Validate file type (PDF)
 	if document.Type != ".pdf" {
 		return utility.NewValidationError(fmt.Errorf("only PDF files are allowed"), "invalid_file_type", "type")

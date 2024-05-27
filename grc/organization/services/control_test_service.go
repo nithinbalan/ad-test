@@ -133,10 +133,10 @@ func (cts *ControlTestService) Create(controlID uint, currentUserID uint, contro
 		document := &models.ControlTestDocument{
 			ControlTestID: id,
 			URL:           url,
-			Icon:          doc.Icon,
 			Name:          doc.FileName,
 			Size:          doc.Size,
 			Token:         encryptedFileName,
+			OriginalName:  doc.OriginalName,
 			Type:          doc.Type,
 		}
 
@@ -242,10 +242,10 @@ func (cts *ControlTestService) Update(id uint, currentUserID uint, controlTestFo
 			document := &models.ControlTestDocument{
 				ControlTestID: id,
 				URL:           url,
-				Icon:          doc.Icon,
 				Name:          doc.FileName,
 				Size:          doc.Size,
 				Token:         encryptedFileName,
+				OriginalName:  doc.OriginalName,
 				Type:          doc.Type,
 			}
 

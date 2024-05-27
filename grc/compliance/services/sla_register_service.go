@@ -161,10 +161,10 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *co
 		SA1Date:       dates.SA1Date,
 		SA2Date:       dates.SA2Date,
 		URL:           url,
-		Icon:          slaRegisterFormDTO.Document.Icon,
 		Name:          slaRegisterFormDTO.Document.FileName,
 		Size:          slaRegisterFormDTO.Document.Size,
 		Token:         encryptedFilename,
+		OriginalName:  slaRegisterFormDTO.Document.OriginalName,
 		Type:          slaRegisterFormDTO.Document.Type,
 		IsLatest:      true,
 		CreatedBy:     currentUserID,
@@ -272,10 +272,10 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 			url := utility.GenerateDocumentURL("sla-register", strconv.FormatUint(uint64(id), 10), encryptedFilename)
 
 			existingSLADocument.URL = url
-			existingSLADocument.Icon = slaRegisterFormDTO.Document.Icon
 			existingSLADocument.Name = slaRegisterFormDTO.Document.FileName
 			existingSLADocument.Size = slaRegisterFormDTO.Document.Size
 			existingSLADocument.Token = encryptedFilename
+			existingSLADocument.OriginalName = slaRegisterFormDTO.Document.OriginalName
 			existingSLADocument.Type = slaRegisterFormDTO.Document.Type
 			if err := srs.repo.CreateDocument(existingSLADocument, tx); err != nil {
 				tx.Rollback()
@@ -547,11 +547,6 @@ func (srs *SLARegisterService) validateSLADocumentFormDTO(document *complianceDT
 
 	//@Review
 	//All items are mandatory during creation
-
-	// Validate icon
-	if document.Icon == "" {
-		return utility.NewValidationError(fmt.Errorf("icon is required"), "required", "icon")
-	}
 
 	// Validate file type (PDF)
 	if document.Type != ".pdf" {

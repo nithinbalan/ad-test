@@ -22,7 +22,6 @@ type SLACheckAnswerDetailDTO struct {
 type SLACheckAnswerDocumentDTO struct {
 	ID    *uint  `json:"id,omitempty"`
 	URL   string `json:"url"`
-	Icon  string `json:"icon"`
 	Name  string `json:"name"`
 	Token string `json:"token"`
 	Type  string `json:"type"`
