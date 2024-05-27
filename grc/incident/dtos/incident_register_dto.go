@@ -76,7 +76,6 @@ type IncidentDocumentFormDTO struct {
 	ID            *uint  `json:"id,omitempty"`
 	Language      string `json:"language" binding:"required"`
 	URL           string `json:"url"`
-	Icon          string `json:"icon" binding:"required"`
 	FileName      string `json:"file_name"`
 	OriginalName  string `json:"original_name"`
 	Type          string `json:"type"`
@@ -86,14 +85,14 @@ type IncidentDocumentFormDTO struct {
 }
 
 type IncidentDocumentDTO struct {
-	ID       *uint   `json:"id"`
-	Language string  `json:"language"`
-	URL      *string `json:"url"`
-	Icon     string  `json:"icon"`
-	Name     string  `json:"name"`
-	Token    string  `json:"token"`
-	Type     string  `json:"type"`
-	Size     int     `json:"size"`
+	ID           *uint   `json:"id"`
+	Language     string  `json:"language"`
+	URL          *string `json:"url"`
+	Name         string  `json:"name"`
+	Token        string  `json:"token"`
+	OriginalName string  `json:"original_name"`
+	Type         string  `json:"type"`
+	Size         int     `json:"size"`
 }
 
 type IncidentRegisterListQueryParamsDTO struct {

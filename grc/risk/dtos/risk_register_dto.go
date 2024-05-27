@@ -64,13 +64,13 @@ type RiskRegisterListResponseDTO struct {
 }
 
 type RiskDocumentDTO struct {
-	ID    *uint   `json:"id"`
-	URL   *string `json:"url"`
-	Icon  string  `json:"icon"`
-	Name  string  `json:"name"`
-	Token string  `json:"token"`
-	Type  string  `json:"type"`
-	Size  int     `json:"size"`
+	ID           *uint   `json:"id"`
+	URL          *string `json:"url"`
+	Name         string  `json:"name"`
+	OriginalName string  `json:"original_name"`
+	Token        string  `json:"token"`
+	Type         string  `json:"type"`
+	Size         int     `json:"size"`
 }
 
 type RiskRegisterDetailDTO struct {

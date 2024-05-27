@@ -11,8 +11,8 @@ type IncidentInvestigationDocument struct {
 	Name                    string    `json:"name" binding:"required"`
 	Size                    int       `json:"size"`
 	Token                   string    `json:"token"`
+	OriginalName            string    `json:"original_name"`
 	Type                    string    `json:"type"`
-	Icon                    string    `json:"icon" binding:"required"`
 	CreatedBy               uint      `json:"created_by" gorm:"not null"`
 	UpdatedBy               uint      `json:"updated_by" gorm:"default:null"`
 	CreatedAt               time.Time `json:"created_at" gorm:"type:datetime;not null"`

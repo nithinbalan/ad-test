@@ -7,9 +7,8 @@ CREATE TABLE meeting_action_plan_status_update_documents (
     name NVARCHAR(255) NOT NULL,
     size INT NOT NULL,
     token VARCHAR(255) NOT NULL,
+    original_name NVARCHAR(255) NULL,
     type VARCHAR(255) NOT NULL,
-    icon VARCHAR(10) NOT NULL, -- Assuming icon names like 'pdf', 'excel', etc.
-        CONSTRAINT CHK_meeting_action_plan_status_update_documents_icon CHECK (icon IN ('pdf', 'excel', 'ppt', 'image', 'text', 'other')),
     created_by INT,
     updated_by INT NULL,
     created_at DATETIME NOT NULL,
