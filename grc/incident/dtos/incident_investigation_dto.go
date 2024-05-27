@@ -62,13 +62,14 @@ type IncidentInvestigationFormDTO struct {
 	Findings                      []*string                     `json:"findings" binding:"required,dive,max=500" gorm:"type:varchar(500);not null"`
 }
 type IncidentInvestigationDocumentDTO struct {
-	ID    *uint   `json:"id"`
-	URL   *string `json:"url"`
-	Icon  string  `json:"icon"`
-	Name  string  `json:"name"`
-	Token string  `json:"token"`
-	Type  string  `json:"type"`
-	Size  int     `json:"size"`
+	ID           *uint   `json:"id"`
+	URL          *string `json:"url"`
+	Icon         string  `json:"icon"`
+	Name         string  `json:"name"`
+	Token        string  `json:"token"`
+	OriginalName string  `json:"original_name"`
+	Type         string  `json:"type"`
+	Size         int     `json:"size"`
 }
 
 type IncidentInvestigationDetailDTO struct {
@@ -93,7 +94,7 @@ type IncidentInvestigationParsedDates struct {
 
 type IncidentInvestigationUserDTO struct {
 	ID                      uint                            `json:"id"`
-	IncidentInvestigationID int                             `json:"incident_investigation_id"`
+	IncidentInvestigationID uint                            `json:"incident_investigation_id"`
 	UserID                  int                             `json:"user_id"`
 	User                    organizationDTOs.UserDetailsDTO `json:"user"`
 }

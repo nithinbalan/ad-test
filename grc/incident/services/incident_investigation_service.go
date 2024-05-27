@@ -190,6 +190,7 @@ func (iis *IncidentInvestigationService) Create(incidentID uint, currentUserID u
 			Name:                    doc.FileName,
 			Size:                    doc.Size,
 			Token:                   encryptedFilename,
+			OriginalName:            doc.OriginalName,
 			Type:                    doc.Type,
 			CreatedBy:               currentUserID,
 		}
@@ -400,6 +401,7 @@ func (iis *IncidentInvestigationService) Update(incidentID uint, id uint, curren
 				Size:                    doc.Size,
 				Token:                   encryptedFilename,
 				Type:                    doc.Type,
+				OriginalName:            doc.OriginalName,
 				CreatedBy:               currentUserID,
 			}
 			documents = append(documents, document)

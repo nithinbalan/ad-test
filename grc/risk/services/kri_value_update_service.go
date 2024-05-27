@@ -122,6 +122,7 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 			Name:             doc.FileName,
 			Size:             doc.Size,
 			Token:            encryptedFilename,
+			OriginalName:     doc.OriginalName,
 			Type:             doc.Type,
 		}
 		// Append the document to the slice
@@ -237,6 +238,7 @@ func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentU
 				Name:             doc.FileName,
 				Size:             doc.Size,
 				Token:            encryptedFilename,
+				OriginalName:     doc.OriginalName,
 				Type:             doc.Type,
 			}
 

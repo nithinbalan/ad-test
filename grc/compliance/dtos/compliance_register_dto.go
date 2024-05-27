@@ -113,14 +113,15 @@ type ComplianceDocumentFormDTO struct {
 }
 
 type ComplianceDocumentDTO struct {
-	ID       *uint  `json:"id,omitempty"`
-	Language string `json:"language"`
-	URL      string `json:"url"`
-	Icon     string `json:"icon"`
-	Name     string `json:"name"`
-	Token    string `json:"token"`
-	Type     string `json:"type"`
-	Size     int    `json:"size"`
+	ID           *uint  `json:"id,omitempty"`
+	Language     string `json:"language"`
+	URL          string `json:"url"`
+	Icon         string `json:"icon"`
+	Name         string `json:"name"`
+	Token        string `json:"token"`
+	OriginalName string `json:"original_name"`
+	Type         string `json:"type"`
+	Size         int    `json:"size"`
 }
 
 type ComplianceRegisterParsedDates struct {

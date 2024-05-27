@@ -120,6 +120,7 @@ func (masus *MeetingActionPlanStatusUpdateService) Create(meetingID uint, meetin
 			Name:                            doc.FileName,
 			Size:                            doc.Size,
 			Token:                           encryptedFileName,
+			OriginalName:                    doc.OriginalName,
 			Type:                            doc.Type,
 			CreatedByID:                     currentUserID,
 		}
@@ -231,6 +232,7 @@ func (masus *MeetingActionPlanStatusUpdateService) Update(meetingID uint, meetin
 				Name:                            doc.FileName,
 				Size:                            doc.Size,
 				Token:                           encryptedFileName,
+				OriginalName:                    doc.OriginalName,
 				Type:                            doc.Type,
 				CreatedByID:                     currentUserID,
 			}

@@ -120,6 +120,7 @@ func (casus *ControlActionPlanStatusUpdateService) Create(controlID uint, contro
 			Name:                            doc.FileName,
 			Size:                            doc.Size,
 			Token:                           encryptedFileName,
+			OriginalName:                    doc.OriginalName,
 			Type:                            doc.Type,
 			CreatedByID:                     currentUserID,
 		}
@@ -231,6 +232,7 @@ func (casus *ControlActionPlanStatusUpdateService) Update(controlID uint, contro
 				Name:                            doc.FileName,
 				Size:                            doc.Size,
 				Token:                           encryptedFileName,
+				OriginalName:                    doc.OriginalName,
 				Type:                            doc.Type,
 				CreatedByID:                     currentUserID,
 			}

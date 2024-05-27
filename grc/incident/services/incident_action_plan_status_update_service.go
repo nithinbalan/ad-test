@@ -119,6 +119,7 @@ func (iasus *IncidentActionPlanStatusUpdateService) Create(IncidentID uint, Inci
 			Name:                             doc.FileName,
 			Size:                             doc.Size,
 			Token:                            encryptedFilename,
+			OriginalName:                     doc.OriginalName,
 			Type:                             doc.Type,
 			CreatedBy:                        currentUserID,
 		}
@@ -223,6 +224,7 @@ func (iasus *IncidentActionPlanStatusUpdateService) Update(IncidentID uint, Inci
 				Name:                             doc.FileName,
 				Size:                             doc.Size,
 				Token:                            encryptedFileName,
+				OriginalName:                     doc.OriginalName,
 				Type:                             doc.Type,
 				CreatedBy:                        currentUserID,
 			}

@@ -11,6 +11,7 @@ type SLACheckAnswerDocument struct {
 	Name             string    `json:"name" binding:"required"`
 	Size             int       `json:"size"`
 	Token            string    `json:"token"`
+	OriginalName     string    `json:"original_name"`
 	Type             string    `json:"type"`
 	Icon             string    `json:"icon" binding:"required"`
 	CreatedBy        uint      `json:"created_by" gorm:"not null"`

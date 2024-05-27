@@ -140,6 +140,7 @@ func (scas *SLACheckAnswerService) CreateAnswer(slaID uint, questionID uint, cur
 			Name:             doc.FileName,
 			Size:             doc.Size,
 			Token:            encryptedFilename,
+			OriginalName:     doc.OriginalName,
 			Type:             doc.Type,
 			CreatedBy:        currentUserID,
 		}
@@ -250,6 +251,7 @@ func (scas *SLACheckAnswerService) UpdateAnswer(slaID uint, questionID uint, ans
 				Name:             doc.FileName,
 				Size:             doc.Size,
 				Token:            encryptedFileName,
+				OriginalName:     doc.OriginalName,
 				Type:             doc.Type,
 				CreatedBy:        currentUserID,
 			}

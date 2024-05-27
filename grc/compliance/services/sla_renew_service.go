@@ -103,6 +103,7 @@ func (srs *SLARenewService) Renew(slaId uint, currentUserID uint, slaRenewFormDT
 		Name:          slaRenewFormDTO.Document.FileName,
 		Size:          slaRenewFormDTO.Document.Size,
 		Token:         encryptedFilename,
+		OriginalName:  slaRenewFormDTO.Document.OriginalName,
 		Type:          slaRenewFormDTO.Document.Type,
 		IsLatest:      true,
 		CreatedBy:     currentUserID,

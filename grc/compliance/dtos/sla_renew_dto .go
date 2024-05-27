@@ -20,6 +20,7 @@ type SLARenewListDTO struct {
 	Token                string    `json:"token"`
 	Type                 string    `json:"type"`
 	Icon                 string    `json:"icon"`
+	OriginalName         string    `json:"original_name"`
 	IsLatest             bool      `json:"is_latest"`
 	CreatedBy            uint      `json:"created_by"`
 	UpdatedBy            uint      `json:"updated_by"`

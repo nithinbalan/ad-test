@@ -165,6 +165,7 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *co
 		Name:          slaRegisterFormDTO.Document.FileName,
 		Size:          slaRegisterFormDTO.Document.Size,
 		Token:         encryptedFilename,
+		OriginalName:  slaRegisterFormDTO.Document.OriginalName,
 		Type:          slaRegisterFormDTO.Document.Type,
 		IsLatest:      true,
 		CreatedBy:     currentUserID,
@@ -276,6 +277,7 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 			existingSLADocument.Name = slaRegisterFormDTO.Document.FileName
 			existingSLADocument.Size = slaRegisterFormDTO.Document.Size
 			existingSLADocument.Token = encryptedFilename
+			existingSLADocument.OriginalName = slaRegisterFormDTO.Document.OriginalName
 			existingSLADocument.Type = slaRegisterFormDTO.Document.Type
 			if err := srs.repo.CreateDocument(existingSLADocument, tx); err != nil {
 				tx.Rollback()

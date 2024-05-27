@@ -11,6 +11,7 @@ type KRIValueUpdateDocument struct {
 	Name             string    `json:"name" binding:"required"`
 	Size             int       `json:"size"`
 	Token            string    `json:"token"`
+	OriginalName     string    `json:"original_name"`
 	Type             string    `json:"type"`
 	Icon             string    `json:"icon" binding:"required"`
 	CreatedAt        time.Time `json:"created_at" gorm:"type:datetime;not null"`

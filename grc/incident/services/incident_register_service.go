@@ -228,6 +228,7 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 			Name:               doc.FileName,
 			Size:               doc.Size,
 			Token:              encryptedFilename,
+			OriginalName:       doc.OriginalName,
 			Type:               doc.Type,
 			CreatedBy:          currentUserID,
 		}
@@ -499,6 +500,7 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 				Name:               doc.FileName,
 				Size:               doc.Size,
 				Token:              encryptedFilename,
+				OriginalName:       doc.OriginalName,
 				Type:               doc.Type,
 				CreatedBy:          currentUserID,
 			}

@@ -172,6 +172,7 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 		Name:                 complianceRegisterFormDTO.Document.FileName,
 		Size:                 complianceRegisterFormDTO.Document.Size,
 		Token:                encryptedFilename,
+		OriginalName:         complianceRegisterFormDTO.Document.OriginalName,
 		Type:                 complianceRegisterFormDTO.Document.Type,
 		CreatedBy:            currentUserID,
 	}
@@ -294,6 +295,7 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 			existingComplianceDocument.Name = complianceRegisterFormDTO.Document.FileName
 			existingComplianceDocument.Size = complianceRegisterFormDTO.Document.Size
 			existingComplianceDocument.Token = encryptedFilename
+			existingComplianceDocument.OriginalName = complianceRegisterFormDTO.Document.OriginalName
 			existingComplianceDocument.Type = complianceRegisterFormDTO.Document.Type
 
 			if err := crs.repo.CreateDocument(existingComplianceDocument, tx); err != nil {

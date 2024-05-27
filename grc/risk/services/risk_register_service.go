@@ -201,6 +201,7 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 			Name:           doc.FileName,
 			Size:           doc.Size,
 			Token:          encryptedFilename,
+			OriginalName:   doc.OriginalName,
 			Type:           doc.Type,
 			CreatedBy:      currentUserID,
 		}
@@ -348,6 +349,7 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 				Name:           doc.FileName,
 				Size:           doc.Size,
 				Token:          encryptedFilename,
+				OriginalName:   doc.OriginalName,
 				Type:           doc.Type,
 				CreatedBy:      currentUserID,
 			}
