@@ -32,8 +32,9 @@ type UserRepositoryInterface interface {
 	//User roles
 	CreateUserRole(userRoles []models.UserRole, tx ...utility.DatabaseTransaction) error
 	UpdateUserRoles(userID uint, desiredRoleIDs []uint, tx ...utility.DatabaseTransaction) error
-	GetUserLogins(page int, pageSize int) (*userDTOs.UserLoginListResponseDTO, error)
-	CreateUserLogin(userLogin *models.UserLogin, tx ...utility.DatabaseTransaction) error
+
+	GetUserLoginHistory(params *userDTOs.UserLoginHistoryListQueryParamsDTO) (*userDTOs.UserLoginHistoryListResponseDTO, error)
+	CreateUserLoginHistory(userLogin *models.UserLoginHistory, tx ...utility.DatabaseTransaction) error
 }
 
 type UserRepository struct {
@@ -395,34 +396,44 @@ func contains(slice []uint, val uint) bool {
 	return false
 }
 
-func (repo *UserRepository) GetUserLogins(page int, pageSize int) (*userDTOs.UserLoginListResponseDTO, error) {
-	var userLogins []*userDTOs.UserLoginListDTO
+func (repo *UserRepository) GetUserLoginHistory(params *userDTOs.UserLoginHistoryListQueryParamsDTO) (*userDTOs.UserLoginHistoryListResponseDTO, error) {
+	var userLogins []*userDTOs.UserLoginHistoryListDTO
 	var totalCount int64
 
-	// Initialize the query
-	query := repo.db.Table("user_logins").
+	query := repo.db.Table("user_login_history").
 		Select("id, login_at, login_status, ip_address, location, device_info, browser_info")
+
+	if params.Keyword != "" {
+		query = query.Where("(login_status LIKE ? OR location LIKE ? OR ip_address LIKE ? OR device_info LIKE ? OR browser_info LIKE ?)", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
+	}
+
+	// Apply implemented_at filters
+	if params.LoginAtFrom != "" {
+		query = query.Where("implemented_at >= ?", params.LoginAtFrom)
+	}
+	if params.LoginAtTo != "" {
+		query = query.Where("implemented_at <= ?", params.LoginAtTo)
+	}
 
 	// Calculate total count for pagination
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
 
-	offset := (page - 1) * pageSize
+	offset := (params.Page - 1) * params.PageSize
 
-	// Execute the query
-	err := query.Offset(offset).Limit(pageSize).Find(&userLogins).Error
+	err := query.Offset(offset).Limit(params.PageSize).Find(&userLogins).Error
 	if err != nil {
 		return nil, err
 	}
 
-	totalPages := int((totalCount + int64(pageSize) - 1) / int64(pageSize))
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
 
-	response := &userDTOs.UserLoginListResponseDTO{
+	response := &userDTOs.UserLoginHistoryListResponseDTO{
 		Items: userLogins,
 		Pagination: commonDTOs.PaginationInfoDTO{
-			CurrentPage: page,
-			PageSize:    pageSize,
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
 			TotalPages:  totalPages,
 			TotalCount:  totalCount,
 		},
@@ -430,7 +441,7 @@ func (repo *UserRepository) GetUserLogins(page int, pageSize int) (*userDTOs.Use
 	return response, nil
 }
 
-func (repo *UserRepository) CreateUserLogin(userLogin *models.UserLogin, tx ...utility.DatabaseTransaction) error {
+func (repo *UserRepository) CreateUserLoginHistory(userLogin *models.UserLoginHistory, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 
 	if len(tx) > 0 && tx[0] != nil {

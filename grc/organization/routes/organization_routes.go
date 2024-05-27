@@ -49,7 +49,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.POST("/users", userController.CreateUser)
 	organizationRoutes.PUT("/users/:userId", userController.UpdateUser)
 	organizationRoutes.POST("/users/delete", userController.DeleteUsers)
-	organizationRoutes.GET("/users/:userId/logins", userController.GetUserLogins)
+	organizationRoutes.GET("/users/:userId/login-history", userController.GetUserLoginHistory)
 
 	//Strategic Profile
 	organizationRoutes.GET("/strategic-profiles", strategicProfileController.GetStrategicProfile)

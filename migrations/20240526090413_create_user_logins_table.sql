@@ -1,6 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE TABLE user_logins (
+CREATE TABLE user_login_history (
     id INT PRIMARY KEY IDENTITY(1,1),
     user_id INT NOT NULL,
     login_at DATETIME NOT NULL,
@@ -15,5 +15,5 @@ CREATE TABLE user_logins (
 
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE dbo.user_logins;
+DROP TABLE dbo.user_login_history;
 -- +goose StatementEnd

@@ -29,8 +29,8 @@ type UserServiceInterface interface {
 	Update(id uint, currentUserID uint, user *userDTOs.UserFormDTO) error
 	UpdatePartial(id uint, dto *userDTOs.UserUpdateDTO, tx utility.DatabaseTransaction) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
-	GetUserLogins(page int, pageSize int) (*userDTOs.UserLoginListResponseDTO, error)
-	LogUserLogin(user *models.User, loginStatus string, ipAddress string, location string, device string, browser string) error
+	GetUserLoginHistory(params *userDTOs.UserLoginHistoryListQueryParamsDTO) (*userDTOs.UserLoginHistoryListResponseDTO, error)
+	CreateUserLoginHistory(user *models.User, loginStatus string, ipAddress string, location string, device string, browser string) error
 
 	GenerateRandomPassword(length int) (string, error)
 	SetUserSettingService(svc UserSettingServiceInterface)
@@ -381,8 +381,8 @@ func (crs *UserService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	return failedIds, nil
 }
 
-func (us *UserService) GetUserLogins(page int, pageSize int) (*userDTOs.UserLoginListResponseDTO, error) {
-	return us.repo.GetUserLogins(page, pageSize)
+func (us *UserService) GetUserLoginHistory(params *userDTOs.UserLoginHistoryListQueryParamsDTO) (*userDTOs.UserLoginHistoryListResponseDTO, error) {
+	return us.repo.GetUserLoginHistory(params)
 }
 
 func (us *UserService) validateUserFormDTO(id *uint, userFormDTO *userDTOs.UserFormDTO) error {
@@ -435,10 +435,10 @@ func (us *UserService) GenerateRandomPassword(length int) (string, error) {
 	return string(b), nil
 }
 
-func (as *UserService) LogUserLogin(user *models.User, loginStatus string, ipAddress string, location string, device string, browser string) error {
+func (as *UserService) CreateUserLoginHistory(user *models.User, loginStatus string, ipAddress string, location string, device string, browser string) error {
 	tx := as.repo.BeginTransaction()
 
-	login := models.UserLogin{
+	login := models.UserLoginHistory{
 		UserID:      user.ID,
 		LoginAt:     time.Now(),
 		LoginStatus: loginStatus,
@@ -448,7 +448,7 @@ func (as *UserService) LogUserLogin(user *models.User, loginStatus string, ipAdd
 		BrowserInfo: &browser,
 	}
 
-	err := as.repo.CreateUserLogin(&login, tx)
+	err := as.repo.CreateUserLoginHistory(&login, tx)
 	if err != nil {
 		return err
 	}

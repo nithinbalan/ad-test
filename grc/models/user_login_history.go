@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-type UserLogin struct {
+type UserLoginHistory struct {
 	ID          uint      `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	UserID      uint      `json:"user_id" binding:"required" gorm:"type:int;not null"`
 	LoginAt     time.Time `json:"login_at" gorm:"type:datetime;not null"`
@@ -15,7 +15,7 @@ type UserLogin struct {
 	BrowserInfo *string   `json:"browser_info" gorm:"type:varchar(255)"`
 }
 
-// TableName overrides the table name used by UserLogin to `user_logins`
-func (UserLogin) TableName() string {
-	return "user_logins"
+// TableName overrides the table name used by UserLoginHistory to `user_login_history`
+func (UserLoginHistory) TableName() string {
+	return "user_login_history"
 }

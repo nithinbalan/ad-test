@@ -27,17 +27,17 @@ type User struct {
 	UpdatedBy           *uint      `json:"updated_by" gorm:"default:null"`
 
 	// Relationships
-	OrganizationUnit1 *OrganizationUnit `gorm:"foreignKey:OrganizationUnit1ID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
-	OrganizationUnit2 *OrganizationUnit `gorm:"foreignKey:OrganizationUnit2ID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
-	OrganizationUnit3 *OrganizationUnit `gorm:"foreignKey:OrganizationUnit3ID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
-	OrganizationUnit4 *OrganizationUnit `gorm:"foreignKey:OrganizationUnit4ID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
-	OrganizationUnit5 *OrganizationUnit `gorm:"foreignKey:OrganizationUnit5ID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
-	UserStatus        *UserStatus       `gorm:"foreignKey:UserStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
-	Designation       *Designation      `gorm:"foreignKey:DesignationID"`
-	UserRoles         *[]UserRole       `gorm:"foreignKey:UserID"`
-	Logins            *[]UserLogin      `gorm:"foreignKey:UserID"`
-	CreatedByUser     *User             `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser     *User             `gorm:"foreignKey:UpdatedBy"`
+	OrganizationUnit1 *OrganizationUnit   `gorm:"foreignKey:OrganizationUnit1ID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
+	OrganizationUnit2 *OrganizationUnit   `gorm:"foreignKey:OrganizationUnit2ID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
+	OrganizationUnit3 *OrganizationUnit   `gorm:"foreignKey:OrganizationUnit3ID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
+	OrganizationUnit4 *OrganizationUnit   `gorm:"foreignKey:OrganizationUnit4ID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
+	OrganizationUnit5 *OrganizationUnit   `gorm:"foreignKey:OrganizationUnit5ID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
+	UserStatus        *UserStatus         `gorm:"foreignKey:UserStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
+	Designation       *Designation        `gorm:"foreignKey:DesignationID"`
+	UserRoles         *[]UserRole         `gorm:"foreignKey:UserID"`
+	LoginHistory      *[]UserLoginHistory `gorm:"foreignKey:UserID"`
+	CreatedByUser     *User               `gorm:"foreignKey:CreatedBy"`
+	UpdatedByUser     *User               `gorm:"foreignKey:UpdatedBy"`
 }
 
 // TableName overrides the table name used by User to `users`

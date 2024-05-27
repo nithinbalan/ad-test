@@ -139,7 +139,17 @@ type UserDetailsDTO struct {
 	UpdatedByUser     *UserMinimalDTO                  `json:"updated_by_user"`
 }
 
-type UserLoginListDTO struct {
+type UserLoginHistoryListQueryParamsDTO struct {
+	Sort        string
+	SortBy      string
+	Keyword     string
+	Page        int
+	PageSize    int
+	LoginAtFrom string
+	LoginAtTo   string
+}
+
+type UserLoginHistoryListDTO struct {
 	ID          uint      `json:"id"`
 	LoginAt     time.Time `json:"login_at"`
 	LoginStatus string    `json:"login_status"`
@@ -149,7 +159,7 @@ type UserLoginListDTO struct {
 	BrowserInfo *string   `json:"browser_info"`
 }
 
-type UserLoginListResponseDTO struct {
-	Items      []*UserLoginListDTO          `json:"items"`
+type UserLoginHistoryListResponseDTO struct {
+	Items      []*UserLoginHistoryListDTO   `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }

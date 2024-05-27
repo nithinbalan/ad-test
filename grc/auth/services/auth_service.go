@@ -55,7 +55,7 @@ func (as *AuthService) Authenticate(email string, password string, ipAddress str
 	err = bcrypt.CompareHashAndPassword([]byte(userSecurity.PasswordHash), []byte(password))
 	if err != nil {
 		loginStatus := "failed"
-		logErr := as.userService.LogUserLogin(user, loginStatus, ipAddress, location, device, browser)
+		logErr := as.userService.CreateUserLoginHistory(user, loginStatus, ipAddress, location, device, browser)
 		if logErr != nil {
 			return nil, utility.NewInternalServerError(logErr)
 		}
@@ -85,7 +85,7 @@ func (as *AuthService) Authenticate(email string, password string, ipAddress str
 		responseDTO.IsMFAEnabled = false
 
 		loginStatus := "success"
-		err = as.userService.LogUserLogin(user, loginStatus, ipAddress, location, device, browser)
+		err = as.userService.CreateUserLoginHistory(user, loginStatus, ipAddress, location, device, browser)
 		if err != nil {
 			return nil, utility.NewInternalServerError(err)
 		}

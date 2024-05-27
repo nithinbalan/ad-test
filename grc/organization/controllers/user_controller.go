@@ -207,7 +207,13 @@ func (uc *UserController) DeleteUsers(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
 
-func (uc *UserController) GetUserLogins(c *gin.Context) {
+func (uc *UserController) GetUserLoginHistory(c *gin.Context) {
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+	loginAtFrom := c.Query("login_at_from")
+	loginAtTo := c.Query("login_at_to")
+
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
 		utility.SendInternalErrResp(uc.db, c, "Invalid page parameter")
@@ -220,11 +226,20 @@ func (uc *UserController) GetUserLogins(c *gin.Context) {
 		return
 	}
 
-	users, err := uc.service.GetUserLogins(int(page), int(pageSize))
+	queryParams := organizationDTOs.UserLoginHistoryListQueryParamsDTO{
+		Sort:        sort,
+		SortBy:      sortBy,
+		Keyword:     keyword,
+		Page:        page,
+		PageSize:    pageSize,
+		LoginAtFrom: loginAtFrom,
+		LoginAtTo:   loginAtTo,
+	}
+	userLoginHistory, err := uc.service.GetUserLoginHistory(&queryParams)
 
 	if err != nil {
 		utility.SendInternalErrResp(uc.db, c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, users)
+	c.JSON(http.StatusOK, userLoginHistory)
 }
