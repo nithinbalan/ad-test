@@ -142,40 +142,41 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 		tx.Rollback()
 		return 0, err
 	}
-	// // Save ComplianceRequirements
-	// var complianceRequirements []*models.RiskComplianceRequirement
-	// for _, req := range riskRegisterFormDTO.ComplianceRequirements {
-	// 	requirement := &models.RiskComplianceRequirement{
-	// 		RiskRegisterID:          id,
-	// 		ComplianceRequirementID: *req,
-	// 		CreatedBy:               currentUserID,
-	// 	}
-	// 	complianceRequirements = append(complianceRequirements, requirement)
-	// }
 
-	// if len(complianceRequirements) > 0 {
-	// 	if err := rrs.repo.SaveRiskComplianceRequirements(complianceRequirements, tx); err != nil {
-	// 		tx.Rollback()
-	// 		return 0, err
-	// 	}
-	// }
-	// // Save Controls
-	// var controls []*models.RiskControl
-	// for _, ctrl := range riskRegisterFormDTO.Controls {
-	// 	control := &models.RiskControl{
-	// 		RiskRegisterID: id,
-	// 		ControlID:      *ctrl,
-	// 		CreatedBy:      currentUserID,
-	// 	}
-	// 	controls = append(controls, control)
-	// }
+	// Save ComplianceRequirements
+	var complianceRequirements []*models.RiskComplianceRequirement
+	for _, requirementID := range riskRegisterFormDTO.ComplianceRequirementIDs {
+		requirement := &models.RiskComplianceRequirement{
+			RiskRegisterID:          id,
+			ComplianceRequirementID: *requirementID,
+			CreatedBy:               currentUserID,
+		}
+		complianceRequirements = append(complianceRequirements, requirement)
+	}
 
-	// if len(controls) > 0 {
-	// 	if err := rrs.repo.SaveRiskControls(controls, tx); err != nil {
-	// 		tx.Rollback()
-	// 		return 0, err
-	// 	}
-	// }
+	if len(complianceRequirements) > 0 {
+		if err := rrs.repo.CreateRiskComplianceRequirements(complianceRequirements, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+	// Save Controls
+	var controls []*models.RiskControl
+	for _, controlID := range riskRegisterFormDTO.ControlIDs {
+		control := &models.RiskControl{
+			RiskRegisterID: id,
+			ControlID:      *controlID,
+			CreatedBy:      currentUserID,
+		}
+		controls = append(controls, control)
+	}
+
+	if len(controls) > 0 {
+		if err := rrs.repo.CreateRiskControls(controls, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
 
 	var documents []*models.RiskDocument
 
@@ -286,42 +287,66 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 		return err
 	}
 
-	// // Save ComplianceRequirements
-	// var complianceRequirements []*models.RiskComplianceRequirement
-	// for _, req := range risk.ComplianceRequirements {
-	// 	requirement := &models.RiskComplianceRequirement{
-	// 		RiskRegisterID:          id,
-	// 		ComplianceRequirementID: *req,
-	// 		CreatedBy:               currentUserID,
-	// 	}
-	// 	complianceRequirements = append(complianceRequirements, requirement)
-	// }
+	//Delete all existing compliance requirements and controls and create again
+	if len(existingRiskRegister.ComplianceRequirements) > 0 {
+		var deleteRequirementIds []*uint
+		for _, req := range existingRiskRegister.ComplianceRequirements {
+			deleteRequirementIds = append(deleteRequirementIds, &req.ID)
+		}
+		if err := rrs.repo.DeleteRiskComplianceRequirements(deleteRequirementIds, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
 
-	// if len(complianceRequirements) > 0 {
-	// 	if err := rrs.repo.SaveRiskComplianceRequirements(complianceRequirements, tx); err != nil {
-	// 		tx.Rollback()
-	// 		return err
-	// 	}
-	// }
+	}
+	fmt.Println(existingRiskRegister)
 
-	// Save Controls
-	// var controls []*models.RiskControl
-	// for _, ctrl := range risk.Controls {
-	// 	control := &models.RiskControl{
-	// 		RiskRegisterID: id,
-	// 		ControlID:      *ctrl,
-	// 		CreatedBy:      currentUserID,
-	// 	}
-	// 	controls = append(controls, control)
-	// }
+	if len(existingRiskRegister.Controls) > 0 {
+		fmt.Println("hi")
 
-	// if len(controls) > 0 {
-	// 	if err := rrs.repo.SaveRiskControls(controls, tx); err != nil {
-	// 		tx.Rollback()
-	// 		return err
-	// 	}
-	// }
+		var deleteControlIds []*uint
+		for _, ctrl := range existingRiskRegister.Controls {
+			deleteControlIds = append(deleteControlIds, &ctrl.ID)
+		}
+		if err := rrs.repo.DeleteRiskControls(deleteControlIds, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+	// Create ComplianceRequirements
+	var complianceRequirements []*models.RiskComplianceRequirement
+	for _, requirementID := range riskRegisterFormDTO.ComplianceRequirementIDs {
+		requirement := &models.RiskComplianceRequirement{
+			RiskRegisterID:          id,
+			ComplianceRequirementID: *requirementID,
+			CreatedBy:               currentUserID,
+		}
+		complianceRequirements = append(complianceRequirements, requirement)
+	}
 
+	if len(complianceRequirements) > 0 {
+		if err := rrs.repo.CreateRiskComplianceRequirements(complianceRequirements, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+	// Create Controls
+	var controls []*models.RiskControl
+	for _, controlID := range riskRegisterFormDTO.ControlIDs {
+		control := &models.RiskControl{
+			RiskRegisterID: id,
+			ControlID:      *controlID,
+			CreatedBy:      currentUserID,
+		}
+		controls = append(controls, control)
+	}
+
+	if len(controls) > 0 {
+		if err := rrs.repo.CreateRiskControls(controls, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
 	// Save Documents
 	// documents update
 	var documents []*models.RiskDocument
@@ -445,31 +470,30 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 			tx.Rollback()
 			return nil, err
 		}
-		// // Check if controls exist
-		// if len(risk.Controls) > 0 {
-		// 	var deleteControlIds []*uint
-		// 	for _, ctrl := range risk.Controls {
-		// 		deleteControlIds = append(deleteControlIds, ctrl.ID)
-		// 	}
-		// 	if err := rrs.repo.DeleteRiskControls(deleteControlIds, tx); err != nil {
+		// Check if controls exist
+		if len(risk.Controls) > 0 {
+			var deleteControlIds []*uint
+			for _, ctrl := range risk.Controls {
+				deleteControlIds = append(deleteControlIds, ctrl.ID)
+			}
+			if err := rrs.repo.DeleteRiskControls(deleteControlIds, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+		}
 
-		// 		tx.Rollback()
-		// 		return nil, err
-		// 	}
-		// }
+		// Delete each compliance requirement if requirements exist
+		if len(risk.ComplianceRequirements) > 0 {
+			var deleteRequirementIds []*uint
+			for _, req := range risk.ComplianceRequirements {
+				deleteRequirementIds = append(deleteRequirementIds, req.ID)
+			}
+			if err := rrs.repo.DeleteRiskComplianceRequirements(deleteRequirementIds, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
 
-		// // Delete each compliance requirement if requirements exist
-		// if len(risk.ComplianceRequirements) > 0 {
-		// 	var deleteRequirementIds []*uint
-		// 	for _, req := range risk.ComplianceRequirements {
-		// 		deleteRequirementIds = append(deleteRequirementIds, req.ID)
-		// 	}
-		// 	if err := rrs.repo.DeleteRiskComplianceRequirements(deleteRequirementIds, tx); err != nil {
-		// 		tx.Rollback()
-		// 		return nil, err
-		// 	}
-
-		// }
+		}
 
 		// Delete each risk document if documents exist
 		if len(risk.Documents) > 0 {

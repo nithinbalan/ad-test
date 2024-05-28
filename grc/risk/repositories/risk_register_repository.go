@@ -20,16 +20,18 @@ type RiskRegisterRepositoryInterface interface {
 	Create(riskRegister *models.RiskRegister, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(riskRegister *models.RiskRegister, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
-	// DeleteRiskControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error
-	// DeleteRiskComplianceRequirements(requirementIds []*uint, tx ...utility.DatabaseTransaction) error
 	GenerateReferenceNumber() (string, error)
 
 	//Document
 	CreateDocuments(docs []*models.RiskDocument, tx ...utility.DatabaseTransaction) error
-	// SaveRiskComplianceRequirements(complianceRequirements []*models.RiskComplianceRequirement, tx ...utility.DatabaseTransaction) error
-	// SaveRiskControls(controls []*models.RiskControl, tx ...utility.DatabaseTransaction) error
 	GetDocumentByID(id uint) (*models.RiskDocument, error)
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
+
+	//Associated Items
+	CreateRiskComplianceRequirements(complianceRequirements []*models.RiskComplianceRequirement, tx ...utility.DatabaseTransaction) error
+	CreateRiskControls(controls []*models.RiskControl, tx ...utility.DatabaseTransaction) error
+	DeleteRiskControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteRiskComplianceRequirements(requirementIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type RiskRegisterRepository struct {
@@ -199,7 +201,10 @@ func (repo *RiskRegisterRepository) GetAll(params *riskDTOs.RiskRegisterListQuer
 func (repo *RiskRegisterRepository) GetByID(id uint) (*models.RiskRegister, error) {
 	var risk *models.RiskRegister
 
-	result := repo.db.First(&risk, id)
+	result := repo.db.
+		Preload("Controls").
+		Preload("ComplianceRequirements").
+		First(&risk, id)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -223,8 +228,10 @@ func (repo *RiskRegisterRepository) GetFullDetailsByID(id uint, tx ...utility.Da
 		Preload("ReviewFrequency").
 		Preload("RiskStatus").
 		Preload("Documents").
-		// Preload("Controls").
-		// Preload("ComplianceRequirements").
+		Preload("Controls").
+		Preload("Controls.Control.ControlCategory").
+		Preload("Controls.Control.ControlType").
+		Preload("ComplianceRequirements.ComplianceRequirement").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&risk, id)
@@ -335,52 +342,50 @@ func (repo *RiskRegisterRepository) DeleteDocuments(docIds []*uint, tx ...utilit
 	return nil
 }
 
-// func (repo *RiskRegisterRepository) SaveRiskComplianceRequirements(complianceRequirements []*models.RiskComplianceRequirement, tx ...utility.DatabaseTransaction) error {
-// 	db := repo.db
-// 	if len(tx) > 0 && tx[0] != nil {
-// 		db = tx[0].DB()
-// 	}
-// 	if err := db.Create(&complianceRequirements).Error; err != nil {
-// 		return err
-// 	}
-// 	return nil
-// }
+func (repo *RiskRegisterRepository) CreateRiskComplianceRequirements(complianceRequirements []*models.RiskComplianceRequirement, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&complianceRequirements).Error; err != nil {
+		return err
+	}
+	return nil
+}
 
-// func (repo *RiskRegisterRepository) SaveRiskControls(controls []*models.RiskControl, tx ...utility.DatabaseTransaction) error {
-// 	db := repo.db
-// 	if len(tx) > 0 && tx[0] != nil {
-// 		db = tx[0].DB()
-// 	}
-// 	if err := db.Create(&controls).Error; err != nil {
-// 		return err
-// 	}
-// 	return nil
-// }
+func (repo *RiskRegisterRepository) CreateRiskControls(controls []*models.RiskControl, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&controls).Error; err != nil {
+		return err
+	}
+	return nil
+}
 
-// func (repo *RiskRegisterRepository) DeleteRiskControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error {
-// 	db := repo.db
-// 	if len(tx) > 0 && tx[0] != nil {
-// 		db = tx[0].DB()
-// 	}
+func (repo *RiskRegisterRepository) DeleteRiskComplianceRequirements(requirementIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 
-// 	// Delete controls by IDs
-// 	if err := db.Where("id IN (?)", controlIds).Delete(&models.RiskControl{}).Error; err != nil {
-// 		return err
-// 	}
+	if err := db.Where("id IN (?)", requirementIds).Delete(&models.RiskComplianceRequirement{}).Error; err != nil {
+		return err
+	}
 
-// 	return nil
-// }
+	return nil
+}
 
-// func (repo *RiskRegisterRepository) DeleteRiskComplianceRequirements(requirementIds []*uint, tx ...utility.DatabaseTransaction) error {
-// 	db := repo.db
-// 	if len(tx) > 0 && tx[0] != nil {
-// 		db = tx[0].DB()
-// 	}
+func (repo *RiskRegisterRepository) DeleteRiskControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 
-// 	// Delete compliance requirements by IDs
-// 	if err := db.Where("id IN (?)", requirementIds).Delete(&models.RiskComplianceRequirement{}).Error; err != nil {
-// 		return err
-// 	}
+	if err := db.Where("id IN (?)", controlIds).Delete(&models.RiskControl{}).Error; err != nil {
+		return err
+	}
 
-// 	return nil
-// }
+	return nil
+}
