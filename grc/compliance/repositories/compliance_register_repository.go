@@ -25,6 +25,10 @@ type ComplianceRegisterRepositoryInterface interface {
 	//lifecycle
 	GetIDsByLifecycleStatus(ids []uint, status string) ([]uint, error)
 	UpdateLifecycleStatusForIDs(ids []uint, statusId uint) ([]uint, error)
+
+	CreateComplianceControls(controls []*models.ComplianceControl, tx ...utility.DatabaseTransaction) error
+	DeleteComplianceControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error
+
 	//Document
 	CreateDocument(doc *models.ComplianceDocument, tx ...utility.DatabaseTransaction) error
 	GetDocumentByID(id uint) (*models.ComplianceDocument, error)
@@ -248,6 +252,9 @@ func (repo *ComplianceRegisterRepository) GetFullDetailsByID(id uint, tx ...util
 		Preload("SeverityLevel").
 		Preload("LifecycleStatus").
 		Preload("Documents").
+		Preload("Controls").
+		Preload("Controls.Control.ControlCategory").
+		Preload("Controls.Control.ControlType").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&compliance, id)
@@ -348,7 +355,30 @@ func (repo *ComplianceRegisterRepository) GenerateReferenceNumber() (string, err
 	return newReferenceNumber, nil
 }
 
-//Document func
+func (repo *ComplianceRegisterRepository) CreateComplianceControls(controls []*models.ComplianceControl, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&controls).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *ComplianceRegisterRepository) DeleteComplianceControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Delete controls by IDs
+	if err := db.Where("id IN (?)", controlIds).Delete(&models.ComplianceControl{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
 
 func (repo *ComplianceRegisterRepository) GetDocumentByID(id uint) (*models.ComplianceDocument, error) {
 	var document models.ComplianceDocument

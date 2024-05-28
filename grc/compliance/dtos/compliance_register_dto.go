@@ -99,6 +99,7 @@ type ComplianceRegisterFormDTO struct {
 	LastReviewNote          *string                   `json:"last_review_note"`
 	StandardCode            *string                   `json:"standard_code" binding:"omitempty,max=45"`
 	Document                ComplianceDocumentFormDTO `json:"document" binding:"required"`
+	ControlIDs              []*uint                   `json:"control_ids"`
 }
 type ComplianceDocumentFormDTO struct {
 	ID           *uint  `json:"id,omitempty"`
@@ -155,5 +156,13 @@ type ComplianceRegisterDetailDTO struct {
 	CreatedByUser         organizationDTOs.UserMinimalDTO      `json:"created_by"`
 	UpdatedByUser         organizationDTOs.UserMinimalDTO      `json:"updated_by"`
 	LifecycleStatus       masterDTOs.LifecycleStatusDTO        `json:"status"`
-	Documents             []*ComplianceDocumentDTO             `json:"documents"`
+	Documents             []ComplianceDocumentDTO              `json:"documents"`
+	Controls              []*ComplianceControlDTO              `json:"controls"`
+}
+
+type ComplianceControlDTO struct {
+	ID                   *uint                             `json:"id"`
+	ComplianceRegisterID uint                              `json:"compliance_register_id"`
+	ControlID            uint                              `json:"control_id"`
+	Control              organizationDTOs.ControlDetailDTO `json:"control"`
 }
