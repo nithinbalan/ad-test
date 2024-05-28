@@ -101,6 +101,12 @@ func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*us
 			query = query.Where("users.created_at >= ?", thirtyDaysAgo)
 		case "admin_users":
 			query = query.Where("roles_agg.roles_en = ? OR roles_agg.roles_ar = ?", "Admin", "مسؤول")
+		case "logged_in_today":
+			query = query.Where("CONVERT(date, users.last_login_at) = CONVERT(date, GETDATE())")
+		case "logged_in_this_week":
+			query = query.Where("DATEPART(week, users.last_login_at) = DATEPART(week, GETDATE())")
+		case "not_logged_in":
+			query = query.Where("users.last_login_at IS NULL")
 		}
 	}
 
