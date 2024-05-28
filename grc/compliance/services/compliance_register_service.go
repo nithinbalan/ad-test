@@ -344,57 +344,48 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 		}
 	}
 
-	if complianceRegisterFormDTO.Document.ID != nil {
-		existingComplianceDocument, err := crs.repo.GetDocumentByID(*complianceRegisterFormDTO.Document.ID)
+	existingComplianceDocument, err := crs.repo.GetLatestDocumentByComplianceID(id)
+	if err != nil {
+		return err
+	}
+
+	if complianceRegisterFormDTO.Document.IsNewFile != nil && *complianceRegisterFormDTO.Document.IsNewFile {
+		existingComplianceDocumentFileName := existingComplianceDocument.Name
+
+		//generate token
+		dataToEncrypt := []byte(complianceRegisterFormDTO.Document.FileName)
+		encryptedFilename, err := utility.EncryptData(dataToEncrypt)
 		if err != nil {
+			tx.Rollback()
 			return err
 		}
-		existingComplianceDocument.ComplianceRegisterID = id
+
+		//genereate URL
+		url := utility.GenerateDocumentURL("compliance-register", strconv.FormatUint(uint64(id), 10), encryptedFilename)
+
+		existingComplianceDocument.Language = complianceRegisterFormDTO.Document.Language
+		existingComplianceDocument.URL = url
+		existingComplianceDocument.Name = complianceRegisterFormDTO.Document.FileName
+		existingComplianceDocument.Size = complianceRegisterFormDTO.Document.Size
+		existingComplianceDocument.Token = encryptedFilename
+		existingComplianceDocument.OriginalName = complianceRegisterFormDTO.Document.OriginalName
+		existingComplianceDocument.Type = complianceRegisterFormDTO.Document.Type
 		existingComplianceDocument.UpdatedBy = currentUserID
 
-		if complianceRegisterFormDTO.Document.IsNewFile != nil && *complianceRegisterFormDTO.Document.IsNewFile {
-			existingComplianceDocumentFileName := existingComplianceDocument.Name
+		if err := crs.repo.CreateDocument(existingComplianceDocument, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
 
-			//generate token
-			dataToEncrypt := []byte(complianceRegisterFormDTO.Document.FileName)
-			encryptedFilename, err := utility.EncryptData(dataToEncrypt)
-			if err != nil {
-				tx.Rollback()
-				return err
-			}
+		storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(id), 10), "documents")
+		if err := utility.RemoveFile(existingComplianceDocumentFileName, storagePath); err != nil {
+			tx.Rollback()
+			return err
+		}
 
-			//genereate URL
-			url := utility.GenerateDocumentURL("compliance-register", strconv.FormatUint(uint64(id), 10), encryptedFilename)
-
-			existingComplianceDocument.Language = complianceRegisterFormDTO.Document.Language
-			existingComplianceDocument.URL = url
-			existingComplianceDocument.Name = complianceRegisterFormDTO.Document.FileName
-			existingComplianceDocument.Size = complianceRegisterFormDTO.Document.Size
-			existingComplianceDocument.Token = encryptedFilename
-			existingComplianceDocument.OriginalName = complianceRegisterFormDTO.Document.OriginalName
-			existingComplianceDocument.Type = complianceRegisterFormDTO.Document.Type
-
-			if err := crs.repo.CreateDocument(existingComplianceDocument, tx); err != nil {
-				tx.Rollback()
-				return err
-			}
-
-			storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(id), 10), "documents")
-			if err := utility.RemoveFile(existingComplianceDocumentFileName, storagePath); err != nil {
-				tx.Rollback()
-				return err
-			}
-
-			if err := utility.StoreFile(complianceRegisterFormDTO.Document.FileName, storagePath); err != nil {
-				tx.Rollback()
-				return err
-			}
-
-		} else {
-			if err := crs.repo.CreateDocument(existingComplianceDocument, tx); err != nil {
-				tx.Rollback()
-				return err
-			}
+		if err := utility.StoreFile(complianceRegisterFormDTO.Document.FileName, storagePath); err != nil {
+			tx.Rollback()
+			return err
 		}
 
 	}
