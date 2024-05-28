@@ -86,6 +86,24 @@ func (repo *MeetingRepository) GetAll(currentUserID uint, params *meetingDTOs.Me
 		}
 	}
 
+	// Apply quick filters
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "today":
+			query = query.Where("CONVERT(date, meetings.date) = CONVERT(date, GETDATE())")
+		case "this_week":
+			query = query.Where("DATEPART(week, meetings.date) = DATEPART(week, GETDATE())")
+		case "this_month":
+			query = query.Where("DATEPART(month, meetings.date) = DATEPART(month, GETDATE())")
+		case "scheduled":
+			query = query.Where("meeting_statuses.type = ?", "scheduled")
+		case "completed":
+			query = query.Where("meeting_statuses.type = ?", "completed")
+		case "cancelled":
+			query = query.Where("meeting_statuses.type = ?", "cancelled")
+		}
+	}
+
 	// Calculate total count for pagination
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
