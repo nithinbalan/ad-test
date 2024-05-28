@@ -43,6 +43,7 @@ type ComplianceRegister struct {
 	Documents             []ComplianceDocument `gorm:"foreignKey:ComplianceRegisterID"`
 	CreatedByUser         *User                `gorm:"foreignKey:CreatedBy"`
 	UpdatedByUser         *User                `gorm:"foreignKey:UpdatedBy"`
+	Controls              []*ComplianceControl `gorm:"foreignKey:ComplianceRegisterID"`
 }
 
 // TableName overrides the table name used by ComplianceRegister to `compliance_register`

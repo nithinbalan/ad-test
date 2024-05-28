@@ -299,10 +299,8 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 		}
 
 	}
-	fmt.Println(existingRiskRegister)
 
 	if len(existingRiskRegister.Controls) > 0 {
-		fmt.Println("hi")
 
 		var deleteControlIds []*uint
 		for _, ctrl := range existingRiskRegister.Controls {
@@ -313,6 +311,7 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 			return err
 		}
 	}
+
 	// Create ComplianceRequirements
 	var complianceRequirements []*models.RiskComplianceRequirement
 	for _, requirementID := range riskRegisterFormDTO.ComplianceRequirementIDs {
@@ -347,6 +346,7 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 			return err
 		}
 	}
+
 	// Save Documents
 	// documents update
 	var documents []*models.RiskDocument
