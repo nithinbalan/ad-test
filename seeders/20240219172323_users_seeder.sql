@@ -12,6 +12,8 @@ INSERT INTO users (
     last_name_ar,
     email,
     profile_image_path,
+    profile_image_initial,
+    profile_image_color_code,
     created_at,
     updated_at
 ) VALUES (
@@ -23,6 +25,8 @@ INSERT INTO users (
     'أدمن',
     'admin@jethur.com',
     NULL,
+    'SA',
+    '#FFD700',
     GETDATE(),
     GETDATE()
 );
