@@ -7,30 +7,33 @@ import (
 )
 
 type UserListDTO struct {
-	ID                       uint   `json:"id"`
-	FirstNameEn              string `json:"first_name_en"`
-	LastNameEn               string `json:"last_name_en"`
-	FirstNameAr              string `json:"first_name_ar"`
-	LastNameAr               string `json:"last_name_ar"`
-	OrganizationUnit1TitleEn string `json:"organization_unit_1_title_en" gorm:"column:organization_unit_1_title_en"`
-	OrganizationUnit2TitleEn string `json:"organization_unit_2_title_en,omitempty" gorm:"column:organization_unit_2_title_en"`
-	OrganizationUnit3TitleEn string `json:"organization_unit_3_title_en,omitempty" gorm:"column:organization_unit_3_title_en"`
-	OrganizationUnit4TitleEn string `json:"organization_unit_4_title_en,omitempty" gorm:"column:organization_unit_4_title_en"`
-	OrganizationUnit5TitleEn string `json:"organization_unit_5_title_en,omitempty" gorm:"column:organization_unit_5_title_en"`
-	OrganizationUnit1TitleAr string `json:"organization_unit_1_title_ar" gorm:"column:organization_unit_1_title_ar"`
-	OrganizationUnit2TitleAr string `json:"organization_unit_2_title_ar,omitempty" gorm:"column:organization_unit_2_title_ar"`
-	OrganizationUnit3TitleAr string `json:"organization_unit_3_title_ar,omitempty" gorm:"column:organization_unit_3_title_ar"`
-	OrganizationUnit4TitleAr string `json:"organization_unit_4_title_ar,omitempty" gorm:"column:organization_unit_4_title_ar"`
-	OrganizationUnit5TitleAr string `json:"organization_unit_5_title_ar,omitempty" gorm:"column:organization_unit_5_title_ar"`
-	DesignationTitleEn       string `json:"designation_title_en"`
-	DesignationTitleAr       string `json:"designation_title_ar"`
-	RolesEn                  string `json:"roles_en"`
-	RolesAr                  string `json:"roles_ar"`
-	Email                    string `json:"email"`
-	MobileNumber             string `json:"mobile_number"`
-	UserStatusTitleEn        string `json:"user_status_title_en"`
-	UserStatusTitleAr        string `json:"user_status_title_ar"`
-	UserStatusColorCode      string `json:"user_status_color_code"`
+	ID                       uint    `json:"id"`
+	FirstNameEn              string  `json:"first_name_en"`
+	LastNameEn               string  `json:"last_name_en"`
+	FirstNameAr              string  `json:"first_name_ar"`
+	LastNameAr               string  `json:"last_name_ar"`
+	OrganizationUnit1TitleEn string  `json:"organization_unit_1_title_en" gorm:"column:organization_unit_1_title_en"`
+	OrganizationUnit2TitleEn string  `json:"organization_unit_2_title_en,omitempty" gorm:"column:organization_unit_2_title_en"`
+	OrganizationUnit3TitleEn string  `json:"organization_unit_3_title_en,omitempty" gorm:"column:organization_unit_3_title_en"`
+	OrganizationUnit4TitleEn string  `json:"organization_unit_4_title_en,omitempty" gorm:"column:organization_unit_4_title_en"`
+	OrganizationUnit5TitleEn string  `json:"organization_unit_5_title_en,omitempty" gorm:"column:organization_unit_5_title_en"`
+	OrganizationUnit1TitleAr string  `json:"organization_unit_1_title_ar" gorm:"column:organization_unit_1_title_ar"`
+	OrganizationUnit2TitleAr string  `json:"organization_unit_2_title_ar,omitempty" gorm:"column:organization_unit_2_title_ar"`
+	OrganizationUnit3TitleAr string  `json:"organization_unit_3_title_ar,omitempty" gorm:"column:organization_unit_3_title_ar"`
+	OrganizationUnit4TitleAr string  `json:"organization_unit_4_title_ar,omitempty" gorm:"column:organization_unit_4_title_ar"`
+	OrganizationUnit5TitleAr string  `json:"organization_unit_5_title_ar,omitempty" gorm:"column:organization_unit_5_title_ar"`
+	DesignationTitleEn       string  `json:"designation_title_en"`
+	DesignationTitleAr       string  `json:"designation_title_ar"`
+	RolesEn                  string  `json:"roles_en"`
+	RolesAr                  string  `json:"roles_ar"`
+	Email                    string  `json:"email"`
+	ProfileImagePath         *string `json:"profile_image_path"`
+	ProfileImageInitial      string  `json:"profile_image_initial"`
+	ProfileImageColorCode    string  `json:"profile_image_color_code"`
+	MobileNumber             string  `json:"mobile_number"`
+	UserStatusTitleEn        string  `json:"user_status_title_en"`
+	UserStatusTitleAr        string  `json:"user_status_title_ar"`
+	UserStatusColorCode      string  `json:"user_status_color_code"`
 }
 
 type UserListQueryParamsDTO struct {
@@ -114,17 +117,19 @@ type UserRoleDTO struct {
 }
 
 type UserDetailsDTO struct {
-	ID               uint       `json:"id"`
-	FirstNameEn      string     `json:"first_name_en"`
-	LastNameEn       string     `json:"last_name_en"`
-	FirstNameAr      string     `json:"first_name_ar"`
-	LastNameAr       string     `json:"last_name_ar"`
-	Email            string     `json:"email"`
-	MobileNumber     *string    `json:"mobile_number"`
-	ProfileImagePath *string    `json:"profile_image_path"`
-	LastLoginAt      *time.Time `json:"last_login_at"`
-	CreatedAt        time.Time  `json:"created_at"`
-	UpdatedAt        time.Time  `json:"updated_at"`
+	ID                    uint       `json:"id"`
+	FirstNameEn           string     `json:"first_name_en"`
+	LastNameEn            string     `json:"last_name_en"`
+	FirstNameAr           string     `json:"first_name_ar"`
+	LastNameAr            string     `json:"last_name_ar"`
+	Email                 string     `json:"email"`
+	MobileNumber          *string    `json:"mobile_number"`
+	ProfileImagePath      *string    `json:"profile_image_path"`
+	ProfileImageInitial   string     `json:"profile_image_initial"`
+	ProfileImageColorCode string     `json:"profile_image_color_code"`
+	LastLoginAt           *time.Time `json:"last_login_at"`
+	CreatedAt             time.Time  `json:"created_at"`
+	UpdatedAt             time.Time  `json:"updated_at"`
 
 	// Relationship DTOs
 	OrganizationUnit1 settingDTOs.OrganizationUnitDTO  `json:"organization_unit_1"`

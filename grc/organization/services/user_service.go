@@ -11,6 +11,7 @@ import (
 	settingDTOs "jethur/grc/settings/dtos"
 	settingService "jethur/grc/settings/services"
 	"jethur/utility"
+	mathRand "math/rand"
 	"reflect"
 	"strings"
 	"time"
@@ -159,22 +160,28 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 		return 0, err
 	}
 
+	profileImageInitial := generateProfileImageInitial(userFormDTO.FirstNameEn, userFormDTO.LastNameEn)
+
+	profileImageColorCode := generateColorCode()
+
 	user := &models.User{
-		OrganizationUnit1ID: userFormDTO.OrganizationUnit1ID,
-		OrganizationUnit2ID: userFormDTO.OrganizationUnit2ID,
-		OrganizationUnit3ID: userFormDTO.OrganizationUnit3ID,
-		OrganizationUnit4ID: userFormDTO.OrganizationUnit4ID,
-		OrganizationUnit5ID: userFormDTO.OrganizationUnit5ID,
-		DesignationID:       userFormDTO.DesignationID,
-		UserStatusID:        userStatus.ID,
-		FirstNameEn:         userFormDTO.FirstNameEn,
-		LastNameEn:          userFormDTO.LastNameEn,
-		FirstNameAr:         userFormDTO.FirstNameAr,
-		LastNameAr:          userFormDTO.LastNameAr,
-		Email:               userFormDTO.Email,
-		MobileNumber:        userFormDTO.MobileNumber,
-		ProfileImagePath:    userFormDTO.ProfileImagePath,
-		CreatedBy:           currentUserID,
+		OrganizationUnit1ID:   userFormDTO.OrganizationUnit1ID,
+		OrganizationUnit2ID:   userFormDTO.OrganizationUnit2ID,
+		OrganizationUnit3ID:   userFormDTO.OrganizationUnit3ID,
+		OrganizationUnit4ID:   userFormDTO.OrganizationUnit4ID,
+		OrganizationUnit5ID:   userFormDTO.OrganizationUnit5ID,
+		DesignationID:         userFormDTO.DesignationID,
+		UserStatusID:          userStatus.ID,
+		FirstNameEn:           userFormDTO.FirstNameEn,
+		LastNameEn:            userFormDTO.LastNameEn,
+		FirstNameAr:           userFormDTO.FirstNameAr,
+		LastNameAr:            userFormDTO.LastNameAr,
+		Email:                 userFormDTO.Email,
+		MobileNumber:          userFormDTO.MobileNumber,
+		ProfileImagePath:      userFormDTO.ProfileImagePath,
+		CreatedBy:             currentUserID,
+		ProfileImageInitial:   profileImageInitial,
+		ProfileImageColorCode: profileImageColorCode,
 	}
 
 	userID, err := us.repo.Create(user, tx)
@@ -463,5 +470,32 @@ func (as *UserService) CreateUserLoginHistory(user *models.User, loginStatus str
 	}
 	tx.Commit()
 	return nil
+}
 
+func generateProfileImageInitial(firstName, lastName string) string {
+	firstInitial := string(firstName[0])
+	lastInitial := string(lastName[0])
+
+	return strings.ToUpper(firstInitial + lastInitial)
+}
+
+func generateColorCode() string {
+	// Create a new random generator with a unique seed
+	r := mathRand.New(mathRand.NewSource(time.Now().UnixNano()))
+
+	commonColors := []string{
+		"#FF5733", // Red
+		"#FFC300", // Yellow
+		"#C70039", // Magenta
+		"#900C3F", // Maroon
+		"#00A1E4", // Blue
+		"#008000", // Green
+		"#663399", // Purple
+		"#FF7F50", // Coral
+		"#800080", // Purple
+		"#FFD700", // Gold
+	}
+
+	index := r.Intn(len(commonColors))
+	return commonColors[index]
 }
