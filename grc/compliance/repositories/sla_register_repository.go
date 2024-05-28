@@ -31,6 +31,7 @@ type SLARegisterRepositoryInterface interface {
 	CreateDocument(doc *models.SLADocument, tx ...utility.DatabaseTransaction) error
 	GetDocumentByID(id uint) (*models.SLADocument, error)
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
+	GetLatestDocumentBySLAID(id uint) (*models.SLADocument, error)
 }
 
 // implementation
@@ -394,4 +395,12 @@ func (repo *SLARegisterRepository) DeleteSLAChecksBySLAID(slaID uint, tx ...util
 	}
 
 	return nil
+}
+
+func (repo *SLARegisterRepository) GetLatestDocumentBySLAID(id uint) (*models.SLADocument, error) {
+	var document models.SLADocument
+	if err := repo.db.Where("sla_register_id = ? AND is_latest = ?", id, true).First(&document).Error; err != nil {
+		return nil, err
+	}
+	return &document, nil
 }

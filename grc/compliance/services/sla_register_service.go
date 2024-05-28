@@ -246,59 +246,55 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 		return err
 	}
 
-	if slaRegisterFormDTO.Document.ID != nil {
-		existingSLADocument, err := srs.repo.GetDocumentByID(*slaRegisterFormDTO.Document.ID)
+	existingSLADocument, err := srs.repo.GetLatestDocumentBySLAID(id)
+	if err != nil {
+		return err
+	}
+	existingSLADocument.Version = slaRegisterFormDTO.Version
+	existingSLADocument.IssueDate = dates.IssueDate
+	existingSLADocument.ExpiryDate = dates.ExpiryDate
+	existingSLADocument.SA1Date = dates.SA1Date
+	existingSLADocument.SA2Date = dates.SA2Date
+	existingSLADocument.UpdatedBy = currentUserID
+	existingSLADocument.IsLatest = true
+
+	if slaRegisterFormDTO.Document.IsNewFile != nil && *slaRegisterFormDTO.Document.IsNewFile {
+		existingSLADocumentFileName := existingSLADocument.Name
+		//Encrypt the filename
+		dataToEncrypt := []byte(slaRegisterFormDTO.Document.FileName)
+		encryptedFilename, err := utility.EncryptData(dataToEncrypt)
 		if err != nil {
+			tx.Rollback()
 			return err
 		}
-		existingSLADocument.SLARegisterID = id
-		existingSLADocument.Version = slaRegisterFormDTO.Version
-		existingSLADocument.IssueDate = dates.IssueDate
-		existingSLADocument.ExpiryDate = dates.ExpiryDate
-		existingSLADocument.SA1Date = dates.SA1Date
-		existingSLADocument.SA2Date = dates.SA2Date
-		existingSLADocument.UpdatedBy = currentUserID
-		existingSLADocument.IsLatest = true
+		url := utility.GenerateDocumentURL("sla-register", strconv.FormatUint(uint64(id), 10), encryptedFilename)
 
-		if slaRegisterFormDTO.Document.IsNewFile != nil && *slaRegisterFormDTO.Document.IsNewFile {
-			existingSLADocumentFileName := existingSLADocument.Name
-			//Encrypt the filename
-			dataToEncrypt := []byte(slaRegisterFormDTO.Document.FileName)
-			encryptedFilename, err := utility.EncryptData(dataToEncrypt)
-			if err != nil {
-				tx.Rollback()
-				return err
-			}
-			url := utility.GenerateDocumentURL("sla-register", strconv.FormatUint(uint64(id), 10), encryptedFilename)
-
-			existingSLADocument.URL = url
-			existingSLADocument.Name = slaRegisterFormDTO.Document.FileName
-			existingSLADocument.Size = slaRegisterFormDTO.Document.Size
-			existingSLADocument.Token = encryptedFilename
-			existingSLADocument.OriginalName = slaRegisterFormDTO.Document.OriginalName
-			existingSLADocument.Type = slaRegisterFormDTO.Document.Type
-			if err := srs.repo.CreateDocument(existingSLADocument, tx); err != nil {
-				tx.Rollback()
-				return err
-			}
-			storagePath := filepath.Join("compliance", "sla-register", strconv.FormatUint(uint64(existingSLADocument.SLARegisterID), 10), "agreements")
-			if err := utility.RemoveFile(existingSLADocumentFileName, storagePath); err != nil {
-				tx.Rollback()
-				return err
-			}
-			// Store SLA Document File using utility.StoreFile
-			if err := utility.StoreFile(slaRegisterFormDTO.Document.FileName, storagePath); err != nil {
-				tx.Rollback()
-				return err
-			}
-
-		} else {
-			if err := srs.repo.CreateDocument(existingSLADocument, tx); err != nil {
-				tx.Rollback()
-				return err
-			}
+		existingSLADocument.URL = url
+		existingSLADocument.Name = slaRegisterFormDTO.Document.FileName
+		existingSLADocument.Size = slaRegisterFormDTO.Document.Size
+		existingSLADocument.Token = encryptedFilename
+		existingSLADocument.OriginalName = slaRegisterFormDTO.Document.OriginalName
+		existingSLADocument.Type = slaRegisterFormDTO.Document.Type
+		if err := srs.repo.CreateDocument(existingSLADocument, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+		storagePath := filepath.Join("compliance", "sla-register", strconv.FormatUint(uint64(existingSLADocument.SLARegisterID), 10), "agreements")
+		if err := utility.RemoveFile(existingSLADocumentFileName, storagePath); err != nil {
+			tx.Rollback()
+			return err
+		}
+		// Store SLA Document File using utility.StoreFile
+		if err := utility.StoreFile(slaRegisterFormDTO.Document.FileName, storagePath); err != nil {
+			tx.Rollback()
+			return err
 		}
 
+	} else {
+		if err := srs.repo.CreateDocument(existingSLADocument, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
 	}
 
 	tx.Commit()
