@@ -55,13 +55,12 @@ type ProcessListResponseDTO struct {
 
 // ProcessFormDTO defines the structure for creating or updating a process
 type ProcessFormDTO struct {
-	ProcessGroupID    uint    `json:"process_group_id" binding:"required"`
-	OwnerUnitID       uint    `json:"owner_unit_id" binding:"required"`
-	OwnerID           uint    `json:"owner_id" binding:"required"`
-	LifecycleStatusID uint    `json:"lifecycle_status_id" binding:"required"`
-	TitleEn           string  `json:"title_en" binding:"required"`
-	TitleAr           string  `json:"title_ar" binding:"required"`
-	Description       *string `json:"description" binding:"omitempty"`
+	ProcessGroupID uint    `json:"process_group_id" binding:"required"`
+	OwnerUnitID    uint    `json:"owner_unit_id" binding:"required"`
+	OwnerID        uint    `json:"owner_id" binding:"required"`
+	TitleEn        string  `json:"title_en" binding:"required"`
+	TitleAr        string  `json:"title_ar" binding:"required"`
+	Description    *string `json:"description" binding:"omitempty"`
 }
 
 // ProcessDetailDTO defines the detailed view of a process, typically used in detailed screens or reports

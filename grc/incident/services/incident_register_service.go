@@ -716,10 +716,6 @@ func (irs *IncidentRegisterService) validateIncidentRegisterFormDTO(incidentRegi
 	}
 	//Controls exist
 	controls := incidentRegisterFormDTO.ControlIds
-	// If no controls are provided, simply return nil to exit the function
-	if len(controls) == 0 {
-		return nil
-	}
 
 	// Create a map to store control IDs
 	controlIDs := make(map[uint]bool)
@@ -743,11 +739,6 @@ func (irs *IncidentRegisterService) validateIncidentRegisterFormDTO(incidentRegi
 	//Compliance Requirements Exist
 	requirements := incidentRegisterFormDTO.ComplianceRequirementIds
 
-	// If no Requirements are provided, simply return nil to exit the function
-	if len(requirements) == 0 {
-		return nil
-	}
-
 	// Create a map to store requirement IDs
 	requirementIDs := make(map[uint]bool)
 
@@ -769,11 +760,6 @@ func (irs *IncidentRegisterService) validateIncidentRegisterFormDTO(incidentRegi
 	}
 	//Risks exist
 	risks := incidentRegisterFormDTO.RiskIds
-	// If no risks are provided, simply return nil to exit the function
-	if len(risks) == 0 {
-		return nil
-	}
-
 	// Create a map to store risk IDs
 	riskIDs := make(map[uint]bool)
 
