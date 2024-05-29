@@ -117,11 +117,13 @@ func (krs *KRIRegisterService) Create(currentUserID uint, kriRegisterFormDTO *ri
 		MediumThreshold:   kriRegisterFormDTO.MediumThreshold,
 		HighThreshold:     kriRegisterFormDTO.HighThreshold,
 		CurrentValue:      kriRegisterFormDTO.CurrentValue,
-		LastReviewedDate:  *dates.LastReviewedDate,
 		NextReviewDate:    *dates.NextReviewDate,
 		LastReviewNote:    kriRegisterFormDTO.LastReviewNote,
 		CreatedBy:         currentUserID,
 		UpdatedAt:         nil,
+	}
+	if kriRegisterFormDTO.LastReviewedDate != "" {
+		kriRegister.LastReviewedDate = *dates.LastReviewedDate
 	}
 
 	id, err := krs.repo.Create(kriRegister)
@@ -181,7 +183,10 @@ func (krs *KRIRegisterService) Update(id uint, currentUserID uint, kriRegisterFo
 	existingKRIRegister.MediumThreshold = kriRegisterFormDTO.MediumThreshold
 	existingKRIRegister.HighThreshold = kriRegisterFormDTO.HighThreshold
 	existingKRIRegister.CurrentValue = kriRegisterFormDTO.CurrentValue
-	existingKRIRegister.LastReviewedDate = *dates.LastReviewedDate
+
+	if kriRegisterFormDTO.LastReviewedDate != "" {
+		existingKRIRegister.LastReviewedDate = *dates.LastReviewedDate
+	}
 	existingKRIRegister.NextReviewDate = *dates.NextReviewDate
 	existingKRIRegister.LastReviewNote = kriRegisterFormDTO.LastReviewNote
 	existingKRIRegister.UpdatedBy = &currentUserID
