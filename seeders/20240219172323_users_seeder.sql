@@ -11,9 +11,11 @@ INSERT INTO users (
     first_name_ar,
     last_name_ar,
     email,
+    user_status_id,
     profile_image_path,
     profile_image_initial,
     profile_image_color_code,
+    created_by,
     created_at,
     updated_at
 ) VALUES (
@@ -24,9 +26,11 @@ INSERT INTO users (
     'سوبر',
     'أدمن',
     'admin@jethur.com',
+    1,
     NULL,
     'SA',
     '#FFD700',
+    1,
     GETDATE(),
     GETDATE()
 );
@@ -50,11 +54,21 @@ INSERT INTO user_securities (
     NULL,
     GETDATE()
 );
+
+-- Insert a corresponding user_roles record with the bcrypt hash
+INSERT INTO user_roles (
+    user_id,
+    role_id
+) VALUES (
+    @UserID,
+    1
+);
 -- +goose StatementEnd
 
 -- +goose Down
 -- +goose StatementBegin
 -- Here, add your logic to clean up the data for the Down migration
+DELETE FROM user_roles WHERE user_id = @UserID;
 DELETE FROM user_securities WHERE user_id = @UserID;
 DELETE FROM users WHERE id = @UserID;
 -- +goose StatementEnd
