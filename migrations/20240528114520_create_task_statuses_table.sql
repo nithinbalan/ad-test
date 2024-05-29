@@ -6,7 +6,7 @@ CREATE TABLE task_statuses (
     title_ar NVARCHAR(100) NOT NULL,
     color_code VARCHAR(25) NOT NULL,
     type VARCHAR(25) NOT NULL DEFAULT 'new',
-        CONSTRAINT CHK_task_statuses_type CHECK (type IN ('new', 'in_progress', 'closed')),
+        CONSTRAINT CHK_task_statuses_type CHECK (type IN ('open', 'in_progress', 'closed')),
     is_open TINYINT DEFAULT 1,
     status VARCHAR(10) NOT NULL DEFAULT 'active',
         CONSTRAINT CHK_task_statuses_status CHECK (status IN ('active', 'inactive'))

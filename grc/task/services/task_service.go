@@ -9,46 +9,42 @@ import (
 )
 
 type TaskServiceInterface interface {
-	CreateTask(taskFormDTO commonDTOs.TaskFormDTO,currentUserID uint, tx *gorm.DB) error
+	CreateTask(taskDTO commonDTOs.CreateTaskDTO, currentUserID uint, tx *gorm.DB) error
 	GetModuleIDByIdentifier(identifier string) (uint, error)
 }
 
 type TaskService struct {
-	repo repositories.TaskRepositoryInteface
+	repo          repositories.TaskRepositoryInteface
 	taskStatusSvc TaskStatusServiceInterface
-
 }
 
-func NewTaskService(repo repositories.TaskRepositoryInteface,taskStatusSvc TaskStatusServiceInterface) TaskServiceInterface {
-	return &TaskService{repo: repo,taskStatusSvc:	taskStatusSvc}
+func NewTaskService(repo repositories.TaskRepositoryInteface, taskStatusSvc TaskStatusServiceInterface) TaskServiceInterface {
+	return &TaskService{repo: repo, taskStatusSvc: taskStatusSvc}
 }
 
-func (ts *TaskService) CreateTask(taskFormDTO commonDTOs.TaskFormDTO,currentUserID uint, tx *gorm.DB) error {
-	taskStatus, err := ts.taskStatusSvc.GetByType("new")
+func (ts *TaskService) CreateTask(taskDTO commonDTOs.CreateTaskDTO, currentUserID uint, tx *gorm.DB) error {
+	taskStatus, err := ts.taskStatusSvc.GetByType("open")
 	if err != nil {
 		return err
 	}
 
 	task := &models.Task{
-        ModuleID:                taskFormDTO.ModuleID,
-        ComplianceActionPlanID:  taskFormDTO.ComplianceActionPlanID,
-        SLAActionPlanID:         taskFormDTO.SLAActionPlanID,
-        IncidentActionPlanID:    taskFormDTO.IncidentActionPlanID,
-        ControlActionPlanID:     taskFormDTO.ControlActionPlanID,
-        Title:                   taskFormDTO.Title,
-        Description:             taskFormDTO.Description,
-        TargetDate:              taskFormDTO.TargetDate,
-        URL:                     taskFormDTO.URL,
-        SeverityLevelID:         taskFormDTO.SeverityLevelID,
-        ReviewResponsibleUserID: taskFormDTO.ReviewResponsibleUserID,
-        TaskStatusID:            taskStatus.ID,
-        CreatedBy:               currentUserID,
-    }
-	if tx != nil {
-		return ts.repo.CreateTask(task, tx)
-	} else {
-		return ts.repo.CreateTask(task)
+		ModuleID:               taskDTO.ModuleID,
+		ComplianceActionPlanID: taskDTO.ComplianceActionPlanID,
+		SLAActionPlanID:        taskDTO.SLAActionPlanID,
+		IncidentActionPlanID:   taskDTO.IncidentActionPlanID,
+		ControlActionPlanID:    taskDTO.ControlActionPlanID,
+		Title:                  taskDTO.Title,
+		Description:            taskDTO.Description,
+		TargetDate:             taskDTO.TargetDate,
+		URL:                    taskDTO.URL,
+		SeverityLevelID:        taskDTO.SeverityLevelID,
+		ResponsibleUserID:      taskDTO.ResponsibleUserID,
+		TaskStatusID:           taskStatus.ID,
+		CreatedBy:              currentUserID,
 	}
+	return ts.repo.CreateTask(task, tx)
+
 }
 
 func (ts *TaskService) GetModuleIDByIdentifier(identifier string) (uint, error) {

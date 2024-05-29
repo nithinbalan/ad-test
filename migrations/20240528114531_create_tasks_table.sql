@@ -13,7 +13,7 @@ CREATE TABLE tasks
     target_date DATE NULL,
     url VARCHAR(1000) NOT NULL,
     severity_level_id INT NULL,
-    review_responsible_user_id INT NULL,
+    responsible_user_id INT NULL,
     task_status_id INT NOT NULL,
     created_by INT NOT NULL,
     updated_by INT NULL,
@@ -26,7 +26,7 @@ CREATE TABLE tasks
     CONSTRAINT FK_tasks_control_action_plans FOREIGN KEY (control_action_plan_id) REFERENCES control_action_plans(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_tasks_severity_levels FOREIGN KEY (severity_level_id) REFERENCES severity_levels (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_tasks_task_statuses FOREIGN KEY (task_status_id) REFERENCES task_statuses (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
-    CONSTRAINT FK_tasks_users_1 FOREIGN KEY (review_responsible_user_id) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_tasks_users_1 FOREIGN KEY (responsible_user_id) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_tasks_users_2 FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_tasks_users_3 FOREIGN KEY (updated_by) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
