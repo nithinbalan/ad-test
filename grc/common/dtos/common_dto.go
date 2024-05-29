@@ -1,5 +1,7 @@
 package dtos
 
+import "time"
+
 type PaginationInfoDTO struct {
 	CurrentPage int   `json:"current_page"`
 	PageSize    int   `json:"page_size"`
@@ -35,4 +37,20 @@ type DocumentFormDTO struct {
 	Size          int     `json:"size"`
 	IsNewFile     *bool   `json:"is_new_file,omitempty"` // Optional field for indicating if the file is new or updated
 	IsDeletedFile *bool   `json:"is_deleted_file,omitempty"`
+}
+
+type TaskFormDTO struct {
+	ID                      *uint      `json:"id,omitempty"`
+	ModuleID                uint       `json:"module_id" binding:"required"`
+	ComplianceActionPlanID  *uint      `json:"compliance_action_plan_id,omitempty"`
+	SLAActionPlanID         *uint      `json:"sla_action_plan_id,omitempty"`
+	IncidentActionPlanID    *uint      `json:"incident_action_plan_id,omitempty"`
+	ControlActionPlanID     *uint      `json:"control_action_plan_id,omitempty"`
+	Title                   string     `json:"title" binding:"required"`
+	Description             *string    `json:"description,omitempty"`
+	TargetDate              *time.Time `json:"target_date,omitempty"`
+	URL                     string     `json:"url" binding:"required"`
+	SeverityLevelID         *uint      `json:"severity_level_id,omitempty"`
+	ReviewResponsibleUserID *uint      `json:"review_responsible_user_id,omitempty"`
+	TaskStatusID            *uint      `json:"task_status_id"`
 }

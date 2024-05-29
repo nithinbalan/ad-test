@@ -3,13 +3,16 @@ package services
 import (
 	"errors"
 	"fmt"
+	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	complianceRepositories "jethur/grc/compliance/repositories"
 	logServices "jethur/grc/logs/services"
 	masterRepositories "jethur/grc/masters/repositories"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
+	taskServices "jethur/grc/task/services"
 	"jethur/utility"
+	"strconv"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -33,6 +36,7 @@ type ComplianceActionPlanService struct {
 	complianceRequirementSvc ComplianceRequirementServiceInterface
 	actionPlanStatusSvc      masterServices.ActionPlanStatusServiceInterface
 	severityLevelSvc         masterServices.SeverityLevelServiceInterface
+	taskSVC         		 taskServices.TaskServiceInterface
 }
 
 func NewComplianceActionPlanService(
@@ -41,7 +45,8 @@ func NewComplianceActionPlanService(
 	complianceRegisterSvc ComplianceRegisterServiceInterface,
 	complianceRequirementSvc ComplianceRequirementServiceInterface,
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
-	severityLevelSvc masterRepositories.SeverityLevelRepositoryInterface) ComplianceActionPlanServiceInterface {
+	severityLevelSvc masterRepositories.SeverityLevelRepositoryInterface,
+	taskSVC  taskServices.TaskServiceInterface) ComplianceActionPlanServiceInterface {
 	return &ComplianceActionPlanService{
 		repo:                     repo,
 		activityLogSvc:           activityLogSvc,
@@ -49,6 +54,7 @@ func NewComplianceActionPlanService(
 		complianceRequirementSvc: complianceRequirementSvc,
 		actionPlanStatusSvc:      actionPlanStatusSvc,
 		severityLevelSvc:         severityLevelSvc,
+		taskSVC:         		  taskSVC,
 	}
 }
 
@@ -131,6 +137,28 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 
 	id, err := caps.repo.Create(complianceActionPlan)
 	if err != nil {
+		return 0, err
+	}
+	// Fetch the compliance_register module ID
+	complianceRegisterModuleID, err := caps.taskSVC.GetModuleIDByIdentifier("compliance_register")
+	if err != nil {
+		return 0, err
+	}
+	url := utility.GenerateDocumentURL("compliance-register", strconv.FormatUint(uint64(complianceID), 10), "action-plans", strconv.FormatUint(uint64(id), 10))
+
+	// Create a new task associated with the compliance action plan
+    taskFormDTO := commonDTOs.TaskFormDTO{
+        ModuleID:                complianceRegisterModuleID, // Adjust as necessary
+        ComplianceActionPlanID:  &id,
+        Title:                   ComplianceActionPlanFormDTO.Title,
+        Description:             ComplianceActionPlanFormDTO.Description,
+        TargetDate:              dates.TargetDate,
+        URL:                     url, // Provide an appropriate URL if needed
+        SeverityLevelID:         ComplianceActionPlanFormDTO.SeverityLevelID,
+        ReviewResponsibleUserID: &ComplianceActionPlanFormDTO.ResponsibleUserID,
+    }
+	// Save task and handle error if any
+	if err := caps.taskSVC.CreateTask(taskFormDTO, currentUserID, nil); err != nil {
 		return 0, err
 	}
 
