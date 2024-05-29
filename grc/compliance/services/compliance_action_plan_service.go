@@ -12,7 +12,6 @@ import (
 	"jethur/grc/models"
 	taskServices "jethur/grc/task/services"
 	"jethur/utility"
-	"strconv"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -139,16 +138,16 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 	if err != nil {
 		return 0, err
 	}
-	// Fetch the compliance_register module ID
-	complianceRegisterModuleID, err := caps.taskSvc.GetModuleIDByIdentifier("compliance_register")
+	// Fetch the compliance_action_paln module ID
+	complianceActionPlanModuleID, err := caps.taskSvc.GetModuleIDByIdentifier("compliance_action_paln")
 	if err != nil {
 		return 0, err
 	}
-	url := utility.GenerateDocumentURL("compliance-register", strconv.FormatUint(uint64(complianceID), 10), "action-plans", strconv.FormatUint(uint64(id), 10))
+	url := fmt.Sprintf("compliance-register/%d/action-plans/%d", complianceID, id)
 
 	// Create a new task associated with the compliance action plan
 	taskDTO := commonDTOs.CreateTaskDTO{
-		ModuleID:               complianceRegisterModuleID, // Adjust as necessary
+		ModuleID:               complianceActionPlanModuleID, // Adjust as necessary
 		ComplianceActionPlanID: &id,
 		Title:                  ComplianceActionPlanFormDTO.Title,
 		Description:            ComplianceActionPlanFormDTO.Description,
