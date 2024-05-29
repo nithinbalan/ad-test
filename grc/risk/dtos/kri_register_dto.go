@@ -99,7 +99,7 @@ type KRIRegisterDetailsDTO struct {
 	MediumThreshold  *string                           `json:"medium_threshold"`
 	HighThreshold    *string                           `json:"high_threshold"`
 	CurrentValue     *string                           `json:"current_value"`
-	LastReviewedDate time.Time                         `json:"last_reviewed_date"`
+	LastReviewedDate *time.Time                        `json:"last_reviewed_date"`
 	NextReviewDate   time.Time                         `json:"next_review_date"`
 	LastReviewNote   *string                           `json:"last_review_note"`
 	CreatedAt        time.Time                         `json:"created_at"`
