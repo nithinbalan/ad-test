@@ -160,28 +160,28 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 		return 0, err
 	}
 
-	profileImageInitial := generateProfileImageInitial(userFormDTO.FirstNameEn, userFormDTO.LastNameEn)
+	initial := generateInitial(userFormDTO.FirstNameEn, userFormDTO.LastNameEn)
 
-	profileImageColorCode := generateColorCode()
+	color := generateColorCode()
 
 	user := &models.User{
-		OrganizationUnit1ID:   userFormDTO.OrganizationUnit1ID,
-		OrganizationUnit2ID:   userFormDTO.OrganizationUnit2ID,
-		OrganizationUnit3ID:   userFormDTO.OrganizationUnit3ID,
-		OrganizationUnit4ID:   userFormDTO.OrganizationUnit4ID,
-		OrganizationUnit5ID:   userFormDTO.OrganizationUnit5ID,
-		DesignationID:         userFormDTO.DesignationID,
-		UserStatusID:          userStatus.ID,
-		FirstNameEn:           userFormDTO.FirstNameEn,
-		LastNameEn:            userFormDTO.LastNameEn,
-		FirstNameAr:           userFormDTO.FirstNameAr,
-		LastNameAr:            userFormDTO.LastNameAr,
-		Email:                 userFormDTO.Email,
-		MobileNumber:          userFormDTO.MobileNumber,
-		ProfileImagePath:      userFormDTO.ProfileImagePath,
-		CreatedBy:             currentUserID,
-		ProfileImageInitial:   profileImageInitial,
-		ProfileImageColorCode: profileImageColorCode,
+		OrganizationUnit1ID: userFormDTO.OrganizationUnit1ID,
+		OrganizationUnit2ID: userFormDTO.OrganizationUnit2ID,
+		OrganizationUnit3ID: userFormDTO.OrganizationUnit3ID,
+		OrganizationUnit4ID: userFormDTO.OrganizationUnit4ID,
+		OrganizationUnit5ID: userFormDTO.OrganizationUnit5ID,
+		DesignationID:       userFormDTO.DesignationID,
+		UserStatusID:        userStatus.ID,
+		FirstNameEn:         userFormDTO.FirstNameEn,
+		LastNameEn:          userFormDTO.LastNameEn,
+		FirstNameAr:         userFormDTO.FirstNameAr,
+		LastNameAr:          userFormDTO.LastNameAr,
+		Email:               userFormDTO.Email,
+		MobileNumber:        userFormDTO.MobileNumber,
+		ProfileImagePath:    userFormDTO.ProfileImagePath,
+		CreatedBy:           currentUserID,
+		Initial:             initial,
+		Color:               color,
 	}
 
 	userID, err := us.repo.Create(user, tx)
@@ -252,22 +252,22 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 		}
 	}()
 
-	emailData := userDTOs.SendNewPasswordEmailDTO{
-		FirstNameEn: userFormDTO.FirstNameEn,
-		LastNameEn:  userFormDTO.LastNameEn,
-		Email:       userFormDTO.Email,
-		Password:    password,
-	}
+	// emailData := userDTOs.SendNewPasswordEmailDTO{
+	// 	FirstNameEn: userFormDTO.FirstNameEn,
+	// 	LastNameEn:  userFormDTO.LastNameEn,
+	// 	Email:       userFormDTO.Email,
+	// 	Password:    password,
+	// }
 
-	to := []string{user.Email}
-	subject := "Important: Welcome to Jethur!"
-	templateRelativePath := "organization/templates/email/user_welcome.html"
+	// to := []string{user.Email}
+	// subject := "Important: Welcome to Jethur!"
+	// templateRelativePath := "organization/templates/email/user_welcome.html"
 
-	err = utility.SendTemplatedEmail(to, subject, templateRelativePath, emailData, nil)
+	// err = utility.SendTemplatedEmail(to, subject, templateRelativePath, emailData, nil)
 
-	if err != nil {
-		return 0, err
-	}
+	// if err != nil {
+	// 	return 0, err
+	// }
 
 	return userID, nil
 }
@@ -472,7 +472,7 @@ func (as *UserService) CreateUserLoginHistory(user *models.User, loginStatus str
 	return nil
 }
 
-func generateProfileImageInitial(firstName, lastName string) string {
+func generateInitial(firstName, lastName string) string {
 	firstInitial := string(firstName[0])
 	lastInitial := string(lastName[0])
 

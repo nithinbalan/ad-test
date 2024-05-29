@@ -13,8 +13,8 @@ INSERT INTO users (
     email,
     user_status_id,
     profile_image_path,
-    profile_image_initial,
-    profile_image_color_code,
+    initial,
+    color,
     created_by,
     created_at,
     updated_at
