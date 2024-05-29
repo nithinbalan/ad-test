@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	complianceServices "jethur/grc/compliance/services"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	organizationServices "jethur/grc/organization/services"
@@ -29,15 +30,15 @@ type RiskRegisterServiceInterface interface {
 
 // Service and implementations
 type RiskRegisterService struct {
-	repo               riskRepositories.RiskRegisterRepositoryInterface
-	activityLogSvc     logServices.ActivityLogServiceInterface
-	riskCategorySvc    RiskCategoryServiceInterface
-	riskSourceSvc      RiskSourceServiceInterface
-	userSvc            organizationServices.UserServiceInterface
-	riskStatusSvc      RiskStatusServiceInterface
-	reviewFrequencySvc masterServices.ReviewFrequencyServiceInterface
-	// controlSvc               organizationServices.ControlServiceInterface
-	// complianceRequirementSvc complianceServices.ComplianceRequirementServiceInterface
+	repo                     riskRepositories.RiskRegisterRepositoryInterface
+	activityLogSvc           logServices.ActivityLogServiceInterface
+	riskCategorySvc          RiskCategoryServiceInterface
+	riskSourceSvc            RiskSourceServiceInterface
+	userSvc                  organizationServices.UserServiceInterface
+	riskStatusSvc            RiskStatusServiceInterface
+	reviewFrequencySvc       masterServices.ReviewFrequencyServiceInterface
+	controlSvc               organizationServices.ControlServiceInterface
+	complianceRequirementSvc complianceServices.ComplianceRequirementServiceInterface
 }
 
 func NewRiskRegisterService(
@@ -48,19 +49,19 @@ func NewRiskRegisterService(
 	userSvc organizationServices.UserServiceInterface,
 	riskStatusSvc RiskStatusServiceInterface,
 	reviewFrequencySvc masterServices.ReviewFrequencyServiceInterface,
-	// controlSvc organizationServices.ControlServiceInterface,
-	// complianceRequirementSvc complianceServices.ComplianceRequirementServiceInterface,
+	controlSvc organizationServices.ControlServiceInterface,
+	complianceRequirementSvc complianceServices.ComplianceRequirementServiceInterface,
 ) RiskRegisterServiceInterface {
 	return &RiskRegisterService{
-		repo:               repo,
-		activityLogSvc:     activityLogSvc,
-		riskCategorySvc:    riskCategorySvc,
-		riskSourceSvc:      riskSourceSvc,
-		userSvc:            userSvc,
-		riskStatusSvc:      riskStatusSvc,
-		reviewFrequencySvc: reviewFrequencySvc,
-		// controlSvc:               controlSvc,
-		// complianceRequirementSvc: complianceRequirementSvc,
+		repo:                     repo,
+		activityLogSvc:           activityLogSvc,
+		riskCategorySvc:          riskCategorySvc,
+		riskSourceSvc:            riskSourceSvc,
+		userSvc:                  userSvc,
+		riskStatusSvc:            riskStatusSvc,
+		reviewFrequencySvc:       reviewFrequencySvc,
+		controlSvc:               controlSvc,
+		complianceRequirementSvc: complianceRequirementSvc,
 	}
 }
 
@@ -302,11 +303,11 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 
 	if len(existingRiskRegister.Controls) > 0 {
 
-		var deleteControlIds []*uint
+		var deleteControlIDs []*uint
 		for _, ctrl := range existingRiskRegister.Controls {
-			deleteControlIds = append(deleteControlIds, &ctrl.ID)
+			deleteControlIDs = append(deleteControlIDs, &ctrl.ID)
 		}
-		if err := rrs.repo.DeleteRiskControls(deleteControlIds, tx); err != nil {
+		if err := rrs.repo.DeleteRiskControls(deleteControlIDs, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
@@ -472,11 +473,11 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 		}
 		// Check if controls exist
 		if len(risk.Controls) > 0 {
-			var deleteControlIds []*uint
+			var deleteControlIDs []*uint
 			for _, ctrl := range risk.Controls {
-				deleteControlIds = append(deleteControlIds, ctrl.ID)
+				deleteControlIDs = append(deleteControlIDs, ctrl.ID)
 			}
-			if err := rrs.repo.DeleteRiskControls(deleteControlIds, tx); err != nil {
+			if err := rrs.repo.DeleteRiskControls(deleteControlIDs, tx); err != nil {
 				tx.Rollback()
 				return nil, err
 			}
@@ -585,6 +586,38 @@ func (rrs *RiskRegisterService) validateRiskRegisterFormDTO(riskRegisterFormDTO 
 		if _, err := rrs.reviewFrequencySvc.GetByID(*riskRegisterFormDTO.ReviewFrequencyID); err != nil {
 			return utility.NewValidationError(fmt.Errorf("review frequency does not exist"), "not_exist", "review frequency")
 		}
+	}
+
+	controlIds := riskRegisterFormDTO.ControlIDs
+
+	controlIDs := make(map[uint]bool)
+
+	for _, controlId := range controlIds {
+		if controlIDs[*controlId] {
+			return utility.NewValidationError(fmt.Errorf("duplicate control ID: %d", controlId), "duplicate", "control")
+		}
+
+		if _, err := rrs.controlSvc.GetByID(*controlId); err != nil {
+			return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", controlId), "not_exist", "control")
+		}
+
+		controlIDs[*controlId] = true
+	}
+
+	requirementIds := riskRegisterFormDTO.ComplianceRequirementIDs
+
+	requirementIDs := make(map[uint]bool)
+
+	for _, requirementId := range requirementIds {
+		if requirementIDs[*requirementId] {
+			return utility.NewValidationError(fmt.Errorf("duplicate compliance requirement ID: %d", requirementId), "duplicate", "compliance requirement")
+		}
+
+		if _, err := rrs.complianceRequirementSvc.GetByComplianceRequirementID(*requirementId); err != nil {
+			return utility.NewValidationError(fmt.Errorf("compliance requirement does not exist for ID: %d", requirementId), "not_exist", "compliance requirement")
+		}
+
+		requirementIDs[*requirementId] = true
 	}
 
 	return nil

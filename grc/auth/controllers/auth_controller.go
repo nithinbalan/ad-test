@@ -14,15 +14,6 @@ import (
 	"gorm.io/gorm"
 )
 
-type Location struct {
-	Country struct {
-		ISOCode string
-	} `maxminddb:"country"`
-	City struct {
-		Names map[string]string
-	} `maxminddb:"city"`
-}
-
 type AuthController struct {
 	service services.AuthServiceInterface
 	db      *gorm.DB
@@ -42,13 +33,9 @@ type ErrorResponse struct {
 func (ac *AuthController) Login(c *gin.Context) {
 	// Extract additional information
 	ipAddress := c.ClientIP()
-	location, err := getLocationFromIPAddress(ipAddress)
+	countryCode, err := getCountryFromIPAddress(ipAddress)
 	if err != nil {
 		fmt.Println(err)
-	}
-	locationStr := ""
-	if location != nil {
-		locationStr = fmt.Sprintf("%s, %s", location.Country.ISOCode, location.City)
 	}
 	device := c.Request.Header.Get("User-Agent")
 	browser := parseBrowserFromUserAgent(device)
@@ -59,7 +46,7 @@ func (ac *AuthController) Login(c *gin.Context) {
 		return
 	}
 
-	responseDTO, err := ac.service.Authenticate(loginFormDTO.Email, loginFormDTO.Password, ipAddress, locationStr, device, browser)
+	responseDTO, err := ac.service.Authenticate(loginFormDTO.Email, loginFormDTO.Password, ipAddress, countryCode, device, browser)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:
@@ -271,29 +258,24 @@ func (ac *AuthController) SetPassword(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-func getLocationFromIPAddress(ipAddress string) (*Location, error) {
+func getCountryFromIPAddress(ipAddress string) (string, error) {
 	db, err := geoip2.Open("GeoLite2-City.mmdb")
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	defer db.Close()
 
 	ip := net.ParseIP(ipAddress)
 	if ip == nil {
-		return nil, fmt.Errorf("invalid IP address: %s", ipAddress)
+		return "", fmt.Errorf("invalid IP address: %s", ipAddress)
 	}
 
 	record, err := db.City(ip)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	location := &Location{
-		Country: struct{ ISOCode string }{record.Country.IsoCode},
-		City:    struct{ Names map[string]string }{record.City.Names},
-	}
-
-	return location, nil
+	return record.Country.IsoCode, nil
 }
 
 func parseBrowserFromUserAgent(userAgent string) string {
