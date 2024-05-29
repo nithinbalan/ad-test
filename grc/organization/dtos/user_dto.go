@@ -28,8 +28,8 @@ type UserListDTO struct {
 	RolesAr                  string  `json:"roles_ar"`
 	Email                    string  `json:"email"`
 	ProfileImagePath         *string `json:"profile_image_path"`
-	ProfileImageInitial      string  `json:"profile_image_initial"`
-	ProfileImageColorCode    string  `json:"profile_image_color_code"`
+	Initial                  string  `json:"initial"`
+	Color                    string  `json:"color"`
 	MobileNumber             string  `json:"mobile_number"`
 	UserStatusTitleEn        string  `json:"user_status_title_en"`
 	UserStatusTitleAr        string  `json:"user_status_title_ar"`
@@ -107,6 +107,8 @@ type UserMinimalDTO struct {
 	LastNameAR       string  `json:"last_name_ar"`
 	ProfileImagePath *string `json:"profile_image_path"`
 	Email            string  `json:"email"`
+	Initial          string  `json:"initial"`
+	Color            string  `json:"color"`
 }
 
 type UserRoleDTO struct {
@@ -117,19 +119,19 @@ type UserRoleDTO struct {
 }
 
 type UserDetailsDTO struct {
-	ID                    uint       `json:"id"`
-	FirstNameEn           string     `json:"first_name_en"`
-	LastNameEn            string     `json:"last_name_en"`
-	FirstNameAr           string     `json:"first_name_ar"`
-	LastNameAr            string     `json:"last_name_ar"`
-	Email                 string     `json:"email"`
-	MobileNumber          *string    `json:"mobile_number"`
-	ProfileImagePath      *string    `json:"profile_image_path"`
-	ProfileImageInitial   string     `json:"profile_image_initial"`
-	ProfileImageColorCode string     `json:"profile_image_color_code"`
-	LastLoginAt           *time.Time `json:"last_login_at"`
-	CreatedAt             time.Time  `json:"created_at"`
-	UpdatedAt             time.Time  `json:"updated_at"`
+	ID               uint       `json:"id"`
+	FirstNameEn      string     `json:"first_name_en"`
+	LastNameEn       string     `json:"last_name_en"`
+	FirstNameAr      string     `json:"first_name_ar"`
+	LastNameAr       string     `json:"last_name_ar"`
+	Email            string     `json:"email"`
+	MobileNumber     *string    `json:"mobile_number"`
+	ProfileImagePath *string    `json:"profile_image_path"`
+	Initial          string     `json:"initial"`
+	Color            string     `json:"color"`
+	LastLoginAt      *time.Time `json:"last_login_at"`
+	CreatedAt        time.Time  `json:"created_at"`
+	UpdatedAt        time.Time  `json:"updated_at"`
 
 	// Relationship DTOs
 	OrganizationUnit1 settingDTOs.OrganizationUnitDTO  `json:"organization_unit_1"`
