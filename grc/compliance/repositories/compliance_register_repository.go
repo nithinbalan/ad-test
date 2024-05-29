@@ -245,7 +245,7 @@ func (repo *ComplianceRegisterRepository) GetFullDetailsByID(id uint, tx ...util
 	result := db.
 		Preload("ComplianceCategory").
 		Preload("ComplianceStatus").
-		Preload("ResponsibleUnit").
+		Preload("ResponsibleUnit.ParentUnit.ParentUnit.ParentUnit.ParentUnit.ParentUnit").
 		Preload("ResponsibleUser").
 		Preload("ResponsibleUser.OrganizationUnit1").
 		Preload("ReviewFrequency").

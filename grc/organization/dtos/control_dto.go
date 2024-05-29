@@ -3,6 +3,8 @@ package dtos
 import (
 	commonDTOs "jethur/grc/common/dtos"
 	masterDTOs "jethur/grc/masters/dtos"
+	settingsDTOs "jethur/grc/settings/dtos"
+
 	"time"
 )
 
@@ -110,39 +112,32 @@ type ControlParsedDates struct {
 	ImplementedAt  *time.Time
 }
 
-type OrganizationUnitDTO struct {
-	ID      int    `json:"id"`
-	TitleEn string `json:"title_en"`
-	TitleAr string `json:"title_ar"`
-	Status  string `json:"status"`
-}
-
 type ControlDetailDTO struct {
-	ID                          uint                            `json:"id"`
-	ReferenceNumber             string                          `json:"reference_number"`
-	Code                        string                          `json:"code"`
-	TitleEn                     string                          `json:"title_en"`
-	TitleAr                     string                          `json:"title_ar"`
-	Description                 *string                         `json:"description"`
-	Objective                   *string                         `json:"objective"`
-	ControlType                 ControlTypeDTO                  `json:"control_type"`
-	ControlCategory             ControlCategoryDTO              `json:"control_category"`
-	OwnerUnit                   *OrganizationUnitDTO            `json:"owner_unit"`
-	Owner                       *UserMinimalDTO                 `json:"owner"`
-	ControlImplementationStatus *ControlImplementationStatusDTO `json:"control_implementation_status"`
-	ControlEfficiencyStatus     *ControlEfficiencyStatusDTO     `json:"control_efficiency_status"`
-	ReviewFrequency             *masterDTOs.ReviewFrequencyDTO  `json:"review_frequency"`
-	LastReviewDate              *time.Time                      `json:"last_review_date"`
-	NextReviewDate              *time.Time                      `json:"next_review_date"`
-	LastReviewNote              *string                         `json:"last_review_note"`
-	TestResponsibleUser         UserMinimalDTO                  `json:"test_responsible_user"`
-	TestFrequency               *masterDTOs.ReviewFrequencyDTO  `json:"test_frequency"`
-	LastTestDate                *time.Time                      `json:"last_test_date"`
-	NextTestDate                *time.Time                      `json:"next_test_date"`
-	ImplementedAt               *time.Time                      `json:"implemented_at"`
-	CreatedAt                   time.Time                       `json:"created_at"`
-	UpdatedAt                   *time.Time                      `json:"updated_at"`
-	CreatedByUser               UserMinimalDTO                  `json:"created_by"`
-	UpdatedByUser               *UserMinimalDTO                 `json:"updated_by"`
-	LifecycleStatus             masterDTOs.LifecycleStatusDTO   `json:"status"`
+	ID                          uint                              `json:"id"`
+	ReferenceNumber             string                            `json:"reference_number"`
+	Code                        string                            `json:"code"`
+	TitleEn                     string                            `json:"title_en"`
+	TitleAr                     string                            `json:"title_ar"`
+	Description                 *string                           `json:"description"`
+	Objective                   *string                           `json:"objective"`
+	ControlType                 ControlTypeDTO                    `json:"control_type"`
+	ControlCategory             ControlCategoryDTO                `json:"control_category"`
+	OwnerUnit                   *settingsDTOs.OrganizationUnitDTO `json:"owner_unit"`
+	Owner                       *UserMinimalDTO                   `json:"owner"`
+	ControlImplementationStatus *ControlImplementationStatusDTO   `json:"control_implementation_status"`
+	ControlEfficiencyStatus     *ControlEfficiencyStatusDTO       `json:"control_efficiency_status"`
+	ReviewFrequency             *masterDTOs.ReviewFrequencyDTO    `json:"review_frequency"`
+	LastReviewDate              *time.Time                        `json:"last_review_date"`
+	NextReviewDate              *time.Time                        `json:"next_review_date"`
+	LastReviewNote              *string                           `json:"last_review_note"`
+	TestResponsibleUser         UserMinimalDTO                    `json:"test_responsible_user"`
+	TestFrequency               *masterDTOs.ReviewFrequencyDTO    `json:"test_frequency"`
+	LastTestDate                *time.Time                        `json:"last_test_date"`
+	NextTestDate                *time.Time                        `json:"next_test_date"`
+	ImplementedAt               *time.Time                        `json:"implemented_at"`
+	CreatedAt                   time.Time                         `json:"created_at"`
+	UpdatedAt                   *time.Time                        `json:"updated_at"`
+	CreatedByUser               UserMinimalDTO                    `json:"created_by"`
+	UpdatedByUser               *UserMinimalDTO                   `json:"updated_by"`
+	LifecycleStatus             masterDTOs.LifecycleStatusDTO     `json:"status"`
 }

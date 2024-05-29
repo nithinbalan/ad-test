@@ -4,6 +4,8 @@ import (
 	commonDTOs "jethur/grc/common/dtos"
 	masterDTOs "jethur/grc/masters/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
+	settingsDTOs "jethur/grc/settings/dtos"
+
 	"time"
 )
 
@@ -131,33 +133,33 @@ type ComplianceRegisterParsedDates struct {
 }
 
 type ComplianceRegisterDetailDTO struct {
-	ID                    int                                  `json:"id"`
-	ReferenceNumber       string                               `json:"reference_number"`
-	StandardCode          string                               `json:"standard_code"`
-	TitleEn               string                               `json:"title_en"`
-	TitleAr               string                               `json:"title_ar"`
-	DescriptionEn         *string                              `json:"description_en"`
-	DescriptionAr         *string                              `json:"description_ar"`
-	Deadline              *time.Time                           `json:"deadline"`
-	IssueDate             *time.Time                           `json:"issue_date"`
-	ExpiryDate            *time.Time                           `json:"expiry_date"`
-	NextReviewDate        *time.Time                           `json:"next_review_date"`
-	LastReviewNote        *string                              `json:"last_review_note"`
-	ComplianceCategory    ComplianceCategoryDTO                `json:"compliance_category"`
-	ComplianceStatus      ComplianceStatusDTO                  `json:"compliance_status"`
-	ResponsibleUnit       organizationDTOs.OrganizationUnitDTO `json:"responsible_unit"`
-	ResponsibleUser       organizationDTOs.UserMinimalDTO      `json:"responsible_user"`
-	ReviewFrequency       *masterDTOs.ReviewFrequencyDTO       `json:"review_frequency"`
-	ReviewResponsibleUser *organizationDTOs.UserMinimalDTO     `json:"review_responsible_user"`
-	SeverityLevel         *masterDTOs.SeverityLevelDTO         `json:"severity_level"`
-	Version               *string                              `json:"version"`
-	CreatedAt             time.Time                            `json:"created_at"`
-	UpdatedAt             *time.Time                           `json:"updated_at"`
-	CreatedByUser         organizationDTOs.UserMinimalDTO      `json:"created_by"`
-	UpdatedByUser         organizationDTOs.UserMinimalDTO      `json:"updated_by"`
-	LifecycleStatus       masterDTOs.LifecycleStatusDTO        `json:"status"`
-	Documents             []ComplianceDocumentDTO              `json:"documents"`
-	Controls              []*ComplianceControlDTO              `json:"controls"`
+	ID                    int                              `json:"id"`
+	ReferenceNumber       string                           `json:"reference_number"`
+	StandardCode          string                           `json:"standard_code"`
+	TitleEn               string                           `json:"title_en"`
+	TitleAr               string                           `json:"title_ar"`
+	DescriptionEn         *string                          `json:"description_en"`
+	DescriptionAr         *string                          `json:"description_ar"`
+	Deadline              *time.Time                       `json:"deadline"`
+	IssueDate             *time.Time                       `json:"issue_date"`
+	ExpiryDate            *time.Time                       `json:"expiry_date"`
+	NextReviewDate        *time.Time                       `json:"next_review_date"`
+	LastReviewNote        *string                          `json:"last_review_note"`
+	ComplianceCategory    ComplianceCategoryDTO            `json:"compliance_category"`
+	ComplianceStatus      ComplianceStatusDTO              `json:"compliance_status"`
+	ResponsibleUnit       settingsDTOs.OrganizationUnitDTO `json:"responsible_unit"`
+	ResponsibleUser       organizationDTOs.UserMinimalDTO  `json:"responsible_user"`
+	ReviewFrequency       *masterDTOs.ReviewFrequencyDTO   `json:"review_frequency"`
+	ReviewResponsibleUser *organizationDTOs.UserMinimalDTO `json:"review_responsible_user"`
+	SeverityLevel         *masterDTOs.SeverityLevelDTO     `json:"severity_level"`
+	Version               *string                          `json:"version"`
+	CreatedAt             time.Time                        `json:"created_at"`
+	UpdatedAt             *time.Time                       `json:"updated_at"`
+	CreatedByUser         organizationDTOs.UserMinimalDTO  `json:"created_by"`
+	UpdatedByUser         organizationDTOs.UserMinimalDTO  `json:"updated_by"`
+	LifecycleStatus       masterDTOs.LifecycleStatusDTO    `json:"status"`
+	Documents             []ComplianceDocumentDTO          `json:"documents"`
+	Controls              []*ComplianceControlDTO          `json:"controls"`
 }
 
 type ComplianceControlDTO struct {

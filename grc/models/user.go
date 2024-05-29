@@ -21,7 +21,7 @@ type User struct {
 	MobileNumber        *string    `json:"mobile_number" binding:"require, max:45" gorm:"type:varchar(45);not null"`
 	ProfileImagePath    *string    `json:"profile_image_path" gorm:"type:varchar(500);default:null"`
 	Initial             string     `json:"initial" gorm:"type:nvarchar(2);default:null"`
-	Color               string     `json:"color" gorm:"type:varchar(7);default:null"`
+	Color               string     `json:"color" gorm:"type:varchar(10);default:null"`
 	LastLoginAt         *time.Time `json:"last_login_at" gorm:"type:datetime;default:null"`
 	CreatedAt           time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt           *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
