@@ -20,8 +20,8 @@ type RiskRegister struct {
 	Comments          *string    `json:"comments" gorm:"type:nvarchar(max)"`
 	CreatedBy         uint       `json:"created_by" binding:"required"`
 	UpdatedBy         *uint      `json:"updated_by"`
-	CreatedAt         time.Time  `json:"created_at" gorm:"type:datetime;not null"`
-	UpdatedAt         *time.Time `json:"updated_at" gorm:"type:datetime"`
+	CreatedAt         time.Time  `json:"created_at" binding:"required" gorm:"type:datetime;not null"`
+	UpdatedAt         *time.Time `json:"updated_at,omitempty" gorm:"type:datetime;default:null"`
 
 	// Relationships
 	RiskCategory           *RiskCategory                `gorm:"foreignkey:RiskCategoryID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
