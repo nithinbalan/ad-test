@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
@@ -144,15 +145,18 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 
 	redirectURL := fmt.Sprintf("meeting/%d/action-plans/%d", meetingID, id)
 
+	notification := &commonDTOs.NotificationDTO{
+		UserID:           MeetingActionPlanFormDTO.ResponsibleUserID,
+		ModuleIdentifier: "meeting_action_plan",
+		Icon:             models.CreateIcon,
+		MessageEn:        messageEn,
+		MessageAr:        messageAr,
+		RedirectURL:      redirectURL,
+		CreatedBy:        currentUserID,
+	}
+
 	err = maps.notificationSvc.SendNotification(
-		MeetingActionPlanFormDTO.ResponsibleUserID,
-		"meeting_action_plan",
-		models.CreateIcon,
-		messageEn,
-		messageAr,
-		redirectURL,
-		currentUserID,
-	)
+		notification, "create_meeting_action_plan")
 	if err != nil {
 		return 0, err
 	}

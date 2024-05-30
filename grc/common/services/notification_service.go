@@ -1,6 +1,8 @@
 package services
 
 import (
+	"fmt"
+	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/common/repositories"
 	"jethur/grc/models"
 	"jethur/grc/settings/services"
@@ -8,7 +10,7 @@ import (
 )
 
 type NotificationServiceInterface interface {
-	SendNotification(userID uint, moduleIdentifier string, icon models.Icon, messageEn string, messageAr string, redirectURL string, currentUserID uint, tx ...utility.DatabaseTransaction) error
+	SendNotification(notificationDTO *commonDTOs.NotificationDTO, notificationMasterIdentifier string, tx ...utility.DatabaseTransaction) error
 }
 
 type NotificationService struct {
@@ -24,20 +26,31 @@ func NewNotificationService(repo repositories.NotificationRepositoryInteface,
 	}
 }
 
-func (ns *NotificationService) SendNotification(userID uint, moduleIdentifier string, icon models.Icon, messageEn string, messageAr string, redirectURL string, currentUserID uint, tx ...utility.DatabaseTransaction) error {
-	moduleID, err := ns.moduleSvc.GetModuleIDByIdentifier(moduleIdentifier)
+func (ns *NotificationService) SendNotification(notificationDTO *commonDTOs.NotificationDTO, notificationMasterIdentifier string, tx ...utility.DatabaseTransaction) error {
+	// Check if notification is enabled for the user
+	isEnabled, err := ns.IsNotificationEnabled(notificationDTO.UserID, notificationMasterIdentifier)
+	if err != nil {
+		return err
+	}
+
+	if isEnabled {
+		fmt.Println("email notification here")
+	}
+
+	//DB notification
+	moduleID, err := ns.moduleSvc.GetModuleIDByIdentifier(notificationDTO.ModuleIdentifier)
 	if err != nil {
 		return err
 	}
 
 	userNotification := &models.UserNotification{
-		UserID:      userID,
+		UserID:      notificationDTO.UserID,
 		ModuleID:    moduleID,
-		Icon:        icon,
-		MessageEn:   messageEn,
-		MessageAr:   messageAr,
-		RedirectURL: redirectURL,
-		CreatedBy:   currentUserID,
+		Icon:        notificationDTO.Icon,
+		MessageEn:   notificationDTO.MessageEn,
+		MessageAr:   notificationDTO.MessageAr,
+		RedirectURL: notificationDTO.RedirectURL,
+		CreatedBy:   notificationDTO.CreatedBy,
 	}
 
 	err = ns.repo.Create(userNotification)
@@ -46,5 +59,66 @@ func (ns *NotificationService) SendNotification(userID uint, moduleIdentifier st
 	}
 
 	return nil
-
 }
+
+func (ns *NotificationService) IsNotificationEnabled(userID uint, notificationMasterIdentifier string) (bool, error) {
+	notificationMaster, err := ns.repo.GetNotificationMasterByIdentifier(notificationMasterIdentifier)
+	if err != nil {
+		return false, err
+	}
+
+	setting, err := ns.repo.GetUserNotificationSetting(userID, notificationMaster.ID)
+	if err != nil {
+		return false, err
+	}
+
+	return setting != nil && setting.IsEnable, nil
+}
+
+// func (ns *NotificationService) SendNotification(notificationDTO *commonDTOs.NotificationDTO, notificationMasterIdentifier string, tx ...utility.DatabaseTransaction) error {
+// 	// Check if notification is enabled for the user
+// 	isEnabled, err := ns.IsNotificationEnabled(notificationDTO.UserID, notificationMasterIdentifier)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	if isEnabled {
+// 		//@todo email notification
+// 	}
+
+// 	moduleID, err := ns.moduleSvc.GetModuleIDByIdentifier(notificationDTO.ModuleIdentifier)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	userNotification := &models.UserNotification{
+// 		UserID:      notificationDTO.UserID,
+// 		ModuleID:    moduleID,
+// 		Icon:        notificationDTO.Icon,
+// 		MessageEn:   notificationDTO.MessageEn,
+// 		MessageAr:   notificationDTO.MessageAr,
+// 		RedirectURL: notificationDTO.RedirectURL,
+// 		CreatedBy:   notificationDTO.CreatedBy,
+// 	}
+
+// 	err = ns.repo.Create(userNotification)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	return nil
+// }
+
+// func (ns *NotificationService) IsNotificationEnabled(userID uint, notificationMasterIdentifier string) (bool, error) {
+// 	notificationMaster, err := ns.repo.GetNotificationMasterByIdentifier(notificationMasterIdentifier)
+// 	if err != nil {
+// 		return false, err
+// 	}
+
+// 	setting, err := ns.repo.GetUserNotificationSetting(userID, notificationMaster.ID)
+// 	if err != nil {
+// 		return false, err
+// 	}
+
+// 	return setting != nil && setting.IsEnable, nil
+// }
