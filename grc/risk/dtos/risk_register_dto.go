@@ -2,10 +2,10 @@ package dtos
 
 import (
 	commonDTOs "jethur/grc/common/dtos"
+	complianceDTOs "jethur/grc/compliance/dtos"
 	masterDTOs "jethur/grc/masters/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
-
-	complianceDTOs "jethur/grc/compliance/dtos"
+	settingsDTOs "jethur/grc/settings/dtos"
 
 	"time"
 )
@@ -76,32 +76,32 @@ type RiskDocumentDTO struct {
 }
 
 type RiskRegisterDetailDTO struct {
-	ID                     int                                  `json:"id"`
-	RiskCategoryID         uint                                 `json:"risk_category_id"`
-	RiskSourceID           uint                                 `json:"risk_source_id"`
-	OwnerUnitID            uint                                 `json:"owner_unit_id"`
-	OwnerID                uint                                 `json:"owner_id"`
-	RiskStatusID           uint                                 `json:"risk_status_id"`
-	ReviewFrequencyID      *uint                                `json:"review_frequency_id"`
-	ReferenceNumber        string                               `json:"reference_number"`
-	RiskCategory           RiskCategoryDTO                      `json:"risk_category"`
-	RiskSource             RiskSourceDTO                        `json:"risk_source"`
-	OwnerUnit              organizationDTOs.OrganizationUnitDTO `json:"owner_unit"`
-	Owner                  organizationDTOs.UserMinimalDTO      `json:"owner"`
-	RiskStatus             RiskStatusDTO                        `json:"risk_status"`
-	Title                  string                               `json:"title"`
-	Description            *string                              `json:"description"`
-	ReportedAt             *time.Time                           `json:"reported_at"`
-	ReviewFrequency        *masterDTOs.ReviewFrequencyDTO       `json:"review_frequency"`
-	NextReviewDate         *time.Time                           `json:"next_review_date"`
-	Comments               *string                              `json:"comments"`
-	Documents              []*RiskDocumentDTO                   `json:"documents"`
-	CreatedAt              time.Time                            `json:"created_at"`
-	UpdatedAt              *time.Time                           `json:"updated_at"`
-	CreatedByUser          organizationDTOs.UserMinimalDTO      `json:"created_by"`
-	UpdatedByUser          organizationDTOs.UserMinimalDTO      `json:"updated_by"`
-	Controls               []*RiskControlDTO                    `json:"controls"`
-	ComplianceRequirements []*RiskComplianceRequirementDTO      `json:"compliance_requirements"`
+	ID                     int                              `json:"id"`
+	RiskCategoryID         uint                             `json:"risk_category_id"`
+	RiskSourceID           uint                             `json:"risk_source_id"`
+	OwnerUnitID            uint                             `json:"owner_unit_id"`
+	OwnerID                uint                             `json:"owner_id"`
+	RiskStatusID           uint                             `json:"risk_status_id"`
+	ReviewFrequencyID      *uint                            `json:"review_frequency_id"`
+	ReferenceNumber        string                           `json:"reference_number"`
+	RiskCategory           RiskCategoryDTO                  `json:"risk_category"`
+	RiskSource             RiskSourceDTO                    `json:"risk_source"`
+	OwnerUnit              settingsDTOs.OrganizationUnitDTO `json:"owner_unit"`
+	Owner                  organizationDTOs.UserMinimalDTO  `json:"owner"`
+	RiskStatus             RiskStatusDTO                    `json:"risk_status"`
+	Title                  string                           `json:"title"`
+	Description            *string                          `json:"description"`
+	ReportedAt             *time.Time                       `json:"reported_at"`
+	ReviewFrequency        *masterDTOs.ReviewFrequencyDTO   `json:"review_frequency"`
+	NextReviewDate         *time.Time                       `json:"next_review_date"`
+	Comments               *string                          `json:"comments"`
+	Documents              []*RiskDocumentDTO               `json:"documents"`
+	CreatedAt              time.Time                        `json:"created_at"`
+	UpdatedAt              *time.Time                       `json:"updated_at"`
+	CreatedByUser          organizationDTOs.UserMinimalDTO  `json:"created_by"`
+	UpdatedByUser          organizationDTOs.UserMinimalDTO  `json:"updated_by"`
+	Controls               []*RiskControlDTO                `json:"controls"`
+	ComplianceRequirements []*RiskComplianceRequirementDTO  `json:"compliance_requirements"`
 }
 
 type RiskControlDTO struct {

@@ -91,7 +91,7 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 
 	existingKRIRegister.CurrentValue = &kriValueUpdateFormDTO.Value
 	existingKRIRegister.LastReviewNote = kriValueUpdateFormDTO.Remarks
-	existingKRIRegister.LastReviewedDate = *dates.ReviewedDate
+	existingKRIRegister.LastReviewedDate = dates.ReviewedDate
 	existingKRIRegister.NextReviewDate = nextReviewDate
 
 	err = kvus.kriRegisterSvc.UpdateValue(existingKRIRegister, tx)

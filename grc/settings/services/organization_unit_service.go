@@ -61,12 +61,15 @@ func (ous *OrganizationUnitService) Create(currentUserID uint, orgUnitFormDTO *s
 		return 0, err
 	}
 
+	colorCode := utility.GenerateColorCode("dept")
+
 	organizationUnit := &models.OrganizationUnit{
 		OrganizationLevelID: orgUnitFormDTO.OrganizationLevelID,
 		OrganizationUnitID:  orgUnitFormDTO.OrganizationUnitID,
 		TitleEn:             orgUnitFormDTO.TitleEn,
 		TitleAr:             orgUnitFormDTO.TitleAr,
 		Status:              orgUnitFormDTO.Status,
+		ColorCode:           colorCode,
 	}
 
 	id, err := ous.repo.Create(organizationUnit)
