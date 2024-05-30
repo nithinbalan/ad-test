@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	meetingDTOs "jethur/grc/meeting/dtos"
@@ -33,6 +34,7 @@ type MeetingActionPlanService struct {
 	severityLevelSvc    masterServices.SeverityLevelServiceInterface
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface
 	userSvc             organizationServices.UserServiceInterface
+	notificationSvc     commonServices.NotificationServiceInterface
 }
 
 func NewMeetingActionPlanService(
@@ -41,7 +43,8 @@ func NewMeetingActionPlanService(
 	meetingSvc MeetingServiceInterface,
 	severityLevelSvc masterServices.SeverityLevelServiceInterface,
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
-	userSvc organizationServices.UserServiceInterface) MeetingActionPlanServiceInterface {
+	userSvc organizationServices.UserServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface) MeetingActionPlanServiceInterface {
 	return &MeetingActionPlanService{
 		repo:                repo,
 		activityLogSvc:      activityLogSvc,
@@ -49,6 +52,7 @@ func NewMeetingActionPlanService(
 		severityLevelSvc:    severityLevelSvc,
 		actionPlanStatusSvc: actionPlanStatusSvc,
 		userSvc:             userSvc,
+		notificationSvc:     notificationSvc,
 	}
 }
 
@@ -115,8 +119,6 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 		return 0, err
 	}
 
-	fmt.Println(MeetingActionPlanFormDTO)
-
 	meetingActionPlan := &models.MeetingActionPlan{
 		MeetingID:          meetingID,
 		Title:              MeetingActionPlanFormDTO.Title,
@@ -130,6 +132,27 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 	}
 
 	id, err := maps.repo.Create(meetingActionPlan)
+	if err != nil {
+		return 0, err
+	}
+
+	eventDescriptionEn := "You have been added as responsible for a new Action Plan"
+	eventDescriptionAr := "تمت إضافتك كمسؤول لخطة عمل جديدة"
+
+	messageEn := fmt.Sprintf("%s: %s", eventDescriptionEn, MeetingActionPlanFormDTO.Title)
+	messageAr := fmt.Sprintf("%s: %s", eventDescriptionAr, MeetingActionPlanFormDTO.Title)
+
+	redirectURL := fmt.Sprintf("meeting/%d/action-plans/%d", meetingID, id)
+
+	err = maps.notificationSvc.SendNotification(
+		MeetingActionPlanFormDTO.ResponsibleUserID,
+		"meeting_action_plan",
+		models.CreateIcon,
+		messageEn,
+		messageAr,
+		redirectURL,
+		currentUserID,
+	)
 	if err != nil {
 		return 0, err
 	}
