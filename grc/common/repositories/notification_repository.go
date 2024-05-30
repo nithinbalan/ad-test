@@ -38,7 +38,6 @@ func (repo *NotificationRepository) Create(notification *models.UserNotification
 	return db.Create(&notification).Error
 }
 
-// GetNotificationMasterByIdentifier retrieves the notification master by its identifier
 func (repo *NotificationRepository) GetNotificationMasterByIdentifier(identifier string) (*models.NotificationMaster, error) {
 	var notificationMaster models.NotificationMaster
 	if err := repo.db.Where("identifier = ?", identifier).First(&notificationMaster).Error; err != nil {
@@ -47,12 +46,10 @@ func (repo *NotificationRepository) GetNotificationMasterByIdentifier(identifier
 	return &notificationMaster, nil
 }
 
-// GetUserNotificationSetting retrieves the user notification setting by user ID and notification master ID
 func (repo *NotificationRepository) GetUserNotificationSetting(userID uint, notificationMasterID uint) (*models.UserNotificationSetting, error) {
 	var setting models.UserNotificationSetting
 	if err := repo.db.Where("user_id = ? AND notification_master_id = ?", userID, notificationMasterID).First(&setting).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			// No setting found
 			return nil, nil
 		}
 		return nil, err
