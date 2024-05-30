@@ -107,6 +107,7 @@ func (caps ComplianceActionPlanService) GetFullDetailsByID(complianceID uint, id
 }
 
 func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID uint, ComplianceActionPlanFormDTO *complianceDTOs.ComplianceActionPlanFormDTO) (uint, error) {
+	tx := caps.repo.BeginTransaction()
 	if _, err := caps.complianceRegisterSvc.GetByID(complianceID); err != nil {
 		return 0, err
 	}
@@ -134,13 +135,15 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 		CreatedBy:               currentUserID,
 	}
 
-	id, err := caps.repo.Create(complianceActionPlan)
+	id, err := caps.repo.Create(complianceActionPlan, tx)
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
-	// Fetch the compliance_action_paln module ID
-	complianceActionPlanModuleID, err := caps.taskSvc.GetModuleIDByIdentifier("compliance_action_paln")
+	// Fetch the compliance_action_plan module ID
+	complianceActionPlanModuleID, err := caps.taskSvc.GetModuleIDByIdentifier("compliance_action_plan")
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 	url := fmt.Sprintf("compliance-register/%d/action-plans/%d", complianceID, id)
@@ -154,12 +157,14 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 		TargetDate:             dates.TargetDate,
 		URL:                    url, // Provide an appropriate URL if needed
 		SeverityLevelID:        ComplianceActionPlanFormDTO.SeverityLevelID,
-		ResponsibleUserID:      &ComplianceActionPlanFormDTO.ResponsibleUserID,
+		ResponsibleUserID:      ComplianceActionPlanFormDTO.ResponsibleUserID,
 	}
 	// Save task and handle error if any
-	if err := caps.taskSvc.CreateTask(taskDTO, currentUserID, nil); err != nil {
+	if err := caps.taskSvc.CreateTask(taskDTO, currentUserID, tx); err != nil {
+		tx.Rollback()
 		return 0, err
 	}
+	tx.Commit()
 
 	go func() {
 		err := caps.activityLogSvc.LogActivity(

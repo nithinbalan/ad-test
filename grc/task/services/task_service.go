@@ -3,13 +3,14 @@ package services
 import (
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
+	taskDTOs "jethur/grc/task/dtos"
 	"jethur/grc/task/repositories"
-
-	"gorm.io/gorm"
+	"jethur/utility"
 )
 
 type TaskServiceInterface interface {
-	CreateTask(taskDTO commonDTOs.CreateTaskDTO, currentUserID uint, tx *gorm.DB) error
+	GetAll(params *taskDTOs.TaskListQueryParamsDTO) (*taskDTOs.TaskListResponseDTO, error)
+	CreateTask(taskDTO commonDTOs.CreateTaskDTO, currentUserID uint, tx ...utility.DatabaseTransaction) error
 	GetModuleIDByIdentifier(identifier string) (uint, error)
 }
 
@@ -22,7 +23,11 @@ func NewTaskService(repo repositories.TaskRepositoryInteface, taskStatusSvc Task
 	return &TaskService{repo: repo, taskStatusSvc: taskStatusSvc}
 }
 
-func (ts *TaskService) CreateTask(taskDTO commonDTOs.CreateTaskDTO, currentUserID uint, tx *gorm.DB) error {
+func (ts *TaskService) GetAll(params *taskDTOs.TaskListQueryParamsDTO) (*taskDTOs.TaskListResponseDTO, error) {
+	return ts.repo.GetAll(params)
+}
+
+func (ts *TaskService) CreateTask(taskDTO commonDTOs.CreateTaskDTO, currentUserID uint, tx ...utility.DatabaseTransaction) error {
 	taskStatus, err := ts.taskStatusSvc.GetByType("open")
 	if err != nil {
 		return err
@@ -43,7 +48,7 @@ func (ts *TaskService) CreateTask(taskDTO commonDTOs.CreateTaskDTO, currentUserI
 		TaskStatusID:           taskStatus.ID,
 		CreatedBy:              currentUserID,
 	}
-	return ts.repo.CreateTask(task, tx)
+	return ts.repo.CreateTask(task, tx...)
 
 }
 

@@ -10,7 +10,9 @@ import (
 
 type TaskModule struct {
 	TaskStatusController *controllers.TaskStatusController
-	TaskService          services.TaskServiceInterface
+	TaskController       *controllers.TaskController
+
+	TaskService services.TaskServiceInterface
 }
 
 func NewTaskModule(db *gorm.DB) *TaskModule {
@@ -19,10 +21,13 @@ func NewTaskModule(db *gorm.DB) *TaskModule {
 	taskStatusController := controllers.NewTaskStatusController(taskStatusSvc)
 
 	taskRepo := repositories.NewTaskRepository(db)
-	taskSvc := services.NewTaskService(taskRepo,taskStatusSvc)
+	taskSvc := services.NewTaskService(taskRepo, taskStatusSvc)
+	taskController := controllers.NewTaskController(taskSvc)
 
 	return &TaskModule{
 		TaskStatusController: taskStatusController,
-		TaskService:          taskSvc,
+		TaskController:       taskController,
+
+		TaskService: taskSvc,
 	}
 }

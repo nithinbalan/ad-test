@@ -51,6 +51,6 @@ type CreateTaskDTO struct {
 	TargetDate             *time.Time `json:"target_date,omitempty"`
 	URL                    string     `json:"url" binding:"required"`
 	SeverityLevelID        *uint      `json:"severity_level_id,omitempty"`
-	ResponsibleUserID      *uint      `json:"responsible_user_id,omitempty"`
+	ResponsibleUserID      uint       `json:"responsible_user_id" binding:"required"`
 	TaskStatusID           *uint      `json:"task_status_id"`
 }

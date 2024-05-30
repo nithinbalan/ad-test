@@ -32,7 +32,7 @@ VALUES
     ('users', 'Users', 'المستخدمين', @orgModuleID, 3),
     ('process', 'Process', 'العمليات', @orgModuleID, 4),
     ('controls', 'Controls', 'ضوابط', @orgModuleID, 5),
-    ('control_action_paln', 'Control Action Plans', 'خطط عمل التحكم', @orgModuleID, 6);
+    ('control_action_plan', 'Control Action Plans', 'خطط عمل التحكم', @orgModuleID, 6);
 
 -- Insert Compliance Module
 INSERT INTO modules
@@ -47,8 +47,8 @@ INSERT INTO modules
 VALUES
     ('compliance_register', 'Compliance Register', 'سجل الامتثال', @compModuleID, 2),
     ('sla_contracts', 'SLA & Contracts', 'SLA والعقود', @compModuleID, 3),
-    ('compliance_action_paln', 'Compliance Action Plans', 'خطط عمل الامتثال', @compModuleID, 4),
-    ('sla_action_paln', 'SLA Action Plans', 'خطط عمل SLA', @compModuleID, 5);
+    ('compliance_action_plan', 'Compliance Action Plans', 'خطط عمل الامتثال', @compModuleID, 4),
+    ('sla_action_plan', 'SLA Action Plans', 'خطط عمل SLA', @compModuleID, 5);
 
 -- Insert Documents Module
 INSERT INTO modules

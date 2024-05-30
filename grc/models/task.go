@@ -16,7 +16,7 @@ type Task struct {
 	TargetDate             *time.Time `json:"target_date"`
 	URL                    string     `json:"url" binding:"required,max=1000"`
 	SeverityLevelID        *uint      `json:"severity_level_id"`
-	ResponsibleUserID      *uint      `json:"responsible_user_id"`
+	ResponsibleUserID      uint       `json:"responsible_user_id"`
 	TaskStatusID           uint       `json:"task_status_id" binding:"required"`
 	CreatedAt              time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt              *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
