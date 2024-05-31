@@ -1,10 +1,13 @@
 package repositories
 
 import (
+	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	taskDTOs "jethur/grc/task/dtos"
 	"jethur/utility"
+	"strconv"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -13,7 +16,7 @@ type TaskRepositoryInteface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *taskDTOs.TaskListQueryParamsDTO) (*taskDTOs.TaskListResponseDTO, error)
 	CreateTask(task *models.Task, tx ...utility.DatabaseTransaction) error
-	GetModuleIDByIdentifier(identifier string) (uint, error)
+	GenerateReferenceNumber() (string, error)
 }
 
 type TaskRepository struct {
@@ -154,10 +157,30 @@ func (repo *TaskRepository) CreateTask(task *models.Task, tx ...utility.Database
 	return db.Create(&task).Error
 }
 
-func (repo *TaskRepository) GetModuleIDByIdentifier(identifier string) (uint, error) {
-	var module models.Module
-	if err := repo.db.Where("identifier = ?", identifier).First(&module).Error; err != nil {
-		return 0, err
+func (repo *TaskRepository) GenerateReferenceNumber() (string, error) {
+	var lastReferenceNumber string
+	err := repo.db.Model(&models.Task{}).
+		Select("reference_number").
+		Order("reference_number desc").
+		Limit(1).
+		Pluck("reference_number", &lastReferenceNumber).
+		Error
+
+	if err != nil {
+		return "", err
 	}
-	return module.ID, nil
+
+	lastDigits := "0000"
+	if lastReferenceNumber != "" && len(lastReferenceNumber) >= 4 {
+		lastDigits = lastReferenceNumber[len(lastReferenceNumber)-4:]
+	}
+
+	currentYear := time.Now().Year()
+	lastReferenceID, err := strconv.ParseUint(lastDigits, 10, 64)
+	if err != nil {
+		return "", err
+	}
+	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "T", currentYear, lastReferenceID+1)
+
+	return newReferenceNumber, nil
 }

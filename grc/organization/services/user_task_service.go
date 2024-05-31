@@ -3,7 +3,6 @@ package services
 import (
 	taskDTOs "jethur/grc/task/dtos"
 	taskService "jethur/grc/task/services"
-	"strconv"
 
 	"jethur/grc/organization/repositories"
 )
@@ -23,7 +22,6 @@ func NewUserTaskService(repo repositories.UserTaskRepositoryInteface, taskSvc ta
 }
 
 func (uts *UserTaskService) GetAll(userID uint, params *taskDTOs.TaskListQueryParamsDTO) (*taskDTOs.TaskListResponseDTO, error) {
-	params.Filters["responsible_user_id"] = []string{strconv.Itoa(int(userID))}
 	return uts.taskSvc.GetAll(params)
 }
 

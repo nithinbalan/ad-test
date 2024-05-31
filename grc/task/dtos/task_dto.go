@@ -7,6 +7,7 @@ import (
 
 type TaskListDTO struct {
 	ID                         uint   `json:"id"`
+	ReferenceNumber            string `json:"reference_number"`
 	ModuleID                   uint   `json:"module_id"`
 	ComplianceActionPlanID     uint   `json:"compliance_action_plan_id"`
 	SLAActionPlanID            uint   `json:"sla_action_plan_id"`

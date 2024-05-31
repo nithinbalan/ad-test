@@ -11,7 +11,6 @@ import (
 type TaskServiceInterface interface {
 	GetAll(params *taskDTOs.TaskListQueryParamsDTO) (*taskDTOs.TaskListResponseDTO, error)
 	CreateTask(taskDTO commonDTOs.CreateTaskDTO, currentUserID uint, tx ...utility.DatabaseTransaction) error
-	GetModuleIDByIdentifier(identifier string) (uint, error)
 }
 
 type TaskService struct {
@@ -32,8 +31,12 @@ func (ts *TaskService) CreateTask(taskDTO commonDTOs.CreateTaskDTO, currentUserI
 	if err != nil {
 		return err
 	}
-
+	referenceNumber, err := ts.repo.GenerateReferenceNumber()
+	if err != nil {
+		return err
+	}
 	task := &models.Task{
+		ReferenceNumber:        referenceNumber,
 		ModuleID:               taskDTO.ModuleID,
 		ComplianceActionPlanID: taskDTO.ComplianceActionPlanID,
 		SLAActionPlanID:        taskDTO.SLAActionPlanID,
@@ -50,8 +53,4 @@ func (ts *TaskService) CreateTask(taskDTO commonDTOs.CreateTaskDTO, currentUserI
 	}
 	return ts.repo.CreateTask(task, tx...)
 
-}
-
-func (ts *TaskService) GetModuleIDByIdentifier(identifier string) (uint, error) {
-	return ts.repo.GetModuleIDByIdentifier(identifier)
 }

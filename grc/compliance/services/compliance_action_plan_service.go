@@ -10,6 +10,7 @@ import (
 	masterRepositories "jethur/grc/masters/repositories"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
+	settingService "jethur/grc/settings/services"
 	taskServices "jethur/grc/task/services"
 	"jethur/utility"
 
@@ -36,6 +37,7 @@ type ComplianceActionPlanService struct {
 	actionPlanStatusSvc      masterServices.ActionPlanStatusServiceInterface
 	severityLevelSvc         masterServices.SeverityLevelServiceInterface
 	taskSvc                  taskServices.TaskServiceInterface
+	moduleSvc                settingService.ModuleServiceInterface
 }
 
 func NewComplianceActionPlanService(
@@ -45,7 +47,8 @@ func NewComplianceActionPlanService(
 	complianceRequirementSvc ComplianceRequirementServiceInterface,
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
 	severityLevelSvc masterRepositories.SeverityLevelRepositoryInterface,
-	taskSvc taskServices.TaskServiceInterface) ComplianceActionPlanServiceInterface {
+	taskSvc taskServices.TaskServiceInterface,
+	moduleSvc settingService.ModuleServiceInterface) ComplianceActionPlanServiceInterface {
 	return &ComplianceActionPlanService{
 		repo:                     repo,
 		activityLogSvc:           activityLogSvc,
@@ -54,6 +57,7 @@ func NewComplianceActionPlanService(
 		actionPlanStatusSvc:      actionPlanStatusSvc,
 		severityLevelSvc:         severityLevelSvc,
 		taskSvc:                  taskSvc,
+		moduleSvc:                moduleSvc,
 	}
 }
 
@@ -141,7 +145,7 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 		return 0, err
 	}
 	// Fetch the compliance_action_plan module ID
-	complianceActionPlanModuleID, err := caps.taskSvc.GetModuleIDByIdentifier("compliance_action_plan")
+	complianceActionPlanModuleID, err := caps.moduleSvc.GetModuleIDByIdentifier("compliance_action_plan")
 	if err != nil {
 		tx.Rollback()
 		return 0, err

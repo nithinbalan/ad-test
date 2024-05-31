@@ -6,6 +6,7 @@ import (
 
 type Task struct {
 	ID                     uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
+	ReferenceNumber        string     `json:"reference_number" binding:"required,max=45" gorm:"type:varchar(45);not null;unique"`
 	ModuleID               uint       `json:"module_id" binding:"required"`
 	ComplianceActionPlanID *uint      `json:"compliance_action_plan_id"`
 	SLAActionPlanID        *uint      `json:"sla_action_plan_id"`

@@ -3,6 +3,7 @@
 CREATE TABLE tasks
 (
     id INT PRIMARY KEY IDENTITY(1, 1),
+    reference_number VARCHAR(45) NOT NULL UNIQUE,
     module_id INT NOT NULL,
     compliance_action_plan_id INT NULL,
     sla_action_plan_id INT NULL,
