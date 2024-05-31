@@ -91,24 +91,23 @@ func (utc *UserTaskController) GetAllUserTasks(c *gin.Context) {
 	c.JSON(http.StatusOK, userTasks)
 }
 
-// func (utc *UserTaskController) GetUserTaskSummary(c *gin.Context) {
-// 	userID, err := strconv.Atoi(c.Param("userId"))
-// 	if err != nil {
-// 		utility.SendNotFoundErrResp(c)
-// 		return
-// 	}
+func (utc *UserTaskController) GetUserTaskSummary(c *gin.Context) {
+	userID, err := strconv.Atoi(c.Param("userId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
 
-// 	userTaskSummary, err := utc.service.GetUserTaskSummary(uint(userID))
-// 	if err != nil {
-// 		switch e := err.(type) {
-// 		case *utility.ResourceNotFoundError:
-// 			utility.SendNotFoundErrResp(c)
-// 			return
-// 		default:
-// 			utility.SendInternalErrResp(utc.db, c, e.Error())
-// 			return
-// 		}
-// 	}
-// 	c.JSON(http.StatusOK, userTaskSummary)
-// }
-
+	userTaskSummary, err := utc.service.GetUserTaskSummary(uint(userID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(utc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, userTaskSummary)
+}

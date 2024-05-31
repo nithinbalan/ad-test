@@ -31,7 +31,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	processController := app.OrganizationModule.ProcessController
 	userTaskController := app.OrganizationModule.UserTaskController
 
-
 	//Designation
 	organizationRoutes.GET("/designations", designationController.GetAllDesignations)
 	organizationRoutes.GET("/designations/:id", designationController.GetDesignationDetails)
@@ -86,7 +85,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	//User Tasks
 	organizationRoutes.GET("/users/:userId/tasks", userTaskController.GetAllUserTasks)
-	// organizationRoutes.GET("/users/:userId/task-summary", userTaskController.GetUserTaskSummary)
+	organizationRoutes.GET("/users/:userId/task-summary", userTaskController.GetUserTaskSummary)
 
 	//Control Category
 	organizationRoutes.GET("/control-categories", controlCategoryController.GetAllControlCategories)

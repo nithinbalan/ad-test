@@ -60,11 +60,6 @@ type TaskListResponseDTO struct {
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }
 
-type UserTaskStatusCountDTO struct {
-	Status string `json:"status"`
-	Count  int    `json:"count"`
-}
-
 type TaskParsedDates struct {
 	TargetDate *time.Time
 }
