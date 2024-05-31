@@ -107,9 +107,10 @@ func (maps MeetingActionPlanService) GetFullDetailsByID(meetingID uint, id uint)
 }
 
 func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint, MeetingActionPlanFormDTO *meetingDTOs.MeetingActionPlanFormDTO) (uint, error) {
-	if _, err := maps.meetingSvc.GetByID(meetingID); err != nil {
-		return 0, err
-	}
+	// meeting, err := maps.meetingSvc.GetByID(meetingID)
+	// if err != nil {
+	// 	return 0, err
+	// }
 
 	if err := maps.validateMeetingActionPlanFormDTO(MeetingActionPlanFormDTO); err != nil {
 		return 0, err
@@ -154,6 +155,15 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 		RedirectURL:      redirectURL,
 		CreatedBy:        currentUserID,
 	}
+
+	// resposibleUser, err := maps.userSvc.GetByID(MeetingActionPlanFormDTO.ResponsibleUserID)
+	// if err != nil {
+	// 	return 0, err
+	// }
+
+	// to := []string{resposibleUser.Email}
+	// subject := fmt.Sprintf("meeting/%s: Action Plan Added", meeting.Title)
+	// templateRelativePath := "organization/templates/email/user_welcome.html"
 
 	err = maps.notificationSvc.SendNotification(
 		notification, "create_meeting_action_plan")
