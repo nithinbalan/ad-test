@@ -25,6 +25,7 @@ type OrganizationModule struct {
 	ControlActionPlanController             *controllers.ControlActionPlanController
 	ControlActionPlanStatusUpdateController *controllers.ControlActionPlanStatusUpdateController
 	ProcessController                       *controllers.ProcessController
+	UserTaskController                      *controllers.UserTaskController
 
 	UserSvc        services.UserServiceInterface
 	UserSettingSvc services.UserSettingServiceInterface
@@ -35,7 +36,8 @@ func NewOrganizationModule(
 	db *gorm.DB,
 	sharedModule *SharedModule,
 	settingsModule *SettingsModule,
-	masterModule *MasterModule) *OrganizationModule {
+	masterModule *MasterModule,
+	taskModule *TaskModule) *OrganizationModule {
 
 	designationRepo := repositories.NewDesignationRepository(db)
 	designationSvc := services.NewDesignationService(designationRepo, sharedModule.ActivityLogService)
@@ -116,6 +118,10 @@ func NewOrganizationModule(
 	processSvc := services.NewProcessService(processRepo, sharedModule.ActivityLogService, processGroupSvc, userSvc, masterModule.LifecycleStatusSvc)
 	processController := controllers.NewProcessController(processSvc)
 
+	userTaskRepo := repositories.NewUserTaskRepository(db)
+	userTaskSvc := services.NewUserTaskService(userTaskRepo, taskModule.TaskService)
+	userTaskController := controllers.NewUserTaskController(userTaskSvc)
+
 	return &OrganizationModule{
 		DesignationController:                   designationController,
 		UserStatusController:                    userStatusController,
@@ -133,6 +139,7 @@ func NewOrganizationModule(
 		ControlActionPlanController:             controlActionPlanController,
 		ControlActionPlanStatusUpdateController: controlActionPlanStatusUpdateController,
 		ProcessController:                       processController,
+		UserTaskController:                      userTaskController,
 
 		UserSvc:        userSvc,
 		UserSettingSvc: userSettingSvc,
