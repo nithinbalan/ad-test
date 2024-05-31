@@ -12,6 +12,7 @@ import (
 	organizationRoutes "jethur/grc/organization/routes"
 	riskRoutes "jethur/grc/risk/routes"
 	settingRoutes "jethur/grc/settings/routes"
+	taskRoutes "jethur/grc/task/routes"
 	"jethur/initializers"
 	"jethur/middlewares"
 	"jethur/utility"
@@ -54,6 +55,7 @@ func main() {
 	commonRoutes.RegisterRoutes(db, r)
 	riskRoutes.RegisterRoutes(app, r)
 	incidentRoutes.RegisterRoutes(app, r)
+	taskRoutes.RegisterRoutes(app, r)
 
 	if err := r.Run(":" + port); err != nil {
 		utility.LogFatal("Failed to run server", map[string]interface{}{

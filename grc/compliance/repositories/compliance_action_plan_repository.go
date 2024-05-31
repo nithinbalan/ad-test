@@ -11,6 +11,7 @@ import (
 )
 
 type ComplianceActionPlanRepositoryInterface interface {
+	BeginTransaction() utility.DatabaseTransaction
 	GetAll(complianceID uint, params *complianceDTOs.ComplianceActionPlanListQueryParamsDTO) (*complianceDTOs.ComplianceActionPlanListResponseDTO, error)
 	GetByID(id uint) (*models.ComplianceActionPlan, error)
 	GetFullDetailsByID(id uint) (*models.ComplianceActionPlan, error)
@@ -27,6 +28,11 @@ func NewComplianceActionPlanRepository(db *gorm.DB) *ComplianceActionPlanReposit
 	return &ComplianceActionPlanRepository{
 		db: db,
 	}
+}
+
+// BeginTransaction starts a new transaction.
+func (repo *ComplianceActionPlanRepository) BeginTransaction() utility.DatabaseTransaction {
+	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
 func (repo *ComplianceActionPlanRepository) GetAll(complianceID uint, params *complianceDTOs.ComplianceActionPlanListQueryParamsDTO) (*complianceDTOs.ComplianceActionPlanListResponseDTO, error) {
@@ -178,7 +184,11 @@ func (repo *ComplianceActionPlanRepository) GetFullDetailsByID(id uint) (*models
 }
 
 func (repo *ComplianceActionPlanRepository) Create(complianceActionPlan *models.ComplianceActionPlan, tx ...utility.DatabaseTransaction) (uint, error) {
-	if err := repo.db.Create(complianceActionPlan).Error; err != nil {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(complianceActionPlan).Error; err != nil {
 		return 0, err
 	}
 	return complianceActionPlan.ID, nil

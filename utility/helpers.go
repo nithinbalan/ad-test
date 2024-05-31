@@ -181,3 +181,72 @@ func CalculateNextReviewDate(frequency string) time.Time {
 		return currentDate
 	}
 }
+
+var (
+	commonColors = []string{
+		"#1976D2", // Dark Blue
+		"#388E3C", // Dark Green
+		"#F57C00", // Dark Orange
+		"#7B1FA2", // Dark Purple
+		"#E64A19", // Dark Red
+		"#5D4037", // Dark Brown
+		"#455A64", // Dark Gray
+		"#00838F", // Dark Cyan
+		"#7B1FA2", // Dark Indigo
+		"#AFB42B", // Dark Lime
+		"#03A9F4", // Light Blue
+		"#4CAF50", // Light Green
+		"#FF9800", // Light Orange
+		"#9C27B0", // Light Purple
+		"#F44336", // Light Red
+		"#795548", // Light Brown
+		"#607D8B", // Light Gray
+		"#00BCD4", // Light Cyan
+		"#3F51B5", // Indigo
+		"#CDDC39", // Lime
+		"#009688", // Teal
+		"#FFEB3B", // Yellow
+		"#9E9E9E", // Grey
+		"#FF5722", // Deep Orange
+		"#2196F3", // Blue
+	}
+
+	userColorIndex int
+	deptColorIndex int
+)
+
+func GenerateColorCode(entityType string) string {
+	var colorIndex *int
+	switch entityType {
+	case "user":
+		colorIndex = &userColorIndex
+	case "dept":
+		colorIndex = &deptColorIndex
+	default:
+		// Default to user if invalid type is provided
+		colorIndex = &userColorIndex
+	}
+
+	// Define usedColors map
+	usedColors := make(map[string]bool)
+
+	// If all colors are used, reset the cache
+	if len(usedColors) == len(commonColors) {
+		usedColors = make(map[string]bool)
+		*colorIndex = 0
+	}
+
+	// Find the next available color
+	var color string
+	for {
+		color = commonColors[*colorIndex]
+		if !usedColors[color] {
+			usedColors[color] = true
+			*colorIndex = (*colorIndex + 1) % len(commonColors)
+			break
+		}
+		*colorIndex = (*colorIndex + 1) % len(commonColors)
+	}
+
+	return color
+}

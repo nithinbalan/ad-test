@@ -3,6 +3,8 @@ package dtos
 import (
 	commonDTOs "jethur/grc/common/dtos"
 	masterDTOs "jethur/grc/masters/dtos"
+	settingsDTOs "jethur/grc/settings/dtos"
+
 	"time"
 )
 
@@ -65,17 +67,17 @@ type ProcessFormDTO struct {
 
 // ProcessDetailDTO defines the detailed view of a process, typically used in detailed screens or reports
 type ProcessDetailDTO struct {
-	ID              uint                          `json:"id"`
-	ReferenceNumber string                        `json:"reference_number"`
-	TitleEn         string                        `json:"title_en"`
-	TitleAr         string                        `json:"title_ar"`
-	Description     *string                       `json:"description"`
-	ProcessGroup    *ProcessGroupDTO              `json:"process_group"`
-	OwnerUnit       *OrganizationUnitDTO          `json:"owner_unit"`
-	Owner           *UserMinimalDTO               `json:"owner"`
-	CreatedByUser   UserMinimalDTO                `json:"created_by"`
-	UpdatedByUser   *UserMinimalDTO               `json:"updated_by"`
-	LifecycleStatus masterDTOs.LifecycleStatusDTO `json:"status"`
-	CreatedAt       time.Time                     `json:"created_at"`
-	UpdatedAt       *time.Time                    `json:"updated_at"`
+	ID              uint                              `json:"id"`
+	ReferenceNumber string                            `json:"reference_number"`
+	TitleEn         string                            `json:"title_en"`
+	TitleAr         string                            `json:"title_ar"`
+	Description     *string                           `json:"description"`
+	ProcessGroup    *ProcessGroupDTO                  `json:"process_group"`
+	OwnerUnit       *settingsDTOs.OrganizationUnitDTO `json:"owner_unit"`
+	Owner           *UserMinimalDTO                   `json:"owner"`
+	CreatedByUser   UserMinimalDTO                    `json:"created_by"`
+	UpdatedByUser   *UserMinimalDTO                   `json:"updated_by"`
+	LifecycleStatus masterDTOs.LifecycleStatusDTO     `json:"status"`
+	CreatedAt       time.Time                         `json:"created_at"`
+	UpdatedAt       *time.Time                        `json:"updated_at"`
 }

@@ -11,7 +11,6 @@ import (
 	settingDTOs "jethur/grc/settings/dtos"
 	settingService "jethur/grc/settings/services"
 	"jethur/utility"
-	mathRand "math/rand"
 	"reflect"
 	"strings"
 	"time"
@@ -162,7 +161,7 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 
 	initial := generateInitial(userFormDTO.FirstNameEn, userFormDTO.LastNameEn)
 
-	color := generateColorCode()
+	color := utility.GenerateColorCode("user")
 
 	user := &models.User{
 		OrganizationUnit1ID: userFormDTO.OrganizationUnit1ID,
@@ -477,25 +476,4 @@ func generateInitial(firstName, lastName string) string {
 	lastInitial := string(lastName[0])
 
 	return strings.ToUpper(firstInitial + lastInitial)
-}
-
-func generateColorCode() string {
-	// Create a new random generator with a unique seed
-	r := mathRand.New(mathRand.NewSource(time.Now().UnixNano()))
-
-	commonColors := []string{
-		"#FF5733", // Red
-		"#FFC300", // Yellow
-		"#C70039", // Magenta
-		"#900C3F", // Maroon
-		"#00A1E4", // Blue
-		"#008000", // Green
-		"#663399", // Purple
-		"#FF7F50", // Coral
-		"#800080", // Purple
-		"#FFD700", // Gold
-	}
-
-	index := r.Intn(len(commonColors))
-	return commonColors[index]
 }
