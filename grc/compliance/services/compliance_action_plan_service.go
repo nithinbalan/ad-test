@@ -3,12 +3,15 @@ package services
 import (
 	"errors"
 	"fmt"
+	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	complianceRepositories "jethur/grc/compliance/repositories"
 	logServices "jethur/grc/logs/services"
 	masterRepositories "jethur/grc/masters/repositories"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
+	settingService "jethur/grc/settings/services"
+	taskServices "jethur/grc/task/services"
 	"jethur/utility"
 
 	"github.com/mitchellh/mapstructure"
@@ -33,6 +36,8 @@ type ComplianceActionPlanService struct {
 	complianceRequirementSvc ComplianceRequirementServiceInterface
 	actionPlanStatusSvc      masterServices.ActionPlanStatusServiceInterface
 	severityLevelSvc         masterServices.SeverityLevelServiceInterface
+	taskSvc                  taskServices.TaskServiceInterface
+	moduleSvc                settingService.ModuleServiceInterface
 }
 
 func NewComplianceActionPlanService(
@@ -41,7 +46,9 @@ func NewComplianceActionPlanService(
 	complianceRegisterSvc ComplianceRegisterServiceInterface,
 	complianceRequirementSvc ComplianceRequirementServiceInterface,
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
-	severityLevelSvc masterRepositories.SeverityLevelRepositoryInterface) ComplianceActionPlanServiceInterface {
+	severityLevelSvc masterRepositories.SeverityLevelRepositoryInterface,
+	taskSvc taskServices.TaskServiceInterface,
+	moduleSvc settingService.ModuleServiceInterface) ComplianceActionPlanServiceInterface {
 	return &ComplianceActionPlanService{
 		repo:                     repo,
 		activityLogSvc:           activityLogSvc,
@@ -49,6 +56,8 @@ func NewComplianceActionPlanService(
 		complianceRequirementSvc: complianceRequirementSvc,
 		actionPlanStatusSvc:      actionPlanStatusSvc,
 		severityLevelSvc:         severityLevelSvc,
+		taskSvc:                  taskSvc,
+		moduleSvc:                moduleSvc,
 	}
 }
 
@@ -102,6 +111,7 @@ func (caps ComplianceActionPlanService) GetFullDetailsByID(complianceID uint, id
 }
 
 func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID uint, ComplianceActionPlanFormDTO *complianceDTOs.ComplianceActionPlanFormDTO) (uint, error) {
+	tx := caps.repo.BeginTransaction()
 	if _, err := caps.complianceRegisterSvc.GetByID(complianceID); err != nil {
 		return 0, err
 	}
@@ -129,10 +139,36 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 		CreatedBy:               currentUserID,
 	}
 
-	id, err := caps.repo.Create(complianceActionPlan)
+	id, err := caps.repo.Create(complianceActionPlan, tx)
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
+	// Fetch the compliance_action_plan module ID
+	complianceActionPlanModuleID, err := caps.moduleSvc.GetModuleIDByIdentifier("compliance_action_plan")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	url := fmt.Sprintf("compliance-register/%d/action-plans/%d", complianceID, id)
+
+	// Create a new task associated with the compliance action plan
+	taskDTO := commonDTOs.CreateTaskDTO{
+		ModuleID:               complianceActionPlanModuleID, // Adjust as necessary
+		ComplianceActionPlanID: &id,
+		Title:                  ComplianceActionPlanFormDTO.Title,
+		Description:            ComplianceActionPlanFormDTO.Description,
+		TargetDate:             dates.TargetDate,
+		URL:                    url, // Provide an appropriate URL if needed
+		SeverityLevelID:        ComplianceActionPlanFormDTO.SeverityLevelID,
+		ResponsibleUserID:      ComplianceActionPlanFormDTO.ResponsibleUserID,
+	}
+	// Save task and handle error if any
+	if err := caps.taskSvc.CreateTask(taskDTO, currentUserID, tx); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	tx.Commit()
 
 	go func() {
 		err := caps.activityLogSvc.LogActivity(

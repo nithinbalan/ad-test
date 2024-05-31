@@ -30,7 +30,7 @@ type ComplianceModule struct {
 	ComplianceRequirementSvc services.ComplianceRequirementServiceInterface
 }
 
-func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *MasterModule, organizationModule *OrganizationModule) *ComplianceModule {
+func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *MasterModule, organizationModule *OrganizationModule, taskModule *TaskModule, settingsModule *SettingsModule) *ComplianceModule {
 	complianceCategoryRepo := repositories.NewComplianceCategoryRepository(db)
 	complianceCategorySvc := services.NewComplianceCategoryService(complianceCategoryRepo, sharedModule.ActivityLogService)
 	complianceCategoryController := controllers.NewComplianceCategoryController(complianceCategorySvc)
@@ -75,6 +75,8 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		complianceRequirementSvc,
 		masterModule.ActionPlanStatusSvc,
 		masterModule.SeverityLevelSvc,
+		taskModule.TaskService,
+		settingsModule.ModuleSvc,
 	)
 	complianceActionPlanController := controllers.NewComplianceActionPlanController(complianceActionPlanSvc)
 
