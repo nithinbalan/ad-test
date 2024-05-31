@@ -35,7 +35,6 @@ func (utc *UserTaskController) GetAllUserTasks(c *gin.Context) {
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
-		"responsible_user_ids",
 		"compliance_action_plan_ids",
 		"sla_action_plan_ids",
 		"incident_action_plan_ids",
