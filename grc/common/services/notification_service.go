@@ -1,7 +1,6 @@
 package services
 
 import (
-	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/common/repositories"
 	"jethur/grc/models"
@@ -10,7 +9,7 @@ import (
 )
 
 type NotificationServiceInterface interface {
-	SendNotification(notificationDTO *commonDTOs.NotificationDTO, notificationMasterIdentifier string, tx ...utility.DatabaseTransaction) error
+	SendNotification(notificationDTO *commonDTOs.DBNotificationDTO, emailNotificationDTO *commonDTOs.EmailNotificationDTO, notificationMasterIdentifier string, tx ...utility.DatabaseTransaction) error
 }
 
 type NotificationService struct {
@@ -26,15 +25,18 @@ func NewNotificationService(repo repositories.NotificationRepositoryInteface,
 	}
 }
 
-func (ns *NotificationService) SendNotification(notificationDTO *commonDTOs.NotificationDTO, notificationMasterIdentifier string, tx ...utility.DatabaseTransaction) error {
-	// Check if notification is enabled for the user
+func (ns *NotificationService) SendNotification(notificationDTO *commonDTOs.DBNotificationDTO, emailNotificationDTO *commonDTOs.EmailNotificationDTO, notificationMasterIdentifier string, tx ...utility.DatabaseTransaction) error {
+	//Check if notification is enabled for the user
 	isEnabled, err := ns.IsNotificationEnabled(notificationDTO.UserID, notificationMasterIdentifier)
 	if err != nil {
 		return err
 	}
 
 	if isEnabled {
-		fmt.Println("email notification here")
+		err = utility.SendTemplatedEmail(emailNotificationDTO.EmailTo, emailNotificationDTO.Subject, emailNotificationDTO.TemplateRelativePath, emailNotificationDTO.EmailData, nil)
+		if err != nil {
+			return err
+		}
 	}
 
 	//DB notification

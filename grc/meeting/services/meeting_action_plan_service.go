@@ -107,10 +107,10 @@ func (maps MeetingActionPlanService) GetFullDetailsByID(meetingID uint, id uint)
 }
 
 func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint, MeetingActionPlanFormDTO *meetingDTOs.MeetingActionPlanFormDTO) (uint, error) {
-	// meeting, err := maps.meetingSvc.GetByID(meetingID)
-	// if err != nil {
-	// 	return 0, err
-	// }
+	meeting, err := maps.meetingSvc.GetByID(meetingID)
+	if err != nil {
+		return 0, err
+	}
 
 	if err := maps.validateMeetingActionPlanFormDTO(MeetingActionPlanFormDTO); err != nil {
 		return 0, err
@@ -146,7 +146,7 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 
 	redirectURL := fmt.Sprintf("meeting/%d/action-plans/%d", meetingID, id)
 
-	notification := &commonDTOs.NotificationDTO{
+	dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 		UserID:           MeetingActionPlanFormDTO.ResponsibleUserID,
 		ModuleIdentifier: "meeting_action_plan",
 		Icon:             models.CreateIcon,
@@ -156,17 +156,30 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 		CreatedBy:        currentUserID,
 	}
 
-	// resposibleUser, err := maps.userSvc.GetByID(MeetingActionPlanFormDTO.ResponsibleUserID)
-	// if err != nil {
-	// 	return 0, err
-	// }
+	resposibleUser, err := maps.userSvc.GetByID(MeetingActionPlanFormDTO.ResponsibleUserID)
+	if err != nil {
+		return 0, err
+	}
 
-	// to := []string{resposibleUser.Email}
-	// subject := fmt.Sprintf("meeting/%s: Action Plan Added", meeting.Title)
-	// templateRelativePath := "organization/templates/email/user_welcome.html"
+	emailTo := []string{resposibleUser.Email}
+	subject := fmt.Sprintf("meeting/%s: Action Plan Added", meeting.Title)
+	templateRelativePath := "meeting/templates/email/create_action_plan_mail.html"
+	emailData := meetingDTOs.SendCreateActionPlanMailDTO{
+		FirstNameEn: resposibleUser.FirstNameEn,
+		LastNameEn:  resposibleUser.LastNameEn,
+		MessageEn:   messageEn,
+		RedirectURL: redirectURL,
+	}
+
+	emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+		EmailTo:              emailTo,
+		Subject:              subject,
+		TemplateRelativePath: templateRelativePath,
+		EmailData:            emailData,
+	}
 
 	err = maps.notificationSvc.SendNotification(
-		notification, "create_meeting_action_plan")
+		dbNotificationDTO, emailNotificationDTO, "create_meeting_action_plan")
 	if err != nil {
 		return 0, err
 	}
