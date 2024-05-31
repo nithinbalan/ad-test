@@ -32,12 +32,18 @@ type ControlListDTO struct {
 	Objective                            *string    `json:"objective"`
 	ReviewFrequencyTitleEn               string     `json:"review_frequency_title_en"`
 	ReviewFrequencyTitleAr               string     `json:"review_frequency_title_ar"`
+	LastReviewDate                       *time.Time `json:"last_review_date"`
+	NextReviewDate                       *time.Time `json:"next_review_date"`
+	LastReviewNote                       *string    `json:"last_review_note"`
 	TestResponsibleUserFirstNameEn       string     `json:"test_responsible_user_first_name_en"`
 	TestResponsibleUserFirstNameAr       string     `json:"test_responsible_user_first_name_ar"`
 	TestResponsibleUserLastNameEn        string     `json:"test_responsible_user_last_name_en"`
 	TestResponsibleUserLastNameAr        string     `json:"test_responsible_user_last_name_ar"`
 	TestFrequencyTitleEn                 *string    `json:"test_frequency_title_en"`
 	TestFrequencyTitleAr                 *string    `json:"test_frequency_title_ar"`
+	LastTestDate                         *time.Time `json:"last_test_date"`
+	NextTestDate                         *time.Time `json:"next_test_date"`
+	ImplementedAt                        *time.Time `json:"implemented_at"`
 	LifecycleStatusTitleEn               string     `json:"lifecycle_status_title_en"`
 	LifecycleStatusTitleAr               string     `json:"lifecycle_status_title_ar"`
 	LifecycleStatusColorCode             string     `json:"lifecycle_status_color_code"`
