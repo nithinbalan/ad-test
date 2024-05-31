@@ -29,6 +29,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	controlActionPlanController := app.OrganizationModule.ControlActionPlanController
 	controlActionPlanStatusUpdateController := app.OrganizationModule.ControlActionPlanStatusUpdateController
 	processController := app.OrganizationModule.ProcessController
+	userTaskController := app.OrganizationModule.UserTaskController
+
 
 	//Designation
 	organizationRoutes.GET("/designations", designationController.GetAllDesignations)
@@ -81,6 +83,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.GET("/users/:userId/settings/notifications", userSettingController.GetNotificationSettings)
 	organizationRoutes.POST("/users/:userId/settings/notifications/:notificationMasterId/enable", userSettingController.EnableNotification)
 	organizationRoutes.POST("/users/:userId/settings/notifications/:notificationMasterId/disable", userSettingController.DisableNotification)
+
+	//User Tasks
+	organizationRoutes.GET("/users/:userId/tasks", userTaskController.GetAllUserTasks)
+	// organizationRoutes.GET("/users/:userId/task-summary", userTaskController.GetUserTaskSummary)
 
 	//Control Category
 	organizationRoutes.GET("/control-categories", controlCategoryController.GetAllControlCategories)

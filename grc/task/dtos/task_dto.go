@@ -27,7 +27,7 @@ type TaskListDTO struct {
 	ResponsibleUserLastNameEn  string `json:"responsible_user_last_name_en"`
 	ResponsibleUserLastNameAr  string `json:"responsible_user_last_name_ar"`
 	TargetDate                 string `json:"target_date"`
-	URL                        uint   `json:"url"`
+	URL                        string `json:"url"`
 	TaskStatusTitleEn          string `json:"task_status_title_en"`
 	TaskStatusTitleAr          string `json:"task_status_title_ar"`
 	TaskStatusColorCode        string `json:"task_status_color_code"`
@@ -57,6 +57,11 @@ type TaskListQueryParamsDTO struct {
 type TaskListResponseDTO struct {
 	Items      []*TaskListDTO               `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
+}
+
+type UserTaskStatusCountDTO struct {
+	Status string `json:"status"`
+	Count  int    `json:"count"`
 }
 
 type TaskParsedDates struct {

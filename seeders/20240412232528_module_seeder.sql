@@ -45,7 +45,10 @@ INSERT INTO modules
     (identifier, title_en, title_ar, module_id, [order])
 VALUES
     ('compliance_register', 'Compliance Register', 'سجل الامتثال', @complianceModuleID, 2),
-    ('sla_contract', 'SLA & Contract', 'SLA والعقد', @complianceModuleID, 3);
+    ('sla_contract', 'SLA & Contract', 'SLA والعقد', @complianceModuleID, 3),
+    ('compliance_action_plan', 'Compliance Action Plan', 'خطة عمل الامتثال', @incidentModuleID, 4),
+    ('sla_action_plan', 'SLA Action Plan', 'خطة عمل جيش تحرير السودان', @incidentModuleID, 5);
+
 
 -- Insert Document Module
 INSERT INTO modules
