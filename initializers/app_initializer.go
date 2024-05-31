@@ -26,8 +26,6 @@ func NewApp(db *gorm.DB) *App {
 	commonModule := NewCommonModule(db, settingsModule)
 	libraryModule := NewLibraryModule(db, sharedModule, masterModule)
 	organizationModule := NewOrganizationModule(db, sharedModule, settingsModule, masterModule, taskModule)
-	meetingModule := NewMeetingModule(db, sharedModule, organizationModule, masterModule)
-	organizationModule := NewOrganizationModule(db, sharedModule, settingsModule, masterModule)
 	meetingModule := NewMeetingModule(db, sharedModule, organizationModule, masterModule, commonModule)
 	authModule := NewAuthModule(db, organizationModule)
 	complianceModule := NewComplianceModule(db, sharedModule, masterModule, organizationModule, taskModule, settingsModule)
