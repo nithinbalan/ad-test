@@ -30,6 +30,7 @@ type RiskModule struct {
 	RiskRootCauseAnalysisController      *controllers.RiskRootCauseAnalysisController
 	RiskAppetiteToleranceLevelController *controllers.RiskAppetiteToleranceLevelController
 	RiskInherentEvaluationController     *controllers.RiskInherentEvaluationController
+	RiskAssociatedItemController         *controllers.RiskAssociatedItemController
 
 	RiskRegisterSvc services.RiskRegisterServiceInterface
 }
@@ -180,10 +181,13 @@ func NewRiskModule(db *gorm.DB,
 	riskAppetiteToleranceLevelSvc := services.NewRiskAppetiteToleranceLevelService(riskAppetiteToleranceLevelRepo)
 	riskAppetiteToleranceLevelController := controllers.NewRiskAppetiteToleranceLevelController(riskAppetiteToleranceLevelSvc)
 
-	// Update variable names
 	riskInherentEvaluationRepo := repositories.NewRiskInherentEvaluationRepository(db)
 	riskInherentEvaluationSvc := services.NewRiskInherentEvaluationService(riskInherentEvaluationRepo, sharedModule.ActivityLogService, riskRegisterSvc, riskMatrixSvc, riskMatrixRiskRatingValueSvc, riskMatrixImpactSvc, riskMatrixLikelihoodSvc, riskImpactCategorySvc, riskMatrixImpactGuidelineSvc, riskAppetiteStatementSvc)
 	riskInherentEvaluationController := controllers.NewRiskInherentEvaluationController(riskInherentEvaluationSvc)
+
+	riskAssociatedItemRepo := repositories.NewRiskAssociatedItemRepository(db)
+	riskAssociatedItemSvc := services.NewRiskAssociatedItemService(riskAssociatedItemRepo, riskRegisterSvc)
+	riskAssociatedItemController := controllers.NewRiskAssociatedItemController(riskAssociatedItemSvc)
 
 	return &RiskModule{
 		RiskCategoryController:               riskCategoryController,
@@ -207,6 +211,7 @@ func NewRiskModule(db *gorm.DB,
 		RiskRootCauseAnalysisController:      riskRootCauseAnalysisController,
 		RiskAppetiteToleranceLevelController: riskAppetiteToleranceLevelController,
 		RiskInherentEvaluationController:     riskInherentEvaluationController,
+		RiskAssociatedItemController:         riskAssociatedItemController,
 
 		RiskRegisterSvc: riskRegisterSvc,
 	}

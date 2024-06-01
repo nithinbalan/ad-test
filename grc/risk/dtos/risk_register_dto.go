@@ -77,12 +77,6 @@ type RiskDocumentDTO struct {
 
 type RiskRegisterDetailDTO struct {
 	ID                     int                              `json:"id"`
-	RiskCategoryID         uint                             `json:"risk_category_id"`
-	RiskSourceID           uint                             `json:"risk_source_id"`
-	OwnerUnitID            uint                             `json:"owner_unit_id"`
-	OwnerID                uint                             `json:"owner_id"`
-	RiskStatusID           uint                             `json:"risk_status_id"`
-	ReviewFrequencyID      *uint                            `json:"review_frequency_id"`
 	ReferenceNumber        string                           `json:"reference_number"`
 	RiskCategory           RiskCategoryDTO                  `json:"risk_category"`
 	RiskSource             RiskSourceDTO                    `json:"risk_source"`

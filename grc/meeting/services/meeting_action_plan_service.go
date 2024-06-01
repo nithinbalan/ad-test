@@ -162,7 +162,7 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 	}
 
 	emailTo := []string{resposibleUser.Email}
-	subject := fmt.Sprintf("meeting/%s: Action Plan Added", meeting.Title)
+	subject := fmt.Sprintf("Meeting/%s: Action Plan Added", meeting.Title)
 	templateRelativePath := "meeting/templates/email/create_action_plan_mail.html"
 	emailData := meetingDTOs.SendCreateActionPlanMailDTO{
 		FirstNameEn: resposibleUser.FirstNameEn,
