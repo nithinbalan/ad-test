@@ -50,10 +50,8 @@ func (repo *IncidentSubCategoryRepository) GetAll(params *incidentDTOs.IncidentS
 	if params.Keyword != "" {
 		query = query.Where(`
 				(incident_sub_categories.title_en LIKE ? OR
-				incident_sub_categories.title_ar LIKE ? OR
-				incident_sub_categories.description_en LIKE ? OR
-				incident_sub_categories.description_ar LIKE ?)`,
-			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
+				incident_sub_categories.title_ar LIKE ?)`,
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%")
 	}
 	// Sort by the specified column and order
 	if params.SortBy == "" {
