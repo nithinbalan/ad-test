@@ -7,6 +7,7 @@ import (
 
 type RiskAssociatedItemServiceInterface interface {
 	GetAllControls(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) ([]*riskDTOs.RiskControlListDTO, error)
+	GetAllComplianceRequirements(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) ([]*riskDTOs.RiskComplianceRequirementListDTO, error)
 }
 
 // Service and implementations
@@ -31,4 +32,11 @@ func (rais *RiskAssociatedItemService) GetAllControls(riskID uint, params *riskD
 		return nil, err
 	}
 	return rais.repo.GetAllControls(params)
+}
+
+func (rais *RiskAssociatedItemService) GetAllComplianceRequirements(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) ([]*riskDTOs.RiskComplianceRequirementListDTO, error) {
+	if _, err := rais.riskRegisterSvc.GetByID(riskID); err != nil {
+		return nil, err
+	}
+	return rais.repo.GetAllComplianceRequirements(params)
 }

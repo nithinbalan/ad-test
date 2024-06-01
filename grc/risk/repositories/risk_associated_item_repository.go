@@ -8,6 +8,7 @@ import (
 
 type RiskAssociatedItemRepositoryInterface interface {
 	GetAllControls(params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) ([]*riskDTOs.RiskControlListDTO, error)
+	GetAllComplianceRequirements(params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) ([]*riskDTOs.RiskComplianceRequirementListDTO, error)
 }
 
 type RiskAssociatedItemRepository struct {
@@ -25,6 +26,7 @@ func (repo *RiskAssociatedItemRepository) GetAllControls(params *riskDTOs.RiskAs
 
 	query := repo.db.Table("controls").
 		Select(`
+			controls.id AS control_id,
             control_categories.title_en AS control_category_title_en,
             control_categories.title_ar AS control_category_title_ar,
             control_types.title_en AS control_type_title_en,
@@ -43,21 +45,6 @@ func (repo *RiskAssociatedItemRepository) GetAllControls(params *riskDTOs.RiskAs
             LEFT JOIN control_efficiency_statuses ON controls.control_efficiency_status_id = control_efficiency_statuses.id
             LEFT JOIN control_implementation_statuses ON controls.control_implementation_status_id = control_implementation_statuses.id
         `)
-
-	// Apply dynamic filters to the query
-	for columnName, values := range params.Filters {
-		if len(values) > 0 {
-			query = query.Where(columnName+" IN (?)", values)
-		}
-	}
-
-	// Apply quick filters
-	for _, filter := range params.QuickFilter {
-		switch filter {
-		case "open_high_risk":
-			query = query.Where("controls.risk_status_title_en = ?", "open")
-		}
-	}
 
 	// Apply search keyword if exists
 	if params.Keyword != "" {
@@ -78,21 +65,63 @@ func (repo *RiskAssociatedItemRepository) GetAllControls(params *riskDTOs.RiskAs
 			keyword, keyword)
 	}
 
-	// Sort by the specified column and order
 	if params.SortBy == "" {
-		params.SortBy = "controls.title_en" // Default sort by title if no sortBy is specified
+		params.SortBy = "controls.title_en"
 	}
 	if params.Sort != "asc" && params.Sort != "desc" {
-		params.Sort = "asc" // Default order is ascending if not specified
+		params.Sort = "asc"
 	}
 
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	// Execute the query
 	if err := query.Find(&controlList).Error; err != nil {
 		return nil, err
 	}
 
 	return controlList, nil
+}
 
+func (repo *RiskAssociatedItemRepository) GetAllComplianceRequirements(params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) ([]*riskDTOs.RiskComplianceRequirementListDTO, error) {
+	var complianceRequirements []*riskDTOs.RiskComplianceRequirementListDTO
+
+	query := repo.db.Table("risk_compliance_requirements").
+		Select(`
+			risk_compliance_requirements.compliance_requirement_id AS compliance_requirement_id,
+            compliance_clauses.title AS compliance_clause_title,
+            compliance_requirement_categories.title_en AS compliance_requirement_category_title_en,
+            compliance_requirement_categories.title_ar AS compliance_requirement_category_title_ar,
+            compliance_requirements.title AS compliance_requirement_title,
+            compliance_statuses.title_en AS compliance_status_title_en,
+            compliance_statuses.title_ar AS compliance_status_title_ar,
+			compliance_statuses.color_code AS compliance_status_color_code
+
+        `).
+		Joins(`
+			LEFT JOIN compliance_requirements ON compliance_requirements.id = risk_compliance_requirements.compliance_requirement_id
+            LEFT JOIN compliance_clauses ON compliance_requirements.compliance_clause_id = compliance_clauses.id
+            LEFT JOIN compliance_statuses ON compliance_requirements.compliance_status_id = compliance_statuses.id
+            LEFT JOIN compliance_requirement_categories ON compliance_requirements.compliance_requirement_category_id = compliance_requirement_categories.id
+        `)
+
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Where(`
+			(compliance_requirements.title LIKE ?)`,
+			keyword)
+	}
+
+	if params.SortBy == "" {
+		params.SortBy = "compliance_requirements.title"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	if err := query.Find(&complianceRequirements).Error; err != nil {
+		return nil, err
+	}
+
+	return complianceRequirements, nil
 }

@@ -161,5 +161,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.DELETE("risks/:riskId/inherent-evaluation/:id", riskInherentEvaluationController.DeleteRiskInherentEvaluation)
 
 	riskRoutes.GET("risks/:riskId/controls", riskAssociatedItemController.GetAllRiskControls)
+	riskRoutes.GET("risks/:riskId/compliance-requirements", riskAssociatedItemController.GetAllRiskComplianceRequirements)
 
 }

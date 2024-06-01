@@ -1,6 +1,7 @@
 package dtos
 
 type RiskControlListDTO struct {
+	ControlID                     uint    `json:"control_id"`
 	ControlCategoryTitleEn        string  `json:"control_category_title_en"`
 	ControlCategoryTitleAr        string  `json:"control_category_title_ar"`
 	ControlTypeTitleEn            string  `json:"control_type_title_en"`
@@ -14,11 +15,21 @@ type RiskControlListDTO struct {
 	ControlImplementationStatusAr string  `json:"control_implementation_status_ar"`
 }
 
+type RiskComplianceRequirementListDTO struct {
+	ComplianceRequirementID              uint   `json:"compliance_requirement_id"`
+	ComplianceClauseTitle                string `json:"compliance_clause_title"`
+	ComplianceRequirementCategoryTitleEn string `json:"compliance_requirement_category_title_en"`
+	ComplianceRequirementCategoryTitleAr string `json:"compliance_requirement_category_title_ar"`
+	ComplianceRequirementTitle           string `json:"compliance_requirement_title"`
+	ComplianceStatusTitleEn              string `json:"compliance_status_title_en"`
+	ComplianceStatusTitleAr              string `json:"compliance_status_title_ar"`
+	ComplianceStatusColorCode            string `json:"compliance_status_color_code"`
+}
+
 type RiskAssociatedItemListQueryParamsDTO struct {
 	Sort        string
 	SortBy      string
 	Keyword     string
 	Status      string
-	Filters     map[string][]string
 	QuickFilter []string
 }
