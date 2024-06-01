@@ -41,7 +41,7 @@ func (repo *ControlRepository) GetAll(params *organizationDTOs.ControlListQueryP
 
 	query := repo.db.Table("controls").
 		Select(`
-				controls.id,
+				controls.*,
 				control_types.title_en AS control_type_title_en,
 				control_types.title_ar AS control_type_title_ar,
 				control_categories.title_en AS control_category_title_en,
@@ -52,18 +52,6 @@ func (repo *ControlRepository) GetAll(params *organizationDTOs.ControlListQueryP
 				owner.first_name_ar AS owner_first_name_ar,
 				owner.last_name_en AS owner_last_name_en,
 				owner.last_name_ar AS owner_last_name_ar,
-				control_implementation_statuses.title_en AS control_implementation_status_title_en,
-				control_implementation_statuses.title_ar AS control_implementation_status_title_ar,
-				control_implementation_statuses.color_code AS control_implementation_status_color_code,
-				control_efficiency_statuses.title_en AS control_efficiency_status_title_en,
-				control_efficiency_statuses.title_ar AS control_efficiency_status_title_ar,
-				control_efficiency_statuses.color_code AS control_efficiency_status_color_code,
-				controls.reference_number,
-				controls.code,
-				controls.title_en,
-				controls.title_ar,
-				controls.description,
-				controls.objective,
 				review_frequencies.title_en AS review_frequency_title_en,
 				review_frequencies.title_ar AS review_frequency_title_ar,
 				test_responsible_user.first_name_en AS test_responsible_user_first_name_en,
@@ -75,6 +63,12 @@ func (repo *ControlRepository) GetAll(params *organizationDTOs.ControlListQueryP
 				lifecycle_statuses.title_en AS lifecycle_status_title_en,
 				lifecycle_statuses.title_ar AS lifecycle_status_title_ar,
 				lifecycle_statuses.color_code AS lifecycle_status_color_code,
+				control_implementation_statuses.title_en AS control_implementation_status_title_en,
+				control_implementation_statuses.title_ar AS control_implementation_status_title_ar,
+				control_implementation_statuses.color_code AS control_implementation_status_color_code,
+				control_efficiency_statuses.title_en AS control_efficiency_status_title_en,
+				control_efficiency_statuses.title_ar AS control_efficiency_status_title_ar,
+				control_efficiency_statuses.color_code AS control_efficiency_status_color_code,
 				created_user.first_name_en AS created_user_first_name_en,
 				created_user.first_name_ar AS created_user_first_name_ar,
 				created_user.last_name_en AS created_user_last_name_en,
@@ -82,9 +76,7 @@ func (repo *ControlRepository) GetAll(params *organizationDTOs.ControlListQueryP
 				updated_user.first_name_en AS updated_user_first_name_en,
 				updated_user.first_name_ar AS updated_user_first_name_ar,
 				updated_user.last_name_en AS updated_user_last_name_en,
-				updated_user.last_name_ar AS updated_user_last_name_ar,
-				controls.created_at,
-				controls.updated_at
+				updated_user.last_name_ar AS updated_user_last_name_ar
         `).
 		Joins("LEFT JOIN control_types ON control_types.id = controls.control_type_id").
 		Joins("LEFT JOIN control_categories ON control_categories.id = controls.control_category_id").
@@ -263,6 +255,7 @@ func (repo *ControlRepository) GetFullDetailsByID(id uint) (*models.Control, err
 		Preload("ControlEfficiencyStatus").
 		Preload("TestResponsibleUser").
 		Preload("TestResponsibleUser.OrganizationUnit1").
+		Preload("ReviewFrequency").
 		Preload("TestFrequency").
 		Preload("LifecycleStatus").
 		Preload("CreatedByUser").
