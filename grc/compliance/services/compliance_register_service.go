@@ -96,6 +96,26 @@ func (crs ComplianceRegisterService) GetFullDetailsByID(id uint, tx ...utility.D
 		return nil, err
 	}
 
+	// Format time fields without time component
+	if compliance.Deadline != nil {
+		deadline := compliance.Deadline.Format("2006-01-02")
+		complianceDTO.DeadlineString = &deadline
+	}
+	if compliance.IssueDate != nil {
+		issueDate := compliance.IssueDate.Format("2006-01-02")
+		complianceDTO.IssueDateString = &issueDate
+	}
+	if compliance.ExpiryDate != nil {
+		expiryDate := compliance.ExpiryDate.Format("2006-01-02")
+		complianceDTO.ExpiryDateString = &expiryDate
+	}
+	if compliance.NextReviewDate != nil {
+		nextReviewDate := compliance.NextReviewDate.Format("2006-01-02")
+		complianceDTO.NextReviewDateString = &nextReviewDate
+	}
+
+	complianceDTO.CreatedAt = compliance.CreatedAt
+	complianceDTO.UpdatedAt = compliance.UpdatedAt
 	//todo :- also add extra fields which required in details screen
 
 	return &complianceDTO, nil

@@ -59,6 +59,10 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
 	query := repo.db.Table("compliance_register").
 		Select(`
             compliance_register.*,
+			CONVERT(VARCHAR, compliance_register.deadline, 23) AS deadline,
+        	CONVERT(VARCHAR, compliance_register.issue_date, 23) AS issue_date,
+        	CONVERT(VARCHAR, compliance_register.expiry_date, 23) AS expiry_date,
+       		CONVERT(VARCHAR, compliance_register.next_review_date, 23) AS next_review_date,
 			compliance_categories.title_en AS compliance_category_title_en,
 			compliance_categories.title_ar AS compliance_category_title_ar,
 			compliance_statuses.title_en AS compliance_status_title_en,

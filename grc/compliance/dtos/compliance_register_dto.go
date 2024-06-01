@@ -140,10 +140,10 @@ type ComplianceRegisterDetailDTO struct {
 	TitleAr               string                           `json:"title_ar"`
 	DescriptionEn         *string                          `json:"description_en"`
 	DescriptionAr         *string                          `json:"description_ar"`
-	Deadline              *time.Time                       `json:"deadline"`
-	IssueDate             *time.Time                       `json:"issue_date"`
-	ExpiryDate            *time.Time                       `json:"expiry_date"`
-	NextReviewDate        *time.Time                       `json:"next_review_date"`
+	DeadlineString        *string                          `json:"deadline"`
+	IssueDateString       *string                          `json:"issue_date"`
+	ExpiryDateString      *string                          `json:"expiry_date"`
+	NextReviewDateString  *string                          `json:"next_review_date"`
 	LastReviewNote        *string                          `json:"last_review_note"`
 	ComplianceCategory    ComplianceCategoryDTO            `json:"compliance_category"`
 	ComplianceStatus      ComplianceStatusDTO              `json:"compliance_status"`
