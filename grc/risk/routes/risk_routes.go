@@ -110,6 +110,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.PUT("/risk-matrix-risk-ratings/activate", riskMatrixRiskRatingController.ActivateRiskMatrixRiskRating)
 	riskRoutes.PUT("/risk-matrix-risk-ratings/deactivate", riskMatrixRiskRatingController.DeactivateRiskMatrixRiskRating)
 
+	riskRoutes.GET("/risk-matrix-risk-rating-value", riskMatrixRiskRatingValueController.GetAllRiskMatrixRiskRatingValue)
 	riskRoutes.POST("/risk-matrix-risk-rating-value", riskMatrixRiskRatingValueController.CreateRiskMatrixRiskRatingValue)
 	riskRoutes.GET("/risk-matrix-configuration", riskMatrixRiskRatingValueController.GetRiskMatrix)
 

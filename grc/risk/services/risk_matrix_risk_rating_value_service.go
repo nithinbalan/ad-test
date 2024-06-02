@@ -8,6 +8,7 @@ import (
 )
 
 type RiskMatrixRiskRatingValueServiceInterface interface {
+	GetRiskAll() (*riskDTOs.RiskMatrixRiskRatingValueFormDTO, error)
 	Create(riskMatrixRiskRatingValueFormDTO *riskDTOs.RiskMatrixRiskRatingValueFormDTO) error
 	GetRiskMatrix() ([][]*riskDTOs.RiskMatrixRiskRatingResponseDTO, error)
 	EvaluateScore(impact *models.RiskMatrixImpact, likelihood *models.RiskMatrixLikelihood, calculationMethod string) uint
@@ -34,6 +35,44 @@ func NewRiskMatrixRiskRatingValueService(
 		riskMatrixSvc:           riskMatrixSvc,
 		riskMatrixRiskRatingSvc: riskMatrixRiskRatingSvc,
 	}
+}
+
+func (rmrrvs *RiskMatrixRiskRatingValueService) GetRiskAll() (*riskDTOs.RiskMatrixRiskRatingValueFormDTO, error) {
+	riskMatrixType, err := rmrrvs.riskMatrixSvc.GetByType("erm")
+	if err != nil {
+		return nil, err
+	}
+	riskMatrix, err := rmrrvs.riskMatrixSvc.GetDetailsByID(riskMatrixType.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	riskMatrixRiskRatingValues, err := rmrrvs.repo.GetAll(riskMatrix.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	groupedValues := make(map[uint][]uint)
+	for _, value := range riskMatrixRiskRatingValues {
+		groupedValues[value.RiskMatrixRiskRatingID] = append(groupedValues[value.RiskMatrixRiskRatingID], value.Value)
+	}
+
+	var riskMatrixRiskRatingValueDTO []*riskDTOs.RiskMatrixRiskRatingValueDTO
+	for id, values := range groupedValues {
+		riskMatrixRiskRatingValueDTO = append(riskMatrixRiskRatingValueDTO, &riskDTOs.RiskMatrixRiskRatingValueDTO{
+			ID:                     id, // This should be a unique identifier, using id as a placeholder
+			RiskMatrixRiskRatingID: id,
+			Values:                 values,
+		})
+	}
+
+	// Create the form DTO
+	result := &riskDTOs.RiskMatrixRiskRatingValueFormDTO{
+		CalculationType:      riskMatrix.CalculationType,
+		RiskMatrixRiskRating: riskMatrixRiskRatingValueDTO,
+	}
+
+	return result, nil
 }
 
 func (rmrrvs *RiskMatrixRiskRatingValueService) Create(riskMatrixRiskRatingValueFormDTO *riskDTOs.RiskMatrixRiskRatingValueFormDTO) error {
