@@ -10,6 +10,11 @@ type RiskMatrixRiskRatingValueDTO struct {
 	RiskMatrixRiskRatingID uint   `json:"risk_matrix_risk_rating_id" binding:"required"`
 	Values                 []uint `json:"values" binding:"required" gorm:"not null"`
 }
+type RiskMatrixRiskRatingValueListResponseDTO struct {
+	ID                     uint `json:"id"`
+	RiskMatrixRiskRatingID uint `json:"risk_matrix_risk_rating_id" binding:"required"`
+	Value                  uint `json:"value" binding:"required" gorm:"not null"`
+}
 
 type RiskMatrixRiskRatingDataDTO struct {
 	RiskMatrixID           uint   `json:"risk_matrix_id"`
