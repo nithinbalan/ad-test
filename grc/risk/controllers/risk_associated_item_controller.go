@@ -48,8 +48,17 @@ func (raic *RiskAssociatedItemController) GetAllRiskControls(c *gin.Context) {
 	risks, err := raic.service.GetAllControls(uint(riskID), &queryParams)
 
 	if err != nil {
-		utility.SendInternalErrResp(raic.db, c, err.Error())
-		return
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(raic.db, c, e.Error())
+			return
+		}
 	}
 	c.JSON(http.StatusOK, risks)
 }

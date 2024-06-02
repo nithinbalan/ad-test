@@ -16,6 +16,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceCategoryController := app.ComplianceModule.ComplianceCategoryController
 	complianceStatusController := app.ComplianceModule.ComplianceStatusController
 	complianceRegisterController := app.ComplianceModule.ComplianceRegisterController
+	complianceAssociatedItemController := app.ComplianceModule.ComplianceAssociatedItemController
 	complianceRequirementCategoryController := app.ComplianceModule.ComplianceRequirementCategoryController
 	complianceRequirementController := app.ComplianceModule.ComplianceRequirementController
 	complianceActionPlanController := app.ComplianceModule.ComplianceActionPlanController
@@ -70,6 +71,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.POST("/compliance-register/delete", complianceRegisterController.DeleteComplianceRegisters)
 	complianceRoutes.PUT("/compliance-register/archive", complianceRegisterController.ArchiveComplianceRegisters)
 	complianceRoutes.PUT("/compliance-register/restore", complianceRegisterController.RestoreComplianceRegisters)
+
+	//Compliance Associated Items
+	complianceRoutes.GET("compliances/:complianceId/controls", complianceAssociatedItemController.GetAllComplianceControls)
 
 	//SLA Register
 	complianceRoutes.GET("/sla-register", SLARegisterController.GetAllSLARegisters)

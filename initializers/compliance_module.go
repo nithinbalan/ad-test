@@ -12,6 +12,7 @@ type ComplianceModule struct {
 	ComplianceCategoryController                *controllers.ComplianceCategoryController
 	ComplianceStatusController                  *controllers.ComplianceStatusController
 	ComplianceRegisterController                *controllers.ComplianceRegisterController
+	ComplianceAssociatedItemController          *controllers.ComplianceAssociatedItemController
 	ComplianceRequirementCategoryController     *controllers.ComplianceRequirementCategoryController
 	ComplianceRequirementController             *controllers.ComplianceRequirementController
 	ComplianceActionPlanController              *controllers.ComplianceActionPlanController
@@ -51,6 +52,10 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		organizationModule.ControlSvc,
 	)
 	complianceRegisterController := controllers.NewComplianceRegisterController(complianceRegisterSvc)
+
+	complianceAssociatedItemRepo := repositories.NewComplianceAssociatedItemRepository(db)
+	complianceAssociatedItemSvc := services.NewComplianceAssociatedItemService(complianceAssociatedItemRepo, complianceRegisterSvc)
+	complianceAssociatedItemController := controllers.NewComplianceAssociatedItemController(complianceAssociatedItemSvc)
 
 	complianceRequirementCategoryRepo := repositories.NewComplianceRequirementCategoryRepository(db)
 	complianceRequirementCategorySvc := services.NewComplianceRequirementCategoryService(complianceRequirementCategoryRepo, sharedModule.ActivityLogService)
@@ -148,6 +153,7 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		ComplianceCategoryController:                complianceCategoryController,
 		ComplianceStatusController:                  complianceStatusController,
 		ComplianceRegisterController:                complianceRegisterController,
+		ComplianceAssociatedItemController:          complianceAssociatedItemController,
 		ComplianceRequirementCategoryController:     complianceRequirementCategoryController,
 		ComplianceRequirementController:             complianceRequirementController,
 		ComplianceActionPlanController:              complianceActionPlanController,
