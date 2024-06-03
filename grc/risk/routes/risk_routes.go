@@ -34,6 +34,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRootCauseAnalysisController := app.RiskModule.RiskRootCauseAnalysisController
 	riskAppetiteToleranceLevelController := app.RiskModule.RiskAppetiteToleranceLevelController
 	riskInherentEvaluationController := app.RiskModule.RiskInherentEvaluationController
+	riskActionPlanController := app.RiskModule.RiskActionPlanController
+	riskActionPlanStatusUpdateController := app.RiskModule.RiskActionPlanStatusUpdateController
 	riskAssociatedItemController := app.RiskModule.RiskAssociatedItemController
 
 	riskRoutes.GET("/risk-categories", riskCategoryController.GetAllRiskCategories)
@@ -163,5 +165,17 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	riskRoutes.GET("risks/:riskId/controls", riskAssociatedItemController.GetAllRiskControls)
 	riskRoutes.GET("risks/:riskId/compliance-requirements", riskAssociatedItemController.GetAllRiskComplianceRequirements)
+
+	// Risk Action Plan
+	riskRoutes.GET("/risk-action-plans", riskActionPlanController.GetAllRiskActionPlans)
+	riskRoutes.GET("/risks/:riskId/action-plans", riskActionPlanController.GetAllRiskActionPlans)
+	riskRoutes.GET("/risks/:riskId/action-plans/:actionPlanId", riskActionPlanController.GetRiskActionPlanDetails)
+	riskRoutes.POST("/risks/:riskId/action-plans", riskActionPlanController.CreateRiskActionPlan)
+	riskRoutes.PUT("/risks/:riskId/action-plans/:actionPlanId", riskActionPlanController.UpdateRiskActionPlan)
+	riskRoutes.POST("/risks/:riskId/action-plans/delete", riskActionPlanController.DeleteRiskActionPlans)
+
+	riskRoutes.GET("/risks/:riskId/action-plans/:actionPlanId/status-updates", riskActionPlanStatusUpdateController.GetAllRiskActionPlanStatusUpdates)
+	riskRoutes.POST("/risks/:riskId/action-plans/:actionPlanId/status-updates", riskActionPlanStatusUpdateController.CreateRiskActionPlanStatusUpdate)
+	riskRoutes.PUT("/risks/:riskId/action-plans/:actionPlanId/status-updates/:id", riskActionPlanStatusUpdateController.UpdateRiskActionPlanStatusUpdate)
 
 }
