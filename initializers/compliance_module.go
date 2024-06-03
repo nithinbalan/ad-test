@@ -103,7 +103,7 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 	complianceActionPlanStatusUpdateController := controllers.NewComplianceActionPlanStatusUpdateController(complianceActionPlanStatusUpdateSvc)
 
 	complianceReviewRepo := repositories.NewComplianceReviewRepository(db)
-	complianceReviewSvc := services.NewComplianceReviewService(complianceReviewRepo, sharedModule.ActivityLogService, complianceRegisterSvc)
+	complianceReviewSvc := services.NewComplianceReviewService(complianceReviewRepo, sharedModule.ActivityLogService, complianceRegisterSvc, masterModule.ReviewFrequencySvc, complianceReviewStatusSvc)
 	complianceReviewController := controllers.NewComplianceReviewController(complianceReviewSvc)
 
 	slaCategoryRepo := repositories.NewSLACategoryRepository(db)

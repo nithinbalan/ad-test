@@ -5,6 +5,7 @@ import (
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/repositories"
 	logServices "jethur/grc/logs/services"
+	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
 	"jethur/utility"
 	"time"
@@ -20,20 +21,26 @@ type ComplianceReviewServiceInterface interface {
 
 // Service and implementations
 type ComplianceReviewService struct {
-	repo                  repositories.ComplianceReviewRepositoryInterface
-	activityLogSvc        logServices.ActivityLogServiceInterface
-	complianceRegisterSvc ComplianceRegisterServiceInterface
+	repo                      repositories.ComplianceReviewRepositoryInterface
+	activityLogSvc            logServices.ActivityLogServiceInterface
+	complianceRegisterSvc     ComplianceRegisterServiceInterface
+	reviewFrequencySvc        masterServices.ReviewFrequencyServiceInterface
+	complianceReviewStatusSvc ComplianceReviewStatusServiceInterface
 }
 
 func NewComplianceReviewService(
 	repo repositories.ComplianceReviewRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	complianceRegisterSvc ComplianceRegisterServiceInterface,
+	reviewFrequencySvc masterServices.ReviewFrequencyServiceInterface,
+	complianceReviewStatusSvc ComplianceReviewStatusServiceInterface,
 ) ComplianceReviewServiceInterface {
 	return &ComplianceReviewService{
-		repo:                  repo,
-		activityLogSvc:        activityLogSvc,
-		complianceRegisterSvc: complianceRegisterSvc,
+		repo:                      repo,
+		activityLogSvc:            activityLogSvc,
+		complianceRegisterSvc:     complianceRegisterSvc,
+		reviewFrequencySvc:        reviewFrequencySvc,
+		complianceReviewStatusSvc: complianceReviewStatusSvc,
 	}
 }
 
@@ -62,7 +69,8 @@ func (crs ComplianceReviewService) GetByID(complianceID uint, id uint) (*models.
 }
 
 func (crs *ComplianceReviewService) Create(complianceID uint, currentUserID uint, complianceReviewFormDTO *complianceDTOs.ComplianceReviewFormDTO) (uint, error) {
-	if _, err := crs.complianceRegisterSvc.GetByID(complianceID); err != nil {
+	complianceRegister, err := crs.complianceRegisterSvc.GetByID(complianceID)
+	if err != nil {
 		return 0, err
 	}
 
@@ -78,9 +86,28 @@ func (crs *ComplianceReviewService) Create(complianceID uint, currentUserID uint
 		return 0, err
 	}
 
-	// @review
-	// @we have to update next review date of compliance register.``
-	// add transaction
+	if complianceRegister.ReviewFrequencyID != nil {
+		reviewFrequency, err := crs.reviewFrequencySvc.GetByID(*complianceRegister.ReviewFrequencyID)
+		if err != nil {
+			return 0, err
+		}
+		nextReviewDate := utility.CalculateNextReviewDate(reviewFrequency.Type)
+		complianceRegister.NextReviewDate = &nextReviewDate
+	}
+
+	complianceReviewStatus, err := crs.complianceReviewStatusSvc.GetByType("reviewed")
+	if err != nil {
+		return 0, err
+	}
+
+	currentTime := time.Now()
+
+	complianceRegister.LastReviewedDate = &currentTime
+	complianceRegister.ComplianceReviewStatusID = &complianceReviewStatus.ID
+
+	if err := crs.complianceRegisterSvc.ReviewStatusUpdate(complianceRegister); err != nil {
+		return 0, err
+	}
 
 	go func() {
 		err := crs.activityLogSvc.LogActivity(
@@ -119,11 +146,8 @@ func (crs *ComplianceReviewService) Update(complianceID uint, id uint, currentUs
 		return err
 	}
 
-	// Update Compliance Review
 	existingComplianceReview.Comment = complianceReviewFormDTO.Comment
-	existingComplianceReview.ReviewedBy = currentUserID
-	//@review
-	// we have to provide updated by and updated at right?
+	existingComplianceReview.UpdatedBy = &currentUserID
 
 	err = crs.repo.Update(existingComplianceReview)
 
