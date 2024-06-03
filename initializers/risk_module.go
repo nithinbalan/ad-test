@@ -30,6 +30,8 @@ type RiskModule struct {
 	RiskRootCauseAnalysisController      *controllers.RiskRootCauseAnalysisController
 	RiskAppetiteToleranceLevelController *controllers.RiskAppetiteToleranceLevelController
 	RiskInherentEvaluationController     *controllers.RiskInherentEvaluationController
+	RiskActionPlanController             *controllers.RiskActionPlanController
+	RiskActionPlanStatusUpdateController *controllers.RiskActionPlanStatusUpdateController
 
 	RiskRegisterSvc services.RiskRegisterServiceInterface
 }
@@ -182,6 +184,25 @@ func NewRiskModule(db *gorm.DB,
 	riskInherentEvaluationSvc := services.NewRiskInherentEvaluationService(riskInherentEvaluationRepo, sharedModule.ActivityLogService, riskRegisterSvc, riskMatrixSvc, riskMatrixRiskRatingValueSvc, riskMatrixImpactSvc, riskMatrixLikelihoodSvc, riskImpactCategorySvc, riskMatrixImpactGuidelineSvc, riskAppetiteStatementSvc)
 	riskInherentEvaluationController := controllers.NewRiskInherentEvaluationController(riskInherentEvaluationSvc)
 
+	riskActionPlanRepo := repositories.NewRiskActionPlanRepository(db)
+	riskActionPlanSvc := services.NewRiskActionPlanService(
+		riskActionPlanRepo,
+		sharedModule.ActivityLogService,
+		riskRegisterSvc,
+		masterModule.ActionPlanStatusSvc,
+		masterModule.SeverityLevelSvc,
+	)
+	riskActionPlanController := controllers.NewRiskActionPlanController(riskActionPlanSvc)
+
+	riskActionPlanStatusUpdateRepo := repositories.NewRiskActionPlanStatusUpdateRepository(db)
+	riskActionPlanStatusUpdateSvc := services.NewRiskActionPlanStatusUpdateService(
+		riskActionPlanStatusUpdateRepo,
+		sharedModule.ActivityLogService,
+		riskActionPlanSvc,
+		masterModule.ActionPlanStatusSvc,
+	)
+	riskActionPlanStatusUpdateController := controllers.NewRiskActionPlanStatusUpdateController(riskActionPlanStatusUpdateSvc)
+
 	return &RiskModule{
 		RiskCategoryController:               riskCategoryController,
 		PotentialRiskStatusController:        potentialRiskStatusController,
@@ -204,6 +225,8 @@ func NewRiskModule(db *gorm.DB,
 		RiskRootCauseAnalysisController:      riskRootCauseAnalysisController,
 		RiskAppetiteToleranceLevelController: riskAppetiteToleranceLevelController,
 		RiskInherentEvaluationController:     riskInherentEvaluationController,
+		RiskActionPlanController:             riskActionPlanController,
+		RiskActionPlanStatusUpdateController: riskActionPlanStatusUpdateController,
 
 		RiskRegisterSvc: riskRegisterSvc,
 	}

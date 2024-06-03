@@ -96,20 +96,20 @@ type RiskRegisterDetailDTO struct {
 }
 
 type RiskRegisterFormDTO struct {
-	RiskCategoryID    uint                          `json:"risk_category_id" binding:"required"`
-	RiskSourceID      uint                          `json:"risk_source_id" binding:"required"`
-	OwnerUnitID       uint                          `json:"owner_unit_id" binding:"required"`
-	OwnerID           uint                          `json:"owner_id" binding:"required"`
-	RiskStatusID      uint                          `json:"risk_status_id" binding:"required"`
-	Title             string                        `json:"title" binding:"required,max=255"`
-	Description       *string                       `json:"description"`
-	ReportedAt        *string                       `json:"reported_at" binding:"required,datetime=2006-01-02"`
-	ReviewFrequencyID *uint                         `json:"review_frequency_id"`
-	NextReviewDate    *string                       `json:"next_review_date" binding:"omitempty,datetime=2006-01-02"`
-	Comments          *string                       `json:"comments"`
-	Documents         []*commonDTOs.DocumentFormDTO `json:"documents"`
-	// ComplianceRequirements []*uint                       `json:"compliance_requirements"`
-	// Controls               []*uint                       `json:"controls"`
+	RiskCategoryID         uint                          `json:"risk_category_id" binding:"required"`
+	RiskSourceID           uint                          `json:"risk_source_id" binding:"required"`
+	OwnerUnitID            uint                          `json:"owner_unit_id" binding:"required"`
+	OwnerID                uint                          `json:"owner_id" binding:"required"`
+	RiskStatusID           uint                          `json:"risk_status_id" binding:"required"`
+	Title                  string                        `json:"title" binding:"required,max=255"`
+	Description            *string                       `json:"description"`
+	ReportedAt             *string                       `json:"reported_at" binding:"required,datetime=2006-01-02"`
+	ReviewFrequencyID      *uint                         `json:"review_frequency_id"`
+	NextReviewDate         *string                       `json:"next_review_date" binding:"omitempty,datetime=2006-01-02"`
+	Comments               *string                       `json:"comments"`
+	Documents              []*commonDTOs.DocumentFormDTO `json:"documents"`
+	ComplianceRequirements []*uint                       `json:"compliance_requirements"`
+	Controls               []*uint                       `json:"controls"`
 }
 
 type RiskRegisterParsedDates struct {
