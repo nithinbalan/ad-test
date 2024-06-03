@@ -3,15 +3,22 @@ package repositories
 import (
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/models"
+	"jethur/utility"
 
 	"gorm.io/gorm"
 )
 
 type ComplianceReviewRepositoryInterface interface {
+	BeginTransaction() utility.DatabaseTransaction
 	GetAll(complianceID uint, sort string, sortBy string, keyword string) ([]*complianceDTOs.ComplianceReviewListDTO, error)
 	GetByID(id uint) (*models.ComplianceReview, error)
 	Create(ComplianceReview *models.ComplianceReview) (uint, error)
 	Update(ComplianceReview *models.ComplianceReview) error
+
+	//Document
+	CreateDocuments(docs []*models.ComplianceReviewDocument, tx ...utility.DatabaseTransaction) error
+	GetDocumentByID(id uint) (*models.ComplianceReviewDocument, error)
+	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type ComplianceReviewRepository struct {
@@ -22,6 +29,11 @@ func NewComplianceReviewRepository(db *gorm.DB) *ComplianceReviewRepository {
 	return &ComplianceReviewRepository{
 		db: db,
 	}
+}
+
+// BeginTransaction starts a new transaction.
+func (repo *ComplianceReviewRepository) BeginTransaction() utility.DatabaseTransaction {
+	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
 func (repo *ComplianceReviewRepository) GetAll(complianceID uint, sort string, sortBy string, keyword string) ([]*complianceDTOs.ComplianceReviewListDTO, error) {
@@ -75,18 +87,59 @@ func (repo *ComplianceReviewRepository) GetByID(id uint) (*models.ComplianceRevi
 	return complianceReview, nil
 }
 
-func (repo *ComplianceReviewRepository) Create(complianceReview *models.ComplianceReview) (uint, error) {
-
-	if err := repo.db.Create(complianceReview).Error; err != nil {
+func (repo *ComplianceReviewRepository) Create(complianceReview *models.ComplianceReview, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(complianceReview).Error; err != nil {
 		return 0, err
 	}
 
 	return complianceReview.ID, nil
 }
 
-func (repo *ComplianceReviewRepository) Update(ComplianceReview *models.ComplianceReview) error {
-	if err := repo.db.Save(ComplianceReview).Error; err != nil {
+func (repo *ComplianceReviewRepository) Update(ComplianceReview *models.ComplianceReview, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(ComplianceReview).Error; err != nil {
 		return err
 	}
+	return nil
+}
+
+func (repo *ComplianceReviewRepository) CreateDocuments(docs []*models.ComplianceReviewDocument, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	// Save all documents in a single transaction
+	if err := db.Create(&docs).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *ComplianceReviewRepository) GetDocumentByID(id uint) (*models.ComplianceReviewDocument, error) {
+	var document models.ComplianceReviewDocument
+	if err := repo.db.Where("id = ?", id).First(&document).Error; err != nil {
+		return nil, err
+	}
+	return &document, nil
+}
+
+func (repo *ComplianceReviewRepository) DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Delete documents by IDs
+	if err := db.Where("id IN (?)", docIds).Delete(&models.ComplianceReviewDocument{}).Error; err != nil {
+		return err
+	}
+
 	return nil
 }

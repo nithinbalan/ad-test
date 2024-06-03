@@ -1,5 +1,9 @@
 package dtos
 
+import (
+	commonDTOs "jethur/grc/common/dtos"
+)
+
 type ComplianceReviewListDTO struct {
 	ID                      uint   `json:"id"`
 	ComplianceTitleEn       string `json:"compliance_title_en"`
@@ -15,5 +19,6 @@ type ComplianceReviewListDTO struct {
 }
 
 type ComplianceReviewFormDTO struct {
-	Comment string `json:"comment" binding:"required"`
+	Comment   string                        `json:"comment" binding:"required"`
+	Documents []*commonDTOs.DocumentFormDTO `json:"documents" binding:"omitempty"`
 }
