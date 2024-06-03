@@ -15,6 +15,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	complianceCategoryController := app.ComplianceModule.ComplianceCategoryController
 	complianceStatusController := app.ComplianceModule.ComplianceStatusController
+	complianceReviewStatusController := app.ComplianceModule.ComplianceReviewStatusController
 	complianceRegisterController := app.ComplianceModule.ComplianceRegisterController
 	complianceAssociatedItemController := app.ComplianceModule.ComplianceAssociatedItemController
 	complianceRequirementCategoryController := app.ComplianceModule.ComplianceRequirementCategoryController
@@ -62,6 +63,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.POST("/sla-categories/delete", SLACategoryController.DeleteSLACategories)
 	complianceRoutes.PUT("/sla-categories/activate", SLACategoryController.ActivateSLACategories)
 	complianceRoutes.PUT("/sla-categories/deactivate", SLACategoryController.DeactivateSLACategories)
+
+	//Compliance Review Statuses
+	complianceRoutes.GET("/compliance-review-statuses", complianceReviewStatusController.GetAllComplianceReviewStatuses)
+	complianceRoutes.GET("/compliance-review-statuses/:id", complianceReviewStatusController.GetComplianceReviewStatusDetails)
 
 	//Compliance Register
 	complianceRoutes.GET("/compliance-register", complianceRegisterController.GetAllComplianceRegisters)

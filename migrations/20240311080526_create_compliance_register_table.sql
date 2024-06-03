@@ -20,7 +20,10 @@ CREATE TABLE compliance_register (
     issue_date DATE NULL,
     expiry_date DATE NULL,
     next_review_date DATE NULL,
+    last_reviewed_date DATE NULL,
+    last_reviewed_user_id INT NULL,
     last_review_note NVARCHAR(MAX) NULL,
+    compliance_review_status_id INT NOT NULL,
     created_at DATETIME NOT NULL ,
     updated_at DATETIME NULL,
     created_by INT NOT NULL,
@@ -35,7 +38,9 @@ CREATE TABLE compliance_register (
     CONSTRAINT FK_compliance_register_users_2 FOREIGN KEY (review_responsible_user_id) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_compliance_register_users_3 FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_compliance_register_users_4 FOREIGN KEY (updated_by) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
-    CONSTRAINT FK_compliance_register_lifecycle_statuses FOREIGN KEY (lifecycle_status_id) REFERENCES lifecycle_statuses (id) ON DELETE NO ACTION ON UPDATE NO ACTION
+    CONSTRAINT FK_compliance_register_lifecycle_statuses FOREIGN KEY (lifecycle_status_id) REFERENCES lifecycle_statuses (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_compliance_register_users_5 FOREIGN KEY (last_reviewed_user_id) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_compliance_register_compliance_review_statuses FOREIGN KEY (compliance_review_status_id) REFERENCES compliance_review_statuses (id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 
 -- +goose StatementEnd
