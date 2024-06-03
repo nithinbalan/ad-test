@@ -101,7 +101,7 @@ type ComplianceRegisterFormDTO struct {
 	NextReviewDate           *string                   `json:"next_review_date" binding:"omitempty,datetime=2006-01-02"`
 	LastReviewedDate         *string                   `json:"last_reviewed_date" binding:"omitempty,datetime=2006-01-02"`
 	LastReviewedUserID       *uint                     `json:"last_reviewed_user_id" binding:"omitempty"`
-	ComplianceReviewStatusID uint                      `json:"compliance_review_status_id"`
+	ComplianceReviewStatusID *uint                     `json:"compliance_review_status_id"`
 	LastReviewNote           *string                   `json:"last_review_note"`
 	StandardCode             *string                   `json:"standard_code" binding:"omitempty,max=45"`
 	Document                 ComplianceDocumentFormDTO `json:"document" binding:"required"`
