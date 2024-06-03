@@ -1,13 +1,14 @@
 package dtos
 
 type IncidentSubCategoryDTO struct {
-	ID                 int    `json:"id"`
-	IncidentCategoryID uint   `json:"incident_category_id"`
-	TitleEn            string `json:"title_en"`
-	TitleAr            string `json:"title_ar"`
-	Status             string `json:"status"`
+	ID                      int    `json:"id"`
+	IncidentCategoryID      uint   `json:"incident_category_id"`
+	TitleEn                 string `json:"title_en"`
+	TitleAr                 string `json:"title_ar"`
+	IncidentCategoryTitleEn string `json:"incident_category_title_en"`
+	IncidentCategoryTitleAr string `json:"incident_category_title_ar"`
+	Status                  string `json:"status"`
 }
-
 type IncidentSubCategoryFormDTO struct {
 	ID                 uint   `json:"id"`
 	IncidentCategoryID uint   `json:"incident_category_id" binding:"required"`

@@ -24,7 +24,7 @@ func NewIncidentActionPlanStatusUpdateController(service services.IncidentAction
 }
 
 func (iasuc *IncidentActionPlanStatusUpdateController) GetAllIncidentActionPlanStatusUpdates(c *gin.Context) {
-	incidentIDStr := c.Param("incidentId")
+	incidentIDStr := c.Param("incidentID")
 
 	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 32)
 	if err != nil {
@@ -62,7 +62,7 @@ func (iasuc *IncidentActionPlanStatusUpdateController) GetAllIncidentActionPlanS
 func (iasuc *IncidentActionPlanStatusUpdateController) CreateIncidentActionPlanStatusUpdate(c *gin.Context) {
 	var incidentStatusUpdateFormDTO incidentDTOs.IncidentActionPlanStatusUpdateFormDTO
 
-	incidentIDStr := c.Param("incidentId")
+	incidentIDStr := c.Param("incidentID")
 
 	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 32)
 	if err != nil {
@@ -111,7 +111,7 @@ func (iasuc *IncidentActionPlanStatusUpdateController) CreateIncidentActionPlanS
 func (iasuc *IncidentActionPlanStatusUpdateController) UpdateIncidentActionPlanStatusUpdate(c *gin.Context) {
 	var incidentStatusUpdateFormDTO incidentDTOs.IncidentActionPlanStatusUpdateFormDTO
 
-	incidentIDStr := c.Param("incidentId")
+	incidentIDStr := c.Param("incidentID")
 
 	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
 	if err != nil {

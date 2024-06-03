@@ -24,7 +24,7 @@ func NewIncidentClosureController(service services.IncidentClosureServiceInterfa
 }
 
 func (icc *IncidentClosureController) GetIncidentClosureDetails(c *gin.Context) {
-	incidentIDStr := c.Param("incidentId")
+	incidentIDStr := c.Param("incidentID")
 
 	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
 	if err != nil {
@@ -58,7 +58,7 @@ func (icc *IncidentClosureController) GetIncidentClosureDetails(c *gin.Context) 
 func (icc *IncidentClosureController) CreateIncidentClosure(c *gin.Context) {
 	var IncidentClosureFormDTO incidentDTOs.IncidentClosureFormDTO
 
-	incidentIDStr := c.Param("incidentId")
+	incidentIDStr := c.Param("incidentID")
 
 	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
 	if err != nil {
@@ -99,7 +99,7 @@ func (icc *IncidentClosureController) CreateIncidentClosure(c *gin.Context) {
 func (icc *IncidentClosureController) UpdateIncidentClosure(c *gin.Context) {
 	var IncidentClosureFormDTO incidentDTOs.IncidentClosureFormDTO
 
-	incidentIDStr := c.Param("incidentId")
+	incidentIDStr := c.Param("incidentID")
 
 	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
 	if err != nil {
@@ -149,7 +149,7 @@ func (icc *IncidentClosureController) DeleteIncidentClosures(c *gin.Context) {
 		IDs []uint `json:"ids"`
 	}
 
-	incidentIDStr := c.Param("incidentId")
+	incidentIDStr := c.Param("incidentID")
 
 	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
 	if err != nil {

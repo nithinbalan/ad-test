@@ -24,12 +24,12 @@ func NewIncidentActionPlanController(service services.IncidentActionPlanServiceI
 }
 
 func (iapc *IncidentActionPlanController) GetAllIncidentActionPlans(c *gin.Context) {
-	incidentIDStr := c.Param("incidentId")
+	incidentIDStr := c.Param("incidentID")
 
 	var incidentID uint64
 	var err error
 
-	// Check if incidentId is provided in the URL
+	// Check if incidentID is provided in the URL
 	if incidentIDStr != "" {
 		incidentID, err = strconv.ParseUint(incidentIDStr, 10, 64)
 		if err != nil {
@@ -99,7 +99,7 @@ func (iapc *IncidentActionPlanController) GetAllIncidentActionPlans(c *gin.Conte
 }
 
 func (iapc *IncidentActionPlanController) GetIncidentActionPlanDetails(c *gin.Context) {
-	incidentIDStr := c.Param("incidentId")
+	incidentIDStr := c.Param("incidentID")
 
 	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
 	if err != nil {
@@ -133,7 +133,7 @@ func (iapc *IncidentActionPlanController) GetIncidentActionPlanDetails(c *gin.Co
 func (iapc *IncidentActionPlanController) CreateIncidentActionPlan(c *gin.Context) {
 	var IncidentActionPlanFormDTO incidentDTOs.IncidentActionPlanFormDTO
 
-	incidentIDStr := c.Param("incidentId")
+	incidentIDStr := c.Param("incidentID")
 
 	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
 	if err != nil {
@@ -174,7 +174,7 @@ func (iapc *IncidentActionPlanController) CreateIncidentActionPlan(c *gin.Contex
 func (iapc *IncidentActionPlanController) UpdateIncidentActionPlan(c *gin.Context) {
 	var IncidentActionPlanFormDTO incidentDTOs.IncidentActionPlanFormDTO
 
-	incidentIDStr := c.Param("incidentId")
+	incidentIDStr := c.Param("incidentID")
 
 	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
 	if err != nil {
@@ -224,7 +224,7 @@ func (iapc *IncidentActionPlanController) DeleteIncidentActionPlans(c *gin.Conte
 		IDs []uint `json:"ids"`
 	}
 
-	incidentIDStr := c.Param("incidentId")
+	incidentIDStr := c.Param("incidentID")
 
 	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
 	if err != nil {

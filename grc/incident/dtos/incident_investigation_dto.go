@@ -79,8 +79,8 @@ type IncidentInvestigationDetailDTO struct {
 	TeamLead                    organizationDTOs.UserMinimalDTO     `json:"team_lead"`
 	IncidentInvestigationStatus IncidentInvestigationStatusDTO      `json:"incident_investigation_status"`
 	Documents                   []*IncidentInvestigationDocumentDTO `json:"documents"`
-	Users                       []*IncidentInvestigationUserDTO     `json:"users"`
-	Findings                    []*IncidentInvestigationFindingDTO  `json:"findings"`
+	Users                       []*IncidentInvestigationUsersDTO    `json:"users"`
+	Findings                    []*IncidentInvestigationFindingsDTO `json:"findings"`
 	CreatedAt                   time.Time                           `json:"created_at"`
 	UpdatedAt                   *time.Time                          `json:"updated_at"`
 	CreatedByUser               organizationDTOs.UserMinimalDTO     `json:"created_by"`
@@ -91,14 +91,14 @@ type IncidentInvestigationParsedDates struct {
 	InitiatedAt *time.Time
 }
 
-type IncidentInvestigationUserDTO struct {
+type IncidentInvestigationUsersDTO struct {
 	ID                      uint                            `json:"id"`
 	IncidentInvestigationID uint                            `json:"incident_investigation_id"`
 	UserID                  int                             `json:"user_id"`
 	User                    organizationDTOs.UserDetailsDTO `json:"user"`
 }
 
-type IncidentInvestigationFindingDTO struct {
+type IncidentInvestigationFindingsDTO struct {
 	ID                      uint   `json:"id"`
 	IncidentInvestigationID uint   `json:"incident_investigation_id"`
 	Title                   string `json:"title"`

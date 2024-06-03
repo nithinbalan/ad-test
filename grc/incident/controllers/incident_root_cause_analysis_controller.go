@@ -24,7 +24,7 @@ func NewIncidentRootCauseAnalysisController(service services.IncidentRootCauseAn
 }
 
 func (ircac *IncidentRootCauseAnalysisController) GetAllIncidentRootCauseAnalyses(c *gin.Context) {
-	incidentIDStr := c.Param("incidentId")
+	incidentIDStr := c.Param("incidentID")
 
 	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
 	if err != nil {
@@ -59,7 +59,7 @@ func (ircac *IncidentRootCauseAnalysisController) GetAllIncidentRootCauseAnalyse
 func (ircac *IncidentRootCauseAnalysisController) CreateIncidentRootCauseAnalysis(c *gin.Context) {
 	var IncidentRootCauseAnalysisFormDTO incidentDTOs.IncidentRootCauseAnalysisFormDTO
 
-	incidentIDStr := c.Param("incidentId")
+	incidentIDStr := c.Param("incidentID")
 
 	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
 	if err != nil {
@@ -100,7 +100,7 @@ func (ircac *IncidentRootCauseAnalysisController) CreateIncidentRootCauseAnalysi
 func (ircac *IncidentRootCauseAnalysisController) UpdateIncidentRootCauseAnalysis(c *gin.Context) {
 	var IncidentRootCauseAnalysisFormDTO incidentDTOs.IncidentRootCauseAnalysisFormDTO
 
-	incidentIDStr := c.Param("incidentId")
+	incidentIDStr := c.Param("incidentID")
 
 	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
 	if err != nil {
@@ -138,7 +138,7 @@ func (ircac *IncidentRootCauseAnalysisController) UpdateIncidentRootCauseAnalysi
 }
 
 func (ircac *IncidentRootCauseAnalysisController) DeleteIncidentRootCauseAnalyses(c *gin.Context) {
-	incidentIDStr := c.Param("incidentId")
+	incidentIDStr := c.Param("incidentID")
 
 	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
 	if err != nil {

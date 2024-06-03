@@ -24,7 +24,7 @@ func NewIncidentCommunicationLogController(service services.IncidentCommunicatio
 }
 
 func (iclc *IncidentCommunicationLogController) GetAllIncidentCommunicationLogs(c *gin.Context) {
-	incidentIDStr := c.Param("incidentId")
+	incidentIDStr := c.Param("incidentID")
 
 	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
 	if err != nil {
@@ -79,7 +79,7 @@ func (iclc *IncidentCommunicationLogController) GetAllIncidentCommunicationLogs(
 }
 
 func (iclc *IncidentCommunicationLogController) GetIncidentCommunicationLogDetails(c *gin.Context) {
-	incidentIDStr := c.Param("incidentId")
+	incidentIDStr := c.Param("incidentID")
 	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -112,7 +112,7 @@ func (iclc *IncidentCommunicationLogController) GetIncidentCommunicationLogDetai
 func (iclc *IncidentCommunicationLogController) CreateIncidentCommunicationLog(c *gin.Context) {
 	var IncidentCommunicationLogFormDTO incidentDTOs.IncidentCommunicationLogFormDTO
 
-	incidentIDStr := c.Param("incidentId")
+	incidentIDStr := c.Param("incidentID")
 
 	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
 	if err != nil {
@@ -153,7 +153,7 @@ func (iclc *IncidentCommunicationLogController) CreateIncidentCommunicationLog(c
 func (iclc *IncidentCommunicationLogController) UpdateIncidentCommunicationLog(c *gin.Context) {
 	var IncidentCommunicationLogFormDTO incidentDTOs.IncidentCommunicationLogFormDTO
 
-	incidentIDStr := c.Param("incidentId")
+	incidentIDStr := c.Param("incidentID")
 
 	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
 	if err != nil {
@@ -203,7 +203,7 @@ func (iclc *IncidentCommunicationLogController) DeleteIncidentCommunicationLogs(
 		IDs []uint `json:"ids"`
 	}
 
-	incidentIDStr := c.Param("incidentId")
+	incidentIDStr := c.Param("incidentID")
 
 	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
 	if err != nil {
