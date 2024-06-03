@@ -113,6 +113,10 @@ func (crs ComplianceRegisterService) GetFullDetailsByID(id uint, tx ...utility.D
 		nextReviewDate := compliance.NextReviewDate.Format("2006-01-02")
 		complianceDTO.NextReviewDateString = &nextReviewDate
 	}
+	if compliance.LastReviewedDate != nil {
+		nextReviewDate := compliance.LastReviewedDate.Format("2006-01-02")
+		complianceDTO.LastReviewedDateString = &nextReviewDate
+	}
 
 	complianceDTO.CreatedAt = compliance.CreatedAt
 	complianceDTO.UpdatedAt = compliance.UpdatedAt
@@ -148,27 +152,30 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 	}
 
 	complianceRegister := &models.ComplianceRegister{
-		ComplianceCategoryID:    complianceRegisterFormDTO.ComplianceCategoryID,
-		ComplianceStatusID:      complianceRegisterFormDTO.ComplianceStatusID,
-		ResponsibleUnitID:       complianceRegisterFormDTO.ResponsibleUnitID,
-		ResponsibleUserID:       complianceRegisterFormDTO.ResponsibleUserID,
-		ReviewFrequencyID:       complianceRegisterFormDTO.ReviewFrequencyID,
-		LastReviewNote:          complianceRegisterFormDTO.LastReviewNote,
-		ReviewResponsibleUserID: complianceRegisterFormDTO.ReviewResponsibleUserID,
-		SeverityLevelID:         complianceRegisterFormDTO.SeverityLevelID,
-		ReferenceNumber:         referenceNumber,
-		StandardCode:            complianceRegisterFormDTO.StandardCode,
-		TitleEn:                 complianceRegisterFormDTO.TitleEn,
-		TitleAr:                 complianceRegisterFormDTO.TitleAr,
-		DescriptionEn:           complianceRegisterFormDTO.DescriptionEn,
-		DescriptionAr:           complianceRegisterFormDTO.DescriptionAr,
-		Version:                 complianceRegisterFormDTO.Version,
-		Deadline:                dates.Deadline,
-		IssueDate:               dates.IssueDate,
-		ExpiryDate:              dates.ExpiryDate,
-		NextReviewDate:          dates.NextReviewDate,
-		CreatedBy:               currentUserID,
-		LifecycleStatusID:       lifecycleStatus.ID,
+		ComplianceCategoryID:     complianceRegisterFormDTO.ComplianceCategoryID,
+		ComplianceStatusID:       complianceRegisterFormDTO.ComplianceStatusID,
+		ResponsibleUnitID:        complianceRegisterFormDTO.ResponsibleUnitID,
+		ResponsibleUserID:        complianceRegisterFormDTO.ResponsibleUserID,
+		ReviewFrequencyID:        complianceRegisterFormDTO.ReviewFrequencyID,
+		LastReviewNote:           complianceRegisterFormDTO.LastReviewNote,
+		ReviewResponsibleUserID:  complianceRegisterFormDTO.ReviewResponsibleUserID,
+		SeverityLevelID:          complianceRegisterFormDTO.SeverityLevelID,
+		ReferenceNumber:          referenceNumber,
+		StandardCode:             complianceRegisterFormDTO.StandardCode,
+		TitleEn:                  complianceRegisterFormDTO.TitleEn,
+		TitleAr:                  complianceRegisterFormDTO.TitleAr,
+		DescriptionEn:            complianceRegisterFormDTO.DescriptionEn,
+		DescriptionAr:            complianceRegisterFormDTO.DescriptionAr,
+		Version:                  complianceRegisterFormDTO.Version,
+		Deadline:                 dates.Deadline,
+		IssueDate:                dates.IssueDate,
+		ExpiryDate:               dates.ExpiryDate,
+		NextReviewDate:           dates.NextReviewDate,
+		LastReviewedDate:         dates.LastReviewedDate,
+		LastReviewedUserID:       complianceRegisterFormDTO.LastReviewedUserID,
+		ComplianceReviewStatusID: complianceRegisterFormDTO.ComplianceReviewStatusID,
+		CreatedBy:                currentUserID,
+		LifecycleStatusID:        lifecycleStatus.ID,
 	}
 
 	id, err := crs.repo.Create(complianceRegister, tx)
@@ -297,6 +304,9 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 	existingComplianceRegister.IssueDate = dates.IssueDate
 	existingComplianceRegister.ExpiryDate = dates.ExpiryDate
 	existingComplianceRegister.NextReviewDate = dates.NextReviewDate
+	existingComplianceRegister.LastReviewedDate = dates.LastReviewedDate
+	existingComplianceRegister.LastReviewedUserID = complianceRegisterFormDTO.LastReviewedUserID
+	existingComplianceRegister.ComplianceReviewStatusID = complianceRegisterFormDTO.ComplianceReviewStatusID
 	existingComplianceRegister.LastReviewNote = complianceRegisterFormDTO.LastReviewNote
 	existingComplianceRegister.UpdatedBy = &currentUserID
 
@@ -673,6 +683,11 @@ func (crs *ComplianceRegisterService) parseComplianceRegisterDates(dto *complian
 	parsed.NextReviewDate, err = utility.ParseDate(*dto.NextReviewDate)
 	if err != nil {
 		return nil, utility.NewValidationError(fmt.Errorf("invalid next review date"), "invalid_date", "next review date")
+	}
+
+	parsed.LastReviewedDate, err = utility.ParseDate(*dto.LastReviewedDate)
+	if err != nil {
+		return nil, utility.NewValidationError(fmt.Errorf("invalid last reviewed date"), "invalid_date", "last reviewed date")
 	}
 
 	return parsed, nil

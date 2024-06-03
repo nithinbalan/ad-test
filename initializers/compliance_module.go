@@ -11,6 +11,7 @@ import (
 type ComplianceModule struct {
 	ComplianceCategoryController                *controllers.ComplianceCategoryController
 	ComplianceStatusController                  *controllers.ComplianceStatusController
+	ComplianceReviewStatusController            *controllers.ComplianceReviewStatusController
 	ComplianceRegisterController                *controllers.ComplianceRegisterController
 	ComplianceAssociatedItemController          *controllers.ComplianceAssociatedItemController
 	ComplianceRequirementCategoryController     *controllers.ComplianceRequirementCategoryController
@@ -39,6 +40,10 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 	complianceStatusRepo := repositories.NewComplianceStatusRepository(db)
 	complianceStatusSvc := services.NewComplianceStatusService(complianceStatusRepo)
 	complianceStatusController := controllers.NewComplianceStatusController(complianceStatusSvc)
+
+	complianceReviewStatusRepo := repositories.NewComplianceReviewStatusRepository(db)
+	complianceReviewStatusSvc := services.NewComplianceReviewStatusService(complianceReviewStatusRepo)
+	complianceReviewStatusController := controllers.NewComplianceReviewStatusController(complianceReviewStatusSvc)
 
 	complianceRegisterRepo := repositories.NewComplianceRegisterRepository(db)
 	complianceRegisterSvc := services.NewComplianceRegisterService(
@@ -152,6 +157,7 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 	return &ComplianceModule{
 		ComplianceCategoryController:                complianceCategoryController,
 		ComplianceStatusController:                  complianceStatusController,
+		ComplianceReviewStatusController:            complianceReviewStatusController,
 		ComplianceRegisterController:                complianceRegisterController,
 		ComplianceAssociatedItemController:          complianceAssociatedItemController,
 		ComplianceRequirementCategoryController:     complianceRequirementCategoryController,

@@ -63,6 +63,7 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
         	CONVERT(VARCHAR, compliance_register.issue_date, 23) AS issue_date,
         	CONVERT(VARCHAR, compliance_register.expiry_date, 23) AS expiry_date,
        		CONVERT(VARCHAR, compliance_register.next_review_date, 23) AS next_review_date,
+			CONVERT(VARCHAR, compliance_register.last_reviewed_date, 23) AS last_reviewed_date,
 			compliance_categories.title_en AS compliance_category_title_en,
 			compliance_categories.title_ar AS compliance_category_title_ar,
 			compliance_statuses.title_en AS compliance_status_title_en,
@@ -253,6 +254,8 @@ func (repo *ComplianceRegisterRepository) GetFullDetailsByID(id uint, tx ...util
 		Preload("ResponsibleUser").
 		Preload("ResponsibleUser.OrganizationUnit1").
 		Preload("ReviewFrequency").
+		Preload("ComplianceReviewStatus").
+		Preload("LastReviewedUser").
 		Preload("ReviewResponsibleUser").
 		Preload("SeverityLevel").
 		Preload("LifecycleStatus").
