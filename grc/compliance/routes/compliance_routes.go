@@ -16,6 +16,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceCategoryController := app.ComplianceModule.ComplianceCategoryController
 	complianceStatusController := app.ComplianceModule.ComplianceStatusController
 	complianceRegisterController := app.ComplianceModule.ComplianceRegisterController
+	complianceAssociatedItemController := app.ComplianceModule.ComplianceAssociatedItemController
 	complianceRequirementCategoryController := app.ComplianceModule.ComplianceRequirementCategoryController
 	complianceRequirementController := app.ComplianceModule.ComplianceRequirementController
 	complianceActionPlanController := app.ComplianceModule.ComplianceActionPlanController
@@ -71,6 +72,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.PUT("/compliance-register/archive", complianceRegisterController.ArchiveComplianceRegisters)
 	complianceRoutes.PUT("/compliance-register/restore", complianceRegisterController.RestoreComplianceRegisters)
 
+	//Compliance Associated Items
+	complianceRoutes.GET("compliances/:complianceId/controls", complianceAssociatedItemController.GetAllComplianceControls)
+
 	//SLA Register
 	complianceRoutes.GET("/sla-register", SLARegisterController.GetAllSLARegisters)
 	complianceRoutes.GET("/sla-register/:id", SLARegisterController.GetSLARegisterDetails)
@@ -86,7 +90,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.PUT("/slas/:slaId/revert", SLARenewController.Revert)
 
 	//Compliance Requirement
-	complianceRoutes.GET("/compliances/:complianceId/requirements", complianceRequirementController.GetAllComplianceRequirements)
+	complianceRoutes.GET("/compliance-requirements", complianceRequirementController.GetAllComplianceRequirements)
 	complianceRoutes.GET("/compliances/:complianceId/requirements/:requirementId", complianceRequirementController.GetComplianceRequirementDetails)
 	complianceRoutes.POST("/compliances/:complianceId/requirements", complianceRequirementController.CreateComplianceRequirement)
 	complianceRoutes.PUT("/compliances/:complianceId/requirements/:requirementId", complianceRequirementController.UpdateComplianceRequirement)

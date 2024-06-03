@@ -18,7 +18,7 @@ type UserRepositoryInterface interface {
 	GetByEmail(email string) (*models.User, error)
 	Create(user *models.User, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(user *models.User, tx ...utility.DatabaseTransaction) error
-	UpdatePartial(id uint, updates map[string]interface{}) error
+	UpdatePartial(id uint, updates map[string]interface{}, tx ...utility.DatabaseTransaction) error
 	Delete(id uint) error
 	ExistsByEmail(email string) (bool, error)
 	ExistsByEmailExcludingID(id uint, email string) (bool, error)
@@ -32,6 +32,9 @@ type UserRepositoryInterface interface {
 	//User roles
 	CreateUserRole(userRoles []models.UserRole, tx ...utility.DatabaseTransaction) error
 	UpdateUserRoles(userID uint, desiredRoleIDs []uint, tx ...utility.DatabaseTransaction) error
+
+	GetUserLoginHistory(params *userDTOs.UserLoginHistoryListQueryParamsDTO) (*userDTOs.UserLoginHistoryListResponseDTO, error)
+	CreateUserLoginHistory(userLogin *models.UserLoginHistory, tx ...utility.DatabaseTransaction) error
 }
 
 type UserRepository struct {
@@ -80,8 +83,8 @@ func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*us
 		Joins("LEFT JOIN organization_units org4 ON org4.id = users.organization_unit_4_id").
 		Joins("LEFT JOIN organization_units org5 ON org5.id = users.organization_unit_5_id").
 		Joins("LEFT JOIN designations ON designations.id = users.designation_id").
-		Joins("INNER JOIN user_statuses ON user_statuses.id = users.user_status_id").
-		Joins("INNER JOIN (SELECT user_roles.user_id, STRING_AGG(roles.title_en, ', ') AS roles_en, STRING_AGG(roles.title_ar, ', ') AS roles_ar FROM user_roles JOIN roles ON roles.id = user_roles.role_id GROUP BY user_roles.user_id) roles_agg ON roles_agg.user_id = users.id")
+		Joins("LEFT JOIN user_statuses ON user_statuses.id = users.user_status_id").
+		Joins("LEFT JOIN (SELECT user_roles.user_id, STRING_AGG(roles.title_en, ', ') AS roles_en, STRING_AGG(roles.title_ar, ', ') AS roles_ar FROM user_roles JOIN roles ON roles.id = user_roles.role_id GROUP BY user_roles.user_id) roles_agg ON roles_agg.user_id = users.id")
 
 		// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
@@ -98,6 +101,12 @@ func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*us
 			query = query.Where("users.created_at >= ?", thirtyDaysAgo)
 		case "admin_users":
 			query = query.Where("roles_agg.roles_en = ? OR roles_agg.roles_ar = ?", "Admin", "مسؤول")
+		case "logged_in_today":
+			query = query.Where("CONVERT(date, users.last_login_at) = CONVERT(date, GETDATE())")
+		case "logged_in_this_week":
+			query = query.Where("DATEPART(week, users.last_login_at) = DATEPART(week, GETDATE())")
+		case "not_logged_in":
+			query = query.Where("users.last_login_at IS NULL")
 		}
 	}
 
@@ -223,8 +232,12 @@ func (repo *UserRepository) Update(user *models.User, tx ...utility.DatabaseTran
 	return nil
 }
 
-func (repo *UserRepository) UpdatePartial(id uint, updates map[string]interface{}) error {
-	if err := repo.db.Model(&models.User{}).Where("id = ?", id).Updates(updates).Error; err != nil {
+func (repo *UserRepository) UpdatePartial(id uint, updates map[string]interface{}, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Model(&models.User{}).Where("id = ?", id).Updates(updates).Error; err != nil {
 		return err
 	}
 
@@ -387,4 +400,62 @@ func contains(slice []uint, val uint) bool {
 		}
 	}
 	return false
+}
+
+func (repo *UserRepository) GetUserLoginHistory(params *userDTOs.UserLoginHistoryListQueryParamsDTO) (*userDTOs.UserLoginHistoryListResponseDTO, error) {
+	var userLogins []*userDTOs.UserLoginHistoryListDTO
+	var totalCount int64
+
+	query := repo.db.Table("user_login_history").
+		Select("id, login_at, login_status, ip_address, location, device_info, browser_info")
+
+	if params.Keyword != "" {
+		query = query.Where("(login_status LIKE ? OR location LIKE ? OR ip_address LIKE ? OR device_info LIKE ? OR browser_info LIKE ?)", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
+	}
+
+	// Apply implemented_at filters
+	if params.LoginAtFrom != "" {
+		query = query.Where("implemented_at >= ?", params.LoginAtFrom)
+	}
+	if params.LoginAtTo != "" {
+		query = query.Where("implemented_at <= ?", params.LoginAtTo)
+	}
+
+	// Calculate total count for pagination
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
+	offset := (params.Page - 1) * params.PageSize
+
+	err := query.Offset(offset).Limit(params.PageSize).Find(&userLogins).Error
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &userDTOs.UserLoginHistoryListResponseDTO{
+		Items: userLogins,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+	return response, nil
+}
+
+func (repo *UserRepository) CreateUserLoginHistory(userLogin *models.UserLoginHistory, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Create(userLogin).Error; err != nil {
+		return err
+	}
+	return nil
 }

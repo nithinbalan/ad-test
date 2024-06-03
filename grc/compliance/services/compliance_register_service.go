@@ -9,6 +9,7 @@ import (
 	masterRepositories "jethur/grc/masters/repositories"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
+	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
 	"path/filepath"
 	"strconv"
@@ -38,6 +39,7 @@ type ComplianceRegisterService struct {
 	complianceStatusSvc   ComplianceStatusServiceInterface
 	reviewFrequencySvc    masterServices.ReviewFrequencyServiceInterface
 	severityLevelSvc      masterServices.SeverityLevelServiceInterface
+	controlSvc            organizationServices.ControlServiceInterface
 }
 
 func NewComplianceRegisterService(
@@ -47,7 +49,8 @@ func NewComplianceRegisterService(
 	complianceCategorySvc ComplianceCategoryServiceInterface,
 	complianceStatusSvc ComplianceStatusServiceInterface,
 	reviewFrequencySvc masterServices.ReviewFrequencyServiceInterface,
-	severityLevelSvc masterRepositories.SeverityLevelRepositoryInterface) ComplianceRegisterServiceInterface {
+	severityLevelSvc masterRepositories.SeverityLevelRepositoryInterface,
+	controlSvc organizationServices.ControlServiceInterface) ComplianceRegisterServiceInterface {
 	return &ComplianceRegisterService{
 		repo:                  repo,
 		activityLogSvc:        activityLogSvc,
@@ -56,6 +59,7 @@ func NewComplianceRegisterService(
 		complianceStatusSvc:   complianceStatusSvc,
 		reviewFrequencySvc:    reviewFrequencySvc,
 		severityLevelSvc:      severityLevelSvc,
+		controlSvc:            controlSvc,
 	}
 }
 
@@ -92,6 +96,26 @@ func (crs ComplianceRegisterService) GetFullDetailsByID(id uint, tx ...utility.D
 		return nil, err
 	}
 
+	// Format time fields without time component
+	if compliance.Deadline != nil {
+		deadline := compliance.Deadline.Format("2006-01-02")
+		complianceDTO.DeadlineString = &deadline
+	}
+	if compliance.IssueDate != nil {
+		issueDate := compliance.IssueDate.Format("2006-01-02")
+		complianceDTO.IssueDateString = &issueDate
+	}
+	if compliance.ExpiryDate != nil {
+		expiryDate := compliance.ExpiryDate.Format("2006-01-02")
+		complianceDTO.ExpiryDateString = &expiryDate
+	}
+	if compliance.NextReviewDate != nil {
+		nextReviewDate := compliance.NextReviewDate.Format("2006-01-02")
+		complianceDTO.NextReviewDateString = &nextReviewDate
+	}
+
+	complianceDTO.CreatedAt = compliance.CreatedAt
+	complianceDTO.UpdatedAt = compliance.UpdatedAt
 	//todo :- also add extra fields which required in details screen
 
 	return &complianceDTO, nil
@@ -129,6 +153,7 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 		ResponsibleUnitID:       complianceRegisterFormDTO.ResponsibleUnitID,
 		ResponsibleUserID:       complianceRegisterFormDTO.ResponsibleUserID,
 		ReviewFrequencyID:       complianceRegisterFormDTO.ReviewFrequencyID,
+		LastReviewNote:          complianceRegisterFormDTO.LastReviewNote,
 		ReviewResponsibleUserID: complianceRegisterFormDTO.ReviewResponsibleUserID,
 		SeverityLevelID:         complianceRegisterFormDTO.SeverityLevelID,
 		ReferenceNumber:         referenceNumber,
@@ -152,6 +177,24 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 		return 0, err
 	}
 
+	// Save Controls
+	var controls []*models.ComplianceControl
+	for _, ctrl := range complianceRegisterFormDTO.ControlIDs {
+		control := &models.ComplianceControl{
+			ComplianceRegisterID: id,
+			ControlID:            *ctrl,
+			CreatedBy:            currentUserID,
+		}
+		controls = append(controls, control)
+	}
+
+	if len(controls) > 0 {
+		if err := crs.repo.CreateComplianceControls(controls, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
 	//generate token
 	dataToEncrypt := []byte(complianceRegisterFormDTO.Document.FileName)
 	encryptedFilename, err := utility.EncryptData(dataToEncrypt)
@@ -161,16 +204,15 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 
 	//genereate URL
 	url := utility.GenerateDocumentURL("compliance-register", strconv.FormatUint(uint64(complianceRegister.ID), 10), encryptedFilename)
-	// url := fmt.Sprintf("%s/compliance-register/%d/%s", config.GetEnv("API_URL", "http://localhost:8080"), complianceRegister.ID, encryptedFilename)
 
 	complianceDocument := &models.ComplianceDocument{
 		ComplianceRegisterID: id,
 		Language:             complianceRegisterFormDTO.Document.Language,
 		URL:                  url,
-		Icon:                 complianceRegisterFormDTO.Document.Icon,
 		Name:                 complianceRegisterFormDTO.Document.FileName,
 		Size:                 complianceRegisterFormDTO.Document.Size,
 		Token:                encryptedFilename,
+		OriginalName:         complianceRegisterFormDTO.Document.OriginalName,
 		Type:                 complianceRegisterFormDTO.Document.Type,
 		CreatedBy:            currentUserID,
 	}
@@ -255,6 +297,7 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 	existingComplianceRegister.IssueDate = dates.IssueDate
 	existingComplianceRegister.ExpiryDate = dates.ExpiryDate
 	existingComplianceRegister.NextReviewDate = dates.NextReviewDate
+	existingComplianceRegister.LastReviewNote = complianceRegisterFormDTO.LastReviewNote
 	existingComplianceRegister.UpdatedBy = &currentUserID
 
 	err = crs.repo.Update(existingComplianceRegister, tx)
@@ -264,57 +307,105 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 		return err
 	}
 
-	if complianceRegisterFormDTO.Document.ID != nil {
-		existingComplianceDocument, err := crs.repo.GetDocumentByID(*complianceRegisterFormDTO.Document.ID)
-		if err != nil {
+	// Collect existing control IDs
+	existingCompliance, err := crs.GetFullDetailsByID(id, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	existingControlIDs := make(map[uint]bool)
+	for _, ctrl := range existingCompliance.Controls {
+		existingControlIDs[ctrl.ControlID] = true
+	}
+
+	// Collect new control IDs
+	newControlIDs := make(map[uint]bool)
+	for _, ctrl := range complianceRegisterFormDTO.ControlIDs {
+		newControlIDs[*ctrl] = true
+	}
+
+	// Add new controls
+	var controlsToAdd []*models.ComplianceControl
+	for _, newControlID := range complianceRegisterFormDTO.ControlIDs {
+		if _, exists := existingControlIDs[*newControlID]; !exists {
+			// Create a new compliance control record
+			control := &models.ComplianceControl{
+				ComplianceRegisterID: id,
+				ControlID:            *newControlID,
+				CreatedBy:            currentUserID,
+			}
+			controlsToAdd = append(controlsToAdd, control)
+		}
+	}
+
+	// Save the new controls
+	if len(controlsToAdd) > 0 {
+		if err := crs.repo.CreateComplianceControls(controlsToAdd, tx); err != nil {
+			tx.Rollback()
 			return err
 		}
-		existingComplianceDocument.ComplianceRegisterID = id
+	}
+
+	// Remove controls not in the new list
+	var deleteControlIDs []*uint
+
+	for _, existingControl := range existingCompliance.Controls {
+		if _, exists := newControlIDs[existingControl.ControlID]; !exists {
+			// Append control to delete list
+			deleteControlIDs = append(deleteControlIDs, existingControl.ID)
+		}
+	}
+
+	// Delete controls not in the new list
+	if len(deleteControlIDs) > 0 {
+		if err := crs.repo.DeleteComplianceControls(deleteControlIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	existingComplianceDocument, err := crs.repo.GetLatestDocumentByComplianceID(id)
+	if err != nil {
+		return err
+	}
+
+	if complianceRegisterFormDTO.Document.IsNewFile != nil && *complianceRegisterFormDTO.Document.IsNewFile {
+		existingComplianceDocumentFileName := existingComplianceDocument.Name
+
+		//generate token
+		dataToEncrypt := []byte(complianceRegisterFormDTO.Document.FileName)
+		encryptedFilename, err := utility.EncryptData(dataToEncrypt)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		//genereate URL
+		url := utility.GenerateDocumentURL("compliance-register", strconv.FormatUint(uint64(id), 10), encryptedFilename)
+
+		existingComplianceDocument.Language = complianceRegisterFormDTO.Document.Language
+		existingComplianceDocument.URL = url
+		existingComplianceDocument.Name = complianceRegisterFormDTO.Document.FileName
+		existingComplianceDocument.Size = complianceRegisterFormDTO.Document.Size
+		existingComplianceDocument.Token = encryptedFilename
+		existingComplianceDocument.OriginalName = complianceRegisterFormDTO.Document.OriginalName
+		existingComplianceDocument.Type = complianceRegisterFormDTO.Document.Type
 		existingComplianceDocument.UpdatedBy = currentUserID
 
-		if complianceRegisterFormDTO.Document.IsNewFile != nil && *complianceRegisterFormDTO.Document.IsNewFile {
-			existingComplianceDocumentFileName := existingComplianceDocument.Name
+		if err := crs.repo.CreateDocument(existingComplianceDocument, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
 
-			//generate token
-			dataToEncrypt := []byte(complianceRegisterFormDTO.Document.FileName)
-			encryptedFilename, err := utility.EncryptData(dataToEncrypt)
-			if err != nil {
-				tx.Rollback()
-				return err
-			}
+		storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(id), 10), "documents")
+		if err := utility.RemoveFile(existingComplianceDocumentFileName, storagePath); err != nil {
+			tx.Rollback()
+			return err
+		}
 
-			//genereate URL
-			url := utility.GenerateDocumentURL("compliance-register", strconv.FormatUint(uint64(id), 10), encryptedFilename)
-
-			existingComplianceDocument.Language = complianceRegisterFormDTO.Document.Language
-			existingComplianceDocument.URL = url
-			existingComplianceDocument.Icon = complianceRegisterFormDTO.Document.Icon
-			existingComplianceDocument.Name = complianceRegisterFormDTO.Document.FileName
-			existingComplianceDocument.Size = complianceRegisterFormDTO.Document.Size
-			existingComplianceDocument.Token = encryptedFilename
-			existingComplianceDocument.Type = complianceRegisterFormDTO.Document.Type
-
-			if err := crs.repo.CreateDocument(existingComplianceDocument, tx); err != nil {
-				tx.Rollback()
-				return err
-			}
-
-			storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(id), 10), "documents")
-			if err := utility.RemoveFile(existingComplianceDocumentFileName, storagePath); err != nil {
-				tx.Rollback()
-				return err
-			}
-
-			if err := utility.StoreFile(complianceRegisterFormDTO.Document.FileName, storagePath); err != nil {
-				tx.Rollback()
-				return err
-			}
-
-		} else {
-			if err := crs.repo.CreateDocument(existingComplianceDocument, tx); err != nil {
-				tx.Rollback()
-				return err
-			}
+		if err := utility.StoreFile(complianceRegisterFormDTO.Document.FileName, storagePath); err != nil {
+			tx.Rollback()
+			return err
 		}
 
 	}
@@ -337,14 +428,24 @@ func (crs *ComplianceRegisterService) Delete(ids []uint, currentUserID uint) ([]
 			return nil, err
 		}
 
+		// Check if controls exist
+		if len(complianceRegister.Controls) > 0 {
+			var deleteControlIds []*uint
+			for _, ctrl := range complianceRegister.Controls {
+				deleteControlIds = append(deleteControlIds, ctrl.ID)
+			}
+			if err := crs.repo.DeleteComplianceControls(deleteControlIds, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+		}
+
 		// Delete each Compliance document if documents exist
 		if len(complianceRegister.Documents) > 0 {
 			var deleteDocumentIds []*uint
 			for _, doc := range complianceRegister.Documents {
-				if doc != nil {
-					documentsToDelete[id] = append(documentsToDelete[id], doc)
-					deleteDocumentIds = append(deleteDocumentIds, doc.ID)
-				}
+				documentsToDelete[id] = append(documentsToDelete[id], &doc)
+				deleteDocumentIds = append(deleteDocumentIds, doc.ID)
 			}
 			if err := crs.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
 				tx.Rollback()
@@ -519,6 +620,33 @@ func (crs *ComplianceRegisterService) validateComplianceRegisterFormDTO(complian
 		}
 	}
 
+	//Controls exist
+	controls := complianceRegisterFormDTO.ControlIDs
+	// If no controls are provided, simply return nil to exit the function
+	if len(controls) == 0 {
+		return nil
+	}
+
+	// Create a map to store control IDs
+	controlIDs := make(map[uint]bool)
+
+	// Check if each control exists
+	for _, control := range controls {
+		// Check if the control ID already exists in the map
+		if controlIDs[*control] {
+			// If the control ID already exists, return a validation error
+			return utility.NewValidationError(fmt.Errorf("duplicate control ID: %d", control), "duplicate", "control")
+		}
+
+		// Check if the control exists in the database
+		if _, err := crs.controlSvc.GetByID(*control); err != nil {
+			return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", control), "not_exist", "control")
+		}
+
+		// Add the control ID to the map
+		controlIDs[*control] = true
+	}
+
 	return nil
 }
 
@@ -526,32 +654,25 @@ func (crs *ComplianceRegisterService) parseComplianceRegisterDates(dto *complian
 	parsed := &complianceDTOs.ComplianceRegisterParsedDates{}
 
 	var err error
-	if dto.Deadline != "" {
-		parsed.Deadline, err = utility.ParseDate(dto.Deadline)
-		if err != nil {
-			return nil, utility.NewValidationError(fmt.Errorf("invalid deadline"), "invalid_date", "deadline")
-		}
+
+	parsed.Deadline, err = utility.ParseDate(*dto.Deadline)
+	if err != nil {
+		return nil, utility.NewValidationError(fmt.Errorf("invalid deadline"), "invalid_date", "deadline")
 	}
 
-	if dto.IssueDate != "" {
-		parsed.IssueDate, err = utility.ParseDate(dto.IssueDate)
-		if err != nil {
-			return nil, utility.NewValidationError(fmt.Errorf("invalid issue date"), "invalid_date", "issue date")
-		}
+	parsed.IssueDate, err = utility.ParseDate(*dto.IssueDate)
+	if err != nil {
+		return nil, utility.NewValidationError(fmt.Errorf("invalid issue date"), "invalid_date", "issue date")
 	}
 
-	if dto.ExpiryDate != "" {
-		parsed.ExpiryDate, err = utility.ParseDate(dto.ExpiryDate)
-		if err != nil {
-			return nil, utility.NewValidationError(fmt.Errorf("invalid expiry date"), "invalid_date", "expiry date")
-		}
+	parsed.ExpiryDate, err = utility.ParseDate(*dto.ExpiryDate)
+	if err != nil {
+		return nil, utility.NewValidationError(fmt.Errorf("invalid expiry date"), "invalid_date", "expiry date")
 	}
 
-	if dto.NextReviewDate != "" {
-		parsed.NextReviewDate, err = utility.ParseDate(dto.NextReviewDate)
-		if err != nil {
-			return nil, utility.NewValidationError(fmt.Errorf("invalid next review date"), "invalid_date", "next review date")
-		}
+	parsed.NextReviewDate, err = utility.ParseDate(*dto.NextReviewDate)
+	if err != nil {
+		return nil, utility.NewValidationError(fmt.Errorf("invalid next review date"), "invalid_date", "next review date")
 	}
 
 	return parsed, nil
@@ -562,11 +683,6 @@ func (crs *ComplianceRegisterService) validateComplianceDocumentFormDTO(document
 	if document == nil {
 		return utility.NewValidationError(fmt.Errorf("document is required"), "required", "document")
 	}
-	// Validate icon
-	if document.Icon == "" {
-		return utility.NewValidationError(fmt.Errorf("icon is required"), "required", "icon")
-	}
-
 	// Validate file type (PDF)
 	if document.Type != ".pdf" {
 		return utility.NewValidationError(fmt.Errorf("only PDF files are allowed"), "invalid_file_type", "type")

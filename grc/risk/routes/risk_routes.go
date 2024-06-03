@@ -34,6 +34,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRootCauseAnalysisController := app.RiskModule.RiskRootCauseAnalysisController
 	riskAppetiteToleranceLevelController := app.RiskModule.RiskAppetiteToleranceLevelController
 	riskInherentEvaluationController := app.RiskModule.RiskInherentEvaluationController
+	riskAssociatedItemController := app.RiskModule.RiskAssociatedItemController
 	riskActionPlanController := app.RiskModule.RiskActionPlanController
 	riskActionPlanStatusUpdateController := app.RiskModule.RiskActionPlanStatusUpdateController
 
@@ -111,6 +112,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.PUT("/risk-matrix-risk-ratings/activate", riskMatrixRiskRatingController.ActivateRiskMatrixRiskRating)
 	riskRoutes.PUT("/risk-matrix-risk-ratings/deactivate", riskMatrixRiskRatingController.DeactivateRiskMatrixRiskRating)
 
+	riskRoutes.GET("/risk-matrix-risk-rating-value", riskMatrixRiskRatingValueController.GetAllRiskMatrixRiskRatingValue)
 	riskRoutes.POST("/risk-matrix-risk-rating-value", riskMatrixRiskRatingValueController.CreateRiskMatrixRiskRatingValue)
 	riskRoutes.GET("/risk-matrix-configuration", riskMatrixRiskRatingValueController.GetRiskMatrix)
 
@@ -160,6 +162,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.POST("risks/:riskId/inherent-evaluation", riskInherentEvaluationController.CreateRiskInherentEvaluation)
 	riskRoutes.PUT("risks/:riskId/inherent-evaluation/:id", riskInherentEvaluationController.UpdateRiskInherentEvaluation)
 	riskRoutes.DELETE("risks/:riskId/inherent-evaluation/:id", riskInherentEvaluationController.DeleteRiskInherentEvaluation)
+
+	riskRoutes.GET("risks/:riskId/controls", riskAssociatedItemController.GetAllRiskControls)
+	riskRoutes.GET("risks/:riskId/compliance-requirements", riskAssociatedItemController.GetAllRiskComplianceRequirements)
 
 	// Risk Action Plan
 	riskRoutes.GET("/risk-action-plans", riskActionPlanController.GetAllRiskActionPlans)

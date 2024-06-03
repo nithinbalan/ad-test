@@ -2,8 +2,10 @@ package dtos
 
 import (
 	commonDTOs "jethur/grc/common/dtos"
+	complianceDTOs "jethur/grc/compliance/dtos"
 	masterDTOs "jethur/grc/masters/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
+	settingsDTOs "jethur/grc/settings/dtos"
 
 	"time"
 )
@@ -64,52 +66,67 @@ type RiskRegisterListResponseDTO struct {
 }
 
 type RiskDocumentDTO struct {
-	ID    *uint   `json:"id"`
-	URL   *string `json:"url"`
-	Icon  string  `json:"icon"`
-	Name  string  `json:"name"`
-	Token string  `json:"token"`
-	Type  string  `json:"type"`
-	Size  int     `json:"size"`
+	ID           *uint   `json:"id"`
+	URL          *string `json:"url"`
+	Name         string  `json:"name"`
+	OriginalName string  `json:"original_name"`
+	Token        string  `json:"token"`
+	Type         string  `json:"type"`
+	Size         int     `json:"size"`
 }
 
 type RiskRegisterDetailDTO struct {
-	ID              int                                  `json:"id"`
-	ReferenceNumber string                               `json:"reference_number"`
-	RiskCategory    RiskCategoryDTO                      `json:"risk_category"`
-	RiskSource      RiskSourceDTO                        `json:"risk_source"`
-	OwnerUnit       organizationDTOs.OrganizationUnitDTO `json:"owner_unit"`
-	Owner           organizationDTOs.UserMinimalDTO      `json:"owner"`
-	RiskStatus      RiskStatusDTO                        `json:"risk_status"`
-	Title           string                               `json:"title"`
-	Description     *string                              `json:"description"`
-	ReportedAt      *time.Time                           `json:"reported_at"`
-	ReviewFrequency *masterDTOs.ReviewFrequencyDTO       `json:"review_frequency"`
-	Comments        *string                              `json:"comments"`
-	Documents       []*RiskDocumentDTO                   `json:"documents"`
-	CreatedAt       time.Time                            `json:"created_at"`
-	UpdatedAt       *time.Time                           `json:"updated_at"`
-	CreatedByUser   organizationDTOs.UserMinimalDTO      `json:"created_by"`
-	UpdatedByUser   organizationDTOs.UserMinimalDTO      `json:"updated_by"`
-	// Controls               []*RiskControlDTO               `json:"controls"`
-	// ComplianceRequirements []*RiskComplianceRequirementDTO `json:"compliance_requirements"`
+	ID                     int                              `json:"id"`
+	ReferenceNumber        string                           `json:"reference_number"`
+	RiskCategory           RiskCategoryDTO                  `json:"risk_category"`
+	RiskSource             RiskSourceDTO                    `json:"risk_source"`
+	OwnerUnit              settingsDTOs.OrganizationUnitDTO `json:"owner_unit"`
+	Owner                  organizationDTOs.UserMinimalDTO  `json:"owner"`
+	RiskStatus             RiskStatusDTO                    `json:"risk_status"`
+	Title                  string                           `json:"title"`
+	Description            *string                          `json:"description"`
+	ReportedAt             *time.Time                       `json:"reported_at"`
+	ReviewFrequency        *masterDTOs.ReviewFrequencyDTO   `json:"review_frequency"`
+	NextReviewDate         *time.Time                       `json:"next_review_date"`
+	Comments               *string                          `json:"comments"`
+	Documents              []*RiskDocumentDTO               `json:"documents"`
+	CreatedAt              time.Time                        `json:"created_at"`
+	UpdatedAt              *time.Time                       `json:"updated_at"`
+	CreatedByUser          organizationDTOs.UserMinimalDTO  `json:"created_by"`
+	UpdatedByUser          organizationDTOs.UserMinimalDTO  `json:"updated_by"`
+	Controls               []*RiskControlDTO                `json:"controls"`
+	ComplianceRequirements []*RiskComplianceRequirementDTO  `json:"compliance_requirements"`
+}
+
+type RiskControlDTO struct {
+	ID             *uint                             `json:"id"`
+	RiskRegisterID uint                              `json:"risk_register_id"`
+	ControlID      uint                              `json:"control_id"`
+	Control        organizationDTOs.ControlDetailDTO `json:"control"`
+}
+
+type RiskComplianceRequirementDTO struct {
+	ID                      *uint                                         `json:"id"`
+	RiskRegisterID          uint                                          `json:"risk_register_id"`
+	ComplianceRequirementID uint                                          `json:"compliance_requirement_id"`
+	ComplianceRequirement   complianceDTOs.ComplianceRequirementDetailDTO `json:"compliance_requirement"`
 }
 
 type RiskRegisterFormDTO struct {
-	RiskCategoryID         uint                          `json:"risk_category_id" binding:"required"`
-	RiskSourceID           uint                          `json:"risk_source_id" binding:"required"`
-	OwnerUnitID            uint                          `json:"owner_unit_id" binding:"required"`
-	OwnerID                uint                          `json:"owner_id" binding:"required"`
-	RiskStatusID           uint                          `json:"risk_status_id" binding:"required"`
-	Title                  string                        `json:"title" binding:"required,max=255"`
-	Description            *string                       `json:"description"`
-	ReportedAt             *string                       `json:"reported_at" binding:"required,datetime=2006-01-02"`
-	ReviewFrequencyID      *uint                         `json:"review_frequency_id"`
-	NextReviewDate         *string                       `json:"next_review_date" binding:"omitempty,datetime=2006-01-02"`
-	Comments               *string                       `json:"comments"`
-	Documents              []*commonDTOs.DocumentFormDTO `json:"documents"`
-	ComplianceRequirements []*uint                       `json:"compliance_requirements"`
-	Controls               []*uint                       `json:"controls"`
+	RiskCategoryID           uint                          `json:"risk_category_id" binding:"required"`
+	RiskSourceID             uint                          `json:"risk_source_id" binding:"required"`
+	OwnerUnitID              uint                          `json:"owner_unit_id" binding:"required"`
+	OwnerID                  uint                          `json:"owner_id" binding:"required"`
+	RiskStatusID             uint                          `json:"risk_status_id" binding:"required"`
+	Title                    string                        `json:"title" binding:"required,max=255"`
+	Description              *string                       `json:"description"`
+	ReportedAt               *string                       `json:"reported_at" binding:"required,datetime=2006-01-02"`
+	ReviewFrequencyID        *uint                         `json:"review_frequency_id"`
+	NextReviewDate           *string                       `json:"next_review_date" binding:"omitempty,datetime=2006-01-02"`
+	Comments                 *string                       `json:"comments"`
+	Documents                []*commonDTOs.DocumentFormDTO `json:"documents"`
+	ComplianceRequirementIDs []*uint                       `json:"compliance_requirement_ids"`
+	ControlIDs               []*uint                       `json:"control_ids"`
 }
 
 type RiskRegisterParsedDates struct {

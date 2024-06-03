@@ -25,10 +25,15 @@ type ComplianceRegisterRepositoryInterface interface {
 	//lifecycle
 	GetIDsByLifecycleStatus(ids []uint, status string) ([]uint, error)
 	UpdateLifecycleStatusForIDs(ids []uint, statusId uint) ([]uint, error)
+
+	CreateComplianceControls(controls []*models.ComplianceControl, tx ...utility.DatabaseTransaction) error
+	DeleteComplianceControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error
+
 	//Document
 	CreateDocument(doc *models.ComplianceDocument, tx ...utility.DatabaseTransaction) error
 	GetDocumentByID(id uint) (*models.ComplianceDocument, error)
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
+	GetLatestDocumentByComplianceID(id uint) (*models.ComplianceDocument, error)
 }
 
 type ComplianceRegisterRepository struct {
@@ -54,6 +59,10 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
 	query := repo.db.Table("compliance_register").
 		Select(`
             compliance_register.*,
+			CONVERT(VARCHAR, compliance_register.deadline, 23) AS deadline,
+        	CONVERT(VARCHAR, compliance_register.issue_date, 23) AS issue_date,
+        	CONVERT(VARCHAR, compliance_register.expiry_date, 23) AS expiry_date,
+       		CONVERT(VARCHAR, compliance_register.next_review_date, 23) AS next_review_date,
 			compliance_categories.title_en AS compliance_category_title_en,
 			compliance_categories.title_ar AS compliance_category_title_ar,
 			compliance_statuses.title_en AS compliance_status_title_en,
@@ -240,7 +249,7 @@ func (repo *ComplianceRegisterRepository) GetFullDetailsByID(id uint, tx ...util
 	result := db.
 		Preload("ComplianceCategory").
 		Preload("ComplianceStatus").
-		Preload("ResponsibleUnit").
+		Preload("ResponsibleUnit.ParentUnit.ParentUnit.ParentUnit.ParentUnit.ParentUnit").
 		Preload("ResponsibleUser").
 		Preload("ResponsibleUser.OrganizationUnit1").
 		Preload("ReviewFrequency").
@@ -248,6 +257,9 @@ func (repo *ComplianceRegisterRepository) GetFullDetailsByID(id uint, tx ...util
 		Preload("SeverityLevel").
 		Preload("LifecycleStatus").
 		Preload("Documents").
+		Preload("Controls").
+		Preload("Controls.Control.ControlCategory").
+		Preload("Controls.Control.ControlType").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&compliance, id)
@@ -348,7 +360,30 @@ func (repo *ComplianceRegisterRepository) GenerateReferenceNumber() (string, err
 	return newReferenceNumber, nil
 }
 
-//Document func
+func (repo *ComplianceRegisterRepository) CreateComplianceControls(controls []*models.ComplianceControl, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&controls).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *ComplianceRegisterRepository) DeleteComplianceControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Delete controls by IDs
+	if err := db.Where("id IN (?)", controlIds).Delete(&models.ComplianceControl{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
 
 func (repo *ComplianceRegisterRepository) GetDocumentByID(id uint) (*models.ComplianceDocument, error) {
 	var document models.ComplianceDocument
@@ -381,4 +416,12 @@ func (repo *ComplianceRegisterRepository) DeleteDocuments(docIds []*uint, tx ...
 	}
 
 	return nil
+}
+
+func (repo *ComplianceRegisterRepository) GetLatestDocumentByComplianceID(id uint) (*models.ComplianceDocument, error) {
+	var document models.ComplianceDocument
+	if err := repo.db.Where("compliance_register_id = ?", id).First(&document).Error; err != nil {
+		return nil, err
+	}
+	return &document, nil
 }

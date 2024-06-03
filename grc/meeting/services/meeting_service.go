@@ -7,6 +7,7 @@ import (
 	meetingDTOs "jethur/grc/meeting/dtos"
 	meetingRepositories "jethur/grc/meeting/repositories"
 	organizationServices "jethur/grc/organization/services"
+	"time"
 
 	"jethur/grc/models"
 	"jethur/utility"
@@ -99,12 +100,16 @@ func (ms *MeetingService) Create(currentUserID uint, meetingFormDTO *meetingDTOs
 		return 0, err
 	}
 
+	// Extract time components from parsed StartTime and EndTime
+	startTime := time.Date(1, 1, 1, dates.StartTime.Hour(), dates.StartTime.Minute(), dates.StartTime.Second(), 0, time.UTC)
+	endTime := time.Date(1, 1, 1, dates.EndTime.Hour(), dates.EndTime.Minute(), dates.EndTime.Second(), 0, time.UTC)
+
 	meeting := &models.Meeting{
 		Title:              meetingFormDTO.Title,
 		Location:           meetingFormDTO.Location,
 		Date:               dates.Date,
-		StartTime:          dates.StartTime,
-		EndTime:            dates.EndTime,
+		StartTime:          startTime,
+		EndTime:            endTime,
 		OrganizerID:        meetingFormDTO.OrganizerID,
 		IsPublic:           meetingFormDTO.IsPublic,
 		CreatedBy:          currentUserID,

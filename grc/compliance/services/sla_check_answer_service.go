@@ -136,10 +136,10 @@ func (scas *SLACheckAnswerService) CreateAnswer(slaID uint, questionID uint, cur
 		document := &models.SLACheckAnswerDocument{
 			SLACheckAnswerID: answer.ID,
 			URL:              url,
-			Icon:             doc.Icon,
 			Name:             doc.FileName,
 			Size:             doc.Size,
 			Token:            encryptedFilename,
+			OriginalName:     doc.OriginalName,
 			Type:             doc.Type,
 			CreatedBy:        currentUserID,
 		}
@@ -246,10 +246,10 @@ func (scas *SLACheckAnswerService) UpdateAnswer(slaID uint, questionID uint, ans
 			document := &models.SLACheckAnswerDocument{
 				SLACheckAnswerID: answerID,
 				URL:              url,
-				Icon:             doc.Icon,
 				Name:             doc.FileName,
 				Size:             doc.Size,
 				Token:            encryptedFileName,
+				OriginalName:     doc.OriginalName,
 				Type:             doc.Type,
 				CreatedBy:        currentUserID,
 			}

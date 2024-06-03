@@ -24,14 +24,6 @@ func NewComplianceRequirementController(service services.ComplianceRequirementSe
 }
 
 func (crc *ComplianceRequirementController) GetAllComplianceRequirements(c *gin.Context) {
-	complianceIDStr := c.Param("complianceId")
-
-	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
@@ -40,6 +32,7 @@ func (crc *ComplianceRequirementController) GetAllComplianceRequirements(c *gin.
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
+		"compliance_register_ids",
 		"compliance_requirement_category_ids",
 		"compliance_clause_ids",
 		"severity_level_ids",
@@ -77,7 +70,7 @@ func (crc *ComplianceRequirementController) GetAllComplianceRequirements(c *gin.
 		DeadlineFrom: deadlineFrom,
 		DeadlineTo:   deadlineTo,
 	}
-	complianceRequirements, err := crc.service.GetAll(uint(complianceID), &queryParams)
+	complianceRequirements, err := crc.service.GetAll(&queryParams)
 
 	if err != nil {
 		switch e := err.(type) {

@@ -117,10 +117,10 @@ func (crsus *ComplianceRequirementStatusUpdateService) Create(ComplianceID uint,
 		document := &models.ComplianceRequirementStatusUpdateDocument{
 			ComplianceRequirementStatusUpdateID: id,
 			URL:                                 url,
-			Icon:                                doc.Icon,
 			Name:                                doc.FileName,
 			Size:                                doc.Size,
 			Token:                               encryptedFilename,
+			OriginalName:                        doc.OriginalName,
 			Type:                                doc.Type,
 			CreatedBy:                           currentUserID,
 		}
@@ -218,10 +218,10 @@ func (crsus *ComplianceRequirementStatusUpdateService) Update(ComplianceID uint,
 			document := &models.ComplianceRequirementStatusUpdateDocument{
 				ComplianceRequirementStatusUpdateID: id,
 				URL:                                 url,
-				Icon:                                doc.Icon,
 				Name:                                doc.FileName,
 				Size:                                doc.Size,
 				Token:                               encryptedFileName,
+				OriginalName:                        doc.OriginalName,
 				Type:                                doc.Type,
 				CreatedBy:                           currentUserID,
 			}

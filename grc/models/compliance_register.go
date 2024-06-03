@@ -24,6 +24,7 @@ type ComplianceRegister struct {
 	IssueDate               *time.Time `json:"issue_date" binding:"omitempty" gorm:"type:date"`
 	ExpiryDate              *time.Time `json:"expiry_date" binding:"omitempty" gorm:"type:date"`
 	NextReviewDate          *time.Time `json:"next_review_date" binding:"omitempty" gorm:"type:date"`
+	LastReviewNote          *string    `json:"last_review_note" gorm:"type:varchar(max)"`
 	CreatedAt               time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt               *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 	CreatedBy               uint       `json:"created_by" gorm:"not null"`
@@ -42,6 +43,7 @@ type ComplianceRegister struct {
 	Documents             []ComplianceDocument `gorm:"foreignKey:ComplianceRegisterID"`
 	CreatedByUser         *User                `gorm:"foreignKey:CreatedBy"`
 	UpdatedByUser         *User                `gorm:"foreignKey:UpdatedBy"`
+	Controls              []*ComplianceControl `gorm:"foreignKey:ComplianceRegisterID"`
 }
 
 // TableName overrides the table name used by ComplianceRegister to `compliance_register`

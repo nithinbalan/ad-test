@@ -86,6 +86,24 @@ func (repo *MeetingRepository) GetAll(currentUserID uint, params *meetingDTOs.Me
 		}
 	}
 
+	// Apply quick filters
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "today":
+			query = query.Where("CONVERT(date, meetings.date) = CONVERT(date, GETDATE())")
+		case "this_week":
+			query = query.Where("DATEPART(week, meetings.date) = DATEPART(week, GETDATE())")
+		case "this_month":
+			query = query.Where("DATEPART(month, meetings.date) = DATEPART(month, GETDATE())")
+		case "scheduled":
+			query = query.Where("meeting_statuses.type = ?", "scheduled")
+		case "completed":
+			query = query.Where("meeting_statuses.type = ?", "completed")
+		case "cancelled":
+			query = query.Where("meeting_statuses.type = ?", "cancelled")
+		}
+	}
+
 	// Calculate total count for pagination
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
@@ -97,12 +115,17 @@ func (repo *MeetingRepository) GetAll(currentUserID uint, params *meetingDTOs.Me
 		query = query.Where(`
 			(meetings.title LIKE ? OR
 			meetings.location LIKE ? OR
-			meeting_types.title LIKE ? OR
-			meeting_frequencies.title LIKE ? OR
-			users.first_name LIKE ? OR
-			users.last_name LIKE ? OR
-			meeting_statuses.title LIKE ?)`,
-			keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+			meeting_types.title_en LIKE ? OR
+			meeting_types.title_ar LIKE ? OR
+			meeting_frequencies.title_en LIKE ? OR
+			meeting_frequencies.title_ar LIKE ? OR
+			users.first_name_en LIKE ? OR
+			users.last_name_en LIKE ? OR
+			users.first_name_ar LIKE ? OR
+			users.last_name_ar LIKE ? OR
+			meeting_statuses.title_en LIKE ? OR
+			meeting_statuses.title_ar LIKE ?)`,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
 	// Sort by the specified column and order

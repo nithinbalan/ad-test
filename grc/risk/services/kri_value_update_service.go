@@ -91,7 +91,7 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 
 	existingKRIRegister.CurrentValue = &kriValueUpdateFormDTO.Value
 	existingKRIRegister.LastReviewNote = kriValueUpdateFormDTO.Remarks
-	existingKRIRegister.LastReviewedDate = *dates.ReviewedDate
+	existingKRIRegister.LastReviewedDate = dates.ReviewedDate
 	existingKRIRegister.NextReviewDate = nextReviewDate
 
 	err = kvus.kriRegisterSvc.UpdateValue(existingKRIRegister, tx)
@@ -118,10 +118,10 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 		document := &models.KRIValueUpdateDocument{
 			KRIValueUpdateID: id,
 			URL:              url,
-			Icon:             doc.Icon,
 			Name:             doc.FileName,
 			Size:             doc.Size,
 			Token:            encryptedFilename,
+			OriginalName:     doc.OriginalName,
 			Type:             doc.Type,
 		}
 		// Append the document to the slice
@@ -233,10 +233,10 @@ func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentU
 			document := &models.KRIValueUpdateDocument{
 				KRIValueUpdateID: updateId,
 				URL:              url,
-				Icon:             doc.Icon,
 				Name:             doc.FileName,
 				Size:             doc.Size,
 				Token:            encryptedFilename,
+				OriginalName:     doc.OriginalName,
 				Type:             doc.Type,
 			}
 

@@ -1,12 +1,16 @@
 package controllers
 
 import (
+	"fmt"
 	authDTOs "jethur/grc/auth/dtos"
 	"jethur/grc/auth/services"
 	"jethur/utility"
+	"net"
 	"net/http"
 
+	"github.com/avct/uasurfer"
 	"github.com/gin-gonic/gin"
+	"github.com/oschwald/geoip2-golang"
 	"gorm.io/gorm"
 )
 
@@ -27,14 +31,22 @@ type ErrorResponse struct {
 }
 
 func (ac *AuthController) Login(c *gin.Context) {
-	var loginFormDTO authDTOs.LoginFormDTO
+	// Extract additional information
+	ipAddress := c.ClientIP()
+	countryCode, err := getCountryFromIPAddress(ipAddress)
+	if err != nil {
+		fmt.Println(err)
+	}
+	device := c.Request.Header.Get("User-Agent")
+	browser := parseBrowserFromUserAgent(device)
 
+	var loginFormDTO authDTOs.LoginFormDTO
 	if err := c.ShouldBindJSON(&loginFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
 
-	responseDTO, err := ac.service.Authenticate(loginFormDTO.Email, loginFormDTO.Password)
+	responseDTO, err := ac.service.Authenticate(loginFormDTO.Email, loginFormDTO.Password, ipAddress, countryCode, device, browser)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:
@@ -244,4 +256,31 @@ func (ac *AuthController) SetPassword(c *gin.Context) {
 	}
 
 	c.Status(http.StatusOK)
+}
+
+func getCountryFromIPAddress(ipAddress string) (string, error) {
+	db, err := geoip2.Open("GeoLite2-City.mmdb")
+	if err != nil {
+		return "", err
+	}
+	defer db.Close()
+
+	ip := net.ParseIP(ipAddress)
+	if ip == nil {
+		return "", fmt.Errorf("invalid IP address: %s", ipAddress)
+	}
+
+	record, err := db.City(ip)
+	if err != nil {
+		return "", err
+	}
+
+	return record.Country.IsoCode, nil
+}
+
+func parseBrowserFromUserAgent(userAgent string) string {
+	parser := uasurfer.Parse(userAgent)
+	browser := parser.Browser.Name.String()
+
+	return browser
 }

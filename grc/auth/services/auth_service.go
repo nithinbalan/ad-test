@@ -15,7 +15,7 @@ import (
 )
 
 type AuthServiceInterface interface {
-	Authenticate(email string, password string) (*authDTOs.LoginResponseDTO, error)
+	Authenticate(email string, password string, ipAddress string, location string, device string, browser string) (*authDTOs.LoginResponseDTO, error)
 	GetTokenFromRefreshToken(refreshToken string) (*authDTOs.LoginResponseDTO, error)
 	LoginResendOTP(email string) error
 	LoginVerifyOTP(email string, otp string) (*authDTOs.LoginResponseDTO, error)
@@ -38,7 +38,7 @@ func NewAuthService(userService services.UserServiceInterface, userSettingServic
 	}
 }
 
-func (as *AuthService) Authenticate(email string, password string) (*authDTOs.LoginResponseDTO, error) {
+func (as *AuthService) Authenticate(email string, password string, ipAddress string, location string, device string, browser string) (*authDTOs.LoginResponseDTO, error) {
 	// Get user
 	user, err := as.userService.GetByEmail(email)
 	if err != nil {
@@ -54,6 +54,11 @@ func (as *AuthService) Authenticate(email string, password string) (*authDTOs.Lo
 	// Compare the provided password with the stored hashed password
 	err = bcrypt.CompareHashAndPassword([]byte(userSecurity.PasswordHash), []byte(password))
 	if err != nil {
+		loginStatus := "failed"
+		logErr := as.userService.CreateUserLoginHistory(user, loginStatus, ipAddress, location, device, browser)
+		if logErr != nil {
+			return nil, utility.NewInternalServerError(logErr)
+		}
 		return nil, err
 	}
 
@@ -78,6 +83,12 @@ func (as *AuthService) Authenticate(email string, password string) (*authDTOs.Lo
 		responseDTO.RefreshToken = &refreshToken
 
 		responseDTO.IsMFAEnabled = false
+
+		loginStatus := "success"
+		err = as.userService.CreateUserLoginHistory(user, loginStatus, ipAddress, location, device, browser)
+		if err != nil {
+			return nil, utility.NewInternalServerError(err)
+		}
 
 	}
 	return responseDTO, nil

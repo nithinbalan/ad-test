@@ -3,6 +3,8 @@ package dtos
 import (
 	commonDTOs "jethur/grc/common/dtos"
 	masterDTOs "jethur/grc/masters/dtos"
+	settingsDTOs "jethur/grc/settings/dtos"
+
 	"time"
 )
 
@@ -55,28 +57,27 @@ type ProcessListResponseDTO struct {
 
 // ProcessFormDTO defines the structure for creating or updating a process
 type ProcessFormDTO struct {
-	ProcessGroupID    uint    `json:"process_group_id" binding:"required"`
-	OwnerUnitID       uint    `json:"owner_unit_id" binding:"required"`
-	OwnerID           uint    `json:"owner_id" binding:"required"`
-	LifecycleStatusID uint    `json:"lifecycle_status_id" binding:"required"`
-	TitleEn           string  `json:"title_en" binding:"required"`
-	TitleAr           string  `json:"title_ar" binding:"required"`
-	Description       *string `json:"description" binding:"omitempty"`
+	ProcessGroupID uint    `json:"process_group_id" binding:"required"`
+	OwnerUnitID    uint    `json:"owner_unit_id" binding:"required"`
+	OwnerID        uint    `json:"owner_id" binding:"required"`
+	TitleEn        string  `json:"title_en" binding:"required"`
+	TitleAr        string  `json:"title_ar" binding:"required"`
+	Description    *string `json:"description" binding:"omitempty"`
 }
 
 // ProcessDetailDTO defines the detailed view of a process, typically used in detailed screens or reports
 type ProcessDetailDTO struct {
-	ID              uint                          `json:"id"`
-	ReferenceNumber string                        `json:"reference_number"`
-	TitleEn         string                        `json:"title_en"`
-	TitleAr         string                        `json:"title_ar"`
-	Description     *string                       `json:"description"`
-	ProcessGroup    *ProcessGroupDTO              `json:"process_group"`
-	OwnerUnit       *OrganizationUnitDTO          `json:"owner_unit"`
-	Owner           *UserMinimalDTO               `json:"owner"`
-	CreatedByUser   UserMinimalDTO                `json:"created_by"`
-	UpdatedByUser   *UserMinimalDTO               `json:"updated_by"`
-	LifecycleStatus masterDTOs.LifecycleStatusDTO `json:"status"`
-	CreatedAt       time.Time                     `json:"created_at"`
-	UpdatedAt       *time.Time                    `json:"updated_at"`
+	ID              uint                              `json:"id"`
+	ReferenceNumber string                            `json:"reference_number"`
+	TitleEn         string                            `json:"title_en"`
+	TitleAr         string                            `json:"title_ar"`
+	Description     *string                           `json:"description"`
+	ProcessGroup    *ProcessGroupDTO                  `json:"process_group"`
+	OwnerUnit       *settingsDTOs.OrganizationUnitDTO `json:"owner_unit"`
+	Owner           *UserMinimalDTO                   `json:"owner"`
+	CreatedByUser   UserMinimalDTO                    `json:"created_by"`
+	UpdatedByUser   *UserMinimalDTO                   `json:"updated_by"`
+	LifecycleStatus masterDTOs.LifecycleStatusDTO     `json:"status"`
+	CreatedAt       time.Time                         `json:"created_at"`
+	UpdatedAt       *time.Time                        `json:"updated_at"`
 }

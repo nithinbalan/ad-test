@@ -7,9 +7,8 @@ CREATE TABLE sla_action_plan_status_update_documents (
     name NVARCHAR(255) NULL,
     size INT DEFAULT NULL,
     token VARCHAR(255) DEFAULT NULL,
+    original_name NVARCHAR(255) NULL,
     type VARCHAR(255) DEFAULT NULL,
-    icon VARCHAR(10) NOT NULL, -- Assuming icon names like 'pdf', 'excel', etc.
-        CONSTRAINT CHK_sla_action_plan_status_update_documents_icon CHECK (icon IN ('pdf', 'excel', 'ppt', 'image', 'text', 'other')),
     created_by INT,
     updated_by INT NULL,
     created_at DATETIME NOT NULL,

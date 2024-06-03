@@ -3,6 +3,8 @@ package services
 import (
 	"errors"
 	"fmt"
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	meetingDTOs "jethur/grc/meeting/dtos"
@@ -33,6 +35,7 @@ type MeetingActionPlanService struct {
 	severityLevelSvc    masterServices.SeverityLevelServiceInterface
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface
 	userSvc             organizationServices.UserServiceInterface
+	notificationSvc     commonServices.NotificationServiceInterface
 }
 
 func NewMeetingActionPlanService(
@@ -41,7 +44,8 @@ func NewMeetingActionPlanService(
 	meetingSvc MeetingServiceInterface,
 	severityLevelSvc masterServices.SeverityLevelServiceInterface,
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
-	userSvc organizationServices.UserServiceInterface) MeetingActionPlanServiceInterface {
+	userSvc organizationServices.UserServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface) MeetingActionPlanServiceInterface {
 	return &MeetingActionPlanService{
 		repo:                repo,
 		activityLogSvc:      activityLogSvc,
@@ -49,6 +53,7 @@ func NewMeetingActionPlanService(
 		severityLevelSvc:    severityLevelSvc,
 		actionPlanStatusSvc: actionPlanStatusSvc,
 		userSvc:             userSvc,
+		notificationSvc:     notificationSvc,
 	}
 }
 
@@ -102,7 +107,8 @@ func (maps MeetingActionPlanService) GetFullDetailsByID(meetingID uint, id uint)
 }
 
 func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint, MeetingActionPlanFormDTO *meetingDTOs.MeetingActionPlanFormDTO) (uint, error) {
-	if _, err := maps.meetingSvc.GetByID(meetingID); err != nil {
+	meeting, err := maps.meetingSvc.GetByID(meetingID)
+	if err != nil {
 		return 0, err
 	}
 
@@ -114,8 +120,6 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 	if err != nil {
 		return 0, err
 	}
-
-	fmt.Println(MeetingActionPlanFormDTO)
 
 	meetingActionPlan := &models.MeetingActionPlan{
 		MeetingID:          meetingID,
@@ -130,6 +134,52 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 	}
 
 	id, err := maps.repo.Create(meetingActionPlan)
+	if err != nil {
+		return 0, err
+	}
+
+	eventDescriptionEn := "You have been added as responsible for a new Action Plan"
+	eventDescriptionAr := "تمت إضافتك كمسؤول لخطة عمل جديدة"
+
+	messageEn := fmt.Sprintf("%s: %s", eventDescriptionEn, MeetingActionPlanFormDTO.Title)
+	messageAr := fmt.Sprintf("%s: %s", eventDescriptionAr, MeetingActionPlanFormDTO.Title)
+
+	redirectURL := fmt.Sprintf("meeting/%d/action-plans/%d", meetingID, id)
+
+	dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+		UserID:           MeetingActionPlanFormDTO.ResponsibleUserID,
+		ModuleIdentifier: "meeting_action_plan",
+		Icon:             models.CreateIcon,
+		MessageEn:        messageEn,
+		MessageAr:        messageAr,
+		RedirectURL:      redirectURL,
+		CreatedBy:        currentUserID,
+	}
+
+	resposibleUser, err := maps.userSvc.GetByID(MeetingActionPlanFormDTO.ResponsibleUserID)
+	if err != nil {
+		return 0, err
+	}
+
+	emailTo := []string{resposibleUser.Email}
+	subject := fmt.Sprintf("Meeting/%s: Action Plan Added", meeting.Title)
+	templateRelativePath := "meeting/templates/email/create_action_plan_mail.html"
+	emailData := meetingDTOs.SendCreateActionPlanMailDTO{
+		FirstNameEn: resposibleUser.FirstNameEn,
+		LastNameEn:  resposibleUser.LastNameEn,
+		MessageEn:   messageEn,
+		RedirectURL: redirectURL,
+	}
+
+	emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+		EmailTo:              emailTo,
+		Subject:              subject,
+		TemplateRelativePath: templateRelativePath,
+		EmailData:            emailData,
+	}
+
+	err = maps.notificationSvc.SendNotification(
+		dbNotificationDTO, emailNotificationDTO, "create_meeting_action_plan")
 	if err != nil {
 		return 0, err
 	}

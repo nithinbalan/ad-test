@@ -13,6 +13,7 @@ import (
 	"jethur/utility"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"golang.org/x/crypto/bcrypt"
@@ -26,8 +27,11 @@ type UserServiceInterface interface {
 	GetByEmail(email string) (*models.User, error)
 	Create(currentUserID uint, userFormDTO *userDTOs.UserFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, user *userDTOs.UserFormDTO) error
-	UpdatePartial(id uint, dto *userDTOs.UserUpdateDTO) error
+	UpdatePartial(id uint, dto *userDTOs.UserUpdateDTO, tx utility.DatabaseTransaction) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	GetUserLoginHistory(params *userDTOs.UserLoginHistoryListQueryParamsDTO) (*userDTOs.UserLoginHistoryListResponseDTO, error)
+	CreateUserLoginHistory(user *models.User, loginStatus string, ipAddress string, location string, device string, browser string) error
+
 	GenerateRandomPassword(length int) (string, error)
 	SetUserSettingService(svc UserSettingServiceInterface)
 }
@@ -155,6 +159,10 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 		return 0, err
 	}
 
+	initial := generateInitial(userFormDTO.FirstNameEn, userFormDTO.LastNameEn)
+
+	color := utility.GenerateColorCode("user")
+
 	user := &models.User{
 		OrganizationUnit1ID: userFormDTO.OrganizationUnit1ID,
 		OrganizationUnit2ID: userFormDTO.OrganizationUnit2ID,
@@ -171,6 +179,8 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 		MobileNumber:        userFormDTO.MobileNumber,
 		ProfileImagePath:    userFormDTO.ProfileImagePath,
 		CreatedBy:           currentUserID,
+		Initial:             initial,
+		Color:               color,
 	}
 
 	userID, err := us.repo.Create(user, tx)
@@ -315,7 +325,7 @@ func (us *UserService) Update(id uint, currentUserID uint, userFormDTO *userDTOs
 	return nil
 }
 
-func (us *UserService) UpdatePartial(id uint, userUpdateDTO *userDTOs.UserUpdateDTO) error {
+func (us *UserService) UpdatePartial(id uint, userUpdateDTO *userDTOs.UserUpdateDTO, tx utility.DatabaseTransaction) error {
 
 	updates := make(map[string]interface{})
 
@@ -329,7 +339,7 @@ func (us *UserService) UpdatePartial(id uint, userUpdateDTO *userDTOs.UserUpdate
 			updates[tagKey] = field.Elem().Interface()
 		}
 	}
-	err := us.repo.UpdatePartial(id, updates)
+	err := us.repo.UpdatePartial(id, updates, tx)
 	if err != nil {
 		return err
 	}
@@ -375,6 +385,10 @@ func (crs *UserService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	}
 
 	return failedIds, nil
+}
+
+func (us *UserService) GetUserLoginHistory(params *userDTOs.UserLoginHistoryListQueryParamsDTO) (*userDTOs.UserLoginHistoryListResponseDTO, error) {
+	return us.repo.GetUserLoginHistory(params)
 }
 
 func (us *UserService) validateUserFormDTO(id *uint, userFormDTO *userDTOs.UserFormDTO) error {
@@ -425,4 +439,41 @@ func (us *UserService) GenerateRandomPassword(length int) (string, error) {
 	}
 
 	return string(b), nil
+}
+
+func (as *UserService) CreateUserLoginHistory(user *models.User, loginStatus string, ipAddress string, location string, device string, browser string) error {
+	tx := as.repo.BeginTransaction()
+
+	login := models.UserLoginHistory{
+		UserID:      user.ID,
+		LoginAt:     time.Now(),
+		LoginStatus: loginStatus,
+		IPAddress:   ipAddress,
+		Location:    &location,
+		DeviceInfo:  &device,
+		BrowserInfo: &browser,
+	}
+
+	err := as.repo.CreateUserLoginHistory(&login, tx)
+	if err != nil {
+		return err
+	}
+
+	loginAt := userDTOs.UserUpdateDTO{
+		LastLoginAt: &login.LoginAt,
+	}
+
+	err = as.UpdatePartial(user.ID, &loginAt, tx)
+	if err != nil {
+		return err
+	}
+	tx.Commit()
+	return nil
+}
+
+func generateInitial(firstName, lastName string) string {
+	firstInitial := string(firstName[0])
+	lastInitial := string(lastName[0])
+
+	return strings.ToUpper(firstInitial + lastInitial)
 }

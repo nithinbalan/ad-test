@@ -21,6 +21,25 @@ func NewRiskMatrixRiskRatingValueController(service services.RiskMatrixRiskRatin
 	}
 }
 
+func (rmrrvc *RiskMatrixRiskRatingValueController) GetAllRiskMatrixRiskRatingValue(c *gin.Context) {
+	riskRatingValues, err := rmrrvc.service.GetRiskAll()
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(rmrrvc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, riskRatingValues)
+}
+
 func (rmrrvc *RiskMatrixRiskRatingValueController) CreateRiskMatrixRiskRatingValue(c *gin.Context) {
 	var riskRatingValue *riskDTOs.RiskMatrixRiskRatingValueFormDTO
 

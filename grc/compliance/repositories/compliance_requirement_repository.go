@@ -13,7 +13,7 @@ import (
 
 type ComplianceRequirementRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementListResponseDTO, error)
+	GetAll(params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementListResponseDTO, error)
 	GetByID(id uint) (*models.ComplianceRequirement, error)
 	GetFullDetailsByID(id uint) (*models.ComplianceRequirement, error)
 	Create(complianceRequirement *models.ComplianceRequirement, tx ...utility.DatabaseTransaction) (uint, error)
@@ -38,7 +38,7 @@ func (repo *ComplianceRequirementRepository) BeginTransaction() utility.Database
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *ComplianceRequirementRepository) GetAll(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementListResponseDTO, error) {
+func (repo *ComplianceRequirementRepository) GetAll(params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementListResponseDTO, error) {
 	var complianceRequirements []*complianceDTOs.ComplianceRequirementListDTO
 	var totalCount int64
 
@@ -76,8 +76,7 @@ func (repo *ComplianceRequirementRepository) GetAll(complianceID uint, params *c
 			LEFT JOIN users AS created_user ON created_user.id = compliance_requirements.created_by
 			LEFT JOIN users AS updated_user ON updated_user.id = compliance_requirements.updated_by
 			LEFT JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id
-		`).Where(`compliance_clauses.compliance_register_id`, complianceID)
-
+		`)
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {

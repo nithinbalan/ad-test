@@ -12,6 +12,7 @@ type ComplianceModule struct {
 	ComplianceCategoryController                *controllers.ComplianceCategoryController
 	ComplianceStatusController                  *controllers.ComplianceStatusController
 	ComplianceRegisterController                *controllers.ComplianceRegisterController
+	ComplianceAssociatedItemController          *controllers.ComplianceAssociatedItemController
 	ComplianceRequirementCategoryController     *controllers.ComplianceRequirementCategoryController
 	ComplianceRequirementController             *controllers.ComplianceRequirementController
 	ComplianceActionPlanController              *controllers.ComplianceActionPlanController
@@ -30,7 +31,7 @@ type ComplianceModule struct {
 	ComplianceRequirementSvc services.ComplianceRequirementServiceInterface
 }
 
-func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *MasterModule, organizationModule *OrganizationModule) *ComplianceModule {
+func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *MasterModule, organizationModule *OrganizationModule, taskModule *TaskModule, settingsModule *SettingsModule) *ComplianceModule {
 	complianceCategoryRepo := repositories.NewComplianceCategoryRepository(db)
 	complianceCategorySvc := services.NewComplianceCategoryService(complianceCategoryRepo, sharedModule.ActivityLogService)
 	complianceCategoryController := controllers.NewComplianceCategoryController(complianceCategorySvc)
@@ -48,8 +49,13 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		complianceStatusSvc,
 		masterModule.ReviewFrequencySvc,
 		masterModule.SeverityLevelSvc,
+		organizationModule.ControlSvc,
 	)
 	complianceRegisterController := controllers.NewComplianceRegisterController(complianceRegisterSvc)
+
+	complianceAssociatedItemRepo := repositories.NewComplianceAssociatedItemRepository(db)
+	complianceAssociatedItemSvc := services.NewComplianceAssociatedItemService(complianceAssociatedItemRepo, complianceRegisterSvc)
+	complianceAssociatedItemController := controllers.NewComplianceAssociatedItemController(complianceAssociatedItemSvc)
 
 	complianceRequirementCategoryRepo := repositories.NewComplianceRequirementCategoryRepository(db)
 	complianceRequirementCategorySvc := services.NewComplianceRequirementCategoryService(complianceRequirementCategoryRepo, sharedModule.ActivityLogService)
@@ -74,6 +80,8 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		complianceRequirementSvc,
 		masterModule.ActionPlanStatusSvc,
 		masterModule.SeverityLevelSvc,
+		taskModule.TaskService,
+		settingsModule.ModuleSvc,
 	)
 	complianceActionPlanController := controllers.NewComplianceActionPlanController(complianceActionPlanSvc)
 
@@ -145,6 +153,7 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		ComplianceCategoryController:                complianceCategoryController,
 		ComplianceStatusController:                  complianceStatusController,
 		ComplianceRegisterController:                complianceRegisterController,
+		ComplianceAssociatedItemController:          complianceAssociatedItemController,
 		ComplianceRequirementCategoryController:     complianceRequirementCategoryController,
 		ComplianceRequirementController:             complianceRequirementController,
 		ComplianceActionPlanController:              complianceActionPlanController,

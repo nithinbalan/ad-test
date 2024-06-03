@@ -16,7 +16,7 @@ import (
 )
 
 type ComplianceRequirementServiceInterface interface {
-	GetAll(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementListResponseDTO, error)
+	GetAll(params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementListResponseDTO, error)
 	GetByID(complianceID uint, id uint) (*models.ComplianceRequirement, error)
 	GetByComplianceRequirementID(id uint) (*models.ComplianceRequirement, error)
 	GetFullDetailsByID(complianceID uint, id uint) (*complianceDTOs.ComplianceRequirementDetailDTO, error)
@@ -53,11 +53,8 @@ func NewComplianceRequirementService(
 	}
 }
 
-func (crs *ComplianceRequirementService) GetAll(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementListResponseDTO, error) {
-	if _, err := crs.complianceRegisterSvc.GetByID(complianceID); err != nil {
-		return nil, err
-	}
-	return crs.repo.GetAll(complianceID, params)
+func (crs *ComplianceRequirementService) GetAll(params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementListResponseDTO, error) {
+	return crs.repo.GetAll(params)
 }
 
 func (crs ComplianceRequirementService) GetByID(complianceID uint, id uint) (*models.ComplianceRequirement, error) {

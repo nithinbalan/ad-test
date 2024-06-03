@@ -20,22 +20,26 @@ type User struct {
 	Email               string     `json:"email" binding:"require, email, max:255" gorm:"type:varchar(255);not null"`
 	MobileNumber        *string    `json:"mobile_number" binding:"require, max:45" gorm:"type:varchar(45);not null"`
 	ProfileImagePath    *string    `json:"profile_image_path" gorm:"type:varchar(500);default:null"`
+	Initial             string     `json:"initial" gorm:"type:nvarchar(2);default:null"`
+	Color               string     `json:"color" gorm:"type:varchar(10);default:null"`
+	LastLoginAt         *time.Time `json:"last_login_at" gorm:"type:datetime;default:null"`
 	CreatedAt           time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt           *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 	CreatedBy           uint       `json:"created_by" gorm:"not null"`
 	UpdatedBy           *uint      `json:"updated_by" gorm:"default:null"`
 
 	// Relationships
-	OrganizationUnit1 *OrganizationUnit `gorm:"foreignKey:OrganizationUnit1ID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
-	OrganizationUnit2 *OrganizationUnit `gorm:"foreignKey:OrganizationUnit2ID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
-	OrganizationUnit3 *OrganizationUnit `gorm:"foreignKey:OrganizationUnit3ID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
-	OrganizationUnit4 *OrganizationUnit `gorm:"foreignKey:OrganizationUnit4ID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
-	OrganizationUnit5 *OrganizationUnit `gorm:"foreignKey:OrganizationUnit5ID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
-	UserStatus        *UserStatus       `gorm:"foreignKey:UserStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
-	Designation       *Designation      `gorm:"foreignKey:DesignationID"`
-	UserRoles         *[]UserRole       `gorm:"foreignKey:UserID"`
-	CreatedByUser     *User             `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser     *User             `gorm:"foreignKey:UpdatedBy"`
+	OrganizationUnit1 *OrganizationUnit   `gorm:"foreignKey:OrganizationUnit1ID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
+	OrganizationUnit2 *OrganizationUnit   `gorm:"foreignKey:OrganizationUnit2ID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
+	OrganizationUnit3 *OrganizationUnit   `gorm:"foreignKey:OrganizationUnit3ID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
+	OrganizationUnit4 *OrganizationUnit   `gorm:"foreignKey:OrganizationUnit4ID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
+	OrganizationUnit5 *OrganizationUnit   `gorm:"foreignKey:OrganizationUnit5ID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
+	UserStatus        *UserStatus         `gorm:"foreignKey:UserStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
+	Designation       *Designation        `gorm:"foreignKey:DesignationID"`
+	UserRoles         *[]UserRole         `gorm:"foreignKey:UserID"`
+	LoginHistory      *[]UserLoginHistory `gorm:"foreignKey:UserID"`
+	CreatedByUser     *User               `gorm:"foreignKey:CreatedBy"`
+	UpdatedByUser     *User               `gorm:"foreignKey:UpdatedBy"`
 }
 
 // TableName overrides the table name used by User to `users`

@@ -20,19 +20,21 @@ type RiskRegister struct {
 	Comments          *string    `json:"comments" gorm:"type:nvarchar(max)"`
 	CreatedBy         uint       `json:"created_by" binding:"required"`
 	UpdatedBy         *uint      `json:"updated_by"`
-	CreatedAt         time.Time  `json:"created_at" gorm:"type:datetime;not null"`
-	UpdatedAt         *time.Time `json:"updated_at" gorm:"type:datetime"`
+	CreatedAt         time.Time  `json:"created_at" binding:"required" gorm:"type:datetime;not null"`
+	UpdatedAt         *time.Time `json:"updated_at,omitempty" gorm:"type:datetime;default:null"`
 
 	// Relationships
-	RiskCategory    *RiskCategory     `gorm:"foreignkey:RiskCategoryID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	RiskSource      *RiskSource       `gorm:"foreignkey:RiskSourceID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	OwnerUnit       *OrganizationUnit `gorm:"foreignkey:OwnerUnitID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	Owner           *User             `gorm:"foreignkey:OwnerID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	ReviewFrequency *ReviewFrequency  `gorm:"foreignkey:ReviewFrequencyID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	RiskStatus      *RiskStatus       `gorm:"foreignkey:RiskStatusID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	CreatedByUser   *User             `gorm:"foreignkey:CreatedBy;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	UpdatedByUser   *User             `gorm:"foreignkey:UpdatedBy;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	Documents       *[]RiskDocument   `gorm:"foreignKey:RiskRegisterID"`
+	RiskCategory           *RiskCategory                `gorm:"foreignkey:RiskCategoryID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	RiskSource             *RiskSource                  `gorm:"foreignkey:RiskSourceID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	OwnerUnit              *OrganizationUnit            `gorm:"foreignkey:OwnerUnitID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	Owner                  *User                        `gorm:"foreignkey:OwnerID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	ReviewFrequency        *ReviewFrequency             `gorm:"foreignkey:ReviewFrequencyID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	RiskStatus             *RiskStatus                  `gorm:"foreignkey:RiskStatusID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	CreatedByUser          *User                        `gorm:"foreignkey:CreatedBy;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	UpdatedByUser          *User                        `gorm:"foreignkey:UpdatedBy;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	Documents              *[]RiskDocument              `gorm:"foreignKey:RiskRegisterID"`
+	ComplianceRequirements []*RiskComplianceRequirement `gorm:"foreignKey:RiskRegisterID"`
+	Controls               []*RiskControl               `gorm:"foreignKey:RiskRegisterID"`
 }
 
 // TableName overrides the table name used by RiskRegister to `risk_register`

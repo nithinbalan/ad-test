@@ -224,10 +224,10 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 			IncidentRegisterID: id,
 			Language:           doc.Language,
 			URL:                url,
-			Icon:               doc.Icon,
 			Name:               doc.FileName,
 			Size:               doc.Size,
 			Token:              encryptedFilename,
+			OriginalName:       doc.OriginalName,
 			Type:               doc.Type,
 			CreatedBy:          currentUserID,
 		}
@@ -495,10 +495,10 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 				IncidentRegisterID: id,
 				Language:           doc.Language,
 				URL:                url,
-				Icon:               doc.Icon,
 				Name:               doc.FileName,
 				Size:               doc.Size,
 				Token:              encryptedFilename,
+				OriginalName:       doc.OriginalName,
 				Type:               doc.Type,
 				CreatedBy:          currentUserID,
 			}
@@ -716,10 +716,6 @@ func (irs *IncidentRegisterService) validateIncidentRegisterFormDTO(incidentRegi
 	}
 	//Controls exist
 	controls := incidentRegisterFormDTO.ControlIds
-	// If no controls are provided, simply return nil to exit the function
-	if len(controls) == 0 {
-		return nil
-	}
 
 	// Create a map to store control IDs
 	controlIDs := make(map[uint]bool)
@@ -743,11 +739,6 @@ func (irs *IncidentRegisterService) validateIncidentRegisterFormDTO(incidentRegi
 	//Compliance Requirements Exist
 	requirements := incidentRegisterFormDTO.ComplianceRequirementIds
 
-	// If no Requirements are provided, simply return nil to exit the function
-	if len(requirements) == 0 {
-		return nil
-	}
-
 	// Create a map to store requirement IDs
 	requirementIDs := make(map[uint]bool)
 
@@ -769,11 +760,6 @@ func (irs *IncidentRegisterService) validateIncidentRegisterFormDTO(incidentRegi
 	}
 	//Risks exist
 	risks := incidentRegisterFormDTO.RiskIds
-	// If no risks are provided, simply return nil to exit the function
-	if len(risks) == 0 {
-		return nil
-	}
-
 	// Create a map to store risk IDs
 	riskIDs := make(map[uint]bool)
 
@@ -822,23 +808,6 @@ func (irs *IncidentRegisterService) validateIncidentDocumentFormDTO(documents []
 	// Check if documents array is empty
 	if len(documents) == 0 {
 		return utility.NewValidationError(fmt.Errorf("documents array is required"), "required", "documents")
-	}
-
-	for _, document := range documents {
-		//@Review
-		//All items are mandatory during creation
-
-		// Validate icon
-		if document.Icon == "" {
-			return utility.NewValidationError(fmt.Errorf("icon is required"), "required", "icon")
-		}
-
-		// @todo
-		// Validate file size (if needed)
-		// For example:
-		// if document.Size > MaxFileSize {
-		//     return utility.NewValidationError(fmt.Errorf("file size exceeds the limit"), "invalid_file_size", "file_size")
-		// }
 	}
 
 	return nil
