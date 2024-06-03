@@ -115,7 +115,6 @@ func (rasus *RiskActionPlanStatusUpdateService) Create(RiskID uint, RiskActionPl
 		document := &models.RiskActionPlanStatusUpdateDocument{
 			RiskActionPlanStatusUpdateID: id,
 			URL:                          url,
-			Icon:                         doc.Icon,
 			Name:                         doc.FileName,
 			Size:                         doc.Size,
 			Token:                        encryptedFilename,
@@ -219,7 +218,6 @@ func (rasus *RiskActionPlanStatusUpdateService) Update(RiskID uint, RiskActionPl
 			document := &models.RiskActionPlanStatusUpdateDocument{
 				RiskActionPlanStatusUpdateID: id,
 				URL:                          url,
-				Icon:                         doc.Icon,
 				Name:                         doc.FileName,
 				Size:                         doc.Size,
 				Token:                        encryptedFileName,
