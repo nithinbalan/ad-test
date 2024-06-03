@@ -31,10 +31,8 @@ func (crss ComplianceReviewStatusService) GetByID(id uint) (*models.ComplianceRe
 }
 
 func (crss *ComplianceReviewStatusService) GetByType(status string) (*models.ComplianceReviewStatus, error) {
-	// Fetch the compliance review status by its status
 	statusResult, err := crss.repo.GetByType(status)
 	if err != nil {
-		// Handle error appropriately
 		return nil, err
 	}
 
