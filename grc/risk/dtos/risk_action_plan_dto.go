@@ -11,6 +11,8 @@ import (
 type RiskActionPlanListDTO struct {
 	ID                         uint   `json:"id"`
 	RiskRegisterID             uint   `json:"risk_register_id"`
+	RiskReferenceNumber        string `json:"risk_reference_number"`
+	RiskTitle                  string `json:"risk_title"`
 	Title                      string `json:"title"`
 	Description                string `json:"description"`
 	SeverityLevelTitleEn       string `json:"severity_level_title_en"`

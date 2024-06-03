@@ -23,7 +23,7 @@ CREATE TABLE compliance_register (
     last_reviewed_date DATE NULL,
     last_reviewed_user_id INT NULL,
     last_review_note NVARCHAR(MAX) NULL,
-    compliance_review_status_id INT NOT NULL,
+    compliance_review_status_id INT NULL,
     created_at DATETIME NOT NULL ,
     updated_at DATETIME NULL,
     created_by INT NOT NULL,

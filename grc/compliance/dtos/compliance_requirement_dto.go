@@ -18,8 +18,10 @@ type ComplianceRequirementListDTO struct {
 	SeverityLevelTitleEn                 string `json:"severity_level_title_en"`
 	SeverityLevelTitleAr                 string `json:"severity_level_title_ar"`
 	SeverityLevelColorCode               string `json:"severity_level_color_code"`
-	ResponsibleUserFirstName             string `json:"responsible_user_first_name"`
-	ResponsibleUserLastName              string `json:"responsible_user_last_name"`
+	ResponsibleUserFirstNameEn           string `json:"responsible_user_first_name_en"`
+	ResponsibleUserFirstNameAr           string `json:"responsible_user_first_name_ar"`
+	ResponsibleUserLastNameEn            string `json:"responsible_user_last_name_en"`
+	ResponsibleUserLastNameAr            string `json:"responsible_user_last_name_ar"`
 	Deadline                             string `json:"deadline"`
 	ComplianceStatusTitleEn              string `json:"compliance_status_title_en"`
 	ComplianceStatusTitleAr              string `json:"compliance_status_title_ar"`

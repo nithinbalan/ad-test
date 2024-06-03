@@ -43,11 +43,14 @@ func (repo *RiskActionPlanRepository) GetAll(riskID uint, params *riskDTOs.RiskA
 	query := repo.db.Table("risk_action_plans").
 		Select(`
         risk_action_plans.*,
+		risk_register.reference_number AS risk_reference_number,
+        risk_register.title AS risk_title,
         action_plan_statuses.title_en AS action_plan_status_title_en,
         action_plan_statuses.title_ar AS action_plan_status_title_ar,
         severity_levels.title_en AS severity_level_title_en,
         severity_levels.title_ar AS severity_level_title_ar,
         severity_levels.color_code AS severity_level_color_code,
+		CONVERT(VARCHAR, risk_action_plans.target_date, 23) AS target_date,
         responsible_user.first_name_en AS responsible_user_first_name_en,
         responsible_user.first_name_ar AS responsible_user_first_name_ar,
         responsible_user.last_name_en AS responsible_user_last_name_en,
@@ -62,6 +65,7 @@ func (repo *RiskActionPlanRepository) GetAll(riskID uint, params *riskDTOs.RiskA
         updated_user.last_name_ar AS updated_user_last_name_ar 
     `).
 		Joins(`
+		LEFT JOIN risk_register ON risk_register.id = risk_action_plans.risk_register_id
         LEFT JOIN action_plan_statuses ON action_plan_statuses.id = risk_action_plans.action_plan_status_id
         LEFT JOIN severity_levels ON severity_levels.id = risk_action_plans.severity_level_id
         LEFT JOIN users AS responsible_user ON responsible_user.id = risk_action_plans.responsible_user_id
