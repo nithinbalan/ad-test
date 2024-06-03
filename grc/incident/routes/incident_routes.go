@@ -71,52 +71,52 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	incidentRoutes.GET("/incident-investigation-statuses/:id", incidentInvestigationStatusController.GetIncidentInvestigationStatusDetails)
 
 	//Incident Investigation
-	incidentRoutes.GET("/incident/:incidentId/investigations", incidentInvestigationController.GetAllIncidentInvestigations)
-	incidentRoutes.GET("/incident/:incidentId/investigations/:id", incidentInvestigationController.GetIncidentInvestigationDetails)
-	incidentRoutes.POST("/incident/:incidentId/investigations", incidentInvestigationController.CreateIncidentInvestigation)
-	incidentRoutes.PUT("/incident/:incidentId/investigations/:id", incidentInvestigationController.UpdateIncidentInvestigation)
-	incidentRoutes.POST("/incident/:incidentId/investigations/delete", incidentInvestigationController.DeleteIncidentInvestigations)
+	incidentRoutes.GET("/incidents/:incidentID/investigations", incidentInvestigationController.GetAllIncidentInvestigations)
+	incidentRoutes.GET("/incidents/:incidentID/investigations/:id", incidentInvestigationController.GetIncidentInvestigationDetails)
+	incidentRoutes.POST("/incidents/:incidentID/investigations", incidentInvestigationController.CreateIncidentInvestigation)
+	incidentRoutes.PUT("/incidents/:incidentID/investigations/:id", incidentInvestigationController.UpdateIncidentInvestigation)
+	incidentRoutes.POST("/incidents/:incidentID/investigations/delete", incidentInvestigationController.DeleteIncidentInvestigations)
 
 	//Incident Action Plan
 	incidentRoutes.GET("/incident-action-plans", incidentActionPlanController.GetAllIncidentActionPlans)
-	incidentRoutes.GET("/incident/:incidentId/action-plans", incidentActionPlanController.GetAllIncidentActionPlans)
-	incidentRoutes.GET("/incident/:incidentId/action-plans/:actionPlanId", incidentActionPlanController.GetIncidentActionPlanDetails)
-	incidentRoutes.POST("/incident/:incidentId/action-plans", incidentActionPlanController.CreateIncidentActionPlan)
-	incidentRoutes.PUT("/incident/:incidentId/action-plans/:actionPlanId", incidentActionPlanController.UpdateIncidentActionPlan)
-	incidentRoutes.POST("/incident/:incidentId/action-plans/delete", incidentActionPlanController.DeleteIncidentActionPlans)
+	incidentRoutes.GET("/incidents/:incidentID/action-plans", incidentActionPlanController.GetAllIncidentActionPlans)
+	incidentRoutes.GET("/incidents/:incidentID/action-plans/:actionPlanId", incidentActionPlanController.GetIncidentActionPlanDetails)
+	incidentRoutes.POST("/incidents/:incidentID/action-plans", incidentActionPlanController.CreateIncidentActionPlan)
+	incidentRoutes.PUT("/incidents/:incidentID/action-plans/:actionPlanId", incidentActionPlanController.UpdateIncidentActionPlan)
+	incidentRoutes.POST("/incidents/:incidentID/action-plans/delete", incidentActionPlanController.DeleteIncidentActionPlans)
 
 	//Incident Action Plan Status Updates
-	incidentRoutes.GET("/incident/:incidentId/action-plans/:actionPlanId/status-updates", incidentActionPlanStatusUpdateController.GetAllIncidentActionPlanStatusUpdates)
-	incidentRoutes.POST("/incident/:incidentId/action-plans/:actionPlanId/status-updates", incidentActionPlanStatusUpdateController.CreateIncidentActionPlanStatusUpdate)
-	incidentRoutes.PUT("/incident/:incidentId/action-plans/:actionPlanId/status-updates/:id", incidentActionPlanStatusUpdateController.UpdateIncidentActionPlanStatusUpdate)
+	incidentRoutes.GET("/incidents/:incidentID/action-plans/:actionPlanId/status-updates", incidentActionPlanStatusUpdateController.GetAllIncidentActionPlanStatusUpdates)
+	incidentRoutes.POST("/incidents/:incidentID/action-plans/:actionPlanId/status-updates", incidentActionPlanStatusUpdateController.CreateIncidentActionPlanStatusUpdate)
+	incidentRoutes.PUT("/incidents/:incidentID/action-plans/:actionPlanId/status-updates/:id", incidentActionPlanStatusUpdateController.UpdateIncidentActionPlanStatusUpdate)
 
 	//Incident Root Cause Analyses
-	incidentRoutes.GET("/incident/:incidentId/root-cause-analysis", incidentRootCauseAnalysisController.GetAllIncidentRootCauseAnalyses)
-	incidentRoutes.POST("/incident/:incidentId/root-cause-analysis", incidentRootCauseAnalysisController.CreateIncidentRootCauseAnalysis)
-	incidentRoutes.PUT("/incident/:incidentId/root-cause-analysis", incidentRootCauseAnalysisController.UpdateIncidentRootCauseAnalysis)
-	incidentRoutes.DELETE("/incident/:incidentId/root-cause-analysis/:id", incidentRootCauseAnalysisController.DeleteIncidentRootCauseAnalyses)
+	incidentRoutes.GET("/incidents/:incidentID/root-cause-analysis", incidentRootCauseAnalysisController.GetAllIncidentRootCauseAnalyses)
+	incidentRoutes.POST("/incidents/:incidentID/root-cause-analysis", incidentRootCauseAnalysisController.CreateIncidentRootCauseAnalysis)
+	incidentRoutes.PUT("/incidents/:incidentID/root-cause-analysis", incidentRootCauseAnalysisController.UpdateIncidentRootCauseAnalysis)
+	incidentRoutes.DELETE("/incidents/:incidentID/root-cause-analysis/:id", incidentRootCauseAnalysisController.DeleteIncidentRootCauseAnalyses)
 
 	//Incident Communication logs
-	incidentRoutes.GET("/incident/:incidentId/communication-logs", incidentCommunicationLogController.GetAllIncidentCommunicationLogs)
-	incidentRoutes.GET("/incident/:incidentId/communication-logs/:id", incidentCommunicationLogController.GetIncidentCommunicationLogDetails)
-	incidentRoutes.POST("/incident/:incidentId/communication-logs", incidentCommunicationLogController.CreateIncidentCommunicationLog)
-	incidentRoutes.PUT("/incident/:incidentId/communication-logs/:id", incidentCommunicationLogController.UpdateIncidentCommunicationLog)
-	incidentRoutes.POST("/incident/:incidentId/communication-logs/delete", incidentCommunicationLogController.DeleteIncidentCommunicationLogs)
+	incidentRoutes.GET("/incidents/:incidentID/communication-logs", incidentCommunicationLogController.GetAllIncidentCommunicationLogs)
+	incidentRoutes.GET("/incidents/:incidentID/communication-logs/:id", incidentCommunicationLogController.GetIncidentCommunicationLogDetails)
+	incidentRoutes.POST("/incidents/:incidentID/communication-logs", incidentCommunicationLogController.CreateIncidentCommunicationLog)
+	incidentRoutes.PUT("/incidents/:incidentID/communication-logs/:id", incidentCommunicationLogController.UpdateIncidentCommunicationLog)
+	incidentRoutes.POST("/incidents/:incidentID/communication-logs/delete", incidentCommunicationLogController.DeleteIncidentCommunicationLogs)
 
 	//Incident Closure
-	incidentRoutes.GET("/incident/:incidentId/closures/:id", incidentClosureController.GetIncidentClosureDetails)
-	incidentRoutes.POST("/incident/:incidentId/closures", incidentClosureController.CreateIncidentClosure)
-	incidentRoutes.PUT("/incident/:incidentId/closures/:id", incidentClosureController.UpdateIncidentClosure)
-	incidentRoutes.POST("/incident/:incidentId/closures/delete", incidentClosureController.DeleteIncidentClosures)
+	incidentRoutes.GET("/incidents/:incidentID/closures/:id", incidentClosureController.GetIncidentClosureDetails)
+	incidentRoutes.POST("/incidents/:incidentID/closures", incidentClosureController.CreateIncidentClosure)
+	incidentRoutes.PUT("/incidents/:incidentID/closures/:id", incidentClosureController.UpdateIncidentClosure)
+	incidentRoutes.POST("/incidents/:incidentID/closures/delete", incidentClosureController.DeleteIncidentClosures)
 
 	//Incident Post Review Effectiveness
 	incidentRoutes.GET("/incident-post-review-effectivenesses", incidentPostReviewEffectivenessController.GetAllIncidentPostReviewEffectivenesses)
 	incidentRoutes.GET("/incident-post-review-effectivenesses/:id", incidentPostReviewEffectivenessController.GetIncidentPostReviewEffectivenessDetails)
 
 	//Incident PostReview
-	incidentRoutes.GET("/incident/:incidentId/post-reviews/:id", incidentPostReviewController.GetIncidentPostReviewDetails)
-	incidentRoutes.POST("/incident/:incidentId/post-reviews", incidentPostReviewController.CreateIncidentPostReview)
-	incidentRoutes.PUT("/incident/:incidentId/post-reviews/:id", incidentPostReviewController.UpdateIncidentPostReview)
-	incidentRoutes.POST("/incident/:incidentId/post-reviews/delete", incidentPostReviewController.DeleteIncidentPostReviews)
+	incidentRoutes.GET("/incidents/:incidentID/post-reviews/:id", incidentPostReviewController.GetIncidentPostReviewDetails)
+	incidentRoutes.POST("/incidents/:incidentID/post-reviews", incidentPostReviewController.CreateIncidentPostReview)
+	incidentRoutes.PUT("/incidents/:incidentID/post-reviews/:id", incidentPostReviewController.UpdateIncidentPostReview)
+	incidentRoutes.POST("/incidents/:incidentID/post-reviews/delete", incidentPostReviewController.DeleteIncidentPostReviews)
 
 }

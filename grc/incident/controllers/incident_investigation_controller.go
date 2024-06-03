@@ -24,7 +24,7 @@ func NewIncidentInvestigationController(service services.IncidentInvestigationSe
 }
 
 func (iic *IncidentInvestigationController) GetAllIncidentInvestigations(c *gin.Context) {
-	incidentIDStr := c.Param("incidentId")
+	incidentIDStr := c.Param("incidentID")
 
 	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
 	if err != nil {
@@ -81,7 +81,7 @@ func (iic *IncidentInvestigationController) GetAllIncidentInvestigations(c *gin.
 }
 
 func (iic *IncidentInvestigationController) GetIncidentInvestigationDetails(c *gin.Context) {
-	incidentIDStr := c.Param("incidentId")
+	incidentIDStr := c.Param("incidentID")
 
 	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
 	if err != nil {
@@ -114,7 +114,7 @@ func (iic *IncidentInvestigationController) GetIncidentInvestigationDetails(c *g
 func (iic *IncidentInvestigationController) CreateIncidentInvestigation(c *gin.Context) {
 	var incidentInvestigationFormDTO incidentDTOs.IncidentInvestigationFormDTO
 
-	incidentIDStr := c.Param("incidentId")
+	incidentIDStr := c.Param("incidentID")
 
 	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
 	if err != nil {
@@ -155,7 +155,7 @@ func (iic *IncidentInvestigationController) CreateIncidentInvestigation(c *gin.C
 func (iic *IncidentInvestigationController) UpdateIncidentInvestigation(c *gin.Context) {
 	var incidentInvestigationFormDTO incidentDTOs.IncidentInvestigationFormDTO
 
-	incidentIDStr := c.Param("incidentId")
+	incidentIDStr := c.Param("incidentID")
 
 	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
 	if err != nil {
@@ -199,7 +199,7 @@ func (iic *IncidentInvestigationController) UpdateIncidentInvestigation(c *gin.C
 }
 
 func (iic *IncidentInvestigationController) DeleteIncidentInvestigations(c *gin.Context) {
-	incidentIDStr := c.Param("incidentId")
+	incidentIDStr := c.Param("incidentID")
 
 	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
 	if err != nil {

@@ -24,7 +24,7 @@ func NewIncidentPostReviewController(service services.IncidentPostReviewServiceI
 }
 
 func (iprc *IncidentPostReviewController) GetIncidentPostReviewDetails(c *gin.Context) {
-	incidentIDStr := c.Param("incidentId")
+	incidentIDStr := c.Param("incidentID")
 
 	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
 	if err != nil {
@@ -58,7 +58,7 @@ func (iprc *IncidentPostReviewController) GetIncidentPostReviewDetails(c *gin.Co
 func (iprc *IncidentPostReviewController) CreateIncidentPostReview(c *gin.Context) {
 	var incidentPostReviewFormDTO incidentDTOs.IncidentPostReviewFormDTO
 
-	incidentIDStr := c.Param("incidentId")
+	incidentIDStr := c.Param("incidentID")
 
 	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
 	if err != nil {
@@ -99,7 +99,7 @@ func (iprc *IncidentPostReviewController) CreateIncidentPostReview(c *gin.Contex
 func (iprc *IncidentPostReviewController) UpdateIncidentPostReview(c *gin.Context) {
 	var incidentPostReviewFormDTO incidentDTOs.IncidentPostReviewFormDTO
 
-	incidentIDStr := c.Param("incidentId")
+	incidentIDStr := c.Param("incidentID")
 
 	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
 	if err != nil {
@@ -149,7 +149,7 @@ func (iprc *IncidentPostReviewController) DeleteIncidentPostReviews(c *gin.Conte
 		IDs []uint `json:"ids"`
 	}
 
-	incidentIDStr := c.Param("incidentId")
+	incidentIDStr := c.Param("incidentID")
 
 	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
 	if err != nil {
