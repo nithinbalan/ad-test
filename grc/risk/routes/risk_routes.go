@@ -34,9 +34,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRootCauseAnalysisController := app.RiskModule.RiskRootCauseAnalysisController
 	riskAppetiteToleranceLevelController := app.RiskModule.RiskAppetiteToleranceLevelController
 	riskInherentEvaluationController := app.RiskModule.RiskInherentEvaluationController
-	riskAssociatedItemController := app.RiskModule.RiskAssociatedItemController
 	riskActionPlanController := app.RiskModule.RiskActionPlanController
 	riskActionPlanStatusUpdateController := app.RiskModule.RiskActionPlanStatusUpdateController
+	riskAssociatedItemController := app.RiskModule.RiskAssociatedItemController
 
 	riskRoutes.GET("/risk-categories", riskCategoryController.GetAllRiskCategories)
 	riskRoutes.GET("/risk-categories/:id", riskCategoryController.GetRiskCategoryDetails)
