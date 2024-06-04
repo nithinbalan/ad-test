@@ -676,29 +676,39 @@ func (crs *ComplianceRegisterService) parseComplianceRegisterDates(dto *complian
 
 	var err error
 
-	parsed.Deadline, err = utility.ParseDate(*dto.Deadline)
-	if err != nil {
-		return nil, utility.NewValidationError(fmt.Errorf("invalid deadline"), "invalid_date", "deadline")
+	if dto.Deadline != nil {
+		parsed.Deadline, err = utility.ParseDate(*dto.Deadline)
+		if err != nil {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid deadline"), "invalid_date", "deadline")
+		}
 	}
 
-	parsed.IssueDate, err = utility.ParseDate(*dto.IssueDate)
-	if err != nil {
-		return nil, utility.NewValidationError(fmt.Errorf("invalid issue date"), "invalid_date", "issue date")
+	if dto.IssueDate != nil {
+		parsed.IssueDate, err = utility.ParseDate(*dto.IssueDate)
+		if err != nil {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid issue date"), "invalid_date", "issue date")
+		}
 	}
 
-	parsed.ExpiryDate, err = utility.ParseDate(*dto.ExpiryDate)
-	if err != nil {
-		return nil, utility.NewValidationError(fmt.Errorf("invalid expiry date"), "invalid_date", "expiry date")
+	if dto.ExpiryDate != nil {
+		parsed.ExpiryDate, err = utility.ParseDate(*dto.ExpiryDate)
+		if err != nil {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid expiry date"), "invalid_date", "expiry date")
+		}
 	}
 
-	parsed.NextReviewDate, err = utility.ParseDate(*dto.NextReviewDate)
-	if err != nil {
-		return nil, utility.NewValidationError(fmt.Errorf("invalid next review date"), "invalid_date", "next review date")
+	if dto.NextReviewDate != nil {
+		parsed.NextReviewDate, err = utility.ParseDate(*dto.NextReviewDate)
+		if err != nil {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid next review date"), "invalid_date", "next review date")
+		}
 	}
 
-	parsed.LastReviewedDate, err = utility.ParseDate(*dto.LastReviewedDate)
-	if err != nil {
-		return nil, utility.NewValidationError(fmt.Errorf("invalid last reviewed date"), "invalid_date", "last reviewed date")
+	if dto.LastReviewedDate != nil {
+		parsed.LastReviewedDate, err = utility.ParseDate(*dto.LastReviewedDate)
+		if err != nil {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid last reviewed date"), "invalid_date", "last reviewed date")
+		}
 	}
 
 	return parsed, nil
