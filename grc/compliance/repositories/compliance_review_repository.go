@@ -12,8 +12,8 @@ type ComplianceReviewRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(complianceID uint, sort string, sortBy string, keyword string) ([]*complianceDTOs.ComplianceReviewListDTO, error)
 	GetByID(id uint) (*models.ComplianceReview, error)
-	Create(ComplianceReview *models.ComplianceReview) (uint, error)
-	Update(ComplianceReview *models.ComplianceReview) error
+	Create(ComplianceReview *models.ComplianceReview, tx ...utility.DatabaseTransaction) (uint, error)
+	Update(ComplianceReview *models.ComplianceReview, tx ...utility.DatabaseTransaction) error
 
 	//Document
 	CreateDocuments(docs []*models.ComplianceReviewDocument, tx ...utility.DatabaseTransaction) error
@@ -37,7 +37,6 @@ func (repo *ComplianceReviewRepository) BeginTransaction() utility.DatabaseTrans
 }
 
 func (repo *ComplianceReviewRepository) GetAll(complianceID uint, sort string, sortBy string, keyword string) ([]*complianceDTOs.ComplianceReviewListDTO, error) {
-
 	var complianceReviews []*complianceDTOs.ComplianceReviewListDTO
 
 	query := repo.db.Table("compliance_reviews").
@@ -60,7 +59,7 @@ func (repo *ComplianceReviewRepository) GetAll(complianceID uint, sort string, s
 
 	if keyword != "" {
 		query = query.Where(`
-			(compliance_register.title LIKE ? OR
+			(compliance_register.title_en LIKE ? OR
 			compliance_reviews.comment LIKE ?)`,
 			"%"+keyword+"%", "%"+keyword+"%")
 	}
@@ -73,8 +72,35 @@ func (repo *ComplianceReviewRepository) GetAll(complianceID uint, sort string, s
 	query = query.Order(sortBy + " " + sort)
 	result := query.Find(&complianceReviews)
 
-	return complianceReviews, result.Error
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	// Fetch documents separately and aggregate them into the complianceReviews slice
+	// for _, review := range complianceReviews {
+	// 	var documents []*complianceDTOs.DocumentDTO
+	// 	docQuery := repo.db.Table("compliance_review_documents").
+	// 		Select(`
+	// 			url,
+	// 			name,
+	// 			size,
+	// 			token,
+	// 			type,
+	// 			original_name
+	// 		`).
+	// 		Where("compliance_review_id = ?", review.ID).
+	// 		Find(&documents)
+
+	// 	if docQuery.Error != nil {
+	// 		return nil, docQuery.Error
+	// 	}
+
+	// 	review.Documents = documents
+	// }
+
+	return complianceReviews, nil
 }
+
 
 func (repo *ComplianceReviewRepository) GetByID(id uint) (*models.ComplianceReview, error) {
 	var complianceReview *models.ComplianceReview

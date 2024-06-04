@@ -8,6 +8,8 @@ import (
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
+	"path/filepath"
+	"strconv"
 
 	"gorm.io/gorm"
 )
@@ -92,6 +94,48 @@ func (csus *ComplianceStatusUpdateService) Create(complianceID uint, currentUser
 		tx.Rollback()
 		return 0, err
 	}
+	var documents []*models.ComplianceStatusUpdateDocument
+
+	for _, doc := range complianceStatusUpdateFormDTO.Documents {
+
+		dataToEncrypt := []byte(doc.FileName)
+		encryptedFilename, err := utility.EncryptData(dataToEncrypt)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
+		url := utility.GenerateDocumentURL("compliances", strconv.FormatUint(uint64(complianceID), 10), "status-updates", encryptedFilename)
+
+		document := &models.ComplianceStatusUpdateDocument{
+			ComplianceStatusUpdateID: id,
+			URL:                      url,
+			Name:                     doc.FileName,
+			Size:                     doc.Size,
+			Token:                    encryptedFilename,
+			OriginalName:             doc.OriginalName,
+			Type:                     doc.Type,
+			CreatedBy:                currentUserID,
+		}
+
+		documents = append(documents, document)
+	}
+
+	if len(documents) > 0 {
+		if err := csus.repo.CreateDocuments(documents, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+		//move file to storage
+		for _, doc := range documents {
+			storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(complianceID), 10), "status-update-documents")
+			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+
+		}
+	}
 
 	tx.Commit()
 
@@ -121,7 +165,8 @@ func (csus *ComplianceStatusUpdateService) Create(complianceID uint, currentUser
 	return id, nil
 }
 
-func (csus *ComplianceStatusUpdateService) Update(complianceID uint, id uint, currentUserID uint, ComplianceStatusUpdateFormDTO *complianceDTOs.ComplianceStatusUpdateFormDTO) error {
+func (csus *ComplianceStatusUpdateService) Update(complianceID uint, id uint, currentUserID uint, complianceStatusUpdateFormDTO *complianceDTOs.ComplianceStatusUpdateFormDTO) error {
+	tx := csus.repo.BeginTransaction()
 	if _, err := csus.complianceRegisterSvc.GetByID(complianceID); err != nil {
 		return err
 	}
@@ -133,7 +178,7 @@ func (csus *ComplianceStatusUpdateService) Update(complianceID uint, id uint, cu
 	}
 
 	// Update Compliance StatusUpdate -- update only comments
-	existingComplianceStatusUpdate.Comment = ComplianceStatusUpdateFormDTO.Comment
+	existingComplianceStatusUpdate.Comment = complianceStatusUpdateFormDTO.Comment
 	existingComplianceStatusUpdate.UpdatedBy = &currentUserID
 
 	err = csus.repo.Update(existingComplianceStatusUpdate)
@@ -141,6 +186,87 @@ func (csus *ComplianceStatusUpdateService) Update(complianceID uint, id uint, cu
 	if err != nil {
 		return err
 	}
+
+	var documents []*models.ComplianceStatusUpdateDocument
+	var deleteDocumentIds []*uint
+	var documentsToDelete []*models.ComplianceStatusUpdateDocument
+
+	for _, doc := range complianceStatusUpdateFormDTO.Documents {
+
+		if doc.IsNewFile != nil && *doc.IsNewFile {
+			// Encrypt the filename
+			dataToEncrypt := []byte(doc.FileName)
+			encryptedFileName, err := utility.EncryptData(dataToEncrypt)
+
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			//genereate URL
+			url := utility.GenerateDocumentURL("compliances", strconv.FormatUint(uint64(complianceID), 10), "status-updates", encryptedFileName)
+			// Create a new Control test Document instance
+			document := &models.ComplianceStatusUpdateDocument{
+				ComplianceStatusUpdateID: id,
+				URL:                      url,
+				Name:                     doc.FileName,
+				Size:                     doc.Size,
+				Token:                    encryptedFileName,
+				OriginalName:             doc.OriginalName,
+				Type:                     doc.Type,
+				CreatedBy:                currentUserID,
+			}
+
+			// Append the document to the slice
+			documents = append(documents, document)
+
+		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
+			if doc.ID != nil {
+				existingDocument, err := csus.repo.GetDocumentByID(*doc.ID)
+				if err != nil {
+					if errors.Is(err, gorm.ErrRecordNotFound) {
+						return utility.NewResourceNotFoundError(err, id)
+					}
+					return err
+				}
+
+				documentsToDelete = append(documentsToDelete, existingDocument)
+				deleteDocumentIds = append(deleteDocumentIds, &existingDocument.ID)
+			}
+		}
+	}
+
+	if len(documents) > 0 {
+		if err := csus.repo.CreateDocuments(documents, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	if len(deleteDocumentIds) > 0 {
+		if err := csus.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	for _, doc := range documents {
+		storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(complianceID), 10), "status-update-documents")
+		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	for _, document := range documentsToDelete {
+		storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(complianceID), 10), "status-update-documents")
+		if err := utility.RemoveFile(document.Name, storagePath); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+	tx.Commit()
+
 
 	return nil
 }

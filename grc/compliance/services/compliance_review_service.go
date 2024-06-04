@@ -85,8 +85,9 @@ func (crs *ComplianceReviewService) Create(complianceID uint, currentUserID uint
 		ReviewedAt:           time.Now(),
 	}
 
-	id, err := crs.repo.Create(complianceReview)
+	id, err := crs.repo.Create(complianceReview,tx)
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
@@ -110,6 +111,7 @@ func (crs *ComplianceReviewService) Create(complianceID uint, currentUserID uint
 	complianceRegister.ComplianceReviewStatusID = &complianceReviewStatus.ID
 
 	if err := crs.complianceRegisterSvc.ReviewStatusUpdate(complianceRegister); err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
@@ -147,7 +149,7 @@ func (crs *ComplianceReviewService) Create(complianceID uint, currentUserID uint
 		}
 		//move file to storage
 		for _, doc := range documents {
-			storagePath := filepath.Join("compliance", "compliance-review", strconv.FormatUint(uint64(complianceID), 10), "review", strconv.FormatUint(uint64(id), 10), "documents")
+			storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(complianceID), 10), "review-documents")
 			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
 				tx.Rollback()
 				return 0, err
@@ -199,9 +201,10 @@ func (crs *ComplianceReviewService) Update(complianceID uint, id uint, currentUs
 	existingComplianceReview.Comment = complianceReviewFormDTO.Comment
 	existingComplianceReview.UpdatedBy = &currentUserID
 
-	err = crs.repo.Update(existingComplianceReview)
+	err = crs.repo.Update(existingComplianceReview,tx)
 
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -222,7 +225,7 @@ func (crs *ComplianceReviewService) Update(complianceID uint, id uint, currentUs
 			}
 
 			//genereate URL
-			url := utility.GenerateDocumentURL("compliances", strconv.FormatUint(uint64(complianceID), 10), "reviews", encryptedFilename)
+			url := utility.GenerateDocumentURL("compliances", strconv.FormatUint(uint64(complianceID), 10), "reviews", encryptedFileName)
 			// Create a new Control test Document instance
 			document := &models.ComplianceReviewDocument{
 				ComplianceReviewID: id,
@@ -269,7 +272,7 @@ func (crs *ComplianceReviewService) Update(complianceID uint, id uint, currentUs
 	}
 
 	for _, doc := range documents {
-		storagePath := filepath.Join("compliance", "compliance-review", strconv.FormatUint(uint64(complianceID), 10), "review", strconv.FormatUint(uint64(id), 10), "documents")
+		storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(complianceID), 10), "review-documents")
 		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
 			tx.Rollback()
 			return err
@@ -277,7 +280,7 @@ func (crs *ComplianceReviewService) Update(complianceID uint, id uint, currentUs
 	}
 
 	for _, document := range documentsToDelete {
-		storagePath := filepath.Join("compliance", "compliance-review", strconv.FormatUint(uint64(complianceID), 10), "review", strconv.FormatUint(uint64(id), 10), "documents")
+		storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(complianceID), 10), "review-documents")
 		if err := utility.RemoveFile(document.Name, storagePath); err != nil {
 			tx.Rollback()
 			return err
