@@ -14,6 +14,7 @@ import (
 type ComplianceRequirementRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementListResponseDTO, error)
+	GetRequirementsByComplianceID(params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementByComplianceIDListResponseDTO, error)
 	GetByID(id uint) (*models.ComplianceRequirement, error)
 	GetFullDetailsByID(id uint) (*models.ComplianceRequirement, error)
 	Create(complianceRequirement *models.ComplianceRequirement, tx ...utility.DatabaseTransaction) (uint, error)
@@ -162,6 +163,135 @@ func (repo *ComplianceRequirementRepository) GetAll(params *complianceDTOs.Compl
 			TotalCount:  totalCount,
 		},
 	}
+	return response, nil
+}
+
+func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementByComplianceIDListResponseDTO, error) {
+	// Initialize the response DTO with an empty map
+	response := &complianceDTOs.ComplianceRequirementByComplianceIDListResponseDTO{
+		Items: make(map[string][]*complianceDTOs.ComplianceRequirementListDTO),
+	}
+
+	query := repo.db.Table("compliance_requirements").
+		Select(`
+			compliance_requirements.*,
+			compliance_clauses.id AS clause_id,
+			compliance_clauses.clause_no AS compliance_clause_no,
+			compliance_clauses.title AS compliance_clause_title,
+			compliance_requirement_categories.title_en AS compliance_requirement_category_title_en,
+			compliance_requirement_categories.title_ar AS compliance_requirement_category_title_ar,
+			severity_levels.title_en AS severity_level_title_en,
+			severity_levels.title_ar AS severity_level_title_ar,
+			severity_levels.color_code AS severity_level_color_code,
+			compliance_statuses.title_en AS compliance_status_title_en,
+			compliance_statuses.title_ar AS compliance_status_title_ar,
+			compliance_statuses.color_code AS compliance_status_color_code,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+			responsible_user.first_name_ar AS responsible_user_first_name_ar,
+			responsible_user.last_name_en AS responsible_user_last_name_en,
+			responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			created_user.first_name_en AS created_user_first_name_en,
+			created_user.first_name_ar AS created_user_first_name_ar,
+			created_user.last_name_en AS created_user_last_name_en,
+			created_user.last_name_ar AS created_user_last_name_ar,
+			updated_user.first_name_en AS updated_user_first_name_en,
+			updated_user.first_name_ar AS updated_user_first_name_ar,
+			updated_user.last_name_en AS updated_user_last_name_en,
+			updated_user.last_name_ar AS updated_user_last_name_ar 
+		`).
+		Joins(`
+			LEFT JOIN compliance_requirement_categories ON compliance_requirement_categories.id = compliance_requirements.compliance_requirement_category_id
+			LEFT JOIN severity_levels ON severity_levels.id = compliance_requirements.severity_level_id
+			LEFT JOIN compliance_statuses ON compliance_statuses.id = compliance_requirements.compliance_status_id
+			LEFT JOIN users AS responsible_user ON responsible_user.id = compliance_requirements.responsible_user_id
+			LEFT JOIN users AS created_user ON created_user.id = compliance_requirements.created_by
+			LEFT JOIN users AS updated_user ON updated_user.id = compliance_requirements.updated_by
+			LEFT JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id
+		`)
+	// Apply dynamic filters to the query
+	for columnName, values := range params.Filters {
+		if len(values) > 0 {
+			query = query.Where(columnName+" IN (?)", values)
+		}
+	}
+
+	// Apply deadline filters
+	if params.DeadlineFrom != "" {
+		query = query.Where("deadline >= ?", params.DeadlineFrom)
+	}
+	if params.DeadlineTo != "" {
+		query = query.Where("deadline <= ?", params.DeadlineTo)
+	}
+
+	// Apply quick filters
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "severe":
+			query = query.Where("severity_levels.type = ?", "high")
+		case "non_compliant":
+			query = query.Where("compliance_statuses.type = ?", "not_implemented")
+		case "non_compliant_due":
+			query = query.Where("compliance_statuses.type = ? AND compliance_requirements.deadline < ?", "not_implemented", time.Now())
+		}
+	}
+
+	// Apply search keyword if exists
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Where(`
+			(compliance_clauses.clause_no LIKE ? OR
+			compliance_clauses.title LIKE ? OR
+			compliance_requirements.title LIKE ? OR
+			compliance_requirement_categories.title_en LIKE ? OR
+			compliance_requirement_categories.title_ar LIKE ? OR
+			severity_levels.title_en LIKE ? OR
+			severity_levels.title_ar LIKE ? OR
+			compliance_requirements.deadline LIKE ? OR
+			compliance_statuses.title_en LIKE ? OR
+			compliance_statuses.title_ar LIKE ? OR
+			responsible_user.first_name_en LIKE ? OR
+			responsible_user.first_name_en LIKE ? OR
+			responsible_user.first_name_ar LIKE ? OR
+			responsible_user.last_name_en LIKE ? OR
+			responsible_user.last_name_ar LIKE ?)`,
+			keyword, keyword, keyword, keyword,
+			keyword, keyword, keyword, keyword,
+			keyword, keyword, keyword, keyword,
+			keyword, keyword, keyword)
+	}
+
+	// Sort by the specified column and order
+	if params.SortBy == "" {
+		params.SortBy = "title" // Default sort by title if no sortBy is specified
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc" // Default order is ascending if not specified
+	}
+
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	// Execute the query
+	rows, err := query.Rows()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	// Iterate through the rows and populate the response DTO
+	for rows.Next() {
+		var complianceReq complianceDTOs.ComplianceRequirementListDTO
+		err := repo.db.ScanRows(rows, &complianceReq)
+		if err != nil {
+			return nil, err
+		}
+		// response.Items[complianceReq.ClauseID] = append(response.Items[complianceReq.ClauseID], &complianceReq)
+		response.Items[complianceReq.ComplianceClauseTitle] = append(response.Items[complianceReq.ComplianceClauseTitle], &complianceReq)
+
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
 	return response, nil
 }
 
