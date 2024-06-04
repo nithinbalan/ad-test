@@ -12,6 +12,7 @@ type ComplianceStatusUpdateRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(complianceID uint, sort string, sortBy string, keyword string) ([]*complianceDTOs.ComplianceStatusUpdateListDTO, error)
 	GetByID(id uint) (*models.ComplianceStatusUpdate, error)
+	GetFullDetailsByID(id uint) (*models.ComplianceStatusUpdate, error)
 	Create(ComplianceStatusUpdate *models.ComplianceStatusUpdate) (uint, error)
 	Update(ComplianceStatusUpdate *models.ComplianceStatusUpdate) error
 
@@ -83,9 +84,9 @@ func (repo *ComplianceStatusUpdateRepository) GetAll(complianceID uint, sort str
 	query = query.Order(sortBy + " " + sort)
 	result := query.Find(&complianceUpdates)
 
-    if result.Error != nil {
-        return nil, result.Error
-    }
+	if result.Error != nil {
+		return nil, result.Error
+	}
 
 	// Fetching documents for each compliance status updates
 	for _, update := range complianceUpdates {
@@ -101,6 +102,24 @@ func (repo *ComplianceStatusUpdateRepository) GetAll(complianceID uint, sort str
 func (repo *ComplianceStatusUpdateRepository) GetByID(id uint) (*models.ComplianceStatusUpdate, error) {
 	var complianceStatusUpdate *models.ComplianceStatusUpdate
 	result := repo.db.First(&complianceStatusUpdate, id)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return complianceStatusUpdate, nil
+}
+
+func (repo *ComplianceStatusUpdateRepository) GetFullDetailsByID(id uint) (*models.ComplianceStatusUpdate, error) {
+	var complianceStatusUpdate *models.ComplianceStatusUpdate
+
+	result := repo.db.
+		Preload("ComplianceRegister").
+		Preload("ComplianceStatus").
+		Preload("Documents").
+		Preload("CreatedByUser").
+		Preload("UpdatedByUser").
+		First(&complianceStatusUpdate, id)
 
 	if result.Error != nil {
 		return nil, result.Error

@@ -15,10 +15,11 @@ type ComplianceStatusUpdate struct {
 	UpdatedBy            *uint      `json:"updated_by" gorm:"default:null"`
 
 	//Relationships
-	ComplianceRegister *ComplianceRegister `gorm:"foreignkey:ComplianceRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ComplianceStatus   *ComplianceStatus   `gorm:"foreignkey:ComplianceStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser      *User               `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser      *User               `gorm:"foreignKey:UpdatedBy"`
+	ComplianceRegister *ComplianceRegister               `gorm:"foreignkey:ComplianceRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ComplianceStatus   *ComplianceStatus                 `gorm:"foreignkey:ComplianceStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Documents          *[]ComplianceStatusUpdateDocument `gorm:"foreignKey:ComplianceStatusUpdateID"`
+	CreatedByUser      *User                             `gorm:"foreignKey:CreatedBy"`
+	UpdatedByUser      *User                             `gorm:"foreignKey:UpdatedBy"`
 }
 
 // TableName overrides the table name used by ComplianceStatusUpdate to `compliance_status_updates`

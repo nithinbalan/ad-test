@@ -3,6 +3,8 @@ package dtos
 import (
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
+	organizationDTOs "jethur/grc/organization/dtos"
+	"time"
 )
 
 type ComplianceStatusUpdateListDTO struct {
@@ -33,4 +35,16 @@ type ComplianceStatusUpdateFormDTO struct {
 	ComplianceStatusID uint                          `json:"compliance_status_id" binding:"required"`
 	Comment            string                        `json:"comment" binding:"required"`
 	Documents          []*commonDTOs.DocumentFormDTO `json:"documents" binding:"omitempty"`
+}
+
+type ComplianceStatusUpdateDetailDTO struct {
+	ID                 uint                                     `json:"id"`
+	ComplianceRegister *ComplianceRegisterDetailDTO             `json:"compliance_register"`
+	ComplianceStatus   *ComplianceStatusDTO                     `json:"compliance_status"`
+	Documents          []*models.ComplianceStatusUpdateDocument `json:"documents"`
+	Comment            string                                   `json:"comment"`
+	CreatedAt          time.Time                                `json:"created_at"`
+	UpdatedAt          time.Time                                `json:"updated_at"`
+	CreatedByUser      organizationDTOs.UserMinimalDTO          `json:"created_by"`
+	UpdatedByUser      *organizationDTOs.UserMinimalDTO         `json:"updated_by"`
 }

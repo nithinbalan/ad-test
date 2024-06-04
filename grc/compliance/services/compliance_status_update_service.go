@@ -11,11 +11,14 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
 )
 
 type ComplianceStatusUpdateServiceInterface interface {
 	GetAll(complianceID uint, sort string, sortBy string, keyword string) ([]*complianceDTOs.ComplianceStatusUpdateListDTO, error)
+	GetByID(complianceID uint, id uint) (*models.ComplianceStatusUpdate, error)
+	GetFullDetailsByID(complianceID uint, id uint) (*complianceDTOs.ComplianceStatusUpdateDetailDTO, error)
 	Create(complianceID uint, currentUserID uint, complianceStatusUpdateFormDTO *complianceDTOs.ComplianceStatusUpdateFormDTO) (uint, error)
 	Update(complianceID uint, id uint, currentUserID uint, ComplianceStatusUpdateFormDTO *complianceDTOs.ComplianceStatusUpdateFormDTO) error
 }
@@ -64,6 +67,32 @@ func (csus ComplianceStatusUpdateService) GetByID(complianceID uint, id uint) (*
 		return nil, err
 	}
 	return complianceStatusUpdate, nil
+}
+
+func (csus ComplianceStatusUpdateService) GetFullDetailsByID(complianceID uint, id uint) (*complianceDTOs.ComplianceStatusUpdateDetailDTO, error) {
+	var complianceStatusUpdateDTO complianceDTOs.ComplianceStatusUpdateDetailDTO
+
+	if _, err := csus.complianceRegisterSvc.GetByID(complianceID); err != nil {
+		return nil, err
+	}
+
+	complianceStatusUpdate, err := csus.repo.GetFullDetailsByID(id)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+
+	err = mapstructure.Decode(complianceStatusUpdate, &complianceStatusUpdateDTO)
+	if err != nil {
+		return nil, err
+	}
+
+	//todo :- also add extra fields which required in details screen
+
+	return &complianceStatusUpdateDTO, nil
 }
 
 func (csus *ComplianceStatusUpdateService) Create(complianceID uint, currentUserID uint, complianceStatusUpdateFormDTO *complianceDTOs.ComplianceStatusUpdateFormDTO) (uint, error) {
@@ -266,7 +295,6 @@ func (csus *ComplianceStatusUpdateService) Update(complianceID uint, id uint, cu
 		}
 	}
 	tx.Commit()
-
 
 	return nil
 }
