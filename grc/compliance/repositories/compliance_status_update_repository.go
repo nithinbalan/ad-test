@@ -83,7 +83,19 @@ func (repo *ComplianceStatusUpdateRepository) GetAll(complianceID uint, sort str
 	query = query.Order(sortBy + " " + sort)
 	result := query.Find(&complianceUpdates)
 
-	return complianceUpdates, result.Error
+    if result.Error != nil {
+        return nil, result.Error
+    }
+
+	// Fetching documents for each compliance status updates
+	for _, update := range complianceUpdates {
+		var documents []*models.ComplianceStatusUpdateDocument
+		repo.db.Model(&models.ComplianceStatusUpdateDocument{}).Where("compliance_status_update_id = ?", update.ID).Find(&documents)
+		update.Documents = documents
+	}
+
+	return complianceUpdates, nil
+
 }
 
 func (repo *ComplianceStatusUpdateRepository) GetByID(id uint) (*models.ComplianceStatusUpdate, error) {

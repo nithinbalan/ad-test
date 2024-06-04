@@ -39,66 +39,52 @@ func (repo *ComplianceReviewRepository) BeginTransaction() utility.DatabaseTrans
 func (repo *ComplianceReviewRepository) GetAll(complianceID uint, sort string, sortBy string, keyword string) ([]*complianceDTOs.ComplianceReviewListDTO, error) {
 	var complianceReviews []*complianceDTOs.ComplianceReviewListDTO
 
-	query := repo.db.Table("compliance_reviews").
-		Select(`
+
+    query := repo.db.Table("compliance_reviews").
+        Select(`
             compliance_reviews.*,
-			compliance_register.title_en AS compliance_title_en,
-			compliance_register.title_ar AS compliance_title_ar,
-			compliance_register.description_en AS compliance_description_en,
-			compliance_register.description_ar AS compliance_description_ar,
-			reviewed_user.first_name_en AS reviewed_user_first_name_en,
+            compliance_register.title_en AS compliance_title_en,
+            compliance_register.title_ar AS compliance_title_ar,
+            compliance_register.description_en AS compliance_description_en,
+            compliance_register.description_ar AS compliance_description_ar,
+            reviewed_user.first_name_en AS reviewed_user_first_name_en,
             reviewed_user.first_name_ar AS reviewed_user_first_name_ar,
             reviewed_user.last_name_en AS reviewed_user_last_name_en,
             reviewed_user.last_name_ar AS reviewed_user_last_name_ar 
         `).
-		Joins(`
-		    LEFT JOIN compliance_register ON compliance_register.id = compliance_reviews.compliance_register_id
-			LEFT JOIN users AS reviewed_user ON reviewed_user.id = compliance_reviews.reviewed_by
-		`).
-		Where("compliance_reviews.compliance_register_id = ?", complianceID)
+        Joins(`
+            LEFT JOIN compliance_register ON compliance_register.id = compliance_reviews.compliance_register_id
+            LEFT JOIN users AS reviewed_user ON reviewed_user.id = compliance_reviews.reviewed_by
+        `).
+        Where("compliance_reviews.compliance_register_id = ?", complianceID)
 
-	if keyword != "" {
-		query = query.Where(`
-			(compliance_register.title_en LIKE ? OR
-			compliance_reviews.comment LIKE ?)`,
-			"%"+keyword+"%", "%"+keyword+"%")
-	}
-	if sortBy == "" {
-		sortBy = "compliance_reviews.id"
-	}
-	if sort != "asc" && sort != "desc" {
-		sort = "asc"
-	}
-	query = query.Order(sortBy + " " + sort)
-	result := query.Find(&complianceReviews)
+    if keyword != "" {
+        query = query.Where(`
+            (compliance_register.title_en LIKE ? OR
+            compliance_reviews.comment LIKE ?)`,
+            "%"+keyword+"%", "%"+keyword+"%")
+    }
+    if sortBy == "" {
+        sortBy = "compliance_reviews.id"
+    }
+    if sort != "asc" && sort != "desc" {
+        sort = "asc"
+    }
+    query = query.Order(sortBy + " " + sort)
+    result := query.Find(&complianceReviews)
 
-	if result.Error != nil {
-		return nil, result.Error
-	}
+    if result.Error != nil {
+        return nil, result.Error
+    }
 
-	// Fetch documents separately and aggregate them into the complianceReviews slice
-	// for _, review := range complianceReviews {
-	// 	var documents []*complianceDTOs.DocumentDTO
-	// 	docQuery := repo.db.Table("compliance_review_documents").
-	// 		Select(`
-	// 			url,
-	// 			name,
-	// 			size,
-	// 			token,
-	// 			type,
-	// 			original_name
-	// 		`).
-	// 		Where("compliance_review_id = ?", review.ID).
-	// 		Find(&documents)
+    // Fetching documents for each compliance review
+    for _, review := range complianceReviews {
+        var documents []*models.ComplianceReviewDocument
+        repo.db.Model(&models.ComplianceReviewDocument{}).Where("compliance_review_id = ?", review.ID).Find(&documents)
+        review.Documents = documents
+    }
 
-	// 	if docQuery.Error != nil {
-	// 		return nil, docQuery.Error
-	// 	}
-
-	// 	review.Documents = documents
-	// }
-
-	return complianceReviews, nil
+    return complianceReviews, nil
 }
 
 
