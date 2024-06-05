@@ -61,3 +61,12 @@ type StrategicProfileValueFormDTO struct {
 	DescriptionEn *string `json:"description_en"`
 	DescriptionAr *string `json:"description_ar"`
 }
+
+type StrategicProfileValueDetailsDTO struct {
+	ID               int                        `json:"id"`
+	TitleEn          string                     `json:"title_en"`
+	TitleAr          string                     `json:"title_ar"`
+	DescriptionEn    *string                    `json:"description_en"`
+	DescriptionAr    *string                    `json:"description_ar"`
+	StrategicProfile StrategicProfileDetailsDTO `json:"strategic_profile"`
+}
