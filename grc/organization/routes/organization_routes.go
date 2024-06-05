@@ -18,6 +18,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	userController := app.OrganizationModule.UserController
 	userSettingController := app.OrganizationModule.UserSettingController
 	strategicProfileController := app.OrganizationModule.StrategicProfileController
+	strategicProfileValueController := app.OrganizationModule.StrategicProfileValueController
 	strategicObjectiveController := app.OrganizationModule.StrategicObjectiveController
 	controlCategoryController := app.OrganizationModule.ControlCategoryController
 	controlTypeController := app.OrganizationModule.ControlTypeController
@@ -58,6 +59,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.PUT("/strategic-profiles/vision", strategicProfileController.UpdateVision)
 	organizationRoutes.PUT("/strategic-profiles/mission", strategicProfileController.UpdateMission)
 	organizationRoutes.PUT("/strategic-profiles/values", strategicProfileController.UpdateValues)
+
+	//Strategic Profile Values
+	organizationRoutes.GET("/strategic-profiles/values/:id", strategicProfileValueController.GetStrategicProfileValueDetails)
+	organizationRoutes.POST("/strategic-profiles/values", strategicProfileValueController.CreateStrategicProfileValue)
+	organizationRoutes.PUT("/strategic-profiles/values/:id", strategicProfileValueController.UpdateStrategicProfileValue)
+	organizationRoutes.POST("/strategic-profiles/values/delete", strategicProfileValueController.DeleteStrategicProfileValues)
 
 	//Strategic Objective
 	organizationRoutes.GET("/strategic-objectives", strategicObjectiveController.GetAllStrategicObjectives)
