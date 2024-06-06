@@ -71,7 +71,7 @@ func (repo *ComplianceActionPlanRepository) GetAll(complianceID uint, params *co
         LEFT JOIN users AS created_user ON created_user.id = compliance_action_plans.created_by
         LEFT JOIN users AS updated_user ON updated_user.id = compliance_action_plans.updated_by
         LEFT JOIN compliance_requirements ON compliance_requirements.id = compliance_action_plans.compliance_requirement_id
-        JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id
+        LEFT JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id
     `).Where(`compliance_action_plans.compliance_register_id`, complianceID)
 
 	// Apply dynamic filters to the query
