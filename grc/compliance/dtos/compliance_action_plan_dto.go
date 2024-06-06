@@ -72,9 +72,15 @@ type ComplianceActionPlanParsedDates struct {
 	TargetDate *time.Time
 }
 
+type ComplianceRequirementMinimalDTO struct {
+	ID               int                 `json:"id"`
+	ComplianceClause ComplianceClauseDTO `json:"compliance_clause"`
+	Title            string              `json:"title"`
+}
+
 type ComplianceActionPlanDetailDTO struct {
 	ID                    int                             `json:"id"`
-	ComplianceRequirement ComplianceRequirementDetailDTO  `json:"compliance_requirement"`
+	ComplianceRequirement ComplianceRequirementMinimalDTO `json:"compliance_requirement"`
 	Title                 string                          `json:"title"`
 	Description           string                          `json:"description"`
 	SeverityLevel         *masterDTOs.SeverityLevelDTO    `json:"severity_level"`
