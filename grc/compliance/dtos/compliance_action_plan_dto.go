@@ -73,17 +73,18 @@ type ComplianceActionPlanParsedDates struct {
 }
 
 type ComplianceActionPlanDetailDTO struct {
-	ID               int                             `json:"id"`
-	Title            string                          `json:"title"`
-	Description      string                          `json:"description"`
-	SeverityLevel    *masterDTOs.SeverityLevelDTO    `json:"severity_level"`
-	ResponsibleUser  organizationDTOs.UserMinimalDTO `json:"responsible_user"`
-	ActionPlanStatus masterDTOs.ActionPlanStatusDTO  `json:"compliance_status"`
-	Percentage       *uint                           `json:"percentage"`
-	Comments         *string                         `json:"comments"`
-	TargetDate       *time.Time                      `json:"target_date"`
-	CreatedAt        time.Time                       `json:"created_at"`
-	UpdatedAt        *time.Time                      `json:"updated_at"`
-	CreatedByUser    organizationDTOs.UserMinimalDTO `json:"created_by"`
-	UpdatedByUser    organizationDTOs.UserMinimalDTO `json:"updated_by"`
+	ID                    int                             `json:"id"`
+	ComplianceRequirement ComplianceRequirementDetailDTO  `json:"compliance_requirement"`
+	Title                 string                          `json:"title"`
+	Description           string                          `json:"description"`
+	SeverityLevel         *masterDTOs.SeverityLevelDTO    `json:"severity_level"`
+	ResponsibleUser       organizationDTOs.UserMinimalDTO `json:"responsible_user"`
+	ActionPlanStatus      masterDTOs.ActionPlanStatusDTO  `json:"action_plan_status"`
+	Percentage            *uint                           `json:"percentage"`
+	Comments              *string                         `json:"comments"`
+	TargetDate            *time.Time                      `json:"target_date"`
+	CreatedAt             time.Time                       `json:"created_at"`
+	UpdatedAt             *time.Time                      `json:"updated_at"`
+	CreatedByUser         organizationDTOs.UserMinimalDTO `json:"created_by"`
+	UpdatedByUser         organizationDTOs.UserMinimalDTO `json:"updated_by"`
 }

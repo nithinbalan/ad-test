@@ -169,7 +169,7 @@ func (repo *ComplianceActionPlanRepository) GetFullDetailsByID(id uint) (*models
 	var complianceActionPlan *models.ComplianceActionPlan
 
 	result := repo.db.
-		Preload("ComplianceRequirement").
+		Preload("ComplianceRequirement.ComplianceClause").
 		Preload("SeverityLevel").
 		Preload("ResponsibleUser").
 		Preload("SeverityLevel").
