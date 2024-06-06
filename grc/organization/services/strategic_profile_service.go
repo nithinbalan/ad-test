@@ -179,26 +179,28 @@ func (sps *StrategicProfileService) UpdateValues(strategicProfileValuesDTO []*or
 }
 
 func (us *StrategicProfileService) validateStrategicProfileFormDTO(strategicProfileDTO *organizationDTOs.StrategicProfileFormDTO) error {
-	if strategicProfileDTO.Linkedin != nil && !utility.IsValidLinkedInURL(*strategicProfileDTO.Linkedin) {
-		return utility.NewValidationError(fmt.Errorf("invalid LinkedIn URL"), "not_exist", "linkedin")
+	validateURL := func(url *string, validateFunc func(string) bool, fieldName string) error {
+		if url != nil && *url != "" && !validateFunc(*url) {
+			return utility.NewValidationError(fmt.Errorf("invalid %s URL", fieldName), "not_exist", fieldName)
+		}
+		return nil
 	}
 
-	if strategicProfileDTO.Instagram != nil && !utility.IsValidInstagramURL(*strategicProfileDTO.Instagram) {
-		return utility.NewValidationError(fmt.Errorf("invalid Instagram URL"), "not_exist", "instagram")
+	if err := validateURL(strategicProfileDTO.Linkedin, utility.IsValidLinkedInURL, "linkedin"); err != nil {
+		return err
 	}
-
-	if strategicProfileDTO.Youtube != nil && !utility.IsValidYouTubeURL(*strategicProfileDTO.Youtube) {
-		return utility.NewValidationError(fmt.Errorf("invalid YouTube URL"), "not_exist", "youtube")
+	if err := validateURL(strategicProfileDTO.Instagram, utility.IsValidInstagramURL, "instagram"); err != nil {
+		return err
 	}
-
-	if strategicProfileDTO.Facebook != nil && !utility.IsValidFacebookURL(*strategicProfileDTO.Facebook) {
-		return utility.NewValidationError(fmt.Errorf("invalid Facebook URL"), "not_exist", "facebook")
+	if err := validateURL(strategicProfileDTO.Youtube, utility.IsValidYouTubeURL, "youtube"); err != nil {
+		return err
 	}
-
-	if strategicProfileDTO.X != nil && !utility.IsValidTwitterURL(*strategicProfileDTO.X) {
-		return utility.NewValidationError(fmt.Errorf("invalid X URL"), "not_exist", "twitter")
+	if err := validateURL(strategicProfileDTO.Facebook, utility.IsValidFacebookURL, "facebook"); err != nil {
+		return err
+	}
+	if err := validateURL(strategicProfileDTO.X, utility.IsValidTwitterURL, "twitter"); err != nil { // Assuming X represents Twitter here
+		return err
 	}
 
 	return nil
-
 }
