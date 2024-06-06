@@ -10,6 +10,7 @@ import (
 
 type ComplianceRequirementListDTO struct {
 	ID                                   uint   `json:"id"`
+	ClauseID                             uint   `json:"clause_id"`
 	ComplianceClauseNo                   string `json:"compliance_clause_no"`
 	ComplianceClauseTitle                string `json:"compliance_clause_title"`
 	Title                                string `json:"title"`
@@ -54,6 +55,13 @@ type ComplianceRequirementListQueryParamsDTO struct {
 type ComplianceRequirementListResponseDTO struct {
 	Items      []*ComplianceRequirementListDTO `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO    `json:"pagination"`
+}
+
+type ComplianceRequirementByComplianceIDListResponseDTO struct {
+	ClauseID     uint                            `json:"clause_id"`
+	ClauseNo     string                          `json:"clause_no"`
+	ClauseTitle  string                          `json:"clause_title"`
+	Requirements []*ComplianceRequirementListDTO `json:"requirements"`
 }
 
 type ComplianceRequirementFormDTO struct {
