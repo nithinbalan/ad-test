@@ -144,7 +144,7 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 		tx.Rollback()
 		return 0, err
 	}
-	// Fetch the compliance_action_plan module ID
+
 	complianceActionPlanModuleID, err := caps.moduleSvc.GetModuleIDByIdentifier("compliance_action_plan")
 	if err != nil {
 		tx.Rollback()
@@ -152,18 +152,17 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 	}
 	url := fmt.Sprintf("compliance-register/%d/action-plans/%d", complianceID, id)
 
-	// Create a new task associated with the compliance action plan
 	taskDTO := commonDTOs.CreateTaskDTO{
-		ModuleID:               complianceActionPlanModuleID, // Adjust as necessary
+		ModuleID:               complianceActionPlanModuleID,
 		ComplianceActionPlanID: &id,
 		Title:                  ComplianceActionPlanFormDTO.Title,
 		Description:            ComplianceActionPlanFormDTO.Description,
 		TargetDate:             dates.TargetDate,
-		URL:                    url, // Provide an appropriate URL if needed
+		URL:                    url,
 		SeverityLevelID:        ComplianceActionPlanFormDTO.SeverityLevelID,
 		ResponsibleUserID:      ComplianceActionPlanFormDTO.ResponsibleUserID,
 	}
-	// Save task and handle error if any
+
 	if err := caps.taskSvc.CreateTask(taskDTO, currentUserID, tx); err != nil {
 		tx.Rollback()
 		return 0, err
