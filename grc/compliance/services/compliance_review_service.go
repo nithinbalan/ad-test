@@ -110,7 +110,7 @@ func (crs *ComplianceReviewService) Create(complianceID uint, currentUserID uint
 	complianceRegister.LastReviewedDate = &currentTime
 	complianceRegister.ComplianceReviewStatusID = &complianceReviewStatus.ID
 
-	if err := crs.complianceRegisterSvc.ReviewStatusUpdate(complianceRegister); err != nil {
+	if err := crs.complianceRegisterSvc.ReviewStatusUpdate(complianceRegister, tx); err != nil {
 		tx.Rollback()
 		return 0, err
 	}
