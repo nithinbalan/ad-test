@@ -28,7 +28,7 @@ type ComplianceRegisterServiceInterface interface {
 	Archive(ids []uint, currentUserID uint) ([]uint, error)
 	Restore(ids []uint, currentUserID uint) ([]uint, error)
 	StatusUpdate(id uint, currentUserID uint, complianceStatusID uint, tx utility.DatabaseTransaction) error
-	ReviewStatusUpdate(complianceRegister *models.ComplianceRegister) error
+	ReviewStatusUpdate(complianceRegister *models.ComplianceRegister, tx utility.DatabaseTransaction) error
 }
 
 // Service and implementations
@@ -611,9 +611,9 @@ func (crs *ComplianceRegisterService) StatusUpdate(id uint, currentUserID uint, 
 	return nil
 }
 
-func (crs *ComplianceRegisterService) ReviewStatusUpdate(complianceRegister *models.ComplianceRegister) error {
+func (crs *ComplianceRegisterService) ReviewStatusUpdate(complianceRegister *models.ComplianceRegister, tx utility.DatabaseTransaction) error {
 
-	err := crs.repo.Update(complianceRegister)
+	err := crs.repo.Update(complianceRegister,tx)
 	if err != nil {
 		return err
 	}
