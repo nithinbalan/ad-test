@@ -92,6 +92,38 @@ func (csuc *ComplianceStatusUpdateController) CreateComplianceStatusUpdate(c *gi
 	c.JSON(http.StatusCreated, commonDTOs.IDResponse{ID: createdID})
 }
 
+func (csuc *ComplianceStatusUpdateController) GetComplianceStatusUpdateDetails(c *gin.Context) {
+	complianceIDStr := c.Param("complianceId")
+
+	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	idStr := c.Param("id")
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	complianceStatusUpdate, err := csuc.service.GetFullDetailsByID(uint(complianceID), uint(id))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(csuc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, complianceStatusUpdate)
+}
+
 func (csuc *ComplianceStatusUpdateController) UpdateComplianceStatusUpdate(c *gin.Context) {
 	var complianceStatusUpdateFormDTO complianceDTOs.ComplianceStatusUpdateFormDTO
 
