@@ -19,6 +19,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	meetingController := app.MeetingModule.MeetingController
 	meetingActionPlanController := app.MeetingModule.MeetingActionPlanController
 	meetingActionPlanStatusUpdateController := app.MeetingModule.MeetingActionPlanStatusUpdateController
+	meetingAgendaController := app.MeetingModule.MeetingAgendaController
+	meetingMinuteController := app.MeetingModule.MeetingMinuteController
+	meetingAssociatedItemController := app.MeetingModule.MeetingAssociatedItemController
 
 	meetingRoutes.GET("/meeting-frequencies", meetingFrequencyController.GetAllMeetingFrequencies)
 	meetingRoutes.GET("/meeting-frequencies/:id", meetingFrequencyController.GetMeetingFrequencyDetails)
@@ -55,5 +58,25 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	meetingRoutes.GET("/meetings/:id/action-plans/:meetingActionPlanId/status-updates/:meetingActionPlanUpdateId", meetingActionPlanStatusUpdateController.GetMeetingActionPlanStatusUpdateDetails)
 	meetingRoutes.POST("/meetings/:id/action-plans/:meetingActionPlanId/status-updates", meetingActionPlanStatusUpdateController.CreateMeetingActionPlanStatusUpdate)
 	meetingRoutes.PUT("/meetings/:id/action-plans/:meetingActionPlanId/status-updates/:meetingActionPlanUpdateId", meetingActionPlanStatusUpdateController.UpdateMeetingActionPlanStatusUpdate)
+
+	//Meeting Agendas
+	meetingRoutes.GET("/meetings/:id/agendas", meetingAgendaController.GetAllMeetingAgendas)
+	meetingRoutes.GET("/meetings/:id/agendas/:agendaID", meetingAgendaController.GetMeetingAgendaDetails)
+	meetingRoutes.POST("/meetings/:id/agendas", meetingAgendaController.CreateMeetingAgenda)
+	meetingRoutes.PUT("/meetings/:id/agendas/:agendaID", meetingAgendaController.UpdateMeetingAgenda)
+	meetingRoutes.POST("/meetings/:id/agendas/delete", meetingAgendaController.DeleteMeetingAgendas)
+
+	//Meeting Minutes
+	meetingRoutes.GET("/meetings/:id/meeting-minutes", meetingMinuteController.GetAllMeetingMinutes)
+	meetingRoutes.GET("/meetings/:id/meeting-minutes/:meetingMinuteID", meetingMinuteController.GetMeetingMinuteDetails)
+	meetingRoutes.POST("/meetings/:id/meeting-minutes", meetingMinuteController.CreateMeetingMinute)
+	meetingRoutes.PUT("/meetings/:id/meeting-minutes/:meetingMinuteID", meetingMinuteController.UpdateMeetingMinute)
+	meetingRoutes.POST("/meetings/:id/meeting-minutes/delete", meetingMinuteController.DeleteMeetingMinutes)
+
+	//Meeting Associated Items
+	meetingRoutes.GET("/meetings/:id/controls", meetingAssociatedItemController.GetAllMeetingControls)
+	meetingRoutes.GET("/meetings/:id/compliance-requirements", meetingAssociatedItemController.GetAllMeetingComplianceRequirements)
+	meetingRoutes.GET("/meetings/:id/risks", meetingAssociatedItemController.GetAllMeetingRisks)
+	meetingRoutes.GET("/meetings/:id/processes", meetingAssociatedItemController.GetAllMeetingProcesses)
 
 }
