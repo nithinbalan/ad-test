@@ -57,11 +57,16 @@ type ComplianceRequirementListResponseDTO struct {
 	Pagination commonDTOs.PaginationInfoDTO    `json:"pagination"`
 }
 
-type ComplianceRequirementByComplianceIDListResponseDTO struct {
+type ComplianceRequirementByComplianceIDListDTO struct {
 	ClauseID     uint                            `json:"clause_id"`
 	ClauseNo     string                          `json:"clause_no"`
 	ClauseTitle  string                          `json:"clause_title"`
 	Requirements []*ComplianceRequirementListDTO `json:"requirements"`
+}
+
+type ComplianceRequirementByComplianceIDListResponseDTO struct {
+	Items      []*ComplianceRequirementByComplianceIDListDTO `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO                  `json:"pagination"`
 }
 
 type ComplianceRequirementFormDTO struct {

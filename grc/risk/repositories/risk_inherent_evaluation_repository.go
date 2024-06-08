@@ -53,7 +53,6 @@ func (repo *RiskInherentEvaluationRepository) GetFullDetailsByID(id uint) (*mode
 	}
 
 	return riskInherentEvaluation, nil
-
 }
 
 func (repo *RiskInherentEvaluationRepository) GetByID(id uint) (*models.RiskEvaluation, error) {

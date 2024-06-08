@@ -156,6 +156,7 @@ func (ries *RiskInherentEvaluationService) Create(riskID uint, currentUserID uin
 
 	riskInherentEvaluation := &models.RiskEvaluation{
 		RiskRegisterID:                 riskID,
+		Type:                           "inherent",
 		InherentRiskMatrixLikelihoodID: inherentEvaluationFormDTO.InherentRiskMatrixLikelihoodID,
 		InherentRiskMatrixImpactID:     inherentEvaluationFormDTO.InherentRiskMatrixImpactID,
 		InherentRiskMatrixRiskRatingID: riskRating.RiskMatrixRiskRatingID,

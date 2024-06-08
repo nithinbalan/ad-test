@@ -14,7 +14,7 @@ import (
 type ComplianceRequirementRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementListResponseDTO, error)
-	GetRequirementsByComplianceID(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) ([]*complianceDTOs.ComplianceRequirementByComplianceIDListResponseDTO, error)
+	GetRequirementsByComplianceID(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementByComplianceIDListResponseDTO, error)
 	GetByID(id uint) (*models.ComplianceRequirement, error)
 	GetFullDetailsByID(id uint) (*models.ComplianceRequirement, error)
 	Create(complianceRequirement *models.ComplianceRequirement, tx ...utility.DatabaseTransaction) (uint, error)
@@ -167,8 +167,9 @@ func (repo *ComplianceRequirementRepository) GetAll(params *complianceDTOs.Compl
 	return response, nil
 }
 
-func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) ([]*complianceDTOs.ComplianceRequirementByComplianceIDListResponseDTO, error) {
-	var response []*complianceDTOs.ComplianceRequirementByComplianceIDListResponseDTO
+func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementByComplianceIDListResponseDTO, error) {
+	var response []*complianceDTOs.ComplianceRequirementByComplianceIDListDTO
+	var totalCount int64
 
 	query := repo.db.Table("compliance_requirements").
 		Select(`
@@ -206,15 +207,14 @@ func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(compl
 			LEFT JOIN users AS created_user ON created_user.id = compliance_requirements.created_by
 			LEFT JOIN users AS updated_user ON updated_user.id = compliance_requirements.updated_by
 			LEFT JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id
-		`).Where(`compliance_clauses.compliance_register_id`, complianceID)
-	// Apply dynamic filters to the query
+		`).Where(`compliance_clauses.compliance_register_id = ?`, complianceID)
+
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
 			query = query.Where(columnName+" IN (?)", values)
 		}
 	}
 
-	// Apply deadline filters
 	if params.DeadlineFrom != "" {
 		query = query.Where("deadline >= ?", params.DeadlineFrom)
 	}
@@ -222,7 +222,6 @@ func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(compl
 		query = query.Where("deadline <= ?", params.DeadlineTo)
 	}
 
-	// Apply quick filters
 	for _, filter := range params.QuickFilter {
 		switch filter {
 		case "severe":
@@ -234,7 +233,10 @@ func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(compl
 		}
 	}
 
-	// Apply search keyword if exists
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
@@ -249,37 +251,34 @@ func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(compl
 			compliance_statuses.title_en LIKE ? OR
 			compliance_statuses.title_ar LIKE ? OR
 			responsible_user.first_name_en LIKE ? OR
-			responsible_user.first_name_en LIKE ? OR
 			responsible_user.first_name_ar LIKE ? OR
 			responsible_user.last_name_en LIKE ? OR
 			responsible_user.last_name_ar LIKE ?)`,
 			keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword)
+			keyword, keyword)
 	}
 
-	// Sort by the specified column and order
 	if params.SortBy == "" {
-		params.SortBy = "title" // Default sort by title if no sortBy is specified
+		params.SortBy = "title"
 	}
 	if params.Sort != "asc" && params.Sort != "desc" {
-		params.Sort = "asc" // Default order is ascending if not specified
+		params.Sort = "asc"
 	}
-
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	// Execute the query
+	offset := (params.Page - 1) * params.PageSize
+	query = query.Offset(offset).Limit(params.PageSize)
+
 	rows, err := query.Rows()
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	// Initialize a map to store clause requirements
-	clauseRequirements := make(map[uint]*complianceDTOs.ComplianceRequirementByComplianceIDListResponseDTO)
+	clauseRequirements := make(map[uint]*complianceDTOs.ComplianceRequirementByComplianceIDListDTO)
 
-	// Iterate through the rows and populate the response DTO
 	for rows.Next() {
 		var complianceReq complianceDTOs.ComplianceRequirementListDTO
 		err := repo.db.ScanRows(rows, &complianceReq)
@@ -287,155 +286,43 @@ func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(compl
 			return nil, err
 		}
 
-		// Check if the clause already exists in the map, if not, create a new entry
 		if _, ok := clauseRequirements[complianceReq.ClauseID]; !ok {
-			clauseRequirements[complianceReq.ClauseID] = &complianceDTOs.ComplianceRequirementByComplianceIDListResponseDTO{
+			clauseRequirements[complianceReq.ClauseID] = &complianceDTOs.ComplianceRequirementByComplianceIDListDTO{
 				ClauseID:    complianceReq.ClauseID,
 				ClauseNo:    complianceReq.ComplianceClauseNo,
 				ClauseTitle: complianceReq.ComplianceClauseTitle,
 			}
 		}
 
-		// Append the requirement to the corresponding clause
 		clauseRequirements[complianceReq.ClauseID].Requirements = append(clauseRequirements[complianceReq.ClauseID].Requirements, &complianceReq)
 	}
 
-	// Convert map to slice
 	for _, v := range clauseRequirements {
 		response = append(response, v)
 	}
 
-	return response, nil
+	// Ensure response is not null
+	if response == nil {
+		response = []*complianceDTOs.ComplianceRequirementByComplianceIDListDTO{}
+	}
+
+	// Calculate total pages for pagination
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	// Create pagination info
+	paginationInfo := commonDTOs.PaginationInfoDTO{
+		CurrentPage: params.Page,
+		PageSize:    params.PageSize,
+		TotalPages:  totalPages,
+		TotalCount:  totalCount,
+	}
+
+	// Wrap response and pagination info in a single DTO
+	return &complianceDTOs.ComplianceRequirementByComplianceIDListResponseDTO{
+		Items:      response,
+		Pagination: paginationInfo,
+	}, nil
 }
-
-// func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementByComplianceIDListResponseDTO, error) {
-// 	// Initialize the response DTO with an empty map
-// 	response := &complianceDTOs.ComplianceRequirementByComplianceIDListResponseDTO{
-// 		Items: make(map[string][]*complianceDTOs.ComplianceRequirementListDTO),
-// 	}
-
-// 	query := repo.db.Table("compliance_requirements").
-// 		Select(`
-// 			compliance_requirements.*,
-// 			compliance_clauses.id AS clause_id,
-// 			compliance_clauses.clause_no AS compliance_clause_no,
-// 			compliance_clauses.title AS compliance_clause_title,
-// 			compliance_requirement_categories.title_en AS compliance_requirement_category_title_en,
-// 			compliance_requirement_categories.title_ar AS compliance_requirement_category_title_ar,
-// 			severity_levels.title_en AS severity_level_title_en,
-// 			severity_levels.title_ar AS severity_level_title_ar,
-// 			severity_levels.color_code AS severity_level_color_code,
-// 			compliance_statuses.title_en AS compliance_status_title_en,
-// 			compliance_statuses.title_ar AS compliance_status_title_ar,
-// 			compliance_statuses.color_code AS compliance_status_color_code,
-// 			responsible_user.first_name_en AS responsible_user_first_name_en,
-// 			responsible_user.first_name_ar AS responsible_user_first_name_ar,
-// 			responsible_user.last_name_en AS responsible_user_last_name_en,
-// 			responsible_user.last_name_ar AS responsible_user_last_name_ar,
-// 			created_user.first_name_en AS created_user_first_name_en,
-// 			created_user.first_name_ar AS created_user_first_name_ar,
-// 			created_user.last_name_en AS created_user_last_name_en,
-// 			created_user.last_name_ar AS created_user_last_name_ar,
-// 			updated_user.first_name_en AS updated_user_first_name_en,
-// 			updated_user.first_name_ar AS updated_user_first_name_ar,
-// 			updated_user.last_name_en AS updated_user_last_name_en,
-// 			updated_user.last_name_ar AS updated_user_last_name_ar
-// 		`).
-// 		Joins(`
-// 			LEFT JOIN compliance_requirement_categories ON compliance_requirement_categories.id = compliance_requirements.compliance_requirement_category_id
-// 			LEFT JOIN severity_levels ON severity_levels.id = compliance_requirements.severity_level_id
-// 			LEFT JOIN compliance_statuses ON compliance_statuses.id = compliance_requirements.compliance_status_id
-// 			LEFT JOIN users AS responsible_user ON responsible_user.id = compliance_requirements.responsible_user_id
-// 			LEFT JOIN users AS created_user ON created_user.id = compliance_requirements.created_by
-// 			LEFT JOIN users AS updated_user ON updated_user.id = compliance_requirements.updated_by
-// 			LEFT JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id
-// 		`)
-// 	// Apply dynamic filters to the query
-// 	for columnName, values := range params.Filters {
-// 		if len(values) > 0 {
-// 			query = query.Where(columnName+" IN (?)", values)
-// 		}
-// 	}
-
-// 	// Apply deadline filters
-// 	if params.DeadlineFrom != "" {
-// 		query = query.Where("deadline >= ?", params.DeadlineFrom)
-// 	}
-// 	if params.DeadlineTo != "" {
-// 		query = query.Where("deadline <= ?", params.DeadlineTo)
-// 	}
-
-// 	// Apply quick filters
-// 	for _, filter := range params.QuickFilter {
-// 		switch filter {
-// 		case "severe":
-// 			query = query.Where("severity_levels.type = ?", "high")
-// 		case "non_compliant":
-// 			query = query.Where("compliance_statuses.type = ?", "not_implemented")
-// 		case "non_compliant_due":
-// 			query = query.Where("compliance_statuses.type = ? AND compliance_requirements.deadline < ?", "not_implemented", time.Now())
-// 		}
-// 	}
-
-// 	// Apply search keyword if exists
-// 	if params.Keyword != "" {
-// 		keyword := "%" + params.Keyword + "%"
-// 		query = query.Where(`
-// 			(compliance_clauses.clause_no LIKE ? OR
-// 			compliance_clauses.title LIKE ? OR
-// 			compliance_requirements.title LIKE ? OR
-// 			compliance_requirement_categories.title_en LIKE ? OR
-// 			compliance_requirement_categories.title_ar LIKE ? OR
-// 			severity_levels.title_en LIKE ? OR
-// 			severity_levels.title_ar LIKE ? OR
-// 			compliance_requirements.deadline LIKE ? OR
-// 			compliance_statuses.title_en LIKE ? OR
-// 			compliance_statuses.title_ar LIKE ? OR
-// 			responsible_user.first_name_en LIKE ? OR
-// 			responsible_user.first_name_en LIKE ? OR
-// 			responsible_user.first_name_ar LIKE ? OR
-// 			responsible_user.last_name_en LIKE ? OR
-// 			responsible_user.last_name_ar LIKE ?)`,
-// 			keyword, keyword, keyword, keyword,
-// 			keyword, keyword, keyword, keyword,
-// 			keyword, keyword, keyword, keyword,
-// 			keyword, keyword, keyword)
-// 	}
-
-// 	// Sort by the specified column and order
-// 	if params.SortBy == "" {
-// 		params.SortBy = "title" // Default sort by title if no sortBy is specified
-// 	}
-// 	if params.Sort != "asc" && params.Sort != "desc" {
-// 		params.Sort = "asc" // Default order is ascending if not specified
-// 	}
-
-// 	query = query.Order(params.SortBy + " " + params.Sort)
-
-// 	// Execute the query
-// 	rows, err := query.Rows()
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	defer rows.Close()
-
-// 	// Iterate through the rows and populate the response DTO
-// 	for rows.Next() {
-// 		var complianceReq complianceDTOs.ComplianceRequirementListDTO
-// 		err := repo.db.ScanRows(rows, &complianceReq)
-// 		if err != nil {
-// 			return nil, err
-// 		}
-// 		// response.Items[complianceReq.ClauseID] = append(response.Items[complianceReq.ClauseID], &complianceReq)
-// 		response.Items[complianceReq.ComplianceClauseTitle] = append(response.Items[complianceReq.ComplianceClauseTitle], &complianceReq)
-
-// 	}
-// 	if err := rows.Err(); err != nil {
-// 		return nil, err
-// 	}
-
-// 	return response, nil
-// }
 
 func (repo *ComplianceRequirementRepository) GetByID(id uint) (*models.ComplianceRequirement, error) {
 	var complianceRequirement *models.ComplianceRequirement

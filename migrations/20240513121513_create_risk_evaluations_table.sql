@@ -2,13 +2,12 @@
 -- +goose StatementBegin
 CREATE TABLE risk_evaluations (
     id INT PRIMARY KEY IDENTITY(1,1),
+    type VARCHAR(10) NOT NULL DEFAULT 'inherent',
+        CONSTRAINT CHK_risk_evaluations_type CHECK (type IN ('inherent', 'residual'))
     risk_register_id INT NOT NULL,
     inherent_risk_matrix_likelihood_id INT NOT NULL,
     inherent_risk_matrix_impact_id INT NOT NULL,
     inherent_risk_matrix_risk_rating_id INT NOT NULL,
-    residual_risk_matrix_likelihood_id INT NULL,
-    residual_risk_matrix_impact_id INT NULL,
-    residual_risk_matrix_risk_rating_id INT NULL,
     created_by INT NOT NULL,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NULL,
