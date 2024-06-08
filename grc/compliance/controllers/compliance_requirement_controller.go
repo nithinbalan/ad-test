@@ -116,11 +116,25 @@ func (crc *ComplianceRequirementController) GetComplianceRequirementsByID(c *gin
 	deadlineFrom := c.Query("deadline_from")
 	deadlineTo := c.Query("deadline_to")
 
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, "Invalid page_size parameter")
+		return
+	}
+
 	queryParams := complianceDTOs.ComplianceRequirementListQueryParamsDTO{
 		Sort:         sort,
 		SortBy:       sortBy,
 		Keyword:      keyword,
 		Status:       status,
+		Page:         page,
+		PageSize:     pageSize,
 		Filters:      filters,
 		QuickFilter:  quickFilter,
 		DeadlineFrom: deadlineFrom,
