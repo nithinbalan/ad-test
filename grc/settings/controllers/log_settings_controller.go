@@ -5,7 +5,6 @@ import (
 	"jethur/grc/settings/services"
 	"jethur/utility"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -33,12 +32,6 @@ func (lsc *LogSettingsController) GetLogSettings(c *gin.Context) {
 }
 
 func (lsc *LogSettingsController) UpdateLogSettings(c *gin.Context) {
-	logSettingsID, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
 	var logSettingsFormDTO logDTOs.LogSettingsFormDTO
 	if err := c.ShouldBindJSON(&logSettingsFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
@@ -51,7 +44,7 @@ func (lsc *LogSettingsController) UpdateLogSettings(c *gin.Context) {
 		return
 	}
 
-	err = lsc.service.Update(uint(logSettingsID), currentUserID, &logSettingsFormDTO)
+	err = lsc.service.Update(currentUserID, &logSettingsFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

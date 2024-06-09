@@ -32,14 +32,7 @@ func (riec *RiskInherentEvaluationController) GetRiskInherentEvaluation(c *gin.C
 		return
 	}
 
-	idStr := c.Param("id")
-	id, err := strconv.ParseUint(idStr, 10, 64)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	riskInherentEvaluations, err := riec.service.GetFullDetailsByID(uint(riskID), uint(id))
+	riskInherentEvaluations, err := riec.service.GetFullDetailsByID(uint(riskID))
 
 	if err != nil {
 		switch e := err.(type) {
