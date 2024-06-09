@@ -34,6 +34,7 @@ type RiskModule struct {
 	RiskActionPlanStatusUpdateController *controllers.RiskActionPlanStatusUpdateController
 	RiskAssociatedItemController         *controllers.RiskAssociatedItemController
 	RiskResponseStrategyController       *controllers.RiskResponseStrategyController
+	RiskTreatmentGuidelineController     *controllers.RiskTreatmentGuidelineController
 
 	RiskRegisterSvc services.RiskRegisterServiceInterface
 }
@@ -215,6 +216,10 @@ func NewRiskModule(db *gorm.DB,
 	riskResponseStrategySvc := services.NewRiskResponseStrategyService(riskResponseStrategyRepo, sharedModule.ActivityLogService)
 	riskResponseStrategyController := controllers.NewRiskResponseStrategyController(riskResponseStrategySvc)
 
+	riskTreatmentGuidelineRepo := repositories.NewRiskTreatmentGuidelineRepository(db)
+	riskTreatmentGuidelineSvc := services.NewRiskTreatmentGuidelineService(riskTreatmentGuidelineRepo, sharedModule.ActivityLogService, riskLevelSvc)
+	riskTreatmentGuidelineController := controllers.NewRiskTreatmentGuidelineController(riskTreatmentGuidelineSvc)
+
 	return &RiskModule{
 		RiskCategoryController:               riskCategoryController,
 		PotentialRiskStatusController:        potentialRiskStatusController,
@@ -241,6 +246,7 @@ func NewRiskModule(db *gorm.DB,
 		RiskActionPlanStatusUpdateController: riskActionPlanStatusUpdateController,
 		RiskAssociatedItemController:         riskAssociatedItemController,
 		RiskResponseStrategyController:       riskResponseStrategyController,
+		RiskTreatmentGuidelineController:     riskTreatmentGuidelineController,
 
 		RiskRegisterSvc: riskRegisterSvc,
 	}
