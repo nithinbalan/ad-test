@@ -9,7 +9,7 @@ import (
 
 type RiskInherentEvaluationRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetFullDetailsByID(id uint) (*models.RiskEvaluation, error)
+	GetFullDetailsByID(riskID uint) (*models.RiskEvaluation, error)
 	GetByID(id uint) (*models.RiskEvaluation, error)
 	Create(riskInherentEvaluation *models.RiskEvaluation, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(riskInherentEvaluation *models.RiskEvaluation, tx ...utility.DatabaseTransaction) error
@@ -37,7 +37,7 @@ func (repo *RiskInherentEvaluationRepository) BeginTransaction() utility.Databas
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *RiskInherentEvaluationRepository) GetFullDetailsByID(id uint) (*models.RiskEvaluation, error) {
+func (repo *RiskInherentEvaluationRepository) GetFullDetailsByID(riskID uint) (*models.RiskEvaluation, error) {
 	var riskInherentEvaluation models.RiskEvaluation
 
 	// Preload all necessary relationships
@@ -51,34 +51,14 @@ func (repo *RiskInherentEvaluationRepository) GetFullDetailsByID(id uint) (*mode
 		Preload("RiskImpactAnalyses.RiskImpactAnalysisGuidelines.RiskMatrixImpactGuideline").
 		Preload("RiskAppetiteAlignments.RiskAppetiteStatement").
 		Preload("RiskAppetiteAlignments.RiskAppetiteToleranceLevel").
-		First(&riskInherentEvaluation, id)
+		Where("risk_register_id = ? AND type = ?", riskID, "inherent").
+		First(&riskInherentEvaluation)
 	if result.Error != nil {
 		return nil, result.Error
 	}
 
 	return &riskInherentEvaluation, nil
 }
-
-// func (repo *RiskInherentEvaluationRepository) GetFullDetailsByID(id uint) (*models.RiskEvaluation, error) {
-// 	var riskInherentEvaluation *models.RiskEvaluation
-
-// 	result := repo.db.
-// 		Preload("RiskMatrixLikelihood").
-// 		Preload("RiskMatrixImpact").
-// 		Preload("RiskMatrixRiskRating").
-// 		Preload("RiskMatrixRiskRatingValue").
-// 		Preload("RiskImpactAnalyses.RiskImpactCategory").
-// 		Preload("RiskImpactAnalyses.RiskMatrixImpact").
-// 		Preload("RiskImpactAnalyses.RiskImpactAnalysisGuidelines.RiskMatrixImpactGuideline").
-// 		Preload("RiskAppetiteAlignments.RiskAppetiteStatement").
-// 		Preload("RiskAppetiteAlignments.RiskAppetiteToleranceLevel").
-// 		First(&riskInherentEvaluation, id)
-// 	if result.Error != nil {
-// 		return nil, result.Error
-// 	}
-
-// 	return riskInherentEvaluation, nil
-// }
 
 func (repo *RiskInherentEvaluationRepository) GetByID(id uint) (*models.RiskEvaluation, error) {
 	var riskInherentEvaluation *models.RiskEvaluation
