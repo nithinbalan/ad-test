@@ -37,6 +37,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskActionPlanController := app.RiskModule.RiskActionPlanController
 	riskActionPlanStatusUpdateController := app.RiskModule.RiskActionPlanStatusUpdateController
 	riskAssociatedItemController := app.RiskModule.RiskAssociatedItemController
+	riskResponseStrategyController := app.RiskModule.RiskResponseStrategyController
 
 	riskRoutes.GET("/risk-categories", riskCategoryController.GetAllRiskCategories)
 	riskRoutes.GET("/risk-categories/:id", riskCategoryController.GetRiskCategoryDetails)
@@ -177,5 +178,23 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.GET("/risks/:riskId/action-plans/:actionPlanId/status-updates", riskActionPlanStatusUpdateController.GetAllRiskActionPlanStatusUpdates)
 	riskRoutes.POST("/risks/:riskId/action-plans/:actionPlanId/status-updates", riskActionPlanStatusUpdateController.CreateRiskActionPlanStatusUpdate)
 	riskRoutes.PUT("/risks/:riskId/action-plans/:actionPlanId/status-updates/:id", riskActionPlanStatusUpdateController.UpdateRiskActionPlanStatusUpdate)
+
+	// // Risk Treatment Guides
+	// riskRoutes.GET("/risk-treatment-guides", riskTreatmentGuideController.GetAllRiskTreatmentGuides)
+	// riskRoutes.GET("/risk-treatment-guides/:id", riskTreatmentGuideController.GetRiskTreatmentGuideDetails)
+	// riskRoutes.POST("/risk-treatment-guides", riskTreatmentGuideController.CreateRiskTreatmentGuide)
+	// riskRoutes.PUT("/risk-treatment-guides/:id", riskTreatmentGuideController.UpdateRiskTreatmentGuide)
+	// riskRoutes.POST("/risk-treatment-guides/delete", riskTreatmentGuideController.DeleteRiskTreatmentGuides)
+	// riskRoutes.PUT("/risk-treatment-guides/activate", riskTreatmentGuideController.ActivateRiskTreatmentGuides)
+	// riskRoutes.PUT("/risk-treatment-guides/deactivate", riskTreatmentGuideController.DeactivateRiskTreatmentGuides)
+
+	// Risk Response Strategy
+	riskRoutes.GET("/risk-response-strategies", riskResponseStrategyController.GetAllRiskResponseStrategies)
+	riskRoutes.GET("/risk-response-strategies/:id", riskResponseStrategyController.GetRiskResponseStrategyDetails)
+	riskRoutes.POST("/risk-response-strategies", riskResponseStrategyController.CreateRiskResponseStrategy)
+	riskRoutes.PUT("/risk-response-strategies/:id", riskResponseStrategyController.UpdateRiskResponseStrategy)
+	riskRoutes.POST("/risk-response-strategies/delete", riskResponseStrategyController.DeleteRiskResponseStrategies)
+	riskRoutes.PUT("/risk-response-strategies/activate", riskResponseStrategyController.ActivateRiskResponseStrategies)
+	riskRoutes.PUT("/risk-response-strategies/deactivate", riskResponseStrategyController.DeactivateRiskResponseStrategies)
 
 }
