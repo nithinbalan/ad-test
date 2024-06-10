@@ -47,6 +47,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	// Log Settings
 	settingRoutes.GET("/log-settings", logSettingsController.GetLogSettings)
-	settingRoutes.PUT("/log-settings/:id", logSettingsController.UpdateLogSettings)
+	settingRoutes.PUT("/log-settings", logSettingsController.UpdateLogSettings)
 
 }
