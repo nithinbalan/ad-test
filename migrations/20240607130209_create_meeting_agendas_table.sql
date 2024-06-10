@@ -6,6 +6,7 @@ CREATE TABLE meeting_agendas
     meeting_id INT NOT NULL,
     time_from NVARCHAR(45) NULL,
     time_to NVARCHAR(45) NULL,
+    title NVARCHAR(500) NOT NULL,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NULL,
     created_by INT NOT NULL,

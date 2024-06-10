@@ -73,9 +73,10 @@ func (repo *MeetingAgendaRepository) GetAll(currentUserID uint, params *meetingD
 		query = query.Where(`
 			(meetings.title LIKE ? OR
 			meetings.location LIKE ? OR
+			meeting_agendas.title LIKE ? OR
 			meeting_agendas.time_from LIKE ? OR
 			meeting_agendas.time_to LIKE ?)`,
-			keyword, keyword, keyword, keyword)
+			keyword, keyword, keyword, keyword, keyword)
 	}
 
 	// Sort by the specified column and order

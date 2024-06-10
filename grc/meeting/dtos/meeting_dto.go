@@ -2,7 +2,10 @@ package dtos
 
 import (
 	commonDTOs "jethur/grc/common/dtos"
+	complianceDTOs "jethur/grc/compliance/dtos"
+	incidentDTOs "jethur/grc/incident/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
+	riskDTOs "jethur/grc/risk/dtos"
 	"time"
 )
 
@@ -56,26 +59,30 @@ type MeetingListResponseDTO struct {
 }
 
 type MeetingDetailDTO struct {
-	ID                 uint                             `json:"id"`
-	MeetingID          *uint                            `json:"meeting_id"`
-	MeetingTypeID      uint                             `json:"meeting_type_id"`
-	MeetingFrequencyID *uint                            `json:"meeting_frequency_id"`
-	Meeting            *MeetingDetailDTO                `json:"meeting"`
-	MeetingType        MeetingTypeDTO                   `json:"meeting_type"`
-	MeetingFrequency   *MeetingFrequencyDTO             `json:"meeting_frequency"`
-	Title              string                           `json:"title"`
-	Location           *string                          `json:"location"`
-	Date               time.Time                        `json:"date"`
-	StartTime          time.Time                        `json:"start_time"`
-	EndTime            time.Time                        `json:"end_time"`
-	Organizer          organizationDTOs.UserMinimalDTO  `json:"organizer"`
-	CreatedByUser      organizationDTOs.UserMinimalDTO  `json:"created_by"`
-	UpdatedByUser      *organizationDTOs.UserMinimalDTO `json:"updated_by"`
-	CreatedAt          time.Time                        `json:"created_at"`
-	UpdatedAt          *time.Time                       `json:"updated_at"`
-	MeetingStatusID    uint                             `json:"meeting_status_id"`
-	MeetingStatus      MeetingStatusDTO                 `json:"meeting_status"`
-	Participants       []*MeetingParticipantDTO         `json:"participants"`
+	ID                     uint                               `json:"id"`
+	MeetingID              *uint                              `json:"meeting_id"`
+	MeetingTypeID          uint                               `json:"meeting_type_id"`
+	MeetingFrequencyID     *uint                              `json:"meeting_frequency_id"`
+	Meeting                *MeetingDetailDTO                  `json:"meeting"`
+	MeetingType            MeetingTypeDTO                     `json:"meeting_type"`
+	MeetingFrequency       *MeetingFrequencyDTO               `json:"meeting_frequency"`
+	Title                  string                             `json:"title"`
+	Location               *string                            `json:"location"`
+	Date                   time.Time                          `json:"date"`
+	StartTime              time.Time                          `json:"start_time"`
+	EndTime                time.Time                          `json:"end_time"`
+	Organizer              organizationDTOs.UserMinimalDTO    `json:"organizer"`
+	CreatedByUser          organizationDTOs.UserMinimalDTO    `json:"created_by"`
+	UpdatedByUser          *organizationDTOs.UserMinimalDTO   `json:"updated_by"`
+	CreatedAt              time.Time                          `json:"created_at"`
+	UpdatedAt              *time.Time                         `json:"updated_at"`
+	MeetingStatusID        uint                               `json:"meeting_status_id"`
+	MeetingStatus          MeetingStatusDTO                   `json:"meeting_status"`
+	Participants           []*MeetingParticipantDTO           `json:"participants"`
+	Controls               []*MeetingControlDTO               `json:"controls"`
+	ComplianceRequirements []*MeetingComplianceRequirementDTO `json:"compliance_requirements"`
+	Risks                  []*MeetingRiskDTO                  `json:"risks"`
+	Processes              []*MeetingProcessDTO               `json:"processes"`
 }
 
 type MeetingParticipantDTO struct {
@@ -86,22 +93,69 @@ type MeetingParticipantDTO struct {
 }
 
 type MeetingFormDTO struct {
-	Title              string  `json:"title" binding:"required"`
-	MeetingTypeID      uint    `json:"meeting_type_id" binding:"required"`
-	MeetingFrequencyID *uint   `json:"meeting_frequency_id"`
-	MeetingID          *uint   `json:"meeting_id"`
-	Location           *string `json:"location"`
-	Date               string  `json:"date" binding:"required,datetime=2006-01-02"`
-	StartTime          string  `json:"start_time" binding:"required"`
-	EndTime            string  `json:"end_time" binding:"required"`
-	OrganizerID        uint    `json:"organizer_id" binding:"required"`
-	IsPublic           bool    `json:"is_public"`
-	MeetingStatusID    uint    `json:"meeting_status_id" binding:"required"`
-	UserIDs            []*uint `json:"user_ids"`
+	Title                    string                   `json:"title" binding:"required"`
+	MeetingTypeID            uint                     `json:"meeting_type_id" binding:"required"`
+	MeetingFrequencyID       *uint                    `json:"meeting_frequency_id"`
+	MeetingID                *uint                    `json:"meeting_id"`
+	Location                 *string                  `json:"location"`
+	Date                     string                   `json:"date" binding:"required,datetime=2006-01-02"`
+	StartTime                string                   `json:"start_time" binding:"required"`
+	EndTime                  string                   `json:"end_time" binding:"required"`
+	OrganizerID              uint                     `json:"organizer_id" binding:"required"`
+	IsPublic                 bool                     `json:"is_public"`
+	MeetingStatusID          uint                     `json:"meeting_status_id" binding:"required"`
+	UserIDs                  []*uint                  `json:"user_ids"`
+	ComplianceRequirementIds []*uint                  `json:"compliance_requirement_ids"`
+	ControlIds               []*uint                  `json:"control_ids"`
+	ProcessIds               []*uint                  `json:"process_ids"`
+	RiskIds                  []*uint                  `json:"risk_ids"`
+	IncidentIds              []*uint                  `json:"incident_ids"`
+	Agendas                  []*MeetingAgendasFormDTO `json:"agendas" binding:"required"`
 }
 
 type MeetingParsedDates struct {
 	Date      time.Time
 	StartTime time.Time
 	EndTime   time.Time
+}
+type MeetingAgendasFormDTO struct {
+	ID       *uint   `json:"id,omitempty"`
+	Title    string  `json:"title" binding:"required"`
+	TimeFrom *string `json:"time_from"`
+	TimeTo   *string `json:"time_to"`
+}
+
+type MeetingControlDTO struct {
+	ID        *uint                             `json:"id"`
+	MeetingID uint                              `json:"meeting_id"`
+	ControlID uint                              `json:"control_id"`
+	Control   organizationDTOs.ControlDetailDTO `json:"control"`
+}
+
+type MeetingComplianceRequirementDTO struct {
+	ID                      *uint                                         `json:"id"`
+	MeetingID               uint                                          `json:"meeting_id"`
+	ComplianceRequirementID uint                                          `json:"compliance_requirement_id"`
+	ComplianceRequirement   complianceDTOs.ComplianceRequirementDetailDTO `json:"compliance_requirement"`
+}
+
+type MeetingRiskDTO struct {
+	ID             *uint                          `json:"id"`
+	MeetingID      uint                           `json:"meeting_id"`
+	RiskRegisterID uint                           `json:"risk_register_id"`
+	RiskRegister   riskDTOs.RiskRegisterDetailDTO `json:"risk"`
+}
+
+type MeetingProcessDTO struct {
+	ID         *uint                             `json:"id"`
+	MeetingID  uint                              `json:"meeting_id"`
+	ProocessID uint                              `json:"process_id"`
+	Process    organizationDTOs.ProcessDetailDTO `json:"process"`
+}
+
+type MeetingIncidentDTO struct {
+	ID                 *uint                                  `json:"id"`
+	MeetingID          uint                                   `json:"meeting_id"`
+	IncidentRegisterID uint                                   `json:"incident_register_id"`
+	IncidentRegister   incidentDTOs.IncidentRegisterDetailDTO `json:"incident_register"`
 }

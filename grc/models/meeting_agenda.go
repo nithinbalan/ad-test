@@ -9,6 +9,7 @@ type MeetingAgenda struct {
 	MeetingID uint       `json:"meeting_id" gorm:"null"`
 	TimeFrom  *string    `json:"time_from" gorm:"type:varchar(45);null"`
 	TimeTo    *string    `json:"time_to" gorm:"type:varchar(45);null"`
+	Title     string     `json:"title" gorm:"type:nvarchar(500);not null" binding:"required"`
 	CreatedBy uint       `json:"created_by" gorm:"not null"`
 	UpdatedBy *uint      `json:"updated_by" gorm:"default:null"`
 	CreatedAt time.Time  `json:"created_at" gorm:"type:datetime;not null"`

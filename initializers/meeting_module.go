@@ -25,7 +25,7 @@ type MeetingModule struct {
 	MeetingSvc          services.MeetingServiceInterface
 }
 
-func NewMeetingModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, masterModule *MasterModule, commonModule *CommonModule) *MeetingModule {
+func NewMeetingModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, masterModule *MasterModule, commonModule *CommonModule, complianceModule *ComplianceModule, riskModule *RiskModule, incidentModule *IncidentModule) *MeetingModule {
 	//Meeting Frequency
 	meetingFrequencyRepo := repositories.NewMeetingFrequencyRepository(db)
 	meetingFrequencySvc := services.NewMeetingFrequencyService(meetingFrequencyRepo)
@@ -46,7 +46,12 @@ func NewMeetingModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		meetingTypeSvc,
 		meetingFrequencySvc,
 		organizationModule.UserSvc,
-		meetingStatusSvc)
+		meetingStatusSvc,
+		organizationModule.ControlSvc,
+		complianceModule.ComplianceRequirementSvc,
+		riskModule.RiskRegisterSvc,
+		organizationModule.ProcessSvc,
+		incidentModule.IncidentRegisterSvc)
 	meetingController := controllers.NewMeetingController(meetingSvc)
 
 	meetingActionPlanRepo := repositories.NewMeetingActionPlanRepository(db)
