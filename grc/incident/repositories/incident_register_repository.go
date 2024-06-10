@@ -378,6 +378,7 @@ func (repo *IncidentRegisterRepository) DeleteIncidentComplianceRequirements(req
 
 	return nil
 }
+
 func (repo *IncidentRegisterRepository) CreateIncidentRisks(risks []*models.IncidentRisk, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {

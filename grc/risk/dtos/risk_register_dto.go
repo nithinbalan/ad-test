@@ -96,6 +96,7 @@ type RiskRegisterDetailDTO struct {
 	UpdatedByUser          organizationDTOs.UserMinimalDTO  `json:"updated_by"`
 	Controls               []*RiskControlDTO                `json:"controls"`
 	ComplianceRequirements []*RiskComplianceRequirementDTO  `json:"compliance_requirements"`
+	Processes              []*RiskProcessDTO                `json:"processes"`
 }
 
 type RiskControlDTO struct {
@@ -110,6 +111,13 @@ type RiskComplianceRequirementDTO struct {
 	RiskRegisterID          uint                                          `json:"risk_register_id"`
 	ComplianceRequirementID uint                                          `json:"compliance_requirement_id"`
 	ComplianceRequirement   complianceDTOs.ComplianceRequirementDetailDTO `json:"compliance_requirement"`
+}
+
+type RiskProcessDTO struct {
+	ID             *uint                             `json:"id"`
+	RiskRegisterID uint                              `json:"risk_register_id"`
+	ProcessID      uint                              `json:"process_id"`
+	Process        organizationDTOs.ProcessDetailDTO `json:"process"`
 }
 
 type RiskRegisterFormDTO struct {
@@ -127,6 +135,7 @@ type RiskRegisterFormDTO struct {
 	Documents                []*commonDTOs.DocumentFormDTO `json:"documents"`
 	ComplianceRequirementIDs []*uint                       `json:"compliance_requirement_ids"`
 	ControlIDs               []*uint                       `json:"control_ids"`
+	ProcessIDs               []*uint                       `json:"process_ids"`
 }
 
 type RiskRegisterParsedDates struct {
