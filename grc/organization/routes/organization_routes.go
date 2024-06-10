@@ -61,6 +61,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.PUT("/strategic-profiles/values", strategicProfileController.UpdateValues)
 
 	//Strategic Profile Values
+	organizationRoutes.GET("/strategic-profiles/values", strategicProfileValueController.GetAllStrategicProfileValues)
 	organizationRoutes.GET("/strategic-profiles/values/:id", strategicProfileValueController.GetStrategicProfileValueDetails)
 	organizationRoutes.POST("/strategic-profiles/values", strategicProfileValueController.CreateStrategicProfileValue)
 	organizationRoutes.PUT("/strategic-profiles/values/:id", strategicProfileValueController.UpdateStrategicProfileValue)
