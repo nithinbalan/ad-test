@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"jethur/grc/models"
+	userDTOs "jethur/grc/organization/dtos"
 	"jethur/utility"
 
 	"gorm.io/gorm"
@@ -9,6 +10,7 @@ import (
 
 type UserSettingRepositoryInterface interface {
 	GetUserSettingsByUserID(userId uint) (*models.UserSetting, error)
+	GetUserSettingsWithMfaByUserID(userId uint) (*userDTOs.UserSettingDTO, error)
 	CreateUserSetting(userSetting *models.UserSetting, tx ...utility.DatabaseTransaction) error
 	UpdateUserSetting(userSetting *models.UserSetting) error
 
@@ -39,6 +41,21 @@ func (repo *UserSettingRepository) GetUserSettingsByUserID(userID uint) (*models
 		return nil, result.Error
 	}
 	return userSetting, nil
+}
+
+func (repo *UserSettingRepository) GetUserSettingsWithMfaByUserID(userID uint) (*userDTOs.UserSettingDTO, error) {
+	var userSettingDTO userDTOs.UserSettingDTO
+	query := `SELECT us.user_id, us.timezone_id, us.language, us.timeout, us.is_notification, 
+	             uss.is_mfa 
+	          FROM user_settings us 
+	          JOIN user_securities uss ON us.user_id = uss.user_id 
+	          WHERE us.user_id = ?`
+
+	result := repo.db.Raw(query, userID).Scan(&userSettingDTO)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return &userSettingDTO, nil
 }
 
 func (repo *UserSettingRepository) CreateUserSetting(userSetting *models.UserSetting, tx ...utility.DatabaseTransaction) error {
