@@ -94,3 +94,44 @@ func (raic *RiskAssociatedItemController) GetAllRiskComplianceRequirements(c *gi
 	}
 	c.JSON(http.StatusOK, risks)
 }
+
+func (raic *RiskAssociatedItemController) GetAllRiskProcesses(c *gin.Context) {
+
+	riskIDStr := c.Param("riskId")
+
+	riskID, err := strconv.ParseUint(riskIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+	status := c.Query("status")
+	quickFilter := c.QueryArray("quick_filter")
+
+	queryParams := riskDTOs.RiskAssociatedItemListQueryParamsDTO{
+		Sort:        sort,
+		SortBy:      sortBy,
+		Keyword:     keyword,
+		Status:      status,
+		QuickFilter: quickFilter,
+	}
+	risks, err := raic.service.GetAllProcesses(uint(riskID), &queryParams)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(raic.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, risks)
+}
