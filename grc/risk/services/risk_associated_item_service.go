@@ -31,12 +31,12 @@ func (rais *RiskAssociatedItemService) GetAllControls(riskID uint, params *riskD
 	if _, err := rais.riskRegisterSvc.GetByID(riskID); err != nil {
 		return nil, err
 	}
-	return rais.repo.GetAllControls(params)
+	return rais.repo.GetAllControls(riskID, params)
 }
 
 func (rais *RiskAssociatedItemService) GetAllComplianceRequirements(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) ([]*riskDTOs.RiskComplianceRequirementListDTO, error) {
 	if _, err := rais.riskRegisterSvc.GetByID(riskID); err != nil {
 		return nil, err
 	}
-	return rais.repo.GetAllComplianceRequirements(params)
+	return rais.repo.GetAllComplianceRequirements(riskID, params)
 }

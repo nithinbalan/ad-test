@@ -29,5 +29,5 @@ func (pais *ProcessAssociatedItemService) GetAllControls(processID uint, params 
 	if _, err := pais.processSvc.GetByID(processID); err != nil {
 		return nil, err
 	}
-	return pais.repo.GetAllControls(params)
+	return pais.repo.GetAllControls(processID, params)
 }

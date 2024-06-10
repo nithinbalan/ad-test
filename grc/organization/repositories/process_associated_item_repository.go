@@ -7,7 +7,7 @@ import (
 )
 
 type ProcessAssociatedItemRepositoryInterface interface {
-	GetAllControls(params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (map[string]map[string][]*organizationDTOs.ProcessControlListDTO, error)
+	GetAllControls(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (map[string]map[string][]*organizationDTOs.ProcessControlListDTO, error)
 }
 
 type ProcessAssociatedItemRepository struct {
@@ -20,10 +20,10 @@ func NewProcessAssociatedItemRepository(db *gorm.DB) *ProcessAssociatedItemRepos
 	}
 }
 
-func (repo *ProcessAssociatedItemRepository) GetAllControls(params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (map[string]map[string][]*organizationDTOs.ProcessControlListDTO, error) {
+func (repo *ProcessAssociatedItemRepository) GetAllControls(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (map[string]map[string][]*organizationDTOs.ProcessControlListDTO, error) {
 	var controlList []*organizationDTOs.ProcessControlListDTO
 
-	query := repo.db.Table("controls").
+	query := repo.db.Table("process_controls").
 		Select(`
 			controls.id AS control_id,
             control_categories.title_en AS control_category_title_en,
@@ -39,11 +39,12 @@ func (repo *ProcessAssociatedItemRepository) GetAllControls(params *organization
             control_implementation_statuses.title_ar AS control_implementation_status_ar
         `).
 		Joins(`
+			LEFT JOIN controls ON controls.id = process_controls.control_id
             LEFT JOIN control_categories ON controls.control_category_id = control_categories.id
             LEFT JOIN control_types ON controls.control_type_id = control_types.id
             LEFT JOIN control_efficiency_statuses ON controls.control_efficiency_status_id = control_efficiency_statuses.id
             LEFT JOIN control_implementation_statuses ON controls.control_implementation_status_id = control_implementation_statuses.id
-        `)
+        `).Where("process_controls.process_id = ?", processID)
 
 	// Apply search keyword if exists
 	if params.Keyword != "" {

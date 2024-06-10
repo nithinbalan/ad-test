@@ -7,8 +7,8 @@ import (
 )
 
 type RiskAssociatedItemRepositoryInterface interface {
-	GetAllControls(params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) ([]*riskDTOs.RiskControlListDTO, error)
-	GetAllComplianceRequirements(params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) ([]*riskDTOs.RiskComplianceRequirementListDTO, error)
+	GetAllControls(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) ([]*riskDTOs.RiskControlListDTO, error)
+	GetAllComplianceRequirements(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) ([]*riskDTOs.RiskComplianceRequirementListDTO, error)
 }
 
 type RiskAssociatedItemRepository struct {
@@ -21,7 +21,7 @@ func NewRiskAssociatedItemRepository(db *gorm.DB) *RiskAssociatedItemRepository 
 	}
 }
 
-func (repo *RiskAssociatedItemRepository) GetAllControls(params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) ([]*riskDTOs.RiskControlListDTO, error) {
+func (repo *RiskAssociatedItemRepository) GetAllControls(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) ([]*riskDTOs.RiskControlListDTO, error) {
 	var controlList []*riskDTOs.RiskControlListDTO
 
 	query := repo.db.Table("risk_controls").
@@ -45,7 +45,7 @@ func (repo *RiskAssociatedItemRepository) GetAllControls(params *riskDTOs.RiskAs
             LEFT JOIN control_types ON controls.control_type_id = control_types.id
             LEFT JOIN control_efficiency_statuses ON controls.control_efficiency_status_id = control_efficiency_statuses.id
             LEFT JOIN control_implementation_statuses ON controls.control_implementation_status_id = control_implementation_statuses.id
-        `)
+        `).Where("risk_controls.risk_register_id = ?", riskID)
 
 	// Apply search keyword if exists
 	if params.Keyword != "" {
@@ -82,7 +82,7 @@ func (repo *RiskAssociatedItemRepository) GetAllControls(params *riskDTOs.RiskAs
 	return controlList, nil
 }
 
-func (repo *RiskAssociatedItemRepository) GetAllComplianceRequirements(params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) ([]*riskDTOs.RiskComplianceRequirementListDTO, error) {
+func (repo *RiskAssociatedItemRepository) GetAllComplianceRequirements(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) ([]*riskDTOs.RiskComplianceRequirementListDTO, error) {
 	var complianceRequirements []*riskDTOs.RiskComplianceRequirementListDTO
 
 	query := repo.db.Table("risk_compliance_requirements").
@@ -102,7 +102,7 @@ func (repo *RiskAssociatedItemRepository) GetAllComplianceRequirements(params *r
             LEFT JOIN compliance_clauses ON compliance_requirements.compliance_clause_id = compliance_clauses.id
             LEFT JOIN compliance_statuses ON compliance_requirements.compliance_status_id = compliance_statuses.id
             LEFT JOIN compliance_requirement_categories ON compliance_requirements.compliance_requirement_category_id = compliance_requirement_categories.id
-        `)
+        `).Where("risk_compliance_requirements.risk_register_id = ?", riskID)
 
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
