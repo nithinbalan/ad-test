@@ -14,7 +14,7 @@ import (
 )
 
 type RiskInherentEvaluationServiceInterface interface {
-	GetFullDetailsByID(riskID uint, id uint) (*riskDTOs.RiskInherentEvaluationDetailsDTO, error)
+	GetFullDetailsByID(riskID uint) (*riskDTOs.RiskInherentEvaluationDetailsDTO, error)
 	GetByID(riskID uint, id uint) (*models.RiskEvaluation, error)
 	Create(riskID uint, currentUserID uint, inherentEvaluationFormDTO *riskDTOs.RiskInherentEvaluationFormDTO) (uint, error)
 	Update(riskID uint, id uint, currentUserID uint, inherentEvaluationFormDTO *riskDTOs.RiskInherentEvaluationFormDTO) error
@@ -61,31 +61,57 @@ func NewRiskInherentEvaluationService(
 	}
 }
 
-func (ries RiskInherentEvaluationService) GetFullDetailsByID(riskID uint, id uint) (*riskDTOs.RiskInherentEvaluationDetailsDTO, error) {
+func (ries RiskInherentEvaluationService) GetFullDetailsByID(riskID uint) (*riskDTOs.RiskInherentEvaluationDetailsDTO, error) {
+	// Check if risk register exists
 	if _, err := ries.riskRegisterSvc.GetByID(riskID); err != nil {
 		return nil, err
 	}
 
 	var riskInherentEvaluationDetailsDTO riskDTOs.RiskInherentEvaluationDetailsDTO
 
-	riskInherentEvaluation, err := ries.repo.GetFullDetailsByID(id)
-
+	// Get full details from the repository
+	riskInherentEvaluation, err := ries.repo.GetFullDetailsByID(riskID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, utility.NewResourceNotFoundError(err, id)
+			return nil, utility.NewResourceNotFoundError(err, riskID)
 		}
 		return nil, err
 	}
 
+	// Map the results to the DTO
 	err = mapstructure.Decode(riskInherentEvaluation, &riskInherentEvaluationDetailsDTO)
 	if err != nil {
 		return nil, err
 	}
 
-	//todo :- also add extra fields which required in details screen
-
 	return &riskInherentEvaluationDetailsDTO, nil
 }
+
+// func (ries RiskInherentEvaluationService) GetFullDetailsByID(riskID uint, id uint) (*riskDTOs.RiskInherentEvaluationDetailsDTO, error) {
+// 	if _, err := ries.riskRegisterSvc.GetByID(riskID); err != nil {
+// 		return nil, err
+// 	}
+
+// 	var riskInherentEvaluationDetailsDTO riskDTOs.RiskInherentEvaluationDetailsDTO
+
+// 	riskInherentEvaluation, err := ries.repo.GetFullDetailsByID(id)
+
+// 	if err != nil {
+// 		if errors.Is(err, gorm.ErrRecordNotFound) {
+// 			return nil, utility.NewResourceNotFoundError(err, id)
+// 		}
+// 		return nil, err
+// 	}
+
+// 	err = mapstructure.Decode(riskInherentEvaluation, &riskInherentEvaluationDetailsDTO)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	//todo :- also add extra fields which required in details screen
+
+// 	return &riskInherentEvaluationDetailsDTO, nil
+// }
 
 func (ries *RiskInherentEvaluationService) GetByID(riskID uint, id uint) (*models.RiskEvaluation, error) {
 	if _, err := ries.riskRegisterSvc.GetByID(riskID); err != nil {
@@ -129,23 +155,24 @@ func (ries *RiskInherentEvaluationService) Create(riskID uint, currentUserID uin
 	for _, riskRating := range riskMatrix.RiskMatrixRiskRating {
 		for _, value := range riskRating.RiskMatrixRiskRatingValue {
 			detail := &riskDTOs.RiskMatrixRiskRatingDataDTO{
-				RiskMatrixID:           riskRating.RiskMatrixID,
-				RiskMatrixRiskRatingID: value.RiskMatrixRiskRatingID,
-				RiskRatingTitleEN:      riskRating.TitleEn,
-				RiskRatingTitleAR:      riskRating.TitleAr,
-				RiskRatingTitleType:    riskRating.Type,
-				ColorCode:              riskRating.ColorCode,
-				Value:                  value.Value,
+				RiskMatrixID:                riskRating.RiskMatrixID,
+				RiskMatrixRiskRatingID:      value.RiskMatrixRiskRatingID,
+				RiskRatingTitleEN:           riskRating.TitleEn,
+				RiskRatingTitleAR:           riskRating.TitleAr,
+				RiskRatingTitleType:         riskRating.Type,
+				ColorCode:                   riskRating.ColorCode,
+				RiskMatrixRiskRatingValueID: value.ID,
+				Value:                       value.Value,
 			}
 			riskRatingValueArray = append(riskRatingValueArray, detail)
 		}
 	}
 
-	impact, err := ries.riskMatrixImpactSvc.GetByID(inherentEvaluationFormDTO.InherentRiskMatrixImpactID)
+	impact, err := ries.riskMatrixImpactSvc.GetByID(inherentEvaluationFormDTO.RiskMatrixImpactID)
 	if err != nil {
 		return 0, err
 	}
-	likelihood, err := ries.riskMatrixLikelihoodSvc.GetByID(inherentEvaluationFormDTO.InherentRiskMatrixLikelihoodID)
+	likelihood, err := ries.riskMatrixLikelihoodSvc.GetByID(inherentEvaluationFormDTO.RiskMatrixLikelihoodID)
 	if err != nil {
 		return 0, err
 	}
@@ -155,11 +182,13 @@ func (ries *RiskInherentEvaluationService) Create(riskID uint, currentUserID uin
 	riskRating, _ := ries.riskMatrixRiskRatingValueSvc.FindRiskRatingValue(riskRatingValueArray, score)
 
 	riskInherentEvaluation := &models.RiskEvaluation{
-		RiskRegisterID:                 riskID,
-		InherentRiskMatrixLikelihoodID: inherentEvaluationFormDTO.InherentRiskMatrixLikelihoodID,
-		InherentRiskMatrixImpactID:     inherentEvaluationFormDTO.InherentRiskMatrixImpactID,
-		InherentRiskMatrixRiskRatingID: riskRating.RiskMatrixRiskRatingID,
-		CreatedBy:                      currentUserID,
+		RiskRegisterID:              riskID,
+		Type:                        "inherent",
+		RiskMatrixLikelihoodID:      inherentEvaluationFormDTO.RiskMatrixLikelihoodID,
+		RiskMatrixImpactID:          inherentEvaluationFormDTO.RiskMatrixImpactID,
+		RiskMatrixRiskRatingID:      riskRating.RiskMatrixRiskRatingID,
+		RiskMatrixRiskRatingValueID: riskRating.RiskMatrixRiskRatingValueID,
+		CreatedBy:                   currentUserID,
 	}
 
 	id, err := ries.repo.Create(riskInherentEvaluation, tx)
@@ -168,24 +197,32 @@ func (ries *RiskInherentEvaluationService) Create(riskID uint, currentUserID uin
 		return 0, err
 	}
 
-	var riskImpactEvaluations []*models.RiskImpactEvaluation
-	for _, impactEval := range inherentEvaluationFormDTO.RiskImpactEvaluations {
-		riskImpactEvaluation := &models.RiskImpactEvaluation{
-			RiskEvaluationID:            id,
-			RiskMatrixImpactGuidelineID: impactEval.RiskMatrixImpactGuidelineID,
-			RiskImpactCategoryID:        impactEval.RiskImpactCategoryID,
-			RiskMatrixImpactID:          impactEval.RiskMatrixImpactID,
-			CreatedBy:                   currentUserID,
+	for _, impactEval := range inherentEvaluationFormDTO.RiskImpactAnalyses {
+		riskImpactEvaluation := &models.RiskImpactAnalysis{
+			RiskEvaluationID:     id,
+			RiskImpactCategoryID: impactEval.RiskImpactCategoryID,
+			RiskMatrixImpactID:   impactEval.RiskMatrixImpactID,
+			CreatedBy:            currentUserID,
 		}
 
-		riskImpactEvaluations = append(riskImpactEvaluations, riskImpactEvaluation)
-	}
-
-	if len(riskImpactEvaluations) > 0 {
-		if err := ries.repo.CreateRiskImpactEvaluations(riskImpactEvaluations, tx); err != nil {
+		err := ries.repo.CreateRiskImpactAnalysis(riskImpactEvaluation, tx)
+		if err != nil {
 			tx.Rollback()
 			return 0, err
 		}
+
+		for _, guidelineID := range impactEval.RiskMatrixImpactGuidelineIDs {
+			riskImpactAnalysisGuideline := &models.RiskImpactAnalysisGuideline{
+				RiskImpactAnalysisID:        riskImpactEvaluation.ID,
+				RiskMatrixImpactGuidelineID: guidelineID,
+			}
+			err := ries.repo.CreateRiskImpactAnalysisGuideline(riskImpactAnalysisGuideline, tx)
+			if err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+		}
+
 	}
 
 	var riskAppetiteAlignments []*models.RiskAppetiteAlignment
@@ -197,7 +234,6 @@ func (ries *RiskInherentEvaluationService) Create(riskID uint, currentUserID uin
 			CreatedBy:                    currentUserID,
 		}
 		riskAppetiteAlignments = append(riskAppetiteAlignments, riskAppetiteAlignment)
-
 	}
 
 	if len(riskAppetiteAlignments) > 0 {
@@ -261,23 +297,24 @@ func (ries *RiskInherentEvaluationService) Update(riskID uint, id uint, currentU
 	for _, riskRating := range riskMatrix.RiskMatrixRiskRating {
 		for _, value := range riskRating.RiskMatrixRiskRatingValue {
 			detail := &riskDTOs.RiskMatrixRiskRatingDataDTO{
-				RiskMatrixID:           riskRating.RiskMatrixID,
-				RiskMatrixRiskRatingID: value.RiskMatrixRiskRatingID,
-				RiskRatingTitleEN:      riskRating.TitleEn,
-				RiskRatingTitleAR:      riskRating.TitleAr,
-				RiskRatingTitleType:    riskRating.Type,
-				ColorCode:              riskRating.ColorCode,
-				Value:                  value.Value,
+				RiskMatrixID:                riskRating.RiskMatrixID,
+				RiskMatrixRiskRatingID:      value.RiskMatrixRiskRatingID,
+				RiskRatingTitleEN:           riskRating.TitleEn,
+				RiskRatingTitleAR:           riskRating.TitleAr,
+				RiskRatingTitleType:         riskRating.Type,
+				ColorCode:                   riskRating.ColorCode,
+				RiskMatrixRiskRatingValueID: value.ID,
+				Value:                       value.Value,
 			}
 			riskRatingValueArray = append(riskRatingValueArray, detail)
 		}
 	}
 
-	impact, err := ries.riskMatrixImpactSvc.GetByID(inherentEvaluationFormDTO.InherentRiskMatrixImpactID)
+	impact, err := ries.riskMatrixImpactSvc.GetByID(inherentEvaluationFormDTO.RiskMatrixImpactID)
 	if err != nil {
 		return err
 	}
-	likelihood, err := ries.riskMatrixLikelihoodSvc.GetByID(inherentEvaluationFormDTO.InherentRiskMatrixLikelihoodID)
+	likelihood, err := ries.riskMatrixLikelihoodSvc.GetByID(inherentEvaluationFormDTO.RiskMatrixLikelihoodID)
 	if err != nil {
 		return err
 	}
@@ -291,9 +328,10 @@ func (ries *RiskInherentEvaluationService) Update(riskID uint, id uint, currentU
 		return err
 	}
 
-	existingRiskInherentEvaluation.InherentRiskMatrixImpactID = inherentEvaluationFormDTO.InherentRiskMatrixImpactID
-	existingRiskInherentEvaluation.InherentRiskMatrixLikelihoodID = inherentEvaluationFormDTO.InherentRiskMatrixLikelihoodID
-	existingRiskInherentEvaluation.InherentRiskMatrixRiskRatingID = riskRating.RiskMatrixRiskRatingID
+	existingRiskInherentEvaluation.RiskMatrixImpactID = inherentEvaluationFormDTO.RiskMatrixImpactID
+	existingRiskInherentEvaluation.RiskMatrixLikelihoodID = inherentEvaluationFormDTO.RiskMatrixLikelihoodID
+	existingRiskInherentEvaluation.RiskMatrixRiskRatingID = riskRating.RiskMatrixRiskRatingID
+	existingRiskInherentEvaluation.RiskMatrixRiskRatingValueID = riskRating.RiskMatrixRiskRatingValueID
 	existingRiskInherentEvaluation.UpdatedBy = &currentUserID
 
 	if err := ries.repo.Update(existingRiskInherentEvaluation, tx); err != nil {
@@ -301,8 +339,8 @@ func (ries *RiskInherentEvaluationService) Update(riskID uint, id uint, currentU
 		return err
 	}
 
-	// Delete existing RiskImpactEvaluations
-	if err := ries.repo.DeleteRiskImpactEvaluationsByRiskEvaluationID(id, tx); err != nil {
+	// Delete existing RiskImpactAnalyses and related RiskMatrixImpactGuidelines
+	if err := ries.repo.DeleteRiskImpactAnalysesByRiskEvaluationID(id, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -313,23 +351,32 @@ func (ries *RiskInherentEvaluationService) Update(riskID uint, id uint, currentU
 		return err
 	}
 
-	var riskImpactEvaluations []*models.RiskImpactEvaluation
-	for _, impactEval := range inherentEvaluationFormDTO.RiskImpactEvaluations {
-		riskImpactEvaluation := &models.RiskImpactEvaluation{
-			RiskEvaluationID:            id,
-			RiskMatrixImpactGuidelineID: impactEval.RiskMatrixImpactGuidelineID,
-			RiskImpactCategoryID:        impactEval.RiskImpactCategoryID,
-			RiskMatrixImpactID:          impactEval.RiskMatrixImpactID,
-			CreatedBy:                   currentUserID,
+	for _, impactEval := range inherentEvaluationFormDTO.RiskImpactAnalyses {
+		riskImpactEvaluation := &models.RiskImpactAnalysis{
+			RiskEvaluationID:     id,
+			RiskImpactCategoryID: impactEval.RiskImpactCategoryID,
+			RiskMatrixImpactID:   impactEval.RiskMatrixImpactID,
+			CreatedBy:            currentUserID,
 		}
-		riskImpactEvaluations = append(riskImpactEvaluations, riskImpactEvaluation)
-	}
 
-	if len(riskImpactEvaluations) > 0 {
-		if err := ries.repo.CreateRiskImpactEvaluations(riskImpactEvaluations, tx); err != nil {
+		err := ries.repo.CreateRiskImpactAnalysis(riskImpactEvaluation, tx)
+		if err != nil {
 			tx.Rollback()
 			return err
 		}
+
+		for _, guidelineID := range impactEval.RiskMatrixImpactGuidelineIDs {
+			riskImpactAnalysisGuideline := &models.RiskImpactAnalysisGuideline{
+				RiskImpactAnalysisID:        riskImpactEvaluation.ID,
+				RiskMatrixImpactGuidelineID: guidelineID,
+			}
+			err := ries.repo.CreateRiskImpactAnalysisGuideline(riskImpactAnalysisGuideline, tx)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+
 	}
 
 	var riskAppetiteAlignments []*models.RiskAppetiteAlignment
@@ -349,130 +396,9 @@ func (ries *RiskInherentEvaluationService) Update(riskID uint, id uint, currentU
 			return err
 		}
 	}
-
 	tx.Commit()
 	return nil
 }
-
-// func (ries *RiskInherentEvaluationService) Update(riskID uint, id uint, currentUserID uint, inherentEvaluationFormDTO *riskDTOs.RiskInherentEvaluationFormDTO) error {
-// 	tx := ries.repo.BeginTransaction()
-
-// 	if _, err := ries.riskRegisterSvc.GetByID(riskID); err != nil {
-// 		return err
-// 	}
-
-// 	if err := ries.validateRiskInherentEvaluationFormDTO(inherentEvaluationFormDTO); err != nil {
-// 		return err
-// 	}
-
-// 	riskMatrixType, err := ries.riskMatrixSvc.GetByType("erm")
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	riskMatrix, err := ries.riskMatrixSvc.GetDetailsByID(riskMatrixType.ID)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	var riskRatingValueArray []*riskDTOs.RiskMatrixRiskRatingDataDTO
-
-// 	for _, riskRating := range riskMatrix.RiskMatrixRiskRating {
-// 		for _, value := range riskRating.RiskMatrixRiskRatingValue {
-// 			detail := &riskDTOs.RiskMatrixRiskRatingDataDTO{
-// 				RiskMatrixID:           riskRating.RiskMatrixID,
-// 				RiskMatrixRiskRatingID: value.RiskMatrixRiskRatingID,
-// 				RiskRatingTitleEN:      riskRating.TitleEn,
-// 				RiskRatingTitleAR:      riskRating.TitleAr,
-// 				RiskRatingTitleType:    riskRating.Type,
-// 				ColorCode:              riskRating.ColorCode,
-// 				Value:                  value.Value,
-// 			}
-// 			riskRatingValueArray = append(riskRatingValueArray, detail)
-// 		}
-// 	}
-
-// 	impact, err := ries.riskMatrixImpactSvc.GetByID(inherentEvaluationFormDTO.InherentRiskMatrixImpactID)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	likelihood, err := ries.riskMatrixLikelihoodSvc.GetByID(inherentEvaluationFormDTO.InherentRiskMatrixLikelihoodID)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	calculationMethod := riskMatrix.CalculationType
-
-// 	score := ries.riskMatrixRiskRatingValueSvc.EvaluateScore(impact, likelihood, calculationMethod)
-// 	riskRating, _ := ries.riskMatrixRiskRatingValueSvc.FindRiskRatingValue(riskRatingValueArray, score)
-
-// 	existingRiskInherentEvaluation, err := ries.GetByID(riskID, id)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	existingRiskInherentEvaluation.InherentRiskMatrixImpactID = inherentEvaluationFormDTO.InherentRiskMatrixImpactID
-// 	existingRiskInherentEvaluation.InherentRiskMatrixLikelihoodID = inherentEvaluationFormDTO.InherentRiskMatrixLikelihoodID
-// 	existingRiskInherentEvaluation.InherentRiskMatrixRiskRatingID = riskRating.RiskMatrixRiskRatingID
-// 	existingRiskInherentEvaluation.UpdatedBy = &currentUserID
-// 	fmt.Println(existingRiskInherentEvaluation)
-
-// 	if err := ries.repo.Update(existingRiskInherentEvaluation, tx); err != nil {
-// 		tx.Rollback()
-// 		return err
-// 	}
-
-// 	// Delete existing RiskImpactEvaluations
-// 	if err := ries.repo.DeleteRiskImpactEvaluationsByRiskEvaluationID(id, tx); err != nil {
-// 		tx.Rollback()
-// 		return err
-// 	}
-
-// 	// Delete existing RiskAppetiteAlignments
-// 	if err := ries.repo.DeleteRiskAppetiteAlignmentsByRiskEvaluationID(id, tx); err != nil {
-// 		tx.Rollback()
-// 		return err
-// 	}
-
-// 	var riskImpactEvaluations []*models.RiskImpactEvaluation
-// 	for _, impactEval := range inherentEvaluationFormDTO.RiskImpactEvaluations {
-// 		riskImpactEvaluation := &models.RiskImpactEvaluation{
-// 			RiskEvaluationID:            id,
-// 			RiskMatrixImpactGuidelineID: impactEval.RiskMatrixImpactGuidelineID,
-// 			RiskImpactCategoryID:        impactEval.RiskImpactCategoryID,
-// 			RiskMatrixImpactID:          impactEval.RiskMatrixImpactID,
-// 			CreatedBy:                   currentUserID,
-// 		}
-// 		riskImpactEvaluations = append(riskImpactEvaluations, riskImpactEvaluation)
-// 	}
-
-// 	if len(riskImpactEvaluations) > 0 {
-// 		if err := ries.repo.CreateRiskImpactEvaluations(riskImpactEvaluations, tx); err != nil {
-// 			tx.Rollback()
-// 			return err
-// 		}
-// 	}
-
-// 	var riskAppetiteAlignments []*models.RiskAppetiteAlignment
-// 	for _, appetiteAlignment := range inherentEvaluationFormDTO.RiskAppetiteAlignments {
-// 		riskAppetiteAlignment := &models.RiskAppetiteAlignment{
-// 			RiskEvaluationID:             id,
-// 			RiskAppetiteStatementID:      appetiteAlignment.RiskAppetiteStatementID,
-// 			RiskAppetiteToleranceLevelID: appetiteAlignment.RiskAppetiteToleranceLevelID,
-// 			CreatedBy:                    currentUserID,
-// 		}
-// 		riskAppetiteAlignments = append(riskAppetiteAlignments, riskAppetiteAlignment)
-// 	}
-
-// 	if len(riskAppetiteAlignments) > 0 {
-// 		if err := ries.repo.CreateRiskAppetiteAlignments(riskAppetiteAlignments, tx); err != nil {
-// 			tx.Rollback()
-// 			return err
-// 		}
-// 	}
-
-// 	tx.Commit()
-// 	return nil
-// }
 
 func (ries *RiskInherentEvaluationService) Delete(riskID uint, id uint, currentUserID uint) (uint, error) {
 	tx := ries.repo.BeginTransaction()
@@ -483,7 +409,7 @@ func (ries *RiskInherentEvaluationService) Delete(riskID uint, id uint, currentU
 
 	var failedId uint
 
-	if err := ries.repo.DeleteRiskImpactEvaluationsByRiskEvaluationID(id, tx); err != nil {
+	if err := ries.repo.DeleteRiskImpactAnalysesByRiskEvaluationID(id, tx); err != nil {
 		tx.Rollback()
 		failedId = id
 		return failedId, err
@@ -523,11 +449,11 @@ func (ries *RiskInherentEvaluationService) Delete(riskID uint, id uint, currentU
 }
 
 func (ries *RiskInherentEvaluationService) validateRiskInherentEvaluationFormDTO(inherentEvaluationFormDTO *riskDTOs.RiskInherentEvaluationFormDTO) error {
-	if _, err := ries.riskMatrixImpactSvc.GetByID(uint(inherentEvaluationFormDTO.InherentRiskMatrixImpactID)); err != nil {
+	if _, err := ries.riskMatrixImpactSvc.GetByID(uint(inherentEvaluationFormDTO.RiskMatrixImpactID)); err != nil {
 		return utility.NewValidationError(fmt.Errorf("risk matrix impact does not exist"), "not_exist", "risk matrix impact")
 	}
 
-	if _, err := ries.riskMatrixLikelihoodSvc.GetByID(uint(inherentEvaluationFormDTO.InherentRiskMatrixLikelihoodID)); err != nil {
+	if _, err := ries.riskMatrixLikelihoodSvc.GetByID(uint(inherentEvaluationFormDTO.RiskMatrixLikelihoodID)); err != nil {
 		return utility.NewValidationError(fmt.Errorf("risk matrix likelihood does not exist"), "not_exist", "risk matrix likelihood")
 	}
 
@@ -537,12 +463,12 @@ func (ries *RiskInherentEvaluationService) validateRiskInherentEvaluationFormDTO
 		}
 	}
 
-	for _, impactEval := range inherentEvaluationFormDTO.RiskImpactEvaluations {
-		if _, err := ries.riskMatrixImpactGuidelineSvc.GetByID(uint(impactEval.RiskMatrixImpactGuidelineID)); err != nil {
-			return utility.NewValidationError(fmt.Errorf("risk matrix impact guideline does not exist"), "not_exist", "risk matrix impact guideline")
-		}
+	for _, impactEval := range inherentEvaluationFormDTO.RiskImpactAnalyses {
+		// if _, err := ries.riskMatrixImpactGuidelineSvc.GetByID(uint(impactEval.RiskMatrixImpactGuidelineID)); err != nil {
+		// 	return utility.NewValidationError(fmt.Errorf("risk matrix impact guideline does not exist"), "not_exist", "risk matrix impact guideline")
+		// }
 		if _, err := ries.riskImpactCategorySvc.GetByID(uint(impactEval.RiskImpactCategoryID)); err != nil {
-			return utility.NewValidationError(fmt.Errorf("risk matrix impact category does not exist"), "not_exist", "risk matrix impact category")
+			return utility.NewValidationError(fmt.Errorf("risk impact category does not exist"), "not_exist", "risk impact category")
 		}
 		if _, err := ries.riskMatrixImpactSvc.GetByID(uint(impactEval.RiskMatrixImpactID)); err != nil {
 			return utility.NewValidationError(fmt.Errorf("risk matrix impact does not exist"), "not_exist", "risk matrix impact")

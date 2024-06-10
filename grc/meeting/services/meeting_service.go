@@ -142,6 +142,14 @@ func (ms *MeetingService) Create(currentUserID uint, meetingFormDTO *meetingDTOs
 		}
 	}
 
+	if meetingFormDTO.MeetingFrequencyID != nil {
+		err := ms.createRecurringMeetings(meeting, dates, tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
 	tx.Commit()
 
 	go func() {
@@ -412,4 +420,50 @@ func (ms *MeetingService) parseMeetingDates(dto *meetingDTOs.MeetingFormDTO) (*m
 	}
 
 	return parsed, nil
+}
+
+func (ms *MeetingService) createRecurringMeetings(meeting *models.Meeting, dates *meetingDTOs.MeetingParsedDates, tx utility.DatabaseTransaction) error {
+	frequency, err := ms.meetingFrequencySvc.GetByID(*meeting.MeetingFrequencyID)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(meeting)
+
+	startDate := dates.Date
+
+	endDate := startDate.AddDate(1, 0, 0) // add one year
+
+	currentDate := startDate
+
+	for currentDate.Before(endDate) {
+		switch frequency.Type {
+		case "weekly":
+			currentDate = currentDate.AddDate(0, 0, 7)
+		case "monthly":
+			currentDate = currentDate.AddDate(0, 1, 0)
+		case "quarterly":
+			currentDate = currentDate.AddDate(0, 3, 0)
+		case "half-yearly":
+			currentDate = currentDate.AddDate(0, 6, 0)
+		case "annually":
+			currentDate = currentDate.AddDate(1, 0, 0)
+		}
+
+		if currentDate.After(endDate) {
+			break
+		}
+
+		recurringMeeting := *meeting
+		recurringMeeting.Date = currentDate
+		recurringMeeting.ID = 0
+
+		_, err := ms.repo.Create(&recurringMeeting, tx)
+		if err != nil {
+			return err
+		}
+
+	}
+
+	return nil
 }

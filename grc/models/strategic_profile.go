@@ -5,7 +5,7 @@ import "time"
 type StrategicProfile struct {
 	ID        uint       `json:"id" gorm:"primaryKey;autoIncrement"`
 	TitleEn   string     `json:"title_en" gorm:"size:255;not null" binding:"required"`
-	TitleAr   string     `json:"title_ar" gorm:"size:255;not null" binding:"required"`
+	TitleAr   string     `json:"title_ar" gorm:"size:255;dafault:null" binding:"omitempty"`
 	Address   string     `json:"address" gorm:"type:varchar(MAX);not null" binding:"required"`
 	Location  *string    `json:"location,omitempty" gorm:"size:255 dafault:null" binding:"omitempty"`
 	Email     *string    `json:"email,omitempty" gorm:"size:100 email dafault:null" binding:"omitempty,email"`

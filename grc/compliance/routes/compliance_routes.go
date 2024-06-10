@@ -96,6 +96,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	//Compliance Requirement
 	complianceRoutes.GET("/compliance-requirements", complianceRequirementController.GetAllComplianceRequirements)
+	complianceRoutes.GET("/compliances/:complianceId/requirements", complianceRequirementController.GetComplianceRequirementsByID)
 	complianceRoutes.GET("/compliances/:complianceId/requirements/:requirementId", complianceRequirementController.GetComplianceRequirementDetails)
 	complianceRoutes.POST("/compliances/:complianceId/requirements", complianceRequirementController.CreateComplianceRequirement)
 	complianceRoutes.PUT("/compliances/:complianceId/requirements/:requirementId", complianceRequirementController.UpdateComplianceRequirement)
@@ -110,6 +111,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	//Compliance Status Update
 	complianceRoutes.GET("/compliances/:complianceId/status-updates", complianceStatusUpdateController.GetAllComplianceStatusUpdates)
+	complianceRoutes.GET("/compliances/:complianceId/status-updates/:id", complianceStatusUpdateController.GetComplianceStatusUpdateDetails)
 	complianceRoutes.POST("/compliances/:complianceId/status-updates", complianceStatusUpdateController.CreateComplianceStatusUpdate)
 	complianceRoutes.PUT("/compliances/:complianceId/status-updates/:id", complianceStatusUpdateController.UpdateComplianceStatusUpdate)
 

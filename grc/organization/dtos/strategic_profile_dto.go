@@ -4,7 +4,7 @@ import "time"
 
 type StrategicProfileFormDTO struct {
 	TitleEn   string  `json:"title_en" binding:"required"`
-	TitleAr   string  `json:"title_ar" binding:"required"`
+	TitleAr   string  `json:"title_ar"`
 	Address   string  `json:"address" binding:"required"`
 	Location  *string `json:"location"`
 	Email     *string `json:"email" binding:"omitempty,email"`

@@ -6,6 +6,7 @@ type UserSettingDTO struct {
 	Language       string `json:"language"`
 	Timeout        int    `json:"timeout"`
 	IsNotification bool   `json:"is_notification"`
+	IsMfa          bool   `json:"is_mfa"`
 }
 
 type UserSettingFormDTO struct {

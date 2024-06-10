@@ -74,7 +74,7 @@ type MeetingActionPlanDetailDTO struct {
 	Description      string                           `json:"description"`
 	SeverityLevel    *masterDTOs.SeverityLevelDTO     `json:"severity_level"`
 	ResponsibleUser  organizationDTOs.UserMinimalDTO  `json:"responsible_user"`
-	ActionPlanStatus masterDTOs.ActionPlanStatusDTO   `json:"compliance_status"`
+	ActionPlanStatus masterDTOs.ActionPlanStatusDTO   `json:"action_plan_status"`
 	Percentage       *uint                            `json:"percentage"`
 	Comments         *string                          `json:"comments"`
 	TargetDate       *time.Time                       `json:"target_date"`

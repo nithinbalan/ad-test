@@ -11,7 +11,7 @@ import (
 
 type LogSettingsServiceInterface interface {
 	GetLogSettings() (*models.LogSettings, error)
-	Update(id uint, currentUserID uint, logSettingsFormDTO *dtos.LogSettingsFormDTO) error
+	Update(currentUserID uint, logSettingsFormDTO *dtos.LogSettingsFormDTO) error
 }
 
 type LogSettingsService struct {
@@ -30,7 +30,7 @@ func (lss *LogSettingsService) GetLogSettings() (*models.LogSettings, error) {
 	return lss.repo.GetLogSettings()
 }
 
-func (lss *LogSettingsService) Update(id uint, currentUserID uint, logSettingsFormDTO *dtos.LogSettingsFormDTO) error {
+func (lss *LogSettingsService) Update(currentUserID uint, logSettingsFormDTO *dtos.LogSettingsFormDTO) error {
 	existingLogSettings, err := lss.repo.GetLogSettings()
 	if err != nil {
 		return err
@@ -52,7 +52,7 @@ func (lss *LogSettingsService) Update(id uint, currentUserID uint, logSettingsFo
 		err := lss.activityLogSvc.LogActivity(
 			models.UpdateAction,
 			models.LogSettings{}.TableName(),
-			id,
+			existingLogSettings.ID,
 			logSettingsFormDTO,
 			currentUserID,
 			nil,
@@ -62,7 +62,7 @@ func (lss *LogSettingsService) Update(id uint, currentUserID uint, logSettingsFo
 			fields := map[string]interface{}{
 				"action":    models.UpdateAction,
 				"tableName": models.LogSettings{}.TableName(),
-				"recordID":  id,
+				"recordID":  existingLogSettings.ID,
 				"userID":    currentUserID,
 				"error":     err.Error(),
 			}

@@ -85,6 +85,77 @@ func (crc *ComplianceRequirementController) GetAllComplianceRequirements(c *gin.
 	c.JSON(http.StatusOK, complianceRequirements)
 }
 
+func (crc *ComplianceRequirementController) GetComplianceRequirementsByID(c *gin.Context) {
+	complianceIDStr := c.Param("complianceId")
+
+	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+	status := c.Query("status")
+	quickFilter := c.QueryArray("quick_filter")
+
+	// Define an array of allowed parameter names
+	allowedParams := []string{
+		"compliance_register_ids",
+		"compliance_requirement_category_ids",
+		"compliance_clause_ids",
+		"severity_level_ids",
+		"compliance_status_ids",
+		"responsible_user_ids",
+	}
+
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+
+	// Parse deadline_from, deadline_to
+	deadlineFrom := c.Query("deadline_from")
+	deadlineTo := c.Query("deadline_to")
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	queryParams := complianceDTOs.ComplianceRequirementListQueryParamsDTO{
+		Sort:         sort,
+		SortBy:       sortBy,
+		Keyword:      keyword,
+		Status:       status,
+		Page:         page,
+		PageSize:     pageSize,
+		Filters:      filters,
+		QuickFilter:  quickFilter,
+		DeadlineFrom: deadlineFrom,
+		DeadlineTo:   deadlineTo,
+	}
+
+	complianceRequirements, err := crc.service.GetRequirementsByComplianceID(uint(complianceID), &queryParams)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(crc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, complianceRequirements)
+}
+
 func (crc *ComplianceRequirementController) GetComplianceRequirementDetails(c *gin.Context) {
 	complianceIDStr := c.Param("complianceId")
 

@@ -8,6 +8,8 @@ import (
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
 	"jethur/utility"
+	"path/filepath"
+	"strconv"
 	"time"
 
 	"gorm.io/gorm"
@@ -69,6 +71,8 @@ func (crs ComplianceReviewService) GetByID(complianceID uint, id uint) (*models.
 }
 
 func (crs *ComplianceReviewService) Create(complianceID uint, currentUserID uint, complianceReviewFormDTO *complianceDTOs.ComplianceReviewFormDTO) (uint, error) {
+	tx := crs.repo.BeginTransaction()
+
 	complianceRegister, err := crs.complianceRegisterSvc.GetByID(complianceID)
 	if err != nil {
 		return 0, err
@@ -81,8 +85,9 @@ func (crs *ComplianceReviewService) Create(complianceID uint, currentUserID uint
 		ReviewedAt:           time.Now(),
 	}
 
-	id, err := crs.repo.Create(complianceReview)
+	id, err := crs.repo.Create(complianceReview,tx)
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
@@ -105,9 +110,54 @@ func (crs *ComplianceReviewService) Create(complianceID uint, currentUserID uint
 	complianceRegister.LastReviewedDate = &currentTime
 	complianceRegister.ComplianceReviewStatusID = &complianceReviewStatus.ID
 
-	if err := crs.complianceRegisterSvc.ReviewStatusUpdate(complianceRegister); err != nil {
+	if err := crs.complianceRegisterSvc.ReviewStatusUpdate(complianceRegister, tx); err != nil {
+		tx.Rollback()
 		return 0, err
 	}
+
+	var documents []*models.ComplianceReviewDocument
+
+	for _, doc := range complianceReviewFormDTO.Documents {
+
+		dataToEncrypt := []byte(doc.FileName)
+		encryptedFilename, err := utility.EncryptData(dataToEncrypt)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
+		url := utility.GenerateDocumentURL("compliances", strconv.FormatUint(uint64(complianceID), 10), "reviews", encryptedFilename)
+
+		document := &models.ComplianceReviewDocument{
+			ComplianceReviewID: id,
+			URL:                url,
+			Name:               doc.FileName,
+			Size:               doc.Size,
+			Token:              encryptedFilename,
+			OriginalName:       doc.OriginalName,
+			Type:               doc.Type,
+			CreatedBy:          currentUserID,
+		}
+
+		documents = append(documents, document)
+	}
+
+	if len(documents) > 0 {
+		if err := crs.repo.CreateDocuments(documents, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+		//move file to storage
+		for _, doc := range documents {
+			storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(complianceID), 10), "review-documents")
+			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+
+		}
+	}
+	tx.Commit()
 
 	go func() {
 		err := crs.activityLogSvc.LogActivity(
@@ -136,6 +186,8 @@ func (crs *ComplianceReviewService) Create(complianceID uint, currentUserID uint
 }
 
 func (crs *ComplianceReviewService) Update(complianceID uint, id uint, currentUserID uint, complianceReviewFormDTO *complianceDTOs.ComplianceReviewFormDTO) error {
+	tx := crs.repo.BeginTransaction()
+
 	if _, err := crs.complianceRegisterSvc.GetByID(complianceID); err != nil {
 		return err
 	}
@@ -149,11 +201,93 @@ func (crs *ComplianceReviewService) Update(complianceID uint, id uint, currentUs
 	existingComplianceReview.Comment = complianceReviewFormDTO.Comment
 	existingComplianceReview.UpdatedBy = &currentUserID
 
-	err = crs.repo.Update(existingComplianceReview)
+	err = crs.repo.Update(existingComplianceReview,tx)
 
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
+
+	var documents []*models.ComplianceReviewDocument
+	var deleteDocumentIds []*uint
+	var documentsToDelete []*models.ComplianceReviewDocument
+
+	for _, doc := range complianceReviewFormDTO.Documents {
+
+		if doc.IsNewFile != nil && *doc.IsNewFile {
+			// Encrypt the filename
+			dataToEncrypt := []byte(doc.FileName)
+			encryptedFileName, err := utility.EncryptData(dataToEncrypt)
+
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			//genereate URL
+			url := utility.GenerateDocumentURL("compliances", strconv.FormatUint(uint64(complianceID), 10), "reviews", encryptedFileName)
+			// Create a new Control test Document instance
+			document := &models.ComplianceReviewDocument{
+				ComplianceReviewID: id,
+				URL:                url,
+				Name:               doc.FileName,
+				Size:               doc.Size,
+				Token:              encryptedFileName,
+				OriginalName:       doc.OriginalName,
+				Type:               doc.Type,
+				CreatedBy:          currentUserID,
+			}
+
+			// Append the document to the slice
+			documents = append(documents, document)
+
+		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
+			if doc.ID != nil {
+				existingDocument, err := crs.repo.GetDocumentByID(*doc.ID)
+				if err != nil {
+					if errors.Is(err, gorm.ErrRecordNotFound) {
+						return utility.NewResourceNotFoundError(err, id)
+					}
+					return err
+				}
+
+				documentsToDelete = append(documentsToDelete, existingDocument)
+				deleteDocumentIds = append(deleteDocumentIds, &existingDocument.ID)
+			}
+		}
+	}
+
+	if len(documents) > 0 {
+		if err := crs.repo.CreateDocuments(documents, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	if len(deleteDocumentIds) > 0 {
+		if err := crs.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	for _, doc := range documents {
+		storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(complianceID), 10), "review-documents")
+		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	for _, document := range documentsToDelete {
+		storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(complianceID), 10), "review-documents")
+		if err := utility.RemoveFile(document.Name, storagePath); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	tx.Commit()
 
 	return nil
 }

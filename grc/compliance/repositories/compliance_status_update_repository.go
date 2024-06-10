@@ -12,8 +12,14 @@ type ComplianceStatusUpdateRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(complianceID uint, sort string, sortBy string, keyword string) ([]*complianceDTOs.ComplianceStatusUpdateListDTO, error)
 	GetByID(id uint) (*models.ComplianceStatusUpdate, error)
+	GetFullDetailsByID(id uint) (*models.ComplianceStatusUpdate, error)
 	Create(ComplianceStatusUpdate *models.ComplianceStatusUpdate) (uint, error)
 	Update(ComplianceStatusUpdate *models.ComplianceStatusUpdate) error
+
+	//Document
+	CreateDocuments(docs []*models.ComplianceStatusUpdateDocument, tx ...utility.DatabaseTransaction) error
+	GetDocumentByID(id uint) (*models.ComplianceStatusUpdateDocument, error)
+	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type ComplianceStatusUpdateRepository struct {
@@ -78,12 +84,42 @@ func (repo *ComplianceStatusUpdateRepository) GetAll(complianceID uint, sort str
 	query = query.Order(sortBy + " " + sort)
 	result := query.Find(&complianceUpdates)
 
-	return complianceUpdates, result.Error
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	// Fetching documents for each compliance status updates
+	for _, update := range complianceUpdates {
+		var documents []*models.ComplianceStatusUpdateDocument
+		repo.db.Model(&models.ComplianceStatusUpdateDocument{}).Where("compliance_status_update_id = ?", update.ID).Find(&documents)
+		update.Documents = documents
+	}
+
+	return complianceUpdates, nil
+
 }
 
 func (repo *ComplianceStatusUpdateRepository) GetByID(id uint) (*models.ComplianceStatusUpdate, error) {
 	var complianceStatusUpdate *models.ComplianceStatusUpdate
 	result := repo.db.First(&complianceStatusUpdate, id)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return complianceStatusUpdate, nil
+}
+
+func (repo *ComplianceStatusUpdateRepository) GetFullDetailsByID(id uint) (*models.ComplianceStatusUpdate, error) {
+	var complianceStatusUpdate *models.ComplianceStatusUpdate
+
+	result := repo.db.
+		Preload("ComplianceRegister").
+		Preload("ComplianceStatus").
+		Preload("Documents").
+		Preload("CreatedByUser").
+		Preload("UpdatedByUser").
+		First(&complianceStatusUpdate, id)
 
 	if result.Error != nil {
 		return nil, result.Error
@@ -105,5 +141,39 @@ func (repo *ComplianceStatusUpdateRepository) Update(ComplianceStatusUpdate *mod
 	if err := repo.db.Save(ComplianceStatusUpdate).Error; err != nil {
 		return err
 	}
+	return nil
+}
+
+func (repo *ComplianceStatusUpdateRepository) CreateDocuments(docs []*models.ComplianceStatusUpdateDocument, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	// Save all documents in a single transaction
+	if err := db.Create(&docs).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *ComplianceStatusUpdateRepository) GetDocumentByID(id uint) (*models.ComplianceStatusUpdateDocument, error) {
+	var document models.ComplianceStatusUpdateDocument
+	if err := repo.db.Where("id = ?", id).First(&document).Error; err != nil {
+		return nil, err
+	}
+	return &document, nil
+}
+
+func (repo *ComplianceStatusUpdateRepository) DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Delete documents by IDs
+	if err := db.Where("id IN (?)", docIds).Delete(&models.ComplianceStatusUpdateDocument{}).Error; err != nil {
+		return err
+	}
+
 	return nil
 }

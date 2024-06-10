@@ -188,6 +188,7 @@ func (cts *ControlTestService) Create(controlID uint, currentUserID uint, contro
 }
 
 func (cts *ControlTestService) Update(id uint, currentUserID uint, controlTestFormDTO *organizationDTOs.ControlTestFormDTO) error {
+	fmt.Println("hhh - ", id)
 	tx := cts.repo.BeginTransaction()
 	existingControlTest, err := cts.GetByID(id)
 
@@ -253,7 +254,9 @@ func (cts *ControlTestService) Update(id uint, currentUserID uint, controlTestFo
 			documents = append(documents, document)
 
 		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
+			fmt.Println("1")
 			if doc.ID != nil {
+				fmt.Println("2")
 				existingDocument, err := cts.repo.GetDocumentByID(*doc.ID)
 				if err != nil {
 					if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -261,14 +264,16 @@ func (cts *ControlTestService) Update(id uint, currentUserID uint, controlTestFo
 					}
 					return err
 				}
-
+				fmt.Println("3")
 				documentsToDelete = append(documentsToDelete, existingDocument)
 				deleteDocumentIds = append(deleteDocumentIds, &existingDocument.ID)
+				fmt.Println("4")
 			}
 		}
 	}
 
 	if len(documents) > 0 {
+		fmt.Println("5")
 		if err := cts.repo.CreateDocuments(documents, tx); err != nil {
 			tx.Rollback()
 			return err
@@ -276,10 +281,12 @@ func (cts *ControlTestService) Update(id uint, currentUserID uint, controlTestFo
 	}
 
 	if len(deleteDocumentIds) > 0 {
+		fmt.Println("6")
 		if err := cts.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
+		fmt.Println("7")
 	}
 
 	for _, doc := range documents {
@@ -289,14 +296,17 @@ func (cts *ControlTestService) Update(id uint, currentUserID uint, controlTestFo
 			return err
 		}
 	}
+	fmt.Println("8")
 
 	for _, document := range documentsToDelete {
-		storagePath := filepath.Join("organization", "control", strconv.FormatUint(uint64(existingControlTest.ControlID), 10), "control-test", strconv.FormatUint(uint64(document.ID), 10), "documents")
+		storagePath := filepath.Join("organization", "control", strconv.FormatUint(uint64(existingControlTest.ControlID), 10), "control-test", strconv.FormatUint(uint64(id), 10), "documents")
+		fmt.Println(storagePath)
 		if err := utility.RemoveFile(document.Name, storagePath); err != nil {
 			tx.Rollback()
 			return err
 		}
 	}
+	fmt.Println("9")
 
 	tx.Commit()
 	return nil

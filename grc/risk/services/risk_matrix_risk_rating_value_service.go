@@ -57,9 +57,9 @@ func (rmrrvs *RiskMatrixRiskRatingValueService) GetRiskAll() (*riskDTOs.RiskMatr
 		groupedValues[value.RiskMatrixRiskRatingID] = append(groupedValues[value.RiskMatrixRiskRatingID], value.Value)
 	}
 
-	var riskMatrixRiskRatingValueDTO []*riskDTOs.RiskMatrixRiskRatingValueDTO
+	var riskMatrixRiskRatingValueDTO []*riskDTOs.RiskMatrixRiskRatingValueArrayDTO
 	for id, values := range groupedValues {
-		riskMatrixRiskRatingValueDTO = append(riskMatrixRiskRatingValueDTO, &riskDTOs.RiskMatrixRiskRatingValueDTO{
+		riskMatrixRiskRatingValueDTO = append(riskMatrixRiskRatingValueDTO, &riskDTOs.RiskMatrixRiskRatingValueArrayDTO{
 			ID:                     id, // This should be a unique identifier, using id as a placeholder
 			RiskMatrixRiskRatingID: id,
 			Values:                 values,
@@ -144,13 +144,14 @@ func (rmrrvs *RiskMatrixRiskRatingValueService) GetRiskMatrix() ([][]*riskDTOs.R
 	for _, riskRating := range riskMatrix.RiskMatrixRiskRating {
 		for _, value := range riskRating.RiskMatrixRiskRatingValue {
 			detail := &riskDTOs.RiskMatrixRiskRatingDataDTO{
-				RiskMatrixID:           riskRating.RiskMatrixID,
-				RiskMatrixRiskRatingID: value.RiskMatrixRiskRatingID,
-				RiskRatingTitleEN:      riskRating.TitleEn,
-				RiskRatingTitleAR:      riskRating.TitleAr,
-				RiskRatingTitleType:    riskRating.Type,
-				ColorCode:              riskRating.ColorCode,
-				Value:                  value.Value,
+				RiskMatrixID:                riskRating.RiskMatrixID,
+				RiskMatrixRiskRatingID:      value.RiskMatrixRiskRatingID,
+				RiskRatingTitleEN:           riskRating.TitleEn,
+				RiskRatingTitleAR:           riskRating.TitleAr,
+				RiskRatingTitleType:         riskRating.Type,
+				ColorCode:                   riskRating.ColorCode,
+				RiskMatrixRiskRatingValueID: value.ID,
+				Value:                       value.Value,
 			}
 			riskRatingValueArray = append(riskRatingValueArray, detail)
 		}

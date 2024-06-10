@@ -8,7 +8,6 @@ import (
 	organizationRepositories "jethur/grc/organization/repositories"
 	"jethur/utility"
 
-	"github.com/mitchellh/mapstructure"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -53,17 +52,10 @@ func (uss *UserSettingService) SetUserService(svc UserServiceInterface) {
 }
 
 func (uss *UserSettingService) GetUserSetting(userID uint) (*userDTOs.UserSettingDTO, error) {
-	var userSettingDTO *userDTOs.UserSettingDTO
-	userSetting, err := uss.repo.GetUserSettingsByUserID(userID)
+	userSettingDTO, err := uss.repo.GetUserSettingsWithMfaByUserID(userID)
 
 	if err != nil {
 		return nil, utility.NewResourceNotFoundError(err, userID)
-	}
-
-	// Map the result to your DTO
-	err = mapstructure.Decode(userSetting, &userSettingDTO)
-	if err != nil {
-		return nil, err
 	}
 
 	return userSettingDTO, nil
