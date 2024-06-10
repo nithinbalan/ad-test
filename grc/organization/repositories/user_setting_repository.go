@@ -118,9 +118,20 @@ func (repo *UserSettingRepository) GetNotificationSetting(userID uint) ([]models
 	var modules []models.Module
 	err := repo.db.Preload("NotificationMasters", func(db *gorm.DB) *gorm.DB {
 		return db.Preload("UserNotificationSettings", "user_id = ?", userID)
-	}).Find(&modules).Error
+	}).Order("[order] ASC").Find(&modules).Error
 	return modules, err
 }
+
+// func (repo *UserSettingRepository) GetNotificationSetting(userID uint) ([]models.Module, error) {
+// 	var modules []models.Module
+// 	err := repo.db.Preload("NotificationMasters.UserNotificationSettings", "user_id = ?", userID).
+// 		Preload("Children.NotificationMasters.UserNotificationSettings", "user_id = ?", userID).
+// 		Find(&modules).Error
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return modules, nil
+// }
 
 func (repo *UserSettingRepository) FindNotificationSetting(userID, notificationMasterID uint) (*models.UserNotificationSetting, error) {
 	var setting models.UserNotificationSetting

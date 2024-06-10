@@ -31,5 +31,6 @@ type NotificationSettingListResponseDTO struct {
 	ModuleID      uint                   `json:"module_id"`
 	ModuleTitleEn string                 `json:"module_title_en"`
 	ModuleTitleAr string                 `json:"module_title_ar"`
+	Order         int                    `json:"order"`
 	Notifications *[]NotificationListDTO `json:"notifications"`
 }

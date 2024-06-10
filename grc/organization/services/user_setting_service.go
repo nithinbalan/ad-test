@@ -7,6 +7,7 @@ import (
 	userDTOs "jethur/grc/organization/dtos"
 	organizationRepositories "jethur/grc/organization/repositories"
 	"jethur/utility"
+	"sort"
 
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -249,43 +250,80 @@ func (uss *UserSettingService) GetNotificationSettings(userID uint) ([]userDTOs.
 		return nil, err
 	}
 
-	var response []userDTOs.NotificationSettingListResponseDTO
+	parentModulesMap := make(map[uint]*userDTOs.NotificationSettingListResponseDTO)
+
 	for _, module := range modules {
-		var notificationDTOs []userDTOs.NotificationListDTO
-		// Check if NotificationMasters is nil or not before ranging over it
+		if module.ModuleID == nil {
+			// This is a parent module
+			parentModulesMap[module.ID] = &userDTOs.NotificationSettingListResponseDTO{
+				ModuleID:      module.ID,
+				ModuleTitleEn: module.TitleEn,
+				ModuleTitleAr: module.TitleAr,
+				Order:         module.Order,
+				Notifications: &[]userDTOs.NotificationListDTO{},
+			}
+		}
+	}
+
+	for _, module := range modules {
+		// Aggregate notifications for both parent and child modules
+		var notifications []*models.NotificationMaster
 		if module.NotificationMasters != nil {
 			for _, notification := range *module.NotificationMasters {
-				enableStatus := false
-				// Check if UserNotificationSetting is preloaded and has a value
-				if notification.UserNotificationSettings != nil { // Assuming it might be a slice, handle accordingly
-					for _, setting := range *notification.UserNotificationSettings {
-						if setting.UserID == userID {
-							enableStatus = setting.IsEnable
-							break // Assuming only one setting per user per notification is possible
-						}
+				notifications = append(notifications, &notification)
+			}
+		}
+		if module.Children != nil {
+			for _, child := range *module.Children {
+				if child.NotificationMasters != nil {
+					for _, notification := range *child.NotificationMasters {
+						notifications = append(notifications, &notification)
 					}
 				}
-
-				notificationDTO := userDTOs.NotificationListDTO{
-					ID:         notification.ID,
-					ModulesID:  notification.ModuleID,
-					Identifier: notification.Identifier,
-					TitleEn:    notification.TitleEn,
-					TitleAr:    notification.TitleAr,
-					IsEnable:   enableStatus,
-				}
-				notificationDTOs = append(notificationDTOs, notificationDTO)
 			}
 		}
 
-		moduleDTO := userDTOs.NotificationSettingListResponseDTO{
-			ModuleID:      module.ID,
-			ModuleTitleEn: module.TitleEn,
-			ModuleTitleAr: module.TitleAr,
-			Notifications: &notificationDTOs,
+		for _, notification := range notifications {
+			enableStatus := false
+			if notification.UserNotificationSettings != nil {
+				for _, setting := range *notification.UserNotificationSettings {
+					if setting.UserID == userID {
+						enableStatus = setting.IsEnable
+						break
+					}
+				}
+			}
+
+			notificationDTO := userDTOs.NotificationListDTO{
+				ID:         notification.ID,
+				ModulesID:  notification.ModuleID,
+				Identifier: notification.Identifier,
+				TitleEn:    notification.TitleEn,
+				TitleAr:    notification.TitleAr,
+				IsEnable:   enableStatus,
+			}
+
+			if parentModule, exists := parentModulesMap[module.ID]; exists {
+				*parentModule.Notifications = append(*parentModule.Notifications, notificationDTO)
+			} else if module.ModuleID != nil {
+				if parentModule, exists := parentModulesMap[*module.ModuleID]; exists {
+					*parentModule.Notifications = append(*parentModule.Notifications, notificationDTO)
+				}
+			}
 		}
-		response = append(response, moduleDTO)
 	}
+
+	var response []userDTOs.NotificationSettingListResponseDTO
+	for _, parentModule := range parentModulesMap {
+		if len(*parentModule.Notifications) > 0 {
+			response = append(response, *parentModule)
+		}
+	}
+
+	// Sort the final response by the Order field
+	sort.Slice(response, func(i, j int) bool {
+		return response[i].Order < response[j].Order
+	})
 
 	return response, nil
 }
