@@ -31,6 +31,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	controlActionPlanStatusUpdateController := app.OrganizationModule.ControlActionPlanStatusUpdateController
 	processController := app.OrganizationModule.ProcessController
 	userTaskController := app.OrganizationModule.UserTaskController
+	processAssociatedItemController := app.OrganizationModule.ProcessAssociatedItemController
 
 	//Designation
 	organizationRoutes.GET("/designations", designationController.GetAllDesignations)
@@ -61,6 +62,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.PUT("/strategic-profiles/values", strategicProfileController.UpdateValues)
 
 	//Strategic Profile Values
+	organizationRoutes.GET("/strategic-profiles/values", strategicProfileValueController.GetAllStrategicProfileValues)
 	organizationRoutes.GET("/strategic-profiles/values/:id", strategicProfileValueController.GetStrategicProfileValueDetails)
 	organizationRoutes.POST("/strategic-profiles/values", strategicProfileValueController.CreateStrategicProfileValue)
 	organizationRoutes.PUT("/strategic-profiles/values/:id", strategicProfileValueController.UpdateStrategicProfileValue)
@@ -160,5 +162,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.POST("/processes/delete", processController.DeleteProcesses)
 	organizationRoutes.PUT("/processes/archive", processController.ArchiveProcesses)
 	organizationRoutes.PUT("/processes/restore", processController.RestoreProcesses)
+
+	organizationRoutes.GET("processes/:processId/controls", processAssociatedItemController.GetAllProcessControls)
 
 }

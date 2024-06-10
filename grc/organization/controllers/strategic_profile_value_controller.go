@@ -22,6 +22,20 @@ func NewStrategicProfileValueController(service services.StrategicProfileValueSe
 	}
 }
 
+func (spvc *StrategicProfileValueController) GetAllStrategicProfileValues(c *gin.Context) {
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+
+	strategicProfileValues, err := spvc.service.GetAll(sort, sortBy, keyword)
+
+	if err != nil {
+		utility.SendInternalErrResp(spvc.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, strategicProfileValues)
+}
+
 func (spvc *StrategicProfileValueController) GetStrategicProfileValueDetails(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)

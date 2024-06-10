@@ -63,9 +63,9 @@ type ProcessFormDTO struct {
 	TitleEn        string  `json:"title_en" binding:"required"`
 	TitleAr        string  `json:"title_ar" binding:"required"`
 	Description    *string `json:"description" binding:"omitempty"`
+	ControlIds     []*uint `json:"control_ids"`
 }
 
-// ProcessDetailDTO defines the detailed view of a process, typically used in detailed screens or reports
 type ProcessDetailDTO struct {
 	ID              uint                              `json:"id"`
 	ReferenceNumber string                            `json:"reference_number"`
@@ -80,4 +80,12 @@ type ProcessDetailDTO struct {
 	LifecycleStatus masterDTOs.LifecycleStatusDTO     `json:"status"`
 	CreatedAt       time.Time                         `json:"created_at"`
 	UpdatedAt       *time.Time                        `json:"updated_at"`
+	Controls        []*ProcessControlDTO              `json:"controls"`
+}
+
+type ProcessControlDTO struct {
+	ID        *uint            `json:"id"`
+	ProcessID uint             `json:"process_id"`
+	ControlID uint             `json:"control_id"`
+	Control   ControlDetailDTO `json:"control"`
 }

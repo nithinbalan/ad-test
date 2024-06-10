@@ -38,7 +38,7 @@ func (repo *StrategicProfileRepository) Get() (*models.StrategicProfile, error) 
 func (repo *StrategicProfileRepository) GetStrategicProfileDetails() (*models.StrategicProfile, error) {
 	var strategicProfile *models.StrategicProfile
 
-	result := repo.db.Preload("StrategicProfileValues").First(&strategicProfile)
+	result := repo.db.First(&strategicProfile)
 
 	if result.Error != nil {
 		return nil, result.Error

@@ -28,6 +28,14 @@ func (cqc *ChecklistQuestionController) GetAllChecklistQuestions(c *gin.Context)
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 
+	// Define an array of allowed parameter names
+	allowedParams := []string{
+		"checklist_ids",
+		"question_group_ids",
+	}
+
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
 		utility.SendInternalErrResp(cqc.db, c, "Invalid page parameter")
@@ -40,7 +48,7 @@ func (cqc *ChecklistQuestionController) GetAllChecklistQuestions(c *gin.Context)
 		return
 	}
 
-	checklistQuestions, err := cqc.service.GetAll(sort, sortBy, keyword, page, pageSize)
+	checklistQuestions, err := cqc.service.GetAll(sort, sortBy, keyword, page, pageSize, filters)
 
 	if err != nil {
 		utility.SendInternalErrResp(cqc.db, c, err.Error())
