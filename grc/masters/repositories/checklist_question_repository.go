@@ -12,7 +12,7 @@ import (
 
 // Interfaces
 type ChecklistQuestionRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string, page int, pageSize int) (*masterDTOs.ChecklistQuestionListResponseDTO, error)
+	GetAll(sort string, sortBy string, keyword string, page int, pageSize int, filters map[string][]string) (*masterDTOs.ChecklistQuestionListResponseDTO, error)
 	GetByID(id uint) (*models.ChecklistQuestion, error)
 	Create(checklistQuestion *models.ChecklistQuestion) (uint, error)
 	Update(id uint, checklistQuestion *models.ChecklistQuestion) error
@@ -34,7 +34,7 @@ func NewChecklistQuestionRepository(db *gorm.DB) *ChecklistQuestionRepository {
 	}
 }
 
-func (repo *ChecklistQuestionRepository) GetAll(sort string, sortBy string, keyword string, page int, pageSize int) (*masterDTOs.ChecklistQuestionListResponseDTO, error) {
+func (repo *ChecklistQuestionRepository) GetAll(sort string, sortBy string, keyword string, page int, pageSize int, filters map[string][]string) (*masterDTOs.ChecklistQuestionListResponseDTO, error) {
 
 	var checklistQuestions []*masterDTOs.ChecklistQuestionListDTO
 	var totalCount int64
@@ -49,6 +49,7 @@ func (repo *ChecklistQuestionRepository) GetAll(sort string, sortBy string, keyw
 			"checklists.title_ar AS checklist_title_ar",
 			"question_groups.title_en AS question_group_title_en",
 			"question_groups.title_ar AS question_group_title_ar",
+			"question_groups.id AS question_group_id",
 		).
 		Joins("INNER JOIN checklists ON checklist_questions.checklist_id = checklists.id").
 		Joins("INNER JOIN question_groups ON checklist_questions.question_group_id = question_groups.id")
@@ -61,6 +62,13 @@ func (repo *ChecklistQuestionRepository) GetAll(sort string, sortBy string, keyw
 	}
 	if sort != "asc" && sort != "desc" {
 		sort = "asc"
+	}
+
+	// Apply dynamic filters to the query
+	for columnName, values := range filters {
+		if len(values) > 0 {
+			query = query.Where(columnName+" IN (?)", values)
+		}
 	}
 
 	// Calculate total count for pagination
