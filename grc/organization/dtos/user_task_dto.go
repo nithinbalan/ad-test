@@ -1,13 +1,15 @@
 package dtos
 
-type UserTaskRawCountDTO struct {
-	Type  string `json:"type"`
-	Count int    `json:"count"`
+type UserTaskStatusCountResponseDTO struct {
+	ID        int    `json:"id"`
+	Type      string `json:"type"`
+	TitleEn   string `json:"title_en"`
+	TitleAr   string `json:"title_ar"`
+	ColorCode string `json:"color_code"`
+	Count     int    `json:"count"`
 }
 
-type UserTaskStatusCountResponseDTO struct {
-	Open       int `json:"open"`
-	InProgress int `json:"in_progress"`
-	Closed     int `json:"closed"`
-	Total      int `json:"total"`
+type UserTaskSummaryResponseDTO struct {
+	StatusCounts []UserTaskStatusCountResponseDTO `json:"status_counts"`
+	TotalCount   int                              `json:"total_count"`
 }
