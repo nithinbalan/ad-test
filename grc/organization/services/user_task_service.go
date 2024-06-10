@@ -10,7 +10,7 @@ import (
 
 type UserTaskServiceInterface interface {
 	GetAll(userID uint, params *taskDTOs.TaskListQueryParamsDTO) (*taskDTOs.TaskListResponseDTO, error)
-	GetUserTaskSummary(userID uint) (*dtos.UserTaskStatusCountResponseDTO, error)
+	GetUserTaskSummary(userID uint) (*dtos.UserTaskSummaryResponseDTO, error)
 }
 
 type UserTaskService struct {
@@ -26,23 +26,22 @@ func (uts *UserTaskService) GetAll(userID uint, params *taskDTOs.TaskListQueryPa
 	return uts.taskSvc.GetAll(params)
 }
 
-func (uts *UserTaskService) GetUserTaskSummary(userID uint) (*dtos.UserTaskStatusCountResponseDTO, error) {
+func (uts *UserTaskService) GetUserTaskSummary(userID uint) (*dtos.UserTaskSummaryResponseDTO, error) {
 	rawCounts, err := uts.repo.GetUserTaskCountByStatus(userID)
 	if err != nil {
 		return nil, err
 	}
 
-	response := &dtos.UserTaskStatusCountResponseDTO{}
+	// Calculate the total count
+	totalCount := 0
 	for _, count := range rawCounts {
-		switch count.Type {
-		case "open":
-			response.Open = count.Count
-		case "in_progress":
-			response.InProgress = count.Count
-		case "closed":
-			response.Closed = count.Count
-		}
-		response.Total += count.Count
+		totalCount += count.Count
+	}
+
+	// Create the response DTO
+	response := &dtos.UserTaskSummaryResponseDTO{
+		StatusCounts: rawCounts,
+		TotalCount:   totalCount,
 	}
 
 	return response, nil

@@ -15,6 +15,7 @@ import (
 )
 
 type StrategicProfileValueServiceInterface interface {
+	GetAll(sort string, sortBy string, keyword string) ([]*models.StrategicProfileValue, error)
 	GetByID(id uint) (*models.StrategicProfileValue, error)
 	GetFullDetailsByID(id uint) (*dtos.StrategicProfileValueDetailsDTO, error)
 	Create(currentUserID uint, strategicProfileValueFormDTO *dtos.StrategicProfileValueFormDTO) (uint, error)
@@ -35,6 +36,10 @@ func NewStrategicProfileValueService(repo repositories.StrategicProfileValueRepo
 		activityLogSvc:       activityLogSvc,
 		strategicProfileRepo: strategicProfileRepo,
 	}
+}
+
+func (spvs *StrategicProfileValueService) GetAll(sort string, sortBy string, keyword string) ([]*models.StrategicProfileValue, error) {
+	return spvs.repo.GetAll(sort, sortBy, keyword)
 }
 
 func (spvs StrategicProfileValueService) GetByID(id uint) (*models.StrategicProfileValue, error) {

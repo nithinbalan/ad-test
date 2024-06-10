@@ -26,6 +26,7 @@ type Process struct {
 	LifecycleStatus *LifecycleStatus  `gorm:"foreignKey:LifecycleStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	CreatedByUser   *User             `gorm:"foreignKey:CreatedByID"`
 	UpdatedByUser   *User             `gorm:"foreignKey:UpdatedByID"`
+	Controls        []*ProcessControl `gorm:"foreignKey:ProcessID"`
 }
 
 func (Process) TableName() string {
