@@ -6,10 +6,9 @@ import (
 )
 
 type ProcessAssociatedItemServiceInterface interface {
-	GetAllControls(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) ([]*organizationDTOs.ProcessControlListDTO, error)
+	GetAllControls(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (map[string]map[string][]*organizationDTOs.ProcessControlListDTO, error)
 }
 
-// Service and implementations
 type ProcessAssociatedItemService struct {
 	repo       organizationRepositories.ProcessAssociatedItemRepositoryInterface
 	processSvc ProcessServiceInterface
@@ -26,7 +25,7 @@ func NewProcessAssociatedItemService(
 	}
 }
 
-func (pais *ProcessAssociatedItemService) GetAllControls(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) ([]*organizationDTOs.ProcessControlListDTO, error) {
+func (pais *ProcessAssociatedItemService) GetAllControls(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (map[string]map[string][]*organizationDTOs.ProcessControlListDTO, error) {
 	if _, err := pais.processSvc.GetByID(processID); err != nil {
 		return nil, err
 	}

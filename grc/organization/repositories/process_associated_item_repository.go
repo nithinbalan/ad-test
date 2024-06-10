@@ -7,7 +7,7 @@ import (
 )
 
 type ProcessAssociatedItemRepositoryInterface interface {
-	GetAllControls(params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) ([]*organizationDTOs.ProcessControlListDTO, error)
+	GetAllControls(params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (map[string]map[string][]*organizationDTOs.ProcessControlListDTO, error)
 }
 
 type ProcessAssociatedItemRepository struct {
@@ -20,10 +20,10 @@ func NewProcessAssociatedItemRepository(db *gorm.DB) *ProcessAssociatedItemRepos
 	}
 }
 
-func (repo *ProcessAssociatedItemRepository) GetAllControls(params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) ([]*organizationDTOs.ProcessControlListDTO, error) {
+func (repo *ProcessAssociatedItemRepository) GetAllControls(params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (map[string]map[string][]*organizationDTOs.ProcessControlListDTO, error) {
 	var controlList []*organizationDTOs.ProcessControlListDTO
 
-	query := repo.db.Table("process_controls").
+	query := repo.db.Table("controls").
 		Select(`
 			controls.id AS control_id,
             control_categories.title_en AS control_category_title_en,
@@ -39,7 +39,6 @@ func (repo *ProcessAssociatedItemRepository) GetAllControls(params *organization
             control_implementation_statuses.title_ar AS control_implementation_status_ar
         `).
 		Joins(`
-			LEFT JOIN controls ON controls.id = process_controls.control_id
             LEFT JOIN control_categories ON controls.control_category_id = control_categories.id
             LEFT JOIN control_types ON controls.control_type_id = control_types.id
             LEFT JOIN control_efficiency_statuses ON controls.control_efficiency_status_id = control_efficiency_statuses.id
@@ -78,5 +77,21 @@ func (repo *ProcessAssociatedItemRepository) GetAllControls(params *organization
 		return nil, err
 	}
 
-	return controlList, nil
+	// Grouping controls by implementation status and then by efficiency status
+	groupedControls := make(map[string]map[string][]*organizationDTOs.ProcessControlListDTO)
+
+	for _, control := range controlList {
+		implementationStatus := control.ControlImplementationStatusEn
+		efficiencyStatus := control.ControlEfficiencyStatusEn
+
+		if _, exists := groupedControls[implementationStatus]; !exists {
+			groupedControls[implementationStatus] = make(map[string][]*organizationDTOs.ProcessControlListDTO)
+		}
+		if _, exists := groupedControls[implementationStatus][efficiencyStatus]; !exists {
+			groupedControls[implementationStatus][efficiencyStatus] = []*organizationDTOs.ProcessControlListDTO{}
+		}
+		groupedControls[implementationStatus][efficiencyStatus] = append(groupedControls[implementationStatus][efficiencyStatus], control)
+	}
+
+	return groupedControls, nil
 }
