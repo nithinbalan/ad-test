@@ -7,7 +7,7 @@ import (
 )
 
 type UserTaskRepositoryInteface interface {
-	GetUserTaskCountByStatus(userID uint) ([]dtos.UserTaskRawCountDTO, error)
+	GetUserTaskCountByStatus(userID uint) ([]dtos.UserTaskStatusCountResponseDTO, error)
 }
 
 type UserTaskRepository struct {
@@ -20,17 +20,17 @@ func NewUserTaskRepository(db *gorm.DB) *UserTaskRepository {
 	}
 }
 
-func (repo *UserTaskRepository) GetUserTaskCountByStatus(userID uint) ([]dtos.UserTaskRawCountDTO, error) {
-	var taskStatusCounts []dtos.UserTaskRawCountDTO
+func (repo *UserTaskRepository) GetUserTaskCountByStatus(userID uint) ([]dtos.UserTaskStatusCountResponseDTO, error) {
+	var taskStatusCounts []dtos.UserTaskStatusCountResponseDTO
 
 	query := `
-		SELECT task_statuses.type AS Type,
-		       COUNT(tasks.id) AS Count
-		FROM tasks
-		LEFT JOIN task_statuses ON task_statuses.id = tasks.task_status_id
-		WHERE tasks.responsible_user_id = ?
-		GROUP BY task_statuses.type
-	`
+        SELECT task_statuses.id, task_statuses.type, task_statuses.title_en, task_statuses.title_ar, task_statuses.color_code,
+               COUNT(tasks.id) AS Count
+        FROM tasks
+        LEFT JOIN task_statuses ON task_statuses.id = tasks.task_status_id
+        WHERE tasks.responsible_user_id = ?
+        GROUP BY task_statuses.id, task_statuses.type, task_statuses.title_en, task_statuses.title_ar, task_statuses.color_code
+    `
 	err := repo.db.Raw(query, userID).Scan(&taskStatusCounts).Error
 	if err != nil {
 		return nil, err
