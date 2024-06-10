@@ -274,7 +274,7 @@ func (repo *MeetingRepository) DeleteParticipants(participantIDs []uint, tx ...u
 	return nil
 }
 
-func (repo *MeetingRepository) CreateAngendas(agendas []*models.MeetingAgenda, tx ...utility.DatabaseTransaction) error {
+func (repo *MeetingRepository) CreateMeetingAgendas(agendas []*models.MeetingAgenda, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
