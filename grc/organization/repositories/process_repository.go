@@ -13,13 +13,17 @@ import (
 )
 
 type ProcessRepositoryInterface interface {
+	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *organizationDTOs.ProcessListQueryParamsDTO) (*organizationDTOs.ProcessListResponseDTO, error)
 	GetByID(id uint) (*models.Process, error)
-	GetFullDetailsByID(id uint) (*models.Process, error)
-	Create(process *models.Process) (uint, error)
+	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.Process, error)
+	Create(process *models.Process, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(process *models.Process, tx ...utility.DatabaseTransaction) error
-	Delete(id uint) error
+	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	GenerateReferenceNumber() (string, error)
+
+	CreateProcessControls(controls []*models.ProcessControl, tx ...utility.DatabaseTransaction) error
+	DeleteProcessControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error
 
 	//lifecycle status
 	GetIDsByLifecycleStatus(ids []uint, status string) ([]uint, error)
@@ -36,8 +40,11 @@ func NewProcessRepository(db *gorm.DB) *ProcessRepository {
 	}
 }
 
-func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryParamsDTO) (*organizationDTOs.ProcessListResponseDTO, error) {
+func (repo *ProcessRepository) BeginTransaction() utility.DatabaseTransaction {
+	return utility.NewGormDatabaseTransaction(repo.db)
+}
 
+func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryParamsDTO) (*organizationDTOs.ProcessListResponseDTO, error) {
 	var processes []*organizationDTOs.ProcessListDTO
 	var totalCount int64
 
@@ -150,15 +157,20 @@ func (repo *ProcessRepository) GetByID(id uint) (*models.Process, error) {
 	return process, nil
 }
 
-func (repo *ProcessRepository) GetFullDetailsByID(id uint) (*models.Process, error) {
+func (repo *ProcessRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.Process, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 	var process *models.Process
 
-	result := repo.db.
+	result := db.
 		Preload("ProcessGroup").
 		Preload("OwnerUnit").
 		Preload("Owner").
 		Preload("Owner.OrganizationUnit1").
 		Preload("LifecycleStatus").
+		Preload("Controls").
 		Preload("CreatedByUser").
 		Preload("CreatedByUser.OrganizationUnit1").
 		Preload("UpdatedByUser").
@@ -172,8 +184,12 @@ func (repo *ProcessRepository) GetFullDetailsByID(id uint) (*models.Process, err
 	return process, nil
 }
 
-func (repo *ProcessRepository) Create(process *models.Process) (uint, error) {
-	if err := repo.db.Create(process).Error; err != nil {
+func (repo *ProcessRepository) Create(process *models.Process, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(process).Error; err != nil {
 		return 0, err
 	}
 	return process.ID, nil
@@ -190,8 +206,13 @@ func (repo *ProcessRepository) Update(process *models.Process, tx ...utility.Dat
 	return nil
 }
 
-func (repo *ProcessRepository) Delete(id uint) error {
-	if err := repo.db.Delete(&models.Process{}, id).Error; err != nil {
+func (repo *ProcessRepository) Delete(id uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Delete(&models.Process{}, id).Error; err != nil {
 		return err
 	}
 
@@ -247,4 +268,29 @@ func (repo *ProcessRepository) GenerateReferenceNumber() (string, error) {
 	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "PR", currentYear, lastReferenceID+1)
 
 	return newReferenceNumber, nil
+}
+
+func (repo *ProcessRepository) CreateProcessControls(controls []*models.ProcessControl, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&controls).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *ProcessRepository) DeleteProcessControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Delete controls by IDs
+	if err := db.Where("id IN (?)", controlIds).Delete(&models.ProcessControl{}).Error; err != nil {
+		return err
+	}
+
+	return nil
 }
