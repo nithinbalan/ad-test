@@ -9,6 +9,7 @@ import (
 
 // Interfaces
 type StrategicProfileValueRepositoryInterface interface {
+	GetAll(sort string, sortBy string, keyword string) ([]*models.StrategicProfileValue, error)
 	GetByID(id uint) (*models.StrategicProfileValue, error)
 	GetFullDetailsByID(id uint) (*models.StrategicProfileValue, error)
 	Create(strategicProfileValue *models.StrategicProfileValue) (uint, error)
@@ -27,6 +28,26 @@ func NewStrategicProfileValueRepository(db *gorm.DB) *StrategicProfileValueRepos
 	return &StrategicProfileValueRepository{
 		db: db,
 	}
+}
+
+func (repo *StrategicProfileValueRepository) GetAll(sort string, sortBy string, keyword string) ([]*models.StrategicProfileValue, error) {
+	var strategicProfileValues []*models.StrategicProfileValue
+
+	query := repo.db
+
+	if keyword != "" {
+		query = query.Where("(title_en LIKE ? OR title_ar LIKE ?)", "%"+keyword+"%", "%"+keyword+"%")
+	}
+	if sortBy == "" {
+		sortBy = "title_en"
+	}
+	if sort != "asc" && sort != "desc" {
+		sort = "asc"
+	}
+	query = query.Order(sortBy + " " + sort)
+	result := query.Find(&strategicProfileValues)
+
+	return strategicProfileValues, result.Error
 }
 
 func (repo *StrategicProfileValueRepository) GetByID(id uint) (*models.StrategicProfileValue, error) {
