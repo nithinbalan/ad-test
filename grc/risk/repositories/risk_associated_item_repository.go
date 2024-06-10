@@ -24,7 +24,7 @@ func NewRiskAssociatedItemRepository(db *gorm.DB) *RiskAssociatedItemRepository 
 func (repo *RiskAssociatedItemRepository) GetAllControls(params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) ([]*riskDTOs.RiskControlListDTO, error) {
 	var controlList []*riskDTOs.RiskControlListDTO
 
-	query := repo.db.Table("controls").
+	query := repo.db.Table("risk_controls").
 		Select(`
 			controls.id AS control_id,
             control_categories.title_en AS control_category_title_en,
@@ -40,6 +40,7 @@ func (repo *RiskAssociatedItemRepository) GetAllControls(params *riskDTOs.RiskAs
             control_implementation_statuses.title_ar AS control_implementation_status_ar
         `).
 		Joins(`
+			LEFT JOIN controls ON controls.id = risk_controls.control_id
             LEFT JOIN control_categories ON controls.control_category_id = control_categories.id
             LEFT JOIN control_types ON controls.control_type_id = control_types.id
             LEFT JOIN control_efficiency_statuses ON controls.control_efficiency_status_id = control_efficiency_statuses.id
