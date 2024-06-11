@@ -27,6 +27,8 @@ type IncidentRegisterRepositoryInterface interface {
 	DeleteIncidentComplianceRequirements(requirementIds []*uint, tx ...utility.DatabaseTransaction) error
 	CreateIncidentRisks(risks []*models.IncidentRisk, tx ...utility.DatabaseTransaction) error
 	DeleteIncidentRisks(riskIds []*uint, tx ...utility.DatabaseTransaction) error
+	CreateIncidentProcesses(processes []*models.IncidentProcess, tx ...utility.DatabaseTransaction) error
+	DeleteIncidentProcesses(processIds []*uint, tx ...utility.DatabaseTransaction) error
 
 	//Document
 	CreateDocuments(docs []*models.IncidentDocument, tx ...utility.DatabaseTransaction) error
@@ -218,6 +220,7 @@ func (repo *IncidentRegisterRepository) GetFullDetailsByID(id uint, tx ...utilit
 		Preload("Controls").
 		Preload("ComplianceRequirements").
 		Preload("Risks").
+		Preload("Processes").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&incident, id)
@@ -398,6 +401,31 @@ func (repo *IncidentRegisterRepository) DeleteIncidentRisks(riskIds []*uint, tx 
 
 	// Delete risks by IDs
 	if err := db.Where("id IN (?)", riskIds).Delete(&models.IncidentRisk{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *IncidentRegisterRepository) CreateIncidentProcesses(processes []*models.IncidentProcess, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&processes).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *IncidentRegisterRepository) DeleteIncidentProcesses(processIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Delete processes by IDs
+	if err := db.Where("id IN (?)", processIds).Delete(&models.IncidentProcess{}).Error; err != nil {
 		return err
 	}
 

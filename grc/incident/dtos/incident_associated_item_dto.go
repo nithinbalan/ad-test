@@ -34,6 +34,24 @@ type IncidentRiskListDTO struct {
 	RiskStatusColorCode string `json:"risk_status_color_code"`
 }
 
+type IncidentProcessListDTO struct {
+	ProcessGroupTitleEn      string  `json:"process_group_title_en"`
+	ProcessGroupTitleAr      string  `json:"process_group_title_ar"`
+	OwnerUnitTitleEn         *string `json:"owner_unit_title_en"`
+	OwnerUnitTitleAr         *string `json:"owner_unit_title_ar"`
+	OwnerFirstNameEn         *string `json:"owner_first_name_en"`
+	OwnerFirstNameAr         *string `json:"owner_first_name_ar"`
+	OwnerLastNameEn          *string `json:"owner_last_name_en"`
+	OwnerLastNameAr          *string `json:"owner_last_name_ar"`
+	LifecycleStatusTitleEn   string  `json:"lifecycle_status_title_en"`
+	LifecycleStatusTitleAr   string  `json:"lifecycle_status_title_ar"`
+	LifecycleStatusColorCode string  `json:"lifecycle_status_color_code"`
+	ReferenceNumber          string  `json:"reference_number"`
+	TitleEn                  string  `json:"title_en"`
+	TitleAr                  string  `json:"title_ar"`
+	Description              *string `json:"description"`
+}
+
 type IncidentAssociatedItemListQueryParamsDTO struct {
 	Sort        string
 	SortBy      string
