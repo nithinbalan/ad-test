@@ -265,27 +265,32 @@ func (uss *UserSettingService) GetNotificationSettings(userID uint) ([]userDTOs.
 		}
 	}
 
-	for _, module := range modules {
-		// Aggregate notifications for both parent and child modules
-		var notifications []*models.NotificationMaster
+	// Function to aggregate notifications and ensure uniqueness
+	aggregateNotifications := func(module models.Module) map[uint]bool {
+		notificationsSet := make(map[uint]bool)
 		if module.NotificationMasters != nil {
 			for _, notification := range *module.NotificationMasters {
-				notifications = append(notifications, &notification)
+				notificationsSet[notification.ID] = true
 			}
 		}
-		if module.Children != nil {
-			for _, child := range *module.Children {
-				if child.NotificationMasters != nil {
-					for _, notification := range *child.NotificationMasters {
-						notifications = append(notifications, &notification)
-					}
+		return notificationsSet
+	}
+
+	for _, module := range modules {
+		notificationsSet := aggregateNotifications(module)
+		var notifications []userDTOs.NotificationListDTO
+
+		for notificationID := range notificationsSet {
+			var notification *models.NotificationMaster
+			for _, notif := range *module.NotificationMasters {
+				if notif.ID == notificationID {
+					notification = &notif
+					break
 				}
 			}
-		}
 
-		for _, notification := range notifications {
 			enableStatus := false
-			if notification.UserNotificationSettings != nil {
+			if notification != nil && notification.UserNotificationSettings != nil {
 				for _, setting := range *notification.UserNotificationSettings {
 					if setting.UserID == userID {
 						enableStatus = setting.IsEnable
@@ -294,23 +299,32 @@ func (uss *UserSettingService) GetNotificationSettings(userID uint) ([]userDTOs.
 				}
 			}
 
-			notificationDTO := userDTOs.NotificationListDTO{
-				ID:         notification.ID,
-				ModulesID:  notification.ModuleID,
-				Identifier: notification.Identifier,
-				TitleEn:    notification.TitleEn,
-				TitleAr:    notification.TitleAr,
-				IsEnable:   enableStatus,
-			}
-
-			if parentModule, exists := parentModulesMap[module.ID]; exists {
-				*parentModule.Notifications = append(*parentModule.Notifications, notificationDTO)
-			} else if module.ModuleID != nil {
-				if parentModule, exists := parentModulesMap[*module.ModuleID]; exists {
-					*parentModule.Notifications = append(*parentModule.Notifications, notificationDTO)
+			if notification != nil {
+				notificationDTO := userDTOs.NotificationListDTO{
+					ID:         notification.ID,
+					ModulesID:  notification.ModuleID,
+					Identifier: notification.Identifier,
+					TitleEn:    notification.TitleEn,
+					TitleAr:    notification.TitleAr,
+					IsEnable:   enableStatus,
 				}
+
+				notifications = append(notifications, notificationDTO)
 			}
 		}
+		// Sort notifications by ID
+		sort.Slice(notifications, func(i, j int) bool {
+			return notifications[i].ID < notifications[j].ID
+		})
+
+		if parentModule, exists := parentModulesMap[module.ID]; exists {
+			*parentModule.Notifications = append(*parentModule.Notifications, notifications...)
+		} else if module.ModuleID != nil {
+			if parentModule, exists := parentModulesMap[*module.ModuleID]; exists {
+				*parentModule.Notifications = append(*parentModule.Notifications, notifications...)
+			}
+		}
+
 	}
 
 	var response []userDTOs.NotificationSettingListResponseDTO
