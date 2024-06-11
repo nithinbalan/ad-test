@@ -124,5 +124,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	incidentRoutes.GET("/incidents/:incidentID/controls", incidentAssociatedItemController.GetAllIncidentControls)
 	incidentRoutes.GET("/incidents/:incidentID/compliance-requirements", incidentAssociatedItemController.GetAllIncidentComplianceRequirements)
 	incidentRoutes.GET("/incidents/:incidentID/risks", incidentAssociatedItemController.GetAllIncidentRisks)
+	incidentRoutes.GET("/incidents/:incidentID/processes", incidentAssociatedItemController.GetAllIncidentProcesses)
 
 }

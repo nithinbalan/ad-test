@@ -164,5 +164,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.PUT("/processes/restore", processController.RestoreProcesses)
 
 	organizationRoutes.GET("processes/:processId/controls", processAssociatedItemController.GetAllProcessControls)
+	organizationRoutes.GET("processes/:processId/risks", processAssociatedItemController.GetAllProcessRisks)
+	organizationRoutes.GET("processes/:processId/incidents", processAssociatedItemController.GetAllProcessIncidents)
 
 }

@@ -9,6 +9,7 @@ type IncidentAssociatedItemServiceInterface interface {
 	GetAllControls(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) ([]*incidentDTOs.IncidentControlListDTO, error)
 	GetAllComplianceRequirements(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) ([]*incidentDTOs.IncidentComplianceRequirementListDTO, error)
 	GetAllRisks(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) ([]*incidentDTOs.IncidentRiskListDTO, error)
+	GetAllProcesses(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) ([]*incidentDTOs.IncidentProcessListDTO, error)
 }
 
 // Service and implementations
@@ -47,4 +48,11 @@ func (iais *IncidentAssociatedItemService) GetAllRisks(incidentID uint, params *
 		return nil, err
 	}
 	return iais.repo.GetAllRisks(incidentID, params)
+}
+
+func (iais *IncidentAssociatedItemService) GetAllProcesses(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) ([]*incidentDTOs.IncidentProcessListDTO, error) {
+	if _, err := iais.incidentRegisterSvc.GetByID(incidentID); err != nil {
+		return nil, err
+	}
+	return iais.repo.GetAllProcesses(incidentID, params)
 }
