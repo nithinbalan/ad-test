@@ -21,6 +21,18 @@ type ChecklistQuestionListResponseDTO struct {
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }
 
+type ChecklistQuestionsGroupByQuestionGroupDTO struct {
+	QuestionGroupID      uint                        `json:"question_group_id"`
+	QuestionGroupTitleEn string                      `json:"question_group_title_en"`
+	QuestionGroupTitleAr string                      `json:"question_group_title_ar"`
+	Questions            []*ChecklistQuestionListDTO `json:"questions"`
+}
+
+type ChecklistQuestionsGroupByQuestionGroupListResponseDTO struct {
+	Items      []*ChecklistQuestionsGroupByQuestionGroupDTO `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO                 `json:"pagination"`
+}
+
 type ChecklistQuestionFormDTO struct {
 	ChecklistID     uint   `json:"checklist_id" binding:"required"`
 	QuestionGroupID uint   `json:"question_group_id" binding:"required"`

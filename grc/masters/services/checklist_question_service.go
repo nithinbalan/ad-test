@@ -11,7 +11,7 @@ import (
 )
 
 type ChecklistQuestionServiceInterface interface {
-	GetAll(sort string, sortBy string, keyword string, page int, pageSize int, filters map[string][]string) (*masterDTOs.ChecklistQuestionListResponseDTO, error)
+	GetAll(sort string, sortBy string, keyword string, page int, pageSize int, filters map[string][]string) (*masterDTOs.ChecklistQuestionsGroupByQuestionGroupListResponseDTO, error)
 	GetByID(id uint) (*models.ChecklistQuestion, error)
 	Create(currentUserID uint, checklistQuestion *masterDTOs.ChecklistQuestionFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, checklistQuestion *masterDTOs.ChecklistQuestionFormDTO) error
@@ -39,7 +39,7 @@ func NewChecklistQuestionService(
 	}
 }
 
-func (cqs *ChecklistQuestionService) GetAll(sort string, sortBy string, keyword string, page int, pageSize int, filters map[string][]string) (*masterDTOs.ChecklistQuestionListResponseDTO, error) {
+func (cqs *ChecklistQuestionService) GetAll(sort string, sortBy string, keyword string, page int, pageSize int, filters map[string][]string) (*masterDTOs.ChecklistQuestionsGroupByQuestionGroupListResponseDTO, error) {
 	return cqs.repo.GetAll(sort, sortBy, keyword, page, pageSize, filters)
 }
 
