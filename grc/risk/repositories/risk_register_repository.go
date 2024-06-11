@@ -32,6 +32,8 @@ type RiskRegisterRepositoryInterface interface {
 	CreateRiskControls(controls []*models.RiskControl, tx ...utility.DatabaseTransaction) error
 	DeleteRiskControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error
 	DeleteRiskComplianceRequirements(requirementIds []*uint, tx ...utility.DatabaseTransaction) error
+	CreateRiskProcesses(processes []*models.RiskProcess, tx ...utility.DatabaseTransaction) error
+	DeleteRiskProcesses(processIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type RiskRegisterRepository struct {
@@ -202,8 +204,6 @@ func (repo *RiskRegisterRepository) GetByID(id uint) (*models.RiskRegister, erro
 	var risk *models.RiskRegister
 
 	result := repo.db.
-		Preload("Controls").
-		Preload("ComplianceRequirements").
 		First(&risk, id)
 	if result.Error != nil {
 		return nil, result.Error
@@ -231,7 +231,9 @@ func (repo *RiskRegisterRepository) GetFullDetailsByID(id uint, tx ...utility.Da
 		Preload("Controls").
 		Preload("Controls.Control.ControlCategory").
 		Preload("Controls.Control.ControlType").
+		Preload("ComplianceRequirements").
 		Preload("ComplianceRequirements.ComplianceRequirement").
+		Preload("Processes").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&risk, id)
@@ -384,6 +386,31 @@ func (repo *RiskRegisterRepository) DeleteRiskControls(controlIds []*uint, tx ..
 	}
 
 	if err := db.Where("id IN (?)", controlIds).Delete(&models.RiskControl{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *RiskRegisterRepository) CreateRiskProcesses(processes []*models.RiskProcess, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&processes).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *RiskRegisterRepository) DeleteRiskProcesses(processIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Delete processes by IDs
+	if err := db.Where("id IN (?)", processIds).Delete(&models.RiskProcess{}).Error; err != nil {
 		return err
 	}
 

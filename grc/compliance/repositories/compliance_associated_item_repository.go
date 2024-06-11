@@ -7,7 +7,7 @@ import (
 )
 
 type ComplianceAssociatedItemRepositoryInterface interface {
-	GetAllControls(params *complianceDTOs.ComplianceAssociatedItemListQueryParamsDTO) ([]*complianceDTOs.ComplianceControlListDTO, error)
+	GetAllControls(complianceID uint, params *complianceDTOs.ComplianceAssociatedItemListQueryParamsDTO) ([]*complianceDTOs.ComplianceControlListDTO, error)
 }
 
 type ComplianceAssociatedItemRepository struct {
@@ -20,7 +20,7 @@ func NewComplianceAssociatedItemRepository(db *gorm.DB) *ComplianceAssociatedIte
 	}
 }
 
-func (repo *ComplianceAssociatedItemRepository) GetAllControls(params *complianceDTOs.ComplianceAssociatedItemListQueryParamsDTO) ([]*complianceDTOs.ComplianceControlListDTO, error) {
+func (repo *ComplianceAssociatedItemRepository) GetAllControls(complianceID uint, params *complianceDTOs.ComplianceAssociatedItemListQueryParamsDTO) ([]*complianceDTOs.ComplianceControlListDTO, error) {
 	var controlList []*complianceDTOs.ComplianceControlListDTO
 
 	query := repo.db.Table("compliance_controls").
@@ -44,7 +44,7 @@ func (repo *ComplianceAssociatedItemRepository) GetAllControls(params *complianc
             LEFT JOIN control_types ON controls.control_type_id = control_types.id
             LEFT JOIN control_efficiency_statuses ON controls.control_efficiency_status_id = control_efficiency_statuses.id
             LEFT JOIN control_implementation_statuses ON controls.control_implementation_status_id = control_implementation_statuses.id
-        `)
+        `).Where("compliance_controls.compliance_register_id = ?", complianceID)
 
 	// Apply search keyword if exists
 	if params.Keyword != "" {

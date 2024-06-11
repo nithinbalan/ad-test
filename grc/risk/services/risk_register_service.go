@@ -39,6 +39,7 @@ type RiskRegisterService struct {
 	reviewFrequencySvc       masterServices.ReviewFrequencyServiceInterface
 	controlSvc               organizationServices.ControlServiceInterface
 	complianceRequirementSvc complianceServices.ComplianceRequirementServiceInterface
+	processSvc               organizationServices.ProcessServiceInterface
 }
 
 func NewRiskRegisterService(
@@ -51,6 +52,7 @@ func NewRiskRegisterService(
 	reviewFrequencySvc masterServices.ReviewFrequencyServiceInterface,
 	controlSvc organizationServices.ControlServiceInterface,
 	complianceRequirementSvc complianceServices.ComplianceRequirementServiceInterface,
+	processSvc organizationServices.ProcessServiceInterface,
 ) RiskRegisterServiceInterface {
 	return &RiskRegisterService{
 		repo:                     repo,
@@ -62,6 +64,7 @@ func NewRiskRegisterService(
 		reviewFrequencySvc:       reviewFrequencySvc,
 		controlSvc:               controlSvc,
 		complianceRequirementSvc: complianceRequirementSvc,
+		processSvc:               processSvc,
 	}
 }
 
@@ -179,6 +182,24 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 		}
 	}
 
+	// Save Processes
+	var processes []*models.RiskProcess
+	for _, processID := range riskRegisterFormDTO.ProcessIDs {
+		process := &models.RiskProcess{
+			RiskRegisterID: id,
+			ProcessID:      *processID,
+			CreatedBy:      currentUserID,
+		}
+		processes = append(processes, process)
+	}
+
+	if len(processes) > 0 {
+		if err := rrs.repo.CreateRiskProcesses(processes, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
 	var documents []*models.RiskDocument
 
 	// Iterate over each document in the array
@@ -288,11 +309,17 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 		return err
 	}
 
+	existingRisk, err := rrs.GetFullDetailsByID(id, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	//Delete all existing compliance requirements and controls and create again
-	if len(existingRiskRegister.ComplianceRequirements) > 0 {
+	if len(existingRisk.ComplianceRequirements) > 0 {
 		var deleteRequirementIds []*uint
-		for _, req := range existingRiskRegister.ComplianceRequirements {
-			deleteRequirementIds = append(deleteRequirementIds, &req.ID)
+		for _, req := range existingRisk.ComplianceRequirements {
+			deleteRequirementIds = append(deleteRequirementIds, req.ID)
 		}
 		if err := rrs.repo.DeleteRiskComplianceRequirements(deleteRequirementIds, tx); err != nil {
 			tx.Rollback()
@@ -301,11 +328,11 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 
 	}
 
-	if len(existingRiskRegister.Controls) > 0 {
+	if len(existingRisk.Controls) > 0 {
 
 		var deleteControlIDs []*uint
-		for _, ctrl := range existingRiskRegister.Controls {
-			deleteControlIDs = append(deleteControlIDs, &ctrl.ID)
+		for _, ctrl := range existingRisk.Controls {
+			deleteControlIDs = append(deleteControlIDs, ctrl.ID)
 		}
 		if err := rrs.repo.DeleteRiskControls(deleteControlIDs, tx); err != nil {
 			tx.Rollback()
@@ -343,6 +370,57 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 
 	if len(controls) > 0 {
 		if err := rrs.repo.CreateRiskControls(controls, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	existingProcessIDs := make(map[uint]bool)
+	for _, proc := range existingRisk.Processes {
+		existingProcessIDs[proc.ProcessID] = true
+	}
+
+	// Collect new process IDs
+	newProcessIDs := make(map[uint]bool)
+	for _, proc := range riskRegisterFormDTO.ProcessIDs {
+		newProcessIDs[*proc] = true
+	}
+
+	// Add new processes
+	var processesToAdd []*models.RiskProcess
+	for _, newProcessID := range riskRegisterFormDTO.ProcessIDs {
+		if _, exists := existingProcessIDs[*newProcessID]; !exists {
+			// Create a new risk process record
+			process := &models.RiskProcess{
+				RiskRegisterID: id,
+				ProcessID:      *newProcessID,
+				CreatedBy:      currentUserID,
+			}
+			processesToAdd = append(processesToAdd, process)
+		}
+	}
+
+	// Save the new processes
+	if len(processesToAdd) > 0 {
+		if err := rrs.repo.CreateRiskProcesses(processesToAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// Remove processes not in the new list
+	var deleteProcessIDs []*uint
+
+	for _, existingProcess := range existingRisk.Processes {
+		if _, exists := newProcessIDs[existingProcess.ProcessID]; !exists {
+			// Append process to delete list
+			deleteProcessIDs = append(deleteProcessIDs, existingProcess.ID)
+		}
+	}
+
+	// Delete processes not in the new list
+	if len(deleteProcessIDs) > 0 {
+		if err := rrs.repo.DeleteRiskProcesses(deleteProcessIDs, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
@@ -496,6 +574,17 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 
 		}
 
+		// Check if controls exist
+		if len(risk.Processes) > 0 {
+			var deleteControlIDs []*uint
+			for _, process := range risk.Processes {
+				deleteControlIDs = append(deleteControlIDs, process.ID)
+			}
+			if err := rrs.repo.DeleteRiskProcesses(deleteControlIDs, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+		}
 		// Delete each risk document if documents exist
 		if len(risk.Documents) > 0 {
 			var deleteDocumentIds []*uint
@@ -618,6 +707,22 @@ func (rrs *RiskRegisterService) validateRiskRegisterFormDTO(riskRegisterFormDTO 
 		}
 
 		requirementIDs[*requirementId] = true
+	}
+
+	processIds := riskRegisterFormDTO.ProcessIDs
+
+	processIDs := make(map[uint]bool)
+
+	for _, processId := range processIds {
+		if processIDs[*processId] {
+			return utility.NewValidationError(fmt.Errorf("duplicate process ID: %d", processId), "duplicate", "process")
+		}
+
+		if _, err := rrs.processSvc.GetByID(*processId); err != nil {
+			return utility.NewValidationError(fmt.Errorf("process does not exist for ID: %d", processId), "not_exist", "process")
+		}
+
+		processIDs[*processId] = true
 	}
 
 	return nil

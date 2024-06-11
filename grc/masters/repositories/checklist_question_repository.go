@@ -12,7 +12,7 @@ import (
 
 // Interfaces
 type ChecklistQuestionRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string, page int, pageSize int, filters map[string][]string) (*masterDTOs.ChecklistQuestionListResponseDTO, error)
+	GetAll(sort string, sortBy string, keyword string, page int, pageSize int, filters map[string][]string) (*masterDTOs.ChecklistQuestionsGroupByQuestionGroupListResponseDTO, error)
 	GetByID(id uint) (*models.ChecklistQuestion, error)
 	Create(checklistQuestion *models.ChecklistQuestion) (uint, error)
 	Update(id uint, checklistQuestion *models.ChecklistQuestion) error
@@ -34,9 +34,9 @@ func NewChecklistQuestionRepository(db *gorm.DB) *ChecklistQuestionRepository {
 	}
 }
 
-func (repo *ChecklistQuestionRepository) GetAll(sort string, sortBy string, keyword string, page int, pageSize int, filters map[string][]string) (*masterDTOs.ChecklistQuestionListResponseDTO, error) {
+func (repo *ChecklistQuestionRepository) GetAll(sort string, sortBy string, keyword string, page int, pageSize int, filters map[string][]string) (*masterDTOs.ChecklistQuestionsGroupByQuestionGroupListResponseDTO, error) {
 
-	var checklistQuestions []*masterDTOs.ChecklistQuestionListDTO
+	var response []*masterDTOs.ChecklistQuestionsGroupByQuestionGroupDTO
 	var totalCount int64
 
 	query := repo.db.Table("checklist_questions").
@@ -78,25 +78,59 @@ func (repo *ChecklistQuestionRepository) GetAll(sort string, sortBy string, keyw
 	query = query.Order(sortBy + " " + sort)
 
 	offset := (page - 1) * pageSize
+	query = query.Offset(offset).Limit(pageSize)
 
-	// Execute the queryc
-	err := query.Offset(offset).Limit(pageSize).Find(&checklistQuestions).Error
+	rows, err := query.Rows()
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
+	checklistQuestions := make(map[uint]*masterDTOs.ChecklistQuestionsGroupByQuestionGroupDTO)
+
+	for rows.Next() {
+		var questions masterDTOs.ChecklistQuestionListDTO
+		err := repo.db.ScanRows(rows, &questions)
+		if err != nil {
+			return nil, err
+		}
+
+		if _, ok := checklistQuestions[questions.QuestionGroupID]; !ok {
+			checklistQuestions[questions.QuestionGroupID] = &masterDTOs.ChecklistQuestionsGroupByQuestionGroupDTO{
+				QuestionGroupID:      questions.QuestionGroupID,
+				QuestionGroupTitleEn: questions.QuestionGroupTitleEn,
+				QuestionGroupTitleAr: questions.QuestionGroupTitleAr,
+			}
+		}
+
+		checklistQuestions[questions.QuestionGroupID].Questions = append(checklistQuestions[questions.QuestionGroupID].Questions, &questions)
+	}
+
+	for _, v := range checklistQuestions {
+		response = append(response, v)
+	}
+
+	// Ensure response is not null
+	if response == nil {
+		response = []*masterDTOs.ChecklistQuestionsGroupByQuestionGroupDTO{}
+	}
+
+	// Calculate total pages for pagination
 	totalPages := int((totalCount + int64(pageSize) - 1) / int64(pageSize))
 
-	response := &masterDTOs.ChecklistQuestionListResponseDTO{
-		Items: checklistQuestions,
-		Pagination: commonDTOs.PaginationInfoDTO{
-			CurrentPage: page,
-			PageSize:    pageSize,
-			TotalPages:  totalPages,
-			TotalCount:  totalCount,
-		},
+	// Create pagination info
+	paginationInfo := commonDTOs.PaginationInfoDTO{
+		CurrentPage: page,
+		PageSize:    pageSize,
+		TotalPages:  totalPages,
+		TotalCount:  totalCount,
 	}
-	return response, nil
+
+	// Wrap response and pagination info in a single DTO
+	return &masterDTOs.ChecklistQuestionsGroupByQuestionGroupListResponseDTO{
+		Items:      response,
+		Pagination: paginationInfo,
+	}, nil
 
 }
 

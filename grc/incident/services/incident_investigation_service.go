@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
-	"jethur/grc/incident/dtos"
 	incidentDTOs "jethur/grc/incident/dtos"
 	incidentRepositories "jethur/grc/incident/repositories"
 	logServices "jethur/grc/logs/services"
@@ -99,7 +98,7 @@ func (iis IncidentInvestigationService) GetFullDetailsByID(incidentID uint, id u
 	return &incidentInvestigationDTO, nil
 }
 
-func (iis *IncidentInvestigationService) Create(incidentID uint, currentUserID uint, incidentInvestigationFormDTO *dtos.IncidentInvestigationFormDTO) (uint, error) {
+func (iis *IncidentInvestigationService) Create(incidentID uint, currentUserID uint, incidentInvestigationFormDTO *incidentDTOs.IncidentInvestigationFormDTO) (uint, error) {
 	tx := iis.repo.BeginTransaction()
 	if _, err := iis.incidentRegisterSvc.GetByID(incidentID); err != nil {
 		return 0, err
@@ -239,7 +238,7 @@ func (iis *IncidentInvestigationService) Create(incidentID uint, currentUserID u
 	return id, nil
 }
 
-func (iis *IncidentInvestigationService) Update(incidentID uint, id uint, currentUserID uint, incidentInvestigationFormDTO *dtos.IncidentInvestigationFormDTO) error {
+func (iis *IncidentInvestigationService) Update(incidentID uint, id uint, currentUserID uint, incidentInvestigationFormDTO *incidentDTOs.IncidentInvestigationFormDTO) error {
 	tx := iis.repo.BeginTransaction()
 	if _, err := iis.incidentRegisterSvc.GetByID(incidentID); err != nil {
 		return err

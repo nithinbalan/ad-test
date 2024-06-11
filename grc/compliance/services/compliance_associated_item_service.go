@@ -29,5 +29,5 @@ func (cais *ComplianceAssociatedItemService) GetAllControls(complianceID uint, p
 	if _, err := cais.complianceRegisterSvc.GetByID(complianceID); err != nil {
 		return nil, err
 	}
-	return cais.repo.GetAllControls(params)
+	return cais.repo.GetAllControls(complianceID, params)
 }

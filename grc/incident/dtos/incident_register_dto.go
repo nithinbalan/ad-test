@@ -68,8 +68,8 @@ type IncidentRegisterFormDTO struct {
 	Documents                []*IncidentDocumentFormDTO `json:"documents" binding:"required"`
 	ComplianceRequirementIds []*uint                    `json:"compliance_requirement_ids"`
 	ControlIds               []*uint                    `json:"control_ids"`
-	ProcessIds               []*uint                    `json:"process_ids"`
 	RiskIds                  []*uint                    `json:"risk_ids"`
+	ProcessIDs               []*uint                    `json:"process_ids"`
 }
 
 type IncidentDocumentFormDTO struct {
@@ -132,6 +132,7 @@ type IncidentRegisterDetailDTO struct {
 	Controls               []*IncidentControlDTO               `json:"controls"`
 	ComplianceRequirements []*IncidentComplianceRequirementDTO `json:"compliance_requirements"`
 	Risks                  []*IncidentRiskDTO                  `json:"risks"`
+	Processes              []*IncidentProcessDTO               `json:"processes"`
 	CreatedAt              time.Time                           `json:"created_at"`
 	UpdatedAt              *time.Time                          `json:"updated_at"`
 	CreatedByUser          organizationDTOs.UserMinimalDTO     `json:"created_by"`
@@ -161,4 +162,11 @@ type IncidentRiskDTO struct {
 	IncidentRegisterID uint                           `json:"incident_register_id"`
 	RiskRegisterID     uint                           `json:"risk_register_id"`
 	RiskRegister       riskDTOs.RiskRegisterDetailDTO `json:"risk"`
+}
+
+type IncidentProcessDTO struct {
+	ID                 *uint                             `json:"id"`
+	IncidentRegisterID uint                              `json:"incident_register_id"`
+	ProcessID          uint                              `json:"process_id"`
+	Process            organizationDTOs.ProcessDetailDTO `json:"process"`
 }

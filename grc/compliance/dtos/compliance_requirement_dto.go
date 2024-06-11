@@ -92,7 +92,7 @@ type ComplianceRequirementDetailDTO struct {
 	SeverityLevel                 *masterDTOs.SeverityLevelDTO     `json:"severity_level"`
 	ResponsibleUser               organizationDTOs.UserMinimalDTO  `json:"responsible_user"`
 	ComplianceStatus              ComplianceStatusDTO              `json:"compliance_status"`
-	Deadline                      *time.Time                       `json:"deadline"`
+	DeadlineString                *string                          `json:"deadline"`
 	CreatedAt                     time.Time                        `json:"created_at"`
 	UpdatedAt                     *time.Time                       `json:"updated_at"`
 	CreatedByUser                 organizationDTOs.UserMinimalDTO  `json:"created_by"`

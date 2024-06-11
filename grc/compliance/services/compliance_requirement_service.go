@@ -112,6 +112,10 @@ func (crs ComplianceRequirementService) GetFullDetailsByID(complianceID uint, id
 		return nil, err
 	}
 
+	if complianceRequirement.Deadline != nil {
+		deadline := complianceRequirement.Deadline.Format("2006-01-02")
+		complianceRequirementDTO.DeadlineString = &deadline
+	}
 	//todo :- also add extra fields which required in details screen
 
 	return &complianceRequirementDTO, nil
