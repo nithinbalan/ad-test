@@ -52,14 +52,26 @@ func (repo *TaskRepository) GetAll(params *taskDTOs.TaskListQueryParamsDTO) (*ta
             responsible_user.first_name_ar AS responsible_user_first_name_ar,
             responsible_user.last_name_en AS responsible_user_last_name_en,
             responsible_user.last_name_ar AS responsible_user_last_name_ar,
+            responsible_user.initial AS responsible_user_initial,
+            responsible_user.color AS responsible_user_color,
+            responsible_user.email AS responsible_user_email,
+            responsible_user.profile_image_path AS responsible_user_profile_image_path,
 			created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
             created_user.last_name_en AS created_user_last_name_en,
-            created_user.last_name_ar AS created_user_last_name_ar,   
+            created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+            created_user.color AS created_user_color,
+            created_user.email AS created_user_email,
+            created_user.profile_image_path AS created_user_profile_image_path,   
 			updated_user.first_name_en AS updated_user_first_name_en,
             updated_user.first_name_ar AS updated_user_first_name_ar,
             updated_user.last_name_en AS updated_user_last_name_en,
-            updated_user.last_name_ar AS updated_user_last_name_ar  
+            updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+            updated_user.color AS updated_user_color,
+            updated_user.email AS updated_user_email,
+            updated_user.profile_image_path AS updated_user_profile_image_path     
         `).
 		Joins(`
             LEFT JOIN modules ON modules.id = tasks.module_id
@@ -104,17 +116,20 @@ func (repo *TaskRepository) GetAll(params *taskDTOs.TaskListQueryParamsDTO) (*ta
 			responsible_user.first_name_ar LIKE ? OR
 			responsible_user.last_name_en LIKE ? OR
 			responsible_user.last_name_ar LIKE ? OR
+			responsible_user.email LIKE ? OR
 			created_user.first_name_en LIKE ? OR
 			created_user.first_name_ar LIKE ? OR
 			created_user.last_name_en LIKE ? OR
 			created_user.last_name_ar LIKE ? OR
+			created_user.email LIKE ? OR
 			updated_user.first_name_en LIKE ? OR
 			updated_user.first_name_ar LIKE ? OR
 			updated_user.last_name_en LIKE ? OR
-			updated_user.last_name_ar LIKE ?)`,
+			updated_user.last_name_en LIKE ? OR
+			updated_user.email LIKE ?)`,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword, keyword, keyword, keyword)
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
 	// Sort by the specified column and order

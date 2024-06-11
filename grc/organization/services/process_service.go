@@ -17,7 +17,7 @@ import (
 type ProcessServiceInterface interface {
 	GetAll(params *organizationDTOs.ProcessListQueryParamsDTO) (*organizationDTOs.ProcessListResponseDTO, error)
 	GetByID(id uint) (*models.Process, error)
-	GetFullDetailsByID(id uint) (*organizationDTOs.ProcessDetailDTO, error)
+	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*organizationDTOs.ProcessDetailDTO, error)
 	Create(currentUserID uint, processFormDTO *organizationDTOs.ProcessFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, processFormDTO *organizationDTOs.ProcessFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
@@ -32,6 +32,7 @@ type ProcessService struct {
 	processGroupSvc    ProcessGroupServiceInterface
 	userSvc            UserServiceInterface
 	lifecycleStatusSvc masterServices.LifecycleStatusServiceInterface
+	controlSvc         ControlServiceInterface
 }
 
 func NewProcessService(
@@ -39,13 +40,15 @@ func NewProcessService(
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	processGroupSvc ProcessGroupServiceInterface,
 	userSvc UserServiceInterface,
-	lifecycleStatusSvc masterServices.LifecycleStatusServiceInterface) ProcessServiceInterface {
+	lifecycleStatusSvc masterServices.LifecycleStatusServiceInterface,
+	controlSvc ControlServiceInterface) ProcessServiceInterface {
 	return &ProcessService{
 		repo:               repo,
 		activityLogSvc:     activityLogSvc,
 		processGroupSvc:    processGroupSvc,
 		userSvc:            userSvc,
 		lifecycleStatusSvc: lifecycleStatusSvc,
+		controlSvc:         controlSvc,
 	}
 }
 
@@ -65,10 +68,10 @@ func (ps *ProcessService) GetByID(id uint) (*models.Process, error) {
 	return process, nil
 }
 
-func (ps *ProcessService) GetFullDetailsByID(id uint) (*organizationDTOs.ProcessDetailDTO, error) {
+func (ps *ProcessService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*organizationDTOs.ProcessDetailDTO, error) {
 	var processDetailDTO organizationDTOs.ProcessDetailDTO
 
-	process, err := ps.repo.GetFullDetailsByID(id)
+	process, err := ps.repo.GetFullDetailsByID(id, tx...)
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -88,11 +91,11 @@ func (ps *ProcessService) GetFullDetailsByID(id uint) (*organizationDTOs.Process
 }
 
 func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizationDTOs.ProcessFormDTO) (uint, error) {
-	fmt.Println("123")
+	tx := ps.repo.BeginTransaction()
+
 	if err := ps.validateProcessFormDTO(processFormDTO); err != nil {
 		return 0, err
 	}
-	fmt.Println("124")
 
 	referenceNumber, err := ps.repo.GenerateReferenceNumber()
 	if err != nil {
@@ -118,8 +121,28 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 
 	id, err := ps.repo.Create(process)
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
+
+	var controls []*models.ProcessControl
+	for _, controlID := range processFormDTO.ControlIds {
+		control := &models.ProcessControl{
+			ProcessID: id,
+			ControlID: *controlID,
+			CreatedBy: currentUserID,
+		}
+		controls = append(controls, control)
+	}
+
+	if len(controls) > 0 {
+		if err := ps.repo.CreateProcessControls(controls, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
+	tx.Commit()
 
 	go func() {
 		err := ps.activityLogSvc.LogActivity(
@@ -147,14 +170,16 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 	return id, nil
 }
 
-func (cs *ProcessService) Update(id uint, currentUserID uint, processFormDTO *organizationDTOs.ProcessFormDTO) error {
-	existingProcess, err := cs.GetByID(id)
+func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *organizationDTOs.ProcessFormDTO) error {
+	tx := ps.repo.BeginTransaction()
+
+	existingProcess, err := ps.GetByID(id)
 
 	if err != nil {
 		return err
 	}
 
-	if err := cs.validateProcessFormDTO(processFormDTO); err != nil {
+	if err := ps.validateProcessFormDTO(processFormDTO); err != nil {
 		return err
 	}
 
@@ -166,39 +191,116 @@ func (cs *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 	existingProcess.Description = processFormDTO.Description
 	existingProcess.UpdatedByID = &currentUserID
 
-	err = cs.repo.Update(existingProcess)
-
+	err = ps.repo.Update(existingProcess)
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
+	// Collect existing control IDs
+	existingProcessWithControls, err := ps.GetFullDetailsByID(id, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	existingControlIDs := make(map[uint]bool)
+	for _, ctrl := range existingProcessWithControls.Controls {
+		existingControlIDs[ctrl.ControlID] = true
+	}
+
+	// Collect new control IDs
+	newControlIDs := make(map[uint]bool)
+	for _, ctrl := range processFormDTO.ControlIds {
+		newControlIDs[*ctrl] = true
+	}
+
+	// Add new controls
+	var controlsToAdd []*models.ProcessControl
+	for _, newControlID := range processFormDTO.ControlIds {
+		if _, exists := existingControlIDs[*newControlID]; !exists {
+			// Create a new process control record
+			control := &models.ProcessControl{
+				ProcessID: id,
+				ControlID: *newControlID,
+				CreatedBy: currentUserID,
+			}
+			controlsToAdd = append(controlsToAdd, control)
+		}
+	}
+
+	// Save the new controls
+	if len(controlsToAdd) > 0 {
+		if err := ps.repo.CreateProcessControls(controlsToAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// Remove controls not in the new list
+	var deleteControlIDs []*uint
+
+	for _, existingControl := range existingProcessWithControls.Controls {
+		if _, exists := newControlIDs[existingControl.ControlID]; !exists {
+			// Append control to delete list
+			deleteControlIDs = append(deleteControlIDs, existingControl.ID)
+		}
+	}
+
+	// Delete controls not in the new list
+	if len(deleteControlIDs) > 0 {
+		if err := ps.repo.DeleteProcessControls(deleteControlIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	tx.Commit()
 	return nil
 }
 
 func (ps *ProcessService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
+	tx := ps.repo.BeginTransaction()
+
 	var failedIds []uint
 	var successfulIds []uint
+
 	for _, id := range ids {
-
-		_, err := ps.repo.GetByID(id)
-
+		process, err := ps.GetFullDetailsByID(id, tx)
 		if err != nil {
-			continue
+			tx.Rollback()
+			return nil, err
 		}
 
-		err = ps.repo.Delete(id)
-		if err != nil {
+		if len(process.Controls) > 0 {
+			var deleteControlIds []*uint
+			for _, ctrl := range process.Controls {
+				deleteControlIds = append(deleteControlIds, ctrl.ID)
+			}
+			if err := ps.repo.DeleteProcessControls(deleteControlIds, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+		}
+
+		if err := ps.repo.Delete(id, tx); err != nil {
 			failedIds = append(failedIds, id)
+			continue
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
 	}
 
-	if len(successfulIds) > 0 {
+	if len(failedIds) > 0 {
+		tx.Rollback()
+		return failedIds, nil
+	}
 
+	tx.Commit()
+
+	if len(successfulIds) > 0 {
 		go func() {
 			err := ps.activityLogSvc.LogBulkActivities(
-				models.DeleteAction, // Make sure this action constant is defined appropriately
+				models.DeleteAction,
 				models.Process{}.TableName(),
 				successfulIds,
 				nil,
@@ -206,7 +308,6 @@ func (ps *ProcessService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 				nil,
 			)
 			if err != nil {
-				// @todo - save to log file
 				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
 			}
 		}()
@@ -214,6 +315,68 @@ func (ps *ProcessService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 
 	return failedIds, nil
 }
+
+// func (ps *ProcessService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
+// 	tx := ps.repo.BeginTransaction()
+
+// 	var failedIds []uint
+// 	var successfulIds []uint
+// 	for _, id := range ids {
+
+// 		process, err := ps.GetFullDetailsByID(id, tx)
+
+// 		if err != nil {
+// 			tx.Rollback()
+// 			return nil, err
+// 		}
+
+// 		if len(process.Controls) > 0 {
+// 			var deleteControlIds []*uint
+// 			for _, ctrl := range process.Controls {
+// 				deleteControlIds = append(deleteControlIds, ctrl.ID)
+// 			}
+// 			if err := ps.repo.DeleteProcessControls(deleteControlIds, tx); err != nil {
+// 				tx.Rollback()
+// 				return nil, err
+// 			}
+// 		}
+
+// 		err = ps.repo.Delete(id)
+// 		if err != nil {
+// 			failedIds = append(failedIds, id)
+// 			continue
+// 		} else {
+// 			successfulIds = append(successfulIds, id)
+// 		}
+// 	}
+
+// 	if len(failedIds) > 0 {
+// 		tx.Rollback()
+// 		return failedIds, nil
+// 	}
+
+// 	tx.Commit()
+
+// 	if len(successfulIds) > 0 {
+
+// 		go func() {
+// 			err := ps.activityLogSvc.LogBulkActivities(
+// 				models.DeleteAction, // Make sure this action constant is defined appropriately
+// 				models.Process{}.TableName(),
+// 				successfulIds,
+// 				nil,
+// 				currentUserID,
+// 				nil,
+// 			)
+// 			if err != nil {
+// 				// @todo - save to log file
+// 				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+// 			}
+// 		}()
+// 	}
+
+// 	return failedIds, nil
+// }
 
 func (ps *ProcessService) Archive(ids []uint, currentUserID uint) ([]uint, error) {
 	lifecycleStatus, err := ps.lifecycleStatusSvc.GetByType("archived")
@@ -252,18 +415,18 @@ func (ps *ProcessService) Archive(ids []uint, currentUserID uint) ([]uint, error
 	return successfulIds, nil
 }
 
-func (cs *ProcessService) Restore(ids []uint, currentUserID uint) ([]uint, error) {
-	lifecycleStatus, err := cs.lifecycleStatusSvc.GetByType("active")
+func (ps *ProcessService) Restore(ids []uint, currentUserID uint) ([]uint, error) {
+	lifecycleStatus, err := ps.lifecycleStatusSvc.GetByType("active")
 	if err != nil {
 		return nil, err
 	}
 
-	idsToUpdate, err := cs.repo.GetIDsByLifecycleStatus(ids, "archived")
+	idsToUpdate, err := ps.repo.GetIDsByLifecycleStatus(ids, "archived")
 	if err != nil {
 		return nil, err
 	}
 
-	successfulIds, err := cs.repo.UpdateLifecycleStatusForIDs(idsToUpdate, lifecycleStatus.ID)
+	successfulIds, err := ps.repo.UpdateLifecycleStatusForIDs(idsToUpdate, lifecycleStatus.ID)
 
 	if err != nil {
 		return nil, err
@@ -271,7 +434,7 @@ func (cs *ProcessService) Restore(ids []uint, currentUserID uint) ([]uint, error
 
 	if len(successfulIds) > 0 {
 		go func() {
-			err := cs.activityLogSvc.LogBulkActivities(
+			err := ps.activityLogSvc.LogBulkActivities(
 				models.RestoreAction,
 				models.Process{}.TableName(),
 				successfulIds,
@@ -296,6 +459,22 @@ func (ps *ProcessService) validateProcessFormDTO(processFormDTO *organizationDTO
 
 	if _, err := ps.userSvc.GetByID(uint(processFormDTO.OwnerID)); err != nil {
 		return utility.NewValidationError(fmt.Errorf("process owner does not exist"), "not_exist", "process owner")
+	}
+
+	controls := processFormDTO.ControlIds
+
+	controlIDs := make(map[uint]bool)
+
+	for _, control := range controls {
+		if controlIDs[*control] {
+			return utility.NewValidationError(fmt.Errorf("duplicate control ID: %d", control), "duplicate", "control")
+		}
+
+		if _, err := ps.controlSvc.GetByID(*control); err != nil {
+			return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", control), "not_exist", "control")
+		}
+
+		controlIDs[*control] = true
 	}
 
 	return nil

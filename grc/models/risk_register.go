@@ -35,6 +35,7 @@ type RiskRegister struct {
 	Documents              *[]RiskDocument              `gorm:"foreignKey:RiskRegisterID"`
 	ComplianceRequirements []*RiskComplianceRequirement `gorm:"foreignKey:RiskRegisterID"`
 	Controls               []*RiskControl               `gorm:"foreignKey:RiskRegisterID"`
+	Processes              []*RiskProcess               `gorm:"foreignKey:RiskRegisterID"`
 }
 
 // TableName overrides the table name used by RiskRegister to `risk_register`

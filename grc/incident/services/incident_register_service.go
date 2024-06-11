@@ -42,6 +42,7 @@ type IncidentRegisterService struct {
 	controlSvc               organizationServices.ControlServiceInterface
 	complianceRequirementSvc complianceServices.ComplianceRequirementServiceInterface
 	riskRegisterSvc          riskServices.RiskRegisterServiceInterface
+	processSvc               organizationServices.ProcessServiceInterface
 }
 
 func NewIncidentRegisterService(
@@ -55,6 +56,7 @@ func NewIncidentRegisterService(
 	controlSvc organizationServices.ControlServiceInterface,
 	complianceRequirementSvc complianceServices.ComplianceRequirementServiceInterface,
 	riskRegisterSvc riskServices.RiskRegisterServiceInterface,
+	processSvc organizationServices.ProcessServiceInterface,
 ) IncidentRegisterServiceInterface {
 	return &IncidentRegisterService{
 		repo:                     repo,
@@ -67,6 +69,7 @@ func NewIncidentRegisterService(
 		controlSvc:               controlSvc,
 		complianceRequirementSvc: complianceRequirementSvc,
 		riskRegisterSvc:          riskRegisterSvc,
+		processSvc:               processSvc,
 	}
 }
 
@@ -203,6 +206,25 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 			return 0, err
 		}
 	}
+
+	// Save Processes
+	var processes []*models.IncidentProcess
+	for _, processID := range incidentRegisterFormDTO.ProcessIDs {
+		process := &models.IncidentProcess{
+			IncidentRegisterID: id,
+			ProcessID:          *processID,
+			CreatedBy:          currentUserID,
+		}
+		processes = append(processes, process)
+	}
+
+	if len(processes) > 0 {
+		if err := irs.repo.CreateIncidentProcesses(processes, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
 	var documents []*models.IncidentDocument
 
 	// Iterate over each document in the array
@@ -475,6 +497,58 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 			return err
 		}
 	}
+
+	existingProcessIDs := make(map[uint]bool)
+	for _, proc := range existingIncident.Processes {
+		existingProcessIDs[proc.ProcessID] = true
+	}
+
+	// Collect new process IDs
+	newProcessIDs := make(map[uint]bool)
+	for _, proc := range incidentRegisterFormDTO.ProcessIDs {
+		newProcessIDs[*proc] = true
+	}
+
+	// Add new processes
+	var processesToAdd []*models.IncidentProcess
+	for _, newProcessID := range incidentRegisterFormDTO.ProcessIDs {
+		if _, exists := existingProcessIDs[*newProcessID]; !exists {
+			// Create a new incident process record
+			process := &models.IncidentProcess{
+				IncidentRegisterID: id,
+				ProcessID:          *newProcessID,
+				CreatedBy:          currentUserID,
+			}
+			processesToAdd = append(processesToAdd, process)
+		}
+	}
+
+	// Save the new processes
+	if len(processesToAdd) > 0 {
+		if err := irs.repo.CreateIncidentProcesses(processesToAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// Remove processes not in the new list
+	var deleteProcessIDs []*uint
+
+	for _, existingProcess := range existingIncident.Processes {
+		if _, exists := newProcessIDs[existingProcess.ProcessID]; !exists {
+			// Append process to delete list
+			deleteProcessIDs = append(deleteProcessIDs, existingProcess.ID)
+		}
+	}
+
+	// Delete processes not in the new list
+	if len(deleteProcessIDs) > 0 {
+		if err := irs.repo.DeleteIncidentProcesses(deleteProcessIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
 	//documents update
 	var documents []*models.IncidentDocument
 	var deleteDocumentIds []*uint
@@ -623,6 +697,17 @@ func (irs *IncidentRegisterService) Delete(ids []uint, currentUserID uint) ([]ui
 			}
 			if err := irs.repo.DeleteIncidentRisks(deleteRiskIds, tx); err != nil {
 
+				tx.Rollback()
+				return nil, err
+			}
+		}
+
+		if len(incident.Processes) > 0 {
+			var deleteControlIDs []*uint
+			for _, process := range incident.Processes {
+				deleteControlIDs = append(deleteControlIDs, process.ID)
+			}
+			if err := irs.repo.DeleteIncidentProcesses(deleteControlIDs, tx); err != nil {
 				tx.Rollback()
 				return nil, err
 			}
@@ -778,6 +863,22 @@ func (irs *IncidentRegisterService) validateIncidentRegisterFormDTO(incidentRegi
 
 		// Add the risk ID to the map
 		riskIDs[*risk] = true
+	}
+
+	processIds := incidentRegisterFormDTO.ProcessIDs
+
+	processIDs := make(map[uint]bool)
+
+	for _, processId := range processIds {
+		if processIDs[*processId] {
+			return utility.NewValidationError(fmt.Errorf("duplicate process ID: %d", processId), "duplicate", "process")
+		}
+
+		if _, err := irs.processSvc.GetByID(*processId); err != nil {
+			return utility.NewValidationError(fmt.Errorf("process does not exist for ID: %d", processId), "not_exist", "process")
+		}
+
+		processIDs[*processId] = true
 	}
 
 	return nil

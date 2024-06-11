@@ -7,8 +7,8 @@ import (
 	userDTOs "jethur/grc/organization/dtos"
 	organizationRepositories "jethur/grc/organization/repositories"
 	"jethur/utility"
+	"sort"
 
-	"github.com/mitchellh/mapstructure"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -53,17 +53,10 @@ func (uss *UserSettingService) SetUserService(svc UserServiceInterface) {
 }
 
 func (uss *UserSettingService) GetUserSetting(userID uint) (*userDTOs.UserSettingDTO, error) {
-	var userSettingDTO *userDTOs.UserSettingDTO
-	userSetting, err := uss.repo.GetUserSettingsByUserID(userID)
+	userSettingDTO, err := uss.repo.GetUserSettingsWithMfaByUserID(userID)
 
 	if err != nil {
 		return nil, utility.NewResourceNotFoundError(err, userID)
-	}
-
-	// Map the result to your DTO
-	err = mapstructure.Decode(userSetting, &userSettingDTO)
-	if err != nil {
-		return nil, err
 	}
 
 	return userSettingDTO, nil
@@ -257,23 +250,56 @@ func (uss *UserSettingService) GetNotificationSettings(userID uint) ([]userDTOs.
 		return nil, err
 	}
 
-	var response []userDTOs.NotificationSettingListResponseDTO
+	parentModulesMap := make(map[uint]*userDTOs.NotificationSettingListResponseDTO)
+
 	for _, module := range modules {
-		var notificationDTOs []userDTOs.NotificationListDTO
-		// Check if NotificationMasters is nil or not before ranging over it
+		if module.ModuleID == nil {
+			// This is a parent module
+			parentModulesMap[module.ID] = &userDTOs.NotificationSettingListResponseDTO{
+				ModuleID:      module.ID,
+				ModuleTitleEn: module.TitleEn,
+				ModuleTitleAr: module.TitleAr,
+				Order:         module.Order,
+				Notifications: &[]userDTOs.NotificationListDTO{},
+			}
+		}
+	}
+
+	// Function to aggregate notifications and ensure uniqueness
+	aggregateNotifications := func(module models.Module) map[uint]bool {
+		notificationsSet := make(map[uint]bool)
 		if module.NotificationMasters != nil {
 			for _, notification := range *module.NotificationMasters {
-				enableStatus := false
-				// Check if UserNotificationSetting is preloaded and has a value
-				if notification.UserNotificationSettings != nil { // Assuming it might be a slice, handle accordingly
-					for _, setting := range *notification.UserNotificationSettings {
-						if setting.UserID == userID {
-							enableStatus = setting.IsEnable
-							break // Assuming only one setting per user per notification is possible
-						}
+				notificationsSet[notification.ID] = true
+			}
+		}
+		return notificationsSet
+	}
+
+	for _, module := range modules {
+		notificationsSet := aggregateNotifications(module)
+		var notifications []userDTOs.NotificationListDTO
+
+		for notificationID := range notificationsSet {
+			var notification *models.NotificationMaster
+			for _, notif := range *module.NotificationMasters {
+				if notif.ID == notificationID {
+					notification = &notif
+					break
+				}
+			}
+
+			enableStatus := false
+			if notification != nil && notification.UserNotificationSettings != nil {
+				for _, setting := range *notification.UserNotificationSettings {
+					if setting.UserID == userID {
+						enableStatus = setting.IsEnable
+						break
 					}
 				}
+			}
 
+			if notification != nil {
 				notificationDTO := userDTOs.NotificationListDTO{
 					ID:         notification.ID,
 					ModulesID:  notification.ModuleID,
@@ -282,18 +308,36 @@ func (uss *UserSettingService) GetNotificationSettings(userID uint) ([]userDTOs.
 					TitleAr:    notification.TitleAr,
 					IsEnable:   enableStatus,
 				}
-				notificationDTOs = append(notificationDTOs, notificationDTO)
+
+				notifications = append(notifications, notificationDTO)
+			}
+		}
+		// Sort notifications by ID
+		sort.Slice(notifications, func(i, j int) bool {
+			return notifications[i].ID < notifications[j].ID
+		})
+
+		if parentModule, exists := parentModulesMap[module.ID]; exists {
+			*parentModule.Notifications = append(*parentModule.Notifications, notifications...)
+		} else if module.ModuleID != nil {
+			if parentModule, exists := parentModulesMap[*module.ModuleID]; exists {
+				*parentModule.Notifications = append(*parentModule.Notifications, notifications...)
 			}
 		}
 
-		moduleDTO := userDTOs.NotificationSettingListResponseDTO{
-			ModuleID:      module.ID,
-			ModuleTitleEn: module.TitleEn,
-			ModuleTitleAr: module.TitleAr,
-			Notifications: &notificationDTOs,
-		}
-		response = append(response, moduleDTO)
 	}
+
+	var response []userDTOs.NotificationSettingListResponseDTO
+	for _, parentModule := range parentModulesMap {
+		if len(*parentModule.Notifications) > 0 {
+			response = append(response, *parentModule)
+		}
+	}
+
+	// Sort the final response by the Order field
+	sort.Slice(response, func(i, j int) bool {
+		return response[i].Order < response[j].Order
+	})
 
 	return response, nil
 }

@@ -6,6 +6,7 @@ type UserSettingDTO struct {
 	Language       string `json:"language"`
 	Timeout        int    `json:"timeout"`
 	IsNotification bool   `json:"is_notification"`
+	IsMfa          bool   `json:"is_mfa"`
 }
 
 type UserSettingFormDTO struct {
@@ -30,5 +31,6 @@ type NotificationSettingListResponseDTO struct {
 	ModuleID      uint                   `json:"module_id"`
 	ModuleTitleEn string                 `json:"module_title_en"`
 	ModuleTitleAr string                 `json:"module_title_ar"`
+	Order         int                    `json:"order"`
 	Notifications *[]NotificationListDTO `json:"notifications"`
 }

@@ -62,7 +62,8 @@ func NewIncidentModule(db *gorm.DB,
 		masterModule.SeverityLevelSvc,
 		organizationModule.ControlSvc,
 		complianceModule.ComplianceRequirementSvc,
-		riskModule.RiskRegisterSvc)
+		riskModule.RiskRegisterSvc,
+		organizationModule.ProcessSvc)
 	incidentRegisterController := controllers.NewIncidentRegisterController(incidentRegisterSvc)
 
 	incidentInvestigationStatusRepo := repositories.NewIncidentInvestigationStatusRepository(db)
