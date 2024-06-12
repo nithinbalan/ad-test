@@ -221,10 +221,51 @@ func (ms *MeetingService) Create(currentUserID uint, meetingFormDTO *meetingDTOs
 			CreatedBy: currentUserID,
 		}
 		agendas = append(agendas, meetingAgenda)
+
 	}
 
 	if len(agendas) > 0 {
 		if err := ms.repo.CreateMeetingAgendas(agendas, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
+	// Save Meeting Minutes
+	var minutes []*models.MeetingMinute
+
+	for _, minute := range meetingFormDTO.MeetingMinutes {
+		meetingMinute := &models.MeetingMinute{
+			Minutes:   &minute.Minutes,
+			CreatedBy: currentUserID,
+		}
+		minutes = append(minutes, meetingMinute)
+	}
+	if len(minutes) > 0 {
+		if err := ms.repo.CreateMeetingMinutes(minutes, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+	// Save Meeting Action Plans
+	var actionPlans []*models.MeetingActionPlan
+
+	for _, actionPlan := range meetingFormDTO.ActionPlans {
+		meetingActionPlan := &models.MeetingActionPlan{
+			MeetingID:         *meetingFormDTO.MeetingID,
+			Title:             actionPlan.Title,
+			Description:       actionPlan.Description,
+			SeverityLevelID:   actionPlan.SeverityLevelID,
+			ResponsibleUserID: actionPlan.ResponsibleUserID,
+			// TargetDate:         actionPlan.TargetDate,
+			Percentage:         *actionPlan.Percentage,
+			ActionPlanStatusID: actionPlan.ActionPlanStatusID,
+			CreatedByID:        currentUserID,
+		}
+		actionPlans = append(actionPlans, meetingActionPlan)
+	}
+	if len(actionPlans) > 0 {
+		if err := ms.repo.CreateMeetingActionPlans(actionPlans, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
@@ -341,6 +382,225 @@ func (ms *MeetingService) Update(id uint, currentUserID uint, meetingFormDTO *me
 		return err
 	}
 
+	// Update Control IDs
+	existingControlIDs := make(map[uint]bool)
+	for _, ctrl := range existingMeeting.Controls {
+		existingControlIDs[ctrl.ControlID] = true
+	}
+	newControlIDs := make(map[uint]bool)
+	for _, ctrl := range meetingFormDTO.ControlIds {
+		newControlIDs[*ctrl] = true
+	}
+
+	var controlsToAdd []*models.MeetingControl
+	for _, newControlID := range meetingFormDTO.ControlIds {
+		if _, exists := existingControlIDs[*newControlID]; !exists {
+			control := &models.MeetingControl{
+				MeetingID: id,
+				ControlID: *newControlID,
+				CreatedBy: currentUserID,
+			}
+			controlsToAdd = append(controlsToAdd, control)
+		}
+	}
+
+	if len(controlsToAdd) > 0 {
+		if err := ms.repo.CreateMeetingControls(controlsToAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	var deleteControlIDs []*uint
+
+	for _, existingControl := range existingMeeting.Controls {
+		if _, exists := newControlIDs[existingControl.ControlID]; !exists {
+			deleteControlIDs = append(deleteControlIDs, &existingControl.ID)
+		}
+	}
+
+	if len(deleteControlIDs) > 0 {
+		if err := ms.repo.DeleteMeetingControls(deleteControlIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+	// Update Compliance Requirements IDs
+	existingRequirementIDs := make(map[uint]bool)
+	for _, req := range existingMeeting.ComplianceRequirements {
+		existingRequirementIDs[req.ComplianceRequirementID] = true
+	}
+
+	newRequirementIDs := make(map[uint]bool)
+	for _, req := range meetingFormDTO.ComplianceRequirementIds {
+		newRequirementIDs[*req] = true
+	}
+
+	var requirementsToAdd []*models.MeetingComplianceRequirement
+	for _, newRequirementID := range meetingFormDTO.ComplianceRequirementIds {
+		if _, exists := existingRequirementIDs[*newRequirementID]; !exists {
+			requirement := &models.MeetingComplianceRequirement{
+				MeetingID:               id,
+				ComplianceRequirementID: *newRequirementID,
+				CreatedBy:               currentUserID,
+			}
+			requirementsToAdd = append(requirementsToAdd, requirement)
+		}
+	}
+
+	if len(requirementsToAdd) > 0 {
+		if err := ms.repo.CreateMeetingComplianceRequirements(requirementsToAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	var deleteRequirementIDs []*uint
+	for _, existingRequirement := range existingMeeting.ComplianceRequirements {
+		if _, exists := newRequirementIDs[existingRequirement.ComplianceRequirementID]; !exists {
+			deleteRequirementIDs = append(deleteRequirementIDs, &existingRequirement.ID)
+		}
+	}
+
+	if len(deleteRequirementIDs) > 0 {
+		if err := ms.repo.DeleteMeetingComplianceRequirements(deleteRequirementIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// Update risk IDs
+	existingRiskIDs := make(map[uint]bool)
+	for _, risk := range existingMeeting.Risks {
+		existingRiskIDs[risk.RiskRegisterID] = true
+	}
+
+	newRiskIDs := make(map[uint]bool)
+	for _, riskID := range meetingFormDTO.RiskIds {
+		newRiskIDs[*riskID] = true
+	}
+
+	var risksToAdd []*models.MeetingRisk
+	for _, newRiskID := range meetingFormDTO.RiskIds {
+		if _, exists := existingRiskIDs[*newRiskID]; !exists {
+			risk := &models.MeetingRisk{
+				MeetingID:      id,
+				RiskRegisterID: *newRiskID,
+				CreatedBy:      currentUserID,
+			}
+			risksToAdd = append(risksToAdd, risk)
+		}
+	}
+
+	if len(risksToAdd) > 0 {
+		if err := ms.repo.CreateMeetingRisks(risksToAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	var deleteRiskIDs []*uint
+	for _, existingRisk := range existingMeeting.Risks {
+		if _, exists := newRiskIDs[existingRisk.RiskRegisterID]; !exists {
+			deleteRiskIDs = append(deleteRiskIDs, &existingRisk.ID)
+		}
+	}
+
+	if len(deleteRiskIDs) > 0 {
+		if err := ms.repo.DeleteMeetingRisks(deleteRiskIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+	// Update process IDs
+	existingProcessIDs := make(map[uint]bool)
+	for _, proc := range existingMeeting.Processes {
+		existingProcessIDs[proc.ProcessID] = true
+	}
+
+	newProcessIDs := make(map[uint]bool)
+	for _, proc := range meetingFormDTO.ProcessIds {
+		newProcessIDs[*proc] = true
+	}
+
+	var processesToAdd []*models.MeetingProcess
+	for _, newProcessID := range meetingFormDTO.ProcessIds {
+		if _, exists := existingProcessIDs[*newProcessID]; !exists {
+			process := &models.MeetingProcess{
+				MeetingID: id,
+				ProcessID: *newProcessID,
+				CreatedBy: currentUserID,
+			}
+			processesToAdd = append(processesToAdd, process)
+		}
+	}
+
+	if len(processesToAdd) > 0 {
+		if err := ms.repo.CreateMeetingProcesses(processesToAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	var deleteProcessIDs []*uint
+
+	for _, existingProcess := range existingMeeting.Processes {
+		if _, exists := newProcessIDs[existingProcess.ProcessID]; !exists {
+			deleteProcessIDs = append(deleteProcessIDs, &existingProcess.ID)
+		}
+	}
+
+	if len(deleteProcessIDs) > 0 {
+		if err := ms.repo.DeleteMeetingProcesses(deleteProcessIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+	// Update Incident IDs
+	existingIncidentIDs := make(map[uint]bool)
+	for _, incident := range existingMeeting.Incidents {
+		existingIncidentIDs[incident.IncidentRegisterID] = true
+	}
+
+	newIncidentIDs := make(map[uint]bool)
+	for _, incidentID := range meetingFormDTO.IncidentIds {
+		newIncidentIDs[*incidentID] = true
+	}
+
+	var incidentsToAdd []*models.MeetingIncident
+	for _, newIncidentID := range meetingFormDTO.IncidentIds {
+		if _, exists := existingIncidentIDs[*newIncidentID]; !exists {
+			incident := &models.MeetingIncident{
+				MeetingID:          id,
+				IncidentRegisterID: *newIncidentID,
+				CreatedBy:          currentUserID,
+			}
+			incidentsToAdd = append(incidentsToAdd, incident)
+		}
+	}
+
+	if len(incidentsToAdd) > 0 {
+		if err := ms.repo.CreateMeetingIncidents(incidentsToAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	var deleteIncidentIDs []*uint
+	for _, existingIncident := range existingMeeting.Incidents {
+		if _, exists := newIncidentIDs[existingIncident.IncidentRegisterID]; !exists {
+			deleteIncidentIDs = append(deleteIncidentIDs, &existingIncident.ID)
+		}
+	}
+
+	if len(deleteIncidentIDs) > 0 {
+		if err := ms.repo.DeleteMeetingIncidents(deleteIncidentIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// Update Participants
 	existingParticipantIDs := make(map[uint]bool)
 	for _, participant := range meeting.Participants {
 		existingParticipantIDs[participant.UserID] = true
@@ -438,6 +698,65 @@ func (ms *MeetingService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 				continue
 			}
 		}
+		// Delete controls if exist
+		if len(meeting.Controls) > 0 {
+			var deleteControlIds []*uint
+			for _, ctrl := range meeting.Controls {
+				deleteControlIds = append(deleteControlIds, &ctrl.ID)
+			}
+			if err := ms.repo.DeleteMeetingControls(deleteControlIds, tx); err != nil {
+
+				tx.Rollback()
+				return nil, err
+			}
+		}
+
+		// Delete each compliance requirement if requirements exist
+		if len(meeting.ComplianceRequirements) > 0 {
+			var deleteRequirementIds []*uint
+			for _, req := range meeting.ComplianceRequirements {
+				deleteRequirementIds = append(deleteRequirementIds, &req.ID)
+			}
+			if err := ms.repo.DeleteMeetingComplianceRequirements(deleteRequirementIds, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+
+		}
+		// Risk Delete
+		if len(meeting.Risks) > 0 {
+			var deleteRiskIds []*uint
+			for _, rsk := range meeting.Risks {
+				deleteRiskIds = append(deleteRiskIds, &rsk.ID)
+			}
+			if err := ms.repo.DeleteMeetingRisks(deleteRiskIds, tx); err != nil {
+
+				tx.Rollback()
+				return nil, err
+			}
+		}
+		//Process Delete
+		if len(meeting.Processes) > 0 {
+			var deleteProcessIDs []*uint
+			for _, process := range meeting.Processes {
+				deleteProcessIDs = append(deleteProcessIDs, &process.ID)
+			}
+			if err := ms.repo.DeleteMeetingProcesses(deleteProcessIDs, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+		}
+		//Incidents Delete
+		if len(meeting.Incidents) > 0 {
+			var deleteIncidentIDs []*uint
+			for _, incident := range meeting.Incidents {
+				deleteIncidentIDs = append(deleteIncidentIDs, &incident.ID)
+			}
+			if err := ms.repo.DeleteMeetingIncidents(deleteIncidentIDs, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+		}
 
 		// Delete the meeting
 		if err := ms.repo.Delete(id, tx); err != nil {
@@ -501,113 +820,81 @@ func (ms *MeetingService) validateMeetingFormDTO(meetingFormDTO *meetingDTOs.Mee
 
 	//Controls exist
 	controls := meetingFormDTO.ControlIds
-
-	// Create a map to store control IDs
 	controlIDs := make(map[uint]bool)
 
-	// Check if each control exists
 	for _, control := range controls {
-		// Check if the control ID already exists in the map
 		if controlIDs[*control] {
-			// If the control ID already exists, return a validation error
 			return utility.NewValidationError(fmt.Errorf("duplicate control ID: %d", control), "duplicate", "control")
 		}
 
-		// Check if the control exists in the database
 		if _, err := ms.controlSvc.GetByID(*control); err != nil {
 			return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", control), "not_exist", "control")
 		}
 
-		// Add the control ID to the map
 		controlIDs[*control] = true
 	}
-	
+
 	//Compliance Requirements Exist
 	requirements := meetingFormDTO.ComplianceRequirementIds
 
-	// Create a map to store requirement IDs
 	requirementIDs := make(map[uint]bool)
 
-	// Check if each requirement exists
 	for _, requirement := range requirements {
-		// Check if the requirement ID already exists in the map
 		if requirementIDs[*requirement] {
-			// If the requirement ID already exists, return a validation error
 			return utility.NewValidationError(fmt.Errorf("duplicate compliance requirement ID: %d", requirement), "duplicate", "compliance requirement")
 		}
 
-		// Check if the requirement exists in the database
 		if _, err := ms.complianceRequirementSvc.GetByComplianceRequirementID(*requirement); err != nil {
 			return utility.NewValidationError(fmt.Errorf("compliance requirement does not exist for ID: %d", requirement), "not_exist", "compliance requirement")
 		}
 
-		// Add the requirement ID to the map
 		requirementIDs[*requirement] = true
 	}
 
 	//Risks exist
 	risks := meetingFormDTO.RiskIds
-	// Create a map to store risk IDs
 	riskIDs := make(map[uint]bool)
 
-	// Check if each risk exists
 	for _, risk := range risks {
-		// Check if the risk ID already exists in the map
 		if riskIDs[*risk] {
-			// If the risk ID already exists, return a validation error
 			return utility.NewValidationError(fmt.Errorf("duplicate risk ID: %d", risk), "duplicate", "risk")
 		}
 
-		// Check if the risk exists in the database
 		if _, err := ms.riskRegisterSvc.GetByID(*risk); err != nil {
 			return utility.NewValidationError(fmt.Errorf("risk does not exist for ID: %d", risk), "not_exist", "risk")
 		}
 
-		// Add the risk ID to the map
 		riskIDs[*risk] = true
 	}
 
 	//Process exist
 	processes := meetingFormDTO.ProcessIds
-	// Create a map to store process IDs
 	processIds := make(map[uint]bool)
 
-	// Check if each process exists
 	for _, process := range processes {
-		// Check if the process ID already exists in the map
 		if processIds[*process] {
-			// If the process ID already exists, return a validation error
 			return utility.NewValidationError(fmt.Errorf("duplicate process ID: %d", process), "duplicate", "process")
 		}
 
-		// Check if the process exists in the database
 		if _, err := ms.processSvc.GetByID(*process); err != nil {
 			return utility.NewValidationError(fmt.Errorf("process does not exist for ID: %d", process), "not_exist", "process")
 		}
-
-		// Add the process ID to the map
 		processIds[*process] = true
 	}
 
-	//Incidents exist
+	//incident exist
 	incidents := meetingFormDTO.IncidentIds
-	// Create a map to store incident IDs
 	incidentIDs := make(map[uint]bool)
 
-	// Check if each incident exists
 	for _, incident := range incidents {
-		// Check if the incident ID already exists in the map
 		if incidentIDs[*incident] {
-			// If the incident ID already exists, return a validation error
 			return utility.NewValidationError(fmt.Errorf("duplicate incident ID: %d", incident), "duplicate", "incident")
 		}
 
-		// Check if the incident exists in the database
 		if _, err := ms.incidentRegisterSvc.GetByID(*incident); err != nil {
 			return utility.NewValidationError(fmt.Errorf("incident does not exist for ID: %d", incident), "not_exist", "incident")
 		}
 
-		// Add the incident ID to the map
 		incidentIDs[*incident] = true
 	}
 
@@ -616,7 +903,6 @@ func (ms *MeetingService) validateMeetingFormDTO(meetingFormDTO *meetingDTOs.Mee
 	if len(users) == 0 {
 		return nil
 	}
-
 	userIDs := make(map[uint]bool)
 
 	for _, user := range users {

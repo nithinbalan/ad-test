@@ -20,6 +20,8 @@ type MeetingRepositoryInterface interface {
 	CreateParticipants(participants []*models.MeetingParticipant, tx ...utility.DatabaseTransaction) error
 	DeleteParticipants(participantIDs []uint, tx ...utility.DatabaseTransaction) error
 	CreateMeetingAgendas(agendas []*models.MeetingAgenda, tx ...utility.DatabaseTransaction) error
+	CreateMeetingMinutes(minutes []*models.MeetingMinute, tx ...utility.DatabaseTransaction) error
+	CreateMeetingActionPlans(actionPlans []*models.MeetingActionPlan, tx ...utility.DatabaseTransaction) error
 
 	CreateMeetingComplianceRequirements(complianceRequirements []*models.MeetingComplianceRequirement, tx ...utility.DatabaseTransaction) error
 	CreateMeetingControls(controls []*models.MeetingControl, tx ...utility.DatabaseTransaction) error
@@ -201,6 +203,11 @@ func (repo *MeetingRepository) GetFullDetailsByID(id uint, tx ...utility.Databas
 		Preload("UpdatedByUser").
 		Preload("Participants").
 		Preload("Participants.User").
+		Preload("Controls").
+		Preload("ComplianceRequirements").
+		Preload("Risks").
+		Preload("Processes").
+		Preload("Incidents").
 		First(&meeting, id)
 
 	if result.Error != nil {
@@ -281,6 +288,32 @@ func (repo *MeetingRepository) CreateMeetingAgendas(agendas []*models.MeetingAge
 	}
 
 	if err := db.Create(agendas).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *MeetingRepository) CreateMeetingMinutes(minutes []*models.MeetingMinute, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Create(minutes).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *MeetingRepository) CreateMeetingActionPlans(actionPlans []*models.MeetingActionPlan, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Create(actionPlans).Error; err != nil {
 		return err
 	}
 

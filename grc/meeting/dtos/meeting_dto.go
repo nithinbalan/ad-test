@@ -83,6 +83,7 @@ type MeetingDetailDTO struct {
 	ComplianceRequirements []*MeetingComplianceRequirementDTO `json:"compliance_requirements"`
 	Risks                  []*MeetingRiskDTO                  `json:"risks"`
 	Processes              []*MeetingProcessDTO               `json:"processes"`
+	Incidents              []*MeetingIncidentDTO              `json:"incidents"`
 }
 
 type MeetingParticipantDTO struct {
@@ -93,24 +94,26 @@ type MeetingParticipantDTO struct {
 }
 
 type MeetingFormDTO struct {
-	Title                    string                   `json:"title" binding:"required"`
-	MeetingTypeID            uint                     `json:"meeting_type_id" binding:"required"`
-	MeetingFrequencyID       *uint                    `json:"meeting_frequency_id"`
-	MeetingID                *uint                    `json:"meeting_id"`
-	Location                 *string                  `json:"location"`
-	Date                     string                   `json:"date" binding:"required,datetime=2006-01-02"`
-	StartTime                string                   `json:"start_time" binding:"required"`
-	EndTime                  string                   `json:"end_time" binding:"required"`
-	OrganizerID              uint                     `json:"organizer_id" binding:"required"`
-	IsPublic                 bool                     `json:"is_public"`
-	MeetingStatusID          uint                     `json:"meeting_status_id" binding:"required"`
-	UserIDs                  []*uint                  `json:"user_ids"`
-	ComplianceRequirementIds []*uint                  `json:"compliance_requirement_ids"`
-	ControlIds               []*uint                  `json:"control_ids"`
-	ProcessIds               []*uint                  `json:"process_ids"`
-	RiskIds                  []*uint                  `json:"risk_ids"`
-	IncidentIds              []*uint                  `json:"incident_ids"`
-	Agendas                  []*MeetingAgendasFormDTO `json:"agendas" binding:"required"`
+	Title                    string                      `json:"title" binding:"required"`
+	MeetingTypeID            uint                        `json:"meeting_type_id" binding:"required"`
+	MeetingFrequencyID       *uint                       `json:"meeting_frequency_id"`
+	MeetingID                *uint                       `json:"meeting_id"`
+	Location                 *string                     `json:"location"`
+	Date                     string                      `json:"date" binding:"required,datetime=2006-01-02"`
+	StartTime                string                      `json:"start_time" binding:"required"`
+	EndTime                  string                      `json:"end_time" binding:"required"`
+	OrganizerID              uint                        `json:"organizer_id" binding:"required"`
+	IsPublic                 bool                        `json:"is_public"`
+	MeetingStatusID          uint                        `json:"meeting_status_id" binding:"required"`
+	UserIDs                  []*uint                     `json:"user_ids"`
+	ComplianceRequirementIds []*uint                     `json:"compliance_requirement_ids"`
+	ControlIds               []*uint                     `json:"control_ids"`
+	ProcessIds               []*uint                     `json:"process_ids"`
+	RiskIds                  []*uint                     `json:"risk_ids"`
+	IncidentIds              []*uint                     `json:"incident_ids"`
+	Agendas                  []*MeetingAgendasFormDTO    `json:"agendas" binding:"required"`
+	MeetingMinutes           []*MeetingMinuteFormDTO     `json:"meeting_minutes"`
+	ActionPlans              []*MeetingActionPlanFormDTO `json:"action_plans"`
 }
 
 type MeetingParsedDates struct {

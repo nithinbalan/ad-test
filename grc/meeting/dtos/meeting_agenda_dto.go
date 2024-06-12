@@ -58,7 +58,7 @@ type MeetingAgendaDetailDTO struct {
 }
 
 type MeetingAgendaFormDTO struct {
-	Title    string `json:"title" binding:"required"`
-	TimeFrom string `json:"time_from"`
-	TimeTo   string `json:"time_to"`
+	Title          string                      `json:"title" binding:"required"`
+	TimeFrom       string                      `json:"time_from"`
+	TimeTo         string                      `json:"time_to"`
 }

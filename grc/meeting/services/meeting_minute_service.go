@@ -91,7 +91,7 @@ func (mms *MeetingMinuteService) Create(meetingID uint, currentUserID uint, meet
 	}
 
 	meetingMinute := &models.MeetingMinute{
-		MeetingAgendaID: &meetingMinuteFormDTO.MeetingAgendaID,
+		MeetingAgendaID: meetingMinuteFormDTO.MeetingAgendaID,
 		Minutes:         &meetingMinuteFormDTO.Minutes,
 		CreatedBy:       currentUserID,
 	}
@@ -139,7 +139,7 @@ func (mms *MeetingMinuteService) Update(meetingID uint, id uint, currentUserID u
 		return err
 	}
 
-	existingMeetingMinute.MeetingAgendaID = &meetingMinuteFormDTO.MeetingAgendaID
+	existingMeetingMinute.MeetingAgendaID = meetingMinuteFormDTO.MeetingAgendaID
 	existingMeetingMinute.Minutes = &meetingMinuteFormDTO.Minutes
 	existingMeetingMinute.UpdatedBy = &currentUserID
 
@@ -221,7 +221,7 @@ func (mms *MeetingMinuteService) Delete(meetingID uint, ids []uint, currentUserI
 }
 
 func (mms *MeetingMinuteService) validateMeetingMinuteFormDTO(meetingMinuteFormDTO *meetingDTOs.MeetingMinuteFormDTO) error {
-	if _, err := mms.meetingAgendaSvc.GetByID(meetingMinuteFormDTO.MeetingAgendaID); err != nil {
+	if _, err := mms.meetingAgendaSvc.GetByID(*meetingMinuteFormDTO.MeetingAgendaID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("meeting agenda does not exist"), "not_exist", "meeting agenda")
 	}
 

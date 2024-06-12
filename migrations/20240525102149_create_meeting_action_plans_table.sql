@@ -3,6 +3,7 @@
 CREATE TABLE meeting_action_plans (
     id INT IDENTITY(1,1) PRIMARY KEY,
     meeting_id INT NOT NULL,
+    meeting_agenda_id INT NULL,
     title NVARCHAR(500) NOT NULL,
     description NVARCHAR(MAX),
     severity_level_id INT,
@@ -15,6 +16,7 @@ CREATE TABLE meeting_action_plans (
     created_by INT NOT NULL,
     updated_by INT,
     CONSTRAINT FK_meeting_action_plans_meetings FOREIGN KEY (meeting_id) REFERENCES meetings(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_meeting_action_plans_meeting_agendas FOREIGN KEY (meeting_id) REFERENCES meeting_agendas(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_meeting_action_plans_severity_levels FOREIGN KEY (severity_level_id) REFERENCES severity_levels (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_meeting_action_plans_user_1 FOREIGN KEY (responsible_user_id) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_meeting_action_plans_action_plan_statuses FOREIGN KEY (action_plan_status_id) REFERENCES action_plan_statuses(id) ON DELETE NO ACTION ON UPDATE NO ACTION,

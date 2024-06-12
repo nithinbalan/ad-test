@@ -3,7 +3,7 @@
 CREATE TABLE meeting_minutes
 (
     id INT PRIMARY KEY IDENTITY(1, 1),
-    meeting_agenda_id INT NOT NULL,
+    meeting_agenda_id INT NULL,
     minutes NVARCHAR(MAX) NULL,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NULL,
