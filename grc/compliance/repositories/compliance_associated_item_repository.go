@@ -35,8 +35,12 @@ func (repo *ComplianceAssociatedItemRepository) GetAllControls(complianceID uint
             controls.description AS control_description,
             control_efficiency_statuses.title_en AS control_efficiency_status_en,
             control_efficiency_statuses.title_ar AS control_efficiency_status_ar,
+            control_efficiency_statuses.color_code AS control_efficiency_status_color_code,
+            control_efficiency_statuses.type AS control_efficiency_status_type,
             control_implementation_statuses.title_en AS control_implementation_status_en,
             control_implementation_statuses.title_ar AS control_implementation_status_ar
+            control_implementation_statuses.type AS control_implementation_status_type
+            control_implementation_statuses.color_code AS control_implementation_status_color_code
         `).
 		Joins(`
 			LEFT JOIN controls ON controls.id = compliance_controls.control_id
