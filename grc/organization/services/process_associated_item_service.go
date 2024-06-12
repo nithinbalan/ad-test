@@ -6,7 +6,7 @@ import (
 )
 
 type ProcessAssociatedItemServiceInterface interface {
-	GetAllControls(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (map[string]map[string][]*organizationDTOs.ProcessControlListDTO, error)
+	GetAllControls(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) ([]map[string]interface{}, error)
 	GetAllRisks(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) ([]*organizationDTOs.ProcessRiskListDTO, error)
 	GetAllIncidents(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) ([]*organizationDTOs.ProcessIncidentListDTO, error)
 }
@@ -26,11 +26,19 @@ func NewProcessAssociatedItemService(
 	}
 }
 
-func (pais *ProcessAssociatedItemService) GetAllControls(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (map[string]map[string][]*organizationDTOs.ProcessControlListDTO, error) {
+func (pais *ProcessAssociatedItemService) GetAllControls(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) ([]map[string]interface{}, error) {
+	// Check if the process exists
 	if _, err := pais.processSvc.GetByID(processID); err != nil {
 		return nil, err
 	}
-	return pais.repo.GetAllControls(processID, params)
+
+	// Fetch the controls from the repository
+	controls, err := pais.repo.GetAllControls(processID, params)
+	if err != nil {
+		return nil, err
+	}
+
+	return controls, nil
 }
 
 func (pais *ProcessAssociatedItemService) GetAllRisks(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) ([]*organizationDTOs.ProcessRiskListDTO, error) {
