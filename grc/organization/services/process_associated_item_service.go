@@ -67,7 +67,6 @@ func (pais *ProcessAssociatedItemService) GetAllControls(processID uint, params 
 
 	// Grouping controls by implementation status type and then by efficiency status type
 	groupedControls := make(map[string]map[string][]*organizationDTOs.ProcessControlListDTO)
-
 	for _, control := range controlList {
 		implementationStatusType := control.ControlImplementationStatusType
 		efficiencyStatusType := control.ControlEfficiencyStatusType
@@ -113,18 +112,32 @@ func (pais *ProcessAssociatedItemService) GetAllControls(processID uint, params 
 
 			for _, control := range controls {
 				controlItem := map[string]interface{}{
-					"control_id":                       control.ControlID,
-					"control_category_title_en":        control.ControlCategoryTitleEn,
-					"control_category_title_ar":        control.ControlCategoryTitleAr,
-					"control_type_title_en":            control.ControlTypeTitleEn,
-					"control_type_title_ar":            control.ControlTypeTitleAr,
-					"control_title_en":                 control.ControlTitleEn,
-					"control_title_ar":                 control.ControlTitleAr,
-					"control_description":              control.ControlDescription,
-					"control_efficiency_status_en":     control.ControlEfficiencyStatusEn,
-					"control_efficiency_status_ar":     control.ControlEfficiencyStatusAr,
-					"control_implementation_status_en": control.ControlImplementationStatusEn,
-					"control_implementation_status_ar": control.ControlImplementationStatusAr,
+					"control_id":                               control.ControlID,
+					"control_reference_number":                 control.ControlReferenceNumber,
+					"control_code":                             control.ControlCode,
+					"control_category_title_en":                control.ControlCategoryTitleEn,
+					"control_category_title_ar":                control.ControlCategoryTitleAr,
+					"control_type_title_en":                    control.ControlTypeTitleEn,
+					"control_type_title_ar":                    control.ControlTypeTitleAr,
+					"control_title_en":                         control.ControlTitleEn,
+					"control_title_ar":                         control.ControlTitleAr,
+					"control_description":                      control.ControlDescription,
+					"control_efficiency_status_en":             control.ControlEfficiencyStatusEn,
+					"control_efficiency_status_ar":             control.ControlEfficiencyStatusAr,
+					"control_efficiency_status_type":           control.ControlEfficiencyStatusType,
+					"control_efficiency_status_color_code":     control.ControlEfficiencyStatusColorCode,
+					"control_implementation_status_en":         control.ControlImplementationStatusEn,
+					"control_implementation_status_ar":         control.ControlImplementationStatusAr,
+					"control_implementation_status_type":       control.ControlImplementationStatusType,
+					"control_implementation_status_color_code": control.ControlImplementationStatusColorCode,
+					"control_owner_first_name_en":              control.ControlOwnerFirstNameEn,
+					"control_owner_first_name_ar":              control.ControlOwnerFirstNameAr,
+					"control_owner_last_name_en":               control.ControlOwnerLastNameEn,
+					"control_owner_last_name_ar":               control.ControlOwnerLastNameAr,
+					"control_owner_initial":                    control.ControlOwnerInitial,
+					"control_owner_color":                      control.ControlOwnerColor,
+					"control_owner_email":                      control.ControlOwnerEmail,
+					"control_owner_profile_image_path":         control.ControlOwnerProfileImagePath,
 				}
 				effItem["items"] = append(effItem["items"].([]map[string]interface{}), controlItem)
 			}
