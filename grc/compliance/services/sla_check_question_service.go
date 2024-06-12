@@ -10,6 +10,7 @@ import (
 	"jethur/grc/models"
 	"jethur/utility"
 
+	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
 )
 
@@ -17,7 +18,7 @@ type SLACheckQuestionServiceInterface interface {
 	GetAllQuestionGroups(slaID uint, checkID uint) ([]*complianceDTOs.SLACheckQuestionGroupListDTO, error)
 	UpdateQuestionGroup(slaID uint, checkID uint, groupID uint, currentUserID uint, slaCheckUpdateQuestionGroupDTO *complianceDTOs.SLACheckUpdateQuestionGroupDTO) error
 	DeleteQuestionGroup(slaID uint, checkID uint, questionGroupID uint, currentUserID uint) (uint, error)
-	GetQuestionsByGroupID(slaID uint, checkID uint, groupID uint) ([]models.SLACheckQuestion, error)
+	GetQuestionsByGroupID(slaID uint, checkID uint, groupID uint) ([]complianceDTOs.SLACheckQuestionDetailDTO, error)
 	GetQuestionByID(id uint) (*models.SLACheckQuestion, error)
 	ChooseQuestions(slaID uint, checkID uint, currentUserID uint, checklistQuestionIds []uint) ([]uint, error)
 	CreateQuestion(slaID uint, checkID uint, currentUserID uint, slaCheckQuestionFormDTO *complianceDTOs.SLACheckQuestionFormDTO) (uint, error)
@@ -187,11 +188,27 @@ func (scqs *SLACheckQuestionService) DeleteQuestionGroup(slaID uint, checkID uin
 	return failedGroupID, nil
 }
 
-func (scqs *SLACheckQuestionService) GetQuestionsByGroupID(slaID uint, checkID uint, groupID uint) ([]models.SLACheckQuestion, error) {
+func (scqs *SLACheckQuestionService) GetQuestionsByGroupID(slaID uint, checkID uint, groupID uint) ([]complianceDTOs.SLACheckQuestionDetailDTO, error) {
 	if _, err := scqs.slaRegisterSvc.GetByID(slaID); err != nil {
 		return nil, err
 	}
-	return scqs.repo.GetQuestionsByGroupID(groupID)
+
+	slaCheckQuestions, err := scqs.repo.GetQuestionsByGroupID(groupID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, groupID)
+		}
+		return nil, err
+	}
+
+	var slaCheckQuestionDTOs []complianceDTOs.SLACheckQuestionDetailDTO
+	err = mapstructure.Decode(slaCheckQuestions, &slaCheckQuestionDTOs)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println(slaCheckQuestionDTOs)
+
+	return slaCheckQuestionDTOs, nil
 }
 
 func (scqs SLACheckQuestionService) GetQuestionByID(id uint) (*models.SLACheckQuestion, error) {

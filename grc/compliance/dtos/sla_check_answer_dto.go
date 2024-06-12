@@ -7,16 +7,14 @@ import (
 )
 
 type SLACheckAnswerDetailDTO struct {
-	ID                      uint                            `json:"id"`
-	SLACheckQuestionTitleEn string                          `json:"sla_check_question_title_en"`
-	SLACheckQuestionTitleAr string                          `json:"sla_check_question_title_ar"`
-	ComplianceStatus        ComplianceStatusDTO             `json:"compliance_status"`
-	Comment                 string                          `json:"comment"`
-	CreatedAt               time.Time                       `json:"created_at"`
-	UpdatedAt               *time.Time                      `json:"updated_at"`
-	CreatedByUser           organizationDTOs.UserMinimalDTO `json:"created_by"`
-	UpdatedByUser           organizationDTOs.UserMinimalDTO `json:"updated_by"`
-	Documents               []*SLACheckAnswerDocumentDTO    `json:"documents"`
+	ID               uint                            `json:"id"`
+	ComplianceStatus ComplianceStatusDTO             `json:"compliance_status"`
+	Comment          string                          `json:"comment"`
+	CreatedAt        time.Time                       `json:"created_at"`
+	UpdatedAt        *time.Time                      `json:"updated_at"`
+	CreatedByUser    organizationDTOs.UserMinimalDTO `json:"created_by"`
+	UpdatedByUser    organizationDTOs.UserMinimalDTO `json:"updated_by"`
+	Documents        []*SLACheckAnswerDocumentDTO    `json:"documents"`
 }
 
 type SLACheckAnswerDocumentDTO struct {

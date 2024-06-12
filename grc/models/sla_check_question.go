@@ -15,7 +15,7 @@ type SLACheckQuestion struct {
 	UpdatedBy               *uint      `json:"updated_by,omitempty" gorm:"default:null"`
 
 	// Relationships
-	Answers               SLACheckAnswer         `json:"answer,omitempty" gorm:"foreignKey:SLACheckQuestionID"`
+	Answer                *SLACheckAnswer        `json:"answer,omitempty" gorm:"foreignKey:SLACheckQuestionID"`
 	SLACheckQuestionGroup *SLACheckQuestionGroup `gorm:"foreignkey:SLACheckQuestionGroupID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	CreatedByUser         *User                  `gorm:"foreignKey:CreatedBy"`
 	UpdatedByUser         *User                  `gorm:"foreignKey:UpdatedBy"`
