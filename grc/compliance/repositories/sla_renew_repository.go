@@ -44,19 +44,27 @@ func (repo *SLARenewRepository) GetAll(id uint, params *slaDTOs.SLARenewListQuer
 	query := repo.db.Table("sla_documents").
 		Select(`
         sla_documents.*,
-        created_by_users.first_name_en AS created_by_first_name_en,
-        created_by_users.first_name_ar AS created_by_first_name_ar,
-        created_by_users.last_name_en AS created_by_last_name_en,
-        created_by_users.last_name_ar AS created_by_last_name_ar,
-        updated_by_users.first_name_en AS updated_by_first_name_en,
-        updated_by_users.first_name_ar AS updated_by_first_name_ar,
-        updated_by_users.last_name_en AS updated_by_last_name_en,
-        updated_by_users.last_name_ar AS updated_by_last_name_ar
+        created_by_user.first_name_en AS created_by_first_name_en,
+        created_by_user.first_name_ar AS created_by_first_name_ar,
+        created_by_user.last_name_en AS created_by_last_name_en,
+        created_by_user.last_name_ar AS created_by_last_name_ar,
+		created_by_user.initial AS created_by_initial,
+        created_by_user.color AS created_by_color,
+        created_by_user.email AS created_by_email,
+        created_by_user.profile_image_path AS created_by_profile_image_path,   
+		updated_by_user.first_name_en AS updated_by_first_name_en,
+        updated_by_user.first_name_ar AS updated_by_first_name_ar,
+        updated_by_user.last_name_en AS updated_by_last_name_en,
+        updated_by_user.last_name_ar AS updated_by_last_name_ar,
+		updated_by_user.initial AS updated_by_initial,
+        updated_by_user.color AS updated_by_color,
+        updated_by_user.email AS updated_by_email,
+        updated_by_user.profile_image_path AS updated_by_profile_image_path   
     `).
 		Joins(`
         JOIN sla_register ON sla_register.id = sla_documents.sla_register_id
-        JOIN users AS created_by_users ON sla_register.created_by = created_by_users.id
-        LEFT JOIN users AS updated_by_users ON sla_register.updated_by = updated_by_users.id
+        JOIN users AS created_by_user ON sla_register.created_by = created_by_user.id
+        LEFT JOIN users AS updated_by_user ON sla_register.updated_by = updated_by_user.id
     `).
 		Where("sla_documents.sla_register_id = ? AND sla_documents.is_latest = ?", id, false)
 

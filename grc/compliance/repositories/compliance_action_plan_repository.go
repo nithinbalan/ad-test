@@ -55,14 +55,26 @@ func (repo *ComplianceActionPlanRepository) GetAll(complianceID uint, params *co
         responsible_user.first_name_ar AS responsible_user_first_name_ar,
         responsible_user.last_name_en AS responsible_user_last_name_en,
         responsible_user.last_name_ar AS responsible_user_last_name_ar,
+		responsible_user.initial AS responsible_user_initial,
+        responsible_user.color AS responsible_user_color,
+        responsible_user.email AS responsible_user_email,
+        responsible_user.profile_image_path AS responsible_user_profile_image_path,
         created_user.first_name_en AS created_user_first_name_en,
         created_user.first_name_ar AS created_user_first_name_ar,
         created_user.last_name_en AS created_user_last_name_en,
         created_user.last_name_ar AS created_user_last_name_ar,   
-        updated_user.first_name_en AS updated_user_first_name_en,
+        created_user.initial AS created_user_initial,
+        created_user.color AS created_user_color,
+        created_user.email AS created_user_email,
+        created_user.profile_image_path AS created_user_profile_image_path,   
+		updated_user.first_name_en AS updated_user_first_name_en,
         updated_user.first_name_ar AS updated_user_first_name_ar,
         updated_user.last_name_en AS updated_user_last_name_en,
-        updated_user.last_name_ar AS updated_user_last_name_ar 
+        updated_user.last_name_ar AS updated_user_last_name_ar,
+		updated_user.initial AS updated_user_initial,
+        updated_user.color AS updated_user_color,
+        updated_user.email AS updated_user_email,
+        updated_user.profile_image_path AS updated_user_profile_image_path
     `).
 		Joins(`
         LEFT JOIN action_plan_statuses ON action_plan_statuses.id = compliance_action_plans.action_plan_status_id
@@ -116,7 +128,12 @@ func (repo *ComplianceActionPlanRepository) GetAll(complianceID uint, params *co
             responsible_user.first_name_en LIKE ? OR
             responsible_user.first_name_ar LIKE ? OR
             responsible_user.last_name_en LIKE ? OR
+            responsible_user.email LIKE ? OR
+            responsible_user.initial LIKE ? OR
+            responsible_user.color LIKE ? OR
+            responsible_user.profile_image_path LIKE ? OR
             responsible_user.last_name_ar LIKE ?)`,
+			keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword,
 			keyword)
