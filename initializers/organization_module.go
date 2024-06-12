@@ -130,7 +130,7 @@ func NewOrganizationModule(
 	userTaskController := controllers.NewUserTaskController(userTaskSvc)
 
 	processAssociatedItemRepo := repositories.NewProcessAssociatedItemRepository(db)
-	processAssociatedItemSvc := services.NewProcessAssociatedItemService(processAssociatedItemRepo, processSvc)
+	processAssociatedItemSvc := services.NewProcessAssociatedItemService(processAssociatedItemRepo, processSvc, controlImplementationStatusSvc, controlEfficiencyStatusRepo)
 	processAssociatedItemController := controllers.NewProcessAssociatedItemController(processAssociatedItemSvc)
 
 	return &OrganizationModule{
