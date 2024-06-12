@@ -24,7 +24,7 @@ type SLACheckAnswerDocument struct {
 	UpdatedByUser  *User           `gorm:"foreignKey:UpdatedBy"`
 }
 
-// TableName overrides the table name used by SLACheckAnswer to `sla_check_answers`
+// TableName overrides the table name used by SLACheckAnswer to `sla_check_answer_documents`
 func (SLACheckAnswerDocument) TableName() string {
 	return "sla_check_answer_documents"
 }
