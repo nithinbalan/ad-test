@@ -157,7 +157,11 @@ func (repo *SLACheckQuestionRepository) GetSimilarQuestionGroup(titleEn string, 
 
 func (repo *SLACheckQuestionRepository) GetQuestionsByGroupID(groupID uint) ([]models.SLACheckQuestion, error) {
 	var questions []models.SLACheckQuestion
-	if err := repo.db.Where("sla_check_question_group_id = ?", groupID).Preload("Answers").Find(&questions).Error; err != nil {
+	if err := repo.db.Where("sla_check_question_group_id = ?", groupID).
+		Preload("Answers").
+		Preload("Answers.ComplianceStatus").
+		Preload("Answers.Documents").
+		Find(&questions).Error; err != nil {
 		return nil, err
 	}
 	return questions, nil
