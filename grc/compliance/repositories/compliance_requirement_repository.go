@@ -6,6 +6,7 @@ import (
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
+	"log"
 	"time"
 
 	"gorm.io/gorm"
@@ -261,7 +262,7 @@ func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(compl
 	}
 
 	if params.SortBy == "" {
-		params.SortBy = "title"
+		params.SortBy = "compliance_clause_no"
 	}
 	if params.Sort != "asc" && params.Sort != "desc" {
 		params.Sort = "asc"
@@ -338,17 +339,36 @@ func (repo *ComplianceRequirementRepository) GetByID(id uint) (*models.Complianc
 func (repo *ComplianceRequirementRepository) GetFullDetailsByID(id uint) (*models.ComplianceRequirement, error) {
 	var complianceRequirement *models.ComplianceRequirement
 
+	// Subquery to get the latest status update
+	latestStatusUpdateSubQuery := repo.db.
+		Table("compliance_requirement_status_updates").
+		Select("id").
+		Where("compliance_requirement_id = ?", id).
+		Order("created_at desc").
+		Limit(1)
+
 	result := repo.db.
 		Preload("ComplianceClause").
 		Preload("ComplianceStatus").
 		Preload("ComplianceRequirementCategory").
 		Preload("SeverityLevel").
 		Preload("ResponsibleUser").
+		Preload("CreatedByUser").
+		Preload("UpdatedByUser").
+		Preload("ComplianceRequirementStatusUpdates", func(db *gorm.DB) *gorm.DB {
+			return db.Where("id IN (?)", latestStatusUpdateSubQuery).
+				Preload("ComplianceStatus").
+				Preload("CreatedUser").
+				Preload("UpdatedUser").
+				Preload("Documents")
+		}).
 		First(&complianceRequirement, id)
 
 	if result.Error != nil {
 		return nil, result.Error
 	}
+
+	log.Printf("Fetched compliance requirement: %+v", complianceRequirement)
 
 	return complianceRequirement, nil
 }
