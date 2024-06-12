@@ -117,14 +117,15 @@ func (crs ComplianceRequirementService) GetFullDetailsByID(complianceID uint, id
 		complianceRequirementDTO.DeadlineString = &deadline
 	}
 
-	// Convert compliance requirement status updates to DTOs
-	var complianceRequirementStatusUpdatesDTOs []complianceDTOs.ComplianceRequirementStatusUpdateDTO
-	err = mapstructure.Decode(complianceRequirement.ComplianceRequirementStatusUpdates, &complianceRequirementStatusUpdatesDTOs)
-	if err != nil {
-		return nil, err
+	// Convert compliance requirement status update to DTO
+	var complianceRequirementStatusUpdateDTO complianceDTOs.ComplianceRequirementStatusUpdateDTO
+	if len(complianceRequirement.ComplianceRequirementStatusUpdates) > 0 {
+		err = mapstructure.Decode(complianceRequirement.ComplianceRequirementStatusUpdates[0], &complianceRequirementStatusUpdateDTO)
+		if err != nil {
+			return nil, err
+		}
+		complianceRequirementDTO.ComplianceRequirementStatusUpdate = complianceRequirementStatusUpdateDTO
 	}
-
-	complianceRequirementDTO.ComplianceRequirementStatusUpdates = complianceRequirementStatusUpdatesDTOs
 
 	return &complianceRequirementDTO, nil
 }
@@ -154,7 +155,15 @@ func (crs ComplianceRequirementService) GetFullDetailsByID(complianceID uint, id
 // 		deadline := complianceRequirement.Deadline.Format("2006-01-02")
 // 		complianceRequirementDTO.DeadlineString = &deadline
 // 	}
-// 	//todo :- also add extra fields which required in details screen
+
+// 	// Convert compliance requirement status updates to DTOs
+// 	var complianceRequirementStatusUpdatesDTOs []complianceDTOs.ComplianceRequirementStatusUpdateDTO
+// 	err = mapstructure.Decode(complianceRequirement.ComplianceRequirementStatusUpdates, &complianceRequirementStatusUpdatesDTOs)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	complianceRequirementDTO.ComplianceRequirementStatusUpdates = complianceRequirementStatusUpdatesDTOs
 
 // 	return &complianceRequirementDTO, nil
 // }
