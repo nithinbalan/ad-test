@@ -30,6 +30,7 @@ func (repo *ProcessAssociatedItemRepository) GetAllControls(processID uint, para
 			controls.id AS control_id,
             controls.reference_number AS control_reference_number,
             controls.code AS control_code,
+            controls.last_test_date AS control_last_test_date,
             control_categories.title_en AS control_category_title_en,
             control_categories.title_ar AS control_category_title_ar,
             control_types.title_en AS control_type_title_en,

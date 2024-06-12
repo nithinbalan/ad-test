@@ -115,6 +115,7 @@ func (pais *ProcessAssociatedItemService) GetAllControls(processID uint, params 
 					"control_id":                               control.ControlID,
 					"control_reference_number":                 control.ControlReferenceNumber,
 					"control_code":                             control.ControlCode,
+					"control_last_test_date":                   control.ControlLastTestDate,
 					"control_category_title_en":                control.ControlCategoryTitleEn,
 					"control_category_title_ar":                control.ControlCategoryTitleAr,
 					"control_type_title_en":                    control.ControlTypeTitleEn,

@@ -6,6 +6,7 @@ type ProcessControlListDTO struct {
 	ControlID                            uint    `json:"control_id"`
 	ControlReferenceNumber               string  `json:"control_reference_number"`
 	ControlCode                          *string `json:"control_code"`
+	ControlLastTestDate                  *string `json:"control_last_test_date"`
 	ControlCategoryTitleEn               string  `json:"control_category_title_en"`
 	ControlCategoryTitleAr               string  `json:"control_category_title_ar"`
 	ControlTypeTitleEn                   string  `json:"control_type_title_en"`
