@@ -155,4 +155,14 @@ type SLARegisterDetailDTO struct {
 	CreatedByUser    organizationDTOs.UserMinimalDTO  `json:"created_by"`
 	UpdatedByUser    *organizationDTOs.UserMinimalDTO `json:"updated_by,omitempty"`
 	Documents        []*SLADocumentDTO                `json:"documents"`
+	Checks           []*SLAChecksDTO                  `json:"checks"`
+}
+
+type SLAChecksDTO struct {
+	ID            *uint     `json:"id"`
+	SLARegisterID uint      `json:"sla_register_id"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+	CreatedBy     uint      `json:"created_by"`
+	UpdatedBy     uint      `json:"updated_by,omitempty"`
 }

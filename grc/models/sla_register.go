@@ -30,6 +30,7 @@ type SLARegister struct {
 	LifecycleStatus  *LifecycleStatus  `gorm:"foreignKey:LifecycleStatusID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
 	ComplianceStatus *ComplianceStatus `gorm:"foreignkey:ComplianceStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	Documents        []*SLADocument    `gorm:"foreignKey:SLARegisterID"`
+	Checks           []*SLACheck       `gorm:"foreignKey:SLARegisterID"`
 	CreatedByUser    *User             `gorm:"foreignKey:CreatedBy"`
 	UpdatedByUser    *User             `gorm:"foreignKey:UpdatedBy"`
 }

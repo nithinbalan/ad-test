@@ -243,6 +243,7 @@ func (repo *SLARegisterRepository) GetFullDetailsByID(id uint, tx ...utility.Dat
 		Preload("LifecycleStatus").
 		Preload("ComplianceStatus").
 		Preload("Documents").
+		Preload("Checks").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&slaRegister, id)
