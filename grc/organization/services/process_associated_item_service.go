@@ -150,6 +150,10 @@ func (pais *ProcessAssociatedItemService) GetAllControls(processID uint, params 
 		response = append(response, implItem)
 	}
 
+	if response == nil {
+		response = []map[string]interface{}{}
+	}
+
 	return response, nil
 }
 
