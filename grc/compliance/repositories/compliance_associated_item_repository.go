@@ -41,8 +41,8 @@ func (repo *ComplianceAssociatedItemRepository) GetAllControls(complianceID uint
             control_efficiency_statuses.color_code AS control_efficiency_status_color_code,
             control_efficiency_statuses.type AS control_efficiency_status_type,
             control_implementation_statuses.title_en AS control_implementation_status_en,
-            control_implementation_statuses.title_ar AS control_implementation_status_ar
-            control_implementation_statuses.type AS control_implementation_status_type
+            control_implementation_statuses.title_ar AS control_implementation_status_ar,
+            control_implementation_statuses.type AS control_implementation_status_type,
             control_implementation_statuses.color_code AS control_implementation_status_color_code,
 			owner.first_name_en AS control_owner_first_name_en,
 			owner.first_name_ar AS control_owner_first_name_ar,
