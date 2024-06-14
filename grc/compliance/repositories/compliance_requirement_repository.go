@@ -279,7 +279,7 @@ func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(compl
 	}
 
 	if params.SortBy == "" {
-		params.SortBy = "compliance_clause_no"
+		params.SortBy = "compliance_clauses.clause_no"
 	}
 	if params.Sort != "asc" && params.Sort != "desc" {
 		params.Sort = "asc"
