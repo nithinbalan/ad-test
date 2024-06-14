@@ -11,6 +11,10 @@ CREATE TABLE risk_register (
     title NVARCHAR(255) NOT NULL,
     description NVARCHAR(MAX) NULL,
     reported_at DATE NULL,
+    current_likelihood_id INT NULL,
+    current_impact_id INT NULL,
+    current_risk_rating_id INT NULL,
+    current_risk_rating_value_id INT NULL,
     review_frequency_id INT NULL,
     next_review_date DATE NULL,
     comments NVARCHAR(MAX) NULL,
@@ -23,6 +27,10 @@ CREATE TABLE risk_register (
     CONSTRAINT FK_risk_register_users_1 FOREIGN KEY (owner_id) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_risk_register_organization_units FOREIGN KEY (owner_unit_id) REFERENCES organization_units (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_risk_register_review_frequencies FOREIGN KEY (review_frequency_id) REFERENCES review_frequencies (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_risk_register_risk_matrix_likelihoods FOREIGN KEY (current_likelihood_id) REFERENCES risk_matrix_likelihoods(id),
+    CONSTRAINT FK_risk_register_risk_matrix_impacts FOREIGN KEY (current_impact_id) REFERENCES risk_matrix_impacts(id),
+    CONSTRAINT FK_risk_register_risk_matrix_risk_ratings FOREIGN KEY (current_risk_rating_id) REFERENCES risk_matrix_risk_ratings(id),
+    CONSTRAINT FK_risk_register_risk_matrix_risk_rating_values FOREIGN KEY (current_risk_rating_value_id) REFERENCES risk_matrix_risk_rating_values(id),
     CONSTRAINT FK_risk_register_users_2 FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_risk_register_users_3 FOREIGN KEY (updated_by) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );

@@ -1,53 +1,100 @@
 package services
 
 import (
-	"fmt"
-	"jethur/grc/models"
+	"jethur/grc/risk/dtos"
 	"jethur/grc/risk/repositories"
-	"jethur/utility"
 )
 
 type RiskHeatmapServiceInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.RiskHeatmap, error)
-	GetByID(id uint) (*models.RiskHeatmap, error)
-	GetByType(status string) (*models.RiskHeatmap, error)
+	GetRiskHeatmapByProcessID(processID uint) ([][]*dtos.RiskHeatmapResponseDTO, error)
 }
 
-// Service and implementations
 type RiskHeatmapService struct {
-	repo repositories.RiskHeatmapRepositoryInterface
+	repo                         repositories.RiskHeatmapRepositoryInterface
+	riskMatrixSvc                RiskMatrixServiceInterface
+	riskMatrixRiskRatingValueSvc RiskMatrixRiskRatingValueServiceInterface
 }
 
-func NewRiskHeatmapService(repo repositories.RiskHeatmapRepositoryInterface) RiskHeatmapServiceInterface {
+func NewRiskHeatmapService(repo repositories.RiskHeatmapRepositoryInterface,
+	riskMatrixSvc RiskMatrixServiceInterface,
+	riskMatrixRiskRatingValueSvc RiskMatrixRiskRatingValueServiceInterface,
+) RiskHeatmapServiceInterface {
 	return &RiskHeatmapService{
-		repo: repo,
+		repo:                         repo,
+		riskMatrixSvc:                riskMatrixSvc,
+		riskMatrixRiskRatingValueSvc: riskMatrixRiskRatingValueSvc,
 	}
 }
 
-func (ps *RiskHeatmapService) validateProcessFormDTO(processFormDTO *organizationDTOs.ProcessFormDTO) error {
-	if _, err := ps.processGroupSvc.GetByID(uint(processFormDTO.ProcessGroupID)); err != nil {
-		return utility.NewValidationError(fmt.Errorf("process group does not exist"), "not_exist", "process group")
+func (rhs *RiskHeatmapService) GetRiskHeatmapByProcessID(processID uint) ([][]*dtos.RiskHeatmapResponseDTO, error) {
+	riskProcesses, err := rhs.repo.GetRiskProcessesByProcessID(processID)
+	if err != nil {
+		return nil, err
 	}
 
-	if _, err := ps.userSvc.GetByID(uint(processFormDTO.OwnerID)); err != nil {
-		return utility.NewValidationError(fmt.Errorf("process owner does not exist"), "not_exist", "process owner")
+	var riskRegisterIDs []uint
+	for _, rp := range riskProcesses {
+		riskRegisterIDs = append(riskRegisterIDs, rp.RiskRegisterID)
 	}
 
-	controls := processFormDTO.ControlIds
+	riskMatrixType, err := rhs.riskMatrixSvc.GetByType("erm")
+	if err != nil {
+		return nil, err
+	}
 
-	controlIDs := make(map[uint]bool)
+	riskMatrix, err := rhs.riskMatrixSvc.GetDetailsByID(riskMatrixType.ID)
+	if err != nil {
+		return nil, err
+	}
 
-	for _, control := range controls {
-		if controlIDs[*control] {
-			return utility.NewValidationError(fmt.Errorf("duplicate control ID: %d", control), "duplicate", "control")
+	var riskRatingValueArray []*dtos.RiskMatrixRiskRatingDataDTO
+	for _, riskRating := range riskMatrix.RiskMatrixRiskRating {
+		for _, value := range riskRating.RiskMatrixRiskRatingValue {
+			detail := &dtos.RiskMatrixRiskRatingDataDTO{
+				RiskMatrixID:                riskRating.RiskMatrixID,
+				RiskMatrixRiskRatingID:      value.RiskMatrixRiskRatingID,
+				RiskRatingTitleEN:           riskRating.TitleEn,
+				RiskRatingTitleAR:           riskRating.TitleAr,
+				RiskRatingTitleType:         riskRating.Type,
+				ColorCode:                   riskRating.ColorCode,
+				RiskMatrixRiskRatingValueID: value.ID,
+				Value:                       value.Value,
+			}
+			riskRatingValueArray = append(riskRatingValueArray, detail)
 		}
-
-		if _, err := ps.controlSvc.GetByID(*control); err != nil {
-			return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", control), "not_exist", "control")
-		}
-
-		controlIDs[*control] = true
 	}
 
-	return nil
+	calculationMethod := riskMatrix.CalculationType
+	var heatmap [][]*dtos.RiskHeatmapResponseDTO
+
+	for _, likelihood := range riskMatrix.RiskMatrixLikelihood {
+		if likelihood.Status == "active" {
+			var likelihoodDetails []*dtos.RiskHeatmapResponseDTO
+			for _, impact := range riskMatrix.RiskMatrixImpact {
+				if impact.Status == "active" {
+					score := rhs.riskMatrixRiskRatingValueSvc.EvaluateScore(impact, likelihood, calculationMethod)
+					riskRating, _ := rhs.riskMatrixRiskRatingValueSvc.FindRiskRatingValue(riskRatingValueArray, score)
+
+					riskRegisterCount, _ := rhs.repo.CountRiskRegistersWithLikelihoodAndImpact(riskRegisterIDs, riskRating.RiskMatrixRiskRatingValueID, likelihood.ID, impact.ID)
+
+					impactDetail := &dtos.RiskHeatmapResponseDTO{
+						RiskMatrixImpactID:          impact.ID,
+						RiskMatrixImpactTitleEN:     impact.TitleEn,
+						RiskMatrixImpactTitleAR:     impact.TitleAr,
+						RiskMatrixLikelihoodID:      likelihood.ID,
+						RiskMatrixLikelihoodTitleEN: likelihood.TitleEn,
+						RiskMatrixLikelihoodTitleAR: likelihood.TitleAr,
+						RiskMatrixScore:             score,
+						RiskMatrixRiskRating:        *riskRating,
+						RiskRegisterCount:           riskRegisterCount,
+					}
+
+					likelihoodDetails = append(likelihoodDetails, impactDetail)
+				}
+			}
+			heatmap = append(heatmap, likelihoodDetails)
+		}
+	}
+
+	return heatmap, nil
 }

@@ -30,10 +30,19 @@ func (rhc *RiskHeatmapController) GetProcessRiskHeatmap(c *gin.Context) {
 		return
 	}
 
-	riskHeatmap, err := rhc.service.GetProcessRiskHeatmap(uint(id))
+	riskHeatmap, err := rhc.service.GetRiskHeatmapByProcessID(uint(id))
 	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(rhc.db, c, e.Error())
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, riskHeatmap)
