@@ -1,19 +1,17 @@
 package repositories
 
 import (
+	"fmt"
 	"jethur/grc/models"
 
 	"gorm.io/gorm"
 )
 
-// Interfaces
 type RiskHeatmapRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.RiskHeatmap, error)
-	GetByID(id uint) (*models.RiskHeatmap, error)
-	GetByType(status string) (*models.RiskHeatmap, error)
+	GetRiskProcessesByProcessID(processID uint) ([]models.RiskProcess, error)
+	CountRiskRegistersWithLikelihoodAndImpact(riskRegisterIDs []uint, riskRatingValueID, likelihoodID, impactID uint) (int, error)
 }
 
-// Implementation
 type RiskHeatmapRepository struct {
 	db *gorm.DB
 }
@@ -24,27 +22,22 @@ func NewRiskHeatmapRepository(db *gorm.DB) *RiskHeatmapRepository {
 	}
 }
 
-func (repo *RiskHeatmapRepository) GetProcessRiskHeatmap(sort string, sortBy string, keyword string, status string) ([]*models.RiskHeatmap, error) {
-	var riskHeatmaps []*models.RiskHeatmap
-
-	query := repo.db
-
-	if keyword != "" {
-		query = query.Where("(title_en LIKE ? OR title_ar LIKE ?)", "%"+keyword+"%", "%"+keyword+"%")
+func (repo *RiskHeatmapRepository) GetRiskProcessesByProcessID(processID uint) ([]models.RiskProcess, error) {
+	var riskProcesses []models.RiskProcess
+	if err := repo.db.Where("process_id = ?", processID).Find(&riskProcesses).Error; err != nil {
+		return nil, err
 	}
-	if sortBy == "" {
-		sortBy = "title_en"
-	}
-	if sort != "asc" && sort != "desc" {
-		sort = "asc"
-	}
+	fmt.Println(riskProcesses)
+	return riskProcesses, nil
+}
 
-	if status == "active" || status == "inactive" {
-		query = query.Where("status = ?", status)
+func (repo *RiskHeatmapRepository) CountRiskRegistersWithLikelihoodAndImpact(riskRegisterIDs []uint, riskRatingValueID, likelihoodID, impactID uint) (int, error) {
+	var count int64
+	err := repo.db.Model(&models.RiskRegister{}).
+		Where("id IN (?) AND current_risk_rating_value_id = ? AND risk_matrix_likelihood_id = ? AND risk_matrix_impact_id = ?", riskRegisterIDs, riskRatingValueID, likelihoodID, impactID).
+		Count(&count).Error
+	if err != nil {
+		return 0, err
 	}
-
-	query = query.Order(sortBy + " " + sort)
-	result := query.Find(&riskHeatmaps)
-
-	return riskHeatmaps, result.Error
+	return int(count), nil
 }

@@ -5,25 +5,27 @@ import (
 )
 
 type RiskRegister struct {
-	ID                                 uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
-	ReferenceNumber                    string     `json:"reference_number" binding:"required,max=45" gorm:"type:varchar(45);not null;unique"`
-	RiskCategoryID                     uint       `json:"risk_category_id" binding:"required"`
-	RiskSourceID                       uint       `json:"risk_source_id" binding:"required"`
-	OwnerUnitID                        uint       `json:"owner_unit_id" binding:"required"`
-	OwnerID                            uint       `json:"owner_id" binding:"required"`
-	RiskStatusID                       uint       `json:"risk_status_id" binding:"required"`
-	Title                              string     `json:"title" binding:"required,max=255"`
-	Description                        *string    `json:"description" gorm:"type:nvarchar(max)"`
-	ReportedAt                         *time.Time `json:"reported_at"`
-	CurrentRiskMatrixRiskRatingID      uint       `json:"current_risk_matrix_risk_rating_id" gorm:"default:null"`
-	CurrentRiskMatrixRiskRatingValueID uint       `json:"current_risk_matrix_risk_rating_value_id" gorm:"default:null"`
-	ReviewFrequencyID                  *uint      `json:"review_frequency_id"`
-	NextReviewDate                     *time.Time `json:"next_review_date"`
-	Comments                           *string    `json:"comments" gorm:"type:nvarchar(max)"`
-	CreatedBy                          uint       `json:"created_by" binding:"required"`
-	UpdatedBy                          *uint      `json:"updated_by"`
-	CreatedAt                          time.Time  `json:"created_at" binding:"required" gorm:"type:datetime;not null"`
-	UpdatedAt                          *time.Time `json:"updated_at,omitempty" gorm:"type:datetime;default:null"`
+	ID                       uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
+	ReferenceNumber          string     `json:"reference_number" binding:"required,max=45" gorm:"type:varchar(45);not null;unique"`
+	RiskCategoryID           uint       `json:"risk_category_id" binding:"required"`
+	RiskSourceID             uint       `json:"risk_source_id" binding:"required"`
+	OwnerUnitID              uint       `json:"owner_unit_id" binding:"required"`
+	OwnerID                  uint       `json:"owner_id" binding:"required"`
+	RiskStatusID             uint       `json:"risk_status_id" binding:"required"`
+	Title                    string     `json:"title" binding:"required,max=255"`
+	Description              *string    `json:"description" gorm:"type:nvarchar(max)"`
+	ReportedAt               *time.Time `json:"reported_at"`
+	CurrentLikelihoodID      *uint      `json:"current_likelihood_id" gorm:"default:null"`
+	CurrentImpactID          *uint      `json:"current_impact_id" gorm:"default:null"`
+	CurrentRiskRatingID      *uint      `json:"current_risk_rating_id" gorm:"default:null"`
+	CurrentRiskRatingValueID *uint      `json:"current_risk_rating_value_id" gorm:"default:null"`
+	ReviewFrequencyID        *uint      `json:"review_frequency_id"`
+	NextReviewDate           *time.Time `json:"next_review_date"`
+	Comments                 *string    `json:"comments" gorm:"type:nvarchar(max)"`
+	CreatedBy                uint       `json:"created_by" binding:"required"`
+	UpdatedBy                *uint      `json:"updated_by"`
+	CreatedAt                time.Time  `json:"created_at" binding:"required" gorm:"type:datetime;not null"`
+	UpdatedAt                *time.Time `json:"updated_at,omitempty" gorm:"type:datetime;default:null"`
 
 	// Relationships
 	RiskCategory              *RiskCategory                `gorm:"foreignkey:RiskCategoryID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
@@ -31,8 +33,10 @@ type RiskRegister struct {
 	OwnerUnit                 *OrganizationUnit            `gorm:"foreignkey:OwnerUnitID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	Owner                     *User                        `gorm:"foreignkey:OwnerID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	ReviewFrequency           *ReviewFrequency             `gorm:"foreignkey:ReviewFrequencyID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	RiskMatrixRiskRating      *RiskMatrixRiskRating        `gorm:"foreignkey:CurrentRiskMatrixRiskRatingID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	RiskMatrixRiskRatingValue *RiskMatrixRiskRatingValue   `gorm:"foreignkey:CurrentRiskMatrixRiskRatingValueID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	RiskMatrixLikelihood      *RiskMatrixLikelihood        `gorm:"foreignkey:CurrentLikelihoodID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	RiskMatrixImpact          *RiskMatrixImpact            `gorm:"foreignkey:CurrentImpactID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	RiskMatrixRiskRating      *RiskMatrixRiskRating        `gorm:"foreignkey:CurrentRiskRatingID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	RiskMatrixRiskRatingValue *RiskMatrixRiskRatingValue   `gorm:"foreignkey:CurrentRiskRatingValueID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	RiskStatus                *RiskStatus                  `gorm:"foreignkey:RiskStatusID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	CreatedByUser             *User                        `gorm:"foreignkey:CreatedBy;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	UpdatedByUser             *User                        `gorm:"foreignkey:UpdatedBy;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
