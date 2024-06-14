@@ -28,6 +28,8 @@ type ProcessRepositoryInterface interface {
 	//lifecycle status
 	GetIDsByLifecycleStatus(ids []uint, status string) ([]uint, error)
 	UpdateLifecycleStatusForIDs(ids []uint, statusId uint) ([]uint, error)
+
+	GetControlSummary(processID uint) ([]models.ProcessControl, error)
 }
 
 type ProcessRepository struct {
@@ -293,4 +295,20 @@ func (repo *ProcessRepository) DeleteProcessControls(controlIds []*uint, tx ...u
 	}
 
 	return nil
+}
+
+func (repo *ProcessRepository) GetControlSummary(processID uint) ([]models.ProcessControl, error) {
+	var processControls []models.ProcessControl
+
+	result := repo.db.
+		Preload("Control").
+		Preload("Control.ControlImplementationStatus").
+		Preload("Control.ControlEfficiencyStatus").
+		Where("process_id = ?", processID).
+		Find(&processControls)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return processControls, nil
 }

@@ -162,6 +162,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.POST("/processes/delete", processController.DeleteProcesses)
 	organizationRoutes.PUT("/processes/archive", processController.ArchiveProcesses)
 	organizationRoutes.PUT("/processes/restore", processController.RestoreProcesses)
+	organizationRoutes.GET("/processes/:processId/control-summary", processController.GetControlSummary)
 
 	organizationRoutes.GET("processes/:processId/controls", processAssociatedItemController.GetAllProcessControls)
 	organizationRoutes.GET("processes/:processId/risks", processAssociatedItemController.GetAllProcessRisks)
