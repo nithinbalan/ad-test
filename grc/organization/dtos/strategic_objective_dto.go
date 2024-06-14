@@ -8,9 +8,9 @@ type StrategicObjectiveListDTO struct {
 }
 
 type StrategicObjectiveFormDTO struct {
-	TitleEn string `json:"title_en"`
-	TitleAr string `json:"title_ar"`
-	Status  string `json:"status"`
+	TitleEn string `json:"title_en" binding:"required"`
+	TitleAr string `json:"title_ar" binding:"required"`
+	Status  string `json:"status" binding:"required"`
 }
 type StrategicObjectiveDTO struct {
 	ID      int    `json:"id"`
