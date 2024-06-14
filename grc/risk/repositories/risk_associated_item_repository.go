@@ -28,6 +28,9 @@ func (repo *RiskAssociatedItemRepository) GetAllControls(riskID uint, params *ri
 	query := repo.db.Table("risk_controls").
 		Select(`
 			controls.id AS control_id,
+			controls.reference_number AS control_reference_number,
+            controls.code AS control_code,
+            controls.last_test_date AS control_last_test_date,
             control_categories.title_en AS control_category_title_en,
             control_categories.title_ar AS control_category_title_ar,
             control_types.title_en AS control_type_title_en,
@@ -37,8 +40,20 @@ func (repo *RiskAssociatedItemRepository) GetAllControls(riskID uint, params *ri
             controls.description AS control_description,
             control_efficiency_statuses.title_en AS control_efficiency_status_en,
             control_efficiency_statuses.title_ar AS control_efficiency_status_ar,
+			control_efficiency_statuses.color_code AS control_efficiency_status_color_code,
+            control_efficiency_statuses.type AS control_efficiency_status_type,
             control_implementation_statuses.title_en AS control_implementation_status_en,
-            control_implementation_statuses.title_ar AS control_implementation_status_ar
+            control_implementation_statuses.title_ar AS control_implementation_status_ar,
+			control_implementation_statuses.type AS control_implementation_status_type,
+            control_implementation_statuses.color_code AS control_implementation_status_color_code,
+			owner.first_name_en AS control_owner_first_name_en,
+			owner.first_name_ar AS control_owner_first_name_ar,
+			owner.last_name_en AS control_owner_last_name_en,
+			owner.last_name_ar AS control_owner_last_name_ar,
+			owner.initial AS control_owner_initial,
+            owner.color AS control_owner_color,
+            owner.email AS control_owner_email,
+            owner.profile_image_path AS control_owner_profile_image_path
         `).
 		Joins(`
 			LEFT JOIN controls ON controls.id = risk_controls.control_id
@@ -46,6 +61,7 @@ func (repo *RiskAssociatedItemRepository) GetAllControls(riskID uint, params *ri
             LEFT JOIN control_types ON controls.control_type_id = control_types.id
             LEFT JOIN control_efficiency_statuses ON controls.control_efficiency_status_id = control_efficiency_statuses.id
             LEFT JOIN control_implementation_statuses ON controls.control_implementation_status_id = control_implementation_statuses.id
+			LEFT JOIN users AS owner ON controls.owner_id = owner.id
         `).Where("risk_controls.risk_register_id = ?", riskID)
 
 	// Apply search keyword if exists
@@ -55,6 +71,7 @@ func (repo *RiskAssociatedItemRepository) GetAllControls(riskID uint, params *ri
 			(controls.title_en LIKE ? OR
 			controls.title_ar LIKE ? OR
 			controls.reference_number LIKE ? OR
+			controls.code LIKE ? OR
 			control_categories.title_en LIKE ? OR
 			control_categories.title_ar LIKE ? OR
 			control_types.title_en LIKE ? OR
@@ -62,9 +79,14 @@ func (repo *RiskAssociatedItemRepository) GetAllControls(riskID uint, params *ri
 			control_efficiency_statuses.title_en LIKE ? OR
 			control_efficiency_statuses.title_ar LIKE ? OR
 			control_implementation_statuses.title_en LIKE ? OR
-			control_implementation_statuses.title_ar LIKE ?)`,
+			control_implementation_statuses.title_ar LIKE ? OR
+			owner.first_name_en LIKE ? OR
+			owner.first_name_ar LIKE ? OR
+			owner.last_name_en LIKE ? OR
+			owner.last_name_ar LIKE ? OR
+			owner.email LIKE ?)`,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
-			keyword, keyword)
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
 	if params.SortBy == "" {
