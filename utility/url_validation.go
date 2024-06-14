@@ -44,5 +44,5 @@ func IsValidFacebookURL(toTest string) bool {
 }
 
 func IsValidTwitterURL(toTest string) bool {
-	return IsValidPlatformURL(toTest, []string{"www.twitter.com", "twitter.com", "m.twitter.com"})
+	return IsValidPlatformURL(toTest, []string{"www.twitter.com", "twitter.com", "m.twitter.com", "x.com"})
 }
