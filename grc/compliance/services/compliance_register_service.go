@@ -115,8 +115,8 @@ func (crs ComplianceRegisterService) GetFullDetailsByID(id uint, tx ...utility.D
 		complianceDTO.NextReviewDateString = &nextReviewDate
 	}
 	if compliance.LastReviewedDate != nil {
-		nextReviewDate := compliance.LastReviewedDate.Format("2006-01-02")
-		complianceDTO.LastReviewedDateString = &nextReviewDate
+		lastReviewDate := compliance.LastReviewedDate.Format("2006-01-02")
+		complianceDTO.LastReviewedDateString = &lastReviewDate
 	}
 
 	complianceDTO.CreatedAt = compliance.CreatedAt
@@ -613,7 +613,7 @@ func (crs *ComplianceRegisterService) StatusUpdate(id uint, currentUserID uint, 
 
 func (crs *ComplianceRegisterService) ReviewStatusUpdate(complianceRegister *models.ComplianceRegister, tx utility.DatabaseTransaction) error {
 
-	err := crs.repo.Update(complianceRegister,tx)
+	err := crs.repo.Update(complianceRegister, tx)
 	if err != nil {
 		return err
 	}
