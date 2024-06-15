@@ -423,10 +423,17 @@ func (ps *ProcessService) validateProcessFormDTO(processFormDTO *organizationDTO
 func (ps *ProcessService) GetControlSummary(id uint) (map[string]interface{}, error) {
 	processControls, err := ps.repo.GetControlSummary(id)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, utility.NewResourceNotFoundError(err, id)
-		}
 		return nil, err
+	}
+
+	if len(processControls) == 0 {
+		return map[string]interface{}{
+			"total_control_score":       0,
+			"implementation_status":     []map[string]interface{}{},
+			"efficiency_percentage":     0,
+			"implementation_percentage": 0,
+			"total_efficiency":          []map[string]interface{}{},
+		}, nil
 	}
 
 	implementationStatusCount := make(map[string]int)
