@@ -25,7 +25,7 @@ type ProcessServiceInterface interface {
 	Archive(ids []uint, currentUserID uint) ([]uint, error)
 	Restore(ids []uint, currentUserID uint) ([]uint, error)
 
-	GetControlSummary(id uint) ([]map[string]interface{}, error)
+	GetControlSummary(id uint) (map[string]interface{}, error)
 }
 
 type ProcessService struct {
@@ -420,7 +420,7 @@ func (ps *ProcessService) validateProcessFormDTO(processFormDTO *organizationDTO
 	return nil
 }
 
-func (ps *ProcessService) GetControlSummary(id uint) ([]map[string]interface{}, error) {
+func (ps *ProcessService) GetControlSummary(id uint) (map[string]interface{}, error) {
 	processControls, err := ps.repo.GetControlSummary(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -431,46 +431,55 @@ func (ps *ProcessService) GetControlSummary(id uint) ([]map[string]interface{}, 
 
 	implementationStatusCount := make(map[string]int)
 	efficiencyStatusCount := make(map[string]int)
+	implementationDetails := make(map[string]models.ControlImplementationStatus)
+	efficiencyDetails := make(map[string]models.ControlEfficiencyStatus)
 
 	for _, pc := range processControls {
 		implStatus := pc.Control.ControlImplementationStatus.Type
 		implementationStatusCount[implStatus]++
+		implementationDetails[implStatus] = *pc.Control.ControlImplementationStatus
 
-		effStatus := pc.Control.ControlEfficiencyStatus.Type
-		efficiencyStatusCount[effStatus]++
+		if pc.Control.ControlEfficiencyStatus != nil {
+			effStatus := pc.Control.ControlEfficiencyStatus.Type
+			efficiencyStatusCount[effStatus]++
+			efficiencyDetails[effStatus] = *pc.Control.ControlEfficiencyStatus
+		}
 	}
 
 	totalControls := len(processControls)
 
-	// Calculate percentages
-	implementationPercentage := (float64(implementationStatusCount["implemented"]) / float64(totalControls)) * 100
-	efficiencyPercentage := (float64(efficiencyStatusCount["efficient"]) / float64(totalControls)) * 100
-
-	implementationStatus := make(map[string]map[string]interface{})
-	efficiencyStatus := make(map[string]map[string]interface{})
-
+	implementationStatus := make([]map[string]interface{}, 0)
 	for status, count := range implementationStatusCount {
-		implementationStatus[status] = map[string]interface{}{
+		implDetail := implementationDetails[status]
+		implementationStatus = append(implementationStatus, map[string]interface{}{
+			"id":         implDetail.ID,
+			"type":       implDetail.Type,
+			"title_en":   implDetail.TitleEn,
+			"title_ar":   implDetail.TitleAr,
 			"count":      count,
-			"percentage": (float64(count) / float64(totalControls)) * 100,
-		}
+			"color_code": implDetail.ColorCode,
+		})
 	}
 
+	efficiencyStatus := make([]map[string]interface{}, 0)
 	for status, count := range efficiencyStatusCount {
-		efficiencyStatus[status] = map[string]interface{}{
+		effDetail := efficiencyDetails[status]
+		efficiencyStatus = append(efficiencyStatus, map[string]interface{}{
+			"id":         effDetail.ID,
+			"type":       effDetail.Type,
+			"title_en":   effDetail.TitleEn,
+			"title_ar":   effDetail.TitleAr,
 			"count":      count,
-			"percentage": (float64(count) / float64(totalControls)) * 100,
-		}
+			"color_code": effDetail.ColorCode,
+		})
 	}
 
-	summary := []map[string]interface{}{
-		{
-			"total_control_score":       implementationPercentage,
-			"implementation_status":     implementationStatus,
-			"efficiency_percentage":     efficiencyPercentage,
-			"implementation_percentage": implementationPercentage,
-			"total_efficiency":          efficiencyStatus,
-		},
+	summary := map[string]interface{}{
+		"total_control_score":       (float64(implementationStatusCount["implemented"]) / float64(totalControls)) * 100,
+		"implementation_status":     implementationStatus,
+		"efficiency_percentage":     (float64(efficiencyStatusCount["efficient"]) / float64(totalControls)) * 100,
+		"implementation_percentage": (float64(implementationStatusCount["implemented"]) / float64(totalControls)) * 100,
+		"total_efficiency":          efficiencyStatus,
 	}
 
 	return summary, nil
