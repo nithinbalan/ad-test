@@ -1,7 +1,7 @@
 package dtos
 
 type StrategicObjectiveListDTO struct {
-	ID      int    `json:"id"`
+	ID      uint   `json:"id"`
 	TitleEn string `json:"title_en"`
 	TitleAr string `json:"title_ar"`
 	Status  string `json:"status"`
@@ -13,7 +13,7 @@ type StrategicObjectiveFormDTO struct {
 	Status  string `json:"status" binding:"required"`
 }
 type StrategicObjectiveDTO struct {
-	ID      int    `json:"id"`
+	ID      uint   `json:"id"`
 	TitleEn string `json:"title_en"`
 	TitleAr string `json:"title_ar"`
 	Status  string `json:"status"`
