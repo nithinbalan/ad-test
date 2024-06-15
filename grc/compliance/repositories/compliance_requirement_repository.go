@@ -19,6 +19,7 @@ type ComplianceRequirementRepositoryInterface interface {
 	GetByID(id uint) (*models.ComplianceRequirement, error)
 	GetFullDetailsByID(id uint) (*models.ComplianceRequirement, error)
 	Create(complianceRequirement *models.ComplianceRequirement, tx ...utility.DatabaseTransaction) (uint, error)
+	CreateComplianceRequirementStatusUpdate(complianceRequirementStatusUpdate *models.ComplianceRequirementStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(complianceRequirement *models.ComplianceRequirement, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	GetOrCreateComplianceClause(complianceClause *models.ComplianceClause, tx ...utility.DatabaseTransaction) (*models.ComplianceClause, error)
@@ -399,6 +400,17 @@ func (repo *ComplianceRequirementRepository) Create(complianceRequirement *model
 		return 0, err
 	}
 	return complianceRequirement.ID, nil
+}
+
+func (repo *ComplianceRequirementRepository) CreateComplianceRequirementStatusUpdate(complianceRequirementStatusUpdate *models.ComplianceRequirementStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(complianceRequirementStatusUpdate).Error; err != nil {
+		return 0, err
+	}
+	return complianceRequirementStatusUpdate.ID, nil
 }
 
 func (repo *ComplianceRequirementRepository) Update(complianceRequirement *models.ComplianceRequirement, tx ...utility.DatabaseTransaction) error {

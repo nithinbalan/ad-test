@@ -43,7 +43,8 @@ func NewComplianceRequirementService(
 	complianceRegisterSvc ComplianceRegisterServiceInterface,
 	complianceRequirementCategorySvc ComplianceRequirementCategoryServiceInterface,
 	complianceStatusSvc ComplianceStatusServiceInterface,
-	severityLevelSvc masterRepositories.SeverityLevelRepositoryInterface) ComplianceRequirementServiceInterface {
+	severityLevelSvc masterRepositories.SeverityLevelRepositoryInterface,
+) ComplianceRequirementServiceInterface {
 	return &ComplianceRequirementService{
 		repo:                             repo,
 		activityLogSvc:                   activityLogSvc,
@@ -166,7 +167,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		SeverityLevelID:                 ComplianceRequirementFormDTO.SeverityLevelID,
 		Title:                           ComplianceRequirementFormDTO.Title,
 		Deadline:                        dates.Deadline,
-		CreatedBy:                       currentUserID,
+		CreatedByID:                     currentUserID,
 		ComplianceClauseID:              clause.ID,
 	}
 
@@ -175,6 +176,21 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		tx.Rollback()
 		return 0, err
 	}
+
+	complianceStatusID := ComplianceRequirementFormDTO.ComplianceStatusID
+	complianceRequirementUpdate := &models.ComplianceRequirementStatusUpdate{
+		ComplianceRequirementID: id,
+		ComplianceStatusID:      complianceStatusID,
+		Comment:                 "Initial compliance status",
+		CreatedBy:               currentUserID,
+	}
+
+	_, err = crs.repo.CreateComplianceRequirementStatusUpdate(complianceRequirementUpdate, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
 	tx.Commit()
 	go func() {
 		err := crs.activityLogSvc.LogActivity(
@@ -243,7 +259,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 	existingComplianceRequirement.SeverityLevelID = ComplianceRequirementFormDTO.SeverityLevelID
 	existingComplianceRequirement.Title = ComplianceRequirementFormDTO.Title
 	existingComplianceRequirement.Deadline = dates.Deadline
-	existingComplianceRequirement.UpdatedBy = &currentUserID
+	existingComplianceRequirement.UpdatedByID = &currentUserID
 	existingComplianceRequirement.ComplianceClauseID = clause.ID
 
 	err = crs.repo.Update(existingComplianceRequirement)
@@ -330,7 +346,7 @@ func (crs *ComplianceRequirementService) StatusUpdate(complianceID uint, id uint
 	}
 
 	existingComplianceRequirement.ComplianceStatusID = complianceStatusID
-	existingComplianceRequirement.UpdatedBy = &currentUserID
+	existingComplianceRequirement.UpdatedByID = &currentUserID
 
 	err = crs.repo.Update(existingComplianceRequirement, tx)
 
