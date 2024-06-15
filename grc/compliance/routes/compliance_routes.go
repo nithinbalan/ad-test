@@ -18,7 +18,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceReviewStatusController := app.ComplianceModule.ComplianceReviewStatusController
 	complianceRegisterController := app.ComplianceModule.ComplianceRegisterController
 	complianceAssociatedItemController := app.ComplianceModule.ComplianceAssociatedItemController
-	complianceRequirementAssociatedItemController := app.ComplianceModule.ComplianceRequirementAssociatedItemController
+	// complianceRequirementAssociatedItemController := app.ComplianceModule.ComplianceRequirementAssociatedItemController
 	complianceRequirementCategoryController := app.ComplianceModule.ComplianceRequirementCategoryController
 	complianceRequirementController := app.ComplianceModule.ComplianceRequirementController
 	complianceActionPlanController := app.ComplianceModule.ComplianceActionPlanController
@@ -80,10 +80,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	//Compliance Associated Items
 	complianceRoutes.GET("/compliances/:complianceId/controls", complianceAssociatedItemController.GetAllComplianceControls)
-
-	//Compliance Requiremnt Associated Items
-	complianceRoutes.GET("/compliances/:complianceId/risks", complianceRequirementAssociatedItemController.GetAllComplianceRequirementRisks)
-	complianceRoutes.GET("/compliances/:complianceId/incidents", complianceRequirementAssociatedItemController.GetAllComplianceRequirementIncidents)
+	complianceRoutes.GET("/compliances/:complianceId/risks", complianceAssociatedItemController.GetAllComplianceRisks)
+	complianceRoutes.GET("/compliances/:complianceId/incidents", complianceAssociatedItemController.GetAllComplianceIncidents)
 
 	//SLA Register
 	complianceRoutes.GET("/sla-register", SLARegisterController.GetAllSLARegisters)
