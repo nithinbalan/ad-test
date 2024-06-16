@@ -167,7 +167,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		SeverityLevelID:                 complianceRequirementFormDTO.SeverityLevelID,
 		Title:                           complianceRequirementFormDTO.Title,
 		Deadline:                        dates.Deadline,
-		CreatedByID:                     currentUserID,
+		CreatedBy:                       currentUserID,
 		ComplianceClauseID:              clause.ID,
 	}
 
@@ -182,7 +182,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		ComplianceRequirementID: id,
 		ComplianceStatusID:      complianceStatusID,
 		Comment:                 "Initial compliance status",
-		CreatedByID:             currentUserID,
+		CreatedBy:               currentUserID,
 	}
 
 	_, err = crs.repo.CreateComplianceRequirementStatusUpdate(complianceRequirementUpdate, tx)
@@ -296,7 +296,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 	existingComplianceRequirement.SeverityLevelID = complianceRequirementFormDTO.SeverityLevelID
 	existingComplianceRequirement.Title = complianceRequirementFormDTO.Title
 	existingComplianceRequirement.Deadline = dates.Deadline
-	existingComplianceRequirement.UpdatedByID = &currentUserID
+	existingComplianceRequirement.UpdatedBy = &currentUserID
 	existingComplianceRequirement.ComplianceClauseID = clause.ID
 
 	err = crs.repo.Update(existingComplianceRequirement, tx)
@@ -519,7 +519,7 @@ func (crs *ComplianceRequirementService) StatusUpdate(complianceID uint, id uint
 	}
 
 	existingComplianceRequirement.ComplianceStatusID = complianceStatusID
-	existingComplianceRequirement.UpdatedByID = &currentUserID
+	existingComplianceRequirement.UpdatedBy = &currentUserID
 
 	err = crs.repo.Update(existingComplianceRequirement, tx)
 

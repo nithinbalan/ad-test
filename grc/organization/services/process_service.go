@@ -118,7 +118,7 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 		TitleEn:           processFormDTO.TitleEn,
 		TitleAr:           processFormDTO.TitleAr,
 		Description:       processFormDTO.Description,
-		CreatedByID:       currentUserID,
+		CreatedBy:         currentUserID,
 	}
 
 	id, err := ps.repo.Create(process)
@@ -191,7 +191,7 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 	existingProcess.TitleEn = processFormDTO.TitleEn
 	existingProcess.TitleAr = processFormDTO.TitleAr
 	existingProcess.Description = processFormDTO.Description
-	existingProcess.UpdatedByID = &currentUserID
+	existingProcess.UpdatedBy = &currentUserID
 
 	err = ps.repo.Update(existingProcess)
 	if err != nil {

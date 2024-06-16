@@ -85,7 +85,7 @@ func (casus *ControlActionPlanStatusUpdateService) Create(controlID uint, contro
 		ActionPlanStatusID:  controlActionPlanStatusUpdateFormDTO.ActionPlanStatusID,
 		Comment:             controlActionPlanStatusUpdateFormDTO.Comment,
 		Percentage:          controlActionPlanStatusUpdateFormDTO.Percentage,
-		CreatedByID:         currentUserID,
+		CreatedBy:           currentUserID,
 	}
 
 	id, err := casus.repo.Create(controlActionPlanUpdate)
@@ -121,7 +121,7 @@ func (casus *ControlActionPlanStatusUpdateService) Create(controlID uint, contro
 			Token:                           encryptedFileName,
 			OriginalName:                    doc.OriginalName,
 			Type:                            doc.Type,
-			CreatedByID:                     currentUserID,
+			CreatedBy:                       currentUserID,
 		}
 
 		documents = append(documents, document)
@@ -191,7 +191,7 @@ func (casus *ControlActionPlanStatusUpdateService) Update(controlID uint, contro
 
 	existingComplianceActionPlanStatusUpdate.Comment = controlActionPlanStatusUpdateFormDTO.Comment
 	existingComplianceActionPlanStatusUpdate.Percentage = controlActionPlanStatusUpdateFormDTO.Percentage
-	existingComplianceActionPlanStatusUpdate.UpdatedByID = &currentUserID
+	existingComplianceActionPlanStatusUpdate.UpdatedBy = &currentUserID
 
 	err = casus.repo.Update(existingComplianceActionPlanStatusUpdate, tx)
 	if err != nil {
@@ -232,7 +232,7 @@ func (casus *ControlActionPlanStatusUpdateService) Update(controlID uint, contro
 				Token:                           encryptedFileName,
 				OriginalName:                    doc.OriginalName,
 				Type:                            doc.Type,
-				CreatedByID:                     currentUserID,
+				CreatedBy:                       currentUserID,
 			}
 
 			// Append the document to the slice

@@ -85,7 +85,7 @@ func (masus *MeetingActionPlanStatusUpdateService) Create(meetingID uint, meetin
 		ActionPlanStatusID:  meetingActionPlanStatusUpdateFormDTO.ActionPlanStatusID,
 		Comment:             meetingActionPlanStatusUpdateFormDTO.Comment,
 		Percentage:          meetingActionPlanStatusUpdateFormDTO.Percentage,
-		CreatedByID:         currentUserID,
+		CreatedBy:           currentUserID,
 	}
 
 	id, err := masus.repo.Create(meetingActionPlanUpdate)
@@ -121,7 +121,7 @@ func (masus *MeetingActionPlanStatusUpdateService) Create(meetingID uint, meetin
 			Token:                           encryptedFileName,
 			OriginalName:                    doc.OriginalName,
 			Type:                            doc.Type,
-			CreatedByID:                     currentUserID,
+			CreatedBy:                       currentUserID,
 		}
 
 		documents = append(documents, document)
@@ -191,7 +191,7 @@ func (masus *MeetingActionPlanStatusUpdateService) Update(meetingID uint, meetin
 
 	existingMeetingActionPlanStatusUpdate.Comment = meetingActionPlanStatusUpdateFormDTO.Comment
 	existingMeetingActionPlanStatusUpdate.Percentage = meetingActionPlanStatusUpdateFormDTO.Percentage
-	existingMeetingActionPlanStatusUpdate.UpdatedByID = &currentUserID
+	existingMeetingActionPlanStatusUpdate.UpdatedBy = &currentUserID
 
 	err = masus.repo.Update(existingMeetingActionPlanStatusUpdate, tx)
 	if err != nil {
@@ -232,7 +232,7 @@ func (masus *MeetingActionPlanStatusUpdateService) Update(meetingID uint, meetin
 				Token:                           encryptedFileName,
 				OriginalName:                    doc.OriginalName,
 				Type:                            doc.Type,
-				CreatedByID:                     currentUserID,
+				CreatedBy:                       currentUserID,
 			}
 
 			// Append the document to the slice

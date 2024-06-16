@@ -84,7 +84,7 @@ func (crsus *ComplianceRequirementStatusUpdateService) Create(ComplianceID uint,
 		ComplianceRequirementID: ComplianceRequirementID,
 		ComplianceStatusID:      complianceStatusID,
 		Comment:                 complianceRequirementStatusUpdateFormDTO.Comment,
-		CreatedByID:             currentUserID,
+		CreatedBy:               currentUserID,
 	}
 
 	id, err := crsus.repo.Create(complianceRequirementUpdate, tx)
@@ -189,7 +189,7 @@ func (crsus *ComplianceRequirementStatusUpdateService) Update(ComplianceID uint,
 
 	// Update Compliance StatusUpdate -- update comment only
 	existingComplianceRequirementStatusUpdate.Comment = ComplianceRequirementStatusUpdateFormDTO.Comment
-	existingComplianceRequirementStatusUpdate.UpdatedByID = &currentUserID
+	existingComplianceRequirementStatusUpdate.UpdatedBy = &currentUserID
 
 	err = crsus.repo.Update(existingComplianceRequirementStatusUpdate, tx)
 	if err != nil {
