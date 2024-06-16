@@ -13,8 +13,8 @@ CREATE TABLE meetings (
     end_time TIME NOT NULL,
     organizer_id INT NOT NULL,
     is_public BIT NOT NULL DEFAULT 0,
-    created_by INT NOT NULL,
-    updated_by INT,
+    created_by_id INT NOT NULL,
+    updated_by_id INT,
     created_at DATETIME NOT NULL,
     updated_at DATETIME,
     meeting_status_id INT NOT NULL,
@@ -22,8 +22,8 @@ CREATE TABLE meetings (
     CONSTRAINT FK_meetings_self FOREIGN KEY (meeting_id) REFERENCES meetings (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_meetings_meeting_frequencies FOREIGN KEY (meeting_frequency_id) REFERENCES meeting_frequencies (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_meetings_users_1 FOREIGN KEY (organizer_id) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
-    CONSTRAINT FK_meetings_users_2 FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
-    CONSTRAINT FK_meetings_users_3 FOREIGN KEY (updated_by) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_meetings_users_2 FOREIGN KEY (created_by_id) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_meetings_users_3 FOREIGN KEY (updated_by_id) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_meetings_meeting_statuses FOREIGN KEY (meeting_status_id) REFERENCES meeting_statuses (id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 

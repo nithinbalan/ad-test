@@ -6,7 +6,7 @@ CREATE TABLE user_notification_settings (
     notification_master_id INT NOT NULL,
     is_enable TINYINT NOT NULL DEFAULT 0,
     updated_at DATETIME,
-    updated_by INT,
+    updated_by_id INT,
     CONSTRAINT FK_user_notification_settings_users FOREIGN KEY (user_id) REFERENCES users(id),
     CONSTRAINT FK_user_notification_settings_notification_masters FOREIGN KEY (notification_master_id) REFERENCES notification_masters(id)
 );

@@ -16,8 +16,8 @@ CREATE TABLE tasks
     severity_level_id INT NULL,
     responsible_user_id INT NULL,
     task_status_id INT NOT NULL,
-    created_by INT NOT NULL,
-    updated_by INT NULL,
+    created_by_id INT NOT NULL,
+    updated_by_id INT NULL,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NULL,
     CONSTRAINT FK_tasks_modules FOREIGN KEY (module_id) REFERENCES modules(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
@@ -28,8 +28,8 @@ CREATE TABLE tasks
     CONSTRAINT FK_tasks_severity_levels FOREIGN KEY (severity_level_id) REFERENCES severity_levels (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_tasks_task_statuses FOREIGN KEY (task_status_id) REFERENCES task_statuses (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_tasks_users_1 FOREIGN KEY (responsible_user_id) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
-    CONSTRAINT FK_tasks_users_2 FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
-    CONSTRAINT FK_tasks_users_3 FOREIGN KEY (updated_by) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION
+    CONSTRAINT FK_tasks_users_2 FOREIGN KEY (created_by_id) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_tasks_users_3 FOREIGN KEY (updated_by_id) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 
 -- +goose StatementEnd

@@ -13,12 +13,12 @@ CREATE TABLE control_tests (
     tested_at DATE,
     tested_by INT NOT NULL,
     updated_at DATETIME,
-    updated_by INT,
+    updated_by_id INT,
     CONSTRAINT FK_control_tests_controls FOREIGN KEY (control_id) REFERENCES controls(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_control_tests_control_implementation_statuses FOREIGN KEY (control_implementation_status_id) REFERENCES control_implementation_statuses(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_control_tests_control_efficiency_statuses FOREIGN KEY (control_efficiency_status_id) REFERENCES control_efficiency_statuses(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_control_tests_users_1 FOREIGN KEY (tested_by) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
-    CONSTRAINT FK_control_tests_users_2 FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION
+    CONSTRAINT FK_control_tests_users_2 FOREIGN KEY (updated_by_id) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 -- +goose StatementEnd
 
