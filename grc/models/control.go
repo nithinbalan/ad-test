@@ -27,8 +27,8 @@ type Control struct {
 	LastTestDate                  *time.Time `json:"last_test_date,omitempty" gorm:"type:date;default:null" binding:"omitempty"`
 	NextTestDate                  *time.Time `json:"next_test_date,omitempty" gorm:"type:date;default:null" binding:"omitempty"`
 	ImplementedAt                 *time.Time `json:"implemented_at,omitempty" gorm:"type:date;default:null" binding:"omitempty"`
-	CreatedBy                     uint       `json:"created_by" gorm:"not null" binding:"required"`
-	UpdatedBy                     *uint      `json:"updated_by,omitempty" gorm:"default:null" binding:"omitempty"`
+	CreatedBy                     uint       `json:"created_by_id" gorm:"not null" binding:"required"`
+	UpdatedBy                     *uint      `json:"updated_by_id,omitempty" gorm:"default:null" binding:"omitempty"`
 	CreatedAt                     time.Time  `json:"created_at" gorm:"type:datetime;not null" binding:"-"`
 	UpdatedAt                     *time.Time `json:"updated_at,omitempty" gorm:"type:datetime;default:null" binding:"omitempty"`
 	LifecycleStatusID             uint       `json:"lifecycle_status_id" gorm:"not null"`

@@ -24,8 +24,8 @@ type StrategicProfile struct {
 	MissionAr *string    `json:"mission_ar,omitempty" gorm:"size:500 dafault:null" binding:"omitempty"`
 	CreatedAt time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt *time.Time `json:"updated_at,omitempty" gorm:"type:datetime dafault:null" binding:"omitempty"`
-	CreatedBy uint       `json:"created_by" gorm:"not null"`
-	UpdatedBy *uint      `json:"updated_by,omitempty" gorm:"default:null" binding:"omitempty"`
+	CreatedBy uint       `json:"created_by_id" gorm:"not null"`
+	UpdatedBy *uint      `json:"updated_by_id,omitempty" gorm:"default:null" binding:"omitempty"`
 
 	// Relationships
 	CreatedByUser *User `gorm:"foreignKey:CreatedBy"`

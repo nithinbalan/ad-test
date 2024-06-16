@@ -11,7 +11,7 @@ type ComplianceReview struct {
 	ReviewedAt           time.Time  `json:"reviewed_at" gorm:"type:datetime;not null"`
 	ReviewedBy           uint       `json:"reviewed_by" gorm:"tnot null"`
 	UpdatedAt            *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
-	UpdatedBy            *uint      `json:"updated_by" gorm:"default:null"`
+	UpdatedBy            *uint      `json:"updated_by_id" gorm:"default:null"`
 
 	// Relationships
 	ComplianceRegister *ComplianceRegister `gorm:"foreignkey:ComplianceRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`

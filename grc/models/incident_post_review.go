@@ -10,8 +10,8 @@ type IncidentPostReview struct {
 	IncidentPostReviewEffectivenessID int        `json:"incident_post_review_effectiveness_id" binding:"required" gorm:"not null"`
 	PostReviewDate                    time.Time  `json:"post_review_date" binding:"required" gorm:"type:date;not null"`
 	Summary                           *string    `json:"summary" gorm:"type:nvarchar(max)"`
-	CreatedBy                         uint       `json:"created_by" binding:"required"`
-	UpdatedBy                         *uint      `json:"updated_by"`
+	CreatedBy                         uint       `json:"created_by_id" binding:"required"`
+	UpdatedBy                         *uint      `json:"updated_by_id"`
 	CreatedAt                         time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt                         *time.Time `json:"updated_at" gorm:"type:datetime"`
 

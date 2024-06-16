@@ -29,8 +29,8 @@ type ComplianceRegister struct {
 	LastReviewNote           *string    `json:"last_review_note" gorm:"type:varchar(max)"`
 	CreatedAt                time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt                *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
-	CreatedBy                uint       `json:"created_by" gorm:"not null"`
-	UpdatedBy                *uint      `json:"updated_by" gorm:"default:null"`
+	CreatedBy                uint       `json:"created_by_id" gorm:"not null"`
+	UpdatedBy                *uint      `json:"updated_by_id" gorm:"default:null"`
 	LifecycleStatusID        uint       `json:"lifecycle_status_id" gorm:"not null"`
 	ComplianceReviewStatusID *uint      `json:"compliance_review_status_id" gorm:"default:null"`
 

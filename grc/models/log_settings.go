@@ -9,7 +9,7 @@ type LogSettings struct {
 	AuditLogRetentionDays  int        `json:"audit_log_retention_days" binding:"required" gorm:"not null;default:0"`
 	EmailLogRetentionDays  int        `json:"email_log_retention_days" binding:"required" gorm:"not null;default:0"`
 	SystemLogRetentionDays int        `json:"system_log_retention_days" binding:"required" gorm:"not null;default:0"`
-	UpdatedBy              *uint      `json:"updated_by" gorm:"default:null"`
+	UpdatedBy              *uint      `json:"updated_by_id" gorm:"default:null"`
 	UpdatedAt              *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 
 	// Relationships

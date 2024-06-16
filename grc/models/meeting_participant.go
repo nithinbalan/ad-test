@@ -7,7 +7,7 @@ type MeetingParticipant struct {
 	MeetingID uint      `json:"meeting_id"`
 	UserID    uint      `json:"user_id"`
 	CreatedAt time.Time `json:"created_at"`
-	CreatedBy uint      `json:"created_by"`
+	CreatedBy uint      `json:"created_by_id"`
 
 	Meeting *Meeting `gorm:"foreignkey:MeetingID"`
 	User    *User    `gorm:"foreignkey:UserID"`

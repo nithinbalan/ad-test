@@ -9,7 +9,7 @@ type ComplianceControl struct {
 	ComplianceRegisterID    uint      `json:"compliance_register_id" binding:"required"`
 	ComplianceRequirementID uint      `json:"compliance_requirement_id"`
 	ControlID               uint      `json:"control_id" binding:"required"`
-	CreatedBy               uint      `json:"created_by" binding:"required"`
+	CreatedBy               uint      `json:"created_by_id" binding:"required"`
 	CreatedAt               time.Time `json:"created_at" gorm:"type:datetime;not null"`
 
 	// Relationships

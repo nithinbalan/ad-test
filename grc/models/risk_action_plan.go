@@ -17,8 +17,8 @@ type RiskActionPlan struct {
 	Percentage         *uint      `json:"percentage" binding:"omitempty,min=0,max=100" gorm:"not null;default:0"`
 	CreatedAt          time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt          *time.Time `json:"updated_at" gorm:"type:datetime"`
-	CreatedBy          uint       `json:"created_by" gorm:"not null"`
-	UpdatedBy          *uint      `json:"updated_by" gorm:"default:null"`
+	CreatedBy          uint       `json:"created_by_id" gorm:"not null"`
+	UpdatedBy          *uint      `json:"updated_by_id" gorm:"default:null"`
 
 	// Relationships
 	RiskRegister     *RiskRegister     `gorm:"foreignkey:RiskRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`

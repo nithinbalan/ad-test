@@ -10,8 +10,8 @@ type RiskRootCauseAnalysis struct {
 	Why            uint       `json:"why" binding:"required" gorm:"not null"`
 	Question       string     `json:"question" binding:"required" gorm:"not null"`
 	Answer         string     `json:"answer,omitempty" gorm:"default:null"`
-	CreatedBy      uint       `json:"created_by" gorm:"not null"`
-	UpdatedBy      *uint      `json:"updated_by,omitempty" gorm:"default:null"`
+	CreatedBy      uint       `json:"created_by_id" gorm:"not null"`
+	UpdatedBy      *uint      `json:"updated_by_id,omitempty" gorm:"default:null"`
 	CreatedAt      time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt      *time.Time `json:"updated_at,omitempty" gorm:"type:datetime;default:null"`
 

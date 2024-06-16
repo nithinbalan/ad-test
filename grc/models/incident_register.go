@@ -19,8 +19,8 @@ type IncidentRegister struct {
 	ReportedBy            uint       `json:"reported_by" binding:"required"`
 	ReportedAt            *time.Time `json:"reported_at" gorm:"type:date"`
 	QuickAction           *string    `json:"quick_action" gorm:"type:nvarchar(max)"`
-	CreatedBy             uint       `json:"created_by" binding:"required"`
-	UpdatedBy             *uint      `json:"updated_by"`
+	CreatedBy             uint       `json:"created_by_id" binding:"required"`
+	UpdatedBy             *uint      `json:"updated_by_id"`
 	CreatedAt             time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt             *time.Time `json:"updated_at" gorm:"type:datetime"`
 

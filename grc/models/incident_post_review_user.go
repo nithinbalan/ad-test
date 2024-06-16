@@ -6,7 +6,7 @@ type IncidentPostReviewUser struct {
 	ID                   uint      `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	IncidentPostReviewID uint      `json:"incident_post_review_id" binding:"required" gorm:"not null"`
 	UserID               uint      `json:"user_id" binding:"required" gorm:"not null"`
-	CreatedBy            uint      `json:"created_by" binding:"required"`
+	CreatedBy            uint      `json:"created_by_id" binding:"required"`
 	CreatedAt            time.Time `json:"created_at" gorm:"type:datetime;not null"`
 
 	// Relationships

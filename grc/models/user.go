@@ -25,8 +25,8 @@ type User struct {
 	LastLoginAt         *time.Time `json:"last_login_at" gorm:"type:datetime;default:null"`
 	CreatedAt           time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt           *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
-	CreatedBy           uint       `json:"created_by" gorm:"not null"`
-	UpdatedBy           *uint      `json:"updated_by" gorm:"default:null"`
+	CreatedBy           uint       `json:"created_by_id" gorm:"not null"`
+	UpdatedBy           *uint      `json:"updated_by_id" gorm:"default:null"`
 
 	// Relationships
 	OrganizationUnit1 *OrganizationUnit   `gorm:"foreignKey:OrganizationUnit1ID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`

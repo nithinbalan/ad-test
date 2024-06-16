@@ -15,8 +15,8 @@ type ComplianceRequirement struct {
 	ComplianceStatusID              uint       `json:"compliance_status_id" binding:"required" gorm:"not null"`
 	CreatedAt                       time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt                       *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
-	CreatedByID                     uint       `json:"created_by" gorm:"not null"`
-	UpdatedByID                     *uint      `json:"updated_by" gorm:"default:null"`
+	CreatedByID                     uint       `json:"created_by_id" gorm:"not null"`
+	UpdatedByID                     *uint      `json:"updated_by_id" gorm:"default:null"`
 
 	// Relationships
 	ComplianceClause                   *ComplianceClause                          `gorm:"foreignkey:ComplianceClauseID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`

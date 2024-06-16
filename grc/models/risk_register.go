@@ -22,8 +22,8 @@ type RiskRegister struct {
 	ReviewFrequencyID        *uint      `json:"review_frequency_id"`
 	NextReviewDate           *time.Time `json:"next_review_date"`
 	Comments                 *string    `json:"comments" gorm:"type:nvarchar(max)"`
-	CreatedBy                uint       `json:"created_by" binding:"required"`
-	UpdatedBy                *uint      `json:"updated_by"`
+	CreatedBy                uint       `json:"created_by_id" binding:"required"`
+	UpdatedBy                *uint      `json:"updated_by_id"`
 	CreatedAt                time.Time  `json:"created_at" binding:"required" gorm:"type:datetime;not null"`
 	UpdatedAt                *time.Time `json:"updated_at,omitempty" gorm:"type:datetime;default:null"`
 

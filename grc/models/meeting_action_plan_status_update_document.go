@@ -14,8 +14,8 @@ type MeetingActionPlanStatusUpdateDocument struct {
 	Token                           string     `json:"token" gorm:"size:255;not null" binding:"required"`
 	OriginalName                    string     `json:"original_name"`
 	Type                            string     `json:"type" gorm:"size:255;not null" binding:"required"`
-	CreatedByID                     uint       `json:"created_by,omitempty" gorm:"default:null; column:created_by" binding:"-"`
-	UpdatedByID                     *uint      `json:"updated_by,omitempty" gorm:"default:null; column:updated_by" binding:"-"`
+	CreatedByID                     uint       `json:"created_by_id,omitempty" gorm:"default:null; column:created_by_id" binding:"-"`
+	UpdatedByID                     *uint      `json:"updated_by_id,omitempty" gorm:"default:null; column:updated_by_id" binding:"-"`
 	CreatedAt                       time.Time  `json:"created_at" gorm:"not null" binding:"required"`
 	UpdatedAt                       *time.Time `json:"updated_at,omitempty" gorm:"default:null" binding:"-"`
 

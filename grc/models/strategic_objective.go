@@ -11,8 +11,8 @@ type StrategicObjective struct {
 	Status    string     `json:"status" gorm:"type:varchar(10);not null;default:'active'" binding:"required,oneof=active inactive"`
 	CreatedAt time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt *time.Time `json:"updated_at" gorm:"type:datetime;default:null" binding:"omitempty"`
-	CreatedBy uint       `json:"created_by" gorm:"not null"`
-	UpdatedBy *uint      `json:"updated_by" gorm:"default:null" binding:"omitempty"`
+	CreatedBy uint       `json:"created_by_id" gorm:"not null"`
+	UpdatedBy *uint      `json:"updated_by_id" gorm:"default:null" binding:"omitempty"`
 
 	// Relationships
 	CreatedByUser *User `gorm:"foreignKey:CreatedBy"`

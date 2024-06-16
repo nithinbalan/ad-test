@@ -13,7 +13,7 @@ type UserSetting struct {
 	Timeout        int        `gorm:"not null" json:"timeout"`
 	IsNotification bool       `gorm:"type:tinyint;not null; default:0" json:"is_notification"`
 	UpdatedAt      *time.Time `gorm:"type:timestamp; not null; default:CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" json:"updated_at"`
-	UpdatedBy      *uint      `gorm:"default:null" json:"updated_by"`
+	UpdatedBy      *uint      `gorm:"default:null" json:"updated_by_id"`
 
 	// Foreign key relationships
 	User          User     `gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`

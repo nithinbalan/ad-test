@@ -9,8 +9,8 @@ type RiskImpactAnalysis struct {
 	RiskEvaluationID     uint       `json:"risk_evaluation_id" binding:"required" gorm:"not null"`
 	RiskImpactCategoryID uint       `json:"risk_impact_category_id" binding:"required" gorm:"not null"`
 	RiskMatrixImpactID   uint       `json:"risk_matrix_impact_id" binding:"required" gorm:"not null"`
-	CreatedBy            uint       `json:"created_by" gorm:"not null"`
-	UpdatedBy            *uint      `json:"updated_by" gorm:"default:null"`
+	CreatedBy            uint       `json:"created_by_id" gorm:"not null"`
+	UpdatedBy            *uint      `json:"updated_by_id" gorm:"default:null"`
 	CreatedAt            time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt            *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 

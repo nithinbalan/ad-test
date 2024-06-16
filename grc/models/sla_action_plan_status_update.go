@@ -12,8 +12,8 @@ type SLAActionPlanStatusUpdate struct {
 	Comment            string     `json:"comment" binding:"required" gorm:"type:nvarchar(max);not null"`
 	CreatedAt          time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt          *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
-	CreatedBy          uint       `json:"created_by" gorm:"not null"`
-	UpdatedBy          *uint      `json:"updated_by" gorm:"default:null"`
+	CreatedBy          uint       `json:"created_by_id" gorm:"not null"`
+	UpdatedBy          *uint      `json:"updated_by_id" gorm:"default:null"`
 
 	// Relationships
 	SLAActionPlan    *SLAActionPlan                       `gorm:"foreignkey:SLAActionPlanID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`

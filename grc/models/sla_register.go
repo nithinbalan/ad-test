@@ -19,8 +19,8 @@ type SLARegister struct {
 	Client             string     `json:"client" gorm:"type:varchar(250)"`
 	CreatedAt          time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt          *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
-	CreatedBy          uint       `json:"created_by" gorm:"not null"`
-	UpdatedBy          uint       `json:"updated_by" gorm:"default:null"`
+	CreatedBy          uint       `json:"created_by_id" gorm:"not null"`
+	UpdatedBy          uint       `json:"updated_by_id" gorm:"default:null"`
 
 	// Relationships
 	SLACategory      *SLACategory      `gorm:"foreignKey:SLACategoryID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`

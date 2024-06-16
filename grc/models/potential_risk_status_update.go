@@ -10,7 +10,7 @@ type PotentialRiskStatusUpdate struct {
 	PotentialRiskStatusID uint      `json:"potential_risk_status_id" gorm:"not null"`
 	Comment               string    `json:"comment" binding:"required" gorm:"type:nvarchar(max);not null"`
 	CreatedAt             time.Time `json:"created_at" gorm:"type:datetime;not null"`
-	CreatedBy             uint      `json:"created_by" gorm:"not null"`
+	CreatedBy             uint      `json:"created_by_id" gorm:"not null"`
 
 	//Relationships
 	PotentialRisk       *PotentialRisk       `gorm:"foreignkey:PotentialRiskID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`

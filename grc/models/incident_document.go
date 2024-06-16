@@ -14,8 +14,8 @@ type IncidentDocument struct {
 	Token              string    `json:"token"`
 	OriginalName       string    `json:"original_name"`
 	Type               string    `json:"type"`
-	CreatedBy          uint      `json:"created_by" gorm:"not null"`
-	UpdatedBy          uint      `json:"updated_by" gorm:"default:null"`
+	CreatedBy          uint      `json:"created_by_id" gorm:"not null"`
+	UpdatedBy          uint      `json:"updated_by_id" gorm:"default:null"`
 	CreatedAt          time.Time `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt          time.Time `json:"updated_at" gorm:"type:datetime;not null"`
 

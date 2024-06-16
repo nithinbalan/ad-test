@@ -8,7 +8,7 @@ type ComplianceRequirementStrategicObjective struct {
 	ID                      uint      `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	ComplianceRequirementID uint      `json:"compliance_requirement_id" binding:"required"`
 	StrategicObjectiveID    uint      `json:"strategic_objective_id" binding:"required"`
-	CreatedBy               uint      `json:"created_by" binding:"required"`
+	CreatedBy               uint      `json:"created_by_id" binding:"required"`
 	CreatedAt               time.Time `json:"created_at" gorm:"type:datetime;not null"`
 
 	// Relationships

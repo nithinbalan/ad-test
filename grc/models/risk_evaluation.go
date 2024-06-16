@@ -12,10 +12,10 @@ type RiskEvaluation struct {
 	RiskMatrixImpactID          uint       `json:"risk_matrix_impact_id" binding:"required" gorm:"not null"`
 	RiskMatrixRiskRatingID      uint       `json:"risk_matrix_risk_rating_id" binding:"required" gorm:"not null"`
 	RiskMatrixRiskRatingValueID uint       `json:"risk_matrix_risk_rating_value_id" binding:"required" gorm:"not null"`
-	CreatedBy                   uint       `json:"created_by" gorm:"not null"`
+	CreatedBy                   uint       `json:"created_by_id" gorm:"not null"`
 	CreatedAt                   time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt                   *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
-	UpdatedBy                   *uint      `json:"updated_by" gorm:"default:null"`
+	UpdatedBy                   *uint      `json:"updated_by_id" gorm:"default:null"`
 
 	// Relationships
 	RiskRegister              *RiskRegister              `gorm:"foreignkey:RiskRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`

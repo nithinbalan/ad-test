@@ -8,7 +8,7 @@ type IncidentRisk struct {
 	ID                 uint      `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	IncidentRegisterID uint      `json:"incident_register_id" binding:"required"`
 	RiskRegisterID     uint      `json:"risk_register_id" binding:"required"`
-	CreatedBy          uint      `json:"created_by" binding:"required"`
+	CreatedBy          uint      `json:"created_by_id" binding:"required"`
 	CreatedAt          time.Time `json:"created_at" gorm:"type:datetime;not null"`
 
 	// Relationships
