@@ -20,14 +20,14 @@ type SLADocument struct {
 	IsLatest      bool       `json:"is_latest" gorm:"default:1"`
 	SA1Date       *time.Time `json:"sa1_date" binding:"omitempty" gorm:"type:date"`
 	SA2Date       *time.Time `json:"sa2_date" binding:"omitempty" gorm:"type:date"`
-	CreatedBy     uint       `json:"created_by_id" gorm:"not null"`
+	CreatedByID   uint       `json:"created_by_id" gorm:"not null"`
 	UpdatedBy     uint       `json:"updated_by_id" gorm:"default:null"`
 	CreatedAt     time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt     time.Time  `json:"updated_at" gorm:"type:datetime;not null"`
 
 	// Relationships
 	SLARegister   *SLARegister `gorm:"foreignKey:SLARegisterID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
-	CreatedByUser *User        `gorm:"foreignKey:CreatedBy"`
+	CreatedByUser *User        `gorm:"foreignKey:CreatedByID"`
 	UpdatedByUser *User        `gorm:"foreignKey:UpdatedBy"`
 }
 

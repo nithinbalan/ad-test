@@ -14,7 +14,7 @@ type ComplianceReview struct {
 	UpdatedBy            *uint      `json:"updated_by_id" gorm:"default:null"`
 
 	// Relationships
-	ComplianceRegister *ComplianceRegister `gorm:"foreignkey:ComplianceRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ComplianceRegister *ComplianceRegister `gorm:"foreignKey:ComplianceRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ReviewedByUser     *User               `gorm:"foreignKey:ReviewedBy"`
 	UpdatedByUser      *User               `gorm:"foreignKey:UpdatedBy"`
 }

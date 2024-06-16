@@ -11,13 +11,13 @@ type ComplianceRequirementStatusUpdate struct {
 	Comment                 string     `json:"comment" binding:"required" gorm:"type:nvarchar(max);not null"`
 	CreatedAt               time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt               *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
-	CreatedBy               uint       `json:"created_by_id" gorm:"not null"`
+	CreatedByID             uint       `json:"created_by_id" gorm:"not null"`
 	UpdatedBy               *uint      `json:"updated_by_id" gorm:"default:null"`
 
 	//Relationships
-	ComplianceRequirement *ComplianceRequirement                       `gorm:"foreignkey:ComplianceRequirementID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ComplianceStatus      *ComplianceStatus                            `gorm:"foreignkey:ComplianceStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser         *User                                        `gorm:"foreignKey:CreatedBy"`
+	ComplianceRequirement *ComplianceRequirement                       `gorm:"foreignKey:ComplianceRequirementID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ComplianceStatus      *ComplianceStatus                            `gorm:"foreignKey:ComplianceStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	CreatedByUser         *User                                        `gorm:"foreignKey:CreatedByID"`
 	UpdatedByUser         *User                                        `gorm:"foreignKey:UpdatedBy"`
 	Documents             []*ComplianceRequirementStatusUpdateDocument `gorm:"foreignKey:ComplianceRequirementStatusUpdateID"`
 }

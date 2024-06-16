@@ -19,7 +19,7 @@ type SLARegister struct {
 	Client             string     `json:"client" gorm:"type:varchar(250)"`
 	CreatedAt          time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt          *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
-	CreatedBy          uint       `json:"created_by_id" gorm:"not null"`
+	CreatedByID        uint       `json:"created_by_id" gorm:"not null"`
 	UpdatedBy          uint       `json:"updated_by_id" gorm:"default:null"`
 
 	// Relationships
@@ -28,10 +28,10 @@ type SLARegister struct {
 	ResponsibleUnit  *OrganizationUnit `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
 	ResponsibleUser  *User             `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
 	LifecycleStatus  *LifecycleStatus  `gorm:"foreignKey:LifecycleStatusID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
-	ComplianceStatus *ComplianceStatus `gorm:"foreignkey:ComplianceStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ComplianceStatus *ComplianceStatus `gorm:"foreignKey:ComplianceStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	Documents        []*SLADocument    `gorm:"foreignKey:SLARegisterID"`
 	Checks           []*SLACheck       `gorm:"foreignKey:SLARegisterID"`
-	CreatedByUser    *User             `gorm:"foreignKey:CreatedBy"`
+	CreatedByUser    *User             `gorm:"foreignKey:CreatedByID"`
 	UpdatedByUser    *User             `gorm:"foreignKey:UpdatedBy"`
 }
 

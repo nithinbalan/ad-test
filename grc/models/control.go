@@ -27,7 +27,7 @@ type Control struct {
 	LastTestDate                  *time.Time `json:"last_test_date,omitempty" gorm:"type:date;default:null" binding:"omitempty"`
 	NextTestDate                  *time.Time `json:"next_test_date,omitempty" gorm:"type:date;default:null" binding:"omitempty"`
 	ImplementedAt                 *time.Time `json:"implemented_at,omitempty" gorm:"type:date;default:null" binding:"omitempty"`
-	CreatedBy                     uint       `json:"created_by_id" gorm:"not null" binding:"required"`
+	CreatedByID                   uint       `json:"created_by_id" gorm:"not null" binding:"required"`
 	UpdatedBy                     *uint      `json:"updated_by_id,omitempty" gorm:"default:null" binding:"omitempty"`
 	CreatedAt                     time.Time  `json:"created_at" gorm:"type:datetime;not null" binding:"-"`
 	UpdatedAt                     *time.Time `json:"updated_at,omitempty" gorm:"type:datetime;default:null" binding:"omitempty"`
@@ -43,8 +43,8 @@ type Control struct {
 	ReviewFrequency             *ReviewFrequency             `gorm:"foreignKey:ReviewFrequencyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	TestResponsibleUser         *User                        `gorm:"foreignKey:TestResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	TestFrequency               *ReviewFrequency             `gorm:"foreignKey:TestFrequencyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	LifecycleStatus             *LifecycleStatus             `gorm:"foreignkey:LifecycleStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser               *User                        `gorm:"foreignKey:CreatedBy"`
+	LifecycleStatus             *LifecycleStatus             `gorm:"foreignKey:LifecycleStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	CreatedByUser               *User                        `gorm:"foreignKey:CreatedByID"`
 	UpdatedByUser               *User                        `gorm:"foreignKey:UpdatedBy"`
 }
 

@@ -13,14 +13,14 @@ type ComplianceRequirementStatusUpdateDocument struct {
 	Token                               string    `json:"token"`
 	OriginalName                        string    `json:"original_name"`
 	Type                                string    `json:"type"`
-	CreatedBy                           uint      `json:"created_by_id" gorm:"not null"`
+	CreatedByID                         uint      `json:"created_by_id" gorm:"not null"`
 	UpdatedBy                           uint      `json:"updated_by_id" gorm:"default:null"`
 	CreatedAt                           time.Time `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt                           time.Time `json:"updated_at" gorm:"type:datetime;not null"`
 
 	// Relationships
 	ComplianceRequirementStatusUpdate *ComplianceRequirementStatusUpdate `gorm:"foreignKey:ComplianceRequirementStatusUpdateID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
-	CreatedByUser                     *User                              `gorm:"foreignKey:CreatedBy"`
+	CreatedByUser                     *User                              `gorm:"foreignKey:CreatedByID"`
 	UpdatedByUser                     *User                              `gorm:"foreignKey:UpdatedBy"`
 }
 

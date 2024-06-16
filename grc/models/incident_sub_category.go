@@ -8,7 +8,7 @@ type IncidentSubCategory struct {
 	Status             string `json:"status" binding:"required,max=10,oneof=active inactive" gorm:"type:varchar(10);not null"`
 
 	// Relationships
-	IncidentCategory *IncidentCategory `gorm:"foreignkey:IncidentCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	IncidentCategory *IncidentCategory `gorm:"foreignKey:IncidentCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 }
 
 // TableName overrides the table name used by IncidentSubCategory to `incident_sub_categories`

@@ -13,12 +13,12 @@ type RiskAppetiteStatement struct {
 	Status          string     `json:"status" binding:"required,max=10,oneof=active inactive" gorm:"type:varchar(10);not null"`
 	CreatedAt       time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt       *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
-	CreatedBy       uint       `json:"created_by_id" gorm:"not null"`
+	CreatedByID     uint       `json:"created_by_id" gorm:"not null"`
 	UpdatedBy       *uint      `json:"updated_by_id" gorm:"default:null"`
 
 	// Relationships
-	RiskCategory  *RiskCategory `gorm:"foreignkey:RiskCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser *User         `gorm:"foreignKey:CreatedBy"`
+	RiskCategory  *RiskCategory `gorm:"foreignKey:RiskCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	CreatedByUser *User         `gorm:"foreignKey:CreatedByID"`
 	UpdatedByUser *User         `gorm:"foreignKey:UpdatedBy"`
 }
 

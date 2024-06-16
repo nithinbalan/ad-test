@@ -11,8 +11,8 @@ type KRILibrary struct {
 	Status            string  `json:"status" binding:"required,oneof=active inactive" gorm:"type:varchar(10);not null"`
 
 	// Relationships
-	KRICategory     *KRICategory     `gorm:"foreignkey:KRICategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ReviewFrequency *ReviewFrequency `gorm:"foreignkey:ReviewFrequencyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	KRICategory     *KRICategory     `gorm:"foreignKey:KRICategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ReviewFrequency *ReviewFrequency `gorm:"foreignKey:ReviewFrequencyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 }
 
 // TableName overrides the table name used by KRILibrary to `kri_library`

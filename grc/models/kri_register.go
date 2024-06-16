@@ -24,16 +24,16 @@ type KRIRegister struct {
 	LastReviewNote    *string    `json:"last_review_note" gorm:"type:nvarchar(max)"`
 	CreatedAt         time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt         *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
-	CreatedBy         uint       `json:"created_by_id" gorm:"not null"`
+	CreatedByID       uint       `json:"created_by_id" gorm:"not null"`
 	UpdatedBy         *uint      `json:"updated_by_id" gorm:"default:null"`
 
 	// Relationships
-	KRICategory     *KRICategory      `gorm:"foreignkey:KRICategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	OwnerUnit       *OrganizationUnit `gorm:"foreignkey:OwnerUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	Owner           *User             `gorm:"foreignkey:OwnerID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ReviewFrequency *ReviewFrequency  `gorm:"foreignkey:ReviewFrequencyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	RiskLevel       *RiskLevel        `gorm:"foreignkey:RiskLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser   *User             `gorm:"foreignKey:CreatedBy"`
+	KRICategory     *KRICategory      `gorm:"foreignKey:KRICategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	OwnerUnit       *OrganizationUnit `gorm:"foreignKey:OwnerUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Owner           *User             `gorm:"foreignKey:OwnerID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ReviewFrequency *ReviewFrequency  `gorm:"foreignKey:ReviewFrequencyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	RiskLevel       *RiskLevel        `gorm:"foreignKey:RiskLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	CreatedByUser   *User             `gorm:"foreignKey:CreatedByID"`
 	UpdatedByUser   *User             `gorm:"foreignKey:UpdatedBy"`
 }
 

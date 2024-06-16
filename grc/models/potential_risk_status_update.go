@@ -10,12 +10,12 @@ type PotentialRiskStatusUpdate struct {
 	PotentialRiskStatusID uint      `json:"potential_risk_status_id" gorm:"not null"`
 	Comment               string    `json:"comment" binding:"required" gorm:"type:nvarchar(max);not null"`
 	CreatedAt             time.Time `json:"created_at" gorm:"type:datetime;not null"`
-	CreatedBy             uint      `json:"created_by_id" gorm:"not null"`
+	CreatedByID           uint      `json:"created_by_id" gorm:"not null"`
 
 	//Relationships
-	PotentialRisk       *PotentialRisk       `gorm:"foreignkey:PotentialRiskID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	PotentialRiskStatus *PotentialRiskStatus `gorm:"foreignkey:PotentialRiskStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser       *User                `gorm:"foreignKey:CreatedBy"`
+	PotentialRisk       *PotentialRisk       `gorm:"foreignKey:PotentialRiskID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	PotentialRiskStatus *PotentialRiskStatus `gorm:"foreignKey:PotentialRiskStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	CreatedByUser       *User                `gorm:"foreignKey:CreatedByID"`
 }
 
 // TableName overrides the table name used by PotentialRiskStatusUpdate to `potential_risk_status_updates`

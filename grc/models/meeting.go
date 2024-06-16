@@ -16,7 +16,7 @@ type Meeting struct {
 	EndTime            time.Time  `json:"end_time" binding:"required" gorm:"type:time;not null"`
 	OrganizerID        uint       `json:"organizer_id" binding:"required" gorm:"not null"`
 	IsPublic           bool       `json:"is_public" gorm:"not null;default:false"`
-	CreatedBy          uint       `json:"created_by_id" gorm:"not null"`
+	CreatedByID        uint       `json:"created_by_id" gorm:"not null"`
 	UpdatedBy          *uint      `json:"updated_by_id" gorm:"default:null"`
 	CreatedAt          time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt          *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
@@ -28,9 +28,9 @@ type Meeting struct {
 	MeetingFrequency *MeetingFrequency     `gorm:"foreignKey:MeetingFrequencyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	Organizer        *User                 `gorm:"foreignKey:OrganizerID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	MeetingStatus    *MeetingStatus        `gorm:"foreignKey:MeetingStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser    *User                 `gorm:"foreignKey:CreatedBy"`
+	CreatedByUser    *User                 `gorm:"foreignKey:CreatedByID"`
 	UpdatedByUser    *User                 `gorm:"foreignKey:UpdatedBy"`
-	Participants     []*MeetingParticipant `gorm:"foreignkey:MeetingID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Participants     []*MeetingParticipant `gorm:"foreignKey:MeetingID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 }
 
 // TableName overrides the table name used by Meeting to `meetings`
