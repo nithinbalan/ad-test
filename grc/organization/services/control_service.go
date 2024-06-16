@@ -94,6 +94,27 @@ func (cs *ControlService) GetFullDetailsByID(id uint) (*organizationDTOs.Control
 		return nil, err
 	}
 
+	if control.LastReviewDate != nil {
+		lastReviewDate := control.LastReviewDate.Format("2006-01-02")
+		controlDetailDTO.LastReviewDateString = &lastReviewDate
+	}
+	if control.NextReviewDate != nil {
+		nextReviewDate := control.NextReviewDate.Format("2006-01-02")
+		controlDetailDTO.NextReviewDateString = &nextReviewDate
+	}
+	if control.LastTestDate != nil {
+		lastTestDate := control.LastTestDate.Format("2006-01-02")
+		controlDetailDTO.LastTestDateString = &lastTestDate
+	}
+	if control.NextTestDate != nil {
+		nextTestDateString := control.NextTestDate.Format("2006-01-02")
+		controlDetailDTO.NextTestDateString = &nextTestDateString
+	}
+	if control.ImplementedAt != nil {
+		implementedAtString := control.ImplementedAt.Format("2006-01-02")
+		controlDetailDTO.ImplementedAtString = &implementedAtString
+	}
+
 	//todo :- also add extra fields which required in details screen
 
 	return &controlDetailDTO, nil

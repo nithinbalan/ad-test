@@ -20,7 +20,7 @@ type ComplianceRequirementServiceInterface interface {
 	GetByID(complianceID uint, id uint) (*models.ComplianceRequirement, error)
 	GetRequirementsByComplianceID(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementByComplianceIDListResponseDTO, error)
 	GetByComplianceRequirementID(id uint) (*models.ComplianceRequirement, error)
-	GetFullDetailsByID(complianceID uint, id uint) (*complianceDTOs.ComplianceRequirementDetailDTO, error)
+	GetFullDetailsByID(complianceID uint, id uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.ComplianceRequirementDetailDTO, error)
 	Create(complianceID uint, currentUserID uint, ComplianceRequirementFormDTO *complianceDTOs.ComplianceRequirementFormDTO) (uint, error)
 	Update(complianceID uint, id uint, currentUserID uint, compliance *complianceDTOs.ComplianceRequirementFormDTO) error
 	Delete(complianceID uint, ids []uint, currentUserID uint) ([]uint, error)
@@ -43,7 +43,8 @@ func NewComplianceRequirementService(
 	complianceRegisterSvc ComplianceRegisterServiceInterface,
 	complianceRequirementCategorySvc ComplianceRequirementCategoryServiceInterface,
 	complianceStatusSvc ComplianceStatusServiceInterface,
-	severityLevelSvc masterRepositories.SeverityLevelRepositoryInterface) ComplianceRequirementServiceInterface {
+	severityLevelSvc masterRepositories.SeverityLevelRepositoryInterface,
+) ComplianceRequirementServiceInterface {
 	return &ComplianceRequirementService{
 		repo:                             repo,
 		activityLogSvc:                   activityLogSvc,
@@ -91,14 +92,14 @@ func (crs ComplianceRequirementService) GetByComplianceRequirementID(id uint) (*
 	return complianceRequirement, nil
 }
 
-func (crs ComplianceRequirementService) GetFullDetailsByID(complianceID uint, id uint) (*complianceDTOs.ComplianceRequirementDetailDTO, error) {
+func (crs ComplianceRequirementService) GetFullDetailsByID(complianceID uint, id uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.ComplianceRequirementDetailDTO, error) {
 	if _, err := crs.complianceRegisterSvc.GetByID(complianceID); err != nil {
 		return nil, err
 	}
 
 	var complianceRequirementDTO complianceDTOs.ComplianceRequirementDetailDTO
 
-	complianceRequirement, err := crs.repo.GetFullDetailsByID(id)
+	complianceRequirement, err := crs.repo.GetFullDetailsByID(id, tx...)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -130,18 +131,18 @@ func (crs ComplianceRequirementService) GetFullDetailsByID(complianceID uint, id
 	return &complianceRequirementDTO, nil
 }
 
-func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID uint, ComplianceRequirementFormDTO *complianceDTOs.ComplianceRequirementFormDTO) (uint, error) {
+func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID uint, complianceRequirementFormDTO *complianceDTOs.ComplianceRequirementFormDTO) (uint, error) {
 	tx := crs.repo.BeginTransaction()
 
 	if _, err := crs.complianceRegisterSvc.GetByID(complianceID); err != nil {
 		return 0, err
 	}
 
-	if err := crs.validateComplianceRequirementFormDTO(ComplianceRequirementFormDTO); err != nil {
+	if err := crs.validateComplianceRequirementFormDTO(complianceRequirementFormDTO); err != nil {
 		return 0, err
 	}
 
-	dates, err := crs.parseComplianceRequirementDates(ComplianceRequirementFormDTO)
+	dates, err := crs.parseComplianceRequirementDates(complianceRequirementFormDTO)
 	if err != nil {
 		return 0, err
 	}
@@ -149,8 +150,8 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 	// Create or retrieve the compliance clause
 	complianceClause := &models.ComplianceClause{
 		ComplianceRegisterID: complianceID,
-		ClauseNo:             ComplianceRequirementFormDTO.ComplianceClauseNo,
-		Title:                ComplianceRequirementFormDTO.ComplianceClauseTitle,
+		ClauseNo:             complianceRequirementFormDTO.ComplianceClauseNo,
+		Title:                complianceRequirementFormDTO.ComplianceClauseTitle,
 	}
 
 	clause, err := crs.repo.GetOrCreateComplianceClause(complianceClause, tx)
@@ -160,13 +161,13 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 	}
 
 	complianceRequirement := &models.ComplianceRequirement{
-		ComplianceRequirementCategoryID: ComplianceRequirementFormDTO.ComplianceRequirementCategoryID,
-		ComplianceStatusID:              ComplianceRequirementFormDTO.ComplianceStatusID,
-		ResponsibleUserID:               ComplianceRequirementFormDTO.ResponsibleUserID,
-		SeverityLevelID:                 ComplianceRequirementFormDTO.SeverityLevelID,
-		Title:                           ComplianceRequirementFormDTO.Title,
+		ComplianceRequirementCategoryID: complianceRequirementFormDTO.ComplianceRequirementCategoryID,
+		ComplianceStatusID:              complianceRequirementFormDTO.ComplianceStatusID,
+		ResponsibleUserID:               complianceRequirementFormDTO.ResponsibleUserID,
+		SeverityLevelID:                 complianceRequirementFormDTO.SeverityLevelID,
+		Title:                           complianceRequirementFormDTO.Title,
 		Deadline:                        dates.Deadline,
-		CreatedBy:                       currentUserID,
+		CreatedByID:                     currentUserID,
 		ComplianceClauseID:              clause.ID,
 	}
 
@@ -175,13 +176,65 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		tx.Rollback()
 		return 0, err
 	}
+
+	complianceStatusID := complianceRequirementFormDTO.ComplianceStatusID
+	complianceRequirementUpdate := &models.ComplianceRequirementStatusUpdate{
+		ComplianceRequirementID: id,
+		ComplianceStatusID:      complianceStatusID,
+		Comment:                 "Initial compliance status",
+		CreatedByID:             currentUserID,
+	}
+
+	_, err = crs.repo.CreateComplianceRequirementStatusUpdate(complianceRequirementUpdate, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	// Add Controls
+	var controls []*models.ComplianceControl
+	for _, controlID := range complianceRequirementFormDTO.ControlIDs {
+		control := &models.ComplianceControl{
+			ComplianceRegisterID:    complianceID,
+			ComplianceRequirementID: id,
+			ControlID:               *controlID,
+			CreatedBy:               currentUserID,
+		}
+		controls = append(controls, control)
+	}
+
+	if len(controls) > 0 {
+		if err := crs.repo.CreateComplianceRequirementControls(controls, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
+	// Add Strategic Objectives
+	var strategicObjectives []*models.ComplianceRequirementStrategicObjective
+	for _, strategicObjectiveID := range complianceRequirementFormDTO.StrategicObjectiveIDs {
+		strategicObjective := &models.ComplianceRequirementStrategicObjective{
+			ComplianceRequirementID: id,
+			StrategicObjectiveID:    *strategicObjectiveID,
+			CreatedBy:               currentUserID,
+		}
+		strategicObjectives = append(strategicObjectives, strategicObjective)
+	}
+
+	if len(strategicObjectives) > 0 {
+		if err := crs.repo.CreateComplianceRequirementStrategicObjectives(strategicObjectives, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
 	tx.Commit()
+
 	go func() {
 		err := crs.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.ComplianceRequirement{}.TableName(),
 			id,
-			ComplianceRequirementFormDTO,
+			complianceRequirementFormDTO,
 			currentUserID,
 			nil,
 		)
@@ -202,7 +255,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 	return id, nil
 }
 
-func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, currentUserID uint, ComplianceRequirementFormDTO *complianceDTOs.ComplianceRequirementFormDTO) error {
+func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, currentUserID uint, complianceRequirementFormDTO *complianceDTOs.ComplianceRequirementFormDTO) error {
 	tx := crs.repo.BeginTransaction()
 
 	if _, err := crs.complianceRegisterSvc.GetByID(complianceID); err != nil {
@@ -215,19 +268,19 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 		return err
 	}
 
-	if err := crs.validateComplianceRequirementFormDTO(ComplianceRequirementFormDTO); err != nil {
+	if err := crs.validateComplianceRequirementFormDTO(complianceRequirementFormDTO); err != nil {
 		return err
 	}
 
-	dates, err := crs.parseComplianceRequirementDates(ComplianceRequirementFormDTO)
+	dates, err := crs.parseComplianceRequirementDates(complianceRequirementFormDTO)
 	if err != nil {
 		return err
 	}
 
 	complianceClause := &models.ComplianceClause{
 		ComplianceRegisterID: complianceID,
-		ClauseNo:             ComplianceRequirementFormDTO.ComplianceClauseNo,
-		Title:                ComplianceRequirementFormDTO.ComplianceClauseTitle,
+		ClauseNo:             complianceRequirementFormDTO.ComplianceClauseNo,
+		Title:                complianceRequirementFormDTO.ComplianceClauseTitle,
 	}
 
 	clause, err := crs.repo.GetOrCreateComplianceClause(complianceClause)
@@ -237,21 +290,132 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 	}
 
 	// Update Compliance Requirement
-	existingComplianceRequirement.ComplianceRequirementCategoryID = ComplianceRequirementFormDTO.ComplianceRequirementCategoryID
-	existingComplianceRequirement.ComplianceStatusID = ComplianceRequirementFormDTO.ComplianceStatusID
-	existingComplianceRequirement.ResponsibleUserID = ComplianceRequirementFormDTO.ResponsibleUserID
-	existingComplianceRequirement.SeverityLevelID = ComplianceRequirementFormDTO.SeverityLevelID
-	existingComplianceRequirement.Title = ComplianceRequirementFormDTO.Title
+	existingComplianceRequirement.ComplianceRequirementCategoryID = complianceRequirementFormDTO.ComplianceRequirementCategoryID
+	existingComplianceRequirement.ComplianceStatusID = complianceRequirementFormDTO.ComplianceStatusID
+	existingComplianceRequirement.ResponsibleUserID = complianceRequirementFormDTO.ResponsibleUserID
+	existingComplianceRequirement.SeverityLevelID = complianceRequirementFormDTO.SeverityLevelID
+	existingComplianceRequirement.Title = complianceRequirementFormDTO.Title
 	existingComplianceRequirement.Deadline = dates.Deadline
-	existingComplianceRequirement.UpdatedBy = &currentUserID
+	existingComplianceRequirement.UpdatedByID = &currentUserID
 	existingComplianceRequirement.ComplianceClauseID = clause.ID
 
-	err = crs.repo.Update(existingComplianceRequirement)
-
+	err = crs.repo.Update(existingComplianceRequirement, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
+
+	// Update Controls
+	complianceRequirement, err := crs.GetFullDetailsByID(complianceID, id, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	existingControlIDs := make(map[uint]bool)
+	for _, ctrl := range complianceRequirement.Controls {
+		existingControlIDs[ctrl.ControlID] = true
+	}
+
+	// Collect new control IDs
+	newControlIDs := make(map[uint]bool)
+	for _, ctrl := range complianceRequirementFormDTO.ControlIDs {
+		newControlIDs[*ctrl] = true
+	}
+
+	// Add new controls
+	var controlsToAdd []*models.ComplianceControl
+	for _, newControlID := range complianceRequirementFormDTO.ControlIDs {
+		if _, exists := existingControlIDs[*newControlID]; !exists {
+			// Create a new compliance control record
+			control := &models.ComplianceControl{
+				ComplianceRegisterID:    complianceID,
+				ComplianceRequirementID: id,
+				ControlID:               *newControlID,
+				CreatedBy:               currentUserID,
+			}
+			controlsToAdd = append(controlsToAdd, control)
+		}
+	}
+
+	// Save the new controls
+	if len(controlsToAdd) > 0 {
+		if err := crs.repo.CreateComplianceRequirementControls(controlsToAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// Remove controls not in the new list
+	var deleteControlIDs []*uint
+
+	for _, existingControl := range complianceRequirement.Controls {
+		if _, exists := newControlIDs[existingControl.ControlID]; !exists {
+			// Append control to delete list
+			deleteControlIDs = append(deleteControlIDs, existingControl.ID)
+		}
+	}
+
+	// Delete controls not in the new list
+	if len(deleteControlIDs) > 0 {
+		if err := crs.repo.DeleteComplianceRequirementControls(deleteControlIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// Update Strategic Objectives
+	existingStrategicObjectiveIDs := make(map[uint]bool)
+	for _, obj := range complianceRequirement.StrategicObjectives {
+		existingStrategicObjectiveIDs[obj.StrategicObjectiveID] = true
+	}
+
+	// Collect new strategic objective IDs
+	newStrategicObjectiveIDs := make(map[uint]bool)
+	for _, obj := range complianceRequirementFormDTO.StrategicObjectiveIDs {
+		newStrategicObjectiveIDs[*obj] = true
+	}
+
+	// Add new strategic objectives
+	var strategicObjectivesToAdd []*models.ComplianceRequirementStrategicObjective
+	for _, newStrategicObjectiveID := range complianceRequirementFormDTO.StrategicObjectiveIDs {
+		if _, exists := existingStrategicObjectiveIDs[*newStrategicObjectiveID]; !exists {
+			// Create a new compliance strategic objective record
+			strategicObjective := &models.ComplianceRequirementStrategicObjective{
+				ComplianceRequirementID: id,
+				StrategicObjectiveID:    *newStrategicObjectiveID,
+				CreatedBy:               currentUserID,
+			}
+			strategicObjectivesToAdd = append(strategicObjectivesToAdd, strategicObjective)
+		}
+	}
+
+	// Save the new strategic objectives
+	if len(strategicObjectivesToAdd) > 0 {
+		if err := crs.repo.CreateComplianceRequirementStrategicObjectives(strategicObjectivesToAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// Remove strategic objectives not in the new list
+	var deleteStrategicObjectiveIDs []*uint
+
+	for _, existingStrategicObjective := range complianceRequirement.StrategicObjectives {
+		if _, exists := newStrategicObjectiveIDs[existingStrategicObjective.StrategicObjectiveID]; !exists {
+			// Append strategic objective to delete list
+			deleteStrategicObjectiveIDs = append(deleteStrategicObjectiveIDs, existingStrategicObjective.ID)
+		}
+	}
+
+	// Delete strategic objectives not in the new list
+	if len(deleteStrategicObjectiveIDs) > 0 {
+		if err := crs.repo.DeleteComplianceRequirementStrategicObjectives(deleteStrategicObjectiveIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
 	tx.Commit()
 	return nil
 }
@@ -269,29 +433,54 @@ func (crs *ComplianceRequirementService) Delete(complianceID uint, ids []uint, c
 	clauseIDsToDelete := make(map[uint]bool)
 
 	for _, id := range ids {
-		requirement, err := crs.repo.GetByID(id)
+		requirement, err := crs.GetFullDetailsByID(complianceID, id, tx)
 		if err != nil {
-			continue
+			tx.Rollback()
+			return nil, err
 		}
 
-		if err := crs.repo.Delete(id); err != nil {
+		// Check if controls exist
+		if len(requirement.Controls) > 0 {
+			var deleteControlIds []*uint
+			for _, ctrl := range requirement.Controls {
+				deleteControlIds = append(deleteControlIds, ctrl.ID)
+			}
+			if err := crs.repo.DeleteComplianceRequirementControls(deleteControlIds, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+		}
+
+		// Check if strategic objectives exist
+		if len(requirement.StrategicObjectives) > 0 {
+			var deleteStrategicObjectiveIds []*uint
+			for _, obj := range requirement.StrategicObjectives {
+				deleteStrategicObjectiveIds = append(deleteStrategicObjectiveIds, obj.ID)
+			}
+			if err := crs.repo.DeleteComplianceRequirementStrategicObjectives(deleteStrategicObjectiveIds, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+		}
+
+		if err := crs.repo.Delete(id, tx); err != nil {
 			tx.Rollback()
 			failedIds = append(failedIds, id)
 		} else {
 			successfulIds = append(successfulIds, id)
 			// Track the clause IDs
-			clauseIDsToDelete[requirement.ComplianceClauseID] = true
+			clauseIDsToDelete[uint(requirement.ComplianceClause.ID)] = true
 		}
 	}
 
 	// Delete clauses if all their requirements are deleted
 	for clauseID := range clauseIDsToDelete {
-		count, err := crs.repo.CountRequirementsByClauseID(clauseID)
+		count, err := crs.repo.CountRequirementsByClauseID(clauseID, tx)
 		if err != nil {
-			// Log error, but proceed with deletion as it might be recoverable later
+			tx.Rollback()
 			fmt.Printf("Error counting requirements for clause %d: %v\n", clauseID, err)
 		} else if count == 0 {
-			if err := crs.repo.DeleteClause(clauseID); err != nil {
+			if err := crs.repo.DeleteClause(clauseID, tx); err != nil {
 				tx.Rollback()
 				// Log error, but proceed with other deletions
 				fmt.Printf("Error deleting clause %d: %v\n", clauseID, err)
@@ -330,7 +519,7 @@ func (crs *ComplianceRequirementService) StatusUpdate(complianceID uint, id uint
 	}
 
 	existingComplianceRequirement.ComplianceStatusID = complianceStatusID
-	existingComplianceRequirement.UpdatedBy = &currentUserID
+	existingComplianceRequirement.UpdatedByID = &currentUserID
 
 	err = crs.repo.Update(existingComplianceRequirement, tx)
 

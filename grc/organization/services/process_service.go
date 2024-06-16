@@ -24,6 +24,8 @@ type ProcessServiceInterface interface {
 
 	Archive(ids []uint, currentUserID uint) ([]uint, error)
 	Restore(ids []uint, currentUserID uint) ([]uint, error)
+
+	GetControlSummary(id uint) (map[string]interface{}, error)
 }
 
 type ProcessService struct {
@@ -316,68 +318,6 @@ func (ps *ProcessService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 	return failedIds, nil
 }
 
-// func (ps *ProcessService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
-// 	tx := ps.repo.BeginTransaction()
-
-// 	var failedIds []uint
-// 	var successfulIds []uint
-// 	for _, id := range ids {
-
-// 		process, err := ps.GetFullDetailsByID(id, tx)
-
-// 		if err != nil {
-// 			tx.Rollback()
-// 			return nil, err
-// 		}
-
-// 		if len(process.Controls) > 0 {
-// 			var deleteControlIds []*uint
-// 			for _, ctrl := range process.Controls {
-// 				deleteControlIds = append(deleteControlIds, ctrl.ID)
-// 			}
-// 			if err := ps.repo.DeleteProcessControls(deleteControlIds, tx); err != nil {
-// 				tx.Rollback()
-// 				return nil, err
-// 			}
-// 		}
-
-// 		err = ps.repo.Delete(id)
-// 		if err != nil {
-// 			failedIds = append(failedIds, id)
-// 			continue
-// 		} else {
-// 			successfulIds = append(successfulIds, id)
-// 		}
-// 	}
-
-// 	if len(failedIds) > 0 {
-// 		tx.Rollback()
-// 		return failedIds, nil
-// 	}
-
-// 	tx.Commit()
-
-// 	if len(successfulIds) > 0 {
-
-// 		go func() {
-// 			err := ps.activityLogSvc.LogBulkActivities(
-// 				models.DeleteAction, // Make sure this action constant is defined appropriately
-// 				models.Process{}.TableName(),
-// 				successfulIds,
-// 				nil,
-// 				currentUserID,
-// 				nil,
-// 			)
-// 			if err != nil {
-// 				// @todo - save to log file
-// 				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
-// 			}
-// 		}()
-// 	}
-
-// 	return failedIds, nil
-// }
-
 func (ps *ProcessService) Archive(ids []uint, currentUserID uint) ([]uint, error) {
 	lifecycleStatus, err := ps.lifecycleStatusSvc.GetByType("archived")
 	if err != nil {
@@ -478,4 +418,76 @@ func (ps *ProcessService) validateProcessFormDTO(processFormDTO *organizationDTO
 	}
 
 	return nil
+}
+
+func (ps *ProcessService) GetControlSummary(id uint) (map[string]interface{}, error) {
+	processControls, err := ps.repo.GetControlSummary(id)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(processControls) == 0 {
+		return map[string]interface{}{
+			"total_control_score":       0,
+			"implementation_status":     []map[string]interface{}{},
+			"efficiency_percentage":     0,
+			"implementation_percentage": 0,
+			"total_efficiency":          []map[string]interface{}{},
+		}, nil
+	}
+
+	implementationStatusCount := make(map[string]int)
+	efficiencyStatusCount := make(map[string]int)
+	implementationDetails := make(map[string]models.ControlImplementationStatus)
+	efficiencyDetails := make(map[string]models.ControlEfficiencyStatus)
+
+	for _, pc := range processControls {
+		implStatus := pc.Control.ControlImplementationStatus.Type
+		implementationStatusCount[implStatus]++
+		implementationDetails[implStatus] = *pc.Control.ControlImplementationStatus
+
+		if pc.Control.ControlEfficiencyStatus != nil {
+			effStatus := pc.Control.ControlEfficiencyStatus.Type
+			efficiencyStatusCount[effStatus]++
+			efficiencyDetails[effStatus] = *pc.Control.ControlEfficiencyStatus
+		}
+	}
+
+	totalControls := len(processControls)
+
+	implementationStatus := make([]map[string]interface{}, 0)
+	for status, count := range implementationStatusCount {
+		implDetail := implementationDetails[status]
+		implementationStatus = append(implementationStatus, map[string]interface{}{
+			"id":         implDetail.ID,
+			"type":       implDetail.Type,
+			"title_en":   implDetail.TitleEn,
+			"title_ar":   implDetail.TitleAr,
+			"count":      count,
+			"color_code": implDetail.ColorCode,
+		})
+	}
+
+	efficiencyStatus := make([]map[string]interface{}, 0)
+	for status, count := range efficiencyStatusCount {
+		effDetail := efficiencyDetails[status]
+		efficiencyStatus = append(efficiencyStatus, map[string]interface{}{
+			"id":         effDetail.ID,
+			"type":       effDetail.Type,
+			"title_en":   effDetail.TitleEn,
+			"title_ar":   effDetail.TitleAr,
+			"count":      count,
+			"color_code": effDetail.ColorCode,
+		})
+	}
+
+	summary := map[string]interface{}{
+		"total_control_score":       (float64(implementationStatusCount["implemented"]) / float64(totalControls)) * 100,
+		"implementation_status":     implementationStatus,
+		"efficiency_percentage":     (float64(efficiencyStatusCount["efficient"]) / float64(totalControls)) * 100,
+		"implementation_percentage": (float64(implementationStatusCount["implemented"]) / float64(totalControls)) * 100,
+		"total_efficiency":          efficiencyStatus,
+	}
+
+	return summary, nil
 }

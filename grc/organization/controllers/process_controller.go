@@ -230,3 +230,18 @@ func (pc *ProcessController) RestoreProcesses(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"successfulIds": successfulIds})
 }
+
+func (pc *ProcessController) GetControlSummary(c *gin.Context) {
+	processID, err := strconv.Atoi(c.Param("processId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	process, err := pc.service.GetControlSummary(uint(processID))
+	if err != nil {
+		utility.SendInternalErrResp(pc.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, process)
+}

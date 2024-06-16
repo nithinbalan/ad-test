@@ -45,6 +45,10 @@ func (pais *ProcessAssociatedItemService) GetAllControls(processID uint, params 
 		return nil, err
 	}
 
+	if len(controlList) == 0 {
+		return []map[string]interface{}{}, nil
+	}
+
 	// Fetching implementation status titles in both English and Arabic
 	implementationStatuses, err := pais.controlImplementationStatusSvc.GetAll("", "", "", "")
 	if err != nil {

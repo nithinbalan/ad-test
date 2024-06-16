@@ -15,18 +15,20 @@ type ComplianceRequirement struct {
 	ComplianceStatusID              uint       `json:"compliance_status_id" binding:"required" gorm:"not null"`
 	CreatedAt                       time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt                       *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
-	CreatedBy                       uint       `json:"created_by" gorm:"not null"`
-	UpdatedBy                       *uint      `json:"updated_by" gorm:"default:null"`
+	CreatedByID                     uint       `json:"created_by" gorm:"not null"`
+	UpdatedByID                     *uint      `json:"updated_by" gorm:"default:null"`
 
 	// Relationships
-	ComplianceClause                   *ComplianceClause                    `gorm:"foreignkey:ComplianceClauseID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ComplianceStatus                   *ComplianceStatus                    `gorm:"foreignkey:ComplianceStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ComplianceRequirementCategory      *ComplianceRequirementCategory       `gorm:"foreignkey:ComplianceRequirementCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	SeverityLevel                      *SeverityLevel                       `gorm:"foreignkey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ResponsibleUser                    *User                                `gorm:"foreignkey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser                      *User                                `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser                      *User                                `gorm:"foreignKey:UpdatedBy"`
-	ComplianceRequirementStatusUpdates []*ComplianceRequirementStatusUpdate `gorm:"foreignkey:ComplianceRequirementID"`
+	ComplianceClause                   *ComplianceClause                          `gorm:"foreignkey:ComplianceClauseID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ComplianceStatus                   *ComplianceStatus                          `gorm:"foreignkey:ComplianceStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ComplianceRequirementCategory      *ComplianceRequirementCategory             `gorm:"foreignkey:ComplianceRequirementCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	SeverityLevel                      *SeverityLevel                             `gorm:"foreignkey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ResponsibleUser                    *User                                      `gorm:"foreignkey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	CreatedByUser                      *User                                      `gorm:"foreignKey:CreatedByID"`
+	UpdatedByUser                      *User                                      `gorm:"foreignKey:UpdatedByID"`
+	ComplianceRequirementStatusUpdates []*ComplianceRequirementStatusUpdate       `gorm:"foreignkey:ComplianceRequirementID"`
+	Controls                           []*ComplianceControl                       `gorm:"foreignKey:ComplianceRequirementID"`
+	StrategicObjectives                []*ComplianceRequirementStrategicObjective `gorm:"foreignKey:ComplianceRequirementID"`
 }
 
 // TableName overrides the table name used by ComplianceRequirement to `compliance_requirements`

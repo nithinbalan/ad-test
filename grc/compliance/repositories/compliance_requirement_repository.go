@@ -17,13 +17,19 @@ type ComplianceRequirementRepositoryInterface interface {
 	GetAll(params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementListResponseDTO, error)
 	GetRequirementsByComplianceID(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementByComplianceIDListResponseDTO, error)
 	GetByID(id uint) (*models.ComplianceRequirement, error)
-	GetFullDetailsByID(id uint) (*models.ComplianceRequirement, error)
+	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceRequirement, error)
 	Create(complianceRequirement *models.ComplianceRequirement, tx ...utility.DatabaseTransaction) (uint, error)
+	CreateComplianceRequirementStatusUpdate(complianceRequirementStatusUpdate *models.ComplianceRequirementStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(complianceRequirement *models.ComplianceRequirement, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	GetOrCreateComplianceClause(complianceClause *models.ComplianceClause, tx ...utility.DatabaseTransaction) (*models.ComplianceClause, error)
-	CountRequirementsByClauseID(clauseID uint) (int64, error)
+	CountRequirementsByClauseID(clauseID uint, tx ...utility.DatabaseTransaction) (int64, error)
 	DeleteClause(clauseID uint, tx ...utility.DatabaseTransaction) error
+
+	CreateComplianceRequirementControls(controls []*models.ComplianceControl, tx ...utility.DatabaseTransaction) error
+	DeleteComplianceRequirementControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error
+	CreateComplianceRequirementStrategicObjectives(objectives []*models.ComplianceRequirementStrategicObjective, tx ...utility.DatabaseTransaction) error
+	DeleteComplianceRequirementStrategicObjectives(objectiveIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type ComplianceRequirementRepository struct {
@@ -279,7 +285,7 @@ func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(compl
 	}
 
 	if params.SortBy == "" {
-		params.SortBy = "compliance_clause_no"
+		params.SortBy = "compliance_clauses.clause_no"
 	}
 	if params.Sort != "asc" && params.Sort != "desc" {
 		params.Sort = "asc"
@@ -353,30 +359,39 @@ func (repo *ComplianceRequirementRepository) GetByID(id uint) (*models.Complianc
 	return complianceRequirement, nil
 }
 
-func (repo *ComplianceRequirementRepository) GetFullDetailsByID(id uint) (*models.ComplianceRequirement, error) {
+func (repo *ComplianceRequirementRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceRequirement, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
 	var complianceRequirement *models.ComplianceRequirement
 
 	// Subquery to get the latest status update
-	latestStatusUpdateSubQuery := repo.db.
+	latestStatusUpdateSubQuery := db.
 		Table("compliance_requirement_status_updates").
 		Select("id").
 		Where("compliance_requirement_id = ?", id).
 		Order("created_at desc").
 		Limit(1)
 
-	result := repo.db.
+	result := db.
 		Preload("ComplianceClause").
 		Preload("ComplianceStatus").
 		Preload("ComplianceRequirementCategory").
 		Preload("SeverityLevel").
 		Preload("ResponsibleUser").
+		Preload("Controls").
+		Preload("Controls.Control.ControlCategory").
+		Preload("Controls.Control.ControlType").
+		Preload("StrategicObjectives.StrategicObjective").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		Preload("ComplianceRequirementStatusUpdates", func(db *gorm.DB) *gorm.DB {
 			return db.Where("id IN (?)", latestStatusUpdateSubQuery).
 				Preload("ComplianceStatus").
-				Preload("CreatedUser").
-				Preload("UpdatedUser").
+				Preload("CreatedByUser").
+				Preload("UpdatedByUser").
 				Preload("Documents")
 		}).
 		First(&complianceRequirement, id)
@@ -399,6 +414,17 @@ func (repo *ComplianceRequirementRepository) Create(complianceRequirement *model
 		return 0, err
 	}
 	return complianceRequirement.ID, nil
+}
+
+func (repo *ComplianceRequirementRepository) CreateComplianceRequirementStatusUpdate(complianceRequirementStatusUpdate *models.ComplianceRequirementStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(complianceRequirementStatusUpdate).Error; err != nil {
+		return 0, err
+	}
+	return complianceRequirementStatusUpdate.ID, nil
 }
 
 func (repo *ComplianceRequirementRepository) Update(complianceRequirement *models.ComplianceRequirement, tx ...utility.DatabaseTransaction) error {
@@ -454,10 +480,15 @@ func (repo *ComplianceRequirementRepository) GetOrCreateComplianceClause(complia
 	return &existingClause, nil
 }
 
-func (repo *ComplianceRequirementRepository) CountRequirementsByClauseID(clauseID uint) (int64, error) {
+func (repo *ComplianceRequirementRepository) CountRequirementsByClauseID(clauseID uint, tx ...utility.DatabaseTransaction) (int64, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
 	var count int64
 
-	if err := repo.db.Model(&models.ComplianceRequirement{}).Where("compliance_clause_id = ?", clauseID).Count(&count).Error; err != nil {
+	if err := db.Model(&models.ComplianceRequirement{}).Where("compliance_clause_id = ?", clauseID).Count(&count).Error; err != nil {
 		return 0, err
 	}
 	return count, nil
@@ -469,6 +500,56 @@ func (repo *ComplianceRequirementRepository) DeleteClause(clauseID uint, tx ...u
 		db = tx[0].DB()
 	}
 	if err := db.Delete(&models.ComplianceClause{}, clauseID).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *ComplianceRequirementRepository) CreateComplianceRequirementControls(controls []*models.ComplianceControl, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&controls).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *ComplianceRequirementRepository) DeleteComplianceRequirementControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Delete controls by IDs
+	if err := db.Where("id IN (?)", controlIds).Delete(&models.ComplianceControl{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *ComplianceRequirementRepository) CreateComplianceRequirementStrategicObjectives(objectives []*models.ComplianceRequirementStrategicObjective, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&objectives).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *ComplianceRequirementRepository) DeleteComplianceRequirementStrategicObjectives(objectiveIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Delete strategic objectives by IDs
+	if err := db.Where("id IN (?)", objectiveIds).Delete(&models.ComplianceRequirementStrategicObjective{}).Error; err != nil {
 		return err
 	}
 

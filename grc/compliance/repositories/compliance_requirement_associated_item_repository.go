@@ -7,8 +7,10 @@ import (
 )
 
 type ComplianceRequirementAssociatedItemRepositoryInterface interface {
-	GetAllRisks(complianceID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) ([]*complianceDTOs.ComplianceRequirementRiskListDTO, error)
-	GetAllIncidents(complianceID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) ([]*complianceDTOs.ComplianceRequirementIncidentListDTO, error)
+	GetAllControls(complianceID uint, requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) ([]*complianceDTOs.ComplianceRequirementControlListDTO, error)
+	GetAllStrategicObjectives(complianceID uint, requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) ([]*complianceDTOs.ComplianceRequirementStrategicObjectiveListDTO, error)
+	GetAllRisks(complianceID uint, requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) ([]*complianceDTOs.ComplianceRequirementRiskListDTO, error)
+	GetAllIncidents(complianceID uint, requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) ([]*complianceDTOs.ComplianceRequirementIncidentListDTO, error)
 }
 
 type ComplianceRequirementAssociatedItemRepository struct {
@@ -21,30 +23,135 @@ func NewComplianceRequirementAssociatedItemRepository(db *gorm.DB) *ComplianceRe
 	}
 }
 
-func (repo *ComplianceRequirementAssociatedItemRepository) GetAllRisks(complianceID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) ([]*complianceDTOs.ComplianceRequirementRiskListDTO, error) {
-	var complianceRequirementIDs []uint
+func (repo *ComplianceRequirementAssociatedItemRepository) GetAllControls(complianceID uint, requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) ([]*complianceDTOs.ComplianceRequirementControlListDTO, error) {
+	var controlList []*complianceDTOs.ComplianceRequirementControlListDTO
 
-	// First Query: Fetch all compliance requirement IDs by joining compliance_clauses and compliance_requirements
-	err := repo.db.Table("compliance_requirements").
-		Joins("JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id").
-		Where("compliance_clauses.compliance_register_id = ?", complianceID).
-		Pluck("compliance_requirements.id", &complianceRequirementIDs).Error
+	query := repo.db.Table("compliance_controls").
+		Select(`
+			controls.id AS control_id,
+			controls.reference_number AS control_reference_number,
+            controls.code AS control_code,
+            controls.last_test_date AS control_last_test_date,
+            control_categories.title_en AS control_category_title_en,
+            control_categories.title_ar AS control_category_title_ar,
+            control_types.title_en AS control_type_title_en,
+            control_types.title_ar AS control_type_title_ar,
+            controls.title_en AS control_title_en,
+            controls.title_ar AS control_title_ar,
+            controls.description AS control_description,
+            control_efficiency_statuses.title_en AS control_efficiency_status_en,
+            control_efficiency_statuses.title_ar AS control_efficiency_status_ar,
+            control_efficiency_statuses.color_code AS control_efficiency_status_color_code,
+            control_efficiency_statuses.type AS control_efficiency_status_type,
+            control_implementation_statuses.title_en AS control_implementation_status_en,
+            control_implementation_statuses.title_ar AS control_implementation_status_ar,
+            control_implementation_statuses.type AS control_implementation_status_type,
+            control_implementation_statuses.color_code AS control_implementation_status_color_code,
+			owner.first_name_en AS control_owner_first_name_en,
+			owner.first_name_ar AS control_owner_first_name_ar,
+			owner.last_name_en AS control_owner_last_name_en,
+			owner.last_name_ar AS control_owner_last_name_ar,
+			owner.initial AS control_owner_initial,
+            owner.color AS control_owner_color,
+            owner.email AS control_owner_email,
+            owner.profile_image_path AS control_owner_profile_image_path
+        `).
+		Joins(`
+			LEFT JOIN controls ON controls.id = compliance_controls.control_id
+            LEFT JOIN control_categories ON controls.control_category_id = control_categories.id
+            LEFT JOIN control_types ON controls.control_type_id = control_types.id
+            LEFT JOIN control_efficiency_statuses ON controls.control_efficiency_status_id = control_efficiency_statuses.id
+            LEFT JOIN control_implementation_statuses ON controls.control_implementation_status_id = control_implementation_statuses.id
+			LEFT JOIN users AS owner ON controls.owner_id = owner.id
+        `).Where("compliance_controls.compliance_requirement_id = ?", requirementID)
 
-	if err != nil {
+	// Apply search keyword if exists
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Where(`
+			(controls.title_en LIKE ? OR
+			controls.title_ar LIKE ? OR
+			controls.reference_number LIKE ? OR
+			controls.code LIKE ? OR
+			control_categories.title_en LIKE ? OR
+			control_categories.title_ar LIKE ? OR
+			control_types.title_en LIKE ? OR
+			control_types.title_ar LIKE ? OR
+			control_efficiency_statuses.title_en LIKE ? OR
+			control_efficiency_statuses.title_ar LIKE ? OR
+			control_implementation_statuses.title_en LIKE ? OR
+			control_implementation_statuses.title_ar LIKE ? OR
+			owner.first_name_en LIKE ? OR
+			owner.first_name_ar LIKE ? OR
+			owner.last_name_en LIKE ? OR
+			owner.last_name_ar LIKE ? OR
+			owner.email LIKE ?)`,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+	}
+
+	if params.SortBy == "" {
+		params.SortBy = "controls.title_en"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	if err := query.Find(&controlList).Error; err != nil {
 		return nil, err
 	}
 
-	// Check if we found any compliance requirement IDs
-	if len(complianceRequirementIDs) == 0 {
-		return []*complianceDTOs.ComplianceRequirementRiskListDTO{}, nil
+	return controlList, nil
+}
+
+func (repo *ComplianceRequirementAssociatedItemRepository) GetAllStrategicObjectives(complianceID uint, requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) ([]*complianceDTOs.ComplianceRequirementStrategicObjectiveListDTO, error) {
+	var objectiveList []*complianceDTOs.ComplianceRequirementStrategicObjectiveListDTO
+
+	query := repo.db.Table("compliance_requirement_strategic_objectives").
+		Select(`
+			strategic_objectives.id AS strategic_objective_id,
+			strategic_objectives.title_en AS strategic_objective_title_en,
+            strategic_objectives.title_ar AS strategic_objective_title_ar,
+            strategic_objectives.status AS strategic_objective_status
+        `).
+		Joins(`
+			LEFT JOIN strategic_objectives ON strategic_objectives.id = compliance_requirement_strategic_objectives.strategic_objective_id
+        `).Where("compliance_requirement_strategic_objectives.compliance_requirement_id = ?", requirementID)
+
+	// Apply search keyword if exists
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Where(`
+			(strategic_objectives.title_en LIKE ? OR
+			strategic_objectives.title_ar LIKE ? OR
+			strategic_objectives.status LIKE ? )`,
+			keyword, keyword, keyword)
 	}
 
+	if params.SortBy == "" {
+		params.SortBy = "strategic_objectives.title_en"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	if err := query.Find(&objectiveList).Error; err != nil {
+		return nil, err
+	}
+
+	return objectiveList, nil
+}
+
+func (repo *ComplianceRequirementAssociatedItemRepository) GetAllRisks(complianceID uint, requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) ([]*complianceDTOs.ComplianceRequirementRiskListDTO, error) {
 	var riskList []*complianceDTOs.ComplianceRequirementRiskListDTO
 
-	// Second Query: Fetch compliance requirement risks using the compliance requirement IDs
 	query := repo.db.Table("risk_compliance_requirements").
 		Select(`
-            DISTINCT risk_compliance_requirements.risk_register_id AS risk_register_id,
+            risk_register.id AS risk_register_id,
             risk_register.reference_number AS risk_reference_number,
             risk_register.title AS risk_register_title,
             risk_register.description AS risk_register_description,
@@ -81,9 +188,8 @@ func (repo *ComplianceRequirementAssociatedItemRepository) GetAllRisks(complianc
             LEFT JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id
             LEFT JOIN review_frequencies ON review_frequencies.id = risk_register.review_frequency_id
         `).
-		Where("risk_compliance_requirements.compliance_requirement_id IN (?)", complianceRequirementIDs)
+		Where("risk_compliance_requirements.compliance_requirement_id = ?", requirementID)
 
-	// Apply search keyword if exists
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where("risk_register.title LIKE ?", keyword)
@@ -96,10 +202,8 @@ func (repo *ComplianceRequirementAssociatedItemRepository) GetAllRisks(complianc
 		params.Sort = "asc"
 	}
 
-	// Ensure that the column used for sorting is included in the SELECT clause
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	// Add Debug() to print the generated SQL
 	query = query.Debug()
 
 	if err := query.Find(&riskList).Error; err != nil {
@@ -109,29 +213,12 @@ func (repo *ComplianceRequirementAssociatedItemRepository) GetAllRisks(complianc
 	return riskList, nil
 }
 
-func (repo *ComplianceRequirementAssociatedItemRepository) GetAllIncidents(complianceID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) ([]*complianceDTOs.ComplianceRequirementIncidentListDTO, error) {
-	var complianceRequirementIDs []uint
-
-	// First Query: Fetch all compliance requirement IDs by joining compliance_clauses and compliance_requirements
-	err := repo.db.Table("compliance_requirements").
-		Joins("JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id").
-		Where("compliance_clauses.compliance_register_id = ?", complianceID).
-		Pluck("compliance_requirements.id", &complianceRequirementIDs).Error
-
-	if err != nil {
-		return nil, err
-	}
-	// Check if we found any compliance requirement IDs
-	if len(complianceRequirementIDs) == 0 {
-		return []*complianceDTOs.ComplianceRequirementIncidentListDTO{}, nil
-	}
-
+func (repo *ComplianceRequirementAssociatedItemRepository) GetAllIncidents(complianceID uint, requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) ([]*complianceDTOs.ComplianceRequirementIncidentListDTO, error) {
 	var incidentList []*complianceDTOs.ComplianceRequirementIncidentListDTO
 
-	// Second Query: Fetch compliance requirement incidents using the compliance requirement IDs
 	query := repo.db.Table("incident_compliance_requirements").
 		Select(`
-            DISTINCT incident_compliance_requirements.incident_register_id AS incident_register_id,
+            incident_register.id AS incident_register_id,
             incident_register.reference_number AS incident_reference_number,
             incident_register.title AS incident_register_title,
             incident_register.description AS incident_register_description,
@@ -161,9 +248,8 @@ func (repo *ComplianceRequirementAssociatedItemRepository) GetAllIncidents(compl
 		    LEFT JOIN severity_levels ON severity_levels.id = incident_register.severity_level_id
             LEFT JOIN users AS reported_user ON reported_user.id = incident_register.reported_by
         `).
-		Where("incident_compliance_requirements.compliance_requirement_id IN (?)", complianceRequirementIDs)
+		Where("incident_compliance_requirements.compliance_requirement_id = ?", requirementID)
 
-	// Apply search keyword if exists
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where("incident_register.title LIKE ?", keyword)

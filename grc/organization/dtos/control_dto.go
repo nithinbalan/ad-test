@@ -133,14 +133,14 @@ type ControlDetailDTO struct {
 	ControlImplementationStatus *ControlImplementationStatusDTO   `json:"control_implementation_status"`
 	ControlEfficiencyStatus     *ControlEfficiencyStatusDTO       `json:"control_efficiency_status"`
 	ReviewFrequency             *masterDTOs.ReviewFrequencyDTO    `json:"review_frequency"`
-	LastReviewDate              *time.Time                        `json:"last_review_date"`
-	NextReviewDate              *time.Time                        `json:"next_review_date"`
+	LastReviewDateString        *string                           `json:"last_review_date"`
+	NextReviewDateString        *string                           `json:"next_review_date"`
 	LastReviewNote              *string                           `json:"last_review_note"`
 	TestResponsibleUser         UserMinimalDTO                    `json:"test_responsible_user"`
 	TestFrequency               *masterDTOs.ReviewFrequencyDTO    `json:"test_frequency"`
-	LastTestDate                *time.Time                        `json:"last_test_date"`
-	NextTestDate                *time.Time                        `json:"next_test_date"`
-	ImplementedAt               *time.Time                        `json:"implemented_at"`
+	LastTestDateString          *string                           `json:"last_test_date"`
+	NextTestDateString          *string                           `json:"next_test_date"`
+	ImplementedAtString         *string                           `json:"implemented_at"`
 	CreatedAt                   time.Time                         `json:"created_at"`
 	UpdatedAt                   *time.Time                        `json:"updated_at"`
 	CreatedByUser               UserMinimalDTO                    `json:"created_by"`

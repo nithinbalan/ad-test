@@ -7,6 +7,8 @@ import (
 
 type ComplianceAssociatedItemServiceInterface interface {
 	GetAllControls(complianceID uint, params *complianceDTOs.ComplianceAssociatedItemListQueryParamsDTO) ([]*complianceDTOs.ComplianceControlListDTO, error)
+	GetAllRisks(complianceID uint, params *complianceDTOs.ComplianceAssociatedItemListQueryParamsDTO) ([]*complianceDTOs.ComplianceRiskListDTO, error)
+	GetAllIncidents(complianceID uint, params *complianceDTOs.ComplianceAssociatedItemListQueryParamsDTO) ([]*complianceDTOs.ComplianceIncidentListDTO, error)
 }
 
 // Service and implementations
@@ -30,4 +32,18 @@ func (cais *ComplianceAssociatedItemService) GetAllControls(complianceID uint, p
 		return nil, err
 	}
 	return cais.repo.GetAllControls(complianceID, params)
+}
+
+func (cais *ComplianceAssociatedItemService) GetAllRisks(complianceID uint, params *complianceDTOs.ComplianceAssociatedItemListQueryParamsDTO) ([]*complianceDTOs.ComplianceRiskListDTO, error) {
+	if _, err := cais.complianceRegisterSvc.GetByID(complianceID); err != nil {
+		return nil, err
+	}
+	return cais.repo.GetAllRisks(complianceID, params)
+}
+
+func (cais *ComplianceAssociatedItemService) GetAllIncidents(complianceID uint, params *complianceDTOs.ComplianceAssociatedItemListQueryParamsDTO) ([]*complianceDTOs.ComplianceIncidentListDTO, error) {
+	if _, err := cais.complianceRegisterSvc.GetByID(complianceID); err != nil {
+		return nil, err
+	}
+	return cais.repo.GetAllIncidents(complianceID, params)
 }

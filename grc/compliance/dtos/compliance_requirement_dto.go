@@ -82,14 +82,16 @@ type ComplianceRequirementByComplianceIDListResponseDTO struct {
 }
 
 type ComplianceRequirementFormDTO struct {
-	ComplianceClauseNo              string `json:"compliance_clause_no" binding:"required"`
-	ComplianceClauseTitle           string `json:"compliance_clause_title" binding:"required"`
-	Title                           string `json:"title" binding:"required"`
-	ComplianceRequirementCategoryID uint   `json:"compliance_requirement_category_id" binding:"required"`
-	SeverityLevelID                 uint   `json:"severity_level_id" binding:"required"`
-	ResponsibleUserID               uint   `json:"responsible_user_id" binding:"required"`
-	Deadline                        string `json:"deadline" binding:"omitempty,datetime=2006-01-02"`
-	ComplianceStatusID              uint   `json:"compliance_status_id" binding:"required"`
+	ComplianceClauseNo              string  `json:"compliance_clause_no" binding:"required"`
+	ComplianceClauseTitle           string  `json:"compliance_clause_title" binding:"required"`
+	Title                           string  `json:"title" binding:"required"`
+	ComplianceRequirementCategoryID uint    `json:"compliance_requirement_category_id" binding:"required"`
+	SeverityLevelID                 uint    `json:"severity_level_id" binding:"required"`
+	ResponsibleUserID               uint    `json:"responsible_user_id" binding:"required"`
+	Deadline                        string  `json:"deadline" binding:"omitempty,datetime=2006-01-02"`
+	ComplianceStatusID              uint    `json:"compliance_status_id" binding:"required"`
+	ControlIDs                      []*uint `json:"control_ids"`
+	StrategicObjectiveIDs           []*uint `json:"strategic_objective_ids"`
 }
 
 type ComplianceRequirementParsedDates struct {
@@ -97,18 +99,20 @@ type ComplianceRequirementParsedDates struct {
 }
 
 type ComplianceRequirementDetailDTO struct {
-	ID                                int                                   `json:"id"`
-	ComplianceClause                  ComplianceClauseDTO                   `json:"compliance_clause"`
-	Title                             string                                `json:"title"`
-	ComplianceRequirementCategory     ComplianceRequirementCategoryDTO      `json:"compliance_requirement_category"`
-	SeverityLevel                     *masterDTOs.SeverityLevelDTO          `json:"severity_level"`
-	ResponsibleUser                   organizationDTOs.UserMinimalDTO       `json:"responsible_user"`
-	DeadlineString                    *string                               `json:"deadline"`
-	CreatedAt                         time.Time                             `json:"created_at"`
-	UpdatedAt                         *time.Time                            `json:"updated_at"`
-	CreatedByUser                     organizationDTOs.UserMinimalDTO       `json:"created_by"`
-	UpdatedByUser                     *organizationDTOs.UserMinimalDTO      `json:"updated_by"`
-	ComplianceRequirementStatusUpdate *ComplianceRequirementStatusUpdateDTO `json:"compliance_status"`
+	ID                                int                                           `json:"id"`
+	ComplianceClause                  ComplianceClauseDTO                           `json:"compliance_clause"`
+	Title                             string                                        `json:"title"`
+	ComplianceRequirementCategory     ComplianceRequirementCategoryDTO              `json:"compliance_requirement_category"`
+	SeverityLevel                     *masterDTOs.SeverityLevelDTO                  `json:"severity_level"`
+	ResponsibleUser                   organizationDTOs.UserMinimalDTO               `json:"responsible_user"`
+	DeadlineString                    *string                                       `json:"deadline"`
+	CreatedAt                         time.Time                                     `json:"created_at"`
+	UpdatedAt                         *time.Time                                    `json:"updated_at"`
+	CreatedByUser                     organizationDTOs.UserMinimalDTO               `json:"created_by"`
+	UpdatedByUser                     *organizationDTOs.UserMinimalDTO              `json:"updated_by"`
+	ComplianceRequirementStatusUpdate *ComplianceRequirementStatusUpdateDTO         `json:"compliance_status"`
+	Controls                          []*ComplianceRequirementControlDTO            `json:"controls"`
+	StrategicObjectives               []*ComplianceRequirementStrategicObjectiveDTO `json:"strategic_objectives"`
 }
 
 type ComplianceRequirementStatusUpdateDTO struct {
@@ -117,8 +121,8 @@ type ComplianceRequirementStatusUpdateDTO struct {
 	Comment          string                                          `json:"comment"`
 	CreatedAt        time.Time                                       `json:"created_at"`
 	UpdatedAt        *time.Time                                      `json:"updated_at"`
-	CreatedUser      organizationDTOs.UserMinimalDTO                 `json:"created_by"`
-	UpdatedUser      *organizationDTOs.UserMinimalDTO                `json:"updated_by"`
+	CreatedByUser    organizationDTOs.UserMinimalDTO                 `json:"created_by"`
+	UpdatedByUser    *organizationDTOs.UserMinimalDTO                `json:"updated_by"`
 	Documents        []*ComplianceRequirementStatusUpdateDocumentDTO `json:"documents"`
 }
 
@@ -130,4 +134,18 @@ type ComplianceRequirementStatusUpdateDocumentDTO struct {
 	Token        string `json:"token"`
 	OriginalName string `json:"original_name"`
 	Type         string `json:"type"`
+}
+
+type ComplianceRequirementControlDTO struct {
+	ID                      *uint                             `json:"id"`
+	ComplianceRequirementID *uint                             `json:"compliance_requirement_id"`
+	ControlID               uint                              `json:"control_id"`
+	Control                 organizationDTOs.ControlDetailDTO `json:"control"`
+}
+
+type ComplianceRequirementStrategicObjectiveDTO struct {
+	ID                      *uint                                  `json:"id"`
+	ComplianceRequirementID *uint                                  `json:"compliance_requirement_id"`
+	StrategicObjectiveID    uint                                   `json:"strategic_objective_id"`
+	StrategicObjective      organizationDTOs.StrategicObjectiveDTO `json:"strategic_objective"`
 }
