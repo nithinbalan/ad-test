@@ -314,6 +314,10 @@ func (repo *IncidentAssociatedItemRepository) GetAllProcesses(incidentID uint, p
 			owner.first_name_ar AS owner_first_name_ar,
 			owner.last_name_en AS owner_last_name_en,
 			owner.last_name_ar AS owner_last_name_ar,
+			owner.initial AS control_owner_initial,
+            owner.color AS control_owner_color,
+            owner.email AS control_owner_email,
+            owner.profile_image_path AS control_owner_profile_image_path,
 			lifecycle_statuses.title_en AS lifecycle_status_title_en,
 			lifecycle_statuses.title_ar AS lifecycle_status_title_ar,
 			lifecycle_statuses.color_code AS lifecycle_status_color_code

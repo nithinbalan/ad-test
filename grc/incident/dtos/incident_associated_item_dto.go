@@ -77,6 +77,10 @@ type IncidentProcessListDTO struct {
 	OwnerFirstNameAr         *string `json:"owner_first_name_ar"`
 	OwnerLastNameEn          *string `json:"owner_last_name_en"`
 	OwnerLastNameAr          *string `json:"owner_last_name_ar"`
+	OwnerInitial             string  `json:"owner_initial"`
+	OwnerColor               string  `json:"owner_color"`
+	OwnerEmail               string  `json:"owner_email"`
+	OwnerProfileImagePath    string  `json:"owner_profile_image_path"`
 	LifecycleStatusTitleEn   string  `json:"lifecycle_status_title_en"`
 	LifecycleStatusTitleAr   string  `json:"lifecycle_status_title_ar"`
 	LifecycleStatusColorCode string  `json:"lifecycle_status_color_code"`

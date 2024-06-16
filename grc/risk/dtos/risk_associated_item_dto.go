@@ -1,5 +1,7 @@
 package dtos
 
+import commonDTOs "jethur/grc/common/dtos"
+
 type RiskControlListDTO struct {
 	ControlID                            uint    `json:"control_id"`
 	ControlReferenceNumber               string  `json:"control_reference_number"`
@@ -52,6 +54,10 @@ type RiskProcessListDTO struct {
 	OwnerFirstNameAr         *string `json:"owner_first_name_ar"`
 	OwnerLastNameEn          *string `json:"owner_last_name_en"`
 	OwnerLastNameAr          *string `json:"owner_last_name_ar"`
+	OwnerInitial             string  `json:"owner_initial"`
+	OwnerColor               string  `json:"owner_color"`
+	OwnerEmail               string  `json:"owner_email"`
+	OwnerProfileImagePath    string  `json:"owner_profile_image_path"`
 	LifecycleStatusTitleEn   string  `json:"lifecycle_status_title_en"`
 	LifecycleStatusTitleAr   string  `json:"lifecycle_status_title_ar"`
 	LifecycleStatusColorCode string  `json:"lifecycle_status_color_code"`
@@ -66,5 +72,23 @@ type RiskAssociatedItemListQueryParamsDTO struct {
 	SortBy      string
 	Keyword     string
 	Status      string
+	Page        int
+	PageSize    int
 	QuickFilter []string
 }
+
+type RiskAssociatedItemControlListResponseDTO struct {
+	Items      []*RiskControlListDTO        `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
+}
+
+type RiskAssociatedItemComplianceRequirementListResponseDTO struct {
+	Items      []*RiskComplianceRequirementListDTO `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO        `json:"pagination"`
+}
+
+type RiskAssociatedItemProcessListResponseDTO struct {
+	Items      []*RiskProcessListDTO        `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
+}
+
