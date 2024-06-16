@@ -15,7 +15,7 @@ type Process struct {
 	TitleAr           string     `json:"title_ar" gorm:"type:nvarchar(500);not null" binding:"required"`
 	Description       *string    `json:"description" gorm:"type:nvarchar(MAX);default:null" binding:"omitempty"`
 	CreatedByID       uint       `json:"created_by_id" gorm:"not null;column:created_by_id" binding:"required"`
-	UpdatedBy         *uint      `json:"updated_by_id" gorm:"default:null;column:updated_by_id" binding:"omitempty"`
+	UpdatedByID       *uint      `json:"updated_by_id" gorm:"default:null;column:updated_by_id" binding:"omitempty"`
 	CreatedAt         time.Time  `json:"created_at" gorm:"type:datetime;not null" binding:"-"`
 	UpdatedAt         *time.Time `json:"updated_at" gorm:"type:datetime;default:null" binding:"omitempty"`
 
@@ -25,7 +25,7 @@ type Process struct {
 	Owner           *User             `gorm:"foreignKey:OwnerID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	LifecycleStatus *LifecycleStatus  `gorm:"foreignKey:LifecycleStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	CreatedByUser   *User             `gorm:"foreignKey:CreatedByID"`
-	UpdatedByUser   *User             `gorm:"foreignKey:UpdatedBy"`
+	UpdatedByUser   *User             `gorm:"foreignKey:UpdatedByID"`
 	Controls        []*ProcessControl `gorm:"foreignKey:ProcessID"`
 }
 

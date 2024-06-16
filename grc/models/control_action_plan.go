@@ -18,7 +18,7 @@ type ControlActionPlan struct {
 	CreatedAt          time.Time  `json:"created_at" gorm:"not null" binding:"required"`
 	UpdatedAt          *time.Time `json:"updated_at" gorm:"default:null"`
 	CreatedByID        uint       `json:"created_by_id" gorm:"not null; column:created_by_id" binding:"required"`
-	UpdatedBy          *uint      `json:"updated_by_id,omitempty" gorm:"default:null; column:updated_by_id"`
+	UpdatedByID        *uint      `json:"updated_by_id,omitempty" gorm:"default:null; column:updated_by_id"`
 
 	// Relationships
 	Control          *Control          `gorm:"foreignKey:ControlID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
@@ -26,7 +26,7 @@ type ControlActionPlan struct {
 	ResponsibleUser  *User             `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ActionPlanStatus *ActionPlanStatus `gorm:"foreignKey:ActionPlanStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	CreatedByUser    *User             `gorm:"foreignKey:CreatedByID"`
-	UpdatedByUser    *User             `gorm:"foreignKey:UpdatedBy"`
+	UpdatedByUser    *User             `gorm:"foreignKey:UpdatedByID"`
 }
 
 func (ControlActionPlan) TableName() string {

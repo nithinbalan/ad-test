@@ -130,7 +130,7 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 		TargetDate:         dates.TargetDate,
 		Percentage:         *MeetingActionPlanFormDTO.Percentage,
 		ActionPlanStatusID: MeetingActionPlanFormDTO.ActionPlanStatusID,
-		CreatedBy:          currentUserID,
+		CreatedByID:        currentUserID,
 	}
 
 	id, err := maps.repo.Create(meetingActionPlan)
@@ -153,7 +153,7 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 		MessageEn:        messageEn,
 		MessageAr:        messageAr,
 		RedirectURL:      redirectURL,
-		CreatedBy:        currentUserID,
+		CreatedByID:      currentUserID,
 	}
 
 	resposibleUser, err := maps.userSvc.GetByID(MeetingActionPlanFormDTO.ResponsibleUserID)
@@ -238,7 +238,7 @@ func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUse
 	existingMeetingActionPlan.TargetDate = dates.TargetDate
 	existingMeetingActionPlan.Percentage = *MeetingActionPlanFormDTO.Percentage
 	existingMeetingActionPlan.ActionPlanStatusID = MeetingActionPlanFormDTO.ActionPlanStatusID
-	existingMeetingActionPlan.UpdatedBy = &currentUserID
+	existingMeetingActionPlan.UpdatedByID = &currentUserID
 
 	err = maps.repo.Update(existingMeetingActionPlan)
 
@@ -302,7 +302,7 @@ func (maps *MeetingActionPlanService) StatusUpdate(meetingID uint, id uint, curr
 
 	existingMeetingActionPlan.ActionPlanStatusID = actionPlanStatusID
 	existingMeetingActionPlan.Percentage = percentage
-	existingMeetingActionPlan.UpdatedBy = &currentUserID
+	existingMeetingActionPlan.UpdatedByID = &currentUserID
 
 	err = maps.repo.Update(existingMeetingActionPlan, tx...)
 

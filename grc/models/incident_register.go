@@ -20,7 +20,7 @@ type IncidentRegister struct {
 	ReportedAt            *time.Time `json:"reported_at" gorm:"type:date"`
 	QuickAction           *string    `json:"quick_action" gorm:"type:nvarchar(max)"`
 	CreatedByID           uint       `json:"created_by_id" binding:"required"`
-	UpdatedBy             *uint      `json:"updated_by_id"`
+	UpdatedByID           *uint      `json:"updated_by_id"`
 	CreatedAt             time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt             *time.Time `json:"updated_at" gorm:"type:datetime"`
 
@@ -37,7 +37,7 @@ type IncidentRegister struct {
 	Processes              []*IncidentProcess               `gorm:"foreignKey:IncidentRegisterID"`
 	ReportedByUser         *User                            `gorm:"foreignKey:ReportedBy"`
 	CreatedByUser          *User                            `gorm:"foreignKey:CreatedByID"`
-	UpdatedByUser          *User                            `gorm:"foreignKey:UpdatedBy"`
+	UpdatedByUser          *User                            `gorm:"foreignKey:UpdatedByID"`
 }
 
 // TableName overrides the table name used by IncidentRegister to `incident_register`

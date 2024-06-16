@@ -105,7 +105,7 @@ func (prs *PotentialRiskService) Create(currentUserID uint, potentialRiskFormDTO
 		Title:                 potentialRiskFormDTO.Title,
 		Description:           potentialRiskFormDTO.Description,
 		RiskSource:            "manual",
-		CreatedBy:             currentUserID,
+		CreatedByID:           currentUserID,
 		UpdatedAt:             nil,
 	}
 
@@ -156,7 +156,7 @@ func (prs *PotentialRiskService) Update(id uint, currentUserID uint, potentialRi
 	existingPotentialRisk.SeverityLevelID = potentialRiskFormDTO.SeverityLevelID
 	existingPotentialRisk.Title = potentialRiskFormDTO.Title
 	existingPotentialRisk.Description = potentialRiskFormDTO.Description
-	existingPotentialRisk.UpdatedBy = &currentUserID
+	existingPotentialRisk.UpdatedByID = &currentUserID
 
 	err = prs.repo.Update(existingPotentialRisk)
 
@@ -215,7 +215,7 @@ func (prs *PotentialRiskService) StatusUpdate(id uint, currentUserID uint, poten
 	}
 
 	existingPotentialRisk.PotentialRiskStatusID = potentialRiskStatusID
-	existingPotentialRisk.UpdatedBy = &currentUserID
+	existingPotentialRisk.UpdatedByID = &currentUserID
 
 	err = prs.repo.Update(existingPotentialRisk)
 

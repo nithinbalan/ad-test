@@ -71,7 +71,7 @@ func (repo *ControlTestRepository) GetAll(controlID uint, params *organizationDT
 		Joins("LEFT JOIN control_implementation_statuses ON control_implementation_statuses.id = control_tests.control_implementation_status_id").
 		Joins("LEFT JOIN control_efficiency_statuses ON control_efficiency_statuses.id = control_tests.control_efficiency_status_id").
 		Joins("LEFT JOIN users AS tested_by_user ON tested_by_user.id = control_tests.tested_by").
-		Joins("LEFT JOIN users AS updated_by_user ON updated_by_user.id = control_tests.updated_by").
+		Joins("LEFT JOIN users AS updated_by_user ON updated_by_user.id = control_tests.updated_by_id").
 		Where("control_tests.control_id = ?", controlID)
 
 	// Apply dynamic filters to the query

@@ -98,7 +98,7 @@ func (rass *RiskAppetiteStatementService) Create(currentUserID uint, riskAppetit
 		StatementEn:     riskAppetiteStatementFormDTO.StatementEn,
 		StatementAr:     riskAppetiteStatementFormDTO.StatementAr,
 		Status:          riskAppetiteStatementFormDTO.Status,
-		CreatedBy:       currentUserID,
+		CreatedByID:     currentUserID,
 		UpdatedAt:       nil,
 	}
 
@@ -148,7 +148,7 @@ func (rass *RiskAppetiteStatementService) Update(id uint, currentUserID uint, ri
 	existingStatement.RiskCategoryID = riskAppetiteStatementFormDTO.RiskCategoryID
 	existingStatement.StatementEn = riskAppetiteStatementFormDTO.StatementEn
 	existingStatement.StatementAr = riskAppetiteStatementFormDTO.StatementAr
-	existingStatement.UpdatedBy = &currentUserID
+	existingStatement.UpdatedByID = &currentUserID
 
 	err = rass.repo.Update(existingStatement)
 

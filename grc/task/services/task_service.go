@@ -49,7 +49,7 @@ func (ts *TaskService) CreateTask(taskDTO commonDTOs.CreateTaskDTO, currentUserI
 		SeverityLevelID:        taskDTO.SeverityLevelID,
 		ResponsibleUserID:      taskDTO.ResponsibleUserID,
 		TaskStatusID:           taskStatus.ID,
-		CreatedBy:              currentUserID,
+		CreatedByID:            currentUserID,
 	}
 	return ts.repo.CreateTask(task, tx...)
 

@@ -88,8 +88,8 @@ func (repo *ControlRepository) GetAll(params *organizationDTOs.ControlListQueryP
 		Joins("LEFT JOIN users AS test_responsible_user ON test_responsible_user.id = controls.test_responsible_user_id").
 		Joins("LEFT JOIN review_frequencies AS test_frequencies ON test_frequencies.id = controls.test_frequency_id").
 		Joins("LEFT JOIN lifecycle_statuses ON lifecycle_statuses.id = controls.lifecycle_status_id").
-		Joins("LEFT JOIN users AS created_user ON created_user.id = controls.created_by").
-		Joins("LEFT JOIN users AS updated_user ON updated_user.id = controls.updated_by")
+		Joins("LEFT JOIN users AS created_user ON created_user.id = controls.created_by_id").
+		Joins("LEFT JOIN users AS updated_user ON updated_user.id = controls.updated_by_id")
 
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {

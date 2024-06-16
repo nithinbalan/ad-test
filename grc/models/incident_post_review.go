@@ -11,7 +11,7 @@ type IncidentPostReview struct {
 	PostReviewDate                    time.Time  `json:"post_review_date" binding:"required" gorm:"type:date;not null"`
 	Summary                           *string    `json:"summary" gorm:"type:nvarchar(max)"`
 	CreatedByID                       uint       `json:"created_by_id" binding:"required"`
-	UpdatedBy                         *uint      `json:"updated_by_id"`
+	UpdatedByID                       *uint      `json:"updated_by_id"`
 	CreatedAt                         time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt                         *time.Time `json:"updated_at" gorm:"type:datetime"`
 
@@ -22,7 +22,7 @@ type IncidentPostReview struct {
 	Lessons                         []*IncidentPostReviewLesson         `gorm:"foreignKey:IncidentPostReviewID"`
 	Recommendations                 []*IncidentPostReviewRecommendation `gorm:"foreignKey:IncidentPostReviewID"`
 	CreatedByUser                   User                                `gorm:"foreignKey:CreatedByID"`
-	UpdatedByUser                   *User                               `gorm:"foreignKey:UpdatedBy"`
+	UpdatedByUser                   *User                               `gorm:"foreignKey:UpdatedByID"`
 }
 
 // TableName overrides the table name used by IncidentPostReview to `incident_post_reviews`

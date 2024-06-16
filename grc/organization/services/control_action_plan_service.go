@@ -123,7 +123,7 @@ func (caps *ControlActionPlanService) Create(controlID uint, currentUserID uint,
 		TargetDate:         dates.TargetDate,
 		Percentage:         *ControlActionPlanFormDTO.Percentage,
 		ActionPlanStatusID: ControlActionPlanFormDTO.ActionPlanStatusID,
-		CreatedBy:          currentUserID,
+		CreatedByID:        currentUserID,
 	}
 
 	id, err := caps.repo.Create(controlActionPlan)
@@ -185,7 +185,7 @@ func (caps *ControlActionPlanService) Update(controlID uint, id uint, currentUse
 	existingControlActionPlan.TargetDate = dates.TargetDate
 	existingControlActionPlan.Percentage = *ControlActionPlanFormDTO.Percentage
 	existingControlActionPlan.ActionPlanStatusID = ControlActionPlanFormDTO.ActionPlanStatusID
-	existingControlActionPlan.UpdatedBy = &currentUserID
+	existingControlActionPlan.UpdatedByID = &currentUserID
 
 	err = caps.repo.Update(existingControlActionPlan)
 
@@ -249,7 +249,7 @@ func (caps *ControlActionPlanService) StatusUpdate(controlID uint, id uint, curr
 
 	existingControlActionPlan.ActionPlanStatusID = actionPlanStatusID
 	existingControlActionPlan.Percentage = percentage
-	existingControlActionPlan.UpdatedBy = &currentUserID
+	existingControlActionPlan.UpdatedByID = &currentUserID
 
 	err = caps.repo.Update(existingControlActionPlan, tx...)
 

@@ -23,7 +23,7 @@ type RiskRegister struct {
 	NextReviewDate           *time.Time `json:"next_review_date"`
 	Comments                 *string    `json:"comments" gorm:"type:nvarchar(max)"`
 	CreatedByID              uint       `json:"created_by_id" binding:"required"`
-	UpdatedBy                *uint      `json:"updated_by_id"`
+	UpdatedByID              *uint      `json:"updated_by_id"`
 	CreatedAt                time.Time  `json:"created_at" binding:"required" gorm:"type:datetime;not null"`
 	UpdatedAt                *time.Time `json:"updated_at,omitempty" gorm:"type:datetime;default:null"`
 
@@ -39,7 +39,7 @@ type RiskRegister struct {
 	RiskMatrixRiskRatingValue *RiskMatrixRiskRatingValue   `gorm:"foreignKey:CurrentRiskRatingValueID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	RiskStatus                *RiskStatus                  `gorm:"foreignKey:RiskStatusID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	CreatedByUser             *User                        `gorm:"foreignKey:CreatedByID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	UpdatedByUser             *User                        `gorm:"foreignKey:UpdatedBy;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	UpdatedByUser             *User                        `gorm:"foreignKey:UpdatedByID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	Documents                 *[]RiskDocument              `gorm:"foreignKey:RiskRegisterID"`
 	ComplianceRequirements    []*RiskComplianceRequirement `gorm:"foreignKey:RiskRegisterID"`
 	Controls                  []*RiskControl               `gorm:"foreignKey:RiskRegisterID"`

@@ -25,7 +25,7 @@ type KRIRegister struct {
 	CreatedAt         time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt         *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 	CreatedByID       uint       `json:"created_by_id" gorm:"not null"`
-	UpdatedBy         *uint      `json:"updated_by_id" gorm:"default:null"`
+	UpdatedByID       *uint      `json:"updated_by_id" gorm:"default:null"`
 
 	// Relationships
 	KRICategory     *KRICategory      `gorm:"foreignKey:KRICategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
@@ -34,7 +34,7 @@ type KRIRegister struct {
 	ReviewFrequency *ReviewFrequency  `gorm:"foreignKey:ReviewFrequencyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	RiskLevel       *RiskLevel        `gorm:"foreignKey:RiskLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	CreatedByUser   *User             `gorm:"foreignKey:CreatedByID"`
-	UpdatedByUser   *User             `gorm:"foreignKey:UpdatedBy"`
+	UpdatedByUser   *User             `gorm:"foreignKey:UpdatedByID"`
 }
 
 // TableName overrides the table name used by KRIRegister to `kri_register`

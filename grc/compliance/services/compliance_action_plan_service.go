@@ -136,7 +136,7 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 		Percentage:              ComplianceActionPlanFormDTO.Percentage,
 		Comments:                ComplianceActionPlanFormDTO.Comments,
 		ActionPlanStatusID:      ComplianceActionPlanFormDTO.ActionPlanStatusID,
-		CreatedBy:               currentUserID,
+		CreatedByID:             currentUserID,
 	}
 
 	id, err := caps.repo.Create(complianceActionPlan, tx)
@@ -224,7 +224,7 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 	existingComplianceActionPlan.Percentage = ComplianceActionPlanFormDTO.Percentage
 	existingComplianceActionPlan.Comments = ComplianceActionPlanFormDTO.Comments
 	existingComplianceActionPlan.ActionPlanStatusID = ComplianceActionPlanFormDTO.ActionPlanStatusID
-	existingComplianceActionPlan.UpdatedBy = &currentUserID
+	existingComplianceActionPlan.UpdatedByID = &currentUserID
 
 	err = caps.repo.Update(existingComplianceActionPlan)
 
@@ -287,7 +287,7 @@ func (caps *ComplianceActionPlanService) StatusUpdate(complianceID uint, id uint
 	}
 
 	existingComplianceActionPlan.ActionPlanStatusID = ActionPlanStatusID
-	existingComplianceActionPlan.UpdatedBy = &currentUserID
+	existingComplianceActionPlan.UpdatedByID = &currentUserID
 
 	err = caps.repo.Update(existingComplianceActionPlan, tx)
 

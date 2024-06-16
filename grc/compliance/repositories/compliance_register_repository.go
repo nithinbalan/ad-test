@@ -121,8 +121,8 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
 			LEFT JOIN users AS review_responsible_user ON review_responsible_user.id = compliance_register.review_responsible_user_id
 		    LEFT JOIN severity_levels ON severity_levels.id = compliance_register.severity_level_id
 			LEFT JOIN lifecycle_statuses ON lifecycle_statuses.id = compliance_register.lifecycle_status_id
-			LEFT JOIN users AS created_user ON created_user.id = compliance_register.created_by
-			LEFT JOIN users AS updated_user ON updated_user.id = compliance_register.updated_by
+			LEFT JOIN users AS created_user ON created_user.id = compliance_register.created_by_id
+			LEFT JOIN users AS updated_user ON updated_user.id = compliance_register.updated_by_id
 		`)
 
 	// Apply dynamic filters to the query

@@ -14,13 +14,13 @@ type MeetingActionPlanStatusUpdate struct {
 	CreatedAt           time.Time  `json:"created_at" gorm:"not null" binding:"required"`
 	UpdatedAt           *time.Time `json:"updated_at,omitempty" gorm:"default:null" binding:"-"`
 	CreatedByID         uint       `json:"created_by_id" gorm:"not null; column:created_by_id" binding:"required"`
-	UpdatedBy           *uint      `json:"updated_by_id,omitempty" gorm:"default:null; column:updated_by_id" binding:"-"`
+	UpdatedByID         *uint      `json:"updated_by_id,omitempty" gorm:"default:null; column:updated_by_id" binding:"-"`
 
 	// Relationships
 	MeetingActionPlan *MeetingActionPlan                       `json:"meeting_action_plan" gorm:"foreignKey:MeetingActionPlanID"`
 	ActionPlanStatus  *ActionPlanStatus                        `json:"action_plan_status" gorm:"foreignKey:ActionPlanStatusID"`
 	CreateByUser      *User                                    `json:"create_by_user" gorm:"foreignKey:CreatedByID"`
-	UpdateByUser      *User                                    `json:"update_by_user,omitempty" gorm:"foreignKey:UpdatedBy"`
+	UpdateByUser      *User                                    `json:"update_by_user,omitempty" gorm:"foreignKey:UpdatedByID"`
 	Documents         []*MeetingActionPlanStatusUpdateDocument `json:"documents,omitempty" gorm:"foreignKey:MeetingActionPlanStatusUpdateID"`
 }
 

@@ -106,7 +106,7 @@ func (icls *IncidentCommunicationLogService) Create(incidentID uint, currentUser
 		CommunicatedTo:      incidentCommunicationLogFormDTO.CommunicatedTo,
 		CommunicationMethod: incidentCommunicationLogFormDTO.CommunicationMethod,
 		Summary:             &incidentCommunicationLogFormDTO.Summary,
-		CreatedBy:           currentUserID,
+		CreatedByID:         currentUserID,
 	}
 
 	id, err := icls.repo.Create(incidentCommunicationLog)
@@ -162,7 +162,7 @@ func (icls *IncidentCommunicationLogService) Update(incidentID uint, id uint, cu
 	existingIncidentCommunicationLog.CommunicatedTo = incidentCommunicationLogFormDTO.CommunicatedTo
 	existingIncidentCommunicationLog.CommunicationMethod = incidentCommunicationLogFormDTO.CommunicationMethod
 	existingIncidentCommunicationLog.Summary = &incidentCommunicationLogFormDTO.Summary
-	existingIncidentCommunicationLog.UpdatedBy = &currentUserID
+	existingIncidentCommunicationLog.UpdatedByID = &currentUserID
 
 	err = icls.repo.Update(existingIncidentCommunicationLog, tx)
 

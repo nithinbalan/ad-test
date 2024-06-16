@@ -59,8 +59,8 @@ func (repo *ControlActionPlanStatusUpdateRepository) GetAll(controlActionPlanID 
 		Joins(`
             LEFT JOIN control_action_plans ON control_action_plans.id = control_action_plan_status_updates.control_action_plan_id
             LEFT JOIN action_plan_statuses ON action_plan_statuses.id = control_action_plan_status_updates.action_plan_status_id
-            LEFT JOIN users AS created_user ON created_user.id = control_action_plan_status_updates.created_by
-            LEFT JOIN users AS updated_user ON updated_user.id = control_action_plan_status_updates.updated_by
+            LEFT JOIN users AS created_user ON created_user.id = control_action_plan_status_updates.created_by_id
+            LEFT JOIN users AS updated_user ON updated_user.id = control_action_plan_status_updates.updated_by_id
         `).
 		Where("control_action_plan_status_updates.control_action_plan_id = ?", controlActionPlanID)
 

@@ -7,7 +7,7 @@ type IncidentInvestigationUser struct {
 	IncidentInvestigationID uint       `json:"incident_investigation_id" binding:"required" gorm:"not null"`
 	UserID                  uint       `json:"user_id" binding:"required" gorm:"not null"`
 	CreatedByID             uint       `json:"created_by_id" binding:"required"`
-	UpdatedBy               *uint      `json:"updated_by_id"`
+	UpdatedByID             *uint      `json:"updated_by_id"`
 	CreatedAt               time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt               *time.Time `json:"updated_at" gorm:"type:datetime"`
 
@@ -15,7 +15,7 @@ type IncidentInvestigationUser struct {
 	IncidentInvestigation IncidentInvestigation `gorm:"foreignKey:IncidentInvestigationID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	User                  User                  `gorm:"foreignKey:UserID"`
 	CreatedByUser         User                  `gorm:"foreignKey:CreatedByID"`
-	UpdatedByUser         *User                 `gorm:"foreignKey:UpdatedBy"`
+	UpdatedByUser         *User                 `gorm:"foreignKey:UpdatedByID"`
 }
 
 // TableName overrides the table name used by IncidentInvestigationUser to `incident_investigation_users`

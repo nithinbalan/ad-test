@@ -25,11 +25,11 @@ type StrategicProfile struct {
 	CreatedAt   time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt   *time.Time `json:"updated_at,omitempty" gorm:"type:datetime dafault:null" binding:"omitempty"`
 	CreatedByID uint       `json:"created_by_id" gorm:"not null"`
-	UpdatedBy   *uint      `json:"updated_by_id,omitempty" gorm:"default:null" binding:"omitempty"`
+	UpdatedByID *uint      `json:"updated_by_id,omitempty" gorm:"default:null" binding:"omitempty"`
 
 	// Relationships
 	CreatedByUser *User `gorm:"foreignKey:CreatedByID"`
-	UpdatedByUser *User `gorm:"foreignKey:UpdatedBy"` // Pointer for nullable relationship
+	UpdatedByUser *User `gorm:"foreignKey:UpdatedByID"` // Pointer for nullable relationship
 
 	StrategicProfileValues []StrategicProfileValue `json:"strategic_profile_values" gorm:"foreignKey:StrategicProfileID"`
 }

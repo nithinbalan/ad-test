@@ -59,8 +59,8 @@ func (repo *ControlActionPlanRepository) GetAll(controlID uint, params *organiza
         LEFT JOIN action_plan_statuses ON action_plan_statuses.id = control_action_plans.action_plan_status_id
         LEFT JOIN severity_levels ON severity_levels.id = control_action_plans.severity_level_id
         LEFT JOIN users AS responsible_user ON responsible_user.id = control_action_plans.responsible_user_id
-        LEFT JOIN users AS created_user ON created_user.id = control_action_plans.created_by
-        LEFT JOIN users AS updated_user ON updated_user.id = control_action_plans.updated_by
+        LEFT JOIN users AS created_user ON created_user.id = control_action_plans.created_by_id
+        LEFT JOIN users AS updated_user ON updated_user.id = control_action_plans.updated_by_id
     `).Where(`control_action_plans.control_id`, controlID)
 
 	// Apply dynamic filters to the query

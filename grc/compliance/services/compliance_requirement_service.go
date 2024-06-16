@@ -167,7 +167,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		SeverityLevelID:                 complianceRequirementFormDTO.SeverityLevelID,
 		Title:                           complianceRequirementFormDTO.Title,
 		Deadline:                        dates.Deadline,
-		CreatedBy:                       currentUserID,
+		CreatedByID:                     currentUserID,
 		ComplianceClauseID:              clause.ID,
 	}
 
@@ -182,7 +182,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		ComplianceRequirementID: id,
 		ComplianceStatusID:      complianceStatusID,
 		Comment:                 "Initial compliance status",
-		CreatedBy:               currentUserID,
+		CreatedByID:             currentUserID,
 	}
 
 	_, err = crs.repo.CreateComplianceRequirementStatusUpdate(complianceRequirementUpdate, tx)
@@ -197,7 +197,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 			ComplianceRegisterID:    complianceID,
 			ComplianceRequirementID: id,
 			ControlID:               *controlID,
-			CreatedBy:               currentUserID,
+			CreatedByID:             currentUserID,
 		}
 		controls = append(controls, control)
 	}
@@ -215,7 +215,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		strategicObjective := &models.ComplianceRequirementStrategicObjective{
 			ComplianceRequirementID: id,
 			StrategicObjectiveID:    *strategicObjectiveID,
-			CreatedBy:               currentUserID,
+			CreatedByID:             currentUserID,
 		}
 		strategicObjectives = append(strategicObjectives, strategicObjective)
 	}
@@ -296,7 +296,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 	existingComplianceRequirement.SeverityLevelID = complianceRequirementFormDTO.SeverityLevelID
 	existingComplianceRequirement.Title = complianceRequirementFormDTO.Title
 	existingComplianceRequirement.Deadline = dates.Deadline
-	existingComplianceRequirement.UpdatedBy = &currentUserID
+	existingComplianceRequirement.UpdatedByID = &currentUserID
 	existingComplianceRequirement.ComplianceClauseID = clause.ID
 
 	err = crs.repo.Update(existingComplianceRequirement, tx)
@@ -332,7 +332,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 				ComplianceRegisterID:    complianceID,
 				ComplianceRequirementID: id,
 				ControlID:               *newControlID,
-				CreatedBy:               currentUserID,
+				CreatedByID:             currentUserID,
 			}
 			controlsToAdd = append(controlsToAdd, control)
 		}
@@ -384,7 +384,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 			strategicObjective := &models.ComplianceRequirementStrategicObjective{
 				ComplianceRequirementID: id,
 				StrategicObjectiveID:    *newStrategicObjectiveID,
-				CreatedBy:               currentUserID,
+				CreatedByID:             currentUserID,
 			}
 			strategicObjectivesToAdd = append(strategicObjectivesToAdd, strategicObjective)
 		}
@@ -519,7 +519,7 @@ func (crs *ComplianceRequirementService) StatusUpdate(complianceID uint, id uint
 	}
 
 	existingComplianceRequirement.ComplianceStatusID = complianceStatusID
-	existingComplianceRequirement.UpdatedBy = &currentUserID
+	existingComplianceRequirement.UpdatedByID = &currentUserID
 
 	err = crs.repo.Update(existingComplianceRequirement, tx)
 

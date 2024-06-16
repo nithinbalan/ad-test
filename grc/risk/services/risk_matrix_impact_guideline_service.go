@@ -99,7 +99,7 @@ func (rmigs *RiskMatrixImpactGuidelineService) Create(currentUserID uint, riskMa
 			RiskMatrixImpactID:   riskMatrixImpactGuidelineFormDTO.RiskMatrixImpactID,
 			Guideline:            guideline,
 			Status:               riskMatrixImpactGuidelineFormDTO.Status,
-			CreatedBy:            currentUserID,
+			CreatedByID:          currentUserID,
 		}
 		guidelinesToCreate = append(guidelinesToCreate, guideline)
 	}

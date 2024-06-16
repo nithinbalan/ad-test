@@ -17,7 +17,7 @@ type Meeting struct {
 	OrganizerID        uint       `json:"organizer_id" binding:"required" gorm:"not null"`
 	IsPublic           bool       `json:"is_public" gorm:"not null;default:false"`
 	CreatedByID        uint       `json:"created_by_id" gorm:"not null"`
-	UpdatedBy          *uint      `json:"updated_by_id" gorm:"default:null"`
+	UpdatedByID        *uint      `json:"updated_by_id" gorm:"default:null"`
 	CreatedAt          time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt          *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 	MeetingStatusID    uint       `json:"meeting_status_id" binding:"required" gorm:"not null"`
@@ -29,7 +29,7 @@ type Meeting struct {
 	Organizer        *User                 `gorm:"foreignKey:OrganizerID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	MeetingStatus    *MeetingStatus        `gorm:"foreignKey:MeetingStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	CreatedByUser    *User                 `gorm:"foreignKey:CreatedByID"`
-	UpdatedByUser    *User                 `gorm:"foreignKey:UpdatedBy"`
+	UpdatedByUser    *User                 `gorm:"foreignKey:UpdatedByID"`
 	Participants     []*MeetingParticipant `gorm:"foreignKey:MeetingID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 }
 

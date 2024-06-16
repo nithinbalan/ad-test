@@ -19,7 +19,7 @@ type SLAActionPlan struct {
 	CreatedAt          time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt          *time.Time `json:"updated_at" gorm:"type:datetime"`
 	CreatedByID        uint       `json:"created_by_id" gorm:"not null"`
-	UpdatedBy          *uint      `json:"updated_by_id" gorm:"default:null"`
+	UpdatedByID        *uint      `json:"updated_by_id" gorm:"default:null"`
 
 	// Relationships
 	SLARegister      *SLARegister      `gorm:"foreignKey:SLARegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
@@ -28,7 +28,7 @@ type SLAActionPlan struct {
 	ResponsibleUser  *User             `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ActionPlanStatus *ActionPlanStatus `gorm:"foreignKey:ActionPlanStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	CreatedByUser    *User             `gorm:"foreignKey:CreatedByID"`
-	UpdatedByUser    *User             `gorm:"foreignKey:UpdatedBy"`
+	UpdatedByUser    *User             `gorm:"foreignKey:UpdatedByID"`
 }
 
 // TableName overrides the table name used by SLAActionPlan to `sla_action_plans`

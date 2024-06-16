@@ -118,7 +118,7 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 		TitleEn:           processFormDTO.TitleEn,
 		TitleAr:           processFormDTO.TitleAr,
 		Description:       processFormDTO.Description,
-		CreatedBy:         currentUserID,
+		CreatedByID:       currentUserID,
 	}
 
 	id, err := ps.repo.Create(process)
@@ -130,9 +130,9 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 	var controls []*models.ProcessControl
 	for _, controlID := range processFormDTO.ControlIds {
 		control := &models.ProcessControl{
-			ProcessID: id,
-			ControlID: *controlID,
-			CreatedBy: currentUserID,
+			ProcessID:   id,
+			ControlID:   *controlID,
+			CreatedByID: currentUserID,
 		}
 		controls = append(controls, control)
 	}
@@ -191,7 +191,7 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 	existingProcess.TitleEn = processFormDTO.TitleEn
 	existingProcess.TitleAr = processFormDTO.TitleAr
 	existingProcess.Description = processFormDTO.Description
-	existingProcess.UpdatedBy = &currentUserID
+	existingProcess.UpdatedByID = &currentUserID
 
 	err = ps.repo.Update(existingProcess)
 	if err != nil {
@@ -222,9 +222,9 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 		if _, exists := existingControlIDs[*newControlID]; !exists {
 			// Create a new process control record
 			control := &models.ProcessControl{
-				ProcessID: id,
-				ControlID: *newControlID,
-				CreatedBy: currentUserID,
+				ProcessID:   id,
+				ControlID:   *newControlID,
+				CreatedByID: currentUserID,
 			}
 			controlsToAdd = append(controlsToAdd, control)
 		}

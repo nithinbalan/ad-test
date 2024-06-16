@@ -13,7 +13,7 @@ type IncidentInvestigation struct {
 	ActionRecommendation          *string    `json:"action_recommendation" gorm:"type:nvarchar(max)"`
 	IncidentInvestigationStatusID int        `json:"incident_investigation_status_id" binding:"required" gorm:"not null"`
 	CreatedByID                   uint       `json:"created_by_id" binding:"required"`
-	UpdatedBy                     *uint      `json:"updated_by_id"`
+	UpdatedByID                   *uint      `json:"updated_by_id"`
 	CreatedAt                     time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt                     *time.Time `json:"updated_at" gorm:"type:datetime"`
 
@@ -25,7 +25,7 @@ type IncidentInvestigation struct {
 	Users                       []*IncidentInvestigationUser     `gorm:"foreignKey:IncidentInvestigationID"`
 	Findings                    []*IncidentInvestigationFinding  `gorm:"foreignKey:IncidentInvestigationID"`
 	CreatedByUser               User                             `gorm:"foreignKey:CreatedByID"`
-	UpdatedByUser               *User                            `gorm:"foreignKey:UpdatedBy"`
+	UpdatedByUser               *User                            `gorm:"foreignKey:UpdatedByID"`
 }
 
 // TableName overrides the table name used by IncidentInvestigation to `incident_investigations`

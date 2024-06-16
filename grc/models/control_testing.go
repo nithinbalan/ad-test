@@ -17,14 +17,14 @@ type ControlTest struct {
 	TestedAt                      *time.Time `json:"tested_at,omitempty" gorm:"type:date;default:null" binding:"omitempty"`
 	TestedBy                      uint       `json:"tested_by" gorm:"not null" binding:"required"`
 	UpdatedAt                     *time.Time `json:"updated_at,omitempty" gorm:"type:datetime" binding:"omitempty"`
-	UpdatedBy                     *uint      `json:"updated_by_id,omitempty" gorm:"default:null" binding:"omitempty"`
+	UpdatedByID                   *uint      `json:"updated_by_id,omitempty" gorm:"default:null" binding:"omitempty"`
 
 	// Foreign key relationships
 	Control                     *Control                     `json:"control" gorm:"foreignKey:ControlID"`
 	ControlImplementationStatus *ControlImplementationStatus `json:"control_implementation_status" gorm:"foreignKey:ControlImplementationStatusID"`
 	ControlEfficiencyStatus     *ControlEfficiencyStatus     `json:"control_efficiency_status" gorm:"foreignKey:ControlEfficiencyStatusID"`
 	TestedByUser                *User                        `json:"tested_by_user" gorm:"foreignKey:TestedBy"`
-	UpdatedByUser               *User                        `json:"updated_by_id_user" gorm:"foreignKey:UpdatedBy"`
+	UpdatedByUser               *User                        `json:"updated_by_id_user" gorm:"foreignKey:UpdatedByID"`
 	Documents                   []*ControlTestDocument       `json:"documents" gorm:"foreignKey:ControlTestID"`
 }
 

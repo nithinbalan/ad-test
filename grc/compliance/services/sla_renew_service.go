@@ -105,8 +105,8 @@ func (srs *SLARenewService) Renew(slaId uint, currentUserID uint, slaRenewFormDT
 		OriginalName:  slaRenewFormDTO.Document.OriginalName,
 		Type:          slaRenewFormDTO.Document.Type,
 		IsLatest:      true,
-		CreatedBy:     currentUserID,
-		UpdatedBy:     currentUserID,
+		CreatedByID:   currentUserID,
+		UpdatedByID:   currentUserID,
 	}
 
 	if err := srs.slaRegRepo.CreateDocument(slaDocument, tx); err != nil {
@@ -183,7 +183,7 @@ func (srs *SLARenewService) Revert(slaId uint, currentUserID uint) error {
 	}
 
 	previousSLADocument.IsLatest = true
-	previousSLADocument.UpdatedBy = currentUserID
+	previousSLADocument.UpdatedByID = currentUserID
 	if err := srs.slaRegRepo.CreateDocument(previousSLADocument, tx); err != nil {
 		tx.Rollback()
 		return err

@@ -80,7 +80,7 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 		MediumThreshold: *existingKRIRegister.MediumThreshold,
 		HighThreshold:   *existingKRIRegister.HighThreshold,
 		Remarks:         kriValueUpdateFormDTO.Remarks,
-		CreatedBy:       currentUserID,
+		CreatedByID:     currentUserID,
 	}
 
 	id, err := kvus.repo.Create(kriValueUpdate, tx)
