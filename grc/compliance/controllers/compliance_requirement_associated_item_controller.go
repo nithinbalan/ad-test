@@ -45,11 +45,25 @@ func (craic *ComplianceRequirementAssociatedItemController) GetAllComplianceRequ
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
 
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(craic.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(craic.db, c, "Invalid page_size parameter")
+		return
+	}
+
 	queryParams := complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO{
 		Sort:        sort,
 		SortBy:      sortBy,
 		Keyword:     keyword,
 		Status:      status,
+		Page:        page,
+		PageSize:    pageSize,
 		QuickFilter: quickFilter,
 	}
 	compliances, err := craic.service.GetAllControls(uint(complianceID), uint(complianceRequirementID), &queryParams)
@@ -91,11 +105,25 @@ func (craic *ComplianceRequirementAssociatedItemController) GetAllComplianceRequ
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
 
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(craic.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(craic.db, c, "Invalid page_size parameter")
+		return
+	}
+
 	queryParams := complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO{
 		Sort:        sort,
 		SortBy:      sortBy,
 		Keyword:     keyword,
 		Status:      status,
+		Page:        page,
+		PageSize:    pageSize,
 		QuickFilter: quickFilter,
 	}
 	compliances, err := craic.service.GetAllStrategicObjectives(uint(complianceID), uint(complianceRequirementID), &queryParams)
@@ -136,11 +164,25 @@ func (craic *ComplianceRequirementAssociatedItemController) GetAllComplianceRequ
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
 
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(craic.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(craic.db, c, "Invalid page_size parameter")
+		return
+	}
+
 	queryParams := complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO{
 		Sort:        sort,
 		SortBy:      sortBy,
 		Keyword:     keyword,
 		Status:      status,
+		Page:        page,
+		PageSize:    pageSize,
 		QuickFilter: quickFilter,
 	}
 	compliances, err := craic.service.GetAllRisks(uint(complianceID), uint(complianceRequirementID), &queryParams)
@@ -181,11 +223,24 @@ func (craic *ComplianceRequirementAssociatedItemController) GetAllComplianceRequ
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
 
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(craic.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(craic.db, c, "Invalid page_size parameter")
+		return
+	}
 	queryParams := complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO{
 		Sort:        sort,
 		SortBy:      sortBy,
 		Keyword:     keyword,
 		Status:      status,
+		Page:        page,
+		PageSize:    pageSize,
 		QuickFilter: quickFilter,
 	}
 	compliances, err := craic.service.GetAllIncidents(uint(complianceID), uint(complianceRequirementID), &queryParams)

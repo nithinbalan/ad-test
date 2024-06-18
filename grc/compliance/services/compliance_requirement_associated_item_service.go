@@ -6,10 +6,10 @@ import (
 )
 
 type ComplianceRequirementAssociatedItemServiceInterface interface {
-	GetAllControls(complianceID uint, requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) ([]*complianceDTOs.ComplianceRequirementControlListDTO, error)
-	GetAllStrategicObjectives(complianceID uint, requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) ([]*complianceDTOs.ComplianceRequirementStrategicObjectiveListDTO, error)
-	GetAllRisks(complianceID uint, requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) ([]*complianceDTOs.ComplianceRequirementRiskListDTO, error)
-	GetAllIncidents(complianceID uint, requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) ([]*complianceDTOs.ComplianceRequirementIncidentListDTO, error)
+	GetAllControls(complianceID uint, requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementAssociatedItemControlListResponseDTO, error)
+	GetAllStrategicObjectives(complianceID uint, requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementAssociatedItemStrategicObjectiveListResponseDTO, error)
+	GetAllRisks(complianceID uint, requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementAssociatedItemRiskListResponseDTO, error)
+	GetAllIncidents(complianceID uint, requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementAssociatedItemIncidentListResponseDTO, error)
 }
 
 // Service and implementations
@@ -29,28 +29,28 @@ func NewComplianceRequirementAssociatedItemService(
 	}
 }
 
-func (crais *ComplianceRequirementAssociatedItemService) GetAllControls(complianceID uint, requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) ([]*complianceDTOs.ComplianceRequirementControlListDTO, error) {
+func (crais *ComplianceRequirementAssociatedItemService) GetAllControls(complianceID uint, requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementAssociatedItemControlListResponseDTO, error) {
 	if _, err := crais.complianceRegisterSvc.GetByID(complianceID); err != nil {
 		return nil, err
 	}
 	return crais.repo.GetAllControls(complianceID, requirementID, params)
 }
 
-func (crais *ComplianceRequirementAssociatedItemService) GetAllStrategicObjectives(complianceID uint, requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) ([]*complianceDTOs.ComplianceRequirementStrategicObjectiveListDTO, error) {
+func (crais *ComplianceRequirementAssociatedItemService) GetAllStrategicObjectives(complianceID uint, requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementAssociatedItemStrategicObjectiveListResponseDTO, error) {
 	if _, err := crais.complianceRegisterSvc.GetByID(complianceID); err != nil {
 		return nil, err
 	}
 	return crais.repo.GetAllStrategicObjectives(complianceID, requirementID, params)
 }
 
-func (crais *ComplianceRequirementAssociatedItemService) GetAllRisks(complianceID uint, requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) ([]*complianceDTOs.ComplianceRequirementRiskListDTO, error) {
+func (crais *ComplianceRequirementAssociatedItemService) GetAllRisks(complianceID uint, requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementAssociatedItemRiskListResponseDTO, error) {
 	if _, err := crais.complianceRegisterSvc.GetByID(complianceID); err != nil {
 		return nil, err
 	}
 	return crais.repo.GetAllRisks(complianceID, requirementID, params)
 }
 
-func (crais *ComplianceRequirementAssociatedItemService) GetAllIncidents(complianceID uint, requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) ([]*complianceDTOs.ComplianceRequirementIncidentListDTO, error) {
+func (crais *ComplianceRequirementAssociatedItemService) GetAllIncidents(complianceID uint, requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementAssociatedItemIncidentListResponseDTO, error) {
 	if _, err := crais.complianceRegisterSvc.GetByID(complianceID); err != nil {
 		return nil, err
 	}

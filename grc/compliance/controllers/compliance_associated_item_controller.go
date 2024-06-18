@@ -38,11 +38,25 @@ func (caic *ComplianceAssociatedItemController) GetAllComplianceControls(c *gin.
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
 
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(caic.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(caic.db, c, "Invalid page_size parameter")
+		return
+	}
+
 	queryParams := complianceDTOs.ComplianceAssociatedItemListQueryParamsDTO{
 		Sort:        sort,
 		SortBy:      sortBy,
 		Keyword:     keyword,
 		Status:      status,
+		Page:        page,
+		PageSize:    pageSize,
 		QuickFilter: quickFilter,
 	}
 	compliances, err := caic.service.GetAllControls(uint(complianceID), &queryParams)
@@ -79,11 +93,25 @@ func (caic *ComplianceAssociatedItemController) GetAllComplianceRisks(c *gin.Con
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
 
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(caic.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(caic.db, c, "Invalid page_size parameter")
+		return
+	}
+
 	queryParams := complianceDTOs.ComplianceAssociatedItemListQueryParamsDTO{
 		Sort:        sort,
 		SortBy:      sortBy,
 		Keyword:     keyword,
 		Status:      status,
+		Page:        page,
+		PageSize:    pageSize,
 		QuickFilter: quickFilter,
 	}
 	compliances, err := caic.service.GetAllRisks(uint(complianceID), &queryParams)
@@ -117,11 +145,25 @@ func (caic *ComplianceAssociatedItemController) GetAllComplianceIncidents(c *gin
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
 
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(caic.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(caic.db, c, "Invalid page_size parameter")
+		return
+	}
+
 	queryParams := complianceDTOs.ComplianceAssociatedItemListQueryParamsDTO{
 		Sort:        sort,
 		SortBy:      sortBy,
 		Keyword:     keyword,
 		Status:      status,
+		Page:        page,
+		PageSize:    pageSize,
 		QuickFilter: quickFilter,
 	}
 	compliances, err := caic.service.GetAllIncidents(uint(complianceID), &queryParams)

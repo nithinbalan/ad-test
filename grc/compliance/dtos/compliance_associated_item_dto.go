@@ -1,6 +1,9 @@
 package dtos
 
-import "time"
+import (
+	commonDTOs "jethur/grc/common/dtos"
+	"time"
+)
 
 type ComplianceControlListDTO struct {
 	ControlID                            uint    `json:"control_id"`
@@ -49,6 +52,10 @@ type ComplianceRiskListDTO struct {
 	RiskOwnerFirstNameAr       string     `json:"risk_owner_first_name_ar"`
 	RiskOwnerLastNameEn        string     `json:"risk_owner_last_name_en"`
 	RiskOwnerLastNameAr        string     `json:"risk_owner_last_name_ar"`
+	RiskOwnerInitial           string     `json:"risk_owner_initial"`
+	RiskOwnerColor             string     `json:"risk_owner_color"`
+	RiskOwnerEmail             string     `json:"risk_owner_email"`
+	RiskOwnerProfileImagePath  string     `json:"risk_owner_profile_image_path"`
 	RiskReportedAt             *time.Time `json:"risk_reported_at"`
 	RiskReviewFrequencyTitleEn *string    `json:"risk_review_frequency_title_en"`
 	RiskReviewFrequencyTitleAr *string    `json:"risk_review_frequency_title_ar"`
@@ -86,5 +93,22 @@ type ComplianceAssociatedItemListQueryParamsDTO struct {
 	SortBy      string
 	Keyword     string
 	Status      string
+	Page        int
+	PageSize    int
 	QuickFilter []string
+}
+
+type ComplianceAssociatedItemControlListResponseDTO struct {
+	Items      []*ComplianceControlListDTO  `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
+}
+
+type ComplianceAssociatedItemRiskListResponseDTO struct {
+	Items      []*ComplianceRiskListDTO     `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
+}
+
+type ComplianceAssociatedItemIncidentListResponseDTO struct {
+	Items      []*ComplianceIncidentListDTO `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }

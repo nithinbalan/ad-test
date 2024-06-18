@@ -1,15 +1,16 @@
 package repositories
 
 import (
+	commonDTOs "jethur/grc/common/dtos"
 	riskDTOs "jethur/grc/risk/dtos"
 
 	"gorm.io/gorm"
 )
 
 type RiskAssociatedItemRepositoryInterface interface {
-	GetAllControls(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) ([]*riskDTOs.RiskControlListDTO, error)
-	GetAllComplianceRequirements(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) ([]*riskDTOs.RiskComplianceRequirementListDTO, error)
-	GetAllProcesses(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) ([]*riskDTOs.RiskProcessListDTO, error)
+	GetAllControls(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemControlListResponseDTO, error)
+	GetAllComplianceRequirements(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemComplianceRequirementListResponseDTO, error)
+	GetAllProcesses(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemProcessListResponseDTO, error)
 }
 
 type RiskAssociatedItemRepository struct {
@@ -22,8 +23,9 @@ func NewRiskAssociatedItemRepository(db *gorm.DB) *RiskAssociatedItemRepository 
 	}
 }
 
-func (repo *RiskAssociatedItemRepository) GetAllControls(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) ([]*riskDTOs.RiskControlListDTO, error) {
+func (repo *RiskAssociatedItemRepository) GetAllControls(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemControlListResponseDTO, error) {
 	var controlList []*riskDTOs.RiskControlListDTO
+	var totalCount int64
 
 	query := repo.db.Table("risk_controls").
 		Select(`
@@ -64,6 +66,9 @@ func (repo *RiskAssociatedItemRepository) GetAllControls(riskID uint, params *ri
 			LEFT JOIN users AS owner ON controls.owner_id = owner.id
         `).Where("risk_controls.risk_register_id = ?", riskID)
 
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
@@ -98,15 +103,32 @@ func (repo *RiskAssociatedItemRepository) GetAllControls(riskID uint, params *ri
 
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	if err := query.Find(&controlList).Error; err != nil {
+	offset := (params.Page - 1) * params.PageSize
+
+	// Execute the query
+	err := query.Offset(offset).Limit(params.PageSize).Find(&controlList).Error
+	if err != nil {
 		return nil, err
 	}
 
-	return controlList, nil
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &riskDTOs.RiskAssociatedItemControlListResponseDTO{
+		Items: controlList,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+	return response, nil
+
 }
 
-func (repo *RiskAssociatedItemRepository) GetAllComplianceRequirements(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) ([]*riskDTOs.RiskComplianceRequirementListDTO, error) {
+func (repo *RiskAssociatedItemRepository) GetAllComplianceRequirements(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemComplianceRequirementListResponseDTO, error) {
 	var complianceRequirements []*riskDTOs.RiskComplianceRequirementListDTO
+	var totalCount int64
 
 	query := repo.db.Table("risk_compliance_requirements").
 		Select(`
@@ -127,6 +149,10 @@ func (repo *RiskAssociatedItemRepository) GetAllComplianceRequirements(riskID ui
             LEFT JOIN compliance_requirement_categories ON compliance_requirements.compliance_requirement_category_id = compliance_requirement_categories.id
         `).Where("risk_compliance_requirements.risk_register_id = ?", riskID)
 
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
@@ -143,15 +169,31 @@ func (repo *RiskAssociatedItemRepository) GetAllComplianceRequirements(riskID ui
 
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	if err := query.Find(&complianceRequirements).Error; err != nil {
+	offset := (params.Page - 1) * params.PageSize
+
+	// Execute the query
+	err := query.Offset(offset).Limit(params.PageSize).Find(&complianceRequirements).Error
+	if err != nil {
 		return nil, err
 	}
 
-	return complianceRequirements, nil
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &riskDTOs.RiskAssociatedItemComplianceRequirementListResponseDTO{
+		Items: complianceRequirements,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+	return response, nil
 }
 
-func (repo *RiskAssociatedItemRepository) GetAllProcesses(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) ([]*riskDTOs.RiskProcessListDTO, error) {
+func (repo *RiskAssociatedItemRepository) GetAllProcesses(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemProcessListResponseDTO, error) {
 	var processList []*riskDTOs.RiskProcessListDTO
+	var totalCount int64
 
 	query := repo.db.Table("risk_processes").
 		Select(`
@@ -168,6 +210,10 @@ func (repo *RiskAssociatedItemRepository) GetAllProcesses(riskID uint, params *r
 			owner.first_name_ar AS owner_first_name_ar,
 			owner.last_name_en AS owner_last_name_en,
 			owner.last_name_ar AS owner_last_name_ar,
+			owner.initial AS control_owner_initial,
+            owner.color AS control_owner_color,
+            owner.email AS control_owner_email,
+            owner.profile_image_path AS control_owner_profile_image_path,
 			lifecycle_statuses.title_en AS lifecycle_status_title_en,
 			lifecycle_statuses.title_ar AS lifecycle_status_title_ar,
 			lifecycle_statuses.color_code AS lifecycle_status_color_code
@@ -179,6 +225,10 @@ func (repo *RiskAssociatedItemRepository) GetAllProcesses(riskID uint, params *r
 			LEFT JOIN users AS owner ON owner.id = processes.owner_id
 			LEFT JOIN lifecycle_statuses ON lifecycle_statuses.id = processes.lifecycle_status_id
 		`).Where("risk_processes.risk_register_id = ?", riskID)
+
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
 
 	// Apply search keyword if exists
 	if params.Keyword != "" {
@@ -211,9 +261,24 @@ func (repo *RiskAssociatedItemRepository) GetAllProcesses(riskID uint, params *r
 
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	if err := query.Find(&processList).Error; err != nil {
+	offset := (params.Page - 1) * params.PageSize
+
+	// Execute the query
+	err := query.Offset(offset).Limit(params.PageSize).Find(&processList).Error
+	if err != nil {
 		return nil, err
 	}
 
-	return processList, nil
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &riskDTOs.RiskAssociatedItemProcessListResponseDTO{
+		Items: processList,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+	return response, nil
 }
