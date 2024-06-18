@@ -10,6 +10,7 @@ import (
 	"jethur/utility"
 	"log"
 
+	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
 )
 
@@ -37,7 +38,21 @@ func NewStrategicObjectiveService(repo repositories.StrategicObjectiveRepository
 }
 
 func (sos *StrategicObjectiveService) GetAll(sort string, sortBy string, keyword string, status string) ([]*dtos.StrategicObjectiveListDTO, error) {
-	return sos.repo.GetAll(sort, sortBy, keyword, status)
+	var strategicObjectiveDTOs []*dtos.StrategicObjectiveListDTO
+
+	strategicObjectives, err := sos.repo.GetAll(sort, sortBy, keyword, status)
+	if err != nil {
+		return nil, err
+	}
+
+	err = mapstructure.Decode(strategicObjectives, &strategicObjectiveDTOs)
+	if err != nil {
+		return nil, err
+	}
+
+	//todo :- also add extra fields which required in details screen
+
+	return strategicObjectiveDTOs, nil
 }
 
 func (sos StrategicObjectiveService) GetByID(id uint) (*models.StrategicObjective, error) {

@@ -15,8 +15,9 @@ type StrategicObjective struct {
 	UpdatedByID *uint      `json:"updated_by_id" gorm:"default:null" binding:"omitempty"`
 
 	// Relationships
-	CreatedByUser *User `gorm:"foreignKey:CreatedByID"`
-	UpdatedByUser *User `gorm:"foreignKey:UpdatedByID"`
+	CreatedByUser          *User                                      `gorm:"foreignKey:CreatedByID"`
+	UpdatedByUser          *User                                      `gorm:"foreignKey:UpdatedByID"`
+	ComplianceRequirements []*ComplianceRequirementStrategicObjective `gorm:"foreignKey:StrategicObjectiveID"`
 }
 
 // TableName overrides the table name used by User to `strategic_objectives`
