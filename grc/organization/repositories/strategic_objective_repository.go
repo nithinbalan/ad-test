@@ -2,7 +2,6 @@ package repositories
 
 import (
 	"jethur/grc/models"
-	"jethur/grc/organization/dtos"
 	"jethur/utility"
 
 	"gorm.io/gorm"
@@ -10,7 +9,7 @@ import (
 
 // Interfaces
 type StrategicObjectiveRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*dtos.StrategicObjectiveListDTO, error)
+	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.StrategicObjective, error)
 	GetByID(id uint) (*models.StrategicObjective, error)
 	Create(strategicObjective *models.StrategicObjective) (uint, error)
 	Update(strategicObjective *models.StrategicObjective) error
@@ -32,10 +31,12 @@ func NewStrategicObjectiveRepository(db *gorm.DB) *StrategicObjectiveRepository 
 	}
 }
 
-func (repo *StrategicObjectiveRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*dtos.StrategicObjectiveListDTO, error) {
-	var strategicObjectivesListDTO []*dtos.StrategicObjectiveListDTO
+func (repo *StrategicObjectiveRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.StrategicObjective, error) {
+	var strategicObjectives []*models.StrategicObjective
 
-	query := repo.db.Model(&models.StrategicObjective{})
+	query := repo.db.Model(&models.StrategicObjective{}).
+		Preload("ComplianceRequirements").
+		Preload("ComplianceRequirements.ComplianceRequirement")
 
 	if keyword != "" {
 		query = query.Where("(title_en LIKE ? OR title_ar LIKE ?)", "%"+keyword+"%", "%"+keyword+"%")
@@ -52,9 +53,9 @@ func (repo *StrategicObjectiveRepository) GetAll(sort string, sortBy string, key
 	}
 
 	query = query.Order(sortBy + " " + sort)
-	result := query.Find(&strategicObjectivesListDTO)
+	result := query.Find(&strategicObjectives)
 
-	return strategicObjectivesListDTO, result.Error
+	return strategicObjectives, result.Error
 }
 
 func (repo *StrategicObjectiveRepository) GetByID(id uint) (*models.StrategicObjective, error) {
