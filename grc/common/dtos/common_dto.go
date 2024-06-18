@@ -28,6 +28,11 @@ type FileDTO struct {
 	SizeInBytes  int64  `json:"size"`
 }
 
+type FilePreviewDTO struct {
+	URL   string `json:"url" binding:"required"`
+	Token string `json:"token" binding:"required"`
+}
+
 type DocumentFormDTO struct {
 	ID            *uint   `json:"id,omitempty"`
 	URL           *string `json:"url"`

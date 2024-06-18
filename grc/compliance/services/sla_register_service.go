@@ -151,7 +151,7 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *co
 	if err != nil {
 		return 0, err
 	}
-	url := utility.GenerateDocumentURL("sla-register", strconv.FormatUint(uint64(slaRegister.ID), 10), encryptedFilename)
+	url := utility.GenerateDocumentURL("compliance", "sla-register", strconv.FormatUint(uint64(slaRegister.ID), 10), "agreements")
 
 	slaDocument := &models.SLADocument{
 		SLARegisterID: id,
@@ -267,7 +267,7 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 			tx.Rollback()
 			return err
 		}
-		url := utility.GenerateDocumentURL("sla-register", strconv.FormatUint(uint64(id), 10), encryptedFilename)
+		url := utility.GenerateDocumentURL("compliance", "sla-register", strconv.FormatUint(uint64(id), 10), "agreements")
 
 		existingSLADocument.URL = url
 		existingSLADocument.Name = slaRegisterFormDTO.Document.FileName

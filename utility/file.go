@@ -60,10 +60,10 @@ func RemoveFolder(destinationPath string) error {
 }
 
 func GenerateDocumentURL(endpoint, resourceType string, ids ...interface{}) string {
-	baseURL := config.GetEnv("API_URL", "http://localhost:8080")
+	// baseURL := config.GetEnv("API_URL", "http://localhost:8080")
 	var url strings.Builder
-	url.WriteString(baseURL)
-	url.WriteString("/")
+	// url.WriteString(baseURL)
+	// url.WriteString("/")
 	url.WriteString(endpoint)
 	url.WriteString("/")
 	url.WriteString(resourceType)
