@@ -53,8 +53,8 @@ func (repo *IncidentRootCauseAnalysisRepository) GetAll(incidentID uint, params 
         `).
 		Joins(`
             LEFT JOIN incident_register ON incident_register.id = incident_root_cause_analyses.incident_register_id
-            LEFT JOIN users AS created_user ON created_user.id = incident_root_cause_analyses.created_by
-            LEFT JOIN users AS updated_user ON updated_user.id = incident_root_cause_analyses.updated_by
+            LEFT JOIN users AS created_user ON created_user.id = incident_root_cause_analyses.created_by_id
+            LEFT JOIN users AS updated_user ON updated_user.id = incident_root_cause_analyses.updated_by_id
         `).
 		Where(`incident_root_cause_analyses.incident_register_id`, incidentID)
 

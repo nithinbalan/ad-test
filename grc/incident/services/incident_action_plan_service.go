@@ -124,7 +124,7 @@ func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uin
 		Percentage:         IncidentActionPlanFormDTO.Percentage,
 		Comments:           IncidentActionPlanFormDTO.Comments,
 		ActionPlanStatusID: IncidentActionPlanFormDTO.ActionPlanStatusID,
-		CreatedBy:          currentUserID,
+		CreatedByID:        currentUserID,
 	}
 
 	id, err := iaps.repo.Create(incidentActionPlan)
@@ -189,7 +189,7 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 	existingIncidentActionPlan.Percentage = IncidentActionPlanFormDTO.Percentage
 	existingIncidentActionPlan.Comments = IncidentActionPlanFormDTO.Comments
 	existingIncidentActionPlan.ActionPlanStatusID = IncidentActionPlanFormDTO.ActionPlanStatusID
-	existingIncidentActionPlan.UpdatedBy = &currentUserID
+	existingIncidentActionPlan.UpdatedByID = &currentUserID
 
 	err = iaps.repo.Update(existingIncidentActionPlan, tx)
 
@@ -253,7 +253,7 @@ func (iaps *IncidentActionPlanService) StatusUpdate(incidentID uint, id uint, cu
 	}
 
 	existingIncidentActionPlan.ActionPlanStatusID = ActionPlanStatusID
-	existingIncidentActionPlan.UpdatedBy = &currentUserID
+	existingIncidentActionPlan.UpdatedByID = &currentUserID
 
 	err = iaps.repo.Update(existingIncidentActionPlan, tx)
 

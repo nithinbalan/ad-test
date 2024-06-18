@@ -52,8 +52,8 @@ func (repo *IncidentCommunicationLogRepository) GetAll(incidentID uint, params *
         updated_user.last_name_ar AS updated_user_last_name_ar 
     `).
 		Joins(`
-        LEFT JOIN users AS created_user ON created_user.id = incident_communication_logs.created_by
-        LEFT JOIN users AS updated_user ON updated_user.id = incident_communication_logs.updated_by
+        LEFT JOIN users AS created_user ON created_user.id = incident_communication_logs.created_by_id
+        LEFT JOIN users AS updated_user ON updated_user.id = incident_communication_logs.updated_by_id
     `).Where(`incident_communication_logs.incident_register_id`, incidentID)
 
 	// Apply dynamic filters to the query

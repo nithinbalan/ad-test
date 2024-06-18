@@ -89,7 +89,7 @@ func (uss *UserSettingService) UpdateUserSetting(userID uint, currentUserID uint
 	existingUserSetting.Language = userSettingFormDTO.Language
 	existingUserSetting.TimezoneID = userSettingFormDTO.TimezoneID
 	existingUserSetting.Timeout = userSettingFormDTO.Timeout
-	existingUserSetting.UpdatedBy = &currentUserID
+	existingUserSetting.UpdatedByID = &currentUserID
 
 	if err = uss.repo.UpdateUserSetting(existingUserSetting); err != nil {
 		return err

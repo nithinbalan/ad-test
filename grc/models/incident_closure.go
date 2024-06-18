@@ -12,14 +12,14 @@ type IncidentClosure struct {
 	Notes              *string    `json:"notes" gorm:"type:nvarchar(max);null"`
 	CreatedAt          time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt          *time.Time `json:"updated_at" gorm:"type:datetime"`
-	CreatedBy          uint       `json:"created_by" gorm:"not null"`
-	UpdatedBy          *uint      `json:"updated_by" gorm:"default:null"`
+	CreatedByID        uint       `json:"created_by_id" gorm:"not null"`
+	UpdatedByID        *uint      `json:"updated_by_id" gorm:"default:null"`
 
 	// Relationships
-	IncidentRegister *IncidentRegister        `gorm:"foreignkey:IncidentRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	IncidentRegister *IncidentRegister        `gorm:"foreignKey:IncidentRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	Lessons          []*IncidentClosureLesson `gorm:"foreignKey:IncidentClosureID"`
-	CreatedByUser    *User                    `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser    *User                    `gorm:"foreignKey:UpdatedBy"`
+	CreatedByUser    *User                    `gorm:"foreignKey:CreatedByID"`
+	UpdatedByUser    *User                    `gorm:"foreignKey:UpdatedByID"`
 }
 
 // TableName overrides the table name used by IncidentClosure to `incident_closures`

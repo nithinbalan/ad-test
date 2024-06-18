@@ -138,7 +138,7 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 		ReviewFrequencyID: riskRegisterFormDTO.ReviewFrequencyID,
 		NextReviewDate:    dates.NextReviewDate,
 		Comments:          riskRegisterFormDTO.Comments,
-		CreatedBy:         currentUserID,
+		CreatedByID:       currentUserID,
 	}
 
 	id, err := rrs.repo.Create(riskRegister, tx)
@@ -153,7 +153,7 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 		requirement := &models.RiskComplianceRequirement{
 			RiskRegisterID:          id,
 			ComplianceRequirementID: *requirementID,
-			CreatedBy:               currentUserID,
+			CreatedByID:             currentUserID,
 		}
 		complianceRequirements = append(complianceRequirements, requirement)
 	}
@@ -170,7 +170,7 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 		control := &models.RiskControl{
 			RiskRegisterID: id,
 			ControlID:      *controlID,
-			CreatedBy:      currentUserID,
+			CreatedByID:    currentUserID,
 		}
 		controls = append(controls, control)
 	}
@@ -188,7 +188,7 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 		process := &models.RiskProcess{
 			RiskRegisterID: id,
 			ProcessID:      *processID,
-			CreatedBy:      currentUserID,
+			CreatedByID:    currentUserID,
 		}
 		processes = append(processes, process)
 	}
@@ -225,7 +225,7 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 			Token:          encryptedFilename,
 			OriginalName:   doc.OriginalName,
 			Type:           doc.Type,
-			CreatedBy:      currentUserID,
+			CreatedByID:    currentUserID,
 		}
 
 		// Append the document to the slice
@@ -302,7 +302,7 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 	existingRiskRegister.ReviewFrequencyID = riskRegisterFormDTO.ReviewFrequencyID
 	existingRiskRegister.NextReviewDate = dates.ReportedAt
 	existingRiskRegister.Comments = riskRegisterFormDTO.Comments
-	existingRiskRegister.UpdatedBy = &currentUserID
+	existingRiskRegister.UpdatedByID = &currentUserID
 
 	if err := rrs.repo.Update(existingRiskRegister, tx); err != nil {
 		tx.Rollback()
@@ -346,7 +346,7 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 		requirement := &models.RiskComplianceRequirement{
 			RiskRegisterID:          id,
 			ComplianceRequirementID: *requirementID,
-			CreatedBy:               currentUserID,
+			CreatedByID:             currentUserID,
 		}
 		complianceRequirements = append(complianceRequirements, requirement)
 	}
@@ -363,7 +363,7 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 		control := &models.RiskControl{
 			RiskRegisterID: id,
 			ControlID:      *controlID,
-			CreatedBy:      currentUserID,
+			CreatedByID:    currentUserID,
 		}
 		controls = append(controls, control)
 	}
@@ -394,7 +394,7 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 			process := &models.RiskProcess{
 				RiskRegisterID: id,
 				ProcessID:      *newProcessID,
-				CreatedBy:      currentUserID,
+				CreatedByID:    currentUserID,
 			}
 			processesToAdd = append(processesToAdd, process)
 		}
@@ -453,7 +453,7 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 				Token:          encryptedFilename,
 				OriginalName:   doc.OriginalName,
 				Type:           doc.Type,
-				CreatedBy:      currentUserID,
+				CreatedByID:    currentUserID,
 			}
 			documents = append(documents, document)
 

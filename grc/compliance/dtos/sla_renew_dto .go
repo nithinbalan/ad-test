@@ -21,8 +21,6 @@ type SLARenewListDTO struct {
 	Type                      string    `json:"type"`
 	OriginalName              string    `json:"original_name"`
 	IsLatest                  bool      `json:"is_latest"`
-	CreatedBy                 uint      `json:"created_by"`
-	UpdatedBy                 uint      `json:"updated_by"`
 	CreatedAt                 time.Time `json:"created_at"`
 	UpdatedAt                 time.Time `json:"updated_at"`
 	CreatedByFirstNameEn      string    `json:"created_by_first_name_en"`

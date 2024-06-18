@@ -124,7 +124,7 @@ func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskA
 		Percentage:         RiskActionPlanFormDTO.Percentage,
 		Comments:           RiskActionPlanFormDTO.Comments,
 		ActionPlanStatusID: RiskActionPlanFormDTO.ActionPlanStatusID,
-		CreatedBy:          currentUserID,
+		CreatedByID:        currentUserID,
 	}
 
 	id, err := raps.repo.Create(riskActionPlan)
@@ -189,7 +189,7 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 	existingRiskActionPlan.Percentage = RiskActionPlanFormDTO.Percentage
 	existingRiskActionPlan.Comments = RiskActionPlanFormDTO.Comments
 	existingRiskActionPlan.ActionPlanStatusID = RiskActionPlanFormDTO.ActionPlanStatusID
-	existingRiskActionPlan.UpdatedBy = &currentUserID
+	existingRiskActionPlan.UpdatedByID = &currentUserID
 
 	err = raps.repo.Update(existingRiskActionPlan, tx)
 
@@ -253,7 +253,7 @@ func (raps *RiskActionPlanService) StatusUpdate(riskID uint, id uint, currentUse
 	}
 
 	existingRiskActionPlan.ActionPlanStatusID = ActionPlanStatusID
-	existingRiskActionPlan.UpdatedBy = &currentUserID
+	existingRiskActionPlan.UpdatedByID = &currentUserID
 
 	err = raps.repo.Update(existingRiskActionPlan, tx)
 

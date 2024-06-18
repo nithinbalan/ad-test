@@ -95,8 +95,8 @@ func (repo *RiskRegisterRepository) GetAll(params *riskDTOs.RiskRegisterListQuer
             LEFT JOIN organization_units ON organization_units.id = risk_register.owner_unit_id
             LEFT JOIN users ON users.id = risk_register.owner_id
             LEFT JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id
-            LEFT JOIN users AS created_user ON created_user.id = risk_register.created_by
-            LEFT JOIN users AS updated_user ON updated_user.id = risk_register.updated_by
+            LEFT JOIN users AS created_user ON created_user.id = risk_register.created_by_id
+            LEFT JOIN users AS updated_user ON updated_user.id = risk_register.updated_by_id
             LEFT JOIN review_frequencies ON review_frequencies.id = risk_register.review_frequency_id
         `)
 	// Apply dynamic filters to the query

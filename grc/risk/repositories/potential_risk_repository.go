@@ -59,8 +59,8 @@ func (repo *PotentialRiskRepository) GetAll(params *riskDTOs.PotentialRiskListQu
 		    LEFT JOIN risk_categories ON risk_categories.id = potential_risks.risk_category_id
 		    LEFT JOIN severity_levels ON severity_levels.id = potential_risks.severity_level_id
 		    LEFT JOIN potential_risk_statuses ON potential_risk_statuses.id = potential_risks.potential_risk_status_id
-			LEFT JOIN users AS created_user ON created_user.id = potential_risks.created_by
-			LEFT JOIN users AS updated_user ON updated_user.id = potential_risks.updated_by
+			LEFT JOIN users AS created_user ON created_user.id = potential_risks.created_by_id
+			LEFT JOIN users AS updated_user ON updated_user.id = potential_risks.updated_by_id
 		`)
 
 	// Apply dynamic filters to the query

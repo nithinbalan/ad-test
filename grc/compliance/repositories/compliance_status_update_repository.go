@@ -70,8 +70,8 @@ func (repo *ComplianceStatusUpdateRepository) GetAll(complianceID uint, sort str
 		Joins(`
 		    LEFT JOIN compliance_register ON compliance_register.id = compliance_status_updates.compliance_register_id
 		    LEFT JOIN compliance_statuses ON compliance_statuses.id = compliance_status_updates.compliance_status_id
-			LEFT JOIN users AS created_user ON created_user.id = compliance_status_updates.created_by
-			LEFT JOIN users AS updated_user ON updated_user.id = compliance_status_updates.updated_by
+			LEFT JOIN users AS created_user ON created_user.id = compliance_status_updates.created_by_id
+			LEFT JOIN users AS updated_user ON updated_user.id = compliance_status_updates.updated_by_id
 		`).
 		Where("compliance_status_updates.compliance_register_id = ?", complianceID)
 

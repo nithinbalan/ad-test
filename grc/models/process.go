@@ -14,8 +14,8 @@ type Process struct {
 	TitleEn           string     `json:"title_en" gorm:"type:nvarchar(500);not null" binding:"required"`
 	TitleAr           string     `json:"title_ar" gorm:"type:nvarchar(500);not null" binding:"required"`
 	Description       *string    `json:"description" gorm:"type:nvarchar(MAX);default:null" binding:"omitempty"`
-	CreatedByID       uint       `json:"created_by" gorm:"not null;column:created_by" binding:"required"`
-	UpdatedByID       *uint      `json:"updated_by" gorm:"default:null;column:updated_by" binding:"omitempty"`
+	CreatedByID       uint       `json:"created_by_id" gorm:"not null;column:created_by_id" binding:"required"`
+	UpdatedByID       *uint      `json:"updated_by_id" gorm:"default:null;column:updated_by_id" binding:"omitempty"`
 	CreatedAt         time.Time  `json:"created_at" gorm:"type:datetime;not null" binding:"-"`
 	UpdatedAt         *time.Time `json:"updated_at" gorm:"type:datetime;default:null" binding:"omitempty"`
 

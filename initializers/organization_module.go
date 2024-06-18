@@ -29,10 +29,11 @@ type OrganizationModule struct {
 	StrategicProfileValueController         *controllers.StrategicProfileValueController
 	ProcessAssociatedItemController         *controllers.ProcessAssociatedItemController
 
-	UserSvc        services.UserServiceInterface
-	UserSettingSvc services.UserSettingServiceInterface
-	ControlSvc     services.ControlServiceInterface
-	ProcessSvc     services.ProcessServiceInterface
+	UserSvc               services.UserServiceInterface
+	UserSettingSvc        services.UserSettingServiceInterface
+	ControlSvc            services.ControlServiceInterface
+	ProcessSvc            services.ProcessServiceInterface
+	StrategicObjectiveSvc services.StrategicObjectiveServiceInterface
 }
 
 func NewOrganizationModule(
@@ -154,9 +155,10 @@ func NewOrganizationModule(
 		StrategicProfileValueController:         strategicProfileValueController,
 		ProcessAssociatedItemController:         processAssociatedItemController,
 
-		UserSvc:        userSvc,
-		UserSettingSvc: userSettingSvc,
-		ControlSvc:     controlSvc,
-		ProcessSvc:     processSvc,
+		UserSvc:               userSvc,
+		UserSettingSvc:        userSettingSvc,
+		ControlSvc:            controlSvc,
+		ProcessSvc:            processSvc,
+		StrategicObjectiveSvc: strategicObjectiveSvc,
 	}
 }

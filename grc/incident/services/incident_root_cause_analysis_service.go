@@ -77,7 +77,7 @@ func (ircas *IncidentRootCauseAnalysisService) Create(incidentID uint, currentUs
 			Why:                analysisData.Why,
 			Question:           analysisData.Question,
 			Answer:             analysisData.Answer,
-			CreatedBy:          currentUserID,
+			CreatedByID:        currentUserID,
 		}
 		incidentRootCauseAnalyses = append(incidentRootCauseAnalyses, incidentRootCauseAnalysis)
 
@@ -148,7 +148,7 @@ func (ircas *IncidentRootCauseAnalysisService) Update(incidentID uint, currentUs
 				Why:                analysisData.Why,
 				Question:           analysisData.Question,
 				Answer:             analysisData.Answer,
-				CreatedBy:          currentUserID,
+				CreatedByID:        currentUserID,
 			}
 			addedAnalyses = append(addedAnalyses, newAnalysis)
 		} else if existingAnalysis, ok := existingAnalysisMap[*analysisData.ID]; ok {

@@ -10,8 +10,8 @@ type RiskMatrixRiskRating struct {
 	Status       string `json:"status" binding:"required,max=10,oneof=active inactive" gorm:"type:varchar(10);not null"`
 
 	// Relationships
-	RiskMatrix                *RiskMatrix                  `gorm:"foreignkey:RiskMatrixID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	RiskMatrixRiskRatingValue []*RiskMatrixRiskRatingValue `json:"values" gorm:"foreignkey:RiskMatrixRiskRatingID"`
+	RiskMatrix                *RiskMatrix                  `gorm:"foreignKey:RiskMatrixID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	RiskMatrixRiskRatingValue []*RiskMatrixRiskRatingValue `json:"values" gorm:"foreignKey:RiskMatrixRiskRatingID"`
 }
 
 // TableName overrides the table name used by RiskMatrixRiskRating to `risk_matrix_risk_ratings`

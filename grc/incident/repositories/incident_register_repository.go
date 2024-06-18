@@ -71,8 +71,8 @@ func (repo *IncidentRegisterRepository) GetAll(params *incidentDTOs.IncidentRegi
             incident_register.reported_by,
             incident_register.reported_at,
             incident_register.quick_action,
-            incident_register.created_by,
-            incident_register.updated_by,
+            incident_register.created_by_id,
+            incident_register.updated_by_id,
             incident_register.created_at,
             incident_register.updated_at,
             incident_categories.title_en AS incident_category_title_en,
@@ -106,8 +106,8 @@ func (repo *IncidentRegisterRepository) GetAll(params *incidentDTOs.IncidentRegi
             LEFT JOIN incident_statuses ON incident_statuses.id = incident_register.incident_status_id
 		    LEFT JOIN severity_levels ON severity_levels.id = incident_register.severity_level_id
             LEFT JOIN users AS reported_user ON reported_user.id = incident_register.reported_by
-			LEFT JOIN users AS created_user ON created_user.id = incident_register.created_by
-			LEFT JOIN users AS updated_user ON updated_user.id = incident_register.updated_by
+			LEFT JOIN users AS created_user ON created_user.id = incident_register.created_by_id
+			LEFT JOIN users AS updated_user ON updated_user.id = incident_register.updated_by_id
         `)
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {

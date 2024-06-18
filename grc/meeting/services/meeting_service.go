@@ -112,7 +112,7 @@ func (ms *MeetingService) Create(currentUserID uint, meetingFormDTO *meetingDTOs
 		EndTime:            endTime,
 		OrganizerID:        meetingFormDTO.OrganizerID,
 		IsPublic:           meetingFormDTO.IsPublic,
-		CreatedBy:          currentUserID,
+		CreatedByID:        currentUserID,
 		MeetingTypeID:      meetingFormDTO.MeetingTypeID,
 		MeetingFrequencyID: meetingFormDTO.MeetingFrequencyID,
 		MeetingID:          meetingFormDTO.MeetingID,
@@ -128,9 +128,9 @@ func (ms *MeetingService) Create(currentUserID uint, meetingFormDTO *meetingDTOs
 	var participants []*models.MeetingParticipant
 	for _, participantID := range meetingFormDTO.UserIDs {
 		participant := &models.MeetingParticipant{
-			MeetingID: id,
-			UserID:    *participantID,
-			CreatedBy: currentUserID,
+			MeetingID:   id,
+			UserID:      *participantID,
+			CreatedByID: currentUserID,
 		}
 		participants = append(participants, participant)
 	}
@@ -203,7 +203,7 @@ func (ms *MeetingService) Update(id uint, currentUserID uint, meetingFormDTO *me
 	existingMeeting.EndTime = dates.EndTime
 	existingMeeting.OrganizerID = meetingFormDTO.OrganizerID
 	existingMeeting.IsPublic = meetingFormDTO.IsPublic
-	existingMeeting.UpdatedBy = &currentUserID
+	existingMeeting.UpdatedByID = &currentUserID
 	existingMeeting.MeetingTypeID = meetingFormDTO.MeetingTypeID
 	existingMeeting.MeetingFrequencyID = meetingFormDTO.MeetingFrequencyID
 	existingMeeting.MeetingStatusID = meetingFormDTO.MeetingStatusID
@@ -233,9 +233,9 @@ func (ms *MeetingService) Update(id uint, currentUserID uint, meetingFormDTO *me
 	for _, userID := range meetingFormDTO.UserIDs {
 		if _, exists := existingParticipantIDs[*userID]; !exists {
 			participant := &models.MeetingParticipant{
-				MeetingID: id,
-				UserID:    *userID,
-				CreatedBy: currentUserID,
+				MeetingID:   id,
+				UserID:      *userID,
+				CreatedByID: currentUserID,
 			}
 			participantsToAdd = append(participantsToAdd, participant)
 		}

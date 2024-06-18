@@ -58,7 +58,7 @@ func (prsus *PotentialRiskStatusUpdateService) Create(potentialRiskID uint, curr
 		PotentialRiskID:       potentialRiskID,
 		PotentialRiskStatusID: potentialRiskStatusUpdateFormDTO.PotentialRiskStatusID,
 		Comment:               potentialRiskStatusUpdateFormDTO.Comment,
-		CreatedBy:             currentUserID,
+		CreatedByID:           currentUserID,
 	}
 
 	id, err := prsus.repo.Create(potentialRiskUpdate)

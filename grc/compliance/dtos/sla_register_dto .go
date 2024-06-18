@@ -17,8 +17,6 @@ type SLARegisterListDTO struct {
 	TitleAr                         string    `json:"title_ar"`
 	Description                     string    `json:"description"`
 	Client                          string    `json:"client"`
-	CreatedBy                       uint      `json:"created_by"`
-	UpdatedBy                       uint      `json:"updated_by"`
 	CreatedAt                       time.Time `json:"created_at"`
 	UpdatedAt                       time.Time `json:"updated_at"`
 	SLACategoryTitleEn              string    `json:"sla_category_title_en"`
@@ -138,8 +136,6 @@ type SLADocumentDTO struct {
 	SA2Date      *time.Time `json:"sa2_date,omitempty"`
 	CreatedAt    time.Time  `json:"created_at"`
 	UpdatedAt    time.Time  `json:"updated_at"`
-	CreatedBy    uint       `json:"created_by"`
-	UpdatedBy    uint       `json:"updated_by,omitempty"`
 }
 
 type ParsedSLADates struct {
@@ -175,6 +171,4 @@ type SLAChecksDTO struct {
 	SLARegisterID uint      `json:"sla_register_id"`
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`
-	CreatedBy     uint      `json:"created_by"`
-	UpdatedBy     uint      `json:"updated_by,omitempty"`
 }

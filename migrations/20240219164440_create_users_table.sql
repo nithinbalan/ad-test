@@ -21,8 +21,8 @@ CREATE TABLE users (
     last_login_at DATETIME NULL,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NULL,
-    created_by INT,
-    updated_by INT NULL,
+    created_by_id INT,
+    updated_by_id INT NULL,
     CONSTRAINT FK_users_organization_units_1 FOREIGN KEY (organization_unit_1_id) REFERENCES organization_units(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_users_organization_units_2 FOREIGN KEY (organization_unit_2_id) REFERENCES organization_units(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_users_organization_units_3 FOREIGN KEY (organization_unit_3_id) REFERENCES organization_units(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
@@ -30,8 +30,8 @@ CREATE TABLE users (
     CONSTRAINT FK_users_organization_units_5 FOREIGN KEY (organization_unit_5_id) REFERENCES organization_units(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_users_user_statuses FOREIGN KEY (user_status_id) REFERENCES user_statuses(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_users_designations FOREIGN KEY (designation_id) REFERENCES designations(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
-    CONSTRAINT FK_users_created_by FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
-    CONSTRAINT FK_users_updated_by FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION
+    CONSTRAINT FK_users_created_by FOREIGN KEY (created_by_id) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_users_updated_by FOREIGN KEY (updated_by_id) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 -- +goose StatementEnd
 

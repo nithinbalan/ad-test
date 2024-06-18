@@ -113,8 +113,8 @@ func (repo *SLARegisterRepository) GetAll(params *slaDTOs.SLARegisterListQueryPa
             LEFT JOIN users AS responsible_users ON sla_register.responsible_user_id = responsible_users.id
             JOIN lifecycle_statuses ON sla_register.lifecycle_status_id = lifecycle_statuses.id
 		    LEFT JOIN compliance_statuses ON sla_register.compliance_status_id = compliance_statuses.id 
-            JOIN users AS created_user ON sla_register.created_by = created_user.id
-            LEFT JOIN users AS updated_user ON sla_register.updated_by = updated_user.id
+            JOIN users AS created_user ON sla_register.created_by_id = created_user.id
+            LEFT JOIN users AS updated_user ON sla_register.updated_by_id = updated_user.id
 			LEFT JOIN sla_documents ON sla_register.id = sla_documents.sla_register_id AND sla_documents.is_latest = 1
 
     `)

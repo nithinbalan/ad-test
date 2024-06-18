@@ -17,10 +17,6 @@ type IncidentCommunicationLogListDTO struct {
 	Summary             string `json:"summary"`
 	CreatedAt           string `json:"created_at"`
 	UpdatedAt           string `json:"updated_at"`
-	CreatedBy           uint   `json:"created_by"`
-	UpdatedBy           *uint  `json:"updated_by"`
-
-	// Add other fields if needed
 }
 
 type IncidentCommunicationLogListQueryParamsDTO struct {
@@ -49,7 +45,7 @@ type IncidentCommunicationLogFormDTO struct {
 }
 
 type IncidentCommunicationLogParsedDates struct {
-	CommunicatedAt  *time.Time
+	CommunicatedAt *time.Time
 }
 
 type IncidentCommunicationLogDetailDTO struct {

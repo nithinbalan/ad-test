@@ -9,6 +9,7 @@ import (
 	masterRepositories "jethur/grc/masters/repositories"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
+	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
 
 	"github.com/mitchellh/mapstructure"
@@ -35,6 +36,8 @@ type ComplianceRequirementService struct {
 	complianceRequirementCategorySvc ComplianceRequirementCategoryServiceInterface
 	complianceStatusSvc              ComplianceStatusServiceInterface
 	severityLevelSvc                 masterServices.SeverityLevelServiceInterface
+	controlSvc                       organizationServices.ControlServiceInterface
+	strategicObjectiveSvc            organizationServices.StrategicObjectiveServiceInterface
 }
 
 func NewComplianceRequirementService(
@@ -44,6 +47,8 @@ func NewComplianceRequirementService(
 	complianceRequirementCategorySvc ComplianceRequirementCategoryServiceInterface,
 	complianceStatusSvc ComplianceStatusServiceInterface,
 	severityLevelSvc masterRepositories.SeverityLevelRepositoryInterface,
+	controlSvc organizationServices.ControlServiceInterface,
+	strategicObjectiveSvc organizationServices.StrategicObjectiveServiceInterface,
 ) ComplianceRequirementServiceInterface {
 	return &ComplianceRequirementService{
 		repo:                             repo,
@@ -52,6 +57,8 @@ func NewComplianceRequirementService(
 		complianceRequirementCategorySvc: complianceRequirementCategorySvc,
 		complianceStatusSvc:              complianceStatusSvc,
 		severityLevelSvc:                 severityLevelSvc,
+		controlSvc:                       controlSvc,
+		strategicObjectiveSvc:            strategicObjectiveSvc,
 	}
 }
 
@@ -197,7 +204,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 			ComplianceRegisterID:    complianceID,
 			ComplianceRequirementID: id,
 			ControlID:               *controlID,
-			CreatedBy:               currentUserID,
+			CreatedByID:             currentUserID,
 		}
 		controls = append(controls, control)
 	}
@@ -215,7 +222,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		strategicObjective := &models.ComplianceRequirementStrategicObjective{
 			ComplianceRequirementID: id,
 			StrategicObjectiveID:    *strategicObjectiveID,
-			CreatedBy:               currentUserID,
+			CreatedByID:             currentUserID,
 		}
 		strategicObjectives = append(strategicObjectives, strategicObjective)
 	}
@@ -332,7 +339,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 				ComplianceRegisterID:    complianceID,
 				ComplianceRequirementID: id,
 				ControlID:               *newControlID,
-				CreatedBy:               currentUserID,
+				CreatedByID:             currentUserID,
 			}
 			controlsToAdd = append(controlsToAdd, control)
 		}
@@ -384,7 +391,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 			strategicObjective := &models.ComplianceRequirementStrategicObjective{
 				ComplianceRequirementID: id,
 				StrategicObjectiveID:    *newStrategicObjectiveID,
-				CreatedBy:               currentUserID,
+				CreatedByID:             currentUserID,
 			}
 			strategicObjectivesToAdd = append(strategicObjectivesToAdd, strategicObjective)
 		}
@@ -541,6 +548,38 @@ func (crs *ComplianceRequirementService) validateComplianceRequirementFormDTO(Co
 
 	if _, err := crs.severityLevelSvc.GetByID(ComplianceRequirementFormDTO.SeverityLevelID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
+	}
+
+	controlIds := ComplianceRequirementFormDTO.ControlIDs
+
+	controlIDs := make(map[uint]bool)
+
+	for _, controlId := range controlIds {
+		if controlIDs[*controlId] {
+			return utility.NewValidationError(fmt.Errorf("duplicate control ID: %d", controlId), "duplicate", "control")
+		}
+
+		if _, err := crs.controlSvc.GetByID(*controlId); err != nil {
+			return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", controlId), "not_exist", "control")
+		}
+
+		controlIDs[*controlId] = true
+	}
+
+	strategicObjectiveIds := ComplianceRequirementFormDTO.StrategicObjectiveIDs
+
+	strategicObjectiveIDs := make(map[uint]bool)
+
+	for _, strategicObjectiveId := range strategicObjectiveIds {
+		if strategicObjectiveIDs[*strategicObjectiveId] {
+			return utility.NewValidationError(fmt.Errorf("duplicate strategic objective ID: %d", strategicObjectiveId), "duplicate", "strategic objective")
+		}
+
+		if _, err := crs.strategicObjectiveSvc.GetByID(*strategicObjectiveId); err != nil {
+			return utility.NewValidationError(fmt.Errorf("strategic objective does not exist for ID: %d", strategicObjectiveId), "not_exist", "strategic objective")
+		}
+
+		strategicObjectiveIDs[*strategicObjectiveId] = true
 	}
 
 	return nil

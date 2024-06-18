@@ -52,7 +52,7 @@ func (ns *NotificationService) SendNotification(notificationDTO *commonDTOs.DBNo
 		MessageEn:   notificationDTO.MessageEn,
 		MessageAr:   notificationDTO.MessageAr,
 		RedirectURL: notificationDTO.RedirectURL,
-		CreatedBy:   notificationDTO.CreatedBy,
+		CreatedByID: notificationDTO.CreatedByID,
 	}
 
 	err = ns.repo.Create(userNotification)
@@ -100,7 +100,7 @@ func (ns *NotificationService) IsNotificationEnabled(userID uint, notificationMa
 // 		MessageEn:   notificationDTO.MessageEn,
 // 		MessageAr:   notificationDTO.MessageAr,
 // 		RedirectURL: notificationDTO.RedirectURL,
-// 		CreatedBy:   notificationDTO.CreatedBy,
+// 		CreatedByID:   notificationDTO.CreatedBy,
 // 	}
 
 // 	err = ns.repo.Create(userNotification)

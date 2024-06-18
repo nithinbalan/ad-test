@@ -16,12 +16,12 @@ type MeetingActionPlan struct {
 	Percentage         uint       `json:"percentage" gorm:"default:0;not null" binding:"required"`
 	CreatedAt          time.Time  `json:"created_at" gorm:"not null" binding:"required"`
 	UpdatedAt          *time.Time `json:"updated_at,omitempty" gorm:"default:null"`
-	CreatedByID        uint       `json:"created_by" gorm:"not null; column:created_by" binding:"required"`
-	UpdatedByID        *uint      `json:"updated_by,omitempty" gorm:"default:null; column:updated_by"`
+	CreatedByID        uint       `json:"created_by_id" gorm:"not null; column:created_by_id" binding:"required"`
+	UpdatedByID        *uint      `json:"updated_by_id,omitempty" gorm:"default:null; column:updated_by_id"`
 
 	// Relationships
 	Meeting          *Meeting          `gorm:"foreignKey:MeetingID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	SeverityLevel    *SeverityLevel    `gorm:"foreignkey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	SeverityLevel    *SeverityLevel    `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ResponsibleUser  *User             `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ActionPlanStatus *ActionPlanStatus `gorm:"foreignKey:ActionPlanStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	CreatedByUser    *User             `gorm:"foreignKey:CreatedByID"`

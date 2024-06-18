@@ -9,10 +9,10 @@ CREATE TABLE user_settings (
     timeout INT NOT NULL,
     is_notification TINYINT DEFAULT 0,
     updated_at DATETIME NULL,
-    updated_by INT NULL,
+    updated_by_id INT NULL,
     CONSTRAINT FK_user_settings_users_1 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_user_settings_timezones FOREIGN KEY (timezone_id) REFERENCES timezones(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
-    CONSTRAINT FK_user_settings_users_2 FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION
+    CONSTRAINT FK_user_settings_users_2 FOREIGN KEY (updated_by_id) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 -- +goose StatementEnd
 

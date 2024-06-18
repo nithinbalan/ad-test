@@ -79,8 +79,8 @@ func (repo *IncidentInvestigationRepository) GetAll(incidentID uint, params *inc
         LEFT JOIN incident_register ON incident_register.id = incident_investigations.incident_register_id
         LEFT JOIN incident_investigation_statuses ON incident_investigation_statuses.id = incident_investigations.incident_investigation_status_id
 		LEFT JOIN users AS team_lead ON team_lead.id = incident_investigations.team_lead_id
-		LEFT JOIN users AS created_user ON created_user.id = incident_investigations.created_by
-		LEFT JOIN users AS updated_user ON updated_user.id = incident_investigations.updated_by
+		LEFT JOIN users AS created_user ON created_user.id = incident_investigations.created_by_id
+		LEFT JOIN users AS updated_user ON updated_user.id = incident_investigations.updated_by_id
     `).Where(`incident_investigations.incident_register_id`, incidentID)
 
 	// Apply dynamic filters to the query

@@ -21,20 +21,20 @@ type Task struct {
 	TaskStatusID           uint       `json:"task_status_id" binding:"required"`
 	CreatedAt              time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt              *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
-	CreatedBy              uint       `json:"created_by" gorm:"not null"`
-	UpdatedBy              uint       `json:"updated_by" gorm:"default:null"`
+	CreatedByID            uint       `json:"created_by_id" gorm:"not null"`
+	UpdatedByID            uint       `json:"updated_by_id" gorm:"default:null"`
 
 	// Relationships
-	Module               *Module               `gorm:"foreignkey:ModuleID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	ComplianceActionPlan *ComplianceActionPlan `gorm:"foreignkey:ComplianceActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	SLAActionPlan        *SLAActionPlan        `gorm:"foreignkey:SLAActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	IncidentActionPlan   *IncidentActionPlan   `gorm:"foreignkey:IncidentActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	ControlActionPlan    *ControlActionPlan    `gorm:"foreignkey:ControlActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	SeverityLevel        *SeverityLevel        `gorm:"foreignkey:SeverityLevelID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	ResponsibleUser      *User                 `gorm:"foreignkey:ResponsibleUserID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	TaskStatus           *TaskStatus           `gorm:"foreignkey:TaskStatusID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	CreatedByUser        *User                 `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser        *User                 `gorm:"foreignKey:UpdatedBy"`
+	Module               *Module               `gorm:"foreignKey:ModuleID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	ComplianceActionPlan *ComplianceActionPlan `gorm:"foreignKey:ComplianceActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	SLAActionPlan        *SLAActionPlan        `gorm:"foreignKey:SLAActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	IncidentActionPlan   *IncidentActionPlan   `gorm:"foreignKey:IncidentActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	ControlActionPlan    *ControlActionPlan    `gorm:"foreignKey:ControlActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	SeverityLevel        *SeverityLevel        `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	ResponsibleUser      *User                 `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	TaskStatus           *TaskStatus           `gorm:"foreignKey:TaskStatusID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	CreatedByUser        *User                 `gorm:"foreignKey:CreatedByID"`
+	UpdatedByUser        *User                 `gorm:"foreignKey:UpdatedByID"`
 }
 
 // TableName overrides the table name used by Task to `tasks`

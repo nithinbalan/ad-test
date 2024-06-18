@@ -109,7 +109,7 @@ func (csus *ComplianceStatusUpdateService) Create(complianceID uint, currentUser
 		ComplianceRegisterID: complianceID,
 		ComplianceStatusID:   complianceStatusUpdateFormDTO.ComplianceStatusID,
 		Comment:              complianceStatusUpdateFormDTO.Comment,
-		CreatedBy:            currentUserID,
+		CreatedByID:          currentUserID,
 	}
 
 	id, err := csus.repo.Create(complianceUpdate)
@@ -144,7 +144,7 @@ func (csus *ComplianceStatusUpdateService) Create(complianceID uint, currentUser
 			Token:                    encryptedFilename,
 			OriginalName:             doc.OriginalName,
 			Type:                     doc.Type,
-			CreatedBy:                currentUserID,
+			CreatedByID:              currentUserID,
 		}
 
 		documents = append(documents, document)
@@ -208,7 +208,7 @@ func (csus *ComplianceStatusUpdateService) Update(complianceID uint, id uint, cu
 
 	// Update Compliance StatusUpdate -- update only comments
 	existingComplianceStatusUpdate.Comment = complianceStatusUpdateFormDTO.Comment
-	existingComplianceStatusUpdate.UpdatedBy = &currentUserID
+	existingComplianceStatusUpdate.UpdatedByID = &currentUserID
 
 	err = csus.repo.Update(existingComplianceStatusUpdate)
 
@@ -243,7 +243,7 @@ func (csus *ComplianceStatusUpdateService) Update(complianceID uint, id uint, cu
 				Token:                    encryptedFileName,
 				OriginalName:             doc.OriginalName,
 				Type:                     doc.Type,
-				CreatedBy:                currentUserID,
+				CreatedByID:              currentUserID,
 			}
 
 			// Append the document to the slice

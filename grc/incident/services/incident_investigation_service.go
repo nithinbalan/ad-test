@@ -123,7 +123,7 @@ func (iis *IncidentInvestigationService) Create(incidentID uint, currentUserID u
 		TeamLeadID:                    incidentInvestigationFormDTO.TeamLeadID,
 		ActionRecommendation:          incidentInvestigationFormDTO.ActionRecommendation,
 		IncidentInvestigationStatusID: incidentInvestigationFormDTO.IncidentInvestigationStatusID,
-		CreatedBy:                     currentUserID,
+		CreatedByID:                   currentUserID,
 	}
 
 	id, err := iis.repo.Create(incidentInvestigation, tx)
@@ -138,7 +138,7 @@ func (iis *IncidentInvestigationService) Create(incidentID uint, currentUserID u
 		user := &models.IncidentInvestigationUser{
 			IncidentInvestigationID: id,
 			UserID:                  *userId,
-			CreatedBy:               currentUserID,
+			CreatedByID:             currentUserID,
 		}
 		users = append(users, user)
 	}
@@ -156,7 +156,7 @@ func (iis *IncidentInvestigationService) Create(incidentID uint, currentUserID u
 		findingObj := &models.IncidentInvestigationFinding{
 			IncidentInvestigationID: id,
 			Title:                   *finding,
-			CreatedBy:               currentUserID,
+			CreatedByID:             currentUserID,
 		}
 		findings = append(findings, findingObj)
 	}
@@ -190,7 +190,7 @@ func (iis *IncidentInvestigationService) Create(incidentID uint, currentUserID u
 			Token:                   encryptedFilename,
 			OriginalName:            doc.OriginalName,
 			Type:                    doc.Type,
-			CreatedBy:               currentUserID,
+			CreatedByID:             currentUserID,
 		}
 
 		// Append the document to the slice
@@ -268,7 +268,7 @@ func (iis *IncidentInvestigationService) Update(incidentID uint, id uint, curren
 	existingIncidentInvestigation.TeamLeadID = incidentInvestigationFormDTO.TeamLeadID
 	existingIncidentInvestigation.ActionRecommendation = incidentInvestigationFormDTO.ActionRecommendation
 	existingIncidentInvestigation.IncidentInvestigationStatusID = incidentInvestigationFormDTO.IncidentInvestigationStatusID
-	existingIncidentInvestigation.UpdatedBy = &currentUserID
+	existingIncidentInvestigation.UpdatedByID = &currentUserID
 
 	err = iis.repo.Update(existingIncidentInvestigation, tx)
 	if err != nil {
@@ -298,7 +298,7 @@ func (iis *IncidentInvestigationService) Update(incidentID uint, id uint, curren
 			user := &models.IncidentInvestigationUser{
 				IncidentInvestigationID: existingIncidentInvestigationDetails.ID,
 				UserID:                  *newUser,
-				CreatedBy:               currentUserID,
+				CreatedByID:             currentUserID,
 			}
 			users = append(users, user)
 		}
@@ -346,7 +346,7 @@ func (iis *IncidentInvestigationService) Update(incidentID uint, id uint, curren
 			finding := &models.IncidentInvestigationFinding{
 				IncidentInvestigationID: existingIncidentInvestigationDetails.ID,
 				Title:                   *newFinding,
-				CreatedBy:               currentUserID,
+				CreatedByID:             currentUserID,
 			}
 			findingsToAdd = append(findingsToAdd, finding)
 		}
@@ -399,7 +399,7 @@ func (iis *IncidentInvestigationService) Update(incidentID uint, id uint, curren
 				Token:                   encryptedFilename,
 				Type:                    doc.Type,
 				OriginalName:            doc.OriginalName,
-				CreatedBy:               currentUserID,
+				CreatedByID:             currentUserID,
 			}
 			documents = append(documents, document)
 		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile {

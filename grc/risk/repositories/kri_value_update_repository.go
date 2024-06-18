@@ -58,8 +58,8 @@ func (repo *KRIValueUpdateRepository) GetAll(kriRegisterID uint, params *riskDTO
         `).
 		Joins(`
 		    LEFT JOIN kri_register ON kri_register.id = kri_value_updates.kri_register_id
-			LEFT JOIN users AS created_user ON created_user.id = kri_register.created_by
-			LEFT JOIN users AS updated_user ON updated_user.id = kri_register.updated_by
+			LEFT JOIN users AS created_user ON created_user.id = kri_register.created_by_id
+			LEFT JOIN users AS updated_user ON updated_user.id = kri_register.updated_by_id
 		`).
 		Where("kri_value_updates.kri_register_id = ?", kriRegisterID)
 

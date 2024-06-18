@@ -163,7 +163,7 @@ func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizatio
 		LastTestDate:                  dates.LastTestDate,
 		NextTestDate:                  dates.NextTestDate,
 		LifecycleStatusID:             lifecycleStatus.ID,
-		CreatedBy:                     currentUserID,
+		CreatedByID:                   currentUserID,
 	}
 
 	id, err := cs.repo.Create(control)
@@ -233,7 +233,7 @@ func (cs *ControlService) Update(id uint, currentUserID uint, controlFormDTO *or
 	existingControl.ImplementedAt = dates.ImplementedAt
 	existingControl.LastTestDate = dates.LastTestDate
 	existingControl.NextTestDate = dates.NextTestDate
-	existingControl.UpdatedBy = &currentUserID
+	existingControl.UpdatedByID = &currentUserID
 
 	err = cs.repo.Update(existingControl)
 

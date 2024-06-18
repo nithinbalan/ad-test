@@ -212,7 +212,7 @@ func (cts *ControlTestService) Update(id uint, currentUserID uint, controlTestFo
 	existingControlTest.Comments = controlTestFormDTO.Comments
 	existingControlTest.Score = controlTestFormDTO.Score
 	existingControlTest.TestedAt = dates.TestedAt
-	existingControlTest.UpdatedBy = &currentUserID
+	existingControlTest.UpdatedByID = &currentUserID
 
 	err = cts.repo.Update(existingControlTest, tx)
 

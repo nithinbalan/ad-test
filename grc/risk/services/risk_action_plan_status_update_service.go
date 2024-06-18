@@ -84,7 +84,7 @@ func (rasus *RiskActionPlanStatusUpdateService) Create(RiskID uint, RiskActionPl
 		ActionPlanStatusID: riskActionPlanStatusUpdateFormDTO.ActionPlanStatusID,
 		Comment:            riskActionPlanStatusUpdateFormDTO.Comment,
 		Percentage:         riskActionPlanStatusUpdateFormDTO.Percentage,
-		CreatedBy:          currentUserID,
+		CreatedByID:        currentUserID,
 	}
 
 	id, err := rasus.repo.Create(riskActionPlanUpdate, tx)
@@ -119,7 +119,7 @@ func (rasus *RiskActionPlanStatusUpdateService) Create(RiskID uint, RiskActionPl
 			Size:                         doc.Size,
 			Token:                        encryptedFilename,
 			Type:                         doc.Type,
-			CreatedBy:                    currentUserID,
+			CreatedByID:                  currentUserID,
 		}
 
 		documents = append(documents, document)
@@ -188,7 +188,7 @@ func (rasus *RiskActionPlanStatusUpdateService) Update(RiskID uint, RiskActionPl
 	// Update Risk StatusUpdate-- only comments and percentage
 	existingRiskActionPlanStatusUpdate.Comment = RiskActionPlanStatusUpdateFormDTO.Comment
 	existingRiskActionPlanStatusUpdate.Percentage = RiskActionPlanStatusUpdateFormDTO.Percentage
-	existingRiskActionPlanStatusUpdate.UpdatedBy = &currentUserID
+	existingRiskActionPlanStatusUpdate.UpdatedByID = &currentUserID
 
 	err = rasus.repo.Update(existingRiskActionPlanStatusUpdate, tx)
 	if err != nil {
@@ -222,7 +222,7 @@ func (rasus *RiskActionPlanStatusUpdateService) Update(RiskID uint, RiskActionPl
 				Size:                         doc.Size,
 				Token:                        encryptedFileName,
 				Type:                         doc.Type,
-				CreatedBy:                    currentUserID,
+				CreatedByID:                  currentUserID,
 			}
 
 			// Append the document to the slice

@@ -130,9 +130,9 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 	var controls []*models.ProcessControl
 	for _, controlID := range processFormDTO.ControlIds {
 		control := &models.ProcessControl{
-			ProcessID: id,
-			ControlID: *controlID,
-			CreatedBy: currentUserID,
+			ProcessID:   id,
+			ControlID:   *controlID,
+			CreatedByID: currentUserID,
 		}
 		controls = append(controls, control)
 	}
@@ -222,9 +222,9 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 		if _, exists := existingControlIDs[*newControlID]; !exists {
 			// Create a new process control record
 			control := &models.ProcessControl{
-				ProcessID: id,
-				ControlID: *newControlID,
-				CreatedBy: currentUserID,
+				ProcessID:   id,
+				ControlID:   *newControlID,
+				CreatedByID: currentUserID,
 			}
 			controlsToAdd = append(controlsToAdd, control)
 		}

@@ -84,7 +84,7 @@ func (sasus *SLAActionPlanStatusUpdateService) Create(SLAID uint, SLAActionPlanI
 		ActionPlanStatusID: SLAActionPlanStatusUpdateFormDTO.ActionPlanStatusID,
 		Comment:            SLAActionPlanStatusUpdateFormDTO.Comment,
 		Percentage:         SLAActionPlanStatusUpdateFormDTO.Percentage,
-		CreatedBy:          currentUserID,
+		CreatedByID:        currentUserID,
 	}
 
 	id, err := sasus.repo.Create(SLAActionPlanUpdate)
@@ -120,7 +120,7 @@ func (sasus *SLAActionPlanStatusUpdateService) Create(SLAID uint, SLAActionPlanI
 			Token:                       encryptedFilename,
 			OriginalName:                doc.OriginalName,
 			Type:                        doc.Type,
-			CreatedBy:                   currentUserID,
+			CreatedByID:                 currentUserID,
 		}
 
 		documents = append(documents, document)
@@ -191,7 +191,7 @@ func (sasus *SLAActionPlanStatusUpdateService) Update(SLAID uint, SLAActionPlanI
 	// Update SLA StatusUpdate-- only comments and percentage
 	existingSLAActionPlanStatusUpdate.Comment = SLAActionPlanStatusUpdateFormDTO.Comment
 	existingSLAActionPlanStatusUpdate.Percentage = SLAActionPlanStatusUpdateFormDTO.Percentage
-	existingSLAActionPlanStatusUpdate.UpdatedBy = &currentUserID
+	existingSLAActionPlanStatusUpdate.UpdatedByID = &currentUserID
 
 	err = sasus.repo.Update(existingSLAActionPlanStatusUpdate, tx)
 	if err != nil {
@@ -226,7 +226,7 @@ func (sasus *SLAActionPlanStatusUpdateService) Update(SLAID uint, SLAActionPlanI
 				Token:                       encryptedFileName,
 				OriginalName:                doc.OriginalName,
 				Type:                        doc.Type,
-				CreatedBy:                   currentUserID,
+				CreatedByID:                 currentUserID,
 			}
 
 			// Append the document to the slice

@@ -122,7 +122,7 @@ func (crsus *ComplianceRequirementStatusUpdateService) Create(ComplianceID uint,
 			Token:                               encryptedFilename,
 			OriginalName:                        doc.OriginalName,
 			Type:                                doc.Type,
-			CreatedBy:                           currentUserID,
+			CreatedByID:                         currentUserID,
 		}
 		// Append the document to the slice
 		documents = append(documents, document)
@@ -223,7 +223,7 @@ func (crsus *ComplianceRequirementStatusUpdateService) Update(ComplianceID uint,
 				Token:                               encryptedFileName,
 				OriginalName:                        doc.OriginalName,
 				Type:                                doc.Type,
-				CreatedBy:                           currentUserID,
+				CreatedByID:                         currentUserID,
 			}
 
 			// Append the document to the slice

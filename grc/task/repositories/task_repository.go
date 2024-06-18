@@ -78,8 +78,8 @@ func (repo *TaskRepository) GetAll(params *taskDTOs.TaskListQueryParamsDTO) (*ta
             LEFT JOIN task_statuses ON task_statuses.id = tasks.task_status_id
 		    LEFT JOIN severity_levels ON severity_levels.id = tasks.severity_level_id
             LEFT JOIN users AS responsible_user ON responsible_user.id = tasks.responsible_user_id
-			LEFT JOIN users AS created_user ON created_user.id = tasks.created_by
-			LEFT JOIN users AS updated_user ON updated_user.id = tasks.updated_by
+			LEFT JOIN users AS created_user ON created_user.id = tasks.created_by_id
+			LEFT JOIN users AS updated_user ON updated_user.id = tasks.updated_by_id
         `)
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {

@@ -127,7 +127,7 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *co
 		TitleAr:           slaRegisterFormDTO.TitleAr,
 		Description:       slaRegisterFormDTO.Description,
 		Client:            slaRegisterFormDTO.Client,
-		CreatedBy:         currentUserID,
+		CreatedByID:       currentUserID,
 	}
 
 	id, err := srs.repo.Create(slaRegister, tx)
@@ -138,7 +138,7 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *co
 
 	slaCheck := &models.SLACheck{
 		SLARegisterID: id,
-		CreatedBy:     currentUserID,
+		CreatedByID:   currentUserID,
 	}
 
 	if err := srs.repo.CreateSLACheck(slaCheck, tx); err != nil {
@@ -167,7 +167,7 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *co
 		OriginalName:  slaRegisterFormDTO.Document.OriginalName,
 		Type:          slaRegisterFormDTO.Document.Type,
 		IsLatest:      true,
-		CreatedBy:     currentUserID,
+		CreatedByID:   currentUserID,
 	}
 
 	// Save SLA document
@@ -239,7 +239,7 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 	existingSLARegister.TitleAr = slaRegisterFormDTO.TitleAr
 	existingSLARegister.Description = slaRegisterFormDTO.Description
 	existingSLARegister.Client = slaRegisterFormDTO.Client
-	existingSLARegister.UpdatedBy = currentUserID
+	existingSLARegister.UpdatedByID = currentUserID
 
 	if err := srs.repo.Update(existingSLARegister, tx); err != nil {
 		tx.Rollback()
@@ -255,7 +255,7 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 	existingSLADocument.ExpiryDate = dates.ExpiryDate
 	existingSLADocument.SA1Date = dates.SA1Date
 	existingSLADocument.SA2Date = dates.SA2Date
-	existingSLADocument.UpdatedBy = currentUserID
+	existingSLADocument.UpdatedByID = currentUserID
 	existingSLADocument.IsLatest = true
 
 	if slaRegisterFormDTO.Document.IsNewFile != nil && *slaRegisterFormDTO.Document.IsNewFile {

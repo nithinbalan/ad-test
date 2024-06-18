@@ -111,7 +111,7 @@ func (scas *SLACheckAnswerService) CreateAnswer(slaID uint, questionID uint, cur
 		SLACheckQuestionID: questionID,
 		ComplianceStatusID: slaCheckAnswerFormDTO.ComplianceStatusID,
 		Comment:            slaCheckAnswerFormDTO.Comment,
-		CreatedBy:          currentUserID,
+		CreatedByID:        currentUserID,
 	}
 
 	answer, err := scas.repo.Create(slaCheckAnswer)
@@ -141,7 +141,7 @@ func (scas *SLACheckAnswerService) CreateAnswer(slaID uint, questionID uint, cur
 			Token:            encryptedFilename,
 			OriginalName:     doc.OriginalName,
 			Type:             doc.Type,
-			CreatedBy:        currentUserID,
+			CreatedByID:      currentUserID,
 		}
 
 		documents = append(documents, document)
@@ -216,7 +216,7 @@ func (scas *SLACheckAnswerService) UpdateAnswer(slaID uint, questionID uint, ans
 
 	existingAnswer.ComplianceStatusID = slaCheckAnswerFormDTO.ComplianceStatusID
 	existingAnswer.Comment = slaCheckAnswerFormDTO.Comment
-	existingAnswer.UpdatedBy = &currentUserID
+	existingAnswer.UpdatedByID = &currentUserID
 
 	// Update the answer
 	err = scas.repo.Update(existingAnswer)
@@ -251,7 +251,7 @@ func (scas *SLACheckAnswerService) UpdateAnswer(slaID uint, questionID uint, ans
 				Token:            encryptedFileName,
 				OriginalName:     doc.OriginalName,
 				Type:             doc.Type,
-				CreatedBy:        currentUserID,
+				CreatedByID:      currentUserID,
 			}
 
 			// Append the document to the slice

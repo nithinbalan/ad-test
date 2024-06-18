@@ -11,14 +11,14 @@ type SLACheckAnswer struct {
 	Comment            string     `json:"comment" binding:"required" gorm:"type:text;not null"`
 	CreatedAt          time.Time  `json:"created_at" binding:"required" gorm:"type:datetime;not null"`
 	UpdatedAt          *time.Time `json:"updated_at,omitempty" gorm:"type:datetime;default:null"`
-	CreatedBy          uint       `json:"created_by" binding:"required" gorm:"not null"`
-	UpdatedBy          *uint      `json:"updated_by,omitempty" gorm:"default:null"`
+	CreatedByID        uint       `json:"created_by_id" binding:"required" gorm:"not null"`
+	UpdatedByID        *uint      `json:"updated_by_id,omitempty" gorm:"default:null"`
 
 	// Relationships
-	SLACheckQuestion *SLACheckQuestion         `gorm:"foreignkey:SLACheckQuestionID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	SLACheckQuestion *SLACheckQuestion         `gorm:"foreignKey:SLACheckQuestionID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ComplianceStatus *ComplianceStatus         `gorm:"foreignKey:ComplianceStatusID"`
-	CreatedByUser    *User                     `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser    *User                     `gorm:"foreignKey:UpdatedBy"`
+	CreatedByUser    *User                     `gorm:"foreignKey:CreatedByID"`
+	UpdatedByUser    *User                     `gorm:"foreignKey:UpdatedByID"`
 	Documents        []*SLACheckAnswerDocument `gorm:"foreignKey:SLACheckAnswerID"`
 }
 
