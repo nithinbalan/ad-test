@@ -1,16 +1,17 @@
 package repositories
 
 import (
+	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
 
 	"gorm.io/gorm"
 )
 
 type ComplianceRequirementAssociatedItemRepositoryInterface interface {
-	GetAllControls(complianceID uint, requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) ([]*complianceDTOs.ComplianceRequirementControlListDTO, error)
-	GetAllStrategicObjectives(complianceID uint, requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) ([]*complianceDTOs.ComplianceRequirementStrategicObjectiveListDTO, error)
-	GetAllRisks(complianceID uint, requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) ([]*complianceDTOs.ComplianceRequirementRiskListDTO, error)
-	GetAllIncidents(complianceID uint, requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) ([]*complianceDTOs.ComplianceRequirementIncidentListDTO, error)
+	GetAllControls(complianceID uint, requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementAssociatedItemControlListResponseDTO, error)
+	GetAllStrategicObjectives(complianceID uint, requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementAssociatedItemStrategicObjectiveListResponseDTO, error)
+	GetAllRisks(complianceID uint, requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementAssociatedItemRiskListResponseDTO, error)
+	GetAllIncidents(complianceID uint, requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementAssociatedItemIncidentListResponseDTO, error)
 }
 
 type ComplianceRequirementAssociatedItemRepository struct {
@@ -23,8 +24,9 @@ func NewComplianceRequirementAssociatedItemRepository(db *gorm.DB) *ComplianceRe
 	}
 }
 
-func (repo *ComplianceRequirementAssociatedItemRepository) GetAllControls(complianceID uint, requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) ([]*complianceDTOs.ComplianceRequirementControlListDTO, error) {
+func (repo *ComplianceRequirementAssociatedItemRepository) GetAllControls(complianceID uint, requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementAssociatedItemControlListResponseDTO, error) {
 	var controlList []*complianceDTOs.ComplianceRequirementControlListDTO
+	var totalCount int64
 
 	query := repo.db.Table("compliance_controls").
 		Select(`
@@ -64,6 +66,9 @@ func (repo *ComplianceRequirementAssociatedItemRepository) GetAllControls(compli
             LEFT JOIN control_implementation_statuses ON controls.control_implementation_status_id = control_implementation_statuses.id
 			LEFT JOIN users AS owner ON controls.owner_id = owner.id
         `).Where("compliance_controls.compliance_requirement_id = ?", requirementID)
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
 
 	// Apply search keyword if exists
 	if params.Keyword != "" {
@@ -99,15 +104,32 @@ func (repo *ComplianceRequirementAssociatedItemRepository) GetAllControls(compli
 
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	if err := query.Find(&controlList).Error; err != nil {
+	offset := (params.Page - 1) * params.PageSize
+
+	// Execute the query
+	err := query.Offset(offset).Limit(params.PageSize).Find(&controlList).Error
+	if err != nil {
 		return nil, err
 	}
 
-	return controlList, nil
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &complianceDTOs.ComplianceRequirementAssociatedItemControlListResponseDTO{
+		Items: controlList,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+
+	return response, nil
 }
 
-func (repo *ComplianceRequirementAssociatedItemRepository) GetAllStrategicObjectives(complianceID uint, requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) ([]*complianceDTOs.ComplianceRequirementStrategicObjectiveListDTO, error) {
+func (repo *ComplianceRequirementAssociatedItemRepository) GetAllStrategicObjectives(complianceID uint, requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementAssociatedItemStrategicObjectiveListResponseDTO, error) {
 	var objectiveList []*complianceDTOs.ComplianceRequirementStrategicObjectiveListDTO
+	var totalCount int64
 
 	query := repo.db.Table("compliance_requirement_strategic_objectives").
 		Select(`
@@ -120,6 +142,9 @@ func (repo *ComplianceRequirementAssociatedItemRepository) GetAllStrategicObject
 			LEFT JOIN strategic_objectives ON strategic_objectives.id = compliance_requirement_strategic_objectives.strategic_objective_id
         `).Where("compliance_requirement_strategic_objectives.compliance_requirement_id = ?", requirementID)
 
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
@@ -139,15 +164,32 @@ func (repo *ComplianceRequirementAssociatedItemRepository) GetAllStrategicObject
 
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	if err := query.Find(&objectiveList).Error; err != nil {
+	offset := (params.Page - 1) * params.PageSize
+
+	// Execute the query
+	err := query.Offset(offset).Limit(params.PageSize).Find(&objectiveList).Error
+	if err != nil {
 		return nil, err
 	}
 
-	return objectiveList, nil
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &complianceDTOs.ComplianceRequirementAssociatedItemStrategicObjectiveListResponseDTO{
+		Items: objectiveList,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+
+	return response, nil
 }
 
-func (repo *ComplianceRequirementAssociatedItemRepository) GetAllRisks(complianceID uint, requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) ([]*complianceDTOs.ComplianceRequirementRiskListDTO, error) {
+func (repo *ComplianceRequirementAssociatedItemRepository) GetAllRisks(complianceID uint, requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementAssociatedItemRiskListResponseDTO, error) {
 	var riskList []*complianceDTOs.ComplianceRequirementRiskListDTO
+	var totalCount int64
 
 	query := repo.db.Table("risk_compliance_requirements").
 		Select(`
@@ -189,6 +231,9 @@ func (repo *ComplianceRequirementAssociatedItemRepository) GetAllRisks(complianc
             LEFT JOIN review_frequencies ON review_frequencies.id = risk_register.review_frequency_id
         `).
 		Where("risk_compliance_requirements.compliance_requirement_id = ?", requirementID)
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
 
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
@@ -205,16 +250,33 @@ func (repo *ComplianceRequirementAssociatedItemRepository) GetAllRisks(complianc
 	query = query.Order(params.SortBy + " " + params.Sort)
 
 	query = query.Debug()
+	offset := (params.Page - 1) * params.PageSize
 
-	if err := query.Find(&riskList).Error; err != nil {
+	// Execute the query
+	err := query.Offset(offset).Limit(params.PageSize).Find(&riskList).Error
+	if err != nil {
 		return nil, err
 	}
 
-	return riskList, nil
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &complianceDTOs.ComplianceRequirementAssociatedItemRiskListResponseDTO{
+		Items: riskList,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+
+	return response, nil
+
 }
 
-func (repo *ComplianceRequirementAssociatedItemRepository) GetAllIncidents(complianceID uint, requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) ([]*complianceDTOs.ComplianceRequirementIncidentListDTO, error) {
+func (repo *ComplianceRequirementAssociatedItemRepository) GetAllIncidents(complianceID uint, requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementAssociatedItemIncidentListResponseDTO, error) {
 	var incidentList []*complianceDTOs.ComplianceRequirementIncidentListDTO
+	var totalCount int64
 
 	query := repo.db.Table("incident_compliance_requirements").
 		Select(`
@@ -237,7 +299,11 @@ func (repo *ComplianceRequirementAssociatedItemRepository) GetAllIncidents(compl
             reported_user.first_name_en AS incident_reported_by_first_name_en,
             reported_user.first_name_ar AS incident_reported_by_first_name_ar,
             reported_user.last_name_en AS incident_reported_by_last_name_en,
-            reported_user.last_name_ar AS incident_reported_by_last_name_ar
+            reported_user.last_name_ar AS incident_reported_by_last_name_ar,
+			reported_user.initial AS incident_reported_by_initial,
+        	reported_user.color AS incident_reported_by_color,
+        	reported_user.email AS incident_reported_by_email,
+        	reported_user.profile_image_path AS incident_reported_by_profile_image_path
         `).
 		Joins(`
             LEFT JOIN incident_register ON incident_register.id = incident_compliance_requirements.incident_register_id
@@ -249,6 +315,10 @@ func (repo *ComplianceRequirementAssociatedItemRepository) GetAllIncidents(compl
             LEFT JOIN users AS reported_user ON reported_user.id = incident_register.reported_by
         `).
 		Where("incident_compliance_requirements.compliance_requirement_id = ?", requirementID)
+
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
 
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
@@ -263,10 +333,25 @@ func (repo *ComplianceRequirementAssociatedItemRepository) GetAllIncidents(compl
 	}
 
 	query = query.Order(params.SortBy + " " + params.Sort)
+	offset := (params.Page - 1) * params.PageSize
 
-	if err := query.Find(&incidentList).Error; err != nil {
+	// Execute the query
+	err := query.Offset(offset).Limit(params.PageSize).Find(&incidentList).Error
+	if err != nil {
 		return nil, err
 	}
 
-	return incidentList, nil
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &complianceDTOs.ComplianceRequirementAssociatedItemIncidentListResponseDTO{
+		Items: incidentList,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+
+	return response, nil
 }
