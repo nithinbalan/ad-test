@@ -202,7 +202,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 	for _, controlID := range complianceRequirementFormDTO.ControlIDs {
 		control := &models.ComplianceControl{
 			ComplianceRegisterID:    complianceID,
-			ComplianceRequirementID: id,
+			ComplianceRequirementID: &id,
 			ControlID:               *controlID,
 			CreatedByID:             currentUserID,
 		}
@@ -337,7 +337,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 			// Create a new compliance control record
 			control := &models.ComplianceControl{
 				ComplianceRegisterID:    complianceID,
-				ComplianceRequirementID: id,
+				ComplianceRequirementID: &id,
 				ControlID:               *newControlID,
 				CreatedByID:             currentUserID,
 			}

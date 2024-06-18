@@ -189,9 +189,10 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 	var controls []*models.ComplianceControl
 	for _, ctrl := range complianceRegisterFormDTO.ControlIDs {
 		control := &models.ComplianceControl{
-			ComplianceRegisterID: id,
-			ControlID:            *ctrl,
-			CreatedByID:          currentUserID,
+			ComplianceRegisterID:    id,
+			ControlID:               *ctrl,
+			ComplianceRequirementID: nil,
+			CreatedByID:             currentUserID,
 		}
 		controls = append(controls, control)
 	}
@@ -341,9 +342,10 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 		if _, exists := existingControlIDs[*newControlID]; !exists {
 			// Create a new compliance control record
 			control := &models.ComplianceControl{
-				ComplianceRegisterID: id,
-				ControlID:            *newControlID,
-				CreatedByID:          currentUserID,
+				ComplianceRegisterID:    id,
+				ComplianceRequirementID: nil,
+				ControlID:               *newControlID,
+				CreatedByID:             currentUserID,
 			}
 			controlsToAdd = append(controlsToAdd, control)
 		}

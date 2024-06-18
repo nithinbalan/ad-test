@@ -3,7 +3,7 @@
 CREATE TABLE compliance_controls (
     id INT PRIMARY KEY IDENTITY(1, 1),
     compliance_register_id INT NOT NULL,
-    compliance_requirement_id INT NULL,
+    compliance_requirement_id INT NULL DEFAULT NULL,
     control_id INT NOT NULL,
     created_by_id INT NOT NULL,
     created_at DATETIME NOT NULL,

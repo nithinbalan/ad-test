@@ -7,7 +7,7 @@ import (
 type ComplianceControl struct {
 	ID                      uint      `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	ComplianceRegisterID    uint      `json:"compliance_register_id" binding:"required"`
-	ComplianceRequirementID uint      `json:"compliance_requirement_id"`
+	ComplianceRequirementID *uint     `json:"compliance_requirement_id" gorm:"default:null"`
 	ControlID               uint      `json:"control_id" binding:"required"`
 	CreatedByID             uint      `json:"created_by_id" binding:"required"`
 	CreatedAt               time.Time `json:"created_at" gorm:"type:datetime;not null"`
