@@ -1,16 +1,17 @@
 package repositories
 
 import (
+	commonDTOs "jethur/grc/common/dtos"
 	incidentDTOs "jethur/grc/incident/dtos"
 
 	"gorm.io/gorm"
 )
 
 type IncidentAssociatedItemRepositoryInterface interface {
-	GetAllControls(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) ([]*incidentDTOs.IncidentControlListDTO, error)
-	GetAllComplianceRequirements(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) ([]*incidentDTOs.IncidentComplianceRequirementListDTO, error)
-	GetAllRisks(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) ([]*incidentDTOs.IncidentRiskListDTO, error)
-	GetAllProcesses(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) ([]*incidentDTOs.IncidentProcessListDTO, error)
+	GetAllControls(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemControlListResponseDTO, error)
+	GetAllComplianceRequirements(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemComplianceRequirementListResponseDTO, error)
+	GetAllRisks(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemRiskListResponseDTO, error)
+	GetAllProcesses(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemProcessListResponseDTO, error)
 }
 
 type IncidentAssociatedItemRepository struct {
@@ -23,8 +24,9 @@ func NewIncidentAssociatedItemRepository(db *gorm.DB) *IncidentAssociatedItemRep
 	}
 }
 
-func (repo *IncidentAssociatedItemRepository) GetAllControls(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) ([]*incidentDTOs.IncidentControlListDTO, error) {
+func (repo *IncidentAssociatedItemRepository) GetAllControls(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemControlListResponseDTO, error) {
 	var controlList []*incidentDTOs.IncidentControlListDTO
+	var totalCount int64
 
 	query := repo.db.Table("incident_controls").
 		Select(`
@@ -66,6 +68,11 @@ func (repo *IncidentAssociatedItemRepository) GetAllControls(incidentID uint, pa
         `).
 		Where("incident_controls.incident_register_id = ?", incidentID)
 
+	// Calculate total count for pagination
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
@@ -100,15 +107,33 @@ func (repo *IncidentAssociatedItemRepository) GetAllControls(incidentID uint, pa
 
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	if err := query.Find(&controlList).Error; err != nil {
+	offset := (params.Page - 1) * params.PageSize
+
+	// Execute the query
+	err := query.Offset(offset).Limit(params.PageSize).Find(&controlList).Error
+	if err != nil {
 		return nil, err
 	}
 
-	return controlList, nil
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &incidentDTOs.IncidentAssociatedItemControlListResponseDTO{
+		Items: controlList,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+
+	return response, nil
+
 }
 
-func (repo *IncidentAssociatedItemRepository) GetAllComplianceRequirements(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) ([]*incidentDTOs.IncidentComplianceRequirementListDTO, error) {
-	var complianceRequirements []*incidentDTOs.IncidentComplianceRequirementListDTO
+func (repo *IncidentAssociatedItemRepository) GetAllComplianceRequirements(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemComplianceRequirementListResponseDTO, error) {
+	var complianceRequirementList []*incidentDTOs.IncidentComplianceRequirementListDTO
+	var totalCount int64
 
 	query := repo.db.Table("incident_compliance_requirements").
 		Select(`
@@ -130,6 +155,11 @@ func (repo *IncidentAssociatedItemRepository) GetAllComplianceRequirements(incid
         `).
 		Where("incident_compliance_requirements.incident_register_id = ?", incidentID)
 
+	// Calculate total count for pagination
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
@@ -146,35 +176,91 @@ func (repo *IncidentAssociatedItemRepository) GetAllComplianceRequirements(incid
 
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	if err := query.Find(&complianceRequirements).Error; err != nil {
+	offset := (params.Page - 1) * params.PageSize
+
+	// Execute the query
+	err := query.Offset(offset).Limit(params.PageSize).Find(&complianceRequirementList).Error
+	if err != nil {
 		return nil, err
 	}
 
-	return complianceRequirements, nil
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &incidentDTOs.IncidentAssociatedItemComplianceRequirementListResponseDTO{
+		Items: complianceRequirementList,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+
+	return response, nil
 }
 
-func (repo *IncidentAssociatedItemRepository) GetAllRisks(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) ([]*incidentDTOs.IncidentRiskListDTO, error) {
+func (repo *IncidentAssociatedItemRepository) GetAllRisks(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemRiskListResponseDTO, error) {
 	var incidentRisk []*incidentDTOs.IncidentRiskListDTO
+	var totalCount int64
 
 	query := repo.db.Table("incident_risks").
 		Select(`
-			incident_risks.risk_register_id AS risk_register_id,
-			risk_register.title AS risk_register_title,
+			risk_register.reference_number,
+			risk_register.title,
+			risk_register.description,
+			risk_categories.title_en AS risk_category_title_en,
+			risk_categories.title_ar AS risk_category_title_ar,
+			risk_sources.title_en AS risk_source_title_en,
+			risk_sources.title_ar AS risk_source_title_ar,
+			organization_units.title_en AS owner_unit_title_en,
+			organization_units.title_ar AS owner_unit_title_ar,
+			users.first_name_en AS owner_first_name_en,
+			users.first_name_ar AS owner_first_name_ar,
+			users.last_name_en AS owner_last_name_en,
+			users.last_name_ar AS owner_last_name_ar,
+			users.initial AS owner_initial,
+            users.color AS owner_color,
+            users.email AS owner_email,
+            users.profile_image_path AS owner_profile_image_path,
 			risk_statuses.title_en AS risk_status_title_en,
 			risk_statuses.title_ar AS risk_status_title_ar,
 			risk_statuses.color_code AS risk_status_color_code
 		`).
 		Joins(`
 			LEFT JOIN risk_register ON risk_register.id = incident_risks.risk_register_id
+			LEFT JOIN risk_categories ON risk_categories.id = risk_register.risk_category_id
+			LEFT JOIN risk_sources ON risk_sources.id = risk_register.risk_source_id
+			LEFT JOIN organization_units ON organization_units.id = risk_register.owner_unit_id
+			LEFT JOIN users ON users.id = risk_register.owner_id
 			LEFT JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id
 		`).
 		Where("incident_risks.incident_register_id = ?", incidentID)
 
+	// Calculate total count for pagination
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
-			(risk_register.title LIKE ?)`,
-			keyword)
+			(risk_register.reference_number LIKE ? OR
+			risk_register.title LIKE ? OR
+			risk_register.description LIKE ? OR
+			risk_categories.title_en LIKE ? OR
+			risk_categories.title_ar LIKE ? OR
+			risk_sources.title_en LIKE ? OR
+			risk_sources.title_ar LIKE ? OR
+			organization_units.title_en LIKE ? OR
+			organization_units.title_ar LIKE ? OR
+			users.first_name_en LIKE ? OR
+			users.first_name_ar LIKE ? OR
+			users.last_name_en LIKE ? OR
+			users.last_name_ar LIKE ? OR
+			risk_statuses.title_en LIKE ? OR
+			risk_statuses.title_ar LIKE ? OR
+			risk_statuses.color_code LIKE ?)`,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
 	if params.SortBy == "" {
@@ -186,15 +272,32 @@ func (repo *IncidentAssociatedItemRepository) GetAllRisks(incidentID uint, param
 
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	if err := query.Find(&incidentRisk).Error; err != nil {
+	offset := (params.Page - 1) * params.PageSize
+
+	// Execute the query
+	err := query.Offset(offset).Limit(params.PageSize).Find(&incidentRisk).Error
+	if err != nil {
 		return nil, err
 	}
 
-	return incidentRisk, nil
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &incidentDTOs.IncidentAssociatedItemRiskListResponseDTO{
+		Items: incidentRisk,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+
+	return response, nil
 }
 
-func (repo *IncidentAssociatedItemRepository) GetAllProcesses(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) ([]*incidentDTOs.IncidentProcessListDTO, error) {
+func (repo *IncidentAssociatedItemRepository) GetAllProcesses(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemProcessListResponseDTO, error) {
 	var processList []*incidentDTOs.IncidentProcessListDTO
+	var totalCount int64
 
 	query := repo.db.Table("incident_processes").
 		Select(`
@@ -211,6 +314,10 @@ func (repo *IncidentAssociatedItemRepository) GetAllProcesses(incidentID uint, p
 			owner.first_name_ar AS owner_first_name_ar,
 			owner.last_name_en AS owner_last_name_en,
 			owner.last_name_ar AS owner_last_name_ar,
+			owner.initial AS control_owner_initial,
+            owner.color AS control_owner_color,
+            owner.email AS control_owner_email,
+            owner.profile_image_path AS control_owner_profile_image_path,
 			lifecycle_statuses.title_en AS lifecycle_status_title_en,
 			lifecycle_statuses.title_ar AS lifecycle_status_title_ar,
 			lifecycle_statuses.color_code AS lifecycle_status_color_code
@@ -222,6 +329,11 @@ func (repo *IncidentAssociatedItemRepository) GetAllProcesses(incidentID uint, p
 			LEFT JOIN users AS owner ON owner.id = processes.owner_id
 			LEFT JOIN lifecycle_statuses ON lifecycle_statuses.id = processes.lifecycle_status_id
 		`).Where("incident_processes.incident_register_id = ?", incidentID)
+
+	// Calculate total count for pagination
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
 
 	// Apply search keyword if exists
 	if params.Keyword != "" {
@@ -254,9 +366,25 @@ func (repo *IncidentAssociatedItemRepository) GetAllProcesses(incidentID uint, p
 
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	if err := query.Find(&processList).Error; err != nil {
+	offset := (params.Page - 1) * params.PageSize
+
+	// Execute the query
+	err := query.Offset(offset).Limit(params.PageSize).Find(&processList).Error
+	if err != nil {
 		return nil, err
 	}
 
-	return processList, nil
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &incidentDTOs.IncidentAssociatedItemProcessListResponseDTO{
+		Items: processList,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+
+	return response, nil
 }

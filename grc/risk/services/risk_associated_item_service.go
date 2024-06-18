@@ -6,9 +6,9 @@ import (
 )
 
 type RiskAssociatedItemServiceInterface interface {
-	GetAllControls(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) ([]*riskDTOs.RiskControlListDTO, error)
-	GetAllComplianceRequirements(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) ([]*riskDTOs.RiskComplianceRequirementListDTO, error)
-	GetAllProcesses(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) ([]*riskDTOs.RiskProcessListDTO, error)
+	GetAllControls(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemControlListResponseDTO, error)
+	GetAllComplianceRequirements(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemComplianceRequirementListResponseDTO, error)
+	GetAllProcesses(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemProcessListResponseDTO, error)
 }
 
 // Service and implementations
@@ -28,21 +28,21 @@ func NewRiskAssociatedItemService(
 	}
 }
 
-func (rais *RiskAssociatedItemService) GetAllControls(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) ([]*riskDTOs.RiskControlListDTO, error) {
+func (rais *RiskAssociatedItemService) GetAllControls(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemControlListResponseDTO, error) {
 	if _, err := rais.riskRegisterSvc.GetByID(riskID); err != nil {
 		return nil, err
 	}
 	return rais.repo.GetAllControls(riskID, params)
 }
 
-func (rais *RiskAssociatedItemService) GetAllComplianceRequirements(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) ([]*riskDTOs.RiskComplianceRequirementListDTO, error) {
+func (rais *RiskAssociatedItemService) GetAllComplianceRequirements(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemComplianceRequirementListResponseDTO, error) {
 	if _, err := rais.riskRegisterSvc.GetByID(riskID); err != nil {
 		return nil, err
 	}
 	return rais.repo.GetAllComplianceRequirements(riskID, params)
 }
 
-func (rais *RiskAssociatedItemService) GetAllProcesses(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) ([]*riskDTOs.RiskProcessListDTO, error) {
+func (rais *RiskAssociatedItemService) GetAllProcesses(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemProcessListResponseDTO, error) {
 	if _, err := rais.riskRegisterSvc.GetByID(riskID); err != nil {
 		return nil, err
 	}

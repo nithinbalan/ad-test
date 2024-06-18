@@ -78,11 +78,25 @@ func (paic *ProcessAssociatedItemController) GetAllProcessRisks(c *gin.Context) 
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
 
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(paic.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(paic.db, c, "Invalid page_size parameter")
+		return
+	}
+
 	queryParams := organizationDTOs.ProcessAssociatedItemListQueryParamsDTO{
 		Sort:        sort,
 		SortBy:      sortBy,
 		Keyword:     keyword,
 		Status:      status,
+		Page:        page,
+		PageSize:    pageSize,
 		QuickFilter: quickFilter,
 	}
 	risks, err := paic.service.GetAllRisks(uint(processID), &queryParams)
@@ -117,12 +131,26 @@ func (paic *ProcessAssociatedItemController) GetAllProcessIncidents(c *gin.Conte
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
+	
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(paic.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(paic.db, c, "Invalid page_size parameter")
+		return
+	}
 
 	queryParams := organizationDTOs.ProcessAssociatedItemListQueryParamsDTO{
 		Sort:        sort,
 		SortBy:      sortBy,
 		Keyword:     keyword,
 		Status:      status,
+		Page:        page,
+		PageSize:    pageSize,
 		QuickFilter: quickFilter,
 	}
 	incidents, err := paic.service.GetAllIncidents(uint(processID), &queryParams)

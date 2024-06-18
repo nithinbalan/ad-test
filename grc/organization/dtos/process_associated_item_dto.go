@@ -1,6 +1,9 @@
 package dtos
 
-import "time"
+import (
+	commonDTOs "jethur/grc/common/dtos"
+	"time"
+)
 
 type ProcessControlListDTO struct {
 	ControlID                            uint    `json:"control_id"`
@@ -35,22 +38,26 @@ type ProcessControlListDTO struct {
 }
 
 type ProcessRiskListDTO struct {
-	ReferenceNumber     string  `json:"reference_number"`
-	RiskCategoryTitleEn string  `json:"risk_category_title_en"`
-	RiskCategoryTitleAr string  `json:"risk_category_title_ar"`
-	RiskSourceTitleEn   string  `json:"risk_source_title_en"`
-	RiskSourceTitleAr   string  `json:"risk_source_title_ar"`
-	OwnerUnitTitleEn    string  `json:"owner_unit_title_en"`
-	OwnerUnitTitleAr    string  `json:"owner_unit_title_ar"`
-	OwnerFirstNameEn    string  `json:"owner_first_name_en"`
-	OwnerFirstNameAr    string  `json:"owner_first_name_ar"`
-	OwnerLastNameEn     string  `json:"owner_last_name_en"`
-	OwnerLastNameAr     string  `json:"owner_last_name_ar"`
-	RiskStatusTitleEn   string  `json:"risk_status_title_en"`
-	RiskStatusTitleAr   string  `json:"risk_status_title_ar"`
-	RiskStatusColorCode string  `json:"risk_status_color_code"`
-	Title               string  `json:"title"`
-	Description         *string `json:"description"`
+	ReferenceNumber       string  `json:"reference_number"`
+	RiskCategoryTitleEn   string  `json:"risk_category_title_en"`
+	RiskCategoryTitleAr   string  `json:"risk_category_title_ar"`
+	RiskSourceTitleEn     string  `json:"risk_source_title_en"`
+	RiskSourceTitleAr     string  `json:"risk_source_title_ar"`
+	OwnerUnitTitleEn      string  `json:"owner_unit_title_en"`
+	OwnerUnitTitleAr      string  `json:"owner_unit_title_ar"`
+	OwnerFirstNameEn      string  `json:"owner_first_name_en"`
+	OwnerFirstNameAr      string  `json:"owner_first_name_ar"`
+	OwnerLastNameEn       string  `json:"owner_last_name_en"`
+	OwnerLastNameAr       string  `json:"owner_last_name_ar"`
+	OwnerInitial          string  `json:"owner_initial"`
+	OwnerColor            string  `json:"owner_color"`
+	OwnerEmail            string  `json:"owner_email"`
+	OwnerProfileImagePath string  `json:"owner_profile_image_path"`
+	RiskStatusTitleEn     string  `json:"risk_status_title_en"`
+	RiskStatusTitleAr     string  `json:"risk_status_title_ar"`
+	RiskStatusColorCode   string  `json:"risk_status_color_code"`
+	Title                 string  `json:"title"`
+	Description           *string `json:"description"`
 }
 
 type ProcessIncidentListDTO struct {
@@ -80,5 +87,17 @@ type ProcessAssociatedItemListQueryParamsDTO struct {
 	SortBy      string
 	Keyword     string
 	Status      string
+	Page        int
+	PageSize    int
 	QuickFilter []string
+}
+
+type ProcessAssociatedItemIncidentListResponseDTO struct {
+	Items      []*ProcessIncidentListDTO    `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
+}
+
+type ProcessAssociatedItemRiskListResponseDTO struct {
+	Items      []*ProcessRiskListDTO        `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }
