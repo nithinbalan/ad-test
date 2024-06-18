@@ -127,7 +127,7 @@ func (saps *SLAActionPlanService) Create(slaID uint, currentUserID uint, slaActi
 		Percentage:         slaActionPlanFormDTO.Percentage,
 		Comments:           slaActionPlanFormDTO.Comments,
 		ActionPlanStatusID: slaActionPlanFormDTO.ActionPlanStatusID,
-		CreatedBy:          currentUserID,
+		CreatedByID:        currentUserID,
 	}
 
 	id, err := saps.repo.Create(slaActionPlan)
@@ -192,7 +192,7 @@ func (saps *SLAActionPlanService) Update(slaID uint, id uint, currentUserID uint
 	existingSLAActionPlan.Percentage = slaActionPlanFormDTO.Percentage
 	existingSLAActionPlan.Comments = slaActionPlanFormDTO.Comments
 	existingSLAActionPlan.ActionPlanStatusID = slaActionPlanFormDTO.ActionPlanStatusID
-	existingSLAActionPlan.UpdatedBy = &currentUserID
+	existingSLAActionPlan.UpdatedByID = &currentUserID
 
 	err = saps.repo.Update(existingSLAActionPlan)
 
@@ -255,7 +255,7 @@ func (saps *SLAActionPlanService) StatusUpdate(slaID uint, id uint, currentUserI
 	}
 
 	existingSLAActionPlan.ActionPlanStatusID = ActionPlanStatusID
-	existingSLAActionPlan.UpdatedBy = &currentUserID
+	existingSLAActionPlan.UpdatedByID = &currentUserID
 
 	err = saps.repo.Update(existingSLAActionPlan, tx)
 

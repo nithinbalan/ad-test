@@ -7,12 +7,12 @@ CREATE TABLE compliance_status_updates (
     comment NVARCHAR(MAX) NOT NULL,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NULL,
-    created_by INT NOT NULL,
-    updated_by INT NULL,
+    created_by_id INT NOT NULL,
+    updated_by_id INT NULL,
     CONSTRAINT FK_compliance_status_updates_compliance_register FOREIGN KEY (compliance_register_id) REFERENCES compliance_register (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_compliance_status_updates_compliance_statuses FOREIGN KEY (compliance_status_id) REFERENCES compliance_statuses (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
-    CONSTRAINT FK_compliance_status_updates_users_1 FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
-    CONSTRAINT FK_compliance_status_updates_users_2 FOREIGN KEY (updated_by) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION
+    CONSTRAINT FK_compliance_status_updates_users_1 FOREIGN KEY (created_by_id) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_compliance_status_updates_users_2 FOREIGN KEY (updated_by_id) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 -- +goose StatementEnd
 

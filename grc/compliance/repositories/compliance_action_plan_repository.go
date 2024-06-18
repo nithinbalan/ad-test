@@ -80,8 +80,8 @@ func (repo *ComplianceActionPlanRepository) GetAll(complianceID uint, params *co
         LEFT JOIN action_plan_statuses ON action_plan_statuses.id = compliance_action_plans.action_plan_status_id
         LEFT JOIN severity_levels ON severity_levels.id = compliance_action_plans.severity_level_id
         LEFT JOIN users AS responsible_user ON responsible_user.id = compliance_action_plans.responsible_user_id
-        LEFT JOIN users AS created_user ON created_user.id = compliance_action_plans.created_by
-        LEFT JOIN users AS updated_user ON updated_user.id = compliance_action_plans.updated_by
+        LEFT JOIN users AS created_user ON created_user.id = compliance_action_plans.created_by_id
+        LEFT JOIN users AS updated_user ON updated_user.id = compliance_action_plans.updated_by_id
         LEFT JOIN compliance_requirements ON compliance_requirements.id = compliance_action_plans.compliance_requirement_id
         LEFT JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id
     `).Where(`compliance_action_plans.compliance_register_id`, complianceID)

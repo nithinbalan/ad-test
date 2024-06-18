@@ -188,7 +188,7 @@ func (ries *RiskInherentEvaluationService) Create(riskID uint, currentUserID uin
 		RiskMatrixImpactID:          inherentEvaluationFormDTO.RiskMatrixImpactID,
 		RiskMatrixRiskRatingID:      riskRating.RiskMatrixRiskRatingID,
 		RiskMatrixRiskRatingValueID: riskRating.RiskMatrixRiskRatingValueID,
-		CreatedBy:                   currentUserID,
+		CreatedByID:                 currentUserID,
 	}
 
 	id, err := ries.repo.Create(riskInherentEvaluation, tx)
@@ -202,7 +202,7 @@ func (ries *RiskInherentEvaluationService) Create(riskID uint, currentUserID uin
 			RiskEvaluationID:     id,
 			RiskImpactCategoryID: impactEval.RiskImpactCategoryID,
 			RiskMatrixImpactID:   impactEval.RiskMatrixImpactID,
-			CreatedBy:            currentUserID,
+			CreatedByID:          currentUserID,
 		}
 
 		err := ries.repo.CreateRiskImpactAnalysis(riskImpactEvaluation, tx)
@@ -231,7 +231,7 @@ func (ries *RiskInherentEvaluationService) Create(riskID uint, currentUserID uin
 			RiskEvaluationID:             id,
 			RiskAppetiteStatementID:      appetiteAlignment.RiskAppetiteStatementID,
 			RiskAppetiteToleranceLevelID: appetiteAlignment.RiskAppetiteToleranceLevelID,
-			CreatedBy:                    currentUserID,
+			CreatedByID:                  currentUserID,
 		}
 		riskAppetiteAlignments = append(riskAppetiteAlignments, riskAppetiteAlignment)
 	}
@@ -332,7 +332,7 @@ func (ries *RiskInherentEvaluationService) Update(riskID uint, id uint, currentU
 	existingRiskInherentEvaluation.RiskMatrixLikelihoodID = inherentEvaluationFormDTO.RiskMatrixLikelihoodID
 	existingRiskInherentEvaluation.RiskMatrixRiskRatingID = riskRating.RiskMatrixRiskRatingID
 	existingRiskInherentEvaluation.RiskMatrixRiskRatingValueID = riskRating.RiskMatrixRiskRatingValueID
-	existingRiskInherentEvaluation.UpdatedBy = &currentUserID
+	existingRiskInherentEvaluation.UpdatedByID = &currentUserID
 
 	if err := ries.repo.Update(existingRiskInherentEvaluation, tx); err != nil {
 		tx.Rollback()
@@ -356,7 +356,7 @@ func (ries *RiskInherentEvaluationService) Update(riskID uint, id uint, currentU
 			RiskEvaluationID:     id,
 			RiskImpactCategoryID: impactEval.RiskImpactCategoryID,
 			RiskMatrixImpactID:   impactEval.RiskMatrixImpactID,
-			CreatedBy:            currentUserID,
+			CreatedByID:          currentUserID,
 		}
 
 		err := ries.repo.CreateRiskImpactAnalysis(riskImpactEvaluation, tx)
@@ -385,7 +385,7 @@ func (ries *RiskInherentEvaluationService) Update(riskID uint, id uint, currentU
 			RiskEvaluationID:             id,
 			RiskAppetiteStatementID:      appetiteAlignment.RiskAppetiteStatementID,
 			RiskAppetiteToleranceLevelID: appetiteAlignment.RiskAppetiteToleranceLevelID,
-			CreatedBy:                    currentUserID,
+			CreatedByID:                  currentUserID,
 		}
 		riskAppetiteAlignments = append(riskAppetiteAlignments, riskAppetiteAlignment)
 	}

@@ -40,7 +40,7 @@ func (lss *LogSettingsService) Update(currentUserID uint, logSettingsFormDTO *dt
 	existingLogSettings.AuditLogRetentionDays = logSettingsFormDTO.AuditLogRetentionDays
 	existingLogSettings.EmailLogRetentionDays = logSettingsFormDTO.EmailLogRetentionDays
 	existingLogSettings.SystemLogRetentionDays = logSettingsFormDTO.SystemLogRetentionDays
-	existingLogSettings.UpdatedBy = &currentUserID
+	existingLogSettings.UpdatedByID = &currentUserID
 
 	// Update log settings in the repository
 	err = lss.repo.Update(existingLogSettings)

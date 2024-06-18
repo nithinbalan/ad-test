@@ -6,7 +6,7 @@ type RiskMatrixRiskRatingValue struct {
 	Value                  uint `json:"value" binding:"required" gorm:"not null"`
 
 	// Relationships
-	RiskMatrixRiskRating *RiskMatrixRiskRating `gorm:"foreignkey:RiskMatrixRiskRatingID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	RiskMatrixRiskRating *RiskMatrixRiskRating `gorm:"foreignKey:RiskMatrixRiskRatingID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 }
 
 // TableName overrides the table name used by RiskMatrixRiskRatingValue to `risk_matrix_risk_rating_values`

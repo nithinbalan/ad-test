@@ -12,20 +12,20 @@ type IncidentInvestigation struct {
 	TeamLeadID                    uint       `json:"team_lead_id" binding:"required" gorm:"not null"`
 	ActionRecommendation          *string    `json:"action_recommendation" gorm:"type:nvarchar(max)"`
 	IncidentInvestigationStatusID int        `json:"incident_investigation_status_id" binding:"required" gorm:"not null"`
-	CreatedBy                     uint       `json:"created_by" binding:"required"`
-	UpdatedBy                     *uint      `json:"updated_by"`
+	CreatedByID                   uint       `json:"created_by_id" binding:"required"`
+	UpdatedByID                   *uint      `json:"updated_by_id"`
 	CreatedAt                     time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt                     *time.Time `json:"updated_at" gorm:"type:datetime"`
 
 	// Relationships
-	IncidentRegister            IncidentRegister                 `gorm:"foreignkey:IncidentRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	TeamLead                    User                             `gorm:"foreignkey:TeamLeadID"`
-	IncidentInvestigationStatus IncidentInvestigationStatus      `gorm:"foreignkey:IncidentInvestigationStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	IncidentRegister            IncidentRegister                 `gorm:"foreignKey:IncidentRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	TeamLead                    User                             `gorm:"foreignKey:TeamLeadID"`
+	IncidentInvestigationStatus IncidentInvestigationStatus      `gorm:"foreignKey:IncidentInvestigationStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	Documents                   []*IncidentInvestigationDocument `gorm:"foreignKey:IncidentInvestigationID"`
 	Users                       []*IncidentInvestigationUser     `gorm:"foreignKey:IncidentInvestigationID"`
 	Findings                    []*IncidentInvestigationFinding  `gorm:"foreignKey:IncidentInvestigationID"`
-	CreatedByUser               User                             `gorm:"foreignkey:CreatedBy"`
-	UpdatedByUser               *User                            `gorm:"foreignkey:UpdatedBy"`
+	CreatedByUser               User                             `gorm:"foreignKey:CreatedByID"`
+	UpdatedByUser               *User                            `gorm:"foreignKey:UpdatedByID"`
 }
 
 // TableName overrides the table name used by IncidentInvestigation to `incident_investigations`

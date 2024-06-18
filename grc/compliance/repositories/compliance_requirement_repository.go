@@ -94,8 +94,8 @@ func (repo *ComplianceRequirementRepository) GetAll(params *complianceDTOs.Compl
 			LEFT JOIN severity_levels ON severity_levels.id = compliance_requirements.severity_level_id
 			LEFT JOIN compliance_statuses ON compliance_statuses.id = compliance_requirements.compliance_status_id
 			LEFT JOIN users AS responsible_user ON responsible_user.id = compliance_requirements.responsible_user_id
-			LEFT JOIN users AS created_user ON created_user.id = compliance_requirements.created_by
-			LEFT JOIN users AS updated_user ON updated_user.id = compliance_requirements.updated_by
+			LEFT JOIN users AS created_user ON created_user.id = compliance_requirements.created_by_id
+			LEFT JOIN users AS updated_user ON updated_user.id = compliance_requirements.updated_by_id
 			LEFT JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id
 		`)
 	// Apply dynamic filters to the query
@@ -228,8 +228,8 @@ func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(compl
 			LEFT JOIN severity_levels ON severity_levels.id = compliance_requirements.severity_level_id
 			LEFT JOIN compliance_statuses ON compliance_statuses.id = compliance_requirements.compliance_status_id
 			LEFT JOIN users AS responsible_user ON responsible_user.id = compliance_requirements.responsible_user_id
-			LEFT JOIN users AS created_user ON created_user.id = compliance_requirements.created_by
-			LEFT JOIN users AS updated_user ON updated_user.id = compliance_requirements.updated_by
+			LEFT JOIN users AS created_user ON created_user.id = compliance_requirements.created_by_id
+			LEFT JOIN users AS updated_user ON updated_user.id = compliance_requirements.updated_by_id
 			LEFT JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id
 		`).Where(`compliance_clauses.compliance_register_id = ?`, complianceID)
 

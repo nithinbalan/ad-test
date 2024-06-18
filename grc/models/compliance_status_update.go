@@ -11,15 +11,15 @@ type ComplianceStatusUpdate struct {
 	Comment              string     `json:"comment" binding:"required,max=100" gorm:"type:nvarchar(max);not null"`
 	CreatedAt            time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt            *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
-	CreatedBy            uint       `json:"created_by" gorm:"not null"`
-	UpdatedBy            *uint      `json:"updated_by" gorm:"default:null"`
+	CreatedByID          uint       `json:"created_by_id" gorm:"not null"`
+	UpdatedByID          *uint      `json:"updated_by_id" gorm:"default:null"`
 
 	//Relationships
-	ComplianceRegister *ComplianceRegister               `gorm:"foreignkey:ComplianceRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ComplianceStatus   *ComplianceStatus                 `gorm:"foreignkey:ComplianceStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ComplianceRegister *ComplianceRegister               `gorm:"foreignKey:ComplianceRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ComplianceStatus   *ComplianceStatus                 `gorm:"foreignKey:ComplianceStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	Documents          *[]ComplianceStatusUpdateDocument `gorm:"foreignKey:ComplianceStatusUpdateID"`
-	CreatedByUser      *User                             `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser      *User                             `gorm:"foreignKey:UpdatedBy"`
+	CreatedByUser      *User                             `gorm:"foreignKey:CreatedByID"`
+	UpdatedByUser      *User                             `gorm:"foreignKey:UpdatedByID"`
 }
 
 // TableName overrides the table name used by ComplianceStatusUpdate to `compliance_status_updates`

@@ -70,8 +70,8 @@ func (repo *KRIRegisterRepository) GetAll(params *riskDTOs.KRIRegisterListQueryP
 		    LEFT JOIN users AS owner ON owner.id = kri_register.owner_id
 		    LEFT JOIN review_frequencies ON review_frequencies.id = kri_register.review_frequency_id
 		    LEFT JOIN risk_levels ON risk_levels.id = kri_register.risk_level_id
-			LEFT JOIN users AS created_user ON created_user.id = kri_register.created_by
-			LEFT JOIN users AS updated_user ON updated_user.id = kri_register.updated_by
+			LEFT JOIN users AS created_user ON created_user.id = kri_register.created_by_id
+			LEFT JOIN users AS updated_user ON updated_user.id = kri_register.updated_by_id
 		`)
 
 	// Apply dynamic filters to the query

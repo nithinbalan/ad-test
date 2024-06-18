@@ -23,8 +23,8 @@ CREATE TABLE controls (
     last_test_date DATE,
     next_test_date DATE,
     implemented_at DATE,
-    created_by INT NOT NULL,
-    updated_by INT,
+    created_by_id INT NOT NULL,
+    updated_by_id INT,
     created_at DATETIME NOT NULL,
     updated_at DATETIME,
     lifecycle_status_id INT NOT NULL,
@@ -38,8 +38,8 @@ CREATE TABLE controls (
     CONSTRAINT FK_controls_review_frequencies1 FOREIGN KEY (review_frequency_id) REFERENCES review_frequencies(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_controls_user_2 FOREIGN KEY (test_responsible_user_id) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_controls_review_frequencies2 FOREIGN KEY (test_frequency_id) REFERENCES review_frequencies(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
-    CONSTRAINT FK_controls_users_3 FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
-    CONSTRAINT FK_controls_users_4 FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_controls_users_3 FOREIGN KEY (created_by_id) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_controls_users_4 FOREIGN KEY (updated_by_id) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_controls_lifecycle_statuses FOREIGN KEY (lifecycle_status_id) REFERENCES lifecycle_statuses (id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 -- +goose StatementEnd

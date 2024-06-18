@@ -97,7 +97,7 @@ func (ics *IncidentClosureService) Create(incidentID uint, currentUserID uint, i
 		CompletionDate:     *dates.CompletionDate,
 		ResolutionSummary:  incidentClosureFormDTO.ResolutionSummary,
 		Notes:              incidentClosureFormDTO.Notes,
-		CreatedBy:          currentUserID,
+		CreatedByID:        currentUserID,
 	}
 
 	id, err := ics.repo.Create(incidentClosure, tx)
@@ -168,7 +168,7 @@ func (ics *IncidentClosureService) Update(incidentID uint, id uint, currentUserI
 	existingIncidentClosure.CompletionDate = *dates.CompletionDate
 	existingIncidentClosure.ResolutionSummary = incidentClosureFormDTO.ResolutionSummary
 	existingIncidentClosure.Notes = incidentClosureFormDTO.Notes
-	existingIncidentClosure.UpdatedBy = &currentUserID
+	existingIncidentClosure.UpdatedByID = &currentUserID
 
 	err = ics.repo.Update(existingIncidentClosure, tx)
 

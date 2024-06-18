@@ -83,8 +83,8 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 		Joins("LEFT JOIN organization_units ON organization_units.id = processes.owner_unit_id").
 		Joins("LEFT JOIN users AS owner ON owner.id = processes.owner_id").
 		Joins("LEFT JOIN lifecycle_statuses ON lifecycle_statuses.id = processes.lifecycle_status_id").
-		Joins("LEFT JOIN users AS created_user ON created_user.id = processes.created_by").
-		Joins("LEFT JOIN users AS updated_user ON updated_user.id = processes.updated_by")
+		Joins("LEFT JOIN users AS created_user ON created_user.id = processes.created_by_id").
+		Joins("LEFT JOIN users AS updated_user ON updated_user.id = processes.updated_by_id")
 
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {

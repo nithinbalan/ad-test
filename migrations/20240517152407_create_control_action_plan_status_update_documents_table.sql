@@ -9,13 +9,13 @@ CREATE TABLE control_action_plan_status_update_documents (
     token VARCHAR(255) NOT NULL,
     original_name NVARCHAR(255) NULL,
     type VARCHAR(255) NOT NULL,
-    created_by INT,
-    updated_by INT NULL,
+    created_by_id INT,
+    updated_by_id INT NULL,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NULL,
     CONSTRAINT FK_control_action_plan_status_update_documents_control_action_plan_status_updates FOREIGN KEY (control_action_plan_status_update_id) REFERENCES control_action_plan_status_updates(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
-    CONSTRAINT FK_control_action_plan_status_update_documents_users_1 FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
-    CONSTRAINT FK_control_action_plan_status_update_documents_users_2 FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION
+    CONSTRAINT FK_control_action_plan_status_update_documents_users_1 FOREIGN KEY (created_by_id) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_control_action_plan_status_update_documents_users_2 FOREIGN KEY (updated_by_id) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 
 -- +goose StatementEnd

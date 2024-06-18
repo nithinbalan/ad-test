@@ -84,7 +84,7 @@ func (iasus *IncidentActionPlanStatusUpdateService) Create(IncidentID uint, Inci
 		ActionPlanStatusID:   incidentActionPlanStatusUpdateFormDTO.ActionPlanStatusID,
 		Comment:              incidentActionPlanStatusUpdateFormDTO.Comment,
 		Percentage:           incidentActionPlanStatusUpdateFormDTO.Percentage,
-		CreatedBy:            currentUserID,
+		CreatedByID:          currentUserID,
 	}
 
 	id, err := iasus.repo.Create(incidentActionPlanUpdate, tx)
@@ -120,7 +120,7 @@ func (iasus *IncidentActionPlanStatusUpdateService) Create(IncidentID uint, Inci
 			Token:                            encryptedFilename,
 			OriginalName:                     doc.OriginalName,
 			Type:                             doc.Type,
-			CreatedBy:                        currentUserID,
+			CreatedByID:                      currentUserID,
 		}
 
 		documents = append(documents, document)
@@ -189,7 +189,7 @@ func (iasus *IncidentActionPlanStatusUpdateService) Update(IncidentID uint, Inci
 	// Update Incident StatusUpdate-- only comments and percentage
 	existingIncidentActionPlanStatusUpdate.Comment = IncidentActionPlanStatusUpdateFormDTO.Comment
 	existingIncidentActionPlanStatusUpdate.Percentage = IncidentActionPlanStatusUpdateFormDTO.Percentage
-	existingIncidentActionPlanStatusUpdate.UpdatedBy = &currentUserID
+	existingIncidentActionPlanStatusUpdate.UpdatedByID = &currentUserID
 
 	err = iasus.repo.Update(existingIncidentActionPlanStatusUpdate, tx)
 	if err != nil {
@@ -224,7 +224,7 @@ func (iasus *IncidentActionPlanStatusUpdateService) Update(IncidentID uint, Inci
 				Token:                            encryptedFileName,
 				OriginalName:                     doc.OriginalName,
 				Type:                             doc.Type,
-				CreatedBy:                        currentUserID,
+				CreatedByID:                      currentUserID,
 			}
 
 			// Append the document to the slice

@@ -119,7 +119,7 @@ func (krs *KRIRegisterService) Create(currentUserID uint, kriRegisterFormDTO *ri
 		CurrentValue:      kriRegisterFormDTO.CurrentValue,
 		NextReviewDate:    *dates.NextReviewDate,
 		LastReviewNote:    kriRegisterFormDTO.LastReviewNote,
-		CreatedBy:         currentUserID,
+		CreatedByID:       currentUserID,
 		UpdatedAt:         nil,
 	}
 	if kriRegisterFormDTO.LastReviewedDate != "" {
@@ -189,7 +189,7 @@ func (krs *KRIRegisterService) Update(id uint, currentUserID uint, kriRegisterFo
 	}
 	existingKRIRegister.NextReviewDate = *dates.NextReviewDate
 	existingKRIRegister.LastReviewNote = kriRegisterFormDTO.LastReviewNote
-	existingKRIRegister.UpdatedBy = &currentUserID
+	existingKRIRegister.UpdatedByID = &currentUserID
 
 	err = krs.repo.Update(existingKRIRegister)
 	if err != nil {

@@ -62,10 +62,10 @@ func (sos *StrategicObjectiveService) Create(currentUserID uint, strategicObject
 	}
 
 	strategicObjective := &models.StrategicObjective{
-		TitleEn:   strategicObjectiveFormDTO.TitleEn,
-		TitleAr:   strategicObjectiveFormDTO.TitleAr,
-		Status:    strategicObjectiveFormDTO.Status,
-		CreatedBy: currentUserID,
+		TitleEn:     strategicObjectiveFormDTO.TitleEn,
+		TitleAr:     strategicObjectiveFormDTO.TitleAr,
+		Status:      strategicObjectiveFormDTO.Status,
+		CreatedByID: currentUserID,
 	}
 
 	createdStrategicObjectiveID, err := sos.repo.Create(strategicObjective)
@@ -111,7 +111,7 @@ func (sos *StrategicObjectiveService) Update(id uint, currentUserID uint, strate
 	existingStrategicObjective.TitleEn = strategicObjectiveFormDTO.TitleEn
 	existingStrategicObjective.TitleAr = strategicObjectiveFormDTO.TitleAr
 	existingStrategicObjective.Status = strategicObjectiveFormDTO.Status
-	existingStrategicObjective.UpdatedBy = &currentUserID
+	existingStrategicObjective.UpdatedByID = &currentUserID
 
 	err = sos.repo.Update(existingStrategicObjective)
 

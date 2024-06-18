@@ -107,7 +107,7 @@ func (iprs *IncidentPostReviewService) Create(incidentID uint, currentUserID uin
 		IncidentPostReviewEffectivenessID: int(incidentPostReviewFormDTO.IncidentPostReviewEffectivenessID),
 		PostReviewDate:                    *dates.PostReviewDate,
 		Summary:                           incidentPostReviewFormDTO.Summary,
-		CreatedBy:                         currentUserID,
+		CreatedByID:                       currentUserID,
 	}
 
 	id, err := iprs.repo.Create(incidentPostReview, tx)
@@ -122,7 +122,7 @@ func (iprs *IncidentPostReviewService) Create(incidentID uint, currentUserID uin
 		user := &models.IncidentPostReviewUser{
 			IncidentPostReviewID: id,
 			UserID:               *userId,
-			CreatedBy:            currentUserID,
+			CreatedByID:          currentUserID,
 		}
 		postReviewUsers = append(postReviewUsers, user)
 	}
@@ -140,7 +140,7 @@ func (iprs *IncidentPostReviewService) Create(incidentID uint, currentUserID uin
 		lessonObj := &models.IncidentPostReviewLesson{
 			IncidentPostReviewID: id,
 			Lesson:               *lesson,
-			CreatedBy:            currentUserID,
+			CreatedByID:          currentUserID,
 		}
 		incidentPostReviewLessons = append(incidentPostReviewLessons, lessonObj)
 	}
@@ -157,7 +157,7 @@ func (iprs *IncidentPostReviewService) Create(incidentID uint, currentUserID uin
 		recommendationObj := &models.IncidentPostReviewRecommendation{
 			IncidentPostReviewID: id,
 			Recommendation:       *recommendation,
-			CreatedBy:            currentUserID,
+			CreatedByID:          currentUserID,
 		}
 		incidentPostReviewRecommendations = append(incidentPostReviewRecommendations, recommendationObj)
 	}
@@ -219,7 +219,7 @@ func (iprs *IncidentPostReviewService) Update(incidentID uint, id uint, currentU
 	existingIncidentPostReview.PostReviewDate = *dates.PostReviewDate
 	existingIncidentPostReview.IncidentPostReviewEffectivenessID = int(incidentPostReviewFormDTO.IncidentPostReviewEffectivenessID)
 	existingIncidentPostReview.Summary = incidentPostReviewFormDTO.Summary
-	existingIncidentPostReview.UpdatedBy = &currentUserID
+	existingIncidentPostReview.UpdatedByID = &currentUserID
 
 	err = iprs.repo.Update(existingIncidentPostReview, tx)
 
@@ -252,7 +252,7 @@ func (iprs *IncidentPostReviewService) Update(incidentID uint, id uint, currentU
 			user := &models.IncidentPostReviewUser{
 				IncidentPostReviewID: id,
 				UserID:               *newUser,
-				CreatedBy:            currentUserID,
+				CreatedByID:          currentUserID,
 			}
 			users = append(users, user)
 		}
@@ -301,7 +301,7 @@ func (iprs *IncidentPostReviewService) Update(incidentID uint, id uint, currentU
 			lesson := &models.IncidentPostReviewLesson{
 				IncidentPostReviewID: id,
 				Lesson:               *newLesson,
-				CreatedBy:            currentUserID,
+				CreatedByID:          currentUserID,
 			}
 			lessonsToAdd = append(lessonsToAdd, lesson)
 		}
@@ -352,7 +352,7 @@ func (iprs *IncidentPostReviewService) Update(incidentID uint, id uint, currentU
 			recommendation := &models.IncidentPostReviewRecommendation{
 				IncidentPostReviewID: id,
 				Recommendation:       *newRec,
-				CreatedBy:            currentUserID,
+				CreatedByID:          currentUserID,
 			}
 			recommendationsToAdd = append(recommendationsToAdd, recommendation)
 		}

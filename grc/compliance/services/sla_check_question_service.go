@@ -259,10 +259,10 @@ func (scqs SLACheckQuestionService) ChooseQuestions(slaID uint, checkID uint, cu
 		} else {
 			// Create a new SLACheckQuestionGroup
 			slaCheckQuestionGroup := &models.SLACheckQuestionGroup{
-				SLACheckID: checkID,
-				TitleEn:    checklistQuestion.QuestionGroup.TitleEn,
-				TitleAr:    checklistQuestion.QuestionGroup.TitleAr,
-				CreatedBy:  currentUserID,
+				SLACheckID:  checkID,
+				TitleEn:     checklistQuestion.QuestionGroup.TitleEn,
+				TitleAr:     checklistQuestion.QuestionGroup.TitleAr,
+				CreatedByID: currentUserID,
 			}
 
 			// Create the new group
@@ -278,7 +278,7 @@ func (scqs SLACheckQuestionService) ChooseQuestions(slaID uint, checkID uint, cu
 			SLACheckQuestionGroupID: slaCheckQuestionGroupId,
 			TitleEn:                 checklistQuestion.QuestionEn,
 			TitleAr:                 checklistQuestion.QuestionAr,
-			CreatedBy:               currentUserID,
+			CreatedByID:             currentUserID,
 		}
 
 		// Update total count of the SLACheckQuestionGroup
@@ -334,10 +334,10 @@ func (scqs *SLACheckQuestionService) CreateQuestion(slaID uint, checkID uint, cu
 	}
 	// Create a new SLACheckQuestionGroup
 	slaCheckQuestionGroup := &models.SLACheckQuestionGroup{
-		SLACheckID: checkID,
-		TitleEn:    slaCheckQuestionFormDTO.QuestionGroupTitleEn,
-		TitleAr:    slaCheckQuestionFormDTO.QuestionGroupTitleAr,
-		CreatedBy:  currentUserID,
+		SLACheckID:  checkID,
+		TitleEn:     slaCheckQuestionFormDTO.QuestionGroupTitleEn,
+		TitleAr:     slaCheckQuestionFormDTO.QuestionGroupTitleAr,
+		CreatedByID: currentUserID,
 	}
 
 	groupID, err := scqs.repo.CreateQuestionGroup(slaCheckQuestionGroup)
@@ -351,7 +351,7 @@ func (scqs *SLACheckQuestionService) CreateQuestion(slaID uint, checkID uint, cu
 		SLACheckQuestionGroupID: slaCheckQuestionGroupId,
 		TitleEn:                 slaCheckQuestionFormDTO.QuestionTitleEn,
 		TitleAr:                 slaCheckQuestionFormDTO.QuestionTitleAr,
-		CreatedBy:               currentUserID,
+		CreatedByID:             currentUserID,
 	}
 
 	slaCheckQuestionId, err := scqs.repo.CreateQuestion(slaCheckQuestion)
@@ -406,7 +406,7 @@ func (scqs *SLACheckQuestionService) UpdateQuestion(slaID uint, checkID uint, qu
 
 	existingQuestion.TitleEn = slaCheckUpdateQuestionDTO.QuestionTitleEn
 	existingQuestion.TitleAr = slaCheckUpdateQuestionDTO.QuestionTitleAr
-	existingQuestion.UpdatedBy = &currentUserID
+	existingQuestion.UpdatedByID = &currentUserID
 
 	// Update the SLACheckQuestionGroup
 	err = scqs.repo.UpdateQuestion(existingQuestion)

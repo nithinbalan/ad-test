@@ -153,7 +153,7 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 		MessageEn:        messageEn,
 		MessageAr:        messageAr,
 		RedirectURL:      redirectURL,
-		CreatedBy:        currentUserID,
+		CreatedByID:      currentUserID,
 	}
 
 	resposibleUser, err := maps.userSvc.GetByID(MeetingActionPlanFormDTO.ResponsibleUserID)

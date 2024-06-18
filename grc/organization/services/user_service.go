@@ -178,7 +178,7 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 		Email:               userFormDTO.Email,
 		MobileNumber:        userFormDTO.MobileNumber,
 		ProfileImagePath:    userFormDTO.ProfileImagePath,
-		CreatedBy:           currentUserID,
+		CreatedByID:         currentUserID,
 		Initial:             initial,
 		Color:               color,
 	}
@@ -301,7 +301,7 @@ func (us *UserService) Update(id uint, currentUserID uint, userFormDTO *userDTOs
 	existingUser.Email = userFormDTO.Email
 	existingUser.MobileNumber = userFormDTO.MobileNumber
 	existingUser.ProfileImagePath = userFormDTO.ProfileImagePath
-	existingUser.UpdatedBy = &currentUserID
+	existingUser.UpdatedByID = &currentUserID
 
 	err = us.repo.Update(existingUser, tx)
 	if err != nil {

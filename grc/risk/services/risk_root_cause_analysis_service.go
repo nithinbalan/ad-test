@@ -79,7 +79,7 @@ func (rrcas *RiskRootCauseAnalysisService) Create(riskID uint, currentUserID uin
 		Why:            why,
 		Question:       rootCauseAnalysisFormDTO.Question,
 		Answer:         rootCauseAnalysisFormDTO.Answer,
-		CreatedBy:      currentUserID,
+		CreatedByID:    currentUserID,
 	}
 
 	id, err := rrcas.repo.Create(riskRootCauseAnalysis)
@@ -128,7 +128,7 @@ func (rrcas *RiskRootCauseAnalysisService) Update(riskID uint, id uint, currentU
 	// Update Risk RootCauseAnalysis
 	existingRiskRootCauseAnalysis.Question = rootCauseAnalysisFormDTO.Question
 	existingRiskRootCauseAnalysis.Answer = rootCauseAnalysisFormDTO.Answer
-	existingRiskRootCauseAnalysis.UpdatedBy = &currentUserID
+	existingRiskRootCauseAnalysis.UpdatedByID = &currentUserID
 
 	err = rrcas.repo.Update(existingRiskRootCauseAnalysis)
 

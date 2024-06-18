@@ -53,8 +53,8 @@ func (repo *RiskRootCauseAnalysisRepository) GetAll(riskID uint, params *riskDTO
         `).
 		Joins(`
             LEFT JOIN risk_register ON risk_register.id = risk_root_cause_analysis.risk_register_id
-            LEFT JOIN users AS created_user ON created_user.id = risk_root_cause_analysis.created_by
-            LEFT JOIN users AS updated_user ON updated_user.id = risk_root_cause_analysis.updated_by
+            LEFT JOIN users AS created_user ON created_user.id = risk_root_cause_analysis.created_by_id
+            LEFT JOIN users AS updated_user ON updated_user.id = risk_root_cause_analysis.updated_by_id
         `).
 		Where(`risk_root_cause_analysis.risk_register_id`, riskID)
 

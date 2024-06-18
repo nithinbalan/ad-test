@@ -63,8 +63,8 @@ func (repo *SLARenewRepository) GetAll(id uint, params *slaDTOs.SLARenewListQuer
     `).
 		Joins(`
         JOIN sla_register ON sla_register.id = sla_documents.sla_register_id
-        JOIN users AS created_by_user ON sla_register.created_by = created_by_user.id
-        LEFT JOIN users AS updated_by_user ON sla_register.updated_by = updated_by_user.id
+        JOIN users AS created_by_user ON sla_register.created_by_id = created_by_user.id
+        LEFT JOIN users AS updated_by_user ON sla_register.updated_by_id = updated_by_user.id
     `).
 		Where("sla_documents.sla_register_id = ? AND sla_documents.is_latest = ?", id, false)
 

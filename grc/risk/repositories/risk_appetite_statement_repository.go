@@ -57,8 +57,8 @@ func (repo *RiskAppetiteStatementRepository) GetAll(params *riskDTOs.RiskAppetit
         `).
 		Joins(`
 		    LEFT JOIN risk_categories ON risk_categories.id = risk_appetite_statements.risk_category_id
-			LEFT JOIN users AS created_user ON created_user.id = risk_appetite_statements.created_by
-			LEFT JOIN users AS updated_user ON updated_user.id = risk_appetite_statements.updated_by
+			LEFT JOIN users AS created_user ON created_user.id = risk_appetite_statements.created_by_id
+			LEFT JOIN users AS updated_user ON updated_user.id = risk_appetite_statements.updated_by_id
 		`)
 
 	// Apply dynamic filters to the query

@@ -66,8 +66,8 @@ func (repo *ComplianceRequirementStatusUpdateRepository) GetAll(complianceRequir
 		Joins(`
             LEFT JOIN compliance_requirements ON compliance_requirements.id = compliance_requirement_status_updates.compliance_requirement_id
             LEFT JOIN compliance_statuses ON compliance_statuses.id = compliance_requirement_status_updates.compliance_status_id
-            LEFT JOIN users AS created_user ON created_user.id = compliance_requirement_status_updates.created_by
-            LEFT JOIN users AS updated_user ON updated_user.id = compliance_requirement_status_updates.updated_by
+            LEFT JOIN users AS created_user ON created_user.id = compliance_requirement_status_updates.created_by_id
+            LEFT JOIN users AS updated_user ON updated_user.id = compliance_requirement_status_updates.updated_by_id
         `).
 		Where("compliance_requirement_status_updates.compliance_requirement_id = ?", complianceRequirementID)
 

@@ -90,7 +90,7 @@ func (sps *StrategicProfileService) Update(currentUserID uint, strategicProfileD
 	existingStrategicProfile.Youtube = strategicProfileDTO.Youtube
 	existingStrategicProfile.AboutEn = strategicProfileDTO.AboutEn
 	existingStrategicProfile.AboutAr = strategicProfileDTO.AboutAr
-	existingStrategicProfile.UpdatedBy = &currentUserID
+	existingStrategicProfile.UpdatedByID = &currentUserID
 
 	err = sps.repo.Update(existingStrategicProfile)
 	if err != nil {
@@ -110,7 +110,7 @@ func (sps *StrategicProfileService) UpdateVision(currentUserID uint, strategicPr
 
 	existingStrategicProfile.VisionEn = strategicProfileVisionDTO.VisionEn
 	existingStrategicProfile.VisionAr = strategicProfileVisionDTO.VisionAr
-	existingStrategicProfile.UpdatedBy = &currentUserID
+	existingStrategicProfile.UpdatedByID = &currentUserID
 
 	err = sps.repo.Update(existingStrategicProfile)
 	if err != nil {
@@ -130,7 +130,7 @@ func (sps *StrategicProfileService) UpdateMission(currentUserID uint, strategicP
 
 	existingStrategicProfile.MissionEn = strategicProfileMissionDTO.MissionEn
 	existingStrategicProfile.MissionAr = strategicProfileMissionDTO.MissionAr
-	existingStrategicProfile.UpdatedBy = &currentUserID
+	existingStrategicProfile.UpdatedByID = &currentUserID
 
 	err = sps.repo.Update(existingStrategicProfile)
 	if err != nil {

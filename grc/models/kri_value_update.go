@@ -15,14 +15,14 @@ type KRIValueUpdate struct {
 	Remarks         *string    `json:"remarks" gorm:"type:nvarchar(max)"`
 	CreatedAt       time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt       *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
-	CreatedBy       uint       `json:"created_by" gorm:"not null"`
-	UpdatedBy       *uint      `json:"updated_by" gorm:"default:null"`
+	CreatedByID     uint       `json:"created_by_id" gorm:"not null"`
+	UpdatedByID     *uint      `json:"updated_by_id" gorm:"default:null"`
 
 	// Relationships
-	KRIRegister   *KRIRegister             `gorm:"foreignkey:KRIRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	KRIRegister   *KRIRegister             `gorm:"foreignKey:KRIRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	Documents     []KRIValueUpdateDocument `gorm:"foreignKey:KRIValueUpdateID"`
-	CreatedByUser *User                    `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser *User                    `gorm:"foreignKey:UpdatedBy"`
+	CreatedByUser *User                    `gorm:"foreignKey:CreatedByID"`
+	UpdatedByUser *User                    `gorm:"foreignKey:UpdatedByID"`
 }
 
 // TableName overrides the table name used by KRIValueUpdate to `kri_value_updates`

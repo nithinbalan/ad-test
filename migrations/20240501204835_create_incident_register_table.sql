@@ -16,8 +16,8 @@ CREATE TABLE incident_register
     reported_by INT NOT NULL,
     reported_at DATE,
     quick_action NVARCHAR(MAX) NULL,
-    created_by INT NOT NULL,
-    updated_by INT NULL,
+    created_by_id INT NOT NULL,
+    updated_by_id INT NULL,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NULL,
     CONSTRAINT FK_incident_register_incident_categories FOREIGN KEY (incident_category_id) REFERENCES incident_categories (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
@@ -26,8 +26,8 @@ CREATE TABLE incident_register
     CONSTRAINT FK_incident_register_severity_levels FOREIGN KEY (severity_level_id) REFERENCES severity_levels (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_incident_register_incident_statuses FOREIGN KEY (incident_status_id) REFERENCES incident_statuses (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_incident_register_users_1 FOREIGN KEY (reported_by) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
-    CONSTRAINT FK_incident_register_users_2 FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
-    CONSTRAINT FK_incident_register_users_3 FOREIGN KEY (updated_by) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION
+    CONSTRAINT FK_incident_register_users_2 FOREIGN KEY (created_by_id) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_incident_register_users_3 FOREIGN KEY (updated_by_id) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 
 -- +goose StatementEnd

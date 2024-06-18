@@ -9,7 +9,7 @@ type DBNotificationDTO struct {
 	MessageEn        string      `json:"message_en"`
 	MessageAr        string      `json:"message_ar"`
 	RedirectURL      string      `json:"redirect_url"`
-	CreatedBy        uint        `json:"created_by"`
+	CreatedByID      uint        `json:"created_by_id"`
 }
 
 type EmailNotificationDTO struct {

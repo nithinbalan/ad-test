@@ -9,7 +9,7 @@ type OrganizationUnit struct {
 	ColorCode           string `gorm:"type:varchar(10);default:null"`
 	Status              string `gorm:"size:10;not null;check:Status IN ('active', 'inactive')"`
 
-	OrganizationLevel *OrganizationLevel `gorm:"foreignkey:OrganizationLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	OrganizationLevel *OrganizationLevel `gorm:"foreignKey:OrganizationLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ParentUnit        *OrganizationUnit  `gorm:"foreignKey:OrganizationUnitID"`
 	ChildUnits        []OrganizationUnit `gorm:"foreignKey:OrganizationUnitID"`
 }

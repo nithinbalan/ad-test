@@ -11,14 +11,14 @@ CREATE TABLE system_preferences (
     logo_upload_size INT NOT NULL,
     idle_timeout INT NOT NULL,
     is_maintenance_mode_on TINYINT DEFAULT 0,
-    created_by INT,
-    updated_by INT NULL,
+    created_by_id INT,
+    updated_by_id INT NULL,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NULL,
     CONSTRAINT FK_system_preferences_currencies FOREIGN KEY (currency_id) REFERENCES currencies (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_system_preferences_timezones FOREIGN KEY (timezone_id) REFERENCES timezones (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
-    CONSTRAINT FK_system_preferences_users_2 FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
-    CONSTRAINT FK_system_preferences_users_3 FOREIGN KEY (updated_by) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION
+    CONSTRAINT FK_system_preferences_users_2 FOREIGN KEY (created_by_id) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_system_preferences_users_3 FOREIGN KEY (updated_by_id) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 -- +goose StatementEnd
 

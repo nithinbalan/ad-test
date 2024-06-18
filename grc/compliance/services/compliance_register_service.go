@@ -175,7 +175,7 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 		LastReviewedDate:         dates.LastReviewedDate,
 		LastReviewedUserID:       complianceRegisterFormDTO.LastReviewedUserID,
 		ComplianceReviewStatusID: complianceRegisterFormDTO.ComplianceReviewStatusID,
-		CreatedBy:                currentUserID,
+		CreatedByID:              currentUserID,
 		LifecycleStatusID:        lifecycleStatus.ID,
 	}
 
@@ -191,7 +191,7 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 		control := &models.ComplianceControl{
 			ComplianceRegisterID: id,
 			ControlID:            *ctrl,
-			CreatedBy:            currentUserID,
+			CreatedByID:          currentUserID,
 		}
 		controls = append(controls, control)
 	}
@@ -222,7 +222,7 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 		Token:                encryptedFilename,
 		OriginalName:         complianceRegisterFormDTO.Document.OriginalName,
 		Type:                 complianceRegisterFormDTO.Document.Type,
-		CreatedBy:            currentUserID,
+		CreatedByID:          currentUserID,
 	}
 
 	// Save Compliance document
@@ -309,7 +309,7 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 	existingComplianceRegister.LastReviewedUserID = complianceRegisterFormDTO.LastReviewedUserID
 	existingComplianceRegister.ComplianceReviewStatusID = complianceRegisterFormDTO.ComplianceReviewStatusID
 	existingComplianceRegister.LastReviewNote = complianceRegisterFormDTO.LastReviewNote
-	existingComplianceRegister.UpdatedBy = &currentUserID
+	existingComplianceRegister.UpdatedByID = &currentUserID
 
 	err = crs.repo.Update(existingComplianceRegister, tx)
 
@@ -343,7 +343,7 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 			control := &models.ComplianceControl{
 				ComplianceRegisterID: id,
 				ControlID:            *newControlID,
-				CreatedBy:            currentUserID,
+				CreatedByID:          currentUserID,
 			}
 			controlsToAdd = append(controlsToAdd, control)
 		}
@@ -401,7 +401,7 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 		existingComplianceDocument.Token = encryptedFilename
 		existingComplianceDocument.OriginalName = complianceRegisterFormDTO.Document.OriginalName
 		existingComplianceDocument.Type = complianceRegisterFormDTO.Document.Type
-		existingComplianceDocument.UpdatedBy = currentUserID
+		existingComplianceDocument.UpdatedByID = currentUserID
 
 		if err := crs.repo.CreateDocument(existingComplianceDocument, tx); err != nil {
 			tx.Rollback()
@@ -600,7 +600,7 @@ func (crs *ComplianceRegisterService) StatusUpdate(id uint, currentUserID uint, 
 	}
 
 	existingCompliance.ComplianceStatusID = complianceStatusID
-	existingCompliance.UpdatedBy = &currentUserID
+	existingCompliance.UpdatedByID = &currentUserID
 
 	err = crs.repo.Update(existingCompliance, tx)
 

@@ -85,7 +85,7 @@ func (crs *ComplianceReviewService) Create(complianceID uint, currentUserID uint
 		ReviewedAt:           time.Now(),
 	}
 
-	id, err := crs.repo.Create(complianceReview,tx)
+	id, err := crs.repo.Create(complianceReview, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -136,7 +136,7 @@ func (crs *ComplianceReviewService) Create(complianceID uint, currentUserID uint
 			Token:              encryptedFilename,
 			OriginalName:       doc.OriginalName,
 			Type:               doc.Type,
-			CreatedBy:          currentUserID,
+			CreatedByID:        currentUserID,
 		}
 
 		documents = append(documents, document)
@@ -199,9 +199,9 @@ func (crs *ComplianceReviewService) Update(complianceID uint, id uint, currentUs
 	}
 
 	existingComplianceReview.Comment = complianceReviewFormDTO.Comment
-	existingComplianceReview.UpdatedBy = &currentUserID
+	existingComplianceReview.UpdatedByID = &currentUserID
 
-	err = crs.repo.Update(existingComplianceReview,tx)
+	err = crs.repo.Update(existingComplianceReview, tx)
 
 	if err != nil {
 		tx.Rollback()
@@ -235,7 +235,7 @@ func (crs *ComplianceReviewService) Update(complianceID uint, id uint, currentUs
 				Token:              encryptedFileName,
 				OriginalName:       doc.OriginalName,
 				Type:               doc.Type,
-				CreatedBy:          currentUserID,
+				CreatedByID:        currentUserID,
 			}
 
 			// Append the document to the slice

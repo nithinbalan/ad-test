@@ -22,10 +22,10 @@ CREATE TABLE strategic_profiles (
   mission_ar NVARCHAR(500),
   created_at DATETIME NOT NULL,
   updated_at DATETIME NULL,
-  created_by INT NOT NULL,
-  updated_by INT NULL,
-  CONSTRAINT FK_strategic_profiles_users_1 FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  CONSTRAINT FK_strategic_profiles_users_2 FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION
+  created_by_id INT NOT NULL,
+  updated_by_id INT NULL,
+  CONSTRAINT FK_strategic_profiles_users_1 FOREIGN KEY (created_by_id) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT FK_strategic_profiles_users_2 FOREIGN KEY (updated_by_id) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 -- +goose StatementEnd
 

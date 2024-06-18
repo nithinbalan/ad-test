@@ -14,15 +14,15 @@ type ComplianceDocument struct {
 	Token                string    `json:"token"`
 	OriginalName         string    `json:"original_name"`
 	Type                 string    `json:"type"`
-	CreatedBy            uint      `json:"created_by" gorm:"not null"`
-	UpdatedBy            uint      `json:"updated_by" gorm:"default:null"`
+	CreatedByID          uint      `json:"created_by_id" gorm:"not null"`
+	UpdatedByID          uint      `json:"updated_by_id" gorm:"default:null"`
 	CreatedAt            time.Time `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt            time.Time `json:"updated_at" gorm:"type:datetime;not null"`
 
 	// Relationships
-	ComplianceRegister *ComplianceRegister `gorm:"foreignkey:ComplianceRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser      *User               `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser      *User               `gorm:"foreignKey:UpdatedBy"`
+	ComplianceRegister *ComplianceRegister `gorm:"foreignKey:ComplianceRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	CreatedByUser      *User               `gorm:"foreignKey:CreatedByID"`
+	UpdatedByUser      *User               `gorm:"foreignKey:UpdatedByID"`
 }
 
 // TableName overrides the table name used by SLARegister to `sla_registers`

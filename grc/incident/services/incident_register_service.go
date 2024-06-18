@@ -147,7 +147,7 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 		ReportedBy:            incidentRegisterFormDTO.ReportedBy,
 		ReportedAt:            dates.ReportedAt,
 		QuickAction:           incidentRegisterFormDTO.QuickAction,
-		CreatedBy:             currentUserID,
+		CreatedByID:           currentUserID,
 	}
 
 	id, err := irs.repo.Create(incidentRegister, tx)
@@ -161,7 +161,7 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 		requirement := &models.IncidentComplianceRequirement{
 			IncidentRegisterID:      id,
 			ComplianceRequirementID: *req,
-			CreatedBy:               currentUserID,
+			CreatedByID:             currentUserID,
 		}
 		complianceRequirements = append(complianceRequirements, requirement)
 	}
@@ -178,7 +178,7 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 		control := &models.IncidentControl{
 			IncidentRegisterID: id,
 			ControlID:          *ctrl,
-			CreatedBy:          currentUserID,
+			CreatedByID:        currentUserID,
 		}
 		controls = append(controls, control)
 	}
@@ -195,7 +195,7 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 		risk := &models.IncidentRisk{
 			IncidentRegisterID: id,
 			RiskRegisterID:     *rsk,
-			CreatedBy:          currentUserID,
+			CreatedByID:        currentUserID,
 		}
 		risks = append(risks, risk)
 	}
@@ -213,7 +213,7 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 		process := &models.IncidentProcess{
 			IncidentRegisterID: id,
 			ProcessID:          *processID,
-			CreatedBy:          currentUserID,
+			CreatedByID:        currentUserID,
 		}
 		processes = append(processes, process)
 	}
@@ -251,7 +251,7 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 			Token:              encryptedFilename,
 			OriginalName:       doc.OriginalName,
 			Type:               doc.Type,
-			CreatedBy:          currentUserID,
+			CreatedByID:        currentUserID,
 		}
 
 		// Append the document to the slice
@@ -332,7 +332,7 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 	existingIncidentRegister.ReportedBy = incidentRegisterFormDTO.ReportedBy
 	existingIncidentRegister.ReportedAt = dates.ReportedAt
 	existingIncidentRegister.QuickAction = incidentRegisterFormDTO.QuickAction
-	existingIncidentRegister.UpdatedBy = &currentUserID
+	existingIncidentRegister.UpdatedByID = &currentUserID
 
 	err = irs.repo.Update(existingIncidentRegister, tx)
 
@@ -365,7 +365,7 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 			control := &models.IncidentControl{
 				IncidentRegisterID: id,
 				ControlID:          *newControlID,
-				CreatedBy:          currentUserID,
+				CreatedByID:        currentUserID,
 			}
 			controlsToAdd = append(controlsToAdd, control)
 		}
@@ -416,7 +416,7 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 			requirement := &models.IncidentComplianceRequirement{
 				IncidentRegisterID:      id,
 				ComplianceRequirementID: *newRequirementID,
-				CreatedBy:               currentUserID,
+				CreatedByID:             currentUserID,
 			}
 			requirementsToAdd = append(requirementsToAdd, requirement)
 		}
@@ -467,7 +467,7 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 			risk := &models.IncidentRisk{
 				IncidentRegisterID: id,
 				RiskRegisterID:     *newRiskID,
-				CreatedBy:          currentUserID,
+				CreatedByID:        currentUserID,
 			}
 			risksToAdd = append(risksToAdd, risk)
 		}
@@ -517,7 +517,7 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 			process := &models.IncidentProcess{
 				IncidentRegisterID: id,
 				ProcessID:          *newProcessID,
-				CreatedBy:          currentUserID,
+				CreatedByID:        currentUserID,
 			}
 			processesToAdd = append(processesToAdd, process)
 		}
@@ -574,7 +574,7 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 				Token:              encryptedFilename,
 				OriginalName:       doc.OriginalName,
 				Type:               doc.Type,
-				CreatedBy:          currentUserID,
+				CreatedByID:        currentUserID,
 			}
 			documents = append(documents, document)
 
