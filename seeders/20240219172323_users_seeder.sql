@@ -15,7 +15,7 @@ INSERT INTO users (
     profile_image_path,
     initial,
     color,
-    created_by,
+    created_by_id,
     created_at,
     updated_at
 ) VALUES (

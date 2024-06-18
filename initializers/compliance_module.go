@@ -75,6 +75,8 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		complianceRequirementCategorySvc,
 		complianceStatusSvc,
 		masterModule.SeverityLevelSvc,
+		organizationModule.ControlSvc,
+		organizationModule.StrategicObjectiveSvc,
 	)
 	complianceRequirementController := controllers.NewComplianceRequirementController(complianceRequirementSvc)
 
