@@ -93,7 +93,7 @@ func (casus *ComplianceActionPlanStatusUpdateService) Create(ComplianceID uint, 
 		return 0, err
 	}
 
-	err = casus.complianceActionPlanSvc.StatusUpdate(ComplianceID, ComplianceActionPlanID, currentUserID, complianceActionPlanStatusUpdateFormDTO.ActionPlanStatusID, tx)
+	err = casus.complianceActionPlanSvc.StatusUpdate(ComplianceID, ComplianceActionPlanID, currentUserID, complianceActionPlanStatusUpdateFormDTO, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
