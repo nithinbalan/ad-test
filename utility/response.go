@@ -1,6 +1,7 @@
 package utility
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -13,6 +14,8 @@ type ErrorResponse struct {
 
 func SendInternalErrResp(db *gorm.DB, c *gin.Context, errMsg string) {
 	localizedErrorMsg := LocalizeMessage(c, "internal_server_error", "Internal Server Error!")
+
+	log.Printf("Recovered from panic: %v", errMsg)
 
 	// log.Printf("Recovered from panic: %v\nStack trace: %s", errMsg)
 
