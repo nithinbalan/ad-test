@@ -239,7 +239,7 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 		}
 
 		// Construct the URL for the document
-		url := utility.GenerateDocumentURL("incident-register", strconv.FormatUint(uint64(incidentRegister.ID), 10), encryptedFilename)
+		url := utility.GenerateDocumentURL("incident", "incident-register", strconv.FormatUint(uint64(incidentRegister.ID), 10), "documents")
 
 		// Create a new IncidentDocument instance
 		document := &models.IncidentDocument{
@@ -563,7 +563,8 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 				tx.Rollback()
 				return err
 			}
-			url := utility.GenerateDocumentURL("incident-register", strconv.FormatUint(uint64(id), 10), encryptedFilename)
+			url := utility.GenerateDocumentURL("incident", "incident-register", strconv.FormatUint(uint64(id), 10), "documents")
+
 			// Create a new IncidentDocument instance
 			document := &models.IncidentDocument{
 				IncidentRegisterID: id,
