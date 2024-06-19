@@ -212,7 +212,7 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 	}
 
 	//genereate URL
-	url := utility.GenerateDocumentURL("compliance-register", strconv.FormatUint(uint64(complianceRegister.ID), 10), encryptedFilename)
+	url := utility.GenerateDocumentURL("compliance", "compliance-register", strconv.FormatUint(uint64(id), 10), "documents")
 
 	complianceDocument := &models.ComplianceDocument{
 		ComplianceRegisterID: id,
@@ -394,7 +394,7 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 		}
 
 		//genereate URL
-		url := utility.GenerateDocumentURL("compliance-register", strconv.FormatUint(uint64(id), 10), encryptedFilename)
+		url := utility.GenerateDocumentURL("compliance", "compliance-register", strconv.FormatUint(uint64(id), 10), "documents")
 
 		existingComplianceDocument.Language = complianceRegisterFormDTO.Document.Language
 		existingComplianceDocument.URL = url
