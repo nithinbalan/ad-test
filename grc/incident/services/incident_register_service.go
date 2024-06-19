@@ -136,9 +136,9 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 	incidentRegister := &models.IncidentRegister{
 		ReferenceNumber:       referenceNumber,
 		IncidentCategoryID:    incidentRegisterFormDTO.IncidentCategoryID,
-		IncidentSubCategoryID: incidentRegisterFormDTO.IncidentSubCategoryID,
+		IncidentSubCategoryID: *incidentRegisterFormDTO.IncidentSubCategoryID,
 		IncidentTypeID:        incidentRegisterFormDTO.IncidentTypeID,
-		SeverityLevelID:       incidentRegisterFormDTO.SeverityLevelID,
+		SeverityLevelID:       *incidentRegisterFormDTO.SeverityLevelID,
 		IncidentStatusID:      incidentRegisterFormDTO.IncidentStatusID,
 		Title:                 incidentRegisterFormDTO.Title,
 		Description:           incidentRegisterFormDTO.Description,
@@ -244,7 +244,6 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 		// Create a new IncidentDocument instance
 		document := &models.IncidentDocument{
 			IncidentRegisterID: id,
-			Language:           doc.Language,
 			URL:                url,
 			Name:               doc.FileName,
 			Size:               doc.Size,
@@ -321,9 +320,9 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 		return err
 	}
 	existingIncidentRegister.IncidentCategoryID = incidentRegisterFormDTO.IncidentCategoryID
-	existingIncidentRegister.IncidentSubCategoryID = incidentRegisterFormDTO.IncidentSubCategoryID
+	existingIncidentRegister.IncidentSubCategoryID = *incidentRegisterFormDTO.IncidentSubCategoryID
 	existingIncidentRegister.IncidentTypeID = incidentRegisterFormDTO.IncidentTypeID
-	existingIncidentRegister.SeverityLevelID = incidentRegisterFormDTO.SeverityLevelID
+	existingIncidentRegister.SeverityLevelID = *incidentRegisterFormDTO.SeverityLevelID
 	existingIncidentRegister.IncidentStatusID = incidentRegisterFormDTO.IncidentStatusID
 	existingIncidentRegister.Title = incidentRegisterFormDTO.Title
 	existingIncidentRegister.Description = incidentRegisterFormDTO.Description
@@ -568,7 +567,6 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 			// Create a new IncidentDocument instance
 			document := &models.IncidentDocument{
 				IncidentRegisterID: id,
-				Language:           doc.Language,
 				URL:                url,
 				Name:               doc.FileName,
 				Size:               doc.Size,
@@ -785,7 +783,7 @@ func (irs *IncidentRegisterService) validateIncidentRegisterFormDTO(incidentRegi
 		return utility.NewValidationError(fmt.Errorf("incident category does not exist"), "not_exist", "incident category")
 	}
 
-	if _, err := irs.incidentSubCategorySvc.GetByID(incidentRegisterFormDTO.IncidentSubCategoryID); err != nil {
+	if _, err := irs.incidentSubCategorySvc.GetByID(*incidentRegisterFormDTO.IncidentSubCategoryID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("incident sub category does not exist"), "not_exist", "incident sub category")
 	}
 
@@ -797,7 +795,7 @@ func (irs *IncidentRegisterService) validateIncidentRegisterFormDTO(incidentRegi
 		return utility.NewValidationError(fmt.Errorf("incident status does not exist"), "not_exist", "incident status")
 	}
 
-	if _, err := irs.severityLevelSvc.GetByID(incidentRegisterFormDTO.SeverityLevelID); err != nil {
+	if _, err := irs.severityLevelSvc.GetByID(*incidentRegisterFormDTO.SeverityLevelID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
 	}
 	//Controls exist
