@@ -18,6 +18,7 @@ type ComplianceActionPlanRepositoryInterface interface {
 	Create(complianceActionPlan *models.ComplianceActionPlan, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(complianceActionPlan *models.ComplianceActionPlan, tx ...utility.DatabaseTransaction) error
 	Delete(id uint) error
+	CreateComplianceActionPlanStatusUpdate(complianceActionPlanStatusUpdate *models.ComplianceActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
 }
 
 type ComplianceActionPlanRepository struct {
@@ -183,21 +184,38 @@ func (repo *ComplianceActionPlanRepository) GetByID(id uint) (*models.Compliance
 }
 
 func (repo *ComplianceActionPlanRepository) GetFullDetailsByID(id uint) (*models.ComplianceActionPlan, error) {
-	var complianceActionPlan *models.ComplianceActionPlan
+	var complianceActionPlan models.ComplianceActionPlan
 
+	// Subquery to get the latest status update
+	latestStatusUpdateSubQuery := repo.db.
+		Table("compliance_action_plan_status_updates").
+		Select("id").
+		Where("compliance_action_plan_id = ?", id).
+		Order("created_at desc").
+		Limit(1)
+
+	// Load the compliance action plan with all related data
 	result := repo.db.
 		Preload("ComplianceRequirement.ComplianceClause").
 		Preload("SeverityLevel").
 		Preload("ResponsibleUser").
-		Preload("SeverityLevel").
 		Preload("ActionPlanStatus").
+		Preload("CreatedByUser").
+		Preload("UpdatedByUser").
+		Preload("ActionPlanStatusUpdates", func(db *gorm.DB) *gorm.DB {
+			return db.Where("id IN (?)", latestStatusUpdateSubQuery).
+				Preload("ActionPlanStatus").
+				Preload("CreatedByUser").
+				Preload("UpdatedByUser").
+				Preload("Documents")
+		}).
 		First(&complianceActionPlan, id)
 
 	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	return complianceActionPlan, nil
+	return &complianceActionPlan, nil
 }
 
 func (repo *ComplianceActionPlanRepository) Create(complianceActionPlan *models.ComplianceActionPlan, tx ...utility.DatabaseTransaction) (uint, error) {
@@ -231,4 +249,15 @@ func (repo *ComplianceActionPlanRepository) Delete(id uint) error {
 	}
 
 	return nil
+}
+
+func (repo *ComplianceActionPlanRepository) CreateComplianceActionPlanStatusUpdate(complianceActionPlanStatusUpdate *models.ComplianceActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(complianceActionPlanStatusUpdate).Error; err != nil {
+		return 0, err
+	}
+	return complianceActionPlanStatusUpdate.ID, nil
 }

@@ -25,7 +25,7 @@ type ComplianceActionPlanServiceInterface interface {
 	Create(complianceID uint, currentUserID uint, ComplianceActionPlanFormDTO *complianceDTOs.ComplianceActionPlanFormDTO) (uint, error)
 	Update(complianceID uint, id uint, currentUserID uint, compliance *complianceDTOs.ComplianceActionPlanFormDTO) error
 	Delete(complianceID uint, ids []uint, currentUserID uint) ([]uint, error)
-	StatusUpdate(complianceID uint, id uint, currentUserID uint, ActionPlanStatusID uint, tx utility.DatabaseTransaction) error
+	StatusUpdate(complianceID uint, id uint, currentUserID uint, complianceActionPlanStatusUpdateFormDTO *complianceDTOs.ComplianceActionPlanStatusUpdateFormDTO, tx utility.DatabaseTransaction) error
 }
 
 // Service and implementations
@@ -87,12 +87,13 @@ func (caps ComplianceActionPlanService) GetByID(complianceID uint, id uint) (*mo
 func (caps ComplianceActionPlanService) GetFullDetailsByID(complianceID uint, id uint) (*complianceDTOs.ComplianceActionPlanDetailDTO, error) {
 	var complianceActionPlanDTO complianceDTOs.ComplianceActionPlanDetailDTO
 
+	// Check if the compliance register exists
 	if _, err := caps.complianceRegisterSvc.GetByID(complianceID); err != nil {
 		return nil, err
 	}
 
+	// Get full details of the compliance action plan
 	complianceActionPlan, err := caps.repo.GetFullDetailsByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -100,12 +101,23 @@ func (caps ComplianceActionPlanService) GetFullDetailsByID(complianceID uint, id
 		return nil, err
 	}
 
+	// Decode the compliance action plan into the DTO
 	err = mapstructure.Decode(complianceActionPlan, &complianceActionPlanDTO)
 	if err != nil {
 		return nil, err
 	}
 
-	//todo :- also add extra fields which required in details screen
+	// If there are status updates, decode the latest one into the DTO
+	if len(complianceActionPlan.ActionPlanStatusUpdates) > 0 {
+		var complianceActionPlanStatusUpdateDTO complianceDTOs.ComplianceActionPlanStatusUpdateDTO
+		err = mapstructure.Decode(complianceActionPlan.ActionPlanStatusUpdates[0], &complianceActionPlanStatusUpdateDTO)
+		if err != nil {
+			return nil, err
+		}
+		complianceActionPlanDTO.ActionPlanStatusUpdate = &complianceActionPlanStatusUpdateDTO
+	}
+
+	// TODO: Add any additional fields required for the details screen
 
 	return &complianceActionPlanDTO, nil
 }
@@ -140,6 +152,20 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 	}
 
 	id, err := caps.repo.Create(complianceActionPlan, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	actionPlanStatusID := ComplianceActionPlanFormDTO.ActionPlanStatusID
+	complianceActionPlanUpdate := &models.ComplianceActionPlanStatusUpdate{
+		ComplianceActionPlanID: id,
+		ActionPlanStatusID:     actionPlanStatusID,
+		Comment:                "Initial action plan status",
+		CreatedByID:            currentUserID,
+	}
+
+	_, err = caps.repo.CreateComplianceActionPlanStatusUpdate(complianceActionPlanUpdate, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -279,14 +305,16 @@ func (caps *ComplianceActionPlanService) Delete(complianceID uint, ids []uint, c
 	return failedIds, nil
 }
 
-func (caps *ComplianceActionPlanService) StatusUpdate(complianceID uint, id uint, currentUserID uint, ActionPlanStatusID uint, tx utility.DatabaseTransaction) error {
+func (caps *ComplianceActionPlanService) StatusUpdate(complianceID uint, id uint, currentUserID uint, complianceActionPlanStatusUpdateFormDTO *complianceDTOs.ComplianceActionPlanStatusUpdateFormDTO, tx utility.DatabaseTransaction) error {
 	existingComplianceActionPlan, err := caps.GetByID(complianceID, id)
 
 	if err != nil {
 		return err
 	}
 
-	existingComplianceActionPlan.ActionPlanStatusID = ActionPlanStatusID
+	existingComplianceActionPlan.ActionPlanStatusID = complianceActionPlanStatusUpdateFormDTO.ActionPlanStatusID
+	existingComplianceActionPlan.Comments = &complianceActionPlanStatusUpdateFormDTO.Comment
+	existingComplianceActionPlan.Percentage = complianceActionPlanStatusUpdateFormDTO.Percentage
 	existingComplianceActionPlan.UpdatedByID = &currentUserID
 
 	err = caps.repo.Update(existingComplianceActionPlan, tx)
