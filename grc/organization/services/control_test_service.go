@@ -22,6 +22,7 @@ type ControlTestServiceInterface interface {
 	Create(controlID uint, currentUserID uint, controlTestFormDTO *organizationDTOs.ControlTestFormDTO) (uint, error)
 	Update(controlID uint, id uint, currentUserID uint, controlTestFormDTO *organizationDTOs.ControlTestFormDTO) error
 	Delete(controlID uint, ids []uint, currentUserID uint) ([]uint, error)
+	GetTrendAnalysis(controlID uint) ([]*organizationDTOs.ControlTrendAnalysisDTO, error)
 }
 
 type ControlTestService struct {
@@ -416,4 +417,32 @@ func (cts *ControlTestService) parseControlTestDates(dto *organizationDTOs.Contr
 		}
 	}
 	return parsed, nil
+}
+
+func (cts *ControlTestService) GetTrendAnalysis(controlID uint) ([]*organizationDTOs.ControlTrendAnalysisDTO, error) {
+	scores, err := cts.repo.GetTrendAnalysis(controlID)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(scores) == 0 {
+		return []*organizationDTOs.ControlTrendAnalysisDTO{}, nil
+	}
+
+	statuses, err := cts.controlEfficiencyStatusSvc.GetAll("", "", "", "")
+	if err != nil {
+		return nil, err
+	}
+
+	// Map the average scores to their respective color codes
+	for _, score := range scores {
+		for _, status := range statuses {
+			if score.AverageScore >= float64(status.ScoreFrom) && score.AverageScore <= float64(status.ScoreTo) {
+				score.ColorCode = status.ColorCode
+				break
+			}
+		}
+	}
+
+	return scores, nil
 }

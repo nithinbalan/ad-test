@@ -124,7 +124,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.POST("/controls/delete", controlController.DeleteControls)
 	organizationRoutes.PUT("/controls/archive", controlController.ArchiveControls)
 	organizationRoutes.PUT("/controls/restore", controlController.RestoreControls)
-	// organizationRoutes.PUT("/controls/restore", controlController.RestoreControls)
 
 	//control Test
 	organizationRoutes.GET("/controls/:controlId/tests", controlTestController.GetAllControlTests)
@@ -132,6 +131,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.POST("/controls/:controlId/tests", controlTestController.CreateControlTest)
 	organizationRoutes.PUT("/controls/:controlId/tests/:controlTestId", controlTestController.UpdateControlTest)
 	organizationRoutes.POST("/controls/:controlId/tests/delete", controlTestController.DeleteControlTest)
+	organizationRoutes.GET("/controls/:controlId/trends", controlTestController.GetControlTestTrendAnalysis)
 
 	//Process Group
 	organizationRoutes.GET("/process-groups", processGroupController.GetAllProcessGroups)

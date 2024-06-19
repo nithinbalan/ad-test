@@ -91,3 +91,10 @@ type ControlTestFormDTO struct {
 type ControlTestParsedDates struct {
 	TestedAt *time.Time
 }
+
+type ControlTrendAnalysisDTO struct {
+	YearMonth    string  `json:"year_month"`
+	MonthName    string  `json:"month_name"`
+	AverageScore float64 `json:"average_score"`
+	ColorCode    string  `json:"color_code"`
+}
