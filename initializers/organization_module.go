@@ -28,6 +28,7 @@ type OrganizationModule struct {
 	UserTaskController                      *controllers.UserTaskController
 	StrategicProfileValueController         *controllers.StrategicProfileValueController
 	ProcessAssociatedItemController         *controllers.ProcessAssociatedItemController
+	ControlAssociatedItemController         *controllers.ControlAssociatedItemController
 
 	UserSvc               services.UserServiceInterface
 	UserSettingSvc        services.UserSettingServiceInterface
@@ -110,6 +111,10 @@ func NewOrganizationModule(
 		controlEfficiencyStatusSvc)
 	controlTestController := controllers.NewControlTestController(controlTestSvc)
 
+	controlAssociatedItemRepo := repositories.NewControlAssociatedItemRepository(db)
+	controlAssociatedItemSvc := services.NewControlAssociatedItemService(controlAssociatedItemRepo, controlSvc, controlImplementationStatusSvc, controlEfficiencyStatusRepo)
+	controlAssociatedItemController := controllers.NewControlAssociatedItemController(controlAssociatedItemSvc)
+
 	processGroupRepo := repositories.NewProcessGroupRepository(db)
 	processGroupSvc := services.NewProcessGroupService(processGroupRepo, sharedModule.ActivityLogService)
 	processGroupController := controllers.NewProcessGroupController(processGroupSvc)
@@ -154,6 +159,7 @@ func NewOrganizationModule(
 		UserTaskController:                      userTaskController,
 		StrategicProfileValueController:         strategicProfileValueController,
 		ProcessAssociatedItemController:         processAssociatedItemController,
+		ControlAssociatedItemController:         controlAssociatedItemController,
 
 		UserSvc:               userSvc,
 		UserSettingSvc:        userSettingSvc,

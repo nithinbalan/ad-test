@@ -32,6 +32,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	processController := app.OrganizationModule.ProcessController
 	userTaskController := app.OrganizationModule.UserTaskController
 	processAssociatedItemController := app.OrganizationModule.ProcessAssociatedItemController
+	controlAssociatedItemController := app.OrganizationModule.ControlAssociatedItemController
 
 	//Designation
 	organizationRoutes.GET("/designations", designationController.GetAllDesignations)
@@ -132,6 +133,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.PUT("/controls/:controlId/tests/:controlTestId", controlTestController.UpdateControlTest)
 	organizationRoutes.POST("/controls/:controlId/tests/delete", controlTestController.DeleteControlTest)
 	organizationRoutes.GET("/controls/:controlId/trends", controlTestController.GetControlTestTrendAnalysis)
+
+	//Control Associated Item
+	organizationRoutes.GET("controls/:controlId/processes", controlAssociatedItemController.GetAllControlProcesses)
+	organizationRoutes.GET("controls/:controlId/compliance-requirements", controlAssociatedItemController.GetAllControlComplianceRequirements)
+	organizationRoutes.GET("controls/:controlId/risks", controlAssociatedItemController.GetAllControlRisks)
+	organizationRoutes.GET("controls/:controlId/incidents", controlAssociatedItemController.GetAllControlIncidents)
 
 	//Process Group
 	organizationRoutes.GET("/process-groups", processGroupController.GetAllProcessGroups)
