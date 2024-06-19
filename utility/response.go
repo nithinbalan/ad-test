@@ -1,8 +1,6 @@
 package utility
 
 import (
-	"jethur/grc/logs/repositories"
-	"jethur/grc/logs/services"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -18,10 +16,10 @@ func SendInternalErrResp(db *gorm.DB, c *gin.Context, errMsg string) {
 
 	// log.Printf("Recovered from panic: %v\nStack trace: %s", errMsg)
 
-	errorLogRepo := repositories.NewErrorLogRepository(db)
-	errorLogSvc := services.NewErrorLoggerService(errorLogRepo)
+	// errorLogRepo := repositories.NewErrorLogRepository(db)
+	// errorLogSvc := services.NewErrorLoggerService(errorLogRepo)
 
-	go LogErrorToDB(errorLogSvc, c, errMsg)
+	// go LogErrorToDB(errorLogSvc, c, errMsg)
 
 	resp := ErrorResponse{Error: localizedErrorMsg}
 	c.JSON(http.StatusInternalServerError, resp)
@@ -54,6 +52,6 @@ func SendUnauthorizedErrResp(c *gin.Context, errMsg string) {
 }
 
 func SendForbiddenErrResp(c *gin.Context, errorMessage string) {
-    resp := ErrorResponse{Error: errorMessage}
-    c.JSON(http.StatusForbidden, resp)
+	resp := ErrorResponse{Error: errorMessage}
+	c.JSON(http.StatusForbidden, resp)
 }
