@@ -168,6 +168,16 @@ func (repo *ComplianceAssociatedItemRepository) GetAllRisks(complianceID uint, p
             risk_statuses.color_code AS risk_status_color_code,
             review_frequencies.title_en AS risk_review_frequency_title_en,
             review_frequencies.title_ar AS risk_review_frequency_title_ar,
+			risk_matrix_likelihoods.title_en AS risk_matrix_likelihood_title_en,
+            risk_matrix_likelihoods.title_ar AS risk_matrix_likelihood_title_ar,
+            risk_matrix_likelihoods.score AS risk_matrix_likelihood_score,
+			risk_matrix_impacts.title_en AS risk_matrix_impact_title_en,
+            risk_matrix_impacts.title_ar AS risk_matrix_impact_title_ar,
+            risk_matrix_impacts.score AS risk_matrix_impact_score,
+			risk_matrix_risk_ratings.title_en AS risk_matrix_risk_rating_title_en,
+            risk_matrix_risk_ratings.title_ar AS risk_matrix_risk_rating_title_ar,
+            risk_matrix_risk_ratings.type AS risk_matrix_risk_rating_type,
+            risk_matrix_risk_ratings.color_code AS risk_matrix_risk_rating_color_code,
             risk_register.next_review_date AS risk_next_review_date,
             risk_statuses.title_en AS risk_status_title_en,
             risk_statuses.title_ar AS risk_status_title_ar,
@@ -180,6 +190,9 @@ func (repo *ComplianceAssociatedItemRepository) GetAllRisks(complianceID uint, p
             LEFT JOIN organization_units ON organization_units.id = risk_register.owner_unit_id
             LEFT JOIN users ON users.id = risk_register.owner_id
             LEFT JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id
+            LEFT JOIN risk_matrix_likelihoods ON risk_matrix_likelihoods.id = risk_register.current_likelihood_id
+            LEFT JOIN risk_matrix_impacts ON risk_matrix_impacts.id = risk_register.current_impact_id
+            LEFT JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = risk_register.current_risk_rating_id
             LEFT JOIN review_frequencies ON review_frequencies.id = risk_register.review_frequency_id
         `).
 		Where("risk_compliance_requirements.compliance_requirement_id IN (?)", complianceRequirementIDs)
