@@ -8,6 +8,7 @@ CREATE TABLE controls (
     owner_id INT,
     control_implementation_status_id INT,
     control_efficiency_status_id INT,
+    efficiency_score INT DEFAULT 0,
     reference_number VARCHAR(45) NOT NULL UNIQUE,
     code VARCHAR(45),
     title_en NVARCHAR(500) NOT NULL,

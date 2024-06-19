@@ -140,6 +140,13 @@ func (ctc *ControlTestController) CreateControlTest(c *gin.Context) {
 }
 
 func (ctc *ControlTestController) UpdateControlTest(c *gin.Context) {
+
+	controlID, err := strconv.Atoi(c.Param("controlId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
 	controlTestID, err := strconv.Atoi(c.Param("controlTestId"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -158,7 +165,7 @@ func (ctc *ControlTestController) UpdateControlTest(c *gin.Context) {
 		return
 	}
 
-	err = ctc.service.Update(uint(controlTestID), currentUserID, &controlTestFormDTO)
+	err = ctc.service.Update(uint(controlID), uint(controlTestID), currentUserID, &controlTestFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

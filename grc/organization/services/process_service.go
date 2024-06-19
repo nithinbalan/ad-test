@@ -433,6 +433,7 @@ func (ps *ProcessService) GetControlSummary(id uint) (map[string]interface{}, er
 			"efficiency_percentage":     0,
 			"implementation_percentage": 0,
 			"total_efficiency":          []map[string]interface{}{},
+			"total_control_count":       0,
 		}, nil
 	}
 
@@ -487,6 +488,7 @@ func (ps *ProcessService) GetControlSummary(id uint) (map[string]interface{}, er
 		"efficiency_percentage":     (float64(efficiencyStatusCount["efficient"]) / float64(totalControls)) * 100,
 		"implementation_percentage": (float64(implementationStatusCount["implemented"]) / float64(totalControls)) * 100,
 		"total_efficiency":          efficiencyStatus,
+		"total_control_count":       totalControls,
 	}
 
 	return summary, nil

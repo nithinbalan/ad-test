@@ -77,7 +77,7 @@ func (srs *SLARenewService) Renew(slaId uint, currentUserID uint, slaRenewFormDT
 	if err != nil {
 		return err
 	}
-	url := utility.GenerateDocumentURL("sla-register", strconv.FormatUint(uint64(existingSLADocument.SLARegisterID), 10), encryptedFilename)
+	url := utility.GenerateDocumentURL("compliance", "sla-register", strconv.FormatUint(uint64(existingSLADocument.SLARegisterID), 10), "agreements")
 
 	currentVersionStr := existingSLADocument.Version
 	currentVersionFloat, err := strconv.ParseFloat(currentVersionStr, 64)

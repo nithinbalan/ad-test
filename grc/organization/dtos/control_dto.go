@@ -99,6 +99,7 @@ type ControlFormDTO struct {
 	TitleAr                       string  `json:"title_ar" binding:"required"`
 	Description                   *string `json:"description" binding:"omitempty"`
 	Objective                     *string `json:"objective" binding:"omitempty"`
+	EfficiencyScore               *uint   `json:"efficiency_score" binding:"omitempty"`
 	ReviewFrequencyID             *uint   `json:"review_frequency_id" binding:"omitempty"`
 	LastReviewDate                *string `json:"last_review_date" binding:"omitempty,datetime=2006-01-02"`
 	NextReviewDate                *string `json:"next_review_date" binding:"omitempty,datetime=2006-01-02"`
@@ -132,6 +133,7 @@ type ControlDetailDTO struct {
 	Owner                       *UserMinimalDTO                   `json:"owner"`
 	ControlImplementationStatus *ControlImplementationStatusDTO   `json:"control_implementation_status"`
 	ControlEfficiencyStatus     *ControlEfficiencyStatusDTO       `json:"control_efficiency_status"`
+	EfficiencyScore             *uint                             `json:"efficiency_score"`
 	ReviewFrequency             *masterDTOs.ReviewFrequencyDTO    `json:"review_frequency"`
 	LastReviewDateString        *string                           `json:"last_review_date"`
 	NextReviewDateString        *string                           `json:"next_review_date"`

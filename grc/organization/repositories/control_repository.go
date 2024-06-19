@@ -5,6 +5,7 @@ import (
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
+	"jethur/utility"
 	"strconv"
 	"time"
 
@@ -16,7 +17,7 @@ type ControlRepositoryInterface interface {
 	GetByID(id uint) (*models.Control, error)
 	GetFullDetailsByID(id uint) (*models.Control, error)
 	Create(control *models.Control) (uint, error)
-	Update(complianceRegister *models.Control) error
+	Update(complianceRegister *models.Control, tx ...utility.DatabaseTransaction) error
 	Delete(id uint) error
 	GenerateReferenceNumber() (string, error)
 
@@ -277,8 +278,13 @@ func (repo *ControlRepository) Create(control *models.Control) (uint, error) {
 	return control.ID, nil
 }
 
-func (repo *ControlRepository) Update(control *models.Control) error {
-	if err := repo.db.Save(control).Error; err != nil {
+func (repo *ControlRepository) Update(control *models.Control, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Save(control).Error; err != nil {
 		return err
 	}
 
