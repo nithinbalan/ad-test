@@ -93,8 +93,7 @@ type ControlTestParsedDates struct {
 }
 
 type ControlTrendAnalysisDTO struct {
-	YearMonth    string  `json:"year_month"`
-	MonthName    string  `json:"month_name"`
-	AverageScore float64 `json:"average_score"`
-	ColorCode    string  `json:"color_code"`
+	TestedAtString string  `json:"tested_at"`
+	Score          float64 `json:"score"`
+	ColorCode      string  `json:"color_code"`
 }

@@ -5,7 +5,6 @@ import (
 	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
 	"jethur/utility"
-	"time"
 
 	"gorm.io/gorm"
 )
@@ -23,7 +22,7 @@ type ControlTestRepositoryInterface interface {
 	CreateDocuments(docs []*models.ControlTestDocument, tx ...utility.DatabaseTransaction) error
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
 
-	GetTrendAnalysis(controlID uint) ([]*organizationDTOs.ControlTrendAnalysisDTO, error)
+	GetTrendAnalysis(controlID uint) ([]*models.ControlTest, error)
 }
 
 type ControlTestRepository struct {
@@ -278,26 +277,18 @@ func (repo *ControlTestRepository) DeleteDocuments(docIds []*uint, tx ...utility
 	return nil
 }
 
-func (repo *ControlTestRepository) GetTrendAnalysis(controlID uint) ([]*organizationDTOs.ControlTrendAnalysisDTO, error) {
-	var scores []*organizationDTOs.ControlTrendAnalysisDTO
-	lastYear := time.Now().AddDate(-1, 0, 0).Format("2006-01-02")
+func (repo *ControlTestRepository) GetTrendAnalysis(controlID uint) ([]*models.ControlTest, error) {
+	var controlTests []*models.ControlTest
 
-	// Raw SQL query to get average scores per month
-	query := `
-		SELECT 
-			FORMAT(tested_at, 'yyyy-MM') AS year_month,
-			DATENAME(month, tested_at) AS month_name,
-			AVG(score) AS average_score
-		FROM control_tests
-		WHERE tested_at > ? AND control_id = ?
-		GROUP BY FORMAT(tested_at, 'yyyy-MM'), DATENAME(month, tested_at)
-		ORDER BY year_month
-	`
+	// Use GORM to fetch the last 6 control tests
+	result := repo.db.Where("control_id = ?", controlID).
+		Order("tested_at DESC").
+		Limit(6).
+		Find(&controlTests)
 
-	result := repo.db.Raw(query, lastYear, controlID).Scan(&scores)
 	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	return scores, nil
+	return controlTests, nil
 }

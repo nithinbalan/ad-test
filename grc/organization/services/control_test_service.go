@@ -420,12 +420,12 @@ func (cts *ControlTestService) parseControlTestDates(dto *organizationDTOs.Contr
 }
 
 func (cts *ControlTestService) GetTrendAnalysis(controlID uint) ([]*organizationDTOs.ControlTrendAnalysisDTO, error) {
-	scores, err := cts.repo.GetTrendAnalysis(controlID)
+	controlTests, err := cts.repo.GetTrendAnalysis(controlID)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(scores) == 0 {
+	if len(controlTests) == 0 {
 		return []*organizationDTOs.ControlTrendAnalysisDTO{}, nil
 	}
 
@@ -434,14 +434,34 @@ func (cts *ControlTestService) GetTrendAnalysis(controlID uint) ([]*organization
 		return nil, err
 	}
 
-	// Map the average scores to their respective color codes
-	for _, score := range scores {
-		for _, status := range statuses {
-			if score.AverageScore >= float64(status.ScoreFrom) && score.AverageScore <= float64(status.ScoreTo) {
-				score.ColorCode = status.ColorCode
-				break
+	var scores []*organizationDTOs.ControlTrendAnalysisDTO
+
+	// Map the ControlTest models to ControlTrendAnalysisDTO using mapstructure
+	for _, ct := range controlTests {
+		if ct.Score != nil && ct.TestedAt != nil {
+			var dto organizationDTOs.ControlTrendAnalysisDTO
+			err := mapstructure.Decode(ct, &dto)
+			if err != nil {
+				return nil, err
 			}
+			dto.Score = float64(*ct.Score)
+
+			testedAt := ct.TestedAt.Format("2006-01-02")
+			dto.TestedAtString = testedAt
+			// Map the score to its respective color code
+			for _, status := range statuses {
+				if dto.Score >= float64(status.ScoreFrom) && dto.Score <= float64(status.ScoreTo) {
+					dto.ColorCode = status.ColorCode
+					break
+				}
+			}
+			scores = append(scores, &dto)
 		}
+	}
+
+	// Reverse the slice to get the tests in chronological order
+	for i, j := 0, len(scores)-1; i < j; i, j = i+1, j-1 {
+		scores[i], scores[j] = scores[j], scores[i]
 	}
 
 	return scores, nil
