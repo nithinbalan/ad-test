@@ -17,6 +17,7 @@ type Control struct {
 	TitleEn                       string     `json:"title_en" gorm:"type:nvarchar(500);not null" binding:"required"`
 	TitleAr                       string     `json:"title_ar" gorm:"type:nvarchar(500);not null" binding:"required"`
 	Description                   *string    `json:"description,omitempty" gorm:"type:nvarchar(MAX);default:null" binding:"omitempty"`
+	EfficiencyScore               *uint      `json:"efficiency_score" gorm:"default:0;check:efficiency_score >= 0 AND efficiency_score <= 100" binding:"omitempty"`
 	Objective                     *string    `json:"objective,omitempty" gorm:"type:nvarchar(MAX);default:null" binding:"omitempty"`
 	ReviewFrequencyID             *uint      `json:"review_frequency_id,omitempty" gorm:"default:null" binding:"omitempty"`
 	LastReviewDate                *time.Time `json:"last_review_date,omitempty" gorm:"type:date;default:null" binding:"omitempty"`

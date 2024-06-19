@@ -24,6 +24,7 @@ type ControlServiceInterface interface {
 
 	Archive(ids []uint, currentUserID uint) ([]uint, error)
 	Restore(ids []uint, currentUserID uint) ([]uint, error)
+	StatusUpdate(controlID uint, currentUserID uint, controlTestFormDTO *organizationDTOs.ControlTestFormDTO, tx utility.DatabaseTransaction) error
 }
 
 type ControlService struct {
@@ -153,6 +154,7 @@ func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizatio
 		TitleAr:                       controlFormDTO.TitleAr,
 		Description:                   controlFormDTO.Description,
 		Objective:                     controlFormDTO.Objective,
+		EfficiencyScore:               controlFormDTO.EfficiencyScore,
 		ReviewFrequencyID:             controlFormDTO.ReviewFrequencyID,
 		LastReviewDate:                dates.LastReviewDate,
 		TestResponsibleUserID:         controlFormDTO.TestResponsibleUserID,
@@ -356,6 +358,27 @@ func (cs *ControlService) Restore(ids []uint, currentUserID uint) ([]uint, error
 	}
 
 	return successfulIds, nil
+}
+
+func (cs *ControlService) StatusUpdate(controlID uint, currentUserID uint, controlTestFormDTO *organizationDTOs.ControlTestFormDTO, tx utility.DatabaseTransaction) error {
+	existingControl, err := cs.GetByID(controlID)
+
+	if err != nil {
+		return err
+	}
+
+	existingControl.ControlEfficiencyStatusID = &controlTestFormDTO.ControlEfficiencyStatusID
+	existingControl.ControlImplementationStatusID = &controlTestFormDTO.ControlImplementationStatusID
+	existingControl.EfficiencyScore = controlTestFormDTO.Score
+	existingControl.UpdatedByID = &currentUserID
+
+	err = cs.repo.Update(existingControl, tx)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (cs *ControlService) validateControlFormDTO(controlFormDTO *organizationDTOs.ControlFormDTO) error {

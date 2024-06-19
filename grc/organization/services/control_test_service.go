@@ -20,7 +20,7 @@ type ControlTestServiceInterface interface {
 	GetByID(id uint) (*models.ControlTest, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*organizationDTOs.ControlTestDetailsDTO, error)
 	Create(controlID uint, currentUserID uint, controlTestFormDTO *organizationDTOs.ControlTestFormDTO) (uint, error)
-	Update(id uint, currentUserID uint, controlTestFormDTO *organizationDTOs.ControlTestFormDTO) error
+	Update(controlID uint, id uint, currentUserID uint, controlTestFormDTO *organizationDTOs.ControlTestFormDTO) error
 	Delete(controlID uint, ids []uint, currentUserID uint) ([]uint, error)
 }
 
@@ -115,6 +115,12 @@ func (cts *ControlTestService) Create(controlID uint, currentUserID uint, contro
 		return 0, err
 	}
 
+	err = cts.controlSvc.StatusUpdate(controlID, currentUserID, controlTestFormDTO, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
 	var documents []*models.ControlTestDocument
 
 	for _, doc := range controlTestFormDTO.Documents {
@@ -187,8 +193,7 @@ func (cts *ControlTestService) Create(controlID uint, currentUserID uint, contro
 	return id, nil
 }
 
-func (cts *ControlTestService) Update(id uint, currentUserID uint, controlTestFormDTO *organizationDTOs.ControlTestFormDTO) error {
-	fmt.Println("hhh - ", id)
+func (cts *ControlTestService) Update(controlID uint, id uint, currentUserID uint, controlTestFormDTO *organizationDTOs.ControlTestFormDTO) error {
 	tx := cts.repo.BeginTransaction()
 	existingControlTest, err := cts.GetByID(id)
 
@@ -216,6 +221,12 @@ func (cts *ControlTestService) Update(id uint, currentUserID uint, controlTestFo
 
 	err = cts.repo.Update(existingControlTest, tx)
 
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	err = cts.controlSvc.StatusUpdate(controlID, currentUserID, controlTestFormDTO, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -254,9 +265,7 @@ func (cts *ControlTestService) Update(id uint, currentUserID uint, controlTestFo
 			documents = append(documents, document)
 
 		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
-			fmt.Println("1")
 			if doc.ID != nil {
-				fmt.Println("2")
 				existingDocument, err := cts.repo.GetDocumentByID(*doc.ID)
 				if err != nil {
 					if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -264,16 +273,13 @@ func (cts *ControlTestService) Update(id uint, currentUserID uint, controlTestFo
 					}
 					return err
 				}
-				fmt.Println("3")
 				documentsToDelete = append(documentsToDelete, existingDocument)
 				deleteDocumentIds = append(deleteDocumentIds, &existingDocument.ID)
-				fmt.Println("4")
 			}
 		}
 	}
 
 	if len(documents) > 0 {
-		fmt.Println("5")
 		if err := cts.repo.CreateDocuments(documents, tx); err != nil {
 			tx.Rollback()
 			return err
@@ -281,12 +287,10 @@ func (cts *ControlTestService) Update(id uint, currentUserID uint, controlTestFo
 	}
 
 	if len(deleteDocumentIds) > 0 {
-		fmt.Println("6")
 		if err := cts.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
-		fmt.Println("7")
 	}
 
 	for _, doc := range documents {
@@ -296,7 +300,6 @@ func (cts *ControlTestService) Update(id uint, currentUserID uint, controlTestFo
 			return err
 		}
 	}
-	fmt.Println("8")
 
 	for _, document := range documentsToDelete {
 		storagePath := filepath.Join("organization", "control", strconv.FormatUint(uint64(existingControlTest.ControlID), 10), "control-test", strconv.FormatUint(uint64(id), 10), "documents")
@@ -306,7 +309,6 @@ func (cts *ControlTestService) Update(id uint, currentUserID uint, controlTestFo
 			return err
 		}
 	}
-	fmt.Println("9")
 
 	tx.Commit()
 	return nil
@@ -396,7 +398,7 @@ func (cts *ControlTestService) validateControlTestFormDTO(controlTestFormDTO *or
 		return utility.NewValidationError(fmt.Errorf("control implementation status does not exist"), "not_exist", "control implementation status")
 	}
 
-	if _, err := cts.controlImplementationStatusSvc.GetByID(uint(controlTestFormDTO.ControlEfficiencyStatusID)); err != nil {
+	if _, err := cts.controlEfficiencyStatusSvc.GetByID(uint(controlTestFormDTO.ControlEfficiencyStatusID)); err != nil {
 		return utility.NewValidationError(fmt.Errorf("control efficiency status does not exist"), "not_exist", "control efficiency status")
 	}
 
