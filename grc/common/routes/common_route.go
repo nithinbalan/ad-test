@@ -21,4 +21,5 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 	fileController := controllers.NewFileController(fileSvc, db)
 
 	commonRoutes.POST("/upload/temp", fileController.TempFileUpload)
+	commonRoutes.POST("/files/preview", fileController.FilePreview)
 }

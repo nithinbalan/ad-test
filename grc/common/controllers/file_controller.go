@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"jethur/grc/common/dtos"
 	"jethur/grc/common/services"
 	"jethur/utility"
 	"net/http"
@@ -36,4 +37,20 @@ func (fc *FileController) TempFileUpload(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, uploadedFile)
+}
+
+func (fc *FileController) FilePreview(c *gin.Context) {
+	var filePreviewDTO *dtos.FilePreviewDTO
+	if err := c.ShouldBindJSON(&filePreviewDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	fullPath, err := fc.service.GetFilePreview(filePreviewDTO)
+	if err != nil {
+		utility.SendInternalErrResp(fc.db, c, err.Error())
+		return
+	}
+
+	c.File(fullPath)
 }
