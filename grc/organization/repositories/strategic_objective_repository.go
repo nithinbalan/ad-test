@@ -35,7 +35,7 @@ func (repo *StrategicObjectiveRepository) GetAll(sort string, sortBy string, key
 	var strategicObjectives []*models.StrategicObjective
 
 	query := repo.db.Model(&models.StrategicObjective{}).
-		Preload("ComplianceRequirements").
+		Preload("ComplianceRequirements", "compliance_requirement_id IN (SELECT id FROM compliance_requirements WHERE compliance_status_id IN (SELECT id FROM compliance_statuses WHERE type = 'not_implemented'))").
 		Preload("ComplianceRequirements.ComplianceRequirement")
 
 	if keyword != "" {
