@@ -253,6 +253,13 @@ func (repo *ControlRepository) GetFullDetailsByID(id uint) (*models.Control, err
 		Order("tested_at desc").
 		Limit(1)
 
+	latestControlReviewSubQuery := repo.db.
+		Table("control_reviews").
+		Select("id").
+		Where("control_id = ?", id).
+		Order("reviewed_at desc").
+		Limit(1)
+
 	result := repo.db.
 		Preload("ControlType").
 		Preload("ControlCategory").
@@ -272,6 +279,12 @@ func (repo *ControlRepository) GetFullDetailsByID(id uint) (*models.Control, err
 		Preload("LatestControlTest", func(db *gorm.DB) *gorm.DB {
 			return db.Where("id IN (?)", latestControlTestSubQuery).
 				Preload("TestedByUser")
+		}).
+		Preload("LatestControlReview", func(db *gorm.DB) *gorm.DB {
+			return db.Where("id IN (?)", latestControlReviewSubQuery).
+				Preload("ReviewedByUser").
+				Preload("UpdatedByUser").
+				Preload("Documents")
 		}).
 		First(&control, id)
 

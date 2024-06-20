@@ -50,6 +50,7 @@ type Control struct {
 	ControlReviewStatus         *ControlReviewStatus         `gorm:"foreignKey:ControlReviewStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	LatestControlTest           *ControlTest                 `gorm:"foreignKey:ControlID"`
 	LastReviewedUser            *User                        `gorm:"foreignKey:LastReviewedUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	LatestControlReview         *ControlReview               `gorm:"foreignKey:ControlID"`
 	CreatedByUser               *User                        `gorm:"foreignKey:CreatedByID"`
 	UpdatedByUser               *User                        `gorm:"foreignKey:UpdatedByID"`
 }
