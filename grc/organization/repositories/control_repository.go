@@ -246,6 +246,13 @@ func (repo *ControlRepository) GetByID(id uint) (*models.Control, error) {
 func (repo *ControlRepository) GetFullDetailsByID(id uint) (*models.Control, error) {
 	var control *models.Control
 
+	latestControlTestSubQuery := repo.db.
+		Table("control_tests").
+		Select("id").
+		Where("control_id = ?", id).
+		Order("tested_at desc").
+		Limit(1)
+
 	result := repo.db.
 		Preload("ControlType").
 		Preload("ControlCategory").
@@ -262,6 +269,10 @@ func (repo *ControlRepository) GetFullDetailsByID(id uint) (*models.Control, err
 		Preload("LifecycleStatus").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
+		Preload("LatestControlTest", func(db *gorm.DB) *gorm.DB {
+			return db.Where("id IN (?)", latestControlTestSubQuery).
+				Preload("TestedByUser")
+		}).
 		First(&control, id)
 
 	if result.Error != nil {

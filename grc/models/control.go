@@ -48,6 +48,7 @@ type Control struct {
 	TestFrequency               *ReviewFrequency             `gorm:"foreignKey:TestFrequencyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	LifecycleStatus             *LifecycleStatus             `gorm:"foreignKey:LifecycleStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ControlReviewStatus         *ControlReviewStatus         `gorm:"foreignKey:ControlReviewStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	LatestControlTest           *ControlTest                 `gorm:"foreignKey:ControlID"`
 	LastReviewedUser            *User                        `gorm:"foreignKey:LastReviewedUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	CreatedByUser               *User                        `gorm:"foreignKey:CreatedByID"`
 	UpdatedByUser               *User                        `gorm:"foreignKey:UpdatedByID"`

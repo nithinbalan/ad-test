@@ -149,4 +149,5 @@ type ControlDetailDTO struct {
 	UpdatedByUser               *UserMinimalDTO                   `json:"updated_by"`
 	LifecycleStatus             masterDTOs.LifecycleStatusDTO     `json:"status"`
 	ControlReviewStatus         ControlReviewStatusDTO            `json:"review_status"`
+	LatestControlTest           ControlTestDetailsDTO             `json:"latest_control_test"`
 }
