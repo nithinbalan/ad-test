@@ -257,6 +257,7 @@ func (repo *ControlRepository) GetFullDetailsByID(id uint) (*models.Control, err
 		Preload("TestResponsibleUser").
 		Preload("TestResponsibleUser.OrganizationUnit1").
 		Preload("ReviewFrequency").
+		Preload("ControlReviewStatus").
 		Preload("TestFrequency").
 		Preload("LifecycleStatus").
 		Preload("CreatedByUser").

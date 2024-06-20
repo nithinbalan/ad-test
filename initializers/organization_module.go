@@ -19,6 +19,7 @@ type OrganizationModule struct {
 	ControlTypeController                   *controllers.ControlTypeController
 	ControlImplementationStatusController   *controllers.ControlImplementationStatusController
 	ControlEfficiencyStatusController       *controllers.ControlEfficiencyStatusController
+	ControlReviewStatusController           *controllers.ControlReviewStatusController
 	ControlController                       *controllers.ControlController
 	ControlTestController                   *controllers.ControlTestController
 	ProcessGroupController                  *controllers.ProcessGroupController
@@ -29,6 +30,7 @@ type OrganizationModule struct {
 	StrategicProfileValueController         *controllers.StrategicProfileValueController
 	ProcessAssociatedItemController         *controllers.ProcessAssociatedItemController
 	ControlAssociatedItemController         *controllers.ControlAssociatedItemController
+	ControlReviewController                 *controllers.ControlReviewController
 
 	UserSvc               services.UserServiceInterface
 	UserSettingSvc        services.UserSettingServiceInterface
@@ -89,6 +91,10 @@ func NewOrganizationModule(
 	strategicProfileValueSvc := services.NewStrategicProfileValueService(strategicProfileValueRepo, sharedModule.ActivityLogService, strategicProfileRepo)
 	strategicProfileValueController := controllers.NewStrategicProfileValueController(strategicProfileValueSvc)
 
+	controlReviewStatusRepo := repositories.NewControlReviewStatusRepository(db)
+	controlReviewStatusSvc := services.NewControlReviewStatusService(controlReviewStatusRepo)
+	controlReviewStatusController := controllers.NewControlReviewStatusController(controlReviewStatusSvc)
+
 	controlRepo := repositories.NewControlRepository(db)
 	controlSvc := services.NewControlService(
 		controlRepo,
@@ -114,6 +120,10 @@ func NewOrganizationModule(
 	controlAssociatedItemRepo := repositories.NewControlAssociatedItemRepository(db)
 	controlAssociatedItemSvc := services.NewControlAssociatedItemService(controlAssociatedItemRepo, controlSvc, controlImplementationStatusSvc, controlEfficiencyStatusRepo)
 	controlAssociatedItemController := controllers.NewControlAssociatedItemController(controlAssociatedItemSvc)
+
+	controlReviewRepo := repositories.NewControlReviewRepository(db)
+	controlReviewSvc := services.NewControlReviewService(controlReviewRepo, sharedModule.ActivityLogService, controlSvc, masterModule.ReviewFrequencySvc, controlReviewStatusSvc)
+	controlReviewController := controllers.NewControlReviewController(controlReviewSvc)
 
 	processGroupRepo := repositories.NewProcessGroupRepository(db)
 	processGroupSvc := services.NewProcessGroupService(processGroupRepo, sharedModule.ActivityLogService)
@@ -150,6 +160,7 @@ func NewOrganizationModule(
 		ControlTypeController:                   controlTypeController,
 		ControlImplementationStatusController:   controlImplementationStatusController,
 		ControlEfficiencyStatusController:       controlEfficiencyStatusController,
+		ControlReviewStatusController:           controlReviewStatusController,
 		ControlController:                       controlController,
 		ControlTestController:                   controlTestController,
 		ProcessGroupController:                  processGroupController,
@@ -160,6 +171,7 @@ func NewOrganizationModule(
 		StrategicProfileValueController:         strategicProfileValueController,
 		ProcessAssociatedItemController:         processAssociatedItemController,
 		ControlAssociatedItemController:         controlAssociatedItemController,
+		ControlReviewController:                 controlReviewController,
 
 		UserSvc:               userSvc,
 		UserSettingSvc:        userSettingSvc,
