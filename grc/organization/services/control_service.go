@@ -25,6 +25,7 @@ type ControlServiceInterface interface {
 	Archive(ids []uint, currentUserID uint) ([]uint, error)
 	Restore(ids []uint, currentUserID uint) ([]uint, error)
 	StatusUpdate(controlID uint, currentUserID uint, controlTestFormDTO *organizationDTOs.ControlTestFormDTO, tx utility.DatabaseTransaction) error
+	ReviewStatusUpdate(control *models.Control, tx utility.DatabaseTransaction) error
 }
 
 type ControlService struct {
@@ -66,8 +67,8 @@ func (cs *ControlService) GetAll(params *organizationDTOs.ControlListQueryParams
 	return cs.repo.GetAll(params)
 }
 
-func (crs *ControlService) GetByID(id uint) (*models.Control, error) {
-	control, err := crs.repo.GetByID(id)
+func (cs *ControlService) GetByID(id uint) (*models.Control, error) {
+	control, err := cs.repo.GetByID(id)
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -374,6 +375,16 @@ func (cs *ControlService) StatusUpdate(controlID uint, currentUserID uint, contr
 
 	err = cs.repo.Update(existingControl, tx)
 
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (cs *ControlService) ReviewStatusUpdate(control *models.Control, tx utility.DatabaseTransaction) error {
+
+	err := cs.repo.Update(control, tx)
 	if err != nil {
 		return err
 	}
