@@ -1,6 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE TABLE controls (
+CREATE TABLE controls
+(
     id INT PRIMARY KEY IDENTITY(1,1),
     control_type_id INT NOT NULL,
     control_category_id INT NOT NULL,
@@ -29,6 +30,8 @@ CREATE TABLE controls (
     created_at DATETIME NOT NULL,
     updated_at DATETIME,
     lifecycle_status_id INT NOT NULL,
+    last_reviewed_user_id INT NULL,
+    control_review_status_id INT NULL,
 
     CONSTRAINT FK_controls_control_types FOREIGN KEY (control_type_id) REFERENCES control_types(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_controls_control_categories FOREIGN KEY (control_category_id) REFERENCES control_categories(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
@@ -41,7 +44,9 @@ CREATE TABLE controls (
     CONSTRAINT FK_controls_review_frequencies2 FOREIGN KEY (test_frequency_id) REFERENCES review_frequencies(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_controls_users_3 FOREIGN KEY (created_by_id) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_controls_users_4 FOREIGN KEY (updated_by_id) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
-    CONSTRAINT FK_controls_lifecycle_statuses FOREIGN KEY (lifecycle_status_id) REFERENCES lifecycle_statuses (id) ON DELETE NO ACTION ON UPDATE NO ACTION
+    CONSTRAINT FK_controls_users_5 FOREIGN KEY (last_reviewed_user_id) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_controls_lifecycle_statuses FOREIGN KEY (lifecycle_status_id) REFERENCES lifecycle_statuses (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_controls_review_statuses FOREIGN KEY (control_review_status_id) REFERENCES control_review_statuses (id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 -- +goose StatementEnd
 

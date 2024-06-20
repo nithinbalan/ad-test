@@ -33,7 +33,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	userTaskController := app.OrganizationModule.UserTaskController
 	processAssociatedItemController := app.OrganizationModule.ProcessAssociatedItemController
 	controlAssociatedItemController := app.OrganizationModule.ControlAssociatedItemController
-
+	controlReviewStatusController := app.OrganizationModule.ControlReviewStatusController
+	controlReviewController := app.OrganizationModule.ControlReviewController
+	
 	//Designation
 	organizationRoutes.GET("/designations", designationController.GetAllDesignations)
 	organizationRoutes.GET("/designations/:id", designationController.GetDesignationDetails)
@@ -116,6 +118,15 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	//Control Efficiency Status
 	organizationRoutes.GET("/control-efficiency-statuses", controlEfficiencyStatusController.GetAllControlEfficiencyStatuses)
 	organizationRoutes.GET("/control-efficiency-statuses/:id", controlEfficiencyStatusController.GetControlEfficiencyStatusDetails)
+
+	//Control Review Statuses
+	organizationRoutes.GET("/control-review-statuses", controlReviewStatusController.GetAllControlReviewStatuses)
+	organizationRoutes.GET("/control-review-statuses/:id", controlReviewStatusController.GetControlReviewStatusDetails)
+
+	//Control Review
+	organizationRoutes.GET("/controls/:controlId/reviews", controlReviewController.GetAllControlReviews)
+	organizationRoutes.POST("/controls/:controlId/reviews", controlReviewController.CreateControlReview)
+	organizationRoutes.PUT("/controls/:controlId/reviews/:id", controlReviewController.UpdateControlReview)
 
 	//Control
 	organizationRoutes.GET("/controls", controlController.GetAllControls)

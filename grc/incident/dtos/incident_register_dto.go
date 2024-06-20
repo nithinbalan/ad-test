@@ -54,9 +54,9 @@ type IncidentRegisterListDTO struct {
 
 type IncidentRegisterFormDTO struct {
 	IncidentCategoryID       uint                       `json:"incident_category_id" binding:"required"`
-	IncidentSubCategoryID    uint                       `json:"incident_sub_category_id" binding:"required"`
+	IncidentSubCategoryID    *uint                      `json:"incident_sub_category_id"`
 	IncidentTypeID           uint                       `json:"incident_type_id" binding:"required"`
-	SeverityLevelID          uint                       `json:"severity_level_id" binding:"required"`
+	SeverityLevelID          *uint                      `json:"severity_level_id"`
 	IncidentStatusID         uint                       `json:"incident_status_id" binding:"required"`
 	Title                    string                     `json:"title" binding:"required,max=255"`
 	Description              *string                    `json:"description"`
@@ -74,7 +74,6 @@ type IncidentRegisterFormDTO struct {
 
 type IncidentDocumentFormDTO struct {
 	ID            *uint  `json:"id,omitempty"`
-	Language      string `json:"language" binding:"required"`
 	URL           string `json:"url"`
 	FileName      string `json:"file_name"`
 	OriginalName  string `json:"original_name"`
@@ -86,7 +85,6 @@ type IncidentDocumentFormDTO struct {
 
 type IncidentDocumentDTO struct {
 	ID           *uint   `json:"id"`
-	Language     string  `json:"language"`
 	URL          *string `json:"url"`
 	Name         string  `json:"name"`
 	Token        string  `json:"token"`
