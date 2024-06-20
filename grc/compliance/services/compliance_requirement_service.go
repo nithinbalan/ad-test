@@ -132,7 +132,7 @@ func (crs ComplianceRequirementService) GetFullDetailsByID(complianceID uint, id
 		if err != nil {
 			return nil, err
 		}
-		complianceRequirementDTO.ComplianceRequirementStatusUpdate = &complianceRequirementStatusUpdateDTO
+		complianceRequirementDTO.LatestComplianceRequirementStatusUpdate = &complianceRequirementStatusUpdateDTO
 	}
 
 	return &complianceRequirementDTO, nil
@@ -442,8 +442,8 @@ func (crs *ComplianceRequirementService) Delete(complianceID uint, ids []uint, c
 	for _, id := range ids {
 		requirement, err := crs.GetFullDetailsByID(complianceID, id, tx)
 		if err != nil {
-			tx.Rollback()
-			return nil, err
+			failedIds = append(failedIds, id)
+			continue
 		}
 
 		// Check if controls exist
@@ -453,8 +453,8 @@ func (crs *ComplianceRequirementService) Delete(complianceID uint, ids []uint, c
 				deleteControlIds = append(deleteControlIds, ctrl.ID)
 			}
 			if err := crs.repo.DeleteComplianceRequirementControls(deleteControlIds, tx); err != nil {
-				tx.Rollback()
-				return nil, err
+				failedIds = append(failedIds, id)
+				continue
 			}
 		}
 
@@ -465,14 +465,25 @@ func (crs *ComplianceRequirementService) Delete(complianceID uint, ids []uint, c
 				deleteStrategicObjectiveIds = append(deleteStrategicObjectiveIds, obj.ID)
 			}
 			if err := crs.repo.DeleteComplianceRequirementStrategicObjectives(deleteStrategicObjectiveIds, tx); err != nil {
-				tx.Rollback()
-				return nil, err
+				failedIds = append(failedIds, id)
+				continue
+			}
+		}
+
+		if len(requirement.ComplianceRequirementStatusUpdates) > 0 {
+			var deleteStatusUpdateIds []*uint
+			for _, update := range requirement.ComplianceRequirementStatusUpdates {
+				deleteStatusUpdateIds = append(deleteStatusUpdateIds, &update.ID)
+			}
+			if err := crs.repo.DeleteComplianceRequirementStatusUpdates(deleteStatusUpdateIds, tx); err != nil {
+				failedIds = append(failedIds, id)
+				continue
 			}
 		}
 
 		if err := crs.repo.Delete(id, tx); err != nil {
-			tx.Rollback()
 			failedIds = append(failedIds, id)
+			continue
 		} else {
 			successfulIds = append(successfulIds, id)
 			// Track the clause IDs
@@ -480,19 +491,31 @@ func (crs *ComplianceRequirementService) Delete(complianceID uint, ids []uint, c
 		}
 	}
 
+	if len(failedIds) > 0 {
+		tx.Rollback()
+		return failedIds, nil
+	}
+
 	// Delete clauses if all their requirements are deleted
 	for clauseID := range clauseIDsToDelete {
 		count, err := crs.repo.CountRequirementsByClauseID(clauseID, tx)
 		if err != nil {
-			tx.Rollback()
+			failedIds = append(failedIds, clauseID)
 			fmt.Printf("Error counting requirements for clause %d: %v\n", clauseID, err)
+			continue
 		} else if count == 0 {
 			if err := crs.repo.DeleteClause(clauseID, tx); err != nil {
-				tx.Rollback()
+				failedIds = append(failedIds, clauseID)
 				// Log error, but proceed with other deletions
 				fmt.Printf("Error deleting clause %d: %v\n", clauseID, err)
+				continue
 			}
 		}
+	}
+
+	if len(failedIds) > 0 {
+		tx.Rollback()
+		return failedIds, nil
 	}
 
 	// Log successful deletions

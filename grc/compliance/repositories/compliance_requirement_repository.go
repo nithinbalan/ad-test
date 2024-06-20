@@ -30,6 +30,7 @@ type ComplianceRequirementRepositoryInterface interface {
 	DeleteComplianceRequirementControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error
 	CreateComplianceRequirementStrategicObjectives(objectives []*models.ComplianceRequirementStrategicObjective, tx ...utility.DatabaseTransaction) error
 	DeleteComplianceRequirementStrategicObjectives(objectiveIds []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteComplianceRequirementStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type ComplianceRequirementRepository struct {
@@ -387,7 +388,8 @@ func (repo *ComplianceRequirementRepository) GetFullDetailsByID(id uint, tx ...u
 		Preload("StrategicObjectives.StrategicObjective").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
-		Preload("ComplianceRequirementStatusUpdates", func(db *gorm.DB) *gorm.DB {
+		Preload("ComplianceRequirementStatusUpdates").
+		Preload("LatestComplianceRequirementStatusUpdate", func(db *gorm.DB) *gorm.DB {
 			return db.Where("id IN (?)", latestStatusUpdateSubQuery).
 				Preload("ComplianceStatus").
 				Preload("CreatedByUser").
@@ -550,6 +552,19 @@ func (repo *ComplianceRequirementRepository) DeleteComplianceRequirementStrategi
 
 	// Delete strategic objectives by IDs
 	if err := db.Where("id IN (?)", objectiveIds).Delete(&models.ComplianceRequirementStrategicObjective{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *ComplianceRequirementRepository) DeleteComplianceRequirementStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", ids).Delete(&models.ComplianceRequirementStatusUpdate{}).Error; err != nil {
 		return err
 	}
 
