@@ -14,9 +14,10 @@ type ControlReview struct {
 	UpdatedByID *uint      `json:"updated_by_id" gorm:"default:null"`
 
 	// Relationships
-	Control        *Control `gorm:"foreignKey:ControlID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ReviewedByUser *User    `gorm:"foreignKey:ReviewedBy"`
-	UpdatedByUser  *User    `gorm:"foreignKey:UpdatedByID"`
+	Control        *Control                 `gorm:"foreignKey:ControlID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Documents      []*ControlReviewDocument `json:"documents" gorm:"foreignKey:ControlReviewID"`
+	ReviewedByUser *User                    `gorm:"foreignKey:ReviewedBy"`
+	UpdatedByUser  *User                    `gorm:"foreignKey:UpdatedByID"`
 }
 
 // TableName overrides the table name used by ControlReview to `control_reviews`

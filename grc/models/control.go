@@ -49,6 +49,7 @@ type Control struct {
 	LifecycleStatus             *LifecycleStatus             `gorm:"foreignKey:LifecycleStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ControlReviewStatus         *ControlReviewStatus         `gorm:"foreignKey:ControlReviewStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	LastReviewedUser            *User                        `gorm:"foreignKey:LastReviewedUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	LatestControlReview         *ControlReview               `gorm:"foreignKey:ControlID"`
 	CreatedByUser               *User                        `gorm:"foreignKey:CreatedByID"`
 	UpdatedByUser               *User                        `gorm:"foreignKey:UpdatedByID"`
 }

@@ -246,6 +246,14 @@ func (repo *ControlRepository) GetByID(id uint) (*models.Control, error) {
 func (repo *ControlRepository) GetFullDetailsByID(id uint) (*models.Control, error) {
 	var control *models.Control
 
+	// Subquery to get the latest status update
+	latestControlReviewSubQuery := repo.db.
+		Table("control_reviews").
+		Select("id").
+		Where("control_id = ?", id).
+		Order("reviewed_at desc").
+		Limit(1)
+
 	result := repo.db.
 		Preload("ControlType").
 		Preload("ControlCategory").
@@ -262,6 +270,12 @@ func (repo *ControlRepository) GetFullDetailsByID(id uint) (*models.Control, err
 		Preload("LifecycleStatus").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
+		Preload("LatestControlReview", func(db *gorm.DB) *gorm.DB {
+			return db.Where("id IN (?)", latestControlReviewSubQuery).
+				Preload("ReviewedByUser").
+				Preload("UpdatedByUser").
+				Preload("Documents")
+		}).
 		First(&control, id)
 
 	if result.Error != nil {

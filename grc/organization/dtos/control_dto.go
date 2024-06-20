@@ -149,4 +149,14 @@ type ControlDetailDTO struct {
 	UpdatedByUser               *UserMinimalDTO                   `json:"updated_by"`
 	LifecycleStatus             masterDTOs.LifecycleStatusDTO     `json:"status"`
 	ControlReviewStatus         ControlReviewStatusDTO            `json:"review_status"`
+	LatestControlReview         *ControlReviewDTO                 `json:"control_review"`
+}
+type ControlReviewDTO struct {
+	ID             uint                          `json:"id"`
+	Comment        string                        `json:"comment"`
+	ReviewedAt     time.Time                     `json:"reviewed_at"`
+	UpdatedAt      *time.Time                    `json:"updated_at"`
+	ReviewedByUser UserMinimalDTO                `json:"reviewed_by"`
+	UpdatedByUser  *UserMinimalDTO               `json:"updated_by"`
+	Documents      []*commonDTOs.DocumentFormDTO `json:"documents"`
 }
