@@ -7,7 +7,6 @@ import (
 type IncidentDocument struct {
 	ID                 uint      `json:"id" gorm:"primary_key;auto_increment"`
 	IncidentRegisterID uint      `json:"incident_register_id"`
-	Language           string    `json:"language" binding:"required"`
 	URL                string    `json:"url"`
 	Name               string    `json:"name" binding:"required"`
 	Size               int       `json:"size"`
