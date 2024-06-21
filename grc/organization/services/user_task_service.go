@@ -26,6 +26,7 @@ func (uts *UserTaskService) GetAll(userID uint, params *taskDTOs.TaskListQueryPa
 	return uts.taskSvc.GetAll(params)
 }
 
+
 func (uts *UserTaskService) GetUserTaskSummary(userID uint) (*dtos.UserTaskSummaryResponseDTO, error) {
 	rawCounts, err := uts.repo.GetUserTaskCountByStatus(userID)
 	if err != nil {
@@ -36,6 +37,11 @@ func (uts *UserTaskService) GetUserTaskSummary(userID uint) (*dtos.UserTaskSumma
 	totalCount := 0
 	for _, count := range rawCounts {
 		totalCount += count.Count
+	}
+
+	// Ensure that status_counts is initialized as an empty slice if no data is found
+	if rawCounts == nil {
+		rawCounts = []dtos.UserTaskStatusCountResponseDTO{}
 	}
 
 	// Create the response DTO
