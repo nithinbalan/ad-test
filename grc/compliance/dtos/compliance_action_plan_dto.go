@@ -92,7 +92,7 @@ type ComplianceRequirementMinimalDTO struct {
 
 type ComplianceActionPlanDetailDTO struct {
 	ID                     int                                  `json:"id"`
-	ComplianceRequirement  ComplianceRequirementMinimalDTO      `json:"compliance_requirement"`
+	ComplianceRequirement  *ComplianceRequirementMinimalDTO     `json:"compliance_requirement"`
 	Title                  string                               `json:"title"`
 	Description            string                               `json:"description"`
 	SeverityLevel          *masterDTOs.SeverityLevelDTO         `json:"severity_level"`
