@@ -27,17 +27,6 @@ type ControlProcessListDTO struct {
 	Description              *string `json:"description"`
 }
 
-type ControlComplianceRequirementListDTO struct {
-	ComplianceRequirementID              uint   `json:"compliance_requirement_id"`
-	ComplianceClauseTitle                string `json:"compliance_clause_title"`
-	ComplianceRequirementCategoryTitleEn string `json:"compliance_requirement_category_title_en"`
-	ComplianceRequirementCategoryTitleAr string `json:"compliance_requirement_category_title_ar"`
-	ComplianceRequirementTitle           string `json:"compliance_requirement_title"`
-	ComplianceStatusTitleEn              string `json:"compliance_status_title_en"`
-	ComplianceStatusTitleAr              string `json:"compliance_status_title_ar"`
-	ComplianceStatusColorCode            string `json:"compliance_status_color_code"`
-}
-
 type ControlRiskListDTO struct {
 	ReferenceNumber       string  `json:"reference_number"`
 	RiskCategoryTitleEn   string  `json:"risk_category_title_en"`
@@ -98,10 +87,10 @@ type ControlAssociatedItemProcessListResponseDTO struct {
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }
 
-type ControlAssociatedItemComplianceRequirementListResponseDTO struct {
-	Items      []*ControlComplianceRequirementListDTO `json:"items"`
-	Pagination commonDTOs.PaginationInfoDTO           `json:"pagination"`
-}
+// type ControlAssociatedItemComplianceRequirementListResponseDTO struct {
+// 	Items      []*ControlComplianceRequirementListDTO `json:"items"`
+// 	Pagination commonDTOs.PaginationInfoDTO           `json:"pagination"`
+// }
 
 type ControlAssociatedItemIncidentListResponseDTO struct {
 	Items      []*ControlIncidentListDTO    `json:"items"`
@@ -110,5 +99,42 @@ type ControlAssociatedItemIncidentListResponseDTO struct {
 
 type ControlAssociatedItemRiskListResponseDTO struct {
 	Items      []*ControlRiskListDTO        `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
+}
+
+type ControlComplianceRequirementListDTO struct {
+	ComplianceRegisterID                 uint   `json:"compliance_register_id"`
+	ComplianceRegisterTitleEn            string `json:"compliance_register_title_en"`
+	ComplianceRegisterTitleAr            string `json:"compliance_register_title_ar"`
+	ComplianceRequirementID              uint   `json:"compliance_requirement_id"`
+	ComplianceClauseTitle                string `json:"compliance_clause_title"`
+	ComplianceRequirementCategoryTitleEn string `json:"compliance_requirement_category_title_en"`
+	ComplianceRequirementCategoryTitleAr string `json:"compliance_requirement_category_title_ar"`
+	ComplianceRequirementTitle           string `json:"compliance_requirement_title"`
+	ComplianceStatusTitleEn              string `json:"compliance_status_title_en"`
+	ComplianceStatusTitleAr              string `json:"compliance_status_title_ar"`
+	ComplianceStatusColorCode            string `json:"compliance_status_color_code"`
+}
+
+type ComplianceRequirementMinimalDTO struct {
+	ComplianceRequirementID              uint   `json:"compliance_requirement_id"`
+	ComplianceClauseTitle                string `json:"compliance_clause_title"`
+	ComplianceRequirementCategoryTitleEn string `json:"compliance_requirement_category_title_en"`
+	ComplianceRequirementCategoryTitleAr string `json:"compliance_requirement_category_title_ar"`
+	ComplianceRequirementTitle           string `json:"compliance_requirement_title"`
+	ComplianceStatusTitleEn              string `json:"compliance_status_title_en"`
+	ComplianceStatusTitleAr              string `json:"compliance_status_title_ar"`
+	ComplianceStatusColorCode            string `json:"compliance_status_color_code"`
+}
+
+type ComplianceRegisterDTO struct {
+	ComplianceRegisterID      uint                               `json:"compliance_register_id"`
+	ComplianceRegisterTitleEn string                             `json:"compliance_register_title_en"`
+	ComplianceRegisterTitleAr string                             `json:"compliance_register_title_ar"`
+	Requirements              []*ComplianceRequirementMinimalDTO `json:"requirements"`
+}
+
+type ControlAssociatedItemComplianceRequirementListResponseDTO struct {
+	Items      []*ComplianceRegisterDTO     `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }

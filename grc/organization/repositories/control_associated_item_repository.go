@@ -9,7 +9,7 @@ import (
 
 type ControlAssociatedItemRepositoryInterface interface {
 	GetAllProcesses(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) (*organizationDTOs.ControlAssociatedItemProcessListResponseDTO, error)
-	GetAllComplianceRequirements(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) (*organizationDTOs.ControlAssociatedItemComplianceRequirementListResponseDTO, error)
+	GetAllComplianceRequirements(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) ([]organizationDTOs.ControlComplianceRequirementListDTO, int64, error)
 	GetAllRisks(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) (*organizationDTOs.ControlAssociatedItemRiskListResponseDTO, error)
 	GetAllIncidents(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) (*organizationDTOs.ControlAssociatedItemIncidentListResponseDTO, error)
 }
@@ -118,40 +118,41 @@ func (repo *ControlAssociatedItemRepository) GetAllProcesses(controlID uint, par
 	return response, nil
 }
 
-func (repo *ControlAssociatedItemRepository) GetAllComplianceRequirements(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) (*organizationDTOs.ControlAssociatedItemComplianceRequirementListResponseDTO, error) {
-	var complianceRequirementList []*organizationDTOs.ControlComplianceRequirementListDTO
+func (repo *ControlAssociatedItemRepository) GetAllComplianceRequirements(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) ([]organizationDTOs.ControlComplianceRequirementListDTO, int64, error) {
+	var complianceRequirementList []organizationDTOs.ControlComplianceRequirementListDTO
 	var totalCount int64
 
 	query := repo.db.Table("compliance_controls").
 		Select(`
+			compliance_controls.compliance_register_id AS compliance_register_id,
+			compliance_register.title_en AS compliance_register_title_en,
+			compliance_register.title_ar AS compliance_register_title_ar,
 			compliance_controls.compliance_requirement_id AS compliance_requirement_id,
-            compliance_clauses.title AS compliance_clause_title,
-            compliance_requirement_categories.title_en AS compliance_requirement_category_title_en,
-            compliance_requirement_categories.title_ar AS compliance_requirement_category_title_ar,
-            compliance_requirements.title AS compliance_requirement_title,
-            compliance_statuses.title_en AS compliance_status_title_en,
-            compliance_statuses.title_ar AS compliance_status_title_ar,
+			compliance_clauses.title AS compliance_clause_title,
+			compliance_requirement_categories.title_en AS compliance_requirement_category_title_en,
+			compliance_requirement_categories.title_ar AS compliance_requirement_category_title_ar,
+			compliance_requirements.title AS compliance_requirement_title,
+			compliance_statuses.title_en AS compliance_status_title_en,
+			compliance_statuses.title_ar AS compliance_status_title_ar,
 			compliance_statuses.color_code AS compliance_status_color_code
-
-        `).
+		`).
 		Joins(`
 			LEFT JOIN compliance_requirements ON compliance_requirements.id = compliance_controls.compliance_requirement_id
-            LEFT JOIN compliance_clauses ON compliance_requirements.compliance_clause_id = compliance_clauses.id
-            LEFT JOIN compliance_statuses ON compliance_requirements.compliance_status_id = compliance_statuses.id
-            LEFT JOIN compliance_requirement_categories ON compliance_requirements.compliance_requirement_category_id = compliance_requirement_categories.id
-        `).
+			LEFT JOIN compliance_clauses ON compliance_requirements.compliance_clause_id = compliance_clauses.id
+			LEFT JOIN compliance_statuses ON compliance_requirements.compliance_status_id = compliance_statuses.id
+			LEFT JOIN compliance_requirement_categories ON compliance_requirements.compliance_requirement_category_id = compliance_requirement_categories.id
+			LEFT JOIN compliance_register ON compliance_register.id = compliance_controls.compliance_register_id
+		`).
 		Where("compliance_controls.control_id = ?", controlID)
 
 	// Calculate total count for pagination
 	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
-		query = query.Where(`
-			(compliance_requirements.title LIKE ?)`,
-			keyword)
+		query = query.Where(`(compliance_requirements.title LIKE ?)`, keyword)
 	}
 
 	if params.SortBy == "" {
@@ -168,22 +169,10 @@ func (repo *ControlAssociatedItemRepository) GetAllComplianceRequirements(contro
 	// Execute the query
 	err := query.Offset(offset).Limit(params.PageSize).Find(&complianceRequirementList).Error
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
-
-	response := &organizationDTOs.ControlAssociatedItemComplianceRequirementListResponseDTO{
-		Items: complianceRequirementList,
-		Pagination: commonDTOs.PaginationInfoDTO{
-			CurrentPage: params.Page,
-			PageSize:    params.PageSize,
-			TotalPages:  totalPages,
-			TotalCount:  totalCount,
-		},
-	}
-
-	return response, nil
+	return complianceRequirementList, totalCount, nil
 }
 
 func (repo *ControlAssociatedItemRepository) GetAllRisks(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) (*organizationDTOs.ControlAssociatedItemRiskListResponseDTO, error) {
