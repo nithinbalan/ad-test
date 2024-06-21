@@ -3,8 +3,6 @@
 CREATE TABLE incident_documents (
     id INT PRIMARY KEY IDENTITY(1,1),
     incident_register_id INT NOT NULL,
-    language VARCHAR(10) NOT NULL,
-        CONSTRAINT CHK_incident_documents_language CHECK (language IN ('en', 'ar')),
     url VARCHAR(1000) DEFAULT NULL,
     name NVARCHAR(255) NULL,
     size INT DEFAULT NULL,
