@@ -114,7 +114,8 @@ func NewOrganizationModule(
 		sharedModule.ActivityLogService,
 		controlSvc,
 		controlImplementationStatusSvc,
-		controlEfficiencyStatusSvc)
+		controlEfficiencyStatusSvc,
+		masterModule.ReviewFrequencySvc)
 	controlTestController := controllers.NewControlTestController(controlTestSvc)
 
 	controlAssociatedItemRepo := repositories.NewControlAssociatedItemRepository(db)

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	logServices "jethur/grc/logs/services"
+	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
 	organizationRepositories "jethur/grc/organization/repositories"
@@ -31,6 +32,7 @@ type ControlTestService struct {
 	controlSvc                     ControlServiceInterface
 	controlImplementationStatusSvc ControlImplementationStatusServiceInterface
 	controlEfficiencyStatusSvc     ControlEfficiencyStatusServiceInterface
+	reviewFrequencySvc             masterServices.ReviewFrequencyServiceInterface
 }
 
 func NewControlTestService(
@@ -38,13 +40,16 @@ func NewControlTestService(
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	controlSvc ControlServiceInterface,
 	controlImplementationStatusSvc ControlImplementationStatusServiceInterface,
-	controlEfficiencyStatusSvc ControlEfficiencyStatusServiceInterface) ControlTestServiceInterface {
+	controlEfficiencyStatusSvc ControlEfficiencyStatusServiceInterface,
+	reviewFrequencySvc masterServices.ReviewFrequencyServiceInterface,
+) ControlTestServiceInterface {
 	return &ControlTestService{
 		repo:                           repo,
 		activityLogSvc:                 activityLogSvc,
 		controlSvc:                     controlSvc,
 		controlImplementationStatusSvc: controlImplementationStatusSvc,
 		controlEfficiencyStatusSvc:     controlEfficiencyStatusSvc,
+		reviewFrequencySvc:             reviewFrequencySvc,
 	}
 }
 
@@ -88,6 +93,12 @@ func (cts *ControlTestService) GetFullDetailsByID(id uint, tx ...utility.Databas
 
 func (cts *ControlTestService) Create(controlID uint, currentUserID uint, controlTestFormDTO *organizationDTOs.ControlTestFormDTO) (uint, error) {
 	tx := cts.repo.BeginTransaction()
+
+	control, err := cts.controlSvc.GetByID(controlID)
+	if err != nil {
+		return 0, err
+	}
+
 	if err := cts.validateControlTestFormDTO(controlTestFormDTO); err != nil {
 		return 0, err
 	}
@@ -97,7 +108,7 @@ func (cts *ControlTestService) Create(controlID uint, currentUserID uint, contro
 		return 0, err
 	}
 
-	control := &models.ControlTest{
+	controlTest := &models.ControlTest{
 		ControlID:                     controlID,
 		ControlImplementationStatusID: controlTestFormDTO.ControlImplementationStatusID,
 		ControlEfficiencyStatusID:     controlTestFormDTO.ControlEfficiencyStatusID,
@@ -110,13 +121,28 @@ func (cts *ControlTestService) Create(controlID uint, currentUserID uint, contro
 		TestedAt:                      dates.TestedAt,
 	}
 
-	id, err := cts.repo.Create(control, tx)
+	id, err := cts.repo.Create(controlTest, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
 	}
 
-	err = cts.controlSvc.StatusUpdate(controlID, currentUserID, controlTestFormDTO, tx)
+	if control.TestFrequencyID != nil {
+		testFrequency, err := cts.reviewFrequencySvc.GetByID(*control.TestFrequencyID)
+		if err != nil {
+			return 0, err
+		}
+		nextTestDate := utility.CalculateNextReviewDate(testFrequency.Type, *dates.TestedAt)
+		control.NextTestDate = &nextTestDate
+	}
+
+	control.ControlEfficiencyStatusID = &controlTestFormDTO.ControlEfficiencyStatusID
+	control.ControlImplementationStatusID = &controlTestFormDTO.ControlImplementationStatusID
+	control.EfficiencyScore = controlTestFormDTO.Score
+	control.LastTestDate = dates.TestedAt
+	control.UpdatedByID = &currentUserID
+
+	err = cts.controlSvc.TestStatusUpdate(control, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -196,6 +222,12 @@ func (cts *ControlTestService) Create(controlID uint, currentUserID uint, contro
 
 func (cts *ControlTestService) Update(controlID uint, id uint, currentUserID uint, controlTestFormDTO *organizationDTOs.ControlTestFormDTO) error {
 	tx := cts.repo.BeginTransaction()
+
+	control, err := cts.controlSvc.GetByID(controlID)
+	if err != nil {
+		return err
+	}
+
 	existingControlTest, err := cts.GetByID(id)
 
 	if err != nil {
@@ -227,7 +259,22 @@ func (cts *ControlTestService) Update(controlID uint, id uint, currentUserID uin
 		return err
 	}
 
-	err = cts.controlSvc.StatusUpdate(controlID, currentUserID, controlTestFormDTO, tx)
+	if control.TestFrequencyID != nil {
+		testFrequency, err := cts.reviewFrequencySvc.GetByID(*control.TestFrequencyID)
+		if err != nil {
+			return err
+		}
+		nextTestDate := utility.CalculateNextReviewDate(testFrequency.Type, *dates.TestedAt)
+		control.NextTestDate = &nextTestDate
+	}
+
+	control.ControlEfficiencyStatusID = &controlTestFormDTO.ControlEfficiencyStatusID
+	control.ControlImplementationStatusID = &controlTestFormDTO.ControlImplementationStatusID
+	control.EfficiencyScore = controlTestFormDTO.Score
+	control.LastTestDate = dates.TestedAt
+	control.UpdatedByID = &currentUserID
+
+	err = cts.controlSvc.TestStatusUpdate(control, tx)
 	if err != nil {
 		tx.Rollback()
 		return err

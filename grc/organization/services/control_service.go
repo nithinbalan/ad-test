@@ -24,7 +24,7 @@ type ControlServiceInterface interface {
 
 	Archive(ids []uint, currentUserID uint) ([]uint, error)
 	Restore(ids []uint, currentUserID uint) ([]uint, error)
-	StatusUpdate(controlID uint, currentUserID uint, controlTestFormDTO *organizationDTOs.ControlTestFormDTO, tx utility.DatabaseTransaction) error
+	TestStatusUpdate(control *models.Control, tx utility.DatabaseTransaction) error
 	ReviewStatusUpdate(control *models.Control, tx utility.DatabaseTransaction) error
 }
 
@@ -361,20 +361,8 @@ func (cs *ControlService) Restore(ids []uint, currentUserID uint) ([]uint, error
 	return successfulIds, nil
 }
 
-func (cs *ControlService) StatusUpdate(controlID uint, currentUserID uint, controlTestFormDTO *organizationDTOs.ControlTestFormDTO, tx utility.DatabaseTransaction) error {
-	existingControl, err := cs.GetByID(controlID)
-
-	if err != nil {
-		return err
-	}
-
-	existingControl.ControlEfficiencyStatusID = &controlTestFormDTO.ControlEfficiencyStatusID
-	existingControl.ControlImplementationStatusID = &controlTestFormDTO.ControlImplementationStatusID
-	existingControl.EfficiencyScore = controlTestFormDTO.Score
-	existingControl.UpdatedByID = &currentUserID
-
-	err = cs.repo.Update(existingControl, tx)
-
+func (cs *ControlService) TestStatusUpdate(control *models.Control, tx utility.DatabaseTransaction) error {
+	err := cs.repo.Update(control, tx)
 	if err != nil {
 		return err
 	}
