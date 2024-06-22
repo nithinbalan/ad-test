@@ -11,6 +11,7 @@ import (
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
+	"os"
 	"path/filepath"
 	"strconv"
 
@@ -29,6 +30,8 @@ type ComplianceRegisterServiceInterface interface {
 	Restore(ids []uint, currentUserID uint) ([]uint, error)
 	StatusUpdate(id uint, currentUserID uint, complianceStatusID uint, tx utility.DatabaseTransaction) error
 	ReviewStatusUpdate(complianceRegister *models.ComplianceRegister, tx utility.DatabaseTransaction) error
+
+	ExportComplianceRegisters(data []*complianceDTOs.ComplianceRegisterListDTO) (*os.File, error)
 }
 
 // Service and implementations
@@ -734,4 +737,23 @@ func (crs *ComplianceRegisterService) validateComplianceDocumentFormDTO(document
 	// }
 
 	return nil
+}
+
+
+func (crs *ComplianceRegisterService) ExportComplianceRegisters(data []*complianceDTOs.ComplianceRegisterListDTO)  (*os.File, error){
+    // Define headers
+    headers := []string{
+        "ID", "Title (EN)", "Title (AR)", "Version", "Deadline", "Issue Date", "Expiry Date", "Lifecycle Status (EN)",
+    }
+
+    // Convert data to [][]interface{}
+    rows := make([][]interface{}, len(data))
+    for i, item := range data {
+        rows[i] = []interface{}{
+            item.ID, item.TitleEn, item.TitleAr, item.Version, item.Deadline, item.IssueDate, item.ExpiryDate,item.LifecycleStatusTitleEn,
+        }
+    }
+
+    // Generate the Excel file
+    return utility.GenerateExcelFile(headers, rows)
 }
