@@ -14,11 +14,12 @@ type ComplianceActionPlanRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(complianceID uint, params *complianceDTOs.ComplianceActionPlanListQueryParamsDTO) (*complianceDTOs.ComplianceActionPlanListResponseDTO, error)
 	GetByID(id uint) (*models.ComplianceActionPlan, error)
-	GetFullDetailsByID(id uint) (*models.ComplianceActionPlan, error)
+	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceActionPlan, error)
 	Create(complianceActionPlan *models.ComplianceActionPlan, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(complianceActionPlan *models.ComplianceActionPlan, tx ...utility.DatabaseTransaction) error
 	Delete(id uint) error
 	CreateComplianceActionPlanStatusUpdate(complianceActionPlanStatusUpdate *models.ComplianceActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
+	DeleteComplianceActionPlanStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type ComplianceActionPlanRepository struct {
@@ -183,11 +184,16 @@ func (repo *ComplianceActionPlanRepository) GetByID(id uint) (*models.Compliance
 	return complianceActionPlan, nil
 }
 
-func (repo *ComplianceActionPlanRepository) GetFullDetailsByID(id uint) (*models.ComplianceActionPlan, error) {
+func (repo *ComplianceActionPlanRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceActionPlan, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
 	var complianceActionPlan models.ComplianceActionPlan
 
 	// Subquery to get the latest status update
-	latestStatusUpdateSubQuery := repo.db.
+	latestStatusUpdateSubQuery := db.
 		Table("compliance_action_plan_status_updates").
 		Select("id").
 		Where("compliance_action_plan_id = ?", id).
@@ -195,14 +201,15 @@ func (repo *ComplianceActionPlanRepository) GetFullDetailsByID(id uint) (*models
 		Limit(1)
 
 	// Load the compliance action plan with all related data
-	result := repo.db.
+	result := db.
 		Preload("ComplianceRequirement.ComplianceClause").
 		Preload("SeverityLevel").
 		Preload("ResponsibleUser").
 		Preload("ActionPlanStatus").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
-		Preload("ActionPlanStatusUpdates", func(db *gorm.DB) *gorm.DB {
+		Preload("ActionPlanStatusUpdates").
+		Preload("LatestActionPlanStatusUpdate", func(db *gorm.DB) *gorm.DB {
 			return db.Where("id IN (?)", latestStatusUpdateSubQuery).
 				Preload("ActionPlanStatus").
 				Preload("CreatedByUser").
@@ -260,4 +267,17 @@ func (repo *ComplianceActionPlanRepository) CreateComplianceActionPlanStatusUpda
 		return 0, err
 	}
 	return complianceActionPlanStatusUpdate.ID, nil
+}
+
+func (repo *ComplianceActionPlanRepository) DeleteComplianceActionPlanStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", ids).Delete(&models.ComplianceActionPlanStatusUpdate{}).Error; err != nil {
+		return err
+	}
+
+	return nil
 }

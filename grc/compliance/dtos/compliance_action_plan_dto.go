@@ -91,20 +91,21 @@ type ComplianceRequirementMinimalDTO struct {
 }
 
 type ComplianceActionPlanDetailDTO struct {
-	ID                     int                                  `json:"id"`
-	ComplianceRequirement  *ComplianceRequirementMinimalDTO     `json:"compliance_requirement"`
-	Title                  string                               `json:"title"`
-	Description            string                               `json:"description"`
-	SeverityLevel          *masterDTOs.SeverityLevelDTO         `json:"severity_level"`
-	ResponsibleUser        organizationDTOs.UserMinimalDTO      `json:"responsible_user"`
-	ActionPlanStatusUpdate *ComplianceActionPlanStatusUpdateDTO `json:"action_plan_status"`
-	Percentage             *uint                                `json:"percentage"`
-	Comments               *string                              `json:"comments"`
-	TargetDate             *time.Time                           `json:"target_date"`
-	CreatedAt              time.Time                            `json:"created_at"`
-	UpdatedAt              *time.Time                           `json:"updated_at"`
-	CreatedByUser          organizationDTOs.UserMinimalDTO      `json:"created_by_user"`
-	UpdatedByUser          *organizationDTOs.UserMinimalDTO     `json:"updated_by_user"`
+	ID                           int                                    `json:"id"`
+	ComplianceRequirement        *ComplianceRequirementMinimalDTO       `json:"compliance_requirement"`
+	Title                        string                                 `json:"title"`
+	Description                  string                                 `json:"description"`
+	SeverityLevel                *masterDTOs.SeverityLevelDTO           `json:"severity_level"`
+	ResponsibleUser              organizationDTOs.UserMinimalDTO        `json:"responsible_user"`
+	LatestActionPlanStatusUpdate *ComplianceActionPlanStatusUpdateDTO   `json:"action_plan_status"`
+	Percentage                   *uint                                  `json:"percentage"`
+	Comments                     *string                                `json:"comments"`
+	TargetDate                   *time.Time                             `json:"target_date"`
+	CreatedAt                    time.Time                              `json:"created_at"`
+	UpdatedAt                    *time.Time                             `json:"updated_at"`
+	CreatedByUser                organizationDTOs.UserMinimalDTO        `json:"created_by_user"`
+	UpdatedByUser                *organizationDTOs.UserMinimalDTO       `json:"updated_by_user"`
+	ActionPlanStatusUpdates      []*ComplianceActionPlanStatusUpdateDTO `json:"action_plan_status_updates"`
 }
 
 type ComplianceActionPlanStatusUpdateDTO struct {

@@ -21,7 +21,7 @@ import (
 type ComplianceActionPlanServiceInterface interface {
 	GetAll(complianceID uint, params *complianceDTOs.ComplianceActionPlanListQueryParamsDTO) (*complianceDTOs.ComplianceActionPlanListResponseDTO, error)
 	GetByID(complianceID uint, id uint) (*models.ComplianceActionPlan, error)
-	GetFullDetailsByID(complianceID uint, id uint) (*complianceDTOs.ComplianceActionPlanDetailDTO, error)
+	GetFullDetailsByID(complianceID uint, id uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.ComplianceActionPlanDetailDTO, error)
 	Create(complianceID uint, currentUserID uint, ComplianceActionPlanFormDTO *complianceDTOs.ComplianceActionPlanFormDTO) (uint, error)
 	Update(complianceID uint, id uint, currentUserID uint, compliance *complianceDTOs.ComplianceActionPlanFormDTO) error
 	Delete(complianceID uint, ids []uint, currentUserID uint) ([]uint, error)
@@ -84,7 +84,7 @@ func (caps ComplianceActionPlanService) GetByID(complianceID uint, id uint) (*mo
 	return complianceActionPlan, nil
 }
 
-func (caps ComplianceActionPlanService) GetFullDetailsByID(complianceID uint, id uint) (*complianceDTOs.ComplianceActionPlanDetailDTO, error) {
+func (caps ComplianceActionPlanService) GetFullDetailsByID(complianceID uint, id uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.ComplianceActionPlanDetailDTO, error) {
 	var complianceActionPlanDTO complianceDTOs.ComplianceActionPlanDetailDTO
 
 	// Check if the compliance register exists
@@ -93,7 +93,7 @@ func (caps ComplianceActionPlanService) GetFullDetailsByID(complianceID uint, id
 	}
 
 	// Get full details of the compliance action plan
-	complianceActionPlan, err := caps.repo.GetFullDetailsByID(id)
+	complianceActionPlan, err := caps.repo.GetFullDetailsByID(id, tx...)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -105,16 +105,6 @@ func (caps ComplianceActionPlanService) GetFullDetailsByID(complianceID uint, id
 	err = mapstructure.Decode(complianceActionPlan, &complianceActionPlanDTO)
 	if err != nil {
 		return nil, err
-	}
-
-	// If there are status updates, decode the latest one into the DTO
-	if len(complianceActionPlan.ActionPlanStatusUpdates) > 0 {
-		var complianceActionPlanStatusUpdateDTO complianceDTOs.ComplianceActionPlanStatusUpdateDTO
-		err = mapstructure.Decode(complianceActionPlan.ActionPlanStatusUpdates[0], &complianceActionPlanStatusUpdateDTO)
-		if err != nil {
-			return nil, err
-		}
-		complianceActionPlanDTO.ActionPlanStatusUpdate = &complianceActionPlanStatusUpdateDTO
 	}
 
 	// TODO: Add any additional fields required for the details screen
@@ -262,6 +252,7 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 }
 
 func (caps *ComplianceActionPlanService) Delete(complianceID uint, ids []uint, currentUserID uint) ([]uint, error) {
+
 	if _, err := caps.complianceRegisterSvc.GetByID(complianceID); err != nil {
 		return nil, err
 	}
@@ -270,18 +261,33 @@ func (caps *ComplianceActionPlanService) Delete(complianceID uint, ids []uint, c
 	var successfulIds []uint
 	for _, id := range ids {
 
-		_, err := caps.repo.GetByID(id)
+		complianceActionPlan, err := caps.GetFullDetailsByID(complianceID, id)
 
 		if err != nil {
 			continue
 		}
 
+		if len(complianceActionPlan.ActionPlanStatusUpdates) > 0 {
+			var deleteStatusUpdateIds []*uint
+			for _, update := range complianceActionPlan.ActionPlanStatusUpdates {
+				deleteStatusUpdateIds = append(deleteStatusUpdateIds, &update.ID)
+			}
+			if err := caps.repo.DeleteComplianceActionPlanStatusUpdates(deleteStatusUpdateIds); err != nil {
+				failedIds = append(failedIds, id)
+				continue
+			}
+		}
 		err = caps.repo.Delete(id)
 		if err != nil {
 			failedIds = append(failedIds, id)
+			continue
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+	}
+
+	if len(failedIds) > 0 {
+		return failedIds, nil
 	}
 
 	if len(successfulIds) > 0 {

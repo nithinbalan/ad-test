@@ -125,16 +125,6 @@ func (crs ComplianceRequirementService) GetFullDetailsByID(complianceID uint, id
 		complianceRequirementDTO.DeadlineString = &deadline
 	}
 
-	// Convert compliance requirement status update to DTO
-	var complianceRequirementStatusUpdateDTO complianceDTOs.ComplianceRequirementStatusUpdateDTO
-	if len(complianceRequirement.ComplianceRequirementStatusUpdates) > 0 {
-		err = mapstructure.Decode(complianceRequirement.ComplianceRequirementStatusUpdates[0], &complianceRequirementStatusUpdateDTO)
-		if err != nil {
-			return nil, err
-		}
-		complianceRequirementDTO.LatestComplianceRequirementStatusUpdate = &complianceRequirementStatusUpdateDTO
-	}
-
 	return &complianceRequirementDTO, nil
 }
 
