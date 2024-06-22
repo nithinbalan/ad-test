@@ -1,6 +1,8 @@
 package repositories
 
 import (
+	commonDTOs "jethur/grc/common/dtos"
+	incidentDTOs "jethur/grc/incident/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
 
@@ -9,6 +11,7 @@ import (
 
 type IncidentPostReviewRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
+	GetAll(incidentID uint, params *incidentDTOs.IncidentPostReviewListQueryParamsDTO) (*incidentDTOs.IncidentPostReviewListResponseDTO, error)
 	GetByID(id uint) (*models.IncidentPostReview, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.IncidentPostReview, error)
 	Create(incidentPostReview *models.IncidentPostReview, tx ...utility.DatabaseTransaction) (uint, error)
@@ -35,6 +38,83 @@ func NewIncidentPostReviewRepository(db *gorm.DB) *IncidentPostReviewRepository 
 // BeginTransaction starts a new transaction.
 func (repo *IncidentPostReviewRepository) BeginTransaction() utility.DatabaseTransaction {
 	return utility.NewGormDatabaseTransaction(repo.db)
+}
+
+func (repo *IncidentPostReviewRepository) GetAll(incidentID uint, params *incidentDTOs.IncidentPostReviewListQueryParamsDTO) (*incidentDTOs.IncidentPostReviewListResponseDTO, error) {
+
+	var incidentPostReviews []*incidentDTOs.IncidentPostReviewListDTO
+	var totalCount int64
+
+	query := repo.db.Table("incident_post_reviews").
+		Select(`
+        incident_post_reviews.*,
+        created_user.first_name_en AS created_user_first_name_en,
+        created_user.first_name_ar AS created_user_first_name_ar,
+        created_user.last_name_en AS created_user_last_name_en,
+        created_user.last_name_ar AS created_user_last_name_ar,   
+        updated_user.first_name_en AS updated_user_first_name_en,
+        updated_user.first_name_ar AS updated_user_first_name_ar,
+        updated_user.last_name_en AS updated_user_last_name_en,
+        updated_user.last_name_ar AS updated_user_last_name_ar
+    `).
+		Joins(`
+		LEFT JOIN users AS created_user ON created_user.id = incident_post_reviews.created_by_id
+        LEFT JOIN users AS updated_user ON updated_user.id = incident_post_reviews.updated_by_id
+    `)
+
+	// Apply dynamic filters to the query
+	for columnName, values := range params.Filters {
+		if len(values) > 0 {
+			query = query.Where(columnName+" IN (?)", values)
+		}
+	}
+
+	// Calculate total count for pagination
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+	// Apply search keyword if exists
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Where(`
+            (incident_post_reviews.summary LIKE ?)`,
+			keyword)
+	}
+	// Conditionally apply incident ID filter
+	if incidentID != 0 {
+		query = query.Where("incident_post_reviews.incident_register_id = ?", incidentID)
+	}
+
+	// Sort by the specified column and order
+	if params.SortBy == "" {
+		params.SortBy = "summary" // Default sort by title if no sortBy is specified
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc" // Default order is ascending if not specified
+	}
+
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	offset := (params.Page - 1) * params.PageSize
+
+	// Execute the query
+	err := query.Offset(offset).Limit(params.PageSize).Find(&incidentPostReviews).Error
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &incidentDTOs.IncidentPostReviewListResponseDTO{
+		Items: incidentPostReviews,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+	return response, nil
 }
 
 func (repo *IncidentPostReviewRepository) GetByID(id uint) (*models.IncidentPostReview, error) {

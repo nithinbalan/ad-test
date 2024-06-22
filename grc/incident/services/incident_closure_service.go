@@ -14,6 +14,7 @@ import (
 )
 
 type IncidentClosureServiceInterface interface {
+	GetAll(incidentID uint, params *incidentDTOs.IncidentClosureListQueryParamsDTO) (*incidentDTOs.IncidentClosureListResponseDTO, error)
 	GetByID(incidentID uint, id uint) (*models.IncidentClosure, error)
 	GetFullDetailsByID(incidentID uint, id uint, tx ...utility.DatabaseTransaction) (*incidentDTOs.IncidentClosureDetailDTO, error)
 	Create(incidentID uint, currentUserID uint, IncidentClosureFormDTO *incidentDTOs.IncidentClosureFormDTO) (uint, error)
@@ -37,6 +38,15 @@ func NewIncidentClosureService(
 		activityLogSvc:      activityLogSvc,
 		incidentRegisterSvc: incidentRegisterSvc,
 	}
+}
+
+func (ics *IncidentClosureService) GetAll(incidentID uint, params *incidentDTOs.IncidentClosureListQueryParamsDTO) (*incidentDTOs.IncidentClosureListResponseDTO, error) {
+	if incidentID != 0 {
+		if _, err := ics.incidentRegisterSvc.GetByID(incidentID); err != nil {
+			return nil, err
+		}
+	}
+	return ics.repo.GetAll(incidentID, params)
 }
 
 func (ics IncidentClosureService) GetByID(incidentID uint, id uint) (*models.IncidentClosure, error) {

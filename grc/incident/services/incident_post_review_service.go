@@ -15,6 +15,7 @@ import (
 )
 
 type IncidentPostReviewServiceInterface interface {
+	GetAll(incidentID uint, params *incidentDTOs.IncidentPostReviewListQueryParamsDTO) (*incidentDTOs.IncidentPostReviewListResponseDTO, error)
 	GetByID(incidentID uint, id uint) (*models.IncidentPostReview, error)
 	GetFullDetailsByID(incidentID uint, id uint, tx ...utility.DatabaseTransaction) (*incidentDTOs.IncidentPostReviewDetailDTO, error)
 	Create(incidentID uint, currentUserID uint, IncidentPostReviewFormDTO *incidentDTOs.IncidentPostReviewFormDTO) (uint, error)
@@ -44,6 +45,15 @@ func NewIncidentPostReviewService(
 		incidentPostReviewEffectivenessSvc: incidentPostReviewEffectivenessSvc,
 		incidentRegisterSvc:                incidentRegisterSvc,
 	}
+}
+
+func (iprs *IncidentPostReviewService) GetAll(incidentID uint, params *incidentDTOs.IncidentPostReviewListQueryParamsDTO) (*incidentDTOs.IncidentPostReviewListResponseDTO, error) {
+	if incidentID != 0 {
+		if _, err := iprs.incidentRegisterSvc.GetByID(incidentID); err != nil {
+			return nil, err
+		}
+	}
+	return iprs.repo.GetAll(incidentID, params)
 }
 
 func (iprs IncidentPostReviewService) GetByID(incidentID uint, id uint) (*models.IncidentPostReview, error) {
