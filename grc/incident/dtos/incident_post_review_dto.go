@@ -9,7 +9,6 @@ import (
 type IncidentPostReviewListDTO struct {
 	ID                     uint      `json:"id"`
 	IncidentRegisterID     uint      `json:"incident_register_id"`
-	IncidentTitle          string    `json:"incident_title"`
 	PostReviewDate         time.Time `json:"post_review_date"`
 	Summary                *string   `json:"summary"`
 	CreatedAt              string    `json:"created_at"`
