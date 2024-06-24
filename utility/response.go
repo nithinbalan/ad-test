@@ -9,7 +9,8 @@ import (
 )
 
 type ErrorResponse struct {
-	Error string `json:"error"`
+	Error           string `json:"error"`
+	InternalMessage string `json:"internal_message"`
 }
 
 func SendInternalErrResp(db *gorm.DB, c *gin.Context, errMsg string) {
@@ -24,7 +25,10 @@ func SendInternalErrResp(db *gorm.DB, c *gin.Context, errMsg string) {
 
 	// go LogErrorToDB(errorLogSvc, c, errMsg)
 
-	resp := ErrorResponse{Error: localizedErrorMsg}
+	resp := ErrorResponse{
+		Error:           localizedErrorMsg,
+		InternalMessage: errMsg,
+	}
 	c.JSON(http.StatusInternalServerError, resp)
 }
 
