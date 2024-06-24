@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"jethur/config"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	complianceRepositories "jethur/grc/compliance/repositories"
 	logServices "jethur/grc/logs/services"
@@ -11,6 +12,7 @@ import (
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
+	"os"
 	"path/filepath"
 	"strconv"
 
@@ -29,6 +31,8 @@ type ComplianceRegisterServiceInterface interface {
 	Restore(ids []uint, currentUserID uint) ([]uint, error)
 	StatusUpdate(id uint, currentUserID uint, complianceStatusID uint, tx utility.DatabaseTransaction) error
 	ReviewStatusUpdate(complianceRegister *models.ComplianceRegister, tx utility.DatabaseTransaction) error
+
+	GetFilePreview(id uint, token string) (string, error)
 }
 
 // Service and implementations
@@ -734,4 +738,48 @@ func (crs *ComplianceRegisterService) validateComplianceDocumentFormDTO(document
 	// }
 
 	return nil
+}
+
+func (crs *ComplianceRegisterService) GetFilePreview(id uint, token string) (string, error) {
+	tx := crs.repo.BeginTransaction()
+
+	existingComplianceRegister, err := crs.GetFullDetailsByID(id)
+	if err != nil {
+		tx.Rollback()
+		return "", err
+	}
+
+	decryptedFilenameBytes, err := utility.DecryptData(token)
+	if err != nil {
+		tx.Rollback()
+		return "", fmt.Errorf("invalid token: %w", err)
+	}
+
+	decryptedFilename := string(decryptedFilenameBytes)
+	if decryptedFilename == "" {
+		tx.Rollback()
+		return "", fmt.Errorf("invalid decrypted filename")
+	}
+
+	if len(existingComplianceRegister.Documents) == 0 {
+		tx.Rollback()
+		return "", fmt.Errorf("no documents found for the compliance register")
+	}
+
+	url := existingComplianceRegister.Documents[0].URL
+
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	fullPath := filepath.Join(baseStoragePath, url, decryptedFilename)
+
+	// Check if the file exists
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		tx.Rollback()
+		return "", fmt.Errorf("file not found")
+	} else if err != nil {
+		tx.Rollback()
+		return "", fmt.Errorf("error accessing file: %w", err)
+	}
+
+	tx.Commit()
+	return fullPath, nil
 }
