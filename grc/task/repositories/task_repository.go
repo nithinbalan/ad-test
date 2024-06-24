@@ -15,7 +15,10 @@ import (
 type TaskRepositoryInteface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *taskDTOs.TaskListQueryParamsDTO) (*taskDTOs.TaskListResponseDTO, error)
+	GetByID(id uint) (*models.Task, error)
 	CreateTask(task *models.Task, tx ...utility.DatabaseTransaction) error
+	Update(task *models.Task, tx ...utility.DatabaseTransaction) error
+	Delete(id uint) error
 	GenerateReferenceNumber() (string, error)
 }
 
@@ -164,6 +167,18 @@ func (repo *TaskRepository) GetAll(params *taskDTOs.TaskListQueryParamsDTO) (*ta
 	return response, nil
 }
 
+func (repo *TaskRepository) GetByID(id uint) (*models.Task, error) {
+	var task *models.Task
+
+	result := repo.db.First(&task, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return task, nil
+
+}
+
 func (repo *TaskRepository) CreateTask(task *models.Task, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
@@ -198,4 +213,30 @@ func (repo *TaskRepository) GenerateReferenceNumber() (string, error) {
 	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "T", currentYear, lastReferenceID+1)
 
 	return newReferenceNumber, nil
+}
+
+func (repo *TaskRepository) Update(task *models.Task, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(task).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *TaskRepository) Delete(id uint) error {
+
+	var task *models.Task
+	if err := repo.db.First(&task, id).Error; err != nil {
+		return err
+	}
+
+	result := repo.db.Delete(&models.Task{}, id)
+	if result.Error != nil {
+		return result.Error
+	}
+
+	return nil
 }

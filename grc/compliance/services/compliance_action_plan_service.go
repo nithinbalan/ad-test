@@ -212,6 +212,8 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 }
 
 func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, currentUserID uint, ComplianceActionPlanFormDTO *complianceDTOs.ComplianceActionPlanFormDTO) error {
+	tx := caps.repo.BeginTransaction()
+	
 	if _, err := caps.complianceRegisterSvc.GetByID(complianceID); err != nil {
 		return err
 	}
@@ -242,11 +244,31 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 	existingComplianceActionPlan.ActionPlanStatusID = ComplianceActionPlanFormDTO.ActionPlanStatusID
 	existingComplianceActionPlan.UpdatedByID = &currentUserID
 
-	err = caps.repo.Update(existingComplianceActionPlan)
+	err = caps.repo.Update(existingComplianceActionPlan,tx)
+
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	existingTask, err := caps.taskSvc.GetByID(id)
 
 	if err != nil {
 		return err
 	}
+	existingTask.Title = ComplianceActionPlanFormDTO.Title
+	existingTask.Description = ComplianceActionPlanFormDTO.Description
+	existingTask.TargetDate = dates.TargetDate
+	existingTask.SeverityLevelID = ComplianceActionPlanFormDTO.SeverityLevelID
+	existingTask.ResponsibleUserID = ComplianceActionPlanFormDTO.ResponsibleUserID
+	existingTask.UpdatedByID = currentUserID
+
+	err = caps.taskSvc.UpdateTask(currentUserID, existingTask, tx)
+
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	tx.Commit()
 
 	return nil
 }
