@@ -68,6 +68,7 @@ func (cais *ControlAssociatedItemService) GetAllComplianceRequirements(controlID
 			requirement := &organizationDTOs.ComplianceRequirementMinimalDTO{
 				ComplianceRequirementID:              item.ComplianceRequirementID,
 				ComplianceClauseTitle:                item.ComplianceClauseTitle,
+				ComplianceClauseNo:                   item.ComplianceClauseNo,
 				ComplianceRequirementCategoryTitleEn: item.ComplianceRequirementCategoryTitleEn,
 				ComplianceRequirementCategoryTitleAr: item.ComplianceRequirementCategoryTitleAr,
 				ComplianceRequirementTitle:           item.ComplianceRequirementTitle,

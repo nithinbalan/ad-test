@@ -108,6 +108,7 @@ type ControlComplianceRequirementListDTO struct {
 	ComplianceRegisterTitleAr            string `json:"compliance_register_title_ar"`
 	ComplianceRequirementID              uint   `json:"compliance_requirement_id"`
 	ComplianceClauseTitle                string `json:"compliance_clause_title"`
+	ComplianceClauseNo                   string `json:"compliance_clause_no"`
 	ComplianceRequirementCategoryTitleEn string `json:"compliance_requirement_category_title_en"`
 	ComplianceRequirementCategoryTitleAr string `json:"compliance_requirement_category_title_ar"`
 	ComplianceRequirementTitle           string `json:"compliance_requirement_title"`
@@ -119,6 +120,7 @@ type ControlComplianceRequirementListDTO struct {
 type ComplianceRequirementMinimalDTO struct {
 	ComplianceRequirementID              uint   `json:"compliance_requirement_id"`
 	ComplianceClauseTitle                string `json:"compliance_clause_title"`
+	ComplianceClauseNo                   string `json:"compliance_clause_no"`
 	ComplianceRequirementCategoryTitleEn string `json:"compliance_requirement_category_title_en"`
 	ComplianceRequirementCategoryTitleAr string `json:"compliance_requirement_category_title_ar"`
 	ComplianceRequirementTitle           string `json:"compliance_requirement_title"`

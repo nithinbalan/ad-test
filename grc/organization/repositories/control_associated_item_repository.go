@@ -129,6 +129,7 @@ func (repo *ControlAssociatedItemRepository) GetAllComplianceRequirements(contro
 			compliance_register.title_ar AS compliance_register_title_ar,
 			compliance_controls.compliance_requirement_id AS compliance_requirement_id,
 			compliance_clauses.title AS compliance_clause_title,
+			compliance_clauses.clause_no AS compliance_clause_no,
 			compliance_requirement_categories.title_en AS compliance_requirement_category_title_en,
 			compliance_requirement_categories.title_ar AS compliance_requirement_category_title_ar,
 			compliance_requirements.title AS compliance_requirement_title,
