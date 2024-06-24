@@ -29,7 +29,7 @@ type UserServiceInterface interface {
 	Update(id uint, currentUserID uint, user *userDTOs.UserFormDTO) error
 	UpdatePartial(id uint, dto *userDTOs.UserUpdateDTO, tx utility.DatabaseTransaction) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
-	GetUserLoginHistory(params *userDTOs.UserLoginHistoryListQueryParamsDTO) (*userDTOs.UserLoginHistoryListResponseDTO, error)
+	GetUserLoginHistory(userID uint, params *userDTOs.UserLoginHistoryListQueryParamsDTO) (*userDTOs.UserLoginHistoryListResponseDTO, error)
 	CreateUserLoginHistory(user *models.User, loginStatus string, ipAddress string, location string, device string, browser string) error
 
 	GenerateRandomPassword(length int) (string, error)
@@ -387,8 +387,13 @@ func (crs *UserService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	return failedIds, nil
 }
 
-func (us *UserService) GetUserLoginHistory(params *userDTOs.UserLoginHistoryListQueryParamsDTO) (*userDTOs.UserLoginHistoryListResponseDTO, error) {
-	return us.repo.GetUserLoginHistory(params)
+func (us *UserService) GetUserLoginHistory(userID uint, params *userDTOs.UserLoginHistoryListQueryParamsDTO) (*userDTOs.UserLoginHistoryListResponseDTO, error) {
+	_, err := us.GetByID(userID)
+
+	if err != nil {
+		return nil, err
+	}
+	return us.repo.GetUserLoginHistory(userID, params)
 }
 
 func (us *UserService) validateUserFormDTO(id *uint, userFormDTO *userDTOs.UserFormDTO) error {

@@ -8,9 +8,13 @@ import (
 	"gorm.io/gorm"
 )
 
-type ErrorResponse struct {
+type InternalErrorResponse struct {
 	Error           string `json:"error"`
 	InternalMessage string `json:"internal_message"`
+}
+
+type ErrorResponse struct {
+	Error string `json:"error"`
 }
 
 func SendInternalErrResp(db *gorm.DB, c *gin.Context, errMsg string) {
@@ -25,7 +29,7 @@ func SendInternalErrResp(db *gorm.DB, c *gin.Context, errMsg string) {
 
 	// go LogErrorToDB(errorLogSvc, c, errMsg)
 
-	resp := ErrorResponse{
+	resp := InternalErrorResponse{
 		Error:           localizedErrorMsg,
 		InternalMessage: errMsg,
 	}

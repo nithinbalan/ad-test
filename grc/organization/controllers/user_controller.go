@@ -226,6 +226,12 @@ func (uc *UserController) GetUserLoginHistory(c *gin.Context) {
 		return
 	}
 
+	userID, err := strconv.Atoi(c.Param("userId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
 	queryParams := organizationDTOs.UserLoginHistoryListQueryParamsDTO{
 		Sort:        sort,
 		SortBy:      sortBy,
@@ -235,11 +241,20 @@ func (uc *UserController) GetUserLoginHistory(c *gin.Context) {
 		LoginAtFrom: loginAtFrom,
 		LoginAtTo:   loginAtTo,
 	}
-	userLoginHistory, err := uc.service.GetUserLoginHistory(&queryParams)
+	userLoginHistory, err := uc.service.GetUserLoginHistory(uint(userID), &queryParams)
 
 	if err != nil {
-		utility.SendInternalErrResp(uc.db, c, err.Error())
-		return
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(uc.db, c, e.Error())
+			return
+		}
 	}
 	c.JSON(http.StatusOK, userLoginHistory)
 }

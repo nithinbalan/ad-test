@@ -33,7 +33,7 @@ type UserRepositoryInterface interface {
 	CreateUserRole(userRoles []models.UserRole, tx ...utility.DatabaseTransaction) error
 	UpdateUserRoles(userID uint, desiredRoleIDs []uint, tx ...utility.DatabaseTransaction) error
 
-	GetUserLoginHistory(params *userDTOs.UserLoginHistoryListQueryParamsDTO) (*userDTOs.UserLoginHistoryListResponseDTO, error)
+	GetUserLoginHistory(userID uint, params *userDTOs.UserLoginHistoryListQueryParamsDTO) (*userDTOs.UserLoginHistoryListResponseDTO, error)
 	CreateUserLoginHistory(userLogin *models.UserLoginHistory, tx ...utility.DatabaseTransaction) error
 }
 
@@ -402,12 +402,13 @@ func contains(slice []uint, val uint) bool {
 	return false
 }
 
-func (repo *UserRepository) GetUserLoginHistory(params *userDTOs.UserLoginHistoryListQueryParamsDTO) (*userDTOs.UserLoginHistoryListResponseDTO, error) {
+func (repo *UserRepository) GetUserLoginHistory(userID uint, params *userDTOs.UserLoginHistoryListQueryParamsDTO) (*userDTOs.UserLoginHistoryListResponseDTO, error) {
 	var userLogins []*userDTOs.UserLoginHistoryListDTO
 	var totalCount int64
 
 	query := repo.db.Table("user_login_history").
-		Select("id, login_at, login_status, ip_address, location, device_info, browser_info")
+		Select("id, login_at, login_status, ip_address, location, device_info, browser_info").
+		Where("user_login_history.user_id = ?", userID)
 
 	if params.Keyword != "" {
 		query = query.Where("(login_status LIKE ? OR location LIKE ? OR ip_address LIKE ? OR device_info LIKE ? OR browser_info LIKE ?)", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
