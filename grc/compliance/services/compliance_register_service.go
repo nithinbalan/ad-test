@@ -741,28 +741,22 @@ func (crs *ComplianceRegisterService) validateComplianceDocumentFormDTO(document
 }
 
 func (crs *ComplianceRegisterService) GetFilePreview(id uint, token string) (string, error) {
-	tx := crs.repo.BeginTransaction()
-
 	existingComplianceRegister, err := crs.GetFullDetailsByID(id)
 	if err != nil {
-		tx.Rollback()
 		return "", err
 	}
 
 	decryptedFilenameBytes, err := utility.DecryptData(token)
 	if err != nil {
-		tx.Rollback()
-		return "", fmt.Errorf("invalid token: %w", err)
+		return "", fmt.Errorf("resource not found!")
 	}
 
 	decryptedFilename := string(decryptedFilenameBytes)
 	if decryptedFilename == "" {
-		tx.Rollback()
-		return "", fmt.Errorf("invalid decrypted filename")
+		return "", fmt.Errorf("resource not found!")
 	}
 
 	if len(existingComplianceRegister.Documents) == 0 {
-		tx.Rollback()
 		return "", fmt.Errorf("no documents found for the compliance register")
 	}
 
@@ -773,13 +767,10 @@ func (crs *ComplianceRegisterService) GetFilePreview(id uint, token string) (str
 
 	// Check if the file exists
 	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
-		tx.Rollback()
 		return "", fmt.Errorf("file not found")
 	} else if err != nil {
-		tx.Rollback()
 		return "", fmt.Errorf("error accessing file: %w", err)
 	}
 
-	tx.Commit()
 	return fullPath, nil
 }
