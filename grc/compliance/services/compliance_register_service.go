@@ -32,7 +32,7 @@ type ComplianceRegisterServiceInterface interface {
 	StatusUpdate(id uint, currentUserID uint, complianceStatusID uint, tx utility.DatabaseTransaction) error
 	ReviewStatusUpdate(complianceRegister *models.ComplianceRegister, tx utility.DatabaseTransaction) error
 
-	GetFilePreview(id uint, token string) (string, error)
+	GetDocumentPath(id uint, token string) (string, error)
 }
 
 // Service and implementations
@@ -740,10 +740,14 @@ func (crs *ComplianceRegisterService) validateComplianceDocumentFormDTO(document
 	return nil
 }
 
-func (crs *ComplianceRegisterService) GetFilePreview(id uint, token string) (string, error) {
+func (crs *ComplianceRegisterService) GetDocumentPath(id uint, token string) (string, error) {
 	existingComplianceRegister, err := crs.GetFullDetailsByID(id)
 	if err != nil {
 		return "", err
+	}
+
+	if len(existingComplianceRegister.Documents) == 0 {
+		return "", fmt.Errorf("no documents found for the compliance register")
 	}
 
 	decryptedFilenameBytes, err := utility.DecryptData(token)
@@ -756,14 +760,10 @@ func (crs *ComplianceRegisterService) GetFilePreview(id uint, token string) (str
 		return "", fmt.Errorf("resource not found!")
 	}
 
-	if len(existingComplianceRegister.Documents) == 0 {
-		return "", fmt.Errorf("no documents found for the compliance register")
-	}
-
-	url := existingComplianceRegister.Documents[0].URL
+	stoargePath :=filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(id), 10), "documents")
 
 	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
-	fullPath := filepath.Join(baseStoragePath, url, decryptedFilename)
+	fullPath := filepath.Join(baseStoragePath, stoargePath, decryptedFilename)
 
 	// Check if the file exists
 	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
