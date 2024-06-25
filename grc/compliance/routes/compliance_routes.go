@@ -85,6 +85,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.GET("/compliances/:complianceId/incidents", complianceAssociatedItemController.GetAllComplianceIncidents)
 
 	//SLA Register
+	complianceRoutes.GET("/sla-register/:id/document/preview", SLARegisterController.GetSLARegisterDocumentPreview)
 	complianceRoutes.GET("/sla-register", SLARegisterController.GetAllSLARegisters)
 	complianceRoutes.GET("/sla-register/:id", SLARegisterController.GetSLARegisterDetails)
 	complianceRoutes.POST("/sla-register", SLARegisterController.CreateSLARegister)

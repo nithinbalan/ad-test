@@ -760,10 +760,10 @@ func (crs *ComplianceRegisterService) GetDocumentPath(id uint, token string) (st
 		return "", fmt.Errorf("resource not found!")
 	}
 
-	stoargePath :=filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(id), 10), "documents")
+	storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(id), 10), "documents")
 
 	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
-	fullPath := filepath.Join(baseStoragePath, stoargePath, decryptedFilename)
+	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
 
 	// Check if the file exists
 	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
