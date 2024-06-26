@@ -258,3 +258,30 @@ func (crc *ComplianceRegisterController) RestoreComplianceRegisters(c *gin.Conte
 
 	c.JSON(http.StatusOK, gin.H{"successfulIds": successfulIds})
 }
+
+func (crc *ComplianceRegisterController) GetComplianceRegisterDocumentPreview(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	complianceDocumentPath, err := crc.service.GetDocumentPath(uint(id), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(crc.db, c, err.Error())
+		}
+		return
+	}
+	c.File(complianceDocumentPath)
+}
