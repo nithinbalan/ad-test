@@ -6,6 +6,7 @@ import (
 
 type ControlTest struct {
 	ID                            uint       `json:"id" gorm:"primaryKey;autoIncrement" binding:"-"`
+	RiskRegisterID                *uint      `json:"risk_register_id" gorm:"default:null" binding:"omitempty"`
 	ControlID                     uint       `json:"control_id" gorm:"not null" binding:"required"`
 	ControlImplementationStatusID uint       `json:"control_implementation_status_id" gorm:"not null" binding:"required"`
 	ControlEfficiencyStatusID     uint       `json:"control_efficiency_status_id" gorm:"not null" binding:"required"`
@@ -20,6 +21,7 @@ type ControlTest struct {
 	UpdatedByID                   *uint      `json:"updated_by_id,omitempty" gorm:"default:null" binding:"omitempty"`
 
 	// Foreign key relationships
+	Risk                        *RiskRegister                `json:"risk" gorm:"foreignKey:RiskRegisterID"`
 	Control                     *Control                     `json:"control" gorm:"foreignKey:ControlID"`
 	ControlImplementationStatus *ControlImplementationStatus `json:"control_implementation_status" gorm:"foreignKey:ControlImplementationStatusID"`
 	ControlEfficiencyStatus     *ControlEfficiencyStatus     `json:"control_efficiency_status" gorm:"foreignKey:ControlEfficiencyStatusID"`
