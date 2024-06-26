@@ -13,6 +13,7 @@ type ComplianceAssociatedItemRepositoryInterface interface {
 	GetAllRisks(complianceID uint, params *complianceDTOs.ComplianceAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceAssociatedItemRiskListResponseDTO, error)
 	GetAllIncidents(complianceID uint, params *complianceDTOs.ComplianceAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceAssociatedItemIncidentListResponseDTO, error)
 	GetAllAssociatedCounts(complianceID uint) (*complianceDTOs.ComplianceAssociatedItemsCountResponseDTO, error)
+	GetComplianceRequirementCountByStatus(complianceID uint) ([]complianceDTOs.ComplianceRequirementStatusCountResponseDTO, error)
 }
 
 type ComplianceAssociatedItemRepository struct {
@@ -379,4 +380,35 @@ func (repo *ComplianceAssociatedItemRepository) GetAllAssociatedCounts(complianc
 		Incidents:              int(incidentsCount),
 		ComplianceRequirements: int(requirementsCount),
 	}, nil
+}
+
+func (repo *ComplianceAssociatedItemRepository) GetComplianceRequirementCountByStatus(complianceID uint) ([]complianceDTOs.ComplianceRequirementStatusCountResponseDTO, error) {
+	var requirementStatusCounts []complianceDTOs.ComplianceRequirementStatusCountResponseDTO
+
+	query := `
+        SELECT 
+            compliance_statuses.id, 
+            compliance_statuses.type, 
+            compliance_statuses.title_en, 
+            compliance_statuses.title_ar, 
+            compliance_statuses.color_code,
+            COUNT(compliance_requirements.id) AS Count
+        FROM 
+            compliance_requirements
+        LEFT JOIN 
+            compliance_statuses ON compliance_statuses.id = compliance_requirements.compliance_status_id
+        LEFT JOIN 
+            compliance_clauses ON compliance_requirements.compliance_clause_id = compliance_clauses.id
+        WHERE 
+            compliance_clauses.compliance_register_id = ?
+        GROUP BY 
+            compliance_statuses.id, compliance_statuses.type, compliance_statuses.title_en, compliance_statuses.title_ar, compliance_statuses.color_code
+    `
+
+	err := repo.db.Raw(query, complianceID).Scan(&requirementStatusCounts).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return requirementStatusCounts, nil
 }

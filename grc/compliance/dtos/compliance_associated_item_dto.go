@@ -130,7 +130,7 @@ type ComplianceAssociatedItemsCountResponseDTO struct {
 	Incidents              int `json:"incidents"`
 }
 
-type ComplianceAssociatedItemStatusCountResponseDTO struct {
+type ComplianceRequirementStatusCountResponseDTO struct {
 	ID        int    `json:"id"`
 	Type      string `json:"type"`
 	TitleEn   string `json:"title_en"`
@@ -139,7 +139,3 @@ type ComplianceAssociatedItemStatusCountResponseDTO struct {
 	Count     int    `json:"count"`
 }
 
-type ComplianceAssociatedItemResponseDTO struct {
-	StatusCounts []ComplianceAssociatedItemStatusCountResponseDTO `json:"status_counts"`
-	TotalCount   int                                              `json:"total_count"`
-}

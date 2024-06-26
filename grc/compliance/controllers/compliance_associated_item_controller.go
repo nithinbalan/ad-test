@@ -202,3 +202,26 @@ func (caic *ComplianceAssociatedItemController) GetAllAssociatedCounts(c *gin.Co
 	}
 	c.JSON(http.StatusOK, associatedCounts)
 }
+
+func (caic *ComplianceAssociatedItemController) GetComplianceRequirementCountByStatus(c *gin.Context) {
+	complianceIDStr := c.Param("complianceId")
+
+	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	requirementCounts, err := caic.service.GetComplianceRequirementCountByStatus(uint(complianceID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(caic.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, requirementCounts)
+}
