@@ -9,6 +9,7 @@ type ComplianceAssociatedItemServiceInterface interface {
 	GetAllControls(complianceID uint, params *complianceDTOs.ComplianceAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceAssociatedItemControlListResponseDTO, error)
 	GetAllRisks(complianceID uint, params *complianceDTOs.ComplianceAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceAssociatedItemRiskListResponseDTO, error)
 	GetAllIncidents(complianceID uint, params *complianceDTOs.ComplianceAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceAssociatedItemIncidentListResponseDTO, error)
+	GetAllAssociatedCounts(complianceID uint) (*complianceDTOs.ComplianceAssociatedItemsCountResponseDTO, error)
 }
 
 // Service and implementations
@@ -46,4 +47,16 @@ func (cais *ComplianceAssociatedItemService) GetAllIncidents(complianceID uint, 
 		return nil, err
 	}
 	return cais.repo.GetAllIncidents(complianceID, params)
+}
+
+func (cais *ComplianceAssociatedItemService) GetAllAssociatedCounts(complianceID uint) (*complianceDTOs.ComplianceAssociatedItemsCountResponseDTO, error) {
+	if _, err := cais.complianceRegisterSvc.GetByID(complianceID); err != nil {
+		return nil, err
+	}
+	response, err := cais.repo.GetAllAssociatedCounts(complianceID)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
 }
