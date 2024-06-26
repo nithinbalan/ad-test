@@ -250,7 +250,8 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 		tx.Rollback()
 		return err
 	}
-	existingTask, err := caps.taskSvc.GetByID(id)
+	//update task
+	existingTask, err := caps.taskSvc.GetByFieldID("compliance_action_plan_id",id)
 
 	if err != nil {
 		return err
@@ -298,6 +299,16 @@ func (caps *ComplianceActionPlanService) Delete(complianceID uint, ids []uint, c
 				failedIds = append(failedIds, id)
 				continue
 			}
+		}
+		existingTask, err := caps.taskSvc.GetByFieldID("compliance_action_plan_id",id)
+		if err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+		taskID, err := caps.taskSvc.DeleteTask(existingTask.ID, currentUserID)
+		if err != nil {
+			failedIds = append(failedIds, taskID)
+			continue
 		}
 		err = caps.repo.Delete(id)
 		if err != nil {

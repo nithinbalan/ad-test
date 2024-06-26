@@ -16,6 +16,7 @@ type TaskRepositoryInteface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *taskDTOs.TaskListQueryParamsDTO) (*taskDTOs.TaskListResponseDTO, error)
 	GetByID(id uint) (*models.Task, error)
+	GetByFieldID(field string, value interface{}) (*models.Task, error)
 	CreateTask(task *models.Task, tx ...utility.DatabaseTransaction) error
 	Update(task *models.Task, tx ...utility.DatabaseTransaction) error
 	Delete(id uint) error
@@ -177,6 +178,18 @@ func (repo *TaskRepository) GetByID(id uint) (*models.Task, error) {
 
 	return task, nil
 
+}
+
+
+func (repo *TaskRepository) GetByFieldID(field string, value interface{}) (*models.Task, error) {
+	var task models.Task
+
+	result := repo.db.Where(field+" = ?", value).First(&task)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return &task, nil
 }
 
 func (repo *TaskRepository) CreateTask(task *models.Task, tx ...utility.DatabaseTransaction) error {

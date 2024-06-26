@@ -14,9 +14,10 @@ import (
 type TaskServiceInterface interface {
 	GetAll(params *taskDTOs.TaskListQueryParamsDTO) (*taskDTOs.TaskListResponseDTO, error)
 	GetByID(id uint) (*models.Task, error)
+	GetByFieldID(field string, value interface{}) (*models.Task, error)
 	CreateTask(taskDTO commonDTOs.CreateTaskDTO, currentUserID uint, tx ...utility.DatabaseTransaction) error
 	UpdateTask(currentUserID uint, task *models.Task, tx ...utility.DatabaseTransaction) error
-	DeleteTask(ids []uint, currentUserID uint) ([]uint, error)
+	DeleteTask(id uint, currentUserID uint) (uint, error)
 }
 
 type TaskService struct {
@@ -38,6 +39,18 @@ func (ts TaskService) GetByID(id uint) (*models.Task, error) {
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+	return task, nil
+}
+
+func (ts TaskService) GetByFieldID(field string, value interface{}) (*models.Task, error) {
+	task, err := ts.repo.GetByFieldID(field,value)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, value)
 		}
 		return nil, err
 	}
@@ -83,24 +96,19 @@ func (ts *TaskService) UpdateTask(currentUserID uint, task *models.Task, tx ...u
 	return nil
 }
 
-func (ts *TaskService) DeleteTask(ids []uint, currentUserID uint) ([]uint, error) {
-	var failedIds []uint
-	var successfulIds []uint
-	for _, id := range ids {
+func (ts *TaskService) DeleteTask(id uint, currentUserID uint) (uint, error) {
+	var failedId uint
 
-		_, err := ts.repo.GetByID(id)
-
-		if err != nil {
-			continue
-		}
-
-		err = ts.repo.Delete(id)
-		if err != nil {
-			failedIds = append(failedIds, id)
-		} else {
-			successfulIds = append(successfulIds, id)
-		}
+	entryToDelete, err := ts.GetByID(id)
+	if err != nil {
+		return 0, err
 	}
 
-	return failedIds, nil
+	// Delete the entry
+	if err := ts.repo.Delete(entryToDelete.ID); err != nil {
+		failedId = id
+		return failedId, err
+	}
+
+	return failedId, nil
 }
