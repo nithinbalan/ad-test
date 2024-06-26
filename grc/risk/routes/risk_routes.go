@@ -40,6 +40,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskResponseStrategyController := app.RiskModule.RiskResponseStrategyController
 	riskTreatmentGuidelineController := app.RiskModule.RiskTreatmentGuidelineController
 	riskHeatmapController := app.RiskModule.RiskHeatmapController
+	riskControlAnalysisController := app.RiskModule.RiskControlAnalysisController
 
 	riskRoutes.GET("/risk-categories", riskCategoryController.GetAllRiskCategories)
 	riskRoutes.GET("/risk-categories/:id", riskCategoryController.GetRiskCategoryDetails)
@@ -200,6 +201,13 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.PUT("/risk-response-strategies/activate", riskResponseStrategyController.ActivateRiskResponseStrategies)
 	riskRoutes.PUT("/risk-response-strategies/deactivate", riskResponseStrategyController.DeactivateRiskResponseStrategies)
 
+	// Risk Heat Map
 	riskRoutes.GET("processes/:processId/risk-heatmap", riskHeatmapController.GetProcessRiskHeatmap)
+
+	//Risk Control Analysis
+	riskRoutes.GET("risks/:riskId/control-analysis", riskControlAnalysisController.GetAllRiskControlAnalyses)
+	riskRoutes.POST("risks/:riskId/control-analysis", riskControlAnalysisController.CreateRiskControlAnalysis)
+	riskRoutes.PUT("risks/:riskId/control-analysis/:id", riskControlAnalysisController.UpdateRiskControlAnalysis)
+	riskRoutes.POST("risks/:riskId/control-analysis/delete", riskControlAnalysisController.DeleteRiskControlAnalyses)
 
 }
