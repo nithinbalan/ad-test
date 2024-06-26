@@ -58,6 +58,11 @@ func (rcac *RiskControlAnalysisController) GetAllRiskControlAnalyses(c *gin.Cont
 }
 
 func (rcac *RiskControlAnalysisController) CreateRiskControlAnalysis(c *gin.Context) {
+	perform := c.Query("perform")
+	if perform != "true" {
+		return
+	}
+
 	riskIDStr := c.Param("riskId")
 
 	riskID, err := strconv.ParseUint(riskIDStr, 10, 64)
