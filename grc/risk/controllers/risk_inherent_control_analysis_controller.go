@@ -13,18 +13,18 @@ import (
 	"gorm.io/gorm"
 )
 
-type RiskControlAnalysisController struct {
-	service services.RiskControlAnalysisServiceInterface
+type RiskInherentControlAnalysisController struct {
+	service services.RiskInherentControlAnalysisServiceInterface
 	db      *gorm.DB
 }
 
-func NewRiskControlAnalysisController(service services.RiskControlAnalysisServiceInterface) *RiskControlAnalysisController {
-	return &RiskControlAnalysisController{
+func NewRiskInherentControlAnalysisController(service services.RiskInherentControlAnalysisServiceInterface) *RiskInherentControlAnalysisController {
+	return &RiskInherentControlAnalysisController{
 		service: service,
 	}
 }
 
-func (rcac *RiskControlAnalysisController) GetAllRiskControlAnalyses(c *gin.Context) {
+func (rcac *RiskInherentControlAnalysisController) GetAllRiskControlAnalyses(c *gin.Context) {
 	riskIDStr := c.Param("riskId")
 
 	riskID, err := strconv.ParseUint(riskIDStr, 10, 64)
@@ -57,7 +57,7 @@ func (rcac *RiskControlAnalysisController) GetAllRiskControlAnalyses(c *gin.Cont
 	c.JSON(http.StatusOK, riskControlAnalyses)
 }
 
-func (rcac *RiskControlAnalysisController) CreateRiskControlAnalysis(c *gin.Context) {
+func (rcac *RiskInherentControlAnalysisController) CreateRiskControlAnalysis(c *gin.Context) {
 	perform := c.Query("perform")
 	if perform != "true" {
 		return
@@ -96,7 +96,7 @@ func (rcac *RiskControlAnalysisController) CreateRiskControlAnalysis(c *gin.Cont
 	c.Status(http.StatusOK)
 }
 
-func (rcac *RiskControlAnalysisController) UpdateRiskControlAnalysis(c *gin.Context) {
+func (rcac *RiskInherentControlAnalysisController) UpdateRiskControlAnalysis(c *gin.Context) {
 	var controlTestFormDTO organizationDTOs.ControlTestFormDTO
 
 	riskIDStr := c.Param("riskId")
@@ -144,7 +144,7 @@ func (rcac *RiskControlAnalysisController) UpdateRiskControlAnalysis(c *gin.Cont
 	c.Status(http.StatusOK)
 }
 
-func (rcac *RiskControlAnalysisController) DeleteRiskControlAnalyses(c *gin.Context) {
+func (rcac *RiskInherentControlAnalysisController) DeleteRiskControlAnalyses(c *gin.Context) {
 	riskIDStr := c.Param("riskId")
 
 	riskID, err := strconv.ParseUint(riskIDStr, 10, 64)

@@ -8,7 +8,7 @@ import (
 	"gorm.io/gorm"
 )
 
-type RiskControlAnalysisRepositoryInterface interface {
+type RiskInherentControlAnalysisRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(riskID uint, params *riskDTOs.RiskControlAnalysisListQueryParamsDTO) ([]*riskDTOs.RiskControlAnalysisListDTO, error)
 	GetByID(id uint) (*models.RiskControlAnalysis, error)
@@ -18,27 +18,28 @@ type RiskControlAnalysisRepositoryInterface interface {
 	GetAllControlsByRiskID(riskID uint) ([]*models.RiskControl, error)
 }
 
-type RiskControlAnalysisRepository struct {
+type RiskInherentControlAnalysisRepository struct {
 	db *gorm.DB
 }
 
-func NewRiskControlAnalysisRepository(db *gorm.DB) *RiskControlAnalysisRepository {
-	return &RiskControlAnalysisRepository{
+func NewRiskInherentControlAnalysisRepository(db *gorm.DB) *RiskInherentControlAnalysisRepository {
+	return &RiskInherentControlAnalysisRepository{
 		db: db,
 	}
 }
 
 // BeginTransaction starts a new transaction.
-func (repo *RiskControlAnalysisRepository) BeginTransaction() utility.DatabaseTransaction {
+func (repo *RiskInherentControlAnalysisRepository) BeginTransaction() utility.DatabaseTransaction {
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *RiskControlAnalysisRepository) GetAll(riskID uint, params *riskDTOs.RiskControlAnalysisListQueryParamsDTO) ([]*riskDTOs.RiskControlAnalysisListDTO, error) {
+func (repo *RiskInherentControlAnalysisRepository) GetAll(riskID uint, params *riskDTOs.RiskControlAnalysisListQueryParamsDTO) ([]*riskDTOs.RiskControlAnalysisListDTO, error) {
 	var riskControlAnalyses []*riskDTOs.RiskControlAnalysisListDTO
 
 	query := repo.db.Table("risk_control_analyses").
 		Select(`
             risk_control_analyses.id,
+			risk_control_analyses.type,
 			controls.id AS control_id,
 			controls.code AS control_code,
 			controls.reference_number AS control_reference_number,
@@ -107,7 +108,7 @@ func (repo *RiskControlAnalysisRepository) GetAll(riskID uint, params *riskDTOs.
 	return riskControlAnalyses, nil
 }
 
-func (repo *RiskControlAnalysisRepository) GetByID(id uint) (*models.RiskControlAnalysis, error) {
+func (repo *RiskInherentControlAnalysisRepository) GetByID(id uint) (*models.RiskControlAnalysis, error) {
 	var riskControlAnalysis *models.RiskControlAnalysis
 
 	result := repo.db.
@@ -120,7 +121,7 @@ func (repo *RiskControlAnalysisRepository) GetByID(id uint) (*models.RiskControl
 	return riskControlAnalysis, nil
 }
 
-func (repo *RiskControlAnalysisRepository) Create(riskControlAnalysis *models.RiskControlAnalysis) (uint, error) {
+func (repo *RiskInherentControlAnalysisRepository) Create(riskControlAnalysis *models.RiskControlAnalysis) (uint, error) {
 	if err := repo.db.Create(riskControlAnalysis).Error; err != nil {
 		return 0, err
 	}
@@ -128,7 +129,7 @@ func (repo *RiskControlAnalysisRepository) Create(riskControlAnalysis *models.Ri
 	return riskControlAnalysis.ID, nil
 }
 
-func (repo *RiskControlAnalysisRepository) Update(riskControlAnalysis *models.RiskControlAnalysis, tx ...utility.DatabaseTransaction) error {
+func (repo *RiskInherentControlAnalysisRepository) Update(riskControlAnalysis *models.RiskControlAnalysis, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -140,7 +141,7 @@ func (repo *RiskControlAnalysisRepository) Update(riskControlAnalysis *models.Ri
 	return nil
 }
 
-func (repo *RiskControlAnalysisRepository) Delete(id uint, tx ...utility.DatabaseTransaction) error {
+func (repo *RiskInherentControlAnalysisRepository) Delete(id uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -153,7 +154,7 @@ func (repo *RiskControlAnalysisRepository) Delete(id uint, tx ...utility.Databas
 	return nil
 }
 
-func (repo *RiskControlAnalysisRepository) GetAllControlsByRiskID(riskID uint) ([]*models.RiskControl, error) {
+func (repo *RiskInherentControlAnalysisRepository) GetAllControlsByRiskID(riskID uint) ([]*models.RiskControl, error) {
 	var riskControls []*models.RiskControl
 
 	err := repo.db.Where("risk_register_id = ?", riskID).Find(&riskControls).Error
