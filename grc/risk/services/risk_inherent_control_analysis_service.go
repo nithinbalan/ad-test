@@ -15,7 +15,7 @@ import (
 	"gorm.io/gorm"
 )
 
-type RiskControlAnalysisServiceInterface interface {
+type RiskInherentControlAnalysisServiceInterface interface {
 	GetAll(riskID uint, params *riskDTOs.RiskControlAnalysisListQueryParamsDTO) ([]*riskDTOs.RiskControlAnalysisListDTO, error)
 	GetByID(riskID uint, id uint) (*models.RiskControlAnalysis, error)
 	Create(riskID uint, currentUserID uint) error
@@ -24,22 +24,22 @@ type RiskControlAnalysisServiceInterface interface {
 }
 
 // Service and implementations
-type RiskControlAnalysisService struct {
-	repo            riskRepositories.RiskControlAnalysisRepositoryInterface
+type RiskInherentControlAnalysisService struct {
+	repo            riskRepositories.RiskInherentControlAnalysisRepositoryInterface
 	activityLogSvc  logServices.ActivityLogServiceInterface
 	riskRegisterSvc RiskRegisterServiceInterface
 	controlSvc      organizationServices.ControlServiceInterface
 	controlTestSvc  organizationServices.ControlTestServiceInterface
 }
 
-func NewRiskControlAnalysisService(
-	repo riskRepositories.RiskControlAnalysisRepositoryInterface,
+func NewRiskInherentControlAnalysisService(
+	repo riskRepositories.RiskInherentControlAnalysisRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	riskRegisterSvc RiskRegisterServiceInterface,
 	controlSvc organizationServices.ControlServiceInterface,
 	controlTestSvc organizationServices.ControlTestServiceInterface,
-) RiskControlAnalysisServiceInterface {
-	return &RiskControlAnalysisService{
+) RiskInherentControlAnalysisServiceInterface {
+	return &RiskInherentControlAnalysisService{
 		repo:            repo,
 		activityLogSvc:  activityLogSvc,
 		riskRegisterSvc: riskRegisterSvc,
@@ -48,14 +48,14 @@ func NewRiskControlAnalysisService(
 	}
 }
 
-func (rcas *RiskControlAnalysisService) GetAll(riskID uint, params *riskDTOs.RiskControlAnalysisListQueryParamsDTO) ([]*riskDTOs.RiskControlAnalysisListDTO, error) {
+func (rcas *RiskInherentControlAnalysisService) GetAll(riskID uint, params *riskDTOs.RiskControlAnalysisListQueryParamsDTO) ([]*riskDTOs.RiskControlAnalysisListDTO, error) {
 	if _, err := rcas.riskRegisterSvc.GetByID(riskID); err != nil {
 		return nil, err
 	}
 	return rcas.repo.GetAll(riskID, params)
 }
 
-func (rcas *RiskControlAnalysisService) GetByID(riskID uint, id uint) (*models.RiskControlAnalysis, error) {
+func (rcas *RiskInherentControlAnalysisService) GetByID(riskID uint, id uint) (*models.RiskControlAnalysis, error) {
 	if _, err := rcas.riskRegisterSvc.GetByID(riskID); err != nil {
 		return nil, err
 	}
@@ -71,7 +71,7 @@ func (rcas *RiskControlAnalysisService) GetByID(riskID uint, id uint) (*models.R
 	return riskControlAnalysis, nil
 }
 
-func (rcas *RiskControlAnalysisService) Create(riskID uint, currentUserID uint) error {
+func (rcas *RiskInherentControlAnalysisService) Create(riskID uint, currentUserID uint) error {
 	if _, err := rcas.riskRegisterSvc.GetByID(riskID); err != nil {
 		return err
 	}
@@ -105,7 +105,7 @@ func (rcas *RiskControlAnalysisService) Create(riskID uint, currentUserID uint) 
 	return nil
 }
 
-func (rcas *RiskControlAnalysisService) Update(riskID uint, id uint, currentUserID uint, controlTestFormDTO *organizationDTOs.ControlTestFormDTO) error {
+func (rcas *RiskInherentControlAnalysisService) Update(riskID uint, id uint, currentUserID uint, controlTestFormDTO *organizationDTOs.ControlTestFormDTO) error {
 	tx := rcas.repo.BeginTransaction()
 
 	if _, err := rcas.riskRegisterSvc.GetByID(riskID); err != nil {
@@ -137,7 +137,7 @@ func (rcas *RiskControlAnalysisService) Update(riskID uint, id uint, currentUser
 	return nil
 }
 
-func (rcas *RiskControlAnalysisService) Delete(riskID uint, ids []uint, currentUserID uint) ([]uint, error) {
+func (rcas *RiskInherentControlAnalysisService) Delete(riskID uint, ids []uint, currentUserID uint) ([]uint, error) {
 	tx := rcas.repo.BeginTransaction()
 
 	var failedIds []uint
