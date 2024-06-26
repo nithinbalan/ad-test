@@ -123,7 +123,7 @@ func (ctc *ControlTestController) CreateControlTest(c *gin.Context) {
 		return
 	}
 
-	id, err := ctc.service.Create(uint(controlID), currentUserID, &controlTestFormDTO)
+	id, err := ctc.service.Create(uint(controlID), currentUserID, nil, &controlTestFormDTO)
 
 	if err != nil {
 		switch e := err.(type) {
