@@ -122,3 +122,20 @@ type ComplianceAssociatedItemIncidentListResponseDTO struct {
 	Items      []*ComplianceIncidentListDTO `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }
+
+type ComplianceAssociatedItemsCountResponseDTO struct {
+	ComplianceRequirements int `json:"compliance_requirements"`
+	Controls               int `json:"controls"`
+	Risks                  int `json:"risks"`
+	Incidents              int `json:"incidents"`
+}
+
+type ComplianceRequirementStatusCountResponseDTO struct {
+	ID        int    `json:"id"`
+	Type      string `json:"type"`
+	TitleEn   string `json:"title_en"`
+	TitleAr   string `json:"title_ar"`
+	ColorCode string `json:"color_code"`
+	Count     int    `json:"count"`
+}
+
