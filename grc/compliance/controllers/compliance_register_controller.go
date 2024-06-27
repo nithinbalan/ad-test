@@ -258,3 +258,26 @@ func (crc *ComplianceRegisterController) RestoreComplianceRegisters(c *gin.Conte
 
 	c.JSON(http.StatusOK, gin.H{"successfulIds": successfulIds})
 }
+
+func (crc *ComplianceRegisterController) GetComplianceRegisterStatusDetails(c *gin.Context) {
+	idStr := c.Param("id")
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	compliance, err := crc.service.GetStatusDetails(uint(id))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(crc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, compliance)
+}

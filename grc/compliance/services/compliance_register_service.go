@@ -29,6 +29,7 @@ type ComplianceRegisterServiceInterface interface {
 	Restore(ids []uint, currentUserID uint) ([]uint, error)
 	StatusUpdate(id uint, currentUserID uint, complianceStatusID uint, tx utility.DatabaseTransaction) error
 	ReviewStatusUpdate(complianceRegister *models.ComplianceRegister, tx utility.DatabaseTransaction) error
+	GetStatusDetails(id uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.ComplianceRegisterDetailDTO, error)
 }
 
 // Service and implementations
@@ -734,4 +735,50 @@ func (crs *ComplianceRegisterService) validateComplianceDocumentFormDTO(document
 	// }
 
 	return nil
+}
+
+func (crs ComplianceRegisterService) GetStatusDetails(id uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.ComplianceRegisterDetailDTO, error) {
+	var complianceDTO complianceDTOs.ComplianceRegisterDetailDTO
+
+	compliance, err := crs.repo.GetStatusDetails(id, tx...)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+
+	err = mapstructure.Decode(compliance, &complianceDTO)
+	if err != nil {
+		return nil, err
+	}
+
+	// Format time fields without time component
+	if compliance.Deadline != nil {
+		deadline := compliance.Deadline.Format("2006-01-02")
+		complianceDTO.DeadlineString = &deadline
+	}
+	if compliance.IssueDate != nil {
+		issueDate := compliance.IssueDate.Format("2006-01-02")
+		complianceDTO.IssueDateString = &issueDate
+	}
+	if compliance.ExpiryDate != nil {
+		expiryDate := compliance.ExpiryDate.Format("2006-01-02")
+		complianceDTO.ExpiryDateString = &expiryDate
+	}
+	if compliance.NextReviewDate != nil {
+		nextReviewDate := compliance.NextReviewDate.Format("2006-01-02")
+		complianceDTO.NextReviewDateString = &nextReviewDate
+	}
+	if compliance.LastReviewedDate != nil {
+		lastReviewDate := compliance.LastReviewedDate.Format("2006-01-02")
+		complianceDTO.LastReviewedDateString = &lastReviewDate
+	}
+
+	complianceDTO.CreatedAt = compliance.CreatedAt
+	complianceDTO.UpdatedAt = compliance.UpdatedAt
+	//todo :- also add extra fields which required in details screen
+
+	return &complianceDTO, nil
 }

@@ -34,6 +34,8 @@ type ComplianceRegisterRepositoryInterface interface {
 	GetDocumentByID(id uint) (*models.ComplianceDocument, error)
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
 	GetLatestDocumentByComplianceID(id uint) (*models.ComplianceDocument, error)
+
+	GetStatusDetails(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceRegister, error)
 }
 
 type ComplianceRegisterRepository struct {
@@ -448,4 +450,38 @@ func (repo *ComplianceRegisterRepository) GetLatestDocumentByComplianceID(id uin
 		return nil, err
 	}
 	return &document, nil
+}
+
+func (repo *ComplianceRegisterRepository) GetStatusDetails(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceRegister, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	var compliance *models.ComplianceRegister
+
+	result := db.
+		Preload("ComplianceCategory").
+		Preload("ComplianceStatus").
+		Preload("ResponsibleUnit.ParentUnit.ParentUnit.ParentUnit.ParentUnit.ParentUnit").
+		Preload("ResponsibleUser").
+		Preload("ResponsibleUser.OrganizationUnit1").
+		Preload("ReviewFrequency").
+		Preload("ComplianceReviewStatus").
+		Preload("LastReviewedUser").
+		Preload("ReviewResponsibleUser").
+		Preload("SeverityLevel").
+		Preload("LifecycleStatus").
+		Preload("Documents").
+		Preload("Controls").
+		Preload("Controls.Control.ControlCategory").
+		Preload("Controls.Control.ControlType").
+		Preload("CreatedByUser").
+		Preload("UpdatedByUser").
+		First(&compliance, id)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return compliance, nil
 }

@@ -78,6 +78,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.PUT("/compliance-register/archive", complianceRegisterController.ArchiveComplianceRegisters)
 	complianceRoutes.PUT("/compliance-register/restore", complianceRegisterController.RestoreComplianceRegisters)
 
+	complianceRoutes.GET("/compliance-register/:complianceId/status", complianceRegisterController.GetComplianceRegisterStatusDetails)
+
 	//Compliance Associated Items
 	complianceRoutes.GET("/compliances/:complianceId/controls", complianceAssociatedItemController.GetAllComplianceControls)
 	complianceRoutes.GET("/compliances/:complianceId/risks", complianceAssociatedItemController.GetAllComplianceRisks)
