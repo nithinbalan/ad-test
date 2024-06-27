@@ -81,8 +81,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.PUT("/compliance-register/archive", complianceRegisterController.ArchiveComplianceRegisters)
 	complianceRoutes.PUT("/compliance-register/restore", complianceRegisterController.RestoreComplianceRegisters)
 
-	complianceRoutes.GET("/compliance-register/:complianceId/status", complianceRegisterController.GetComplianceRegisterStatusDetails)
-
 	//Compliance Associated Items
 	complianceRoutes.GET("/compliances/:complianceId/controls", complianceAssociatedItemController.GetAllComplianceControls)
 	complianceRoutes.GET("/compliances/:complianceId/risks", complianceAssociatedItemController.GetAllComplianceRisks)
@@ -128,6 +126,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.GET("/compliances/:complianceId/status-updates/:id", complianceStatusUpdateController.GetComplianceStatusUpdateDetails)
 	complianceRoutes.POST("/compliances/:complianceId/status-updates", complianceStatusUpdateController.CreateComplianceStatusUpdate)
 	complianceRoutes.PUT("/compliances/:complianceId/status-updates/:id", complianceStatusUpdateController.UpdateComplianceStatusUpdate)
+	complianceRoutes.GET("/compliances/:complianceId/status-updates/latest", complianceStatusUpdateController.GetLatestComplianceStatusUpdate)
 
 	//Compliance Requirement Status Update
 	complianceRoutes.GET("/compliances/:complianceId/requirements/:requirementId/status-updates", complianceRequirementStatusUpdateController.GetAllComplianceRequirementStatusUpdates)

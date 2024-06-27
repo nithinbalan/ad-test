@@ -33,7 +33,6 @@ type ComplianceRegisterServiceInterface interface {
 	ReviewStatusUpdate(complianceRegister *models.ComplianceRegister, tx utility.DatabaseTransaction) error
 
 	GetDocumentPath(id uint, token string) (string, error)
-	GetStatusDetails(id uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.ComplianceRegisterDetailDTO, error)
 }
 
 // Service and implementations
@@ -185,6 +184,20 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 	}
 
 	id, err := crs.repo.Create(complianceRegister, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	complianceStatusID := complianceRegisterFormDTO.ComplianceStatusID
+	complianceStatusUpdate := &models.ComplianceStatusUpdate{
+		ComplianceRegisterID: id,
+		ComplianceStatusID:   complianceStatusID,
+		Comment:              "Initial compliance status",
+		CreatedByID:          currentUserID,
+	}
+
+	_, err = crs.repo.CreateInitialComplianceStatusUpdate(complianceStatusUpdate, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -774,50 +787,4 @@ func (crs *ComplianceRegisterService) GetDocumentPath(id uint, token string) (st
 	}
 
 	return fullPath, nil
-}
-
-func (crs ComplianceRegisterService) GetStatusDetails(id uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.ComplianceRegisterDetailDTO, error) {
-	var complianceDTO complianceDTOs.ComplianceRegisterDetailDTO
-
-	compliance, err := crs.repo.GetStatusDetails(id, tx...)
-
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, utility.NewResourceNotFoundError(err, id)
-		}
-		return nil, err
-	}
-
-	err = mapstructure.Decode(compliance, &complianceDTO)
-	if err != nil {
-		return nil, err
-	}
-
-	// Format time fields without time component
-	if compliance.Deadline != nil {
-		deadline := compliance.Deadline.Format("2006-01-02")
-		complianceDTO.DeadlineString = &deadline
-	}
-	if compliance.IssueDate != nil {
-		issueDate := compliance.IssueDate.Format("2006-01-02")
-		complianceDTO.IssueDateString = &issueDate
-	}
-	if compliance.ExpiryDate != nil {
-		expiryDate := compliance.ExpiryDate.Format("2006-01-02")
-		complianceDTO.ExpiryDateString = &expiryDate
-	}
-	if compliance.NextReviewDate != nil {
-		nextReviewDate := compliance.NextReviewDate.Format("2006-01-02")
-		complianceDTO.NextReviewDateString = &nextReviewDate
-	}
-	if compliance.LastReviewedDate != nil {
-		lastReviewDate := compliance.LastReviewedDate.Format("2006-01-02")
-		complianceDTO.LastReviewedDateString = &lastReviewDate
-	}
-
-	complianceDTO.CreatedAt = compliance.CreatedAt
-	complianceDTO.UpdatedAt = compliance.UpdatedAt
-	//todo :- also add extra fields which required in details screen
-
-	return &complianceDTO, nil
 }
