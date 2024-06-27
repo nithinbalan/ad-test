@@ -34,6 +34,8 @@ type ComplianceRegisterRepositoryInterface interface {
 	GetDocumentByID(id uint) (*models.ComplianceDocument, error)
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
 	GetLatestDocumentByComplianceID(id uint) (*models.ComplianceDocument, error)
+
+	CreateInitialComplianceStatusUpdate(complianceStatusUpdate *models.ComplianceStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
 }
 
 type ComplianceRegisterRepository struct {
@@ -448,4 +450,15 @@ func (repo *ComplianceRegisterRepository) GetLatestDocumentByComplianceID(id uin
 		return nil, err
 	}
 	return &document, nil
+}
+
+func (repo *ComplianceRegisterRepository) CreateInitialComplianceStatusUpdate(complianceStatusUpdate *models.ComplianceStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(complianceStatusUpdate).Error; err != nil {
+		return 0, err
+	}
+	return complianceStatusUpdate.ID, nil
 }

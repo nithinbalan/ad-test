@@ -126,6 +126,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.GET("/compliances/:complianceId/status-updates/:id", complianceStatusUpdateController.GetComplianceStatusUpdateDetails)
 	complianceRoutes.POST("/compliances/:complianceId/status-updates", complianceStatusUpdateController.CreateComplianceStatusUpdate)
 	complianceRoutes.PUT("/compliances/:complianceId/status-updates/:id", complianceStatusUpdateController.UpdateComplianceStatusUpdate)
+	complianceRoutes.GET("/compliances/:complianceId/status-updates/latest", complianceStatusUpdateController.GetLatestComplianceStatusUpdate)
 
 	//Compliance Requirement Status Update
 	complianceRoutes.GET("/compliances/:complianceId/requirements/:requirementId/status-updates", complianceRequirementStatusUpdateController.GetAllComplianceRequirementStatusUpdates)

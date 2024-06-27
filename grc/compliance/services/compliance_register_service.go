@@ -189,6 +189,20 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 		return 0, err
 	}
 
+	complianceStatusID := complianceRegisterFormDTO.ComplianceStatusID
+	complianceStatusUpdate := &models.ComplianceStatusUpdate{
+		ComplianceRegisterID: id,
+		ComplianceStatusID:   complianceStatusID,
+		Comment:              "Initial compliance status",
+		CreatedByID:          currentUserID,
+	}
+
+	_, err = crs.repo.CreateInitialComplianceStatusUpdate(complianceStatusUpdate, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
 	// Save Controls
 	var controls []*models.ComplianceControl
 	for _, ctrl := range complianceRegisterFormDTO.ControlIDs {
@@ -760,7 +774,7 @@ func (crs *ComplianceRegisterService) GetDocumentPath(id uint, token string) (st
 		return "", fmt.Errorf("resource not found!")
 	}
 
-	stoargePath :=filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(id), 10), "documents")
+	stoargePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(id), 10), "documents")
 
 	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
 	fullPath := filepath.Join(baseStoragePath, stoargePath, decryptedFilename)
