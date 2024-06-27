@@ -13,6 +13,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	complianceRoutes.Use(middlewares.AuthMiddleware())
 
+	unauthenticatedRoutes := router.Group("/")
+
 	complianceCategoryController := app.ComplianceModule.ComplianceCategoryController
 	complianceStatusController := app.ComplianceModule.ComplianceStatusController
 	complianceReviewStatusController := app.ComplianceModule.ComplianceReviewStatusController
@@ -70,6 +72,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.GET("/compliance-review-statuses/:id", complianceReviewStatusController.GetComplianceReviewStatusDetails)
 
 	//Compliance Register
+	unauthenticatedRoutes.GET("/compliance-register/:id/document/preview", complianceRegisterController.GetComplianceRegisterDocumentPreview)
 	complianceRoutes.GET("/compliance-register", complianceRegisterController.GetAllComplianceRegisters)
 	complianceRoutes.GET("/compliance-register/:id", complianceRegisterController.GetComplianceRegisterDetails)
 	complianceRoutes.POST("/compliance-register", complianceRegisterController.CreateComplianceRegister)
@@ -169,4 +172,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.POST("/slas/:slaId/action-plans/:actionPlanId/status-updates", slaActionPlanStatusUpdateController.CreateSLAActionPlanStatusUpdate)
 	complianceRoutes.PUT("/slas/:slaId/action-plans/:actionPlanId/status-updates/:id", slaActionPlanStatusUpdateController.UpdateSLAActionPlanStatusUpdate)
 
+	complianceRoutes.GET("/compliances/:complianceId/associated-item-summary", complianceAssociatedItemController.GetAllAssociatedCounts)
+	complianceRoutes.GET("/compliances/:complianceId/requirements-count-by-statuses", complianceAssociatedItemController.GetComplianceRequirementCountByStatus)
 }

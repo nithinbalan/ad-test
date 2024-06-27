@@ -197,6 +197,8 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 		return err
 	}
 
+	tx.Commit()
+	
 	return nil
 }
 
