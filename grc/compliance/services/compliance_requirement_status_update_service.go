@@ -18,6 +18,7 @@ type ComplianceRequirementStatusUpdateServiceInterface interface {
 	GetAll(ComplianceID uint, ComplianceRequirementID uint, sort string, sortBy string, keyword string) ([]*complianceDTOs.ComplianceRequirementStatusUpdateListDTO, error)
 	Create(ComplianceID uint, ComplianceRequirementID uint, currentUserID uint, complianceRequirementStatusUpdateFormDTO *complianceDTOs.ComplianceRequirementStatusUpdateFormDTO) (uint, error)
 	Update(ComplianceID uint, ComplianceRequirementID uint, id uint, currentUserID uint, ComplianceRequirementStatusUpdateFormDTO *complianceDTOs.ComplianceRequirementStatusUpdateFormDTO) error
+	GetLatestComplianceRequirementStatusUpdate(complianceID uint, requirementID uint) (*complianceDTOs.ComplianceRequirementStatusUpdateListDTO, error)
 }
 
 // Service and implementations
@@ -111,7 +112,7 @@ func (crsus *ComplianceRequirementStatusUpdateService) Create(ComplianceID uint,
 		}
 
 		// Construct the URL for the document
-		url := utility.GenerateDocumentURL("compliance", "compliance-register", strconv.FormatUint(uint64(ComplianceID), 10), "requirements", strconv.FormatUint(uint64(ComplianceRequirementID), 10), "updates",strconv.FormatUint(uint64(id), 10), "documents")
+		url := utility.GenerateDocumentURL("compliance", "compliance-register", strconv.FormatUint(uint64(ComplianceID), 10), "requirements", strconv.FormatUint(uint64(ComplianceRequirementID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 
 		// Create a new ComplianceRequirementStatusUpdateDocument instance
 		document := &models.ComplianceRequirementStatusUpdateDocument{
@@ -288,4 +289,12 @@ func (crsus *ComplianceRequirementStatusUpdateService) validateComplianceRequire
 	}
 
 	return nil
+}
+
+func (crsus ComplianceRequirementStatusUpdateService) GetLatestComplianceRequirementStatusUpdate(complianceID uint, requirementID uint) (*complianceDTOs.ComplianceRequirementStatusUpdateListDTO, error) {
+	if _, err := crsus.complianceRequirementSvc.GetByID(complianceID, requirementID); err != nil {
+		return nil, err
+	}
+
+	return crsus.repo.GetLatestComplianceRequirementStatusUpdate(requirementID)
 }

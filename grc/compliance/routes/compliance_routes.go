@@ -132,6 +132,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.GET("/compliances/:complianceId/requirements/:requirementId/status-updates", complianceRequirementStatusUpdateController.GetAllComplianceRequirementStatusUpdates)
 	complianceRoutes.POST("/compliances/:complianceId/requirements/:requirementId/status-updates", complianceRequirementStatusUpdateController.CreateComplianceRequirementStatusUpdate)
 	complianceRoutes.PUT("/compliances/:complianceId/requirements/:requirementId/status-updates/:id", complianceRequirementStatusUpdateController.UpdateComplianceRequirementStatusUpdate)
+	complianceRoutes.GET("/compliances/:complianceId/requirements/:requirementId/status-updates/latest", complianceRequirementStatusUpdateController.GetLatestComplianceRequirementStatusUpdate)
 
 	//Compliance Action Plan
 	complianceRoutes.GET("/compliances/:complianceId/action-plans/:actionPlanId/status-updates", complianceActionPlanStatusUpdateController.GetAllComplianceActionPlanStatusUpdates)
