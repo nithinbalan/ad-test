@@ -49,6 +49,40 @@ func (scqc *SLACheckQuestionController) GetAllSLACheckQuestionGroups(c *gin.Cont
 	c.JSON(http.StatusOK, slaCheckQuestionGroups)
 }
 
+func (scqc *SLACheckQuestionController) GetSLACheckQuestionGroupDetails(c *gin.Context) {
+	slaIDStr := c.Param("slaId")
+
+	slaID, err := strconv.ParseUint(slaIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	checkIdStr := c.Param("checkId")
+
+	checkId, err := strconv.ParseUint(checkIdStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	questionGroupIdStr := c.Param("id")
+
+	questionGroupId, err := strconv.ParseUint(questionGroupIdStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	slaCheckQuestionGroups, err := scqc.service.GetQuestionGroupByID(uint(slaID), uint(checkId), uint(questionGroupId))
+
+	if err != nil {
+		utility.SendInternalErrResp(scqc.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, slaCheckQuestionGroups)
+}
+
 func (scqc *SLACheckQuestionController) CreateSLACheckQuestionGroup(c *gin.Context) {
 	var slaCheckQuestionGroupFormDTO complianceDTOs.SLACheckQuestionGroupFormDTO
 

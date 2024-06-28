@@ -16,9 +16,11 @@ import (
 
 type SLACheckQuestionServiceInterface interface {
 	GetAllQuestionGroups(slaID uint, checkID uint) ([]*complianceDTOs.SLACheckQuestionGroupListDTO, error)
+	GetQuestionGroupByID(slaID uint, checkID uint, groupID uint) (*complianceDTOs.SLACheckQuestionGroupDetailDTO, error)
 	CreateQuestionGroup(slaID uint, checkID uint, currentUserID uint, slaCheckQuestionGroupFormDTO *complianceDTOs.SLACheckQuestionGroupFormDTO) (uint, error)
 	UpdateQuestionGroup(slaID uint, checkID uint, groupID uint, currentUserID uint, slaCheckUpdateQuestionGroupDTO *complianceDTOs.SLACheckUpdateQuestionGroupDTO) error
 	DeleteQuestionGroup(slaID uint, checkID uint, questionGroupID uint, currentUserID uint) (uint, error)
+
 	GetQuestionsByGroupID(slaID uint, checkID uint, groupID uint) ([]complianceDTOs.SLACheckQuestionDetailDTO, error)
 
 	GetQuestionByID(id uint) (*models.SLACheckQuestion, error)
@@ -60,6 +62,28 @@ func (scqs *SLACheckQuestionService) GetAllQuestionGroups(slaID uint, checkID ui
 		return nil, err
 	}
 	return scqs.repo.GetAllQuestionGroups(checkID)
+}
+
+func (scqs *SLACheckQuestionService) GetQuestionGroupByID(slaID uint, checkID uint, groupID uint) (*complianceDTOs.SLACheckQuestionGroupDetailDTO, error) {
+	if _, err := scqs.slaRegisterSvc.GetByID(slaID); err != nil {
+		return nil, err
+	}
+
+	slaCheckQuestionGroup, err := scqs.repo.GetQuestionGroupByID(groupID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, groupID)
+		}
+		return nil, err
+	}
+
+	var slaCheckQuestionDTO complianceDTOs.SLACheckQuestionGroupDetailDTO
+	err = mapstructure.Decode(slaCheckQuestionGroup, &slaCheckQuestionDTO)
+	if err != nil {
+		return nil, err
+	}
+
+	return &slaCheckQuestionDTO, nil
 }
 
 func (scqs *SLACheckQuestionService) CreateQuestionGroup(slaID uint, checkID uint, currentUserID uint, slaCheckQuestionGroupFormDTO *complianceDTOs.SLACheckQuestionGroupFormDTO) (uint, error) {
