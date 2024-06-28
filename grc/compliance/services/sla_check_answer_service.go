@@ -98,7 +98,7 @@ func (scas *SLACheckAnswerService) CreateAnswer(slaID uint, questionID uint, cur
 	}
 
 	// Fetch SLACheckQuestion from the database
-	slaCheckQuestion, err := scas.slaCheckQuestionSvc.GetQuestionByID(questionID)
+	slaCheckQuestion, err := scas.slaCheckQuestionSvc.GetQuestionByID(slaID, questionID)
 	if err != nil {
 		return 0, err
 	}
@@ -205,7 +205,7 @@ func (scas *SLACheckAnswerService) UpdateAnswer(slaID uint, questionID uint, ans
 		return err
 	}
 
-	if _, err := scas.slaCheckQuestionSvc.GetQuestionByID(questionID); err != nil {
+	if _, err := scas.slaCheckQuestionSvc.GetQuestionByID(slaID, questionID); err != nil {
 		return err
 	}
 

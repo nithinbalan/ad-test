@@ -23,7 +23,7 @@ type SLACheckQuestionServiceInterface interface {
 
 	GetQuestionsByGroupID(slaID uint, checkID uint, groupID uint) ([]complianceDTOs.SLACheckQuestionDetailDTO, error)
 
-	GetQuestionByID(id uint) (*models.SLACheckQuestion, error)
+	GetQuestionByID(slaID uint, id uint) (*models.SLACheckQuestion, error)
 	ChooseQuestions(slaID uint, checkID uint, currentUserID uint, checklistQuestionIds []uint) ([]uint, error)
 	CreateQuestion(slaID uint, checkID uint, currentUserID uint, slaCheckQuestionFormDTO *complianceDTOs.SLACheckQuestionFormDTO) (uint, error)
 	UpdateQuestion(slaID uint, checkID uint, groupID uint, currentUserID uint, slaCheckUpdateQuestionDTO *complianceDTOs.SLACheckUpdateQuestionDTO) error
@@ -281,7 +281,7 @@ func (scqs *SLACheckQuestionService) GetQuestionsByGroupID(slaID uint, checkID u
 	return slaCheckQuestionDTOs, nil
 }
 
-func (scqs SLACheckQuestionService) GetQuestionByID(id uint) (*models.SLACheckQuestion, error) {
+func (scqs SLACheckQuestionService) GetQuestionByID(slaID uint, id uint) (*models.SLACheckQuestion, error) {
 	slaCheckQuestion, err := scqs.repo.GetQuestionByID(id)
 
 	if err != nil {
@@ -440,7 +440,7 @@ func (scqs *SLACheckQuestionService) UpdateQuestion(slaID uint, checkID uint, qu
 		return err
 	}
 	// Fetch the SLACheckQuestion by ID
-	existingQuestion, err := scqs.GetQuestionByID(questionID)
+	existingQuestion, err := scqs.GetQuestionByID(slaID, questionID)
 
 	if err != nil {
 		return err
@@ -492,7 +492,7 @@ func (scqs *SLACheckQuestionService) DeleteQuestion(slaID uint, checkId uint, qu
 	var failedId uint
 	var successfulId uint
 
-	question, err := scqs.GetQuestionByID(questionId)
+	question, err := scqs.GetQuestionByID(slaID, questionId)
 	if err != nil {
 		return 0, err
 	}

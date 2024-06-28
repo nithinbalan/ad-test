@@ -155,6 +155,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.GET("/slas/:slaId/checks/:checkId/question-groups/:id/questions", SLACheckQuestionController.GetSLACheckQuestionsByGroup)
 
 	complianceRoutes.POST("/slas/:slaId/checks/:checkId/choose-questions", SLACheckQuestionController.ChooseSLACheckQuestions)
+	complianceRoutes.GET("/slas/:slaId/checks/:checkId/questions/:id", SLACheckQuestionController.GetSLACheckQuestionDetails)
 	complianceRoutes.POST("/slas/:slaId/checks/:checkId/question", SLACheckQuestionController.CreateSLACheckQuestion)
 	complianceRoutes.PUT("/slas/:slaId/checks/:checkId/questions/:id", SLACheckQuestionController.UpdateSLACheckQuestion)
 	complianceRoutes.DELETE("/slas/:slaId/checks/:checkId/questions/:id", SLACheckQuestionController.DeleteSLACheckQuestion)
