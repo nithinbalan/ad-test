@@ -49,6 +49,55 @@ func (scqc *SLACheckQuestionController) GetAllSLACheckQuestionGroups(c *gin.Cont
 	c.JSON(http.StatusOK, slaCheckQuestionGroups)
 }
 
+func (scqc *SLACheckQuestionController) CreateSLACheckQuestionGroup(c *gin.Context) {
+	var slaCheckQuestionGroupFormDTO complianceDTOs.SLACheckQuestionGroupFormDTO
+
+	slaIdStr := c.Param("slaId")
+
+	slaId, err := strconv.ParseUint(slaIdStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	checkIdStr := c.Param("checkId")
+
+	checkId, err := strconv.ParseUint(checkIdStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&slaCheckQuestionGroupFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(scqc.db, c, err.Error())
+		return
+	}
+
+	createdID, err := scqc.service.CreateQuestionGroup(uint(slaId), uint(checkId), currentUserID, &slaCheckQuestionGroupFormDTO)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(scqc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusCreated, commonDTOs.IDResponse{ID: createdID})
+}
+
 func (scqc *SLACheckQuestionController) UpdateSLACheckQuestionGroup(c *gin.Context) {
 	var slaCheckUpdateQuestionGroupDTO complianceDTOs.SLACheckUpdateQuestionGroupDTO
 

@@ -23,6 +23,11 @@ type SLACheckQuestionDetailDTO struct {
 	UpdatedAt               *time.Time               `json:"updated_at"`
 }
 
+type SLACheckQuestionGroupFormDTO struct {
+	TitleEn string `json:"title_en"`
+	TitleAr string `json:"title_ar"`
+}
+
 type SLACheckQuestionFormDTO struct {
 	QuestionGroupID      uint   `json:"question_group_id"`
 	QuestionGroupTitleEn string `json:"question_group_title_en"`
