@@ -16,9 +16,11 @@ import (
 
 type SLACheckQuestionServiceInterface interface {
 	GetAllQuestionGroups(slaID uint, checkID uint) ([]*complianceDTOs.SLACheckQuestionGroupListDTO, error)
+	GetQuestionGroupByID(slaID uint, checkID uint, groupID uint) (*complianceDTOs.SLACheckQuestionGroupDetailDTO, error)
 	CreateQuestionGroup(slaID uint, checkID uint, currentUserID uint, slaCheckQuestionGroupFormDTO *complianceDTOs.SLACheckQuestionGroupFormDTO) (uint, error)
 	UpdateQuestionGroup(slaID uint, checkID uint, groupID uint, currentUserID uint, slaCheckUpdateQuestionGroupDTO *complianceDTOs.SLACheckUpdateQuestionGroupDTO) error
 	DeleteQuestionGroup(slaID uint, checkID uint, questionGroupID uint, currentUserID uint) (uint, error)
+
 	GetQuestionsByGroupID(slaID uint, checkID uint, groupID uint) ([]complianceDTOs.SLACheckQuestionDetailDTO, error)
 
 	GetQuestionByID(id uint) (*models.SLACheckQuestion, error)
@@ -60,6 +62,28 @@ func (scqs *SLACheckQuestionService) GetAllQuestionGroups(slaID uint, checkID ui
 		return nil, err
 	}
 	return scqs.repo.GetAllQuestionGroups(checkID)
+}
+
+func (scqs *SLACheckQuestionService) GetQuestionGroupByID(slaID uint, checkID uint, groupID uint) (*complianceDTOs.SLACheckQuestionGroupDetailDTO, error) {
+	if _, err := scqs.slaRegisterSvc.GetByID(slaID); err != nil {
+		return nil, err
+	}
+
+	slaCheckQuestionGroup, err := scqs.repo.GetQuestionGroupByID(groupID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, groupID)
+		}
+		return nil, err
+	}
+
+	var slaCheckQuestionDTO complianceDTOs.SLACheckQuestionGroupDetailDTO
+	err = mapstructure.Decode(slaCheckQuestionGroup, &slaCheckQuestionDTO)
+	if err != nil {
+		return nil, err
+	}
+
+	return &slaCheckQuestionDTO, nil
 }
 
 func (scqs *SLACheckQuestionService) CreateQuestionGroup(slaID uint, checkID uint, currentUserID uint, slaCheckQuestionGroupFormDTO *complianceDTOs.SLACheckQuestionGroupFormDTO) (uint, error) {
@@ -367,36 +391,10 @@ func (scqs *SLACheckQuestionService) CreateQuestion(slaID uint, checkID uint, cu
 		return 0, err
 	}
 
-	var slaCheckQuestionGroupId uint
-	if slaCheckQuestionFormDTO.QuestionGroupID != 0 {
-		// Use the provided question group ID to fetch the title
-		group, err := scqs.questionGroupSvc.GetByID(slaCheckQuestionFormDTO.QuestionGroupID)
-		if err != nil {
-			return 0, err
-		}
-		// Use the title from the existing group
-		slaCheckQuestionFormDTO.QuestionGroupTitleEn = group.TitleEn
-		slaCheckQuestionFormDTO.QuestionGroupTitleAr = group.TitleAr
-	}
-	// Create a new SLACheckQuestionGroup
-	slaCheckQuestionGroup := &models.SLACheckQuestionGroup{
-		SLACheckID:  checkID,
-		TitleEn:     slaCheckQuestionFormDTO.QuestionGroupTitleEn,
-		TitleAr:     slaCheckQuestionFormDTO.QuestionGroupTitleAr,
-		CreatedByID: currentUserID,
-	}
-
-	groupID, err := scqs.repo.CreateQuestionGroup(slaCheckQuestionGroup)
-	if err != nil {
-		return 0, err
-	}
-
-	slaCheckQuestionGroupId = groupID
-
 	slaCheckQuestion := &models.SLACheckQuestion{
-		SLACheckQuestionGroupID: slaCheckQuestionGroupId,
-		TitleEn:                 slaCheckQuestionFormDTO.QuestionTitleEn,
-		TitleAr:                 slaCheckQuestionFormDTO.QuestionTitleAr,
+		SLACheckQuestionGroupID: slaCheckQuestionFormDTO.QuestionGroupID,
+		TitleEn:                 slaCheckQuestionFormDTO.TitleEn,
+		TitleAr:                 slaCheckQuestionFormDTO.TitleAr,
 		CreatedByID:             currentUserID,
 	}
 
@@ -406,7 +404,7 @@ func (scqs *SLACheckQuestionService) CreateQuestion(slaID uint, checkID uint, cu
 	}
 
 	// Update total count of the SLACheckQuestionGroup
-	err = scqs.repo.IncrementTotalCount(slaCheckQuestionGroupId)
+	err = scqs.repo.IncrementTotalCount(slaCheckQuestionFormDTO.QuestionGroupID)
 	if err != nil {
 		return 0, err
 	}
@@ -434,7 +432,7 @@ func (scqs *SLACheckQuestionService) CreateQuestion(slaID uint, checkID uint, cu
 		}
 	}()
 
-	return slaCheckQuestionGroupId, nil
+	return slaCheckQuestionId, nil
 }
 
 func (scqs *SLACheckQuestionService) UpdateQuestion(slaID uint, checkID uint, questionID uint, currentUserID uint, slaCheckUpdateQuestionDTO *complianceDTOs.SLACheckUpdateQuestionDTO) error {
