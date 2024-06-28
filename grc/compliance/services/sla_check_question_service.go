@@ -16,14 +16,17 @@ import (
 
 type SLACheckQuestionServiceInterface interface {
 	GetAllQuestionGroups(slaID uint, checkID uint) ([]*complianceDTOs.SLACheckQuestionGroupListDTO, error)
+	CreateQuestionGroup(slaID uint, checkID uint, currentUserID uint, slaCheckQuestionGroupFormDTO *complianceDTOs.SLACheckQuestionGroupFormDTO) (uint, error)
 	UpdateQuestionGroup(slaID uint, checkID uint, groupID uint, currentUserID uint, slaCheckUpdateQuestionGroupDTO *complianceDTOs.SLACheckUpdateQuestionGroupDTO) error
 	DeleteQuestionGroup(slaID uint, checkID uint, questionGroupID uint, currentUserID uint) (uint, error)
 	GetQuestionsByGroupID(slaID uint, checkID uint, groupID uint) ([]complianceDTOs.SLACheckQuestionDetailDTO, error)
+
 	GetQuestionByID(id uint) (*models.SLACheckQuestion, error)
 	ChooseQuestions(slaID uint, checkID uint, currentUserID uint, checklistQuestionIds []uint) ([]uint, error)
 	CreateQuestion(slaID uint, checkID uint, currentUserID uint, slaCheckQuestionFormDTO *complianceDTOs.SLACheckQuestionFormDTO) (uint, error)
 	UpdateQuestion(slaID uint, checkID uint, groupID uint, currentUserID uint, slaCheckUpdateQuestionDTO *complianceDTOs.SLACheckUpdateQuestionDTO) error
 	DeleteQuestion(slaID uint, checkId uint, questionId uint, currentUserID uint) (uint, error)
+
 	IncrementCompletedCount(groupID uint, tx utility.DatabaseTransaction) error
 }
 
@@ -57,6 +60,49 @@ func (scqs *SLACheckQuestionService) GetAllQuestionGroups(slaID uint, checkID ui
 		return nil, err
 	}
 	return scqs.repo.GetAllQuestionGroups(checkID)
+}
+
+func (scqs *SLACheckQuestionService) CreateQuestionGroup(slaID uint, checkID uint, currentUserID uint, slaCheckQuestionGroupFormDTO *complianceDTOs.SLACheckQuestionGroupFormDTO) (uint, error) {
+	if _, err := scqs.slaRegisterSvc.GetByID(slaID); err != nil {
+		return 0, err
+	}
+	// Create a new SLACheckQuestionGroup
+	slaCheckQuestionGroup := &models.SLACheckQuestionGroup{
+		SLACheckID:  checkID,
+		TitleEn:     slaCheckQuestionGroupFormDTO.QuestionGroupTitleEn,
+		TitleAr:     slaCheckQuestionGroupFormDTO.QuestionGroupTitleAr,
+		CreatedByID: currentUserID,
+	}
+
+	groupID, err := scqs.repo.CreateQuestionGroup(slaCheckQuestionGroup)
+	if err != nil {
+		return 0, err
+	}
+
+	go func() {
+		err := scqs.activityLogSvc.LogActivity(
+			models.CreateAction,
+			models.SLACheckQuestion{}.TableName(),
+			groupID,
+			slaCheckQuestionGroup,
+			currentUserID,
+			nil,
+		)
+
+		if err != nil {
+			fields := map[string]interface{}{
+				"action":    models.CreateAction,
+				"tableName": models.SLACheckQuestion{}.TableName(),
+				"recordID":  groupID,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			}
+
+			utility.LogError("Failed to log activity", fields)
+		}
+	}()
+
+	return groupID, nil
 }
 
 func (scqs *SLACheckQuestionService) UpdateQuestionGroup(slaID uint, checkID uint, groupID uint, currentUserID uint, slaCheckUpdateQuestionGroupDTO *complianceDTOs.SLACheckUpdateQuestionGroupDTO) error {
