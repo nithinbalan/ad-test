@@ -155,7 +155,7 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 		CreatedByID:            currentUserID,
 	}
 
-	_, err = caps.repo.CreateComplianceActionPlanStatusUpdate(complianceActionPlanUpdate, tx)
+	_, err = caps.repo.CreateInitialComplianceActionPlanStatusUpdate(complianceActionPlanUpdate, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err

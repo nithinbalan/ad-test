@@ -18,7 +18,8 @@ type ComplianceActionPlanRepositoryInterface interface {
 	Create(complianceActionPlan *models.ComplianceActionPlan, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(complianceActionPlan *models.ComplianceActionPlan, tx ...utility.DatabaseTransaction) error
 	Delete(id uint) error
-	CreateComplianceActionPlanStatusUpdate(complianceActionPlanStatusUpdate *models.ComplianceActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
+
+	CreateInitialComplianceActionPlanStatusUpdate(complianceActionPlanStatusUpdate *models.ComplianceActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
 	DeleteComplianceActionPlanStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error
 }
 
@@ -258,7 +259,7 @@ func (repo *ComplianceActionPlanRepository) Delete(id uint) error {
 	return nil
 }
 
-func (repo *ComplianceActionPlanRepository) CreateComplianceActionPlanStatusUpdate(complianceActionPlanStatusUpdate *models.ComplianceActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error) {
+func (repo *ComplianceActionPlanRepository) CreateInitialComplianceActionPlanStatusUpdate(complianceActionPlanStatusUpdate *models.ComplianceActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
