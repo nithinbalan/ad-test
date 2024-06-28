@@ -261,6 +261,32 @@ func (scqc *SLACheckQuestionController) GetSLACheckQuestionsByGroup(c *gin.Conte
 	c.JSON(http.StatusOK, slaCheckQuestions)
 }
 
+func (scqc *SLACheckQuestionController) GetSLACheckQuestionDetails(c *gin.Context) {
+	slaIDStr := c.Param("slaId")
+
+	slaID, err := strconv.ParseUint(slaIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	questionIdStr := c.Param("id")
+
+	questionId, err := strconv.ParseUint(questionIdStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	slaCheckQuestionGroups, err := scqc.service.GetQuestionByID(uint(slaID), uint(questionId))
+
+	if err != nil {
+		utility.SendInternalErrResp(scqc.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, slaCheckQuestionGroups)
+}
+
 func (scqc *SLACheckQuestionController) ChooseSLACheckQuestions(c *gin.Context) {
 	var request struct {
 		ChecklistQuestionIDs []uint `json:"checklist_question_ids"`

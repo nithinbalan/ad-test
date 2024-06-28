@@ -107,7 +107,7 @@ func (saps *SLAActionPlanService) Create(slaID uint, currentUserID uint, slaActi
 		return 0, err
 	}
 
-	if err := saps.validateSLAActionPlanFormDTO(slaActionPlanFormDTO); err != nil {
+	if err := saps.validateSLAActionPlanFormDTO(slaID, slaActionPlanFormDTO); err != nil {
 		return 0, err
 	}
 
@@ -173,7 +173,7 @@ func (saps *SLAActionPlanService) Update(slaID uint, id uint, currentUserID uint
 		return err
 	}
 
-	if err := saps.validateSLAActionPlanFormDTO(slaActionPlanFormDTO); err != nil {
+	if err := saps.validateSLAActionPlanFormDTO(slaID, slaActionPlanFormDTO); err != nil {
 		return err
 	}
 
@@ -266,7 +266,7 @@ func (saps *SLAActionPlanService) StatusUpdate(slaID uint, id uint, currentUserI
 	return nil
 }
 
-func (saps *SLAActionPlanService) validateSLAActionPlanFormDTO(slaActionPlanFormDTO *complianceDTOs.SLAActionPlanFormDTO) error {
+func (saps *SLAActionPlanService) validateSLAActionPlanFormDTO(slaID uint, slaActionPlanFormDTO *complianceDTOs.SLAActionPlanFormDTO) error {
 
 	if slaActionPlanFormDTO.SeverityLevelID != nil {
 		if _, err := saps.severityLevelSvc.GetByID(*slaActionPlanFormDTO.SeverityLevelID); err != nil {
@@ -275,7 +275,7 @@ func (saps *SLAActionPlanService) validateSLAActionPlanFormDTO(slaActionPlanForm
 	}
 
 	if slaActionPlanFormDTO.SLACheckQuestionID != nil {
-		if _, err := saps.slaCheckQuestionSvc.GetQuestionByID(*slaActionPlanFormDTO.SLACheckQuestionID); err != nil {
+		if _, err := saps.slaCheckQuestionSvc.GetQuestionByID(slaID, *slaActionPlanFormDTO.SLACheckQuestionID); err != nil {
 			return utility.NewValidationError(fmt.Errorf("SLA requirement does not exist"), "not_exist", "SLA requirement")
 		}
 	}
