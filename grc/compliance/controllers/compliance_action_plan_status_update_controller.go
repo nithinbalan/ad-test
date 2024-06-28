@@ -163,3 +163,35 @@ func (casuc *ComplianceActionPlanStatusUpdateController) UpdateComplianceActionP
 
 	c.Status(http.StatusOK)
 }
+
+func (casuc *ComplianceActionPlanStatusUpdateController) GetLatestComplianceActionPlanStatusUpdate(c *gin.Context) {
+	complianceIDStr := c.Param("complianceId")
+
+	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	actionPlanIDStr := c.Param("actionPlanId")
+
+	actionPlanID, err := strconv.ParseUint(actionPlanIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	complianceActionPlanStatusUpdate, err := casuc.service.GetLatestComplianceActionPlanStatusUpdate(uint(complianceID), uint(actionPlanID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(casuc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, complianceActionPlanStatusUpdate)
+}

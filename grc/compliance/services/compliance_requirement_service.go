@@ -182,7 +182,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		CreatedByID:             currentUserID,
 	}
 
-	_, err = crs.repo.CreateComplianceRequirementStatusUpdate(complianceRequirementUpdate, tx)
+	_, err = crs.repo.CreateInitialComplianceRequirementStatusUpdate(complianceRequirementUpdate, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err

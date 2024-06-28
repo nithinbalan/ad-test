@@ -19,6 +19,8 @@ type ComplianceActionPlanStatusUpdateRepositoryInterface interface {
 	CreateDocuments(docs []*models.ComplianceActionPlanStatusUpdateDocument, tx ...utility.DatabaseTransaction) error
 	GetDocumentByID(id uint) (*models.ComplianceActionPlanStatusUpdateDocument, error)
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
+
+	GetLatestComplianceActionPlanStatusUpdate(complianceActionPlanID uint) (*complianceDTOs.ComplianceActionPlanStatusUpdateListDTO, error)
 }
 
 type ComplianceActionPlanStatusUpdateRepository struct {
@@ -158,4 +160,50 @@ func (repo *ComplianceActionPlanStatusUpdateRepository) DeleteDocuments(docIds [
 	}
 
 	return nil
+}
+
+func (repo *ComplianceActionPlanStatusUpdateRepository) GetLatestComplianceActionPlanStatusUpdate(complianceActionPlanID uint) (*complianceDTOs.ComplianceActionPlanStatusUpdateListDTO, error) {
+
+	var complianceActionPlanUpdate *complianceDTOs.ComplianceActionPlanStatusUpdateListDTO
+
+	query := repo.db.Table("compliance_action_plan_status_updates").
+		Select(`
+            compliance_action_plan_status_updates.*,
+            compliance_action_plans.title AS compliance_action_plan_title,
+            action_plan_statuses.title_en AS action_plan_status_title_en,
+            action_plan_statuses.title_ar AS action_plan_status_title_ar,
+            action_plan_statuses.color_code AS action_plan_status_color_code,
+        	created_user.first_name_en AS created_user_first_name_en,
+        	created_user.first_name_ar AS created_user_first_name_ar,
+        	created_user.last_name_en AS created_user_last_name_en,
+        	created_user.last_name_ar AS created_user_last_name_ar,   
+        	created_user.initial AS created_user_initial,
+        	created_user.color AS created_user_color,
+        	created_user.email AS created_user_email,
+        	created_user.profile_image_path AS created_user_profile_image_path,   
+			updated_user.first_name_en AS updated_user_first_name_en,
+        	updated_user.first_name_ar AS updated_user_first_name_ar,
+        	updated_user.last_name_en AS updated_user_last_name_en,
+        	updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+        	updated_user.color AS updated_user_color,
+        	updated_user.email AS updated_user_email,
+        	updated_user.profile_image_path AS updated_user_profile_image_path
+        `).
+		Joins(`
+            LEFT JOIN compliance_action_plans ON compliance_action_plans.id = compliance_action_plan_status_updates.compliance_action_plan_id
+            LEFT JOIN action_plan_statuses ON action_plan_statuses.id = compliance_action_plan_status_updates.action_plan_status_id
+            LEFT JOIN users AS created_user ON created_user.id = compliance_action_plan_status_updates.created_by_id
+            LEFT JOIN users AS updated_user ON updated_user.id = compliance_action_plan_status_updates.updated_by_id
+        `).
+		Where("compliance_action_plan_status_updates.compliance_action_plan_id = ?", complianceActionPlanID).
+		Order("compliance_action_plan_status_updates.created_at DESC").
+		First(&complianceActionPlanUpdate)
+
+	if query.Error != nil {
+		return nil, query.Error
+	}
+
+	return complianceActionPlanUpdate, nil
+
 }
