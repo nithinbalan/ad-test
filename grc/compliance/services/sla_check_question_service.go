@@ -69,8 +69,8 @@ func (scqs *SLACheckQuestionService) CreateQuestionGroup(slaID uint, checkID uin
 	// Create a new SLACheckQuestionGroup
 	slaCheckQuestionGroup := &models.SLACheckQuestionGroup{
 		SLACheckID:  checkID,
-		TitleEn:     slaCheckQuestionGroupFormDTO.QuestionGroupTitleEn,
-		TitleAr:     slaCheckQuestionGroupFormDTO.QuestionGroupTitleAr,
+		TitleEn:     slaCheckQuestionGroupFormDTO.TitleEn,
+		TitleAr:     slaCheckQuestionGroupFormDTO.TitleAr,
 		CreatedByID: currentUserID,
 	}
 

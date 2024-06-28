@@ -24,8 +24,8 @@ type SLACheckQuestionDetailDTO struct {
 }
 
 type SLACheckQuestionGroupFormDTO struct {
-	QuestionGroupTitleEn string `json:"question_group_title_en"`
-	QuestionGroupTitleAr string `json:"question_group_title_ar"`
+	TitleEn string `json:"title_en"`
+	TitleAr string `json:"title_ar"`
 }
 
 type SLACheckQuestionFormDTO struct {
