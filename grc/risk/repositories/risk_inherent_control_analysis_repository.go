@@ -16,6 +16,7 @@ type RiskInherentControlAnalysisRepositoryInterface interface {
 	Update(riskControlAnalysis *models.RiskControlAnalysis, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	GetAllControlsByRiskID(riskID uint) ([]*models.RiskControl, error)
+	GetControlSummary(riskID uint) ([]models.RiskControlAnalysis, error)
 }
 
 type RiskInherentControlAnalysisRepository struct {
@@ -164,4 +165,19 @@ func (repo *RiskInherentControlAnalysisRepository) GetAllControlsByRiskID(riskID
 	}
 
 	return riskControls, nil
+}
+
+func (repo *RiskInherentControlAnalysisRepository) GetControlSummary(riskID uint) ([]models.RiskControlAnalysis, error) {
+	var riskControlAnalyses []models.RiskControlAnalysis
+
+	result := repo.db.
+		Preload("ControlEfficiencyStatus").
+		Preload("ControlImplementationStatus").
+		Where("risk_control_id = ?", riskID).
+		Find(&riskControlAnalyses)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return riskControlAnalyses, nil
 }
