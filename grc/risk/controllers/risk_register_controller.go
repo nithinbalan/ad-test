@@ -197,3 +197,43 @@ func (rrc *RiskRegisterController) DeleteRiskRegisters(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
+
+func (rrc *RiskRegisterController) UpdateResponseStrategy(c *gin.Context) {
+	var riskResponseStrategyFormDTO riskDTOs.RiskResponseStrategyFormDTO
+
+	riskIDStr := c.Param("riskId")
+
+	riskID, err := strconv.ParseUint(riskIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&riskResponseStrategyFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(rrc.db, c, err.Error())
+		return
+	}
+
+	err = rrc.service.UpdateResponseStrategy(uint(riskID), currentUserID, &riskResponseStrategyFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(rrc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
