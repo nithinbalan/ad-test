@@ -176,3 +176,18 @@ func (rcac *RiskInherentControlAnalysisController) DeleteRiskControlAnalyses(c *
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
+
+func (rcac *RiskInherentControlAnalysisController) GetRiskControlSummary(c *gin.Context) {
+	riskID, err := strconv.Atoi(c.Param("riskId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	risk, err := rcac.service.GetControlSummary(uint(riskID))
+	if err != nil {
+		utility.SendInternalErrResp(rcac.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, risk)
+}

@@ -21,6 +21,7 @@ type RiskInherentControlAnalysisServiceInterface interface {
 	Create(riskID uint, currentUserID uint) error
 	Update(riskID uint, id uint, currentUserID uint, controlTestFormDTO *organizationDTOs.ControlTestFormDTO) error
 	Delete(riskID uint, ids []uint, currentUserID uint) ([]uint, error)
+	GetControlSummary(id uint) (map[string]interface{}, error)
 }
 
 // Service and implementations
@@ -180,4 +181,75 @@ func (rcas *RiskInherentControlAnalysisService) Delete(riskID uint, ids []uint, 
 	}
 
 	return failedIds, nil
+}
+func (rcas *RiskInherentControlAnalysisService) GetControlSummary(riskID uint) (map[string]interface{}, error) {
+	riskControlAnalyses, err := rcas.repo.GetControlSummary(riskID)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(riskControlAnalyses) == 0 {
+		return map[string]interface{}{
+			"total_control_score":       0,
+			"implementation_status":     []map[string]interface{}{},
+			"efficiency_percentage":     0,
+			"implementation_percentage": 0,
+			"total_efficiency":          []map[string]interface{}{},
+			"total_control_count":       0,
+		}, nil
+	}
+
+	implementationStatusCount := make(map[string]int)
+	efficiencyStatusCount := make(map[string]int)
+	implementationDetails := make(map[string]models.ControlImplementationStatus)
+	efficiencyDetails := make(map[string]models.ControlEfficiencyStatus)
+
+	for _, rca := range riskControlAnalyses {
+		implStatus := rca.ControlImplementationStatus.Type
+		implementationStatusCount[implStatus]++
+		implementationDetails[implStatus] = *rca.ControlImplementationStatus
+
+		effStatus := rca.ControlEfficiencyStatus.Type
+		efficiencyStatusCount[effStatus]++
+		efficiencyDetails[effStatus] = *rca.ControlEfficiencyStatus
+	}
+
+	totalControls := len(riskControlAnalyses)
+
+	implementationStatus := make([]map[string]interface{}, 0)
+	for status, count := range implementationStatusCount {
+		implDetail := implementationDetails[status]
+		implementationStatus = append(implementationStatus, map[string]interface{}{
+			"id":         implDetail.ID,
+			"type":       implDetail.Type,
+			"title_en":   implDetail.TitleEn,
+			"title_ar":   implDetail.TitleAr,
+			"count":      count,
+			"color_code": implDetail.ColorCode,
+		})
+	}
+
+	efficiencyStatus := make([]map[string]interface{}, 0)
+	for status, count := range efficiencyStatusCount {
+		effDetail := efficiencyDetails[status]
+		efficiencyStatus = append(efficiencyStatus, map[string]interface{}{
+			"id":         effDetail.ID,
+			"type":       effDetail.Type,
+			"title_en":   effDetail.TitleEn,
+			"title_ar":   effDetail.TitleAr,
+			"count":      count,
+			"color_code": effDetail.ColorCode,
+		})
+	}
+
+	summary := map[string]interface{}{
+		"total_control_score":       (float64(implementationStatusCount["implemented"]) / float64(totalControls)) * 100,
+		"implementation_status":     implementationStatus,
+		"efficiency_percentage":     (float64(efficiencyStatusCount["efficient"]) / float64(totalControls)) * 100,
+		"implementation_percentage": (float64(implementationStatusCount["implemented"]) / float64(totalControls)) * 100,
+		"total_efficiency":          efficiencyStatus,
+		"total_control_count":       totalControls,
+	}
+
+	return summary, nil
 }
