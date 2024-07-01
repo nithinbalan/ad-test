@@ -50,6 +50,7 @@ type IncidentPostReviewFormDTO struct {
 }
 
 type IncidentPostReviewDetailDTO struct {
+	ID                              uint                                   `json:"id"`
 	IncidentRegister                IncidentRegisterDetailDTO              `json:"incident_register"`
 	IncidentPostReviewEffectiveness IncidentPostReviewEffectivenessDTO     `json:"incident_post_review_effectiveness_id"`
 	Summary                         *string                                `json:"summary"`
