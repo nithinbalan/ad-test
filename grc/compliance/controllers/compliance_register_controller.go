@@ -313,5 +313,15 @@ func (crc *ComplianceRegisterController) DownloadComplianceRegisterDocument(c *g
 	}
 	filename := filepath.Base(complianceDocumentPath)
 
-	c.FileAttachment(complianceDocumentPath, filename)
+	// Set the content type and disposition headers for the file download
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Type", "application/octet-stream")
+	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Header("Content-Transfer-Encoding", "binary")
+	c.Header("Expires", "0")
+	c.Header("Cache-Control", "must-revalidate")
+	c.Header("Pragma", "public")
+
+	// Serve the file
+	c.File(complianceDocumentPath)
 }
