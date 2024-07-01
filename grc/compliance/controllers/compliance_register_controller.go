@@ -6,6 +6,7 @@ import (
 	"jethur/grc/compliance/services"
 	"jethur/utility"
 	"net/http"
+	"path/filepath"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -284,4 +285,33 @@ func (crc *ComplianceRegisterController) GetComplianceRegisterDocumentPreview(c 
 		return
 	}
 	c.File(complianceDocumentPath)
+}
+
+func (crc *ComplianceRegisterController) DownloadComplianceRegisterDocument(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	complianceDocumentPath, err := crc.service.GetDocumentPath(uint(id), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(crc.db, c, err.Error())
+		}
+		return
+	}
+	filename := filepath.Base(complianceDocumentPath)
+
+	c.FileAttachment(complianceDocumentPath, filename)
 }
