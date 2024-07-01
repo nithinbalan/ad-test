@@ -72,8 +72,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.GET("/compliance-review-statuses/:id", complianceReviewStatusController.GetComplianceReviewStatusDetails)
 
 	//Compliance Register
-	unauthenticatedRoutes.GET("/compliance-register/:id/document/preview", complianceRegisterController.GetComplianceRegisterDocumentPreview)
-	unauthenticatedRoutes.GET("/compliance-register/:id/document/download", complianceRegisterController.DownloadComplianceRegisterDocument)
+	unauthenticatedRoutes.GET("/compliance-register/:id/document-preview", complianceRegisterController.GetComplianceRegisterDocumentPreview)
+	complianceRoutes.GET("/compliance-register/:id/document-download", complianceRegisterController.DownloadComplianceRegisterDocument)
 	complianceRoutes.GET("/compliance-register", complianceRegisterController.GetAllComplianceRegisters)
 	complianceRoutes.GET("/compliance-register/:id", complianceRegisterController.GetComplianceRegisterDetails)
 	complianceRoutes.POST("/compliance-register", complianceRegisterController.CreateComplianceRegister)
