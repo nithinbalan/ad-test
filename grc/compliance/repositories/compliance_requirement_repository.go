@@ -19,7 +19,6 @@ type ComplianceRequirementRepositoryInterface interface {
 	GetByID(id uint) (*models.ComplianceRequirement, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceRequirement, error)
 	Create(complianceRequirement *models.ComplianceRequirement, tx ...utility.DatabaseTransaction) (uint, error)
-	CreateComplianceRequirementStatusUpdate(complianceRequirementStatusUpdate *models.ComplianceRequirementStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(complianceRequirement *models.ComplianceRequirement, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	GetOrCreateComplianceClause(complianceClause *models.ComplianceClause, tx ...utility.DatabaseTransaction) (*models.ComplianceClause, error)
@@ -30,6 +29,8 @@ type ComplianceRequirementRepositoryInterface interface {
 	DeleteComplianceRequirementControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error
 	CreateComplianceRequirementStrategicObjectives(objectives []*models.ComplianceRequirementStrategicObjective, tx ...utility.DatabaseTransaction) error
 	DeleteComplianceRequirementStrategicObjectives(objectiveIds []*uint, tx ...utility.DatabaseTransaction) error
+
+	CreateInitialComplianceRequirementStatusUpdate(complianceRequirementStatusUpdate *models.ComplianceRequirementStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
 	DeleteComplianceRequirementStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error
 }
 
@@ -418,7 +419,7 @@ func (repo *ComplianceRequirementRepository) Create(complianceRequirement *model
 	return complianceRequirement.ID, nil
 }
 
-func (repo *ComplianceRequirementRepository) CreateComplianceRequirementStatusUpdate(complianceRequirementStatusUpdate *models.ComplianceRequirementStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error) {
+func (repo *ComplianceRequirementRepository) CreateInitialComplianceRequirementStatusUpdate(complianceRequirementStatusUpdate *models.ComplianceRequirementStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()

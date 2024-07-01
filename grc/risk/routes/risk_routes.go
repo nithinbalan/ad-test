@@ -40,6 +40,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskResponseStrategyController := app.RiskModule.RiskResponseStrategyController
 	riskTreatmentGuidelineController := app.RiskModule.RiskTreatmentGuidelineController
 	riskHeatmapController := app.RiskModule.RiskHeatmapController
+	riskInherentControlAnalysisController := app.RiskModule.RiskInherentControlAnalysisController
 
 	riskRoutes.GET("/risk-categories", riskCategoryController.GetAllRiskCategories)
 	riskRoutes.GET("/risk-categories/:id", riskCategoryController.GetRiskCategoryDetails)
@@ -170,6 +171,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.GET("risks/:riskId/compliance-requirements", riskAssociatedItemController.GetAllRiskComplianceRequirements)
 	riskRoutes.GET("risks/:riskId/processes", riskAssociatedItemController.GetAllRiskProcesses)
 
+	riskRoutes.PUT("/risks/:riskId/response-strategy", riskRegisterController.UpdateResponseStrategy)
 	// Risk Action Plan
 	riskRoutes.GET("/risk-action-plans", riskActionPlanController.GetAllRiskActionPlans)
 	riskRoutes.GET("/risks/:riskId/action-plans", riskActionPlanController.GetAllRiskActionPlans)
@@ -200,6 +202,15 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.PUT("/risk-response-strategies/activate", riskResponseStrategyController.ActivateRiskResponseStrategies)
 	riskRoutes.PUT("/risk-response-strategies/deactivate", riskResponseStrategyController.DeactivateRiskResponseStrategies)
 
+	// Risk Heat Map
 	riskRoutes.GET("processes/:processId/risk-heatmap", riskHeatmapController.GetProcessRiskHeatmap)
+
+	//Risk Control Analysis
+	riskRoutes.GET("risks/:riskId/inherent-control-analysis", riskInherentControlAnalysisController.GetAllRiskControlAnalyses)
+	riskRoutes.POST("risks/:riskId/inherent-control-analysis", riskInherentControlAnalysisController.CreateRiskControlAnalysis)
+	riskRoutes.PUT("risks/:riskId/inherent-control-analysis/:id", riskInherentControlAnalysisController.UpdateRiskControlAnalysis)
+	riskRoutes.POST("risks/:riskId/inherent-control-analysis/delete", riskInherentControlAnalysisController.DeleteRiskControlAnalyses)
+
+	riskRoutes.GET("risks/:riskId/inherent-control-analysis/control-summary", riskInherentControlAnalysisController.GetRiskControlSummary)
 
 }

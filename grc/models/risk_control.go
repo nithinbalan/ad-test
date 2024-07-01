@@ -12,9 +12,10 @@ type RiskControl struct {
 	CreatedAt      time.Time `json:"created_at" gorm:"type:datetime;not null"`
 
 	// Relationships
-	RiskRegister  *RiskRegister `gorm:"foreignKey:RiskRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	Control       *Control      `gorm:"foreignKey:ControlID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser *User         `gorm:"foreignKey:CreatedByID"`
+	RiskRegister        *RiskRegister        `gorm:"foreignKey:RiskRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Control             *Control             `gorm:"foreignKey:ControlID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	CreatedByUser       *User                `gorm:"foreignKey:CreatedByID"`
+	RiskControlAnalysis *RiskControlAnalysis `gorm:"foreignKey:RiskControlID"`
 }
 
 func (RiskControl) TableName() string {

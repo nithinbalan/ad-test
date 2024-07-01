@@ -189,6 +189,20 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 		return 0, err
 	}
 
+	complianceStatusID := complianceRegisterFormDTO.ComplianceStatusID
+	complianceStatusUpdate := &models.ComplianceStatusUpdate{
+		ComplianceRegisterID: id,
+		ComplianceStatusID:   complianceStatusID,
+		Comment:              "Initial compliance status",
+		CreatedByID:          currentUserID,
+	}
+
+	_, err = crs.repo.CreateInitialComplianceStatusUpdate(complianceStatusUpdate, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
 	// Save Controls
 	var controls []*models.ComplianceControl
 	for _, ctrl := range complianceRegisterFormDTO.ControlIDs {
@@ -457,6 +471,17 @@ func (crs *ComplianceRegisterService) Delete(ids []uint, currentUserID uint) ([]
 			}
 		}
 
+		if len(complianceRegister.ComplianceStatusUpdates) > 0 {
+			var deleteStatusUpdateIds []*uint
+			for _, update := range complianceRegister.ComplianceStatusUpdates {
+				deleteStatusUpdateIds = append(deleteStatusUpdateIds, &update.ID)
+			}
+			if err := crs.repo.DeleteComplianceStatusUpdates(deleteStatusUpdateIds, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+		}
+
 		// Delete each Compliance document if documents exist
 		if len(complianceRegister.Documents) > 0 {
 			var deleteDocumentIds []*uint
@@ -649,28 +674,18 @@ func (crs *ComplianceRegisterService) validateComplianceRegisterFormDTO(complian
 
 	//Controls exist
 	controls := complianceRegisterFormDTO.ControlIDs
-	// If no controls are provided, simply return nil to exit the function
-	if len(controls) == 0 {
-		return nil
-	}
 
-	// Create a map to store control IDs
 	controlIDs := make(map[uint]bool)
 
-	// Check if each control exists
 	for _, control := range controls {
-		// Check if the control ID already exists in the map
 		if controlIDs[*control] {
-			// If the control ID already exists, return a validation error
 			return utility.NewValidationError(fmt.Errorf("duplicate control ID: %d", control), "duplicate", "control")
 		}
 
-		// Check if the control exists in the database
 		if _, err := crs.controlSvc.GetByID(*control); err != nil {
 			return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", control), "not_exist", "control")
 		}
 
-		// Add the control ID to the map
 		controlIDs[*control] = true
 	}
 
@@ -760,7 +775,7 @@ func (crs *ComplianceRegisterService) GetDocumentPath(id uint, token string) (st
 		return "", fmt.Errorf("resource not found!")
 	}
 
-	stoargePath :=filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(id), 10), "documents")
+	stoargePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(id), 10), "documents")
 
 	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
 	fullPath := filepath.Join(baseStoragePath, stoargePath, decryptedFilename)

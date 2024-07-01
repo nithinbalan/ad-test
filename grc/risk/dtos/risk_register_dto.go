@@ -142,3 +142,7 @@ type RiskRegisterParsedDates struct {
 	ReportedAt     *time.Time
 	NextReviewDate *time.Time
 }
+
+type RiskResponseStrategyFormDTO struct {
+	RiskResponseStrategyID uint `json:"risk_response_strategy_id" binding:"required"`
+}

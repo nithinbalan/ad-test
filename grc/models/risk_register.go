@@ -20,6 +20,7 @@ type RiskRegister struct {
 	CurrentRiskRatingID      *uint      `json:"current_risk_rating_id" gorm:"default:null"`
 	CurrentRiskRatingValueID *uint      `json:"current_risk_rating_value_id" gorm:"default:null"`
 	ReviewFrequencyID        *uint      `json:"review_frequency_id"`
+	RiskResponseStrategyID   *uint      `json:"risk_response_strategy_id"`
 	NextReviewDate           *time.Time `json:"next_review_date"`
 	Comments                 *string    `json:"comments" gorm:"type:nvarchar(max)"`
 	CreatedByID              uint       `json:"created_by_id" binding:"required"`
@@ -33,6 +34,7 @@ type RiskRegister struct {
 	OwnerUnit                 *OrganizationUnit            `gorm:"foreignKey:OwnerUnitID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	Owner                     *User                        `gorm:"foreignKey:OwnerID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	ReviewFrequency           *ReviewFrequency             `gorm:"foreignKey:ReviewFrequencyID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	RiskResponseStrategy      *RiskResponseStrategy        `gorm:"foreignKey:RiskResponseStrategyID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	RiskMatrixLikelihood      *RiskMatrixLikelihood        `gorm:"foreignKey:CurrentLikelihoodID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	RiskMatrixImpact          *RiskMatrixImpact            `gorm:"foreignKey:CurrentImpactID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	RiskMatrixRiskRating      *RiskMatrixRiskRating        `gorm:"foreignKey:CurrentRiskRatingID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`

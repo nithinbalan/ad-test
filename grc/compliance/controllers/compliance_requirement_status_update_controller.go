@@ -163,3 +163,35 @@ func (crsuc *ComplianceRequirementStatusUpdateController) UpdateComplianceRequir
 
 	c.Status(http.StatusOK)
 }
+
+func (csuc *ComplianceRequirementStatusUpdateController) GetLatestComplianceRequirementStatusUpdate(c *gin.Context) {
+	complianceIDStr := c.Param("complianceId")
+
+	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	requirementIdStr := c.Param("requirementId")
+
+	requirementId, err := strconv.ParseUint(requirementIdStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	complianceRequirementStatusUpdate, err := csuc.service.GetLatestComplianceRequirementStatusUpdate(uint(complianceID), uint(requirementId))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(csuc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, complianceRequirementStatusUpdate)
+}
