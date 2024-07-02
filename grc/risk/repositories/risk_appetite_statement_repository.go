@@ -217,17 +217,17 @@ func (repo *RiskAppetiteStatementRepository) GetAllByCategories(params *riskDTOs
 	for _, grouped := range riskStatements {
 		for _, statement := range grouped.Statements {
 			// Initialize the Risks field to an empty slice
-			// statement.Risks = []*riskDTOs.RiskRegisterListDTO{}
 
 			var risks []*riskDTOs.RiskRegisterListDTO
 			err := repo.db.Table("risk_register").
-				Where("risk_category_id = ?", statement.RiskCategoryID).
 				Limit(2).Find(&risks).Error
 			if err != nil {
 				return nil, err
 			}
 			if len(risks) == 0 {
 				statement.Risks = []*riskDTOs.RiskRegisterListDTO{}
+			} else {
+				statement.Risks = risks
 			}
 		}
 		response = append(response, grouped)
