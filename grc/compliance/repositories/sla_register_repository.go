@@ -32,6 +32,9 @@ type SLARegisterRepositoryInterface interface {
 	GetDocumentByID(id uint) (*models.SLADocument, error)
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
 	GetLatestDocumentBySLAID(id uint) (*models.SLADocument, error)
+
+	CreateSLAProcesses(processes []*models.SLAProcess, tx ...utility.DatabaseTransaction) error
+	DeleteSLAProcesses(processIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 // implementation
@@ -260,6 +263,7 @@ func (repo *SLARegisterRepository) GetFullDetailsByID(id uint, tx ...utility.Dat
 		Preload("ComplianceStatus").
 		Preload("Documents").
 		Preload("Checks").
+		Preload("Processes").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&slaRegister, id)
@@ -420,4 +424,29 @@ func (repo *SLARegisterRepository) GetLatestDocumentBySLAID(id uint) (*models.SL
 		return nil, err
 	}
 	return &document, nil
+}
+
+func (repo *SLARegisterRepository) CreateSLAProcesses(processes []*models.SLAProcess, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&processes).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *SLARegisterRepository) DeleteSLAProcesses(processIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Delete processes by IDs
+	if err := db.Where("id IN (?)", processIds).Delete(&models.SLAProcess{}).Error; err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -8,6 +8,7 @@ import (
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
+	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
 	"path/filepath"
 	"strconv"
@@ -34,6 +35,7 @@ type SLARegisterService struct {
 	severityLevelSvc   masterServices.SeverityLevelServiceInterface
 	lifecycleStatusSvc masterServices.LifecycleStatusServiceInterface
 	activityLogSvc     logServices.ActivityLogServiceInterface
+	processSvc         organizationServices.ProcessServiceInterface
 }
 
 func NewSLARegisterService(
@@ -41,13 +43,15 @@ func NewSLARegisterService(
 	slaCategorySvc SLACategoryServiceInterface,
 	severityLevelSvc masterServices.SeverityLevelServiceInterface,
 	lifecycleStatusSvc masterServices.LifecycleStatusServiceInterface,
-	activityLogSvc logServices.ActivityLogServiceInterface) SLARegisterServiceInterface {
+	activityLogSvc logServices.ActivityLogServiceInterface,
+	processSvc organizationServices.ProcessServiceInterface) SLARegisterServiceInterface {
 	return &SLARegisterService{
 		repo:               repo,
 		slaCategorySvc:     slaCategorySvc,
 		severityLevelSvc:   severityLevelSvc,
 		lifecycleStatusSvc: lifecycleStatusSvc,
 		activityLogSvc:     activityLogSvc,
+		processSvc:         processSvc,
 	}
 }
 
@@ -134,6 +138,23 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *co
 	if err != nil {
 		tx.Rollback()
 		return 0, err
+	}
+	// Save Processes
+	var processes []*models.SLAProcess
+	for _, processID := range slaRegisterFormDTO.ProcessIDs {
+		process := &models.SLAProcess{
+			SLARegisterID: id,
+			ProcessID:     *processID,
+			CreatedByID:   currentUserID,
+		}
+		processes = append(processes, process)
+	}
+
+	if len(processes) > 0 {
+		if err := srs.repo.CreateSLAProcesses(processes, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
 	}
 
 	slaCheck := &models.SLACheck{
@@ -246,6 +267,62 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 		return err
 	}
 
+	existingSLA, err := srs.GetFullDetailsByID(id, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	existingProcessIDs := make(map[uint]bool)
+	for _, proc := range existingSLA.Processes {
+		existingProcessIDs[proc.ProcessID] = true
+	}
+
+	// Collect new process IDs
+	newProcessIDs := make(map[uint]bool)
+	for _, proc := range slaRegisterFormDTO.ProcessIDs {
+		newProcessIDs[*proc] = true
+	}
+
+	// Add new processes
+	var processesToAdd []*models.SLAProcess
+	for _, newProcessID := range slaRegisterFormDTO.ProcessIDs {
+		if _, exists := existingProcessIDs[*newProcessID]; !exists {
+			// Create a new sla process record
+			process := &models.SLAProcess{
+				SLARegisterID: id,
+				ProcessID:     *newProcessID,
+				CreatedByID:   currentUserID,
+			}
+			processesToAdd = append(processesToAdd, process)
+		}
+	}
+
+	// Save the new processes
+	if len(processesToAdd) > 0 {
+		if err := srs.repo.CreateSLAProcesses(processesToAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// Remove processes not in the new list
+	var deleteProcessIDs []*uint
+
+	for _, existingProcess := range existingSLA.Processes {
+		if _, exists := newProcessIDs[existingProcess.ProcessID]; !exists {
+			// Append process to delete list
+			deleteProcessIDs = append(deleteProcessIDs, existingProcess.ID)
+		}
+	}
+
+	// Delete processes not in the new list
+	if len(deleteProcessIDs) > 0 {
+		if err := srs.repo.DeleteSLAProcesses(deleteProcessIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
 	existingSLADocument, err := srs.repo.GetLatestDocumentBySLAID(id)
 	if err != nil {
 		return err
@@ -337,7 +414,17 @@ func (srs *SLARegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 			tx.Rollback()
 			return nil, err
 		}
-
+		// Check if controls exist
+		if len(slaRegister.Processes) > 0 {
+			var deleteProcessIDs []*uint
+			for _, process := range slaRegister.Processes {
+				deleteProcessIDs = append(deleteProcessIDs, process.ID)
+			}
+			if err := srs.repo.DeleteSLAProcesses(deleteProcessIDs, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+		}
 		// Delete each SLA document if documents exist
 		if len(slaRegister.Documents) > 0 {
 			var deleteDocumentIds []*uint
@@ -495,6 +582,21 @@ func (srs *SLARegisterService) validateSLARegisterFormDTO(slaRegisterFormDTO *co
 		if _, err := srs.severityLevelSvc.GetByID(slaRegisterFormDTO.SeverityLevelID); err != nil {
 			return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
 		}
+	}
+	processIds := slaRegisterFormDTO.ProcessIDs
+
+	processIDs := make(map[uint]bool)
+
+	for _, processId := range processIds {
+		if processIDs[*processId] {
+			return utility.NewValidationError(fmt.Errorf("duplicate process ID: %d", processId), "duplicate", "process")
+		}
+
+		if _, err := srs.processSvc.GetByID(*processId); err != nil {
+			return utility.NewValidationError(fmt.Errorf("process does not exist for ID: %d", processId), "not_exist", "process")
+		}
+
+		processIDs[*processId] = true
 	}
 
 	return nil

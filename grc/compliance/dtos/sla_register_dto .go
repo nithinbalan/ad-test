@@ -108,6 +108,7 @@ type SLARegisterFormDTO struct {
 	SA2Date           string             `json:"sa2_date" binding:"omitempty,datetime=2006-01-02"`
 	Comment           *string            `json:"comment"`
 	Document          SLADocumentFormDTO `json:"document" binding:"required"`
+	ProcessIDs        []*uint            `json:"process_ids"`
 }
 
 type SLADocumentFormDTO struct {
@@ -164,6 +165,7 @@ type SLARegisterDetailDTO struct {
 	UpdatedByUser    *organizationDTOs.UserMinimalDTO `json:"updated_by,omitempty"`
 	Documents        []*SLADocumentDTO                `json:"documents"`
 	Checks           []*SLAChecksDTO                  `json:"checks"`
+	Processes        []*SLAProcessDTO                 `json:"processes"`
 }
 
 type SLAChecksDTO struct {
@@ -171,4 +173,11 @@ type SLAChecksDTO struct {
 	SLARegisterID uint      `json:"sla_register_id"`
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`
+}
+
+type SLAProcessDTO struct {
+	ID            *uint                             `json:"id"`
+	SLARegisterID uint                              `json:"sla_register_id"`
+	ProcessID     uint                              `json:"process_id"`
+	Process       organizationDTOs.ProcessDetailDTO `json:"process"`
 }
