@@ -34,6 +34,10 @@ type RiskRegisterRepositoryInterface interface {
 	DeleteRiskComplianceRequirements(requirementIds []*uint, tx ...utility.DatabaseTransaction) error
 	CreateRiskProcesses(processes []*models.RiskProcess, tx ...utility.DatabaseTransaction) error
 	DeleteRiskProcesses(processIds []*uint, tx ...utility.DatabaseTransaction) error
+	CreateRiskStrategicObjectives(strategicObjectives []*models.RiskStrategicObjective, tx ...utility.DatabaseTransaction) error
+	DeleteRiskStrategicObjectives(strategicObjectiveIds []*uint, tx ...utility.DatabaseTransaction) error
+	CreateRiskSLARegisters(slaRegisters []*models.RiskSLARegister, tx ...utility.DatabaseTransaction) error
+	DeleteRiskSLARegisters(slaRegisterIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type RiskRegisterRepository struct {
@@ -234,6 +238,8 @@ func (repo *RiskRegisterRepository) GetFullDetailsByID(id uint, tx ...utility.Da
 		Preload("ComplianceRequirements").
 		Preload("ComplianceRequirements.ComplianceRequirement").
 		Preload("Processes").
+		Preload("StrategicObjectives").
+		Preload("SLARegisters").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&risk, id)
@@ -411,6 +417,56 @@ func (repo *RiskRegisterRepository) DeleteRiskProcesses(processIds []*uint, tx .
 
 	// Delete processes by IDs
 	if err := db.Where("id IN (?)", processIds).Delete(&models.RiskProcess{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *RiskRegisterRepository) CreateRiskStrategicObjectives(strategicObjectives []*models.RiskStrategicObjective, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&strategicObjectives).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *RiskRegisterRepository) DeleteRiskStrategicObjectives(strategicObjectiveIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Delete strategicObjectives by IDs
+	if err := db.Where("id IN (?)", strategicObjectiveIds).Delete(&models.RiskStrategicObjective{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *RiskRegisterRepository) CreateRiskSLARegisters(slaRegisters []*models.RiskSLARegister, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&slaRegisters).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *RiskRegisterRepository) DeleteRiskSLARegisters(slaRegisterIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Delete SLARegister by IDs
+	if err := db.Where("id IN (?)", slaRegisterIds).Delete(&models.RiskSLARegister{}).Error; err != nil {
 		return err
 	}
 
