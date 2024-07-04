@@ -72,6 +72,7 @@ type IncidentInvestigationDocumentDTO struct {
 }
 
 type IncidentInvestigationDetailDTO struct {
+	ID                          uint                                `json:"id"`
 	IncidentRegister            IncidentRegisterDetailDTO           `json:"incident_register"`
 	Description                 *string                             `json:"description"`
 	InitiatedAt                 time.Time                           `json:"initiated_at"`
