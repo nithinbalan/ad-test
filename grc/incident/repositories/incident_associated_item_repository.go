@@ -12,6 +12,7 @@ type IncidentAssociatedItemRepositoryInterface interface {
 	GetAllComplianceRequirements(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemComplianceRequirementListResponseDTO, error)
 	GetAllRisks(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemRiskListResponseDTO, error)
 	GetAllProcesses(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemProcessListResponseDTO, error)
+	GetAllSLAs(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemSLAListResponseDTO, error)
 }
 
 type IncidentAssociatedItemRepository struct {
@@ -391,6 +392,119 @@ func (repo *IncidentAssociatedItemRepository) GetAllProcesses(incidentID uint, p
 
 	response := &incidentDTOs.IncidentAssociatedItemProcessListResponseDTO{
 		Items: processList,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+
+	return response, nil
+}
+
+func (repo *IncidentAssociatedItemRepository) GetAllSLAs(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemSLAListResponseDTO, error) {
+	var slaList []*incidentDTOs.IncidentSLAListDTO
+	var totalCount int64
+
+	query := repo.db.Table("incident_sla_register").
+		Select(`
+			sla_register.reference_number,
+			sla_register.title_en,
+			sla_register.title_ar,
+			sla_register.description,
+			sla_register.client,
+			sla_categories.title_en AS sla_category_title_en,
+            sla_categories.title_ar AS sla_category_title_ar,
+            severity_levels.title_en AS severity_level_title_en,
+            severity_levels.title_ar AS severity_level_title_ar,
+            organization_units.title_en AS responsible_unit_title_en,
+            organization_units.title_ar AS responsible_unit_title_ar,
+            responsible_users.first_name_en AS responsible_user_first_name_en,
+            responsible_users.first_name_ar AS responsible_user_first_name_ar,
+            responsible_users.last_name_en AS responsible_user_last_name_en,
+            responsible_users.last_name_ar AS responsible_user_last_name_ar,
+			responsible_users.initial AS responsible_user_initial,
+            responsible_users.color AS responsible_user_color,
+            responsible_users.email AS responsible_user_email,
+            responsible_users.profile_image_path AS responsible_user_profile_image_path,
+            lifecycle_statuses.title_en AS lifecycle_status_title_en,
+            lifecycle_statuses.title_ar AS lifecycle_status_title_ar,
+			lifecycle_statuses.color_code AS lifecycle_status_color_code,
+			compliance_statuses.title_en AS compliance_status_title_en,
+			compliance_statuses.title_ar AS compliance_status_title_ar,
+			compliance_statuses.color_code AS compliance_status_color_code
+		`).
+		Joins(`
+			LEFT JOIN sla_register ON sla_register.id = incident_sla_register.sla_register_id
+			LEFT JOIN sla_categories ON sla_register.sla_category_id = sla_categories.id
+            LEFT JOIN severity_levels ON sla_register.severity_level_id = severity_levels.id
+            LEFT JOIN organization_units ON sla_register.responsible_unit_id = organization_units.id
+            LEFT JOIN users AS responsible_users ON sla_register.responsible_user_id = responsible_users.id
+			LEFT JOIN lifecycle_statuses ON sla_register.lifecycle_status_id = lifecycle_statuses.id
+		    LEFT JOIN compliance_statuses ON sla_register.compliance_status_id = compliance_statuses.id
+		`).Where("incident_sla_register.incident_register_id = ?", incidentID)
+
+	// Calculate total count for pagination
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
+	// Apply search keyword if exists
+	if params.Keyword != "" {
+		query = query.Where(`
+			(sla_register.title_en LIKE ? OR
+			sla_register.title_ar LIKE ? OR
+			sla_register.reference_number LIKE ? OR
+			sla_register.description LIKE ? OR
+			sla_register.client LIKE ? OR
+			sla_categories.title_en LIKE ? OR
+			sla_categories.title_ar LIKE ? OR
+			organization_units.title_en LIKE ? OR
+			organization_units.title_ar LIKE ? OR
+			responsible_users.first_name_en LIKE ? OR
+			responsible_users.first_name_ar LIKE ? OR
+			responsible_users.last_name_en LIKE ? OR
+			responsible_users.last_name_ar LIKE ? OR
+			responsible_users.email LIKE ? OR
+            responsible_users.initial LIKE ? OR
+            responsible_users.color LIKE ? OR
+            responsible_users.profile_image_path LIKE ? OR
+			severity_levels.title_en LIKE ? OR
+			severity_levels.title_ar LIKE ? OR
+			compliance_statuses.title_en LIKE ? OR
+			compliance_statuses.title_ar LIKE ? OR
+			lifecycle_statuses.title_en LIKE ? OR
+			lifecycle_statuses.title_ar LIKE ?)`,
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
+	}
+
+	if params.SortBy == "" {
+		params.SortBy = "sla_register.title_en"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	offset := (params.Page - 1) * params.PageSize
+
+	// Execute the query
+	err := query.Offset(offset).Limit(params.PageSize).Find(&slaList).Error
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &incidentDTOs.IncidentAssociatedItemSLAListResponseDTO{
+		Items: slaList,
 		Pagination: commonDTOs.PaginationInfoDTO{
 			CurrentPage: params.Page,
 			PageSize:    params.PageSize,
