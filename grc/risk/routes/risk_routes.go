@@ -170,6 +170,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.GET("risks/:riskId/controls", riskAssociatedItemController.GetAllRiskControls)
 	riskRoutes.GET("risks/:riskId/compliance-requirements", riskAssociatedItemController.GetAllRiskComplianceRequirements)
 	riskRoutes.GET("risks/:riskId/processes", riskAssociatedItemController.GetAllRiskProcesses)
+	riskRoutes.GET("risks/:riskId/strategic-objectives", riskAssociatedItemController.GetAllRiskStrategicObjectives)
+	riskRoutes.GET("risks/:riskId/slas", riskAssociatedItemController.GetAllRiskSLAs)
 
 	riskRoutes.PUT("/risks/:riskId/response-strategy", riskRegisterController.UpdateResponseStrategy)
 	// Risk Action Plan

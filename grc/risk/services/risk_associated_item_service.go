@@ -9,6 +9,8 @@ type RiskAssociatedItemServiceInterface interface {
 	GetAllControls(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemControlListResponseDTO, error)
 	GetAllComplianceRequirements(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemComplianceRequirementListResponseDTO, error)
 	GetAllProcesses(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemProcessListResponseDTO, error)
+	GetAllStrategicObjectives(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemStrategicObjectiveListResponseDTO, error)
+	GetAllSLAs(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemSLAListResponseDTO, error)
 }
 
 // Service and implementations
@@ -47,4 +49,18 @@ func (rais *RiskAssociatedItemService) GetAllProcesses(riskID uint, params *risk
 		return nil, err
 	}
 	return rais.repo.GetAllProcesses(riskID, params)
+}
+
+func (rais *RiskAssociatedItemService) GetAllStrategicObjectives(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemStrategicObjectiveListResponseDTO, error) {
+	if _, err := rais.riskRegisterSvc.GetByID(riskID); err != nil {
+		return nil, err
+	}
+	return rais.repo.GetAllStrategicObjectives(riskID, params)
+}
+
+func (rais *RiskAssociatedItemService) GetAllSLAs(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemSLAListResponseDTO, error) {
+	if _, err := rais.riskRegisterSvc.GetByID(riskID); err != nil {
+		return nil, err
+	}
+	return rais.repo.GetAllSLAs(riskID, params)
 }
