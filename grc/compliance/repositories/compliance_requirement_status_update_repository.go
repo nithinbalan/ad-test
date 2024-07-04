@@ -18,6 +18,8 @@ type ComplianceRequirementStatusUpdateRepositoryInterface interface {
 	CreateDocuments(docs []*models.ComplianceRequirementStatusUpdateDocument, tx ...utility.DatabaseTransaction) error
 	GetDocumentByID(id uint) (*models.ComplianceRequirementStatusUpdateDocument, error)
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
+
+	GetLatestComplianceRequirementStatusUpdate(complianceRequirementID uint) (*complianceDTOs.ComplianceRequirementStatusUpdateListDTO, error)
 }
 
 type ComplianceRequirementStatusUpdateRepository struct {
@@ -157,4 +159,49 @@ func (repo *ComplianceRequirementStatusUpdateRepository) DeleteDocuments(docIds 
 	}
 
 	return nil
+}
+
+func (repo *ComplianceRequirementStatusUpdateRepository) GetLatestComplianceRequirementStatusUpdate(complianceRequirementID uint) (*complianceDTOs.ComplianceRequirementStatusUpdateListDTO, error) {
+
+	var complianceRequirementStatusUpdate *complianceDTOs.ComplianceRequirementStatusUpdateListDTO
+
+	query := repo.db.Table("compliance_requirement_status_updates").
+		Select(`
+            compliance_requirement_status_updates.*,
+            compliance_requirements.title AS compliance_requirement_title,
+            compliance_statuses.title_en AS compliance_status_title_en,
+            compliance_statuses.title_ar AS compliance_status_title_ar,
+            compliance_statuses.color_code AS compliance_status_color_code,
+            created_user.first_name_en AS created_user_first_name_en,
+            created_user.first_name_ar AS created_user_first_name_ar,
+            created_user.last_name_en AS created_user_last_name_en,
+            created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+            created_user.color AS created_user_color,
+            created_user.email AS created_user_email,
+            created_user.profile_image_path AS created_user_profile_image_path,   
+			updated_user.first_name_en AS updated_user_first_name_en,
+            updated_user.first_name_ar AS updated_user_first_name_ar,
+            updated_user.last_name_en AS updated_user_last_name_en,
+            updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+            updated_user.color AS updated_user_color,
+            updated_user.email AS updated_user_email,
+            updated_user.profile_image_path AS updated_user_profile_image_path 
+        `).
+		Joins(`
+            LEFT JOIN compliance_requirements ON compliance_requirements.id = compliance_requirement_status_updates.compliance_requirement_id
+            LEFT JOIN compliance_statuses ON compliance_statuses.id = compliance_requirement_status_updates.compliance_status_id
+            LEFT JOIN users AS created_user ON created_user.id = compliance_requirement_status_updates.created_by_id
+            LEFT JOIN users AS updated_user ON updated_user.id = compliance_requirement_status_updates.updated_by_id
+        `).
+		Where("compliance_requirement_status_updates.compliance_requirement_id = ?", complianceRequirementID).
+		Order("compliance_requirement_status_updates.created_at DESC").
+		First(&complianceRequirementStatusUpdate)
+
+	if query.Error != nil {
+		return nil, query.Error
+	}
+
+	return complianceRequirementStatusUpdate, nil
 }

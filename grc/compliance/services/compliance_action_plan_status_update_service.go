@@ -19,6 +19,7 @@ type ComplianceActionPlanStatusUpdateServiceInterface interface {
 	GetAll(ComplianceID uint, ComplianceActionPlanID uint, sort string, sortBy string, keyword string) ([]*complianceDTOs.ComplianceActionPlanStatusUpdateListDTO, error)
 	Create(ComplianceID uint, ComplianceActionPlanID uint, currentUserID uint, complianceActionPlanStatusUpdateFormDTO *complianceDTOs.ComplianceActionPlanStatusUpdateFormDTO) (uint, error)
 	Update(ComplianceID uint, ComplianceActionPlanID uint, id uint, currentUserID uint, complianceActionPlanStatusUpdateFormDTO *complianceDTOs.ComplianceActionPlanStatusUpdateFormDTO) error
+	GetLatestComplianceActionPlanStatusUpdate(complianceID uint, actionPlanID uint) (*complianceDTOs.ComplianceActionPlanStatusUpdateListDTO, error)
 }
 
 type ComplianceActionPlanStatusUpdateService struct {
@@ -298,4 +299,12 @@ func (casus *ComplianceActionPlanStatusUpdateService) validateComplianceActionPl
 	}
 
 	return nil
+}
+
+func (capsus ComplianceActionPlanStatusUpdateService) GetLatestComplianceActionPlanStatusUpdate(complianceID uint, actionPlanID uint) (*complianceDTOs.ComplianceActionPlanStatusUpdateListDTO, error) {
+	if _, err := capsus.complianceActionPlanSvc.GetByID(complianceID, actionPlanID); err != nil {
+		return nil, err
+	}
+
+	return capsus.repo.GetLatestComplianceActionPlanStatusUpdate(actionPlanID)
 }

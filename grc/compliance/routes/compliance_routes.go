@@ -13,6 +13,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	complianceRoutes.Use(middlewares.AuthMiddleware())
 
+	unauthenticatedRoutes := router.Group("/")
+
 	complianceCategoryController := app.ComplianceModule.ComplianceCategoryController
 	complianceStatusController := app.ComplianceModule.ComplianceStatusController
 	complianceReviewStatusController := app.ComplianceModule.ComplianceReviewStatusController
@@ -70,7 +72,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.GET("/compliance-review-statuses/:id", complianceReviewStatusController.GetComplianceReviewStatusDetails)
 
 	//Compliance Register
-	complianceRoutes.GET("/compliance-register/:id/document/preview", complianceRegisterController.GetComplianceRegisterDocumentPreview)
+	unauthenticatedRoutes.GET("/compliance-register/:id/document-preview", complianceRegisterController.GetComplianceRegisterDocumentPreview)
+	unauthenticatedRoutes.GET("/compliance-register/:id/document-download", complianceRegisterController.DownloadComplianceRegisterDocument)
 	complianceRoutes.GET("/compliance-register", complianceRegisterController.GetAllComplianceRegisters)
 	complianceRoutes.GET("/compliance-register/:id", complianceRegisterController.GetComplianceRegisterDetails)
 	complianceRoutes.POST("/compliance-register", complianceRegisterController.CreateComplianceRegister)
@@ -125,16 +128,19 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.GET("/compliances/:complianceId/status-updates/:id", complianceStatusUpdateController.GetComplianceStatusUpdateDetails)
 	complianceRoutes.POST("/compliances/:complianceId/status-updates", complianceStatusUpdateController.CreateComplianceStatusUpdate)
 	complianceRoutes.PUT("/compliances/:complianceId/status-updates/:id", complianceStatusUpdateController.UpdateComplianceStatusUpdate)
+	complianceRoutes.GET("/compliances/:complianceId/status-updates/latest", complianceStatusUpdateController.GetLatestComplianceStatusUpdate)
 
 	//Compliance Requirement Status Update
 	complianceRoutes.GET("/compliances/:complianceId/requirements/:requirementId/status-updates", complianceRequirementStatusUpdateController.GetAllComplianceRequirementStatusUpdates)
 	complianceRoutes.POST("/compliances/:complianceId/requirements/:requirementId/status-updates", complianceRequirementStatusUpdateController.CreateComplianceRequirementStatusUpdate)
 	complianceRoutes.PUT("/compliances/:complianceId/requirements/:requirementId/status-updates/:id", complianceRequirementStatusUpdateController.UpdateComplianceRequirementStatusUpdate)
+	complianceRoutes.GET("/compliances/:complianceId/requirements/:requirementId/status-updates/latest", complianceRequirementStatusUpdateController.GetLatestComplianceRequirementStatusUpdate)
 
 	//Compliance Action Plan
 	complianceRoutes.GET("/compliances/:complianceId/action-plans/:actionPlanId/status-updates", complianceActionPlanStatusUpdateController.GetAllComplianceActionPlanStatusUpdates)
 	complianceRoutes.POST("/compliances/:complianceId/action-plans/:actionPlanId/status-updates", complianceActionPlanStatusUpdateController.CreateComplianceActionPlanStatusUpdate)
 	complianceRoutes.PUT("/compliances/:complianceId/action-plans/:actionPlanId/status-updates/:id", complianceActionPlanStatusUpdateController.UpdateComplianceActionPlanStatusUpdate)
+	complianceRoutes.GET("/compliances/:complianceId/action-plans/:actionPlanId/status-updates/latest", complianceActionPlanStatusUpdateController.GetLatestComplianceActionPlanStatusUpdate)
 
 	//Compliance Review
 	complianceRoutes.GET("/compliances/:complianceId/reviews", complianceReviewController.GetAllComplianceReviews)
@@ -143,11 +149,16 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	//SLA Check Question
 	complianceRoutes.GET("/slas/:slaId/checks/:checkId/question-groups", SLACheckQuestionController.GetAllSLACheckQuestionGroups)
+	complianceRoutes.GET("/slas/:slaId/checks/:checkId/question-groups/:id", SLACheckQuestionController.GetSLACheckQuestionGroupDetails)
+	complianceRoutes.POST("/slas/:slaId/checks/:checkId/question-groups", SLACheckQuestionController.CreateSLACheckQuestionGroup)
 	complianceRoutes.PUT("/slas/:slaId/checks/:checkId/question-groups/:id", SLACheckQuestionController.UpdateSLACheckQuestionGroup)
 	complianceRoutes.DELETE("/slas/:slaId/checks/:checkId/question-groups/:id", SLACheckQuestionController.DeleteSLACheckQuestionGroup)
+
 	complianceRoutes.GET("/slas/:slaId/checks/:checkId/question-groups/:id/questions", SLACheckQuestionController.GetSLACheckQuestionsByGroup)
+
 	complianceRoutes.POST("/slas/:slaId/checks/:checkId/choose-questions", SLACheckQuestionController.ChooseSLACheckQuestions)
-	complianceRoutes.POST("/slas/:slaId/checks/:checkId/add-question", SLACheckQuestionController.CreateSLACheckQuestion)
+	complianceRoutes.GET("/slas/:slaId/checks/:checkId/questions/:id", SLACheckQuestionController.GetSLACheckQuestionDetails)
+	complianceRoutes.POST("/slas/:slaId/checks/:checkId/question", SLACheckQuestionController.CreateSLACheckQuestion)
 	complianceRoutes.PUT("/slas/:slaId/checks/:checkId/questions/:id", SLACheckQuestionController.UpdateSLACheckQuestion)
 	complianceRoutes.DELETE("/slas/:slaId/checks/:checkId/questions/:id", SLACheckQuestionController.DeleteSLACheckQuestion)
 
@@ -169,4 +180,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.POST("/slas/:slaId/action-plans/:actionPlanId/status-updates", slaActionPlanStatusUpdateController.CreateSLAActionPlanStatusUpdate)
 	complianceRoutes.PUT("/slas/:slaId/action-plans/:actionPlanId/status-updates/:id", slaActionPlanStatusUpdateController.UpdateSLAActionPlanStatusUpdate)
 
+	complianceRoutes.GET("/compliances/:complianceId/associated-item-summary", complianceAssociatedItemController.GetAllAssociatedCounts)
+	complianceRoutes.GET("/compliances/:complianceId/requirements-status-summary", complianceAssociatedItemController.GetComplianceRequirementCountByStatus)
 }

@@ -15,6 +15,7 @@ type ComplianceStatusUpdateRepositoryInterface interface {
 	GetFullDetailsByID(id uint) (*models.ComplianceStatusUpdate, error)
 	Create(ComplianceStatusUpdate *models.ComplianceStatusUpdate) (uint, error)
 	Update(ComplianceStatusUpdate *models.ComplianceStatusUpdate) error
+	GetLatestComplianceStatusUpdate(complianceID uint) (*complianceDTOs.ComplianceStatusUpdateListDTO, error)
 
 	//Document
 	CreateDocuments(docs []*models.ComplianceStatusUpdateDocument, tx ...utility.DatabaseTransaction) error
@@ -50,6 +51,7 @@ func (repo *ComplianceStatusUpdateRepository) GetAll(complianceID uint, sort str
 			compliance_statuses.title_en AS compliance_status_title_en,
 			compliance_statuses.title_ar AS compliance_status_title_ar,
 			compliance_statuses.color_code AS compliance_status_color_code,
+			created_user.id AS created_user_id,
 			created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
             created_user.last_name_en AS created_user_last_name_en,
@@ -58,6 +60,7 @@ func (repo *ComplianceStatusUpdateRepository) GetAll(complianceID uint, sort str
             created_user.color AS created_user_color,
             created_user.email AS created_user_email,
             created_user.profile_image_path AS created_user_profile_image_path,   
+			updated_user.id AS updated_user_id, 
 			updated_user.first_name_en AS updated_user_first_name_en,
             updated_user.first_name_ar AS updated_user_first_name_ar,
             updated_user.last_name_en AS updated_user_last_name_en,
@@ -184,4 +187,53 @@ func (repo *ComplianceStatusUpdateRepository) DeleteDocuments(docIds []*uint, tx
 	}
 
 	return nil
+}
+
+func (repo *ComplianceStatusUpdateRepository) GetLatestComplianceStatusUpdate(complianceID uint) (*complianceDTOs.ComplianceStatusUpdateListDTO, error) {
+	var complianceUpdate complianceDTOs.ComplianceStatusUpdateListDTO
+
+	query := repo.db.Table("compliance_status_updates").
+		Select(`
+            compliance_status_updates.*,
+			compliance_register.title_en AS compliance_title_en,
+			compliance_register.title_ar AS compliance_title_ar,
+			compliance_register.description_en AS compliance_description_en,
+			compliance_register.description_ar AS compliance_description_ar,
+			compliance_statuses.title_en AS compliance_status_title_en,
+			compliance_statuses.title_ar AS compliance_status_title_ar,
+			compliance_statuses.color_code AS compliance_status_color_code,
+			created_user.id AS created_user_id,
+			created_user.first_name_en AS created_user_first_name_en,
+            created_user.first_name_ar AS created_user_first_name_ar,
+            created_user.last_name_en AS created_user_last_name_en,
+            created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+            created_user.color AS created_user_color,
+            created_user.email AS created_user_email,
+            created_user.profile_image_path AS created_user_profile_image_path,  
+			updated_user.id AS updated_user_id, 
+			updated_user.first_name_en AS updated_user_first_name_en,
+            updated_user.first_name_ar AS updated_user_first_name_ar,
+            updated_user.last_name_en AS updated_user_last_name_en,
+            updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+            updated_user.color AS updated_user_color,
+            updated_user.email AS updated_user_email,
+            updated_user.profile_image_path AS updated_user_profile_image_path
+        `).
+		Joins(`
+		    LEFT JOIN compliance_register ON compliance_register.id = compliance_status_updates.compliance_register_id
+		    LEFT JOIN compliance_statuses ON compliance_statuses.id = compliance_status_updates.compliance_status_id
+			LEFT JOIN users AS created_user ON created_user.id = compliance_status_updates.created_by_id
+			LEFT JOIN users AS updated_user ON updated_user.id = compliance_status_updates.updated_by_id
+		`).
+		Where("compliance_status_updates.compliance_register_id = ?", complianceID).
+		Order("compliance_status_updates.created_at DESC").
+		First(&complianceUpdate)
+
+	if query.Error != nil {
+		return nil, query.Error
+	}
+
+	return &complianceUpdate, nil
 }

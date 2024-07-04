@@ -148,6 +148,7 @@ func (rass *RiskAppetiteStatementService) Update(id uint, currentUserID uint, ri
 	existingStatement.RiskCategoryID = riskAppetiteStatementFormDTO.RiskCategoryID
 	existingStatement.StatementEn = riskAppetiteStatementFormDTO.StatementEn
 	existingStatement.StatementAr = riskAppetiteStatementFormDTO.StatementAr
+	existingStatement.Status = riskAppetiteStatementFormDTO.Status
 	existingStatement.UpdatedByID = &currentUserID
 
 	err = rass.repo.Update(existingStatement)

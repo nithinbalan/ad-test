@@ -106,7 +106,8 @@ func (crs *ComplianceReviewService) Create(complianceID uint, currentUserID uint
 	}
 
 	currentTime := time.Now()
-
+	complianceRegister.LastReviewedUserID = &currentUserID
+	complianceRegister.LastReviewNote = &complianceReviewFormDTO.Comment
 	complianceRegister.LastReviewedDate = &currentTime
 	complianceRegister.ComplianceReviewStatusID = &complianceReviewStatus.ID
 
