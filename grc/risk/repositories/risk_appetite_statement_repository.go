@@ -214,6 +214,7 @@ func (repo *RiskAppetiteStatementRepository) GetAllByCategories(params *riskDTOs
 		riskStatements[riskStatement.RiskCategoryID].Statements = append(riskStatements[riskStatement.RiskCategoryID].Statements, &riskStatement)
 	}
 
+	//@to be completed after risk evaluation.
 	for _, grouped := range riskStatements {
 		for _, statement := range grouped.Statements {
 			// Initialize the Risks field to an empty slice
