@@ -113,10 +113,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.POST("/compliances/:complianceId/requirements/delete", complianceRequirementController.DeleteComplianceRequirements)
 
 	//Compliance Requirements Associated Items
-	complianceRoutes.GET("/compliances/:complianceId/requirements/:requirementId/controls", complianceRequirementAssociatedItemController.GetAllComplianceRequirementControls)
-	complianceRoutes.GET("/compliances/:complianceId/requirements/:requirementId/strategic-objectives", complianceRequirementAssociatedItemController.GetAllComplianceRequirementStrategicObjectives)
-	complianceRoutes.GET("/compliances/:complianceId/requirements/:requirementId/risks", complianceRequirementAssociatedItemController.GetAllComplianceRequirementRisks)
-	complianceRoutes.GET("/compliances/:complianceId/requirements/:requirementId/incidents", complianceRequirementAssociatedItemController.GetAllComplianceRequirementIncidents)
+	complianceRoutes.GET("/compliance-requirements/:requirementId/controls", complianceRequirementAssociatedItemController.GetAllComplianceRequirementControls)
+	complianceRoutes.GET("/compliance-requirements/:requirementId/strategic-objectives", complianceRequirementAssociatedItemController.GetAllComplianceRequirementStrategicObjectives)
+	complianceRoutes.GET("/compliance-requirements/:requirementId/risks", complianceRequirementAssociatedItemController.GetAllComplianceRequirementRisks)
+	complianceRoutes.GET("/compliance-requirements/:requirementId/incidents", complianceRequirementAssociatedItemController.GetAllComplianceRequirementIncidents)
 
 	//Compliance Action Plan
 	complianceRoutes.GET("/compliances/:complianceId/action-plans", complianceActionPlanController.GetAllComplianceActionPlans)

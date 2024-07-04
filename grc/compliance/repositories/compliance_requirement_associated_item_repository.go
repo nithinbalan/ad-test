@@ -8,10 +8,10 @@ import (
 )
 
 type ComplianceRequirementAssociatedItemRepositoryInterface interface {
-	GetAllControls(complianceID uint, requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementAssociatedItemControlListResponseDTO, error)
-	GetAllStrategicObjectives(complianceID uint, requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementAssociatedItemStrategicObjectiveListResponseDTO, error)
-	GetAllRisks(complianceID uint, requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementAssociatedItemRiskListResponseDTO, error)
-	GetAllIncidents(complianceID uint, requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementAssociatedItemIncidentListResponseDTO, error)
+	GetAllControls(requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementAssociatedItemControlListResponseDTO, error)
+	GetAllStrategicObjectives(requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementAssociatedItemStrategicObjectiveListResponseDTO, error)
+	GetAllRisks(requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementAssociatedItemRiskListResponseDTO, error)
+	GetAllIncidents(requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementAssociatedItemIncidentListResponseDTO, error)
 }
 
 type ComplianceRequirementAssociatedItemRepository struct {
@@ -24,7 +24,7 @@ func NewComplianceRequirementAssociatedItemRepository(db *gorm.DB) *ComplianceRe
 	}
 }
 
-func (repo *ComplianceRequirementAssociatedItemRepository) GetAllControls(complianceID uint, requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementAssociatedItemControlListResponseDTO, error) {
+func (repo *ComplianceRequirementAssociatedItemRepository) GetAllControls(requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementAssociatedItemControlListResponseDTO, error) {
 	var controlList []*complianceDTOs.ComplianceRequirementControlListDTO
 	var totalCount int64
 
@@ -127,7 +127,7 @@ func (repo *ComplianceRequirementAssociatedItemRepository) GetAllControls(compli
 	return response, nil
 }
 
-func (repo *ComplianceRequirementAssociatedItemRepository) GetAllStrategicObjectives(complianceID uint, requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementAssociatedItemStrategicObjectiveListResponseDTO, error) {
+func (repo *ComplianceRequirementAssociatedItemRepository) GetAllStrategicObjectives(requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementAssociatedItemStrategicObjectiveListResponseDTO, error) {
 	var objectiveList []*complianceDTOs.ComplianceRequirementStrategicObjectiveListDTO
 	var totalCount int64
 
@@ -187,7 +187,7 @@ func (repo *ComplianceRequirementAssociatedItemRepository) GetAllStrategicObject
 	return response, nil
 }
 
-func (repo *ComplianceRequirementAssociatedItemRepository) GetAllRisks(complianceID uint, requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementAssociatedItemRiskListResponseDTO, error) {
+func (repo *ComplianceRequirementAssociatedItemRepository) GetAllRisks(requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementAssociatedItemRiskListResponseDTO, error) {
 	var riskList []*complianceDTOs.ComplianceRequirementRiskListDTO
 	var totalCount int64
 
@@ -287,7 +287,7 @@ func (repo *ComplianceRequirementAssociatedItemRepository) GetAllRisks(complianc
 
 }
 
-func (repo *ComplianceRequirementAssociatedItemRepository) GetAllIncidents(complianceID uint, requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementAssociatedItemIncidentListResponseDTO, error) {
+func (repo *ComplianceRequirementAssociatedItemRepository) GetAllIncidents(requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementAssociatedItemIncidentListResponseDTO, error) {
 	var incidentList []*complianceDTOs.ComplianceRequirementIncidentListDTO
 	var totalCount int64
 
