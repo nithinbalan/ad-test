@@ -35,6 +35,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	SLARenewController := app.ComplianceModule.SLARenewController
 	slaActionPlanController := app.ComplianceModule.SLAActionPlanController
 	slaActionPlanStatusUpdateController := app.ComplianceModule.SLAActionPlanStatusUpdateController
+	slaAssociatedItemController := app.ComplianceModule.SLAAssociatedItemController
+
 
 	//Compliance Category
 	complianceRoutes.GET("/compliance-categories", complianceCategoryController.GetAllComplianceCategories)
@@ -182,4 +184,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	complianceRoutes.GET("/compliances/:complianceId/associated-item-summary", complianceAssociatedItemController.GetAllAssociatedCounts)
 	complianceRoutes.GET("/compliances/:complianceId/requirements-status-summary", complianceAssociatedItemController.GetComplianceRequirementCountByStatus)
+
+	complianceRoutes.GET("/slas/:slaId/processes", slaAssociatedItemController.GetAllSLAProcesses)
+
 }
