@@ -15,6 +15,7 @@ import (
 
 type RiskAppetiteStatementServiceInterface interface {
 	GetAll(params *riskDTOs.RiskAppetiteStatementListQueryParamsDTO) (*riskDTOs.RiskAppetiteStatementListResponseDTO, error)
+	GetAllByCategories(params *riskDTOs.RiskAppetiteStatementListQueryParamsDTO) (*riskDTOs.RiskAppetiteStatementListGroupedResponseDTO, error)
 	GetByID(id uint) (*models.RiskAppetiteStatement, error)
 	GetFullDetailsByID(id uint) (*riskDTOs.RiskAppetiteStatementDetailsDTO, error)
 	Create(currentUserID uint, RiskAppetiteStatementFormDTO *riskDTOs.RiskAppetiteStatementFormDTO) (uint, error)
@@ -44,6 +45,10 @@ func NewRiskAppetiteStatementService(
 
 func (rass *RiskAppetiteStatementService) GetAll(params *riskDTOs.RiskAppetiteStatementListQueryParamsDTO) (*riskDTOs.RiskAppetiteStatementListResponseDTO, error) {
 	return rass.repo.GetAll(params)
+}
+
+func (rass *RiskAppetiteStatementService) GetAllByCategories(params *riskDTOs.RiskAppetiteStatementListQueryParamsDTO) (*riskDTOs.RiskAppetiteStatementListGroupedResponseDTO, error) {
+	return rass.repo.GetAllByCategories(params)
 }
 
 func (rass RiskAppetiteStatementService) GetByID(id uint) (*models.RiskAppetiteStatement, error) {

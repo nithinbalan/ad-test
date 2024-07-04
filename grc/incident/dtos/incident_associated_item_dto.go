@@ -100,6 +100,36 @@ type IncidentProcessListDTO struct {
 	Description              *string `json:"description"`
 }
 
+type IncidentSLAListDTO struct {
+	ReferenceNumber                 string `json:"reference_number"`
+	LifecycleStatusID               uint   `json:"lifecycle_status_id"`
+	LifecycleStatusTitleEn          string `json:"lifecycle_status_title_en"`
+	LifecycleStatusTitleAr          string `json:"lifecycle_status_title_ar"`
+	LifecycleStatusColorCode        string `json:"lifecycle_status_color_code"`
+	TitleEn                         string `json:"title_en"`
+	TitleAr                         string `json:"title_ar"`
+	Description                     string `json:"description"`
+	Client                          string `json:"client"`
+	SLACategoryTitleEn              string `json:"sla_category_title_en"`
+	SLACategoryTitleAr              string `json:"sla_category_title_ar"`
+	SeverityLevelTitleEn            string `json:"severity_level_title_en"`
+	SeverityLevelTitleAr            string `json:"severity_level_title_ar"`
+	ResponsibleUserID               uint   `json:"responsible_user_id"`
+	ResponsibleUnitTitleEn          string `json:"responsible_unit_title_en"`
+	ResponsibleUnitTitleAr          string `json:"responsible_unit_title_ar"`
+	ResponsibleUserFirstNameEn      string `json:"responsible_user_first_name_en"`
+	ResponsibleUserFirstNameAr      string `json:"responsible_user_first_name_ar"`
+	ResponsibleUserLastNameEn       string `json:"responsible_user_last_name_en"`
+	ResponsibleUserLastNameAr       string `json:"responsible_user_last_name_ar"`
+	ResponsibleUserInitial          string `json:"responsible_user_initial"`
+	ResponsibleUserColor            string `json:"responsible_user_color"`
+	ResponsibleUserEmail            string `json:"responsible_user_email"`
+	ResponsibleUserProfileImagePath string `json:"responsible_user_profile_image_path"`
+	ComplianceStatusTitleEn         string `json:"compliance_status_title_en"`
+	ComplianceStatusTitleAr         string `json:"compliance_status_title_ar"`
+	ComplianceStatusColorCode       string `json:"compliance_status_color_code"`
+}
+
 type IncidentAssociatedItemListQueryParamsDTO struct {
 	Sort        string
 	SortBy      string
@@ -127,5 +157,10 @@ type IncidentAssociatedItemRiskListResponseDTO struct {
 
 type IncidentAssociatedItemProcessListResponseDTO struct {
 	Items      []*IncidentProcessListDTO    `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
+}
+
+type IncidentAssociatedItemSLAListResponseDTO struct {
+	Items      []*IncidentSLAListDTO        `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }

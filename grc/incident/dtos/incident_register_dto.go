@@ -70,6 +70,7 @@ type IncidentRegisterFormDTO struct {
 	ControlIds               []*uint                    `json:"control_ids"`
 	RiskIds                  []*uint                    `json:"risk_ids"`
 	ProcessIDs               []*uint                    `json:"process_ids"`
+	SLARegisterIDs           []*uint                    `json:"sla_register_ids"`
 }
 
 type IncidentDocumentFormDTO struct {
@@ -131,6 +132,7 @@ type IncidentRegisterDetailDTO struct {
 	ComplianceRequirements []*IncidentComplianceRequirementDTO `json:"compliance_requirements"`
 	Risks                  []*IncidentRiskDTO                  `json:"risks"`
 	Processes              []*IncidentProcessDTO               `json:"processes"`
+	SLARegisters           []*IncidentSLARegisterDTO           `json:"sla_registers"`
 	CreatedAt              time.Time                           `json:"created_at"`
 	UpdatedAt              *time.Time                          `json:"updated_at"`
 	CreatedByUser          organizationDTOs.UserMinimalDTO     `json:"created_by"`
@@ -167,4 +169,10 @@ type IncidentProcessDTO struct {
 	IncidentRegisterID uint                              `json:"incident_register_id"`
 	ProcessID          uint                              `json:"process_id"`
 	Process            organizationDTOs.ProcessDetailDTO `json:"process"`
+}
+type IncidentSLARegisterDTO struct {
+	ID                 *uint                               `json:"id"`
+	IncidentRegisterID uint                                `json:"incident_register_id"`
+	SLARegisterID      uint                                `json:"sla_register_id"`
+	SLARegister        complianceDTOs.SLARegisterDetailDTO `json:"sla_register"`
 }

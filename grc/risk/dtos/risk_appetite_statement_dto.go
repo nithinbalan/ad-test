@@ -7,24 +7,25 @@ import (
 )
 
 type RiskAppetiteStatementListDTO struct {
-	ID                     uint    `json:"id"`
-	RiskCategoryID         uint    `json:"risk_category_id"`
-	RiskCategoryTitleEn    string  `json:"risk_category_title_en"`
-	RiskCategoryTitleAr    string  `json:"risk_category_title_ar"`
-	ReferenceNumber        string  `json:"reference_number"`
-	StatementEn            string  `json:"statement_en"`
-	StatementAr            string  `json:"statement_ar"`
-	Status                 string  `json:"status"`
-	CreatedAt              string  `json:"created_at"`
-	UpdatedAt              string  `json:"updated_at"`
-	CreatedUserFirstNameEn string  `json:"created_user_first_name_en"`
-	CreatedUserFirstNameAr string  `json:"created_user_first_name_ar"`
-	CreatedUserLastNameEn  string  `json:"created_user_last_name_en"`
-	CreatedUserLastNameAr  *string `json:"created_user_last_name_ar"`
-	UpdatedUserFirstNameEn *string `json:"updated_user_first_name_en"`
-	UpdatedUserFirstNameAr *string `json:"updated_user_first_name_ar"`
-	UpdatedUserLastNameEn  *string `json:"updated_user_last_name_en"`
-	UpdatedUserLastNameAr  *string `json:"updated_user_last_name_ar"`
+	ID                     uint                   `json:"id"`
+	RiskCategoryID         uint                   `json:"risk_category_id"`
+	RiskCategoryTitleEn    string                 `json:"risk_category_title_en"`
+	RiskCategoryTitleAr    string                 `json:"risk_category_title_ar"`
+	ReferenceNumber        string                 `json:"reference_number"`
+	StatementEn            string                 `json:"statement_en"`
+	StatementAr            string                 `json:"statement_ar"`
+	Status                 string                 `json:"status"`
+	CreatedAt              string                 `json:"created_at"`
+	UpdatedAt              string                 `json:"updated_at"`
+	CreatedUserFirstNameEn string                 `json:"created_user_first_name_en"`
+	CreatedUserFirstNameAr string                 `json:"created_user_first_name_ar"`
+	CreatedUserLastNameEn  string                 `json:"created_user_last_name_en"`
+	CreatedUserLastNameAr  *string                `json:"created_user_last_name_ar"`
+	UpdatedUserFirstNameEn *string                `json:"updated_user_first_name_en"`
+	UpdatedUserFirstNameAr *string                `json:"updated_user_first_name_ar"`
+	UpdatedUserLastNameEn  *string                `json:"updated_user_last_name_en"`
+	UpdatedUserLastNameAr  *string                `json:"updated_user_last_name_ar"`
+	Risks                  []*RiskRegisterListDTO `json:"risks,omitempty" gorm:"-"`
 }
 
 type RiskAppetiteStatementListQueryParamsDTO struct {
@@ -41,6 +42,18 @@ type RiskAppetiteStatementListQueryParamsDTO struct {
 type RiskAppetiteStatementListResponseDTO struct {
 	Items      []*RiskAppetiteStatementListDTO `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO    `json:"pagination"`
+}
+
+type RiskAppetiteStatementGroupedDTO struct {
+	RiskCategoryID      uint                            `json:"risk_category_id"`
+	RiskCategoryTitleEn string                          `json:"risk_category_title_en"`
+	RiskCategoryTitleAr string                          `json:"risk_category_title_ar"`
+	Statements          []*RiskAppetiteStatementListDTO `json:"statements"`
+}
+
+type RiskAppetiteStatementListGroupedResponseDTO struct {
+	Items      []*RiskAppetiteStatementGroupedDTO `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO       `json:"pagination"`
 }
 
 type RiskAppetiteStatementFormDTO struct {

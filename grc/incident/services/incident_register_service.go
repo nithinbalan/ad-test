@@ -43,6 +43,7 @@ type IncidentRegisterService struct {
 	complianceRequirementSvc complianceServices.ComplianceRequirementServiceInterface
 	riskRegisterSvc          riskServices.RiskRegisterServiceInterface
 	processSvc               organizationServices.ProcessServiceInterface
+	slaRegisterSvc           complianceServices.SLARegisterServiceInterface
 }
 
 func NewIncidentRegisterService(
@@ -57,6 +58,7 @@ func NewIncidentRegisterService(
 	complianceRequirementSvc complianceServices.ComplianceRequirementServiceInterface,
 	riskRegisterSvc riskServices.RiskRegisterServiceInterface,
 	processSvc organizationServices.ProcessServiceInterface,
+	slaRegisterSvc complianceServices.SLARegisterServiceInterface,
 ) IncidentRegisterServiceInterface {
 	return &IncidentRegisterService{
 		repo:                     repo,
@@ -70,6 +72,7 @@ func NewIncidentRegisterService(
 		complianceRequirementSvc: complianceRequirementSvc,
 		riskRegisterSvc:          riskRegisterSvc,
 		processSvc:               processSvc,
+		slaRegisterSvc:           slaRegisterSvc,
 	}
 }
 
@@ -220,6 +223,23 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 
 	if len(processes) > 0 {
 		if err := irs.repo.CreateIncidentProcesses(processes, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+	// Add SLA Register
+	var slaRegisters []*models.IncidentSLARegister
+	for _, slaRegisterID := range incidentRegisterFormDTO.SLARegisterIDs {
+		slaRegister := &models.IncidentSLARegister{
+			IncidentRegisterID: id,
+			SLARegisterID:      *slaRegisterID,
+			CreatedByID:        currentUserID,
+		}
+		slaRegisters = append(slaRegisters, slaRegister)
+	}
+
+	if len(slaRegisters) > 0 {
+		if err := irs.repo.CreateIncidentSLARegisters(slaRegisters, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
@@ -548,6 +568,56 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 		}
 	}
 
+	existingSLARegisterIDs := make(map[uint]bool)
+	for _, sla := range existingIncident.SLARegisters {
+		existingSLARegisterIDs[sla.SLARegisterID] = true
+	}
+
+	// Collect new slaess IDs
+	newSLARegisterIDs := make(map[uint]bool)
+	for _, sla := range incidentRegisterFormDTO.SLARegisterIDs {
+		newSLARegisterIDs[*sla] = true
+	}
+
+	// Add new SLA
+	var slaRegistersToAdd []*models.IncidentSLARegister
+	for _, newSLARegisterID := range incidentRegisterFormDTO.SLARegisterIDs {
+		if _, exists := existingSLARegisterIDs[*newSLARegisterID]; !exists {
+			// Create a new risk slaRegister record
+			slaRegister := &models.IncidentSLARegister{
+				IncidentRegisterID: id,
+				SLARegisterID:      *newSLARegisterID,
+				CreatedByID:        currentUserID,
+			}
+			slaRegistersToAdd = append(slaRegistersToAdd, slaRegister)
+		}
+	}
+
+	// Save the new slaRegisters
+	if len(slaRegistersToAdd) > 0 {
+		if err := irs.repo.CreateIncidentSLARegisters(slaRegistersToAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// Remove slaRegisters not in the new list
+	var deleteSLARegisterIDs []*uint
+
+	for _, existingSLARegister := range existingIncident.SLARegisters {
+		if _, exists := newSLARegisterIDs[existingSLARegister.SLARegisterID]; !exists {
+			// Append slaRegister to delete list
+			deleteSLARegisterIDs = append(deleteSLARegisterIDs, existingSLARegister.ID)
+		}
+	}
+
+	// Delete slaRegisters not in the new list
+	if len(deleteSLARegisterIDs) > 0 {
+		if err := irs.repo.DeleteIncidentSLARegisters(deleteSLARegisterIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
 	//documents update
 	var documents []*models.IncidentDocument
 	var deleteDocumentIds []*uint
@@ -707,6 +777,16 @@ func (irs *IncidentRegisterService) Delete(ids []uint, currentUserID uint) ([]ui
 				deleteControlIDs = append(deleteControlIDs, process.ID)
 			}
 			if err := irs.repo.DeleteIncidentProcesses(deleteControlIDs, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+		}
+		if len(incident.SLARegisters) > 0 {
+			var deleteSLARegisterIDs []*uint
+			for _, sla := range incident.SLARegisters {
+				deleteSLARegisterIDs = append(deleteSLARegisterIDs, sla.ID)
+			}
+			if err := irs.repo.DeleteIncidentSLARegisters(deleteSLARegisterIDs, tx); err != nil {
 				tx.Rollback()
 				return nil, err
 			}
@@ -878,6 +958,22 @@ func (irs *IncidentRegisterService) validateIncidentRegisterFormDTO(incidentRegi
 		}
 
 		processIDs[*processId] = true
+	}
+
+	slaRegisterIds := incidentRegisterFormDTO.SLARegisterIDs
+
+	slaRegisterIDs := make(map[uint]bool)
+
+	for _, slaRegisterId := range slaRegisterIds {
+		if slaRegisterIDs[*slaRegisterId] {
+			return utility.NewValidationError(fmt.Errorf("duplicate slaRegister ID: %d", slaRegisterId), "duplicate", "sla register")
+		}
+
+		if _, err := irs.slaRegisterSvc.GetByID(*slaRegisterId); err != nil {
+			return utility.NewValidationError(fmt.Errorf("slaRegister does not exist for ID: %d", slaRegisterId), "not_exist", "sla register")
+		}
+
+		slaRegisterIDs[*slaRegisterId] = true
 	}
 
 	return nil

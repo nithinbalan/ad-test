@@ -41,6 +41,8 @@ type RiskRegisterService struct {
 	controlSvc               organizationServices.ControlServiceInterface
 	complianceRequirementSvc complianceServices.ComplianceRequirementServiceInterface
 	processSvc               organizationServices.ProcessServiceInterface
+	strategicObjectiveSvc    organizationServices.StrategicObjectiveServiceInterface
+	slaRegisterSvc           complianceServices.SLARegisterServiceInterface
 }
 
 func NewRiskRegisterService(
@@ -54,6 +56,8 @@ func NewRiskRegisterService(
 	controlSvc organizationServices.ControlServiceInterface,
 	complianceRequirementSvc complianceServices.ComplianceRequirementServiceInterface,
 	processSvc organizationServices.ProcessServiceInterface,
+	strategicObjectiveSvc organizationServices.StrategicObjectiveServiceInterface,
+	slaRegisterSvc complianceServices.SLARegisterServiceInterface,
 ) RiskRegisterServiceInterface {
 	return &RiskRegisterService{
 		repo:                     repo,
@@ -66,6 +70,8 @@ func NewRiskRegisterService(
 		controlSvc:               controlSvc,
 		complianceRequirementSvc: complianceRequirementSvc,
 		processSvc:               processSvc,
+		strategicObjectiveSvc:    strategicObjectiveSvc,
+		slaRegisterSvc:           slaRegisterSvc,
 	}
 }
 
@@ -196,6 +202,41 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 
 	if len(processes) > 0 {
 		if err := rrs.repo.CreateRiskProcesses(processes, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+	// Add Strategic Objectives
+	var strategicObjectives []*models.RiskStrategicObjective
+	for _, strategicObjectiveID := range riskRegisterFormDTO.StrategicObjectiveIDs {
+		strategicObjective := &models.RiskStrategicObjective{
+			RiskRegisterID:       id,
+			StrategicObjectiveID: *strategicObjectiveID,
+			CreatedByID:          currentUserID,
+		}
+		strategicObjectives = append(strategicObjectives, strategicObjective)
+	}
+
+	if len(strategicObjectives) > 0 {
+		if err := rrs.repo.CreateRiskStrategicObjectives(strategicObjectives, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
+	// Add SLA Register
+	var slaRegisters []*models.RiskSLARegister
+	for _, slaRegisterID := range riskRegisterFormDTO.SLARegisterIDs {
+		slaRegister := &models.RiskSLARegister{
+			RiskRegisterID: id,
+			SLARegisterID:  *slaRegisterID,
+			CreatedByID:    currentUserID,
+		}
+		slaRegisters = append(slaRegisters, slaRegister)
+	}
+
+	if len(slaRegisters) > 0 {
+		if err := rrs.repo.CreateRiskSLARegisters(slaRegisters, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
@@ -427,6 +468,107 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 		}
 	}
 
+	existingSLARegisterIDs := make(map[uint]bool)
+	for _, sla := range existingRisk.SLARegisters {
+		existingSLARegisterIDs[sla.SLARegisterID] = true
+	}
+
+	// Collect new slaess IDs
+	newSLARegisterIDs := make(map[uint]bool)
+	for _, sla := range riskRegisterFormDTO.SLARegisterIDs {
+		newSLARegisterIDs[*sla] = true
+	}
+
+	// Add new processes
+	var slaRegistersToAdd []*models.RiskSLARegister
+	for _, newSLARegisterID := range riskRegisterFormDTO.SLARegisterIDs {
+		if _, exists := existingSLARegisterIDs[*newSLARegisterID]; !exists {
+			// Create a new risk slaRegister record
+			slaRegister := &models.RiskSLARegister{
+				RiskRegisterID: id,
+				SLARegisterID:  *newSLARegisterID,
+				CreatedByID:    currentUserID,
+			}
+			slaRegistersToAdd = append(slaRegistersToAdd, slaRegister)
+		}
+	}
+
+	// Save the new slaRegisters
+	if len(slaRegistersToAdd) > 0 {
+		if err := rrs.repo.CreateRiskSLARegisters(slaRegistersToAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// Remove slaRegisters not in the new list
+	var deleteSLARegisterIDs []*uint
+
+	for _, existingSLARegister := range existingRisk.SLARegisters {
+		if _, exists := newSLARegisterIDs[existingSLARegister.SLARegisterID]; !exists {
+			// Append slaRegister to delete list
+			deleteSLARegisterIDs = append(deleteSLARegisterIDs, existingSLARegister.ID)
+		}
+	}
+
+	// Delete slaRegisters not in the new list
+	if len(deleteSLARegisterIDs) > 0 {
+		if err := rrs.repo.DeleteRiskSLARegisters(deleteSLARegisterIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+	// Update Strategic Objectives
+	existingStrategicObjectiveIDs := make(map[uint]bool)
+	for _, obj := range existingRisk.StrategicObjectives {
+		existingStrategicObjectiveIDs[obj.StrategicObjectiveID] = true
+	}
+
+	// Collect new strategic objective IDs
+	newStrategicObjectiveIDs := make(map[uint]bool)
+	for _, obj := range riskRegisterFormDTO.StrategicObjectiveIDs {
+		newStrategicObjectiveIDs[*obj] = true
+	}
+
+	// Add new strategic objectives
+	var strategicObjectivesToAdd []*models.RiskStrategicObjective
+	for _, newStrategicObjectiveID := range riskRegisterFormDTO.StrategicObjectiveIDs {
+		if _, exists := existingStrategicObjectiveIDs[*newStrategicObjectiveID]; !exists {
+			// Create a new risk strategic objective record
+			strategicObjective := &models.RiskStrategicObjective{
+				RiskRegisterID:       id,
+				StrategicObjectiveID: *newStrategicObjectiveID,
+				CreatedByID:          currentUserID,
+			}
+			strategicObjectivesToAdd = append(strategicObjectivesToAdd, strategicObjective)
+		}
+	}
+
+	// Save the new strategic objectives
+	if len(strategicObjectivesToAdd) > 0 {
+		if err := rrs.repo.CreateRiskStrategicObjectives(strategicObjectivesToAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// Remove strategic objectives not in the new list
+	var deleteStrategicObjectiveIDs []*uint
+
+	for _, existingStrategicObjective := range existingRisk.StrategicObjectives {
+		if _, exists := newStrategicObjectiveIDs[existingStrategicObjective.StrategicObjectiveID]; !exists {
+			// Append strategic objective to delete list
+			deleteStrategicObjectiveIDs = append(deleteStrategicObjectiveIDs, existingStrategicObjective.ID)
+		}
+	}
+
+	// Delete strategic objectives not in the new list
+	if len(deleteStrategicObjectiveIDs) > 0 {
+		if err := rrs.repo.DeleteRiskStrategicObjectives(deleteStrategicObjectiveIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
 	// Save Documents
 	// documents update
 	var documents []*models.RiskDocument
@@ -577,13 +719,33 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 
 		// Check if controls exist
 		if len(risk.Processes) > 0 {
-			var deleteControlIDs []*uint
+			var deleteProcessIDs []*uint
 			for _, process := range risk.Processes {
-				deleteControlIDs = append(deleteControlIDs, process.ID)
+				deleteProcessIDs = append(deleteProcessIDs, process.ID)
 			}
-			if err := rrs.repo.DeleteRiskProcesses(deleteControlIDs, tx); err != nil {
+			if err := rrs.repo.DeleteRiskProcesses(deleteProcessIDs, tx); err != nil {
 				tx.Rollback()
 				return nil, err
+			}
+		}
+		if len(risk.SLARegisters) > 0 {
+			var deleteSLARegisterIDs []*uint
+			for _, sla := range risk.SLARegisters {
+				deleteSLARegisterIDs = append(deleteSLARegisterIDs, sla.ID)
+			}
+			if err := rrs.repo.DeleteRiskSLARegisters(deleteSLARegisterIDs, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+		}
+		if len(risk.StrategicObjectives) > 0 {
+			var deleteStrategicObjectiveIds []*uint
+			for _, obj := range risk.StrategicObjectives {
+				deleteStrategicObjectiveIds = append(deleteStrategicObjectiveIds, obj.ID)
+			}
+			if err := rrs.repo.DeleteRiskStrategicObjectives(deleteStrategicObjectiveIds, tx); err != nil {
+				failedIds = append(failedIds, id)
+				continue
 			}
 		}
 		// Delete each risk document if documents exist
@@ -745,6 +907,38 @@ func (rrs *RiskRegisterService) validateRiskRegisterFormDTO(riskRegisterFormDTO 
 		}
 
 		processIDs[*processId] = true
+	}
+
+	slaRegisterIds := riskRegisterFormDTO.ProcessIDs
+
+	slaRegisterIDs := make(map[uint]bool)
+
+	for _, slaRegisterId := range slaRegisterIds {
+		if slaRegisterIDs[*slaRegisterId] {
+			return utility.NewValidationError(fmt.Errorf("duplicate slaRegister ID: %d", slaRegisterId), "duplicate", "slaRegister")
+		}
+
+		if _, err := rrs.slaRegisterSvc.GetByID(*slaRegisterId); err != nil {
+			return utility.NewValidationError(fmt.Errorf("slaRegister does not exist for ID: %d", slaRegisterId), "not_exist", "slaRegister")
+		}
+
+		slaRegisterIDs[*slaRegisterId] = true
+	}
+
+	strategicObjectiveIds := riskRegisterFormDTO.StrategicObjectiveIDs
+
+	strategicObjectiveIDs := make(map[uint]bool)
+
+	for _, strategicObjectiveId := range strategicObjectiveIds {
+		if strategicObjectiveIDs[*strategicObjectiveId] {
+			return utility.NewValidationError(fmt.Errorf("duplicate strategic objective ID: %d", strategicObjectiveId), "duplicate", "strategic objective")
+		}
+
+		if _, err := rrs.strategicObjectiveSvc.GetByID(*strategicObjectiveId); err != nil {
+			return utility.NewValidationError(fmt.Errorf("strategic objective does not exist for ID: %d", strategicObjectiveId), "not_exist", "strategic objective")
+		}
+
+		strategicObjectiveIDs[*strategicObjectiveId] = true
 	}
 
 	return nil
