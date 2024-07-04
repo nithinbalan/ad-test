@@ -14,6 +14,7 @@ import (
 
 type RiskAppetiteStatementRepositoryInterface interface {
 	GetAll(params *riskDTOs.RiskAppetiteStatementListQueryParamsDTO) (*riskDTOs.RiskAppetiteStatementListResponseDTO, error)
+	GetAllByCategories(params *riskDTOs.RiskAppetiteStatementListQueryParamsDTO) (*riskDTOs.RiskAppetiteStatementListGroupedResponseDTO, error)
 	GetByID(id uint) (*models.RiskAppetiteStatement, error)
 	GetFullDetailsByID(id uint) (*models.RiskAppetiteStatement, error)
 	Create(RiskAppetiteStatement *models.RiskAppetiteStatement) (uint, error)
@@ -121,6 +122,136 @@ func (repo *RiskAppetiteStatementRepository) GetAll(params *riskDTOs.RiskAppetit
 	//@todo The response will be changed based on risk implementation
 
 	return response, nil
+}
+
+func (repo *RiskAppetiteStatementRepository) GetAllByCategories(params *riskDTOs.RiskAppetiteStatementListQueryParamsDTO) (*riskDTOs.RiskAppetiteStatementListGroupedResponseDTO, error) {
+	var totalCount int64
+	var response []*riskDTOs.RiskAppetiteStatementGroupedDTO
+
+	query := repo.db.Table("risk_appetite_statements").
+		Select(`
+            risk_appetite_statements.*,
+			risk_categories.title_en AS risk_category_title_en,
+			risk_categories.title_ar AS risk_category_title_ar,
+			created_user.first_name_en AS created_user_first_name_en,
+            created_user.first_name_ar AS created_user_first_name_ar,
+            created_user.last_name_en AS created_user_last_name_en,
+            created_user.last_name_ar AS created_user_last_name_ar,   
+			updated_user.first_name_en AS updated_user_first_name_en,
+            updated_user.first_name_ar AS updated_user_first_name_ar,
+            updated_user.last_name_en AS updated_user_last_name_en,
+            updated_user.last_name_ar AS updated_user_last_name_ar          
+        `).
+		Joins(`
+		    LEFT JOIN risk_categories ON risk_categories.id = risk_appetite_statements.risk_category_id
+			LEFT JOIN users AS created_user ON created_user.id = risk_appetite_statements.created_by_id
+			LEFT JOIN users AS updated_user ON updated_user.id = risk_appetite_statements.updated_by_id
+		`)
+
+	// Apply dynamic filters to the query
+	for columnName, values := range params.Filters {
+		if len(values) > 0 {
+			query = query.Where(columnName+" IN (?)", values)
+		}
+	}
+
+	// Apply quick filters
+	for _, filter := range params.QuickFilter {
+		query = query.Where("risk_categories.title_en = ? OR risk_categories.title_ar = ?", filter, filter)
+	}
+	// Calculate total count for pagination
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
+	// Apply search keyword if exists
+	if params.Keyword != "" {
+		query = query.Where(`
+			(risk_appetite_statements.statement_en LIKE ? OR
+			risk_appetite_statements.statement_ar LIKE ? OR
+			risk_categories.title_en LIKE ? OR
+			risk_categories.title_ar LIKE ?)`,
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
+	}
+
+	// Sort by the specified column and order
+	if params.SortBy == "" {
+		params.SortBy = "risk_appetite_statements.statement_en"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc" // Default order is ascending if not specified
+	}
+
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	offset := (params.Page - 1) * params.PageSize
+
+	// Add OFFSET and FETCH NEXT for pagination
+	query = query.Offset(offset).Limit(params.PageSize)
+
+	rows, err := query.Rows()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	riskStatements := make(map[uint]*riskDTOs.RiskAppetiteStatementGroupedDTO)
+
+	for rows.Next() {
+		var riskStatement riskDTOs.RiskAppetiteStatementListDTO
+		err := repo.db.ScanRows(rows, &riskStatement)
+		if err != nil {
+			return nil, err
+		}
+
+		if _, ok := riskStatements[riskStatement.RiskCategoryID]; !ok {
+			riskStatements[riskStatement.RiskCategoryID] = &riskDTOs.RiskAppetiteStatementGroupedDTO{
+				RiskCategoryID:      riskStatement.RiskCategoryID,
+				RiskCategoryTitleEn: riskStatement.RiskCategoryTitleEn,
+				RiskCategoryTitleAr: riskStatement.RiskCategoryTitleAr,
+			}
+		}
+		riskStatements[riskStatement.RiskCategoryID].Statements = append(riskStatements[riskStatement.RiskCategoryID].Statements, &riskStatement)
+	}
+
+	//@to be completed after risk evaluation.
+	for _, grouped := range riskStatements {
+		for _, statement := range grouped.Statements {
+			// Initialize the Risks field to an empty slice
+
+			var risks []*riskDTOs.RiskRegisterListDTO
+			err := repo.db.Table("risk_register").
+				Limit(2).Find(&risks).Error
+			if err != nil {
+				return nil, err
+			}
+			if len(risks) == 0 {
+				statement.Risks = []*riskDTOs.RiskRegisterListDTO{}
+			} else {
+				statement.Risks = risks
+			}
+		}
+		response = append(response, grouped)
+	}
+
+	if response == nil {
+		response = []*riskDTOs.RiskAppetiteStatementGroupedDTO{}
+	}
+	// Calculate total pages for pagination
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	// Create pagination info
+	paginationInfo := commonDTOs.PaginationInfoDTO{
+		CurrentPage: params.Page,
+		PageSize:    params.PageSize,
+		TotalPages:  totalPages,
+		TotalCount:  totalCount,
+	}
+	// Wrap response and pagination info in a single DTO
+	return &riskDTOs.RiskAppetiteStatementListGroupedResponseDTO{
+		Items:      response,
+		Pagination: paginationInfo,
+	}, nil
 }
 
 func (repo *RiskAppetiteStatementRepository) GetByID(id uint) (*models.RiskAppetiteStatement, error) {

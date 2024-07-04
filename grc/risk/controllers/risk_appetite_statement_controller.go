@@ -30,6 +30,7 @@ func (rasc *RiskAppetiteStatementController) GetAllRiskAppetiteStatements(c *gin
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
+	byCategory := c.Query("by_category")
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
@@ -62,7 +63,12 @@ func (rasc *RiskAppetiteStatementController) GetAllRiskAppetiteStatements(c *gin
 		Filters:     filters,
 		QuickFilter: quickFilter,
 	}
-	riskAppetiteStatements, err := rasc.service.GetAll(&queryParams)
+	var riskAppetiteStatements interface{}
+	if byCategory != "" {
+		riskAppetiteStatements, err = rasc.service.GetAllByCategories(&queryParams)
+	} else {
+		riskAppetiteStatements, err = rasc.service.GetAll(&queryParams)
+	}
 
 	if err != nil {
 		utility.SendInternalErrResp(rasc.db, c, err.Error())
