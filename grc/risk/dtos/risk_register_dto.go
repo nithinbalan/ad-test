@@ -97,6 +97,8 @@ type RiskRegisterDetailDTO struct {
 	Controls               []*RiskControlDTO                `json:"controls"`
 	ComplianceRequirements []*RiskComplianceRequirementDTO  `json:"compliance_requirements"`
 	Processes              []*RiskProcessDTO                `json:"processes"`
+	StrategicObjectives    []*RiskStrategicObjectiveDTO     `json:"strategic_objectives"`
+	SLARegisters           []*RiskSLARegisterDTO            `json:"sla_registers"`
 }
 
 type RiskControlDTO struct {
@@ -120,6 +122,19 @@ type RiskProcessDTO struct {
 	Process        organizationDTOs.ProcessDetailDTO `json:"process"`
 }
 
+type RiskStrategicObjectiveDTO struct {
+	ID                   *uint                                  `json:"id"`
+	RiskRegisterID       uint                                   `json:"risk_register_id"`
+	StrategicObjectiveID uint                                   `json:"strategic_objective_id"`
+	StrategicObjective   organizationDTOs.StrategicObjectiveDTO `json:"strategic_objective"`
+}
+
+type RiskSLARegisterDTO struct {
+	ID             *uint                               `json:"id"`
+	RiskRegisterID uint                                `json:"risk_register_id"`
+	SLARegisterID  uint                                `json:"sla_register_id"`
+	SLARegister    complianceDTOs.SLARegisterDetailDTO `json:"sla_register"`
+}
 type RiskRegisterFormDTO struct {
 	RiskCategoryID           uint                          `json:"risk_category_id" binding:"required"`
 	RiskSourceID             uint                          `json:"risk_source_id" binding:"required"`
@@ -136,6 +151,8 @@ type RiskRegisterFormDTO struct {
 	ComplianceRequirementIDs []*uint                       `json:"compliance_requirement_ids"`
 	ControlIDs               []*uint                       `json:"control_ids"`
 	ProcessIDs               []*uint                       `json:"process_ids"`
+	StrategicObjectiveIDs    []*uint                       `json:"strategic_objective_ids"`
+	SLARegisterIDs           []*uint                       `json:"sla_register_ids"`
 }
 
 type RiskRegisterParsedDates struct {

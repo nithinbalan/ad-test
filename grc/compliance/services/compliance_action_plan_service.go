@@ -212,6 +212,8 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 }
 
 func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, currentUserID uint, ComplianceActionPlanFormDTO *complianceDTOs.ComplianceActionPlanFormDTO) error {
+	tx := caps.repo.BeginTransaction()
+	
 	if _, err := caps.complianceRegisterSvc.GetByID(complianceID); err != nil {
 		return err
 	}
@@ -242,11 +244,32 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 	existingComplianceActionPlan.ActionPlanStatusID = ComplianceActionPlanFormDTO.ActionPlanStatusID
 	existingComplianceActionPlan.UpdatedByID = &currentUserID
 
-	err = caps.repo.Update(existingComplianceActionPlan)
+	err = caps.repo.Update(existingComplianceActionPlan,tx)
+
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	//update task
+	existingTask, err := caps.taskSvc.GetByFieldID("compliance_action_plan_id",id)
 
 	if err != nil {
 		return err
 	}
+	existingTask.Title = ComplianceActionPlanFormDTO.Title
+	existingTask.Description = ComplianceActionPlanFormDTO.Description
+	existingTask.TargetDate = dates.TargetDate
+	existingTask.SeverityLevelID = ComplianceActionPlanFormDTO.SeverityLevelID
+	existingTask.ResponsibleUserID = ComplianceActionPlanFormDTO.ResponsibleUserID
+	existingTask.UpdatedByID = currentUserID
+
+	err = caps.taskSvc.UpdateTask(currentUserID, existingTask, tx)
+
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	tx.Commit()
 
 	return nil
 }
@@ -276,6 +299,16 @@ func (caps *ComplianceActionPlanService) Delete(complianceID uint, ids []uint, c
 				failedIds = append(failedIds, id)
 				continue
 			}
+		}
+		existingTask, err := caps.taskSvc.GetByFieldID("compliance_action_plan_id",id)
+		if err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+		taskID, err := caps.taskSvc.DeleteTask(existingTask.ID, currentUserID)
+		if err != nil {
+			failedIds = append(failedIds, taskID)
+			continue
 		}
 		err = caps.repo.Delete(id)
 		if err != nil {

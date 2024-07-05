@@ -35,6 +35,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	SLARenewController := app.ComplianceModule.SLARenewController
 	slaActionPlanController := app.ComplianceModule.SLAActionPlanController
 	slaActionPlanStatusUpdateController := app.ComplianceModule.SLAActionPlanStatusUpdateController
+	slaAssociatedItemController := app.ComplianceModule.SLAAssociatedItemController
+
 
 	//Compliance Category
 	complianceRoutes.GET("/compliance-categories", complianceCategoryController.GetAllComplianceCategories)
@@ -88,6 +90,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.GET("/compliances/:complianceId/incidents", complianceAssociatedItemController.GetAllComplianceIncidents)
 
 	//SLA Register
+	complianceRoutes.GET("/sla-register/:id/document/preview", SLARegisterController.GetSLARegisterDocumentPreview)
 	complianceRoutes.GET("/sla-register", SLARegisterController.GetAllSLARegisters)
 	complianceRoutes.GET("/sla-register/:id", SLARegisterController.GetSLARegisterDetails)
 	complianceRoutes.POST("/sla-register", SLARegisterController.CreateSLARegister)
@@ -110,10 +113,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.POST("/compliances/:complianceId/requirements/delete", complianceRequirementController.DeleteComplianceRequirements)
 
 	//Compliance Requirements Associated Items
-	complianceRoutes.GET("/compliances/:complianceId/requirements/:requirementId/controls", complianceRequirementAssociatedItemController.GetAllComplianceRequirementControls)
-	complianceRoutes.GET("/compliances/:complianceId/requirements/:requirementId/strategic-objectives", complianceRequirementAssociatedItemController.GetAllComplianceRequirementStrategicObjectives)
-	complianceRoutes.GET("/compliances/:complianceId/requirements/:requirementId/risks", complianceRequirementAssociatedItemController.GetAllComplianceRequirementRisks)
-	complianceRoutes.GET("/compliances/:complianceId/requirements/:requirementId/incidents", complianceRequirementAssociatedItemController.GetAllComplianceRequirementIncidents)
+	complianceRoutes.GET("/compliance-requirements/:requirementId/controls", complianceRequirementAssociatedItemController.GetAllComplianceRequirementControls)
+	complianceRoutes.GET("/compliance-requirements/:requirementId/strategic-objectives", complianceRequirementAssociatedItemController.GetAllComplianceRequirementStrategicObjectives)
+	complianceRoutes.GET("/compliance-requirements/:requirementId/risks", complianceRequirementAssociatedItemController.GetAllComplianceRequirementRisks)
+	complianceRoutes.GET("/compliance-requirements/:requirementId/incidents", complianceRequirementAssociatedItemController.GetAllComplianceRequirementIncidents)
 
 	//Compliance Action Plan
 	complianceRoutes.GET("/compliances/:complianceId/action-plans", complianceActionPlanController.GetAllComplianceActionPlans)
@@ -181,4 +184,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	complianceRoutes.GET("/compliances/:complianceId/associated-item-summary", complianceAssociatedItemController.GetAllAssociatedCounts)
 	complianceRoutes.GET("/compliances/:complianceId/requirements-status-summary", complianceAssociatedItemController.GetComplianceRequirementCountByStatus)
+
+	complianceRoutes.GET("/slas/:slaId/processes", slaAssociatedItemController.GetAllSLAProcesses)
+
 }

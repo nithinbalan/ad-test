@@ -31,6 +31,7 @@ type SLARegister struct {
 	ComplianceStatus *ComplianceStatus `gorm:"foreignKey:ComplianceStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	Documents        []*SLADocument    `gorm:"foreignKey:SLARegisterID"`
 	Checks           []*SLACheck       `gorm:"foreignKey:SLARegisterID"`
+	Processes        []*SLAProcess     `gorm:"foreignKey:SLARegisterID"`
 	CreatedByUser    *User             `gorm:"foreignKey:CreatedByID"`
 	UpdatedByUser    *User             `gorm:"foreignKey:UpdatedByID"`
 }

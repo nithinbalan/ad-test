@@ -1,16 +1,23 @@
 package services
 
 import (
+	"errors"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	taskDTOs "jethur/grc/task/dtos"
 	"jethur/grc/task/repositories"
 	"jethur/utility"
+
+	"gorm.io/gorm"
 )
 
 type TaskServiceInterface interface {
 	GetAll(params *taskDTOs.TaskListQueryParamsDTO) (*taskDTOs.TaskListResponseDTO, error)
+	GetByID(id uint) (*models.Task, error)
+	GetByFieldID(field string, value interface{}) (*models.Task, error)
 	CreateTask(taskDTO commonDTOs.CreateTaskDTO, currentUserID uint, tx ...utility.DatabaseTransaction) error
+	UpdateTask(currentUserID uint, task *models.Task, tx ...utility.DatabaseTransaction) error
+	DeleteTask(id uint, currentUserID uint) (uint, error)
 }
 
 type TaskService struct {
@@ -24,6 +31,30 @@ func NewTaskService(repo repositories.TaskRepositoryInteface, taskStatusSvc Task
 
 func (ts *TaskService) GetAll(params *taskDTOs.TaskListQueryParamsDTO) (*taskDTOs.TaskListResponseDTO, error) {
 	return ts.repo.GetAll(params)
+}
+
+func (ts TaskService) GetByID(id uint) (*models.Task, error) {
+	task, err := ts.repo.GetByID(id)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+	return task, nil
+}
+
+func (ts TaskService) GetByFieldID(field string, value interface{}) (*models.Task, error) {
+	task, err := ts.repo.GetByFieldID(field,value)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, value)
+		}
+		return nil, err
+	}
+	return task, nil
 }
 
 func (ts *TaskService) CreateTask(taskDTO commonDTOs.CreateTaskDTO, currentUserID uint, tx ...utility.DatabaseTransaction) error {
@@ -53,4 +84,31 @@ func (ts *TaskService) CreateTask(taskDTO commonDTOs.CreateTaskDTO, currentUserI
 	}
 	return ts.repo.CreateTask(task, tx...)
 
+}
+
+func (ts *TaskService) UpdateTask(currentUserID uint, task *models.Task, tx ...utility.DatabaseTransaction) error {
+	err := ts.repo.Update(task, tx...)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (ts *TaskService) DeleteTask(id uint, currentUserID uint) (uint, error) {
+	var failedId uint
+
+	entryToDelete, err := ts.GetByID(id)
+	if err != nil {
+		return 0, err
+	}
+
+	// Delete the entry
+	if err := ts.repo.Delete(entryToDelete.ID); err != nil {
+		failedId = id
+		return failedId, err
+	}
+
+	return failedId, nil
 }
