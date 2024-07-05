@@ -42,6 +42,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskHeatmapController := app.RiskModule.RiskHeatmapController
 	riskInherentControlAnalysisController := app.RiskModule.RiskInherentControlAnalysisController
 	riskResidualEvaluationController := app.RiskModule.RiskResidualEvaluationController
+	riskResidualControlAnalysisController := app.RiskModule.RiskResidualControlAnalysisController
 
 	riskRoutes.GET("/risk-categories", riskCategoryController.GetAllRiskCategories)
 	riskRoutes.GET("/risk-categories/:id", riskCategoryController.GetRiskCategoryDetails)
@@ -221,4 +222,13 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.POST("risks/:riskId/residual-evaluation", riskResidualEvaluationController.CreateRiskResidualEvaluation)
 	riskRoutes.PUT("risks/:riskId/residual-evaluation/:id", riskResidualEvaluationController.UpdateRiskResidualEvaluation)
 	riskRoutes.DELETE("risks/:riskId/residual-evaluation/:id", riskResidualEvaluationController.DeleteRiskResidualEvaluation)
+
+	//Risk Control Analysis
+	riskRoutes.GET("risks/:riskId/residual-control-analysis", riskResidualControlAnalysisController.GetAllRiskControlAnalyses)
+	riskRoutes.POST("risks/:riskId/residual-control-analysis", riskResidualControlAnalysisController.CreateRiskControlAnalysis)
+	riskRoutes.PUT("risks/:riskId/residual-control-analysis/:id", riskResidualControlAnalysisController.UpdateRiskControlAnalysis)
+	riskRoutes.POST("risks/:riskId/residual-control-analysis/delete", riskResidualControlAnalysisController.DeleteRiskControlAnalyses)
+
+	riskRoutes.GET("risks/:riskId/residual-control-analysis/control-summary", riskResidualControlAnalysisController.GetRiskControlSummary)
+
 }
