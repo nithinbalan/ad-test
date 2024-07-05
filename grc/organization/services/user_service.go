@@ -287,6 +287,7 @@ func (us *UserService) Update(id uint, currentUserID uint, userFormDTO *userDTOs
 	if err := us.validateUserFormDTO(&id, userFormDTO); err != nil {
 		return err
 	}
+	initial := generateInitial(userFormDTO.FirstNameEn, userFormDTO.LastNameEn)
 
 	existingUser.OrganizationUnit1ID = userFormDTO.OrganizationUnit1ID
 	existingUser.OrganizationUnit2ID = userFormDTO.OrganizationUnit2ID
@@ -301,6 +302,7 @@ func (us *UserService) Update(id uint, currentUserID uint, userFormDTO *userDTOs
 	existingUser.Email = userFormDTO.Email
 	existingUser.MobileNumber = userFormDTO.MobileNumber
 	existingUser.ProfileImagePath = userFormDTO.ProfileImagePath
+	existingUser.Initial = initial
 	existingUser.UpdatedByID = &currentUserID
 
 	err = us.repo.Update(existingUser, tx)
