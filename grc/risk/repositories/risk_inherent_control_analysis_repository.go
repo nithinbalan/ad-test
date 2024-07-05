@@ -80,7 +80,7 @@ func (repo *RiskInherentControlAnalysisRepository) GetAll(riskID uint, params *r
             LEFT JOIN control_implementation_statuses ON control_implementation_statuses.id = risk_control_analyses.control_implementation_status_id
             LEFT JOIN users AS created_user ON created_user.id = risk_control_analyses.created_by_id
         `).
-		Where(`risk_controls.risk_register_id = ?`, riskID)
+		Where(`risk_controls.risk_register_id = ? AND risk_control_analyses.type = 'inherent'`, riskID)
 
 	// Apply search keyword if exists
 	if params.Keyword != "" {
