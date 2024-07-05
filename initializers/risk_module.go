@@ -37,6 +37,7 @@ type RiskModule struct {
 	RiskTreatmentGuidelineController      *controllers.RiskTreatmentGuidelineController
 	RiskHeatmapController                 *controllers.RiskHeatmapController
 	RiskInherentControlAnalysisController *controllers.RiskInherentControlAnalysisController
+	RiskResidualEvaluationController      *controllers.RiskResidualEvaluationController
 
 	RiskRegisterSvc services.RiskRegisterServiceInterface
 }
@@ -230,6 +231,10 @@ func NewRiskModule(db *gorm.DB,
 	riskInherentControlAnalysisSvc := services.NewRiskInherentControlAnalysisService(riskInherentControlAnalysisRepo, sharedModule.ActivityLogService, riskRegisterSvc, organizationModule.ControlSvc, organizationModule.ControlTestSvc)
 	riskInherentControlAnalysisController := controllers.NewRiskInherentControlAnalysisController(riskInherentControlAnalysisSvc)
 
+	riskResidualEvaluationRepo := repositories.NewRiskResidualEvaluationRepository(db)
+	riskResidualEvaluationSvc := services.NewRiskResidualEvaluationService(riskResidualEvaluationRepo, sharedModule.ActivityLogService, riskRegisterSvc, riskMatrixSvc, riskMatrixRiskRatingValueSvc, riskMatrixImpactSvc, riskMatrixLikelihoodSvc, riskImpactCategorySvc, riskMatrixImpactGuidelineSvc, riskAppetiteStatementSvc)
+	riskResidualEvaluationController := controllers.NewRiskResidualEvaluationController(riskResidualEvaluationSvc)
+
 	return &RiskModule{
 		RiskCategoryController:                riskCategoryController,
 		PotentialRiskStatusController:         potentialRiskStatusController,
@@ -259,6 +264,7 @@ func NewRiskModule(db *gorm.DB,
 		RiskTreatmentGuidelineController:      riskTreatmentGuidelineController,
 		RiskHeatmapController:                 riskHeatmapController,
 		RiskInherentControlAnalysisController: riskInherentControlAnalysisController,
+		RiskResidualEvaluationController:      riskResidualEvaluationController,
 
 		RiskRegisterSvc: riskRegisterSvc,
 	}

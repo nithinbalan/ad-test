@@ -87,32 +87,6 @@ func (ries RiskInherentEvaluationService) GetFullDetailsByID(riskID uint) (*risk
 	return &riskInherentEvaluationDetailsDTO, nil
 }
 
-// func (ries RiskInherentEvaluationService) GetFullDetailsByID(riskID uint, id uint) (*riskDTOs.RiskInherentEvaluationDetailsDTO, error) {
-// 	if _, err := ries.riskRegisterSvc.GetByID(riskID); err != nil {
-// 		return nil, err
-// 	}
-
-// 	var riskInherentEvaluationDetailsDTO riskDTOs.RiskInherentEvaluationDetailsDTO
-
-// 	riskInherentEvaluation, err := ries.repo.GetFullDetailsByID(id)
-
-// 	if err != nil {
-// 		if errors.Is(err, gorm.ErrRecordNotFound) {
-// 			return nil, utility.NewResourceNotFoundError(err, id)
-// 		}
-// 		return nil, err
-// 	}
-
-// 	err = mapstructure.Decode(riskInherentEvaluation, &riskInherentEvaluationDetailsDTO)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	//todo :- also add extra fields which required in details screen
-
-// 	return &riskInherentEvaluationDetailsDTO, nil
-// }
-
 func (ries *RiskInherentEvaluationService) GetByID(riskID uint, id uint) (*models.RiskEvaluation, error) {
 	if _, err := ries.riskRegisterSvc.GetByID(riskID); err != nil {
 		return nil, err
@@ -464,14 +438,16 @@ func (ries *RiskInherentEvaluationService) validateRiskInherentEvaluationFormDTO
 	}
 
 	for _, impactEval := range inherentEvaluationFormDTO.RiskImpactAnalyses {
-		// if _, err := ries.riskMatrixImpactGuidelineSvc.GetByID(uint(impactEval.RiskMatrixImpactGuidelineID)); err != nil {
-		// 	return utility.NewValidationError(fmt.Errorf("risk matrix impact guideline does not exist"), "not_exist", "risk matrix impact guideline")
-		// }
 		if _, err := ries.riskImpactCategorySvc.GetByID(uint(impactEval.RiskImpactCategoryID)); err != nil {
 			return utility.NewValidationError(fmt.Errorf("risk impact category does not exist"), "not_exist", "risk impact category")
 		}
 		if _, err := ries.riskMatrixImpactSvc.GetByID(uint(impactEval.RiskMatrixImpactID)); err != nil {
 			return utility.NewValidationError(fmt.Errorf("risk matrix impact does not exist"), "not_exist", "risk matrix impact")
+		}
+		for _, impactGuidelineID := range impactEval.RiskMatrixImpactGuidelineIDs {
+			if _, err := ries.riskMatrixImpactGuidelineSvc.GetByID(uint(impactGuidelineID)); err != nil {
+				return utility.NewValidationError(fmt.Errorf("risk matrix impact guideline does not exist"), "not_exist", "risk matrix impact guideline")
+			}
 		}
 	}
 
