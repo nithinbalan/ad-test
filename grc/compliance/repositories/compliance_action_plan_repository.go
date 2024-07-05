@@ -46,6 +46,7 @@ func (repo *ComplianceActionPlanRepository) GetAll(complianceID uint, params *co
 	query := repo.db.Table("compliance_action_plans").
 		Select(`
         compliance_action_plans.*,
+		CONVERT(VARCHAR, compliance_action_plans.target_date, 23) AS target_date,
         compliance_requirements.title AS compliance_requirement_title,
         compliance_clauses.clause_no AS compliance_clause_no,
         compliance_clauses.title AS compliance_clause_title,
