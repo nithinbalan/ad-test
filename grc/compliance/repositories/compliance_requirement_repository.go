@@ -369,14 +369,6 @@ func (repo *ComplianceRequirementRepository) GetFullDetailsByID(id uint, tx ...u
 
 	var complianceRequirement *models.ComplianceRequirement
 
-	// Subquery to get the latest status update
-	latestStatusUpdateSubQuery := db.
-		Table("compliance_requirement_status_updates").
-		Select("id").
-		Where("compliance_requirement_id = ?", id).
-		Order("created_at desc").
-		Limit(1)
-
 	result := db.
 		Preload("ComplianceClause").
 		Preload("ComplianceStatus").
@@ -390,13 +382,6 @@ func (repo *ComplianceRequirementRepository) GetFullDetailsByID(id uint, tx ...u
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		Preload("ComplianceRequirementStatusUpdates").
-		Preload("LatestComplianceRequirementStatusUpdate", func(db *gorm.DB) *gorm.DB {
-			return db.Where("id IN (?)", latestStatusUpdateSubQuery).
-				Preload("ComplianceStatus").
-				Preload("CreatedByUser").
-				Preload("UpdatedByUser").
-				Preload("Documents")
-		}).
 		First(&complianceRequirement, id)
 
 	if result.Error != nil {
