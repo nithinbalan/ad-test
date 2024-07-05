@@ -383,7 +383,7 @@ func (repo *ComplianceAssociatedItemRepository) GetAllAssociatedCounts(complianc
 }
 
 func (repo *ComplianceAssociatedItemRepository) GetComplianceRequirementCountByStatus(complianceID uint) ([]complianceDTOs.ComplianceRequirementStatusCountResponseDTO, error) {
-	var requirementStatusCounts []complianceDTOs.ComplianceRequirementStatusCountResponseDTO
+	requirementStatusCounts := []complianceDTOs.ComplianceRequirementStatusCountResponseDTO{}
 
 	query := `
         SELECT 
