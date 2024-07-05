@@ -41,6 +41,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskTreatmentGuidelineController := app.RiskModule.RiskTreatmentGuidelineController
 	riskHeatmapController := app.RiskModule.RiskHeatmapController
 	riskInherentControlAnalysisController := app.RiskModule.RiskInherentControlAnalysisController
+	riskResidualEvaluationController := app.RiskModule.RiskResidualEvaluationController
 
 	riskRoutes.GET("/risk-categories", riskCategoryController.GetAllRiskCategories)
 	riskRoutes.GET("/risk-categories/:id", riskCategoryController.GetRiskCategoryDetails)
@@ -215,4 +216,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	riskRoutes.GET("risks/:riskId/inherent-control-analysis/control-summary", riskInherentControlAnalysisController.GetRiskControlSummary)
 
+	//Risk Residual Evaluation
+	riskRoutes.GET("risks/:riskId/residual-evaluation", riskResidualEvaluationController.GetRiskResidualEvaluation)
+	riskRoutes.POST("risks/:riskId/residual-evaluation", riskResidualEvaluationController.CreateRiskResidualEvaluation)
+	riskRoutes.PUT("risks/:riskId/residual-evaluation/:id", riskResidualEvaluationController.UpdateRiskResidualEvaluation)
+	riskRoutes.DELETE("risks/:riskId/residual-evaluation/:id", riskResidualEvaluationController.DeleteRiskResidualEvaluation)
 }
