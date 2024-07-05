@@ -57,7 +57,7 @@ func (rmrrvs *RiskMatrixRiskRatingValueService) GetRiskAll() (*riskDTOs.RiskMatr
 		groupedValues[value.RiskMatrixRiskRatingID] = append(groupedValues[value.RiskMatrixRiskRatingID], value.Value)
 	}
 
-	var riskMatrixRiskRatingValueDTO []*riskDTOs.RiskMatrixRiskRatingValueArrayDTO
+	riskMatrixRiskRatingValueDTO :=[]*riskDTOs.RiskMatrixRiskRatingValueArrayDTO{}
 	for id, values := range groupedValues {
 		riskMatrixRiskRatingValueDTO = append(riskMatrixRiskRatingValueDTO, &riskDTOs.RiskMatrixRiskRatingValueArrayDTO{
 			ID:                     id, // This should be a unique identifier, using id as a placeholder
