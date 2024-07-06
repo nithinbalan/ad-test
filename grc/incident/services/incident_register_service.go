@@ -228,9 +228,9 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 		}
 	}
 	// Add SLA Register
-	var slaRegisters []*models.IncidentSLARegister
+	var slaRegisters []*models.IncidentSLA
 	for _, slaRegisterID := range incidentRegisterFormDTO.SLARegisterIDs {
-		slaRegister := &models.IncidentSLARegister{
+		slaRegister := &models.IncidentSLA{
 			IncidentRegisterID: id,
 			SLARegisterID:      *slaRegisterID,
 			CreatedByID:        currentUserID,
@@ -239,7 +239,7 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 	}
 
 	if len(slaRegisters) > 0 {
-		if err := irs.repo.CreateIncidentSLARegisters(slaRegisters, tx); err != nil {
+		if err := irs.repo.CreateIncidentSLAs(slaRegisters, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
@@ -580,11 +580,11 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 	}
 
 	// Add new SLA
-	var slaRegistersToAdd []*models.IncidentSLARegister
+	var slaRegistersToAdd []*models.IncidentSLA
 	for _, newSLARegisterID := range incidentRegisterFormDTO.SLARegisterIDs {
 		if _, exists := existingSLARegisterIDs[*newSLARegisterID]; !exists {
 			// Create a new risk slaRegister record
-			slaRegister := &models.IncidentSLARegister{
+			slaRegister := &models.IncidentSLA{
 				IncidentRegisterID: id,
 				SLARegisterID:      *newSLARegisterID,
 				CreatedByID:        currentUserID,
@@ -595,7 +595,7 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 
 	// Save the new slaRegisters
 	if len(slaRegistersToAdd) > 0 {
-		if err := irs.repo.CreateIncidentSLARegisters(slaRegistersToAdd, tx); err != nil {
+		if err := irs.repo.CreateIncidentSLAs(slaRegistersToAdd, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
@@ -613,7 +613,7 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 
 	// Delete slaRegisters not in the new list
 	if len(deleteSLARegisterIDs) > 0 {
-		if err := irs.repo.DeleteIncidentSLARegisters(deleteSLARegisterIDs, tx); err != nil {
+		if err := irs.repo.DeleteIncidentSLAs(deleteSLARegisterIDs, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
@@ -786,7 +786,7 @@ func (irs *IncidentRegisterService) Delete(ids []uint, currentUserID uint) ([]ui
 			for _, sla := range incident.SLARegisters {
 				deleteSLARegisterIDs = append(deleteSLARegisterIDs, sla.ID)
 			}
-			if err := irs.repo.DeleteIncidentSLARegisters(deleteSLARegisterIDs, tx); err != nil {
+			if err := irs.repo.DeleteIncidentSLAs(deleteSLARegisterIDs, tx); err != nil {
 				tx.Rollback()
 				return nil, err
 			}

@@ -407,7 +407,7 @@ func (repo *IncidentAssociatedItemRepository) GetAllSLAs(incidentID uint, params
 	var slaList []*incidentDTOs.IncidentSLAListDTO
 	var totalCount int64
 
-	query := repo.db.Table("incident_sla_register").
+	query := repo.db.Table("incident_slas").
 		Select(`
 			sla_register.reference_number,
 			sla_register.title_en,
@@ -436,14 +436,14 @@ func (repo *IncidentAssociatedItemRepository) GetAllSLAs(incidentID uint, params
 			compliance_statuses.color_code AS compliance_status_color_code
 		`).
 		Joins(`
-			LEFT JOIN sla_register ON sla_register.id = incident_sla_register.sla_register_id
+			LEFT JOIN sla_register ON sla_register.id = incident_slas.sla_register_id
 			LEFT JOIN sla_categories ON sla_register.sla_category_id = sla_categories.id
             LEFT JOIN severity_levels ON sla_register.severity_level_id = severity_levels.id
             LEFT JOIN organization_units ON sla_register.responsible_unit_id = organization_units.id
             LEFT JOIN users AS responsible_users ON sla_register.responsible_user_id = responsible_users.id
 			LEFT JOIN lifecycle_statuses ON sla_register.lifecycle_status_id = lifecycle_statuses.id
 		    LEFT JOIN compliance_statuses ON sla_register.compliance_status_id = compliance_statuses.id
-		`).Where("incident_sla_register.incident_register_id = ?", incidentID)
+		`).Where("incident_slas.incident_register_id = ?", incidentID)
 
 	// Calculate total count for pagination
 	if err := query.Count(&totalCount).Error; err != nil {
