@@ -225,9 +225,9 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 	}
 
 	// Add SLA Register
-	var slaRegisters []*models.RiskSLARegister
+	var slaRegisters []*models.RiskSLA
 	for _, slaRegisterID := range riskRegisterFormDTO.SLARegisterIDs {
-		slaRegister := &models.RiskSLARegister{
+		slaRegister := &models.RiskSLA{
 			RiskRegisterID: id,
 			SLARegisterID:  *slaRegisterID,
 			CreatedByID:    currentUserID,
@@ -236,7 +236,7 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 	}
 
 	if len(slaRegisters) > 0 {
-		if err := rrs.repo.CreateRiskSLARegisters(slaRegisters, tx); err != nil {
+		if err := rrs.repo.CreateRiskSLAs(slaRegisters, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
@@ -480,11 +480,11 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 	}
 
 	// Add new processes
-	var slaRegistersToAdd []*models.RiskSLARegister
+	var slaRegistersToAdd []*models.RiskSLA
 	for _, newSLARegisterID := range riskRegisterFormDTO.SLARegisterIDs {
 		if _, exists := existingSLARegisterIDs[*newSLARegisterID]; !exists {
 			// Create a new risk slaRegister record
-			slaRegister := &models.RiskSLARegister{
+			slaRegister := &models.RiskSLA{
 				RiskRegisterID: id,
 				SLARegisterID:  *newSLARegisterID,
 				CreatedByID:    currentUserID,
@@ -495,7 +495,7 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 
 	// Save the new slaRegisters
 	if len(slaRegistersToAdd) > 0 {
-		if err := rrs.repo.CreateRiskSLARegisters(slaRegistersToAdd, tx); err != nil {
+		if err := rrs.repo.CreateRiskSLAs(slaRegistersToAdd, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
@@ -513,7 +513,7 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 
 	// Delete slaRegisters not in the new list
 	if len(deleteSLARegisterIDs) > 0 {
-		if err := rrs.repo.DeleteRiskSLARegisters(deleteSLARegisterIDs, tx); err != nil {
+		if err := rrs.repo.DeleteRiskSLAs(deleteSLARegisterIDs, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
@@ -733,7 +733,7 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 			for _, sla := range risk.SLARegisters {
 				deleteSLARegisterIDs = append(deleteSLARegisterIDs, sla.ID)
 			}
-			if err := rrs.repo.DeleteRiskSLARegisters(deleteSLARegisterIDs, tx); err != nil {
+			if err := rrs.repo.DeleteRiskSLAs(deleteSLARegisterIDs, tx); err != nil {
 				tx.Rollback()
 				return nil, err
 			}

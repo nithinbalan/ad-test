@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-type RiskSLARegister struct {
+type RiskSLA struct {
 	ID             uint      `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	RiskRegisterID uint      `json:"risk_register_id" binding:"required"`
 	SLARegisterID  uint      `json:"sla_register_id" binding:"required"`
@@ -17,6 +17,6 @@ type RiskSLARegister struct {
 	CreatedByUser *User         `gorm:"foreignKey:CreatedByID"`
 }
 
-func (RiskSLARegister) TableName() string {
-	return "risk_sla_registers"
+func (RiskSLA) TableName() string {
+	return "risk_slas"
 }

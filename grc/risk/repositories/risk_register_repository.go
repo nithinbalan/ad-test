@@ -36,8 +36,8 @@ type RiskRegisterRepositoryInterface interface {
 	DeleteRiskProcesses(processIds []*uint, tx ...utility.DatabaseTransaction) error
 	CreateRiskStrategicObjectives(strategicObjectives []*models.RiskStrategicObjective, tx ...utility.DatabaseTransaction) error
 	DeleteRiskStrategicObjectives(strategicObjectiveIds []*uint, tx ...utility.DatabaseTransaction) error
-	CreateRiskSLARegisters(slaRegisters []*models.RiskSLARegister, tx ...utility.DatabaseTransaction) error
-	DeleteRiskSLARegisters(slaRegisterIds []*uint, tx ...utility.DatabaseTransaction) error
+	CreateRiskSLAs(slaRegisters []*models.RiskSLA, tx ...utility.DatabaseTransaction) error
+	DeleteRiskSLAs(slaRegisterIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type RiskRegisterRepository struct {
@@ -448,7 +448,7 @@ func (repo *RiskRegisterRepository) DeleteRiskStrategicObjectives(strategicObjec
 	return nil
 }
 
-func (repo *RiskRegisterRepository) CreateRiskSLARegisters(slaRegisters []*models.RiskSLARegister, tx ...utility.DatabaseTransaction) error {
+func (repo *RiskRegisterRepository) CreateRiskSLAs(slaRegisters []*models.RiskSLA, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -459,14 +459,14 @@ func (repo *RiskRegisterRepository) CreateRiskSLARegisters(slaRegisters []*model
 	return nil
 }
 
-func (repo *RiskRegisterRepository) DeleteRiskSLARegisters(slaRegisterIds []*uint, tx ...utility.DatabaseTransaction) error {
+func (repo *RiskRegisterRepository) DeleteRiskSLAs(slaRegisterIds []*uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
 
 	// Delete SLARegister by IDs
-	if err := db.Where("id IN (?)", slaRegisterIds).Delete(&models.RiskSLARegister{}).Error; err != nil {
+	if err := db.Where("id IN (?)", slaRegisterIds).Delete(&models.RiskSLA{}).Error; err != nil {
 		return err
 	}
 
