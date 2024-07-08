@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"errors"
 	incidentDTOs "jethur/grc/incident/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
@@ -13,10 +14,10 @@ type IncidentRootCauseAnalysisRepositoryInterface interface {
 	GetAll(incidentID uint, params *incidentDTOs.IncidentRootCauseAnalysisListQueryParamsDTO) ([]*incidentDTOs.IncidentRootCauseAnalysisListDTO, error)
 	GetByID(id uint) (*models.IncidentRootCauseAnalysis, error)
 	GetByIncidentID(incidentID uint) ([]*models.IncidentRootCauseAnalysis, error)
-	Create(incidentRootCauseAnalyses []*models.IncidentRootCauseAnalysis, tx ...utility.DatabaseTransaction) error
-	Update(incidentRootCauseAnalyses []*models.IncidentRootCauseAnalysis, tx ...utility.DatabaseTransaction) error
+	Create(incidentRootCauseAnalysis *models.IncidentRootCauseAnalysis) (uint, error)
+	Update(incidentRootCauseAnalysis *models.IncidentRootCauseAnalysis) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
-	DeleteAnalyses(analysisIds []*uint, tx ...utility.DatabaseTransaction) error
+	GetLatestWhyByIncidentID(incidentID uint) (uint, error)
 	UpdateWhyValuesAfterDeletion(incidentID uint, deletedWhy uint, tx ...utility.DatabaseTransaction) error
 }
 
@@ -106,25 +107,20 @@ func (repo *IncidentRootCauseAnalysisRepository) GetByIncidentID(incidentID uint
 	return analyses, nil
 }
 
-func (repo *IncidentRootCauseAnalysisRepository) Create(incidentRootCauseAnalyses []*models.IncidentRootCauseAnalysis, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
+func (repo *IncidentRootCauseAnalysisRepository) Create(incidentRootCauseAnalysis *models.IncidentRootCauseAnalysis) (uint, error) {
+
+	if err := repo.db.Create(incidentRootCauseAnalysis).Error; err != nil {
+		return 0, err
 	}
-	if err := db.Create(&incidentRootCauseAnalyses).Error; err != nil {
-		return err
-	}
-	return nil
+
+	return incidentRootCauseAnalysis.ID, nil
 }
 
-func (repo *IncidentRootCauseAnalysisRepository) Update(incidentRootCauseAnalyses []*models.IncidentRootCauseAnalysis, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-	if err := db.Save(&incidentRootCauseAnalyses).Error; err != nil {
+func (repo *IncidentRootCauseAnalysisRepository) Update(incidentRootCauseAnalysis *models.IncidentRootCauseAnalysis) error {
+	if err := repo.db.Save(incidentRootCauseAnalysis).Error; err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -156,16 +152,16 @@ func (repo *IncidentRootCauseAnalysisRepository) UpdateWhyValuesAfterDeletion(in
 	return nil
 }
 
-func (repo *IncidentRootCauseAnalysisRepository) DeleteAnalyses(analysisIds []*uint, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
+func (repo *IncidentRootCauseAnalysisRepository) GetLatestWhyByIncidentID(incidentID uint) (uint, error) {
+	var latestWhy uint
 
-	// Delete documents by IDs
-	if err := db.Where("id IN (?)", analysisIds).Delete(&models.IncidentRootCauseAnalysis{}).Error; err != nil {
-		return err
+	err := repo.db.Model(&models.IncidentRootCauseAnalysis{}).Where("incident_register_id = ?", incidentID).Order("why DESC").Limit(1).Pluck("why", &latestWhy).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// If no records found, return 0
+			return 0, nil
+		}
+		return 0, err
 	}
-
-	return nil
+	return latestWhy, nil
 }
