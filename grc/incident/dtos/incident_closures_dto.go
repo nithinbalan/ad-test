@@ -10,7 +10,7 @@ import (
 type IncidentClosureListDTO struct {
 	ID                 uint       `json:"id"`
 	IncidentRegisterID uint       `json:"incident_register_id"`
-	CompletionDate     time.Time  `json:"completion_date"`
+	CompletionDate     string     `json:"completion_date"`
 	ResolutionSummary  string     `json:"resolution_summary"`
 	Notes              string     `json:"notes"`
 	CreatedAt          time.Time  `json:"created_at"`
@@ -46,14 +46,14 @@ type IncidentClosureParsedDates struct {
 }
 
 type IncidentClosureDetailDTO struct {
-	ID                int                             `json:"id"`
-	IncidentRegister  IncidentRegisterDetailDTO       `json:"incident_register"`
-	CompletionDate    time.Time                       `json:"completion_date"`
-	ResolutionSummary *string                         `json:"resolution_summary"`
-	Notes             *string                         `json:"notes"`
-	Lessons           []*IncidentClosureLessonDTO     `json:"lessons"`
-	CreatedAt         time.Time                       `json:"created_at"`
-	UpdatedAt         *time.Time                      `json:"updated_at"`
-	CreatedByUser     organizationDTOs.UserMinimalDTO `json:"created_by"`
-	UpdatedByUser     organizationDTOs.UserMinimalDTO `json:"updated_by"`
+	ID                   int                             `json:"id"`
+	IncidentRegister     IncidentRegisterDetailDTO       `json:"incident_register"`
+	CompletionDateString *string                         `json:"completion_date"`
+	ResolutionSummary    *string                         `json:"resolution_summary"`
+	Notes                *string                         `json:"notes"`
+	Lessons              []*IncidentClosureLessonDTO     `json:"lessons"`
+	CreatedAt            time.Time                       `json:"created_at"`
+	UpdatedAt            *time.Time                      `json:"updated_at"`
+	CreatedByUser        organizationDTOs.UserMinimalDTO `json:"created_by"`
+	UpdatedByUser        organizationDTOs.UserMinimalDTO `json:"updated_by"`
 }

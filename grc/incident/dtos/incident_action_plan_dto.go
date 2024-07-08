@@ -79,7 +79,7 @@ type IncidentActionPlanDetailDTO struct {
 	ActionPlanStatus masterDTOs.ActionPlanStatusDTO  `json:"action_plan_status"`
 	Percentage       *uint                           `json:"percentage"`
 	Comments         *string                         `json:"comments"`
-	TargetDate       *time.Time                      `json:"target_date"`
+	TargetDateString *string                         `json:"target_date"`
 	CreatedAt        time.Time                       `json:"created_at"`
 	UpdatedAt        *time.Time                      `json:"updated_at"`
 	CreatedByUser    organizationDTOs.UserMinimalDTO `json:"created_by"`
