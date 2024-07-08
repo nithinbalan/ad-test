@@ -94,6 +94,13 @@ func (iprs IncidentPostReviewService) GetFullDetailsByID(incidentID uint, id uin
 	}
 
 	//todo :- also add extra fields which required in details screen
+	if incidentPostReview.PostReviewDate != nil {
+		postReviewDate := incidentPostReview.PostReviewDate.Format("2006-01-02")
+		incidentPostReviewDTO.PostReviewDateString = &postReviewDate
+	}
+
+	incidentPostReviewDTO.CreatedAt = incidentPostReview.CreatedAt
+	incidentPostReviewDTO.UpdatedAt = incidentPostReview.UpdatedAt
 	return &incidentPostReviewDTO, nil
 }
 
@@ -115,7 +122,7 @@ func (iprs *IncidentPostReviewService) Create(incidentID uint, currentUserID uin
 	incidentPostReview := &models.IncidentPostReview{
 		IncidentRegisterID:                incidentID,
 		IncidentPostReviewEffectivenessID: int(incidentPostReviewFormDTO.IncidentPostReviewEffectivenessID),
-		PostReviewDate:                    *dates.PostReviewDate,
+		PostReviewDate:                    dates.PostReviewDate,
 		Summary:                           incidentPostReviewFormDTO.Summary,
 		CreatedByID:                       currentUserID,
 	}
@@ -226,7 +233,7 @@ func (iprs *IncidentPostReviewService) Update(incidentID uint, id uint, currentU
 		return err
 	}
 	// Update
-	existingIncidentPostReview.PostReviewDate = *dates.PostReviewDate
+	existingIncidentPostReview.PostReviewDate = dates.PostReviewDate
 	existingIncidentPostReview.IncidentPostReviewEffectivenessID = int(incidentPostReviewFormDTO.IncidentPostReviewEffectivenessID)
 	existingIncidentPostReview.Summary = incidentPostReviewFormDTO.Summary
 	existingIncidentPostReview.UpdatedByID = &currentUserID

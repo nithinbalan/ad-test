@@ -8,7 +8,7 @@ type IncidentPostReview struct {
 	ID                                uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	IncidentRegisterID                uint       `json:"incident_register_id" binding:"required" gorm:"not null"`
 	IncidentPostReviewEffectivenessID int        `json:"incident_post_review_effectiveness_id" binding:"required" gorm:"not null"`
-	PostReviewDate                    time.Time  `json:"post_review_date" binding:"required" gorm:"type:date;not null"`
+	PostReviewDate                    *time.Time `json:"post_review_date" binding:"required" gorm:"type:date;not null"`
 	Summary                           *string    `json:"summary" gorm:"type:nvarchar(max)"`
 	CreatedByID                       uint       `json:"created_by_id" binding:"required"`
 	UpdatedByID                       *uint      `json:"updated_by_id"`

@@ -48,6 +48,7 @@ func (repo *IncidentPostReviewRepository) GetAll(incidentID uint, params *incide
 	query := repo.db.Table("incident_post_reviews").
 		Select(`
         incident_post_reviews.*,
+		CONVERT(VARCHAR, incident_post_reviews.post_review_date, 23) AS post_review_date,
         created_user.first_name_en AS created_user_first_name_en,
         created_user.first_name_ar AS created_user_first_name_ar,
         created_user.last_name_en AS created_user_last_name_en,
