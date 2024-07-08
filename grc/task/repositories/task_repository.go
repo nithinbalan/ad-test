@@ -17,7 +17,7 @@ type TaskRepositoryInteface interface {
 	GetAll(params *taskDTOs.TaskListQueryParamsDTO) (*taskDTOs.TaskListResponseDTO, error)
 	GetByID(id uint) (*models.Task, error)
 	GetByFieldID(field string, value interface{}) (*models.Task, error)
-	CreateTask(task *models.Task, tx ...utility.DatabaseTransaction) error
+	Create(task *models.Task, tx ...utility.DatabaseTransaction) error
 	Update(task *models.Task, tx ...utility.DatabaseTransaction) error
 	Delete(id uint) error
 	GenerateReferenceNumber() (string, error)
@@ -192,7 +192,7 @@ func (repo *TaskRepository) GetByFieldID(field string, value interface{}) (*mode
 	return &task, nil
 }
 
-func (repo *TaskRepository) CreateTask(task *models.Task, tx ...utility.DatabaseTransaction) error {
+func (repo *TaskRepository) Create(task *models.Task, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()

@@ -168,7 +168,7 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 	}
 	url := fmt.Sprintf("compliance-register/%d/action-plans/%d", complianceID, id)
 
-	taskDTO := commonDTOs.CreateTaskDTO{
+	taskDTO := commonDTOs.TaskFormDTO{
 		ModuleID:               complianceActionPlanModuleID,
 		ComplianceActionPlanID: &id,
 		Title:                  ComplianceActionPlanFormDTO.Title,
@@ -179,7 +179,7 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 		ResponsibleUserID:      ComplianceActionPlanFormDTO.ResponsibleUserID,
 	}
 
-	if err := caps.taskSvc.CreateTask(taskDTO, currentUserID, tx); err != nil {
+	if err := caps.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
 		tx.Rollback()
 		return 0, err
 	}
@@ -251,19 +251,14 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 		return err
 	}
 	//update task
-	existingTask, err := caps.taskSvc.GetByFieldID("compliance_action_plan_id",id)
-
-	if err != nil {
-		return err
+	taskDTO := commonDTOs.TaskFormDTO{
+		Title:                  ComplianceActionPlanFormDTO.Title,
+		Description:            ComplianceActionPlanFormDTO.Description,
+		TargetDate:             dates.TargetDate,
+		SeverityLevelID:        ComplianceActionPlanFormDTO.SeverityLevelID,
+		ResponsibleUserID:      ComplianceActionPlanFormDTO.ResponsibleUserID,
 	}
-	existingTask.Title = ComplianceActionPlanFormDTO.Title
-	existingTask.Description = ComplianceActionPlanFormDTO.Description
-	existingTask.TargetDate = dates.TargetDate
-	existingTask.SeverityLevelID = ComplianceActionPlanFormDTO.SeverityLevelID
-	existingTask.ResponsibleUserID = ComplianceActionPlanFormDTO.ResponsibleUserID
-	existingTask.UpdatedByID = currentUserID
-
-	err = caps.taskSvc.UpdateTask(currentUserID, existingTask, tx)
+	err = caps.taskSvc.Update(currentUserID,taskDTO,"compliance_action_plan_id",id, tx)
 
 	if err != nil {
 		tx.Rollback()
@@ -305,7 +300,7 @@ func (caps *ComplianceActionPlanService) Delete(complianceID uint, ids []uint, c
 			failedIds = append(failedIds, id)
 			continue
 		}
-		taskID, err := caps.taskSvc.DeleteTask(existingTask.ID, currentUserID)
+		taskID, err := caps.taskSvc.Delete(existingTask.ID, currentUserID)
 		if err != nil {
 			failedIds = append(failedIds, taskID)
 			continue
