@@ -49,15 +49,8 @@ func (repo *IncidentInvestigationRepository) GetAll(incidentID uint, params *inc
 
 	query := repo.db.Table("incident_investigations").
 		Select(`
-        incident_investigations.id,
-        incident_investigations.incident_register_id,
-        incident_investigations.initiated_at,
-        incident_investigations.description,
-        incident_investigations.team_lead_id,
-        incident_investigations.action_recommendation,
-        incident_investigations.incident_investigation_status_id,
-        incident_investigations.created_at,
-        incident_investigations.updated_at,
+        incident_investigations.*,
+		CONVERT(VARCHAR, incident_investigations.initiated_at, 23) AS initiated_at,
         incident_register.title as incident_title,
 		team_lead.first_name_en AS team_lead_first_name_en,
 		team_lead.first_name_ar AS team_lead_first_name_ar,

@@ -85,6 +85,13 @@ func (ics IncidentClosureService) GetFullDetailsByID(incidentID uint, id uint, t
 	if err != nil {
 		return nil, err
 	}
+	if incidentClosure.CompletionDate != nil {
+		completionDate := incidentClosure.CompletionDate.Format("2006-01-02")
+		incidentClosureDTO.CompletionDateString = &completionDate
+	}
+
+	incidentClosureDTO.CreatedAt = incidentClosure.CreatedAt
+	incidentClosureDTO.UpdatedAt = incidentClosure.UpdatedAt
 
 	//todo :- also add extra fields which required in details screen
 	return &incidentClosureDTO, nil
@@ -104,7 +111,7 @@ func (ics *IncidentClosureService) Create(incidentID uint, currentUserID uint, i
 
 	incidentClosure := &models.IncidentClosure{
 		IncidentRegisterID: incidentID,
-		CompletionDate:     *dates.CompletionDate,
+		CompletionDate:     dates.CompletionDate,
 		ResolutionSummary:  incidentClosureFormDTO.ResolutionSummary,
 		Notes:              incidentClosureFormDTO.Notes,
 		CreatedByID:        currentUserID,
@@ -175,7 +182,7 @@ func (ics *IncidentClosureService) Update(incidentID uint, id uint, currentUserI
 		return err
 	}
 	// Update Incident Closure
-	existingIncidentClosure.CompletionDate = *dates.CompletionDate
+	existingIncidentClosure.CompletionDate = dates.CompletionDate
 	existingIncidentClosure.ResolutionSummary = incidentClosureFormDTO.ResolutionSummary
 	existingIncidentClosure.Notes = incidentClosureFormDTO.Notes
 	existingIncidentClosure.UpdatedByID = &currentUserID

@@ -112,6 +112,18 @@ func (irs IncidentRegisterService) GetFullDetailsByID(id uint, tx ...utility.Dat
 	}
 
 	//todo :- also add extra fields which required in details screen
+	// Format time fields without time component
+	if incident.IncidentAt != nil {
+		incidentAt := incident.IncidentAt.Format("2006-01-02")
+		incidentDTO.IncidentAtString = incidentAt
+	}
+	if incident.ReportedAt != nil {
+		reportedAt := incident.ReportedAt.Format("2006-01-02")
+		incidentDTO.ReportedAtStaring = reportedAt
+	}
+
+	incidentDTO.CreatedAt = incident.CreatedAt
+	incidentDTO.UpdatedAt = incident.UpdatedAt
 
 	return &incidentDTO, nil
 }

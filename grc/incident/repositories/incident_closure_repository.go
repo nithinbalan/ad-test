@@ -44,6 +44,7 @@ func (repo *IncidentClosureRepository) GetAll(incidentID uint, params *incidentD
 	query := repo.db.Table("incident_closures").
 		Select(`
         incident_closures.*,
+		CONVERT(VARCHAR, incident_closures.completion_date, 23) AS completion_date,
         created_user.first_name_en AS created_user_first_name_en,
         created_user.first_name_ar AS created_user_first_name_ar,
         created_user.last_name_en AS created_user_last_name_en,

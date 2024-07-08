@@ -43,6 +43,7 @@ func (repo *IncidentActionPlanRepository) GetAll(incidentID uint, params *incide
 	query := repo.db.Table("incident_action_plans").
 		Select(`
         incident_action_plans.*,
+		CONVERT(VARCHAR, incident_action_plans.target_date, 23) AS target_date,
         action_plan_statuses.title_en AS action_plan_status_title_en,
         action_plan_statuses.title_ar AS action_plan_status_title_ar,
         severity_levels.title_en AS severity_level_title_en,
