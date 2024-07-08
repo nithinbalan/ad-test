@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-type IncidentSLARegister struct {
+type IncidentSLA struct {
 	ID                 uint      `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	IncidentRegisterID uint      `json:"incident_register_id" binding:"required"`
 	SLARegisterID      uint      `json:"sla_register_id" binding:"required"`
@@ -17,6 +17,6 @@ type IncidentSLARegister struct {
 	CreatedByUser    *User             `gorm:"foreignKey:CreatedByID"`
 }
 
-func (IncidentSLARegister) TableName() string {
-	return "incident_sla_register"
+func (IncidentSLA) TableName() string {
+	return "incident_slas"
 }

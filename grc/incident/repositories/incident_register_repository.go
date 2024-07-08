@@ -35,8 +35,8 @@ type IncidentRegisterRepositoryInterface interface {
 	GetDocumentByID(id uint) (*models.IncidentDocument, error)
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
 
-	CreateIncidentSLARegisters(slaRegisters []*models.IncidentSLARegister, tx ...utility.DatabaseTransaction) error
-	DeleteIncidentSLARegisters(slaRegisterIds []*uint, tx ...utility.DatabaseTransaction) error
+	CreateIncidentSLAs(slaRegisters []*models.IncidentSLA, tx ...utility.DatabaseTransaction) error
+	DeleteIncidentSLAs(slaRegisterIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type IncidentRegisterRepository struct {
@@ -421,7 +421,7 @@ func (repo *IncidentRegisterRepository) DeleteIncidentProcesses(processIds []*ui
 	return nil
 }
 
-func (repo *IncidentRegisterRepository) CreateIncidentSLARegisters(slaRegisters []*models.IncidentSLARegister, tx ...utility.DatabaseTransaction) error {
+func (repo *IncidentRegisterRepository) CreateIncidentSLAs(slaRegisters []*models.IncidentSLA, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -432,14 +432,14 @@ func (repo *IncidentRegisterRepository) CreateIncidentSLARegisters(slaRegisters 
 	return nil
 }
 
-func (repo *IncidentRegisterRepository) DeleteIncidentSLARegisters(slaRegisterIds []*uint, tx ...utility.DatabaseTransaction) error {
+func (repo *IncidentRegisterRepository) DeleteIncidentSLAs(slaRegisterIds []*uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
 
 	// Delete SLARegister by IDs
-	if err := db.Where("id IN (?)", slaRegisterIds).Delete(&models.IncidentSLARegister{}).Error; err != nil {
+	if err := db.Where("id IN (?)", slaRegisterIds).Delete(&models.IncidentSLA{}).Error; err != nil {
 		return err
 	}
 
