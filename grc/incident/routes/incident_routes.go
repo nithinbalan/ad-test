@@ -94,7 +94,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	//Incident Root Cause Analyses
 	incidentRoutes.GET("/incidents/:incidentID/root-cause-analysis", incidentRootCauseAnalysisController.GetAllIncidentRootCauseAnalyses)
 	incidentRoutes.POST("/incidents/:incidentID/root-cause-analysis", incidentRootCauseAnalysisController.CreateIncidentRootCauseAnalysis)
-	incidentRoutes.PUT("/incidents/:incidentID/root-cause-analysis", incidentRootCauseAnalysisController.UpdateIncidentRootCauseAnalysis)
+	incidentRoutes.PUT("/incidents/:incidentID/root-cause-analysis/:id", incidentRootCauseAnalysisController.UpdateIncidentRootCauseAnalysis)
 	incidentRoutes.DELETE("/incidents/:incidentID/root-cause-analysis/:id", incidentRootCauseAnalysisController.DeleteIncidentRootCauseAnalyses)
 
 	//Incident Communication logs
