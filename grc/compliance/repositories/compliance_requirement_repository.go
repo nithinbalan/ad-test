@@ -31,6 +31,7 @@ type ComplianceRequirementRepositoryInterface interface {
 	DeleteComplianceRequirementStrategicObjectives(objectiveIds []*uint, tx ...utility.DatabaseTransaction) error
 
 	CreateInitialComplianceRequirementStatusUpdate(complianceRequirementStatusUpdate *models.ComplianceRequirementStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
+	GetStatusUpdateByRequirementID(requirementID uint, tx ...utility.DatabaseTransaction) ([]*models.ComplianceRequirementStatusUpdate, error)
 	DeleteComplianceRequirementStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error
 }
 
@@ -381,7 +382,6 @@ func (repo *ComplianceRequirementRepository) GetFullDetailsByID(id uint, tx ...u
 		Preload("StrategicObjectives.StrategicObjective").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
-		Preload("ComplianceRequirementStatusUpdates").
 		First(&complianceRequirement, id)
 
 	if result.Error != nil {
@@ -549,10 +549,28 @@ func (repo *ComplianceRequirementRepository) DeleteComplianceRequirementStatusUp
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
+	if err := db.Where("compliance_requirement_status_update_id IN (?)", ids).Delete(&models.ComplianceRequirementStatusUpdateDocument{}).Error; err != nil {
+		return err
+	}
 
 	if err := db.Where("id IN (?)", ids).Delete(&models.ComplianceRequirementStatusUpdate{}).Error; err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (repo *ComplianceRequirementRepository) GetStatusUpdateByRequirementID(requirementID uint, tx ...utility.DatabaseTransaction) ([]*models.ComplianceRequirementStatusUpdate, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	var requirementStatusUpdates []*models.ComplianceRequirementStatusUpdate
+	result := db.Where("compliance_requirement_id = ?", requirementID).Find(&requirementStatusUpdates)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return requirementStatusUpdates, nil
 }

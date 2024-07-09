@@ -460,9 +460,14 @@ func (crs *ComplianceRequirementService) Delete(complianceID uint, ids []uint, c
 			}
 		}
 
-		if len(requirement.ComplianceRequirementStatusUpdates) > 0 {
+		complianceRequirementStatusUpdates, err := crs.repo.GetStatusUpdateByRequirementID(id, tx)
+		if err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+		if len(complianceRequirementStatusUpdates) > 0 {
 			var deleteStatusUpdateIds []*uint
-			for _, update := range requirement.ComplianceRequirementStatusUpdates {
+			for _, update := range complianceRequirementStatusUpdates {
 				deleteStatusUpdateIds = append(deleteStatusUpdateIds, &update.ID)
 			}
 			if err := crs.repo.DeleteComplianceRequirementStatusUpdates(deleteStatusUpdateIds, tx); err != nil {
