@@ -43,6 +43,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskInherentControlAnalysisController := app.RiskModule.RiskInherentControlAnalysisController
 	riskResidualEvaluationController := app.RiskModule.RiskResidualEvaluationController
 	riskResidualControlAnalysisController := app.RiskModule.RiskResidualControlAnalysisController
+	riskKriController := app.RiskModule.RiskKriController
 
 	riskRoutes.GET("/risk-categories", riskCategoryController.GetAllRiskCategories)
 	riskRoutes.GET("/risk-categories/:id", riskCategoryController.GetRiskCategoryDetails)
@@ -230,5 +231,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.POST("risks/:riskId/residual-control-analysis/delete", riskResidualControlAnalysisController.DeleteRiskControlAnalyses)
 
 	riskRoutes.GET("risks/:riskId/residual-control-analysis/control-summary", riskResidualControlAnalysisController.GetRiskControlSummary)
+
+	riskRoutes.GET("/risks/:riskId/kris", riskKriController.GetAllRiskKris)
+	riskRoutes.GET("/risks/:riskId/kris/:kriId", riskKriController.GetRiskKriDetails)
+	riskRoutes.POST("/risks/:riskId/kris", riskKriController.CreateRiskKri)
+	riskRoutes.PUT("/risks/:riskId/kris", riskKriController.UpdateRiskKri)
+	riskRoutes.POST("/risks/:riskId/kris/delete", riskKriController.DeleteRiskKris)
 
 }

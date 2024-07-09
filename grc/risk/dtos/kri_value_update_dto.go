@@ -51,17 +51,17 @@ type KRIValueUpdateListResponseDTO struct {
 }
 
 type KRIValueUpdateDetailsDTO struct {
-	ID              uint                         `json:"id"`
-	KRIRegisterID   uint                         `json:"kri_register_id"`
-	KRIRegister     KRIRegisterDetailsDTO        `json:"kri_register"`
-	ReviewedDate    string                       `json:"reviewed_date"`
+	ID            uint `json:"id"`
+	KRIRegisterID uint `json:"kri_register_id"`
+	// KRIRegister     KRIRegisterDetailsDTO        `json:"kri_register"`
+	ReviewedDate    time.Time                    `json:"reviewed_date"`
 	Value           string                       `json:"value"`
 	LowThreshold    string                       `json:"low_threshold"`
 	MediumThreshold string                       `json:"medium_threshold"`
 	HighThreshold   string                       `json:"high_threshold"`
 	Remarks         string                       `json:"remarks"`
-	CreatedAt       string                       `json:"created_at"`
-	UpdatedAt       string                       `json:"updated_at"`
+	CreatedAt       time.Time                    `json:"created_at"`
+	UpdatedAt       *time.Time                   `json:"updated_at"`
 	Documents       []*KRIValueUpdateDocumentDTO `json:"documents"`
 }
 
