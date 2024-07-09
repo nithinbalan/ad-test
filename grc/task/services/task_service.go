@@ -15,9 +15,9 @@ type TaskServiceInterface interface {
 	GetAll(params *taskDTOs.TaskListQueryParamsDTO) (*taskDTOs.TaskListResponseDTO, error)
 	GetByID(id uint) (*models.Task, error)
 	GetByFieldID(field string, value interface{}) (*models.Task, error)
-	CreateTask(taskDTO commonDTOs.CreateTaskDTO, currentUserID uint, tx ...utility.DatabaseTransaction) error
-	UpdateTask(currentUserID uint, task *models.Task, tx ...utility.DatabaseTransaction) error
-	DeleteTask(id uint, currentUserID uint) (uint, error)
+	Create(taskDTO commonDTOs.TaskFormDTO, currentUserID uint, tx ...utility.DatabaseTransaction) error
+	Update(currentUserID uint, taskDTO commonDTOs.TaskFormDTO,fieldName string, id uint, tx ...utility.DatabaseTransaction) error
+	Delete(id uint, currentUserID uint) (uint, error)
 }
 
 type TaskService struct {
@@ -57,7 +57,7 @@ func (ts TaskService) GetByFieldID(field string, value interface{}) (*models.Tas
 	return task, nil
 }
 
-func (ts *TaskService) CreateTask(taskDTO commonDTOs.CreateTaskDTO, currentUserID uint, tx ...utility.DatabaseTransaction) error {
+func (ts *TaskService) Create(taskDTO commonDTOs.TaskFormDTO, currentUserID uint, tx ...utility.DatabaseTransaction) error {
 	taskStatus, err := ts.taskStatusSvc.GetByType("open")
 	if err != nil {
 		return err
@@ -82,21 +82,29 @@ func (ts *TaskService) CreateTask(taskDTO commonDTOs.CreateTaskDTO, currentUserI
 		TaskStatusID:           taskStatus.ID,
 		CreatedByID:            currentUserID,
 	}
-	return ts.repo.CreateTask(task, tx...)
+	return ts.repo.Create(task, tx...)
 
 }
 
-func (ts *TaskService) UpdateTask(currentUserID uint, task *models.Task, tx ...utility.DatabaseTransaction) error {
-	err := ts.repo.Update(task, tx...)
-
+func (ts *TaskService) Update(currentUserID uint,taskDTO commonDTOs.TaskFormDTO,fieldName string, id uint, tx ...utility.DatabaseTransaction) error {
+	existingTask, err := ts.GetByFieldID(fieldName,id)
 	if err != nil {
 		return err
 	}
-
+	existingTask.Title = taskDTO.Title
+	existingTask.Description = taskDTO.Description
+	existingTask.TargetDate = taskDTO.TargetDate
+	existingTask.SeverityLevelID = taskDTO.SeverityLevelID
+	existingTask.ResponsibleUserID = taskDTO.ResponsibleUserID
+	existingTask.UpdatedByID = currentUserID
+	err = ts.repo.Update(existingTask, tx...)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
-func (ts *TaskService) DeleteTask(id uint, currentUserID uint) (uint, error) {
+func (ts *TaskService) Delete(id uint, currentUserID uint) (uint, error) {
 	var failedId uint
 
 	entryToDelete, err := ts.GetByID(id)
