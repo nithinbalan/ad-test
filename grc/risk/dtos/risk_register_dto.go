@@ -99,6 +99,7 @@ type RiskRegisterDetailDTO struct {
 	Processes              []*RiskProcessDTO                `json:"processes"`
 	StrategicObjectives    []*RiskStrategicObjectiveDTO     `json:"strategic_objectives"`
 	SLARegisters           []*RiskSLARegisterDTO            `json:"sla_registers"`
+	Kris                   []*RiskKRIDTO                    `json:"kris"`
 }
 
 type RiskControlDTO struct {
@@ -127,6 +128,12 @@ type RiskStrategicObjectiveDTO struct {
 	RiskRegisterID       uint                                   `json:"risk_register_id"`
 	StrategicObjectiveID uint                                   `json:"strategic_objective_id"`
 	StrategicObjective   organizationDTOs.StrategicObjectiveDTO `json:"strategic_objective"`
+}
+
+type RiskKRIDTO struct {
+	ID             *uint `json:"id"`
+	RiskRegisterID uint  `json:"risk_register_id"`
+	KriID          uint  `json:"kri_id"`
 }
 
 type RiskSLARegisterDTO struct {

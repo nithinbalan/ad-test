@@ -106,6 +106,7 @@ type KRIRegisterDetailsDTO struct {
 	UpdatedAt        *time.Time                        `json:"updated_at"`
 	CreatedByUser    organizationDTOs.UserMinimalDTO   `json:"created_by"`
 	UpdatedByUser    organizationDTOs.UserMinimalDTO   `json:"updated_by"`
+	ValueUpdates     []*KRIValueUpdateDetailsDTO       `json:"value_updates"`
 }
 
 type KRIRegisterParsedDates struct {

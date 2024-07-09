@@ -39,6 +39,7 @@ type RiskModule struct {
 	RiskInherentControlAnalysisController *controllers.RiskInherentControlAnalysisController
 	RiskResidualEvaluationController      *controllers.RiskResidualEvaluationController
 	RiskResidualControlAnalysisController *controllers.RiskResidualControlAnalysisController
+	RiskKriController                     *controllers.RiskKriController
 
 	RiskRegisterSvc services.RiskRegisterServiceInterface
 }
@@ -240,6 +241,15 @@ func NewRiskModule(db *gorm.DB,
 	riskResidualControlAnalysisSvc := services.NewRiskResidualControlAnalysisService(riskResidualControlAnalysisRepo, sharedModule.ActivityLogService, riskRegisterSvc, organizationModule.ControlSvc, organizationModule.ControlTestSvc)
 	riskResidualControlAnalysisController := controllers.NewRiskResidualControlAnalysisController(riskResidualControlAnalysisSvc)
 
+	riskKriRepo := repositories.NewRiskKriRepository(db)
+	riskKriSvc := services.NewRiskKriService(
+		riskKriRepo,
+		sharedModule.ActivityLogService,
+		riskRegisterSvc,
+		kriRegisterSvc,
+	)
+	riskKriController := controllers.NewRiskKriController(riskKriSvc)
+
 	return &RiskModule{
 		RiskCategoryController:                riskCategoryController,
 		PotentialRiskStatusController:         potentialRiskStatusController,
@@ -271,6 +281,7 @@ func NewRiskModule(db *gorm.DB,
 		RiskInherentControlAnalysisController: riskInherentControlAnalysisController,
 		RiskResidualEvaluationController:      riskResidualEvaluationController,
 		RiskResidualControlAnalysisController: riskResidualControlAnalysisController,
+		RiskKriController:                     riskKriController,
 
 		RiskRegisterSvc: riskRegisterSvc,
 	}
