@@ -110,16 +110,16 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	incidentRoutes.PUT("/incidents/:incidentID/closure", incidentClosureController.UpdateIncidentClosure)
 	incidentRoutes.DELETE("/incidents/:incidentID/closure", incidentClosureController.DeleteIncidentClosures)
 
+
 	//Incident Post Review Effectiveness
 	incidentRoutes.GET("/incident-post-review-effectivenesses", incidentPostReviewEffectivenessController.GetAllIncidentPostReviewEffectivenesses)
 	incidentRoutes.GET("/incident-post-review-effectivenesses/:id", incidentPostReviewEffectivenessController.GetIncidentPostReviewEffectivenessDetails)
 
 	//Incident PostReview
-	incidentRoutes.GET("/incidents/:incidentID/post-reviews", incidentPostReviewController.GetAllIncidentPostReviews)
-	incidentRoutes.GET("/incidents/:incidentID/post-reviews/:id", incidentPostReviewController.GetIncidentPostReviewDetails)
-	incidentRoutes.POST("/incidents/:incidentID/post-reviews", incidentPostReviewController.CreateIncidentPostReview)
-	incidentRoutes.PUT("/incidents/:incidentID/post-reviews/:id", incidentPostReviewController.UpdateIncidentPostReview)
-	incidentRoutes.POST("/incidents/:incidentID/post-reviews/delete", incidentPostReviewController.DeleteIncidentPostReviews)
+	incidentRoutes.GET("/incidents/:incidentID/post-review", incidentPostReviewController.GetIncidentPostReviewDetails)
+	incidentRoutes.POST("/incidents/:incidentID/post-review", incidentPostReviewController.CreateIncidentPostReview)
+	incidentRoutes.PUT("/incidents/:incidentID/post-review", incidentPostReviewController.UpdateIncidentPostReview)
+	incidentRoutes.DELETE("/incidents/:incidentID/post-review", incidentPostReviewController.DeleteIncidentPostReviews)
 
 	//Incident Associated Items
 	incidentRoutes.GET("/incidents/:incidentID/controls", incidentAssociatedItemController.GetAllIncidentControls)
