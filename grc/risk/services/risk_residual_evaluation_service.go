@@ -171,6 +171,12 @@ func (ries *RiskResidualEvaluationService) Create(riskID uint, currentUserID uin
 		return 0, err
 	}
 
+	err = ries.riskRegisterSvc.UpdateRiskRating(riskID, currentUserID, riskResidualEvaluation, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
 	for _, impactEval := range residualEvaluationFormDTO.RiskImpactAnalyses {
 		riskImpactEvaluation := &models.RiskImpactAnalysis{
 			RiskEvaluationID:     id,
@@ -309,6 +315,12 @@ func (ries *RiskResidualEvaluationService) Update(riskID uint, id uint, currentU
 	existingRiskResidualEvaluation.UpdatedByID = &currentUserID
 
 	if err := ries.repo.Update(existingRiskResidualEvaluation, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	err = ries.riskRegisterSvc.UpdateRiskRating(riskID, currentUserID, existingRiskResidualEvaluation, tx)
+	if err != nil {
 		tx.Rollback()
 		return err
 	}

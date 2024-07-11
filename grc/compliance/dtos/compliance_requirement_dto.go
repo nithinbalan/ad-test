@@ -99,21 +99,20 @@ type ComplianceRequirementParsedDates struct {
 }
 
 type ComplianceRequirementDetailDTO struct {
-	ID                                      int                                           `json:"id"`
-	ComplianceClause                        ComplianceClauseDTO                           `json:"compliance_clause"`
-	Title                                   string                                        `json:"title"`
-	ComplianceRequirementCategory           ComplianceRequirementCategoryDTO              `json:"compliance_requirement_category"`
-	SeverityLevel                           *masterDTOs.SeverityLevelDTO                  `json:"severity_level"`
-	ResponsibleUser                         organizationDTOs.UserMinimalDTO               `json:"responsible_user"`
-	DeadlineString                          *string                                       `json:"deadline"`
-	CreatedAt                               time.Time                                     `json:"created_at"`
-	UpdatedAt                               *time.Time                                    `json:"updated_at"`
-	CreatedByUser                           organizationDTOs.UserMinimalDTO               `json:"created_by"`
-	UpdatedByUser                           *organizationDTOs.UserMinimalDTO              `json:"updated_by"`
-	LatestComplianceRequirementStatusUpdate *ComplianceRequirementStatusUpdateDTO         `json:"compliance_status"`
-	Controls                                []*ComplianceRequirementControlDTO            `json:"controls"`
-	StrategicObjectives                     []*ComplianceRequirementStrategicObjectiveDTO `json:"strategic_objectives"`
-	ComplianceRequirementStatusUpdates      []*ComplianceRequirementStatusUpdateDTO       `json:"compliance_requirement_status_updates"`
+	ID                                 int                                           `json:"id"`
+	ComplianceClause                   ComplianceClauseDTO                           `json:"compliance_clause"`
+	Title                              string                                        `json:"title"`
+	ComplianceRequirementCategory      ComplianceRequirementCategoryDTO              `json:"compliance_requirement_category"`
+	SeverityLevel                      *masterDTOs.SeverityLevelDTO                  `json:"severity_level"`
+	ResponsibleUser                    organizationDTOs.UserMinimalDTO               `json:"responsible_user"`
+	DeadlineString                     *string                                       `json:"deadline"`
+	CreatedAt                          time.Time                                     `json:"created_at"`
+	UpdatedAt                          *time.Time                                    `json:"updated_at"`
+	CreatedByUser                      organizationDTOs.UserMinimalDTO               `json:"created_by"`
+	UpdatedByUser                      *organizationDTOs.UserMinimalDTO              `json:"updated_by"`
+	Controls                           []*ComplianceRequirementControlDTO            `json:"controls"`
+	StrategicObjectives                []*ComplianceRequirementStrategicObjectiveDTO `json:"strategic_objectives"`
+	ComplianceStatus                   ComplianceStatusDTO                           `json:"compliance_status"`
 }
 
 type ComplianceRequirementStatusUpdateDTO struct {

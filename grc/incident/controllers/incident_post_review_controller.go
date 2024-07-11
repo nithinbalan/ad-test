@@ -23,72 +23,6 @@ func NewIncidentPostReviewController(service services.IncidentPostReviewServiceI
 	}
 }
 
-func (iprc *IncidentPostReviewController) GetAllIncidentPostReviews(c *gin.Context) {
-	incidentIDStr := c.Param("incidentID")
-
-	var incidentID uint64
-	var err error
-
-	// Check if incidentID is provided in the URL
-	if incidentIDStr != "" {
-		incidentID, err = strconv.ParseUint(incidentIDStr, 10, 64)
-		if err != nil {
-			utility.SendNotFoundErrResp(c)
-			return
-		}
-	} else {
-		incidentID = 0
-	}
-	sort := c.Query("sort_order")
-	sortBy := c.Query("sort_by")
-	keyword := c.Query("keyword")
-	status := c.Query("status")
-	quickFilter := c.QueryArray("quick_filter")
-
-	// Define an array of allowed parameter names
-	allowedParams := []string{
-		"incident_register_ids",
-	}
-
-	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
-
-	page, err := utility.ParseQueryParamToInt(c, "page", 1)
-	if err != nil {
-		utility.SendInternalErrResp(iprc.db, c, "Invalid page parameter")
-		return
-	}
-
-	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
-	if err != nil {
-		utility.SendInternalErrResp(iprc.db, c, "Invalid page_size parameter")
-		return
-	}
-
-	queryParams := incidentDTOs.IncidentPostReviewListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      sortBy,
-		Keyword:     keyword,
-		Status:      status,
-		Page:        page,
-		PageSize:    pageSize,
-		Filters:     filters,
-		QuickFilter: quickFilter,
-	}
-	incidentPostReviews, err := iprc.service.GetAll(uint(incidentID), &queryParams)
-
-	if err != nil {
-		switch e := err.(type) {
-		case *utility.ResourceNotFoundError:
-			utility.SendNotFoundErrResp(c)
-			return
-		default:
-			utility.SendInternalErrResp(iprc.db, c, e.Error())
-			return
-		}
-	}
-	c.JSON(http.StatusOK, incidentPostReviews)
-}
-
 func (iprc *IncidentPostReviewController) GetIncidentPostReviewDetails(c *gin.Context) {
 	incidentIDStr := c.Param("incidentID")
 
@@ -98,15 +32,7 @@ func (iprc *IncidentPostReviewController) GetIncidentPostReviewDetails(c *gin.Co
 		return
 	}
 
-	idStr := c.Param("id")
-
-	id, err := strconv.ParseUint(idStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	incidentPostReview, err := iprc.service.GetFullDetailsByID(uint(incidentID), uint(id))
+	incidentPostReview, err := iprc.service.GetFullDetailsByID(uint(incidentID))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -173,14 +99,6 @@ func (iprc *IncidentPostReviewController) UpdateIncidentPostReview(c *gin.Contex
 		return
 	}
 
-	idStr := c.Param("id")
-
-	id, err := strconv.ParseUint(idStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
 	if err := c.ShouldBindJSON(&incidentPostReviewFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
@@ -192,7 +110,7 @@ func (iprc *IncidentPostReviewController) UpdateIncidentPostReview(c *gin.Contex
 		return
 	}
 
-	err = iprc.service.Update(uint(incidentID), uint(id), currentUserID, &incidentPostReviewFormDTO)
+	err = iprc.service.Update(uint(incidentID), currentUserID, &incidentPostReviewFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -211,10 +129,6 @@ func (iprc *IncidentPostReviewController) UpdateIncidentPostReview(c *gin.Contex
 }
 
 func (iprc *IncidentPostReviewController) DeleteIncidentPostReviews(c *gin.Context) {
-	var request struct {
-		IDs []uint `json:"ids"`
-	}
-
 	incidentIDStr := c.Param("incidentID")
 
 	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
@@ -222,19 +136,13 @@ func (iprc *IncidentPostReviewController) DeleteIncidentPostReviews(c *gin.Conte
 		utility.SendNotFoundErrResp(c)
 		return
 	}
-
-	if err := c.ShouldBindJSON(&request); err != nil {
-		utility.SendInvalidErrResp(c, err)
-		return
-	}
-
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(iprc.db, c, err.Error())
 		return
 	}
 
-	failedIDs, err := iprc.service.Delete(uint(incidentID), request.IDs, currentUserID)
+	failedID, err := iprc.service.Delete(uint(incidentID), currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -249,5 +157,5 @@ func (iprc *IncidentPostReviewController) DeleteIncidentPostReviews(c *gin.Conte
 		}
 	}
 
-	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+	c.JSON(http.StatusOK, gin.H{"failed_id": failedID})
 }

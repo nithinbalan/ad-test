@@ -1,10 +1,10 @@
 -- +goose Up
 -- +goose StatementBegin
 INSERT INTO control_implementation_statuses (title_en, title_ar, color_code, type, status) VALUES
-('Implemented', 'منفذ', '#00FF00', 'implemented', 'active'),
-('Not Implemented', 'غير منفذ', '#FF0000', 'not-implemented', 'active'),
-('Partially Implemented', 'منفذ جزئيا', '#FFFF00', 'partially-implemented', 'active'),
-('Not Applicable', 'غير قابل للتطبيق', '#0000FF', 'not-applicable', 'active');
+('Implemented', 'منفذ', '#28A745', 'implemented', 'active'),
+('Not Implemented', 'غير منفذ', '#DC3545', 'not-implemented', 'active'),
+('Partially Implemented', 'منفذ جزئيا', '#FFC107', 'partially-implemented', 'active'),
+('Not Applicable', 'غير قابل للتطبيق', '#6C757D', 'not-applicable', 'active');
 -- +goose StatementEnd
 
 -- +goose Down

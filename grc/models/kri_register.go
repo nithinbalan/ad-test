@@ -35,6 +35,7 @@ type KRIRegister struct {
 	RiskLevel       *RiskLevel        `gorm:"foreignKey:RiskLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	CreatedByUser   *User             `gorm:"foreignKey:CreatedByID"`
 	UpdatedByUser   *User             `gorm:"foreignKey:UpdatedByID"`
+	ValueUpdates    []*KRIValueUpdate `gorm:"foreignKey:KRIRegisterID"`
 }
 
 // TableName overrides the table name used by KRIRegister to `kri_register`

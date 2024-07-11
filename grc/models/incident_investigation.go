@@ -7,7 +7,7 @@ import (
 type IncidentInvestigation struct {
 	ID                            uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	IncidentRegisterID            uint       `json:"incident_register_id" binding:"required" gorm:"not null"`
-	InitiatedAt                   time.Time  `json:"initiated_at" binding:"required" gorm:"type:datetime;not null"`
+	InitiatedAt                   *time.Time `json:"initiated_at" binding:"required" gorm:"type:datetime;not null"`
 	Description                   *string    `json:"description" gorm:"type:nvarchar(max)"`
 	TeamLeadID                    uint       `json:"team_lead_id" binding:"required" gorm:"not null"`
 	ActionRecommendation          *string    `json:"action_recommendation" gorm:"type:nvarchar(max)"`

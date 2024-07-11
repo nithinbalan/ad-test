@@ -69,7 +69,7 @@
   },
   {
     "id": "invalid_otp",
-    "translation": "Invalid OTP"
+    "translation": "Invalid OTP" 
   },
   {
     "id": "field_confirm_password",
@@ -90,5 +90,9 @@
   {
     "id": "duplicate",
     "translation": "Duplicate '{{.Field}}' IDs detected. Please ensure each '{{.Field}}' ID is unique to avoid duplicates."
+  },
+  {
+    "id": "empty",
+    "translation": "Empty '{{.Field}}' IDs detected. Please ensure '{{.Field}}' IDs are provided."
   }
 ]

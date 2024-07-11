@@ -39,6 +39,7 @@ type RiskModule struct {
 	RiskInherentControlAnalysisController *controllers.RiskInherentControlAnalysisController
 	RiskResidualEvaluationController      *controllers.RiskResidualEvaluationController
 	RiskResidualControlAnalysisController *controllers.RiskResidualControlAnalysisController
+	RiskKriController                     *controllers.RiskKriController
 
 	RiskRegisterSvc services.RiskRegisterServiceInterface
 }
@@ -221,7 +222,7 @@ func NewRiskModule(db *gorm.DB,
 	riskResponseStrategyController := controllers.NewRiskResponseStrategyController(riskResponseStrategySvc)
 
 	riskTreatmentGuidelineRepo := repositories.NewRiskTreatmentGuidelineRepository(db)
-	riskTreatmentGuidelineSvc := services.NewRiskTreatmentGuidelineService(riskTreatmentGuidelineRepo, sharedModule.ActivityLogService, riskLevelSvc)
+	riskTreatmentGuidelineSvc := services.NewRiskTreatmentGuidelineService(riskTreatmentGuidelineRepo, sharedModule.ActivityLogService, riskMatrixRiskRatingSvc)
 	riskTreatmentGuidelineController := controllers.NewRiskTreatmentGuidelineController(riskTreatmentGuidelineSvc)
 
 	riskHeatmapRepo := repositories.NewRiskHeatmapRepository(db)
@@ -239,6 +240,15 @@ func NewRiskModule(db *gorm.DB,
 	riskResidualControlAnalysisRepo := repositories.NewRiskResidualControlAnalysisRepository(db)
 	riskResidualControlAnalysisSvc := services.NewRiskResidualControlAnalysisService(riskResidualControlAnalysisRepo, sharedModule.ActivityLogService, riskRegisterSvc, organizationModule.ControlSvc, organizationModule.ControlTestSvc)
 	riskResidualControlAnalysisController := controllers.NewRiskResidualControlAnalysisController(riskResidualControlAnalysisSvc)
+
+	riskKriRepo := repositories.NewRiskKriRepository(db)
+	riskKriSvc := services.NewRiskKriService(
+		riskKriRepo,
+		sharedModule.ActivityLogService,
+		riskRegisterSvc,
+		kriRegisterSvc,
+	)
+	riskKriController := controllers.NewRiskKriController(riskKriSvc)
 
 	return &RiskModule{
 		RiskCategoryController:                riskCategoryController,
@@ -271,6 +281,7 @@ func NewRiskModule(db *gorm.DB,
 		RiskInherentControlAnalysisController: riskInherentControlAnalysisController,
 		RiskResidualEvaluationController:      riskResidualEvaluationController,
 		RiskResidualControlAnalysisController: riskResidualControlAnalysisController,
+		RiskKriController:                     riskKriController,
 
 		RiskRegisterSvc: riskRegisterSvc,
 	}

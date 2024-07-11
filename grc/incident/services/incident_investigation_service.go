@@ -94,6 +94,13 @@ func (iis IncidentInvestigationService) GetFullDetailsByID(incidentID uint, id u
 	}
 
 	//todo :- also add extra fields which required in details screen
+	if incident.InitiatedAt != nil {
+		initiatedAt := incident.InitiatedAt.Format("2006-01-02")
+		incidentInvestigationDTO.InitiatedAtString = &initiatedAt
+	}
+
+	incidentInvestigationDTO.CreatedAt = incident.CreatedAt
+	incidentInvestigationDTO.UpdatedAt = incident.UpdatedAt
 
 	return &incidentInvestigationDTO, nil
 }
@@ -119,7 +126,7 @@ func (iis *IncidentInvestigationService) Create(incidentID uint, currentUserID u
 	incidentInvestigation := &models.IncidentInvestigation{
 		IncidentRegisterID:            incidentID,
 		Description:                   incidentInvestigationFormDTO.Description,
-		InitiatedAt:                   *dates.InitiatedAt,
+		InitiatedAt:                   dates.InitiatedAt,
 		TeamLeadID:                    incidentInvestigationFormDTO.TeamLeadID,
 		ActionRecommendation:          incidentInvestigationFormDTO.ActionRecommendation,
 		IncidentInvestigationStatusID: incidentInvestigationFormDTO.IncidentInvestigationStatusID,
@@ -264,7 +271,7 @@ func (iis *IncidentInvestigationService) Update(incidentID uint, id uint, curren
 
 	existingIncidentInvestigation.IncidentRegisterID = incidentID
 	existingIncidentInvestigation.Description = incidentInvestigationFormDTO.Description
-	existingIncidentInvestigation.InitiatedAt = *dates.InitiatedAt
+	existingIncidentInvestigation.InitiatedAt = dates.InitiatedAt
 	existingIncidentInvestigation.TeamLeadID = incidentInvestigationFormDTO.TeamLeadID
 	existingIncidentInvestigation.ActionRecommendation = incidentInvestigationFormDTO.ActionRecommendation
 	existingIncidentInvestigation.IncidentInvestigationStatusID = incidentInvestigationFormDTO.IncidentInvestigationStatusID

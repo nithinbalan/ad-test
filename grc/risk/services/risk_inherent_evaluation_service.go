@@ -171,6 +171,13 @@ func (ries *RiskInherentEvaluationService) Create(riskID uint, currentUserID uin
 		return 0, err
 	}
 
+	//update current risk rating of risk register
+	err = ries.riskRegisterSvc.UpdateRiskRating(riskID, currentUserID, riskInherentEvaluation, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
 	for _, impactEval := range inherentEvaluationFormDTO.RiskImpactAnalyses {
 		riskImpactEvaluation := &models.RiskImpactAnalysis{
 			RiskEvaluationID:     id,
@@ -309,6 +316,12 @@ func (ries *RiskInherentEvaluationService) Update(riskID uint, id uint, currentU
 	existingRiskInherentEvaluation.UpdatedByID = &currentUserID
 
 	if err := ries.repo.Update(existingRiskInherentEvaluation, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	err = ries.riskRegisterSvc.UpdateRiskRating(riskID, currentUserID, existingRiskInherentEvaluation, tx)
+	if err != nil {
 		tx.Rollback()
 		return err
 	}

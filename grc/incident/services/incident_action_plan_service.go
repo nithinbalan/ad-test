@@ -96,6 +96,13 @@ func (iaps IncidentActionPlanService) GetFullDetailsByID(incidentID uint, id uin
 	}
 
 	//todo :- also add extra fields which required in details screen
+	if incidentActionPlan.TargetDate != nil {
+		targetDate := incidentActionPlan.TargetDate.Format("2006-01-02")
+		incidentActionPlanDTO.TargetDateString = &targetDate
+	}
+
+	incidentActionPlanDTO.CreatedAt = incidentActionPlan.CreatedAt
+	incidentActionPlanDTO.UpdatedAt = incidentActionPlan.UpdatedAt
 
 	return &incidentActionPlanDTO, nil
 }
