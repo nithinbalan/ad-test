@@ -303,7 +303,7 @@ func (scas *SLACheckAnswerService) UpdateAnswer(slaID uint, questionID uint, ans
 			return err
 		}
 	}
-
+    tx.Commit();
 	// Log the activity
 	go func() {
 		err := scas.activityLogSvc.LogActivity(
