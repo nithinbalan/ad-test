@@ -14,10 +14,11 @@ type RiskTreatmentGuidelineRepositoryInterface interface {
 	Create(guideline *models.RiskTreatmentGuideline) (uint, error)
 	Update(guideline *models.RiskTreatmentGuideline, tx ...utility.DatabaseTransaction) error
 	Delete(id uint) error
-	ExistsByTimeframe(timeframeEn, timeframeAr string) (bool, error)
-	ExistsByTimeframeExcludingID(id uint, timeframeEn, timeframeAr string) (bool, error)
+	ExistsByDescription(descriptionEn, descriptionAr string) (bool, error)
+	ExistsByDescriptionExcludingID(id uint, descriptionEn, descriptionAr string) (bool, error)
 	Activate(ids []uint) ([]uint, error)
 	Deactivate(ids []uint) ([]uint, error)
+	ExistsByRiskMatrixRiskRatingID(riskMatrixRiskRatingID uint, excludeID *uint) (bool, error)
 }
 
 type RiskTreatmentGuidelineRepository struct {
@@ -36,16 +37,16 @@ func (repo *RiskTreatmentGuidelineRepository) GetAll(params *riskDTOs.RiskTreatm
 	query := repo.db.Table("risk_treatment_guidelines").
 		Select(`
 			risk_treatment_guidelines.id,
-			risk_treatment_guidelines.risk_level_id,
-			risk_treatment_guidelines.timeframe_en,
-			risk_treatment_guidelines.timeframe_ar,
+			risk_treatment_guidelines.risk_matrix_risk_rating_id,
+			risk_treatment_guidelines.description_en,
+			risk_treatment_guidelines.description_ar,
 			risk_treatment_guidelines.status,
-			risk_levels.title_en AS risk_level_title_en,
-			risk_levels.title_ar AS risk_level_title_ar,
-			risk_levels.color_code AS risk_level_color_code
+			risk_matrix_risk_ratings.title_en AS risk_matrix_risk_rating_title_en,
+			risk_matrix_risk_ratings.title_ar AS risk_matrix_risk_rating_title_ar,
+			risk_matrix_risk_ratings.color_code AS risk_matrix_risk_rating_color_code
 		`).
 		Joins(`
-			LEFT JOIN risk_levels ON risk_levels.id = risk_treatment_guidelines.risk_level_id
+			LEFT JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = risk_treatment_guidelines.risk_matrix_risk_rating_id
 		`)
 
 	// Apply dynamic filters to the query
@@ -58,17 +59,17 @@ func (repo *RiskTreatmentGuidelineRepository) GetAll(params *riskDTOs.RiskTreatm
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		query = query.Where(`
-			(risk_treatment_guidelines.timeframe_en LIKE ? OR
-			risk_treatment_guidelines.timeframe_ar LIKE ? OR
-			risk_levels.title_en LIKE ? OR
-			risk_levels.title_ar LIKE ?)`,
+			(risk_treatment_guidelines.description_en LIKE ? OR
+			risk_treatment_guidelines.description_ar LIKE ? OR
+			risk_matrix_risk_ratings.title_en LIKE ? OR
+			risk_matrix_risk_ratings.title_ar LIKE ?)`,
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%")
 	}
 
 	// Sort by the specified column and order
 	if params.SortBy == "" {
-		params.SortBy = "risk_treatment_guidelines.timeframe_en" // Default sort by timeframe_en if no sortBy is specified
+		params.SortBy = "risk_treatment_guidelines.description_en" // Default sort by description_en if no sortBy is specified
 	}
 	if params.Sort != "asc" && params.Sort != "desc" {
 		params.Sort = "asc" // Default order is ascending if not specified
@@ -89,6 +90,7 @@ func (repo *RiskTreatmentGuidelineRepository) GetByID(id uint) (*models.RiskTrea
 	var guideline *models.RiskTreatmentGuideline
 
 	result := repo.db.
+		Preload("RiskMatrixRiskRating").
 		First(&guideline, id)
 	if result.Error != nil {
 		return nil, result.Error
@@ -129,11 +131,11 @@ func (repo *RiskTreatmentGuidelineRepository) Delete(id uint) error {
 	return nil
 }
 
-func (repo *RiskTreatmentGuidelineRepository) ExistsByTimeframe(timeframeEn, timeframeAr string) (bool, error) {
+func (repo *RiskTreatmentGuidelineRepository) ExistsByDescription(descriptionEn, descriptionAr string) (bool, error) {
 	var count int64
 
 	err := repo.db.Model(&models.RiskTreatmentGuideline{}).
-		Where("timeframe_en = ? OR timeframe_ar = ?", timeframeEn, timeframeAr).
+		Where("description_en = ? OR description_ar = ?", descriptionEn, descriptionAr).
 		Count(&count).Error
 	if err != nil {
 		return false, utility.NewInternalServerError(err)
@@ -142,11 +144,11 @@ func (repo *RiskTreatmentGuidelineRepository) ExistsByTimeframe(timeframeEn, tim
 	return count > 0, nil
 }
 
-func (repo *RiskTreatmentGuidelineRepository) ExistsByTimeframeExcludingID(id uint, timeframeEn, timeframeAr string) (bool, error) {
+func (repo *RiskTreatmentGuidelineRepository) ExistsByDescriptionExcludingID(id uint, descriptionEn, descriptionAr string) (bool, error) {
 	var count int64
 
 	err := repo.db.Model(&models.RiskTreatmentGuideline{}).
-		Where("id <> ? AND (timeframe_en = ? OR timeframe_ar = ?)", id, timeframeEn, timeframeAr).
+		Where("id <> ? AND (description_en = ? OR description_ar = ?)", id, descriptionEn, descriptionAr).
 		Count(&count).Error
 	if err != nil {
 		return false, utility.NewInternalServerError(err)
@@ -193,4 +195,20 @@ func (repo *RiskTreatmentGuidelineRepository) Deactivate(ids []uint) ([]uint, er
 	}
 
 	return idsToUpdate, nil
+}
+
+func (repo *RiskTreatmentGuidelineRepository) ExistsByRiskMatrixRiskRatingID(riskMatrixRiskRatingID uint, excludeID *uint) (bool, error) {
+	var count int64
+	query := repo.db.Model(&models.RiskTreatmentGuideline{}).Where("risk_matrix_risk_rating_id = ?", riskMatrixRiskRatingID)
+
+	if excludeID != nil {
+		query = query.Where("id <> ?", *excludeID)
+	}
+
+	err := query.Count(&count).Error
+	if err != nil {
+		return false, utility.NewInternalServerError(err)
+	}
+
+	return count > 0, nil
 }
