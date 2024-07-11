@@ -24,20 +24,20 @@ type RiskTreatmentGuidelineServiceInterface interface {
 
 // Service and implementations
 type RiskTreatmentGuidelineService struct {
-	repo           riskRepositories.RiskTreatmentGuidelineRepositoryInterface
-	activityLogSvc logServices.ActivityLogServiceInterface
-	riskLevelSvc   RiskLevelServiceInterface
+	repo                    riskRepositories.RiskTreatmentGuidelineRepositoryInterface
+	activityLogSvc          logServices.ActivityLogServiceInterface
+	riskMatrixRiskRatingSvc RiskMatrixRiskRatingServiceInterface
 }
 
 func NewRiskTreatmentGuidelineService(
 	repo riskRepositories.RiskTreatmentGuidelineRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
-	riskLevelSvc RiskLevelServiceInterface,
+	riskMatrixRiskRatingSvc RiskMatrixRiskRatingServiceInterface,
 ) RiskTreatmentGuidelineServiceInterface {
 	return &RiskTreatmentGuidelineService{
-		repo:           repo,
-		activityLogSvc: activityLogSvc,
-		riskLevelSvc:   riskLevelSvc,
+		repo:                    repo,
+		activityLogSvc:          activityLogSvc,
+		riskMatrixRiskRatingSvc: riskMatrixRiskRatingSvc,
 	}
 }
 
@@ -63,10 +63,10 @@ func (rgs *RiskTreatmentGuidelineService) Create(currentUserID uint, guidelineDT
 	}
 
 	guideline := &models.RiskTreatmentGuideline{
-		RiskLevelID: guidelineDTO.RiskLevelID,
-		TimeframeEn: guidelineDTO.TimeframeEn,
-		TimeframeAr: guidelineDTO.TimeframeAr,
-		Status:      guidelineDTO.Status,
+		RiskMatrixRiskRatingID: guidelineDTO.RiskMatrixRiskRatingID,
+		DescriptionEn:          guidelineDTO.DescriptionEn,
+		DescriptionAr:          guidelineDTO.DescriptionAr,
+		Status:                 guidelineDTO.Status,
 	}
 
 	id, err := rgs.repo.Create(guideline)
@@ -111,9 +111,9 @@ func (rgs *RiskTreatmentGuidelineService) Update(id uint, currentUserID uint, gu
 		return err
 	}
 
-	existingGuideline.RiskLevelID = guidelineDTO.RiskLevelID
-	existingGuideline.TimeframeEn = guidelineDTO.TimeframeEn
-	existingGuideline.TimeframeAr = guidelineDTO.TimeframeAr
+	existingGuideline.RiskMatrixRiskRatingID = guidelineDTO.RiskMatrixRiskRatingID
+	existingGuideline.DescriptionEn = guidelineDTO.DescriptionEn
+	existingGuideline.DescriptionAr = guidelineDTO.DescriptionAr
 	existingGuideline.Status = guidelineDTO.Status
 
 	err = rgs.repo.Update(existingGuideline)
@@ -211,21 +211,27 @@ func (rgs *RiskTreatmentGuidelineService) Deactivate(ids []uint, currentUserID u
 }
 
 func (rgs *RiskTreatmentGuidelineService) validateRiskTreatmentGuidelineFormDTO(guidelineDTO *riskDTOs.RiskTreatmentGuidelineFormDTO, id *uint) error {
-	if _, err := rgs.riskLevelSvc.GetByID(guidelineDTO.RiskLevelID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("risk level does not exist"), "not_exist", "risk level")
+	if _, err := rgs.riskMatrixRiskRatingSvc.GetByID(guidelineDTO.RiskMatrixRiskRatingID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("risk rating does not exist"), "not_exist", "risk rating")
+	}
+
+	if exists, err := rgs.repo.ExistsByRiskMatrixRiskRatingID(guidelineDTO.RiskMatrixRiskRatingID, id); err != nil {
+		return err
+	} else if exists {
+		return utility.NewValidationError(fmt.Errorf("risk matrix risk rating id must be unique"), "unique", "risk matrix risk rating id")
 	}
 
 	if id == nil {
-		if exists, err := rgs.repo.ExistsByTimeframe(guidelineDTO.TimeframeEn, guidelineDTO.TimeframeAr); err != nil {
+		if exists, err := rgs.repo.ExistsByDescription(guidelineDTO.DescriptionEn, guidelineDTO.DescriptionAr); err != nil {
 			return err
 		} else if exists {
-			return utility.NewValidationError(fmt.Errorf("the timeframe must be unique"), "unique", "timeframe")
+			return utility.NewValidationError(fmt.Errorf("the description must be unique"), "unique", "description")
 		}
 	} else {
-		if exists, err := rgs.repo.ExistsByTimeframeExcludingID(*id, guidelineDTO.TimeframeEn, guidelineDTO.TimeframeAr); err != nil {
+		if exists, err := rgs.repo.ExistsByDescriptionExcludingID(*id, guidelineDTO.DescriptionEn, guidelineDTO.DescriptionAr); err != nil {
 			return err
 		} else if exists {
-			return utility.NewValidationError(fmt.Errorf("the timeframe must be unique"), "unique", "timeframe")
+			return utility.NewValidationError(fmt.Errorf("the description must be unique"), "unique", "description")
 		}
 	}
 
