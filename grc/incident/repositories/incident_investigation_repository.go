@@ -12,8 +12,8 @@ import (
 type IncidentInvestigationRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(incidentID uint, params *incidentDTOs.IncidentInvestigationListQueryParamsDTO) (*incidentDTOs.IncidentInvestigationListResponseDTO, error)
-	GetByID(id uint) (*models.IncidentInvestigation, error)
-	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.IncidentInvestigation, error)
+	GetByID(incidentID uint) (*models.IncidentInvestigation, error)
+	GetFullDetailsByID(incidentID uint, tx ...utility.DatabaseTransaction) (*models.IncidentInvestigation, error)
 	Create(incidentInvestigation *models.IncidentInvestigation, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(incidentInvestigation *models.IncidentInvestigation, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
@@ -149,10 +149,10 @@ func (repo *IncidentInvestigationRepository) GetAll(incidentID uint, params *inc
 	return response, nil
 }
 
-func (repo *IncidentInvestigationRepository) GetByID(id uint) (*models.IncidentInvestigation, error) {
+func (repo *IncidentInvestigationRepository) GetByID(incidentID uint) (*models.IncidentInvestigation, error) {
 	var incidentInvestigation *models.IncidentInvestigation
 
-	result := repo.db.First(&incidentInvestigation, id)
+	result := repo.db.Where("incident_register_id = ?", incidentID).First(&incidentInvestigation)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -161,14 +161,14 @@ func (repo *IncidentInvestigationRepository) GetByID(id uint) (*models.IncidentI
 
 }
 
-func (repo *IncidentInvestigationRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.IncidentInvestigation, error) {
+func (repo *IncidentInvestigationRepository) GetFullDetailsByID(incidentID uint, tx ...utility.DatabaseTransaction) (*models.IncidentInvestigation, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
 	var incidentInvestigation *models.IncidentInvestigation
 
-	result := db.
+	result := db.Where("incident_register_id = ?", incidentID).
 		Preload("IncidentRegister").
 		Preload("TeamLead").
 		Preload("IncidentInvestigationStatus").
@@ -177,7 +177,7 @@ func (repo *IncidentInvestigationRepository) GetFullDetailsByID(id uint, tx ...u
 		Preload("Findings").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
-		First(&incidentInvestigation, id)
+		First(&incidentInvestigation)
 
 	if result.Error != nil {
 		return nil, result.Error

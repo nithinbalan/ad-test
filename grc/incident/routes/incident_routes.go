@@ -72,11 +72,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	incidentRoutes.GET("/incident-investigation-statuses/:id", incidentInvestigationStatusController.GetIncidentInvestigationStatusDetails)
 
 	//Incident Investigation
-	incidentRoutes.GET("/incidents/:incidentID/investigations", incidentInvestigationController.GetAllIncidentInvestigations)
-	incidentRoutes.GET("/incidents/:incidentID/investigations/:id", incidentInvestigationController.GetIncidentInvestigationDetails)
-	incidentRoutes.POST("/incidents/:incidentID/investigations", incidentInvestigationController.CreateIncidentInvestigation)
-	incidentRoutes.PUT("/incidents/:incidentID/investigations/:id", incidentInvestigationController.UpdateIncidentInvestigation)
-	incidentRoutes.POST("/incidents/:incidentID/investigations/delete", incidentInvestigationController.DeleteIncidentInvestigations)
+	incidentRoutes.GET("/incidents/:incidentID/investigation", incidentInvestigationController.GetIncidentInvestigationDetails)
+	incidentRoutes.POST("/incidents/:incidentID/investigation", incidentInvestigationController.CreateIncidentInvestigation)
+	incidentRoutes.PUT("/incidents/:incidentID/investigation", incidentInvestigationController.UpdateIncidentInvestigation)
+	incidentRoutes.DELETE("/incidents/:incidentID/investigation", incidentInvestigationController.DeleteIncidentInvestigations)
 
 	//Incident Action Plan
 	incidentRoutes.GET("/incident-action-plans", incidentActionPlanController.GetAllIncidentActionPlans)
@@ -109,7 +108,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	incidentRoutes.POST("/incidents/:incidentID/closure", incidentClosureController.CreateIncidentClosure)
 	incidentRoutes.PUT("/incidents/:incidentID/closure", incidentClosureController.UpdateIncidentClosure)
 	incidentRoutes.DELETE("/incidents/:incidentID/closure", incidentClosureController.DeleteIncidentClosures)
-
 
 	//Incident Post Review Effectiveness
 	incidentRoutes.GET("/incident-post-review-effectivenesses", incidentPostReviewEffectivenessController.GetAllIncidentPostReviewEffectivenesses)

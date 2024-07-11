@@ -88,16 +88,7 @@ func (iic *IncidentInvestigationController) GetIncidentInvestigationDetails(c *g
 		utility.SendNotFoundErrResp(c)
 		return
 	}
-
-	idStr := c.Param("id")
-
-	id, err := strconv.ParseUint(idStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	incidentInvestigation, err := iic.service.GetFullDetailsByID(uint(incidentID), uint(id))
+	incidentInvestigation, err := iic.service.GetFullDetailsByID(uint(incidentID))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -163,12 +154,6 @@ func (iic *IncidentInvestigationController) UpdateIncidentInvestigation(c *gin.C
 		return
 	}
 
-	incidentInvestigationID, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
 	if err := c.ShouldBindJSON(&incidentInvestigationFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
@@ -180,7 +165,7 @@ func (iic *IncidentInvestigationController) UpdateIncidentInvestigation(c *gin.C
 		return
 	}
 
-	err = iic.service.Update(uint(incidentID), uint(incidentInvestigationID), currentUserID, &incidentInvestigationFormDTO)
+	err = iic.service.Update(uint(incidentID), currentUserID, &incidentInvestigationFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -206,14 +191,6 @@ func (iic *IncidentInvestigationController) DeleteIncidentInvestigations(c *gin.
 		utility.SendNotFoundErrResp(c)
 		return
 	}
-	var request struct {
-		IDs []uint `json:"ids"`
-	}
-
-	if err := c.ShouldBindJSON(&request); err != nil {
-		utility.SendInvalidErrResp(c, err)
-		return
-	}
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
@@ -221,11 +198,20 @@ func (iic *IncidentInvestigationController) DeleteIncidentInvestigations(c *gin.
 		return
 	}
 
-	failedIDs, err := iic.service.Delete(uint(incidentID), request.IDs, currentUserID)
+	failedID, err := iic.service.Delete(uint(incidentID), currentUserID)
 	if err != nil {
-		utility.SendInternalErrResp(iic.db, c, err.Error())
-		return
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(iic.db, c, e.Error())
+			return
+		}
 	}
 
-	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+	c.JSON(http.StatusOK, gin.H{"failed_id": failedID})
 }
