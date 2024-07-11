@@ -66,7 +66,7 @@ func (scqc *SLACheckQuestionController) GetSLACheckQuestionGroupDetails(c *gin.C
 		return
 	}
 
-	questionGroupIdStr := c.Param("id")
+	questionGroupIdStr := c.Param("groupId")
 
 	questionGroupId, err := strconv.ParseUint(questionGroupIdStr, 10, 64)
 	if err != nil {
@@ -133,7 +133,7 @@ func (scqc *SLACheckQuestionController) CreateSLACheckQuestionGroup(c *gin.Conte
 }
 
 func (scqc *SLACheckQuestionController) UpdateSLACheckQuestionGroup(c *gin.Context) {
-	var slaCheckUpdateQuestionGroupDTO complianceDTOs.SLACheckUpdateQuestionGroupDTO
+	var slaCheckUpdateQuestionGroupDTO complianceDTOs.SLACheckQuestionGroupFormDTO
 
 	slaIDStr := c.Param("slaId")
 
@@ -151,7 +151,7 @@ func (scqc *SLACheckQuestionController) UpdateSLACheckQuestionGroup(c *gin.Conte
 		return
 	}
 
-	questionGroupIdStr := c.Param("id")
+	questionGroupIdStr := c.Param("groupId")
 
 	questionGroupId, err := strconv.ParseUint(questionGroupIdStr, 10, 64)
 	if err != nil {
@@ -205,7 +205,7 @@ func (scqc *SLACheckQuestionController) DeleteSLACheckQuestionGroup(c *gin.Conte
 		return
 	}
 
-	questionGroupIdStr := c.Param("id")
+	questionGroupIdStr := c.Param("groupId")
 
 	questionGroupId, err := strconv.ParseUint(questionGroupIdStr, 10, 64)
 	if err != nil {
@@ -244,7 +244,7 @@ func (scqc *SLACheckQuestionController) GetSLACheckQuestionsByGroup(c *gin.Conte
 		return
 	}
 
-	groupIdStr := c.Param("id")
+	groupIdStr := c.Param("groupId")
 
 	groupId, err := strconv.ParseUint(groupIdStr, 10, 32)
 	if err != nil {
@@ -357,6 +357,14 @@ func (scqc *SLACheckQuestionController) CreateSLACheckQuestion(c *gin.Context) {
 		return
 	}
 
+	groupIdStr := c.Param("groupId")
+
+	groupId, err := strconv.ParseUint(groupIdStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
 	if err := c.ShouldBindJSON(&slaCheckQuestionFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
@@ -368,7 +376,7 @@ func (scqc *SLACheckQuestionController) CreateSLACheckQuestion(c *gin.Context) {
 		return
 	}
 
-	createdID, err := scqc.service.CreateQuestion(uint(slaId), uint(checkId), currentUserID, &slaCheckQuestionFormDTO)
+	createdID, err := scqc.service.CreateQuestion(uint(slaId), uint(checkId), uint(groupId), currentUserID, &slaCheckQuestionFormDTO)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -388,7 +396,7 @@ func (scqc *SLACheckQuestionController) CreateSLACheckQuestion(c *gin.Context) {
 }
 
 func (scqc *SLACheckQuestionController) UpdateSLACheckQuestion(c *gin.Context) {
-	var slaCheckUpdateQuestionDTO complianceDTOs.SLACheckUpdateQuestionDTO
+	var slaCheckUpdateQuestionDTO complianceDTOs.SLACheckQuestionFormDTO
 
 	slaIDStr := c.Param("slaId")
 
@@ -401,6 +409,14 @@ func (scqc *SLACheckQuestionController) UpdateSLACheckQuestion(c *gin.Context) {
 	checkIdStr := c.Param("checkId")
 
 	checkId, err := strconv.ParseUint(checkIdStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	groupIdStr := c.Param("groupId")
+
+	groupId, err := strconv.ParseUint(groupIdStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -425,7 +441,7 @@ func (scqc *SLACheckQuestionController) UpdateSLACheckQuestion(c *gin.Context) {
 		return
 	}
 
-	err = scqc.service.UpdateQuestion(uint(slaID), uint(checkId), uint(questionId), currentUserID, &slaCheckUpdateQuestionDTO)
+	err = scqc.service.UpdateQuestion(uint(slaID), uint(checkId), uint(groupId), uint(questionId), currentUserID, &slaCheckUpdateQuestionDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -460,6 +476,14 @@ func (scqc *SLACheckQuestionController) DeleteSLACheckQuestion(c *gin.Context) {
 		return
 	}
 
+	groupIdStr := c.Param("groupId")
+
+	groupId, err := strconv.ParseUint(groupIdStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
 	questionIdStr := c.Param("id")
 
 	questionId, err := strconv.ParseUint(questionIdStr, 10, 64)
@@ -473,7 +497,7 @@ func (scqc *SLACheckQuestionController) DeleteSLACheckQuestion(c *gin.Context) {
 		return
 	}
 
-	failedID, err := scqc.service.DeleteQuestion(uint(slaID), uint(checkId), uint(questionId), currentUserID)
+	failedID, err := scqc.service.DeleteQuestion(uint(slaID), uint(checkId), uint(groupId), uint(questionId), currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(scqc.db, c, err.Error())
 		return

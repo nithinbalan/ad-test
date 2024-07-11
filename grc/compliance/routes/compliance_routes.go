@@ -37,7 +37,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	slaActionPlanStatusUpdateController := app.ComplianceModule.SLAActionPlanStatusUpdateController
 	slaAssociatedItemController := app.ComplianceModule.SLAAssociatedItemController
 
-
 	//Compliance Category
 	complianceRoutes.GET("/compliance-categories", complianceCategoryController.GetAllComplianceCategories)
 	complianceRoutes.GET("/compliance-categories/:id", complianceCategoryController.GetComplianceCategoryDetails)
@@ -151,18 +150,18 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	//SLA Check Question
 	complianceRoutes.GET("/slas/:slaId/checks/:checkId/question-groups", SLACheckQuestionController.GetAllSLACheckQuestionGroups)
-	complianceRoutes.GET("/slas/:slaId/checks/:checkId/question-groups/:id", SLACheckQuestionController.GetSLACheckQuestionGroupDetails)
+	complianceRoutes.GET("/slas/:slaId/checks/:checkId/question-groups/:groupId", SLACheckQuestionController.GetSLACheckQuestionGroupDetails)
 	complianceRoutes.POST("/slas/:slaId/checks/:checkId/question-groups", SLACheckQuestionController.CreateSLACheckQuestionGroup)
-	complianceRoutes.PUT("/slas/:slaId/checks/:checkId/question-groups/:id", SLACheckQuestionController.UpdateSLACheckQuestionGroup)
-	complianceRoutes.DELETE("/slas/:slaId/checks/:checkId/question-groups/:id", SLACheckQuestionController.DeleteSLACheckQuestionGroup)
-
-	complianceRoutes.GET("/slas/:slaId/checks/:checkId/question-groups/:id/questions", SLACheckQuestionController.GetSLACheckQuestionsByGroup)
+	complianceRoutes.PUT("/slas/:slaId/checks/:checkId/question-groups/:groupId", SLACheckQuestionController.UpdateSLACheckQuestionGroup)
+	complianceRoutes.DELETE("/slas/:slaId/checks/:checkId/question-groups/:groupId", SLACheckQuestionController.DeleteSLACheckQuestionGroup)
 
 	complianceRoutes.POST("/slas/:slaId/checks/:checkId/choose-questions", SLACheckQuestionController.ChooseSLACheckQuestions)
 	complianceRoutes.GET("/slas/:slaId/checks/:checkId/questions/:id", SLACheckQuestionController.GetSLACheckQuestionDetails)
-	complianceRoutes.POST("/slas/:slaId/checks/:checkId/question", SLACheckQuestionController.CreateSLACheckQuestion)
-	complianceRoutes.PUT("/slas/:slaId/checks/:checkId/questions/:id", SLACheckQuestionController.UpdateSLACheckQuestion)
-	complianceRoutes.DELETE("/slas/:slaId/checks/:checkId/questions/:id", SLACheckQuestionController.DeleteSLACheckQuestion)
+
+	complianceRoutes.GET("/slas/:slaId/checks/:checkId/question-groups/:groupId/questions", SLACheckQuestionController.GetSLACheckQuestionsByGroup)
+	complianceRoutes.POST("/slas/:slaId/checks/:checkId/question-groups/:groupId/question", SLACheckQuestionController.CreateSLACheckQuestion)
+	complianceRoutes.PUT("/slas/:slaId/checks/:checkId/question-groups/:groupId/questions/:id", SLACheckQuestionController.UpdateSLACheckQuestion)
+	complianceRoutes.DELETE("/slas/:slaId/checks/:checkId/question-groups/:groupId/questions/:id", SLACheckQuestionController.DeleteSLACheckQuestion)
 
 	//SLA Answer
 	complianceRoutes.POST("/slas/:slaId/questions/:questionId/answers", SLACheckAnswerController.CreateSLACheckAnswer)
