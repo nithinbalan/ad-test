@@ -105,11 +105,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	incidentRoutes.POST("/incidents/:incidentID/communication-logs/delete", incidentCommunicationLogController.DeleteIncidentCommunicationLogs)
 
 	//Incident Closure
-	incidentRoutes.GET("/incidents/:incidentID/closures", incidentClosureController.GetAllIncidentClosures)
-	incidentRoutes.GET("/incidents/:incidentID/closures/:id", incidentClosureController.GetIncidentClosureDetails)
+	incidentRoutes.GET("/incidents/:incidentID/closures", incidentClosureController.GetIncidentClosureDetails)
 	incidentRoutes.POST("/incidents/:incidentID/closures", incidentClosureController.CreateIncidentClosure)
-	incidentRoutes.PUT("/incidents/:incidentID/closures/:id", incidentClosureController.UpdateIncidentClosure)
-	incidentRoutes.POST("/incidents/:incidentID/closures/delete", incidentClosureController.DeleteIncidentClosures)
+	incidentRoutes.PUT("/incidents/:incidentID/closures", incidentClosureController.UpdateIncidentClosure)
+	incidentRoutes.DELETE("/incidents/:incidentID/closures", incidentClosureController.DeleteIncidentClosures)
 
 	//Incident Post Review Effectiveness
 	incidentRoutes.GET("/incident-post-review-effectivenesses", incidentPostReviewEffectivenessController.GetAllIncidentPostReviewEffectivenesses)
