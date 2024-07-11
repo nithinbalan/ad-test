@@ -112,7 +112,6 @@ type ComplianceRequirementDetailDTO struct {
 	UpdatedByUser                      *organizationDTOs.UserMinimalDTO              `json:"updated_by"`
 	Controls                           []*ComplianceRequirementControlDTO            `json:"controls"`
 	StrategicObjectives                []*ComplianceRequirementStrategicObjectiveDTO `json:"strategic_objectives"`
-	ComplianceRequirementStatusUpdates []*ComplianceRequirementStatusUpdateDTO       `json:"compliance_requirement_status_updates"`
 	ComplianceStatus                   ComplianceStatusDTO                           `json:"compliance_status"`
 }
 

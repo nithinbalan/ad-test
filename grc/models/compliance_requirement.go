@@ -26,8 +26,6 @@ type ComplianceRequirement struct {
 	ResponsibleUser                         *User                                      `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	CreatedByUser                           *User                                      `gorm:"foreignKey:CreatedByID"`
 	UpdatedByUser                           *User                                      `gorm:"foreignKey:UpdatedByID"`
-	ComplianceRequirementStatusUpdates      []*ComplianceRequirementStatusUpdate       `gorm:"foreignKey:ComplianceRequirementID"`
-	LatestComplianceRequirementStatusUpdate *ComplianceRequirementStatusUpdate         `gorm:"foreignKey:ComplianceRequirementID"`
 	Controls                                []*ComplianceControl                       `gorm:"foreignKey:ComplianceRequirementID"`
 	StrategicObjectives                     []*ComplianceRequirementStrategicObjective `gorm:"foreignKey:ComplianceRequirementID"`
 }
