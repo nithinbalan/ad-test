@@ -7,6 +7,7 @@ import (
 
 type RiskHeatmapServiceInterface interface {
 	GetRiskHeatmapByProcessID(processID uint) ([][]*dtos.RiskHeatmapResponseDTO, error)
+	GetRiskHeatmapByOwnerUnit() ([][]*dtos.RiskHeatmapResponseDTO, error)
 }
 
 type RiskHeatmapService struct {
@@ -94,6 +95,77 @@ func (rhs *RiskHeatmapService) GetRiskHeatmapByProcessID(processID uint) ([][]*d
 			}
 			heatmap = append(heatmap, likelihoodDetails)
 		}
+	}
+
+	return heatmap, nil
+}
+
+func (rhs *RiskHeatmapService) GetRiskHeatmapByOwnerUnit() ([][]*dtos.RiskHeatmapResponseDTO, error) {
+	// Fetch all risk registers
+	riskRegisters, err := rhs.repo.GetAllRiskRegisters()
+	if err != nil {
+		return nil, err
+	}
+
+	// Fetch risk matrix details
+	riskMatrixType, err := rhs.riskMatrixSvc.GetByType("erm")
+	if err != nil {
+		return nil, err
+	}
+
+	riskMatrix, err := rhs.riskMatrixSvc.GetDetailsByID(riskMatrixType.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	var riskRatingValueArray []*dtos.RiskMatrixRiskRatingDataDTO
+	for _, riskRating := range riskMatrix.RiskMatrixRiskRating {
+		for _, value := range riskRating.RiskMatrixRiskRatingValue {
+			detail := &dtos.RiskMatrixRiskRatingDataDTO{
+				RiskMatrixID:                riskRating.RiskMatrixID,
+				RiskMatrixRiskRatingID:      value.RiskMatrixRiskRatingID,
+				RiskRatingTitleEN:           riskRating.TitleEn,
+				RiskRatingTitleAR:           riskRating.TitleAr,
+				RiskRatingTitleType:         riskRating.Type,
+				ColorCode:                   riskRating.ColorCode,
+				RiskMatrixRiskRatingValueID: value.ID,
+				Value:                       value.Value,
+			}
+			riskRatingValueArray = append(riskRatingValueArray, detail)
+		}
+	}
+
+	// Create a map to store the risk counts by owner unit and risk rating value
+	riskCountMap := make(map[uint]map[uint]int)
+
+	// Initialize the map
+	for _, register := range riskRegisters {
+		if _, exists := riskCountMap[register.OwnerUnitID]; !exists {
+			riskCountMap[register.OwnerUnitID] = make(map[uint]int)
+		}
+	}
+
+	// Iterate over the risk registers to count risks by owner unit and risk rating value
+	for _, register := range riskRegisters {
+		if register.CurrentRiskRatingValueID != nil {
+			riskCountMap[register.OwnerUnitID][*register.CurrentRiskRatingValueID]++
+		}
+	}
+
+	// Create the heatmap response
+	var heatmap [][]*dtos.RiskHeatmapResponseDTO
+	for ownerUnitID, riskRatings := range riskCountMap {
+		var row []*dtos.RiskHeatmapResponseDTO
+		for _, riskRating := range riskRatingValueArray {
+			count := riskRatings[riskRating.RiskMatrixRiskRatingValueID]
+			row = append(row, &dtos.RiskHeatmapResponseDTO{
+				OwnerUnitID:                 ownerUnitID,
+				RiskMatrixRiskRatingValueID: riskRating.RiskMatrixRiskRatingValueID,
+				RiskRegisterCount:           count,
+				ColorCode:                   riskRating.ColorCode,
+			})
+		}
+		heatmap = append(heatmap, row)
 	}
 
 	return heatmap, nil
