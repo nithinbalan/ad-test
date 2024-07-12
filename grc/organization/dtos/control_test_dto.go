@@ -27,7 +27,7 @@ type ControlTestListDTO struct {
 	UpdatedUserFirstNameAr               *string    `json:"updated_user_first_name_ar"`
 	UpdatedUserLastNameEn                *string    `json:"updated_user_last_name_en"`
 	UpdatedUserLastNameAr                *string    `json:"updated_user_last_name_ar"`
-	TestedAt                             *time.Time `json:"tested_at"`
+	TestedAt                             string     `json:"tested_at"`
 	UpdatedAt                            *time.Time `json:"updated_at"`
 }
 

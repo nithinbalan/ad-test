@@ -67,7 +67,7 @@ func (repo *ControlTestRepository) GetAll(controlID uint, params *organizationDT
 			updated_by_user.first_name_ar AS updated_user_first_name_ar,
 			updated_by_user.last_name_en AS updated_user_last_name_en,
 			updated_by_user.last_name_ar AS updated_user_last_name_ar,
-			control_tests.tested_at,
+        	CONVERT(VARCHAR, control_tests.tested_at, 23) AS tested_at,
 			control_tests.updated_at
         `).
 		Joins("LEFT JOIN control_implementation_statuses ON control_implementation_statuses.id = control_tests.control_implementation_status_id").
