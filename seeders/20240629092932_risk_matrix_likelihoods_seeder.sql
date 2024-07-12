@@ -4,31 +4,36 @@
 DECLARE @RiskMatrixId INT;
 SELECT @RiskMatrixId = id FROM risk_matrix WHERE type = 'erm';
 
-INSERT INTO risk_matrix_likelihoods (risk_matrix_id, title_en, title_ar, score, description_en, description_ar, status)
+INSERT INTO risk_matrix_likelihoods (risk_matrix_id, title_en, title_ar, score, description_en, description_ar, probability, status)
 VALUES
-    (@RiskMatrixId, 'Very Low', N'منخفض جداً', 1, 
-     'There is a very low likelihood of this risk event occurring. It is highly unlikely and may not significantly impact operations if it does.',
-     N'هناك احتمالية منخفضة جداً لحدوث هذا الحدث الخطر. من غير المرجح بشكل كبير وقد لا يؤثر بشكل كبير على العمليات إذا حدث.',
+    (@RiskMatrixId, 'Negligible', N'تافه', 1, 
+     'Expected to occur more than once per week.',
+     N'من المتوقع أن يحدث أكثر من مرة في الأسبوع.',
+     '< 90%',
      'active'),
      
-    (@RiskMatrixId, 'Low', N'منخفض', 2,
-     'There is a low likelihood of this risk event occurring. It may occur occasionally but is not expected to cause significant disruptions.',
-     N'هناك احتمالية منخفضة لحدوث هذا الحدث الخطر. قد يحدث بين الحين والآخر ولكن لا يُتوقع أن يسبب اضطرابات كبيرة.',
+    (@RiskMatrixId, 'Minor', N'صغير', 2,
+     'Expected to occur about once every month.',
+     N'من المتوقع أن يحدث حوالي مرة كل شهر.',
+     '< 90%',
      'active'),
      
-    (@RiskMatrixId, 'Medium', N'متوسط', 3,
-     'There is a moderate likelihood of this risk event occurring. It could occur under certain circumstances and may cause noticeable disruptions.',
-     N'هناك احتمالية متوسطة لحدوث هذا الحدث الخطر. قد يحدث تحت ظروف معينة وقد يسبب اضطرابات ملحوظة.',
+    (@RiskMatrixId, 'Moderate', N'متوسط', 3,
+     'Expected to occur about once every year.',
+     N'من المتوقع أن يحدث حوالي مرة كل سنة.',
+     '>30% and < 60%',
      'active'),
      
-    (@RiskMatrixId, 'High', N'عالي', 4,
-     'There is a high likelihood of this risk event occurring. It is expected to occur frequently and could cause significant disruptions.',
-     N'هناك احتمالية عالية لحدوث هذا الحدث الخطر. من المتوقع أن يحدث بشكل متكرر وقد يسبب اضطرابات كبيرة.',
+    (@RiskMatrixId, 'Critical', N'حرج', 4,
+     'Expected to occur between 1-3 years.',
+     N'من المتوقع أن يحدث بين 1-3 سنوات.',
+     '>10% and < 30%',
      'active'),
      
-    (@RiskMatrixId, 'Very High', N'عالية جداً', 5,
-     'There is a very high likelihood of this risk event occurring. It is expected to occur frequently and could have severe impacts on operations.',
-     N'هناك احتمالية عالية جداً لحدوث هذا الحدث الخطر. من المتوقع أن يحدث بشكل متكرر وقد يكون له تأثيرات خطيرة على العمليات.',
+    (@RiskMatrixId, 'Catastrophic', N'كارثي', 5,
+     'Expected to occur after a period greater than 3 years.',
+     N'من المتوقع أن يحدث بعد فترة تزيد عن 3 سنوات.',
+     '< 10%',
      'active');
 -- +goose StatementEnd
 
