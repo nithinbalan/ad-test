@@ -45,26 +45,26 @@ type StrategicProfileDetailsDTO struct {
 }
 
 type StrategicProfileVisionFormDTO struct {
-	VisionEn *string `json:"vision_en"`
-	VisionAr *string `json:"vision_ar"`
+	VisionEn *string `json:"vision_en" binding:"omitempty,max=500"`
+	VisionAr *string `json:"vision_ar" binding:"omitempty,max=500"`
 }
 
 type StrategicProfileMissionFormDTO struct {
-	MissionEn *string `json:"mission_en"`
-	MissionAr *string `json:"mission_ar"`
+	MissionEn *string `json:"mission_en" binding:"omitempty,max=500"`
+	MissionAr *string `json:"mission_ar" binding:"omitempty,max=500"`
 }
 
 type StrategicProfileValueFormDTO struct {
 	ID            *uint   `json:"id"`
-	TitleEn       string  `json:"title_en"`
-	TitleAr       string  `json:"title_ar"`
-	DescriptionEn *string `json:"description_en"`
-	DescriptionAr *string `json:"description_ar"`
+	TitleEn       string  `json:"title_en" binding:"max=255"`
+	TitleAr       string  `json:"title_ar" binding:"max=255"`
+	DescriptionEn *string `json:"description_en" binding:"omitempty,max=500"`
+	DescriptionAr *string `json:"description_ar" binding:"omitempty,max=500"`
 }
 
 type StrategicProfileValueDetailsDTO struct {
 	ID               int                        `json:"id"`
-	TitleEn          string                     `json:"title_en"`
+	TitleEn          string                     `json:"title_en" `
 	TitleAr          string                     `json:"title_ar"`
 	DescriptionEn    *string                    `json:"description_en"`
 	DescriptionAr    *string                    `json:"description_ar"`
