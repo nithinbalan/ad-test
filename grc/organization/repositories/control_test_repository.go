@@ -126,7 +126,7 @@ func (repo *ControlTestRepository) GetAll(controlID uint, params *organizationDT
 				tested_by_user.first_name_en LIKE ? OR
 				tested_by_user.first_name_ar LIKE ? OR
 				tested_by_user.last_name_en LIKE ? OR
-				tested_by_user.last_name_ar LIKE ? OR)`,
+				tested_by_user.last_name_ar LIKE ?)`,
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
