@@ -14,12 +14,12 @@ type IncidentControlListDTO struct {
 	ControlTitleEn                       string  `json:"control_title_en"`
 	ControlTitleAr                       string  `json:"control_title_ar"`
 	ControlDescription                   *string `json:"control_description"`
-	ControlEfficiencyStatusEn            string  `json:"control_efficiency_status_en"`
-	ControlEfficiencyStatusAr            string  `json:"control_efficiency_status_ar"`
+	ControlEfficiencyStatusTitleEn       string  `json:"control_efficiency_status_title_en"`
+	ControlEfficiencyStatusTitleAr       string  `json:"control_efficiency_status_title_ar"`
 	ControlEfficiencyStatusType          string  `json:"control_efficiency_status_type"`
 	ControlEfficiencyStatusColorCode     string  `json:"control_efficiency_status_color_code"`
-	ControlImplementationStatusEn        string  `json:"control_implementation_status_en"`
-	ControlImplementationStatusAr        string  `json:"control_implementation_status_ar"`
+	ControlImplementationStatusTitleEn   string  `json:"control_implementation_status_title_en"`
+	ControlImplementationStatusTitleAr   string  `json:"control_implementation_status_title_ar"`
 	ControlImplementationStatusType      string  `json:"control_implementation_status_type"`
 	ControlImplementationStatusColorCode string  `json:"control_implementation_status_color_code"`
 	ControlOwnerUnitTitleEn              *string `json:"control_owner_unit_title_en"`
