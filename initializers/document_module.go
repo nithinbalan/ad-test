@@ -10,6 +10,7 @@ import (
 
 type DocumentModule struct {
 	DocumentCategoryController *controllers.DocumentCategoryController
+	DocumentTypeController     *controllers.DocumentTypeController
 }
 
 func NewDocumentModule(db *gorm.DB,
@@ -22,7 +23,12 @@ func NewDocumentModule(db *gorm.DB,
 	documentCategorySvc := services.NewDocumentCategoryService(documentCategoryRepo, sharedModule.ActivityLogService)
 	documentCategoryController := controllers.NewDocumentCategoryController(documentCategorySvc)
 
+	documentTypeRepo := repositories.NewDocumentTypeRepository(db)
+	documentTypeSvc := services.NewDocumentTypeService(documentTypeRepo, sharedModule.ActivityLogService)
+	documentTypeController := controllers.NewDocumentTypeController(documentTypeSvc)
+
 	return &DocumentModule{
 		DocumentCategoryController: documentCategoryController,
+		DocumentTypeController:     documentTypeController,
 	}
 }
