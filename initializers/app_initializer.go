@@ -16,6 +16,7 @@ type App struct {
 	RiskModule         *RiskModule
 	IncidentModule     *IncidentModule
 	TaskModule         *TaskModule
+	DocumentModule     *DocumentModule
 }
 
 func NewApp(db *gorm.DB) *App {
@@ -31,6 +32,7 @@ func NewApp(db *gorm.DB) *App {
 	complianceModule := NewComplianceModule(db, sharedModule, masterModule, organizationModule, taskModule, settingsModule)
 	riskModule := NewRiskModule(db, sharedModule, settingsModule, masterModule, libraryModule, organizationModule, complianceModule)
 	incidentModule := NewIncidentModule(db, sharedModule, settingsModule, masterModule, organizationModule, complianceModule, riskModule)
+	documentModule := NewDocumentModule(db, sharedModule, settingsModule, masterModule, organizationModule)
 
 	return &App{
 		SettingsModule:     settingsModule,
@@ -44,5 +46,6 @@ func NewApp(db *gorm.DB) *App {
 		ComplianceModule:   complianceModule,
 		RiskModule:         riskModule,
 		IncidentModule:     incidentModule,
+		DocumentModule:     documentModule,
 	}
 }
