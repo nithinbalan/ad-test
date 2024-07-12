@@ -106,6 +106,13 @@ func (caps ComplianceActionPlanService) GetFullDetailsByID(complianceID uint, id
 	if err != nil {
 		return nil, err
 	}
+	if complianceActionPlan.TargetDate != nil {
+		targetDate := complianceActionPlan.TargetDate.Format("2006-01-02")
+		complianceActionPlanDTO.TargetDateString = &targetDate
+	}
+
+	complianceActionPlanDTO.CreatedAt = complianceActionPlan.CreatedAt
+	complianceActionPlanDTO.UpdatedAt = complianceActionPlan.UpdatedAt
 
 	// TODO: Add any additional fields required for the details screen
 
