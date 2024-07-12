@@ -33,7 +33,7 @@ func (repo *ComplianceRequirementAssociatedItemRepository) GetAllControls(requir
 			controls.id AS control_id,
 			controls.reference_number AS control_reference_number,
             controls.code AS control_code,
-            controls.last_test_date AS control_last_test_date,
+			CONVERT(VARCHAR, controls.last_test_date, 23) AS control_last_test_date,
             control_categories.title_en AS control_category_title_en,
             control_categories.title_ar AS control_category_title_ar,
             control_types.title_en AS control_type_title_en,
