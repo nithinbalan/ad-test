@@ -90,7 +90,6 @@ func (repo *RiskTreatmentGuidelineRepository) GetByID(id uint) (*models.RiskTrea
 	var guideline *models.RiskTreatmentGuideline
 
 	result := repo.db.
-		Preload("RiskMatrixRiskRating").
 		First(&guideline, id)
 	if result.Error != nil {
 		return nil, result.Error
