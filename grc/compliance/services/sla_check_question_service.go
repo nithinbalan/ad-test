@@ -504,6 +504,11 @@ func (scqs *SLACheckQuestionService) DeleteQuestion(slaID uint, checkId uint, qu
 		successfulId = questionId
 	}
 
+	err = scqs.repo.DecrementTotalCount(question.SLACheckQuestionGroupID)
+	if err != nil {
+		return 0, err
+	}
+
 	if successfulId != 0 {
 		go func() {
 			err := scqs.activityLogSvc.LogActivity(
