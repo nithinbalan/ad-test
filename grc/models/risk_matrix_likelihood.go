@@ -8,6 +8,7 @@ type RiskMatrixLikelihood struct {
 	Score         uint   `json:"score" binding:"required" gorm:"not null"`
 	DescriptionEn string `json:"description_en" binding:"required" gorm:"type:nvarchar(max);not null"`
 	DescriptionAr string `json:"description_ar" binding:"required" gorm:"type:nvarchar(max);not null"`
+	Probability   string `json:"probability" binding:"required,max=255" gorm:"type:nvarchar(255);not null"`
 	Status        string `json:"status" binding:"required,max=10,oneof=active inactive" gorm:"type:varchar(10);not null"`
 
 	// Relationships
