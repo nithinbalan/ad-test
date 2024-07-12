@@ -91,6 +91,13 @@ func (repo *ComplianceActionPlanStatusUpdateRepository) GetAll(complianceActionP
 	query = query.Order(sortBy + " " + sort)
 	result := query.Find(&complianceActionPlanUpdates)
 
+	for _, statusUpdate := range complianceActionPlanUpdates {
+		var documents []*complianceDTOs.ComplianceActionPlanStatusUpdateDocumentDTO
+
+		repo.db.Model(&models.ComplianceActionPlanStatusUpdateDocument{}).Where("compliance_action_plan_status_update_id = ?", statusUpdate.ID).Find(&documents)
+		statusUpdate.Documents = documents
+	}
+
 	return complianceActionPlanUpdates, result.Error
 }
 
