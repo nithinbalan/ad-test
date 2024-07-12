@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	riskDTOs "jethur/grc/risk/dtos"
 	"jethur/grc/risk/services"
 	"jethur/utility"
 	"net/http"
@@ -49,8 +50,43 @@ func (rhc *RiskHeatmapController) GetProcessRiskHeatmap(c *gin.Context) {
 }
 
 func (rhc *RiskHeatmapController) GetRiskHeatmapByOwnerUnit(c *gin.Context) {
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+	status := c.Query("status")
+	quickFilter := c.QueryArray("quick_filter")
 
-	riskHeatmap, err := rhc.service.GetRiskHeatmapByOwnerUnit()
+	// Define an array of allowed parameter names
+	allowedParams := []string{
+		"risk_category_ids",
+		"risk_source_ids",
+		"owner_unit_ids",
+		"owner_ids",
+		"risk_status_ids",
+		"review_frequency_ids",
+	}
+
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+
+	reportedAtFrom := c.Query("reported_at")
+	reportedAtTo := c.Query("reported_at")
+	nextReviewDateFrom := c.Query("next_review_date_from")
+	nextReviewDateTo := c.Query("next_review_date_to")
+
+	queryParams := riskDTOs.RiskRegisterListQueryParamsDTO{
+		Sort:               sort,
+		SortBy:             sortBy,
+		Keyword:            keyword,
+		Status:             status,
+		Filters:            filters,
+		QuickFilter:        quickFilter,
+		ReportedAtFrom:     reportedAtFrom,
+		ReportedAtTo:       reportedAtTo,
+		NextReviewDateFrom: nextReviewDateFrom,
+		NextReviewDateTo:   nextReviewDateTo,
+	}
+
+	riskHeatmap, err := rhc.service.GetRiskHeatmapByOwnerUnit(&queryParams)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

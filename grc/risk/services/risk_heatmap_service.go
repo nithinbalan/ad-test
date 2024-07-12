@@ -2,28 +2,32 @@ package services
 
 import (
 	"jethur/grc/risk/dtos"
+	riskDTOs "jethur/grc/risk/dtos"
 	"jethur/grc/risk/repositories"
 )
 
 type RiskHeatmapServiceInterface interface {
 	GetRiskHeatmapByProcessID(processID uint) ([][]*dtos.RiskHeatmapResponseDTO, error)
-	GetRiskHeatmapByOwnerUnit() ([][]*dtos.RiskHeatmapResponseDTO, error)
+	GetRiskHeatmapByOwnerUnit(params *riskDTOs.RiskRegisterListQueryParamsDTO) ([][]*dtos.RiskHeatmapResponseDTO, error)
 }
 
 type RiskHeatmapService struct {
 	repo                         repositories.RiskHeatmapRepositoryInterface
 	riskMatrixSvc                RiskMatrixServiceInterface
 	riskMatrixRiskRatingValueSvc RiskMatrixRiskRatingValueServiceInterface
+	riskRegisterSvc              RiskRegisterServiceInterface
 }
 
 func NewRiskHeatmapService(repo repositories.RiskHeatmapRepositoryInterface,
 	riskMatrixSvc RiskMatrixServiceInterface,
 	riskMatrixRiskRatingValueSvc RiskMatrixRiskRatingValueServiceInterface,
+	riskRegisterSvc RiskRegisterServiceInterface,
 ) RiskHeatmapServiceInterface {
 	return &RiskHeatmapService{
 		repo:                         repo,
 		riskMatrixSvc:                riskMatrixSvc,
 		riskMatrixRiskRatingValueSvc: riskMatrixRiskRatingValueSvc,
+		riskRegisterSvc:              riskRegisterSvc,
 	}
 }
 
@@ -100,12 +104,16 @@ func (rhs *RiskHeatmapService) GetRiskHeatmapByProcessID(processID uint) ([][]*d
 	return heatmap, nil
 }
 
-func (rhs *RiskHeatmapService) GetRiskHeatmapByOwnerUnit() ([][]*dtos.RiskHeatmapResponseDTO, error) {
-	// Fetch all risk registers
-	riskRegisters, err := rhs.repo.GetAllRiskRegisters()
+// RiskHeatmapService.go
+
+func (rhs *RiskHeatmapService) GetRiskHeatmapByOwnerUnit(params *riskDTOs.RiskRegisterListQueryParamsDTO) ([][]*dtos.RiskHeatmapResponseDTO, error) {
+	// Fetch all risk registers using the existing method
+	riskRegisterResponse, err := rhs.riskRegisterService.GetAll(params)
 	if err != nil {
 		return nil, err
 	}
+
+	riskRegisters := riskRegisterResponse.Items
 
 	// Fetch risk matrix details
 	riskMatrixType, err := rhs.riskMatrixSvc.GetByType("erm")
