@@ -383,6 +383,12 @@ func (caps *ComplianceActionPlanService) validateComplianceActionPlanFormDTO(com
 	if _, err := caps.actionPlanStatusSvc.GetByID(ComplianceActionPlanFormDTO.ActionPlanStatusID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("action plan status does not exist"), "not_exist", "action plan status")
 	}
+	
+	if ComplianceActionPlanFormDTO.Percentage == nil {
+		defaultValue := uint(0)
+		ComplianceActionPlanFormDTO.Percentage = &defaultValue
+	}
+
 
 	return nil
 }
