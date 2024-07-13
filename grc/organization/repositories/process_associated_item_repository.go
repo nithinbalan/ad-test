@@ -28,6 +28,8 @@ func (repo *ProcessAssociatedItemRepository) GetAllControls(processID uint, para
 
 	query := repo.db.Table("process_controls").
 		Select(`
+			process_controls.id AS id,
+			process_controls.process_id AS process_id,
 			controls.id AS control_id,
             controls.reference_number AS control_reference_number,
             controls.code AS control_code,
@@ -113,6 +115,9 @@ func (repo *ProcessAssociatedItemRepository) GetAllRisks(processID uint, params 
 
 	query := repo.db.Table("risk_processes").
 		Select(`
+			risk_processes.id,
+			risk_processes.risk_register_id,
+			risk_processes.process_id,
 			risk_register.reference_number,
 			risk_register.title,
 			risk_register.description,
@@ -214,6 +219,9 @@ func (repo *ProcessAssociatedItemRepository) GetAllIncidents(processID uint, par
 
 	query := repo.db.Table("incident_processes").
 		Select(`
+			incident_processes.id,
+			incident_processes.incident_register_id,
+			incident_processes.process_id,
 			incident_register.reference_number,
 			incident_register.title,
 			incident_register.description,
