@@ -353,7 +353,9 @@ func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(compl
 
 func (repo *ComplianceRequirementRepository) GetByID(id uint) (*models.ComplianceRequirement, error) {
 	var complianceRequirement *models.ComplianceRequirement
-	result := repo.db.First(&complianceRequirement, id)
+	result := repo.db.
+		Preload("ComplianceClause").
+		First(&complianceRequirement, id)
 
 	if result.Error != nil {
 		return nil, result.Error
