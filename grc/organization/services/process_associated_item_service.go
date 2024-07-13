@@ -116,6 +116,8 @@ func (pais *ProcessAssociatedItemService) GetAllControls(processID uint, params 
 
 			for _, control := range controls {
 				controlItem := map[string]interface{}{
+					"id":                                       control.ID,
+					"process_id":                               control.ProcessID,
 					"control_id":                               control.ControlID,
 					"control_reference_number":                 control.ControlReferenceNumber,
 					"control_code":                             control.ControlCode,

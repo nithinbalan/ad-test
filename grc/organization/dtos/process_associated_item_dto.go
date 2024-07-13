@@ -6,6 +6,8 @@ import (
 )
 
 type ProcessControlListDTO struct {
+	ID                                   uint    `json:"id"`
+	ProcessID                            uint    `json:"process_id"`
 	ControlID                            uint    `json:"control_id"`
 	ControlReferenceNumber               string  `json:"control_reference_number"`
 	ControlCode                          *string `json:"control_code"`
@@ -38,6 +40,9 @@ type ProcessControlListDTO struct {
 }
 
 type ProcessRiskListDTO struct {
+	ID                            uint    `json:"id"`
+	RiskRegisterID                uint    `json:"risk_register_id"`
+	ProcessID                     uint    `json:"process_id"`
 	ReferenceNumber               string  `json:"reference_number"`
 	RiskCategoryTitleEn           string  `json:"risk_category_title_en"`
 	RiskCategoryTitleAr           string  `json:"risk_category_title_ar"`
@@ -71,6 +76,9 @@ type ProcessRiskListDTO struct {
 }
 
 type ProcessIncidentListDTO struct {
+	ID                         uint       `json:"id"`
+	IncidentRegisterID         uint       `json:"incident_register_id"`
+	ProcessID                  uint       `json:"process_id"`
 	ReferenceNumber            string     `json:"reference_number"`
 	Title                      string     `json:"title"`
 	Description                *string    `json:"description"`
