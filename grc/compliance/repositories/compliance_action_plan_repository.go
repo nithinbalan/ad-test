@@ -205,6 +205,7 @@ func (repo *ComplianceActionPlanRepository) GetFullDetailsByID(id uint, tx ...ut
 	// Load the compliance action plan with all related data
 	result := db.
 		Preload("ComplianceRequirement.ComplianceClause").
+		Preload("ComplianceRegister").
 		Preload("SeverityLevel").
 		Preload("ResponsibleUser").
 		Preload("ActionPlanStatus").
