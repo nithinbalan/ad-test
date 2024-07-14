@@ -162,10 +162,20 @@ func (repo *IncidentAssociatedItemRepository) GetAllComplianceRequirements(incid
 	}
 
 	if params.Keyword != "" {
-		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
-			(compliance_requirements.title LIKE ?)`,
-			keyword)
+			(compliance_register.title_en LIKE ? OR
+			compliance_register.title_ar LIKE ? OR
+			compliance_register.description_en LIKE ? OR
+			compliance_requirements.title LIKE ? OR
+			compliance_requirement_categories.title_en LIKE ? OR
+			compliance_requirement_categories.title_ar LIKE ? OR
+			compliance_clauses.clause_no LIKE ? OR
+			compliance_clauses.title LIKE ? OR
+			compliance_statuses.title_en LIKE ? OR
+			compliance_statuses.title_ar LIKE ?)`,
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%")
 	}
 
 	if params.SortBy == "" {
