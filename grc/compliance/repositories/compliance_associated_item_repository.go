@@ -14,6 +14,7 @@ type ComplianceAssociatedItemRepositoryInterface interface {
 	GetAllIncidents(complianceID uint, params *complianceDTOs.ComplianceAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceAssociatedItemIncidentListResponseDTO, error)
 	GetAllAssociatedCounts(complianceID uint) (*complianceDTOs.ComplianceAssociatedItemsCountResponseDTO, error)
 	GetComplianceRequirementCountByStatus(complianceID uint) ([]complianceDTOs.ComplianceRequirementStatusCountResponseDTO, error)
+	GetAllStrategicObjectives(complianceID uint, params *complianceDTOs.ComplianceAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceAssociatedItemStrategicObjectiveListResponseDTO, error)
 }
 
 type ComplianceAssociatedItemRepository struct {
@@ -32,7 +33,7 @@ func (repo *ComplianceAssociatedItemRepository) GetAllControls(complianceID uint
 
 	query := repo.db.Table("compliance_controls").
 		Select(`
-			controls.id AS control_id,
+			DISTINCT controls.id AS control_id,
 			controls.reference_number AS control_reference_number,
             controls.code AS control_code,
 			CONVERT(VARCHAR, controls.last_test_date, 23) AS control_last_test_date,
@@ -298,6 +299,65 @@ func (repo *ComplianceAssociatedItemRepository) GetAllIncidents(complianceID uin
 
 	response := &complianceDTOs.ComplianceAssociatedItemIncidentListResponseDTO{
 		Items: incidentList,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+	return response, nil
+}
+
+func (repo *ComplianceAssociatedItemRepository) GetAllStrategicObjectives(complianceID uint, params *complianceDTOs.ComplianceAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceAssociatedItemStrategicObjectiveListResponseDTO, error) {
+	var strategicObjectiveList []*complianceDTOs.ComplianceStrategicObjectiveListDTO
+	var totalCount int64
+
+	query := repo.db.Table("compliance_requirement_strategic_objectives").
+		Select(`
+			strategic_objectives.id AS strategic_objective_id,
+			strategic_objectives.title_en AS strategic_objective_title_en,
+			strategic_objectives.title_ar AS strategic_objective_title_ar,
+			strategic_objectives.status AS strategic_objective_status
+		`).
+		Joins(`
+			LEFT JOIN strategic_objectives ON strategic_objectives.id = compliance_requirement_strategic_objectives.strategic_objective_id
+		`).Where("compliance_requirement_strategic_objectives.compliance_register_id = ?", complianceID)
+
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
+	// Apply search keyword if exists
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Where(`
+			(strategic_objectives.title_en LIKE ? OR
+			strategic_objectives.title_ar LIKE ?)`,
+			keyword, keyword)
+	}
+
+	if params.SortBy == "" {
+		params.SortBy = "strategic_objectives.title_en"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	offset := (params.Page - 1) * params.PageSize
+
+	// Execute the query
+	err := query.Offset(offset).Limit(params.PageSize).Find(&strategicObjectiveList).Error
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &complianceDTOs.ComplianceAssociatedItemStrategicObjectiveListResponseDTO{
+		Items: strategicObjectiveList,
 		Pagination: commonDTOs.PaginationInfoDTO{
 			CurrentPage: params.Page,
 			PageSize:    params.PageSize,
