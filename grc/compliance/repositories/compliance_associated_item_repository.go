@@ -130,19 +130,7 @@ func (repo *ComplianceAssociatedItemRepository) GetAllControls(complianceID uint
 }
 
 func (repo *ComplianceAssociatedItemRepository) GetAllRisks(complianceID uint, params *complianceDTOs.ComplianceAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceAssociatedItemRiskListResponseDTO, error) {
-	var complianceRequirementIDs []uint
 	var totalCount int64
-
-	// First Query: Fetch all compliance requirement IDs by joining compliance_clauses and compliance_requirements
-	err := repo.db.Table("compliance_requirements").
-		Joins("JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id").
-		Where("compliance_clauses.compliance_register_id = ?", complianceID).
-		Pluck("compliance_requirements.id", &complianceRequirementIDs).Error
-
-	if err != nil {
-		return nil, err
-	}
-
 	var riskList []*complianceDTOs.ComplianceRiskListDTO
 
 	// Second Query: Fetch compliance requirement risks using the compliance requirement IDs
@@ -198,7 +186,7 @@ func (repo *ComplianceAssociatedItemRepository) GetAllRisks(complianceID uint, p
             LEFT JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = risk_register.current_risk_rating_id
             LEFT JOIN review_frequencies ON review_frequencies.id = risk_register.review_frequency_id
         `).
-		Where("risk_compliance_requirements.compliance_requirement_id IN (?)", complianceRequirementIDs)
+		Where("risk_compliance_requirements.compliance_register_id = ?", complianceID)
 
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
@@ -220,13 +208,11 @@ func (repo *ComplianceAssociatedItemRepository) GetAllRisks(complianceID uint, p
 	// Ensure that the column used for sorting is included in the SELECT clause
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	// Add Debug() to print the generated SQL
-	query = query.Debug()
-
 	offset := (params.Page - 1) * params.PageSize
 
 	// Execute the query
-	if err = query.Offset(offset).Limit(params.PageSize).Find(&riskList).Error; err != nil {
+	err := query.Offset(offset).Limit(params.PageSize).Find(&riskList).Error
+	if err != nil {
 		return nil, err
 	}
 
@@ -245,19 +231,7 @@ func (repo *ComplianceAssociatedItemRepository) GetAllRisks(complianceID uint, p
 }
 
 func (repo *ComplianceAssociatedItemRepository) GetAllIncidents(complianceID uint, params *complianceDTOs.ComplianceAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceAssociatedItemIncidentListResponseDTO, error) {
-	var complianceRequirementIDs []uint
 	var totalCount int64
-
-	// First Query: Fetch all compliance requirement IDs by joining compliance_clauses and compliance_requirements
-	err := repo.db.Table("compliance_requirements").
-		Joins("JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id").
-		Where("compliance_clauses.compliance_register_id = ?", complianceID).
-		Pluck("compliance_requirements.id", &complianceRequirementIDs).Error
-
-	if err != nil {
-		return nil, err
-	}
-
 	var incidentList []*complianceDTOs.ComplianceIncidentListDTO
 
 	// Second Query: Fetch compliance requirement incidents using the compliance requirement IDs
@@ -293,7 +267,7 @@ func (repo *ComplianceAssociatedItemRepository) GetAllIncidents(complianceID uin
 		    LEFT JOIN severity_levels ON severity_levels.id = incident_register.severity_level_id
             LEFT JOIN users AS reported_user ON reported_user.id = incident_register.reported_by
         `).
-		Where("incident_compliance_requirements.compliance_requirement_id IN (?)", complianceRequirementIDs)
+		Where("incident_compliance_requirements.compliance_register_id = ?", complianceID)
 
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
@@ -315,8 +289,8 @@ func (repo *ComplianceAssociatedItemRepository) GetAllIncidents(complianceID uin
 
 	offset := (params.Page - 1) * params.PageSize
 
-	// Execute the query
-	if err = query.Offset(offset).Limit(params.PageSize).Find(&incidentList).Error; err != nil {
+	err := query.Offset(offset).Limit(params.PageSize).Find(&incidentList).Error
+	if err != nil {
 		return nil, err
 	}
 
