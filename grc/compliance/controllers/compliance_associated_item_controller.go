@@ -180,6 +180,56 @@ func (caic *ComplianceAssociatedItemController) GetAllComplianceIncidents(c *gin
 	c.JSON(http.StatusOK, compliances)
 }
 
+func (caic *ComplianceAssociatedItemController) GetAllComplianceStrategicObjectives(c *gin.Context) {
+	complianceIDStr := c.Param("complianceId")
+
+	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+	status := c.Query("status")
+	quickFilter := c.QueryArray("quick_filter")
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(caic.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(caic.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	queryParams := complianceDTOs.ComplianceAssociatedItemListQueryParamsDTO{
+		Sort:        sort,
+		SortBy:      sortBy,
+		Keyword:     keyword,
+		Status:      status,
+		Page:        page,
+		PageSize:    pageSize,
+		QuickFilter: quickFilter,
+	}
+	compliances, err := caic.service.GetAllStrategicObjectives(uint(complianceID), &queryParams)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(caic.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, compliances)
+}
+
 func (caic *ComplianceAssociatedItemController) GetAllAssociatedCounts(c *gin.Context) {
 	complianceIDStr := c.Param("complianceId")
 

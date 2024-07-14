@@ -210,6 +210,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 	var strategicObjectives []*models.ComplianceRequirementStrategicObjective
 	for _, strategicObjectiveID := range complianceRequirementFormDTO.StrategicObjectiveIDs {
 		strategicObjective := &models.ComplianceRequirementStrategicObjective{
+			ComplianceRegisterID:    complianceID,
 			ComplianceRequirementID: id,
 			StrategicObjectiveID:    *strategicObjectiveID,
 			CreatedByID:             currentUserID,

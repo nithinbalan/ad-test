@@ -98,6 +98,13 @@ type ComplianceIncidentListDTO struct {
 	IncidentReportedUserLastNameAr  string `json:"incident_reported_user_last_name_ar"`
 }
 
+type ComplianceStrategicObjectiveListDTO struct {
+	StrategicObjectiveID      uint   `json:"strategic_objective_id"`
+	StrategicObjectiveTitleEn string `json:"strategic_objective_title_en"`
+	StrategicObjectiveTitleAr string `json:"strategic_objective_title_ar"`
+	StrategicObjectiveStatus  string `json:"strategic_objective_status"`
+}
+
 type ComplianceAssociatedItemListQueryParamsDTO struct {
 	Sort        string
 	SortBy      string
@@ -121,6 +128,11 @@ type ComplianceAssociatedItemRiskListResponseDTO struct {
 type ComplianceAssociatedItemIncidentListResponseDTO struct {
 	Items      []*ComplianceIncidentListDTO `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
+}
+
+type ComplianceAssociatedItemStrategicObjectiveListResponseDTO struct {
+	Items      []*ComplianceStrategicObjectiveListDTO `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO           `json:"pagination"`
 }
 
 type ComplianceAssociatedItemsCountResponseDTO struct {

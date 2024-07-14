@@ -172,10 +172,15 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 	}
 	// Save ComplianceRequirements
 	var complianceRequirements []*models.IncidentComplianceRequirement
-	for _, req := range incidentRegisterFormDTO.ComplianceRequirementIds {
+	for _, reqId := range incidentRegisterFormDTO.ComplianceRequirementIds {
+		complianceRequirement, err := irs.complianceRequirementSvc.GetByComplianceRequirementID(*reqId)
+		if err != nil {
+			return 0, err
+		}
 		requirement := &models.IncidentComplianceRequirement{
 			IncidentRegisterID:      id,
-			ComplianceRequirementID: *req,
+			ComplianceRegisterID:    complianceRequirement.ComplianceClause.ComplianceRegisterID,
+			ComplianceRequirementID: *reqId,
 			CreatedByID:             currentUserID,
 		}
 		complianceRequirements = append(complianceRequirements, requirement)
