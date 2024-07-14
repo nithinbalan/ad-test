@@ -767,12 +767,12 @@ func (crs *ComplianceRegisterService) GetDocumentPath(id uint, token string) (st
 
 	decryptedFilenameBytes, err := utility.DecryptData(token)
 	if err != nil {
-		return "", fmt.Errorf("resource not found!")
+		return "", fmt.Errorf("resource not found")
 	}
 
 	decryptedFilename := string(decryptedFilenameBytes)
 	if decryptedFilename == "" {
-		return "", fmt.Errorf("resource not found!")
+		return "", fmt.Errorf("resource not found")
 	}
 
 	storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(id), 10), "documents")

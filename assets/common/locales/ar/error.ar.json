@@ -88,6 +88,10 @@
     "translation": "الملفات الـ PDF فقط مسموح بها"
   },
   {
+    "id": "invalid_word_file_type",
+    "translation": "فقط ملفات وورد مسموح بها"
+  },
+  {
     "id": "duplicate",
     "translation": "تم اكتشاف تكرار لمعرف '{{.Field}}'. يرجى التأكد من أن كل معرف '{{.Field}}' فريد لتجنب التكرارات."
   },

@@ -1,21 +1,21 @@
 package dtos
 
 type RiskTreatmentGuidelineListDTO struct {
-	ID                 uint   `json:"id"`
-	RiskLevelID        uint   `json:"risk_level_id"`
-	TimeframeEn        string `json:"timeframe_en"`
-	TimeframeAr        string `json:"timeframe_ar"`
-	Status             string `json:"status"`
-	RiskLevelTitleEn   string `json:"risk_level_title_en"`
-	RiskLevelTitleAr   string `json:"risk_level_title_ar"`
-	RiskLevelColorCode string `json:"risk_level_color_code"`
+	ID                            uint   `json:"id"`
+	RiskMatrixRiskRatingID        uint   `json:"risk_matrix_risk_rating_id"`
+	DescriptionEn                 string `json:"description_en"`
+	DescriptionAr                 string `json:"description_ar"`
+	Status                        string `json:"status"`
+	RiskMatrixRiskRatingTitleEn   string `json:"risk_matrix_risk_rating_title_en"`
+	RiskMatrixRiskRatingTitleAr   string `json:"risk_matrix_risk_rating_title_ar"`
+	RiskMatrixRiskRatingColorCode string `json:"risk_matrix_risk_rating_color_code"`
 }
 
 type RiskTreatmentGuidelineFormDTO struct {
-	RiskLevelID uint   `json:"risk_level_id"`
-	TimeframeEn string `json:"timeframe_en"`
-	TimeframeAr string `json:"timeframe_ar"`
-	Status      string `json:"status"`
+	RiskMatrixRiskRatingID uint   `json:"risk_matrix_risk_rating_id"`
+	DescriptionEn          string `json:"description_en"`
+	DescriptionAr          string `json:"description_ar"`
+	Status                 string `json:"status"`
 }
 
 type RiskTreatmentGuidelineListQueryParamsDTO struct {

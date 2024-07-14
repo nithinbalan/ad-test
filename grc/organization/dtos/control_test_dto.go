@@ -27,7 +27,7 @@ type ControlTestListDTO struct {
 	UpdatedUserFirstNameAr               *string    `json:"updated_user_first_name_ar"`
 	UpdatedUserLastNameEn                *string    `json:"updated_user_last_name_en"`
 	UpdatedUserLastNameAr                *string    `json:"updated_user_last_name_ar"`
-	TestedAt                             *time.Time `json:"tested_at"`
+	TestedAt                             string     `json:"tested_at"`
 	UpdatedAt                            *time.Time `json:"updated_at"`
 }
 
@@ -37,15 +37,15 @@ type ControlTestListResponseDTO struct {
 }
 
 type ControlTestDetailsDTO struct {
-	ID           uint       `json:"id"`
-	ControlID    uint       `json:"control_id"`
-	Title        string     `json:"title"`
-	Description  *string    `json:"description"`
-	Score        *uint      `json:"score"`
-	Comments     *string    `json:"comments"`
-	TestedSource string     `json:"tested_source"`
-	TestedAt     *time.Time `json:"tested_at"`
-	UpdatedAt    *time.Time `json:"updated_at"`
+	ID             uint       `json:"id"`
+	ControlID      uint       `json:"control_id"`
+	Title          string     `json:"title"`
+	Description    *string    `json:"description"`
+	Score          *uint      `json:"score"`
+	Comments       *string    `json:"comments"`
+	TestedSource   string     `json:"tested_source"`
+	TestedAtString *string    `json:"tested_at"`
+	UpdatedAt      *time.Time `json:"updated_at"`
 
 	ControlImplementationStatus ControlImplementationStatusDTO `json:"control_implementation_status"`
 	ControlEfficiencyStatus     ControlEfficiencyStatusDTO     `json:"control_efficiency_status"`

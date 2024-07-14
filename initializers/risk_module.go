@@ -222,7 +222,7 @@ func NewRiskModule(db *gorm.DB,
 	riskResponseStrategyController := controllers.NewRiskResponseStrategyController(riskResponseStrategySvc)
 
 	riskTreatmentGuidelineRepo := repositories.NewRiskTreatmentGuidelineRepository(db)
-	riskTreatmentGuidelineSvc := services.NewRiskTreatmentGuidelineService(riskTreatmentGuidelineRepo, sharedModule.ActivityLogService, riskLevelSvc)
+	riskTreatmentGuidelineSvc := services.NewRiskTreatmentGuidelineService(riskTreatmentGuidelineRepo, sharedModule.ActivityLogService, riskMatrixRiskRatingSvc)
 	riskTreatmentGuidelineController := controllers.NewRiskTreatmentGuidelineController(riskTreatmentGuidelineSvc)
 
 	riskHeatmapRepo := repositories.NewRiskHeatmapRepository(db)

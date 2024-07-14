@@ -106,6 +106,13 @@ func (caps ComplianceActionPlanService) GetFullDetailsByID(complianceID uint, id
 	if err != nil {
 		return nil, err
 	}
+	if complianceActionPlan.TargetDate != nil {
+		targetDate := complianceActionPlan.TargetDate.Format("2006-01-02")
+		complianceActionPlanDTO.TargetDateString = &targetDate
+	}
+
+	complianceActionPlanDTO.CreatedAt = complianceActionPlan.CreatedAt
+	complianceActionPlanDTO.UpdatedAt = complianceActionPlan.UpdatedAt
 
 	// TODO: Add any additional fields required for the details screen
 
@@ -376,6 +383,12 @@ func (caps *ComplianceActionPlanService) validateComplianceActionPlanFormDTO(com
 	if _, err := caps.actionPlanStatusSvc.GetByID(ComplianceActionPlanFormDTO.ActionPlanStatusID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("action plan status does not exist"), "not_exist", "action plan status")
 	}
+	
+	if ComplianceActionPlanFormDTO.Percentage == nil {
+		defaultValue := uint(0)
+		ComplianceActionPlanFormDTO.Percentage = &defaultValue
+	}
+
 
 	return nil
 }

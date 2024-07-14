@@ -17,12 +17,12 @@ type ComplianceControlListDTO struct {
 	ControlTitleEn                       string  `json:"control_title_en"`
 	ControlTitleAr                       string  `json:"control_title_ar"`
 	ControlDescription                   *string `json:"control_description"`
-	ControlEfficiencyStatusEn            string  `json:"control_efficiency_status_en"`
-	ControlEfficiencyStatusAr            string  `json:"control_efficiency_status_ar"`
+	ControlEfficiencyStatusTitleEn       string  `json:"control_efficiency_status_title_en"`
+	ControlEfficiencyStatusTitleAr       string  `json:"control_efficiency_status_title_ar"`
 	ControlEfficiencyStatusType          string  `json:"control_efficiency_status_type"`
 	ControlEfficiencyStatusColorCode     string  `json:"control_efficiency_status_color_code"`
-	ControlImplementationStatusEn        string  `json:"control_implementation_status_en"`
-	ControlImplementationStatusAr        string  `json:"control_implementation_status_ar"`
+	ControlImplementationStatusTitleEn   string  `json:"control_implementation_status_title_en"`
+	ControlImplementationStatusTitleAr   string  `json:"control_implementation_status_title_ar"`
 	ControlImplementationStatusType      string  `json:"control_implementation_status_type"`
 	ControlImplementationStatusColorCode string  `json:"control_implementation_status_color_code"`
 	ControlOwnerUnitTitleEn              *string `json:"control_owner_unit_title_en"`
@@ -98,6 +98,13 @@ type ComplianceIncidentListDTO struct {
 	IncidentReportedUserLastNameAr  string `json:"incident_reported_user_last_name_ar"`
 }
 
+type ComplianceStrategicObjectiveListDTO struct {
+	StrategicObjectiveID      uint   `json:"strategic_objective_id"`
+	StrategicObjectiveTitleEn string `json:"strategic_objective_title_en"`
+	StrategicObjectiveTitleAr string `json:"strategic_objective_title_ar"`
+	StrategicObjectiveStatus  string `json:"strategic_objective_status"`
+}
+
 type ComplianceAssociatedItemListQueryParamsDTO struct {
 	Sort        string
 	SortBy      string
@@ -123,6 +130,11 @@ type ComplianceAssociatedItemIncidentListResponseDTO struct {
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }
 
+type ComplianceAssociatedItemStrategicObjectiveListResponseDTO struct {
+	Items      []*ComplianceStrategicObjectiveListDTO `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO           `json:"pagination"`
+}
+
 type ComplianceAssociatedItemsCountResponseDTO struct {
 	ComplianceRequirements int `json:"compliance_requirements"`
 	Controls               int `json:"controls"`
@@ -138,4 +150,3 @@ type ComplianceRequirementStatusCountResponseDTO struct {
 	ColorCode string `json:"color_code"`
 	Count     int    `json:"count"`
 }
-

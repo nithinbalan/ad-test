@@ -1,0 +1,44 @@
+package routes
+
+import (
+	"jethur/initializers"
+	"jethur/middlewares"
+
+	"github.com/gin-gonic/gin"
+)
+
+func RegisterRoutes(app *initializers.App, router *gin.Engine) {
+
+	documentRoutes := router.Group("/")
+
+	documentRoutes.Use(middlewares.AuthMiddleware())
+
+	documentCategoryController := app.DocumentModule.DocumentCategoryController
+	documentTypeController := app.DocumentModule.DocumentTypeController
+	documentTemplateController := app.DocumentModule.DocumentTemplateController
+
+	documentRoutes.GET("/document-categories", documentCategoryController.GetAllDocumentCategories)
+	documentRoutes.GET("/document-categories/:id", documentCategoryController.GetDocumentCategoryDetails)
+	documentRoutes.POST("/document-categories", documentCategoryController.CreateDocumentCategory)
+	documentRoutes.PUT("/document-categories/:id", documentCategoryController.UpdateDocumentCategory)
+	documentRoutes.POST("/document-categories/delete", documentCategoryController.DeleteDocumentCategories)
+	documentRoutes.PUT("/document-categories/activate", documentCategoryController.ActivateDocumentCategories)
+	documentRoutes.PUT("/document-categories/deactivate", documentCategoryController.DeactivateDocumentCategories)
+
+	documentRoutes.GET("/document-types", documentTypeController.GetAllDocumentTypes)
+	documentRoutes.GET("/document-types/:id", documentTypeController.GetDocumentTypeDetails)
+	documentRoutes.POST("/document-types", documentTypeController.CreateDocumentType)
+	documentRoutes.PUT("/document-types/:id", documentTypeController.UpdateDocumentType)
+	documentRoutes.POST("/document-types/delete", documentTypeController.DeleteDocumentTypes)
+	documentRoutes.PUT("/document-types/activate", documentTypeController.ActivateDocumentTypes)
+	documentRoutes.PUT("/document-types/deactivate", documentTypeController.DeactivateDocumentTypes)
+
+	documentRoutes.GET("/document-templates", documentTemplateController.GetAllDocumentTemplates)
+	documentRoutes.GET("/document-templates/:id", documentTemplateController.GetDocumentTemplateDetails)
+	documentRoutes.POST("/document-templates", documentTemplateController.CreateDocumentTemplate)
+	documentRoutes.PUT("/document-templates/:id", documentTemplateController.UpdateDocumentTemplate)
+	documentRoutes.POST("/document-templates/delete", documentTemplateController.DeleteDocumentTemplates)
+	documentRoutes.PUT("/document-templates/activate", documentTemplateController.ActivateDocumentTemplates)
+	documentRoutes.PUT("/document-templates/deactivate", documentTemplateController.DeactivateDocumentTemplates)
+
+}

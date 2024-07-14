@@ -52,7 +52,7 @@ func (repo *RiskMatrixLikelihoodRepository) GetAll(sort string, sortBy string, k
 	}
 
 	if sortBy == "" {
-		sortBy = "risk_matrix_likelihoods.title_en"
+		sortBy = "risk_matrix_likelihoods.score"
 	}
 	if sort != "asc" && sort != "desc" {
 		sort = "asc"

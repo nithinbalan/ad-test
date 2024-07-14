@@ -18,16 +18,16 @@ type SLACheckQuestionServiceInterface interface {
 	GetAllQuestionGroups(slaID uint, checkID uint) ([]*complianceDTOs.SLACheckQuestionGroupListDTO, error)
 	GetQuestionGroupByID(slaID uint, checkID uint, groupID uint) (*complianceDTOs.SLACheckQuestionGroupDetailDTO, error)
 	CreateQuestionGroup(slaID uint, checkID uint, currentUserID uint, slaCheckQuestionGroupFormDTO *complianceDTOs.SLACheckQuestionGroupFormDTO) (uint, error)
-	UpdateQuestionGroup(slaID uint, checkID uint, groupID uint, currentUserID uint, slaCheckUpdateQuestionGroupDTO *complianceDTOs.SLACheckUpdateQuestionGroupDTO) error
+	UpdateQuestionGroup(slaID uint, checkID uint, groupID uint, currentUserID uint, slaCheckUpdateQuestionGroupDTO *complianceDTOs.SLACheckQuestionGroupFormDTO) error
 	DeleteQuestionGroup(slaID uint, checkID uint, questionGroupID uint, currentUserID uint) (uint, error)
 
 	GetQuestionsByGroupID(slaID uint, checkID uint, groupID uint) ([]complianceDTOs.SLACheckQuestionDetailDTO, error)
 
 	GetQuestionByID(slaID uint, id uint) (*models.SLACheckQuestion, error)
 	ChooseQuestions(slaID uint, checkID uint, currentUserID uint, checklistQuestionIds []uint) ([]uint, error)
-	CreateQuestion(slaID uint, checkID uint, currentUserID uint, slaCheckQuestionFormDTO *complianceDTOs.SLACheckQuestionFormDTO) (uint, error)
-	UpdateQuestion(slaID uint, checkID uint, groupID uint, currentUserID uint, slaCheckUpdateQuestionDTO *complianceDTOs.SLACheckUpdateQuestionDTO) error
-	DeleteQuestion(slaID uint, checkId uint, questionId uint, currentUserID uint) (uint, error)
+	CreateQuestion(slaID uint, checkID uint, questionGroupID uint, currentUserID uint, slaCheckQuestionFormDTO *complianceDTOs.SLACheckQuestionFormDTO) (uint, error)
+	UpdateQuestion(slaID uint, checkID uint, questionGroupID uint, questionID uint, currentUserID uint, slaCheckUpdateQuestionDTO *complianceDTOs.SLACheckQuestionFormDTO) error
+	DeleteQuestion(slaID uint, checkId uint, questionGroupID uint, questionId uint, currentUserID uint) (uint, error)
 
 	IncrementCompletedCount(groupID uint, tx utility.DatabaseTransaction) error
 }
@@ -129,7 +129,7 @@ func (scqs *SLACheckQuestionService) CreateQuestionGroup(slaID uint, checkID uin
 	return groupID, nil
 }
 
-func (scqs *SLACheckQuestionService) UpdateQuestionGroup(slaID uint, checkID uint, groupID uint, currentUserID uint, slaCheckUpdateQuestionGroupDTO *complianceDTOs.SLACheckUpdateQuestionGroupDTO) error {
+func (scqs *SLACheckQuestionService) UpdateQuestionGroup(slaID uint, checkID uint, groupID uint, currentUserID uint, slaCheckUpdateQuestionGroupDTO *complianceDTOs.SLACheckQuestionGroupFormDTO) error {
 	if _, err := scqs.slaRegisterSvc.GetByID(slaID); err != nil {
 		return err
 	}
@@ -140,11 +140,11 @@ func (scqs *SLACheckQuestionService) UpdateQuestionGroup(slaID uint, checkID uin
 	}
 
 	// Update the titles if provided
-	if slaCheckUpdateQuestionGroupDTO.QuestionGroupTitleEn != "" {
-		group.TitleEn = slaCheckUpdateQuestionGroupDTO.QuestionGroupTitleEn
+	if slaCheckUpdateQuestionGroupDTO.TitleEn != "" {
+		group.TitleEn = slaCheckUpdateQuestionGroupDTO.TitleEn
 	}
-	if slaCheckUpdateQuestionGroupDTO.QuestionGroupTitleAr != "" {
-		group.TitleAr = slaCheckUpdateQuestionGroupDTO.QuestionGroupTitleAr
+	if slaCheckUpdateQuestionGroupDTO.TitleAr != "" {
+		group.TitleAr = slaCheckUpdateQuestionGroupDTO.TitleAr
 	}
 
 	// Update the SLACheckQuestionGroup
@@ -386,13 +386,13 @@ func (scqs SLACheckQuestionService) ChooseQuestions(slaID uint, checkID uint, cu
 	return failedIds, nil
 }
 
-func (scqs *SLACheckQuestionService) CreateQuestion(slaID uint, checkID uint, currentUserID uint, slaCheckQuestionFormDTO *complianceDTOs.SLACheckQuestionFormDTO) (uint, error) {
+func (scqs *SLACheckQuestionService) CreateQuestion(slaID uint, checkID uint, questionGroupID uint, currentUserID uint, slaCheckQuestionFormDTO *complianceDTOs.SLACheckQuestionFormDTO) (uint, error) {
 	if _, err := scqs.slaRegisterSvc.GetByID(slaID); err != nil {
 		return 0, err
 	}
 
 	slaCheckQuestion := &models.SLACheckQuestion{
-		SLACheckQuestionGroupID: slaCheckQuestionFormDTO.QuestionGroupID,
+		SLACheckQuestionGroupID: questionGroupID,
 		TitleEn:                 slaCheckQuestionFormDTO.TitleEn,
 		TitleAr:                 slaCheckQuestionFormDTO.TitleAr,
 		CreatedByID:             currentUserID,
@@ -404,7 +404,7 @@ func (scqs *SLACheckQuestionService) CreateQuestion(slaID uint, checkID uint, cu
 	}
 
 	// Update total count of the SLACheckQuestionGroup
-	err = scqs.repo.IncrementTotalCount(slaCheckQuestionFormDTO.QuestionGroupID)
+	err = scqs.repo.IncrementTotalCount(questionGroupID)
 	if err != nil {
 		return 0, err
 	}
@@ -435,7 +435,7 @@ func (scqs *SLACheckQuestionService) CreateQuestion(slaID uint, checkID uint, cu
 	return slaCheckQuestionId, nil
 }
 
-func (scqs *SLACheckQuestionService) UpdateQuestion(slaID uint, checkID uint, questionID uint, currentUserID uint, slaCheckUpdateQuestionDTO *complianceDTOs.SLACheckUpdateQuestionDTO) error {
+func (scqs *SLACheckQuestionService) UpdateQuestion(slaID uint, checkID uint, questionGroupID uint, questionID uint, currentUserID uint, slaCheckUpdateQuestionDTO *complianceDTOs.SLACheckQuestionFormDTO) error {
 	if _, err := scqs.slaRegisterSvc.GetByID(slaID); err != nil {
 		return err
 	}
@@ -448,8 +448,8 @@ func (scqs *SLACheckQuestionService) UpdateQuestion(slaID uint, checkID uint, qu
 
 	// Update the titles if provided
 
-	existingQuestion.TitleEn = slaCheckUpdateQuestionDTO.QuestionTitleEn
-	existingQuestion.TitleAr = slaCheckUpdateQuestionDTO.QuestionTitleAr
+	existingQuestion.TitleEn = slaCheckUpdateQuestionDTO.TitleEn
+	existingQuestion.TitleAr = slaCheckUpdateQuestionDTO.TitleAr
 	existingQuestion.UpdatedByID = &currentUserID
 
 	// Update the SLACheckQuestionGroup
@@ -485,7 +485,7 @@ func (scqs *SLACheckQuestionService) UpdateQuestion(slaID uint, checkID uint, qu
 	return nil
 }
 
-func (scqs *SLACheckQuestionService) DeleteQuestion(slaID uint, checkId uint, questionId uint, currentUserID uint) (uint, error) {
+func (scqs *SLACheckQuestionService) DeleteQuestion(slaID uint, checkId uint, questionGroupID uint, questionId uint, currentUserID uint) (uint, error) {
 	if _, err := scqs.slaRegisterSvc.GetByID(slaID); err != nil {
 		return 0, err
 	}
@@ -502,6 +502,11 @@ func (scqs *SLACheckQuestionService) DeleteQuestion(slaID uint, checkId uint, qu
 		failedId = questionId
 	} else {
 		successfulId = questionId
+	}
+
+	err = scqs.repo.DecrementTotalCount(question.SLACheckQuestionGroupID)
+	if err != nil {
+		return 0, err
 	}
 
 	if successfulId != 0 {

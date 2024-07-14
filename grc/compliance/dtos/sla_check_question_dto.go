@@ -29,19 +29,8 @@ type SLACheckQuestionGroupFormDTO struct {
 }
 
 type SLACheckQuestionFormDTO struct {
-	QuestionGroupID uint   `json:"question_group_id"`
-	TitleEn         string `json:"title_en" binding:"required"`
-	TitleAr         string `json:"title_ar" binding:"required"`
-}
-
-type SLACheckUpdateQuestionGroupDTO struct {
-	QuestionGroupTitleEn string `json:"question_group_title_en" binding:"required"`
-	QuestionGroupTitleAr string `json:"question_group_title_ar" binding:"required"`
-}
-
-type SLACheckUpdateQuestionDTO struct {
-	QuestionTitleEn string `json:"question_title_en" binding:"required"`
-	QuestionTitleAr string `json:"question_title_ar" binding:"required"`
+	TitleEn string `json:"title_en" binding:"required"`
+	TitleAr string `json:"title_ar" binding:"required"`
 }
 
 type SLACheckQuestionGroupDetailDTO struct {

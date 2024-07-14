@@ -15,12 +15,11 @@ import (
 )
 
 type IncidentPostReviewServiceInterface interface {
-	GetAll(incidentID uint, params *incidentDTOs.IncidentPostReviewListQueryParamsDTO) (*incidentDTOs.IncidentPostReviewListResponseDTO, error)
-	GetByID(incidentID uint, id uint) (*models.IncidentPostReview, error)
-	GetFullDetailsByID(incidentID uint, id uint, tx ...utility.DatabaseTransaction) (*incidentDTOs.IncidentPostReviewDetailDTO, error)
+	GetByID(incidentID uint) (*models.IncidentPostReview, error)
+	GetFullDetailsByID(incidentID uint, tx ...utility.DatabaseTransaction) (*incidentDTOs.IncidentPostReviewDetailDTO, error)
 	Create(incidentID uint, currentUserID uint, IncidentPostReviewFormDTO *incidentDTOs.IncidentPostReviewFormDTO) (uint, error)
-	Update(incidentID uint, id uint, currentUserID uint, incident *incidentDTOs.IncidentPostReviewFormDTO) error
-	Delete(incidentID uint, ids []uint, currentUserID uint) ([]uint, error)
+	Update(incidentID uint, currentUserID uint, incident *incidentDTOs.IncidentPostReviewFormDTO) error
+	Delete(incidentID uint, currentUserID uint) (uint, error)
 }
 
 // Service and implementations
@@ -47,43 +46,34 @@ func NewIncidentPostReviewService(
 	}
 }
 
-func (iprs *IncidentPostReviewService) GetAll(incidentID uint, params *incidentDTOs.IncidentPostReviewListQueryParamsDTO) (*incidentDTOs.IncidentPostReviewListResponseDTO, error) {
-	if incidentID != 0 {
-		if _, err := iprs.incidentRegisterSvc.GetByID(incidentID); err != nil {
-			return nil, err
-		}
-	}
-	return iprs.repo.GetAll(incidentID, params)
-}
-
-func (iprs IncidentPostReviewService) GetByID(incidentID uint, id uint) (*models.IncidentPostReview, error) {
+func (iprs IncidentPostReviewService) GetByID(incidentID uint) (*models.IncidentPostReview, error) {
 	if _, err := iprs.incidentRegisterSvc.GetByID(incidentID); err != nil {
 		return nil, err
 	}
 
-	incidentPostReview, err := iprs.repo.GetByID(id)
+	incidentPostReview, err := iprs.repo.GetByID(incidentID)
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, utility.NewResourceNotFoundError(err, id)
+			return nil, utility.NewResourceNotFoundError(err, incidentID)
 		}
 		return nil, err
 	}
 	return incidentPostReview, nil
 }
 
-func (iprs IncidentPostReviewService) GetFullDetailsByID(incidentID uint, id uint, tx ...utility.DatabaseTransaction) (*incidentDTOs.IncidentPostReviewDetailDTO, error) {
+func (iprs IncidentPostReviewService) GetFullDetailsByID(incidentID uint, tx ...utility.DatabaseTransaction) (*incidentDTOs.IncidentPostReviewDetailDTO, error) {
 	var incidentPostReviewDTO incidentDTOs.IncidentPostReviewDetailDTO
 
 	if _, err := iprs.incidentRegisterSvc.GetByID(incidentID); err != nil {
 		return nil, err
 	}
 
-	incidentPostReview, err := iprs.repo.GetFullDetailsByID(id, tx...)
+	incidentPostReview, err := iprs.repo.GetFullDetailsByID(incidentID, tx...)
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, utility.NewResourceNotFoundError(err, id)
+			return nil, utility.NewResourceNotFoundError(err, incidentID)
 		}
 		return nil, err
 	}
@@ -214,13 +204,13 @@ func (iprs *IncidentPostReviewService) Create(incidentID uint, currentUserID uin
 	return id, nil
 }
 
-func (iprs *IncidentPostReviewService) Update(incidentID uint, id uint, currentUserID uint, incidentPostReviewFormDTO *incidentDTOs.IncidentPostReviewFormDTO) error {
+func (iprs *IncidentPostReviewService) Update(incidentID uint, currentUserID uint, incidentPostReviewFormDTO *incidentDTOs.IncidentPostReviewFormDTO) error {
 	tx := iprs.repo.BeginTransaction()
 	if _, err := iprs.incidentRegisterSvc.GetByID(incidentID); err != nil {
 		return err
 	}
 
-	existingIncidentPostReview, err := iprs.GetByID(incidentID, id)
+	existingIncidentPostReview, err := iprs.GetByID(incidentID)
 	if err != nil {
 		return err
 	}
@@ -245,7 +235,7 @@ func (iprs *IncidentPostReviewService) Update(incidentID uint, id uint, currentU
 		return err
 	}
 
-	existingIncidentPostReviewDetail, err := iprs.GetFullDetailsByID(incidentID, id, tx)
+	existingIncidentPostReviewDetail, err := iprs.GetFullDetailsByID(incidentID, tx)
 
 	if err != nil {
 		tx.Rollback()
@@ -267,7 +257,7 @@ func (iprs *IncidentPostReviewService) Update(incidentID uint, id uint, currentU
 		if _, exists := existingUserIDs[*newUser]; !exists {
 			// Create a new IncidentPostReviewUser  record
 			user := &models.IncidentPostReviewUser{
-				IncidentPostReviewID: id,
+				IncidentPostReviewID: existingIncidentPostReview.ID,
 				UserID:               *newUser,
 				CreatedByID:          currentUserID,
 			}
@@ -316,7 +306,7 @@ func (iprs *IncidentPostReviewService) Update(incidentID uint, id uint, currentU
 		if _, exists := existingClosureLessons[*newLesson]; !exists {
 			// Create a new incident Closure lesson record
 			lesson := &models.IncidentPostReviewLesson{
-				IncidentPostReviewID: id,
+				IncidentPostReviewID: existingIncidentPostReview.ID,
 				Lesson:               *newLesson,
 				CreatedByID:          currentUserID,
 			}
@@ -367,7 +357,7 @@ func (iprs *IncidentPostReviewService) Update(incidentID uint, id uint, currentU
 		if _, exists := existingRecommendations[*newRec]; !exists {
 			// Create a new recommendation record
 			recommendation := &models.IncidentPostReviewRecommendation{
-				IncidentPostReviewID: id,
+				IncidentPostReviewID: existingIncidentPostReview.ID,
 				Recommendation:       *newRec,
 				CreatedByID:          currentUserID,
 			}
@@ -405,7 +395,7 @@ func (iprs *IncidentPostReviewService) Update(incidentID uint, id uint, currentU
 		err := iprs.activityLogSvc.LogActivity(
 			models.UpdateAction,
 			models.IncidentPostReview{}.TableName(),
-			id,
+			existingIncidentPostReview.ID,
 			incidentPostReviewFormDTO,
 			currentUserID,
 			nil,
@@ -415,7 +405,7 @@ func (iprs *IncidentPostReviewService) Update(incidentID uint, id uint, currentU
 			fields := map[string]interface{}{
 				"action":    models.UpdateAction,
 				"tableName": models.IncidentPostReview{}.TableName(),
-				"recordID":  id,
+				"recordID":  existingIncidentPostReview.ID,
 				"userID":    currentUserID,
 				"error":     err.Error(),
 			}
@@ -427,94 +417,72 @@ func (iprs *IncidentPostReviewService) Update(incidentID uint, id uint, currentU
 	return nil
 }
 
-func (iprs *IncidentPostReviewService) Delete(incidentID uint, ids []uint, currentUserID uint) ([]uint, error) {
+func (iprs *IncidentPostReviewService) Delete(incidentID uint, currentUserID uint) (uint, error) {
 	tx := iprs.repo.BeginTransaction()
+	var failedId uint
 
 	if _, err := iprs.incidentRegisterSvc.GetByID(incidentID); err != nil {
-		return nil, err
+		return 0, err
 	}
-
-	var failedIds []uint
-	var successfulIds []uint
-	for _, id := range ids {
-
-		_, err := iprs.repo.GetByID(id)
-
-		if err != nil {
-			continue
-		}
-		incidentPostReview, err := iprs.GetFullDetailsByID(incidentID, id, tx)
-		if err != nil {
-			tx.Rollback()
-			return nil, err
-		}
-
-		if len(incidentPostReview.Users) > 0 {
-			var deleteUserIds []*uint
-			for _, user := range incidentPostReview.Users {
-				deleteUserIds = append(deleteUserIds, &user.ID)
-			}
-			if err := iprs.repo.DeleteParticipants(deleteUserIds, tx); err != nil {
-				tx.Rollback()
-				return nil, err
-			}
-		}
-		if len(incidentPostReview.Lessons) > 0 {
-			var deleteLessonIds []*uint
-			for _, lesson := range incidentPostReview.Lessons {
-				deleteLessonIds = append(deleteLessonIds, &lesson.ID)
-			}
-			if err := iprs.repo.DeleteLessons(deleteLessonIds, tx); err != nil {
-				tx.Rollback()
-				return nil, err
-			}
-		}
-		if len(incidentPostReview.Recommendations) > 0 {
-			var deleteRecommendationIds []*uint
-			for _, recommendation := range incidentPostReview.Recommendations {
-				deleteRecommendationIds = append(deleteRecommendationIds, &recommendation.ID)
-			}
-			if err := iprs.repo.DeleteRecommendations(deleteRecommendationIds, tx); err != nil {
-				tx.Rollback()
-				return nil, err
-			}
-		}
-
-		err = iprs.repo.Delete(id, tx)
-		if err != nil {
-			failedIds = append(failedIds, id)
-		} else {
-			successfulIds = append(successfulIds, id)
-		}
-	}
-	if len(failedIds) > 0 {
+	incidentPostReview, err := iprs.GetFullDetailsByID(incidentID, tx)
+	if err != nil {
 		tx.Rollback()
-		return failedIds, nil
+		return 0, err
 	}
 
+	if len(incidentPostReview.Users) > 0 {
+		var deleteUserIds []*uint
+		for _, user := range incidentPostReview.Users {
+			deleteUserIds = append(deleteUserIds, &user.ID)
+		}
+		if err := iprs.repo.DeleteParticipants(deleteUserIds, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+	if len(incidentPostReview.Lessons) > 0 {
+		var deleteLessonIds []*uint
+		for _, lesson := range incidentPostReview.Lessons {
+			deleteLessonIds = append(deleteLessonIds, &lesson.ID)
+		}
+		if err := iprs.repo.DeleteLessons(deleteLessonIds, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+	if len(incidentPostReview.Recommendations) > 0 {
+		var deleteRecommendationIds []*uint
+		for _, recommendation := range incidentPostReview.Recommendations {
+			deleteRecommendationIds = append(deleteRecommendationIds, &recommendation.ID)
+		}
+		if err := iprs.repo.DeleteRecommendations(deleteRecommendationIds, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+	if err = iprs.repo.Delete(uint(incidentPostReview.ID), tx); err != nil {
+		failedId = uint(incidentPostReview.ID)
+		return failedId, err
+	}
 	tx.Commit()
+	// Log successful delete activity
+	go func() {
+		err := iprs.activityLogSvc.LogActivity(
+			models.DeleteAction,
+			models.IncidentPostReview{}.TableName(),
+			uint(incidentPostReview.ID),
+			nil,
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			// Handle error if logging fails
+			fmt.Printf("Failed to log delete activity: %v\n", err)
+		}
+	}()
 
-	if len(successfulIds) > 0 {
-
-		go func() {
-			err := iprs.activityLogSvc.LogBulkActivities(
-				models.DeleteAction,
-				models.IncidentPostReview{}.TableName(),
-				successfulIds,
-				nil,
-				currentUserID,
-				nil,
-			)
-			if err != nil {
-				// @todo - save to log file
-				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
-			}
-		}()
-	}
-
-	return failedIds, nil
+	return failedId, nil
 }
-
 func (iprs *IncidentPostReviewService) parseIncidentPostReviewDates(dto *incidentDTOs.IncidentPostReviewFormDTO) (*incidentDTOs.IncidentPostReviewParsedDates, error) {
 	parsed := &incidentDTOs.IncidentPostReviewParsedDates{}
 

@@ -34,7 +34,7 @@ func (repo *IncidentAssociatedItemRepository) GetAllControls(incidentID uint, pa
 			controls.id AS control_id,
 			controls.reference_number AS control_reference_number,
             controls.code AS control_code,
-            controls.last_test_date AS control_last_test_date,
+			CONVERT(VARCHAR, controls.last_test_date, 23) AS control_last_test_date,
             control_categories.title_en AS control_category_title_en,
             control_categories.title_ar AS control_category_title_ar,
             control_types.title_en AS control_type_title_en,
@@ -42,12 +42,12 @@ func (repo *IncidentAssociatedItemRepository) GetAllControls(incidentID uint, pa
             controls.title_en AS control_title_en,
             controls.title_ar AS control_title_ar,
             controls.description AS control_description,
-            control_efficiency_statuses.title_en AS control_efficiency_status_en,
-            control_efficiency_statuses.title_ar AS control_efficiency_status_ar,
+            control_efficiency_statuses.title_en AS control_efficiency_status_title_en,
+            control_efficiency_statuses.title_ar AS control_efficiency_status_title_ar,
 			control_efficiency_statuses.type AS control_efficiency_status_type,
             control_efficiency_statuses.color_code AS control_efficiency_status_color_code,
-            control_implementation_statuses.title_en AS control_implementation_status_en,
-            control_implementation_statuses.title_ar AS control_implementation_status_ar,
+            control_implementation_statuses.title_en AS control_implementation_status_title_en,
+            control_implementation_statuses.title_ar AS control_implementation_status_title_ar,
 			control_implementation_statuses.type AS control_implementation_status_type,
             control_implementation_statuses.color_code AS control_implementation_status_color_code,
 			owner.first_name_en AS control_owner_first_name_en,
@@ -162,10 +162,20 @@ func (repo *IncidentAssociatedItemRepository) GetAllComplianceRequirements(incid
 	}
 
 	if params.Keyword != "" {
-		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
-			(compliance_requirements.title LIKE ?)`,
-			keyword)
+			(compliance_register.title_en LIKE ? OR
+			compliance_register.title_ar LIKE ? OR
+			compliance_register.description_en LIKE ? OR
+			compliance_requirements.title LIKE ? OR
+			compliance_requirement_categories.title_en LIKE ? OR
+			compliance_requirement_categories.title_ar LIKE ? OR
+			compliance_clauses.clause_no LIKE ? OR
+			compliance_clauses.title LIKE ? OR
+			compliance_statuses.title_en LIKE ? OR
+			compliance_statuses.title_ar LIKE ?)`,
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%")
 	}
 
 	if params.SortBy == "" {
