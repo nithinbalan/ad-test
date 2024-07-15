@@ -108,15 +108,15 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 	if err != nil {
 		return 0, err
 	}
-	orgUnit, err := ps.userSvc.GetPrimaryUnit(uint(processFormDTO.OwnerID))
-	if err != nil || orgUnit == nil {
+	organizationUnitID, err := ps.userSvc.GetUserPrimaryUnitID(uint(processFormDTO.OwnerID))
+	if err != nil {
 		return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for owner"), "not_exist", "process owner unit")
 	}
 
 	process := &models.Process{
 		ProcessGroupID:    processFormDTO.ProcessGroupID,
 		OwnerID:           processFormDTO.OwnerID,
-		OwnerUnitID:       orgUnit.ID,
+		OwnerUnitID:       organizationUnitID,
 		LifecycleStatusID: lifecycleStatus.ID,
 		ReferenceNumber:   referenceNumber,
 		TitleEn:           processFormDTO.TitleEn,
@@ -189,11 +189,11 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 		return err
 	}
 	if existingProcess.OwnerID != processFormDTO.OwnerID {
-		orgUnit, err := ps.userSvc.GetPrimaryUnit(uint(processFormDTO.OwnerID))
-		if err != nil || orgUnit == nil {
+		organizationUnitID, err := ps.userSvc.GetUserPrimaryUnitID(uint(processFormDTO.OwnerID))
+		if err != nil {
 			return utility.NewValidationError(fmt.Errorf("organization unit not set for owner"), "not_exist", "process owner unit")
 		}
-		existingProcess.OwnerUnitID = orgUnit.ID
+		existingProcess.OwnerUnitID = organizationUnitID
 	}
 	existingProcess.ProcessGroupID = processFormDTO.ProcessGroupID
 	existingProcess.OwnerID = processFormDTO.OwnerID

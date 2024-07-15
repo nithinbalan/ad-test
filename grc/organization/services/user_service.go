@@ -34,7 +34,7 @@ type UserServiceInterface interface {
 
 	GenerateRandomPassword(length int) (string, error)
 	SetUserSettingService(svc UserSettingServiceInterface)
-	GetPrimaryUnit(userID uint) (*models.OrganizationUnit, error)
+	GetUserPrimaryUnitID(userID uint) (uint, error)
 }
 
 type UserService struct {
@@ -495,15 +495,15 @@ func generateInitial(firstName, lastName string) string {
 	return strings.ToUpper(firstInitial + lastInitial)
 }
 
-func (us *UserService) GetPrimaryUnit(userID uint) (*models.OrganizationUnit, error) {
+func (us *UserService) GetUserPrimaryUnitID(userID uint) (uint, error) {
 	_, err := us.GetByID(userID)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
 	primaryLevel, err := us.organizationLevelSvc.GetPrimaryLevel()
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
 	var primaryOrgUnitField string
@@ -520,8 +520,8 @@ func (us *UserService) GetPrimaryUnit(userID uint) (*models.OrganizationUnit, er
 	case 5:
 		primaryOrgUnitField = "organization_unit_5_id"
 	default:
-		return nil, fmt.Errorf("unsupported primary level")
+		return 0, fmt.Errorf("unsupported primary level")
 	}
 
-	return us.repo.GetPrimaryUnit(primaryOrgUnitField, userID)
+	return us.repo.GetUserPrimaryUnitID(primaryOrgUnitField, userID)
 }
