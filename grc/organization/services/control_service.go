@@ -141,7 +141,7 @@ func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizatio
 	if err != nil {
 		return 0, err
 	}
-	orgUnit, err := cs.userSvc.GetPrimaryOrganizationUnitByUserID(*controlFormDTO.OwnerID)
+	orgUnit, err := cs.userSvc.GetPrimaryUnit(*controlFormDTO.OwnerID)
 	if err != nil || orgUnit == nil {
 		return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for owner"), "not_exist", "control owner unit")
 	}
@@ -220,7 +220,7 @@ func (cs *ControlService) Update(id uint, currentUserID uint, controlFormDTO *or
 		return err
 	}
 	if existingControl.OwnerID != controlFormDTO.OwnerID {
-		orgUnit, err := cs.userSvc.GetPrimaryOrganizationUnitByUserID(*controlFormDTO.OwnerID)
+		orgUnit, err := cs.userSvc.GetPrimaryUnit(*controlFormDTO.OwnerID)
 		if err != nil || orgUnit == nil {
 			return utility.NewValidationError(fmt.Errorf("organization unit not set for owner"), "not_exist", "control owner unit")
 		}

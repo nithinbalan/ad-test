@@ -1,7 +1,6 @@
 package repositories
 
 import (
-	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	userDTOs "jethur/grc/organization/dtos"
@@ -36,7 +35,7 @@ type UserRepositoryInterface interface {
 
 	GetUserLoginHistory(userID uint, params *userDTOs.UserLoginHistoryListQueryParamsDTO) (*userDTOs.UserLoginHistoryListResponseDTO, error)
 	CreateUserLoginHistory(userLogin *models.UserLoginHistory, tx ...utility.DatabaseTransaction) error
-	GetPrimaryOrganizationUnitByUserID(userID uint) (*models.OrganizationUnit, error)
+	GetPrimaryUnit(primaryOrgUnitField string, userID uint) (*models.OrganizationUnit, error)
 }
 
 type UserRepository struct {
@@ -463,38 +462,9 @@ func (repo *UserRepository) CreateUserLoginHistory(userLogin *models.UserLoginHi
 	return nil
 }
 
-func (repo *UserRepository) GetPrimaryOrganizationUnitByUserID(userID uint) (*models.OrganizationUnit, error) {
-	var primaryLevel models.OrganizationLevel
-
-	// Fetch the primary organization level
-	err := repo.db.
-		Where("is_primary = ?", true).
-		First(&primaryLevel).
-		Error
-	if err != nil {
-		return nil, err
-	}
-
-	// Determine the corresponding organization unit field based on the primary level
-	var primaryOrgUnitField string
-	switch primaryLevel.Level {
-	case 1:
-		primaryOrgUnitField = "organization_unit_1_id"
-	case 2:
-		primaryOrgUnitField = "organization_unit_2_id"
-	case 3:
-		primaryOrgUnitField = "organization_unit_3_id"
-	case 4:
-		primaryOrgUnitField = "organization_unit_4_id"
-	case 5:
-		primaryOrgUnitField = "organization_unit_5_id"
-	default:
-		return nil, fmt.Errorf("unsupported primary level")
-	}
-
-	// Fetch the primary organization unit for the user
+func (repo *UserRepository) GetPrimaryUnit(primaryOrgUnitField string, userID uint) (*models.OrganizationUnit, error) {
 	var primaryOrganizationUnit models.OrganizationUnit
-	err = repo.db.
+	err := repo.db.
 		Table("organization_units").
 		Joins("JOIN users ON users."+primaryOrgUnitField+" = organization_units.id").
 		Where("users.id = ?", userID).

@@ -108,7 +108,7 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 	if err != nil {
 		return 0, err
 	}
-	orgUnit, err := ps.userSvc.GetPrimaryOrganizationUnitByUserID(uint(processFormDTO.OwnerID))
+	orgUnit, err := ps.userSvc.GetPrimaryUnit(uint(processFormDTO.OwnerID))
 	if err != nil || orgUnit == nil {
 		return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for owner"), "not_exist", "process owner unit")
 	}
@@ -189,7 +189,7 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 		return err
 	}
 	if existingProcess.OwnerID != processFormDTO.OwnerID {
-		orgUnit, err := ps.userSvc.GetPrimaryOrganizationUnitByUserID(uint(processFormDTO.OwnerID))
+		orgUnit, err := ps.userSvc.GetPrimaryUnit(uint(processFormDTO.OwnerID))
 		if err != nil || orgUnit == nil {
 			return utility.NewValidationError(fmt.Errorf("organization unit not set for owner"), "not_exist", "process owner unit")
 		}

@@ -34,18 +34,18 @@ type UserServiceInterface interface {
 
 	GenerateRandomPassword(length int) (string, error)
 	SetUserSettingService(svc UserSettingServiceInterface)
-	GetPrimaryOrganizationUnitByUserID(userID uint) (*models.OrganizationUnit, error)
-
+	GetPrimaryUnit(userID uint) (*models.OrganizationUnit, error)
 }
 
 type UserService struct {
-	repo                organizationRepositories.UserRepositoryInterface
-	designationSvc      DesignationServiceInterface
-	userStatusSvc       UserStatusServiceInterface
-	activityLogSvc      logServices.ActivityLogServiceInterface
-	roleSvc             settingService.RoleServiceInterface
-	userSettingSvc      UserSettingServiceInterface
-	systemPreferenceSvc settingService.SystemPreferenceServiceInterface
+	repo                 organizationRepositories.UserRepositoryInterface
+	designationSvc       DesignationServiceInterface
+	userStatusSvc        UserStatusServiceInterface
+	activityLogSvc       logServices.ActivityLogServiceInterface
+	roleSvc              settingService.RoleServiceInterface
+	userSettingSvc       UserSettingServiceInterface
+	systemPreferenceSvc  settingService.SystemPreferenceServiceInterface
+	organizationLevelSvc settingService.OrganizationLevelServiceInterface
 }
 
 func NewUserService(
@@ -54,14 +54,17 @@ func NewUserService(
 	userStatusSvc UserStatusServiceInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	roleSvc settingService.RoleServiceInterface,
-	systemPreferenceSvc settingService.SystemPreferenceServiceInterface) UserServiceInterface {
-	return &UserService{  
-		repo:                repo,
-		designationSvc:      designationSvc,
-		userStatusSvc:       userStatusSvc,
-		activityLogSvc:      activityLogSvc,
-		roleSvc:             roleSvc,
-		systemPreferenceSvc: systemPreferenceSvc,
+	systemPreferenceSvc settingService.SystemPreferenceServiceInterface,
+	organizationLevelSvc settingService.OrganizationLevelServiceInterface,
+) UserServiceInterface {
+	return &UserService{
+		repo:                 repo,
+		designationSvc:       designationSvc,
+		userStatusSvc:        userStatusSvc,
+		activityLogSvc:       activityLogSvc,
+		roleSvc:              roleSvc,
+		systemPreferenceSvc:  systemPreferenceSvc,
+		organizationLevelSvc: organizationLevelSvc,
 	}
 }
 
@@ -492,11 +495,33 @@ func generateInitial(firstName, lastName string) string {
 	return strings.ToUpper(firstInitial + lastInitial)
 }
 
-func (us *UserService) GetPrimaryOrganizationUnitByUserID(userID uint) (*models.OrganizationUnit, error) {
+func (us *UserService) GetPrimaryUnit(userID uint) (*models.OrganizationUnit, error) {
 	_, err := us.GetByID(userID)
-
 	if err != nil {
 		return nil, err
 	}
-	return us.repo.GetPrimaryOrganizationUnitByUserID(userID)
+
+	primaryLevel, err := us.organizationLevelSvc.GetPrimaryLevel()
+	if err != nil {
+		return nil, err
+	}
+
+	var primaryOrgUnitField string
+
+	switch primaryLevel.Level {
+	case 1:
+		primaryOrgUnitField = "organization_unit_1_id"
+	case 2:
+		primaryOrgUnitField = "organization_unit_2_id"
+	case 3:
+		primaryOrgUnitField = "organization_unit_3_id"
+	case 4:
+		primaryOrgUnitField = "organization_unit_4_id"
+	case 5:
+		primaryOrgUnitField = "organization_unit_5_id"
+	default:
+		return nil, fmt.Errorf("unsupported primary level")
+	}
+
+	return us.repo.GetPrimaryUnit(primaryOrgUnitField, userID)
 }
