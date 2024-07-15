@@ -11,3 +11,11 @@ type RiskHeatmapResponseDTO struct {
 	RiskMatrixRiskRating        RiskMatrixRiskRatingDataDTO `json:"risk_matrix_risk_rating"`
 	RiskRegisterCount           int                         `json:"risk_register_count"`
 }
+
+type RiskHeatmapByOwnerUnitResponseDTO struct {
+	OwnerUnitID          uint                        `json:"owner_unit_id"`
+	OwnerUnitTitle       string                      `json:"owner_unit_title"`
+	RiskMatrixScore      uint                        `json:"risk_matrix_score"`
+	RiskMatrixRiskRating RiskMatrixRiskRatingDataDTO `json:"risk_matrix_risk_rating"`
+	RiskRegisterCount    int                         `json:"risk_register_count"`
+}
