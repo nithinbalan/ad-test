@@ -34,6 +34,8 @@ type UserServiceInterface interface {
 
 	GenerateRandomPassword(length int) (string, error)
 	SetUserSettingService(svc UserSettingServiceInterface)
+	GetPrimaryOrganizationUnitByUserID(userID uint) (*models.OrganizationUnit, error)
+
 }
 
 type UserService struct {
@@ -53,7 +55,7 @@ func NewUserService(
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	roleSvc settingService.RoleServiceInterface,
 	systemPreferenceSvc settingService.SystemPreferenceServiceInterface) UserServiceInterface {
-	return &UserService{
+	return &UserService{  
 		repo:                repo,
 		designationSvc:      designationSvc,
 		userStatusSvc:       userStatusSvc,
@@ -488,4 +490,13 @@ func generateInitial(firstName, lastName string) string {
 	lastInitial := string(lastName[0])
 
 	return strings.ToUpper(firstInitial + lastInitial)
+}
+
+func (us *UserService) GetPrimaryOrganizationUnitByUserID(userID uint) (*models.OrganizationUnit, error) {
+	_, err := us.GetByID(userID)
+
+	if err != nil {
+		return nil, err
+	}
+	return us.repo.GetPrimaryOrganizationUnitByUserID(userID)
 }
