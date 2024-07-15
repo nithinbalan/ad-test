@@ -936,7 +936,7 @@ func (rrs *RiskRegisterService) validateRiskRegisterFormDTO(riskRegisterFormDTO 
 		processIDs[*processId] = true
 	}
 
-	slaRegisterIds := riskRegisterFormDTO.ProcessIDs
+	slaRegisterIds := riskRegisterFormDTO.SLARegisterIDs
 
 	slaRegisterIDs := make(map[uint]bool)
 
