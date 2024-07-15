@@ -73,11 +73,25 @@ func (rhc *RiskHeatmapController) GetRiskHeatmapByOwnerUnit(c *gin.Context) {
 	nextReviewDateFrom := c.Query("next_review_date_from")
 	nextReviewDateTo := c.Query("next_review_date_to")
 
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(rhc.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(rhc.db, c, "Invalid page_size parameter")
+		return
+	}
+
 	queryParams := riskDTOs.RiskRegisterListQueryParamsDTO{
 		Sort:               sort,
 		SortBy:             sortBy,
 		Keyword:            keyword,
 		Status:             status,
+		Page:               page,
+		PageSize:           pageSize,
 		Filters:            filters,
 		QuickFilter:        quickFilter,
 		ReportedAtFrom:     reportedAtFrom,
