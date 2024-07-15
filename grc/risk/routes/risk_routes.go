@@ -208,6 +208,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.PUT("/risk-response-strategies/deactivate", riskResponseStrategyController.DeactivateRiskResponseStrategies)
 
 	// Risk Heat Map
+	riskRoutes.GET("risks/heatmap-by-department", riskHeatmapController.GetRiskHeatmapByOwnerUnit)
 	riskRoutes.GET("processes/:processId/risk-heatmap", riskHeatmapController.GetProcessRiskHeatmap)
 
 	//Risk Control Analysis
