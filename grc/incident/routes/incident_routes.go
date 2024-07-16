@@ -28,6 +28,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	incidentPostReviewEffectivenessController := app.IncidentModule.IncidentPostReviewEffectivenessController
 	incidentPostReviewController := app.IncidentModule.IncidentPostReviewController
 	incidentAssociatedItemController := app.IncidentModule.IncidentAssociatedItemController
+	incidentTimelineController := app.IncidentModule.IncidentTimelineController
 
 	//Incident Category
 	incidentRoutes.GET("/incident-categories", incidentCategoryController.GetAllIncidentCategories)
@@ -125,5 +126,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	incidentRoutes.GET("/incidents/:incidentID/risks", incidentAssociatedItemController.GetAllIncidentRisks)
 	incidentRoutes.GET("/incidents/:incidentID/processes", incidentAssociatedItemController.GetAllIncidentProcesses)
 	incidentRoutes.GET("/incidents/:incidentID/slas", incidentAssociatedItemController.GetAllIncidentSLAs)
+	//Incident timelines
+	incidentRoutes.GET("/incidents/:incidentID/timelines", incidentTimelineController.GetAllIncidentTimelines)
 
 }

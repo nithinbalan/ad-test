@@ -11,6 +11,7 @@ import (
 	masterServices "jethur/grc/masters/services"
 	organizationServices "jethur/grc/organization/services"
 	riskServices "jethur/grc/risk/services"
+	"time"
 
 	"jethur/grc/models"
 	"jethur/utility"
@@ -44,6 +45,7 @@ type IncidentRegisterService struct {
 	riskRegisterSvc          riskServices.RiskRegisterServiceInterface
 	processSvc               organizationServices.ProcessServiceInterface
 	slaRegisterSvc           complianceServices.SLARegisterServiceInterface
+	incidentTimelineSvc      IncidentTimelineServiceInterface
 }
 
 func NewIncidentRegisterService(
@@ -59,6 +61,7 @@ func NewIncidentRegisterService(
 	riskRegisterSvc riskServices.RiskRegisterServiceInterface,
 	processSvc organizationServices.ProcessServiceInterface,
 	slaRegisterSvc complianceServices.SLARegisterServiceInterface,
+	incidentTimelineSvc IncidentTimelineServiceInterface,
 ) IncidentRegisterServiceInterface {
 	return &IncidentRegisterService{
 		repo:                     repo,
@@ -73,6 +76,7 @@ func NewIncidentRegisterService(
 		riskRegisterSvc:          riskRegisterSvc,
 		processSvc:               processSvc,
 		slaRegisterSvc:           slaRegisterSvc,
+		incidentTimelineSvc:      incidentTimelineSvc,
 	}
 }
 
@@ -260,6 +264,30 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 			tx.Rollback()
 			return 0, err
 		}
+	}
+	//Add timeline
+	//todo
+	timelineType, err := irs.incidentTimelineSvc.GetByType("reporting")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	//todo
+	timelineStatus, err := irs.incidentTimelineSvc.GetByStatusType("pending")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
+		IncidentRegisterID:     id,
+		IncidentTimelineTypeID: timelineType.ID,
+		TimelineStatusID:       timelineStatus.ID,
+		PerformedByID:          currentUserID,
+		PerformedAt:            time.Now(),
+	}
+	if err := irs.incidentTimelineSvc.Create(timelineFormDTO, tx); err != nil {
+		tx.Rollback()
+		return 0, err
 	}
 
 	var documents []*models.IncidentDocument
@@ -635,6 +663,21 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 			return err
 		}
 	}
+	//Update timeline
+	//todo
+	timelineType, err := irs.incidentTimelineSvc.GetByType("reporting")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
+		PerformedByID: currentUserID,
+		PerformedAt:   time.Now(),
+	}
+	if err := irs.incidentTimelineSvc.Update(id, timelineFormDTO, timelineType.ID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
 	//documents update
 	var documents []*models.IncidentDocument
 	var deleteDocumentIds []*uint
@@ -807,6 +850,17 @@ func (irs *IncidentRegisterService) Delete(ids []uint, currentUserID uint) ([]ui
 				tx.Rollback()
 				return nil, err
 			}
+		}
+		//Delete timeline
+		//todo
+		timelineType, err := irs.incidentTimelineSvc.GetByType("reporting")
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+		if err := irs.incidentTimelineSvc.Delete(id, timelineType.ID, tx); err != nil {
+			tx.Rollback()
+			return nil, err
 		}
 
 		// Delete each incident document if documents exist
