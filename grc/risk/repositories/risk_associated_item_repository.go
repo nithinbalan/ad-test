@@ -151,7 +151,7 @@ func (repo *RiskAssociatedItemRepository) GetAllComplianceRequirements(riskID ui
             LEFT JOIN compliance_clauses ON compliance_requirements.compliance_clause_id = compliance_clauses.id
             LEFT JOIN compliance_statuses ON compliance_requirements.compliance_status_id = compliance_statuses.id
             LEFT JOIN compliance_requirement_categories ON compliance_requirements.compliance_requirement_category_id = compliance_requirement_categories.id
-			LEFT JOIN compliance_register ON compliance_register.id = compliance_controls.compliance_register_id
+			LEFT JOIN compliance_register ON compliance_register.id = risk_compliance_requirements.compliance_register_id
         `).Where("risk_compliance_requirements.risk_register_id = ?", riskID)
 
 	if err := query.Count(&totalCount).Error; err != nil {
