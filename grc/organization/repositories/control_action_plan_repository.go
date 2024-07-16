@@ -11,12 +11,16 @@ import (
 )
 
 type ControlActionPlanRepositoryInterface interface {
+	BeginTransaction() utility.DatabaseTransaction
 	GetAll(controlID uint, params *organizationDTOs.ControlActionPlanListQueryParamsDTO) (*organizationDTOs.ControlActionPlanListResponseDTO, error)
 	GetByID(id uint) (*models.ControlActionPlan, error)
 	GetFullDetailsByID(id uint) (*models.ControlActionPlan, error)
-	Create(complianceActionPlan *models.ControlActionPlan) (uint, error)
-	Update(complianceActionPlan *models.ControlActionPlan, tx ...utility.DatabaseTransaction) error
+	Create(controlActionPlan *models.ControlActionPlan) (uint, error)
+	Update(controlActionPlan *models.ControlActionPlan, tx ...utility.DatabaseTransaction) error
 	Delete(id uint) error
+
+	CreateInitialControlActionPlanStatusUpdate(controlActionPlanStatusUpdate *models.ControlActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
+	DeleteControlActionPlanStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type ControlActionPlanRepository struct {
@@ -27,6 +31,10 @@ func NewControlActionPlanRepository(db *gorm.DB) *ControlActionPlanRepository {
 	return &ControlActionPlanRepository{
 		db: db,
 	}
+}
+
+func (repo *ControlActionPlanRepository) BeginTransaction() utility.DatabaseTransaction {
+	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
 func (repo *ControlActionPlanRepository) GetAll(controlID uint, params *organizationDTOs.ControlActionPlanListQueryParamsDTO) (*organizationDTOs.ControlActionPlanListResponseDTO, error) {
@@ -168,6 +176,7 @@ func (repo *ControlActionPlanRepository) GetFullDetailsByID(id uint) (*models.Co
 		Preload("CreatedByUser.OrganizationUnit1").
 		Preload("UpdatedByUser").
 		Preload("UpdatedByUser.OrganizationUnit1").
+		Preload("ActionPlanStatusUpdates").
 		First(&controlActionPlan, id)
 
 	if result.Error != nil {
@@ -205,6 +214,30 @@ func (repo *ControlActionPlanRepository) Delete(id uint) error {
 	result := repo.db.Delete(&models.ControlActionPlan{}, id)
 	if result.Error != nil {
 		return result.Error
+	}
+
+	return nil
+}
+
+func (repo *ControlActionPlanRepository) CreateInitialControlActionPlanStatusUpdate(controlActionPlanStatusUpdate *models.ControlActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(controlActionPlanStatusUpdate).Error; err != nil {
+		return 0, err
+	}
+	return controlActionPlanStatusUpdate.ID, nil
+}
+
+func (repo *ControlActionPlanRepository) DeleteControlActionPlanStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", ids).Delete(&models.ControlActionPlanStatusUpdate{}).Error; err != nil {
+		return err
 	}
 
 	return nil
