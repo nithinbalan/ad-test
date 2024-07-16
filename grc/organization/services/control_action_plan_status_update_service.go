@@ -20,6 +20,7 @@ type ControlActionPlanStatusUpdateServiceInterface interface {
 	GetAll(controlID uint, controlActionPlanID uint, sort string, sortBy string, keyword string) ([]*organizationDTOs.ControlActionPlanStatusUpdateListDTO, error)
 	Create(controlID uint, controlActionPlanID uint, currentUserID uint, controlActionPlanStatusUpdateFormDTO *organizationDTOs.ControlActionPlanStatusUpdateFormDTO) (uint, error)
 	Update(controlID uint, controlActionPlanID uint, id uint, currentUserID uint, controlActionPlanStatusUpdateFormDTO *organizationDTOs.ControlActionPlanStatusUpdateFormDTO) error
+	GetLatestControlActionPlanStatusUpdate(controlID uint, actionPlanID uint) (*organizationDTOs.ControlActionPlanStatusUpdateListDTO, error)
 }
 
 type ControlActionPlanStatusUpdateService struct {
@@ -297,4 +298,12 @@ func (casus *ControlActionPlanStatusUpdateService) validateControlActionPlanStat
 	}
 
 	return nil
+}
+
+func (casus ControlActionPlanStatusUpdateService) GetLatestControlActionPlanStatusUpdate(controlID uint, actionPlanID uint) (*organizationDTOs.ControlActionPlanStatusUpdateListDTO, error) {
+	if _, err := casus.controlActionPlanSvc.GetByID(controlID, actionPlanID); err != nil {
+		return nil, err
+	}
+
+	return casus.repo.GetLatestControlActionPlanStatusUpdate(actionPlanID)
 }
