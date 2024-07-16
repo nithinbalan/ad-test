@@ -101,6 +101,8 @@ func (caps ControlActionPlanService) GetFullDetailsByID(controlID uint, id uint)
 }
 
 func (caps *ControlActionPlanService) Create(controlID uint, currentUserID uint, ControlActionPlanFormDTO *organizationDTOs.ControlActionPlanFormDTO) (uint, error) {
+	tx := caps.repo.BeginTransaction()
+
 	if _, err := caps.controlSvc.GetByID(controlID); err != nil {
 		return 0, err
 	}
@@ -130,6 +132,22 @@ func (caps *ControlActionPlanService) Create(controlID uint, currentUserID uint,
 	if err != nil {
 		return 0, err
 	}
+
+	actionPlanStatusID := ControlActionPlanFormDTO.ActionPlanStatusID
+	controlActionPlanUpdate := &models.ControlActionPlanStatusUpdate{
+		ControlActionPlanID: id,
+		ActionPlanStatusID:  actionPlanStatusID,
+		Comment:             "Initial action plan status",
+		CreatedByID:         currentUserID,
+	}
+
+	_, err = caps.repo.CreateInitialControlActionPlanStatusUpdate(controlActionPlanUpdate, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	tx.Commit()
 
 	go func() {
 		err := caps.activityLogSvc.LogActivity(
@@ -177,7 +195,7 @@ func (caps *ControlActionPlanService) Update(controlID uint, id uint, currentUse
 		return err
 	}
 
-	// Update Compliance ActionPlan
+	// Update Control ActionPlan
 	existingControlActionPlan.Title = ControlActionPlanFormDTO.Title
 	existingControlActionPlan.Description = ControlActionPlanFormDTO.Description
 	existingControlActionPlan.SeverityLevelID = ControlActionPlanFormDTO.SeverityLevelID
@@ -205,10 +223,20 @@ func (caps *ControlActionPlanService) Delete(controlID uint, ids []uint, current
 	var successfulIds []uint
 	for _, id := range ids {
 
-		_, err := caps.repo.GetByID(id)
-
+		controlActionPlan, err := caps.GetFullDetailsByID(controlID, id)
 		if err != nil {
 			continue
+		}
+
+		if len(controlActionPlan.ActionPlanStatusUpdates) > 0 {
+			var deleteStatusUpdateIds []*uint
+			for _, update := range controlActionPlan.ActionPlanStatusUpdates {
+				deleteStatusUpdateIds = append(deleteStatusUpdateIds, &update.ID)
+			}
+			if err := caps.repo.DeleteControlActionPlanStatusUpdates(deleteStatusUpdateIds); err != nil {
+				failedIds = append(failedIds, id)
+				continue
+			}
 		}
 
 		err = caps.repo.Delete(id)
@@ -274,7 +302,7 @@ func (caps *ControlActionPlanService) validateControlActionPlanFormDTO(ControlAc
 	if _, err := caps.actionPlanStatusSvc.GetByID(ControlActionPlanFormDTO.ActionPlanStatusID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("action plan status does not exist"), "not_exist", "action plan status")
 	}
-	
+
 	if ControlActionPlanFormDTO.Percentage == nil {
 		defaultValue := uint(0)
 		ControlActionPlanFormDTO.Percentage = &defaultValue

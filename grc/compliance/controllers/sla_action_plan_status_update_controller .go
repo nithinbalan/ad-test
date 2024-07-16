@@ -181,7 +181,7 @@ func (sasuc *SLAActionPlanStatusUpdateController) GetLatestSLAActionPlanStatusUp
 		return
 	}
 
-	complianceActionPlanStatusUpdate, err := sasuc.service.GetLatestSLAActionPlanStatusUpdate(uint(slaID), uint(actionPlanID))
+	slaActionPlanStatusUpdate, err := sasuc.service.GetLatestSLAActionPlanStatusUpdate(uint(slaID), uint(actionPlanID))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -193,5 +193,5 @@ func (sasuc *SLAActionPlanStatusUpdateController) GetLatestSLAActionPlanStatusUp
 		}
 	}
 
-	c.JSON(http.StatusOK, complianceActionPlanStatusUpdate)
+	c.JSON(http.StatusOK, slaActionPlanStatusUpdate)
 }
