@@ -81,6 +81,14 @@ func (repo *ControlActionPlanStatusUpdateRepository) GetAll(controlActionPlanID 
 	query = query.Order(sortBy + " " + sort)
 
 	result := query.Find(&controlActionPlanUpdates)
+
+	for _, statusUpdate := range controlActionPlanUpdates {
+		var documents []*organizationDTOs.ControlActionPlanStatusUpdateDocumentDTO
+
+		repo.db.Model(&models.ControlActionPlanStatusUpdateDocument{}).Where("control_action_plan_status_update_id = ?", statusUpdate.ID).Find(&documents)
+		statusUpdate.Documents = documents
+	}
+
 	return controlActionPlanUpdates, result.Error
 }
 
