@@ -194,14 +194,6 @@ func (repo *ComplianceActionPlanRepository) GetFullDetailsByID(id uint, tx ...ut
 
 	var complianceActionPlan models.ComplianceActionPlan
 
-	// Subquery to get the latest status update
-	latestStatusUpdateSubQuery := db.
-		Table("compliance_action_plan_status_updates").
-		Select("id").
-		Where("compliance_action_plan_id = ?", id).
-		Order("created_at desc").
-		Limit(1)
-
 	// Load the compliance action plan with all related data
 	result := db.
 		Preload("ComplianceRequirement.ComplianceClause").
@@ -212,13 +204,6 @@ func (repo *ComplianceActionPlanRepository) GetFullDetailsByID(id uint, tx ...ut
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		Preload("ActionPlanStatusUpdates").
-		Preload("LatestActionPlanStatusUpdate", func(db *gorm.DB) *gorm.DB {
-			return db.Where("id IN (?)", latestStatusUpdateSubQuery).
-				Preload("ActionPlanStatus").
-				Preload("CreatedByUser").
-				Preload("UpdatedByUser").
-				Preload("Documents")
-		}).
 		First(&complianceActionPlan, id)
 
 	if result.Error != nil {

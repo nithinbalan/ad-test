@@ -22,13 +22,14 @@ type SLAActionPlan struct {
 	UpdatedByID        *uint      `json:"updated_by_id" gorm:"default:null"`
 
 	// Relationships
-	SLARegister      *SLARegister      `gorm:"foreignKey:SLARegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	SLACheckQuestion *SLACheckQuestion `gorm:"foreignKey:SLACheckQuestionID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	SeverityLevel    *SeverityLevel    `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ResponsibleUser  *User             `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ActionPlanStatus *ActionPlanStatus `gorm:"foreignKey:ActionPlanStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser    *User             `gorm:"foreignKey:CreatedByID"`
-	UpdatedByUser    *User             `gorm:"foreignKey:UpdatedByID"`
+	SLARegister             *SLARegister                 `gorm:"foreignKey:SLARegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	SLACheckQuestion        *SLACheckQuestion            `gorm:"foreignKey:SLACheckQuestionID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	SeverityLevel           *SeverityLevel               `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ResponsibleUser         *User                        `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ActionPlanStatus        *ActionPlanStatus            `gorm:"foreignKey:ActionPlanStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ActionPlanStatusUpdates []*SLAActionPlanStatusUpdate `gorm:"foreignKey:SLAActionPlanID"`
+	CreatedByUser           *User                        `gorm:"foreignKey:CreatedByID"`
+	UpdatedByUser           *User                        `gorm:"foreignKey:UpdatedByID"`
 }
 
 // TableName overrides the table name used by SLAActionPlan to `sla_action_plans`
