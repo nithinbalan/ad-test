@@ -11,12 +11,15 @@ import (
 )
 
 type SLAActionPlanRepositoryInterface interface {
+	BeginTransaction() utility.DatabaseTransaction
 	GetAll(slaID uint, params *complianceDTOs.SLAActionPlanListQueryParamsDTO) (*complianceDTOs.SLAActionPlanListResponseDTO, error)
 	GetByID(id uint) (*models.SLAActionPlan, error)
 	GetFullDetailsByID(id uint) (*models.SLAActionPlan, error)
 	Create(slaActionPlan *models.SLAActionPlan, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(slaActionPlan *models.SLAActionPlan, tx ...utility.DatabaseTransaction) error
-	Delete(id uint) error
+	Delete(id uint, tx ...utility.DatabaseTransaction) error
+	CreateInitialSLAActionPlanStatusUpdate(slaActionPlanStatusUpdate *models.SLAActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
+	DeleteSLAActionPlanStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type SLAActionPlanRepository struct {
@@ -27,6 +30,10 @@ func NewSLAActionPlanRepository(db *gorm.DB) *SLAActionPlanRepository {
 	return &SLAActionPlanRepository{
 		db: db,
 	}
+}
+
+func (repo *SLAActionPlanRepository) BeginTransaction() utility.DatabaseTransaction {
+	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
 func (repo *SLAActionPlanRepository) GetAll(slaID uint, params *complianceDTOs.SLAActionPlanListQueryParamsDTO) (*complianceDTOs.SLAActionPlanListResponseDTO, error) {
@@ -183,6 +190,7 @@ func (repo *SLAActionPlanRepository) GetFullDetailsByID(id uint) (*models.SLAAct
 		Preload("ResponsibleUser").
 		Preload("SeverityLevel").
 		Preload("ActionPlanStatus").
+		Preload("ActionPlanStatusUpdates").
 		First(&slaActionPlan, id)
 
 	if result.Error != nil {
@@ -206,16 +214,43 @@ func (repo *SLAActionPlanRepository) Update(slaActionPlan *models.SLAActionPlan,
 	return nil
 }
 
-func (repo *SLAActionPlanRepository) Delete(id uint) error {
-
+func (repo *SLAActionPlanRepository) Delete(id uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 	var slaActionPlan *models.SLAActionPlan
-	if err := repo.db.First(&slaActionPlan, id).Error; err != nil {
+	if err := db.First(&slaActionPlan, id).Error; err != nil {
 		return err
 	}
 
-	result := repo.db.Delete(&models.SLAActionPlan{}, id)
+	result := db.Delete(&models.SLAActionPlan{}, id)
 	if result.Error != nil {
 		return result.Error
+	}
+
+	return nil
+}
+
+func (repo *SLAActionPlanRepository) CreateInitialSLAActionPlanStatusUpdate(slaActionPlanStatusUpdate *models.SLAActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(slaActionPlanStatusUpdate).Error; err != nil {
+		return 0, err
+	}
+	return slaActionPlanStatusUpdate.ID, nil
+}
+
+func (repo *SLAActionPlanRepository) DeleteSLAActionPlanStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", ids).Delete(&models.SLAActionPlanStatusUpdate{}).Error; err != nil {
+		return err
 	}
 
 	return nil
