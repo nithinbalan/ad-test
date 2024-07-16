@@ -102,7 +102,7 @@ func (saps *SLAActionPlanService) GetFullDetailsByID(slaID uint, id uint) (*comp
 }
 
 func (saps *SLAActionPlanService) Create(slaID uint, currentUserID uint, slaActionPlanFormDTO *complianceDTOs.SLAActionPlanFormDTO) (uint, error) {
-
+	tx := saps.repo.BeginTransaction()
 	if _, err := saps.slaRegisterSvc.GetByID(slaID); err != nil {
 		return 0, err
 	}
@@ -132,8 +132,25 @@ func (saps *SLAActionPlanService) Create(slaID uint, currentUserID uint, slaActi
 
 	id, err := saps.repo.Create(slaActionPlan)
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
+
+	actionPlanStatusID := slaActionPlanFormDTO.ActionPlanStatusID
+	slaActionPlanUpdate := &models.SLAActionPlanStatusUpdate{
+		SLAActionPlanID:    id,
+		ActionPlanStatusID: actionPlanStatusID,
+		Comment:            "Initial action plan status",
+		CreatedByID:        currentUserID,
+	}
+
+	_, err = saps.repo.CreateInitialSLAActionPlanStatusUpdate(slaActionPlanUpdate, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	tx.Commit()
 
 	go func() {
 		err := saps.activityLogSvc.LogActivity(
@@ -204,6 +221,7 @@ func (saps *SLAActionPlanService) Update(slaID uint, id uint, currentUserID uint
 }
 
 func (saps *SLAActionPlanService) Delete(slaID uint, ids []uint, currentUserID uint) ([]uint, error) {
+	tx := saps.repo.BeginTransaction()
 	if _, err := saps.slaRegisterSvc.GetByID(slaID); err != nil {
 		return nil, err
 	}
@@ -212,19 +230,38 @@ func (saps *SLAActionPlanService) Delete(slaID uint, ids []uint, currentUserID u
 	var successfulIds []uint
 	for _, id := range ids {
 
-		_, err := saps.repo.GetByID(id)
+		slaActionPlan, err := saps.GetFullDetailsByID(slaID, id)
 
 		if err != nil {
 			continue
 		}
 
-		err = saps.repo.Delete(id)
+		if len(slaActionPlan.ActionPlanStatusUpdates) > 0 {
+			var deleteStatusUpdateIds []*uint
+			for _, update := range slaActionPlan.ActionPlanStatusUpdates {
+				deleteStatusUpdateIds = append(deleteStatusUpdateIds, &update.ID)
+			}
+			if err := saps.repo.DeleteSLAActionPlanStatusUpdates(deleteStatusUpdateIds, tx); err != nil {
+				failedIds = append(failedIds, id)
+				continue
+			}
+		}
+
+		err = saps.repo.Delete(id, tx)
 		if err != nil {
 			failedIds = append(failedIds, id)
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+
 	}
+
+	if len(failedIds) > 0 {
+		tx.Rollback()
+		return failedIds, nil
+	}
+
+	tx.Commit()
 
 	if len(successfulIds) > 0 {
 
