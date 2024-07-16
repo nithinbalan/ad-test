@@ -90,7 +90,6 @@ type ControlListResponseDTO struct {
 type ControlFormDTO struct {
 	ControlTypeID                 uint    `json:"control_type_id" binding:"required"`
 	ControlCategoryID             uint    `json:"control_category_id" binding:"required"`
-	OwnerUnitID                   *uint   `json:"owner_unit_id" binding:"omitempty"`
 	OwnerID                       *uint   `json:"owner_id" binding:"omitempty"`
 	ControlImplementationStatusID *uint   `json:"control_implementation_status_id" binding:"omitempty"`
 	ControlEfficiencyStatusID     *uint   `json:"control_efficiency_status_id" binding:"omitempty"`

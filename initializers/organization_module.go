@@ -56,7 +56,7 @@ func NewOrganizationModule(
 	userStatusController := controllers.NewUserStatusController(userStatusSvc)
 
 	userRepo := repositories.NewUserRepository(db)
-	userSvc := services.NewUserService(userRepo, designationSvc, userStatusSvc, sharedModule.ActivityLogService, settingsModule.RoleSvc, settingsModule.SystemPreferenceSvc)
+	userSvc := services.NewUserService(userRepo, designationSvc, userStatusSvc, sharedModule.ActivityLogService, settingsModule.RoleSvc, settingsModule.SystemPreferenceSvc, settingsModule.OrganizationLevelSvc)
 	userSettingRepo := repositories.NewUserSettingRepository(db)
 	userSettingSvc := services.NewUserSettingService(userSettingRepo, sharedModule.ActivityLogService)
 	userSvc.SetUserSettingService(userSettingSvc)
