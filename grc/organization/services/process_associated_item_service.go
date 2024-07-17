@@ -10,6 +10,7 @@ type ProcessAssociatedItemServiceInterface interface {
 	GetAllControls(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) ([]map[string]interface{}, error)
 	GetAllRisks(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemRiskListResponseDTO, error)
 	GetAllIncidents(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemIncidentListResponseDTO, error)
+	GetAllAssociatedCounts(processID uint) (*organizationDTOs.ProcessAssociatedItemsCountResponseDTO, error)
 }
 
 type ProcessAssociatedItemService struct {
@@ -171,4 +172,16 @@ func (pais *ProcessAssociatedItemService) GetAllIncidents(processID uint, params
 		return nil, err
 	}
 	return pais.repo.GetAllIncidents(processID, params)
+}
+
+func (pais *ProcessAssociatedItemService) GetAllAssociatedCounts(processID uint) (*organizationDTOs.ProcessAssociatedItemsCountResponseDTO, error) {
+	if _, err := pais.processSvc.GetByID(processID); err != nil {
+		return nil, err
+	}
+	response, err := pais.repo.GetAllAssociatedCounts(processID)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
 }
