@@ -108,7 +108,7 @@ func NewIncidentModule(db *gorm.DB,
 	incidentRootCauseAnalysisController := controllers.NewIncidentRootCauseAnalysisController(incidentRootCauseAnalysisSvc)
 
 	incidentCommunicationLogRepo := repositories.NewIncidentCommunicationLogRepository(db)
-	incidentCommunicationLogSvc := services.NewIncidentCommunicationLogService(incidentCommunicationLogRepo, sharedModule.ActivityLogService, incidentRegisterSvc)
+	incidentCommunicationLogSvc := services.NewIncidentCommunicationLogService(incidentCommunicationLogRepo, sharedModule.ActivityLogService, incidentRegisterSvc, incidentTimelineSvc)
 	incidentCommunicationLogController := controllers.NewIncidentCommunicationLogController(incidentCommunicationLogSvc)
 
 	incidentClosureRepo := repositories.NewIncidentClosureRepository(db)
