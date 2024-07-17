@@ -95,6 +95,7 @@ func NewIncidentModule(db *gorm.DB,
 		incidentRegisterSvc,
 		masterModule.ActionPlanStatusSvc,
 		masterModule.SeverityLevelSvc,
+		incidentTimelineSvc,
 	)
 	incidentActionPlanController := controllers.NewIncidentActionPlanController(incidentActionPlanSvc)
 

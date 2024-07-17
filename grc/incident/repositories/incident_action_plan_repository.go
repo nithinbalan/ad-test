@@ -15,9 +15,9 @@ type IncidentActionPlanRepositoryInterface interface {
 	GetAll(incidentID uint, params *incidentDTOs.IncidentActionPlanListQueryParamsDTO) (*incidentDTOs.IncidentActionPlanListResponseDTO, error)
 	GetByID(id uint) (*models.IncidentActionPlan, error)
 	GetFullDetailsByID(id uint) (*models.IncidentActionPlan, error)
-	Create(incidentActionPlan *models.IncidentActionPlan) (uint, error)
+	Create(incidentActionPlan *models.IncidentActionPlan, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(incidentActionPlan *models.IncidentActionPlan, tx ...utility.DatabaseTransaction) error
-	Delete(id uint) error
+	Delete(id uint, tx ...utility.DatabaseTransaction) error
 }
 
 type IncidentActionPlanRepository struct {
@@ -183,8 +183,12 @@ func (repo *IncidentActionPlanRepository) GetFullDetailsByID(id uint) (*models.I
 	return incidentActionPlan, nil
 }
 
-func (repo *IncidentActionPlanRepository) Create(incidentActionPlan *models.IncidentActionPlan) (uint, error) {
-	if err := repo.db.Create(incidentActionPlan).Error; err != nil {
+func (repo *IncidentActionPlanRepository) Create(incidentActionPlan *models.IncidentActionPlan, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(incidentActionPlan).Error; err != nil {
 		return 0, err
 	}
 	return incidentActionPlan.ID, nil
@@ -201,14 +205,17 @@ func (repo *IncidentActionPlanRepository) Update(incidentActionPlan *models.Inci
 	return nil
 }
 
-func (repo *IncidentActionPlanRepository) Delete(id uint) error {
-
+func (repo *IncidentActionPlanRepository) Delete(id uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 	var incidentActionPlan *models.IncidentActionPlan
-	if err := repo.db.First(&incidentActionPlan, id).Error; err != nil {
+	if err := db.First(&incidentActionPlan, id).Error; err != nil {
 		return err
 	}
 
-	result := repo.db.Delete(&models.IncidentActionPlan{}, id)
+	result := db.Delete(&models.IncidentActionPlan{}, id)
 	if result.Error != nil {
 		return result.Error
 	}
