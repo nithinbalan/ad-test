@@ -14,6 +14,8 @@ type SettingsModule struct {
 	RoleController              *controllers.RoleController
 	OrganizationUnitController  *controllers.OrganizationUnitController
 	LogSettingsController       *controllers.LogSettingsController
+	WorkflowRoleTypeController  *controllers.WorkflowRoleTypeController
+	WorkflowCOntroller          *controllers.WorkflowController
 
 	SystemPreferenceSvc services.SystemPreferenceServiceInterface
 	RoleSvc             services.RoleServiceInterface
@@ -41,6 +43,14 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 	logSettingsSvc := services.NewLogSettingsService(logSettingsRepo, sharedModule.ActivityLogService)
 	logSettingsController := controllers.NewLogSettingsController(logSettingsSvc)
 
+	workflowRoleTypeRepo := repositories.NewWorkflowRoleTypeRepository(db)
+	workflowRoleTypeSvc := services.NewWorkflowRoleTypeService(workflowRoleTypeRepo)
+	workflowRoleTypeController := controllers.NewWorkflowRoleTypeController(workflowRoleTypeSvc)
+
+	workflowRepo := repositories.NewWorkflowRepository(db)
+	workflowSvc := services.NewWorkflowService(workflowRepo, sharedModule.ActivityLogService, workflowRoleTypeSvc)
+	workflowController := controllers.NewWorkflowController(workflowSvc)
+
 	moduleRepo := repositories.NewModuleRepository(db)
 	moduleSvc := services.NewModuleService(moduleRepo)
 
@@ -50,6 +60,8 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 		RoleController:              roleController,
 		OrganizationUnitController:  organizationUnitController,
 		LogSettingsController:       logSettingsController,
+		WorkflowRoleTypeController:  workflowRoleTypeController,
+		WorkflowCOntroller:          workflowController,
 
 		SystemPreferenceSvc: systemPreferenceSvc,
 		RoleSvc:             roleSvc,

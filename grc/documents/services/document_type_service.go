@@ -50,6 +50,8 @@ func (dts *DocumentTypeService) GetByID(id uint) (*models.DocumentType, error) {
 }
 
 func (dts *DocumentTypeService) Create(currentUserID uint, documentType *models.DocumentType) (*models.DocumentType, error) {
+	tx := dts.repo.BeginTransaction()
+
 	if exists, err := dts.repo.ExistsByTitle(documentType.TitleEn, documentType.TitleAr); err != nil {
 		return nil, err
 	} else if exists {
@@ -58,8 +60,24 @@ func (dts *DocumentTypeService) Create(currentUserID uint, documentType *models.
 
 	createdDocumentType, err := dts.repo.Create(documentType)
 	if err != nil {
+		tx.Rollback()
 		return nil, err
 	}
+
+	workflow := &models.Workflow{
+		DocumentTypeID: &createdDocumentType.ID,
+		Type:           "document",
+		CreatedByID:    currentUserID,
+		Status:         "active",
+	}
+
+	err = dts.repo.CreateWorkflow(workflow, tx) // Create the workflow passing the transaction
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	tx.Commit()
 
 	go func() {
 		err := dts.activityLogSvc.LogActivity(
