@@ -237,3 +237,26 @@ func (caic *ControlAssociatedItemController) GetAllControlIncidents(c *gin.Conte
 	}
 	c.JSON(http.StatusOK, incidents)
 }
+
+func (caic *ControlAssociatedItemController) GetAllAssociatedCounts(c *gin.Context) {
+	controlIDStr := c.Param("controlId")
+
+	controlID, err := strconv.ParseUint(controlIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	associatedCounts, err := caic.service.GetAllAssociatedCounts(uint(controlID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(caic.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, associatedCounts)
+}
