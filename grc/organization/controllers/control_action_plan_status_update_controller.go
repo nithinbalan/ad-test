@@ -150,7 +150,7 @@ func (casuc *ControlActionPlanStatusUpdateController) UpdateControlActionPlanSta
 	c.Status(http.StatusOK)
 }
 
-func (crc *ControlActionPlanStatusUpdateController) GetControlActionPlanStatusUpdateDetails(c *gin.Context) {
+func (casuc *ControlActionPlanStatusUpdateController) GetControlActionPlanStatusUpdateDetails(c *gin.Context) {
 	controlID, err := strconv.Atoi(c.Param("controlId"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -169,16 +169,48 @@ func (crc *ControlActionPlanStatusUpdateController) GetControlActionPlanStatusUp
 		return
 	}
 
-	controlTest, err := crc.service.GetByID(uint(controlID), uint(controlActionPlanID), uint(controlActionPlanUpdateID))
+	controlTest, err := casuc.service.GetByID(uint(controlID), uint(controlActionPlanID), uint(controlActionPlanUpdateID))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 			return
 		default:
-			utility.SendInternalErrResp(crc.db, c, e.Error())
+			utility.SendInternalErrResp(casuc.db, c, e.Error())
 			return
 		}
 	}
 	c.JSON(http.StatusOK, controlTest)
+}
+
+func (casuc *ControlActionPlanStatusUpdateController) GetLatestControlActionPlanStatusUpdate(c *gin.Context) {
+	controlIDStr := c.Param("controlId")
+
+	controlID, err := strconv.ParseUint(controlIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	actionPlanIDStr := c.Param("controlActionPlanId")
+
+	actionPlanID, err := strconv.ParseUint(actionPlanIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	controlActionPlanStatusUpdate, err := casuc.service.GetLatestControlActionPlanStatusUpdate(uint(controlID), uint(actionPlanID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(casuc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, controlActionPlanStatusUpdate)
 }

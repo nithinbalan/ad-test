@@ -13,6 +13,7 @@ type RiskAssociatedItemRepositoryInterface interface {
 	GetAllProcesses(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemProcessListResponseDTO, error)
 	GetAllStrategicObjectives(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemStrategicObjectiveListResponseDTO, error)
 	GetAllSLAs(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemSLAListResponseDTO, error)
+	GetAllIncidents(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemIncidentListResponseDTO, error)
 }
 
 type RiskAssociatedItemRepository struct {
@@ -151,7 +152,7 @@ func (repo *RiskAssociatedItemRepository) GetAllComplianceRequirements(riskID ui
             LEFT JOIN compliance_clauses ON compliance_requirements.compliance_clause_id = compliance_clauses.id
             LEFT JOIN compliance_statuses ON compliance_requirements.compliance_status_id = compliance_statuses.id
             LEFT JOIN compliance_requirement_categories ON compliance_requirements.compliance_requirement_category_id = compliance_requirement_categories.id
-			LEFT JOIN compliance_register ON compliance_register.id = compliance_controls.compliance_register_id
+			LEFT JOIN compliance_register ON compliance_register.id = risk_compliance_requirements.compliance_register_id
         `).Where("risk_compliance_requirements.risk_register_id = ?", riskID)
 
 	if err := query.Count(&totalCount).Error; err != nil {
@@ -468,5 +469,83 @@ func (repo *RiskAssociatedItemRepository) GetAllSLAs(riskID uint, params *riskDT
 		},
 	}
 
+	return response, nil
+}
+
+func (repo *RiskAssociatedItemRepository) GetAllIncidents(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemIncidentListResponseDTO, error) {
+	var totalCount int64
+	var incidentList []*riskDTOs.RiskIncidentListDTO
+
+	// Second Query: Fetch compliance requirement incidents using the compliance requirement IDs
+	query := repo.db.Table("incident_risks").
+		Select(`
+            DISTINCT incident_risks.incident_register_id AS incident_register_id,
+            incident_register.reference_number AS incident_reference_number,
+            incident_register.title AS incident_register_title,
+            incident_register.description AS incident_register_description,
+            incident_categories.title_en AS incident_category_title_en,
+            incident_categories.title_ar AS incident_category_title_ar,
+            incident_sub_categories.title_en AS incident_sub_category_title_en,
+            incident_sub_categories.title_ar AS incident_sub_category_title_ar,
+            incident_types.title_en AS incident_type_title_en,
+            incident_types.title_ar AS incident_type_title_ar,
+			severity_levels.title_en AS incident_severity_level_title_en,
+			severity_levels.title_ar AS incident_severity_level_title_ar,
+			severity_levels.color_code AS incident_severity_level_color_code,
+			incident_statuses.title_en AS incident_status_title_en,
+            incident_statuses.title_ar AS incident_status_title_ar,
+            incident_statuses.color_code AS incident_status_color_code,
+            reported_user.first_name_en AS incident_reported_by_first_name_en,
+            reported_user.first_name_ar AS incident_reported_by_first_name_ar,
+            reported_user.last_name_en AS incident_reported_by_last_name_en,
+            reported_user.last_name_ar AS incident_reported_by_last_name_ar
+        `).
+		Joins(`
+            LEFT JOIN incident_register ON incident_register.id = incident_risks.incident_register_id
+			LEFT JOIN incident_categories ON incident_categories.id = incident_register.incident_category_id
+            LEFT JOIN incident_sub_categories ON incident_sub_categories.id = incident_register.incident_sub_category_id
+            LEFT JOIN incident_types ON incident_types.id = incident_register.incident_type_id
+            LEFT JOIN incident_statuses ON incident_statuses.id = incident_register.incident_status_id
+		    LEFT JOIN severity_levels ON severity_levels.id = incident_register.severity_level_id
+            LEFT JOIN users AS reported_user ON reported_user.id = incident_register.reported_by
+        `).
+		Where("incident_risks.risk_register_id = ?", riskID)
+
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+	// Apply search keyword if exists
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Where("incident_register.title LIKE ?", keyword)
+	}
+
+	if params.SortBy == "" {
+		params.SortBy = "incident_register.title"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	offset := (params.Page - 1) * params.PageSize
+
+	err := query.Offset(offset).Limit(params.PageSize).Find(&incidentList).Error
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &riskDTOs.RiskAssociatedItemIncidentListResponseDTO{
+		Items: incidentList,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
 	return response, nil
 }

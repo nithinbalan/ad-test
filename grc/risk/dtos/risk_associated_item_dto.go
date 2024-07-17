@@ -102,6 +102,30 @@ type RiskSLAListDTO struct {
 	ComplianceStatusTitleAr         string `json:"compliance_status_title_ar"`
 	ComplianceStatusColorCode       string `json:"compliance_status_color_code"`
 }
+
+type RiskIncidentListDTO struct {
+	IncidentRegisterID              uint   `json:"incident_register_id"`
+	IncidentReferenceNumber         string `json:"incident_reference_number"`
+	IncidentRegisterTitle           string `json:"incident_register_title"`
+	IncidentRegisterDescription     string `json:"incident_register_description"`
+	IncidentCategoryTitleEn         string `json:"incident_category_title_en"`
+	IncidentCategoryTitleAr         string `json:"incident_category_title_ar"`
+	IncidentSubCategoryTitleEn      string `json:"incident_sub_category_title_en"`
+	IncidentSubCategoryTitleAr      string `json:"incident_sub_category_title_ar"`
+	IncidentTypeTitleEn             string `json:"incident_type_title_en"`
+	IncidentTypeTitleAr             string `json:"incident_type_title_ar"`
+	IncidentSeverityLevelTitleEn    string `json:"incident_severity_level_title_en"`
+	IncidentSeverityLevelTitleAr    string `json:"incident_severity_level_title_ar"`
+	IncidentSeverityLevelColorCode  string `json:"incident_severity_level_color_code"`
+	IncidentStatusTitleEn           string `json:"incident_status_title_en"`
+	IncidentStatusTitleAr           string `json:"incident_status_title_ar"`
+	IncidentStatusColorCode         string `json:"incident_status_color_code"`
+	IncidentReportedUserFirstNameEn string `json:"incident_reported_user_first_name_en"`
+	IncidentReportedUserFirstNameAr string `json:"incident_reported_user_first_name_ar"`
+	IncidentReportedUserLastNameEn  string `json:"incident_reported_user_last_name_en"`
+	IncidentReportedUserLastNameAr  string `json:"incident_reported_user_last_name_ar"`
+}
+
 type RiskAssociatedItemListQueryParamsDTO struct {
 	Sort        string
 	SortBy      string
@@ -131,7 +155,13 @@ type RiskAssociatedItemStrategicObjectiveListResponseDTO struct {
 	Items      []*RiskStrategicObjectiveListDTO `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO     `json:"pagination"`
 }
+
 type RiskAssociatedItemSLAListResponseDTO struct {
 	Items      []*RiskSLAListDTO            `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
+}
+
+type RiskAssociatedItemIncidentListResponseDTO struct {
+	Items      []*RiskIncidentListDTO       `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }

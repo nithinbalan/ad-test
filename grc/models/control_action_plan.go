@@ -21,12 +21,13 @@ type ControlActionPlan struct {
 	UpdatedByID        *uint      `json:"updated_by_id,omitempty" gorm:"default:null; column:updated_by_id"`
 
 	// Relationships
-	Control          *Control          `gorm:"foreignKey:ControlID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	SeverityLevel    *SeverityLevel    `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ResponsibleUser  *User             `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ActionPlanStatus *ActionPlanStatus `gorm:"foreignKey:ActionPlanStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser    *User             `gorm:"foreignKey:CreatedByID"`
-	UpdatedByUser    *User             `gorm:"foreignKey:UpdatedByID"`
+	Control                 *Control                         `gorm:"foreignKey:ControlID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	SeverityLevel           *SeverityLevel                   `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ResponsibleUser         *User                            `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ActionPlanStatus        *ActionPlanStatus                `gorm:"foreignKey:ActionPlanStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ActionPlanStatusUpdates []*ControlActionPlanStatusUpdate `gorm:"foreignKey:ControlActionPlanID"`
+	CreatedByUser           *User                            `gorm:"foreignKey:CreatedByID"`
+	UpdatedByUser           *User                            `gorm:"foreignKey:UpdatedByID"`
 }
 
 func (ControlActionPlan) TableName() string {
