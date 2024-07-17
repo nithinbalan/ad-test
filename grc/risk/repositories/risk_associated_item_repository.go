@@ -473,51 +473,62 @@ func (repo *RiskAssociatedItemRepository) GetAllSLAs(riskID uint, params *riskDT
 }
 
 func (repo *RiskAssociatedItemRepository) GetAllIncidents(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemIncidentListResponseDTO, error) {
-	var totalCount int64
 	var incidentList []*riskDTOs.RiskIncidentListDTO
+	var totalCount int64
 
-	// Second Query: Fetch compliance requirement incidents using the compliance requirement IDs
 	query := repo.db.Table("incident_risks").
 		Select(`
-            DISTINCT incident_risks.incident_register_id AS incident_register_id,
-            incident_register.reference_number AS incident_reference_number,
-            incident_register.title AS incident_register_title,
-            incident_register.description AS incident_register_description,
-            incident_categories.title_en AS incident_category_title_en,
-            incident_categories.title_ar AS incident_category_title_ar,
-            incident_sub_categories.title_en AS incident_sub_category_title_en,
-            incident_sub_categories.title_ar AS incident_sub_category_title_ar,
-            incident_types.title_en AS incident_type_title_en,
-            incident_types.title_ar AS incident_type_title_ar,
-			severity_levels.title_en AS incident_severity_level_title_en,
-			severity_levels.title_ar AS incident_severity_level_title_ar,
-			severity_levels.color_code AS incident_severity_level_color_code,
+			incident_register.reference_number,
+			incident_register.title,
+			incident_register.description,
+			incident_register.incident_at,
+			incident_register.location,
+			incident_register.reported_at,
+			incident_register.quick_action,
+			incident_categories.title_en AS incident_category_title_en,
+			incident_categories.title_ar AS incident_category_title_ar,
+			incident_sub_categories.title_en AS incident_sub_category_title_en,
+			incident_sub_categories.title_ar AS incident_sub_category_title_ar,
+			incident_types.title_en AS incident_type_title_en,
+			incident_types.title_ar AS incident_type_title_ar,
+			severity_levels.title_en AS severity_level_title_en,
+			severity_levels.title_ar AS severity_level_title_ar,
+			severity_levels.color_code AS severity_level_color_code,
 			incident_statuses.title_en AS incident_status_title_en,
-            incident_statuses.title_ar AS incident_status_title_ar,
-            incident_statuses.color_code AS incident_status_color_code,
-            reported_user.first_name_en AS incident_reported_by_first_name_en,
-            reported_user.first_name_ar AS incident_reported_by_first_name_ar,
-            reported_user.last_name_en AS incident_reported_by_last_name_en,
-            reported_user.last_name_ar AS incident_reported_by_last_name_ar
-        `).
+			incident_statuses.title_ar AS incident_status_title_ar,
+			incident_statuses.color_code AS incident_status_color_code
+		`).
 		Joins(`
-            LEFT JOIN incident_register ON incident_register.id = incident_risks.incident_register_id
+			LEFT JOIN incident_register ON incident_register.id = incident_risks.incident_register_id
 			LEFT JOIN incident_categories ON incident_categories.id = incident_register.incident_category_id
-            LEFT JOIN incident_sub_categories ON incident_sub_categories.id = incident_register.incident_sub_category_id
-            LEFT JOIN incident_types ON incident_types.id = incident_register.incident_type_id
-            LEFT JOIN incident_statuses ON incident_statuses.id = incident_register.incident_status_id
-		    LEFT JOIN severity_levels ON severity_levels.id = incident_register.severity_level_id
-            LEFT JOIN users AS reported_user ON reported_user.id = incident_register.reported_by
-        `).
+			LEFT JOIN incident_sub_categories ON incident_sub_categories.id = incident_register.incident_sub_category_id
+			LEFT JOIN incident_types ON incident_types.id = incident_register.incident_type_id
+			LEFT JOIN incident_statuses ON incident_statuses.id = incident_register.incident_status_id
+			LEFT JOIN severity_levels ON severity_levels.id = incident_register.severity_level_id
+		`).
 		Where("incident_risks.risk_register_id = ?", riskID)
-
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
-	// Apply search keyword if exists
+
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
-		query = query.Where("incident_register.title LIKE ?", keyword)
+		query = query.Where(`
+			(incident_register.reference_number LIKE ? OR
+			incident_register.title LIKE ? OR
+			incident_register.description LIKE ? OR
+			incident_register.location LIKE ? OR
+			incident_categories.title_en LIKE ? OR
+			incident_categories.title_ar LIKE ? OR
+			incident_sub_categories.title_en LIKE ? OR
+			incident_sub_categories.title_ar LIKE ? OR
+			incident_types.title_en LIKE ? OR
+			incident_types.title_ar LIKE ? OR
+			severity_levels.title_en LIKE ? OR
+			severity_levels.title_ar LIKE ? OR
+			incident_statuses.title_en LIKE ? OR
+			incident_statuses.title_ar LIKE ?)`,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
 	if params.SortBy == "" {
@@ -531,6 +542,7 @@ func (repo *RiskAssociatedItemRepository) GetAllIncidents(riskID uint, params *r
 
 	offset := (params.Page - 1) * params.PageSize
 
+	// Execute the query
 	err := query.Offset(offset).Limit(params.PageSize).Find(&incidentList).Error
 	if err != nil {
 		return nil, err
