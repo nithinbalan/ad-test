@@ -157,17 +157,23 @@ func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uin
 		tx.Rollback()
 		return 0, err
 	}
-	currentTime := time.Now()
-	timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
-		IncidentRegisterID:     incidentID,
-		IncidentTimelineTypeID: timelineType.ID,
-		TimelineStatusID:       timelineStatus.ID,
-		PerformedByID:          currentUserID,
-		PerformedAt:            &currentTime,
-	}
-	if err := iaps.incidentTimelineSvc.Create(timelineFormDTO, tx); err != nil {
-		tx.Rollback()
+	timelineExists, err := iaps.incidentTimelineSvc.Exists(incidentID, timelineType.ID)
+	if err != nil {
 		return 0, err
+	}
+	if !timelineExists {
+		currentTime := time.Now()
+		timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
+			IncidentRegisterID:     incidentID,
+			IncidentTimelineTypeID: timelineType.ID,
+			TimelineStatusID:       timelineStatus.ID,
+			PerformedByID:          currentUserID,
+			PerformedAt:            &currentTime,
+		}
+		if err := iaps.incidentTimelineSvc.Create(timelineFormDTO, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
 	}
 	tx.Commit()
 
@@ -242,10 +248,16 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 		tx.Rollback()
 		return err
 	}
+	timelineStatus, err := iaps.incidentTimelineSvc.GetByStatusType("pending")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
 	currentTime := time.Now()
 	timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
-		PerformedByID: currentUserID,
-		PerformedAt:   &currentTime,
+		PerformedByID:    currentUserID,
+		TimelineStatusID: timelineStatus.ID,
+		PerformedAt:      &currentTime,
 	}
 	if err := iaps.incidentTimelineSvc.Update(incidentID, timelineFormDTO, timelineType.ID, tx); err != nil {
 		tx.Rollback()
@@ -279,9 +291,15 @@ func (iaps *IncidentActionPlanService) Delete(incidentID uint, ids []uint, curre
 			tx.Rollback()
 			return failedIds, err
 		}
+		timelineStatus, err := iaps.incidentTimelineSvc.GetByStatusType("pending")
+		if err != nil {
+			tx.Rollback()
+			return failedIds, err
+		}
 		timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
-			PerformedByID: currentUserID,
-			PerformedAt:   nil,
+			PerformedByID:    currentUserID,
+			TimelineStatusID: timelineStatus.ID,
+			PerformedAt:      nil,
 		}
 		if err := iaps.incidentTimelineSvc.Update(incidentID, timelineFormDTO, timelineType.ID, tx); err != nil {
 			tx.Rollback()

@@ -672,10 +672,16 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 		tx.Rollback()
 		return err
 	}
+	timelineStatus, err := irs.incidentTimelineSvc.GetByStatusType("pending")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
 	currentTime := time.Now()
 	timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
-		PerformedByID: currentUserID,
-		PerformedAt:   &currentTime,
+		PerformedByID:    currentUserID,
+		TimelineStatusID: timelineStatus.ID,
+		PerformedAt:      &currentTime,
 	}
 	if err := irs.incidentTimelineSvc.Update(id, timelineFormDTO, timelineType.ID, tx); err != nil {
 		tx.Rollback()

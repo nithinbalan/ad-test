@@ -17,6 +17,7 @@ type IncidentTimelineRepositoryInterface interface {
 	Create(incidentTimeline *models.IncidentTimeline, tx ...utility.DatabaseTransaction) error
 	Update(incidentTimeline *models.IncidentTimeline, tx ...utility.DatabaseTransaction) error
 	Delete(incidentID uint, tx ...utility.DatabaseTransaction) error
+	Exists(incidentID uint, timelineTypeID uint) (bool, error)
 }
 
 type IncidentTimelineRepository struct {
@@ -170,4 +171,15 @@ func (repo *IncidentTimelineRepository) Delete(incidentID uint, tx ...utility.Da
 	}
 
 	return nil
+}
+
+func (repo *IncidentTimelineRepository) Exists(incidentID uint, timelineTypeID uint) (bool, error) {
+	var count int64
+	result := repo.db.Model(&models.IncidentTimeline{}).
+		Where("incident_register_id = ? AND incident_timeline_type_id = ?", incidentID, timelineTypeID).
+		Count(&count)
+	if result.Error != nil {
+		return false, result.Error
+	}
+	return count > 0, nil
 }

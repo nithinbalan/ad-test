@@ -87,7 +87,7 @@ func (ircas *IncidentRootCauseAnalysisService) Create(incidentID uint, currentUs
 		CreatedByID:        currentUserID,
 	}
 
-	id, err := ircas.repo.Create(incidentRootCauseAnalysis,tx)
+	id, err := ircas.repo.Create(incidentRootCauseAnalysis, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -105,17 +105,24 @@ func (ircas *IncidentRootCauseAnalysisService) Create(incidentID uint, currentUs
 		tx.Rollback()
 		return 0, err
 	}
-	currentTime := time.Now()
-	timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
-		IncidentRegisterID:     incidentID,
-		IncidentTimelineTypeID: timelineType.ID,
-		TimelineStatusID:       timelineStatus.ID,
-		PerformedByID:          currentUserID,
-		PerformedAt:            &currentTime,
-	}
-	if err := ircas.incidentTimelineSvc.Create(timelineFormDTO, tx); err != nil {
-		tx.Rollback()
+
+	timelineExists, err := ircas.incidentTimelineSvc.Exists(incidentID, timelineType.ID)
+	if err != nil {
 		return 0, err
+	}
+	if !timelineExists {
+		currentTime := time.Now()
+		timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
+			IncidentRegisterID:     incidentID,
+			IncidentTimelineTypeID: timelineType.ID,
+			TimelineStatusID:       timelineStatus.ID,
+			PerformedByID:          currentUserID,
+			PerformedAt:            &currentTime,
+		}
+		if err := ircas.incidentTimelineSvc.Create(timelineFormDTO, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
 	}
 	tx.Commit()
 
@@ -163,7 +170,7 @@ func (ircas *IncidentRootCauseAnalysisService) Update(incidentID uint, id uint, 
 	existingIncidentRootCauseAnalysis.Answer = rootCauseAnalysisFormDTO.Answer
 	existingIncidentRootCauseAnalysis.UpdatedByID = &currentUserID
 
-	err = ircas.repo.Update(existingIncidentRootCauseAnalysis,tx)
+	err = ircas.repo.Update(existingIncidentRootCauseAnalysis, tx)
 
 	if err != nil {
 		tx.Rollback()
@@ -176,10 +183,16 @@ func (ircas *IncidentRootCauseAnalysisService) Update(incidentID uint, id uint, 
 		tx.Rollback()
 		return err
 	}
+	timelineStatus, err := ircas.incidentTimelineSvc.GetByStatusType("pending")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
 	currentTime := time.Now()
 	timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
-		PerformedByID: currentUserID,
-		PerformedAt:   &currentTime,
+		PerformedByID:    currentUserID,
+		TimelineStatusID: timelineStatus.ID,
+		PerformedAt:      &currentTime,
 	}
 	if err := ircas.incidentTimelineSvc.Update(incidentID, timelineFormDTO, timelineType.ID, tx); err != nil {
 		tx.Rollback()
@@ -210,9 +223,15 @@ func (ircas *IncidentRootCauseAnalysisService) Delete(incidentID uint, id uint, 
 		tx.Rollback()
 		return 0, err
 	}
+	timelineStatus, err := ircas.incidentTimelineSvc.GetByStatusType("pending")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
 	timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
-		PerformedByID: currentUserID,
-		PerformedAt:   nil,
+		PerformedByID:    currentUserID,
+		TimelineStatusID: timelineStatus.ID,
+		PerformedAt:      nil,
 	}
 	if err := ircas.incidentTimelineSvc.Update(incidentID, timelineFormDTO, timelineType.ID, tx); err != nil {
 		tx.Rollback()

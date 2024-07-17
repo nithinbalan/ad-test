@@ -192,17 +192,24 @@ func (iis *IncidentInvestigationService) Create(incidentID uint, currentUserID u
 		tx.Rollback()
 		return 0, err
 	}
-	currentTime := time.Now()
-	timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
-		IncidentRegisterID:     incidentID,
-		IncidentTimelineTypeID: timelineType.ID,
-		TimelineStatusID:       timelineStatus.ID,
-		PerformedByID:          currentUserID,
-		PerformedAt:            &currentTime,
-	}
-	if err := iis.incidentTimelineSvc.Create(timelineFormDTO, tx); err != nil {
-		tx.Rollback()
+
+	timelineExists, err := iis.incidentTimelineSvc.Exists(incidentID, timelineType.ID)
+	if err != nil {
 		return 0, err
+	}
+	if !timelineExists {
+		currentTime := time.Now()
+		timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
+			IncidentRegisterID:     incidentID,
+			IncidentTimelineTypeID: timelineType.ID,
+			TimelineStatusID:       timelineStatus.ID,
+			PerformedByID:          currentUserID,
+			PerformedAt:            &currentTime,
+		}
+		if err := iis.incidentTimelineSvc.Create(timelineFormDTO, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
 	}
 	// Save Documents
 	var documents []*models.IncidentInvestigationDocument
@@ -421,10 +428,16 @@ func (iis *IncidentInvestigationService) Update(incidentID uint, currentUserID u
 		tx.Rollback()
 		return err
 	}
+	timelineStatus, err := iis.incidentTimelineSvc.GetByStatusType("pending")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
 	currentTime := time.Now()
 	timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
-		PerformedByID: currentUserID,
-		PerformedAt:   &currentTime,
+		PerformedByID:    currentUserID,
+		TimelineStatusID: timelineStatus.ID,
+		PerformedAt:      &currentTime,
 	}
 	if err := iis.incidentTimelineSvc.Update(incidentID, timelineFormDTO, timelineType.ID, tx); err != nil {
 		tx.Rollback()
@@ -579,9 +592,15 @@ func (iis *IncidentInvestigationService) Delete(incidentID uint, currentUserID u
 		tx.Rollback()
 		return 0, err
 	}
+	timelineStatus, err := iis.incidentTimelineSvc.GetByStatusType("pending")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
 	timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
-		PerformedByID: currentUserID,
-		PerformedAt:   nil,
+		PerformedByID:    currentUserID,
+		TimelineStatusID: timelineStatus.ID,
+		PerformedAt:      nil,
 	}
 	if err := iis.incidentTimelineSvc.Update(incidentID, timelineFormDTO, timelineType.ID, tx); err != nil {
 		tx.Rollback()

@@ -150,17 +150,24 @@ func (ics *IncidentClosureService) Create(incidentID uint, currentUserID uint, i
 		tx.Rollback()
 		return 0, err
 	}
-	currentTime := time.Now()
-	timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
-		IncidentRegisterID:     incidentID,
-		IncidentTimelineTypeID: timelineType.ID,
-		TimelineStatusID:       timelineStatus.ID,
-		PerformedByID:          currentUserID,
-		PerformedAt:            &currentTime,
-	}
-	if err := ics.incidentTimelineSvc.Create(timelineFormDTO, tx); err != nil {
-		tx.Rollback()
+
+	timelineExists, err := ics.incidentTimelineSvc.Exists(incidentID, timelineType.ID)
+	if err != nil {
 		return 0, err
+	}
+	if !timelineExists {
+		currentTime := time.Now()
+		timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
+			IncidentRegisterID:     incidentID,
+			IncidentTimelineTypeID: timelineType.ID,
+			TimelineStatusID:       timelineStatus.ID,
+			PerformedByID:          currentUserID,
+			PerformedAt:            &currentTime,
+		}
+		if err := ics.incidentTimelineSvc.Create(timelineFormDTO, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
 	}
 	//update incident status as closed
 	incidentStatus, err := ics.incidentStatusSvc.GetByType("closed")

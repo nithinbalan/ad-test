@@ -18,6 +18,7 @@ type IncidentTimelineServiceInterface interface {
 	Create(incidentTimelineFormDTO *incidentDTOs.IncidentTimelineFormDTO, tx ...utility.DatabaseTransaction) error
 	Update(incidentID uint, incidentTimelineFormDTO *incidentDTOs.IncidentTimelineFormDTO, timelineTypeID uint, tx ...utility.DatabaseTransaction) error
 	Delete(incidentID uint, tx ...utility.DatabaseTransaction) error
+	Exists(incidentID uint, timelineTypeID uint) (bool, error)
 }
 
 // Service and implementations
@@ -111,4 +112,8 @@ func (its *IncidentTimelineService) Delete(incidentID uint, tx ...utility.Databa
 	}
 
 	return nil
+}
+
+func (its *IncidentTimelineService) Exists(incidentID uint, timelineTypeID uint) (bool, error) {
+	return its.repo.Exists(incidentID, timelineTypeID)
 }

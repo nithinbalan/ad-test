@@ -193,17 +193,24 @@ func (iprs *IncidentPostReviewService) Create(incidentID uint, currentUserID uin
 		tx.Rollback()
 		return 0, err
 	}
-	currentTime := time.Now()
-	timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
-		IncidentRegisterID:     incidentID,
-		IncidentTimelineTypeID: timelineType.ID,
-		TimelineStatusID:       timelineStatus.ID,
-		PerformedByID:          currentUserID,
-		PerformedAt:            &currentTime,
-	}
-	if err := iprs.incidentTimelineSvc.Create(timelineFormDTO, tx); err != nil {
-		tx.Rollback()
+
+	timelineExists, err := iprs.incidentTimelineSvc.Exists(incidentID, timelineType.ID)
+	if err != nil {
 		return 0, err
+	}
+	if !timelineExists {
+		currentTime := time.Now()
+		timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
+			IncidentRegisterID:     incidentID,
+			IncidentTimelineTypeID: timelineType.ID,
+			TimelineStatusID:       timelineStatus.ID,
+			PerformedByID:          currentUserID,
+			PerformedAt:            &currentTime,
+		}
+		if err := iprs.incidentTimelineSvc.Create(timelineFormDTO, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
 	}
 	tx.Commit()
 
