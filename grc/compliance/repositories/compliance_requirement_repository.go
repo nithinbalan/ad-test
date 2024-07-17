@@ -6,7 +6,6 @@ import (
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
-	"log"
 	"time"
 
 	"gorm.io/gorm"
@@ -389,8 +388,6 @@ func (repo *ComplianceRequirementRepository) GetFullDetailsByID(id uint, tx ...u
 	if result.Error != nil {
 		return nil, result.Error
 	}
-
-	log.Printf("Fetched compliance requirement: %+v", complianceRequirement)
 
 	return complianceRequirement, nil
 }

@@ -141,12 +141,16 @@ func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizatio
 	if err != nil {
 		return 0, err
 	}
+	organizationUnitID, err := cs.userSvc.GetUserPrimaryUnitID(*controlFormDTO.OwnerID)
+	if err != nil {
+		return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for owner"), "not_exist", "control owner unit")
+	}
 
 	control := &models.Control{
 		ControlTypeID:                 controlFormDTO.ControlTypeID,
 		ControlCategoryID:             controlFormDTO.ControlCategoryID,
-		OwnerUnitID:                   controlFormDTO.OwnerUnitID,
 		OwnerID:                       controlFormDTO.OwnerID,
+		OwnerUnitID:                   &organizationUnitID,
 		ControlImplementationStatusID: controlFormDTO.ControlImplementationStatusID,
 		ControlEfficiencyStatusID:     controlFormDTO.ControlEfficiencyStatusID,
 		ReferenceNumber:               referenceNumber,
@@ -215,10 +219,16 @@ func (cs *ControlService) Update(id uint, currentUserID uint, controlFormDTO *or
 	if err != nil {
 		return err
 	}
+	if existingControl.OwnerID != controlFormDTO.OwnerID {
+		organizationUnitID, err := cs.userSvc.GetUserPrimaryUnitID(*controlFormDTO.OwnerID)
+		if err != nil {
+			return utility.NewValidationError(fmt.Errorf("organization unit not set for owner"), "not_exist", "control owner unit")
+		}
+		existingControl.OwnerUnitID = &organizationUnitID
+	}
 
 	existingControl.ControlTypeID = controlFormDTO.ControlTypeID
 	existingControl.ControlCategoryID = controlFormDTO.ControlCategoryID
-	existingControl.OwnerUnitID = controlFormDTO.OwnerUnitID
 	existingControl.OwnerID = controlFormDTO.OwnerID
 	existingControl.ControlImplementationStatusID = controlFormDTO.ControlImplementationStatusID
 	existingControl.ControlEfficiencyStatusID = controlFormDTO.ControlEfficiencyStatusID

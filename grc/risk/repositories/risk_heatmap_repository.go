@@ -1,7 +1,6 @@
 package repositories
 
 import (
-	"fmt"
 	"jethur/grc/models"
 
 	"gorm.io/gorm"
@@ -9,6 +8,7 @@ import (
 
 type RiskHeatmapRepositoryInterface interface {
 	GetRiskProcessesByProcessID(processID uint) ([]models.RiskProcess, error)
+
 	CountRiskRegistersWithLikelihoodAndImpact(riskRegisterIDs []uint, riskRatingValueID, likelihoodID, impactID uint) (int, error)
 }
 
@@ -27,7 +27,6 @@ func (repo *RiskHeatmapRepository) GetRiskProcessesByProcessID(processID uint) (
 	if err := repo.db.Where("process_id = ?", processID).Find(&riskProcesses).Error; err != nil {
 		return nil, err
 	}
-	fmt.Println(riskProcesses)
 	return riskProcesses, nil
 }
 

@@ -35,6 +35,7 @@ type UserRepositoryInterface interface {
 
 	GetUserLoginHistory(userID uint, params *userDTOs.UserLoginHistoryListQueryParamsDTO) (*userDTOs.UserLoginHistoryListResponseDTO, error)
 	CreateUserLoginHistory(userLogin *models.UserLoginHistory, tx ...utility.DatabaseTransaction) error
+	GetUserPrimaryUnitID(primaryOrgUnitField string, userID uint) (uint, error)
 }
 
 type UserRepository struct {
@@ -459,4 +460,19 @@ func (repo *UserRepository) CreateUserLoginHistory(userLogin *models.UserLoginHi
 		return err
 	}
 	return nil
+}
+
+func (repo *UserRepository) GetUserPrimaryUnitID(primaryOrgUnitField string, userID uint) (uint, error) {
+	var organizationUnitID uint
+	err := repo.db.
+		Table("users").
+		Select(primaryOrgUnitField).
+		Where("id = ?", userID).
+		Scan(&organizationUnitID).
+		Error
+	if err != nil {
+		return 0, err
+	}
+
+	return organizationUnitID, nil
 }

@@ -1,6 +1,10 @@
 package dtos
 
-import commonDTOs "jethur/grc/common/dtos"
+import (
+	commonDTOs "jethur/grc/common/dtos"
+	organizationDTOs "jethur/grc/organization/dtos"
+	"time"
+)
 
 type RiskControlListDTO struct {
 	ControlID                            uint    `json:"control_id"`
@@ -35,8 +39,12 @@ type RiskControlListDTO struct {
 }
 
 type RiskComplianceRequirementListDTO struct {
+	ComplianceRegisterID                 uint   `json:"compliance_register_id"`
+	ComplianceRegisterTitleEn            string `json:"compliance_register_title_en"`
+	ComplianceRegisterTitleAr            string `json:"compliance_register_title_ar"`
 	ComplianceRequirementID              uint   `json:"compliance_requirement_id"`
 	ComplianceClauseTitle                string `json:"compliance_clause_title"`
+	ComplianceClauseNo                   string `json:"compliance_clause_no"`
 	ComplianceRequirementCategoryTitleEn string `json:"compliance_requirement_category_title_en"`
 	ComplianceRequirementCategoryTitleAr string `json:"compliance_requirement_category_title_ar"`
 	ComplianceRequirementTitle           string `json:"compliance_requirement_title"`
@@ -102,6 +110,29 @@ type RiskSLAListDTO struct {
 	ComplianceStatusTitleAr         string `json:"compliance_status_title_ar"`
 	ComplianceStatusColorCode       string `json:"compliance_status_color_code"`
 }
+
+type RiskIncidentListDTO struct {
+	ReferenceNumber            string     `json:"reference_number"`
+	Title                      string     `json:"title"`
+	Description                *string    `json:"description"`
+	IncidentAt                 time.Time  `json:"incident_at"`
+	Location                   *string    `json:"location"`
+	ReportedAt                 *time.Time `json:"reported_at"`
+	QuickAction                *string    `json:"quick_action"`
+	IncidentCategoryTitleEn    string     `json:"incident_category_title_en"`
+	IncidentCategoryTitleAr    string     `json:"incident_category_title_ar"`
+	IncidentSubCategoryTitleEn string     `json:"incident_sub_category_title_en"`
+	IncidentSubCategoryTitleAr string     `json:"incident_sub_category_title_ar"`
+	IncidentTypeTitleEn        string     `json:"incident_type_title_en"`
+	IncidentTypeTitleAr        string     `json:"incident_type_title_ar"`
+	SeverityLevelTitleEn       string     `json:"severity_level_title_en"`
+	SeverityLevelTitleAr       string     `json:"severity_level_title_ar"`
+	SeverityLevelColorCode     string     `json:"severity_level_color_code"`
+	IncidentStatusTitleEn      string     `json:"incident_status_title_en"`
+	IncidentStatusTitleAr      string     `json:"incident_status_title_ar"`
+	IncidentStatusColorCode    string     `json:"incident_status_color_code"`
+}
+
 type RiskAssociatedItemListQueryParamsDTO struct {
 	Sort        string
 	SortBy      string
@@ -118,8 +149,8 @@ type RiskAssociatedItemControlListResponseDTO struct {
 }
 
 type RiskAssociatedItemComplianceRequirementListResponseDTO struct {
-	Items      []*RiskComplianceRequirementListDTO `json:"items"`
-	Pagination commonDTOs.PaginationInfoDTO        `json:"pagination"`
+	Items      []*organizationDTOs.ComplianceRegisterDTO `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO              `json:"pagination"`
 }
 
 type RiskAssociatedItemProcessListResponseDTO struct {
@@ -131,7 +162,13 @@ type RiskAssociatedItemStrategicObjectiveListResponseDTO struct {
 	Items      []*RiskStrategicObjectiveListDTO `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO     `json:"pagination"`
 }
+
 type RiskAssociatedItemSLAListResponseDTO struct {
 	Items      []*RiskSLAListDTO            `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
+}
+
+type RiskAssociatedItemIncidentListResponseDTO struct {
+	Items      []*RiskIncidentListDTO       `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }

@@ -35,7 +35,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	controlAssociatedItemController := app.OrganizationModule.ControlAssociatedItemController
 	controlReviewStatusController := app.OrganizationModule.ControlReviewStatusController
 	controlReviewController := app.OrganizationModule.ControlReviewController
-	
+
 	//Designation
 	organizationRoutes.GET("/designations", designationController.GetAllDesignations)
 	organizationRoutes.GET("/designations/:id", designationController.GetDesignationDetails)
@@ -173,6 +173,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.POST("/controls/:controlId/action-plans/:controlActionPlanId/status-updates", controlActionPlanStatusUpdateController.CreateControlActionPlanStatusUpdate)
 	organizationRoutes.PUT("/controls/:controlId/action-plans/:controlActionPlanId/status-updates/:controlActionPlanUpdateId", controlActionPlanStatusUpdateController.UpdateControlActionPlanStatusUpdate)
 
+	organizationRoutes.GET("/controls/:controlId/action-plans/:controlActionPlanId/status-updates/latest", controlActionPlanStatusUpdateController.GetLatestControlActionPlanStatusUpdate)
+
 	//process
 	organizationRoutes.GET("/processes", processController.GetAllProcesses)
 	organizationRoutes.GET("/processes/:processId", processController.GetProcessDetails)
@@ -186,5 +188,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.GET("processes/:processId/controls", processAssociatedItemController.GetAllProcessControls)
 	organizationRoutes.GET("processes/:processId/risks", processAssociatedItemController.GetAllProcessRisks)
 	organizationRoutes.GET("processes/:processId/incidents", processAssociatedItemController.GetAllProcessIncidents)
+	organizationRoutes.GET("/processes/:processId/associated-item-summary", processAssociatedItemController.GetAllAssociatedCounts)
 
 }
