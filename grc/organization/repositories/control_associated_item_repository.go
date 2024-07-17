@@ -2,6 +2,7 @@ package repositories
 
 import (
 	commonDTOs "jethur/grc/common/dtos"
+	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
 
 	"gorm.io/gorm"
@@ -12,6 +13,7 @@ type ControlAssociatedItemRepositoryInterface interface {
 	GetAllComplianceRequirements(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) ([]organizationDTOs.ControlComplianceRequirementListDTO, int64, error)
 	GetAllRisks(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) (*organizationDTOs.ControlAssociatedItemRiskListResponseDTO, error)
 	GetAllIncidents(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) (*organizationDTOs.ControlAssociatedItemIncidentListResponseDTO, error)
+	GetAllAssociatedCounts(controlID uint) (*organizationDTOs.ControlAssociatedItemsCountResponseDTO, error)
 }
 
 type ControlAssociatedItemRepository struct {
@@ -364,4 +366,47 @@ func (repo *ControlAssociatedItemRepository) GetAllIncidents(controlID uint, par
 		},
 	}
 	return response, nil
+}
+
+func (repo *ControlAssociatedItemRepository) GetAllAssociatedCounts(controlID uint) (*organizationDTOs.ControlAssociatedItemsCountResponseDTO, error) {
+	var processesCount, risksCount, incidentsCount, complianceRequirementsCount int64
+	var err error
+
+	// Query for controls count
+	err = repo.db.Model(&models.ProcessControl{}).
+		Where("control_id = ?", controlID).
+		Count(&processesCount).Error
+	if err != nil {
+		return nil, err
+	}
+
+	err = repo.db.Model(&models.ComplianceControl{}).
+		Where("control_id = ?", controlID).
+		Count(&complianceRequirementsCount).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Query for risks count
+	err = repo.db.Model(&models.RiskControl{}).
+		Where("control_id = ?", controlID).
+		Count(&risksCount).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Query for incidents count
+	err = repo.db.Model(&models.IncidentControl{}).
+		Where("control_id = ?", controlID).
+		Count(&incidentsCount).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &organizationDTOs.ControlAssociatedItemsCountResponseDTO{
+		Processes:              int(processesCount),
+		ComplianceRequirements: int(complianceRequirementsCount),
+		Risks:                  int(risksCount),
+		Incidents:              int(incidentsCount),
+	}, nil
 }

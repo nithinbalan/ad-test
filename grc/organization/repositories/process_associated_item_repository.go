@@ -2,6 +2,7 @@ package repositories
 
 import (
 	commonDTOs "jethur/grc/common/dtos"
+	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
 
 	"gorm.io/gorm"
@@ -11,6 +12,7 @@ type ProcessAssociatedItemRepositoryInterface interface {
 	GetAllControls(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) ([]*organizationDTOs.ProcessControlListDTO, error)
 	GetAllRisks(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemRiskListResponseDTO, error)
 	GetAllIncidents(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemIncidentListResponseDTO, error)
+	GetAllAssociatedCounts(processID uint) (*organizationDTOs.ProcessAssociatedItemsCountResponseDTO, error)
 }
 
 type ProcessAssociatedItemRepository struct {
@@ -304,4 +306,39 @@ func (repo *ProcessAssociatedItemRepository) GetAllIncidents(processID uint, par
 		},
 	}
 	return response, nil
+}
+
+func (repo *ProcessAssociatedItemRepository) GetAllAssociatedCounts(processID uint) (*organizationDTOs.ProcessAssociatedItemsCountResponseDTO, error) {
+	var risksCount, controlsCount, incidentsCount int64
+	var err error
+
+	// Query for controls count
+	err = repo.db.Model(&models.ProcessControl{}).
+		Where("process_id = ?", processID).
+		Count(&controlsCount).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Query for risks count
+	err = repo.db.Model(&models.RiskProcess{}).
+		Where("process_id = ?", processID).
+		Count(&risksCount).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Query for incidents count
+	err = repo.db.Model(&models.IncidentProcess{}).
+		Where("process_id = ?", processID).
+		Count(&incidentsCount).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &organizationDTOs.ProcessAssociatedItemsCountResponseDTO{
+		Controls:  int(controlsCount),
+		Risks:     int(risksCount),
+		Incidents: int(incidentsCount),
+	}, nil
 }
