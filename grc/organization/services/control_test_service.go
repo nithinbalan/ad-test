@@ -88,6 +88,12 @@ func (cts *ControlTestService) GetFullDetailsByID(id uint, tx ...utility.Databas
 	if err != nil {
 		return nil, err
 	}
+	if controlTest.TestedAt != nil {
+		testedAt := controlTest.TestedAt.Format("2006-01-02")
+		controlTestDetailsDTO.TestedAtString = &testedAt
+	}
+
+	controlTestDetailsDTO.UpdatedAt = controlTest.UpdatedAt
 	return &controlTestDetailsDTO, nil
 }
 

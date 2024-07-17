@@ -15,9 +15,10 @@ type SettingsModule struct {
 	OrganizationUnitController  *controllers.OrganizationUnitController
 	LogSettingsController       *controllers.LogSettingsController
 
-	SystemPreferenceSvc services.SystemPreferenceServiceInterface
-	RoleSvc             services.RoleServiceInterface
-	ModuleSvc           services.ModuleServiceInterface
+	SystemPreferenceSvc  services.SystemPreferenceServiceInterface
+	OrganizationLevelSvc services.OrganizationLevelServiceInterface
+	RoleSvc              services.RoleServiceInterface
+	ModuleSvc            services.ModuleServiceInterface
 }
 
 func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *MasterModule) *SettingsModule {
@@ -51,8 +52,9 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 		OrganizationUnitController:  organizationUnitController,
 		LogSettingsController:       logSettingsController,
 
-		SystemPreferenceSvc: systemPreferenceSvc,
-		RoleSvc:             roleSvc,
-		ModuleSvc:           moduleSvc,
+		SystemPreferenceSvc:  systemPreferenceSvc,
+		OrganizationLevelSvc: organizationLevelSvc,
+		RoleSvc:              roleSvc,
+		ModuleSvc:            moduleSvc,
 	}
 }

@@ -6,7 +6,6 @@ import (
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
-	"log"
 	"time"
 
 	"gorm.io/gorm"
@@ -353,7 +352,9 @@ func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(compl
 
 func (repo *ComplianceRequirementRepository) GetByID(id uint) (*models.ComplianceRequirement, error) {
 	var complianceRequirement *models.ComplianceRequirement
-	result := repo.db.First(&complianceRequirement, id)
+	result := repo.db.
+		Preload("ComplianceClause").
+		First(&complianceRequirement, id)
 
 	if result.Error != nil {
 		return nil, result.Error
@@ -387,8 +388,6 @@ func (repo *ComplianceRequirementRepository) GetFullDetailsByID(id uint, tx ...u
 	if result.Error != nil {
 		return nil, result.Error
 	}
-
-	log.Printf("Fetched compliance requirement: %+v", complianceRequirement)
 
 	return complianceRequirement, nil
 }

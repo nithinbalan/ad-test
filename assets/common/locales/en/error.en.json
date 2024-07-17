@@ -88,6 +88,10 @@
     "translation": "Only PDF files are allowed"
   },
   {
+    "id": "invalid_word_file_type",
+    "translation": "Only WORD files are allowed"
+  },
+  {
     "id": "duplicate",
     "translation": "Duplicate '{{.Field}}' IDs detected. Please ensure each '{{.Field}}' ID is unique to avoid duplicates."
   },

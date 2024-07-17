@@ -87,9 +87,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.GET("/compliances/:complianceId/controls", complianceAssociatedItemController.GetAllComplianceControls)
 	complianceRoutes.GET("/compliances/:complianceId/risks", complianceAssociatedItemController.GetAllComplianceRisks)
 	complianceRoutes.GET("/compliances/:complianceId/incidents", complianceAssociatedItemController.GetAllComplianceIncidents)
+	complianceRoutes.GET("/compliances/:complianceId/strategic-objectives", complianceAssociatedItemController.GetAllComplianceStrategicObjectives)
 
 	//SLA Register
-	complianceRoutes.GET("/sla-register/:id/document/preview", SLARegisterController.GetSLARegisterDocumentPreview)
+	complianceRoutes.GET("/sla-register/:id/document-preview", SLARegisterController.GetSLARegisterDocumentPreview)
 	complianceRoutes.GET("/sla-register", SLARegisterController.GetAllSLARegisters)
 	complianceRoutes.GET("/sla-register/:id", SLARegisterController.GetSLARegisterDetails)
 	complianceRoutes.POST("/sla-register", SLARegisterController.CreateSLARegister)
@@ -180,6 +181,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.GET("/slas/:slaId/action-plans/:actionPlanId/status-updates", slaActionPlanStatusUpdateController.GetAllSLAActionPlanStatusUpdates)
 	complianceRoutes.POST("/slas/:slaId/action-plans/:actionPlanId/status-updates", slaActionPlanStatusUpdateController.CreateSLAActionPlanStatusUpdate)
 	complianceRoutes.PUT("/slas/:slaId/action-plans/:actionPlanId/status-updates/:id", slaActionPlanStatusUpdateController.UpdateSLAActionPlanStatusUpdate)
+	complianceRoutes.GET("/slas/:slaId/action-plans/:actionPlanId/status-updates/latest", slaActionPlanStatusUpdateController.GetLatestSLAActionPlanStatusUpdate)
 
 	complianceRoutes.GET("/compliances/:complianceId/associated-item-summary", complianceAssociatedItemController.GetAllAssociatedCounts)
 	complianceRoutes.GET("/compliances/:complianceId/requirements-status-summary", complianceAssociatedItemController.GetComplianceRequirementCountByStatus)

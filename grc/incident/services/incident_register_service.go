@@ -172,10 +172,15 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 	}
 	// Save ComplianceRequirements
 	var complianceRequirements []*models.IncidentComplianceRequirement
-	for _, req := range incidentRegisterFormDTO.ComplianceRequirementIds {
+	for _, reqId := range incidentRegisterFormDTO.ComplianceRequirementIds {
+		complianceRequirement, err := irs.complianceRequirementSvc.GetByComplianceRequirementID(*reqId)
+		if err != nil {
+			return 0, err
+		}
 		requirement := &models.IncidentComplianceRequirement{
 			IncidentRegisterID:      id,
-			ComplianceRequirementID: *req,
+			ComplianceRegisterID:    complianceRequirement.ComplianceClause.ComplianceRegisterID,
+			ComplianceRequirementID: *reqId,
 			CreatedByID:             currentUserID,
 		}
 		complianceRequirements = append(complianceRequirements, requirement)
@@ -875,8 +880,10 @@ func (irs *IncidentRegisterService) validateIncidentRegisterFormDTO(incidentRegi
 		return utility.NewValidationError(fmt.Errorf("incident category does not exist"), "not_exist", "incident category")
 	}
 
-	if _, err := irs.incidentSubCategorySvc.GetByID(*incidentRegisterFormDTO.IncidentSubCategoryID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("incident sub category does not exist"), "not_exist", "incident sub category")
+	if incidentRegisterFormDTO.IncidentSubCategoryID != nil {
+		if _, err := irs.incidentSubCategorySvc.GetByID(*incidentRegisterFormDTO.IncidentSubCategoryID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("incident sub category does not exist"), "not_exist", "incident sub category")
+		}
 	}
 
 	if _, err := irs.incidentTypeSvc.GetByID(incidentRegisterFormDTO.IncidentTypeID); err != nil {
@@ -886,9 +893,10 @@ func (irs *IncidentRegisterService) validateIncidentRegisterFormDTO(incidentRegi
 	if _, err := irs.incidentStatusSvc.GetByID(incidentRegisterFormDTO.IncidentStatusID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("incident status does not exist"), "not_exist", "incident status")
 	}
-
-	if _, err := irs.severityLevelSvc.GetByID(*incidentRegisterFormDTO.SeverityLevelID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
+	if incidentRegisterFormDTO.SeverityLevelID != nil {
+		if _, err := irs.severityLevelSvc.GetByID(*incidentRegisterFormDTO.SeverityLevelID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
+		}
 	}
 	//Controls exist
 	controls := incidentRegisterFormDTO.ControlIds

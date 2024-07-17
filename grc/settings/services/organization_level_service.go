@@ -16,6 +16,7 @@ type OrganizationLevelServiceInterface interface {
 	GetAll() ([]*models.OrganizationLevel, error)
 	GetByID(id uint) (*models.OrganizationLevel, error)
 	Create(currentUserID uint, organizationLevels []*models.OrganizationLevel) ([]*models.OrganizationLevel, error)
+	GetPrimaryLevel() (*models.OrganizationLevel, error)
 }
 
 // Service and implementations
@@ -175,4 +176,8 @@ func (ols *OrganizationLevelService) Create(currentUserID uint, organizationLeve
 	}
 
 	return updatedOrganizationLevel, nil
+}
+
+func (ols *OrganizationLevelService) GetPrimaryLevel() (*models.OrganizationLevel, error) {
+	return ols.repo.GetPrimaryLevel()
 }

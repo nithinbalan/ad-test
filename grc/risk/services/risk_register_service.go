@@ -158,8 +158,13 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 	// Save ComplianceRequirements
 	var complianceRequirements []*models.RiskComplianceRequirement
 	for _, requirementID := range riskRegisterFormDTO.ComplianceRequirementIDs {
+		complianceRequirement, err := rrs.complianceRequirementSvc.GetByComplianceRequirementID(*requirementID)
+		if err != nil {
+			return 0, err
+		}
 		requirement := &models.RiskComplianceRequirement{
 			RiskRegisterID:          id,
+			ComplianceRegisterID:    complianceRequirement.ComplianceClause.ComplianceRegisterID,
 			ComplianceRequirementID: *requirementID,
 			CreatedByID:             currentUserID,
 		}
@@ -931,7 +936,7 @@ func (rrs *RiskRegisterService) validateRiskRegisterFormDTO(riskRegisterFormDTO 
 		processIDs[*processId] = true
 	}
 
-	slaRegisterIds := riskRegisterFormDTO.ProcessIDs
+	slaRegisterIds := riskRegisterFormDTO.SLARegisterIDs
 
 	slaRegisterIDs := make(map[uint]bool)
 

@@ -35,7 +35,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	controlAssociatedItemController := app.OrganizationModule.ControlAssociatedItemController
 	controlReviewStatusController := app.OrganizationModule.ControlReviewStatusController
 	controlReviewController := app.OrganizationModule.ControlReviewController
-	
+
 	//Designation
 	organizationRoutes.GET("/designations", designationController.GetAllDesignations)
 	organizationRoutes.GET("/designations/:id", designationController.GetDesignationDetails)
@@ -172,6 +172,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.GET("/controls/:controlId/action-plans/:controlActionPlanId/status-updates/:controlActionPlanUpdateId", controlActionPlanStatusUpdateController.GetControlActionPlanStatusUpdateDetails)
 	organizationRoutes.POST("/controls/:controlId/action-plans/:controlActionPlanId/status-updates", controlActionPlanStatusUpdateController.CreateControlActionPlanStatusUpdate)
 	organizationRoutes.PUT("/controls/:controlId/action-plans/:controlActionPlanId/status-updates/:controlActionPlanUpdateId", controlActionPlanStatusUpdateController.UpdateControlActionPlanStatusUpdate)
+
+	organizationRoutes.GET("/controls/:controlId/action-plans/:controlActionPlanId/status-updates/latest", controlActionPlanStatusUpdateController.GetLatestControlActionPlanStatusUpdate)
 
 	//process
 	organizationRoutes.GET("/processes", processController.GetAllProcesses)
