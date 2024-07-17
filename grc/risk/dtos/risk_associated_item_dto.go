@@ -1,6 +1,9 @@
 package dtos
 
-import commonDTOs "jethur/grc/common/dtos"
+import (
+	commonDTOs "jethur/grc/common/dtos"
+	organizationDTOs "jethur/grc/organization/dtos"
+)
 
 type RiskControlListDTO struct {
 	ControlID                            uint    `json:"control_id"`
@@ -35,8 +38,12 @@ type RiskControlListDTO struct {
 }
 
 type RiskComplianceRequirementListDTO struct {
+	ComplianceRegisterID                 uint   `json:"compliance_register_id"`
+	ComplianceRegisterTitleEn            string `json:"compliance_register_title_en"`
+	ComplianceRegisterTitleAr            string `json:"compliance_register_title_ar"`
 	ComplianceRequirementID              uint   `json:"compliance_requirement_id"`
 	ComplianceClauseTitle                string `json:"compliance_clause_title"`
+	ComplianceClauseNo                   string `json:"compliance_clause_no"`
 	ComplianceRequirementCategoryTitleEn string `json:"compliance_requirement_category_title_en"`
 	ComplianceRequirementCategoryTitleAr string `json:"compliance_requirement_category_title_ar"`
 	ComplianceRequirementTitle           string `json:"compliance_requirement_title"`
@@ -118,8 +125,8 @@ type RiskAssociatedItemControlListResponseDTO struct {
 }
 
 type RiskAssociatedItemComplianceRequirementListResponseDTO struct {
-	Items      []*RiskComplianceRequirementListDTO `json:"items"`
-	Pagination commonDTOs.PaginationInfoDTO        `json:"pagination"`
+	Items      []*organizationDTOs.ComplianceRegisterDTO `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO              `json:"pagination"`
 }
 
 type RiskAssociatedItemProcessListResponseDTO struct {
