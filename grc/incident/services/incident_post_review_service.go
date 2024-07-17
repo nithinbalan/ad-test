@@ -9,6 +9,7 @@ import (
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
+	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -29,6 +30,7 @@ type IncidentPostReviewService struct {
 	userSvc                            organizationServices.UserServiceInterface
 	incidentPostReviewEffectivenessSvc IncidentPostReviewEffectivenessServiceInterface
 	incidentRegisterSvc                IncidentRegisterServiceInterface
+	incidentTimelineSvc                IncidentTimelineServiceInterface
 }
 
 func NewIncidentPostReviewService(
@@ -36,13 +38,16 @@ func NewIncidentPostReviewService(
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	incidentPostReviewEffectivenessSvc IncidentPostReviewEffectivenessServiceInterface,
-	incidentRegisterSvc IncidentRegisterServiceInterface) IncidentPostReviewServiceInterface {
+	incidentRegisterSvc IncidentRegisterServiceInterface,
+	incidentTimelineSvc IncidentTimelineServiceInterface,
+) IncidentPostReviewServiceInterface {
 	return &IncidentPostReviewService{
 		repo:                               repo,
 		activityLogSvc:                     activityLogSvc,
 		userSvc:                            userSvc,
 		incidentPostReviewEffectivenessSvc: incidentPostReviewEffectivenessSvc,
 		incidentRegisterSvc:                incidentRegisterSvc,
+		incidentTimelineSvc:                incidentTimelineSvc,
 	}
 }
 
@@ -175,7 +180,31 @@ func (iprs *IncidentPostReviewService) Create(incidentID uint, currentUserID uin
 			return 0, err
 		}
 	}
-
+	//Add timeline
+	//todo
+	timelineType, err := iprs.incidentTimelineSvc.GetByType("pir")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	//todo
+	timelineStatus, err := iprs.incidentTimelineSvc.GetByStatusType("completed")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	currentTime := time.Now()
+	timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
+		IncidentRegisterID:     incidentID,
+		IncidentTimelineTypeID: timelineType.ID,
+		TimelineStatusID:       timelineStatus.ID,
+		PerformedByID:          currentUserID,
+		PerformedAt:            &currentTime,
+	}
+	if err := iprs.incidentTimelineSvc.Create(timelineFormDTO, tx); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
 	tx.Commit()
 
 	go func() {
@@ -389,6 +418,28 @@ func (iprs *IncidentPostReviewService) Update(incidentID uint, currentUserID uin
 			return err
 		}
 	}
+	//Update timeline
+	//todo
+	timelineType, err := iprs.incidentTimelineSvc.GetByType("pir")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	timelineStatus, err := iprs.incidentTimelineSvc.GetByStatusType("completed")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	currentTime := time.Now()
+	timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
+		PerformedByID:    currentUserID,
+		TimelineStatusID: timelineStatus.ID,
+		PerformedAt:      &currentTime,
+	}
+	if err := iprs.incidentTimelineSvc.Update(incidentID, timelineFormDTO, timelineType.ID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
 	tx.Commit()
 
 	go func() {
@@ -463,6 +514,28 @@ func (iprs *IncidentPostReviewService) Delete(incidentID uint, currentUserID uin
 	if err = iprs.repo.Delete(uint(incidentPostReview.ID), tx); err != nil {
 		failedId = uint(incidentPostReview.ID)
 		return failedId, err
+	}
+	//Delete-> update timeline performedAt as null
+	//todo
+	timelineType, err := iprs.incidentTimelineSvc.GetByType("pir")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	//todo
+	timelineStatus, err := iprs.incidentTimelineSvc.GetByStatusType("pending")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
+		PerformedByID:    currentUserID,
+		TimelineStatusID: timelineStatus.ID,
+		PerformedAt:      nil,
+	}
+	if err := iprs.incidentTimelineSvc.Update(incidentID, timelineFormDTO, timelineType.ID, tx); err != nil {
+		tx.Rollback()
+		return 0, err
 	}
 	tx.Commit()
 	// Log successful delete activity

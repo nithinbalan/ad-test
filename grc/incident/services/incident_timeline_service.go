@@ -92,6 +92,7 @@ func (its *IncidentTimelineService) Update(incidentID uint, incidentTimelineForm
 	}
 	existingTimeline.PerformedByID = incidentTimelineFormDTO.PerformedByID
 	existingTimeline.PerformedAt = incidentTimelineFormDTO.PerformedAt
+	existingTimeline.TimelineStatusID = incidentTimelineFormDTO.TimelineStatusID
 	err = its.repo.Update(existingTimeline, tx...)
 	if err != nil {
 		return err

@@ -29,6 +29,7 @@ type IncidentRegisterServiceInterface interface {
 	Create(currentUserID uint, incidentRegisterFormDTO *incidentDTOs.IncidentRegisterFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, incident *incidentDTOs.IncidentRegisterFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	StatusUpdate(id uint, currentUserID uint, incidentStatusID uint, tx utility.DatabaseTransaction) error
 }
 
 // Service and implementations
@@ -924,6 +925,25 @@ func (irs *IncidentRegisterService) Delete(ids []uint, currentUserID uint) ([]ui
 	}
 
 	return failedIds, nil
+}
+
+func (irs *IncidentRegisterService) StatusUpdate(id uint, currentUserID uint, incidentStatusID uint, tx utility.DatabaseTransaction) error {
+	existingIncident, err := irs.GetByID(id)
+
+	if err != nil {
+		return err
+	}
+
+	existingIncident.IncidentStatusID = incidentStatusID
+	existingIncident.UpdatedByID = &currentUserID
+
+	err = irs.repo.Update(existingIncident, tx)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (irs *IncidentRegisterService) validateIncidentRegisterFormDTO(incidentRegisterFormDTO *incidentDTOs.IncidentRegisterFormDTO) error {
