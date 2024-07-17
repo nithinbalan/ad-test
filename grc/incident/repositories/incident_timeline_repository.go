@@ -16,7 +16,7 @@ type IncidentTimelineRepositoryInterface interface {
 	GetByStatusType(status string) (*models.TimelineStatus, error)
 	Create(incidentTimeline *models.IncidentTimeline, tx ...utility.DatabaseTransaction) error
 	Update(incidentTimeline *models.IncidentTimeline, tx ...utility.DatabaseTransaction) error
-	Delete(id uint, tx ...utility.DatabaseTransaction) error
+	Delete(incidentID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type IncidentTimelineRepository struct {
@@ -159,13 +159,13 @@ func (repo *IncidentTimelineRepository) Update(incidentTimeline *models.Incident
 	return nil
 }
 
-func (repo *IncidentTimelineRepository) Delete(id uint, tx ...utility.DatabaseTransaction) error {
+func (repo *IncidentTimelineRepository) Delete(incidentID uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	// Delete the Incident register
-	if err := db.Delete(&models.IncidentTimeline{}, id).Error; err != nil {
+	// Delete the Incident timelines where incident_register_id = incidentID
+	if err := db.Where("incident_register_id = ?", incidentID).Delete(&models.IncidentTimeline{}).Error; err != nil {
 		return err
 	}
 

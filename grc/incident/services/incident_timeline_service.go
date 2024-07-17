@@ -17,7 +17,7 @@ type IncidentTimelineServiceInterface interface {
 	GetByStatusType(status string) (*models.TimelineStatus, error)
 	Create(incidentTimelineFormDTO *incidentDTOs.IncidentTimelineFormDTO, tx ...utility.DatabaseTransaction) error
 	Update(incidentID uint, incidentTimelineFormDTO *incidentDTOs.IncidentTimelineFormDTO, timelineTypeID uint, tx ...utility.DatabaseTransaction) error
-	Delete(incidentID uint, timelineTypeID uint, tx ...utility.DatabaseTransaction) error
+	Delete(incidentID uint, tx ...utility.DatabaseTransaction) error
 }
 
 // Service and implementations
@@ -99,14 +99,13 @@ func (its *IncidentTimelineService) Update(incidentID uint, incidentTimelineForm
 	return nil
 }
 
-func (its *IncidentTimelineService) Delete(incidentID uint, timelineTypeID uint, tx ...utility.DatabaseTransaction) error {
-	existingTimeline, err := its.GetByID(incidentID, timelineTypeID)
-	if err != nil {
+func (its *IncidentTimelineService) Delete(incidentID uint, tx ...utility.DatabaseTransaction) error {
+	if _, err := its.incidentRegisterRepo.GetByID(incidentID); err != nil {
 		return err
 	}
 
 	// Delete the entry
-	if err := its.repo.Delete(existingTimeline.ID); err != nil {
+	if err := its.repo.Delete(incidentID); err != nil {
 		return err
 	}
 

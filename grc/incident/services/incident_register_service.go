@@ -278,12 +278,13 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 		tx.Rollback()
 		return 0, err
 	}
+	currentTime := time.Now()
 	timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
 		IncidentRegisterID:     id,
 		IncidentTimelineTypeID: timelineType.ID,
 		TimelineStatusID:       timelineStatus.ID,
 		PerformedByID:          currentUserID,
-		PerformedAt:            time.Now(),
+		PerformedAt:            &currentTime,
 	}
 	if err := irs.incidentTimelineSvc.Create(timelineFormDTO, tx); err != nil {
 		tx.Rollback()
@@ -670,9 +671,10 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 		tx.Rollback()
 		return err
 	}
+	currentTime := time.Now()
 	timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
 		PerformedByID: currentUserID,
-		PerformedAt:   time.Now(),
+		PerformedAt:   &currentTime,
 	}
 	if err := irs.incidentTimelineSvc.Update(id, timelineFormDTO, timelineType.ID, tx); err != nil {
 		tx.Rollback()
@@ -853,12 +855,7 @@ func (irs *IncidentRegisterService) Delete(ids []uint, currentUserID uint) ([]ui
 		}
 		//Delete timeline
 		//todo
-		timelineType, err := irs.incidentTimelineSvc.GetByType("reporting")
-		if err != nil {
-			tx.Rollback()
-			return nil, err
-		}
-		if err := irs.incidentTimelineSvc.Delete(id, timelineType.ID, tx); err != nil {
+		if err := irs.incidentTimelineSvc.Delete(id, tx); err != nil {
 			tx.Rollback()
 			return nil, err
 		}

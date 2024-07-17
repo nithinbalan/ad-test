@@ -8,6 +8,7 @@ import (
 	incidentRepositories "jethur/grc/incident/repositories"
 	logServices "jethur/grc/logs/services"
 	organizationServices "jethur/grc/organization/services"
+	"time"
 
 	"jethur/grc/models"
 	"jethur/utility"
@@ -34,6 +35,7 @@ type IncidentInvestigationService struct {
 	incidentRegisterSvc            IncidentRegisterServiceInterface
 	userSvc                        organizationServices.UserServiceInterface
 	incidentInvestigationStatusSvc IncidentInvestigationStatusServiceInterface
+	incidentTimelineSvc            IncidentTimelineServiceInterface
 }
 
 func NewIncidentInvestigationService(
@@ -42,6 +44,8 @@ func NewIncidentInvestigationService(
 	incidentRegisterSvc IncidentRegisterServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	incidentInvestigationStatusSvc IncidentInvestigationStatusServiceInterface,
+	incidentTimelineSvc IncidentTimelineServiceInterface,
+
 ) IncidentInvestigationServiceInterface {
 	return &IncidentInvestigationService{
 		repo:                           repo,
@@ -49,6 +53,7 @@ func NewIncidentInvestigationService(
 		incidentRegisterSvc:            incidentRegisterSvc,
 		userSvc:                        userSvc,
 		incidentInvestigationStatusSvc: incidentInvestigationStatusSvc,
+		incidentTimelineSvc:            incidentTimelineSvc,
 	}
 }
 
@@ -173,6 +178,31 @@ func (iis *IncidentInvestigationService) Create(incidentID uint, currentUserID u
 			tx.Rollback()
 			return 0, err
 		}
+	}
+	//Add timeline
+	//todo
+	timelineType, err := iis.incidentTimelineSvc.GetByType("investigating")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	//todo
+	timelineStatus, err := iis.incidentTimelineSvc.GetByStatusType("pending")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	currentTime := time.Now()
+	timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
+		IncidentRegisterID:     incidentID,
+		IncidentTimelineTypeID: timelineType.ID,
+		TimelineStatusID:       timelineStatus.ID,
+		PerformedByID:          currentUserID,
+		PerformedAt:            &currentTime,
+	}
+	if err := iis.incidentTimelineSvc.Create(timelineFormDTO, tx); err != nil {
+		tx.Rollback()
+		return 0, err
 	}
 	// Save Documents
 	var documents []*models.IncidentInvestigationDocument
@@ -383,6 +413,24 @@ func (iis *IncidentInvestigationService) Update(incidentID uint, currentUserID u
 			return err
 		}
 	}
+
+	//Update timeline
+	//todo
+	timelineType, err := iis.incidentTimelineSvc.GetByType("investigating")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	currentTime := time.Now()
+	timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
+		PerformedByID: currentUserID,
+		PerformedAt:   &currentTime,
+	}
+	if err := iis.incidentTimelineSvc.Update(incidentID, timelineFormDTO, timelineType.ID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	// Update or delete documents
 	var documents []*models.IncidentInvestigationDocument
 	var deleteDocumentIDs []*uint
@@ -523,6 +571,21 @@ func (iis *IncidentInvestigationService) Delete(incidentID uint, currentUserID u
 			tx.Rollback()
 			return 0, err
 		}
+	}
+	//Delete-> update timeline performedAt as null
+	//todo
+	timelineType, err := iis.incidentTimelineSvc.GetByType("investigating")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
+		PerformedByID: currentUserID,
+		PerformedAt:   nil,
+	}
+	if err := iis.incidentTimelineSvc.Update(incidentID, timelineFormDTO, timelineType.ID, tx); err != nil {
+		tx.Rollback()
+		return 0, err
 	}
 
 	// Delete each incidentInvestigation document if documents exist

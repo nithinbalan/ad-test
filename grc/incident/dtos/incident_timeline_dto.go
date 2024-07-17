@@ -36,10 +36,11 @@ type IncidentTimelineListResponseDTO struct {
 }
 
 type IncidentTimelineFormDTO struct {
-	ID                     uint      `json:"id,omitempty"`
-	IncidentRegisterID     uint      `json:"incident_register_id" binding:"required"`
-	IncidentTimelineTypeID uint      `json:"incident_timeline_type_id" binding:"required"`
-	TimelineStatusID       uint      `json:"timeline_status_id" binding:"required"`
-	PerformedByID          uint      `json:"performed_by_id" binding:"required"`
-	PerformedAt            time.Time `json:"performed_at"`
+	ID                     uint       `json:"id,omitempty"`
+	IncidentRegisterID     uint       `json:"incident_register_id" binding:"required"`
+	IncidentTimelineTypeID uint       `json:"incident_timeline_type_id" binding:"required"`
+	TimelineStatusID       uint       `json:"timeline_status_id" binding:"required"`
+	PerformedByID          uint       `json:"performed_by_id" binding:"required"`
+	PerformedAt            *time.Time `json:"performed_at"`
 }
+
