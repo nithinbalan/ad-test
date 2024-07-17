@@ -146,10 +146,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.GET("/controls/:controlId/trends", controlTestController.GetControlTestTrendAnalysis)
 
 	//Control Associated Item
-	organizationRoutes.GET("controls/:controlId/processes", controlAssociatedItemController.GetAllControlProcesses)
-	organizationRoutes.GET("controls/:controlId/compliance-requirements", controlAssociatedItemController.GetAllControlComplianceRequirements)
-	organizationRoutes.GET("controls/:controlId/risks", controlAssociatedItemController.GetAllControlRisks)
-	organizationRoutes.GET("controls/:controlId/incidents", controlAssociatedItemController.GetAllControlIncidents)
+	organizationRoutes.GET("/controls/:controlId/processes", controlAssociatedItemController.GetAllControlProcesses)
+	organizationRoutes.GET("/controls/:controlId/compliance-requirements", controlAssociatedItemController.GetAllControlComplianceRequirements)
+	organizationRoutes.GET("/controls/:controlId/risks", controlAssociatedItemController.GetAllControlRisks)
+	organizationRoutes.GET("/controls/:controlId/incidents", controlAssociatedItemController.GetAllControlIncidents)
+	organizationRoutes.GET("/controls/:controlId/associated-item-summary", controlAssociatedItemController.GetAllAssociatedCounts)
 
 	//Process Group
 	organizationRoutes.GET("/process-groups", processGroupController.GetAllProcessGroups)
@@ -185,9 +186,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.PUT("/processes/restore", processController.RestoreProcesses)
 	organizationRoutes.GET("/processes/:processId/control-summary", processController.GetControlSummary)
 
-	organizationRoutes.GET("processes/:processId/controls", processAssociatedItemController.GetAllProcessControls)
-	organizationRoutes.GET("processes/:processId/risks", processAssociatedItemController.GetAllProcessRisks)
-	organizationRoutes.GET("processes/:processId/incidents", processAssociatedItemController.GetAllProcessIncidents)
+	organizationRoutes.GET("/processes/:processId/controls", processAssociatedItemController.GetAllProcessControls)
+	organizationRoutes.GET("/processes/:processId/risks", processAssociatedItemController.GetAllProcessRisks)
+	organizationRoutes.GET("/processes/:processId/incidents", processAssociatedItemController.GetAllProcessIncidents)
 	organizationRoutes.GET("/processes/:processId/associated-item-summary", processAssociatedItemController.GetAllAssociatedCounts)
 
 }

@@ -87,11 +87,6 @@ type ControlAssociatedItemProcessListResponseDTO struct {
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }
 
-// type ControlAssociatedItemComplianceRequirementListResponseDTO struct {
-// 	Items      []*ControlComplianceRequirementListDTO `json:"items"`
-// 	Pagination commonDTOs.PaginationInfoDTO           `json:"pagination"`
-// }
-
 type ControlAssociatedItemIncidentListResponseDTO struct {
 	Items      []*ControlIncidentListDTO    `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
@@ -139,4 +134,11 @@ type ComplianceRegisterDTO struct {
 type ControlAssociatedItemComplianceRequirementListResponseDTO struct {
 	Items      []*ComplianceRegisterDTO     `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
+}
+
+type ControlAssociatedItemsCountResponseDTO struct {
+	Processes              int `json:"processes"`
+	ComplianceRequirements int `json:"compliance_requirements"`
+	Risks                  int `json:"risks"`
+	Incidents              int `json:"incidents"`
 }
