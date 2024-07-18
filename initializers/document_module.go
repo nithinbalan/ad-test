@@ -9,10 +9,11 @@ import (
 )
 
 type DocumentModule struct {
-	DocumentCategoryController *controllers.DocumentCategoryController
-	DocumentTypeController     *controllers.DocumentTypeController
-	DocumentTemplateController *controllers.DocumentTemplateController
-	DocumentStatusController   *controllers.DocumentStatusController
+	DocumentCategoryController   *controllers.DocumentCategoryController
+	DocumentTypeController       *controllers.DocumentTypeController
+	DocumentTemplateController   *controllers.DocumentTemplateController
+	DocumentStatusController     *controllers.DocumentStatusController
+	DocumentAccessTypeController *controllers.DocumentAccessTypeController
 }
 
 func NewDocumentModule(db *gorm.DB,
@@ -37,10 +38,15 @@ func NewDocumentModule(db *gorm.DB,
 	documentStatusSvc := services.NewDocumentStatusService(documentStatusRepo)
 	documentStatusController := controllers.NewDocumentStatusController(documentStatusSvc)
 
+	documentAccessTypeRepo := repositories.NewDocumentAccessTypeRepository(db)
+	documentAccessTypeSvc := services.NewDocumentAccessTypeService(documentAccessTypeRepo)
+	documentAccessTypeController := controllers.NewDocumentAccessTypeController(documentAccessTypeSvc)
+
 	return &DocumentModule{
-		DocumentCategoryController: documentCategoryController,
-		DocumentTypeController:     documentTypeController,
-		DocumentTemplateController: documentTemplateController,
-		DocumentStatusController:   documentStatusController,
+		DocumentCategoryController:   documentCategoryController,
+		DocumentTypeController:       documentTypeController,
+		DocumentTemplateController:   documentTemplateController,
+		DocumentStatusController:     documentStatusController,
+		DocumentAccessTypeController: documentAccessTypeController,
 	}
 }
