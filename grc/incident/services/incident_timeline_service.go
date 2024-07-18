@@ -12,13 +12,13 @@ import (
 
 type IncidentTimelineServiceInterface interface {
 	GetAll(incidentID uint, params *incidentDTOs.IncidentTimelineListQueryParamsDTO) (*incidentDTOs.IncidentTimelineListResponseDTO, error)
+	GetAllTypes() ([]models.IncidentTimelineType, error)
 	GetByID(incidentID uint, timelineTypeID uint) (*models.IncidentTimeline, error)
 	GetByType(timelineType string) (*models.IncidentTimelineType, error)
 	GetByStatusType(status string) (*models.TimelineStatus, error)
-	Create(incidentTimelineFormDTO *incidentDTOs.IncidentTimelineFormDTO, tx ...utility.DatabaseTransaction) error
+	Create(timelineFormDTOs []*incidentDTOs.IncidentTimelineFormDTO, tx ...utility.DatabaseTransaction) error
 	Update(incidentID uint, incidentTimelineFormDTO *incidentDTOs.IncidentTimelineFormDTO, timelineTypeID uint, tx ...utility.DatabaseTransaction) error
 	Delete(incidentID uint, tx ...utility.DatabaseTransaction) error
-	Exists(incidentID uint, timelineTypeID uint) (bool, error)
 }
 
 // Service and implementations
@@ -39,6 +39,10 @@ func (its *IncidentTimelineService) GetAll(incidentID uint, params *incidentDTOs
 		return nil, err
 	}
 	return its.repo.GetAll(incidentID, params)
+}
+
+func (its *IncidentTimelineService) GetAllTypes() ([]models.IncidentTimelineType, error) {
+	return its.repo.GetAllTypes()
 }
 
 func (its *IncidentTimelineService) GetByID(incidentID uint, timelineTypeID uint) (*models.IncidentTimeline, error) {
@@ -72,15 +76,20 @@ func (its *IncidentTimelineService) GetByStatusType(status string) (*models.Time
 	return statusResult, nil
 }
 
-func (its *IncidentTimelineService) Create(incidentTimelineFormDTO *incidentDTOs.IncidentTimelineFormDTO, tx ...utility.DatabaseTransaction) error {
-	timeline := &models.IncidentTimeline{
-		IncidentRegisterID:     incidentTimelineFormDTO.IncidentRegisterID,
-		IncidentTimelineTypeID: incidentTimelineFormDTO.IncidentTimelineTypeID,
-		TimelineStatusID:       incidentTimelineFormDTO.TimelineStatusID,
-		PerformedByID:          incidentTimelineFormDTO.PerformedByID,
-		PerformedAt:            incidentTimelineFormDTO.PerformedAt,
+func (its *IncidentTimelineService) Create(timelineFormDTOs []*incidentDTOs.IncidentTimelineFormDTO, tx ...utility.DatabaseTransaction) error {
+	var timelines []models.IncidentTimeline
+	for _, dto := range timelineFormDTOs {
+		timeline := models.IncidentTimeline{
+			IncidentRegisterID:     dto.IncidentRegisterID,
+			IncidentTimelineTypeID: dto.IncidentTimelineTypeID,
+			TimelineStatusID:       dto.TimelineStatusID,
+			PerformedByID:          dto.PerformedByID,
+			PerformedAt:            dto.PerformedAt,
+		}
+		timelines = append(timelines, timeline)
 	}
-	if err := its.repo.Create(timeline, tx...); err != nil {
+
+	if err := its.repo.Create(timelines, tx...); err != nil {
 		return err
 	}
 	return nil
@@ -114,6 +123,3 @@ func (its *IncidentTimelineService) Delete(incidentID uint, tx ...utility.Databa
 	return nil
 }
 
-func (its *IncidentTimelineService) Exists(incidentID uint, timelineTypeID uint) (bool, error) {
-	return its.repo.Exists(incidentID, timelineTypeID)
-}

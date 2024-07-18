@@ -268,26 +268,44 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 	}
 	//Add timeline
 	//todo
-	timelineType, err := irs.incidentTimelineSvc.GetByType("reporting")
+	timelineTypes, err := irs.incidentTimelineSvc.GetAllTypes()
 	if err != nil {
 		tx.Rollback()
 		return 0, err
 	}
-	//todo
-	timelineStatus, err := irs.incidentTimelineSvc.GetByStatusType("pending")
+
+	// Get timeline statuses
+	completedStatus, err := irs.incidentTimelineSvc.GetByStatusType("completed")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	pendingStatus, err := irs.incidentTimelineSvc.GetByStatusType("pending")
 	if err != nil {
 		tx.Rollback()
 		return 0, err
 	}
 	currentTime := time.Now()
-	timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
-		IncidentRegisterID:     id,
-		IncidentTimelineTypeID: timelineType.ID,
-		TimelineStatusID:       timelineStatus.ID,
-		PerformedByID:          currentUserID,
-		PerformedAt:            &currentTime,
+	var timelineFormDTOs []*incidentDTOs.IncidentTimelineFormDTO
+
+	for _, timelineType := range timelineTypes {
+		var statusID uint
+		if timelineType.Type == "reporting" {
+			statusID = completedStatus.ID
+		} else {
+			statusID = pendingStatus.ID
+		}
+
+		timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
+			IncidentRegisterID:     id,
+			IncidentTimelineTypeID: timelineType.ID,
+			TimelineStatusID:       statusID,
+			PerformedByID:          &currentUserID,
+			PerformedAt:            &currentTime,
+		}
+		timelineFormDTOs = append(timelineFormDTOs, timelineFormDTO)
 	}
-	if err := irs.incidentTimelineSvc.Create(timelineFormDTO, tx); err != nil {
+	if err := irs.incidentTimelineSvc.Create(timelineFormDTOs, tx); err != nil {
 		tx.Rollback()
 		return 0, err
 	}
@@ -672,14 +690,14 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 		tx.Rollback()
 		return err
 	}
-	timelineStatus, err := irs.incidentTimelineSvc.GetByStatusType("pending")
+	timelineStatus, err := irs.incidentTimelineSvc.GetByStatusType("completed")
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 	currentTime := time.Now()
 	timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
-		PerformedByID:    currentUserID,
+		PerformedByID:    &currentUserID,
 		TimelineStatusID: timelineStatus.ID,
 		PerformedAt:      &currentTime,
 	}

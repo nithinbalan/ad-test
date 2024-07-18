@@ -11,13 +11,13 @@ import (
 
 type IncidentTimelineRepositoryInterface interface {
 	GetAll(incidentID uint, params *incidentDTOs.IncidentTimelineListQueryParamsDTO) (*incidentDTOs.IncidentTimelineListResponseDTO, error)
+	GetAllTypes() ([]models.IncidentTimelineType, error)
 	GetByID(incidentID uint, timelineTypeID uint) (*models.IncidentTimeline, error)
 	GetByType(timelineType string) (*models.IncidentTimelineType, error)
 	GetByStatusType(status string) (*models.TimelineStatus, error)
-	Create(incidentTimeline *models.IncidentTimeline, tx ...utility.DatabaseTransaction) error
+	Create(timelines []models.IncidentTimeline, tx ...utility.DatabaseTransaction) error
 	Update(incidentTimeline *models.IncidentTimeline, tx ...utility.DatabaseTransaction) error
 	Delete(incidentID uint, tx ...utility.DatabaseTransaction) error
-	Exists(incidentID uint, timelineTypeID uint) (bool, error)
 }
 
 type IncidentTimelineRepository struct {
@@ -101,6 +101,14 @@ func (repo *IncidentTimelineRepository) GetAll(incidentID uint, params *incident
 	}, nil
 }
 
+func (repo *IncidentTimelineRepository) GetAllTypes() ([]models.IncidentTimelineType, error) {
+	var timelineTypes []models.IncidentTimelineType
+	if err := repo.db.Find(&timelineTypes).Error; err != nil {
+		return nil, err
+	}
+	return timelineTypes, nil
+}
+
 func (repo *IncidentTimelineRepository) GetByID(incidentID uint, timelineTypeID uint) (*models.IncidentTimeline, error) {
 	var incidentTimeline models.IncidentTimeline
 
@@ -140,12 +148,12 @@ func (repo *IncidentTimelineRepository) GetByStatusType(status string) (*models.
 	return timelineStatus, nil
 }
 
-func (repo *IncidentTimelineRepository) Create(incidentTimeline *models.IncidentTimeline, tx ...utility.DatabaseTransaction) error {
+func (repo *IncidentTimelineRepository) Create(timelines []models.IncidentTimeline, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	return db.Create(&incidentTimeline).Error
+	return db.Create(&timelines).Error
 }
 
 func (repo *IncidentTimelineRepository) Update(incidentTimeline *models.IncidentTimeline, tx ...utility.DatabaseTransaction) error {
@@ -171,15 +179,4 @@ func (repo *IncidentTimelineRepository) Delete(incidentID uint, tx ...utility.Da
 	}
 
 	return nil
-}
-
-func (repo *IncidentTimelineRepository) Exists(incidentID uint, timelineTypeID uint) (bool, error) {
-	var count int64
-	result := repo.db.Model(&models.IncidentTimeline{}).
-		Where("incident_register_id = ? AND incident_timeline_type_id = ?", incidentID, timelineTypeID).
-		Count(&count)
-	if result.Error != nil {
-		return false, result.Error
-	}
-	return count > 0, nil
 }

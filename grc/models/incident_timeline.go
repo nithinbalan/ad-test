@@ -9,7 +9,7 @@ type IncidentTimeline struct {
 	IncidentRegisterID     uint       `json:"incident_register_id" binding:"required" gorm:"not null"`
 	IncidentTimelineTypeID uint       `json:"incident_timeline_type_id" binding:"required" gorm:"not null"`
 	TimelineStatusID       uint       `json:"timeline_status_id" binding:"required" gorm:"not null"`
-	PerformedByID          uint       `json:"performed_by_id" binding:"required" gorm:"not null"`
+	PerformedByID          *uint      `json:"performed_by_id" gorm:"default:null"`
 	PerformedAt            *time.Time `json:"performed_at" gorm:"type:datetime;null"`
 
 	// Associations

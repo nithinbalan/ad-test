@@ -137,38 +137,6 @@ func (ics *IncidentClosureService) Create(incidentID uint, currentUserID uint, i
 			return 0, err
 		}
 	}
-	//Add timeline
-	//todo
-	timelineType, err := ics.incidentTimelineSvc.GetByType("closure")
-	if err != nil {
-		tx.Rollback()
-		return 0, err
-	}
-	//todo
-	timelineStatus, err := ics.incidentTimelineSvc.GetByStatusType("completed")
-	if err != nil {
-		tx.Rollback()
-		return 0, err
-	}
-
-	timelineExists, err := ics.incidentTimelineSvc.Exists(incidentID, timelineType.ID)
-	if err != nil {
-		return 0, err
-	}
-	if !timelineExists {
-		currentTime := time.Now()
-		timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
-			IncidentRegisterID:     incidentID,
-			IncidentTimelineTypeID: timelineType.ID,
-			TimelineStatusID:       timelineStatus.ID,
-			PerformedByID:          currentUserID,
-			PerformedAt:            &currentTime,
-		}
-		if err := ics.incidentTimelineSvc.Create(timelineFormDTO, tx); err != nil {
-			tx.Rollback()
-			return 0, err
-		}
-	}
 	//update incident status as closed
 	incidentStatus, err := ics.incidentStatusSvc.GetByType("closed")
 	if err != nil {
@@ -307,7 +275,7 @@ func (ics *IncidentClosureService) Update(incidentID uint, currentUserID uint, i
 	}
 	currentTime := time.Now()
 	timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
-		PerformedByID:    currentUserID,
+		PerformedByID:    &currentUserID,
 		TimelineStatusID: timelineStatus.ID,
 		PerformedAt:      &currentTime,
 	}
@@ -382,7 +350,7 @@ func (ics *IncidentClosureService) Delete(incidentID uint, currentUserID uint) (
 		return 0, err
 	}
 	timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
-		PerformedByID:    currentUserID,
+		PerformedByID:    nil,
 		TimelineStatusID: timelineStatus.ID,
 		PerformedAt:      nil,
 	}

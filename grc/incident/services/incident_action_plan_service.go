@@ -144,37 +144,6 @@ func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uin
 	if err != nil {
 		return 0, err
 	}
-	//Add timeline
-	//todo
-	timelineType, err := iaps.incidentTimelineSvc.GetByType("action-plans")
-	if err != nil {
-		tx.Rollback()
-		return 0, err
-	}
-	//todo
-	timelineStatus, err := iaps.incidentTimelineSvc.GetByStatusType("pending")
-	if err != nil {
-		tx.Rollback()
-		return 0, err
-	}
-	timelineExists, err := iaps.incidentTimelineSvc.Exists(incidentID, timelineType.ID)
-	if err != nil {
-		return 0, err
-	}
-	if !timelineExists {
-		currentTime := time.Now()
-		timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
-			IncidentRegisterID:     incidentID,
-			IncidentTimelineTypeID: timelineType.ID,
-			TimelineStatusID:       timelineStatus.ID,
-			PerformedByID:          currentUserID,
-			PerformedAt:            &currentTime,
-		}
-		if err := iaps.incidentTimelineSvc.Create(timelineFormDTO, tx); err != nil {
-			tx.Rollback()
-			return 0, err
-		}
-	}
 	tx.Commit()
 
 	go func() {
@@ -248,14 +217,14 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 		tx.Rollback()
 		return err
 	}
-	timelineStatus, err := iaps.incidentTimelineSvc.GetByStatusType("pending")
+	timelineStatus, err := iaps.incidentTimelineSvc.GetByStatusType("completed")
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 	currentTime := time.Now()
 	timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
-		PerformedByID:    currentUserID,
+		PerformedByID:    &currentUserID,
 		TimelineStatusID: timelineStatus.ID,
 		PerformedAt:      &currentTime,
 	}
@@ -297,7 +266,7 @@ func (iaps *IncidentActionPlanService) Delete(incidentID uint, ids []uint, curre
 			return failedIds, err
 		}
 		timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
-			PerformedByID:    currentUserID,
+			PerformedByID:    nil,
 			TimelineStatusID: timelineStatus.ID,
 			PerformedAt:      nil,
 		}

@@ -179,38 +179,6 @@ func (iis *IncidentInvestigationService) Create(incidentID uint, currentUserID u
 			return 0, err
 		}
 	}
-	//Add timeline
-	//todo
-	timelineType, err := iis.incidentTimelineSvc.GetByType("investigating")
-	if err != nil {
-		tx.Rollback()
-		return 0, err
-	}
-	//todo
-	timelineStatus, err := iis.incidentTimelineSvc.GetByStatusType("pending")
-	if err != nil {
-		tx.Rollback()
-		return 0, err
-	}
-
-	timelineExists, err := iis.incidentTimelineSvc.Exists(incidentID, timelineType.ID)
-	if err != nil {
-		return 0, err
-	}
-	if !timelineExists {
-		currentTime := time.Now()
-		timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
-			IncidentRegisterID:     incidentID,
-			IncidentTimelineTypeID: timelineType.ID,
-			TimelineStatusID:       timelineStatus.ID,
-			PerformedByID:          currentUserID,
-			PerformedAt:            &currentTime,
-		}
-		if err := iis.incidentTimelineSvc.Create(timelineFormDTO, tx); err != nil {
-			tx.Rollback()
-			return 0, err
-		}
-	}
 	// Save Documents
 	var documents []*models.IncidentInvestigationDocument
 	// Iterate over each document in the array
@@ -428,14 +396,14 @@ func (iis *IncidentInvestigationService) Update(incidentID uint, currentUserID u
 		tx.Rollback()
 		return err
 	}
-	timelineStatus, err := iis.incidentTimelineSvc.GetByStatusType("pending")
+	timelineStatus, err := iis.incidentTimelineSvc.GetByStatusType("completed")
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 	currentTime := time.Now()
 	timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
-		PerformedByID:    currentUserID,
+		PerformedByID:    &currentUserID,
 		TimelineStatusID: timelineStatus.ID,
 		PerformedAt:      &currentTime,
 	}
@@ -598,7 +566,7 @@ func (iis *IncidentInvestigationService) Delete(incidentID uint, currentUserID u
 		return 0, err
 	}
 	timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
-		PerformedByID:    currentUserID,
+		PerformedByID:    nil,
 		TimelineStatusID: timelineStatus.ID,
 		PerformedAt:      nil,
 	}
