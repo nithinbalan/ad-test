@@ -12,6 +12,7 @@ type DocumentModule struct {
 	DocumentCategoryController *controllers.DocumentCategoryController
 	DocumentTypeController     *controllers.DocumentTypeController
 	DocumentTemplateController *controllers.DocumentTemplateController
+	DocumentStatusController   *controllers.DocumentStatusController
 }
 
 func NewDocumentModule(db *gorm.DB,
@@ -32,9 +33,14 @@ func NewDocumentModule(db *gorm.DB,
 	documentTemplateSvc := services.NewDocumentTemplateService(documentTemplateRepo, sharedModule.ActivityLogService, documentTypeSvc)
 	documentTemplateController := controllers.NewDocumentTemplateController(documentTemplateSvc)
 
+	documentStatusRepo := repositories.NewDocumentStatusRepository(db)
+	documentStatusSvc := services.NewDocumentStatusService(documentStatusRepo)
+	documentStatusController := controllers.NewDocumentStatusController(documentStatusSvc)
+
 	return &DocumentModule{
 		DocumentCategoryController: documentCategoryController,
 		DocumentTypeController:     documentTypeController,
 		DocumentTemplateController: documentTemplateController,
+		DocumentStatusController:   documentStatusController,
 	}
 }

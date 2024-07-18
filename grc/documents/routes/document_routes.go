@@ -16,6 +16,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentCategoryController := app.DocumentModule.DocumentCategoryController
 	documentTypeController := app.DocumentModule.DocumentTypeController
 	documentTemplateController := app.DocumentModule.DocumentTemplateController
+	documentStatusController := app.DocumentModule.DocumentStatusController
 
 	documentRoutes.GET("/document-categories", documentCategoryController.GetAllDocumentCategories)
 	documentRoutes.GET("/document-categories/:id", documentCategoryController.GetDocumentCategoryDetails)
@@ -40,5 +41,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentRoutes.POST("/document-templates/delete", documentTemplateController.DeleteDocumentTemplates)
 	documentRoutes.PUT("/document-templates/activate", documentTemplateController.ActivateDocumentTemplates)
 	documentRoutes.PUT("/document-templates/deactivate", documentTemplateController.DeactivateDocumentTemplates)
+
+	documentRoutes.GET("/document-statuses", documentStatusController.GetAllDocumentStatuses)
+	documentRoutes.GET("/document-statuses/:id", documentStatusController.GetDocumentStatusDetails)
 
 }
