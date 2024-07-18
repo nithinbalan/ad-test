@@ -171,7 +171,7 @@ func (repo *ControlActionPlanRepository) GetFullDetailsByID(id uint) (*models.Co
 		Preload("ResponsibleUser").
 		Preload("ResponsibleUser.OrganizationUnit1").
 		Preload("SeverityLevel").
-		Preload("ActionPlanStatus").
+		Preload("LatestActionPlanStatusUpdate").
 		Preload("CreatedByUser").
 		Preload("CreatedByUser.OrganizationUnit1").
 		Preload("UpdatedByUser").
