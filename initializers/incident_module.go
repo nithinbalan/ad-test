@@ -83,7 +83,6 @@ func NewIncidentModule(db *gorm.DB,
 		sharedModule.ActivityLogService,
 		incidentRegisterSvc,
 		organizationModule.UserSvc,
-		incidentInvestigationStatusSvc,
 		incidentTimelineSvc,
 	)
 	incidentInvestigationController := controllers.NewIncidentInvestigationController(incidentInvestigationSvc)
