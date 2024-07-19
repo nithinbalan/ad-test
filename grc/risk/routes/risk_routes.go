@@ -211,6 +211,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// Risk Heat Map
 	riskRoutes.GET("risks/heatmap-by-owner-unit", riskHeatmapController.GetRiskHeatmapByOwnerUnit)
 	riskRoutes.GET("processes/:processId/risk-heatmap", riskHeatmapController.GetProcessRiskHeatmap)
+	riskRoutes.GET("controls/:controlId/risk-heatmap", riskHeatmapController.GetControlRiskHeatmap)
+	riskRoutes.GET("compliances/:complianceId/risk-heatmap", riskHeatmapController.GetComplianceRiskHeatmap)
 
 	//Risk Control Analysis
 	riskRoutes.GET("risks/:riskId/inherent-control-analysis", riskInherentControlAnalysisController.GetAllRiskControlAnalyses)
