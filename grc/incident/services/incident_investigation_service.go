@@ -3,7 +3,6 @@ package services
 import (
 	"errors"
 	"fmt"
-	commonDTOs "jethur/grc/common/dtos"
 	incidentDTOs "jethur/grc/incident/dtos"
 	incidentRepositories "jethur/grc/incident/repositories"
 	logServices "jethur/grc/logs/services"
@@ -30,12 +29,11 @@ type IncidentInvestigationServiceInterface interface {
 
 // Service and implementations
 type IncidentInvestigationService struct {
-	repo                           incidentRepositories.IncidentInvestigationRepositoryInterface
-	activityLogSvc                 logServices.ActivityLogServiceInterface
-	incidentRegisterSvc            IncidentRegisterServiceInterface
-	userSvc                        organizationServices.UserServiceInterface
-	incidentInvestigationStatusSvc IncidentInvestigationStatusServiceInterface
-	incidentTimelineSvc            IncidentTimelineServiceInterface
+	repo                incidentRepositories.IncidentInvestigationRepositoryInterface
+	activityLogSvc      logServices.ActivityLogServiceInterface
+	incidentRegisterSvc IncidentRegisterServiceInterface
+	userSvc             organizationServices.UserServiceInterface
+	incidentTimelineSvc IncidentTimelineServiceInterface
 }
 
 func NewIncidentInvestigationService(
@@ -43,17 +41,15 @@ func NewIncidentInvestigationService(
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	incidentRegisterSvc IncidentRegisterServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
-	incidentInvestigationStatusSvc IncidentInvestigationStatusServiceInterface,
 	incidentTimelineSvc IncidentTimelineServiceInterface,
 
 ) IncidentInvestigationServiceInterface {
 	return &IncidentInvestigationService{
-		repo:                           repo,
-		activityLogSvc:                 activityLogSvc,
-		incidentRegisterSvc:            incidentRegisterSvc,
-		userSvc:                        userSvc,
-		incidentInvestigationStatusSvc: incidentInvestigationStatusSvc,
-		incidentTimelineSvc:            incidentTimelineSvc,
+		repo:                repo,
+		activityLogSvc:      activityLogSvc,
+		incidentRegisterSvc: incidentRegisterSvc,
+		userSvc:             userSvc,
+		incidentTimelineSvc: incidentTimelineSvc,
 	}
 }
 
@@ -123,19 +119,14 @@ func (iis *IncidentInvestigationService) Create(incidentID uint, currentUserID u
 		return 0, err
 	}
 
-	if err := iis.validateIncidentInvestigationDocumentFormDTO(incidentInvestigationFormDTO.Documents); err != nil {
-		return 0, err
-	}
-
 	//Create Incident Investigation
 	incidentInvestigation := &models.IncidentInvestigation{
-		IncidentRegisterID:            incidentID,
-		Description:                   incidentInvestigationFormDTO.Description,
-		InitiatedAt:                   dates.InitiatedAt,
-		TeamLeadID:                    incidentInvestigationFormDTO.TeamLeadID,
-		ActionRecommendation:          incidentInvestigationFormDTO.ActionRecommendation,
-		IncidentInvestigationStatusID: incidentInvestigationFormDTO.IncidentInvestigationStatusID,
-		CreatedByID:                   currentUserID,
+		IncidentRegisterID:   incidentID,
+		Description:          incidentInvestigationFormDTO.Description,
+		InitiatedAt:          dates.InitiatedAt,
+		TeamLeadID:           incidentInvestigationFormDTO.TeamLeadID,
+		ActionRecommendation: incidentInvestigationFormDTO.ActionRecommendation,
+		CreatedByID:          currentUserID,
 	}
 
 	id, err := iis.repo.Create(incidentInvestigation, tx)
@@ -262,9 +253,6 @@ func (iis *IncidentInvestigationService) Update(incidentID uint, currentUserID u
 	if err != nil {
 		return err
 	}
-	if err := iis.validateIncidentInvestigationDocumentFormDTO(incidentInvestigationFormDTO.Documents); err != nil {
-		return err
-	}
 	// Update existing Incident Investigation
 	existingIncidentInvestigation, err := iis.repo.GetByID(incidentID)
 	if err != nil {
@@ -279,7 +267,6 @@ func (iis *IncidentInvestigationService) Update(incidentID uint, currentUserID u
 	existingIncidentInvestigation.InitiatedAt = dates.InitiatedAt
 	existingIncidentInvestigation.TeamLeadID = incidentInvestigationFormDTO.TeamLeadID
 	existingIncidentInvestigation.ActionRecommendation = incidentInvestigationFormDTO.ActionRecommendation
-	existingIncidentInvestigation.IncidentInvestigationStatusID = incidentInvestigationFormDTO.IncidentInvestigationStatusID
 	existingIncidentInvestigation.UpdatedByID = &currentUserID
 
 	err = iis.repo.Update(existingIncidentInvestigation, tx)
@@ -625,9 +612,9 @@ func (iis *IncidentInvestigationService) Delete(incidentID uint, currentUserID u
 }
 
 func (iis *IncidentInvestigationService) validateIncidentInvestigationFormDTO(incidentInvestigationFormDTO *incidentDTOs.IncidentInvestigationFormDTO) error {
-	if _, err := iis.incidentInvestigationStatusSvc.GetByID(uint(incidentInvestigationFormDTO.IncidentInvestigationStatusID)); err != nil {
-		return utility.NewValidationError(fmt.Errorf("incident investigation status does not exist"), "not_exist", "incident investigation status")
-	}
+	// if _, err := iis.incidentInvestigationStatusSvc.GetByID(uint(incidentInvestigationFormDTO.IncidentInvestigationStatusID)); err != nil {
+	// 	return utility.NewValidationError(fmt.Errorf("incident investigation status does not exist"), "not_exist", "incident investigation status")
+	// }
 	//User exist
 	users := incidentInvestigationFormDTO.UserIds
 	// If no user are provided, simply return nil to exit the function
@@ -670,13 +657,4 @@ func (iis *IncidentInvestigationService) parseIncidentInvestigationDates(dto *in
 	}
 
 	return parsed, nil
-}
-
-func (iis *IncidentInvestigationService) validateIncidentInvestigationDocumentFormDTO(documents []*commonDTOs.DocumentFormDTO) error {
-	// Check if documents array is empty
-	if len(documents) == 0 {
-		return utility.NewValidationError(fmt.Errorf("documents array is required"), "required", "documents")
-	}
-
-	return nil
 }

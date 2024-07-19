@@ -152,14 +152,18 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 	if err := irs.validateIncidentDocumentFormDTO(incidentRegisterFormDTO.Documents); err != nil {
 		return 0, err
 	}
-
+	//update incident status as open
+	incidentStatus, err := irs.incidentStatusSvc.GetByType("open")
+	if err != nil {
+		return 0, err
+	}
 	incidentRegister := &models.IncidentRegister{
 		ReferenceNumber:       referenceNumber,
 		IncidentCategoryID:    incidentRegisterFormDTO.IncidentCategoryID,
 		IncidentSubCategoryID: *incidentRegisterFormDTO.IncidentSubCategoryID,
 		IncidentTypeID:        incidentRegisterFormDTO.IncidentTypeID,
 		SeverityLevelID:       *incidentRegisterFormDTO.SeverityLevelID,
-		IncidentStatusID:      incidentRegisterFormDTO.IncidentStatusID,
+		IncidentStatusID:      &incidentStatus.ID,
 		Title:                 incidentRegisterFormDTO.Title,
 		Description:           incidentRegisterFormDTO.Description,
 		IncidentAt:            dates.IncidentAt,
@@ -408,7 +412,6 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 	existingIncidentRegister.IncidentSubCategoryID = *incidentRegisterFormDTO.IncidentSubCategoryID
 	existingIncidentRegister.IncidentTypeID = incidentRegisterFormDTO.IncidentTypeID
 	existingIncidentRegister.SeverityLevelID = *incidentRegisterFormDTO.SeverityLevelID
-	existingIncidentRegister.IncidentStatusID = incidentRegisterFormDTO.IncidentStatusID
 	existingIncidentRegister.Title = incidentRegisterFormDTO.Title
 	existingIncidentRegister.Description = incidentRegisterFormDTO.Description
 	existingIncidentRegister.IncidentAt = dates.IncidentAt
@@ -958,7 +961,7 @@ func (irs *IncidentRegisterService) StatusUpdate(id uint, currentUserID uint, in
 		return err
 	}
 
-	existingIncident.IncidentStatusID = incidentStatusID
+	existingIncident.IncidentStatusID = &incidentStatusID
 	existingIncident.UpdatedByID = &currentUserID
 
 	err = irs.repo.Update(existingIncident, tx)
@@ -985,9 +988,6 @@ func (irs *IncidentRegisterService) validateIncidentRegisterFormDTO(incidentRegi
 		return utility.NewValidationError(fmt.Errorf("incident type does not exist"), "not_exist", "incident type")
 	}
 
-	if _, err := irs.incidentStatusSvc.GetByID(incidentRegisterFormDTO.IncidentStatusID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("incident status does not exist"), "not_exist", "incident status")
-	}
 	if incidentRegisterFormDTO.SeverityLevelID != nil {
 		if _, err := irs.severityLevelSvc.GetByID(*incidentRegisterFormDTO.SeverityLevelID); err != nil {
 			return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")

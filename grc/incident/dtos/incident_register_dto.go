@@ -57,7 +57,7 @@ type IncidentRegisterFormDTO struct {
 	IncidentSubCategoryID    *uint                      `json:"incident_sub_category_id"`
 	IncidentTypeID           uint                       `json:"incident_type_id" binding:"required"`
 	SeverityLevelID          *uint                      `json:"severity_level_id"`
-	IncidentStatusID         uint                       `json:"incident_status_id" binding:"required"`
+	IncidentStatusID         *uint                      `json:"incident_status_id"`
 	Title                    string                     `json:"title" binding:"required,max=255"`
 	Description              *string                    `json:"description"`
 	IncidentAt               string                     `json:"incident_at" binding:"required,datetime=2006-01-02"`

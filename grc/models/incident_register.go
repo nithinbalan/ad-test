@@ -11,7 +11,7 @@ type IncidentRegister struct {
 	IncidentSubCategoryID uint       `json:"incident_sub_category_id" binding:"required"`
 	IncidentTypeID        uint       `json:"incident_type_id" binding:"required"`
 	SeverityLevelID       uint       `json:"severity_level_id" binding:"required"`
-	IncidentStatusID      uint       `json:"incident_status_id" binding:"required"`
+	IncidentStatusID      *uint      `json:"incident_status_id"`
 	Title                 string     `json:"title" binding:"required,max=255" gorm:"type:nvarchar(255);not null"`
 	Description           *string    `json:"description" gorm:"type:nvarchar(max)"`
 	IncidentAt            *time.Time `json:"incident_at" binding:"required" gorm:"type:date;not null"`
