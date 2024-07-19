@@ -1,7 +1,9 @@
 package repositories
 
 import (
+	"errors"
 	"jethur/grc/models"
+	"jethur/utility"
 
 	"gorm.io/gorm"
 )
@@ -10,6 +12,7 @@ import (
 type IncidentStatusRepositoryInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.IncidentStatus, error)
 	GetByID(id uint) (*models.IncidentStatus, error)
+	GetByType(status string) (*models.IncidentStatus, error)
 }
 
 // implementation
@@ -58,4 +61,18 @@ func (repo *IncidentStatusRepository) GetByID(id uint) (*models.IncidentStatus, 
 	}
 
 	return status, nil
+}
+
+func (repo *IncidentStatusRepository) GetByType(status string) (*models.IncidentStatus, error) {
+	var incidentStatus *models.IncidentStatus
+
+	result := repo.db.Where("type = ?", status).First(&incidentStatus)
+
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, utility.NewResourceNotFoundError(result.Error, "Incident Status with status "+status)
+	} else if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return incidentStatus, nil
 }

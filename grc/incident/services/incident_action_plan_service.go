@@ -10,6 +10,7 @@ import (
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
 	"jethur/utility"
+	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -32,6 +33,7 @@ type IncidentActionPlanService struct {
 	incidentRegisterSvc IncidentRegisterServiceInterface
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface
 	severityLevelSvc    masterServices.SeverityLevelServiceInterface
+	incidentTimelineSvc IncidentTimelineServiceInterface
 }
 
 func NewIncidentActionPlanService(
@@ -39,13 +41,16 @@ func NewIncidentActionPlanService(
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	incidentRegisterSvc IncidentRegisterServiceInterface,
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
-	severityLevelSvc masterRepositories.SeverityLevelRepositoryInterface) IncidentActionPlanServiceInterface {
+	severityLevelSvc masterRepositories.SeverityLevelRepositoryInterface,
+	incidentTimelineSvc IncidentTimelineServiceInterface,
+) IncidentActionPlanServiceInterface {
 	return &IncidentActionPlanService{
 		repo:                repo,
 		activityLogSvc:      activityLogSvc,
 		incidentRegisterSvc: incidentRegisterSvc,
 		actionPlanStatusSvc: actionPlanStatusSvc,
 		severityLevelSvc:    severityLevelSvc,
+		incidentTimelineSvc: incidentTimelineSvc,
 	}
 }
 
@@ -108,6 +113,7 @@ func (iaps IncidentActionPlanService) GetFullDetailsByID(incidentID uint, id uin
 }
 
 func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uint, IncidentActionPlanFormDTO *incidentDTOs.IncidentActionPlanFormDTO) (uint, error) {
+	tx := iaps.repo.BeginTransaction()
 	if _, err := iaps.incidentRegisterSvc.GetByID(incidentID); err != nil {
 		return 0, err
 	}
@@ -134,10 +140,11 @@ func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uin
 		CreatedByID:        currentUserID,
 	}
 
-	id, err := iaps.repo.Create(incidentActionPlan)
+	id, err := iaps.repo.Create(incidentActionPlan, tx)
 	if err != nil {
 		return 0, err
 	}
+	tx.Commit()
 
 	go func() {
 		err := iaps.activityLogSvc.LogActivity(
@@ -203,13 +210,36 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 	if err != nil {
 		return err
 	}
-
+	//Update timeline
+	//todo
+	timelineType, err := iaps.incidentTimelineSvc.GetByType("action-plans")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	timelineStatus, err := iaps.incidentTimelineSvc.GetByStatusType("completed")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	currentTime := time.Now()
+	timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
+		PerformedByID:    &currentUserID,
+		TimelineStatusID: timelineStatus.ID,
+		PerformedAt:      &currentTime,
+	}
+	if err := iaps.incidentTimelineSvc.Update(incidentID, timelineFormDTO, timelineType.ID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
 	tx.Commit()
-	
+
 	return nil
 }
 
 func (iaps *IncidentActionPlanService) Delete(incidentID uint, ids []uint, currentUserID uint) ([]uint, error) {
+	tx := iaps.repo.BeginTransaction()
+
 	if _, err := iaps.incidentRegisterSvc.GetByID(incidentID); err != nil {
 		return nil, err
 	}
@@ -223,14 +253,35 @@ func (iaps *IncidentActionPlanService) Delete(incidentID uint, ids []uint, curre
 		if err != nil {
 			continue
 		}
-
-		err = iaps.repo.Delete(id)
+		//Delete-> update timeline performedAt as null
+		//todo
+		timelineType, err := iaps.incidentTimelineSvc.GetByType("action-plans")
+		if err != nil {
+			tx.Rollback()
+			return failedIds, err
+		}
+		timelineStatus, err := iaps.incidentTimelineSvc.GetByStatusType("pending")
+		if err != nil {
+			tx.Rollback()
+			return failedIds, err
+		}
+		timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
+			PerformedByID:    nil,
+			TimelineStatusID: timelineStatus.ID,
+			PerformedAt:      nil,
+		}
+		if err := iaps.incidentTimelineSvc.Update(incidentID, timelineFormDTO, timelineType.ID, tx); err != nil {
+			tx.Rollback()
+			return failedIds, err
+		}
+		err = iaps.repo.Delete(id, tx)
 		if err != nil {
 			failedIds = append(failedIds, id)
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
 	}
+	tx.Commit()
 
 	if len(successfulIds) > 0 {
 

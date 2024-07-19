@@ -14,8 +14,8 @@ type IncidentRootCauseAnalysisRepositoryInterface interface {
 	GetAll(incidentID uint, params *incidentDTOs.IncidentRootCauseAnalysisListQueryParamsDTO) ([]*incidentDTOs.IncidentRootCauseAnalysisListDTO, error)
 	GetByID(id uint) (*models.IncidentRootCauseAnalysis, error)
 	GetByIncidentID(incidentID uint) ([]*models.IncidentRootCauseAnalysis, error)
-	Create(incidentRootCauseAnalysis *models.IncidentRootCauseAnalysis) (uint, error)
-	Update(incidentRootCauseAnalysis *models.IncidentRootCauseAnalysis) error
+	Create(incidentRootCauseAnalysis *models.IncidentRootCauseAnalysis, tx ...utility.DatabaseTransaction) (uint, error)
+	Update(incidentRootCauseAnalysis *models.IncidentRootCauseAnalysis, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	GetLatestWhyByIncidentID(incidentID uint) (uint, error)
 	UpdateWhyValuesAfterDeletion(incidentID uint, deletedWhy uint, tx ...utility.DatabaseTransaction) error
@@ -107,17 +107,24 @@ func (repo *IncidentRootCauseAnalysisRepository) GetByIncidentID(incidentID uint
 	return analyses, nil
 }
 
-func (repo *IncidentRootCauseAnalysisRepository) Create(incidentRootCauseAnalysis *models.IncidentRootCauseAnalysis) (uint, error) {
-
-	if err := repo.db.Create(incidentRootCauseAnalysis).Error; err != nil {
+func (repo *IncidentRootCauseAnalysisRepository) Create(incidentRootCauseAnalysis *models.IncidentRootCauseAnalysis, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(incidentRootCauseAnalysis).Error; err != nil {
 		return 0, err
 	}
 
 	return incidentRootCauseAnalysis.ID, nil
 }
 
-func (repo *IncidentRootCauseAnalysisRepository) Update(incidentRootCauseAnalysis *models.IncidentRootCauseAnalysis) error {
-	if err := repo.db.Save(incidentRootCauseAnalysis).Error; err != nil {
+func (repo *IncidentRootCauseAnalysisRepository) Update(incidentRootCauseAnalysis *models.IncidentRootCauseAnalysis, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(incidentRootCauseAnalysis).Error; err != nil {
 		return err
 	}
 
