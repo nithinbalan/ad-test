@@ -68,20 +68,20 @@ type ControlActionPlanParsedDates struct {
 }
 
 type ControlActionPlanDetailDTO struct {
-	ID                           uint                                `json:"id"`
-	Title                        string                              `json:"title"`
-	Description                  string                              `json:"description"`
-	SeverityLevel                *masterDTOs.SeverityLevelDTO        `json:"severity_level"`
-	ResponsibleUser              UserMinimalDTO                      `json:"responsible_user"`
-	Percentage                   *uint                               `json:"percentage"`
-	Comments                     *string                             `json:"comments"`
-	TargetDate                   *time.Time                          `json:"target_date"`
-	CreatedAt                    time.Time                           `json:"created_at"`
-	UpdatedAt                    *time.Time                          `json:"updated_at"`
-	CreatedByUser                UserMinimalDTO                      `json:"created_by_user"`
-	UpdatedByUser                *UserMinimalDTO                     `json:"updated_by_user"`
-	LatestActionPlanStatusUpdate *ControlActionPlanStatusUpdateDTO   `json:"action_plan_status"`
-	ActionPlanStatusUpdates      []*ControlActionPlanStatusUpdateDTO `json:"action_plan_status_updates"`
+	ID                      uint                                `json:"id"`
+	Title                   string                              `json:"title"`
+	Description             string                              `json:"description"`
+	SeverityLevel           *masterDTOs.SeverityLevelDTO        `json:"severity_level"`
+	ResponsibleUser         UserMinimalDTO                      `json:"responsible_user"`
+	ActionPlanStatus        masterDTOs.ActionPlanStatusDTO      `json:"action_plan_status"`
+	Percentage              *uint                               `json:"percentage"`
+	Comments                *string                             `json:"comments"`
+	TargetDateString        *string                             `json:"target_date"`
+	CreatedAt               time.Time                           `json:"created_at"`
+	UpdatedAt               *time.Time                          `json:"updated_at"`
+	CreatedByUser           UserMinimalDTO                      `json:"created_by_user"`
+	UpdatedByUser           *UserMinimalDTO                     `json:"updated_by_user"`
+	ActionPlanStatusUpdates []*ControlActionPlanStatusUpdateDTO `json:"action_plan_status_updates"`
 }
 
 type ControlActionPlanStatusUpdateDTO struct {

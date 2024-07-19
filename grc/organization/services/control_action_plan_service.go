@@ -96,6 +96,13 @@ func (caps ControlActionPlanService) GetFullDetailsByID(controlID uint, id uint)
 	}
 
 	//todo :- also add extra fields which required in details screen
+	if controlActionPlan.TargetDate != nil {
+		targetDate := controlActionPlan.TargetDate.Format("2006-01-02")
+		controlActionPlanDTO.TargetDateString = &targetDate
+	}
+
+	controlActionPlanDTO.CreatedAt = controlActionPlan.CreatedAt
+	controlActionPlanDTO.UpdatedAt = controlActionPlan.UpdatedAt
 
 	return &controlActionPlanDTO, nil
 }

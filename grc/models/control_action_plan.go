@@ -26,7 +26,6 @@ type ControlActionPlan struct {
 	ResponsibleUser              *User                            `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ActionPlanStatus             *ActionPlanStatus                `gorm:"foreignKey:ActionPlanStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ActionPlanStatusUpdates      []*ControlActionPlanStatusUpdate `gorm:"foreignKey:ControlActionPlanID"`
-	LatestActionPlanStatusUpdate *ControlActionPlanStatusUpdate   `gorm:"foreignKey:ControlActionPlanID"`
 	CreatedByUser                *User                            `gorm:"foreignKey:CreatedByID"`
 	UpdatedByUser                *User                            `gorm:"foreignKey:UpdatedByID"`
 }
