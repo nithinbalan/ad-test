@@ -49,6 +49,60 @@ func (rhc *RiskHeatmapController) GetProcessRiskHeatmap(c *gin.Context) {
 	c.JSON(http.StatusOK, riskHeatmap)
 }
 
+func (rhc *RiskHeatmapController) GetControlRiskHeatmap(c *gin.Context) {
+	idStr := c.Param("controlId")
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	riskHeatmap, err := rhc.service.GetRiskHeatmapByControlID(uint(id))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(rhc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, riskHeatmap)
+}
+
+func (rhc *RiskHeatmapController) GetComplianceRiskHeatmap(c *gin.Context) {
+	idStr := c.Param("complianceId")
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	riskHeatmap, err := rhc.service.GetRiskHeatmapByComplianceID(uint(id))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(rhc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, riskHeatmap)
+}
+
 func (rhc *RiskHeatmapController) GetRiskHeatmapByOwnerUnit(c *gin.Context) {
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")

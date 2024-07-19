@@ -8,6 +8,8 @@ import (
 
 type RiskHeatmapRepositoryInterface interface {
 	GetRiskProcessesByProcessID(processID uint) ([]models.RiskProcess, error)
+	GetRiskControlsByControlID(controlID uint) ([]models.RiskControl, error)
+	GetRiskCompliancesByComplianceID(complianceID uint) ([]models.RiskComplianceRequirement, error)
 
 	CountRiskRegistersWithLikelihoodAndImpact(riskRegisterIDs []uint, riskRatingValueID, likelihoodID, impactID uint) (int, error)
 }
@@ -30,10 +32,26 @@ func (repo *RiskHeatmapRepository) GetRiskProcessesByProcessID(processID uint) (
 	return riskProcesses, nil
 }
 
+func (repo *RiskHeatmapRepository) GetRiskControlsByControlID(controlID uint) ([]models.RiskControl, error) {
+	var riskControls []models.RiskControl
+	if err := repo.db.Where("control_id = ?", controlID).Find(&riskControls).Error; err != nil {
+		return nil, err
+	}
+	return riskControls, nil
+}
+
+func (repo *RiskHeatmapRepository) GetRiskCompliancesByComplianceID(complianceID uint) ([]models.RiskComplianceRequirement, error) {
+	var riskCompliances []models.RiskComplianceRequirement
+	if err := repo.db.Where("compliance_register_id = ?", complianceID).Find(&riskCompliances).Error; err != nil {
+		return nil, err
+	}
+	return riskCompliances, nil
+}
+
 func (repo *RiskHeatmapRepository) CountRiskRegistersWithLikelihoodAndImpact(riskRegisterIDs []uint, riskRatingValueID, likelihoodID, impactID uint) (int, error) {
 	var count int64
 	err := repo.db.Model(&models.RiskRegister{}).
-		Where("id IN (?) AND current_risk_rating_value_id = ? AND risk_matrix_likelihood_id = ? AND risk_matrix_impact_id = ?", riskRegisterIDs, riskRatingValueID, likelihoodID, impactID).
+		Where("id IN (?) AND current_risk_rating_value_id = ? AND current_likelihood_id = ? AND current_impact_id = ?", riskRegisterIDs, riskRatingValueID, likelihoodID, impactID).
 		Count(&count).Error
 	if err != nil {
 		return 0, err
