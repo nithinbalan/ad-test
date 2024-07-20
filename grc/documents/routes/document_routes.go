@@ -18,6 +18,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentTemplateController := app.DocumentModule.DocumentTemplateController
 	documentStatusController := app.DocumentModule.DocumentStatusController
 	documentAccessTypeController := app.DocumentModule.DocumentAccessTypeController
+	documentController := app.DocumentModule.DocumentController
 
 	documentRoutes.GET("/document-categories", documentCategoryController.GetAllDocumentCategories)
 	documentRoutes.GET("/document-categories/:id", documentCategoryController.GetDocumentCategoryDetails)
@@ -48,5 +49,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	documentRoutes.GET("/document-access-types", documentAccessTypeController.GetAllDocumentAccessTypes)
 	documentRoutes.GET("/document-access-types/:id", documentAccessTypeController.GetDocumentAccessTypeDetails)
+
+	//document
+	documentRoutes.GET("/documents", documentController.GetAllDocuments)
+	documentRoutes.GET("/documents/:id", documentController.GetDocumentDetails)
+	documentRoutes.POST("/documents", documentController.CreateDocument)
+	documentRoutes.POST("/documents/delete", documentController.DeleteDocuments)
 
 }

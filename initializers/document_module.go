@@ -14,6 +14,7 @@ type DocumentModule struct {
 	DocumentTemplateController   *controllers.DocumentTemplateController
 	DocumentStatusController     *controllers.DocumentStatusController
 	DocumentAccessTypeController *controllers.DocumentAccessTypeController
+	DocumentController           *controllers.DocumentController
 }
 
 func NewDocumentModule(db *gorm.DB,
@@ -42,11 +43,24 @@ func NewDocumentModule(db *gorm.DB,
 	documentAccessTypeSvc := services.NewDocumentAccessTypeService(documentAccessTypeRepo)
 	documentAccessTypeController := controllers.NewDocumentAccessTypeController(documentAccessTypeSvc)
 
+	documentRepo := repositories.NewDocumentRepository(db)
+	documentSvc := services.NewDocumentService(
+		documentRepo,
+		documentCategorySvc,
+		documentTypeSvc,
+		documentTemplateSvc,
+		documentAccessTypeSvc,
+		documentStatusSvc,
+		organizationModule.UserSvc,
+		sharedModule.ActivityLogService)
+	documentController := controllers.NewDocumentController(documentSvc)
+
 	return &DocumentModule{
 		DocumentCategoryController:   documentCategoryController,
 		DocumentTypeController:       documentTypeController,
 		DocumentTemplateController:   documentTemplateController,
 		DocumentStatusController:     documentStatusController,
 		DocumentAccessTypeController: documentAccessTypeController,
+		DocumentController:           documentController,
 	}
 }
