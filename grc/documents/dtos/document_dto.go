@@ -103,7 +103,7 @@ type DocumentDetailsDTO struct {
 	DocumentVersions    []DocumentVersionDTO             `json:"document_versions"`
 	DocumentSharedUsers []*DocumentSharedUserDTO         `json:"document_shared_users"`
 	DocumentSharedUnits []*DocumentSharedUnitDTO         `json:"document_shared_units"`
-	Abc                 organizationDTOs.UserMinimalDTO  `json:"created_by"`
+	CreatedByUser       organizationDTOs.UserMinimalDTO  `json:"created_by"`
 	UpdatedByUser       *organizationDTOs.UserMinimalDTO `json:"updated_by"`
 }
 

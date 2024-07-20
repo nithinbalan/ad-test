@@ -113,9 +113,53 @@ func (repo *DocumentRepository) GetAll(params *documentDTOs.DocumentListQueryPar
 		}
 	}
 
+	// Apply quick filters
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "policy":
+			query = query.Where("document_types.type = ?", "policy")
+		case "procedure":
+			query = query.Where("document_types.type = ?", "procedure")
+		case "in_review":
+			query = query.Where("document_statuses.type = ?", "in-review")
+		case "draft":
+			query = query.Where("document_statuses.type = ?", "draft")
+
+		}
+	}
+
 	// Calculate total count for pagination
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
+	}
+
+	// Apply search keyword if exists
+	if params.Keyword != "" {
+		query = query.Where(`
+				(documents.title_en LIKE ? OR
+				documents.title_ar LIKE ? OR
+				documents.reference_number LIKE ? OR
+				documents.description_en LIKE ? OR
+				documents.description_ar LIKE ? OR
+				document_categories.title_en LIKE ? OR
+				document_categories.title_ar LIKE ? OR
+				document_statuses.title_en LIKE ? OR
+				document_statuses.title_ar LIKE ? OR
+				document_types.title_en LIKE ? OR
+				document_types.title_ar LIKE ? OR
+				organization_units.title_en LIKE ? OR
+				organization_units.title_ar LIKE ? OR
+				responsible_user.first_name_en LIKE ? OR
+				responsible_user.first_name_ar LIKE ? OR
+				responsible_user.last_name_en LIKE ? OR
+				responsible_user.last_name_ar LIKE ? OR
+				responsible_user.email LIKE ? OR
+				responsible_user.initial LIKE ?)`,
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
 	}
 
 	// Sort by the specified column and order
