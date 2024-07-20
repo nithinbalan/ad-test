@@ -20,6 +20,10 @@ type ControlListDTO struct {
 	OwnerFirstNameAr                     *string    `json:"owner_first_name_ar"`
 	OwnerLastNameEn                      *string    `json:"owner_last_name_en"`
 	OwnerLastNameAr                      *string    `json:"owner_last_name_ar"`
+	OwnerInitial                         string     `json:"owner_initial"`
+	OwnerColor                           string     `json:"owner_color"`
+	OwnerEmail                           string     `json:"owner_email"`
+	OwnerProfileImagePath                string     `json:"owner_profile_image_path"`
 	ControlImplementationStatusTitleEn   *string    `json:"control_implementation_status_title_en"`
 	ControlImplementationStatusTitleAr   *string    `json:"control_implementation_status_title_ar"`
 	ControlImplementationStatusColorCode *string    `json:"control_implementation_status_color_code"`
@@ -41,6 +45,10 @@ type ControlListDTO struct {
 	TestResponsibleUserFirstNameAr       string     `json:"test_responsible_user_first_name_ar"`
 	TestResponsibleUserLastNameEn        string     `json:"test_responsible_user_last_name_en"`
 	TestResponsibleUserLastNameAr        string     `json:"test_responsible_user_last_name_ar"`
+	TestResponsibleUserInitial           string     `json:"test_responsible_user_initial"`
+	TestResponsibleUserColor             string     `json:"test_responsible_user_color"`
+	TestResponsibleUserEmail             string     `json:"test_responsible_user_email"`
+	TestResponsibleUserProfileImagePath  string     `json:"test_responsible_user_profile_image_path"`
 	TestFrequencyTitleEn                 *string    `json:"test_frequency_title_en"`
 	TestFrequencyTitleAr                 *string    `json:"test_frequency_title_ar"`
 	LastTestDate                         *time.Time `json:"last_test_date"`
@@ -53,10 +61,18 @@ type ControlListDTO struct {
 	CreatedUserFirstNameAr               string     `json:"created_user_first_name_ar"`
 	CreatedUserLastNameEn                string     `json:"created_user_last_name_en"`
 	CreatedUserLastNameAr                string     `json:"created_user_last_name_ar"`
+	CreatedUserInitial                   string     `json:"created_user_initial"`
+	CreatedUserColor                     string     `json:"created_user_color"`
+	CreatedUserEmail                     string     `json:"created_user_email"`
+	CreatedUserProfileImagePath          string     `json:"created_user_profile_image_path"`
 	UpdatedUserFirstNameEn               *string    `json:"updated_user_first_name_en"`
 	UpdatedUserFirstNameAr               *string    `json:"updated_user_first_name_ar"`
 	UpdatedUserLastNameEn                *string    `json:"updated_user_last_name_en"`
 	UpdatedUserLastNameAr                *string    `json:"updated_user_last_name_ar"`
+	UpdatedUserInitial                   string     `json:"updated_user_initial"`
+	UpdatedUserColor                     string     `json:"updated_user_color"`
+	UpdatedUserEmail                     string     `json:"updated_user_email"`
+	UpdatedUserProfileImagePath          string     `json:"updated_user_profile_image_path"`
 	CreatedAt                            time.Time  `json:"created_at"`
 	UpdatedAt                            *time.Time `json:"updated_at"`
 }
