@@ -11,7 +11,6 @@ type IncidentInvestigation struct {
 	Description                   *string    `json:"description" gorm:"type:nvarchar(max)"`
 	TeamLeadID                    uint       `json:"team_lead_id" binding:"required" gorm:"not null"`
 	ActionRecommendation          *string    `json:"action_recommendation" gorm:"type:nvarchar(max)"`
-	IncidentInvestigationStatusID int        `json:"incident_investigation_status_id" binding:"required" gorm:"not null"`
 	CreatedByID                   uint       `json:"created_by_id" binding:"required"`
 	UpdatedByID                   *uint      `json:"updated_by_id"`
 	CreatedAt                     time.Time  `json:"created_at" gorm:"type:datetime;not null"`
@@ -20,7 +19,6 @@ type IncidentInvestigation struct {
 	// Relationships
 	IncidentRegister            IncidentRegister                 `gorm:"foreignKey:IncidentRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	TeamLead                    User                             `gorm:"foreignKey:TeamLeadID"`
-	IncidentInvestigationStatus IncidentInvestigationStatus      `gorm:"foreignKey:IncidentInvestigationStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	Documents                   []*IncidentInvestigationDocument `gorm:"foreignKey:IncidentInvestigationID"`
 	Users                       []*IncidentInvestigationUser     `gorm:"foreignKey:IncidentInvestigationID"`
 	Findings                    []*IncidentInvestigationFinding  `gorm:"foreignKey:IncidentInvestigationID"`

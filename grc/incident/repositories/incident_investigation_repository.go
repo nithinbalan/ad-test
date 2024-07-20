@@ -56,9 +56,6 @@ func (repo *IncidentInvestigationRepository) GetAll(incidentID uint, params *inc
 		team_lead.first_name_ar AS team_lead_first_name_ar,
 		team_lead.last_name_en AS team_lead_last_name_en,
 		team_lead.last_name_ar AS team_lead_last_name_ar,
-		incident_investigation_statuses.title_en AS incident_investigation_status_title_en,
-		incident_investigation_statuses.title_ar AS incident_investigation_status_title_ar,
-		incident_investigation_statuses.color_code AS incident_investigation_status_color_code,
 		created_user.first_name_en AS created_user_first_name_en,
 		created_user.first_name_ar AS created_user_first_name_ar,
 		created_user.last_name_en AS created_user_last_name_en,
@@ -70,7 +67,6 @@ func (repo *IncidentInvestigationRepository) GetAll(incidentID uint, params *inc
     `).
 		Joins(`
         LEFT JOIN incident_register ON incident_register.id = incident_investigations.incident_register_id
-        LEFT JOIN incident_investigation_statuses ON incident_investigation_statuses.id = incident_investigations.incident_investigation_status_id
 		LEFT JOIN users AS team_lead ON team_lead.id = incident_investigations.team_lead_id
 		LEFT JOIN users AS created_user ON created_user.id = incident_investigations.created_by_id
 		LEFT JOIN users AS updated_user ON updated_user.id = incident_investigations.updated_by_id
@@ -97,8 +93,6 @@ func (repo *IncidentInvestigationRepository) GetAll(incidentID uint, params *inc
 		query = query.Where(`
 			(incident_investigations.description LIKE ? OR
 			incident_register.title LIKE ? OR
-			incident_investigation_statuses.title_en LIKE ? OR
-			incident_investigation_statuses.title_ar LIKE ? OR
 			team_lead.first_name_en LIKE ? OR
 			team_lead.first_name_ar LIKE ? OR
 			team_lead.last_name_en LIKE ? OR
@@ -171,7 +165,6 @@ func (repo *IncidentInvestigationRepository) GetFullDetailsByID(incidentID uint,
 	result := db.Where("incident_register_id = ?", incidentID).
 		Preload("IncidentRegister").
 		Preload("TeamLead").
-		Preload("IncidentInvestigationStatus").
 		Preload("Documents").
 		Preload("Users.User").
 		Preload("Findings").
