@@ -19,6 +19,8 @@ type IncidentTimelineListDTO struct {
 	PerformedByLastNameEn         string    `json:"performed_by_last_name_en"`
 	PerformedByLastNameAr         string    `json:"performed_by_last_name_ar"`
 	PerformedByEmail              string    `json:"performed_by_email"`
+	PerformedByInitial            string    `json:"performed_by_initial"`
+	PerformedByColor              string    `json:"performed_by_color"`
 	PerformedByProfileImagePath   string    `json:"performed_by_profile_image_path"`
 	PerformedAt                   time.Time `json:"performed_at"`
 }
