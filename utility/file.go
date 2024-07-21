@@ -1,6 +1,8 @@
 package utility
 
 import (
+	"fmt"
+	"io"
 	"jethur/config"
 	"os"
 	"path/filepath"
@@ -81,4 +83,44 @@ func GenerateDocumentURL(endpoint, resourceType string, ids ...interface{}) stri
 	}
 
 	return url.String()
+}
+
+func CopyFileFromPaths(srcDir, dstDir, fileName string) error {
+	storagePath := config.GetEnv("STORAGE_PATH", "")
+	srcPath := filepath.Join(storagePath, srcDir, fileName)
+	dstPath := filepath.Join(storagePath, dstDir, fileName)
+
+	// Open the source file for reading
+	sourceFile, err := os.Open(srcPath)
+	if err != nil {
+		return fmt.Errorf("cannot open source file: %w", err)
+	}
+	defer sourceFile.Close()
+
+	// Ensure that the destination directory exists
+	destinationDir := filepath.Dir(dstPath) // Get the directory part of dstPath
+	if err := os.MkdirAll(destinationDir, 0755); err != nil {
+		return fmt.Errorf("failed to create destination directory: %w", err)
+	}
+
+	// Create the destination file for writing
+	destinationFile, err := os.Create(dstPath)
+	if err != nil {
+		return fmt.Errorf("cannot create destination file: %w", err)
+	}
+	defer destinationFile.Close()
+
+	// Copy the contents of the source file to the destination file
+	_, err = io.Copy(destinationFile, sourceFile)
+	if err != nil {
+		return fmt.Errorf("failed to copy file contents: %w", err)
+	}
+
+	// Commit the file contents to stable storage
+	err = destinationFile.Sync()
+	if err != nil {
+		return fmt.Errorf("failed to sync file contents: %w", err)
+	}
+
+	return nil
 }

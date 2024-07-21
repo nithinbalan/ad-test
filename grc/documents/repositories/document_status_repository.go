@@ -63,7 +63,7 @@ func (repo *DocumentStatusRepository) GetByID(id uint) (*models.DocumentStatus, 
 func (repo *DocumentStatusRepository) GetByType(status string) (*models.DocumentStatus, error) {
 	var documentStatus *models.DocumentStatus
 
-	result := repo.db.Where("status = ?", status).First(&documentStatus)
+	result := repo.db.Where("type = ?", status).First(&documentStatus)
 
 	if result.Error != nil {
 		return nil, result.Error
