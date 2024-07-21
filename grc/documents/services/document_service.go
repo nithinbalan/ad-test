@@ -182,7 +182,7 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 		return 0, err
 	}
 
-	url := utility.GenerateDocumentURL("document", strconv.FormatUint(uint64(id), 10), "documents")
+	url := utility.GenerateDocumentURL("document", "draft", strconv.FormatUint(uint64(id), 10), "documents")
 	destinationDir := filepath.Join("document", "draft", strconv.FormatUint(uint64(id), 10), "documents")
 
 	if documentFormDTO.DocumentTemplateID != nil {
