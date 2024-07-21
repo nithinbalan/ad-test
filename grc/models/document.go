@@ -17,8 +17,8 @@ type Document struct {
 	ResponsibleUnitID    uint       `json:"responsible_unit_id" binding:"required" gorm:"not null"`
 	DocumentAccessTypeID uint       `json:"document_access_type_id" binding:"required" gorm:"not null"`
 	DocumentStatusID     uint       `json:"document_status_id" binding:"required" gorm:"not null"`
-	CreatedByID          uint       `json:"created_by_id" binding:"required" gorm:"not null"`
-	UpdatedByID          *uint      `json:"updated_by_id" gorm:"default:null"`
+	CreatedBYID          uint       `json:"created_by_id" binding:"required" gorm:"not null"`
+	UpdatedBYID          *uint      `json:"updated_by_id" gorm:"default:null"`
 	CreatedAt            time.Time  `json:"created_at" binding:"required" gorm:"type:datetime;not null"`
 	UpdatedAt            *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 
@@ -29,8 +29,8 @@ type Document struct {
 	ResponsibleUnit    *OrganizationUnit   `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	DocumentAccessType *DocumentAccessType `gorm:"foreignKey:DocumentAccessTypeID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	DocumentStatus     *DocumentStatus     `gorm:"foreignKey:DocumentStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser      *User               `gorm:"foreignKey:CreatedByID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	UpdatedByUser      *User               `gorm:"foreignKey:UpdatedByID"`
+	CreatedByUser      *User               `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	UpdatedByUser      *User               `gorm:"foreignKey:UpdatedBYID"`
 
 	DocumentVersions    []*DocumentVersion    `gorm:"foreignKey:DocumentID"`
 	DocumentSharedUsers []*DocumentSharedUser `gorm:"foreignKey:DocumentID"`

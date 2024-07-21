@@ -73,12 +73,7 @@ func (ds *DocumentService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTra
 		}
 		return nil, err
 	}
-	// Log the retrieval of CreatedByUser to debug
-	if document.CreatedByUser != nil {
-		fmt.Printf("Retrieved CreatedByUser: %+v\n", document.CreatedByUser)
-	} else {
-		fmt.Println("Failed to load CreatedByUser")
-	}
+
 	err = mapstructure.Decode(document, &documentDTO)
 	if err != nil {
 		return nil, err
@@ -121,7 +116,7 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 		ResponsibleUnitID:    responsibleUnitID,
 		DocumentAccessTypeID: documentFormDTO.DocumentAccessTypeID,
 		DocumentStatusID:     uint(documentStatus.ID),
-		CreatedByID:          currentUserID,
+		CreatedBYID:          currentUserID,
 	}
 
 	id, err := ds.repo.Create(document, tx)
@@ -137,34 +132,31 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 	}
 
 	sharedUsers := make([]*models.DocumentSharedUser, 0)
-	// Create shared user entry for the user who created the document
 	createdUser := &models.DocumentSharedUser{
 		DocumentID:  id,
 		UserID:      currentUserID,
 		Type:        "created-user",
-		CreatedByID: currentUserID,
+		CreatedBYID: currentUserID,
 	}
 
 	sharedUsers = append(sharedUsers, createdUser)
 
-	// Create shared user entry for the responsible user
 	responsibleUser := &models.DocumentSharedUser{
 		DocumentID:  id,
 		UserID:      documentFormDTO.ResponsibleUserID,
 		Type:        "responsible-user",
-		CreatedByID: currentUserID,
+		CreatedBYID: currentUserID,
 	}
 	sharedUsers = append(sharedUsers, responsibleUser)
 
 	switch documentAccessType.Type {
 	case "shared-users":
 		for _, userID := range documentFormDTO.SharedUserIDs {
-			// Convert userID to a uint and compare it to currentUserID and documentFormDTO.ResponsibleUserID
 			if userID != nil && *userID != currentUserID && *userID != documentFormDTO.ResponsibleUserID {
 				sharedUser := &models.DocumentSharedUser{
 					DocumentID:  id,
-					UserID:      *userID, // Dereference userID because it's a pointer
-					CreatedByID: currentUserID,
+					UserID:      *userID,
+					CreatedBYID: currentUserID,
 				}
 				sharedUsers = append(sharedUsers, sharedUser)
 			}
@@ -175,7 +167,7 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 			sharedUnit := &models.DocumentSharedUnit{
 				DocumentID:         id,
 				OrganizationUnitID: *unitID,
-				CreatedByID:        currentUserID,
+				CreatedBYID:        currentUserID,
 			}
 			sharedUnits = append(sharedUnits, sharedUnit)
 		}
@@ -185,7 +177,6 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 		}
 	}
 
-	// Bulk insert the shared user records
 	if err := ds.CreateSharedUsers(sharedUsers, tx); err != nil {
 		tx.Rollback()
 		return 0, err
@@ -219,7 +210,7 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 			Token:           encryptedFilename,
 			OriginalName:    &documentTemplate.Document.OriginalName,
 			Type:            documentTemplate.Document.Type,
-			CreatedByID:     currentUserID,
+			CreatedBYID:     currentUserID,
 		}
 
 		if err := ds.repo.CreateDocument(documentVersion, tx); err != nil {
@@ -230,7 +221,6 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 		sourceDir := filepath.Join("document", "document-template", strconv.FormatUint(uint64(documentTemplate.ID), 10), "documents")
 		fileName := documentTemplate.Document.Name
 
-		// Call the CopyFileFromPaths function
 		err = utility.CopyFileFromPaths(sourceDir, destinationDir, fileName)
 		if err != nil {
 			tx.Rollback()
@@ -238,7 +228,6 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 		}
 
 	} else {
-		//generate token
 		dataToEncrypt := []byte(documentFormDTO.Document.FileName)
 		encryptedFilename, err := utility.EncryptData(dataToEncrypt)
 		if err != nil {
@@ -254,7 +243,7 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 			Token:           encryptedFilename,
 			OriginalName:    &documentFormDTO.Document.OriginalName,
 			Type:            documentFormDTO.Document.Type,
-			CreatedByID:     currentUserID,
+			CreatedBYID:     currentUserID,
 		}
 
 		if err := ds.repo.CreateDocument(documentVersion, tx); err != nil {
@@ -322,7 +311,6 @@ func (ds *DocumentService) Delete(ids []uint, currentUserID uint) ([]uint, error
 			}
 		}
 
-		// Check if document shared unit exist
 		if len(document.DocumentSharedUnits) > 0 {
 			var deleteSharedUnitIds []*uint
 			for _, unit := range document.DocumentSharedUnits {
@@ -334,7 +322,6 @@ func (ds *DocumentService) Delete(ids []uint, currentUserID uint) ([]uint, error
 			}
 		}
 
-		// Delete each document if documents exist
 		if len(document.DocumentVersions) > 0 {
 			var deleteDocumentIds []*uint
 			for _, doc := range document.DocumentVersions {
@@ -347,7 +334,6 @@ func (ds *DocumentService) Delete(ids []uint, currentUserID uint) ([]uint, error
 			}
 		}
 
-		// Delete the Compliance Register
 		if err := ds.repo.Delete(id, tx); err != nil {
 			failedIds = append(failedIds, id)
 			continue
@@ -361,7 +347,6 @@ func (ds *DocumentService) Delete(ids []uint, currentUserID uint) ([]uint, error
 		return failedIds, nil
 	}
 
-	// Deleting files should not affect the main operation result
 	if len(successfulIds) > 0 {
 		for documentID, documents := range documentsToDelete {
 			for _, doc := range documents {
@@ -380,11 +365,10 @@ func (ds *DocumentService) Delete(ids []uint, currentUserID uint) ([]uint, error
 
 	tx.Commit()
 
-	// Log bulk delete activities for successful deletions
 	if len(successfulIds) > 0 {
 		go func() {
 			err := ds.activityLogSvc.LogBulkActivities(
-				models.DeleteAction, // Make sure this action constant is defined appropriately
+				models.DeleteAction,
 				models.Document{}.TableName(),
 				successfulIds,
 				nil,
@@ -428,13 +412,12 @@ func (ds *DocumentService) validateDocumentFormDTO(documentFormDTO *documentDTOs
 		}
 	}
 
-	// New validations for SharedUserIDs and SharedUnitIDs based on DocumentAccessTypeID
 	accessType, err := ds.documentAccessTypeSvc.GetByID(documentFormDTO.DocumentAccessTypeID)
 	if err != nil {
 		return utility.NewValidationError(fmt.Errorf("failed to get document access type"), "not_exist", "document access type")
 	}
 
-	switch accessType.Type { // Assuming that accessType has a Name field that indicates the type
+	switch accessType.Type {
 	case "shared-users":
 		if documentFormDTO.SharedUserIDs == nil || len(documentFormDTO.SharedUserIDs) == 0 {
 			return utility.NewValidationError(fmt.Errorf("shared user IDs are required for shared-user access type"), "required", "shared_users")

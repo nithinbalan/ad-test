@@ -269,7 +269,6 @@ func (repo *DocumentRepository) DeleteDocuments(docIds []*uint, tx ...utility.Da
 		db = tx[0].DB()
 	}
 
-	// Delete Compliance documents by IDs
 	if err := db.Where("id IN (?)", docIds).Delete(&models.DocumentVersion{}).Error; err != nil {
 		return err
 	}
@@ -283,7 +282,6 @@ func (repo *DocumentRepository) CreateSharedUsers(sharedUsers []*models.Document
 		db = tx[0].DB()
 	}
 
-	// Perform a bulk insert using GORM's Create method, which supports inserting slices.
 	if err := db.Create(&sharedUsers).Error; err != nil {
 		return err
 	}
@@ -296,7 +294,6 @@ func (repo *DocumentRepository) DeleteSharedUsers(sharedUserIds []*uint, tx ...u
 		db = tx[0].DB()
 	}
 
-	// Delete controls by IDs
 	if err := db.Where("id IN (?)", sharedUserIds).Delete(&models.DocumentSharedUser{}).Error; err != nil {
 		return err
 	}
@@ -321,7 +318,6 @@ func (repo *DocumentRepository) DeleteSharedUnits(sharedUnitIds []*uint, tx ...u
 		db = tx[0].DB()
 	}
 
-	// Delete controls by IDs
 	if err := db.Where("id IN (?)", sharedUnitIds).Delete(&models.DocumentSharedUnit{}).Error; err != nil {
 		return err
 	}
