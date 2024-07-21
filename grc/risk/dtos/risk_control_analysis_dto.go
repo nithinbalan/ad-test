@@ -1,13 +1,16 @@
 package dtos
 
+import organizationDTOs "jethur/grc/organization/dtos"
+
 type RiskControlAnalysisListDTO struct {
 	ID                                   uint    `json:"id"`
 	ControlID                            uint    `json:"control_id"`
+	ControlTestID                        *uint   `json:"control_test_id"`
 	ControlReferenceNumber               string  `json:"control_reference_number"`
 	ControlCode                          *string `json:"control_code"`
 	ControlTitleEn                       string  `json:"control_title_en"`
 	ControlTitleAr                       string  `json:"control_title_ar"`
-	ControlEfficiencyScore               string  `json:"control_efficiency_score"`
+	Score                                string  `json:"score"`
 	ControlDescription                   *string `json:"control_description"`
 	ControlTypeTitleEn                   string  `json:"control_type_title_en"`
 	ControlTypeTitleAr                   string  `json:"control_type_title_ar"`
@@ -42,4 +45,12 @@ type RiskControlAnalysisListQueryParamsDTO struct {
 type RiskControlAnalysisFormDTO struct {
 	ControlEfficiencyStatusID     uint `json:"control_efficiency_status_id" binding:"required"`
 	ControlImplementationStatusID uint `json:"control_implementation_status_id" binding:"required"`
+}
+
+type RiskControlAnalysisDetailDTO struct {
+	ID                          uint                                            `json:"id"`
+	ControlTestID               *uint                                           `json:"control_test_id"`
+	ControlEfficiencyStatus     organizationDTOs.ControlEfficiencyStatusDTO     `json:"control_efficiency_status"`
+	ControlImplementationStatus organizationDTOs.ControlImplementationStatusDTO `json:"control_implementation_status" `
+	Score                       uint                                            `json:"score"`
 }

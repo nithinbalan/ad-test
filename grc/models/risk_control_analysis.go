@@ -8,8 +8,10 @@ type RiskControlAnalysis struct {
 	ID                            uint      `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	Type                          string    `json:"type" binding:"required" gorm:"not null;type:varchar(255);check:type in ('inherent', 'residual')"`
 	RiskControlID                 uint      `json:"risk_control_id" binding:"required" gorm:"not null"`
+	ControlTestID                 uint      `json:"control_test_id" binding:"required" gorm:"default:null"`
 	ControlEfficiencyStatusID     uint      `json:"control_efficiency_status_id" binding:"required" gorm:"not null"`
 	ControlImplementationStatusID uint      `json:"control_implementation_status_id" binding:"required" gorm:"not null"`
+	Score                         *uint     `json:"score,omitempty" gorm:"default:0" binding:"omitempty"`
 	CreatedByID                   uint      `json:"created_by_id" gorm:"not null"`
 	CreatedAt                     time.Time `json:"created_at" gorm:"type:datetime;not null"`
 

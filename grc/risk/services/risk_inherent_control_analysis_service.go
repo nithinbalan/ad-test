@@ -12,12 +12,14 @@ import (
 	"jethur/utility"
 	"time"
 
+	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
 )
 
 type RiskInherentControlAnalysisServiceInterface interface {
 	GetAll(riskID uint, params *riskDTOs.RiskControlAnalysisListQueryParamsDTO) ([]*riskDTOs.RiskControlAnalysisListDTO, error)
 	GetByID(riskID uint, id uint) (*models.RiskControlAnalysis, error)
+	GetFullDetailsByID(riskID uint, id uint) (*riskDTOs.RiskControlAnalysisDetailDTO, error)
 	Create(riskID uint, currentUserID uint) error
 	Update(riskID uint, id uint, currentUserID uint, controlTestFormDTO *organizationDTOs.ControlTestFormDTO) error
 	Delete(riskID uint, ids []uint, currentUserID uint) ([]uint, error)
@@ -54,6 +56,30 @@ func (rcas *RiskInherentControlAnalysisService) GetAll(riskID uint, params *risk
 		return nil, err
 	}
 	return rcas.repo.GetAll(riskID, params)
+}
+
+func (rcas RiskInherentControlAnalysisService) GetFullDetailsByID(riskID uint, id uint) (*riskDTOs.RiskControlAnalysisDetailDTO, error) {
+	var riskControlAnalysisDTO riskDTOs.RiskControlAnalysisDetailDTO
+
+	if _, err := rcas.riskRegisterSvc.GetByID(riskID); err != nil {
+		return nil, err
+	}
+
+	riskControlAnalysis, err := rcas.repo.GetFullDetailsByID(id)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+
+	err = mapstructure.Decode(riskControlAnalysis, &riskControlAnalysisDTO)
+	if err != nil {
+		return nil, err
+	}
+
+	return &riskControlAnalysisDTO, nil
 }
 
 func (rcas *RiskInherentControlAnalysisService) GetByID(riskID uint, id uint) (*models.RiskControlAnalysis, error) {
@@ -93,6 +119,7 @@ func (rcas *RiskInherentControlAnalysisService) Create(riskID uint, currentUserI
 			Type:                          "inherent",
 			ControlEfficiencyStatusID:     *control.ControlEfficiencyStatusID,
 			ControlImplementationStatusID: *control.ControlImplementationStatusID,
+			Score:                         control.EfficiencyScore,
 			CreatedByID:                   currentUserID,
 			CreatedAt:                     time.Now(),
 		}
@@ -118,18 +145,20 @@ func (rcas *RiskInherentControlAnalysisService) Update(riskID uint, id uint, cur
 		return err
 	}
 
-	existingRiskControlAnalysis.ControlEfficiencyStatusID = controlTestFormDTO.ControlEfficiencyStatusID
-	existingRiskControlAnalysis.ControlImplementationStatusID = controlTestFormDTO.ControlImplementationStatusID
-	existingRiskControlAnalysis.CreatedByID = currentUserID
-	existingRiskControlAnalysis.CreatedAt = time.Now()
-
-	err = rcas.repo.Update(existingRiskControlAnalysis, tx)
+	testId, err := rcas.controlTestSvc.Create(existingRiskControlAnalysis.RiskControl.ControlID, currentUserID, &riskID, controlTestFormDTO, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	_, err = rcas.controlTestSvc.Create(existingRiskControlAnalysis.RiskControl.ControlID, currentUserID, &riskID, controlTestFormDTO, tx)
+	existingRiskControlAnalysis.ControlEfficiencyStatusID = controlTestFormDTO.ControlEfficiencyStatusID
+	existingRiskControlAnalysis.ControlImplementationStatusID = controlTestFormDTO.ControlImplementationStatusID
+	existingRiskControlAnalysis.ControlTestID = testId
+	existingRiskControlAnalysis.Score = controlTestFormDTO.Score
+	existingRiskControlAnalysis.CreatedByID = currentUserID
+	existingRiskControlAnalysis.CreatedAt = time.Now()
+
+	err = rcas.repo.Update(existingRiskControlAnalysis, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
