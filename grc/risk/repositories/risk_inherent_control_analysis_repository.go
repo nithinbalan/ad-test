@@ -47,6 +47,7 @@ func (repo *RiskInherentControlAnalysisRepository) GetAll(riskID uint, params *r
 			controls.description AS control_description,
 			controls.title_en AS control_title_en,
 			controls.title_ar AS control_title_ar,
+			controls.efficiency_score AS control_efficiency_score,
             control_types.title_en AS control_type_title_en,
 			control_types.title_ar AS control_type_title_ar,
 			control_categories.title_en AS control_category_title_en,
