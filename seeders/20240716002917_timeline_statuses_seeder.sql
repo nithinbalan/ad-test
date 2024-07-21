@@ -3,8 +3,8 @@
 INSERT INTO timeline_statuses
     (title_en, title_ar, color_code, type)
 VALUES
-    ('Pending', 'قيد الانتظار', '#FFA500', 'pending'),
-    ('Completed', 'مكتمل', '#008000', 'completed');
+    ('Pending', 'قيد الانتظار', '#E0554D', 'pending'),
+    ('Completed', 'مكتمل', '#28A745', 'completed');
 -- +goose StatementEnd
 
 -- +goose Down
