@@ -11,6 +11,7 @@ import (
 type RiskInherentControlAnalysisRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(riskID uint, params *riskDTOs.RiskControlAnalysisListQueryParamsDTO) ([]*riskDTOs.RiskControlAnalysisListDTO, error)
+	GetFullDetailsByID(id uint) (*models.RiskControlAnalysis, error)
 	GetByID(id uint) (*models.RiskControlAnalysis, error)
 	Create(riskControlAnalysis *models.RiskControlAnalysis) (uint, error)
 	Update(riskControlAnalysis *models.RiskControlAnalysis, tx ...utility.DatabaseTransaction) error
@@ -41,13 +42,14 @@ func (repo *RiskInherentControlAnalysisRepository) GetAll(riskID uint, params *r
 		Select(`
             risk_control_analyses.id,
 			risk_control_analyses.type,
+			risk_control_analyses.control_test_id,
+			risk_control_analyses.score,
 			controls.id AS control_id,
 			controls.code AS control_code,
 			controls.reference_number AS control_reference_number,
 			controls.description AS control_description,
 			controls.title_en AS control_title_en,
 			controls.title_ar AS control_title_ar,
-			controls.efficiency_score AS control_efficiency_score,
             control_types.title_en AS control_type_title_en,
 			control_types.title_ar AS control_type_title_ar,
 			control_categories.title_en AS control_category_title_en,
@@ -114,7 +116,21 @@ func (repo *RiskInherentControlAnalysisRepository) GetByID(id uint) (*models.Ris
 	var riskControlAnalysis *models.RiskControlAnalysis
 
 	result := repo.db.
+		First(&riskControlAnalysis, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return riskControlAnalysis, nil
+}
+
+func (repo *RiskInherentControlAnalysisRepository) GetFullDetailsByID(id uint) (*models.RiskControlAnalysis, error) {
+	var riskControlAnalysis *models.RiskControlAnalysis
+
+	result := repo.db.
 		Preload("RiskControl").
+		Preload("ControlEfficiencyStatus").
+		Preload("ControlImplementationStatus").
 		First(&riskControlAnalysis, id)
 	if result.Error != nil {
 		return nil, result.Error

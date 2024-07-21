@@ -57,6 +57,38 @@ func (rcac *RiskInherentControlAnalysisController) GetAllRiskControlAnalyses(c *
 	c.JSON(http.StatusOK, riskControlAnalyses)
 }
 
+func (rcac *RiskInherentControlAnalysisController) GetRiskControlAnalysisDetails(c *gin.Context) {
+	riskIDStr := c.Param("riskId")
+
+	riskID, err := strconv.ParseUint(riskIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	idStr := c.Param("id")
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	riskControlAnalysis, err := rcac.service.GetFullDetailsByID(uint(riskID), uint(id))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(rcac.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, riskControlAnalysis)
+}
+
 func (rcac *RiskInherentControlAnalysisController) CreateRiskControlAnalysis(c *gin.Context) {
 	riskIDStr := c.Param("riskId")
 
