@@ -209,6 +209,10 @@ func (repo *ControlAssociatedItemRepository) GetAllRisks(controlID uint, params 
 			users.first_name_ar AS owner_first_name_ar,
 			users.last_name_en AS owner_last_name_en,
 			users.last_name_ar AS owner_last_name_ar,
+			users.initial AS owner_initial,
+        	users.color AS owner_color,
+        	users.email AS owner_email,
+        	users.profile_image_path AS owner_profile_image_path,
 			risk_statuses.title_en AS risk_status_title_en,
 			risk_statuses.title_ar AS risk_status_title_ar,
 			risk_statuses.color_code AS risk_status_color_code
