@@ -7,6 +7,7 @@ type RiskControlAnalysisListDTO struct {
 	ControlCode                          *string `json:"control_code"`
 	ControlTitleEn                       string  `json:"control_title_en"`
 	ControlTitleAr                       string  `json:"control_title_ar"`
+	ControlEfficiencyScore               string  `json:"control_efficiency_score"`
 	ControlDescription                   *string `json:"control_description"`
 	ControlTypeTitleEn                   string  `json:"control_type_title_en"`
 	ControlTypeTitleAr                   string  `json:"control_type_title_ar"`

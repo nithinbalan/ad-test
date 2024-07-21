@@ -120,6 +120,8 @@ func (rcas *RiskInherentControlAnalysisService) Update(riskID uint, id uint, cur
 
 	existingRiskControlAnalysis.ControlEfficiencyStatusID = controlTestFormDTO.ControlEfficiencyStatusID
 	existingRiskControlAnalysis.ControlImplementationStatusID = controlTestFormDTO.ControlImplementationStatusID
+	existingRiskControlAnalysis.CreatedByID = currentUserID
+	existingRiskControlAnalysis.CreatedAt = time.Now()
 
 	err = rcas.repo.Update(existingRiskControlAnalysis, tx)
 	if err != nil {
