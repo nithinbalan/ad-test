@@ -16,7 +16,7 @@ CREATE TABLE documents (
     created_by_id INT NOT NULL,
     updated_by_id INT NULL,
     created_at DATETIME NOT NULL,
-    updated_at DATETIME NULL
+    updated_at DATETIME NULL,
 
     CONSTRAINT FK_documents_document_types FOREIGN KEY (document_type_id) REFERENCES document_types(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_documents_document_categories FOREIGN KEY (document_categories_id) REFERENCES document_categories(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
