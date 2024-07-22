@@ -116,6 +116,7 @@ func (repo *RiskInherentControlAnalysisRepository) GetByID(id uint) (*models.Ris
 	var riskControlAnalysis *models.RiskControlAnalysis
 
 	result := repo.db.
+		Preload("RiskControl").
 		First(&riskControlAnalysis, id)
 	if result.Error != nil {
 		return nil, result.Error
