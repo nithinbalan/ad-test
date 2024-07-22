@@ -151,7 +151,6 @@ type RiskSLARegisterDTO struct {
 type RiskRegisterFormDTO struct {
 	RiskCategoryID           uint                          `json:"risk_category_id" binding:"required"`
 	RiskSourceID             uint                          `json:"risk_source_id" binding:"required"`
-	OwnerUnitID              uint                          `json:"owner_unit_id" binding:"required"`
 	OwnerID                  uint                          `json:"owner_id" binding:"required"`
 	RiskStatusID             uint                          `json:"risk_status_id" binding:"required"`
 	Title                    string                        `json:"title" binding:"required,max=255"`
