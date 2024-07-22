@@ -1,6 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
-INSERT INTO audit_risk_ratings
+INSERT INTO auditor_risk_ratings
     (title_en, title_ar, type, color_code, status)
 VALUES
     ('Very Low', 'منخفض جدا', 'very_low', '#00FF00', 'active'),
@@ -12,5 +12,5 @@ VALUES
 
 -- +goose Down
 -- +goose StatementBegin
-TRUNCATE TABLE audit_risk_ratings;
+TRUNCATE TABLE auditor_risk_ratings;
 -- +goose StatementEnd

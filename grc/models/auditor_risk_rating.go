@@ -1,6 +1,6 @@
 package models
 
-type AuditRiskRating struct {
+type AuditorRiskRating struct {
 	ID        int    `json:"id" gorm:"primaryKey;autoIncrement"`
 	TitleEn   string `json:"title_en" binding:"required" gorm:"type:nvarchar(100);not null"`
 	TitleAr   string `json:"title_ar" binding:"required" gorm:"type:nvarchar(100);not null"`
@@ -9,6 +9,6 @@ type AuditRiskRating struct {
 	Status    string `json:"status" binding:"required,oneof=active inactive" gorm:"type:varchar(10);not null;default:'active';check:status IN ('active', 'inactive')"`
 }
 
-func (AuditRiskRating) TableName() string {
-	return "audit_risk_ratings"
+func (AuditorRiskRating) TableName() string {
+	return "auditor_risk_ratings"
 }

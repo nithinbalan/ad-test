@@ -10,33 +10,33 @@ import (
 	"gorm.io/gorm"
 )
 
-type AuditRiskRatingController struct {
-	service services.AuditRiskRatingServiceInterface
+type AuditorRiskRatingController struct {
+	service services.AuditorRiskRatingServiceInterface
 	db      *gorm.DB
 }
 
-func NewAuditRiskRatingController(service services.AuditRiskRatingServiceInterface) *AuditRiskRatingController {
-	return &AuditRiskRatingController{
+func NewAuditorRiskRatingController(service services.AuditorRiskRatingServiceInterface) *AuditorRiskRatingController {
+	return &AuditorRiskRatingController{
 		service: service,
 	}
 }
 
-func (arrc *AuditRiskRatingController) GetAllAuditRiskRatings(c *gin.Context) {
+func (arrc *AuditorRiskRatingController) GetAllAuditorRiskRatings(c *gin.Context) {
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 
-	auditRiskRating, err := arrc.service.GetAll(sort, sortBy, keyword, status)
+	auditorRiskRating, err := arrc.service.GetAll(sort, sortBy, keyword, status)
 
 	if err != nil {
 		utility.SendInternalErrResp(arrc.db, c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, auditRiskRating)
+	c.JSON(http.StatusOK, auditorRiskRating)
 }
 
-func (arrc *AuditRiskRatingController) GetAuditRiskRatingDetails(c *gin.Context) {
+func (arrc *AuditorRiskRatingController) GetAuditorRiskRatingDetails(c *gin.Context) {
 	idStr := c.Param("id")
 
 	id, err := strconv.ParseUint(idStr, 10, 32)

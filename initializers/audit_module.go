@@ -9,8 +9,8 @@ import (
 )
 
 type AuditModule struct {
-	AuditStatusController     *controllers.AuditStatusController
-	AuditRiskRatingController *controllers.AuditRiskRatingController
+	AuditStatusController       *controllers.AuditStatusController
+	AuditorRiskRatingController *controllers.AuditorRiskRatingController
 }
 
 func NewAuditModule(db *gorm.DB) *AuditModule {
@@ -19,12 +19,12 @@ func NewAuditModule(db *gorm.DB) *AuditModule {
 	auditStatusSvc := services.NewAuditStatusService(auditStatusRepo)
 	auditStatusController := controllers.NewAuditStatusController(auditStatusSvc)
 
-	auditRiskRatingRepo := repositories.NewAuditRiskRatingRepository(db)
-	auditRiskRatingSvc := services.NewAuditRiskRatingService(auditRiskRatingRepo)
-	auditRiskRatingController := controllers.NewAuditRiskRatingController(auditRiskRatingSvc)
+	auditorRiskRatingRepo := repositories.NewAuditorRiskRatingRepository(db)
+	auditorRiskRatingSvc := services.NewAuditorRiskRatingService(auditorRiskRatingRepo)
+	auditorRiskRatingController := controllers.NewAuditorRiskRatingController(auditorRiskRatingSvc)
 
 	return &AuditModule{
-		AuditStatusController:     auditStatusController,
-		AuditRiskRatingController: auditRiskRatingController,
+		AuditStatusController:       auditStatusController,
+		AuditorRiskRatingController: auditorRiskRatingController,
 	}
 }

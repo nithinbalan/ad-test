@@ -14,14 +14,14 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.Use(middlewares.AuthMiddleware())
 
 	auditStatusController := app.AuditModule.AuditStatusController
-	auditRiskRatingController := app.AuditModule.AuditRiskRatingController
+	auditorRiskRatingController := app.AuditModule.AuditorRiskRatingController
 
 	//Audit Status
 	auditRoutes.GET("/audit-statuses", auditStatusController.GetAllAuditStatuses)
 	auditRoutes.GET("/audit-statuses/:id", auditStatusController.GetAuditStatusDetails)
 
-	//Audit Risk Rating
-	auditRoutes.GET("/audit-risk-ratings", auditRiskRatingController.GetAllAuditRiskRatings)
-	auditRoutes.GET("/audit-risk-ratings/:id", auditRiskRatingController.GetAuditRiskRatingDetails)
+	//Auditor Risk Rating
+	auditRoutes.GET("/auditor-risk-ratings", auditorRiskRatingController.GetAllAuditorRiskRatings)
+	auditRoutes.GET("/auditor-risk-ratings/:id", auditorRiskRatingController.GetAuditorRiskRatingDetails)
 
 }
