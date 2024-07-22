@@ -28,6 +28,7 @@ type RiskRegisterServiceInterface interface {
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	UpdateResponseStrategy(riskID uint, currentUserID uint, riskResponseStrategyFormDTO *riskDTOs.RiskResponseStrategyFormDTO) error
 	UpdateRiskRating(riskID uint, currentUserID uint, riskEvaluationDetails *models.RiskEvaluation, tx utility.DatabaseTransaction) error
+	UpdateCurrentRiskRating(riskID uint, updateDTO *riskDTOs.RiskRegisterUpdateDTO, tx utility.DatabaseTransaction) error
 }
 
 // Service and implementations
@@ -857,6 +858,24 @@ func (raps *RiskRegisterService) UpdateRiskRating(riskID uint, currentUserID uin
 
 	if err := raps.repo.Update(existingRisk, tx); err != nil {
 		tx.Rollback()
+		return err
+	}
+
+	return nil
+}
+
+func (rrs *RiskRegisterService) UpdateCurrentRiskRating(riskID uint, updateDTO *riskDTOs.RiskRegisterUpdateDTO, tx utility.DatabaseTransaction) error {
+	riskRegister, err := rrs.GetByID(riskID)
+	if err != nil {
+		return err
+	}
+
+	riskRegister.CurrentImpactID = updateDTO.CurrentImpactID
+	riskRegister.CurrentLikelihoodID = updateDTO.CurrentLikelihoodID
+	riskRegister.CurrentRiskRatingID = updateDTO.CurrentRiskRatingID
+	riskRegister.CurrentRiskRatingValueID = updateDTO.CurrentRiskRatingValueID
+
+	if err := rrs.repo.Update(riskRegister, tx); err != nil {
 		return err
 	}
 
