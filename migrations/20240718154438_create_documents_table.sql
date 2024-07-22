@@ -19,10 +19,10 @@ CREATE TABLE documents (
     updated_at DATETIME NULL,
 
     CONSTRAINT FK_documents_document_types FOREIGN KEY (document_type_id) REFERENCES document_types(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
-    CONSTRAINT FK_documents_document_categories FOREIGN KEY (document_categories_id) REFERENCES document_categories(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_documents_document_categories FOREIGN KEY (document_category_id) REFERENCES document_categories(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_documents_users_1 FOREIGN KEY (responsible_user_id) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_documents_organization_units FOREIGN KEY (responsible_unit_id) REFERENCES organization_units(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
-    CONSTRAINT FK_documents_document_access_types FOREIGN KEY (document_access_types_id) REFERENCES document_access_types(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_documents_document_access_types FOREIGN KEY (document_access_type_id) REFERENCES document_access_types(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_documents_document_statuses FOREIGN KEY (document_status_id) REFERENCES document_statuses(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_documents_users_2 FOREIGN KEY (created_by_id) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_documents_users_3 FOREIGN KEY (updated_by_id) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION
