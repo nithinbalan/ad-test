@@ -10,6 +10,7 @@ CREATE TABLE processes (
     title_en NVARCHAR(500) NOT NULL,
     title_ar NVARCHAR(500) NOT NULL,
     description NVARCHAR(MAX),
+    marked_as_auditable_item BIT NOT NULL DEFAULT 0,
     created_by_id INT NOT NULL,
     updated_by_id INT,
     created_at DATETIME NOT NULL,
