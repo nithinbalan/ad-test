@@ -26,6 +26,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.GET("/auditor-risk-ratings/:id", auditorRiskRatingController.GetAuditorRiskRatingDetails)
 
 	//Auditable Item
-	auditRoutes.PUT("/audit-universe/mark-as-audiable-item", auditUniverseController.MarkAsAuditableItem)
+	auditRoutes.PUT("/audit-universe/mark-as-auditable-item", auditUniverseController.MarkAsAuditableItem)
 
 }
