@@ -3,6 +3,8 @@
 CREATE TABLE auditable_items
 (
     id INT PRIMARY KEY IDENTITY(1,1),
+    title_en NVARCHAR(500) NULL,
+    title_ar NVARCHAR(500) NULL,
     process_id INT NULL,
     control_id INT NULL,
     document_id INT NULL,

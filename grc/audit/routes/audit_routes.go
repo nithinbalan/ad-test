@@ -27,5 +27,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	//Auditable Item
 	auditRoutes.PUT("/audit-universe/mark-as-auditable-item", auditUniverseController.MarkAsAuditableItem)
+	auditRoutes.PUT("/audit-universe/unmark-as-auditable-item", auditUniverseController.UnmarkAsAuditableItem)
 
 }

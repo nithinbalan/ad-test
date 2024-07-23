@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"fmt"
 	"jethur/grc/models"
 	"jethur/utility"
 
@@ -11,7 +12,8 @@ import (
 type AuditUniverseRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	Create(auditableItems []*models.AuditableItem, tx ...utility.DatabaseTransaction) error
-	UpdateMarkedAsAuditableItem(ids []uint, entityType interface{}, tx ...utility.DatabaseTransaction) error
+	UpdateMarkedAsAuditableItem(ids []uint, entityType interface{}, updates map[string]interface{}, tx ...utility.DatabaseTransaction) error
+	DeleteByField(fieldName string, ids []uint, tx ...utility.DatabaseTransaction) error
 }
 
 // implementation
@@ -42,15 +44,26 @@ func (repo *AuditUniverseRepository) Create(auditableItems []*models.AuditableIt
 	return nil
 }
 
-func (repo *AuditUniverseRepository) UpdateMarkedAsAuditableItem(ids []uint, entityType interface{}, tx ...utility.DatabaseTransaction) error {
+func (repo *AuditUniverseRepository) UpdateMarkedAsAuditableItem(ids []uint, entityType interface{}, updates map[string]interface{}, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
 
-	updates := map[string]interface{}{"marked_as_auditable_item": true}
-
 	if err := db.Model(entityType).Where("id IN (?)", ids).Updates(updates).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *AuditUniverseRepository) DeleteByField(fieldName string, ids []uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	var auditableItem *models.AuditableItem
+	if err := db.Where(fmt.Sprintf("%s IN (?)", fieldName), ids).Delete(&auditableItem).Error; err != nil {
 		return err
 	}
 

@@ -16,6 +16,8 @@ import (
 type AuditUniverseServiceInterface interface {
 	Create(currentUserID uint, auditUniverseFormDTO *dtos.AuditUniverseFormDTO) error
 	MarkedAsAuditableItem(ids []*uint, entityType interface{}, tx utility.DatabaseTransaction) error
+	Delete(currentUserID uint, auditUniverseFormDTO *dtos.AuditUniverseFormDTO) error
+	UnmarkedAsAuditableItem(ids []*uint, entityType interface{}, tx utility.DatabaseTransaction) error
 }
 
 // Service and implementations
@@ -188,10 +190,147 @@ func (aus *AuditUniverseService) MarkedAsAuditableItem(ids []*uint, entityType i
 	}
 
 	if len(uintIDs) > 0 {
-		if err := aus.repo.UpdateMarkedAsAuditableItem(uintIDs, entityType, tx); err != nil {
+		updates := map[string]interface{}{"marked_as_auditable_item": true}
+		if err := aus.repo.UpdateMarkedAsAuditableItem(uintIDs, entityType, updates, tx); err != nil {
 			return err
 		}
 	}
+	return nil
+}
+
+func (aus *AuditUniverseService) UnmarkedAsAuditableItem(ids []*uint, entityType interface{}, tx utility.DatabaseTransaction) error {
+	// Convert []*uint to []uint
+	var uintIDs []uint
+	for _, id := range ids {
+		if id != nil {
+			uintIDs = append(uintIDs, *id)
+		}
+	}
+
+	if len(uintIDs) > 0 {
+		updates := map[string]interface{}{"marked_as_auditable_item": false}
+		if err := aus.repo.UpdateMarkedAsAuditableItem(uintIDs, entityType, updates, tx); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (aus *AuditUniverseService) Delete(currentUserID uint, auditUniverseFormDTO *dtos.AuditUniverseFormDTO) error {
+	tx := aus.repo.BeginTransaction()
+	if err := aus.validateAuditUniverseFormDTO(auditUniverseFormDTO); err != nil {
+		return err
+	}
+	// Initialize slices to hold all IDs
+	var processIDs, controlIDs, documentIDs, incidentIDs, complianceIDs, riskIDs, userIDs []uint
+
+	// Helper function to collect IDs
+	collectIDs := func(ids []*uint, target *[]uint) {
+		for _, id := range ids {
+			if id != nil {
+				*target = append(*target, *id)
+			}
+		}
+	}
+
+	// Collect all relevant IDs
+	collectIDs(auditUniverseFormDTO.ProcessIDs, &processIDs)
+	collectIDs(auditUniverseFormDTO.ControlIDs, &controlIDs)
+	collectIDs(auditUniverseFormDTO.DocumentIDs, &documentIDs)
+	collectIDs(auditUniverseFormDTO.IncidentRegisterIDs, &incidentIDs)
+	collectIDs(auditUniverseFormDTO.ComplianceRequirementIDs, &complianceIDs)
+	collectIDs(auditUniverseFormDTO.RiskRegisterIDs, &riskIDs)
+	collectIDs(auditUniverseFormDTO.UserIDs, &userIDs)
+
+	// Common function to delete auditable items by IDs
+	deleteItems := func(ids []uint, fieldName string) error {
+		if len(ids) > 0 {
+			if err := aus.repo.DeleteByField(fieldName, ids, tx); err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+		return nil
+	}
+
+	// Delete all auditable items by IDs
+	if err := deleteItems(processIDs, "process_id"); err != nil {
+		return err
+	}
+	if err := deleteItems(controlIDs, "control_id"); err != nil {
+		return err
+	}
+	if err := deleteItems(documentIDs, "document_id"); err != nil {
+		return err
+	}
+	if err := deleteItems(incidentIDs, "incident_register_id"); err != nil {
+		return err
+	}
+	if err := deleteItems(complianceIDs, "compliance_requirement_id"); err != nil {
+		return err
+	}
+	if err := deleteItems(riskIDs, "risk_register_id"); err != nil {
+		return err
+	}
+	if err := deleteItems(userIDs, "user_id"); err != nil {
+		return err
+	}
+
+	// Unmark entities as auditable
+	if err := aus.UnmarkedAsAuditableItem(auditUniverseFormDTO.ProcessIDs, &models.Process{}, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	if err := aus.UnmarkedAsAuditableItem(auditUniverseFormDTO.ControlIDs, &models.Control{}, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	if err := aus.UnmarkedAsAuditableItem(auditUniverseFormDTO.DocumentIDs, &models.Document{}, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	if err := aus.UnmarkedAsAuditableItem(auditUniverseFormDTO.IncidentRegisterIDs, &models.IncidentRegister{}, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	if err := aus.UnmarkedAsAuditableItem(auditUniverseFormDTO.ComplianceRequirementIDs, &models.ComplianceRequirement{}, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	if err := aus.UnmarkedAsAuditableItem(auditUniverseFormDTO.RiskRegisterIDs, &models.RiskRegister{}, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	if err := aus.UnmarkedAsAuditableItem(auditUniverseFormDTO.UserIDs, &models.User{}, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+
+	// Asynchronous activity logging
+	go func() {
+		err := aus.activityLogSvc.LogActivity(
+			models.DeleteAction,
+			models.AuditableItem{}.TableName(),
+			0, // No specific item to log for delete
+			auditUniverseFormDTO,
+			currentUserID,
+			nil,
+		)
+
+		if err != nil {
+			fields := map[string]interface{}{
+				"action":    models.DeleteAction,
+				"tableName": models.AuditableItem{}.TableName(),
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			}
+
+			utility.LogError("Failed to log activity", fields)
+		}
+	}()
+
 	return nil
 }
 

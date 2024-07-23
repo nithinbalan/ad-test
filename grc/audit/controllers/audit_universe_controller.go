@@ -52,3 +52,35 @@ func (auc *AuditUniverseController) MarkAsAuditableItem(c *gin.Context) {
 
 	c.Status(http.StatusOK)
 }
+
+func (auc *AuditUniverseController) UnmarkAsAuditableItem(c *gin.Context) {
+	var auditUniverseFormDTO dtos.AuditUniverseFormDTO
+
+	if err := c.ShouldBindJSON(&auditUniverseFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(auc.db, c, err.Error())
+		return
+	}
+
+	err = auc.service.Delete(currentUserID, &auditUniverseFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(auc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}

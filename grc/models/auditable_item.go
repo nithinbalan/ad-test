@@ -6,6 +6,8 @@ import (
 
 type AuditableItem struct {
 	ID                      uint       `json:"id" gorm:"primaryKey;AUTO_INCREMENT"`
+	TitleEn                 *string    `json:"title_en" gorm:"type:varchar(500);default:null"`
+	TitleAr                 *string    `json:"title_ar" gorm:"type:nvarchar(500);default:null"`
 	ProcessID               *uint      `json:"process_id" gorm:"default:null"`
 	ControlID               *uint      `json:"control_id" gorm:"default:null"`
 	DocumentID              *uint      `json:"document_id" gorm:"default:null"`
