@@ -26,7 +26,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.GET("/auditor-risk-ratings/:id", auditorRiskRatingController.GetAuditorRiskRatingDetails)
 
 	//Auditable Item
-	auditRoutes.PUT("/audit-universe/mark-as-auditable-item", auditUniverseController.MarkAsAuditableItem)
-	auditRoutes.PUT("/audit-universe/unmark-as-auditable-item", auditUniverseController.UnmarkAsAuditableItem)
+	auditRoutes.POST("/audit-universe/mark-as-auditable-item", auditUniverseController.MarkAsAuditableItem)
+	auditRoutes.POST("/audit-universe/unmark-as-auditable-item", auditUniverseController.UnmarkAsAuditableItem)
 
 }
