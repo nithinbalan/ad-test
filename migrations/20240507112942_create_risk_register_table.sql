@@ -19,6 +19,7 @@ CREATE TABLE risk_register (
     review_frequency_id INT NULL,
     next_review_date DATE NULL,
     comments NVARCHAR(MAX) NULL,
+    marked_as_auditable_item BIT NOT NULL DEFAULT 0,
     created_by_id INT NOT NULL,
     updated_by_id INT NULL,
     created_at DATETIME NOT NULL,

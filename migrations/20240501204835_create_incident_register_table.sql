@@ -16,6 +16,7 @@ CREATE TABLE incident_register
     reported_by INT NOT NULL,
     reported_at DATE NOT NULL,
     quick_action NVARCHAR(MAX) NULL,
+    marked_as_auditable_item BIT NOT NULL DEFAULT 0,
     created_by_id INT NOT NULL,
     updated_by_id INT NULL,
     created_at DATETIME NOT NULL,

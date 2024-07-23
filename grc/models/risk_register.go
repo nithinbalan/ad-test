@@ -23,6 +23,7 @@ type RiskRegister struct {
 	RiskResponseStrategyID   *uint      `json:"risk_response_strategy_id"`
 	NextReviewDate           *time.Time `json:"next_review_date"`
 	Comments                 *string    `json:"comments" gorm:"type:nvarchar(max)"`
+	MarkedAsAuditableItem    bool       `json:"marked_as_auditable_item" gorm:"default:false" binding:"-"`
 	CreatedByID              uint       `json:"created_by_id" binding:"required"`
 	UpdatedByID              *uint      `json:"updated_by_id"`
 	CreatedAt                time.Time  `json:"created_at" binding:"required" gorm:"type:datetime;not null"`
