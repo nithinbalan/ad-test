@@ -16,7 +16,7 @@ import (
 type WorkflowServiceInterface interface {
 	GetAllWorkflowsByType(workflowType string) ([]*settingsDTOs.WorkflowListDTO, error)
 	GetWorkflowLevels(workflowID uint) (*settingsDTOs.WorkflowLevelListDTO, error)
-	CreateWorkFlowLevel(currentUserID uint, workflowFormDTO *settingsDTOs.WorkflowLevelFormDTO) (uint, error)
+	CreateWorkFlowLevel(workflowId uint, currentUserID uint, workflowFormDTO *settingsDTOs.WorkflowLevelFormDTO) (uint, error)
 	DeleteWorkflowLevel(currentUserID, workflowLevelID uint) error
 }
 
@@ -110,7 +110,7 @@ func (ws *WorkflowService) GetWorkflowLevels(workflowID uint) (*settingsDTOs.Wor
 	return levelsDTO, nil
 }
 
-func (ws *WorkflowService) CreateWorkFlowLevel(currentUserID uint, workflowLevelFormDTO *settingsDTOs.WorkflowLevelFormDTO) (uint, error) {
+func (ws *WorkflowService) CreateWorkFlowLevel(workflowId uint, currentUserID uint, workflowLevelFormDTO *settingsDTOs.WorkflowLevelFormDTO) (uint, error) {
 	tx := ws.repo.BeginTransaction()
 
 	if err := ws.validateWorkflowFormDTO(workflowLevelFormDTO); err != nil {
@@ -147,7 +147,7 @@ func (ws *WorkflowService) CreateWorkFlowLevel(currentUserID uint, workflowLevel
 
 	workflowLevel := &models.WorkflowLevel{
 		Level:               newLevel,
-		WorkflowID:          workflowLevelFormDTO.WorkflowID,
+		WorkflowID:          workflowId,
 		WorkflowLevelTypeID: workflowLevelFormDTO.LevelTypeID,
 		ApprovalType:        *workflowLevelFormDTO.ApprovalType,
 		CreatedByID:         currentUserID,

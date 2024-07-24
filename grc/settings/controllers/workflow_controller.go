@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	settingsDTOs "jethur/grc/settings/dtos"
 	"jethur/grc/settings/services"
 	"jethur/utility"
@@ -56,13 +57,20 @@ func (wfc *WorkflowController) CreateWorkflowLevel(c *gin.Context) {
 		return
 	}
 
+	workflowIDStr := c.Param("workflowId")
+	workflowID, err := strconv.ParseUint(workflowIDStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid workflow level ID"})
+		return
+	}
+
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(wfc.db, c, err.Error())
 		return
 	}
 
-	createdId, err := wfc.service.CreateWorkFlowLevel(currentUserID, &workflowLevelFormDTO)
+	createdId, err := wfc.service.CreateWorkFlowLevel(uint(workflowID), currentUserID, &workflowLevelFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:
@@ -77,7 +85,8 @@ func (wfc *WorkflowController) CreateWorkflowLevel(c *gin.Context) {
 }
 
 func (wfc *WorkflowController) DeleteWorkflowLevel(c *gin.Context) {
-	workflowLevelIDStr := c.Param("id")
+	fmt.Println("hii")
+	workflowLevelIDStr := c.Param("levelId")
 	workflowLevelID, err := strconv.ParseUint(workflowLevelIDStr, 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid workflow level ID"})

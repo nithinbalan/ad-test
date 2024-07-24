@@ -55,8 +55,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	settingRoutes.GET("/workflow-level-types/:id", workflowLevelTypeController.GetWorkflowLevelTypeDetails)
 
 	settingRoutes.GET("/workflows", workflowController.GetAllWorkflows)
-	settingRoutes.GET("/workflow-level/:workflowId", workflowController.GetWorkflowlevels)
-	settingRoutes.POST("/workflow-level", workflowController.CreateWorkflowLevel)
-	settingRoutes.DELETE("/workflow-level/:id", workflowController.DeleteWorkflowLevel)
+	settingRoutes.GET("/workflows/:workflowId/levels", workflowController.GetWorkflowlevels)
+	settingRoutes.POST("/workflows/:workflowId/levels", workflowController.CreateWorkflowLevel)
+	settingRoutes.DELETE("/workflows/:workflowId/levels/:levelId", workflowController.DeleteWorkflowLevel)
 
 }
