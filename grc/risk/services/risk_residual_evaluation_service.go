@@ -33,6 +33,7 @@ type RiskResidualEvaluationService struct {
 	riskImpactCategorySvc        RiskImpactCategoryServiceInterface
 	riskMatrixImpactGuidelineSvc RiskMatrixImpactGuidelineServiceInterface
 	riskAppetiteStatementSvc     RiskAppetiteStatementServiceInterface
+	riskInherentEvaluationSvc    RiskInherentEvaluationServiceInterface
 }
 
 func NewRiskResidualEvaluationService(
@@ -46,6 +47,7 @@ func NewRiskResidualEvaluationService(
 	riskImpactCategorySvc RiskImpactCategoryServiceInterface,
 	riskMatrixImpactGuidelineSvc RiskMatrixImpactGuidelineServiceInterface,
 	riskAppetiteStatementSvc RiskAppetiteStatementServiceInterface,
+	riskInherentEvaluationSvc RiskInherentEvaluationServiceInterface,
 ) RiskResidualEvaluationServiceInterface {
 	return &RiskResidualEvaluationService{
 		repo:                         repo,
@@ -58,6 +60,7 @@ func NewRiskResidualEvaluationService(
 		riskImpactCategorySvc:        riskImpactCategorySvc,
 		riskMatrixImpactGuidelineSvc: riskMatrixImpactGuidelineSvc,
 		riskAppetiteStatementSvc:     riskAppetiteStatementSvc,
+		riskInherentEvaluationSvc:    riskInherentEvaluationSvc,
 	}
 }
 
@@ -411,6 +414,25 @@ func (ries *RiskResidualEvaluationService) Delete(riskID uint, id uint, currentU
 		tx.Rollback()
 		failedId = id
 		return failedId, err
+	}
+
+	inherentEvaluationDetailsDTO, err := ries.riskInherentEvaluationSvc.GetFullDetailsByID(riskID)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	updateDTO := &riskDTOs.RiskRegisterUpdateDTO{
+		CurrentImpactID:          &inherentEvaluationDetailsDTO.RiskMatrixImpact.ID,
+		CurrentLikelihoodID:      &inherentEvaluationDetailsDTO.RiskMatrixLikelihood.ID,
+		CurrentRiskRatingID:      &inherentEvaluationDetailsDTO.RiskMatrixRiskRating.ID,
+		CurrentRiskRatingValueID: &inherentEvaluationDetailsDTO.RiskMatrixRiskRatingValue.ID,
+	}
+
+	err = ries.riskRegisterSvc.UpdateCurrentRiskRating(riskID, updateDTO, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
 	}
 
 	tx.Commit()

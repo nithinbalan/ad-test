@@ -78,30 +78,34 @@ type RiskDocumentDTO struct {
 }
 
 type RiskRegisterDetailDTO struct {
-	ID                     int                              `json:"id"`
-	ReferenceNumber        string                           `json:"reference_number"`
-	RiskCategory           RiskCategoryDTO                  `json:"risk_category"`
-	RiskSource             RiskSourceDTO                    `json:"risk_source"`
-	OwnerUnit              settingsDTOs.OrganizationUnitDTO `json:"owner_unit"`
-	Owner                  organizationDTOs.UserMinimalDTO  `json:"owner"`
-	RiskStatus             RiskStatusDTO                    `json:"risk_status"`
-	Title                  string                           `json:"title"`
-	Description            *string                          `json:"description"`
-	ReportedAt             *time.Time                       `json:"reported_at"`
-	ReviewFrequency        *masterDTOs.ReviewFrequencyDTO   `json:"review_frequency"`
-	NextReviewDate         *time.Time                       `json:"next_review_date"`
-	Comments               *string                          `json:"comments"`
-	Documents              []*RiskDocumentDTO               `json:"documents"`
-	CreatedAt              time.Time                        `json:"created_at"`
-	UpdatedAt              *time.Time                       `json:"updated_at"`
-	CreatedByUser          organizationDTOs.UserMinimalDTO  `json:"created_by"`
-	UpdatedByUser          organizationDTOs.UserMinimalDTO  `json:"updated_by"`
-	Controls               []*RiskControlDTO                `json:"controls"`
-	ComplianceRequirements []*RiskComplianceRequirementDTO  `json:"compliance_requirements"`
-	Processes              []*RiskProcessDTO                `json:"processes"`
-	StrategicObjectives    []*RiskStrategicObjectiveDTO     `json:"strategic_objectives"`
-	SLARegisters           []*RiskSLARegisterDTO            `json:"sla_registers"`
-	Kris                   []*RiskKRIDTO                    `json:"kris"`
+	ID                        int                              `json:"id"`
+	ReferenceNumber           string                           `json:"reference_number"`
+	RiskCategory              RiskCategoryDTO                  `json:"risk_category"`
+	RiskSource                RiskSourceDTO                    `json:"risk_source"`
+	OwnerUnit                 settingsDTOs.OrganizationUnitDTO `json:"owner_unit"`
+	Owner                     organizationDTOs.UserMinimalDTO  `json:"owner"`
+	RiskStatus                RiskStatusDTO                    `json:"risk_status"`
+	Title                     string                           `json:"title"`
+	Description               *string                          `json:"description"`
+	ReportedAt                *time.Time                       `json:"reported_at"`
+	RiskMatrixLikelihood      *RiskMatrixLikelihoodDTO         `json:"current_risk_matrix_likelihood"`
+	RiskMatrixImpact          *RiskMatrixImpactDTO             `json:"current_risk_matrix_impact"`
+	RiskMatrixRiskRating      *RiskMatrixRiskRatingDTO         `json:"current_risk_rating"`
+	RiskMatrixRiskRatingValue *RiskMatrixRiskRatingValueDTO    `json:"current_risk_rating_value_id"`
+	ReviewFrequency           *masterDTOs.ReviewFrequencyDTO   `json:"review_frequency"`
+	NextReviewDate            *time.Time                       `json:"next_review_date"`
+	Comments                  *string                          `json:"comments"`
+	Documents                 []*RiskDocumentDTO               `json:"documents"`
+	CreatedAt                 time.Time                        `json:"created_at"`
+	UpdatedAt                 *time.Time                       `json:"updated_at"`
+	CreatedByUser             organizationDTOs.UserMinimalDTO  `json:"created_by"`
+	UpdatedByUser             organizationDTOs.UserMinimalDTO  `json:"updated_by"`
+	Controls                  []*RiskControlDTO                `json:"controls"`
+	ComplianceRequirements    []*RiskComplianceRequirementDTO  `json:"compliance_requirements"`
+	Processes                 []*RiskProcessDTO                `json:"processes"`
+	StrategicObjectives       []*RiskStrategicObjectiveDTO     `json:"strategic_objectives"`
+	SLARegisters              []*RiskSLARegisterDTO            `json:"sla_registers"`
+	Kris                      []*RiskKRIDTO                    `json:"kris"`
 }
 
 type RiskControlDTO struct {
@@ -147,7 +151,6 @@ type RiskSLARegisterDTO struct {
 type RiskRegisterFormDTO struct {
 	RiskCategoryID           uint                          `json:"risk_category_id" binding:"required"`
 	RiskSourceID             uint                          `json:"risk_source_id" binding:"required"`
-	OwnerUnitID              uint                          `json:"owner_unit_id" binding:"required"`
 	OwnerID                  uint                          `json:"owner_id" binding:"required"`
 	RiskStatusID             uint                          `json:"risk_status_id" binding:"required"`
 	Title                    string                        `json:"title" binding:"required,max=255"`

@@ -28,6 +28,7 @@ type RiskRegisterServiceInterface interface {
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	UpdateResponseStrategy(riskID uint, currentUserID uint, riskResponseStrategyFormDTO *riskDTOs.RiskResponseStrategyFormDTO) error
 	UpdateRiskRating(riskID uint, currentUserID uint, riskEvaluationDetails *models.RiskEvaluation, tx utility.DatabaseTransaction) error
+	UpdateCurrentRiskRating(riskID uint, updateDTO *riskDTOs.RiskRegisterUpdateDTO, tx utility.DatabaseTransaction) error
 }
 
 // Service and implementations
@@ -93,7 +94,6 @@ func (rrs RiskRegisterService) GetByID(id uint) (*models.RiskRegister, error) {
 }
 
 func (rrs RiskRegisterService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*riskDTOs.RiskRegisterDetailDTO, error) {
-	// Initialize your DTO
 	var riskDTO riskDTOs.RiskRegisterDetailDTO
 
 	risk, err := rrs.repo.GetFullDetailsByID(id, tx...)
@@ -105,13 +105,10 @@ func (rrs RiskRegisterService) GetFullDetailsByID(id uint, tx ...utility.Databas
 		return nil, err
 	}
 
-	// Map the result to your DTO
 	err = mapstructure.Decode(risk, &riskDTO)
 	if err != nil {
 		return nil, err
 	}
-
-	//todo :- also add extra fields which required in details screen
 
 	return &riskDTO, nil
 }
@@ -133,11 +130,16 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 		return 0, err
 	}
 
+	ownerUnitID, err := rrs.userSvc.GetUserPrimaryUnitID(uint(riskRegisterFormDTO.OwnerID))
+	if err != nil {
+		return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for owner"), "not_exist", "process owner unit")
+	}
+
 	riskRegister := &models.RiskRegister{
 		ReferenceNumber:   referenceNumber,
 		RiskCategoryID:    riskRegisterFormDTO.RiskCategoryID,
 		RiskSourceID:      riskRegisterFormDTO.RiskSourceID,
-		OwnerUnitID:       riskRegisterFormDTO.OwnerUnitID,
+		OwnerUnitID:       ownerUnitID,
 		OwnerID:           riskRegisterFormDTO.OwnerID,
 		RiskStatusID:      riskRegisterFormDTO.RiskStatusID,
 		Title:             riskRegisterFormDTO.Title,
@@ -339,9 +341,14 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 		return err
 	}
 
+	ownerUnitID, err := rrs.userSvc.GetUserPrimaryUnitID(uint(riskRegisterFormDTO.OwnerID))
+	if err != nil {
+		return utility.NewValidationError(fmt.Errorf("organization unit not set for owner"), "not_exist", "process owner unit")
+	}
+
 	existingRiskRegister.RiskCategoryID = riskRegisterFormDTO.RiskCategoryID
 	existingRiskRegister.RiskSourceID = riskRegisterFormDTO.RiskSourceID
-	existingRiskRegister.OwnerUnitID = riskRegisterFormDTO.OwnerUnitID
+	existingRiskRegister.OwnerUnitID = ownerUnitID
 	existingRiskRegister.OwnerID = riskRegisterFormDTO.OwnerID
 	existingRiskRegister.RiskStatusID = riskRegisterFormDTO.RiskStatusID
 	existingRiskRegister.Title = riskRegisterFormDTO.Title
@@ -863,6 +870,24 @@ func (raps *RiskRegisterService) UpdateRiskRating(riskID uint, currentUserID uin
 	return nil
 }
 
+func (rrs *RiskRegisterService) UpdateCurrentRiskRating(riskID uint, updateDTO *riskDTOs.RiskRegisterUpdateDTO, tx utility.DatabaseTransaction) error {
+	riskRegister, err := rrs.GetByID(riskID)
+	if err != nil {
+		return err
+	}
+
+	riskRegister.CurrentImpactID = updateDTO.CurrentImpactID
+	riskRegister.CurrentLikelihoodID = updateDTO.CurrentLikelihoodID
+	riskRegister.CurrentRiskRatingID = updateDTO.CurrentRiskRatingID
+	riskRegister.CurrentRiskRatingValueID = updateDTO.CurrentRiskRatingValueID
+
+	if err := rrs.repo.Update(riskRegister, tx); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (rrs *RiskRegisterService) validateRiskRegisterFormDTO(riskRegisterFormDTO *riskDTOs.RiskRegisterFormDTO) error {
 	if _, err := rrs.riskCategorySvc.GetByID(riskRegisterFormDTO.RiskCategoryID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("risk category does not exist"), "not_exist", "risk category")
@@ -871,8 +896,6 @@ func (rrs *RiskRegisterService) validateRiskRegisterFormDTO(riskRegisterFormDTO 
 	if _, err := rrs.riskSourceSvc.GetByID(riskRegisterFormDTO.RiskSourceID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("risk source does not exist"), "not_exist", "risk source")
 	}
-
-	//@todo org unit validation
 
 	if _, err := rrs.userSvc.GetByID(riskRegisterFormDTO.OwnerID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("owner does not exist"), "not_exist", "owner")
