@@ -11,40 +11,40 @@ import (
 )
 
 type RiskRegisterListDTO struct {
-	ID                       uint       `json:"id"`
-	ReferenceNumber          string     `json:"reference_number"`
-	RiskCategoryTitleEn      string     `json:"risk_category_title_en"`
-	RiskCategoryTitleAr      string     `json:"risk_category_title_ar"`
-	RiskSourceTitleEn        string     `json:"risk_source_title_en"`
-	RiskSourceTitleAr        string     `json:"risk_source_title_ar"`
-	OwnerUnitID              uint       `json:"owner_unit_id"`
-	OwnerUnitTitleEn         string     `json:"owner_unit_title_en"`
-	OwnerUnitTitleAr         string     `json:"owner_unit_title_ar"`
-	OwnerFirstNameEn         string     `json:"owner_first_name_en"`
-	OwnerFirstNameAr         string     `json:"owner_first_name_ar"`
-	OwnerLastNameEn          string     `json:"owner_last_name_en"`
-	OwnerLastNameAr          string     `json:"owner_last_name_ar"`
-	RiskStatusTitleEn        string     `json:"risk_status_title_en"`
-	RiskStatusTitleAr        string     `json:"risk_status_title_ar"`
-	RiskStatusColorCode      string     `json:"risk_status_color_code"`
-	Title                    string     `json:"title"`
-	Description              *string    `json:"description"`
-	ReportedAt               *time.Time `json:"reported_at"`
-	ReviewFrequencyTitleEn   *string    `json:"review_frequency_title_en"`
-	ReviewFrequencyTitleAr   *string    `json:"review_frequency_title_ar"`
-	NextReviewDate           *string    `json:"next_review_date"`
-	CurrentRiskRatingValueID *uint      `json:"current_risk_rating_value_id"`
-	Comments                 *string    `json:"comments"`
-	CreatedAt                string     `json:"created_at"`
-	UpdatedAt                *string    `json:"updated_at"`
-	CreatedUserFirstNameEn   string     `json:"created_user_first_name_en"`
-	CreatedUserFirstNameAr   string     `json:"created_user_first_name_ar"`
-	CreatedUserLastNameEn    string     `json:"created_user_last_name_en"`
-	CreatedUserLastNameAr    string     `json:"created_user_last_name_ar"`
-	UpdatedUserFirstNameEn   *string    `json:"updated_user_first_name_en"`
-	UpdatedUserFirstNameAr   *string    `json:"updated_user_first_name_ar"`
-	UpdatedUserLastNameEn    *string    `json:"updated_user_last_name_en"`
-	UpdatedUserLastNameAr    *string    `json:"updated_user_last_name_ar"`
+	ID                         uint       `json:"id"`
+	ReferenceNumber            string     `json:"reference_number"`
+	RiskCategoryTitleEn        string     `json:"risk_category_title_en"`
+	RiskCategoryTitleAr        string     `json:"risk_category_title_ar"`
+	RiskSourceTitleEn          *string    `json:"risk_source_title_en"`
+	RiskSourceTitleAr          *string    `json:"risk_source_title_ar"`
+	ResponsibleUnitID          uint       `json:"responsible_unit_id"`
+	ResponsibleUnitTitleEn     string     `json:"responsible_unit_title_en"`
+	ResponsibleUnitTitleAr     string     `json:"responsible_unit_title_ar"`
+	ResponsibleUserFirstNameEn string     `json:"responsible_user_first_name_en"`
+	ResponsibleUserFirstNameAr string     `json:"responsible_user_first_name_ar"`
+	ResponsibleUserLastNameEn  string     `json:"responsible_user_last_name_en"`
+	ResponsibleUserLastNameAr  string     `json:"responsible_user_last_name_ar"`
+	RiskStatusTitleEn          string     `json:"risk_status_title_en"`
+	RiskStatusTitleAr          string     `json:"risk_status_title_ar"`
+	RiskStatusColorCode        string     `json:"risk_status_color_code"`
+	Title                      string     `json:"title"`
+	Description                *string    `json:"description"`
+	ReportedAt                 *time.Time `json:"reported_at"`
+	ReviewFrequencyTitleEn     *string    `json:"review_frequency_title_en"`
+	ReviewFrequencyTitleAr     *string    `json:"review_frequency_title_ar"`
+	NextReviewDate             *string    `json:"next_review_date"`
+	CurrentRiskRatingValueID   *uint      `json:"current_risk_rating_value_id"`
+	Comments                   *string    `json:"comments"`
+	CreatedAt                  string     `json:"created_at"`
+	UpdatedAt                  *string    `json:"updated_at"`
+	CreatedUserFirstNameEn     string     `json:"created_user_first_name_en"`
+	CreatedUserFirstNameAr     string     `json:"created_user_first_name_ar"`
+	CreatedUserLastNameEn      string     `json:"created_user_last_name_en"`
+	CreatedUserLastNameAr      string     `json:"created_user_last_name_ar"`
+	UpdatedUserFirstNameEn     *string    `json:"updated_user_first_name_en"`
+	UpdatedUserFirstNameAr     *string    `json:"updated_user_first_name_ar"`
+	UpdatedUserLastNameEn      *string    `json:"updated_user_last_name_en"`
+	UpdatedUserLastNameAr      *string    `json:"updated_user_last_name_ar"`
 }
 
 type RiskRegisterListQueryParamsDTO struct {
@@ -81,9 +81,9 @@ type RiskRegisterDetailDTO struct {
 	ID                     int                              `json:"id"`
 	ReferenceNumber        string                           `json:"reference_number"`
 	RiskCategory           RiskCategoryDTO                  `json:"risk_category"`
-	RiskSource             RiskSourceDTO                    `json:"risk_source"`
-	OwnerUnit              settingsDTOs.OrganizationUnitDTO `json:"owner_unit"`
-	Owner                  organizationDTOs.UserMinimalDTO  `json:"owner"`
+	RiskSource             *RiskSourceDTO                   `json:"risk_source"`
+	ResponsibleUnit        settingsDTOs.OrganizationUnitDTO `json:"responsible_unit"`
+	ResponsibleUser        organizationDTOs.UserMinimalDTO  `json:"responsible_user"`
 	RiskStatus             RiskStatusDTO                    `json:"risk_status"`
 	Title                  string                           `json:"title"`
 	Description            *string                          `json:"description"`
@@ -146,9 +146,9 @@ type RiskSLARegisterDTO struct {
 }
 type RiskRegisterFormDTO struct {
 	RiskCategoryID           uint                          `json:"risk_category_id" binding:"required"`
-	RiskSourceID             uint                          `json:"risk_source_id" binding:"required"`
-	OwnerUnitID              uint                          `json:"owner_unit_id" binding:"required"`
-	OwnerID                  uint                          `json:"owner_id" binding:"required"`
+	RiskSourceID             *uint                         `json:"risk_source_id"`
+	ResponsibleUnitID        uint                          `json:"responsible_unit_id" binding:"required"`
+	ResponsibleUserID        uint                          `json:"responsible_user_id" binding:"required"`
 	RiskStatusID             uint                          `json:"risk_status_id" binding:"required"`
 	Title                    string                        `json:"title" binding:"required,max=255"`
 	Description              *string                       `json:"description"`

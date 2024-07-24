@@ -44,6 +44,7 @@ type RiskRegisterService struct {
 	processSvc               organizationServices.ProcessServiceInterface
 	strategicObjectiveSvc    organizationServices.StrategicObjectiveServiceInterface
 	slaRegisterSvc           complianceServices.SLARegisterServiceInterface
+	riskMatrixSvc            RiskMatrixServiceInterface
 }
 
 func NewRiskRegisterService(
@@ -59,6 +60,7 @@ func NewRiskRegisterService(
 	processSvc organizationServices.ProcessServiceInterface,
 	strategicObjectiveSvc organizationServices.StrategicObjectiveServiceInterface,
 	slaRegisterSvc complianceServices.SLARegisterServiceInterface,
+	riskMatrixSvc RiskMatrixServiceInterface,
 ) RiskRegisterServiceInterface {
 	return &RiskRegisterService{
 		repo:                     repo,
@@ -73,6 +75,7 @@ func NewRiskRegisterService(
 		processSvc:               processSvc,
 		strategicObjectiveSvc:    strategicObjectiveSvc,
 		slaRegisterSvc:           slaRegisterSvc,
+		riskMatrixSvc:            riskMatrixSvc,
 	}
 }
 
@@ -133,10 +136,16 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 		return 0, err
 	}
 
+	riskMatrix, err := rrs.riskMatrixSvc.GetByType("erm")
+	if err != nil {
+		return 0, err
+	}
+
 	riskRegister := &models.RiskRegister{
 		ReferenceNumber:   referenceNumber,
 		RiskCategoryID:    riskRegisterFormDTO.RiskCategoryID,
 		RiskSourceID:      riskRegisterFormDTO.RiskSourceID,
+		RiskMatrixID:      riskMatrix.ID,
 		OwnerUnitID:       riskRegisterFormDTO.OwnerUnitID,
 		OwnerID:           riskRegisterFormDTO.OwnerID,
 		RiskStatusID:      riskRegisterFormDTO.RiskStatusID,
@@ -867,9 +876,10 @@ func (rrs *RiskRegisterService) validateRiskRegisterFormDTO(riskRegisterFormDTO 
 	if _, err := rrs.riskCategorySvc.GetByID(riskRegisterFormDTO.RiskCategoryID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("risk category does not exist"), "not_exist", "risk category")
 	}
-
-	if _, err := rrs.riskSourceSvc.GetByID(riskRegisterFormDTO.RiskSourceID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("risk source does not exist"), "not_exist", "risk source")
+	if riskRegisterFormDTO.RiskSourceID != nil {
+		if _, err := rrs.riskSourceSvc.GetByID(*riskRegisterFormDTO.RiskSourceID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("risk source does not exist"), "not_exist", "risk source")
+		}
 	}
 
 	//@todo org unit validation
