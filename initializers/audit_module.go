@@ -13,6 +13,7 @@ type AuditModule struct {
 	AuditorRiskRatingController *controllers.AuditorRiskRatingController
 	AuditUniverseController     *controllers.AuditUniverseController
 	AuditableItemController     *controllers.AuditableItemController
+	AuditTeamController         *controllers.AuditTeamController
 }
 
 func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, complianceModule *ComplianceModule, riskModule *RiskModule, incidentModule *IncidentModule, documentModule *DocumentModule) *AuditModule {
@@ -48,10 +49,19 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 	)
 	auditableItemController := controllers.NewAuditableItemController(auditableItemSvc)
 
+	auditTeamRepo := repositories.NewAuditTeamRepository(db)
+	auditTeamSvc := services.NewAuditTeamService(
+		auditTeamRepo,
+		sharedModule.ActivityLogService,
+		organizationModule.UserSvc,
+	)
+	auditTeamController := controllers.NewAuditTeamController(auditTeamSvc)
+
 	return &AuditModule{
 		AuditStatusController:       auditStatusController,
 		AuditorRiskRatingController: auditorRiskRatingController,
 		AuditUniverseController:     auditUniverseController,
 		AuditableItemController:     auditableItemController,
+		AuditTeamController:         auditTeamController,
 	}
 }
