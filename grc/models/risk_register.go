@@ -21,9 +21,9 @@ type RiskRegister struct {
 	CurrentRiskRatingID      *uint      `json:"current_risk_rating_id" gorm:"default:null"`
 	CurrentRiskRatingValueID *uint      `json:"current_risk_rating_value_id" gorm:"default:null"`
 	ReviewFrequencyID        *uint      `json:"review_frequency_id"`
-	RiskResponseStrategyID   *uint      `json:"risk_response_strategy_id"`
+	LastReviewNote           *string    `json:"last_review_note,omitempty" gorm:"type:nvarchar(MAX);default:null" binding:"omitempty"`
 	NextReviewDate           *time.Time `json:"next_review_date"`
-	Comments                 *string    `json:"comments" gorm:"type:nvarchar(max)"`
+	RiskResponseStrategyID   *uint      `json:"risk_response_strategy_id"`
 	CreatedByID              uint       `json:"created_by_id" binding:"required"`
 	UpdatedByID              *uint      `json:"updated_by_id"`
 	CreatedAt                time.Time  `json:"created_at" binding:"required" gorm:"type:datetime;not null"`

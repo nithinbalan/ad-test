@@ -19,7 +19,7 @@ CREATE TABLE risk_register (
     risk_response_strategy_id INT NULL,
     review_frequency_id INT NULL,
     next_review_date DATE NULL,
-    comments NVARCHAR(MAX) NULL,
+    last_review_note NVARCHAR(MAX) NULL,
     created_by_id INT NOT NULL,
     updated_by_id INT NULL,
     created_at DATETIME NOT NULL,

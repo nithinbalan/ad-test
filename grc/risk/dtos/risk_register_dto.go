@@ -87,14 +87,14 @@ type RiskRegisterDetailDTO struct {
 	RiskStatus                RiskStatusDTO                    `json:"risk_status"`
 	Title                     string                           `json:"title"`
 	Description               *string                          `json:"description"`
-	ReportedAt                *time.Time                       `json:"reported_at"`
+	ReportedAtString          *string                          `json:"reported_at"`
 	RiskMatrixLikelihood      *RiskMatrixLikelihoodDTO         `json:"current_risk_matrix_likelihood"`
 	RiskMatrixImpact          *RiskMatrixImpactDTO             `json:"current_risk_matrix_impact"`
 	RiskMatrixRiskRating      *RiskMatrixRiskRatingDTO         `json:"current_risk_rating"`
 	RiskMatrixRiskRatingValue *RiskMatrixRiskRatingValueDTO    `json:"current_risk_rating_value_id"`
 	ReviewFrequency           *masterDTOs.ReviewFrequencyDTO   `json:"review_frequency"`
-	NextReviewDate            *time.Time                       `json:"next_review_date"`
-	Comments                  *string                          `json:"comments"`
+	NextReviewDateString      *string                          `json:"next_review_date"`
+	LastReviewNote            *string                          `json:"last_review_note"`
 	Documents                 []*RiskDocumentDTO               `json:"documents"`
 	CreatedAt                 time.Time                        `json:"created_at"`
 	UpdatedAt                 *time.Time                       `json:"updated_at"`
@@ -157,7 +157,7 @@ type RiskRegisterFormDTO struct {
 	ReportedAt               *string                       `json:"reported_at" binding:"required,datetime=2006-01-02"`
 	ReviewFrequencyID        *uint                         `json:"review_frequency_id"`
 	NextReviewDate           *string                       `json:"next_review_date" binding:"omitempty,datetime=2006-01-02"`
-	Comments                 *string                       `json:"comments"`
+	LastReviewNote           *string                       `json:"last_review_note" binding:"omitempty"`
 	Documents                []*commonDTOs.DocumentFormDTO `json:"documents"`
 	ComplianceRequirementIDs []*uint                       `json:"compliance_requirement_ids"`
 	ControlIDs               []*uint                       `json:"control_ids"`

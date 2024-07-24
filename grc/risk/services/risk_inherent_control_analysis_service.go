@@ -213,6 +213,7 @@ func (rcas *RiskInherentControlAnalysisService) Delete(riskID uint, ids []uint, 
 
 	return failedIds, nil
 }
+
 func (rcas *RiskInherentControlAnalysisService) GetControlSummary(riskID uint) (map[string]interface{}, error) {
 	riskControlAnalyses, err := rcas.repo.GetControlSummary(riskID)
 	if err != nil {

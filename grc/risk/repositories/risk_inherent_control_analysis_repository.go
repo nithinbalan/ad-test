@@ -191,7 +191,8 @@ func (repo *RiskInherentControlAnalysisRepository) GetControlSummary(riskID uint
 	result := repo.db.
 		Preload("ControlEfficiencyStatus").
 		Preload("ControlImplementationStatus").
-		Where("risk_control_id = ?", riskID).
+		Joins("JOIN risk_controls ON risk_controls.id = risk_control_analyses.risk_control_id").
+		Where("risk_controls.risk_register_id = ?", riskID).
 		Find(&riskControlAnalyses)
 	if result.Error != nil {
 		return nil, result.Error
