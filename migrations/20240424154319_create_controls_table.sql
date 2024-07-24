@@ -25,6 +25,7 @@ CREATE TABLE controls
     last_test_date DATE,
     next_test_date DATE,
     implemented_at DATE,
+    marked_as_auditable_item BIT NOT NULL DEFAULT 0,
     created_by_id INT NOT NULL,
     updated_by_id INT,
     created_at DATETIME NOT NULL,

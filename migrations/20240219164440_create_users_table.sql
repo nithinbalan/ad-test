@@ -19,6 +19,7 @@ CREATE TABLE users (
     initial NVARCHAR(2) NOT NULL,
     color VARCHAR(10) NOT NULL,
     last_login_at DATETIME NULL,
+    marked_as_auditable_item BIT NOT NULL DEFAULT 0,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NULL,
     created_by_id INT,
