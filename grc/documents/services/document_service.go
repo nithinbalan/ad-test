@@ -90,7 +90,6 @@ func (ds *DocumentService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTra
 
 	document, err := ds.repo.GetFullDetailsByID(id, tx...)
 	if err != nil {
-		fmt.Println("asdfg")
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
 		}
@@ -252,7 +251,7 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 		}
 
 		//add document history
-		documentHistory := &documentDTOs.DcumentHistoryDTO{
+		documentHistory := &documentDTOs.DocumentHistoryDTO{
 			DocumentID:        id,
 			DocumentVersionID: docVersionId,
 			ActionType:        "create",
@@ -299,7 +298,7 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 		}
 
 		//add document history
-		documentHistory := &documentDTOs.DcumentHistoryDTO{
+		documentHistory := &documentDTOs.DocumentHistoryDTO{
 			DocumentID:        id,
 			DocumentVersionID: docVersionId,
 			ActionType:        "create",
@@ -350,7 +349,7 @@ func (ds *DocumentService) Delete(ids []uint, currentUserID uint) ([]uint, error
 	var failedIds []uint
 	var successfulIds []uint
 	documentsToDelete := make(map[uint][]*documentDTOs.DocumentVersionDTO)
-	documentEditHistoryToDelete := make(map[uint][]*documentDTOs.DcumentHistoryDTO)
+	documentEditHistoryToDelete := make(map[uint][]*documentDTOs.DocumentHistoryDTO)
 
 	for _, id := range ids {
 		document, err := ds.GetFullDetailsByID(id, tx)
@@ -499,13 +498,6 @@ func (ds *DocumentService) validateDocumentFormDTO(documentFormDTO *documentDTOs
 			return utility.NewValidationError(fmt.Errorf("document template does not exist"), "not_exist", "document template")
 		}
 	} else {
-		// if documentFormDTO.Document == nil {
-		// 	return utility.NewValidationError(fmt.Errorf("document is required"), "required", "document")
-		// }
-		// // Validate file type (DOC)
-		// if documentFormDTO.Document.Type != ".docx" {
-		// 	return utility.NewValidationError(fmt.Errorf("only word files are allowed"), "invalid_word_file_type", "type")
-		// }
 		err := ds.ValidateDocument(documentFormDTO.Document)
 		if err != nil {
 			return err
@@ -560,7 +552,7 @@ func (ds *DocumentService) CreateSharedUnits(sharedUnits []*models.DocumentShare
 	return nil
 }
 
-func (ds *DocumentService) CreateDocumentHistory(documentHistoryDTO *documentDTOs.DcumentHistoryDTO, sourceDir *string, currentUserId uint, tx ...utility.DatabaseTransaction) error {
+func (ds *DocumentService) CreateDocumentHistory(documentHistoryDTO *documentDTOs.DocumentHistoryDTO, sourceDir *string, currentUserId uint, tx ...utility.DatabaseTransaction) error {
 	if sourceDir != nil {
 		dataToEncrypt := []byte(*documentHistoryDTO.FileName)
 		encryptedFilename, err := utility.EncryptData(dataToEncrypt)
@@ -653,7 +645,7 @@ func (ds *DocumentService) DocumentCheckout(id uint, currentUserID uint, token s
 	}
 
 	//add document history
-	documentHistory := &documentDTOs.DcumentHistoryDTO{
+	documentHistory := &documentDTOs.DocumentHistoryDTO{
 		DocumentID:        id,
 		DocumentVersionID: document.DocumentLetastVersion.ID,
 		ActionType:        "check-out",
@@ -764,7 +756,7 @@ func (ds *DocumentService) DocumentCheckin(id uint, currentUserID uint, document
 	}
 
 	//add document history
-	documentHistory := &documentDTOs.DcumentHistoryDTO{
+	documentHistory := &documentDTOs.DocumentHistoryDTO{
 		DocumentID:        id,
 		DocumentVersionID: document.DocumentLetastVersion.ID,
 		ActionType:        "check-in",
@@ -813,7 +805,7 @@ func (ds *DocumentService) DocumentCheckoutRevert(id uint, currentUserID uint) e
 	}
 
 	//add document history
-	documentHistory := &documentDTOs.DcumentHistoryDTO{
+	documentHistory := &documentDTOs.DocumentHistoryDTO{
 		DocumentID:        id,
 		DocumentVersionID: document.DocumentLetastVersion.ID,
 		ActionType:        "revert",

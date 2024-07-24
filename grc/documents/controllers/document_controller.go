@@ -188,7 +188,7 @@ func (dc *DocumentController) DocumentCheckout(c *gin.Context) {
 	c.File(documentPath)
 }
 
-func (dc *DocumentController) DocumentCheckin(c *gin.Context) {
+func (dc *DocumentController) CheckinDocument(c *gin.Context) {
 	var documentCheckinFormDTO documentDTOs.DocumentCheckinFormDTO
 	if err := c.ShouldBindJSON(&documentCheckinFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
@@ -223,7 +223,7 @@ func (dc *DocumentController) DocumentCheckin(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-func (dc *DocumentController) DocumentRevert(c *gin.Context) {
+func (dc *DocumentController) RevertDocumentCheckout(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {

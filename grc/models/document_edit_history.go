@@ -8,7 +8,7 @@ type DocumentEditHistory struct {
 	ID                uint      `json:"id" gorm:"primaryKey;autoIncrement" binding:"required"`
 	DocumentID        uint      `json:"document_id" gorm:"not null;index" binding:"required"`
 	DocumentVersionID uint      `json:"document_version_id" gorm:"not null;index" binding:"required"`
-	ActionType        string    `json:"action_type" gorm:"type:varchar(20);not null;default:'created'" binding:"required,oneof=create update check-in check-out"`
+	ActionType        string    `json:"action_type" gorm:"type:varchar(20);not null;default:'create'" binding:"required,oneof=create update check-in check-out"`
 	Comment           *string   `json:"comment" gorm:"type:nvarchar(max);default:null"`
 	URL               *string   `json:"url" gorm:"type:varchar(1000)" binding:"omitempty"`
 	Name              *string   `json:"name" gorm:"type:nvarchar(255)" binding:"omitempty"`

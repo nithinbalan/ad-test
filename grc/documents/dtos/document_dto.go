@@ -125,7 +125,7 @@ type DocumentVersionDTO struct {
 	UpdatedByUser       organizationDTOs.UserMinimalDTO `json:"updated_by"`
 	CreatedAt           time.Time                       `json:"created_at"`
 	UpdatedAt           *time.Time                      `json:"updated_at"`
-	DocumentEditHistory []DcumentHistoryDTO             `json:"document_edit_history"`
+	DocumentEditHistory []DocumentHistoryDTO            `json:"document_edit_history"`
 }
 
 type DocumentSharedUserDTO struct {
@@ -146,7 +146,7 @@ type DocumentSharedUnitDTO struct {
 	CreatedAt        time.Time                        `json:"created_at"`
 }
 
-type DcumentHistoryDTO struct {
+type DocumentHistoryDTO struct {
 	ID                *uint   `json:"id"`
 	DocumentID        uint    `json:"document_id"`
 	DocumentVersionID uint    `json:"document_version_id"`
