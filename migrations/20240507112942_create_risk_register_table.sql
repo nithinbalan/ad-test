@@ -17,7 +17,7 @@ CREATE TABLE risk_register (
     current_risk_rating_id INT NULL,
     current_risk_rating_value_id INT NULL,
     risk_response_strategy_id INT NULL,
-    review_frequency_id INT NULL,/
+    review_frequency_id INT NULL,
     next_review_date DATE NULL,
     comments NVARCHAR(MAX) NULL,
     created_by_id INT NOT NULL,
@@ -28,7 +28,7 @@ CREATE TABLE risk_register (
     CONSTRAINT FK_risk_register_risk_sources FOREIGN KEY (risk_source_id) REFERENCES risk_sources (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_risk_register_risk_matrix FOREIGN KEY (risk_matrix_id) REFERENCES risk_matrix (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_risk_register_users_1 FOREIGN KEY (responsible_user_id) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
-    CONSTRAINT FK_risk_register_organization_units FOREIGN KEY (owner_unit_id) REFERENCES organization_units (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_risk_register_organization_units FOREIGN KEY (responsible_unit_id) REFERENCES organization_units (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_risk_register_review_frequencies FOREIGN KEY (review_frequency_id) REFERENCES review_frequencies (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_risk_register_risk_matrix_likelihoods FOREIGN KEY (current_likelihood_id) REFERENCES risk_matrix_likelihoods(id),
     CONSTRAINT FK_risk_register_risk_matrix_impacts FOREIGN KEY (current_impact_id) REFERENCES risk_matrix_impacts(id),

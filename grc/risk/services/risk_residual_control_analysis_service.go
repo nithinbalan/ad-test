@@ -127,7 +127,7 @@ func (rcas *RiskResidualControlAnalysisService) Update(riskID uint, id uint, cur
 		return err
 	}
 
-	_, err = rcas.controlTestSvc.Create(existingRiskControlAnalysis.RiskControl.ControlID, currentUserID, &riskID, controlTestFormDTO, tx)
+	_, err = rcas.controlTestSvc.Create(existingRiskControlAnalysis.RiskControl.ControlID, currentUserID, &riskID, controlTestFormDTO, "risk", tx)
 	if err != nil {
 		tx.Rollback()
 		return err
