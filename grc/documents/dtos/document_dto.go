@@ -90,38 +90,42 @@ type DocumentFormDTO struct {
 }
 
 type DocumentDetailsDTO struct {
-	ID                  int                              `json:"id"`
-	TitleEn             string                           `json:"title_en"`
-	TitleAr             string                           `json:"title_ar"`
-	DescriptionEn       *string                          `json:"description_en"`
-	DescriptionAr       *string                          `json:"description_ar"`
-	DocumentType        DocumentTypeDTO                  `json:"document_type"`
-	DocumentCategory    DocumentCategoryDTO              `json:"document_category"`
-	DocumentAccessType  DocumentAccessTypeDTO            `json:"document_access_type"`
-	ResponsibleUnit     settingsDTOs.OrganizationUnitDTO `json:"responsible_unit"`
-	ResponsibleUser     organizationDTOs.UserMinimalDTO  `json:"responsible_user"`
-	DocumentVersions    []DocumentVersionDTO             `json:"document_versions"`
-	DocumentSharedUsers []*DocumentSharedUserDTO         `json:"document_shared_users"`
-	DocumentSharedUnits []*DocumentSharedUnitDTO         `json:"document_shared_units"`
-	CreatedByUser       organizationDTOs.UserMinimalDTO  `json:"created_by"`
-	UpdatedByUser       *organizationDTOs.UserMinimalDTO `json:"updated_by"`
+	ID                    int                              `json:"id"`
+	TitleEn               string                           `json:"title_en"`
+	TitleAr               string                           `json:"title_ar"`
+	DescriptionEn         *string                          `json:"description_en"`
+	DescriptionAr         *string                          `json:"description_ar"`
+	IsLocked              bool                             `json:"is_locked"`
+	DocumentType          DocumentTypeDTO                  `json:"document_type"`
+	DocumentCategory      DocumentCategoryDTO              `json:"document_category"`
+	DocumentAccessType    DocumentAccessTypeDTO            `json:"document_access_type"`
+	ResponsibleUnit       settingsDTOs.OrganizationUnitDTO `json:"responsible_unit"`
+	ResponsibleUser       organizationDTOs.UserMinimalDTO  `json:"responsible_user"`
+	DocumentLetastVersion DocumentVersionDTO               `json:"document_letast_version"`
+	DocumentVersions      []DocumentVersionDTO             `json:"document_versions"`
+	DocumentStatus        DocumentStatusDTO                `json:"document_status"`
+	DocumentSharedUsers   []*DocumentSharedUserDTO         `json:"document_shared_users"`
+	DocumentSharedUnits   []*DocumentSharedUnitDTO         `json:"document_shared_units"`
+	CreatedByUser         organizationDTOs.UserMinimalDTO  `json:"created_by"`
+	UpdatedByUser         *organizationDTOs.UserMinimalDTO `json:"updated_by"`
 }
 
 type DocumentVersionDTO struct {
-	ID              uint                            `json:"id"`
-	DocumentID      uint                            `json:"document_id"`
-	Version         float64                         `json:"version"`
-	IsLatestVersion int                             `json:"is_latest_version"`
-	URL             string                          `json:"url"`
-	Name            string                          `json:"name"`
-	Size            int                             `json:"size"`
-	Token           string                          `json:"token"`
-	OriginalName    *string                         `json:"original_name,omitempty"`
-	Type            string                          `json:"type"`
-	CreatedByUser   organizationDTOs.UserMinimalDTO `json:"created_by"`
-	UpdatedByUser   organizationDTOs.UserMinimalDTO `json:"updated_by"`
-	CreatedAt       time.Time                       `json:"created_at"`
-	UpdatedAt       *time.Time                      `json:"updated_at"`
+	ID                  uint                            `json:"id"`
+	DocumentID          uint                            `json:"document_id"`
+	Version             float64                         `json:"version"`
+	IsLatestVersion     bool                            `json:"is_latest_version"`
+	URL                 string                          `json:"url"`
+	Name                string                          `json:"name"`
+	Size                int                             `json:"size"`
+	Token               string                          `json:"token"`
+	OriginalName        *string                         `json:"original_name,omitempty"`
+	Type                string                          `json:"type"`
+	CreatedByUser       organizationDTOs.UserMinimalDTO `json:"created_by"`
+	UpdatedByUser       organizationDTOs.UserMinimalDTO `json:"updated_by"`
+	CreatedAt           time.Time                       `json:"created_at"`
+	UpdatedAt           *time.Time                      `json:"updated_at"`
+	DocumentEditHistory []DcumentHistoryDTO             `json:"document_edit_history"`
 }
 
 type DocumentSharedUserDTO struct {
@@ -140,4 +144,22 @@ type DocumentSharedUnitDTO struct {
 	Type             string                           `json:"type"`
 	CreatedByUser    organizationDTOs.UserMinimalDTO  `json:"created_by"`
 	CreatedAt        time.Time                        `json:"created_at"`
+}
+
+type DcumentHistoryDTO struct {
+	ID                *uint   `json:"id"`
+	DocumentID        uint    `json:"document_id"`
+	DocumentVersionID uint    `json:"document_version_id"`
+	ActionType        string  `json:"action_type"`
+	URL               *string `json:"url"`
+	FileName          *string `json:"file_name"`
+	OriginalName      *string `json:"original_name"`
+	Type              *string `json:"type"`
+	Size              *int    `json:"size"`
+	Comment           *string `json:"comment"`
+}
+
+type DocumentCheckinFormDTO struct {
+	Comment  *string                    `json:"comment"`
+	Document commonDTOs.DocumentFormDTO `json:"document"`
 }

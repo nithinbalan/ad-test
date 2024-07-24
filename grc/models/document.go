@@ -17,6 +17,11 @@ type Document struct {
 	ResponsibleUnitID    uint       `json:"responsible_unit_id" binding:"required" gorm:"not null"`
 	DocumentAccessTypeID uint       `json:"document_access_type_id" binding:"required" gorm:"not null"`
 	DocumentStatusID     uint       `json:"document_status_id" binding:"required" gorm:"not null"`
+	IsLocked             bool       `json:"is_locked" binding:"required" gorm:"type:tinyint(1);not null;default:0"`
+	LastCheckoutAt       *time.Time `json:"last_checkout_at" gorm:"type:date;default:null"`
+	LastCheckoutBYID     *uint      `json:"last_checkout_by_id" gorm:"default:null"`
+	LastCheckinAt        *time.Time `json:"last_checkin_at" gorm:"type:date;default:null"`
+	LastCheckinBYID      *uint      `json:"last_checkin_by_id" gorm:"default:null"`
 	CreatedBYID          uint       `json:"created_by_id" binding:"required" gorm:"not null"`
 	UpdatedBYID          *uint      `json:"updated_by_id" gorm:"default:null"`
 	CreatedAt            time.Time  `json:"created_at" binding:"required" gorm:"type:datetime;not null"`
@@ -31,10 +36,13 @@ type Document struct {
 	DocumentStatus     *DocumentStatus     `gorm:"foreignKey:DocumentStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	CreatedByUser      *User               `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	UpdatedByUser      *User               `gorm:"foreignKey:UpdatedBYID"`
+	LastCheckoutByUser *User               `gorm:"foreignKey:LastCheckoutBYID"`
+	LastCheckinByUser  *User               `gorm:"foreignKey:LastCheckinBYID"`
 
-	DocumentVersions    []*DocumentVersion    `gorm:"foreignKey:DocumentID"`
-	DocumentSharedUsers []*DocumentSharedUser `gorm:"foreignKey:DocumentID"`
-	DocumentSharedUnits []*DocumentSharedUnit `gorm:"foreignKey:DocumentID"`
+	DocumentLetastVersion *DocumentVersion      `gorm:"foreignKey:DocumentID"`
+	DocumentVersions      []*DocumentVersion    `gorm:"foreignKey:DocumentID"`
+	DocumentSharedUsers   []*DocumentSharedUser `gorm:"foreignKey:DocumentID"`
+	DocumentSharedUnits   []*DocumentSharedUnit `gorm:"foreignKey:DocumentID"`
 }
 
 func (Document) TableName() string {
