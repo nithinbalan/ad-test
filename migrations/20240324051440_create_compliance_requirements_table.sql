@@ -9,6 +9,7 @@ CREATE TABLE compliance_requirements (
     responsible_user_id INT NOT NULL,
     deadline DATE NULL,
     compliance_status_id INT NOT NULL,
+    marked_as_auditable_item BIT NOT NULL DEFAULT 0,
     created_at DATETIME NOT NULL ,
     updated_at DATETIME NULL,
     created_by_id INT NOT NULL,

@@ -103,7 +103,7 @@ func (rhc *RiskHeatmapController) GetComplianceRiskHeatmap(c *gin.Context) {
 	c.JSON(http.StatusOK, riskHeatmap)
 }
 
-func (rhc *RiskHeatmapController) GetRiskHeatmapByOwnerUnit(c *gin.Context) {
+func (rhc *RiskHeatmapController) GetRiskHeatmapByResponsibleUnit(c *gin.Context) {
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
@@ -154,7 +154,7 @@ func (rhc *RiskHeatmapController) GetRiskHeatmapByOwnerUnit(c *gin.Context) {
 		NextReviewDateTo:   nextReviewDateTo,
 	}
 
-	riskHeatmap, err := rhc.service.GetRiskHeatmapByOwnerUnit(&queryParams)
+	riskHeatmap, err := rhc.service.GetRiskHeatmapByResponsibleUnit(&queryParams)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

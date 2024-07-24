@@ -179,7 +179,7 @@ func NewRiskModule(db *gorm.DB,
 		riskStatusSvc,
 		masterModule.ReviewFrequencySvc,
 		organizationModule.ControlSvc,
-		complianceModule.ComplianceRequirementSvc, organizationModule.ProcessSvc, organizationModule.StrategicObjectiveSvc, complianceModule.SlaRegisterSvc)
+		complianceModule.ComplianceRequirementSvc, organizationModule.ProcessSvc, organizationModule.StrategicObjectiveSvc, complianceModule.SlaRegisterSvc, riskMatrixSvc)
 	riskRegisterController := controllers.NewRiskRegisterController(riskRegisterSvc)
 
 	riskRootCauseAnalysisRepo := repositories.NewRiskRootCauseAnalysisRepository(db)
@@ -234,7 +234,7 @@ func NewRiskModule(db *gorm.DB,
 	riskInherentControlAnalysisController := controllers.NewRiskInherentControlAnalysisController(riskInherentControlAnalysisSvc)
 
 	riskResidualEvaluationRepo := repositories.NewRiskResidualEvaluationRepository(db)
-	riskResidualEvaluationSvc := services.NewRiskResidualEvaluationService(riskResidualEvaluationRepo, sharedModule.ActivityLogService, riskRegisterSvc, riskMatrixSvc, riskMatrixRiskRatingValueSvc, riskMatrixImpactSvc, riskMatrixLikelihoodSvc, riskImpactCategorySvc, riskMatrixImpactGuidelineSvc, riskAppetiteStatementSvc)
+	riskResidualEvaluationSvc := services.NewRiskResidualEvaluationService(riskResidualEvaluationRepo, sharedModule.ActivityLogService, riskRegisterSvc, riskMatrixSvc, riskMatrixRiskRatingValueSvc, riskMatrixImpactSvc, riskMatrixLikelihoodSvc, riskImpactCategorySvc, riskMatrixImpactGuidelineSvc, riskAppetiteStatementSvc, riskInherentEvaluationSvc)
 	riskResidualEvaluationController := controllers.NewRiskResidualEvaluationController(riskResidualEvaluationSvc)
 
 	riskResidualControlAnalysisRepo := repositories.NewRiskResidualControlAnalysisRepository(db)

@@ -12,6 +12,7 @@ import (
 type RiskStatusServiceInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.RiskStatus, error)
 	GetByID(id uint) (*models.RiskStatus, error)
+	GetByType(status string) (*models.RiskStatus, error)
 }
 
 // Service and implementations
@@ -38,4 +39,13 @@ func (rss RiskStatusService) GetByID(id uint) (*models.RiskStatus, error) {
 		return nil, err
 	}
 	return riskStatus, nil
+}
+
+func (rss *RiskStatusService) GetByType(status string) (*models.RiskStatus, error) {
+	statusResult, err := rss.repo.GetByType(status)
+	if err != nil {
+		return nil, err
+	}
+
+	return statusResult, nil
 }

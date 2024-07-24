@@ -18,6 +18,7 @@ CREATE TABLE documents (
     last_checkout_by_id INT NULL,
     last_checkin_at DATE NULL,
     last_checkin_by_id INT NULL,
+    marked_as_auditable_item TINYINT NOT NULL DEFAULT 0,
     created_by_id INT NOT NULL,
     updated_by_id INT NULL,
     created_at DATETIME NOT NULL,

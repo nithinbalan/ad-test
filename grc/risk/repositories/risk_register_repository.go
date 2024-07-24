@@ -72,13 +72,13 @@ func (repo *RiskRegisterRepository) GetAll(params *riskDTOs.RiskRegisterListQuer
             risk_categories.title_ar AS risk_category_title_ar,
             risk_sources.title_en AS risk_source_title_en,
             risk_sources.title_ar AS risk_source_title_ar,
-			organization_units.id AS owner_unit_id,
-            organization_units.title_en AS owner_unit_title_en,
-            organization_units.title_ar AS owner_unit_title_ar,
-            users.first_name_en AS owner_first_name_en,
-            users.first_name_ar AS owner_first_name_ar,
-            users.last_name_en AS owner_last_name_en,
-            users.last_name_ar AS owner_last_name_ar,
+			organization_units.id AS responsible_unit_id,
+            organization_units.title_en AS responsible_unit_title_en,
+            organization_units.title_ar AS responsible_unit_title_ar,
+            users.first_name_en AS responsible_user_first_name_en,
+            users.first_name_ar AS responsible_user_first_name_ar,
+            users.last_name_en AS responsible_user_last_name_en,
+            users.last_name_ar AS responsible_user_last_name_ar,
             risk_statuses.title_en AS risk_status_title_en,
             risk_statuses.title_ar AS risk_status_title_ar,
             risk_statuses.color_code AS risk_status_color_code,
@@ -98,8 +98,8 @@ func (repo *RiskRegisterRepository) GetAll(params *riskDTOs.RiskRegisterListQuer
 		Joins(`
             LEFT JOIN risk_categories ON risk_categories.id = risk_register.risk_category_id
             LEFT JOIN risk_sources ON risk_sources.id = risk_register.risk_source_id
-            LEFT JOIN organization_units ON organization_units.id = risk_register.owner_unit_id
-            LEFT JOIN users ON users.id = risk_register.owner_id
+            LEFT JOIN organization_units ON organization_units.id = risk_register.responsible_unit_id
+            LEFT JOIN users ON users.id = risk_register.responsible_user_id
             LEFT JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id
             LEFT JOIN users AS created_user ON created_user.id = risk_register.created_by_id
             LEFT JOIN users AS updated_user ON updated_user.id = risk_register.updated_by_id
@@ -229,8 +229,8 @@ func (repo *RiskRegisterRepository) GetFullDetailsByID(id uint, tx ...utility.Da
 	result := db.
 		Preload("RiskCategory").
 		Preload("RiskSource").
-		Preload("OwnerUnit").
-		Preload("Owner").
+		Preload("ResponsibleUnit").
+		Preload("ResponsibleUser").
 		Preload("ReviewFrequency").
 		Preload("RiskStatus").
 		Preload("Documents").
@@ -243,6 +243,10 @@ func (repo *RiskRegisterRepository) GetFullDetailsByID(id uint, tx ...utility.Da
 		Preload("StrategicObjectives").
 		Preload("SLARegisters").
 		Preload("KRIs").
+		Preload("RiskMatrixLikelihood").
+		Preload("RiskMatrixImpact").
+		Preload("RiskMatrixRiskRating").
+		Preload("RiskMatrixRiskRatingValue").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&risk, id)
