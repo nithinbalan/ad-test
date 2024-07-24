@@ -101,7 +101,7 @@ type DocumentDetailsDTO struct {
 	DocumentAccessType    DocumentAccessTypeDTO            `json:"document_access_type"`
 	ResponsibleUnit       settingsDTOs.OrganizationUnitDTO `json:"responsible_unit"`
 	ResponsibleUser       organizationDTOs.UserMinimalDTO  `json:"responsible_user"`
-	DocumentLetastVersion DocumentVersionDTO               `json:"document_letast_version"`
+	LatestDocumentVersion DocumentVersionDTO               `json:"latest_document_version"`
 	DocumentVersions      []DocumentVersionDTO             `json:"document_versions"`
 	DocumentStatus        DocumentStatusDTO                `json:"document_status"`
 	DocumentSharedUsers   []*DocumentSharedUserDTO         `json:"document_shared_users"`
@@ -125,7 +125,7 @@ type DocumentVersionDTO struct {
 	UpdatedByUser       organizationDTOs.UserMinimalDTO `json:"updated_by"`
 	CreatedAt           time.Time                       `json:"created_at"`
 	UpdatedAt           *time.Time                      `json:"updated_at"`
-	DocumentEditHistory []DocumentHistoryDTO            `json:"document_edit_history"`
+	DocumentEditHistory []DocumentEditHistoryDTO        `json:"document_edit_history"`
 }
 
 type DocumentSharedUserDTO struct {
@@ -146,7 +146,7 @@ type DocumentSharedUnitDTO struct {
 	CreatedAt        time.Time                        `json:"created_at"`
 }
 
-type DocumentHistoryDTO struct {
+type DocumentEditHistoryDTO struct {
 	ID                *uint   `json:"id"`
 	DocumentID        uint    `json:"document_id"`
 	DocumentVersionID uint    `json:"document_version_id"`

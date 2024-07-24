@@ -28,12 +28,12 @@ type DocumentRepositoryInterface interface {
 	CreateSharedUnits(sharedUnits []*models.DocumentSharedUnit, tx ...utility.DatabaseTransaction) error
 	DeleteSharedUnits(sharedUnitIds []*uint, tx ...utility.DatabaseTransaction) error
 
-	GetDocumentByID(id uint, tx ...utility.DatabaseTransaction) (*models.DocumentVersion, error)
-	CreateDocument(documentVersion *models.DocumentVersion, tx ...utility.DatabaseTransaction) (uint, error)
-	UpdateDocument(documentVersion *models.DocumentVersion, tx ...utility.DatabaseTransaction) error
-	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
+	GetDocumentVersionByID(id uint, tx ...utility.DatabaseTransaction) (*models.DocumentVersion, error)
+	CreateDocumentVersion(documentVersion *models.DocumentVersion, tx ...utility.DatabaseTransaction) (uint, error)
+	UpdateDocumentVersion(documentVersion *models.DocumentVersion, tx ...utility.DatabaseTransaction) error
+	DeleteDocumentVersions(docIds []*uint, tx ...utility.DatabaseTransaction) error
 
-	CreateDocumentHistory(documentHistory *models.DocumentEditHistory, tx ...utility.DatabaseTransaction) (uint, error)
+	CreateDocumentEditHistory(documentHistory *models.DocumentEditHistory, tx ...utility.DatabaseTransaction) (uint, error)
 	DeleteDocumentEditHistory(docHistoryEditIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
@@ -231,9 +231,9 @@ func (repo *DocumentRepository) GetFullDetailsByID(id uint, tx ...utility.Databa
 		Preload("ResponsibleUnit").
 		Preload("DocumentAccessType").
 		Preload("DocumentStatus").
-		Preload("DocumentLetastVersion", "is_latest_version = ?", true).
-		Preload("DocumentLetastVersion.CreatedByUser").
-		Preload("DocumentLetastVersion.UpdatedByUser").
+		Preload("LatestDocumentVersion", "is_latest_version = ?", true).
+		Preload("LatestDocumentVersion.CreatedByUser").
+		Preload("LatestDocumentVersion.UpdatedByUser").
 		Preload("DocumentVersions").
 		Preload("DocumentVersions.DocumentEditHistory").
 		Preload("DocumentSharedUsers").
@@ -289,7 +289,7 @@ func (repo *DocumentRepository) Delete(id uint, tx ...utility.DatabaseTransactio
 	return nil
 }
 
-func (repo *DocumentRepository) GetDocumentByID(id uint, tx ...utility.DatabaseTransaction) (*models.DocumentVersion, error) {
+func (repo *DocumentRepository) GetDocumentVersionByID(id uint, tx ...utility.DatabaseTransaction) (*models.DocumentVersion, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -305,7 +305,7 @@ func (repo *DocumentRepository) GetDocumentByID(id uint, tx ...utility.DatabaseT
 	return documentVersion, nil
 }
 
-func (repo *DocumentRepository) CreateDocument(documentVersion *models.DocumentVersion, tx ...utility.DatabaseTransaction) (uint, error) {
+func (repo *DocumentRepository) CreateDocumentVersion(documentVersion *models.DocumentVersion, tx ...utility.DatabaseTransaction) (uint, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -316,7 +316,7 @@ func (repo *DocumentRepository) CreateDocument(documentVersion *models.DocumentV
 	return documentVersion.ID, nil
 }
 
-func (repo *DocumentRepository) UpdateDocument(documentVersion *models.DocumentVersion, tx ...utility.DatabaseTransaction) error {
+func (repo *DocumentRepository) UpdateDocumentVersion(documentVersion *models.DocumentVersion, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -328,7 +328,7 @@ func (repo *DocumentRepository) UpdateDocument(documentVersion *models.DocumentV
 	return nil
 }
 
-func (repo *DocumentRepository) DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error {
+func (repo *DocumentRepository) DeleteDocumentVersions(docIds []*uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -418,7 +418,7 @@ func (repo *DocumentRepository) GenerateReferenceNumber() (string, error) {
 	return newReferenceNumber, nil
 }
 
-func (repo *DocumentRepository) CreateDocumentHistory(documentHistory *models.DocumentEditHistory, tx ...utility.DatabaseTransaction) (uint, error) {
+func (repo *DocumentRepository) CreateDocumentEditHistory(documentHistory *models.DocumentEditHistory, tx ...utility.DatabaseTransaction) (uint, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()

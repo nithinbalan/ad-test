@@ -143,7 +143,7 @@ func (dc *DocumentController) DeleteDocuments(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
 
-func (dc *DocumentController) DocumentCheckout(c *gin.Context) {
+func (dc *DocumentController) CheckoutDocument(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -163,7 +163,7 @@ func (dc *DocumentController) DocumentCheckout(c *gin.Context) {
 		return
 	}
 
-	documentPath, err := dc.service.DocumentCheckout(uint(id), currentUserID, token)
+	documentPath, err := dc.service.CheckoutDocument(uint(id), currentUserID, token)
 	if err != nil {
 		switch err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -208,7 +208,7 @@ func (dc *DocumentController) CheckinDocument(c *gin.Context) {
 		return
 	}
 
-	err = dc.service.DocumentCheckin(uint(id), currentUserID, &documentCheckinFormDTO)
+	err = dc.service.CheckinDocument(uint(id), currentUserID, &documentCheckinFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:
@@ -237,7 +237,7 @@ func (dc *DocumentController) RevertDocumentCheckout(c *gin.Context) {
 		return
 	}
 
-	err = dc.service.DocumentCheckoutRevert(uint(id), currentUserID)
+	err = dc.service.RevertDocumentCheckout(uint(id), currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:

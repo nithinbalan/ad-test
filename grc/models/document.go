@@ -39,7 +39,7 @@ type Document struct {
 	LastCheckoutByUser *User               `gorm:"foreignKey:LastCheckoutBYID"`
 	LastCheckinByUser  *User               `gorm:"foreignKey:LastCheckinBYID"`
 
-	DocumentLetastVersion *DocumentVersion      `gorm:"foreignKey:DocumentID"`
+	DocumentLatestVersion *DocumentVersion      `gorm:"foreignKey:DocumentID"`
 	DocumentVersions      []*DocumentVersion    `gorm:"foreignKey:DocumentID"`
 	DocumentSharedUsers   []*DocumentSharedUser `gorm:"foreignKey:DocumentID"`
 	DocumentSharedUnits   []*DocumentSharedUnit `gorm:"foreignKey:DocumentID"`

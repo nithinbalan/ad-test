@@ -27,9 +27,9 @@ type DocumentServiceInterface interface {
 	Create(currentUserID uint, documentFormDTO *documentDTOs.DocumentFormDTO) (uint, error)
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 
-	DocumentCheckout(id uint, currentUserID uint, token string) (string, error)
-	DocumentCheckin(id uint, currentUserID uint, documentCheckinFormDTO *documentDTOs.DocumentCheckinFormDTO) error
-	DocumentCheckoutRevert(id uint, currentUserID uint) error
+	CheckoutDocument(id uint, currentUserID uint, token string) (string, error)
+	CheckinDocument(id uint, currentUserID uint, documentCheckinFormDTO *documentDTOs.DocumentCheckinFormDTO) error
+	RevertDocumentCheckout(id uint, currentUserID uint) error
 
 	CreateSharedUsers(sharedUsers []*models.DocumentSharedUser, tx ...utility.DatabaseTransaction) error
 	CreateSharedUnits(sharedUnits []*models.DocumentSharedUnit, tx ...utility.DatabaseTransaction) error
@@ -235,7 +235,7 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 			CreatedBYID:     currentUserID,
 		}
 
-		docVersionId, err := ds.repo.CreateDocument(documentVersion, tx)
+		docVersionId, err := ds.repo.CreateDocumentVersion(documentVersion, tx)
 		if err != nil {
 			tx.Rollback()
 			return 0, err
@@ -251,7 +251,7 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 		}
 
 		//add document history
-		documentHistory := &documentDTOs.DocumentHistoryDTO{
+		documentEditHistory := &documentDTOs.DocumentEditHistoryDTO{
 			DocumentID:        id,
 			DocumentVersionID: docVersionId,
 			ActionType:        "create",
@@ -261,7 +261,7 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 			Size:              &documentTemplate.Document.Size,
 		}
 
-		err = ds.CreateDocumentHistory(documentHistory, &destinationDir, currentUserID, tx)
+		err = ds.CreateDocumentEditHistory(documentEditHistory, &destinationDir, currentUserID, tx)
 		if err != nil {
 			tx.Rollback()
 			return 0, err
@@ -286,7 +286,7 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 			CreatedBYID:     currentUserID,
 		}
 
-		docVersionId, err := ds.repo.CreateDocument(documentVersion, tx)
+		docVersionId, err := ds.repo.CreateDocumentVersion(documentVersion, tx)
 		if err != nil {
 			tx.Rollback()
 			return 0, err
@@ -298,7 +298,7 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 		}
 
 		//add document history
-		documentHistory := &documentDTOs.DocumentHistoryDTO{
+		documentEditHistory := &documentDTOs.DocumentEditHistoryDTO{
 			DocumentID:        id,
 			DocumentVersionID: docVersionId,
 			ActionType:        "create",
@@ -308,7 +308,7 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 			Size:              &documentFormDTO.Document.Size,
 		}
 
-		err = ds.CreateDocumentHistory(documentHistory, &destinationDir, currentUserID, tx)
+		err = ds.CreateDocumentEditHistory(documentEditHistory, &destinationDir, currentUserID, tx)
 		if err != nil {
 			tx.Rollback()
 			return 0, err
@@ -349,7 +349,7 @@ func (ds *DocumentService) Delete(ids []uint, currentUserID uint) ([]uint, error
 	var failedIds []uint
 	var successfulIds []uint
 	documentsToDelete := make(map[uint][]*documentDTOs.DocumentVersionDTO)
-	documentEditHistoryToDelete := make(map[uint][]*documentDTOs.DocumentHistoryDTO)
+	documentEditHistoryToDelete := make(map[uint][]*documentDTOs.DocumentEditHistoryDTO)
 
 	for _, id := range ids {
 		document, err := ds.GetFullDetailsByID(id, tx)
@@ -406,7 +406,7 @@ func (ds *DocumentService) Delete(ids []uint, currentUserID uint) ([]uint, error
 				return nil, err
 			}
 
-			if err := ds.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
+			if err := ds.repo.DeleteDocumentVersions(deleteDocumentIds, tx); err != nil {
 				tx.Rollback()
 				return nil, err
 			}
@@ -552,45 +552,45 @@ func (ds *DocumentService) CreateSharedUnits(sharedUnits []*models.DocumentShare
 	return nil
 }
 
-func (ds *DocumentService) CreateDocumentHistory(documentHistoryDTO *documentDTOs.DocumentHistoryDTO, sourceDir *string, currentUserId uint, tx ...utility.DatabaseTransaction) error {
+func (ds *DocumentService) CreateDocumentEditHistory(documentEditHistoryDTO *documentDTOs.DocumentEditHistoryDTO, sourceDir *string, currentUserId uint, tx ...utility.DatabaseTransaction) error {
 	if sourceDir != nil {
-		dataToEncrypt := []byte(*documentHistoryDTO.FileName)
+		dataToEncrypt := []byte(*documentEditHistoryDTO.FileName)
 		encryptedFilename, err := utility.EncryptData(dataToEncrypt)
 		if err != nil {
 			return err
 		}
-		url := utility.GenerateDocumentURL("document", "draft", strconv.FormatUint(uint64(documentHistoryDTO.DocumentID), 10), "document-history")
+		url := utility.GenerateDocumentURL("document", "draft", strconv.FormatUint(uint64(documentEditHistoryDTO.DocumentID), 10), "document-history")
 		documentEditHistory := &models.DocumentEditHistory{
-			DocumentID:        documentHistoryDTO.DocumentID,
-			DocumentVersionID: documentHistoryDTO.DocumentVersionID,
-			ActionType:        documentHistoryDTO.ActionType,
-			Comment:           documentHistoryDTO.Comment,
+			DocumentID:        documentEditHistoryDTO.DocumentID,
+			DocumentVersionID: documentEditHistoryDTO.DocumentVersionID,
+			ActionType:        documentEditHistoryDTO.ActionType,
+			Comment:           documentEditHistoryDTO.Comment,
 			URL:               &url,
-			Name:              documentHistoryDTO.FileName,
-			Size:              documentHistoryDTO.Size,
+			Name:              documentEditHistoryDTO.FileName,
+			Size:              documentEditHistoryDTO.Size,
 			Token:             &encryptedFilename,
-			OriginalName:      documentHistoryDTO.OriginalName,
-			Type:              documentHistoryDTO.Type,
+			OriginalName:      documentEditHistoryDTO.OriginalName,
+			Type:              documentEditHistoryDTO.Type,
 			CreatedBYID:       currentUserId,
 		}
-		id, err := ds.repo.CreateDocumentHistory(documentEditHistory, tx...)
+		id, err := ds.repo.CreateDocumentEditHistory(documentEditHistory, tx...)
 		if err != nil {
 			return err
 		}
-		destinationDir := filepath.Join("document", "draft", strconv.FormatUint(uint64(documentHistoryDTO.DocumentID), 10), "document-history", strconv.FormatUint(uint64(id), 10), "documents")
-		err = utility.CopyFileFromPaths(*sourceDir, destinationDir, *documentHistoryDTO.FileName)
+		destinationDir := filepath.Join("document", "draft", strconv.FormatUint(uint64(documentEditHistoryDTO.DocumentID), 10), "document-history", strconv.FormatUint(uint64(id), 10), "documents")
+		err = utility.CopyFileFromPaths(*sourceDir, destinationDir, *documentEditHistoryDTO.FileName)
 		if err != nil {
 			return fmt.Errorf("failed to copy file: %w", err)
 		}
 	} else {
 		documentEditHistory := &models.DocumentEditHistory{
-			DocumentID:        documentHistoryDTO.DocumentID,
-			DocumentVersionID: documentHistoryDTO.DocumentVersionID,
-			ActionType:        documentHistoryDTO.ActionType,
+			DocumentID:        documentEditHistoryDTO.DocumentID,
+			DocumentVersionID: documentEditHistoryDTO.DocumentVersionID,
+			ActionType:        documentEditHistoryDTO.ActionType,
 			CreatedBYID:       currentUserId,
 		}
 
-		_, err := ds.repo.CreateDocumentHistory(documentEditHistory, tx...)
+		_, err := ds.repo.CreateDocumentEditHistory(documentEditHistory, tx...)
 		if err != nil {
 			return err
 		}
@@ -599,7 +599,7 @@ func (ds *DocumentService) CreateDocumentHistory(documentHistoryDTO *documentDTO
 	return nil
 }
 
-func (ds *DocumentService) DocumentCheckout(id uint, currentUserID uint, token string) (string, error) {
+func (ds *DocumentService) CheckoutDocument(id uint, currentUserID uint, token string) (string, error) {
 	tx := ds.repo.BeginTransaction()
 	document, err := ds.GetFullDetailsByID(id, tx)
 	if err != nil {
@@ -645,13 +645,13 @@ func (ds *DocumentService) DocumentCheckout(id uint, currentUserID uint, token s
 	}
 
 	//add document history
-	documentHistory := &documentDTOs.DocumentHistoryDTO{
+	documentEditHistory := &documentDTOs.DocumentEditHistoryDTO{
 		DocumentID:        id,
-		DocumentVersionID: document.DocumentLetastVersion.ID,
+		DocumentVersionID: document.LatestDocumentVersion.ID,
 		ActionType:        "check-out",
 	}
 
-	err = ds.CreateDocumentHistory(documentHistory, nil, currentUserID, tx)
+	err = ds.CreateDocumentEditHistory(documentEditHistory, nil, currentUserID, tx)
 	if err != nil {
 		tx.Rollback()
 		return "", err
@@ -668,7 +668,7 @@ func (ds *DocumentService) DocumentCheckout(id uint, currentUserID uint, token s
 	return documentPath, nil
 }
 
-func (ds *DocumentService) DocumentCheckin(id uint, currentUserID uint, documentCheckinFormDTO *documentDTOs.DocumentCheckinFormDTO) error {
+func (ds *DocumentService) CheckinDocument(id uint, currentUserID uint, documentCheckinFormDTO *documentDTOs.DocumentCheckinFormDTO) error {
 	tx := ds.repo.BeginTransaction()
 	document, err := ds.GetFullDetailsByID(id, tx)
 	if err != nil {
@@ -703,7 +703,7 @@ func (ds *DocumentService) DocumentCheckin(id uint, currentUserID uint, document
 		return err
 	}
 
-	documentVersion, err := ds.repo.GetDocumentByID(document.DocumentLetastVersion.ID, tx)
+	documentVersion, err := ds.repo.GetDocumentVersionByID(document.LatestDocumentVersion.ID, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -716,7 +716,7 @@ func (ds *DocumentService) DocumentCheckin(id uint, currentUserID uint, document
 	documentVersion.Type = documentCheckinFormDTO.Document.Type
 	documentVersion.UpdatedBYID = &currentUserID
 
-	err = ds.repo.UpdateDocument(documentVersion, tx)
+	err = ds.repo.UpdateDocumentVersion(documentVersion, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -756,9 +756,9 @@ func (ds *DocumentService) DocumentCheckin(id uint, currentUserID uint, document
 	}
 
 	//add document history
-	documentHistory := &documentDTOs.DocumentHistoryDTO{
+	documentEditHistory := &documentDTOs.DocumentEditHistoryDTO{
 		DocumentID:        id,
-		DocumentVersionID: document.DocumentLetastVersion.ID,
+		DocumentVersionID: document.LatestDocumentVersion.ID,
 		ActionType:        "check-in",
 		FileName:          &documentCheckinFormDTO.Document.FileName,
 		OriginalName:      &documentCheckinFormDTO.Document.OriginalName,
@@ -767,7 +767,7 @@ func (ds *DocumentService) DocumentCheckin(id uint, currentUserID uint, document
 		Comment:           documentCheckinFormDTO.Comment,
 	}
 
-	err = ds.CreateDocumentHistory(documentHistory, &destinationDir, currentUserID, tx)
+	err = ds.CreateDocumentEditHistory(documentEditHistory, &destinationDir, currentUserID, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -778,7 +778,7 @@ func (ds *DocumentService) DocumentCheckin(id uint, currentUserID uint, document
 	return nil
 }
 
-func (ds *DocumentService) DocumentCheckoutRevert(id uint, currentUserID uint) error {
+func (ds *DocumentService) RevertDocumentCheckout(id uint, currentUserID uint) error {
 	tx := ds.repo.BeginTransaction()
 	document, err := ds.GetFullDetailsByID(id, tx)
 	if err != nil {
@@ -805,13 +805,13 @@ func (ds *DocumentService) DocumentCheckoutRevert(id uint, currentUserID uint) e
 	}
 
 	//add document history
-	documentHistory := &documentDTOs.DocumentHistoryDTO{
+	documentEditHistory := &documentDTOs.DocumentEditHistoryDTO{
 		DocumentID:        id,
-		DocumentVersionID: document.DocumentLetastVersion.ID,
+		DocumentVersionID: document.LatestDocumentVersion.ID,
 		ActionType:        "revert",
 	}
 
-	err = ds.CreateDocumentHistory(documentHistory, nil, currentUserID, tx)
+	err = ds.CreateDocumentEditHistory(documentEditHistory, nil, currentUserID, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
