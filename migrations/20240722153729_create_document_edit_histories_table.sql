@@ -5,7 +5,7 @@ CREATE TABLE document_edit_histories (
     document_id INT NOT NULL,
     document_version_id INT NOT NULL,
     action_type VARCHAR(20) NOT NULL DEFAULT 'create',
-        CONSTRAINT CHK_document_edit_histories_action_type CHECK (action_type IN ('create', 'update','check-in', 'check-out', 'revert')),
+        CONSTRAINT CHK_document_edit_histories_action_type CHECK (action_type IN ('create', 'update','check-in', 'check-out', 'revert-checkout')),
     comment NVARCHAR(MAX) NULL,    
     url VARCHAR(1000) NULL,
     name NVARCHAR(255) NULL,

@@ -235,6 +235,8 @@ func (repo *DocumentRepository) GetFullDetailsByID(id uint, tx ...utility.Databa
 		Preload("LatestDocumentVersion.CreatedByUser").
 		Preload("LatestDocumentVersion.UpdatedByUser").
 		Preload("DocumentVersions").
+		Preload("DocumentVersions.CreatedByUser").
+		Preload("DocumentVersions.UpdatedByUser").
 		Preload("DocumentVersions.DocumentEditHistory").
 		Preload("DocumentSharedUsers").
 		Preload("DocumentSharedUsers.User").
