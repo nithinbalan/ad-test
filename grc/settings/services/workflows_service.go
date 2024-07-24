@@ -10,6 +10,7 @@ import (
 	"jethur/utility"
 	"log"
 
+	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
 )
 
@@ -42,6 +43,8 @@ func (ws *WorkflowService) GetAllWorkflowsByType(workflowType string) ([]*settin
 }
 
 func (ws *WorkflowService) GetWorkflowLevels(workflowID uint) (*settingsDTOs.WorkflowLevelListDTO, error) {
+	var workflowLevelDTO settingsDTOs.WorkflowLevelListDTO
+
 	workflowLevels, err := ws.repo.GetWorkflowLevels(workflowID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -50,64 +53,71 @@ func (ws *WorkflowService) GetWorkflowLevels(workflowID uint) (*settingsDTOs.Wor
 		return nil, err
 	}
 
-	levelsDTO := &settingsDTOs.WorkflowLevelListDTO{
-		WorkflowLevels: make([]settingsDTOs.WorkflowLevelDTO, len(workflowLevels)),
+	err = mapstructure.Decode(workflowLevels, &workflowLevelDTO)
+	if err != nil {
+		return nil, err
 	}
 
-	for i, level := range workflowLevels {
-		levelDTO := settingsDTOs.WorkflowLevelDTO{
-			ID:           level.ID,
-			Level:        level.Level,
-			WorkflowID:   level.WorkflowID,
-			ApprovalType: level.ApprovalType,
-			CreatedByID:  level.CreatedByID,
-			UpdatedByID:  level.UpdatedByID,
-			CreatedAt:    level.CreatedAt,
-			UpdatedAt:    level.UpdatedAt,
-			WorkflowLevelType: settingsDTOs.WorkflowLevelTypeDTO{
-				ID:      level.WorkflowLevelType.ID,
-				TitleEn: level.WorkflowLevelType.TitleEn,
-				TitleAr: level.WorkflowLevelType.TitleAr,
-				Type:    level.WorkflowLevelType.Type,
-			},
-		}
+	return &workflowLevelDTO, nil
 
-		// Assuming the participants are loaded as part of the WorkflowLevel model
-		for _, participant := range level.Participants {
-			participantDTO := settingsDTOs.WorkflowLevelParticipantDTO{
-				ID: participant.ID,
-			}
+	// levelsDTO := &settingsDTOs.WorkflowLevelListDTO{
+	// 	WorkflowLevels: make([]settingsDTOs.WorkflowLevelDTO, len(workflowLevels)),
+	// }
 
-			if participant.User != nil {
-				participantDTO.User = &settingsDTOs.UserMinimalDTO{
-					ID:               int(participant.User.ID),
-					FirstNameEN:      participant.User.FirstNameEn,
-					LastNameEN:       participant.User.LastNameEn,
-					FirstNameAR:      participant.User.FirstNameAr,
-					LastNameAR:       participant.User.LastNameAr,
-					ProfileImagePath: participant.User.ProfileImagePath,
-					Email:            participant.User.Email,
-					Initial:          participant.User.Initial,
-					Color:            participant.User.Color,
-				}
-			}
+	// for i, level := range workflowLevels {
+	// 	levelDTO := settingsDTOs.WorkflowLevelDTO{
+	// 		ID:           level.ID,
+	// 		Level:        level.Level,
+	// 		WorkflowID:   level.WorkflowID,
+	// 		ApprovalType: level.ApprovalType,
+	// 		CreatedByID:  level.CreatedByID,
+	// 		UpdatedByID:  level.UpdatedByID,
+	// 		CreatedAt:    level.CreatedAt,
+	// 		UpdatedAt:    level.UpdatedAt,
+	// 		WorkflowLevelType: settingsDTOs.WorkflowLevelTypeDTO{
+	// 			ID:      level.WorkflowLevelType.ID,
+	// 			TitleEn: level.WorkflowLevelType.TitleEn,
+	// 			TitleAr: level.WorkflowLevelType.TitleAr,
+	// 			Type:    level.WorkflowLevelType.Type,
+	// 		},
+	// 	}
 
-			if participant.Role != nil {
-				participantDTO.Role = &settingsDTOs.RoleDTO{
-					ID:      participant.Role.ID,
-					TitleEn: participant.Role.TitleEn,
-					TitleAr: participant.Role.TitleAr,
-					Status:  participant.Role.Status,
-				}
-			}
+	// 	// Assuming the participants are loaded as part of the WorkflowLevel model
+	// 	for _, participant := range level.Participants {
+	// 		participantDTO := settingsDTOs.WorkflowLevelParticipantDTO{
+	// 			ID: participant.ID,
+	// 		}
 
-			levelDTO.Participants = append(levelDTO.Participants, participantDTO)
-		}
+	// 		if participant.User != nil {
+	// 			participantDTO.User = &settingsDTOs.UserMinimalDTO{
+	// 				ID:               int(participant.User.ID),
+	// 				FirstNameEN:      participant.User.FirstNameEn,
+	// 				LastNameEN:       participant.User.LastNameEn,
+	// 				FirstNameAR:      participant.User.FirstNameAr,
+	// 				LastNameAR:       participant.User.LastNameAr,
+	// 				ProfileImagePath: participant.User.ProfileImagePath,
+	// 				Email:            participant.User.Email,
+	// 				Initial:          participant.User.Initial,
+	// 				Color:            participant.User.Color,
+	// 			}
+	// 		}
 
-		levelsDTO.WorkflowLevels[i] = levelDTO
-	}
+	// 		if participant.Role != nil {
+	// 			participantDTO.Role = &settingsDTOs.RoleDTO{
+	// 				ID:      participant.Role.ID,
+	// 				TitleEn: participant.Role.TitleEn,
+	// 				TitleAr: participant.Role.TitleAr,
+	// 				Status:  participant.Role.Status,
+	// 			}
+	// 		}
 
-	return levelsDTO, nil
+	// 		levelDTO.Participants = append(levelDTO.Participants, participantDTO)
+	// 	}
+
+	// 	levelsDTO.WorkflowLevels[i] = levelDTO
+	// }
+
+	// return levelsDTO, nil
 }
 
 func (ws *WorkflowService) CreateWorkFlowLevel(workflowId uint, currentUserID uint, workflowLevelFormDTO *settingsDTOs.WorkflowLevelFormDTO) (uint, error) {
@@ -168,6 +178,10 @@ func (ws *WorkflowService) CreateWorkFlowLevel(workflowId uint, currentUserID ui
 	switch workflowRoleType.Type {
 	case "individual", "multiple-users":
 		// Handle individual and multiple users by looping through user IDs provided in the form DTO
+		if len(workflowLevelFormDTO.UserIDs) > 0 {
+			tx.Rollback()
+			return 0, fmt.Errorf("user is required for selected level type")
+		}
 		for _, userID := range workflowLevelFormDTO.UserIDs {
 			participant := &models.WorkflowLevelParticipant{
 				WorkflowLevelID: id,
@@ -180,6 +194,10 @@ func (ws *WorkflowService) CreateWorkFlowLevel(workflowId uint, currentUserID ui
 		}
 	case "role":
 		// Handle role by creating a participant with RoleID
+		if workflowLevelFormDTO.RoleID == nil {
+			tx.Rollback()
+			return 0, fmt.Errorf("role is required for selected level type")
+		}
 		participant := &models.WorkflowLevelParticipant{
 			WorkflowLevelID: id,
 			RoleID:          workflowLevelFormDTO.RoleID,

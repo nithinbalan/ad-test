@@ -33,6 +33,14 @@ type WorkflowLevelFormDTO struct {
 }
 
 type WorkflowLevelListDTO struct {
+	ID             uint               `json:"id"`
+	Type           string             `json:"type"`
+	DocumentTypeID *uint              `json:"document_type_id"`
+	Status         string             `json:"status"`
+	CreatedByID    uint               `json:"created_by_id"`
+	UpdatedByID    *uint              `json:"updated_by_id"`
+	CreatedAt      time.Time          `json:"created_at"`
+	UpdatedAt      *time.Time         `json:"updated_at"`
 	WorkflowLevels []WorkflowLevelDTO `json:"workflow_levels"`
 }
 
@@ -58,8 +66,8 @@ type WorkflowLevelTypeDTO struct {
 
 type WorkflowLevelParticipantDTO struct {
 	ID   uint            `json:"id"`
-	User *UserMinimalDTO `json:"user"`
-	Role *RoleDTO        `json:"role"`
+	User *UserMinimalDTO `json:"user,omitempty"`
+	Role *RoleDTO        `json:"role,omitempty" `
 }
 
 type UserMinimalDTO struct {

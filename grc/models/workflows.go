@@ -16,6 +16,8 @@ type Workflow struct {
 	DocumentType  *DocumentType `gorm:"foreignKey:DocumentTypeID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	CreatedByUser *User         `gorm:"foreignKey:CreatedByID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	UpdatedByUser *User         `gorm:"foreignKey:UpdatedByID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+
+	WorkflowLevels []*WorkflowLevel `gorm:"foreignKey:WorkflowID"`
 }
 
 func (Workflow) TableName() string {

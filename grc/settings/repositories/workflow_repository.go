@@ -14,7 +14,7 @@ type WorkflowRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAllWorkflowsByType(workflowType string) ([]*settingsDTOs.WorkflowListDTO, error)
 	GetWorkflowLevelByID(id uint, tx ...utility.DatabaseTransaction) (*models.WorkflowLevel, error)
-	GetWorkflowLevels(workflowID uint) ([]*models.WorkflowLevel, error)
+	GetWorkflowLevels(workflowID uint) (*models.Workflow, error)
 	CreateWorkflowLevel(workflowLevel *models.WorkflowLevel, tx ...utility.DatabaseTransaction) (uint, error)
 	CreateParticipant(participant *models.WorkflowLevelParticipant, tx ...utility.DatabaseTransaction) error
 	DeleteWorkflowLevelParticipants(workflowLevelID uint, tx ...utility.DatabaseTransaction) error
@@ -75,20 +75,22 @@ func (repo *WorkflowRepository) GetAllWorkflowsByType(workflowType string) ([]*s
 	return workflows, nil
 }
 
-func (repo *WorkflowRepository) GetWorkflowLevels(workflowID uint) ([]*models.WorkflowLevel, error) {
-	var workflowLevels []*models.WorkflowLevel
+func (repo *WorkflowRepository) GetWorkflowLevels(workflowID uint) (*models.Workflow, error) {
+	var workflow *models.Workflow
 
 	if err := repo.db.
-		Preload("WorkflowLevelType").
-		Preload("Participants").
-		Preload("Participants.User").
-		Preload("Participants.Role").
-		Where("workflow_id = ?", workflowID).
-		Order("level ASC"). // Order by "level" ascending
-		Find(&workflowLevels).Error; err != nil {
+		Preload("WorkflowLevels", func(db *gorm.DB) *gorm.DB {
+			return db.Order("workflow_levels.level ASC") // Ordering WorkflowLevels by level ascending
+		}).
+		Preload("WorkflowLevels.WorkflowLevelType").
+		Preload("WorkflowLevels.Participants").
+		Preload("WorkflowLevels.Participants.User").
+		Preload("WorkflowLevels.Participants.Role").
+		Where("id = ?", workflowID). // Assuming the primary key field is "id"
+		Find(&workflow).Error; err != nil {
 		return nil, err
 	}
-	return workflowLevels, nil
+	return workflow, nil
 }
 
 func (repo *WorkflowRepository) GetWorkflowLevelByID(id uint, tx ...utility.DatabaseTransaction) (*models.WorkflowLevel, error) {
