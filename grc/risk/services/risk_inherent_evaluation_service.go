@@ -414,6 +414,18 @@ func (ries *RiskInherentEvaluationService) Delete(riskID uint, id uint, currentU
 		return failedId, err
 	}
 
+	updateDTO := &riskDTOs.RiskRegisterUpdateDTO{
+		CurrentImpactID:          nil,
+		CurrentLikelihoodID:      nil,
+		CurrentRiskRatingID:      nil,
+		CurrentRiskRatingValueID: nil,
+	}
+	err := ries.riskRegisterSvc.UpdateCurrentRiskRating(riskID, updateDTO, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
 	tx.Commit()
 
 	// Log activity

@@ -8,9 +8,10 @@ type RiskRegister struct {
 	ID                       uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	ReferenceNumber          string     `json:"reference_number" binding:"required,max=45" gorm:"type:varchar(45);not null;unique"`
 	RiskCategoryID           uint       `json:"risk_category_id" binding:"required"`
-	RiskSourceID             uint       `json:"risk_source_id" binding:"required"`
-	OwnerUnitID              uint       `json:"owner_unit_id" binding:"required"`
-	OwnerID                  uint       `json:"owner_id" binding:"required"`
+	RiskSourceID             *uint      `json:"risk_source_id" gorm:"default:null"`
+	RiskMatrixID             uint       `json:"risk_matrix_id" binding:"required"`
+	ResponsibleUnitID        uint       `json:"responsible_unit_id" binding:"required"`
+	ResponsibleUserID        uint       `json:"responsible_user_id" binding:"required"`
 	RiskStatusID             uint       `json:"risk_status_id" binding:"required"`
 	Title                    string     `json:"title" binding:"required,max=255"`
 	Description              *string    `json:"description" gorm:"type:nvarchar(max)"`
@@ -32,8 +33,8 @@ type RiskRegister struct {
 	// Relationships
 	RiskCategory              *RiskCategory                `gorm:"foreignKey:RiskCategoryID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	RiskSource                *RiskSource                  `gorm:"foreignKey:RiskSourceID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	OwnerUnit                 *OrganizationUnit            `gorm:"foreignKey:OwnerUnitID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	Owner                     *User                        `gorm:"foreignKey:OwnerID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	ResponsibleUnit           *OrganizationUnit            `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	ResponsibleUser           *User                        `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	ReviewFrequency           *ReviewFrequency             `gorm:"foreignKey:ReviewFrequencyID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	RiskResponseStrategy      *RiskResponseStrategy        `gorm:"foreignKey:RiskResponseStrategyID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	RiskMatrixLikelihood      *RiskMatrixLikelihood        `gorm:"foreignKey:CurrentLikelihoodID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`

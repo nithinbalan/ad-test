@@ -20,7 +20,7 @@ type ControlTestServiceInterface interface {
 	GetAll(controlID uint, params *organizationDTOs.ControlTestListQueryParamsDTO) (*organizationDTOs.ControlTestListResponseDTO, error)
 	GetByID(id uint) (*models.ControlTest, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*organizationDTOs.ControlTestDetailsDTO, error)
-	Create(controlID uint, currentUserID uint, riskID *uint, controlTestFormDTO *organizationDTOs.ControlTestFormDTO, tx ...utility.DatabaseTransaction) (uint, error)
+	Create(controlID uint, currentUserID uint, riskID *uint, controlTestFormDTO *organizationDTOs.ControlTestFormDTO, testedSource string, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(controlID uint, id uint, currentUserID uint, controlTestFormDTO *organizationDTOs.ControlTestFormDTO) error
 	Delete(controlID uint, ids []uint, currentUserID uint) ([]uint, error)
 	GetTrendAnalysis(controlID uint) ([]*organizationDTOs.ControlTrendAnalysisDTO, error)
@@ -97,7 +97,7 @@ func (cts *ControlTestService) GetFullDetailsByID(id uint, tx ...utility.Databas
 	return &controlTestDetailsDTO, nil
 }
 
-func (cts *ControlTestService) Create(controlID uint, currentUserID uint, riskID *uint, controlTestFormDTO *organizationDTOs.ControlTestFormDTO, tx ...utility.DatabaseTransaction) (uint, error) {
+func (cts *ControlTestService) Create(controlID uint, currentUserID uint, riskID *uint, controlTestFormDTO *organizationDTOs.ControlTestFormDTO, testedSource string, tx ...utility.DatabaseTransaction) (uint, error) {
 	var transaction utility.DatabaseTransaction
 
 	if len(tx) > 0 && tx[0] != nil {
@@ -121,6 +121,10 @@ func (cts *ControlTestService) Create(controlID uint, currentUserID uint, riskID
 		return 0, err
 	}
 
+	if testedSource == "" {
+		testedSource = "direct"
+	}
+
 	controlTest := &models.ControlTest{
 		RiskRegisterID:                riskID,
 		ControlID:                     controlID,
@@ -130,7 +134,7 @@ func (cts *ControlTestService) Create(controlID uint, currentUserID uint, riskID
 		Description:                   controlTestFormDTO.Description,
 		Score:                         controlTestFormDTO.Score,
 		Comments:                      controlTestFormDTO.Comments,
-		TestedSource:                  "direct",
+		TestedSource:                  testedSource,
 		TestedBy:                      currentUserID,
 		TestedAt:                      dates.TestedAt,
 	}

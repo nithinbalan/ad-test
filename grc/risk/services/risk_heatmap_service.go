@@ -9,7 +9,7 @@ type RiskHeatmapServiceInterface interface {
 	GetRiskHeatmapByProcessID(processID uint) ([][]*riskDTOs.RiskHeatmapResponseDTO, error)
 	GetRiskHeatmapByControlID(controlID uint) ([][]*riskDTOs.RiskHeatmapResponseDTO, error)
 	GetRiskHeatmapByComplianceID(complianceID uint) ([][]*riskDTOs.RiskHeatmapResponseDTO, error)
-	GetRiskHeatmapByOwnerUnit(params *riskDTOs.RiskRegisterListQueryParamsDTO) ([][]interface{}, error)
+	GetRiskHeatmapByResponsibleUnit(params *riskDTOs.RiskRegisterListQueryParamsDTO) ([][]interface{}, error)
 }
 
 type RiskHeatmapService struct {
@@ -74,7 +74,7 @@ func (rhs *RiskHeatmapService) GetRiskHeatmapByComplianceID(complianceID uint) (
 	return rhs.getRiskHeatmap(riskRegisterIDs)
 }
 
-func (rhs *RiskHeatmapService) GetRiskHeatmapByOwnerUnit(params *riskDTOs.RiskRegisterListQueryParamsDTO) ([][]interface{}, error) {
+func (rhs *RiskHeatmapService) GetRiskHeatmapByResponsibleUnit(params *riskDTOs.RiskRegisterListQueryParamsDTO) ([][]interface{}, error) {
 	riskRegisterResponse, err := rhs.riskRegisterSvc.GetAll(params)
 	if err != nil {
 		return nil, err
@@ -116,16 +116,16 @@ func (rhs *RiskHeatmapService) GetRiskHeatmapByOwnerUnit(params *riskDTOs.RiskRe
 
 	// Initialize the map and store owner unit titles
 	for _, register := range riskRegisters {
-		if _, exists := riskCountMap[register.OwnerUnitID]; !exists {
-			riskCountMap[register.OwnerUnitID] = make(map[uint]int)
-			ownerUnitTitleMap[register.OwnerUnitID] = register.OwnerUnitTitleEn // Assuming the English title is used
+		if _, exists := riskCountMap[register.ResponsibleUnitID]; !exists {
+			riskCountMap[register.ResponsibleUnitID] = make(map[uint]int)
+			ownerUnitTitleMap[register.ResponsibleUnitID] = register.ResponsibleUnitTitleEn // Assuming the English title is used
 		}
 	}
 
 	// Iterate over the risk registers to count risks by owner unit and risk rating value
 	for _, register := range riskRegisters {
 		if register.CurrentRiskRatingValueID != nil {
-			riskCountMap[register.OwnerUnitID][*register.CurrentRiskRatingValueID]++
+			riskCountMap[register.ResponsibleUnitID][*register.CurrentRiskRatingValueID]++
 		}
 	}
 
