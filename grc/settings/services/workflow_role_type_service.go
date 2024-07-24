@@ -3,48 +3,48 @@ package services
 import (
 	"errors"
 	"jethur/grc/models"
-	"jethur/grc/settings/repositories" // Ensure this path is correct and the repository handles WorkflowRoleType
+	"jethur/grc/settings/repositories" // Ensure this path is correct and the repository handles WorkflowLevelType
 	"jethur/utility"
 
 	"gorm.io/gorm"
 )
 
-type WorkflowRoleTypeServiceInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.WorkflowRoleType, error)
-	GetByID(id uint) (*models.WorkflowRoleType, error)
-	GetByType(roleType string) (*models.WorkflowRoleType, error)
+type WorkflowLevelTypeServiceInterface interface {
+	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.WorkflowLevelType, error)
+	GetByID(id uint) (*models.WorkflowLevelType, error)
+	GetByType(levelType string) (*models.WorkflowLevelType, error)
 }
 
 // Service and implementations
-type WorkflowRoleTypeService struct {
-	repo repositories.WorkflowRoleTypeRepositoryInterface
+type WorkflowLevelTypeService struct {
+	repo repositories.WorkflowLevelTypeRepositoryInterface
 }
 
-func NewWorkflowRoleTypeService(repo repositories.WorkflowRoleTypeRepositoryInterface) WorkflowRoleTypeServiceInterface {
-	return &WorkflowRoleTypeService{
+func NewWorkflowLevelTypeService(repo repositories.WorkflowLevelTypeRepositoryInterface) WorkflowLevelTypeServiceInterface {
+	return &WorkflowLevelTypeService{
 		repo: repo,
 	}
 }
 
-func (wrt *WorkflowRoleTypeService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.WorkflowRoleType, error) {
-	return wrt.repo.GetAll(sort, sortBy, keyword, status)
+func (wlt *WorkflowLevelTypeService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.WorkflowLevelType, error) {
+	return wlt.repo.GetAll(sort, sortBy, keyword, status)
 }
 
-func (wrt *WorkflowRoleTypeService) GetByID(id uint) (*models.WorkflowRoleType, error) {
-	workflowRoleType, err := wrt.repo.GetByID(id)
+func (wlt *WorkflowLevelTypeService) GetByID(id uint) (*models.WorkflowLevelType, error) {
+	workflowLevelType, err := wlt.repo.GetByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
 		}
 		return nil, err
 	}
-	return workflowRoleType, nil
+	return workflowLevelType, nil
 }
 
-func (wrt *WorkflowRoleTypeService) GetByType(roleType string) (*models.WorkflowRoleType, error) {
-	workflowRoleType, err := wrt.repo.GetByType(roleType)
+func (wlt *WorkflowLevelTypeService) GetByType(levelType string) (*models.WorkflowLevelType, error) {
+	workflowLevelType, err := wlt.repo.GetByType(levelType)
 	if err != nil {
 		return nil, err
 	}
-	return workflowRoleType, nil
+	return workflowLevelType, nil
 }

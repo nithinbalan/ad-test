@@ -1,6 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
-INSERT INTO workflow_role_types (type, title_en, title_ar, status) VALUES 
+INSERT INTO workflow_level_types (type, title_en, title_ar, status) VALUES 
 ('individual', 'Individual', 'فردي', 'active'),
 ('multiple-users', 'Multiple Users', 'مستخدمون متعددون', 'active'),
 ('role', 'Role', 'دور', 'inactive'),
@@ -9,5 +9,5 @@ INSERT INTO workflow_role_types (type, title_en, title_ar, status) VALUES
 
 -- +goose Down
 -- +goose StatementBegin
-TRUNCATE TABLE workflow_role_types;
+TRUNCATE TABLE workflow_level_types;
 -- +goose StatementEnd

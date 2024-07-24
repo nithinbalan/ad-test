@@ -18,7 +18,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	roleController := app.SettingsModule.RoleController
 	organizationUnitController := app.SettingsModule.OrganizationUnitController
 	logSettingsController := app.SettingsModule.LogSettingsController
-	workflowRoleTypeController := app.SettingsModule.WorkflowRoleTypeController
+	workflowLevelTypeController := app.SettingsModule.WorkflowLevelTypeController
 	workflowController := app.SettingsModule.WorkflowCOntroller
 
 	//Organization Level
@@ -51,8 +51,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	settingRoutes.GET("/log-settings", logSettingsController.GetLogSettings)
 	settingRoutes.PUT("/log-settings", logSettingsController.UpdateLogSettings)
 
-	settingRoutes.GET("/workflow-role-types", workflowRoleTypeController.GetAllWorkflowRoleTypes)
-	settingRoutes.GET("/workflow-role-types/:id", workflowRoleTypeController.GetWorkflowRoleTypeDetails)
+	settingRoutes.GET("/workflow-level-types", workflowLevelTypeController.GetAllWorkflowLevelTypes)
+	settingRoutes.GET("/workflow-level-types/:id", workflowLevelTypeController.GetWorkflowLevelTypeDetails)
 
 	settingRoutes.GET("/workflows", workflowController.GetAllWorkflows)
 	settingRoutes.GET("/workflow-level/:workflowId", workflowController.GetWorkflowlevels)

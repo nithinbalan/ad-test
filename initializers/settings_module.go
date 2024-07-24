@@ -14,7 +14,7 @@ type SettingsModule struct {
 	RoleController              *controllers.RoleController
 	OrganizationUnitController  *controllers.OrganizationUnitController
 	LogSettingsController       *controllers.LogSettingsController
-	WorkflowRoleTypeController  *controllers.WorkflowRoleTypeController
+	WorkflowLevelTypeController *controllers.WorkflowLevelTypeController
 	WorkflowCOntroller          *controllers.WorkflowController
 
 	SystemPreferenceSvc  services.SystemPreferenceServiceInterface
@@ -44,12 +44,12 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 	logSettingsSvc := services.NewLogSettingsService(logSettingsRepo, sharedModule.ActivityLogService)
 	logSettingsController := controllers.NewLogSettingsController(logSettingsSvc)
 
-	workflowRoleTypeRepo := repositories.NewWorkflowRoleTypeRepository(db)
-	workflowRoleTypeSvc := services.NewWorkflowRoleTypeService(workflowRoleTypeRepo)
-	workflowRoleTypeController := controllers.NewWorkflowRoleTypeController(workflowRoleTypeSvc)
+	workflowLevelTypeRepo := repositories.NewWorkflowLevelTypeRepository(db)
+	workflowLevelTypeSvc := services.NewWorkflowLevelTypeService(workflowLevelTypeRepo)
+	workflowLevelTypeController := controllers.NewWorkflowLevelTypeController(workflowLevelTypeSvc)
 
 	workflowRepo := repositories.NewWorkflowRepository(db)
-	workflowSvc := services.NewWorkflowService(workflowRepo, sharedModule.ActivityLogService, workflowRoleTypeSvc)
+	workflowSvc := services.NewWorkflowService(workflowRepo, sharedModule.ActivityLogService, workflowLevelTypeSvc)
 	workflowController := controllers.NewWorkflowController(workflowSvc)
 
 	moduleRepo := repositories.NewModuleRepository(db)
@@ -61,7 +61,7 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 		RoleController:              roleController,
 		OrganizationUnitController:  organizationUnitController,
 		LogSettingsController:       logSettingsController,
-		WorkflowRoleTypeController:  workflowRoleTypeController,
+		WorkflowLevelTypeController: workflowLevelTypeController,
 		WorkflowCOntroller:          workflowController,
 
 		SystemPreferenceSvc:  systemPreferenceSvc,

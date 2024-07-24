@@ -26,7 +26,7 @@ type WorkflowListDTO struct {
 type WorkflowLevelFormDTO struct {
 	ParantLevel  *uint   `json:"parant_level"`
 	WorkflowID   uint    `json:"work_flow_id"`
-	RoleTypeID   uint    `json:"role_type_id" binding:"required"`
+	LevelTypeID  uint    `json:"level_type_id" binding:"required"`
 	ApprovalType *string `json:"approval_type"`
 	UserIDs      []*uint `json:"user_ids"`
 	RoleID       *uint   `json:"role_id"`
@@ -37,19 +37,19 @@ type WorkflowLevelListDTO struct {
 }
 
 type WorkflowLevelDTO struct {
-	ID               uint                          `json:"id"`
-	Level            int                           `json:"level"`
-	WorkflowID       uint                          `json:"workflow_id"`
-	ApprovalType     string                        `json:"approval_type"`
-	CreatedByID      uint                          `json:"created_by_id"`
-	UpdatedByID      *uint                         `json:"updated_by_id"`
-	CreatedAt        time.Time                     `json:"created_at"`
-	UpdatedAt        *time.Time                    `json:"updated_at"`
-	WorkflowRoleType WorkflowRoleTypeDTO           `json:"workflow_role_type"`
-	Participants     []WorkflowLevelParticipantDTO `json:"participants"`
+	ID                uint                          `json:"id"`
+	Level             int                           `json:"level"`
+	WorkflowID        uint                          `json:"workflow_id"`
+	ApprovalType      string                        `json:"approval_type"`
+	CreatedByID       uint                          `json:"created_by_id"`
+	UpdatedByID       *uint                         `json:"updated_by_id"`
+	CreatedAt         time.Time                     `json:"created_at"`
+	UpdatedAt         *time.Time                    `json:"updated_at"`
+	WorkflowLevelType WorkflowLevelTypeDTO          `json:"workflow_role_type"`
+	Participants      []WorkflowLevelParticipantDTO `json:"participants"`
 }
 
-type WorkflowRoleTypeDTO struct {
+type WorkflowLevelTypeDTO struct {
 	ID      uint   `json:"id"`
 	TitleEn string `json:"title_en"`
 	TitleAr string `json:"title_ar"`

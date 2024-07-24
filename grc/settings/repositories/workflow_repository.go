@@ -79,7 +79,7 @@ func (repo *WorkflowRepository) GetWorkflowLevels(workflowID uint) ([]*models.Wo
 	var workflowLevels []*models.WorkflowLevel
 
 	if err := repo.db.
-		Preload("WorkflowRoleType").
+		Preload("WorkflowLevelType").
 		Preload("Participants").
 		Preload("Participants.User").
 		Preload("Participants.Role").

@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	"jethur/grc/settings/services" // Ensure the service path correctly points to where WorkflowRoleTypeService is defined.
+	"jethur/grc/settings/services" // Ensure the service path correctly points to where WorkflowLevelTypeService is defined.
 	"jethur/utility"
 	"net/http"
 	"strconv"
@@ -10,32 +10,32 @@ import (
 	"gorm.io/gorm"
 )
 
-type WorkflowRoleTypeController struct {
-	service services.WorkflowRoleTypeServiceInterface
+type WorkflowLevelTypeController struct {
+	service services.WorkflowLevelTypeServiceInterface
 	db      *gorm.DB
 }
 
-func NewWorkflowRoleTypeController(service services.WorkflowRoleTypeServiceInterface) *WorkflowRoleTypeController {
-	return &WorkflowRoleTypeController{
+func NewWorkflowLevelTypeController(service services.WorkflowLevelTypeServiceInterface) *WorkflowLevelTypeController {
+	return &WorkflowLevelTypeController{
 		service: service,
 	}
 }
 
-func (wrtc *WorkflowRoleTypeController) GetAllWorkflowRoleTypes(c *gin.Context) {
+func (wltc *WorkflowLevelTypeController) GetAllWorkflowLevelTypes(c *gin.Context) {
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 
-	workflowRoleTypes, err := wrtc.service.GetAll(sort, sortBy, keyword, status)
+	workflowLevelTypes, err := wltc.service.GetAll(sort, sortBy, keyword, status)
 	if err != nil {
-		utility.SendInternalErrResp(wrtc.db, c, err.Error())
+		utility.SendInternalErrResp(wltc.db, c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, workflowRoleTypes)
+	c.JSON(http.StatusOK, workflowLevelTypes)
 }
 
-func (wrtc *WorkflowRoleTypeController) GetWorkflowRoleTypeDetails(c *gin.Context) {
+func (wltc *WorkflowLevelTypeController) GetWorkflowLevelTypeDetails(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -43,11 +43,11 @@ func (wrtc *WorkflowRoleTypeController) GetWorkflowRoleTypeDetails(c *gin.Contex
 		return
 	}
 
-	workflowRoleType, err := wrtc.service.GetByID(uint(id))
+	workflowLevelType, err := wltc.service.GetByID(uint(id))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
 
-	c.JSON(http.StatusOK, workflowRoleType)
+	c.JSON(http.StatusOK, workflowLevelType)
 }

@@ -7,25 +7,25 @@ import (
 )
 
 // Interfaces
-type WorkflowRoleTypeRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.WorkflowRoleType, error)
-	GetByID(id uint) (*models.WorkflowRoleType, error)
-	GetByType(roleType string) (*models.WorkflowRoleType, error)
+type WorkflowLevelTypeRepositoryInterface interface {
+	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.WorkflowLevelType, error)
+	GetByID(id uint) (*models.WorkflowLevelType, error)
+	GetByType(levelType string) (*models.WorkflowLevelType, error)
 }
 
 // Implementation
-type WorkflowRoleTypeRepository struct {
+type WorkflowLevelTypeRepository struct {
 	db *gorm.DB
 }
 
-func NewWorkflowRoleTypeRepository(db *gorm.DB) *WorkflowRoleTypeRepository {
-	return &WorkflowRoleTypeRepository{
+func NewWorkflowLevelTypeRepository(db *gorm.DB) *WorkflowLevelTypeRepository {
+	return &WorkflowLevelTypeRepository{
 		db: db,
 	}
 }
 
-func (repo *WorkflowRoleTypeRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.WorkflowRoleType, error) {
-	var workflowRoleTypes []*models.WorkflowRoleType
+func (repo *WorkflowLevelTypeRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.WorkflowLevelType, error) {
+	var workflowLevelTypes []*models.WorkflowLevelType
 
 	query := repo.db
 
@@ -44,30 +44,30 @@ func (repo *WorkflowRoleTypeRepository) GetAll(sort string, sortBy string, keywo
 	}
 
 	query = query.Order(sortBy + " " + sort)
-	result := query.Find(&workflowRoleTypes)
+	result := query.Find(&workflowLevelTypes)
 
-	return workflowRoleTypes, result.Error
+	return workflowLevelTypes, result.Error
 }
 
-func (repo *WorkflowRoleTypeRepository) GetByID(id uint) (*models.WorkflowRoleType, error) {
-	var roleType *models.WorkflowRoleType
-	result := repo.db.First(&roleType, id)
+func (repo *WorkflowLevelTypeRepository) GetByID(id uint) (*models.WorkflowLevelType, error) {
+	var levelType *models.WorkflowLevelType
+	result := repo.db.First(&levelType, id)
 
 	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	return roleType, nil
+	return levelType, nil
 }
 
-func (repo *WorkflowRoleTypeRepository) GetByType(roleType string) (*models.WorkflowRoleType, error) {
-	var workflowRoleType *models.WorkflowRoleType
+func (repo *WorkflowLevelTypeRepository) GetByType(levelType string) (*models.WorkflowLevelType, error) {
+	var workflowLevelType *models.WorkflowLevelType
 
-	result := repo.db.Where("type = ?", roleType).First(&roleType)
+	result := repo.db.Where("type = ?", levelType).First(&workflowLevelType)
 
 	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	return workflowRoleType, nil
+	return workflowLevelType, nil
 }

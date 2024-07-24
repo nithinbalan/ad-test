@@ -21,19 +21,19 @@ type WorkflowServiceInterface interface {
 }
 
 type WorkflowService struct {
-	repo                repositories.WorkflowRepositoryInterface
-	activityLogSvc      services.ActivityLogServiceInterface
-	workflowRoleTypeSvc WorkflowRoleTypeServiceInterface
+	repo                 repositories.WorkflowRepositoryInterface
+	activityLogSvc       services.ActivityLogServiceInterface
+	workflowLevelTypeSvc WorkflowLevelTypeServiceInterface
 }
 
 func NewWorkflowService(
 	repo repositories.WorkflowRepositoryInterface,
 	activityLogSvc services.ActivityLogServiceInterface,
-	workflowRoleTypeSvc WorkflowRoleTypeServiceInterface) WorkflowServiceInterface {
+	workflowLevelTypeSvc WorkflowLevelTypeServiceInterface) WorkflowServiceInterface {
 	return &WorkflowService{
-		repo:                repo,
-		activityLogSvc:      activityLogSvc,
-		workflowRoleTypeSvc: workflowRoleTypeSvc,
+		repo:                 repo,
+		activityLogSvc:       activityLogSvc,
+		workflowLevelTypeSvc: workflowLevelTypeSvc,
 	}
 }
 
@@ -64,11 +64,11 @@ func (ws *WorkflowService) GetWorkflowLevels(workflowID uint) (*settingsDTOs.Wor
 			UpdatedByID:  level.UpdatedByID,
 			CreatedAt:    level.CreatedAt,
 			UpdatedAt:    level.UpdatedAt,
-			WorkflowRoleType: settingsDTOs.WorkflowRoleTypeDTO{
-				ID:      level.WorkflowRoleType.ID,
-				TitleEn: level.WorkflowRoleType.TitleEn,
-				TitleAr: level.WorkflowRoleType.TitleAr,
-				Type:    level.WorkflowRoleType.Type,
+			WorkflowLevelType: settingsDTOs.WorkflowLevelTypeDTO{
+				ID:      level.WorkflowLevelType.ID,
+				TitleEn: level.WorkflowLevelType.TitleEn,
+				TitleAr: level.WorkflowLevelType.TitleAr,
+				Type:    level.WorkflowLevelType.Type,
 			},
 		}
 
@@ -146,11 +146,11 @@ func (ws *WorkflowService) CreateWorkFlowLevel(currentUserID uint, workflowLevel
 	}
 
 	workflowLevel := &models.WorkflowLevel{
-		Level:              newLevel,
-		WorkflowID:         workflowLevelFormDTO.WorkflowID,
-		WorkflowRoleTypeID: workflowLevelFormDTO.RoleTypeID,
-		ApprovalType:       *workflowLevelFormDTO.ApprovalType,
-		CreatedByID:        currentUserID,
+		Level:               newLevel,
+		WorkflowID:          workflowLevelFormDTO.WorkflowID,
+		WorkflowLevelTypeID: workflowLevelFormDTO.LevelTypeID,
+		ApprovalType:        *workflowLevelFormDTO.ApprovalType,
+		CreatedByID:         currentUserID,
 	}
 
 	id, err := ws.repo.CreateWorkflowLevel(workflowLevel, tx)
@@ -159,7 +159,7 @@ func (ws *WorkflowService) CreateWorkFlowLevel(currentUserID uint, workflowLevel
 		return 0, err
 	}
 
-	workflowRoleType, err := ws.workflowRoleTypeSvc.GetByID(workflowLevelFormDTO.RoleTypeID)
+	workflowRoleType, err := ws.workflowLevelTypeSvc.GetByID(workflowLevelFormDTO.LevelTypeID)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -276,7 +276,7 @@ func (ws *WorkflowService) DeleteWorkflowLevel(currentUserID, workflowLevelID ui
 }
 
 func (ws *WorkflowService) validateWorkflowFormDTO(workflowFormDTO *settingsDTOs.WorkflowLevelFormDTO) error {
-	if _, err := ws.workflowRoleTypeSvc.GetByID(workflowFormDTO.RoleTypeID); err != nil {
+	if _, err := ws.workflowLevelTypeSvc.GetByID(workflowFormDTO.LevelTypeID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("workflow role type does not exist"), "not_exist", "workflow role type")
 	}
 	return nil
