@@ -13,7 +13,12 @@ CREATE TABLE documents (
     responsible_unit_id INT NOT NULL,
     document_access_type_id INT NOT NULL,
     document_status_id INT NOT NULL,
-    marked_as_auditable_item BIT NOT NULL DEFAULT 0,
+    is_locked TINYINT NOT NULL DEFAULT 0,
+    last_checkout_at DATE NULL,
+    last_checkout_by_id INT NULL,
+    last_checkin_at DATE NULL,
+    last_checkin_by_id INT NULL,
+    marked_as_auditable_item TINYINT NOT NULL DEFAULT 0,
     created_by_id INT NOT NULL,
     updated_by_id INT NULL,
     created_at DATETIME NOT NULL,
@@ -26,7 +31,9 @@ CREATE TABLE documents (
     CONSTRAINT FK_documents_document_access_types FOREIGN KEY (document_access_type_id) REFERENCES document_access_types(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_documents_document_statuses FOREIGN KEY (document_status_id) REFERENCES document_statuses(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_documents_users_2 FOREIGN KEY (created_by_id) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
-    CONSTRAINT FK_documents_users_3 FOREIGN KEY (updated_by_id) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION
+    CONSTRAINT FK_documents_users_3 FOREIGN KEY (updated_by_id) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_documents_users_4 FOREIGN KEY (last_checkout_by_id) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_documents_users_5 FOREIGN KEY (last_checkin_by_id) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 -- +goose StatementEnd
 

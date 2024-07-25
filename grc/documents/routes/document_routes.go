@@ -55,5 +55,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentRoutes.GET("/documents/:id", documentController.GetDocumentDetails)
 	documentRoutes.POST("/documents", documentController.CreateDocument)
 	documentRoutes.POST("/documents/delete", documentController.DeleteDocuments)
+	documentRoutes.GET("/documents/:id/check-out", documentController.CheckoutDocument)
+	documentRoutes.POST("/documents/:id/check-in", documentController.CheckinDocument)
+	documentRoutes.POST("/documents/:id/check-out-revert", documentController.RevertDocumentCheckout)
 
 }

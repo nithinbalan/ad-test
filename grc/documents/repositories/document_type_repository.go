@@ -9,6 +9,7 @@ import (
 
 // Interfaces
 type DocumentTypeRepositoryInterface interface {
+	BeginTransaction() utility.DatabaseTransaction
 	GetAll(sort string, sortBy string, keyword string, docmentType string, status string) ([]*models.DocumentType, error)
 	GetByID(id uint) (*models.DocumentType, error)
 	Create(documentType *models.DocumentType) (*models.DocumentType, error)
@@ -18,6 +19,9 @@ type DocumentTypeRepositoryInterface interface {
 	Deactivate(ids []uint) ([]uint, error)
 	ExistsByTitle(titleEn string, titleAr string) (bool, error)
 	ExistsByTitleExcludingID(id uint, titleEn string, titleAr string) (bool, error)
+
+	//workflow
+	CreateWorkflow(workflow *models.Workflow, tx ...utility.DatabaseTransaction) error
 }
 
 // Implementation
@@ -29,6 +33,11 @@ func NewDocumentTypeRepository(db *gorm.DB) *DocumentTypeRepository {
 	return &DocumentTypeRepository{
 		db: db,
 	}
+}
+
+// BeginTransaction starts a new transaction.
+func (repo *DocumentTypeRepository) BeginTransaction() utility.DatabaseTransaction {
+	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
 func (repo *DocumentTypeRepository) GetAll(sort string, sortBy string, keyword string, docmentType string, status string) ([]*models.DocumentType, error) {
@@ -162,4 +171,17 @@ func (repo *DocumentTypeRepository) ExistsByTitleExcludingID(id uint, titleEn, t
 	}
 
 	return count > 0, nil
+}
+
+func (repo *DocumentTypeRepository) CreateWorkflow(workflow *models.Workflow, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	result := db.Create(workflow) // Pass the pointer directly
+	if result.Error != nil {
+		return result.Error
+	}
+	return nil // Return nil if no error occurred
 }
