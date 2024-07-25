@@ -18,6 +18,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditUniverseController := app.AuditModule.AuditUniverseController
 	auditableItemController := app.AuditModule.AuditableItemController
 	auditTeamController := app.AuditModule.AuditTeamController
+	auditCategoryController := app.AuditModule.AuditCategoryController
 
 	//Audit Status
 	auditRoutes.GET("/audit-statuses", auditStatusController.GetAllAuditStatuses)
@@ -44,4 +45,14 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.POST("/audit-teams", auditTeamController.CreateAuditTeam)
 	auditRoutes.PUT("/audit-teams/:id", auditTeamController.UpdateAuditTeam)
 	auditRoutes.POST("/audit-teams/delete", auditTeamController.DeleteAuditTeams)
+
+	//Audit Category
+	auditRoutes.GET("/audit-categories", auditCategoryController.GetAllAuditCategories)
+	auditRoutes.GET("/audit-categories/:id", auditCategoryController.GetAuditCategoryDetails)
+	auditRoutes.POST("/audit-categories", auditCategoryController.CreateAuditCategory)
+	auditRoutes.PUT("/audit-categories/:id", auditCategoryController.UpdateAuditCategory)
+	auditRoutes.POST("/audit-categories/delete", auditCategoryController.DeleteAuditCategories)
+	auditRoutes.PUT("/audit-categories/activate", auditCategoryController.ActivateAuditCategories)
+	auditRoutes.PUT("/audit-categories/deactivate", auditCategoryController.DeactivateAuditCategories)
+
 }
