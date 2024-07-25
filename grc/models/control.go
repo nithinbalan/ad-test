@@ -35,6 +35,7 @@ type Control struct {
 	LifecycleStatusID             uint       `json:"lifecycle_status_id" gorm:"not null"`
 	LastReviewedUserID            *uint      `json:"last_reviewed_user_id" gorm:"default:null"`
 	ControlReviewStatusID         *uint      `json:"control_review_status_id" gorm:"default:null"`
+	MarkedAsAuditableItem         bool       `json:"marked_as_auditable_item" gorm:"default:false" binding:"-"`
 
 	// Relationships
 	ControlType                 *ControlType                 `gorm:"foreignKey:ControlTypeID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
