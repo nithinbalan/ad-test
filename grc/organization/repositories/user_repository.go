@@ -36,6 +36,7 @@ type UserRepositoryInterface interface {
 	GetUserLoginHistory(userID uint, params *userDTOs.UserLoginHistoryListQueryParamsDTO) (*userDTOs.UserLoginHistoryListResponseDTO, error)
 	CreateUserLoginHistory(userLogin *models.UserLoginHistory, tx ...utility.DatabaseTransaction) error
 	GetUserPrimaryUnitID(primaryOrgUnitField string, userID uint) (uint, error)
+	GetUserIdsByRole(roleID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
 }
 
 type UserRepository struct {
@@ -475,4 +476,22 @@ func (repo *UserRepository) GetUserPrimaryUnitID(primaryOrgUnitField string, use
 	}
 
 	return organizationUnitID, nil
+}
+
+func (repo *UserRepository) GetUserIdsByRole(roleID uint, tx ...utility.DatabaseTransaction) ([]uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var userIDs []uint
+	err := db.
+		Model(&models.User{}).
+		Joins("JOIN user_roles on user_roles.user_id = users.id").
+		Where("user_roles.role_id = ?", roleID).
+		Pluck("users.id", &userIDs).Error
+	if err != nil {
+		return nil, err
+	}
+	return userIDs, nil
 }

@@ -35,6 +35,7 @@ type UserServiceInterface interface {
 	GenerateRandomPassword(length int) (string, error)
 	SetUserSettingService(svc UserSettingServiceInterface)
 	GetUserPrimaryUnitID(userID uint) (uint, error)
+	GetUserIdsByRole(roleID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
 }
 
 type UserService struct {
@@ -524,4 +525,13 @@ func (us *UserService) GetUserPrimaryUnitID(userID uint) (uint, error) {
 	}
 
 	return us.repo.GetUserPrimaryUnitID(primaryOrgUnitField, userID)
+}
+
+func (us *UserService) GetUserIdsByRole(roleID uint, tx ...utility.DatabaseTransaction) ([]uint, error) {
+	userIds, err := us.repo.GetUserIdsByRole(roleID, tx...)
+	if err != nil {
+		return nil, err
+	}
+
+	return userIds, nil
 }

@@ -10,6 +10,8 @@ import (
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
 	organizationSvc "jethur/grc/organization/services"
+	settingDTOs "jethur/grc/settings/dtos"
+	settinsSvc "jethur/grc/settings/services"
 	"jethur/utility"
 	"os"
 	"path/filepath"
@@ -45,6 +47,7 @@ type DocumentService struct {
 	documentAccessTypeSvc DocumentAccessTypeServiceInterface
 	documentStatusSvc     DocumentStatusServiceInterface
 	userSvc               organizationSvc.UserServiceInterface
+	workflowSvc           settinsSvc.WorkflowServiceInterface
 	activityLogSvc        services.ActivityLogServiceInterface
 }
 
@@ -56,6 +59,7 @@ func NewDocumentService(
 	documentAccessTypeSvc DocumentAccessTypeServiceInterface,
 	documentStatusSvc DocumentStatusServiceInterface,
 	userSvc organizationSvc.UserServiceInterface,
+	workflowSvc settinsSvc.WorkflowServiceInterface,
 	activityLogSvc services.ActivityLogServiceInterface) DocumentServiceInterface {
 	return &DocumentService{
 		repo:                  repo,
@@ -65,6 +69,7 @@ func NewDocumentService(
 		documentAccessTypeSvc: documentAccessTypeSvc,
 		documentStatusSvc:     documentStatusSvc,
 		userSvc:               userSvc,
+		workflowSvc:           workflowSvc,
 		activityLogSvc:        activityLogSvc,
 	}
 }
@@ -206,7 +211,7 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 
 	url := utility.GenerateDocumentURL("document", "draft", strconv.FormatUint(uint64(id), 10), "documents")
 	destinationDir := filepath.Join("document", "draft", strconv.FormatUint(uint64(id), 10), "documents")
-
+	var docVersionId uint
 	if documentFormDTO.DocumentTemplateID != nil {
 		var documentTemplate *documentDTOs.DocumentTemplateDetailsDTO
 		documentTemplate, err = ds.documentTemplateSvc.GetFullDetailsByID(*documentFormDTO.DocumentTemplateID)
@@ -235,7 +240,7 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 			CreatedBYID:     currentUserID,
 		}
 
-		docVersionId, err := ds.repo.CreateDocumentVersion(documentVersion, tx)
+		docVersionId, err = ds.repo.CreateDocumentVersion(documentVersion, tx)
 		if err != nil {
 			tx.Rollback()
 			return 0, err
@@ -286,7 +291,7 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 			CreatedBYID:     currentUserID,
 		}
 
-		docVersionId, err := ds.repo.CreateDocumentVersion(documentVersion, tx)
+		docVersionId, err = ds.repo.CreateDocumentVersion(documentVersion, tx)
 		if err != nil {
 			tx.Rollback()
 			return 0, err
@@ -313,6 +318,12 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 			tx.Rollback()
 			return 0, err
 		}
+	}
+
+	err = ds.CreateDocumentWorkflow(docVersionId, documentFormDTO.DocumentTypeID, currentUserID, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
 	}
 
 	tx.Commit()
@@ -856,4 +867,75 @@ func (ds *DocumentService) GetDocumentPath(id uint, token string, tx ...utility.
 	}
 
 	return fullPath, nil
+}
+
+func (ds *DocumentService) CreateDocumentWorkflow(documentVersionId uint, documentTypeId uint, currentUserID uint, tx ...utility.DatabaseTransaction) error {
+	workflow, err := ds.workflowSvc.GetWorkflowByDocumentType(documentTypeId, tx...)
+	if err != nil {
+		return err
+	}
+
+	workflowLevels, err := ds.workflowSvc.GetWorkflowLevels(workflow.ID, tx...)
+	if err != nil {
+		return err
+	}
+
+	for _, level := range workflowLevels.WorkflowLevels {
+		documentWorkflow := &models.DocumentWorkflow{
+			DocumentVersionID: documentVersionId,
+			Level:             level.Level,
+			ApprovalTypes:     level.ApprovalType,
+			CreatedBYID:       currentUserID,
+		}
+
+		docWorkflowId, err := ds.repo.CreateDocumentWorkflow(documentWorkflow, tx...)
+		if err != nil {
+			return err
+		}
+
+		// Handle participants for each level
+		for _, participant := range level.Participants {
+			if participant.Role != nil {
+
+				userIds, err := ds.userSvc.GetUserIdsByRole(participant.Role.ID, tx...)
+				if err != nil {
+					return err
+				}
+
+				for _, userId := range userIds {
+					err = ds.createWorkflowParticipant(userId, docWorkflowId, level.WorkflowLevelType.ID, &participant, currentUserID, tx...)
+					if err != nil {
+						return err
+					}
+
+				}
+			} else if participant.User != nil {
+				err = ds.createWorkflowParticipant(uint(participant.User.ID), docWorkflowId, level.WorkflowLevelType.ID, &participant, currentUserID, tx...)
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func (ds *DocumentService) createWorkflowParticipant(userID uint, documentWorkflowID uint, workflowLevelTypeId uint, participant *settingDTOs.WorkflowLevelParticipantDTO, currentUserID uint, tx ...utility.DatabaseTransaction) error {
+	docWorkflowParticipant := &models.DocumentWorkflowParticipant{
+		DocumentWorkflowID:  documentWorkflowID,
+		WorkflowLevelTypeID: workflowLevelTypeId,
+		UserID:              userID,
+		CreatedBYID:         currentUserID,
+	}
+
+	if participant.Role != nil {
+		docWorkflowParticipant.RoleID = &participant.Role.ID
+	}
+
+	err := ds.repo.CreateDocumentWorkflowParticipant(docWorkflowParticipant, tx...)
+	if err != nil {
+		return err
+	}
+	return nil
 }
