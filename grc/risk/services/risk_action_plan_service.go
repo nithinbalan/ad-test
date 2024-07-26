@@ -194,8 +194,10 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 	err = raps.repo.Update(existingRiskActionPlan, tx)
 
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
+	tx.Commit()
 
 	return nil
 }
