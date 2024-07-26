@@ -353,6 +353,13 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 				tx.Rollback()
 				return 0, err
 			}
+			// Convert DOCX to PDF if the document is a DOCX file
+			if filepath.Ext(doc.Name) == ".docx" {
+				if err := utility.ConvertDocxToPDF(storagePath, doc.Name, storagePath); err != nil {
+					tx.Rollback()
+					return 0, err
+				}
+			}
 		}
 	}
 
