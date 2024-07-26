@@ -17,8 +17,8 @@ type RiskActionPlan struct {
 	Percentage         *uint      `json:"percentage" binding:"omitempty,min=0,max=100" gorm:"not null;default:0"`
 	CreatedAt          time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt          *time.Time `json:"updated_at" gorm:"type:datetime"`
-	CreatedByID        uint       `json:"created_by_id" gorm:"not null"`
-	UpdatedByID        *uint      `json:"updated_by_id" gorm:"default:null"`
+	CreatedBYID        uint       `json:"created_by_id" gorm:"not null"`
+	UpdatedBYID        *uint      `json:"updated_by_id" gorm:"default:null"`
 
 	// Relationships
 	RiskRegister            *RiskRegister                 `gorm:"foreignKey:RiskRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
@@ -26,8 +26,8 @@ type RiskActionPlan struct {
 	ResponsibleUser         *User                         `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ActionPlanStatus        *ActionPlanStatus             `gorm:"foreignKey:ActionPlanStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ActionPlanStatusUpdates []*RiskActionPlanStatusUpdate `gorm:"foreignKey:RiskActionPlanID"`
-	CreatedByUser           *User                         `gorm:"foreignKey:CreatedByID"`
-	UpdatedByUser           *User                         `gorm:"foreignKey:UpdatedByID"`
+	CreatedByUser           *User                         `gorm:"foreignKey:CreatedBYID"`
+	UpdatedByUser           *User                         `gorm:"foreignKey:UpdatedBYID"`
 }
 
 // TableName overrides the table name used by RiskActionPlan to `risk_action_plans`
