@@ -15,9 +15,12 @@ type RiskActionPlanRepositoryInterface interface {
 	GetAll(riskID uint, params *riskDTOs.RiskActionPlanListQueryParamsDTO) (*riskDTOs.RiskActionPlanListResponseDTO, error)
 	GetByID(id uint) (*models.RiskActionPlan, error)
 	GetFullDetailsByID(id uint) (*models.RiskActionPlan, error)
-	Create(riskActionPlan *models.RiskActionPlan) (uint, error)
+	Create(riskActionPlan *models.RiskActionPlan, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(riskActionPlan *models.RiskActionPlan, tx ...utility.DatabaseTransaction) error
-	Delete(id uint) error
+	Delete(id uint, tx ...utility.DatabaseTransaction) error
+
+	CreateInitialRiskActionPlanStatusUpdate(riskActionPlanStatusUpdate *models.RiskActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
+	DeleteRiskActionPlanStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type RiskActionPlanRepository struct {
@@ -177,6 +180,7 @@ func (repo *RiskActionPlanRepository) GetFullDetailsByID(id uint) (*models.RiskA
 		Preload("ResponsibleUser").
 		Preload("SeverityLevel").
 		Preload("ActionPlanStatus").
+		Preload("ActionPlanStatusUpdates").
 		First(&riskActionPlan, id)
 
 	if result.Error != nil {
@@ -186,8 +190,12 @@ func (repo *RiskActionPlanRepository) GetFullDetailsByID(id uint) (*models.RiskA
 	return riskActionPlan, nil
 }
 
-func (repo *RiskActionPlanRepository) Create(riskActionPlan *models.RiskActionPlan) (uint, error) {
-	if err := repo.db.Create(riskActionPlan).Error; err != nil {
+func (repo *RiskActionPlanRepository) Create(riskActionPlan *models.RiskActionPlan, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(riskActionPlan).Error; err != nil {
 		return 0, err
 	}
 	return riskActionPlan.ID, nil
@@ -204,16 +212,43 @@ func (repo *RiskActionPlanRepository) Update(riskActionPlan *models.RiskActionPl
 	return nil
 }
 
-func (repo *RiskActionPlanRepository) Delete(id uint) error {
-
+func (repo *RiskActionPlanRepository) Delete(id uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 	var riskActionPlan *models.RiskActionPlan
-	if err := repo.db.First(&riskActionPlan, id).Error; err != nil {
+	if err := db.First(&riskActionPlan, id).Error; err != nil {
 		return err
 	}
 
-	result := repo.db.Delete(&models.RiskActionPlan{}, id)
+	result := db.Delete(&models.RiskActionPlan{}, id)
 	if result.Error != nil {
 		return result.Error
+	}
+
+	return nil
+}
+
+func (repo *RiskActionPlanRepository) CreateInitialRiskActionPlanStatusUpdate(riskActionPlanStatusUpdate *models.RiskActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(riskActionPlanStatusUpdate).Error; err != nil {
+		return 0, err
+	}
+	return riskActionPlanStatusUpdate.ID, nil
+}
+
+func (repo *RiskActionPlanRepository) DeleteRiskActionPlanStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", ids).Delete(&models.RiskActionPlanStatusUpdate{}).Error; err != nil {
+		return err
 	}
 
 	return nil
