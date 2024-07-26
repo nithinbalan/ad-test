@@ -819,7 +819,7 @@ func (ds *DocumentService) RevertDocumentCheckout(id uint, currentUserID uint) e
 	documentEditHistory := &documentDTOs.DocumentEditHistoryDTO{
 		DocumentID:        id,
 		DocumentVersionID: document.LatestDocumentVersion.ID,
-		ActionType:        "revert",
+		ActionType:        "revert-checkout",
 	}
 
 	err = ds.CreateDocumentEditHistory(documentEditHistory, nil, currentUserID, tx)

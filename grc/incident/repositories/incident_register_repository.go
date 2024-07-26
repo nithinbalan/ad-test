@@ -65,8 +65,6 @@ func (repo *IncidentRegisterRepository) GetAll(params *incidentDTOs.IncidentRegi
 			CONVERT(VARCHAR, incident_register.reported_at, 23) AS reported_at,
             incident_categories.title_en AS incident_category_title_en,
             incident_categories.title_ar AS incident_category_title_ar,
-            incident_sub_categories.title_en AS incident_sub_category_title_en,
-            incident_sub_categories.title_ar AS incident_sub_category_title_ar,
             incident_types.title_en AS incident_type_title_en,
             incident_types.title_ar AS incident_type_title_ar,
             incident_statuses.title_en AS incident_status_title_en,
@@ -121,8 +119,6 @@ func (repo *IncidentRegisterRepository) GetAll(params *incidentDTOs.IncidentRegi
 			incident_register.reference_number LIKE ? OR
 			incident_categories.title_en LIKE ? OR
 			incident_categories.title_ar LIKE ? OR
-			incident_sub_categories.title_en LIKE ? OR
-			incident_sub_categories.title_ar LIKE ? OR
 			incident_types.title_en LIKE ? OR
 			incident_types.title_ar LIKE ? OR
 			incident_statuses.title_en LIKE ? OR
@@ -143,7 +139,7 @@ func (repo *IncidentRegisterRepository) GetAll(params *incidentDTOs.IncidentRegi
 			updated_user.last_name_ar LIKE ?)`,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
 	// Sort by the specified column and order
@@ -199,7 +195,6 @@ func (repo *IncidentRegisterRepository) GetFullDetailsByID(id uint, tx ...utilit
 
 	result := db.
 		Preload("IncidentCategory").
-		Preload("IncidentSubCategory").
 		Preload("IncidentType").
 		Preload("IncidentStatus").
 		Preload("ReportedByUser").
