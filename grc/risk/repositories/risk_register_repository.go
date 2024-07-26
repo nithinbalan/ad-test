@@ -85,7 +85,7 @@ func (repo *RiskRegisterRepository) GetAll(params *riskDTOs.RiskRegisterListQuer
             review_frequencies.title_en AS review_frequency_title_en,
             review_frequencies.title_ar AS review_frequency_title_ar,
             risk_register.next_review_date,
-            risk_register.comments,
+            risk_register.last_review_note,
             created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
             created_user.last_name_en AS created_user_last_name_en,
