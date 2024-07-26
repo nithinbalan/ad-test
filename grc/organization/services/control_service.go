@@ -141,16 +141,20 @@ func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizatio
 	if err != nil {
 		return 0, err
 	}
-	organizationUnitID, err := cs.userSvc.GetUserPrimaryUnitID(*controlFormDTO.OwnerID)
-	if err != nil {
-		return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for owner"), "not_exist", "control owner unit")
+	var organizationUnitID *uint
+	if controlFormDTO.OwnerID != nil {
+		unitID, err := cs.userSvc.GetUserPrimaryUnitID(*controlFormDTO.OwnerID)
+		if err != nil {
+			return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for owner"), "not_exist", "control owner unit")
+		}
+		organizationUnitID = &unitID
 	}
 
 	control := &models.Control{
 		ControlTypeID:                 controlFormDTO.ControlTypeID,
 		ControlCategoryID:             controlFormDTO.ControlCategoryID,
 		OwnerID:                       controlFormDTO.OwnerID,
-		OwnerUnitID:                   &organizationUnitID,
+		OwnerUnitID:                   organizationUnitID,
 		ControlImplementationStatusID: controlFormDTO.ControlImplementationStatusID,
 		ControlEfficiencyStatusID:     controlFormDTO.ControlEfficiencyStatusID,
 		ReferenceNumber:               referenceNumber,
