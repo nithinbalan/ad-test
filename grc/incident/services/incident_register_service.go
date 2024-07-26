@@ -37,7 +37,6 @@ type IncidentRegisterService struct {
 	repo                     incidentRepositories.IncidentRegisterRepositoryInterface
 	activityLogSvc           logServices.ActivityLogServiceInterface
 	incidentCategorySvc      IncidentCategoryServiceInterface
-	incidentSubCategorySvc   IncidentSubCategoryServiceInterface
 	incidentTypeSvc          IncidentTypeServiceInterface
 	incidentStatusSvc        IncidentStatusServiceInterface
 	severityLevelSvc         masterServices.SeverityLevelServiceInterface
@@ -53,7 +52,6 @@ func NewIncidentRegisterService(
 	repo incidentRepositories.IncidentRegisterRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	incidentCategorySvc IncidentCategoryServiceInterface,
-	incidentSubCategorySvc IncidentSubCategoryServiceInterface,
 	incidentTypeSvc IncidentTypeServiceInterface,
 	incidentStatusSvc IncidentStatusServiceInterface,
 	severityLevelSvc masterRepositories.SeverityLevelRepositoryInterface,
@@ -68,7 +66,6 @@ func NewIncidentRegisterService(
 		repo:                     repo,
 		activityLogSvc:           activityLogSvc,
 		incidentCategorySvc:      incidentCategorySvc,
-		incidentSubCategorySvc:   incidentSubCategorySvc,
 		incidentTypeSvc:          incidentTypeSvc,
 		incidentStatusSvc:        incidentStatusSvc,
 		severityLevelSvc:         severityLevelSvc,
@@ -160,7 +157,6 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 	incidentRegister := &models.IncidentRegister{
 		ReferenceNumber:       referenceNumber,
 		IncidentCategoryID:    incidentRegisterFormDTO.IncidentCategoryID,
-		IncidentSubCategoryID: *incidentRegisterFormDTO.IncidentSubCategoryID,
 		IncidentTypeID:        incidentRegisterFormDTO.IncidentTypeID,
 		SeverityLevelID:       *incidentRegisterFormDTO.SeverityLevelID,
 		IncidentStatusID:      &incidentStatus.ID,
@@ -409,7 +405,6 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 		return err
 	}
 	existingIncidentRegister.IncidentCategoryID = incidentRegisterFormDTO.IncidentCategoryID
-	existingIncidentRegister.IncidentSubCategoryID = *incidentRegisterFormDTO.IncidentSubCategoryID
 	existingIncidentRegister.IncidentTypeID = incidentRegisterFormDTO.IncidentTypeID
 	existingIncidentRegister.SeverityLevelID = *incidentRegisterFormDTO.SeverityLevelID
 	existingIncidentRegister.Title = incidentRegisterFormDTO.Title
@@ -977,17 +972,12 @@ func (irs *IncidentRegisterService) validateIncidentRegisterFormDTO(incidentRegi
 	if _, err := irs.incidentCategorySvc.GetByID(incidentRegisterFormDTO.IncidentCategoryID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("incident category does not exist"), "not_exist", "incident category")
 	}
-
-	if incidentRegisterFormDTO.IncidentSubCategoryID != nil {
-		if _, err := irs.incidentSubCategorySvc.GetByID(*incidentRegisterFormDTO.IncidentSubCategoryID); err != nil {
-			return utility.NewValidationError(fmt.Errorf("incident sub category does not exist"), "not_exist", "incident sub category")
+	
+	if incidentRegisterFormDTO.IncidentTypeID != nil {
+		if _, err := irs.incidentTypeSvc.GetByID(*incidentRegisterFormDTO.IncidentTypeID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("incident type does not exist"), "not_exist", "incident type")
 		}
 	}
-
-	if _, err := irs.incidentTypeSvc.GetByID(incidentRegisterFormDTO.IncidentTypeID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("incident type does not exist"), "not_exist", "incident type")
-	}
-
 	if incidentRegisterFormDTO.SeverityLevelID != nil {
 		if _, err := irs.severityLevelSvc.GetByID(*incidentRegisterFormDTO.SeverityLevelID); err != nil {
 			return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
