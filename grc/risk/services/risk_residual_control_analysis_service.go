@@ -143,16 +143,19 @@ func (rcas *RiskResidualControlAnalysisService) Update(riskID uint, id uint, cur
 		return err
 	}
 
-	existingRiskControlAnalysis.ControlEfficiencyStatusID = controlTestFormDTO.ControlEfficiencyStatusID
-	existingRiskControlAnalysis.ControlImplementationStatusID = controlTestFormDTO.ControlImplementationStatusID
-
-	err = rcas.repo.Update(existingRiskControlAnalysis, tx)
+	testId, err := rcas.controlTestSvc.Create(existingRiskControlAnalysis.RiskControl.ControlID, currentUserID, &riskID, controlTestFormDTO, "risk", tx)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
+	existingRiskControlAnalysis.ControlEfficiencyStatusID = controlTestFormDTO.ControlEfficiencyStatusID
+	existingRiskControlAnalysis.ControlImplementationStatusID = controlTestFormDTO.ControlImplementationStatusID
+	existingRiskControlAnalysis.ControlTestID = testId
+	existingRiskControlAnalysis.Score = controlTestFormDTO.Score
+	existingRiskControlAnalysis.CreatedByID = currentUserID //todo (tested_by or currentUserID)
+	existingRiskControlAnalysis.CreatedAt = time.Now()
 
-	_, err = rcas.controlTestSvc.Create(existingRiskControlAnalysis.RiskControl.ControlID, currentUserID, &riskID, controlTestFormDTO, "risk", tx)
+	err = rcas.repo.Update(existingRiskControlAnalysis, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
