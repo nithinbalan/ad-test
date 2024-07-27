@@ -13,9 +13,11 @@ import (
 	settingDTOs "jethur/grc/settings/dtos"
 	settinsSvc "jethur/grc/settings/services"
 	"jethur/utility"
+	"log"
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/mitchellh/mapstructure"
@@ -36,7 +38,7 @@ type DocumentServiceInterface interface {
 	CreateSharedUsers(sharedUsers []*models.DocumentSharedUser, tx ...utility.DatabaseTransaction) error
 	CreateSharedUnits(sharedUnits []*models.DocumentSharedUnit, tx ...utility.DatabaseTransaction) error
 
-	GetDocumentPath(id uint, token string, tx ...utility.DatabaseTransaction) (string, error)
+	GetDocumentPath(id uint, token string, fileType string, tx ...utility.DatabaseTransaction) (string, error)
 }
 
 type DocumentService struct {
@@ -302,6 +304,11 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 			return 0, err
 		}
 
+		// if err := utility.ConvertDocxToPDF(destinationDir, documentFormDTO.Document.FileName, destinationDir); err != nil {
+		// 	tx.Rollback()
+		// 	return 0, err
+		// }
+
 		//add document history
 		documentEditHistory := &documentDTOs.DocumentEditHistoryDTO{
 			DocumentID:        id,
@@ -327,6 +334,12 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 	}
 
 	tx.Commit()
+
+	go func() {
+		if err := utility.ConvertDocxToPDF(destinationDir, documentFormDTO.Document.FileName, destinationDir); err != nil {
+			log.Printf("Failed to convert document to PDF: %v", err)
+		}
+	}()
 
 	go func() {
 		err := ds.activityLogSvc.LogActivity(
@@ -669,7 +682,8 @@ func (ds *DocumentService) CheckoutDocument(id uint, currentUserID uint, token s
 	}
 
 	var documentPath string
-	documentPath, err = ds.GetDocumentPath(id, token, tx)
+	fileType := "docx"
+	documentPath, err = ds.GetDocumentPath(id, token, fileType, tx)
 	if err != nil {
 		tx.Rollback()
 		return "", fmt.Errorf("error retrieving document path: %w", err)
@@ -786,6 +800,12 @@ func (ds *DocumentService) CheckinDocument(id uint, currentUserID uint, document
 
 	tx.Commit()
 
+	go func() {
+		if err := utility.ConvertDocxToPDF(destinationDir, documentCheckinFormDTO.Document.FileName, destinationDir); err != nil {
+			log.Printf("Failed to convert document to PDF: %v", err)
+		}
+	}()
+
 	return nil
 }
 
@@ -833,7 +853,7 @@ func (ds *DocumentService) RevertDocumentCheckout(id uint, currentUserID uint) e
 	return nil
 }
 
-func (ds *DocumentService) GetDocumentPath(id uint, token string, tx ...utility.DatabaseTransaction) (string, error) {
+func (ds *DocumentService) GetDocumentPath(id uint, token string, fileType string, tx ...utility.DatabaseTransaction) (string, error) {
 	existingDocument, err := ds.GetFullDetailsByID(id, tx...)
 	if err != nil {
 		return "", err
@@ -849,6 +869,8 @@ func (ds *DocumentService) GetDocumentPath(id uint, token string, tx ...utility.
 		return "", fmt.Errorf("resource not found")
 	}
 
+	baseFilename := strings.TrimSuffix(decryptedFilename, filepath.Ext(decryptedFilename))
+
 	var storagePath string
 	if existingDocument.DocumentStatus.Type == "published" {
 		storagePath = filepath.Join("document", "published", strconv.FormatUint(uint64(id), 10), "documents")
@@ -857,7 +879,7 @@ func (ds *DocumentService) GetDocumentPath(id uint, token string, tx ...utility.
 	}
 
 	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
-	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
+	fullPath := filepath.Join(baseStoragePath, storagePath, baseFilename+"."+fileType)
 
 	// Check if the file exists
 	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
