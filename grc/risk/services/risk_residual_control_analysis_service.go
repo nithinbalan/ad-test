@@ -12,12 +12,14 @@ import (
 	"jethur/utility"
 	"time"
 
+	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
 )
 
 type RiskResidualControlAnalysisServiceInterface interface {
 	GetAll(riskID uint, params *riskDTOs.RiskControlAnalysisListQueryParamsDTO) ([]*riskDTOs.RiskControlAnalysisListDTO, error)
 	GetByID(riskID uint, id uint) (*models.RiskControlAnalysis, error)
+	GetFullDetailsByID(riskID uint, id uint) (*riskDTOs.RiskControlAnalysisDetailDTO, error)
 	Create(riskID uint, currentUserID uint) error
 	Update(riskID uint, id uint, currentUserID uint, controlTestFormDTO *organizationDTOs.ControlTestFormDTO) error
 	Delete(riskID uint, ids []uint, currentUserID uint) ([]uint, error)
@@ -70,6 +72,29 @@ func (rcas *RiskResidualControlAnalysisService) GetByID(riskID uint, id uint) (*
 		return nil, err
 	}
 	return riskControlAnalysis, nil
+}
+func (rcas RiskResidualControlAnalysisService) GetFullDetailsByID(riskID uint, id uint) (*riskDTOs.RiskControlAnalysisDetailDTO, error) {
+	var riskResidualControlAnalysisDTO riskDTOs.RiskControlAnalysisDetailDTO
+
+	if _, err := rcas.riskRegisterSvc.GetByID(riskID); err != nil {
+		return nil, err
+	}
+
+	riskResidualControlAnalysis, err := rcas.repo.GetFullDetailsByID(id)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+
+	err = mapstructure.Decode(riskResidualControlAnalysis, &riskResidualControlAnalysisDTO)
+	if err != nil {
+		return nil, err
+	}
+
+	return &riskResidualControlAnalysisDTO, nil
 }
 
 func (rcas *RiskResidualControlAnalysisService) Create(riskID uint, currentUserID uint) error {
