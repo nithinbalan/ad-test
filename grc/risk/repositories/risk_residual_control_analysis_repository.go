@@ -42,6 +42,8 @@ func (repo *RiskResidualControlAnalysisRepository) GetAll(riskID uint, params *r
 		Select(`
             risk_control_analyses.id,
 			risk_control_analyses.type,
+			risk_control_analyses.control_test_id,
+			risk_control_analyses.score,
 			controls.id AS control_id,
 			controls.code AS control_code,
 			controls.reference_number AS control_reference_number,
