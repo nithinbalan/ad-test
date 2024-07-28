@@ -18,6 +18,9 @@ type IncidentActionPlanRepositoryInterface interface {
 	Create(incidentActionPlan *models.IncidentActionPlan, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(incidentActionPlan *models.IncidentActionPlan, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
+
+	CreateInitialIncidentActionPlanStatusUpdate(incidentActionPlanStatusUpdate *models.IncidentActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
+	DeleteIncidentActionPlanStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type IncidentActionPlanRepository struct {
@@ -174,6 +177,7 @@ func (repo *IncidentActionPlanRepository) GetFullDetailsByID(id uint) (*models.I
 		Preload("ResponsibleUser").
 		Preload("SeverityLevel").
 		Preload("ActionPlanStatus").
+		Preload("ActionPlanStatusUpdates").
 		First(&incidentActionPlan, id)
 
 	if result.Error != nil {
@@ -221,4 +225,29 @@ func (repo *IncidentActionPlanRepository) Delete(id uint, tx ...utility.Database
 	}
 
 	return nil
+}
+
+func (repo *IncidentActionPlanRepository) CreateInitialIncidentActionPlanStatusUpdate(incidentActionPlanStatusUpdate *models.IncidentActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(incidentActionPlanStatusUpdate).Error; err != nil {
+		return 0, err
+	}
+	return incidentActionPlanStatusUpdate.ID, nil
+}
+
+func (repo *IncidentActionPlanRepository) DeleteIncidentActionPlanStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", ids).Delete(&models.IncidentActionPlanStatusUpdate{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+
 }

@@ -137,11 +137,24 @@ func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uin
 		Percentage:         IncidentActionPlanFormDTO.Percentage,
 		Comments:           IncidentActionPlanFormDTO.Comments,
 		ActionPlanStatusID: IncidentActionPlanFormDTO.ActionPlanStatusID,
-		CreatedByID:        currentUserID,
+		CreatedBYID:        currentUserID,
 	}
 
 	id, err := iaps.repo.Create(incidentActionPlan, tx)
 	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	actionPlanStatusID := IncidentActionPlanFormDTO.ActionPlanStatusID
+	incidentActionPlanUpdate := &models.IncidentActionPlanStatusUpdate{
+		IncidentActionPlanID: id,
+		ActionPlanStatusID:   actionPlanStatusID,
+		Comment:              "Initial action plan status",
+		CreatedByID:          currentUserID,
+	}
+	_, err = iaps.repo.CreateInitialIncidentActionPlanStatusUpdate(incidentActionPlanUpdate, tx)
+	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 	tx.Commit()
@@ -203,7 +216,7 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 	existingIncidentActionPlan.Percentage = IncidentActionPlanFormDTO.Percentage
 	existingIncidentActionPlan.Comments = IncidentActionPlanFormDTO.Comments
 	existingIncidentActionPlan.ActionPlanStatusID = IncidentActionPlanFormDTO.ActionPlanStatusID
-	existingIncidentActionPlan.UpdatedByID = &currentUserID
+	existingIncidentActionPlan.UpdatedBYID = &currentUserID
 
 	err = iaps.repo.Update(existingIncidentActionPlan, tx)
 
@@ -248,10 +261,20 @@ func (iaps *IncidentActionPlanService) Delete(incidentID uint, ids []uint, curre
 	var successfulIds []uint
 	for _, id := range ids {
 
-		_, err := iaps.repo.GetByID(id)
+		incidentActionPlan, err := iaps.repo.GetFullDetailsByID(id)
 
 		if err != nil {
 			continue
+		}
+		if len(incidentActionPlan.ActionPlanStatusUpdates) > 0 {
+			var deleteStatusUpdateIds []*uint
+			for _, update := range incidentActionPlan.ActionPlanStatusUpdates {
+				deleteStatusUpdateIds = append(deleteStatusUpdateIds, &update.ID)
+			}
+			if err := iaps.repo.DeleteIncidentActionPlanStatusUpdates(deleteStatusUpdateIds); err != nil {
+				failedIds = append(failedIds, id)
+				continue
+			}
 		}
 		//Delete-> update timeline performedAt as null
 		//todo
@@ -313,7 +336,7 @@ func (iaps *IncidentActionPlanService) StatusUpdate(incidentID uint, id uint, cu
 	}
 
 	existingIncidentActionPlan.ActionPlanStatusID = ActionPlanStatusID
-	existingIncidentActionPlan.UpdatedByID = &currentUserID
+	existingIncidentActionPlan.UpdatedBYID = &currentUserID
 
 	err = iaps.repo.Update(existingIncidentActionPlan, tx)
 

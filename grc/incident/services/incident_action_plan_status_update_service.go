@@ -19,6 +19,7 @@ type IncidentActionPlanStatusUpdateServiceInterface interface {
 	GetAll(IncidentID uint, IncidentActionPlanID uint, sort string, sortBy string, keyword string) ([]*incidentDTOs.IncidentActionPlanStatusUpdateListDTO, error)
 	Create(IncidentID uint, IncidentActionPlanID uint, currentUserID uint, incidentActionPlanStatusUpdateFormDTO *incidentDTOs.IncidentActionPlanStatusUpdateFormDTO) (uint, error)
 	Update(IncidentID uint, IncidentActionPlanID uint, id uint, currentUserID uint, incidentActionPlanStatusUpdateFormDTO *incidentDTOs.IncidentActionPlanStatusUpdateFormDTO) error
+	GetLatestIncidentActionPlanStatusUpdate(incidentID uint, actionPlanID uint) (*incidentDTOs.IncidentActionPlanStatusUpdateListDTO, error)
 }
 
 type IncidentActionPlanStatusUpdateService struct {
@@ -280,6 +281,14 @@ func (iasus *IncidentActionPlanStatusUpdateService) Update(IncidentID uint, Inci
 	tx.Commit()
 
 	return nil
+}
+
+func (iasus IncidentActionPlanStatusUpdateService) GetLatestIncidentActionPlanStatusUpdate(incidentID uint, actionPlanID uint) (*incidentDTOs.IncidentActionPlanStatusUpdateListDTO, error) {
+	if _, err := iasus.incidentActionPlanSvc.GetByID(incidentID, actionPlanID); err != nil {
+		return nil, err
+	}
+
+	return iasus.repo.GetLatestIncidentActionPlanStatusUpdate(actionPlanID)
 }
 
 func (iasus *IncidentActionPlanStatusUpdateService) validateIncidentActionPlanStatusUpdateFormDTO(incidentActionPlanStatusUpdateFormDTO *incidentDTOs.IncidentActionPlanStatusUpdateFormDTO) error {
