@@ -163,3 +163,36 @@ func (iasuc *IncidentActionPlanStatusUpdateController) UpdateIncidentActionPlanS
 
 	c.Status(http.StatusOK)
 }
+
+
+func (iasuc *IncidentActionPlanStatusUpdateController) GetLatestIncidentActionPlanStatusUpdate(c *gin.Context) {
+	incidentIDStr := c.Param("incidentID")
+
+	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	actionPlanIDStr := c.Param("actionPlanId")
+
+	actionPlanID, err := strconv.ParseUint(actionPlanIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	incidentActionPlanStatusUpdate, err := iasuc.service.GetLatestIncidentActionPlanStatusUpdate(uint(incidentID), uint(actionPlanID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(iasuc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, incidentActionPlanStatusUpdate)
+}
