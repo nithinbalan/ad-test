@@ -13,6 +13,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	documentRoutes.Use(middlewares.AuthMiddleware())
 
+	unauthenticatedRoutes := router.Group("/")
+
 	documentCategoryController := app.DocumentModule.DocumentCategoryController
 	documentTypeController := app.DocumentModule.DocumentTypeController
 	documentTemplateController := app.DocumentModule.DocumentTemplateController
@@ -58,5 +60,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentRoutes.GET("/documents/:id/check-out", documentController.CheckoutDocument)
 	documentRoutes.POST("/documents/:id/check-in", documentController.CheckinDocument)
 	documentRoutes.POST("/documents/:id/check-out-revert", documentController.RevertDocumentCheckout)
+
+	unauthenticatedRoutes.GET("/documents/:id/document-preview", documentController.GetDocumentPreview)
 
 }
