@@ -8,6 +8,7 @@ import (
 	riskDTOs "jethur/grc/risk/dtos"
 	riskRepositories "jethur/grc/risk/repositories"
 	"jethur/utility"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -25,17 +26,20 @@ type RiskRootCauseAnalysisService struct {
 	repo            riskRepositories.RiskRootCauseAnalysisRepositoryInterface
 	activityLogSvc  logServices.ActivityLogServiceInterface
 	riskRegisterSvc RiskRegisterServiceInterface
+	riskTimelineSvc RiskTimelineServiceInterface
 }
 
 func NewRiskRootCauseAnalysisService(
 	repo riskRepositories.RiskRootCauseAnalysisRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	riskRegisterSvc RiskRegisterServiceInterface,
+	riskTimelineSvc RiskTimelineServiceInterface,
 ) RiskRootCauseAnalysisServiceInterface {
 	return &RiskRootCauseAnalysisService{
 		repo:            repo,
 		activityLogSvc:  activityLogSvc,
 		riskRegisterSvc: riskRegisterSvc,
+		riskTimelineSvc: riskTimelineSvc,
 	}
 }
 
@@ -63,6 +67,8 @@ func (rrcas *RiskRootCauseAnalysisService) GetByID(riskID uint, id uint) (*model
 }
 
 func (rrcas *RiskRootCauseAnalysisService) Create(riskID uint, currentUserID uint, rootCauseAnalysisFormDTO *riskDTOs.RiskRootCauseAnalysisFormDTO) (uint, error) {
+	tx := rrcas.repo.BeginTransaction()
+	
 	if _, err := rrcas.riskRegisterSvc.GetByID(riskID); err != nil {
 		return 0, err
 	}
@@ -86,6 +92,29 @@ func (rrcas *RiskRootCauseAnalysisService) Create(riskID uint, currentUserID uin
 	if err != nil {
 		return 0, err
 	}
+	//Update timeline
+	//todo
+	timelineType, err := rrcas.riskTimelineSvc.GetByType("rca")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	timelineStatus, err := rrcas.riskTimelineSvc.GetByStatusType("completed")
+	if err != nil {
+		tx.Rollback()
+		return 0,err
+	}
+	currentTime := time.Now()
+	timelineFormDTO := &riskDTOs.RiskTimelineFormDTO{
+		PerformedByID:    &currentUserID,
+		TimelineStatusID: timelineStatus.ID,
+		PerformedAt:      &currentTime,
+	}
+	if err := rrcas.riskTimelineSvc.Update(riskID, timelineFormDTO, timelineType.ID, tx); err != nil {
+		tx.Rollback()
+		return 0,err
+	}
+	tx.Commit()
 
 	go func() {
 		err := rrcas.activityLogSvc.LogActivity(
@@ -150,6 +179,27 @@ func (rrcas *RiskRootCauseAnalysisService) Delete(riskID uint, id uint, currentU
 
 	entryToDelete, err := rrcas.GetByID(riskID, id)
 	if err != nil {
+		return 0, err
+	}
+	//Delete-> update timeline performedAt as null
+	//todo
+	timelineType, err := rrcas.riskTimelineSvc.GetByType("rca")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	timelineStatus, err := rrcas.riskTimelineSvc.GetByStatusType("pending")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	timelineFormDTO := &riskDTOs.RiskTimelineFormDTO{
+		PerformedByID:    nil,
+		TimelineStatusID: timelineStatus.ID,
+		PerformedAt:      nil,
+	}
+	if err := rrcas.riskTimelineSvc.Update(riskID, timelineFormDTO, timelineType.ID, tx); err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
