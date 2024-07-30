@@ -17,6 +17,7 @@ type RiskKriRepositoryInterface interface {
 	Create(riskKris []*models.RiskKri) ([]uint, error)
 	Update(riskKri *models.RiskKri, tx ...utility.DatabaseTransaction) error
 	Delete(id uint) error
+	GetCountByRiskID(riskID uint) (int64, error)
 }
 
 type RiskKriRepository struct {
@@ -223,4 +224,14 @@ func (repo *RiskKriRepository) Delete(id uint) error {
 	}
 
 	return nil
+}
+
+func (repo *RiskKriRepository) GetCountByRiskID(riskID uint) (int64, error) {
+	var count int64
+	if err := repo.db.Model(&models.RiskKri{}).
+		Where("risk_register_id = ?", riskID).
+		Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
 }

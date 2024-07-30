@@ -21,6 +21,7 @@ type RiskKriServiceInterface interface {
 	Create(riskID uint, currentUserID uint, RiskKriFormDTO *riskDTOs.RiskKriFormDTO) ([]uint, error)
 	Update(riskID uint, currentUserID uint, risk *riskDTOs.RiskKriFormDTO) error
 	Delete(riskID uint, ids []uint, currentUserID uint) ([]uint, error)
+	GetCountByRiskID(riskID uint) (int64, error)
 }
 
 // Service and implementations
@@ -38,7 +39,7 @@ func NewRiskKriService(
 	riskRegisterSvc RiskRegisterServiceInterface,
 	kriRegisterSvc KRIRegisterServiceInterface,
 	riskTimelineSvc RiskTimelineServiceInterface,
-	) RiskKriServiceInterface {
+) RiskKriServiceInterface {
 	return &RiskKriService{
 		repo:            repo,
 		activityLogSvc:  activityLogSvc,
@@ -99,7 +100,7 @@ func (rks RiskKriService) GetFullDetailsByID(riskID uint, id uint) (*riskDTOs.Ri
 
 func (rks *RiskKriService) Create(riskID uint, currentUserID uint, riskKriFormDTO *riskDTOs.RiskKriFormDTO) ([]uint, error) {
 	tx := rks.repo.BeginTransaction()
-	
+
 	if _, err := rks.riskRegisterSvc.GetByID(riskID); err != nil {
 		return nil, err
 	}
@@ -126,25 +127,31 @@ func (rks *RiskKriService) Create(riskID uint, currentUserID uint, riskKriFormDT
 	}
 	//update timeline
 	//todo
-	timelineType, err := rks.riskTimelineSvc.GetByType("monitoring")
+	kriCount, err := rks.repo.GetCountByRiskID(riskID)
 	if err != nil {
-		tx.Rollback()
-		return nil,err
+		return nil, err
 	}
-	timelineStatus, err := rks.riskTimelineSvc.GetByStatusType("completed")
-	if err != nil {
-		tx.Rollback()
-		return nil,err
-	}
-	currentTime := time.Now()
-	timelineFormDTO := &riskDTOs.RiskTimelineFormDTO{
-		PerformedByID:    &currentUserID,
-		TimelineStatusID: timelineStatus.ID,
-		PerformedAt:      &currentTime,
-	}
-	if err := rks.riskTimelineSvc.Update(riskID, timelineFormDTO, timelineType.ID, tx); err != nil {
-		tx.Rollback()
-		return nil,err
+	if kriCount == 1 {
+		timelineType, err := rks.riskTimelineSvc.GetByType("monitoring")
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+		timelineStatus, err := rks.riskTimelineSvc.GetByStatusType("completed")
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+		currentTime := time.Now()
+		timelineFormDTO := &riskDTOs.RiskTimelineFormDTO{
+			PerformedByID:    &currentUserID,
+			TimelineStatusID: timelineStatus.ID,
+			PerformedAt:      &currentTime,
+		}
+		if err := rks.riskTimelineSvc.Update(riskID, timelineFormDTO, timelineType.ID, tx); err != nil {
+			tx.Rollback()
+			return nil, err
+		}
 	}
 	tx.Commit()
 
@@ -231,7 +238,7 @@ func (rks *RiskKriService) Update(riskID uint, currentUserID uint, riskKriFormDT
 
 func (rks *RiskKriService) Delete(riskID uint, ids []uint, currentUserID uint) ([]uint, error) {
 	tx := rks.repo.BeginTransaction()
-	
+
 	if _, err := rks.riskRegisterSvc.GetByID(riskID); err != nil {
 		return nil, err
 	}
@@ -247,24 +254,30 @@ func (rks *RiskKriService) Delete(riskID uint, ids []uint, currentUserID uint) (
 		}
 		//Delete-> update timeline performedAt as null
 		//todo
-		timelineType, err := rks.riskTimelineSvc.GetByType("monitoring")
+		kriCount, err := rks.repo.GetCountByRiskID(riskID)
 		if err != nil {
-			tx.Rollback()
 			return nil, err
 		}
-		timelineStatus, err := rks.riskTimelineSvc.GetByStatusType("pending")
-		if err != nil {
-			tx.Rollback()
-			return nil, err
-		}
-		timelineFormDTO := &riskDTOs.RiskTimelineFormDTO{
-			PerformedByID:    nil,
-			TimelineStatusID: timelineStatus.ID,
-			PerformedAt:      nil,
-		}
-		if err := rks.riskTimelineSvc.Update(riskID, timelineFormDTO, timelineType.ID, tx); err != nil {
-			tx.Rollback()
-			return nil, err
+		if kriCount == 1 {
+			timelineType, err := rks.riskTimelineSvc.GetByType("monitoring")
+			if err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+			timelineStatus, err := rks.riskTimelineSvc.GetByStatusType("pending")
+			if err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+			timelineFormDTO := &riskDTOs.RiskTimelineFormDTO{
+				PerformedByID:    nil,
+				TimelineStatusID: timelineStatus.ID,
+				PerformedAt:      nil,
+			}
+			if err := rks.riskTimelineSvc.Update(riskID, timelineFormDTO, timelineType.ID, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
 		}
 
 		err = rks.repo.Delete(id)
@@ -318,4 +331,12 @@ func (rks *RiskKriService) validateRiskKriFormDTO(riskKriFormDTO *riskDTOs.RiskK
 		kriIDs[*kriId] = true
 	}
 	return nil
+}
+
+func (rks *RiskKriService) GetCountByRiskID(riskID uint) (int64, error) {
+	if _, err := rks.riskRegisterSvc.GetByID(riskID); err != nil {
+		return 0, err
+	}
+
+	return rks.repo.GetCountByRiskID(riskID)
 }
