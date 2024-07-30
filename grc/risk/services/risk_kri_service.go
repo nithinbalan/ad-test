@@ -120,15 +120,17 @@ func (rks *RiskKriService) Create(riskID uint, currentUserID uint, riskKriFormDT
 		kris = append(kris, kri)
 	}
 
-	ids, err := rks.repo.Create(kris)
+	ids, err := rks.repo.Create(kris, tx)
 
 	if err != nil {
+		tx.Rollback()
 		return nil, err
 	}
 	//update timeline
 	//todo
-	kriCount, err := rks.repo.GetCountByRiskID(riskID)
+	kriCount, err := rks.repo.GetCountByRiskID(riskID,tx)
 	if err != nil {
+		tx.Rollback()
 		return nil, err
 	}
 	if kriCount == 1 {
@@ -254,8 +256,9 @@ func (rks *RiskKriService) Delete(riskID uint, ids []uint, currentUserID uint) (
 		}
 		//Delete-> update timeline performedAt as null
 		//todo
-		kriCount, err := rks.repo.GetCountByRiskID(riskID)
+		kriCount, err := rks.repo.GetCountByRiskID(riskID,tx)
 		if err != nil {
+			tx.Rollback()
 			return nil, err
 		}
 		if kriCount == 1 {

@@ -89,14 +89,16 @@ func (rrcas *RiskRootCauseAnalysisService) Create(riskID uint, currentUserID uin
 		CreatedByID:    currentUserID,
 	}
 
-	id, err := rrcas.repo.Create(riskRootCauseAnalysis)
+	id, err := rrcas.repo.Create(riskRootCauseAnalysis,tx)
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 	//Update timeline
 	//todo
-	rcaCount, err := rrcas.repo.GetCountByRiskID(riskID)
+	rcaCount, err := rrcas.repo.GetCountByRiskID(riskID,tx)
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 	if rcaCount == 1 {
@@ -190,8 +192,9 @@ func (rrcas *RiskRootCauseAnalysisService) Delete(riskID uint, id uint, currentU
 	}
 	//Delete-> update timeline performedAt as null
 	//todo
-	rcaCount, err := rrcas.repo.GetCountByRiskID(riskID)
+	rcaCount, err := rrcas.repo.GetCountByRiskID(riskID,tx)
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 	if rcaCount == 1 {
