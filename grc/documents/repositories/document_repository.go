@@ -35,6 +35,9 @@ type DocumentRepositoryInterface interface {
 
 	CreateDocumentEditHistory(documentHistory *models.DocumentEditHistory, tx ...utility.DatabaseTransaction) (uint, error)
 	DeleteDocumentEditHistory(docHistoryEditIds []*uint, tx ...utility.DatabaseTransaction) error
+
+	CreateDocumentWorkflow(documentWorkflow *models.DocumentWorkflow, tx ...utility.DatabaseTransaction) (uint, error)
+	CreateDocumentWorkflowParticipant(docWorkflowParticipant *models.DocumentWorkflowParticipant, tx ...utility.DatabaseTransaction) error
 }
 
 // Implementation
@@ -425,7 +428,7 @@ func (repo *DocumentRepository) CreateDocumentEditHistory(documentHistory *model
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	if err := db.Save(documentHistory).Error; err != nil {
+	if err := db.Create(documentHistory).Error; err != nil {
 		return 0, err
 	}
 	return documentHistory.ID, nil
@@ -438,6 +441,30 @@ func (repo *DocumentRepository) DeleteDocumentEditHistory(docEditHistoryIds []*u
 	}
 
 	if err := db.Where("id IN (?)", docEditHistoryIds).Delete(&models.DocumentEditHistory{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *DocumentRepository) CreateDocumentWorkflow(documentWorkflow *models.DocumentWorkflow, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(documentWorkflow).Error; err != nil {
+		return 0, err
+	}
+
+	return documentWorkflow.ID, nil
+}
+
+func (repo *DocumentRepository) CreateDocumentWorkflowParticipant(docWorkflowParticipant *models.DocumentWorkflowParticipant, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(docWorkflowParticipant).Error; err != nil {
 		return err
 	}
 

@@ -251,3 +251,31 @@ func (dc *DocumentController) RevertDocumentCheckout(c *gin.Context) {
 
 	c.Status(http.StatusOK)
 }
+
+func (crc *DocumentController) GetDocumentPreview(c *gin.Context) {
+	fileType := "pdf"
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	documentPath, err := crc.service.GetDocumentPath(uint(id), token, fileType)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(crc.db, c, err.Error())
+		}
+		return
+	}
+	c.File(documentPath)
+}

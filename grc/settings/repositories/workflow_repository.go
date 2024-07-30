@@ -13,8 +13,9 @@ import (
 type WorkflowRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAllWorkflowsByType(workflowType string) ([]*settingsDTOs.WorkflowListDTO, error)
+	GetWorkflowByDocumentType(documentTypeId uint, tx ...utility.DatabaseTransaction) (*models.Workflow, error)
 	GetWorkflowLevelByID(id uint, tx ...utility.DatabaseTransaction) (*models.WorkflowLevel, error)
-	GetWorkflowLevels(workflowID uint) (*models.Workflow, error)
+	GetWorkflowLevels(workflowID uint, tx ...utility.DatabaseTransaction) (*models.Workflow, error)
 	CreateWorkflowLevel(workflowLevel *models.WorkflowLevel, tx ...utility.DatabaseTransaction) (uint, error)
 	CreateParticipant(participant *models.WorkflowLevelParticipant, tx ...utility.DatabaseTransaction) error
 	DeleteWorkflowLevelParticipants(workflowLevelID uint, tx ...utility.DatabaseTransaction) error
@@ -75,10 +76,26 @@ func (repo *WorkflowRepository) GetAllWorkflowsByType(workflowType string) ([]*s
 	return workflows, nil
 }
 
-func (repo *WorkflowRepository) GetWorkflowLevels(workflowID uint) (*models.Workflow, error) {
+func (repo *WorkflowRepository) GetWorkflowByDocumentType(documentTypeId uint, tx ...utility.DatabaseTransaction) (*models.Workflow, error) {
 	var workflow *models.Workflow
 
-	if err := repo.db.
+	result := repo.db.Where("document_type_id = ?", documentTypeId).First(&workflow)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return workflow, nil
+}
+
+func (repo *WorkflowRepository) GetWorkflowLevels(workflowID uint, tx ...utility.DatabaseTransaction) (*models.Workflow, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var workflow *models.Workflow
+
+	if err := db.
 		Preload("WorkflowLevels", func(db *gorm.DB) *gorm.DB {
 			return db.Order("workflow_levels.level ASC") // Ordering WorkflowLevels by level ascending
 		}).

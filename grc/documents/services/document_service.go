@@ -10,10 +10,14 @@ import (
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
 	organizationSvc "jethur/grc/organization/services"
+	settingDTOs "jethur/grc/settings/dtos"
+	settinsSvc "jethur/grc/settings/services"
 	"jethur/utility"
+	"log"
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/mitchellh/mapstructure"
@@ -34,7 +38,7 @@ type DocumentServiceInterface interface {
 	CreateSharedUsers(sharedUsers []*models.DocumentSharedUser, tx ...utility.DatabaseTransaction) error
 	CreateSharedUnits(sharedUnits []*models.DocumentSharedUnit, tx ...utility.DatabaseTransaction) error
 
-	GetDocumentPath(id uint, token string, tx ...utility.DatabaseTransaction) (string, error)
+	GetDocumentPath(id uint, token string, fileType string, tx ...utility.DatabaseTransaction) (string, error)
 }
 
 type DocumentService struct {
@@ -45,6 +49,7 @@ type DocumentService struct {
 	documentAccessTypeSvc DocumentAccessTypeServiceInterface
 	documentStatusSvc     DocumentStatusServiceInterface
 	userSvc               organizationSvc.UserServiceInterface
+	workflowSvc           settinsSvc.WorkflowServiceInterface
 	activityLogSvc        services.ActivityLogServiceInterface
 }
 
@@ -56,6 +61,7 @@ func NewDocumentService(
 	documentAccessTypeSvc DocumentAccessTypeServiceInterface,
 	documentStatusSvc DocumentStatusServiceInterface,
 	userSvc organizationSvc.UserServiceInterface,
+	workflowSvc settinsSvc.WorkflowServiceInterface,
 	activityLogSvc services.ActivityLogServiceInterface) DocumentServiceInterface {
 	return &DocumentService{
 		repo:                  repo,
@@ -65,6 +71,7 @@ func NewDocumentService(
 		documentAccessTypeSvc: documentAccessTypeSvc,
 		documentStatusSvc:     documentStatusSvc,
 		userSvc:               userSvc,
+		workflowSvc:           workflowSvc,
 		activityLogSvc:        activityLogSvc,
 	}
 }
@@ -206,7 +213,7 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 
 	url := utility.GenerateDocumentURL("document", "draft", strconv.FormatUint(uint64(id), 10), "documents")
 	destinationDir := filepath.Join("document", "draft", strconv.FormatUint(uint64(id), 10), "documents")
-
+	var docVersionId uint
 	if documentFormDTO.DocumentTemplateID != nil {
 		var documentTemplate *documentDTOs.DocumentTemplateDetailsDTO
 		documentTemplate, err = ds.documentTemplateSvc.GetFullDetailsByID(*documentFormDTO.DocumentTemplateID)
@@ -235,7 +242,7 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 			CreatedBYID:     currentUserID,
 		}
 
-		docVersionId, err := ds.repo.CreateDocumentVersion(documentVersion, tx)
+		docVersionId, err = ds.repo.CreateDocumentVersion(documentVersion, tx)
 		if err != nil {
 			tx.Rollback()
 			return 0, err
@@ -286,7 +293,7 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 			CreatedBYID:     currentUserID,
 		}
 
-		docVersionId, err := ds.repo.CreateDocumentVersion(documentVersion, tx)
+		docVersionId, err = ds.repo.CreateDocumentVersion(documentVersion, tx)
 		if err != nil {
 			tx.Rollback()
 			return 0, err
@@ -296,6 +303,11 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 			tx.Rollback()
 			return 0, err
 		}
+
+		// if err := utility.ConvertDocxToPDF(destinationDir, documentFormDTO.Document.FileName, destinationDir); err != nil {
+		// 	tx.Rollback()
+		// 	return 0, err
+		// }
 
 		//add document history
 		documentEditHistory := &documentDTOs.DocumentEditHistoryDTO{
@@ -315,7 +327,19 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 		}
 	}
 
+	err = ds.CreateDocumentWorkflow(docVersionId, documentFormDTO.DocumentTypeID, currentUserID, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
 	tx.Commit()
+
+	go func() {
+		if err := utility.ConvertDocxToPDF(destinationDir, documentFormDTO.Document.FileName, destinationDir); err != nil {
+			log.Printf("Failed to convert document to PDF: %v", err)
+		}
+	}()
 
 	go func() {
 		err := ds.activityLogSvc.LogActivity(
@@ -658,7 +682,8 @@ func (ds *DocumentService) CheckoutDocument(id uint, currentUserID uint, token s
 	}
 
 	var documentPath string
-	documentPath, err = ds.GetDocumentPath(id, token, tx)
+	fileType := "docx"
+	documentPath, err = ds.GetDocumentPath(id, token, fileType, tx)
 	if err != nil {
 		tx.Rollback()
 		return "", fmt.Errorf("error retrieving document path: %w", err)
@@ -775,6 +800,12 @@ func (ds *DocumentService) CheckinDocument(id uint, currentUserID uint, document
 
 	tx.Commit()
 
+	go func() {
+		if err := utility.ConvertDocxToPDF(destinationDir, documentCheckinFormDTO.Document.FileName, destinationDir); err != nil {
+			log.Printf("Failed to convert document to PDF: %v", err)
+		}
+	}()
+
 	return nil
 }
 
@@ -808,7 +839,7 @@ func (ds *DocumentService) RevertDocumentCheckout(id uint, currentUserID uint) e
 	documentEditHistory := &documentDTOs.DocumentEditHistoryDTO{
 		DocumentID:        id,
 		DocumentVersionID: document.LatestDocumentVersion.ID,
-		ActionType:        "revert",
+		ActionType:        "revert-checkout",
 	}
 
 	err = ds.CreateDocumentEditHistory(documentEditHistory, nil, currentUserID, tx)
@@ -822,7 +853,7 @@ func (ds *DocumentService) RevertDocumentCheckout(id uint, currentUserID uint) e
 	return nil
 }
 
-func (ds *DocumentService) GetDocumentPath(id uint, token string, tx ...utility.DatabaseTransaction) (string, error) {
+func (ds *DocumentService) GetDocumentPath(id uint, token string, fileType string, tx ...utility.DatabaseTransaction) (string, error) {
 	existingDocument, err := ds.GetFullDetailsByID(id, tx...)
 	if err != nil {
 		return "", err
@@ -838,6 +869,8 @@ func (ds *DocumentService) GetDocumentPath(id uint, token string, tx ...utility.
 		return "", fmt.Errorf("resource not found")
 	}
 
+	baseFilename := strings.TrimSuffix(decryptedFilename, filepath.Ext(decryptedFilename))
+
 	var storagePath string
 	if existingDocument.DocumentStatus.Type == "published" {
 		storagePath = filepath.Join("document", "published", strconv.FormatUint(uint64(id), 10), "documents")
@@ -846,7 +879,7 @@ func (ds *DocumentService) GetDocumentPath(id uint, token string, tx ...utility.
 	}
 
 	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
-	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
+	fullPath := filepath.Join(baseStoragePath, storagePath, baseFilename+"."+fileType)
 
 	// Check if the file exists
 	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
@@ -856,4 +889,75 @@ func (ds *DocumentService) GetDocumentPath(id uint, token string, tx ...utility.
 	}
 
 	return fullPath, nil
+}
+
+func (ds *DocumentService) CreateDocumentWorkflow(documentVersionId uint, documentTypeId uint, currentUserID uint, tx ...utility.DatabaseTransaction) error {
+	workflow, err := ds.workflowSvc.GetWorkflowByDocumentType(documentTypeId, tx...)
+	if err != nil {
+		return err
+	}
+
+	workflowLevels, err := ds.workflowSvc.GetWorkflowLevels(workflow.ID, tx...)
+	if err != nil {
+		return err
+	}
+
+	for _, level := range workflowLevels.WorkflowLevels {
+		documentWorkflow := &models.DocumentWorkflow{
+			DocumentVersionID: documentVersionId,
+			Level:             level.Level,
+			ApprovalTypes:     level.ApprovalType,
+			CreatedBYID:       currentUserID,
+		}
+
+		docWorkflowId, err := ds.repo.CreateDocumentWorkflow(documentWorkflow, tx...)
+		if err != nil {
+			return err
+		}
+
+		// Handle participants for each level
+		for _, participant := range level.Participants {
+			if participant.Role != nil {
+
+				userIds, err := ds.userSvc.GetUserIdsByRole(participant.Role.ID, tx...)
+				if err != nil {
+					return err
+				}
+
+				for _, userId := range userIds {
+					err = ds.createWorkflowParticipant(userId, docWorkflowId, level.WorkflowLevelType.ID, &participant, currentUserID, tx...)
+					if err != nil {
+						return err
+					}
+
+				}
+			} else if participant.User != nil {
+				err = ds.createWorkflowParticipant(uint(participant.User.ID), docWorkflowId, level.WorkflowLevelType.ID, &participant, currentUserID, tx...)
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func (ds *DocumentService) createWorkflowParticipant(userID uint, documentWorkflowID uint, workflowLevelTypeId uint, participant *settingDTOs.WorkflowLevelParticipantDTO, currentUserID uint, tx ...utility.DatabaseTransaction) error {
+	docWorkflowParticipant := &models.DocumentWorkflowParticipant{
+		DocumentWorkflowID:  documentWorkflowID,
+		WorkflowLevelTypeID: workflowLevelTypeId,
+		UserID:              userID,
+		CreatedBYID:         currentUserID,
+	}
+
+	if participant.Role != nil {
+		docWorkflowParticipant.RoleID = &participant.Role.ID
+	}
+
+	err := ds.repo.CreateDocumentWorkflowParticipant(docWorkflowParticipant, tx...)
+	if err != nil {
+		return err
+	}
+	return nil
 }

@@ -12,12 +12,14 @@ import (
 	"jethur/utility"
 	"time"
 
+	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
 )
 
 type RiskResidualControlAnalysisServiceInterface interface {
 	GetAll(riskID uint, params *riskDTOs.RiskControlAnalysisListQueryParamsDTO) ([]*riskDTOs.RiskControlAnalysisListDTO, error)
 	GetByID(riskID uint, id uint) (*models.RiskControlAnalysis, error)
+	GetFullDetailsByID(riskID uint, id uint) (*riskDTOs.RiskControlAnalysisDetailDTO, error)
 	Create(riskID uint, currentUserID uint) error
 	Update(riskID uint, id uint, currentUserID uint, controlTestFormDTO *organizationDTOs.ControlTestFormDTO) error
 	Delete(riskID uint, ids []uint, currentUserID uint) ([]uint, error)
@@ -71,6 +73,29 @@ func (rcas *RiskResidualControlAnalysisService) GetByID(riskID uint, id uint) (*
 	}
 	return riskControlAnalysis, nil
 }
+func (rcas RiskResidualControlAnalysisService) GetFullDetailsByID(riskID uint, id uint) (*riskDTOs.RiskControlAnalysisDetailDTO, error) {
+	var riskResidualControlAnalysisDTO riskDTOs.RiskControlAnalysisDetailDTO
+
+	if _, err := rcas.riskRegisterSvc.GetByID(riskID); err != nil {
+		return nil, err
+	}
+
+	riskResidualControlAnalysis, err := rcas.repo.GetFullDetailsByID(id)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+
+	err = mapstructure.Decode(riskResidualControlAnalysis, &riskResidualControlAnalysisDTO)
+	if err != nil {
+		return nil, err
+	}
+
+	return &riskResidualControlAnalysisDTO, nil
+}
 
 func (rcas *RiskResidualControlAnalysisService) Create(riskID uint, currentUserID uint) error {
 	if _, err := rcas.riskRegisterSvc.GetByID(riskID); err != nil {
@@ -118,16 +143,19 @@ func (rcas *RiskResidualControlAnalysisService) Update(riskID uint, id uint, cur
 		return err
 	}
 
-	existingRiskControlAnalysis.ControlEfficiencyStatusID = controlTestFormDTO.ControlEfficiencyStatusID
-	existingRiskControlAnalysis.ControlImplementationStatusID = controlTestFormDTO.ControlImplementationStatusID
-
-	err = rcas.repo.Update(existingRiskControlAnalysis, tx)
+	testId, err := rcas.controlTestSvc.Create(existingRiskControlAnalysis.RiskControl.ControlID, currentUserID, &riskID, controlTestFormDTO, "risk", tx)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
+	existingRiskControlAnalysis.ControlEfficiencyStatusID = controlTestFormDTO.ControlEfficiencyStatusID
+	existingRiskControlAnalysis.ControlImplementationStatusID = controlTestFormDTO.ControlImplementationStatusID
+	existingRiskControlAnalysis.ControlTestID = testId
+	existingRiskControlAnalysis.Score = controlTestFormDTO.Score
+	existingRiskControlAnalysis.CreatedByID = currentUserID //todo (tested_by or currentUserID)
+	existingRiskControlAnalysis.CreatedAt = time.Now()
 
-	_, err = rcas.controlTestSvc.Create(existingRiskControlAnalysis.RiskControl.ControlID, currentUserID, &riskID, controlTestFormDTO, "risk", tx)
+	err = rcas.repo.Update(existingRiskControlAnalysis, tx)
 	if err != nil {
 		tx.Rollback()
 		return err

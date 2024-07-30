@@ -8,8 +8,7 @@ type IncidentRegister struct {
 	ID                    uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	ReferenceNumber       string     `json:"reference_number" binding:"required,max=45" gorm:"type:varchar(45);not null;unique"`
 	IncidentCategoryID    uint       `json:"incident_category_id" binding:"required"`
-	IncidentSubCategoryID uint       `json:"incident_sub_category_id" binding:"required"`
-	IncidentTypeID        uint       `json:"incident_type_id" binding:"required"`
+	IncidentTypeID        *uint      `json:"incident_type_id"`
 	SeverityLevelID       uint       `json:"severity_level_id" binding:"required"`
 	IncidentStatusID      *uint      `json:"incident_status_id"`
 	Title                 string     `json:"title" binding:"required,max=255" gorm:"type:nvarchar(255);not null"`
@@ -27,7 +26,6 @@ type IncidentRegister struct {
 
 	// Relationships
 	IncidentCategory       *IncidentCategory                `gorm:"foreignKey:IncidentCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	IncidentSubCategory    *IncidentSubCategory             `gorm:"foreignKey:IncidentSubCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	IncidentType           *IncidentType                    `gorm:"foreignKey:IncidentTypeID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	SeverityLevel          *SeverityLevel                   `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	IncidentStatus         *IncidentStatus                  `gorm:"foreignKey:IncidentStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`

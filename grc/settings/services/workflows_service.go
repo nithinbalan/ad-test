@@ -16,7 +16,8 @@ import (
 
 type WorkflowServiceInterface interface {
 	GetAllWorkflowsByType(workflowType string) ([]*settingsDTOs.WorkflowListDTO, error)
-	GetWorkflowLevels(workflowID uint) (*settingsDTOs.WorkflowLevelListDTO, error)
+	GetWorkflowByDocumentType(documentTypeId uint, tx ...utility.DatabaseTransaction) (*models.Workflow, error)
+	GetWorkflowLevels(workflowID uint, tx ...utility.DatabaseTransaction) (*settingsDTOs.WorkflowLevelListDTO, error)
 	CreateWorkFlowLevel(workflowId uint, currentUserID uint, workflowFormDTO *settingsDTOs.WorkflowLevelFormDTO) (uint, error)
 	DeleteWorkflowLevel(currentUserID, workflowLevelID uint) error
 }
@@ -42,10 +43,22 @@ func (ws *WorkflowService) GetAllWorkflowsByType(workflowType string) ([]*settin
 	return ws.repo.GetAllWorkflowsByType(workflowType)
 }
 
-func (ws *WorkflowService) GetWorkflowLevels(workflowID uint) (*settingsDTOs.WorkflowLevelListDTO, error) {
+func (ws *WorkflowService) GetWorkflowByDocumentType(documentTypeId uint, tx ...utility.DatabaseTransaction) (*models.Workflow, error) {
+	workflow, err := ws.repo.GetWorkflowByDocumentType(documentTypeId, tx...)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, documentTypeId)
+		}
+		return nil, err
+	}
+	return workflow, nil
+}
+
+func (ws *WorkflowService) GetWorkflowLevels(workflowID uint, tx ...utility.DatabaseTransaction) (*settingsDTOs.WorkflowLevelListDTO, error) {
 	var workflowLevelDTO settingsDTOs.WorkflowLevelListDTO
 
-	workflowLevels, err := ws.repo.GetWorkflowLevels(workflowID)
+	workflowLevels, err := ws.repo.GetWorkflowLevels(workflowID, tx...)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, workflowID)
@@ -59,65 +72,6 @@ func (ws *WorkflowService) GetWorkflowLevels(workflowID uint) (*settingsDTOs.Wor
 	}
 
 	return &workflowLevelDTO, nil
-
-	// levelsDTO := &settingsDTOs.WorkflowLevelListDTO{
-	// 	WorkflowLevels: make([]settingsDTOs.WorkflowLevelDTO, len(workflowLevels)),
-	// }
-
-	// for i, level := range workflowLevels {
-	// 	levelDTO := settingsDTOs.WorkflowLevelDTO{
-	// 		ID:           level.ID,
-	// 		Level:        level.Level,
-	// 		WorkflowID:   level.WorkflowID,
-	// 		ApprovalType: level.ApprovalType,
-	// 		CreatedByID:  level.CreatedByID,
-	// 		UpdatedByID:  level.UpdatedByID,
-	// 		CreatedAt:    level.CreatedAt,
-	// 		UpdatedAt:    level.UpdatedAt,
-	// 		WorkflowLevelType: settingsDTOs.WorkflowLevelTypeDTO{
-	// 			ID:      level.WorkflowLevelType.ID,
-	// 			TitleEn: level.WorkflowLevelType.TitleEn,
-	// 			TitleAr: level.WorkflowLevelType.TitleAr,
-	// 			Type:    level.WorkflowLevelType.Type,
-	// 		},
-	// 	}
-
-	// 	// Assuming the participants are loaded as part of the WorkflowLevel model
-	// 	for _, participant := range level.Participants {
-	// 		participantDTO := settingsDTOs.WorkflowLevelParticipantDTO{
-	// 			ID: participant.ID,
-	// 		}
-
-	// 		if participant.User != nil {
-	// 			participantDTO.User = &settingsDTOs.UserMinimalDTO{
-	// 				ID:               int(participant.User.ID),
-	// 				FirstNameEN:      participant.User.FirstNameEn,
-	// 				LastNameEN:       participant.User.LastNameEn,
-	// 				FirstNameAR:      participant.User.FirstNameAr,
-	// 				LastNameAR:       participant.User.LastNameAr,
-	// 				ProfileImagePath: participant.User.ProfileImagePath,
-	// 				Email:            participant.User.Email,
-	// 				Initial:          participant.User.Initial,
-	// 				Color:            participant.User.Color,
-	// 			}
-	// 		}
-
-	// 		if participant.Role != nil {
-	// 			participantDTO.Role = &settingsDTOs.RoleDTO{
-	// 				ID:      participant.Role.ID,
-	// 				TitleEn: participant.Role.TitleEn,
-	// 				TitleAr: participant.Role.TitleAr,
-	// 				Status:  participant.Role.Status,
-	// 			}
-	// 		}
-
-	// 		levelDTO.Participants = append(levelDTO.Participants, participantDTO)
-	// 	}
-
-	// 	levelsDTO.WorkflowLevels[i] = levelDTO
-	// }
-
-	// return levelsDTO, nil
 }
 
 func (ws *WorkflowService) CreateWorkFlowLevel(workflowId uint, currentUserID uint, workflowLevelFormDTO *settingsDTOs.WorkflowLevelFormDTO) (uint, error) {
@@ -128,14 +82,14 @@ func (ws *WorkflowService) CreateWorkFlowLevel(workflowId uint, currentUserID ui
 		return 0, err
 	}
 
-	maxLevel, err := ws.GetMaxLevelForWorkflow(workflowLevelFormDTO.WorkflowID, tx)
+	maxLevel, err := ws.GetMaxLevelForWorkflow(workflowId, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
 	}
 
 	var newLevel int
-	if workflowLevelFormDTO.ParantLevel == nil {
+	if workflowLevelFormDTO.ParentLevel == nil {
 		if maxLevel == 0 {
 			newLevel = 1 // Set as the first level
 		} else {
@@ -143,12 +97,12 @@ func (ws *WorkflowService) CreateWorkFlowLevel(workflowId uint, currentUserID ui
 			return 0, fmt.Errorf("parent level must be specified when other levels exist")
 		}
 	} else {
-		newLevel = int(*workflowLevelFormDTO.ParantLevel) + 1
+		newLevel = int(*workflowLevelFormDTO.ParentLevel) + 1
 	}
 
 	// Adjust subsequent levels if the new level is not the next immediate level and is less than or equal to max level
 	if newLevel <= maxLevel {
-		err := ws.repo.IncrementSubsequentLevels(workflowLevelFormDTO.WorkflowID, uint(newLevel), tx)
+		err := ws.repo.IncrementSubsequentLevels(workflowId, uint(newLevel), tx)
 		if err != nil {
 			tx.Rollback()
 			return 0, err
@@ -178,11 +132,12 @@ func (ws *WorkflowService) CreateWorkFlowLevel(workflowId uint, currentUserID ui
 	switch workflowRoleType.Type {
 	case "individual", "multiple-users":
 		// Handle individual and multiple users by looping through user IDs provided in the form DTO
-		if len(workflowLevelFormDTO.UserIDs) > 0 {
+		fmt.Println(workflowLevelFormDTO.UserIds)
+		if len(workflowLevelFormDTO.UserIds) < 1 {
 			tx.Rollback()
 			return 0, fmt.Errorf("user is required for selected level type")
 		}
-		for _, userID := range workflowLevelFormDTO.UserIDs {
+		for _, userID := range workflowLevelFormDTO.UserIds {
 			participant := &models.WorkflowLevelParticipant{
 				WorkflowLevelID: id,
 				UserID:          userID,
@@ -306,13 +261,6 @@ func (ws *WorkflowService) GetMaxLevelForWorkflow(workflowID uint, tx ...utility
 	if err != nil {
 		return 0, err
 	}
-
-	// Check if no levels exist and start from 1
-	// if maxLevel == 0 {
-	// 	maxLevel = 1 // Set the first level explicitly if no levels exist
-	// } else {
-	// 	maxLevel += 1 // Increment to set the next level
-	// }
 
 	return maxLevel, nil
 }

@@ -5,8 +5,10 @@ import (
 	"io"
 	"jethur/config"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 )
@@ -120,6 +122,46 @@ func CopyFileFromPaths(srcDir, dstDir, fileName string) error {
 	err = destinationFile.Sync()
 	if err != nil {
 		return fmt.Errorf("failed to sync file contents: %w", err)
+	}
+
+	return nil
+}
+
+// ConvertDocxToPDF converts a DOCX file to a PDF file. by  using LibreOffice:
+func ConvertDocxToPDF(storagePath, fileName string, destinationPath string) error {
+	basePath := config.GetEnv("STORAGE_PATH", "")
+	inputFilePath := filepath.Join(basePath, storagePath, fileName)
+	outputFilePath := filepath.Join(basePath, destinationPath, fileName[:len(fileName)-5]+".pdf")
+
+	// Log paths for debugging
+	//fmt.Printf("Input file path: %s\n", inputFilePath)
+	//fmt.Printf("Output file path: %s\n", outputFilePath)
+
+	// Check if the input file exists
+	if _, err := os.Stat(inputFilePath); os.IsNotExist(err) {
+		return fmt.Errorf("input file does not exist: %w", err)
+	}
+
+	// Read LibreOffice path from environment variable
+	libreOfficePath := os.Getenv("LIBREOFFICE_PATH")
+	if libreOfficePath == "" {
+		return fmt.Errorf("LIBREOFFICE_PATH environment variable is not set")
+	}
+
+	// Determine the command based on the operating system
+	var cmd *exec.Cmd
+	if runtime.GOOS == "windows" {
+		cmd = exec.Command(filepath.Join(libreOfficePath, "soffice.exe"), "--headless", "--convert-to", "pdf", "--outdir", filepath.Dir(outputFilePath), inputFilePath)
+	} else if runtime.GOOS == "linux" {
+		cmd = exec.Command("libreoffice", "--headless", "--convert-to", "pdf", "--outdir", filepath.Dir(outputFilePath), inputFilePath)
+	} else {
+		return fmt.Errorf("unsupported operating system: %s", runtime.GOOS)
+	}
+
+	// Run the command
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to convert docx to pdf: %s\n%s", err, output)
 	}
 
 	return nil

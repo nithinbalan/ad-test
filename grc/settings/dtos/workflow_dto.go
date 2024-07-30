@@ -24,11 +24,10 @@ type WorkflowListDTO struct {
 }
 
 type WorkflowLevelFormDTO struct {
-	ParantLevel  *uint   `json:"parant_level"`
-	WorkflowID   uint    `json:"work_flow_id"`
+	ParentLevel  *uint   `json:"parent_level"`
 	LevelTypeID  uint    `json:"level_type_id" binding:"required"`
 	ApprovalType *string `json:"approval_type"`
-	UserIDs      []*uint `json:"user_ids"`
+	UserIds      []*uint `json:"user_ids"`
 	RoleID       *uint   `json:"role_id"`
 }
 
