@@ -35,6 +35,9 @@ type DocumentServiceInterface interface {
 	CheckinDocument(id uint, currentUserID uint, documentCheckinFormDTO *documentDTOs.DocumentCheckinFormDTO) error
 	RevertDocumentCheckout(id uint, currentUserID uint) error
 
+	SubmitDocument(id uint, currentUserID uint) error
+	GetComments(id uint) ([]*models.DocumentWorkflow, error)
+
 	CreateSharedUsers(sharedUsers []*models.DocumentSharedUser, tx ...utility.DatabaseTransaction) error
 	CreateSharedUnits(sharedUnits []*models.DocumentSharedUnit, tx ...utility.DatabaseTransaction) error
 
@@ -50,6 +53,7 @@ type DocumentService struct {
 	documentStatusSvc     DocumentStatusServiceInterface
 	userSvc               organizationSvc.UserServiceInterface
 	workflowSvc           settinsSvc.WorkflowServiceInterface
+	documentWorkflowSvc   DocumentWorkflowStatusServiceInterface
 	activityLogSvc        services.ActivityLogServiceInterface
 }
 
@@ -62,6 +66,7 @@ func NewDocumentService(
 	documentStatusSvc DocumentStatusServiceInterface,
 	userSvc organizationSvc.UserServiceInterface,
 	workflowSvc settinsSvc.WorkflowServiceInterface,
+	documentWorkflowSvc DocumentWorkflowStatusServiceInterface,
 	activityLogSvc services.ActivityLogServiceInterface) DocumentServiceInterface {
 	return &DocumentService{
 		repo:                  repo,
@@ -72,6 +77,7 @@ func NewDocumentService(
 		documentStatusSvc:     documentStatusSvc,
 		userSvc:               userSvc,
 		workflowSvc:           workflowSvc,
+		documentWorkflowSvc:   documentWorkflowSvc,
 		activityLogSvc:        activityLogSvc,
 	}
 }
@@ -144,7 +150,7 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 		ResponsibleUserID:    documentFormDTO.ResponsibleUserID,
 		ResponsibleUnitID:    responsibleUnitID,
 		DocumentAccessTypeID: documentFormDTO.DocumentAccessTypeID,
-		DocumentStatusID:     uint(documentStatus.ID),
+		DocumentStatusID:     documentStatus.ID,
 		CreatedBYID:          currentUserID,
 	}
 
@@ -902,12 +908,19 @@ func (ds *DocumentService) CreateDocumentWorkflow(documentVersionId uint, docume
 		return err
 	}
 
+	documentWorkflowStatus, err := ds.documentWorkflowSvc.GetByType("pending")
+
+	if err != nil {
+		return err
+	}
+
 	for _, level := range workflowLevels.WorkflowLevels {
 		documentWorkflow := &models.DocumentWorkflow{
-			DocumentVersionID: documentVersionId,
-			Level:             level.Level,
-			ApprovalTypes:     level.ApprovalType,
-			CreatedBYID:       currentUserID,
+			DocumentVersionID:        documentVersionId,
+			Level:                    level.Level,
+			ApprovalTypes:            level.ApprovalType,
+			DocumentWorkflowStatusID: documentWorkflowStatus.ID,
+			CreatedBYID:              currentUserID,
 		}
 
 		docWorkflowId, err := ds.repo.CreateDocumentWorkflow(documentWorkflow, tx...)
@@ -960,4 +973,82 @@ func (ds *DocumentService) createWorkflowParticipant(userID uint, documentWorkfl
 		return err
 	}
 	return nil
+}
+
+func (ds *DocumentService) SubmitDocument(id uint, currentUserID uint) error {
+	tx := ds.repo.BeginTransaction()
+	document, err := ds.GetFullDetailsByID(id, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	documentStatus, err := ds.documentStatusSvc.GetByType("in-review")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	existingDocument, err := ds.repo.GetByID(id)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	existingDocument.DocumentStatusID = documentStatus.ID
+
+	err = ds.repo.Update(existingDocument, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	documentVersion, err := ds.repo.GetDocumentVersionByID(document.LatestDocumentVersion.ID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	currentDateStr := time.Now().Format("2006-01-02")
+	submittedAt, err := utility.ParseDate(currentDateStr)
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("error parsing current date: %w", err)
+	}
+
+	var level int = 1
+
+	documentVersion.SubmittedBYID = &currentUserID
+	documentVersion.SubmittedAt = submittedAt
+	documentVersion.NextReviewLevel = &level
+
+	err = ds.repo.UpdateDocumentVersion(documentVersion, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+
+	//to do
+	//activity log
+
+	return nil
+}
+
+func (ds *DocumentService) GetComments(id uint) ([]*models.DocumentWorkflow, error) {
+	document, err := ds.GetFullDetailsByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	currentApprovalLevel := document.LatestDocumentVersion.NextReviewLevel
+
+	comments, err := ds.repo.GetComments(document.LatestDocumentVersion.ID, *currentApprovalLevel)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return comments, err
 }

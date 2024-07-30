@@ -111,21 +111,23 @@ type DocumentDetailsDTO struct {
 }
 
 type DocumentVersionDTO struct {
-	ID                  uint                            `json:"id"`
-	DocumentID          uint                            `json:"document_id"`
-	Version             float64                         `json:"version"`
-	IsLatestVersion     bool                            `json:"is_latest_version"`
-	URL                 string                          `json:"url"`
-	Name                string                          `json:"name"`
-	Size                int                             `json:"size"`
-	Token               string                          `json:"token"`
-	OriginalName        *string                         `json:"original_name,omitempty"`
-	Type                string                          `json:"type"`
-	CreatedByUser       organizationDTOs.UserMinimalDTO `json:"created_by"`
-	UpdatedByUser       organizationDTOs.UserMinimalDTO `json:"updated_by"`
-	CreatedAt           time.Time                       `json:"created_at"`
-	UpdatedAt           *time.Time                      `json:"updated_at"`
-	DocumentEditHistory []DocumentEditHistoryDTO        `json:"document_edit_history"`
+	ID                  uint                             `json:"id"`
+	DocumentID          uint                             `json:"document_id"`
+	Version             float64                          `json:"version"`
+	IsLatestVersion     bool                             `json:"is_latest_version"`
+	URL                 string                           `json:"url"`
+	Name                string                           `json:"name"`
+	Size                int                              `json:"size"`
+	Token               string                           `json:"token"`
+	OriginalName        *string                          `json:"original_name,omitempty"`
+	Type                string                           `json:"type"`
+	NextReviewLevel     *int                             `json:"next_review_level"`
+	SubmittedByUser     *organizationDTOs.UserMinimalDTO `json:"submitted_by"`
+	CreatedByUser       organizationDTOs.UserMinimalDTO  `json:"created_by"`
+	UpdatedByUser       organizationDTOs.UserMinimalDTO  `json:"updated_by"`
+	CreatedAt           time.Time                        `json:"created_at"`
+	UpdatedAt           *time.Time                       `json:"updated_at"`
+	DocumentEditHistory []DocumentEditHistoryDTO         `json:"document_edit_history"`
 }
 
 type DocumentSharedUserDTO struct {

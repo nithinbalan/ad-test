@@ -1,7 +1,7 @@
 package models
 
 type DocumentStatus struct {
-	ID        int    `json:"id" gorm:"primaryKey;autoIncrement"`
+	ID        uint   `json:"id" gorm:"primaryKey;autoIncrement"`
 	TitleEn   string `json:"title_en" binding:"required" gorm:"type:nvarchar(100);not null"`
 	TitleAr   string `json:"title_ar" binding:"required" gorm:"type:nvarchar(100);not null"`
 	ColorCode string `json:"color_code" binding:"required" gorm:"type:varchar(25);not null"`

@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"errors"
 	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	documentDTOs "jethur/grc/documents/dtos"
@@ -38,6 +39,8 @@ type DocumentRepositoryInterface interface {
 
 	CreateDocumentWorkflow(documentWorkflow *models.DocumentWorkflow, tx ...utility.DatabaseTransaction) (uint, error)
 	CreateDocumentWorkflowParticipant(docWorkflowParticipant *models.DocumentWorkflowParticipant, tx ...utility.DatabaseTransaction) error
+
+	GetComments(docVersionId uint, currentApprovalLevel int) ([]*models.DocumentWorkflow, error)
 }
 
 // Implementation
@@ -237,6 +240,7 @@ func (repo *DocumentRepository) GetFullDetailsByID(id uint, tx ...utility.Databa
 		Preload("LatestDocumentVersion", "is_latest_version = ?", true).
 		Preload("LatestDocumentVersion.CreatedByUser").
 		Preload("LatestDocumentVersion.UpdatedByUser").
+		Preload("LatestDocumentVersion.SubmittedByUser").
 		Preload("DocumentVersions").
 		Preload("DocumentVersions.CreatedByUser").
 		Preload("DocumentVersions.UpdatedByUser").
@@ -469,4 +473,21 @@ func (repo *DocumentRepository) CreateDocumentWorkflowParticipant(docWorkflowPar
 	}
 
 	return nil
+}
+
+func (repo *DocumentRepository) GetComments(docVersionId uint, currentApprovalLevel int) ([]*models.DocumentWorkflow, error) {
+	var documentWorkflows []*models.DocumentWorkflow
+	result := repo.db.
+		Where("document_version_id = ? AND level <= ?", docVersionId, currentApprovalLevel).
+		Find(&documentWorkflows)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	if len(documentWorkflows) == 0 {
+		return nil, errors.New("no document workflows found matching the criteria")
+	}
+
+	return documentWorkflows, nil
 }
