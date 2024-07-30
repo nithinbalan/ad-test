@@ -243,10 +243,18 @@ func (repo *RiskRegisterRepository) GetFullDetailsByID(id uint, tx ...utility.Da
 		Preload("StrategicObjectives").
 		Preload("SLARegisters").
 		Preload("KRIs").
-		Preload("RiskMatrixLikelihood").
-		Preload("RiskMatrixImpact").
-		Preload("RiskMatrixRiskRating").
-		Preload("RiskMatrixRiskRatingValue").
+		Preload("CurrentLikelihood").
+		Preload("CurrentImpact").
+		Preload("CurrentRiskRating").
+		Preload("CurrentRiskRatingValue").
+		Preload("InherentLikelihood").
+		Preload("InherentImpact").
+		Preload("InherentRiskRating").
+		Preload("InherentRiskRatingValue").
+		Preload("ResidualLikelihood").
+		Preload("ResidualImpact").
+		Preload("ResidualRiskRating").
+		Preload("ResidualRiskRatingValue").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&risk, id)

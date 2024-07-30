@@ -27,8 +27,8 @@ type RiskRegisterServiceInterface interface {
 	Update(id uint, currentUserID uint, risk *riskDTOs.RiskRegisterFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	UpdateResponseStrategy(riskID uint, currentUserID uint, riskResponseStrategyFormDTO *riskDTOs.RiskResponseStrategyFormDTO) error
-	UpdateRiskRating(riskID uint, currentUserID uint, riskEvaluationDetails *models.RiskEvaluation, tx utility.DatabaseTransaction) error
-	UpdateCurrentRiskRating(riskID uint, updateDTO *riskDTOs.RiskRegisterUpdateDTO, tx utility.DatabaseTransaction) error
+	UpdateRiskRating(riskID uint, currentUserID uint, riskEvaluationDetails *models.RiskEvaluation, tx utility.DatabaseTransaction, evaluationType string) error
+	ClearRiskRating(riskID uint, updateDTO *riskDTOs.RiskRegisterRiskRatingUpdateDTO, tx utility.DatabaseTransaction) error
 }
 
 // Service and implementations
@@ -908,12 +908,24 @@ func (raps *RiskRegisterService) UpdateResponseStrategy(riskID uint, currentUser
 	return nil
 }
 
-func (raps *RiskRegisterService) UpdateRiskRating(riskID uint, currentUserID uint, riskEvaluationDetails *models.RiskEvaluation, tx utility.DatabaseTransaction) error {
+func (raps *RiskRegisterService) UpdateRiskRating(riskID uint, currentUserID uint, riskEvaluationDetails *models.RiskEvaluation, tx utility.DatabaseTransaction, evaluationType string) error {
 
 	existingRisk, err := raps.GetByID(riskID)
 	if err != nil {
 		tx.Rollback()
 		return err
+	}
+
+	if evaluationType == "inherent" {
+		existingRisk.InherentImpactID = &riskEvaluationDetails.RiskMatrixImpactID
+		existingRisk.InherentLikelihoodID = &riskEvaluationDetails.RiskMatrixLikelihoodID
+		existingRisk.InherentRiskRatingID = &riskEvaluationDetails.RiskMatrixRiskRatingID
+		existingRisk.InherentRiskRatingValueID = &riskEvaluationDetails.RiskMatrixRiskRatingValueID
+	} else if evaluationType == "residual" {
+		existingRisk.ResidualImpactID = &riskEvaluationDetails.RiskMatrixImpactID
+		existingRisk.ResidualLikelihoodID = &riskEvaluationDetails.RiskMatrixLikelihoodID
+		existingRisk.ResidualRiskRatingID = &riskEvaluationDetails.RiskMatrixRiskRatingID
+		existingRisk.ResidualRiskRatingValueID = &riskEvaluationDetails.RiskMatrixRiskRatingValueID
 	}
 
 	existingRisk.CurrentImpactID = &riskEvaluationDetails.RiskMatrixImpactID
@@ -929,16 +941,26 @@ func (raps *RiskRegisterService) UpdateRiskRating(riskID uint, currentUserID uin
 	return nil
 }
 
-func (rrs *RiskRegisterService) UpdateCurrentRiskRating(riskID uint, updateDTO *riskDTOs.RiskRegisterUpdateDTO, tx utility.DatabaseTransaction) error {
+func (rrs *RiskRegisterService) ClearRiskRating(riskID uint, updateDTO *riskDTOs.RiskRegisterRiskRatingUpdateDTO, tx utility.DatabaseTransaction) error {
 	riskRegister, err := rrs.GetByID(riskID)
 	if err != nil {
 		return err
 	}
 
+	riskRegister.InherentImpactID = updateDTO.InherentImpactID
+	riskRegister.InherentLikelihoodID = updateDTO.InherentLikelihoodID
+	riskRegister.InherentRiskRatingID = updateDTO.InherentRiskRatingID
+	riskRegister.InherentRiskRatingValueID = updateDTO.InherentRiskRatingValueID
+
 	riskRegister.CurrentImpactID = updateDTO.CurrentImpactID
 	riskRegister.CurrentLikelihoodID = updateDTO.CurrentLikelihoodID
 	riskRegister.CurrentRiskRatingID = updateDTO.CurrentRiskRatingID
 	riskRegister.CurrentRiskRatingValueID = updateDTO.CurrentRiskRatingValueID
+
+	riskRegister.ResidualImpactID = updateDTO.ResidualImpactID
+	riskRegister.ResidualLikelihoodID = updateDTO.ResidualLikelihoodID
+	riskRegister.ResidualRiskRatingID = updateDTO.ResidualRiskRatingID
+	riskRegister.ResidualRiskRatingValueID = updateDTO.ResidualRiskRatingValueID
 
 	if err := rrs.repo.Update(riskRegister, tx); err != nil {
 		return err
