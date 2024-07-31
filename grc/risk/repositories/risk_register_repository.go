@@ -38,6 +38,8 @@ type RiskRegisterRepositoryInterface interface {
 	DeleteRiskStrategicObjectives(strategicObjectiveIds []*uint, tx ...utility.DatabaseTransaction) error
 	CreateRiskSLAs(slaRegisters []*models.RiskSLA, tx ...utility.DatabaseTransaction) error
 	DeleteRiskSLAs(slaRegisterIds []*uint, tx ...utility.DatabaseTransaction) error
+
+	GetControlSummary(riskID uint, controlType string) ([]models.RiskControlAnalysis, error)
 }
 
 type RiskRegisterRepository struct {
@@ -520,4 +522,21 @@ func (repo *RiskRegisterRepository) DeleteRiskSLAs(slaRegisterIds []*uint, tx ..
 	}
 
 	return nil
+}
+
+func (repo *RiskRegisterRepository) GetControlSummary(riskID uint, controlType string) ([]models.RiskControlAnalysis, error) {
+	var riskControlAnalyses []models.RiskControlAnalysis
+
+	result := repo.db.
+		Preload("ControlEfficiencyStatus").
+		Preload("ControlImplementationStatus").
+		Joins("JOIN risk_controls ON risk_controls.id = risk_control_analyses.risk_control_id").
+		Where("risk_controls.risk_register_id = ?", riskID).
+		Where("risk_control_analyses.type = ?", controlType).
+		Find(&riskControlAnalyses)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return riskControlAnalyses, nil
 }

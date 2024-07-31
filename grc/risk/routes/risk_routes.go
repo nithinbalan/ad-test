@@ -181,6 +181,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.PUT("/risks/:riskId/response-strategy", riskRegisterController.UpdateResponseStrategy)
 	riskRoutes.DELETE("/risks/:riskId/response-strategy", riskRegisterController.DeleteResponseStrategy)
 
+	riskRoutes.GET("/risks/:riskId/control-performance", riskRegisterController.GetControlPerformance)
+
 	// Risk Action Plan
 	riskRoutes.GET("/risk-action-plans", riskActionPlanController.GetAllRiskActionPlans)
 	riskRoutes.GET("/risks/:riskId/action-plans", riskActionPlanController.GetAllRiskActionPlans)
