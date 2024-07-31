@@ -23,7 +23,6 @@ type IncidentActionPlanServiceInterface interface {
 	Create(incidentID uint, currentUserID uint, IncidentActionPlanFormDTO *incidentDTOs.IncidentActionPlanFormDTO) (uint, error)
 	Update(incidentID uint, id uint, currentUserID uint, incident *incidentDTOs.IncidentActionPlanFormDTO) error
 	Delete(incidentID uint, ids []uint, currentUserID uint) ([]uint, error)
-	GetCountByIncidentID(incidentID uint) (int64, error)
 	StatusUpdate(incidentID uint, id uint, currentUserID uint, ActionPlanStatusID uint, tx utility.DatabaseTransaction) error
 }
 
@@ -160,16 +159,16 @@ func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uin
 	}
 	//Update timeline
 	//todo
-	incidentActionPlanCount, err := iaps.repo.GetCountByIncidentID(incidentID, tx)
+	actinPlanCount, err := iaps.repo.GetCountByRiskID(incidentID, tx)
 	if err != nil {
 		tx.Rollback()
-		return 0,err
+		return 0, err
 	}
-	if incidentActionPlanCount == 1 {
+	if actinPlanCount == 1 {
 		timelineType, err := iaps.incidentTimelineSvc.GetByType("action-plans")
 		if err != nil {
 			tx.Rollback()
-			return 0,err
+			return 0, err
 		}
 		timelineStatus, err := iaps.incidentTimelineSvc.GetByStatusType("completed")
 		if err != nil {
@@ -184,7 +183,7 @@ func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uin
 		}
 		if err := iaps.incidentTimelineSvc.Update(incidentID, timelineFormDTO, timelineType.ID, tx); err != nil {
 			tx.Rollback()
-			return 0,err
+			return 0, err
 		}
 	}
 	tx.Commit()
@@ -253,6 +252,7 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 	if err != nil {
 		return err
 	}
+
 	tx.Commit()
 
 	return nil
@@ -286,12 +286,12 @@ func (iaps *IncidentActionPlanService) Delete(incidentID uint, ids []uint, curre
 		}
 		//Delete-> update timeline performedAt as null
 		//todo
-		incidentActionPlanCount, err := iaps.repo.GetCountByIncidentID(incidentID,tx)
+		actinPlanCount, err := iaps.repo.GetCountByRiskID(incidentID, tx)
 		if err != nil {
 			tx.Rollback()
-			return nil,err
+			return nil, err
 		}
-		if incidentActionPlanCount == 1 {
+		if actinPlanCount == 1 {
 			timelineType, err := iaps.incidentTimelineSvc.GetByType("action-plans")
 			if err != nil {
 				tx.Rollback()
@@ -388,11 +388,4 @@ func (iaps *IncidentActionPlanService) parseIncidentActionPlanDates(dto *inciden
 	}
 
 	return parsed, nil
-}
-
-func (iaps IncidentActionPlanService) GetCountByIncidentID(incidentID uint) (int64, error) {
-	if _, err := iaps.incidentRegisterSvc.GetByID(incidentID); err != nil {
-		return 0, err
-	}
-	return iaps.repo.GetCountByIncidentID(incidentID)
 }
