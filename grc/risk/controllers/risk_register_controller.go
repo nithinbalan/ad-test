@@ -237,3 +237,36 @@ func (rrc *RiskRegisterController) UpdateResponseStrategy(c *gin.Context) {
 
 	c.Status(http.StatusOK)
 }
+
+func (rrc *RiskRegisterController) DeleteResponseStrategy(c *gin.Context) {
+	riskIDStr := c.Param("riskId")
+
+	riskID, err := strconv.ParseUint(riskIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(rrc.db, c, err.Error())
+		return
+	}
+
+	err = rrc.service.DeleteResponseStrategy(uint(riskID), currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(rrc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}

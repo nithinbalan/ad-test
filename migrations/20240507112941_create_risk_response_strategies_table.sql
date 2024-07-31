@@ -2,6 +2,8 @@
 -- +goose StatementBegin
 CREATE TABLE risk_response_strategies (
     id INT PRIMARY KEY IDENTITY(1, 1),
+    type VARCHAR(25) NOT NULL,
+        CONSTRAINT CHK_risk_response_strategies_type CHECK (type IN ('accept', 'avoid', 'transfer', 'mitigate', 'tolerate')),
     title_en NVARCHAR(100) NOT NULL,
     title_ar NVARCHAR(100) NOT NULL,
     description_en NVARCHAR(MAX),
