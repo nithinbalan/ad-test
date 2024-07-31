@@ -78,8 +78,8 @@ func (repo *KRIValueUpdateRepository) GetAll(kriRegisterID uint, params *riskDTO
 			kri_value_updates.value LIKE ? OR
 			kri_value_updates.low_threshold LIKE ? OR
 			kri_value_updates.medium_threshold LIKE ? OR
-			organization_units.high_threshold LIKE ? OR
-			organization_units.remarks LIKE ? )`,
+			kri_value_updates.high_threshold LIKE ? OR
+			kri_value_updates.remarks LIKE ? )`,
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%")
 	}
