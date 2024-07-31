@@ -39,7 +39,6 @@ func (repo *KRIValueUpdateRepository) BeginTransaction() utility.DatabaseTransac
 }
 
 func (repo *KRIValueUpdateRepository) GetAll(kriRegisterID uint, params *riskDTOs.KRIValueUpdateListQueryParamsDTO) (*riskDTOs.KRIValueUpdateListResponseDTO, error) {
-
 	var kriValueUpdates []*riskDTOs.KRIValueUpdateListDTO
 	var totalCount int64
 
@@ -91,7 +90,7 @@ func (repo *KRIValueUpdateRepository) GetAll(kriRegisterID uint, params *riskDTO
 
 	// Sort by the specified column and order
 	if params.SortBy == "" {
-		params.SortBy = "kri_value_updates.id" // Default sort by title if no sortBy is specified
+		params.SortBy = "kri_value_updates.id" // Default sort by id if no sortBy is specified
 	}
 	if params.Sort != "asc" && params.Sort != "desc" {
 		params.Sort = "asc" // Default order is ascending if not specified
@@ -101,10 +100,22 @@ func (repo *KRIValueUpdateRepository) GetAll(kriRegisterID uint, params *riskDTO
 
 	offset := (params.Page - 1) * params.PageSize
 
-	// Execute the queryc
+	// Execute the query
 	err := query.Offset(offset).Limit(params.PageSize).Find(&kriValueUpdates).Error
 	if err != nil {
 		return nil, err
+	}
+
+	// Fetch documents for each KRIValueUpdate
+	for _, valueUpdate := range kriValueUpdates {
+		var documents []*riskDTOs.KRIValueUpdateDocumentDTO
+		err := repo.db.Model(&models.KRIValueUpdateDocument{}).
+			Where("kri_value_update_id = ?", valueUpdate.ID).
+			Find(&documents).Error
+		if err != nil {
+			return nil, err
+		}
+		valueUpdate.Documents = documents
 	}
 
 	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))

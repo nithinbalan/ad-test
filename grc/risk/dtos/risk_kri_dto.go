@@ -8,8 +8,8 @@ import (
 
 type RiskKriListDTO struct {
 	ID                     uint    `json:"id"`
-	KriReferenceNumber     string  `json:"kri_reference_number"`
-	KriTitle               string  `json:"kri_title"`
+	ReferenceNumber        string  `json:"reference_number"`
+	Title                  string  `json:"title"`
 	KRICategoryTitleEn     string  `json:"kri_category_title_en"`
 	KRICategoryTitleAr     string  `json:"kri_category_title_ar"`
 	OwnerUnitTitleEn       string  `json:"owner_unit_title_en" gorm:"column:owner_unit_title_en"`
