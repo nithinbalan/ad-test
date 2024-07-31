@@ -92,6 +92,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	riskRoutes.GET("/kri-register/:id/value-updates", kriValueUpdateController.GetAllKRIValueUpdates)
 	riskRoutes.POST("/kri-register/:id/value-updates", kriValueUpdateController.CreateKRIValueUpdate)
+	riskRoutes.GET("/kri-register/:id/value-updates/:updateId", kriValueUpdateController.GetKRIValueUpdateDetails)
 	riskRoutes.PUT("/kri-register/:id/value-updates/:updateId", kriValueUpdateController.UpdateKRIValueUpdate)
 	riskRoutes.POST("/kri-register/:id/value-updates/delete", kriValueUpdateController.DeleteKRIValueUpdates)
 
@@ -178,6 +179,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.GET("risks/:riskId/incidents", riskAssociatedItemController.GetAllRiskIncidents)
 
 	riskRoutes.PUT("/risks/:riskId/response-strategy", riskRegisterController.UpdateResponseStrategy)
+	riskRoutes.DELETE("/risks/:riskId/response-strategy", riskRegisterController.DeleteResponseStrategy)
+
 	// Risk Action Plan
 	riskRoutes.GET("/risk-action-plans", riskActionPlanController.GetAllRiskActionPlans)
 	riskRoutes.GET("/risks/:riskId/action-plans", riskActionPlanController.GetAllRiskActionPlans)
@@ -190,7 +193,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.POST("/risks/:riskId/action-plans/:actionPlanId/status-updates", riskActionPlanStatusUpdateController.CreateRiskActionPlanStatusUpdate)
 	riskRoutes.PUT("/risks/:riskId/action-plans/:actionPlanId/status-updates/:id", riskActionPlanStatusUpdateController.UpdateRiskActionPlanStatusUpdate)
 	riskRoutes.GET("/risks/:riskId/action-plans/:actionPlanId/status-updates/latest", riskActionPlanStatusUpdateController.GetLatestRiskActionPlanStatusUpdate)
-
 
 	// Risk Treatment Guides
 	riskRoutes.GET("/risk-treatment-guidelines", riskTreatmentGuidelineController.GetAllRiskTreatmentGuidelines)
