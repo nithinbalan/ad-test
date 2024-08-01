@@ -66,7 +66,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	unauthenticatedRoutes.GET("/documents/:id/document-preview", documentController.GetDocumentPreview)
 
-	//documentRoutes.POST("/documents/:id/submit", documentController.SubmitDocument)
 	documentRoutes.GET("/documents/:id/comments", documentController.GetComments)
+	documentRoutes.POST("/documents/:id/comments", documentController.AddComment)
 
 }

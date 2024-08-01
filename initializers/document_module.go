@@ -59,6 +59,7 @@ func NewDocumentModule(db *gorm.DB,
 		organizationModule.UserSvc,
 		settingsModule.WorkflowSvc,
 		documentWorkflowStatusSvc,
+		documentWorkflowStatusSvc,
 		sharedModule.ActivityLogService)
 	documentController := controllers.NewDocumentController(documentSvc)
 

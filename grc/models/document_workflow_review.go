@@ -18,8 +18,8 @@ type DocumentWorkflowReview struct {
 	// Relations
 	DocumentWorkflow       *DocumentWorkflow       `gorm:"foreignKey:DocumentWorkflowID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	DocumentWorkflowStatus *DocumentWorkflowStatus `gorm:"foreignKey:DocumentWorkflowStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedBy              *User                   `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	UpdatedBy              *User                   `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	CreatedByUser          *User                   `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	UpdatedByUser          *User                   `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 }
 
 // TableName overrides the table name used by DocumentWorkflowReview to `document_workflow_reviews`

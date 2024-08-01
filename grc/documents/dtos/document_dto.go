@@ -165,3 +165,31 @@ type DocumentCheckinFormDTO struct {
 	Comment  *string                    `json:"comment"`
 	Document commonDTOs.DocumentFormDTO `json:"document"`
 }
+
+type DocumentReviewCommentFormDTO struct {
+	Comment    string `json:"comment"`
+	IsApproved bool   `json:"is_approved"`
+	IsReverted bool   `json:"is_reverted"`
+	IsRejected bool   `json:"is_rejected"`
+}
+
+type DocumentVersionWorkflowDTO struct {
+	ID                uint                            `json:"id"`
+	DocumentID        uint                            `json:"document_id"`
+	SubmittedAt       time.Time                       `json:"submitted_at"`
+	SubmittedByUser   organizationDTOs.UserMinimalDTO `json:"submitted_by"`
+	DocumentWorkflows []*DocumentWorkflowDTO          `json:"document_workflows"`
+}
+
+type DocumentWorkflowDTO struct {
+	Level                   int                          `json:"level"`
+	DocumentWorkflowStatus  DocumentStatusDTO            `json:"document_workflow_status"`
+	DocumentWorkflowReviews []*DocumentWorkflowReviewDTO `json:"document_workflow_reviews"`
+}
+
+type DocumentWorkflowReviewDTO struct {
+	Comment                string                          `json:"comment"`
+	DocumentWorkflowStatus DocumentStatusDTO               `json:"document_workflow_status"`
+	CreatedByUser          organizationDTOs.UserMinimalDTO `json:"created_by"`
+	UpdateByUser           organizationDTOs.UserMinimalDTO `json:"updated_by"`
+}

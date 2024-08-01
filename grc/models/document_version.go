@@ -32,6 +32,7 @@ type DocumentVersion struct {
 	UpdatedByUser   *User     `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 
 	DocumentEditHistory []*DocumentEditHistory `gorm:"foreignKey:DocumentVersionID"`
+	DocumentWorkflows   []*DocumentWorkflow    `gorm:"foreignKey:DocumentVersionID"`
 }
 
 func (DocumentVersion) TableName() string {
