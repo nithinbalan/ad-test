@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"errors"
 	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	documentDTOs "jethur/grc/documents/dtos"
@@ -36,8 +37,17 @@ type DocumentRepositoryInterface interface {
 	CreateDocumentEditHistory(documentHistory *models.DocumentEditHistory, tx ...utility.DatabaseTransaction) (uint, error)
 	DeleteDocumentEditHistory(docHistoryEditIds []*uint, tx ...utility.DatabaseTransaction) error
 
+	GetDocumentWorkflowByID(id uint, tx ...utility.DatabaseTransaction) (*models.DocumentWorkflow, error)
 	CreateDocumentWorkflow(documentWorkflow *models.DocumentWorkflow, tx ...utility.DatabaseTransaction) (uint, error)
+	UpdateDocumentWorkflow(documentWorkflow *models.DocumentWorkflow, tx ...utility.DatabaseTransaction) error
 	CreateDocumentWorkflowParticipant(docWorkflowParticipant *models.DocumentWorkflowParticipant, tx ...utility.DatabaseTransaction) error
+
+	GetComments(docVersionId uint, currentApprovalLevel int) (*models.DocumentVersion, error)
+	GetDocumentWorkflowByLevel(docVersionId uint, currentApprovalLevel int) (*models.DocumentWorkflow, error)
+	GetNextLevel(documentVersionID uint, currentLevel int, tx ...utility.DatabaseTransaction) (*models.DocumentWorkflow, error)
+
+	CreateDocumentWorkflowReview(documentWorkflowReview *models.DocumentWorkflowReview, tx ...utility.DatabaseTransaction) error
+	CountApprovedParticipants(workflowID uint, tx ...utility.DatabaseTransaction) (int, error)
 }
 
 // Implementation
@@ -237,6 +247,7 @@ func (repo *DocumentRepository) GetFullDetailsByID(id uint, tx ...utility.Databa
 		Preload("LatestDocumentVersion", "is_latest_version = ?", true).
 		Preload("LatestDocumentVersion.CreatedByUser").
 		Preload("LatestDocumentVersion.UpdatedByUser").
+		Preload("LatestDocumentVersion.SubmittedByUser").
 		Preload("DocumentVersions").
 		Preload("DocumentVersions.CreatedByUser").
 		Preload("DocumentVersions.UpdatedByUser").
@@ -447,6 +458,22 @@ func (repo *DocumentRepository) DeleteDocumentEditHistory(docEditHistoryIds []*u
 	return nil
 }
 
+func (repo *DocumentRepository) GetDocumentWorkflowByID(id uint, tx ...utility.DatabaseTransaction) (*models.DocumentWorkflow, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var documentWorkflow *models.DocumentWorkflow
+
+	result := db.First(&documentWorkflow, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return documentWorkflow, nil
+}
+
 func (repo *DocumentRepository) CreateDocumentWorkflow(documentWorkflow *models.DocumentWorkflow, tx ...utility.DatabaseTransaction) (uint, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
@@ -459,6 +486,18 @@ func (repo *DocumentRepository) CreateDocumentWorkflow(documentWorkflow *models.
 	return documentWorkflow.ID, nil
 }
 
+func (repo *DocumentRepository) UpdateDocumentWorkflow(documentWorkflow *models.DocumentWorkflow, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(documentWorkflow).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (repo *DocumentRepository) CreateDocumentWorkflowParticipant(docWorkflowParticipant *models.DocumentWorkflowParticipant, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
@@ -469,4 +508,88 @@ func (repo *DocumentRepository) CreateDocumentWorkflowParticipant(docWorkflowPar
 	}
 
 	return nil
+}
+
+func (repo *DocumentRepository) GetComments(docVersionId uint, currentApprovalLevel int) (*models.DocumentVersion, error) {
+	var documentVersion models.DocumentVersion
+	result := repo.db.
+		Preload("SubmittedByUser").
+		Preload("DocumentWorkflows", "level <= ?", currentApprovalLevel).
+		Preload("DocumentWorkflows.DocumentWorkflowStatus").
+		Preload("DocumentWorkflows.DocumentWorkflowReviews").
+		Preload("DocumentWorkflows.DocumentWorkflowReviews.DocumentWorkflowStatus").
+		Preload("DocumentWorkflows.DocumentWorkflowReviews.CreatedByUser").
+		Preload("DocumentWorkflows.DocumentWorkflowReviews.UpdatedByUser").
+		Where("id = ?", docVersionId).
+		Find(&documentVersion)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return &documentVersion, nil
+}
+
+func (repo *DocumentRepository) GetDocumentWorkflowByLevel(docVersionId uint, currentApprovalLevel int) (*models.DocumentWorkflow, error) {
+	var documentWorkflow *models.DocumentWorkflow
+	result := repo.db.
+		Preload("WorkflowLevelType").
+		Preload("DocumentWorkflowParticipants").
+		Where("document_version_id = ? AND level = ?", docVersionId, currentApprovalLevel).
+		Find(&documentWorkflow)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return documentWorkflow, nil
+}
+
+func (repo *DocumentRepository) GetNextLevel(documentVersionID uint, currentLevel int, tx ...utility.DatabaseTransaction) (*models.DocumentWorkflow, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var nextWorkflow models.DocumentWorkflow
+	result := db.Where("document_version_id = ? AND level > ?", documentVersionID, currentLevel).
+		Order("level ASC").  // Ensure we are ascending by level
+		First(&nextWorkflow) // Retrieve the first result only which will be the next level
+
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, nil // No further levels available
+	} else if result.Error != nil {
+		return nil, result.Error // Other error occurred
+	}
+
+	return &nextWorkflow, nil
+}
+
+func (repo *DocumentRepository) CreateDocumentWorkflowReview(documentWorkflowReview *models.DocumentWorkflowReview, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(documentWorkflowReview).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *DocumentRepository) CountApprovedParticipants(workflowID uint, tx ...utility.DatabaseTransaction) (int, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	var count int64
+	err := db.Model(&models.DocumentWorkflowReview{}).
+		Where("document_workflow_id = ? AND document_workflow_status_id = (SELECT id FROM document_workflow_statuses WHERE type = 'approve')", workflowID).
+		Distinct("created_by_id").
+		Count(&count).Error
+
+	if err != nil {
+		return 0, err
+	}
+
+	return int(count), nil
 }

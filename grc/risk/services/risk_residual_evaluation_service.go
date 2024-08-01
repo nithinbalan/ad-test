@@ -178,7 +178,7 @@ func (ries *RiskResidualEvaluationService) Create(riskID uint, currentUserID uin
 		return 0, err
 	}
 
-	err = ries.riskRegisterSvc.UpdateRiskRating(riskID, currentUserID, riskResidualEvaluation, tx)
+	err = ries.riskRegisterSvc.UpdateRiskRating(riskID, currentUserID, riskResidualEvaluation, tx, "residual")
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -348,7 +348,7 @@ func (ries *RiskResidualEvaluationService) Update(riskID uint, id uint, currentU
 		return err
 	}
 
-	err = ries.riskRegisterSvc.UpdateRiskRating(riskID, currentUserID, existingRiskResidualEvaluation, tx)
+	err = ries.riskRegisterSvc.UpdateRiskRating(riskID, currentUserID, existingRiskResidualEvaluation, tx, "residual")
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -469,14 +469,22 @@ func (ries *RiskResidualEvaluationService) Delete(riskID uint, id uint, currentU
 		return 0, err
 	}
 
-	updateDTO := &riskDTOs.RiskRegisterUpdateDTO{
-		CurrentImpactID:          &inherentEvaluationDetailsDTO.RiskMatrixImpact.ID,
-		CurrentLikelihoodID:      &inherentEvaluationDetailsDTO.RiskMatrixLikelihood.ID,
-		CurrentRiskRatingID:      &inherentEvaluationDetailsDTO.RiskMatrixRiskRating.ID,
-		CurrentRiskRatingValueID: &inherentEvaluationDetailsDTO.RiskMatrixRiskRatingValue.ID,
+	updateDTO := &riskDTOs.RiskRegisterRiskRatingUpdateDTO{
+		InherentImpactID:          &inherentEvaluationDetailsDTO.RiskMatrixImpact.ID,
+		InherentLikelihoodID:      &inherentEvaluationDetailsDTO.RiskMatrixLikelihood.ID,
+		InherentRiskRatingID:      &inherentEvaluationDetailsDTO.RiskMatrixRiskRating.ID,
+		InherentRiskRatingValueID: &inherentEvaluationDetailsDTO.RiskMatrixRiskRatingValue.ID,
+		ResidualImpactID:          nil,
+		ResidualLikelihoodID:      nil,
+		ResidualRiskRatingID:      nil,
+		ResidualRiskRatingValueID: nil,
+		CurrentImpactID:           &inherentEvaluationDetailsDTO.RiskMatrixImpact.ID,
+		CurrentLikelihoodID:       &inherentEvaluationDetailsDTO.RiskMatrixLikelihood.ID,
+		CurrentRiskRatingID:       &inherentEvaluationDetailsDTO.RiskMatrixRiskRating.ID,
+		CurrentRiskRatingValueID:  &inherentEvaluationDetailsDTO.RiskMatrixRiskRatingValue.ID,
 	}
 
-	err = ries.riskRegisterSvc.UpdateCurrentRiskRating(riskID, updateDTO, tx)
+	err = ries.riskRegisterSvc.ClearRiskRating(riskID, updateDTO, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err

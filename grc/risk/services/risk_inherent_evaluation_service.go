@@ -176,7 +176,7 @@ func (ries *RiskInherentEvaluationService) Create(riskID uint, currentUserID uin
 	}
 
 	//update current risk rating of risk register
-	err = ries.riskRegisterSvc.UpdateRiskRating(riskID, currentUserID, riskInherentEvaluation, tx)
+	err = ries.riskRegisterSvc.UpdateRiskRating(riskID, currentUserID, riskInherentEvaluation, tx, "inherent")
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -346,7 +346,7 @@ func (ries *RiskInherentEvaluationService) Update(riskID uint, id uint, currentU
 		return err
 	}
 
-	err = ries.riskRegisterSvc.UpdateRiskRating(riskID, currentUserID, existingRiskInherentEvaluation, tx)
+	err = ries.riskRegisterSvc.UpdateRiskRating(riskID, currentUserID, existingRiskInherentEvaluation, tx, "inherent")
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -440,13 +440,17 @@ func (ries *RiskInherentEvaluationService) Delete(riskID uint, id uint, currentU
 		return failedId, err
 	}
 
-	updateDTO := &riskDTOs.RiskRegisterUpdateDTO{
-		CurrentImpactID:          nil,
-		CurrentLikelihoodID:      nil,
-		CurrentRiskRatingID:      nil,
-		CurrentRiskRatingValueID: nil,
+	updateDTO := &riskDTOs.RiskRegisterRiskRatingUpdateDTO{
+		InherentImpactID:          nil,
+		InherentLikelihoodID:      nil,
+		InherentRiskRatingID:      nil,
+		InherentRiskRatingValueID: nil,
+		CurrentImpactID:           nil,
+		CurrentLikelihoodID:       nil,
+		CurrentRiskRatingID:       nil,
+		CurrentRiskRatingValueID:  nil,
 	}
-	err := ries.riskRegisterSvc.UpdateCurrentRiskRating(riskID, updateDTO, tx)
+	err := ries.riskRegisterSvc.ClearRiskRating(riskID, updateDTO, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
