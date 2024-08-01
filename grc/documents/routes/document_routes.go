@@ -20,6 +20,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentTemplateController := app.DocumentModule.DocumentTemplateController
 	documentStatusController := app.DocumentModule.DocumentStatusController
 	documentAccessTypeController := app.DocumentModule.DocumentAccessTypeController
+	documentWorkflowStatusController := app.DocumentModule.DocumentWorkflowStatusController
 	documentController := app.DocumentModule.DocumentController
 
 	documentRoutes.GET("/document-categories", documentCategoryController.GetAllDocumentCategories)
@@ -52,6 +53,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentRoutes.GET("/document-access-types", documentAccessTypeController.GetAllDocumentAccessTypes)
 	documentRoutes.GET("/document-access-types/:id", documentAccessTypeController.GetDocumentAccessTypeDetails)
 
+	documentRoutes.GET("/document-workflow-statuses", documentWorkflowStatusController.GetAllDocumentWorkflowStatuses)
+	documentRoutes.GET("/document-workflow-statuses/:id", documentWorkflowStatusController.GetDocumentWorkflowStatusDetails)
 	//document
 	documentRoutes.GET("/documents", documentController.GetAllDocuments)
 	documentRoutes.GET("/documents/:id", documentController.GetDocumentDetails)
@@ -62,5 +65,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentRoutes.POST("/documents/:id/check-out-revert", documentController.RevertDocumentCheckout)
 
 	unauthenticatedRoutes.GET("/documents/:id/document-preview", documentController.GetDocumentPreview)
+
+	documentRoutes.GET("/documents/:id/comments", documentController.GetComments)
+	documentRoutes.POST("/documents/:id/comments", documentController.AddComment)
 
 }
