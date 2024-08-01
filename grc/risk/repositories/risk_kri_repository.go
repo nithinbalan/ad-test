@@ -60,6 +60,10 @@ func (repo *RiskKriRepository) GetAll(riskID uint, params *riskDTOs.RiskKriListQ
 		owner.first_name_ar AS owner_first_name_ar,
 		owner.last_name_en AS owner_last_name_en,
 		owner.last_name_ar AS owner_last_name_ar,
+		owner.initial AS owner_initial,
+		owner.color AS owner_color,
+		owner.email AS owner_email,
+		owner.profile_image_path AS owner_profile_image_path,
 		review_frequencies.title_en AS review_frequency_title_en,
 		review_frequencies.title_ar AS review_frequency_title_ar,
 		risk_levels.title_en AS risk_level_title_en,
@@ -68,7 +72,11 @@ func (repo *RiskKriRepository) GetAll(riskID uint, params *riskDTOs.RiskKriListQ
 		created_user.first_name_en AS created_user_first_name_en,
         created_user.first_name_ar AS created_user_first_name_ar,
         created_user.last_name_en AS created_user_last_name_en,
-        created_user.last_name_ar AS created_user_last_name_ar
+        created_user.last_name_ar AS created_user_last_name_ar,
+		created_user.initial AS created_user_initial,
+		created_user.color AS created_user_color,
+		created_user.email AS created_user_email,
+		created_user.profile_image_path AS created_user_profile_image_path
     `).
 		Joins(`
 		LEFT JOIN kri_register ON kri_register.id = risk_kris.kri_register_id
@@ -88,6 +96,22 @@ func (repo *RiskKriRepository) GetAll(riskID uint, params *riskDTOs.RiskKriListQ
 		}
 	}
 
+	// Apply LastReviewDate filters
+	if params.LastReviewedDateFrom != "" {
+		query = query.Where("kri_register.last_reviewed_date >= ?", params.LastReviewedDateFrom)
+	}
+	if params.LastReviewedDateTo != "" {
+		query = query.Where("kri_register.last_reviewed_date <= ?", params.LastReviewedDateTo)
+	}
+
+	// Apply next_review_date filters
+	if params.NextReviewDateFrom != "" {
+		query = query.Where("kri_register.next_review_date >= ?", params.NextReviewDateFrom)
+	}
+	if params.NextReviewDateTo != "" {
+		query = query.Where("kri_register.next_review_date <= ?", params.NextReviewDateTo)
+	}
+
 	// Apply quick filters
 	for _, filter := range params.QuickFilter {
 		switch filter {
@@ -97,7 +121,6 @@ func (repo *RiskKriRepository) GetAll(riskID uint, params *riskDTOs.RiskKriListQ
 			query = query.Where("risk_levels.type = ?", "medium")
 		case "low_risk_level":
 			query = query.Where("risk_levels.type = ?", "low")
-
 		}
 	}
 
@@ -110,17 +133,34 @@ func (repo *RiskKriRepository) GetAll(riskID uint, params *riskDTOs.RiskKriListQ
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
-            (risk_kris.title LIKE ? OR
-            action_plan_statuses.title_en LIKE ? OR
-            action_plan_statuses.title_ar LIKE ? OR
-            risk_kris.target_date LIKE ? OR
-            responsible_user.first_name_en LIKE ? OR
-            responsible_user.first_name_ar LIKE ? OR
-            responsible_user.last_name_en LIKE ? OR
-            responsible_user.last_name_ar LIKE ?)`,
-			keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword, keyword,
-			keyword)
+			kri_register.title LIKE ? OR
+			kri_register.calculation_type LIKE ? OR
+			kri_register.description LIKE ? OR
+			kri_register.reference_number LIKE ? OR
+			kri_register.low_threshold LIKE ? OR
+			kri_register.medium_threshold LIKE ? OR
+			kri_register.high_threshold LIKE ? OR
+			kri_register.current_value LIKE ? OR
+			kri_categories.title_en LIKE ? OR
+			kri_categories.title_ar LIKE ? OR
+			organization_units.title_en LIKE ? OR
+			organization_units.title_ar LIKE ? OR
+			review_frequencies.title_en LIKE ? OR
+			review_frequencies.title_ar LIKE ? OR
+			risk_levels.title_en LIKE ? OR
+			risk_levels.title_ar LIKE ? OR
+			owner.first_name_en LIKE ? OR
+			owner.first_name_ar LIKE ? OR
+			owner.last_name_en LIKE ? OR
+			owner.last_name_ar LIKE ? OR
+			created_user.first_name_en LIKE ? OR
+			created_user.first_name_ar LIKE ? OR
+			created_user.last_name_en LIKE ? OR
+			created_user.last_name_ar LIKE ?
+		`,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
 	// Sort by the specified column and order
