@@ -15,17 +15,24 @@ type DocumentVersion struct {
 	Token           string     `json:"token" binding:"required" gorm:"type:varchar(255);not null"`
 	OriginalName    *string    `json:"original_name" binding:"omitempty" gorm:"type:nvarchar(255)"`
 	Type            string     `json:"type" binding:"required" gorm:"type:varchar(255);not null"`
+	SubmittedBYID   *uint      `json:"submitted_by_id" gorm:"default:null"`
+	SubmittedAt     *time.Time `json:"submitted_at" gorm:"type:date;default:null"`
+	PublishedBYID   *uint      `json:"published_by_id" gorm:"default:null"`
+	PublishedAt     *time.Time `json:"published_at" gorm:"type:date;default:null"`
+	NextReviewLevel *int       `json:"next_review_level" gorm:"default:null"`
 	CreatedBYID     uint       `json:"created_by_id" binding:"required" gorm:"not null"`
 	UpdatedBYID     *uint      `json:"updated_by_id" gorm:"default:null"`
 	CreatedAt       time.Time  `json:"created_at" binding:"required" gorm:"type:datetime;not null"`
 	UpdatedAt       *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 
-	// Relations
-	Document      *Document `gorm:"foreignKey:DocumentID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser *User     `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	UpdatedByUser *User     `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	//Relations
+	Document        *Document `gorm:"foreignKey:DocumentID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	SubmittedByUser *User     `gorm:"foreignKey:SubmittedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	CreatedByUser   *User     `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	UpdatedByUser   *User     `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 
 	DocumentEditHistory []*DocumentEditHistory `gorm:"foreignKey:DocumentVersionID"`
+	DocumentWorkflows   []*DocumentWorkflow    `gorm:"foreignKey:DocumentVersionID"`
 }
 
 func (DocumentVersion) TableName() string {
