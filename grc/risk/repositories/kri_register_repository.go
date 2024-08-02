@@ -35,41 +35,54 @@ func NewKRIRegisterRepository(db *gorm.DB) *KRIRegisterRepository {
 }
 
 func (repo *KRIRegisterRepository) GetAll(params *riskDTOs.KRIRegisterListQueryParamsDTO) (*riskDTOs.KRIRegisterListResponseDTO, error) {
-
 	var kriRegisters []*riskDTOs.KRIRegisterListDTO
 	var totalCount int64
 
 	query := repo.db.Table("kri_register").
 		Select(`
-            kri_register.*,
+			kri_register.*,
+			CONVERT(VARCHAR, kri_register.last_reviewed_date, 23) AS last_reviewed_date,
+			CONVERT(VARCHAR, kri_register.next_review_date, 23) AS next_review_date,
 			kri_categories.title_en AS kri_category_title_en,
 			kri_categories.title_ar AS kri_category_title_ar,
-			organization_units.title_en AS owner_unit_title_en,
-			organization_units.title_ar AS owner_unit_title_ar,
-			owner.first_name_en AS owner_first_name_en,
-			owner.first_name_ar AS owner_first_name_ar,
-			owner.last_name_en AS owner_last_name_en,
-			owner.last_name_ar AS owner_last_name_ar,
+			organization_units.title_en AS responsible_unit_title_en,
+			organization_units.title_ar AS responsible_unit_title_ar,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+			responsible_user.first_name_ar AS responsible_user_first_name_ar,
+			responsible_user.last_name_en AS responsible_user_last_name_en,
+			responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			responsible_user.initial AS responsible_user_initial,
+			responsible_user.color AS responsible_user_color,
+			responsible_user.email AS responsible_user_email,
+			responsible_user.profile_image_path AS responsible_user_profile_image_path,
 			review_frequencies.title_en AS review_frequency_title_en,
 			review_frequencies.title_ar AS review_frequency_title_ar,
 			risk_levels.title_en AS risk_level_title_en,
 			risk_levels.title_ar AS risk_level_title_ar,
 			risk_levels.color_code AS risk_level_color_code,
 			created_user.first_name_en AS created_user_first_name_en,
-            created_user.first_name_ar AS created_user_first_name_ar,
-            created_user.last_name_en AS created_user_last_name_en,
-            created_user.last_name_ar AS created_user_last_name_ar,   
+			created_user.first_name_ar AS created_user_first_name_ar,
+			created_user.last_name_en AS created_user_last_name_en,
+			created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+			created_user.color AS created_user_color,
+			created_user.email AS created_user_email,
+			created_user.profile_image_path AS created_user_profile_image_path,
 			updated_user.first_name_en AS updated_user_first_name_en,
-            updated_user.first_name_ar AS updated_user_first_name_ar,
-            updated_user.last_name_en AS updated_user_last_name_en,
-            updated_user.last_name_ar AS updated_user_last_name_ar          
-        `).
+			updated_user.first_name_ar AS updated_user_first_name_ar,
+			updated_user.last_name_en AS updated_user_last_name_en,
+			updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+			updated_user.color AS updated_user_color,
+			updated_user.email AS updated_user_email,
+			updated_user.profile_image_path AS updated_user_profile_image_path
+		`).
 		Joins(`
-		    LEFT JOIN kri_categories ON kri_categories.id = kri_register.kri_category_id
-		    LEFT JOIN organization_units ON organization_units.id = kri_register.owner_unit_id
-		    LEFT JOIN users AS owner ON owner.id = kri_register.owner_id
-		    LEFT JOIN review_frequencies ON review_frequencies.id = kri_register.review_frequency_id
-		    LEFT JOIN risk_levels ON risk_levels.id = kri_register.risk_level_id
+			LEFT JOIN kri_categories ON kri_categories.id = kri_register.kri_category_id
+			LEFT JOIN organization_units ON organization_units.id = kri_register.responsible_unit_id
+			LEFT JOIN users AS responsible_user ON responsible_user.id = kri_register.responsible_user_id
+			LEFT JOIN review_frequencies ON review_frequencies.id = kri_register.review_frequency_id
+			LEFT JOIN risk_levels ON risk_levels.id = kri_register.risk_level_id
 			LEFT JOIN users AS created_user ON created_user.id = kri_register.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = kri_register.updated_by_id
 		`)
@@ -106,23 +119,46 @@ func (repo *KRIRegisterRepository) GetAll(params *riskDTOs.KRIRegisterListQueryP
 			query = query.Where("risk_levels.type = ?", "medium")
 		case "low_risk_level":
 			query = query.Where("risk_levels.type = ?", "low")
-
 		}
 	}
 
 	// Apply search keyword if exists
 	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
-			(kri_register.title LIKE ? OR
+			kri_register.title LIKE ? OR
 			kri_register.calculation_type LIKE ? OR
+			kri_register.description LIKE ? OR
+			kri_register.reference_number LIKE ? OR
+			kri_register.low_threshold LIKE ? OR
+			kri_register.medium_threshold LIKE ? OR
+			kri_register.high_threshold LIKE ? OR
+			kri_register.current_value LIKE ? OR
 			kri_categories.title_en LIKE ? OR
 			kri_categories.title_ar LIKE ? OR
 			organization_units.title_en LIKE ? OR
 			organization_units.title_ar LIKE ? OR
 			review_frequencies.title_en LIKE ? OR
-			review_frequencies.title_ar LIKE ?)`,
-			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
-			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
+			review_frequencies.title_ar LIKE ? OR
+			risk_levels.title_en LIKE ? OR
+			risk_levels.title_ar LIKE ? OR
+			responsible_user.first_name_en LIKE ? OR
+			responsible_user.first_name_ar LIKE ? OR
+			responsible_user.last_name_en LIKE ? OR
+			responsible_user.last_name_ar LIKE ? OR
+			created_user.first_name_en LIKE ? OR
+			created_user.first_name_ar LIKE ? OR
+			created_user.last_name_en LIKE ? OR
+			created_user.last_name_ar LIKE ? OR
+			updated_user.first_name_en LIKE ? OR
+			updated_user.first_name_ar LIKE ? OR
+			updated_user.last_name_en LIKE ? OR
+			updated_user.last_name_ar LIKE ?
+		`,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
 	// Calculate total count for pagination
@@ -142,7 +178,7 @@ func (repo *KRIRegisterRepository) GetAll(params *riskDTOs.KRIRegisterListQueryP
 
 	offset := (params.Page - 1) * params.PageSize
 
-	// Execute the queryc
+	// Execute the query
 	err := query.Offset(offset).Limit(params.PageSize).Find(&kriRegisters).Error
 	if err != nil {
 		return nil, err
@@ -179,8 +215,8 @@ func (repo *KRIRegisterRepository) GetFullDetailsByID(id uint) (*models.KRIRegis
 
 	result := repo.db.
 		Preload("KRICategory").
-		Preload("OwnerUnit").
-		Preload("Owner").
+		Preload("ResponsibleUnit").
+		Preload("ResponsibleUser").
 		Preload("ReviewFrequency").
 		Preload("RiskLevel").
 		Preload("CreatedByUser").
