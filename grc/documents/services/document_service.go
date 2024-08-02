@@ -43,6 +43,7 @@ type DocumentServiceInterface interface {
 
 	GetDocumentPath(id uint, token string, fileType string, tx ...utility.DatabaseTransaction) (string, error)
 	AddComment(id uint, currentUserID uint, documentReviewCommentFormDTO *documentDTOs.DocumentReviewCommentFormDTO) error
+	GetWorkflowList(id uint) (*documentDTOs.DocumentVersionWorkflowListDTO, error)
 }
 
 type DocumentService struct {
@@ -1369,4 +1370,29 @@ func (ds *DocumentService) CheckAllParticipantsApproved(workflowID uint, workflo
 	}
 
 	return true, nil
+}
+
+func (ds *DocumentService) GetWorkflowList(id uint) (*documentDTOs.DocumentVersionWorkflowListDTO, error) {
+	var documentVersionWorkflowDTO documentDTOs.DocumentVersionWorkflowListDTO
+
+	document, err := ds.GetFullDetailsByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	documentVersionWorkflows, err := ds.repo.GetWorkflowList(document.LatestDocumentVersion.ID)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+
+	err = mapstructure.Decode(documentVersionWorkflows, &documentVersionWorkflowDTO)
+	if err != nil {
+		return nil, err
+	}
+
+	return &documentVersionWorkflowDTO, err
 }
