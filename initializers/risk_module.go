@@ -97,6 +97,7 @@ func NewRiskModule(db *gorm.DB,
 		organizationModule.UserSvc,
 		riskLevelSvc,
 		masterModule.ReviewFrequencySvc,
+		masterModule.UnitSvc,
 	)
 	kriRegisterController := controllers.NewKRIRegisterController(kriRegisterSvc)
 

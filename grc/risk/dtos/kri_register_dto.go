@@ -28,12 +28,17 @@ type KRIRegisterListDTO struct {
 	RiskLevelTitleEn                string  `json:"risk_level_title_en"`
 	RiskLevelTitleAr                string  `json:"risk_level_title_ar"`
 	RiskLevelColorCode              string  `json:"risk_level_color_code"`
+	UnitTitleEn                     string  `json:"unit_title_en"`
+	UnitTitleAr                     string  `json:"unit_title_ar"`
+	UnitCodeTitleEn                 string  `json:"unit_code_title_en"`
+	UnitCodeTitleAr                 string  `json:"unit_code_title_ar"`
+	UnitColorCode                   string  `json:"unit_color_code"`
 	Title                           string  `json:"title"`
 	Description                     *string `json:"description"`
 	CalculationType                 string  `json:"calculation_type"`
-	LowThreshold                    string  `json:"low_threshold"`
-	MediumThreshold                 string  `json:"medium_threshold"`
-	HighThreshold                   string  `json:"high_threshold"`
+	LowThreshold                    *int    `json:"low_threshold"`
+	MediumThreshold                 *int    `json:"medium_threshold"`
+	HighThreshold                   *int    `json:"high_threshold"`
 	CurrentValue                    string  `json:"current_value"`
 	LastReviewedDate                string  `json:"last_reviewed_date"`
 	NextReviewDate                  string  `json:"next_review_date"`
@@ -83,12 +88,13 @@ type KRIRegisterFormDTO struct {
 	ResponsibleUserID uint    `json:"responsible_user_id" binding:"required"`
 	ReviewFrequencyID uint    `json:"review_frequency_id" binding:"required" gorm:"default:not null"`
 	RiskLevelID       *uint   `json:"risk_level_id" gorm:"default:null"`
+	UnitID            uint    `json:"unit_id" binding:"required"`
 	Title             string  `json:"title" binding:"required,max=500" gorm:"type:nvarchar(500);not null"`
 	Description       string  `json:"description" gorm:"type:nvarchar(max)"`
 	CalculationType   string  `json:"calculation_type" binding:"required,oneof=automatic manual" gorm:"type:varchar(10);not null"`
-	LowThreshold      *string `json:"low_threshold" gorm:"type:varchar(455);null"`
-	MediumThreshold   *string `json:"medium_threshold" gorm:"type:varchar(455);null"`
-	HighThreshold     *string `json:"high_threshold" gorm:"type:varchar(455);null"`
+	LowThreshold      *int    `json:"low_threshold" gorm:"type:int;null"`
+	MediumThreshold   *int    `json:"medium_threshold" gorm:"type:int;null"`
+	HighThreshold     *int    `json:"high_threshold" gorm:"type:int;null"`
 	CurrentValue      *string `json:"current_value" gorm:"type:varchar(455);null"`
 	LastReviewedDate  string  `json:"last_reviewed_date" binding:"omitempty" gorm:"type:date"`
 	NextReviewDate    string  `json:"next_review_date" binding:"required" gorm:"type:date;not null"`
@@ -103,13 +109,14 @@ type KRIRegisterDetailsDTO struct {
 	ResponsibleUser  *organizationDTOs.UserMinimalDTO  `json:"responsible_user"`
 	ReviewFrequency  masterDTOs.ReviewFrequencyDTO     `json:"review_frequency"`
 	RiskLevel        *RiskLevelDTO                     `json:"risk_level"`
+	Unit             *masterDTOs.UnitDTO               `json:"unit"`
 	Title            string                            `json:"title"`
 	Description      *string                           `json:"description"`
 	CalculationType  string                            `json:"calculation_type"`
-	LowThreshold     *string                           `json:"low_threshold"`
-	MediumThreshold  *string                           `json:"medium_threshold"`
-	HighThreshold    *string                           `json:"high_threshold"`
-	CurrentValue     *string                           `json:"current_value"`
+	LowThreshold     *int                              `json:"low_threshold"`
+	MediumThreshold  *int                              `json:"medium_threshold"`
+	HighThreshold    *int                              `json:"high_threshold"`
+	CurrentValue     *int                              `json:"current_value"`
 	LastReviewedDate *time.Time                        `json:"last_reviewed_date"`
 	NextReviewDate   time.Time                         `json:"next_review_date"`
 	LastReviewNote   *string                           `json:"last_review_note"`

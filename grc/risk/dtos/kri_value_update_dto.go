@@ -11,9 +11,9 @@ type KRIValueUpdateListDTO struct {
 	KRIRegisterID               uint                         `json:"kri_register_id"`
 	ReviewedDate                string                       `json:"reviewed_date"`
 	Value                       string                       `json:"value"`
-	LowThreshold                string                       `json:"low_threshold"`
-	MediumThreshold             string                       `json:"medium_threshold"`
-	HighThreshold               string                       `json:"high_threshold"`
+	LowThreshold                int                          `json:"low_threshold"`
+	MediumThreshold             int                          `json:"medium_threshold"`
+	HighThreshold               int                          `json:"high_threshold"`
 	Remarks                     string                       `json:"remarks"`
 	CreatedAt                   string                       `json:"created_at"`
 	UpdatedAt                   string                       `json:"updated_at"`
@@ -66,9 +66,9 @@ type KRIValueUpdateDetailsDTO struct {
 	// ReviewedDate    time.Time                    `json:"reviewed_date"`
 	ReviewedDateString *string                      `json:"reviewed_date"`
 	Value              string                       `json:"value"`
-	LowThreshold       string                       `json:"low_threshold"`
-	MediumThreshold    string                       `json:"medium_threshold"`
-	HighThreshold      string                       `json:"high_threshold"`
+	LowThreshold       int                          `json:"low_threshold"`
+	MediumThreshold    int                          `json:"medium_threshold"`
+	HighThreshold      int                          `json:"high_threshold"`
 	Remarks            string                       `json:"remarks"`
 	CreatedAt          time.Time                    `json:"created_at"`
 	UpdatedAt          *time.Time                   `json:"updated_at"`

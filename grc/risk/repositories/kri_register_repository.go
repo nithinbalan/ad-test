@@ -60,6 +60,11 @@ func (repo *KRIRegisterRepository) GetAll(params *riskDTOs.KRIRegisterListQueryP
 			risk_levels.title_en AS risk_level_title_en,
 			risk_levels.title_ar AS risk_level_title_ar,
 			risk_levels.color_code AS risk_level_color_code,
+			units.title_en AS unit_title_en,
+			units.title_ar AS unit_title_ar,
+			units.code_title_en AS unit_code_title_en,
+			units.code_title_ar AS unit_code_title_ar,
+			units.color_code AS unit_color_code,
 			created_user.first_name_en AS created_user_first_name_en,
 			created_user.first_name_ar AS created_user_first_name_ar,
 			created_user.last_name_en AS created_user_last_name_en,
@@ -83,6 +88,7 @@ func (repo *KRIRegisterRepository) GetAll(params *riskDTOs.KRIRegisterListQueryP
 			LEFT JOIN users AS responsible_user ON responsible_user.id = kri_register.responsible_user_id
 			LEFT JOIN review_frequencies ON review_frequencies.id = kri_register.review_frequency_id
 			LEFT JOIN risk_levels ON risk_levels.id = kri_register.risk_level_id
+			LEFT JOIN units ON units.id = kri_register.unit_id
 			LEFT JOIN users AS created_user ON created_user.id = kri_register.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = kri_register.updated_by_id
 		`)
@@ -136,6 +142,10 @@ func (repo *KRIRegisterRepository) GetAll(params *riskDTOs.KRIRegisterListQueryP
 			kri_register.current_value LIKE ? OR
 			kri_categories.title_en LIKE ? OR
 			kri_categories.title_ar LIKE ? OR
+			units.title_en LIKE ? OR
+			units.title_ar LIKE ? OR
+			units.code_title_en LIKE ? OR
+			units.code_title_ar LIKE ? OR
 			organization_units.title_en LIKE ? OR
 			organization_units.title_ar LIKE ? OR
 			review_frequencies.title_en LIKE ? OR
@@ -158,7 +168,8 @@ func (repo *KRIRegisterRepository) GetAll(params *riskDTOs.KRIRegisterListQueryP
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
+			keyword, keyword, keyword, keyword)
 	}
 
 	// Calculate total count for pagination

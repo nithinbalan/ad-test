@@ -33,6 +33,7 @@ type KRIRegisterService struct {
 	userSvc            organizationServices.UserServiceInterface
 	riskLevelSvc       RiskLevelServiceInterface
 	reviewFrequencySvc masterServices.ReviewFrequencyServiceInterface
+	unitSvc            masterServices.UnitServiceInterface
 }
 
 func NewKRIRegisterService(
@@ -42,6 +43,7 @@ func NewKRIRegisterService(
 	userSvc organizationServices.UserServiceInterface,
 	riskLevelSvc RiskLevelServiceInterface,
 	reviewFrequencySvc masterServices.ReviewFrequencyServiceInterface,
+	unitSvc masterServices.UnitServiceInterface,
 ) KRIRegisterServiceInterface {
 	return &KRIRegisterService{
 		repo:               repo,
@@ -50,6 +52,7 @@ func NewKRIRegisterService(
 		userSvc:            userSvc,
 		riskLevelSvc:       riskLevelSvc,
 		reviewFrequencySvc: reviewFrequencySvc,
+		unitSvc:            unitSvc,
 	}
 }
 
@@ -117,6 +120,7 @@ func (krs *KRIRegisterService) Create(currentUserID uint, kriRegisterFormDTO *ri
 		ResponsibleUserID: kriRegisterFormDTO.ResponsibleUserID,
 		ReviewFrequencyID: kriRegisterFormDTO.ReviewFrequencyID,
 		RiskLevelID:       kriRegisterFormDTO.RiskLevelID,
+		UnitID:            kriRegisterFormDTO.UnitID,
 		Title:             kriRegisterFormDTO.Title,
 		Description:       kriRegisterFormDTO.Description,
 		CalculationType:   kriRegisterFormDTO.CalculationType,
@@ -189,6 +193,7 @@ func (krs *KRIRegisterService) Update(id uint, currentUserID uint, kriRegisterFo
 	existingKRIRegister.ResponsibleUserID = kriRegisterFormDTO.ResponsibleUserID
 	existingKRIRegister.ReviewFrequencyID = kriRegisterFormDTO.ReviewFrequencyID
 	existingKRIRegister.RiskLevelID = kriRegisterFormDTO.RiskLevelID
+	existingKRIRegister.UnitID = kriRegisterFormDTO.UnitID
 	existingKRIRegister.Title = kriRegisterFormDTO.Title
 	existingKRIRegister.Description = kriRegisterFormDTO.Description
 	existingKRIRegister.CalculationType = kriRegisterFormDTO.CalculationType
@@ -273,6 +278,9 @@ func (krs *KRIRegisterService) validateKRIRegisterFormDTO(kriRegisterFormDTO *ri
 		if _, err := krs.riskLevelSvc.GetByID(*kriRegisterFormDTO.RiskLevelID); err != nil {
 			return utility.NewValidationError(fmt.Errorf("risk level does not exist"), "not_exist", "risk level")
 		}
+	}
+	if _, err := krs.riskLevelSvc.GetByID(kriRegisterFormDTO.UnitID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("unit does not exist"), "not_exist", "unit")
 	}
 
 	if _, err := krs.reviewFrequencySvc.GetByID(kriRegisterFormDTO.ReviewFrequencyID); err != nil {

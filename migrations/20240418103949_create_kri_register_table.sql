@@ -1,6 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE TABLE kri_register (
+CREATE TABLE kri_register
+(
     id INT PRIMARY KEY IDENTITY(1,1),
     reference_number VARCHAR(45) NULL,
     kri_category_id INT NOT NULL,
@@ -8,13 +9,14 @@ CREATE TABLE kri_register (
     responsible_user_id INT NOT NULL,
     review_frequency_id INT NOT NULL,
     risk_level_id INT NULL,
+    unit_id INT NULL,
     title NVARCHAR(500) NOT NULL,
     description NVARCHAR(MAX),
     calculation_type VARCHAR(10) NOT NULL DEFAULT 'automatic',
-        CONSTRAINT CHK_kri_register_calculation_type CHECK (calculation_type IN ('automatic', 'manual')),
-    low_threshold VARCHAR(455),
-    medium_threshold VARCHAR(455),
-    high_threshold VARCHAR(455),
+    CONSTRAINT CHK_kri_register_calculation_type CHECK (calculation_type IN ('automatic', 'manual')),
+    low_threshold INT NULL,
+    medium_threshold INT NULL,
+    high_threshold INT NULL,
     current_value VARCHAR(455) NULL,
     last_reviewed_date DATE,
     next_review_date DATE NOT NULL,
@@ -28,6 +30,7 @@ CREATE TABLE kri_register (
     CONSTRAINT FK_kri_register_users_1 FOREIGN KEY (responsible_user_id) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_kri_register_review_frequencies FOREIGN KEY (review_frequency_id) REFERENCES review_frequencies (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_kri_register_risk_levels FOREIGN KEY (risk_level_id) REFERENCES risk_levels (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_kri_register_units FOREIGN KEY (unit_id) REFERENCES units (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_kri_register_users_2 FOREIGN KEY (created_by_id) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_kri_register_users_3 FOREIGN KEY (updated_by_id) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );

@@ -12,12 +12,13 @@ type KRIRegister struct {
 	ResponsibleUserID uint       `json:"responsible_user_id" gorm:"not null"`
 	ReviewFrequencyID uint       `json:"review_frequency_id" binding:"required" gorm:"not null"`
 	RiskLevelID       *uint      `json:"risk_level_id"`
+	UnitID            uint       `json:"unit_id" binding:"required" gorm:"not null"`
 	Title             string     `json:"title" binding:"required,max=500" gorm:"type:nvarchar(500);not null"`
 	Description       string     `json:"description" gorm:"type:nvarchar(max)"`
 	CalculationType   string     `json:"calculation_type" binding:"required,oneof=automatic, manual" gorm:"type:varchar(10);not null"`
-	LowThreshold      *string    `json:"low_threshold" gorm:"type:varchar(455);null"`
-	MediumThreshold   *string    `json:"medium_threshold" gorm:"type:varchar(455);null"`
-	HighThreshold     *string    `json:"high_threshold" gorm:"type:varchar(455);null"`
+	LowThreshold      *int       `json:"low_threshold" gorm:"type:int;null"`
+	MediumThreshold   *int       `json:"medium_threshold" gorm:"type:int;null"`
+	HighThreshold     *int       `json:"high_threshold" gorm:"type:int;null"`
 	CurrentValue      *string    `json:"current_value" gorm:"type:varchar(455);null"`
 	LastReviewedDate  *time.Time `json:"last_reviewed_date" gorm:"type:date"`
 	NextReviewDate    time.Time  `json:"next_review_date" binding:"required" gorm:"type:date;not null"`
