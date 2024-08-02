@@ -102,10 +102,25 @@ func (rhs *RiskHeatmapService) GetRiskHeatmapByResponsibleUnit() ([]*riskDTOs.Ri
 		}
 	}
 
-	for _, likelihoodDetails := range heatmap {
-		for _, detail := range likelihoodDetails {
-			if unitResponse, exists := responsibleUnitMap[detail.RiskMatrixImpactID]; exists {
-				unitResponse.HeatmapCells = append(unitResponse.HeatmapCells, detail)
+	for unitID, unitResponse := range responsibleUnitMap {
+		for _, likelihoodDetails := range heatmap {
+			for _, detail := range likelihoodDetails {
+				// Set the RiskRegisterCount to 0 initially
+				detailCopy := *detail
+				detailCopy.RiskRegisterCount = 0
+
+				// Find risk registers for this unit with the same likelihood and impact
+				for _, register := range riskRegisters {
+					if register.ResponsibleUnitID == unitID &&
+						register.CurrentLikelihoodID != nil &&
+						register.CurrentImpactID != nil &&
+						*register.CurrentLikelihoodID == detailCopy.RiskMatrixLikelihoodID &&
+						*register.CurrentImpactID == detailCopy.RiskMatrixImpactID {
+						detailCopy.RiskRegisterCount++
+					}
+				}
+
+				unitResponse.HeatmapCells = append(unitResponse.HeatmapCells, &detailCopy)
 			}
 		}
 	}
