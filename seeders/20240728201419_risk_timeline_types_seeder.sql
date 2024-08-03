@@ -3,15 +3,15 @@
 INSERT INTO risk_timeline_types
     (title_en, title_ar, color_code, type)
 VALUES
-    ('Identified', 'تم تحديده', '#FF0000', 'identified'),
-    ('RCA', 'تحليل السبب الجذري', '#0000FF', 'rca'),
-    ('Risk Analysis', 'تحليل المخاطر', '#FFFF00', 'risk_analysis'),
-    ('Control Analysis', 'تحليل التحكم', '#800080', 'control_analysis'),
-    ('Risk Response', 'الاستجابة للمخاطر', '#FFA500', 'risk_response'),
-    ('Residual Control Analysis', 'تحليل التحكم المتبقي', '#008000', 'residual_control_analysis'),
-    ('Residual Risk Analysis', 'تحليل المخاطر المتبقية', '#00FFFF', 'residual_risk_analysis'),
-    ('Monitoring', 'مراقبة', '#FF00FF', 'monitoring'),
-    ('Closure', 'إغلاق', '#000000', 'closure');
+    ('Identified', 'تم تحديده', '#28A745', 'identified'),
+    ('RCA', 'تحليل السبب الجذري', '#007BFF', 'rca'),
+    ('Risk Analysis', 'تحليل المخاطر', '#FFC107', 'risk_analysis'),
+    ('Control Analysis', 'تحليل التحكم', '#FFA500', 'control_analysis'),
+    ('Risk Response', 'الاستجابة للمخاطر', '#6C757D', 'risk_response'),
+    ('Residual Control Analysis', 'تحليل التحكم المتبقي', '#D6A2E8', 'residual_control_analysis'),
+    ('Residual Risk Analysis', 'تحليل المخاطر المتبقية', '#6F42C1', 'residual_risk_analysis'),
+    ('Monitoring', 'مراقبة', '#FD7E14', 'monitoring'),
+    ('Closure', 'إغلاق', '#DC3545', 'closure');
 -- +goose StatementEnd
 
 -- +goose Down

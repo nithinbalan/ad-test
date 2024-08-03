@@ -14,9 +14,10 @@ type RiskKriRepositoryInterface interface {
 	GetAll(riskID uint, params *riskDTOs.RiskKriListQueryParamsDTO) (*riskDTOs.RiskKriListResponseDTO, error)
 	GetByID(id uint) (*models.RiskKri, error)
 	GetFullDetailsByID(id uint) (*models.RiskKri, error)
-	Create(riskKris []*models.RiskKri) ([]uint, error)
+	Create(riskKris []*models.RiskKri, tx ...utility.DatabaseTransaction) ([]uint, error)
 	Update(riskKri *models.RiskKri, tx ...utility.DatabaseTransaction) error
 	Delete(id uint) error
+	GetCountByRiskID(riskID uint, tx ...utility.DatabaseTransaction) (int64, error)
 }
 
 type RiskKriRepository struct {
@@ -186,9 +187,13 @@ func (repo *RiskKriRepository) GetFullDetailsByID(id uint) (*models.RiskKri, err
 	return riskKri, nil
 }
 
-func (repo *RiskKriRepository) Create(riskKris []*models.RiskKri) ([]uint, error) {
+func (repo *RiskKriRepository) Create(riskKris []*models.RiskKri, tx ...utility.DatabaseTransaction) ([]uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 	var ids []uint
-	if err := repo.db.Create(&riskKris).Error; err != nil {
+	if err := db.Create(&riskKris).Error; err != nil {
 		return nil, err
 	}
 
@@ -223,4 +228,18 @@ func (repo *RiskKriRepository) Delete(id uint) error {
 	}
 
 	return nil
+}
+
+func (repo *RiskKriRepository) GetCountByRiskID(riskID uint, tx ...utility.DatabaseTransaction) (int64, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	var count int64
+	if err := db.Model(&models.RiskKri{}).
+		Where("risk_register_id = ?", riskID).
+		Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
 }
