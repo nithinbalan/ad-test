@@ -41,8 +41,8 @@ func (repo *RiskKriRepository) GetAll(riskID uint, params *riskDTOs.RiskKriListQ
 	query := repo.db.Table("risk_kris").
 		Select(`
         risk_kris.*,
-		kri_register.reference_number AS kri_reference_number,
-        kri_register.title AS kri_title,
+		kri_register.reference_number,
+        kri_register.title,
 		kri_register.description AS description,
 		kri_register.calculation_type AS calculation_type,
 		kri_register.low_threshold AS low_threshold,

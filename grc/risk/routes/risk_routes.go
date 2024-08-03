@@ -93,6 +93,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	riskRoutes.GET("/kri-register/:id/value-updates", kriValueUpdateController.GetAllKRIValueUpdates)
 	riskRoutes.POST("/kri-register/:id/value-updates", kriValueUpdateController.CreateKRIValueUpdate)
+	riskRoutes.GET("/kri-register/:id/value-updates/:updateId", kriValueUpdateController.GetKRIValueUpdateDetails)
 	riskRoutes.PUT("/kri-register/:id/value-updates/:updateId", kriValueUpdateController.UpdateKRIValueUpdate)
 	riskRoutes.POST("/kri-register/:id/value-updates/delete", kriValueUpdateController.DeleteKRIValueUpdates)
 
@@ -179,6 +180,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.GET("risks/:riskId/incidents", riskAssociatedItemController.GetAllRiskIncidents)
 
 	riskRoutes.PUT("/risks/:riskId/response-strategy", riskRegisterController.UpdateResponseStrategy)
+	riskRoutes.DELETE("/risks/:riskId/response-strategy", riskRegisterController.DeleteResponseStrategy)
+
+	riskRoutes.GET("/risks/:riskId/control-performance", riskRegisterController.GetControlPerformance)
+
 	// Risk Action Plan
 	riskRoutes.GET("/risk-action-plans", riskActionPlanController.GetAllRiskActionPlans)
 	riskRoutes.GET("/risks/:riskId/action-plans", riskActionPlanController.GetAllRiskActionPlans)
@@ -191,7 +196,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.POST("/risks/:riskId/action-plans/:actionPlanId/status-updates", riskActionPlanStatusUpdateController.CreateRiskActionPlanStatusUpdate)
 	riskRoutes.PUT("/risks/:riskId/action-plans/:actionPlanId/status-updates/:id", riskActionPlanStatusUpdateController.UpdateRiskActionPlanStatusUpdate)
 	riskRoutes.GET("/risks/:riskId/action-plans/:actionPlanId/status-updates/latest", riskActionPlanStatusUpdateController.GetLatestRiskActionPlanStatusUpdate)
-
 
 	// Risk Treatment Guides
 	riskRoutes.GET("/risk-treatment-guidelines", riskTreatmentGuidelineController.GetAllRiskTreatmentGuidelines)
@@ -212,7 +216,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.PUT("/risk-response-strategies/deactivate", riskResponseStrategyController.DeactivateRiskResponseStrategies)
 
 	// Risk Heat Map
-	riskRoutes.GET("risks/heatmap-by-owner-unit", riskHeatmapController.GetRiskHeatmapByResponsibleUnit)
+	riskRoutes.GET("risks/heatmap-by-responsible-unit", riskHeatmapController.GetRiskHeatmapByResponsibleUnit)
 	riskRoutes.GET("processes/:processId/risk-heatmap", riskHeatmapController.GetProcessRiskHeatmap)
 	riskRoutes.GET("controls/:controlId/risk-heatmap", riskHeatmapController.GetControlRiskHeatmap)
 	riskRoutes.GET("compliances/:complianceId/risk-heatmap", riskHeatmapController.GetComplianceRiskHeatmap)

@@ -52,7 +52,7 @@ type WorkflowLevelDTO struct {
 	UpdatedByID       *uint                         `json:"updated_by_id"`
 	CreatedAt         time.Time                     `json:"created_at"`
 	UpdatedAt         *time.Time                    `json:"updated_at"`
-	WorkflowLevelType WorkflowLevelTypeDTO          `json:"workflow_role_type"`
+	WorkflowLevelType WorkflowLevelTypeDTO          `json:"workflow_level_type"`
 	Participants      []WorkflowLevelParticipantDTO `json:"participants"`
 }
 

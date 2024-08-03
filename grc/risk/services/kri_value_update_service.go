@@ -13,11 +13,13 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
 )
 
 type KRIValueUpdateServiceInterface interface {
 	GetAll(kriRegisterID uint, params *riskDTOs.KRIValueUpdateListQueryParamsDTO) (*riskDTOs.KRIValueUpdateListResponseDTO, error)
+	GetFullDetailsByID(id uint) (*riskDTOs.KRIValueUpdateDetailsDTO, error)
 	Create(kriRegisterID, currentUserID uint, kriValueUpdateFormDTO *riskDTOs.KRIValueUpdateFormDTO) (uint, error)
 	Update(kriRegisterID, updateId, currentUserID uint, kriValueUpdateFormDTO *riskDTOs.KRIValueUpdateFormDTO) error
 	Delete(kriRegisterID uint, ids []uint, currentUserID uint) ([]uint, error)
@@ -169,6 +171,33 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 	}()
 
 	return id, nil
+}
+
+func (kvus KRIValueUpdateService) GetFullDetailsByID(id uint) (*riskDTOs.KRIValueUpdateDetailsDTO, error) {
+	var valueUpdate riskDTOs.KRIValueUpdateDetailsDTO
+
+	existingKRIUpdate, err := kvus.repo.GetFullDetailsByID(id)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+
+	err = mapstructure.Decode(existingKRIUpdate, &valueUpdate)
+	if err != nil {
+		return nil, err
+	}
+
+	
+	reviewedDate := existingKRIUpdate.ReviewedDate.Format("2006-01-02")
+	valueUpdate.ReviewedDateString = &reviewedDate
+
+	valueUpdate.CreatedAt = existingKRIUpdate.CreatedAt
+	valueUpdate.UpdatedAt = existingKRIUpdate.UpdatedAt
+
+	return &valueUpdate, nil
 }
 
 func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentUserID uint, kriValueUpdateFormDTO *riskDTOs.KRIValueUpdateFormDTO) error {
