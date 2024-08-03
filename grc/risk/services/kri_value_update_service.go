@@ -78,9 +78,9 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 		KRIRegisterID:   kriRegisterID,
 		ReviewedDate:    *dates.ReviewedDate,
 		Value:           kriValueUpdateFormDTO.Value,
-		LowThreshold:    *existingKRIRegister.LowThreshold,
-		MediumThreshold: *existingKRIRegister.MediumThreshold,
-		HighThreshold:   *existingKRIRegister.HighThreshold,
+		LowThreshold:    existingKRIRegister.LowThreshold,
+		MediumThreshold: existingKRIRegister.MediumThreshold,
+		HighThreshold:   existingKRIRegister.HighThreshold,
 		Remarks:         kriValueUpdateFormDTO.Remarks,
 		CreatedByID:     currentUserID,
 	}

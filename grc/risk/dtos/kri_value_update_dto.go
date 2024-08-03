@@ -7,25 +7,33 @@ import (
 )
 
 type KRIValueUpdateListDTO struct {
-	ID                     uint                         `json:"id"`
-	KRIRegisterID          uint                         `json:"kri_register_id"`
-	ReviewedDate           string                       `json:"reviewed_date"`
-	Value                  string                       `json:"value"`
-	LowThreshold           string                       `json:"low_threshold"`
-	MediumThreshold        string                       `json:"medium_threshold"`
-	HighThreshold          string                       `json:"high_threshold"`
-	Remarks                string                       `json:"remarks"`
-	CreatedAt              string                       `json:"created_at"`
-	UpdatedAt              string                       `json:"updated_at"`
-	CreatedUserFirstNameEn string                       `json:"created_user_first_name_en"`
-	CreatedUserFirstNameAr string                       `json:"created_user_first_name_ar"`
-	CreatedUserLastNameEn  string                       `json:"created_user_last_name_en"`
-	CreatedUserLastNameAr  *string                      `json:"created_user_last_name_ar"`
-	UpdatedUserFirstNameEn *string                      `json:"updated_user_first_name_en"`
-	UpdatedUserFirstNameAr *string                      `json:"updated_user_first_name_ar"`
-	UpdatedUserLastNameEn  *string                      `json:"updated_user_last_name_en"`
-	UpdatedUserLastNameAr  *string                      `json:"updated_user_last_name_ar"`
-	Documents              []*KRIValueUpdateDocumentDTO `json:"documents" gorm:"-"`
+	ID                          uint                         `json:"id"`
+	KRIRegisterID               uint                         `json:"kri_register_id"`
+	ReviewedDate                string                       `json:"reviewed_date"`
+	Value                       string                       `json:"value"`
+	LowThreshold                int                          `json:"low_threshold"`
+	MediumThreshold             int                          `json:"medium_threshold"`
+	HighThreshold               int                          `json:"high_threshold"`
+	Remarks                     string                       `json:"remarks"`
+	CreatedAt                   string                       `json:"created_at"`
+	UpdatedAt                   string                       `json:"updated_at"`
+	CreatedUserFirstNameEn      string                       `json:"created_user_first_name_en"`
+	CreatedUserFirstNameAr      string                       `json:"created_user_first_name_ar"`
+	CreatedUserLastNameEn       string                       `json:"created_user_last_name_en"`
+	CreatedUserLastNameAr       *string                      `json:"created_user_last_name_ar"`
+	CreatedUserInitial          *string                      `json:"created_user_initial"`
+	CreatedUserColor            *string                      `json:"created_user_color"`
+	CreatedUserEmail            *string                      `json:"created_user_email"`
+	CreatedUserProfileImagePath *string                      `json:"created_user_profile_image_path"`
+	UpdatedUserFirstNameEn      *string                      `json:"updated_user_first_name_en"`
+	UpdatedUserFirstNameAr      *string                      `json:"updated_user_first_name_ar"`
+	UpdatedUserLastNameEn       *string                      `json:"updated_user_last_name_en"`
+	UpdatedUserLastNameAr       *string                      `json:"updated_user_last_name_ar"`
+	UpdatedUserInitial          *string                      `json:"updated_user_initial"`
+	UpdatedUserColor            *string                      `json:"updated_user_color"`
+	UpdatedUserEmail            *string                      `json:"updated_user_email"`
+	UpdatedUserProfileImagePath *string                      `json:"updated_user_profile_image_path"`
+	Documents                   []*KRIValueUpdateDocumentDTO `json:"documents" gorm:"-"`
 }
 
 type KRIValueUpdateFormDTO struct {
@@ -56,15 +64,15 @@ type KRIValueUpdateDetailsDTO struct {
 	KRIRegisterID uint `json:"kri_register_id"`
 	// KRIRegister     KRIRegisterDetailsDTO        `json:"kri_register"`
 	// ReviewedDate    time.Time                    `json:"reviewed_date"`
-	ReviewedDateString    *string                    `json:"reviewed_date"`
-	Value           string                       `json:"value"`
-	LowThreshold    string                       `json:"low_threshold"`
-	MediumThreshold string                       `json:"medium_threshold"`
-	HighThreshold   string                       `json:"high_threshold"`
-	Remarks         string                       `json:"remarks"`
-	CreatedAt       time.Time                    `json:"created_at"`
-	UpdatedAt       *time.Time                   `json:"updated_at"`
-	Documents       []*KRIValueUpdateDocumentDTO `json:"documents"`
+	ReviewedDateString *string                      `json:"reviewed_date"`
+	Value              string                       `json:"value"`
+	LowThreshold       int                          `json:"low_threshold"`
+	MediumThreshold    int                          `json:"medium_threshold"`
+	HighThreshold      int                          `json:"high_threshold"`
+	Remarks            string                       `json:"remarks"`
+	CreatedAt          time.Time                    `json:"created_at"`
+	UpdatedAt          *time.Time                   `json:"updated_at"`
+	Documents          []*KRIValueUpdateDocumentDTO `json:"documents"`
 }
 
 type KRIValueUpdateParsedDates struct {
