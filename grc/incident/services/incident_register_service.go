@@ -285,23 +285,32 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 		tx.Rollback()
 		return 0, err
 	}
-	currentTime := time.Now()
 	var timelineFormDTOs []*incidentDTOs.IncidentTimelineFormDTO
 
 	for _, timelineType := range timelineTypes {
-		var statusID uint
+		var (
+			statusID      uint
+			performedByID *uint
+			currentTime   *time.Time
+		)
+
 		if timelineType.Type == "reporting" {
 			statusID = completedStatus.ID
+			performedByID = &currentUserID
+			now := time.Now()
+			currentTime = &now
 		} else {
 			statusID = pendingStatus.ID
+			performedByID = nil
+			currentTime = nil
 		}
 
 		timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
 			IncidentRegisterID:     id,
 			IncidentTimelineTypeID: timelineType.ID,
 			TimelineStatusID:       statusID,
-			PerformedByID:          &currentUserID,
-			PerformedAt:            &currentTime,
+			PerformedByID:          performedByID,
+			PerformedAt:            currentTime,
 		}
 		timelineFormDTOs = append(timelineFormDTOs, timelineFormDTO)
 	}

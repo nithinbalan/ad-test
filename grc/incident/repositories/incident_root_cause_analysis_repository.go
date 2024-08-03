@@ -19,6 +19,7 @@ type IncidentRootCauseAnalysisRepositoryInterface interface {
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	GetLatestWhyByIncidentID(incidentID uint) (uint, error)
 	UpdateWhyValuesAfterDeletion(incidentID uint, deletedWhy uint, tx ...utility.DatabaseTransaction) error
+	GetCountByRiskID(incidentID uint, tx ...utility.DatabaseTransaction) (int64, error)
 }
 
 type IncidentRootCauseAnalysisRepository struct {
@@ -171,4 +172,18 @@ func (repo *IncidentRootCauseAnalysisRepository) GetLatestWhyByIncidentID(incide
 		return 0, err
 	}
 	return latestWhy, nil
+}
+
+func (repo *IncidentRootCauseAnalysisRepository) GetCountByRiskID(incidentID uint, tx ...utility.DatabaseTransaction) (int64, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	var count int64
+	if err := db.Model(&models.IncidentRootCauseAnalysis{}).
+		Where("incident_register_id = ?", incidentID).
+		Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
 }

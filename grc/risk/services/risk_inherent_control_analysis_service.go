@@ -33,6 +33,7 @@ type RiskInherentControlAnalysisService struct {
 	riskRegisterSvc RiskRegisterServiceInterface
 	controlSvc      organizationServices.ControlServiceInterface
 	controlTestSvc  organizationServices.ControlTestServiceInterface
+	riskTimelineSvc RiskTimelineServiceInterface
 }
 
 func NewRiskInherentControlAnalysisService(
@@ -41,6 +42,7 @@ func NewRiskInherentControlAnalysisService(
 	riskRegisterSvc RiskRegisterServiceInterface,
 	controlSvc organizationServices.ControlServiceInterface,
 	controlTestSvc organizationServices.ControlTestServiceInterface,
+	riskTimelineSvc RiskTimelineServiceInterface,
 ) RiskInherentControlAnalysisServiceInterface {
 	return &RiskInherentControlAnalysisService{
 		repo:            repo,
@@ -48,6 +50,7 @@ func NewRiskInherentControlAnalysisService(
 		riskRegisterSvc: riskRegisterSvc,
 		controlSvc:      controlSvc,
 		controlTestSvc:  controlTestSvc,
+		riskTimelineSvc: riskTimelineSvc,
 	}
 }
 
@@ -99,6 +102,8 @@ func (rcas *RiskInherentControlAnalysisService) GetByID(riskID uint, id uint) (*
 }
 
 func (rcas *RiskInherentControlAnalysisService) Create(riskID uint, currentUserID uint) error {
+	tx := rcas.repo.BeginTransaction()
+
 	if _, err := rcas.riskRegisterSvc.GetByID(riskID); err != nil {
 		return err
 	}
@@ -129,6 +134,29 @@ func (rcas *RiskInherentControlAnalysisService) Create(riskID uint, currentUserI
 			return err
 		}
 	}
+	//update timeline performedAt as null
+	//todo
+	timelineType, err := rcas.riskTimelineSvc.GetByType("control_analysis")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	timelineStatus, err := rcas.riskTimelineSvc.GetByStatusType("completed")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	currentTime := time.Now()
+	timelineFormDTO := &riskDTOs.RiskTimelineFormDTO{
+		PerformedByID:    &currentUserID,
+		TimelineStatusID: timelineStatus.ID,
+		PerformedAt:      &currentTime,
+	}
+	if err := rcas.riskTimelineSvc.Update(riskID, timelineFormDTO, timelineType.ID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	tx.Commit()
 
 	return nil
 }
@@ -181,6 +209,27 @@ func (rcas *RiskInherentControlAnalysisService) Delete(riskID uint, ids []uint, 
 			failedIds = append(failedIds, id)
 			continue
 		}
+		//Delete-> update timeline performedAt as null
+		//todo
+		timelineType, err := rcas.riskTimelineSvc.GetByType("control_analysis")
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+		timelineStatus, err := rcas.riskTimelineSvc.GetByStatusType("pending")
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+		timelineFormDTO := &riskDTOs.RiskTimelineFormDTO{
+			PerformedByID:    nil,
+			TimelineStatusID: timelineStatus.ID,
+			PerformedAt:      nil,
+		}
+		if err := rcas.riskTimelineSvc.Update(riskID, timelineFormDTO, timelineType.ID, tx); err != nil {
+			tx.Rollback()
+			return nil, err
+		}
 
 		err = rcas.repo.Delete(riskControlAnalysis.ID, tx)
 		if err != nil {
@@ -210,7 +259,7 @@ func (rcas *RiskInherentControlAnalysisService) Delete(riskID uint, ids []uint, 
 	} else {
 		tx.Rollback()
 	}
-
+	
 	return failedIds, nil
 }
 

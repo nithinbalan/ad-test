@@ -17,6 +17,7 @@ type IncidentCommunicationLogRepositoryInterface interface {
 	Create(incidentCommunicationLog *models.IncidentCommunicationLog, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(incidentCommunicationLog *models.IncidentCommunicationLog, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
+	GetCountByRiskID(incidentID uint, tx ...utility.DatabaseTransaction) (int64, error)
 }
 
 type IncidentCommunicationLogRepository struct {
@@ -177,4 +178,18 @@ func (repo *IncidentCommunicationLogRepository) Delete(id uint, tx ...utility.Da
 	}
 
 	return nil
+}
+
+func (repo *IncidentCommunicationLogRepository) GetCountByRiskID(incidentID uint, tx ...utility.DatabaseTransaction) (int64, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	var count int64
+	if err := db.Model(&models.IncidentCommunicationLog{}).
+		Where("incident_register_id = ?", incidentID).
+		Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
 }
