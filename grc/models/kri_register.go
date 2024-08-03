@@ -19,7 +19,7 @@ type KRIRegister struct {
 	LowThreshold      *int       `json:"low_threshold" gorm:"type:int;null"`
 	MediumThreshold   *int       `json:"medium_threshold" gorm:"type:int;null"`
 	HighThreshold     *int       `json:"high_threshold" gorm:"type:int;null"`
-	CurrentValue      *string    `json:"current_value" gorm:"type:varchar(455);null"`
+	CurrentValue      *int       `json:"current_value" gorm:"type:int;null"`
 	LastReviewedDate  *time.Time `json:"last_reviewed_date" gorm:"type:date"`
 	NextReviewDate    time.Time  `json:"next_review_date" binding:"required" gorm:"type:date;not null"`
 	LastReviewNote    *string    `json:"last_review_note" gorm:"type:nvarchar(max)"`
@@ -34,6 +34,7 @@ type KRIRegister struct {
 	ResponsibleUser *User             `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ReviewFrequency *ReviewFrequency  `gorm:"foreignKey:ReviewFrequencyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	RiskLevel       *RiskLevel        `gorm:"foreignKey:RiskLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Unit            *Unit             `gorm:"foreignKey:UnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	CreatedByUser   *User             `gorm:"foreignKey:CreatedBYID"`
 	UpdatedByUser   *User             `gorm:"foreignKey:UpdatedBYID"`
 	ValueUpdates    []*KRIValueUpdate `gorm:"foreignKey:KRIRegisterID"`
