@@ -8,6 +8,7 @@ import (
 	riskDTOs "jethur/grc/risk/dtos"
 	riskRepositories "jethur/grc/risk/repositories"
 	"jethur/utility"
+	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -33,6 +34,7 @@ type RiskInherentEvaluationService struct {
 	riskImpactCategorySvc        RiskImpactCategoryServiceInterface
 	riskMatrixImpactGuidelineSvc RiskMatrixImpactGuidelineServiceInterface
 	riskAppetiteStatementSvc     RiskAppetiteStatementServiceInterface
+	riskTimelineSvc              RiskTimelineServiceInterface
 }
 
 func NewRiskInherentEvaluationService(
@@ -46,6 +48,7 @@ func NewRiskInherentEvaluationService(
 	riskImpactCategorySvc RiskImpactCategoryServiceInterface,
 	riskMatrixImpactGuidelineSvc RiskMatrixImpactGuidelineServiceInterface,
 	riskAppetiteStatementSvc RiskAppetiteStatementServiceInterface,
+	riskTimelineSvc RiskTimelineServiceInterface,
 ) RiskInherentEvaluationServiceInterface {
 	return &RiskInherentEvaluationService{
 		repo:                         repo,
@@ -58,6 +61,7 @@ func NewRiskInherentEvaluationService(
 		riskImpactCategorySvc:        riskImpactCategorySvc,
 		riskMatrixImpactGuidelineSvc: riskMatrixImpactGuidelineSvc,
 		riskAppetiteStatementSvc:     riskAppetiteStatementSvc,
+		riskTimelineSvc:              riskTimelineSvc,
 	}
 }
 
@@ -222,6 +226,28 @@ func (ries *RiskInherentEvaluationService) Create(riskID uint, currentUserID uin
 			tx.Rollback()
 			return 0, err
 		}
+	}
+	//Update timeline
+	//todo
+	timelineType, err := ries.riskTimelineSvc.GetByType("risk_analysis")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	timelineStatus, err := ries.riskTimelineSvc.GetByStatusType("completed")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	currentTime := time.Now()
+	timelineFormDTO := &riskDTOs.RiskTimelineFormDTO{
+		PerformedByID:    &currentUserID,
+		TimelineStatusID: timelineStatus.ID,
+		PerformedAt:      &currentTime,
+	}
+	if err := ries.riskTimelineSvc.Update(riskID, timelineFormDTO, timelineType.ID, tx); err != nil {
+		tx.Rollback()
+		return 0, err
 	}
 
 	tx.Commit()
@@ -426,6 +452,27 @@ func (ries *RiskInherentEvaluationService) Delete(riskID uint, id uint, currentU
 	}
 	err := ries.riskRegisterSvc.ClearRiskRating(riskID, updateDTO, tx)
 	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	//Delete-> update timeline performedAt as null
+	//todo
+	timelineType, err := ries.riskTimelineSvc.GetByType("risk_analysis")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	timelineStatus, err := ries.riskTimelineSvc.GetByStatusType("pending")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	timelineFormDTO := &riskDTOs.RiskTimelineFormDTO{
+		PerformedByID:    nil,
+		TimelineStatusID: timelineStatus.ID,
+		PerformedAt:      nil,
+	}
+	if err := ries.riskTimelineSvc.Update(riskID, timelineFormDTO, timelineType.ID, tx); err != nil {
 		tx.Rollback()
 		return 0, err
 	}
