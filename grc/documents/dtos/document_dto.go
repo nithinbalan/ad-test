@@ -210,11 +210,12 @@ type DocumentVersionWorkflowListDTO struct {
 }
 
 type DocumentWorkflowListDTO struct {
-	Level                        int                              `json:"level"`
-	ApprovalTypes                string                           `json:"approval_type"`
-	DocumentWorkflowStatus       DocumentStatusDTO                `json:"document_workflow_status"`
-	DocumentWorkflowReviews      []*DocumentWorkflowReviewListDTO `json:"document_workflow_reviews"`
-	DocumentWorkflowParticipants []*WorkflowLevelParticipantDTO   `json:"document_workflow_participants"`
+	Level         int                                `json:"level"`
+	ApprovalType  string                             `json:"approval_type"`
+	ReviewUsers   []*organizationDTOs.UserMinimalDTO `json:"review_users"`
+	ApprovedUsers []*organizationDTOs.UserMinimalDTO `json:"approved_users"`
+	ApprovedAt    time.Time                          `json:"approved_at,omitempty"`
+	CurrentStatus DocumentStatusDTO                  `json:"current_status"`
 }
 
 type DocumentWorkflowReviewListDTO struct {

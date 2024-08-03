@@ -9,6 +9,7 @@ import (
 	"jethur/grc/documents/repositories"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
+	organizationDTOs "jethur/grc/organization/dtos"
 	organizationSvc "jethur/grc/organization/services"
 	settingDTOs "jethur/grc/settings/dtos"
 	settinsSvc "jethur/grc/settings/services"
@@ -43,7 +44,7 @@ type DocumentServiceInterface interface {
 
 	GetDocumentPath(id uint, token string, fileType string, tx ...utility.DatabaseTransaction) (string, error)
 	AddComment(id uint, currentUserID uint, documentReviewCommentFormDTO *documentDTOs.DocumentReviewCommentFormDTO) error
-	GetWorkflowList(id uint) (*documentDTOs.DocumentVersionWorkflowListDTO, error)
+	GetDocumentWorkflowList(id uint) (*documentDTOs.DocumentVersionWorkflowListDTO, error)
 }
 
 type DocumentService struct {
@@ -869,17 +870,18 @@ func (ds *DocumentService) GetDocumentPath(id uint, token string, fileType strin
 	if err != nil {
 		return "", err
 	}
+	fmt.Println("1")
 
 	decryptedFilenameBytes, err := utility.DecryptData(token)
 	if err != nil {
 		return "", fmt.Errorf("resource not found")
 	}
-
+	fmt.Println("2")
 	decryptedFilename := string(decryptedFilenameBytes)
 	if decryptedFilename == "" {
 		return "", fmt.Errorf("resource not found")
 	}
-
+	fmt.Println("3")
 	baseFilename := strings.TrimSuffix(decryptedFilename, filepath.Ext(decryptedFilename))
 
 	var storagePath string
@@ -1372,27 +1374,100 @@ func (ds *DocumentService) CheckAllParticipantsApproved(workflowID uint, workflo
 	return true, nil
 }
 
-func (ds *DocumentService) GetWorkflowList(id uint) (*documentDTOs.DocumentVersionWorkflowListDTO, error) {
-	var documentVersionWorkflowDTO documentDTOs.DocumentVersionWorkflowListDTO
+// func (ds *DocumentService) GetWorkflowList(id uint) (*documentDTOs.DocumentVersionWorkflowListDTO, error) {
+// 	var documentVersionWorkflowDTO documentDTOs.DocumentVersionWorkflowListDTO
 
+// 	document, err := ds.GetFullDetailsByID(id)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	documentVersionWorkflows, err := ds.repo.GetWorkflowList(document.LatestDocumentVersion.ID)
+
+// 	if err != nil {
+// 		if errors.Is(err, gorm.ErrRecordNotFound) {
+// 			return nil, utility.NewResourceNotFoundError(err, id)
+// 		}
+// 		return nil, err
+// 	}
+
+// 	err = mapstructure.Decode(documentVersionWorkflows, &documentVersionWorkflowDTO)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	return &documentVersionWorkflowDTO, err
+// }
+
+func (ds *DocumentService) GetDocumentWorkflowList(id uint) (*documentDTOs.DocumentVersionWorkflowListDTO, error) {
 	document, err := ds.GetFullDetailsByID(id)
 	if err != nil {
 		return nil, err
 	}
 
-	documentVersionWorkflows, err := ds.repo.GetWorkflowList(document.LatestDocumentVersion.ID)
+	documentVersion, err := ds.repo.GetWorkflowList(document.LatestDocumentVersion.ID)
 
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, utility.NewResourceNotFoundError(err, id)
+		return nil, err
+	}
+
+	dto := &documentDTOs.DocumentVersionWorkflowListDTO{
+		ID:              documentVersion.ID,
+		DocumentID:      documentVersion.DocumentID,
+		SubmittedAt:     *documentVersion.SubmittedAt,
+		SubmittedByUser: mapUserToDTO(documentVersion.SubmittedByUser),
+	}
+
+	for _, workflow := range documentVersion.DocumentWorkflows {
+		workflowDTO := &documentDTOs.DocumentWorkflowListDTO{
+			Level:         workflow.Level,
+			ApprovalType:  workflow.ApprovalTypes,
+			CurrentStatus: mapStatusToDTO(workflow.DocumentWorkflowStatus),
 		}
-		return nil, err
+
+		//Since all reviews are approved, add directly to ApprovedUsers
+		var lastApprovedAt time.Time
+		for _, review := range workflow.DocumentWorkflowReviews {
+			userDTO := mapUserToDTO(review.CreatedByUser)
+			workflowDTO.ApprovedUsers = append(workflowDTO.ApprovedUsers, &userDTO)
+			// Assume ApprovedAt is the last review's CreatedAt
+			if review.CreatedAt.After(lastApprovedAt) {
+				lastApprovedAt = review.CreatedAt
+			}
+		}
+
+		for _, participant := range workflow.DocumentWorkflowParticipants {
+			userDTO := mapUserToDTO(participant.User)
+			workflowDTO.ReviewUsers = append(workflowDTO.ReviewUsers, &userDTO)
+		}
+		workflowDTO.ApprovedAt = lastApprovedAt
+		dto.DocumentWorkflows = append(dto.DocumentWorkflows, workflowDTO)
 	}
 
-	err = mapstructure.Decode(documentVersionWorkflows, &documentVersionWorkflowDTO)
-	if err != nil {
-		return nil, err
-	}
+	return dto, nil
+}
 
-	return &documentVersionWorkflowDTO, err
+func mapUserToDTO(user *models.User) organizationDTOs.UserMinimalDTO {
+	return organizationDTOs.UserMinimalDTO{
+		ID:               int(user.ID),
+		FirstNameEN:      user.FirstNameEn,
+		LastNameEN:       user.LastNameEn,
+		FirstNameAR:      user.FirstNameAr,
+		LastNameAR:       user.LastNameAr,
+		ProfileImagePath: user.ProfileImagePath,
+		Email:            user.Email,
+		Initial:          user.Initial,
+		Color:            user.Color,
+	}
+}
+
+func mapStatusToDTO(status *models.DocumentWorkflowStatus) documentDTOs.DocumentStatusDTO {
+	return documentDTOs.DocumentStatusDTO{
+		ID:        int(status.ID),
+		Type:      status.Type,
+		TitleEn:   status.TitleEn,
+		TitleAr:   status.TitleAr,
+		ColorCode: status.ColorCode,
+		Status:    status.Status,
+	}
 }

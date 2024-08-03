@@ -380,7 +380,7 @@ func (dc *DocumentController) GetWorkflowList(c *gin.Context) {
 		return
 	}
 
-	workflows, err := dc.service.GetWorkflowList(uint(id))
+	workflows, err := dc.service.GetDocumentWorkflowList(uint(id))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:
@@ -410,7 +410,7 @@ func (dc *DocumentController) DownloadDocument(c *gin.Context) {
 		return
 	}
 
-	documentPath, err := dc.service.GetDocumentPath(uint(id), fileType, token)
+	documentPath, err := dc.service.GetDocumentPath(uint(id), token, fileType)
 	if err != nil {
 		switch err.(type) {
 		case *utility.ResourceNotFoundError:
