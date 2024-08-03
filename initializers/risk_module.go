@@ -40,6 +40,7 @@ type RiskModule struct {
 	RiskResidualEvaluationController      *controllers.RiskResidualEvaluationController
 	RiskResidualControlAnalysisController *controllers.RiskResidualControlAnalysisController
 	RiskKriController                     *controllers.RiskKriController
+	RiskTimelineController                *controllers.RiskTimelineController
 
 	RiskRegisterSvc services.RiskRegisterServiceInterface
 }
@@ -170,6 +171,11 @@ func NewRiskModule(db *gorm.DB,
 	riskStatusController := controllers.NewRiskStatusController(riskStatusSvc)
 
 	riskRegisterRepo := repositories.NewRiskRegisterRepository(db)
+
+	riskTimelineRepo := repositories.NewRiskTimelineRepository(db)
+	riskTimelineSvc := services.NewRiskTimelineService(riskTimelineRepo, riskRegisterRepo)
+	riskTimelineController := controllers.NewRiskTimelineController(riskTimelineSvc)
+
 	riskRegisterSvc := services.NewRiskRegisterService(
 		riskRegisterRepo,
 		sharedModule.ActivityLogService,
@@ -179,7 +185,7 @@ func NewRiskModule(db *gorm.DB,
 		riskStatusSvc,
 		masterModule.ReviewFrequencySvc,
 		organizationModule.ControlSvc,
-		complianceModule.ComplianceRequirementSvc, organizationModule.ProcessSvc, organizationModule.StrategicObjectiveSvc, complianceModule.SlaRegisterSvc, riskMatrixSvc)
+		complianceModule.ComplianceRequirementSvc, organizationModule.ProcessSvc, organizationModule.StrategicObjectiveSvc, complianceModule.SlaRegisterSvc, riskMatrixSvc, riskTimelineSvc)
 	riskRegisterController := controllers.NewRiskRegisterController(riskRegisterSvc)
 
 	riskRootCauseAnalysisRepo := repositories.NewRiskRootCauseAnalysisRepository(db)
@@ -282,6 +288,7 @@ func NewRiskModule(db *gorm.DB,
 		RiskResidualEvaluationController:      riskResidualEvaluationController,
 		RiskResidualControlAnalysisController: riskResidualControlAnalysisController,
 		RiskKriController:                     riskKriController,
+		RiskTimelineController:                riskTimelineController,
 
 		RiskRegisterSvc: riskRegisterSvc,
 	}
