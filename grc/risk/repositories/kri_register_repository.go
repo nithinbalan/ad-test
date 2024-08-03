@@ -62,8 +62,8 @@ func (repo *KRIRegisterRepository) GetAll(params *riskDTOs.KRIRegisterListQueryP
 			risk_levels.color_code AS risk_level_color_code,
 			units.title_en AS unit_title_en,
 			units.title_ar AS unit_title_ar,
-			units.code_title_en AS unit_code_title_en,
-			units.code_title_ar AS unit_code_title_ar,
+			units.code_en AS unit_code_en,
+			units.code_ar AS unit_code_ar,
 			units.color_code AS unit_color_code,
 			created_user.first_name_en AS created_user_first_name_en,
 			created_user.first_name_ar AS created_user_first_name_ar,
@@ -144,8 +144,8 @@ func (repo *KRIRegisterRepository) GetAll(params *riskDTOs.KRIRegisterListQueryP
 			kri_categories.title_ar LIKE ? OR
 			units.title_en LIKE ? OR
 			units.title_ar LIKE ? OR
-			units.code_title_en LIKE ? OR
-			units.code_title_ar LIKE ? OR
+			units.code_en LIKE ? OR
+			units.code_ar LIKE ? OR
 			organization_units.title_en LIKE ? OR
 			organization_units.title_ar LIKE ? OR
 			review_frequencies.title_en LIKE ? OR

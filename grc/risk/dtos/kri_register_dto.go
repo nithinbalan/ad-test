@@ -30,8 +30,8 @@ type KRIRegisterListDTO struct {
 	RiskLevelColorCode              string  `json:"risk_level_color_code"`
 	UnitTitleEn                     string  `json:"unit_title_en"`
 	UnitTitleAr                     string  `json:"unit_title_ar"`
-	UnitCodeTitleEn                 string  `json:"unit_code_title_en"`
-	UnitCodeTitleAr                 string  `json:"unit_code_title_ar"`
+	UnitCodeEn                      string  `json:"unit_code_en"`
+	UnitCodeAr                      string  `json:"unit_code_ar"`
 	UnitColorCode                   string  `json:"unit_color_code"`
 	Title                           string  `json:"title"`
 	Description                     *string `json:"description"`
