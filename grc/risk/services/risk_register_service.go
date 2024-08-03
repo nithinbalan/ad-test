@@ -968,12 +968,12 @@ func (rrs *RiskRegisterService) UpdateResponseStrategy(riskID uint, currentUserI
 	}
 	//update timeline
 	//todo
-	timelineType, err := raps.riskTimelineSvc.GetByType("risk_response")
+	timelineType, err := rrs.riskTimelineSvc.GetByType("risk_response")
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
-	timelineStatus, err := raps.riskTimelineSvc.GetByStatusType("completed")
+	timelineStatus, err := rrs.riskTimelineSvc.GetByStatusType("completed")
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -984,7 +984,7 @@ func (rrs *RiskRegisterService) UpdateResponseStrategy(riskID uint, currentUserI
 		TimelineStatusID: timelineStatus.ID,
 		PerformedAt:      &currentTime,
 	}
-	if err := raps.riskTimelineSvc.Update(riskID, timelineFormDTO, timelineType.ID, tx); err != nil {
+	if err := rrs.riskTimelineSvc.Update(riskID, timelineFormDTO, timelineType.ID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
