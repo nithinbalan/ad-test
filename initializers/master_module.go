@@ -18,6 +18,7 @@ type MasterModule struct {
 	AtionPlanStatusController   *controllers.ActionPlanStatusController
 	CurrencyController          *controllers.CurrencyController
 	TimezoneController          *controllers.TimezoneController
+	UnitController              *controllers.UnitController
 
 	ReviewFrequencySvc   services.ReviewFrequencyServiceInterface
 	SeverityLevelSvc     services.SeverityLevelServiceInterface
@@ -28,6 +29,7 @@ type MasterModule struct {
 	ActionPlanStatusSvc  services.ActionPlanStatusServiceInterface
 	CurrencySvc          services.CurrencyServiceInterface
 	TimezoneSvc          services.TimezoneServiceInterface
+	UnitSvc              services.UnitServiceInterface
 }
 
 func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
@@ -74,6 +76,11 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 	timezoneSvc := services.NewTimezoneService(timezoneRepo)
 	timezoneController := controllers.NewTimezoneController(timezoneSvc)
 
+	//Units
+	unitRepo := repositories.NewUnitRepository(db)
+	unitSvc := services.NewUnitService(unitRepo, sharedModule.ActivityLogService)
+	unitController := controllers.NewUnitController(unitSvc)
+
 	return &MasterModule{
 		ReviewFrequencyController:   reviewFrequencyController,
 		SeverityLevelController:     severityLevelController,
@@ -84,6 +91,7 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 		AtionPlanStatusController:   actionPlanStatusController,
 		CurrencyController:          currencyController,
 		TimezoneController:          timezoneController,
+		UnitController:              unitController,
 
 		ReviewFrequencySvc:   reviewFrequencySvc,
 		SeverityLevelSvc:     severityLevelSvc,
@@ -94,5 +102,6 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 		ActionPlanStatusSvc:  actionPlanStatusSvc,
 		CurrencySvc:          currencySvc,
 		TimezoneSvc:          timezoneSvc,
+		UnitSvc:              unitSvc,
 	}
 }
