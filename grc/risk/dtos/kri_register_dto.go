@@ -9,41 +9,53 @@ import (
 )
 
 type KRIRegisterListDTO struct {
-	ID                     uint    `json:"id"`
-	ReferenceNumber        string  `json:"reference_number"`
-	KRICategoryTitleEn     string  `json:"kri_category_title_en"`
-	KRICategoryTitleAr     string  `json:"kri_category_title_ar"`
-	OwnerUnitTitleEn       string  `json:"owner_unit_title_en" gorm:"column:owner_unit_title_en"`
-	OwnerUnitTitleAr       string  `json:"owner_unit_title_ar" gorm:"column:owner_unit_title_ar"`
-	OwnerFirstNameEn       string  `json:"owner_first_name_en"`
-	OwnerFirstNameAr       string  `json:"owner_first_name_ar"`
-	OwnerLastNameEn        string  `json:"owner_last_name_en"`
-	OwnerLastNameAr        *string `json:"owner_last_name_ar"`
-	ReviewFrequencyTitleEn string  `json:"review_frequency_title_en"`
-	ReviewFrequencyTitleAr string  `json:"review_frequency_title_ar"`
-	RiskLevelTitleEn       string  `json:"risk_level_title_en"`
-	RiskLevelTitleAr       string  `json:"risk_level_title_ar"`
-	RiskLevelColorCode     string  `json:"risk_level_color_code"`
-	Title                  string  `json:"title"`
-	Description            *string `json:"description"`
-	CalculationType        string  `json:"calculation_type"`
-	LowThreshold           string  `json:"low_threshold"`
-	MediumThreshold        string  `json:"medium_threshold"`
-	HighThreshold          string  `json:"high_threshold"`
-	CurrentValue           string  `json:"current_value"`
-	LastReviewedDate       string  `json:"last_reviewed_date"`
-	NextReviewDate         string  `json:"next_review_date"`
-	LastReviewNote         string  `json:"last_review_note"`
-	CreatedAt              string  `json:"created_at"`
-	UpdatedAt              string  `json:"updated_at"`
-	CreatedUserFirstNameEn string  `json:"created_user_first_name_en"`
-	CreatedUserFirstNameAr string  `json:"created_user_first_name_ar"`
-	CreatedUserLastNameEn  string  `json:"created_user_last_name_en"`
-	CreatedUserLastNameAr  *string `json:"created_user_last_name_ar"`
-	UpdatedUserFirstNameEn *string `json:"updated_user_first_name_en"`
-	UpdatedUserFirstNameAr *string `json:"updated_user_first_name_ar"`
-	UpdatedUserLastNameEn  *string `json:"updated_user_last_name_en"`
-	UpdatedUserLastNameAr  *string `json:"updated_user_last_name_ar"`
+	ID                          uint    `json:"id"`
+	ReferenceNumber             string  `json:"reference_number"`
+	KRICategoryTitleEn          string  `json:"kri_category_title_en"`
+	KRICategoryTitleAr          string  `json:"kri_category_title_ar"`
+	OwnerUnitTitleEn            string  `json:"owner_unit_title_en" gorm:"column:owner_unit_title_en"`
+	OwnerUnitTitleAr            string  `json:"owner_unit_title_ar" gorm:"column:owner_unit_title_ar"`
+	OwnerFirstNameEn            string  `json:"owner_first_name_en"`
+	OwnerFirstNameAr            string  `json:"owner_first_name_ar"`
+	OwnerLastNameEn             string  `json:"owner_last_name_en"`
+	OwnerLastNameAr             *string `json:"owner_last_name_ar"`
+	OwnerInitial                *string `json:"owner_initial"`
+	OwnerColor                  *string `json:"owner_color"`
+	OwnerEmail                  *string `json:"owner_email"`
+	OwnerProfileImagePath       *string `json:"owner_profile_image_path"`
+	ReviewFrequencyTitleEn      string  `json:"review_frequency_title_en"`
+	ReviewFrequencyTitleAr      string  `json:"review_frequency_title_ar"`
+	RiskLevelTitleEn            string  `json:"risk_level_title_en"`
+	RiskLevelTitleAr            string  `json:"risk_level_title_ar"`
+	RiskLevelColorCode          string  `json:"risk_level_color_code"`
+	Title                       string  `json:"title"`
+	Description                 *string `json:"description"`
+	CalculationType             string  `json:"calculation_type"`
+	LowThreshold                string  `json:"low_threshold"`
+	MediumThreshold             string  `json:"medium_threshold"`
+	HighThreshold               string  `json:"high_threshold"`
+	CurrentValue                string  `json:"current_value"`
+	LastReviewedDate            string  `json:"last_reviewed_date"`
+	NextReviewDate              string  `json:"next_review_date"`
+	LastReviewNote              string  `json:"last_review_note"`
+	CreatedAt                   string  `json:"created_at"`
+	UpdatedAt                   string  `json:"updated_at"`
+	CreatedUserFirstNameEn      string  `json:"created_user_first_name_en"`
+	CreatedUserFirstNameAr      string  `json:"created_user_first_name_ar"`
+	CreatedUserLastNameEn       string  `json:"created_user_last_name_en"`
+	CreatedUserLastNameAr       *string `json:"created_user_last_name_ar"`
+	CreatedUserInitial          *string `json:"created_user_initial"`
+	CreatedUserColor            *string `json:"created_user_color"`
+	CreatedUserEmail            *string `json:"created_user_email"`
+	CreatedUserProfileImagePath *string `json:"created_user_profile_image_path"`
+	UpdatedUserFirstNameEn      *string `json:"updated_user_first_name_en"`
+	UpdatedUserFirstNameAr      *string `json:"updated_user_first_name_ar"`
+	UpdatedUserLastNameEn       *string `json:"updated_user_last_name_en"`
+	UpdatedUserLastNameAr       *string `json:"updated_user_last_name_ar"`
+	UpdatedUserInitial          *string `json:"updated_user_initial"`
+	UpdatedUserColor            *string `json:"updated_user_color"`
+	UpdatedUserEmail            *string `json:"updated_user_email"`
+	UpdatedUserProfileImagePath *string `json:"updated_user_profile_image_path"`
 }
 
 type KRIRegisterListQueryParamsDTO struct {
