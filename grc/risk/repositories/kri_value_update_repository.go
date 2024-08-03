@@ -21,6 +21,8 @@ type KRIValueUpdateRepositoryInterface interface {
 	CreateDocuments(docs []*models.KRIValueUpdateDocument, tx ...utility.DatabaseTransaction) error
 	GetDocumentByID(id uint) (*models.KRIValueUpdateDocument, error)
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
+
+	GetNextKRIValueUpdate(kriRegisterID uint, deletedIDs []uint, tx ...utility.DatabaseTransaction) (*models.KRIValueUpdate, error)
 }
 
 type KRIValueUpdateRepository struct {
@@ -245,3 +247,30 @@ func (repo *KRIValueUpdateRepository) DeleteDocuments(docIds []*uint, tx ...util
 
 	return nil
 }
+
+func (repo *KRIValueUpdateRepository) GetNextKRIValueUpdate(kriRegisterID uint, deletedIDs []uint, tx ...utility.DatabaseTransaction) (*models.KRIValueUpdate, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	var nextValueUpdate models.KRIValueUpdate
+	query := `
+		SELECT TOP 1 *
+		FROM kri_value_updates
+		WHERE kri_register_id = ? AND id NOT IN (?)
+		ORDER BY id DESC
+	`
+
+	err := db.Raw(query, kriRegisterID, deletedIDs).Scan(&nextValueUpdate).Error
+
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return nil, err
+	}
+
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+
+	return &nextValueUpdate, nil
+}
+

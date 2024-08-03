@@ -29,10 +29,10 @@ type RiskKriListDTO struct {
 	RiskLevelColorCode              string  `json:"risk_level_color_code"`
 	Description                     *string `json:"description"`
 	CalculationType                 string  `json:"calculation_type"`
-	LowThreshold                    string  `json:"low_threshold"`
-	MediumThreshold                 string  `json:"medium_threshold"`
-	HighThreshold                   string  `json:"high_threshold"`
-	CurrentValue                    string  `json:"current_value"`
+	LowThreshold                    int     `json:"low_threshold"`
+	MediumThreshold                 int     `json:"medium_threshold"`
+	HighThreshold                   int     `json:"high_threshold"`
+	CurrentValue                    int     `json:"current_value"`
 	LastReviewedDate                string  `json:"last_reviewed_date"`
 	NextReviewDate                  string  `json:"next_review_date"`
 	LastReviewNote                  string  `json:"last_review_note"`

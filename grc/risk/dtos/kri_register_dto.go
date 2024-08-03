@@ -39,7 +39,7 @@ type KRIRegisterListDTO struct {
 	LowThreshold                    *int    `json:"low_threshold"`
 	MediumThreshold                 *int    `json:"medium_threshold"`
 	HighThreshold                   *int    `json:"high_threshold"`
-	CurrentValue                    string  `json:"current_value"`
+	CurrentValue                    int     `json:"current_value"`
 	LastReviewedDate                string  `json:"last_reviewed_date"`
 	NextReviewDate                  string  `json:"next_review_date"`
 	LastReviewNote                  string  `json:"last_review_note"`
@@ -95,7 +95,7 @@ type KRIRegisterFormDTO struct {
 	LowThreshold      *int    `json:"low_threshold" gorm:"type:int;null"`
 	MediumThreshold   *int    `json:"medium_threshold" gorm:"type:int;null"`
 	HighThreshold     *int    `json:"high_threshold" gorm:"type:int;null"`
-	CurrentValue      *string `json:"current_value" gorm:"type:varchar(455);null"`
+	CurrentValue      *int    `json:"current_value" gorm:"type:int;null"`
 	LastReviewedDate  string  `json:"last_reviewed_date" binding:"omitempty" gorm:"type:date"`
 	NextReviewDate    string  `json:"next_review_date" binding:"required" gorm:"type:date;not null"`
 	LastReviewNote    *string `json:"last_review_note" gorm:"type:nvarchar(max)"`
