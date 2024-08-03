@@ -9,7 +9,7 @@ type RiskHeatmapServiceInterface interface {
 	GetRiskHeatmapByProcessID(processID uint) ([][]*riskDTOs.RiskHeatmapResponseDTO, error)
 	GetRiskHeatmapByControlID(controlID uint) ([][]*riskDTOs.RiskHeatmapResponseDTO, error)
 	GetRiskHeatmapByComplianceID(complianceID uint) ([][]*riskDTOs.RiskHeatmapResponseDTO, error)
-	GetRiskHeatmapByResponsibleUnit(params *riskDTOs.RiskRegisterListQueryParamsDTO) ([][]interface{}, error)
+	GetRiskHeatmapByResponsibleUnit() ([]*riskDTOs.RiskHeatmapResponseByItemDTO, error)
 }
 
 type RiskHeatmapService struct {
@@ -74,85 +74,63 @@ func (rhs *RiskHeatmapService) GetRiskHeatmapByComplianceID(complianceID uint) (
 	return rhs.getRiskHeatmap(riskRegisterIDs)
 }
 
-func (rhs *RiskHeatmapService) GetRiskHeatmapByResponsibleUnit(params *riskDTOs.RiskRegisterListQueryParamsDTO) ([][]interface{}, error) {
-	riskRegisterResponse, err := rhs.riskRegisterSvc.GetAll(params)
+func (rhs *RiskHeatmapService) GetRiskHeatmapByResponsibleUnit() ([]*riskDTOs.RiskHeatmapResponseByItemDTO, error) {
+	riskRegisters, err := rhs.repo.GetAllRiskRegisters()
 	if err != nil {
 		return nil, err
 	}
 
-	riskRegisters := riskRegisterResponse.Items
+	riskRegisterIDs := make([]uint, len(riskRegisters))
+	for i, register := range riskRegisters {
+		riskRegisterIDs[i] = register.ID
+	}
 
-	// Fetch risk matrix details
-	riskMatrixType, err := rhs.riskMatrixSvc.GetByType("erm")
+	heatmap, err := rhs.getRiskHeatmap(riskRegisterIDs)
 	if err != nil {
 		return nil, err
 	}
 
-	riskMatrix, err := rhs.riskMatrixSvc.GetDetailsByID(riskMatrixType.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	var riskRatingValueArray []*riskDTOs.RiskMatrixRiskRatingDataDTO
-	for _, riskRating := range riskMatrix.RiskMatrixRiskRating {
-		for _, value := range riskRating.RiskMatrixRiskRatingValue {
-			detail := &riskDTOs.RiskMatrixRiskRatingDataDTO{
-				RiskMatrixID:                riskRating.RiskMatrixID,
-				RiskMatrixRiskRatingID:      value.RiskMatrixRiskRatingID,
-				RiskRatingTitleEN:           riskRating.TitleEn,
-				RiskRatingTitleAR:           riskRating.TitleAr,
-				RiskRatingTitleType:         riskRating.Type,
-				ColorCode:                   riskRating.ColorCode,
-				RiskMatrixRiskRatingValueID: value.ID,
-				Value:                       value.Value,
+	responsibleUnitMap := make(map[uint]*riskDTOs.RiskHeatmapResponseByItemDTO)
+	for _, register := range riskRegisters {
+		if _, exists := responsibleUnitMap[register.ResponsibleUnitID]; !exists {
+			responsibleUnitMap[register.ResponsibleUnitID] = &riskDTOs.RiskHeatmapResponseByItemDTO{
+				ItemID:       register.ResponsibleUnitID,
+				ItemTitleEn:  register.ResponsibleUnit.TitleEn,
+				ItemTitleAr:  register.ResponsibleUnit.TitleAr,
+				HeatmapCells: []*riskDTOs.RiskHeatmapResponseDTO{},
 			}
-			riskRatingValueArray = append(riskRatingValueArray, detail)
 		}
 	}
 
-	// Create a map to store the risk counts by owner unit and risk rating value
-	riskCountMap := make(map[uint]map[uint]int)
-	ownerUnitTitleMap := make(map[uint]string)
+	for unitID, unitResponse := range responsibleUnitMap {
+		for _, likelihoodDetails := range heatmap {
+			for _, detail := range likelihoodDetails {
+				// Set the RiskRegisterCount to 0 initially
+				detailCopy := *detail
+				detailCopy.RiskRegisterCount = 0
 
-	// Initialize the map and store owner unit titles
-	for _, register := range riskRegisters {
-		if _, exists := riskCountMap[register.ResponsibleUnitID]; !exists {
-			riskCountMap[register.ResponsibleUnitID] = make(map[uint]int)
-			ownerUnitTitleMap[register.ResponsibleUnitID] = register.ResponsibleUnitTitleEn // Assuming the English title is used
+				// Find risk registers for this unit with the same likelihood and impact
+				for _, register := range riskRegisters {
+					if register.ResponsibleUnitID == unitID &&
+						register.CurrentLikelihoodID != nil &&
+						register.CurrentImpactID != nil &&
+						*register.CurrentLikelihoodID == detailCopy.RiskMatrixLikelihoodID &&
+						*register.CurrentImpactID == detailCopy.RiskMatrixImpactID {
+						detailCopy.RiskRegisterCount++
+					}
+				}
+
+				unitResponse.HeatmapCells = append(unitResponse.HeatmapCells, &detailCopy)
+			}
 		}
 	}
 
-	// Iterate over the risk registers to count risks by owner unit and risk rating value
-	for _, register := range riskRegisters {
-		if register.CurrentRiskRatingValueID != nil {
-			riskCountMap[register.ResponsibleUnitID][*register.CurrentRiskRatingValueID]++
-		}
+	heatmapResponses := make([]*riskDTOs.RiskHeatmapResponseByItemDTO, 0, len(responsibleUnitMap))
+	for _, unitResponse := range responsibleUnitMap {
+		heatmapResponses = append(heatmapResponses, unitResponse)
 	}
 
-	// Create the heatmap response
-	var heatmap [][]interface{}
-	for ownerUnitID, riskRatings := range riskCountMap {
-		var row []interface{}
-		// Add owner unit details
-		row = append(row, map[string]interface{}{
-			"owner_unit_id":    ownerUnitID,
-			"owner_unit_title": ownerUnitTitleMap[ownerUnitID],
-		})
-		// Add risk rating details
-		var riskDetails []map[string]interface{}
-		for _, riskRating := range riskRatingValueArray {
-			count := riskRatings[riskRating.RiskMatrixRiskRatingValueID]
-			riskDetails = append(riskDetails, map[string]interface{}{
-				"risk_matrix_score":       riskRating.Value,
-				"risk_matrix_risk_rating": riskRating,
-				"risk_register_count":     count,
-			})
-		}
-		row = append(row, riskDetails)
-		heatmap = append(heatmap, row)
-	}
-
-	return heatmap, nil
+	return heatmapResponses, nil
 }
 
 // function to get risk heatmap matrix

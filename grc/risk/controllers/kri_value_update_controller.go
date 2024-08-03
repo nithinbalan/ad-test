@@ -76,6 +76,29 @@ func (kvuc *KRIValueUpdateController) GetAllKRIValueUpdates(c *gin.Context) {
 	c.JSON(http.StatusOK, kriRegisterUpdates)
 }
 
+func (kvuc *KRIValueUpdateController) GetKRIValueUpdateDetails(c *gin.Context) {
+	idStr := c.Param("updateId")
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	kriRegisterUpdates, err := kvuc.service.GetFullDetailsByID(uint(id))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(kvuc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, kriRegisterUpdates)
+}
+
 func (kvuc *KRIValueUpdateController) CreateKRIValueUpdate(c *gin.Context) {
 	kriRegisterID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {

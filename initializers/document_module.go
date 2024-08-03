@@ -9,12 +9,13 @@ import (
 )
 
 type DocumentModule struct {
-	DocumentCategoryController   *controllers.DocumentCategoryController
-	DocumentTypeController       *controllers.DocumentTypeController
-	DocumentTemplateController   *controllers.DocumentTemplateController
-	DocumentStatusController     *controllers.DocumentStatusController
-	DocumentAccessTypeController *controllers.DocumentAccessTypeController
-	DocumentController           *controllers.DocumentController
+	DocumentCategoryController       *controllers.DocumentCategoryController
+	DocumentTypeController           *controllers.DocumentTypeController
+	DocumentTemplateController       *controllers.DocumentTemplateController
+	DocumentStatusController         *controllers.DocumentStatusController
+	DocumentAccessTypeController     *controllers.DocumentAccessTypeController
+	DocumentWorkflowStatusController *controllers.DocumentWorkflowStatusController
+	DocumentController               *controllers.DocumentController
 }
 
 func NewDocumentModule(db *gorm.DB,
@@ -39,6 +40,10 @@ func NewDocumentModule(db *gorm.DB,
 	documentStatusSvc := services.NewDocumentStatusService(documentStatusRepo)
 	documentStatusController := controllers.NewDocumentStatusController(documentStatusSvc)
 
+	documentWorkflowStatusRepo := repositories.NewDocumentWorkflowStatusRepository(db)
+	documentWorkflowStatusSvc := services.NewDocumentWorkflowStatusService(documentWorkflowStatusRepo)
+	documentWorkflowStatusController := controllers.NewDocumentWorkflowStatusController(documentWorkflowStatusSvc)
+
 	documentAccessTypeRepo := repositories.NewDocumentAccessTypeRepository(db)
 	documentAccessTypeSvc := services.NewDocumentAccessTypeService(documentAccessTypeRepo)
 	documentAccessTypeController := controllers.NewDocumentAccessTypeController(documentAccessTypeSvc)
@@ -53,15 +58,18 @@ func NewDocumentModule(db *gorm.DB,
 		documentStatusSvc,
 		organizationModule.UserSvc,
 		settingsModule.WorkflowSvc,
+		documentWorkflowStatusSvc,
+		documentWorkflowStatusSvc,
 		sharedModule.ActivityLogService)
 	documentController := controllers.NewDocumentController(documentSvc)
 
 	return &DocumentModule{
-		DocumentCategoryController:   documentCategoryController,
-		DocumentTypeController:       documentTypeController,
-		DocumentTemplateController:   documentTemplateController,
-		DocumentStatusController:     documentStatusController,
-		DocumentAccessTypeController: documentAccessTypeController,
-		DocumentController:           documentController,
+		DocumentCategoryController:       documentCategoryController,
+		DocumentTypeController:           documentTypeController,
+		DocumentTemplateController:       documentTemplateController,
+		DocumentStatusController:         documentStatusController,
+		DocumentAccessTypeController:     documentAccessTypeController,
+		DocumentWorkflowStatusController: documentWorkflowStatusController,
+		DocumentController:               documentController,
 	}
 }
