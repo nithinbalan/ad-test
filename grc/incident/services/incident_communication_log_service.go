@@ -121,6 +121,35 @@ func (icls *IncidentCommunicationLogService) Create(incidentID uint, currentUser
 		tx.Rollback()
 		return 0, err
 	}
+	//Update timeline
+	//todo
+	communicationLogCount, err := icls.repo.GetCountByRiskID(incidentID, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	if communicationLogCount == 1 {
+		timelineType, err := icls.incidentTimelineSvc.GetByType("communication")
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+		timelineStatus, err := icls.incidentTimelineSvc.GetByStatusType("completed")
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+		currentTime := time.Now()
+		timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
+			PerformedByID:    &currentUserID,
+			TimelineStatusID: timelineStatus.ID,
+			PerformedAt:      &currentTime,
+		}
+		if err := icls.incidentTimelineSvc.Update(incidentID, timelineFormDTO, timelineType.ID, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
 	tx.Commit()
 
 	go func() {
@@ -179,28 +208,7 @@ func (icls *IncidentCommunicationLogService) Update(incidentID uint, id uint, cu
 		tx.Rollback()
 		return err
 	}
-	//Update timeline
-	//todo
-	timelineType, err := icls.incidentTimelineSvc.GetByType("communication")
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-	timelineStatus, err := icls.incidentTimelineSvc.GetByStatusType("completed")
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-	currentTime := time.Now()
-	timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
-		PerformedByID:    &currentUserID,
-		TimelineStatusID: timelineStatus.ID,
-		PerformedAt:      &currentTime,
-	}
-	if err := icls.incidentTimelineSvc.Update(incidentID, timelineFormDTO, timelineType.ID, tx); err != nil {
-		tx.Rollback()
-		return err
-	}
+
 	tx.Commit()
 
 	go func() {
@@ -247,26 +255,32 @@ func (icls *IncidentCommunicationLogService) Delete(incidentID uint, ids []uint,
 		}
 		//Delete-> update timeline performedAt as null
 		//todo
-		timelineType, err := icls.incidentTimelineSvc.GetByType("communication")
+		communicationLogCount, err := icls.repo.GetCountByRiskID(incidentID, tx)
 		if err != nil {
 			tx.Rollback()
-			return failedIds, err
+			return nil, err
 		}
-		timelineStatus, err := icls.incidentTimelineSvc.GetByStatusType("pending")
-		if err != nil {
-			tx.Rollback()
-			return failedIds, err
+		if communicationLogCount == 1 {
+			timelineType, err := icls.incidentTimelineSvc.GetByType("communication")
+			if err != nil {
+				tx.Rollback()
+				return failedIds, err
+			}
+			timelineStatus, err := icls.incidentTimelineSvc.GetByStatusType("pending")
+			if err != nil {
+				tx.Rollback()
+				return failedIds, err
+			}
+			timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
+				PerformedByID:    nil,
+				TimelineStatusID: timelineStatus.ID,
+				PerformedAt:      nil,
+			}
+			if err := icls.incidentTimelineSvc.Update(incidentID, timelineFormDTO, timelineType.ID, tx); err != nil {
+				tx.Rollback()
+				return failedIds, err
+			}
 		}
-		timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
-			PerformedByID:    nil,
-			TimelineStatusID: timelineStatus.ID,
-			PerformedAt:      nil,
-		}
-		if err := icls.incidentTimelineSvc.Update(incidentID, timelineFormDTO, timelineType.ID, tx); err != nil {
-			tx.Rollback()
-			return failedIds, err
-		}
-
 		err = icls.repo.Delete(id)
 		if err != nil {
 			failedIds = append(failedIds, id)

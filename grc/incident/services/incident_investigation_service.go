@@ -213,6 +213,29 @@ func (iis *IncidentInvestigationService) Create(incidentID uint, currentUserID u
 		}
 	}
 
+	//Update timeline
+	//todo
+	timelineType, err := iis.incidentTimelineSvc.GetByType("investigating")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	timelineStatus, err := iis.incidentTimelineSvc.GetByStatusType("completed")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	currentTime := time.Now()
+	timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
+		PerformedByID:    &currentUserID,
+		TimelineStatusID: timelineStatus.ID,
+		PerformedAt:      &currentTime,
+	}
+	if err := iis.incidentTimelineSvc.Update(incidentID, timelineFormDTO, timelineType.ID, tx); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
 	tx.Commit()
 
 	go func() {
@@ -374,29 +397,6 @@ func (iis *IncidentInvestigationService) Update(incidentID uint, currentUserID u
 			tx.Rollback()
 			return err
 		}
-	}
-
-	//Update timeline
-	//todo
-	timelineType, err := iis.incidentTimelineSvc.GetByType("investigating")
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-	timelineStatus, err := iis.incidentTimelineSvc.GetByStatusType("completed")
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-	currentTime := time.Now()
-	timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
-		PerformedByID:    &currentUserID,
-		TimelineStatusID: timelineStatus.ID,
-		PerformedAt:      &currentTime,
-	}
-	if err := iis.incidentTimelineSvc.Update(incidentID, timelineFormDTO, timelineType.ID, tx); err != nil {
-		tx.Rollback()
-		return err
 	}
 
 	// Update or delete documents

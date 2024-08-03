@@ -157,6 +157,35 @@ func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uin
 		tx.Rollback()
 		return 0, err
 	}
+	//Update timeline
+	//todo
+	actinPlanCount, err := iaps.repo.GetCountByRiskID(incidentID, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	if actinPlanCount == 1 {
+		timelineType, err := iaps.incidentTimelineSvc.GetByType("action-plans")
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+		timelineStatus, err := iaps.incidentTimelineSvc.GetByStatusType("completed")
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+		currentTime := time.Now()
+		timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
+			PerformedByID:    &currentUserID,
+			TimelineStatusID: timelineStatus.ID,
+			PerformedAt:      &currentTime,
+		}
+		if err := iaps.incidentTimelineSvc.Update(incidentID, timelineFormDTO, timelineType.ID, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
 	tx.Commit()
 
 	go func() {
@@ -223,28 +252,7 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 	if err != nil {
 		return err
 	}
-	//Update timeline
-	//todo
-	timelineType, err := iaps.incidentTimelineSvc.GetByType("action-plans")
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-	timelineStatus, err := iaps.incidentTimelineSvc.GetByStatusType("completed")
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-	currentTime := time.Now()
-	timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
-		PerformedByID:    &currentUserID,
-		TimelineStatusID: timelineStatus.ID,
-		PerformedAt:      &currentTime,
-	}
-	if err := iaps.incidentTimelineSvc.Update(incidentID, timelineFormDTO, timelineType.ID, tx); err != nil {
-		tx.Rollback()
-		return err
-	}
+
 	tx.Commit()
 
 	return nil
@@ -278,24 +286,31 @@ func (iaps *IncidentActionPlanService) Delete(incidentID uint, ids []uint, curre
 		}
 		//Delete-> update timeline performedAt as null
 		//todo
-		timelineType, err := iaps.incidentTimelineSvc.GetByType("action-plans")
+		actinPlanCount, err := iaps.repo.GetCountByRiskID(incidentID, tx)
 		if err != nil {
 			tx.Rollback()
-			return failedIds, err
+			return nil, err
 		}
-		timelineStatus, err := iaps.incidentTimelineSvc.GetByStatusType("pending")
-		if err != nil {
-			tx.Rollback()
-			return failedIds, err
-		}
-		timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
-			PerformedByID:    nil,
-			TimelineStatusID: timelineStatus.ID,
-			PerformedAt:      nil,
-		}
-		if err := iaps.incidentTimelineSvc.Update(incidentID, timelineFormDTO, timelineType.ID, tx); err != nil {
-			tx.Rollback()
-			return failedIds, err
+		if actinPlanCount == 1 {
+			timelineType, err := iaps.incidentTimelineSvc.GetByType("action-plans")
+			if err != nil {
+				tx.Rollback()
+				return failedIds, err
+			}
+			timelineStatus, err := iaps.incidentTimelineSvc.GetByStatusType("pending")
+			if err != nil {
+				tx.Rollback()
+				return failedIds, err
+			}
+			timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
+				PerformedByID:    nil,
+				TimelineStatusID: timelineStatus.ID,
+				PerformedAt:      nil,
+			}
+			if err := iaps.incidentTimelineSvc.Update(incidentID, timelineFormDTO, timelineType.ID, tx); err != nil {
+				tx.Rollback()
+				return failedIds, err
+			}
 		}
 		err = iaps.repo.Delete(id, tx)
 		if err != nil {
