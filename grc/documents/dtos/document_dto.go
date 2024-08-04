@@ -192,4 +192,6 @@ type DocumentWorkflowReviewDTO struct {
 	DocumentWorkflowStatus DocumentStatusDTO               `json:"document_workflow_status"`
 	CreatedByUser          organizationDTOs.UserMinimalDTO `json:"created_by"`
 	UpdateByUser           organizationDTOs.UserMinimalDTO `json:"updated_by"`
+	CreatedAt              time.Time                       `json:"created_at"`
+	UpdatedAt              *time.Time                      `json:"updated_at"`
 }
