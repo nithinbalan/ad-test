@@ -180,6 +180,28 @@ func (iprs *IncidentPostReviewService) Create(incidentID uint, currentUserID uin
 			return 0, err
 		}
 	}
+	//Update timeline
+	//todo
+	timelineType, err := iprs.incidentTimelineSvc.GetByType("pir")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	timelineStatus, err := iprs.incidentTimelineSvc.GetByStatusType("completed")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	currentTime := time.Now()
+	timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
+		PerformedByID:    &currentUserID,
+		TimelineStatusID: timelineStatus.ID,
+		PerformedAt:      &currentTime,
+	}
+	if err := iprs.incidentTimelineSvc.Update(incidentID, timelineFormDTO, timelineType.ID, tx); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
 	tx.Commit()
 
 	go func() {
@@ -393,28 +415,7 @@ func (iprs *IncidentPostReviewService) Update(incidentID uint, currentUserID uin
 			return err
 		}
 	}
-	//Update timeline
-	//todo
-	timelineType, err := iprs.incidentTimelineSvc.GetByType("pir")
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-	timelineStatus, err := iprs.incidentTimelineSvc.GetByStatusType("completed")
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-	currentTime := time.Now()
-	timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
-		PerformedByID:    &currentUserID,
-		TimelineStatusID: timelineStatus.ID,
-		PerformedAt:      &currentTime,
-	}
-	if err := iprs.incidentTimelineSvc.Update(incidentID, timelineFormDTO, timelineType.ID, tx); err != nil {
-		tx.Rollback()
-		return err
-	}
+
 	tx.Commit()
 
 	go func() {

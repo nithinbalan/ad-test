@@ -147,6 +147,29 @@ func (ics *IncidentClosureService) Create(incidentID uint, currentUserID uint, i
 		tx.Rollback()
 		return 0, err
 	}
+	//Update timeline
+	//todo
+	timelineType, err := ics.incidentTimelineSvc.GetByType("closure")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	//todo
+	timelineStatus, err := ics.incidentTimelineSvc.GetByStatusType("completed")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	currentTime := time.Now()
+	timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
+		PerformedByID:    &currentUserID,
+		TimelineStatusID: timelineStatus.ID,
+		PerformedAt:      &currentTime,
+	}
+	if err := ics.incidentTimelineSvc.Update(incidentID, timelineFormDTO, timelineType.ID, tx); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
 
 	tx.Commit()
 
@@ -259,29 +282,6 @@ func (ics *IncidentClosureService) Update(incidentID uint, currentUserID uint, i
 			tx.Rollback()
 			return err
 		}
-	}
-	//Update timeline
-	//todo
-	timelineType, err := ics.incidentTimelineSvc.GetByType("closure")
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-	//todo
-	timelineStatus, err := ics.incidentTimelineSvc.GetByStatusType("completed")
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-	currentTime := time.Now()
-	timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
-		PerformedByID:    &currentUserID,
-		TimelineStatusID: timelineStatus.ID,
-		PerformedAt:      &currentTime,
-	}
-	if err := ics.incidentTimelineSvc.Update(incidentID, timelineFormDTO, timelineType.ID, tx); err != nil {
-		tx.Rollback()
-		return err
 	}
 
 	tx.Commit()
