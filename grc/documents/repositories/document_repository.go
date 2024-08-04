@@ -45,6 +45,7 @@ type DocumentRepositoryInterface interface {
 	GetComments(docVersionId uint, currentApprovalLevel int) (*models.DocumentVersion, error)
 	GetDocumentWorkflowByLevel(docVersionId uint, currentApprovalLevel int) (*models.DocumentWorkflow, error)
 	GetNextLevel(documentVersionID uint, currentLevel int, tx ...utility.DatabaseTransaction) (*models.DocumentWorkflow, error)
+	GetWorkflowList(docVersionId uint) (*models.DocumentVersion, error)
 
 	CreateDocumentWorkflowReview(documentWorkflowReview *models.DocumentWorkflowReview, tx ...utility.DatabaseTransaction) error
 	CountApprovedParticipants(workflowID uint, tx ...utility.DatabaseTransaction) (int, error)
@@ -592,4 +593,25 @@ func (repo *DocumentRepository) CountApprovedParticipants(workflowID uint, tx ..
 	}
 
 	return int(count), nil
+}
+
+func (repo *DocumentRepository) GetWorkflowList(docVersionId uint) (*models.DocumentVersion, error) {
+	var documentVersion models.DocumentVersion
+	result := repo.db.
+		Preload("SubmittedByUser").
+		Preload("DocumentWorkflows").
+		Preload("DocumentWorkflows.DocumentWorkflowStatus").
+		Preload("DocumentWorkflows.DocumentWorkflowParticipants").
+		Preload("DocumentWorkflows.DocumentWorkflowParticipants.User").
+		Preload("DocumentWorkflows.DocumentWorkflowParticipants.Role").
+		Preload("DocumentWorkflows.DocumentWorkflowReviews", "document_workflow_status_id IN (?)", repo.db.Model(&models.DocumentWorkflowStatus{}).Select("id").Where("type = ?", "approve")).
+		Preload("DocumentWorkflows.DocumentWorkflowReviews.CreatedByUser").
+		Where("id = ?", docVersionId).
+		Find(&documentVersion)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return &documentVersion, nil
 }

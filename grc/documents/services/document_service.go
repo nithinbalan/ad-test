@@ -9,6 +9,7 @@ import (
 	"jethur/grc/documents/repositories"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
+	organizationDTOs "jethur/grc/organization/dtos"
 	organizationSvc "jethur/grc/organization/services"
 	settingDTOs "jethur/grc/settings/dtos"
 	settinsSvc "jethur/grc/settings/services"
@@ -36,6 +37,7 @@ type DocumentServiceInterface interface {
 	RevertDocumentCheckout(id uint, currentUserID uint) error
 
 	SubmitDocument(id uint, currentUserID uint) error
+	PublishDocument(id uint, currentUserID uint) error
 	GetComments(id uint) (*documentDTOs.DocumentVersionWorkflowDTO, error)
 
 	CreateSharedUsers(sharedUsers []*models.DocumentSharedUser, tx ...utility.DatabaseTransaction) error
@@ -43,6 +45,7 @@ type DocumentServiceInterface interface {
 
 	GetDocumentPath(id uint, token string, fileType string, tx ...utility.DatabaseTransaction) (string, error)
 	AddComment(id uint, currentUserID uint, documentReviewCommentFormDTO *documentDTOs.DocumentReviewCommentFormDTO) error
+	GetDocumentWorkflowList(id uint) (*documentDTOs.DocumentVersionWorkflowListDTO, error)
 }
 
 type DocumentService struct {
@@ -868,17 +871,18 @@ func (ds *DocumentService) GetDocumentPath(id uint, token string, fileType strin
 	if err != nil {
 		return "", err
 	}
+	fmt.Println("1")
 
 	decryptedFilenameBytes, err := utility.DecryptData(token)
 	if err != nil {
 		return "", fmt.Errorf("resource not found")
 	}
-
+	fmt.Println("2")
 	decryptedFilename := string(decryptedFilenameBytes)
 	if decryptedFilename == "" {
 		return "", fmt.Errorf("resource not found")
 	}
-
+	fmt.Println("3")
 	baseFilename := strings.TrimSuffix(decryptedFilename, filepath.Ext(decryptedFilename))
 
 	var storagePath string
@@ -1025,6 +1029,64 @@ func (ds *DocumentService) SubmitDocument(id uint, currentUserID uint) error {
 	documentVersion.SubmittedBYID = &currentUserID
 	documentVersion.SubmittedAt = submittedAt
 	documentVersion.NextReviewLevel = &level
+
+	err = ds.repo.UpdateDocumentVersion(documentVersion, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+
+	//to do
+	//activity log
+
+	return nil
+}
+
+func (ds *DocumentService) PublishDocument(id uint, currentUserID uint) error {
+	tx := ds.repo.BeginTransaction()
+	document, err := ds.GetFullDetailsByID(id, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	documentStatus, err := ds.documentStatusSvc.GetByType("published")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	existingDocument, err := ds.repo.GetByID(id)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	existingDocument.DocumentStatusID = documentStatus.ID
+
+	err = ds.repo.Update(existingDocument, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	documentVersion, err := ds.repo.GetDocumentVersionByID(document.LatestDocumentVersion.ID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	currentDateStr := time.Now().Format("2006-01-02")
+	publishedAt, err := utility.ParseDate(currentDateStr)
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("error parsing current date: %w", err)
+	}
+
+	documentVersion.PublishedBYID = &currentUserID
+	documentVersion.PublishedAt = publishedAt
 
 	err = ds.repo.UpdateDocumentVersion(documentVersion, tx)
 	if err != nil {
@@ -1369,4 +1431,77 @@ func (ds *DocumentService) CheckAllParticipantsApproved(workflowID uint, workflo
 	}
 
 	return true, nil
+}
+
+func (ds *DocumentService) GetDocumentWorkflowList(id uint) (*documentDTOs.DocumentVersionWorkflowListDTO, error) {
+	document, err := ds.GetFullDetailsByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	documentVersion, err := ds.repo.GetWorkflowList(document.LatestDocumentVersion.ID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	dto := &documentDTOs.DocumentVersionWorkflowListDTO{
+		ID:              documentVersion.ID,
+		DocumentID:      documentVersion.DocumentID,
+		SubmittedAt:     *documentVersion.SubmittedAt,
+		SubmittedByUser: mapUserToDTO(documentVersion.SubmittedByUser),
+	}
+
+	for _, workflow := range documentVersion.DocumentWorkflows {
+		workflowDTO := &documentDTOs.DocumentWorkflowListDTO{
+			Level:         workflow.Level,
+			ApprovalType:  workflow.ApprovalTypes,
+			CurrentStatus: mapStatusToDTO(workflow.DocumentWorkflowStatus),
+		}
+
+		//Since all reviews are approved, add directly to ApprovedUsers
+		var lastApprovedAt time.Time
+		for _, review := range workflow.DocumentWorkflowReviews {
+			userDTO := mapUserToDTO(review.CreatedByUser)
+			workflowDTO.ApprovedUsers = append(workflowDTO.ApprovedUsers, &userDTO)
+			// Assume ApprovedAt is the last review's CreatedAt
+			if review.CreatedAt.After(lastApprovedAt) {
+				lastApprovedAt = review.CreatedAt
+			}
+		}
+
+		for _, participant := range workflow.DocumentWorkflowParticipants {
+			userDTO := mapUserToDTO(participant.User)
+			workflowDTO.ReviewUsers = append(workflowDTO.ReviewUsers, &userDTO)
+		}
+		workflowDTO.ApprovedAt = lastApprovedAt
+		dto.DocumentWorkflows = append(dto.DocumentWorkflows, workflowDTO)
+	}
+
+	return dto, nil
+}
+
+func mapUserToDTO(user *models.User) organizationDTOs.UserMinimalDTO {
+	return organizationDTOs.UserMinimalDTO{
+		ID:               int(user.ID),
+		FirstNameEN:      user.FirstNameEn,
+		LastNameEN:       user.LastNameEn,
+		FirstNameAR:      user.FirstNameAr,
+		LastNameAR:       user.LastNameAr,
+		ProfileImagePath: user.ProfileImagePath,
+		Email:            user.Email,
+		Initial:          user.Initial,
+		Color:            user.Color,
+	}
+}
+
+func mapStatusToDTO(status *models.DocumentWorkflowStatus) documentDTOs.DocumentStatusDTO {
+	return documentDTOs.DocumentStatusDTO{
+		ID:        int(status.ID),
+		Type:      status.Type,
+		TitleEn:   status.TitleEn,
+		TitleAr:   status.TitleAr,
+		ColorCode: status.ColorCode,
+		Status:    status.Status,
+	}
 }
