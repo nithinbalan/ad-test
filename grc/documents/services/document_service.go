@@ -37,6 +37,7 @@ type DocumentServiceInterface interface {
 	RevertDocumentCheckout(id uint, currentUserID uint) error
 
 	SubmitDocument(id uint, currentUserID uint) error
+	PublishDocument(id uint, currentUserID uint) error
 	GetComments(id uint) (*documentDTOs.DocumentVersionWorkflowDTO, error)
 
 	CreateSharedUsers(sharedUsers []*models.DocumentSharedUser, tx ...utility.DatabaseTransaction) error
@@ -1043,6 +1044,64 @@ func (ds *DocumentService) SubmitDocument(id uint, currentUserID uint) error {
 	return nil
 }
 
+func (ds *DocumentService) PublishDocument(id uint, currentUserID uint) error {
+	tx := ds.repo.BeginTransaction()
+	document, err := ds.GetFullDetailsByID(id, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	documentStatus, err := ds.documentStatusSvc.GetByType("published")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	existingDocument, err := ds.repo.GetByID(id)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	existingDocument.DocumentStatusID = documentStatus.ID
+
+	err = ds.repo.Update(existingDocument, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	documentVersion, err := ds.repo.GetDocumentVersionByID(document.LatestDocumentVersion.ID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	currentDateStr := time.Now().Format("2006-01-02")
+	publishedAt, err := utility.ParseDate(currentDateStr)
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("error parsing current date: %w", err)
+	}
+
+	documentVersion.PublishedBYID = &currentUserID
+	documentVersion.PublishedAt = publishedAt
+
+	err = ds.repo.UpdateDocumentVersion(documentVersion, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+
+	//to do
+	//activity log
+
+	return nil
+}
+
 func (ds *DocumentService) GetComments(id uint) (*documentDTOs.DocumentVersionWorkflowDTO, error) {
 	var documentVersionWorkflowDTO documentDTOs.DocumentVersionWorkflowDTO
 
@@ -1373,31 +1432,6 @@ func (ds *DocumentService) CheckAllParticipantsApproved(workflowID uint, workflo
 
 	return true, nil
 }
-
-// func (ds *DocumentService) GetWorkflowList(id uint) (*documentDTOs.DocumentVersionWorkflowListDTO, error) {
-// 	var documentVersionWorkflowDTO documentDTOs.DocumentVersionWorkflowListDTO
-
-// 	document, err := ds.GetFullDetailsByID(id)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	documentVersionWorkflows, err := ds.repo.GetWorkflowList(document.LatestDocumentVersion.ID)
-
-// 	if err != nil {
-// 		if errors.Is(err, gorm.ErrRecordNotFound) {
-// 			return nil, utility.NewResourceNotFoundError(err, id)
-// 		}
-// 		return nil, err
-// 	}
-
-// 	err = mapstructure.Decode(documentVersionWorkflows, &documentVersionWorkflowDTO)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	return &documentVersionWorkflowDTO, err
-// }
 
 func (ds *DocumentService) GetDocumentWorkflowList(id uint) (*documentDTOs.DocumentVersionWorkflowListDTO, error) {
 	document, err := ds.GetFullDetailsByID(id)

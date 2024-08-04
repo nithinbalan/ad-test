@@ -64,6 +64,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentRoutes.POST("/documents/:id/check-in", documentController.CheckinDocument)
 	documentRoutes.POST("/documents/:id/check-out-revert", documentController.RevertDocumentCheckout)
 	documentRoutes.POST("/documents/:id/submit", documentController.SubmitDocument)
+	documentRoutes.POST("/documents/:id/publish", documentController.PublishDocument)
 
 	unauthenticatedRoutes.GET("/documents/:id/document-preview", documentController.GetDocumentPreview)
 	unauthenticatedRoutes.GET("/documents/:id/document-download", documentController.DownloadDocument)
