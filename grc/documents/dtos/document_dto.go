@@ -182,9 +182,10 @@ type DocumentVersionWorkflowDTO struct {
 }
 
 type DocumentWorkflowDTO struct {
-	Level                   int                          `json:"level"`
-	DocumentWorkflowStatus  DocumentStatusDTO            `json:"document_workflow_status"`
-	DocumentWorkflowReviews []*DocumentWorkflowReviewDTO `json:"document_workflow_reviews"`
+	Level                        int                            `json:"level"`
+	DocumentWorkflowStatus       DocumentStatusDTO              `json:"document_workflow_status"`
+	DocumentWorkflowReviews      []*DocumentWorkflowReviewDTO   `json:"document_workflow_reviews"`
+	DocumentWorkflowParticipants []*WorkflowLevelParticipantDTO `json:"document_workflow_participants"`
 }
 
 type DocumentWorkflowReviewDTO struct {
@@ -192,4 +193,33 @@ type DocumentWorkflowReviewDTO struct {
 	DocumentWorkflowStatus DocumentStatusDTO               `json:"document_workflow_status"`
 	CreatedByUser          organizationDTOs.UserMinimalDTO `json:"created_by"`
 	UpdateByUser           organizationDTOs.UserMinimalDTO `json:"updated_by"`
+	CreatedAt              time.Time                       `json:"created_at"`
+	UpdatedAt              *time.Time                      `json:"updated_at"`
+}
+
+type WorkflowLevelParticipantDTO struct {
+	ID   uint                             `json:"id"`
+	User *organizationDTOs.UserMinimalDTO `json:"user,omitempty"`
+	Role *settingsDTOs.RoleDTO            `json:"role,omitempty" `
+}
+
+type DocumentVersionWorkflowListDTO struct {
+	ID                uint                            `json:"id"`
+	DocumentID        uint                            `json:"document_id"`
+	SubmittedAt       time.Time                       `json:"submitted_at"`
+	SubmittedByUser   organizationDTOs.UserMinimalDTO `json:"submitted_by"`
+	DocumentWorkflows []*DocumentWorkflowListDTO      `json:"document_workflows"`
+}
+
+type DocumentWorkflowListDTO struct {
+	Level         int                                `json:"level"`
+	ApprovalType  string                             `json:"approval_type"`
+	ReviewUsers   []*organizationDTOs.UserMinimalDTO `json:"review_users"`
+	ApprovedUsers []*organizationDTOs.UserMinimalDTO `json:"approved_users"`
+	ApprovedAt    time.Time                          `json:"approved_at,omitempty"`
+	CurrentStatus DocumentStatusDTO                  `json:"current_status"`
+}
+
+type DocumentWorkflowReviewListDTO struct {
+	CreatedByUser organizationDTOs.UserMinimalDTO `json:"created_by"`
 }
