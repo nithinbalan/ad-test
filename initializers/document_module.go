@@ -9,13 +9,16 @@ import (
 )
 
 type DocumentModule struct {
-	DocumentCategoryController       *controllers.DocumentCategoryController
-	DocumentTypeController           *controllers.DocumentTypeController
-	DocumentTemplateController       *controllers.DocumentTemplateController
-	DocumentStatusController         *controllers.DocumentStatusController
-	DocumentAccessTypeController     *controllers.DocumentAccessTypeController
-	DocumentWorkflowStatusController *controllers.DocumentWorkflowStatusController
-	DocumentController               *controllers.DocumentController
+	DocumentCategoryController        *controllers.DocumentCategoryController
+	DocumentTypeController            *controllers.DocumentTypeController
+	DocumentTemplateController        *controllers.DocumentTemplateController
+	DocumentStatusController          *controllers.DocumentStatusController
+	DocumentAccessTypeController      *controllers.DocumentAccessTypeController
+	DocumentWorkflowStatusController  *controllers.DocumentWorkflowStatusController
+	DocumentController                *controllers.DocumentController
+	DocumentAcknowledgeUserController *controllers.DocumentAcknowledgeUserController
+
+	DocumentSvc services.DocumentServiceInterface
 }
 
 func NewDocumentModule(db *gorm.DB,
@@ -63,13 +66,20 @@ func NewDocumentModule(db *gorm.DB,
 		sharedModule.ActivityLogService)
 	documentController := controllers.NewDocumentController(documentSvc)
 
+	documentAcknowledgeUserRepo := repositories.NewDocumentAcknowledgeUserRepository(db)
+	documentAcknowledgeUserSvc := services.NewDocumentAcknowledgeUserService(documentAcknowledgeUserRepo, sharedModule.ActivityLogService, documentSvc)
+	documentAcknowledgeUserController := controllers.NewDocumentAcknowledgeUserController(documentAcknowledgeUserSvc)
+
 	return &DocumentModule{
-		DocumentCategoryController:       documentCategoryController,
-		DocumentTypeController:           documentTypeController,
-		DocumentTemplateController:       documentTemplateController,
-		DocumentStatusController:         documentStatusController,
-		DocumentAccessTypeController:     documentAccessTypeController,
-		DocumentWorkflowStatusController: documentWorkflowStatusController,
-		DocumentController:               documentController,
+		DocumentCategoryController:        documentCategoryController,
+		DocumentTypeController:            documentTypeController,
+		DocumentTemplateController:        documentTemplateController,
+		DocumentStatusController:          documentStatusController,
+		DocumentAccessTypeController:      documentAccessTypeController,
+		DocumentWorkflowStatusController:  documentWorkflowStatusController,
+		DocumentController:                documentController,
+		DocumentAcknowledgeUserController: documentAcknowledgeUserController,
+
+		DocumentSvc: documentSvc,
 	}
 }
