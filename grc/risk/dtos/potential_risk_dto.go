@@ -3,6 +3,7 @@ package dtos
 import (
 	commonDTOs "jethur/grc/common/dtos"
 	masterDTOs "jethur/grc/masters/dtos"
+	organizationDTOs "jethur/grc/organization/dtos"
 
 	"time"
 )
@@ -65,15 +66,15 @@ type PotentialRiskFormDTO struct {
 }
 
 type PotentialRiskDetailsDTO struct {
-	ID                  uint                        `json:"id"`
-	RiskCategory        RiskCategoryDTO             `json:"risk_category"`
-	SeverityLevel       masterDTOs.SeverityLevelDTO `json:"severity_level"`
-	PotentialRiskStatus PotentialRiskStatusDTO      `json:"potential_risk_status"`
-	Title               string                      `json:"title"`
-	Description         *string                     `json:"description"`
-	RiskSource          string                      `json:"risk_source"`
-	CreatedAt           time.Time                   `json:"created_at"`
-	UpdatedAt           *time.Time                  `json:"updated_at"`
-	// CreatedByUser         UserMinimalDTO                `json:"created_by"`
-	// UpdatedByUser         UserMinimalDTO                `json:"updated_by"`
+	ID                  uint                             `json:"id"`
+	RiskCategory        RiskCategoryDTO                  `json:"risk_category"`
+	SeverityLevel       masterDTOs.SeverityLevelDTO      `json:"severity_level"`
+	PotentialRiskStatus PotentialRiskStatusDTO           `json:"potential_risk_status"`
+	Title               string                           `json:"title"`
+	Description         *string                          `json:"description"`
+	RiskSource          string                           `json:"risk_source"`
+	CreatedAt           time.Time                        `json:"created_at"`
+	UpdatedAt           *time.Time                       `json:"updated_at"`
+	CreatedByUser       organizationDTOs.UserMinimalDTO  `json:"created_by_user"`
+	UpdatedByUser       *organizationDTOs.UserMinimalDTO `json:"updated_by_user"`
 }

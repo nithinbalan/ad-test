@@ -69,14 +69,13 @@ func (prs PotentialRiskService) GetFullDetailsByID(id uint) (*riskDTOs.Potential
 	var potentialRiskDTO riskDTOs.PotentialRiskDetailsDTO
 
 	potentialRisk, err := prs.repo.GetFullDetailsByID(id)
-
+ 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
 		}
 		return nil, err
 	}
-
 	err = mapstructure.Decode(potentialRisk, &potentialRiskDTO)
 	if err != nil {
 		return nil, err
@@ -105,7 +104,7 @@ func (prs *PotentialRiskService) Create(currentUserID uint, potentialRiskFormDTO
 		Title:                 potentialRiskFormDTO.Title,
 		Description:           potentialRiskFormDTO.Description,
 		RiskSource:            "manual",
-		CreatedByID:           currentUserID,
+		CreatedBYID:           currentUserID,
 		UpdatedAt:             nil,
 	}
 
@@ -156,7 +155,7 @@ func (prs *PotentialRiskService) Update(id uint, currentUserID uint, potentialRi
 	existingPotentialRisk.SeverityLevelID = potentialRiskFormDTO.SeverityLevelID
 	existingPotentialRisk.Title = potentialRiskFormDTO.Title
 	existingPotentialRisk.Description = potentialRiskFormDTO.Description
-	existingPotentialRisk.UpdatedByID = &currentUserID
+	existingPotentialRisk.UpdatedBYID = &currentUserID
 
 	err = prs.repo.Update(existingPotentialRisk)
 
@@ -215,7 +214,7 @@ func (prs *PotentialRiskService) StatusUpdate(id uint, currentUserID uint, poten
 	}
 
 	existingPotentialRisk.PotentialRiskStatusID = potentialRiskStatusID
-	existingPotentialRisk.UpdatedByID = &currentUserID
+	existingPotentialRisk.UpdatedBYID = &currentUserID
 
 	err = prs.repo.Update(existingPotentialRisk)
 
