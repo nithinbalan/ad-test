@@ -230,6 +230,7 @@ func (repo *KRIRegisterRepository) GetFullDetailsByID(id uint) (*models.KRIRegis
 		Preload("ResponsibleUser").
 		Preload("ReviewFrequency").
 		Preload("RiskLevel").
+		Preload("Unit").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&kriRegister, id)
