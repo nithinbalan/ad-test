@@ -1232,14 +1232,15 @@ func (rrs *RiskRegisterService) parseRiskRegisterDates(dto *riskDTOs.RiskRegiste
 	parsed := &riskDTOs.RiskRegisterParsedDates{}
 
 	var err error
-	if *dto.ReportedAt != "" {
+
+	if dto.ReportedAt != nil && *dto.ReportedAt != "" {
 		parsed.ReportedAt, err = utility.ParseDate(*dto.ReportedAt)
 		if err != nil {
 			return nil, utility.NewValidationError(fmt.Errorf("invalid reported at"), "invalid_date", "reported at")
 		}
 	}
 
-	if *dto.NextReviewDate != "" {
+	if dto.NextReviewDate != nil && *dto.NextReviewDate != "" {
 		parsed.NextReviewDate, err = utility.ParseDate(*dto.NextReviewDate)
 		if err != nil {
 			return nil, utility.NewValidationError(fmt.Errorf("invalid next review date"), "invalid_date", "next review date")
