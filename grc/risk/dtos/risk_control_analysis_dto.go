@@ -54,3 +54,11 @@ type RiskControlAnalysisDetailDTO struct {
 	ControlImplementationStatus organizationDTOs.ControlImplementationStatusDTO `json:"control_implementation_status" `
 	Score                       uint                                            `json:"score"`
 }
+
+type RiskResidualControlAnalysisDetailDTO struct {
+	ID                          uint                                            `json:"id"`
+	ControlTestID               *uint                                           `json:"control_test_id"`
+	ControlEfficiencyStatus     organizationDTOs.ControlEfficiencyStatusDTO     `json:"control_efficiency_status"`
+	ControlImplementationStatus organizationDTOs.ControlImplementationStatusDTO `json:"control_implementation_status" `
+	Score                       uint                                            `json:"score"`
+}
