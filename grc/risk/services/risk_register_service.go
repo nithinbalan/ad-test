@@ -178,7 +178,7 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 		ReviewFrequencyID: riskRegisterFormDTO.ReviewFrequencyID,
 		NextReviewDate:    dates.NextReviewDate,
 		LastReviewNote:    riskRegisterFormDTO.LastReviewNote,
-		CreatedByID:       currentUserID,
+		CreatedBYID:       currentUserID,
 	}
 
 	id, err := rrs.repo.Create(riskRegister, tx)
@@ -440,7 +440,7 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 	existingRiskRegister.ReviewFrequencyID = riskRegisterFormDTO.ReviewFrequencyID
 	existingRiskRegister.NextReviewDate = dates.NextReviewDate
 	existingRiskRegister.LastReviewNote = riskRegisterFormDTO.LastReviewNote
-	existingRiskRegister.UpdatedByID = &currentUserID
+	existingRiskRegister.UpdatedBYID = &currentUserID
 
 	if err := rrs.repo.Update(existingRiskRegister, tx); err != nil {
 		tx.Rollback()
@@ -1232,14 +1232,15 @@ func (rrs *RiskRegisterService) parseRiskRegisterDates(dto *riskDTOs.RiskRegiste
 	parsed := &riskDTOs.RiskRegisterParsedDates{}
 
 	var err error
-	if *dto.ReportedAt != "" {
+
+	if dto.ReportedAt != nil && *dto.ReportedAt != "" {
 		parsed.ReportedAt, err = utility.ParseDate(*dto.ReportedAt)
 		if err != nil {
 			return nil, utility.NewValidationError(fmt.Errorf("invalid reported at"), "invalid_date", "reported at")
 		}
 	}
 
-	if *dto.NextReviewDate != "" {
+	if dto.NextReviewDate != nil && *dto.NextReviewDate != "" {
 		parsed.NextReviewDate, err = utility.ParseDate(*dto.NextReviewDate)
 		if err != nil {
 			return nil, utility.NewValidationError(fmt.Errorf("invalid next review date"), "invalid_date", "next review date")

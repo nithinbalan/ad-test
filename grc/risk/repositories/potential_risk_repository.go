@@ -162,8 +162,8 @@ func (repo *PotentialRiskRepository) GetFullDetailsByID(id uint) (*models.Potent
 		Preload("RiskCategory").
 		Preload("PotentialRiskStatus").
 		Preload("SeverityLevel").
-		// Preload("CreatedByUser").
-		// Preload("UpdatedByUser").
+		Preload("CreatedByUser").
+		Preload("UpdatedByUser").
 		First(&potentialRisk, id)
 
 	if result.Error != nil {

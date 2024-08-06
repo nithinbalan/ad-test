@@ -48,6 +48,9 @@ func (repo *KRIValueUpdateRepository) GetAll(kriRegisterID uint, params *riskDTO
 		Select(`
             kri_value_updates.*,
 			kri_register.title AS kri_register,
+			risk_levels.title_en AS risk_level_title_en,
+			risk_levels.title_ar AS risk_level_title_ar,
+			risk_levels.color_code AS risk_level_color_code,
 			created_user.first_name_en AS created_user_first_name_en,
 			created_user.first_name_ar AS created_user_first_name_ar,
 			created_user.last_name_en AS created_user_last_name_en,
@@ -67,6 +70,7 @@ func (repo *KRIValueUpdateRepository) GetAll(kriRegisterID uint, params *riskDTO
         `).
 		Joins(`
 		    LEFT JOIN kri_register ON kri_register.id = kri_value_updates.kri_register_id
+			LEFT JOIN risk_levels ON risk_levels.id = kri_register.risk_level_id
 			LEFT JOIN users AS created_user ON created_user.id = kri_register.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = kri_register.updated_by_id
 		`).
@@ -88,9 +92,11 @@ func (repo *KRIValueUpdateRepository) GetAll(kriRegisterID uint, params *riskDTO
 			kri_value_updates.low_threshold LIKE ? OR
 			kri_value_updates.medium_threshold LIKE ? OR
 			kri_value_updates.high_threshold LIKE ? OR
+			risk_levels.title_en LIKE ? OR
+			risk_levels.title_ar LIKE ? OR
 			kri_value_updates.remarks LIKE ? )`,
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
-			"%"+params.Keyword+"%", "%"+params.Keyword+"%")
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
 	}
 
 	// Calculate total count for pagination
@@ -273,4 +279,3 @@ func (repo *KRIValueUpdateRepository) GetNextKRIValueUpdate(kriRegisterID uint, 
 
 	return &nextValueUpdate, nil
 }
-

@@ -9,6 +9,9 @@ import (
 type KRIValueUpdateListDTO struct {
 	ID                          uint                         `json:"id"`
 	KRIRegisterID               uint                         `json:"kri_register_id"`
+	RiskLevelTitleEn            string                       `json:"risk_level_title_en"`
+	RiskLevelTitleAr            string                       `json:"risk_level_title_ar"`
+	RiskLevelColorCode          string                       `json:"risk_level_color_code"`
 	ReviewedDate                string                       `json:"reviewed_date"`
 	Value                       int                          `json:"value"`
 	LowThreshold                int                          `json:"low_threshold"`
