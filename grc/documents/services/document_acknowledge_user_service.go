@@ -27,12 +27,22 @@ func NewDocumentAcknowledgeUserService(repo repositories.DocumentAcknowledgeUser
 	}
 }
 
-func (dauc *DocumentAcknowledgeUserService) Create(docuemntID uint, currentUserID uint) (uint, error) {
-	tx := dauc.repo.BeginTransaction()
+func (daus *DocumentAcknowledgeUserService) Create(docuemntID uint, currentUserID uint) (uint, error) {
+	tx := daus.repo.BeginTransaction()
 
-	_, err := dauc.documentSvc.GetByID(docuemntID)
+	_, err := daus.documentSvc.GetByID(docuemntID)
 	if err != nil {
 		return 0, err
+	}
+	// Check if the entry already exists
+	existing, err := daus.repo.Exists(docuemntID, currentUserID, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	if existing {
+		tx.Rollback()
+		return 0, utility.NewForbiddenError("document acknowledgment by user already exists")
 	}
 
 	documentAcknowledgeUser := &models.DocumentAcknowledgeUser{
@@ -41,7 +51,7 @@ func (dauc *DocumentAcknowledgeUserService) Create(docuemntID uint, currentUserI
 		CreatedBYID: currentUserID,
 	}
 
-	id, err := dauc.repo.Create(documentAcknowledgeUser, tx)
+	id, err := daus.repo.Create(documentAcknowledgeUser, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -50,7 +60,7 @@ func (dauc *DocumentAcknowledgeUserService) Create(docuemntID uint, currentUserI
 	tx.Commit()
 
 	go func() {
-		err := dauc.activityLogSvc.LogActivity(
+		err := daus.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.DocumentAcknowledgeUser{}.TableName(),
 			documentAcknowledgeUser.ID,
@@ -75,23 +85,33 @@ func (dauc *DocumentAcknowledgeUserService) Create(docuemntID uint, currentUserI
 	return id.ID, nil
 }
 
-func (dauc *DocumentAcknowledgeUserService) Delete(docuemntID uint, currentUserID uint) (uint, error) {
-	tx := dauc.repo.BeginTransaction()
+func (daus *DocumentAcknowledgeUserService) Delete(docuemntID uint, currentUserID uint) (uint, error) {
+	tx := daus.repo.BeginTransaction()
 	var failedId uint
 
-	_, err := dauc.documentSvc.GetByID(docuemntID)
+	_, err := daus.documentSvc.GetByID(docuemntID)
 	if err != nil {
 		return 0, err
 	}
+	// Check if the entry already exists
+	exists, err := daus.repo.Exists(docuemntID, currentUserID, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	if !exists {
+		tx.Rollback()
+		return 0, utility.NewForbiddenError("document acknowledgment by user does not exist")
+	}
 
-	if err = dauc.repo.Delete(uint(docuemntID), currentUserID, tx); err != nil {
+	if err = daus.repo.Delete(uint(docuemntID), currentUserID, tx); err != nil {
 		failedId = uint(docuemntID)
 		return failedId, err
 	}
 	tx.Commit()
 	// Log successful delete activity
 	go func() {
-		err := dauc.activityLogSvc.LogActivity(
+		err := daus.activityLogSvc.LogActivity(
 			models.DeleteAction,
 			models.DocumentAcknowledgeUser{}.TableName(),
 			uint(docuemntID),

@@ -11,6 +11,7 @@ import (
 type DocumentAcknowledgeUserRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	Create(documentAcknowledgeUser *models.DocumentAcknowledgeUser, tx ...utility.DatabaseTransaction) (*models.DocumentAcknowledgeUser, error)
+	Exists(documentID uint, userID uint, tx ...utility.DatabaseTransaction) (bool, error)
 	Delete(documentID uint, currentUserID uint, tx ...utility.DatabaseTransaction) error
 }
 
@@ -38,6 +39,24 @@ func (repo *DocumentAcknowledgeUserRepository) Create(documentAcknowledgeUser *m
 	result := db.Create(&documentAcknowledgeUser)
 
 	return documentAcknowledgeUser, result.Error
+}
+
+func (repo *DocumentAcknowledgeUserRepository) Exists(documentID uint, userID uint, tx ...utility.DatabaseTransaction) (bool, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var count int64
+	err := db.Model(&models.DocumentAcknowledgeUser{}).
+		Where("document_id = ? AND user_id = ?", documentID, userID).
+		Count(&count).Error
+
+	if err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
 }
 
 func (repo *DocumentAcknowledgeUserRepository) Delete(documentID uint, currentUserID uint, tx ...utility.DatabaseTransaction) error {
