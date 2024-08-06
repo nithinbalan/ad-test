@@ -178,7 +178,7 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 		ReviewFrequencyID: riskRegisterFormDTO.ReviewFrequencyID,
 		NextReviewDate:    dates.NextReviewDate,
 		LastReviewNote:    riskRegisterFormDTO.LastReviewNote,
-		CreatedByID:       currentUserID,
+		CreatedBYID:       currentUserID,
 	}
 
 	id, err := rrs.repo.Create(riskRegister, tx)
@@ -440,7 +440,7 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 	existingRiskRegister.ReviewFrequencyID = riskRegisterFormDTO.ReviewFrequencyID
 	existingRiskRegister.NextReviewDate = dates.NextReviewDate
 	existingRiskRegister.LastReviewNote = riskRegisterFormDTO.LastReviewNote
-	existingRiskRegister.UpdatedByID = &currentUserID
+	existingRiskRegister.UpdatedBYID = &currentUserID
 
 	if err := rrs.repo.Update(existingRiskRegister, tx); err != nil {
 		tx.Rollback()

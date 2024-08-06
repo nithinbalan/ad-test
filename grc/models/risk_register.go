@@ -33,8 +33,8 @@ type RiskRegister struct {
 	NextReviewDate            *time.Time `json:"next_review_date"`
 	RiskResponseStrategyID    *uint      `json:"risk_response_strategy_id"`
 	MarkedAsAuditableItem     bool       `json:"marked_as_auditable_item" gorm:"default:false" binding:"-"`
-	CreatedByID               uint       `json:"created_by_id" binding:"required"`
-	UpdatedByID               *uint      `json:"updated_by_id"`
+	CreatedBYID               uint       `json:"created_by_id" binding:"required"`
+	UpdatedBYID               *uint      `json:"updated_by_id"`
 	CreatedAt                 time.Time  `json:"created_at" binding:"required" gorm:"type:datetime;not null"`
 	UpdatedAt                 *time.Time `json:"updated_at,omitempty" gorm:"type:datetime;default:null"`
 
@@ -58,8 +58,8 @@ type RiskRegister struct {
 	ResidualRiskRating      *RiskMatrixRiskRating        `gorm:"foreignKey:ResidualRiskRatingID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ResidualRiskRatingValue *RiskMatrixRiskRatingValue   `gorm:"foreignKey:ResidualRiskRatingValueID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	RiskStatus              *RiskStatus                  `gorm:"foreignKey:RiskStatusID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	CreatedByUser           *User                        `gorm:"foreignKey:CreatedByID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	UpdatedByUser           *User                        `gorm:"foreignKey:UpdatedByID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	CreatedByUser           *User                        `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	UpdatedByUser           *User                        `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	Documents               *[]RiskDocument              `gorm:"foreignKey:RiskRegisterID"`
 	ComplianceRequirements  []*RiskComplianceRequirement `gorm:"foreignKey:RiskRegisterID"`
 	Controls                []*RiskControl               `gorm:"foreignKey:RiskRegisterID"`
