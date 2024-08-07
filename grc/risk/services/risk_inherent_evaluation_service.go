@@ -15,7 +15,7 @@ import (
 )
 
 type RiskInherentEvaluationServiceInterface interface {
-	GetFullDetailsByID(riskID uint) (*riskDTOs.RiskInherentEvaluationDetailsDTO, error)
+	GetFullDetailsByID(riskID uint, tx ...utility.DatabaseTransaction) (*riskDTOs.RiskInherentEvaluationDetailsDTO, error)
 	GetByID(riskID uint, id uint) (*models.RiskEvaluation, error)
 	Create(riskID uint, currentUserID uint, inherentEvaluationFormDTO *riskDTOs.RiskInherentEvaluationFormDTO) (uint, error)
 	Update(riskID uint, id uint, currentUserID uint, inherentEvaluationFormDTO *riskDTOs.RiskInherentEvaluationFormDTO) error
@@ -65,7 +65,7 @@ func NewRiskInherentEvaluationService(
 	}
 }
 
-func (ries RiskInherentEvaluationService) GetFullDetailsByID(riskID uint) (*riskDTOs.RiskInherentEvaluationDetailsDTO, error) {
+func (ries RiskInherentEvaluationService) GetFullDetailsByID(riskID uint, tx ...utility.DatabaseTransaction) (*riskDTOs.RiskInherentEvaluationDetailsDTO, error) {
 	// Check if risk register exists
 	if _, err := ries.riskRegisterSvc.GetByID(riskID); err != nil {
 		return nil, err
@@ -74,7 +74,7 @@ func (ries RiskInherentEvaluationService) GetFullDetailsByID(riskID uint) (*risk
 	var riskInherentEvaluationDetailsDTO riskDTOs.RiskInherentEvaluationDetailsDTO
 
 	// Get full details from the repository
-	riskInherentEvaluation, err := ries.repo.GetFullDetailsByID(riskID)
+	riskInherentEvaluation, err := ries.repo.GetFullDetailsByID(riskID,tx...)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, riskID)

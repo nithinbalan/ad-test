@@ -417,11 +417,9 @@ func (ries *RiskResidualEvaluationService) Update(riskID uint, id uint, currentU
 
 func (ries *RiskResidualEvaluationService) Delete(riskID uint, id uint, currentUserID uint) (uint, error) {
 	tx := ries.repo.BeginTransaction()
-
 	if _, err := ries.riskRegisterSvc.GetByID(riskID); err != nil {
 		return 0, err
 	}
-
 	var failedId uint
 
 	if err := ries.repo.DeleteRiskImpactAnalysesByRiskEvaluationID(id, tx); err != nil {
@@ -429,7 +427,6 @@ func (ries *RiskResidualEvaluationService) Delete(riskID uint, id uint, currentU
 		failedId = id
 		return failedId, err
 	}
-
 	if err := ries.repo.DeleteRiskAppetiteAlignmentsByRiskEvaluationID(id, tx); err != nil {
 		tx.Rollback()
 		failedId = id
@@ -463,7 +460,7 @@ func (ries *RiskResidualEvaluationService) Delete(riskID uint, id uint, currentU
 		return failedId, err
 	}
 
-	inherentEvaluationDetailsDTO, err := ries.riskInherentEvaluationSvc.GetFullDetailsByID(riskID)
+	inherentEvaluationDetailsDTO, err := ries.riskInherentEvaluationSvc.GetFullDetailsByID(riskID,tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
