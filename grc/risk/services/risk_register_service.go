@@ -1010,6 +1010,27 @@ func (rrs *RiskRegisterService) DeleteResponseStrategy(riskID uint, currentUserI
 		tx.Rollback()
 		return err
 	}
+	//update timeline
+	//todo
+	timelineType, err := rrs.riskTimelineSvc.GetByType("risk_response")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	timelineStatus, err := rrs.riskTimelineSvc.GetByStatusType("pending")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	timelineFormDTO := &riskDTOs.RiskTimelineFormDTO{
+		PerformedByID:    nil,
+		TimelineStatusID: timelineStatus.ID,
+		PerformedAt:      nil,
+	}
+	if err := rrs.riskTimelineSvc.Update(riskID, timelineFormDTO, timelineType.ID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
 
 	tx.Commit()
 
