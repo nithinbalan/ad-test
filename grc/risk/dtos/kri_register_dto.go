@@ -102,29 +102,29 @@ type KRIRegisterFormDTO struct {
 }
 
 type KRIRegisterDetailsDTO struct {
-	ID               uint                              `json:"id"`
-	ReferenceNumber  string                            `json:"reference_number"`
-	KRICategory      KRICategoryDTO                    `json:"kri_category"`
-	ResponsibleUnit  *settingsDTOs.OrganizationUnitDTO `json:"responsible_unit"`
-	ResponsibleUser  *organizationDTOs.UserMinimalDTO  `json:"responsible_user"`
-	ReviewFrequency  masterDTOs.ReviewFrequencyDTO     `json:"review_frequency"`
-	RiskLevel        *RiskLevelDTO                     `json:"risk_level"`
-	Unit             *masterDTOs.UnitDTO               `json:"unit"`
-	Title            string                            `json:"title"`
-	Description      *string                           `json:"description"`
-	CalculationType  string                            `json:"calculation_type"`
-	LowThreshold     *int                              `json:"low_threshold"`
-	MediumThreshold  *int                              `json:"medium_threshold"`
-	HighThreshold    *int                              `json:"high_threshold"`
-	CurrentValue     *int                              `json:"current_value"`
-	LastReviewedDate *time.Time                        `json:"last_reviewed_date"`
-	NextReviewDate   time.Time                         `json:"next_review_date"`
-	LastReviewNote   *string                           `json:"last_review_note"`
-	CreatedAt        time.Time                         `json:"created_at"`
-	UpdatedAt        *time.Time                        `json:"updated_at"`
-	CreatedByUser    organizationDTOs.UserMinimalDTO   `json:"created_by_user"`
-	UpdatedByUser    organizationDTOs.UserMinimalDTO   `json:"updated_by_user"`
-	ValueUpdates     []*KRIValueUpdateDetailsDTO       `json:"value_updates"`
+	ID               		uint                              `json:"id"`
+	ReferenceNumber  		string                            `json:"reference_number"`
+	KRICategory      		KRICategoryDTO                    `json:"kri_category"`
+	ResponsibleUnit  		*settingsDTOs.OrganizationUnitDTO `json:"responsible_unit"`
+	ResponsibleUser  		*organizationDTOs.UserMinimalDTO  `json:"responsible_user"`
+	ReviewFrequency  		masterDTOs.ReviewFrequencyDTO     `json:"review_frequency"`
+	RiskLevel        		*RiskLevelDTO                     `json:"risk_level"`
+	Unit             		*masterDTOs.UnitDTO               `json:"unit"`
+	Title            		string                            `json:"title"`
+	Description      		*string                           `json:"description"`
+	CalculationType  		string                            `json:"calculation_type"`
+	LowThreshold     		*int                              `json:"low_threshold"`
+	MediumThreshold  		*int                              `json:"medium_threshold"`
+	HighThreshold    		*int                              `json:"high_threshold"`
+	CurrentValue     		*int                              `json:"current_value"`
+	LastReviewedDateString 	string                        		`json:"last_reviewed_date"`
+	NextReviewDateString   	string                         		`json:"next_review_date"`
+	LastReviewNote   		*string                           `json:"last_review_note"`
+	CreatedAt        		time.Time                         `json:"created_at"`
+	UpdatedAt        		*time.Time                        `json:"updated_at"`
+	CreatedByUser    		organizationDTOs.UserMinimalDTO   `json:"created_by_user"`
+	UpdatedByUser    		organizationDTOs.UserMinimalDTO   `json:"updated_by_user"`
+	ValueUpdates     		[]*KRIValueUpdateDetailsDTO       `json:"value_updates"`
 }
 
 type KRIRegisterParsedDates struct {

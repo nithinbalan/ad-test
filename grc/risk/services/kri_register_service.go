@@ -89,6 +89,17 @@ func (krs KRIRegisterService) GetFullDetailsByID(id uint) (*riskDTOs.KRIRegister
 		return nil, err
 	}
 
+	kriRegisterNextReviewDate := kriRegister.NextReviewDate.Format("2006-01-02")
+	kriRegisterDTO.NextReviewDateString = kriRegisterNextReviewDate
+    
+	if kriRegister.LastReviewedDate != nil {
+        kriRegisterLastReviewedDate := kriRegister.LastReviewedDate.Format("2006-01-02")
+        kriRegisterDTO.LastReviewedDateString = kriRegisterLastReviewedDate
+    }
+ 
+    kriRegisterDTO.CreatedAt = kriRegister.CreatedAt
+    kriRegisterDTO.UpdatedAt = kriRegister.UpdatedAt
+
 	//todo :- also add extra fields which required in details screen
 
 	return &kriRegisterDTO, nil
@@ -279,7 +290,7 @@ func (krs *KRIRegisterService) validateKRIRegisterFormDTO(kriRegisterFormDTO *ri
 			return utility.NewValidationError(fmt.Errorf("risk level does not exist"), "not_exist", "risk level")
 		}
 	}
-	if _, err := krs.riskLevelSvc.GetByID(kriRegisterFormDTO.UnitID); err != nil {
+	if _, err := krs.unitSvc.GetByID(kriRegisterFormDTO.UnitID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("unit does not exist"), "not_exist", "unit")
 	}
 
