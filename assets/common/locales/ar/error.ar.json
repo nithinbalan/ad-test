@@ -72,6 +72,10 @@
     "translation": "كلمة المرور لمرة واحدة غير صالحة"
   },
   {
+    "id": "invalid_clause_number",
+    "translation": "رقم البند غير صالح"
+  },
+  {
     "id": "field_confirm_password",
     "translation": "كلمة المرور وتأكيد كلمة المرور غير متطابقين"
   },
