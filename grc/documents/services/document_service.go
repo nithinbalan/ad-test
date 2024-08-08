@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"jethur/config"
 	commonDTOs "jethur/grc/common/dtos"
+	"jethur/grc/documents/dtos"
 	documentDTOs "jethur/grc/documents/dtos"
 	"jethur/grc/documents/repositories"
 	"jethur/grc/logs/services"
@@ -46,6 +47,9 @@ type DocumentServiceInterface interface {
 	GetDocumentPath(id uint, token string, fileType string, tx ...utility.DatabaseTransaction) (string, error)
 	AddComment(id uint, currentUserID uint, documentReviewCommentFormDTO *documentDTOs.DocumentReviewCommentFormDTO) error
 	GetDocumentWorkflowList(id uint) (*documentDTOs.DocumentVersionWorkflowListDTO, error)
+
+	CreateDocumentAuditLog(documentID uint, documentVersionID uint, userID uint, logType string, tx ...utility.DatabaseTransaction) error
+	DirectDocumentAuditLog(documentID uint, userID uint, logType string) error
 }
 
 type DocumentService struct {
@@ -60,6 +64,7 @@ type DocumentService struct {
 	documentWorkflowSvc       DocumentWorkflowStatusServiceInterface
 	documentWorkflowStatusSvc DocumentWorkflowStatusServiceInterface
 	activityLogSvc            services.ActivityLogServiceInterface
+	documentAuditLogSvc       DocumentAuditLogServiceInterface
 }
 
 func NewDocumentService(
@@ -73,7 +78,9 @@ func NewDocumentService(
 	workflowSvc settinsSvc.WorkflowServiceInterface,
 	documentWorkflowSvc DocumentWorkflowStatusServiceInterface,
 	documentWorkflowStatusSvc DocumentWorkflowStatusServiceInterface,
-	activityLogSvc services.ActivityLogServiceInterface) DocumentServiceInterface {
+	activityLogSvc services.ActivityLogServiceInterface,
+	documentAuditLogSvc DocumentAuditLogServiceInterface,
+) DocumentServiceInterface {
 	return &DocumentService{
 		repo:                      repo,
 		documentCategorySvc:       documentCategorySvc,
@@ -86,6 +93,7 @@ func NewDocumentService(
 		documentWorkflowSvc:       documentWorkflowSvc,
 		documentWorkflowStatusSvc: documentWorkflowStatusSvc,
 		activityLogSvc:            activityLogSvc,
+		documentAuditLogSvc:       documentAuditLogSvc,
 	}
 }
 
@@ -1093,6 +1101,11 @@ func (ds *DocumentService) PublishDocument(id uint, currentUserID uint) error {
 		tx.Rollback()
 		return err
 	}
+	// Add audit log for the document retrieval
+	if err := ds.CreateDocumentAuditLog(uint(id), documentVersion.ID, currentUserID, "published", tx); err != nil {
+		tx.Rollback()
+		return err
+	}
 
 	tx.Commit()
 
@@ -1504,4 +1517,50 @@ func mapStatusToDTO(status *models.DocumentWorkflowStatus) documentDTOs.Document
 		ColorCode: status.ColorCode,
 		Status:    status.Status,
 	}
+}
+
+func (ds *DocumentService) CreateDocumentAuditLog(documentID uint, documentVersionID uint, userID uint, logType string, tx ...utility.DatabaseTransaction) error {
+	// Get the audit log type by the provided logType
+	documentAuditLogType, err := ds.documentAuditLogSvc.GetByType(logType)
+	if err != nil {
+		return err
+	}
+
+	currentTime := time.Now()
+	documentAuditLogFormDTO := &dtos.DocumentAuditLogFormDTO{
+		DocumentID:             documentID,
+		DocumentVersionID:      documentVersionID,
+		UserID:                 userID,
+		DocumentAuditLogTypeID: documentAuditLogType.ID,
+		CreatedAt:              currentTime,
+		CreatedByID:            userID,
+	}
+	if err := ds.documentAuditLogSvc.Create(documentAuditLogFormDTO, tx...); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (ds *DocumentService) DirectDocumentAuditLog(documentID uint, userID uint, logType string) error {
+	tx := ds.repo.BeginTransaction()
+	document, err := ds.GetFullDetailsByID(documentID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	documentVersion, err := ds.repo.GetDocumentVersionByID(document.LatestDocumentVersion.ID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	// Add audit log for the document retrieval
+	if err := ds.CreateDocumentAuditLog(uint(documentID), documentVersion.ID, userID, logType, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+	return nil
+
 }

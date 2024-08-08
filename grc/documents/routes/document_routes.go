@@ -23,6 +23,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentWorkflowStatusController := app.DocumentModule.DocumentWorkflowStatusController
 	documentController := app.DocumentModule.DocumentController
 	documentAcknowledgeUserController := app.DocumentModule.DocumentAcknowledgeUserController
+	documentAuditLogController := app.DocumentModule.DocumentAuditLogController
+	
 	documentClauseController := app.DocumentModule.DocumentClauseController
 
 	documentRoutes.GET("/document-categories", documentCategoryController.GetAllDocumentCategories)
@@ -78,6 +80,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentRoutes.POST("/documents/:id/acknowledge", documentAcknowledgeUserController.CreateDocumentAcknowledgeUser)
 	documentRoutes.DELETE("/documents/:id/acknowledge", documentAcknowledgeUserController.DeleteDocumentAcknowledgeUser)
 
+	documentRoutes.GET("/documents/:id/audit-logs", documentAuditLogController.GetAllDocumentAuditLogs)
+	
 	documentRoutes.GET("/documents/:id/clauses", documentClauseController.GetAllDocumentClauses)
 	documentRoutes.GET("/documents/:id/clauses/clauseId", documentClauseController.GetDocumentClauseDetails)
 	documentRoutes.POST("/documents/:id/clauses", documentClauseController.CreateDocumentClause)
