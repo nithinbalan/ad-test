@@ -17,6 +17,7 @@ type DocumentModule struct {
 	DocumentWorkflowStatusController  *controllers.DocumentWorkflowStatusController
 	DocumentController                *controllers.DocumentController
 	DocumentAcknowledgeUserController *controllers.DocumentAcknowledgeUserController
+	DocumentAuditLogController        *controllers.DocumentAuditLogController
 
 	DocumentSvc services.DocumentServiceInterface
 }
@@ -52,6 +53,11 @@ func NewDocumentModule(db *gorm.DB,
 	documentAccessTypeController := controllers.NewDocumentAccessTypeController(documentAccessTypeSvc)
 
 	documentRepo := repositories.NewDocumentRepository(db)
+
+	documentAuditLogRepo := repositories.NewDocumentAuditLogRepository(db)
+	documentAuditLogSvc := services.NewDocumentAuditLogService(documentAuditLogRepo, documentRepo)
+	documentAuditLogController := controllers.NewDocumentAuditLogController(documentAuditLogSvc)
+
 	documentSvc := services.NewDocumentService(
 		documentRepo,
 		documentCategorySvc,
@@ -63,12 +69,15 @@ func NewDocumentModule(db *gorm.DB,
 		settingsModule.WorkflowSvc,
 		documentWorkflowStatusSvc,
 		documentWorkflowStatusSvc,
-		sharedModule.ActivityLogService)
+		sharedModule.ActivityLogService,
+		documentAuditLogSvc)
 	documentController := controllers.NewDocumentController(documentSvc)
 
 	documentAcknowledgeUserRepo := repositories.NewDocumentAcknowledgeUserRepository(db)
 	documentAcknowledgeUserSvc := services.NewDocumentAcknowledgeUserService(documentAcknowledgeUserRepo, sharedModule.ActivityLogService, documentSvc)
 	documentAcknowledgeUserController := controllers.NewDocumentAcknowledgeUserController(documentAcknowledgeUserSvc)
+
+
 
 	return &DocumentModule{
 		DocumentCategoryController:        documentCategoryController,
@@ -79,6 +88,7 @@ func NewDocumentModule(db *gorm.DB,
 		DocumentWorkflowStatusController:  documentWorkflowStatusController,
 		DocumentController:                documentController,
 		DocumentAcknowledgeUserController: documentAcknowledgeUserController,
+		DocumentAuditLogController:        documentAuditLogController,
 
 		DocumentSvc: documentSvc,
 	}
