@@ -1,6 +1,7 @@
 package dtos
 
 import (
+	commonDTOs "jethur/grc/common/dtos"
 	"time"
 )
 
@@ -43,15 +44,19 @@ type DocumentAuditLogListDTO struct {
 }
 
 type DocumentAuditLogListQueryParamsDTO struct {
-	Sort        string   `json:"sort"`
-	SortBy      string   `json:"sort_by"`
-	Keyword     string   `json:"keyword"`
-	Status      string   `json:"status"`
-	QuickFilter []string `json:"quick_filter"`
+	Sort           string
+	SortBy         string
+	Keyword        string
+	Status         string
+	Page           int
+	PageSize       int
+	Filters        map[string][]string
+	QuickFilter    []string
 }
 
 type DocumentAuditLogListResponseDTO struct {
 	Items []*DocumentAuditLogListDTO `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }
 
 type DocumentAuditLogFormDTO struct {

@@ -10,6 +10,7 @@ CREATE TABLE document_audit_log_types
     CONSTRAINT CHK_document_audit_log_types_type CHECK (type IN (
         'published', 
         'viewed', 
+        'previewed', 
         'downloaded', 
         'acknowledged'
     ))

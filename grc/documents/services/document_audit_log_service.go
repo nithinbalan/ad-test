@@ -11,7 +11,6 @@ type DocumentAuditLogServiceInterface interface {
 	GetAll(documentID uint, params *documentDTOs.DocumentAuditLogListQueryParamsDTO) (*documentDTOs.DocumentAuditLogListResponseDTO, error)
 	GetByType(documentAuditLogType string) (*models.DocumentAuditLogType, error)
 	Create(documentAuditLogFormDTOs *documentDTOs.DocumentAuditLogFormDTO, tx ...utility.DatabaseTransaction) error
-	CheckExists(documentID uint, documentVersionID uint, documentTypeID uint, userID uint, tx ...utility.DatabaseTransaction) (bool, error)
 }
 
 // Service and implementations
@@ -55,14 +54,6 @@ func (dals *DocumentAuditLogService) GetByType(documentAuditLogType string) (*mo
 	}
 
 	return typeResult, nil
-}
-
-func (dals *DocumentAuditLogService) CheckExists(documentID uint, documentVersionID uint, documentAuditLogTypeID uint, userID uint, tx ...utility.DatabaseTransaction) (bool, error) {
-	exists, err := dals.repo.Exists(documentID, documentVersionID, documentAuditLogTypeID, userID, tx...)
-	if err != nil {
-		return false, err
-	}
-	return exists, nil
 }
 
 func (dals *DocumentAuditLogService) Create(documentAuditLogFormDTO *documentDTOs.DocumentAuditLogFormDTO, tx ...utility.DatabaseTransaction) error {

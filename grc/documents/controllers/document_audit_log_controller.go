@@ -37,11 +37,24 @@ func (dalc *DocumentAuditLogController) GetAllDocumentAuditLogs(c *gin.Context) 
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
 
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(dalc.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(dalc.db, c, "Invalid page_size parameter")
+		return
+	}
 	queryParams := documentDTOs.DocumentAuditLogListQueryParamsDTO{
 		Sort:        sort,
 		SortBy:      sortBy,
 		Keyword:     keyword,
 		Status:      status,
+		Page:        page,
+		PageSize:    pageSize,
 		QuickFilter: quickFilter,
 	}
 	if err != nil {
@@ -66,4 +79,3 @@ func (dalc *DocumentAuditLogController) GetAllDocumentAuditLogs(c *gin.Context) 
 	}
 	c.JSON(http.StatusOK, documentTimelines)
 }
-

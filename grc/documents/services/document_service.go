@@ -49,7 +49,7 @@ type DocumentServiceInterface interface {
 	GetDocumentWorkflowList(id uint) (*documentDTOs.DocumentVersionWorkflowListDTO, error)
 
 	CreateDocumentAuditLog(documentID uint, documentVersionID uint, userID uint, logType string, tx ...utility.DatabaseTransaction) error
-	LogDocumentAuditFromController(documentID uint, userID uint, logType string) error
+	DirectDocumentAuditLog(documentID uint, userID uint, logType string) error
 }
 
 type DocumentService struct {
@@ -1526,32 +1526,23 @@ func (ds *DocumentService) CreateDocumentAuditLog(documentID uint, documentVersi
 		return err
 	}
 
-	// Check if the audit log entry already exists
-	exists, err := ds.documentAuditLogSvc.CheckExists(documentID, documentVersionID, documentAuditLogType.ID, userID, tx...)
-	if err != nil {
-		return err
+	currentTime := time.Now()
+	documentAuditLogFormDTO := &dtos.DocumentAuditLogFormDTO{
+		DocumentID:             documentID,
+		DocumentVersionID:      documentVersionID,
+		UserID:                 userID,
+		DocumentAuditLogTypeID: documentAuditLogType.ID,
+		CreatedAt:              currentTime,
+		CreatedByID:            userID,
 	}
-
-	// If it doesn't exist, create a new audit log entry
-	if !exists {
-		currentTime := time.Now()
-		documentAuditLogFormDTO := &dtos.DocumentAuditLogFormDTO{
-			DocumentID:             documentID,
-			DocumentVersionID:      documentVersionID,
-			UserID:                 userID,
-			DocumentAuditLogTypeID: documentAuditLogType.ID,
-			CreatedAt:              currentTime,
-			CreatedByID:            userID,
-		}
-		if err := ds.documentAuditLogSvc.Create(documentAuditLogFormDTO, tx...); err != nil {
-			return err
-		}
+	if err := ds.documentAuditLogSvc.Create(documentAuditLogFormDTO, tx...); err != nil {
+		return err
 	}
 
 	return nil
 }
 
-func (ds *DocumentService) LogDocumentAuditFromController(documentID uint, userID uint, logType string) error {
+func (ds *DocumentService) DirectDocumentAuditLog(documentID uint, userID uint, logType string) error {
 	tx := ds.repo.BeginTransaction()
 	document, err := ds.GetFullDetailsByID(documentID, tx)
 	if err != nil {

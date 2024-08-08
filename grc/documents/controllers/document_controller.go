@@ -94,7 +94,7 @@ func (dc *DocumentController) GetDocumentDetails(c *gin.Context) {
 		return
 	}
 	//Add audit log for the document
-	if err := dc.service.LogDocumentAuditFromController(uint(id), currentUserID, "viewed"); err != nil {
+	if err := dc.service.DirectDocumentAuditLog(uint(id), currentUserID, "viewed"); err != nil {
 		utility.SendInternalErrResp(dc.db, c, err.Error())
 		return
 	}
@@ -296,7 +296,7 @@ func (dc *DocumentController) GetDocumentPreview(c *gin.Context) {
 		return
 	}
 	// Add audit log for the document
-	if err := dc.service.LogDocumentAuditFromController(uint(id), uint(currentUserID), "viewed"); err != nil {
+	if err := dc.service.DirectDocumentAuditLog(uint(id), uint(currentUserID), "previewed"); err != nil {
 		utility.SendInternalErrResp(dc.db, c, err.Error())
 		return
 	}
@@ -477,7 +477,7 @@ func (dc *DocumentController) DownloadDocument(c *gin.Context) {
 		return
 	}
 	// Add audit log for the document
-	if err := dc.service.LogDocumentAuditFromController(uint(id), uint(currentUserID), "downloaded"); err != nil {
+	if err := dc.service.DirectDocumentAuditLog(uint(id), uint(currentUserID), "downloaded"); err != nil {
 		utility.SendInternalErrResp(dc.db, c, err.Error())
 		return
 	}

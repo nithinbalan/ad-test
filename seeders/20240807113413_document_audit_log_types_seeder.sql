@@ -5,6 +5,7 @@ INSERT INTO document_audit_log_types
 VALUES
     ('Published', 'نُشر', '#28A745', 'published'),
     ('Viewed', 'تمت المشاهدة', '#007BFF', 'viewed'),
+    ('Previewed', 'معاينة', '#6C757D', 'previewed'),
     ('Downloaded', 'تم التنزيل', '#FFC107', 'downloaded'),
     ('Acknowledged', 'تم التأكيد', '#DC3545', 'acknowledged');
 -- +goose StatementEnd

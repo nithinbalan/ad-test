@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"errors"
+	commonDTOs "jethur/grc/common/dtos"
 	documentDTOs "jethur/grc/documents/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
@@ -11,10 +12,9 @@ import (
 
 type DocumentAuditLogRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(documentID uint,documentVersionID uint, params *documentDTOs.DocumentAuditLogListQueryParamsDTO) (*documentDTOs.DocumentAuditLogListResponseDTO, error)
+	GetAll(documentID uint, documentVersionID uint, params *documentDTOs.DocumentAuditLogListQueryParamsDTO) (*documentDTOs.DocumentAuditLogListResponseDTO, error)
 	GetByType(docuemntAuditLog string) (*models.DocumentAuditLogType, error)
 	Create(documentAuditLog *models.DocumentAuditLog, tx ...utility.DatabaseTransaction) error
-	Exists(documentID uint,documentVersionID uint, documentTypeID uint, userID uint, tx ...utility.DatabaseTransaction) (bool, error)
 }
 
 type DocumentAuditLogRepository struct {
@@ -27,12 +27,11 @@ func NewDocumentAuditLogRepository(db *gorm.DB) *DocumentAuditLogRepository {
 	}
 }
 
-
 func (repo *DocumentAuditLogRepository) BeginTransaction() utility.DatabaseTransaction {
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *DocumentAuditLogRepository) GetAll(documentID uint,documentVersionID uint, params *documentDTOs.DocumentAuditLogListQueryParamsDTO) (*documentDTOs.DocumentAuditLogListResponseDTO, error) {
+func (repo *DocumentAuditLogRepository) GetAll(documentID uint, documentVersionID uint, params *documentDTOs.DocumentAuditLogListQueryParamsDTO) (*documentDTOs.DocumentAuditLogListResponseDTO, error) {
 	var auditLogList []*documentDTOs.DocumentAuditLogListDTO
 	var totalCount int64
 
@@ -114,15 +113,26 @@ func (repo *DocumentAuditLogRepository) GetAll(documentID uint,documentVersionID
 
 	query = query.Order(params.SortBy + " " + params.Sort)
 
+	offset := (params.Page - 1) * params.PageSize
+
 	// Execute the query
-	err := query.Find(&auditLogList).Error
+	err := query.Offset(offset).Limit(params.PageSize).Find(&auditLogList).Error
 	if err != nil {
 		return nil, err
 	}
 
-	return &documentDTOs.DocumentAuditLogListResponseDTO{
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &documentDTOs.DocumentAuditLogListResponseDTO{
 		Items: auditLogList,
-	}, nil
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+	return response, nil
 }
 
 func (repo *DocumentAuditLogRepository) GetByType(docuemntAuditLog string) (*models.DocumentAuditLogType, error) {
@@ -145,22 +155,4 @@ func (repo *DocumentAuditLogRepository) Create(documentAuditLog *models.Document
 		db = tx[0].DB()
 	}
 	return db.Create(documentAuditLog).Error
-}
-
-func (repo *DocumentAuditLogRepository) Exists(documentID uint,documentVersionID uint, documentTypeID uint, userID uint, tx ...utility.DatabaseTransaction) (bool, error) {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-
-	var count int64
-	err := db.Model(&models.DocumentAuditLog{}).
-		Where("document_id = ? AND document_version_id = ? AND document_audit_log_type_id = ? AND user_id = ?", documentID, documentVersionID, documentTypeID, userID).
-		Count(&count).Error
-
-	if err != nil {
-		return false, err
-	}
-
-	return count > 0, nil
 }
