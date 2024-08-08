@@ -123,7 +123,7 @@ func (dcs *DocumentClauseService) Create(documentId uint, currentUserId uint, do
 		}
 		if parantClause.ClauseNumber != nil {
 			if !isValidChildClauseNumber(*parantClause.ClauseNumber, *documentClauseFormDTO.ClauseNumber) {
-				return 0, utility.NewValidationError(fmt.Errorf("invalid clause number '%s' for the specified parent '%s'", documentClauseFormDTO.ClauseNumber, parantClause.ClauseNumber), "invalid_clause_number", "clause number")
+				return 0, utility.NewValidationError(fmt.Errorf("invalid clause number '%s' for the specified parent '%s'", *documentClauseFormDTO.ClauseNumber, *parantClause.ClauseNumber), "invalid_clause_number", "clause number")
 			}
 		}
 
@@ -237,7 +237,7 @@ func (dcs *DocumentClauseService) Update(documentId uint, clauseId uint, current
 		}
 		if parantClause.ClauseNumber != nil {
 			if !isValidChildClauseNumber(*parantClause.ClauseNumber, *documentClauseFormDTO.ClauseNumber) {
-				return utility.NewValidationError(fmt.Errorf("invalid clause number '%s' for the specified parent '%s'", documentClauseFormDTO.ClauseNumber, parantClause.ClauseNumber), "invalid_clause_number", "clause number")
+				return utility.NewValidationError(fmt.Errorf("invalid clause number '%s' for the specified parent '%s'", *documentClauseFormDTO.ClauseNumber, *parantClause.ClauseNumber), "invalid_clause_number", "clause number")
 			}
 		}
 		existingClause.DocumentVersionClauseID = &parantClause.ID
