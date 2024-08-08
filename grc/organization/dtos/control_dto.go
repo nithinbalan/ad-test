@@ -77,6 +77,13 @@ type ControlListDTO struct {
 	UpdatedAt                            *time.Time `json:"updated_at"`
 }
 
+type ControlMinimalListDTO struct {
+	ReferenceNumber string  `json:"reference_number"`
+	Code            *string `json:"code"`
+	TitleEn         string  `json:"title_en"`
+	TitleAr         string  `json:"title_ar"`
+}
+
 type ControlListQueryParamsDTO struct {
 	Sort               string
 	SortBy             string

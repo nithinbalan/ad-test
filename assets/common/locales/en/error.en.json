@@ -72,6 +72,10 @@
     "translation": "Invalid OTP" 
   },
   {
+    "id": "invalid_clause_number",
+    "translation": "Invalid Clause Number" 
+  },
+  {
     "id": "field_confirm_password",
     "translation": "password and confirm password does not match."
   },
