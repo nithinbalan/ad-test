@@ -9,8 +9,8 @@ CREATE TABLE document_workflow_reviews (
     created_at DATETIME NOT NULL,
     updated_by_id INT NULL,
     updated_at DATETIME NULL,
-    CONSTRAINT FK_ocument_workflow_reviews_document_workflow FOREIGN KEY (document_workflow_id) REFERENCES document_workflows(id),
-    CONSTRAINT FK_ocument_workflow_reviews_document_workflow_status FOREIGN KEY (document_workflow_status_id) REFERENCES document_workflow_statuses(id)
+    CONSTRAINT FK_document_workflow_reviews_document_workflow FOREIGN KEY (document_workflow_id) REFERENCES document_workflows(id),
+    CONSTRAINT FK_document_workflow_reviews_document_workflow_status FOREIGN KEY (document_workflow_status_id) REFERENCES document_workflow_statuses(id)
 );
 -- +goose StatementEnd
 
