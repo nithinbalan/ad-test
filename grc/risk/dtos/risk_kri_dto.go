@@ -7,8 +7,7 @@ import (
 )
 
 type RiskKriListDTO struct {
-	ID                              uint    `json:"id"`
-	KriRegisterID                   uint    `json:"kri_register_id"`
+	KriRegisterID                   uint    `json:"id"` //value for id as kri_register_id
 	ReferenceNumber                 string  `json:"reference_number"`
 	Title                           string  `json:"title"`
 	KRICategoryTitleEn              string  `json:"kri_category_title_en"`
