@@ -283,8 +283,9 @@ func (rks *RiskKriService) Delete(riskID uint, ids []uint, currentUserID uint) (
 			}
 		}
 
-		err = rks.repo.Delete(riskID,id)
+		err = rks.repo.Delete(riskID,id,tx)
 		if err != nil {
+			tx.Rollback()
 			failedIds = append(failedIds, id)
 		} else {
 			successfulIds = append(successfulIds, id)
