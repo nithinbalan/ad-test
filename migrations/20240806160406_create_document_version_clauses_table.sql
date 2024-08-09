@@ -6,6 +6,7 @@ CREATE TABLE document_version_clauses (
     clause_number VARCHAR(45) NULL,
     clause_title_en NVARCHAR(255) NOT NULL,
     clause_title_ar NVARCHAR(255) NOT NULL,
+    description NVARCHAR(MAX) NULL
     created_by_id INT NOT NULL,
     created_at DATETIME NOT NULL,
     updated_by_id INT NULL,

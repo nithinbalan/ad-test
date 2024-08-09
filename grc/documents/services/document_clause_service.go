@@ -109,6 +109,7 @@ func (dcs *DocumentClauseService) Create(documentId uint, currentUserId uint, do
 		ClauseNumber:  documentClauseFormDTO.ClauseNumber,
 		ClauseTitleEn: documentClauseFormDTO.ClauseTitleEn,
 		ClauseTitleAr: documentClauseFormDTO.ClauseTitleAr,
+		Description:   documentClauseFormDTO.Description,
 		CreatedBYID:   currentUserId,
 	}
 
@@ -224,6 +225,7 @@ func (dcs *DocumentClauseService) Update(documentId uint, clauseId uint, current
 	existingClause.ClauseNumber = documentClauseFormDTO.ClauseNumber
 	existingClause.ClauseTitleEn = documentClauseFormDTO.ClauseTitleEn
 	existingClause.ClauseTitleAr = documentClauseFormDTO.ClauseTitleAr
+	existingClause.Description = documentClauseFormDTO.Description
 	existingClause.UpdatedBYID = &currentUserId
 
 	if documentClauseFormDTO.ParantClauseID != nil {

@@ -10,6 +10,7 @@ type DocumentVersionClause struct {
 	ClauseNumber            *string    `json:"clause_number" gorm:"size:45;default:null"`
 	ClauseTitleEn           string     `json:"clause_title_en" gorm:"type:nvarchar(255);size:255;not null" binding:"required"`
 	ClauseTitleAr           string     `json:"clause_title_ar" gorm:"type:nvarchar(255);size:255;not null" binding:"required"`
+	Description             *string    `json:"description" gorm:"type:nvarchar(max);default:null"`
 	CreatedBYID             uint       `json:"created_by_id" binding:"required" gorm:"not null"`
 	UpdatedBYID             *uint      `json:"updated_by_id" gorm:"default:null"`
 	CreatedAt               time.Time  `json:"created_at" binding:"required" gorm:"type:datetime;not null"`
