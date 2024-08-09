@@ -52,6 +52,7 @@ func (dcs *DocumentClauseService) GetAll(params *documentDTOs.DocumentClauseList
 			ClauseNumber:                clause.ClauseNumber,
 			ClauseTitleEn:               clause.ClauseTitleEn,
 			ClauseTitleAr:               clause.ClauseTitleAr,
+			Description:                 clause.Description,
 			CreatedUserFirstNameEn:      clause.CreatedByUser.FirstNameEn,
 			CreatedUserFirstNameAr:      clause.CreatedByUser.FirstNameAr,
 			CreatedUserLastNameEn:       clause.CreatedByUser.LastNameEn,
