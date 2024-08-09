@@ -10,6 +10,7 @@ type DocumentClauseListDTO struct {
 	ClauseNumber                *string                                   `json:"clause_number"`
 	ClauseTitleEn               string                                    `json:"clause_title_en"`
 	ClauseTitleAr               string                                    `json:"clause_title_ar"`
+	Description                 *string                                   `json:"description"`
 	CreatedUserFirstNameEn      string                                    `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr      string                                    `json:"created_user_first_name_ar"`
 	CreatedUserLastNameEn       string                                    `json:"created_user_last_name_en"`
@@ -35,6 +36,7 @@ type DocumentClauseFormDTO struct {
 	ClauseNumber   *string `json:"clause_number"`
 	ClauseTitleEn  string  `json:"clause_title_en" binding:"required"`
 	ClauseTitleAr  string  `json:"clause_title_ar" binding:"required"`
+	Description    *string `json:"description"`
 	ParantClauseID *uint   `json:"parant_clause_id"`
 	ControlIds     []*uint `json:"control_ids"`
 }
