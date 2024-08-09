@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"errors"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	riskDTOs "jethur/grc/risk/dtos"
@@ -16,7 +17,7 @@ type RiskKriRepositoryInterface interface {
 	GetFullDetailsByID(id uint) (*models.RiskKri, error)
 	Create(riskKris []*models.RiskKri, tx ...utility.DatabaseTransaction) ([]uint, error)
 	Update(riskKri *models.RiskKri, tx ...utility.DatabaseTransaction) error
-	Delete(id uint) error
+	Delete(riskRegisterID uint, kriRegisterID uint, tx ...utility.DatabaseTransaction) error
 	GetCountByRiskID(riskID uint, tx ...utility.DatabaseTransaction) (int64, error)
 }
 
@@ -256,13 +257,23 @@ func (repo *RiskKriRepository) Update(riskKri *models.RiskKri, tx ...utility.Dat
 	return nil
 }
 
-func (repo *RiskKriRepository) Delete(id uint) error {
-	var riskKri *models.RiskKri
-	if err := repo.db.First(&riskKri, id).Error; err != nil {
+func (repo *RiskKriRepository) Delete(riskRegisterID uint, kriRegisterID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	// Attempt to find at least one record with the given riskRegisterID and kriRegisterID
+	var riskKri models.RiskKri
+	if err := db.Where("risk_register_id = ? AND kri_register_id = ?", riskRegisterID, kriRegisterID).First(&riskKri).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// Record not found is a valid case for no deletion
+			return nil
+		}
 		return err
 	}
 
-	result := repo.db.Delete(&models.RiskKri{}, id)
+	// Delete all records with the given riskRegisterID and kriRegisterID
+	result := db.Where("risk_register_id = ? AND kri_register_id = ?", riskRegisterID, kriRegisterID).Delete(&models.RiskKri{})
 	if result.Error != nil {
 		return result.Error
 	}
