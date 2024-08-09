@@ -11,7 +11,7 @@ import (
 // Interface
 type DocumentClauseRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(params *documentDTOs.DocumentClauseListQueryParamsDTO) ([]*models.DocumentVersionClause, error)
+	GetAll(params *documentDTOs.DocumentClauseListQueryParamsDTO, documentVersionId uint) ([]*models.DocumentVersionClause, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.DocumentVersionClause, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.DocumentVersionClause, error)
 	GetByClauseNumber(clauseNumber string, tx ...utility.DatabaseTransaction) (*models.DocumentVersionClause, error)
@@ -40,13 +40,14 @@ func (repo *DocumentClauseRepository) BeginTransaction() utility.DatabaseTransac
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *DocumentClauseRepository) GetAll(params *documentDTOs.DocumentClauseListQueryParamsDTO) ([]*models.DocumentVersionClause, error) {
+func (repo *DocumentClauseRepository) GetAll(params *documentDTOs.DocumentClauseListQueryParamsDTO, documentVersionId uint) ([]*models.DocumentVersionClause, error) {
 	var clauses []*models.DocumentVersionClause
 	query := repo.db.Model(&models.DocumentVersionClause{}).
 		Preload("DocumentControls").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
-		Preload("DocumentControls.Control")
+		Preload("DocumentControls.Control").
+		Where("document_version_id = ?", documentVersionId)
 
 	// Dynamic filtering based on the keyword
 	if params.Keyword != "" {

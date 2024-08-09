@@ -33,7 +33,14 @@ func (dcc *DocumentClauseController) GetAllDocumentClauses(c *gin.Context) {
 		Keyword: keyword,
 	}
 
-	documentClauses, err := dcc.service.GetAll(&queryParams)
+	idStr := c.Param("id")
+	documentId, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	documentClauses, err := dcc.service.GetAll(&queryParams, uint(documentId))
 	if err != nil {
 		utility.SendInternalErrResp(dcc.db, c, err.Error())
 		return

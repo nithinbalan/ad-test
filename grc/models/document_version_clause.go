@@ -6,6 +6,7 @@ import (
 
 type DocumentVersionClause struct {
 	ID                      uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
+	DocumentVersionID       uint       `json:"document_version_id" gorm:"not null;index" binding:"required"`
 	DocumentVersionClauseID *uint      `json:"document_version_clause_id" gorm:"index; default:null"`
 	ClauseNumber            *string    `json:"clause_number" gorm:"size:45;default:null"`
 	ClauseTitleEn           string     `json:"clause_title_en" gorm:"type:nvarchar(255);size:255;not null" binding:"required"`
@@ -17,6 +18,7 @@ type DocumentVersionClause struct {
 	UpdatedAt               *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 
 	// Relationships
+	DocumentVersion  *DocumentVersion         `gorm:"foreignKey:DocumentVersionID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ParentClause     *DocumentVersionClause   `gorm:"foreignKey:DocumentVersionClauseID"`
 	ChildClauses     []*DocumentVersionClause `gorm:"foreignKey:DocumentVersionClauseID"`
 	CreatedByUser    *User                    `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRIC"`
