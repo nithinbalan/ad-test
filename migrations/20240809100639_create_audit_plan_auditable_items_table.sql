@@ -5,7 +5,6 @@ CREATE TABLE audit_plan_auditable_items
     id INT PRIMARY KEY IDENTITY(1, 1),
     audit_plan_id INT NOT NULL,
     auditable_item_id INT NOT NULL,
-    user_id INT NOT NULL,
     created_by_id INT NOT NULL,
     created_at DATETIME NOT NULL,
     CONSTRAINT FK_audit_plan_auditable_items_audit_plans FOREIGN KEY (audit_plan_id) REFERENCES audit_plans(id) ON DELETE NO ACTION ON UPDATE NO ACTION,

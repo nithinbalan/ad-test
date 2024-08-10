@@ -15,9 +15,10 @@ type AuditModule struct {
 	AuditableItemController     *controllers.AuditableItemController
 	AuditTeamController         *controllers.AuditTeamController
 	AuditCategoryController     *controllers.AuditCategoryController
+	AuditPlanController         *controllers.AuditPlanController
 }
 
-func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, complianceModule *ComplianceModule, riskModule *RiskModule, incidentModule *IncidentModule, documentModule *DocumentModule) *AuditModule {
+func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, complianceModule *ComplianceModule, riskModule *RiskModule, incidentModule *IncidentModule, documentModule *DocumentModule, settingModule *SettingsModule) *AuditModule {
 
 	auditStatusRepo := repositories.NewAuditStatusRepository(db)
 	auditStatusSvc := services.NewAuditStatusService(auditStatusRepo)
@@ -62,6 +63,19 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 	auditCategorySvc := services.NewAuditCategoryService(auditCategoryRepo, sharedModule.ActivityLogService)
 	auditCategoryController := controllers.NewAuditCategoryController(auditCategorySvc)
 
+	auditPlanRepo := repositories.NewAuditPlanRepository(db)
+	auditPlanSvc := services.NewAuditPlanService(
+		auditPlanRepo,
+		sharedModule.ActivityLogService,
+		auditCategorySvc,
+		auditStatusSvc,
+		auditTeamSvc,
+		organizationModule.UserSvc,
+		auditableItemSvc,
+		settingModule.OrganizationUnitSvc,
+	)
+	auditPlanController := controllers.NewAuditPlanController(auditPlanSvc)
+
 	return &AuditModule{
 		AuditStatusController:       auditStatusController,
 		AuditorRiskRatingController: auditorRiskRatingController,
@@ -69,5 +83,6 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		AuditableItemController:     auditableItemController,
 		AuditTeamController:         auditTeamController,
 		AuditCategoryController:     auditCategoryController,
+		AuditPlanController:         auditPlanController,
 	}
 }
