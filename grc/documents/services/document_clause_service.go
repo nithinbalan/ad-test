@@ -11,11 +11,13 @@ import (
 	"jethur/utility"
 	"strings"
 
+	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
 )
 
 type DocumentClauseServiceInterface interface {
 	GetAll(params *documentDTOs.DocumentClauseListQueryParamsDTO, documentId uint) ([]*documentDTOs.DocumentClauseListDTO, error)
+	GetFullDetailsByID(documentId uint, clauseId uint) (*documentDTOs.DocumentClauseDetailsDTO, error)
 	Create(documentId uint, currentUserId uint, documentClauseFormDTO *documentDTOs.DocumentClauseFormDTO) (uint, error)
 	Update(documentId uint, clauseId uint, currentUserId uint, documentClauseFormDTO *documentDTOs.DocumentClauseFormDTO) error
 	Delete(clauseIDs []uint, currentUserID uint) ([]uint, error)
@@ -96,6 +98,25 @@ func (dcs *DocumentClauseService) GetAll(params *documentDTOs.DocumentClauseList
 		dtos = append(dtos, dto)
 	}
 	return dtos, nil
+}
+
+func (dcs *DocumentClauseService) GetFullDetailsByID(documentId uint, clauseId uint) (*documentDTOs.DocumentClauseDetailsDTO, error) {
+	var documentClauseDetailsDTO documentDTOs.DocumentClauseDetailsDTO
+
+	clause, err := dcs.repo.GetFullDetailsByID(clauseId)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, clauseId)
+		}
+		return nil, err
+	}
+
+	err = mapstructure.Decode(clause, &documentClauseDetailsDTO)
+	if err != nil {
+		return nil, err
+	}
+
+	return &documentClauseDetailsDTO, nil
 }
 
 func (dcs *DocumentClauseService) Create(documentId uint, currentUserId uint, documentClauseFormDTO *documentDTOs.DocumentClauseFormDTO) (uint, error) {

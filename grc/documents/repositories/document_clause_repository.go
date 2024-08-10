@@ -99,11 +99,12 @@ func (repo *DocumentClauseRepository) GetFullDetailsByID(id uint, tx ...utility.
 	var documentVersionClause *models.DocumentVersionClause
 
 	result := db.
-		Preload("ParentClause").
+		Preload("ParantClause").
 		Preload("ChildClauses").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		Preload("DocumentControls").
+		Preload("DocumentControls.Control").
 		First(&documentVersionClause, id)
 
 	if result.Error != nil {
