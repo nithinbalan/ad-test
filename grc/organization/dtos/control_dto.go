@@ -78,6 +78,7 @@ type ControlListDTO struct {
 }
 
 type ControlMinimalListDTO struct {
+	ID              uint    `json:"id"`
 	ReferenceNumber string  `json:"reference_number"`
 	Code            *string `json:"code"`
 	TitleEn         string  `json:"title_en"`

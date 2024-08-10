@@ -58,6 +58,7 @@ type DocumentClauseDetailsDTO struct {
 }
 
 type DocumentParantClauseDTO struct {
+	ID            uint    `json:"id"`
 	ClauseNumber  *string `json:"clause_number"`
 	ClauseTitleEn string  `json:"clause_title_en"`
 	ClauseTitleAr string  `json:"clause_title_ar"`
