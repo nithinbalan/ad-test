@@ -83,6 +83,7 @@ type ControlMinimalListDTO struct {
 	Code            *string `json:"code"`
 	TitleEn         string  `json:"title_en"`
 	TitleAr         string  `json:"title_ar"`
+	Description     *string `json:"description"`
 }
 
 type ControlListQueryParamsDTO struct {
