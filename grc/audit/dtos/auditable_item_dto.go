@@ -3,6 +3,7 @@ package dtos
 import (
 	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
+	documentDTOs "jethur/grc/documents/dtos"
 	incidentDTOs "jethur/grc/incident/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
 	riskDTOs "jethur/grc/risk/dtos"
@@ -81,6 +82,7 @@ type AuditableItemFormDTO struct {
 	ComplianceRequirementIDs []*uint `json:"compliance_requirement_ids" binding:"omitempty"`
 	RiskRegisterIDs          []*uint `json:"risk_register_ids" binding:"omitempty"`
 	UserIDs                  []*uint `json:"user_ids" binding:"omitempty"`
+	OrganizationUnitIds      []*uint `json:"organization_unit_ids"`
 	Comment                  string  `json:"comment" binding:"required"`
 	AuditorRiskRatingID      uint    `json:"auditor_risk_rating_id" binding:"required"`
 	AuditStatusID            *uint   `json:"audit_status_id"`
@@ -95,11 +97,12 @@ type AuditableItemDetailDTO struct {
 	AuditorRiskRating     *AuditorRiskRatingDTO                          `json:"auditor_risk_rating"`
 	Process               *organizationDTOs.ProcessDetailDTO             `json:"process"`
 	Control               *organizationDTOs.ControlDetailDTO             `json:"control"`
-	// Document              *documentDTOs.DocumentDetailDTO                `json:"document"`
+	Document              *documentDTOs.DocumentDetailsDTO               `json:"document"`
 	IncidentRegister      *incidentDTOs.IncidentRegisterDetailDTO        `json:"incident_register"`
 	ComplianceRequirement *complianceDTOs.ComplianceRequirementDetailDTO `json:"compliance_requirement"`
 	RiskRegister          *riskDTOs.RiskRegisterDetailDTO                `json:"risk_register"`
 	User                  *organizationDTOs.UserMinimalDTO               `json:"user"`
+	OrganizationUnits     []*AuditableOrganizationUnitDTO                `json:"organization_units"`
 	CreatedAt             time.Time                                      `json:"created_at"`
 	UpdatedAt             *time.Time                                     `json:"updated_at"`
 	CreatedByUser         *organizationDTOs.UserMinimalDTO               `json:"created_by"`
@@ -108,4 +111,11 @@ type AuditableItemDetailDTO struct {
 
 type AuditableItemStatusUpdateFormDTO struct {
 	AuditStatusID uint `json:"audit_status_id"`
+}
+
+type AuditableOrganizationUnitDTO struct {
+	ID                 *uint                                 `json:"id"`
+	AuditableItemID    uint                                  `json:"auditable_item_id"`
+	OrganizationUnitID uint                                  `json:"organization_unit_id"`
+	OrganizationUnit   organizationDTOs.OrganizationUnit1DTO `json:"organization_units"`
 }

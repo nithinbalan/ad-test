@@ -5,6 +5,7 @@ import (
 	"jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
 	complianceServices "jethur/grc/compliance/services"
+	documentServices "jethur/grc/documents/services"
 	incidentServices "jethur/grc/incident/services"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
@@ -32,7 +33,7 @@ type AuditUniverseService struct {
 	complianceRequirementSvc complianceServices.ComplianceRequirementServiceInterface
 	riskRegisterSvc          riskServices.RiskRegisterServiceInterface
 	incidentRegisterSvc      incidentServices.IncidentRegisterServiceInterface
-	// documentSvc documentServices.DocumentServiceInterface
+	documentSvc              documentServices.DocumentServiceInterface
 }
 
 func NewAuditUniverseService(
@@ -46,7 +47,7 @@ func NewAuditUniverseService(
 	complianceRequirementSvc complianceServices.ComplianceRequirementServiceInterface,
 	riskRegisterSvc riskServices.RiskRegisterServiceInterface,
 	incidentRegisterSvc incidentServices.IncidentRegisterServiceInterface,
-	// documentSvc incidentServices.IncidentRegisterServiceInterface,
+	documentSvc documentServices.DocumentServiceInterface,
 
 ) AuditUniverseServiceInterface {
 	return &AuditUniverseService{
@@ -60,7 +61,7 @@ func NewAuditUniverseService(
 		complianceRequirementSvc: complianceRequirementSvc,
 		riskRegisterSvc:          riskRegisterSvc,
 		incidentRegisterSvc:      incidentRegisterSvc,
-		// documentSvc: documentSvc,
+		documentSvc:              documentSvc,
 	}
 }
 
@@ -373,20 +374,20 @@ func (aus *AuditUniverseService) validateAuditUniverseFormDTO(auditUniverseFormD
 	}
 
 	// Validate Document IDs
-	// documentIDs := auditUniverseFormDTO.DocumentIDs
-	// documentIDMap := make(map[uint]bool)
+	documentIDs := auditUniverseFormDTO.DocumentIDs
+	documentIDMap := make(map[uint]bool)
 
-	// for _, id := range documentIDs {
-	// 	if documentIDMap[*id] {
-	// 		return utility.NewValidationError(fmt.Errorf("duplicate document ID: %d", *id), "duplicate", "document")
-	// 	}
+	for _, id := range documentIDs {
+		if documentIDMap[*id] {
+			return utility.NewValidationError(fmt.Errorf("duplicate document ID: %d", *id), "duplicate", "document")
+		}
 
-	// 	if _, err := aus.documentSvc.GetByID(*id); err != nil {
-	// 		return utility.NewValidationError(fmt.Errorf("document does not exist for ID: %d", *id), "not_exist", "document")
-	// 	}
+		if _, err := aus.documentSvc.GetByID(*id); err != nil {
+			return utility.NewValidationError(fmt.Errorf("document does not exist for ID: %d", *id), "not_exist", "document")
+		}
 
-	// 	documentIDMap[*id] = true
-	// }
+		documentIDMap[*id] = true
+	}
 
 	// Validate Incident Register IDs
 	incidentRegisterIDs := auditUniverseFormDTO.IncidentRegisterIDs
