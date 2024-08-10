@@ -19,7 +19,7 @@ type DocumentVersionClause struct {
 
 	// Relationships
 	DocumentVersion  *DocumentVersion         `gorm:"foreignKey:DocumentVersionID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ParentClause     *DocumentVersionClause   `gorm:"foreignKey:DocumentVersionClauseID"`
+	ParantClause     *DocumentVersionClause   `gorm:"foreignKey:DocumentVersionClauseID"`
 	ChildClauses     []*DocumentVersionClause `gorm:"foreignKey:DocumentVersionClauseID"`
 	CreatedByUser    *User                    `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRIC"`
 	UpdatedByUser    *User                    `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRIC"`
