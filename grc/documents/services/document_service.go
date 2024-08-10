@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"jethur/config"
 	commonDTOs "jethur/grc/common/dtos"
-	"jethur/grc/documents/dtos"
 	documentDTOs "jethur/grc/documents/dtos"
 	"jethur/grc/documents/repositories"
 	"jethur/grc/logs/services"
@@ -1527,7 +1526,7 @@ func (ds *DocumentService) CreateDocumentAuditLog(documentID uint, documentVersi
 	}
 
 	currentTime := time.Now()
-	documentAuditLogFormDTO := &dtos.DocumentAuditLogFormDTO{
+	documentAuditLogFormDTO := &documentDTOs.DocumentAuditLogFormDTO{
 		DocumentID:             documentID,
 		DocumentVersionID:      documentVersionID,
 		UserID:                 userID,

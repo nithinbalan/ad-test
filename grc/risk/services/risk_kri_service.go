@@ -229,7 +229,7 @@ func (rks *RiskKriService) Update(riskID uint, currentUserID uint, riskKriFormDT
 	// Delete KRIs that are no longer in the new list
 	for _, existingKRI := range existingRisk.Kris {
 		if _, exists := newKRIIDs[existingKRI.KriID]; !exists {
-			if err := rks.repo.Delete(*existingKRI.ID); err != nil {
+			if err := rks.repo.Delete(riskID,*existingKRI.ID); err != nil {
 				return err
 			}
 		}
@@ -283,8 +283,9 @@ func (rks *RiskKriService) Delete(riskID uint, ids []uint, currentUserID uint) (
 			}
 		}
 
-		err = rks.repo.Delete(id)
+		err = rks.repo.Delete(riskID,id,tx)
 		if err != nil {
+			tx.Rollback()
 			failedIds = append(failedIds, id)
 		} else {
 			successfulIds = append(successfulIds, id)

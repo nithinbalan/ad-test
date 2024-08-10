@@ -15,7 +15,7 @@ import (
 )
 
 type DocumentClauseServiceInterface interface {
-	GetAll(params *documentDTOs.DocumentClauseListQueryParamsDTO) ([]*documentDTOs.DocumentClauseListDTO, error)
+	GetAll(params *documentDTOs.DocumentClauseListQueryParamsDTO, documentId uint) ([]*documentDTOs.DocumentClauseListDTO, error)
 	Create(documentId uint, currentUserId uint, documentClauseFormDTO *documentDTOs.DocumentClauseFormDTO) (uint, error)
 	Update(documentId uint, clauseId uint, currentUserId uint, documentClauseFormDTO *documentDTOs.DocumentClauseFormDTO) error
 	Delete(clauseIDs []uint, currentUserID uint) ([]uint, error)
@@ -38,20 +38,26 @@ func NewDocumentClauseService(
 	}
 }
 
-func (dcs *DocumentClauseService) GetAll(params *documentDTOs.DocumentClauseListQueryParamsDTO) ([]*documentDTOs.DocumentClauseListDTO, error) {
-	clauses, err := dcs.repo.GetAll(params)
+func (dcs *DocumentClauseService) GetAll(params *documentDTOs.DocumentClauseListQueryParamsDTO, documentId uint) ([]*documentDTOs.DocumentClauseListDTO, error) {
+	document, err := dcs.documentSvc.GetFullDetailsByID(documentId)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("hii")
 
-	var dtos []*documentDTOs.DocumentClauseListDTO
+	clauses, err := dcs.repo.GetAll(params, document.LatestDocumentVersion.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	dtos := []*documentDTOs.DocumentClauseListDTO{}
+
 	for _, clause := range clauses {
 		dto := &documentDTOs.DocumentClauseListDTO{
 			ID:                          clause.ID,
 			ClauseNumber:                clause.ClauseNumber,
 			ClauseTitleEn:               clause.ClauseTitleEn,
 			ClauseTitleAr:               clause.ClauseTitleAr,
+			Description:                 clause.Description,
 			CreatedUserFirstNameEn:      clause.CreatedByUser.FirstNameEn,
 			CreatedUserFirstNameAr:      clause.CreatedByUser.FirstNameAr,
 			CreatedUserLastNameEn:       clause.CreatedByUser.LastNameEn,
@@ -105,11 +111,19 @@ func (dcs *DocumentClauseService) Create(documentId uint, currentUserId uint, do
 		}
 	}
 
+	document, err := dcs.documentSvc.GetFullDetailsByID(documentId, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
 	documentVersionClause := &models.DocumentVersionClause{
-		ClauseNumber:  documentClauseFormDTO.ClauseNumber,
-		ClauseTitleEn: documentClauseFormDTO.ClauseTitleEn,
-		ClauseTitleAr: documentClauseFormDTO.ClauseTitleAr,
-		CreatedBYID:   currentUserId,
+		DocumentVersionID: document.LatestDocumentVersion.ID,
+		ClauseNumber:      documentClauseFormDTO.ClauseNumber,
+		ClauseTitleEn:     documentClauseFormDTO.ClauseTitleEn,
+		ClauseTitleAr:     documentClauseFormDTO.ClauseTitleAr,
+		Description:       documentClauseFormDTO.Description,
+		CreatedBYID:       currentUserId,
 	}
 
 	if documentClauseFormDTO.ParantClauseID != nil {
@@ -117,13 +131,13 @@ func (dcs *DocumentClauseService) Create(documentId uint, currentUserId uint, do
 		if err != nil {
 			tx.Rollback()
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return 0, utility.NewValidationError(fmt.Errorf("the parant clause not found"), "not_exist", "clause number")
+				return 0, utility.NewValidationError(fmt.Errorf("the parant clause not found"), "not_exist", "clause")
 			}
 			return 0, err
 		}
 		if parantClause.ClauseNumber != nil {
 			if !isValidChildClauseNumber(*parantClause.ClauseNumber, *documentClauseFormDTO.ClauseNumber) {
-				return 0, utility.NewValidationError(fmt.Errorf("invalid clause number '%s' for the specified parent '%s'", documentClauseFormDTO.ClauseNumber, parantClause.ClauseNumber), "invalid_clause_number", "clause number")
+				return 0, utility.NewValidationError(fmt.Errorf("invalid clause number '%s' for the specified parent '%s'", *documentClauseFormDTO.ClauseNumber, *parantClause.ClauseNumber), "invalid_clause_number", "clause number")
 			}
 		}
 
@@ -137,11 +151,6 @@ func (dcs *DocumentClauseService) Create(documentId uint, currentUserId uint, do
 	}
 
 	if documentClauseFormDTO.ControlIds != nil {
-		document, err := dcs.documentSvc.GetFullDetailsByID(documentId, tx)
-		if err != nil {
-			tx.Rollback()
-			return 0, err
-		}
 
 		var controls []*models.DocumentControl
 		for _, controlID := range documentClauseFormDTO.ControlIds {
@@ -221,9 +230,17 @@ func (dcs *DocumentClauseService) Update(documentId uint, clauseId uint, current
 		}
 	}
 
+	document, err := dcs.documentSvc.GetFullDetailsByID(documentId, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	existingClause.DocumentVersionID = document.LatestDocumentVersion.ID
 	existingClause.ClauseNumber = documentClauseFormDTO.ClauseNumber
 	existingClause.ClauseTitleEn = documentClauseFormDTO.ClauseTitleEn
 	existingClause.ClauseTitleAr = documentClauseFormDTO.ClauseTitleAr
+	existingClause.Description = documentClauseFormDTO.Description
 	existingClause.UpdatedBYID = &currentUserId
 
 	if documentClauseFormDTO.ParantClauseID != nil {
@@ -237,19 +254,13 @@ func (dcs *DocumentClauseService) Update(documentId uint, clauseId uint, current
 		}
 		if parantClause.ClauseNumber != nil {
 			if !isValidChildClauseNumber(*parantClause.ClauseNumber, *documentClauseFormDTO.ClauseNumber) {
-				return utility.NewValidationError(fmt.Errorf("invalid clause number '%s' for the specified parent '%s'", documentClauseFormDTO.ClauseNumber, parantClause.ClauseNumber), "invalid_clause_number", "clause number")
+				return utility.NewValidationError(fmt.Errorf("invalid clause number '%s' for the specified parent '%s'", *documentClauseFormDTO.ClauseNumber, *parantClause.ClauseNumber), "invalid_clause_number", "clause number")
 			}
 		}
 		existingClause.DocumentVersionClauseID = &parantClause.ID
 	}
 
 	err = dcs.repo.Update(existingClause, tx)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	document, err := dcs.documentSvc.GetFullDetailsByID(documentId, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
