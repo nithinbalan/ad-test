@@ -143,6 +143,7 @@ func (caic *ControlAssociatedItemController) GetAllControlRisks(c *gin.Context) 
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
+	valueStr := c.Query("value")
 	quickFilter := c.QueryArray("quick_filter")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
@@ -157,6 +158,15 @@ func (caic *ControlAssociatedItemController) GetAllControlRisks(c *gin.Context) 
 		return
 	}
 
+	var value int
+	if valueStr != "" {
+		value, err = strconv.Atoi(valueStr)
+		if err != nil {
+			utility.SendInternalErrResp(caic.db, c, "Invalid value parameter")
+			return
+		}
+	}
+
 	queryParams := organizationDTOs.ControlAssociatedItemListQueryParamsDTO{
 		Sort:        sort,
 		SortBy:      sortBy,
@@ -164,6 +174,7 @@ func (caic *ControlAssociatedItemController) GetAllControlRisks(c *gin.Context) 
 		Status:      status,
 		Page:        page,
 		PageSize:    pageSize,
+		Value:       value,
 		QuickFilter: quickFilter,
 	}
 	risks, err := caic.service.GetAllRisks(uint(controlID), &queryParams)
