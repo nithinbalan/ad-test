@@ -10,6 +10,9 @@ type RiskHeatmapServiceInterface interface {
 	GetRiskHeatmapByControlID(controlID uint) ([][]*riskDTOs.RiskHeatmapResponseDTO, error)
 	GetRiskHeatmapByComplianceID(complianceID uint) ([][]*riskDTOs.RiskHeatmapResponseDTO, error)
 	GetRiskHeatmapByResponsibleUnit() ([]*riskDTOs.RiskHeatmapResponseByItemDTO, error)
+	GetRiskHeatmapByRiskCategory() ([]*riskDTOs.RiskHeatmapResponseByItemDTO, error)
+	GetRiskHeatmapByRiskSource() ([]*riskDTOs.RiskHeatmapResponseByItemDTO, error)
+	GetRiskHeatmapByRiskMatrix() ([][]*riskDTOs.RiskHeatmapResponseDTO, error)
 }
 
 type RiskHeatmapService struct {
@@ -141,6 +144,160 @@ func (rhs *RiskHeatmapService) GetRiskHeatmapByResponsibleUnit() ([]*riskDTOs.Ri
 	}
 
 	return heatmapResponses, nil
+}
+
+func (rhs *RiskHeatmapService) GetRiskHeatmapByRiskCategory() ([]*riskDTOs.RiskHeatmapResponseByItemDTO, error) {
+	riskRegisters, err := rhs.repo.GetAllRiskRegisters()
+	if err != nil {
+		return nil, err
+	}
+
+	riskMatrixType, err := rhs.riskMatrixSvc.GetByType("erm")
+	if err != nil {
+		return nil, err
+	}
+
+	riskMatrix, err := rhs.riskMatrixSvc.GetDetailsByID(riskMatrixType.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Initialize map for risk categories
+	riskCategoryMap := make(map[uint]*riskDTOs.RiskHeatmapResponseByItemDTO)
+	for _, register := range riskRegisters {
+		if _, exists := riskCategoryMap[register.RiskCategoryID]; !exists {
+			riskCategoryMap[register.RiskCategoryID] = &riskDTOs.RiskHeatmapResponseByItemDTO{
+				ItemID:       register.RiskCategoryID,
+				ItemTitleEn:  register.RiskCategory.TitleEn,
+				ItemTitleAr:  register.RiskCategory.TitleAr,
+				HeatmapCells: []*riskDTOs.RiskHeatmapResponseByItemDetailsDTO{},
+			}
+
+			// Initialize HeatmapCells with all possible values from the risk matrix
+			for _, rating := range riskMatrix.RiskMatrixRiskRating {
+				for _, value := range rating.RiskMatrixRiskRatingValue {
+					riskCategoryMap[register.RiskCategoryID].HeatmapCells = append(riskCategoryMap[register.RiskCategoryID].HeatmapCells, &riskDTOs.RiskHeatmapResponseByItemDetailsDTO{
+						RiskMatrixRiskRatingID:      rating.ID,
+						RiskMatrixRiskRatingTitleEN: rating.TitleEn,
+						RiskMatrixRiskRatingTitleAR: rating.TitleAr,
+						ColorCode:                   rating.ColorCode,
+						Value:                       value.Value,
+						RiskRegisterCount:           0, // Initialize count to 0
+					})
+				}
+			}
+		}
+	}
+
+	// Populate each risk category's heatmap cells
+	for _, register := range riskRegisters {
+		if register.CurrentRiskRatingID != nil && register.CurrentRiskRatingValueID != nil {
+			categoryResponse := riskCategoryMap[register.RiskCategoryID]
+			ratingID := *register.CurrentRiskRatingID
+			valueID := *register.CurrentRiskRatingValueID
+
+			// Find and increment the corresponding cell
+			for _, cell := range categoryResponse.HeatmapCells {
+				if cell.RiskMatrixRiskRatingID == ratingID && cell.Value == valueID {
+					cell.RiskRegisterCount++
+					break
+				}
+			}
+		}
+	}
+
+	// Prepare the final response
+	heatmapResponses := make([]*riskDTOs.RiskHeatmapResponseByItemDTO, 0, len(riskCategoryMap))
+	for _, categoryResponse := range riskCategoryMap {
+		heatmapResponses = append(heatmapResponses, categoryResponse)
+	}
+
+	return heatmapResponses, nil
+}
+
+func (rhs *RiskHeatmapService) GetRiskHeatmapByRiskSource() ([]*riskDTOs.RiskHeatmapResponseByItemDTO, error) {
+	riskRegisters, err := rhs.repo.GetAllRiskRegisters()
+	if err != nil {
+		return nil, err
+	}
+
+	riskMatrixType, err := rhs.riskMatrixSvc.GetByType("erm")
+	if err != nil {
+		return nil, err
+	}
+
+	riskMatrix, err := rhs.riskMatrixSvc.GetDetailsByID(riskMatrixType.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Initialize map for risk sources
+	riskSourceMap := make(map[uint]*riskDTOs.RiskHeatmapResponseByItemDTO)
+	for _, register := range riskRegisters {
+		if register.RiskSourceID != nil {
+			if _, exists := riskSourceMap[*register.RiskSourceID]; !exists {
+				riskSourceMap[*register.RiskSourceID] = &riskDTOs.RiskHeatmapResponseByItemDTO{
+					ItemID:       *register.RiskSourceID,
+					ItemTitleEn:  register.RiskSource.TitleEn,
+					ItemTitleAr:  register.RiskSource.TitleAr,
+					HeatmapCells: []*riskDTOs.RiskHeatmapResponseByItemDetailsDTO{},
+				}
+
+				// Initialize HeatmapCells with all possible values from the risk matrix
+				for _, rating := range riskMatrix.RiskMatrixRiskRating {
+					for _, value := range rating.RiskMatrixRiskRatingValue {
+						riskSourceMap[*register.RiskSourceID].HeatmapCells = append(riskSourceMap[*register.RiskSourceID].HeatmapCells, &riskDTOs.RiskHeatmapResponseByItemDetailsDTO{
+							RiskMatrixRiskRatingID:      rating.ID,
+							RiskMatrixRiskRatingTitleEN: rating.TitleEn,
+							RiskMatrixRiskRatingTitleAR: rating.TitleAr,
+							ColorCode:                   rating.ColorCode,
+							Value:                       value.Value,
+							RiskRegisterCount:           0, // Initialize count to 0
+						})
+					}
+				}
+			}
+		}
+	}
+
+	// Populate each risk source's heatmap cells
+	for _, register := range riskRegisters {
+		if register.RiskSourceID != nil && register.CurrentRiskRatingID != nil && register.CurrentRiskRatingValueID != nil {
+			sourceResponse := riskSourceMap[*register.RiskSourceID]
+			ratingID := *register.CurrentRiskRatingID
+			valueID := *register.CurrentRiskRatingValueID
+
+			// Find and increment the corresponding cell
+			for _, cell := range sourceResponse.HeatmapCells {
+				if cell.RiskMatrixRiskRatingID == ratingID && cell.Value == valueID {
+					cell.RiskRegisterCount++
+					break
+				}
+			}
+		}
+	}
+
+	// Prepare the final response
+	heatmapResponses := make([]*riskDTOs.RiskHeatmapResponseByItemDTO, 0, len(riskSourceMap))
+	for _, sourceResponse := range riskSourceMap {
+		heatmapResponses = append(heatmapResponses, sourceResponse)
+	}
+
+	return heatmapResponses, nil
+}
+
+func (rhs *RiskHeatmapService) GetRiskHeatmapByRiskMatrix() ([][]*riskDTOs.RiskHeatmapResponseDTO, error) {
+	risks, err := rhs.repo.GetAllRiskRegisters()
+	if err != nil {
+		return nil, err
+	}
+
+	var riskRegisterIDs []uint
+	for _, rp := range risks {
+		riskRegisterIDs = append(riskRegisterIDs, rp.ID)
+	}
+
+	return rhs.getRiskHeatmap(riskRegisterIDs)
 }
 
 // function to get risk heatmap matrix
