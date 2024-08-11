@@ -145,16 +145,16 @@ func (repo *ComplianceAssociatedItemRepository) GetAllRisks(complianceID uint, p
             risk_categories.title_ar AS risk_category_title_ar,
             risk_sources.title_en AS risk_source_title_en,
             risk_sources.title_ar AS risk_source_title_ar,
-            organization_units.title_en AS risk_owner_unit_title_en,
-            organization_units.title_ar AS risk_owner_unit_title_ar,
-            users.first_name_en AS risk_owner_first_name_en,
-            users.first_name_ar AS risk_owner_first_name_ar,
-            users.last_name_en AS risk_owner_last_name_en,
-            users.last_name_ar AS risk_owner_last_name_ar,
-			users.initial AS risk_owner_initial,
-        	users.color AS risk_owner_color,
-        	users.email AS risk_owner_email,
-        	users.profile_image_path AS risk_owner_profile_image_path,  
+            organization_units.title_en AS risk_responsible_unit_title_en,
+            organization_units.title_ar AS risk_responsible_unit_title_ar,
+            users.first_name_en AS risk_responsible_user_first_name_en,
+            users.first_name_ar AS risk_responsible_user_first_name_ar,
+            users.last_name_en AS risk_responsible_user_last_name_en,
+            users.last_name_ar AS risk_responsible_user_last_name_ar,
+			users.initial AS risk_responsible_user_initial,
+        	users.color AS risk_responsible_user_color,
+        	users.email AS risk_responsible_user_email,
+        	users.profile_image_path AS risk_responsible_user_profile_image_path,  
             risk_statuses.title_en AS risk_status_title_en,
             risk_statuses.title_ar AS risk_status_title_ar,
             risk_statuses.color_code AS risk_status_color_code,
@@ -170,6 +170,7 @@ func (repo *ComplianceAssociatedItemRepository) GetAllRisks(complianceID uint, p
             risk_matrix_risk_ratings.title_ar AS risk_matrix_risk_rating_title_ar,
             risk_matrix_risk_ratings.type AS risk_matrix_risk_rating_type,
             risk_matrix_risk_ratings.color_code AS risk_matrix_risk_rating_color_code,
+			risk_matrix_risk_rating_values.value AS risk_matrix_risk_rating_value,
             risk_register.next_review_date AS risk_next_review_date,
             risk_statuses.title_en AS risk_status_title_en,
             risk_statuses.title_ar AS risk_status_title_ar,
@@ -179,12 +180,13 @@ func (repo *ComplianceAssociatedItemRepository) GetAllRisks(complianceID uint, p
             LEFT JOIN risk_register ON risk_register.id = risk_compliance_requirements.risk_register_id
 			LEFT JOIN risk_categories ON risk_categories.id = risk_register.risk_category_id
             LEFT JOIN risk_sources ON risk_sources.id = risk_register.risk_source_id
-            LEFT JOIN organization_units ON organization_units.id = risk_register.owner_unit_id
-            LEFT JOIN users ON users.id = risk_register.owner_id
+            LEFT JOIN organization_units ON organization_units.id = risk_register.responsible_unit_id
+            LEFT JOIN users ON users.id = risk_register.responsible_user_id
             LEFT JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id
             LEFT JOIN risk_matrix_likelihoods ON risk_matrix_likelihoods.id = risk_register.current_likelihood_id
             LEFT JOIN risk_matrix_impacts ON risk_matrix_impacts.id = risk_register.current_impact_id
             LEFT JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = risk_register.current_risk_rating_id
+			LEFT JOIN risk_matrix_risk_rating_values ON risk_matrix_risk_rating_values.id = risk_register.current_risk_rating_value_id
             LEFT JOIN review_frequencies ON review_frequencies.id = risk_register.review_frequency_id
         `).
 		Where("risk_compliance_requirements.compliance_register_id = ?", complianceID)
@@ -197,6 +199,10 @@ func (repo *ComplianceAssociatedItemRepository) GetAllRisks(complianceID uint, p
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where("risk_register.title LIKE ?", keyword)
+	}
+
+	if params.Value != 0 {
+		query = query.Where("risk_matrix_risk_rating_values.value = ?", params.Value)
 	}
 
 	if params.SortBy == "" {
