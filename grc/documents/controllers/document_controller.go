@@ -290,16 +290,16 @@ func (dc *DocumentController) GetDocumentPreview(c *gin.Context) {
 		}
 		return
 	}
-	currentUserID, err := utility.GetCurrentUserID(c)
-	if err != nil {
-		utility.SendInternalErrResp(dc.db, c, err.Error())
-		return
-	}
-	// Add audit log for the document
-	if err := dc.service.DirectDocumentAuditLog(uint(id), uint(currentUserID), "previewed"); err != nil {
-		utility.SendInternalErrResp(dc.db, c, err.Error())
-		return
-	}
+	// currentUserID, err := utility.GetCurrentUserID(c)
+	// if err != nil {
+	// 	utility.SendInternalErrResp(dc.db, c, err.Error())
+	// 	return
+	// }
+	// // Add audit log for the document
+	// if err := dc.service.DirectDocumentAuditLog(uint(id), uint(currentUserID), "previewed"); err != nil {
+	// 	utility.SendInternalErrResp(dc.db, c, err.Error())
+	// 	return
+	// }
 	c.File(documentPath)
 }
 
@@ -471,16 +471,16 @@ func (dc *DocumentController) DownloadDocument(c *gin.Context) {
 		return
 	}
 	filename := filepath.Base(documentPath)
-	currentUserID, err := utility.GetCurrentUserID(c)
-	if err != nil {
-		utility.SendInternalErrResp(dc.db, c, err.Error())
-		return
-	}
-	// Add audit log for the document
-	if err := dc.service.DirectDocumentAuditLog(uint(id), uint(currentUserID), "downloaded"); err != nil {
-		utility.SendInternalErrResp(dc.db, c, err.Error())
-		return
-	}
+	// currentUserID, err := utility.GetCurrentUserID(c)
+	// if err != nil {
+	// 	utility.SendInternalErrResp(dc.db, c, err.Error())
+	// 	return
+	// }
+	// // Add audit log for the document
+	// if err := dc.service.DirectDocumentAuditLog(uint(id), uint(currentUserID), "downloaded"); err != nil {
+	// 	utility.SendInternalErrResp(dc.db, c, err.Error())
+	// 	return
+	// }
 
 	// Set the content type and disposition headers for the file download
 	c.Header("Content-Description", "File Transfer")
