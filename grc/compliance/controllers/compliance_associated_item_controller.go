@@ -92,6 +92,7 @@ func (caic *ComplianceAssociatedItemController) GetAllComplianceRisks(c *gin.Con
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
+	valueStr := c.Query("value")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -105,6 +106,15 @@ func (caic *ComplianceAssociatedItemController) GetAllComplianceRisks(c *gin.Con
 		return
 	}
 
+	var value int
+	if valueStr != "" {
+		value, err = strconv.Atoi(valueStr)
+		if err != nil {
+			utility.SendInternalErrResp(caic.db, c, "Invalid value parameter")
+			return
+		}
+	}
+
 	queryParams := complianceDTOs.ComplianceAssociatedItemListQueryParamsDTO{
 		Sort:        sort,
 		SortBy:      sortBy,
@@ -112,6 +122,7 @@ func (caic *ComplianceAssociatedItemController) GetAllComplianceRisks(c *gin.Con
 		Status:      status,
 		Page:        page,
 		PageSize:    pageSize,
+		Value:       value,
 		QuickFilter: quickFilter,
 	}
 	compliances, err := caic.service.GetAllRisks(uint(complianceID), &queryParams)
