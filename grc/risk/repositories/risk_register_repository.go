@@ -210,6 +210,10 @@ func (repo *RiskRegisterRepository) GetAll(params *riskDTOs.RiskRegisterListQuer
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
+	if params.Value != 0 {
+		query = query.Where("current_risk_rating_value.value = ?", params.Value)
+	}
+
 	// Sort by the specified column and order
 	if params.SortBy == "" {
 		params.SortBy = "title" // Default sort by title if no sortBy is specified
