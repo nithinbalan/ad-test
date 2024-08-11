@@ -78,6 +78,7 @@ type RiskRegisterListQueryParamsDTO struct {
 	Status             string
 	Page               int
 	PageSize           int
+	Value              int
 	Filters            map[string][]string
 	QuickFilter        []string
 	ReportedAtFrom     string
