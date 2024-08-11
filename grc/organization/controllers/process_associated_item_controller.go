@@ -76,6 +76,7 @@ func (paic *ProcessAssociatedItemController) GetAllProcessRisks(c *gin.Context) 
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
+	valueStr := c.Query("value")
 	quickFilter := c.QueryArray("quick_filter")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
@@ -90,6 +91,15 @@ func (paic *ProcessAssociatedItemController) GetAllProcessRisks(c *gin.Context) 
 		return
 	}
 
+	var value int
+	if valueStr != "" {
+		value, err = strconv.Atoi(valueStr)
+		if err != nil {
+			utility.SendInternalErrResp(paic.db, c, "Invalid value parameter")
+			return
+		}
+	}
+
 	queryParams := organizationDTOs.ProcessAssociatedItemListQueryParamsDTO{
 		Sort:        sort,
 		SortBy:      sortBy,
@@ -98,6 +108,7 @@ func (paic *ProcessAssociatedItemController) GetAllProcessRisks(c *gin.Context) 
 		Page:        page,
 		PageSize:    pageSize,
 		QuickFilter: quickFilter,
+		Value:       value,
 	}
 	risks, err := paic.service.GetAllRisks(uint(processID), &queryParams)
 
