@@ -1452,16 +1452,16 @@ func (ds *DocumentService) GetDocumentWorkflowList(id uint) (*documentDTOs.Docum
 	}
 
 	documentVersion, err := ds.repo.GetWorkflowList(document.LatestDocumentVersion.ID)
-
 	if err != nil {
 		return nil, err
 	}
 
 	dto := &documentDTOs.DocumentVersionWorkflowListDTO{
-		ID:              documentVersion.ID,
-		DocumentID:      documentVersion.DocumentID,
-		SubmittedAt:     *documentVersion.SubmittedAt,
-		SubmittedByUser: mapUserToDTO(documentVersion.SubmittedByUser),
+		ID:                documentVersion.ID,
+		DocumentID:        documentVersion.DocumentID,
+		SubmittedAt:       *documentVersion.SubmittedAt,
+		SubmittedByUser:   mapUserToDTO(documentVersion.SubmittedByUser),
+		DocumentWorkflows: []*documentDTOs.DocumentWorkflowListDTO{},
 	}
 
 	for _, workflow := range documentVersion.DocumentWorkflows {
@@ -1469,14 +1469,14 @@ func (ds *DocumentService) GetDocumentWorkflowList(id uint) (*documentDTOs.Docum
 			Level:         workflow.Level,
 			ApprovalType:  workflow.ApprovalTypes,
 			CurrentStatus: mapStatusToDTO(workflow.DocumentWorkflowStatus),
+			ApprovedUsers: []*organizationDTOs.UserMinimalDTO{},
+			ReviewUsers:   []*organizationDTOs.UserMinimalDTO{},
 		}
 
-		//Since all reviews are approved, add directly to ApprovedUsers
 		var lastApprovedAt time.Time
 		for _, review := range workflow.DocumentWorkflowReviews {
 			userDTO := mapUserToDTO(review.CreatedByUser)
 			workflowDTO.ApprovedUsers = append(workflowDTO.ApprovedUsers, &userDTO)
-			// Assume ApprovedAt is the last review's CreatedAt
 			if review.CreatedAt.After(lastApprovedAt) {
 				lastApprovedAt = review.CreatedAt
 			}
@@ -1486,6 +1486,7 @@ func (ds *DocumentService) GetDocumentWorkflowList(id uint) (*documentDTOs.Docum
 			userDTO := mapUserToDTO(participant.User)
 			workflowDTO.ReviewUsers = append(workflowDTO.ReviewUsers, &userDTO)
 		}
+
 		workflowDTO.ApprovedAt = lastApprovedAt
 		dto.DocumentWorkflows = append(dto.DocumentWorkflows, workflowDTO)
 	}
@@ -1494,6 +1495,9 @@ func (ds *DocumentService) GetDocumentWorkflowList(id uint) (*documentDTOs.Docum
 }
 
 func mapUserToDTO(user *models.User) organizationDTOs.UserMinimalDTO {
+	if user == nil {
+		return organizationDTOs.UserMinimalDTO{}
+	}
 	return organizationDTOs.UserMinimalDTO{
 		ID:               int(user.ID),
 		FirstNameEN:      user.FirstNameEn,
@@ -1508,6 +1512,9 @@ func mapUserToDTO(user *models.User) organizationDTOs.UserMinimalDTO {
 }
 
 func mapStatusToDTO(status *models.DocumentWorkflowStatus) documentDTOs.DocumentStatusDTO {
+	if status == nil {
+		return documentDTOs.DocumentStatusDTO{}
+	}
 	return documentDTOs.DocumentStatusDTO{
 		ID:        int(status.ID),
 		Type:      status.Type,
