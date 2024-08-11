@@ -49,6 +49,9 @@ type DocumentRepositoryInterface interface {
 
 	CreateDocumentWorkflowReview(documentWorkflowReview *models.DocumentWorkflowReview, tx ...utility.DatabaseTransaction) error
 	CountApprovedParticipants(workflowID uint, tx ...utility.DatabaseTransaction) (int, error)
+
+	GetSharedUsers(documentId uint) ([]*models.User, error)
+	GetSharedUnits(documentId uint) ([]*models.OrganizationUnit, error)
 }
 
 // Implementation
@@ -614,4 +617,32 @@ func (repo *DocumentRepository) GetWorkflowList(docVersionId uint) (*models.Docu
 	}
 
 	return &documentVersion, nil
+}
+
+func (repo *DocumentRepository) GetSharedUsers(documentId uint) ([]*models.User, error) {
+	var users []*models.User
+	err := repo.db.
+		Model(&models.DocumentSharedUser{}).
+		Where("document_id = ? AND type = 'shared-user'", documentId).
+		Joins("JOIN users ON users.id = document_shared_users.user_id").
+		Select("users.*").
+		Find(&users).Error
+	if err != nil {
+		return nil, err
+	}
+	return users, nil
+}
+
+func (repo *DocumentRepository) GetSharedUnits(documentId uint) ([]*models.OrganizationUnit, error) {
+	var units []*models.OrganizationUnit
+	err := repo.db.
+		Model(&models.DocumentSharedUnit{}).
+		Where("document_id = ?", documentId).
+		Joins("JOIN organization_units ON organization_units.id = document_shared_units.organization_unit_id").
+		Select("organization_units.*").
+		Find(&units).Error
+	if err != nil {
+		return nil, err
+	}
+	return units, nil
 }
