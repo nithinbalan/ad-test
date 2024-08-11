@@ -80,16 +80,17 @@ func (rhs *RiskHeatmapService) GetRiskHeatmapByResponsibleUnit() ([]*riskDTOs.Ri
 		return nil, err
 	}
 
-	riskRegisterIDs := make([]uint, len(riskRegisters))
-	for i, register := range riskRegisters {
-		riskRegisterIDs[i] = register.ID
-	}
-
-	heatmap, err := rhs.getRiskHeatmap(riskRegisterIDs)
+	riskMatrixType, err := rhs.riskMatrixSvc.GetByType("erm")
 	if err != nil {
 		return nil, err
 	}
 
+	riskMatrix, err := rhs.riskMatrixSvc.GetDetailsByID(riskMatrixType.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Initialize map for responsible units
 	responsibleUnitMap := make(map[uint]*riskDTOs.RiskHeatmapResponseByItemDTO)
 	for _, register := range riskRegisters {
 		if _, exists := responsibleUnitMap[register.ResponsibleUnitID]; !exists {
@@ -97,34 +98,43 @@ func (rhs *RiskHeatmapService) GetRiskHeatmapByResponsibleUnit() ([]*riskDTOs.Ri
 				ItemID:       register.ResponsibleUnitID,
 				ItemTitleEn:  register.ResponsibleUnit.TitleEn,
 				ItemTitleAr:  register.ResponsibleUnit.TitleAr,
-				HeatmapCells: []*riskDTOs.RiskHeatmapResponseDTO{},
+				HeatmapCells: []*riskDTOs.RiskHeatmapResponseByItemDetailsDTO{},
 			}
-		}
-	}
 
-	for unitID, unitResponse := range responsibleUnitMap {
-		for _, likelihoodDetails := range heatmap {
-			for _, detail := range likelihoodDetails {
-				// Set the RiskRegisterCount to 0 initially
-				detailCopy := *detail
-				detailCopy.RiskRegisterCount = 0
-
-				// Find risk registers for this unit with the same likelihood and impact
-				for _, register := range riskRegisters {
-					if register.ResponsibleUnitID == unitID &&
-						register.CurrentLikelihoodID != nil &&
-						register.CurrentImpactID != nil &&
-						*register.CurrentLikelihoodID == detailCopy.RiskMatrixLikelihoodID &&
-						*register.CurrentImpactID == detailCopy.RiskMatrixImpactID {
-						detailCopy.RiskRegisterCount++
-					}
+			// Initialize HeatmapCells with all possible values from the risk matrix
+			for _, rating := range riskMatrix.RiskMatrixRiskRating {
+				for _, value := range rating.RiskMatrixRiskRatingValue {
+					responsibleUnitMap[register.ResponsibleUnitID].HeatmapCells = append(responsibleUnitMap[register.ResponsibleUnitID].HeatmapCells, &riskDTOs.RiskHeatmapResponseByItemDetailsDTO{
+						RiskMatrixRiskRatingID:      rating.ID,
+						RiskMatrixRiskRatingTitleEN: rating.TitleEn,
+						RiskMatrixRiskRatingTitleAR: rating.TitleAr,
+						ColorCode:                   rating.ColorCode,
+						Value:                       value.Value,
+						RiskRegisterCount:           0, // Initialize count to 0
+					})
 				}
-
-				unitResponse.HeatmapCells = append(unitResponse.HeatmapCells, &detailCopy)
 			}
 		}
 	}
 
+	// Populate each responsible unit's heatmap cells
+	for _, register := range riskRegisters {
+		if register.CurrentRiskRatingID != nil && register.CurrentRiskRatingValueID != nil {
+			unitResponse := responsibleUnitMap[register.ResponsibleUnitID]
+			ratingID := *register.CurrentRiskRatingID
+			valueID := *register.CurrentRiskRatingValueID
+
+			// Find and increment the corresponding cell
+			for _, cell := range unitResponse.HeatmapCells {
+				if cell.RiskMatrixRiskRatingID == ratingID && cell.Value == valueID {
+					cell.RiskRegisterCount++
+					break
+				}
+			}
+		}
+	}
+
+	// Prepare the final response
 	heatmapResponses := make([]*riskDTOs.RiskHeatmapResponseByItemDTO, 0, len(responsibleUnitMap))
 	for _, unitResponse := range responsibleUnitMap {
 		heatmapResponses = append(heatmapResponses, unitResponse)
