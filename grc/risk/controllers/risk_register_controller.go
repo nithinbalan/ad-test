@@ -35,8 +35,8 @@ func (rrc *RiskRegisterController) GetAllRiskRegisters(c *gin.Context) {
 	allowedParams := []string{
 		"risk_category_ids",
 		"risk_source_ids",
-		"owner_unit_ids",
-		"owner_ids",
+		"responsible_unit_ids",
+		"responsible_user_ids",
 		"risk_status_ids",
 		"review_frequency_ids",
 	}
