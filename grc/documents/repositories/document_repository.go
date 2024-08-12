@@ -43,7 +43,7 @@ type DocumentRepositoryInterface interface {
 	CreateDocumentWorkflowParticipant(docWorkflowParticipant *models.DocumentWorkflowParticipant, tx ...utility.DatabaseTransaction) error
 
 	GetComments(docVersionId uint, currentApprovalLevel int) (*models.DocumentVersion, error)
-	GetDocumentWorkflowByLevel(docVersionId uint, currentApprovalLevel int) (*models.DocumentWorkflow, error)
+	GetDocumentWorkflowByLevel(docVersionId uint, currentApprovalLevel int, tx ...utility.DatabaseTransaction) (*models.DocumentWorkflow, error)
 	GetNextLevel(documentVersionID uint, currentLevel int, tx ...utility.DatabaseTransaction) (*models.DocumentWorkflow, error)
 	GetWorkflowList(docVersionId uint) (*models.DocumentVersion, error)
 
@@ -537,9 +537,13 @@ func (repo *DocumentRepository) GetComments(docVersionId uint, currentApprovalLe
 	return &documentVersion, nil
 }
 
-func (repo *DocumentRepository) GetDocumentWorkflowByLevel(docVersionId uint, currentApprovalLevel int) (*models.DocumentWorkflow, error) {
+func (repo *DocumentRepository) GetDocumentWorkflowByLevel(docVersionId uint, currentApprovalLevel int, tx ...utility.DatabaseTransaction) (*models.DocumentWorkflow, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 	var documentWorkflow *models.DocumentWorkflow
-	result := repo.db.
+	result := db.
 		Preload("WorkflowLevelType").
 		Preload("DocumentWorkflowParticipants").
 		Where("document_version_id = ? AND level = ?", docVersionId, currentApprovalLevel).

@@ -1193,11 +1193,11 @@ func (ds *DocumentService) AddComment(id uint, currentUserID uint, documentRevie
 			}
 
 			nextDocWorkflowLevel, err := ds.repo.GetNextLevel(document.LatestDocumentVersion.ID, *currentApprovalLevel)
-			if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			if err != nil {
 				return err // Handle other errors that might occur
 			}
 
-			if errors.Is(err, gorm.ErrRecordNotFound) {
+			if nextDocWorkflowLevel == nil {
 				documentStatus, err := ds.documentStatusSvc.GetByType("approved")
 				if err != nil {
 					return err
@@ -1212,7 +1212,6 @@ func (ds *DocumentService) AddComment(id uint, currentUserID uint, documentRevie
 				if err != nil {
 					return err
 				}
-
 			} else {
 				existingdocVersion, err := ds.repo.GetDocumentVersionByID(document.LatestDocumentVersion.ID)
 				if err != nil {
