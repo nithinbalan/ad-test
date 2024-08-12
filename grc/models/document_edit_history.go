@@ -20,8 +20,8 @@ type DocumentEditHistory struct {
 	CreatedAt         time.Time `json:"created_at" gorm:"type:datetime;not null" binding:"required"`
 
 	// Relations
-	Document  *Document `gorm:"foreignKey:DocumentID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedBy *User     `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Document      *Document `gorm:"foreignKey:DocumentID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	CreatedByUser *User     `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 }
 
 func (DocumentEditHistory) TableName() string {
