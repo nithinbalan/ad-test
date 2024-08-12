@@ -83,10 +83,12 @@ func (repo *RiskRegisterRepository) GetAll(params *riskDTOs.RiskRegisterListQuer
             users.last_name_ar AS responsible_user_last_name_ar,
             risk_statuses.title_en AS risk_status_title_en,
             risk_statuses.title_ar AS risk_status_title_ar,
+			risk_response_strategies.title_en AS risk_response_strategy_title_en,
+            risk_response_strategies.title_ar AS risk_response_strategy_title_ar,
             risk_statuses.color_code AS risk_status_color_code,
             review_frequencies.title_en AS review_frequency_title_en,
             review_frequencies.title_ar AS review_frequency_title_ar,
-            risk_register.next_review_date,
+			CONVERT(VARCHAR, risk_register.next_review_date, 23) AS next_review_date,
             risk_register.last_review_note,
             created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
@@ -127,6 +129,7 @@ func (repo *RiskRegisterRepository) GetAll(params *riskDTOs.RiskRegisterListQuer
             LEFT JOIN organization_units ON organization_units.id = risk_register.responsible_unit_id
             LEFT JOIN users ON users.id = risk_register.responsible_user_id
             LEFT JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id
+			LEFT JOIN risk_response_strategies ON risk_response_strategies.id = risk_register.risk_response_strategy_id
             LEFT JOIN users AS created_user ON created_user.id = risk_register.created_by_id
             LEFT JOIN users AS updated_user ON updated_user.id = risk_register.updated_by_id
             LEFT JOIN review_frequencies ON review_frequencies.id = risk_register.review_frequency_id
