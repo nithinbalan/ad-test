@@ -18,6 +18,7 @@ type SettingsModule struct {
 	WorkflowCOntroller          *controllers.WorkflowController
 
 	SystemPreferenceSvc  services.SystemPreferenceServiceInterface
+	OrganizationUnitSvc  services.OrganizationUnitServiceInterface
 	OrganizationLevelSvc services.OrganizationLevelServiceInterface
 	RoleSvc              services.RoleServiceInterface
 	ModuleSvc            services.ModuleServiceInterface
@@ -70,5 +71,6 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 		RoleSvc:              roleSvc,
 		ModuleSvc:            moduleSvc,
 		WorkflowSvc:          workflowSvc,
+		OrganizationUnitSvc:  organizationUnitSvc,
 	}
 }
