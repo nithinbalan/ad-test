@@ -50,7 +50,7 @@ type DocumentServiceInterface interface {
 	CreateDocumentAuditLog(documentID uint, documentVersionID uint, userID uint, logType string, tx ...utility.DatabaseTransaction) error
 	DirectDocumentAuditLog(documentID uint, userID uint, logType string) error
 
-	GetSharedUsers(documentId uint) ([]*organizationDTOs.UserMinimalDTO, error)
+	GetSharedUsers(documentId uint, page uint, pageSize uint) (*documentDTOs.DocumentSharedUserListResponseDTO, error)
 	GetReviewUsers(documentId uint) ([]*organizationDTOs.UserMinimalDTO, error)
 	GetSharedUnits(documentId uint) ([]*settingDTOs.OrganizationUnitDTO, error)
 }
@@ -1575,13 +1575,13 @@ func (ds *DocumentService) DirectDocumentAuditLog(documentID uint, userID uint, 
 
 }
 
-func (ds *DocumentService) GetSharedUsers(documentId uint) ([]*organizationDTOs.UserMinimalDTO, error) {
-	users, err := ds.repo.GetSharedUsers(documentId)
+func (ds *DocumentService) GetSharedUsers(documentId uint, page uint, pageSize uint) (*documentDTOs.DocumentSharedUserListResponseDTO, error) {
+	users, pagination, err := ds.repo.GetSharedUsers(documentId, page, pageSize)
 	if err != nil {
 		return nil, err
 	}
 
-	dtos := make([]*organizationDTOs.UserMinimalDTO, 0) // Initialize as empty slice, not nil
+	dtos := make([]*organizationDTOs.UserMinimalDTO, 0) // Initialize as empty slice
 	for _, user := range users {
 		dto := &organizationDTOs.UserMinimalDTO{
 			ID:               int(user.ID),
@@ -1596,7 +1596,13 @@ func (ds *DocumentService) GetSharedUsers(documentId uint) ([]*organizationDTOs.
 		}
 		dtos = append(dtos, dto)
 	}
-	return dtos, nil
+
+	responseDTO := &documentDTOs.DocumentSharedUserListResponseDTO{
+		Items:      dtos,
+		Pagination: pagination,
+	}
+
+	return responseDTO, nil
 }
 
 func (ds *DocumentService) GetReviewUsers(documentId uint) ([]*organizationDTOs.UserMinimalDTO, error) {

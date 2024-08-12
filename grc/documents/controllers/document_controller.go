@@ -508,7 +508,19 @@ func (dc *DocumentController) GetSharedUsers(c *gin.Context) {
 		return
 	}
 
-	sharedUsers, err := dc.service.GetSharedUsers(uint(id))
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(dc.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(dc.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	sharedUsers, err := dc.service.GetSharedUsers(uint(id), uint(page), uint(pageSize))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
