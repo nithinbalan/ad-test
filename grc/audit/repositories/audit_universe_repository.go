@@ -11,14 +11,14 @@ import (
 // Interfaces
 type AuditUniverseRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	Create(auditableItems []*models.AuditableItem, tx ...utility.DatabaseTransaction) error
+	Create(auditableItem *models.AuditableItem, tx ...utility.DatabaseTransaction) (uint, error)
 	UpdateMarkedAsAuditableItem(ids []uint, entityType interface{}, updates map[string]interface{}, tx ...utility.DatabaseTransaction) error
 	DeleteByField(fieldName string, ids []uint, tx ...utility.DatabaseTransaction) error
 	GetByField(fieldName string, ids []uint, tx ...utility.DatabaseTransaction) ([]*models.AuditableItem, error)
 	DeleteByIDs(ids []uint, tx ...utility.DatabaseTransaction) error
 
 	CreateAuditableItemOrganizationUnits(auditableItemOrganizationUnits []*models.AuditableItemOrganizationUnit, tx ...utility.DatabaseTransaction) error
-	DeleteAuditableItemOrganizationUnitsByItemIDs(itemIDs []uint, tx ...utility.DatabaseTransaction) error  
+	DeleteAuditableItemOrganizationUnitsByItemIDs(itemIDs []uint, tx ...utility.DatabaseTransaction) error
 }
 
 // implementation
@@ -37,18 +37,16 @@ func (repo *AuditUniverseRepository) BeginTransaction() utility.DatabaseTransact
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *AuditUniverseRepository) Create(auditableItems []*models.AuditableItem, tx ...utility.DatabaseTransaction) error {
+func (repo *AuditUniverseRepository) Create(auditableItem *models.AuditableItem, tx ...utility.DatabaseTransaction) (uint, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	// Save all auditableItems in a single transaction
-	if err := db.Create(&auditableItems).Error; err != nil {
-		return err
+	if err := db.Create(auditableItem).Error; err != nil {
+		return 0, err
 	}
-	return nil
+	return auditableItem.ID, nil
 }
-
 func (repo *AuditUniverseRepository) UpdateMarkedAsAuditableItem(ids []uint, entityType interface{}, updates map[string]interface{}, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
@@ -87,7 +85,6 @@ func (repo *AuditUniverseRepository) GetByField(fieldName string, ids []uint, tx
 	return items, nil
 }
 
-
 func (repo *AuditUniverseRepository) CreateAuditableItemOrganizationUnits(auditableItemOrganizationUnits []*models.AuditableItemOrganizationUnit, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
@@ -99,7 +96,6 @@ func (repo *AuditUniverseRepository) CreateAuditableItemOrganizationUnits(audita
 	}
 	return nil
 }
-
 
 func (repo *AuditUniverseRepository) DeleteAuditableItemOrganizationUnitsByItemIDs(itemIDs []uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
