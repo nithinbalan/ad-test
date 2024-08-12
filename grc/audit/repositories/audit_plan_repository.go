@@ -27,8 +27,6 @@ type AuditPlanRepositoryInterface interface {
 	CreateAuditPlanAuditableItems(items []*models.AuditPlanAuditableItem, tx ...utility.DatabaseTransaction) error
 	DeleteAuditPlanAuditableItems(itemIds []*uint, tx ...utility.DatabaseTransaction) error
 
-	CreateAuditPlanOrganizationUnits(units []*models.AuditPlanOrganizationUnit, tx ...utility.DatabaseTransaction) error
-	DeleteAuditPlanOrganizationUnits(unitIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type AuditPlanRepository struct {
@@ -200,7 +198,6 @@ func (repo *AuditPlanRepository) GetFullDetailsByID(id uint, tx ...utility.Datab
 		Preload("TeamLead").
 		Preload("Members").
 		Preload("AuditableItems").
-		Preload("OrganizationUnits").
 		First(&auditPlan, id)
 
 	if result.Error != nil {
@@ -323,30 +320,6 @@ func (repo *AuditPlanRepository) DeleteAuditPlanAuditableItems(itemIds []*uint, 
 	}
 
 	if err := db.Where("id IN (?)", itemIds).Delete(&models.AuditPlanAuditableItem{}).Error; err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (repo *AuditPlanRepository) CreateAuditPlanOrganizationUnits(units []*models.AuditPlanOrganizationUnit, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-
-	if err := db.Create(&units).Error; err != nil {
-		return err
-	}
-	return nil
-}
-
-func (repo *AuditPlanRepository) DeleteAuditPlanOrganizationUnits(unitIds []*uint, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-	if err := db.Where("id IN (?)", unitIds).Delete(&models.AuditPlanOrganizationUnit{}).Error; err != nil {
 		return err
 	}
 

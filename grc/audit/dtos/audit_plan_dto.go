@@ -71,7 +71,6 @@ type AuditPlanFormDTO struct {
 	Objective           *string `json:"objective"`
 	UserIds             []*uint `json:"user_ids"`
 	AuditableItemIds    []*uint `json:"auditable_item_ids"`
-	OrganizationUnitIds []*uint `json:"organization_unit_ids"`
 }
 
 type AuditPlanDetailDTO struct {
@@ -91,7 +90,6 @@ type AuditPlanDetailDTO struct {
 	UpdatedAt         *time.Time                       `json:"updated_at"`
 	CreatedByUser     organizationDTOs.UserMinimalDTO  `json:"created_by_id"`
 	UpdatedByUser     *organizationDTOs.UserMinimalDTO `json:"updated_by_id"`
-	OrganizationUnits []*AuditPlanOrganizationUnitDTO  `json:"organization_units"`
 	AuditableItems    []*AuditPlanAuditableItemDTO     `json:"auditable_items"`
 	Members           []*AuditPlanAuditMemberDTO       `json:"members"`
 }
@@ -133,9 +131,3 @@ type AuditPlanAuditableItemDTO struct {
 	AuditableItem   AuditableItemDetailDTO `json:"auditable_item"`
 }
 
-type AuditPlanOrganizationUnitDTO struct {
-	ID                 *uint                                 `json:"id"`
-	AuditPlanID        uint                                  `json:"audit_plan_id"`
-	OrganizationUnitID uint                                  `json:"organization_unit_id"`
-	OrganizationUnit   organizationDTOs.OrganizationUnit1DTO `json:"organization_units"`
-}

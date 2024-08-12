@@ -29,7 +29,6 @@ type AuditPlan struct {
 	AuditStatus       *AuditStatus                 `gorm:"foreignKey:AuditStatusID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
 	Members           []*AuditPlanAuditMember      `gorm:"foreignKey:AuditPlanID"`
 	AuditableItems    []*AuditPlanAuditableItem    `gorm:"foreignKey:AuditPlanID"`
-	OrganizationUnits []*AuditPlanOrganizationUnit `gorm:"foreignKey:AuditPlanID"`
 	CreatedByUser     *User                        `gorm:"foreignKey:CreatedBYID"`
 	UpdatedByUser     *User                        `gorm:"foreignKey:UpdatedBYID"`
 }

@@ -7,7 +7,6 @@ import (
 	"jethur/grc/audit/repositories"
 	logServices "jethur/grc/logs/services"
 	organizationServices "jethur/grc/organization/services"
-	settingServices "jethur/grc/settings/services"
 
 	"jethur/grc/models"
 	"jethur/utility"
@@ -33,7 +32,6 @@ type AuditPlanService struct {
 	auditTeamSvc        AuditTeamServiceInterface
 	userSvc             organizationServices.UserServiceInterface
 	auditableItemSvc    AuditableItemServiceInterface
-	organizationUnitSvc settingServices.OrganizationUnitServiceInterface
 }
 
 func NewAuditPlanService(
@@ -44,7 +42,6 @@ func NewAuditPlanService(
 	auditTeamSvc AuditTeamServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	auditableItemSvc AuditableItemServiceInterface,
-	organizationUnitSvc settingServices.OrganizationUnitServiceInterface,
 ) AuditPlanServiceInterface {
 	return &AuditPlanService{
 		repo:                repo,
@@ -54,7 +51,6 @@ func NewAuditPlanService(
 		auditTeamSvc:        auditTeamSvc,
 		userSvc:             userSvc,
 		auditableItemSvc:    auditableItemSvc,
-		organizationUnitSvc: organizationUnitSvc,
 	}
 }
 
@@ -172,23 +168,6 @@ func (aps *AuditPlanService) Create(currentUserID uint, auditPlanFormDTO *auditD
 
 	if len(auditableItems) > 0 {
 		if err := aps.repo.CreateAuditPlanAuditableItems(auditableItems, tx); err != nil {
-			tx.Rollback()
-			return 0, err
-		}
-	}
-	// Add OrganizationUnits
-	var organizationUnits []*models.AuditPlanOrganizationUnit
-	for _, unitID := range auditPlanFormDTO.OrganizationUnitIds {
-		orgUnit := &models.AuditPlanOrganizationUnit{
-			AuditPlanID:        id,
-			OrganizationUnitID: *unitID,
-			CreatedBYID:        currentUserID,
-		}
-		organizationUnits = append(organizationUnits, orgUnit)
-	}
-
-	if len(organizationUnits) > 0 {
-		if err := aps.repo.CreateAuditPlanOrganizationUnits(organizationUnits, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
@@ -362,50 +341,6 @@ func (aps *AuditPlanService) Update(id uint, currentUserID uint, auditPlanFormDT
 		}
 	}
 
-	// Handle organization units
-	existingOrgUnitIDs := make(map[uint]bool)
-	for _, unit := range existingAuditPlanDetails.OrganizationUnits {
-		existingOrgUnitIDs[unit.OrganizationUnitID] = true
-	}
-
-	newOrgUnitIDs := make(map[uint]bool)
-	for _, unitID := range auditPlanFormDTO.OrganizationUnitIds {
-		newOrgUnitIDs[*unitID] = true
-	}
-
-	var unitsToAdd []*models.AuditPlanOrganizationUnit
-	for _, unitID := range auditPlanFormDTO.OrganizationUnitIds {
-		if _, exists := existingOrgUnitIDs[*unitID]; !exists {
-			unit := &models.AuditPlanOrganizationUnit{
-				AuditPlanID:        id,
-				OrganizationUnitID: *unitID,
-				CreatedBYID:        currentUserID,
-			}
-			unitsToAdd = append(unitsToAdd, unit)
-		}
-	}
-
-	var orgUnitIDsToRemove []*uint
-	for unitID := range existingOrgUnitIDs {
-		if _, exists := newOrgUnitIDs[unitID]; !exists {
-			orgUnitIDsToRemove = append(orgUnitIDsToRemove, &unitID)
-		}
-	}
-
-	if len(unitsToAdd) > 0 {
-		if err := aps.repo.CreateAuditPlanOrganizationUnits(unitsToAdd, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
-
-	if len(orgUnitIDsToRemove) > 0 {
-		if err := aps.repo.DeleteAuditPlanOrganizationUnits(orgUnitIDsToRemove, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
-
 	tx.Commit()
 
 	go func() {
@@ -449,18 +384,6 @@ func (aps *AuditPlanService) Delete(ids []uint, currentUserID uint) ([]uint, err
 			}
 			tx.Rollback()
 			return nil, err
-		}
-
-		// Delete related records if they exist
-		if len(existingAuditPlan.OrganizationUnits) > 0 {
-			var deleteOrgUnitIDs []*uint
-			for _, orgUnit := range existingAuditPlan.OrganizationUnits {
-				deleteOrgUnitIDs = append(deleteOrgUnitIDs, orgUnit.ID)
-			}
-			if err := aps.repo.DeleteAuditPlanOrganizationUnits(deleteOrgUnitIDs, tx); err != nil {
-				tx.Rollback()
-				return nil, err
-			}
 		}
 
 		if len(existingAuditPlan.AuditableItems) > 0 {
@@ -559,14 +482,6 @@ func (aps *AuditPlanService) validateAuditPlanFormDTO(dto *auditDTOs.AuditPlanFo
 		if itemID != nil {
 			if _, err := aps.auditableItemSvc.GetByID(*itemID); err != nil {
 				return utility.NewValidationError(fmt.Errorf("auditable item does not exist"), "not_exist", "auditable item")
-			}
-		}
-	}
-	// Validate OrganizationUnitIds
-	for _, orgUnitID := range dto.OrganizationUnitIds {
-		if orgUnitID != nil {
-			if _, err := aps.organizationUnitSvc.GetByID(*orgUnitID); err != nil {
-				return utility.NewValidationError(fmt.Errorf("organization unit does not exist"), "not_exist", "organization unit")
 			}
 		}
 	}
