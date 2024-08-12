@@ -5,6 +5,7 @@ import (
 	"jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
 	complianceServices "jethur/grc/compliance/services"
+	documentServices "jethur/grc/documents/services"
 	incidentServices "jethur/grc/incident/services"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
@@ -18,6 +19,9 @@ type AuditUniverseServiceInterface interface {
 	MarkedAsAuditableItem(ids []*uint, entityType interface{}, tx utility.DatabaseTransaction) error
 	Delete(currentUserID uint, auditUniverseFormDTO *dtos.AuditUniverseFormDTO) error
 	UnmarkedAsAuditableItem(ids []*uint, entityType interface{}, tx utility.DatabaseTransaction) error
+
+	// getOrganizationUnitID(itemID uint) (uint, error)
+	getOrganizationUnitID(entityType string, id uint) (uint, error)
 }
 
 // Service and implementations
@@ -32,7 +36,7 @@ type AuditUniverseService struct {
 	complianceRequirementSvc complianceServices.ComplianceRequirementServiceInterface
 	riskRegisterSvc          riskServices.RiskRegisterServiceInterface
 	incidentRegisterSvc      incidentServices.IncidentRegisterServiceInterface
-	// documentSvc documentServices.DocumentServiceInterface
+	documentSvc              documentServices.DocumentServiceInterface
 }
 
 func NewAuditUniverseService(
@@ -46,7 +50,7 @@ func NewAuditUniverseService(
 	complianceRequirementSvc complianceServices.ComplianceRequirementServiceInterface,
 	riskRegisterSvc riskServices.RiskRegisterServiceInterface,
 	incidentRegisterSvc incidentServices.IncidentRegisterServiceInterface,
-	// documentSvc incidentServices.IncidentRegisterServiceInterface,
+	documentSvc documentServices.DocumentServiceInterface,
 
 ) AuditUniverseServiceInterface {
 	return &AuditUniverseService{
@@ -60,24 +64,26 @@ func NewAuditUniverseService(
 		complianceRequirementSvc: complianceRequirementSvc,
 		riskRegisterSvc:          riskRegisterSvc,
 		incidentRegisterSvc:      incidentRegisterSvc,
-		// documentSvc: documentSvc,
+		documentSvc:              documentSvc,
 	}
 }
-
 func (aus *AuditUniverseService) Create(currentUserID uint, auditUniverseFormDTO *dtos.AuditUniverseFormDTO) error {
 	tx := aus.repo.BeginTransaction()
 	if err := aus.validateAuditUniverseFormDTO(auditUniverseFormDTO); err != nil {
+		tx.Rollback()
 		return err
 	}
-	// Initialize a slice to hold all auditable items
-	var auditableItems []*models.AuditableItem
 
+	var auditableItemOrgUnits []*models.AuditableItemOrganizationUnit
+	// Retrieve audit status
 	auditStatus, err := aus.auditStatusSvc.GetByType("pending")
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
-	// Helper function to add items to the auditableItems slice
-	addItems := func(ids []*uint, fieldName string) {
+
+	// Helper function to add items
+	addItems := func(ids []*uint, fieldName string) error {
 		for _, id := range ids {
 			auditableItem := &models.AuditableItem{
 				Comment:             auditUniverseFormDTO.Comment,
@@ -85,6 +91,7 @@ func (aus *AuditUniverseService) Create(currentUserID uint, auditUniverseFormDTO
 				AuditStatusID:       uint(auditStatus.ID),
 				CreatedByID:         currentUserID,
 			}
+			var orgUnitID uint
 			switch fieldName {
 			case "process":
 				auditableItem.ProcessID = id
@@ -101,28 +108,59 @@ func (aus *AuditUniverseService) Create(currentUserID uint, auditUniverseFormDTO
 			case "user":
 				auditableItem.UserID = id
 			}
-			auditableItems = append(auditableItems, auditableItem)
+
+			auditableItemId, err := aus.repo.Create(auditableItem, tx)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+			// Fetch OrgUnitID after the item is created
+			orgUnitID, err = aus.getOrganizationUnitID(fieldName, *id)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			if orgUnitID != 0 {
+				auditableItemOrgUnits = append(auditableItemOrgUnits, &models.AuditableItemOrganizationUnit{
+					AuditableItemID:    auditableItemId,
+					OrganizationUnitID: orgUnitID,
+					CreatedBYID:        currentUserID,
+				})
+			}
 		}
+		return nil
 	}
 
-	// Add all relevant items
-	addItems(auditUniverseFormDTO.ProcessIDs, "process")
-	addItems(auditUniverseFormDTO.ControlIDs, "control")
-	addItems(auditUniverseFormDTO.DocumentIDs, "document")
-	addItems(auditUniverseFormDTO.IncidentRegisterIDs, "incident")
-	addItems(auditUniverseFormDTO.ComplianceRequirementIDs, "compliance")
-	addItems(auditUniverseFormDTO.RiskRegisterIDs, "risk")
-	addItems(auditUniverseFormDTO.UserIDs, "user")
+	if err := addItems(auditUniverseFormDTO.ProcessIDs, "process"); err != nil {
+		return err
+	}
+	if err := addItems(auditUniverseFormDTO.ControlIDs, "control"); err != nil {
+		return err
+	}
+	if err := addItems(auditUniverseFormDTO.DocumentIDs, "document"); err != nil {
+		return err
+	}
+	if err := addItems(auditUniverseFormDTO.IncidentRegisterIDs, "incident"); err != nil {
+		return err
+	}
+	if err := addItems(auditUniverseFormDTO.ComplianceRequirementIDs, "compliance"); err != nil {
+		return err
+	}
+	if err := addItems(auditUniverseFormDTO.RiskRegisterIDs, "risk"); err != nil {
+		return err
+	}
+	if err := addItems(auditUniverseFormDTO.UserIDs, "user"); err != nil {
+		return err
+	}
 
-	// Save all auditableItems in a single transaction
-	if len(auditableItems) > 0 {
-		if err := aus.repo.Create(auditableItems, tx); err != nil {
+	if len(auditableItemOrgUnits) > 0 {
+		if err := aus.repo.CreateAuditableItemOrganizationUnits(auditableItemOrgUnits, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
 	}
 
-	// Mark entities as auditable
 	if err := aus.MarkedAsAuditableItem(auditUniverseFormDTO.ProcessIDs, &models.Process{}, tx); err != nil {
 		tx.Rollback()
 		return err
@@ -151,14 +189,14 @@ func (aus *AuditUniverseService) Create(currentUserID uint, auditUniverseFormDTO
 		tx.Rollback()
 		return err
 	}
+
 	tx.Commit()
 
-	// Asynchronous activity logging
 	go func() {
 		err := aus.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.AuditableItem{}.TableName(),
-			auditableItems[0].ID, // Assuming at least one item exists
+			0,//todo
 			auditUniverseFormDTO,
 			currentUserID,
 			nil,
@@ -168,7 +206,7 @@ func (aus *AuditUniverseService) Create(currentUserID uint, auditUniverseFormDTO
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
 				"tableName": models.AuditableItem{}.TableName(),
-				"recordID":  auditableItems[0].ID, // Assuming at least one item exists
+				"recordID":  0,//todo
 				"userID":    currentUserID,
 				"error":     err.Error(),
 			}
@@ -180,6 +218,58 @@ func (aus *AuditUniverseService) Create(currentUserID uint, auditUniverseFormDTO
 	return nil
 }
 
+func (aus *AuditUniverseService) getOrganizationUnitID(entityType string, id uint) (uint, error) {
+	switch entityType {
+	case "process":
+		process, err := aus.processSvc.GetByID(id)
+		if err != nil {
+			return 0, err
+		}
+		return process.OwnerUnitID, nil
+	case "control": // todo change OwnerUnitID as mandatory
+		control, err := aus.controlSvc.GetByID(id)
+		if err != nil {
+			return 0, err
+		}
+		return control.OwnerUnitID, nil
+	case "document":
+		document, err := aus.documentSvc.GetByID(id)
+		if err != nil {
+			return 0, err
+		}
+		return document.ResponsibleUnitID, nil
+	case "incident": 
+		incident, err := aus.incidentRegisterSvc.GetByID(id)
+		if err != nil {
+			return 0, err
+		}
+		return incident.ResponsibleUnitID, nil
+	case "compliance":
+		compliance, err := aus.complianceRequirementSvc.GetByComplianceRequirementID(id)
+		if err != nil {
+			return 0, err
+		}
+		userUnit, err := aus.userSvc.GetUserPrimaryUnitID(compliance.ResponsibleUserID)
+		if err != nil {
+			return 0, err
+		}
+		return userUnit, nil
+	case "risk":
+		risk, err := aus.riskRegisterSvc.GetByID(id)
+		if err != nil {
+			return 0, err
+		}
+		return risk.ResponsibleUnitID, nil
+	case "user":
+		userUnit, err := aus.userSvc.GetUserPrimaryUnitID(id)
+		if err != nil {
+			return 0, err
+		}
+		return userUnit, nil
+	default:
+		return 0, fmt.Errorf("unknown entity type: %s", entityType)
+	}
+}
 func (aus *AuditUniverseService) MarkedAsAuditableItem(ids []*uint, entityType interface{}, tx utility.DatabaseTransaction) error {
 	// Convert []*uint to []uint
 	var uintIDs []uint
@@ -242,10 +332,41 @@ func (aus *AuditUniverseService) Delete(currentUserID uint, auditUniverseFormDTO
 	collectIDs(auditUniverseFormDTO.RiskRegisterIDs, &riskIDs)
 	collectIDs(auditUniverseFormDTO.UserIDs, &userIDs)
 
-	// Common function to delete auditable items by IDs
+	// Common function to get auditable item IDs and delete them
+	getAuditableItemIDs := func(ids []uint, fieldName string) ([]uint, error) {
+		if len(ids) == 0 {
+			return nil, nil
+		}
+
+		auditableItems, err := aus.repo.GetByField(fieldName, ids, tx)
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+
+		var itemIDs []uint
+		for _, item := range auditableItems {
+			itemIDs = append(itemIDs, item.ID)
+		}
+
+		return itemIDs, nil
+	}
+
 	deleteItems := func(ids []uint, fieldName string) error {
-		if len(ids) > 0 {
-			if err := aus.repo.DeleteByField(fieldName, ids, tx); err != nil {
+		itemIDs, err := getAuditableItemIDs(ids, fieldName)
+		if err != nil {
+			return err
+		}
+
+		if len(itemIDs) > 0 {
+			// Delete from AuditableItemOrganizationUnit first
+			if err := aus.repo.DeleteAuditableItemOrganizationUnitsByItemIDs(itemIDs, tx); err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			// Now delete the auditable items themselves
+			if err := aus.repo.DeleteByIDs(itemIDs, tx); err != nil {
 				tx.Rollback()
 				return err
 			}
@@ -373,20 +494,20 @@ func (aus *AuditUniverseService) validateAuditUniverseFormDTO(auditUniverseFormD
 	}
 
 	// Validate Document IDs
-	// documentIDs := auditUniverseFormDTO.DocumentIDs
-	// documentIDMap := make(map[uint]bool)
+	documentIDs := auditUniverseFormDTO.DocumentIDs
+	documentIDMap := make(map[uint]bool)
 
-	// for _, id := range documentIDs {
-	// 	if documentIDMap[*id] {
-	// 		return utility.NewValidationError(fmt.Errorf("duplicate document ID: %d", *id), "duplicate", "document")
-	// 	}
+	for _, id := range documentIDs {
+		if documentIDMap[*id] {
+			return utility.NewValidationError(fmt.Errorf("duplicate document ID: %d", *id), "duplicate", "document")
+		}
 
-	// 	if _, err := aus.documentSvc.GetByID(*id); err != nil {
-	// 		return utility.NewValidationError(fmt.Errorf("document does not exist for ID: %d", *id), "not_exist", "document")
-	// 	}
+		if _, err := aus.documentSvc.GetByID(*id); err != nil {
+			return utility.NewValidationError(fmt.Errorf("document does not exist for ID: %d", *id), "not_exist", "document")
+		}
 
-	// 	documentIDMap[*id] = true
-	// }
+		documentIDMap[*id] = true
+	}
 
 	// Validate Incident Register IDs
 	incidentRegisterIDs := auditUniverseFormDTO.IncidentRegisterIDs

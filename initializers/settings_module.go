@@ -23,6 +23,7 @@ type SettingsModule struct {
 	RoleSvc              services.RoleServiceInterface
 	ModuleSvc            services.ModuleServiceInterface
 	WorkflowSvc          services.WorkflowServiceInterface
+	OrganizationUnitSvc  services.OrganizationUnitServiceInterface
 }
 
 func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *MasterModule) *SettingsModule {

@@ -72,6 +72,16 @@ func (repo *IncidentRegisterRepository) GetAll(params *incidentDTOs.IncidentRegi
 			severity_levels.title_en AS severity_level_title_en,
 			severity_levels.title_ar AS severity_level_title_ar,
 			severity_levels.color_code AS severity_level_color_code,
+			organization_units.title_en AS responsible_unit_title_en,
+			organization_units.title_ar AS responsible_unit_title_ar,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+            responsible_user.first_name_ar AS responsible_user_first_name_ar,
+            responsible_user.last_name_en AS responsible_user_last_name_en,
+            responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			responsible_user.initial AS responsible_user_initial,
+            responsible_user.color AS responsible_user_color,
+            responsible_user.email AS responsible_user_email,
+            responsible_user.profile_image_path AS responsible_user_profile_image_path,
             reported_user.first_name_en AS reported_by_first_name_en,
             reported_user.first_name_ar AS reported_by_first_name_ar,
             reported_user.last_name_en AS reported_by_last_name_en,
@@ -91,7 +101,9 @@ func (repo *IncidentRegisterRepository) GetAll(params *incidentDTOs.IncidentRegi
             LEFT JOIN incident_types ON incident_types.id = incident_register.incident_type_id
             LEFT JOIN incident_statuses ON incident_statuses.id = incident_register.incident_status_id
 		    LEFT JOIN severity_levels ON severity_levels.id = incident_register.severity_level_id
-            LEFT JOIN users AS reported_user ON reported_user.id = incident_register.reported_by
+            LEFT JOIN organization_units ON organization_units.id = incident_register.responsible_unit_id
+		    LEFT JOIN users AS responsible_user ON responsible_user.id = incident_register.responsible_user_id
+			LEFT JOIN users AS reported_user ON reported_user.id = incident_register.reported_by
 			LEFT JOIN users AS created_user ON created_user.id = incident_register.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = incident_register.updated_by_id
         `)
@@ -125,6 +137,16 @@ func (repo *IncidentRegisterRepository) GetAll(params *incidentDTOs.IncidentRegi
 			incident_statuses.title_ar LIKE ? OR
 			severity_levels.title_en LIKE ? OR
 			severity_levels.title_ar LIKE ? OR
+			organization_units.title_en LIKE ? OR
+			organization_units.title_ar LIKE ? OR
+			responsible_user.first_name_en LIKE ? OR
+			responsible_user.first_name_ar LIKE ? OR
+			responsible_user.last_name_en LIKE ? OR
+			responsible_user.last_name_ar LIKE ? OR
+			responsible_user.email LIKE ? OR
+            responsible_user.initial LIKE ? OR
+            responsible_user.color LIKE ? OR
+            responsible_user.profile_image_path LIKE ? OR
 			reported_user.first_name_en LIKE ? OR
 			reported_user.first_name_ar LIKE ? OR
 			reported_user.last_name_en LIKE ? OR
@@ -139,7 +161,8 @@ func (repo *IncidentRegisterRepository) GetAll(params *incidentDTOs.IncidentRegi
 			updated_user.last_name_ar LIKE ?)`,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
 	// Sort by the specified column and order
@@ -205,6 +228,9 @@ func (repo *IncidentRegisterRepository) GetFullDetailsByID(id uint, tx ...utilit
 		Preload("Risks").
 		Preload("Processes").
 		Preload("SLARegisters").
+		Preload("ResponsibleUnit.ParentUnit.ParentUnit.ParentUnit.ParentUnit.ParentUnit").
+		Preload("ResponsibleUser").
+		Preload("ResponsibleUser.OrganizationUnit1").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&incident, id)
@@ -279,6 +305,7 @@ func (repo *IncidentRegisterRepository) GenerateReferenceNumber() (string, error
 	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "IR", currentYear, lastReferenceID+1)
 
 	return newReferenceNumber, nil
+	
 }
 
 // Document func

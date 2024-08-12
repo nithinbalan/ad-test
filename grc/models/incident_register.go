@@ -6,11 +6,13 @@ import (
 
 type IncidentRegister struct {
 	ID                    uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
-	ReferenceNumber       string     `json:"reference_number" binding:"required,max=45" gorm:"type:varchar(45);not null;unique"`
+	ReferenceNumber       string     `json:"reference_number" binding:"omitempty,max=45" gorm:"size:45"`
 	IncidentCategoryID    uint       `json:"incident_category_id" binding:"required"`
 	IncidentTypeID        *uint      `json:"incident_type_id"`
 	SeverityLevelID       uint       `json:"severity_level_id" binding:"required"`
 	IncidentStatusID      *uint      `json:"incident_status_id"`
+	ResponsibleUnitID     uint       `json:"responsible_unit_id" binding:"required" gorm:"not null"`
+	ResponsibleUserID     uint       `json:"responsible_user_id" binding:"required" gorm:"not null"`
 	Title                 string     `json:"title" binding:"required,max=255" gorm:"type:nvarchar(255);not null"`
 	Description           *string    `json:"description" gorm:"type:nvarchar(max)"`
 	IncidentAt            *time.Time `json:"incident_at" binding:"required" gorm:"type:date;not null"`
@@ -29,6 +31,8 @@ type IncidentRegister struct {
 	IncidentType           *IncidentType                    `gorm:"foreignKey:IncidentTypeID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	SeverityLevel          *SeverityLevel                   `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	IncidentStatus         *IncidentStatus                  `gorm:"foreignKey:IncidentStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ResponsibleUnit        *OrganizationUnit                `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ResponsibleUser        *User                            `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	Documents              []*IncidentDocument              `gorm:"foreignKey:IncidentRegisterID"`
 	Controls               []*IncidentControl               `gorm:"foreignKey:IncidentRegisterID"`
 	ComplianceRequirements []*IncidentComplianceRequirement `gorm:"foreignKey:IncidentRegisterID"`

@@ -141,14 +141,12 @@ func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizatio
 	if err != nil {
 		return 0, err
 	}
-	var organizationUnitID *uint
-	if controlFormDTO.OwnerID != nil {
-		unitID, err := cs.userSvc.GetUserPrimaryUnitID(*controlFormDTO.OwnerID)
-		if err != nil {
-			return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for owner"), "not_exist", "control owner unit")
-		}
-		organizationUnitID = &unitID
+	var organizationUnitID uint
+	unitID, err := cs.userSvc.GetUserPrimaryUnitID(controlFormDTO.OwnerID)
+	if err != nil {
+		return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for owner"), "not_exist", "control owner unit")
 	}
+	organizationUnitID = unitID
 
 	control := &models.Control{
 		ControlTypeID:                 controlFormDTO.ControlTypeID,
@@ -224,11 +222,11 @@ func (cs *ControlService) Update(id uint, currentUserID uint, controlFormDTO *or
 		return err
 	}
 	if existingControl.OwnerID != controlFormDTO.OwnerID {
-		organizationUnitID, err := cs.userSvc.GetUserPrimaryUnitID(*controlFormDTO.OwnerID)
+		organizationUnitID, err := cs.userSvc.GetUserPrimaryUnitID(controlFormDTO.OwnerID)
 		if err != nil {
 			return utility.NewValidationError(fmt.Errorf("organization unit not set for owner"), "not_exist", "control owner unit")
 		}
-		existingControl.OwnerUnitID = &organizationUnitID
+		existingControl.OwnerUnitID = organizationUnitID
 	}
 
 	existingControl.ControlTypeID = controlFormDTO.ControlTypeID
@@ -403,10 +401,8 @@ func (cs *ControlService) validateControlFormDTO(controlFormDTO *organizationDTO
 		return utility.NewValidationError(fmt.Errorf("control category does not exist"), "not_exist", "control category")
 	}
 
-	if controlFormDTO.OwnerID != nil {
-		if _, err := cs.userSvc.GetByID(uint(*controlFormDTO.OwnerID)); err != nil {
-			return utility.NewValidationError(fmt.Errorf("control owner does not exist"), "not_exist", "control owner")
-		}
+	if _, err := cs.userSvc.GetByID(uint(controlFormDTO.OwnerID)); err != nil {
+		return utility.NewValidationError(fmt.Errorf("control owner does not exist"), "not_exist", "control owner")
 	}
 
 	if controlFormDTO.ControlImplementationStatusID != nil {

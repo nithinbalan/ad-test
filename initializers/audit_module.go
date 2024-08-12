@@ -39,7 +39,7 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		complianceModule.ComplianceRequirementSvc,
 		riskModule.RiskRegisterSvc,
 		incidentModule.IncidentRegisterSvc,
-		// documentModule.DocumentSvc,
+		documentModule.DocumentSvc,
 	)
 	auditUniverseController := controllers.NewAuditUniverseController(auditUniverseSvc)
 
@@ -48,6 +48,7 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		auditableItemRepo,
 		sharedModule.ActivityLogService,
 		auditStatusSvc, auditorRiskRatingSvc,
+		settingModule.OrganizationUnitSvc,
 	)
 	auditableItemController := controllers.NewAuditableItemController(auditableItemSvc)
 
