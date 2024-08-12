@@ -8,8 +8,8 @@ type Control struct {
 	ID                            uint       `json:"id" gorm:"primaryKey;autoIncrement" binding:"-"`
 	ControlTypeID                 uint       `json:"control_type_id" gorm:"not null" binding:"required"`
 	ControlCategoryID             uint       `json:"control_category_id" gorm:"not null" binding:"required"`
-	OwnerUnitID                   *uint      `json:"owner_unit_id,omitempty" gorm:"default:null" binding:"omitempty"`
-	OwnerID                       *uint      `json:"owner_id,omitempty" gorm:"default:null" binding:"omitempty"`
+	OwnerUnitID                   uint       `json:"owner_unit_id" gorm:"default:not null" binding:"required"`
+	OwnerID                       uint       `json:"owner_id" gorm:"default:not null" binding:"required"`
 	ControlImplementationStatusID *uint      `json:"control_implementation_status_id,omitempty" gorm:"default:null" binding:"omitempty"`
 	ControlEfficiencyStatusID     *uint      `json:"control_efficiency_status_id,omitempty" gorm:"default:null" binding:"omitempty"`
 	ReferenceNumber               string     `json:"reference_number" gorm:"type:varchar(45);not null;unique" binding:"required"`

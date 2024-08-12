@@ -196,7 +196,7 @@ func (aus *AuditUniverseService) Create(currentUserID uint, auditUniverseFormDTO
 		err := aus.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.AuditableItem{}.TableName(),
-			0,
+			0,//todo
 			auditUniverseFormDTO,
 			currentUserID,
 			nil,
@@ -206,7 +206,7 @@ func (aus *AuditUniverseService) Create(currentUserID uint, auditUniverseFormDTO
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
 				"tableName": models.AuditableItem{}.TableName(),
-				"recordID":  0,
+				"recordID":  0,//todo
 				"userID":    currentUserID,
 				"error":     err.Error(),
 			}
@@ -231,25 +231,29 @@ func (aus *AuditUniverseService) getOrganizationUnitID(entityType string, id uin
 		if err != nil {
 			return 0, err
 		}
-		return *control.OwnerUnitID, nil
+		return control.OwnerUnitID, nil
 	case "document":
 		document, err := aus.documentSvc.GetByID(id)
 		if err != nil {
 			return 0, err
 		}
 		return document.ResponsibleUnitID, nil
-	case "incident": // bring responsible user & unit
-		// incident, err := aus.incidentRegisterSvc.GetByID(id)
-		// if err != nil {
-		// 	return 0, err
-		// }
-		return 0, nil
+	case "incident": 
+		incident, err := aus.incidentRegisterSvc.GetByID(id)
+		if err != nil {
+			return 0, err
+		}
+		return incident.ResponsibleUnitID, nil
 	case "compliance":
-		// compliance, err := aus.complianceSvc.GetByID(id)
-		// if err != nil {
-		// 	return 0, err
-		// }
-		return 0, nil
+		compliance, err := aus.complianceRequirementSvc.GetByComplianceRequirementID(id)
+		if err != nil {
+			return 0, err
+		}
+		userUnit, err := aus.userSvc.GetUserPrimaryUnitID(compliance.ResponsibleUserID)
+		if err != nil {
+			return 0, err
+		}
+		return userUnit, nil
 	case "risk":
 		risk, err := aus.riskRegisterSvc.GetByID(id)
 		if err != nil {
