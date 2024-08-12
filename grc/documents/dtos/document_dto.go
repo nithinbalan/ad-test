@@ -223,3 +223,8 @@ type DocumentWorkflowListDTO struct {
 type DocumentWorkflowReviewListDTO struct {
 	CreatedByUser organizationDTOs.UserMinimalDTO `json:"created_by"`
 }
+
+type DocumentSharedUserListResponseDTO struct {
+	Items      []*organizationDTOs.UserMinimalDTO `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO       `json:"pagination"`
+}

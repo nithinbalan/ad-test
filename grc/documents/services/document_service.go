@@ -49,6 +49,10 @@ type DocumentServiceInterface interface {
 
 	CreateDocumentAuditLog(documentID uint, documentVersionID uint, userID uint, logType string, tx ...utility.DatabaseTransaction) error
 	DirectDocumentAuditLog(documentID uint, userID uint, logType string) error
+
+	GetSharedUsers(documentId uint, page uint, pageSize uint) (*documentDTOs.DocumentSharedUserListResponseDTO, error)
+	GetReviewUsers(documentId uint) ([]*organizationDTOs.UserMinimalDTO, error)
+	GetSharedUnits(documentId uint) ([]*settingDTOs.OrganizationUnitDTO, error)
 }
 
 type DocumentService struct {
@@ -1567,4 +1571,76 @@ func (ds *DocumentService) DirectDocumentAuditLog(documentID uint, userID uint, 
 	tx.Commit()
 	return nil
 
+}
+
+func (ds *DocumentService) GetSharedUsers(documentId uint, page uint, pageSize uint) (*documentDTOs.DocumentSharedUserListResponseDTO, error) {
+	users, pagination, err := ds.repo.GetSharedUsers(documentId, page, pageSize)
+	if err != nil {
+		return nil, err
+	}
+
+	dtos := make([]*organizationDTOs.UserMinimalDTO, 0) // Initialize as empty slice
+	for _, user := range users {
+		dto := &organizationDTOs.UserMinimalDTO{
+			ID:               int(user.ID),
+			FirstNameEN:      user.FirstNameEn,
+			LastNameEN:       user.LastNameEn,
+			FirstNameAR:      user.FirstNameAr,
+			LastNameAR:       user.LastNameAr,
+			ProfileImagePath: user.ProfileImagePath,
+			Email:            user.Email,
+			Initial:          user.Initial,
+			Color:            user.Color,
+		}
+		dtos = append(dtos, dto)
+	}
+
+	responseDTO := &documentDTOs.DocumentSharedUserListResponseDTO{
+		Items:      dtos,
+		Pagination: pagination,
+	}
+
+	return responseDTO, nil
+}
+
+func (ds *DocumentService) GetReviewUsers(documentId uint) ([]*organizationDTOs.UserMinimalDTO, error) {
+	users, err := ds.repo.GetReviewUsers(documentId)
+	if err != nil {
+		return nil, err
+	}
+
+	dtos := make([]*organizationDTOs.UserMinimalDTO, 0) // Initialize as empty slice, not nil
+	for _, user := range users {
+		dto := &organizationDTOs.UserMinimalDTO{
+			ID:               int(user.ID),
+			FirstNameEN:      user.FirstNameEn,
+			LastNameEN:       user.LastNameEn,
+			FirstNameAR:      user.FirstNameAr,
+			LastNameAR:       user.LastNameAr,
+			ProfileImagePath: user.ProfileImagePath,
+			Email:            user.Email,
+			Initial:          user.Initial,
+			Color:            user.Color,
+		}
+		dtos = append(dtos, dto)
+	}
+	return dtos, nil
+}
+
+func (svc *DocumentService) GetSharedUnits(documentId uint) ([]*settingDTOs.OrganizationUnitDTO, error) {
+	units, err := svc.repo.GetSharedUnits(documentId)
+	if err != nil {
+		return nil, err
+	}
+
+	dtos := make([]*settingDTOs.OrganizationUnitDTO, 0)
+	for _, unit := range units {
+		dto := &settingDTOs.OrganizationUnitDTO{
+			ID:      int(unit.ID),
+			TitleEn: unit.TitleEn,
+			TitleAr: unit.TitleAr,
+		}
+		dtos = append(dtos, dto)
+	}
+	return dtos, nil
 }
