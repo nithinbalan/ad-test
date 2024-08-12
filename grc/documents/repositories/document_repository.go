@@ -49,6 +49,10 @@ type DocumentRepositoryInterface interface {
 
 	CreateDocumentWorkflowReview(documentWorkflowReview *models.DocumentWorkflowReview, tx ...utility.DatabaseTransaction) error
 	CountApprovedParticipants(workflowID uint, tx ...utility.DatabaseTransaction) (int, error)
+
+	GetSharedUsers(documentId uint, page uint, pageSize uint) ([]*models.User, commonDTOs.PaginationInfoDTO, error)
+	GetReviewUsers(documentId uint) ([]*models.User, error)
+	GetSharedUnits(documentId uint) ([]*models.OrganizationUnit, error)
 }
 
 // Implementation
@@ -517,6 +521,8 @@ func (repo *DocumentRepository) GetComments(docVersionId uint, currentApprovalLe
 		Preload("SubmittedByUser").
 		Preload("DocumentWorkflows", "level <= ?", currentApprovalLevel).
 		Preload("DocumentWorkflows.DocumentWorkflowStatus").
+		Preload("DocumentWorkflows.DocumentWorkflowParticipants").
+		Preload("DocumentWorkflows.DocumentWorkflowParticipants.User").
 		Preload("DocumentWorkflows.DocumentWorkflowReviews").
 		Preload("DocumentWorkflows.DocumentWorkflowReviews.DocumentWorkflowStatus").
 		Preload("DocumentWorkflows.DocumentWorkflowReviews.CreatedByUser").
@@ -614,4 +620,64 @@ func (repo *DocumentRepository) GetWorkflowList(docVersionId uint) (*models.Docu
 	}
 
 	return &documentVersion, nil
+}
+
+func (repo *DocumentRepository) GetSharedUsers(documentId uint, page uint, pageSize uint) ([]*models.User, commonDTOs.PaginationInfoDTO, error) {
+	var users []*models.User
+	var totalCount int64
+
+	// First, count the total eligible records
+	countQuery := repo.db.Model(&models.DocumentSharedUser{}).
+		Where("document_id = ? AND type = 'shared-user'", documentId)
+	countQuery.Count(&totalCount)
+
+	// Then fetch the paginated results
+	offset := (page - 1) * pageSize
+	err := countQuery.
+		Joins("JOIN users ON users.id = document_shared_users.user_id").
+		Select("users.*").
+		Offset(int(offset)).
+		Limit(int(pageSize)).
+		Find(&users).Error
+
+	if err != nil {
+		return nil, commonDTOs.PaginationInfoDTO{}, err
+	}
+
+	pagination := commonDTOs.PaginationInfoDTO{
+		CurrentPage: int(page),
+		PageSize:    int(pageSize),
+		TotalCount:  totalCount,
+		TotalPages:  int((totalCount + int64(pageSize) - 1) / int64(pageSize)),
+	}
+
+	return users, pagination, nil
+}
+
+func (repo *DocumentRepository) GetReviewUsers(documentId uint) ([]*models.User, error) {
+	var users []*models.User
+	err := repo.db.
+		Model(&models.DocumentSharedUser{}).
+		Where("document_id = ? AND type = 'review-user'", documentId).
+		Joins("JOIN users ON users.id = document_shared_users.user_id").
+		Select("users.*").
+		Find(&users).Error
+	if err != nil {
+		return nil, err
+	}
+	return users, nil
+}
+
+func (repo *DocumentRepository) GetSharedUnits(documentId uint) ([]*models.OrganizationUnit, error) {
+	var units []*models.OrganizationUnit
+	err := repo.db.
+		Model(&models.DocumentSharedUnit{}).
+		Where("document_id = ?", documentId).
+		Joins("JOIN organization_units ON organization_units.id = document_shared_units.organization_unit_id").
+		Select("organization_units.*").
+		Find(&units).Error
+	if err != nil {
+		return nil, err
+	}
+	return units, nil
 }
