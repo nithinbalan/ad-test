@@ -50,14 +50,26 @@ func (dcc *DocumentClauseController) GetAllDocumentClauses(c *gin.Context) {
 
 func (dcc *DocumentClauseController) GetDocumentClauseDetails(c *gin.Context) {
 	idStr := c.Param("id")
-	id, err := strconv.ParseUint(idStr, 10, 32)
+	documentId, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
 
-	// Implementation goes here
-	c.JSON(http.StatusOK, gin.H{"message": "not implemented yet", "id": id})
+	clauseIdStr := c.Param("clauseId")
+	clauseId, err := strconv.ParseUint(clauseIdStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	clause, err := dcc.service.GetFullDetailsByID(uint(documentId), uint(clauseId))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	c.JSON(http.StatusOK, clause)
 }
 
 func (dcc *DocumentClauseController) CreateDocumentClause(c *gin.Context) {

@@ -46,3 +46,27 @@ type DocumentClauseListQueryParamsDTO struct {
 	SortBy  string
 	Keyword string
 }
+
+type DocumentClauseDetailsDTO struct {
+	ID               uint                     `json:"id"`
+	ClauseNumber     *string                  `json:"clause_number"`
+	ClauseTitleEn    string                   `json:"clause_title_en"`
+	ClauseTitleAr    string                   `json:"clause_title_ar"`
+	Description      *string                  `json:"description"`
+	ParantClause     *DocumentParantClauseDTO `json:"parant_clause"`
+	DocumentControls []*DocumentControlDTO    `json:"document_controls"`
+}
+
+type DocumentParantClauseDTO struct {
+	ID            uint    `json:"id"`
+	ClauseNumber  *string `json:"clause_number"`
+	ClauseTitleEn string  `json:"clause_title_en"`
+	ClauseTitleAr string  `json:"clause_title_ar"`
+	Description   *string `json:"description"`
+}
+
+type DocumentControlDTO struct {
+	ID                      uint                                    `json:"id"`
+	DocumentVersionClauseID *uint                                   `json:"document_version_clause_id"`
+	Control                 *organizationDTOs.ControlMinimalListDTO `json:"controls"`
+}

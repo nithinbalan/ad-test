@@ -127,12 +127,16 @@ func (repo *ProcessAssociatedItemRepository) GetAllRisks(processID uint, params 
 			risk_categories.title_ar AS risk_category_title_ar,
 			risk_sources.title_en AS risk_source_title_en,
 			risk_sources.title_ar AS risk_source_title_ar,
-			organization_units.title_en AS owner_unit_title_en,
-			organization_units.title_ar AS owner_unit_title_ar,
-			users.first_name_en AS owner_first_name_en,
-			users.first_name_ar AS owner_first_name_ar,
-			users.last_name_en AS owner_last_name_en,
-			users.last_name_ar AS owner_last_name_ar,
+			organization_units.title_en AS responsible_unit_title_en,
+			organization_units.title_ar AS responsible_unit_title_ar,
+			users.first_name_en AS responsible_user_first_name_en,
+			users.first_name_ar AS responsible_user_first_name_ar,
+			users.last_name_en AS responsible_user_last_name_en,
+			users.last_name_ar AS responsible_user_last_name_ar,
+			users.initial AS responsible_user_initial,
+			users.color AS responsible_user_color,
+			users.email AS responsible_user_email,
+			users.profile_image_path AS responsible_user_profile_image_path,
 			risk_matrix_likelihoods.title_en AS risk_matrix_likelihood_title_en,
             risk_matrix_likelihoods.title_ar AS risk_matrix_likelihood_title_ar,
             risk_matrix_likelihoods.score AS risk_matrix_likelihood_score,
@@ -143,6 +147,7 @@ func (repo *ProcessAssociatedItemRepository) GetAllRisks(processID uint, params 
             risk_matrix_risk_ratings.title_ar AS risk_matrix_risk_rating_title_ar,
             risk_matrix_risk_ratings.type AS risk_matrix_risk_rating_type,
             risk_matrix_risk_ratings.color_code AS risk_matrix_risk_rating_color_code,
+			risk_matrix_risk_rating_values.value AS risk_matrix_risk_rating_value,
 			risk_statuses.title_en AS risk_status_title_en,
 			risk_statuses.title_ar AS risk_status_title_ar,
 			risk_statuses.color_code AS risk_status_color_code
@@ -151,11 +156,12 @@ func (repo *ProcessAssociatedItemRepository) GetAllRisks(processID uint, params 
 			LEFT JOIN risk_register ON risk_register.id = risk_processes.risk_register_id
 			LEFT JOIN risk_categories ON risk_categories.id = risk_register.risk_category_id
 			LEFT JOIN risk_sources ON risk_sources.id = risk_register.risk_source_id
-			LEFT JOIN organization_units ON organization_units.id = risk_register.owner_unit_id
-			LEFT JOIN users ON users.id = risk_register.owner_id
+			LEFT JOIN organization_units ON organization_units.id = risk_register.responsible_unit_id
+			LEFT JOIN users ON users.id = risk_register.responsible_user_id
 			LEFT JOIN risk_matrix_likelihoods ON risk_matrix_likelihoods.id = risk_register.current_likelihood_id
             LEFT JOIN risk_matrix_impacts ON risk_matrix_impacts.id = risk_register.current_impact_id
             LEFT JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = risk_register.current_risk_rating_id
+			LEFT JOIN risk_matrix_risk_rating_values ON risk_matrix_risk_rating_values.id = risk_register.current_risk_rating_value_id
 			LEFT JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id
 		`).Where("risk_processes.process_id = ?", processID)
 
@@ -183,6 +189,10 @@ func (repo *ProcessAssociatedItemRepository) GetAllRisks(processID uint, params 
 			risk_statuses.title_ar LIKE ? OR
 			risk_statuses.color_code LIKE ?)`,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+	}
+
+	if params.Value != 0 {
+		query = query.Where("risk_matrix_risk_rating_values.value = ?", params.Value)
 	}
 
 	if params.SortBy == "" {
