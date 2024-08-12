@@ -12,9 +12,18 @@ type RiskHeatmapResponseDTO struct {
 	RiskRegisterCount           int                         `json:"risk_register_count"`
 }
 
+type RiskHeatmapResponseByItemDetailsDTO struct {
+	RiskMatrixRiskRatingID      uint   `json:"risk_matrix_risk_rating_id"`
+	RiskMatrixRiskRatingTitleEN string `json:"risk_matrix_risk_rating_title_en"`
+	RiskMatrixRiskRatingTitleAR string `json:"risk_matrix_risk_rating_title_ar"`
+	ColorCode                   string `json:"color_code"`
+	RiskRegisterCount           int    `json:"risk_register_count"`
+	Value                       uint   `json:"value"`
+}
+
 type RiskHeatmapResponseByItemDTO struct {
-	ItemID       uint                      `json:"item_id"`
-	ItemTitleEn  string                    `json:"item_title_en"`
-	ItemTitleAr  string                    `json:"item_title_ar"`
-	HeatmapCells []*RiskHeatmapResponseDTO `json:"heatmap_cells"`
+	ItemID       uint                                   `json:"item_id"`
+	ItemTitleEn  string                                 `json:"item_title_en"`
+	ItemTitleAr  string                                 `json:"item_title_ar"`
+	HeatmapCells []*RiskHeatmapResponseByItemDetailsDTO `json:"heatmap_cells"`
 }

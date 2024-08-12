@@ -217,6 +217,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	// Risk Heat Map
 	riskRoutes.GET("risks/heatmap-by-responsible-unit", riskHeatmapController.GetRiskHeatmapByResponsibleUnit)
+	riskRoutes.GET("risks/heatmap-by-risk-category", riskHeatmapController.GetRiskHeatmapByRiskCategory)
+	riskRoutes.GET("risks/heatmap-by-risk-source", riskHeatmapController.GetRiskHeatmapByRiskSource)
+	riskRoutes.GET("risks/heatmap-by-risk-matrix", riskHeatmapController.GetRiskHeatmapByRiskMatrix)
+
 	riskRoutes.GET("processes/:processId/risk-heatmap", riskHeatmapController.GetProcessRiskHeatmap)
 	riskRoutes.GET("controls/:controlId/risk-heatmap", riskHeatmapController.GetControlRiskHeatmap)
 	riskRoutes.GET("compliances/:complianceId/risk-heatmap", riskHeatmapController.GetComplianceRiskHeatmap)
@@ -253,6 +257,5 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	//Risk Timelines
 	riskRoutes.GET("/risks/:riskId/timelines", riskTimelineController.GetAllRiskTimelines)
-
 
 }
