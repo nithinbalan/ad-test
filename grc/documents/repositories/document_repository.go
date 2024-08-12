@@ -51,6 +51,7 @@ type DocumentRepositoryInterface interface {
 	CountApprovedParticipants(workflowID uint, tx ...utility.DatabaseTransaction) (int, error)
 
 	GetSharedUsers(documentId uint) ([]*models.User, error)
+	GetReviewUsers(documentId uint) ([]*models.User, error)
 	GetSharedUnits(documentId uint) ([]*models.OrganizationUnit, error)
 }
 
@@ -626,6 +627,20 @@ func (repo *DocumentRepository) GetSharedUsers(documentId uint) ([]*models.User,
 	err := repo.db.
 		Model(&models.DocumentSharedUser{}).
 		Where("document_id = ? AND type = 'shared-user'", documentId).
+		Joins("JOIN users ON users.id = document_shared_users.user_id").
+		Select("users.*").
+		Find(&users).Error
+	if err != nil {
+		return nil, err
+	}
+	return users, nil
+}
+
+func (repo *DocumentRepository) GetReviewUsers(documentId uint) ([]*models.User, error) {
+	var users []*models.User
+	err := repo.db.
+		Model(&models.DocumentSharedUser{}).
+		Where("document_id = ? AND type = 'review-user'", documentId).
 		Joins("JOIN users ON users.id = document_shared_users.user_id").
 		Select("users.*").
 		Find(&users).Error

@@ -523,6 +523,29 @@ func (dc *DocumentController) GetSharedUsers(c *gin.Context) {
 	c.JSON(http.StatusOK, sharedUsers)
 }
 
+func (dc *DocumentController) GetReviewUsers(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	reviewUsers, err := dc.service.GetReviewUsers(uint(id))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(dc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, reviewUsers)
+}
+
 func (dc *DocumentController) GetSharedUnits(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)

@@ -51,6 +51,7 @@ type DocumentServiceInterface interface {
 	DirectDocumentAuditLog(documentID uint, userID uint, logType string) error
 
 	GetSharedUsers(documentId uint) ([]*organizationDTOs.UserMinimalDTO, error)
+	GetReviewUsers(documentId uint) ([]*organizationDTOs.UserMinimalDTO, error)
 	GetSharedUnits(documentId uint) ([]*settingDTOs.OrganizationUnitDTO, error)
 }
 
@@ -1576,6 +1577,30 @@ func (ds *DocumentService) DirectDocumentAuditLog(documentID uint, userID uint, 
 
 func (ds *DocumentService) GetSharedUsers(documentId uint) ([]*organizationDTOs.UserMinimalDTO, error) {
 	users, err := ds.repo.GetSharedUsers(documentId)
+	if err != nil {
+		return nil, err
+	}
+
+	dtos := make([]*organizationDTOs.UserMinimalDTO, 0) // Initialize as empty slice, not nil
+	for _, user := range users {
+		dto := &organizationDTOs.UserMinimalDTO{
+			ID:               int(user.ID),
+			FirstNameEN:      user.FirstNameEn,
+			LastNameEN:       user.LastNameEn,
+			FirstNameAR:      user.FirstNameAr,
+			LastNameAR:       user.LastNameAr,
+			ProfileImagePath: user.ProfileImagePath,
+			Email:            user.Email,
+			Initial:          user.Initial,
+			Color:            user.Color,
+		}
+		dtos = append(dtos, dto)
+	}
+	return dtos, nil
+}
+
+func (ds *DocumentService) GetReviewUsers(documentId uint) ([]*organizationDTOs.UserMinimalDTO, error) {
+	users, err := ds.repo.GetReviewUsers(documentId)
 	if err != nil {
 		return nil, err
 	}

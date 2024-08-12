@@ -70,6 +70,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentRoutes.POST("/documents/:id/submit", documentController.SubmitDocument)
 	documentRoutes.POST("/documents/:id/publish", documentController.PublishDocument)
 	documentRoutes.GET("/documents/:id/shared-users", documentController.GetSharedUsers)
+	documentRoutes.GET("/documents/:id/review-users", documentController.GetReviewUsers)
 	documentRoutes.GET("/documents/:id/shared-units", documentController.GetSharedUnits)
 
 	unauthenticatedRoutes.GET("/documents/:id/document-preview", documentController.GetDocumentPreview)
