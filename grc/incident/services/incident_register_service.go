@@ -436,7 +436,7 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 		if err != nil {
 			return utility.NewValidationError(fmt.Errorf("organization unit not set for owner"), "not_exist", "control owner unit")
 		}
-		existingIncidentRegister.ResponsibleUserID = organizationUnitID
+		existingIncidentRegister.ResponsibleUnitID = organizationUnitID
 	}
 	existingIncidentRegister.IncidentCategoryID = incidentRegisterFormDTO.IncidentCategoryID
 	existingIncidentRegister.IncidentTypeID = incidentRegisterFormDTO.IncidentTypeID
