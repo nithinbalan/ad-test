@@ -62,7 +62,12 @@ func (repo *RiskHeatmapRepository) CountRiskRegistersWithLikelihoodAndImpact(ris
 
 func (repo *RiskHeatmapRepository) GetAllRiskRegisters() ([]models.RiskRegister, error) {
 	var risks []models.RiskRegister
-	err := repo.db.Preload("ResponsibleUnit").Find(&risks).Error
+	err := repo.db.Preload("ResponsibleUnit").
+		Preload("RiskCategory").
+		Preload("RiskSource").
+		Preload("CurrentRiskRating").
+		Preload("CurrentRiskRatingValue").
+		Find(&risks).Error
 	if err != nil {
 		return nil, err
 	}

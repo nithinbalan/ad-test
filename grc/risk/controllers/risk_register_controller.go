@@ -29,13 +29,14 @@ func (rrc *RiskRegisterController) GetAllRiskRegisters(c *gin.Context) {
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
+	valueStr := c.Query("value")
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"risk_category_ids",
 		"risk_source_ids",
-		"owner_unit_ids",
-		"owner_ids",
+		"responsible_unit_ids",
+		"responsible_user_ids",
 		"risk_status_ids",
 		"review_frequency_ids",
 	}
@@ -59,6 +60,15 @@ func (rrc *RiskRegisterController) GetAllRiskRegisters(c *gin.Context) {
 		return
 	}
 
+	var value int
+	if valueStr != "" {
+		value, err = strconv.Atoi(valueStr)
+		if err != nil {
+			utility.SendInternalErrResp(rrc.db, c, "Invalid value parameter")
+			return
+		}
+	}
+
 	queryParams := riskDTOs.RiskRegisterListQueryParamsDTO{
 		Sort:               sort,
 		SortBy:             sortBy,
@@ -66,6 +76,7 @@ func (rrc *RiskRegisterController) GetAllRiskRegisters(c *gin.Context) {
 		Status:             status,
 		Page:               page,
 		PageSize:           pageSize,
+		Value:              value,
 		Filters:            filters,
 		QuickFilter:        quickFilter,
 		ReportedAtFrom:     reportedAtFrom,

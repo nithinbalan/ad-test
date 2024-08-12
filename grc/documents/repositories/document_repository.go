@@ -520,6 +520,8 @@ func (repo *DocumentRepository) GetComments(docVersionId uint, currentApprovalLe
 		Preload("SubmittedByUser").
 		Preload("DocumentWorkflows", "level <= ?", currentApprovalLevel).
 		Preload("DocumentWorkflows.DocumentWorkflowStatus").
+		Preload("DocumentWorkflows.DocumentWorkflowParticipants").
+		Preload("DocumentWorkflows.DocumentWorkflowParticipants.User").
 		Preload("DocumentWorkflows.DocumentWorkflowReviews").
 		Preload("DocumentWorkflows.DocumentWorkflowReviews.DocumentWorkflowStatus").
 		Preload("DocumentWorkflows.DocumentWorkflowReviews.CreatedByUser").

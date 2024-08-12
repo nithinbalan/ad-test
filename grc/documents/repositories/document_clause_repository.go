@@ -15,7 +15,7 @@ type DocumentClauseRepositoryInterface interface {
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.DocumentVersionClause, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.DocumentVersionClause, error)
 	GetByClauseNumber(clauseNumber string, tx ...utility.DatabaseTransaction) (*models.DocumentVersionClause, error)
-	ExistsByClauseNumber(clauseNumber string, tx ...utility.DatabaseTransaction) (bool, error)
+	ExistsByClauseNumber(clauseNumber string, documentVersionId uint, tx ...utility.DatabaseTransaction) (bool, error)
 	Create(documentVersionClause *models.DocumentVersionClause, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(documentVersionClause *models.DocumentVersionClause, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
@@ -127,13 +127,13 @@ func (repo *DocumentClauseRepository) GetByClauseNumber(clauseNumber string, tx 
 	return &clause, nil
 }
 
-func (repo *DocumentClauseRepository) ExistsByClauseNumber(clauseNumber string, tx ...utility.DatabaseTransaction) (bool, error) {
+func (repo *DocumentClauseRepository) ExistsByClauseNumber(clauseNumber string, documentVersionId uint, tx ...utility.DatabaseTransaction) (bool, error) {
 	var count int64
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	err := db.Model(&models.DocumentVersionClause{}).Where("clause_number = ?", clauseNumber).Count(&count).Error
+	err := db.Model(&models.DocumentVersionClause{}).Where("clause_number = ? AND document_version_id = ?", clauseNumber, documentVersionId).Count(&count).Error
 	if err != nil {
 		return false, err
 	}

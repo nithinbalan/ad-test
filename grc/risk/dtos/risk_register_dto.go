@@ -26,6 +26,8 @@ type RiskRegisterListDTO struct {
 	ResponsibleUserLastNameAr   string     `json:"responsible_user_last_name_ar"`
 	RiskStatusTitleEn           string     `json:"risk_status_title_en"`
 	RiskStatusTitleAr           string     `json:"risk_status_title_ar"`
+	RiskResponseStrategyTitleEn string     `json:"risk_response_strategy_title_en"`
+	RiskResponseStrategyTitleAr string     `json:"risk_response_strategy_title_ar"`
 	RiskStatusColorCode         string     `json:"risk_status_color_code"`
 	Title                       string     `json:"title"`
 	Description                 *string    `json:"description"`
@@ -78,6 +80,7 @@ type RiskRegisterListQueryParamsDTO struct {
 	Status             string
 	Page               int
 	PageSize           int
+	Value              int
 	Filters            map[string][]string
 	QuickFilter        []string
 	ReportedAtFrom     string
