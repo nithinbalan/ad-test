@@ -26,7 +26,7 @@ import (
 )
 
 type DocumentServiceInterface interface {
-	GetAll(params *documentDTOs.DocumentListQueryParamsDTO) (*documentDTOs.DocumentListResponseDTO, error)
+	GetAll(params *documentDTOs.DocumentListQueryParamsDTO, currentUserID uint) (*documentDTOs.DocumentListResponseDTO, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Document, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*documentDTOs.DocumentDetailsDTO, error)
 	Create(currentUserID uint, documentFormDTO *documentDTOs.DocumentFormDTO) (uint, error)
@@ -102,8 +102,8 @@ func NewDocumentService(
 	}
 }
 
-func (ds *DocumentService) GetAll(params *documentDTOs.DocumentListQueryParamsDTO) (*documentDTOs.DocumentListResponseDTO, error) {
-	return ds.repo.GetAll(params)
+func (ds *DocumentService) GetAll(params *documentDTOs.DocumentListQueryParamsDTO, currentUserID uint) (*documentDTOs.DocumentListResponseDTO, error) {
+	return ds.repo.GetAll(params, currentUserID)
 }
 
 func (crs DocumentService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Document, error) {

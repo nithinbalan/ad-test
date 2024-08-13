@@ -16,7 +16,7 @@ import (
 // Interfaces
 type DocumentRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(params *documentDTOs.DocumentListQueryParamsDTO) (*documentDTOs.DocumentListResponseDTO, error)
+	GetAll(params *documentDTOs.DocumentListQueryParamsDTO, currentUserID uint) (*documentDTOs.DocumentListResponseDTO, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Document, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.Document, error)
 	Create(document *models.Document, tx ...utility.DatabaseTransaction) (uint, error)
@@ -73,7 +73,7 @@ func (repo *DocumentRepository) BeginTransaction() utility.DatabaseTransaction {
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *DocumentRepository) GetAll(params *documentDTOs.DocumentListQueryParamsDTO) (*documentDTOs.DocumentListResponseDTO, error) {
+func (repo *DocumentRepository) GetAll(params *documentDTOs.DocumentListQueryParamsDTO, currentUserID uint) (*documentDTOs.DocumentListResponseDTO, error) {
 	var documents []*documentDTOs.DocumentListDTO
 	var totalCount int64
 
@@ -120,7 +120,8 @@ func (repo *DocumentRepository) GetAll(params *documentDTOs.DocumentListQueryPar
 			updated_user.initial AS updated_user_initial,
         	updated_user.color AS updated_user_color,
         	updated_user.email AS updated_user_email,
-        	updated_user.profile_image_path AS updated_user_profile_image_path    
+        	updated_user.profile_image_path AS updated_user_profile_image_path,
+			CASE WHEN document_acknowledge_users.id IS NULL THEN 0 ELSE 1 END AS acknowledged    
 		`).
 		Joins(`
 			LEFT JOIN document_categories ON document_categories.id = documents.document_category_id
@@ -134,7 +135,14 @@ func (repo *DocumentRepository) GetAll(params *documentDTOs.DocumentListQueryPar
 			LEFT JOIN users AS updated_user ON updated_user.id = documents.updated_by_id
 		`)
 
-		// Apply dynamic filters to the query
+	// if params.IsAcknowledged {
+	// 	fmt.Println("1")
+	// 	query = query.Joins("LEFT JOIN document_acknowledge_users ON document_acknowledge_users.document_id = documents.id AND document_acknowledge_users.user_id = ?", currentUserID)
+	// }
+	if params.IsAcknowledged {
+		query = query.Joins("LEFT JOIN document_acknowledge_users ON document_acknowledge_users.document_id = documents.id AND document_acknowledge_users.user_id = ?", currentUserID)
+	}
+	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
 			query = query.Where(columnName+" IN (?)", values)
@@ -152,6 +160,11 @@ func (repo *DocumentRepository) GetAll(params *documentDTOs.DocumentListQueryPar
 			query = query.Where("document_statuses.type = ?", "in-review")
 		case "draft":
 			query = query.Where("document_statuses.type = ?", "draft")
+
+		case "acknowledged":
+			query = query.Where("document_acknowledge_users.id IS NOT NULL")
+		case "not-acknowledged":
+			query = query.Where("document_acknowledge_users.id IS NULL")
 
 		}
 	}
