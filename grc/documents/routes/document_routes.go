@@ -80,6 +80,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentRoutes.POST("/documents/:id/comments", documentController.AddComment)
 	documentRoutes.GET("/documents/:id/workflow-list", documentController.GetWorkflowList)
 
+	documentRoutes.GET("/documents/:id/last-edit-summary", documentController.GetLastEditSummary)
+
 	documentRoutes.POST("/documents/:id/acknowledge", documentAcknowledgeUserController.CreateDocumentAcknowledgeUser)
 	documentRoutes.DELETE("/documents/:id/acknowledge", documentAcknowledgeUserController.DeleteDocumentAcknowledgeUser)
 

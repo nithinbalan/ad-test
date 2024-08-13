@@ -580,3 +580,26 @@ func (dc *DocumentController) GetSharedUnits(c *gin.Context) {
 
 	c.JSON(http.StatusOK, sharedUnits)
 }
+
+func (dc *DocumentController) GetLastEditSummary(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	lastEditSummary, err := dc.service.GetDocumentLastEditSummary(uint(id))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(dc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, lastEditSummary)
+}
