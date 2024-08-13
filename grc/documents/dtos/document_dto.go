@@ -240,5 +240,5 @@ type ActivityDTO struct {
 	Activity  string                           `json:"activity"` // "checkout" or "checkin"
 	By        *organizationDTOs.UserMinimalDTO `json:"by"`
 	Comment   *string                          `json:"comment"`
-	Timestamp time.Time                        `json:"time_stamp"`
+	Timestamp time.Time                        `json:"timestamp"`
 }
