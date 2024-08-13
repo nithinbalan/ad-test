@@ -20,7 +20,6 @@ type AuditUniverseServiceInterface interface {
 	Delete(currentUserID uint, auditUniverseFormDTO *dtos.AuditUniverseFormDTO) error
 	UnmarkedAsAuditableItem(ids []*uint, entityType interface{}, tx utility.DatabaseTransaction) error
 
-	// getOrganizationUnitID(itemID uint) (uint, error)
 	getOrganizationUnitID(entityType string, id uint) (uint, error)
 }
 
@@ -67,20 +66,19 @@ func NewAuditUniverseService(
 		documentSvc:              documentSvc,
 	}
 }
+
 func (aus *AuditUniverseService) Create(currentUserID uint, auditUniverseFormDTO *dtos.AuditUniverseFormDTO) error {
-	tx := aus.repo.BeginTransaction()
 	if err := aus.validateAuditUniverseFormDTO(auditUniverseFormDTO); err != nil {
-		tx.Rollback()
 		return err
 	}
 
-	var auditableItemOrgUnits []*models.AuditableItemOrganizationUnit
 	// Retrieve audit status
 	auditStatus, err := aus.auditStatusSvc.GetByType("pending")
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
+
+	var auditableItems []*models.AuditableItem
 
 	// Helper function to add items
 	addItems := func(ids []*uint, fieldName string) error {
@@ -108,26 +106,14 @@ func (aus *AuditUniverseService) Create(currentUserID uint, auditUniverseFormDTO
 			case "user":
 				auditableItem.UserID = id
 			}
-
-			auditableItemId, err := aus.repo.Create(auditableItem, tx)
-			if err != nil {
-				tx.Rollback()
-				return err
-			}
-			// Fetch OrgUnitID after the item is created
 			orgUnitID, err = aus.getOrganizationUnitID(fieldName, *id)
 			if err != nil {
-				tx.Rollback()
 				return err
 			}
-
 			if orgUnitID != 0 {
-				auditableItemOrgUnits = append(auditableItemOrgUnits, &models.AuditableItemOrganizationUnit{
-					AuditableItemID:    auditableItemId,
-					OrganizationUnitID: orgUnitID,
-					CreatedBYID:        currentUserID,
-				})
+				auditableItem.OrganizationUnitID = orgUnitID
 			}
+			auditableItems = append(auditableItems, auditableItem)
 		}
 		return nil
 	}
@@ -153,9 +139,12 @@ func (aus *AuditUniverseService) Create(currentUserID uint, auditUniverseFormDTO
 	if err := addItems(auditUniverseFormDTO.UserIDs, "user"); err != nil {
 		return err
 	}
+	// Create transaction for critical operations
+	tx := aus.repo.BeginTransaction()
 
-	if len(auditableItemOrgUnits) > 0 {
-		if err := aus.repo.CreateAuditableItemOrganizationUnits(auditableItemOrgUnits, tx); err != nil {
+	// Create all auditable items in one go
+	if len(auditableItems) > 0 {
+		if err := aus.repo.Create(auditableItems, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
@@ -189,14 +178,13 @@ func (aus *AuditUniverseService) Create(currentUserID uint, auditUniverseFormDTO
 		tx.Rollback()
 		return err
 	}
-
 	tx.Commit()
 
 	go func() {
 		err := aus.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.AuditableItem{}.TableName(),
-			0,//todo
+			0, //todo
 			auditUniverseFormDTO,
 			currentUserID,
 			nil,
@@ -206,7 +194,7 @@ func (aus *AuditUniverseService) Create(currentUserID uint, auditUniverseFormDTO
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
 				"tableName": models.AuditableItem{}.TableName(),
-				"recordID":  0,//todo
+				"recordID":  0, //todo
 				"userID":    currentUserID,
 				"error":     err.Error(),
 			}
@@ -219,57 +207,80 @@ func (aus *AuditUniverseService) Create(currentUserID uint, auditUniverseFormDTO
 }
 
 func (aus *AuditUniverseService) getOrganizationUnitID(entityType string, id uint) (uint, error) {
+	var orgUnitID uint
+
 	switch entityType {
 	case "process":
 		process, err := aus.processSvc.GetByID(id)
 		if err != nil {
-			return 0, err
+			return 0, fmt.Errorf("failed to get process: %w", err)
 		}
-		return process.OwnerUnitID, nil
-	case "control": // todo change OwnerUnitID as mandatory
+		if process == nil {
+			return 0, nil
+		}
+		orgUnitID = process.OwnerUnitID
+	case "control":
 		control, err := aus.controlSvc.GetByID(id)
 		if err != nil {
-			return 0, err
+			return 0, fmt.Errorf("failed to get control: %w", err)
 		}
-		return control.OwnerUnitID, nil
+		if control == nil {
+			return 0, nil
+		}
+		orgUnitID = control.OwnerUnitID
 	case "document":
 		document, err := aus.documentSvc.GetByID(id)
 		if err != nil {
-			return 0, err
+			return 0, fmt.Errorf("failed to get document: %w", err)
 		}
-		return document.ResponsibleUnitID, nil
-	case "incident": 
+		if document == nil {
+			return 0, nil
+		}
+		orgUnitID = document.ResponsibleUnitID
+	case "incident":
 		incident, err := aus.incidentRegisterSvc.GetByID(id)
 		if err != nil {
-			return 0, err
+			return 0, fmt.Errorf("failed to get incident: %w", err)
 		}
-		return incident.ResponsibleUnitID, nil
+		if incident == nil {
+			return 0, nil
+		}
+		orgUnitID = incident.ResponsibleUnitID
 	case "compliance":
 		compliance, err := aus.complianceRequirementSvc.GetByComplianceRequirementID(id)
 		if err != nil {
-			return 0, err
+			return 0, fmt.Errorf("failed to get compliance requirement: %w", err)
+		}
+		if compliance == nil {
+			return 0, nil
 		}
 		userUnit, err := aus.userSvc.GetUserPrimaryUnitID(compliance.ResponsibleUserID)
 		if err != nil {
-			return 0, err
+			return 0, fmt.Errorf("failed to get user primary unit ID: %w", err)
 		}
-		return userUnit, nil
+		orgUnitID = userUnit
 	case "risk":
 		risk, err := aus.riskRegisterSvc.GetByID(id)
 		if err != nil {
-			return 0, err
+			return 0, fmt.Errorf("failed to get risk: %w", err)
 		}
-		return risk.ResponsibleUnitID, nil
+		if risk == nil {
+			return 0, nil
+		}
+		orgUnitID = risk.ResponsibleUnitID
 	case "user":
 		userUnit, err := aus.userSvc.GetUserPrimaryUnitID(id)
 		if err != nil {
-			return 0, err
+			return 0, fmt.Errorf("failed to get user primary unit ID: %w", err)
 		}
-		return userUnit, nil
+		orgUnitID = userUnit
 	default:
 		return 0, fmt.Errorf("unknown entity type: %s", entityType)
 	}
+
+	return orgUnitID, nil
 }
+
 func (aus *AuditUniverseService) MarkedAsAuditableItem(ids []*uint, entityType interface{}, tx utility.DatabaseTransaction) error {
 	// Convert []*uint to []uint
 	var uintIDs []uint
@@ -285,6 +296,7 @@ func (aus *AuditUniverseService) MarkedAsAuditableItem(ids []*uint, entityType i
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -359,12 +371,6 @@ func (aus *AuditUniverseService) Delete(currentUserID uint, auditUniverseFormDTO
 		}
 
 		if len(itemIDs) > 0 {
-			// Delete from AuditableItemOrganizationUnit first
-			if err := aus.repo.DeleteAuditableItemOrganizationUnitsByItemIDs(itemIDs, tx); err != nil {
-				tx.Rollback()
-				return err
-			}
-
 			// Now delete the auditable items themselves
 			if err := aus.repo.DeleteByIDs(itemIDs, tx); err != nil {
 				tx.Rollback()

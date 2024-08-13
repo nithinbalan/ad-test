@@ -15,6 +15,7 @@ CREATE TABLE auditable_items
     comment NVARCHAR(MAX) NOT NULL,
     auditor_risk_rating_id INT NOT NULL,
     audit_status_id INT NOT NULL,
+    organization_unit_id INT NOT NULL,
     created_by_id INT,
     updated_by_id INT NULL,
     created_at DATETIME NOT NULL,
@@ -28,6 +29,7 @@ CREATE TABLE auditable_items
     CONSTRAINT FK_auditable_items_users_1 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_auditable_items_auditor_risk_ratings FOREIGN KEY (auditor_risk_rating_id) REFERENCES auditor_risk_ratings(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_auditable_items_auditor_statuses FOREIGN KEY (audit_status_id) REFERENCES audit_statuses(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_auditable_items_organization_units FOREIGN KEY (organization_unit_id) REFERENCES organization_units(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_auditable_items_users_2 FOREIGN KEY (created_by_id) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_auditable_items_users_3 FOREIGN KEY (updated_by_id) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
