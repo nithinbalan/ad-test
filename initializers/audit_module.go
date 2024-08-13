@@ -80,6 +80,8 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 	auditPlanChecklistRepo := repositories.NewAuditPlanChecklistRepository(db)
 	auditPlanChecklistSvc := services.NewAuditPlanChecklistService(
 		auditPlanChecklistRepo,
+		sharedModule.ActivityLogService,
+		auditPlanSvc,
 		auditableItemSvc,
 	)
 	auditPlanChecklistController := controllers.NewAuditPlanChecklistController(auditPlanChecklistSvc)

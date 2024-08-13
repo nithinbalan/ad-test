@@ -59,9 +59,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	//AuditPlan
 	auditRoutes.GET("/audit-plans", auditPlanController.GetAllAuditPlans)
-	auditRoutes.GET("/audit-plans/:id", auditPlanController.GetAuditPlanDetails)
+	auditRoutes.GET("/audit-plans/:planId", auditPlanController.GetAuditPlanDetails)
 	auditRoutes.POST("/audit-plans", auditPlanController.CreateAuditPlan)
-	auditRoutes.PUT("/audit-plans/:id", auditPlanController.UpdateAuditPlan)
+	auditRoutes.PUT("/audit-plans/:planId", auditPlanController.UpdateAuditPlan)
 	auditRoutes.POST("/audit-plans/delete", auditPlanController.DeleteAuditPlans)
 
 	//AuditPlan Checklist

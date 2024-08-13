@@ -24,6 +24,12 @@ func NewAuditPlanChecklistController(service services.AuditPlanChecklistServiceI
 }
 
 func (apc *AuditPlanChecklistController) GetAllAuditPlanChecklists(c *gin.Context) {
+	auditPlanID, err := strconv.Atoi(c.Param("planId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
@@ -37,30 +43,16 @@ func (apc *AuditPlanChecklistController) GetAllAuditPlanChecklists(c *gin.Contex
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
-	page, err := utility.ParseQueryParamToInt(c, "page", 1)
-	if err != nil {
-		utility.SendInternalErrResp(apc.db, c, "Invalid page parameter")
-		return
-	}
-
-	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
-	if err != nil {
-		utility.SendInternalErrResp(apc.db, c, "Invalid page_size parameter")
-		return
-	}
-
 	queryParams := auditDTOs.AuditPlanChecklistListQueryParamsDTO{
 		Sort:        sort,
 		SortBy:      sortBy,
 		Keyword:     keyword,
 		Status:      status,
-		Page:        page,
-		PageSize:    pageSize,
 		Filters:     filters,
 		QuickFilter: quickFilter,
 	}
 
-	auditPlanChecklists, err := apc.service.GetAll(&queryParams)
+	auditPlanChecklists, err := apc.service.GetAll(uint(auditPlanID), &queryParams)
 	if err != nil {
 		utility.SendInternalErrResp(apc.db, c, err.Error())
 		return
@@ -70,6 +62,12 @@ func (apc *AuditPlanChecklistController) GetAllAuditPlanChecklists(c *gin.Contex
 
 func (apc *AuditPlanChecklistController) CreateAuditPlanChecklists(c *gin.Context) {
 	var auditPlanChecklistFormDTO auditDTOs.AuditPlanChecklistFormDTO
+
+	auditPlanID, err := strconv.Atoi(c.Param("planId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
 
 	if err := c.ShouldBindJSON(&auditPlanChecklistFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
@@ -82,7 +80,7 @@ func (apc *AuditPlanChecklistController) CreateAuditPlanChecklists(c *gin.Contex
 		return
 	}
 
-	id, err := apc.service.Create(currentUserID, &auditPlanChecklistFormDTO)
+	id, err := apc.service.Create(uint(auditPlanID), currentUserID, &auditPlanChecklistFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -101,7 +99,13 @@ func (apc *AuditPlanChecklistController) CreateAuditPlanChecklists(c *gin.Contex
 }
 
 func (apc *AuditPlanChecklistController) UpdateAuditPlanChecklist(c *gin.Context) {
-	var auditPlanChecklistUpdateFormDTO auditDTOs.AuditPlanChecklistUpdateFormDTO
+	var auditPlanChecklistFormDTO auditDTOs.AuditPlanChecklistFormDTO
+
+	auditPlanID, err := strconv.Atoi(c.Param("planId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
 
 	auditPlanChecklistID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -109,7 +113,7 @@ func (apc *AuditPlanChecklistController) UpdateAuditPlanChecklist(c *gin.Context
 		return
 	}
 
-	if err := c.ShouldBindJSON(&auditPlanChecklistUpdateFormDTO); err != nil {
+	if err := c.ShouldBindJSON(&auditPlanChecklistFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
@@ -120,7 +124,7 @@ func (apc *AuditPlanChecklistController) UpdateAuditPlanChecklist(c *gin.Context
 		return
 	}
 
-	err = apc.service.Update(uint(auditPlanChecklistID), currentUserID, &auditPlanChecklistUpdateFormDTO)
+	err = apc.service.Update(uint(auditPlanID), uint(auditPlanChecklistID), currentUserID, &auditPlanChecklistFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -143,6 +147,12 @@ func (apc *AuditPlanChecklistController) DeleteAuditPlanChecklists(c *gin.Contex
 		IDs []uint `json:"ids"`
 	}
 
+	auditPlanID, err := strconv.Atoi(c.Param("planId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
 	if err := c.ShouldBindJSON(&request); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
@@ -154,7 +164,7 @@ func (apc *AuditPlanChecklistController) DeleteAuditPlanChecklists(c *gin.Contex
 		return
 	}
 
-	failedIDs, err := apc.service.Delete(request.IDs, currentUserID)
+	failedIDs, err := apc.service.Delete(uint(auditPlanID), request.IDs, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(apc.db, c, err.Error())
 		return

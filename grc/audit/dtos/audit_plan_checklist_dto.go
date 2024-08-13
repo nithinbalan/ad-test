@@ -1,91 +1,42 @@
 package dtos
 
 import (
-	commonDTOs "jethur/grc/common/dtos"
-	organizationDTOs "jethur/grc/organization/dtos"
 	"time"
 )
 
 type AuditPlanChecklistListDTO struct {
-	ID                                uint    `json:"id"`
-	ReferenceNumber                   string  `json:"reference_number"`
-	AuditCategoryID                   uint    `json:"audit_category_id"`
-	AuditCategoryTitleEn              string  `json:"audit_category_title_en"`
-	AuditCategoryTitleAr              string  `json:"audit_category_title_ar"`
-	AuditTeamID                       *uint   `json:"audit_team_id"`
-	TeamLeadID                        *uint   `json:"team_lead_id"`
-	Title                             string  `json:"title"`
-	StartDate                         *string `json:"start_date"`
-	TargetDate                        *string `json:"target_date"`
-	AuditStatusID                     uint    `json:"audit_status_id"`
-	AuditStatusTitleEn                string  `json:"audit_status_title_en"`
-	AuditStatusTitleAr                string  `json:"audit_status_title_ar"`
-	AuditStatusType                   string  `json:"audit_status_type"`
-	AuditStatusColorCode              string  `json:"audit_status_color_code"`
-	TeamLeadFirstNameEn               string  `json:"team_lead_first_name_en"`
-	TeamLeadFirstNameAr               string  `json:"team_lead_first_name_ar"`
-	TeamLeadLastNameEn                string  `json:"team_lead_last_name_en"`
-	TeamLeadLastNameAr                string  `json:"team_lead_last_name_ar"`
-	TeamLeadEmail                     string  `json:"team_lead_email"`
-	TeamLeadProfileImagePath          string  `json:"team_lead_profile_image_path"`
-	AuditTeamTitleEn                  string  `json:"audit_team_title_en"`
-	AuditTeamTitleAr                  string  `json:"audit_team_title_ar"`
-	AuditTeamTeamLeadFirstNameEn      string  `json:"audit_team_team_lead_first_name_en"`
-	AuditTeamTeamLeadFirstNameAr      string  `json:"audit_team_team_lead_first_name_ar"`
-	AuditTeamTeamLeadLastNameEn       string  `json:"audit_team_team_lead_last_name_en"`
-	AuditTeamTeamLeadLastNameAr       string  `json:"audit_team_team_lead_last_name_ar"`
-	AuditTeamTeamLeadEmail            string  `json:"audit_team_team_lead_email"`
-	AuditTeamTeamLeadProfileImagePath string  `json:"audit_team_team_lead_profile_image_path"`
-	CreatedUserFirstNameEn            string  `json:"created_user_first_name_en"`
-	CreatedUserFirstNameAr            string  `json:"created_user_first_name_ar"`
-	CreatedUserLastNameEn             string  `json:"created_user_last_name_en"`
-	CreatedUserLastNameAr             string  `json:"created_user_last_name_ar"`
-	CreatedUserInitial                string  `json:"created_user_initial"`
-	CreatedUserColor                  string  `json:"created_user_color"`
-	CreatedUserEmail                  string  `json:"created_user_email"`
-	CreatedUserProfileImagePath       string  `json:"created_user_profile_image_path"`
-	UpdatedUserFirstNameEn            string  `json:"updated_user_first_name_en"`
-	UpdatedUserFirstNameAr            string  `json:"updated_user_first_name_ar"`
-	UpdatedUserLastNameEn             string  `json:"updated_user_last_name_en"`
-	UpdatedUserLastNameAr             string  `json:"updated_user_last_name_ar"`
-	UpdatedUserInitial                string  `json:"updated_user_initial"`
-	UpdatedUserColor                  string  `json:"updated_user_color"`
-	UpdatedUserEmail                  string  `json:"updated_user_email"`
-	UpdatedUserProfileImagePath       string  `json:"updated_user_profile_image_path"`
-	CreatedAt                         string  `json:"created_at"`
-	UpdatedAt                         *string `json:"updated_at"`
-	CreatedByUserID                   uint    `json:"created_by_id"`
-	UpdatedByUserID                   *uint   `json:"updated_by_id"`
+	ID                          uint       `json:"id"`
+	AuditPlanID                 uint       `json:"audit_plan_id"`
+	AuditableItemID             uint       `json:"auditable_item_id"`
+	AuditableItemTitleEn        string     `json:"auditable_item_title_en"`
+	AuditableItemTitleAr        string     `json:"auditable_item_title_ar"`
+	ProcessID                   *uint      `json:"process_id"`
+	ControlID                   *uint      `json:"control_id"`
+	DocumentID                  *uint      `json:"document_id"`
+	IncidentRegisterID          *uint      `json:"incident_register_id"`
+	ComplianceRequirementID     *uint      `json:"compliance_requirement_id"`
+	RiskRegisterID              *uint      `json:"risk_register_id"`
+	UserID                      *uint      `json:"user_id"`
+	Question                    string     `json:"question"`
+	CreatedAt                   time.Time  `json:"created_at"`
+	UpdatedAt                   *time.Time `json:"updated_at"`
+	CreatedUserFirstNameEn      string     `json:"created_user_first_name_en"`
+	CreatedUserFirstNameAr      string     `json:"created_user_first_name_ar"`
+	CreatedUserLastNameEn       string     `json:"created_user_last_name_en"`
+	CreatedUserLastNameAr       string     `json:"created_user_last_name_ar"`
+	CreatedUserEmail            string     `json:"created_user_email"`
+	CreatedUserProfileImagePath string     `json:"created_user_profile_image_path"`
+	UpdatedUserFirstNameEn      string     `json:"updated_user_first_name_en"`
+	UpdatedUserFirstNameAr      string     `json:"updated_user_first_name_ar"`
+	UpdatedUserLastNameEn       string     `json:"updated_user_last_name_en"`
+	UpdatedUserLastNameAr       string     `json:"updated_user_last_name_ar"`
+	UpdatedUserEmail            string     `json:"updated_user_email"`
+	UpdatedUserProfileImagePath string     `json:"updated_user_profile_image_path"`
 }
 
 type AuditPlanChecklistFormDTO struct {
-	AuditableItemId uint   `json:"auditable_item_id"`
-	Question        string `json:"question"`
-}
-
-type AuditPlanChecklistUpdateFormDTO struct {
-	Question uint `json:"question"`
-}
-
-type AuditPlanChecklistDetailDTO struct {
-	ID               uint                                  `json:"id"`
-	ReferenceNumber  string                                `json:"reference_number"`
-	AuditCategory    AuditCategoryDTO                      `json:"audit_category"`
-	AuditTeam        *AuditTeamDetailDTO                   `json:"audit_team"`
-	TeamLead         *organizationDTOs.UserMinimalDTO      `json:"team_lead"`
-	Title            string                                `json:"title"`
-	Description      *string                               `json:"description"`
-	StartDateString  string                                `json:"start_date"`
-	TargetDateString string                                `json:"target_date"`
-	Purpose          *string                               `json:"purpose"`
-	Objective        *string                               `json:"objective"`
-	AuditStatus      AuditStatusDTO                        `json:"audit_status"`
-	CreatedAt        time.Time                             `json:"created_at"`
-	UpdatedAt        *time.Time                            `json:"updated_at"`
-	CreatedByUser    organizationDTOs.UserMinimalDTO       `json:"created_by_id"`
-	UpdatedByUser    *organizationDTOs.UserMinimalDTO      `json:"updated_by_id"`
-	AuditableItems   []*AuditPlanChecklistAuditableItemDTO `json:"auditable_items"`
-	Members          []*AuditPlanChecklistAuditMemberDTO   `json:"members"`
+	AuditableItemId uint   `json:"auditable_item_id" binding:"required"`
+	Question        string `json:"question" binding:"required"`
 }
 
 type AuditPlanChecklistListQueryParamsDTO struct {
@@ -93,32 +44,6 @@ type AuditPlanChecklistListQueryParamsDTO struct {
 	SortBy      string
 	Keyword     string
 	Status      string
-	Page        int
-	PageSize    int
 	Filters     map[string][]string
 	QuickFilter []string
-}
-
-type AuditPlanChecklistListResponseDTO struct {
-	Items      []*AuditPlanChecklistListDTO `json:"items"`
-	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
-}
-
-type AuditPlanChecklistParsedDates struct {
-	StartDate  *time.Time
-	TargetDate *time.Time
-}
-
-type AuditPlanChecklistAuditMemberDTO struct {
-	ID                   *uint                           `json:"id"`
-	AuditPlanChecklistID uint                            `json:"audit_plan_checklist_id"`
-	UserID               uint                            `json:"user_id"`
-	User                 organizationDTOs.UserMinimalDTO `json:"user"`
-}
-
-type AuditPlanChecklistAuditableItemDTO struct {
-	ID                   *uint                  `json:"id"`
-	AuditPlanChecklistID uint                   `json:"audit_plan_checklist_id"`
-	AuditableItemID      uint                   `json:"auditable_item_id"`
-	AuditableItem        AuditableItemDetailDTO `json:"auditable_item"`
 }

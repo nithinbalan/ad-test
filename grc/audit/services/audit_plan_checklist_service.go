@@ -10,17 +10,15 @@ import (
 	"jethur/grc/models"
 	"jethur/utility"
 
-	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
 )
 
 type AuditPlanChecklistServiceInterface interface {
-	GetAll(params *auditDTOs.AuditPlanChecklistListQueryParamsDTO) (*auditDTOs.AuditPlanChecklistListResponseDTO, error)
-	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditPlanChecklistDetailDTO, error)
-	GetByID(id uint) (*models.AuditPlanChecklist, error)
-	Create(currentUserID uint, auditPlanChecklistFormDTO *auditDTOs.AuditPlanChecklistFormDTO) (uint, error)
-	Update(id uint, currentUserID uint, auditPlanChecklistUpdateFormDTO *auditDTOs.AuditPlanChecklistUpdateFormDTO) error
-	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	GetAll(auditPlanId uint, params *auditDTOs.AuditPlanChecklistListQueryParamsDTO) ([]*auditDTOs.AuditPlanChecklistListDTO, error)
+	GetByID(auditPlanId uint, id uint) (*models.AuditPlanChecklist, error)
+	Create(auditPlanId uint, currentUserID uint, auditPlanChecklistFormDTO *auditDTOs.AuditPlanChecklistFormDTO) (uint, error)
+	Update(auditPlanId uint, id uint, currentUserID uint, auditPlanChecklistFormDTO *auditDTOs.AuditPlanChecklistFormDTO) error
+	Delete(auditPlanId uint, ids []uint, currentUserID uint) ([]uint, error)
 }
 
 type AuditPlanChecklistService struct {
@@ -44,11 +42,18 @@ func NewAuditPlanChecklistService(
 	}
 }
 
-func (aps *AuditPlanChecklistService) GetAll(params *auditDTOs.AuditPlanChecklistListQueryParamsDTO) (*auditDTOs.AuditPlanChecklistListResponseDTO, error) {
-	return aps.repo.GetAll(params)
+func (aps *AuditPlanChecklistService) GetAll(auditPlanId uint, params *auditDTOs.AuditPlanChecklistListQueryParamsDTO) ([]*auditDTOs.AuditPlanChecklistListDTO, error) {
+	if _, err := aps.auditPlanSvc.GetByID(auditPlanId); err != nil {
+		return nil, err
+	}
+	return aps.repo.GetAll(auditPlanId, params)
 }
 
-func (aps *AuditPlanChecklistService) GetByID(id uint) (*models.AuditPlanChecklist, error) {
+func (aps *AuditPlanChecklistService) GetByID(auditPlanId uint, id uint) (*models.AuditPlanChecklist, error) {
+	if _, err := aps.auditPlanSvc.GetByID(auditPlanId); err != nil {
+		return nil, err
+	}
+
 	auditPlanChecklist, err := aps.repo.GetByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -59,30 +64,12 @@ func (aps *AuditPlanChecklistService) GetByID(id uint) (*models.AuditPlanCheckli
 	return auditPlanChecklist, nil
 }
 
-func (aps *AuditPlanChecklistService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditPlanChecklistDetailDTO, error) {
-	var auditPlanChecklistDTO auditDTOs.AuditPlanChecklistDetailDTO
-
-	auditPlanChecklist, err := aps.repo.GetFullDetailsByID(id, tx...)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, utility.NewResourceNotFoundError(err, id)
-		}
-		return nil, err
-	}
-
-	err = mapstructure.Decode(auditPlanChecklist, &auditPlanChecklistDTO)
-	if err != nil {
-		return nil, err
-	}
-
-	auditPlanChecklistDTO.CreatedAt = auditPlanChecklist.CreatedAt
-	auditPlanChecklistDTO.UpdatedAt = auditPlanChecklist.UpdatedAt
-
-	return &auditPlanChecklistDTO, nil
-}
-
-func (aps *AuditPlanChecklistService) Create(currentUserID uint, auditPlanChecklistFormDTO *auditDTOs.AuditPlanChecklistFormDTO) (uint, error) {
+func (aps *AuditPlanChecklistService) Create(auditPlanId uint, currentUserID uint, auditPlanChecklistFormDTO *auditDTOs.AuditPlanChecklistFormDTO) (uint, error) {
 	tx := aps.repo.BeginTransaction()
+
+	if _, err := aps.auditPlanSvc.GetByID(auditPlanId); err != nil {
+		return 0, err
+	}
 
 	if err := aps.validateAuditPlanChecklistFormDTO(auditPlanChecklistFormDTO); err != nil {
 		tx.Rollback()
@@ -90,7 +77,7 @@ func (aps *AuditPlanChecklistService) Create(currentUserID uint, auditPlanCheckl
 	}
 
 	auditPlanChecklist := &models.AuditPlanChecklist{
-		AuditPlanID:     referenceNumber,
+		AuditPlanID:     auditPlanId,
 		AuditableItemID: auditPlanChecklistFormDTO.AuditableItemId,
 		Question:        auditPlanChecklistFormDTO.Question,
 		CreatedBYID:     currentUserID,
@@ -130,10 +117,14 @@ func (aps *AuditPlanChecklistService) Create(currentUserID uint, auditPlanCheckl
 	return id, nil
 }
 
-func (aps *AuditPlanChecklistService) Update(id uint, currentUserID uint, auditPlanChecklistFormDTO *auditDTOs.AuditPlanChecklistFormDTO) error {
+func (aps *AuditPlanChecklistService) Update(auditPlanId uint, id uint, currentUserID uint, auditPlanChecklistFormDTO *auditDTOs.AuditPlanChecklistFormDTO) error {
 	tx := aps.repo.BeginTransaction()
 
-	existingAuditPlanChecklist, err := aps.repo.GetByID(id)
+	if _, err := aps.auditPlanSvc.GetByID(auditPlanId); err != nil {
+		return err
+	}
+
+	existingAuditPlanChecklist, err := aps.GetByID(auditPlanId, id)
 	if err != nil {
 		tx.Rollback()
 		return utility.NewResourceNotFoundError(err, id)
@@ -144,126 +135,14 @@ func (aps *AuditPlanChecklistService) Update(id uint, currentUserID uint, auditP
 		return err
 	}
 
-	existingAuditPlanChecklist.AuditCategoryID = auditPlanChecklistFormDTO.AuditCategoryID
-	existingAuditPlanChecklist.AuditTeamID = auditPlanChecklistFormDTO.AuditTeamID
-	existingAuditPlanChecklist.TeamLeadID = auditPlanChecklistFormDTO.TeamLeadID
-	existingAuditPlanChecklist.Title = auditPlanChecklistFormDTO.Title
-	existingAuditPlanChecklist.Description = auditPlanChecklistFormDTO.Description
-	existingAuditPlanChecklist.StartDate = dates.StartDate
-	existingAuditPlanChecklist.TargetDate = dates.TargetDate
-	existingAuditPlanChecklist.Purpose = auditPlanChecklistFormDTO.Purpose
-	existingAuditPlanChecklist.Objective = auditPlanChecklistFormDTO.Objective
+	existingAuditPlanChecklist.AuditableItemID = auditPlanChecklistFormDTO.AuditableItemId
+	existingAuditPlanChecklist.Question = auditPlanChecklistFormDTO.Question
 	existingAuditPlanChecklist.UpdatedBYID = &currentUserID
 
 	err = aps.repo.Update(existingAuditPlanChecklist, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
-	}
-
-	existingAuditPlanChecklistDetails, err := aps.GetFullDetailsByID(id, tx)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	existingUserIDs := make(map[uint]bool)
-	for _, member := range existingAuditPlanChecklistDetails.Members {
-		existingUserIDs[member.UserID] = true
-	}
-
-	newUserIDs := make(map[uint]bool)
-	for _, userID := range auditPlanChecklistFormDTO.UserIds {
-		newUserIDs[*userID] = true
-	}
-
-	var usersToAdd []*models.AuditPlanChecklistAuditMember
-	for _, userID := range auditPlanChecklistFormDTO.UserIds {
-		if _, exists := existingUserIDs[*userID]; !exists {
-			user := &models.AuditPlanChecklistAuditMember{
-				AuditPlanChecklistID: id,
-				UserID:               *userID,
-				CreatedBYID:          currentUserID,
-			}
-			usersToAdd = append(usersToAdd, user)
-		}
-	}
-
-	var usersToRemove []*models.AuditPlanChecklistAuditMember
-	for userID := range existingUserIDs {
-		if _, exists := newUserIDs[userID]; !exists {
-			usersToRemove = append(usersToRemove, &models.AuditPlanChecklistAuditMember{
-				AuditPlanChecklistID: id,
-				UserID:               userID,
-			})
-		}
-	}
-
-	// Extract user IDs to remove
-	var userIDsToRemove []*uint
-	for _, user := range usersToRemove {
-		userID := user.UserID
-		userIDsToRemove = append(userIDsToRemove, &userID)
-	}
-
-	// Add new members
-	if len(usersToAdd) > 0 {
-		if err := aps.repo.CreateAuditPlanChecklistMembers(usersToAdd, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
-
-	// Remove old members
-	if len(userIDsToRemove) > 0 {
-		if err := aps.repo.DeleteAuditPlanChecklistMembers(userIDsToRemove, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
-
-	// Handle auditable items
-	existingAuditableItemIDs := make(map[uint]bool)
-	for _, item := range existingAuditPlanChecklistDetails.AuditableItems {
-		existingAuditableItemIDs[item.AuditableItemID] = true
-	}
-
-	newAuditableItemIDs := make(map[uint]bool)
-	for _, itemID := range auditPlanChecklistFormDTO.AuditableItemIds {
-		newAuditableItemIDs[*itemID] = true
-	}
-
-	var itemsToAdd []*models.AuditPlanChecklistAuditableItem
-	for _, itemID := range auditPlanChecklistFormDTO.AuditableItemIds {
-		if _, exists := existingAuditableItemIDs[*itemID]; !exists {
-			item := &models.AuditPlanChecklistAuditableItem{
-				AuditPlanChecklistID: id,
-				AuditableItemID:      *itemID,
-				CreatedBYID:          currentUserID,
-			}
-			itemsToAdd = append(itemsToAdd, item)
-		}
-	}
-
-	var auditableItemIDsToRemove []*uint
-	for itemID := range existingAuditableItemIDs {
-		if _, exists := newAuditableItemIDs[itemID]; !exists {
-			auditableItemIDsToRemove = append(auditableItemIDsToRemove, &itemID)
-		}
-	}
-
-	if len(itemsToAdd) > 0 {
-		if err := aps.repo.CreateAuditPlanChecklistAuditableItems(itemsToAdd, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
-
-	if len(auditableItemIDsToRemove) > 0 {
-		if err := aps.repo.DeleteAuditPlanChecklistAuditableItems(auditableItemIDsToRemove, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
 	}
 
 	tx.Commit()
@@ -294,46 +173,22 @@ func (aps *AuditPlanChecklistService) Update(id uint, currentUserID uint, auditP
 	return nil
 }
 
-func (aps *AuditPlanChecklistService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
+func (aps *AuditPlanChecklistService) Delete(auditPlanId uint, ids []uint, currentUserID uint) ([]uint, error) {
 	tx := aps.repo.BeginTransaction()
+
+	if _, err := aps.auditPlanSvc.GetByID(auditPlanId); err != nil {
+		return nil, err
+	}
+
 	var failedIDs []uint
 	var successfulIDs []uint
 
 	for _, id := range ids {
-		// Get existing audit plan checklist details
-		existingAuditPlanChecklist, err := aps.GetFullDetailsByID(id, tx)
-		if err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				failedIDs = append(failedIDs, id)
-				continue
-			}
-			tx.Rollback()
-			return nil, err
+
+		if _, err := aps.GetByID(auditPlanId, id); err != nil {
+			failedIDs = append(failedIDs, id)
 		}
 
-		if len(existingAuditPlanChecklist.AuditableItems) > 0 {
-			var deleteAuditableItemIDs []*uint
-			for _, item := range existingAuditPlanChecklist.AuditableItems {
-				deleteAuditableItemIDs = append(deleteAuditableItemIDs, item.ID)
-			}
-			if err := aps.repo.DeleteAuditPlanChecklistAuditableItems(deleteAuditableItemIDs, tx); err != nil {
-				tx.Rollback()
-				return nil, err
-			}
-		}
-
-		if len(existingAuditPlanChecklist.Members) > 0 {
-			var deleteMemberIDs []*uint
-			for _, member := range existingAuditPlanChecklist.Members {
-				deleteMemberIDs = append(deleteMemberIDs, member.ID)
-			}
-			if err := aps.repo.DeleteAuditPlanChecklistMembers(deleteMemberIDs, tx); err != nil {
-				tx.Rollback()
-				return nil, err
-			}
-		}
-
-		// Delete the audit plan checklist itself
 		if err := aps.repo.Delete(id, tx); err != nil {
 			failedIDs = append(failedIDs, id)
 			continue
@@ -382,25 +237,4 @@ func (aps *AuditPlanChecklistService) validateAuditPlanChecklistFormDTO(dto *aud
 	}
 
 	return nil
-}
-
-func (aps *AuditPlanChecklistService) parseAuditPlanChecklistDates(dto *auditDTOs.AuditPlanChecklistFormDTO) (*auditDTOs.AuditPlanChecklistParsedDates, error) {
-	parsed := &auditDTOs.AuditPlanChecklistParsedDates{}
-
-	var err error
-	if dto.StartDate != nil && *dto.StartDate != "" {
-		parsed.StartDate, err = utility.ParseDate(*dto.StartDate)
-		if err != nil {
-			return nil, utility.NewValidationError(fmt.Errorf("invalid start date"), "invalid_date", "start date")
-		}
-	}
-
-	if dto.TargetDate != nil && *dto.TargetDate != "" {
-		parsed.TargetDate, err = utility.ParseDate(*dto.TargetDate)
-		if err != nil {
-			return nil, utility.NewValidationError(fmt.Errorf("invalid target date"), "invalid_date", "target date")
-		}
-	}
-
-	return parsed, nil
 }

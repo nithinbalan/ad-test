@@ -320,7 +320,7 @@ func (ais *AuditableItemService) StatusUpdate(id uint, currentUserID uint, audit
 }
 
 func (ais *AuditableItemService) validateAuditableItemFormDTO(auditableItemFormDTO *auditDTOs.AuditableItemFormDTO) error {
-	if _, err := ais.auditorRiskRatingSvc.GetByID(*&auditableItemFormDTO.AuditorRiskRatingID); err != nil {
+	if _, err := ais.auditorRiskRatingSvc.GetByID(auditableItemFormDTO.AuditorRiskRatingID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("auditor risk rating does not exist"), "not_exist", "auditor risk rating")
 	}
 	// Validate OrganizationUnitIds
