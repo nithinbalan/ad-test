@@ -101,7 +101,7 @@ func (uc *UserController) GetUserDetails(c *gin.Context) {
 		return
 	}
 
-	control, err := uc.service.GetFullDetailsByID(uint(id))
+	user, err := uc.service.GetFullDetailsByID(uint(id))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -112,7 +112,7 @@ func (uc *UserController) GetUserDetails(c *gin.Context) {
 			return
 		}
 	}
-	c.JSON(http.StatusOK, control)
+	c.JSON(http.StatusOK, user)
 }
 
 func (uc *UserController) CreateUser(c *gin.Context) {
@@ -257,4 +257,26 @@ func (uc *UserController) GetUserLoginHistory(c *gin.Context) {
 		}
 	}
 	c.JSON(http.StatusOK, userLoginHistory)
+}
+
+func (uc *UserController) GetCurrentUserDetails(c *gin.Context) {
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(uc.db, c, err.Error())
+		return
+	}
+
+	user, err := uc.service.GetCurrentUserDetails(uint(currentUserID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(uc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, user)
 }
