@@ -17,7 +17,10 @@ type AuditableItemRepositoryInterface interface {
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.AuditableItem, error)
 	Create(auditableItem *models.AuditableItem, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(auditableItem *models.AuditableItem, tx ...utility.DatabaseTransaction) error
-	Delete(id uint) error
+	Delete(id uint, tx ...utility.DatabaseTransaction) error
+
+	CreateOrganizationUnits(units []*models.AuditableItemOrganizationUnit, tx ...utility.DatabaseTransaction) error
+	DeleteOrganizationUnits(unitIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type AuditableItemRepository struct {
@@ -210,11 +213,12 @@ func (repo *AuditableItemRepository) GetFullDetailsByID(id uint, tx ...utility.D
 		Preload("AuditorRiskRating").
 		Preload("Process").
 		Preload("Control").
-		// Preload("Document").
+		Preload("Document").
 		Preload("IncidentRegister").
 		Preload("ComplianceRequirement").
 		Preload("RiskRegister").
 		Preload("User").
+		Preload("OrganizationUnits").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&auditableItem, id)
@@ -244,16 +248,43 @@ func (repo *AuditableItemRepository) Update(auditableItem *models.AuditableItem,
 	return nil
 }
 
-func (repo *AuditableItemRepository) Delete(id uint) error {
-
+func (repo *AuditableItemRepository) Delete(id uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 	var auditableItem *models.AuditableItem
-	if err := repo.db.First(&auditableItem, id).Error; err != nil {
+	if err := db.First(&auditableItem, id).Error; err != nil {
 		return err
 	}
 
-	result := repo.db.Delete(&models.AuditableItem{}, id)
+	result := db.Delete(&models.AuditableItem{}, id)
 	if result.Error != nil {
 		return result.Error
+	}
+
+	return nil
+}
+
+func (repo *AuditableItemRepository) CreateOrganizationUnits(units []*models.AuditableItemOrganizationUnit, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Create(&units).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *AuditableItemRepository) DeleteOrganizationUnits(unitIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Where("id IN (?)", unitIds).Delete(&models.AuditableItemOrganizationUnit{}).Error; err != nil {
+		return err
 	}
 
 	return nil

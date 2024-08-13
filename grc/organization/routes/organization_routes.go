@@ -57,6 +57,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.POST("/users/delete", userController.DeleteUsers)
 	organizationRoutes.GET("/users/:userId/login-history", userController.GetUserLoginHistory)
 
+	organizationRoutes.GET("/users/me", userController.GetCurrentUserDetails)
+
 	//Strategic Profile
 	organizationRoutes.GET("/strategic-profiles", strategicProfileController.GetStrategicProfile)
 	organizationRoutes.PUT("/strategic-profiles", strategicProfileController.UpdateStrategicProfile)

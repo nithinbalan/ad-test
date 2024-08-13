@@ -46,6 +46,7 @@ type IncidentRegisterService struct {
 	processSvc               organizationServices.ProcessServiceInterface
 	slaRegisterSvc           complianceServices.SLARegisterServiceInterface
 	incidentTimelineSvc      IncidentTimelineServiceInterface
+	userSvc                  organizationServices.UserServiceInterface
 }
 
 func NewIncidentRegisterService(
@@ -61,6 +62,7 @@ func NewIncidentRegisterService(
 	processSvc organizationServices.ProcessServiceInterface,
 	slaRegisterSvc complianceServices.SLARegisterServiceInterface,
 	incidentTimelineSvc IncidentTimelineServiceInterface,
+	userSvc organizationServices.UserServiceInterface,
 ) IncidentRegisterServiceInterface {
 	return &IncidentRegisterService{
 		repo:                     repo,
@@ -75,6 +77,7 @@ func NewIncidentRegisterService(
 		processSvc:               processSvc,
 		slaRegisterSvc:           slaRegisterSvc,
 		incidentTimelineSvc:      incidentTimelineSvc,
+		userSvc:                  userSvc,
 	}
 }
 
@@ -154,20 +157,28 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 	if err != nil {
 		return 0, err
 	}
+	var organizationUnitID uint
+	unitID, err := irs.userSvc.GetUserPrimaryUnitID(incidentRegisterFormDTO.ResponsibleUserID)
+	if err != nil {
+		return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for owner"), "not_exist", "responsible unit")
+	}
+	organizationUnitID = unitID
 	incidentRegister := &models.IncidentRegister{
-		ReferenceNumber:       referenceNumber,
-		IncidentCategoryID:    incidentRegisterFormDTO.IncidentCategoryID,
-		IncidentTypeID:        incidentRegisterFormDTO.IncidentTypeID,
-		SeverityLevelID:       *incidentRegisterFormDTO.SeverityLevelID,
-		IncidentStatusID:      &incidentStatus.ID,
-		Title:                 incidentRegisterFormDTO.Title,
-		Description:           incidentRegisterFormDTO.Description,
-		IncidentAt:            dates.IncidentAt,
-		Location:              incidentRegisterFormDTO.Location,
-		ReportedBy:            incidentRegisterFormDTO.ReportedBy,
-		ReportedAt:            dates.ReportedAt,
-		QuickAction:           incidentRegisterFormDTO.QuickAction,
-		CreatedByID:           currentUserID,
+		ReferenceNumber:    referenceNumber,
+		IncidentCategoryID: incidentRegisterFormDTO.IncidentCategoryID,
+		IncidentTypeID:     incidentRegisterFormDTO.IncidentTypeID,
+		SeverityLevelID:    *incidentRegisterFormDTO.SeverityLevelID,
+		IncidentStatusID:   &incidentStatus.ID,
+		ResponsibleUserID:  incidentRegisterFormDTO.ResponsibleUserID,
+		ResponsibleUnitID:  organizationUnitID,
+		Title:              incidentRegisterFormDTO.Title,
+		Description:        incidentRegisterFormDTO.Description,
+		IncidentAt:         dates.IncidentAt,
+		Location:           incidentRegisterFormDTO.Location,
+		ReportedBy:         incidentRegisterFormDTO.ReportedBy,
+		ReportedAt:         dates.ReportedAt,
+		QuickAction:        incidentRegisterFormDTO.QuickAction,
+		CreatedByID:        currentUserID,
 	}
 
 	id, err := irs.repo.Create(incidentRegister, tx)
@@ -419,6 +430,13 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 	}
 	if err := irs.validateIncidentDocumentFormDTO(incidentRegisterFormDTO.Documents); err != nil {
 		return err
+	}
+	if existingIncidentRegister.ResponsibleUserID != incidentRegisterFormDTO.ResponsibleUserID {
+		organizationUnitID, err := irs.userSvc.GetUserPrimaryUnitID(incidentRegisterFormDTO.ResponsibleUserID)
+		if err != nil {
+			return utility.NewValidationError(fmt.Errorf("organization unit not set for owner"), "not_exist", "control owner unit")
+		}
+		existingIncidentRegister.ResponsibleUnitID = organizationUnitID
 	}
 	existingIncidentRegister.IncidentCategoryID = incidentRegisterFormDTO.IncidentCategoryID
 	existingIncidentRegister.IncidentTypeID = incidentRegisterFormDTO.IncidentTypeID
@@ -988,7 +1006,7 @@ func (irs *IncidentRegisterService) validateIncidentRegisterFormDTO(incidentRegi
 	if _, err := irs.incidentCategorySvc.GetByID(incidentRegisterFormDTO.IncidentCategoryID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("incident category does not exist"), "not_exist", "incident category")
 	}
-	
+
 	if incidentRegisterFormDTO.IncidentTypeID != nil {
 		if _, err := irs.incidentTypeSvc.GetByID(*incidentRegisterFormDTO.IncidentTypeID); err != nil {
 			return utility.NewValidationError(fmt.Errorf("incident type does not exist"), "not_exist", "incident type")
@@ -998,6 +1016,9 @@ func (irs *IncidentRegisterService) validateIncidentRegisterFormDTO(incidentRegi
 		if _, err := irs.severityLevelSvc.GetByID(*incidentRegisterFormDTO.SeverityLevelID); err != nil {
 			return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
 		}
+	}
+	if _, err := irs.userSvc.GetByID(uint(incidentRegisterFormDTO.ResponsibleUserID)); err != nil {
+		return utility.NewValidationError(fmt.Errorf("responsible user does not exist"), "not_exist", "responsible user")
 	}
 	//Controls exist
 	controls := incidentRegisterFormDTO.ControlIds

@@ -53,6 +53,8 @@ type DocumentServiceInterface interface {
 	GetSharedUsers(documentId uint, page uint, pageSize uint) (*documentDTOs.DocumentSharedUserListResponseDTO, error)
 	GetReviewUsers(documentId uint) ([]*organizationDTOs.UserMinimalDTO, error)
 	GetSharedUnits(documentId uint) ([]*settingDTOs.OrganizationUnitDTO, error)
+
+	GetDocumentLastEditSummary(documentID uint) (*documentDTOs.DocumentLastEditSummaryDTO, error)
 }
 
 type DocumentService struct {
@@ -1461,7 +1463,7 @@ func (ds *DocumentService) GetDocumentWorkflowList(id uint) (*documentDTOs.Docum
 		ID:                documentVersion.ID,
 		DocumentID:        documentVersion.DocumentID,
 		SubmittedAt:       *documentVersion.SubmittedAt,
-		SubmittedByUser:   mapUserToDTO(documentVersion.SubmittedByUser),
+		SubmittedByUser:   *mapUserToDTO(documentVersion.SubmittedByUser),
 		DocumentWorkflows: []*documentDTOs.DocumentWorkflowListDTO{},
 	}
 
@@ -1477,7 +1479,7 @@ func (ds *DocumentService) GetDocumentWorkflowList(id uint) (*documentDTOs.Docum
 		var lastApprovedAt time.Time
 		for _, review := range workflow.DocumentWorkflowReviews {
 			userDTO := mapUserToDTO(review.CreatedByUser)
-			workflowDTO.ApprovedUsers = append(workflowDTO.ApprovedUsers, &userDTO)
+			workflowDTO.ApprovedUsers = append(workflowDTO.ApprovedUsers, userDTO)
 			if review.CreatedAt.After(lastApprovedAt) {
 				lastApprovedAt = review.CreatedAt
 			}
@@ -1485,7 +1487,7 @@ func (ds *DocumentService) GetDocumentWorkflowList(id uint) (*documentDTOs.Docum
 
 		for _, participant := range workflow.DocumentWorkflowParticipants {
 			userDTO := mapUserToDTO(participant.User)
-			workflowDTO.ReviewUsers = append(workflowDTO.ReviewUsers, &userDTO)
+			workflowDTO.ReviewUsers = append(workflowDTO.ReviewUsers, userDTO)
 		}
 
 		workflowDTO.ApprovedAt = lastApprovedAt
@@ -1495,11 +1497,11 @@ func (ds *DocumentService) GetDocumentWorkflowList(id uint) (*documentDTOs.Docum
 	return dto, nil
 }
 
-func mapUserToDTO(user *models.User) organizationDTOs.UserMinimalDTO {
+func mapUserToDTO(user *models.User) *organizationDTOs.UserMinimalDTO {
 	if user == nil {
-		return organizationDTOs.UserMinimalDTO{}
+		return &organizationDTOs.UserMinimalDTO{}
 	}
-	return organizationDTOs.UserMinimalDTO{
+	return &organizationDTOs.UserMinimalDTO{
 		ID:               int(user.ID),
 		FirstNameEN:      user.FirstNameEn,
 		LastNameEN:       user.LastNameEn,
@@ -1642,4 +1644,57 @@ func (svc *DocumentService) GetSharedUnits(documentId uint) ([]*settingDTOs.Orga
 		dtos = append(dtos, dto)
 	}
 	return dtos, nil
+}
+
+func (ds *DocumentService) GetDocumentLastEditSummary(documentID uint) (*documentDTOs.DocumentLastEditSummaryDTO, error) {
+	document, err := ds.GetFullDetailsByID(documentID)
+	if err != nil {
+		return nil, err
+	}
+
+	activity, err := ds.repo.GetDocumentLatestEditHistory(document.LatestDocumentVersion.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	userDTO := mapUserToDTO(activity.CreatedByUser)
+
+	latestActivityDTO := documentDTOs.ActivityDTO{
+		Activity:  activity.ActionType,
+		By:        userDTO,
+		Comment:   activity.Comment,
+		Timestamp: activity.CreatedAt,
+	}
+
+	currentDocumentWorkflow, err := ds.repo.GetDocumentWorkflowByLevel(document.LatestDocumentVersion.ID, *document.LatestDocumentVersion.NextReviewLevel)
+	if err != nil {
+		return nil, err
+	}
+
+	participants := []*organizationDTOs.UserMinimalDTO{}
+	totalComments := 0
+
+	if currentDocumentWorkflow != nil {
+		for _, participant := range currentDocumentWorkflow.DocumentWorkflowParticipants {
+			userDTO := mapUserToDTO(participant.User)
+			if userDTO != nil {
+				participants = append(participants, userDTO)
+			}
+		}
+
+		for _, review := range currentDocumentWorkflow.DocumentWorkflowReviews {
+			if review.Comment != "" {
+				totalComments++
+			}
+		}
+	}
+
+	responseDTO := &documentDTOs.DocumentLastEditSummaryDTO{
+		LatestActivity: latestActivityDTO,
+		CurrentLevel:   *document.LatestDocumentVersion.NextReviewLevel,
+		Participants:   participants,
+		TotalComments:  totalComments,
+	}
+
+	return responseDTO, nil
 }

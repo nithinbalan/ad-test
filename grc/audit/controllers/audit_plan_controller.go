@@ -77,7 +77,7 @@ func (apc *AuditPlanController) GetAllAuditPlans(c *gin.Context) {
 }
 
 func (apc *AuditPlanController) GetAuditPlanDetails(c *gin.Context) {
-	idStr := c.Param("id")
+	idStr := c.Param("planId")
 
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -134,7 +134,7 @@ func (apc *AuditPlanController) CreateAuditPlan(c *gin.Context) {
 func (apc *AuditPlanController) UpdateAuditPlan(c *gin.Context) {
 	var auditPlanFormDTO auditDTOs.AuditPlanFormDTO
 
-	auditPlanID, err := strconv.Atoi(c.Param("id"))
+	auditPlanID, err := strconv.Atoi(c.Param("planId"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return

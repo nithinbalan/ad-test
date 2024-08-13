@@ -24,17 +24,18 @@ type AuditableItem struct {
 	UpdatedByID             *uint      `json:"updated_by_id" gorm:"default:null"`
 
 	// Relationships
-	Process               *Process               `gorm:"foreignKey:ProcessID"`
-	Control               *Control               `gorm:"foreignKey:ControlID"`
-	Document              *Document              `gorm:"foreignKey:DocumentID"`
-	IncidentRegister      *IncidentRegister      `gorm:"foreignKey:IncidentRegisterID"`
-	ComplianceRequirement *ComplianceRequirement `gorm:"foreignKey:ComplianceRequirementID"`
-	RiskRegister          *RiskRegister          `gorm:"foreignKey:RiskRegisterID"`
-	User                  *User                  `gorm:"foreignKey:UserID"`
-	AuditorRiskRating     *AuditorRiskRating     `gorm:"foreignKey:AuditorRiskRatingID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	AuditStatus           *AuditStatus           `gorm:"foreignKey:AuditStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser         *User                  `gorm:"foreignKey:CreatedByID"`
-	UpdatedByUser         *User                  `gorm:"foreignKey:UpdatedByID"`
+	Process               *Process                         `gorm:"foreignKey:ProcessID"`
+	Control               *Control                         `gorm:"foreignKey:ControlID"`
+	Document              *Document                        `gorm:"foreignKey:DocumentID"`
+	IncidentRegister      *IncidentRegister                `gorm:"foreignKey:IncidentRegisterID"`
+	ComplianceRequirement *ComplianceRequirement           `gorm:"foreignKey:ComplianceRequirementID"`
+	RiskRegister          *RiskRegister                    `gorm:"foreignKey:RiskRegisterID"`
+	User                  *User                            `gorm:"foreignKey:UserID"`
+	AuditorRiskRating     *AuditorRiskRating               `gorm:"foreignKey:AuditorRiskRatingID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	AuditStatus           *AuditStatus                     `gorm:"foreignKey:AuditStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	OrganizationUnits     []*AuditableItemOrganizationUnit `gorm:"foreignKey:AuditableItemID"`
+	CreatedByUser         *User                            `gorm:"foreignKey:CreatedByID"`
+	UpdatedByUser         *User                            `gorm:"foreignKey:UpdatedByID"`
 }
 
 // TableName overrides the table name used by AuditableItem to `auditable_items`

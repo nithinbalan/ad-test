@@ -115,7 +115,7 @@ type ControlListResponseDTO struct {
 type ControlFormDTO struct {
 	ControlTypeID                 uint    `json:"control_type_id" binding:"required"`
 	ControlCategoryID             uint    `json:"control_category_id" binding:"required"`
-	OwnerID                       *uint   `json:"owner_id" binding:"omitempty"`
+	OwnerID                       uint    `json:"owner_id" binding:"required"`
 	ControlImplementationStatusID *uint   `json:"control_implementation_status_id" binding:"omitempty"`
 	ControlEfficiencyStatusID     *uint   `json:"control_efficiency_status_id" binding:"omitempty"`
 	Code                          *string `json:"code" binding:"omitempty"`
@@ -144,37 +144,37 @@ type ControlParsedDates struct {
 }
 
 type ControlDetailDTO struct {
-	ID                          uint                              `json:"id"`
-	ReferenceNumber             string                            `json:"reference_number"`
-	Code                        string                            `json:"code"`
-	TitleEn                     string                            `json:"title_en"`
-	TitleAr                     string                            `json:"title_ar"`
-	Description                 *string                           `json:"description"`
-	Objective                   *string                           `json:"objective"`
-	ControlType                 ControlTypeDTO                    `json:"control_type"`
-	ControlCategory             ControlCategoryDTO                `json:"control_category"`
-	OwnerUnit                   *settingsDTOs.OrganizationUnitDTO `json:"owner_unit"`
-	Owner                       *UserMinimalDTO                   `json:"owner"`
-	ControlImplementationStatus *ControlImplementationStatusDTO   `json:"control_implementation_status"`
-	ControlEfficiencyStatus     *ControlEfficiencyStatusDTO       `json:"control_efficiency_status"`
-	EfficiencyScore             *uint                             `json:"efficiency_score"`
-	ReviewFrequency             *masterDTOs.ReviewFrequencyDTO    `json:"review_frequency"`
-	LastReviewDateString        *string                           `json:"last_review_date"`
-	NextReviewDateString        *string                           `json:"next_review_date"`
-	LastReviewNote              *string                           `json:"last_review_note"`
-	TestResponsibleUser         UserMinimalDTO                    `json:"test_responsible_user"`
-	TestFrequency               *masterDTOs.ReviewFrequencyDTO    `json:"test_frequency"`
-	LastTestDateString          *string                           `json:"last_test_date"`
-	NextTestDateString          *string                           `json:"next_test_date"`
-	ImplementedAtString         *string                           `json:"implemented_at"`
-	CreatedAt                   time.Time                         `json:"created_at"`
-	UpdatedAt                   *time.Time                        `json:"updated_at"`
-	CreatedByUser               UserMinimalDTO                    `json:"created_by"`
-	UpdatedByUser               *UserMinimalDTO                   `json:"updated_by"`
-	LifecycleStatus             masterDTOs.LifecycleStatusDTO     `json:"status"`
-	ControlReviewStatus         ControlReviewStatusDTO            `json:"review_status"`
-	LatestControlTest           ControlTestDetailsDTO             `json:"latest_control_test"`
-	LatestControlReview         *ControlReviewDTO                 `json:"control_review"`
+	ID                          uint                             `json:"id"`
+	ReferenceNumber             string                           `json:"reference_number"`
+	Code                        string                           `json:"code"`
+	TitleEn                     string                           `json:"title_en"`
+	TitleAr                     string                           `json:"title_ar"`
+	Description                 *string                          `json:"description"`
+	Objective                   *string                          `json:"objective"`
+	ControlType                 ControlTypeDTO                   `json:"control_type"`
+	ControlCategory             ControlCategoryDTO               `json:"control_category"`
+	OwnerUnit                   settingsDTOs.OrganizationUnitDTO `json:"owner_unit"`
+	Owner                       *UserMinimalDTO                  `json:"owner"`
+	ControlImplementationStatus *ControlImplementationStatusDTO  `json:"control_implementation_status"`
+	ControlEfficiencyStatus     *ControlEfficiencyStatusDTO      `json:"control_efficiency_status"`
+	EfficiencyScore             *uint                            `json:"efficiency_score"`
+	ReviewFrequency             *masterDTOs.ReviewFrequencyDTO   `json:"review_frequency"`
+	LastReviewDateString        *string                          `json:"last_review_date"`
+	NextReviewDateString        *string                          `json:"next_review_date"`
+	LastReviewNote              *string                          `json:"last_review_note"`
+	TestResponsibleUser         UserMinimalDTO                   `json:"test_responsible_user"`
+	TestFrequency               *masterDTOs.ReviewFrequencyDTO   `json:"test_frequency"`
+	LastTestDateString          *string                          `json:"last_test_date"`
+	NextTestDateString          *string                          `json:"next_test_date"`
+	ImplementedAtString         *string                          `json:"implemented_at"`
+	CreatedAt                   time.Time                        `json:"created_at"`
+	UpdatedAt                   *time.Time                       `json:"updated_at"`
+	CreatedByUser               UserMinimalDTO                   `json:"created_by"`
+	UpdatedByUser               *UserMinimalDTO                  `json:"updated_by"`
+	LifecycleStatus             masterDTOs.LifecycleStatusDTO    `json:"status"`
+	ControlReviewStatus         ControlReviewStatusDTO           `json:"review_status"`
+	LatestControlTest           ControlTestDetailsDTO            `json:"latest_control_test"`
+	LatestControlReview         *ControlReviewDTO                `json:"control_review"`
 }
 type ControlReviewDTO struct {
 	ID             uint                          `json:"id"`
