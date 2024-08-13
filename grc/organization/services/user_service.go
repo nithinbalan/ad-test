@@ -36,6 +36,8 @@ type UserServiceInterface interface {
 	SetUserSettingService(svc UserSettingServiceInterface)
 	GetUserPrimaryUnitID(userID uint) (uint, error)
 	GetUserIdsByRole(roleID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
+
+	GetCurrentUserDetails(id uint) (*userDTOs.CurrentUserDetailsDTO, error)
 }
 
 type UserService struct {
@@ -534,4 +536,37 @@ func (us *UserService) GetUserIdsByRole(roleID uint, tx ...utility.DatabaseTrans
 	}
 
 	return userIds, nil
+}
+
+func (us *UserService) GetCurrentUserDetails(id uint) (*userDTOs.CurrentUserDetailsDTO, error) {
+	var userDetailsDTO userDTOs.CurrentUserDetailsDTO
+
+	user, err := us.repo.GetFullDetailsByID(id)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+
+	err = mapstructure.Decode(user, &userDetailsDTO)
+	if err != nil {
+		return nil, err
+	}
+
+	roles := make([]settingDTOs.RoleDTO, 0, len(*user.UserRoles))
+	for _, userRole := range *user.UserRoles {
+		roles = append(roles, settingDTOs.RoleDTO{
+			ID:      userRole.Role.ID,
+			TitleEn: userRole.Role.TitleEn,
+			TitleAr: userRole.Role.TitleAr,
+			Status:  userRole.Role.Status,
+		})
+	}
+	userDetailsDTO.Roles = &roles
+
+	//todo :- also add extra fields which required in details screen
+
+	return &userDetailsDTO, nil
 }

@@ -43,7 +43,7 @@ type DocumentRepositoryInterface interface {
 	CreateDocumentWorkflowParticipant(docWorkflowParticipant *models.DocumentWorkflowParticipant, tx ...utility.DatabaseTransaction) error
 
 	GetComments(docVersionId uint, currentApprovalLevel int) (*models.DocumentVersion, error)
-	GetDocumentWorkflowByLevel(docVersionId uint, currentApprovalLevel int) (*models.DocumentWorkflow, error)
+	GetDocumentWorkflowByLevel(docVersionId uint, currentApprovalLevel int, tx ...utility.DatabaseTransaction) (*models.DocumentWorkflow, error)
 	GetNextLevel(documentVersionID uint, currentLevel int, tx ...utility.DatabaseTransaction) (*models.DocumentWorkflow, error)
 	GetWorkflowList(docVersionId uint) (*models.DocumentVersion, error)
 
@@ -53,6 +53,9 @@ type DocumentRepositoryInterface interface {
 	GetSharedUsers(documentId uint, page uint, pageSize uint) ([]*models.User, commonDTOs.PaginationInfoDTO, error)
 	GetReviewUsers(documentId uint) ([]*models.User, error)
 	GetSharedUnits(documentId uint) ([]*models.OrganizationUnit, error)
+
+	GetDocumentLatestEditHistory(documentVersionID uint) (*models.DocumentEditHistory, error)
+	GetDocumentEditHistories(documentVersionID uint) ([]*models.DocumentEditHistory, error)
 }
 
 // Implementation
@@ -537,11 +540,17 @@ func (repo *DocumentRepository) GetComments(docVersionId uint, currentApprovalLe
 	return &documentVersion, nil
 }
 
-func (repo *DocumentRepository) GetDocumentWorkflowByLevel(docVersionId uint, currentApprovalLevel int) (*models.DocumentWorkflow, error) {
+func (repo *DocumentRepository) GetDocumentWorkflowByLevel(docVersionId uint, currentApprovalLevel int, tx ...utility.DatabaseTransaction) (*models.DocumentWorkflow, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 	var documentWorkflow *models.DocumentWorkflow
-	result := repo.db.
+	result := db.
 		Preload("WorkflowLevelType").
 		Preload("DocumentWorkflowParticipants").
+		Preload("DocumentWorkflowReviews").
+		Preload("DocumentWorkflowParticipants.User").
 		Where("document_version_id = ? AND level = ?", docVersionId, currentApprovalLevel).
 		Find(&documentWorkflow)
 
@@ -680,4 +689,29 @@ func (repo *DocumentRepository) GetSharedUnits(documentId uint) ([]*models.Organ
 		return nil, err
 	}
 	return units, nil
+}
+
+func (repo *DocumentRepository) GetDocumentLatestEditHistory(documentVersionID uint) (*models.DocumentEditHistory, error) {
+	var history models.DocumentEditHistory
+	err := repo.db.
+		Preload("CreatedByUser").
+		Where("document_version_id = ?", documentVersionID).
+		Order("created_at DESC").
+		First(&history).Error
+	if err != nil {
+		return nil, err
+	}
+	return &history, nil
+}
+
+func (repo *DocumentRepository) GetDocumentEditHistories(documentVersionID uint) ([]*models.DocumentEditHistory, error) {
+	var histories []*models.DocumentEditHistory
+	err := repo.db.
+		Where("document_version_id = ?", documentVersionID).
+		Order("created_at DESC").
+		Find(&histories).Error
+	if err != nil {
+		return nil, err
+	}
+	return histories, nil
 }

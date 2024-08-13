@@ -9,12 +9,14 @@ import (
 )
 
 type AuditModule struct {
-	AuditStatusController       *controllers.AuditStatusController
-	AuditorRiskRatingController *controllers.AuditorRiskRatingController
-	AuditUniverseController     *controllers.AuditUniverseController
-	AuditableItemController     *controllers.AuditableItemController
-	AuditTeamController         *controllers.AuditTeamController
-	AuditCategoryController     *controllers.AuditCategoryController
+	AuditStatusController        *controllers.AuditStatusController
+	AuditorRiskRatingController  *controllers.AuditorRiskRatingController
+	AuditUniverseController      *controllers.AuditUniverseController
+	AuditableItemController      *controllers.AuditableItemController
+	AuditTeamController          *controllers.AuditTeamController
+	AuditCategoryController      *controllers.AuditCategoryController
+	AuditPlanController          *controllers.AuditPlanController
+	AuditPlanChecklistController *controllers.AuditPlanChecklistController
 }
 
 func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, complianceModule *ComplianceModule, riskModule *RiskModule, incidentModule *IncidentModule, documentModule *DocumentModule, settingModule *SettingsModule) *AuditModule {
@@ -63,12 +65,35 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 	auditCategorySvc := services.NewAuditCategoryService(auditCategoryRepo, sharedModule.ActivityLogService)
 	auditCategoryController := controllers.NewAuditCategoryController(auditCategorySvc)
 
+	auditPlanRepo := repositories.NewAuditPlanRepository(db)
+	auditPlanSvc := services.NewAuditPlanService(
+		auditPlanRepo,
+		sharedModule.ActivityLogService,
+		auditCategorySvc,
+		auditStatusSvc,
+		auditTeamSvc,
+		organizationModule.UserSvc,
+		auditableItemSvc,
+	)
+	auditPlanController := controllers.NewAuditPlanController(auditPlanSvc)
+
+	auditPlanChecklistRepo := repositories.NewAuditPlanChecklistRepository(db)
+	auditPlanChecklistSvc := services.NewAuditPlanChecklistService(
+		auditPlanChecklistRepo,
+		sharedModule.ActivityLogService,
+		auditPlanSvc,
+		auditableItemSvc,
+	)
+	auditPlanChecklistController := controllers.NewAuditPlanChecklistController(auditPlanChecklistSvc)
+
 	return &AuditModule{
-		AuditStatusController:       auditStatusController,
-		AuditorRiskRatingController: auditorRiskRatingController,
-		AuditUniverseController:     auditUniverseController,
-		AuditableItemController:     auditableItemController,
-		AuditTeamController:         auditTeamController,
-		AuditCategoryController:     auditCategoryController,
+		AuditStatusController:        auditStatusController,
+		AuditorRiskRatingController:  auditorRiskRatingController,
+		AuditUniverseController:      auditUniverseController,
+		AuditableItemController:      auditableItemController,
+		AuditTeamController:          auditTeamController,
+		AuditCategoryController:      auditCategoryController,
+		AuditPlanController:          auditPlanController,
+		AuditPlanChecklistController: auditPlanChecklistController,
 	}
 }
