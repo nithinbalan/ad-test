@@ -230,15 +230,15 @@ type DocumentSharedUserListResponseDTO struct {
 }
 
 type DocumentLastEditSummaryDTO struct {
-	LatestActivity ActivityDTO                        `json:"latestActivity"`
-	CurrentLevel   int                                `json:"currentLevel"`
+	LatestActivity ActivityDTO                        `json:"latest_activity"`
+	CurrentLevel   int                                `json:"current_level"`
 	Participants   []*organizationDTOs.UserMinimalDTO `json:"participants"`
-	TotalComments  int                                `json:"totalComments"`
+	TotalComments  int                                `json:"total_comments"`
 }
 
 type ActivityDTO struct {
 	Activity  string                           `json:"activity"` // "checkout" or "checkin"
 	By        *organizationDTOs.UserMinimalDTO `json:"by"`
 	Comment   *string                          `json:"comment"`
-	Timestamp time.Time                        `json:"timestamp"`
+	Timestamp time.Time                        `json:"time_stamp"`
 }
