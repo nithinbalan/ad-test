@@ -228,3 +228,17 @@ type DocumentSharedUserListResponseDTO struct {
 	Items      []*organizationDTOs.UserMinimalDTO `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO       `json:"pagination"`
 }
+
+type DocumentLastEditSummaryDTO struct {
+	LatestActivity ActivityDTO                        `json:"latestActivity"`
+	CurrentLevel   int                                `json:"currentLevel"`
+	Participants   []*organizationDTOs.UserMinimalDTO `json:"participants"`
+	TotalComments  int                                `json:"totalComments"`
+}
+
+type ActivityDTO struct {
+	Activity  string                           `json:"activity"` // "checkout" or "checkin"
+	By        *organizationDTOs.UserMinimalDTO `json:"by"`
+	Comment   *string                          `json:"comment"`
+	Timestamp time.Time                        `json:"timestamp"`
+}
