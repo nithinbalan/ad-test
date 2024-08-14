@@ -19,6 +19,7 @@ type StrategicProfileServiceInterface interface {
 	UpdateVision(currentUserID uint, strategicProfileVision *organizationDTOs.StrategicProfileVisionFormDTO) error
 	UpdateMission(currentUserID uint, strategicProfileMission *organizationDTOs.StrategicProfileMissionFormDTO) error
 	UpdateValues(strategicProfileValues []*organizationDTOs.StrategicProfileValueFormDTO) error
+	UploadProfileImage(filePath string) (string, error)
 }
 
 type StrategicProfileService struct {
@@ -176,6 +177,22 @@ func (sps *StrategicProfileService) UpdateValues(strategicProfileValuesDTO []*or
 	}
 	//@todo- activity log need to capture
 	return nil
+}
+
+func (sps *StrategicProfileService) UploadProfileImage(filePath string) (string, error) {
+	// Retrieve the StrategicProfile by ID
+	profile, err := sps.repo.Get()
+	if err != nil {
+		return "", utility.NewResourceNotFoundError(err, nil)
+	}
+
+	// Update the profile with the new image path
+	profile.ProfileImage = &filePath
+	if err := sps.repo.Update(profile); err != nil {
+		return "", err
+	}
+
+	return filePath, nil
 }
 
 func (us *StrategicProfileService) validateStrategicProfileFormDTO(strategicProfileDTO *organizationDTOs.StrategicProfileFormDTO) error {
