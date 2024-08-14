@@ -102,5 +102,13 @@
   {
     "id": "empty",
     "translation": "Empty '{{.Field}}' IDs detected. Please ensure '{{.Field}}' IDs are provided."
+  },
+  {
+    "id": "invalid_image_type",
+    "translation": "Only jpeg/png files are allowed"
+  },
+  {
+    "id": "invalid_profile_file_size",
+    "translation": "Only files of maximum size 2MB are allowed"
   }
 ]

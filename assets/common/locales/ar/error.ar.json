@@ -102,5 +102,14 @@
   {
     "id": "empty",
     "translation": "تم اكتشاف معرفات '{{.Field}}' فارغة. يرجى التأكد من توفير معرفات '{{.Field}}'."
-  }
+  },
+  {
+    "id": "invalid_image_type",
+    "translation": "يُسمح فقط بملفات jpeg/png"
+},
+{
+    "id": "invalid_profile_file_size",
+    "translation": "يُسمح فقط بملفات بحجم أقصى 2 ميجابايت"
+}
+
 ]

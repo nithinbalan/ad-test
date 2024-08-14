@@ -45,7 +45,8 @@ func NewOrganizationModule(
 	sharedModule *SharedModule,
 	settingsModule *SettingsModule,
 	masterModule *MasterModule,
-	taskModule *TaskModule) *OrganizationModule {
+	taskModule *TaskModule,
+	commonModule *CommonModule) *OrganizationModule {
 
 	designationRepo := repositories.NewDesignationRepository(db)
 	designationSvc := services.NewDesignationService(designationRepo, sharedModule.ActivityLogService)
@@ -65,7 +66,7 @@ func NewOrganizationModule(
 	userSettingController := controllers.NewUserSettingController(userSettingSvc)
 
 	strategicProfileRepo := repositories.NewStrategicProfileRepository(db)
-	strategicProfileSvc := services.NewStrategicProfileService(strategicProfileRepo)
+	strategicProfileSvc := services.NewStrategicProfileService(strategicProfileRepo, commonModule.FileRepo)
 	strategicProfileController := controllers.NewStrategicProfileController(strategicProfileSvc)
 
 	strategicObjectiveRepo := repositories.NewStrategicObjectiveRepository(db)

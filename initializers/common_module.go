@@ -9,6 +9,7 @@ import (
 
 type CommonModule struct {
 	NotificationService commonServices.NotificationServiceInterface
+	FileRepo            commonRepositories.FileRepositoryInterface
 }
 
 func NewCommonModule(db *gorm.DB, settingsModule *SettingsModule) *CommonModule {
@@ -16,7 +17,10 @@ func NewCommonModule(db *gorm.DB, settingsModule *SettingsModule) *CommonModule 
 	notificationRepo := commonRepositories.NewNotificationRepository(db)
 	notificationSvc := commonServices.NewNotificationService(notificationRepo, settingsModule.ModuleSvc)
 
+	fileRepo := commonRepositories.NewFileRepository()
+
 	return &CommonModule{
 		NotificationService: notificationSvc,
+		FileRepo:            fileRepo,
 	}
 }
