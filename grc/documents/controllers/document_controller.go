@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"fmt"
 	documentDTOs "jethur/grc/documents/dtos"
 	"jethur/grc/documents/services"
 	"jethur/utility"
@@ -30,9 +29,9 @@ func (dc *DocumentController) GetAllDocuments(c *gin.Context) {
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
-	isAcknowledged := c.Query("is_acknowledged")
-
-	fmt.Println(isAcknowledged)
+	enableAcknowledgedStatus := c.Query("enable_acknowledge_status")
+	documentTypes := utility.ParseCommaSeparatedStringToArray(c.Query("document_types"))
+	documentStatus := utility.ParseCommaSeparatedStringToArray(c.Query("document_status"))
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
@@ -59,15 +58,17 @@ func (dc *DocumentController) GetAllDocuments(c *gin.Context) {
 	}
 
 	queryParams := documentDTOs.DocumentListQueryParamsDTO{
-		Sort:           sort,
-		SortBy:         sortBy,
-		Keyword:        keyword,
-		Status:         status,
-		Page:           page,
-		PageSize:       pageSize,
-		Filters:        filters,
-		QuickFilter:    quickFilter,
-		IsAcknowledged: isAcknowledged == "true",
+		Sort:                     sort,
+		SortBy:                   sortBy,
+		Keyword:                  keyword,
+		Status:                   status,
+		Page:                     page,
+		PageSize:                 pageSize,
+		Filters:                  filters,
+		QuickFilter:              quickFilter,
+		EnableAcknowledgedStatus: enableAcknowledgedStatus == "true",
+		DocumentTypes:            documentTypes,
+		DocumentStatus:           documentStatus,
 	}
 
 	currentUserID, err := utility.GetCurrentUserID(c)
