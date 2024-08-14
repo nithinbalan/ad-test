@@ -127,6 +127,7 @@ type RiskRegisterDetailDTO struct {
 	ResidualImpact          *RiskMatrixImpactDTO             `json:"residual_impact"`
 	ResidualRiskRating      *RiskMatrixRiskRatingDTO         `json:"residual_risk_rating"`
 	ResidualRiskRatingValue *RiskMatrixRiskRatingValueDTO    `json:"residual_risk_rating_value"`
+	RiskResponseStrategy    *RiskResponseStrategyDTO         `json:"risk_response_strategy"`
 	ReviewFrequency         *masterDTOs.ReviewFrequencyDTO   `json:"review_frequency"`
 	NextReviewDateString    *string                          `json:"next_review_date"`
 	LastReviewNote          *string                          `json:"last_review_note"`
