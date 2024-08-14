@@ -7,11 +7,11 @@ SELECT @RiskMatrixId = id FROM risk_matrix WHERE type = 'erm';
 
 INSERT INTO risk_matrix_risk_ratings (risk_matrix_id, title_en, title_ar, type, color_code, status)
 VALUES
-    (@RiskMatrixId, 'Very Low', N'منخفض جداً', 'very_low', '#00FF00', 'active'),
-    (@RiskMatrixId, 'Low', N'منخفض', 'low', '#FFFF00', 'active'),
-    (@RiskMatrixId, 'Medium', N'متوسط', 'medium', '#FFA500', 'active'),
-    (@RiskMatrixId, 'High', N'عالي', 'high', '#FF0000', 'active'),
-    (@RiskMatrixId, 'Very High', N'عالية جداً', 'very_high', '#800080', 'active');
+    (@RiskMatrixId, 'Very Low', N'منخفض جداً', 'very_low', '#008000', 'active'), -- Green
+    (@RiskMatrixId, 'Low', N'منخفض', 'low', '#FFFF00', 'active'), -- Yellow
+    (@RiskMatrixId, 'Medium', N'متوسط', 'medium', '#FFA500', 'active'), -- Orange
+    (@RiskMatrixId, 'High', N'عالي', 'high', '#FF0000', 'active'), -- Red
+    (@RiskMatrixId, 'Very High', N'عالية جداً', 'very_high', '#B22222', 'active'); -- Brick Red
 
 DECLARE @Counter INT = 1;
 
