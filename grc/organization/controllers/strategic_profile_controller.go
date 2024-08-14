@@ -5,8 +5,10 @@ import (
 	"jethur/grc/organization/services"
 	"jethur/utility"
 	"net/http"
+	"path/filepath"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -162,4 +164,35 @@ func (spc *StrategicProfileController) UpdateValues(c *gin.Context) {
 	}
 
 	c.Status(http.StatusOK)
+}
+
+func (spc *StrategicProfileController) UploadProfileImage(c *gin.Context) {
+	file, err := c.FormFile("profile_image")
+	if err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	fileExtension := filepath.Ext(file.Filename)
+	newFileName := uuid.New().String() + fileExtension
+	filePath := filepath.Join("uploads/profile_images", newFileName)
+
+	if err := c.SaveUploadedFile(file, filePath); err != nil {
+		utility.SendInternalErrResp(spc.db, c, "Unable to save file")
+		return
+	}
+
+	filePath, err = spc.service.UploadProfileImage(filePath)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(spc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Profile image uploaded successfully", "file_path": filePath})
 }
