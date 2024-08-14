@@ -9,14 +9,15 @@ import (
 )
 
 type AuditModule struct {
-	AuditStatusController        *controllers.AuditStatusController
-	AuditorRiskRatingController  *controllers.AuditorRiskRatingController
-	AuditUniverseController      *controllers.AuditUniverseController
-	AuditableItemController      *controllers.AuditableItemController
-	AuditTeamController          *controllers.AuditTeamController
-	AuditCategoryController      *controllers.AuditCategoryController
-	AuditPlanController          *controllers.AuditPlanController
-	AuditPlanChecklistController *controllers.AuditPlanChecklistController
+	AuditStatusController            *controllers.AuditStatusController
+	AuditorRiskRatingController      *controllers.AuditorRiskRatingController
+	AuditUniverseController          *controllers.AuditUniverseController
+	AuditableItemController          *controllers.AuditableItemController
+	AuditTeamController              *controllers.AuditTeamController
+	AuditCategoryController          *controllers.AuditCategoryController
+	AuditPlanController              *controllers.AuditPlanController
+	AuditPlanChecklistController     *controllers.AuditPlanChecklistController
+	AuditPlanAuditableItemController *controllers.AuditPlanAuditableItemController
 }
 
 func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, complianceModule *ComplianceModule, riskModule *RiskModule, incidentModule *IncidentModule, documentModule *DocumentModule, settingModule *SettingsModule) *AuditModule {
@@ -86,14 +87,19 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 	)
 	auditPlanChecklistController := controllers.NewAuditPlanChecklistController(auditPlanChecklistSvc)
 
+	auditPlanAuditableItemRepo := repositories.NewAuditPlanAuditableItemRepository(db)
+	auditPlanAuditableItemSvc := services.NewAuditPlanAuditableItemService(auditPlanAuditableItemRepo, sharedModule.ActivityLogService, auditPlanSvc, auditableItemSvc)
+	auditPlanAuditableItemController := controllers.NewAuditPlanAuditableItemController(auditPlanAuditableItemSvc)
+
 	return &AuditModule{
-		AuditStatusController:        auditStatusController,
-		AuditorRiskRatingController:  auditorRiskRatingController,
-		AuditUniverseController:      auditUniverseController,
-		AuditableItemController:      auditableItemController,
-		AuditTeamController:          auditTeamController,
-		AuditCategoryController:      auditCategoryController,
-		AuditPlanController:          auditPlanController,
-		AuditPlanChecklistController: auditPlanChecklistController,
+		AuditStatusController:            auditStatusController,
+		AuditorRiskRatingController:      auditorRiskRatingController,
+		AuditUniverseController:          auditUniverseController,
+		AuditableItemController:          auditableItemController,
+		AuditTeamController:              auditTeamController,
+		AuditCategoryController:          auditCategoryController,
+		AuditPlanController:              auditPlanController,
+		AuditPlanChecklistController:     auditPlanChecklistController,
+		AuditPlanAuditableItemController: auditPlanAuditableItemController,
 	}
 }
