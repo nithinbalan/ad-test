@@ -3,7 +3,6 @@ package repositories
 import (
 	"fmt"
 	auditDTOs "jethur/grc/audit/dtos"
-	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
 
@@ -12,7 +11,7 @@ import (
 
 type AuditTeamRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(params *auditDTOs.AuditTeamListQueryParamsDTO) (*auditDTOs.AuditTeamListResponseDTO, error)
+	GetAll(params *auditDTOs.AuditTeamListQueryParamsDTO) ([]*models.AuditTeam, int64, error)
 	GetByID(id uint) (*models.AuditTeam, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.AuditTeam, error)
 	Create(auditTeam *models.AuditTeam, tx ...utility.DatabaseTransaction) (uint, error)
@@ -38,38 +37,17 @@ func (repo *AuditTeamRepository) BeginTransaction() utility.DatabaseTransaction 
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *AuditTeamRepository) GetAll(params *auditDTOs.AuditTeamListQueryParamsDTO) (*auditDTOs.AuditTeamListResponseDTO, error) {
-
-	var auditTeams []*auditDTOs.AuditTeamListDTO
+func (repo *AuditTeamRepository) GetAll(params *auditDTOs.AuditTeamListQueryParamsDTO) ([]*models.AuditTeam, int64, error) {
+	var auditTeams []*models.AuditTeam
 	var totalCount int64
 
-	query := repo.db.Table("audit_teams").
-		Select(`
-        audit_teams.*,
-        users.first_name_en AS team_lead_first_name_en,
-        users.first_name_ar AS team_lead_first_name_ar,
-        users.last_name_en AS team_lead_last_name_en,
-        users.last_name_ar AS team_lead_last_name_ar,
-        users.email AS team_lead_email,
-        users.profile_image_path AS team_lead_profile_image_path,
-        created_user.first_name_en AS created_user_first_name_en,
-        created_user.first_name_ar AS created_user_first_name_ar,
-        created_user.last_name_en AS created_user_last_name_en,
-        created_user.last_name_ar AS created_user_last_name_ar,   
-        created_user.email AS created_user_email,
-        created_user.profile_image_path AS created_user_profile_image_path,   
-        updated_user.first_name_en AS updated_user_first_name_en,
-        updated_user.first_name_ar AS updated_user_first_name_ar,
-        updated_user.last_name_en AS updated_user_last_name_en,
-        updated_user.last_name_ar AS updated_user_last_name_ar,
-        updated_user.email AS updated_user_email,
-        updated_user.profile_image_path AS updated_user_profile_image_path
-    `).
-		Joins(`
-        LEFT JOIN users ON users.id = audit_teams.team_lead_id
-        LEFT JOIN users AS created_user ON created_user.id = audit_teams.created_by_id
-        LEFT JOIN users AS updated_user ON updated_user.id = audit_teams.updated_by_id
-    `)
+	// Build the base query with preloading relationships
+	query := repo.db.Preload("TeamLead").
+		Preload("Users").
+		Preload("Users.User").
+		Preload("CreatedByUser").
+		Preload("UpdatedByUser").
+		Model(&models.AuditTeam{})
 
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
@@ -80,7 +58,7 @@ func (repo *AuditTeamRepository) GetAll(params *auditDTOs.AuditTeamListQueryPara
 
 	// Calculate total count for pagination
 	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	// Apply search keyword if exists
@@ -124,32 +102,18 @@ func (repo *AuditTeamRepository) GetAll(params *auditDTOs.AuditTeamListQueryPara
 
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	offset := (params.Page - 1) * params.PageSize
+	// Apply pagination
+	if params.Page > 0 && params.PageSize > 0 {
+		offset := (params.Page - 1) * params.PageSize
+		query = query.Offset(offset).Limit(params.PageSize)
+	}
 
 	// Execute the query
-	err := query.Offset(offset).Limit(params.PageSize).Find(&auditTeams).Error
-	if err != nil {
-		return nil, err
-	}
-	for _, auditTeam := range auditTeams {
-		var teamMembers []*auditDTOs.AuditTeamMembersDTO
-
-		repo.db.Model(&models.AuditTeamMember{}).Where("audit_team_id = ?", auditTeam.ID).Find(&teamMembers)
-		auditTeam.Users = teamMembers
+	if err := query.Find(&auditTeams).Error; err != nil {
+		return nil, 0, err
 	}
 
-	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
-
-	response := &auditDTOs.AuditTeamListResponseDTO{
-		Items: auditTeams,
-		Pagination: commonDTOs.PaginationInfoDTO{
-			CurrentPage: params.Page,
-			PageSize:    params.PageSize,
-			TotalPages:  totalPages,
-			TotalCount:  totalCount,
-		},
-	}
-	return response, nil
+	return auditTeams, totalCount, nil
 }
 
 func (repo *AuditTeamRepository) GetByID(id uint) (*models.AuditTeam, error) {
@@ -175,6 +139,7 @@ func (repo *AuditTeamRepository) GetFullDetailsByID(id uint, tx ...utility.Datab
 	result := db.
 		Preload("TeamLead").
 		Preload("Users").
+		Preload("Users.User").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&auditTeam, id)

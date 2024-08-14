@@ -114,6 +114,17 @@ func (repo *AuditPlanRepository) GetAll(params *auditDTOs.AuditPlanListQueryPara
 	if params.TargetDate != "" {
 		query = query.Where("target_date <= ?", params.TargetDate)
 	}
+	// Apply quick filters
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "pending":
+			query = query.Where("audit_statuses.type = ?", "pending")
+		case "completed":
+			query = query.Where("audit_statuses.type = ?", "completed")
+		case "in_progress":
+			query = query.Where("audit_statuses.type = ?", "in_progress")
+		}
+	}
 
 	// Calculate total count for pagination
 	if err := query.Count(&totalCount).Error; err != nil {

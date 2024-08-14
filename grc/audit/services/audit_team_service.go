@@ -5,10 +5,13 @@ import (
 	"fmt"
 	auditDTOs "jethur/grc/audit/dtos"
 	auditRepositories "jethur/grc/audit/repositories"
+	commonDTOs "jethur/grc/common/dtos"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
+	organizationDTOs "jethur/grc/organization/dtos"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
+	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -42,7 +45,85 @@ func NewAuditTeamService(
 }
 
 func (ats *AuditTeamService) GetAll(params *auditDTOs.AuditTeamListQueryParamsDTO) (*auditDTOs.AuditTeamListResponseDTO, error) {
-	return ats.repo.GetAll(params)
+	auditTeams, totalCount, err := ats.repo.GetAll(params)
+	if err != nil {
+		return nil, err
+	}
+
+	// Map results to DTOs for response
+	var auditTeamDTOs []*auditDTOs.AuditTeamListDTO
+	for _, auditTeam := range auditTeams {
+		if auditTeam == nil {
+			continue // Skip nil auditTeam
+		}
+
+		dto := &auditDTOs.AuditTeamListDTO{
+			ID:                          auditTeam.ID,
+			TitleEn:                     auditTeam.TitleEn,
+			TitleAr:                     auditTeam.TitleAr,
+			TeamLeadFirstNameEn:         getSafeString(auditTeam.TeamLead, func(u *models.User) string { return u.FirstNameEn }),
+			TeamLeadFirstNameAr:         getSafeString(auditTeam.TeamLead, func(u *models.User) string { return u.FirstNameAr }),
+			TeamLeadLastNameEn:          getSafeString(auditTeam.TeamLead, func(u *models.User) string { return u.LastNameEn }),
+			TeamLeadLastNameAr:          getSafeString(auditTeam.TeamLead, func(u *models.User) string { return u.LastNameAr }),
+			TeamLeadEmail:               getSafeString(auditTeam.TeamLead, func(u *models.User) string { return u.Email }),
+			TeamLeadInitial:             getSafeString(auditTeam.TeamLead, func(u *models.User) string { return u.Initial }),
+			TeamLeadProfileImagePath:    getSafeStringPointer(auditTeam.TeamLead, func(u *models.User) *string { return u.ProfileImagePath }),
+			CreatedUserFirstNameEn:      getSafeString(auditTeam.CreatedByUser, func(u *models.User) string { return u.FirstNameEn }),
+			CreatedUserFirstNameAr:      getSafeString(auditTeam.CreatedByUser, func(u *models.User) string { return u.FirstNameAr }),
+			CreatedUserLastNameEn:       getSafeString(auditTeam.CreatedByUser, func(u *models.User) string { return u.LastNameEn }),
+			CreatedUserLastNameAr:       getSafeString(auditTeam.CreatedByUser, func(u *models.User) string { return u.LastNameAr }),
+			CreatedUserEmail:            getSafeString(auditTeam.CreatedByUser, func(u *models.User) string { return u.Email }),
+			CreatedUserInitial:          getSafeString(auditTeam.CreatedByUser, func(u *models.User) string { return u.Initial }),
+			CreatedUserProfileImagePath: getSafeStringPointer(auditTeam.CreatedByUser, func(u *models.User) *string { return u.ProfileImagePath }),
+			UpdatedUserFirstNameEn:      getSafeString(auditTeam.UpdatedByUser, func(u *models.User) string { return u.FirstNameEn }),
+			UpdatedUserFirstNameAr:      getSafeString(auditTeam.UpdatedByUser, func(u *models.User) string { return u.FirstNameAr }),
+			UpdatedUserLastNameEn:       getSafeString(auditTeam.UpdatedByUser, func(u *models.User) string { return u.LastNameEn }),
+			UpdatedUserLastNameAr:       getSafeString(auditTeam.UpdatedByUser, func(u *models.User) string { return u.LastNameAr }),
+			UpdatedUserEmail:            getSafeString(auditTeam.UpdatedByUser, func(u *models.User) string { return u.Email }),
+			UpdatedUserInitial:          getSafeString(auditTeam.UpdatedByUser, func(u *models.User) string { return u.Initial }),
+			UpdatedUserProfileImagePath: getSafeStringPointer(auditTeam.UpdatedByUser, func(u *models.User) *string { return u.ProfileImagePath }),
+			CreatedAt:                   auditTeam.CreatedAt.String(),
+			UpdatedAt:                   getSafeString(auditTeam.UpdatedAt, func(t *time.Time) string { return t.String() }),
+		}
+
+		// Map team members
+		for _, member := range auditTeam.Users {
+			if member == nil || member.User == nil {
+				continue // Skip nil members or users
+			}
+
+			dto.Users = append(dto.Users, &auditDTOs.AuditTeamMembersDTO{
+				ID:          member.ID,
+				AuditTeamID: member.AuditTeamID,
+				UserID:      member.UserID,
+				User: organizationDTOs.UserMinimalDTO{
+					ID:               int(member.User.ID),
+					FirstNameEN:      member.User.FirstNameEn,
+					LastNameEN:       member.User.LastNameEn,
+					FirstNameAR:      member.User.FirstNameAr,
+					LastNameAR:       member.User.LastNameAr,
+					ProfileImagePath: member.User.ProfileImagePath,
+					Email:            member.User.Email,
+					Initial:          member.User.Initial,
+					Color:            member.User.Color,
+				},
+			})
+		}
+
+		auditTeamDTOs = append(auditTeamDTOs, dto)
+	}
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+	// Response with pagination
+	response := &auditDTOs.AuditTeamListResponseDTO{
+		Items: auditTeamDTOs,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+	return response, nil
 }
 
 func (ats AuditTeamService) GetByID(id uint) (*models.AuditTeam, error) {
@@ -306,4 +387,20 @@ func (ats *AuditTeamService) validateAuditTeamFormDTO(auditTeamFormDTO *auditDTO
 	}
 
 	return nil
+}
+
+// Helper function to safely get string or empty string from a pointer
+func getSafeString[T any](ptr *T, getString func(*T) string) string {
+	if ptr == nil {
+		return ""
+	}
+	return getString(ptr)
+}
+
+// Helper function to safely get *string or nil from a pointer
+func getSafeStringPointer[T any](ptr *T, getString func(*T) *string) *string {
+	if ptr == nil {
+		return nil
+	}
+	return getString(ptr)
 }
