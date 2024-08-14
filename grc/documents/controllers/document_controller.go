@@ -29,6 +29,9 @@ func (dc *DocumentController) GetAllDocuments(c *gin.Context) {
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
+	enableAcknowledgedStatus := c.Query("enable_acknowledge_status")
+	documentTypes := utility.ParseCommaSeparatedStringToArray(c.Query("document_types"))
+	documentStatus := utility.ParseCommaSeparatedStringToArray(c.Query("document_status"))
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
@@ -55,17 +58,26 @@ func (dc *DocumentController) GetAllDocuments(c *gin.Context) {
 	}
 
 	queryParams := documentDTOs.DocumentListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      sortBy,
-		Keyword:     keyword,
-		Status:      status,
-		Page:        page,
-		PageSize:    pageSize,
-		Filters:     filters,
-		QuickFilter: quickFilter,
+		Sort:                     sort,
+		SortBy:                   sortBy,
+		Keyword:                  keyword,
+		Status:                   status,
+		Page:                     page,
+		PageSize:                 pageSize,
+		Filters:                  filters,
+		QuickFilter:              quickFilter,
+		EnableAcknowledgedStatus: enableAcknowledgedStatus == "true",
+		DocumentTypes:            documentTypes,
+		DocumentStatus:           documentStatus,
 	}
 
-	documents, err := dc.service.GetAll(&queryParams)
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(dc.db, c, err.Error())
+		return
+	}
+
+	documents, err := dc.service.GetAll(&queryParams, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(dc.db, c, err.Error())
 		return
