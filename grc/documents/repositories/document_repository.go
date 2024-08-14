@@ -18,7 +18,7 @@ type DocumentRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *documentDTOs.DocumentListQueryParamsDTO, currentUserID uint) (*documentDTOs.DocumentListResponseDTO, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Document, error)
-	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.Document, error)
+	GetFullDetailsByID(id uint, currentUserID *uint, tx ...utility.DatabaseTransaction) (*models.Document, error)
 	Create(document *models.Document, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(document *models.Document, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
@@ -267,7 +267,7 @@ func (repo *DocumentRepository) GetByID(id uint, tx ...utility.DatabaseTransacti
 	return document, nil
 }
 
-func (repo *DocumentRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.Document, error) {
+func (repo *DocumentRepository) GetFullDetailsByID(id uint, currentUserID *uint, tx ...utility.DatabaseTransaction) (*models.Document, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -299,6 +299,15 @@ func (repo *DocumentRepository) GetFullDetailsByID(id uint, tx ...utility.Databa
 
 	if result.Error != nil {
 		return nil, result.Error
+	}
+
+	// If currentUserID is provided, check the acknowledgment status
+	if currentUserID != nil {
+		var count int64
+		db.Model(&models.DocumentAcknowledgeUser{}).
+			Where("document_id = ? AND user_id = ?", id, *currentUserID).
+			Count(&count)
+		document.Acknowledged = count > 0
 	}
 
 	return document, nil

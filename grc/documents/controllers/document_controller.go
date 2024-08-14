@@ -93,7 +93,13 @@ func (dc *DocumentController) GetDocumentDetails(c *gin.Context) {
 		return
 	}
 
-	document, err := dc.service.GetFullDetailsByID(uint(id))
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(dc.db, c, err.Error())
+		return
+	}
+
+	document, err := dc.service.GetFullDetailsByID(uint(id), &currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -103,12 +109,6 @@ func (dc *DocumentController) GetDocumentDetails(c *gin.Context) {
 			utility.SendInternalErrResp(dc.db, c, e.Error())
 			return
 		}
-	}
-
-	currentUserID, err := utility.GetCurrentUserID(c)
-	if err != nil {
-		utility.SendInternalErrResp(dc.db, c, err.Error())
-		return
 	}
 	//Add audit log for the document
 	if err := dc.service.DirectDocumentAuditLog(uint(id), currentUserID, "viewed"); err != nil {
