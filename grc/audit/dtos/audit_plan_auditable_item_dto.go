@@ -39,7 +39,7 @@ type AuditPlanAuditableItemListDTO struct {
 }
 
 type AuditPlanAuditableItemFormDTO struct {
-	AuditableItemIds []*uint `json:"auditable_item_ids"`
+	AuditableItemIds []*uint `json:"auditable_item_ids" binding:"required"`
 }
 
 type AuditPlanAuditableItemListQueryParamsDTO struct {

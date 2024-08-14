@@ -178,14 +178,25 @@ func (apais *AuditPlanAuditableItemService) Delete(auditPlanID uint, ids []uint,
 }
 
 func (apais *AuditPlanAuditableItemService) validateAuditPlanAuditableItemFormDTO(dto *auditDTOs.AuditPlanAuditableItemFormDTO) error {
-	// Validate AuditableItemIds
-	for _, itemID := range dto.AuditableItemIds {
-		if itemID != nil {
-			if _, err := apais.auditableItemSvc.GetByID(*itemID); err != nil {
-				return utility.NewValidationError(fmt.Errorf("auditable item does not exist"), "not_exist", "auditable item")
-			}
-		}
-	}
+    // Check if AuditableItemIds is nil
+    if dto.AuditableItemIds == nil {
+        return utility.NewValidationError(fmt.Errorf("auditable item IDs are required"), "required", "auditable item IDs")
+    }
 
-	return nil
+    // Check if the list is empty
+    if len(dto.AuditableItemIds) == 0 {
+        return utility.NewValidationError(fmt.Errorf("at least one auditable item ID is required"), "required", "auditable item ID")
+    }
+
+    // Validate each AuditableItemId
+    for _, itemID := range dto.AuditableItemIds {
+        if itemID != nil {
+            if _, err := apais.auditableItemSvc.GetByID(*itemID); err != nil {
+                return utility.NewValidationError(fmt.Errorf("auditable item with ID %d does not exist", *itemID), "not_exist", "auditable item")
+            }
+        }
+    }
+
+    return nil
 }
+
