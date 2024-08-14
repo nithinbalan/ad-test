@@ -44,6 +44,9 @@ type Document struct {
 	DocumentVersions      []*DocumentVersion    `gorm:"foreignKey:DocumentID"`
 	DocumentSharedUsers   []*DocumentSharedUser `gorm:"foreignKey:DocumentID"`
 	DocumentSharedUnits   []*DocumentSharedUnit `gorm:"foreignKey:DocumentID"`
+
+	// New Field
+	Acknowledged bool `json:"acknowledged,omitempty" gorm:"-"`
 }
 
 func (Document) TableName() string {

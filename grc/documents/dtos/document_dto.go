@@ -112,6 +112,7 @@ type DocumentDetailsDTO struct {
 	DocumentSharedUnits   []*DocumentSharedUnitDTO         `json:"document_shared_units"`
 	CreatedByUser         organizationDTOs.UserMinimalDTO  `json:"created_by"`
 	UpdatedByUser         *organizationDTOs.UserMinimalDTO `json:"updated_by"`
+	Acknowledged          *bool                            `json:"acknowledged,omitempty"`
 }
 
 type DocumentVersionDTO struct {

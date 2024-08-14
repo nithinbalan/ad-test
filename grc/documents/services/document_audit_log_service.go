@@ -31,7 +31,7 @@ func NewDocumentAuditLogService(repo repositories.DocumentAuditLogRepositoryInte
 func (dals *DocumentAuditLogService) GetAll(documentID uint, params *documentDTOs.DocumentAuditLogListQueryParamsDTO) (*documentDTOs.DocumentAuditLogListResponseDTO, error) {
 	tx := dals.repo.BeginTransaction()
 
-	document, err := dals.documentRepo.GetFullDetailsByID(documentID, tx)
+	document, err := dals.documentRepo.GetFullDetailsByID(documentID, nil, tx)
 	if err != nil {
 		tx.Rollback()
 		return nil, err
