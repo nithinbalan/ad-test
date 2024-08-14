@@ -66,30 +66,8 @@ func (repo *AuditTeamRepository) GetAll(params *auditDTOs.AuditTeamListQueryPara
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
             (audit_teams.title_en LIKE ? OR
-            audit_teams.title_ar LIKE ? OR
-            users.first_name_en LIKE ? OR
-            users.first_name_ar LIKE ? OR
-            users.last_name_en LIKE ? OR
-            users.last_name_ar LIKE ? OR
-            users.email LIKE ? OR
-            users.profile_image_path LIKE ? OR
-            created_user.first_name_en LIKE ? OR
-            created_user.first_name_ar LIKE ? OR
-            created_user.last_name_en LIKE ? OR
-            created_user.last_name_ar LIKE ? OR
-            created_user.email LIKE ? OR
-            created_user.profile_image_path LIKE ? OR
-            updated_user.first_name_en LIKE ? OR
-            updated_user.first_name_ar LIKE ? OR
-            updated_user.last_name_en LIKE ? OR
-            updated_user.last_name_ar LIKE ? OR
-            updated_user.email LIKE ? OR
-            updated_user.profile_image_path LIKE ?)`,
-			keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword, keyword)
+            audit_teams.title_ar LIKE ?)`,
+			keyword, keyword)
 	}
 
 	// Sort by the specified column and order
