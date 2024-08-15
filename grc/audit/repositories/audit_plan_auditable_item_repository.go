@@ -78,7 +78,7 @@ func (repo *AuditPlanAuditableItemRepository) GetAll(auditPlanID uint, params *a
 			LEFT JOIN users AS team_lead ON team_lead.id = audit_plans.team_lead_id
 			LEFT JOIN audit_statuses ON audit_statuses.id = audit_plans.audit_status_id
 			LEFT JOIN users AS created_user ON created_user.id = audit_plan_auditable_items.created_by_id
-		`)
+		`).Where("audit_plan_auditable_items.audit_plan_id = ?", auditPlanID)
 
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
