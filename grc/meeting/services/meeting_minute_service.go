@@ -93,7 +93,7 @@ func (mms *MeetingMinuteService) Create(meetingID uint, currentUserID uint, meet
 	meetingMinute := &models.MeetingMinute{
 		MeetingAgendaID: meetingMinuteFormDTO.MeetingAgendaID,
 		Minutes:         &meetingMinuteFormDTO.Minutes,
-		CreatedBy:       currentUserID,
+		CreatedBYID:     currentUserID,
 	}
 
 	id, err := mms.repo.Create(meetingMinute)
@@ -141,7 +141,7 @@ func (mms *MeetingMinuteService) Update(meetingID uint, id uint, currentUserID u
 
 	existingMeetingMinute.MeetingAgendaID = meetingMinuteFormDTO.MeetingAgendaID
 	existingMeetingMinute.Minutes = &meetingMinuteFormDTO.Minutes
-	existingMeetingMinute.UpdatedBy = &currentUserID
+	existingMeetingMinute.UpdatedBYID = &currentUserID
 
 	if err := mms.repo.Update(existingMeetingMinute); err != nil {
 		return err

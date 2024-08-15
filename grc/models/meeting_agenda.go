@@ -5,20 +5,21 @@ import (
 )
 
 type MeetingAgenda struct {
-	ID        uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
-	MeetingID uint       `json:"meeting_id" gorm:"null"`
-	TimeFrom  *string    `json:"time_from" gorm:"type:varchar(45);null"`
-	TimeTo    *string    `json:"time_to" gorm:"type:varchar(45);null"`
-	Title     string     `json:"title" gorm:"type:nvarchar(500);not null" binding:"required"`
-	CreatedBy uint       `json:"created_by" gorm:"not null"`
-	UpdatedBy *uint      `json:"updated_by" gorm:"default:null"`
-	CreatedAt time.Time  `json:"created_at" gorm:"type:datetime;not null"`
-	UpdatedAt *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
+	ID          uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
+	MeetingID   uint       `json:"meeting_id" gorm:"null"`
+	TimeFrom    *string    `json:"time_from" gorm:"type:varchar(45);null"`
+	TimeTo      *string    `json:"time_to" gorm:"type:varchar(45);null"`
+	Title       string     `json:"title" gorm:"type:nvarchar(500);not null" binding:"required"`
+	CreatedBYID uint       `json:"created_by_id" gorm:"not null"`
+	UpdatedBYID *uint      `json:"updated_by_id" gorm:"default:null"`
+	CreatedAt   time.Time  `json:"created_at" gorm:"type:datetime;not null"`
+	UpdatedAt   *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 
 	// Relationships
-	Meeting       *Meeting `gorm:"foreignKey:MeetingID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser *User    `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser *User    `gorm:"foreignKey:UpdatedBy"`
+	Meeting        *Meeting         `gorm:"foreignKey:MeetingID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	MeetingMinutes []*MeetingMinute `gorm:"foreignKey:MeetingAgendaID"`
+	CreatedByUser  *User            `gorm:"foreignKey:CreatedBYID"`
+	UpdatedByUser  *User            `gorm:"foreignKey:UpdatedBYID"`
 }
 
 // TableName overrides the table name used by MeetingAgenda to `meeting_agendas`

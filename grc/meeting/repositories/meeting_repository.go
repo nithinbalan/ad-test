@@ -19,8 +19,6 @@ type MeetingRepositoryInterface interface {
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	CreateParticipants(participants []*models.MeetingParticipant, tx ...utility.DatabaseTransaction) error
 	DeleteParticipants(participantIDs []uint, tx ...utility.DatabaseTransaction) error
-	CreateMeetingAgendas(agendas []*models.MeetingAgenda, tx ...utility.DatabaseTransaction) error
-	CreateMeetingMinutes(minutes []*models.MeetingMinute, tx ...utility.DatabaseTransaction) error
 	CreateMeetingActionPlans(actionPlans []*models.MeetingActionPlan, tx ...utility.DatabaseTransaction) error
 
 	CreateMeetingComplianceRequirements(complianceRequirements []*models.MeetingComplianceRequirement, tx ...utility.DatabaseTransaction) error
@@ -75,14 +73,22 @@ func (repo *MeetingRepository) GetAll(currentUserID uint, params *meetingDTOs.Me
 			meetings.is_public,
 			meeting_statuses.title_en AS meeting_status_title_en,
 			meeting_statuses.title_ar AS meeting_status_title_ar,
-			created_user.first_name_en AS created_user_first_name_en,
-			created_user.first_name_ar AS created_user_first_name_ar,
-			created_user.last_name_en AS created_user_last_name_en,
-			created_user.last_name_ar AS created_user_last_name_ar,   
+        	created_user.first_name_en AS created_user_first_name_en,
+        	created_user.first_name_ar AS created_user_first_name_ar,
+        	created_user.last_name_en AS created_user_last_name_en,
+        	created_user.last_name_ar AS created_user_last_name_ar,   
+        	created_user.initial AS created_user_initial,
+        	created_user.color AS created_user_color,
+        	created_user.email AS created_user_email,
+        	created_user.profile_image_path AS created_user_profile_image_path,   
 			updated_user.first_name_en AS updated_user_first_name_en,
-			updated_user.first_name_ar AS updated_user_first_name_ar,
-			updated_user.last_name_en AS updated_user_last_name_en,
-			updated_user.last_name_ar AS updated_user_last_name_ar 
+        	updated_user.first_name_ar AS updated_user_first_name_ar,
+        	updated_user.last_name_en AS updated_user_last_name_en,
+        	updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+        	updated_user.color AS updated_user_color,
+        	updated_user.email AS updated_user_email,
+        	updated_user.profile_image_path AS updated_user_profile_image_path   
 		`).
 		Joins(`
 			LEFT JOIN meeting_types ON meetings.meeting_type_id = meeting_types.id
@@ -201,6 +207,8 @@ func (repo *MeetingRepository) GetFullDetailsByID(id uint, tx ...utility.Databas
 		Preload("MeetingStatus").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
+		Preload("Agendas").
+		Preload("Agendas.MeetingMinutes").
 		Preload("Participants").
 		Preload("Participants.User").
 		Preload("Controls").
@@ -275,32 +283,6 @@ func (repo *MeetingRepository) DeleteParticipants(participantIDs []uint, tx ...u
 
 	// Delete the participants
 	if err := db.Where("id IN (?)", participantIDs).Delete(&models.MeetingParticipant{}).Error; err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (repo *MeetingRepository) CreateMeetingAgendas(agendas []*models.MeetingAgenda, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-
-	if err := db.Create(agendas).Error; err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (repo *MeetingRepository) CreateMeetingMinutes(minutes []*models.MeetingMinute, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-
-	if err := db.Create(minutes).Error; err != nil {
 		return err
 	}
 

@@ -148,7 +148,7 @@ func (ms *MeetingService) Create(currentUserID uint, meetingFormDTO *meetingDTOs
 		requirement := &models.MeetingComplianceRequirement{
 			MeetingID:               id,
 			ComplianceRequirementID: *req,
-			CreatedBy:               currentUserID,
+			CreatedBYID:             currentUserID,
 		}
 		complianceRequirements = append(complianceRequirements, requirement)
 	}
@@ -163,9 +163,9 @@ func (ms *MeetingService) Create(currentUserID uint, meetingFormDTO *meetingDTOs
 	var controls []*models.MeetingControl
 	for _, ctrl := range meetingFormDTO.ControlIds {
 		control := &models.MeetingControl{
-			MeetingID: id,
-			ControlID: *ctrl,
-			CreatedBy: currentUserID,
+			MeetingID:   id,
+			ControlID:   *ctrl,
+			CreatedBYID: currentUserID,
 		}
 		controls = append(controls, control)
 	}
@@ -180,9 +180,9 @@ func (ms *MeetingService) Create(currentUserID uint, meetingFormDTO *meetingDTOs
 	var processes []*models.MeetingProcess
 	for _, prcs := range meetingFormDTO.ProcessIds {
 		control := &models.MeetingProcess{
-			MeetingID: id,
-			ProcessID: *prcs,
-			CreatedBy: currentUserID,
+			MeetingID:   id,
+			ProcessID:   *prcs,
+			CreatedBYID: currentUserID,
 		}
 		processes = append(processes, control)
 	}
@@ -199,7 +199,7 @@ func (ms *MeetingService) Create(currentUserID uint, meetingFormDTO *meetingDTOs
 		risk := &models.MeetingRisk{
 			MeetingID:      id,
 			RiskRegisterID: *rsk,
-			CreatedBy:      currentUserID,
+			CreatedBYID:    currentUserID,
 		}
 		risks = append(risks, risk)
 	}
@@ -211,42 +211,26 @@ func (ms *MeetingService) Create(currentUserID uint, meetingFormDTO *meetingDTOs
 		}
 	}
 	// Save Agendas
-	var agendas []*models.MeetingAgenda
-	for _, agenda := range meetingFormDTO.Agendas {
-		meetingAgenda := &models.MeetingAgenda{
-			MeetingID: id,
-			Title:     agenda.Title,
-			TimeFrom:  agenda.TimeFrom,
-			TimeTo:    agenda.TimeTo,
-			CreatedBy: currentUserID,
-		}
-		agendas = append(agendas, meetingAgenda)
+	// var agendas []*models.MeetingAgenda
+	// for _, agenda := range meetingFormDTO.Agendas {
+	// 	meetingAgenda := &models.MeetingAgenda{
+	// 		MeetingID:   id,
+	// 		Title:       agenda.Title,
+	// 		TimeFrom:    agenda.TimeFrom,
+	// 		TimeTo:      agenda.TimeTo,
+	// 		CreatedBYID: currentUserID,
+	// 	}
+	// 	agendas = append(agendas, meetingAgenda)
 
-	}
+	// }
 
-	if len(agendas) > 0 {
-		if err := ms.repo.CreateMeetingAgendas(agendas, tx); err != nil {
-			tx.Rollback()
-			return 0, err
-		}
-	}
+	// if len(agendas) > 0 {
+	// 	if err := ms.repo.CreateMeetingAgendas(agendas, tx); err != nil {
+	// 		tx.Rollback()
+	// 		return 0, err
+	// 	}
+	// }
 
-	// Save Meeting Minutes
-	var minutes []*models.MeetingMinute
-
-	for _, minute := range meetingFormDTO.MeetingMinutes {
-		meetingMinute := &models.MeetingMinute{
-			Minutes:   &minute.Minutes,
-			CreatedBy: currentUserID,
-		}
-		minutes = append(minutes, meetingMinute)
-	}
-	if len(minutes) > 0 {
-		if err := ms.repo.CreateMeetingMinutes(minutes, tx); err != nil {
-			tx.Rollback()
-			return 0, err
-		}
-	}
 	// Save Meeting Action Plans
 	var actionPlans []*models.MeetingActionPlan
 
@@ -276,7 +260,7 @@ func (ms *MeetingService) Create(currentUserID uint, meetingFormDTO *meetingDTOs
 		incident := &models.MeetingIncident{
 			MeetingID:          id,
 			IncidentRegisterID: *incd,
-			CreatedBy:          currentUserID,
+			CreatedBYID:        currentUserID,
 		}
 		incidents = append(incidents, incident)
 	}
@@ -396,9 +380,9 @@ func (ms *MeetingService) Update(id uint, currentUserID uint, meetingFormDTO *me
 	for _, newControlID := range meetingFormDTO.ControlIds {
 		if _, exists := existingControlIDs[*newControlID]; !exists {
 			control := &models.MeetingControl{
-				MeetingID: id,
-				ControlID: *newControlID,
-				CreatedBy: currentUserID,
+				MeetingID:   id,
+				ControlID:   *newControlID,
+				CreatedBYID: currentUserID,
 			}
 			controlsToAdd = append(controlsToAdd, control)
 		}
@@ -442,7 +426,7 @@ func (ms *MeetingService) Update(id uint, currentUserID uint, meetingFormDTO *me
 			requirement := &models.MeetingComplianceRequirement{
 				MeetingID:               id,
 				ComplianceRequirementID: *newRequirementID,
-				CreatedBy:               currentUserID,
+				CreatedBYID:             currentUserID,
 			}
 			requirementsToAdd = append(requirementsToAdd, requirement)
 		}
@@ -486,7 +470,7 @@ func (ms *MeetingService) Update(id uint, currentUserID uint, meetingFormDTO *me
 			risk := &models.MeetingRisk{
 				MeetingID:      id,
 				RiskRegisterID: *newRiskID,
-				CreatedBy:      currentUserID,
+				CreatedBYID:    currentUserID,
 			}
 			risksToAdd = append(risksToAdd, risk)
 		}
@@ -527,9 +511,9 @@ func (ms *MeetingService) Update(id uint, currentUserID uint, meetingFormDTO *me
 	for _, newProcessID := range meetingFormDTO.ProcessIds {
 		if _, exists := existingProcessIDs[*newProcessID]; !exists {
 			process := &models.MeetingProcess{
-				MeetingID: id,
-				ProcessID: *newProcessID,
-				CreatedBy: currentUserID,
+				MeetingID:   id,
+				ProcessID:   *newProcessID,
+				CreatedBYID: currentUserID,
 			}
 			processesToAdd = append(processesToAdd, process)
 		}
@@ -573,7 +557,7 @@ func (ms *MeetingService) Update(id uint, currentUserID uint, meetingFormDTO *me
 			incident := &models.MeetingIncident{
 				MeetingID:          id,
 				IncidentRegisterID: *newIncidentID,
-				CreatedBy:          currentUserID,
+				CreatedBYID:        currentUserID,
 			}
 			incidentsToAdd = append(incidentsToAdd, incident)
 		}

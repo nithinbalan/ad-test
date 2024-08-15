@@ -34,18 +34,26 @@ func (repo *MeetingMinuteRepository) GetAll(currentUserID uint, params *meetingD
 	query := repo.db.Table("meeting_minutes").
 		Select(`
 			meeting_minutes.*,
-			created_user.first_name_en AS created_user_first_name_en,
-			created_user.first_name_ar AS created_user_first_name_ar,
-			created_user.last_name_en AS created_user_last_name_en,
-			created_user.last_name_ar AS created_user_last_name_ar,   
+        	created_user.first_name_en AS created_user_first_name_en,
+        	created_user.first_name_ar AS created_user_first_name_ar,
+        	created_user.last_name_en AS created_user_last_name_en,
+        	created_user.last_name_ar AS created_user_last_name_ar,   
+        	created_user.initial AS created_user_initial,
+        	created_user.color AS created_user_color,
+        	created_user.email AS created_user_email,
+        	created_user.profile_image_path AS created_user_profile_image_path,   
 			updated_user.first_name_en AS updated_user_first_name_en,
-			updated_user.first_name_ar AS updated_user_first_name_ar,
-			updated_user.last_name_en AS updated_user_last_name_en,
-			updated_user.last_name_ar AS updated_user_last_name_ar 
+        	updated_user.first_name_ar AS updated_user_first_name_ar,
+        	updated_user.last_name_en AS updated_user_last_name_en,
+        	updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+        	updated_user.color AS updated_user_color,
+        	updated_user.email AS updated_user_email,
+        	updated_user.profile_image_path AS updated_user_profile_image_path   
 		`).
 		Joins(`
-            LEFT JOIN users AS created_user ON created_user.id = meeting_minutes.created_by
-            LEFT JOIN users AS updated_user ON updated_user.id = meeting_minutes.updated_by
+            LEFT JOIN users AS created_user ON created_user.id = meeting_minutes.created_by_id
+            LEFT JOIN users AS updated_user ON updated_user.id = meeting_minutes.updated_by_id
         `)
 
 	// Apply dynamic filters to the query
@@ -116,6 +124,7 @@ func (repo *MeetingMinuteRepository) GetFullDetailsByID(id uint) (*models.Meetin
 	var meetingMinute *models.MeetingMinute
 
 	result := repo.db.
+		Preload("MeetingAgenda").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&meetingMinute, id)

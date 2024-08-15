@@ -23,6 +23,7 @@ type Meeting struct {
 	MeetingStatusID    uint       `json:"meeting_status_id" binding:"required" gorm:"not null"`
 
 	// Relationships
+	Agendas                []*MeetingAgenda                `gorm:"foreignKey:MeetingID"`
 	Controls               []*MeetingControl               `gorm:"foreignKey:MeetingID"`
 	ComplianceRequirements []*MeetingComplianceRequirement `gorm:"foreignKey:MeetingID"`
 	Risks                  []*MeetingRisk                  `gorm:"foreignKey:MeetingID"`
