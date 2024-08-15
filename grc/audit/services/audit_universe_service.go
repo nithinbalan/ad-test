@@ -111,7 +111,7 @@ func (aus *AuditUniverseService) Create(currentUserID uint, auditUniverseFormDTO
 				return err
 			}
 			if orgUnitID != 0 {
-				auditableItem.OrganizationUnitID = orgUnitID
+				auditableItem.ResponsibleUnitID = orgUnitID
 			}
 			auditableItems = append(auditableItems, auditableItem)
 		}

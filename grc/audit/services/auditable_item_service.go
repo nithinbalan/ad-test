@@ -105,7 +105,7 @@ func (ais *AuditableItemService) Create(currentUserID uint, auditableItemFormDTO
 		TitleAr:             &auditableItemFormDTO.TitleAr,
 		Comment:             auditableItemFormDTO.Comment,
 		AuditorRiskRatingID: auditableItemFormDTO.AuditorRiskRatingID,
-		OrganizationUnitID:  auditableItemFormDTO.OrganizationUnitID,
+		ResponsibleUnitID:   auditableItemFormDTO.ResponsibleUnitID,
 		AuditStatusID:       uint(auditStatus.ID),
 		CreatedByID:         currentUserID,
 	}
@@ -162,7 +162,7 @@ func (ais *AuditableItemService) Update(id uint, currentUserID uint, auditableIt
 	existingAuditableItem.TitleAr = &auditableItemFormDTO.TitleAr
 	existingAuditableItem.Comment = auditableItemFormDTO.Comment
 	existingAuditableItem.AuditorRiskRatingID = auditableItemFormDTO.AuditorRiskRatingID
-	existingAuditableItem.OrganizationUnitID = auditableItemFormDTO.OrganizationUnitID
+	existingAuditableItem.ResponsibleUnitID = auditableItemFormDTO.ResponsibleUnitID
 	existingAuditableItem.UpdatedByID = &currentUserID
 
 	err = ais.repo.Update(existingAuditableItem, tx)
@@ -238,8 +238,8 @@ func (ais *AuditableItemService) validateAuditableItemFormDTO(auditableItemFormD
 	if _, err := ais.auditorRiskRatingSvc.GetByID(auditableItemFormDTO.AuditorRiskRatingID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("auditor risk rating does not exist"), "not_exist", "auditor risk rating")
 	}
-	if _, err := ais.organizationUnitSvc.GetByID(auditableItemFormDTO.OrganizationUnitID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("organization unit does not exist"), "not_exist", "organization unit")
+	if _, err := ais.organizationUnitSvc.GetByID(auditableItemFormDTO.ResponsibleUnitID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("responsible unit does not exist"), "not_exist", "responsible unit")
 	}
 
 	return nil

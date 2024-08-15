@@ -51,8 +51,8 @@ func (repo *AuditableItemRepository) GetAll(params *auditDTOs.AuditableItemListQ
         documents.title_ar AS document_title_ar,
         incident_register.title AS incident_register_title,
         compliance_requirements.title AS compliance_requirement_title,
-		organization_units.title_en AS organization_unit_title_en,
-		organization_units.title_ar AS organization_unit_title_ar,
+		organization_units.title_en AS responsible_unit_title_en,
+		organization_units.title_ar AS responsible_unit_title_ar,
         risk_register.title AS risk_register_title,
         users.first_name_en AS user_first_name_en,
         users.first_name_ar AS user_first_name_ar,
@@ -87,7 +87,7 @@ func (repo *AuditableItemRepository) GetAll(params *auditDTOs.AuditableItemListQ
         LEFT JOIN documents ON documents.id = auditable_items.document_id
         LEFT JOIN incident_register ON incident_register.id = auditable_items.incident_register_id
         LEFT JOIN compliance_requirements ON compliance_requirements.id = auditable_items.compliance_requirement_id
-		LEFT JOIN organization_units ON organization_units.id = auditable_items.organization_unit_id
+		LEFT JOIN organization_units ON organization_units.id = auditable_items.responsible_unit_id
         LEFT JOIN risk_register ON risk_register.id = auditable_items.risk_register_id
         LEFT JOIN users ON users.id = auditable_items.user_id
         LEFT JOIN users AS created_user ON created_user.id = auditable_items.created_by_id
@@ -220,7 +220,7 @@ func (repo *AuditableItemRepository) GetFullDetailsByID(id uint, tx ...utility.D
 		Preload("ComplianceRequirement").
 		Preload("RiskRegister").
 		Preload("User").
-		Preload("OrganizationUnit").
+		Preload("ResponsibleUnit").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&auditableItem, id)

@@ -24,8 +24,8 @@ type AuditableItemListDTO struct {
 	ControlTitleAr              string `json:"control_title_ar"`
 	DocumentTitleEn             string `json:"document_title_en"`
 	DocumentTitleAr             string `json:"document_title_ar"`
-	OrganizationUnitTitleEn     string `json:"organization_unit_title_en"`
-	OrganizationUnitTitleAr     string `json:"organization_unit_title_ar"`
+	ResponsibleUnitTitleEn      string `json:"responsible_unit_title_en"`
+	ResponsibleUnitTitleAr      string `json:"responsible_unit_title_ar"`
 	IncidentRegisterTitle       string `json:"incident_register_title"`
 	ComplianceRequirementTitle  string `json:"compliance_requirement_title"`
 	RiskRegisterTitle           string `json:"risk_register_title"`
@@ -77,7 +77,7 @@ type AuditableItemListResponseDTO struct {
 type AuditableItemFormDTO struct {
 	TitleEn             string `json:"title_en" binding:"required,max=500"`
 	TitleAr             string `json:"title_ar" binding:"required,max=500"`
-	OrganizationUnitID  uint   `json:"organization_unit_id" binding:"required"`
+	ResponsibleUnitID   uint   `json:"responsible_unit_id" binding:"required"`
 	Comment             string `json:"comment" binding:"required"`
 	AuditorRiskRatingID uint   `json:"auditor_risk_rating_id" binding:"required"`
 }
@@ -96,7 +96,7 @@ type AuditableItemDetailDTO struct {
 	ComplianceRequirement *complianceDTOs.ComplianceRequirementDetailDTO `json:"compliance_requirement"`
 	RiskRegister          *riskDTOs.RiskRegisterDetailDTO                `json:"risk_register"`
 	User                  *organizationDTOs.UserMinimalDTO               `json:"user"`
-	OrganizationUnit      settingsDTOs.OrganizationUnitDTO               `json:"organization_unit"`
+	ResponsibleUnit       settingsDTOs.OrganizationUnitDTO               `json:"responsible_unit"`
 	CreatedAt             time.Time                                      `json:"created_at"`
 	UpdatedAt             *time.Time                                     `json:"updated_at"`
 	CreatedByUser         *organizationDTOs.UserMinimalDTO               `json:"created_by"`

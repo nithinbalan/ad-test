@@ -12,7 +12,7 @@ type AuditableItem struct {
 	ControlID               *uint      `json:"control_id" gorm:"default:null"`
 	DocumentID              *uint      `json:"document_id" gorm:"default:null"`
 	IncidentRegisterID      *uint      `json:"incident_register_id" gorm:"default:null"`
-	OrganizationUnitID      uint       `json:"organization_unit_id" binding:"required" gorm:"not null"`
+	ResponsibleUnitID       uint       `json:"responsible_unit_id" binding:"required" gorm:"not null"`
 	ComplianceRequirementID *uint      `json:"compliance_requirement_id" gorm:"default:null"`
 	RiskRegisterID          *uint      `json:"risk_register_id" gorm:"default:null"`
 	UserID                  *uint      `json:"user_id" gorm:"default:null"`
@@ -34,7 +34,7 @@ type AuditableItem struct {
 	User                  *User                  `gorm:"foreignKey:UserID"`
 	AuditorRiskRating     *AuditorRiskRating     `gorm:"foreignKey:AuditorRiskRatingID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	AuditStatus           *AuditStatus           `gorm:"foreignKey:AuditStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	OrganizationUnit      *OrganizationUnit      `gorm:"foreignKey:OrganizationUnitID"`
+	ResponsibleUnit       *OrganizationUnit      `gorm:"foreignKey:ResponsibleUnitID"`
 	CreatedByUser         *User                  `gorm:"foreignKey:CreatedByID"`
 	UpdatedByUser         *User                  `gorm:"foreignKey:UpdatedByID"`
 }
