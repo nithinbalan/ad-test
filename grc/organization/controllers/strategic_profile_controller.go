@@ -163,3 +163,28 @@ func (spc *StrategicProfileController) UpdateValues(c *gin.Context) {
 
 	c.Status(http.StatusOK)
 }
+
+func (spc *StrategicProfileController) UploadProfileImage(c *gin.Context) {
+	file, err := c.FormFile("profile_image")
+	if err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	err = spc.service.UploadProfileImage(file)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(spc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Profile image uploaded successfully"})
+}

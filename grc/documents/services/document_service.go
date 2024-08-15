@@ -26,9 +26,9 @@ import (
 )
 
 type DocumentServiceInterface interface {
-	GetAll(params *documentDTOs.DocumentListQueryParamsDTO) (*documentDTOs.DocumentListResponseDTO, error)
+	GetAll(params *documentDTOs.DocumentListQueryParamsDTO, currentUserID uint) (*documentDTOs.DocumentListResponseDTO, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Document, error)
-	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*documentDTOs.DocumentDetailsDTO, error)
+	GetFullDetailsByID(id uint, currentUserID *uint, tx ...utility.DatabaseTransaction) (*documentDTOs.DocumentDetailsDTO, error)
 	Create(currentUserID uint, documentFormDTO *documentDTOs.DocumentFormDTO) (uint, error)
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 
@@ -102,8 +102,8 @@ func NewDocumentService(
 	}
 }
 
-func (ds *DocumentService) GetAll(params *documentDTOs.DocumentListQueryParamsDTO) (*documentDTOs.DocumentListResponseDTO, error) {
-	return ds.repo.GetAll(params)
+func (ds *DocumentService) GetAll(params *documentDTOs.DocumentListQueryParamsDTO, currentUserID uint) (*documentDTOs.DocumentListResponseDTO, error) {
+	return ds.repo.GetAll(params, currentUserID)
 }
 
 func (crs DocumentService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Document, error) {
@@ -118,10 +118,10 @@ func (crs DocumentService) GetByID(id uint, tx ...utility.DatabaseTransaction) (
 	return document, nil
 }
 
-func (ds *DocumentService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*documentDTOs.DocumentDetailsDTO, error) {
+func (ds *DocumentService) GetFullDetailsByID(id uint, currentUserID *uint, tx ...utility.DatabaseTransaction) (*documentDTOs.DocumentDetailsDTO, error) {
 	var documentDTO documentDTOs.DocumentDetailsDTO
 
-	document, err := ds.repo.GetFullDetailsByID(id, tx...)
+	document, err := ds.repo.GetFullDetailsByID(id, currentUserID, tx...)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -402,7 +402,7 @@ func (ds *DocumentService) Delete(ids []uint, currentUserID uint) ([]uint, error
 	documentEditHistoryToDelete := make(map[uint][]*documentDTOs.DocumentEditHistoryDTO)
 
 	for _, id := range ids {
-		document, err := ds.GetFullDetailsByID(id, tx)
+		document, err := ds.GetFullDetailsByID(id, nil, tx)
 		if err != nil {
 			tx.Rollback()
 			return nil, err
@@ -651,7 +651,7 @@ func (ds *DocumentService) CreateDocumentEditHistory(documentEditHistoryDTO *doc
 
 func (ds *DocumentService) CheckoutDocument(id uint, currentUserID uint, token string) (string, error) {
 	tx := ds.repo.BeginTransaction()
-	document, err := ds.GetFullDetailsByID(id, tx)
+	document, err := ds.GetFullDetailsByID(id, nil, tx)
 	if err != nil {
 		tx.Rollback()
 		return "", err
@@ -721,7 +721,7 @@ func (ds *DocumentService) CheckoutDocument(id uint, currentUserID uint, token s
 
 func (ds *DocumentService) CheckinDocument(id uint, currentUserID uint, documentCheckinFormDTO *documentDTOs.DocumentCheckinFormDTO) error {
 	tx := ds.repo.BeginTransaction()
-	document, err := ds.GetFullDetailsByID(id, tx)
+	document, err := ds.GetFullDetailsByID(id, nil, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -837,7 +837,7 @@ func (ds *DocumentService) CheckinDocument(id uint, currentUserID uint, document
 
 func (ds *DocumentService) RevertDocumentCheckout(id uint, currentUserID uint) error {
 	tx := ds.repo.BeginTransaction()
-	document, err := ds.GetFullDetailsByID(id, tx)
+	document, err := ds.GetFullDetailsByID(id, nil, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -880,7 +880,7 @@ func (ds *DocumentService) RevertDocumentCheckout(id uint, currentUserID uint) e
 }
 
 func (ds *DocumentService) GetDocumentPath(id uint, token string, fileType string, tx ...utility.DatabaseTransaction) (string, error) {
-	existingDocument, err := ds.GetFullDetailsByID(id, tx...)
+	existingDocument, err := ds.GetFullDetailsByID(id, nil, tx...)
 	if err != nil {
 		return "", err
 	}
@@ -998,7 +998,7 @@ func (ds *DocumentService) createWorkflowParticipant(userID uint, documentWorkfl
 
 func (ds *DocumentService) SubmitDocument(id uint, currentUserID uint) error {
 	tx := ds.repo.BeginTransaction()
-	document, err := ds.GetFullDetailsByID(id, tx)
+	document, err := ds.GetFullDetailsByID(id, nil, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -1059,7 +1059,7 @@ func (ds *DocumentService) SubmitDocument(id uint, currentUserID uint) error {
 
 func (ds *DocumentService) PublishDocument(id uint, currentUserID uint) error {
 	tx := ds.repo.BeginTransaction()
-	document, err := ds.GetFullDetailsByID(id, tx)
+	document, err := ds.GetFullDetailsByID(id, nil, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -1123,7 +1123,7 @@ func (ds *DocumentService) PublishDocument(id uint, currentUserID uint) error {
 func (ds *DocumentService) GetComments(id uint) (*documentDTOs.DocumentVersionWorkflowDTO, error) {
 	var documentVersionWorkflowDTO documentDTOs.DocumentVersionWorkflowDTO
 
-	document, err := ds.GetFullDetailsByID(id)
+	document, err := ds.GetFullDetailsByID(id, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1148,7 +1148,7 @@ func (ds *DocumentService) GetComments(id uint) (*documentDTOs.DocumentVersionWo
 }
 
 func (ds *DocumentService) AddComment(id uint, currentUserID uint, documentReviewCommentFormDTO *documentDTOs.DocumentReviewCommentFormDTO) error {
-	document, err := ds.GetFullDetailsByID(id)
+	document, err := ds.GetFullDetailsByID(id, nil)
 	if err != nil {
 		return err
 	}
@@ -1449,7 +1449,7 @@ func (ds *DocumentService) CheckAllParticipantsApproved(workflowID uint, workflo
 }
 
 func (ds *DocumentService) GetDocumentWorkflowList(id uint) (*documentDTOs.DocumentVersionWorkflowListDTO, error) {
-	document, err := ds.GetFullDetailsByID(id)
+	document, err := ds.GetFullDetailsByID(id, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1553,7 +1553,7 @@ func (ds *DocumentService) CreateDocumentAuditLog(documentID uint, documentVersi
 
 func (ds *DocumentService) DirectDocumentAuditLog(documentID uint, userID uint, logType string) error {
 	tx := ds.repo.BeginTransaction()
-	document, err := ds.GetFullDetailsByID(documentID, tx)
+	document, err := ds.GetFullDetailsByID(documentID, nil, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -1647,7 +1647,7 @@ func (svc *DocumentService) GetSharedUnits(documentId uint) ([]*settingDTOs.Orga
 }
 
 func (ds *DocumentService) GetDocumentLastEditSummary(documentID uint) (*documentDTOs.DocumentLastEditSummaryDTO, error) {
-	document, err := ds.GetFullDetailsByID(documentID)
+	document, err := ds.GetFullDetailsByID(documentID, nil)
 	if err != nil {
 		return nil, err
 	}

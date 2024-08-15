@@ -41,7 +41,7 @@ func NewDocumentClauseService(
 }
 
 func (dcs *DocumentClauseService) GetAll(params *documentDTOs.DocumentClauseListQueryParamsDTO, documentId uint) ([]*documentDTOs.DocumentClauseListDTO, error) {
-	document, err := dcs.documentSvc.GetFullDetailsByID(documentId)
+	document, err := dcs.documentSvc.GetFullDetailsByID(documentId, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +121,7 @@ func (dcs *DocumentClauseService) GetFullDetailsByID(documentId uint, clauseId u
 
 func (dcs *DocumentClauseService) Create(documentId uint, currentUserId uint, documentClauseFormDTO *documentDTOs.DocumentClauseFormDTO) (uint, error) {
 	tx := dcs.repo.BeginTransaction()
-	document, err := dcs.documentSvc.GetFullDetailsByID(documentId, tx)
+	document, err := dcs.documentSvc.GetFullDetailsByID(documentId, nil, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -232,7 +232,7 @@ func (dcs *DocumentClauseService) Update(documentId uint, clauseId uint, current
 		return err
 	}
 
-	document, err := dcs.documentSvc.GetFullDetailsByID(documentId, tx)
+	document, err := dcs.documentSvc.GetFullDetailsByID(documentId, nil, tx)
 	if err != nil {
 		tx.Rollback()
 		return err

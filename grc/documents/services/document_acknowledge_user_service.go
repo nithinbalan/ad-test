@@ -14,26 +14,26 @@ type DocumentAcknowledgeUserServiceInterface interface {
 }
 
 type DocumentAcknowledgeUserService struct {
-	repo                repositories.DocumentAcknowledgeUserRepositoryInterface
-	activityLogSvc      logServices.ActivityLogServiceInterface
-	documentSvc         DocumentServiceInterface
+	repo           repositories.DocumentAcknowledgeUserRepositoryInterface
+	activityLogSvc logServices.ActivityLogServiceInterface
+	documentSvc    DocumentServiceInterface
 }
 
 func NewDocumentAcknowledgeUserService(repo repositories.DocumentAcknowledgeUserRepositoryInterface, activityLogSvc logServices.ActivityLogServiceInterface, documentSvc DocumentServiceInterface) DocumentAcknowledgeUserServiceInterface {
 	return &DocumentAcknowledgeUserService{
-		repo:                repo,
-		activityLogSvc:      activityLogSvc,
-		documentSvc:         documentSvc,
+		repo:           repo,
+		activityLogSvc: activityLogSvc,
+		documentSvc:    documentSvc,
 	}
 }
 
 func (daus *DocumentAcknowledgeUserService) Create(docuemntID uint, currentUserID uint) (uint, error) {
 	tx := daus.repo.BeginTransaction()
 
-	document, err := daus.documentSvc.GetFullDetailsByID(docuemntID, tx)
+	document, err := daus.documentSvc.GetFullDetailsByID(docuemntID, nil, tx)
 	if err != nil {
 		tx.Rollback()
-		return 0,err
+		return 0, err
 	}
 	// Check if the entry already exists
 	existing, err := daus.repo.Exists(docuemntID, currentUserID, tx)
@@ -60,7 +60,7 @@ func (daus *DocumentAcknowledgeUserService) Create(docuemntID uint, currentUserI
 	//Add Audit logs
 	if err := daus.documentSvc.CreateDocumentAuditLog(uint(docuemntID), document.LatestDocumentVersion.ID, currentUserID, "acknowledged", tx); err != nil {
 		tx.Rollback()
-		return 0,err
+		return 0, err
 	}
 
 	tx.Commit()

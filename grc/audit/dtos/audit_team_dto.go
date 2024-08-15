@@ -16,19 +16,22 @@ type AuditTeamListDTO struct {
 	TeamLeadLastNameEn          string                 `json:"team_lead_last_name_en"`
 	TeamLeadLastNameAr          string                 `json:"team_lead_last_name_ar"`
 	TeamLeadEmail               string                 `json:"team_lead_email"`
-	TeamLeadProfileImagePath    string                 `json:"team_lead_profile_image_path"`
+	TeamLeadInitial             string                 `json:"team_lead_initial"`
+	TeamLeadProfileImagePath    *string                `json:"team_lead_profile_image_path"`
 	CreatedUserFirstNameEn      string                 `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr      string                 `json:"created_user_first_name_ar"`
 	CreatedUserLastNameEn       string                 `json:"created_user_last_name_en"`
 	CreatedUserLastNameAr       string                 `json:"created_user_last_name_ar"`
 	CreatedUserEmail            string                 `json:"created_user_email"`
-	CreatedUserProfileImagePath string                 `json:"created_user_profile_image_path"`
+	CreatedUserInitial          string                 `json:"created_user_initial"`
+	CreatedUserProfileImagePath *string                `json:"created_user_profile_image_path"`
 	UpdatedUserFirstNameEn      string                 `json:"updated_user_first_name_en"`
 	UpdatedUserFirstNameAr      string                 `json:"updated_user_first_name_ar"`
 	UpdatedUserLastNameEn       string                 `json:"updated_user_last_name_en"`
 	UpdatedUserLastNameAr       string                 `json:"updated_user_last_name_ar"`
 	UpdatedUserEmail            string                 `json:"updated_user_email"`
-	UpdatedUserProfileImagePath string                 `json:"updated_user_profile_image_path"`
+	UpdatedUserInitial          string                 `json:"updated_user_initial"`
+	UpdatedUserProfileImagePath *string                `json:"updated_user_profile_image_path"`
 	CreatedAt                   string                 `json:"created_at"`
 	UpdatedAt                   string                 `json:"updated_at"`
 	Users                       []*AuditTeamMembersDTO `json:"users" gorm:"-"`
@@ -71,6 +74,6 @@ type AuditTeamDetailDTO struct {
 type AuditTeamMembersDTO struct {
 	ID          uint                            `json:"id"`
 	AuditTeamID uint                            `json:"audit_team_id"`
-	UserID      int                             `json:"user_id"`
+	UserID      uint                            `json:"user_id"`
 	User        organizationDTOs.UserMinimalDTO `json:"user"`
 }

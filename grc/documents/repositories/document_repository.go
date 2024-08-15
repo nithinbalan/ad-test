@@ -16,9 +16,9 @@ import (
 // Interfaces
 type DocumentRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(params *documentDTOs.DocumentListQueryParamsDTO) (*documentDTOs.DocumentListResponseDTO, error)
+	GetAll(params *documentDTOs.DocumentListQueryParamsDTO, currentUserID uint) (*documentDTOs.DocumentListResponseDTO, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Document, error)
-	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.Document, error)
+	GetFullDetailsByID(id uint, currentUserID *uint, tx ...utility.DatabaseTransaction) (*models.Document, error)
 	Create(document *models.Document, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(document *models.Document, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
@@ -73,55 +73,62 @@ func (repo *DocumentRepository) BeginTransaction() utility.DatabaseTransaction {
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *DocumentRepository) GetAll(params *documentDTOs.DocumentListQueryParamsDTO) (*documentDTOs.DocumentListResponseDTO, error) {
+func (repo *DocumentRepository) GetAll(params *documentDTOs.DocumentListQueryParamsDTO, currentUserID uint) (*documentDTOs.DocumentListResponseDTO, error) {
 	var documents []*documentDTOs.DocumentListDTO
 	var totalCount int64
+	selectClause := `
+	documents.*,
+	document_categories.title_en AS document_category_title_en,
+	document_categories.title_ar AS document_category_title_ar,
+	document_types.title_en AS document_type_title_en,
+	document_types.title_ar AS document_type_title_ar,
+	document_access_types.title_en AS document_access_type_title_en,
+	document_access_types.title_ar AS document_type_access_title_ar,
+	organization_units.title_en AS responsible_unit_title_en,
+	organization_units.title_ar AS responsible_unit_title_ar,
+	responsible_user.first_name_en AS responsible_user_first_name_en,
+	responsible_user.first_name_ar AS responsible_user_first_name_ar,
+	responsible_user.last_name_en AS responsible_user_last_name_en,
+	responsible_user.last_name_ar AS responsible_user_last_name_ar,
+	responsible_user.initial AS responsible_user_initial,
+	responsible_user.color AS responsible_user_color,
+	responsible_user.email AS responsible_user_email,
+	document_versions.url AS document_url,
+	document_versions.name AS document_name,
+	document_versions.size AS document_size,
+	document_versions.token AS document_token,
+	document_versions.original_name AS document_original_name,
+	document_versions.type AS document_type,
+	document_versions.version AS document_version,
+	document_statuses.title_en AS document_status_title_en,
+	document_statuses.title_ar AS document_status_title_ar,
+	document_statuses.color_code AS document_status_color_code,
+	created_user.first_name_en AS created_user_first_name_en,
+	created_user.first_name_ar AS created_user_first_name_ar,
+	created_user.last_name_en AS created_user_last_name_en,
+	created_user.last_name_ar AS created_user_last_name_ar,
+	created_user.initial AS created_user_initial,
+	created_user.color AS created_user_color,
+	created_user.email AS created_user_email,
+	created_user.profile_image_path AS created_user_profile_image_path,
+	updated_user.first_name_en AS updated_user_first_name_en,
+	updated_user.first_name_ar AS updated_user_first_name_ar,
+	updated_user.last_name_en AS updated_user_last_name_en,
+	updated_user.last_name_ar AS updated_user_last_name_ar,
+	updated_user.initial AS updated_user_initial,
+	updated_user.color AS updated_user_color,
+	updated_user.email AS updated_user_email,
+	updated_user.profile_image_path AS updated_user_profile_image_path
+`
 
-	query := repo.db.Table("documents").
-		Select(`
-			documents.*,
-			document_categories.title_en AS document_category_title_en,
-			document_categories.title_ar AS document_category_title_ar,
-			document_types.title_en AS document_type_title_en,
-			document_types.title_ar AS document_type_title_ar,
-			document_access_types.title_en AS document_access_type_title_en,
-			document_access_types.title_ar AS document_type_access_title_ar,
-			organization_units.title_en AS responsible_unit_title_en,
-			organization_units.title_ar AS responsible_unit_title_ar,
-			responsible_user.first_name_en AS responsible_user_first_name_en,
-            responsible_user.first_name_ar AS responsible_user_first_name_ar,
-            responsible_user.last_name_en AS responsible_user_last_name_en,
-            responsible_user.last_name_ar AS responsible_user_last_name_ar,
-			responsible_user.initial AS responsible_user_initial,
-            responsible_user.color AS responsible_user_color,
-            responsible_user.email AS responsible_user_email,
-			document_versions.url AS document_url,
-			document_versions.name AS document_name,
-			document_versions.size AS document_size,
-			document_versions.token AS document_token,
-			document_versions.original_name AS document_original_name,
-			document_versions.type AS document_type,
-			document_versions.version AS document_version,
-			document_statuses.title_en AS document_status_title_en,
-			document_statuses.title_ar AS document_status_title_ar,
-			document_statuses.color_code AS document_status_color_code,
-        	created_user.first_name_en AS created_user_first_name_en,
-        	created_user.first_name_ar AS created_user_first_name_ar,
-        	created_user.last_name_en AS created_user_last_name_en,
-        	created_user.last_name_ar AS created_user_last_name_ar,   
-        	created_user.initial AS created_user_initial,
-        	created_user.color AS created_user_color,
-        	created_user.email AS created_user_email,
-        	created_user.profile_image_path AS created_user_profile_image_path,   
-			updated_user.first_name_en AS updated_user_first_name_en,
-        	updated_user.first_name_ar AS updated_user_first_name_ar,
-        	updated_user.last_name_en AS updated_user_last_name_en,
-        	updated_user.last_name_ar AS updated_user_last_name_ar,
-			updated_user.initial AS updated_user_initial,
-        	updated_user.color AS updated_user_color,
-        	updated_user.email AS updated_user_email,
-        	updated_user.profile_image_path AS updated_user_profile_image_path    
-		`).
+	joinAcknowledge := false
+
+	if params.EnableAcknowledgedStatus {
+		joinAcknowledge = true
+		selectClause += `, CASE WHEN document_acknowledge_users.id IS NULL THEN 0 ELSE 1 END AS acknowledged`
+	}
+
+	query := repo.db.Table("documents").Select(selectClause).
 		Joins(`
 			LEFT JOIN document_categories ON document_categories.id = documents.document_category_id
 			LEFT JOIN document_types ON document_types.id = documents.document_type_id
@@ -134,7 +141,19 @@ func (repo *DocumentRepository) GetAll(params *documentDTOs.DocumentListQueryPar
 			LEFT JOIN users AS updated_user ON updated_user.id = documents.updated_by_id
 		`)
 
-		// Apply dynamic filters to the query
+	if joinAcknowledge {
+		query = query.Joins("LEFT JOIN document_acknowledge_users ON document_acknowledge_users.document_id = documents.id AND document_acknowledge_users.user_id = ?", currentUserID)
+	}
+
+	// Filter by document types if provided
+	if len(params.DocumentTypes) > 0 {
+		query = query.Where("document_types.type IN (?)", params.DocumentTypes)
+	}
+	// Filter by document status if provided
+	if len(params.DocumentStatus) > 0 {
+		query = query.Where("document_statuses.type IN (?)", params.DocumentStatus)
+	}
+	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
 			query = query.Where(columnName+" IN (?)", values)
@@ -152,7 +171,16 @@ func (repo *DocumentRepository) GetAll(params *documentDTOs.DocumentListQueryPar
 			query = query.Where("document_statuses.type = ?", "in-review")
 		case "draft":
 			query = query.Where("document_statuses.type = ?", "draft")
-
+		case "published":
+			query = query.Where("document_statuses.type = ?", "published")
+		case "acknowledged":
+			if joinAcknowledge {
+				query = query.Where("document_acknowledge_users.id IS NOT NULL")
+			}
+		case "unacknowledged":
+			if joinAcknowledge {
+				query = query.Where("document_acknowledge_users.id IS NULL")
+			}
 		}
 	}
 
@@ -239,7 +267,7 @@ func (repo *DocumentRepository) GetByID(id uint, tx ...utility.DatabaseTransacti
 	return document, nil
 }
 
-func (repo *DocumentRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.Document, error) {
+func (repo *DocumentRepository) GetFullDetailsByID(id uint, currentUserID *uint, tx ...utility.DatabaseTransaction) (*models.Document, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -271,6 +299,15 @@ func (repo *DocumentRepository) GetFullDetailsByID(id uint, tx ...utility.Databa
 
 	if result.Error != nil {
 		return nil, result.Error
+	}
+
+	// If currentUserID is provided, check the acknowledgment status
+	if currentUserID != nil {
+		var count int64
+		db.Model(&models.DocumentAcknowledgeUser{}).
+			Where("document_id = ? AND user_id = ?", id, *currentUserID).
+			Count(&count)
+		document.Acknowledged = count > 0
 	}
 
 	return document, nil

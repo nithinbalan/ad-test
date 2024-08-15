@@ -37,3 +37,20 @@ func ParseQueryFilters(allowedParams []string, queryParams url.Values) map[strin
 
 	return filters
 }
+
+func ParseCommaSeparatedStringToArray(input string) []string {
+	// Split the string by commas
+	items := strings.Split(input, ",")
+
+	// Create a slice to hold the trimmed and non-empty items
+	var result []string
+	for _, item := range items {
+		// Trim whitespace and check if the item is non-empty
+		trimmedItem := strings.TrimSpace(item)
+		if trimmedItem != "" {
+			result = append(result, trimmedItem)
+		}
+	}
+
+	return result
+}

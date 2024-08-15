@@ -66,6 +66,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.PUT("/strategic-profiles/mission", strategicProfileController.UpdateMission)
 	organizationRoutes.PUT("/strategic-profiles/values", strategicProfileController.UpdateValues)
 
+	organizationRoutes.POST("/strategic-profiles/upload-image", strategicProfileController.UploadProfileImage)
+
 	//Strategic Profile Values
 	organizationRoutes.GET("/strategic-profiles/values", strategicProfileValueController.GetAllStrategicProfileValues)
 	organizationRoutes.GET("/strategic-profiles/values/:id", strategicProfileValueController.GetStrategicProfileValueDetails)
