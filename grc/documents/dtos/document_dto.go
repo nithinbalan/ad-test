@@ -55,17 +55,21 @@ type DocumentListDTO struct {
 	UpdatedUserProfileImagePath string     `json:"updated_user_profile_image_path"`
 	CreatedAt                   time.Time  `json:"created_at"`
 	UpdatedAt                   *time.Time `json:"updated_at"`
+	Acknowledged                *bool      `json:"acknowledged,omitempty"`
 }
 
 type DocumentListQueryParamsDTO struct {
-	Sort        string
-	SortBy      string
-	Keyword     string
-	Status      string
-	Page        int
-	PageSize    int
-	Filters     map[string][]string
-	QuickFilter []string
+	Sort                     string
+	SortBy                   string
+	Keyword                  string
+	Status                   string
+	Page                     int
+	PageSize                 int
+	Filters                  map[string][]string
+	QuickFilter              []string
+	EnableAcknowledgedStatus bool
+	DocumentTypes            []string
+	DocumentStatus           []string
 }
 
 type DocumentListResponseDTO struct {
@@ -108,6 +112,7 @@ type DocumentDetailsDTO struct {
 	DocumentSharedUnits   []*DocumentSharedUnitDTO         `json:"document_shared_units"`
 	CreatedByUser         organizationDTOs.UserMinimalDTO  `json:"created_by"`
 	UpdatedByUser         *organizationDTOs.UserMinimalDTO `json:"updated_by"`
+	Acknowledged          *bool                            `json:"acknowledged,omitempty"`
 }
 
 type DocumentVersionDTO struct {

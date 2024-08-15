@@ -44,10 +44,6 @@ func (itc *IncidentTimelineController) GetAllIncidentTimelines(c *gin.Context) {
 		Status:      status,
 		QuickFilter: quickFilter,
 	}
-	if err != nil {
-		utility.SendInternalErrResp(itc.db, c, "Invalid page_size parameter")
-		return
-	}
 
 	incidentTimelines, err := itc.service.GetAll(uint(incidentID), &queryParams)
 
@@ -66,4 +62,3 @@ func (itc *IncidentTimelineController) GetAllIncidentTimelines(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, incidentTimelines)
 }
-
