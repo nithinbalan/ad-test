@@ -188,3 +188,19 @@ func (spc *StrategicProfileController) UploadProfileImage(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Profile image uploaded successfully"})
 }
+
+func (spc *StrategicProfileController) PreviewProfileImage(c *gin.Context) {
+	filePath, err := spc.service.GetProfileImagePath()
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(spc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.File(filePath)
+}
