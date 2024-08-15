@@ -26,6 +26,7 @@ type StrategicProfileServiceInterface interface {
 	UpdateMission(currentUserID uint, strategicProfileMission *organizationDTOs.StrategicProfileMissionFormDTO) error
 	UpdateValues(strategicProfileValues []*organizationDTOs.StrategicProfileValueFormDTO) error
 	UploadProfileImage(file *multipart.FileHeader) error
+	GetProfileImagePath() (string, error)
 }
 
 type StrategicProfileService struct {
@@ -189,35 +190,30 @@ func (sps *StrategicProfileService) UpdateValues(strategicProfileValuesDTO []*or
 }
 
 func (sps *StrategicProfileService) UploadProfileImage(file *multipart.FileHeader) error {
-	// File validation
 	allowedTypes := map[string]bool{"image/jpeg": true, "image/png": true}
 	if !allowedTypes[file.Header.Get("Content-Type")] {
 		return utility.NewValidationError(fmt.Errorf("only jpeg/png files are allowed"), "invalid_image_type", "type")
 	}
 
-	maxSize := int64(2 * 1024 * 1024) // 2 MB
+	maxSize := int64(2 * 1024 * 1024)
 	if file.Size > maxSize {
 		return utility.NewValidationError(fmt.Errorf("only 2MB files are allowed"), "invalid_profile_file_size", "size")
 	}
 
-	// Generate new file name and path
 	fileExtension := filepath.Ext(file.Filename)
 	newFileName := uuid.New().String() + fileExtension
 	storagePath := "organization/profile_image/" + newFileName
 
-	// Save the file using the FileRepository
 	_, err := sps.fileRepo.SaveFile(file, storagePath)
 	if err != nil {
 		return err
 	}
 
-	// Retrieve the existing profile
 	profile, err := sps.repo.Get()
 	if err != nil {
 		return utility.NewResourceNotFoundError(err, nil)
 	}
 
-	// Delete the old image if it exists
 	if profile.ProfileImage != nil {
 		oldFilePath := "organization/profile_image/" + *profile.ProfileImage
 		err := os.Remove(filepath.Join(config.GetEnv("STORAGE_PATH", ""), oldFilePath))
@@ -243,9 +239,25 @@ func (sps *StrategicProfileService) UploadProfileImage(file *multipart.FileHeade
 	return nil
 }
 
-// func (sps *StrategicProfileService) deleteFile(filePath string) error {
-// 	return os.Remove(filepath.Join(config.GetEnv("STORAGE_PATH", ""), filePath))
-// }
+func (sps *StrategicProfileService) GetProfileImagePath() (string, error) {
+	profile, err := sps.repo.Get()
+	if err != nil {
+		return "", utility.NewResourceNotFoundError(err, nil)
+	}
+
+	if profile.ProfileImage == nil {
+		return "", utility.NewResourceNotFoundError(fmt.Errorf("profile image not found"), nil)
+	}
+
+	storagePath := config.GetEnv("STORAGE_PATH", "")
+	filePath := filepath.Join(storagePath, "organization/profile_image", *profile.ProfileImage)
+
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		return "", utility.NewResourceNotFoundError(fmt.Errorf("file not found"), nil)
+	}
+
+	return filePath, nil
+}
 
 func (us *StrategicProfileService) validateStrategicProfileFormDTO(strategicProfileDTO *organizationDTOs.StrategicProfileFormDTO) error {
 	validateURL := func(url *string, validateFunc func(string) bool, fieldName string) error {
