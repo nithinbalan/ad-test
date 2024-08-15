@@ -17,16 +17,17 @@ type RiskActionPlan struct {
 	Percentage         *uint      `json:"percentage" binding:"omitempty,min=0,max=100" gorm:"not null;default:0"`
 	CreatedAt          time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt          *time.Time `json:"updated_at" gorm:"type:datetime"`
-	CreatedBy          uint       `json:"created_by" gorm:"not null"`
-	UpdatedBy          *uint      `json:"updated_by" gorm:"default:null"`
+	CreatedBYID        uint       `json:"created_by_id" gorm:"not null"`
+	UpdatedBYID        *uint      `json:"updated_by_id" gorm:"default:null"`
 
 	// Relationships
-	RiskRegister     *RiskRegister     `gorm:"foreignkey:RiskRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	SeverityLevel    *SeverityLevel    `gorm:"foreignkey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ResponsibleUser  *User             `gorm:"foreignkey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ActionPlanStatus *ActionPlanStatus `gorm:"foreignkey:ActionPlanStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser    *User             `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser    *User             `gorm:"foreignKey:UpdatedBy"`
+	RiskRegister            *RiskRegister                 `gorm:"foreignKey:RiskRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	SeverityLevel           *SeverityLevel                `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ResponsibleUser         *User                         `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ActionPlanStatus        *ActionPlanStatus             `gorm:"foreignKey:ActionPlanStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ActionPlanStatusUpdates []*RiskActionPlanStatusUpdate `gorm:"foreignKey:RiskActionPlanID"`
+	CreatedByUser           *User                         `gorm:"foreignKey:CreatedBYID"`
+	UpdatedByUser           *User                         `gorm:"foreignKey:UpdatedBYID"`
 }
 
 // TableName overrides the table name used by RiskActionPlan to `risk_action_plans`

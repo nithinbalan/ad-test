@@ -89,8 +89,8 @@ func (repo *MeetingRepository) GetAll(currentUserID uint, params *meetingDTOs.Me
 			LEFT JOIN meeting_frequencies ON meetings.meeting_frequency_id = meeting_frequencies.id
 			LEFT JOIN users ON meetings.organizer_id = users.id
 			LEFT JOIN meeting_statuses ON meetings.meeting_status_id = meeting_statuses.id
-            LEFT JOIN users AS created_user ON created_user.id = meetings.created_by
-            LEFT JOIN users AS updated_user ON updated_user.id = meetings.updated_by
+            LEFT JOIN users AS created_user ON created_user.id = meetings.created_by_id
+            LEFT JOIN users AS updated_user ON updated_user.id = meetings.updated_by_id
         `).Where("(meetings.is_public = ? OR meetings.organizer_id = ? OR meetings.id IN (SELECT meeting_id FROM meeting_participants WHERE user_id = ?))", true, currentUserID, currentUserID)
 
 	// Apply dynamic filters to the query

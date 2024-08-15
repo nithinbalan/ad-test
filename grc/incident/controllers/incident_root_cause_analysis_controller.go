@@ -108,6 +108,14 @@ func (ircac *IncidentRootCauseAnalysisController) UpdateIncidentRootCauseAnalysi
 		return
 	}
 
+	idStr := c.Param("id")
+
+	id, err := strconv.ParseUint(idStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
 	if err := c.ShouldBindJSON(&IncidentRootCauseAnalysisFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
@@ -119,7 +127,7 @@ func (ircac *IncidentRootCauseAnalysisController) UpdateIncidentRootCauseAnalysi
 		return
 	}
 
-	err = ircac.service.Update(uint(incidentID), currentUserID, &IncidentRootCauseAnalysisFormDTO)
+	err = ircac.service.Update(uint(incidentID), uint(id), currentUserID, &IncidentRootCauseAnalysisFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

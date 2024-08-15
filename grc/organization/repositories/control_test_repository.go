@@ -21,6 +21,8 @@ type ControlTestRepositoryInterface interface {
 	GetDocumentByID(id uint) (*models.ControlTestDocument, error)
 	CreateDocuments(docs []*models.ControlTestDocument, tx ...utility.DatabaseTransaction) error
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
+
+	GetTrendAnalysis(controlID uint) ([]*models.ControlTest, error)
 }
 
 type ControlTestRepository struct {
@@ -65,13 +67,13 @@ func (repo *ControlTestRepository) GetAll(controlID uint, params *organizationDT
 			updated_by_user.first_name_ar AS updated_user_first_name_ar,
 			updated_by_user.last_name_en AS updated_user_last_name_en,
 			updated_by_user.last_name_ar AS updated_user_last_name_ar,
-			control_tests.tested_at,
+        	CONVERT(VARCHAR, control_tests.tested_at, 23) AS tested_at,
 			control_tests.updated_at
         `).
 		Joins("LEFT JOIN control_implementation_statuses ON control_implementation_statuses.id = control_tests.control_implementation_status_id").
 		Joins("LEFT JOIN control_efficiency_statuses ON control_efficiency_statuses.id = control_tests.control_efficiency_status_id").
 		Joins("LEFT JOIN users AS tested_by_user ON tested_by_user.id = control_tests.tested_by").
-		Joins("LEFT JOIN users AS updated_by_user ON updated_by_user.id = control_tests.updated_by").
+		Joins("LEFT JOIN users AS updated_by_user ON updated_by_user.id = control_tests.updated_by_id").
 		Where("control_tests.control_id = ?", controlID)
 
 	// Apply dynamic filters to the query
@@ -124,7 +126,7 @@ func (repo *ControlTestRepository) GetAll(controlID uint, params *organizationDT
 				tested_by_user.first_name_en LIKE ? OR
 				tested_by_user.first_name_ar LIKE ? OR
 				tested_by_user.last_name_en LIKE ? OR
-				tested_by_user.last_name_ar LIKE ? OR)`,
+				tested_by_user.last_name_ar LIKE ?)`,
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
@@ -273,4 +275,20 @@ func (repo *ControlTestRepository) DeleteDocuments(docIds []*uint, tx ...utility
 	}
 
 	return nil
+}
+
+func (repo *ControlTestRepository) GetTrendAnalysis(controlID uint) ([]*models.ControlTest, error) {
+	var controlTests []*models.ControlTest
+
+	// Use GORM to fetch the last 6 control tests
+	result := repo.db.Where("control_id = ?", controlID).
+		Order("tested_at DESC").
+		Limit(6).
+		Find(&controlTests)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return controlTests, nil
 }

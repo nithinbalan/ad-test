@@ -9,42 +9,52 @@ import (
 )
 
 type SLARegisterListDTO struct {
-	ID                         uint      `json:"id"`
-	ReferenceNumber            string    `json:"reference_number"`
-	ResponsibleUserID          uint      `json:"responsible_user_id"`
-	LifecycleStatusID          uint      `json:"lifecycle_status_id"`
-	TitleEn                    string    `json:"title_en"`
-	TitleAr                    string    `json:"title_ar"`
-	Description                string    `json:"description"`
-	Client                     string    `json:"client"`
-	CreatedBy                  uint      `json:"created_by"`
-	UpdatedBy                  uint      `json:"updated_by"`
-	CreatedAt                  time.Time `json:"created_at"`
-	UpdatedAt                  time.Time `json:"updated_at"`
-	SLACategoryTitleEn         string    `json:"sla_category_title_en"`
-	SLACategoryTitleAr         string    `json:"sla_category_title_ar"`
-	SeverityLevelTitleEn       string    `json:"severity_level_title_en"`
-	SeverityLevelTitleAr       string    `json:"severity_level_title_ar"`
-	ResponsibleUnitTitleEn     string    `json:"responsible_unit_title_en"`
-	ResponsibleUnitTitleAr     string    `json:"responsible_unit_title_ar"`
-	ResponsibleUserFirstNameEn string    `json:"responsible_user_first_name_en"`
-	ResponsibleUserFirstNameAr string    `json:"responsible_user_first_name_ar"`
-	ResponsibleUserLastNameEn  string    `json:"responsible_user_last_name_en"`
-	ResponsibleUserLastNameAr  string    `json:"responsible_user_last_name_ar"`
-	LifecycleStatusTitleEn     string    `json:"lifecycle_status_title_en"`
-	LifecycleStatusTitleAr     string    `json:"lifecycle_status_title_ar"`
-	LifecycleStatusColorCode   string    `json:"lifecycle_status_color_code"`
-	ComplianceStatusTitleEn    string    `json:"compliance_status_title_en"`
-	ComplianceStatusTitleAr    string    `json:"compliance_status_title_ar"`
-	ComplianceStatusColorCode  string    `json:"compliance_status_color_code"`
-	CreatedByFirstNameEn       string    `json:"created_by_first_name_en"`
-	CreatedByFirstNameAr       string    `json:"created_by_first_name_ar"`
-	CreatedByLastNameEn        string    `json:"created_by_last_name_en"`
-	CreatedByLastNameAr        string    `json:"created_by_last_name_ar"`
-	UpdatedByFirstNameEn       string    `json:"updated_by_first_name_en"`
-	UpdatedByFirstNameAr       string    `json:"updated_by_first_name_ar"`
-	UpdatedByLastNameEn        string    `json:"updated_by_last_name_en"`
-	UpdatedByLastNameAr        string    `json:"updated_by_last_name_ar"`
+	ID                              uint      `json:"id"`
+	ReferenceNumber                 string    `json:"reference_number"`
+	ResponsibleUserID               uint      `json:"responsible_user_id"`
+	LifecycleStatusID               uint      `json:"lifecycle_status_id"`
+	TitleEn                         string    `json:"title_en"`
+	TitleAr                         string    `json:"title_ar"`
+	Description                     string    `json:"description"`
+	Client                          string    `json:"client"`
+	CreatedAt                       time.Time `json:"created_at"`
+	UpdatedAt                       time.Time `json:"updated_at"`
+	SLACategoryTitleEn              string    `json:"sla_category_title_en"`
+	SLACategoryTitleAr              string    `json:"sla_category_title_ar"`
+	SeverityLevelTitleEn            string    `json:"severity_level_title_en"`
+	SeverityLevelTitleAr            string    `json:"severity_level_title_ar"`
+	ResponsibleUnitTitleEn          string    `json:"responsible_unit_title_en"`
+	ResponsibleUnitTitleAr          string    `json:"responsible_unit_title_ar"`
+	ResponsibleUserFirstNameEn      string    `json:"responsible_user_first_name_en"`
+	ResponsibleUserFirstNameAr      string    `json:"responsible_user_first_name_ar"`
+	ResponsibleUserLastNameEn       string    `json:"responsible_user_last_name_en"`
+	ResponsibleUserLastNameAr       string    `json:"responsible_user_last_name_ar"`
+	ResponsibleUserInitial          string    `json:"responsible_user_initial"`
+	ResponsibleUserColor            string    `json:"responsible_user_color"`
+	ResponsibleUserEmail            string    `json:"responsible_user_email"`
+	ResponsibleUserProfileImagePath string    `json:"responsible_user_profile_image_path"`
+	LifecycleStatusTitleEn          string    `json:"lifecycle_status_title_en"`
+	LifecycleStatusTitleAr          string    `json:"lifecycle_status_title_ar"`
+	LifecycleStatusColorCode        string    `json:"lifecycle_status_color_code"`
+	ComplianceStatusTitleEn         string    `json:"compliance_status_title_en"`
+	ComplianceStatusTitleAr         string    `json:"compliance_status_title_ar"`
+	ComplianceStatusColorCode       string    `json:"compliance_status_color_code"`
+	CreatedUserFirstNameEn          string    `json:"created_user_first_name_en"`
+	CreatedUserFirstNameAr          string    `json:"created_user_first_name_ar"`
+	CreatedUserLastNameEn           string    `json:"created_user_last_name_en"`
+	CreatedUserLastNameAr           string    `json:"created_user_last_name_ar"`
+	CreatedUserInitial              string    `json:"created_user_initial"`
+	CreatedUserColor                string    `json:"created_user_color"`
+	CreatedUserEmail                string    `json:"created_user_email"`
+	CreatedUserProfileImagePath     string    `json:"created_user_profile_image_path"`
+	UpdatedUserFirstNameEn          string    `json:"updated_user_first_name_en"`
+	UpdatedUserFirstNameAr          string    `json:"updated_user_first_name_ar"`
+	UpdatedUserLastNameEn           string    `json:"updated_user_last_name_en"`
+	UpdatedUserLastNameAr           string    `json:"updated_user_last_name_ar"`
+	UpdatedUserInitial              string    `json:"updated_user_initial"`
+	UpdatedUserColor                string    `json:"updated_user_color"`
+	UpdatedUserEmail                string    `json:"updated_user_email"`
+	UpdatedUserProfileImagePath     string    `json:"updated_user_profile_image_path"`
 	// Fields from sla_documents table
 	Version      string `json:"version"`
 	IssueDate    string `json:"issue_date"`
@@ -98,6 +108,7 @@ type SLARegisterFormDTO struct {
 	SA2Date           string             `json:"sa2_date" binding:"omitempty,datetime=2006-01-02"`
 	Comment           *string            `json:"comment"`
 	Document          SLADocumentFormDTO `json:"document" binding:"required"`
+	ProcessIDs        []*uint            `json:"process_ids"`
 }
 
 type SLADocumentFormDTO struct {
@@ -126,8 +137,6 @@ type SLADocumentDTO struct {
 	SA2Date      *time.Time `json:"sa2_date,omitempty"`
 	CreatedAt    time.Time  `json:"created_at"`
 	UpdatedAt    time.Time  `json:"updated_at"`
-	CreatedBy    uint       `json:"created_by"`
-	UpdatedBy    uint       `json:"updated_by,omitempty"`
 }
 
 type ParsedSLADates struct {
@@ -155,4 +164,20 @@ type SLARegisterDetailDTO struct {
 	CreatedByUser    organizationDTOs.UserMinimalDTO  `json:"created_by"`
 	UpdatedByUser    *organizationDTOs.UserMinimalDTO `json:"updated_by,omitempty"`
 	Documents        []*SLADocumentDTO                `json:"documents"`
+	Checks           []*SLAChecksDTO                  `json:"checks"`
+	Processes        []*SLAProcessDTO                 `json:"processes"`
+}
+
+type SLAChecksDTO struct {
+	ID            *uint     `json:"id"`
+	SLARegisterID uint      `json:"sla_register_id"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+}
+
+type SLAProcessDTO struct {
+	ID            *uint                             `json:"id"`
+	SLARegisterID uint                              `json:"sla_register_id"`
+	ProcessID     uint                              `json:"process_id"`
+	Process       organizationDTOs.ProcessDetailDTO `json:"process"`
 }

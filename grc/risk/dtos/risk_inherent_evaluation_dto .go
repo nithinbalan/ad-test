@@ -7,8 +7,6 @@ type RiskInherentEvaluationDetailsDTO struct {
 	RiskMatrixImpact          RiskMatrixImpactDTO          `json:"risk_matrix_impact"`
 	RiskMatrixRiskRating      RiskMatrixRiskRatingDTO      `json:"risk_matrix_risk_rating"`
 	RiskMatrixRiskRatingValue RiskMatrixRiskRatingValueDTO `json:"risk_matrix_risk_rating_value"`
-	CreatedBy                 uint                         `json:"created_by"`
-	UpdatedBy                 *uint                        `json:"updated_by"`
 	RiskImpactAnalyses        []RiskImpactAnalysisDTO      `json:"risk_impact_analyses"`
 	RiskAppetiteAlignments    []RiskAppetiteAlignmentDTO   `json:"risk_appetite_alignments"`
 }
@@ -51,4 +49,19 @@ type RiskImpactAnalysisFormDTO struct {
 type RiskAppetiteAlignmentFormDTO struct {
 	RiskAppetiteStatementID      uint `json:"risk_appetite_statement_id"`
 	RiskAppetiteToleranceLevelID uint `json:"risk_appetite_tolerance_level_id"`
+}
+
+type RiskRegisterRiskRatingUpdateDTO struct {
+	InherentImpactID          *uint
+	InherentLikelihoodID      *uint
+	InherentRiskRatingID      *uint
+	InherentRiskRatingValueID *uint
+	ResidualImpactID          *uint
+	ResidualLikelihoodID      *uint
+	ResidualRiskRatingID      *uint
+	ResidualRiskRatingValueID *uint
+	CurrentImpactID           *uint
+	CurrentLikelihoodID       *uint
+	CurrentRiskRatingID       *uint
+	CurrentRiskRatingValueID  *uint
 }

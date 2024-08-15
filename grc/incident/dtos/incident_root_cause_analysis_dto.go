@@ -23,14 +23,7 @@ type IncidentRootCauseAnalysisListQueryParamsDTO struct {
 	SortBy  string
 	Keyword string
 }
-
 type IncidentRootCauseAnalysisFormDTO struct {
-	Analyses []IncidentRootCauseAnalysisDataDTO `json:"analyses" binding:"required,dive,required"`
-}
-
-type IncidentRootCauseAnalysisDataDTO struct {
-	ID       *uint  `json:"id"`
-	Why      uint   `json:"why" binding:"required"`
 	Question string `json:"question" binding:"required"`
 	Answer   string `json:"answer" binding:"required"`
 }

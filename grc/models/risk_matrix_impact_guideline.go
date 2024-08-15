@@ -12,14 +12,14 @@ type RiskMatrixImpactGuideline struct {
 	Status               string     `json:"status" binding:"required,max=10,oneof=active inactive" gorm:"type:varchar(10);not null"`
 	CreatedAt            time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt            *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
-	CreatedBy            uint       `json:"created_by" gorm:"not null"`
-	UpdatedBy            *uint      `json:"updated_by" gorm:"default:null"`
+	CreatedByID          uint       `json:"created_by_id" gorm:"not null"`
+	UpdatedByID          *uint      `json:"updated_by_id" gorm:"default:null"`
 
 	// Relationships
-	RiskImpactCategory *RiskImpactCategory `gorm:"foreignkey:RiskImpactCategoryID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	RiskMatrixImpact   *RiskMatrixImpact   `gorm:"foreignkey:RiskMatrixImpactID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	CreatedByUser      *User               `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser      *User               `gorm:"foreignKey:UpdatedBy"`
+	RiskImpactCategory *RiskImpactCategory `gorm:"foreignKey:RiskImpactCategoryID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	RiskMatrixImpact   *RiskMatrixImpact   `gorm:"foreignKey:RiskMatrixImpactID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	CreatedByUser      *User               `gorm:"foreignKey:CreatedByID"`
+	UpdatedByUser      *User               `gorm:"foreignKey:UpdatedByID"`
 }
 
 // TableName overrides the table name used by RiskMatrixImpactGuideline to `risk_matrix_impact_guidelines`

@@ -12,7 +12,7 @@ type IncidentClosureLesson struct {
 	UpdatedAt         *time.Time `json:"updated_at" gorm:"type:datetime"`
 
 	// Relationships
-	IncidentClosure *IncidentClosure `gorm:"foreignkey:IncidentClosureID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	IncidentClosure *IncidentClosure `gorm:"foreignKey:IncidentClosureID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 }
 
 // TableName overrides the table name used by IncidentClosureLesson to `incident_closure_lessons`

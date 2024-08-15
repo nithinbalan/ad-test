@@ -34,6 +34,9 @@ type ComplianceRegisterRepositoryInterface interface {
 	GetDocumentByID(id uint) (*models.ComplianceDocument, error)
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
 	GetLatestDocumentByComplianceID(id uint) (*models.ComplianceDocument, error)
+
+	CreateInitialComplianceStatusUpdate(complianceStatusUpdate *models.ComplianceStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
+	DeleteComplianceStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type ComplianceRegisterRepository struct {
@@ -75,26 +78,42 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
             responsible_user.first_name_ar AS responsible_user_first_name_ar,
             responsible_user.last_name_en AS responsible_user_last_name_en,
             responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			responsible_user.initial AS responsible_user_initial,
+            responsible_user.color AS responsible_user_color,
+            responsible_user.email AS responsible_user_email,
+            responsible_user.profile_image_path AS responsible_user_profile_image_path,
 			review_frequencies.title_en AS review_frequency_title_en,
 			review_frequencies.title_ar AS review_frequency_title_ar,
 			review_responsible_user.first_name_en AS review_responsible_user_first_name_en,
             review_responsible_user.first_name_ar AS review_responsible_user_first_name_ar,
             review_responsible_user.last_name_en AS review_responsible_user_last_name_en,
             review_responsible_user.last_name_ar AS review_responsible_user_last_name_ar,
+			review_responsible_user.initial AS review_responsible_user_initial,
+        	review_responsible_user.color AS review_responsible_user_color,
+        	review_responsible_user.email AS review_responsible_user_email,
+        	review_responsible_user.profile_image_path AS review_responsible_user_profile_image_path,  
 			severity_levels.title_en AS severity_level_title_en,
 			severity_levels.title_ar AS severity_level_title_ar,
 			severity_levels.color_code AS severity_level_color_code,
 			lifecycle_statuses.title_en AS lifecycle_status_title_en,
 			lifecycle_statuses.title_ar AS lifecycle_status_title_ar,
 			lifecycle_statuses.color_code AS lifecycle_status_color_code,
-			created_user.first_name_en AS created_user_first_name_en,
-            created_user.first_name_ar AS created_user_first_name_ar,
-            created_user.last_name_en AS created_user_last_name_en,
-            created_user.last_name_ar AS created_user_last_name_ar,   
+        	created_user.first_name_en AS created_user_first_name_en,
+        	created_user.first_name_ar AS created_user_first_name_ar,
+        	created_user.last_name_en AS created_user_last_name_en,
+        	created_user.last_name_ar AS created_user_last_name_ar,   
+        	created_user.initial AS created_user_initial,
+        	created_user.color AS created_user_color,
+        	created_user.email AS created_user_email,
+        	created_user.profile_image_path AS created_user_profile_image_path,   
 			updated_user.first_name_en AS updated_user_first_name_en,
-            updated_user.first_name_ar AS updated_user_first_name_ar,
-            updated_user.last_name_en AS updated_user_last_name_en,
-            updated_user.last_name_ar AS updated_user_last_name_ar          
+        	updated_user.first_name_ar AS updated_user_first_name_ar,
+        	updated_user.last_name_en AS updated_user_last_name_en,
+        	updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+        	updated_user.color AS updated_user_color,
+        	updated_user.email AS updated_user_email,
+        	updated_user.profile_image_path AS updated_user_profile_image_path        
         `).
 		Joins(`
 		    LEFT JOIN compliance_categories ON compliance_categories.id = compliance_register.compliance_category_id
@@ -105,8 +124,8 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
 			LEFT JOIN users AS review_responsible_user ON review_responsible_user.id = compliance_register.review_responsible_user_id
 		    LEFT JOIN severity_levels ON severity_levels.id = compliance_register.severity_level_id
 			LEFT JOIN lifecycle_statuses ON lifecycle_statuses.id = compliance_register.lifecycle_status_id
-			LEFT JOIN users AS created_user ON created_user.id = compliance_register.created_by
-			LEFT JOIN users AS updated_user ON updated_user.id = compliance_register.updated_by
+			LEFT JOIN users AS created_user ON created_user.id = compliance_register.created_by_id
+			LEFT JOIN users AS updated_user ON updated_user.id = compliance_register.updated_by_id
 		`)
 
 	// Apply dynamic filters to the query
@@ -185,10 +204,15 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
 			responsible_user.first_name_ar LIKE ? OR
 			responsible_user.last_name_en LIKE ? OR
 			responsible_user.last_name_ar LIKE ? OR
+			responsible_user.email LIKE ? OR
+            responsible_user.initial LIKE ? OR
+            responsible_user.color LIKE ? OR
+            responsible_user.profile_image_path LIKE ? OR
 			severity_levels.title_en LIKE ? OR
 			severity_levels.title_ar LIKE ? OR
 			lifecycle_statuses.title_en LIKE ? OR
 			lifecycle_statuses.title_ar LIKE ?)`,
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
@@ -263,6 +287,7 @@ func (repo *ComplianceRegisterRepository) GetFullDetailsByID(id uint, tx ...util
 		Preload("Controls").
 		Preload("Controls.Control.ControlCategory").
 		Preload("Controls.Control.ControlType").
+		Preload("ComplianceStatusUpdates").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&compliance, id)
@@ -427,4 +452,28 @@ func (repo *ComplianceRegisterRepository) GetLatestDocumentByComplianceID(id uin
 		return nil, err
 	}
 	return &document, nil
+}
+
+func (repo *ComplianceRegisterRepository) CreateInitialComplianceStatusUpdate(complianceStatusUpdate *models.ComplianceStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(complianceStatusUpdate).Error; err != nil {
+		return 0, err
+	}
+	return complianceStatusUpdate.ID, nil
+}
+
+func (repo *ComplianceRegisterRepository) DeleteComplianceStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", ids).Delete(&models.ComplianceStatusUpdate{}).Error; err != nil {
+		return err
+	}
+
+	return nil
 }

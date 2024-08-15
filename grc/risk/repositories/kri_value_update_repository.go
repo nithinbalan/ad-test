@@ -21,6 +21,8 @@ type KRIValueUpdateRepositoryInterface interface {
 	CreateDocuments(docs []*models.KRIValueUpdateDocument, tx ...utility.DatabaseTransaction) error
 	GetDocumentByID(id uint) (*models.KRIValueUpdateDocument, error)
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
+
+	GetNextKRIValueUpdate(kriRegisterID uint, deletedIDs []uint, tx ...utility.DatabaseTransaction) (*models.KRIValueUpdate, error)
 }
 
 type KRIValueUpdateRepository struct {
@@ -39,7 +41,6 @@ func (repo *KRIValueUpdateRepository) BeginTransaction() utility.DatabaseTransac
 }
 
 func (repo *KRIValueUpdateRepository) GetAll(kriRegisterID uint, params *riskDTOs.KRIValueUpdateListQueryParamsDTO) (*riskDTOs.KRIValueUpdateListResponseDTO, error) {
-
 	var kriValueUpdates []*riskDTOs.KRIValueUpdateListDTO
 	var totalCount int64
 
@@ -47,19 +48,31 @@ func (repo *KRIValueUpdateRepository) GetAll(kriRegisterID uint, params *riskDTO
 		Select(`
             kri_value_updates.*,
 			kri_register.title AS kri_register,
+			risk_levels.title_en AS risk_level_title_en,
+			risk_levels.title_ar AS risk_level_title_ar,
+			risk_levels.color_code AS risk_level_color_code,
 			created_user.first_name_en AS created_user_first_name_en,
-            created_user.first_name_ar AS created_user_first_name_ar,
-            created_user.last_name_en AS created_user_last_name_en,
-            created_user.last_name_ar AS created_user_last_name_ar,   
+			created_user.first_name_ar AS created_user_first_name_ar,
+			created_user.last_name_en AS created_user_last_name_en,
+			created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+			created_user.color AS created_user_color,
+			created_user.email AS created_user_email,
+			created_user.profile_image_path AS created_user_profile_image_path,
 			updated_user.first_name_en AS updated_user_first_name_en,
-            updated_user.first_name_ar AS updated_user_first_name_ar,
-            updated_user.last_name_en AS updated_user_last_name_en,
-            updated_user.last_name_ar AS updated_user_last_name_ar          
+			updated_user.first_name_ar AS updated_user_first_name_ar,
+			updated_user.last_name_en AS updated_user_last_name_en,
+			updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+			updated_user.color AS updated_user_color,
+			updated_user.email AS updated_user_email,
+			updated_user.profile_image_path AS updated_user_profile_image_path       
         `).
 		Joins(`
 		    LEFT JOIN kri_register ON kri_register.id = kri_value_updates.kri_register_id
-			LEFT JOIN users AS created_user ON created_user.id = kri_register.created_by
-			LEFT JOIN users AS updated_user ON updated_user.id = kri_register.updated_by
+			LEFT JOIN risk_levels ON risk_levels.id = kri_register.risk_level_id
+			LEFT JOIN users AS created_user ON created_user.id = kri_register.created_by_id
+			LEFT JOIN users AS updated_user ON updated_user.id = kri_register.updated_by_id
 		`).
 		Where("kri_value_updates.kri_register_id = ?", kriRegisterID)
 
@@ -78,10 +91,12 @@ func (repo *KRIValueUpdateRepository) GetAll(kriRegisterID uint, params *riskDTO
 			kri_value_updates.value LIKE ? OR
 			kri_value_updates.low_threshold LIKE ? OR
 			kri_value_updates.medium_threshold LIKE ? OR
-			organization_units.high_threshold LIKE ? OR
-			organization_units.remarks LIKE ? )`,
+			kri_value_updates.high_threshold LIKE ? OR
+			risk_levels.title_en LIKE ? OR
+			risk_levels.title_ar LIKE ? OR
+			kri_value_updates.remarks LIKE ? )`,
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
-			"%"+params.Keyword+"%", "%"+params.Keyword+"%")
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
 	}
 
 	// Calculate total count for pagination
@@ -91,7 +106,7 @@ func (repo *KRIValueUpdateRepository) GetAll(kriRegisterID uint, params *riskDTO
 
 	// Sort by the specified column and order
 	if params.SortBy == "" {
-		params.SortBy = "kri_value_updates.id" // Default sort by title if no sortBy is specified
+		params.SortBy = "kri_value_updates.id" // Default sort by id if no sortBy is specified
 	}
 	if params.Sort != "asc" && params.Sort != "desc" {
 		params.Sort = "asc" // Default order is ascending if not specified
@@ -101,10 +116,22 @@ func (repo *KRIValueUpdateRepository) GetAll(kriRegisterID uint, params *riskDTO
 
 	offset := (params.Page - 1) * params.PageSize
 
-	// Execute the queryc
+	// Execute the query
 	err := query.Offset(offset).Limit(params.PageSize).Find(&kriValueUpdates).Error
 	if err != nil {
 		return nil, err
+	}
+
+	// Fetch documents for each KRIValueUpdate
+	for _, valueUpdate := range kriValueUpdates {
+		var documents []*riskDTOs.KRIValueUpdateDocumentDTO
+		err := repo.db.Model(&models.KRIValueUpdateDocument{}).
+			Where("kri_value_update_id = ?", valueUpdate.ID).
+			Find(&documents).Error
+		if err != nil {
+			return nil, err
+		}
+		valueUpdate.Documents = documents
 	}
 
 	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
@@ -225,4 +252,30 @@ func (repo *KRIValueUpdateRepository) DeleteDocuments(docIds []*uint, tx ...util
 	}
 
 	return nil
+}
+
+func (repo *KRIValueUpdateRepository) GetNextKRIValueUpdate(kriRegisterID uint, deletedIDs []uint, tx ...utility.DatabaseTransaction) (*models.KRIValueUpdate, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	var nextValueUpdate models.KRIValueUpdate
+	query := `
+		SELECT TOP 1 *
+		FROM kri_value_updates
+		WHERE kri_register_id = ? AND id NOT IN (?)
+		ORDER BY id DESC
+	`
+
+	err := db.Raw(query, kriRegisterID, deletedIDs).Scan(&nextValueUpdate).Error
+
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return nil, err
+	}
+
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+
+	return &nextValueUpdate, nil
 }

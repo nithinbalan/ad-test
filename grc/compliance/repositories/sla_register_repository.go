@@ -32,6 +32,9 @@ type SLARegisterRepositoryInterface interface {
 	GetDocumentByID(id uint) (*models.SLADocument, error)
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
 	GetLatestDocumentBySLAID(id uint) (*models.SLADocument, error)
+
+	CreateSLAProcesses(processes []*models.SLAProcess, tx ...utility.DatabaseTransaction) error
+	DeleteSLAProcesses(processIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 // implementation
@@ -79,20 +82,32 @@ func (repo *SLARegisterRepository) GetAll(params *slaDTOs.SLARegisterListQueryPa
             responsible_users.first_name_ar AS responsible_user_first_name_ar,
             responsible_users.last_name_en AS responsible_user_last_name_en,
             responsible_users.last_name_ar AS responsible_user_last_name_ar,
+			responsible_users.initial AS responsible_user_initial,
+            responsible_users.color AS responsible_user_color,
+            responsible_users.email AS responsible_user_email,
+            responsible_users.profile_image_path AS responsible_user_profile_image_path,
             lifecycle_statuses.title_en AS lifecycle_status_title_en,
             lifecycle_statuses.title_ar AS lifecycle_status_title_ar,
 			lifecycle_statuses.color_code AS lifecycle_status_color_code,
 			compliance_statuses.title_en AS compliance_status_title_en,
 			compliance_statuses.title_ar AS compliance_status_title_ar,
 			compliance_statuses.color_code AS compliance_status_color_code,
-            created_by_users.first_name_en AS created_by_first_name_en,
-            created_by_users.first_name_ar AS created_by_first_name_ar,
-            created_by_users.last_name_en AS created_by_last_name_en,
-            created_by_users.last_name_ar AS created_by_last_name_ar,
-            updated_by_users.first_name_en AS updated_by_first_name_en,
-            updated_by_users.first_name_ar AS updated_by_first_name_ar,
-            updated_by_users.last_name_en AS updated_by_last_name_en,
-            updated_by_users.last_name_ar AS updated_by_last_name_ar
+            created_user.first_name_en AS created_user_first_name_en,
+            created_user.first_name_ar AS created_user_first_name_ar,
+            created_user.last_name_en AS created_user_last_name_en,
+            created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+            created_user.color AS created_user_color,
+            created_user.email AS created_user_email,
+            created_user.profile_image_path AS created_user_profile_image_path,
+            updated_user.first_name_en AS updated_user_first_name_en,
+            updated_user.first_name_ar AS updated_user_first_name_ar,
+            updated_user.last_name_en AS updated_user_last_name_en,
+            updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+            updated_user.color AS updated_user_color,
+            updated_user.email AS updated_user_email,
+            updated_user.profile_image_path AS updated_user_profile_image_path
         `).
 		Joins(`
             LEFT JOIN sla_categories ON sla_register.sla_category_id = sla_categories.id
@@ -101,8 +116,8 @@ func (repo *SLARegisterRepository) GetAll(params *slaDTOs.SLARegisterListQueryPa
             LEFT JOIN users AS responsible_users ON sla_register.responsible_user_id = responsible_users.id
             JOIN lifecycle_statuses ON sla_register.lifecycle_status_id = lifecycle_statuses.id
 		    LEFT JOIN compliance_statuses ON sla_register.compliance_status_id = compliance_statuses.id 
-            JOIN users AS created_by_users ON sla_register.created_by = created_by_users.id
-            LEFT JOIN users AS updated_by_users ON sla_register.updated_by = updated_by_users.id
+            JOIN users AS created_user ON sla_register.created_by_id = created_user.id
+            LEFT JOIN users AS updated_user ON sla_register.updated_by_id = updated_user.id
 			LEFT JOIN sla_documents ON sla_register.id = sla_documents.sla_register_id AND sla_documents.is_latest = 1
 
     `)
@@ -169,6 +184,10 @@ func (repo *SLARegisterRepository) GetAll(params *slaDTOs.SLARegisterListQueryPa
 			responsible_users.first_name_ar LIKE ? OR
 			responsible_users.last_name_en LIKE ? OR
 			responsible_users.last_name_ar LIKE ? OR
+			responsible_users.email LIKE ? OR
+            responsible_users.initial LIKE ? OR
+            responsible_users.color LIKE ? OR
+            responsible_users.profile_image_path LIKE ? OR
 			severity_levels.title_en LIKE ? OR
 			severity_levels.title_ar LIKE ? OR
 			compliance_statuses.title_en LIKE ? OR
@@ -181,7 +200,7 @@ func (repo *SLARegisterRepository) GetAll(params *slaDTOs.SLARegisterListQueryPa
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
-			"%"+params.Keyword+"%")
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
 	}
 
 	// Sort by the specified column and order
@@ -243,6 +262,8 @@ func (repo *SLARegisterRepository) GetFullDetailsByID(id uint, tx ...utility.Dat
 		Preload("LifecycleStatus").
 		Preload("ComplianceStatus").
 		Preload("Documents").
+		Preload("Checks").
+		Preload("Processes").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&slaRegister, id)
@@ -403,4 +424,29 @@ func (repo *SLARegisterRepository) GetLatestDocumentBySLAID(id uint) (*models.SL
 		return nil, err
 	}
 	return &document, nil
+}
+
+func (repo *SLARegisterRepository) CreateSLAProcesses(processes []*models.SLAProcess, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&processes).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *SLARegisterRepository) DeleteSLAProcesses(processIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Delete processes by IDs
+	if err := db.Where("id IN (?)", processIds).Delete(&models.SLAProcess{}).Error; err != nil {
+		return err
+	}
+
+	return nil
 }

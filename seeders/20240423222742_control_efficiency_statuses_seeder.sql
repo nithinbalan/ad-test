@@ -1,9 +1,9 @@
 -- +goose Up
 -- +goose StatementBegin
-INSERT INTO control_efficiency_statuses (title_en, title_ar, color_code, type, status) VALUES
-('Efficient', 'فعال', '#00FF00', 'efficient', 'active'),
-('Moderate', 'معتدل', '#FFFF00', 'moderate', 'active'),
-('Inefficient', 'غير فعال', '#FF0000', 'inefficient', 'active');
+INSERT INTO control_efficiency_statuses (title_en, title_ar, color_code, type, status, score_from, score_to) VALUES
+('Efficient', 'فعال', '#28A745', 'efficient', 'active', 80, 100),
+('Moderate', 'معتدل', '#FFC107', 'moderate', 'active', 31, 79),
+('Inefficient', 'غير فعال', '#DC3545', 'inefficient', 'active', 0, 30);
 -- +goose StatementEnd
 
 -- +goose Down

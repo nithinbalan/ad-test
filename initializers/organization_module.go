@@ -19,6 +19,7 @@ type OrganizationModule struct {
 	ControlTypeController                   *controllers.ControlTypeController
 	ControlImplementationStatusController   *controllers.ControlImplementationStatusController
 	ControlEfficiencyStatusController       *controllers.ControlEfficiencyStatusController
+	ControlReviewStatusController           *controllers.ControlReviewStatusController
 	ControlController                       *controllers.ControlController
 	ControlTestController                   *controllers.ControlTestController
 	ProcessGroupController                  *controllers.ProcessGroupController
@@ -28,11 +29,15 @@ type OrganizationModule struct {
 	UserTaskController                      *controllers.UserTaskController
 	StrategicProfileValueController         *controllers.StrategicProfileValueController
 	ProcessAssociatedItemController         *controllers.ProcessAssociatedItemController
+	ControlAssociatedItemController         *controllers.ControlAssociatedItemController
+	ControlReviewController                 *controllers.ControlReviewController
 
-	UserSvc        services.UserServiceInterface
-	UserSettingSvc services.UserSettingServiceInterface
-	ControlSvc     services.ControlServiceInterface
-	ProcessSvc     services.ProcessServiceInterface
+	UserSvc               services.UserServiceInterface
+	UserSettingSvc        services.UserSettingServiceInterface
+	ControlSvc            services.ControlServiceInterface
+	ProcessSvc            services.ProcessServiceInterface
+	StrategicObjectiveSvc services.StrategicObjectiveServiceInterface
+	ControlTestSvc        services.ControlTestServiceInterface
 }
 
 func NewOrganizationModule(
@@ -40,7 +45,8 @@ func NewOrganizationModule(
 	sharedModule *SharedModule,
 	settingsModule *SettingsModule,
 	masterModule *MasterModule,
-	taskModule *TaskModule) *OrganizationModule {
+	taskModule *TaskModule,
+	commonModule *CommonModule) *OrganizationModule {
 
 	designationRepo := repositories.NewDesignationRepository(db)
 	designationSvc := services.NewDesignationService(designationRepo, sharedModule.ActivityLogService)
@@ -51,7 +57,7 @@ func NewOrganizationModule(
 	userStatusController := controllers.NewUserStatusController(userStatusSvc)
 
 	userRepo := repositories.NewUserRepository(db)
-	userSvc := services.NewUserService(userRepo, designationSvc, userStatusSvc, sharedModule.ActivityLogService, settingsModule.RoleSvc, settingsModule.SystemPreferenceSvc)
+	userSvc := services.NewUserService(userRepo, designationSvc, userStatusSvc, sharedModule.ActivityLogService, settingsModule.RoleSvc, settingsModule.SystemPreferenceSvc, settingsModule.OrganizationLevelSvc)
 	userSettingRepo := repositories.NewUserSettingRepository(db)
 	userSettingSvc := services.NewUserSettingService(userSettingRepo, sharedModule.ActivityLogService)
 	userSvc.SetUserSettingService(userSettingSvc)
@@ -60,7 +66,7 @@ func NewOrganizationModule(
 	userSettingController := controllers.NewUserSettingController(userSettingSvc)
 
 	strategicProfileRepo := repositories.NewStrategicProfileRepository(db)
-	strategicProfileSvc := services.NewStrategicProfileService(strategicProfileRepo)
+	strategicProfileSvc := services.NewStrategicProfileService(strategicProfileRepo, commonModule.FileRepo)
 	strategicProfileController := controllers.NewStrategicProfileController(strategicProfileSvc)
 
 	strategicObjectiveRepo := repositories.NewStrategicObjectiveRepository(db)
@@ -87,6 +93,10 @@ func NewOrganizationModule(
 	strategicProfileValueSvc := services.NewStrategicProfileValueService(strategicProfileValueRepo, sharedModule.ActivityLogService, strategicProfileRepo)
 	strategicProfileValueController := controllers.NewStrategicProfileValueController(strategicProfileValueSvc)
 
+	controlReviewStatusRepo := repositories.NewControlReviewStatusRepository(db)
+	controlReviewStatusSvc := services.NewControlReviewStatusService(controlReviewStatusRepo)
+	controlReviewStatusController := controllers.NewControlReviewStatusController(controlReviewStatusSvc)
+
 	controlRepo := repositories.NewControlRepository(db)
 	controlSvc := services.NewControlService(
 		controlRepo,
@@ -106,8 +116,17 @@ func NewOrganizationModule(
 		sharedModule.ActivityLogService,
 		controlSvc,
 		controlImplementationStatusSvc,
-		controlEfficiencyStatusSvc)
+		controlEfficiencyStatusSvc,
+		masterModule.ReviewFrequencySvc)
 	controlTestController := controllers.NewControlTestController(controlTestSvc)
+
+	controlAssociatedItemRepo := repositories.NewControlAssociatedItemRepository(db)
+	controlAssociatedItemSvc := services.NewControlAssociatedItemService(controlAssociatedItemRepo, controlSvc, controlImplementationStatusSvc, controlEfficiencyStatusRepo)
+	controlAssociatedItemController := controllers.NewControlAssociatedItemController(controlAssociatedItemSvc)
+
+	controlReviewRepo := repositories.NewControlReviewRepository(db)
+	controlReviewSvc := services.NewControlReviewService(controlReviewRepo, sharedModule.ActivityLogService, controlSvc, masterModule.ReviewFrequencySvc, controlReviewStatusSvc)
+	controlReviewController := controllers.NewControlReviewController(controlReviewSvc)
 
 	processGroupRepo := repositories.NewProcessGroupRepository(db)
 	processGroupSvc := services.NewProcessGroupService(processGroupRepo, sharedModule.ActivityLogService)
@@ -130,7 +149,7 @@ func NewOrganizationModule(
 	userTaskController := controllers.NewUserTaskController(userTaskSvc)
 
 	processAssociatedItemRepo := repositories.NewProcessAssociatedItemRepository(db)
-	processAssociatedItemSvc := services.NewProcessAssociatedItemService(processAssociatedItemRepo, processSvc)
+	processAssociatedItemSvc := services.NewProcessAssociatedItemService(processAssociatedItemRepo, processSvc, controlImplementationStatusSvc, controlEfficiencyStatusRepo)
 	processAssociatedItemController := controllers.NewProcessAssociatedItemController(processAssociatedItemSvc)
 
 	return &OrganizationModule{
@@ -144,6 +163,7 @@ func NewOrganizationModule(
 		ControlTypeController:                   controlTypeController,
 		ControlImplementationStatusController:   controlImplementationStatusController,
 		ControlEfficiencyStatusController:       controlEfficiencyStatusController,
+		ControlReviewStatusController:           controlReviewStatusController,
 		ControlController:                       controlController,
 		ControlTestController:                   controlTestController,
 		ProcessGroupController:                  processGroupController,
@@ -153,10 +173,14 @@ func NewOrganizationModule(
 		UserTaskController:                      userTaskController,
 		StrategicProfileValueController:         strategicProfileValueController,
 		ProcessAssociatedItemController:         processAssociatedItemController,
+		ControlAssociatedItemController:         controlAssociatedItemController,
+		ControlReviewController:                 controlReviewController,
 
-		UserSvc:        userSvc,
-		UserSettingSvc: userSettingSvc,
-		ControlSvc:     controlSvc,
-		ProcessSvc:     processSvc,
+		UserSvc:               userSvc,
+		UserSettingSvc:        userSettingSvc,
+		ControlSvc:            controlSvc,
+		ProcessSvc:            processSvc,
+		StrategicObjectiveSvc: strategicObjectiveSvc,
+		ControlTestSvc:        controlTestSvc,
 	}
 }

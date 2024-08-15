@@ -19,31 +19,32 @@ type SLAActionPlanStatusUpdateServiceInterface interface {
 	GetAll(SLAID uint, SLAActionPlanID uint, sort string, sortBy string, keyword string) ([]*complianceDTOs.SLAActionPlanStatusUpdateListDTO, error)
 	Create(SLAID uint, SLAActionPlanID uint, currentUserID uint, SLAActionPlanStatusUpdateFormDTO *complianceDTOs.SLAActionPlanStatusUpdateFormDTO) (uint, error)
 	Update(SLAID uint, SLAActionPlanID uint, id uint, currentUserID uint, SLAActionPlanStatusUpdateFormDTO *complianceDTOs.SLAActionPlanStatusUpdateFormDTO) error
+	GetLatestSLAActionPlanStatusUpdate(slaID uint, actionPlanID uint) (*complianceDTOs.SLAActionPlanStatusUpdateListDTO, error)
 }
 
 type SLAActionPlanStatusUpdateService struct {
 	repo                repositories.SLAActionPlanStatusUpdateRepositoryInterface
 	activityLogSvc      logServices.ActivityLogServiceInterface
-	SLAActionPlanSvc    SLAActionPlanServiceInterface
+	slaActionPlanSvc    SLAActionPlanServiceInterface
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface
 }
 
 func NewSLAActionPlanStatusUpdateService(
 	repo repositories.SLAActionPlanStatusUpdateRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
-	SLAActionPlanSvc SLAActionPlanServiceInterface,
+	slaActionPlanSvc SLAActionPlanServiceInterface,
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
 ) SLAActionPlanStatusUpdateServiceInterface {
 	return &SLAActionPlanStatusUpdateService{
 		repo:                repo,
 		activityLogSvc:      activityLogSvc,
-		SLAActionPlanSvc:    SLAActionPlanSvc,
+		slaActionPlanSvc:    slaActionPlanSvc,
 		actionPlanStatusSvc: actionPlanStatusSvc,
 	}
 }
 
 func (sasus *SLAActionPlanStatusUpdateService) GetAll(SLAID uint, SLAActionPlanID uint, sort string, sortBy string, keyword string) ([]*complianceDTOs.SLAActionPlanStatusUpdateListDTO, error) {
-	if _, err := sasus.SLAActionPlanSvc.GetByID(SLAID, SLAActionPlanID); err != nil {
+	if _, err := sasus.slaActionPlanSvc.GetByID(SLAID, SLAActionPlanID); err != nil {
 		return nil, err
 	}
 
@@ -51,7 +52,7 @@ func (sasus *SLAActionPlanStatusUpdateService) GetAll(SLAID uint, SLAActionPlanI
 }
 
 func (sasus SLAActionPlanStatusUpdateService) GetByID(SLAID uint, SLAActionPlanID uint, id uint) (*models.SLAActionPlanStatusUpdate, error) {
-	if _, err := sasus.SLAActionPlanSvc.GetByID(SLAID, SLAActionPlanID); err != nil {
+	if _, err := sasus.slaActionPlanSvc.GetByID(SLAID, SLAActionPlanID); err != nil {
 		return nil, err
 	}
 
@@ -69,7 +70,7 @@ func (sasus SLAActionPlanStatusUpdateService) GetByID(SLAID uint, SLAActionPlanI
 func (sasus *SLAActionPlanStatusUpdateService) Create(SLAID uint, SLAActionPlanID uint, currentUserID uint, SLAActionPlanStatusUpdateFormDTO *complianceDTOs.SLAActionPlanStatusUpdateFormDTO) (uint, error) {
 	tx := sasus.repo.BeginTransaction()
 
-	if _, err := sasus.SLAActionPlanSvc.GetByID(SLAID, SLAActionPlanID); err != nil {
+	if _, err := sasus.slaActionPlanSvc.GetByID(SLAID, SLAActionPlanID); err != nil {
 		return 0, err
 	}
 
@@ -84,7 +85,7 @@ func (sasus *SLAActionPlanStatusUpdateService) Create(SLAID uint, SLAActionPlanI
 		ActionPlanStatusID: SLAActionPlanStatusUpdateFormDTO.ActionPlanStatusID,
 		Comment:            SLAActionPlanStatusUpdateFormDTO.Comment,
 		Percentage:         SLAActionPlanStatusUpdateFormDTO.Percentage,
-		CreatedBy:          currentUserID,
+		CreatedByID:        currentUserID,
 	}
 
 	id, err := sasus.repo.Create(SLAActionPlanUpdate)
@@ -93,7 +94,7 @@ func (sasus *SLAActionPlanStatusUpdateService) Create(SLAID uint, SLAActionPlanI
 		return 0, err
 	}
 
-	err = sasus.SLAActionPlanSvc.StatusUpdate(SLAID, SLAActionPlanID, currentUserID, SLAActionPlanStatusUpdateFormDTO.ActionPlanStatusID, tx)
+	err = sasus.slaActionPlanSvc.StatusUpdate(SLAID, SLAActionPlanID, currentUserID, SLAActionPlanStatusUpdateFormDTO.ActionPlanStatusID, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -120,7 +121,7 @@ func (sasus *SLAActionPlanStatusUpdateService) Create(SLAID uint, SLAActionPlanI
 			Token:                       encryptedFilename,
 			OriginalName:                doc.OriginalName,
 			Type:                        doc.Type,
-			CreatedBy:                   currentUserID,
+			CreatedByID:                 currentUserID,
 		}
 
 		documents = append(documents, document)
@@ -172,7 +173,7 @@ func (sasus *SLAActionPlanStatusUpdateService) Create(SLAID uint, SLAActionPlanI
 func (sasus *SLAActionPlanStatusUpdateService) Update(SLAID uint, SLAActionPlanID uint, id uint, currentUserID uint, SLAActionPlanStatusUpdateFormDTO *complianceDTOs.SLAActionPlanStatusUpdateFormDTO) error {
 	tx := sasus.repo.BeginTransaction()
 
-	if _, err := sasus.SLAActionPlanSvc.GetByID(SLAID, SLAActionPlanID); err != nil {
+	if _, err := sasus.slaActionPlanSvc.GetByID(SLAID, SLAActionPlanID); err != nil {
 		return err
 	}
 
@@ -191,7 +192,7 @@ func (sasus *SLAActionPlanStatusUpdateService) Update(SLAID uint, SLAActionPlanI
 	// Update SLA StatusUpdate-- only comments and percentage
 	existingSLAActionPlanStatusUpdate.Comment = SLAActionPlanStatusUpdateFormDTO.Comment
 	existingSLAActionPlanStatusUpdate.Percentage = SLAActionPlanStatusUpdateFormDTO.Percentage
-	existingSLAActionPlanStatusUpdate.UpdatedBy = &currentUserID
+	existingSLAActionPlanStatusUpdate.UpdatedByID = &currentUserID
 
 	err = sasus.repo.Update(existingSLAActionPlanStatusUpdate, tx)
 	if err != nil {
@@ -226,7 +227,7 @@ func (sasus *SLAActionPlanStatusUpdateService) Update(SLAID uint, SLAActionPlanI
 				Token:                       encryptedFileName,
 				OriginalName:                doc.OriginalName,
 				Type:                        doc.Type,
-				CreatedBy:                   currentUserID,
+				CreatedByID:                 currentUserID,
 			}
 
 			// Append the document to the slice
@@ -291,4 +292,12 @@ func (sasus *SLAActionPlanStatusUpdateService) validateSLAActionPlanStatusUpdate
 	}
 
 	return nil
+}
+
+func (sasus SLAActionPlanStatusUpdateService) GetLatestSLAActionPlanStatusUpdate(slaID uint, actionPlanID uint) (*complianceDTOs.SLAActionPlanStatusUpdateListDTO, error) {
+	if _, err := sasus.slaActionPlanSvc.GetByID(slaID, actionPlanID); err != nil {
+		return nil, err
+	}
+
+	return sasus.repo.GetLatestSLAActionPlanStatusUpdate(actionPlanID)
 }

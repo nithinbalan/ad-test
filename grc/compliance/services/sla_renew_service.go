@@ -77,7 +77,7 @@ func (srs *SLARenewService) Renew(slaId uint, currentUserID uint, slaRenewFormDT
 	if err != nil {
 		return err
 	}
-	url := utility.GenerateDocumentURL("sla-register", strconv.FormatUint(uint64(existingSLADocument.SLARegisterID), 10), encryptedFilename)
+	url := utility.GenerateDocumentURL("compliance", "sla-register", strconv.FormatUint(uint64(existingSLADocument.SLARegisterID), 10), "agreements")
 
 	currentVersionStr := existingSLADocument.Version
 	currentVersionFloat, err := strconv.ParseFloat(currentVersionStr, 64)
@@ -105,8 +105,8 @@ func (srs *SLARenewService) Renew(slaId uint, currentUserID uint, slaRenewFormDT
 		OriginalName:  slaRenewFormDTO.Document.OriginalName,
 		Type:          slaRenewFormDTO.Document.Type,
 		IsLatest:      true,
-		CreatedBy:     currentUserID,
-		UpdatedBy:     currentUserID,
+		CreatedByID:   currentUserID,
+		UpdatedByID:   currentUserID,
 	}
 
 	if err := srs.slaRegRepo.CreateDocument(slaDocument, tx); err != nil {
@@ -183,7 +183,7 @@ func (srs *SLARenewService) Revert(slaId uint, currentUserID uint) error {
 	}
 
 	previousSLADocument.IsLatest = true
-	previousSLADocument.UpdatedBy = currentUserID
+	previousSLADocument.UpdatedByID = currentUserID
 	if err := srs.slaRegRepo.CreateDocument(previousSLADocument, tx); err != nil {
 		tx.Rollback()
 		return err

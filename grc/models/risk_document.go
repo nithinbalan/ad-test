@@ -13,15 +13,15 @@ type RiskDocument struct {
 	Token          string     `json:"token"`
 	OriginalName   string     `json:"original_name"`
 	Type           string     `json:"type"`
-	CreatedBy      uint       `json:"created_by" gorm:"not null"`
-	UpdatedBy      uint       `json:"updated_by" gorm:"default:null"`
+	CreatedByID    uint       `json:"created_by_id" gorm:"not null"`
+	UpdatedByID    uint       `json:"updated_by_id" gorm:"default:null"`
 	CreatedAt      time.Time  `json:"created_at" binding:"required" gorm:"type:datetime;not null"`
 	UpdatedAt      *time.Time `json:"updated_at,omitempty" gorm:"type:datetime;default:null"`
 
 	// Relationships
-	RiskRegister  *RiskRegister `gorm:"foreignkey:RiskRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser *User         `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser *User         `gorm:"foreignKey:UpdatedBy"`
+	RiskRegister  *RiskRegister `gorm:"foreignKey:RiskRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	CreatedByUser *User         `gorm:"foreignKey:CreatedByID"`
+	UpdatedByUser *User         `gorm:"foreignKey:UpdatedByID"`
 }
 
 func (RiskDocument) TableName() string {

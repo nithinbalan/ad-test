@@ -15,7 +15,11 @@ import (
 type TaskRepositoryInteface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *taskDTOs.TaskListQueryParamsDTO) (*taskDTOs.TaskListResponseDTO, error)
-	CreateTask(task *models.Task, tx ...utility.DatabaseTransaction) error
+	GetByID(id uint) (*models.Task, error)
+	GetByFieldID(field string, value interface{}) (*models.Task, error)
+	Create(task *models.Task, tx ...utility.DatabaseTransaction) error
+	Update(task *models.Task, tx ...utility.DatabaseTransaction) error
+	Delete(id uint) error
 	GenerateReferenceNumber() (string, error)
 }
 
@@ -78,8 +82,8 @@ func (repo *TaskRepository) GetAll(params *taskDTOs.TaskListQueryParamsDTO) (*ta
             LEFT JOIN task_statuses ON task_statuses.id = tasks.task_status_id
 		    LEFT JOIN severity_levels ON severity_levels.id = tasks.severity_level_id
             LEFT JOIN users AS responsible_user ON responsible_user.id = tasks.responsible_user_id
-			LEFT JOIN users AS created_user ON created_user.id = tasks.created_by
-			LEFT JOIN users AS updated_user ON updated_user.id = tasks.updated_by
+			LEFT JOIN users AS created_user ON created_user.id = tasks.created_by_id
+			LEFT JOIN users AS updated_user ON updated_user.id = tasks.updated_by_id
         `)
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
@@ -164,7 +168,31 @@ func (repo *TaskRepository) GetAll(params *taskDTOs.TaskListQueryParamsDTO) (*ta
 	return response, nil
 }
 
-func (repo *TaskRepository) CreateTask(task *models.Task, tx ...utility.DatabaseTransaction) error {
+func (repo *TaskRepository) GetByID(id uint) (*models.Task, error) {
+	var task *models.Task
+
+	result := repo.db.First(&task, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return task, nil
+
+}
+
+
+func (repo *TaskRepository) GetByFieldID(field string, value interface{}) (*models.Task, error) {
+	var task models.Task
+
+	result := repo.db.Where(field+" = ?", value).First(&task)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return &task, nil
+}
+
+func (repo *TaskRepository) Create(task *models.Task, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -198,4 +226,30 @@ func (repo *TaskRepository) GenerateReferenceNumber() (string, error) {
 	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "T", currentYear, lastReferenceID+1)
 
 	return newReferenceNumber, nil
+}
+
+func (repo *TaskRepository) Update(task *models.Task, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(task).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *TaskRepository) Delete(id uint) error {
+
+	var task *models.Task
+	if err := repo.db.First(&task, id).Error; err != nil {
+		return err
+	}
+
+	result := repo.db.Delete(&models.Task{}, id)
+	if result.Error != nil {
+		return result.Error
+	}
+
+	return nil
 }

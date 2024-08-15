@@ -14,13 +14,13 @@ type UserNotification struct {
 	RedirectURL string    `json:"redirect_url" gorm:"size:255;not null" binding:"required"`
 	IsNew       bool      `json:"is_new" gorm:"type:boolean;default:true"`
 	IsRead      bool      `json:"is_read" gorm:"type:boolean;default:false"`
-	CreatedBy   uint      `json:"created_by" gorm:"not null"`
+	CreatedByID uint      `json:"created_by_id" gorm:"not null"`
 	CreatedAt   time.Time `json:"created_at" gorm:"type:datetime;not null"`
 
 	// Relationships
-	User          *User   `gorm:"foreignkey:UserID;constraint:OnDelete:NO ACTION,OnUpdate:NO ACTION"`
-	Module        *Module `gorm:"foreignkey:ModuleID;constraint:OnDelete:NO ACTION,OnUpdate:NO ACTION"`
-	CreatedByUser *User   `gorm:"foreignKey:CreatedBy"`
+	User          *User   `gorm:"foreignKey:UserID;constraint:OnDelete:NO ACTION,OnUpdate:NO ACTION"`
+	Module        *Module `gorm:"foreignKey:ModuleID;constraint:OnDelete:NO ACTION,OnUpdate:NO ACTION"`
+	CreatedByUser *User   `gorm:"foreignKey:CreatedByID"`
 }
 
 // TableName overrides the table name used by UserNotification to `user_notifications`

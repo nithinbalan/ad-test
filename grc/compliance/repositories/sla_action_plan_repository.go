@@ -11,12 +11,15 @@ import (
 )
 
 type SLAActionPlanRepositoryInterface interface {
+	BeginTransaction() utility.DatabaseTransaction
 	GetAll(slaID uint, params *complianceDTOs.SLAActionPlanListQueryParamsDTO) (*complianceDTOs.SLAActionPlanListResponseDTO, error)
 	GetByID(id uint) (*models.SLAActionPlan, error)
 	GetFullDetailsByID(id uint) (*models.SLAActionPlan, error)
 	Create(slaActionPlan *models.SLAActionPlan, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(slaActionPlan *models.SLAActionPlan, tx ...utility.DatabaseTransaction) error
-	Delete(id uint) error
+	Delete(id uint, tx ...utility.DatabaseTransaction) error
+	CreateInitialSLAActionPlanStatusUpdate(slaActionPlanStatusUpdate *models.SLAActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
+	DeleteSLAActionPlanStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type SLAActionPlanRepository struct {
@@ -27,6 +30,10 @@ func NewSLAActionPlanRepository(db *gorm.DB) *SLAActionPlanRepository {
 	return &SLAActionPlanRepository{
 		db: db,
 	}
+}
+
+func (repo *SLAActionPlanRepository) BeginTransaction() utility.DatabaseTransaction {
+	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
 func (repo *SLAActionPlanRepository) GetAll(slaID uint, params *complianceDTOs.SLAActionPlanListQueryParamsDTO) (*complianceDTOs.SLAActionPlanListResponseDTO, error) {
@@ -48,21 +55,33 @@ func (repo *SLAActionPlanRepository) GetAll(slaID uint, params *complianceDTOs.S
         responsible_user.first_name_ar AS responsible_user_first_name_ar,
         responsible_user.last_name_en AS responsible_user_last_name_en,
         responsible_user.last_name_ar AS responsible_user_last_name_ar,
+		responsible_user.initial AS responsible_user_initial,
+        responsible_user.color AS responsible_user_color,
+        responsible_user.email AS responsible_user_email,
+        responsible_user.profile_image_path AS responsible_user_profile_image_path,
         created_user.first_name_en AS created_user_first_name_en,
         created_user.first_name_ar AS created_user_first_name_ar,
         created_user.last_name_en AS created_user_last_name_en,
         created_user.last_name_ar AS created_user_last_name_ar,   
-        updated_user.first_name_en AS updated_user_first_name_en,
+		created_user.initial AS created_user_initial,
+        created_user.color AS created_user_color,
+        created_user.email AS created_user_email,
+        created_user.profile_image_path AS created_user_profile_image_path,   
+		updated_user.first_name_en AS updated_user_first_name_en,
         updated_user.first_name_ar AS updated_user_first_name_ar,
         updated_user.last_name_en AS updated_user_last_name_en,
-        updated_user.last_name_ar AS updated_user_last_name_ar 
+        updated_user.last_name_ar AS updated_user_last_name_ar,
+		updated_user.initial AS updated_user_initial,
+        updated_user.color AS updated_user_color,
+        updated_user.email AS updated_user_email,
+        updated_user.profile_image_path AS updated_user_profile_image_path 
     `).
 		Joins(`
         LEFT JOIN action_plan_statuses ON action_plan_statuses.id = sla_action_plans.action_plan_status_id
         LEFT JOIN severity_levels ON severity_levels.id = sla_action_plans.severity_level_id
         LEFT JOIN users AS responsible_user ON responsible_user.id = sla_action_plans.responsible_user_id
-        LEFT JOIN users AS created_user ON created_user.id = sla_action_plans.created_by
-        LEFT JOIN users AS updated_user ON updated_user.id = sla_action_plans.updated_by
+        LEFT JOIN users AS created_user ON created_user.id = sla_action_plans.created_by_id
+        LEFT JOIN users AS updated_user ON updated_user.id = sla_action_plans.updated_by_id
         LEFT JOIN sla_check_questions ON sla_check_questions.id = sla_action_plans.sla_check_question_id
     `).Where(`sla_action_plans.sla_register_id`, slaID)
 
@@ -108,7 +127,12 @@ func (repo *SLAActionPlanRepository) GetAll(slaID uint, params *complianceDTOs.S
             responsible_user.first_name_en LIKE ? OR
             responsible_user.first_name_ar LIKE ? OR
             responsible_user.last_name_en LIKE ? OR
-            responsible_user.last_name_ar LIKE ?)`,
+			responsible_user.last_name_ar LIKE ? OR
+            responsible_user.initial LIKE ? OR
+            responsible_user.color LIKE ? OR
+            responsible_user.profile_image_path LIKE ? OR
+            responsible_user.email LIKE ?)`,
+			keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword,
 			keyword)
@@ -166,6 +190,7 @@ func (repo *SLAActionPlanRepository) GetFullDetailsByID(id uint) (*models.SLAAct
 		Preload("ResponsibleUser").
 		Preload("SeverityLevel").
 		Preload("ActionPlanStatus").
+		Preload("ActionPlanStatusUpdates").
 		First(&slaActionPlan, id)
 
 	if result.Error != nil {
@@ -189,16 +214,43 @@ func (repo *SLAActionPlanRepository) Update(slaActionPlan *models.SLAActionPlan,
 	return nil
 }
 
-func (repo *SLAActionPlanRepository) Delete(id uint) error {
-
+func (repo *SLAActionPlanRepository) Delete(id uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 	var slaActionPlan *models.SLAActionPlan
-	if err := repo.db.First(&slaActionPlan, id).Error; err != nil {
+	if err := db.First(&slaActionPlan, id).Error; err != nil {
 		return err
 	}
 
-	result := repo.db.Delete(&models.SLAActionPlan{}, id)
+	result := db.Delete(&models.SLAActionPlan{}, id)
 	if result.Error != nil {
 		return result.Error
+	}
+
+	return nil
+}
+
+func (repo *SLAActionPlanRepository) CreateInitialSLAActionPlanStatusUpdate(slaActionPlanStatusUpdate *models.SLAActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(slaActionPlanStatusUpdate).Error; err != nil {
+		return 0, err
+	}
+	return slaActionPlanStatusUpdate.ID, nil
+}
+
+func (repo *SLAActionPlanRepository) DeleteSLAActionPlanStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", ids).Delete(&models.SLAActionPlanStatusUpdate{}).Error; err != nil {
+		return err
 	}
 
 	return nil

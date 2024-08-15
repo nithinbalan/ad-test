@@ -13,11 +13,13 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
 )
 
 type KRIValueUpdateServiceInterface interface {
 	GetAll(kriRegisterID uint, params *riskDTOs.KRIValueUpdateListQueryParamsDTO) (*riskDTOs.KRIValueUpdateListResponseDTO, error)
+	GetFullDetailsByID(id uint) (*riskDTOs.KRIValueUpdateDetailsDTO, error)
 	Create(kriRegisterID, currentUserID uint, kriValueUpdateFormDTO *riskDTOs.KRIValueUpdateFormDTO) (uint, error)
 	Update(kriRegisterID, updateId, currentUserID uint, kriValueUpdateFormDTO *riskDTOs.KRIValueUpdateFormDTO) error
 	Delete(kriRegisterID uint, ids []uint, currentUserID uint) ([]uint, error)
@@ -74,13 +76,14 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 	}
 	kriValueUpdate := &models.KRIValueUpdate{
 		KRIRegisterID:   kriRegisterID,
+		UnitID:          existingKRIRegister.UnitID,
 		ReviewedDate:    *dates.ReviewedDate,
 		Value:           kriValueUpdateFormDTO.Value,
-		LowThreshold:    *existingKRIRegister.LowThreshold,
-		MediumThreshold: *existingKRIRegister.MediumThreshold,
-		HighThreshold:   *existingKRIRegister.HighThreshold,
+		LowThreshold:    existingKRIRegister.LowThreshold,
+		MediumThreshold: existingKRIRegister.MediumThreshold,
+		HighThreshold:   existingKRIRegister.HighThreshold,
 		Remarks:         kriValueUpdateFormDTO.Remarks,
-		CreatedBy:       currentUserID,
+		CreatedByID:     currentUserID,
 	}
 
 	id, err := kvus.repo.Create(kriValueUpdate, tx)
@@ -171,6 +174,32 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 	return id, nil
 }
 
+func (kvus KRIValueUpdateService) GetFullDetailsByID(id uint) (*riskDTOs.KRIValueUpdateDetailsDTO, error) {
+	var valueUpdate riskDTOs.KRIValueUpdateDetailsDTO
+
+	existingKRIUpdate, err := kvus.repo.GetFullDetailsByID(id)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+
+	err = mapstructure.Decode(existingKRIUpdate, &valueUpdate)
+	if err != nil {
+		return nil, err
+	}
+
+	reviewedDate := existingKRIUpdate.ReviewedDate.Format("2006-01-02")
+	valueUpdate.ReviewedDateString = &reviewedDate
+
+	valueUpdate.CreatedAt = existingKRIUpdate.CreatedAt
+	valueUpdate.UpdatedAt = existingKRIUpdate.UpdatedAt
+
+	return &valueUpdate, nil
+}
+
 func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentUserID uint, kriValueUpdateFormDTO *riskDTOs.KRIValueUpdateFormDTO) error {
 	tx := kvus.repo.BeginTransaction()
 
@@ -196,6 +225,7 @@ func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentU
 	// Update KRI Value Update
 	existingKRIUpdate.KRIRegisterID = kriRegisterID
 	existingKRIUpdate.ReviewedDate = *dates.ReviewedDate
+	existingKRIUpdate.UnitID = existingKRIRegister.UnitID
 	existingKRIUpdate.Value = kriValueUpdateFormDTO.Value
 	existingKRIUpdate.Remarks = kriValueUpdateFormDTO.Remarks
 
@@ -298,8 +328,9 @@ func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentU
 func (kvus *KRIValueUpdateService) Delete(kriRegisterID uint, ids []uint, currentUserID uint) ([]uint, error) {
 	tx := kvus.repo.BeginTransaction()
 
-	_, err := kvus.kriRegisterSvc.GetByID(kriRegisterID)
+	existingKRIRegister, err := kvus.kriRegisterSvc.GetByID(kriRegisterID)
 	if err != nil {
+		tx.Rollback()
 		return nil, err
 	}
 
@@ -320,7 +351,6 @@ func (kvus *KRIValueUpdateService) Delete(kriRegisterID uint, ids []uint, curren
 			for _, updateDocument := range valueUpdate.Documents {
 				documentsToDelete[id] = append(documentsToDelete[id], &updateDocument)
 				deleteDocumentIds = append(deleteDocumentIds, &updateDocument.ID)
-
 			}
 			if len(deleteDocumentIds) > 0 {
 				if err := kvus.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
@@ -328,7 +358,6 @@ func (kvus *KRIValueUpdateService) Delete(kriRegisterID uint, ids []uint, curren
 					continue
 				}
 			}
-
 		}
 
 		if err := kvus.repo.Delete(id, tx); err != nil {
@@ -337,7 +366,6 @@ func (kvus *KRIValueUpdateService) Delete(kriRegisterID uint, ids []uint, curren
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
-
 	}
 
 	if len(failedIds) > 0 {
@@ -356,12 +384,43 @@ func (kvus *KRIValueUpdateService) Delete(kriRegisterID uint, ids []uint, curren
 				}
 			}
 		}
+
+		// Update KRIRegister with the next available KRIValueUpdate value
+		nextValueUpdate, err := kvus.repo.GetNextKRIValueUpdate(kriRegisterID, successfulIds,tx)
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+
+		reviewFrequency, err := kvus.reviewFrequencySvc.GetByID(existingKRIRegister.ReviewFrequencyID)
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+
+		if nextValueUpdate != nil {
+			existingKRIRegister.CurrentValue = &nextValueUpdate.Value
+			existingKRIRegister.LastReviewNote = nextValueUpdate.Remarks
+			existingKRIRegister.LastReviewedDate = &nextValueUpdate.ReviewedDate
+			existingKRIRegister.NextReviewDate = utility.CalculateNextReviewDate(reviewFrequency.Type)
+		} 
+		// else {
+		// 	// Set fields to nil if no next value update exists
+		// 	existingKRIRegister.CurrentValue = nil
+		// 	existingKRIRegister.LastReviewNote = nil
+		// 	existingKRIRegister.LastReviewedDate = nil
+		// 	existingKRIRegister.NextReviewDate = nil
+		// }
+
+		if err := kvus.kriRegisterSvc.UpdateValue(existingKRIRegister, tx); err != nil {
+			tx.Rollback()
+			return nil, err
+		}
 	}
 
 	tx.Commit()
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := kvus.activityLogSvc.LogBulkActivities(
 				models.DeleteAction, // Make sure this action constant is defined appropriately
@@ -380,6 +439,7 @@ func (kvus *KRIValueUpdateService) Delete(kriRegisterID uint, ids []uint, curren
 
 	return failedIds, nil
 }
+
 
 func (kvus *KRIValueUpdateService) parseKRIValueUpdateDates(dto *riskDTOs.KRIValueUpdateFormDTO) (*riskDTOs.KRIValueUpdateParsedDates, error) {
 	parsed := &riskDTOs.KRIValueUpdateParsedDates{}

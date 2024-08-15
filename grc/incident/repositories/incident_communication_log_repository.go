@@ -14,9 +14,10 @@ type IncidentCommunicationLogRepositoryInterface interface {
 	GetAll(incidentID uint, params *incidentDTOs.IncidentCommunicationLogListQueryParamsDTO) (*incidentDTOs.IncidentCommunicationLogListResponseDTO, error)
 	GetByID(id uint) (*models.IncidentCommunicationLog, error)
 	GetFullDetailsByID(id uint) (*models.IncidentCommunicationLog, error)
-	Create(incidentCommunicationLog *models.IncidentCommunicationLog) (uint, error)
+	Create(incidentCommunicationLog *models.IncidentCommunicationLog, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(incidentCommunicationLog *models.IncidentCommunicationLog, tx ...utility.DatabaseTransaction) error
-	Delete(id uint) error
+	Delete(id uint, tx ...utility.DatabaseTransaction) error
+	GetCountByRiskID(incidentID uint, tx ...utility.DatabaseTransaction) (int64, error)
 }
 
 type IncidentCommunicationLogRepository struct {
@@ -52,8 +53,8 @@ func (repo *IncidentCommunicationLogRepository) GetAll(incidentID uint, params *
         updated_user.last_name_ar AS updated_user_last_name_ar 
     `).
 		Joins(`
-        LEFT JOIN users AS created_user ON created_user.id = incident_communication_logs.created_by
-        LEFT JOIN users AS updated_user ON updated_user.id = incident_communication_logs.updated_by
+        LEFT JOIN users AS created_user ON created_user.id = incident_communication_logs.created_by_id
+        LEFT JOIN users AS updated_user ON updated_user.id = incident_communication_logs.updated_by_id
     `).Where(`incident_communication_logs.incident_register_id`, incidentID)
 
 	// Apply dynamic filters to the query
@@ -139,8 +140,12 @@ func (repo *IncidentCommunicationLogRepository) GetFullDetailsByID(id uint) (*mo
 	return incidentCommunicationLog, nil
 }
 
-func (repo *IncidentCommunicationLogRepository) Create(incidentCommunicationLog *models.IncidentCommunicationLog) (uint, error) {
-	if err := repo.db.Create(incidentCommunicationLog).Error; err != nil {
+func (repo *IncidentCommunicationLogRepository) Create(incidentCommunicationLog *models.IncidentCommunicationLog, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(incidentCommunicationLog).Error; err != nil {
 		return 0, err
 	}
 	return incidentCommunicationLog.ID, nil
@@ -157,17 +162,34 @@ func (repo *IncidentCommunicationLogRepository) Update(incidentCommunicationLog 
 	return nil
 }
 
-func (repo *IncidentCommunicationLogRepository) Delete(id uint) error {
-
+func (repo *IncidentCommunicationLogRepository) Delete(id uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 	var incidentCommunicationLog *models.IncidentCommunicationLog
-	if err := repo.db.First(&incidentCommunicationLog, id).Error; err != nil {
+	if err := db.First(&incidentCommunicationLog, id).Error; err != nil {
 		return err
 	}
 
-	result := repo.db.Delete(&models.IncidentCommunicationLog{}, id)
+	result := db.Delete(&models.IncidentCommunicationLog{}, id)
 	if result.Error != nil {
 		return result.Error
 	}
 
 	return nil
+}
+
+func (repo *IncidentCommunicationLogRepository) GetCountByRiskID(incidentID uint, tx ...utility.DatabaseTransaction) (int64, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	var count int64
+	if err := db.Model(&models.IncidentCommunicationLog{}).
+		Where("incident_register_id = ?", incidentID).
+		Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
 }

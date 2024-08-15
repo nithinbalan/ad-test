@@ -5,6 +5,7 @@ import (
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
+	"jethur/utility"
 	"strconv"
 	"time"
 
@@ -16,7 +17,7 @@ type ControlRepositoryInterface interface {
 	GetByID(id uint) (*models.Control, error)
 	GetFullDetailsByID(id uint) (*models.Control, error)
 	Create(control *models.Control) (uint, error)
-	Update(complianceRegister *models.Control) error
+	Update(complianceRegister *models.Control, tx ...utility.DatabaseTransaction) error
 	Delete(id uint) error
 	GenerateReferenceNumber() (string, error)
 
@@ -52,12 +53,20 @@ func (repo *ControlRepository) GetAll(params *organizationDTOs.ControlListQueryP
 				owner.first_name_ar AS owner_first_name_ar,
 				owner.last_name_en AS owner_last_name_en,
 				owner.last_name_ar AS owner_last_name_ar,
+				owner.initial AS owner_initial,
+        		owner.color AS owner_color,
+        		owner.email AS owner_email,
+        		owner.profile_image_path AS owner_profile_image_path,
 				review_frequencies.title_en AS review_frequency_title_en,
 				review_frequencies.title_ar AS review_frequency_title_ar,
 				test_responsible_user.first_name_en AS test_responsible_user_first_name_en,
 				test_responsible_user.first_name_ar AS test_responsible_user_first_name_ar,
 				test_responsible_user.last_name_en AS test_responsible_user_last_name_en,
 				test_responsible_user.last_name_ar AS test_responsible_user_last_name_ar,
+				test_responsible_user.initial AS test_responsible_user_initial,
+        		test_responsible_user.color AS test_responsible_user_color,
+        		test_responsible_user.email AS test_responsible_user_email,
+        		test_responsible_user.profile_image_path AS test_responsible_user_profile_image_path,
 				test_frequencies.title_en AS test_frequency_title_en,
 				test_frequencies.title_ar AS test_frequency_title_ar,
 				lifecycle_statuses.title_en AS lifecycle_status_title_en,
@@ -72,11 +81,19 @@ func (repo *ControlRepository) GetAll(params *organizationDTOs.ControlListQueryP
 				created_user.first_name_en AS created_user_first_name_en,
 				created_user.first_name_ar AS created_user_first_name_ar,
 				created_user.last_name_en AS created_user_last_name_en,
-				created_user.last_name_ar AS created_user_last_name_ar,   
+				created_user.last_name_ar AS created_user_last_name_ar,
+				created_user.initial AS created_user_initial,
+        		created_user.color AS created_user_color,
+        		created_user.email AS created_user_email,
+        		created_user.profile_image_path AS created_user_profile_image_path,   
 				updated_user.first_name_en AS updated_user_first_name_en,
 				updated_user.first_name_ar AS updated_user_first_name_ar,
 				updated_user.last_name_en AS updated_user_last_name_en,
-				updated_user.last_name_ar AS updated_user_last_name_ar
+				updated_user.last_name_ar AS updated_user_last_name_ar,
+				updated_user.initial AS updated_user_initial,
+        		updated_user.color AS updated_user_color,
+        		updated_user.email AS updated_user_email,
+        		updated_user.profile_image_path AS updated_user_profile_image_path  
         `).
 		Joins("LEFT JOIN control_types ON control_types.id = controls.control_type_id").
 		Joins("LEFT JOIN control_categories ON control_categories.id = controls.control_category_id").
@@ -88,8 +105,8 @@ func (repo *ControlRepository) GetAll(params *organizationDTOs.ControlListQueryP
 		Joins("LEFT JOIN users AS test_responsible_user ON test_responsible_user.id = controls.test_responsible_user_id").
 		Joins("LEFT JOIN review_frequencies AS test_frequencies ON test_frequencies.id = controls.test_frequency_id").
 		Joins("LEFT JOIN lifecycle_statuses ON lifecycle_statuses.id = controls.lifecycle_status_id").
-		Joins("LEFT JOIN users AS created_user ON created_user.id = controls.created_by").
-		Joins("LEFT JOIN users AS updated_user ON updated_user.id = controls.updated_by")
+		Joins("LEFT JOIN users AS created_user ON created_user.id = controls.created_by_id").
+		Joins("LEFT JOIN users AS updated_user ON updated_user.id = controls.updated_by_id")
 
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
@@ -245,6 +262,20 @@ func (repo *ControlRepository) GetByID(id uint) (*models.Control, error) {
 func (repo *ControlRepository) GetFullDetailsByID(id uint) (*models.Control, error) {
 	var control *models.Control
 
+	latestControlTestSubQuery := repo.db.
+		Table("control_tests").
+		Select("id").
+		Where("control_id = ?", id).
+		Order("tested_at desc").
+		Limit(1)
+
+	latestControlReviewSubQuery := repo.db.
+		Table("control_reviews").
+		Select("id").
+		Where("control_id = ?", id).
+		Order("reviewed_at desc").
+		Limit(1)
+
 	result := repo.db.
 		Preload("ControlType").
 		Preload("ControlCategory").
@@ -256,10 +287,21 @@ func (repo *ControlRepository) GetFullDetailsByID(id uint) (*models.Control, err
 		Preload("TestResponsibleUser").
 		Preload("TestResponsibleUser.OrganizationUnit1").
 		Preload("ReviewFrequency").
+		Preload("ControlReviewStatus").
 		Preload("TestFrequency").
 		Preload("LifecycleStatus").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
+		Preload("LatestControlTest", func(db *gorm.DB) *gorm.DB {
+			return db.Where("id IN (?)", latestControlTestSubQuery).
+				Preload("TestedByUser")
+		}).
+		Preload("LatestControlReview", func(db *gorm.DB) *gorm.DB {
+			return db.Where("id IN (?)", latestControlReviewSubQuery).
+				Preload("ReviewedByUser").
+				Preload("UpdatedByUser").
+				Preload("Documents")
+		}).
 		First(&control, id)
 
 	if result.Error != nil {
@@ -277,8 +319,13 @@ func (repo *ControlRepository) Create(control *models.Control) (uint, error) {
 	return control.ID, nil
 }
 
-func (repo *ControlRepository) Update(control *models.Control) error {
-	if err := repo.db.Save(control).Error; err != nil {
+func (repo *ControlRepository) Update(control *models.Control, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Save(control).Error; err != nil {
 		return err
 	}
 

@@ -13,11 +13,12 @@ type RiskRootCauseAnalysisRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(riskID uint, params *riskDTOs.RiskRootCauseAnalysisListQueryParamsDTO) ([]*riskDTOs.RiskRootCauseAnalysisListDTO, error)
 	GetByID(id uint) (*models.RiskRootCauseAnalysis, error)
-	Create(riskRootCauseAnalysis *models.RiskRootCauseAnalysis) (uint, error)
+	Create(riskRootCauseAnalysis *models.RiskRootCauseAnalysis, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(riskRootCauseAnalysis *models.RiskRootCauseAnalysis) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	GetLatestWhyByRiskID(riskID uint) (uint, error)
 	UpdateWhyValuesAfterDeletion(riskID uint, deletedWhy uint, tx ...utility.DatabaseTransaction) error
+	GetCountByRiskID(riskID uint, tx ...utility.DatabaseTransaction) (int64, error)
 }
 
 type RiskRootCauseAnalysisRepository struct {
@@ -53,8 +54,8 @@ func (repo *RiskRootCauseAnalysisRepository) GetAll(riskID uint, params *riskDTO
         `).
 		Joins(`
             LEFT JOIN risk_register ON risk_register.id = risk_root_cause_analysis.risk_register_id
-            LEFT JOIN users AS created_user ON created_user.id = risk_root_cause_analysis.created_by
-            LEFT JOIN users AS updated_user ON updated_user.id = risk_root_cause_analysis.updated_by
+            LEFT JOIN users AS created_user ON created_user.id = risk_root_cause_analysis.created_by_id
+            LEFT JOIN users AS updated_user ON updated_user.id = risk_root_cause_analysis.updated_by_id
         `).
 		Where(`risk_root_cause_analysis.risk_register_id`, riskID)
 
@@ -98,9 +99,12 @@ func (repo *RiskRootCauseAnalysisRepository) GetByID(id uint) (*models.RiskRootC
 
 }
 
-func (repo *RiskRootCauseAnalysisRepository) Create(riskRootCauseAnalysis *models.RiskRootCauseAnalysis) (uint, error) {
-
-	if err := repo.db.Create(riskRootCauseAnalysis).Error; err != nil {
+func (repo *RiskRootCauseAnalysisRepository) Create(riskRootCauseAnalysis *models.RiskRootCauseAnalysis, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(riskRootCauseAnalysis).Error; err != nil {
 		return 0, err
 	}
 
@@ -155,4 +159,18 @@ func (repo *RiskRootCauseAnalysisRepository) UpdateWhyValuesAfterDeletion(riskID
 		return err
 	}
 	return nil
+}
+
+func (repo *RiskRootCauseAnalysisRepository) GetCountByRiskID(riskID uint, tx ...utility.DatabaseTransaction) (int64, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	var count int64
+	if err := db.Model(&models.RiskRootCauseAnalysis{}).
+		Where("risk_register_id = ?", riskID).
+		Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
 }

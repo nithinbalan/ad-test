@@ -19,6 +19,7 @@ type RiskActionPlanStatusUpdateServiceInterface interface {
 	GetAll(RiskID uint, RiskActionPlanID uint, sort string, sortBy string, keyword string) ([]*riskDTOs.RiskActionPlanStatusUpdateListDTO, error)
 	Create(RiskID uint, RiskActionPlanID uint, currentUserID uint, riskActionPlanStatusUpdateFormDTO *riskDTOs.RiskActionPlanStatusUpdateFormDTO) (uint, error)
 	Update(RiskID uint, RiskActionPlanID uint, id uint, currentUserID uint, riskActionPlanStatusUpdateFormDTO *riskDTOs.RiskActionPlanStatusUpdateFormDTO) error
+	GetLatestRiskActionPlanStatusUpdate(riskID uint, actionPlanID uint) (*riskDTOs.RiskActionPlanStatusUpdateListDTO, error)
 }
 
 type RiskActionPlanStatusUpdateService struct {
@@ -84,7 +85,7 @@ func (rasus *RiskActionPlanStatusUpdateService) Create(RiskID uint, RiskActionPl
 		ActionPlanStatusID: riskActionPlanStatusUpdateFormDTO.ActionPlanStatusID,
 		Comment:            riskActionPlanStatusUpdateFormDTO.Comment,
 		Percentage:         riskActionPlanStatusUpdateFormDTO.Percentage,
-		CreatedBy:          currentUserID,
+		CreatedByID:        currentUserID,
 	}
 
 	id, err := rasus.repo.Create(riskActionPlanUpdate, tx)
@@ -119,7 +120,7 @@ func (rasus *RiskActionPlanStatusUpdateService) Create(RiskID uint, RiskActionPl
 			Size:                         doc.Size,
 			Token:                        encryptedFilename,
 			Type:                         doc.Type,
-			CreatedBy:                    currentUserID,
+			CreatedByID:                  currentUserID,
 		}
 
 		documents = append(documents, document)
@@ -188,7 +189,7 @@ func (rasus *RiskActionPlanStatusUpdateService) Update(RiskID uint, RiskActionPl
 	// Update Risk StatusUpdate-- only comments and percentage
 	existingRiskActionPlanStatusUpdate.Comment = RiskActionPlanStatusUpdateFormDTO.Comment
 	existingRiskActionPlanStatusUpdate.Percentage = RiskActionPlanStatusUpdateFormDTO.Percentage
-	existingRiskActionPlanStatusUpdate.UpdatedBy = &currentUserID
+	existingRiskActionPlanStatusUpdate.UpdatedByID = &currentUserID
 
 	err = rasus.repo.Update(existingRiskActionPlanStatusUpdate, tx)
 	if err != nil {
@@ -222,7 +223,7 @@ func (rasus *RiskActionPlanStatusUpdateService) Update(RiskID uint, RiskActionPl
 				Size:                         doc.Size,
 				Token:                        encryptedFileName,
 				Type:                         doc.Type,
-				CreatedBy:                    currentUserID,
+				CreatedByID:                  currentUserID,
 			}
 
 			// Append the document to the slice
@@ -287,4 +288,12 @@ func (rasus *RiskActionPlanStatusUpdateService) validateRiskActionPlanStatusUpda
 	}
 
 	return nil
+}
+
+func (rasus RiskActionPlanStatusUpdateService) GetLatestRiskActionPlanStatusUpdate(riskID uint, actionPlanID uint) (*riskDTOs.RiskActionPlanStatusUpdateListDTO, error) {
+	if _, err := rasus.riskActionPlanSvc.GetByID(riskID, actionPlanID); err != nil {
+		return nil, err
+	}
+
+	return rasus.repo.GetLatestRiskActionPlanStatusUpdate(actionPlanID)
 }

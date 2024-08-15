@@ -1,6 +1,9 @@
 -- +goose Up
 -- +goose StatementBegin
 DECLARE @UserID INT;
+DECLARE @AdminDesignationID INT;
+
+SELECT @AdminDesignationID = id FROM designations WHERE title_en = 'Admin';
 
 -- Insert a user
 INSERT INTO users (
@@ -12,10 +15,11 @@ INSERT INTO users (
     last_name_ar,
     email,
     user_status_id,
+    designation_id,
     profile_image_path,
     initial,
     color,
-    created_by,
+    created_by_id,
     created_at,
     updated_at
 ) VALUES (
@@ -27,6 +31,7 @@ INSERT INTO users (
     'أدمن',
     'admin@jethur.com',
     1,
+    @AdminDesignationID,
     NULL,
     'SA',
     '#FFD700',

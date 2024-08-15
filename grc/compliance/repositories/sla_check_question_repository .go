@@ -24,6 +24,7 @@ type SLACheckQuestionRepositoryInterface interface {
 	GetSimilarQuestionGroup(titleEn string, titleAr string, checkID uint) (*models.SLACheckQuestionGroup, error)
 	IncrementTotalCount(groupID uint) error
 	IncrementCompletedCount(groupID uint, tx ...utility.DatabaseTransaction) error
+	DecrementTotalCount(groupID uint) error
 }
 
 type SLACheckQuestionRepository struct {
@@ -157,7 +158,13 @@ func (repo *SLACheckQuestionRepository) GetSimilarQuestionGroup(titleEn string, 
 
 func (repo *SLACheckQuestionRepository) GetQuestionsByGroupID(groupID uint) ([]models.SLACheckQuestion, error) {
 	var questions []models.SLACheckQuestion
-	if err := repo.db.Where("sla_check_question_group_id = ?", groupID).Preload("Answers").Find(&questions).Error; err != nil {
+	if err := repo.db.Where("sla_check_question_group_id = ?", groupID).
+		Preload("Answer").
+		Preload("Answer.ComplianceStatus").
+		Preload("Answer.Documents").
+		Preload("Answer.CreatedByUser").
+		Preload("Answer.UpdatedByUser").
+		Find(&questions).Error; err != nil {
 		return nil, err
 	}
 	return questions, nil
@@ -194,6 +201,23 @@ func (repo *SLACheckQuestionRepository) IncrementCompletedCount(groupID uint, tx
 	group.CompletedCount++
 
 	if err := db.Save(&group).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *SLACheckQuestionRepository) DecrementTotalCount(groupID uint) error {
+	var group models.SLACheckQuestionGroup
+	if err := repo.db.First(&group, groupID).Error; err != nil {
+		return err
+	}
+
+	if group.TotalCount > 0 {
+		group.TotalCount--
+	}
+
+	if err := repo.db.Save(&group).Error; err != nil {
 		return err
 	}
 

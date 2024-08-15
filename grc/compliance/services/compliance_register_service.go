@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"jethur/config"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	complianceRepositories "jethur/grc/compliance/repositories"
 	logServices "jethur/grc/logs/services"
@@ -11,6 +12,7 @@ import (
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
+	"os"
 	"path/filepath"
 	"strconv"
 
@@ -29,6 +31,8 @@ type ComplianceRegisterServiceInterface interface {
 	Restore(ids []uint, currentUserID uint) ([]uint, error)
 	StatusUpdate(id uint, currentUserID uint, complianceStatusID uint, tx utility.DatabaseTransaction) error
 	ReviewStatusUpdate(complianceRegister *models.ComplianceRegister, tx utility.DatabaseTransaction) error
+
+	GetDocumentPath(id uint, token string) (string, error)
 }
 
 // Service and implementations
@@ -115,8 +119,8 @@ func (crs ComplianceRegisterService) GetFullDetailsByID(id uint, tx ...utility.D
 		complianceDTO.NextReviewDateString = &nextReviewDate
 	}
 	if compliance.LastReviewedDate != nil {
-		nextReviewDate := compliance.LastReviewedDate.Format("2006-01-02")
-		complianceDTO.LastReviewedDateString = &nextReviewDate
+		lastReviewDate := compliance.LastReviewedDate.Format("2006-01-02")
+		complianceDTO.LastReviewedDateString = &lastReviewDate
 	}
 
 	complianceDTO.CreatedAt = compliance.CreatedAt
@@ -175,7 +179,7 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 		LastReviewedDate:         dates.LastReviewedDate,
 		LastReviewedUserID:       complianceRegisterFormDTO.LastReviewedUserID,
 		ComplianceReviewStatusID: complianceRegisterFormDTO.ComplianceReviewStatusID,
-		CreatedBy:                currentUserID,
+		CreatedByID:              currentUserID,
 		LifecycleStatusID:        lifecycleStatus.ID,
 	}
 
@@ -185,13 +189,28 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 		return 0, err
 	}
 
+	complianceStatusID := complianceRegisterFormDTO.ComplianceStatusID
+	complianceStatusUpdate := &models.ComplianceStatusUpdate{
+		ComplianceRegisterID: id,
+		ComplianceStatusID:   complianceStatusID,
+		Comment:              "Initial compliance status",
+		CreatedByID:          currentUserID,
+	}
+
+	_, err = crs.repo.CreateInitialComplianceStatusUpdate(complianceStatusUpdate, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
 	// Save Controls
 	var controls []*models.ComplianceControl
 	for _, ctrl := range complianceRegisterFormDTO.ControlIDs {
 		control := &models.ComplianceControl{
-			ComplianceRegisterID: id,
-			ControlID:            *ctrl,
-			CreatedBy:            currentUserID,
+			ComplianceRegisterID:    id,
+			ControlID:               *ctrl,
+			ComplianceRequirementID: nil,
+			CreatedByID:             currentUserID,
 		}
 		controls = append(controls, control)
 	}
@@ -211,7 +230,7 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 	}
 
 	//genereate URL
-	url := utility.GenerateDocumentURL("compliance-register", strconv.FormatUint(uint64(complianceRegister.ID), 10), encryptedFilename)
+	url := utility.GenerateDocumentURL("compliance", "compliance-register", strconv.FormatUint(uint64(id), 10), "documents")
 
 	complianceDocument := &models.ComplianceDocument{
 		ComplianceRegisterID: id,
@@ -222,7 +241,7 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 		Token:                encryptedFilename,
 		OriginalName:         complianceRegisterFormDTO.Document.OriginalName,
 		Type:                 complianceRegisterFormDTO.Document.Type,
-		CreatedBy:            currentUserID,
+		CreatedByID:          currentUserID,
 	}
 
 	// Save Compliance document
@@ -309,7 +328,7 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 	existingComplianceRegister.LastReviewedUserID = complianceRegisterFormDTO.LastReviewedUserID
 	existingComplianceRegister.ComplianceReviewStatusID = complianceRegisterFormDTO.ComplianceReviewStatusID
 	existingComplianceRegister.LastReviewNote = complianceRegisterFormDTO.LastReviewNote
-	existingComplianceRegister.UpdatedBy = &currentUserID
+	existingComplianceRegister.UpdatedByID = &currentUserID
 
 	err = crs.repo.Update(existingComplianceRegister, tx)
 
@@ -341,9 +360,10 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 		if _, exists := existingControlIDs[*newControlID]; !exists {
 			// Create a new compliance control record
 			control := &models.ComplianceControl{
-				ComplianceRegisterID: id,
-				ControlID:            *newControlID,
-				CreatedBy:            currentUserID,
+				ComplianceRegisterID:    id,
+				ComplianceRequirementID: nil,
+				ControlID:               *newControlID,
+				CreatedByID:             currentUserID,
 			}
 			controlsToAdd = append(controlsToAdd, control)
 		}
@@ -392,7 +412,7 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 		}
 
 		//genereate URL
-		url := utility.GenerateDocumentURL("compliance-register", strconv.FormatUint(uint64(id), 10), encryptedFilename)
+		url := utility.GenerateDocumentURL("compliance", "compliance-register", strconv.FormatUint(uint64(id), 10), "documents")
 
 		existingComplianceDocument.Language = complianceRegisterFormDTO.Document.Language
 		existingComplianceDocument.URL = url
@@ -401,7 +421,7 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 		existingComplianceDocument.Token = encryptedFilename
 		existingComplianceDocument.OriginalName = complianceRegisterFormDTO.Document.OriginalName
 		existingComplianceDocument.Type = complianceRegisterFormDTO.Document.Type
-		existingComplianceDocument.UpdatedBy = currentUserID
+		existingComplianceDocument.UpdatedByID = currentUserID
 
 		if err := crs.repo.CreateDocument(existingComplianceDocument, tx); err != nil {
 			tx.Rollback()
@@ -446,6 +466,17 @@ func (crs *ComplianceRegisterService) Delete(ids []uint, currentUserID uint) ([]
 				deleteControlIds = append(deleteControlIds, ctrl.ID)
 			}
 			if err := crs.repo.DeleteComplianceControls(deleteControlIds, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+		}
+
+		if len(complianceRegister.ComplianceStatusUpdates) > 0 {
+			var deleteStatusUpdateIds []*uint
+			for _, update := range complianceRegister.ComplianceStatusUpdates {
+				deleteStatusUpdateIds = append(deleteStatusUpdateIds, &update.ID)
+			}
+			if err := crs.repo.DeleteComplianceStatusUpdates(deleteStatusUpdateIds, tx); err != nil {
 				tx.Rollback()
 				return nil, err
 			}
@@ -600,7 +631,7 @@ func (crs *ComplianceRegisterService) StatusUpdate(id uint, currentUserID uint, 
 	}
 
 	existingCompliance.ComplianceStatusID = complianceStatusID
-	existingCompliance.UpdatedBy = &currentUserID
+	existingCompliance.UpdatedByID = &currentUserID
 
 	err = crs.repo.Update(existingCompliance, tx)
 
@@ -613,7 +644,7 @@ func (crs *ComplianceRegisterService) StatusUpdate(id uint, currentUserID uint, 
 
 func (crs *ComplianceRegisterService) ReviewStatusUpdate(complianceRegister *models.ComplianceRegister, tx utility.DatabaseTransaction) error {
 
-	err := crs.repo.Update(complianceRegister,tx)
+	err := crs.repo.Update(complianceRegister, tx)
 	if err != nil {
 		return err
 	}
@@ -643,28 +674,18 @@ func (crs *ComplianceRegisterService) validateComplianceRegisterFormDTO(complian
 
 	//Controls exist
 	controls := complianceRegisterFormDTO.ControlIDs
-	// If no controls are provided, simply return nil to exit the function
-	if len(controls) == 0 {
-		return nil
-	}
 
-	// Create a map to store control IDs
 	controlIDs := make(map[uint]bool)
 
-	// Check if each control exists
 	for _, control := range controls {
-		// Check if the control ID already exists in the map
 		if controlIDs[*control] {
-			// If the control ID already exists, return a validation error
 			return utility.NewValidationError(fmt.Errorf("duplicate control ID: %d", control), "duplicate", "control")
 		}
 
-		// Check if the control exists in the database
 		if _, err := crs.controlSvc.GetByID(*control); err != nil {
 			return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", control), "not_exist", "control")
 		}
 
-		// Add the control ID to the map
 		controlIDs[*control] = true
 	}
 
@@ -732,4 +753,39 @@ func (crs *ComplianceRegisterService) validateComplianceDocumentFormDTO(document
 	// }
 
 	return nil
+}
+
+func (crs *ComplianceRegisterService) GetDocumentPath(id uint, token string) (string, error) {
+	existingComplianceRegister, err := crs.GetFullDetailsByID(id)
+	if err != nil {
+		return "", err
+	}
+
+	if len(existingComplianceRegister.Documents) == 0 {
+		return "", fmt.Errorf("no documents found for the compliance register")
+	}
+
+	decryptedFilenameBytes, err := utility.DecryptData(token)
+	if err != nil {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	decryptedFilename := string(decryptedFilenameBytes)
+	if decryptedFilename == "" {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(id), 10), "documents")
+
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
+
+	// Check if the file exists
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("file not found")
+	} else if err != nil {
+		return "", fmt.Errorf("error accessing file: %w", err)
+	}
+
+	return fullPath, nil
 }

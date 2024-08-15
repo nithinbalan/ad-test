@@ -1,13 +1,17 @@
 package utility
 
 import (
-	"jethur/grc/logs/repositories"
-	"jethur/grc/logs/services"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
+
+type InternalErrorResponse struct {
+	Error           string `json:"error"`
+	InternalMessage string `json:"internal_message"`
+}
 
 type ErrorResponse struct {
 	Error string `json:"error"`
@@ -16,14 +20,19 @@ type ErrorResponse struct {
 func SendInternalErrResp(db *gorm.DB, c *gin.Context, errMsg string) {
 	localizedErrorMsg := LocalizeMessage(c, "internal_server_error", "Internal Server Error!")
 
+	log.Printf("Recovered from panic: %v", errMsg)
+
 	// log.Printf("Recovered from panic: %v\nStack trace: %s", errMsg)
 
-	errorLogRepo := repositories.NewErrorLogRepository(db)
-	errorLogSvc := services.NewErrorLoggerService(errorLogRepo)
+	// errorLogRepo := repositories.NewErrorLogRepository(db)
+	// errorLogSvc := services.NewErrorLoggerService(errorLogRepo)
 
-	go LogErrorToDB(errorLogSvc, c, errMsg)
+	// go LogErrorToDB(errorLogSvc, c, errMsg)
 
-	resp := ErrorResponse{Error: localizedErrorMsg}
+	resp := InternalErrorResponse{
+		Error:           localizedErrorMsg,
+		InternalMessage: errMsg,
+	}
 	c.JSON(http.StatusInternalServerError, resp)
 }
 
@@ -54,6 +63,6 @@ func SendUnauthorizedErrResp(c *gin.Context, errMsg string) {
 }
 
 func SendForbiddenErrResp(c *gin.Context, errorMessage string) {
-    resp := ErrorResponse{Error: errorMessage}
-    c.JSON(http.StatusForbidden, resp)
+	resp := ErrorResponse{Error: errorMessage}
+	c.JSON(http.StatusForbidden, resp)
 }

@@ -72,6 +72,10 @@
     "translation": "كلمة المرور لمرة واحدة غير صالحة"
   },
   {
+    "id": "invalid_clause_number",
+    "translation": "رقم البند غير صالح"
+  },
+  {
     "id": "field_confirm_password",
     "translation": "كلمة المرور وتأكيد كلمة المرور غير متطابقين"
   },
@@ -88,7 +92,24 @@
     "translation": "الملفات الـ PDF فقط مسموح بها"
   },
   {
+    "id": "invalid_word_file_type",
+    "translation": "فقط ملفات وورد مسموح بها"
+  },
+  {
     "id": "duplicate",
     "translation": "تم اكتشاف تكرار لمعرف '{{.Field}}'. يرجى التأكد من أن كل معرف '{{.Field}}' فريد لتجنب التكرارات."
-  }
+  },
+  {
+    "id": "empty",
+    "translation": "تم اكتشاف معرفات '{{.Field}}' فارغة. يرجى التأكد من توفير معرفات '{{.Field}}'."
+  },
+  {
+    "id": "invalid_image_type",
+    "translation": "يُسمح فقط بملفات jpeg/png"
+},
+{
+    "id": "invalid_profile_file_size",
+    "translation": "يُسمح فقط بملفات بحجم أقصى 2 ميجابايت"
+}
+
 ]

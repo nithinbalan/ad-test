@@ -10,7 +10,7 @@ type UserNotificationSetting struct {
 	NotificationMasterID uint      `json:"notification_master_id" gorm:"not null" binding:"required"`
 	IsEnable             bool      `json:"is_enable" gorm:"not null;type:tinyint;default:0" binding:"required"`
 	UpdatedAt            time.Time `json:"updated_at" gorm:"type:datetime;default:CURRENT_TIMESTAMP" binding:"-"`
-	UpdatedBy            *uint     `json:"updated_by" gorm:"default:null" binding:"omitempty"`
+	UpdatedByID          *uint     `json:"updated_by_id" gorm:"default:null" binding:"omitempty"`
 
 	// Relationships
 	User               *User               `gorm:"foreignKey:UserID"`

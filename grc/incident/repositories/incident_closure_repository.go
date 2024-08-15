@@ -9,14 +9,13 @@ import (
 
 type IncidentClosureRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetByID(id uint) (*models.IncidentClosure, error)
-	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.IncidentClosure, error)
+	GetByID(incidentID uint) (*models.IncidentClosure, error)
+	GetFullDetailsByID(incidentID uint, tx ...utility.DatabaseTransaction) (*models.IncidentClosure, error)
 	Create(incidentClosure *models.IncidentClosure, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(incidentClosure *models.IncidentClosure, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	CreateLessons(lessons []*models.IncidentClosureLesson, tx ...utility.DatabaseTransaction) error
 	DeleteLessons(lessonsIDs []*uint, tx ...utility.DatabaseTransaction) error
-
 }
 
 type IncidentClosureRepository struct {
@@ -34,9 +33,9 @@ func (repo *IncidentClosureRepository) BeginTransaction() utility.DatabaseTransa
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *IncidentClosureRepository) GetByID(id uint) (*models.IncidentClosure, error) {
+func (repo *IncidentClosureRepository) GetByID(incidentID uint) (*models.IncidentClosure, error) {
 	var incidentClosure *models.IncidentClosure
-	result := repo.db.First(&incidentClosure, id)
+	result := repo.db.Where("incident_register_id = ?", incidentID).First(&incidentClosure)
 
 	if result.Error != nil {
 		return nil, result.Error
@@ -45,17 +44,17 @@ func (repo *IncidentClosureRepository) GetByID(id uint) (*models.IncidentClosure
 	return incidentClosure, nil
 }
 
-func (repo *IncidentClosureRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.IncidentClosure, error) {
+func (repo *IncidentClosureRepository) GetFullDetailsByID(incidentID uint, tx ...utility.DatabaseTransaction) (*models.IncidentClosure, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
 	var incidentClosure *models.IncidentClosure
 
-	result := db.
+	result := db.Where("incident_register_id = ?", incidentID).
 		Preload("IncidentRegister").
 		Preload("Lessons").
-		First(&incidentClosure, id)
+		First(&incidentClosure)
 
 	if result.Error != nil {
 		return nil, result.Error

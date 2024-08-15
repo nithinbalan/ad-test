@@ -22,6 +22,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	actionPlanStatusController := app.MasterModule.AtionPlanStatusController
 	currencyController := app.MasterModule.CurrencyController
 	timezoneController := app.MasterModule.TimezoneController
+	unitController := app.MasterModule.UnitController
 
 	masterRoutes.GET("/review-frequencies", reviewFrequencyController.GetAllReviewFrequencies)
 	masterRoutes.GET("/review-frequencies/:id", reviewFrequencyController.GetReviewFrequencyDetails)
@@ -62,4 +63,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	masterRoutes.GET("/timezones", timezoneController.GetAllTimezones)
 	masterRoutes.GET("/timezones/:id", timezoneController.GetTimezoneDetails)
+
+	masterRoutes.GET("/units", unitController.GetAllUnits)
+	masterRoutes.POST("/units", unitController.CreateUnit)
+	masterRoutes.GET("/units/:id", unitController.GetUnitDetails)
+	masterRoutes.PUT("/units/:id", unitController.UpdateUnit)
+	masterRoutes.POST("/units/delete", unitController.DeleteUnits)
+	masterRoutes.PUT("/units/activate", unitController.ActivateUnits)
+	masterRoutes.PUT("/units/deactivate", unitController.DeactivateUnits)
 }

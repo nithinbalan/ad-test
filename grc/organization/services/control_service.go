@@ -24,6 +24,8 @@ type ControlServiceInterface interface {
 
 	Archive(ids []uint, currentUserID uint) ([]uint, error)
 	Restore(ids []uint, currentUserID uint) ([]uint, error)
+	TestStatusUpdate(control *models.Control, tx utility.DatabaseTransaction) error
+	ReviewStatusUpdate(control *models.Control, tx utility.DatabaseTransaction) error
 }
 
 type ControlService struct {
@@ -65,8 +67,8 @@ func (cs *ControlService) GetAll(params *organizationDTOs.ControlListQueryParams
 	return cs.repo.GetAll(params)
 }
 
-func (crs *ControlService) GetByID(id uint) (*models.Control, error) {
-	control, err := crs.repo.GetByID(id)
+func (cs *ControlService) GetByID(id uint) (*models.Control, error) {
+	control, err := cs.repo.GetByID(id)
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -94,6 +96,27 @@ func (cs *ControlService) GetFullDetailsByID(id uint) (*organizationDTOs.Control
 		return nil, err
 	}
 
+	if control.LastReviewDate != nil {
+		lastReviewDate := control.LastReviewDate.Format("2006-01-02")
+		controlDetailDTO.LastReviewDateString = &lastReviewDate
+	}
+	if control.NextReviewDate != nil {
+		nextReviewDate := control.NextReviewDate.Format("2006-01-02")
+		controlDetailDTO.NextReviewDateString = &nextReviewDate
+	}
+	if control.LastTestDate != nil {
+		lastTestDate := control.LastTestDate.Format("2006-01-02")
+		controlDetailDTO.LastTestDateString = &lastTestDate
+	}
+	if control.NextTestDate != nil {
+		nextTestDateString := control.NextTestDate.Format("2006-01-02")
+		controlDetailDTO.NextTestDateString = &nextTestDateString
+	}
+	if control.ImplementedAt != nil {
+		implementedAtString := control.ImplementedAt.Format("2006-01-02")
+		controlDetailDTO.ImplementedAtString = &implementedAtString
+	}
+
 	//todo :- also add extra fields which required in details screen
 
 	return &controlDetailDTO, nil
@@ -118,12 +141,18 @@ func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizatio
 	if err != nil {
 		return 0, err
 	}
+	var organizationUnitID uint
+	unitID, err := cs.userSvc.GetUserPrimaryUnitID(controlFormDTO.OwnerID)
+	if err != nil {
+		return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for owner"), "not_exist", "control owner unit")
+	}
+	organizationUnitID = unitID
 
 	control := &models.Control{
 		ControlTypeID:                 controlFormDTO.ControlTypeID,
 		ControlCategoryID:             controlFormDTO.ControlCategoryID,
-		OwnerUnitID:                   controlFormDTO.OwnerUnitID,
 		OwnerID:                       controlFormDTO.OwnerID,
+		OwnerUnitID:                   organizationUnitID,
 		ControlImplementationStatusID: controlFormDTO.ControlImplementationStatusID,
 		ControlEfficiencyStatusID:     controlFormDTO.ControlEfficiencyStatusID,
 		ReferenceNumber:               referenceNumber,
@@ -132,6 +161,7 @@ func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizatio
 		TitleAr:                       controlFormDTO.TitleAr,
 		Description:                   controlFormDTO.Description,
 		Objective:                     controlFormDTO.Objective,
+		EfficiencyScore:               controlFormDTO.EfficiencyScore,
 		ReviewFrequencyID:             controlFormDTO.ReviewFrequencyID,
 		LastReviewDate:                dates.LastReviewDate,
 		TestResponsibleUserID:         controlFormDTO.TestResponsibleUserID,
@@ -142,7 +172,7 @@ func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizatio
 		LastTestDate:                  dates.LastTestDate,
 		NextTestDate:                  dates.NextTestDate,
 		LifecycleStatusID:             lifecycleStatus.ID,
-		CreatedBy:                     currentUserID,
+		CreatedByID:                   currentUserID,
 	}
 
 	id, err := cs.repo.Create(control)
@@ -191,10 +221,16 @@ func (cs *ControlService) Update(id uint, currentUserID uint, controlFormDTO *or
 	if err != nil {
 		return err
 	}
+	if existingControl.OwnerID != controlFormDTO.OwnerID {
+		organizationUnitID, err := cs.userSvc.GetUserPrimaryUnitID(controlFormDTO.OwnerID)
+		if err != nil {
+			return utility.NewValidationError(fmt.Errorf("organization unit not set for owner"), "not_exist", "control owner unit")
+		}
+		existingControl.OwnerUnitID = organizationUnitID
+	}
 
 	existingControl.ControlTypeID = controlFormDTO.ControlTypeID
 	existingControl.ControlCategoryID = controlFormDTO.ControlCategoryID
-	existingControl.OwnerUnitID = controlFormDTO.OwnerUnitID
 	existingControl.OwnerID = controlFormDTO.OwnerID
 	existingControl.ControlImplementationStatusID = controlFormDTO.ControlImplementationStatusID
 	existingControl.ControlEfficiencyStatusID = controlFormDTO.ControlEfficiencyStatusID
@@ -212,7 +248,7 @@ func (cs *ControlService) Update(id uint, currentUserID uint, controlFormDTO *or
 	existingControl.ImplementedAt = dates.ImplementedAt
 	existingControl.LastTestDate = dates.LastTestDate
 	existingControl.NextTestDate = dates.NextTestDate
-	existingControl.UpdatedBy = &currentUserID
+	existingControl.UpdatedByID = &currentUserID
 
 	err = cs.repo.Update(existingControl)
 
@@ -337,6 +373,25 @@ func (cs *ControlService) Restore(ids []uint, currentUserID uint) ([]uint, error
 	return successfulIds, nil
 }
 
+func (cs *ControlService) TestStatusUpdate(control *models.Control, tx utility.DatabaseTransaction) error {
+	err := cs.repo.Update(control, tx)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (cs *ControlService) ReviewStatusUpdate(control *models.Control, tx utility.DatabaseTransaction) error {
+
+	err := cs.repo.Update(control, tx)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (cs *ControlService) validateControlFormDTO(controlFormDTO *organizationDTOs.ControlFormDTO) error {
 	if _, err := cs.controlTypeSvc.GetByID(uint(controlFormDTO.ControlTypeID)); err != nil {
 		return utility.NewValidationError(fmt.Errorf("control type does not exist"), "not_exist", "control type")
@@ -346,10 +401,8 @@ func (cs *ControlService) validateControlFormDTO(controlFormDTO *organizationDTO
 		return utility.NewValidationError(fmt.Errorf("control category does not exist"), "not_exist", "control category")
 	}
 
-	if controlFormDTO.OwnerID != nil {
-		if _, err := cs.userSvc.GetByID(uint(*controlFormDTO.OwnerID)); err != nil {
-			return utility.NewValidationError(fmt.Errorf("control owner does not exist"), "not_exist", "control owner")
-		}
+	if _, err := cs.userSvc.GetByID(uint(controlFormDTO.OwnerID)); err != nil {
+		return utility.NewValidationError(fmt.Errorf("control owner does not exist"), "not_exist", "control owner")
 	}
 
 	if controlFormDTO.ControlImplementationStatusID != nil {

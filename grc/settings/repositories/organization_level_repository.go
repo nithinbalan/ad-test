@@ -10,6 +10,7 @@ type OrganizationLevelRepositoryInterface interface {
 	GetAll() ([]*models.OrganizationLevel, error)
 	GetByID(id uint) (*models.OrganizationLevel, error)
 	Create(organizationLevels []*models.OrganizationLevel) ([]*models.OrganizationLevel, error)
+	GetPrimaryLevel() (*models.OrganizationLevel, error)
 }
 
 type OrganizationLevelRepository struct {
@@ -95,4 +96,17 @@ func (repo *OrganizationLevelRepository) Create(organizationLevels []*models.Org
 	}
 
 	return updatedOrganizationLevels, nil
+}
+func (repo *OrganizationLevelRepository) GetPrimaryLevel() (*models.OrganizationLevel, error) {
+	var primaryLevel models.OrganizationLevel
+
+	// Fetch the primary organization level
+	err := repo.db.
+		Where("is_primary = ?", true).
+		First(&primaryLevel).
+		Error
+	if err != nil {
+		return nil, err
+	}
+	return &primaryLevel, nil
 }

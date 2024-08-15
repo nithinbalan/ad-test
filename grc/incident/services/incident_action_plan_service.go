@@ -10,6 +10,7 @@ import (
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
 	"jethur/utility"
+	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -32,6 +33,7 @@ type IncidentActionPlanService struct {
 	incidentRegisterSvc IncidentRegisterServiceInterface
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface
 	severityLevelSvc    masterServices.SeverityLevelServiceInterface
+	incidentTimelineSvc IncidentTimelineServiceInterface
 }
 
 func NewIncidentActionPlanService(
@@ -39,13 +41,16 @@ func NewIncidentActionPlanService(
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	incidentRegisterSvc IncidentRegisterServiceInterface,
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
-	severityLevelSvc masterRepositories.SeverityLevelRepositoryInterface) IncidentActionPlanServiceInterface {
+	severityLevelSvc masterRepositories.SeverityLevelRepositoryInterface,
+	incidentTimelineSvc IncidentTimelineServiceInterface,
+) IncidentActionPlanServiceInterface {
 	return &IncidentActionPlanService{
 		repo:                repo,
 		activityLogSvc:      activityLogSvc,
 		incidentRegisterSvc: incidentRegisterSvc,
 		actionPlanStatusSvc: actionPlanStatusSvc,
 		severityLevelSvc:    severityLevelSvc,
+		incidentTimelineSvc: incidentTimelineSvc,
 	}
 }
 
@@ -96,11 +101,19 @@ func (iaps IncidentActionPlanService) GetFullDetailsByID(incidentID uint, id uin
 	}
 
 	//todo :- also add extra fields which required in details screen
+	if incidentActionPlan.TargetDate != nil {
+		targetDate := incidentActionPlan.TargetDate.Format("2006-01-02")
+		incidentActionPlanDTO.TargetDateString = &targetDate
+	}
+
+	incidentActionPlanDTO.CreatedAt = incidentActionPlan.CreatedAt
+	incidentActionPlanDTO.UpdatedAt = incidentActionPlan.UpdatedAt
 
 	return &incidentActionPlanDTO, nil
 }
 
 func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uint, IncidentActionPlanFormDTO *incidentDTOs.IncidentActionPlanFormDTO) (uint, error) {
+	tx := iaps.repo.BeginTransaction()
 	if _, err := iaps.incidentRegisterSvc.GetByID(incidentID); err != nil {
 		return 0, err
 	}
@@ -124,13 +137,56 @@ func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uin
 		Percentage:         IncidentActionPlanFormDTO.Percentage,
 		Comments:           IncidentActionPlanFormDTO.Comments,
 		ActionPlanStatusID: IncidentActionPlanFormDTO.ActionPlanStatusID,
-		CreatedBy:          currentUserID,
+		CreatedBYID:        currentUserID,
 	}
 
-	id, err := iaps.repo.Create(incidentActionPlan)
+	id, err := iaps.repo.Create(incidentActionPlan, tx)
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
+	actionPlanStatusID := IncidentActionPlanFormDTO.ActionPlanStatusID
+	incidentActionPlanUpdate := &models.IncidentActionPlanStatusUpdate{
+		IncidentActionPlanID: id,
+		ActionPlanStatusID:   actionPlanStatusID,
+		Comment:              "Initial action plan status",
+		CreatedByID:          currentUserID,
+	}
+	_, err = iaps.repo.CreateInitialIncidentActionPlanStatusUpdate(incidentActionPlanUpdate, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	//Update timeline
+	//todo
+	actinPlanCount, err := iaps.repo.GetCountByRiskID(incidentID, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	if actinPlanCount == 1 {
+		timelineType, err := iaps.incidentTimelineSvc.GetByType("action-plans")
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+		timelineStatus, err := iaps.incidentTimelineSvc.GetByStatusType("completed")
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+		currentTime := time.Now()
+		timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
+			PerformedByID:    &currentUserID,
+			TimelineStatusID: timelineStatus.ID,
+			PerformedAt:      &currentTime,
+		}
+		if err := iaps.incidentTimelineSvc.Update(incidentID, timelineFormDTO, timelineType.ID, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+	tx.Commit()
 
 	go func() {
 		err := iaps.activityLogSvc.LogActivity(
@@ -189,7 +245,7 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 	existingIncidentActionPlan.Percentage = IncidentActionPlanFormDTO.Percentage
 	existingIncidentActionPlan.Comments = IncidentActionPlanFormDTO.Comments
 	existingIncidentActionPlan.ActionPlanStatusID = IncidentActionPlanFormDTO.ActionPlanStatusID
-	existingIncidentActionPlan.UpdatedBy = &currentUserID
+	existingIncidentActionPlan.UpdatedBYID = &currentUserID
 
 	err = iaps.repo.Update(existingIncidentActionPlan, tx)
 
@@ -197,10 +253,14 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 		return err
 	}
 
+	tx.Commit()
+
 	return nil
 }
 
 func (iaps *IncidentActionPlanService) Delete(incidentID uint, ids []uint, currentUserID uint) ([]uint, error) {
+	tx := iaps.repo.BeginTransaction()
+
 	if _, err := iaps.incidentRegisterSvc.GetByID(incidentID); err != nil {
 		return nil, err
 	}
@@ -209,19 +269,57 @@ func (iaps *IncidentActionPlanService) Delete(incidentID uint, ids []uint, curre
 	var successfulIds []uint
 	for _, id := range ids {
 
-		_, err := iaps.repo.GetByID(id)
+		incidentActionPlan, err := iaps.repo.GetFullDetailsByID(id)
 
 		if err != nil {
 			continue
 		}
-
-		err = iaps.repo.Delete(id)
+		if len(incidentActionPlan.ActionPlanStatusUpdates) > 0 {
+			var deleteStatusUpdateIds []*uint
+			for _, update := range incidentActionPlan.ActionPlanStatusUpdates {
+				deleteStatusUpdateIds = append(deleteStatusUpdateIds, &update.ID)
+			}
+			if err := iaps.repo.DeleteIncidentActionPlanStatusUpdates(deleteStatusUpdateIds); err != nil {
+				failedIds = append(failedIds, id)
+				continue
+			}
+		}
+		//Delete-> update timeline performedAt as null
+		//todo
+		actinPlanCount, err := iaps.repo.GetCountByRiskID(incidentID, tx)
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+		if actinPlanCount == 1 {
+			timelineType, err := iaps.incidentTimelineSvc.GetByType("action-plans")
+			if err != nil {
+				tx.Rollback()
+				return failedIds, err
+			}
+			timelineStatus, err := iaps.incidentTimelineSvc.GetByStatusType("pending")
+			if err != nil {
+				tx.Rollback()
+				return failedIds, err
+			}
+			timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
+				PerformedByID:    nil,
+				TimelineStatusID: timelineStatus.ID,
+				PerformedAt:      nil,
+			}
+			if err := iaps.incidentTimelineSvc.Update(incidentID, timelineFormDTO, timelineType.ID, tx); err != nil {
+				tx.Rollback()
+				return failedIds, err
+			}
+		}
+		err = iaps.repo.Delete(id, tx)
 		if err != nil {
 			failedIds = append(failedIds, id)
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
 	}
+	tx.Commit()
 
 	if len(successfulIds) > 0 {
 
@@ -253,7 +351,7 @@ func (iaps *IncidentActionPlanService) StatusUpdate(incidentID uint, id uint, cu
 	}
 
 	existingIncidentActionPlan.ActionPlanStatusID = ActionPlanStatusID
-	existingIncidentActionPlan.UpdatedBy = &currentUserID
+	existingIncidentActionPlan.UpdatedBYID = &currentUserID
 
 	err = iaps.repo.Update(existingIncidentActionPlan, tx)
 

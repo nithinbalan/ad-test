@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	AccessTokenDuration  = 60 * time.Minute
-	RefreshTokenDuration = 7 * 24 * time.Hour // 7 days, adjust as needed
+	AccessTokenDuration  = 30 * 24 * time.Hour // 1 month
+	RefreshTokenDuration = 7 * 24 * time.Hour  // 7 days, adjust as needed
 )
 
 func getSecretKey() string {

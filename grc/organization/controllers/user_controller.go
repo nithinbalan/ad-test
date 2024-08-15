@@ -101,7 +101,7 @@ func (uc *UserController) GetUserDetails(c *gin.Context) {
 		return
 	}
 
-	control, err := uc.service.GetFullDetailsByID(uint(id))
+	user, err := uc.service.GetFullDetailsByID(uint(id))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -112,7 +112,7 @@ func (uc *UserController) GetUserDetails(c *gin.Context) {
 			return
 		}
 	}
-	c.JSON(http.StatusOK, control)
+	c.JSON(http.StatusOK, user)
 }
 
 func (uc *UserController) CreateUser(c *gin.Context) {
@@ -226,6 +226,12 @@ func (uc *UserController) GetUserLoginHistory(c *gin.Context) {
 		return
 	}
 
+	userID, err := strconv.Atoi(c.Param("userId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
 	queryParams := organizationDTOs.UserLoginHistoryListQueryParamsDTO{
 		Sort:        sort,
 		SortBy:      sortBy,
@@ -235,11 +241,42 @@ func (uc *UserController) GetUserLoginHistory(c *gin.Context) {
 		LoginAtFrom: loginAtFrom,
 		LoginAtTo:   loginAtTo,
 	}
-	userLoginHistory, err := uc.service.GetUserLoginHistory(&queryParams)
+	userLoginHistory, err := uc.service.GetUserLoginHistory(uint(userID), &queryParams)
 
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(uc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, userLoginHistory)
+}
+
+func (uc *UserController) GetCurrentUserDetails(c *gin.Context) {
+
+	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(uc.db, c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, userLoginHistory)
+
+	user, err := uc.service.GetCurrentUserDetails(uint(currentUserID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(uc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, user)
 }

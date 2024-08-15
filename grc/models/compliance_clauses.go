@@ -7,7 +7,7 @@ type ComplianceClause struct {
 	Title                string `json:"title" binding:"required" gorm:"type:varchar(max);not null"`
 
 	// Relationships
-	ComplianceRegister *ComplianceRegister `gorm:"foreignkey:ComplianceRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ComplianceRegister *ComplianceRegister `gorm:"foreignKey:ComplianceRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 }
 
 // TableName overrides the table name used by ComplianceClause to `compliance_clauses`

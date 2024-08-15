@@ -32,15 +32,7 @@ func (icc *IncidentClosureController) GetIncidentClosureDetails(c *gin.Context) 
 		return
 	}
 
-	idStr := c.Param("id")
-
-	id, err := strconv.ParseUint(idStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	incidentClosure, err := icc.service.GetFullDetailsByID(uint(incidentID), uint(id))
+	incidentClosure, err := icc.service.GetFullDetailsByID(uint(incidentID))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -107,14 +99,6 @@ func (icc *IncidentClosureController) UpdateIncidentClosure(c *gin.Context) {
 		return
 	}
 
-	idStr := c.Param("id")
-
-	id, err := strconv.ParseUint(idStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
 	if err := c.ShouldBindJSON(&IncidentClosureFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
@@ -126,7 +110,7 @@ func (icc *IncidentClosureController) UpdateIncidentClosure(c *gin.Context) {
 		return
 	}
 
-	err = icc.service.Update(uint(incidentID), uint(id), currentUserID, &IncidentClosureFormDTO)
+	err = icc.service.Update(uint(incidentID), currentUserID, &IncidentClosureFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -145,20 +129,11 @@ func (icc *IncidentClosureController) UpdateIncidentClosure(c *gin.Context) {
 }
 
 func (icc *IncidentClosureController) DeleteIncidentClosures(c *gin.Context) {
-	var request struct {
-		IDs []uint `json:"ids"`
-	}
-
 	incidentIDStr := c.Param("incidentID")
 
 	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	if err := c.ShouldBindJSON(&request); err != nil {
-		utility.SendInvalidErrResp(c, err)
 		return
 	}
 
@@ -168,7 +143,7 @@ func (icc *IncidentClosureController) DeleteIncidentClosures(c *gin.Context) {
 		return
 	}
 
-	failedIDs, err := icc.service.Delete(uint(incidentID), request.IDs, currentUserID)
+	failedID, err := icc.service.Delete(uint(incidentID), currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -183,5 +158,5 @@ func (icc *IncidentClosureController) DeleteIncidentClosures(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+	c.JSON(http.StatusOK, gin.H{"failed_id": failedID})
 }

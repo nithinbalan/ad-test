@@ -101,6 +101,8 @@ func (raps RiskActionPlanService) GetFullDetailsByID(riskID uint, id uint) (*ris
 }
 
 func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskActionPlanFormDTO *riskDTOs.RiskActionPlanFormDTO) (uint, error) {
+	tx := raps.repo.BeginTransaction()
+
 	if _, err := raps.riskRegisterSvc.GetByID(riskID); err != nil {
 		return 0, err
 	}
@@ -124,13 +126,26 @@ func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskA
 		Percentage:         RiskActionPlanFormDTO.Percentage,
 		Comments:           RiskActionPlanFormDTO.Comments,
 		ActionPlanStatusID: RiskActionPlanFormDTO.ActionPlanStatusID,
-		CreatedBy:          currentUserID,
+		CreatedBYID:        currentUserID,
 	}
 
 	id, err := raps.repo.Create(riskActionPlan)
 	if err != nil {
 		return 0, err
 	}
+	actionPlanStatusID := RiskActionPlanFormDTO.ActionPlanStatusID
+	riskActionPlanUpdate := &models.RiskActionPlanStatusUpdate{
+		RiskActionPlanID:   id,
+		ActionPlanStatusID: actionPlanStatusID,
+		Comment:            "Initial action plan status",
+		CreatedByID:        currentUserID,
+	}
+	_, err = raps.repo.CreateInitialRiskActionPlanStatusUpdate(riskActionPlanUpdate, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	tx.Commit()
 
 	go func() {
 		err := raps.activityLogSvc.LogActivity(
@@ -189,13 +204,15 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 	existingRiskActionPlan.Percentage = RiskActionPlanFormDTO.Percentage
 	existingRiskActionPlan.Comments = RiskActionPlanFormDTO.Comments
 	existingRiskActionPlan.ActionPlanStatusID = RiskActionPlanFormDTO.ActionPlanStatusID
-	existingRiskActionPlan.UpdatedBy = &currentUserID
+	existingRiskActionPlan.UpdatedBYID = &currentUserID
 
 	err = raps.repo.Update(existingRiskActionPlan, tx)
 
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
+	tx.Commit()
 
 	return nil
 }
@@ -209,10 +226,20 @@ func (raps *RiskActionPlanService) Delete(riskID uint, ids []uint, currentUserID
 	var successfulIds []uint
 	for _, id := range ids {
 
-		_, err := raps.repo.GetByID(id)
+		riskActionPlan, err := raps.repo.GetFullDetailsByID(id)
 
 		if err != nil {
 			continue
+		}
+		if len(riskActionPlan.ActionPlanStatusUpdates) > 0 {
+			var deleteStatusUpdateIds []*uint
+			for _, update := range riskActionPlan.ActionPlanStatusUpdates {
+				deleteStatusUpdateIds = append(deleteStatusUpdateIds, &update.ID)
+			}
+			if err := raps.repo.DeleteRiskActionPlanStatusUpdates(deleteStatusUpdateIds); err != nil {
+				failedIds = append(failedIds, id)
+				continue
+			}
 		}
 
 		err = raps.repo.Delete(id)
@@ -253,7 +280,7 @@ func (raps *RiskActionPlanService) StatusUpdate(riskID uint, id uint, currentUse
 	}
 
 	existingRiskActionPlan.ActionPlanStatusID = ActionPlanStatusID
-	existingRiskActionPlan.UpdatedBy = &currentUserID
+	existingRiskActionPlan.UpdatedBYID = &currentUserID
 
 	err = raps.repo.Update(existingRiskActionPlan, tx)
 

@@ -9,8 +9,8 @@ import (
 
 type IncidentPostReviewRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetByID(id uint) (*models.IncidentPostReview, error)
-	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.IncidentPostReview, error)
+	GetByID(incidentID uint) (*models.IncidentPostReview, error)
+	GetFullDetailsByID(incidentID uint, tx ...utility.DatabaseTransaction) (*models.IncidentPostReview, error)
 	Create(incidentPostReview *models.IncidentPostReview, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(incidentPostReview *models.IncidentPostReview, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
@@ -37,9 +37,9 @@ func (repo *IncidentPostReviewRepository) BeginTransaction() utility.DatabaseTra
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *IncidentPostReviewRepository) GetByID(id uint) (*models.IncidentPostReview, error) {
+func (repo *IncidentPostReviewRepository) GetByID(incidentID uint) (*models.IncidentPostReview, error) {
 	var incidentPostReview *models.IncidentPostReview
-	result := repo.db.First(&incidentPostReview, id)
+	result := repo.db.Where("incident_register_id = ?", incidentID).First(&incidentPostReview)
 
 	if result.Error != nil {
 		return nil, result.Error
@@ -48,20 +48,20 @@ func (repo *IncidentPostReviewRepository) GetByID(id uint) (*models.IncidentPost
 	return incidentPostReview, nil
 }
 
-func (repo *IncidentPostReviewRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.IncidentPostReview, error) {
+func (repo *IncidentPostReviewRepository) GetFullDetailsByID(incidentID uint, tx ...utility.DatabaseTransaction) (*models.IncidentPostReview, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
 	var incidentPostReview *models.IncidentPostReview
 
-	result := db.
+	result := db.Where("incident_register_id = ?", incidentID).
 		Preload("IncidentRegister").
 		Preload("IncidentPostReviewEffectiveness").
 		Preload("Recommendations").
 		Preload("Users.User").
 		Preload("Lessons").
-		First(&incidentPostReview, id)
+		First(&incidentPostReview)
 
 	if result.Error != nil {
 		return nil, result.Error

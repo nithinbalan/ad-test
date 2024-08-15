@@ -60,9 +60,9 @@ func (repo *MeetingActionPlanRepository) GetAll(meetingID uint, params *meetingD
         LEFT JOIN action_plan_statuses ON action_plan_statuses.id = meeting_action_plans.action_plan_status_id
         LEFT JOIN severity_levels ON severity_levels.id = meeting_action_plans.severity_level_id
         LEFT JOIN users AS responsible_user ON responsible_user.id = meeting_action_plans.responsible_user_id
-        LEFT JOIN users AS created_user ON created_user.id = meeting_action_plans.created_by
-        LEFT JOIN users AS updated_user ON updated_user.id = meeting_action_plans.updated_by
-    `).Where(`meeting_action_plans.meeting_id`, meetingID)
+        LEFT JOIN users AS created_user ON created_user.id = meeting_action_plans.created_by_id
+        LEFT JOIN users AS updated_user ON updated_user.id = meeting_action_plans.updated_by_id
+    `)
 
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
@@ -110,6 +110,10 @@ func (repo *MeetingActionPlanRepository) GetAll(meetingID uint, params *meetingD
 			keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword,
 			keyword)
+	}
+
+	if meetingID != 0 {
+		query = query.Where("meeting_action_plans.meeting_id = ?", meetingID)
 	}
 
 	// Sort by the specified column and order

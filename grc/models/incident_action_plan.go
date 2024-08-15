@@ -17,16 +17,17 @@ type IncidentActionPlan struct {
 	Percentage         *uint      `json:"percentage" binding:"omitempty,min=0,max=100" gorm:"not null;default:0"`
 	CreatedAt          time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt          *time.Time `json:"updated_at" gorm:"type:datetime"`
-	CreatedBy          uint       `json:"created_by" gorm:"not null"`
-	UpdatedBy          *uint      `json:"updated_by" gorm:"default:null"`
+	CreatedBYID        uint       `json:"created_by_id" gorm:"not null"`
+	UpdatedBYID        *uint      `json:"updated_by_id" gorm:"default:null"`
 
 	// Relationships
-	IncidentRegister *IncidentRegister `gorm:"foreignkey:IncidentRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	SeverityLevel    *SeverityLevel    `gorm:"foreignkey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ResponsibleUser  *User             `gorm:"foreignkey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ActionPlanStatus *ActionPlanStatus `gorm:"foreignkey:ActionPlanStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser    *User             `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser    *User             `gorm:"foreignKey:UpdatedBy"`
+	IncidentRegister        *IncidentRegister                 `gorm:"foreignKey:IncidentRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	SeverityLevel           *SeverityLevel                    `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ResponsibleUser         *User                             `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ActionPlanStatus        *ActionPlanStatus                 `gorm:"foreignKey:ActionPlanStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ActionPlanStatusUpdates []*IncidentActionPlanStatusUpdate `gorm:"foreignKey:IncidentActionPlanID"`
+	CreatedByUser           *User                             `gorm:"foreignKey:CreatedBYID"`
+	UpdatedByUser           *User                             `gorm:"foreignKey:UpdatedBYID"`
 }
 
 // TableName overrides the table name used by IncidentActionPlan to `incident_action_plans`

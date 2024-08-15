@@ -28,6 +28,11 @@ type FileDTO struct {
 	SizeInBytes  int64  `json:"size"`
 }
 
+type FilePreviewDTO struct {
+	URL   string `json:"url" binding:"required"`
+	Token string `json:"token" binding:"required"`
+}
+
 type DocumentFormDTO struct {
 	ID            *uint   `json:"id,omitempty"`
 	URL           *string `json:"url"`
@@ -39,7 +44,7 @@ type DocumentFormDTO struct {
 	IsDeletedFile *bool   `json:"is_deleted_file,omitempty"`
 }
 
-type CreateTaskDTO struct {
+type TaskFormDTO struct {
 	ID                     *uint      `json:"id,omitempty"`
 	ModuleID               uint       `json:"module_id" binding:"required"`
 	ComplianceActionPlanID *uint      `json:"compliance_action_plan_id,omitempty"`

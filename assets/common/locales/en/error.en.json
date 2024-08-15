@@ -69,7 +69,11 @@
   },
   {
     "id": "invalid_otp",
-    "translation": "Invalid OTP"
+    "translation": "Invalid OTP" 
+  },
+  {
+    "id": "invalid_clause_number",
+    "translation": "Invalid Clause Number" 
   },
   {
     "id": "field_confirm_password",
@@ -88,7 +92,23 @@
     "translation": "Only PDF files are allowed"
   },
   {
+    "id": "invalid_word_file_type",
+    "translation": "Only WORD files are allowed"
+  },
+  {
     "id": "duplicate",
     "translation": "Duplicate '{{.Field}}' IDs detected. Please ensure each '{{.Field}}' ID is unique to avoid duplicates."
+  },
+  {
+    "id": "empty",
+    "translation": "Empty '{{.Field}}' IDs detected. Please ensure '{{.Field}}' IDs are provided."
+  },
+  {
+    "id": "invalid_image_type",
+    "translation": "Only jpeg/png files are allowed"
+  },
+  {
+    "id": "invalid_profile_file_size",
+    "translation": "Only files of maximum size 2MB are allowed"
   }
 ]

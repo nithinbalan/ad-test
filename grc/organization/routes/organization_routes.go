@@ -32,6 +32,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	processController := app.OrganizationModule.ProcessController
 	userTaskController := app.OrganizationModule.UserTaskController
 	processAssociatedItemController := app.OrganizationModule.ProcessAssociatedItemController
+	controlAssociatedItemController := app.OrganizationModule.ControlAssociatedItemController
+	controlReviewStatusController := app.OrganizationModule.ControlReviewStatusController
+	controlReviewController := app.OrganizationModule.ControlReviewController
 
 	//Designation
 	organizationRoutes.GET("/designations", designationController.GetAllDesignations)
@@ -54,12 +57,17 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.POST("/users/delete", userController.DeleteUsers)
 	organizationRoutes.GET("/users/:userId/login-history", userController.GetUserLoginHistory)
 
+	organizationRoutes.GET("/users/me", userController.GetCurrentUserDetails)
+
 	//Strategic Profile
 	organizationRoutes.GET("/strategic-profiles", strategicProfileController.GetStrategicProfile)
 	organizationRoutes.PUT("/strategic-profiles", strategicProfileController.UpdateStrategicProfile)
 	organizationRoutes.PUT("/strategic-profiles/vision", strategicProfileController.UpdateVision)
 	organizationRoutes.PUT("/strategic-profiles/mission", strategicProfileController.UpdateMission)
 	organizationRoutes.PUT("/strategic-profiles/values", strategicProfileController.UpdateValues)
+
+	organizationRoutes.POST("/strategic-profiles/upload-image", strategicProfileController.UploadProfileImage)
+	organizationRoutes.GET("/strategic-profiles/preview-image", strategicProfileController.PreviewProfileImage)
 
 	//Strategic Profile Values
 	organizationRoutes.GET("/strategic-profiles/values", strategicProfileValueController.GetAllStrategicProfileValues)
@@ -116,6 +124,15 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.GET("/control-efficiency-statuses", controlEfficiencyStatusController.GetAllControlEfficiencyStatuses)
 	organizationRoutes.GET("/control-efficiency-statuses/:id", controlEfficiencyStatusController.GetControlEfficiencyStatusDetails)
 
+	//Control Review Statuses
+	organizationRoutes.GET("/control-review-statuses", controlReviewStatusController.GetAllControlReviewStatuses)
+	organizationRoutes.GET("/control-review-statuses/:id", controlReviewStatusController.GetControlReviewStatusDetails)
+
+	//Control Review
+	organizationRoutes.GET("/controls/:controlId/reviews", controlReviewController.GetAllControlReviews)
+	organizationRoutes.POST("/controls/:controlId/reviews", controlReviewController.CreateControlReview)
+	organizationRoutes.PUT("/controls/:controlId/reviews/:id", controlReviewController.UpdateControlReview)
+
 	//Control
 	organizationRoutes.GET("/controls", controlController.GetAllControls)
 	organizationRoutes.GET("/controls/:controlId", controlController.GetControlDetails)
@@ -126,11 +143,19 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.PUT("/controls/restore", controlController.RestoreControls)
 
 	//control Test
-	organizationRoutes.GET("/controls/:controlId/test", controlTestController.GetAllControlTests)
-	organizationRoutes.GET("/controls/:controlId/test/:controlTestId", controlTestController.GetControlTestDetails)
-	organizationRoutes.POST("/controls/:controlId/test", controlTestController.CreateControlTest)
-	organizationRoutes.PUT("/controls/:controlId/test/:controlTestId", controlTestController.UpdateControlTest)
-	organizationRoutes.POST("/controls/:controlId/test/delete", controlTestController.DeleteControlTest)
+	organizationRoutes.GET("/controls/:controlId/tests", controlTestController.GetAllControlTests)
+	organizationRoutes.GET("/controls/:controlId/tests/:controlTestId", controlTestController.GetControlTestDetails)
+	organizationRoutes.POST("/controls/:controlId/tests", controlTestController.CreateControlTest)
+	organizationRoutes.PUT("/controls/:controlId/tests/:controlTestId", controlTestController.UpdateControlTest)
+	organizationRoutes.POST("/controls/:controlId/tests/delete", controlTestController.DeleteControlTest)
+	organizationRoutes.GET("/controls/:controlId/trends", controlTestController.GetControlTestTrendAnalysis)
+
+	//Control Associated Item
+	organizationRoutes.GET("/controls/:controlId/processes", controlAssociatedItemController.GetAllControlProcesses)
+	organizationRoutes.GET("/controls/:controlId/compliance-requirements", controlAssociatedItemController.GetAllControlComplianceRequirements)
+	organizationRoutes.GET("/controls/:controlId/risks", controlAssociatedItemController.GetAllControlRisks)
+	organizationRoutes.GET("/controls/:controlId/incidents", controlAssociatedItemController.GetAllControlIncidents)
+	organizationRoutes.GET("/controls/:controlId/associated-item-summary", controlAssociatedItemController.GetAllAssociatedCounts)
 
 	//Process Group
 	organizationRoutes.GET("/process-groups", processGroupController.GetAllProcessGroups)
@@ -154,6 +179,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.POST("/controls/:controlId/action-plans/:controlActionPlanId/status-updates", controlActionPlanStatusUpdateController.CreateControlActionPlanStatusUpdate)
 	organizationRoutes.PUT("/controls/:controlId/action-plans/:controlActionPlanId/status-updates/:controlActionPlanUpdateId", controlActionPlanStatusUpdateController.UpdateControlActionPlanStatusUpdate)
 
+	organizationRoutes.GET("/controls/:controlId/action-plans/:controlActionPlanId/status-updates/latest", controlActionPlanStatusUpdateController.GetLatestControlActionPlanStatusUpdate)
+
 	//process
 	organizationRoutes.GET("/processes", processController.GetAllProcesses)
 	organizationRoutes.GET("/processes/:processId", processController.GetProcessDetails)
@@ -162,9 +189,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.POST("/processes/delete", processController.DeleteProcesses)
 	organizationRoutes.PUT("/processes/archive", processController.ArchiveProcesses)
 	organizationRoutes.PUT("/processes/restore", processController.RestoreProcesses)
+	organizationRoutes.GET("/processes/:processId/control-summary", processController.GetControlSummary)
 
-	organizationRoutes.GET("processes/:processId/controls", processAssociatedItemController.GetAllProcessControls)
-	organizationRoutes.GET("processes/:processId/risks", processAssociatedItemController.GetAllProcessRisks)
-	organizationRoutes.GET("processes/:processId/incidents", processAssociatedItemController.GetAllProcessIncidents)
+	organizationRoutes.GET("/processes/:processId/controls", processAssociatedItemController.GetAllProcessControls)
+	organizationRoutes.GET("/processes/:processId/risks", processAssociatedItemController.GetAllProcessRisks)
+	organizationRoutes.GET("/processes/:processId/incidents", processAssociatedItemController.GetAllProcessIncidents)
+	organizationRoutes.GET("/processes/:processId/associated-item-summary", processAssociatedItemController.GetAllAssociatedCounts)
 
 }

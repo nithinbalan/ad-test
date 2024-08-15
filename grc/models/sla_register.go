@@ -19,8 +19,8 @@ type SLARegister struct {
 	Client             string     `json:"client" gorm:"type:varchar(250)"`
 	CreatedAt          time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt          *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
-	CreatedBy          uint       `json:"created_by" gorm:"not null"`
-	UpdatedBy          uint       `json:"updated_by" gorm:"default:null"`
+	CreatedByID        uint       `json:"created_by_id" gorm:"not null"`
+	UpdatedByID        uint       `json:"updated_by_id" gorm:"default:null"`
 
 	// Relationships
 	SLACategory      *SLACategory      `gorm:"foreignKey:SLACategoryID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
@@ -28,10 +28,12 @@ type SLARegister struct {
 	ResponsibleUnit  *OrganizationUnit `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
 	ResponsibleUser  *User             `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
 	LifecycleStatus  *LifecycleStatus  `gorm:"foreignKey:LifecycleStatusID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
-	ComplianceStatus *ComplianceStatus `gorm:"foreignkey:ComplianceStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ComplianceStatus *ComplianceStatus `gorm:"foreignKey:ComplianceStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	Documents        []*SLADocument    `gorm:"foreignKey:SLARegisterID"`
-	CreatedByUser    *User             `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser    *User             `gorm:"foreignKey:UpdatedBy"`
+	Checks           []*SLACheck       `gorm:"foreignKey:SLARegisterID"`
+	Processes        []*SLAProcess     `gorm:"foreignKey:SLARegisterID"`
+	CreatedByUser    *User             `gorm:"foreignKey:CreatedByID"`
+	UpdatedByUser    *User             `gorm:"foreignKey:UpdatedByID"`
 }
 
 // TableName overrides the table name used by SLARegister to `sla_register`

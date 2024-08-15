@@ -11,7 +11,7 @@ type RiskMatrixImpact struct {
 	Status        string `json:"status" binding:"required,max=10,oneof=active inactive" gorm:"type:varchar(10);not null"`
 
 	// Relationships
-	RiskMatrix *RiskMatrix `gorm:"foreignkey:RiskMatrixID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	RiskMatrix *RiskMatrix `gorm:"foreignKey:RiskMatrixID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 }
 
 // TableName overrides the table name used by RiskMatrixImpact to `risk_matrix_impacts`

@@ -33,8 +33,10 @@ type UserRepositoryInterface interface {
 	CreateUserRole(userRoles []models.UserRole, tx ...utility.DatabaseTransaction) error
 	UpdateUserRoles(userID uint, desiredRoleIDs []uint, tx ...utility.DatabaseTransaction) error
 
-	GetUserLoginHistory(params *userDTOs.UserLoginHistoryListQueryParamsDTO) (*userDTOs.UserLoginHistoryListResponseDTO, error)
+	GetUserLoginHistory(userID uint, params *userDTOs.UserLoginHistoryListQueryParamsDTO) (*userDTOs.UserLoginHistoryListResponseDTO, error)
 	CreateUserLoginHistory(userLogin *models.UserLoginHistory, tx ...utility.DatabaseTransaction) error
+	GetUserPrimaryUnitID(primaryOrgUnitField string, userID uint) (uint, error)
+	GetUserIdsByRole(roleID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
 }
 
 type UserRepository struct {
@@ -402,12 +404,13 @@ func contains(slice []uint, val uint) bool {
 	return false
 }
 
-func (repo *UserRepository) GetUserLoginHistory(params *userDTOs.UserLoginHistoryListQueryParamsDTO) (*userDTOs.UserLoginHistoryListResponseDTO, error) {
+func (repo *UserRepository) GetUserLoginHistory(userID uint, params *userDTOs.UserLoginHistoryListQueryParamsDTO) (*userDTOs.UserLoginHistoryListResponseDTO, error) {
 	var userLogins []*userDTOs.UserLoginHistoryListDTO
 	var totalCount int64
 
 	query := repo.db.Table("user_login_history").
-		Select("id, login_at, login_status, ip_address, location, device_info, browser_info")
+		Select("id, login_at, login_status, ip_address, location, device_info, browser_info").
+		Where("user_login_history.user_id = ?", userID)
 
 	if params.Keyword != "" {
 		query = query.Where("(login_status LIKE ? OR location LIKE ? OR ip_address LIKE ? OR device_info LIKE ? OR browser_info LIKE ?)", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
@@ -458,4 +461,37 @@ func (repo *UserRepository) CreateUserLoginHistory(userLogin *models.UserLoginHi
 		return err
 	}
 	return nil
+}
+
+func (repo *UserRepository) GetUserPrimaryUnitID(primaryOrgUnitField string, userID uint) (uint, error) {
+	var organizationUnitID uint
+	err := repo.db.
+		Table("users").
+		Select(primaryOrgUnitField).
+		Where("id = ?", userID).
+		Scan(&organizationUnitID).
+		Error
+	if err != nil {
+		return 0, err
+	}
+
+	return organizationUnitID, nil
+}
+
+func (repo *UserRepository) GetUserIdsByRole(roleID uint, tx ...utility.DatabaseTransaction) ([]uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var userIDs []uint
+	err := db.
+		Model(&models.User{}).
+		Joins("JOIN user_roles on user_roles.user_id = users.id").
+		Where("user_roles.role_id = ?", roleID).
+		Pluck("users.id", &userIDs).Error
+	if err != nil {
+		return nil, err
+	}
+	return userIDs, nil
 }

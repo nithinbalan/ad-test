@@ -153,7 +153,7 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 		MessageEn:        messageEn,
 		MessageAr:        messageAr,
 		RedirectURL:      redirectURL,
-		CreatedBy:        currentUserID,
+		CreatedByID:      currentUserID,
 	}
 
 	resposibleUser, err := maps.userSvc.GetByID(MeetingActionPlanFormDTO.ResponsibleUserID)
@@ -179,7 +179,7 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 	}
 
 	err = maps.notificationSvc.SendNotification(
-		dbNotificationDTO, emailNotificationDTO, "create_meeting_action_plan")
+		dbNotificationDTO, emailNotificationDTO, "meeting_action_plan")
 	if err != nil {
 		return 0, err
 	}

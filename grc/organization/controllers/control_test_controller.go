@@ -123,7 +123,7 @@ func (ctc *ControlTestController) CreateControlTest(c *gin.Context) {
 		return
 	}
 
-	id, err := ctc.service.Create(uint(controlID), currentUserID, &controlTestFormDTO)
+	id, err := ctc.service.Create(uint(controlID), currentUserID, nil, &controlTestFormDTO, "")
 
 	if err != nil {
 		switch e := err.(type) {
@@ -140,6 +140,13 @@ func (ctc *ControlTestController) CreateControlTest(c *gin.Context) {
 }
 
 func (ctc *ControlTestController) UpdateControlTest(c *gin.Context) {
+
+	controlID, err := strconv.Atoi(c.Param("controlId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
 	controlTestID, err := strconv.Atoi(c.Param("controlTestId"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -158,7 +165,7 @@ func (ctc *ControlTestController) UpdateControlTest(c *gin.Context) {
 		return
 	}
 
-	err = ctc.service.Update(uint(controlTestID), currentUserID, &controlTestFormDTO)
+	err = ctc.service.Update(uint(controlID), uint(controlTestID), currentUserID, &controlTestFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -206,4 +213,27 @@ func (ctc *ControlTestController) DeleteControlTest(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}
+
+func (ctc *ControlTestController) GetControlTestTrendAnalysis(c *gin.Context) {
+	idStr := c.Param("controlId")
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	controlTrend, err := ctc.service.GetTrendAnalysis(uint(id))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(ctc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, controlTrend)
 }

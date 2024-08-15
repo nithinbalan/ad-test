@@ -28,6 +28,8 @@ type ProcessRepositoryInterface interface {
 	//lifecycle status
 	GetIDsByLifecycleStatus(ids []uint, status string) ([]uint, error)
 	UpdateLifecycleStatusForIDs(ids []uint, statusId uint) ([]uint, error)
+
+	GetControlSummary(processID uint) ([]models.ProcessControl, error)
 }
 
 type ProcessRepository struct {
@@ -63,6 +65,10 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 		owner.first_name_ar AS owner_first_name_ar,
 		owner.last_name_en AS owner_last_name_en,
 		owner.last_name_ar AS owner_last_name_ar,
+		owner.initial AS owner_initial,
+        owner.color AS owner_color,
+        owner.email AS owner_email,
+        owner.profile_image_path AS owner_profile_image_path,
 		lifecycle_statuses.title_en AS lifecycle_status_title_en,
 		lifecycle_statuses.title_ar AS lifecycle_status_title_ar,
 		lifecycle_statuses.color_code AS lifecycle_status_color_code,
@@ -70,10 +76,18 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 		created_user.first_name_ar AS created_user_first_name_ar,
 		created_user.last_name_en AS created_user_last_name_en,
 		created_user.last_name_ar AS created_user_last_name_ar,
+		created_user.initial AS created_user_initial,
+        created_user.color AS created_user_color,
+        created_user.email AS created_user_email,
+        created_user.profile_image_path AS created_user_profile_image_path,
 		updated_user.first_name_en AS updated_user_first_name_en,
 		updated_user.first_name_ar AS updated_user_first_name_ar,
 		updated_user.last_name_en AS updated_user_last_name_en,
 		updated_user.last_name_ar AS updated_user_last_name_ar,
+		updated_user.initial AS updated_user_initial,
+        updated_user.color AS updated_user_color,
+        updated_user.email AS updated_user_email,
+        updated_user.profile_image_path AS updated_user_profile_image_path,
 		processes.created_at,
 		processes.updated_at
 	`).
@@ -81,8 +95,8 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 		Joins("LEFT JOIN organization_units ON organization_units.id = processes.owner_unit_id").
 		Joins("LEFT JOIN users AS owner ON owner.id = processes.owner_id").
 		Joins("LEFT JOIN lifecycle_statuses ON lifecycle_statuses.id = processes.lifecycle_status_id").
-		Joins("LEFT JOIN users AS created_user ON created_user.id = processes.created_by").
-		Joins("LEFT JOIN users AS updated_user ON updated_user.id = processes.updated_by")
+		Joins("LEFT JOIN users AS created_user ON created_user.id = processes.created_by_id").
+		Joins("LEFT JOIN users AS updated_user ON updated_user.id = processes.updated_by_id")
 
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
@@ -293,4 +307,20 @@ func (repo *ProcessRepository) DeleteProcessControls(controlIds []*uint, tx ...u
 	}
 
 	return nil
+}
+
+func (repo *ProcessRepository) GetControlSummary(processID uint) ([]models.ProcessControl, error) {
+	var processControls []models.ProcessControl
+
+	result := repo.db.
+		Preload("Control").
+		Preload("Control.ControlImplementationStatus").
+		Preload("Control.ControlEfficiencyStatus").
+		Where("process_id = ?", processID).
+		Find(&processControls)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return processControls, nil
 }

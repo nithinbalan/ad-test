@@ -50,7 +50,11 @@ func (repo *ComplianceReviewRepository) GetAll(complianceID uint, sort string, s
             reviewed_user.first_name_en AS reviewed_user_first_name_en,
             reviewed_user.first_name_ar AS reviewed_user_first_name_ar,
             reviewed_user.last_name_en AS reviewed_user_last_name_en,
-            reviewed_user.last_name_ar AS reviewed_user_last_name_ar 
+            reviewed_user.last_name_ar AS reviewed_user_last_name_ar,
+			reviewed_user.initial AS reviewed_user_initial,
+        	reviewed_user.color AS reviewed_user_color,
+        	reviewed_user.email AS reviewed_user_email,
+        	reviewed_user.profile_image_path AS reviewed_user_profile_image_path 
         `).
         Joins(`
             LEFT JOIN compliance_register ON compliance_register.id = compliance_reviews.compliance_register_id

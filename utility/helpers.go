@@ -161,8 +161,13 @@ func CheckUniqueFields(slice interface{}, fields ...string) error {
 	return nil
 }
 
-func CalculateNextReviewDate(frequency string) time.Time {
-	currentDate := time.Now()
+func CalculateNextReviewDate(frequency string, lastDate ...time.Time) time.Time {
+	var currentDate time.Time
+	if len(lastDate) > 0 {
+		currentDate = lastDate[0]
+	} else {
+		currentDate = time.Now()
+	}
 
 	switch frequency {
 	case "daily":

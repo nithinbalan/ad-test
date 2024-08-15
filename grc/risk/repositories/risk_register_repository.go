@@ -34,6 +34,12 @@ type RiskRegisterRepositoryInterface interface {
 	DeleteRiskComplianceRequirements(requirementIds []*uint, tx ...utility.DatabaseTransaction) error
 	CreateRiskProcesses(processes []*models.RiskProcess, tx ...utility.DatabaseTransaction) error
 	DeleteRiskProcesses(processIds []*uint, tx ...utility.DatabaseTransaction) error
+	CreateRiskStrategicObjectives(strategicObjectives []*models.RiskStrategicObjective, tx ...utility.DatabaseTransaction) error
+	DeleteRiskStrategicObjectives(strategicObjectiveIds []*uint, tx ...utility.DatabaseTransaction) error
+	CreateRiskSLAs(slaRegisters []*models.RiskSLA, tx ...utility.DatabaseTransaction) error
+	DeleteRiskSLAs(slaRegisterIds []*uint, tx ...utility.DatabaseTransaction) error
+
+	GetControlSummary(riskID uint, controlType string) ([]models.RiskControlAnalysis, error)
 }
 
 type RiskRegisterRepository struct {
@@ -63,23 +69,27 @@ func (repo *RiskRegisterRepository) GetAll(params *riskDTOs.RiskRegisterListQuer
             risk_register.reported_at,
             risk_register.created_at,
             risk_register.updated_at,
+			risk_register.current_risk_rating_value_id,
             risk_categories.title_en AS risk_category_title_en,
             risk_categories.title_ar AS risk_category_title_ar,
             risk_sources.title_en AS risk_source_title_en,
             risk_sources.title_ar AS risk_source_title_ar,
-            organization_units.title_en AS owner_unit_title_en,
-            organization_units.title_ar AS owner_unit_title_ar,
-            users.first_name_en AS owner_first_name_en,
-            users.first_name_ar AS owner_first_name_ar,
-            users.last_name_en AS owner_last_name_en,
-            users.last_name_ar AS owner_last_name_ar,
+			organization_units.id AS responsible_unit_id,
+            organization_units.title_en AS responsible_unit_title_en,
+            organization_units.title_ar AS responsible_unit_title_ar,
+            users.first_name_en AS responsible_user_first_name_en,
+            users.first_name_ar AS responsible_user_first_name_ar,
+            users.last_name_en AS responsible_user_last_name_en,
+            users.last_name_ar AS responsible_user_last_name_ar,
             risk_statuses.title_en AS risk_status_title_en,
             risk_statuses.title_ar AS risk_status_title_ar,
+			risk_response_strategies.title_en AS risk_response_strategy_title_en,
+            risk_response_strategies.title_ar AS risk_response_strategy_title_ar,
             risk_statuses.color_code AS risk_status_color_code,
             review_frequencies.title_en AS review_frequency_title_en,
             review_frequencies.title_ar AS review_frequency_title_ar,
-            risk_register.next_review_date,
-            risk_register.comments,
+			CONVERT(VARCHAR, risk_register.next_review_date, 23) AS next_review_date,
+            risk_register.last_review_note,
             created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
             created_user.last_name_en AS created_user_last_name_en,
@@ -87,17 +97,54 @@ func (repo *RiskRegisterRepository) GetAll(params *riskDTOs.RiskRegisterListQuer
             updated_user.first_name_en AS updated_user_first_name_en,
             updated_user.first_name_ar AS updated_user_first_name_ar,
             updated_user.last_name_en AS updated_user_last_name_en,
-            updated_user.last_name_ar AS updated_user_last_name_ar  
+            updated_user.last_name_ar AS updated_user_last_name_ar,
+            current_likelihood.title_en AS current_likelihood_title_en,
+            current_likelihood.title_ar AS current_likelihood_title_ar,
+            current_impact.title_en AS current_impact_title_en,
+            current_impact.title_ar AS current_impact_title_ar,
+            current_risk_rating.title_en AS current_risk_rating_title_en,
+            current_risk_rating.title_ar AS current_risk_rating_title_ar,
+            current_risk_rating_value.value AS current_risk_rating_value,
+            current_risk_rating.color_code AS current_risk_rating_color_code,
+            inherent_likelihood.title_en AS inherent_likelihood_title_en,
+            inherent_likelihood.title_ar AS inherent_likelihood_title_ar,
+            inherent_impact.title_en AS inherent_impact_title_en,
+            inherent_impact.title_ar AS inherent_impact_title_ar,
+            inherent_risk_rating.title_en AS inherent_risk_rating_title_en,
+            inherent_risk_rating.title_ar AS inherent_risk_rating_title_ar,
+            inherent_risk_rating_value.value AS inherent_risk_rating_value,
+            inherent_risk_rating.color_code AS inherent_risk_rating_color_code,
+            residual_likelihood.title_en AS residual_likelihood_title_en,
+            residual_likelihood.title_ar AS residual_likelihood_title_ar,
+            residual_impact.title_en AS residual_impact_title_en,
+            residual_impact.title_ar AS residual_impact_title_ar,
+            residual_risk_rating.title_en AS residual_risk_rating_title_en,
+            residual_risk_rating.title_ar AS residual_risk_rating_title_ar,
+            residual_risk_rating_value.value AS residual_risk_rating_value,
+            residual_risk_rating.color_code AS residual_risk_rating_color_code
         `).
 		Joins(`
             LEFT JOIN risk_categories ON risk_categories.id = risk_register.risk_category_id
             LEFT JOIN risk_sources ON risk_sources.id = risk_register.risk_source_id
-            LEFT JOIN organization_units ON organization_units.id = risk_register.owner_unit_id
-            LEFT JOIN users ON users.id = risk_register.owner_id
+            LEFT JOIN organization_units ON organization_units.id = risk_register.responsible_unit_id
+            LEFT JOIN users ON users.id = risk_register.responsible_user_id
             LEFT JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id
-            LEFT JOIN users AS created_user ON created_user.id = risk_register.created_by
-            LEFT JOIN users AS updated_user ON updated_user.id = risk_register.updated_by
+			LEFT JOIN risk_response_strategies ON risk_response_strategies.id = risk_register.risk_response_strategy_id
+            LEFT JOIN users AS created_user ON created_user.id = risk_register.created_by_id
+            LEFT JOIN users AS updated_user ON updated_user.id = risk_register.updated_by_id
             LEFT JOIN review_frequencies ON review_frequencies.id = risk_register.review_frequency_id
+            LEFT JOIN risk_matrix_likelihoods AS current_likelihood ON current_likelihood.id = risk_register.current_likelihood_id
+            LEFT JOIN risk_matrix_impacts AS current_impact ON current_impact.id = risk_register.current_impact_id
+            LEFT JOIN risk_matrix_risk_ratings AS current_risk_rating ON current_risk_rating.id = risk_register.current_risk_rating_id
+            LEFT JOIN risk_matrix_risk_rating_values AS current_risk_rating_value ON current_risk_rating_value.id = risk_register.current_risk_rating_value_id
+            LEFT JOIN risk_matrix_likelihoods AS inherent_likelihood ON inherent_likelihood.id = risk_register.inherent_likelihood_id
+            LEFT JOIN risk_matrix_impacts AS inherent_impact ON inherent_impact.id = risk_register.inherent_impact_id
+            LEFT JOIN risk_matrix_risk_ratings AS inherent_risk_rating ON inherent_risk_rating.id = risk_register.inherent_risk_rating_id
+            LEFT JOIN risk_matrix_risk_rating_values AS inherent_risk_rating_value ON inherent_risk_rating_value.id = risk_register.inherent_risk_rating_value_id
+            LEFT JOIN risk_matrix_likelihoods AS residual_likelihood ON residual_likelihood.id = risk_register.residual_likelihood_id
+            LEFT JOIN risk_matrix_impacts AS residual_impact ON residual_impact.id = risk_register.residual_impact_id
+            LEFT JOIN risk_matrix_risk_ratings AS residual_risk_rating ON residual_risk_rating.id = risk_register.residual_risk_rating_id
+            LEFT JOIN risk_matrix_risk_rating_values AS residual_risk_rating_value ON residual_risk_rating_value.id = risk_register.residual_risk_rating_value_id
         `)
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
@@ -111,24 +158,22 @@ func (repo *RiskRegisterRepository) GetAll(params *riskDTOs.RiskRegisterListQuer
 	}
 
 	if params.ReportedAtTo != "" {
-		query = query.Where("reported_at >= ?", params.ReportedAtTo)
+		query = query.Where("reported_at <= ?", params.ReportedAtTo)
 	}
 
 	if params.NextReviewDateFrom != "" {
-		query = query.Where("reported_at >= ?", params.NextReviewDateFrom)
+		query = query.Where("next_review_date >= ?", params.NextReviewDateFrom)
 	}
 
 	if params.NextReviewDateTo != "" {
-		query = query.Where("reported_at >= ?", params.NextReviewDateTo)
+		query = query.Where("next_review_date <= ?", params.NextReviewDateTo)
 	}
 
-	//@todo dynamic filters
 	// Apply quick filters
 	for _, filter := range params.QuickFilter {
 		switch filter {
 		case "open_high_risk":
 			query = query.Where("risk_statuses.type = ?", "open")
-
 		}
 	}
 
@@ -166,6 +211,10 @@ func (repo *RiskRegisterRepository) GetAll(params *riskDTOs.RiskRegisterListQuer
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+	}
+
+	if params.Value != 0 {
+		query = query.Where("current_risk_rating_value.value = ?", params.Value)
 	}
 
 	// Sort by the specified column and order
@@ -223,8 +272,8 @@ func (repo *RiskRegisterRepository) GetFullDetailsByID(id uint, tx ...utility.Da
 	result := db.
 		Preload("RiskCategory").
 		Preload("RiskSource").
-		Preload("OwnerUnit").
-		Preload("Owner").
+		Preload("ResponsibleUnit").
+		Preload("ResponsibleUser").
 		Preload("ReviewFrequency").
 		Preload("RiskStatus").
 		Preload("Documents").
@@ -234,6 +283,22 @@ func (repo *RiskRegisterRepository) GetFullDetailsByID(id uint, tx ...utility.Da
 		Preload("ComplianceRequirements").
 		Preload("ComplianceRequirements.ComplianceRequirement").
 		Preload("Processes").
+		Preload("StrategicObjectives").
+		Preload("SLARegisters").
+		Preload("KRIs").
+		Preload("CurrentLikelihood").
+		Preload("CurrentImpact").
+		Preload("CurrentRiskRating").
+		Preload("CurrentRiskRatingValue").
+		Preload("InherentLikelihood").
+		Preload("InherentImpact").
+		Preload("InherentRiskRating").
+		Preload("InherentRiskRatingValue").
+		Preload("ResidualLikelihood").
+		Preload("ResidualImpact").
+		Preload("ResidualRiskRating").
+		Preload("ResidualRiskRatingValue").
+		Preload("RiskResponseStrategy").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&risk, id)
@@ -415,4 +480,71 @@ func (repo *RiskRegisterRepository) DeleteRiskProcesses(processIds []*uint, tx .
 	}
 
 	return nil
+}
+
+func (repo *RiskRegisterRepository) CreateRiskStrategicObjectives(strategicObjectives []*models.RiskStrategicObjective, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&strategicObjectives).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *RiskRegisterRepository) DeleteRiskStrategicObjectives(strategicObjectiveIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Delete strategicObjectives by IDs
+	if err := db.Where("id IN (?)", strategicObjectiveIds).Delete(&models.RiskStrategicObjective{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *RiskRegisterRepository) CreateRiskSLAs(slaRegisters []*models.RiskSLA, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&slaRegisters).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *RiskRegisterRepository) DeleteRiskSLAs(slaRegisterIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Delete SLARegister by IDs
+	if err := db.Where("id IN (?)", slaRegisterIds).Delete(&models.RiskSLA{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *RiskRegisterRepository) GetControlSummary(riskID uint, controlType string) ([]models.RiskControlAnalysis, error) {
+	var riskControlAnalyses []models.RiskControlAnalysis
+
+	result := repo.db.
+		Preload("ControlEfficiencyStatus").
+		Preload("ControlImplementationStatus").
+		Joins("JOIN risk_controls ON risk_controls.id = risk_control_analyses.risk_control_id").
+		Where("risk_controls.risk_register_id = ?", riskID).
+		Where("risk_control_analyses.type = ?", controlType).
+		Find(&riskControlAnalyses)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return riskControlAnalyses, nil
 }

@@ -12,6 +12,7 @@ import (
 type IncidentStatusServiceInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.IncidentStatus, error)
 	GetByID(id uint) (*models.IncidentStatus, error)
+	GetByType(status string) (*models.IncidentStatus, error)
 }
 
 // Service and implementations
@@ -38,4 +39,14 @@ func (iss IncidentStatusService) GetByID(id uint) (*models.IncidentStatus, error
 		return nil, err
 	}
 	return incidentStatus, nil
+}
+
+func (iss *IncidentStatusService) GetByType(status string) (*models.IncidentStatus, error) {
+	statusResult, err := iss.repo.GetByType(status)
+	if err != nil {
+		// Handle error appropriately
+		return nil, err
+	}
+
+	return statusResult, nil
 }

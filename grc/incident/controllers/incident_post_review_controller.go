@@ -32,15 +32,7 @@ func (iprc *IncidentPostReviewController) GetIncidentPostReviewDetails(c *gin.Co
 		return
 	}
 
-	idStr := c.Param("id")
-
-	id, err := strconv.ParseUint(idStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	incidentPostReview, err := iprc.service.GetFullDetailsByID(uint(incidentID), uint(id))
+	incidentPostReview, err := iprc.service.GetFullDetailsByID(uint(incidentID))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -107,14 +99,6 @@ func (iprc *IncidentPostReviewController) UpdateIncidentPostReview(c *gin.Contex
 		return
 	}
 
-	idStr := c.Param("id")
-
-	id, err := strconv.ParseUint(idStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
 	if err := c.ShouldBindJSON(&incidentPostReviewFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
@@ -126,7 +110,7 @@ func (iprc *IncidentPostReviewController) UpdateIncidentPostReview(c *gin.Contex
 		return
 	}
 
-	err = iprc.service.Update(uint(incidentID), uint(id), currentUserID, &incidentPostReviewFormDTO)
+	err = iprc.service.Update(uint(incidentID), currentUserID, &incidentPostReviewFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -145,10 +129,6 @@ func (iprc *IncidentPostReviewController) UpdateIncidentPostReview(c *gin.Contex
 }
 
 func (iprc *IncidentPostReviewController) DeleteIncidentPostReviews(c *gin.Context) {
-	var request struct {
-		IDs []uint `json:"ids"`
-	}
-
 	incidentIDStr := c.Param("incidentID")
 
 	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
@@ -156,19 +136,13 @@ func (iprc *IncidentPostReviewController) DeleteIncidentPostReviews(c *gin.Conte
 		utility.SendNotFoundErrResp(c)
 		return
 	}
-
-	if err := c.ShouldBindJSON(&request); err != nil {
-		utility.SendInvalidErrResp(c, err)
-		return
-	}
-
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(iprc.db, c, err.Error())
 		return
 	}
 
-	failedIDs, err := iprc.service.Delete(uint(incidentID), request.IDs, currentUserID)
+	failedID, err := iprc.service.Delete(uint(incidentID), currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -183,5 +157,5 @@ func (iprc *IncidentPostReviewController) DeleteIncidentPostReviews(c *gin.Conte
 		}
 	}
 
-	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+	c.JSON(http.StatusOK, gin.H{"failed_id": failedID})
 }

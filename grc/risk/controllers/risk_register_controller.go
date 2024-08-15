@@ -29,13 +29,14 @@ func (rrc *RiskRegisterController) GetAllRiskRegisters(c *gin.Context) {
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
+	valueStr := c.Query("value")
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"risk_category_ids",
 		"risk_source_ids",
-		"owner_unit_ids",
-		"owner_ids",
+		"responsible_unit_ids",
+		"responsible_user_ids",
 		"risk_status_ids",
 		"review_frequency_ids",
 	}
@@ -59,6 +60,15 @@ func (rrc *RiskRegisterController) GetAllRiskRegisters(c *gin.Context) {
 		return
 	}
 
+	var value int
+	if valueStr != "" {
+		value, err = strconv.Atoi(valueStr)
+		if err != nil {
+			utility.SendInternalErrResp(rrc.db, c, "Invalid value parameter")
+			return
+		}
+	}
+
 	queryParams := riskDTOs.RiskRegisterListQueryParamsDTO{
 		Sort:               sort,
 		SortBy:             sortBy,
@@ -66,6 +76,7 @@ func (rrc *RiskRegisterController) GetAllRiskRegisters(c *gin.Context) {
 		Status:             status,
 		Page:               page,
 		PageSize:           pageSize,
+		Value:              value,
 		Filters:            filters,
 		QuickFilter:        quickFilter,
 		ReportedAtFrom:     reportedAtFrom,
@@ -196,4 +207,104 @@ func (rrc *RiskRegisterController) DeleteRiskRegisters(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}
+
+func (rrc *RiskRegisterController) UpdateResponseStrategy(c *gin.Context) {
+	var riskResponseStrategyFormDTO riskDTOs.RiskResponseStrategyFormDTO
+
+	riskIDStr := c.Param("riskId")
+
+	riskID, err := strconv.ParseUint(riskIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&riskResponseStrategyFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(rrc.db, c, err.Error())
+		return
+	}
+
+	err = rrc.service.UpdateResponseStrategy(uint(riskID), currentUserID, &riskResponseStrategyFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(rrc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (rrc *RiskRegisterController) DeleteResponseStrategy(c *gin.Context) {
+	riskIDStr := c.Param("riskId")
+
+	riskID, err := strconv.ParseUint(riskIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(rrc.db, c, err.Error())
+		return
+	}
+
+	err = rrc.service.DeleteResponseStrategy(uint(riskID), currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(rrc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (rrc *RiskRegisterController) GetControlPerformance(c *gin.Context) {
+	riskIDStr := c.Param("riskId")
+
+	riskID, err := strconv.ParseUint(riskIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	controlPerformance, err := rrc.service.GetControlPerformance(uint(riskID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(rrc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, controlPerformance)
 }

@@ -39,6 +39,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskAssociatedItemController := app.RiskModule.RiskAssociatedItemController
 	riskResponseStrategyController := app.RiskModule.RiskResponseStrategyController
 	riskTreatmentGuidelineController := app.RiskModule.RiskTreatmentGuidelineController
+	riskHeatmapController := app.RiskModule.RiskHeatmapController
+	riskInherentControlAnalysisController := app.RiskModule.RiskInherentControlAnalysisController
+	riskResidualEvaluationController := app.RiskModule.RiskResidualEvaluationController
+	riskResidualControlAnalysisController := app.RiskModule.RiskResidualControlAnalysisController
+	riskKriController := app.RiskModule.RiskKriController
+	riskTimelineController := app.RiskModule.RiskTimelineController
 
 	riskRoutes.GET("/risk-categories", riskCategoryController.GetAllRiskCategories)
 	riskRoutes.GET("/risk-categories/:id", riskCategoryController.GetRiskCategoryDetails)
@@ -87,6 +93,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	riskRoutes.GET("/kri-register/:id/value-updates", kriValueUpdateController.GetAllKRIValueUpdates)
 	riskRoutes.POST("/kri-register/:id/value-updates", kriValueUpdateController.CreateKRIValueUpdate)
+	riskRoutes.GET("/kri-register/:id/value-updates/:updateId", kriValueUpdateController.GetKRIValueUpdateDetails)
 	riskRoutes.PUT("/kri-register/:id/value-updates/:updateId", kriValueUpdateController.UpdateKRIValueUpdate)
 	riskRoutes.POST("/kri-register/:id/value-updates/delete", kriValueUpdateController.DeleteKRIValueUpdates)
 
@@ -168,6 +175,14 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.GET("risks/:riskId/controls", riskAssociatedItemController.GetAllRiskControls)
 	riskRoutes.GET("risks/:riskId/compliance-requirements", riskAssociatedItemController.GetAllRiskComplianceRequirements)
 	riskRoutes.GET("risks/:riskId/processes", riskAssociatedItemController.GetAllRiskProcesses)
+	riskRoutes.GET("risks/:riskId/strategic-objectives", riskAssociatedItemController.GetAllRiskStrategicObjectives)
+	riskRoutes.GET("risks/:riskId/slas", riskAssociatedItemController.GetAllRiskSLAs)
+	riskRoutes.GET("risks/:riskId/incidents", riskAssociatedItemController.GetAllRiskIncidents)
+
+	riskRoutes.PUT("/risks/:riskId/response-strategy", riskRegisterController.UpdateResponseStrategy)
+	riskRoutes.DELETE("/risks/:riskId/response-strategy", riskRegisterController.DeleteResponseStrategy)
+
+	riskRoutes.GET("/risks/:riskId/control-performance", riskRegisterController.GetControlPerformance)
 
 	// Risk Action Plan
 	riskRoutes.GET("/risk-action-plans", riskActionPlanController.GetAllRiskActionPlans)
@@ -180,6 +195,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.GET("/risks/:riskId/action-plans/:actionPlanId/status-updates", riskActionPlanStatusUpdateController.GetAllRiskActionPlanStatusUpdates)
 	riskRoutes.POST("/risks/:riskId/action-plans/:actionPlanId/status-updates", riskActionPlanStatusUpdateController.CreateRiskActionPlanStatusUpdate)
 	riskRoutes.PUT("/risks/:riskId/action-plans/:actionPlanId/status-updates/:id", riskActionPlanStatusUpdateController.UpdateRiskActionPlanStatusUpdate)
+	riskRoutes.GET("/risks/:riskId/action-plans/:actionPlanId/status-updates/latest", riskActionPlanStatusUpdateController.GetLatestRiskActionPlanStatusUpdate)
 
 	// Risk Treatment Guides
 	riskRoutes.GET("/risk-treatment-guidelines", riskTreatmentGuidelineController.GetAllRiskTreatmentGuidelines)
@@ -198,5 +214,48 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.POST("/risk-response-strategies/delete", riskResponseStrategyController.DeleteRiskResponseStrategies)
 	riskRoutes.PUT("/risk-response-strategies/activate", riskResponseStrategyController.ActivateRiskResponseStrategies)
 	riskRoutes.PUT("/risk-response-strategies/deactivate", riskResponseStrategyController.DeactivateRiskResponseStrategies)
+
+	// Risk Heat Map
+	riskRoutes.GET("risks/heatmap-by-responsible-unit", riskHeatmapController.GetRiskHeatmapByResponsibleUnit)
+	riskRoutes.GET("risks/heatmap-by-risk-category", riskHeatmapController.GetRiskHeatmapByRiskCategory)
+	riskRoutes.GET("risks/heatmap-by-risk-source", riskHeatmapController.GetRiskHeatmapByRiskSource)
+	riskRoutes.GET("risks/heatmap-by-risk-matrix", riskHeatmapController.GetRiskHeatmapByRiskMatrix)
+
+	riskRoutes.GET("processes/:processId/risk-heatmap", riskHeatmapController.GetProcessRiskHeatmap)
+	riskRoutes.GET("controls/:controlId/risk-heatmap", riskHeatmapController.GetControlRiskHeatmap)
+	riskRoutes.GET("compliances/:complianceId/risk-heatmap", riskHeatmapController.GetComplianceRiskHeatmap)
+
+	//Risk Control Analysis
+	riskRoutes.GET("risks/:riskId/inherent-control-analysis", riskInherentControlAnalysisController.GetAllRiskControlAnalyses)
+	riskRoutes.GET("risks/:riskId/inherent-control-analysis/:id", riskInherentControlAnalysisController.GetRiskControlAnalysisDetails)
+	riskRoutes.POST("risks/:riskId/inherent-control-analysis", riskInherentControlAnalysisController.CreateRiskControlAnalysis)
+	riskRoutes.PUT("risks/:riskId/inherent-control-analysis/:id", riskInherentControlAnalysisController.UpdateRiskControlAnalysis)
+	riskRoutes.POST("risks/:riskId/inherent-control-analysis/delete", riskInherentControlAnalysisController.DeleteRiskControlAnalyses)
+
+	riskRoutes.GET("risks/:riskId/inherent-control-analysis/control-summary", riskInherentControlAnalysisController.GetRiskControlSummary)
+
+	//Risk Residual Evaluation
+	riskRoutes.GET("risks/:riskId/residual-evaluation", riskResidualEvaluationController.GetRiskResidualEvaluation)
+	riskRoutes.POST("risks/:riskId/residual-evaluation", riskResidualEvaluationController.CreateRiskResidualEvaluation)
+	riskRoutes.PUT("risks/:riskId/residual-evaluation/:id", riskResidualEvaluationController.UpdateRiskResidualEvaluation)
+	riskRoutes.DELETE("risks/:riskId/residual-evaluation/:id", riskResidualEvaluationController.DeleteRiskResidualEvaluation)
+
+	//Risk Control Analysis
+	riskRoutes.GET("risks/:riskId/residual-control-analysis", riskResidualControlAnalysisController.GetAllRiskControlAnalyses)
+	riskRoutes.GET("risks/:riskId/residual-control-analysis/:id", riskResidualControlAnalysisController.GetRiskResidualControlAnalysisDetails)
+	riskRoutes.POST("risks/:riskId/residual-control-analysis", riskResidualControlAnalysisController.CreateRiskControlAnalysis)
+	riskRoutes.PUT("risks/:riskId/residual-control-analysis/:id", riskResidualControlAnalysisController.UpdateRiskControlAnalysis)
+	riskRoutes.POST("risks/:riskId/residual-control-analysis/delete", riskResidualControlAnalysisController.DeleteRiskControlAnalyses)
+
+	riskRoutes.GET("risks/:riskId/residual-control-analysis/control-summary", riskResidualControlAnalysisController.GetRiskControlSummary)
+
+	riskRoutes.GET("/risks/:riskId/kris", riskKriController.GetAllRiskKris)
+	riskRoutes.GET("/risks/:riskId/kris/:kriId", riskKriController.GetRiskKriDetails)
+	riskRoutes.POST("/risks/:riskId/kris", riskKriController.CreateRiskKri)
+	riskRoutes.PUT("/risks/:riskId/kris", riskKriController.UpdateRiskKri)
+	riskRoutes.POST("/risks/:riskId/kris/delete", riskKriController.DeleteRiskKris)
+
+	//Risk Timelines
+	riskRoutes.GET("/risks/:riskId/timelines", riskTimelineController.GetAllRiskTimelines)
 
 }

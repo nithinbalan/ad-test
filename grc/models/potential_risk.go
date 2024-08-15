@@ -14,15 +14,15 @@ type PotentialRisk struct {
 	RiskSource            string     `json:"risk_source" binding:"required,max=45" gorm:"type:varchar(45);not null"`
 	CreatedAt             time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt             *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
-	CreatedBy             uint       `json:"created_by" gorm:"not null"`
-	UpdatedBy             *uint      `json:"updated_by" gorm:"default:null"`
+	CreatedBYID           uint       `json:"created_by_id" gorm:"not null"`
+	UpdatedBYID           *uint      `json:"updated_by_id" gorm:"default:null"`
 
 	// Relationships
-	RiskCategory        *RiskCategory        `gorm:"foreignkey:RiskCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	SeverityLevel       *SeverityLevel       `gorm:"foreignkey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	PotentialRiskStatus *PotentialRiskStatus `gorm:"foreignkey:PotentialRiskStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser       *User                `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser       *User                `gorm:"foreignKey:UpdatedBy"`
+	RiskCategory        *RiskCategory        `gorm:"foreignKey:RiskCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	SeverityLevel       *SeverityLevel       `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	PotentialRiskStatus *PotentialRiskStatus `gorm:"foreignKey:PotentialRiskStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	CreatedByUser       *User                `gorm:"foreignKey:CreatedBYID"`
+	UpdatedByUser       *User                `gorm:"foreignKey:UpdatedBYID"`
 }
 
 // TableName overrides the table name used by PotentialRisk to `potential_risks`

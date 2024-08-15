@@ -8,8 +8,8 @@ type Control struct {
 	ID                            uint       `json:"id" gorm:"primaryKey;autoIncrement" binding:"-"`
 	ControlTypeID                 uint       `json:"control_type_id" gorm:"not null" binding:"required"`
 	ControlCategoryID             uint       `json:"control_category_id" gorm:"not null" binding:"required"`
-	OwnerUnitID                   *uint      `json:"owner_unit_id,omitempty" gorm:"default:null" binding:"omitempty"`
-	OwnerID                       *uint      `json:"owner_id,omitempty" gorm:"default:null" binding:"omitempty"`
+	OwnerUnitID                   uint       `json:"owner_unit_id" gorm:"not null" binding:"required"`
+	OwnerID                       uint       `json:"owner_id" gorm:"not null" binding:"required"`
 	ControlImplementationStatusID *uint      `json:"control_implementation_status_id,omitempty" gorm:"default:null" binding:"omitempty"`
 	ControlEfficiencyStatusID     *uint      `json:"control_efficiency_status_id,omitempty" gorm:"default:null" binding:"omitempty"`
 	ReferenceNumber               string     `json:"reference_number" gorm:"type:varchar(45);not null;unique" binding:"required"`
@@ -17,6 +17,7 @@ type Control struct {
 	TitleEn                       string     `json:"title_en" gorm:"type:nvarchar(500);not null" binding:"required"`
 	TitleAr                       string     `json:"title_ar" gorm:"type:nvarchar(500);not null" binding:"required"`
 	Description                   *string    `json:"description,omitempty" gorm:"type:nvarchar(MAX);default:null" binding:"omitempty"`
+	EfficiencyScore               *uint      `json:"efficiency_score" gorm:"default:0;check:efficiency_score >= 0 AND efficiency_score <= 100" binding:"omitempty"`
 	Objective                     *string    `json:"objective,omitempty" gorm:"type:nvarchar(MAX);default:null" binding:"omitempty"`
 	ReviewFrequencyID             *uint      `json:"review_frequency_id,omitempty" gorm:"default:null" binding:"omitempty"`
 	LastReviewDate                *time.Time `json:"last_review_date,omitempty" gorm:"type:date;default:null" binding:"omitempty"`
@@ -27,11 +28,14 @@ type Control struct {
 	LastTestDate                  *time.Time `json:"last_test_date,omitempty" gorm:"type:date;default:null" binding:"omitempty"`
 	NextTestDate                  *time.Time `json:"next_test_date,omitempty" gorm:"type:date;default:null" binding:"omitempty"`
 	ImplementedAt                 *time.Time `json:"implemented_at,omitempty" gorm:"type:date;default:null" binding:"omitempty"`
-	CreatedBy                     uint       `json:"created_by" gorm:"not null" binding:"required"`
-	UpdatedBy                     *uint      `json:"updated_by,omitempty" gorm:"default:null" binding:"omitempty"`
+	CreatedByID                   uint       `json:"created_by_id" gorm:"not null" binding:"required"`
+	UpdatedByID                   *uint      `json:"updated_by_id,omitempty" gorm:"default:null" binding:"omitempty"`
 	CreatedAt                     time.Time  `json:"created_at" gorm:"type:datetime;not null" binding:"-"`
 	UpdatedAt                     *time.Time `json:"updated_at,omitempty" gorm:"type:datetime;default:null" binding:"omitempty"`
 	LifecycleStatusID             uint       `json:"lifecycle_status_id" gorm:"not null"`
+	LastReviewedUserID            *uint      `json:"last_reviewed_user_id" gorm:"default:null"`
+	ControlReviewStatusID         *uint      `json:"control_review_status_id" gorm:"default:null"`
+	MarkedAsAuditableItem         bool       `json:"marked_as_auditable_item" gorm:"default:false" binding:"-"`
 
 	// Relationships
 	ControlType                 *ControlType                 `gorm:"foreignKey:ControlTypeID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
@@ -43,9 +47,13 @@ type Control struct {
 	ReviewFrequency             *ReviewFrequency             `gorm:"foreignKey:ReviewFrequencyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	TestResponsibleUser         *User                        `gorm:"foreignKey:TestResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	TestFrequency               *ReviewFrequency             `gorm:"foreignKey:TestFrequencyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	LifecycleStatus             *LifecycleStatus             `gorm:"foreignkey:LifecycleStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser               *User                        `gorm:"foreignKey:CreatedBy"`
-	UpdatedByUser               *User                        `gorm:"foreignKey:UpdatedBy"`
+	LifecycleStatus             *LifecycleStatus             `gorm:"foreignKey:LifecycleStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ControlReviewStatus         *ControlReviewStatus         `gorm:"foreignKey:ControlReviewStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	LatestControlTest           *ControlTest                 `gorm:"foreignKey:ControlID"`
+	LastReviewedUser            *User                        `gorm:"foreignKey:LastReviewedUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	LatestControlReview         *ControlReview               `gorm:"foreignKey:ControlID"`
+	CreatedByUser               *User                        `gorm:"foreignKey:CreatedByID"`
+	UpdatedByUser               *User                        `gorm:"foreignKey:UpdatedByID"`
 }
 
 func (Control) TableName() string {

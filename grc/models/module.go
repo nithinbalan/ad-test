@@ -10,7 +10,7 @@ type Module struct {
 
 	// Self-referencing relationship
 	Parent   *Module   `json:"parent,omitempty" gorm:"foreignKey:ModuleID"`
-	Children *[]Module `json:"children,omitempty" gorm:"foreignkey:ModuleID"`
+	Children *[]Module `json:"children,omitempty" gorm:"foreignKey:ModuleID"`
 
 	// One-to-many relationship
 	NotificationMasters *[]NotificationMaster `json:"notification_masters,omitempty" gorm:"foreignKey:ModuleID"`

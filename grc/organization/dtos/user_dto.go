@@ -170,3 +170,27 @@ type UserLoginHistoryListResponseDTO struct {
 	Items      []*UserLoginHistoryListDTO   `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }
+
+type CurrentUserDetailsDTO struct {
+	ID               uint       `json:"id"`
+	FirstNameEn      string     `json:"first_name_en"`
+	LastNameEn       string     `json:"last_name_en"`
+	FirstNameAr      string     `json:"first_name_ar"`
+	LastNameAr       string     `json:"last_name_ar"`
+	Email            string     `json:"email"`
+	MobileNumber     *string    `json:"mobile_number"`
+	ProfileImagePath *string    `json:"profile_image_path"`
+	Initial          string     `json:"initial"`
+	Color            string     `json:"color"`
+	LastLoginAt      *time.Time `json:"last_login_at"`
+
+	// Relationship DTOs
+	OrganizationUnit1 *settingDTOs.OrganizationUnitDTO `json:"organization_unit_1"`
+	OrganizationUnit2 *settingDTOs.OrganizationUnitDTO `json:"organization_unit_2"`
+	OrganizationUnit3 *settingDTOs.OrganizationUnitDTO `json:"organization_unit_3"`
+	OrganizationUnit4 *settingDTOs.OrganizationUnitDTO `json:"organization_unit_4"`
+	OrganizationUnit5 *settingDTOs.OrganizationUnitDTO `json:"organization_unit_5"`
+	UserStatus        *UserStatusDTO                   `json:"user_status"`
+	Designation       *DesignationDTO                  `json:"designation"`
+	Roles             *[]settingDTOs.RoleDTO           `json:"roles"`
+}

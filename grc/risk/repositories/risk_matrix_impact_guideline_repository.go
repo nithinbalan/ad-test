@@ -58,8 +58,8 @@ func (repo *RiskMatrixImpactGuidelineRepository) GetAll(params *riskDTOs.RiskMat
 		Joins(`
 		LEFT JOIN risk_impact_categories ON risk_impact_categories.id = risk_matrix_impact_guidelines.risk_impact_category_id
         LEFT JOIN risk_matrix_impacts ON risk_matrix_impacts.id = risk_matrix_impact_guidelines.risk_matrix_impact_id
-        LEFT JOIN users AS created_user ON created_user.id = risk_matrix_impact_guidelines.created_by
-        LEFT JOIN users AS updated_user ON updated_user.id = risk_matrix_impact_guidelines.updated_by
+        LEFT JOIN users AS created_user ON created_user.id = risk_matrix_impact_guidelines.created_by_id
+        LEFT JOIN users AS updated_user ON updated_user.id = risk_matrix_impact_guidelines.updated_by_id
     `)
 
 	// Apply dynamic filters to the query

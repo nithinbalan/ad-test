@@ -163,3 +163,35 @@ func (sasuc *SLAActionPlanStatusUpdateController) UpdateSLAActionPlanStatusUpdat
 
 	c.Status(http.StatusOK)
 }
+
+func (sasuc *SLAActionPlanStatusUpdateController) GetLatestSLAActionPlanStatusUpdate(c *gin.Context) {
+	slaIDStr := c.Param("slaId")
+
+	slaID, err := strconv.ParseUint(slaIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	actionPlanIDStr := c.Param("actionPlanId")
+
+	actionPlanID, err := strconv.ParseUint(actionPlanIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	slaActionPlanStatusUpdate, err := sasuc.service.GetLatestSLAActionPlanStatusUpdate(uint(slaID), uint(actionPlanID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(sasuc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, slaActionPlanStatusUpdate)
+}

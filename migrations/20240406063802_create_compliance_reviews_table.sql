@@ -7,7 +7,7 @@ CREATE TABLE compliance_reviews (
     reviewed_at DATETIME NOT NULL,
     updated_at DATETIME NULL,
     reviewed_by INT NOT NULL,
-    updated_by INT NULL,
+    updated_by_id INT NULL,
     CONSTRAINT FK_compliance_reviews_compliance_register FOREIGN KEY (compliance_register_id) REFERENCES compliance_register (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_compliance_reviews_users FOREIGN KEY (reviewed_by) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );

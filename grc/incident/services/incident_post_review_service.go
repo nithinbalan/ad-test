@@ -9,17 +9,18 @@ import (
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
+	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
 )
 
 type IncidentPostReviewServiceInterface interface {
-	GetByID(incidentID uint, id uint) (*models.IncidentPostReview, error)
-	GetFullDetailsByID(incidentID uint, id uint, tx ...utility.DatabaseTransaction) (*incidentDTOs.IncidentPostReviewDetailDTO, error)
+	GetByID(incidentID uint) (*models.IncidentPostReview, error)
+	GetFullDetailsByID(incidentID uint, tx ...utility.DatabaseTransaction) (*incidentDTOs.IncidentPostReviewDetailDTO, error)
 	Create(incidentID uint, currentUserID uint, IncidentPostReviewFormDTO *incidentDTOs.IncidentPostReviewFormDTO) (uint, error)
-	Update(incidentID uint, id uint, currentUserID uint, incident *incidentDTOs.IncidentPostReviewFormDTO) error
-	Delete(incidentID uint, ids []uint, currentUserID uint) ([]uint, error)
+	Update(incidentID uint, currentUserID uint, incident *incidentDTOs.IncidentPostReviewFormDTO) error
+	Delete(incidentID uint, currentUserID uint) (uint, error)
 }
 
 // Service and implementations
@@ -29,6 +30,7 @@ type IncidentPostReviewService struct {
 	userSvc                            organizationServices.UserServiceInterface
 	incidentPostReviewEffectivenessSvc IncidentPostReviewEffectivenessServiceInterface
 	incidentRegisterSvc                IncidentRegisterServiceInterface
+	incidentTimelineSvc                IncidentTimelineServiceInterface
 }
 
 func NewIncidentPostReviewService(
@@ -36,44 +38,47 @@ func NewIncidentPostReviewService(
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	incidentPostReviewEffectivenessSvc IncidentPostReviewEffectivenessServiceInterface,
-	incidentRegisterSvc IncidentRegisterServiceInterface) IncidentPostReviewServiceInterface {
+	incidentRegisterSvc IncidentRegisterServiceInterface,
+	incidentTimelineSvc IncidentTimelineServiceInterface,
+) IncidentPostReviewServiceInterface {
 	return &IncidentPostReviewService{
 		repo:                               repo,
 		activityLogSvc:                     activityLogSvc,
 		userSvc:                            userSvc,
 		incidentPostReviewEffectivenessSvc: incidentPostReviewEffectivenessSvc,
 		incidentRegisterSvc:                incidentRegisterSvc,
+		incidentTimelineSvc:                incidentTimelineSvc,
 	}
 }
 
-func (iprs IncidentPostReviewService) GetByID(incidentID uint, id uint) (*models.IncidentPostReview, error) {
+func (iprs IncidentPostReviewService) GetByID(incidentID uint) (*models.IncidentPostReview, error) {
 	if _, err := iprs.incidentRegisterSvc.GetByID(incidentID); err != nil {
 		return nil, err
 	}
 
-	incidentPostReview, err := iprs.repo.GetByID(id)
+	incidentPostReview, err := iprs.repo.GetByID(incidentID)
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, utility.NewResourceNotFoundError(err, id)
+			return nil, utility.NewResourceNotFoundError(err, incidentID)
 		}
 		return nil, err
 	}
 	return incidentPostReview, nil
 }
 
-func (iprs IncidentPostReviewService) GetFullDetailsByID(incidentID uint, id uint, tx ...utility.DatabaseTransaction) (*incidentDTOs.IncidentPostReviewDetailDTO, error) {
+func (iprs IncidentPostReviewService) GetFullDetailsByID(incidentID uint, tx ...utility.DatabaseTransaction) (*incidentDTOs.IncidentPostReviewDetailDTO, error) {
 	var incidentPostReviewDTO incidentDTOs.IncidentPostReviewDetailDTO
 
 	if _, err := iprs.incidentRegisterSvc.GetByID(incidentID); err != nil {
 		return nil, err
 	}
 
-	incidentPostReview, err := iprs.repo.GetFullDetailsByID(id, tx...)
+	incidentPostReview, err := iprs.repo.GetFullDetailsByID(incidentID, tx...)
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, utility.NewResourceNotFoundError(err, id)
+			return nil, utility.NewResourceNotFoundError(err, incidentID)
 		}
 		return nil, err
 	}
@@ -84,6 +89,13 @@ func (iprs IncidentPostReviewService) GetFullDetailsByID(incidentID uint, id uin
 	}
 
 	//todo :- also add extra fields which required in details screen
+	if incidentPostReview.PostReviewDate != nil {
+		postReviewDate := incidentPostReview.PostReviewDate.Format("2006-01-02")
+		incidentPostReviewDTO.PostReviewDateString = &postReviewDate
+	}
+
+	incidentPostReviewDTO.CreatedAt = incidentPostReview.CreatedAt
+	incidentPostReviewDTO.UpdatedAt = incidentPostReview.UpdatedAt
 	return &incidentPostReviewDTO, nil
 }
 
@@ -105,9 +117,9 @@ func (iprs *IncidentPostReviewService) Create(incidentID uint, currentUserID uin
 	incidentPostReview := &models.IncidentPostReview{
 		IncidentRegisterID:                incidentID,
 		IncidentPostReviewEffectivenessID: int(incidentPostReviewFormDTO.IncidentPostReviewEffectivenessID),
-		PostReviewDate:                    *dates.PostReviewDate,
+		PostReviewDate:                    dates.PostReviewDate,
 		Summary:                           incidentPostReviewFormDTO.Summary,
-		CreatedBy:                         currentUserID,
+		CreatedByID:                       currentUserID,
 	}
 
 	id, err := iprs.repo.Create(incidentPostReview, tx)
@@ -122,7 +134,7 @@ func (iprs *IncidentPostReviewService) Create(incidentID uint, currentUserID uin
 		user := &models.IncidentPostReviewUser{
 			IncidentPostReviewID: id,
 			UserID:               *userId,
-			CreatedBy:            currentUserID,
+			CreatedByID:          currentUserID,
 		}
 		postReviewUsers = append(postReviewUsers, user)
 	}
@@ -140,7 +152,7 @@ func (iprs *IncidentPostReviewService) Create(incidentID uint, currentUserID uin
 		lessonObj := &models.IncidentPostReviewLesson{
 			IncidentPostReviewID: id,
 			Lesson:               *lesson,
-			CreatedBy:            currentUserID,
+			CreatedByID:          currentUserID,
 		}
 		incidentPostReviewLessons = append(incidentPostReviewLessons, lessonObj)
 	}
@@ -157,7 +169,7 @@ func (iprs *IncidentPostReviewService) Create(incidentID uint, currentUserID uin
 		recommendationObj := &models.IncidentPostReviewRecommendation{
 			IncidentPostReviewID: id,
 			Recommendation:       *recommendation,
-			CreatedBy:            currentUserID,
+			CreatedByID:          currentUserID,
 		}
 		incidentPostReviewRecommendations = append(incidentPostReviewRecommendations, recommendationObj)
 	}
@@ -168,7 +180,28 @@ func (iprs *IncidentPostReviewService) Create(incidentID uint, currentUserID uin
 			return 0, err
 		}
 	}
-
+	//Update timeline
+	//todo
+	timelineType, err := iprs.incidentTimelineSvc.GetByType("pir")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	timelineStatus, err := iprs.incidentTimelineSvc.GetByStatusType("completed")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	currentTime := time.Now()
+	timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
+		PerformedByID:    &currentUserID,
+		TimelineStatusID: timelineStatus.ID,
+		PerformedAt:      &currentTime,
+	}
+	if err := iprs.incidentTimelineSvc.Update(incidentID, timelineFormDTO, timelineType.ID, tx); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
 	tx.Commit()
 
 	go func() {
@@ -197,13 +230,13 @@ func (iprs *IncidentPostReviewService) Create(incidentID uint, currentUserID uin
 	return id, nil
 }
 
-func (iprs *IncidentPostReviewService) Update(incidentID uint, id uint, currentUserID uint, incidentPostReviewFormDTO *incidentDTOs.IncidentPostReviewFormDTO) error {
+func (iprs *IncidentPostReviewService) Update(incidentID uint, currentUserID uint, incidentPostReviewFormDTO *incidentDTOs.IncidentPostReviewFormDTO) error {
 	tx := iprs.repo.BeginTransaction()
 	if _, err := iprs.incidentRegisterSvc.GetByID(incidentID); err != nil {
 		return err
 	}
 
-	existingIncidentPostReview, err := iprs.GetByID(incidentID, id)
+	existingIncidentPostReview, err := iprs.GetByID(incidentID)
 	if err != nil {
 		return err
 	}
@@ -216,10 +249,10 @@ func (iprs *IncidentPostReviewService) Update(incidentID uint, id uint, currentU
 		return err
 	}
 	// Update
-	existingIncidentPostReview.PostReviewDate = *dates.PostReviewDate
+	existingIncidentPostReview.PostReviewDate = dates.PostReviewDate
 	existingIncidentPostReview.IncidentPostReviewEffectivenessID = int(incidentPostReviewFormDTO.IncidentPostReviewEffectivenessID)
 	existingIncidentPostReview.Summary = incidentPostReviewFormDTO.Summary
-	existingIncidentPostReview.UpdatedBy = &currentUserID
+	existingIncidentPostReview.UpdatedByID = &currentUserID
 
 	err = iprs.repo.Update(existingIncidentPostReview, tx)
 
@@ -228,7 +261,7 @@ func (iprs *IncidentPostReviewService) Update(incidentID uint, id uint, currentU
 		return err
 	}
 
-	existingIncidentPostReviewDetail, err := iprs.GetFullDetailsByID(incidentID, id, tx)
+	existingIncidentPostReviewDetail, err := iprs.GetFullDetailsByID(incidentID, tx)
 
 	if err != nil {
 		tx.Rollback()
@@ -250,9 +283,9 @@ func (iprs *IncidentPostReviewService) Update(incidentID uint, id uint, currentU
 		if _, exists := existingUserIDs[*newUser]; !exists {
 			// Create a new IncidentPostReviewUser  record
 			user := &models.IncidentPostReviewUser{
-				IncidentPostReviewID: id,
+				IncidentPostReviewID: existingIncidentPostReview.ID,
 				UserID:               *newUser,
-				CreatedBy:            currentUserID,
+				CreatedByID:          currentUserID,
 			}
 			users = append(users, user)
 		}
@@ -299,9 +332,9 @@ func (iprs *IncidentPostReviewService) Update(incidentID uint, id uint, currentU
 		if _, exists := existingClosureLessons[*newLesson]; !exists {
 			// Create a new incident Closure lesson record
 			lesson := &models.IncidentPostReviewLesson{
-				IncidentPostReviewID: id,
+				IncidentPostReviewID: existingIncidentPostReview.ID,
 				Lesson:               *newLesson,
-				CreatedBy:            currentUserID,
+				CreatedByID:          currentUserID,
 			}
 			lessonsToAdd = append(lessonsToAdd, lesson)
 		}
@@ -350,9 +383,9 @@ func (iprs *IncidentPostReviewService) Update(incidentID uint, id uint, currentU
 		if _, exists := existingRecommendations[*newRec]; !exists {
 			// Create a new recommendation record
 			recommendation := &models.IncidentPostReviewRecommendation{
-				IncidentPostReviewID: id,
+				IncidentPostReviewID: existingIncidentPostReview.ID,
 				Recommendation:       *newRec,
-				CreatedBy:            currentUserID,
+				CreatedByID:          currentUserID,
 			}
 			recommendationsToAdd = append(recommendationsToAdd, recommendation)
 		}
@@ -382,13 +415,14 @@ func (iprs *IncidentPostReviewService) Update(incidentID uint, id uint, currentU
 			return err
 		}
 	}
+
 	tx.Commit()
 
 	go func() {
 		err := iprs.activityLogSvc.LogActivity(
 			models.UpdateAction,
 			models.IncidentPostReview{}.TableName(),
-			id,
+			existingIncidentPostReview.ID,
 			incidentPostReviewFormDTO,
 			currentUserID,
 			nil,
@@ -398,7 +432,7 @@ func (iprs *IncidentPostReviewService) Update(incidentID uint, id uint, currentU
 			fields := map[string]interface{}{
 				"action":    models.UpdateAction,
 				"tableName": models.IncidentPostReview{}.TableName(),
-				"recordID":  id,
+				"recordID":  existingIncidentPostReview.ID,
 				"userID":    currentUserID,
 				"error":     err.Error(),
 			}
@@ -410,94 +444,94 @@ func (iprs *IncidentPostReviewService) Update(incidentID uint, id uint, currentU
 	return nil
 }
 
-func (iprs *IncidentPostReviewService) Delete(incidentID uint, ids []uint, currentUserID uint) ([]uint, error) {
+func (iprs *IncidentPostReviewService) Delete(incidentID uint, currentUserID uint) (uint, error) {
 	tx := iprs.repo.BeginTransaction()
+	var failedId uint
 
 	if _, err := iprs.incidentRegisterSvc.GetByID(incidentID); err != nil {
-		return nil, err
+		return 0, err
 	}
-
-	var failedIds []uint
-	var successfulIds []uint
-	for _, id := range ids {
-
-		_, err := iprs.repo.GetByID(id)
-
-		if err != nil {
-			continue
-		}
-		incidentPostReview, err := iprs.GetFullDetailsByID(incidentID, id, tx)
-		if err != nil {
-			tx.Rollback()
-			return nil, err
-		}
-
-		if len(incidentPostReview.Users) > 0 {
-			var deleteUserIds []*uint
-			for _, user := range incidentPostReview.Users {
-				deleteUserIds = append(deleteUserIds, &user.ID)
-			}
-			if err := iprs.repo.DeleteParticipants(deleteUserIds, tx); err != nil {
-				tx.Rollback()
-				return nil, err
-			}
-		}
-		if len(incidentPostReview.Lessons) > 0 {
-			var deleteLessonIds []*uint
-			for _, lesson := range incidentPostReview.Lessons {
-				deleteLessonIds = append(deleteLessonIds, &lesson.ID)
-			}
-			if err := iprs.repo.DeleteLessons(deleteLessonIds, tx); err != nil {
-				tx.Rollback()
-				return nil, err
-			}
-		}
-		if len(incidentPostReview.Recommendations) > 0 {
-			var deleteRecommendationIds []*uint
-			for _, recommendation := range incidentPostReview.Recommendations {
-				deleteRecommendationIds = append(deleteRecommendationIds, &recommendation.ID)
-			}
-			if err := iprs.repo.DeleteRecommendations(deleteRecommendationIds, tx); err != nil {
-				tx.Rollback()
-				return nil, err
-			}
-		}
-
-		err = iprs.repo.Delete(id, tx)
-		if err != nil {
-			failedIds = append(failedIds, id)
-		} else {
-			successfulIds = append(successfulIds, id)
-		}
-	}
-	if len(failedIds) > 0 {
+	incidentPostReview, err := iprs.GetFullDetailsByID(incidentID, tx)
+	if err != nil {
 		tx.Rollback()
-		return failedIds, nil
+		return 0, err
 	}
 
+	if len(incidentPostReview.Users) > 0 {
+		var deleteUserIds []*uint
+		for _, user := range incidentPostReview.Users {
+			deleteUserIds = append(deleteUserIds, &user.ID)
+		}
+		if err := iprs.repo.DeleteParticipants(deleteUserIds, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+	if len(incidentPostReview.Lessons) > 0 {
+		var deleteLessonIds []*uint
+		for _, lesson := range incidentPostReview.Lessons {
+			deleteLessonIds = append(deleteLessonIds, &lesson.ID)
+		}
+		if err := iprs.repo.DeleteLessons(deleteLessonIds, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+	if len(incidentPostReview.Recommendations) > 0 {
+		var deleteRecommendationIds []*uint
+		for _, recommendation := range incidentPostReview.Recommendations {
+			deleteRecommendationIds = append(deleteRecommendationIds, &recommendation.ID)
+		}
+		if err := iprs.repo.DeleteRecommendations(deleteRecommendationIds, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+	if err = iprs.repo.Delete(uint(incidentPostReview.ID), tx); err != nil {
+		failedId = uint(incidentPostReview.ID)
+		return failedId, err
+	}
+	//Delete-> update timeline performedAt as null
+	//todo
+	timelineType, err := iprs.incidentTimelineSvc.GetByType("pir")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	//todo
+	timelineStatus, err := iprs.incidentTimelineSvc.GetByStatusType("pending")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
+		PerformedByID:    nil,
+		TimelineStatusID: timelineStatus.ID,
+		PerformedAt:      nil,
+	}
+	if err := iprs.incidentTimelineSvc.Update(incidentID, timelineFormDTO, timelineType.ID, tx); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
 	tx.Commit()
+	// Log successful delete activity
+	go func() {
+		err := iprs.activityLogSvc.LogActivity(
+			models.DeleteAction,
+			models.IncidentPostReview{}.TableName(),
+			uint(incidentPostReview.ID),
+			nil,
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			// Handle error if logging fails
+			fmt.Printf("Failed to log delete activity: %v\n", err)
+		}
+	}()
 
-	if len(successfulIds) > 0 {
-
-		go func() {
-			err := iprs.activityLogSvc.LogBulkActivities(
-				models.DeleteAction,
-				models.IncidentPostReview{}.TableName(),
-				successfulIds,
-				nil,
-				currentUserID,
-				nil,
-			)
-			if err != nil {
-				// @todo - save to log file
-				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
-			}
-		}()
-	}
-
-	return failedIds, nil
+	return failedId, nil
 }
-
 func (iprs *IncidentPostReviewService) parseIncidentPostReviewDates(dto *incidentDTOs.IncidentPostReviewFormDTO) (*incidentDTOs.IncidentPostReviewParsedDates, error) {
 	parsed := &incidentDTOs.IncidentPostReviewParsedDates{}
 
