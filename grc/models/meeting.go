@@ -23,14 +23,20 @@ type Meeting struct {
 	MeetingStatusID    uint       `json:"meeting_status_id" binding:"required" gorm:"not null"`
 
 	// Relationships
-	MeetingType      *MeetingType          `gorm:"foreignKey:MeetingTypeID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	Meeting          *Meeting              `gorm:"foreignKey:MeetingID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	MeetingFrequency *MeetingFrequency     `gorm:"foreignKey:MeetingFrequencyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	Organizer        *User                 `gorm:"foreignKey:OrganizerID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	MeetingStatus    *MeetingStatus        `gorm:"foreignKey:MeetingStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser    *User                 `gorm:"foreignKey:CreatedByID"`
-	UpdatedByUser    *User                 `gorm:"foreignKey:UpdatedByID"`
-	Participants     []*MeetingParticipant `gorm:"foreignKey:MeetingID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Agendas                []*MeetingAgenda                `gorm:"foreignKey:MeetingID"`
+	Controls               []*MeetingControl               `gorm:"foreignKey:MeetingID"`
+	ComplianceRequirements []*MeetingComplianceRequirement `gorm:"foreignKey:MeetingID"`
+	Risks                  []*MeetingRisk                  `gorm:"foreignKey:MeetingID"`
+	Processes              []*MeetingProcess               `gorm:"foreignKey:MeetingID"`
+	Incidents              []*MeetingIncident              `gorm:"foreignKey:MeetingID"`
+	MeetingType            *MeetingType                    `gorm:"foreignKey:MeetingTypeID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Meeting                *Meeting                        `gorm:"foreignKey:MeetingID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	MeetingFrequency       *MeetingFrequency               `gorm:"foreignKey:MeetingFrequencyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Organizer              *User                           `gorm:"foreignKey:OrganizerID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	MeetingStatus          *MeetingStatus                  `gorm:"foreignKey:MeetingStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	CreatedByUser          *User                           `gorm:"foreignKey:CreatedByID"`
+	UpdatedByUser          *User                           `gorm:"foreignKey:UpdatedByID"`
+	Participants           []*MeetingParticipant           `gorm:"foreignKey:MeetingID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 }
 
 // TableName overrides the table name used by Meeting to `meetings`
