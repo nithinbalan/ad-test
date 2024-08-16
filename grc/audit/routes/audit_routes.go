@@ -22,6 +22,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditPlanController := app.AuditModule.AuditPlanController
 	auditPlanChecklistController := app.AuditModule.AuditPlanChecklistController
 	auditPlanToolController := app.AuditModule.AuditPlanToolController
+	auditPlanAuditableItemController := app.AuditModule.AuditPlanAuditableItemController
+
 
 	//Audit Status
 	auditRoutes.GET("/audit-statuses", auditStatusController.GetAllAuditStatuses)
@@ -77,5 +79,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.POST("/audit-plans/:planId/tools", auditPlanToolController.CreateAuditPlanTool)
 	auditRoutes.PUT("/audit-plans/:planId/tools/:id", auditPlanToolController.UpdateAuditPlanTool)
 	auditRoutes.POST("/audit-plans/:planId/tools/delete", auditPlanToolController.DeleteAuditPlanTools)
+	//AuditPlan Auditable Item
+	auditRoutes.GET("/audit-plans/:planId/auditable-items", auditPlanAuditableItemController.GetAllAuditPlanAuditableItems)
+	auditRoutes.POST("/audit-plans/:planId/auditable-items", auditPlanAuditableItemController.CreateAuditPlanAuditableItem)
+	auditRoutes.POST("/audit-plans/:planId/auditable-items/delete", auditPlanAuditableItemController.DeleteAuditPlanAuditableItems)
 
 }
