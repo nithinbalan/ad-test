@@ -19,6 +19,18 @@ type MeetingRepositoryInterface interface {
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	CreateParticipants(participants []*models.MeetingParticipant, tx ...utility.DatabaseTransaction) error
 	DeleteParticipants(participantIDs []uint, tx ...utility.DatabaseTransaction) error
+	CreateMeetingActionPlans(actionPlans []*models.MeetingActionPlan, tx ...utility.DatabaseTransaction) error
+
+	CreateMeetingComplianceRequirements(complianceRequirements []*models.MeetingComplianceRequirement, tx ...utility.DatabaseTransaction) error
+	CreateMeetingControls(controls []*models.MeetingControl, tx ...utility.DatabaseTransaction) error
+	DeleteMeetingControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteMeetingComplianceRequirements(requirementIds []*uint, tx ...utility.DatabaseTransaction) error
+	CreateMeetingRisks(risks []*models.MeetingRisk, tx ...utility.DatabaseTransaction) error
+	DeleteMeetingRisks(riskIds []*uint, tx ...utility.DatabaseTransaction) error
+	CreateMeetingProcesses(processes []*models.MeetingProcess, tx ...utility.DatabaseTransaction) error
+	DeleteMeetingProcesses(processIds []*uint, tx ...utility.DatabaseTransaction) error
+	CreateMeetingIncidents(incidents []*models.MeetingIncident, tx ...utility.DatabaseTransaction) error
+	DeleteMeetingIncidents(incidentIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type MeetingRepository struct {
@@ -61,14 +73,22 @@ func (repo *MeetingRepository) GetAll(currentUserID uint, params *meetingDTOs.Me
 			meetings.is_public,
 			meeting_statuses.title_en AS meeting_status_title_en,
 			meeting_statuses.title_ar AS meeting_status_title_ar,
-			created_user.first_name_en AS created_user_first_name_en,
-			created_user.first_name_ar AS created_user_first_name_ar,
-			created_user.last_name_en AS created_user_last_name_en,
-			created_user.last_name_ar AS created_user_last_name_ar,   
+        	created_user.first_name_en AS created_user_first_name_en,
+        	created_user.first_name_ar AS created_user_first_name_ar,
+        	created_user.last_name_en AS created_user_last_name_en,
+        	created_user.last_name_ar AS created_user_last_name_ar,   
+        	created_user.initial AS created_user_initial,
+        	created_user.color AS created_user_color,
+        	created_user.email AS created_user_email,
+        	created_user.profile_image_path AS created_user_profile_image_path,   
 			updated_user.first_name_en AS updated_user_first_name_en,
-			updated_user.first_name_ar AS updated_user_first_name_ar,
-			updated_user.last_name_en AS updated_user_last_name_en,
-			updated_user.last_name_ar AS updated_user_last_name_ar 
+        	updated_user.first_name_ar AS updated_user_first_name_ar,
+        	updated_user.last_name_en AS updated_user_last_name_en,
+        	updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+        	updated_user.color AS updated_user_color,
+        	updated_user.email AS updated_user_email,
+        	updated_user.profile_image_path AS updated_user_profile_image_path   
 		`).
 		Joins(`
 			LEFT JOIN meeting_types ON meetings.meeting_type_id = meeting_types.id
@@ -187,8 +207,15 @@ func (repo *MeetingRepository) GetFullDetailsByID(id uint, tx ...utility.Databas
 		Preload("MeetingStatus").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
+		Preload("Agendas").
+		Preload("Agendas.MeetingMinutes").
 		Preload("Participants").
 		Preload("Participants.User").
+		Preload("Controls").
+		Preload("ComplianceRequirements").
+		Preload("Risks").
+		Preload("Processes").
+		Preload("Incidents").
 		First(&meeting, id)
 
 	if result.Error != nil {
@@ -256,6 +283,143 @@ func (repo *MeetingRepository) DeleteParticipants(participantIDs []uint, tx ...u
 
 	// Delete the participants
 	if err := db.Where("id IN (?)", participantIDs).Delete(&models.MeetingParticipant{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *MeetingRepository) CreateMeetingActionPlans(actionPlans []*models.MeetingActionPlan, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Create(actionPlans).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *MeetingRepository) CreateMeetingComplianceRequirements(complianceRequirements []*models.MeetingComplianceRequirement, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&complianceRequirements).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *MeetingRepository) CreateMeetingControls(controls []*models.MeetingControl, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&controls).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *MeetingRepository) DeleteMeetingControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Delete controls by IDs
+	if err := db.Where("id IN (?)", controlIds).Delete(&models.MeetingControl{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *MeetingRepository) DeleteMeetingComplianceRequirements(requirementIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Delete compliance requirements by IDs
+	if err := db.Where("id IN (?)", requirementIds).Delete(&models.MeetingComplianceRequirement{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+func (repo *MeetingRepository) CreateMeetingRisks(risks []*models.MeetingRisk, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&risks).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *MeetingRepository) DeleteMeetingRisks(riskIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Delete risks by IDs
+	if err := db.Where("id IN (?)", riskIds).Delete(&models.MeetingRisk{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *MeetingRepository) CreateMeetingProcesses(processes []*models.MeetingProcess, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&processes).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *MeetingRepository) DeleteMeetingProcesses(processIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Delete process by IDs
+	if err := db.Where("id IN (?)", processIds).Delete(&models.MeetingProcess{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *MeetingRepository) CreateMeetingIncidents(incidents []*models.MeetingIncident, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&incidents).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *MeetingRepository) DeleteMeetingIncidents(incidentIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Delete incidents by IDs
+	if err := db.Where("id IN (?)", incidentIds).Delete(&models.MeetingIncident{}).Error; err != nil {
 		return err
 	}
 

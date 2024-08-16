@@ -64,6 +64,7 @@ func (repo *AuditPlanRepository) GetAll(params *auditDTOs.AuditPlanListQueryPara
 			team_lead.last_name_en AS team_lead_last_name_en,
 			team_lead.last_name_ar AS team_lead_last_name_ar,
 			team_lead.email AS team_lead_email,
+			team_lead.initial AS team_lead_initial,
 			team_lead.profile_image_path AS team_lead_profile_image_path,
 			audit_teams.title_en AS audit_team_title_en,
 			audit_teams.title_en AS audit_team_title_en,
@@ -72,6 +73,7 @@ func (repo *AuditPlanRepository) GetAll(params *auditDTOs.AuditPlanListQueryPara
 			audit_teams_team_lead.last_name_en AS audit_team_team_lead_last_name_en,
 			audit_teams_team_lead.last_name_ar AS audit_team_team_lead_last_name_ar,
 			audit_teams_team_lead.email AS audit_team_team_lead_email,
+			audit_teams_team_lead.initial AS audit_team_team_lead_initial,
 			audit_teams_team_lead.profile_image_path AS audit_team_team_lead_profile_image_path,
 			created_user.first_name_en AS created_user_first_name_en,
         	created_user.first_name_ar AS created_user_first_name_ar,
@@ -205,10 +207,16 @@ func (repo *AuditPlanRepository) GetFullDetailsByID(id uint, tx ...utility.Datab
 	result := db.
 		Preload("AuditCategory").
 		Preload("AuditTeam").
+		Preload("AuditTeam.Users").
+		Preload("AuditTeam.Users.User").
+		Preload("AuditTeam.TeamLead").
 		Preload("AuditStatus").
 		Preload("TeamLead").
 		Preload("Members").
+		Preload("Members.User").
 		Preload("AuditableItems").
+		Preload("CreatedByUser").
+		Preload("UpdatedByUser").
 		First(&auditPlan, id)
 
 	if result.Error != nil {

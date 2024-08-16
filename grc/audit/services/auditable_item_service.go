@@ -105,6 +105,7 @@ func (ais *AuditableItemService) Create(currentUserID uint, auditableItemFormDTO
 		TitleAr:             &auditableItemFormDTO.TitleAr,
 		Comment:             auditableItemFormDTO.Comment,
 		AuditorRiskRatingID: auditableItemFormDTO.AuditorRiskRatingID,
+		ResponsibleUnitID:   auditableItemFormDTO.ResponsibleUnitID,
 		AuditStatusID:       uint(auditStatus.ID),
 		CreatedByID:         currentUserID,
 	}
@@ -113,23 +114,6 @@ func (ais *AuditableItemService) Create(currentUserID uint, auditableItemFormDTO
 	if err != nil {
 		tx.Rollback()
 		return 0, err
-	}
-	// Add OrganizationUnits
-	var organizationUnits []*models.AuditableItemOrganizationUnit
-	for _, unitID := range auditableItemFormDTO.OrganizationUnitIds {
-		orgUnit := &models.AuditableItemOrganizationUnit{
-			AuditableItemID:    id,
-			OrganizationUnitID: *unitID,
-			CreatedBYID:        currentUserID,
-		}
-		organizationUnits = append(organizationUnits, orgUnit)
-	}
-
-	if len(organizationUnits) > 0 {
-		if err := ais.repo.CreateOrganizationUnits(organizationUnits, tx); err != nil {
-			tx.Rollback()
-			return 0, err
-		}
 	}
 
 	tx.Commit()
@@ -178,6 +162,7 @@ func (ais *AuditableItemService) Update(id uint, currentUserID uint, auditableIt
 	existingAuditableItem.TitleAr = &auditableItemFormDTO.TitleAr
 	existingAuditableItem.Comment = auditableItemFormDTO.Comment
 	existingAuditableItem.AuditorRiskRatingID = auditableItemFormDTO.AuditorRiskRatingID
+	existingAuditableItem.ResponsibleUnitID = auditableItemFormDTO.ResponsibleUnitID
 	existingAuditableItem.UpdatedByID = &currentUserID
 
 	err = ais.repo.Update(existingAuditableItem, tx)
@@ -185,55 +170,6 @@ func (ais *AuditableItemService) Update(id uint, currentUserID uint, auditableIt
 	if err != nil {
 		tx.Rollback()
 		return err
-	}
-	existingAuditableItemDetails, err := ais.GetFullDetailsByID(id, tx)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	// Handle organization units
-	existingOrgUnitIDs := make(map[uint]bool)
-	for _, unit := range existingAuditableItemDetails.OrganizationUnits {
-		existingOrgUnitIDs[unit.OrganizationUnitID] = true
-	}
-
-	newOrgUnitIDs := make(map[uint]bool)
-	for _, unitID := range auditableItemFormDTO.OrganizationUnitIds {
-		newOrgUnitIDs[*unitID] = true
-	}
-
-	var unitsToAdd []*models.AuditableItemOrganizationUnit
-	for _, unitID := range auditableItemFormDTO.OrganizationUnitIds {
-		if _, exists := existingOrgUnitIDs[*unitID]; !exists {
-			unit := &models.AuditableItemOrganizationUnit{
-				AuditableItemID:    id,
-				OrganizationUnitID: *unitID,
-				CreatedBYID:        currentUserID,
-			}
-			unitsToAdd = append(unitsToAdd, unit)
-		}
-	}
-
-	var orgUnitIDsToRemove []*uint
-	for unitID := range existingOrgUnitIDs {
-		if _, exists := newOrgUnitIDs[unitID]; !exists {
-			orgUnitIDsToRemove = append(orgUnitIDsToRemove, &unitID)
-		}
-	}
-
-	if len(unitsToAdd) > 0 {
-		if err := ais.repo.CreateOrganizationUnits(unitsToAdd, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
-
-	if len(orgUnitIDsToRemove) > 0 {
-		if err := ais.repo.DeleteOrganizationUnits(orgUnitIDsToRemove, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
 	}
 	tx.Commit()
 
@@ -246,28 +182,7 @@ func (ais *AuditableItemService) Delete(ids []uint, currentUserID uint) ([]uint,
 	var failedIds []uint
 	var successfulIds []uint
 	for _, id := range ids {
-		existingAuditableItemDetails, err := ais.GetFullDetailsByID(id, tx)
-		if err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				failedIds = append(failedIds, id)
-				continue
-			}
-			tx.Rollback()
-			return nil, err
-		}
-		// Delete related records if they exist
-		if len(existingAuditableItemDetails.OrganizationUnits) > 0 {
-			var deleteOrgUnitIDs []*uint
-			for _, orgUnit := range existingAuditableItemDetails.OrganizationUnits {
-				deleteOrgUnitIDs = append(deleteOrgUnitIDs, orgUnit.ID)
-			}
-			if err := ais.repo.DeleteOrganizationUnits(deleteOrgUnitIDs, tx); err != nil {
-				tx.Rollback()
-				return nil, err
-			}
-		}
-
-		err = ais.repo.Delete(id, tx)
+		err := ais.repo.Delete(id, tx)
 		if err != nil {
 			failedIds = append(failedIds, id)
 			continue
@@ -323,13 +238,8 @@ func (ais *AuditableItemService) validateAuditableItemFormDTO(auditableItemFormD
 	if _, err := ais.auditorRiskRatingSvc.GetByID(auditableItemFormDTO.AuditorRiskRatingID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("auditor risk rating does not exist"), "not_exist", "auditor risk rating")
 	}
-	// Validate OrganizationUnitIds
-	for _, orgUnitID := range auditableItemFormDTO.OrganizationUnitIds {
-		if orgUnitID != nil {
-			if _, err := ais.organizationUnitSvc.GetByID(*orgUnitID); err != nil {
-				return utility.NewValidationError(fmt.Errorf("organization unit does not exist"), "not_exist", "organization unit")
-			}
-		}
+	if _, err := ais.organizationUnitSvc.GetByID(auditableItemFormDTO.ResponsibleUnitID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("responsible unit does not exist"), "not_exist", "responsible unit")
 	}
 
 	return nil

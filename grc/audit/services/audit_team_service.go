@@ -61,6 +61,7 @@ func (ats *AuditTeamService) GetAll(params *auditDTOs.AuditTeamListQueryParamsDT
 			ID:                          auditTeam.ID,
 			TitleEn:                     auditTeam.TitleEn,
 			TitleAr:                     auditTeam.TitleAr,
+			TeamLeadID:                  auditTeam.TeamLeadID,
 			TeamLeadFirstNameEn:         getSafeString(auditTeam.TeamLead, func(u *models.User) string { return u.FirstNameEn }),
 			TeamLeadFirstNameAr:         getSafeString(auditTeam.TeamLead, func(u *models.User) string { return u.FirstNameAr }),
 			TeamLeadLastNameEn:          getSafeString(auditTeam.TeamLead, func(u *models.User) string { return u.LastNameEn }),
