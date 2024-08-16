@@ -38,6 +38,7 @@ type TaskListDTO struct {
 	TaskStatusColorCode             string  `json:"task_status_color_code"`
 	CreatedAt                       string  `json:"created_at"`
 	UpdatedAt                       *string `json:"updated_at"`
+	CreatedUserID                   uint    `json:"created_user_id"`
 	CreatedUserFirstNameEn          string  `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr          string  `json:"created_user_first_name_ar"`
 	CreatedUserLastNameEn           string  `json:"created_user_last_name_en"`

@@ -32,6 +32,7 @@ type ComplianceActionPlanListDTO struct {
 	ActionPlanStatusTitleEn         string `json:"action_plan_status_title_en"`
 	ActionPlanStatusTitleAr         string `json:"action_plan_status_title_ar"`
 	ActionPlanStatusColorCode       string `json:"action_plan_status_color_code"`
+	CreatedUserID                   uint   `json:"created_user_id"`
 	CreatedUserFirstNameEn          string `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr          string `json:"created_user_first_name_ar"`
 	CreatedUserLastNameEn           string `json:"created_user_last_name_en"`

@@ -29,6 +29,7 @@ type MeetingListDTO struct {
 	UpdatedAt                   *time.Time `json:"updated_at"`
 	MeetingStatusTitleEn        string     `json:"meeting_status_title_en"`
 	MeetingStatusTitleAr        string     `json:"meeting_status_title_ar"`
+	CreatedUserID               uint       `json:"created_user_id"`
 	CreatedUserFirstNameEn      string     `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr      string     `json:"created_user_first_name_ar"`
 	CreatedUserLastNameEn       string     `json:"created_user_last_name_en"`

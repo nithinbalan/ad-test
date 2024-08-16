@@ -15,6 +15,7 @@ type WorkflowListDTO struct {
 	UpdatedAt              *time.Time `json:"updated_at"`
 	DocumentTypeTitleEn    string     `json:"document_type_title_en"`
 	DocumentTypeTitleAr    string     `json:"document_type_title_ar"`
+	CreatedUserID          uint       `json:"created_user_id"`
 	CreatedUserFirstNameEn string     `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr string     `json:"created_user_first_name_ar"`
 	CreatedUserEmail       string     `json:"created_user_email"`

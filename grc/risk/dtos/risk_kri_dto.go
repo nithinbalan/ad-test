@@ -36,6 +36,7 @@ type RiskKriListDTO struct {
 	LastReviewedDate                string  `json:"last_reviewed_date"`
 	NextReviewDate                  string  `json:"next_review_date"`
 	LastReviewNote                  string  `json:"last_review_note"`
+	CreatedUserID                   uint    `json:"created_user_id"`
 	CreatedUserFirstNameEn          string  `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr          string  `json:"created_user_first_name_ar"`
 	CreatedUserLastNameEn           string  `json:"created_user_last_name_en"`

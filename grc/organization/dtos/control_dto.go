@@ -57,6 +57,7 @@ type ControlListDTO struct {
 	LifecycleStatusTitleEn               string     `json:"lifecycle_status_title_en"`
 	LifecycleStatusTitleAr               string     `json:"lifecycle_status_title_ar"`
 	LifecycleStatusColorCode             string     `json:"lifecycle_status_color_code"`
+	CreatedUserID                        uint       `json:"created_user_id"`
 	CreatedUserFirstNameEn               string     `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr               string     `json:"created_user_first_name_ar"`
 	CreatedUserLastNameEn                string     `json:"created_user_last_name_en"`

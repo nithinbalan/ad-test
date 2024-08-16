@@ -35,6 +35,7 @@ type AuditableItemListDTO struct {
 	UserLastNameAr              string `json:"user_last_name_ar"`
 	UserEmail                   string `json:"user_email"`
 	UserProfileImagePath        string `json:"user_profile_image_path"`
+	CreatedUserID               uint   `json:"created_user_id"`
 	CreatedUserFirstNameEn      string `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr      string `json:"created_user_first_name_ar"`
 	CreatedUserLastNameEn       string `json:"created_user_last_name_en"`

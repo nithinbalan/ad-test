@@ -30,6 +30,7 @@ type RiskControlAnalysisListDTO struct {
 	ControlEfficiencyStatusTitleAr       *string `json:"control_efficiency_status_title_ar"`
 	ControlEfficiencyStatusColorCode     *string `json:"control_efficiency_status_color_code"`
 	CreatedAt                            string  `json:"created_at"`
+	CreatedUserID                        uint    `json:"created_user_id"`
 	CreatedUserFirstNameEn               string  `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr               string  `json:"created_user_first_name_ar"`
 	CreatedUserLastNameEn                string  `json:"created_user_last_name_en"`

@@ -39,6 +39,7 @@ type SLARegisterListDTO struct {
 	ComplianceStatusTitleEn         string    `json:"compliance_status_title_en"`
 	ComplianceStatusTitleAr         string    `json:"compliance_status_title_ar"`
 	ComplianceStatusColorCode       string    `json:"compliance_status_color_code"`
+	CreatedUserID                   uint      `json:"created_user_id"`
 	CreatedUserFirstNameEn          string    `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr          string    `json:"created_user_first_name_ar"`
 	CreatedUserLastNameEn           string    `json:"created_user_last_name_en"`

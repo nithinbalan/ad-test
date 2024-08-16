@@ -30,6 +30,7 @@ type ProcessListDTO struct {
 	TitleEn                     string     `json:"title_en"`
 	TitleAr                     string     `json:"title_ar"`
 	Description                 *string    `json:"description"`
+	CreatedUserID               uint       `json:"created_user_id"`
 	CreatedUserFirstNameEn      string     `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr      string     `json:"created_user_first_name_ar"`
 	CreatedUserLastNameEn       string     `json:"created_user_last_name_en"`

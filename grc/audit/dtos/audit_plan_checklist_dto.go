@@ -20,6 +20,7 @@ type AuditPlanChecklistListDTO struct {
 	Question                    string     `json:"question"`
 	CreatedAt                   time.Time  `json:"created_at"`
 	UpdatedAt                   *time.Time `json:"updated_at"`
+	CreatedUserID               uint       `json:"created_user_id"`
 	CreatedUserFirstNameEn      string     `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr      string     `json:"created_user_first_name_ar"`
 	CreatedUserLastNameEn       string     `json:"created_user_last_name_en"`
