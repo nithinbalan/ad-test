@@ -47,6 +47,7 @@ func (repo *MeetingActionPlanRepository) GetAll(meetingID uint, params *meetingD
         responsible_user.first_name_ar AS responsible_user_first_name_ar,
         responsible_user.last_name_en AS responsible_user_last_name_en,
         responsible_user.last_name_ar AS responsible_user_last_name_ar,
+        created_user.id AS created_user_id,
         created_user.first_name_en AS created_user_first_name_en,
         created_user.first_name_ar AS created_user_first_name_ar,
         created_user.last_name_en AS created_user_last_name_en,

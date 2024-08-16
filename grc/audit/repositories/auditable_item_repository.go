@@ -60,6 +60,7 @@ func (repo *AuditableItemRepository) GetAll(params *auditDTOs.AuditableItemListQ
         users.last_name_ar AS user_last_name_ar,
         users.email AS user_email,
         users.profile_image_path AS user_profile_image_path,
+        created_user.id AS created_user_id,
         created_user.first_name_en AS created_user_first_name_en,
         created_user.first_name_ar AS created_user_first_name_ar,
         created_user.last_name_en AS created_user_last_name_en,

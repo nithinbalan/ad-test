@@ -44,7 +44,8 @@ func (repo *IncidentRootCauseAnalysisRepository) GetAll(incidentID uint, params 
 		Select(`
             incident_root_cause_analyses.*,
             incident_register.title AS incident_register_title,
-            created_user.first_name_en AS created_user_first_name_en,
+            created_user.id AS created_user_id,
+        	created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
             created_user.last_name_en AS created_user_last_name_en,
             created_user.last_name_ar AS created_user_last_name_ar,   

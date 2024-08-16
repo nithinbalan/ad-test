@@ -86,7 +86,8 @@ func (repo *IncidentRegisterRepository) GetAll(params *incidentDTOs.IncidentRegi
             reported_user.first_name_ar AS reported_by_first_name_ar,
             reported_user.last_name_en AS reported_by_last_name_en,
             reported_user.last_name_ar AS reported_by_last_name_ar,
-			created_user.first_name_en AS created_user_first_name_en,
+			created_user.id AS created_user_id,
+        	created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
             created_user.last_name_en AS created_user_last_name_en,
             created_user.last_name_ar AS created_user_last_name_ar,   
@@ -305,7 +306,7 @@ func (repo *IncidentRegisterRepository) GenerateReferenceNumber() (string, error
 	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "IR", currentYear, lastReferenceID+1)
 
 	return newReferenceNumber, nil
-	
+
 }
 
 // Document func

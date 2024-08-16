@@ -73,6 +73,7 @@ func (repo *MeetingRepository) GetAll(currentUserID uint, params *meetingDTOs.Me
 			meetings.is_public,
 			meeting_statuses.title_en AS meeting_status_title_en,
 			meeting_statuses.title_ar AS meeting_status_title_ar,
+        	created_user.id AS created_user_id,
         	created_user.first_name_en AS created_user_first_name_en,
         	created_user.first_name_ar AS created_user_first_name_ar,
         	created_user.last_name_en AS created_user_last_name_en,

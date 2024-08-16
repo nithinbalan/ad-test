@@ -63,6 +63,7 @@ func (repo *ComplianceActionPlanRepository) GetAll(complianceID uint, params *co
         responsible_user.color AS responsible_user_color,
         responsible_user.email AS responsible_user_email,
         responsible_user.profile_image_path AS responsible_user_profile_image_path,
+        created_user.id AS created_user_id,
         created_user.first_name_en AS created_user_first_name_en,
         created_user.first_name_ar AS created_user_first_name_ar,
         created_user.last_name_en AS created_user_last_name_en,

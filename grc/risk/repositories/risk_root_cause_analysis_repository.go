@@ -43,6 +43,7 @@ func (repo *RiskRootCauseAnalysisRepository) GetAll(riskID uint, params *riskDTO
 		Select(`
             risk_root_cause_analysis.*,
             risk_register.title AS risk_register_title,
+            created_user.id AS created_user_id,
             created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
             created_user.last_name_en AS created_user_last_name_en,

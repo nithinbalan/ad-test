@@ -34,7 +34,8 @@ func (repo *PotentialRiskStatusUpdateRepository) GetAll(potentialRiskID uint, so
 			potential_risk_statuses.title_en AS potential_risk_status_title_en,
 			potential_risk_statuses.title_ar AS potential_risk_status_title_ar,
 			potential_risk_statuses.color_code AS potential_risk_status_color_code,
-			created_user.first_name_en AS created_user_first_name_en,
+			created_user.id AS created_user_id,
+       		created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
             created_user.last_name_en AS created_user_last_name_en,
             created_user.last_name_ar AS created_user_last_name_ar   

@@ -26,7 +26,6 @@ type AuditPlanRepositoryInterface interface {
 	DeleteAuditPlanMembers(memberIds []*uint, tx ...utility.DatabaseTransaction) error
 	CreateAuditPlanAuditableItems(items []*models.AuditPlanAuditableItem, tx ...utility.DatabaseTransaction) error
 	DeleteAuditPlanAuditableItems(itemIds []*uint, tx ...utility.DatabaseTransaction) error
-
 }
 
 type AuditPlanRepository struct {
@@ -75,7 +74,8 @@ func (repo *AuditPlanRepository) GetAll(params *auditDTOs.AuditPlanListQueryPara
 			audit_teams_team_lead.email AS audit_team_team_lead_email,
 			audit_teams_team_lead.initial AS audit_team_team_lead_initial,
 			audit_teams_team_lead.profile_image_path AS audit_team_team_lead_profile_image_path,
-			created_user.first_name_en AS created_user_first_name_en,
+			created_user.id AS created_user_id,
+        	created_user.first_name_en AS created_user_first_name_en,
         	created_user.first_name_ar AS created_user_first_name_ar,
         	created_user.last_name_en AS created_user_last_name_en,
         	created_user.last_name_ar AS created_user_last_name_ar,   
