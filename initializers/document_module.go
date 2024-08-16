@@ -19,6 +19,7 @@ type DocumentModule struct {
 	DocumentAcknowledgeUserController *controllers.DocumentAcknowledgeUserController
 	DocumentAuditLogController        *controllers.DocumentAuditLogController
 	DocumentClauseController          *controllers.DocumentClauseController
+	DocumentAssociatedItemController  *controllers.DocumentAssociatedItemController
 
 	DocumentSvc services.DocumentServiceInterface
 }
@@ -78,10 +79,13 @@ func NewDocumentModule(db *gorm.DB,
 	documentAcknowledgeUserSvc := services.NewDocumentAcknowledgeUserService(documentAcknowledgeUserRepo, sharedModule.ActivityLogService, documentSvc)
 	documentAcknowledgeUserController := controllers.NewDocumentAcknowledgeUserController(documentAcknowledgeUserSvc)
 
-
 	documentClauseRepo := repositories.NewDocumentClauseRepository(db)
 	documentClauseSvc := services.NewDocumentClauseService(documentClauseRepo, documentSvc, sharedModule.ActivityLogService)
 	documentClauseController := controllers.NewDocumentClauseController(documentClauseSvc)
+
+	documentAssociatedItemRepo := repositories.NewDocumentAssociatedItemRepository(db)
+	documentAssociatedItemSvc := services.NewDocumentAssociatedItemService(documentAssociatedItemRepo, documentSvc)
+	documentAssociatedItemController := controllers.NewDocumentAssociatedItemController(documentAssociatedItemSvc)
 
 	return &DocumentModule{
 		DocumentCategoryController:        documentCategoryController,
@@ -94,6 +98,7 @@ func NewDocumentModule(db *gorm.DB,
 		DocumentAcknowledgeUserController: documentAcknowledgeUserController,
 		DocumentAuditLogController:        documentAuditLogController,
 		DocumentClauseController:          documentClauseController,
+		DocumentAssociatedItemController:  documentAssociatedItemController,
 
 		DocumentSvc: documentSvc,
 	}
