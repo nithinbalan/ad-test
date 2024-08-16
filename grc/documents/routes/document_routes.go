@@ -26,6 +26,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentAuditLogController := app.DocumentModule.DocumentAuditLogController
 
 	documentClauseController := app.DocumentModule.DocumentClauseController
+	documentAssociatedItemController := app.DocumentModule.DocumentAssociatedItemController
 
 	documentRoutes.GET("/document-categories", documentCategoryController.GetAllDocumentCategories)
 	documentRoutes.GET("/document-categories/:id", documentCategoryController.GetDocumentCategoryDetails)
@@ -92,5 +93,13 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentRoutes.POST("/documents/:id/clauses", documentClauseController.CreateDocumentClause)
 	documentRoutes.PUT("/documents/:id/clauses/:clauseId", documentClauseController.UpdateDocumentClause)
 	documentRoutes.POST("/documents/:id/clauses/delete", documentClauseController.DeleteDocumentClauses)
+
+	//document associated item list
+	documentRoutes.GET("documents/:id/controls", documentAssociatedItemController.GetAllDocumentControls)
+	documentRoutes.GET("documents/:id/compliance-requirements", documentAssociatedItemController.GetAllDocumentComplianceRequirements)
+	documentRoutes.GET("documents/:id/processes", documentAssociatedItemController.GetAllDocumentProcesses)
+	documentRoutes.GET("documents/:id/slas", documentAssociatedItemController.GetAllDocumentSLAs)
+	documentRoutes.GET("documents/:id/incidents", documentAssociatedItemController.GetAllDocumentIncidents)
+	documentRoutes.GET("documents/:id/risks", documentAssociatedItemController.GetAllDocumentRisks)
 
 }
