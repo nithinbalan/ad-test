@@ -110,5 +110,9 @@
   {
     "id": "invalid_profile_file_size",
     "translation": "Only files of maximum size 2MB are allowed"
+  },
+  {
+    "id": "already_associated",
+    "translation": "The '{{.Field}}' is already associated with this risk"
   }
 ]
