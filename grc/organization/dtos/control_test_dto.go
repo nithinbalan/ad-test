@@ -23,6 +23,7 @@ type ControlTestListDTO struct {
 	TestedByUserFirstNameAr              string     `json:"tested_by_user_first_name_ar"`
 	TestedByUserLastNameEn               string     `json:"tested_by_user_last_name_en"`
 	TestedByUserLastNameAr               string     `json:"tested_by_user_last_name_ar"`
+	UpdatedUserID                        *uint      `json:"updated_user_id"`
 	UpdatedUserFirstNameEn               *string    `json:"updated_user_first_name_en"`
 	UpdatedUserFirstNameAr               *string    `json:"updated_user_first_name_ar"`
 	UpdatedUserLastNameEn                *string    `json:"updated_user_last_name_en"`

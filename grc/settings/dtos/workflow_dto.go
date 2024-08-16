@@ -19,6 +19,7 @@ type WorkflowListDTO struct {
 	CreatedUserFirstNameEn string     `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr string     `json:"created_user_first_name_ar"`
 	CreatedUserEmail       string     `json:"created_user_email"`
+	UpdatedUserID          *uint      `json:"updated_user_id"`
 	UpdatedUserFirstNameEn string     `json:"updated_user_first_name_en"`
 	UpdatedUserFirstNameAr string     `json:"updated_user_first_name_ar"`
 	UpdatedUserEmail       string     `json:"updated_user_email"`
