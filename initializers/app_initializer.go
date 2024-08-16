@@ -33,9 +33,9 @@ func NewApp(db *gorm.DB) *App {
 	riskModule := NewRiskModule(db, sharedModule, settingsModule, masterModule, libraryModule, organizationModule, complianceModule)
 	incidentModule := NewIncidentModule(db, sharedModule, settingsModule, masterModule, organizationModule, complianceModule, riskModule)
 	documentModule := NewDocumentModule(db, sharedModule, settingsModule, masterModule, organizationModule)
-	auditModule := NewAuditModule(db, sharedModule, organizationModule, complianceModule, riskModule, incidentModule, documentModule, settingsModule)
 	meetingModule := NewMeetingModule(db, sharedModule, organizationModule, masterModule, commonModule, complianceModule, riskModule, incidentModule)
 
+	auditModule := NewAuditModule(db, sharedModule, organizationModule, complianceModule, riskModule, incidentModule, documentModule, settingsModule, masterModule)
 
 	return &App{
 		SettingsModule:     settingsModule,
@@ -49,7 +49,7 @@ func NewApp(db *gorm.DB) *App {
 		RiskModule:         riskModule,
 		IncidentModule:     incidentModule,
 		DocumentModule:     documentModule,
-		AuditModule:        auditModule,
 		MeetingModule:      meetingModule,
+		AuditModule:        auditModule,
 	}
 }

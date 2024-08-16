@@ -9,17 +9,19 @@ import (
 )
 
 type AuditModule struct {
-	AuditStatusController        *controllers.AuditStatusController
-	AuditorRiskRatingController  *controllers.AuditorRiskRatingController
-	AuditUniverseController      *controllers.AuditUniverseController
-	AuditableItemController      *controllers.AuditableItemController
-	AuditTeamController          *controllers.AuditTeamController
-	AuditCategoryController      *controllers.AuditCategoryController
-	AuditPlanController          *controllers.AuditPlanController
-	AuditPlanChecklistController *controllers.AuditPlanChecklistController
+	AuditStatusController            *controllers.AuditStatusController
+	AuditorRiskRatingController      *controllers.AuditorRiskRatingController
+	AuditUniverseController          *controllers.AuditUniverseController
+	AuditableItemController          *controllers.AuditableItemController
+	AuditTeamController              *controllers.AuditTeamController
+	AuditCategoryController          *controllers.AuditCategoryController
+	AuditPlanController              *controllers.AuditPlanController
+	AuditPlanChecklistController     *controllers.AuditPlanChecklistController
+	AuditPlanToolController          *controllers.AuditPlanToolController
+	AuditPlanAuditableItemController *controllers.AuditPlanAuditableItemController
 }
 
-func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, complianceModule *ComplianceModule, riskModule *RiskModule, incidentModule *IncidentModule, documentModule *DocumentModule, settingModule *SettingsModule) *AuditModule {
+func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, complianceModule *ComplianceModule, riskModule *RiskModule, incidentModule *IncidentModule, documentModule *DocumentModule, settingModule *SettingsModule, masterModule *MasterModule) *AuditModule {
 
 	auditStatusRepo := repositories.NewAuditStatusRepository(db)
 	auditStatusSvc := services.NewAuditStatusService(auditStatusRepo)
@@ -86,14 +88,29 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 	)
 	auditPlanChecklistController := controllers.NewAuditPlanChecklistController(auditPlanChecklistSvc)
 
+	auditPlanToolRepo := repositories.NewAuditPlanToolRepository(db)
+	auditPlanToolSvc := services.NewAuditPlanToolService(
+		auditPlanToolRepo,
+		sharedModule.ActivityLogService,
+		auditPlanSvc,
+		masterModule.ToolTypeSvc,
+	)
+	auditPlanToolController := controllers.NewAuditPlanToolController(auditPlanToolSvc)
+
+	auditPlanAuditableItemRepo := repositories.NewAuditPlanAuditableItemRepository(db)
+	auditPlanAuditableItemSvc := services.NewAuditPlanAuditableItemService(auditPlanAuditableItemRepo, sharedModule.ActivityLogService, auditPlanSvc, auditableItemSvc)
+	auditPlanAuditableItemController := controllers.NewAuditPlanAuditableItemController(auditPlanAuditableItemSvc)
+
 	return &AuditModule{
-		AuditStatusController:        auditStatusController,
-		AuditorRiskRatingController:  auditorRiskRatingController,
-		AuditUniverseController:      auditUniverseController,
-		AuditableItemController:      auditableItemController,
-		AuditTeamController:          auditTeamController,
-		AuditCategoryController:      auditCategoryController,
-		AuditPlanController:          auditPlanController,
-		AuditPlanChecklistController: auditPlanChecklistController,
+		AuditStatusController:            auditStatusController,
+		AuditorRiskRatingController:      auditorRiskRatingController,
+		AuditUniverseController:          auditUniverseController,
+		AuditableItemController:          auditableItemController,
+		AuditTeamController:              auditTeamController,
+		AuditCategoryController:          auditCategoryController,
+		AuditPlanController:              auditPlanController,
+		AuditPlanChecklistController:     auditPlanChecklistController,
+		AuditPlanToolController:          auditPlanToolController,
+		AuditPlanAuditableItemController: auditPlanAuditableItemController,
 	}
 }
