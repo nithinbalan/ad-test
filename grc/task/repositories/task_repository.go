@@ -69,7 +69,8 @@ func (repo *TaskRepository) GetAll(params *taskDTOs.TaskListQueryParamsDTO) (*ta
             created_user.color AS created_user_color,
             created_user.email AS created_user_email,
             created_user.profile_image_path AS created_user_profile_image_path,   
-			updated_user.first_name_en AS updated_user_first_name_en,
+			updated_user.id AS updated_user_id,
+    		updated_user.first_name_en AS updated_user_first_name_en,
             updated_user.first_name_ar AS updated_user_first_name_ar,
             updated_user.last_name_en AS updated_user_last_name_en,
             updated_user.last_name_ar AS updated_user_last_name_ar,
@@ -127,7 +128,8 @@ func (repo *TaskRepository) GetAll(params *taskDTOs.TaskListQueryParamsDTO) (*ta
 			created_user.last_name_en LIKE ? OR
 			created_user.last_name_ar LIKE ? OR
 			created_user.email LIKE ? OR
-			updated_user.first_name_en LIKE ? OR
+			updated_user.id AS updated_user_id,
+    		updated_user.first_name_en LIKE ? OR
 			updated_user.first_name_ar LIKE ? OR
 			updated_user.last_name_en LIKE ? OR
 			updated_user.last_name_en LIKE ? OR

@@ -51,7 +51,8 @@ func (repo *RiskMatrixImpactGuidelineRepository) GetAll(params *riskDTOs.RiskMat
         created_user.first_name_ar AS created_user_first_name_ar,
         created_user.last_name_en AS created_user_last_name_en,
         created_user.last_name_ar AS created_user_last_name_ar,
-        updated_user.first_name_en AS updated_user_first_name_en,
+        updated_user.id AS updated_user_id,
+    	updated_user.first_name_en AS updated_user_first_name_en,
         updated_user.first_name_ar AS updated_user_first_name_ar,
         updated_user.last_name_en AS updated_user_last_name_en,
         updated_user.last_name_ar AS updated_user_last_name_ar
