@@ -105,7 +105,7 @@ func (rks *RiskKriService) Create(riskID uint, currentUserID uint, riskKriFormDT
 		return nil, err
 	}
 
-	if err := rks.validateRiskKriFormDTO(riskKriFormDTO); err != nil {
+	if err := rks.validateRiskKriFormDTO(riskID, riskKriFormDTO); err != nil {
 		return nil, err
 	}
 
@@ -128,7 +128,7 @@ func (rks *RiskKriService) Create(riskID uint, currentUserID uint, riskKriFormDT
 	}
 	//update timeline
 	//todo
-	kriCount, err := rks.repo.GetCountByRiskID(riskID,tx)
+	kriCount, err := rks.repo.GetCountByRiskID(riskID, tx)
 	if err != nil {
 		tx.Rollback()
 		return nil, err
@@ -184,12 +184,13 @@ func (rks *RiskKriService) Create(riskID uint, currentUserID uint, riskKriFormDT
 }
 
 func (rks *RiskKriService) Update(riskID uint, currentUserID uint, riskKriFormDTO *riskDTOs.RiskKriFormDTO) error {
+	tx := rks.repo.BeginTransaction()
 	existingRisk, err := rks.riskRegisterSvc.GetFullDetailsByID(riskID)
 	if err != nil {
 		return err
 	}
 
-	if err := rks.validateRiskKriFormDTO(riskKriFormDTO); err != nil {
+	if err := rks.validateRiskKriFormDTO(riskID, riskKriFormDTO); err != nil {
 		return err
 	}
 
@@ -198,17 +199,14 @@ func (rks *RiskKriService) Update(riskID uint, currentUserID uint, riskKriFormDT
 		existingKRIIDs[kri.KriID] = true
 	}
 
-	// Collect new KRI IDs
 	newKRIIDs := make(map[uint]bool)
 	for _, kri := range riskKriFormDTO.KriIDs {
 		newKRIIDs[*kri] = true
 	}
 
-	// Add new KRIs
 	var krisToAdd []*models.RiskKri
 	for _, newKRIID := range riskKriFormDTO.KriIDs {
 		if _, exists := existingKRIIDs[*newKRIID]; !exists {
-			// Create a new risk KRI record
 			kri := &models.RiskKri{
 				RiskRegisterID: riskID,
 				KriRegisterID:  *newKRIID,
@@ -218,23 +216,28 @@ func (rks *RiskKriService) Update(riskID uint, currentUserID uint, riskKriFormDT
 		}
 	}
 
-	// Save the new KRIs
 	if len(krisToAdd) > 0 {
-		_, err := rks.repo.Create(krisToAdd)
+		_, err := rks.repo.Create(krisToAdd, tx)
 		if err != nil {
 			return err
 		}
 	}
 
-	// Delete KRIs that are no longer in the new list
+	var deleteKRIIDs []*uint
+
 	for _, existingKRI := range existingRisk.Kris {
 		if _, exists := newKRIIDs[existingKRI.KriID]; !exists {
-			if err := rks.repo.Delete(riskID,*existingKRI.ID); err != nil {
-				return err
-			}
+			deleteKRIIDs = append(deleteKRIIDs, existingKRI.ID)
 		}
 	}
 
+	if len(deleteKRIIDs) > 0 {
+		if err := rks.repo.DeleteRiskKRIs(deleteKRIIDs); err != nil {
+			return err
+		}
+	}
+
+	tx.Commit()
 	return nil
 }
 
@@ -256,7 +259,7 @@ func (rks *RiskKriService) Delete(riskID uint, ids []uint, currentUserID uint) (
 		}
 		//Delete-> update timeline performedAt as null
 		//todo
-		kriCount, err := rks.repo.GetCountByRiskID(riskID,tx)
+		kriCount, err := rks.repo.GetCountByRiskID(riskID, tx)
 		if err != nil {
 			tx.Rollback()
 			return nil, err
@@ -283,7 +286,7 @@ func (rks *RiskKriService) Delete(riskID uint, ids []uint, currentUserID uint) (
 			}
 		}
 
-		err = rks.repo.Delete(riskID,id,tx)
+		err = rks.repo.Delete(&id, tx)
 		if err != nil {
 			tx.Rollback()
 			failedIds = append(failedIds, id)
@@ -314,7 +317,7 @@ func (rks *RiskKriService) Delete(riskID uint, ids []uint, currentUserID uint) (
 	return failedIds, nil
 }
 
-func (rks *RiskKriService) validateRiskKriFormDTO(riskKriFormDTO *riskDTOs.RiskKriFormDTO) error {
+func (rks *RiskKriService) validateRiskKriFormDTO(riskID uint, riskKriFormDTO *riskDTOs.RiskKriFormDTO) error {
 	kriIds := riskKriFormDTO.KriIDs
 
 	if len(kriIds) == 0 {
@@ -330,6 +333,18 @@ func (rks *RiskKriService) validateRiskKriFormDTO(riskKriFormDTO *riskDTOs.RiskK
 
 		if _, err := rks.kriRegisterSvc.GetByID(*kriId); err != nil {
 			return utility.NewValidationError(fmt.Errorf("kri does not exist for ID: %d", kriId), "not_exist", "kri")
+		}
+
+		// Check if the KRI is already associated with the given risk
+		existingKRIs, err := rks.repo.GetKrisByRiskID(riskID)
+		if err != nil {
+			return utility.NewValidationError(fmt.Errorf("failed to fetch existing KRIs for the risk"), "fetch_error", "kri")
+		}
+
+		for _, existingKri := range existingKRIs {
+			if existingKri.KriRegisterID == *kriId {
+				return utility.NewValidationError(fmt.Errorf("KRI ID is already associated with this risk"), "already_associated", "kri")
+			}
 		}
 
 		kriIDs[*kriId] = true

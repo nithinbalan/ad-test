@@ -207,6 +207,15 @@ func ExtractValidationErrors(c *gin.Context, err error) []string {
 				},
 			})
 			errors = append(errors, errorMessage)
+		case "already_associated":
+			var errorMessage string
+			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
+				MessageID: "already_associated",
+				TemplateData: map[string]interface{}{
+					"Field": translatedFieldName,
+				},
+			})
+			errors = append(errors, errorMessage)
 
 		}
 
