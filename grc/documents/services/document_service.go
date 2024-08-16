@@ -1462,8 +1462,8 @@ func (ds *DocumentService) GetDocumentWorkflowList(id uint) (*documentDTOs.Docum
 	dto := &documentDTOs.DocumentVersionWorkflowListDTO{
 		ID:                documentVersion.ID,
 		DocumentID:        documentVersion.DocumentID,
-		SubmittedAt:       *documentVersion.SubmittedAt,
-		SubmittedByUser:   *mapUserToDTO(documentVersion.SubmittedByUser),
+		SubmittedAt:       documentVersion.SubmittedAt,
+		SubmittedByUser:   mapUserToDTO(documentVersion.SubmittedByUser),
 		DocumentWorkflows: []*documentDTOs.DocumentWorkflowListDTO{},
 	}
 
@@ -1665,15 +1665,20 @@ func (ds *DocumentService) GetDocumentLastEditSummary(documentID uint) (*documen
 		Comment:   activity.Comment,
 		Timestamp: activity.CreatedAt,
 	}
-
-	currentDocumentWorkflow, err := ds.repo.GetDocumentWorkflowByLevel(document.LatestDocumentVersion.ID, *document.LatestDocumentVersion.NextReviewLevel)
-	if err != nil {
-		return nil, err
-	}
-
-	participants := []*organizationDTOs.UserMinimalDTO{}
+	// Initialize variables for the current document workflow
+	var currentDocumentWorkflow *models.DocumentWorkflow
+	var participants []*organizationDTOs.UserMinimalDTO
 	totalComments := 0
 
+	// Check if there is a next review level and fetch the corresponding workflow
+	if document.LatestDocumentVersion.NextReviewLevel != nil {
+		currentDocumentWorkflow, err = ds.repo.GetDocumentWorkflowByLevel(document.LatestDocumentVersion.ID, *document.LatestDocumentVersion.NextReviewLevel)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Process workflow participants and count comments
 	if currentDocumentWorkflow != nil {
 		for _, participant := range currentDocumentWorkflow.DocumentWorkflowParticipants {
 			userDTO := mapUserToDTO(participant.User)
@@ -1689,11 +1694,12 @@ func (ds *DocumentService) GetDocumentLastEditSummary(documentID uint) (*documen
 		}
 	}
 
+	// Prepare the response DTO
 	responseDTO := &documentDTOs.DocumentLastEditSummaryDTO{
 		LatestActivity: latestActivityDTO,
-		CurrentLevel:   *document.LatestDocumentVersion.NextReviewLevel,
+		CurrentLevel:   document.LatestDocumentVersion.NextReviewLevel,
 		Participants:   participants,
-		TotalComments:  totalComments,
+		TotalComments:  &totalComments,
 	}
 
 	return responseDTO, nil
