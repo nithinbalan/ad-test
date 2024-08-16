@@ -110,6 +110,10 @@
 {
     "id": "invalid_profile_file_size",
     "translation": "يُسمح فقط بملفات بحجم أقصى 2 ميجابايت"
+},
+{
+  "id": "already_associated",
+  "translation": "تم ربط '{{.Field}}' بهذا الخطر بالفعل"
 }
 
 ]
