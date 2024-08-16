@@ -23,6 +23,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	currencyController := app.MasterModule.CurrencyController
 	timezoneController := app.MasterModule.TimezoneController
 	unitController := app.MasterModule.UnitController
+	toolTypeController := app.MasterModule.ToolTypeController
 
 	masterRoutes.GET("/review-frequencies", reviewFrequencyController.GetAllReviewFrequencies)
 	masterRoutes.GET("/review-frequencies/:id", reviewFrequencyController.GetReviewFrequencyDetails)
@@ -71,4 +72,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	masterRoutes.POST("/units/delete", unitController.DeleteUnits)
 	masterRoutes.PUT("/units/activate", unitController.ActivateUnits)
 	masterRoutes.PUT("/units/deactivate", unitController.DeactivateUnits)
+
+	masterRoutes.GET("/tool-types", toolTypeController.GetAllToolTypes)
+	masterRoutes.POST("/tool-types", toolTypeController.CreateToolType)
+	masterRoutes.GET("/tool-types/:id", toolTypeController.GetToolTypeDetails)
+	masterRoutes.PUT("/tool-types/:id", toolTypeController.UpdateToolType)
+	masterRoutes.POST("/tool-types/delete", toolTypeController.DeleteToolTypes)
+	masterRoutes.PUT("/tool-types/activate", toolTypeController.ActivateToolTypes)
+	masterRoutes.PUT("/tool-types/deactivate", toolTypeController.DeactivateToolTypes)
 }
