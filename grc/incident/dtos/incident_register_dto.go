@@ -26,6 +26,7 @@ type IncidentRegisterListDTO struct {
 	IncidentStatusID                uint    `json:"incident_status_id"`
 	ResponsibleUnitTitleEn          string  `json:"responsible_unit_title_en"`
 	ResponsibleUnitTitleAr          string  `json:"responsible_unit_title_ar"`
+	ResponsibleUserID               uint    `json:"responsible_user_id"`
 	ResponsibleUserFirstNameEn      string  `json:"responsible_user_first_name_en"`
 	ResponsibleUserFirstNameAr      string  `json:"responsible_user_first_name_ar"`
 	ResponsibleUserLastNameEn       string  `json:"responsible_user_last_name_en"`

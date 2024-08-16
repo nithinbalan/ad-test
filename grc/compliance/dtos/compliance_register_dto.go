@@ -18,6 +18,7 @@ type ComplianceRegisterListDTO struct {
 	ComplianceStatusColorCode             string `json:"compliance_status_color_code"`
 	ResponsibleUnitTitleEn                string `json:"responsible_unit_title_en"`
 	ResponsibleUnitTitleAr                string `json:"responsible_unit_title_ar"`
+	ResponsibleUserID                     uint   `json:"responsible_user_id"`
 	ResponsibleUserFirstNameEn            string `json:"responsible_user_first_name_en"`
 	ResponsibleUserFirstNameAr            string `json:"responsible_user_first_name_ar"`
 	ResponsibleUserLastNameEn             string `json:"responsible_user_last_name_en"`
@@ -28,6 +29,7 @@ type ComplianceRegisterListDTO struct {
 	ResponsibleUserProfileImagePath       string `json:"responsible_user_profile_image_path"`
 	ReviewFrequencyTitleEn                string `json:"review_frequency_title_en"`
 	ReviewFrequencyTitleAr                string `json:"review_frequency_title_ar"`
+	ReviewResponsibleUserID               uint   `json:"review_responsible_user_id"`
 	ReviewResponsibleUserFirstNameEn      string `json:"review_responsible_user_first_name_en"`
 	ReviewResponsibleUserFirstNameAr      string `json:"review_responsible_user_first_name_ar"`
 	ReviewResponsibleUserLastNameEn       string `json:"review_responsible_user_last_name_en"`

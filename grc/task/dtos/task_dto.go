@@ -14,7 +14,6 @@ type TaskListDTO struct {
 	IncidentActionPlanID            uint    `json:"incident_action_plan_id"`
 	ControlActionPlanID             uint    `json:"control_action_plan_id"`
 	SeverityLevelID                 uint    `json:"severity_level_id"`
-	ResponsibleUserID               uint    `json:"responsible_user_id"`
 	TaskStatusID                    uint    `json:"task_status_id"`
 	ModuleTitleEn                   string  `json:"module_title_en"`
 	ModuleTitleAr                   string  `json:"module_title_ar"`
@@ -23,6 +22,7 @@ type TaskListDTO struct {
 	SeverityLevelTitleEn            string  `json:"severity_level_title_en"`
 	SeverityLevelTitleAr            string  `json:"severity_level_title_ar"`
 	SeverityLevelColorCode          string  `json:"severity_level_color_code"`
+	ResponsibleUserID               uint    `json:"responsible_user_id"`
 	ResponsibleUserFirstNameEn      string  `json:"responsible_user_first_name_en"`
 	ResponsibleUserFirstNameAr      string  `json:"responsible_user_first_name_ar"`
 	ResponsibleUserLastNameEn       string  `json:"responsible_user_last_name_en"`

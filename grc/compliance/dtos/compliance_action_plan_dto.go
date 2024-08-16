@@ -18,6 +18,7 @@ type ComplianceActionPlanListDTO struct {
 	SeverityLevelTitleEn            string `json:"severity_level_title_en"`
 	SeverityLevelTitleAr            string `json:"severity_level_title_ar"`
 	SeverityLevelColorCode          string `json:"severity_level_color_code"`
+	ResponsibleUserID               uint   `json:"responsible_user_id"`
 	ResponsibleUserFirstNameEn      string `json:"responsible_user_first_name_en"`
 	ResponsibleUserFirstNameAr      string `json:"responsible_user_first_name_ar"`
 	ResponsibleUserLastNameEn       string `json:"responsible_user_last_name_en"`
