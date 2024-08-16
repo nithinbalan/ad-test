@@ -9,7 +9,7 @@ import (
 )
 
 type MeetingMinuteRepositoryInterface interface {
-	GetAll(currentUserID uint, params *meetingDTOs.MeetingMinuteListQueryParamsDTO) (*meetingDTOs.MeetingMinuteListResponseDTO, error)
+	GetAll(meetingID uint, currentUserID uint, params *meetingDTOs.MeetingMinuteListQueryParamsDTO) (*meetingDTOs.MeetingMinuteListResponseDTO, error)
 	GetByID(id uint) (*models.MeetingMinute, error)
 	GetFullDetailsByID(id uint) (*models.MeetingMinute, error)
 	Create(meetingMinute *models.MeetingMinute) (uint, error)
@@ -27,7 +27,7 @@ func NewMeetingMinuteRepository(db *gorm.DB) *MeetingMinuteRepository {
 	}
 }
 
-func (repo *MeetingMinuteRepository) GetAll(currentUserID uint, params *meetingDTOs.MeetingMinuteListQueryParamsDTO) (*meetingDTOs.MeetingMinuteListResponseDTO, error) {
+func (repo *MeetingMinuteRepository) GetAll(meetingID uint, currentUserID uint, params *meetingDTOs.MeetingMinuteListQueryParamsDTO) (*meetingDTOs.MeetingMinuteListResponseDTO, error) {
 	var meetingMinutes []*meetingDTOs.MeetingMinuteListDTO
 	var totalCount int64
 
@@ -52,9 +52,11 @@ func (repo *MeetingMinuteRepository) GetAll(currentUserID uint, params *meetingD
         	updated_user.profile_image_path AS updated_user_profile_image_path   
 		`).
 		Joins(`
+			LEFT JOIN meeting_agendas ON meeting_minutes.meeting_agenda_id = meeting_agendas.id
+			LEFT JOIN meetings ON meeting_agendas.meeting_id = meetings.id
             LEFT JOIN users AS created_user ON created_user.id = meeting_minutes.created_by_id
             LEFT JOIN users AS updated_user ON updated_user.id = meeting_minutes.updated_by_id
-        `)
+        `).Where(`meetings.id`, meetingID)
 
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {

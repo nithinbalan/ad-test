@@ -42,7 +42,10 @@ func NewMeetingAgendaService(
 }
 
 func (mas *MeetingAgendaService) GetAll(meetingID uint, currentUserID uint, params *meetingDTOs.MeetingAgendaListQueryParamsDTO) (*meetingDTOs.MeetingAgendaListResponseDTO, error) {
-	return mas.repo.GetAll(currentUserID, params)
+	if _, err := mas.meetingSvc.GetByID(meetingID); err != nil {
+		return nil, err
+	}
+	return mas.repo.GetAll(meetingID, currentUserID, params)
 }
 
 func (mas MeetingAgendaService) GetByID(id uint) (*models.MeetingAgenda, error) {

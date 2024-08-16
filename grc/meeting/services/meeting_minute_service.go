@@ -45,7 +45,10 @@ func NewMeetingMinuteService(
 }
 
 func (mms *MeetingMinuteService) GetAll(meetingID uint, currentUserID uint, params *meetingDTOs.MeetingMinuteListQueryParamsDTO) (*meetingDTOs.MeetingMinuteListResponseDTO, error) {
-	return mms.repo.GetAll(currentUserID, params)
+	if _, err := mms.meetingSvc.GetByID(meetingID); err != nil {
+		return nil, err
+	}
+	return mms.repo.GetAll(meetingID, currentUserID, params)
 }
 
 func (mms MeetingMinuteService) GetByID(id uint) (*models.MeetingMinute, error) {

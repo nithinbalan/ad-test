@@ -59,6 +59,5 @@ type MeetingMinuteDetailDTO struct {
 
 type MeetingMinuteFormDTO struct {
 	Minutes         string `json:"minutes"`
-	TimeTo          string `json:"time_to"`
 	MeetingAgendaID *uint  `json:"meeting_agenda_id"`
 }

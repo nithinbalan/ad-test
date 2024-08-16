@@ -9,7 +9,7 @@ import (
 )
 
 type MeetingAgendaRepositoryInterface interface {
-	GetAll(currentUserID uint, params *meetingDTOs.MeetingAgendaListQueryParamsDTO) (*meetingDTOs.MeetingAgendaListResponseDTO, error)
+	GetAll(meetingID uint, currentUserID uint, params *meetingDTOs.MeetingAgendaListQueryParamsDTO) (*meetingDTOs.MeetingAgendaListResponseDTO, error)
 	GetByID(id uint) (*models.MeetingAgenda, error)
 	GetFullDetailsByID(id uint) (*models.MeetingAgenda, error)
 	Create(meeting *models.MeetingAgenda) (uint, error)
@@ -27,7 +27,7 @@ func NewMeetingAgendaRepository(db *gorm.DB) *MeetingAgendaRepository {
 	}
 }
 
-func (repo *MeetingAgendaRepository) GetAll(currentUserID uint, params *meetingDTOs.MeetingAgendaListQueryParamsDTO) (*meetingDTOs.MeetingAgendaListResponseDTO, error) {
+func (repo *MeetingAgendaRepository) GetAll(meetingID uint, currentUserID uint, params *meetingDTOs.MeetingAgendaListQueryParamsDTO) (*meetingDTOs.MeetingAgendaListResponseDTO, error) {
 	var meetingAgendas []*meetingDTOs.MeetingAgendaListDTO
 	var totalCount int64
 
@@ -61,7 +61,7 @@ func (repo *MeetingAgendaRepository) GetAll(currentUserID uint, params *meetingD
 			LEFT JOIN meetings ON meeting_agendas.meeting_id = meetings.id
             LEFT JOIN users AS created_user ON created_user.id = meeting_agendas.created_by_id
             LEFT JOIN users AS updated_user ON updated_user.id = meeting_agendas.updated_by_id
-        `)
+        `).Where(`meeting_agendas.meeting_id`, meetingID)
 
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
