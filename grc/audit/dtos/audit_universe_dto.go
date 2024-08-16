@@ -10,5 +10,4 @@ type AuditUniverseFormDTO struct {
 	UserIDs                  []*uint `json:"user_ids" binding:"omitempty"`
 	Comment                  string  `json:"comment" binding:"required"`
 	AuditorRiskRatingID      uint    `json:"auditor_risk_rating_id" binding:"required"`
-	AuditStatusID            *uint   `json:"audit_status_id"`
 }
