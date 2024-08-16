@@ -11,6 +11,7 @@ type AuditTeamListDTO struct {
 	ID                          uint                   `json:"id"`
 	TitleEn                     string                 `json:"title_en"`
 	TitleAr                     string                 `json:"title_ar"`
+	TeamLeadID                  uint                   `json:"team_lead_id"`
 	TeamLeadFirstNameEn         string                 `json:"team_lead_first_name_en"`
 	TeamLeadFirstNameAr         string                 `json:"team_lead_first_name_ar"`
 	TeamLeadLastNameEn          string                 `json:"team_lead_last_name_en"`

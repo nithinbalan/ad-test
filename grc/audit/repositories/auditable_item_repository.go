@@ -18,9 +18,6 @@ type AuditableItemRepositoryInterface interface {
 	Create(auditableItem *models.AuditableItem, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(auditableItem *models.AuditableItem, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
-
-	CreateOrganizationUnits(units []*models.AuditableItemOrganizationUnit, tx ...utility.DatabaseTransaction) error
-	DeleteOrganizationUnits(unitIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type AuditableItemRepository struct {
@@ -54,6 +51,8 @@ func (repo *AuditableItemRepository) GetAll(params *auditDTOs.AuditableItemListQ
         documents.title_ar AS document_title_ar,
         incident_register.title AS incident_register_title,
         compliance_requirements.title AS compliance_requirement_title,
+		organization_units.title_en AS responsible_unit_title_en,
+		organization_units.title_ar AS responsible_unit_title_ar,
         risk_register.title AS risk_register_title,
         users.first_name_en AS user_first_name_en,
         users.first_name_ar AS user_first_name_ar,
@@ -88,6 +87,7 @@ func (repo *AuditableItemRepository) GetAll(params *auditDTOs.AuditableItemListQ
         LEFT JOIN documents ON documents.id = auditable_items.document_id
         LEFT JOIN incident_register ON incident_register.id = auditable_items.incident_register_id
         LEFT JOIN compliance_requirements ON compliance_requirements.id = auditable_items.compliance_requirement_id
+		LEFT JOIN organization_units ON organization_units.id = auditable_items.responsible_unit_id
         LEFT JOIN risk_register ON risk_register.id = auditable_items.risk_register_id
         LEFT JOIN users ON users.id = auditable_items.user_id
         LEFT JOIN users AS created_user ON created_user.id = auditable_items.created_by_id
@@ -132,6 +132,8 @@ func (repo *AuditableItemRepository) GetAll(params *auditDTOs.AuditableItemListQ
             users.last_name_ar LIKE ? OR
             users.email LIKE ? OR
             users.profile_image_path LIKE ? OR
+            organization_units.title_en LIKE ? OR
+            organization_units.title_ar LIKE ? OR
             created_user.first_name_en LIKE ? OR
             created_user.first_name_ar LIKE ? OR
             created_user.last_name_en LIKE ? OR
@@ -153,7 +155,7 @@ func (repo *AuditableItemRepository) GetAll(params *auditDTOs.AuditableItemListQ
 			keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword, keyword)
+			keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
 	// Sort by the specified column and order
@@ -218,7 +220,7 @@ func (repo *AuditableItemRepository) GetFullDetailsByID(id uint, tx ...utility.D
 		Preload("ComplianceRequirement").
 		Preload("RiskRegister").
 		Preload("User").
-		Preload("OrganizationUnits").
+		Preload("ResponsibleUnit").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&auditableItem, id)
@@ -261,30 +263,6 @@ func (repo *AuditableItemRepository) Delete(id uint, tx ...utility.DatabaseTrans
 	result := db.Delete(&models.AuditableItem{}, id)
 	if result.Error != nil {
 		return result.Error
-	}
-
-	return nil
-}
-
-func (repo *AuditableItemRepository) CreateOrganizationUnits(units []*models.AuditableItemOrganizationUnit, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-
-	if err := db.Create(&units).Error; err != nil {
-		return err
-	}
-	return nil
-}
-
-func (repo *AuditableItemRepository) DeleteOrganizationUnits(unitIds []*uint, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-	if err := db.Where("id IN (?)", unitIds).Delete(&models.AuditableItemOrganizationUnit{}).Error; err != nil {
-		return err
 	}
 
 	return nil
