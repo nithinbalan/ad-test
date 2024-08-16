@@ -20,6 +20,7 @@ type MasterModule struct {
 	TimezoneController          *controllers.TimezoneController
 	UnitController              *controllers.UnitController
 	ToolTypeController          *controllers.ToolTypeController
+	ExpenseCategoryController   *controllers.ExpenseCategoryController
 
 	ReviewFrequencySvc   services.ReviewFrequencyServiceInterface
 	SeverityLevelSvc     services.SeverityLevelServiceInterface
@@ -32,6 +33,7 @@ type MasterModule struct {
 	TimezoneSvc          services.TimezoneServiceInterface
 	UnitSvc              services.UnitServiceInterface
 	ToolTypeSvc          services.ToolTypeServiceInterface
+	ExpenseCategorySvc   services.ExpenseCategoryServiceInterface
 }
 
 func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
@@ -88,6 +90,11 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 	toolTypeSvc := services.NewToolTypeService(toolTypeRepo, sharedModule.ActivityLogService)
 	toolTypeController := controllers.NewToolTypeController(toolTypeSvc)
 
+	//ToolTypes
+	expenseCategoryRepo := repositories.NewExpenseCategoryRepository(db)
+	expenseCategorySvc := services.NewExpenseCategoryService(expenseCategoryRepo, sharedModule.ActivityLogService)
+	expenseCategoryController := controllers.NewExpenseCategoryController(expenseCategorySvc)
+
 	return &MasterModule{
 		ReviewFrequencyController:   reviewFrequencyController,
 		SeverityLevelController:     severityLevelController,
@@ -100,6 +107,7 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 		TimezoneController:          timezoneController,
 		UnitController:              unitController,
 		ToolTypeController:          toolTypeController,
+		ExpenseCategoryController:   expenseCategoryController,
 
 		ReviewFrequencySvc:   reviewFrequencySvc,
 		SeverityLevelSvc:     severityLevelSvc,
@@ -112,5 +120,6 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 		TimezoneSvc:          timezoneSvc,
 		UnitSvc:              unitSvc,
 		ToolTypeSvc:          toolTypeSvc,
+		ExpenseCategorySvc:   expenseCategorySvc,
 	}
 }
