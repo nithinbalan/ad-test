@@ -208,6 +208,7 @@ func (repo *ControlAssociatedItemRepository) GetAllRisks(controlID uint, params 
 			risk_sources.title_ar AS risk_source_title_ar,
 			organization_units.title_en AS responsible_unit_title_en,
 			organization_units.title_ar AS responsible_unit_title_ar,
+			users.id AS responsible_user_id,
 			users.first_name_en AS responsible_user_first_name_en,
 			users.first_name_ar AS responsible_user_first_name_ar,
 			users.last_name_en AS responsible_user_last_name_en,

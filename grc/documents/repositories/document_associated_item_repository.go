@@ -297,6 +297,7 @@ func (repo *DocumentAssociatedItemRepository) GetAllSLAs(documentID uint, params
             severity_levels.title_ar AS severity_level_title_ar,
             organization_units.title_en AS responsible_unit_title_en,
             organization_units.title_ar AS responsible_unit_title_ar,
+			responsible_users.id AS responsible_user_id,
             responsible_users.first_name_en AS responsible_user_first_name_en,
             responsible_users.first_name_ar AS responsible_user_first_name_ar,
             responsible_users.last_name_en AS responsible_user_last_name_en,
