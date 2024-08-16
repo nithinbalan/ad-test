@@ -14,6 +14,7 @@ type RiskTimelineListDTO struct {
 	TimelineStatusTitleAr       string    `json:"timeline_status_title_ar"`
 	TimelineStatusType          string    `json:"timeline_status_type"`
 	TimelineStatusColorCode     string    `json:"timeline_status_color_code"`
+	PerformedByID               uint      `json:"performed_by_id"`
 	PerformedByFirstNameEn      string    `json:"performed_by_first_name_en"`
 	PerformedByFirstNameAr      string    `json:"performed_by_first_name_ar"`
 	PerformedByLastNameEn       string    `json:"performed_by_last_name_en"`

@@ -19,6 +19,7 @@ type ControlTestListDTO struct {
 	Score                                *uint      `json:"score"`
 	Comments                             *string    `json:"comments"`
 	TestedSource                         string     `json:"tested_source"`
+	TestedByUserID                       uint       `json:"tested_by_user_id"`
 	TestedByUserFirstNameEn              string     `json:"tested_by_user_first_name_en"`
 	TestedByUserFirstNameAr              string     `json:"tested_by_user_first_name_ar"`
 	TestedByUserLastNameEn               string     `json:"tested_by_user_last_name_en"`
