@@ -2,7 +2,6 @@ package repositories
 
 import (
 	auditDTOs "jethur/grc/audit/dtos"
-	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
 
@@ -11,7 +10,7 @@ import (
 
 type AuditPlanBudgetRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(auditPlanID uint, params *auditDTOs.AuditPlanBudgetListQueryParamsDTO) (*auditDTOs.AuditPlanBudgetListResponseDTO, error)
+	GetAll(auditPlanID uint, params *auditDTOs.AuditPlanBudgetListQueryParamsDTO) ([]*auditDTOs.AuditPlanBudgetListDTO, error)
 	GetByID(id uint) (*models.AuditPlanBudget, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.AuditPlanBudget, error)
 	Create(auditPlanBudget *models.AuditPlanBudget, tx ...utility.DatabaseTransaction) (uint, error)
@@ -34,7 +33,7 @@ func (repo *AuditPlanBudgetRepository) BeginTransaction() utility.DatabaseTransa
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *AuditPlanBudgetRepository) GetAll(auditPlanID uint, params *auditDTOs.AuditPlanBudgetListQueryParamsDTO) (*auditDTOs.AuditPlanBudgetListResponseDTO, error) {
+func (repo *AuditPlanBudgetRepository) GetAll(auditPlanID uint, params *auditDTOs.AuditPlanBudgetListQueryParamsDTO) ([]*auditDTOs.AuditPlanBudgetListDTO, error) {
 	var auditPlanBudgets []*auditDTOs.AuditPlanBudgetListDTO
 	var totalCount int64
 
@@ -132,26 +131,11 @@ func (repo *AuditPlanBudgetRepository) GetAll(auditPlanID uint, params *auditDTO
 
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	offset := (params.Page - 1) * params.PageSize
-
-	// Execute the query
-	err := query.Offset(offset).Limit(params.PageSize).Find(&auditPlanBudgets).Error
-	if err != nil {
+	if err := query.Find(&auditPlanBudgets).Error; err != nil {
 		return nil, err
 	}
 
-	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
-
-	response := &auditDTOs.AuditPlanBudgetListResponseDTO{
-		Items: auditPlanBudgets,
-		Pagination: commonDTOs.PaginationInfoDTO{
-			CurrentPage: params.Page,
-			PageSize:    params.PageSize,
-			TotalPages:  totalPages,
-			TotalCount:  totalCount,
-		},
-	}
-	return response, nil
+	return auditPlanBudgets, nil
 }
 
 func (repo *AuditPlanBudgetRepository) GetByID(id uint) (*models.AuditPlanBudget, error) {

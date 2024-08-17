@@ -2,7 +2,6 @@ package repositories
 
 import (
 	auditDTOs "jethur/grc/audit/dtos"
-	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
 
@@ -11,7 +10,7 @@ import (
 
 type AuditPlanToolRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(auditPlanID uint, params *auditDTOs.AuditPlanToolListQueryParamsDTO) (*auditDTOs.AuditPlanToolListResponseDTO, error)
+	GetAll(auditPlanID uint, params *auditDTOs.AuditPlanToolListQueryParamsDTO) ([]*auditDTOs.AuditPlanToolListDTO, error)
 	GetByID(id uint) (*models.AuditPlanTool, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.AuditPlanTool, error)
 	Create(auditPlanTool *models.AuditPlanTool, tx ...utility.DatabaseTransaction) (uint, error)
@@ -34,7 +33,7 @@ func (repo *AuditPlanToolRepository) BeginTransaction() utility.DatabaseTransact
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *AuditPlanToolRepository) GetAll(auditPlanID uint, params *auditDTOs.AuditPlanToolListQueryParamsDTO) (*auditDTOs.AuditPlanToolListResponseDTO, error) {
+func (repo *AuditPlanToolRepository) GetAll(auditPlanID uint, params *auditDTOs.AuditPlanToolListQueryParamsDTO) ([]*auditDTOs.AuditPlanToolListDTO, error) {
 	var auditPlanTools []*auditDTOs.AuditPlanToolListDTO
 	var totalCount int64
 
@@ -125,29 +124,13 @@ func (repo *AuditPlanToolRepository) GetAll(auditPlanID uint, params *auditDTOs.
 	if params.Sort != "asc" && params.Sort != "desc" {
 		params.Sort = "asc" // Default order is ascending if not specified
 	}
-
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	offset := (params.Page - 1) * params.PageSize
-
-	// Execute the query
-	err := query.Offset(offset).Limit(params.PageSize).Find(&auditPlanTools).Error
-	if err != nil {
+	if err := query.Find(&auditPlanTools).Error; err != nil {
 		return nil, err
 	}
 
-	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
-
-	response := &auditDTOs.AuditPlanToolListResponseDTO{
-		Items: auditPlanTools,
-		Pagination: commonDTOs.PaginationInfoDTO{
-			CurrentPage: params.Page,
-			PageSize:    params.PageSize,
-			TotalPages:  totalPages,
-			TotalCount:  totalCount,
-		},
-	}
-	return response, nil
+	return auditPlanTools, nil
 }
 
 func (repo *AuditPlanToolRepository) GetByID(id uint) (*models.AuditPlanTool, error) {

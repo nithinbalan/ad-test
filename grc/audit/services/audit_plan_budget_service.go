@@ -15,7 +15,7 @@ import (
 )
 
 type AuditPlanBudgetServiceInterface interface {
-	GetAll(auditPlanID uint, params *auditDTOs.AuditPlanBudgetListQueryParamsDTO) (*auditDTOs.AuditPlanBudgetListResponseDTO, error)
+	GetAll(auditPlanID uint, params *auditDTOs.AuditPlanBudgetListQueryParamsDTO) ([]*auditDTOs.AuditPlanBudgetListDTO, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditPlanBudgetDetailDTO, error)
 	GetByID(id uint) (*models.AuditPlanBudget, error)
 	Create(auditPlanID uint, currentUserID uint, auditPlanBudgetFormDTO *auditDTOs.AuditPlanBudgetFormDTO) (uint, error)
@@ -44,7 +44,7 @@ func NewAuditPlanBudgetService(
 	}
 }
 
-func (apbs *AuditPlanBudgetService) GetAll(auditPlanID uint, params *auditDTOs.AuditPlanBudgetListQueryParamsDTO) (*auditDTOs.AuditPlanBudgetListResponseDTO, error) {
+func (apbs *AuditPlanBudgetService) GetAll(auditPlanID uint, params *auditDTOs.AuditPlanBudgetListQueryParamsDTO) ([]*auditDTOs.AuditPlanBudgetListDTO, error) {
 	if _, err := apbs.auditPlanSvc.GetByID(auditPlanID); err != nil {
 		return nil, err
 	}
