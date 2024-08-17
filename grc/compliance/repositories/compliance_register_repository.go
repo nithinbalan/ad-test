@@ -85,6 +85,7 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
             responsible_user.profile_image_path AS responsible_user_profile_image_path,
 			review_frequencies.title_en AS review_frequency_title_en,
 			review_frequencies.title_ar AS review_frequency_title_ar,
+			review_responsible_user.id AS review_responsible_user_id,
 			review_responsible_user.first_name_en AS review_responsible_user_first_name_en,
             review_responsible_user.first_name_ar AS review_responsible_user_first_name_ar,
             review_responsible_user.last_name_en AS review_responsible_user_last_name_en,

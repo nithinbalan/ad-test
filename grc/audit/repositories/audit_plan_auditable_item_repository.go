@@ -51,6 +51,7 @@ func (repo *AuditPlanAuditableItemRepository) GetAll(auditPlanID uint, params *a
 			audit_categories.title_ar AS audit_category_title_ar,
 			audit_teams.title_en AS audit_team_title_en,
 			audit_teams.title_ar AS audit_team_title_ar,
+			team_lead.id AS team_lead_id,
 			team_lead.first_name_en AS team_lead_first_name_en,
 			team_lead.first_name_ar AS team_lead_first_name_ar,
 			team_lead.last_name_en AS team_lead_last_name_en,

@@ -61,6 +61,7 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 		process_groups.title_ar AS process_group_title_ar,
 		organization_units.title_en AS owner_unit_title_en,
 		organization_units.title_ar AS owner_unit_title_ar,
+		owner.id AS owner_id,
 		owner.first_name_en AS owner_first_name_en,
 		owner.first_name_ar AS owner_first_name_ar,
 		owner.last_name_en AS owner_last_name_en,

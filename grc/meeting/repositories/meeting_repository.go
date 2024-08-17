@@ -64,6 +64,7 @@ func (repo *MeetingRepository) GetAll(currentUserID uint, params *meetingDTOs.Me
 			meetings.date,
 			meetings.start_time,
 			meetings.end_time,
+			users.id AS organizer_user_id,
 			users.first_name_en AS organizer_user_first_name_en,
 			users.first_name_ar AS organizer_user_first_name_ar,
 			users.last_name_en AS organizer_user_last_name_en,

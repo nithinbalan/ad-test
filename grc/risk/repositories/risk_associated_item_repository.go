@@ -51,6 +51,7 @@ func (repo *RiskAssociatedItemRepository) GetAllControls(riskID uint, params *ri
             control_implementation_statuses.title_ar AS control_implementation_status_title_ar,
 			control_implementation_statuses.type AS control_implementation_status_type,
             control_implementation_statuses.color_code AS control_implementation_status_color_code,
+			owner.id AS control_owner_id,
 			owner.first_name_en AS control_owner_first_name_en,
 			owner.first_name_ar AS control_owner_first_name_ar,
 			owner.last_name_en AS control_owner_last_name_en,

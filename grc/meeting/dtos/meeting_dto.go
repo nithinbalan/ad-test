@@ -21,6 +21,7 @@ type MeetingListDTO struct {
 	Date                        time.Time  `json:"date"`
 	StartTime                   time.Time  `json:"start_time"`
 	EndTime                     time.Time  `json:"end_time"`
+	OrganizerUserID             uint       `json:"organizer_user_id"`
 	OrganizerUserFirstNameEn    string     `json:"organizer_user_first_name_en"`
 	OrganizerUserFirstNameAr    string     `json:"organizer_user_first_name_ar"`
 	OrganizerUserLastNameEn     string     `json:"organizer_user_last_name_en"`

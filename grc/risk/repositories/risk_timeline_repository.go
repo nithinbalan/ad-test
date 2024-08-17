@@ -45,6 +45,7 @@ func (repo *RiskTimelineRepository) GetAll(riskID uint, params *riskDTOs.RiskTim
 			timeline_statuses.title_ar AS timeline_status_title_ar,
 			timeline_statuses.type AS timeline_status_type,
 			timeline_statuses.color_code AS timeline_status_color_code,
+			performed_by.id AS performed_by_id,
 			performed_by.first_name_en AS performed_by_first_name_en,
 			performed_by.first_name_ar AS performed_by_first_name_ar,
 			performed_by.last_name_en AS performed_by_last_name_en,

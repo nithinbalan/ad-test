@@ -31,6 +31,7 @@ type AuditPlanListDTO struct {
 	TeamLeadProfileImagePath          string  `json:"team_lead_profile_image_path"`
 	AuditTeamTitleEn                  string  `json:"audit_team_title_en"`
 	AuditTeamTitleAr                  string  `json:"audit_team_title_ar"`
+	AuditTeamTeamLeadID               uint    `json:"audit_team_team_lead_id"`
 	AuditTeamTeamLeadFirstNameEn      string  `json:"audit_team_team_lead_first_name_en"`
 	AuditTeamTeamLeadFirstNameAr      string  `json:"audit_team_team_lead_first_name_ar"`
 	AuditTeamTeamLeadLastNameEn       string  `json:"audit_team_team_lead_last_name_en"`

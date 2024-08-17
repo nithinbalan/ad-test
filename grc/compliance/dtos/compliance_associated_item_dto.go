@@ -95,6 +95,7 @@ type ComplianceIncidentListDTO struct {
 	IncidentStatusTitleEn           string `json:"incident_status_title_en"`
 	IncidentStatusTitleAr           string `json:"incident_status_title_ar"`
 	IncidentStatusColorCode         string `json:"incident_status_color_code"`
+	IncidentReportedUserID          uint   `json:"incident_reported_user_id"`
 	IncidentReportedUserFirstNameEn string `json:"incident_reported_user_first_name_en"`
 	IncidentReportedUserFirstNameAr string `json:"incident_reported_user_first_name_ar"`
 	IncidentReportedUserLastNameEn  string `json:"incident_reported_user_last_name_en"`

@@ -52,6 +52,7 @@ func (repo *IncidentInvestigationRepository) GetAll(incidentID uint, params *inc
         incident_investigations.*,
 		CONVERT(VARCHAR, incident_investigations.initiated_at, 23) AS initiated_at,
         incident_register.title as incident_title,
+		team_lead.id AS team_lead_id,
 		team_lead.first_name_en AS team_lead_first_name_en,
 		team_lead.first_name_ar AS team_lead_first_name_ar,
 		team_lead.last_name_en AS team_lead_last_name_en,

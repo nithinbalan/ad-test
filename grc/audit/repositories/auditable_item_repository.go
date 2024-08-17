@@ -54,6 +54,7 @@ func (repo *AuditableItemRepository) GetAll(params *auditDTOs.AuditableItemListQ
 		organization_units.title_en AS responsible_unit_title_en,
 		organization_units.title_ar AS responsible_unit_title_ar,
         risk_register.title AS risk_register_title,
+		users.id AS user_id,
         users.first_name_en AS user_first_name_en,
         users.first_name_ar AS user_first_name_ar,
         users.last_name_en AS user_last_name_en,

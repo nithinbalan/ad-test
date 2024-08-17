@@ -49,6 +49,7 @@ func (repo *ComplianceRequirementAssociatedItemRepository) GetAllControls(requir
             control_implementation_statuses.title_ar AS control_implementation_status_title_ar,
             control_implementation_statuses.type AS control_implementation_status_type,
             control_implementation_statuses.color_code AS control_implementation_status_color_code,
+			owner.id AS control_owner_id,
 			owner.first_name_en AS control_owner_first_name_en,
 			owner.first_name_ar AS control_owner_first_name_ar,
 			owner.last_name_en AS control_owner_last_name_en,
@@ -203,6 +204,7 @@ func (repo *ComplianceRequirementAssociatedItemRepository) GetAllRisks(requireme
             risk_sources.title_ar AS risk_source_title_ar,
             organization_units.title_en AS risk_owner_unit_title_en,
             organization_units.title_ar AS risk_owner_unit_title_ar,
+			users.id AS risk_owner_id,
             users.first_name_en AS risk_owner_first_name_en,
             users.first_name_ar AS risk_owner_first_name_ar,
             users.last_name_en AS risk_owner_last_name_en,
@@ -309,14 +311,15 @@ func (repo *ComplianceRequirementAssociatedItemRepository) GetAllIncidents(requi
 			incident_statuses.title_en AS incident_status_title_en,
             incident_statuses.title_ar AS incident_status_title_ar,
             incident_statuses.color_code AS incident_status_color_code,
-            reported_user.first_name_en AS incident_reported_by_first_name_en,
-            reported_user.first_name_ar AS incident_reported_by_first_name_ar,
-            reported_user.last_name_en AS incident_reported_by_last_name_en,
-            reported_user.last_name_ar AS incident_reported_by_last_name_ar,
-			reported_user.initial AS incident_reported_by_initial,
-        	reported_user.color AS incident_reported_by_color,
-        	reported_user.email AS incident_reported_by_email,
-        	reported_user.profile_image_path AS incident_reported_by_profile_image_path
+			reported_user.id AS incident_reported_user_id,
+            reported_user.first_name_en AS incident_reported_user_first_name_en,
+            reported_user.first_name_ar AS incident_reported_user_first_name_ar,
+            reported_user.last_name_en AS incident_reported_user_last_name_en,
+            reported_user.last_name_ar AS incident_reported_user_last_name_ar,
+			reported_user.initial AS incident_reported_user_initial,
+        	reported_user.color AS incident_reported_user_color,
+        	reported_user.email AS incident_reported_user_email,
+        	reported_user.profile_image_path AS incident_reported_user_profile_image_path
         `).
 		Joins(`
             LEFT JOIN incident_register ON incident_register.id = incident_compliance_requirements.incident_register_id

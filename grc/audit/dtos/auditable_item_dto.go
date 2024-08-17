@@ -29,6 +29,7 @@ type AuditableItemListDTO struct {
 	IncidentRegisterTitle       string `json:"incident_register_title"`
 	ComplianceRequirementTitle  string `json:"compliance_requirement_title"`
 	RiskRegisterTitle           string `json:"risk_register_title"`
+	UserID                      uint   `json:"user_id"`
 	UserFirstNameEn             string `json:"user_first_name_en"`
 	UserFirstNameAr             string `json:"user_first_name_ar"`
 	UserLastNameEn              string `json:"user_last_name_en"`

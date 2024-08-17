@@ -56,6 +56,7 @@ func (repo *DocumentAuditLogRepository) GetAll(documentID uint, documentVersionI
 			document_versions.original_name AS document_original_name,
 			document_versions.type AS document_type,
 			document_versions.version AS document_version,
+			users.id AS user_id,
 			users.first_name_en AS user_first_name_en,
 			users.first_name_ar AS user_first_name_ar,
 			users.last_name_en AS user_last_name_en,

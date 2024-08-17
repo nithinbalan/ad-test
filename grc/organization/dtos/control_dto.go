@@ -42,8 +42,8 @@ type ControlListDTO struct {
 	LastReviewDate                       *time.Time `json:"last_review_date"`
 	NextReviewDate                       *time.Time `json:"next_review_date"`
 	LastReviewNote                       *string    `json:"last_review_note"`
-	TestResponsibleUserID                uint       `json:"responsible_user_id"`
-	ResponsibleUserFirstNameEn           string     `json:"test_responsible_user_first_name_en"`
+	TestResponsibleUserID                uint       `json:"test_responsible_user_id"`
+	TestResponsibleUserFirstNameEn       string     `json:"test_responsible_user_first_name_en"`
 	TestResponsibleUserFirstNameAr       string     `json:"test_responsible_user_first_name_ar"`
 	TestResponsibleUserLastNameEn        string     `json:"test_responsible_user_last_name_en"`
 	TestResponsibleUserLastNameAr        string     `json:"test_responsible_user_last_name_ar"`
