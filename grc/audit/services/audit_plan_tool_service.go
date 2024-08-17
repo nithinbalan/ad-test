@@ -15,7 +15,7 @@ import (
 )
 
 type AuditPlanToolServiceInterface interface {
-	GetAll(auditPlanID uint, params *auditDTOs.AuditPlanToolListQueryParamsDTO) (*auditDTOs.AuditPlanToolListResponseDTO, error)
+	GetAll(auditPlanID uint, params *auditDTOs.AuditPlanToolListQueryParamsDTO) ([]*auditDTOs.AuditPlanToolListDTO, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditPlanToolDetailDTO, error)
 	GetByID(id uint) (*models.AuditPlanTool, error)
 	Create(auditPlanID uint, currentUserID uint, auditPlanToolFormDTO *auditDTOs.AuditPlanToolFormDTO) (uint, error)
@@ -44,7 +44,7 @@ func NewAuditPlanToolService(
 	}
 }
 
-func (apts *AuditPlanToolService) GetAll(auditPlanID uint, params *auditDTOs.AuditPlanToolListQueryParamsDTO) (*auditDTOs.AuditPlanToolListResponseDTO, error) {
+func (apts *AuditPlanToolService) GetAll(auditPlanID uint, params *auditDTOs.AuditPlanToolListQueryParamsDTO) ([]*auditDTOs.AuditPlanToolListDTO, error) {
 	if _, err := apts.auditPlanSvc.GetByID(auditPlanID); err != nil {
 		return nil, err
 	}

@@ -1,7 +1,6 @@
 package dtos
 
 import (
-	commonDTOs "jethur/grc/common/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
 
 	"time"
@@ -59,15 +58,8 @@ type AuditPlanToolListQueryParamsDTO struct {
 	Sort        string
 	SortBy      string
 	Keyword     string
-	Page        int
-	PageSize    int
 	Filters     map[string][]string
 	QuickFilter []string
-}
-
-type AuditPlanToolListResponseDTO struct {
-	Items      []*AuditPlanToolListDTO      `json:"items"`
-	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }
 
 type ToolTypeDTO struct {

@@ -19,6 +19,7 @@ type AuditModule struct {
 	AuditPlanChecklistController     *controllers.AuditPlanChecklistController
 	AuditPlanToolController          *controllers.AuditPlanToolController
 	AuditPlanAuditableItemController *controllers.AuditPlanAuditableItemController
+	AuditPlanBudgetController        *controllers.AuditPlanBudgetController
 }
 
 func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, complianceModule *ComplianceModule, riskModule *RiskModule, incidentModule *IncidentModule, documentModule *DocumentModule, settingModule *SettingsModule, masterModule *MasterModule) *AuditModule {
@@ -101,6 +102,15 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 	auditPlanAuditableItemSvc := services.NewAuditPlanAuditableItemService(auditPlanAuditableItemRepo, sharedModule.ActivityLogService, auditPlanSvc, auditableItemSvc)
 	auditPlanAuditableItemController := controllers.NewAuditPlanAuditableItemController(auditPlanAuditableItemSvc)
 
+	auditPlanBudgetRepo := repositories.NewAuditPlanBudgetRepository(db)
+	auditPlanBudgetSvc := services.NewAuditPlanBudgetService(
+		auditPlanBudgetRepo,
+		sharedModule.ActivityLogService,
+		auditPlanSvc,
+		masterModule.ExpenseCategorySvc,
+	)
+	auditPlanBudgetController := controllers.NewAuditPlanBudgetController(auditPlanBudgetSvc)
+
 	return &AuditModule{
 		AuditStatusController:            auditStatusController,
 		AuditorRiskRatingController:      auditorRiskRatingController,
@@ -112,5 +122,6 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		AuditPlanChecklistController:     auditPlanChecklistController,
 		AuditPlanToolController:          auditPlanToolController,
 		AuditPlanAuditableItemController: auditPlanAuditableItemController,
+		AuditPlanBudgetController:        auditPlanBudgetController,
 	}
 }
