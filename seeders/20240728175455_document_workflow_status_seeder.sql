@@ -3,10 +3,10 @@
 -- +goose StatementBegin
 INSERT INTO document_workflow_statuses (title_en, title_ar, color_code, type, status)
 VALUES
-('Commented', 'حالة التعليق', '#D6A2E8', 'comment', 'active'),  
-('Reverted', 'حالة العودة', '#FFA500', 'revert', 'active'),    
-('Rejected', 'حالة الرفض', '#E0554D', 'reject', 'active'),     
-('Approved', 'حالة الموافقة', '#28A745', 'approve', 'active'),
+('Commented', 'حالة التعليق', '#17A2B8', 'comment', 'active'),  
+('Reverted', 'حالة العودة', '#FF9F45', 'revert', 'active'),    
+('Rejected', 'حالة الرفض', '#DC3545', 'reject', 'active'),     
+('Approved', 'حالة الموافقة', '#90DD75', 'approve', 'active'),
 ('Pending', 'قيد الانتظار', '#FFC107', 'pending', 'active'); 
 -- +goose StatementEnd
 
