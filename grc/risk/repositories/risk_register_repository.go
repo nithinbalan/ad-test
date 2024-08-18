@@ -77,10 +77,15 @@ func (repo *RiskRegisterRepository) GetAll(params *riskDTOs.RiskRegisterListQuer
 			organization_units.id AS responsible_unit_id,
             organization_units.title_en AS responsible_unit_title_en,
             organization_units.title_ar AS responsible_unit_title_ar,
+			users.id AS responsible_user_id,
             users.first_name_en AS responsible_user_first_name_en,
             users.first_name_ar AS responsible_user_first_name_ar,
             users.last_name_en AS responsible_user_last_name_en,
             users.last_name_ar AS responsible_user_last_name_ar,
+			users.initial AS responsible_user_initial,
+        	users.color AS responsible_user_color,
+        	users.email AS responsible_user_email,
+        	users.profile_image_path AS responsible_user_profile_image_path,
             risk_statuses.title_en AS risk_status_title_en,
             risk_statuses.title_ar AS risk_status_title_ar,
 			risk_response_strategies.title_en AS risk_response_strategy_title_en,
@@ -90,14 +95,24 @@ func (repo *RiskRegisterRepository) GetAll(params *riskDTOs.RiskRegisterListQuer
             review_frequencies.title_ar AS review_frequency_title_ar,
 			CONVERT(VARCHAR, risk_register.next_review_date, 23) AS next_review_date,
             risk_register.last_review_note,
-            created_user.first_name_en AS created_user_first_name_en,
+            created_user.id AS created_user_id,
+        	created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
             created_user.last_name_en AS created_user_last_name_en,
             created_user.last_name_ar AS created_user_last_name_ar,
-            updated_user.first_name_en AS updated_user_first_name_en,
+			created_user.initial AS created_user_initial,
+        	created_user.color AS created_user_color,
+        	created_user.email AS created_user_email,
+        	created_user.profile_image_path AS created_user_profile_image_path,   
+			updated_user.id AS updated_user_id,
+    		updated_user.first_name_en AS updated_user_first_name_en,
             updated_user.first_name_ar AS updated_user_first_name_ar,
             updated_user.last_name_en AS updated_user_last_name_en,
             updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+        	updated_user.color AS updated_user_color,
+        	updated_user.email AS updated_user_email,
+        	updated_user.profile_image_path AS updated_user_profile_image_path,
             current_likelihood.title_en AS current_likelihood_title_en,
             current_likelihood.title_ar AS current_likelihood_title_ar,
             current_impact.title_en AS current_impact_title_en,
@@ -202,7 +217,8 @@ func (repo *RiskRegisterRepository) GetAll(params *riskDTOs.RiskRegisterListQuer
 			created_user.first_name_ar LIKE ? OR
 			created_user.last_name_en LIKE ? OR
 			created_user.last_name_ar LIKE ? OR
-			updated_user.first_name_en LIKE ? OR
+			updated_user.id AS updated_user_id,
+    		updated_user.first_name_en LIKE ? OR
 			updated_user.first_name_ar LIKE ? OR
 			updated_user.last_name_en LIKE ? OR
 			updated_user.last_name_ar LIKE ? OR

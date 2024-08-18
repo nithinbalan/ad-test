@@ -13,6 +13,7 @@ type ControlReviewListDTO struct {
 	ControlCode                  string                          `json:"control_code"`
 	Comment                      string                          `json:"comment"`
 	ReviewedAt                   string                          `json:"reviewed_at"`
+	ReviewedUserID               uint                            `json:"reviewed_user_id"`
 	ReviewedUserFirstNameEn      string                          `json:"reviewed_user_first_name_en"`
 	ReviewedUserFirstNameAr      string                          `json:"reviewed_user_first_name_ar"`
 	ReviewedUserLastNameEn       string                          `json:"reviewed_user_last_name_en"`

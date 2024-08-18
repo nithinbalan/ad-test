@@ -27,6 +27,7 @@ type ComplianceRequirementControlListDTO struct {
 	ControlImplementationStatusColorCode string  `json:"control_implementation_status_color_code"`
 	ControlOwnerUnitTitleEn              *string `json:"control_owner_unit_title_en"`
 	ControlOwnerUnitTitleAr              *string `json:"control_owner_unit_title_ar"`
+	ControlOwnerID                       *uint   `json:"control_owner_id"`
 	ControlOwnerFirstNameEn              *string `json:"control_owner_first_name_en"`
 	ControlOwnerFirstNameAr              *string `json:"control_owner_first_name_ar"`
 	ControlOwnerLastNameEn               *string `json:"control_owner_last_name_en"`
@@ -55,6 +56,7 @@ type ComplianceRequirementRiskListDTO struct {
 	RiskSourceTitleAr             string     `json:"risk_source_title_ar"`
 	RiskOwnerUnitTitleEn          string     `json:"risk_owner_unit_title_en"`
 	RiskOwnerUnitTitleAr          string     `json:"risk_owner_unit_title_ar"`
+	RiskOwnerID                   uint       `json:"risk_owner_id"`
 	RiskOwnerFirstNameEn          string     `json:"risk_owner_first_name_en"`
 	RiskOwnerFirstNameAr          string     `json:"risk_owner_first_name_ar"`
 	RiskOwnerLastNameEn           string     `json:"risk_owner_last_name_en"`
@@ -99,6 +101,7 @@ type ComplianceRequirementIncidentListDTO struct {
 	IncidentStatusTitleEn                string `json:"incident_status_title_en"`
 	IncidentStatusTitleAr                string `json:"incident_status_title_ar"`
 	IncidentStatusColorCode              string `json:"incident_status_color_code"`
+	IncidentReportedUserID               uint   `json:"incident_reported_user_id"`
 	IncidentReportedUserFirstNameEn      string `json:"incident_reported_user_first_name_en"`
 	IncidentReportedUserFirstNameAr      string `json:"incident_reported_user_first_name_ar"`
 	IncidentReportedUserLastNameEn       string `json:"incident_reported_user_last_name_en"`

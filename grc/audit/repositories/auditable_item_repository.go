@@ -54,23 +54,32 @@ func (repo *AuditableItemRepository) GetAll(params *auditDTOs.AuditableItemListQ
 		organization_units.title_en AS responsible_unit_title_en,
 		organization_units.title_ar AS responsible_unit_title_ar,
         risk_register.title AS risk_register_title,
+		users.id AS user_id,
         users.first_name_en AS user_first_name_en,
         users.first_name_ar AS user_first_name_ar,
         users.last_name_en AS user_last_name_en,
         users.last_name_ar AS user_last_name_ar,
         users.email AS user_email,
+		users.initial AS user_initial,
+		users.color AS user_color,
         users.profile_image_path AS user_profile_image_path,
+        created_user.id AS created_user_id,
         created_user.first_name_en AS created_user_first_name_en,
         created_user.first_name_ar AS created_user_first_name_ar,
         created_user.last_name_en AS created_user_last_name_en,
         created_user.last_name_ar AS created_user_last_name_ar,   
         created_user.email AS created_user_email,
+		created_user.initial AS created_user_initial,
+		created_user.color AS created_user_color,
         created_user.profile_image_path AS created_user_profile_image_path,   
-        updated_user.first_name_en AS updated_user_first_name_en,
+        updated_user.id AS updated_user_id,
+    	updated_user.first_name_en AS updated_user_first_name_en,
         updated_user.first_name_ar AS updated_user_first_name_ar,
         updated_user.last_name_en AS updated_user_last_name_en,
         updated_user.last_name_ar AS updated_user_last_name_ar,
         updated_user.email AS updated_user_email,
+		updated_user.initial AS updated_user_initial,
+		updated_user.color AS updated_user_color,
         updated_user.profile_image_path AS updated_user_profile_image_path,
         audit_statuses.title_en AS audit_status_title_en,
         audit_statuses.title_ar AS audit_status_title_ar,
@@ -140,7 +149,8 @@ func (repo *AuditableItemRepository) GetAll(params *auditDTOs.AuditableItemListQ
             created_user.last_name_ar LIKE ? OR
             created_user.email LIKE ? OR
             created_user.profile_image_path LIKE ? OR
-            updated_user.first_name_en LIKE ? OR
+            updated_user.id AS updated_user_id,
+    		updated_user.first_name_en LIKE ? OR
             updated_user.first_name_ar LIKE ? OR
             updated_user.last_name_en LIKE ? OR
             updated_user.last_name_ar LIKE ? OR

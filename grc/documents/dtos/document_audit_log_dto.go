@@ -33,6 +33,7 @@ type DocumentAuditLogListDTO struct {
 	UserInitial                   string    `json:"user_initial"`
 	UserColor                     string    `json:"user_color"`
 	UserProfileImagePath          string    `json:"user_profile_image_path"`
+	CreatedUserID                 uint      `json:"created_user_id"`
 	CreatedUserFirstNameEn        string    `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr        string    `json:"created_user_first_name_ar"`
 	CreatedUserLastNameEn         string    `json:"created_user_last_name_en"`
@@ -44,18 +45,18 @@ type DocumentAuditLogListDTO struct {
 }
 
 type DocumentAuditLogListQueryParamsDTO struct {
-	Sort           string
-	SortBy         string
-	Keyword        string
-	Status         string
-	Page           int
-	PageSize       int
-	Filters        map[string][]string
-	QuickFilter    []string
+	Sort        string
+	SortBy      string
+	Keyword     string
+	Status      string
+	Page        int
+	PageSize    int
+	Filters     map[string][]string
+	QuickFilter []string
 }
 
 type DocumentAuditLogListResponseDTO struct {
-	Items []*DocumentAuditLogListDTO `json:"items"`
+	Items      []*DocumentAuditLogListDTO   `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }
 

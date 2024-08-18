@@ -28,6 +28,7 @@ type DocumentControlListDTO struct {
 	ControlImplementationStatusColorCode string  `json:"control_implementation_status_color_code"`
 	ControlOwnerUnitTitleEn              *string `json:"control_owner_unit_title_en"`
 	ControlOwnerUnitTitleAr              *string `json:"control_owner_unit_title_ar"`
+	ControlOwnerID                       *uint   `json:"control_owner_id"`
 	ControlOwnerFirstNameEn              *string `json:"control_owner_first_name_en"`
 	ControlOwnerFirstNameAr              *string `json:"control_owner_first_name_ar"`
 	ControlOwnerLastNameEn               *string `json:"control_owner_last_name_en"`
@@ -58,6 +59,7 @@ type DocumentProcessListDTO struct {
 	ProcessGroupTitleAr      string  `json:"process_group_title_ar"`
 	OwnerUnitTitleEn         *string `json:"owner_unit_title_en"`
 	OwnerUnitTitleAr         *string `json:"owner_unit_title_ar"`
+	OwnerID                  *uint   `json:"owner_id"`
 	OwnerFirstNameEn         *string `json:"owner_first_name_en"`
 	OwnerFirstNameAr         *string `json:"owner_first_name_ar"`
 	OwnerLastNameEn          *string `json:"owner_last_name_en"`
@@ -95,9 +97,9 @@ type DocumentSLAListDTO struct {
 	SLACategoryTitleAr              string `json:"sla_category_title_ar"`
 	SeverityLevelTitleEn            string `json:"severity_level_title_en"`
 	SeverityLevelTitleAr            string `json:"severity_level_title_ar"`
-	ResponsibleUserID               uint   `json:"responsible_user_id"`
 	ResponsibleUnitTitleEn          string `json:"responsible_unit_title_en"`
 	ResponsibleUnitTitleAr          string `json:"responsible_unit_title_ar"`
+	ResponsibleUserID               uint   `json:"responsible_user_id"`
 	ResponsibleUserFirstNameEn      string `json:"responsible_user_first_name_en"`
 	ResponsibleUserFirstNameAr      string `json:"responsible_user_first_name_ar"`
 	ResponsibleUserLastNameEn       string `json:"responsible_user_last_name_en"`
@@ -146,6 +148,7 @@ type DocumentRiskListDTO struct {
 	Description                     *string `json:"description"`
 	ResponsibleUserUnitTitleEn      string  `json:"responsible_user_unit_title_en"`
 	ResponsibleUserUnitTitleAr      string  `json:"responsible_user_unit_title_ar"`
+	ResponsibleUserID               uint    `json:"responsible_user_id"`
 	ResponsibleUserFirstNameEn      string  `json:"responsible_user_first_name_en"`
 	ResponsibleUserFirstNameAr      string  `json:"responsible_user_first_name_ar"`
 	ResponsibleUserLastNameEn       string  `json:"responsible_user_last_name_en"`

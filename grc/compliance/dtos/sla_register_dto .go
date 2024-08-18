@@ -11,7 +11,6 @@ import (
 type SLARegisterListDTO struct {
 	ID                              uint      `json:"id"`
 	ReferenceNumber                 string    `json:"reference_number"`
-	ResponsibleUserID               uint      `json:"responsible_user_id"`
 	LifecycleStatusID               uint      `json:"lifecycle_status_id"`
 	TitleEn                         string    `json:"title_en"`
 	TitleAr                         string    `json:"title_ar"`
@@ -25,6 +24,7 @@ type SLARegisterListDTO struct {
 	SeverityLevelTitleAr            string    `json:"severity_level_title_ar"`
 	ResponsibleUnitTitleEn          string    `json:"responsible_unit_title_en"`
 	ResponsibleUnitTitleAr          string    `json:"responsible_unit_title_ar"`
+	ResponsibleUserID               uint      `json:"responsible_user_id"`
 	ResponsibleUserFirstNameEn      string    `json:"responsible_user_first_name_en"`
 	ResponsibleUserFirstNameAr      string    `json:"responsible_user_first_name_ar"`
 	ResponsibleUserLastNameEn       string    `json:"responsible_user_last_name_en"`
@@ -39,6 +39,7 @@ type SLARegisterListDTO struct {
 	ComplianceStatusTitleEn         string    `json:"compliance_status_title_en"`
 	ComplianceStatusTitleAr         string    `json:"compliance_status_title_ar"`
 	ComplianceStatusColorCode       string    `json:"compliance_status_color_code"`
+	CreatedUserID                   uint      `json:"created_user_id"`
 	CreatedUserFirstNameEn          string    `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr          string    `json:"created_user_first_name_ar"`
 	CreatedUserLastNameEn           string    `json:"created_user_last_name_en"`
@@ -47,6 +48,7 @@ type SLARegisterListDTO struct {
 	CreatedUserColor                string    `json:"created_user_color"`
 	CreatedUserEmail                string    `json:"created_user_email"`
 	CreatedUserProfileImagePath     string    `json:"created_user_profile_image_path"`
+	UpdatedUserID                   *uint     `json:"updated_user_id"`
 	UpdatedUserFirstNameEn          string    `json:"updated_user_first_name_en"`
 	UpdatedUserFirstNameAr          string    `json:"updated_user_first_name_ar"`
 	UpdatedUserLastNameEn           string    `json:"updated_user_last_name_en"`

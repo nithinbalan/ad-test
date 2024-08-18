@@ -43,24 +43,10 @@ func (aptc *AuditPlanToolController) GetAllAuditPlanTools(c *gin.Context) {
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
-	page, err := utility.ParseQueryParamToInt(c, "page", 1)
-	if err != nil {
-		utility.SendInternalErrResp(aptc.db, c, "Invalid page parameter")
-		return
-	}
-
-	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
-	if err != nil {
-		utility.SendInternalErrResp(aptc.db, c, "Invalid page_size parameter")
-		return
-	}
-
 	queryParams := dtos.AuditPlanToolListQueryParamsDTO{
 		Sort:        sort,
 		SortBy:      sortBy,
 		Keyword:     keyword,
-		Page:        page,
-		PageSize:    pageSize,
 		Filters:     filters,
 		QuickFilter: quickFilter,
 	}
