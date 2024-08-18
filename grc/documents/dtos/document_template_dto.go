@@ -36,6 +36,7 @@ type DocumentTemplateListDTO struct {
 	UpdatedUserInitial          string `json:"updated_user_initial"`
 	UpdatedUserColor            string `json:"updated_user_color"`
 	UpdatedUserEmail            string `json:"updated_user_email"`
+	UpdatedUserProfileImagePath string `json:"updated_user_profile_image_path"`
 }
 
 type DocumentTemplateFormDTO struct {

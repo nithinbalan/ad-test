@@ -94,6 +94,7 @@ func (repo *DocumentRepository) GetAll(params *documentDTOs.DocumentListQueryPar
 	responsible_user.initial AS responsible_user_initial,
 	responsible_user.color AS responsible_user_color,
 	responsible_user.email AS responsible_user_email,
+	responsible_user.profile_image_path AS responsible_user_profile_image_path,
 	document_versions.url AS document_url,
 	document_versions.name AS document_name,
 	document_versions.size AS document_size,

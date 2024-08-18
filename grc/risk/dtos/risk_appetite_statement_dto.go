@@ -7,27 +7,35 @@ import (
 )
 
 type RiskAppetiteStatementListDTO struct {
-	ID                     uint                   `json:"id"`
-	RiskCategoryID         uint                   `json:"risk_category_id"`
-	RiskCategoryTitleEn    string                 `json:"risk_category_title_en"`
-	RiskCategoryTitleAr    string                 `json:"risk_category_title_ar"`
-	ReferenceNumber        string                 `json:"reference_number"`
-	StatementEn            string                 `json:"statement_en"`
-	StatementAr            string                 `json:"statement_ar"`
-	Status                 string                 `json:"status"`
-	CreatedAt              string                 `json:"created_at"`
-	UpdatedAt              string                 `json:"updated_at"`
-	CreatedUserID          uint                   `json:"created_user_id"`
-	CreatedUserFirstNameEn string                 `json:"created_user_first_name_en"`
-	CreatedUserFirstNameAr string                 `json:"created_user_first_name_ar"`
-	CreatedUserLastNameEn  string                 `json:"created_user_last_name_en"`
-	CreatedUserLastNameAr  *string                `json:"created_user_last_name_ar"`
-	UpdatedUserID          *uint                  `json:"updated_user_id"`
-	UpdatedUserFirstNameEn *string                `json:"updated_user_first_name_en"`
-	UpdatedUserFirstNameAr *string                `json:"updated_user_first_name_ar"`
-	UpdatedUserLastNameEn  *string                `json:"updated_user_last_name_en"`
-	UpdatedUserLastNameAr  *string                `json:"updated_user_last_name_ar"`
-	Risks                  []*RiskRegisterListDTO `json:"risks,omitempty" gorm:"-"`
+	ID                          uint                   `json:"id"`
+	RiskCategoryID              uint                   `json:"risk_category_id"`
+	RiskCategoryTitleEn         string                 `json:"risk_category_title_en"`
+	RiskCategoryTitleAr         string                 `json:"risk_category_title_ar"`
+	ReferenceNumber             string                 `json:"reference_number"`
+	StatementEn                 string                 `json:"statement_en"`
+	StatementAr                 string                 `json:"statement_ar"`
+	Status                      string                 `json:"status"`
+	CreatedAt                   string                 `json:"created_at"`
+	UpdatedAt                   string                 `json:"updated_at"`
+	CreatedUserID               uint                   `json:"created_user_id"`
+	CreatedUserFirstNameEn      string                 `json:"created_user_first_name_en"`
+	CreatedUserFirstNameAr      string                 `json:"created_user_first_name_ar"`
+	CreatedUserLastNameEn       string                 `json:"created_user_last_name_en"`
+	CreatedUserLastNameAr       *string                `json:"created_user_last_name_ar"`
+	CreatedUserInitial          string                 `json:"created_user_initial"`
+	CreatedUserColor            string                 `json:"created_user_color"`
+	CreatedUserEmail            string                 `json:"created_user_email"`
+	CreatedUserProfileImagePath string                 `json:"created_user_profile_image_path"`
+	UpdatedUserID               *uint                  `json:"updated_user_id"`
+	UpdatedUserFirstNameEn      *string                `json:"updated_user_first_name_en"`
+	UpdatedUserFirstNameAr      *string                `json:"updated_user_first_name_ar"`
+	UpdatedUserLastNameEn       *string                `json:"updated_user_last_name_en"`
+	UpdatedUserLastNameAr       *string                `json:"updated_user_last_name_ar"`
+	UpdatedUserInitial          string                 `json:"updated_user_initial"`
+	UpdatedUserColor            string                 `json:"updated_user_color"`
+	UpdatedUserEmail            string                 `json:"updated_user_email"`
+	UpdatedUserProfileImagePath string                 `json:"updated_user_profile_image_path"`
+	Risks                       []*RiskRegisterListDTO `json:"risks,omitempty" gorm:"-"`
 }
 
 type RiskAppetiteStatementListQueryParamsDTO struct {

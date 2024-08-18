@@ -25,6 +25,8 @@ type AuditPlanChecklistListDTO struct {
 	CreatedUserFirstNameAr      string     `json:"created_user_first_name_ar"`
 	CreatedUserLastNameEn       string     `json:"created_user_last_name_en"`
 	CreatedUserLastNameAr       string     `json:"created_user_last_name_ar"`
+	CreatedUserInitial          string     `json:"created_user_initial"`
+	CreatedUserColor            string     `json:"created_user_color"`
 	CreatedUserEmail            string     `json:"created_user_email"`
 	CreatedUserProfileImagePath string     `json:"created_user_profile_image_path"`
 	UpdatedUserID               *uint      `json:"updated_user_id"`
@@ -32,6 +34,8 @@ type AuditPlanChecklistListDTO struct {
 	UpdatedUserFirstNameAr      string     `json:"updated_user_first_name_ar"`
 	UpdatedUserLastNameEn       string     `json:"updated_user_last_name_en"`
 	UpdatedUserLastNameAr       string     `json:"updated_user_last_name_ar"`
+	UpdatedUserInitial          string     `json:"updated_user_initial"`
+	UpdatedUserColor            string     `json:"updated_user_color"`
 	UpdatedUserEmail            string     `json:"updated_user_email"`
 	UpdatedUserProfileImagePath string     `json:"updated_user_profile_image_path"`
 }

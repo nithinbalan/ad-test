@@ -14,6 +14,10 @@ type PotentialRiskStatusUpdateListDTO struct {
 	CreatedUserFirstNameAr       string  `json:"created_user_first_name_ar"`
 	CreatedUserLastNameEn        string  `json:"created_user_last_name_en"`
 	CreatedUserLastNameAr        *string `json:"created_user_last_name_ar"`
+	CreatedUserInitial           string  `json:"created_user_initial"`
+	CreatedUserColor             string  `json:"created_user_color"`
+	CreatedUserEmail             string  `json:"created_user_email"`
+	CreatedUserProfileImagePath  string  `json:"created_user_profile_image_path"`
 }
 
 type PotentialRiskStatusUpdateFormDTO struct {

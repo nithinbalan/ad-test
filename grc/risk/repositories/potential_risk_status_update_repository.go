@@ -38,7 +38,11 @@ func (repo *PotentialRiskStatusUpdateRepository) GetAll(potentialRiskID uint, so
        		created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
             created_user.last_name_en AS created_user_last_name_en,
-            created_user.last_name_ar AS created_user_last_name_ar   
+            created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+        	created_user.color AS created_user_color,
+        	created_user.email AS created_user_email,
+        	created_user.profile_image_path AS created_user_profile_image_path   
         `).
 		Joins(`
 		    LEFT JOIN potential_risks ON potential_risks.id = potential_risk_status_updates.potential_risk_id

@@ -51,12 +51,20 @@ func (repo *RiskAppetiteStatementRepository) GetAll(params *riskDTOs.RiskAppetit
         	created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
             created_user.last_name_en AS created_user_last_name_en,
-            created_user.last_name_ar AS created_user_last_name_ar,   
+            created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+        	created_user.color AS created_user_color,
+        	created_user.email AS created_user_email,
+        	created_user.profile_image_path AS created_user_profile_image_path,   
 			updated_user.id AS updated_user_id,
     		updated_user.first_name_en AS updated_user_first_name_en,
             updated_user.first_name_ar AS updated_user_first_name_ar,
             updated_user.last_name_en AS updated_user_last_name_en,
-            updated_user.last_name_ar AS updated_user_last_name_ar          
+            updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+        	updated_user.color AS updated_user_color,
+        	updated_user.email AS updated_user_email,
+        	updated_user.profile_image_path AS updated_user_profile_image_path          
         `).
 		Joins(`
 		    LEFT JOIN risk_categories ON risk_categories.id = risk_appetite_statements.risk_category_id
@@ -136,15 +144,23 @@ func (repo *RiskAppetiteStatementRepository) GetAllByCategories(params *riskDTOs
 			risk_categories.title_en AS risk_category_title_en,
 			risk_categories.title_ar AS risk_category_title_ar,
 			created_user.id AS created_user_id,
-        		created_user.first_name_en AS created_user_first_name_en,
+        	created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
             created_user.last_name_en AS created_user_last_name_en,
-            created_user.last_name_ar AS created_user_last_name_ar,   
+            created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+        	created_user.color AS created_user_color,
+        	created_user.email AS created_user_email,
+        	created_user.profile_image_path AS created_user_profile_image_path,   
 			updated_user.id AS updated_user_id,
     		updated_user.first_name_en AS updated_user_first_name_en,
             updated_user.first_name_ar AS updated_user_first_name_ar,
             updated_user.last_name_en AS updated_user_last_name_en,
-            updated_user.last_name_ar AS updated_user_last_name_ar          
+            updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+        	updated_user.color AS updated_user_color,
+        	updated_user.email AS updated_user_email,
+        	updated_user.profile_image_path AS updated_user_profile_image_path          
         `).
 		Joins(`
 		    LEFT JOIN risk_categories ON risk_categories.id = risk_appetite_statements.risk_category_id

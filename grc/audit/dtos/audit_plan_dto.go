@@ -27,6 +27,7 @@ type AuditPlanListDTO struct {
 	TeamLeadLastNameEn                string  `json:"team_lead_last_name_en"`
 	TeamLeadLastNameAr                string  `json:"team_lead_last_name_ar"`
 	TeamLeadInitial                   string  `json:"team_lead_initial"`
+	TeamLeadColor                     string  `json:"team_lead_color"`
 	TeamLeadEmail                     string  `json:"team_lead_email"`
 	TeamLeadProfileImagePath          string  `json:"team_lead_profile_image_path"`
 	AuditTeamTitleEn                  string  `json:"audit_team_title_en"`
@@ -38,6 +39,7 @@ type AuditPlanListDTO struct {
 	AuditTeamTeamLeadLastNameAr       string  `json:"audit_team_team_lead_last_name_ar"`
 	AuditTeamTeamLeadInitial          string  `json:"audit_team_team_lead_initial"`
 	AuditTeamTeamLeadEmail            string  `json:"audit_team_team_lead_email"`
+	AuditTeamTeamLeadColor            string  `json:"audit_team_team_lead_color"`
 	AuditTeamTeamLeadProfileImagePath string  `json:"audit_team_team_lead_profile_image_path"`
 	CreatedUserID                     uint    `json:"created_user_id"`
 	CreatedUserFirstNameEn            string  `json:"created_user_first_name_en"`

@@ -266,7 +266,11 @@ func (repo *ComplianceAssociatedItemRepository) GetAllIncidents(complianceID uin
             reported_user.first_name_en AS incident_reported_user_first_name_en,
             reported_user.first_name_ar AS incident_reported_user_first_name_ar,
             reported_user.last_name_en AS incident_reported_user_last_name_en,
-            reported_user.last_name_ar AS incident_reported_user_last_name_ar
+            reported_user.last_name_ar AS incident_reported_user_last_name_ar,
+			reported_user.initial AS reported_user_initial,
+        	reported_user.color AS reported_user_color,
+        	reported_user.email AS reported_user_email,
+        	reported_user.profile_image_path AS reported_user_profile_image_path
         `).
 		Joins(`
             LEFT JOIN incident_register ON incident_register.id = incident_compliance_requirements.incident_register_id

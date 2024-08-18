@@ -75,6 +75,7 @@ func (repo *AuditPlanRepository) GetAll(params *auditDTOs.AuditPlanListQueryPara
 			audit_teams_team_lead.last_name_ar AS audit_team_team_lead_last_name_ar,
 			audit_teams_team_lead.email AS audit_team_team_lead_email,
 			audit_teams_team_lead.initial AS audit_team_team_lead_initial,
+			audit_teams_team_lead.color AS audit_team_team_lead_color,
 			audit_teams_team_lead.profile_image_path AS audit_team_team_lead_profile_image_path,
 			created_user.id AS created_user_id,
         	created_user.first_name_en AS created_user_first_name_en,
