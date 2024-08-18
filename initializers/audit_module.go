@@ -19,9 +19,10 @@ type AuditModule struct {
 	AuditPlanChecklistController     *controllers.AuditPlanChecklistController
 	AuditPlanToolController          *controllers.AuditPlanToolController
 	AuditPlanAuditableItemController *controllers.AuditPlanAuditableItemController
-	AuditActivityTypeController      *controllers.AuditActivityTypeController
 	AuditScheduleStatusController    *controllers.AuditScheduleStatusController
+	AuditActivityTypeController      *controllers.AuditActivityTypeController
 	AuditPlanBudgetController        *controllers.AuditPlanBudgetController
+	AuditPlanScheduleController      *controllers.AuditPlanScheduleController
 }
 
 func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, complianceModule *ComplianceModule, riskModule *RiskModule, incidentModule *IncidentModule, documentModule *DocumentModule, settingModule *SettingsModule, masterModule *MasterModule) *AuditModule {
@@ -104,19 +105,34 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 	auditPlanAuditableItemSvc := services.NewAuditPlanAuditableItemService(auditPlanAuditableItemRepo, sharedModule.ActivityLogService, auditPlanSvc, auditableItemSvc)
 	auditPlanAuditableItemController := controllers.NewAuditPlanAuditableItemController(auditPlanAuditableItemSvc)
 
-	auditActivityTypeRepo := repositories.NewAuditActivityTypeRepository(db)
-	auditActivityTypeSvc := services.NewAuditActivityTypeService(auditActivityTypeRepo, sharedModule.ActivityLogService)
-
-	auditScheduleStatusRepo := repositories.NewAuditScheduleStatusRepository(db)
-	auditScheduleStatusSvc := services.NewAuditScheduleStatusService(auditScheduleStatusRepo)
-	auditScheduleStatusController := controllers.NewAuditScheduleStatusController(auditScheduleStatusSvc)
 	auditPlanBudgetRepo := repositories.NewAuditPlanBudgetRepository(db)
 	auditPlanBudgetSvc := services.NewAuditPlanBudgetService(
+		auditPlanBudgetRepo,
 		sharedModule.ActivityLogService,
 		auditPlanSvc,
 		masterModule.ExpenseCategorySvc,
 	)
 	auditPlanBudgetController := controllers.NewAuditPlanBudgetController(auditPlanBudgetSvc)
+
+	auditActivityTypeRepo := repositories.NewAuditActivityTypeRepository(db)
+	auditActivityTypeSvc := services.NewAuditActivityTypeService(auditActivityTypeRepo, sharedModule.ActivityLogService)
+	auditActivityTypeController := controllers.NewAuditActivityTypeController(auditActivityTypeSvc)
+
+	auditScheduleStatusRepo := repositories.NewAuditScheduleStatusRepository(db)
+	auditScheduleStatusSvc := services.NewAuditScheduleStatusService(auditScheduleStatusRepo)
+	auditScheduleStatusController := controllers.NewAuditScheduleStatusController(auditScheduleStatusSvc)
+
+	auditPlanScheduleRepo := repositories.NewAuditPlanScheduleRepository(db)
+	auditPlanScheduleSvc := services.NewAuditPlanScheduleService(
+		auditPlanScheduleRepo,
+		sharedModule.ActivityLogService,
+		auditPlanSvc,
+		auditActivityTypeSvc,
+		organizationModule.UserSvc,
+		auditScheduleStatusSvc,
+		auditableItemSvc,
+	)
+	auditPlanScheduleController := controllers.NewAuditPlanScheduleController(auditPlanScheduleSvc)
 
 	return &AuditModule{
 		AuditorRiskRatingController:      auditorRiskRatingController,
@@ -124,6 +140,7 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		AuditableItemController:          auditableItemController,
 		AuditTeamController:              auditTeamController,
 		AuditCategoryController:          auditCategoryController,
+		AuditStatusController:            auditStatusController,
 		AuditPlanController:              auditPlanController,
 		AuditPlanChecklistController:     auditPlanChecklistController,
 		AuditPlanToolController:          auditPlanToolController,
@@ -131,4 +148,6 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		AuditActivityTypeController:      auditActivityTypeController,
 		AuditScheduleStatusController:    auditScheduleStatusController,
 		AuditPlanBudgetController:        auditPlanBudgetController,
+		AuditPlanScheduleController:      auditPlanScheduleController,
+	}
 }
