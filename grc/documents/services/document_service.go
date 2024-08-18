@@ -659,17 +659,17 @@ func (ds *DocumentService) CheckoutDocument(id uint, currentUserID uint, token s
 
 	if document.DocumentStatus.Type != "draft" && document.DocumentStatus.Type != "in-review" {
 		tx.Rollback()
-		return "", fmt.Errorf("checkout only allowed for documents in 'draft' or 'in-review' status")
+		return "", utility.NewForbiddenError("Checkout only allowed for documents in 'draft' or 'in-review' status.")
 	}
 
 	if document.IsLocked {
 		tx.Rollback()
-		return "", utility.NewForbiddenError("document already checkouted")
+		return "", utility.NewForbiddenError("Document already checkouted.")
 	}
 
 	if document.CreatedByUser.ID != int(currentUserID) && document.ResponsibleUser.ID != int(currentUserID) {
 		tx.Rollback()
-		return "", fmt.Errorf("access denied: user is neither creator nor responsible user")
+		return "", utility.NewForbiddenError("Access denied: user is neither creator nor responsible user.")
 	}
 
 	currentDateStr := time.Now().Format("2006-01-02")
@@ -884,23 +884,24 @@ func (ds *DocumentService) GetDocumentPath(id uint, token string, fileType strin
 	if err != nil {
 		return "", err
 	}
-	fmt.Println("1")
 
 	decryptedFilenameBytes, err := utility.DecryptData(token)
 	if err != nil {
 		return "", fmt.Errorf("resource not found")
 	}
-	fmt.Println("2")
+
 	decryptedFilename := string(decryptedFilenameBytes)
 	if decryptedFilename == "" {
 		return "", fmt.Errorf("resource not found")
 	}
-	fmt.Println("3")
+
 	baseFilename := strings.TrimSuffix(decryptedFilename, filepath.Ext(decryptedFilename))
 
 	var storagePath string
+
 	if existingDocument.DocumentStatus.Type == "published" {
 		storagePath = filepath.Join("document", "published", strconv.FormatUint(uint64(id), 10), "documents")
+		fileType = "pdf"
 	} else {
 		storagePath = filepath.Join("document", "draft", strconv.FormatUint(uint64(id), 10), "documents")
 	}
@@ -1112,6 +1113,27 @@ func (ds *DocumentService) PublishDocument(id uint, currentUserID uint) error {
 		return err
 	}
 
+	fileName := document.LatestDocumentVersion.Name
+	baseFileName := strings.TrimSuffix(fileName, filepath.Ext(fileName)) // Remove the extension to get the base name
+
+	sourceDir := filepath.Join("document", "draft", strconv.FormatUint(uint64(document.ID), 10), "documents")
+	destinationDir := filepath.Join("document", "published", strconv.FormatUint(uint64(document.ID), 10), "documents")
+
+	//copy docx file
+	err = utility.CopyFileFromPaths(sourceDir, destinationDir, fileName)
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("error copying .docx file: %w", err)
+	}
+
+	//copy pdf file
+	pdfFileName := baseFileName + ".pdf"
+	err = utility.CopyFileFromPaths(sourceDir, destinationDir, pdfFileName)
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("error copying .pdf file: %w", err)
+	}
+
 	tx.Commit()
 
 	//to do
@@ -1126,6 +1148,10 @@ func (ds *DocumentService) GetComments(id uint) (*documentDTOs.DocumentVersionWo
 	document, err := ds.GetFullDetailsByID(id, nil)
 	if err != nil {
 		return nil, err
+	}
+
+	if document.DocumentStatus.Type == "draft" {
+		return nil, utility.NewForbiddenError("Document must be submitted for review to access comments.")
 	}
 
 	currentApprovalLevel := document.LatestDocumentVersion.NextReviewLevel
@@ -1462,8 +1488,8 @@ func (ds *DocumentService) GetDocumentWorkflowList(id uint) (*documentDTOs.Docum
 	dto := &documentDTOs.DocumentVersionWorkflowListDTO{
 		ID:                documentVersion.ID,
 		DocumentID:        documentVersion.DocumentID,
-		SubmittedAt:       *documentVersion.SubmittedAt,
-		SubmittedByUser:   *mapUserToDTO(documentVersion.SubmittedByUser),
+		SubmittedAt:       documentVersion.SubmittedAt,
+		SubmittedByUser:   mapUserToDTO(documentVersion.SubmittedByUser),
 		DocumentWorkflows: []*documentDTOs.DocumentWorkflowListDTO{},
 	}
 
@@ -1665,15 +1691,20 @@ func (ds *DocumentService) GetDocumentLastEditSummary(documentID uint) (*documen
 		Comment:   activity.Comment,
 		Timestamp: activity.CreatedAt,
 	}
-
-	currentDocumentWorkflow, err := ds.repo.GetDocumentWorkflowByLevel(document.LatestDocumentVersion.ID, *document.LatestDocumentVersion.NextReviewLevel)
-	if err != nil {
-		return nil, err
-	}
-
-	participants := []*organizationDTOs.UserMinimalDTO{}
+	// Initialize variables for the current document workflow
+	var currentDocumentWorkflow *models.DocumentWorkflow
+	var participants []*organizationDTOs.UserMinimalDTO
 	totalComments := 0
 
+	// Check if there is a next review level and fetch the corresponding workflow
+	if document.LatestDocumentVersion.NextReviewLevel != nil {
+		currentDocumentWorkflow, err = ds.repo.GetDocumentWorkflowByLevel(document.LatestDocumentVersion.ID, *document.LatestDocumentVersion.NextReviewLevel)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Process workflow participants and count comments
 	if currentDocumentWorkflow != nil {
 		for _, participant := range currentDocumentWorkflow.DocumentWorkflowParticipants {
 			userDTO := mapUserToDTO(participant.User)
@@ -1689,11 +1720,12 @@ func (ds *DocumentService) GetDocumentLastEditSummary(documentID uint) (*documen
 		}
 	}
 
+	// Prepare the response DTO
 	responseDTO := &documentDTOs.DocumentLastEditSummaryDTO{
 		LatestActivity: latestActivityDTO,
-		CurrentLevel:   *document.LatestDocumentVersion.NextReviewLevel,
+		CurrentLevel:   document.LatestDocumentVersion.NextReviewLevel,
 		Participants:   participants,
-		TotalComments:  totalComments,
+		TotalComments:  &totalComments,
 	}
 
 	return responseDTO, nil

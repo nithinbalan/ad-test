@@ -86,6 +86,7 @@ type MeetingDetailDTO struct {
 	Date                   time.Time                          `json:"date"`
 	StartTime              time.Time                          `json:"start_time"`
 	EndTime                time.Time                          `json:"end_time"`
+	IsPublic               bool                               `json:"is_public"`
 	Organizer              organizationDTOs.UserMinimalDTO    `json:"organizer"`
 	CreatedByUser          organizationDTOs.UserMinimalDTO    `json:"created_by"`
 	UpdatedByUser          *organizationDTOs.UserMinimalDTO   `json:"updated_by"`

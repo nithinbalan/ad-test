@@ -213,11 +213,11 @@ type WorkflowLevelParticipantDTO struct {
 }
 
 type DocumentVersionWorkflowListDTO struct {
-	ID                uint                            `json:"id"`
-	DocumentID        uint                            `json:"document_id"`
-	SubmittedAt       time.Time                       `json:"submitted_at"`
-	SubmittedByUser   organizationDTOs.UserMinimalDTO `json:"submitted_by"`
-	DocumentWorkflows []*DocumentWorkflowListDTO      `json:"document_workflows"`
+	ID                uint                             `json:"id"`
+	DocumentID        uint                             `json:"document_id"`
+	SubmittedAt       *time.Time                       `json:"submitted_at"`
+	SubmittedByUser   *organizationDTOs.UserMinimalDTO `json:"submitted_by"`
+	DocumentWorkflows []*DocumentWorkflowListDTO       `json:"document_workflows"`
 }
 
 type DocumentWorkflowListDTO struct {
@@ -240,9 +240,9 @@ type DocumentSharedUserListResponseDTO struct {
 
 type DocumentLastEditSummaryDTO struct {
 	LatestActivity ActivityDTO                        `json:"latest_activity"`
-	CurrentLevel   int                                `json:"current_level"`
+	CurrentLevel   *int                               `json:"current_level"`
 	Participants   []*organizationDTOs.UserMinimalDTO `json:"participants"`
-	TotalComments  int                                `json:"total_comments"`
+	TotalComments  *int                               `json:"total_comments"`
 }
 
 type ActivityDTO struct {

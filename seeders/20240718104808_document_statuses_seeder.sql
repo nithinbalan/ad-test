@@ -1,12 +1,12 @@
 -- +goose Up
 -- +goose StatementBegin
 INSERT INTO document_statuses (title_en, title_ar, color_code, type, status) VALUES
-('Draft', 'مسودة', '#F0F0F0', 'draft', 'active'),
-('In Review', 'قيد المراجعة', '#FFFF00', 'in-review', 'active'),
-('Rejected', 'مرفوض', '#FF0000', 'rejected', 'active'),
-('Approved', 'موافق عليه', '#008000', 'approved', 'active'),
-('Published', 'منشور', '#0000FF', 'published', 'active'),
-('Archived', 'مؤرشف', '#808080', 'archived', 'active');
+('Draft', 'مسودة', '#90DD75', 'draft', 'active'),
+('In Review', 'قيد المراجعة', '#17A2B8', 'in-review', 'active'),
+('Rejected', 'مرفوض', '#E0554D', 'rejected', 'active'),
+('Approved', 'موافق عليه', '#FFC107', 'approved', 'active'),
+('Published', 'منشور', '#6C757D', 'published', 'active'),
+('Archived', 'مؤرشف', '#FD7E14', 'archived', 'active');
 -- +goose StatementEnd
 
 -- +goose Down

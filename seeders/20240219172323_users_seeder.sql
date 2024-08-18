@@ -23,8 +23,8 @@ INSERT INTO users (
     created_at,
     updated_at
 ) VALUES (
-    (SELECT id FROM organization_units WHERE title_en = 'Information Technology Division'),
-    (SELECT id FROM organization_units WHERE title_en = 'IT Support Department'),
+    (SELECT id FROM organization_units WHERE title_en = 'Information Technology'),
+    (SELECT id FROM organization_units WHERE title_en = 'IT Support'),
     'Super',
     'Admin',
     'سوبر',
