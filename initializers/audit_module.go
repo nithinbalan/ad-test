@@ -19,6 +19,8 @@ type AuditModule struct {
 	AuditPlanChecklistController     *controllers.AuditPlanChecklistController
 	AuditPlanToolController          *controllers.AuditPlanToolController
 	AuditPlanAuditableItemController *controllers.AuditPlanAuditableItemController
+	AuditActivityTypeController      *controllers.AuditActivityTypeController
+	AuditScheduleStatusController    *controllers.AuditScheduleStatusController
 }
 
 func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, complianceModule *ComplianceModule, riskModule *RiskModule, incidentModule *IncidentModule, documentModule *DocumentModule, settingModule *SettingsModule, masterModule *MasterModule) *AuditModule {
@@ -101,6 +103,14 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 	auditPlanAuditableItemSvc := services.NewAuditPlanAuditableItemService(auditPlanAuditableItemRepo, sharedModule.ActivityLogService, auditPlanSvc, auditableItemSvc)
 	auditPlanAuditableItemController := controllers.NewAuditPlanAuditableItemController(auditPlanAuditableItemSvc)
 
+	auditActivityTypeRepo := repositories.NewAuditActivityTypeRepository(db)
+	auditActivityTypeSvc := services.NewAuditActivityTypeService(auditActivityTypeRepo, sharedModule.ActivityLogService)
+	auditActivityTypeController := controllers.NewAuditActivityTypeController(auditActivityTypeSvc)
+
+	auditScheduleStatusRepo := repositories.NewAuditScheduleStatusRepository(db)
+	auditScheduleStatusSvc := services.NewAuditScheduleStatusService(auditScheduleStatusRepo)
+	auditScheduleStatusController := controllers.NewAuditScheduleStatusController(auditScheduleStatusSvc)
+
 	return &AuditModule{
 		AuditStatusController:            auditStatusController,
 		AuditorRiskRatingController:      auditorRiskRatingController,
@@ -112,5 +122,7 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		AuditPlanChecklistController:     auditPlanChecklistController,
 		AuditPlanToolController:          auditPlanToolController,
 		AuditPlanAuditableItemController: auditPlanAuditableItemController,
+		AuditActivityTypeController:      auditActivityTypeController,
+		AuditScheduleStatusController:    auditScheduleStatusController,
 	}
 }

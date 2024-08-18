@@ -23,7 +23,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditPlanChecklistController := app.AuditModule.AuditPlanChecklistController
 	auditPlanToolController := app.AuditModule.AuditPlanToolController
 	auditPlanAuditableItemController := app.AuditModule.AuditPlanAuditableItemController
-
+	auditActivityTypeController := app.AuditModule.AuditActivityTypeController  
+	auditScheduleStatusController := app.AuditModule.AuditScheduleStatusController
 
 	//Audit Status
 	auditRoutes.GET("/audit-statuses", auditStatusController.GetAllAuditStatuses)
@@ -83,5 +84,18 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.GET("/audit-plans/:planId/auditable-items", auditPlanAuditableItemController.GetAllAuditPlanAuditableItems)
 	auditRoutes.POST("/audit-plans/:planId/auditable-items", auditPlanAuditableItemController.CreateAuditPlanAuditableItem)
 	auditRoutes.POST("/audit-plans/:planId/auditable-items/delete", auditPlanAuditableItemController.DeleteAuditPlanAuditableItems)
+
+	//Audit Activity Type
+	auditRoutes.GET("/audit-activity-types", auditActivityTypeController.GetAllAuditActivityTypes)
+	auditRoutes.GET("/audit-activity-types/:id", auditActivityTypeController.GetAuditActivityTypeDetails)
+	auditRoutes.POST("/audit-activity-types", auditActivityTypeController.CreateAuditActivityType)
+	auditRoutes.PUT("/audit-activity-types/:id", auditActivityTypeController.UpdateAuditActivityType)
+	auditRoutes.POST("/audit-activity-types/delete", auditActivityTypeController.DeleteAuditActivityTypes)
+	auditRoutes.PUT("/audit-activity-types/activate", auditActivityTypeController.ActivateAuditActivityTypes)
+	auditRoutes.PUT("/audit-activity-types/deactivate", auditActivityTypeController.DeactivateAuditActivityTypes)
+
+	//Audit Schedule Statuses
+	auditRoutes.GET("/audit-schedule-statuses", auditScheduleStatusController.GetAllAuditScheduleStatuses)
+	auditRoutes.GET("/audit-schedule-statuses/:id", auditScheduleStatusController.GetAuditScheduleStatusDetails)
 
 }
