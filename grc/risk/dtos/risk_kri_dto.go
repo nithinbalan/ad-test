@@ -14,6 +14,7 @@ type RiskKriListDTO struct {
 	KRICategoryTitleAr              string  `json:"kri_category_title_ar"`
 	ResponsibleUnitTitleEn          string  `json:"responsible_unit_title_en" gorm:"column:responsible_unit_title_en"`
 	ResponsibleUnitTitleAr          string  `json:"responsible_unit_title_ar" gorm:"column:responsible_unit_title_ar"`
+	ResponsibleUserID               uint    `json:"responsible_user_id"`
 	ResponsibleUserFirstNameEn      string  `json:"responsible_first_name_en"`
 	ResponsibleUserFirstNameAr      string  `json:"responsible_first_name_ar"`
 	ResponsibleUserLastNameEn       string  `json:"responsible_last_name_en"`
@@ -36,6 +37,7 @@ type RiskKriListDTO struct {
 	LastReviewedDate                string  `json:"last_reviewed_date"`
 	NextReviewDate                  string  `json:"next_review_date"`
 	LastReviewNote                  string  `json:"last_review_note"`
+	CreatedUserID                   uint    `json:"created_user_id"`
 	CreatedUserFirstNameEn          string  `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr          string  `json:"created_user_first_name_ar"`
 	CreatedUserLastNameEn           string  `json:"created_user_last_name_en"`

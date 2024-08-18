@@ -18,6 +18,7 @@ type AuditPlanAuditableItemListDTO struct {
 	AuditCategoryTitleAr        string `json:"audit_category_title_ar"`
 	AuditTeamTitleEn            string `json:"audit_team_title_en"`
 	AuditTeamTitleAr            string `json:"audit_team_title_ar"`
+	TeamLeadID                  uint   `json:"team_lead_id"`
 	TeamLeadFirstNameEn         string `json:"team_lead_first_name_en"`
 	TeamLeadFirstNameAr         string `json:"team_lead_first_name_ar"`
 	TeamLeadLastNameEn          string `json:"team_lead_last_name_en"`
@@ -28,6 +29,7 @@ type AuditPlanAuditableItemListDTO struct {
 	AuditStatusTitleAr          string `json:"audit_status_title_ar"`
 	AuditStatusType             string `json:"audit_status_type"`
 	AuditStatusColorCode        string `json:"audit_status_color_code"`
+	CreatedUserID               uint   `json:"created_user_id"`
 	CreatedUserFirstNameEn      string `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr      string `json:"created_user_first_name_ar"`
 	CreatedUserLastNameEn       string `json:"created_user_last_name_en"`

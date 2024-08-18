@@ -27,6 +27,7 @@ type ComplianceControlListDTO struct {
 	ControlImplementationStatusColorCode string  `json:"control_implementation_status_color_code"`
 	ControlOwnerUnitTitleEn              *string `json:"control_owner_unit_title_en"`
 	ControlOwnerUnitTitleAr              *string `json:"control_owner_unit_title_ar"`
+	ControlOwnerID                       *uint   `json:"control_owner_id"`
 	ControlOwnerFirstNameEn              *string `json:"control_owner_first_name_en"`
 	ControlOwnerFirstNameAr              *string `json:"control_owner_first_name_ar"`
 	ControlOwnerLastNameEn               *string `json:"control_owner_last_name_en"`
@@ -48,6 +49,7 @@ type ComplianceRiskListDTO struct {
 	RiskSourceTitleAr               string     `json:"risk_source_title_ar"`
 	ResponsibleUnitTitleEn          string     `json:"responsible_unit_title_en"`
 	ResponsibleUnitTitleAr          string     `json:"responsible_unit_title_ar"`
+	ResponsibleUserID               uint       `json:"responsible_user_id"`
 	ResponsibleUserFirstNameEn      string     `json:"responsible_user_first_name_en"`
 	ResponsibleUserFirstNameAr      string     `json:"responsible_user_first_name_ar"`
 	ResponsibleUserLastNameEn       string     `json:"responsible_user_last_name_en"`
@@ -77,26 +79,31 @@ type ComplianceRiskListDTO struct {
 }
 
 type ComplianceIncidentListDTO struct {
-	IncidentRegisterID              uint   `json:"incident_register_id"`
-	IncidentReferenceNumber         string `json:"incident_reference_number"`
-	IncidentRegisterTitle           string `json:"incident_register_title"`
-	IncidentRegisterDescription     string `json:"incident_register_description"`
-	IncidentCategoryTitleEn         string `json:"incident_category_title_en"`
-	IncidentCategoryTitleAr         string `json:"incident_category_title_ar"`
-	IncidentSubCategoryTitleEn      string `json:"incident_sub_category_title_en"`
-	IncidentSubCategoryTitleAr      string `json:"incident_sub_category_title_ar"`
-	IncidentTypeTitleEn             string `json:"incident_type_title_en"`
-	IncidentTypeTitleAr             string `json:"incident_type_title_ar"`
-	IncidentSeverityLevelTitleEn    string `json:"incident_severity_level_title_en"`
-	IncidentSeverityLevelTitleAr    string `json:"incident_severity_level_title_ar"`
-	IncidentSeverityLevelColorCode  string `json:"incident_severity_level_color_code"`
-	IncidentStatusTitleEn           string `json:"incident_status_title_en"`
-	IncidentStatusTitleAr           string `json:"incident_status_title_ar"`
-	IncidentStatusColorCode         string `json:"incident_status_color_code"`
-	IncidentReportedUserFirstNameEn string `json:"incident_reported_user_first_name_en"`
-	IncidentReportedUserFirstNameAr string `json:"incident_reported_user_first_name_ar"`
-	IncidentReportedUserLastNameEn  string `json:"incident_reported_user_last_name_en"`
-	IncidentReportedUserLastNameAr  string `json:"incident_reported_user_last_name_ar"`
+	IncidentRegisterID                   uint   `json:"incident_register_id"`
+	IncidentReferenceNumber              string `json:"incident_reference_number"`
+	IncidentRegisterTitle                string `json:"incident_register_title"`
+	IncidentRegisterDescription          string `json:"incident_register_description"`
+	IncidentCategoryTitleEn              string `json:"incident_category_title_en"`
+	IncidentCategoryTitleAr              string `json:"incident_category_title_ar"`
+	IncidentSubCategoryTitleEn           string `json:"incident_sub_category_title_en"`
+	IncidentSubCategoryTitleAr           string `json:"incident_sub_category_title_ar"`
+	IncidentTypeTitleEn                  string `json:"incident_type_title_en"`
+	IncidentTypeTitleAr                  string `json:"incident_type_title_ar"`
+	IncidentSeverityLevelTitleEn         string `json:"incident_severity_level_title_en"`
+	IncidentSeverityLevelTitleAr         string `json:"incident_severity_level_title_ar"`
+	IncidentSeverityLevelColorCode       string `json:"incident_severity_level_color_code"`
+	IncidentStatusTitleEn                string `json:"incident_status_title_en"`
+	IncidentStatusTitleAr                string `json:"incident_status_title_ar"`
+	IncidentStatusColorCode              string `json:"incident_status_color_code"`
+	IncidentReportedUserID               uint   `json:"incident_reported_user_id"`
+	IncidentReportedUserFirstNameEn      string `json:"incident_reported_user_first_name_en"`
+	IncidentReportedUserFirstNameAr      string `json:"incident_reported_user_first_name_ar"`
+	IncidentReportedUserLastNameEn       string `json:"incident_reported_user_last_name_en"`
+	IncidentReportedUserLastNameAr       string `json:"incident_reported_user_last_name_ar"`
+	IncidentReportedUserInitial          string `json:"incident_reported_user_initial"`
+	IncidentReportedUserColor            string `json:"incident_reported_user_color"`
+	IncidentReportedUserEmail            string `json:"incident_reported_user_email"`
+	IncidentReportedUserProfileImagePath string `json:"incident_reported_user_profile_image_path"`
 }
 
 type ComplianceStrategicObjectiveListDTO struct {

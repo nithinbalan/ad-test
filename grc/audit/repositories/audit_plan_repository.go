@@ -26,7 +26,6 @@ type AuditPlanRepositoryInterface interface {
 	DeleteAuditPlanMembers(memberIds []*uint, tx ...utility.DatabaseTransaction) error
 	CreateAuditPlanAuditableItems(items []*models.AuditPlanAuditableItem, tx ...utility.DatabaseTransaction) error
 	DeleteAuditPlanAuditableItems(itemIds []*uint, tx ...utility.DatabaseTransaction) error
-
 }
 
 type AuditPlanRepository struct {
@@ -59,6 +58,7 @@ func (repo *AuditPlanRepository) GetAll(params *auditDTOs.AuditPlanListQueryPara
 			audit_statuses.title_ar AS audit_status_title_ar,
 			audit_statuses.type AS audit_status_type,
 			audit_statuses.color_code AS audit_status_color_code,
+			team_lead.id AS team_lead_id,
 			team_lead.first_name_en AS team_lead_first_name_en,
 			team_lead.first_name_ar AS team_lead_first_name_ar,
 			team_lead.last_name_en AS team_lead_last_name_en,
@@ -68,14 +68,17 @@ func (repo *AuditPlanRepository) GetAll(params *auditDTOs.AuditPlanListQueryPara
 			team_lead.profile_image_path AS team_lead_profile_image_path,
 			audit_teams.title_en AS audit_team_title_en,
 			audit_teams.title_en AS audit_team_title_en,
+			audit_teams_team_lead.id AS audit_team_team_lead_id,
 			audit_teams_team_lead.first_name_en AS audit_team_team_lead_first_name_en,
 			audit_teams_team_lead.first_name_ar AS audit_team_team_lead_first_name_ar,
 			audit_teams_team_lead.last_name_en AS audit_team_team_lead_last_name_en,
 			audit_teams_team_lead.last_name_ar AS audit_team_team_lead_last_name_ar,
 			audit_teams_team_lead.email AS audit_team_team_lead_email,
 			audit_teams_team_lead.initial AS audit_team_team_lead_initial,
+			audit_teams_team_lead.color AS audit_team_team_lead_color,
 			audit_teams_team_lead.profile_image_path AS audit_team_team_lead_profile_image_path,
-			created_user.first_name_en AS created_user_first_name_en,
+			created_user.id AS created_user_id,
+        	created_user.first_name_en AS created_user_first_name_en,
         	created_user.first_name_ar AS created_user_first_name_ar,
         	created_user.last_name_en AS created_user_last_name_en,
         	created_user.last_name_ar AS created_user_last_name_ar,   
@@ -83,7 +86,8 @@ func (repo *AuditPlanRepository) GetAll(params *auditDTOs.AuditPlanListQueryPara
         	created_user.color AS created_user_color,
         	created_user.email AS created_user_email,
         	created_user.profile_image_path AS created_user_profile_image_path,   
-			updated_user.first_name_en AS updated_user_first_name_en,
+			updated_user.id AS updated_user_id,
+    		updated_user.first_name_en AS updated_user_first_name_en,
         	updated_user.first_name_ar AS updated_user_first_name_ar,
         	updated_user.last_name_en AS updated_user_last_name_en,
         	updated_user.last_name_ar AS updated_user_last_name_ar,

@@ -15,6 +15,7 @@ type ProcessListDTO struct {
 	ProcessGroupTitleAr         string     `json:"process_group_title_ar"`
 	OwnerUnitTitleEn            *string    `json:"owner_unit_title_en"`
 	OwnerUnitTitleAr            *string    `json:"owner_unit_title_ar"`
+	OwnerID                     *uint      `json:"owner_id"`
 	OwnerFirstNameEn            *string    `json:"owner_first_name_en"`
 	OwnerFirstNameAr            *string    `json:"owner_first_name_ar"`
 	OwnerLastNameEn             *string    `json:"owner_last_name_en"`
@@ -30,6 +31,7 @@ type ProcessListDTO struct {
 	TitleEn                     string     `json:"title_en"`
 	TitleAr                     string     `json:"title_ar"`
 	Description                 *string    `json:"description"`
+	CreatedUserID               uint       `json:"created_user_id"`
 	CreatedUserFirstNameEn      string     `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr      string     `json:"created_user_first_name_ar"`
 	CreatedUserLastNameEn       string     `json:"created_user_last_name_en"`
@@ -38,6 +40,7 @@ type ProcessListDTO struct {
 	CreatedUserColor            string     `json:"created_user_owner_color"`
 	CreatedUserEmail            string     `json:"created_user_owner_email"`
 	CreatedUserProfileImagePath string     `json:"created_user_owner_profile_image_path"`
+	UpdatedUserID               *uint      `json:"updated_user_id"`
 	UpdatedUserFirstNameEn      *string    `json:"updated_user_first_name_en"`
 	UpdatedUserFirstNameAr      *string    `json:"updated_user_first_name_ar"`
 	UpdatedUserLastNameEn       *string    `json:"updated_user_last_name_en"`

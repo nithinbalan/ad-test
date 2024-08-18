@@ -47,6 +47,7 @@ func (repo *KRIRegisterRepository) GetAll(params *riskDTOs.KRIRegisterListQueryP
 			kri_categories.title_ar AS kri_category_title_ar,
 			organization_units.title_en AS responsible_unit_title_en,
 			organization_units.title_ar AS responsible_unit_title_ar,
+			responsible_user.id AS responsible_user_id,
 			responsible_user.first_name_en AS responsible_user_first_name_en,
 			responsible_user.first_name_ar AS responsible_user_first_name_ar,
 			responsible_user.last_name_en AS responsible_user_last_name_en,
@@ -65,7 +66,8 @@ func (repo *KRIRegisterRepository) GetAll(params *riskDTOs.KRIRegisterListQueryP
 			units.code_en AS unit_code_en,
 			units.code_ar AS unit_code_ar,
 			units.color_code AS unit_color_code,
-			created_user.first_name_en AS created_user_first_name_en,
+			created_user.id AS created_user_id,
+        	created_user.first_name_en AS created_user_first_name_en,
 			created_user.first_name_ar AS created_user_first_name_ar,
 			created_user.last_name_en AS created_user_last_name_en,
 			created_user.last_name_ar AS created_user_last_name_ar,
@@ -73,7 +75,8 @@ func (repo *KRIRegisterRepository) GetAll(params *riskDTOs.KRIRegisterListQueryP
 			created_user.color AS created_user_color,
 			created_user.email AS created_user_email,
 			created_user.profile_image_path AS created_user_profile_image_path,
-			updated_user.first_name_en AS updated_user_first_name_en,
+			updated_user.id AS updated_user_id,
+    		updated_user.first_name_en AS updated_user_first_name_en,
 			updated_user.first_name_ar AS updated_user_first_name_ar,
 			updated_user.last_name_en AS updated_user_last_name_en,
 			updated_user.last_name_ar AS updated_user_last_name_ar,
@@ -160,7 +163,8 @@ func (repo *KRIRegisterRepository) GetAll(params *riskDTOs.KRIRegisterListQueryP
 			created_user.first_name_ar LIKE ? OR
 			created_user.last_name_en LIKE ? OR
 			created_user.last_name_ar LIKE ? OR
-			updated_user.first_name_en LIKE ? OR
+			updated_user.id AS updated_user_id,
+    		updated_user.first_name_en LIKE ? OR
 			updated_user.first_name_ar LIKE ? OR
 			updated_user.last_name_en LIKE ? OR
 			updated_user.last_name_ar LIKE ?

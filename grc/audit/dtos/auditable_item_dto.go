@@ -29,22 +29,31 @@ type AuditableItemListDTO struct {
 	IncidentRegisterTitle       string `json:"incident_register_title"`
 	ComplianceRequirementTitle  string `json:"compliance_requirement_title"`
 	RiskRegisterTitle           string `json:"risk_register_title"`
+	UserID                      uint   `json:"user_id"`
 	UserFirstNameEn             string `json:"user_first_name_en"`
 	UserFirstNameAr             string `json:"user_first_name_ar"`
 	UserLastNameEn              string `json:"user_last_name_en"`
 	UserLastNameAr              string `json:"user_last_name_ar"`
+	UserInitial                 string `json:"user_initial"`
+	UserColor                   string `json:"user_color"`
 	UserEmail                   string `json:"user_email"`
 	UserProfileImagePath        string `json:"user_profile_image_path"`
+	CreatedUserID               uint   `json:"created_user_id"`
 	CreatedUserFirstNameEn      string `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr      string `json:"created_user_first_name_ar"`
 	CreatedUserLastNameEn       string `json:"created_user_last_name_en"`
 	CreatedUserLastNameAr       string `json:"created_user_last_name_ar"`
+	CreatedUserInitial          string `json:"created_user_initial"`
+	CreatedUserColor            string `json:"created_user_color"`
 	CreatedUserEmail            string `json:"created_user_email"`
 	CreatedUserProfileImagePath string `json:"created_user_profile_image_path"`
+	UpdatedUserID               *uint  `json:"updated_user_id"`
 	UpdatedUserFirstNameEn      string `json:"updated_user_first_name_en"`
 	UpdatedUserFirstNameAr      string `json:"updated_user_first_name_ar"`
 	UpdatedUserLastNameEn       string `json:"updated_user_last_name_en"`
 	UpdatedUserLastNameAr       string `json:"updated_user_last_name_ar"`
+	UpdatedUserInitial          string `json:"updated_user_initial"`
+	UpdatedUserColor            string `json:"updated_user_color"`
 	UpdatedUserEmail            string `json:"updated_user_email"`
 	UpdatedUserProfileImagePath string `json:"updated_user_profile_image_path"`
 	AuditStatusTitleEn          string `json:"audit_status_title_en"`

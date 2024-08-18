@@ -5,22 +5,34 @@ import (
 )
 
 type WorkflowListDTO struct {
-	ID                     uint       `json:"id"`
-	Type                   string     `json:"type"`
-	DocumentTypeID         *uint      `json:"document_type_id"`
-	Status                 string     `json:"status"`
-	CreatedByID            uint       `json:"created_by_id"`
-	UpdatedByID            *uint      `json:"updated_by_id"`
-	CreatedAt              time.Time  `json:"created_at"`
-	UpdatedAt              *time.Time `json:"updated_at"`
-	DocumentTypeTitleEn    string     `json:"document_type_title_en"`
-	DocumentTypeTitleAr    string     `json:"document_type_title_ar"`
-	CreatedUserFirstNameEn string     `json:"created_user_first_name_en"`
-	CreatedUserFirstNameAr string     `json:"created_user_first_name_ar"`
-	CreatedUserEmail       string     `json:"created_user_email"`
-	UpdatedUserFirstNameEn string     `json:"updated_user_first_name_en"`
-	UpdatedUserFirstNameAr string     `json:"updated_user_first_name_ar"`
-	UpdatedUserEmail       string     `json:"updated_user_email"`
+	ID                          uint       `json:"id"`
+	Type                        string     `json:"type"`
+	DocumentTypeID              *uint      `json:"document_type_id"`
+	Status                      string     `json:"status"`
+	CreatedByID                 uint       `json:"created_by_id"`
+	UpdatedByID                 *uint      `json:"updated_by_id"`
+	CreatedAt                   time.Time  `json:"created_at"`
+	UpdatedAt                   *time.Time `json:"updated_at"`
+	DocumentTypeTitleEn         string     `json:"document_type_title_en"`
+	DocumentTypeTitleAr         string     `json:"document_type_title_ar"`
+	CreatedUserID               uint       `json:"created_user_id"`
+	CreatedUserFirstNameEn      string     `json:"created_user_first_name_en"`
+	CreatedUserFirstNameAr      string     `json:"created_user_first_name_ar"`
+	CreatedUserLastNameEn       string     `json:"created_user_last_name_en"`
+	CreatedUserLastNameAr       string     `json:"created_user_last_name_ar"`
+	CreatedUserInitial          string     `json:"created_user_initial"`
+	CreatedUserColor            string     `json:"created_user_color"`
+	CreatedUserEmail            string     `json:"created_user_email"`
+	CreatedUserProfileImagePath string     `json:"created_user_profile_image_path"`
+	UpdatedUserID               *uint      `json:"updated_user_id"`
+	UpdatedUserFirstNameEn      *string    `json:"updated_user_first_name_en"`
+	UpdatedUserFirstNameAr      *string    `json:"updated_user_first_name_ar"`
+	UpdatedUserLastNameEn       *string    `json:"updated_user_last_name_en"`
+	UpdatedUserLastNameAr       *string    `json:"updated_user_last_name_ar"`
+	UpdatedUserInitial          string     `json:"updated_user_initial"`
+	UpdatedUserColor            string     `json:"updated_user_color"`
+	UpdatedUserEmail            string     `json:"updated_user_email"`
+	UpdatedUserProfileImagePath string     `json:"updated_user_profile_image_path"`
 }
 
 type WorkflowLevelFormDTO struct {

@@ -74,6 +74,7 @@ func (repo *IncidentRegisterRepository) GetAll(params *incidentDTOs.IncidentRegi
 			severity_levels.color_code AS severity_level_color_code,
 			organization_units.title_en AS responsible_unit_title_en,
 			organization_units.title_ar AS responsible_unit_title_ar,
+			responsible_user.id AS responsible_user_id,
 			responsible_user.first_name_en AS responsible_user_first_name_en,
             responsible_user.first_name_ar AS responsible_user_first_name_ar,
             responsible_user.last_name_en AS responsible_user_last_name_en,
@@ -82,18 +83,33 @@ func (repo *IncidentRegisterRepository) GetAll(params *incidentDTOs.IncidentRegi
             responsible_user.color AS responsible_user_color,
             responsible_user.email AS responsible_user_email,
             responsible_user.profile_image_path AS responsible_user_profile_image_path,
-            reported_user.first_name_en AS reported_by_first_name_en,
-            reported_user.first_name_ar AS reported_by_first_name_ar,
-            reported_user.last_name_en AS reported_by_last_name_en,
-            reported_user.last_name_ar AS reported_by_last_name_ar,
-			created_user.first_name_en AS created_user_first_name_en,
+			reported_user.id AS reported_by_id,
+            reported_user.first_name_en AS reported_user_first_name_en,
+            reported_user.first_name_ar AS reported_user_first_name_ar,
+            reported_user.last_name_en AS reported_user_last_name_en,
+            reported_user.last_name_ar AS reported_user_last_name_ar,
+			reported_user.initial AS reported_user_initial,
+            reported_user.color AS reported_user_color,
+            reported_user.email AS reported_user_email,
+            reported_user.profile_image_path AS reported_user_profile_image_path,
+			created_user.id AS created_user_id,
+        	created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
             created_user.last_name_en AS created_user_last_name_en,
-            created_user.last_name_ar AS created_user_last_name_ar,   
-			updated_user.first_name_en AS updated_user_first_name_en,
+            created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+            created_user.color AS created_user_color,
+            created_user.email AS created_user_email,
+            created_user.profile_image_path AS created_user_profile_image_path,   
+			updated_user.id AS updated_user_id,
+    		updated_user.first_name_en AS updated_user_first_name_en,
             updated_user.first_name_ar AS updated_user_first_name_ar,
             updated_user.last_name_en AS updated_user_last_name_en,
-            updated_user.last_name_ar AS updated_user_last_name_ar  
+            updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+            updated_user.color AS updated_user_color,
+            updated_user.email AS updated_user_email,
+            updated_user.profile_image_path AS updated_user_profile_image_path  
         `).
 		Joins(`
             LEFT JOIN incident_categories ON incident_categories.id = incident_register.incident_category_id
@@ -155,7 +171,8 @@ func (repo *IncidentRegisterRepository) GetAll(params *incidentDTOs.IncidentRegi
 			created_user.first_name_ar LIKE ? OR
 			created_user.last_name_en LIKE ? OR
 			created_user.last_name_ar LIKE ? OR
-			updated_user.first_name_en LIKE ? OR
+			updated_user.id AS updated_user_id,
+    		updated_user.first_name_en LIKE ? OR
 			updated_user.first_name_ar LIKE ? OR
 			updated_user.last_name_en LIKE ? OR
 			updated_user.last_name_ar LIKE ?)`,
@@ -305,7 +322,7 @@ func (repo *IncidentRegisterRepository) GenerateReferenceNumber() (string, error
 	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "IR", currentYear, lastReferenceID+1)
 
 	return newReferenceNumber, nil
-	
+
 }
 
 // Document func

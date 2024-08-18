@@ -18,10 +18,15 @@ type RiskControlAnalysisListDTO struct {
 	ControlCategoryTitleAr               string  `json:"control_category_title_ar"`
 	OwnerUnitTitleEn                     *string `json:"owner_unit_title_en"`
 	OwnerUnitTitleAr                     *string `json:"owner_unit_title_ar"`
+	OwnerID                              *uint   `json:"owner_id"`
 	OwnerFirstNameEn                     *string `json:"owner_first_name_en"`
 	OwnerFirstNameAr                     *string `json:"owner_first_name_ar"`
 	OwnerLastNameEn                      *string `json:"owner_last_name_en"`
 	OwnerLastNameAr                      *string `json:"owner_last_name_ar"`
+	OwnerInitial                         string  `json:"owner_initial"`
+	OwnerColor                           string  `json:"owner_color"`
+	OwnerEmail                           string  `json:"owner_email"`
+	OwnerProfileImagePath                string  `json:"owner_profile_image_path"`
 	Type                                 string  `json:"type" binding:"required"`
 	ControlImplementationStatusTitleEn   *string `json:"control_implementation_status_title_en"`
 	ControlImplementationStatusTitleAr   *string `json:"control_implementation_status_title_ar"`
@@ -30,10 +35,15 @@ type RiskControlAnalysisListDTO struct {
 	ControlEfficiencyStatusTitleAr       *string `json:"control_efficiency_status_title_ar"`
 	ControlEfficiencyStatusColorCode     *string `json:"control_efficiency_status_color_code"`
 	CreatedAt                            string  `json:"created_at"`
+	CreatedUserID                        uint    `json:"created_user_id"`
 	CreatedUserFirstNameEn               string  `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr               string  `json:"created_user_first_name_ar"`
 	CreatedUserLastNameEn                string  `json:"created_user_last_name_en"`
 	CreatedUserLastNameAr                string  `json:"created_user_last_name_ar"`
+	CreatedUserInitial                   string  `json:"created_user_initial"`
+	CreatedUserColor                     string  `json:"created_user_color"`
+	CreatedUserEmail                     string  `json:"created_user_email"`
+	CreatedUserProfileImagePath          string  `json:"created_user_profile_image_path"`
 }
 
 type RiskControlAnalysisListQueryParamsDTO struct {

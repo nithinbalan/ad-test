@@ -12,6 +12,7 @@ type MeetingMinuteListDTO struct {
 	Minutes                     *string    `json:"minutes"`
 	CreatedAt                   time.Time  `json:"created_at"`
 	UpdatedAt                   *time.Time `json:"updated_at"`
+	CreatedUserID               uint       `json:"created_user_id"`
 	CreatedUserFirstNameEn      string     `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr      string     `json:"created_user_first_name_ar"`
 	CreatedUserLastNameEn       string     `json:"created_user_last_name_en"`
@@ -20,6 +21,7 @@ type MeetingMinuteListDTO struct {
 	CreatedUserColor            string     `json:"created_user_color"`
 	CreatedUserEmail            string     `json:"created_user_email"`
 	CreatedUserProfileImagePath string     `json:"created_user_profile_image_path"`
+	UpdatedUserID               *uint      `json:"updated_user_id"`
 	UpdatedUserFirstNameEn      string     `json:"updated_user_first_name_en"`
 	UpdatedUserFirstNameAr      string     `json:"updated_user_first_name_ar"`
 	UpdatedUserLastNameEn       string     `json:"updated_user_last_name_en"`

@@ -9,6 +9,7 @@ type SLAProcessListDTO struct {
 	ProcessGroupTitleAr      string  `json:"process_group_title_ar"`
 	OwnerUnitTitleEn         *string `json:"owner_unit_title_en"`
 	OwnerUnitTitleAr         *string `json:"owner_unit_title_ar"`
+	OwnerID                  *uint   `json:"owner_id"`
 	OwnerFirstNameEn         *string `json:"owner_first_name_en"`
 	OwnerFirstNameAr         *string `json:"owner_first_name_ar"`
 	OwnerLastNameEn          *string `json:"owner_last_name_en"`

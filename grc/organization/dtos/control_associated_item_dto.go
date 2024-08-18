@@ -10,6 +10,7 @@ type ControlProcessListDTO struct {
 	ProcessGroupTitleAr      string  `json:"process_group_title_ar"`
 	OwnerUnitTitleEn         *string `json:"owner_unit_title_en"`
 	OwnerUnitTitleAr         *string `json:"owner_unit_title_ar"`
+	OwnerID                  *uint   `json:"owner_id"`
 	OwnerFirstNameEn         *string `json:"owner_first_name_en"`
 	OwnerFirstNameAr         *string `json:"owner_first_name_ar"`
 	OwnerLastNameEn          *string `json:"owner_last_name_en"`
@@ -38,6 +39,7 @@ type ControlRiskListDTO struct {
 	RiskSourceTitleAr               string  `json:"risk_source_title_ar"`
 	ResponsibleUnitTitleEn          string  `json:"responsible_unit_title_en"`
 	ResponsibleUnitTitleAr          string  `json:"responsible_unit_title_ar"`
+	ResponsibleUserID               uint    `json:"responsible_user_id"`
 	ResponsibleUserFirstNameEn      string  `json:"responsible_user_first_name_en"`
 	ResponsibleUserFirstNameAr      string  `json:"responsible_user_first_name_ar"`
 	ResponsibleUserLastNameEn       string  `json:"responsible_user_last_name_en"`

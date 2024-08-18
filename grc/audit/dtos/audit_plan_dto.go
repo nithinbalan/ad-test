@@ -27,17 +27,21 @@ type AuditPlanListDTO struct {
 	TeamLeadLastNameEn                string  `json:"team_lead_last_name_en"`
 	TeamLeadLastNameAr                string  `json:"team_lead_last_name_ar"`
 	TeamLeadInitial                   string  `json:"team_lead_initial"`
+	TeamLeadColor                     string  `json:"team_lead_color"`
 	TeamLeadEmail                     string  `json:"team_lead_email"`
 	TeamLeadProfileImagePath          string  `json:"team_lead_profile_image_path"`
 	AuditTeamTitleEn                  string  `json:"audit_team_title_en"`
 	AuditTeamTitleAr                  string  `json:"audit_team_title_ar"`
+	AuditTeamTeamLeadID               uint    `json:"audit_team_team_lead_id"`
 	AuditTeamTeamLeadFirstNameEn      string  `json:"audit_team_team_lead_first_name_en"`
 	AuditTeamTeamLeadFirstNameAr      string  `json:"audit_team_team_lead_first_name_ar"`
 	AuditTeamTeamLeadLastNameEn       string  `json:"audit_team_team_lead_last_name_en"`
 	AuditTeamTeamLeadLastNameAr       string  `json:"audit_team_team_lead_last_name_ar"`
 	AuditTeamTeamLeadInitial          string  `json:"audit_team_team_lead_initial"`
 	AuditTeamTeamLeadEmail            string  `json:"audit_team_team_lead_email"`
+	AuditTeamTeamLeadColor            string  `json:"audit_team_team_lead_color"`
 	AuditTeamTeamLeadProfileImagePath string  `json:"audit_team_team_lead_profile_image_path"`
+	CreatedUserID                     uint    `json:"created_user_id"`
 	CreatedUserFirstNameEn            string  `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr            string  `json:"created_user_first_name_ar"`
 	CreatedUserLastNameEn             string  `json:"created_user_last_name_en"`
@@ -46,6 +50,7 @@ type AuditPlanListDTO struct {
 	CreatedUserColor                  string  `json:"created_user_color"`
 	CreatedUserEmail                  string  `json:"created_user_email"`
 	CreatedUserProfileImagePath       string  `json:"created_user_profile_image_path"`
+	UpdatedUserID                     *uint   `json:"updated_user_id"`
 	UpdatedUserFirstNameEn            string  `json:"updated_user_first_name_en"`
 	UpdatedUserFirstNameAr            string  `json:"updated_user_first_name_ar"`
 	UpdatedUserLastNameEn             string  `json:"updated_user_last_name_en"`
