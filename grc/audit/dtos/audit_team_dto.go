@@ -18,6 +18,7 @@ type AuditTeamListDTO struct {
 	TeamLeadLastNameAr          string                 `json:"team_lead_last_name_ar"`
 	TeamLeadEmail               string                 `json:"team_lead_email"`
 	TeamLeadInitial             string                 `json:"team_lead_initial"`
+	TeamLeadColor               string                 `json:"team_lead_color"`
 	TeamLeadProfileImagePath    *string                `json:"team_lead_profile_image_path"`
 	CreatedUserID               uint                   `json:"created_user_id"`
 	CreatedUserFirstNameEn      string                 `json:"created_user_first_name_en"`
@@ -26,6 +27,7 @@ type AuditTeamListDTO struct {
 	CreatedUserLastNameAr       string                 `json:"created_user_last_name_ar"`
 	CreatedUserEmail            string                 `json:"created_user_email"`
 	CreatedUserInitial          string                 `json:"created_user_initial"`
+	CreatedUserColor            string                 `json:"created_user_color"`
 	CreatedUserProfileImagePath *string                `json:"created_user_profile_image_path"`
 	UpdatedUserID               *uint                  `json:"updated_user_id"`
 	UpdatedUserFirstNameEn      string                 `json:"updated_user_first_name_en"`
@@ -34,6 +36,7 @@ type AuditTeamListDTO struct {
 	UpdatedUserLastNameAr       string                 `json:"updated_user_last_name_ar"`
 	UpdatedUserEmail            string                 `json:"updated_user_email"`
 	UpdatedUserInitial          string                 `json:"updated_user_initial"`
+	UpdatedUserColor            string                 `json:"updated_user_color"`
 	UpdatedUserProfileImagePath *string                `json:"updated_user_profile_image_path"`
 	CreatedAt                   string                 `json:"created_at"`
 	UpdatedAt                   string                 `json:"updated_at"`
