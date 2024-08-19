@@ -21,13 +21,14 @@ type Process struct {
 	MarkedAsAuditableItem bool       `json:"marked_as_auditable_item" gorm:"default:false" binding:"-"`
 
 	// Relationships
-	ProcessGroup    *ProcessGroup     `gorm:"foreignKey:ProcessGroupID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	OwnerUnit       *OrganizationUnit `gorm:"foreignKey:OwnerUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	Owner           *User             `gorm:"foreignKey:OwnerID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	LifecycleStatus *LifecycleStatus  `gorm:"foreignKey:LifecycleStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser   *User             `gorm:"foreignKey:CreatedByID"`
-	UpdatedByUser   *User             `gorm:"foreignKey:UpdatedByID"`
-	Controls        []*ProcessControl `gorm:"foreignKey:ProcessID"`
+	ProcessGroup    *ProcessGroup                `gorm:"foreignKey:ProcessGroupID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	OwnerUnit       *OrganizationUnit            `gorm:"foreignKey:OwnerUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Owner           *User                        `gorm:"foreignKey:OwnerID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	LifecycleStatus *LifecycleStatus             `gorm:"foreignKey:LifecycleStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	CreatedByUser   *User                        `gorm:"foreignKey:CreatedByID"`
+	UpdatedByUser   *User                        `gorm:"foreignKey:UpdatedByID"`
+	Controls        []*ProcessControl            `gorm:"foreignKey:ProcessID"`
+	Documents       []*ProcessAssociatedDocument `gorm:"foreignKey:ProcessID"`
 }
 
 func (Process) TableName() string {

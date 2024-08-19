@@ -15,7 +15,7 @@ import (
 )
 
 type MeetingMinuteServiceInterface interface {
-	GetAll(meetingID uint, currentUserID uint, params *meetingDTOs.MeetingMinuteListQueryParamsDTO) (*meetingDTOs.MeetingMinuteListResponseDTO, error)
+	GetAll(meetingID uint, currentUserID uint, params *meetingDTOs.MeetingMinuteListQueryParamsDTO) ([]*meetingDTOs.MeetingMinuteListDTO, error)
 	GetFullDetailsByID(meetingID uint, id uint) (*meetingDTOs.MeetingMinuteDetailDTO, error)
 	GetByID(id uint) (*models.MeetingMinute, error)
 	Create(meetingID uint, currentUserID uint, meetingMinuteFormDTO *meetingDTOs.MeetingMinuteFormDTO) (uint, error)
@@ -44,7 +44,7 @@ func NewMeetingMinuteService(
 	}
 }
 
-func (mms *MeetingMinuteService) GetAll(meetingID uint, currentUserID uint, params *meetingDTOs.MeetingMinuteListQueryParamsDTO) (*meetingDTOs.MeetingMinuteListResponseDTO, error) {
+func (mms *MeetingMinuteService) GetAll(meetingID uint, currentUserID uint, params *meetingDTOs.MeetingMinuteListQueryParamsDTO) ([]*meetingDTOs.MeetingMinuteListDTO, error) {
 	if _, err := mms.meetingSvc.GetByID(meetingID); err != nil {
 		return nil, err
 	}
@@ -224,9 +224,10 @@ func (mms *MeetingMinuteService) Delete(meetingID uint, ids []uint, currentUserI
 }
 
 func (mms *MeetingMinuteService) validateMeetingMinuteFormDTO(meetingMinuteFormDTO *meetingDTOs.MeetingMinuteFormDTO) error {
-	if _, err := mms.meetingAgendaSvc.GetByID(*meetingMinuteFormDTO.MeetingAgendaID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("meeting agenda does not exist"), "not_exist", "meeting agenda")
+	if meetingMinuteFormDTO.MeetingAgendaID != nil {
+		if _, err := mms.meetingAgendaSvc.GetByID(*meetingMinuteFormDTO.MeetingAgendaID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("meeting agenda does not exist"), "not_exist", "meeting agenda")
+		}
 	}
-
 	return nil
 }

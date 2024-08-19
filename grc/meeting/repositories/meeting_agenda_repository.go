@@ -1,7 +1,6 @@
 package repositories
 
 import (
-	commonDTOs "jethur/grc/common/dtos"
 	meetingDTOs "jethur/grc/meeting/dtos"
 	"jethur/grc/models"
 
@@ -9,7 +8,7 @@ import (
 )
 
 type MeetingAgendaRepositoryInterface interface {
-	GetAll(meetingID uint, currentUserID uint, params *meetingDTOs.MeetingAgendaListQueryParamsDTO) (*meetingDTOs.MeetingAgendaListResponseDTO, error)
+	GetAll(meetingID uint, currentUserID uint, params *meetingDTOs.MeetingAgendaListQueryParamsDTO) ([]*meetingDTOs.MeetingAgendaListDTO, error)
 	GetByID(id uint) (*models.MeetingAgenda, error)
 	GetFullDetailsByID(id uint) (*models.MeetingAgenda, error)
 	Create(meeting *models.MeetingAgenda) (uint, error)
@@ -27,7 +26,7 @@ func NewMeetingAgendaRepository(db *gorm.DB) *MeetingAgendaRepository {
 	}
 }
 
-func (repo *MeetingAgendaRepository) GetAll(meetingID uint, currentUserID uint, params *meetingDTOs.MeetingAgendaListQueryParamsDTO) (*meetingDTOs.MeetingAgendaListResponseDTO, error) {
+func (repo *MeetingAgendaRepository) GetAll(meetingID uint, currentUserID uint, params *meetingDTOs.MeetingAgendaListQueryParamsDTO) ([]*meetingDTOs.MeetingAgendaListDTO, error) {
 	var meetingAgendas []*meetingDTOs.MeetingAgendaListDTO
 	var totalCount int64
 
@@ -99,26 +98,11 @@ func (repo *MeetingAgendaRepository) GetAll(meetingID uint, currentUserID uint, 
 
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	offset := (params.Page - 1) * params.PageSize
-
-	// Execute the query
-	err := query.Offset(offset).Limit(params.PageSize).Find(&meetingAgendas).Error
-	if err != nil {
+	if err := query.Find(&meetingAgendas).Error; err != nil {
 		return nil, err
 	}
 
-	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
-
-	response := &meetingDTOs.MeetingAgendaListResponseDTO{
-		Items: meetingAgendas,
-		Pagination: commonDTOs.PaginationInfoDTO{
-			CurrentPage: params.Page,
-			PageSize:    params.PageSize,
-			TotalPages:  totalPages,
-			TotalCount:  totalCount,
-		},
-	}
-	return response, nil
+	return meetingAgendas, nil
 }
 
 func (repo *MeetingAgendaRepository) GetByID(id uint) (*models.MeetingAgenda, error) {

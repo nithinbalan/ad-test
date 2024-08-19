@@ -15,7 +15,7 @@ import (
 )
 
 type MeetingAgendaServiceInterface interface {
-	GetAll(meetingID uint, currentUserID uint, params *meetingDTOs.MeetingAgendaListQueryParamsDTO) (*meetingDTOs.MeetingAgendaListResponseDTO, error)
+	GetAll(meetingID uint, currentUserID uint, params *meetingDTOs.MeetingAgendaListQueryParamsDTO) ([]*meetingDTOs.MeetingAgendaListDTO, error)
 	GetFullDetailsByID(meetingID uint, id uint) (*meetingDTOs.MeetingAgendaDetailDTO, error)
 	GetByID(id uint) (*models.MeetingAgenda, error)
 	Create(meetingID uint, currentUserID uint, meetingAgendaFormDTO *meetingDTOs.MeetingAgendaFormDTO) (uint, error)
@@ -41,7 +41,7 @@ func NewMeetingAgendaService(
 	}
 }
 
-func (mas *MeetingAgendaService) GetAll(meetingID uint, currentUserID uint, params *meetingDTOs.MeetingAgendaListQueryParamsDTO) (*meetingDTOs.MeetingAgendaListResponseDTO, error) {
+func (mas *MeetingAgendaService) GetAll(meetingID uint, currentUserID uint, params *meetingDTOs.MeetingAgendaListQueryParamsDTO) ([]*meetingDTOs.MeetingAgendaListDTO, error) {
 	if _, err := mas.meetingSvc.GetByID(meetingID); err != nil {
 		return nil, err
 	}

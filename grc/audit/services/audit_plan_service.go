@@ -25,13 +25,13 @@ type AuditPlanServiceInterface interface {
 }
 
 type AuditPlanService struct {
-	repo                repositories.AuditPlanRepositoryInterface
-	activityLogSvc      logServices.ActivityLogServiceInterface
-	auditCategorySvc    AuditCategoryServiceInterface
-	auditStatusSvc      AuditStatusServiceInterface
-	auditTeamSvc        AuditTeamServiceInterface
-	userSvc             organizationServices.UserServiceInterface
-	auditableItemSvc    AuditableItemServiceInterface
+	repo             repositories.AuditPlanRepositoryInterface
+	activityLogSvc   logServices.ActivityLogServiceInterface
+	auditCategorySvc AuditCategoryServiceInterface
+	auditStatusSvc   AuditStatusServiceInterface
+	auditTeamSvc     AuditTeamServiceInterface
+	userSvc          organizationServices.UserServiceInterface
+	auditableItemSvc AuditableItemServiceInterface
 }
 
 func NewAuditPlanService(
@@ -44,13 +44,13 @@ func NewAuditPlanService(
 	auditableItemSvc AuditableItemServiceInterface,
 ) AuditPlanServiceInterface {
 	return &AuditPlanService{
-		repo:                repo,
-		activityLogSvc:      activityLogSvc,
-		auditCategorySvc:    auditCategorySvc,
-		auditStatusSvc:      auditStatusSvc,
-		auditTeamSvc:        auditTeamSvc,
-		userSvc:             userSvc,
-		auditableItemSvc:    auditableItemSvc,
+		repo:             repo,
+		activityLogSvc:   activityLogSvc,
+		auditCategorySvc: auditCategorySvc,
+		auditStatusSvc:   auditStatusSvc,
+		auditTeamSvc:     auditTeamSvc,
+		userSvc:          userSvc,
+		auditableItemSvc: auditableItemSvc,
 	}
 }
 

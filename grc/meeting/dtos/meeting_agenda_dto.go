@@ -1,7 +1,6 @@
 package dtos
 
 import (
-	commonDTOs "jethur/grc/common/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
 	"time"
 )
@@ -44,15 +43,8 @@ type MeetingAgendaListQueryParamsDTO struct {
 	SortBy      string
 	Keyword     string
 	Status      string
-	Page        int
-	PageSize    int
 	Filters     map[string][]string
 	QuickFilter []string
-}
-
-type MeetingAgendaListResponseDTO struct {
-	Items      []*MeetingAgendaListDTO      `json:"items"`
-	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }
 
 type MeetingAgendaDetailDTO struct {

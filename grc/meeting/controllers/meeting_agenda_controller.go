@@ -44,25 +44,11 @@ func (mac *MeetingAgendaController) GetAllMeetingAgendas(c *gin.Context) {
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
-	page, err := utility.ParseQueryParamToInt(c, "page", 1)
-	if err != nil {
-		utility.SendInternalErrResp(mac.db, c, "Invalid page parameter")
-		return
-	}
-
-	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
-	if err != nil {
-		utility.SendInternalErrResp(mac.db, c, "Invalid page_size parameter")
-		return
-	}
-
 	queryParams := meetingDTOs.MeetingAgendaListQueryParamsDTO{
 		Sort:        sort,
 		SortBy:      sortBy,
 		Keyword:     keyword,
 		Status:      status,
-		Page:        page,
-		PageSize:    pageSize,
 		Filters:     filters,
 		QuickFilter: quickFilter,
 	}
