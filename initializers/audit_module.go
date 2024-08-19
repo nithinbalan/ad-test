@@ -19,7 +19,10 @@ type AuditModule struct {
 	AuditPlanChecklistController     *controllers.AuditPlanChecklistController
 	AuditPlanToolController          *controllers.AuditPlanToolController
 	AuditPlanAuditableItemController *controllers.AuditPlanAuditableItemController
+	AuditScheduleStatusController    *controllers.AuditScheduleStatusController
+	AuditActivityTypeController      *controllers.AuditActivityTypeController
 	AuditPlanBudgetController        *controllers.AuditPlanBudgetController
+	AuditPlanScheduleController      *controllers.AuditPlanScheduleController
 }
 
 func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, complianceModule *ComplianceModule, riskModule *RiskModule, incidentModule *IncidentModule, documentModule *DocumentModule, settingModule *SettingsModule, masterModule *MasterModule) *AuditModule {
@@ -111,17 +114,40 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 	)
 	auditPlanBudgetController := controllers.NewAuditPlanBudgetController(auditPlanBudgetSvc)
 
+	auditActivityTypeRepo := repositories.NewAuditActivityTypeRepository(db)
+	auditActivityTypeSvc := services.NewAuditActivityTypeService(auditActivityTypeRepo, sharedModule.ActivityLogService)
+	auditActivityTypeController := controllers.NewAuditActivityTypeController(auditActivityTypeSvc)
+
+	auditScheduleStatusRepo := repositories.NewAuditScheduleStatusRepository(db)
+	auditScheduleStatusSvc := services.NewAuditScheduleStatusService(auditScheduleStatusRepo)
+	auditScheduleStatusController := controllers.NewAuditScheduleStatusController(auditScheduleStatusSvc)
+
+	auditPlanScheduleRepo := repositories.NewAuditPlanScheduleRepository(db)
+	auditPlanScheduleSvc := services.NewAuditPlanScheduleService(
+		auditPlanScheduleRepo,
+		sharedModule.ActivityLogService,
+		auditPlanSvc,
+		auditActivityTypeSvc,
+		organizationModule.UserSvc,
+		auditScheduleStatusSvc,
+		auditableItemSvc,
+	)
+	auditPlanScheduleController := controllers.NewAuditPlanScheduleController(auditPlanScheduleSvc)
+
 	return &AuditModule{
-		AuditStatusController:            auditStatusController,
 		AuditorRiskRatingController:      auditorRiskRatingController,
 		AuditUniverseController:          auditUniverseController,
 		AuditableItemController:          auditableItemController,
 		AuditTeamController:              auditTeamController,
 		AuditCategoryController:          auditCategoryController,
+		AuditStatusController:            auditStatusController,
 		AuditPlanController:              auditPlanController,
 		AuditPlanChecklistController:     auditPlanChecklistController,
 		AuditPlanToolController:          auditPlanToolController,
 		AuditPlanAuditableItemController: auditPlanAuditableItemController,
+		AuditActivityTypeController:      auditActivityTypeController,
+		AuditScheduleStatusController:    auditScheduleStatusController,
 		AuditPlanBudgetController:        auditPlanBudgetController,
+		AuditPlanScheduleController:      auditPlanScheduleController,
 	}
 }

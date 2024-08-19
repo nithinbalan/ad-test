@@ -20,8 +20,8 @@ CREATE TABLE audit_plans
     updated_at DATETIME NULL,
     CONSTRAINT FK_audit_plans_audit_categories FOREIGN KEY (audit_category_id) REFERENCES audit_categories(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_audit_plans_audit_teams FOREIGN KEY (audit_team_id) REFERENCES audit_teams(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
-    CONSTRAINT FK_audit_plans_users_1 FOREIGN KEY (team_lead_id) REFERENCES audit_statuses(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
-    CONSTRAINT FK_audit_plans_audit_statuses FOREIGN KEY (audit_status_id) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_audit_plans_users_1 FOREIGN KEY (team_lead_id) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_audit_plans_audit_statuses FOREIGN KEY (audit_status_id) REFERENCES audit_statuses(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_audit_plans_users_2 FOREIGN KEY (created_by_id) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_audit_plans_users_3 FOREIGN KEY (updated_by_id) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
