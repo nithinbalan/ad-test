@@ -10,12 +10,14 @@ import (
 	"jethur/grc/models"
 	"jethur/utility"
 
+	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
 )
 
 type AuditPlanChecklistServiceInterface interface {
 	GetAll(auditPlanId uint, params *auditDTOs.AuditPlanChecklistListQueryParamsDTO) ([]*auditDTOs.AuditPlanChecklistListDTO, error)
 	GetByID(auditPlanId uint, id uint) (*models.AuditPlanChecklist, error)
+	GetFullDetailsByID(auditPlanId uint, id uint) (*auditDTOs.AuditPlanChecklistDetailDTO, error)
 	Create(auditPlanId uint, currentUserID uint, auditPlanChecklistFormDTO *auditDTOs.AuditPlanChecklistFormDTO) (uint, error)
 	Update(auditPlanId uint, id uint, currentUserID uint, auditPlanChecklistFormDTO *auditDTOs.AuditPlanChecklistFormDTO) error
 	Delete(auditPlanId uint, ids []uint, currentUserID uint) ([]uint, error)
@@ -62,6 +64,28 @@ func (aps *AuditPlanChecklistService) GetByID(auditPlanId uint, id uint) (*model
 		return nil, err
 	}
 	return auditPlanChecklist, nil
+}
+
+func (aps *AuditPlanChecklistService) GetFullDetailsByID(auditPlanId uint, id uint) (*auditDTOs.AuditPlanChecklistDetailDTO, error) {
+	var auditPlanChecklitDetailDTO auditDTOs.AuditPlanChecklistDetailDTO
+
+	checklist, err := aps.repo.GetFullDetailsByID(id)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+
+	err = mapstructure.Decode(checklist, &auditPlanChecklitDetailDTO)
+	if err != nil {
+		return nil, err
+	}
+
+	//todo :- also add extra fields which required in details screen
+
+	return &auditPlanChecklitDetailDTO, nil
 }
 
 func (aps *AuditPlanChecklistService) Create(auditPlanId uint, currentUserID uint, auditPlanChecklistFormDTO *auditDTOs.AuditPlanChecklistFormDTO) (uint, error) {

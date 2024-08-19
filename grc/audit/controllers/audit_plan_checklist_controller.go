@@ -60,6 +60,27 @@ func (apc *AuditPlanChecklistController) GetAllAuditPlanChecklists(c *gin.Contex
 	c.JSON(http.StatusOK, auditPlanChecklists)
 }
 
+func (apc *AuditPlanChecklistController) GetAuditPlanChecklistDetails(c *gin.Context) {
+	auditPlanID, err := strconv.Atoi(c.Param("planId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	checklistID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	process, err := apc.service.GetFullDetailsByID(uint(auditPlanID), uint(checklistID))
+	if err != nil {
+		utility.SendInternalErrResp(apc.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, process)
+}
+
 func (apc *AuditPlanChecklistController) CreateAuditPlanChecklists(c *gin.Context) {
 	var auditPlanChecklistFormDTO auditDTOs.AuditPlanChecklistFormDTO
 

@@ -40,6 +40,16 @@ type AuditPlanChecklistListDTO struct {
 	UpdatedUserProfileImagePath string     `json:"updated_user_profile_image_path"`
 }
 
+type AuditPlanChecklistDetailDTO struct {
+	ID              uint                   `json:"id"`
+	AuditPlanID     uint                   `json:"audit_plan_id"`
+	AuditableItemID uint                   `json:"auditable_item_id"`
+	AuditableItem   AuditableItemDetailDTO `json:"auditable_item"`
+	Question        string                 `json:"question"`
+	CreatedAt       time.Time              `json:"created_at"`
+	UpdatedAt       *time.Time             `json:"updated_at"`
+}
+
 type AuditPlanChecklistFormDTO struct {
 	AuditableItemId uint   `json:"auditable_item_id" binding:"required"`
 	Question        string `json:"question" binding:"required"`

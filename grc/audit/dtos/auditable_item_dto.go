@@ -92,24 +92,31 @@ type AuditableItemFormDTO struct {
 }
 
 type AuditableItemDetailDTO struct {
-	ID                    uint                                           `json:"id"`
-	TitleEn               string                                         `json:"title_en"`
-	TitleAr               string                                         `json:"title_ar"`
-	Comment               *string                                        `json:"comment"`
-	AuditStatus           *AuditStatusDTO                                `json:"audit_status"`
-	AuditorRiskRating     *AuditorRiskRatingDTO                          `json:"auditor_risk_rating"`
-	Process               *organizationDTOs.ProcessDetailDTO             `json:"process"`
-	Control               *organizationDTOs.ControlDetailDTO             `json:"control"`
-	Document              *documentDTOs.DocumentDetailsDTO               `json:"document"`
-	IncidentRegister      *incidentDTOs.IncidentRegisterDetailDTO        `json:"incident_register"`
-	ComplianceRequirement *complianceDTOs.ComplianceRequirementDetailDTO `json:"compliance_requirement"`
-	RiskRegister          *riskDTOs.RiskRegisterDetailDTO                `json:"risk_register"`
-	User                  *organizationDTOs.UserMinimalDTO               `json:"user"`
-	ResponsibleUnit       settingsDTOs.OrganizationUnitDTO               `json:"responsible_unit"`
-	CreatedAt             time.Time                                      `json:"created_at"`
-	UpdatedAt             *time.Time                                     `json:"updated_at"`
-	CreatedByUser         *organizationDTOs.UserMinimalDTO               `json:"created_by"`
-	UpdatedByUser         *organizationDTOs.UserMinimalDTO               `json:"updated_by"`
+	ID                      uint                                           `json:"id"`
+	TitleEn                 string                                         `json:"title_en"`
+	TitleAr                 string                                         `json:"title_ar"`
+	Comment                 *string                                        `json:"comment"`
+	AuditStatus             *AuditStatusDTO                                `json:"audit_status"`
+	AuditorRiskRating       *AuditorRiskRatingDTO                          `json:"auditor_risk_rating"`
+	ProcessID               *uint                                          `json:"process_id"`
+	ControlID               *uint                                          `json:"control_id"`
+	DocumentID              *uint                                          `json:"document_id"`
+	IncidentRegisterID      *uint                                          `json:"incident_register_id"`
+	ComplianceRequirementID *uint                                          `json:"compliance_requirement_id"`
+	RiskRegisterID          *uint                                          `json:"risk_register_id"`
+	UserID                  *uint                                          `json:"user_id"`
+	Process                 *organizationDTOs.ProcessDetailDTO             `json:"process"`
+	Control                 *organizationDTOs.ControlDetailDTO             `json:"control"`
+	Document                *documentDTOs.DocumentDetailsDTO               `json:"document"`
+	IncidentRegister        *incidentDTOs.IncidentRegisterDetailDTO        `json:"incident_register"`
+	ComplianceRequirement   *complianceDTOs.ComplianceRequirementDetailDTO `json:"compliance_requirement"`
+	RiskRegister            *riskDTOs.RiskRegisterDetailDTO                `json:"risk_register"`
+	User                    *organizationDTOs.UserMinimalDTO               `json:"user"`
+	ResponsibleUnit         settingsDTOs.OrganizationUnitDTO               `json:"responsible_unit"`
+	CreatedAt               time.Time                                      `json:"created_at"`
+	UpdatedAt               *time.Time                                     `json:"updated_at"`
+	CreatedByUser           *organizationDTOs.UserMinimalDTO               `json:"created_by"`
+	UpdatedByUser           *organizationDTOs.UserMinimalDTO               `json:"updated_by"`
 }
 
 type AuditableItemStatusUpdateFormDTO struct {
