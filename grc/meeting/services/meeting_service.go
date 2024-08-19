@@ -290,7 +290,7 @@ func (ms *MeetingService) Create(currentUserID uint, meetingFormDTO *meetingDTOs
 	}
 
 	if meetingFormDTO.MeetingFrequencyID != nil {
-		err := ms.createRecurringMeetings(meeting, dates, tx)
+		err := ms.createRecurringMeetings(meetingFormDTO, dates, currentUserID, tx)
 		if err != nil {
 			tx.Rollback()
 			return 0, err
@@ -925,18 +925,14 @@ func (ms *MeetingService) parseMeetingDates(dto *meetingDTOs.MeetingFormDTO) (*m
 	return parsed, nil
 }
 
-func (ms *MeetingService) createRecurringMeetings(meeting *models.Meeting, dates *meetingDTOs.MeetingParsedDates, tx utility.DatabaseTransaction) error {
-	frequency, err := ms.meetingFrequencySvc.GetByID(*meeting.MeetingFrequencyID)
+func (ms *MeetingService) createRecurringMeetings(meetingFormDTO *meetingDTOs.MeetingFormDTO, dates *meetingDTOs.MeetingParsedDates, currentUserID uint, tx utility.DatabaseTransaction) error {
+	frequency, err := ms.meetingFrequencySvc.GetByID(*meetingFormDTO.MeetingFrequencyID)
 	if err != nil {
 		return err
 	}
 
-	fmt.Println(meeting)
-
 	startDate := dates.Date
-
 	endDate := startDate.AddDate(1, 0, 0) // add one year
-
 	currentDate := startDate
 
 	for currentDate.Before(endDate) {
@@ -951,21 +947,54 @@ func (ms *MeetingService) createRecurringMeetings(meeting *models.Meeting, dates
 			currentDate = currentDate.AddDate(0, 6, 0)
 		case "annually":
 			currentDate = currentDate.AddDate(1, 0, 0)
+		default:
+			return fmt.Errorf("unsupported frequency type: %s", frequency.Type)
 		}
 
 		if currentDate.After(endDate) {
 			break
 		}
 
-		recurringMeeting := *meeting
-		recurringMeeting.Date = currentDate
-		recurringMeeting.ID = 0
+		// Create a new meeting instance for the recurring date
+		startTime := time.Date(1, 1, 1, dates.StartTime.Hour(), dates.StartTime.Minute(), dates.StartTime.Second(), 0, time.UTC)
+		endTime := time.Date(1, 1, 1, dates.EndTime.Hour(), dates.EndTime.Minute(), dates.EndTime.Second(), 0, time.UTC)
 
-		_, err := ms.repo.Create(&recurringMeeting, tx)
+		recurringMeeting := &models.Meeting{
+			Title:              meetingFormDTO.Title,
+			Location:           meetingFormDTO.Location,
+			Date:               currentDate,
+			StartTime:          startTime,
+			EndTime:            endTime,
+			OrganizerID:        meetingFormDTO.OrganizerID,
+			IsPublic:           meetingFormDTO.IsPublic,
+			CreatedByID:        currentUserID,
+			MeetingTypeID:      meetingFormDTO.MeetingTypeID,
+			MeetingFrequencyID: meetingFormDTO.MeetingFrequencyID,
+			MeetingID:          meetingFormDTO.MeetingID,
+			MeetingStatusID:    meetingFormDTO.MeetingStatusID,
+		}
+
+		newMeetingID, err := ms.repo.Create(recurringMeeting, tx)
 		if err != nil {
 			return err
 		}
 
+		// Add participants to the new recurring meeting
+		var participants []*models.MeetingParticipant
+		for _, participantID := range meetingFormDTO.UserIDs {
+			participant := &models.MeetingParticipant{
+				MeetingID:   newMeetingID,
+				UserID:      *participantID,
+				CreatedByID: currentUserID,
+			}
+			participants = append(participants, participant)
+		}
+
+		if len(participants) > 0 {
+			if err := ms.repo.CreateParticipants(participants, tx); err != nil {
+				return err
+			}
+		}
 	}
 
 	return nil
