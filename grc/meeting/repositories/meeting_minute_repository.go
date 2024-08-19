@@ -1,7 +1,6 @@
 package repositories
 
 import (
-	commonDTOs "jethur/grc/common/dtos"
 	meetingDTOs "jethur/grc/meeting/dtos"
 	"jethur/grc/models"
 
@@ -9,7 +8,7 @@ import (
 )
 
 type MeetingMinuteRepositoryInterface interface {
-	GetAll(meetingID uint, currentUserID uint, params *meetingDTOs.MeetingMinuteListQueryParamsDTO) (*meetingDTOs.MeetingMinuteListResponseDTO, error)
+	GetAll(meetingID uint, currentUserID uint, params *meetingDTOs.MeetingMinuteListQueryParamsDTO) ([]*meetingDTOs.MeetingMinuteListDTO, error)
 	GetByID(id uint) (*models.MeetingMinute, error)
 	GetFullDetailsByID(id uint) (*models.MeetingMinute, error)
 	Create(meetingMinute *models.MeetingMinute) (uint, error)
@@ -27,13 +26,14 @@ func NewMeetingMinuteRepository(db *gorm.DB) *MeetingMinuteRepository {
 	}
 }
 
-func (repo *MeetingMinuteRepository) GetAll(meetingID uint, currentUserID uint, params *meetingDTOs.MeetingMinuteListQueryParamsDTO) (*meetingDTOs.MeetingMinuteListResponseDTO, error) {
+func (repo *MeetingMinuteRepository) GetAll(meetingID uint, currentUserID uint, params *meetingDTOs.MeetingMinuteListQueryParamsDTO) ([]*meetingDTOs.MeetingMinuteListDTO, error) {
 	var meetingMinutes []*meetingDTOs.MeetingMinuteListDTO
 	var totalCount int64
 
 	query := repo.db.Table("meeting_minutes").
 		Select(`
 			meeting_minutes.*,
+			meeting_agendas.title AS meeting_agenda_title,
         	created_user.id AS created_user_id,
         	created_user.first_name_en AS created_user_first_name_en,
         	created_user.first_name_ar AS created_user_first_name_ar,
@@ -76,8 +76,9 @@ func (repo *MeetingMinuteRepository) GetAll(meetingID uint, currentUserID uint, 
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
-			(meeting_minutes.minutes LIKE ?)`,
-			keyword)
+			(meeting_minutes.minutes LIKE ? OR
+			meeting_agendas.title LIKE ?)`,
+			keyword, keyword)
 	}
 
 	// Sort by the specified column and order
@@ -90,26 +91,11 @@ func (repo *MeetingMinuteRepository) GetAll(meetingID uint, currentUserID uint, 
 
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	offset := (params.Page - 1) * params.PageSize
-
-	// Execute the query
-	err := query.Offset(offset).Limit(params.PageSize).Find(&meetingMinutes).Error
-	if err != nil {
+	if err := query.Find(&meetingMinutes).Error; err != nil {
 		return nil, err
 	}
 
-	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
-
-	response := &meetingDTOs.MeetingMinuteListResponseDTO{
-		Items: meetingMinutes,
-		Pagination: commonDTOs.PaginationInfoDTO{
-			CurrentPage: params.Page,
-			PageSize:    params.PageSize,
-			TotalPages:  totalPages,
-			TotalCount:  totalCount,
-		},
-	}
-	return response, nil
+	return meetingMinutes, nil
 }
 
 func (repo *MeetingMinuteRepository) GetByID(id uint) (*models.MeetingMinute, error) {

@@ -1,7 +1,6 @@
 package dtos
 
 import (
-	commonDTOs "jethur/grc/common/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
 	"time"
 )
@@ -10,6 +9,7 @@ type MeetingMinuteListDTO struct {
 	ID                          uint       `json:"id"`
 	MeetingAgendaID             *uint      `json:"meeting_agenda_id"`
 	Minutes                     *string    `json:"minutes"`
+	MeetingAgendaTitle          string     `json:"meeting_agenda_title"`
 	CreatedAt                   time.Time  `json:"created_at"`
 	UpdatedAt                   *time.Time `json:"updated_at"`
 	CreatedUserID               uint       `json:"created_user_id"`
@@ -37,15 +37,8 @@ type MeetingMinuteListQueryParamsDTO struct {
 	SortBy      string
 	Keyword     string
 	Status      string
-	Page        int
-	PageSize    int
 	Filters     map[string][]string
 	QuickFilter []string
-}
-
-type MeetingMinuteListResponseDTO struct {
-	Items      []*MeetingMinuteListDTO      `json:"items"`
-	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }
 
 type MeetingMinuteDetailDTO struct {
@@ -60,6 +53,6 @@ type MeetingMinuteDetailDTO struct {
 }
 
 type MeetingMinuteFormDTO struct {
-	Minutes         string `json:"minutes"`
+	Minutes         string `json:"minutes"  binding:"required"`
 	MeetingAgendaID *uint  `json:"meeting_agenda_id"`
 }
