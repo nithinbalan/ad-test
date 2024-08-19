@@ -78,6 +78,7 @@ type ProcessFormDTO struct {
 	TitleAr        string  `json:"title_ar" binding:"required"`
 	Description    *string `json:"description" binding:"omitempty"`
 	ControlIds     []*uint `json:"control_ids"`
+	DocumentIds    []*uint `json:"document_ids"`
 }
 
 type ProcessDetailDTO struct {
@@ -95,6 +96,7 @@ type ProcessDetailDTO struct {
 	CreatedAt       time.Time                         `json:"created_at"`
 	UpdatedAt       *time.Time                        `json:"updated_at"`
 	Controls        []*ProcessControlDTO              `json:"controls"`
+	Documents       []*ProcessAssociatedDocumentDTO   `json:"documents"`
 }
 
 type ProcessControlDTO struct {
@@ -102,4 +104,21 @@ type ProcessControlDTO struct {
 	ProcessID uint             `json:"process_id"`
 	ControlID uint             `json:"control_id"`
 	Control   ControlDetailDTO `json:"control"`
+}
+
+type ProcessAssociatedDocumentDTO struct {
+	ID         *uint              `json:"id"`
+	ProcessID  uint               `json:"process_id"`
+	DocumentID uint               `json:"document_id"`
+	Document   DocumentDetailsDTO `json:"document"`
+}
+
+type DocumentDetailsDTO struct {
+	ID            int     `json:"id"`
+	TitleEn       string  `json:"title_en"`
+	TitleAr       string  `json:"title_ar"`
+	DescriptionEn *string `json:"description_en"`
+	DescriptionAr *string `json:"description_ar"`
+	IsLocked      bool    `json:"is_locked"`
+	Acknowledged  *bool   `json:"acknowledged,omitempty"`
 }

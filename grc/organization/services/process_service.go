@@ -148,6 +148,23 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 		}
 	}
 
+	var documents []*models.ProcessAssociatedDocument
+	for _, documentID := range processFormDTO.DocumentIds {
+		document := &models.ProcessAssociatedDocument{
+			ProcessID:   id,
+			DocumentID:  *documentID,
+			CreatedByID: currentUserID,
+		}
+		documents = append(documents, document)
+	}
+
+	if len(documents) > 0 {
+		if err := ps.repo.CreateProcessDocuments(documents, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
 	tx.Commit()
 
 	go func() {
@@ -179,7 +196,7 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *organizationDTOs.ProcessFormDTO) error {
 	tx := ps.repo.BeginTransaction()
 
-	existingProcess, err := ps.GetByID(id)
+	process, err := ps.GetByID(id)
 
 	if err != nil {
 		return err
@@ -188,34 +205,35 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 	if err := ps.validateProcessFormDTO(processFormDTO); err != nil {
 		return err
 	}
-	if existingProcess.OwnerID != processFormDTO.OwnerID {
+	if process.OwnerID != processFormDTO.OwnerID {
 		organizationUnitID, err := ps.userSvc.GetUserPrimaryUnitID(uint(processFormDTO.OwnerID))
 		if err != nil {
 			return utility.NewValidationError(fmt.Errorf("organization unit not set for owner"), "not_exist", "process owner unit")
 		}
-		existingProcess.OwnerUnitID = organizationUnitID
+		process.OwnerUnitID = organizationUnitID
 	}
-	existingProcess.ProcessGroupID = processFormDTO.ProcessGroupID
-	existingProcess.OwnerID = processFormDTO.OwnerID
-	existingProcess.TitleEn = processFormDTO.TitleEn
-	existingProcess.TitleAr = processFormDTO.TitleAr
-	existingProcess.Description = processFormDTO.Description
-	existingProcess.UpdatedByID = &currentUserID
+	process.ProcessGroupID = processFormDTO.ProcessGroupID
+	process.OwnerID = processFormDTO.OwnerID
+	process.TitleEn = processFormDTO.TitleEn
+	process.TitleAr = processFormDTO.TitleAr
+	process.Description = processFormDTO.Description
+	process.UpdatedByID = &currentUserID
 
-	err = ps.repo.Update(existingProcess)
+	err = ps.repo.Update(process)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
 	// Collect existing control IDs
-	existingProcessWithControls, err := ps.GetFullDetailsByID(id, tx)
+	existingProcess, err := ps.GetFullDetailsByID(id, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
+
 	existingControlIDs := make(map[uint]bool)
-	for _, ctrl := range existingProcessWithControls.Controls {
+	for _, ctrl := range existingProcess.Controls {
 		existingControlIDs[ctrl.ControlID] = true
 	}
 
@@ -250,7 +268,7 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 	// Remove controls not in the new list
 	var deleteControlIDs []*uint
 
-	for _, existingControl := range existingProcessWithControls.Controls {
+	for _, existingControl := range existingProcess.Controls {
 		if _, exists := newControlIDs[existingControl.ControlID]; !exists {
 			// Append control to delete list
 			deleteControlIDs = append(deleteControlIDs, existingControl.ID)
@@ -260,6 +278,57 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 	// Delete controls not in the new list
 	if len(deleteControlIDs) > 0 {
 		if err := ps.repo.DeleteProcessControls(deleteControlIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	existingDocumentIDs := make(map[uint]bool)
+	for _, doc := range existingProcess.Documents {
+		existingDocumentIDs[doc.DocumentID] = true
+	}
+
+	// Collect new document IDs
+	newDocumentIDs := make(map[uint]bool)
+	for _, doc := range processFormDTO.DocumentIds {
+		newDocumentIDs[*doc] = true
+	}
+
+	// Add new documents
+	var documentsToAdd []*models.ProcessAssociatedDocument
+	for _, newDocumentID := range processFormDTO.DocumentIds {
+		if _, exists := existingDocumentIDs[*newDocumentID]; !exists {
+			// Create a new process document record
+			document := &models.ProcessAssociatedDocument{
+				ProcessID:   id,
+				DocumentID:  *newDocumentID,
+				CreatedByID: currentUserID,
+			}
+			documentsToAdd = append(documentsToAdd, document)
+		}
+	}
+
+	// Save the new documents
+	if len(documentsToAdd) > 0 {
+		if err := ps.repo.CreateProcessDocuments(documentsToAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// Remove documents not in the new list
+	var deleteDocumentIDs []*uint
+
+	for _, existingDocument := range existingProcess.Documents {
+		if _, exists := newDocumentIDs[existingDocument.DocumentID]; !exists {
+			// Append document to delete list
+			deleteDocumentIDs = append(deleteDocumentIDs, existingDocument.ID)
+		}
+	}
+
+	// Delete documents not in the new list
+	if len(deleteDocumentIDs) > 0 {
+		if err := ps.repo.DeleteProcessDocuments(deleteDocumentIDs, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
@@ -288,6 +357,17 @@ func (ps *ProcessService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 				deleteControlIds = append(deleteControlIds, ctrl.ID)
 			}
 			if err := ps.repo.DeleteProcessControls(deleteControlIds, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+		}
+
+		if len(process.Documents) > 0 {
+			var deleteDocumentIds []*uint
+			for _, document := range process.Documents {
+				deleteDocumentIds = append(deleteDocumentIds, document.ID)
+			}
+			if err := ps.repo.DeleteProcessDocuments(deleteDocumentIds, tx); err != nil {
 				tx.Rollback()
 				return nil, err
 			}
@@ -424,6 +504,22 @@ func (ps *ProcessService) validateProcessFormDTO(processFormDTO *organizationDTO
 		}
 
 		controlIDs[*control] = true
+	}
+
+	documents := processFormDTO.DocumentIds
+
+	documentIDs := make(map[uint]bool)
+
+	for _, document := range documents {
+		if documentIDs[*document] {
+			return utility.NewValidationError(fmt.Errorf("duplicate document ID: %d", document), "duplicate", "document")
+		}
+
+		if _, err := ps.repo.GetDocumentByID(*document); err != nil {
+			return utility.NewValidationError(fmt.Errorf("document does not exist for ID: %d", document), "not_exist", "document")
+		}
+
+		documentIDs[*document] = true
 	}
 
 	return nil
