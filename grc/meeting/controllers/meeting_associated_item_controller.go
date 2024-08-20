@@ -38,11 +38,25 @@ func (maic *MeetingAssociatedItemController) GetAllMeetingControls(c *gin.Contex
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
 
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(maic.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(maic.db, c, "Invalid page_size parameter")
+		return
+	}
+
 	queryParams := meetingDTOs.MeetingAssociatedItemListQueryParamsDTO{
 		Sort:        sort,
 		SortBy:      sortBy,
 		Keyword:     keyword,
 		Status:      status,
+		Page:        page,
+		PageSize:    pageSize,
 		QuickFilter: quickFilter,
 	}
 	meetings, err := maic.service.GetAllControls(uint(meetingID), &queryParams)
@@ -79,11 +93,24 @@ func (maic *MeetingAssociatedItemController) GetAllMeetingComplianceRequirements
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
 
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(maic.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(maic.db, c, "Invalid page_size parameter")
+		return
+	}
 	queryParams := meetingDTOs.MeetingAssociatedItemListQueryParamsDTO{
 		Sort:        sort,
 		SortBy:      sortBy,
 		Keyword:     keyword,
 		Status:      status,
+		Page:        page,
+		PageSize:    pageSize,
 		QuickFilter: quickFilter,
 	}
 	meetings, err := maic.service.GetAllComplianceRequirements(uint(meetingID), &queryParams)
@@ -111,11 +138,25 @@ func (maic *MeetingAssociatedItemController) GetAllMeetingRisks(c *gin.Context) 
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
 
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(maic.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(maic.db, c, "Invalid page_size parameter")
+		return
+	}
+
 	queryParams := meetingDTOs.MeetingAssociatedItemListQueryParamsDTO{
 		Sort:        sort,
 		SortBy:      sortBy,
 		Keyword:     keyword,
 		Status:      status,
+		Page:        page,
+		PageSize:    pageSize,
 		QuickFilter: quickFilter,
 	}
 	meetings, err := maic.service.GetAllRisks(uint(meetingID), &queryParams)
@@ -143,11 +184,25 @@ func (maic *MeetingAssociatedItemController) GetAllMeetingProcesses(c *gin.Conte
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
 
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(maic.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(maic.db, c, "Invalid page_size parameter")
+		return
+	}
+
 	queryParams := meetingDTOs.MeetingAssociatedItemListQueryParamsDTO{
 		Sort:        sort,
 		SortBy:      sortBy,
 		Keyword:     keyword,
 		Status:      status,
+		Page:        page,
+		PageSize:    pageSize,
 		QuickFilter: quickFilter,
 	}
 	meetings, err := maic.service.GetAllProcesses(uint(meetingID), &queryParams)
