@@ -32,6 +32,9 @@ type ComplianceRequirementRepositoryInterface interface {
 	CreateInitialComplianceRequirementStatusUpdate(complianceRequirementStatusUpdate *models.ComplianceRequirementStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
 	GetStatusUpdateByRequirementID(requirementID uint, tx ...utility.DatabaseTransaction) ([]*models.ComplianceRequirementStatusUpdate, error)
 	DeleteComplianceRequirementStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error
+
+	CreateComplianceRequirementDocuments(documents []*models.ComplianceRequirementAssociatedDocument, tx ...utility.DatabaseTransaction) error
+	DeleteComplianceRequirementDocuments(documentIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type ComplianceRequirementRepository struct {
@@ -387,6 +390,7 @@ func (repo *ComplianceRequirementRepository) GetFullDetailsByID(id uint, tx ...u
 		Preload("Controls.Control.ControlCategory").
 		Preload("Controls.Control.ControlType").
 		Preload("StrategicObjectives.StrategicObjective").
+		Preload("Documents").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&complianceRequirement, id)
@@ -543,6 +547,30 @@ func (repo *ComplianceRequirementRepository) DeleteComplianceRequirementStrategi
 
 	// Delete strategic objectives by IDs
 	if err := db.Where("id IN (?)", objectiveIds).Delete(&models.ComplianceRequirementStrategicObjective{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *ComplianceRequirementRepository) CreateComplianceRequirementDocuments(documents []*models.ComplianceRequirementAssociatedDocument, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&documents).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *ComplianceRequirementRepository) DeleteComplianceRequirementDocuments(documentIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", documentIds).Delete(&models.ComplianceRequirementAssociatedDocument{}).Error; err != nil {
 		return err
 	}
 

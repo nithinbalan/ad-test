@@ -29,6 +29,7 @@ type ComplianceRequirement struct {
 	UpdatedByUser                 *User                                      `gorm:"foreignKey:UpdatedByID"`
 	Controls                      []*ComplianceControl                       `gorm:"foreignKey:ComplianceRequirementID"`
 	StrategicObjectives           []*ComplianceRequirementStrategicObjective `gorm:"foreignKey:ComplianceRequirementID"`
+	Documents                     []*ComplianceRequirementAssociatedDocument `gorm:"foreignKey:ComplianceRequirementID"`
 }
 
 // TableName overrides the table name used by ComplianceRequirement to `compliance_requirements`

@@ -39,6 +39,9 @@ type RiskRegisterRepositoryInterface interface {
 	CreateRiskSLAs(slaRegisters []*models.RiskSLA, tx ...utility.DatabaseTransaction) error
 	DeleteRiskSLAs(slaRegisterIds []*uint, tx ...utility.DatabaseTransaction) error
 
+	CreateRiskDocuments(documents []*models.RiskAssociatedDocument, tx ...utility.DatabaseTransaction) error
+	DeleteRiskDocuments(documentIds []*uint, tx ...utility.DatabaseTransaction) error
+
 	GetControlSummary(riskID uint, controlType string) ([]models.RiskControlAnalysis, error)
 }
 
@@ -302,6 +305,7 @@ func (repo *RiskRegisterRepository) GetFullDetailsByID(id uint, tx ...utility.Da
 		Preload("StrategicObjectives").
 		Preload("SLARegisters").
 		Preload("KRIs").
+		Preload("AssociatedDocuments").
 		Preload("CurrentLikelihood").
 		Preload("CurrentImpact").
 		Preload("CurrentRiskRating").
@@ -542,6 +546,30 @@ func (repo *RiskRegisterRepository) DeleteRiskSLAs(slaRegisterIds []*uint, tx ..
 
 	// Delete SLARegister by IDs
 	if err := db.Where("id IN (?)", slaRegisterIds).Delete(&models.RiskSLA{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *RiskRegisterRepository) CreateRiskDocuments(documents []*models.RiskAssociatedDocument, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&documents).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *RiskRegisterRepository) DeleteRiskDocuments(documentIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", documentIds).Delete(&models.RiskAssociatedDocument{}).Error; err != nil {
 		return err
 	}
 

@@ -157,6 +157,14 @@ type RiskRegisterDetailDTO struct {
 	StrategicObjectives     []*RiskStrategicObjectiveDTO     `json:"strategic_objectives"`
 	SLARegisters            []*RiskSLARegisterDTO            `json:"sla_registers"`
 	Kris                    []*RiskKRIDTO                    `json:"kris"`
+	AssociatedDocuments     []*RiskAssociatedDocumentDTO     `json:"associated_documents"`
+}
+
+type RiskAssociatedDocumentDTO struct {
+	ID             *uint                               `json:"id"`
+	RiskRegisterID uint                                `json:"risk_register_id"`
+	DocumentID     uint                                `json:"document_id"`
+	Document       organizationDTOs.DocumentDetailsDTO `json:"document"`
 }
 
 type RiskControlDTO struct {
@@ -215,6 +223,7 @@ type RiskRegisterFormDTO struct {
 	ProcessIDs               []*uint                       `json:"process_ids"`
 	StrategicObjectiveIDs    []*uint                       `json:"strategic_objective_ids"`
 	SLARegisterIDs           []*uint                       `json:"sla_register_ids"`
+	DocumentIds              []*uint                       `json:"document_ids"`
 }
 
 type RiskRegisterParsedDates struct {

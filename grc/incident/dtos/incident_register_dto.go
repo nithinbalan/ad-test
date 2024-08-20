@@ -95,6 +95,7 @@ type IncidentRegisterFormDTO struct {
 	RiskIds                  []*uint                    `json:"risk_ids"`
 	ProcessIDs               []*uint                    `json:"process_ids"`
 	SLARegisterIDs           []*uint                    `json:"sla_register_ids"`
+	DocumentIds              []*uint                    `json:"document_ids"`
 }
 
 type IncidentDocumentFormDTO struct {
@@ -158,11 +159,20 @@ type IncidentRegisterDetailDTO struct {
 	ResponsibleUnit        settingsDTOs.OrganizationUnitDTO    `json:"responsible_unit"`
 	ResponsibleUser        organizationDTOs.UserMinimalDTO     `json:"responsible_user"`
 	SLARegisters           []*IncidentSLARegisterDTO           `json:"sla_registers"`
+	AssociatedDocuments    []*IncidentAssociatedDocumentDTO    `json:"associated_documents"`
 	CreatedAt              time.Time                           `json:"created_at"`
 	UpdatedAt              *time.Time                          `json:"updated_at"`
 	CreatedByUser          organizationDTOs.UserMinimalDTO     `json:"created_by"`
 	UpdatedByUser          organizationDTOs.UserMinimalDTO     `json:"updated_by"`
 }
+
+type IncidentAssociatedDocumentDTO struct {
+	ID         *uint                               `json:"id"`
+	ProcessID  uint                                `json:"process_id"`
+	DocumentID uint                                `json:"document_id"`
+	Document   organizationDTOs.DocumentDetailsDTO `json:"document"`
+}
+
 type IncidentRegisterParsedDates struct {
 	ReportedAt *time.Time
 	IncidentAt *time.Time

@@ -277,6 +277,24 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 			return 0, err
 		}
 	}
+
+	var associatedDocs []*models.IncidentAssociatedDocument
+	for _, documentID := range incidentRegisterFormDTO.DocumentIds {
+		document := &models.IncidentAssociatedDocument{
+			IncidentRegisterID: id,
+			DocumentID:         *documentID,
+			CreatedByID:        currentUserID,
+		}
+		associatedDocs = append(associatedDocs, document)
+	}
+
+	if len(associatedDocs) > 0 {
+		if err := irs.repo.CreateIncidentDocuments(associatedDocs, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
 	//Add timeline
 	//todo
 	timelineTypes, err := irs.incidentTimelineSvc.GetAllTypes()
@@ -715,6 +733,58 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 			return err
 		}
 	}
+
+	existingDocumentIDs := make(map[uint]bool)
+	for _, doc := range existingIncident.AssociatedDocuments {
+		existingDocumentIDs[doc.DocumentID] = true
+	}
+
+	// Collect new document IDs
+	newDocumentIDs := make(map[uint]bool)
+	for _, doc := range incidentRegisterFormDTO.DocumentIds {
+		newDocumentIDs[*doc] = true
+	}
+
+	// Add new documents
+	var documentsToAdd []*models.IncidentAssociatedDocument
+	for _, newDocumentID := range incidentRegisterFormDTO.DocumentIds {
+		if _, exists := existingDocumentIDs[*newDocumentID]; !exists {
+			// Create a new incident document record
+			document := &models.IncidentAssociatedDocument{
+				IncidentRegisterID: id,
+				DocumentID:         *newDocumentID,
+				CreatedByID:        currentUserID,
+			}
+			documentsToAdd = append(documentsToAdd, document)
+		}
+	}
+
+	// Save the new documents
+	if len(documentsToAdd) > 0 {
+		if err := irs.repo.CreateIncidentDocuments(documentsToAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// Remove documents not in the new list
+	var deleteDocumentIDs []*uint
+
+	for _, existingDocument := range existingIncident.AssociatedDocuments {
+		if _, exists := newDocumentIDs[existingDocument.DocumentID]; !exists {
+			// Append document to delete list
+			deleteDocumentIDs = append(deleteDocumentIDs, existingDocument.ID)
+		}
+	}
+
+	// Delete documents not in the new list
+	if len(deleteDocumentIDs) > 0 {
+		if err := irs.repo.DeleteIncidentDocuments(deleteDocumentIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
 	//Update timeline
 	//todo
 	timelineType, err := irs.incidentTimelineSvc.GetByType("reporting")
@@ -910,6 +980,18 @@ func (irs *IncidentRegisterService) Delete(ids []uint, currentUserID uint) ([]ui
 				return nil, err
 			}
 		}
+
+		if len(incident.AssociatedDocuments) > 0 {
+			var deleteDocumentIds []*uint
+			for _, document := range incident.AssociatedDocuments {
+				deleteDocumentIds = append(deleteDocumentIds, document.ID)
+			}
+			if err := irs.repo.DeleteIncidentDocuments(deleteDocumentIds, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+		}
+
 		//Delete timeline
 		//todo
 		if err := irs.incidentTimelineSvc.Delete(id, tx); err != nil {

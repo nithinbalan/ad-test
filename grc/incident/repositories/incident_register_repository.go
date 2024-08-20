@@ -37,6 +37,9 @@ type IncidentRegisterRepositoryInterface interface {
 
 	CreateIncidentSLAs(slaRegisters []*models.IncidentSLA, tx ...utility.DatabaseTransaction) error
 	DeleteIncidentSLAs(slaRegisterIds []*uint, tx ...utility.DatabaseTransaction) error
+
+	CreateIncidentDocuments(documents []*models.IncidentAssociatedDocument, tx ...utility.DatabaseTransaction) error
+	DeleteIncidentDocuments(documentIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type IncidentRegisterRepository struct {
@@ -245,6 +248,7 @@ func (repo *IncidentRegisterRepository) GetFullDetailsByID(id uint, tx ...utilit
 		Preload("Risks").
 		Preload("Processes").
 		Preload("SLARegisters").
+		Preload("AssociatedDocuments").
 		Preload("ResponsibleUnit.ParentUnit.ParentUnit.ParentUnit.ParentUnit.ParentUnit").
 		Preload("ResponsibleUser").
 		Preload("ResponsibleUser.OrganizationUnit1").
@@ -479,6 +483,30 @@ func (repo *IncidentRegisterRepository) DeleteIncidentSLAs(slaRegisterIds []*uin
 
 	// Delete SLARegister by IDs
 	if err := db.Where("id IN (?)", slaRegisterIds).Delete(&models.IncidentSLA{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *IncidentRegisterRepository) CreateIncidentDocuments(documents []*models.IncidentAssociatedDocument, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&documents).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *IncidentRegisterRepository) DeleteIncidentDocuments(documentIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", documentIds).Delete(&models.IncidentAssociatedDocument{}).Error; err != nil {
 		return err
 	}
 
