@@ -3,6 +3,7 @@ package dtos
 import (
 	commonDTOs "jethur/grc/common/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
+	"time"
 )
 
 type MeetingControlListDTO struct {
@@ -110,6 +111,28 @@ type MeetingRiskListDTO struct {
 	RiskMatrixRiskRatingColorCode string  `json:"risk_matrix_risk_rating_color_code"`
 }
 
+type MeetingIncidentListDTO struct {
+	ReferenceNumber            string     `json:"reference_number"`
+	Title                      string     `json:"title"`
+	Description                *string    `json:"description"`
+	IncidentAt                 time.Time  `json:"incident_at"`
+	Location                   *string    `json:"location"`
+	ReportedAt                 *time.Time `json:"reported_at"`
+	QuickAction                *string    `json:"quick_action"`
+	IncidentCategoryTitleEn    string     `json:"incident_category_title_en"`
+	IncidentCategoryTitleAr    string     `json:"incident_category_title_ar"`
+	IncidentSubCategoryTitleEn string     `json:"incident_sub_category_title_en"`
+	IncidentSubCategoryTitleAr string     `json:"incident_sub_category_title_ar"`
+	IncidentTypeTitleEn        string     `json:"incident_type_title_en"`
+	IncidentTypeTitleAr        string     `json:"incident_type_title_ar"`
+	SeverityLevelTitleEn       string     `json:"severity_level_title_en"`
+	SeverityLevelTitleAr       string     `json:"severity_level_title_ar"`
+	SeverityLevelColorCode     string     `json:"severity_level_color_code"`
+	IncidentStatusTitleEn      string     `json:"incident_status_title_en"`
+	IncidentStatusTitleAr      string     `json:"incident_status_title_ar"`
+	IncidentStatusColorCode    string     `json:"incident_status_color_code"`
+}
+
 type MeetingAssociatedItemListQueryParamsDTO struct {
 	Sort        string
 	SortBy      string
@@ -137,5 +160,10 @@ type MeetingAssociatedItemProcessListResponseDTO struct {
 
 type MeetingAssociatedItemRiskListResponseDTO struct {
 	Items      []*MeetingRiskListDTO        `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
+}
+
+type MeetingAssociatedItemIncidentListResponseDTO struct {
+	Items      []*MeetingIncidentListDTO    `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }

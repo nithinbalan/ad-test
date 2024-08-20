@@ -12,6 +12,7 @@ type MeetingAssociatedItemRepositoryInterface interface {
 	GetAllComplianceRequirements(meetingID uint, params *meetingDTOs.MeetingAssociatedItemListQueryParamsDTO) ([]meetingDTOs.MeetingComplianceRequirementListDTO, int64, error)
 	GetAllRisks(meetingID uint, params *meetingDTOs.MeetingAssociatedItemListQueryParamsDTO) (*meetingDTOs.MeetingAssociatedItemRiskListResponseDTO, error)
 	GetAllProcesses(meetingID uint, params *meetingDTOs.MeetingAssociatedItemListQueryParamsDTO) (*meetingDTOs.MeetingAssociatedItemProcessListResponseDTO, error)
+	GetAllIncidents(meetingID uint, params *meetingDTOs.MeetingAssociatedItemListQueryParamsDTO) (*meetingDTOs.MeetingAssociatedItemIncidentListResponseDTO, error)
 }
 
 type MeetingAssociatedItemRepository struct {
@@ -385,5 +386,95 @@ func (repo *MeetingAssociatedItemRepository) GetAllRisks(meetingID uint, params 
 		},
 	}
 
+	return response, nil
+}
+
+func (repo *MeetingAssociatedItemRepository) GetAllIncidents(meetingID uint, params *meetingDTOs.MeetingAssociatedItemListQueryParamsDTO) (*meetingDTOs.MeetingAssociatedItemIncidentListResponseDTO, error) {
+	var incidentList []*meetingDTOs.MeetingIncidentListDTO
+	var totalCount int64
+
+	query := repo.db.Table("meeting_incidents").
+		Select(`
+			incident_register.reference_number,
+			incident_register.title,
+			incident_register.description,
+			incident_register.incident_at,
+			incident_register.location,
+			incident_register.reported_at,
+			incident_register.quick_action,
+			incident_categories.title_en AS incident_category_title_en,
+			incident_categories.title_ar AS incident_category_title_ar,
+			incident_sub_categories.title_en AS incident_sub_category_title_en,
+			incident_sub_categories.title_ar AS incident_sub_category_title_ar,
+			incident_types.title_en AS incident_type_title_en,
+			incident_types.title_ar AS incident_type_title_ar,
+			severity_levels.title_en AS severity_level_title_en,
+			severity_levels.title_ar AS severity_level_title_ar,
+			severity_levels.color_code AS severity_level_color_code,
+			incident_statuses.title_en AS incident_status_title_en,
+			incident_statuses.title_ar AS incident_status_title_ar,
+			incident_statuses.color_code AS incident_status_color_code
+		`).
+		Joins(`
+			LEFT JOIN incident_register ON incident_register.id = meeting_incidents.incident_register_id
+			LEFT JOIN incident_categories ON incident_categories.id = incident_register.incident_category_id
+			LEFT JOIN incident_sub_categories ON incident_sub_categories.id = incident_register.incident_sub_category_id
+			LEFT JOIN incident_types ON incident_types.id = incident_register.incident_type_id
+			LEFT JOIN incident_statuses ON incident_statuses.id = incident_register.incident_status_id
+			LEFT JOIN severity_levels ON severity_levels.id = incident_register.severity_level_id
+		`).
+		Where("meeting_incidents.meeting_id = ?", meetingID)
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Where(`
+			(incident_register.reference_number LIKE ? OR
+			incident_register.title LIKE ? OR
+			incident_register.description LIKE ? OR
+			incident_register.location LIKE ? OR
+			incident_categories.title_en LIKE ? OR
+			incident_categories.title_ar LIKE ? OR
+			incident_sub_categories.title_en LIKE ? OR
+			incident_sub_categories.title_ar LIKE ? OR
+			incident_types.title_en LIKE ? OR
+			incident_types.title_ar LIKE ? OR
+			severity_levels.title_en LIKE ? OR
+			severity_levels.title_ar LIKE ? OR
+			incident_statuses.title_en LIKE ? OR
+			incident_statuses.title_ar LIKE ?)`,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+	}
+
+	if params.SortBy == "" {
+		params.SortBy = "incident_register.title"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	offset := (params.Page - 1) * params.PageSize
+
+	// Execute the query
+	err := query.Offset(offset).Limit(params.PageSize).Find(&incidentList).Error
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &meetingDTOs.MeetingAssociatedItemIncidentListResponseDTO{
+		Items: incidentList,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
 	return response, nil
 }

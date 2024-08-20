@@ -12,6 +12,7 @@ type MeetingAssociatedItemServiceInterface interface {
 	GetAllComplianceRequirements(meetingID uint, params *meetingDTOs.MeetingAssociatedItemListQueryParamsDTO) (*meetingDTOs.MeetingAssociatedItemComplianceRequirementListResponseDTO, error)
 	GetAllRisks(meetingID uint, params *meetingDTOs.MeetingAssociatedItemListQueryParamsDTO) (*meetingDTOs.MeetingAssociatedItemRiskListResponseDTO, error)
 	GetAllProcesses(meetingID uint, params *meetingDTOs.MeetingAssociatedItemListQueryParamsDTO) (*meetingDTOs.MeetingAssociatedItemProcessListResponseDTO, error)
+	GetAllIncidents(meetingID uint, params *meetingDTOs.MeetingAssociatedItemListQueryParamsDTO) (*meetingDTOs.MeetingAssociatedItemIncidentListResponseDTO, error)
 }
 
 // Service and implementations
@@ -109,4 +110,11 @@ func (mais *MeetingAssociatedItemService) GetAllProcesses(meetingID uint, params
 		return nil, err
 	}
 	return mais.repo.GetAllProcesses(meetingID, params)
+}
+
+func (mais *MeetingAssociatedItemService) GetAllIncidents(meetingID uint, params *meetingDTOs.MeetingAssociatedItemListQueryParamsDTO) (*meetingDTOs.MeetingAssociatedItemIncidentListResponseDTO, error) {
+	if _, err := mais.meetingSvc.GetByID(meetingID); err != nil {
+		return nil, err
+	}
+	return mais.repo.GetAllIncidents(meetingID, params)
 }

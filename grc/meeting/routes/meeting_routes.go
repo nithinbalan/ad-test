@@ -81,5 +81,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	meetingRoutes.GET("/meetings/:id/compliance-requirements", meetingAssociatedItemController.GetAllMeetingComplianceRequirements)
 	meetingRoutes.GET("/meetings/:id/risks", meetingAssociatedItemController.GetAllMeetingRisks)
 	meetingRoutes.GET("/meetings/:id/processes", meetingAssociatedItemController.GetAllMeetingProcesses)
+	meetingRoutes.GET("/meetings/:id/incidents", meetingAssociatedItemController.GetAllMeetingIncidents)
 
 }
