@@ -54,3 +54,24 @@ func ParseCommaSeparatedStringToArray(input string) []string {
 
 	return result
 }
+
+func ParseCommaSeparatedStringToIntArray(input string) ([]int, error) {
+	// Split the string by commas
+	items := strings.Split(input, ",")
+
+	// Create a slice to hold the converted integers
+	var result []int
+	for _, item := range items {
+		// Trim whitespace and check if the item is non-empty
+		trimmedItem := strings.TrimSpace(item)
+		if trimmedItem != "" {
+			intValue, err := strconv.Atoi(trimmedItem)
+			if err != nil {
+				return nil, err
+			}
+			result = append(result, intValue)
+		}
+	}
+
+	return result, nil
+}

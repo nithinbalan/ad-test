@@ -43,6 +43,7 @@ type UserListQueryParamsDTO struct {
 	Status      string
 	Page        int
 	PageSize    int
+	UserIDs     []int
 	Filters     map[string][]string
 	QuickFilter []string
 }

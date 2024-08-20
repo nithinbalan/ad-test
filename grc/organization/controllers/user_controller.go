@@ -30,6 +30,13 @@ func (uc *UserController) GetAllUsers(c *gin.Context) {
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
+	userIdsStr := c.Query("user_ids")
+
+	userIds, err := utility.ParseCommaSeparatedStringToIntArray(userIdsStr)
+	if err != nil {
+		utility.SendInvalidErrResp(c, errors.New("invalid 'user_ids' parameter"))
+		return
+	}
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
@@ -80,6 +87,7 @@ func (uc *UserController) GetAllUsers(c *gin.Context) {
 		Status:      status,
 		Page:        page,
 		PageSize:    pageSize,
+		UserIDs:     userIds,
 		Filters:     filters,
 		QuickFilter: quickFilter,
 	}

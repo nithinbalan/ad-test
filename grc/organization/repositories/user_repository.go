@@ -95,6 +95,10 @@ func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*us
 		}
 	}
 
+	if len(params.UserIDs) > 0 {
+		query = query.Where("users.id IN (?)", params.UserIDs)
+	}
+
 	// Apply quick filters
 	for _, filter := range params.QuickFilter {
 		switch filter {
