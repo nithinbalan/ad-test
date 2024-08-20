@@ -223,3 +223,57 @@ func (craic *ComplianceRequirementAssociatedItemController) GetAllComplianceRequ
 	}
 	c.JSON(http.StatusOK, compliances)
 }
+
+func (cric *ComplianceRequirementAssociatedItemController) GetAllComplianceRequirementDocuments(c *gin.Context) {
+	complianceRequirementIDStr := c.Param("requirementId")
+
+	complianceRequirementID, err := strconv.ParseUint(complianceRequirementIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+	status := c.Query("status")
+	quickFilter := c.QueryArray("quick_filter")
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(cric.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(cric.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	queryParams := complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO{
+		Sort:        sort,
+		SortBy:      sortBy,
+		Keyword:     keyword,
+		Status:      status,
+		Page:        page,
+		PageSize:    pageSize,
+		QuickFilter: quickFilter,
+	}
+	documents, err := cric.service.GetAllDocuments(uint(complianceRequirementID), &queryParams)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(cric.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, documents)
+}

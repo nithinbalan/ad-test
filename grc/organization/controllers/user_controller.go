@@ -43,6 +43,7 @@ func (uc *UserController) GetAllUsers(c *gin.Context) {
 	}
 
 	validSortFields := map[string]string{
+		"id":            "users.id",
 		"name":          "users.first_name_en",
 		"email":         "users.email",
 		"mobile_number": "users.mobile_number",
