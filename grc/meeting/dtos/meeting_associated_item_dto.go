@@ -87,17 +87,17 @@ type MeetingRiskListDTO struct {
 	RiskStatusColorCode           string  `json:"risk_status_color_code"`
 	Title                         string  `json:"title"`
 	Description                   *string `json:"description"`
-	OwnerUnitTitleEn              string  `json:"owner_unit_title_en"`
-	OwnerUnitTitleAr              string  `json:"owner_unit_title_ar"`
-	OwnerID                       uint    `json:"owner_id"`
-	OwnerFirstNameEn              string  `json:"owner_first_name_en"`
-	OwnerFirstNameAr              string  `json:"owner_first_name_ar"`
-	OwnerLastNameEn               string  `json:"owner_last_name_en"`
-	OwnerLastNameAr               string  `json:"owner_last_name_ar"`
-	OwnerInitial                  string  `json:"owner_initial"`
-	OwnerColor                    string  `json:"owner_color"`
-	OwnerEmail                    string  `json:"owner_email"`
-	OwnerProfileImagePath         string  `json:"owner_profile_image_path"`
+	ResponsibleUnitTitleEn        string  `json:"responsible_unit_title_en"`
+	ResponsibleUnitTitleAr        string  `json:"responsible_unit_title_ar"`
+	ResponsibleUserID             uint    `json:"responsible_user_id"`
+	ResponsibleUserFirstNameEn    string  `json:"responsible_user_first_name_en"`
+	ResponsibleUserFirstNameAr    string  `json:"responsible_user_first_name_ar"`
+	ResponsibleUserLastNameEn     string  `json:"responsible_user_last_name_en"`
+	ResponsibleUserLastNameAr     string  `json:"responsible_user_last_name_ar"`
+	ResponsibleUserInitial        string  `json:"responsible_user_initial"`
+	ResponsibleUserColor          string  `json:"responsible_user_color"`
+	ResponsibleUserEmail          string  `json:"responsible_user_email"`
+	ResponsibleProfileImagePath   string  `json:"responsible_user_profile_image_path"`
 	RiskMatrixLikelihoodTitleEn   string  `json:"risk_matrix_likelihood_title_en"`
 	RiskMatrixLikelihoodTitleAr   string  `json:"risk_matrix_likelihood_title_ar"`
 	RiskMatrixLikelihoodColorCode string  `json:"risk_matrix_likelihood_score"`
