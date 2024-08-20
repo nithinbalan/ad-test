@@ -99,8 +99,8 @@ type MeetingActionPlanDetailDTO struct {
 	TargetDate              *time.Time                          `json:"target_date"`
 	CreatedAt               time.Time                           `json:"created_at"`
 	UpdatedAt               *time.Time                          `json:"updated_at"`
-	CreatedByUser           organizationDTOs.UserMinimalDTO     `json:"created_by_id"`
-	UpdatedByUser           *organizationDTOs.UserMinimalDTO    `json:"updated_by_id"`
+	CreatedByUser           organizationDTOs.UserMinimalDTO     `json:"created_by_user"`
+	UpdatedByUser           *organizationDTOs.UserMinimalDTO    `json:"updated_by_user"`
 	ActionPlanStatusUpdates []*MeetingActionPlanStatusUpdateDTO `json:"action_plan_status_updates"`
 }
 type MeetingActionPlanStatusUpdateDTO struct {
