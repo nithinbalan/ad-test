@@ -196,6 +196,7 @@ func (repo *MeetingActionPlanRepository) GetFullDetailsByID(id uint) (*models.Me
 		Preload("ResponsibleUser.OrganizationUnit1").
 		Preload("SeverityLevel").
 		Preload("ActionPlanStatus").
+		Preload("MeetingAgenda").
 		Preload("CreatedByUser").
 		Preload("CreatedByUser.OrganizationUnit1").
 		Preload("UpdatedByUser").
