@@ -11,6 +11,8 @@ import (
 type MeetingActionPlanListDTO struct {
 	ID                                  uint   `json:"id"`
 	Title                               string `json:"title"`
+	MeetingAgendaID                     *uint  `json:"meeting_agenda_id"`
+	MeetingAgendaTitle                  string `json:"meeting_agenda_title"`
 	Description                         string `json:"description"`
 	SeverityLevelTitleEn                string `json:"severity_level_title_en"`
 	SeverityLevelTitleAr                string `json:"severity_level_title_ar"`
@@ -77,6 +79,7 @@ type MeetingActionPlanFormDTO struct {
 	Percentage         *uint   `json:"percentage" binding:"omitempty"`
 	Comments           *string `json:"comments" binding:"omitempty"`
 	ActionPlanStatusID uint    `json:"action_plan_status_id" binding:"required"`
+	MeetingAgendaID    *uint   `json:"meeting_agenda_id"`
 }
 
 type MeetingActionPlanParsedDates struct {
@@ -90,6 +93,7 @@ type MeetingActionPlanDetailDTO struct {
 	SeverityLevel    *masterDTOs.SeverityLevelDTO     `json:"severity_level"`
 	ResponsibleUser  organizationDTOs.UserMinimalDTO  `json:"responsible_user"`
 	ActionPlanStatus masterDTOs.ActionPlanStatusDTO   `json:"action_plan_status"`
+	MeetingAgenda    *MeetingAgendaDetailDTO          `json:"agenda"`
 	Percentage       *uint                            `json:"percentage"`
 	Comments         *string                          `json:"comments"`
 	TargetDate       *time.Time                       `json:"target_date"`

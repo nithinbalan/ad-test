@@ -127,6 +127,7 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 		Description:        MeetingActionPlanFormDTO.Description,
 		SeverityLevelID:    MeetingActionPlanFormDTO.SeverityLevelID,
 		ResponsibleUserID:  MeetingActionPlanFormDTO.ResponsibleUserID,
+		MeetingAgendaID:    MeetingActionPlanFormDTO.MeetingAgendaID,
 		TargetDate:         dates.TargetDate,
 		Percentage:         *MeetingActionPlanFormDTO.Percentage,
 		ActionPlanStatusID: MeetingActionPlanFormDTO.ActionPlanStatusID,
@@ -238,6 +239,7 @@ func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUse
 	existingMeetingActionPlan.TargetDate = dates.TargetDate
 	existingMeetingActionPlan.Percentage = *MeetingActionPlanFormDTO.Percentage
 	existingMeetingActionPlan.ActionPlanStatusID = MeetingActionPlanFormDTO.ActionPlanStatusID
+	existingMeetingActionPlan.MeetingAgendaID = MeetingActionPlanFormDTO.MeetingAgendaID
 	existingMeetingActionPlan.UpdatedByID = &currentUserID
 
 	err = maps.repo.Update(existingMeetingActionPlan)
