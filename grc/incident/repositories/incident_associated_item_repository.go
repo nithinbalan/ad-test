@@ -13,6 +13,7 @@ type IncidentAssociatedItemRepositoryInterface interface {
 	GetAllRisks(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemRiskListResponseDTO, error)
 	GetAllProcesses(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemProcessListResponseDTO, error)
 	GetAllSLAs(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemSLAListResponseDTO, error)
+	GetAllDocuments(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemDocumentListResponseDTO, error)
 }
 
 type IncidentAssociatedItemRepository struct {
@@ -527,5 +528,94 @@ func (repo *IncidentAssociatedItemRepository) GetAllSLAs(incidentID uint, params
 		},
 	}
 
+	return response, nil
+}
+
+func (repo *IncidentAssociatedItemRepository) GetAllDocuments(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemDocumentListResponseDTO, error) {
+	var documentList []*incidentDTOs.IncidentDocumentListDTO
+	var totalCount int64
+
+	query := repo.db.Table("incident_associated_documents").
+		Select(`
+			documents.id AS id,
+			documents.reference_number AS reference_number,
+			documents.title_en AS title_en,
+			documents.title_ar AS title_ar,
+			documents.description_en AS description_en,
+			documents.description_ar AS description_ar,
+			document_categories.title_en AS document_category_title_en,
+			document_categories.title_ar AS document_category_title_ar,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+			responsible_user.first_name_ar AS responsible_user_first_name_ar,
+			responsible_user.last_name_en AS responsible_user_last_name_en,
+			responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			organization_units.title_en AS responsible_unit_title_en,
+			organization_units.title_ar AS responsible_unit_title_ar,
+			document_statuses.title_en AS document_status_title_en,
+			document_statuses.title_ar AS document_status_title_ar,
+			document_statuses.color_code AS document_status_color_code,
+			documents.last_checkout_at AS last_checkout_at,
+			documents.last_checkin_at AS last_checkin_at,
+			documents.is_locked AS is_locked
+		`).
+		Joins(`
+			LEFT JOIN documents ON documents.id = incident_associated_documents.document_id
+			LEFT JOIN document_categories ON documents.document_category_id = document_categories.id
+			LEFT JOIN users AS responsible_user ON documents.responsible_user_id = responsible_user.id
+			LEFT JOIN organization_units ON documents.responsible_unit_id = organization_units.id
+			LEFT JOIN document_statuses ON documents.document_status_id = document_statuses.id
+		`).
+		Where("incident_associated_documents.incident_register_id = ?", incidentID)
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+	// Apply search keyword if exists
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Where(`
+			(documents.title_en LIKE ? OR
+			documents.title_ar LIKE ? OR
+			documents.reference_number LIKE ? OR
+			document_categories.title_en LIKE ? OR
+			document_categories.title_ar LIKE ? OR
+			responsible_user.first_name_en LIKE ? OR
+			responsible_user.first_name_ar LIKE ? OR
+			responsible_user.last_name_en LIKE ? OR
+			responsible_user.last_name_ar LIKE ? OR
+			organization_units.title_en LIKE ? OR
+			organization_units.title_ar LIKE ? OR
+			document_statuses.title_en LIKE ? OR
+			document_statuses.title_ar LIKE ?)`,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+	}
+
+	if params.SortBy == "" {
+		params.SortBy = "documents.title_en"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	offset := (params.Page - 1) * params.PageSize
+
+	// Execute the query
+	err := query.Offset(offset).Limit(params.PageSize).Find(&documentList).Error
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &incidentDTOs.IncidentAssociatedItemDocumentListResponseDTO{
+		Items: documentList,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
 	return response, nil
 }

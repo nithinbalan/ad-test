@@ -117,6 +117,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.GET("/compliance-requirements/:requirementId/strategic-objectives", complianceRequirementAssociatedItemController.GetAllComplianceRequirementStrategicObjectives)
 	complianceRoutes.GET("/compliance-requirements/:requirementId/risks", complianceRequirementAssociatedItemController.GetAllComplianceRequirementRisks)
 	complianceRoutes.GET("/compliance-requirements/:requirementId/incidents", complianceRequirementAssociatedItemController.GetAllComplianceRequirementIncidents)
+	complianceRoutes.GET("/compliance-requirements/:requirementId/documents", complianceRequirementAssociatedItemController.GetAllComplianceRequirementDocuments)
 
 	//Compliance Action Plan
 	complianceRoutes.GET("/compliances/:complianceId/action-plans", complianceActionPlanController.GetAllComplianceActionPlans)

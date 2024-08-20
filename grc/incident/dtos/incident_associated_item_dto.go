@@ -1,6 +1,9 @@
 package dtos
 
-import commonDTOs "jethur/grc/common/dtos"
+import (
+	commonDTOs "jethur/grc/common/dtos"
+	"time"
+)
 
 type IncidentControlListDTO struct {
 	ControlID                            uint    `json:"control_id"`
@@ -133,6 +136,29 @@ type IncidentSLAListDTO struct {
 	ComplianceStatusColorCode       string `json:"compliance_status_color_code"`
 }
 
+type IncidentDocumentListDTO struct {
+	ID                         uint       `json:"id"`
+	ReferenceNumber            string     `json:"reference_number"`
+	TitleEn                    string     `json:"title_en"`
+	TitleAr                    string     `json:"title_ar"`
+	DescriptionEn              *string    `json:"description_en"`
+	DescriptionAr              *string    `json:"description_ar"`
+	DocumentCategoryTitleEn    string     `json:"document_category_title_en"`
+	DocumentCategoryTitleAr    string     `json:"document_category_title_ar"`
+	ResponsibleUserFirstNameEn string     `json:"responsible_user_first_name_en"`
+	ResponsibleUserFirstNameAr string     `json:"responsible_user_first_name_ar"`
+	ResponsibleUserLastNameEn  string     `json:"responsible_user_last_name_en"`
+	ResponsibleUserLastNameAr  string     `json:"responsible_user_last_name_ar"`
+	ResponsibleUnitTitleEn     string     `json:"responsible_unit_title_en"`
+	ResponsibleUnitTitleAr     string     `json:"responsible_unit_title_ar"`
+	DocumentStatusTitleEn      string     `json:"document_status_title_en"`
+	DocumentStatusTitleAr      string     `json:"document_status_title_ar"`
+	DocumentStatusColorCode    string     `json:"document_status_color_code"`
+	LastCheckoutAt             *time.Time `json:"last_checkout_at"`
+	LastCheckinAt              *time.Time `json:"last_checkin_at"`
+	IsLocked                   bool       `json:"is_locked"`
+}
+
 type IncidentAssociatedItemListQueryParamsDTO struct {
 	Sort        string
 	SortBy      string
@@ -165,5 +191,10 @@ type IncidentAssociatedItemProcessListResponseDTO struct {
 
 type IncidentAssociatedItemSLAListResponseDTO struct {
 	Items      []*IncidentSLAListDTO        `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
+}
+
+type IncidentAssociatedItemDocumentListResponseDTO struct {
+	Items      []*IncidentDocumentListDTO   `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }

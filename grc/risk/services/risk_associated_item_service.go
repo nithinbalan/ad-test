@@ -14,6 +14,7 @@ type RiskAssociatedItemServiceInterface interface {
 	GetAllStrategicObjectives(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemStrategicObjectiveListResponseDTO, error)
 	GetAllSLAs(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemSLAListResponseDTO, error)
 	GetAllIncidents(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemIncidentListResponseDTO, error)
+	GetAllDocuments(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemDocumentListResponseDTO, error)
 }
 
 // Service and implementations
@@ -125,4 +126,11 @@ func (rais *RiskAssociatedItemService) GetAllIncidents(riskID uint, params *risk
 		return nil, err
 	}
 	return rais.repo.GetAllIncidents(riskID, params)
+}
+
+func (rais *RiskAssociatedItemService) GetAllDocuments(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemDocumentListResponseDTO, error) {
+	if _, err := rais.riskRegisterSvc.GetByID(riskID); err != nil {
+		return nil, err
+	}
+	return rais.repo.GetAllDocuments(riskID, params)
 }

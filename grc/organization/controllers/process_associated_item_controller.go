@@ -182,29 +182,6 @@ func (paic *ProcessAssociatedItemController) GetAllProcessIncidents(c *gin.Conte
 	c.JSON(http.StatusOK, incidents)
 }
 
-func (paic *ProcessAssociatedItemController) GetAllAssociatedCounts(c *gin.Context) {
-	processIDStr := c.Param("processId")
-
-	processID, err := strconv.ParseUint(processIDStr, 10, 64)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	associatedCounts, err := paic.service.GetAllAssociatedCounts(uint(processID))
-	if err != nil {
-		switch e := err.(type) {
-		case *utility.ResourceNotFoundError:
-			utility.SendNotFoundErrResp(c)
-			return
-		default:
-			utility.SendInternalErrResp(paic.db, c, e.Error())
-			return
-		}
-	}
-	c.JSON(http.StatusOK, associatedCounts)
-}
-
 func (paic *ProcessAssociatedItemController) GetAllProcessDocuments(c *gin.Context) {
 	processIDStr := c.Param("processId")
 
@@ -257,4 +234,27 @@ func (paic *ProcessAssociatedItemController) GetAllProcessDocuments(c *gin.Conte
 		}
 	}
 	c.JSON(http.StatusOK, documents)
+}
+
+func (paic *ProcessAssociatedItemController) GetAllAssociatedCounts(c *gin.Context) {
+	processIDStr := c.Param("processId")
+
+	processID, err := strconv.ParseUint(processIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	associatedCounts, err := paic.service.GetAllAssociatedCounts(uint(processID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(paic.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, associatedCounts)
 }

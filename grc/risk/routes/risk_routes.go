@@ -178,6 +178,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.GET("risks/:riskId/strategic-objectives", riskAssociatedItemController.GetAllRiskStrategicObjectives)
 	riskRoutes.GET("risks/:riskId/slas", riskAssociatedItemController.GetAllRiskSLAs)
 	riskRoutes.GET("risks/:riskId/incidents", riskAssociatedItemController.GetAllRiskIncidents)
+	riskRoutes.GET("/risks/:riskId/documents", riskAssociatedItemController.GetAllRiskDocuments)
 
 	riskRoutes.PUT("/risks/:riskId/response-strategy", riskRegisterController.UpdateResponseStrategy)
 	riskRoutes.DELETE("/risks/:riskId/response-strategy", riskRegisterController.DeleteResponseStrategy)

@@ -10,6 +10,7 @@ type ComplianceRequirementAssociatedItemServiceInterface interface {
 	GetAllStrategicObjectives(requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementAssociatedItemStrategicObjectiveListResponseDTO, error)
 	GetAllRisks(requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementAssociatedItemRiskListResponseDTO, error)
 	GetAllIncidents(requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementAssociatedItemIncidentListResponseDTO, error)
+	GetAllDocuments(requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementAssociatedItemDocumentListResponseDTO, error)
 }
 
 // Service and implementations
@@ -43,4 +44,8 @@ func (crais *ComplianceRequirementAssociatedItemService) GetAllRisks(requirement
 
 func (crais *ComplianceRequirementAssociatedItemService) GetAllIncidents(requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementAssociatedItemIncidentListResponseDTO, error) {
 	return crais.repo.GetAllIncidents(requirementID, params)
+}
+
+func (crais *ComplianceRequirementAssociatedItemService) GetAllDocuments(requirementID uint, params *complianceDTOs.ComplianceRequirementAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementAssociatedItemDocumentListResponseDTO, error) {
+	return crais.repo.GetAllDocuments(requirementID, params)
 }
