@@ -19,6 +19,8 @@ type MeetingActionPlanStatusUpdateRepositoryInterface interface {
 	CreateDocuments(docs []*models.MeetingActionPlanStatusUpdateDocument, tx ...utility.DatabaseTransaction) error
 	GetDocumentByID(id uint) (*models.MeetingActionPlanStatusUpdateDocument, error)
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
+
+	GetLatestMeetingActionPlanStatusUpdate(meetingActionPlanID uint) (*meetingDTOs.MeetingActionPlanStatusUpdateListDTO, error)
 }
 
 type MeetingActionPlanStatusUpdateRepository struct {
@@ -160,4 +162,52 @@ func (repo *MeetingActionPlanStatusUpdateRepository) DeleteDocuments(docIds []*u
 	}
 
 	return nil
+}
+
+func (repo *MeetingActionPlanStatusUpdateRepository) GetLatestMeetingActionPlanStatusUpdate(meetingActionPlanID uint) (*meetingDTOs.MeetingActionPlanStatusUpdateListDTO, error) {
+
+	var meetingActionPlanUpdate *meetingDTOs.MeetingActionPlanStatusUpdateListDTO
+
+	query := repo.db.Table("meeting_action_plan_status_updates").
+		Select(`
+            meeting_action_plan_status_updates.*,
+            meeting_action_plans.title AS meeting_action_plan_title,
+            action_plan_statuses.title_en AS action_plan_status_title_en,
+            action_plan_statuses.title_ar AS action_plan_status_title_ar,
+            action_plan_statuses.color_code AS action_plan_status_color_code,
+            created_user.id AS created_user_id,
+        	created_user.first_name_en AS created_user_first_name_en,
+            created_user.first_name_ar AS created_user_first_name_ar,
+            created_user.last_name_en AS created_user_last_name_en,
+            created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+        	created_user.color AS created_user_color,
+        	created_user.email AS created_user_email,
+        	created_user.profile_image_path AS created_user_profile_image_path,
+            updated_user.id AS updated_user_id,
+    		updated_user.first_name_en AS updated_user_first_name_en,
+            updated_user.first_name_ar AS updated_user_first_name_ar,
+            updated_user.last_name_en AS updated_user_last_name_en,
+            updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+        	updated_user.color AS updated_user_color,
+        	updated_user.email AS updated_user_email,
+        	updated_user.profile_image_path AS updated_user_profile_image_path 
+        `).
+		Joins(`
+            LEFT JOIN meeting_action_plans ON meeting_action_plans.id = meeting_action_plan_status_updates.meeting_action_plan_id
+            LEFT JOIN action_plan_statuses ON action_plan_statuses.id = meeting_action_plan_status_updates.action_plan_status_id
+            LEFT JOIN users AS created_user ON created_user.id = meeting_action_plan_status_updates.created_by_id
+            LEFT JOIN users AS updated_user ON updated_user.id = meeting_action_plan_status_updates.updated_by_id
+        `).
+		Where("meeting_action_plan_status_updates.meeting_action_plan_id = ?", meetingActionPlanID).
+		Order("meeting_action_plan_status_updates.created_at DESC").
+		First(&meetingActionPlanUpdate)
+
+	if query.Error != nil {
+		return nil, query.Error
+	}
+
+	return meetingActionPlanUpdate, nil
+
 }

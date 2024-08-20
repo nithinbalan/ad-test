@@ -54,11 +54,13 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	meetingRoutes.PUT("/meetings/:id/action-plans/:meetingActionPlanId", meetingActionPlanController.UpdateMeetingActionPlan)
 	meetingRoutes.POST("/meetings/:id/action-plans/delete", meetingActionPlanController.DeleteMeetingActionPlans)
 
+
 	//Meeting action plan status updates
 	meetingRoutes.GET("/meetings/:id/action-plans/:meetingActionPlanId/status-updates", meetingActionPlanStatusUpdateController.GetAllMeetingActionPlanStatusUpdates)
 	meetingRoutes.GET("/meetings/:id/action-plans/:meetingActionPlanId/status-updates/:meetingActionPlanUpdateId", meetingActionPlanStatusUpdateController.GetMeetingActionPlanStatusUpdateDetails)
 	meetingRoutes.POST("/meetings/:id/action-plans/:meetingActionPlanId/status-updates", meetingActionPlanStatusUpdateController.CreateMeetingActionPlanStatusUpdate)
 	meetingRoutes.PUT("/meetings/:id/action-plans/:meetingActionPlanId/status-updates/:meetingActionPlanUpdateId", meetingActionPlanStatusUpdateController.UpdateMeetingActionPlanStatusUpdate)
+	meetingRoutes.GET("/meetings/:id/action-plans/:meetingActionPlanId/status-updates/latest", meetingActionPlanStatusUpdateController.GetLatestMeetingActionPlanStatusUpdate)
 
 	//Meeting Agendas
 	meetingRoutes.GET("/meetings/:id/agendas", meetingAgendaController.GetAllMeetingAgendas)

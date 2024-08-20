@@ -1,6 +1,10 @@
 -- +goose Up
 -- +goose StatementBegin
 ALTER TABLE meeting_action_plans
+ADD comments NVARCHAR(MAX) NULL;
+
+
+ALTER TABLE meeting_action_plans
 ADD meeting_agenda_id INT NULL;
 
 ALTER TABLE meeting_action_plans

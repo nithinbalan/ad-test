@@ -24,7 +24,7 @@ type MeetingActionPlanServiceInterface interface {
 	Create(meetingID uint, currentUserID uint, MeetingActionPlanFormDTO *meetingDTOs.MeetingActionPlanFormDTO) (uint, error)
 	Update(meetingID uint, id uint, currentUserID uint, MeetingActionPlanFormDTO *meetingDTOs.MeetingActionPlanFormDTO) error
 	Delete(meetingID uint, ids []uint, currentUserID uint) ([]uint, error)
-	StatusUpdate(meetingID uint, id uint, currentUserID uint, actionPlanStatusID uint, percentage uint, tx ...utility.DatabaseTransaction) error
+	StatusUpdate(meetingID uint, id uint, currentUserID uint,  meetingActionPlanStatusUpdateFormDTO *meetingDTOs.MeetingActionPlanStatusUpdateFormDTO, tx ...utility.DatabaseTransaction) error
 }
 
 // Service and implementations
@@ -295,15 +295,17 @@ func (maps *MeetingActionPlanService) Delete(meetingID uint, ids []uint, current
 	return failedIds, nil
 }
 
-func (maps *MeetingActionPlanService) StatusUpdate(meetingID uint, id uint, currentUserID uint, actionPlanStatusID uint, percentage uint, tx ...utility.DatabaseTransaction) error {
+func (maps *MeetingActionPlanService) StatusUpdate(meetingID uint, id uint, currentUserID uint, meetingActionPlanStatusUpdateFormDTO *meetingDTOs.MeetingActionPlanStatusUpdateFormDTO, tx ...utility.DatabaseTransaction) error {
 	existingMeetingActionPlan, err := maps.GetByID(meetingID, id)
 
 	if err != nil {
 		return err
 	}
 
-	existingMeetingActionPlan.ActionPlanStatusID = actionPlanStatusID
-	existingMeetingActionPlan.Percentage = percentage
+	existingMeetingActionPlan.ActionPlanStatusID = meetingActionPlanStatusUpdateFormDTO.ActionPlanStatusID
+	existingMeetingActionPlan.Percentage = meetingActionPlanStatusUpdateFormDTO.Percentage
+	existingMeetingActionPlan.Comments = &meetingActionPlanStatusUpdateFormDTO.Comment
+
 	existingMeetingActionPlan.UpdatedByID = &currentUserID
 
 	err = maps.repo.Update(existingMeetingActionPlan, tx...)

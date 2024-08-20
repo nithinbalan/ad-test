@@ -191,6 +191,7 @@ func (repo *MeetingActionPlanRepository) GetFullDetailsByID(id uint) (*models.Me
 		Preload("CreatedByUser.OrganizationUnit1").
 		Preload("UpdatedByUser").
 		Preload("UpdatedByUser.OrganizationUnit1").
+		Preload("ActionPlanStatusUpdates").
 		First(&meetingActionPlan, id)
 
 	if result.Error != nil {
