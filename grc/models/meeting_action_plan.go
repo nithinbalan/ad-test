@@ -22,13 +22,15 @@ type MeetingActionPlan struct {
 	UpdatedByID        *uint      `json:"updated_by_id,omitempty" gorm:"default:null; column:updated_by_id"`
 
 	// Relationships
-	Meeting          *Meeting          `gorm:"foreignKey:MeetingID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	MeetingAgenda    *MeetingAgenda    `gorm:"foreignKey:MeetingAgendaID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	SeverityLevel    *SeverityLevel    `gorm:"foreignkey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ResponsibleUser  *User             `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ActionPlanStatus *ActionPlanStatus `gorm:"foreignKey:ActionPlanStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser    *User             `gorm:"foreignKey:CreatedByID"`
-	UpdatedByUser    *User             `gorm:"foreignKey:UpdatedByID"`
+	Meeting                      *Meeting                         `gorm:"foreignKey:MeetingID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	MeetingAgenda                *MeetingAgenda                   `gorm:"foreignKey:MeetingAgendaID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	SeverityLevel                *SeverityLevel                   `gorm:"foreignkey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ResponsibleUser              *User                            `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ActionPlanStatus             *ActionPlanStatus                `gorm:"foreignKey:ActionPlanStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ActionPlanStatusUpdates      []*MeetingActionPlanStatusUpdate `gorm:"foreignKey:MeetingActionPlanID"`
+	LatestActionPlanStatusUpdate *MeetingActionPlanStatusUpdate   `gorm:"foreignKey:MeetingActionPlanID"`
+	CreatedByUser                *User                            `gorm:"foreignKey:CreatedByID"`
+	UpdatedByUser                *User                            `gorm:"foreignKey:UpdatedByID"`
 }
 
 func (MeetingActionPlan) TableName() string {
