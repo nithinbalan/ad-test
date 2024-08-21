@@ -10,8 +10,8 @@ ADD
     heading_ar NVARCHAR(255) NOT NULL,
     title_en NVARCHAR(500) NOT NULL,
     title_ar NVARCHAR(500) NOT NULL,
-    url_param NVARCHAR(255) NOT NULL,
-    query_param NVARCHAR(255) NOT NULL,
+    url_param NVARCHAR(MAX) NOT NULL,
+    query_param NVARCHAR(MAX) NOT NULL,
     is_system_notification BIT DEFAULT 0;
 
 -- Make the created_by_id column nullable
