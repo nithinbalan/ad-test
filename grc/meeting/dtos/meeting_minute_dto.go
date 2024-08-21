@@ -9,7 +9,7 @@ type MeetingMinuteListDTO struct {
 	ID                           uint       `json:"id"`
 	MeetingAgendaID              *uint      `json:"meeting_agenda_id"`
 	Minutes                      *string    `json:"minutes"`
-	MeetingAgendaTitle           string     `json:"meeting_agenda_title"`
+	MeetingAgendaTitle           *string    `json:"meeting_agenda_title"`
 	MeetingMinuteStatusID        uint       `json:"meeting_minute_status_id"`
 	MeetingMinuteStatusTitleEn   string     `json:"meeting_minute_status_title_en"`
 	MeetingMinuteStatusTitleAr   string     `json:"meeting_minute_status_title_ar"`
