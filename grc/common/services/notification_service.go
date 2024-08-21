@@ -26,7 +26,7 @@ func NewNotificationService(repo repositories.NotificationRepositoryInteface,
 }
 
 func (ns *NotificationService) SendNotification(notificationDTO *commonDTOs.DBNotificationDTO, emailNotificationDTO *commonDTOs.EmailNotificationDTO, notificationMasterIdentifier string, tx ...utility.DatabaseTransaction) error {
-	//Check if notification is enabled for the user
+	// Check if notification is enabled for the user
 	isEnabled, err := ns.IsNotificationEnabled(notificationDTO.UserID, notificationMasterIdentifier)
 	if err != nil {
 		return err
@@ -46,13 +46,18 @@ func (ns *NotificationService) SendNotification(notificationDTO *commonDTOs.DBNo
 	}
 
 	userNotification := &models.UserNotification{
-		UserID:      notificationDTO.UserID,
-		ModuleID:    moduleID,
-		Icon:        notificationDTO.Icon,
-		MessageEn:   notificationDTO.MessageEn,
-		MessageAr:   notificationDTO.MessageAr,
-		RedirectURL: notificationDTO.RedirectURL,
-		CreatedByID: notificationDTO.CreatedByID,
+		UserID:               notificationDTO.UserID,
+		ModuleID:             moduleID,
+		NotificationType:     notificationDTO.NotificationType,
+		ReferenceNumber:      notificationDTO.ReferenceNumber,
+		HeadingEn:            notificationDTO.HeadingEn,
+		HeadingAr:            notificationDTO.HeadingAr,
+		TitleEn:              notificationDTO.TitleEn,
+		TitleAr:              notificationDTO.TitleAr,
+		URLParam:             notificationDTO.URLParam,
+		QueryParam:           notificationDTO.QueryParam,
+		IsSystemNotification: notificationDTO.IsSystemNotification,
+		CreatedByID:          notificationDTO.CreatedByID,
 	}
 
 	err = ns.repo.Create(userNotification)

@@ -1,15 +1,18 @@
 package dtos
 
-import "jethur/grc/models"
-
 type DBNotificationDTO struct {
-	UserID           uint        `json:"user_id"`
-	ModuleIdentifier string      `json:"module_id"`
-	Icon             models.Icon `json:"icon"`
-	MessageEn        string      `json:"message_en"`
-	MessageAr        string      `json:"message_ar"`
-	RedirectURL      string      `json:"redirect_url"`
-	CreatedByID      uint        `json:"created_by_id"`
+	UserID               uint   `json:"user_id"`
+	ModuleIdentifier     string `json:"module_identifier"`
+	NotificationType     string `json:"notification_type"`
+	ReferenceNumber      string `json:"reference_number"`
+	HeadingEn            string `json:"heading_en"`
+	HeadingAr            string `json:"heading_ar"`
+	TitleEn              string `json:"title_en"`
+	TitleAr              string `json:"title_ar"`
+	URLParam             string `json:"url_param"`
+	QueryParam           string `json:"query_param"`
+	IsSystemNotification bool   `json:"is_system_notification"`
+	CreatedByID          *uint  `json:"created_by_id"`
 }
 
 type EmailNotificationDTO struct {
@@ -18,3 +21,14 @@ type EmailNotificationDTO struct {
 	TemplateRelativePath string      `json:"template_relative_path"`
 	EmailData            interface{} `json:"email_data"`
 }
+
+type NotificationType string
+
+const (
+	AssignmentType NotificationType = "assignment"
+	SecurityType   NotificationType = "security"
+	ActionType     NotificationType = "action"
+	CompletionType NotificationType = "completion"
+	ReminderType   NotificationType = "reminder"
+	WarningType    NotificationType = "warning"
+)
