@@ -356,7 +356,7 @@ func (ms *MeetingService) Update(id uint, currentUserID uint, meetingFormDTO *me
 
 	existingMeeting.MeetingID = meetingFormDTO.MeetingID
 	existingMeeting.Title = meetingFormDTO.Title
-	existingMeeting.Title = *meetingFormDTO.Description
+	existingMeeting.Description = meetingFormDTO.Description
 	existingMeeting.Location = meetingFormDTO.Location
 	existingMeeting.Date = dates.Date
 	existingMeeting.StartTime = meetingFormDTO.StartTime
