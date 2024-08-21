@@ -9,7 +9,7 @@ type AuditPlanBudget struct {
 	AuditPlanID       uint       `json:"audit_plan_id" gorm:"not null"`
 	ExpenseCategoryID uint       `json:"expense_category_id" gorm:"not null"`
 	Title             string     `json:"title" gorm:"type:nvarchar(255);not null"`
-	EstimatedCost     string     `json:"estimated_cost" gorm:"type:nvarchar(45);not null"`
+	EstimatedCost     float64    `json:"estimated_cost" gorm:"type:decimal(18,2);not null"`
 	Comments          *string    `json:"comments" gorm:"type:nvarchar(MAX);default:null"`
 	CreatedAt         time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt         *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`

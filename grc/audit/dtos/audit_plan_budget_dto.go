@@ -14,7 +14,7 @@ type AuditPlanBudgetListDTO struct {
 	ExpenseCategoryDescriptionEn *string `json:"expense_category_description_en"`
 	ExpenseCategoryDescriptionAr *string `json:"expense_category_description_ar"`
 	Title                        string  `json:"title"`
-	EstimatedCost                string  `json:"estimated_cost"`
+	EstimatedCost                float64 `json:"estimated_cost"`
 	Comments                     *string `json:"comments"`
 	AuditPlanTitle               string  `json:"audit_plan_title"`
 	CreatedUserFirstNameEn       string  `json:"created_user_first_name_en"`
@@ -40,7 +40,7 @@ type AuditPlanBudgetListDTO struct {
 type AuditPlanBudgetFormDTO struct {
 	ExpenseCategoryID uint    `json:"expense_category_id" binding:"required"`
 	Title             string  `json:"title" binding:"required,max=255"`
-	EstimatedCost     string  `json:"estimated_cost" binding:"required,max=45"`
+	EstimatedCost     float64 `json:"estimated_cost" binding:"required"`
 	Comments          *string `json:"comments"`
 }
 
@@ -50,7 +50,7 @@ type AuditPlanBudgetDetailDTO struct {
 	ExpenseCategory ExpenseCategoryDTO               `json:"expense_category"`
 	AuditPlan       AuditPlanDetailDTO               `json:"audit_plan"`
 	Title           string                           `json:"title"`
-	EstimatedCost   string                           `json:"estimated_cost"`
+	EstimatedCost   float64                          `json:"estimated_cost"`
 	Comments        *string                          `json:"comments"`
 	CreatedAt       time.Time                        `json:"created_at"`
 	UpdatedAt       *time.Time                       `json:"updated_at"`
