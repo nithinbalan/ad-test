@@ -441,12 +441,12 @@ func (repo *MeetingRepository) DeleteMeetingIncidents(incidentIds []*uint, tx ..
 }
 
 func (repo *MeetingRepository) GenerateReferenceNumber() (string, error) {
-	var lastReferenceNumber string
+	var lastReferenceNumber *string
 	err := repo.db.Model(&models.Meeting{}).
 		Select("reference_number").
 		Order("reference_number desc").
 		Limit(1).
-		Pluck("reference_number", &lastReferenceNumber).
+		Scan(&lastReferenceNumber).
 		Error
 
 	if err != nil {
@@ -454,8 +454,8 @@ func (repo *MeetingRepository) GenerateReferenceNumber() (string, error) {
 	}
 
 	lastDigits := "0000"
-	if lastReferenceNumber != "" && len(lastReferenceNumber) >= 4 {
-		lastDigits = lastReferenceNumber[len(lastReferenceNumber)-4:]
+	if lastReferenceNumber != nil && len(*lastReferenceNumber) >= 4 {
+		lastDigits = (*lastReferenceNumber)[len(*lastReferenceNumber)-4:]
 	}
 
 	currentYear := time.Now().Year()
@@ -463,8 +463,9 @@ func (repo *MeetingRepository) GenerateReferenceNumber() (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "MT", currentYear, lastReferenceID+1)
-
 	return newReferenceNumber, nil
-
 }
+
+
