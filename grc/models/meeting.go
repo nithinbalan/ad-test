@@ -6,14 +6,16 @@ import (
 
 type Meeting struct {
 	ID                 uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
+	ReferenceNumber    string     `json:"reference_number" binding:"omitempty,max=45" gorm:"size:45"`
 	MeetingID          *uint      `json:"meeting_id" gorm:"null"`
 	MeetingTypeID      uint       `json:"meeting_type_id" binding:"required" gorm:"not null"`
 	MeetingFrequencyID *uint      `json:"meeting_frequency_id" gorm:"null"`
 	Title              string     `json:"title" binding:"required,max=100" gorm:"type:varchar(100);not null"`
+	Description        *string    `json:"description" gorm:"type:nvarchar(max)"`
 	Location           *string    `json:"location" gorm:"type:varchar(100);null"`
 	Date               time.Time  `json:"date" binding:"required" gorm:"type:date;not null"`
-	StartTime          time.Time  `json:"start_time" binding:"required" gorm:"type:time;not null"`
-	EndTime            time.Time  `json:"end_time" binding:"required" gorm:"type:time;not null"`
+	StartTime          *string    `json:"start_time" gorm:"type:varchar(45);null"`
+	EndTime            *string    `json:"end_time" gorm:"type:varchar(45);null"`
 	OrganizerID        uint       `json:"organizer_id" binding:"required" gorm:"not null"`
 	IsPublic           bool       `json:"is_public" gorm:"not null;default:false"`
 	CreatedByID        uint       `json:"created_by_id" gorm:"not null"`

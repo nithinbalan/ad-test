@@ -89,8 +89,6 @@ func (mas *MeetingAgendaService) Create(meetingID uint, currentUserID uint, meet
 	meetingAgenda := &models.MeetingAgenda{
 		MeetingID:   meetingID,
 		Title:       meetingAgendaFormDTO.Title,
-		TimeFrom:    &meetingAgendaFormDTO.TimeFrom,
-		TimeTo:      &meetingAgendaFormDTO.TimeTo,
 		CreatedBYID: currentUserID,
 	}
 
@@ -137,8 +135,6 @@ func (mas *MeetingAgendaService) Update(meetingID uint, id uint, currentUserID u
 
 	existingMeetingAgenda.MeetingID = meetingID
 	existingMeetingAgenda.Title = meetingAgendaFormDTO.Title
-	existingMeetingAgenda.TimeFrom = &meetingAgendaFormDTO.TimeFrom
-	existingMeetingAgenda.TimeTo = &meetingAgendaFormDTO.TimeTo
 	existingMeetingAgenda.UpdatedBYID = &currentUserID
 
 	if err := mas.repo.Update(existingMeetingAgenda); err != nil {

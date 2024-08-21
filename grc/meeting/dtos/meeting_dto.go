@@ -11,16 +11,18 @@ import (
 
 type MeetingListDTO struct {
 	ID                            uint       `json:"id"`
+	ReferenceNumber               string     `json:"reference_number"`
 	MeetingID                     *uint      `json:"meeting_id"`
 	MeetingTypeTitleEn            string     `json:"meeting_type_title_en"`
 	MeetingTypeTitleAr            string     `json:"meeting_type_title_ar"`
 	MeetingFrequencyTitleEn       string     `json:"meeting_frequency_title_en"`
 	MeetingFrequencyTitleAr       string     `json:"meeting_frequency_title_ar"`
 	Title                         string     `json:"title"`
+	Description                   *string    `json:"description"`
 	Location                      *string    `json:"location"`
 	Date                          time.Time  `json:"date"`
-	StartTime                     time.Time  `json:"start_time"`
-	EndTime                       time.Time  `json:"end_time"`
+	StartTime                     *string    `json:"start_time"`
+	EndTime                       *string    `json:"end_time"`
 	OrganizerUserID               uint       `json:"organizer_user_id"`
 	OrganizerUserFirstNameEn      string     `json:"organizer_user_first_name_en"`
 	OrganizerUserFirstNameAr      string     `json:"organizer_user_first_name_ar"`
@@ -82,10 +84,11 @@ type MeetingDetailDTO struct {
 	MeetingType            MeetingTypeDTO                     `json:"meeting_type"`
 	MeetingFrequency       *MeetingFrequencyDTO               `json:"meeting_frequency"`
 	Title                  string                             `json:"title"`
+	Description            *string                            `json:"description"`
 	Location               *string                            `json:"location"`
-	Date                   time.Time                          `json:"date"`
-	StartTime              time.Time                          `json:"start_time"`
-	EndTime                time.Time                          `json:"end_time"`
+	DateString             *string                            `json:"date"`
+	StartTime              *string                            `json:"start_time"`
+	EndTime                *string                            `json:"end_time"`
 	IsPublic               bool                               `json:"is_public"`
 	Organizer              organizationDTOs.UserMinimalDTO    `json:"organizer"`
 	CreatedByUser          organizationDTOs.UserMinimalDTO    `json:"created_by"`
@@ -112,13 +115,14 @@ type MeetingParticipantDTO struct {
 
 type MeetingFormDTO struct {
 	Title                    string  `json:"title" binding:"required"`
+	Description              *string `json:"description"`
 	MeetingTypeID            uint    `json:"meeting_type_id" binding:"required"`
 	MeetingFrequencyID       *uint   `json:"meeting_frequency_id"`
 	MeetingID                *uint   `json:"meeting_id"`
 	Location                 *string `json:"location"`
 	Date                     string  `json:"date" binding:"required,datetime=2006-01-02"`
-	StartTime                string  `json:"start_time" binding:"required"`
-	EndTime                  string  `json:"end_time" binding:"required"`
+	StartTime                *string `json:"start_time"`
+	EndTime                  *string `json:"end_time"`
 	OrganizerID              uint    `json:"organizer_id" binding:"required"`
 	IsPublic                 bool    `json:"is_public"`
 	MeetingStatusID          uint    `json:"meeting_status_id" binding:"required"`

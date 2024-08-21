@@ -10,7 +10,6 @@ import (
 	meetingRepositories "jethur/grc/meeting/repositories"
 	organizationServices "jethur/grc/organization/services"
 	riskServices "jethur/grc/risk/services"
-	"time"
 
 	"jethur/grc/models"
 	"jethur/utility"
@@ -102,6 +101,11 @@ func (ms MeetingService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTrans
 	}
 
 	// Add extra fields required in details screen if any
+	date := meeting.Date.Format("2006-01-02")
+	meetingDTO.DateString = &date
+
+	meetingDTO.CreatedAt = meeting.CreatedAt
+	meetingDTO.UpdatedAt = meeting.UpdatedAt
 
 	return &meetingDTO, nil
 }
@@ -118,16 +122,18 @@ func (ms *MeetingService) Create(currentUserID uint, meetingFormDTO *meetingDTOs
 		return 0, err
 	}
 
-	// Extract time components from parsed StartTime and EndTime
-	startTime := time.Date(1, 1, 1, dates.StartTime.Hour(), dates.StartTime.Minute(), dates.StartTime.Second(), 0, time.UTC)
-	endTime := time.Date(1, 1, 1, dates.EndTime.Hour(), dates.EndTime.Minute(), dates.EndTime.Second(), 0, time.UTC)
-
+	referenceNumber, err := ms.repo.GenerateReferenceNumber()
+	if err != nil {
+		return 0, err
+	}
 	meeting := &models.Meeting{
+		ReferenceNumber:    referenceNumber,
 		Title:              meetingFormDTO.Title,
+		Description:        meetingFormDTO.Description,
 		Location:           meetingFormDTO.Location,
 		Date:               dates.Date,
-		StartTime:          startTime,
-		EndTime:            endTime,
+		StartTime:          meetingFormDTO.StartTime,
+		EndTime:            meetingFormDTO.EndTime,
 		OrganizerID:        meetingFormDTO.OrganizerID,
 		IsPublic:           meetingFormDTO.IsPublic,
 		CreatedByID:        currentUserID,
@@ -349,10 +355,11 @@ func (ms *MeetingService) Update(id uint, currentUserID uint, meetingFormDTO *me
 
 	existingMeeting.MeetingID = meetingFormDTO.MeetingID
 	existingMeeting.Title = meetingFormDTO.Title
+	existingMeeting.Title = *meetingFormDTO.Description
 	existingMeeting.Location = meetingFormDTO.Location
 	existingMeeting.Date = dates.Date
-	existingMeeting.StartTime = dates.StartTime
-	existingMeeting.EndTime = dates.EndTime
+	existingMeeting.StartTime = meetingFormDTO.StartTime
+	existingMeeting.EndTime = meetingFormDTO.EndTime
 	existingMeeting.OrganizerID = meetingFormDTO.OrganizerID
 	existingMeeting.IsPublic = meetingFormDTO.IsPublic
 	existingMeeting.UpdatedByID = &currentUserID
@@ -922,15 +929,15 @@ func (ms *MeetingService) parseMeetingDates(dto *meetingDTOs.MeetingFormDTO) (*m
 		return nil, utility.NewValidationError(fmt.Errorf("invalid date"), "invalid_date", "date")
 	}
 
-	parsed.StartTime, err = utility.ParseMandatoryTime(dto.StartTime)
-	if err != nil {
-		return nil, utility.NewValidationError(fmt.Errorf("invalid start time"), "invalid_time", "start time")
-	}
+	// parsed.StartTime, err = utility.ParseMandatoryTime(*dto.StartTime)
+	// if err != nil {
+	// 	return nil, utility.NewValidationError(fmt.Errorf("invalid start time"), "invalid_time", "start time")
+	// }
 
-	parsed.EndTime, err = utility.ParseMandatoryTime(dto.EndTime)
-	if err != nil {
-		return nil, utility.NewValidationError(fmt.Errorf("invalid end time"), "invalid_time", "end time")
-	}
+	// parsed.EndTime, err = utility.ParseMandatoryTime(*dto.EndTime)
+	// if err != nil {
+	// 	return nil, utility.NewValidationError(fmt.Errorf("invalid end time"), "invalid_time", "end time")
+	// }
 
 	return parsed, nil
 }
@@ -966,15 +973,15 @@ func (ms *MeetingService) createRecurringMeetings(meetingFormDTO *meetingDTOs.Me
 		}
 
 		// Create a new meeting instance for the recurring date
-		startTime := time.Date(1, 1, 1, dates.StartTime.Hour(), dates.StartTime.Minute(), dates.StartTime.Second(), 0, time.UTC)
-		endTime := time.Date(1, 1, 1, dates.EndTime.Hour(), dates.EndTime.Minute(), dates.EndTime.Second(), 0, time.UTC)
+		// startTime := time.Date(1, 1, 1, dates.StartTime.Hour(), dates.StartTime.Minute(), dates.StartTime.Second(), 0, time.UTC)
+		// endTime := time.Date(1, 1, 1, dates.EndTime.Hour(), dates.EndTime.Minute(), dates.EndTime.Second(), 0, time.UTC)
 
 		recurringMeeting := &models.Meeting{
 			Title:              meetingFormDTO.Title,
 			Location:           meetingFormDTO.Location,
 			Date:               currentDate,
-			StartTime:          startTime,
-			EndTime:            endTime,
+			StartTime:          meetingFormDTO.StartTime,
+			EndTime:            meetingFormDTO.EndTime,
 			OrganizerID:        meetingFormDTO.OrganizerID,
 			IsPublic:           meetingFormDTO.IsPublic,
 			CreatedByID:        currentUserID,
