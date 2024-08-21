@@ -145,8 +145,13 @@ func (ms *MeetingService) Create(currentUserID uint, meetingFormDTO *meetingDTOs
 	// Save ComplianceRequirements
 	var complianceRequirements []*models.MeetingComplianceRequirement
 	for _, req := range meetingFormDTO.ComplianceRequirementIds {
+		complianceRequirement, err := ms.complianceRequirementSvc.GetByComplianceRequirementID(*req)
+		if err != nil {
+			return 0, err
+		}
 		requirement := &models.MeetingComplianceRequirement{
 			MeetingID:               id,
+			ComplianceRegisterID:    complianceRequirement.ComplianceClause.ComplianceRegisterID,
 			ComplianceRequirementID: *req,
 			CreatedBYID:             currentUserID,
 		}
@@ -422,9 +427,14 @@ func (ms *MeetingService) Update(id uint, currentUserID uint, meetingFormDTO *me
 
 	var requirementsToAdd []*models.MeetingComplianceRequirement
 	for _, newRequirementID := range meetingFormDTO.ComplianceRequirementIds {
+		complianceRequirement, err := ms.complianceRequirementSvc.GetByComplianceRequirementID(*newRequirementID)
+		if err != nil {
+			return err
+		}
 		if _, exists := existingRequirementIDs[*newRequirementID]; !exists {
 			requirement := &models.MeetingComplianceRequirement{
 				MeetingID:               id,
+				ComplianceRegisterID:    complianceRequirement.ComplianceClause.ComplianceRegisterID,
 				ComplianceRequirementID: *newRequirementID,
 				CreatedBYID:             currentUserID,
 			}

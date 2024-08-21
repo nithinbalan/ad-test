@@ -11,6 +11,8 @@ import (
 type MeetingActionPlanListDTO struct {
 	ID                                  uint   `json:"id"`
 	Title                               string `json:"title"`
+	MeetingAgendaID                     *uint  `json:"meeting_agenda_id"`
+	MeetingAgendaTitle                  string `json:"meeting_agenda_title"`
 	Description                         string `json:"description"`
 	SeverityLevelTitleEn                string `json:"severity_level_title_en"`
 	SeverityLevelTitleAr                string `json:"severity_level_title_ar"`
@@ -20,10 +22,10 @@ type MeetingActionPlanListDTO struct {
 	ResponsibleUserFirstNameAr          string `json:"responsible_user_first_name_ar"`
 	ResponsibleUserLastNameEn           string `json:"responsible_user_last_name_en"`
 	ResponsibleUserLastNameAr           string `json:"responsible_user_last_name_ar"`
-	ResponsibleUserUserInitial          string `json:"responsible_user_user_initial"`
-	ResponsibleUserUserColor            string `json:"responsible_user_user_color"`
-	ResponsibleUserUserEmail            string `json:"responsible_user_user_email"`
-	ResponsibleUserUserProfileImagePath string `json:"responsible_user_user_profile_image_path"`
+	ResponsibleUserUserInitial          string `json:"responsible_user_initial"`
+	ResponsibleUserUserColor            string `json:"responsible_user_color"`
+	ResponsibleUserUserEmail            string `json:"responsible_user_email"`
+	ResponsibleUserUserProfileImagePath string `json:"responsible_user_profile_image_path"`
 	TargetDate                          string `json:"target_date"`
 	Percentage                          uint   `json:"percentage"`
 	Comments                            string `json:"comments"`
@@ -77,6 +79,7 @@ type MeetingActionPlanFormDTO struct {
 	Percentage         *uint   `json:"percentage" binding:"omitempty"`
 	Comments           *string `json:"comments" binding:"omitempty"`
 	ActionPlanStatusID uint    `json:"action_plan_status_id" binding:"required"`
+	MeetingAgendaID    *uint   `json:"meeting_agenda_id"`
 }
 
 type MeetingActionPlanParsedDates struct {
@@ -84,19 +87,41 @@ type MeetingActionPlanParsedDates struct {
 }
 
 type MeetingActionPlanDetailDTO struct {
-	ID               uint                             `json:"id"`
-	Title            string                           `json:"title"`
-	Description      string                           `json:"description"`
-	SeverityLevel    *masterDTOs.SeverityLevelDTO     `json:"severity_level"`
-	ResponsibleUser  organizationDTOs.UserMinimalDTO  `json:"responsible_user"`
-	ActionPlanStatus masterDTOs.ActionPlanStatusDTO   `json:"action_plan_status"`
-	Percentage       *uint                            `json:"percentage"`
-	Comments         *string                          `json:"comments"`
-	TargetDate       *time.Time                       `json:"target_date"`
-	CreatedAt        time.Time                        `json:"created_at"`
-	UpdatedAt        *time.Time                       `json:"updated_at"`
-	CreatedByUser    organizationDTOs.UserMinimalDTO  `json:"created_by"`
-	UpdatedByUser    *organizationDTOs.UserMinimalDTO `json:"updated_by"`
+	ID                      uint                                `json:"id"`
+	Title                   string                              `json:"title"`
+	Description             string                              `json:"description"`
+	SeverityLevel           *masterDTOs.SeverityLevelDTO        `json:"severity_level"`
+	ResponsibleUser         organizationDTOs.UserMinimalDTO     `json:"responsible_user"`
+	ActionPlanStatus        masterDTOs.ActionPlanStatusDTO      `json:"action_plan_status"`
+	MeetingAgenda           *MeetingAgendaDetailDTO             `json:"meeting_agenda"`
+	Percentage              *uint                               `json:"percentage"`
+	Comments                *string                             `json:"comments"`
+	TargetDate              *time.Time                          `json:"target_date"`
+	CreatedAt               time.Time                           `json:"created_at"`
+	UpdatedAt               *time.Time                          `json:"updated_at"`
+	CreatedByUser           organizationDTOs.UserMinimalDTO     `json:"created_by_user"`
+	UpdatedByUser           *organizationDTOs.UserMinimalDTO    `json:"updated_by_user"`
+	ActionPlanStatusUpdates []*MeetingActionPlanStatusUpdateDTO `json:"action_plan_status_updates"`
+}
+type MeetingActionPlanStatusUpdateDTO struct {
+	ID               uint                                        `json:"id"`
+	ActionPlanStatus masterDTOs.ActionPlanStatusDTO              `json:"action_plan_status"`
+	Comment          string                                      `json:"comment"`
+	Percentage       *uint                                       `json:"percentage"`
+	CreatedAt        time.Time                                   `json:"created_at"`
+	UpdatedAt        *time.Time                                  `json:"updated_at"`
+	CreatedByUser    organizationDTOs.UserMinimalDTO             `json:"created_by_user"`
+	UpdatedByUser    *organizationDTOs.UserMinimalDTO            `json:"updated_by_user"`
+	Documents        []*MeetingActionPlanStatusUpdateDocumentDTO `json:"documents"`
+}
+type MeetingActionPlanStatusUpdateDocumentDTO struct {
+	ID           uint   `json:"id"`
+	URL          string `json:"url"`
+	Name         string `json:"name"`
+	Size         int    `json:"size"`
+	Token        string `json:"token"`
+	OriginalName string `json:"original_name"`
+	Type         string `json:"type"`
 }
 
 type SendCreateActionPlanMailDTO struct {

@@ -12,12 +12,16 @@ import (
 )
 
 type MeetingActionPlanRepositoryInterface interface {
+	BeginTransaction() utility.DatabaseTransaction
 	GetAll(meetingID uint, params *meetingDTOs.MeetingActionPlanListQueryParamsDTO) (*meetingDTOs.MeetingActionPlanListResponseDTO, error)
 	GetByID(id uint) (*models.MeetingActionPlan, error)
 	GetFullDetailsByID(id uint) (*models.MeetingActionPlan, error)
-	Create(meetingActionPlan *models.MeetingActionPlan) (uint, error)
+	Create(meetingActionPlan *models.MeetingActionPlan, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(meetingActionPlan *models.MeetingActionPlan, tx ...utility.DatabaseTransaction) error
-	Delete(id uint) error
+	Delete(id uint, tx ...utility.DatabaseTransaction) error
+
+	CreateInitialMeetingActionPlanStatusUpdate(meetingActionPlanStatusUpdate *models.MeetingActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
+	DeleteMeetingActionPlanStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type MeetingActionPlanRepository struct {
@@ -28,6 +32,11 @@ func NewMeetingActionPlanRepository(db *gorm.DB) *MeetingActionPlanRepository {
 	return &MeetingActionPlanRepository{
 		db: db,
 	}
+}
+
+// BeginTransaction starts a new transaction.
+func (repo *MeetingActionPlanRepository) BeginTransaction() utility.DatabaseTransaction {
+	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
 func (repo *MeetingActionPlanRepository) GetAll(meetingID uint, params *meetingDTOs.MeetingActionPlanListQueryParamsDTO) (*meetingDTOs.MeetingActionPlanListResponseDTO, error) {
@@ -43,6 +52,7 @@ func (repo *MeetingActionPlanRepository) GetAll(meetingID uint, params *meetingD
         severity_levels.title_en AS severity_level_title_en,
         severity_levels.title_ar AS severity_level_title_ar,
         severity_levels.color_code AS severity_level_color_code,
+		meeting_agendas.title AS meeting_agenda_title,
 		responsible_user.id AS responsible_user_id,
         responsible_user.first_name_en AS responsible_user_first_name_en,
         responsible_user.first_name_ar AS responsible_user_first_name_ar,
@@ -72,6 +82,7 @@ func (repo *MeetingActionPlanRepository) GetAll(meetingID uint, params *meetingD
         updated_user.profile_image_path AS updated_user_profile_image_path 
     `).
 		Joins(`
+		LEFT JOIN meeting_agendas ON meeting_agendas.id = meeting_action_plans.meeting_agenda_id
         LEFT JOIN action_plan_statuses ON action_plan_statuses.id = meeting_action_plans.action_plan_status_id
         LEFT JOIN severity_levels ON severity_levels.id = meeting_action_plans.severity_level_id
         LEFT JOIN users AS responsible_user ON responsible_user.id = meeting_action_plans.responsible_user_id
@@ -118,13 +129,14 @@ func (repo *MeetingActionPlanRepository) GetAll(meetingID uint, params *meetingD
             action_plan_statuses.title_en LIKE ? OR
             action_plan_statuses.title_ar LIKE ? OR
             meeting_action_plans.target_date LIKE ? OR
+            meeting_agendas.title LIKE ? OR
             responsible_user.first_name_en LIKE ? OR
             responsible_user.first_name_ar LIKE ? OR
             responsible_user.last_name_en LIKE ? OR
             responsible_user.last_name_ar LIKE ?)`,
 			keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword,
-			keyword)
+			keyword, keyword)
 	}
 
 	if meetingID != 0 {
@@ -184,10 +196,12 @@ func (repo *MeetingActionPlanRepository) GetFullDetailsByID(id uint) (*models.Me
 		Preload("ResponsibleUser.OrganizationUnit1").
 		Preload("SeverityLevel").
 		Preload("ActionPlanStatus").
+		Preload("MeetingAgenda").
 		Preload("CreatedByUser").
 		Preload("CreatedByUser.OrganizationUnit1").
 		Preload("UpdatedByUser").
 		Preload("UpdatedByUser.OrganizationUnit1").
+		Preload("ActionPlanStatusUpdates").
 		First(&meetingActionPlan, id)
 
 	if result.Error != nil {
@@ -197,8 +211,12 @@ func (repo *MeetingActionPlanRepository) GetFullDetailsByID(id uint) (*models.Me
 	return meetingActionPlan, nil
 }
 
-func (repo *MeetingActionPlanRepository) Create(meetingActionPlan *models.MeetingActionPlan) (uint, error) {
-	if err := repo.db.Create(meetingActionPlan).Error; err != nil {
+func (repo *MeetingActionPlanRepository) Create(meetingActionPlan *models.MeetingActionPlan, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(meetingActionPlan).Error; err != nil {
 		fmt.Println(err)
 		return 0, err
 	}
@@ -217,16 +235,43 @@ func (repo *MeetingActionPlanRepository) Update(meetingActionPlan *models.Meetin
 	return nil
 }
 
-func (repo *MeetingActionPlanRepository) Delete(id uint) error {
-
+func (repo *MeetingActionPlanRepository) Delete(id uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 	var meetingActionPlan *models.MeetingActionPlan
-	if err := repo.db.First(&meetingActionPlan, id).Error; err != nil {
+	if err := db.First(&meetingActionPlan, id).Error; err != nil {
 		return err
 	}
 
-	result := repo.db.Delete(&models.MeetingActionPlan{}, id)
+	result := db.Delete(&models.MeetingActionPlan{}, id)
 	if result.Error != nil {
 		return result.Error
+	}
+
+	return nil
+}
+
+func (repo *MeetingActionPlanRepository) CreateInitialMeetingActionPlanStatusUpdate(meetingActionPlanStatusUpdate *models.MeetingActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(meetingActionPlanStatusUpdate).Error; err != nil {
+		return 0, err
+	}
+	return meetingActionPlanStatusUpdate.ID, nil
+}
+
+func (repo *MeetingActionPlanRepository) DeleteMeetingActionPlanStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", ids).Delete(&models.MeetingActionPlanStatusUpdate{}).Error; err != nil {
+		return err
 	}
 
 	return nil

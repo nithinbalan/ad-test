@@ -24,7 +24,7 @@ type MeetingActionPlanServiceInterface interface {
 	Create(meetingID uint, currentUserID uint, MeetingActionPlanFormDTO *meetingDTOs.MeetingActionPlanFormDTO) (uint, error)
 	Update(meetingID uint, id uint, currentUserID uint, MeetingActionPlanFormDTO *meetingDTOs.MeetingActionPlanFormDTO) error
 	Delete(meetingID uint, ids []uint, currentUserID uint) ([]uint, error)
-	StatusUpdate(meetingID uint, id uint, currentUserID uint, actionPlanStatusID uint, percentage uint, tx ...utility.DatabaseTransaction) error
+	StatusUpdate(meetingID uint, id uint, currentUserID uint,  meetingActionPlanStatusUpdateFormDTO *meetingDTOs.MeetingActionPlanStatusUpdateFormDTO, tx ...utility.DatabaseTransaction) error
 }
 
 // Service and implementations
@@ -107,6 +107,8 @@ func (maps MeetingActionPlanService) GetFullDetailsByID(meetingID uint, id uint)
 }
 
 func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint, MeetingActionPlanFormDTO *meetingDTOs.MeetingActionPlanFormDTO) (uint, error) {
+	tx := maps.repo.BeginTransaction()
+	
 	meeting, err := maps.meetingSvc.GetByID(meetingID)
 	if err != nil {
 		return 0, err
@@ -127,14 +129,16 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 		Description:        MeetingActionPlanFormDTO.Description,
 		SeverityLevelID:    MeetingActionPlanFormDTO.SeverityLevelID,
 		ResponsibleUserID:  MeetingActionPlanFormDTO.ResponsibleUserID,
+		MeetingAgendaID:    MeetingActionPlanFormDTO.MeetingAgendaID,
 		TargetDate:         dates.TargetDate,
 		Percentage:         *MeetingActionPlanFormDTO.Percentage,
 		ActionPlanStatusID: MeetingActionPlanFormDTO.ActionPlanStatusID,
 		CreatedByID:        currentUserID,
 	}
 
-	id, err := maps.repo.Create(meetingActionPlan)
+	id, err := maps.repo.Create(meetingActionPlan,tx)
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
@@ -183,6 +187,20 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 	if err != nil {
 		return 0, err
 	}
+	actionPlanStatusID := MeetingActionPlanFormDTO.ActionPlanStatusID
+	meetingActionPlanUpdate := &models.MeetingActionPlanStatusUpdate{
+		MeetingActionPlanID: id,
+		ActionPlanStatusID:     actionPlanStatusID,
+		Comment:                "Initial action plan status",
+		CreatedByID:            currentUserID,
+	}
+
+	_, err = maps.repo.CreateInitialMeetingActionPlanStatusUpdate(meetingActionPlanUpdate, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	tx.Commit()
 
 	go func() {
 		err := maps.activityLogSvc.LogActivity(
@@ -211,6 +229,8 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 }
 
 func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUserID uint, MeetingActionPlanFormDTO *meetingDTOs.MeetingActionPlanFormDTO) error {
+	tx := maps.repo.BeginTransaction()
+	
 	if _, err := maps.meetingSvc.GetByID(meetingID); err != nil {
 		return err
 	}
@@ -230,7 +250,7 @@ func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUse
 		return err
 	}
 
-	// Update Compliance ActionPlan
+	// Update Meeting ActionPlan
 	existingMeetingActionPlan.Title = MeetingActionPlanFormDTO.Title
 	existingMeetingActionPlan.Description = MeetingActionPlanFormDTO.Description
 	existingMeetingActionPlan.SeverityLevelID = MeetingActionPlanFormDTO.SeverityLevelID
@@ -238,6 +258,7 @@ func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUse
 	existingMeetingActionPlan.TargetDate = dates.TargetDate
 	existingMeetingActionPlan.Percentage = *MeetingActionPlanFormDTO.Percentage
 	existingMeetingActionPlan.ActionPlanStatusID = MeetingActionPlanFormDTO.ActionPlanStatusID
+	existingMeetingActionPlan.MeetingAgendaID = MeetingActionPlanFormDTO.MeetingAgendaID
 	existingMeetingActionPlan.UpdatedByID = &currentUserID
 
 	err = maps.repo.Update(existingMeetingActionPlan)
@@ -245,11 +266,14 @@ func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUse
 	if err != nil {
 		return err
 	}
+	tx.Commit()
 
 	return nil
 }
 
 func (maps *MeetingActionPlanService) Delete(meetingID uint, ids []uint, currentUserID uint) ([]uint, error) {
+	tx := maps.repo.BeginTransaction()
+	
 	if _, err := maps.meetingSvc.GetByID(meetingID); err != nil {
 		return nil, err
 	}
@@ -258,13 +282,23 @@ func (maps *MeetingActionPlanService) Delete(meetingID uint, ids []uint, current
 	var successfulIds []uint
 	for _, id := range ids {
 
-		_, err := maps.repo.GetByID(id)
+		meetingActionPlan, err := maps.GetFullDetailsByID(meetingID, id)
 
 		if err != nil {
 			continue
 		}
+		if len(meetingActionPlan.ActionPlanStatusUpdates) > 0 {
+			var deleteStatusUpdateIds []*uint
+			for _, update := range meetingActionPlan.ActionPlanStatusUpdates {
+				deleteStatusUpdateIds = append(deleteStatusUpdateIds, &update.ID)
+			}
+			if err := maps.repo.DeleteMeetingActionPlanStatusUpdates(deleteStatusUpdateIds,tx); err != nil {
+				failedIds = append(failedIds, id)
+				continue
+			}
+		}
 
-		err = maps.repo.Delete(id)
+		err = maps.repo.Delete(id,tx)
 		if err != nil {
 			failedIds = append(failedIds, id)
 		} else {
@@ -273,6 +307,7 @@ func (maps *MeetingActionPlanService) Delete(meetingID uint, ids []uint, current
 	}
 
 	if len(successfulIds) > 0 {
+		tx.Commit()
 
 		go func() {
 			err := maps.activityLogSvc.LogBulkActivities(
@@ -288,20 +323,25 @@ func (maps *MeetingActionPlanService) Delete(meetingID uint, ids []uint, current
 				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
 			}
 		}()
+	} else {
+		tx.Rollback()
+
 	}
 
 	return failedIds, nil
 }
 
-func (maps *MeetingActionPlanService) StatusUpdate(meetingID uint, id uint, currentUserID uint, actionPlanStatusID uint, percentage uint, tx ...utility.DatabaseTransaction) error {
+func (maps *MeetingActionPlanService) StatusUpdate(meetingID uint, id uint, currentUserID uint, meetingActionPlanStatusUpdateFormDTO *meetingDTOs.MeetingActionPlanStatusUpdateFormDTO, tx ...utility.DatabaseTransaction) error {
 	existingMeetingActionPlan, err := maps.GetByID(meetingID, id)
 
 	if err != nil {
 		return err
 	}
 
-	existingMeetingActionPlan.ActionPlanStatusID = actionPlanStatusID
-	existingMeetingActionPlan.Percentage = percentage
+	existingMeetingActionPlan.ActionPlanStatusID = meetingActionPlanStatusUpdateFormDTO.ActionPlanStatusID
+	existingMeetingActionPlan.Percentage = meetingActionPlanStatusUpdateFormDTO.Percentage
+	existingMeetingActionPlan.Comments = &meetingActionPlanStatusUpdateFormDTO.Comment
+
 	existingMeetingActionPlan.UpdatedByID = &currentUserID
 
 	err = maps.repo.Update(existingMeetingActionPlan, tx...)

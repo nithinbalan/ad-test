@@ -20,6 +20,7 @@ type MeetingActionPlanStatusUpdateServiceInterface interface {
 	GetAll(meetingID uint, meetingActionPlanID uint, sort string, sortBy string, keyword string) ([]*meetingDTOs.MeetingActionPlanStatusUpdateListDTO, error)
 	Create(meetingID uint, meetingActionPlanID uint, currentUserID uint, meetingActionPlanStatusUpdateFormDTO *meetingDTOs.MeetingActionPlanStatusUpdateFormDTO) (uint, error)
 	Update(meetingID uint, meetingActionPlanID uint, id uint, currentUserID uint, meetingActionPlanStatusUpdateFormDTO *meetingDTOs.MeetingActionPlanStatusUpdateFormDTO) error
+	GetLatestMeetingActionPlanStatusUpdate(meetingID uint, actionPlanID uint) (*meetingDTOs.MeetingActionPlanStatusUpdateListDTO, error)
 }
 
 type MeetingActionPlanStatusUpdateService struct {
@@ -94,7 +95,7 @@ func (masus *MeetingActionPlanStatusUpdateService) Create(meetingID uint, meetin
 		return 0, err
 	}
 
-	err = masus.meetingActionPlanSvc.StatusUpdate(meetingID, meetingActionPlanID, currentUserID, meetingActionPlanStatusUpdateFormDTO.ActionPlanStatusID, meetingActionPlanStatusUpdateFormDTO.Percentage, tx)
+	err = masus.meetingActionPlanSvc.StatusUpdate(meetingID, meetingActionPlanID, currentUserID, meetingActionPlanStatusUpdateFormDTO, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -199,7 +200,7 @@ func (masus *MeetingActionPlanStatusUpdateService) Update(meetingID uint, meetin
 		return err
 	}
 
-	err = masus.meetingActionPlanSvc.StatusUpdate(meetingID, meetingActionPlanID, currentUserID, existingMeetingActionPlanStatusUpdate.ActionPlanStatusID, meetingActionPlanStatusUpdateFormDTO.Percentage, tx)
+	err = masus.meetingActionPlanSvc.StatusUpdate(meetingID, meetingActionPlanID, currentUserID, meetingActionPlanStatusUpdateFormDTO, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -297,4 +298,12 @@ func (masus *MeetingActionPlanStatusUpdateService) validateMeetingActionPlanStat
 	}
 
 	return nil
+}
+
+func (masus MeetingActionPlanStatusUpdateService) GetLatestMeetingActionPlanStatusUpdate(meetingID uint, actionPlanID uint) (*meetingDTOs.MeetingActionPlanStatusUpdateListDTO, error) {
+	if _, err := masus.meetingActionPlanSvc.GetByID(meetingID, actionPlanID); err != nil {
+		return nil, err
+	}
+
+	return masus.repo.GetLatestMeetingActionPlanStatusUpdate(actionPlanID)
 }
