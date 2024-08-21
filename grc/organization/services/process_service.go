@@ -3,6 +3,8 @@ package services
 import (
 	"errors"
 	"fmt"
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
@@ -35,6 +37,7 @@ type ProcessService struct {
 	userSvc            UserServiceInterface
 	lifecycleStatusSvc masterServices.LifecycleStatusServiceInterface
 	controlSvc         ControlServiceInterface
+	notificationSvc    commonServices.NotificationServiceInterface
 }
 
 func NewProcessService(
@@ -43,7 +46,8 @@ func NewProcessService(
 	processGroupSvc ProcessGroupServiceInterface,
 	userSvc UserServiceInterface,
 	lifecycleStatusSvc masterServices.LifecycleStatusServiceInterface,
-	controlSvc ControlServiceInterface) ProcessServiceInterface {
+	controlSvc ControlServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface) ProcessServiceInterface {
 	return &ProcessService{
 		repo:               repo,
 		activityLogSvc:     activityLogSvc,
@@ -51,6 +55,7 @@ func NewProcessService(
 		userSvc:            userSvc,
 		lifecycleStatusSvc: lifecycleStatusSvc,
 		controlSvc:         controlSvc,
+		notificationSvc:    notificationSvc,
 	}
 }
 
@@ -163,6 +168,54 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 			tx.Rollback()
 			return 0, err
 		}
+	}
+
+	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+	queryParam := ""
+
+	dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+		UserID:               processFormDTO.OwnerID,
+		ModuleIdentifier:     "process",
+		NotificationType:     string(commonDTOs.AssignmentType),
+		ReferenceNumber:      referenceNumber,
+		HeadingEn:            "Process Assignment",
+		HeadingAr:            "مهمة العملية",
+		TitleEn:              processFormDTO.TitleEn,
+		TitleAr:              processFormDTO.TitleAr,
+		URLParam:             urlParam,
+		QueryParam:           queryParam,
+		IsSystemNotification: false,
+		CreatedByID:          &currentUserID,
+	}
+
+	resposibleUser, err := ps.userSvc.GetByID(processFormDTO.OwnerID)
+	if err != nil {
+		return 0, err
+	}
+
+	redirectURL := fmt.Sprintf("process/%d", id)
+	emailTo := []string{resposibleUser.Email}
+	subject := fmt.Sprintf("Process/%s: Added", process.TitleEn)
+	templateRelativePath := "organization/templates/email/create_process_mail.html"
+
+	emailData := organizationDTOs.SendCreateProcessMailDTO{
+		FirstNameEn: resposibleUser.FirstNameEn,
+		LastNameEn:  resposibleUser.LastNameEn,
+		MessageEn:   process.TitleEn,
+		RedirectURL: redirectURL,
+	}
+
+	emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+		EmailTo:              emailTo,
+		Subject:              subject,
+		TemplateRelativePath: templateRelativePath,
+		EmailData:            emailData,
+	}
+
+	err = ps.notificationSvc.SendNotification(
+		dbNotificationDTO, emailNotificationDTO, "process")
+	if err != nil {
+		return 0, err
 	}
 
 	tx.Commit()

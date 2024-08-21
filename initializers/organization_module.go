@@ -141,7 +141,7 @@ func NewOrganizationModule(
 	controlActionPlanStatusUpdateController := controllers.NewControlActionPlanStatusUpdateController(controlActionPlanStatusUpdateSvc)
 
 	processRepo := repositories.NewProcessRepository(db)
-	processSvc := services.NewProcessService(processRepo, sharedModule.ActivityLogService, processGroupSvc, userSvc, masterModule.LifecycleStatusSvc, controlSvc)
+	processSvc := services.NewProcessService(processRepo, sharedModule.ActivityLogService, processGroupSvc, userSvc, masterModule.LifecycleStatusSvc, controlSvc, commonModule.NotificationService)
 	processController := controllers.NewProcessController(processSvc)
 
 	userTaskRepo := repositories.NewUserTaskRepository(db)
