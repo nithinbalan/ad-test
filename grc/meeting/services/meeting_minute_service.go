@@ -24,10 +24,11 @@ type MeetingMinuteServiceInterface interface {
 }
 
 type MeetingMinuteService struct {
-	repo             meetingRepositories.MeetingMinuteRepositoryInterface
-	activityLogSvc   logServices.ActivityLogServiceInterface
-	meetingSvc       MeetingServiceInterface
-	meetingAgendaSvc MeetingAgendaServiceInterface
+	repo                   meetingRepositories.MeetingMinuteRepositoryInterface
+	activityLogSvc         logServices.ActivityLogServiceInterface
+	meetingSvc             MeetingServiceInterface
+	meetingAgendaSvc       MeetingAgendaServiceInterface
+	meetingMinuteStatusSvc MeetingMinuteStatusServiceInterface
 }
 
 func NewMeetingMinuteService(
@@ -35,12 +36,14 @@ func NewMeetingMinuteService(
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	meetingSvc MeetingServiceInterface,
 	meetingAgendaSvc MeetingAgendaServiceInterface,
+	meetingMinuteStatusSvc MeetingMinuteStatusServiceInterface,
 ) MeetingMinuteServiceInterface {
 	return &MeetingMinuteService{
-		repo:             repo,
-		activityLogSvc:   activityLogSvc,
-		meetingSvc:       meetingSvc,
-		meetingAgendaSvc: meetingAgendaSvc,
+		repo:                   repo,
+		activityLogSvc:         activityLogSvc,
+		meetingSvc:             meetingSvc,
+		meetingAgendaSvc:       meetingAgendaSvc,
+		meetingMinuteStatusSvc: meetingMinuteStatusSvc,
 	}
 }
 
@@ -92,11 +95,16 @@ func (mms *MeetingMinuteService) Create(meetingID uint, currentUserID uint, meet
 	if err := mms.validateMeetingMinuteFormDTO(meetingMinuteFormDTO); err != nil {
 		return 0, err
 	}
+	meetingMinuteStatus, err := mms.meetingMinuteStatusSvc.GetByType("scheduled")
+	if err != nil {
+		return 0, err
+	}
 
 	meetingMinute := &models.MeetingMinute{
-		MeetingAgendaID: meetingMinuteFormDTO.MeetingAgendaID,
-		Minutes:         &meetingMinuteFormDTO.Minutes,
-		CreatedBYID:     currentUserID,
+		MeetingAgendaID:       meetingMinuteFormDTO.MeetingAgendaID,
+		Minutes:               &meetingMinuteFormDTO.Minutes,
+		MeetingMinuteStatusID: uint(meetingMinuteStatus.ID),
+		CreatedBYID:           currentUserID,
 	}
 
 	id, err := mms.repo.Create(meetingMinute)
@@ -144,6 +152,7 @@ func (mms *MeetingMinuteService) Update(meetingID uint, id uint, currentUserID u
 
 	existingMeetingMinute.MeetingAgendaID = meetingMinuteFormDTO.MeetingAgendaID
 	existingMeetingMinute.Minutes = &meetingMinuteFormDTO.Minutes
+	existingMeetingMinute.MeetingMinuteStatusID = *meetingMinuteFormDTO.MeetingMinuteStatusID
 	existingMeetingMinute.UpdatedBYID = &currentUserID
 
 	if err := mms.repo.Update(existingMeetingMinute); err != nil {

@@ -22,6 +22,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	meetingAgendaController := app.MeetingModule.MeetingAgendaController
 	meetingMinuteController := app.MeetingModule.MeetingMinuteController
 	meetingAssociatedItemController := app.MeetingModule.MeetingAssociatedItemController
+	meetingMinuteStatusController := app.MeetingModule.MeetingMinuteStatusController
 
 	meetingRoutes.GET("/meeting-frequencies", meetingFrequencyController.GetAllMeetingFrequencies)
 	meetingRoutes.GET("/meeting-frequencies/:id", meetingFrequencyController.GetMeetingFrequencyDetails)
@@ -47,7 +48,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	meetingRoutes.POST("/meetings/delete", meetingController.DeleteMeetings)
 	meetingRoutes.GET("/meetings/:id/meeting-summary", meetingController.GetAllCounts)
 
-
 	//Meeting action plan
 	meetingRoutes.GET("/meeting-action-plans", meetingActionPlanController.GetAllMeetingActionPlans)
 	meetingRoutes.GET("/meetings/:id/action-plans", meetingActionPlanController.GetAllMeetingActionPlans)
@@ -55,7 +55,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	meetingRoutes.POST("/meetings/:id/action-plans", meetingActionPlanController.CreateMeetingActionPlan)
 	meetingRoutes.PUT("/meetings/:id/action-plans/:meetingActionPlanId", meetingActionPlanController.UpdateMeetingActionPlan)
 	meetingRoutes.POST("/meetings/:id/action-plans/delete", meetingActionPlanController.DeleteMeetingActionPlans)
-
 
 	//Meeting action plan status updates
 	meetingRoutes.GET("/meetings/:id/action-plans/:meetingActionPlanId/status-updates", meetingActionPlanStatusUpdateController.GetAllMeetingActionPlanStatusUpdates)
@@ -84,5 +83,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	meetingRoutes.GET("/meetings/:id/risks", meetingAssociatedItemController.GetAllMeetingRisks)
 	meetingRoutes.GET("/meetings/:id/processes", meetingAssociatedItemController.GetAllMeetingProcesses)
 	meetingRoutes.GET("/meetings/:id/incidents", meetingAssociatedItemController.GetAllMeetingIncidents)
+
+	// Meeting Minute Status
+	meetingRoutes.GET("/meeting-minute-statuses", meetingMinuteStatusController.GetAllMeetingMinuteStatuses)
+	meetingRoutes.GET("/meeting-minute-statuses/:id", meetingMinuteStatusController.GetMeetingMinuteStatusDetails)
 
 }

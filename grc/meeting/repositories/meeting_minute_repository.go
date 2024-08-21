@@ -32,33 +32,38 @@ func (repo *MeetingMinuteRepository) GetAll(meetingID uint, currentUserID uint, 
 
 	query := repo.db.Table("meeting_minutes").
 		Select(`
-			meeting_minutes.*,
-			meeting_agendas.title AS meeting_agenda_title,
-        	created_user.id AS created_user_id,
-        	created_user.first_name_en AS created_user_first_name_en,
-        	created_user.first_name_ar AS created_user_first_name_ar,
-        	created_user.last_name_en AS created_user_last_name_en,
-        	created_user.last_name_ar AS created_user_last_name_ar,   
-        	created_user.initial AS created_user_initial,
-        	created_user.color AS created_user_color,
-        	created_user.email AS created_user_email,
-        	created_user.profile_image_path AS created_user_profile_image_path,   
-			updated_user.id AS updated_user_id,
-    		updated_user.first_name_en AS updated_user_first_name_en,
-        	updated_user.first_name_ar AS updated_user_first_name_ar,
-        	updated_user.last_name_en AS updated_user_last_name_en,
-        	updated_user.last_name_ar AS updated_user_last_name_ar,
-			updated_user.initial AS updated_user_initial,
-        	updated_user.color AS updated_user_color,
-        	updated_user.email AS updated_user_email,
-        	updated_user.profile_image_path AS updated_user_profile_image_path   
-		`).
+		meeting_minutes.*,
+		COALESCE(meeting_agendas.title, '') AS meeting_agenda_title,
+		meeting_minute_statuses.title_en AS meeting_minute_status_title_en,
+		meeting_minute_statuses.title_ar AS meeting_minute_status_title_ar,
+		meeting_minute_statuses.type AS meeting_minute_status_type,
+		meeting_minute_statuses.color_code AS meeting_minute_status_color_code,
+    	created_user.id AS created_user_id,
+    	created_user.first_name_en AS created_user_first_name_en,
+    	created_user.first_name_ar AS created_user_first_name_ar,
+    	created_user.last_name_en AS created_user_last_name_en,
+    	created_user.last_name_ar AS created_user_last_name_ar,   
+    	created_user.initial AS created_user_initial,
+    	created_user.color AS created_user_color,
+    	created_user.email AS created_user_email,
+    	created_user.profile_image_path AS created_user_profile_image_path,   
+		updated_user.id AS updated_user_id,
+		updated_user.first_name_en AS updated_user_first_name_en,
+    	updated_user.first_name_ar AS updated_user_first_name_ar,
+    	updated_user.last_name_en AS updated_user_last_name_en,
+    	updated_user.last_name_ar AS updated_user_last_name_ar,
+		updated_user.initial AS updated_user_initial,
+    	updated_user.color AS updated_user_color,
+    	updated_user.email AS updated_user_email,
+    	updated_user.profile_image_path AS updated_user_profile_image_path   
+	`).
 		Joins(`
-			LEFT JOIN meeting_agendas ON meeting_minutes.meeting_agenda_id = meeting_agendas.id
-			LEFT JOIN meetings ON meeting_agendas.meeting_id = meetings.id
-            LEFT JOIN users AS created_user ON created_user.id = meeting_minutes.created_by_id
-            LEFT JOIN users AS updated_user ON updated_user.id = meeting_minutes.updated_by_id
-        `).Where(`meetings.id`, meetingID)
+		LEFT JOIN meeting_agendas ON meeting_minutes.meeting_agenda_id = meeting_agendas.id
+		LEFT JOIN meeting_minute_statuses ON meeting_minutes.meeting_minute_status_id = meeting_minute_statuses.id
+		LEFT JOIN meetings ON meetings.id = ISNULL(meeting_agendas.meeting_id, meeting_minutes.meeting_id)
+        LEFT JOIN users AS created_user ON created_user.id = meeting_minutes.created_by_id
+        LEFT JOIN users AS updated_user ON updated_user.id = meeting_minutes.updated_by_id
+    `).Where(`meetings.id = ?`, meetingID)
 
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
@@ -77,8 +82,10 @@ func (repo *MeetingMinuteRepository) GetAll(meetingID uint, currentUserID uint, 
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
 			(meeting_minutes.minutes LIKE ? OR
+			(meeting_minute_statuses.title_en LIKE ? OR
+			(meeting_minute_statuses.title_ar LIKE ? OR
 			meeting_agendas.title LIKE ?)`,
-			keyword, keyword)
+			keyword, keyword, keyword, keyword)
 	}
 
 	// Sort by the specified column and order
@@ -115,6 +122,7 @@ func (repo *MeetingMinuteRepository) GetFullDetailsByID(id uint) (*models.Meetin
 
 	result := repo.db.
 		Preload("MeetingAgenda").
+		Preload("MeetingMinuteStatus").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&meetingMinute, id)
