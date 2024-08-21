@@ -70,7 +70,6 @@ func (repo *MeetingRepository) GetAll(currentUserID uint, params *meetingDTOs.Me
 			meetings.date,
 			meetings.start_time,
 			meetings.end_time,
-			CONVERT(VARCHAR, meetings.date, 23) AS date,
 			users.id AS organizer_user_id,
 			users.first_name_en AS organizer_user_first_name_en,
 			users.first_name_ar AS organizer_user_first_name_ar,
