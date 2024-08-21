@@ -7,8 +7,6 @@ import (
 type MeetingAgenda struct {
 	ID          uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	MeetingID   uint       `json:"meeting_id" gorm:"null"`
-	TimeFrom    *string    `json:"time_from" gorm:"type:varchar(45);null"`
-	TimeTo      *string    `json:"time_to" gorm:"type:varchar(45);null"`
 	Title       string     `json:"title" gorm:"type:nvarchar(500);not null" binding:"required"`
 	CreatedBYID uint       `json:"created_by_id" gorm:"not null"`
 	UpdatedBYID *uint      `json:"updated_by_id" gorm:"default:null"`

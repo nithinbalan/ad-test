@@ -8,8 +8,6 @@ import (
 type MeetingAgendaListDTO struct {
 	ID                          uint       `json:"id"`
 	MeetingID                   uint       `json:"meeting_id"`
-	TimeFrom                    *string    `json:"time_from"`
-	TimeTo                      *string    `json:"time_to"`
 	Title                       string     `json:"title"`
 	MeetingTitle                string     `json:"meeting_title"`
 	MeetingLocation             *string    `json:"meeting_location"`
@@ -51,8 +49,6 @@ type MeetingAgendaDetailDTO struct {
 	ID             uint                             `json:"id"`
 	MeetingID      uint                             `json:"meeting_id"`
 	Title          string                           `json:"title"`
-	TimeFrom       *string                          `json:"time_from"`
-	TimeTo         *string                          `json:"time_to"`
 	CreatedByUser  organizationDTOs.UserMinimalDTO  `json:"created_by_id"`
 	UpdatedByUser  *organizationDTOs.UserMinimalDTO `json:"updated_by_id"`
 	MeetingMinutes []*MeetingMinuteDetailDTO        `json:"meeting_minutes"`
@@ -62,6 +58,4 @@ type MeetingAgendaDetailDTO struct {
 
 type MeetingAgendaFormDTO struct {
 	Title    string `json:"title" binding:"required"`
-	TimeFrom string `json:"time_from"`
-	TimeTo   string `json:"time_to"`
 }

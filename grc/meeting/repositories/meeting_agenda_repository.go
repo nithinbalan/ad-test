@@ -37,8 +37,6 @@ func (repo *MeetingAgendaRepository) GetAll(meetingID uint, currentUserID uint, 
 			meetings.title as meeting_title,
 			meetings.location as meeting_location,
 			meetings.date as meeting_date,
-			meetings.start_time as meeting_start_time,
-			meetings.end_time as meeting_end_time,
         	created_user.id AS created_user_id,
         	created_user.first_name_en AS created_user_first_name_en,
         	created_user.first_name_ar AS created_user_first_name_ar,
@@ -82,10 +80,8 @@ func (repo *MeetingAgendaRepository) GetAll(meetingID uint, currentUserID uint, 
 		query = query.Where(`
 			(meetings.title LIKE ? OR
 			meetings.location LIKE ? OR
-			meeting_agendas.title LIKE ? OR
-			meeting_agendas.time_from LIKE ? OR
-			meeting_agendas.time_to LIKE ?)`,
-			keyword, keyword, keyword, keyword, keyword)
+			meeting_agendas.title LIKE ?)`,
+			keyword, keyword, keyword)
 	}
 
 	// Sort by the specified column and order

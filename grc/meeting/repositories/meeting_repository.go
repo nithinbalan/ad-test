@@ -1,10 +1,13 @@
 package repositories
 
 import (
+	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	meetingDTOs "jethur/grc/meeting/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
+	"strconv"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -20,6 +23,7 @@ type MeetingRepositoryInterface interface {
 	CreateParticipants(participants []*models.MeetingParticipant, tx ...utility.DatabaseTransaction) error
 	DeleteParticipants(participantIDs []uint, tx ...utility.DatabaseTransaction) error
 	CreateMeetingActionPlans(actionPlans []*models.MeetingActionPlan, tx ...utility.DatabaseTransaction) error
+	GenerateReferenceNumber() (string, error)
 
 	CreateMeetingComplianceRequirements(complianceRequirements []*models.MeetingComplianceRequirement, tx ...utility.DatabaseTransaction) error
 	CreateMeetingControls(controls []*models.MeetingControl, tx ...utility.DatabaseTransaction) error
@@ -31,6 +35,8 @@ type MeetingRepositoryInterface interface {
 	DeleteMeetingProcesses(processIds []*uint, tx ...utility.DatabaseTransaction) error
 	CreateMeetingIncidents(incidents []*models.MeetingIncident, tx ...utility.DatabaseTransaction) error
 	DeleteMeetingIncidents(incidentIds []*uint, tx ...utility.DatabaseTransaction) error
+
+	GetAllCounts(meetingID uint) (*meetingDTOs.MeetingsCountResponseDTO, error)
 }
 
 type MeetingRepository struct {
@@ -59,9 +65,11 @@ func (repo *MeetingRepository) GetAll(currentUserID uint, params *meetingDTOs.Me
 			meeting_types.title_ar AS meeting_type_title_er,
 			meeting_frequencies.title_en AS meeting_frequency_title_en,
 			meeting_frequencies.title_ar AS meeting_frequency_title_ar,
+			meetings.reference_number,
 			meetings.title,
+			meetings.description,
 			meetings.location,
-			meetings.date,
+			CONVERT(VARCHAR, meetings.date, 23) AS date,
 			meetings.start_time,
 			meetings.end_time,
 			users.id AS organizer_user_id,
@@ -141,6 +149,7 @@ func (repo *MeetingRepository) GetAll(currentUserID uint, params *meetingDTOs.Me
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
 			(meetings.title LIKE ? OR
+			meetings.reference_number LIKE ? OR
 			meetings.location LIKE ? OR
 			meeting_types.title_en LIKE ? OR
 			meeting_types.title_ar LIKE ? OR
@@ -152,7 +161,7 @@ func (repo *MeetingRepository) GetAll(currentUserID uint, params *meetingDTOs.Me
 			users.last_name_ar LIKE ? OR
 			meeting_statuses.title_en LIKE ? OR
 			meeting_statuses.title_ar LIKE ?)`,
-			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
 	// Sort by the specified column and order
@@ -208,6 +217,11 @@ func (repo *MeetingRepository) GetFullDetailsByID(id uint, tx ...utility.Databas
 
 	result := db.
 		Preload("Meeting").
+		Preload("Meeting.MeetingType").
+		Preload("Meeting.MeetingFrequency").
+		Preload("Meeting.Organizer").
+		Preload("Meeting.MeetingStatus").
+		Preload("Meeting.CreatedByUser").
 		Preload("MeetingType").
 		Preload("MeetingFrequency").
 		Preload("Organizer").
@@ -431,4 +445,68 @@ func (repo *MeetingRepository) DeleteMeetingIncidents(incidentIds []*uint, tx ..
 	}
 
 	return nil
+}
+
+func (repo *MeetingRepository) GenerateReferenceNumber() (string, error) {
+	var lastReferenceNumber *string
+	err := repo.db.Model(&models.Meeting{}).
+		Select("reference_number").
+		Order("reference_number desc").
+		Limit(1).
+		Scan(&lastReferenceNumber).
+		Error
+
+	if err != nil {
+		return "", err
+	}
+
+	lastDigits := "0000"
+	if lastReferenceNumber != nil && len(*lastReferenceNumber) >= 4 {
+		lastDigits = (*lastReferenceNumber)[len(*lastReferenceNumber)-4:]
+	}
+
+	currentYear := time.Now().Year()
+	lastReferenceID, err := strconv.ParseUint(lastDigits, 10, 64)
+	if err != nil {
+		return "", err
+	}
+
+	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "MT", currentYear, lastReferenceID+1)
+	return newReferenceNumber, nil
+}
+
+func (repo *MeetingRepository) GetAllCounts(meetingID uint) (*meetingDTOs.MeetingsCountResponseDTO, error) {
+	var agendaCount, momCount, actionPlanCount int64
+	var err error
+
+	// Query for agenda count
+	err = repo.db.Model(&models.MeetingAgenda{}).
+		Where("meeting_id = ?", meetingID).
+		Count(&agendaCount).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Query for minutes of meeting (MoM) count through meeting_agendas
+	err = repo.db.Model(&models.MeetingMinute{}).
+		Joins("JOIN meeting_agendas ON meeting_agendas.id = meeting_minutes.meeting_agenda_id").
+		Where("meeting_agendas.meeting_id = ?", meetingID).
+		Count(&momCount).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Query for action plan count
+	err = repo.db.Model(&models.MeetingActionPlan{}).
+		Where("meeting_id = ?", meetingID).
+		Count(&actionPlanCount).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &meetingDTOs.MeetingsCountResponseDTO{
+		Agenda:     int(agendaCount),
+		Mom:        int(momCount),
+		ActionPlan: int(actionPlanCount),
+	}, nil
 }
