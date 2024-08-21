@@ -33,13 +33,23 @@ func (ns *NotificationService) SendNotification(notificationDTO *commonDTOs.DBNo
 	}
 
 	if isEnabled {
-		err = utility.SendTemplatedEmail(emailNotificationDTO.EmailTo, emailNotificationDTO.Subject, emailNotificationDTO.TemplateRelativePath, emailNotificationDTO.EmailData, nil)
-		if err != nil {
-			return err
-		}
+		go func() {
+			err := utility.SendTemplatedEmail(
+				emailNotificationDTO.EmailTo,
+				emailNotificationDTO.Subject,
+				emailNotificationDTO.TemplateRelativePath,
+				emailNotificationDTO.EmailData,
+				nil,
+			)
+			if err != nil {
+				utility.LogError("Failed to send email", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+		}()
 	}
 
-	//DB notification
+	// DB notification
 	moduleID, err := ns.moduleSvc.GetModuleIDByIdentifier(notificationDTO.ModuleIdentifier)
 	if err != nil {
 		return err

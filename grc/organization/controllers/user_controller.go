@@ -289,3 +289,25 @@ func (uc *UserController) GetCurrentUserDetails(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, user)
 }
+
+func (uc *UserController) GetCurrentUserNotifications(c *gin.Context) {
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(uc.db, c, err.Error())
+		return
+	}
+
+	userNotification, err := uc.service.GetUserNotifications(uint(currentUserID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(uc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, userNotification)
+}

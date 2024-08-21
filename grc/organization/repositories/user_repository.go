@@ -37,6 +37,8 @@ type UserRepositoryInterface interface {
 	CreateUserLoginHistory(userLogin *models.UserLoginHistory, tx ...utility.DatabaseTransaction) error
 	GetUserPrimaryUnitID(primaryOrgUnitField string, userID uint) (uint, error)
 	GetUserIdsByRole(roleID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
+
+	GetUserNotifications(userID uint) ([]*userDTOs.UserNotificationListDTO, error)
 }
 
 type UserRepository struct {
@@ -498,4 +500,45 @@ func (repo *UserRepository) GetUserIdsByRole(roleID uint, tx ...utility.Database
 		return nil, err
 	}
 	return userIDs, nil
+}
+
+func (repo *UserRepository) GetUserNotifications(userID uint) ([]*userDTOs.UserNotificationListDTO, error) {
+	var notifications []*userDTOs.UserNotificationListDTO
+
+	query := repo.db.Table("user_notifications").
+		Select(`
+			user_notifications.id,
+			user_notifications.user_id,
+			user_notifications.module_id,
+			user_notifications.notification_type,
+			user_notifications.reference_number,
+			user_notifications.heading_en,
+			user_notifications.heading_ar,
+			user_notifications.title_en,
+			user_notifications.title_ar,
+			user_notifications.url_param,
+			user_notifications.query_param,
+			user_notifications.is_new,
+			user_notifications.is_read,
+			user_notifications.is_system_notification,
+			user_notifications.created_at,
+			users.first_name_en AS created_by_first_name_en,
+			users.first_name_ar AS created_by_first_name_ar,
+			users.last_name_en AS created_by_last_name_en,
+			users.last_name_ar AS created_by_last_name_ar,
+			modules.identifier AS module_identifier,
+			modules.title_en AS module_title_en,
+			modules.title_ar AS module_title_ar
+		`).
+		Joins("LEFT JOIN users ON users.id = user_notifications.created_by_id").
+		Joins("LEFT JOIN modules ON modules.id = user_notifications.module_id").
+		Where("user_notifications.user_id = ?", userID)
+
+	// Execute the query
+	err := query.Find(&notifications).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return notifications, nil
 }
