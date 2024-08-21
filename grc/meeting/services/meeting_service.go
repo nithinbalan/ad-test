@@ -977,8 +977,14 @@ func (ms *MeetingService) createRecurringMeetings(meetingFormDTO *meetingDTOs.Me
 		// startTime := time.Date(1, 1, 1, dates.StartTime.Hour(), dates.StartTime.Minute(), dates.StartTime.Second(), 0, time.UTC)
 		// endTime := time.Date(1, 1, 1, dates.EndTime.Hour(), dates.EndTime.Minute(), dates.EndTime.Second(), 0, time.UTC)
 
+		referenceNumber, err := ms.repo.GenerateReferenceNumber()
+		if err != nil {
+			return err
+		}
 		recurringMeeting := &models.Meeting{
+			ReferenceNumber:    referenceNumber,
 			Title:              meetingFormDTO.Title,
+			Description:        meetingFormDTO.Description,
 			Location:           meetingFormDTO.Location,
 			Date:               currentDate,
 			StartTime:          meetingFormDTO.StartTime,

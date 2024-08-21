@@ -217,6 +217,11 @@ func (repo *MeetingRepository) GetFullDetailsByID(id uint, tx ...utility.Databas
 
 	result := db.
 		Preload("Meeting").
+		Preload("Meeting.MeetingType").
+		Preload("Meeting.MeetingFrequency").
+		Preload("Meeting.Organizer").
+		Preload("Meeting.MeetingStatus").
+		Preload("Meeting.CreatedByUser").
 		Preload("MeetingType").
 		Preload("MeetingFrequency").
 		Preload("Organizer").
