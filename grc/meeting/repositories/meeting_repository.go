@@ -35,6 +35,8 @@ type MeetingRepositoryInterface interface {
 	DeleteMeetingProcesses(processIds []*uint, tx ...utility.DatabaseTransaction) error
 	CreateMeetingIncidents(incidents []*models.MeetingIncident, tx ...utility.DatabaseTransaction) error
 	DeleteMeetingIncidents(incidentIds []*uint, tx ...utility.DatabaseTransaction) error
+
+	GetAllCounts(meetingID uint) (*meetingDTOs.MeetingsCountResponseDTO, error)
 }
 
 type MeetingRepository struct {
@@ -468,4 +470,38 @@ func (repo *MeetingRepository) GenerateReferenceNumber() (string, error) {
 	return newReferenceNumber, nil
 }
 
+func (repo *MeetingRepository) GetAllCounts(meetingID uint) (*meetingDTOs.MeetingsCountResponseDTO, error) {
+	var agendaCount, momCount, actionPlanCount int64
+	var err error
 
+	// Query for agenda count
+	err = repo.db.Model(&models.MeetingAgenda{}).
+		Where("meeting_id = ?", meetingID).
+		Count(&agendaCount).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Query for minutes of meeting (MoM) count through meeting_agendas
+	err = repo.db.Model(&models.MeetingMinute{}).
+		Joins("JOIN meeting_agendas ON meeting_agendas.id = meeting_minutes.meeting_agenda_id").
+		Where("meeting_agendas.meeting_id = ?", meetingID).
+		Count(&momCount).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Query for action plan count
+	err = repo.db.Model(&models.MeetingActionPlan{}).
+		Where("meeting_id = ?", meetingID).
+		Count(&actionPlanCount).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &meetingDTOs.MeetingsCountResponseDTO{
+		Agenda:     int(agendaCount),
+		Mom:        int(momCount),
+		ActionPlan: int(actionPlanCount),
+	}, nil
+}

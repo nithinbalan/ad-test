@@ -25,6 +25,7 @@ type MeetingServiceInterface interface {
 	Create(currentUserID uint, meetingFormDTO *meetingDTOs.MeetingFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, meetingFormDTO *meetingDTOs.MeetingFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	GetAllCounts(meetingID uint) (*meetingDTOs.MeetingsCountResponseDTO, error)
 }
 
 type MeetingService struct {
@@ -1015,4 +1016,16 @@ func (ms *MeetingService) createRecurringMeetings(meetingFormDTO *meetingDTOs.Me
 	}
 
 	return nil
+}
+
+func (ms *MeetingService) GetAllCounts(meetingID uint) (*meetingDTOs.MeetingsCountResponseDTO, error) {
+	if _, err := ms.GetByID(meetingID); err != nil {
+		return nil, err
+	}
+	response, err := ms.repo.GetAllCounts(meetingID)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
 }

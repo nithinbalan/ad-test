@@ -77,6 +77,7 @@ type MeetingListResponseDTO struct {
 
 type MeetingDetailDTO struct {
 	ID                     uint                               `json:"id"`
+	ReferenceNumber        string                             `json:"reference_number"`
 	MeetingID              *uint                              `json:"meeting_id"`
 	MeetingTypeID          uint                               `json:"meeting_type_id"`
 	MeetingFrequencyID     *uint                              `json:"meeting_frequency_id"`
@@ -182,4 +183,10 @@ type MeetingIncidentDTO struct {
 	MeetingID          uint                                   `json:"meeting_id"`
 	IncidentRegisterID uint                                   `json:"incident_register_id"`
 	IncidentRegister   incidentDTOs.IncidentRegisterDetailDTO `json:"incident_register"`
+}
+
+type MeetingsCountResponseDTO struct {
+	Agenda     int `json:"agenda"`      // Count of meeting agendas
+	Mom        int `json:"mom"`         // Count of minutes of meeting (MoM)
+	ActionPlan int `json:"action_plan"` // Count of meeting action plans
 }

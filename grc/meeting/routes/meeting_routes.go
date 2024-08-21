@@ -45,6 +45,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	meetingRoutes.POST("/meetings", meetingController.CreateMeeting)
 	meetingRoutes.PUT("/meetings/:id", meetingController.UpdateMeeting)
 	meetingRoutes.POST("/meetings/delete", meetingController.DeleteMeetings)
+	meetingRoutes.GET("/meetings/:id/meeting-summary", meetingController.GetAllCounts)
+
 
 	//Meeting action plan
 	meetingRoutes.GET("/meeting-action-plans", meetingActionPlanController.GetAllMeetingActionPlans)
