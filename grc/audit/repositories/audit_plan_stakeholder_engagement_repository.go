@@ -94,7 +94,10 @@ func (repo *AuditPlanStakeholderEngagementRepository) GetAll(auditPlanID uint, p
 			LEFT JOIN users AS created_user ON created_user.id = audit_plan_stakeholder_engagements.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = audit_plan_stakeholder_engagements.updated_by_id
 		`).Where(`audit_plan_stakeholder_engagements.audit_plan_id = ?`, auditPlanID)
-
+	// Calculate total count for pagination
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
 	// Apply filters and pagination as needed
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
@@ -128,6 +131,7 @@ func (repo *AuditPlanStakeholderEngagementRepository) GetAll(auditPlanID uint, p
 	if params.Sort != "asc" && params.Sort != "desc" {
 		params.Sort = "asc" // Default sort is ascending
 	}
+
 	query = query.Order(params.SortBy + " " + params.Sort)
 
 	offset := (params.Page - 1) * params.PageSize
@@ -137,7 +141,6 @@ func (repo *AuditPlanStakeholderEngagementRepository) GetAll(auditPlanID uint, p
 	if err != nil {
 		return nil, err
 	}
-
 	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
 
 	response := &auditDTOs.AuditPlanStakeholderEngagementListResponseDTO{

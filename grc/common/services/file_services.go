@@ -3,7 +3,6 @@ package services
 import (
 	"fmt"
 	"jethur/config"
-	"jethur/grc/common/dtos"
 	commonDtos "jethur/grc/common/dtos"
 	"jethur/grc/common/repositories"
 	"jethur/utility"
@@ -16,7 +15,7 @@ import (
 
 type FileServiceInterface interface {
 	TempFileUpload(file *multipart.FileHeader) (*commonDtos.FileDTO, error)
-	GetFilePreview(filePreviewDTO *dtos.FilePreviewDTO) (string, error)
+	GetFilePreview(filePreviewDTO *commonDtos.FilePreviewDTO) (string, error)
 }
 
 type FileService struct {
