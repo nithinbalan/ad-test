@@ -58,6 +58,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.GET("/users/:userId/login-history", userController.GetUserLoginHistory)
 
 	organizationRoutes.GET("/users/me", userController.GetCurrentUserDetails)
+	organizationRoutes.GET("/users/me/notifications", userController.GetCurrentUserNotifications)
 
 	//Strategic Profile
 	organizationRoutes.GET("/strategic-profiles", strategicProfileController.GetStrategicProfile)
