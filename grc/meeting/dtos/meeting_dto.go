@@ -20,7 +20,7 @@ type MeetingListDTO struct {
 	Title                         string     `json:"title"`
 	Description                   *string    `json:"description"`
 	Location                      *string    `json:"location"`
-	Date                          time.Time  `json:"date"`
+	Date                          string     `json:"date"`
 	StartTime                     *string    `json:"start_time"`
 	EndTime                       *string    `json:"end_time"`
 	OrganizerUserID               uint       `json:"organizer_user_id"`

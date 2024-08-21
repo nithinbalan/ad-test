@@ -105,8 +105,11 @@ func (ms MeetingService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTrans
 	date := meeting.Date.Format("2006-01-02")
 	meetingDTO.DateString = &date
 
-	meetingDate := meeting.Meeting.Date.Format("2006-01-02")
-	meetingDTO.Meeting.DateString = &meetingDate
+	if meeting.Meeting != nil {
+		meetingDate := meeting.Meeting.Date.Format("2006-01-02")
+		meetingDTO.Meeting.DateString = &meetingDate
+	}
+	
 	
 	meetingDTO.CreatedAt = meeting.CreatedAt
 	meetingDTO.UpdatedAt = meeting.UpdatedAt
