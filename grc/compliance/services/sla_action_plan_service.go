@@ -23,6 +23,7 @@ type SLAActionPlanServiceInterface interface {
 	Update(slaID uint, id uint, currentUserID uint, slaActionPlanFormDTO *complianceDTOs.SLAActionPlanFormDTO) error
 	Delete(slaID uint, ids []uint, currentUserID uint) ([]uint, error)
 	StatusUpdate(slaID uint, id uint, currentUserID uint, ActionPlanStatusID uint, tx utility.DatabaseTransaction) error
+	GetSLAActionPlanCountByStatus(slaID uint) ([]complianceDTOs.SLAActionPlanStatusCountResponseDTO, error)
 }
 
 // Service and implementations
@@ -336,4 +337,17 @@ func (saps *SLAActionPlanService) parseSLAActionPlanDates(dto *complianceDTOs.SL
 	}
 
 	return parsed, nil
+}
+
+func (saps *SLAActionPlanService) GetSLAActionPlanCountByStatus(slaID uint) ([]complianceDTOs.SLAActionPlanStatusCountResponseDTO, error) {
+	if _, err := saps.slaRegisterSvc.GetByID(slaID); err != nil {
+		return nil, err
+	}
+
+	response, err := saps.repo.GetSLAActionPlanCountByStatus(slaID)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
 }
