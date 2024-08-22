@@ -21,6 +21,7 @@ type MeetingMinuteServiceInterface interface {
 	Create(meetingID uint, currentUserID uint, meetingMinuteFormDTO *meetingDTOs.MeetingMinuteFormDTO) (uint, error)
 	Update(meetingID uint, id uint, currentUserID uint, meetingMinuteFormDTO *meetingDTOs.MeetingMinuteFormDTO) error
 	Delete(meetingID uint, ids []uint, currentUserID uint) ([]uint, error)
+	StatusUpdate(id uint, currentUserID uint, meetingMinuteStatusID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type MeetingMinuteService struct {
@@ -140,6 +141,8 @@ func (mms *MeetingMinuteService) Create(meetingID uint, currentUserID uint, meet
 }
 
 func (mms *MeetingMinuteService) Update(meetingID uint, id uint, currentUserID uint, meetingMinuteFormDTO *meetingDTOs.MeetingMinuteFormDTO) error {
+	tx := mms.repo.BeginTransaction()
+
 	if _, err := mms.meetingSvc.GetByID(meetingID); err != nil {
 		return err
 	}
@@ -156,9 +159,10 @@ func (mms *MeetingMinuteService) Update(meetingID uint, id uint, currentUserID u
 	existingMeetingMinute.MeetingMinuteStatusID = *meetingMinuteFormDTO.MeetingMinuteStatusID
 	existingMeetingMinute.UpdatedBYID = &currentUserID
 
-	if err := mms.repo.Update(existingMeetingMinute); err != nil {
+	if err := mms.repo.Update(existingMeetingMinute, tx); err != nil {
 		return err
 	}
+	tx.Commit()
 
 	go func() {
 		err := mms.activityLogSvc.LogActivity(
@@ -239,5 +243,24 @@ func (mms *MeetingMinuteService) validateMeetingMinuteFormDTO(meetingMinuteFormD
 			return utility.NewValidationError(fmt.Errorf("meeting agenda does not exist"), "not_exist", "meeting agenda")
 		}
 	}
+	return nil
+}
+
+func (mms *MeetingMinuteService) StatusUpdate(id uint, currentUserID uint, meetingMinuteStatusID uint, tx ...utility.DatabaseTransaction) error {
+	existingMeetingMinute, err := mms.GetByID(id)
+
+	if err != nil {
+		return err
+	}
+
+	existingMeetingMinute.MeetingMinuteStatusID = meetingMinuteStatusID
+	existingMeetingMinute.UpdatedBYID = &currentUserID
+
+	err = mms.repo.Update(existingMeetingMinute, tx...)
+
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

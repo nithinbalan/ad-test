@@ -3,16 +3,18 @@ package repositories
 import (
 	meetingDTOs "jethur/grc/meeting/dtos"
 	"jethur/grc/models"
+	"jethur/utility"
 
 	"gorm.io/gorm"
 )
 
 type MeetingMinuteRepositoryInterface interface {
+	BeginTransaction() utility.DatabaseTransaction
 	GetAll(meetingID uint, currentUserID uint, params *meetingDTOs.MeetingMinuteListQueryParamsDTO) ([]*meetingDTOs.MeetingMinuteListDTO, error)
 	GetByID(id uint) (*models.MeetingMinute, error)
 	GetFullDetailsByID(id uint) (*models.MeetingMinute, error)
 	Create(meetingMinute *models.MeetingMinute) (uint, error)
-	Update(meetingMinute *models.MeetingMinute) error
+	Update(meetingMinute *models.MeetingMinute, tx ...utility.DatabaseTransaction) error
 	Delete(id uint) error
 }
 
@@ -24,6 +26,11 @@ func NewMeetingMinuteRepository(db *gorm.DB) *MeetingMinuteRepository {
 	return &MeetingMinuteRepository{
 		db: db,
 	}
+}
+
+// BeginTransaction starts a new transaction.
+func (repo *MeetingMinuteRepository) BeginTransaction() utility.DatabaseTransaction {
+	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
 func (repo *MeetingMinuteRepository) GetAll(meetingID uint, currentUserID uint, params *meetingDTOs.MeetingMinuteListQueryParamsDTO) ([]*meetingDTOs.MeetingMinuteListDTO, error) {
@@ -146,8 +153,12 @@ func (repo *MeetingMinuteRepository) Create(meetingMinute *models.MeetingMinute)
 	return meetingMinute.ID, nil
 }
 
-func (repo *MeetingMinuteRepository) Update(meetingMinute *models.MeetingMinute) error {
-	if err := repo.db.Save(meetingMinute).Error; err != nil {
+func (repo *MeetingMinuteRepository) Update(meetingMinute *models.MeetingMinute, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(meetingMinute).Error; err != nil {
 		return err
 	}
 

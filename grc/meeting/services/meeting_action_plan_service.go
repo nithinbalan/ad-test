@@ -36,6 +36,7 @@ type MeetingActionPlanService struct {
 	userSvc             organizationServices.UserServiceInterface
 	notificationSvc     commonServices.NotificationServiceInterface
 	meetingMinuteSvc    MeetingMinuteServiceInterface
+	meetingMinuteStatusSvc MeetingMinuteStatusServiceInterface
 }
 
 func NewMeetingActionPlanService(
@@ -46,7 +47,8 @@ func NewMeetingActionPlanService(
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
-	meetingMinuteSvc MeetingMinuteServiceInterface) MeetingActionPlanServiceInterface {
+	meetingMinuteSvc MeetingMinuteServiceInterface,
+	meetingMinuteStatusSvc MeetingMinuteStatusServiceInterface) MeetingActionPlanServiceInterface {
 	return &MeetingActionPlanService{
 		repo:                repo,
 		activityLogSvc:      activityLogSvc,
@@ -56,6 +58,7 @@ func NewMeetingActionPlanService(
 		userSvc:             userSvc,
 		notificationSvc:     notificationSvc,
 		meetingMinuteSvc:    meetingMinuteSvc,
+		meetingMinuteStatusSvc:   meetingMinuteStatusSvc,
 	}
 }
 
@@ -140,6 +143,14 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 
 	id, err := maps.repo.Create(meetingActionPlan, tx)
 	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	meetingMinuteStatus, err := maps.meetingMinuteStatusSvc.GetByType("open")
+	if err != nil {
+		return 0, err
+	}
+	if err := maps.meetingMinuteSvc.StatusUpdate(*MeetingActionPlanFormDTO.MeetingMinuteID,currentUserID,uint(meetingMinuteStatus.ID), tx); err != nil {
 		tx.Rollback()
 		return 0, err
 	}
