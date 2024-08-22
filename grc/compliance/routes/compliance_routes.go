@@ -180,6 +180,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.POST("/slas/:slaId/action-plans", slaActionPlanController.CreateSLAActionPlan)
 	complianceRoutes.PUT("/slas/:slaId/action-plans/:actionPlanId", slaActionPlanController.UpdateSLAActionPlan)
 	complianceRoutes.POST("/slas/:slaId/action-plans/delete", slaActionPlanController.DeleteSLAActionPlans)
+	complianceRoutes.GET("/slas/:slaId/action-plan-summary", slaActionPlanController.GetSLAActionPlanCountByStatus)
 
 	// SLA Action Plan
 	complianceRoutes.GET("/slas/:slaId/action-plans/:actionPlanId/status-updates", slaActionPlanStatusUpdateController.GetAllSLAActionPlanStatusUpdates)
