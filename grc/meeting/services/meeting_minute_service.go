@@ -95,7 +95,7 @@ func (mms *MeetingMinuteService) Create(meetingID uint, currentUserID uint, meet
 	if err := mms.validateMeetingMinuteFormDTO(meetingMinuteFormDTO); err != nil {
 		return 0, err
 	}
-	meetingMinuteStatus, err := mms.meetingMinuteStatusSvc.GetByType("scheduled")
+	meetingMinuteStatus, err := mms.meetingMinuteStatusSvc.GetByType("informational")
 	if err != nil {
 		return 0, err
 	}
