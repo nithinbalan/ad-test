@@ -88,9 +88,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.GET("/compliances/:complianceId/risks", complianceAssociatedItemController.GetAllComplianceRisks)
 	complianceRoutes.GET("/compliances/:complianceId/incidents", complianceAssociatedItemController.GetAllComplianceIncidents)
 	complianceRoutes.GET("/compliances/:complianceId/strategic-objectives", complianceAssociatedItemController.GetAllComplianceStrategicObjectives)
+	complianceRoutes.GET("/compliances/:complianceId/associated-item-summary", complianceAssociatedItemController.GetAllAssociatedCounts)
+	complianceRoutes.GET("/compliances/:complianceId/requirements-status-summary", complianceAssociatedItemController.GetComplianceRequirementCountByStatus)
 
 	//SLA Register
-	complianceRoutes.GET("/sla-register/:id/document-preview", SLARegisterController.GetSLARegisterDocumentPreview)
+	unauthenticatedRoutes.GET("/sla-register/:id/document-download", SLARegisterController.DownloadSLARegisterDocument)
+	unauthenticatedRoutes.GET("/sla-register/:id/document-preview", SLARegisterController.GetSLARegisterDocumentPreview)
 	complianceRoutes.GET("/sla-register", SLARegisterController.GetAllSLARegisters)
 	complianceRoutes.GET("/sla-register/:id", SLARegisterController.GetSLARegisterDetails)
 	complianceRoutes.POST("/sla-register", SLARegisterController.CreateSLARegister)
@@ -177,6 +180,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.POST("/slas/:slaId/action-plans", slaActionPlanController.CreateSLAActionPlan)
 	complianceRoutes.PUT("/slas/:slaId/action-plans/:actionPlanId", slaActionPlanController.UpdateSLAActionPlan)
 	complianceRoutes.POST("/slas/:slaId/action-plans/delete", slaActionPlanController.DeleteSLAActionPlans)
+	complianceRoutes.GET("/slas/:slaId/action-plan-summary", slaActionPlanController.GetSLAActionPlanCountByStatus)
 
 	// SLA Action Plan
 	complianceRoutes.GET("/slas/:slaId/action-plans/:actionPlanId/status-updates", slaActionPlanStatusUpdateController.GetAllSLAActionPlanStatusUpdates)
@@ -184,9 +188,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.PUT("/slas/:slaId/action-plans/:actionPlanId/status-updates/:id", slaActionPlanStatusUpdateController.UpdateSLAActionPlanStatusUpdate)
 	complianceRoutes.GET("/slas/:slaId/action-plans/:actionPlanId/status-updates/latest", slaActionPlanStatusUpdateController.GetLatestSLAActionPlanStatusUpdate)
 
-	complianceRoutes.GET("/compliances/:complianceId/associated-item-summary", complianceAssociatedItemController.GetAllAssociatedCounts)
-	complianceRoutes.GET("/compliances/:complianceId/requirements-status-summary", complianceAssociatedItemController.GetComplianceRequirementCountByStatus)
-
 	complianceRoutes.GET("/slas/:slaId/processes", slaAssociatedItemController.GetAllSLAProcesses)
+	complianceRoutes.GET("/slas/:slaId/associated-item-summary", slaAssociatedItemController.GetAllAssociatedCounts)
 
 }

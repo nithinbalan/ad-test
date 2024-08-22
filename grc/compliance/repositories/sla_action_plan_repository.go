@@ -20,6 +20,7 @@ type SLAActionPlanRepositoryInterface interface {
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	CreateInitialSLAActionPlanStatusUpdate(slaActionPlanStatusUpdate *models.SLAActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
 	DeleteSLAActionPlanStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error
+	GetSLAActionPlanCountByStatus(slaRegisterID uint) ([]complianceDTOs.SLAActionPlanStatusCountResponseDTO, error)
 }
 
 type SLAActionPlanRepository struct {
@@ -47,6 +48,7 @@ func (repo *SLAActionPlanRepository) GetAll(slaID uint, params *complianceDTOs.S
         sla_check_questions.title_en AS sla_check_question_title_en,
 		sla_check_questions.title_ar AS sla_check_question_title_ar,
         action_plan_statuses.title_en AS action_plan_status_title_en,
+		CONVERT(VARCHAR, sla_action_plans.target_date, 23) AS target_date,
         action_plan_statuses.title_ar AS action_plan_status_title_ar,
         severity_levels.title_en AS severity_level_title_en,
         severity_levels.title_ar AS severity_level_title_ar,
@@ -257,4 +259,37 @@ func (repo *SLAActionPlanRepository) DeleteSLAActionPlanStatusUpdates(ids []*uin
 	}
 
 	return nil
+}
+
+func (repo *SLAActionPlanRepository) GetSLAActionPlanCountByStatus(slaRegisterID uint) ([]complianceDTOs.SLAActionPlanStatusCountResponseDTO, error) {
+	actionPlanStatusCounts := []complianceDTOs.SLAActionPlanStatusCountResponseDTO{}
+
+	query := `
+        SELECT 
+            action_plan_statuses.id, 
+            action_plan_statuses.type, 
+            action_plan_statuses.title_en, 
+            action_plan_statuses.title_ar, 
+            action_plan_statuses.color_code,
+            COUNT(sla_action_plans.id) AS count
+        FROM 
+            sla_action_plans
+        LEFT JOIN 
+            action_plan_statuses ON action_plan_statuses.id = sla_action_plans.action_plan_status_id
+        WHERE 
+            sla_action_plans.sla_register_id = ?
+        GROUP BY 
+            action_plan_statuses.id, 
+            action_plan_statuses.type, 
+            action_plan_statuses.title_en, 
+            action_plan_statuses.title_ar, 
+            action_plan_statuses.color_code
+    `
+
+	err := repo.db.Raw(query, slaRegisterID).Scan(&actionPlanStatusCounts).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return actionPlanStatusCounts, nil
 }
