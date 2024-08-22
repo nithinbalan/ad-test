@@ -175,7 +175,7 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 
 	dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 		UserID:               processFormDTO.OwnerID,
-		ModuleIdentifier:     "process",
+		ModuleIdentifier:     "organization",
 		NotificationType:     string(commonDTOs.AssignmentType),
 		ReferenceNumber:      referenceNumber,
 		HeadingEn:            "Process Assignment",
@@ -188,6 +188,7 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 		CreatedByID:          &currentUserID,
 	}
 
+	//email notification
 	resposibleUser, err := ps.userSvc.GetByID(processFormDTO.OwnerID)
 	if err != nil {
 		return 0, err

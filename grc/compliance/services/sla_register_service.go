@@ -40,6 +40,7 @@ type SLARegisterService struct {
 	lifecycleStatusSvc masterServices.LifecycleStatusServiceInterface
 	activityLogSvc     logServices.ActivityLogServiceInterface
 	processSvc         organizationServices.ProcessServiceInterface
+	userSvc            organizationServices.UserServiceInterface
 }
 
 func NewSLARegisterService(
@@ -48,7 +49,8 @@ func NewSLARegisterService(
 	severityLevelSvc masterServices.SeverityLevelServiceInterface,
 	lifecycleStatusSvc masterServices.LifecycleStatusServiceInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
-	processSvc organizationServices.ProcessServiceInterface) SLARegisterServiceInterface {
+	processSvc organizationServices.ProcessServiceInterface,
+	userSvc organizationServices.UserServiceInterface) SLARegisterServiceInterface {
 	return &SLARegisterService{
 		repo:               repo,
 		slaCategorySvc:     slaCategorySvc,
@@ -56,6 +58,7 @@ func NewSLARegisterService(
 		lifecycleStatusSvc: lifecycleStatusSvc,
 		activityLogSvc:     activityLogSvc,
 		processSvc:         processSvc,
+		userSvc:            userSvc,
 	}
 }
 
@@ -115,6 +118,10 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *co
 		return 0, err
 	}
 
+	responsibleUnitID, err := srs.userSvc.GetUserPrimaryUnitID(uint(slaRegisterFormDTO.ResponsibleUserID))
+	if err != nil {
+		return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "risk responsible unit")
+	}
 	lifecycleStatus, err := srs.lifecycleStatusSvc.GetByType("active")
 	if err != nil {
 		return 0, err
@@ -127,7 +134,7 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *co
 	slaRegister := &models.SLARegister{
 		SLACategoryID:     slaRegisterFormDTO.SLACategoryID,
 		SeverityLevelID:   slaRegisterFormDTO.SeverityLevelID,
-		ResponsibleUnitID: slaRegisterFormDTO.ResponsibleUnitID,
+		ResponsibleUnitID: responsibleUnitID,
 		ResponsibleUserID: slaRegisterFormDTO.ResponsibleUserID,
 		LifecycleStatusID: lifecycleStatus.ID,
 		ReferenceNumber:   referenceNumber,
@@ -255,8 +262,15 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 		return err
 	}
 
+	if existingSLARegister.ResponsibleUserID != slaRegisterFormDTO.ResponsibleUserID {
+		responsibleUnitID, err := srs.userSvc.GetUserPrimaryUnitID(uint(existingSLARegister.ResponsibleUserID))
+		if err != nil {
+			return utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "risk responsible unit")
+		}
+		existingSLARegister.ResponsibleUnitID = responsibleUnitID
+	}
+
 	existingSLARegister.SLACategoryID = slaRegisterFormDTO.SLACategoryID
-	existingSLARegister.ResponsibleUnitID = slaRegisterFormDTO.ResponsibleUnitID
 	existingSLARegister.ResponsibleUserID = slaRegisterFormDTO.ResponsibleUserID
 	existingSLARegister.SeverityLevelID = slaRegisterFormDTO.SeverityLevelID
 	existingSLARegister.LifecycleStatusID = slaRegisterFormDTO.LifecycleStatusID
