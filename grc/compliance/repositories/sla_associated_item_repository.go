@@ -3,12 +3,14 @@ package repositories
 import (
 	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
+	"jethur/grc/models"
 
 	"gorm.io/gorm"
 )
 
 type SLAAssociatedItemRepositoryInterface interface {
 	GetAllProcesses(slaID uint, params *complianceDTOs.SLAAssociatedItemListQueryParamsDTO) (*complianceDTOs.SLAAssociatedItemProcessListResponseDTO, error)
+	GetAllAssociatedCounts(slaID uint) (*complianceDTOs.SlaAssociatedItemsCountResponseDTO, error)
 }
 
 type SLAAssociatedItemRepository struct {
@@ -112,4 +114,41 @@ func (repo *SLAAssociatedItemRepository) GetAllProcesses(slaID uint, params *com
 		},
 	}
 	return response, nil
+}
+
+func (repo *SLAAssociatedItemRepository) GetAllAssociatedCounts(slaID uint) (*complianceDTOs.SlaAssociatedItemsCountResponseDTO, error) {
+	var risksCount, incidentsCount, questionsCount int64
+	var err error
+
+	// Query for questions count
+	err = repo.db.Model(&models.SLACheckQuestion{}).
+		Joins("JOIN sla_check_question_groups ON sla_check_questions.sla_check_question_group_id = sla_check_question_groups.id").
+		Joins("JOIN sla_checks ON sla_check_question_groups.sla_check_id = sla_checks.id").
+		Where("sla_checks.sla_register_id = ?", slaID).
+		Count(&questionsCount).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Query for risks count
+	err = repo.db.Model(&models.RiskSLA{}).
+		Where("sla_register_id = ?", slaID).
+		Count(&risksCount).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Query for incidents count
+	err = repo.db.Model(&models.IncidentSLA{}).
+		Where("sla_register_id = ?", slaID).
+		Count(&incidentsCount).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &complianceDTOs.SlaAssociatedItemsCountResponseDTO{
+		Questions: int(questionsCount),
+		Risks:     int(risksCount),
+		Incidents: int(incidentsCount),
+	}, nil
 }

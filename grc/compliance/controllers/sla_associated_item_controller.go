@@ -76,3 +76,26 @@ func (saic *SLAAssociatedItemController) GetAllSLAProcesses(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, slas)
 }
+
+func (saic *SLAAssociatedItemController) GetAllAssociatedCounts(c *gin.Context) {
+	slaIDStr := c.Param("slaId")
+
+	slaID, err := strconv.ParseUint(slaIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	associatedCounts, err := saic.service.GetAllAssociatedCounts(uint(slaID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(saic.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, associatedCounts)
+}

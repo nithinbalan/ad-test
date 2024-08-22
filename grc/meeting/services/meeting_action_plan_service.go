@@ -141,51 +141,6 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 		return 0, err
 	}
 
-	// eventDescriptionEn := "You have been added as responsible for a new Action Plan"
-	// eventDescriptionAr := "تمت إضافتك كمسؤول لخطة عمل جديدة"
-
-	// messageEn := fmt.Sprintf("%s: %s", eventDescriptionEn, MeetingActionPlanFormDTO.Title)
-	// messageAr := fmt.Sprintf("%s: %s", eventDescriptionAr, MeetingActionPlanFormDTO.Title)
-
-	// redirectURL := fmt.Sprintf("meeting/%d/action-plans/%d", meetingID, id)
-
-	// dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-	// 	UserID:           MeetingActionPlanFormDTO.ResponsibleUserID,
-	// 	ModuleIdentifier: "meeting_action_plan",
-	// 	Icon:             models.CreateIcon,
-	// 	MessageEn:        messageEn,
-	// 	MessageAr:        messageAr,
-	// 	RedirectURL:      redirectURL,
-	// 	CreatedByID:      currentUserID,
-	// }
-
-	// resposibleUser, err := maps.userSvc.GetByID(MeetingActionPlanFormDTO.ResponsibleUserID)
-	// if err != nil {
-	// 	return 0, err
-	// }
-
-	// emailTo := []string{resposibleUser.Email}
-	// subject := fmt.Sprintf("Meeting/%s: Action Plan Added", meeting.Title)
-	// templateRelativePath := "meeting/templates/email/create_action_plan_mail.html"
-	// emailData := meetingDTOs.SendCreateActionPlanMailDTO{
-	// 	FirstNameEn: resposibleUser.FirstNameEn,
-	// 	LastNameEn:  resposibleUser.LastNameEn,
-	// 	MessageEn:   messageEn,
-	// 	RedirectURL: redirectURL,
-	// }
-
-	// emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
-	// 	EmailTo:              emailTo,
-	// 	Subject:              subject,
-	// 	TemplateRelativePath: templateRelativePath,
-	// 	EmailData:            emailData,
-	// }
-
-	// err = maps.notificationSvc.SendNotification(
-	// 	dbNotificationDTO, emailNotificationDTO, "meeting_action_plan")
-	// if err != nil {
-	// 	return 0, err
-	// }
 	actionPlanStatusID := MeetingActionPlanFormDTO.ActionPlanStatusID
 	meetingActionPlanUpdate := &models.MeetingActionPlanStatusUpdate{
 		MeetingActionPlanID: id,

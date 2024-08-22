@@ -22,6 +22,7 @@ type SLARegisterListDTO struct {
 	SLACategoryTitleAr              string    `json:"sla_category_title_ar"`
 	SeverityLevelTitleEn            string    `json:"severity_level_title_en"`
 	SeverityLevelTitleAr            string    `json:"severity_level_title_ar"`
+	SeverityLevelColorCode          string    `json:"severity_level_color_code"`
 	ResponsibleUnitTitleEn          string    `json:"responsible_unit_title_en"`
 	ResponsibleUnitTitleAr          string    `json:"responsible_unit_title_ar"`
 	ResponsibleUserID               uint      `json:"responsible_user_id"`

@@ -7,6 +7,7 @@ import (
 
 type SLAAssociatedItemServiceInterface interface {
 	GetAllProcesses(slaID uint, params *complianceDTOs.SLAAssociatedItemListQueryParamsDTO) (*complianceDTOs.SLAAssociatedItemProcessListResponseDTO, error)
+	GetAllAssociatedCounts(slaID uint) (*complianceDTOs.SlaAssociatedItemsCountResponseDTO, error)
 }
 
 // Service and implementations
@@ -31,4 +32,16 @@ func (sais *SLAAssociatedItemService) GetAllProcesses(slaID uint, params *compli
 		return nil, err
 	}
 	return sais.repo.GetAllProcesses(slaID, params)
+}
+
+func (sais *SLAAssociatedItemService) GetAllAssociatedCounts(slaID uint) (*complianceDTOs.SlaAssociatedItemsCountResponseDTO, error) {
+	if _, err := sais.slaRegisterSvc.GetByID(slaID); err != nil {
+		return nil, err
+	}
+	response, err := sais.repo.GetAllAssociatedCounts(slaID)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
 }
