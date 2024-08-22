@@ -10,7 +10,7 @@ ALTER TABLE meeting_minutes
 ADD meeting_id INT NULL;
 
 ALTER TABLE meeting_minutes
-ADD CONSTRAINT FK_meeting_minutes_meetings FOREIGN KEY (meeting_id) REFERENCES meeting_minutes (id) ON DELETE NO ACTION ON UPDATE NO ACTION;
+ADD CONSTRAINT FK_meeting_minutes_meetings FOREIGN KEY (meeting_id) REFERENCES meetings (id) ON DELETE NO ACTION ON UPDATE NO ACTION;
 -- +goose StatementEnd
 -- +goose Down
 -- +goose StatementBegin
