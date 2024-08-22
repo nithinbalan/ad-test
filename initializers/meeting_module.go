@@ -56,14 +56,6 @@ func NewMeetingModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		incidentModule.IncidentRegisterSvc)
 	meetingController := controllers.NewMeetingController(meetingSvc)
 
-	meetingActionPlanRepo := repositories.NewMeetingActionPlanRepository(db)
-	meetingActionPlanSvc := services.NewMeetingActionPlanService(meetingActionPlanRepo, sharedModule.ActivityLogService, meetingSvc, masterModule.SeverityLevelSvc, masterModule.ActionPlanStatusSvc, organizationModule.UserSvc, commonModule.NotificationService)
-	meetingActionPlanController := controllers.NewMeetingActionPlanController(meetingActionPlanSvc)
-
-	meetingActionPlanStatusUpdateRepo := repositories.NewMeetingActionPlanStatusUpdateRepository(db)
-	meetingActionPlanStatusUpdateSvc := services.NewMeetingActionPlanStatusUpdateService(meetingActionPlanStatusUpdateRepo, sharedModule.ActivityLogService, meetingActionPlanSvc, masterModule.ActionPlanStatusSvc)
-	meetingActionPlanStatusUpdateController := controllers.NewMeetingActionPlanStatusUpdateController(meetingActionPlanStatusUpdateSvc)
-
 	meetingAgendaRepo := repositories.NewMeetingAgendaRepository(db)
 	meetingAgendaSvc := services.NewMeetingAgendaService(meetingAgendaRepo, sharedModule.ActivityLogService, meetingSvc)
 	meetingAgendaController := controllers.NewMeetingAgendaController(meetingAgendaSvc)
@@ -75,6 +67,14 @@ func NewMeetingModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 	meetingMinuteRepo := repositories.NewMeetingMinuteRepository(db)
 	meetingMinuteSvc := services.NewMeetingMinuteService(meetingMinuteRepo, sharedModule.ActivityLogService, meetingSvc, meetingAgendaSvc, meetingMinuteStatusSvc)
 	meetingMinuteController := controllers.NewMeetingMinuteController(meetingMinuteSvc)
+
+	meetingActionPlanRepo := repositories.NewMeetingActionPlanRepository(db)
+	meetingActionPlanSvc := services.NewMeetingActionPlanService(meetingActionPlanRepo, sharedModule.ActivityLogService, meetingSvc, masterModule.SeverityLevelSvc, masterModule.ActionPlanStatusSvc, organizationModule.UserSvc, commonModule.NotificationService, meetingMinuteSvc)
+	meetingActionPlanController := controllers.NewMeetingActionPlanController(meetingActionPlanSvc)
+
+	meetingActionPlanStatusUpdateRepo := repositories.NewMeetingActionPlanStatusUpdateRepository(db)
+	meetingActionPlanStatusUpdateSvc := services.NewMeetingActionPlanStatusUpdateService(meetingActionPlanStatusUpdateRepo, sharedModule.ActivityLogService, meetingActionPlanSvc, masterModule.ActionPlanStatusSvc)
+	meetingActionPlanStatusUpdateController := controllers.NewMeetingActionPlanStatusUpdateController(meetingActionPlanStatusUpdateSvc)
 
 	meetingAssociatedItemRepo := repositories.NewMeetingAssociatedItemRepository(db)
 	meetingAssociatedItemSvc := services.NewMeetingAssociatedItemService(meetingAssociatedItemRepo, meetingSvc)

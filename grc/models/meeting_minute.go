@@ -7,6 +7,7 @@ import (
 type MeetingMinute struct {
 	ID                    uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	MeetingAgendaID       *uint      `json:"meeting_agenda_id" gorm:"null"`
+	MeetingID             *uint      `json:"meeting_id" gorm:"null"`
 	MeetingMinuteStatusID uint       `json:"meeting_minute_status_id" gorm:"not null"`
 	Minutes               *string    `json:"minutes" gorm:"type:nvarchar(max);null"`
 	CreatedBYID           uint       `json:"created_by_id" gorm:"not null"`
@@ -16,6 +17,7 @@ type MeetingMinute struct {
 
 	// Relationships
 	MeetingAgenda       *MeetingAgenda       `gorm:"foreignKey:MeetingAgendaID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Meeting             *Meeting             `gorm:"foreignKey:MeetingID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	MeetingMinuteStatus *MeetingMinuteStatus `gorm:"foreignKey:MeetingMinuteStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	CreatedByUser       *User                `gorm:"foreignKey:CreatedBYID"`
 	UpdatedByUser       *User                `gorm:"foreignKey:UpdatedBYID"`

@@ -34,6 +34,7 @@ func (repo *MeetingMinuteRepository) GetAll(meetingID uint, currentUserID uint, 
 		Select(`
 		meeting_minutes.*,
 		meeting_agendas.title AS meeting_agenda_title,
+		meetings.title AS meeting_title,
 		meeting_minute_statuses.title_en AS meeting_minute_status_title_en,
 		meeting_minute_statuses.title_ar AS meeting_minute_status_title_ar,
 		meeting_minute_statuses.type AS meeting_minute_status_type,
@@ -60,7 +61,7 @@ func (repo *MeetingMinuteRepository) GetAll(meetingID uint, currentUserID uint, 
 		Joins(`
 		LEFT JOIN meeting_agendas ON meeting_minutes.meeting_agenda_id = meeting_agendas.id
 		LEFT JOIN meeting_minute_statuses ON meeting_minutes.meeting_minute_status_id = meeting_minute_statuses.id
-		LEFT JOIN meetings ON meeting_agendas.meeting_id = meetings.id
+		LEFT JOIN meetings ON meeting_minutes.meeting_id = meetings.id
 		LEFT JOIN users AS created_user ON created_user.id = meeting_minutes.created_by_id
 		LEFT JOIN users AS updated_user ON updated_user.id = meeting_minutes.updated_by_id
 	`).
@@ -83,10 +84,11 @@ func (repo *MeetingMinuteRepository) GetAll(meetingID uint, currentUserID uint, 
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
 			(meeting_minutes.minutes LIKE ? OR
+			(meetings.title_en LIKE ? OR
 			(meeting_minute_statuses.title_en LIKE ? OR
 			(meeting_minute_statuses.title_ar LIKE ? OR
 			meeting_agendas.title LIKE ?)`,
-			keyword, keyword, keyword, keyword)
+			keyword,keyword, keyword, keyword, keyword)
 	}
 
 	// Sort by the specified column and order
@@ -123,6 +125,7 @@ func (repo *MeetingMinuteRepository) GetFullDetailsByID(id uint) (*models.Meetin
 
 	result := repo.db.
 		Preload("MeetingAgenda").
+		Preload("Meeting").
 		Preload("MeetingMinuteStatus").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").

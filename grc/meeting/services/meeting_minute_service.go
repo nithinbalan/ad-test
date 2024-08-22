@@ -102,6 +102,7 @@ func (mms *MeetingMinuteService) Create(meetingID uint, currentUserID uint, meet
 
 	meetingMinute := &models.MeetingMinute{
 		MeetingAgendaID:       meetingMinuteFormDTO.MeetingAgendaID,
+		MeetingID:             &meetingID,
 		Minutes:               &meetingMinuteFormDTO.Minutes,
 		MeetingMinuteStatusID: uint(meetingMinuteStatus.ID),
 		CreatedBYID:           currentUserID,

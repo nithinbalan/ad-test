@@ -8,6 +8,8 @@ import (
 type MeetingMinuteListDTO struct {
 	ID                           uint       `json:"id"`
 	MeetingAgendaID              *uint      `json:"meeting_agenda_id"`
+	MeetingID                    *uint      `json:"meeting_id"`
+	MeetingTitle                 *string    `json:"meeting_title"`
 	Minutes                      *string    `json:"minutes"`
 	MeetingAgendaTitle           *string    `json:"meeting_agenda_title"`
 	MeetingMinuteStatusID        uint       `json:"meeting_minute_status_id"`
@@ -49,11 +51,13 @@ type MeetingMinuteListQueryParamsDTO struct {
 type MeetingMinuteDetailDTO struct {
 	ID                  uint                             `json:"id"`
 	MeetingAgendaID     *uint                            `json:"meeting_agenda_id"`
+	MeetingID           *uint                            `json:"meeting_id"`
 	Minutes             *string                          `json:"minutes"`
 	MeetingMinuteStatus MeetingMinuteStatusDTO           `json:"meeting_minute_status"`
 	CreatedByUser       organizationDTOs.UserMinimalDTO  `json:"created_by_id"`
 	UpdatedByUser       *organizationDTOs.UserMinimalDTO `json:"updated_by_id"`
 	MeetingAgenda       *MeetingAgendaDetailDTO          `json:"agenda"`
+	Meeting             *MeetingDetailDTO                `json:"meeting"`
 	CreatedAt           time.Time                        `json:"created_at"`
 	UpdatedAt           *time.Time                       `json:"updated_at"`
 }
