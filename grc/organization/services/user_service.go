@@ -38,7 +38,8 @@ type UserServiceInterface interface {
 	GetUserIdsByRole(roleID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
 
 	GetCurrentUserDetails(id uint) (*userDTOs.CurrentUserDetailsDTO, error)
-	GetUserNotifications(userID uint) ([]*userDTOs.UserNotificationListDTO, error)
+	GetUserNotifications(userID uint, params *userDTOs.UserNotificationListQueryParamsDTO) (*userDTOs.UserNotificationListResponseDTO, error)
+	GetUserNewNotificationCount(userID uint) (int64, error)
 }
 
 type UserService struct {
@@ -572,6 +573,10 @@ func (us *UserService) GetCurrentUserDetails(id uint) (*userDTOs.CurrentUserDeta
 	return &userDetailsDTO, nil
 }
 
-func (us *UserService) GetUserNotifications(userID uint) ([]*userDTOs.UserNotificationListDTO, error) {
-	return us.repo.GetUserNotifications(userID)
+func (ns *UserService) GetUserNotifications(userID uint, params *userDTOs.UserNotificationListQueryParamsDTO) (*userDTOs.UserNotificationListResponseDTO, error) {
+	return ns.repo.GetUserNotifications(userID, params)
+}
+
+func (us *UserService) GetUserNewNotificationCount(userID uint) (int64, error) {
+	return us.repo.GetUserNewNotificationCount(userID)
 }

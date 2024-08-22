@@ -38,7 +38,8 @@ type UserRepositoryInterface interface {
 	GetUserPrimaryUnitID(primaryOrgUnitField string, userID uint) (uint, error)
 	GetUserIdsByRole(roleID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
 
-	GetUserNotifications(userID uint) ([]*userDTOs.UserNotificationListDTO, error)
+	GetUserNotifications(userID uint, params *userDTOs.UserNotificationListQueryParamsDTO) (*userDTOs.UserNotificationListResponseDTO, error)
+	GetUserNewNotificationCount(userID uint) (int64, error)
 }
 
 type UserRepository struct {
@@ -502,8 +503,16 @@ func (repo *UserRepository) GetUserIdsByRole(roleID uint, tx ...utility.Database
 	return userIDs, nil
 }
 
-func (repo *UserRepository) GetUserNotifications(userID uint) ([]*userDTOs.UserNotificationListDTO, error) {
+func (repo *UserRepository) GetUserNotifications(userID uint, params *userDTOs.UserNotificationListQueryParamsDTO) (*userDTOs.UserNotificationListResponseDTO, error) {
 	var notifications []*userDTOs.UserNotificationListDTO
+	var totalCount int64
+
+	// Update all notifications to set is_new = false for the given user
+	if err := repo.db.Table("user_notifications").
+		Where("user_notifications.user_id = ? AND user_notifications.is_new = ?", userID, true).
+		Update("is_new", false).Error; err != nil {
+		return nil, err
+	}
 
 	query := repo.db.Table("user_notifications").
 		Select(`
@@ -534,11 +543,86 @@ func (repo *UserRepository) GetUserNotifications(userID uint) ([]*userDTOs.UserN
 		Joins("LEFT JOIN modules ON modules.id = user_notifications.module_id").
 		Where("user_notifications.user_id = ?", userID)
 
+	// Apply is_new filter if provided
+	if params.IsNew != "" {
+		query = query.Where("user_notifications.is_new = ?", params.IsNew == "true")
+	}
+
+	// Apply is_read filter if provided
+	if params.IsRead != "" {
+		query = query.Where("user_notifications.is_read = ?", params.IsRead == "true")
+	}
+
+	if params.IsUnread != "" {
+		query = query.Where("user_notifications.is_read = ?", params.IsUnread == "false")
+	}
+
+	// Apply search keyword if exists
+	if params.Keyword != "" {
+		query = query.Where(`
+			(user_notifications.notification_type LIKE ? OR
+			 user_notifications.reference_number LIKE ? OR
+			 user_notifications.heading_en LIKE ? OR
+			 user_notifications.heading_ar LIKE ? OR
+			 user_notifications.title_en LIKE ? OR
+			 user_notifications.title_ar LIKE ? OR
+			 modules.identifier LIKE ? OR
+			 modules.title_en LIKE ? OR
+			 modules.title_ar LIKE ?)`,
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
+	}
+
+	// Calculate total count for pagination
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
+	// Apply sorting
+	if params.SortBy != "" && params.Sort != "" {
+		query = query.Order(params.SortBy + " " + params.Sort)
+	} else {
+		query = query.Order("user_notifications.created_at DESC") // Default sorting
+	}
+
+	// Apply pagination
+	offset := (params.Page - 1) * params.PageSize
+	query = query.Offset(offset).Limit(params.PageSize)
+
 	// Execute the query
 	err := query.Find(&notifications).Error
 	if err != nil {
 		return nil, err
 	}
 
-	return notifications, nil
+	// Calculate total pages
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	// Construct the response
+	response := &userDTOs.UserNotificationListResponseDTO{
+		Items: notifications,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+
+	return response, nil
+}
+
+func (repo *UserRepository) GetUserNewNotificationCount(userID uint) (int64, error) {
+	var count int64
+
+	err := repo.db.Table("user_notifications").
+		Where("user_notifications.user_id = ? AND user_notifications.is_new = ?", userID, true).
+		Count(&count).Error
+
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
 }

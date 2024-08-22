@@ -290,7 +290,25 @@ func (uc *UserController) GetCurrentUserDetails(c *gin.Context) {
 	c.JSON(http.StatusOK, user)
 }
 
-func (uc *UserController) GetCurrentUserNotifications(c *gin.Context) {
+func (uc *UserController) GetUserNotifications(c *gin.Context) {
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+	isNew := c.Query("is_new")
+	isRead := c.Query("is_read")
+	isUnread := c.Query("is_unread")
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(uc.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(uc.db, c, "Invalid page_size parameter")
+		return
+	}
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
@@ -298,16 +316,48 @@ func (uc *UserController) GetCurrentUserNotifications(c *gin.Context) {
 		return
 	}
 
-	userNotification, err := uc.service.GetUserNotifications(uint(currentUserID))
+	// Prepare query parameters
+	queryParams := organizationDTOs.UserNotificationListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+		IsNew:    isNew,
+		IsRead:   isRead,
+		IsUnread: isUnread,
+	}
+
+	userNotifications, err := uc.service.GetUserNotifications(uint(currentUserID), &queryParams)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
 			return
 		default:
 			utility.SendInternalErrResp(uc.db, c, e.Error())
 			return
 		}
 	}
-	c.JSON(http.StatusOK, userNotification)
+
+	c.JSON(http.StatusOK, userNotifications)
+}
+
+func (uc *UserController) GetUserNewNotificationCount(c *gin.Context) {
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(uc.db, c, err.Error())
+		return
+	}
+
+	count, err := uc.service.GetUserNewNotificationCount(currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(nil, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"unread_count": count})
 }
