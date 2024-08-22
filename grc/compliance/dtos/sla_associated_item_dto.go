@@ -41,3 +41,9 @@ type SLAAssociatedItemProcessListResponseDTO struct {
 	Items      []*SLAProcessListDTO         `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }
+
+type SlaAssociatedItemsCountResponseDTO struct {
+	Questions int `json:"questions"`
+	Risks     int `json:"risks"`
+	Incidents int `json:"incidents"`
+}

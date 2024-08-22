@@ -97,7 +97,27 @@ func (srs SLARegisterService) GetFullDetailsByID(id uint, tx ...utility.Database
 		return nil, err
 	}
 
-	//todo :- also add extra fields which required in details screen
+	for _, document := range slaRegisterDTO.Documents {
+		if document.IssueDate != nil {
+			issueDate := document.IssueDate.Format("2006-01-02")
+			document.IssueDateString = &issueDate
+		}
+		if document.ExpiryDate != nil {
+			expiryDate := document.ExpiryDate.Format("2006-01-02")
+			document.ExpiryDateString = &expiryDate
+		}
+		if document.SA1Date != nil {
+			sa1Date := document.SA1Date.Format("2006-01-02")
+			document.SA1DateString = &sa1Date
+		}
+		if document.SA2Date != nil {
+			sa2Date := document.SA2Date.Format("2006-01-02")
+			document.SA2DateString = &sa2Date
+		}
+	}
+
+	slaRegisterDTO.CreatedAt = slaRegister.CreatedAt
+	slaRegisterDTO.UpdatedAt = slaRegister.UpdatedAt
 
 	return &slaRegisterDTO, nil
 }
