@@ -297,6 +297,7 @@ func (uc *UserController) GetUserNotifications(c *gin.Context) {
 	isNew := c.Query("is_new")
 	isRead := c.Query("is_read")
 	isUnread := c.Query("is_unread")
+	moduleID := c.Query("module_id")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -326,6 +327,7 @@ func (uc *UserController) GetUserNotifications(c *gin.Context) {
 		IsNew:    isNew,
 		IsRead:   isRead,
 		IsUnread: isUnread,
+		ModuleID: moduleID,
 	}
 
 	userNotifications, err := uc.service.GetUserNotifications(uint(currentUserID), &queryParams)

@@ -96,7 +96,6 @@ type SLARegisterListResponseDTO struct {
 type SLARegisterFormDTO struct {
 	SLACategoryID     uint               `json:"sla_category_id" binding:"required"`
 	SeverityLevelID   uint               `json:"severity_level_id"`
-	ResponsibleUnitID uint               `json:"responsible_unit_id"`
 	ResponsibleUserID uint               `json:"responsible_user_id"`
 	LifecycleStatusID uint               `json:"lifecycle_status_id"`
 	TitleEn           string             `json:"title_en" binding:"required,max=250"`

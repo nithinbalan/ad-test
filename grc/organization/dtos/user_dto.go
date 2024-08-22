@@ -227,6 +227,7 @@ type UserNotificationListQueryParamsDTO struct {
 	Keyword  string `json:"keyword" form:"keyword"`
 	Page     int    `json:"page" form:"page"`
 	PageSize int    `json:"page_size" form:"page_size"`
+	ModuleID string `json:"module_id" form:"module_id"`
 	IsNew    string `json:"is_new" form:"is_new"`
 	IsRead   string `json:"is_read" form:"is_read"`
 	IsUnread string `json:"is_unread" form:"is_unread"`

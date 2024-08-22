@@ -543,12 +543,14 @@ func (repo *UserRepository) GetUserNotifications(userID uint, params *userDTOs.U
 		Joins("LEFT JOIN modules ON modules.id = user_notifications.module_id").
 		Where("user_notifications.user_id = ?", userID)
 
-	// Apply is_new filter if provided
+	if params.ModuleID != "" {
+		query = query.Where("user_notifications.module_id = ?", params.ModuleID)
+	}
+
 	if params.IsNew != "" {
 		query = query.Where("user_notifications.is_new = ?", params.IsNew == "true")
 	}
 
-	// Apply is_read filter if provided
 	if params.IsRead != "" {
 		query = query.Where("user_notifications.is_read = ?", params.IsRead == "true")
 	}
@@ -557,7 +559,6 @@ func (repo *UserRepository) GetUserNotifications(userID uint, params *userDTOs.U
 		query = query.Where("user_notifications.is_read = ?", params.IsUnread == "false")
 	}
 
-	// Apply search keyword if exists
 	if params.Keyword != "" {
 		query = query.Where(`
 			(user_notifications.notification_type LIKE ? OR
