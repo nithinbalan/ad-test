@@ -22,10 +22,10 @@ type SLAActionPlanListDTO struct {
 	ResponsibleUserFirstNameAr          string `json:"responsible_user_first_name_ar"`
 	ResponsibleUserLastNameEn           string `json:"responsible_user_last_name_en"`
 	ResponsibleUserLastNameAr           string `json:"responsible_user_last_name_ar"`
-	ResponsibleUserUserInitial          string `json:"responsible_user_user_initial"`
-	ResponsibleUserUserColor            string `json:"responsible_user_user_color"`
-	ResponsibleUserUserEmail            string `json:"responsible_user_user_email"`
-	ResponsibleUserUserProfileImagePath string `json:"responsible_user_user_profile_image_path"`
+	ResponsibleUserUserInitial          string `json:"responsible_user_initial"`
+	ResponsibleUserUserColor            string `json:"responsible_user_color"`
+	ResponsibleUserUserEmail            string `json:"responsible_user_email"`
+	ResponsibleUserUserProfileImagePath string `json:"responsible_user_profile_image_path"`
 	TargetDate                          string `json:"target_date"`
 	Percentage                          uint   `json:"percentage"`
 	Comments                            string `json:"comments"`
