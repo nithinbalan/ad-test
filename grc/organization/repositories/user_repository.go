@@ -518,6 +518,14 @@ func (repo *UserRepository) GetUserNotifications(userID uint, params *userDTOs.U
 		Select(`
 			user_notifications.id,
 			user_notifications.user_id,
+        	users.first_name_en AS user_first_name_en,
+			users.first_name_ar AS user_first_name_ar,
+			users.last_name_en AS user_last_name_en,
+			users.last_name_ar AS user_last_name_ar,
+			users.initial AS user_initial,
+       		users.color AS user_color,
+        	users.email AS user_email,
+        	users.profile_image_path AS user_profile_image_path,
 			user_notifications.module_id,
 			user_notifications.notification_type,
 			user_notifications.reference_number,
@@ -531,15 +539,21 @@ func (repo *UserRepository) GetUserNotifications(userID uint, params *userDTOs.U
 			user_notifications.is_read,
 			user_notifications.is_system_notification,
 			user_notifications.created_at,
-			users.first_name_en AS created_by_first_name_en,
-			users.first_name_ar AS created_by_first_name_ar,
-			users.last_name_en AS created_by_last_name_en,
-			users.last_name_ar AS created_by_last_name_ar,
+			created_user.id AS created_user_id,
+        	created_user.first_name_en AS created_user_first_name_en,
+			created_user.first_name_ar AS created_user_first_name_ar,
+			created_user.last_name_en AS created_user_last_name_en,
+			created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+       		created_user.color AS created_user_color,
+        	created_user.email AS created_user_email,
+        	created_user.profile_image_path AS created_user_profile_image_path,
 			modules.identifier AS module_identifier,
 			modules.title_en AS module_title_en,
 			modules.title_ar AS module_title_ar
 		`).
-		Joins("LEFT JOIN users ON users.id = user_notifications.created_by_id").
+		Joins("LEFT JOIN users ON users.id = user_notifications.user_id").
+		Joins("LEFT JOIN users AS created_user ON created_user.id = user_notifications.created_by_id").
 		Joins("LEFT JOIN modules ON modules.id = user_notifications.module_id").
 		Where("user_notifications.user_id = ?", userID)
 
