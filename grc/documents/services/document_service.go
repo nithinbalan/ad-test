@@ -205,7 +205,7 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 	sharedUsers = append(sharedUsers, responsibleUser)
 
 	switch documentAccessType.Type {
-	case "shared-users":
+	case "shared":
 		for _, userID := range documentFormDTO.SharedUserIDs {
 			sharedUser := &models.DocumentSharedUser{
 				DocumentID:  id,
@@ -214,7 +214,7 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 			}
 			sharedUsers = append(sharedUsers, sharedUser)
 		}
-	case "shared-units":
+
 		sharedUnits := make([]*models.DocumentSharedUnit, 0, len(documentFormDTO.SharedUnitIDs))
 		for _, unitID := range documentFormDTO.SharedUnitIDs {
 			sharedUnit := &models.DocumentSharedUnit{
@@ -535,6 +535,10 @@ func (ds *DocumentService) validateDocumentFormDTO(documentFormDTO *documentDTOs
 
 	if _, err := ds.documentTypeSvc.GetByID(documentFormDTO.DocumentTypeID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("document type does not exist"), "not_exist", "document type")
+	}
+
+	if _, err := ds.workflowSvc.GetWorkflowByDocumentType(documentFormDTO.DocumentTypeID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("document type workflow does not exist"), "not_exist", "document type workflow")
 	}
 
 	if _, err := ds.documentAccessTypeSvc.GetByID(documentFormDTO.DocumentAccessTypeID); err != nil {
