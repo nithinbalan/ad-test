@@ -21,6 +21,7 @@ type MeetingActionPlanStatusUpdateRepositoryInterface interface {
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
 
 	GetLatestMeetingActionPlanStatusUpdate(meetingActionPlanID uint) (*meetingDTOs.MeetingActionPlanStatusUpdateListDTO, error)
+	CheckAllActionPlansCompletedStatusCount(meetingMinuteID uint, excludeActionPlanID uint, completedStatuses []string, tx ...utility.DatabaseTransaction) (int64, error)
 }
 
 type MeetingActionPlanStatusUpdateRepository struct {
@@ -210,4 +211,24 @@ func (repo *MeetingActionPlanStatusUpdateRepository) GetLatestMeetingActionPlanS
 
 	return meetingActionPlanUpdate, nil
 
+}
+
+func (repo *MeetingActionPlanStatusUpdateRepository) CheckAllActionPlansCompletedStatusCount(meetingMinuteID uint, excludeActionPlanID uint, completedStatuses []string, tx ...utility.DatabaseTransaction) (int64, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Count completed/terminated action plans, excluding the current action plan being updated
+	var count int64
+	if err := db.Model(&models.MeetingActionPlan{}).
+		Where("meeting_minute_id = ?", meetingMinuteID).
+		Where("id != ?", excludeActionPlanID).
+		Where("action_plan_status_id NOT IN (?)", completedStatuses).
+		Count(&count).Error; err != nil {
+		return 0, err
+	}
+
+	// Return the count of completed/terminated action plans
+	return count, nil
 }
