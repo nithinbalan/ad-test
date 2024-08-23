@@ -86,6 +86,7 @@ func (repo *MeetingRepository) GetAll(currentUserID uint, params *meetingDTOs.Me
 			meetings.is_public,
 			meeting_statuses.title_en AS meeting_status_title_en,
 			meeting_statuses.title_ar AS meeting_status_title_ar,
+			meeting_statuses.color_code AS meeting_status_color_code,
         	created_user.id AS created_user_id,
         	created_user.first_name_en AS created_user_first_name_en,
         	created_user.first_name_ar AS created_user_first_name_ar,
@@ -112,7 +113,8 @@ func (repo *MeetingRepository) GetAll(currentUserID uint, params *meetingDTOs.Me
 			LEFT JOIN meeting_statuses ON meetings.meeting_status_id = meeting_statuses.id
             LEFT JOIN users AS created_user ON created_user.id = meetings.created_by_id
             LEFT JOIN users AS updated_user ON updated_user.id = meetings.updated_by_id
-        `).Where("(meetings.is_public = ? OR meetings.organizer_id = ? OR meetings.id IN (SELECT meeting_id FROM meeting_participants WHERE user_id = ?))", true, currentUserID, currentUserID)
+        `)
+		//.Where("(meetings.is_public = ? OR meetings.organizer_id = ? OR meetings.id IN (SELECT meeting_id FROM meeting_participants WHERE user_id = ?))", true, currentUserID, currentUserID)
 
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
