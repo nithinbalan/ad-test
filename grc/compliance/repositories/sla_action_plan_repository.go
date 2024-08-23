@@ -196,6 +196,8 @@ func (repo *SLAActionPlanRepository) GetFullDetailsByID(id uint) (*models.SLAAct
 		Preload("SeverityLevel").
 		Preload("ActionPlanStatus").
 		Preload("ActionPlanStatusUpdates").
+		Preload("CreatedByUser").
+		Preload("UpdatedByUser").
 		First(&slaActionPlan, id)
 
 	if result.Error != nil {

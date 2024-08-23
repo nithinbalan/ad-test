@@ -213,13 +213,17 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 		EmailData:            emailData,
 	}
 
-	err = ps.notificationSvc.SendNotification(
-		dbNotificationDTO, emailNotificationDTO, "process")
-	if err != nil {
-		return 0, err
-	}
-
 	tx.Commit()
+
+	go func() {
+		err := ps.notificationSvc.SendNotification(
+			dbNotificationDTO, emailNotificationDTO, "process")
+		if err != nil {
+			utility.LogError("Failed to send notifications", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
+	}()
 
 	go func() {
 		err := ps.activityLogSvc.LogActivity(

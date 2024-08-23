@@ -330,3 +330,21 @@ func (src *SLARegisterController) DownloadSLARegisterDocument(c *gin.Context) {
 	// Serve the file
 	c.File(slaDocumentPath)
 }
+
+func (src *SLARegisterController) AssessmentStatusSummary(c *gin.Context) {
+	idStr := c.Param("slaId")
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	assessmentStatusSummary, err := src.service.AssessmentStatusSummary(uint(id))
+	if err != nil {
+		utility.SendInternalErrResp(src.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, assessmentStatusSummary)
+}
