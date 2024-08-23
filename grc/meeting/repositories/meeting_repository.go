@@ -113,7 +113,8 @@ func (repo *MeetingRepository) GetAll(currentUserID uint, params *meetingDTOs.Me
 			LEFT JOIN meeting_statuses ON meetings.meeting_status_id = meeting_statuses.id
             LEFT JOIN users AS created_user ON created_user.id = meetings.created_by_id
             LEFT JOIN users AS updated_user ON updated_user.id = meetings.updated_by_id
-        `).Where("(meetings.is_public = ? OR meetings.organizer_id = ? OR meetings.id IN (SELECT meeting_id FROM meeting_participants WHERE user_id = ?))", true, currentUserID, currentUserID)
+        `)
+		//.Where("(meetings.is_public = ? OR meetings.organizer_id = ? OR meetings.id IN (SELECT meeting_id FROM meeting_participants WHERE user_id = ?))", true, currentUserID, currentUserID)
 
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
