@@ -207,14 +207,12 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 	switch documentAccessType.Type {
 	case "shared-users":
 		for _, userID := range documentFormDTO.SharedUserIDs {
-			if userID != nil && *userID != currentUserID && *userID != documentFormDTO.ResponsibleUserID {
-				sharedUser := &models.DocumentSharedUser{
-					DocumentID:  id,
-					UserID:      *userID,
-					CreatedBYID: currentUserID,
-				}
-				sharedUsers = append(sharedUsers, sharedUser)
+			sharedUser := &models.DocumentSharedUser{
+				DocumentID:  id,
+				UserID:      *userID,
+				CreatedBYID: currentUserID,
 			}
+			sharedUsers = append(sharedUsers, sharedUser)
 		}
 	case "shared-units":
 		sharedUnits := make([]*models.DocumentSharedUnit, 0, len(documentFormDTO.SharedUnitIDs))
@@ -353,7 +351,7 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 		}
 	}
 
-	err = ds.CreateDocumentWorkflow(docVersionId, documentFormDTO.DocumentTypeID, currentUserID, tx)
+	err = ds.CreateDocumentWorkflow(id, docVersionId, documentFormDTO.DocumentTypeID, currentUserID, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -919,7 +917,7 @@ func (ds *DocumentService) GetDocumentPath(id uint, token string, fileType strin
 	return fullPath, nil
 }
 
-func (ds *DocumentService) CreateDocumentWorkflow(documentVersionId uint, documentTypeId uint, currentUserID uint, tx ...utility.DatabaseTransaction) error {
+func (ds *DocumentService) CreateDocumentWorkflow(documentId uint, documentVersionId uint, documentTypeId uint, currentUserID uint, tx ...utility.DatabaseTransaction) error {
 	workflow, err := ds.workflowSvc.GetWorkflowByDocumentType(documentTypeId, tx...)
 	if err != nil {
 		return err
@@ -935,6 +933,9 @@ func (ds *DocumentService) CreateDocumentWorkflow(documentVersionId uint, docume
 	if err != nil {
 		return err
 	}
+
+	var sharedUsers []*models.DocumentSharedUser
+	uniqueUsers := make(map[uint]bool) // Map to track added users
 
 	for _, level := range workflowLevels.WorkflowLevels {
 		documentWorkflow := &models.DocumentWorkflow{
@@ -966,14 +967,47 @@ func (ds *DocumentService) CreateDocumentWorkflow(documentVersionId uint, docume
 						return err
 					}
 
+					if _, exists := uniqueUsers[userId]; exists {
+						continue
+					}
+
+					uniqueUsers[userId] = true
+
+					// Append to sharedUsers slice
+					sharedUsers = append(sharedUsers, &models.DocumentSharedUser{
+						DocumentID:  documentId,
+						UserID:      userId,
+						Type:        "review-user",
+						CreatedBYID: currentUserID,
+					})
+
 				}
 			} else if participant.User != nil {
-				err = ds.createWorkflowParticipant(uint(participant.User.ID), docWorkflowId, &participant, currentUserID, tx...)
+				userId := uint(participant.User.ID)
+				err = ds.createWorkflowParticipant(userId, docWorkflowId, &participant, currentUserID, tx...)
 				if err != nil {
 					return err
 				}
+
+				if _, exists := uniqueUsers[userId]; exists {
+					continue
+				}
+
+				uniqueUsers[userId] = true
+
+				// Append to sharedUsers slice
+				sharedUsers = append(sharedUsers, &models.DocumentSharedUser{
+					DocumentID:  documentVersionId,
+					UserID:      userId,
+					Type:        "review-user",
+					CreatedBYID: currentUserID,
+				})
 			}
 		}
+	}
+
+	if err := ds.CreateSharedUsers(sharedUsers, tx...); err != nil {
+		return err
 	}
 
 	return nil

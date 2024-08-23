@@ -97,7 +97,10 @@ func (saps *SLAActionPlanService) GetFullDetailsByID(slaID uint, id uint) (*comp
 		return nil, err
 	}
 
-	// todo: add extra fields required in the details screen
+	if slaActionPlan.TargetDate != nil {
+		targetDate := slaActionPlan.TargetDate.Format("2006-01-02")
+		slaActionPlanDTO.TargetDateString = &targetDate
+	}
 
 	return &slaActionPlanDTO, nil
 }

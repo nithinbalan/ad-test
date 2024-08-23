@@ -30,6 +30,7 @@ type SLARegisterServiceInterface interface {
 	Restore(ids []uint, currentUserID uint) ([]uint, error)
 
 	GetDocumentPath(id uint, token string) (string, error)
+	AssessmentStatusSummary(slaID uint) ([]complianceDTOs.SLACheckAnswerStatusCountResponseDTO, error)
 }
 
 // Service and implementations
@@ -731,4 +732,17 @@ func (srs *SLARegisterService) GetDocumentPath(id uint, token string) (string, e
 	}
 
 	return fullPath, nil
+}
+
+func (srs SLARegisterService) AssessmentStatusSummary(slaID uint) ([]complianceDTOs.SLACheckAnswerStatusCountResponseDTO, error) {
+	if _, err := srs.GetByID(slaID); err != nil {
+		return nil, err
+	}
+
+	assessmentStatusSummary, err := srs.repo.AssessmentStatusSummary(slaID)
+	if err != nil {
+		return nil, err
+	}
+
+	return assessmentStatusSummary, nil
 }

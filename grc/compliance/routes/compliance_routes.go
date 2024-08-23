@@ -101,6 +101,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.POST("/sla-register/delete", SLARegisterController.DeleteSLARegisters)
 	complianceRoutes.PUT("/sla-register/archive", SLARegisterController.ArchiveSLARegisters)
 	complianceRoutes.PUT("/sla-register/restore", SLARegisterController.RestoreSLARegisters)
+	complianceRoutes.GET("/slas/:slaId/assessment-status-summary", SLARegisterController.AssessmentStatusSummary)
 
 	//SLA Renew
 	complianceRoutes.GET("/slas/:slaId/renew-history", SLARenewController.GetSLARenewHistory)
