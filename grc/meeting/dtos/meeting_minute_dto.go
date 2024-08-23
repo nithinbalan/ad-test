@@ -65,5 +65,4 @@ type MeetingMinuteDetailDTO struct {
 type MeetingMinuteFormDTO struct {
 	Minutes               string `json:"minutes"  binding:"required"`
 	MeetingAgendaID       *uint  `json:"meeting_agenda_id"`
-	MeetingMinuteStatusID *uint  `json:"meeting_minute_status_id"`
 }

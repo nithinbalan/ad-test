@@ -156,7 +156,6 @@ func (mms *MeetingMinuteService) Update(meetingID uint, id uint, currentUserID u
 
 	existingMeetingMinute.MeetingAgendaID = meetingMinuteFormDTO.MeetingAgendaID
 	existingMeetingMinute.Minutes = &meetingMinuteFormDTO.Minutes
-	existingMeetingMinute.MeetingMinuteStatusID = *meetingMinuteFormDTO.MeetingMinuteStatusID
 	existingMeetingMinute.UpdatedBYID = &currentUserID
 
 	if err := mms.repo.Update(existingMeetingMinute, tx); err != nil {
