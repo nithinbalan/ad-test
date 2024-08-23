@@ -79,7 +79,7 @@ type MeetingActionPlanFormDTO struct {
 	Percentage         *uint   `json:"percentage" binding:"omitempty"`
 	Comments           *string `json:"comments" binding:"omitempty"`
 	ActionPlanStatusID uint    `json:"action_plan_status_id" binding:"required"`
-	MeetingMinuteID    *uint   `json:"meeting_minute_id"`
+	MeetingMinuteID    *uint   `json:"meeting_minute_id"  binding:"required"`
 }
 
 type MeetingActionPlanParsedDates struct {
