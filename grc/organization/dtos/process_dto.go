@@ -36,19 +36,19 @@ type ProcessListDTO struct {
 	CreatedUserFirstNameAr      string     `json:"created_user_first_name_ar"`
 	CreatedUserLastNameEn       string     `json:"created_user_last_name_en"`
 	CreatedUserLastNameAr       string     `json:"created_user_last_name_ar"`
-	CreatedUserInitial          string     `json:"created_user_owner_initial"`
-	CreatedUserColor            string     `json:"created_user_owner_color"`
-	CreatedUserEmail            string     `json:"created_user_owner_email"`
-	CreatedUserProfileImagePath string     `json:"created_user_owner_profile_image_path"`
+	CreatedUserInitial          string     `json:"created_user_initial"`
+	CreatedUserColor            string     `json:"created_user_color"`
+	CreatedUserEmail            string     `json:"created_user_email"`
+	CreatedUserProfileImagePath string     `json:"created_user_profile_image_path"`
 	UpdatedUserID               *uint      `json:"updated_user_id"`
 	UpdatedUserFirstNameEn      *string    `json:"updated_user_first_name_en"`
 	UpdatedUserFirstNameAr      *string    `json:"updated_user_first_name_ar"`
 	UpdatedUserLastNameEn       *string    `json:"updated_user_last_name_en"`
 	UpdatedUserLastNameAr       *string    `json:"updated_user_last_name_ar"`
-	UpdatedUserInitial          string     `json:"updated_user_owner_initial"`
-	UpdatedUserColor            string     `json:"updated_user_owner_color"`
-	UpdatedUserEmail            string     `json:"updated_user_owner_email"`
-	UpdatedUserProfileImagePath string     `json:"updated_user_owner_profile_image_path"`
+	UpdatedUserInitial          string     `json:"updated_user_initial"`
+	UpdatedUserColor            string     `json:"updated_user_color"`
+	UpdatedUserEmail            string     `json:"updated_user_email"`
+	UpdatedUserProfileImagePath string     `json:"updated_user_profile_image_path"`
 	CreatedAt                   time.Time  `json:"created_at"`
 	UpdatedAt                   *time.Time `json:"updated_at"`
 }
@@ -78,6 +78,7 @@ type ProcessFormDTO struct {
 	TitleAr        string  `json:"title_ar" binding:"required"`
 	Description    *string `json:"description" binding:"omitempty"`
 	ControlIds     []*uint `json:"control_ids"`
+	DocumentIds    []*uint `json:"document_ids"`
 }
 
 type ProcessDetailDTO struct {
@@ -95,6 +96,7 @@ type ProcessDetailDTO struct {
 	CreatedAt       time.Time                         `json:"created_at"`
 	UpdatedAt       *time.Time                        `json:"updated_at"`
 	Controls        []*ProcessControlDTO              `json:"controls"`
+	Documents       []*ProcessAssociatedDocumentDTO   `json:"documents"`
 }
 
 type ProcessControlDTO struct {
@@ -102,4 +104,29 @@ type ProcessControlDTO struct {
 	ProcessID uint             `json:"process_id"`
 	ControlID uint             `json:"control_id"`
 	Control   ControlDetailDTO `json:"control"`
+}
+
+type ProcessAssociatedDocumentDTO struct {
+	ID         *uint              `json:"id"`
+	ProcessID  uint               `json:"process_id"`
+	DocumentID uint               `json:"document_id"`
+	Document   DocumentDetailsDTO `json:"document"`
+}
+
+type DocumentDetailsDTO struct {
+	ID            int     `json:"id"`
+	TitleEn       string  `json:"title_en"`
+	TitleAr       string  `json:"title_ar"`
+	DescriptionEn *string `json:"description_en"`
+	DescriptionAr *string `json:"description_ar"`
+	IsLocked      bool    `json:"is_locked"`
+	Acknowledged  *bool   `json:"acknowledged,omitempty"`
+}
+
+type SendCreateProcessMailDTO struct {
+	FirstNameEn string `json:"first_name_en"`
+	LastNameEn  string `json:"last_name_en"`
+	Subject     string `json:"subject"`
+	MessageEn   string `json:"message_en"`
+	RedirectURL string `json:"redirect_url"`
 }

@@ -225,6 +225,26 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		}
 	}
 
+	var documents []*models.ComplianceRequirementAssociatedDocument
+	for _, documentID := range complianceRequirementFormDTO.DocumentIds {
+		document := &models.ComplianceRequirementAssociatedDocument{
+			ComplianceRegisterID:    complianceID,
+			ComplianceRequirementID: id,
+			DocumentID:              *documentID,
+			CreatedByID:             currentUserID,
+		}
+		documents = append(documents, document)
+	}
+
+	fmt.Println(documents)
+
+	if len(documents) > 0 {
+		if err := crs.repo.CreateComplianceRequirementDocuments(documents, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
 	tx.Commit()
 
 	go func() {
@@ -414,6 +434,58 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 		}
 	}
 
+	existingDocumentIDs := make(map[uint]bool)
+	for _, doc := range complianceRequirement.Documents {
+		existingDocumentIDs[doc.DocumentID] = true
+	}
+
+	// Collect new document IDs
+	newDocumentIDs := make(map[uint]bool)
+	for _, doc := range complianceRequirementFormDTO.DocumentIds {
+		newDocumentIDs[*doc] = true
+	}
+
+	// Add new documents
+	var documentsToAdd []*models.ComplianceRequirementAssociatedDocument
+	for _, newDocumentID := range complianceRequirementFormDTO.DocumentIds {
+		if _, exists := existingDocumentIDs[*newDocumentID]; !exists {
+			// Create a new compliance requirement document record
+			document := &models.ComplianceRequirementAssociatedDocument{
+				ComplianceRegisterID:    complianceID,
+				ComplianceRequirementID: id,
+				DocumentID:              *newDocumentID,
+				CreatedByID:             currentUserID,
+			}
+			documentsToAdd = append(documentsToAdd, document)
+		}
+	}
+
+	// Save the new documents
+	if len(documentsToAdd) > 0 {
+		if err := crs.repo.CreateComplianceRequirementDocuments(documentsToAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// Remove documents not in the new list
+	var deleteDocumentIDs []*uint
+
+	for _, existingDocument := range complianceRequirement.Documents {
+		if _, exists := newDocumentIDs[existingDocument.DocumentID]; !exists {
+			// Append document to delete list
+			deleteDocumentIDs = append(deleteDocumentIDs, existingDocument.ID)
+		}
+	}
+
+	// Delete documents not in the new list
+	if len(deleteDocumentIDs) > 0 {
+		if err := crs.repo.DeleteComplianceRequirementDocuments(deleteDocumentIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
 	tx.Commit()
 	return nil
 }
@@ -458,6 +530,17 @@ func (crs *ComplianceRequirementService) Delete(complianceID uint, ids []uint, c
 			if err := crs.repo.DeleteComplianceRequirementStrategicObjectives(deleteStrategicObjectiveIds, tx); err != nil {
 				failedIds = append(failedIds, id)
 				continue
+			}
+		}
+
+		if len(requirement.Documents) > 0 {
+			var deleteDocumentIds []*uint
+			for _, document := range requirement.Documents {
+				deleteDocumentIds = append(deleteDocumentIds, document.ID)
+			}
+			if err := crs.repo.DeleteComplianceRequirementDocuments(deleteDocumentIds, tx); err != nil {
+				tx.Rollback()
+				return nil, err
 			}
 		}
 

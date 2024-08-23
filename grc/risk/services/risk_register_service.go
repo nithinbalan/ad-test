@@ -279,6 +279,24 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 			return 0, err
 		}
 	}
+
+	var associatedDocs []*models.RiskAssociatedDocument
+	for _, documentID := range riskRegisterFormDTO.DocumentIds {
+		document := &models.RiskAssociatedDocument{
+			RiskRegisterID: id,
+			DocumentID:     *documentID,
+			CreatedByID:    currentUserID,
+		}
+		associatedDocs = append(associatedDocs, document)
+	}
+
+	if len(associatedDocs) > 0 {
+		if err := rrs.repo.CreateRiskDocuments(associatedDocs, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
 	//Add timeline
 	//todo
 	timelineTypes, err := rrs.riskTimelineSvc.GetAllTypes()
@@ -513,8 +531,13 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 	for _, newComplianceRequirementID := range riskRegisterFormDTO.ComplianceRequirementIDs {
 		if _, exists := existingComplianceRequirementIDs[*newComplianceRequirementID]; !exists {
 			// Create a new risk compliance requirement record
+			req, err := rrs.complianceRequirementSvc.GetByComplianceRequirementID(*newComplianceRequirementID)
+			if err != nil {
+				return err
+			}
 			complianceRequirement := &models.RiskComplianceRequirement{
 				RiskRegisterID:          id,
+				ComplianceRegisterID:    req.ComplianceClause.ComplianceRegisterID,
 				ComplianceRequirementID: *newComplianceRequirementID,
 				CreatedByID:             currentUserID,
 			}
@@ -699,6 +722,58 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 			return err
 		}
 	}
+
+	existingDocumentIDs := make(map[uint]bool)
+	for _, doc := range existingRisk.AssociatedDocuments {
+		existingDocumentIDs[doc.DocumentID] = true
+	}
+
+	// Collect new document IDs
+	newDocumentIDs := make(map[uint]bool)
+	for _, doc := range riskRegisterFormDTO.DocumentIds {
+		newDocumentIDs[*doc] = true
+	}
+
+	// Add new documents
+	var documentsToAdd []*models.RiskAssociatedDocument
+	for _, newDocumentID := range riskRegisterFormDTO.DocumentIds {
+		if _, exists := existingDocumentIDs[*newDocumentID]; !exists {
+			// Create a new risk document record
+			document := &models.RiskAssociatedDocument{
+				RiskRegisterID: id,
+				DocumentID:     *newDocumentID,
+				CreatedByID:    currentUserID,
+			}
+			documentsToAdd = append(documentsToAdd, document)
+		}
+	}
+
+	// Save the new documents
+	if len(documentsToAdd) > 0 {
+		if err := rrs.repo.CreateRiskDocuments(documentsToAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// Remove documents not in the new list
+	var deleteDocumentIDs []*uint
+
+	for _, existingDocument := range existingRisk.AssociatedDocuments {
+		if _, exists := newDocumentIDs[existingDocument.DocumentID]; !exists {
+			// Append document to delete list
+			deleteDocumentIDs = append(deleteDocumentIDs, existingDocument.ID)
+		}
+	}
+
+	// Delete documents not in the new list
+	if len(deleteDocumentIDs) > 0 {
+		if err := rrs.repo.DeleteRiskDocuments(deleteDocumentIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
 	// Save Documents
 	// documents update
 	var documents []*models.RiskDocument
@@ -878,6 +953,18 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 				continue
 			}
 		}
+
+		if len(risk.AssociatedDocuments) > 0 {
+			var deleteDocumentIds []*uint
+			for _, document := range risk.AssociatedDocuments {
+				deleteDocumentIds = append(deleteDocumentIds, document.ID)
+			}
+			if err := rrs.repo.DeleteRiskDocuments(deleteDocumentIds, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+		}
+
 		//Delete timeline
 		//todo
 		if err := rrs.riskTimelineSvc.Delete(id, tx); err != nil {
@@ -988,7 +1075,6 @@ func (rrs *RiskRegisterService) UpdateResponseStrategy(riskID uint, currentUserI
 		tx.Rollback()
 		return err
 	}
-
 
 	tx.Commit()
 

@@ -58,6 +58,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.GET("/users/:userId/login-history", userController.GetUserLoginHistory)
 
 	organizationRoutes.GET("/users/me", userController.GetCurrentUserDetails)
+	organizationRoutes.GET("/users/me/notifications", userController.GetUserNotifications)
+	organizationRoutes.GET("/users/me/notifications/new-count", userController.GetUserNewNotificationCount)
 
 	//Strategic Profile
 	organizationRoutes.GET("/strategic-profiles", strategicProfileController.GetStrategicProfile)
@@ -194,6 +196,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.GET("/processes/:processId/controls", processAssociatedItemController.GetAllProcessControls)
 	organizationRoutes.GET("/processes/:processId/risks", processAssociatedItemController.GetAllProcessRisks)
 	organizationRoutes.GET("/processes/:processId/incidents", processAssociatedItemController.GetAllProcessIncidents)
+	organizationRoutes.GET("/processes/:processId/documents", processAssociatedItemController.GetAllProcessDocuments)
 	organizationRoutes.GET("/processes/:processId/associated-item-summary", processAssociatedItemController.GetAllAssociatedCounts)
 
 }

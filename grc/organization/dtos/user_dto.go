@@ -43,6 +43,7 @@ type UserListQueryParamsDTO struct {
 	Status      string
 	Page        int
 	PageSize    int
+	UserIDs     []int
 	Filters     map[string][]string
 	QuickFilter []string
 }
@@ -193,4 +194,59 @@ type CurrentUserDetailsDTO struct {
 	UserStatus        *UserStatusDTO                   `json:"user_status"`
 	Designation       *DesignationDTO                  `json:"designation"`
 	Roles             *[]settingDTOs.RoleDTO           `json:"roles"`
+}
+
+type UserNotificationListDTO struct {
+	ID                          uint      `json:"id"`
+	UserID                      uint      `json:"user_id"`
+	UserFirstNameEn             string    `json:"user_first_name_en"`
+	UserFirstNameAr             string    `json:"user_first_name_ar"`
+	UserLastNameEn              string    `json:"user_last_name_en"`
+	UserLastNameAr              string    `json:"user_last_name_ar"`
+	UserInitial                 string    `json:"user_initial"`
+	UserColor                   string    `json:"user_color"`
+	UserEmail                   string    `json:"user_email"`
+	UserProfileImagePath        string    `json:"user_profile_image_path"`
+	ModuleID                    uint      `json:"module_id"`
+	ModuleIdentifier            string    `json:"module_identifier"`
+	ModuleTitleEn               string    `json:"module_title_en"`
+	ModuleTitleAr               string    `json:"module_title_ar"`
+	NotificationType            string    `json:"notification_type"`
+	ReferenceNumber             string    `json:"reference_number"`
+	HeadingEn                   string    `json:"heading_en"`
+	HeadingAr                   string    `json:"heading_ar"`
+	TitleEn                     string    `json:"title_en"`
+	TitleAr                     string    `json:"title_ar"`
+	URLParam                    string    `json:"url_param"`
+	QueryParam                  string    `json:"query_param"`
+	IsNew                       bool      `json:"is_new"`
+	IsRead                      bool      `json:"is_read"`
+	IsSystemNotification        bool      `json:"is_system_notification"`
+	CreatedAt                   time.Time `json:"created_at"`
+	CreatedUserID               uint      `json:"created_user_id"`
+	CreatedUserFirstNameEn      string    `json:"created_user_first_name_en"`
+	CreatedUserFirstNameAr      string    `json:"created_user_first_name_ar"`
+	CreatedUserLastNameEn       string    `json:"created_user_last_name_en"`
+	CreatedUserLastNameAr       string    `json:"created_user_last_name_ar"`
+	CreatedUserInitial          string    `json:"created_user_initial"`
+	CreatedUserColor            string    `json:"created_user_color"`
+	CreatedUserEmail            string    `json:"created_user_email"`
+	CreatedUserProfileImagePath string    `json:"created_user_profile_image_path"`
+}
+
+type UserNotificationListQueryParamsDTO struct {
+	Sort     string `json:"sort" form:"sort"`
+	SortBy   string `json:"sort_by" form:"sort_by"`
+	Keyword  string `json:"keyword" form:"keyword"`
+	Page     int    `json:"page" form:"page"`
+	PageSize int    `json:"page_size" form:"page_size"`
+	ModuleID string `json:"module_id" form:"module_id"`
+	IsNew    string `json:"is_new" form:"is_new"`
+	IsRead   string `json:"is_read" form:"is_read"`
+	IsUnread string `json:"is_unread" form:"is_unread"`
+}
+
+type UserNotificationListResponseDTO struct {
+	Items      []*UserNotificationListDTO   `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }

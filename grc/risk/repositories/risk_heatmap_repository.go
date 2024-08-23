@@ -10,6 +10,7 @@ type RiskHeatmapRepositoryInterface interface {
 	GetRiskProcessesByProcessID(processID uint) ([]models.RiskProcess, error)
 	GetRiskControlsByControlID(controlID uint) ([]models.RiskControl, error)
 	GetRiskCompliancesByComplianceID(complianceID uint) ([]models.RiskComplianceRequirement, error)
+	GetRiskSLAsBySLAID(slaID uint) ([]models.RiskSLA, error)
 	GetAllRiskRegisters() ([]models.RiskRegister, error)
 
 	CountRiskRegistersWithLikelihoodAndImpact(riskRegisterIDs []uint, riskRatingValueID, likelihoodID, impactID uint) (int, error)
@@ -47,6 +48,14 @@ func (repo *RiskHeatmapRepository) GetRiskCompliancesByComplianceID(complianceID
 		return nil, err
 	}
 	return riskCompliances, nil
+}
+
+func (repo *RiskHeatmapRepository) GetRiskSLAsBySLAID(slaID uint) ([]models.RiskSLA, error) {
+	var riskSLAs []models.RiskSLA
+	if err := repo.db.Where("sla_register_id = ?", slaID).Find(&riskSLAs).Error; err != nil {
+		return nil, err
+	}
+	return riskSLAs, nil
 }
 
 func (repo *RiskHeatmapRepository) CountRiskRegistersWithLikelihoodAndImpact(riskRegisterIDs []uint, riskRatingValueID, likelihoodID, impactID uint) (int, error) {

@@ -178,6 +178,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.GET("risks/:riskId/strategic-objectives", riskAssociatedItemController.GetAllRiskStrategicObjectives)
 	riskRoutes.GET("risks/:riskId/slas", riskAssociatedItemController.GetAllRiskSLAs)
 	riskRoutes.GET("risks/:riskId/incidents", riskAssociatedItemController.GetAllRiskIncidents)
+	riskRoutes.GET("/risks/:riskId/documents", riskAssociatedItemController.GetAllRiskDocuments)
 
 	riskRoutes.PUT("/risks/:riskId/response-strategy", riskRegisterController.UpdateResponseStrategy)
 	riskRoutes.DELETE("/risks/:riskId/response-strategy", riskRegisterController.DeleteResponseStrategy)
@@ -224,6 +225,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.GET("processes/:processId/risk-heatmap", riskHeatmapController.GetProcessRiskHeatmap)
 	riskRoutes.GET("controls/:controlId/risk-heatmap", riskHeatmapController.GetControlRiskHeatmap)
 	riskRoutes.GET("compliances/:complianceId/risk-heatmap", riskHeatmapController.GetComplianceRiskHeatmap)
+	riskRoutes.GET("slas/:slaId/risk-heatmap", riskHeatmapController.GetSLARiskHeatmap)
 
 	//Risk Control Analysis
 	riskRoutes.GET("risks/:riskId/inherent-control-analysis", riskInherentControlAnalysisController.GetAllRiskControlAnalyses)

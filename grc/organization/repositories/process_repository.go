@@ -25,6 +25,11 @@ type ProcessRepositoryInterface interface {
 	CreateProcessControls(controls []*models.ProcessControl, tx ...utility.DatabaseTransaction) error
 	DeleteProcessControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error
 
+	CreateProcessDocuments(documents []*models.ProcessAssociatedDocument, tx ...utility.DatabaseTransaction) error
+	DeleteProcessDocuments(documentIds []*uint, tx ...utility.DatabaseTransaction) error
+
+	GetDocumentByID(id uint) (*models.Document, error)
+
 	//lifecycle status
 	GetIDsByLifecycleStatus(ids []uint, status string) ([]uint, error)
 	UpdateLifecycleStatusForIDs(ids []uint, statusId uint) ([]uint, error)
@@ -188,6 +193,7 @@ func (repo *ProcessRepository) GetFullDetailsByID(id uint, tx ...utility.Databas
 		Preload("Owner.OrganizationUnit1").
 		Preload("LifecycleStatus").
 		Preload("Controls").
+		Preload("Documents").
 		Preload("CreatedByUser").
 		Preload("CreatedByUser.OrganizationUnit1").
 		Preload("UpdatedByUser").
@@ -310,6 +316,39 @@ func (repo *ProcessRepository) DeleteProcessControls(controlIds []*uint, tx ...u
 	}
 
 	return nil
+}
+
+func (repo *ProcessRepository) CreateProcessDocuments(documents []*models.ProcessAssociatedDocument, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&documents).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *ProcessRepository) DeleteProcessDocuments(documentIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", documentIds).Delete(&models.ProcessAssociatedDocument{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *ProcessRepository) GetDocumentByID(id uint) (*models.Document, error) {
+	var document *models.Document
+	result := repo.db.First(&document, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return document, nil
 }
 
 func (repo *ProcessRepository) GetControlSummary(processID uint) ([]models.ProcessControl, error) {

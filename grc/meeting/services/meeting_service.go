@@ -10,7 +10,6 @@ import (
 	meetingRepositories "jethur/grc/meeting/repositories"
 	organizationServices "jethur/grc/organization/services"
 	riskServices "jethur/grc/risk/services"
-	"time"
 
 	"jethur/grc/models"
 	"jethur/utility"
@@ -26,6 +25,7 @@ type MeetingServiceInterface interface {
 	Create(currentUserID uint, meetingFormDTO *meetingDTOs.MeetingFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, meetingFormDTO *meetingDTOs.MeetingFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	GetAllCounts(meetingID uint) (*meetingDTOs.MeetingsCountResponseDTO, error)
 }
 
 type MeetingService struct {
@@ -102,6 +102,17 @@ func (ms MeetingService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTrans
 	}
 
 	// Add extra fields required in details screen if any
+	date := meeting.Date.Format("2006-01-02")
+	meetingDTO.DateString = &date
+
+	if meeting.Meeting != nil {
+		meetingDate := meeting.Meeting.Date.Format("2006-01-02")
+		meetingDTO.Meeting.DateString = &meetingDate
+	}
+	
+	
+	meetingDTO.CreatedAt = meeting.CreatedAt
+	meetingDTO.UpdatedAt = meeting.UpdatedAt
 
 	return &meetingDTO, nil
 }
@@ -118,16 +129,18 @@ func (ms *MeetingService) Create(currentUserID uint, meetingFormDTO *meetingDTOs
 		return 0, err
 	}
 
-	// Extract time components from parsed StartTime and EndTime
-	startTime := time.Date(1, 1, 1, dates.StartTime.Hour(), dates.StartTime.Minute(), dates.StartTime.Second(), 0, time.UTC)
-	endTime := time.Date(1, 1, 1, dates.EndTime.Hour(), dates.EndTime.Minute(), dates.EndTime.Second(), 0, time.UTC)
-
+	referenceNumber, err := ms.repo.GenerateReferenceNumber()
+	if err != nil {
+		return 0, err
+	}
 	meeting := &models.Meeting{
+		ReferenceNumber:    referenceNumber,
 		Title:              meetingFormDTO.Title,
+		Description:        meetingFormDTO.Description,
 		Location:           meetingFormDTO.Location,
 		Date:               dates.Date,
-		StartTime:          startTime,
-		EndTime:            endTime,
+		StartTime:          meetingFormDTO.StartTime,
+		EndTime:            meetingFormDTO.EndTime,
 		OrganizerID:        meetingFormDTO.OrganizerID,
 		IsPublic:           meetingFormDTO.IsPublic,
 		CreatedByID:        currentUserID,
@@ -145,8 +158,13 @@ func (ms *MeetingService) Create(currentUserID uint, meetingFormDTO *meetingDTOs
 	// Save ComplianceRequirements
 	var complianceRequirements []*models.MeetingComplianceRequirement
 	for _, req := range meetingFormDTO.ComplianceRequirementIds {
+		complianceRequirement, err := ms.complianceRequirementSvc.GetByComplianceRequirementID(*req)
+		if err != nil {
+			return 0, err
+		}
 		requirement := &models.MeetingComplianceRequirement{
 			MeetingID:               id,
+			ComplianceRegisterID:    complianceRequirement.ComplianceClause.ComplianceRegisterID,
 			ComplianceRequirementID: *req,
 			CreatedBYID:             currentUserID,
 		}
@@ -290,7 +308,7 @@ func (ms *MeetingService) Create(currentUserID uint, meetingFormDTO *meetingDTOs
 	}
 
 	if meetingFormDTO.MeetingFrequencyID != nil {
-		err := ms.createRecurringMeetings(meeting, dates, tx)
+		err := ms.createRecurringMeetings(meetingFormDTO, dates, currentUserID, tx)
 		if err != nil {
 			tx.Rollback()
 			return 0, err
@@ -344,10 +362,11 @@ func (ms *MeetingService) Update(id uint, currentUserID uint, meetingFormDTO *me
 
 	existingMeeting.MeetingID = meetingFormDTO.MeetingID
 	existingMeeting.Title = meetingFormDTO.Title
+	existingMeeting.Description = meetingFormDTO.Description
 	existingMeeting.Location = meetingFormDTO.Location
 	existingMeeting.Date = dates.Date
-	existingMeeting.StartTime = dates.StartTime
-	existingMeeting.EndTime = dates.EndTime
+	existingMeeting.StartTime = meetingFormDTO.StartTime
+	existingMeeting.EndTime = meetingFormDTO.EndTime
 	existingMeeting.OrganizerID = meetingFormDTO.OrganizerID
 	existingMeeting.IsPublic = meetingFormDTO.IsPublic
 	existingMeeting.UpdatedByID = &currentUserID
@@ -422,9 +441,14 @@ func (ms *MeetingService) Update(id uint, currentUserID uint, meetingFormDTO *me
 
 	var requirementsToAdd []*models.MeetingComplianceRequirement
 	for _, newRequirementID := range meetingFormDTO.ComplianceRequirementIds {
+		complianceRequirement, err := ms.complianceRequirementSvc.GetByComplianceRequirementID(*newRequirementID)
+		if err != nil {
+			return err
+		}
 		if _, exists := existingRequirementIDs[*newRequirementID]; !exists {
 			requirement := &models.MeetingComplianceRequirement{
 				MeetingID:               id,
+				ComplianceRegisterID:    complianceRequirement.ComplianceClause.ComplianceRegisterID,
 				ComplianceRequirementID: *newRequirementID,
 				CreatedBYID:             currentUserID,
 			}
@@ -912,31 +936,27 @@ func (ms *MeetingService) parseMeetingDates(dto *meetingDTOs.MeetingFormDTO) (*m
 		return nil, utility.NewValidationError(fmt.Errorf("invalid date"), "invalid_date", "date")
 	}
 
-	parsed.StartTime, err = utility.ParseMandatoryTime(dto.StartTime)
-	if err != nil {
-		return nil, utility.NewValidationError(fmt.Errorf("invalid start time"), "invalid_time", "start time")
-	}
+	// parsed.StartTime, err = utility.ParseMandatoryTime(*dto.StartTime)
+	// if err != nil {
+	// 	return nil, utility.NewValidationError(fmt.Errorf("invalid start time"), "invalid_time", "start time")
+	// }
 
-	parsed.EndTime, err = utility.ParseMandatoryTime(dto.EndTime)
-	if err != nil {
-		return nil, utility.NewValidationError(fmt.Errorf("invalid end time"), "invalid_time", "end time")
-	}
+	// parsed.EndTime, err = utility.ParseMandatoryTime(*dto.EndTime)
+	// if err != nil {
+	// 	return nil, utility.NewValidationError(fmt.Errorf("invalid end time"), "invalid_time", "end time")
+	// }
 
 	return parsed, nil
 }
 
-func (ms *MeetingService) createRecurringMeetings(meeting *models.Meeting, dates *meetingDTOs.MeetingParsedDates, tx utility.DatabaseTransaction) error {
-	frequency, err := ms.meetingFrequencySvc.GetByID(*meeting.MeetingFrequencyID)
+func (ms *MeetingService) createRecurringMeetings(meetingFormDTO *meetingDTOs.MeetingFormDTO, dates *meetingDTOs.MeetingParsedDates, currentUserID uint, tx utility.DatabaseTransaction) error {
+	frequency, err := ms.meetingFrequencySvc.GetByID(*meetingFormDTO.MeetingFrequencyID)
 	if err != nil {
 		return err
 	}
 
-	fmt.Println(meeting)
-
 	startDate := dates.Date
-
 	endDate := startDate.AddDate(1, 0, 0) // add one year
-
 	currentDate := startDate
 
 	for currentDate.Before(endDate) {
@@ -951,22 +971,73 @@ func (ms *MeetingService) createRecurringMeetings(meeting *models.Meeting, dates
 			currentDate = currentDate.AddDate(0, 6, 0)
 		case "annually":
 			currentDate = currentDate.AddDate(1, 0, 0)
+		default:
+			return fmt.Errorf("unsupported frequency type: %s", frequency.Type)
 		}
 
 		if currentDate.After(endDate) {
 			break
 		}
 
-		recurringMeeting := *meeting
-		recurringMeeting.Date = currentDate
-		recurringMeeting.ID = 0
+		// Create a new meeting instance for the recurring date
+		// startTime := time.Date(1, 1, 1, dates.StartTime.Hour(), dates.StartTime.Minute(), dates.StartTime.Second(), 0, time.UTC)
+		// endTime := time.Date(1, 1, 1, dates.EndTime.Hour(), dates.EndTime.Minute(), dates.EndTime.Second(), 0, time.UTC)
 
-		_, err := ms.repo.Create(&recurringMeeting, tx)
+		referenceNumber, err := ms.repo.GenerateReferenceNumber()
+		if err != nil {
+			return err
+		}
+		recurringMeeting := &models.Meeting{
+			ReferenceNumber:    referenceNumber,
+			Title:              meetingFormDTO.Title,
+			Description:        meetingFormDTO.Description,
+			Location:           meetingFormDTO.Location,
+			Date:               currentDate,
+			StartTime:          meetingFormDTO.StartTime,
+			EndTime:            meetingFormDTO.EndTime,
+			OrganizerID:        meetingFormDTO.OrganizerID,
+			IsPublic:           meetingFormDTO.IsPublic,
+			CreatedByID:        currentUserID,
+			MeetingTypeID:      meetingFormDTO.MeetingTypeID,
+			MeetingFrequencyID: meetingFormDTO.MeetingFrequencyID,
+			MeetingID:          meetingFormDTO.MeetingID,
+			MeetingStatusID:    meetingFormDTO.MeetingStatusID,
+		}
+
+		newMeetingID, err := ms.repo.Create(recurringMeeting, tx)
 		if err != nil {
 			return err
 		}
 
+		// Add participants to the new recurring meeting
+		var participants []*models.MeetingParticipant
+		for _, participantID := range meetingFormDTO.UserIDs {
+			participant := &models.MeetingParticipant{
+				MeetingID:   newMeetingID,
+				UserID:      *participantID,
+				CreatedByID: currentUserID,
+			}
+			participants = append(participants, participant)
+		}
+
+		if len(participants) > 0 {
+			if err := ms.repo.CreateParticipants(participants, tx); err != nil {
+				return err
+			}
+		}
 	}
 
 	return nil
+}
+
+func (ms *MeetingService) GetAllCounts(meetingID uint) (*meetingDTOs.MeetingsCountResponseDTO, error) {
+	if _, err := ms.GetByID(meetingID); err != nil {
+		return nil, err
+	}
+	response, err := ms.repo.GetAllCounts(meetingID)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
 }

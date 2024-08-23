@@ -15,7 +15,7 @@ import (
 )
 
 type MeetingAgendaServiceInterface interface {
-	GetAll(meetingID uint, currentUserID uint, params *meetingDTOs.MeetingAgendaListQueryParamsDTO) (*meetingDTOs.MeetingAgendaListResponseDTO, error)
+	GetAll(meetingID uint, currentUserID uint, params *meetingDTOs.MeetingAgendaListQueryParamsDTO) ([]*meetingDTOs.MeetingAgendaListDTO, error)
 	GetFullDetailsByID(meetingID uint, id uint) (*meetingDTOs.MeetingAgendaDetailDTO, error)
 	GetByID(id uint) (*models.MeetingAgenda, error)
 	Create(meetingID uint, currentUserID uint, meetingAgendaFormDTO *meetingDTOs.MeetingAgendaFormDTO) (uint, error)
@@ -41,7 +41,7 @@ func NewMeetingAgendaService(
 	}
 }
 
-func (mas *MeetingAgendaService) GetAll(meetingID uint, currentUserID uint, params *meetingDTOs.MeetingAgendaListQueryParamsDTO) (*meetingDTOs.MeetingAgendaListResponseDTO, error) {
+func (mas *MeetingAgendaService) GetAll(meetingID uint, currentUserID uint, params *meetingDTOs.MeetingAgendaListQueryParamsDTO) ([]*meetingDTOs.MeetingAgendaListDTO, error) {
 	if _, err := mas.meetingSvc.GetByID(meetingID); err != nil {
 		return nil, err
 	}
@@ -89,8 +89,6 @@ func (mas *MeetingAgendaService) Create(meetingID uint, currentUserID uint, meet
 	meetingAgenda := &models.MeetingAgenda{
 		MeetingID:   meetingID,
 		Title:       meetingAgendaFormDTO.Title,
-		TimeFrom:    &meetingAgendaFormDTO.TimeFrom,
-		TimeTo:      &meetingAgendaFormDTO.TimeTo,
 		CreatedBYID: currentUserID,
 	}
 
@@ -137,8 +135,6 @@ func (mas *MeetingAgendaService) Update(meetingID uint, id uint, currentUserID u
 
 	existingMeetingAgenda.MeetingID = meetingID
 	existingMeetingAgenda.Title = meetingAgendaFormDTO.Title
-	existingMeetingAgenda.TimeFrom = &meetingAgendaFormDTO.TimeFrom
-	existingMeetingAgenda.TimeTo = &meetingAgendaFormDTO.TimeTo
 	existingMeetingAgenda.UpdatedBYID = &currentUserID
 
 	if err := mas.repo.Update(existingMeetingAgenda); err != nil {

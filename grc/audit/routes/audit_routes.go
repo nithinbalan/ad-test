@@ -23,7 +23,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditPlanChecklistController := app.AuditModule.AuditPlanChecklistController
 	auditPlanToolController := app.AuditModule.AuditPlanToolController
 	auditPlanAuditableItemController := app.AuditModule.AuditPlanAuditableItemController
+	auditActivityTypeController := app.AuditModule.AuditActivityTypeController
+	auditScheduleStatusController := app.AuditModule.AuditScheduleStatusController
 	auditPlanBudgetController := app.AuditModule.AuditPlanBudgetController
+	auditPlanScheduleController := app.AuditModule.AuditPlanScheduleController
+	auditEngagementTypeController := app.AuditModule.AuditEngagementTypeController
+	auditPlanStakeholderEngagementController := app.AuditModule.AuditPlanStakeholderEngagementController
 
 	//Audit Status
 	auditRoutes.GET("/audit-statuses", auditStatusController.GetAllAuditStatuses)
@@ -69,6 +74,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	//AuditPlan Checklist
 	auditRoutes.GET("/audit-plans/:planId/checklists", auditPlanChecklistController.GetAllAuditPlanChecklists)
+	auditRoutes.GET("/audit-plans/:planId/checklists/:id", auditPlanChecklistController.GetAuditPlanChecklistDetails)
 	auditRoutes.POST("/audit-plans/:planId/checklists", auditPlanChecklistController.CreateAuditPlanChecklists)
 	auditRoutes.PUT("/audit-plans/:planId/checklists/:id", auditPlanChecklistController.UpdateAuditPlanChecklist)
 	auditRoutes.POST("/audit-plans/:planId/checklists/delete", auditPlanChecklistController.DeleteAuditPlanChecklists)
@@ -85,11 +91,47 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.POST("/audit-plans/:planId/auditable-items", auditPlanAuditableItemController.CreateAuditPlanAuditableItem)
 	auditRoutes.POST("/audit-plans/:planId/auditable-items/delete", auditPlanAuditableItemController.DeleteAuditPlanAuditableItems)
 
+	//Audit Activity Type
+	auditRoutes.GET("/audit-activity-types", auditActivityTypeController.GetAllAuditActivityTypes)
+	auditRoutes.GET("/audit-activity-types/:id", auditActivityTypeController.GetAuditActivityTypeDetails)
+	auditRoutes.POST("/audit-activity-types", auditActivityTypeController.CreateAuditActivityType)
+	auditRoutes.PUT("/audit-activity-types/:id", auditActivityTypeController.UpdateAuditActivityType)
+	auditRoutes.POST("/audit-activity-types/delete", auditActivityTypeController.DeleteAuditActivityTypes)
+	auditRoutes.PUT("/audit-activity-types/activate", auditActivityTypeController.ActivateAuditActivityTypes)
+	auditRoutes.PUT("/audit-activity-types/deactivate", auditActivityTypeController.DeactivateAuditActivityTypes)
+
+	//Audit Schedule Statuses
+	auditRoutes.GET("/audit-schedule-statuses", auditScheduleStatusController.GetAllAuditScheduleStatuses)
+	auditRoutes.GET("/audit-schedule-statuses/:id", auditScheduleStatusController.GetAuditScheduleStatusDetails)
+
 	//AuditPlan Tools
 	auditRoutes.GET("/audit-plans/:planId/budgets", auditPlanBudgetController.GetAllAuditPlanBudgets)
 	auditRoutes.GET("/audit-plans/:planId/budgets/:id", auditPlanBudgetController.GetAuditPlanBudgetDetails)
 	auditRoutes.POST("/audit-plans/:planId/budgets", auditPlanBudgetController.CreateAuditPlanBudget)
 	auditRoutes.PUT("/audit-plans/:planId/budgets/:id", auditPlanBudgetController.UpdateAuditPlanBudget)
 	auditRoutes.POST("/audit-plans/:planId/budgets/delete", auditPlanBudgetController.DeleteAuditPlanBudgets)
+
+	//Audit Schedule
+	auditRoutes.GET("/audit-plans/:planId/schedules", auditPlanScheduleController.GetAllAuditPlanSchedules)
+	auditRoutes.GET("/audit-plans/:planId/schedules/:id", auditPlanScheduleController.GetAuditPlanScheduleDetails)
+	auditRoutes.POST("/audit-plans/:planId/schedules", auditPlanScheduleController.CreateAuditPlanSchedule)
+	auditRoutes.PUT("/audit-plans/:planId/schedules/:id", auditPlanScheduleController.UpdateAuditPlanSchedule)
+	auditRoutes.POST("/audit-plans/:planId/schedules/delete", auditPlanScheduleController.DeleteAuditPlanSchedules)
+
+	//Audit Engagement Type
+	auditRoutes.GET("/audit-engagement-types", auditEngagementTypeController.GetAllAuditEngagementTypes)
+	auditRoutes.GET("/audit-engagement-types/:id", auditEngagementTypeController.GetAuditEngagementTypeDetails)
+	auditRoutes.POST("/audit-engagement-types", auditEngagementTypeController.CreateAuditEngagementType)
+	auditRoutes.PUT("/audit-engagement-types/:id", auditEngagementTypeController.UpdateAuditEngagementType)
+	auditRoutes.POST("/audit-engagement-types/delete", auditEngagementTypeController.DeleteAuditEngagementTypes)
+	auditRoutes.PUT("/audit-engagement-types/activate", auditEngagementTypeController.ActivateAuditEngagementTypes)
+	auditRoutes.PUT("/audit-engagement-types/deactivate", auditEngagementTypeController.DeactivateAuditEngagementTypes)
+
+	//Audit Plan Stakeholder Engagement
+	auditRoutes.GET("/audit-plans/:planId/stakeholder-engagements", auditPlanStakeholderEngagementController.GetAllAuditPlanStakeholderEngagements)
+	auditRoutes.GET("/audit-plans/:planId/stakeholder-engagements/:id", auditPlanStakeholderEngagementController.GetAuditPlanStakeholderEngagementDetails)
+	auditRoutes.POST("/audit-plans/:planId/stakeholder-engagements", auditPlanStakeholderEngagementController.CreateAuditPlanStakeholderEngagement)
+	auditRoutes.PUT("/audit-plans/:planId/stakeholder-engagements/:id", auditPlanStakeholderEngagementController.UpdateAuditPlanStakeholderEngagement)
+	auditRoutes.POST("/audit-plans/:planId/stakeholder-engagements/delete", auditPlanStakeholderEngagementController.DeleteAuditPlanStakeholderEngagements)
 
 }

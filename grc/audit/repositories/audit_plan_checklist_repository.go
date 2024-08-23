@@ -12,6 +12,7 @@ type AuditPlanChecklistRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(auditPlanId uint, params *auditDTOs.AuditPlanChecklistListQueryParamsDTO) ([]*auditDTOs.AuditPlanChecklistListDTO, error)
 	GetByID(id uint) (*models.AuditPlanChecklist, error)
+	GetFullDetailsByID(id uint) (*models.AuditPlanChecklist, error)
 	Create(auditPlanChecklist *models.AuditPlanChecklist, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(auditPlanChecklist *models.AuditPlanChecklist, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
@@ -122,6 +123,21 @@ func (repo *AuditPlanChecklistRepository) GetByID(id uint) (*models.AuditPlanChe
 	}
 
 	return auditPlanChecklist, nil
+}
+
+func (repo *AuditPlanChecklistRepository) GetFullDetailsByID(id uint) (*models.AuditPlanChecklist, error) {
+	var checklist *models.AuditPlanChecklist
+
+	result := repo.db.
+		Preload("AuditPlan").
+		Preload("AuditableItem").
+		First(&checklist, id)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return checklist, nil
 }
 
 func (repo *AuditPlanChecklistRepository) Create(auditPlanChecklist *models.AuditPlanChecklist, tx ...utility.DatabaseTransaction) (uint, error) {

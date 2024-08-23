@@ -3,7 +3,7 @@ package repositories
 import (
 	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
-	slaDTOs "jethur/grc/compliance/dtos"
+	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
 	"strconv"
@@ -15,7 +15,7 @@ import (
 // Interfaces
 type SLARegisterRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(params *slaDTOs.SLARegisterListQueryParamsDTO) (*slaDTOs.SLARegisterListResponseDTO, error)
+	GetAll(params *complianceDTOs.SLARegisterListQueryParamsDTO) (*complianceDTOs.SLARegisterListResponseDTO, error)
 	GetByID(id uint) (*models.SLARegister, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.SLARegister, error)
 	Create(slaRegister *models.SLARegister, tx ...utility.DatabaseTransaction) (uint, error)
@@ -35,6 +35,8 @@ type SLARegisterRepositoryInterface interface {
 
 	CreateSLAProcesses(processes []*models.SLAProcess, tx ...utility.DatabaseTransaction) error
 	DeleteSLAProcesses(processIds []*uint, tx ...utility.DatabaseTransaction) error
+
+	AssessmentStatusSummary(slaRegisterID uint) ([]complianceDTOs.SLACheckAnswerStatusCountResponseDTO, error)
 }
 
 // implementation
@@ -53,17 +55,17 @@ func (repo *SLARegisterRepository) BeginTransaction() utility.DatabaseTransactio
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *SLARegisterRepository) GetAll(params *slaDTOs.SLARegisterListQueryParamsDTO) (*slaDTOs.SLARegisterListResponseDTO, error) {
-	var slaRegisters []*slaDTOs.SLARegisterListDTO
+func (repo *SLARegisterRepository) GetAll(params *complianceDTOs.SLARegisterListQueryParamsDTO) (*complianceDTOs.SLARegisterListResponseDTO, error) {
+	var slaRegisters []*complianceDTOs.SLARegisterListDTO
 	var totalCount int64
 	query := repo.db.Table("sla_register").
 		Select(`
             sla_register.*,
 			sla_documents.version,
-			sla_documents.issue_date,
-			sla_documents.expiry_date,
-			sla_documents.sa1_date,
-			sla_documents.sa2_date,
+			CONVERT(VARCHAR, sla_documents.issue_date, 23) AS issue_date,
+			CONVERT(VARCHAR, sla_documents.expiry_date, 23) AS expiry_date,
+			CONVERT(VARCHAR, sla_documents.sa1_date, 23) AS sa1_date,
+			CONVERT(VARCHAR, sla_documents.sa2_date, 23) AS sa2_date,
 			sla_documents.comment,
 			sla_documents.url,
 			sla_documents.name,
@@ -76,6 +78,7 @@ func (repo *SLARegisterRepository) GetAll(params *slaDTOs.SLARegisterListQueryPa
             sla_categories.title_ar AS sla_category_title_ar,
             severity_levels.title_en AS severity_level_title_en,
             severity_levels.title_ar AS severity_level_title_ar,
+			severity_levels.color_code AS severity_level_color_code,
             organization_units.title_en AS responsible_unit_title_en,
             organization_units.title_ar AS responsible_unit_title_ar,
 			responsible_users.id AS responsible_user_id,
@@ -227,7 +230,7 @@ func (repo *SLARegisterRepository) GetAll(params *slaDTOs.SLARegisterListQueryPa
 
 	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
 
-	response := &slaDTOs.SLARegisterListResponseDTO{
+	response := &complianceDTOs.SLARegisterListResponseDTO{
 		Items: slaRegisters,
 		Pagination: commonDTOs.PaginationInfoDTO{
 			CurrentPage: params.Page,
@@ -452,4 +455,43 @@ func (repo *SLARegisterRepository) DeleteSLAProcesses(processIds []*uint, tx ...
 	}
 
 	return nil
+}
+
+func (repo *SLARegisterRepository) AssessmentStatusSummary(slaRegisterID uint) ([]complianceDTOs.SLACheckAnswerStatusCountResponseDTO, error) {
+	statusCounts := []complianceDTOs.SLACheckAnswerStatusCountResponseDTO{}
+
+	query := `
+        SELECT 
+            compliance_statuses.id, 
+            compliance_statuses.type, 
+            compliance_statuses.title_en, 
+            compliance_statuses.title_ar, 
+            compliance_statuses.color_code,
+            COUNT(sla_check_answers.id) AS count
+        FROM 
+            sla_check_answers
+        LEFT JOIN 
+            compliance_statuses ON compliance_statuses.id = sla_check_answers.compliance_status_id
+        LEFT JOIN 
+            sla_check_questions ON sla_check_answers.sla_check_question_id = sla_check_questions.id
+        LEFT JOIN 
+            sla_check_question_groups ON sla_check_questions.sla_check_question_group_id = sla_check_question_groups.id
+        LEFT JOIN 
+            sla_checks ON sla_check_question_groups.sla_check_id = sla_checks.id
+        WHERE 
+            sla_checks.sla_register_id = ?
+        GROUP BY 
+            compliance_statuses.id, 
+            compliance_statuses.type, 
+            compliance_statuses.title_en, 
+            compliance_statuses.title_ar, 
+            compliance_statuses.color_code
+    `
+
+	err := repo.db.Raw(query, slaRegisterID).Scan(&statusCounts).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return statusCounts, nil
 }

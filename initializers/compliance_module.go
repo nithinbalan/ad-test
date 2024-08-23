@@ -122,6 +122,7 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		masterModule.LifecycleStatusSvc,
 		sharedModule.ActivityLogService,
 		organizationModule.ProcessSvc,
+		organizationModule.UserSvc,
 	)
 	slaRegisterController := controllers.NewSLARegisterController(slaRegisterSvc)
 

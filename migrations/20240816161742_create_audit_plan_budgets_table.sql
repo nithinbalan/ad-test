@@ -6,7 +6,7 @@ CREATE TABLE audit_plan_budgets
     audit_plan_id INT NOT NULL,
     expense_category_id INT NOT NULL,
     title NVARCHAR(255) NOT NULL,
-    estimated_cost NVARCHAR(45) NOT NULL,
+    estimated_cost DECIMAL(18, 2) NOT NULL,
     comments NVARCHAR(MAX) NULL,
     created_by_id INT,
     updated_by_id INT NULL,

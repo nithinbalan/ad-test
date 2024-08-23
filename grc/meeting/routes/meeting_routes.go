@@ -45,6 +45,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	meetingRoutes.POST("/meetings", meetingController.CreateMeeting)
 	meetingRoutes.PUT("/meetings/:id", meetingController.UpdateMeeting)
 	meetingRoutes.POST("/meetings/delete", meetingController.DeleteMeetings)
+	meetingRoutes.GET("/meetings/:id/meeting-summary", meetingController.GetAllCounts)
+
 
 	//Meeting action plan
 	meetingRoutes.GET("/meeting-action-plans", meetingActionPlanController.GetAllMeetingActionPlans)
@@ -54,11 +56,13 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	meetingRoutes.PUT("/meetings/:id/action-plans/:meetingActionPlanId", meetingActionPlanController.UpdateMeetingActionPlan)
 	meetingRoutes.POST("/meetings/:id/action-plans/delete", meetingActionPlanController.DeleteMeetingActionPlans)
 
+
 	//Meeting action plan status updates
 	meetingRoutes.GET("/meetings/:id/action-plans/:meetingActionPlanId/status-updates", meetingActionPlanStatusUpdateController.GetAllMeetingActionPlanStatusUpdates)
 	meetingRoutes.GET("/meetings/:id/action-plans/:meetingActionPlanId/status-updates/:meetingActionPlanUpdateId", meetingActionPlanStatusUpdateController.GetMeetingActionPlanStatusUpdateDetails)
 	meetingRoutes.POST("/meetings/:id/action-plans/:meetingActionPlanId/status-updates", meetingActionPlanStatusUpdateController.CreateMeetingActionPlanStatusUpdate)
 	meetingRoutes.PUT("/meetings/:id/action-plans/:meetingActionPlanId/status-updates/:meetingActionPlanUpdateId", meetingActionPlanStatusUpdateController.UpdateMeetingActionPlanStatusUpdate)
+	meetingRoutes.GET("/meetings/:id/action-plans/:meetingActionPlanId/status-updates/latest", meetingActionPlanStatusUpdateController.GetLatestMeetingActionPlanStatusUpdate)
 
 	//Meeting Agendas
 	meetingRoutes.GET("/meetings/:id/agendas", meetingAgendaController.GetAllMeetingAgendas)
@@ -79,5 +83,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	meetingRoutes.GET("/meetings/:id/compliance-requirements", meetingAssociatedItemController.GetAllMeetingComplianceRequirements)
 	meetingRoutes.GET("/meetings/:id/risks", meetingAssociatedItemController.GetAllMeetingRisks)
 	meetingRoutes.GET("/meetings/:id/processes", meetingAssociatedItemController.GetAllMeetingProcesses)
+	meetingRoutes.GET("/meetings/:id/incidents", meetingAssociatedItemController.GetAllMeetingIncidents)
 
 }

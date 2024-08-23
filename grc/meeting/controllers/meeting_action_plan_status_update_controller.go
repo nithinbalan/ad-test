@@ -182,3 +182,35 @@ func (mapuc *MeetingActionPlanStatusUpdateController) GetMeetingActionPlanStatus
 	}
 	c.JSON(http.StatusOK, meetingTest)
 }
+
+func (mapuc *MeetingActionPlanStatusUpdateController) GetLatestMeetingActionPlanStatusUpdate(c *gin.Context) {
+	meetingIDStr := c.Param("id")
+
+	meetingID, err := strconv.ParseUint(meetingIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	actionPlanIDStr := c.Param("meetingActionPlanId")
+
+	actionPlanID, err := strconv.ParseUint(actionPlanIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	meetingActionPlanStatusUpdate, err := mapuc.service.GetLatestMeetingActionPlanStatusUpdate(uint(meetingID), uint(actionPlanID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(mapuc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, meetingActionPlanStatusUpdate)
+}

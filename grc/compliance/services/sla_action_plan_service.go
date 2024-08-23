@@ -23,6 +23,7 @@ type SLAActionPlanServiceInterface interface {
 	Update(slaID uint, id uint, currentUserID uint, slaActionPlanFormDTO *complianceDTOs.SLAActionPlanFormDTO) error
 	Delete(slaID uint, ids []uint, currentUserID uint) ([]uint, error)
 	StatusUpdate(slaID uint, id uint, currentUserID uint, ActionPlanStatusID uint, tx utility.DatabaseTransaction) error
+	GetSLAActionPlanCountByStatus(slaID uint) ([]complianceDTOs.SLAActionPlanStatusCountResponseDTO, error)
 }
 
 // Service and implementations
@@ -96,7 +97,10 @@ func (saps *SLAActionPlanService) GetFullDetailsByID(slaID uint, id uint) (*comp
 		return nil, err
 	}
 
-	// todo: add extra fields required in the details screen
+	if slaActionPlan.TargetDate != nil {
+		targetDate := slaActionPlan.TargetDate.Format("2006-01-02")
+		slaActionPlanDTO.TargetDateString = &targetDate
+	}
 
 	return &slaActionPlanDTO, nil
 }
@@ -336,4 +340,17 @@ func (saps *SLAActionPlanService) parseSLAActionPlanDates(dto *complianceDTOs.SL
 	}
 
 	return parsed, nil
+}
+
+func (saps *SLAActionPlanService) GetSLAActionPlanCountByStatus(slaID uint) ([]complianceDTOs.SLAActionPlanStatusCountResponseDTO, error) {
+	if _, err := saps.slaRegisterSvc.GetByID(slaID); err != nil {
+		return nil, err
+	}
+
+	response, err := saps.repo.GetSLAActionPlanCountByStatus(slaID)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
 }

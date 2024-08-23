@@ -182,6 +182,60 @@ func (paic *ProcessAssociatedItemController) GetAllProcessIncidents(c *gin.Conte
 	c.JSON(http.StatusOK, incidents)
 }
 
+func (paic *ProcessAssociatedItemController) GetAllProcessDocuments(c *gin.Context) {
+	processIDStr := c.Param("processId")
+
+	processID, err := strconv.ParseUint(processIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+	status := c.Query("status")
+	quickFilter := c.QueryArray("quick_filter")
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(paic.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(paic.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	queryParams := organizationDTOs.ProcessAssociatedItemListQueryParamsDTO{
+		Sort:        sort,
+		SortBy:      sortBy,
+		Keyword:     keyword,
+		Status:      status,
+		Page:        page,
+		PageSize:    pageSize,
+		QuickFilter: quickFilter,
+	}
+	documents, err := paic.service.GetAllDocuments(uint(processID), &queryParams)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(paic.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, documents)
+}
+
 func (paic *ProcessAssociatedItemController) GetAllAssociatedCounts(c *gin.Context) {
 	processIDStr := c.Param("processId")
 

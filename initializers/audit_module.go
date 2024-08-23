@@ -9,17 +9,22 @@ import (
 )
 
 type AuditModule struct {
-	AuditStatusController            *controllers.AuditStatusController
-	AuditorRiskRatingController      *controllers.AuditorRiskRatingController
-	AuditUniverseController          *controllers.AuditUniverseController
-	AuditableItemController          *controllers.AuditableItemController
-	AuditTeamController              *controllers.AuditTeamController
-	AuditCategoryController          *controllers.AuditCategoryController
-	AuditPlanController              *controllers.AuditPlanController
-	AuditPlanChecklistController     *controllers.AuditPlanChecklistController
-	AuditPlanToolController          *controllers.AuditPlanToolController
-	AuditPlanAuditableItemController *controllers.AuditPlanAuditableItemController
-	AuditPlanBudgetController        *controllers.AuditPlanBudgetController
+	AuditStatusController                    *controllers.AuditStatusController
+	AuditorRiskRatingController              *controllers.AuditorRiskRatingController
+	AuditUniverseController                  *controllers.AuditUniverseController
+	AuditableItemController                  *controllers.AuditableItemController
+	AuditTeamController                      *controllers.AuditTeamController
+	AuditCategoryController                  *controllers.AuditCategoryController
+	AuditPlanController                      *controllers.AuditPlanController
+	AuditPlanChecklistController             *controllers.AuditPlanChecklistController
+	AuditPlanToolController                  *controllers.AuditPlanToolController
+	AuditPlanAuditableItemController         *controllers.AuditPlanAuditableItemController
+	AuditScheduleStatusController            *controllers.AuditScheduleStatusController
+	AuditActivityTypeController              *controllers.AuditActivityTypeController
+	AuditPlanBudgetController                *controllers.AuditPlanBudgetController
+	AuditPlanScheduleController              *controllers.AuditPlanScheduleController
+	AuditEngagementTypeController            *controllers.AuditEngagementTypeController
+	AuditPlanStakeholderEngagementController *controllers.AuditPlanStakeholderEngagementController
 }
 
 func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, complianceModule *ComplianceModule, riskModule *RiskModule, incidentModule *IncidentModule, documentModule *DocumentModule, settingModule *SettingsModule, masterModule *MasterModule) *AuditModule {
@@ -111,17 +116,57 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 	)
 	auditPlanBudgetController := controllers.NewAuditPlanBudgetController(auditPlanBudgetSvc)
 
+	auditActivityTypeRepo := repositories.NewAuditActivityTypeRepository(db)
+	auditActivityTypeSvc := services.NewAuditActivityTypeService(auditActivityTypeRepo, sharedModule.ActivityLogService)
+	auditActivityTypeController := controllers.NewAuditActivityTypeController(auditActivityTypeSvc)
+
+	auditScheduleStatusRepo := repositories.NewAuditScheduleStatusRepository(db)
+	auditScheduleStatusSvc := services.NewAuditScheduleStatusService(auditScheduleStatusRepo)
+	auditScheduleStatusController := controllers.NewAuditScheduleStatusController(auditScheduleStatusSvc)
+
+	auditPlanScheduleRepo := repositories.NewAuditPlanScheduleRepository(db)
+	auditPlanScheduleSvc := services.NewAuditPlanScheduleService(
+		auditPlanScheduleRepo,
+		sharedModule.ActivityLogService,
+		auditPlanSvc,
+		auditActivityTypeSvc,
+		organizationModule.UserSvc,
+		auditScheduleStatusSvc,
+		auditableItemSvc,
+	)
+	auditPlanScheduleController := controllers.NewAuditPlanScheduleController(auditPlanScheduleSvc)
+
+	auditEngagementTypeRepo := repositories.NewAuditEngagementTypeRepository(db)
+	auditEngagementTypeSvc := services.NewAuditEngagementTypeService(auditEngagementTypeRepo, sharedModule.ActivityLogService)
+	auditEngagementTypeController := controllers.NewAuditEngagementTypeController(auditEngagementTypeSvc)
+
+	auditPlanStakeholderEngagementRepo := repositories.NewAuditPlanStakeholderEngagementRepository(db)
+	auditPlanStakeholderEngagementSvc := services.NewAuditPlanStakeholderEngagementService(
+		auditPlanStakeholderEngagementRepo,
+		sharedModule.ActivityLogService,
+		auditPlanSvc,
+		auditEngagementTypeSvc,
+		organizationModule.UserSvc,
+		auditScheduleStatusSvc,
+	)
+	auditPlanStakeholderEngagementController := controllers.NewAuditPlanStakeholderEngagementController(auditPlanStakeholderEngagementSvc)
+
 	return &AuditModule{
-		AuditStatusController:            auditStatusController,
-		AuditorRiskRatingController:      auditorRiskRatingController,
-		AuditUniverseController:          auditUniverseController,
-		AuditableItemController:          auditableItemController,
-		AuditTeamController:              auditTeamController,
-		AuditCategoryController:          auditCategoryController,
-		AuditPlanController:              auditPlanController,
-		AuditPlanChecklistController:     auditPlanChecklistController,
-		AuditPlanToolController:          auditPlanToolController,
-		AuditPlanAuditableItemController: auditPlanAuditableItemController,
-		AuditPlanBudgetController:        auditPlanBudgetController,
+		AuditorRiskRatingController:              auditorRiskRatingController,
+		AuditUniverseController:                  auditUniverseController,
+		AuditableItemController:                  auditableItemController,
+		AuditTeamController:                      auditTeamController,
+		AuditCategoryController:                  auditCategoryController,
+		AuditStatusController:                    auditStatusController,
+		AuditPlanController:                      auditPlanController,
+		AuditPlanChecklistController:             auditPlanChecklistController,
+		AuditPlanToolController:                  auditPlanToolController,
+		AuditPlanAuditableItemController:         auditPlanAuditableItemController,
+		AuditActivityTypeController:              auditActivityTypeController,
+		AuditScheduleStatusController:            auditScheduleStatusController,
+		AuditPlanBudgetController:                auditPlanBudgetController,
+		AuditPlanScheduleController:              auditPlanScheduleController,
+		AuditEngagementTypeController:            auditEngagementTypeController,
+		AuditPlanStakeholderEngagementController: auditPlanStakeholderEngagementController,
 	}
 }

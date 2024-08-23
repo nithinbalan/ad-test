@@ -23,7 +23,7 @@ func NewSLAActionPlanController(service services.SLAActionPlanServiceInterface) 
 	}
 }
 
-func (capc *SLAActionPlanController) GetAllSLAActionPlans(c *gin.Context) {
+func (sapc *SLAActionPlanController) GetAllSLAActionPlans(c *gin.Context) {
 	slaIDStr := c.Param("slaId")
 
 	slaID, err := strconv.ParseUint(slaIDStr, 10, 64)
@@ -54,13 +54,13 @@ func (capc *SLAActionPlanController) GetAllSLAActionPlans(c *gin.Context) {
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
-		utility.SendInternalErrResp(capc.db, c, "Invalid page parameter")
+		utility.SendInternalErrResp(sapc.db, c, "Invalid page parameter")
 		return
 	}
 
 	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
 	if err != nil {
-		utility.SendInternalErrResp(capc.db, c, "Invalid page_size parameter")
+		utility.SendInternalErrResp(sapc.db, c, "Invalid page_size parameter")
 		return
 	}
 
@@ -76,7 +76,7 @@ func (capc *SLAActionPlanController) GetAllSLAActionPlans(c *gin.Context) {
 		TargetDateFrom: targetDateFrom,
 		TargetDateTo:   targetDateTo,
 	}
-	slaActionPlans, err := capc.service.GetAll(uint(slaID), &queryParams)
+	slaActionPlans, err := sapc.service.GetAll(uint(slaID), &queryParams)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -84,14 +84,14 @@ func (capc *SLAActionPlanController) GetAllSLAActionPlans(c *gin.Context) {
 			utility.SendNotFoundErrResp(c)
 			return
 		default:
-			utility.SendInternalErrResp(capc.db, c, e.Error())
+			utility.SendInternalErrResp(sapc.db, c, e.Error())
 			return
 		}
 	}
 	c.JSON(http.StatusOK, slaActionPlans)
 }
 
-func (capc *SLAActionPlanController) GetSLAActionPlanDetails(c *gin.Context) {
+func (sapc *SLAActionPlanController) GetSLAActionPlanDetails(c *gin.Context) {
 	slaIDStr := c.Param("slaId")
 
 	slaID, err := strconv.ParseUint(slaIDStr, 10, 64)
@@ -108,14 +108,14 @@ func (capc *SLAActionPlanController) GetSLAActionPlanDetails(c *gin.Context) {
 		return
 	}
 
-	slaActionPlan, err := capc.service.GetFullDetailsByID(uint(slaID), uint(id))
+	slaActionPlan, err := sapc.service.GetFullDetailsByID(uint(slaID), uint(id))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 			return
 		default:
-			utility.SendInternalErrResp(capc.db, c, e.Error())
+			utility.SendInternalErrResp(sapc.db, c, e.Error())
 			return
 		}
 	}
@@ -123,7 +123,7 @@ func (capc *SLAActionPlanController) GetSLAActionPlanDetails(c *gin.Context) {
 	c.JSON(http.StatusOK, slaActionPlan)
 }
 
-func (capc *SLAActionPlanController) CreateSLAActionPlan(c *gin.Context) {
+func (sapc *SLAActionPlanController) CreateSLAActionPlan(c *gin.Context) {
 	var slaActionPlanFormDTO complianceDTOs.SLAActionPlanFormDTO
 
 	slaIDStr := c.Param("slaId")
@@ -141,11 +141,11 @@ func (capc *SLAActionPlanController) CreateSLAActionPlan(c *gin.Context) {
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(capc.db, c, err.Error())
+		utility.SendInternalErrResp(sapc.db, c, err.Error())
 		return
 	}
 
-	id, err := capc.service.Create(uint(slaID), currentUserID, &slaActionPlanFormDTO)
+	id, err := sapc.service.Create(uint(slaID), currentUserID, &slaActionPlanFormDTO)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -156,7 +156,7 @@ func (capc *SLAActionPlanController) CreateSLAActionPlan(c *gin.Context) {
 			utility.SendInvalidErrResp(c, e)
 			return
 		default:
-			utility.SendInternalErrResp(capc.db, c, e.Error())
+			utility.SendInternalErrResp(sapc.db, c, e.Error())
 			return
 		}
 	}
@@ -164,7 +164,7 @@ func (capc *SLAActionPlanController) CreateSLAActionPlan(c *gin.Context) {
 	c.JSON(http.StatusCreated, commonDTOs.IDResponse{ID: id})
 }
 
-func (capc *SLAActionPlanController) UpdateSLAActionPlan(c *gin.Context) {
+func (sapc *SLAActionPlanController) UpdateSLAActionPlan(c *gin.Context) {
 	var slaActionPlanFormDTO complianceDTOs.SLAActionPlanFormDTO
 
 	slaIDStr := c.Param("slaId")
@@ -190,11 +190,11 @@ func (capc *SLAActionPlanController) UpdateSLAActionPlan(c *gin.Context) {
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(capc.db, c, err.Error())
+		utility.SendInternalErrResp(sapc.db, c, err.Error())
 		return
 	}
 
-	err = capc.service.Update(uint(slaID), uint(id), currentUserID, &slaActionPlanFormDTO)
+	err = sapc.service.Update(uint(slaID), uint(id), currentUserID, &slaActionPlanFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -204,7 +204,7 @@ func (capc *SLAActionPlanController) UpdateSLAActionPlan(c *gin.Context) {
 			utility.SendInvalidErrResp(c, e)
 			return
 		default:
-			utility.SendInternalErrResp(capc.db, c, e.Error())
+			utility.SendInternalErrResp(sapc.db, c, e.Error())
 			return
 		}
 	}
@@ -212,7 +212,7 @@ func (capc *SLAActionPlanController) UpdateSLAActionPlan(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-func (capc *SLAActionPlanController) DeleteSLAActionPlans(c *gin.Context) {
+func (sapc *SLAActionPlanController) DeleteSLAActionPlans(c *gin.Context) {
 	var request struct {
 		IDs []uint `json:"ids"`
 	}
@@ -232,11 +232,11 @@ func (capc *SLAActionPlanController) DeleteSLAActionPlans(c *gin.Context) {
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(capc.db, c, err.Error())
+		utility.SendInternalErrResp(sapc.db, c, err.Error())
 		return
 	}
 
-	failedIDs, err := capc.service.Delete(uint(slaID), request.IDs, currentUserID)
+	failedIDs, err := sapc.service.Delete(uint(slaID), request.IDs, currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -246,10 +246,33 @@ func (capc *SLAActionPlanController) DeleteSLAActionPlans(c *gin.Context) {
 			utility.SendInvalidErrResp(c, e)
 			return
 		default:
-			utility.SendInternalErrResp(capc.db, c, e.Error())
+			utility.SendInternalErrResp(sapc.db, c, e.Error())
 			return
 		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}
+
+func (sapc *SLAActionPlanController) GetSLAActionPlanCountByStatus(c *gin.Context) {
+	slaIDStr := c.Param("slaId")
+
+	slaID, err := strconv.ParseUint(slaIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	actionPlanCounts, err := sapc.service.GetSLAActionPlanCountByStatus(uint(slaID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(sapc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, actionPlanCounts)
 }

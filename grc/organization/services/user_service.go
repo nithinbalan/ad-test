@@ -38,6 +38,8 @@ type UserServiceInterface interface {
 	GetUserIdsByRole(roleID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
 
 	GetCurrentUserDetails(id uint) (*userDTOs.CurrentUserDetailsDTO, error)
+	GetUserNotifications(userID uint, params *userDTOs.UserNotificationListQueryParamsDTO) (*userDTOs.UserNotificationListResponseDTO, error)
+	GetUserNewNotificationCount(userID uint) (int64, error)
 }
 
 type UserService struct {
@@ -569,4 +571,12 @@ func (us *UserService) GetCurrentUserDetails(id uint) (*userDTOs.CurrentUserDeta
 	//todo :- also add extra fields which required in details screen
 
 	return &userDetailsDTO, nil
+}
+
+func (ns *UserService) GetUserNotifications(userID uint, params *userDTOs.UserNotificationListQueryParamsDTO) (*userDTOs.UserNotificationListResponseDTO, error) {
+	return ns.repo.GetUserNotifications(userID, params)
+}
+
+func (us *UserService) GetUserNewNotificationCount(userID uint) (int64, error) {
+	return us.repo.GetUserNewNotificationCount(userID)
 }

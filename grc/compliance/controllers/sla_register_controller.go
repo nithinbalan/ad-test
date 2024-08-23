@@ -6,6 +6,7 @@ import (
 	"jethur/grc/compliance/services"
 	"jethur/utility"
 	"net/http"
+	"path/filepath"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -264,7 +265,6 @@ func (src *SLARegisterController) RestoreSLARegisters(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-
 func (src *SLARegisterController) GetSLARegisterDocumentPreview(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
@@ -290,4 +290,61 @@ func (src *SLARegisterController) GetSLARegisterDocumentPreview(c *gin.Context) 
 		return
 	}
 	c.File(slaDocumentPath)
+}
+
+func (src *SLARegisterController) DownloadSLARegisterDocument(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	slaDocumentPath, err := src.service.GetDocumentPath(uint(id), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(src.db, c, err.Error())
+		}
+		return
+	}
+	filename := filepath.Base(slaDocumentPath)
+
+	// Set the content type and disposition headers for the file download
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Type", "application/octet-stream")
+	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Header("Content-Transfer-Encoding", "binary")
+	c.Header("Expires", "0")
+	c.Header("Cache-Control", "must-revalidate")
+	c.Header("Pragma", "public")
+
+	// Serve the file
+	c.File(slaDocumentPath)
+}
+
+func (src *SLARegisterController) AssessmentStatusSummary(c *gin.Context) {
+	idStr := c.Param("slaId")
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	assessmentStatusSummary, err := src.service.AssessmentStatusSummary(uint(id))
+	if err != nil {
+		utility.SendInternalErrResp(src.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, assessmentStatusSummary)
 }

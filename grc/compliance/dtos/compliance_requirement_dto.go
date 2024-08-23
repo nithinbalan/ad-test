@@ -95,6 +95,7 @@ type ComplianceRequirementFormDTO struct {
 	ComplianceStatusID              uint    `json:"compliance_status_id" binding:"required"`
 	ControlIDs                      []*uint `json:"control_ids"`
 	StrategicObjectiveIDs           []*uint `json:"strategic_objective_ids"`
+	DocumentIds                     []*uint `json:"document_ids"`
 }
 
 type ComplianceRequirementParsedDates struct {
@@ -115,7 +116,16 @@ type ComplianceRequirementDetailDTO struct {
 	UpdatedByUser                 *organizationDTOs.UserMinimalDTO              `json:"updated_by"`
 	Controls                      []*ComplianceRequirementControlDTO            `json:"controls"`
 	StrategicObjectives           []*ComplianceRequirementStrategicObjectiveDTO `json:"strategic_objectives"`
+	Documents                     []*ComplianceRequirementAssociatedDocumentDTO `json:"documents"`
 	ComplianceStatus              ComplianceStatusDTO                           `json:"compliance_status"`
+}
+
+type ComplianceRequirementAssociatedDocumentDTO struct {
+	ID                      *uint                               `json:"id"`
+	ComplianceRegisterID    uint                                `json:"compliance_register_id"`
+	ComplianceRequirementID uint                                `json:"compliance_requirement_id"`
+	DocumentID              uint                                `json:"document_id"`
+	Document                organizationDTOs.DocumentDetailsDTO `json:"document"`
 }
 
 type ComplianceRequirementStatusUpdateDTO struct {
