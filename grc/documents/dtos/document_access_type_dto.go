@@ -5,4 +5,5 @@ type DocumentAccessTypeDTO struct {
 	TitleEn string `json:"title_en"`
 	TitleAr string `json:"title_ar"`
 	Status  string `json:"status"`
+	Type    string `json:"type"`
 }
