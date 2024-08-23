@@ -219,16 +219,17 @@ func (repo *MeetingActionPlanStatusUpdateRepository) CheckAllActionPlansComplete
 		db = tx[0].DB()
 	}
 
-	// Count completed/terminated action plans, excluding the current action plan being updated
+	// Join MeetingActionPlan with ActionPlanStatuses to filter by Type
 	var count int64
 	if err := db.Model(&models.MeetingActionPlan{}).
-		Where("meeting_minute_id = ?", meetingMinuteID).
-		Where("id != ?", excludeActionPlanID).
-		Where("action_plan_status_id NOT IN (?)", completedStatuses).
+		Joins("JOIN action_plan_statuses ON action_plan_statuses.id = meeting_action_plans.action_plan_status_id").
+		Where("meeting_action_plans.meeting_minute_id = ?", meetingMinuteID).
+		Where("meeting_action_plans.id != ?", excludeActionPlanID).
+		Where("action_plan_statuses.type NOT IN (?)", completedStatuses).
 		Count(&count).Error; err != nil {
 		return 0, err
 	}
 
-	// Return the count of completed/terminated action plans
+	// Return the count of action plans that do not have a completed or terminated status
 	return count, nil
 }
