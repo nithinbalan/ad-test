@@ -10,6 +10,9 @@ import (
 
 type SLAAssociatedItemRepositoryInterface interface {
 	GetAllProcesses(slaID uint, params *complianceDTOs.SLAAssociatedItemListQueryParamsDTO) (*complianceDTOs.SLAAssociatedItemProcessListResponseDTO, error)
+	GetAllDocuments(slaID uint, params *complianceDTOs.SLAAssociatedItemListQueryParamsDTO) (*complianceDTOs.SLAAssociatedItemDocumentListResponseDTO, error)
+	GetAllIncidents(slaID uint, params *complianceDTOs.SLAAssociatedItemListQueryParamsDTO) (*complianceDTOs.SLAAssociatedItemIncidentListResponseDTO, error)
+	GetAllRisks(slaID uint, params *complianceDTOs.SLAAssociatedItemListQueryParamsDTO) (*complianceDTOs.SLAAssociatedItemRiskListResponseDTO, error)
 	GetAllAssociatedCounts(slaID uint) (*complianceDTOs.SlaAssociatedItemsCountResponseDTO, error)
 }
 
@@ -116,8 +119,281 @@ func (repo *SLAAssociatedItemRepository) GetAllProcesses(slaID uint, params *com
 	return response, nil
 }
 
+func (repo *SLAAssociatedItemRepository) GetAllDocuments(slaID uint, params *complianceDTOs.SLAAssociatedItemListQueryParamsDTO) (*complianceDTOs.SLAAssociatedItemDocumentListResponseDTO, error) {
+	var documentList []*complianceDTOs.SLADocumentListDTO
+	var totalCount int64
+
+	query := repo.db.Table("sla_associated_documents").
+		Select(`
+			documents.id AS id,
+			documents.reference_number AS reference_number,
+			documents.title_en AS title_en,
+			documents.title_ar AS title_ar,
+			documents.description_en AS description_en,
+			documents.description_ar AS description_ar,
+			document_categories.title_en AS document_category_title_en,
+			document_categories.title_ar AS document_category_title_ar,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+			responsible_user.first_name_ar AS responsible_user_first_name_ar,
+			responsible_user.last_name_en AS responsible_user_last_name_en,
+			responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			organization_units.title_en AS responsible_unit_title_en,
+			organization_units.title_ar AS responsible_unit_title_ar,
+			document_statuses.title_en AS document_status_title_en,
+			document_statuses.title_ar AS document_status_title_ar,
+			document_statuses.color_code AS document_status_color_code,
+			documents.last_checkout_at AS last_checkout_at,
+			documents.last_checkin_at AS last_checkin_at,
+			documents.is_locked AS is_locked
+		`).
+		Joins(`
+			LEFT JOIN documents ON documents.id = sla_associated_documents.document_id
+			LEFT JOIN document_categories ON documents.document_category_id = document_categories.id
+			LEFT JOIN users AS responsible_user ON documents.responsible_user_id = responsible_user.id
+			LEFT JOIN organization_units ON documents.responsible_unit_id = organization_units.id
+			LEFT JOIN document_statuses ON documents.document_status_id = document_statuses.id
+		`).
+		Where("sla_associated_documents.sla_register_id = ?", slaID)
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+	// Apply search keyword if exists
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Where(`
+			(documents.title_en LIKE ? OR
+			documents.title_ar LIKE ? OR
+			documents.reference_number LIKE ? OR
+			document_categories.title_en LIKE ? OR
+			document_categories.title_ar LIKE ? OR
+			responsible_user.first_name_en LIKE ? OR
+			responsible_user.first_name_ar LIKE ? OR
+			responsible_user.last_name_en LIKE ? OR
+			responsible_user.last_name_ar LIKE ? OR
+			organization_units.title_en LIKE ? OR
+			organization_units.title_ar LIKE ? OR
+			document_statuses.title_en LIKE ? OR
+			document_statuses.title_ar LIKE ?)`,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+	}
+
+	if params.SortBy == "" {
+		params.SortBy = "documents.title_en"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	offset := (params.Page - 1) * params.PageSize
+
+	// Execute the query
+	err := query.Offset(offset).Limit(params.PageSize).Find(&documentList).Error
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &complianceDTOs.SLAAssociatedItemDocumentListResponseDTO{
+		Items: documentList,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+	return response, nil
+}
+
+func (repo *SLAAssociatedItemRepository) GetAllIncidents(slaID uint, params *complianceDTOs.SLAAssociatedItemListQueryParamsDTO) (*complianceDTOs.SLAAssociatedItemIncidentListResponseDTO, error) {
+	var incidentList []*complianceDTOs.SLAIncidentListDTO
+	var totalCount int64
+
+	query := repo.db.Table("incident_slas").
+		Select(`
+			incident_slas.*,
+            incident_register.id AS incident_register_id,
+            incident_register.reference_number AS incident_reference_number,
+            incident_register.title AS incident_title,
+            incident_register.description AS incident_description,
+            incident_categories.title_en AS incident_category_title_en,
+            incident_categories.title_ar AS incident_category_title_ar,
+            incident_sub_categories.title_en AS incident_sub_category_title_en,
+            incident_sub_categories.title_ar AS incident_sub_category_title_ar,
+            incident_types.title_en AS incident_type_title_en,
+            incident_types.title_ar AS incident_type_title_ar,
+			severity_levels.title_en AS severity_level_title_en,
+			severity_levels.title_ar AS severity_level_title_ar,
+			severity_levels.color_code AS severity_level_color_code,
+			incident_statuses.title_en AS incident_status_title_en,
+            incident_statuses.title_ar AS incident_status_title_ar,
+            incident_statuses.color_code AS incident_status_color_code,
+			reported_user.id AS incident_reported_user_id,
+            reported_user.first_name_en AS incident_reported_user_first_name_en,
+            reported_user.first_name_ar AS incident_reported_user_first_name_ar,
+            reported_user.last_name_en AS incident_reported_user_last_name_en,
+            reported_user.last_name_ar AS incident_reported_user_last_name_ar,
+			reported_user.initial AS incident_reported_user_initial,
+        	reported_user.color AS incident_reported_user_color,
+        	reported_user.email AS incident_reported_user_email,
+        	reported_user.profile_image_path AS incident_reported_user_profile_image_path
+        `).
+		Joins(`
+            LEFT JOIN incident_register ON incident_register.id = incident_slas.incident_register_id
+			LEFT JOIN incident_categories ON incident_categories.id = incident_register.incident_category_id
+            LEFT JOIN incident_sub_categories ON incident_sub_categories.id = incident_register.incident_sub_category_id
+            LEFT JOIN incident_types ON incident_types.id = incident_register.incident_type_id
+            LEFT JOIN incident_statuses ON incident_statuses.id = incident_register.incident_status_id
+		    LEFT JOIN severity_levels ON severity_levels.id = incident_register.severity_level_id
+            LEFT JOIN users AS reported_user ON reported_user.id = incident_register.reported_by
+        `).
+		Where("incident_slas.sla_register_id = ?", slaID)
+
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Where("incident_register.title LIKE ?", keyword)
+	}
+
+	if params.SortBy == "" {
+		params.SortBy = "incident_register.title"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+
+	query = query.Order(params.SortBy + " " + params.Sort)
+	offset := (params.Page - 1) * params.PageSize
+
+	// Execute the query
+	err := query.Offset(offset).Limit(params.PageSize).Find(&incidentList).Error
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &complianceDTOs.SLAAssociatedItemIncidentListResponseDTO{
+		Items: incidentList,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+
+	return response, nil
+}
+
+func (repo *SLAAssociatedItemRepository) GetAllRisks(slaID uint, params *complianceDTOs.SLAAssociatedItemListQueryParamsDTO) (*complianceDTOs.SLAAssociatedItemRiskListResponseDTO, error) {
+	var riskList []*complianceDTOs.SLARiskListDTO
+	var totalCount int64
+
+	query := repo.db.Table("risk_slas").
+		Select(`
+            risk_register.id AS risk_register_id,
+            risk_register.reference_number AS reference_number,
+            risk_register.title AS title,
+            risk_register.description AS description,
+			risk_categories.title_en AS risk_category_title_en,
+            risk_categories.title_ar AS risk_category_title_ar,
+            risk_sources.title_en AS risk_source_title_en,
+            risk_sources.title_ar AS risk_source_title_ar,
+            organization_units.title_en AS responsible_unit_title_en,
+            organization_units.title_ar AS esponsible_unit_title_ar,
+			users.id AS responsible_user_id,
+            users.first_name_en AS responsible_user_first_name_en,
+            users.first_name_ar AS responsible_user_first_name_ar,
+            users.last_name_en AS responsible_user_last_name_en,
+            users.last_name_ar AS responsible_user_last_name_ar,
+			users.initial AS responsible_user_initial,
+        	users.color AS responsible_user_color,
+        	users.email AS responsible_user_email,
+        	users.profile_image_path AS responsible_user_profile_image_path,  
+            risk_statuses.title_en AS risk_status_title_en,
+            risk_statuses.title_ar AS risk_status_title_ar,
+            risk_statuses.color_code AS risk_status_color_code,
+            review_frequencies.title_en AS risk_review_frequency_title_en,
+            review_frequencies.title_ar AS risk_review_frequency_title_ar,
+			risk_matrix_likelihoods.title_en AS risk_matrix_likelihood_title_en,
+            risk_matrix_likelihoods.title_ar AS risk_matrix_likelihood_title_ar,
+            risk_matrix_likelihoods.score AS risk_matrix_likelihood_score,
+			risk_matrix_impacts.title_en AS risk_matrix_impact_title_en,
+            risk_matrix_impacts.title_ar AS risk_matrix_impact_title_ar,
+            risk_matrix_impacts.score AS risk_matrix_impact_score,
+			risk_matrix_risk_ratings.title_en AS risk_matrix_risk_rating_title_en,
+            risk_matrix_risk_ratings.title_ar AS risk_matrix_risk_rating_title_ar,
+            risk_matrix_risk_ratings.type AS risk_matrix_risk_rating_type,
+            risk_matrix_risk_ratings.color_code AS risk_matrix_risk_rating_color_code,
+            risk_register.next_review_date AS risk_next_review_date,
+            risk_statuses.title_en AS risk_status_title_en,
+            risk_statuses.title_ar AS risk_status_title_ar,
+            risk_statuses.color_code AS risk_status_color_code
+        `).
+		Joins(`
+            LEFT JOIN risk_register ON risk_register.id = risk_slas.risk_register_id
+			LEFT JOIN risk_categories ON risk_categories.id = risk_register.risk_category_id
+            LEFT JOIN risk_sources ON risk_sources.id = risk_register.risk_source_id
+            LEFT JOIN organization_units ON organization_units.id = risk_register.responsible_unit_id
+            LEFT JOIN users ON users.id = risk_register.responsible_user_id
+            LEFT JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id
+			LEFT JOIN risk_matrix_likelihoods ON risk_matrix_likelihoods.id = risk_register.current_likelihood_id
+            LEFT JOIN risk_matrix_impacts ON risk_matrix_impacts.id = risk_register.current_impact_id
+            LEFT JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = risk_register.current_risk_rating_id
+            LEFT JOIN review_frequencies ON review_frequencies.id = risk_register.review_frequency_id
+        `).
+		Where("risk_slas.sla_register_id = ?", slaID)
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Where("risk_register.title LIKE ?", keyword)
+	}
+
+	if params.SortBy == "" {
+		params.SortBy = "risk_register.title"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	query = query.Debug()
+	offset := (params.Page - 1) * params.PageSize
+
+	// Execute the query
+	err := query.Offset(offset).Limit(params.PageSize).Find(&riskList).Error
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &complianceDTOs.SLAAssociatedItemRiskListResponseDTO{
+		Items: riskList,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+
+	return response, nil
+}
+
 func (repo *SLAAssociatedItemRepository) GetAllAssociatedCounts(slaID uint) (*complianceDTOs.SlaAssociatedItemsCountResponseDTO, error) {
-	var risksCount, incidentsCount, questionsCount int64
+	var risksCount, incidentsCount, questionsCount, actionPlansCount int64
 	var err error
 
 	// Query for questions count
@@ -146,9 +422,18 @@ func (repo *SLAAssociatedItemRepository) GetAllAssociatedCounts(slaID uint) (*co
 		return nil, err
 	}
 
+	// Query for Action Plan count
+	err = repo.db.Model(&models.SLAActionPlan{}).
+		Where("sla_register_id = ?", slaID).
+		Count(&actionPlansCount).Error
+	if err != nil {
+		return nil, err
+	}
+
 	return &complianceDTOs.SlaAssociatedItemsCountResponseDTO{
-		Questions: int(questionsCount),
-		Risks:     int(risksCount),
-		Incidents: int(incidentsCount),
+		Questions:   int(questionsCount),
+		Risks:       int(risksCount),
+		Incidents:   int(incidentsCount),
+		ActionPlans: int(actionPlansCount),
 	}, nil
 }

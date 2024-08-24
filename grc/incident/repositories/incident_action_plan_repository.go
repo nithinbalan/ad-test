@@ -47,6 +47,8 @@ func (repo *IncidentActionPlanRepository) GetAll(incidentID uint, params *incide
 	query := repo.db.Table("incident_action_plans").
 		Select(`
         incident_action_plans.*,
+		incident_register.reference_number AS incident_reference_number,
+		incident_register.title AS incident_title,
 		CONVERT(VARCHAR, incident_action_plans.target_date, 23) AS target_date,
         action_plan_statuses.title_en AS action_plan_status_title_en,
         action_plan_statuses.title_ar AS action_plan_status_title_ar,
@@ -82,6 +84,7 @@ func (repo *IncidentActionPlanRepository) GetAll(incidentID uint, params *incide
         updated_user.profile_image_path AS updated_user_profile_image_path 
     `).
 		Joins(`
+		LEFT JOIN incident_register ON incident_register.id = incident_action_plans.incident_register_id
         LEFT JOIN action_plan_statuses ON action_plan_statuses.id = incident_action_plans.action_plan_status_id
         LEFT JOIN severity_levels ON severity_levels.id = incident_action_plans.severity_level_id
         LEFT JOIN users AS responsible_user ON responsible_user.id = incident_action_plans.responsible_user_id

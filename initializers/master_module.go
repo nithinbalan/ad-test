@@ -21,6 +21,7 @@ type MasterModule struct {
 	UnitController              *controllers.UnitController
 	ToolTypeController          *controllers.ToolTypeController
 	ExpenseCategoryController   *controllers.ExpenseCategoryController
+	SourceController            *controllers.SourceController
 
 	ReviewFrequencySvc   services.ReviewFrequencyServiceInterface
 	SeverityLevelSvc     services.SeverityLevelServiceInterface
@@ -34,6 +35,7 @@ type MasterModule struct {
 	UnitSvc              services.UnitServiceInterface
 	ToolTypeSvc          services.ToolTypeServiceInterface
 	ExpenseCategorySvc   services.ExpenseCategoryServiceInterface
+	SourceSvc            services.SourceServiceInterface
 }
 
 func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
@@ -95,6 +97,11 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 	expenseCategorySvc := services.NewExpenseCategoryService(expenseCategoryRepo, sharedModule.ActivityLogService)
 	expenseCategoryController := controllers.NewExpenseCategoryController(expenseCategorySvc)
 
+	//Sources
+	sourceRepo := repositories.NewSourceRepository(db)
+	sourceSvc := services.NewSourceService(sourceRepo)
+	sourceController := controllers.NewSourceController(sourceSvc)
+
 	return &MasterModule{
 		ReviewFrequencyController:   reviewFrequencyController,
 		SeverityLevelController:     severityLevelController,
@@ -108,6 +115,7 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 		UnitController:              unitController,
 		ToolTypeController:          toolTypeController,
 		ExpenseCategoryController:   expenseCategoryController,
+		SourceController:            sourceController,
 
 		ReviewFrequencySvc:   reviewFrequencySvc,
 		SeverityLevelSvc:     severityLevelSvc,
@@ -121,5 +129,6 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 		UnitSvc:              unitSvc,
 		ToolTypeSvc:          toolTypeSvc,
 		ExpenseCategorySvc:   expenseCategorySvc,
+		SourceSvc:            sourceSvc,
 	}
 }
