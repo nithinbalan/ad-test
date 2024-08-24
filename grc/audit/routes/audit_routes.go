@@ -27,10 +27,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditScheduleStatusController := app.AuditModule.AuditScheduleStatusController
 	auditPlanBudgetController := app.AuditModule.AuditPlanBudgetController
 	auditPlanScheduleController := app.AuditModule.AuditPlanScheduleController
-	auditEngagementTypeController := app.AuditModule.AuditEngagementTypeController 
+	auditEngagementTypeController := app.AuditModule.AuditEngagementTypeController
 	auditPlanStakeholderEngagementController := app.AuditModule.AuditPlanStakeholderEngagementController
 	auditController := app.AuditModule.AuditController
 	auditWorkpaperController := app.AuditModule.AuditWorkpaperController
+	auditMeetingController := app.AuditModule.AuditMeetingController
 
 	//Audit Status
 	auditRoutes.GET("/audit-statuses", auditStatusController.GetAllAuditStatuses)
@@ -150,5 +151,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.PUT("/audits/:auditId/workpapers/:id", auditWorkpaperController.UpdateAuditWorkpaper)
 	auditRoutes.POST("/audits/:auditId/workpapers/delete", auditWorkpaperController.DeleteAuditWorkpapers)
 
+	//Audit Meeting
+	auditRoutes.GET("/audits/:auditId/meetings", auditMeetingController.GetAllAuditMeetings)
+	auditRoutes.GET("/audits/:auditId/meetings/:id", auditMeetingController.GetAuditMeetingDetails)
+	auditRoutes.POST("/audits/:auditId/meetings", auditMeetingController.CreateAuditMeeting)
+	auditRoutes.PUT("/audits/:auditId/meetings/:id", auditMeetingController.UpdateAuditMeeting)
+	auditRoutes.POST("/audits/:auditId/meetings/delete", auditMeetingController.DeleteAuditMeetings)
 
 }
