@@ -19,6 +19,7 @@ type AuditableItem struct {
 	Comment                 string     `json:"comment" binding:"required" gorm:"type:nvarchar(MAX);not null"`
 	AuditorRiskRatingID     uint       `json:"auditor_risk_rating_id" gorm:"not null"`
 	AuditStatusID           uint       `json:"audit_status_id" gorm:"not null"`
+	Type                    string     `json:"type" gorm:"type:nvarchar(50);not null;default:'custom';check:type in ('process', 'control', 'incident', 'risk', 'document', 'compliance_register', 'compliance_requirement', 'user', 'custom')"`
 	CreatedAt               time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt               *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 	CreatedByID             uint       `json:"created_by_id" gorm:"not null"`

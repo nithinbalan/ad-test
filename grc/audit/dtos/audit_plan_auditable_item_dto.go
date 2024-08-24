@@ -10,10 +10,38 @@ type AuditPlanAuditableItemListDTO struct {
 	AuditableItemID             uint   `json:"auditable_item_id"`
 	CreatedByID                 uint   `json:"created_by_id"`
 	CreatedAt                   string `json:"created_at"`
+	ProcessID                   *uint  `json:"process_id"`
+	ControlID                   *uint  `json:"control_id"`
+	DocumentID                  *uint  `json:"document_id"`
+	IncidentRegisterID          *uint  `json:"incident_register_id"`
+	ResponsibleUnitID           uint   `json:"responsible_unit_id"`
+	ComplianceRequirementID     *uint  `json:"compliance_requirement_id"`
+	RiskRegisterID              *uint  `json:"risk_register_id"`
+	ProcessTitleEn              string `json:"process_title_en"`
+	ProcessTitleAr              string `json:"process_title_ar"`
+	ControlTitleEn              string `json:"control_title_en"`
+	ControlTitleAr              string `json:"control_title_ar"`
+	DocumentTitleEn             string `json:"document_title_en"`
+	DocumentTitleAr             string `json:"document_title_ar"`
+	IncidentRegisterTitle       string `json:"incident_register_title"`
+	ComplianceRequirementTitle  string `json:"compliance_requirement_title"`
+	ResponsibleUnitTitleEn      string `json:"responsible_unit_title_en"`
+	ResponsibleUnitTitleAr      string `json:"responsible_unit_title_ar"`
+	RiskRegisterTitle           string `json:"risk_register_title"`
+	UserID                      uint   `json:"user_id"`
+	UserFirstNameEn             string `json:"user_first_name_en"`
+	UserFirstNameAr             string `json:"user_first_name_ar"`
+	UserLastNameEn              string `json:"user_last_name_en"`
+	UserLastNameAr              string `json:"user_last_name_ar"`
+	UserEmail                   string `json:"user_email"`
+	UserInitial                 string `json:"user_initial"`
+	UserColor                   string `json:"user_color"`
+	UserProfileImagePath        string `json:"user_profile_image_path"`
 	ReferenceNumber             string `json:"reference_number"`
 	AuditPlanTitle              string `json:"audit_plan_title"`
 	AuditableItemTitleEn        string `json:"auditable_item_title_en"`
 	AuditableItemTitleAr        string `json:"auditable_item_title_ar"`
+	AuditableItemType           string `json:"auditable_item_type"`
 	AuditCategoryTitleEn        string `json:"audit_category_title_en"`
 	AuditCategoryTitleAr        string `json:"audit_category_title_ar"`
 	AuditTeamTitleEn            string `json:"audit_team_title_en"`
@@ -38,6 +66,10 @@ type AuditPlanAuditableItemListDTO struct {
 	CreatedUserColor            string `json:"created_user_color"`
 	CreatedUserEmail            string `json:"created_user_email"`
 	CreatedUserProfileImagePath string `json:"created_user_profile_image_path"`
+	AuditorRiskRatingTitleEn    string `json:"auditor_risk_rating_title_en"`
+	AuditorRiskRatingTitleAr    string `json:"auditor_risk_rating_title_ar"`
+	AuditorRiskRatingColorCode  string `json:"auditor_risk_rating_color_code"`
+	AuditorRiskRatingType       string `json:"auditor_risk_rating_type"`
 }
 
 type AuditPlanAuditableItemFormDTO struct {

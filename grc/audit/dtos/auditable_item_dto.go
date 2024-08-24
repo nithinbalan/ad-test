@@ -15,9 +15,18 @@ type AuditableItemListDTO struct {
 	ID                          uint   `json:"id"`
 	AuditorRiskRatingID         uint   `json:"auditor_risk_rating_id"`
 	AuditStatusID               uint   `json:"audit_status_id"`
+	Type                        string `json:"type"`
 	TitleEn                     string `json:"title_en"`
 	TitleAr                     string `json:"title_ar"`
 	Comment                     string `json:"comment"`
+	ProcessID                   *uint  `json:"process_id"`
+	ControlID                   *uint  `json:"control_id"`
+	DocumentID                  *uint  `json:"document_id"`
+	IncidentRegisterID          *uint  `json:"incident_register_id"`
+	ResponsibleUnitID           uint   `json:"responsible_unit_id"`
+	ComplianceRequirementID     *uint  `json:"compliance_requirement_id"`
+	RiskRegisterID              *uint  `json:"risk_register_id"`
+	UserID                      *uint  `json:"user_id"`
 	ProcessTitleEn              string `json:"process_title_en"`
 	ProcessTitleAr              string `json:"process_title_ar"`
 	ControlTitleEn              string `json:"control_title_en"`
@@ -29,7 +38,6 @@ type AuditableItemListDTO struct {
 	IncidentRegisterTitle       string `json:"incident_register_title"`
 	ComplianceRequirementTitle  string `json:"compliance_requirement_title"`
 	RiskRegisterTitle           string `json:"risk_register_title"`
-	UserID                      uint   `json:"user_id"`
 	UserFirstNameEn             string `json:"user_first_name_en"`
 	UserFirstNameAr             string `json:"user_first_name_ar"`
 	UserLastNameEn              string `json:"user_last_name_en"`
@@ -93,6 +101,7 @@ type AuditableItemFormDTO struct {
 
 type AuditableItemDetailDTO struct {
 	ID                      uint                                           `json:"id"`
+	Type                    string                                         `json:"type"`
 	TitleEn                 string                                         `json:"title_en"`
 	TitleAr                 string                                         `json:"title_ar"`
 	Comment                 *string                                        `json:"comment"`

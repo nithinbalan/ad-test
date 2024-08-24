@@ -43,10 +43,31 @@ func (repo *AuditPlanAuditableItemRepository) GetAll(auditPlanID uint, params *a
 			audit_plan_auditable_items.auditable_item_id,
 			audit_plan_auditable_items.created_by_id,
 			audit_plan_auditable_items.created_at,
+			processes.title_en AS process_title_en,
+			processes.title_ar AS process_title_ar,
+			controls.title_en AS control_title_en,
+			controls.title_ar AS control_title_ar,
+			documents.title_en AS document_title_en,
+			documents.title_ar AS document_title_ar,
+			incident_register.title AS incident_register_title,
+			compliance_requirements.title AS compliance_requirement_title,
+			organization_units.title_en AS responsible_unit_title_en,
+			organization_units.title_ar AS responsible_unit_title_ar,
+			risk_register.title AS risk_register_title,
+			users.id AS user_id,
+			users.first_name_en AS user_first_name_en,
+			users.first_name_ar AS user_first_name_ar,
+			users.last_name_en AS user_last_name_en,
+			users.last_name_ar AS user_last_name_ar,
+			users.email AS user_email,
+			users.initial AS user_initial,
+			users.color AS user_color,
+			users.profile_image_path AS user_profile_image_path,
 			audit_plans.reference_number,
 			audit_plans.title AS audit_plan_title,
 			auditable_items.title_en AS auditable_item_title_en,
 			auditable_items.title_ar AS auditable_item_title_ar,
+			auditable_items.type AS auditable_item_type,
 			audit_categories.title_en AS audit_category_title_en,
 			audit_categories.title_ar AS audit_category_title_ar,
 			audit_teams.title_en AS audit_team_title_en,
@@ -62,6 +83,10 @@ func (repo *AuditPlanAuditableItemRepository) GetAll(auditPlanID uint, params *a
 			audit_statuses.title_ar AS audit_status_title_ar,
 			audit_statuses.type AS audit_status_type,
 			audit_statuses.color_code AS audit_status_color_code,
+			auditor_risk_ratings.title_en AS auditor_risk_rating_title_en,
+			auditor_risk_ratings.title_ar AS auditor_risk_rating_title_ar,
+			auditor_risk_ratings.color_code AS auditor_risk_rating_color_code,
+			auditor_risk_ratings.type AS auditor_risk_rating_type,
 			created_user.id AS created_user_id,
         	created_user.first_name_en AS created_user_first_name_en,
 			created_user.first_name_ar AS created_user_first_name_ar,
@@ -75,10 +100,19 @@ func (repo *AuditPlanAuditableItemRepository) GetAll(auditPlanID uint, params *a
 		Joins(`
 			LEFT JOIN audit_plans ON audit_plans.id = audit_plan_auditable_items.audit_plan_id
 			LEFT JOIN auditable_items ON auditable_items.id = audit_plan_auditable_items.auditable_item_id
+			LEFT JOIN processes ON processes.id = auditable_items.process_id
+			LEFT JOIN controls ON controls.id = auditable_items.control_id
+			LEFT JOIN documents ON documents.id = auditable_items.document_id
+			LEFT JOIN incident_register ON incident_register.id = auditable_items.incident_register_id
+			LEFT JOIN compliance_requirements ON compliance_requirements.id = auditable_items.compliance_requirement_id
+			LEFT JOIN organization_units ON organization_units.id = auditable_items.responsible_unit_id
+			LEFT JOIN risk_register ON risk_register.id = auditable_items.risk_register_id
+			LEFT JOIN users ON users.id = auditable_items.user_id
 			LEFT JOIN audit_categories ON audit_categories.id = audit_plans.audit_category_id
 			LEFT JOIN audit_teams ON audit_teams.id = audit_plans.audit_team_id
 			LEFT JOIN users AS team_lead ON team_lead.id = audit_plans.team_lead_id
 			LEFT JOIN audit_statuses ON audit_statuses.id = audit_plans.audit_status_id
+        	LEFT JOIN auditor_risk_ratings ON auditor_risk_ratings.id = auditable_items.auditor_risk_rating_id
 			LEFT JOIN users AS created_user ON created_user.id = audit_plan_auditable_items.created_by_id
 		`).Where("audit_plan_auditable_items.audit_plan_id = ?", auditPlanID)
 
