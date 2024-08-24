@@ -88,13 +88,13 @@ func (ams *AuditMeetingService) Create(currentUserID uint, auditMeetingFormDTO *
 		return 0, err
 	}
 
-	if err := ams.validateAuditMeetingFormDTO(auditMeetingFormDTO); err != nil {
-		tx.Rollback()
-		return 0, err
-	}
+	// if err := ams.validateAuditMeetingFormDTO(auditMeetingFormDTO); err != nil {
+	// 	tx.Rollback()
+	// 	return 0, err
+	// }
 
 	auditMeeting := &models.AuditMeeting{
-		AuditsID:          auditMeetingFormDTO.AuditsID,
+		AuditsID:          auditMeetingFormDTO.AuditID,
 		Title:             auditMeetingFormDTO.Title,
 		Date:              dates.Date,
 		FromTime:          dates.FromTime,
@@ -164,7 +164,7 @@ func (ams *AuditMeetingService) Update(id uint, currentUserID uint, auditMeeting
 		return err
 	}
 
-	existingAuditMeeting.AuditsID = auditMeetingFormDTO.AuditsID
+	existingAuditMeeting.AuditsID = auditMeetingFormDTO.AuditID
 	existingAuditMeeting.Title = auditMeetingFormDTO.Title
 	existingAuditMeeting.Date = dates.Date
 	existingAuditMeeting.FromTime = dates.FromTime
@@ -272,8 +272,10 @@ func (ams *AuditMeetingService) Delete(ids []uint, currentUserID uint) ([]uint, 
 	return failedIDs, nil
 }
 
-func (ams *AuditMeetingService) validateAuditMeetingFormDTO(dto *auditDTOs.AuditMeetingFormDTO) error {
-	// Add validation logic if necessary (e.g., checking if the related Audit exists)
+func (ams *AuditMeetingService) validateAuditMeetingFormDTO(auditMeetingDTO *auditDTOs.AuditMeetingFormDTO) error {
+	if _, err := ams.auditSvc.GetByID(auditMeetingDTO.AuditID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("audit does not exist"), "not_exist", "audit")
+	}
 	return nil
 }
 
@@ -285,16 +287,6 @@ func (ams *AuditMeetingService) parseAuditMeetingDates(dto *auditDTOs.AuditMeeti
 	parsed.Date, err = utility.ParseMandatoryDate(dto.Date)
 	if err != nil {
 		return nil, utility.NewValidationError(fmt.Errorf("invalid meeting date"), "invalid_date", "date")
-	}
-
-	parsed.FromTime, err = utility.ParseMandatoryTime(dto.FromTime)
-	if err != nil {
-		return nil, utility.NewValidationError(fmt.Errorf("invalid from time"), "invalid_time", "from time")
-	}
-
-	parsed.ToTime, err = utility.ParseMandatoryTime(dto.ToTime)
-	if err != nil {
-		return nil, utility.NewValidationError(fmt.Errorf("invalid to time"), "invalid_time", "to time")
 	}
 
 	return parsed, nil

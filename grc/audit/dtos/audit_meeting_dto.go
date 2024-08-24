@@ -38,11 +38,11 @@ type AuditMeetingListDTO struct {
 }
 
 type AuditMeetingFormDTO struct {
-	AuditsID          uint    `json:"audits_id" binding:"required"`
+	AuditID           uint    `json:"audit_id" binding:"required"`
 	Title             string  `json:"title" binding:"required"`
 	Date              string  `json:"date" binding:"required"`
-	FromTime          string  `json:"from_time" binding:"required"`
-	ToTime            string  `json:"to_time" binding:"required"`
+	FromTime          string  `json:"from_time"`
+	ToTime            string  `json:"to_time"`
 	OtherParticipants *string `json:"other_participants"`
 	Mom               *string `json:"mom"`
 	ParticipantIDs    []uint  `json:"participant_ids"`
