@@ -8,7 +8,7 @@ import (
 
 type AuditMeetingListDTO struct {
 	ID                          uint    `json:"id"`
-	AuditsID                    uint    `json:"audits_id"`
+	AuditID                     uint    `json:"audit_id"`
 	Title                       string  `json:"title"`
 	Date                        string  `json:"date"`
 	FromTime                    string  `json:"from_time"`

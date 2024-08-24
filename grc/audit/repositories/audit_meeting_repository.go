@@ -47,7 +47,6 @@ func (repo *AuditMeetingRepository) GetAll(params *auditDTOs.AuditMeetingListQue
 		Select(`
 			audit_meetings.*,
 			CONVERT(VARCHAR, audit_meetings.date, 23) AS date,
-			audits.title AS audit_title,
 			created_user.first_name_en AS created_user_first_name_en,
         	created_user.first_name_ar AS created_user_first_name_ar,
         	created_user.last_name_en AS created_user_last_name_en,

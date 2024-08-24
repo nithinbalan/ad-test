@@ -6,7 +6,7 @@ import (
 
 type AuditMeeting struct {
 	ID                uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
-	AuditsID          uint       `json:"audits_id" binding:"required" gorm:"not null"`
+	AuditID           uint       `json:"audit_id" binding:"required" gorm:"not null"`
 	Title             string     `json:"title" binding:"required" gorm:"type:nvarchar(255);not null"`
 	Date              time.Time  `json:"date" binding:"required" gorm:"type:date;not null"`
 	FromTime          time.Time  `json:"from_time" gorm:"type:varchar(45);null"`
@@ -19,7 +19,7 @@ type AuditMeeting struct {
 	UpdatedAt         *time.Time `json:"updated_at,omitempty" gorm:"type:datetime;default:null"`
 
 	// Relationships
-	Audit         *Audit `gorm:"foreignKey:AuditsID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
+	Audit         *Audit `gorm:"foreignKey:AuditID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
 	CreatedByUser *User  `gorm:"foreignKey:CreatedBYID"`
 	UpdatedByUser *User  `gorm:"foreignKey:UpdatedBYID"`
 }
