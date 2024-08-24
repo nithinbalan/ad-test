@@ -29,6 +29,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditPlanScheduleController := app.AuditModule.AuditPlanScheduleController
 	auditEngagementTypeController := app.AuditModule.AuditEngagementTypeController
 	auditPlanStakeholderEngagementController := app.AuditModule.AuditPlanStakeholderEngagementController
+	auditController := app.AuditModule.AuditController
 
 	//Audit Status
 	auditRoutes.GET("/audit-statuses", auditStatusController.GetAllAuditStatuses)
@@ -133,5 +134,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.POST("/audit-plans/:planId/stakeholder-engagements", auditPlanStakeholderEngagementController.CreateAuditPlanStakeholderEngagement)
 	auditRoutes.PUT("/audit-plans/:planId/stakeholder-engagements/:id", auditPlanStakeholderEngagementController.UpdateAuditPlanStakeholderEngagement)
 	auditRoutes.POST("/audit-plans/:planId/stakeholder-engagements/delete", auditPlanStakeholderEngagementController.DeleteAuditPlanStakeholderEngagements)
+
+	//Audit
+	auditRoutes.GET("/audits", auditController.GetAllAudits)
+	auditRoutes.GET("/audits/:auditId", auditController.GetAuditDetails)
+	auditRoutes.POST("/audits", auditController.CreateAudit)
+	auditRoutes.PUT("/audits/:auditId", auditController.UpdateAudit)
+	auditRoutes.POST("/audits/delete", auditController.DeleteAudits)
 
 }
