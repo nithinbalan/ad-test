@@ -190,6 +190,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.GET("/slas/:slaId/action-plans/:actionPlanId/status-updates/latest", slaActionPlanStatusUpdateController.GetLatestSLAActionPlanStatusUpdate)
 
 	complianceRoutes.GET("/slas/:slaId/processes", slaAssociatedItemController.GetAllSLAProcesses)
+	complianceRoutes.GET("/slas/:slaId/documents", slaAssociatedItemController.GetAllSLADocuments)
+	complianceRoutes.GET("/slas/:slaId/risks", slaAssociatedItemController.GetAllSLARisks)
+	complianceRoutes.GET("/slas/:slaId/incidents", slaAssociatedItemController.GetAllSLAIncidents)
 	complianceRoutes.GET("/slas/:slaId/associated-item-summary", slaAssociatedItemController.GetAllAssociatedCounts)
 
 }
