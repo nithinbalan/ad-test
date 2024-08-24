@@ -25,6 +25,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	unitController := app.MasterModule.UnitController
 	toolTypeController := app.MasterModule.ToolTypeController
 	expenseCategoryController := app.MasterModule.ExpenseCategoryController
+	sourceController := app.MasterModule.SourceController
 
 	masterRoutes.GET("/review-frequencies", reviewFrequencyController.GetAllReviewFrequencies)
 	masterRoutes.GET("/review-frequencies/:id", reviewFrequencyController.GetReviewFrequencyDetails)
@@ -89,4 +90,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	masterRoutes.POST("/expense-categories/delete", expenseCategoryController.DeleteExpenseCategories)
 	masterRoutes.PUT("/expense-categories/activate", expenseCategoryController.ActivateExpenseCategories)
 	masterRoutes.PUT("/expense-categories/deactivate", expenseCategoryController.DeactivateExpenseCategories)
+
+	masterRoutes.GET("/sources", sourceController.GetAllSources)
+	masterRoutes.GET("/sources/:id", sourceController.GetSourceDetails)
+
 }
