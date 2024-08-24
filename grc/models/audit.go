@@ -11,8 +11,8 @@ type Audit struct {
 	EndDate     time.Time  `json:"end_date" binding:"required" gorm:"type:date;not null"`
 	CreatedAt   time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt   *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
-	CreatedByID uint       `json:"created_by_id" binding:"required" gorm:"not null"`
-	UpdatedByID *uint      `json:"updated_by_id,omitempty" gorm:"null"`
+	CreatedBYID uint       `json:"created_by_id" binding:"required" gorm:"not null"`
+	UpdatedBYID *uint      `json:"updated_by_id,omitempty" gorm:"null"`
 
 	// Relationships
 	AuditPlan     *AuditPlan `gorm:"foreignKey:AuditPlanID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
