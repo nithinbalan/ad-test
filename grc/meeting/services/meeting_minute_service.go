@@ -21,13 +21,15 @@ type MeetingMinuteServiceInterface interface {
 	Create(meetingID uint, currentUserID uint, meetingMinuteFormDTO *meetingDTOs.MeetingMinuteFormDTO) (uint, error)
 	Update(meetingID uint, id uint, currentUserID uint, meetingMinuteFormDTO *meetingDTOs.MeetingMinuteFormDTO) error
 	Delete(meetingID uint, ids []uint, currentUserID uint) ([]uint, error)
+	StatusUpdate(id uint, currentUserID uint, meetingMinuteStatusID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type MeetingMinuteService struct {
-	repo             meetingRepositories.MeetingMinuteRepositoryInterface
-	activityLogSvc   logServices.ActivityLogServiceInterface
-	meetingSvc       MeetingServiceInterface
-	meetingAgendaSvc MeetingAgendaServiceInterface
+	repo                   meetingRepositories.MeetingMinuteRepositoryInterface
+	activityLogSvc         logServices.ActivityLogServiceInterface
+	meetingSvc             MeetingServiceInterface
+	meetingAgendaSvc       MeetingAgendaServiceInterface
+	meetingMinuteStatusSvc MeetingMinuteStatusServiceInterface
 }
 
 func NewMeetingMinuteService(
@@ -35,12 +37,14 @@ func NewMeetingMinuteService(
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	meetingSvc MeetingServiceInterface,
 	meetingAgendaSvc MeetingAgendaServiceInterface,
+	meetingMinuteStatusSvc MeetingMinuteStatusServiceInterface,
 ) MeetingMinuteServiceInterface {
 	return &MeetingMinuteService{
-		repo:             repo,
-		activityLogSvc:   activityLogSvc,
-		meetingSvc:       meetingSvc,
-		meetingAgendaSvc: meetingAgendaSvc,
+		repo:                   repo,
+		activityLogSvc:         activityLogSvc,
+		meetingSvc:             meetingSvc,
+		meetingAgendaSvc:       meetingAgendaSvc,
+		meetingMinuteStatusSvc: meetingMinuteStatusSvc,
 	}
 }
 
@@ -92,11 +96,17 @@ func (mms *MeetingMinuteService) Create(meetingID uint, currentUserID uint, meet
 	if err := mms.validateMeetingMinuteFormDTO(meetingMinuteFormDTO); err != nil {
 		return 0, err
 	}
+	meetingMinuteStatus, err := mms.meetingMinuteStatusSvc.GetByType("informational")
+	if err != nil {
+		return 0, err
+	}
 
 	meetingMinute := &models.MeetingMinute{
-		MeetingAgendaID: meetingMinuteFormDTO.MeetingAgendaID,
-		Minutes:         &meetingMinuteFormDTO.Minutes,
-		CreatedBYID:     currentUserID,
+		MeetingAgendaID:       meetingMinuteFormDTO.MeetingAgendaID,
+		MeetingID:             &meetingID,
+		Minutes:               &meetingMinuteFormDTO.Minutes,
+		MeetingMinuteStatusID: uint(meetingMinuteStatus.ID),
+		CreatedBYID:           currentUserID,
 	}
 
 	id, err := mms.repo.Create(meetingMinute)
@@ -131,6 +141,8 @@ func (mms *MeetingMinuteService) Create(meetingID uint, currentUserID uint, meet
 }
 
 func (mms *MeetingMinuteService) Update(meetingID uint, id uint, currentUserID uint, meetingMinuteFormDTO *meetingDTOs.MeetingMinuteFormDTO) error {
+	tx := mms.repo.BeginTransaction()
+
 	if _, err := mms.meetingSvc.GetByID(meetingID); err != nil {
 		return err
 	}
@@ -146,9 +158,10 @@ func (mms *MeetingMinuteService) Update(meetingID uint, id uint, currentUserID u
 	existingMeetingMinute.Minutes = &meetingMinuteFormDTO.Minutes
 	existingMeetingMinute.UpdatedBYID = &currentUserID
 
-	if err := mms.repo.Update(existingMeetingMinute); err != nil {
+	if err := mms.repo.Update(existingMeetingMinute, tx); err != nil {
 		return err
 	}
+	tx.Commit()
 
 	go func() {
 		err := mms.activityLogSvc.LogActivity(
@@ -229,5 +242,24 @@ func (mms *MeetingMinuteService) validateMeetingMinuteFormDTO(meetingMinuteFormD
 			return utility.NewValidationError(fmt.Errorf("meeting agenda does not exist"), "not_exist", "meeting agenda")
 		}
 	}
+	return nil
+}
+
+func (mms *MeetingMinuteService) StatusUpdate(id uint, currentUserID uint, meetingMinuteStatusID uint, tx ...utility.DatabaseTransaction) error {
+	existingMeetingMinute, err := mms.GetByID(id)
+
+	if err != nil {
+		return err
+	}
+
+	existingMeetingMinute.MeetingMinuteStatusID = meetingMinuteStatusID
+	existingMeetingMinute.UpdatedBYID = &currentUserID
+
+	err = mms.repo.Update(existingMeetingMinute, tx...)
+
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

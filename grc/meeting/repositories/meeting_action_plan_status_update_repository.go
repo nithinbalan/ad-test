@@ -21,6 +21,7 @@ type MeetingActionPlanStatusUpdateRepositoryInterface interface {
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
 
 	GetLatestMeetingActionPlanStatusUpdate(meetingActionPlanID uint) (*meetingDTOs.MeetingActionPlanStatusUpdateListDTO, error)
+	CheckAllActionPlansCompletedStatusCount(meetingMinuteID uint, excludeActionPlanID uint, completedStatuses []string, tx ...utility.DatabaseTransaction) (int64, error)
 }
 
 type MeetingActionPlanStatusUpdateRepository struct {
@@ -210,4 +211,25 @@ func (repo *MeetingActionPlanStatusUpdateRepository) GetLatestMeetingActionPlanS
 
 	return meetingActionPlanUpdate, nil
 
+}
+
+func (repo *MeetingActionPlanStatusUpdateRepository) CheckAllActionPlansCompletedStatusCount(meetingMinuteID uint, excludeActionPlanID uint, completedStatuses []string, tx ...utility.DatabaseTransaction) (int64, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Join MeetingActionPlan with ActionPlanStatuses to filter by Type
+	var count int64
+	if err := db.Model(&models.MeetingActionPlan{}).
+		Joins("JOIN action_plan_statuses ON action_plan_statuses.id = meeting_action_plans.action_plan_status_id").
+		Where("meeting_action_plans.meeting_minute_id = ?", meetingMinuteID).
+		Where("meeting_action_plans.id != ?", excludeActionPlanID).
+		Where("action_plan_statuses.type NOT IN (?)", completedStatuses).
+		Count(&count).Error; err != nil {
+		return 0, err
+	}
+
+	// Return the count of action plans that do not have a completed or terminated status
+	return count, nil
 }

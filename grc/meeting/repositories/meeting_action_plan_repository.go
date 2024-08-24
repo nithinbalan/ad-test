@@ -47,12 +47,14 @@ func (repo *MeetingActionPlanRepository) GetAll(meetingID uint, params *meetingD
 	query := repo.db.Table("meeting_action_plans").
 		Select(`
         meeting_action_plans.*,
+		CONVERT(VARCHAR, meeting_action_plans.target_date, 23) AS target_date,
         action_plan_statuses.title_en AS action_plan_status_title_en,
         action_plan_statuses.title_ar AS action_plan_status_title_ar,
+        action_plan_statuses.color_code AS action_plan_status_color_code,
         severity_levels.title_en AS severity_level_title_en,
         severity_levels.title_ar AS severity_level_title_ar,
         severity_levels.color_code AS severity_level_color_code,
-		meeting_agendas.title AS meeting_agenda_title,
+		meeting_minutes.minutes AS meeting_minutes,
 		responsible_user.id AS responsible_user_id,
         responsible_user.first_name_en AS responsible_user_first_name_en,
         responsible_user.first_name_ar AS responsible_user_first_name_ar,
@@ -82,7 +84,7 @@ func (repo *MeetingActionPlanRepository) GetAll(meetingID uint, params *meetingD
         updated_user.profile_image_path AS updated_user_profile_image_path 
     `).
 		Joins(`
-		LEFT JOIN meeting_agendas ON meeting_agendas.id = meeting_action_plans.meeting_agenda_id
+		LEFT JOIN meeting_minutes ON meeting_minutes.id = meeting_action_plans.meeting_minute_id
         LEFT JOIN action_plan_statuses ON action_plan_statuses.id = meeting_action_plans.action_plan_status_id
         LEFT JOIN severity_levels ON severity_levels.id = meeting_action_plans.severity_level_id
         LEFT JOIN users AS responsible_user ON responsible_user.id = meeting_action_plans.responsible_user_id
@@ -129,7 +131,7 @@ func (repo *MeetingActionPlanRepository) GetAll(meetingID uint, params *meetingD
             action_plan_statuses.title_en LIKE ? OR
             action_plan_statuses.title_ar LIKE ? OR
             meeting_action_plans.target_date LIKE ? OR
-            meeting_agendas.title LIKE ? OR
+            meeting_minutes.minutes LIKE ? OR
             responsible_user.first_name_en LIKE ? OR
             responsible_user.first_name_ar LIKE ? OR
             responsible_user.last_name_en LIKE ? OR
@@ -196,7 +198,7 @@ func (repo *MeetingActionPlanRepository) GetFullDetailsByID(id uint) (*models.Me
 		Preload("ResponsibleUser.OrganizationUnit1").
 		Preload("SeverityLevel").
 		Preload("ActionPlanStatus").
-		Preload("MeetingAgenda").
+		Preload("MeetingMinute").
 		Preload("CreatedByUser").
 		Preload("CreatedByUser.OrganizationUnit1").
 		Preload("UpdatedByUser").

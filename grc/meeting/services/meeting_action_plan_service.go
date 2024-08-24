@@ -35,6 +35,8 @@ type MeetingActionPlanService struct {
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface
 	userSvc             organizationServices.UserServiceInterface
 	notificationSvc     commonServices.NotificationServiceInterface
+	meetingMinuteSvc    MeetingMinuteServiceInterface
+	meetingMinuteStatusSvc MeetingMinuteStatusServiceInterface
 }
 
 func NewMeetingActionPlanService(
@@ -44,7 +46,9 @@ func NewMeetingActionPlanService(
 	severityLevelSvc masterServices.SeverityLevelServiceInterface,
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
-	notificationSvc commonServices.NotificationServiceInterface) MeetingActionPlanServiceInterface {
+	notificationSvc commonServices.NotificationServiceInterface,
+	meetingMinuteSvc MeetingMinuteServiceInterface,
+	meetingMinuteStatusSvc MeetingMinuteStatusServiceInterface) MeetingActionPlanServiceInterface {
 	return &MeetingActionPlanService{
 		repo:                repo,
 		activityLogSvc:      activityLogSvc,
@@ -53,6 +57,8 @@ func NewMeetingActionPlanService(
 		actionPlanStatusSvc: actionPlanStatusSvc,
 		userSvc:             userSvc,
 		notificationSvc:     notificationSvc,
+		meetingMinuteSvc:    meetingMinuteSvc,
+		meetingMinuteStatusSvc:   meetingMinuteStatusSvc,
 	}
 }
 
@@ -128,7 +134,7 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 		Description:        MeetingActionPlanFormDTO.Description,
 		SeverityLevelID:    MeetingActionPlanFormDTO.SeverityLevelID,
 		ResponsibleUserID:  MeetingActionPlanFormDTO.ResponsibleUserID,
-		MeetingAgendaID:    MeetingActionPlanFormDTO.MeetingAgendaID,
+		MeetingMinuteID:    MeetingActionPlanFormDTO.MeetingMinuteID,
 		TargetDate:         dates.TargetDate,
 		Percentage:         *MeetingActionPlanFormDTO.Percentage,
 		ActionPlanStatusID: MeetingActionPlanFormDTO.ActionPlanStatusID,
@@ -137,6 +143,14 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 
 	id, err := maps.repo.Create(meetingActionPlan, tx)
 	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	meetingMinuteStatus, err := maps.meetingMinuteStatusSvc.GetByType("open")
+	if err != nil {
+		return 0, err
+	}
+	if err := maps.meetingMinuteSvc.StatusUpdate(*MeetingActionPlanFormDTO.MeetingMinuteID,currentUserID,uint(meetingMinuteStatus.ID), tx); err != nil {
 		tx.Rollback()
 		return 0, err
 	}
@@ -212,7 +226,7 @@ func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUse
 	existingMeetingActionPlan.TargetDate = dates.TargetDate
 	existingMeetingActionPlan.Percentage = *MeetingActionPlanFormDTO.Percentage
 	existingMeetingActionPlan.ActionPlanStatusID = MeetingActionPlanFormDTO.ActionPlanStatusID
-	existingMeetingActionPlan.MeetingAgendaID = MeetingActionPlanFormDTO.MeetingAgendaID
+	existingMeetingActionPlan.MeetingMinuteID = MeetingActionPlanFormDTO.MeetingMinuteID
 	existingMeetingActionPlan.UpdatedByID = &currentUserID
 
 	err = maps.repo.Update(existingMeetingActionPlan)
@@ -320,6 +334,9 @@ func (maps *MeetingActionPlanService) validateMeetingActionPlanFormDTO(meetingAc
 
 	if _, err := maps.actionPlanStatusSvc.GetByID(meetingActionPlanFormDTO.ActionPlanStatusID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("action plan status does not exist"), "not_exist", "action plan status")
+	}
+	if _, err := maps.meetingMinuteSvc.GetByID(*meetingActionPlanFormDTO.MeetingMinuteID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("meeting minute does not exist"), "not_exist", "meeting minute")
 	}
 
 	return nil
