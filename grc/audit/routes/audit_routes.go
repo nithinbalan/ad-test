@@ -29,6 +29,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditPlanScheduleController := app.AuditModule.AuditPlanScheduleController
 	auditEngagementTypeController := app.AuditModule.AuditEngagementTypeController
 	auditPlanStakeholderEngagementController := app.AuditModule.AuditPlanStakeholderEngagementController
+	auditController := app.AuditModule.AuditController
 
 	//Audit Status
 	auditRoutes.GET("/audit-statuses", auditStatusController.GetAllAuditStatuses)
