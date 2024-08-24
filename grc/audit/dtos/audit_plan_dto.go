@@ -95,8 +95,8 @@ type AuditPlanDetailDTO struct {
 	AuditStatus      AuditStatusDTO                   `json:"audit_status"`
 	CreatedAt        time.Time                        `json:"created_at"`
 	UpdatedAt        *time.Time                       `json:"updated_at"`
-	CreatedByUser    organizationDTOs.UserMinimalDTO  `json:"created_by_id"`
-	UpdatedByUser    *organizationDTOs.UserMinimalDTO `json:"updated_by_id"`
+	CreatedByUser    organizationDTOs.UserMinimalDTO  `json:"created_by"`
+	UpdatedByUser    *organizationDTOs.UserMinimalDTO `json:"updated_by"`
 	AuditableItems   []*AuditPlanAuditableItemDTO     `json:"auditable_items"`
 	Members          []*AuditPlanAuditMemberDTO       `json:"members"`
 }

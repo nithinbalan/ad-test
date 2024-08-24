@@ -27,8 +27,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditScheduleStatusController := app.AuditModule.AuditScheduleStatusController
 	auditPlanBudgetController := app.AuditModule.AuditPlanBudgetController
 	auditPlanScheduleController := app.AuditModule.AuditPlanScheduleController
-	auditEngagementTypeController := app.AuditModule.AuditEngagementTypeController
+	auditEngagementTypeController := app.AuditModule.AuditEngagementTypeController 
 	auditPlanStakeholderEngagementController := app.AuditModule.AuditPlanStakeholderEngagementController
+	auditController := app.AuditModule.AuditController
+	auditWorkpaperController := app.AuditModule.AuditWorkpaperController
 
 	//Audit Status
 	auditRoutes.GET("/audit-statuses", auditStatusController.GetAllAuditStatuses)
@@ -133,5 +135,20 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.POST("/audit-plans/:planId/stakeholder-engagements", auditPlanStakeholderEngagementController.CreateAuditPlanStakeholderEngagement)
 	auditRoutes.PUT("/audit-plans/:planId/stakeholder-engagements/:id", auditPlanStakeholderEngagementController.UpdateAuditPlanStakeholderEngagement)
 	auditRoutes.POST("/audit-plans/:planId/stakeholder-engagements/delete", auditPlanStakeholderEngagementController.DeleteAuditPlanStakeholderEngagements)
+
+	//Audit
+	auditRoutes.GET("/audits", auditController.GetAllAudits)
+	auditRoutes.GET("/audits/:auditId", auditController.GetAuditDetails)
+	auditRoutes.POST("/audits", auditController.CreateAudit)
+	auditRoutes.PUT("/audits/:auditId", auditController.UpdateAudit)
+	auditRoutes.POST("/audits/delete", auditController.DeleteAudits)
+
+	//Audit Schedule
+	auditRoutes.GET("/audits/:auditId/workpapers", auditWorkpaperController.GetAllAuditWorkpapers)
+	auditRoutes.GET("/audits/:auditId/workpapers/:id", auditWorkpaperController.GetAuditWorkpaperDetails)
+	auditRoutes.POST("/audits/:auditId/workpapers", auditWorkpaperController.CreateAuditWorkpaper)
+	auditRoutes.PUT("/audits/:auditId/workpapers/:id", auditWorkpaperController.UpdateAuditWorkpaper)
+	auditRoutes.POST("/audits/:auditId/workpapers/delete", auditWorkpaperController.DeleteAuditWorkpapers)
+
 
 }
