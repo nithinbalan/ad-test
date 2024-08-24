@@ -41,14 +41,17 @@ type DocumentRepositoryInterface interface {
 	CreateDocumentWorkflow(documentWorkflow *models.DocumentWorkflow, tx ...utility.DatabaseTransaction) (uint, error)
 	UpdateDocumentWorkflow(documentWorkflow *models.DocumentWorkflow, tx ...utility.DatabaseTransaction) error
 	CreateDocumentWorkflowParticipant(docWorkflowParticipant *models.DocumentWorkflowParticipant, tx ...utility.DatabaseTransaction) error
+	DeleteDocumentWorkflowParticipants(participantIds []*uint, tx ...utility.DatabaseTransaction) error
 
 	GetComments(docVersionId uint, currentApprovalLevel int) (*models.DocumentVersion, error)
 	GetDocumentWorkflowByLevel(docVersionId uint, currentApprovalLevel int, tx ...utility.DatabaseTransaction) (*models.DocumentWorkflow, error)
 	GetNextLevel(documentVersionID uint, currentLevel int, tx ...utility.DatabaseTransaction) (*models.DocumentWorkflow, error)
 	GetWorkflowList(docVersionId uint) (*models.DocumentVersion, error)
+	DeleteDocumentWorkflows(workflowIds []*uint, tx ...utility.DatabaseTransaction) error
 
 	CreateDocumentWorkflowReview(documentWorkflowReview *models.DocumentWorkflowReview, tx ...utility.DatabaseTransaction) error
 	CountApprovedParticipants(workflowID uint, tx ...utility.DatabaseTransaction) (int, error)
+	DeleteDocumentWorkflowReviews(reviewIds []*uint, tx ...utility.DatabaseTransaction) error
 
 	GetSharedUsers(documentId uint, page uint, pageSize uint) ([]*models.User, commonDTOs.PaginationInfoDTO, error)
 	GetReviewUsers(documentId uint) ([]*models.User, error)
@@ -292,6 +295,10 @@ func (repo *DocumentRepository) GetFullDetailsByID(id uint, currentUserID *uint,
 		Preload("DocumentVersions.CreatedByUser").
 		Preload("DocumentVersions.UpdatedByUser").
 		Preload("DocumentVersions.DocumentEditHistory").
+		Preload("DocumentVersions.DocumentWorkflows").
+		Preload("DocumentVersions.DocumentWorkflows.DocumentWorkflowParticipants").
+		Preload("DocumentVersions.DocumentWorkflows.DocumentWorkflowReviews").
+		Preload("DocumentAuditLogs").
 		Preload("DocumentSharedUsers").
 		Preload("DocumentSharedUsers.User").
 		Preload("DocumentSharedUsers.CreatedByUser").
@@ -755,4 +762,43 @@ func (repo *DocumentRepository) GetDocumentEditHistories(documentVersionID uint)
 		return nil, err
 	}
 	return histories, nil
+}
+
+func (repo *DocumentRepository) DeleteDocumentWorkflows(workflowIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", workflowIds).Delete(&models.DocumentWorkflow{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *DocumentRepository) DeleteDocumentWorkflowParticipants(participantIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", participantIds).Delete(&models.DocumentWorkflowParticipant{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *DocumentRepository) DeleteDocumentWorkflowReviews(reviewIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", reviewIds).Delete(&models.DocumentWorkflowReview{}).Error; err != nil {
+		return err
+	}
+
+	return nil
 }

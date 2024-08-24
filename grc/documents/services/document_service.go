@@ -396,11 +396,11 @@ func (ds *DocumentService) Delete(ids []uint, currentUserID uint) ([]uint, error
 
 	var failedIds []uint
 	var successfulIds []uint
-	documentsToDelete := make(map[uint][]*documentDTOs.DocumentVersionDTO)
-	documentEditHistoryToDelete := make(map[uint][]*documentDTOs.DocumentEditHistoryDTO)
+	documentsToDelete := make(map[uint][]*models.DocumentVersion)
+	documentEditHistoryToDelete := make(map[uint][]*models.DocumentEditHistory)
 
 	for _, id := range ids {
-		document, err := ds.GetFullDetailsByID(id, nil, tx)
+		document, err := ds.repo.GetFullDetailsByID(id, nil, tx)
 		if err != nil {
 			tx.Rollback()
 			return nil, err
@@ -434,19 +434,66 @@ func (ds *DocumentService) Delete(ids []uint, currentUserID uint) ([]uint, error
 			}
 		}
 
+		// if len(document.DocumentAuditLogs) > 0 {
+		// 	var deleteAuditLogIds []*uint
+		// 	for _, unit := range document.DocumentAuditLogs {
+		// 		deleteAuditLogIds = append(deleteAuditLogIds, &unit.ID)
+		// 	}
+		// 	if err := ds.repo.DeleteAuditLogs(deleteAuditLogIds, tx); err != nil {
+		// 		tx.Rollback()
+		// 		return nil, err
+		// 	}
+		// }
+
 		if len(document.DocumentVersions) > 0 {
 			var deleteDocumentIds []*uint
 			var deleteDocumentEditHistoryIds []*uint
+			var deleteDocumentWorkflowIds []*uint
+			var deleteDocumentWorkflowParticipantIds []*uint
+			var deleteDocumentWorkflowReviewIds []*uint
 			for _, doc := range document.DocumentVersions {
-				documentsToDelete[id] = append(documentsToDelete[id], &doc)
+				documentsToDelete[id] = append(documentsToDelete[id], doc)
 				deleteDocumentIds = append(deleteDocumentIds, &doc.ID)
 
 				if len(doc.DocumentEditHistory) > 0 {
 					for _, history := range doc.DocumentEditHistory {
-						documentEditHistoryToDelete[id] = append(documentEditHistoryToDelete[id], &history)
-						deleteDocumentEditHistoryIds = append(deleteDocumentEditHistoryIds, history.ID)
+						documentEditHistoryToDelete[id] = append(documentEditHistoryToDelete[id], history)
+						deleteDocumentEditHistoryIds = append(deleteDocumentEditHistoryIds, &history.ID)
 					}
 				}
+
+				if len(doc.DocumentWorkflows) > 0 {
+					for _, docWorkflow := range doc.DocumentWorkflows {
+						deleteDocumentWorkflowIds = append(deleteDocumentWorkflowIds, &docWorkflow.ID)
+
+						if len(docWorkflow.DocumentWorkflowParticipants) > 0 {
+							for _, participant := range docWorkflow.DocumentWorkflowParticipants {
+								deleteDocumentWorkflowParticipantIds = append(deleteDocumentWorkflowParticipantIds, &participant.ID)
+							}
+						}
+
+						if len(docWorkflow.DocumentWorkflowReviews) > 0 {
+							for _, reviews := range docWorkflow.DocumentWorkflowReviews {
+								deleteDocumentWorkflowReviewIds = append(deleteDocumentWorkflowReviewIds, &reviews.ID)
+							}
+						}
+					}
+				}
+			}
+
+			if err := ds.repo.DeleteDocumentWorkflowParticipants(deleteDocumentWorkflowParticipantIds, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+
+			if err := ds.repo.DeleteDocumentWorkflowReviews(deleteDocumentWorkflowReviewIds, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+
+			if err := ds.repo.DeleteDocumentWorkflows(deleteDocumentWorkflowIds, tx); err != nil {
+				tx.Rollback()
+				return nil, err
 			}
 
 			if err := ds.repo.DeleteDocumentEditHistory(deleteDocumentEditHistoryIds, tx); err != nil {
@@ -458,6 +505,7 @@ func (ds *DocumentService) Delete(ids []uint, currentUserID uint) ([]uint, error
 				tx.Rollback()
 				return nil, err
 			}
+
 		}
 
 		if err := ds.repo.Delete(id, tx); err != nil {
@@ -476,9 +524,9 @@ func (ds *DocumentService) Delete(ids []uint, currentUserID uint) ([]uint, error
 	if len(successfulIds) > 0 {
 		for documentID, history := range documentEditHistoryToDelete {
 			for _, doc := range history {
-				if doc.FileName != nil {
-					storagePath := filepath.Join("document", "draft", strconv.FormatUint(uint64(documentID), 10), "document-history", strconv.FormatUint(uint64(*doc.ID), 10), "documents")
-					if err := utility.RemoveFile(*doc.FileName, storagePath); err != nil {
+				if doc.Name != nil {
+					storagePath := filepath.Join("document", "draft", strconv.FormatUint(uint64(documentID), 10), "document-history", strconv.FormatUint(uint64(doc.ID), 10), "documents")
+					if err := utility.RemoveFile(*doc.Name, storagePath); err != nil {
 						tx.Rollback()
 						fmt.Printf("Failed to delete file at URL %s: %v\n", *doc.URL, err)
 					}
