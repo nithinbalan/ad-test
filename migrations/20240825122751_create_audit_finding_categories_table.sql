@@ -8,7 +8,7 @@ CREATE TABLE audit_finding_categories
     description_en NVARCHAR(MAX) NULL,
     description_ar NVARCHAR(MAX) NULL,
     type VARCHAR(20) NOT NULL,
-        CONSTRAINT CHK_audit_finding_categories_type CHECK (type IN ('major-nc', 'mincor-nc', 'ofi', 'observation'))
+        CONSTRAINT CHK_audit_finding_categories_type CHECK (type IN ('major-nc', 'minor-nc', 'ofi', 'observation'))
 );
 -- +goose StatementEnd
 
