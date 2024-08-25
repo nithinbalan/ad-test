@@ -88,6 +88,7 @@ func (repo *MeetingActionPlanRepository) GetAll(meetingID uint, params *meetingD
     `).
 		Joins(`
 		LEFT JOIN meeting_minutes ON meeting_minutes.id = meeting_action_plans.meeting_minute_id
+		LEFT JOIN meetings ON meetings.id = meeting_action_plans.meeting_id
         LEFT JOIN action_plan_statuses ON action_plan_statuses.id = meeting_action_plans.action_plan_status_id
         LEFT JOIN severity_levels ON severity_levels.id = meeting_action_plans.severity_level_id
         LEFT JOIN users AS responsible_user ON responsible_user.id = meeting_action_plans.responsible_user_id
