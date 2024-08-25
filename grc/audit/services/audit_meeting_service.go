@@ -7,9 +7,9 @@ import (
 	"jethur/grc/audit/repositories"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
+	organizationDTOs "jethur/grc/organization/dtos"
 	"jethur/utility"
 
-	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
 )
 
@@ -66,16 +66,63 @@ func (ams *AuditMeetingService) GetFullDetailsByID(id uint, tx ...utility.Databa
 		return nil, err
 	}
 
-	err = mapstructure.Decode(auditMeeting, &auditMeetingDTO)
-	if err != nil {
-		return nil, err
-	}
-
+	// Manually map fields from AuditMeeting to AuditMeetingDetailDTO
+	auditMeetingDTO.ID = auditMeeting.ID
+	auditMeetingDTO.AuditID = auditMeeting.AuditID
+	auditMeetingDTO.Title = auditMeeting.Title
 	auditMeetingDTO.Date = auditMeeting.Date.Format("2006-01-02")
-	auditMeetingDTO.FromTime = auditMeeting.FromTime.Format("15:04")
-	auditMeetingDTO.ToTime = auditMeeting.ToTime.Format("15:04")
+	auditMeetingDTO.FromTime = auditMeeting.FromTime
+	auditMeetingDTO.ToTime = auditMeeting.ToTime
+	auditMeetingDTO.OtherParticipants = auditMeeting.OtherParticipants
+	auditMeetingDTO.Mom = auditMeeting.Mom
 	auditMeetingDTO.CreatedAt = auditMeeting.CreatedAt
 	auditMeetingDTO.UpdatedAt = auditMeeting.UpdatedAt
+
+	// Map CreatedByUser and UpdatedByUser to UserMinimalDTO
+	auditMeetingDTO.CreatedByUser = organizationDTOs.UserMinimalDTO{
+		ID:               int(auditMeeting.CreatedByUser.ID),
+		FirstNameEN:      auditMeeting.CreatedByUser.FirstNameEn,
+		FirstNameAR:      auditMeeting.CreatedByUser.FirstNameAr,
+		LastNameEN:       auditMeeting.CreatedByUser.LastNameEn,
+		LastNameAR:       auditMeeting.CreatedByUser.LastNameAr,
+		Email:            auditMeeting.CreatedByUser.Email,
+		Initial:          auditMeeting.CreatedByUser.Initial,
+		Color:            auditMeeting.CreatedByUser.Color,
+		ProfileImagePath: auditMeeting.CreatedByUser.ProfileImagePath,
+	}
+
+	if auditMeeting.UpdatedByUser != nil {
+		auditMeetingDTO.UpdatedByUser = &organizationDTOs.UserMinimalDTO{
+			ID:               int(auditMeeting.UpdatedByUser.ID),
+			FirstNameEN:      auditMeeting.UpdatedByUser.FirstNameEn,
+			FirstNameAR:      auditMeeting.UpdatedByUser.FirstNameAr,
+			LastNameEN:       auditMeeting.UpdatedByUser.LastNameEn,
+			LastNameAR:       auditMeeting.UpdatedByUser.LastNameAr,
+			Email:            auditMeeting.UpdatedByUser.Email,
+			Initial:          auditMeeting.UpdatedByUser.Initial,
+			Color:            auditMeeting.UpdatedByUser.Color,
+			ProfileImagePath: auditMeeting.UpdatedByUser.ProfileImagePath,
+		}
+	}
+
+	// Map Participants to a slice of UserMinimalDTO
+	participants := make([]*organizationDTOs.UserMinimalDTO, 0, len(auditMeeting.Participants))
+	for _, participant := range auditMeeting.Participants {
+		if participant.User != nil {
+			participants = append(participants, &organizationDTOs.UserMinimalDTO{
+				ID:               int(participant.User.ID),
+				FirstNameEN:      participant.User.FirstNameEn,
+				FirstNameAR:      participant.User.FirstNameAr,
+				LastNameEN:       participant.User.LastNameEn,
+				LastNameAR:       participant.User.LastNameAr,
+				Email:            participant.User.Email,
+				Initial:          participant.User.Initial,
+				Color:            participant.User.Color,
+				ProfileImagePath: participant.User.ProfileImagePath,
+			})
+		}
+	}
+	auditMeetingDTO.Participants = participants
 
 	return &auditMeetingDTO, nil
 }
@@ -88,17 +135,17 @@ func (ams *AuditMeetingService) Create(currentUserID uint, auditMeetingFormDTO *
 		return 0, err
 	}
 
-	// if err := ams.validateAuditMeetingFormDTO(auditMeetingFormDTO); err != nil {
-	// 	tx.Rollback()
-	// 	return 0, err
-	// }
+	if err := ams.validateAuditMeetingFormDTO(auditMeetingFormDTO); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
 
 	auditMeeting := &models.AuditMeeting{
-		AuditsID:          auditMeetingFormDTO.AuditID,
+		AuditID:           auditMeetingFormDTO.AuditID,
 		Title:             auditMeetingFormDTO.Title,
 		Date:              dates.Date,
-		FromTime:          dates.FromTime,
-		ToTime:            dates.ToTime,
+		FromTime:          &auditMeetingFormDTO.FromTime,
+		ToTime:            &auditMeetingFormDTO.ToTime,
 		OtherParticipants: auditMeetingFormDTO.OtherParticipants,
 		Mom:               auditMeetingFormDTO.Mom,
 		CreatedBYID:       currentUserID,
@@ -110,8 +157,17 @@ func (ams *AuditMeetingService) Create(currentUserID uint, auditMeetingFormDTO *
 		return 0, err
 	}
 
-	if len(auditMeetingFormDTO.ParticipantIDs) > 0 {
-		if err := ams.repo.AddParticipants(id, auditMeetingFormDTO.ParticipantIDs, tx); err != nil {
+	var participants []*models.AuditMeetingParticipant
+	for _, participantID := range auditMeetingFormDTO.ParticipantIDs {
+		participant := &models.AuditMeetingParticipant{
+			AuditMeetingID: id,
+			UserID:         participantID,
+		}
+		participants = append(participants, participant)
+	}
+
+	if len(participants) > 0 {
+		if err := ams.repo.CreateParticipants(participants, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
@@ -148,7 +204,7 @@ func (ams *AuditMeetingService) Create(currentUserID uint, auditMeetingFormDTO *
 func (ams *AuditMeetingService) Update(id uint, currentUserID uint, auditMeetingFormDTO *auditDTOs.AuditMeetingFormDTO) error {
 	tx := ams.repo.BeginTransaction()
 
-	existingAuditMeeting, err := ams.repo.GetByID(id)
+	existingAuditMeeting, err := ams.GetByID(id)
 	if err != nil {
 		tx.Rollback()
 		return utility.NewResourceNotFoundError(err, id)
@@ -161,14 +217,15 @@ func (ams *AuditMeetingService) Update(id uint, currentUserID uint, auditMeeting
 
 	dates, err := ams.parseAuditMeetingDates(auditMeetingFormDTO)
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
-	existingAuditMeeting.AuditsID = auditMeetingFormDTO.AuditID
+	existingAuditMeeting.AuditID = auditMeetingFormDTO.AuditID
 	existingAuditMeeting.Title = auditMeetingFormDTO.Title
 	existingAuditMeeting.Date = dates.Date
-	existingAuditMeeting.FromTime = dates.FromTime
-	existingAuditMeeting.ToTime = dates.ToTime
+	existingAuditMeeting.FromTime = &auditMeetingFormDTO.FromTime
+	existingAuditMeeting.ToTime = &auditMeetingFormDTO.ToTime
 	existingAuditMeeting.OtherParticipants = auditMeetingFormDTO.OtherParticipants
 	existingAuditMeeting.Mom = auditMeetingFormDTO.Mom
 	existingAuditMeeting.UpdatedBYID = &currentUserID
@@ -179,9 +236,53 @@ func (ams *AuditMeetingService) Update(id uint, currentUserID uint, auditMeeting
 		return err
 	}
 
-	if err := ams.repo.AddParticipants(id, auditMeetingFormDTO.ParticipantIDs, tx); err != nil {
+	existingAuditMeetingDetails, err := ams.GetFullDetailsByID(id, tx)
+	if err != nil {
 		tx.Rollback()
 		return err
+	}
+
+	existingParticipantIDs := make(map[uint]bool)
+	for _, participant := range existingAuditMeetingDetails.Participants {
+		existingParticipantIDs[uint(participant.ID)] = true
+	}
+
+	newParticipantIDs := make(map[uint]bool)
+	for _, participantID := range auditMeetingFormDTO.ParticipantIDs {
+		newParticipantIDs[participantID] = true
+	}
+
+	var participantsToAdd []*models.AuditMeetingParticipant
+	for _, newParticipantID := range auditMeetingFormDTO.ParticipantIDs {
+		if _, exists := existingParticipantIDs[newParticipantID]; !exists {
+			participant := &models.AuditMeetingParticipant{
+				AuditMeetingID: id,
+				UserID:         newParticipantID,
+			}
+			participantsToAdd = append(participantsToAdd, participant)
+		}
+	}
+
+	if len(participantsToAdd) > 0 {
+		if err := ams.repo.CreateParticipants(participantsToAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	var deleteParticipantIDs []*uint
+	for _, existingParticipant := range existingAuditMeetingDetails.Participants {
+		if _, exists := newParticipantIDs[uint(existingParticipant.ID)]; !exists {
+			convertedID := uint(existingParticipant.ID)
+			deleteParticipantIDs = append(deleteParticipantIDs, &convertedID)
+		}
+	}
+
+	if len(deleteParticipantIDs) > 0 {
+		if err := ams.repo.DeleteParticipant(existingAuditMeeting.ID, deleteParticipantIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
 	}
 
 	tx.Commit()
@@ -214,12 +315,12 @@ func (ams *AuditMeetingService) Update(id uint, currentUserID uint, auditMeeting
 
 func (ams *AuditMeetingService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	tx := ams.repo.BeginTransaction()
+
 	var failedIDs []uint
 	var successfulIDs []uint
 
 	for _, id := range ids {
-		// Get existing audit meeting details
-		_, err := ams.GetFullDetailsByID(id, tx)
+		auditMeeting, err := ams.GetFullDetailsByID(id, tx)
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				failedIDs = append(failedIDs, id)
@@ -229,44 +330,48 @@ func (ams *AuditMeetingService) Delete(ids []uint, currentUserID uint) ([]uint, 
 			return nil, err
 		}
 
-		// Delete the audit meeting itself
+		// Delete associated participants if any
+		if len(auditMeeting.Participants) > 0 {
+			var deleteParticipantIDs []*uint
+			for _, participant := range auditMeeting.Participants {
+				convertedID := uint(participant.ID)
+				deleteParticipantIDs = append(deleteParticipantIDs, &convertedID)
+			}
+			if err := ams.repo.DeleteParticipant(id, deleteParticipantIDs, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+		}
+
 		if err := ams.repo.Delete(id, tx); err != nil {
 			failedIDs = append(failedIDs, id)
 			continue
+		} else {
+			successfulIDs = append(successfulIDs, id)
 		}
-
-		successfulIDs = append(successfulIDs, id)
 	}
 
+	if len(failedIDs) > 0 {
+		tx.Rollback()
+		return failedIDs, nil
+	}
+
+	tx.Commit()
+
 	if len(successfulIDs) > 0 {
-		tx.Commit()
-
 		go func() {
-			for _, id := range successfulIDs {
-				err := ams.activityLogSvc.LogActivity(
-					models.DeleteAction,
-					models.AuditMeeting{}.TableName(),
-					id,
-					nil,
-					currentUserID,
-					nil,
-				)
-
-				if err != nil {
-					fields := map[string]interface{}{
-						"action":    models.DeleteAction,
-						"tableName": models.AuditMeeting{}.TableName(),
-						"recordID":  id,
-						"userID":    currentUserID,
-						"error":     err.Error(),
-					}
-
-					utility.LogError("Failed to log activity", fields)
-				}
+			err := ams.activityLogSvc.LogBulkActivities(
+				models.DeleteAction,
+				models.AuditMeeting{}.TableName(),
+				successfulIDs,
+				nil,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
 			}
 		}()
-	} else {
-		tx.Rollback()
 	}
 
 	return failedIDs, nil

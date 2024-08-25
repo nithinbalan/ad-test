@@ -11,8 +11,8 @@ type AuditMeetingListDTO struct {
 	AuditID                     uint    `json:"audit_id"`
 	Title                       string  `json:"title"`
 	Date                        string  `json:"date"`
-	FromTime                    string  `json:"from_time"`
-	ToTime                      string  `json:"to_time"`
+	FromTime                    *string `json:"from_time"`
+	ToTime                      *string `json:"to_time"`
 	OtherParticipants           *string `json:"other_participants"`
 	Mom                         *string `json:"mom"`
 	CreatedAt                   string  `json:"created_at"`
@@ -50,11 +50,11 @@ type AuditMeetingFormDTO struct {
 
 type AuditMeetingDetailDTO struct {
 	ID                uint                               `json:"id"`
-	AuditsID          uint                               `json:"audits_id"`
+	AuditID           uint                               `json:"audit_id"`
 	Title             string                             `json:"title"`
 	Date              string                             `json:"date"`
-	FromTime          string                             `json:"from_time"`
-	ToTime            string                             `json:"to_time"`
+	FromTime          *string                            `json:"from_time"`
+	ToTime            *string                            `json:"to_time"`
 	OtherParticipants *string                            `json:"other_participants"`
 	Mom               *string                            `json:"mom"`
 	CreatedAt         time.Time                          `json:"created_at"`

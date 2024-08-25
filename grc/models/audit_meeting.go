@@ -9,8 +9,8 @@ type AuditMeeting struct {
 	AuditID           uint       `json:"audit_id" binding:"required" gorm:"not null"`
 	Title             string     `json:"title" binding:"required" gorm:"type:nvarchar(255);not null"`
 	Date              time.Time  `json:"date" binding:"required" gorm:"type:date;not null"`
-	FromTime          time.Time  `json:"from_time" gorm:"type:varchar(45);null"`
-	ToTime            time.Time  `json:"to_time" gorm:"type:varchar(45);null"`
+	FromTime          *string    `json:"from_time" gorm:"type:varchar(45);null"`
+	ToTime            *string    `json:"to_time" gorm:"type:varchar(45);null"`
 	OtherParticipants *string    `json:"other_participants,omitempty" gorm:"type:nvarchar(max);default:null"`
 	Mom               *string    `json:"mom,omitempty" gorm:"type:nvarchar(max);default:null"`
 	CreatedBYID       uint       `json:"created_by_id" binding:"required" gorm:"not null"`
@@ -22,6 +22,8 @@ type AuditMeeting struct {
 	Audit         *Audit `gorm:"foreignKey:AuditID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
 	CreatedByUser *User  `gorm:"foreignKey:CreatedBYID"`
 	UpdatedByUser *User  `gorm:"foreignKey:UpdatedBYID"`
+
+	Participants []*AuditMeetingParticipant `gorm:"foreignKey:AuditMeetingID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }
 
 // TableName overrides the default table name used by GORM

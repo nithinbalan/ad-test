@@ -153,9 +153,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	//Audit Meeting
 	auditRoutes.GET("/audits/:auditId/meetings", auditMeetingController.GetAllAuditMeetings)
-	auditRoutes.GET("/audits/:auditId/meetings/:id", auditMeetingController.GetAuditMeetingDetails)
+	auditRoutes.GET("/audits/:auditId/meetings/:meetingId", auditMeetingController.GetAuditMeetingDetails)
 	auditRoutes.POST("/audits/:auditId/meetings", auditMeetingController.CreateAuditMeeting)
-	auditRoutes.PUT("/audits/:auditId/meetings/:id", auditMeetingController.UpdateAuditMeeting)
+	auditRoutes.PUT("/audits/:auditId/meetings/:meetingId", auditMeetingController.UpdateAuditMeeting)
 	auditRoutes.POST("/audits/:auditId/meetings/delete", auditMeetingController.DeleteAuditMeetings)
 
 }

@@ -19,9 +19,8 @@ type AuditMeetingRepositoryInterface interface {
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 
 	// Participant methods
-	AddParticipants(auditMeetingID uint, participantIDs []uint, tx ...utility.DatabaseTransaction) error
-	UpdateParticipant(participant *models.AuditMeetingParticipant, tx ...utility.DatabaseTransaction) error
-	DeleteParticipant(participantID uint, tx ...utility.DatabaseTransaction) error
+	CreateParticipants(participants []*models.AuditMeetingParticipant, tx ...utility.DatabaseTransaction) error
+	DeleteParticipant(auditMeetingId uint, participantIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type AuditMeetingRepository struct {
@@ -65,7 +64,7 @@ func (repo *AuditMeetingRepository) GetAll(params *auditDTOs.AuditMeetingListQue
         	updated_user.profile_image_path AS updated_user_profile_image_path
 		`).
 		Joins(`
-			LEFT JOIN audits ON audits.id = audit_meetings.audits_id
+			LEFT JOIN audits ON audits.id = audit_meetings.audit_id
 			LEFT JOIN users AS created_user ON created_user.id = audit_meetings.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = audit_meetings.updated_by_id
 		`)
@@ -211,18 +210,10 @@ func (repo *AuditMeetingRepository) Delete(id uint, tx ...utility.DatabaseTransa
 
 // Participant methods
 
-func (repo *AuditMeetingRepository) AddParticipants(auditMeetingID uint, participantIDs []uint, tx ...utility.DatabaseTransaction) error {
+func (repo *AuditMeetingRepository) CreateParticipants(participants []*models.AuditMeetingParticipant, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
-	}
-
-	participants := make([]*models.AuditMeetingParticipant, len(participantIDs))
-	for i, userID := range participantIDs {
-		participants[i] = &models.AuditMeetingParticipant{
-			AuditMeetingID: auditMeetingID,
-			UserID:         userID,
-		}
 	}
 
 	if err := db.Create(&participants).Error; err != nil {
@@ -232,26 +223,13 @@ func (repo *AuditMeetingRepository) AddParticipants(auditMeetingID uint, partici
 	return nil
 }
 
-func (repo *AuditMeetingRepository) UpdateParticipant(participant *models.AuditMeetingParticipant, tx ...utility.DatabaseTransaction) error {
+func (repo *AuditMeetingRepository) DeleteParticipant(auditMeetingId uint, participantIds []*uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
 
-	if err := db.Save(participant).Error; err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (repo *AuditMeetingRepository) DeleteParticipant(participantID uint, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-
-	if err := db.Delete(&models.AuditMeetingParticipant{}, participantID).Error; err != nil {
+	if err := db.Where("audit_meeting_id = ? AND user_id IN (?)", auditMeetingId, participantIds).Delete(&models.AuditMeetingParticipant{}).Error; err != nil {
 		return err
 	}
 
