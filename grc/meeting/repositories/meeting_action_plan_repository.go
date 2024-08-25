@@ -47,6 +47,9 @@ func (repo *MeetingActionPlanRepository) GetAll(meetingID uint, params *meetingD
 	query := repo.db.Table("meeting_action_plans").
 		Select(`
         meeting_action_plans.*,
+		meetings.id AS meeting_id,
+		meetings.reference_number AS meeting_reference_number,
+		meetings.title AS meeting_title,
 		CONVERT(VARCHAR, meeting_action_plans.target_date, 23) AS target_date,
         action_plan_statuses.title_en AS action_plan_status_title_en,
         action_plan_statuses.title_ar AS action_plan_status_title_ar,

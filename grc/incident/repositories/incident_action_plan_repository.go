@@ -52,6 +52,7 @@ func (repo *IncidentActionPlanRepository) GetAll(incidentID uint, params *incide
 		CONVERT(VARCHAR, incident_action_plans.target_date, 23) AS target_date,
         action_plan_statuses.title_en AS action_plan_status_title_en,
         action_plan_statuses.title_ar AS action_plan_status_title_ar,
+		action_plan_statuses.color_code AS action_plan_status_color_code,
         severity_levels.title_en AS severity_level_title_en,
         severity_levels.title_ar AS severity_level_title_ar,
         severity_levels.color_code AS severity_level_color_code,

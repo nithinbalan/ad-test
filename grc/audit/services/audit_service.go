@@ -8,6 +8,7 @@ import (
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
+	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -23,20 +24,23 @@ type AuditServiceInterface interface {
 }
 
 type AuditService struct {
-	repo           repositories.AuditRepositoryInterface
-	activityLogSvc logServices.ActivityLogServiceInterface
-	auditPlanSvc   AuditPlanServiceInterface
+	repo             repositories.AuditRepositoryInterface
+	activityLogSvc   logServices.ActivityLogServiceInterface
+	auditPlanSvc     AuditPlanServiceInterface
+	auditTimelineSvc AuditTimelineServiceInterface
 }
 
 func NewAuditService(
 	repo repositories.AuditRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	AuditPlanSvc AuditPlanServiceInterface,
+	auditTimelineSvc AuditTimelineServiceInterface,
 ) AuditServiceInterface {
 	return &AuditService{
-		repo:           repo,
-		activityLogSvc: activityLogSvc,
-		auditPlanSvc:   AuditPlanSvc,
+		repo:             repo,
+		activityLogSvc:   activityLogSvc,
+		auditPlanSvc:     AuditPlanSvc,
+		auditTimelineSvc: auditTimelineSvc,
 	}
 }
 
@@ -102,6 +106,58 @@ func (as *AuditService) Create(currentUserID uint, auditFormDTO *auditDTOs.Audit
 
 	id, err := as.repo.Create(audit, tx)
 	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	timelineTypes, err := as.auditTimelineSvc.GetAllTypes()
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	// Get timeline statuses
+	completedStatus, err := as.auditTimelineSvc.GetByStatusType("completed")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	pendingStatus, err := as.auditTimelineSvc.GetByStatusType("pending")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	var timelineFormDTOs []*auditDTOs.AuditTimelineFormDTO
+
+	for _, timelineType := range timelineTypes {
+		var (
+			statusID      uint
+			performedByID *uint
+			currentTime   *time.Time
+		)
+
+		if timelineType.Type == "initiated" {
+			statusID = completedStatus.ID
+			performedByID = &currentUserID
+			now := time.Now()
+			currentTime = &now
+		} else {
+			statusID = pendingStatus.ID
+			performedByID = nil
+			currentTime = nil
+		}
+
+		timelineFormDTO := &auditDTOs.AuditTimelineFormDTO{
+			AuditID:             id,
+			AuditTimelineTypeID: timelineType.ID,
+			TimelineStatusID:    statusID,
+			PerformedByID:       performedByID,
+			PerformedAt:         currentTime,
+		}
+		timelineFormDTOs = append(timelineFormDTOs, timelineFormDTO)
+	}
+	if err := as.auditTimelineSvc.Create(timelineFormDTOs, tx); err != nil {
 		tx.Rollback()
 		return 0, err
 	}
@@ -205,6 +261,11 @@ func (as *AuditService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 				failedIDs = append(failedIDs, id)
 				continue
 			}
+			tx.Rollback()
+			return nil, err
+		}
+
+		if err := as.auditTimelineSvc.Delete(id, tx); err != nil {
 			tx.Rollback()
 			return nil, err
 		}

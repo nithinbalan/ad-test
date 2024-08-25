@@ -44,10 +44,6 @@ func (rtc *RiskTimelineController) GetAllRiskTimelines(c *gin.Context) {
 		Status:      status,
 		QuickFilter: quickFilter,
 	}
-	if err != nil {
-		utility.SendInternalErrResp(rtc.db, c, "Invalid page_size parameter")
-		return
-	}
 
 	riskTimelines, err := rtc.service.GetAll(uint(riskID), &queryParams)
 
@@ -66,4 +62,3 @@ func (rtc *RiskTimelineController) GetAllRiskTimelines(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, riskTimelines)
 }
-
