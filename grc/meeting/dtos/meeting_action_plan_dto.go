@@ -10,6 +10,9 @@ import (
 
 type MeetingActionPlanListDTO struct {
 	ID                              uint    `json:"id"`
+	MeetingID                       string  `json:"meeting_id"`
+	MeetingReferenceNumber          string  `json:"meeting_reference_number"`
+	MeetingTitle                    string  `json:"meeting_title"`
 	Title                           string  `json:"title"`
 	MeetingMinuteID                 *uint   `json:"meeting_minute_id"`
 	MeetingMinutes                  *string `json:"meeting_minutes"`

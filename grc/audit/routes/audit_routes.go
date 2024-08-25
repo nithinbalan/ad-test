@@ -32,6 +32,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditController := app.AuditModule.AuditController
 	auditWorkpaperController := app.AuditModule.AuditWorkpaperController
 	auditMeetingController := app.AuditModule.AuditMeetingController
+	auditTimelineController := app.AuditModule.AuditTimelineController
 
 	//Audit Status
 	auditRoutes.GET("/audit-statuses", auditStatusController.GetAllAuditStatuses)
@@ -157,5 +158,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.POST("/audits/:auditId/meetings", auditMeetingController.CreateAuditMeeting)
 	auditRoutes.PUT("/audits/:auditId/meetings/:meetingId", auditMeetingController.UpdateAuditMeeting)
 	auditRoutes.POST("/audits/:auditId/meetings/delete", auditMeetingController.DeleteAuditMeetings)
+
+	//Audit timeline
+	auditRoutes.GET("/audits/:auditId/timelines", auditTimelineController.GetAllAuditTimelines)
 
 }
