@@ -10,7 +10,7 @@ import (
 )
 
 type AuditFindingStatusServiceInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.AuditFindingStatus, error)
+	GetAll(sort string, sortBy string, keyword string) ([]*models.AuditFindingStatus, error)
 	GetByID(id uint) (*models.AuditFindingStatus, error)
 	GetByType(status string) (*models.AuditFindingStatus, error)
 }
@@ -26,8 +26,8 @@ func NewAuditFindingStatusService(repo repositories.AuditFindingStatusRepository
 	}
 }
 
-func (afss *AuditFindingStatusService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.AuditFindingStatus, error) {
-	return afss.repo.GetAll(sort, sortBy, keyword, status)
+func (afss *AuditFindingStatusService) GetAll(sort string, sortBy string, keyword string) ([]*models.AuditFindingStatus, error) {
+	return afss.repo.GetAll(sort, sortBy, keyword)
 }
 
 func (afss *AuditFindingStatusService) GetByID(id uint) (*models.AuditFindingStatus, error) {

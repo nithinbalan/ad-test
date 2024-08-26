@@ -25,9 +25,8 @@ func (afsc *AuditFindingStatusController) GetAllAuditFindingStatuses(c *gin.Cont
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	status := c.Query("status")
 
-	auditFindingStatuses, err := afsc.service.GetAll(sort, sortBy, keyword, status)
+	auditFindingStatuses, err := afsc.service.GetAll(sort, sortBy, keyword)
 
 	if err != nil {
 		utility.SendInternalErrResp(afsc.db, c, err.Error())

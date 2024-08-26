@@ -34,6 +34,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditMeetingController := app.AuditModule.AuditMeetingController
 	auditTimelineController := app.AuditModule.AuditTimelineController
 	auditFindingStatusController := app.AuditModule.AuditFindingStatusController
+	auditFindingCategoryController := app.AuditModule.AuditFindingCategoryController
 
 	//Audit Status
 	auditRoutes.GET("/audit-statuses", auditStatusController.GetAllAuditStatuses)
@@ -166,5 +167,14 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	//Audit Status
 	auditRoutes.GET("/audit-finding-statuses", auditFindingStatusController.GetAllAuditFindingStatuses)
 	auditRoutes.GET("/audit-finding-statuses/:id", auditFindingStatusController.GetAuditFindingStatusDetails)
+
+	//Audit Finding Category
+	auditRoutes.GET("/audit-finding-categories", auditFindingCategoryController.GetAllAuditFindingCategories)
+	auditRoutes.GET("/audit-finding-categories/:id", auditFindingCategoryController.GetAuditFindingCategoryDetails)
+	auditRoutes.POST("/audit-finding-categories", auditFindingCategoryController.CreateAuditFindingCategory)
+	auditRoutes.PUT("/audit-finding-categories/:id", auditFindingCategoryController.UpdateAuditFindingCategory)
+	auditRoutes.POST("/audit-finding-categories/delete", auditFindingCategoryController.DeleteAuditFindingCategories)
+	auditRoutes.PUT("/audit-finding-categories/activate", auditFindingCategoryController.ActivateAuditFindingCategories)
+	auditRoutes.PUT("/audit-finding-categories/deactivate", auditFindingCategoryController.DeactivateAuditFindingCategories)
 
 }

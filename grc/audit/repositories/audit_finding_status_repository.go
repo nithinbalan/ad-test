@@ -10,7 +10,7 @@ import (
 
 // Interfaces
 type AuditFindingStatusRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.AuditFindingStatus, error)
+	GetAll(sort string, sortBy string, keyword string) ([]*models.AuditFindingStatus, error)
 	GetByID(id uint) (*models.AuditFindingStatus, error)
 	GetByType(status string) (*models.AuditFindingStatus, error)
 }
@@ -26,7 +26,7 @@ func NewAuditFindingStatusRepository(db *gorm.DB) *AuditFindingStatusRepository 
 	}
 }
 
-func (repo *AuditFindingStatusRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.AuditFindingStatus, error) {
+func (repo *AuditFindingStatusRepository) GetAll(sort string, sortBy string, keyword string) ([]*models.AuditFindingStatus, error) {
 
 	var auditFindingStatuses []*models.AuditFindingStatus
 
@@ -40,10 +40,6 @@ func (repo *AuditFindingStatusRepository) GetAll(sort string, sortBy string, key
 	}
 	if sort != "asc" && sort != "desc" {
 		sort = "asc"
-	}
-
-	if status == "active" || status == "inactive" {
-		query = query.Where("status = ?", status)
 	}
 
 	query = query.Order(sortBy + " " + sort)
