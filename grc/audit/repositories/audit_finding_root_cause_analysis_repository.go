@@ -43,7 +43,6 @@ func (repo *AuditFindingRootCauseAnalysisRepository) GetAll(findingID uint, para
 	query := repo.db.Table("audit_finding_root_cause_analyses").
 		Select(`
             audit_finding_root_cause_analyses.*,
-            audit_findings.title AS audit_finding_title,
             created_user.id AS created_user_id,
         	created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
@@ -64,7 +63,6 @@ func (repo *AuditFindingRootCauseAnalysisRepository) GetAll(findingID uint, para
         	updated_user.profile_image_path AS updated_user_profile_image_path          
         `).
 		Joins(`
-            LEFT JOIN audit_findings ON audit_findings.id = audit_finding_root_cause_analyses.audit_finding_id
             LEFT JOIN users AS created_user ON created_user.id = audit_finding_root_cause_analyses.created_by_id
             LEFT JOIN users AS updated_user ON updated_user.id = audit_finding_root_cause_analyses.updated_by_id
         `).

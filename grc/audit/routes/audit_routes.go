@@ -185,9 +185,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.PUT("/audits/:auditId/findings/:id", auditFindingController.UpdateAuditFinding)
 	auditRoutes.POST("audits/:auditId/findings/delete", auditFindingController.DeleteAuditFindings)
 
-	auditRoutes.GET("/audits/:auditId/findings/:findingId/root-cause-analysis", auditFindingRootCauseAnalysisController.GetAllAuditFindingRootCauseAnalyses)
-	auditRoutes.POST("/audits/:auditId/findings/:findingId/root-cause-analysis", auditFindingRootCauseAnalysisController.CreateAuditFindingRootCauseAnalysis)
-	auditRoutes.PUT("/audits/:auditId/findings/:findingId/root-cause-analysis/:id", auditFindingRootCauseAnalysisController.UpdateAuditFindingRootCauseAnalysis)
-	auditRoutes.DELETE("/audits/:auditId/findings/:findingId/root-cause-analysis/:id", auditFindingRootCauseAnalysisController.DeleteAuditFindingRootCauseAnalyses)
+	auditRoutes.GET("/audits/:auditId/findings/:id/root-cause-analysis", auditFindingRootCauseAnalysisController.GetAllAuditFindingRootCauseAnalyses)
+	auditRoutes.POST("/audits/:auditId/findings/:id/root-cause-analysis", auditFindingRootCauseAnalysisController.CreateAuditFindingRootCauseAnalysis)
+	auditRoutes.PUT("/audits/:auditId/findings/:id/root-cause-analysis/:analysisId", auditFindingRootCauseAnalysisController.UpdateAuditFindingRootCauseAnalysis)
+	auditRoutes.DELETE("/audits/:auditId/findings/:id/root-cause-analysis/:analysisId", auditFindingRootCauseAnalysisController.DeleteAuditFindingRootCauseAnalyses)
 
 }

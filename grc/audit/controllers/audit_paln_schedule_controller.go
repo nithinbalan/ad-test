@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"jethur/grc/audit/dtos"
-	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/services"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/utility"
@@ -59,7 +58,7 @@ func (apsc *AuditPlanScheduleController) GetAllAuditPlanSchedules(c *gin.Context
 		return
 	}
 
-	queryParams := auditDTOs.AuditPlanScheduleListQueryParamsDTO{
+	queryParams := dtos.AuditPlanScheduleListQueryParamsDTO{
 		Sort:        sort,
 		SortBy:      sortBy,
 		Keyword:     keyword,

@@ -8,7 +8,6 @@ import (
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
-	"time"
 
 	"gorm.io/gorm"
 )
@@ -92,34 +91,7 @@ func (afrcas *AuditFindingRootCauseAnalysisService) Create(auditID uint, finding
 		tx.Rollback()
 		return 0, err
 	}
-	rcaCount, err := afrcas.repo.GetCountByFindingID(findingID, tx)
-	if err != nil {
-		tx.Rollback()
-		return 0, err
-	}
-	if rcaCount == 1 {
-		// Update timeline
-		timelineType, err := afrcas.auditTimelineSvc.GetByType("rca")
-		if err != nil {
-			tx.Rollback()
-			return 0, err
-		}
-		timelineStatus, err := afrcas.auditTimelineSvc.GetByStatusType("completed")
-		if err != nil {
-			tx.Rollback()
-			return 0, err
-		}
-		currentTime := time.Now()
-		timelineFormDTO := &auditDTOs.AuditTimelineFormDTO{
-			PerformedByID:    &currentUserID,
-			TimelineStatusID: timelineStatus.ID,
-			PerformedAt:      &currentTime,
-		}
-		if err := afrcas.auditTimelineSvc.Update(findingID, timelineFormDTO, timelineType.ID, tx); err != nil {
-			tx.Rollback()
-			return 0, err
-		}
-	}
+
 	tx.Commit()
 
 	go func() {
@@ -191,33 +163,7 @@ func (afrcas *AuditFindingRootCauseAnalysisService) Delete(auditID uint, finding
 	if err != nil {
 		return 0, err
 	}
-	// Delete -> update timeline performedAt as null
-	rcaCount, err := afrcas.repo.GetCountByFindingID(findingID, tx)
-	if err != nil {
-		tx.Rollback()
-		return 0, err
-	}
-	if rcaCount == 1 {
-		timelineType, err := afrcas.auditTimelineSvc.GetByType("rca")
-		if err != nil {
-			tx.Rollback()
-			return 0, err
-		}
-		timelineStatus, err := afrcas.auditTimelineSvc.GetByStatusType("pending")
-		if err != nil {
-			tx.Rollback()
-			return 0, err
-		}
-		timelineFormDTO := &auditDTOs.AuditTimelineFormDTO{
-			PerformedByID:    nil,
-			TimelineStatusID: timelineStatus.ID,
-			PerformedAt:      nil,
-		}
-		if err := afrcas.auditTimelineSvc.Update(findingID, timelineFormDTO, timelineType.ID, tx); err != nil {
-			tx.Rollback()
-			return 0, err
-		}
-	}
+
 	// Delete the entry
 	if err := afrcas.repo.Delete(id, tx); err != nil {
 		tx.Rollback()

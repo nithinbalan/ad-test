@@ -25,7 +25,7 @@ func NewAuditFindingRootCauseAnalysisController(service services.AuditFindingRoo
 
 func (afrcac *AuditFindingRootCauseAnalysisController) GetAllAuditFindingRootCauseAnalyses(c *gin.Context) {
 	auditIDStr := c.Param("auditId")
-	findingIDStr := c.Param("findingId")
+	findingIDStr := c.Param("id")
 
 	auditID, err := strconv.ParseUint(auditIDStr, 10, 64)
 	if err != nil {
@@ -67,7 +67,7 @@ func (afrcac *AuditFindingRootCauseAnalysisController) CreateAuditFindingRootCau
 	var AuditFindingRootCauseAnalysisFormDTO auditFindingDTOs.AuditFindingRootCauseAnalysisFormDTO
 
 	auditIDStr := c.Param("auditId")
-	findingIDStr := c.Param("findingId")
+	findingIDStr := c.Param("id")
 
 	auditID, err := strconv.ParseUint(auditIDStr, 10, 64)
 	if err != nil {
@@ -115,7 +115,7 @@ func (afrcac *AuditFindingRootCauseAnalysisController) UpdateAuditFindingRootCau
 	var AuditFindingRootCauseAnalysisFormDTO auditFindingDTOs.AuditFindingRootCauseAnalysisFormDTO
 
 	auditIDStr := c.Param("auditId")
-	findingIDStr := c.Param("findingId")
+	findingIDStr := c.Param("id")
 
 	auditID, err := strconv.ParseUint(auditIDStr, 10, 64)
 	if err != nil {
@@ -129,7 +129,7 @@ func (afrcac *AuditFindingRootCauseAnalysisController) UpdateAuditFindingRootCau
 		return
 	}
 
-	idStr := c.Param("id")
+	idStr := c.Param("analysisId")
 
 	id, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
@@ -168,7 +168,7 @@ func (afrcac *AuditFindingRootCauseAnalysisController) UpdateAuditFindingRootCau
 
 func (afrcac *AuditFindingRootCauseAnalysisController) DeleteAuditFindingRootCauseAnalyses(c *gin.Context) {
 	auditIDStr := c.Param("auditId")
-	findingIDStr := c.Param("findingId")
+	findingIDStr := c.Param("id")
 
 	auditID, err := strconv.ParseUint(auditIDStr, 10, 64)
 	if err != nil {
@@ -182,7 +182,7 @@ func (afrcac *AuditFindingRootCauseAnalysisController) DeleteAuditFindingRootCau
 		return
 	}
 
-	idStr := c.Param("id")
+	idStr := c.Param("analysisId")
 
 	id, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {

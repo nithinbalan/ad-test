@@ -2,7 +2,6 @@ package dtos
 
 type AuditFindingRootCauseAnalysisListDTO struct {
 	ID                          uint    `json:"id"`
-	AuditFindingTitle           string  `json:"audit_finding_title" binding:"required"`
 	Why                         uint    `json:"why" binding:"required"`
 	Question                    string  `json:"question" binding:"required"`
 	Answer                      string  `json:"answer,omitempty"`
