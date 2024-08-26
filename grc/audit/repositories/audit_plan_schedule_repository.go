@@ -296,7 +296,10 @@ func (repo *AuditPlanScheduleRepository) GetAllSchedulesByAuditPlanID(auditPlanI
 
 	var schedules []*models.AuditPlanSchedule
 
-	err := db.Where("audit_plan_id = ?", auditPlanID).Find(&schedules).Error
+	err := db.Where("audit_plan_id = ?", auditPlanID).
+		Preload("AuditableItems"). // Preloading AuditableItems
+		Find(&schedules).Error
+
 	if err != nil {
 		return nil, err
 	}

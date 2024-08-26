@@ -19,6 +19,7 @@ type AuditRepositoryInterface interface {
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 
 	CreateAuditSchedules(auditSchedules []*models.AuditSchedule, tx ...utility.DatabaseTransaction) error
+	CreateAuditScheduleAuditableItems(items []*models.AuditScheduleAuditableItem, tx ...utility.DatabaseTransaction) error
 }
 
 type AuditRepository struct {
@@ -243,6 +244,19 @@ func (repo *AuditRepository) CreateAuditSchedules(auditSchedules []*models.Audit
 
 	// Use GORM's Create method to perform a batch insert
 	if err := db.Create(&auditSchedules).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *AuditRepository) CreateAuditScheduleAuditableItems(items []*models.AuditScheduleAuditableItem, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Create(&items).Error; err != nil {
 		return err
 	}
 

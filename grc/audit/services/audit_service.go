@@ -378,5 +378,27 @@ func (as *AuditService) copyAuditPlanSchedulesToAuditSchedule(auditID uint, audi
 		}
 	}
 
+	var auditScheduleAuditableItems []*models.AuditScheduleAuditableItem
+
+	// Now that IDs are available, prepare audit schedule auditable items for insertion
+	for i, schedule := range auditPlanSchedules {
+		for _, auditableItem := range schedule.AuditableItems {
+			auditScheduleAuditableItem := &models.AuditScheduleAuditableItem{
+				AuditScheduleID: auditSchedules[i].ID, // Now we can use the ID
+				AuditableItemID: auditableItem.AuditableItemID,
+				CreatedBYID:     currentUserID,
+				CreatedAt:       time.Now(),
+			}
+			auditScheduleAuditableItems = append(auditScheduleAuditableItems, auditScheduleAuditableItem)
+		}
+	}
+
+	// Insert all audit schedule auditable items in one operation
+	if len(auditScheduleAuditableItems) > 0 {
+		if err := as.repo.CreateAuditScheduleAuditableItems(auditScheduleAuditableItems, tx...); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
