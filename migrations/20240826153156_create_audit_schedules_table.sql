@@ -6,7 +6,7 @@ CREATE TABLE audit_schedules
     audit_plan_id INT NOT NULL,
     audit_plan_schedule_id INT NOT NULL,
     audit_activity_type_id INT NOT NULL,
-    audit_id INT NOT NULL
+    audit_id INT NOT NULL,
     title NVARCHAR(255) NOT NULL,
     description NVARCHAR(MAX) NULL,
     start_date DATE NULL,
