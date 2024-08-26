@@ -19,6 +19,8 @@ type AuditListDTO struct {
 	AuditStatusColorCode        string  `json:"audit_status_color_code"`
 	AuditPlanTitle              string  `json:"audit_plan_title"`
 	AuditPlanDescription        string  `json:"audit_plan_description"`
+	AuditPlanPurpose            string  `json:"audit_plan_purpose"`
+	AuditPlanObjective          string  `json:"audit_plan_objective"`
 	TeamLeadID                  *uint   `json:"team_lead_id"`
 	TeamLeadFirstNameEn         string  `json:"team_lead_first_name_en"`
 	TeamLeadFirstNameAr         string  `json:"team_lead_first_name_ar"`
