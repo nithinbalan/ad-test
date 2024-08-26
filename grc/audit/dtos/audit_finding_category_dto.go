@@ -6,5 +6,4 @@ type AuditFindingCategoryDTO struct {
 	TitleAr       string `json:"title_ar"`
 	DescriptionEn string `json:"description_en"`
 	DescriptionAr string `json:"description_ar"`
-	Status        string `json:"status"`
 }

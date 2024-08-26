@@ -12,11 +12,8 @@ import (
 type AuditFindingCategoryRepositoryInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.AuditFindingCategory, error)
 	GetByID(id uint) (*models.AuditFindingCategory, error)
-	Create(category *models.AuditFindingCategory) (*models.AuditFindingCategory, error)
 	Update(id uint, category *models.AuditFindingCategory) (*models.AuditFindingCategory, error)
 	Delete(id uint) error
-	Activate(ids []uint) ([]uint, error)
-	Deactivate(ids []uint) ([]uint, error)
 	ExistsByTitle(titleEn string, titleAr string) (bool, error)
 	ExistsByTitleExcludingID(id uint, titleEn, titleAr string) (bool, error)
 }
@@ -70,12 +67,6 @@ func (repo *AuditFindingCategoryRepository) GetByID(id uint) (*models.AuditFindi
 	return category, result.Error
 }
 
-func (repo *AuditFindingCategoryRepository) Create(category *models.AuditFindingCategory) (*models.AuditFindingCategory, error) {
-	result := repo.db.Create(&category)
-
-	return category, result.Error
-}
-
 func (repo *AuditFindingCategoryRepository) Update(id uint, updatedCategory *models.AuditFindingCategory) (*models.AuditFindingCategory, error) {
 	var category *models.AuditFindingCategory
 
@@ -102,52 +93,6 @@ func (repo *AuditFindingCategoryRepository) Delete(id uint) error {
 	}
 
 	return nil
-}
-
-func (repo *AuditFindingCategoryRepository) Activate(ids []uint) ([]uint, error) {
-	var idsToUpdate []uint
-
-	// Step 1: Fetch the IDs of records that are currently 'inactive' and within the provided 'ids' slice
-	if err := repo.db.Model(&models.AuditFindingCategory{}).
-		Where("id IN ? AND status = ?", ids, "inactive").
-		Pluck("id", &idsToUpdate).Error; err != nil {
-		return nil, err // Return error if the query fails
-	}
-
-	// Step 2: If there are any IDs to update, perform the update operation
-	if len(idsToUpdate) > 0 {
-		if err := repo.db.Model(&models.AuditFindingCategory{}).
-			Where("id IN ?", idsToUpdate).
-			Update("status", "active").Error; err != nil {
-			return nil, err // Return error if the update operation fails
-		}
-	}
-
-	// Return the IDs of the records that were activated
-	return idsToUpdate, nil
-}
-
-func (repo *AuditFindingCategoryRepository) Deactivate(ids []uint) ([]uint, error) {
-	var idsToUpdate []uint
-
-	// Step 1: Fetch the IDs of records that are currently 'active' and within the provided 'ids' slice
-	if err := repo.db.Model(&models.AuditFindingCategory{}).
-		Where("id IN ? AND status = ?", ids, "active").
-		Pluck("id", &idsToUpdate).Error; err != nil {
-		return nil, err // Return error if the query fails
-	}
-
-	// Step 2: If there are any IDs to update, perform the update operation
-	if len(idsToUpdate) > 0 {
-		if err := repo.db.Model(&models.AuditFindingCategory{}).
-			Where("id IN ?", idsToUpdate).
-			Update("status", "inactive").Error; err != nil {
-			return nil, err // Return error if the update operation fails
-		}
-	}
-
-	// Return the IDs of the records that were deactivated
-	return idsToUpdate, nil
 }
 
 func (repo *AuditFindingCategoryRepository) ExistsByTitle(titleEn, titleAr string) (bool, error) {

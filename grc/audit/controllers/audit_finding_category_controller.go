@@ -55,34 +55,6 @@ func (afcc *AuditFindingCategoryController) GetAuditFindingCategoryDetails(c *gi
 	c.JSON(http.StatusOK, auditFindingCategory)
 }
 
-func (afcc *AuditFindingCategoryController) CreateAuditFindingCategory(c *gin.Context) {
-	var category *models.AuditFindingCategory
-
-	if err := c.ShouldBindJSON(&category); err != nil {
-		utility.SendInvalidErrResp(c, err)
-		return
-	}
-	currentUserID, err := utility.GetCurrentUserID(c)
-	if err != nil {
-		utility.SendInternalErrResp(afcc.db, c, err.Error())
-		return
-	}
-
-	createdCategory, err := afcc.service.Create(currentUserID, category)
-	if err != nil {
-		switch e := err.(type) {
-		case *utility.ValidationError:
-			utility.SendInvalidErrResp(c, e)
-			return
-		default:
-			utility.SendInternalErrResp(afcc.db, c, e.Error())
-			return
-		}
-	}
-
-	c.JSON(http.StatusCreated, createdCategory)
-}
-
 func (afcc *AuditFindingCategoryController) UpdateAuditFindingCategory(c *gin.Context) {
 	var updatedCategory *models.AuditFindingCategory
 
@@ -144,54 +116,4 @@ func (afcc *AuditFindingCategoryController) DeleteAuditFindingCategories(c *gin.
 	}
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
-}
-
-func (afcc *AuditFindingCategoryController) ActivateAuditFindingCategories(c *gin.Context) {
-	var request struct {
-		IDs []uint `json:"ids"`
-	}
-
-	if err := c.ShouldBindJSON(&request); err != nil {
-		utility.SendInvalidErrResp(c, err)
-		return
-	}
-
-	currentUserID, err := utility.GetCurrentUserID(c)
-	if err != nil {
-		utility.SendInternalErrResp(afcc.db, c, err.Error())
-		return
-	}
-
-	err = afcc.service.Activate(request.IDs, currentUserID)
-	if err != nil {
-		utility.SendInternalErrResp(afcc.db, c, err.Error())
-		return
-	}
-
-	c.Status(http.StatusOK)
-}
-
-func (afcc *AuditFindingCategoryController) DeactivateAuditFindingCategories(c *gin.Context) {
-	var request struct {
-		IDs []uint `json:"ids"`
-	}
-
-	if err := c.ShouldBindJSON(&request); err != nil {
-		utility.SendInvalidErrResp(c, err)
-		return
-	}
-
-	currentUserID, err := utility.GetCurrentUserID(c)
-	if err != nil {
-		utility.SendInternalErrResp(afcc.db, c, err.Error())
-		return
-	}
-
-	err = afcc.service.Deactivate(request.IDs, currentUserID)
-	if err != nil {
-		utility.SendInternalErrResp(afcc.db, c, err.Error())
-		return
-	}
-
-	c.Status(http.StatusOK)
 }

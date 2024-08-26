@@ -171,10 +171,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	//Audit Finding Category
 	auditRoutes.GET("/audit-finding-categories", auditFindingCategoryController.GetAllAuditFindingCategories)
 	auditRoutes.GET("/audit-finding-categories/:id", auditFindingCategoryController.GetAuditFindingCategoryDetails)
-	auditRoutes.POST("/audit-finding-categories", auditFindingCategoryController.CreateAuditFindingCategory)
 	auditRoutes.PUT("/audit-finding-categories/:id", auditFindingCategoryController.UpdateAuditFindingCategory)
 	auditRoutes.POST("/audit-finding-categories/delete", auditFindingCategoryController.DeleteAuditFindingCategories)
-	auditRoutes.PUT("/audit-finding-categories/activate", auditFindingCategoryController.ActivateAuditFindingCategories)
-	auditRoutes.PUT("/audit-finding-categories/deactivate", auditFindingCategoryController.DeactivateAuditFindingCategories)
 
 }
