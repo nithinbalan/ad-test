@@ -92,6 +92,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	//AuditPlan Auditable Item
 	auditRoutes.GET("/audit-plans/:planId/auditable-items", auditPlanAuditableItemController.GetAllAuditPlanAuditableItems)
+	auditRoutes.GET("/audit-plans/:planId/auditable-items/:id", auditPlanAuditableItemController.GetAllAuditPlanAuditableItemDetails)
 	auditRoutes.POST("/audit-plans/:planId/auditable-items", auditPlanAuditableItemController.CreateAuditPlanAuditableItem)
 	auditRoutes.POST("/audit-plans/:planId/auditable-items/delete", auditPlanAuditableItemController.DeleteAuditPlanAuditableItems)
 

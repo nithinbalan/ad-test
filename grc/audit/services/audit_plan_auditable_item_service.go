@@ -10,12 +10,14 @@ import (
 	"jethur/grc/models"
 	"jethur/utility"
 
+	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
 )
 
 type AuditPlanAuditableItemServiceInterface interface {
 	GetAll(auditPlanID uint, params *auditDTOs.AuditPlanAuditableItemListQueryParamsDTO) (*auditDTOs.AuditPlanAuditableItemListResponseDTO, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.AuditPlanAuditableItem, error)
+	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditPlanAuditableItemDetailDTO, error)
 	Create(auditPlanID uint, currentUserID uint, auditPlanFormDTO *auditDTOs.AuditPlanAuditableItemFormDTO) (uint, error)
 	Delete(auditPlanID uint, ids []uint, currentUserID uint) ([]uint, error)
 }
@@ -57,6 +59,31 @@ func (apais *AuditPlanAuditableItemService) GetByID(id uint, tx ...utility.Datab
 		return nil, err
 	}
 	return auditPlanAuditableItem, nil
+}
+
+func (apais AuditPlanAuditableItemService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditPlanAuditableItemDetailDTO, error) {
+	var auditableItemDTO auditDTOs.AuditPlanAuditableItemDetailDTO
+
+	// Get full details of the audit action plan
+	auditableItem, err := apais.repo.GetFullDetailsByID(id, tx...)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+
+	// Decode the audit action plan into the DTO
+	err = mapstructure.Decode(auditableItem, &auditableItemDTO)
+	if err != nil {
+		return nil, err
+	}
+
+	auditableItemDTO.CreatedAt = auditableItem.CreatedAt
+
+	// TODO: Add any additional fields required for the details screen
+
+	return &auditableItemDTO, nil
 }
 
 func (apais *AuditPlanAuditableItemService) Create(auditPlanID uint, currentUserID uint, auditPlanFormDTO *auditDTOs.AuditPlanAuditableItemFormDTO) (uint, error) {

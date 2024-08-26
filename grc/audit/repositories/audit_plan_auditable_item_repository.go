@@ -15,6 +15,7 @@ type AuditPlanAuditableItemRepositoryInterface interface {
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.AuditPlanAuditableItem, error)
 	Create(auditPlanAuditableItems []*models.AuditPlanAuditableItem, tx ...utility.DatabaseTransaction) error
 	Delete(auditPlanID uint, auditableItemID uint, tx ...utility.DatabaseTransaction) error
+	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.AuditPlanAuditableItem, error)
 }
 
 type AuditPlanAuditableItemRepository struct {
@@ -68,6 +69,7 @@ func (repo *AuditPlanAuditableItemRepository) GetAll(auditPlanID uint, params *a
 			auditable_items.title_en AS auditable_item_title_en,
 			auditable_items.title_ar AS auditable_item_title_ar,
 			auditable_items.type AS auditable_item_type,
+			auditable_items.comment AS auditable_item_comment,
 			audit_categories.title_en AS audit_category_title_en,
 			audit_categories.title_ar AS audit_category_title_ar,
 			audit_teams.title_en AS audit_team_title_en,
@@ -196,6 +198,39 @@ func (repo *AuditPlanAuditableItemRepository) GetByID(id uint, tx ...utility.Dat
 	}
 
 	return auditPlan, nil
+}
+
+
+func (repo *AuditPlanAuditableItemRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.AuditPlanAuditableItem, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var auditableItem models.AuditPlanAuditableItem
+
+	// Load the auditable item with all related data
+	result := db.
+		Preload("AuditPlan").
+		Preload("AuditableItem").
+		Preload("AuditableItem.AuditStatus").
+		Preload("AuditableItem.AuditorRiskRating").
+		Preload("AuditableItem.Process").
+		Preload("AuditableItem.Control").
+		Preload("AuditableItem.Document").
+		Preload("AuditableItem.IncidentRegister").
+		Preload("AuditableItem.ComplianceRequirement").
+		Preload("AuditableItem.RiskRegister").
+		Preload("AuditableItem.User").
+		Preload("AuditableItem.ResponsibleUnit").
+		Preload("CreatedByUser").
+		First(&auditableItem, id)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return &auditableItem, nil
 }
 
 func (repo *AuditPlanAuditableItemRepository) Create(auditPlanAuditableItems []*models.AuditPlanAuditableItem, tx ...utility.DatabaseTransaction) error {
