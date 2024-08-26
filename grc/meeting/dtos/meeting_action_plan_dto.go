@@ -97,6 +97,7 @@ type MeetingActionPlanDetailDTO struct {
 	ResponsibleUser         organizationDTOs.UserMinimalDTO     `json:"responsible_user"`
 	ActionPlanStatus        masterDTOs.ActionPlanStatusDTO      `json:"action_plan_status"`
 	MeetingMinute           *MeetingMinuteDetailDTO             `json:"meeting_minute"`
+	Meeting                 *MeetingDetailDTO                   `json:"meeting"`
 	Percentage              *uint                               `json:"percentage"`
 	Comments                *string                             `json:"comments"`
 	TargetDate              *time.Time                          `json:"target_date"`
@@ -133,4 +134,9 @@ type SendCreateActionPlanMailDTO struct {
 	Subject     string `json:"subject"`
 	MessageEn   string `json:"message_en"`
 	RedirectURL string `json:"redirect_url"`
+}
+
+type ActionPlanSummaryDTO struct {
+	OpenCount   int `json:"open_count"`
+	ClosedCount int `json:"closed_count"`
 }
