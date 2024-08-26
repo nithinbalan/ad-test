@@ -134,3 +134,8 @@ type SendCreateActionPlanMailDTO struct {
 	MessageEn   string `json:"message_en"`
 	RedirectURL string `json:"redirect_url"`
 }
+
+type ActionPlanSummaryDTO struct {
+	OpenCount   int `json:"open_count"`
+	ClosedCount int `json:"closed_count"`
+}
