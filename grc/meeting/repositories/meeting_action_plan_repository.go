@@ -22,6 +22,8 @@ type MeetingActionPlanRepositoryInterface interface {
 
 	CreateInitialMeetingActionPlanStatusUpdate(meetingActionPlanStatusUpdate *models.MeetingActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
 	DeleteMeetingActionPlanStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error
+
+	GetMeetingActionPlanSummary(meetingID uint) (openCount int, closedCount int, err error)
 }
 
 type MeetingActionPlanRepository struct {
@@ -281,4 +283,28 @@ func (repo *MeetingActionPlanRepository) DeleteMeetingActionPlanStatusUpdates(id
 	}
 
 	return nil
+}
+
+func (repo *MeetingActionPlanRepository) GetMeetingActionPlanSummary(meetingID uint) (openCount int, closedCount int, err error) {
+	var open int64
+	var closed int64
+
+	err = repo.db.Model(&models.MeetingActionPlan{}).
+		Where("meeting_id = ? AND action_plan_status_id IN (SELECT id FROM action_plan_statuses WHERE type IN ('new', 'in_progress', 'on_hold'))", meetingID).
+		Count(&open).Error
+	if err != nil {
+		return 0, 0, err
+	}
+
+	err = repo.db.Model(&models.MeetingActionPlan{}).
+		Where("meeting_id = ? AND action_plan_status_id IN (SELECT id FROM action_plan_statuses WHERE type IN ('completed', 'terminated'))", meetingID).
+		Count(&closed).Error
+	if err != nil {
+		return 0, 0, err
+	}
+
+	openCount = int(open)
+	closedCount = int(closed)
+
+	return openCount, closedCount, nil
 }
