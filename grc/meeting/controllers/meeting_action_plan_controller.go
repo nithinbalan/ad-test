@@ -248,3 +248,29 @@ func (mapc *MeetingActionPlanController) DeleteMeetingActionPlans(c *gin.Context
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
+
+func (mapc *MeetingActionPlanController) GetMeetingActionPlanSummary(c *gin.Context) {
+	idStr := c.Param("meetingId")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	summary, err := mapc.service.GetMeetingActionPlanSummary(uint(id))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(mapc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, summary)
+}
