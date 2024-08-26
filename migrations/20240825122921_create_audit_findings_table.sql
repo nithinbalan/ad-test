@@ -8,12 +8,18 @@ CREATE TABLE audit_findings (
     severity_level_id INT NOT NULL,
     recommendations NVARCHAR(MAX),
     audit_finding_status_id INT NOT NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NULL,
+    created_by_id INT NOT NULL,
+    updated_by_id INT NULL
 
     CONSTRAINT FK_audit_findings_audits FOREIGN KEY (audit_id) REFERENCES audits(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_audit_findings_auditable_items FOREIGN KEY (auditable_item_id) REFERENCES auditable_items(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_audit_findings_categories FOREIGN KEY (audit_finding_category_id) REFERENCES audit_finding_categories(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_audit_findings_severity_levels FOREIGN KEY (severity_level_id) REFERENCES severity_levels(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
-    CONSTRAINT FK_audit_findings_audit_finding_statuses FOREIGN KEY (audit_finding_status_id) REFERENCES audit_finding_statuses(id) ON DELETE NO ACTION ON UPDATE NO ACTION
+    CONSTRAINT FK_audit_findings_audit_finding_statuses FOREIGN KEY (audit_finding_status_id) REFERENCES audit_finding_statuses(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_audit_findings_users_1 FOREIGN KEY (created_by_id) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_audit_findings_users_2 FOREIGN KEY (updated_by_id) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 -- +goose StatementEnd
 
