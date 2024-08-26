@@ -45,6 +45,8 @@ func (repo *AuditRepository) GetAll(params *auditDTOs.AuditListQueryParamsDTO) (
 			CONVERT(VARCHAR, audits.end_date, 23) AS end_date,
 			audit_plans.title AS audit_plan_title,
 			audit_plans.description AS audit_plan_description,
+			audit_plans.purpose AS audit_plan_purpose,
+			audit_plans.objective AS audit_plan_objective,
 			audit_statuses.title_en AS audit_status_title_en,
 			audit_statuses.title_ar AS audit_status_title_ar,
 			audit_statuses.type AS audit_status_type,
@@ -191,6 +193,7 @@ func (repo *AuditRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseT
 		Preload("AuditPlan.Members").
 		Preload("AuditPlan.Members.User").
 		Preload("AuditPlan.AuditStatus").
+		Preload("AuditPlan.AuditableItems.AuditableItem").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&audit, id)
