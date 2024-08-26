@@ -35,6 +35,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditTimelineController := app.AuditModule.AuditTimelineController
 	auditFindingStatusController := app.AuditModule.AuditFindingStatusController
 	auditFindingCategoryController := app.AuditModule.AuditFindingCategoryController
+	auditFindingController := app.AuditModule.AuditFindingController
 
 	//Audit Status
 	auditRoutes.GET("/audit-statuses", auditStatusController.GetAllAuditStatuses)
@@ -173,5 +174,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.GET("/audit-finding-categories/:id", auditFindingCategoryController.GetAuditFindingCategoryDetails)
 	auditRoutes.PUT("/audit-finding-categories/:id", auditFindingCategoryController.UpdateAuditFindingCategory)
 	auditRoutes.POST("/audit-finding-categories/delete", auditFindingCategoryController.DeleteAuditFindingCategories)
+
+	// Audit Finding
+	auditRoutes.GET("/audit-findings", auditFindingController.GetAllAuditFindings)
+	auditRoutes.GET("/audit-findings/:auditId", auditFindingController.GetAuditFindingDetails)
+	auditRoutes.POST("/audit-findings", auditFindingController.CreateAuditFinding)
+	auditRoutes.PUT("/audit-findings/:auditId", auditFindingController.UpdateAuditFinding)
+	auditRoutes.POST("/audit-findings/delete", auditFindingController.DeleteAuditFindings)
 
 }
