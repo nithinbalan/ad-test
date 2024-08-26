@@ -4,6 +4,7 @@ CREATE TABLE audit_schedules
 (
     id INT PRIMARY KEY IDENTITY(1,1),
     audit_plan_id INT NOT NULL,
+    audit_plan_schedule_id INT NOT NULL,
     audit_activity_type_id INT NOT NULL,
     audit_id INT NOT NULL
     title NVARCHAR(255) NOT NULL,
@@ -17,6 +18,7 @@ CREATE TABLE audit_schedules
     created_at DATETIME NOT NULL,
     updated_at DATETIME NULL,
     CONSTRAINT FK_audit_schedules_audit_plans FOREIGN KEY (audit_plan_id) REFERENCES audit_plans(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_audit_schedules_audit_plan_schedules FOREIGN KEY (audit_plan_schedule_id) REFERENCES audit_plan_schedules(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_audit_schedules_audit_activity_types FOREIGN KEY (audit_activity_type_id) REFERENCES audit_activity_types(id) ON DELETE NO ACTION ON UPDATE NO ACTION, 
     CONSTRAINT FK_audit_schedules_audits FOREIGN KEY (audit_id) REFERENCES audits(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_audit_schedules_users_1 FOREIGN KEY (responsible_user_id) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
