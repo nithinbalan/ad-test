@@ -14,7 +14,7 @@ type AuditPlanAuditableItemRepositoryInterface interface {
 	GetAll(auditPlanID uint, params *auditDTOs.AuditPlanAuditableItemListQueryParamsDTO) (*auditDTOs.AuditPlanAuditableItemListResponseDTO, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.AuditPlanAuditableItem, error)
 	Create(auditPlanAuditableItems []*models.AuditPlanAuditableItem, tx ...utility.DatabaseTransaction) error
-	Delete(auditPlanID uint, auditableItemID uint, tx ...utility.DatabaseTransaction) error
+	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.AuditPlanAuditableItem, error)
 }
 
@@ -245,15 +245,20 @@ func (repo *AuditPlanAuditableItemRepository) Create(auditPlanAuditableItems []*
 	return nil
 }
 
-func (repo *AuditPlanAuditableItemRepository) Delete(auditPlanID uint, auditableItemID uint, tx ...utility.DatabaseTransaction) error {
+func (repo *AuditPlanAuditableItemRepository) Delete(id uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
 
-	// Delete the records based on audit_plan_id and auditable_item_id
-	if err := db.Where("audit_plan_id = ? AND auditable_item_id = ?", auditPlanID, auditableItemID).Delete(&models.AuditPlanAuditableItem{}).Error; err != nil {
+	var auditPlanAuditableItem *models.AuditPlanAuditableItem
+	if err := db.First(&auditPlanAuditableItem, id).Error; err != nil {
 		return err
+	}
+
+	result := db.Delete(&models.AuditPlanAuditableItem{}, id)
+	if result.Error != nil {
+		return result.Error
 	}
 
 	return nil

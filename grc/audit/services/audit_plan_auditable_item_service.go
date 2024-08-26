@@ -151,7 +151,7 @@ func (apais *AuditPlanAuditableItemService) Delete(auditPlanID uint, ids []uint,
 
 	for _, id := range ids {
 		// Get existing audit plan details
-		_, err := apais.auditableItemSvc.GetByID(id)
+		_, err := apais.GetFullDetailsByID(id)
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				failedIDs = append(failedIDs, id)
@@ -162,7 +162,7 @@ func (apais *AuditPlanAuditableItemService) Delete(auditPlanID uint, ids []uint,
 		}
 
 		// Delete the audit plan itself
-		if err := apais.repo.Delete(auditPlanID, id, tx); err != nil {
+		if err := apais.repo.Delete(id, tx); err != nil {
 			failedIDs = append(failedIDs, id)
 			continue
 		}
