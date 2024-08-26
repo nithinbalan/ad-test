@@ -65,8 +65,10 @@ func NewMeetingActionPlanService(
 }
 
 func (maps *MeetingActionPlanService) GetAll(meetingID uint, params *meetingDTOs.MeetingActionPlanListQueryParamsDTO) (*meetingDTOs.MeetingActionPlanListResponseDTO, error) {
-	if _, err := maps.meetingSvc.GetByID(meetingID); err != nil {
-		return nil, err
+	if meetingID != 0 {
+		if _, err := maps.meetingSvc.GetByID(meetingID); err != nil {
+			return nil, err
+		}
 	}
 	return maps.repo.GetAll(meetingID, params)
 }

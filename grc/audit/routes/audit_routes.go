@@ -33,6 +33,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditWorkpaperController := app.AuditModule.AuditWorkpaperController
 	auditMeetingController := app.AuditModule.AuditMeetingController
 	auditTimelineController := app.AuditModule.AuditTimelineController
+	auditFindingStatusController := app.AuditModule.AuditFindingStatusController
+	auditFindingCategoryController := app.AuditModule.AuditFindingCategoryController
+	auditFindingController := app.AuditModule.AuditFindingController
 
 	//Audit Status
 	auditRoutes.GET("/audit-statuses", auditStatusController.GetAllAuditStatuses)
@@ -162,5 +165,23 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	//Audit timeline
 	auditRoutes.GET("/audits/:auditId/timelines", auditTimelineController.GetAllAuditTimelines)
+
+	//Audit Status
+	auditRoutes.GET("/audit-finding-statuses", auditFindingStatusController.GetAllAuditFindingStatuses)
+	auditRoutes.GET("/audit-finding-statuses/:id", auditFindingStatusController.GetAuditFindingStatusDetails)
+
+	//Audit Finding Category
+	auditRoutes.GET("/audit-finding-categories", auditFindingCategoryController.GetAllAuditFindingCategories)
+	auditRoutes.GET("/audit-finding-categories/:id", auditFindingCategoryController.GetAuditFindingCategoryDetails)
+	auditRoutes.PUT("/audit-finding-categories/:id", auditFindingCategoryController.UpdateAuditFindingCategory)
+	auditRoutes.POST("/audit-finding-categories/delete", auditFindingCategoryController.DeleteAuditFindingCategories)
+
+	// Audit Finding
+	auditRoutes.GET("/audit-findings", auditFindingController.GetAllAuditFindings)
+	auditRoutes.GET("/audits/:auditId/findings", auditFindingController.GetAllAuditFindings)
+	auditRoutes.GET("/audits/:auditId/findings/:id", auditFindingController.GetAuditFindingDetails)
+	auditRoutes.POST("/audits/:auditId/findings", auditFindingController.CreateAuditFinding)
+	auditRoutes.PUT("/audits/:auditId/findings/:id", auditFindingController.UpdateAuditFinding)
+	auditRoutes.POST("audits/:auditId/findings/delete", auditFindingController.DeleteAuditFindings)
 
 }

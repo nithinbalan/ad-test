@@ -29,6 +29,9 @@ type AuditModule struct {
 	AuditWorkpaperController                 *controllers.AuditWorkpaperController
 	AuditMeetingController                   *controllers.AuditMeetingController
 	AuditTimelineController                  *controllers.AuditTimelineController
+	AuditFindingStatusController             *controllers.AuditFindingStatusController
+	AuditFindingCategoryController           *controllers.AuditFindingCategoryController
+	AuditFindingController                   *controllers.AuditFindingController
 }
 
 func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, complianceModule *ComplianceModule, riskModule *RiskModule, incidentModule *IncidentModule, documentModule *DocumentModule, settingModule *SettingsModule, masterModule *MasterModule) *AuditModule {
@@ -187,6 +190,28 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 	)
 	auditMeetingController := controllers.NewAuditMeetingController(auditMeetingSvc)
 
+	auditFindingStatusRepo := repositories.NewAuditFindingStatusRepository(db)
+	auditFindingStatusSvc := services.NewAuditFindingStatusService(auditFindingStatusRepo)
+	auditFindingStatusController := controllers.NewAuditFindingStatusController(auditFindingStatusSvc)
+
+	auditFindingCategoryRepo := repositories.NewAuditFindingCategoryRepository(db)
+	auditFindingCategorySvc := services.NewAuditFindingCategoryService(auditFindingCategoryRepo, sharedModule.ActivityLogService)
+	auditFindingCategoryController := controllers.NewAuditFindingCategoryController(auditFindingCategorySvc)
+
+	auditFindingRepo := repositories.NewAuditFindingRepository(db)
+
+	auditFindingSvc := services.NewAuditFindingService(
+		auditFindingRepo,
+		sharedModule.ActivityLogService,
+		auditSvc,
+		auditFindingStatusSvc,
+		auditTimelineSvc,
+		auditableItemSvc,
+		auditFindingCategorySvc,
+		masterModule.SeverityLevelSvc,
+	)
+	auditFindingController := controllers.NewAuditFindingController(auditFindingSvc)
+
 	return &AuditModule{
 		AuditorRiskRatingController:              auditorRiskRatingController,
 		AuditUniverseController:                  auditUniverseController,
@@ -208,5 +233,8 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		AuditWorkpaperController:                 auditWorkpaperController,
 		AuditMeetingController:                   auditMeetingController,
 		AuditTimelineController:                  auditTimelineController,
+		AuditFindingStatusController:             auditFindingStatusController,
+		AuditFindingCategoryController:           auditFindingCategoryController,
+		AuditFindingController:                   auditFindingController,
 	}
 }

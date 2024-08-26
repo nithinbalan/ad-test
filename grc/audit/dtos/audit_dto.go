@@ -11,9 +11,14 @@ type AuditListDTO struct {
 	AuditPlanID                 uint    `json:"audit_plan_id"`
 	StartDate                   string  `json:"start_date"`
 	EndDate                     string  `json:"end_date"`
-	AuditPlanTitle              string  `json:"audit_plan_title"`
 	AuditCategoryTitleEn        string  `json:"audit_category_title_en"`
 	AuditCategoryTitleAr        string  `json:"audit_category_title_ar"`
+	AuditStatusTitleEn          string  `json:"audit_status_title_en"`
+	AuditStatusTitleAr          string  `json:"audit_status_title_ar"`
+	AuditStatusType             string  `json:"audit_status_type"`
+	AuditStatusColorCode        string  `json:"audit_status_color_code"`
+	AuditPlanTitle              string  `json:"audit_plan_title"`
+	AuditPlanDescription        string  `json:"audit_plan_description"`
 	TeamLeadID                  *uint   `json:"team_lead_id"`
 	TeamLeadFirstNameEn         string  `json:"team_lead_first_name_en"`
 	TeamLeadFirstNameAr         string  `json:"team_lead_first_name_ar"`
