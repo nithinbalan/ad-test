@@ -21,6 +21,8 @@ type AuditPlanScheduleServiceInterface interface {
 	Create(auditPlanID uint, currentUserID uint, auditPlanScheduleFormDTO *auditDTOs.AuditPlanScheduleFormDTO) (uint, error)
 	Update(id uint, auditPlanID uint, currentUserID uint, auditPlanScheduleFormDTO *auditDTOs.AuditPlanScheduleFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+
+	GetAllSchedulesByAuditPlanID(auditPlanID uint, tx ...utility.DatabaseTransaction) ([]*models.AuditPlanSchedule, error)
 }
 
 type AuditPlanScheduleService struct {
@@ -403,4 +405,8 @@ func (apss *AuditPlanScheduleService) parseAuditPlanScheduleDates(dto *auditDTOs
 	}
 
 	return parsed, nil
+}
+
+func (apss *AuditPlanScheduleService) GetAllSchedulesByAuditPlanID(auditPlanID uint, tx ...utility.DatabaseTransaction) ([]*models.AuditPlanSchedule, error) {
+	return apss.repo.GetAllSchedulesByAuditPlanID(auditPlanID, tx...)
 }
