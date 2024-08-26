@@ -41,6 +41,16 @@ func (repo *AuditFindingRepository) GetAll(params *auditDTOs.AuditFindingListQue
 	query := repo.db.Table("audit_findings").
 		Select(`
 			audit_findings.*,
+			auditable_items.title_en AS auditable_item_title_en,
+			auditable_items.title_ar AS auditable_item_title_ar,
+			audit_finding_categories.title_en AS audit_finding_category_title_en,
+			audit_finding_categories.title_ar AS audit_finding_category_title_ar,
+			severity_levels.title_en AS severity_level_title_en,
+			severity_levels.title_ar AS severity_level_title_ar,
+			severity_levels.color_code AS severity_level_color_code,
+			audit_finding_statuses.title_en AS audit_finding_status_title_en,
+			audit_finding_statuses.title_ar AS audit_finding_status_title_ar,
+			audit_finding_statuses.color_code AS audit_finding_status_color_code,
 			created_user.id AS created_user_id,
         	created_user.first_name_en AS created_user_first_name_en,
         	created_user.first_name_ar AS created_user_first_name_ar,
@@ -61,6 +71,10 @@ func (repo *AuditFindingRepository) GetAll(params *auditDTOs.AuditFindingListQue
         	updated_user.profile_image_path AS updated_user_profile_image_path
 		`).
 		Joins(`
+			LEFT JOIN auditable_items ON auditable_items.id = audit_findings.auditable_item_id
+			LEFT JOIN audit_finding_categories ON audit_finding_categories.id = audit_findings.audit_finding_category_id
+			LEFT JOIN severity_levels ON severity_levels.id = audit_findings.severity_level_id
+			LEFT JOIN audit_finding_statuses ON audit_finding_statuses.id = audit_findings.audit_finding_status_id
 			LEFT JOIN users AS created_user ON created_user.id = audit_findings.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = audit_findings.updated_by_id
 		`)
@@ -81,16 +95,13 @@ func (repo *AuditFindingRepository) GetAll(params *auditDTOs.AuditFindingListQue
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
-			(audit_findings.recommendations LIKE ? OR
+			(auditable_items.title_en LIKE ? OR
+			audit_finding_categories.title_en LIKE ? OR
+			severity_levels.title_en LIKE ? OR
+			audit_finding_statuses.title_en LIKE ? OR
 			created_user.first_name_en LIKE ? OR
-			created_user.first_name_ar LIKE ? OR
-			created_user.last_name_en LIKE ? OR
-			created_user.last_name_ar LIKE ? OR
-			updated_user.first_name_en LIKE ? OR
-			updated_user.first_name_ar LIKE ? OR
-			updated_user.last_name_en LIKE ? OR
-			updated_user.last_name_ar LIKE ?)`,
-			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+			updated_user.first_name_en LIKE ?)`,
+			keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
 	// Sort by the specified column and order
@@ -144,12 +155,12 @@ func (repo *AuditFindingRepository) GetFullDetailsByID(id uint, tx ...utility.Da
 	var auditFinding *models.AuditFinding
 
 	result := db.
-		Preload("CreatedByUser").
-		Preload("UpdatedByUser").
 		Preload("AuditableItem").
 		Preload("AuditFindingCategory").
 		Preload("SeverityLevel").
 		Preload("AuditFindingStatus").
+		Preload("CreatedByUser").
+		Preload("UpdatedByUser").
 		First(&auditFinding, id)
 
 	if result.Error != nil {

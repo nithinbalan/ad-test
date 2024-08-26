@@ -14,8 +14,8 @@ type AuditFinding struct {
 	AuditFindingStatusID   uint       `json:"audit_finding_status_id" gorm:"not null"`
 	CreatedAt              time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt              *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
-	CreatedByID            uint       `json:"created_by_id" gorm:"not null"`
-	UpdatedByID            *uint      `json:"updated_by_id" gorm:"default:null"`
+	CreatedBYID            uint       `json:"created_by_id" gorm:"not null"`
+	UpdatedBYID            *uint      `json:"updated_by_id" gorm:"default:null"`
 
 	// Relationships
 	Audit                *Audit                `gorm:"foreignKey:AuditID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
@@ -23,8 +23,8 @@ type AuditFinding struct {
 	AuditFindingCategory *AuditFindingCategory `gorm:"foreignKey:AuditFindingCategoryID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
 	SeverityLevel        *SeverityLevel        `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
 	AuditFindingStatus   *AuditFindingStatus   `gorm:"foreignKey:AuditFindingStatusID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
-	CreatedByUser        *User                 `gorm:"foreignKey:CreatedByID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
-	UpdatedByUser        *User                 `gorm:"foreignKey:UpdatedByID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
+	CreatedByUser        *User                 `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
+	UpdatedByUser        *User                 `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
 }
 
 // TableName overrides the table name used by AuditFinding to `audit_findings`

@@ -130,7 +130,7 @@ func (afs *AuditFindingService) Create(auditID uint, currentUserID uint, auditFi
 		Recommendations:        auditFindingFormDTO.Recommendations,
 		AuditFindingStatusID:   auditFindingStatus.ID,
 		CreatedAt:              time.Now(),
-		CreatedByID:            currentUserID,
+		CreatedBYID:            currentUserID,
 	}
 
 	id, err := afs.repo.Create(auditFinding, tx)
@@ -188,7 +188,7 @@ func (afs *AuditFindingService) Update(auditID uint, id uint, currentUserID uint
 	existingAuditFinding.AuditFindingCategoryID = auditFindingFormDTO.AuditFindingCategoryID
 	existingAuditFinding.SeverityLevelID = auditFindingFormDTO.SeverityLevelID
 	existingAuditFinding.Recommendations = auditFindingFormDTO.Recommendations
-	existingAuditFinding.UpdatedByID = &currentUserID
+	existingAuditFinding.UpdatedBYID = &currentUserID
 
 	err = afs.repo.Update(existingAuditFinding, tx)
 	if err != nil {
