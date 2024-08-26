@@ -78,6 +78,38 @@ func (apaic *AuditPlanAuditableItemController) GetAllAuditPlanAuditableItems(c *
 	c.JSON(http.StatusOK, auditPlans)
 }
 
+func (apaic *AuditPlanAuditableItemController) GetAllAuditPlanAuditableItemDetails(c *gin.Context) {
+	auditPlanIDStr := c.Param("planId")
+
+	_, err := strconv.ParseUint(auditPlanIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	idStr := c.Param("id")
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	auditableItem, err := apaic.service.GetFullDetailsByID(uint(id))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(apaic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, auditableItem)
+}
+
 func (apaic *AuditPlanAuditableItemController) CreateAuditPlanAuditableItem(c *gin.Context) {
 	var auditPlanFormDTO auditDTOs.AuditPlanAuditableItemFormDTO
 	auditPlanIDStr := c.Param("planId")

@@ -24,18 +24,20 @@ type MeetingActionPlanServiceInterface interface {
 	Update(meetingID uint, id uint, currentUserID uint, MeetingActionPlanFormDTO *meetingDTOs.MeetingActionPlanFormDTO) error
 	Delete(meetingID uint, ids []uint, currentUserID uint) ([]uint, error)
 	StatusUpdate(meetingID uint, id uint, currentUserID uint, meetingActionPlanStatusUpdateFormDTO *meetingDTOs.MeetingActionPlanStatusUpdateFormDTO, tx ...utility.DatabaseTransaction) error
+
+	GetMeetingActionPlanSummary(meetingID uint) (*meetingDTOs.ActionPlanSummaryDTO, error)
 }
 
 // Service and implementations
 type MeetingActionPlanService struct {
-	repo                meetingRepositories.MeetingActionPlanRepositoryInterface
-	activityLogSvc      logServices.ActivityLogServiceInterface
-	meetingSvc          MeetingServiceInterface
-	severityLevelSvc    masterServices.SeverityLevelServiceInterface
-	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface
-	userSvc             organizationServices.UserServiceInterface
-	notificationSvc     commonServices.NotificationServiceInterface
-	meetingMinuteSvc    MeetingMinuteServiceInterface
+	repo                   meetingRepositories.MeetingActionPlanRepositoryInterface
+	activityLogSvc         logServices.ActivityLogServiceInterface
+	meetingSvc             MeetingServiceInterface
+	severityLevelSvc       masterServices.SeverityLevelServiceInterface
+	actionPlanStatusSvc    masterServices.ActionPlanStatusServiceInterface
+	userSvc                organizationServices.UserServiceInterface
+	notificationSvc        commonServices.NotificationServiceInterface
+	meetingMinuteSvc       MeetingMinuteServiceInterface
 	meetingMinuteStatusSvc MeetingMinuteStatusServiceInterface
 }
 
@@ -50,21 +52,23 @@ func NewMeetingActionPlanService(
 	meetingMinuteSvc MeetingMinuteServiceInterface,
 	meetingMinuteStatusSvc MeetingMinuteStatusServiceInterface) MeetingActionPlanServiceInterface {
 	return &MeetingActionPlanService{
-		repo:                repo,
-		activityLogSvc:      activityLogSvc,
-		meetingSvc:          meetingSvc,
-		severityLevelSvc:    severityLevelSvc,
-		actionPlanStatusSvc: actionPlanStatusSvc,
-		userSvc:             userSvc,
-		notificationSvc:     notificationSvc,
-		meetingMinuteSvc:    meetingMinuteSvc,
-		meetingMinuteStatusSvc:   meetingMinuteStatusSvc,
+		repo:                   repo,
+		activityLogSvc:         activityLogSvc,
+		meetingSvc:             meetingSvc,
+		severityLevelSvc:       severityLevelSvc,
+		actionPlanStatusSvc:    actionPlanStatusSvc,
+		userSvc:                userSvc,
+		notificationSvc:        notificationSvc,
+		meetingMinuteSvc:       meetingMinuteSvc,
+		meetingMinuteStatusSvc: meetingMinuteStatusSvc,
 	}
 }
 
 func (maps *MeetingActionPlanService) GetAll(meetingID uint, params *meetingDTOs.MeetingActionPlanListQueryParamsDTO) (*meetingDTOs.MeetingActionPlanListResponseDTO, error) {
-	if _, err := maps.meetingSvc.GetByID(meetingID); err != nil {
-		return nil, err
+	if meetingID != 0 {
+		if _, err := maps.meetingSvc.GetByID(meetingID); err != nil {
+			return nil, err
+		}
 	}
 	return maps.repo.GetAll(meetingID, params)
 }
@@ -150,7 +154,7 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 	if err != nil {
 		return 0, err
 	}
-	if err := maps.meetingMinuteSvc.StatusUpdate(*MeetingActionPlanFormDTO.MeetingMinuteID,currentUserID,uint(meetingMinuteStatus.ID), tx); err != nil {
+	if err := maps.meetingMinuteSvc.StatusUpdate(*MeetingActionPlanFormDTO.MeetingMinuteID, currentUserID, uint(meetingMinuteStatus.ID), tx); err != nil {
 		tx.Rollback()
 		return 0, err
 	}
@@ -354,4 +358,18 @@ func (maps *MeetingActionPlanService) parseMeetingActionPlanDates(dto *meetingDT
 	}
 
 	return parsed, nil
+}
+
+func (maps *MeetingActionPlanService) GetMeetingActionPlanSummary(meetingID uint) (*meetingDTOs.ActionPlanSummaryDTO, error) {
+	openCount, closedCount, err := maps.repo.GetMeetingActionPlanSummary(meetingID)
+	if err != nil {
+		return nil, err
+	}
+
+	summary := &meetingDTOs.ActionPlanSummaryDTO{
+		OpenCount:   openCount,
+		ClosedCount: closedCount,
+	}
+
+	return summary, nil
 }

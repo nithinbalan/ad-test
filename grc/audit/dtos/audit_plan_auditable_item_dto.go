@@ -2,6 +2,8 @@ package dtos
 
 import (
 	commonDTOs "jethur/grc/common/dtos"
+	organizationDTOs "jethur/grc/organization/dtos"
+	"time"
 )
 
 type AuditPlanAuditableItemListDTO struct {
@@ -42,6 +44,7 @@ type AuditPlanAuditableItemListDTO struct {
 	AuditableItemTitleEn        string `json:"auditable_item_title_en"`
 	AuditableItemTitleAr        string `json:"auditable_item_title_ar"`
 	AuditableItemType           string `json:"auditable_item_type"`
+	AuditableItemComment        string `json:"auditable_item_comment"`
 	AuditCategoryTitleEn        string `json:"audit_category_title_en"`
 	AuditCategoryTitleAr        string `json:"audit_category_title_ar"`
 	AuditTeamTitleEn            string `json:"audit_team_title_en"`
@@ -90,4 +93,12 @@ type AuditPlanAuditableItemListQueryParamsDTO struct {
 type AuditPlanAuditableItemListResponseDTO struct {
 	Items      []*AuditPlanAuditableItemListDTO `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO     `json:"pagination"`
+}
+
+type AuditPlanAuditableItemDetailDTO struct {
+	ID            uint                             `json:"id"`
+	AuditPlan     *AuditPlanDetailDTO              `json:"audit_plan"`
+	AuditableItem *AuditableItemDetailDTO          `json:"auditable_item"`
+	CreatedAt     time.Time                        `json:"created_at"`
+	CreatedByUser *organizationDTOs.UserMinimalDTO `json:"created_by"`
 }

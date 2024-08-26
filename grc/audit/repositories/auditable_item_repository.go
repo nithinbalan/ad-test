@@ -43,6 +43,7 @@ func (repo *AuditableItemRepository) GetAll(params *auditDTOs.AuditableItemListQ
 	query := repo.db.Table("auditable_items").
 		Select(`
 			auditable_items.*,
+			auditable_items.type AS auditable_item_type,
 			processes.title_en AS process_title_en,
 			processes.title_ar AS process_title_ar,
 			controls.title_en AS control_title_en,
