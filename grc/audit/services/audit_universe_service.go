@@ -93,18 +93,25 @@ func (aus *AuditUniverseService) Create(currentUserID uint, auditUniverseFormDTO
 			switch fieldName {
 			case "process":
 				auditableItem.ProcessID = id
+				auditableItem.Type = "process"
 			case "control":
 				auditableItem.ControlID = id
+				auditableItem.Type = "control"
 			case "document":
 				auditableItem.DocumentID = id
+				auditableItem.Type = "document"
 			case "incident":
 				auditableItem.IncidentRegisterID = id
+				auditableItem.Type = "incident"
 			case "compliance":
 				auditableItem.ComplianceRequirementID = id
+				auditableItem.Type = "compliance_requirement"
 			case "risk":
 				auditableItem.RiskRegisterID = id
+				auditableItem.Type = "risk"
 			case "user":
 				auditableItem.UserID = id
+				auditableItem.Type = "user"
 			}
 			orgUnitID, err = aus.getOrganizationUnitID(fieldName, *id)
 			if err != nil {
