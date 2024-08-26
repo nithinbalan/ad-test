@@ -33,6 +33,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditWorkpaperController := app.AuditModule.AuditWorkpaperController
 	auditMeetingController := app.AuditModule.AuditMeetingController
 	auditTimelineController := app.AuditModule.AuditTimelineController
+	auditFindingStatusController := app.AuditModule.AuditFindingStatusController
 
 	//Audit Status
 	auditRoutes.GET("/audit-statuses", auditStatusController.GetAllAuditStatuses)
@@ -161,5 +162,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	//Audit timeline
 	auditRoutes.GET("/audits/:auditId/timelines", auditTimelineController.GetAllAuditTimelines)
+
+	//Audit Status
+	auditRoutes.GET("/audit-finding-statuses", auditFindingStatusController.GetAllAuditFindingStatuses)
+	auditRoutes.GET("/audit-finding-statuses/:id", auditFindingStatusController.GetAuditFindingStatusDetails)
 
 }
