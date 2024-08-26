@@ -15,7 +15,7 @@ type AuditableItemListDTO struct {
 	ID                          uint   `json:"id"`
 	AuditorRiskRatingID         uint   `json:"auditor_risk_rating_id"`
 	AuditStatusID               uint   `json:"audit_status_id"`
-	Type                        string `json:"type"`
+	AuditableItemType           string `json:"auditable_item_type"`
 	TitleEn                     string `json:"title_en"`
 	TitleAr                     string `json:"title_ar"`
 	Comment                     string `json:"comment"`
