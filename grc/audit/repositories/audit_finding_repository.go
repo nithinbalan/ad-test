@@ -1,7 +1,7 @@
 package repositories
 
 import (
-	auditDTOs "jethur/grc/audit/dtos" // Adjust import path as needed
+	auditDTOs "jethur/grc/audit/dtos"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
@@ -41,20 +41,6 @@ func (repo *AuditFindingRepository) GetAll(params *auditDTOs.AuditFindingListQue
 	query := repo.db.Table("audit_findings").
 		Select(`
 			audit_findings.*,
-			CONVERT(VARCHAR, audit_findings.start_date, 23) AS start_date,
-			CONVERT(VARCHAR, audit_findings.end_date, 23) AS end_date,
-			audit_plans.title AS audit_plan_title,
-			audit_categories.title_en AS audit_category_title_en,
-			audit_categories.title_ar AS audit_category_title_ar,
-			team_lead.id AS team_lead_id,
-			team_lead.first_name_en AS team_lead_first_name_en,
-			team_lead.first_name_ar AS team_lead_first_name_ar,
-			team_lead.last_name_en AS team_lead_last_name_en,
-			team_lead.last_name_ar AS team_lead_last_name_ar,
-			team_lead.email AS team_lead_email,
-			team_lead.initial AS team_lead_initial,
-			team_lead.color AS team_lead_color,
-			team_lead.profile_image_path AS team_lead_profile_image_path,
 			created_user.id AS created_user_id,
         	created_user.first_name_en AS created_user_first_name_en,
         	created_user.first_name_ar AS created_user_first_name_ar,
@@ -75,9 +61,6 @@ func (repo *AuditFindingRepository) GetAll(params *auditDTOs.AuditFindingListQue
         	updated_user.profile_image_path AS updated_user_profile_image_path
 		`).
 		Joins(`
-			LEFT JOIN audit_plans ON audit_plans.id = audit_findings.audit_plan_id
-			LEFT JOIN audit_categories ON audit_categories.id = audit_plans.audit_category_id
-			LEFT JOIN users AS team_lead ON team_lead.id = audit_plans.team_lead_id
 			LEFT JOIN users AS created_user ON created_user.id = audit_findings.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = audit_findings.updated_by_id
 		`)
@@ -89,14 +72,6 @@ func (repo *AuditFindingRepository) GetAll(params *auditDTOs.AuditFindingListQue
 		}
 	}
 
-	// Apply other filters as needed (e.g., date filters)
-	if params.StartDate != "" {
-		query = query.Where("audit_findings.start_date >= ?", params.StartDate)
-	}
-	if params.EndDate != "" {
-		query = query.Where("audit_findings.end_date <= ?", params.EndDate)
-	}
-
 	// Calculate total count for pagination
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
@@ -106,15 +81,7 @@ func (repo *AuditFindingRepository) GetAll(params *auditDTOs.AuditFindingListQue
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
-			(audit_findings.start_date LIKE ? OR
-			audit_findings.end_date LIKE ? OR
-			audit_plans.title LIKE ? OR
-			audit_categories.title_en LIKE ? OR
-			audit_categories.title_ar LIKE ? OR
-			team_lead.first_name_en LIKE ? OR
-			team_lead.first_name_ar LIKE ? OR
-			team_lead.last_name_en LIKE ? OR
-			team_lead.last_name_ar LIKE ? OR
+			(audit_findings.recommendations LIKE ? OR
 			created_user.first_name_en LIKE ? OR
 			created_user.first_name_ar LIKE ? OR
 			created_user.last_name_en LIKE ? OR
@@ -123,13 +90,12 @@ func (repo *AuditFindingRepository) GetAll(params *auditDTOs.AuditFindingListQue
 			updated_user.first_name_ar LIKE ? OR
 			updated_user.last_name_en LIKE ? OR
 			updated_user.last_name_ar LIKE ?)`,
-			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
 	// Sort by the specified column and order
 	if params.SortBy == "" {
-		params.SortBy = "audit_findings.start_date" // Default sort by start_date if no sortBy is specified
+		params.SortBy = "audit_findings.created_at" // Default sort by created_at if no sortBy is specified
 	}
 	if params.Sort != "asc" && params.Sort != "desc" {
 		params.Sort = "asc" // Default order is ascending if not specified
@@ -178,15 +144,12 @@ func (repo *AuditFindingRepository) GetFullDetailsByID(id uint, tx ...utility.Da
 	var auditFinding *models.AuditFinding
 
 	result := db.
-		Preload("AuditPlan").
-		Preload("AuditPlan.AuditCategory").
-		Preload("AuditPlan.AuditTeam").
-		Preload("AuditPlan.TeamLead").
-		Preload("AuditPlan.Members").
-		Preload("AuditPlan.Members.User").
-		Preload("AuditPlan.AuditStatus").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
+		Preload("AuditableItem").
+		Preload("AuditFindingCategory").
+		Preload("SeverityLevel").
+		Preload("AuditFindingStatus").
 		First(&auditFinding, id)
 
 	if result.Error != nil {

@@ -24,6 +24,22 @@ func NewAuditFindingController(service services.AuditFindingServiceInterface) *A
 }
 
 func (afc *AuditFindingController) GetAllAuditFindings(c *gin.Context) {
+	auditIDStr := c.Param("auditId")
+
+	var auditID uint64
+	var err error
+
+	// Check if auditID is provided in the URL
+	if auditIDStr != "" {
+		auditID, err = strconv.ParseUint(auditIDStr, 10, 64)
+		if err != nil {
+			utility.SendNotFoundErrResp(c)
+			return
+		}
+	} else {
+		auditID = 0
+	}
+
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
@@ -32,16 +48,13 @@ func (afc *AuditFindingController) GetAllAuditFindings(c *gin.Context) {
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
-		"audit_category_ids",
-		"audit_team_ids",
-		"team_lead_ids",
-		"audit_status_ids",
+		"auditable_item_ids",
+		"audit_finding_category_ids",
+		"severity_level_ids",
+		"audit_finding_status_ids",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
-
-	startDate := c.Query("start_date")
-	endDate := c.Query("end_date")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -64,11 +77,9 @@ func (afc *AuditFindingController) GetAllAuditFindings(c *gin.Context) {
 		PageSize:    pageSize,
 		Filters:     filters,
 		QuickFilter: quickFilter,
-		StartDate:   startDate,
-		EndDate:     endDate,
 	}
 
-	auditFindings, err := afc.service.GetAll(&queryParams)
+	auditFindings, err := afc.service.GetAll(uint(auditID), &queryParams)
 	if err != nil {
 		utility.SendInternalErrResp(afc.db, c, err.Error())
 		return
@@ -77,7 +88,13 @@ func (afc *AuditFindingController) GetAllAuditFindings(c *gin.Context) {
 }
 
 func (afc *AuditFindingController) GetAuditFindingDetails(c *gin.Context) {
-	idStr := c.Param("auditFindingId")
+	auditID, err := strconv.Atoi(c.Param("auditId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	idStr := c.Param("id")
 
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -85,7 +102,7 @@ func (afc *AuditFindingController) GetAuditFindingDetails(c *gin.Context) {
 		return
 	}
 
-	auditFinding, err := afc.service.GetFullDetailsByID(uint(id))
+	auditFinding, err := afc.service.GetFullDetailsByID(uint(auditID), uint(id))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -100,6 +117,13 @@ func (afc *AuditFindingController) GetAuditFindingDetails(c *gin.Context) {
 }
 
 func (afc *AuditFindingController) CreateAuditFinding(c *gin.Context) {
+
+	auditID, err := strconv.Atoi(c.Param("auditId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
 	var auditFindingFormDTO auditDTOs.AuditFindingFormDTO
 
 	if err := c.ShouldBindJSON(&auditFindingFormDTO); err != nil {
@@ -113,7 +137,7 @@ func (afc *AuditFindingController) CreateAuditFinding(c *gin.Context) {
 		return
 	}
 
-	id, err := afc.service.Create(currentUserID, &auditFindingFormDTO)
+	id, err := afc.service.Create(uint(auditID), currentUserID, &auditFindingFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -134,7 +158,13 @@ func (afc *AuditFindingController) CreateAuditFinding(c *gin.Context) {
 func (afc *AuditFindingController) UpdateAuditFinding(c *gin.Context) {
 	var auditFindingFormDTO auditDTOs.AuditFindingFormDTO
 
-	auditFindingID, err := strconv.Atoi(c.Param("auditFindingId"))
+	auditID, err := strconv.Atoi(c.Param("auditId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -151,7 +181,7 @@ func (afc *AuditFindingController) UpdateAuditFinding(c *gin.Context) {
 		return
 	}
 
-	err = afc.service.Update(uint(auditFindingID), currentUserID, &auditFindingFormDTO)
+	err = afc.service.Update(uint(auditID), uint(id), currentUserID, &auditFindingFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -170,6 +200,12 @@ func (afc *AuditFindingController) UpdateAuditFinding(c *gin.Context) {
 }
 
 func (afc *AuditFindingController) DeleteAuditFindings(c *gin.Context) {
+	auditID, err := strconv.Atoi(c.Param("auditId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
 	var request struct {
 		IDs []uint `json:"ids"`
 	}
@@ -185,7 +221,7 @@ func (afc *AuditFindingController) DeleteAuditFindings(c *gin.Context) {
 		return
 	}
 
-	failedIDs, err := afc.service.Delete(request.IDs, currentUserID)
+	failedIDs, err := afc.service.Delete(uint(auditID), request.IDs, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(afc.db, c, err.Error())
 		return

@@ -177,9 +177,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	// Audit Finding
 	auditRoutes.GET("/audit-findings", auditFindingController.GetAllAuditFindings)
-	auditRoutes.GET("/audit-findings/:auditId", auditFindingController.GetAuditFindingDetails)
-	auditRoutes.POST("/audit-findings", auditFindingController.CreateAuditFinding)
-	auditRoutes.PUT("/audit-findings/:auditId", auditFindingController.UpdateAuditFinding)
-	auditRoutes.POST("/audit-findings/delete", auditFindingController.DeleteAuditFindings)
+	auditRoutes.GET("/audits/:auditId/findings", auditFindingController.GetAllAuditFindings)
+	auditRoutes.GET("/audits/:auditId/findings/:id", auditFindingController.GetAuditFindingDetails)
+	auditRoutes.POST("/audits/:auditId/findings", auditFindingController.CreateAuditFinding)
+	auditRoutes.PUT("/audits/:auditId/findings/:id", auditFindingController.UpdateAuditFinding)
+	auditRoutes.POST("audits/:auditId/findings/delete", auditFindingController.DeleteAuditFindings)
 
 }

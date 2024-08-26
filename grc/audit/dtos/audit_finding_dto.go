@@ -6,24 +6,14 @@ import (
 	"time"
 )
 
-// DTO for listing audit findings
 type AuditFindingListDTO struct {
 	ID                          uint    `json:"id"`
-	AuditPlanID                 uint    `json:"audit_plan_id"`
-	StartDate                   string  `json:"start_date"`
-	EndDate                     string  `json:"end_date"`
-	AuditPlanTitle              string  `json:"audit_plan_title"`
-	AuditCategoryTitleEn        string  `json:"audit_category_title_en"`
-	AuditCategoryTitleAr        string  `json:"audit_category_title_ar"`
-	TeamLeadID                  *uint   `json:"team_lead_id"`
-	TeamLeadFirstNameEn         string  `json:"team_lead_first_name_en"`
-	TeamLeadFirstNameAr         string  `json:"team_lead_first_name_ar"`
-	TeamLeadLastNameEn          string  `json:"team_lead_last_name_en"`
-	TeamLeadLastNameAr          string  `json:"team_lead_last_name_ar"`
-	TeamLeadEmail               string  `json:"team_lead_email"`
-	TeamLeadInitial             string  `json:"team_lead_initial"`
-	TeamLeadColor               string  `json:"team_lead_color"`
-	TeamLeadProfileImagePath    string  `json:"team_lead_profile_image_path"`
+	AuditID                     uint    `json:"audit_id"`
+	AuditableItemID             uint    `json:"auditable_item_id"`
+	AuditFindingCategoryID      uint    `json:"audit_finding_category_id"`
+	SeverityLevelID             uint    `json:"severity_level_id"`
+	Recommendations             *string `json:"recommendations,omitempty"`
+	AuditFindingStatusID        uint    `json:"audit_finding_status_id"`
 	CreatedAt                   string  `json:"created_at"`
 	UpdatedAt                   *string `json:"updated_at"`
 	CreatedUserID               uint    `json:"created_user_id"`
@@ -46,27 +36,27 @@ type AuditFindingListDTO struct {
 	UpdatedUserProfileImagePath *string `json:"updated_user_profile_image_path"`
 }
 
-// DTO for creating or updating audit findings
 type AuditFindingFormDTO struct {
-	AuditPlanID uint   `json:"audit_plan_id" binding:"required"`
-	StartDate   string `json:"start_date" binding:"required"`
-	EndDate     string `json:"end_date" binding:"required"`
+	AuditableItemID        uint    `json:"auditable_item_id" binding:"required"`
+	AuditFindingCategoryID uint    `json:"audit_finding_category_id" binding:"required"`
+	SeverityLevelID        uint    `json:"severity_level_id" binding:"required"`
+	Recommendations        *string `json:"recommendations,omitempty"`
 }
 
-// DTO for detailed audit finding view
 type AuditFindingDetailDTO struct {
-	ID              uint                             `json:"id"`
-	AuditPlanID     uint                             `json:"audit_plan_id"`
-	AuditPlan       AuditPlanDetailDTO               `json:"audit_plan"`
-	StartDateString string                           `json:"start_date"`
-	EndDateString   string                           `json:"end_date"`
-	CreatedAt       time.Time                        `json:"created_at"`
-	UpdatedAt       *time.Time                       `json:"updated_at"`
-	CreatedByUser   organizationDTOs.UserMinimalDTO  `json:"created_by"`
-	UpdatedByUser   *organizationDTOs.UserMinimalDTO `json:"updated_by"`
+	ID                     uint                             `json:"id"`
+	AuditID                uint                             `json:"audit_id"`
+	AuditableItemID        uint                             `json:"auditable_item_id"`
+	AuditFindingCategoryID uint                             `json:"audit_finding_category_id"`
+	SeverityLevelID        uint                             `json:"severity_level_id"`
+	Recommendations        *string                          `json:"recommendations,omitempty"`
+	AuditFindingStatusID   uint                             `json:"audit_finding_status_id"`
+	CreatedAt              time.Time                        `json:"created_at"`
+	UpdatedAt              *time.Time                       `json:"updated_at"`
+	CreatedByUser          organizationDTOs.UserMinimalDTO  `json:"created_by"`
+	UpdatedByUser          *organizationDTOs.UserMinimalDTO `json:"updated_by"`
 }
 
-// DTO for query parameters for listing audit findings
 type AuditFindingListQueryParamsDTO struct {
 	Sort        string
 	SortBy      string
@@ -76,18 +66,9 @@ type AuditFindingListQueryParamsDTO struct {
 	PageSize    int
 	Filters     map[string][]string
 	QuickFilter []string
-	StartDate   string
-	EndDate     string
 }
 
-// DTO for response containing a list of audit findings and pagination info
 type AuditFindingListResponseDTO struct {
 	Items      []*AuditFindingListDTO       `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
-}
-
-// Struct for parsed date information
-type AuditFindingParsedDates struct {
-	StartDate time.Time
-	EndDate   time.Time
 }

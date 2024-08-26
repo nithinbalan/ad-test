@@ -203,7 +203,11 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		auditFindingRepo,
 		sharedModule.ActivityLogService,
 		auditSvc,
+		auditFindingStatusSvc,
 		auditTimelineSvc,
+		auditableItemSvc,
+		auditFindingCategorySvc,
+		masterModule.SeverityLevelSvc,
 	)
 	auditFindingController := controllers.NewAuditFindingController(auditFindingSvc)
 
