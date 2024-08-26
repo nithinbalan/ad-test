@@ -358,6 +358,7 @@ func (as *AuditService) copyAuditPlanSchedulesToAuditSchedule(auditID uint, audi
 	for _, schedule := range auditPlanSchedules {
 		auditSchedule := &models.AuditSchedule{
 			AuditPlanID:           schedule.AuditPlanID,
+			AuditPlanScheduleID:   schedule.ID,
 			AuditActivityTypeID:   schedule.AuditActivityTypeID,
 			AuditID:               auditID,
 			Title:                 schedule.Title,
