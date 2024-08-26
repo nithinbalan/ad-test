@@ -250,7 +250,7 @@ func (mapc *MeetingActionPlanController) DeleteMeetingActionPlans(c *gin.Context
 }
 
 func (mapc *MeetingActionPlanController) GetMeetingActionPlanSummary(c *gin.Context) {
-	idStr := c.Param("meetingId")
+	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
