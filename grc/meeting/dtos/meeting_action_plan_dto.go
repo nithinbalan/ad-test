@@ -97,6 +97,7 @@ type MeetingActionPlanDetailDTO struct {
 	ResponsibleUser         organizationDTOs.UserMinimalDTO     `json:"responsible_user"`
 	ActionPlanStatus        masterDTOs.ActionPlanStatusDTO      `json:"action_plan_status"`
 	MeetingMinute           *MeetingMinuteDetailDTO             `json:"meeting_minute"`
+	Meeting                 *MeetingDetailDTO                   `json:"meeting"`
 	Percentage              *uint                               `json:"percentage"`
 	Comments                *string                             `json:"comments"`
 	TargetDate              *time.Time                          `json:"target_date"`
