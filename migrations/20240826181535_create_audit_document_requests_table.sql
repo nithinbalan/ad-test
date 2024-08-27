@@ -6,7 +6,7 @@ CREATE TABLE audit_document_requests
     audit_id INT NOT NULL,
     title NVARCHAR(255) NOT NULL,
     description NVARCHAR(MAX) NULL,
-    requested_at DATETIME NOT NULL,
+    requested_at DATETIME NULL,
     responsible_unit_id INT NOT NULL,
     audit_document_request_status_id INT NOT NULL,
     created_by_id INT,

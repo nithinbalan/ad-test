@@ -19,7 +19,7 @@ type AuditDocumentRequestListDTO struct {
 	ResponsibleUnitTitleAr              string  `json:"responsible_unit_title_ar"`
 	Title                               string  `json:"title"`
 	Description                         string  `json:"description"`
-	RequestedAt                         string  `json:"requested_at"`
+	RequestedAt                         *string `json:"requested_at"`
 	CreatedAt                           string  `json:"created_at"`
 	UpdatedAt                           *string `json:"updated_at"`
 	CreatedUserID                       uint    `json:"created_user_id"`
@@ -43,10 +43,9 @@ type AuditDocumentRequestListDTO struct {
 }
 
 type AuditDocumentRequestFormDTO struct {
-	AuditDocumentRequestStatusID uint    `json:"audit_document_request_status_id" binding:"required"`
-	Title                        string  `json:"title" binding:"required,max=255"`
-	Description                  *string `json:"description"`
-	AuditableItemIds             []*uint `json:"auditable_item_ids" binding:"required"`
+	Title            string  `json:"title" binding:"required,max=255"`
+	Description      *string `json:"description"`
+	AuditableItemIds []*uint `json:"auditable_item_ids"`
 }
 
 type AuditDocumentRequestDetailDTO struct {
@@ -81,7 +80,7 @@ type AuditDocumentRequestListResponseDTO struct {
 }
 
 type AuditDocumentRequestParsedDates struct {
-	RequestedAt time.Time
+	RequestedAt *time.Time
 }
 
 type AuditDocumentRequestAuditableItemDTO struct {
