@@ -18,8 +18,8 @@ type AuditRepositoryInterface interface {
 	Update(audit *models.Audit, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 
-	CreateAuditSchedules(auditSchedules []*models.AuditSchedule, tx ...utility.DatabaseTransaction) error
-	CreateAuditScheduleAuditableItems(items []*models.AuditScheduleAuditableItem, tx ...utility.DatabaseTransaction) error
+	CreateAuditSchedule(auditSchedule *models.AuditSchedule, tx ...utility.DatabaseTransaction) (*models.AuditSchedule, error)
+	CreateAuditScheduleAuditableItem(item *models.AuditScheduleAuditableItem, tx ...utility.DatabaseTransaction) error
 }
 
 type AuditRepository struct {
@@ -242,27 +242,26 @@ func (repo *AuditRepository) Delete(id uint, tx ...utility.DatabaseTransaction) 
 	return nil
 }
 
-func (repo *AuditRepository) CreateAuditSchedules(auditSchedules []*models.AuditSchedule, tx ...utility.DatabaseTransaction) error {
+func (repo *AuditRepository) CreateAuditSchedule(auditSchedule *models.AuditSchedule, tx ...utility.DatabaseTransaction) (*models.AuditSchedule, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
 
-	// Use GORM's Create method to perform a batch insert
-	if err := db.Create(&auditSchedules).Error; err != nil {
-		return err
+	if err := db.Create(auditSchedule).Error; err != nil {
+		return nil, err
 	}
 
-	return nil
+	return auditSchedule, nil
 }
 
-func (repo *AuditRepository) CreateAuditScheduleAuditableItems(items []*models.AuditScheduleAuditableItem, tx ...utility.DatabaseTransaction) error {
+func (repo *AuditRepository) CreateAuditScheduleAuditableItem(item *models.AuditScheduleAuditableItem, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
 
-	if err := db.Create(&items).Error; err != nil {
+	if err := db.Create(item).Error; err != nil {
 		return err
 	}
 

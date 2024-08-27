@@ -353,8 +353,6 @@ func (as *AuditService) copyAuditPlanSchedulesToAuditSchedule(auditID uint, audi
 		return err
 	}
 
-	var auditSchedules []*models.AuditSchedule
-
 	for _, schedule := range auditPlanSchedules {
 		auditSchedule := &models.AuditSchedule{
 			AuditPlanID:           schedule.AuditPlanID,
@@ -369,34 +367,22 @@ func (as *AuditService) copyAuditPlanSchedulesToAuditSchedule(auditID uint, audi
 			AuditScheduleStatusID: schedule.AuditScheduleStatusID,
 			CreatedByID:           currentUserID,
 		}
-		auditSchedules = append(auditSchedules, auditSchedule)
-	}
 
-	if len(auditSchedules) > 0 {
-		if err := as.repo.CreateAuditSchedules(auditSchedules, tx...); err != nil {
+		createdAuditSchedule, err := as.repo.CreateAuditSchedule(auditSchedule, tx...)
+		if err != nil {
 			return err
 		}
-	}
 
-	var auditScheduleAuditableItems []*models.AuditScheduleAuditableItem
-
-	// Now that IDs are available, prepare audit schedule auditable items for insertion
-	for i, schedule := range auditPlanSchedules {
 		for _, auditableItem := range schedule.AuditableItems {
 			auditScheduleAuditableItem := &models.AuditScheduleAuditableItem{
-				AuditScheduleID: auditSchedules[i].ID, // Now we can use the ID
+				AuditScheduleID: createdAuditSchedule.ID,
 				AuditableItemID: auditableItem.AuditableItemID,
 				CreatedBYID:     currentUserID,
-				CreatedAt:       time.Now(),
 			}
-			auditScheduleAuditableItems = append(auditScheduleAuditableItems, auditScheduleAuditableItem)
-		}
-	}
 
-	// Insert all audit schedule auditable items in one operation
-	if len(auditScheduleAuditableItems) > 0 {
-		if err := as.repo.CreateAuditScheduleAuditableItems(auditScheduleAuditableItems, tx...); err != nil {
-			return err
+			if err := as.repo.CreateAuditScheduleAuditableItem(auditScheduleAuditableItem, tx...); err != nil {
+				return err
+			}
 		}
 	}
 

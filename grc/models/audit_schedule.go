@@ -5,7 +5,7 @@ import (
 )
 
 type AuditSchedule struct {
-	ID                    uint       `json:"id" gorm:"primaryKey;autoIncrement"`
+	ID                    uint       `json:"id" gorm:"primaryKey;AUTO_INCREMENT"`
 	AuditPlanID           uint       `json:"audit_plan_id" gorm:"not null"`
 	AuditPlanScheduleID   uint       `json:"audit_plan_schedule_id" gorm:"not null"`
 	AuditActivityTypeID   uint       `json:"audit_activity_type_id" gorm:"not null"`
