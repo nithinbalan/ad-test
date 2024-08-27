@@ -94,13 +94,11 @@ func (repo *AuditWorkpaperRepository) GetAll(auditID uint, params *auditDTOs.Aud
 		query = query.Where(`
 			audit_workpapers.title LIKE ? OR
 			audit_workpapers.description LIKE ? OR
-			sources.title_en LIKE ? OR
-			sources.title_ar LIKE ? OR
-			created_user.first_name LIKE ? OR
-			created_user.last_name LIKE ? OR
-			updated_user.first_name LIKE ? OR
-			updated_user.last_name LIKE ?`,
-			keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+			created_user.first_name_en LIKE ? OR
+			created_user.first_name_ar LIKE ? OR
+			created_user.last_name_en LIKE ? OR
+			created_user.last_name_ar LIKE ?`,
+			keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
 	// Sort by the specified column and order
