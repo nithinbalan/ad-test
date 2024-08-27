@@ -34,10 +34,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditMeetingController := app.AuditModule.AuditMeetingController
 	auditTimelineController := app.AuditModule.AuditTimelineController
 	auditFindingStatusController := app.AuditModule.AuditFindingStatusController
-	auditFindingCategoryController := app.AuditModule.AuditFindingCategoryController 
+	auditFindingCategoryController := app.AuditModule.AuditFindingCategoryController
 	auditFindingController := app.AuditModule.AuditFindingController
-	auditDocumentRequestStatusController := app.AuditModule.AuditDocumentRequestStatusController 
-	auditDocumentRequestController := app.AuditModule.AuditDocumentRequestController 
+	auditDocumentRequestStatusController := app.AuditModule.AuditDocumentRequestStatusController
+	auditDocumentRequestController := app.AuditModule.AuditDocumentRequestController
+	auditFindingRootCauseAnalysisController := app.AuditModule.AuditFindingRootCauseAnalysisController
+	auditFindingActionPlanController := app.AuditModule.AuditFindingActionPlanController
 
 	//Audit Status
 	auditRoutes.GET("/audit-statuses", auditStatusController.GetAllAuditStatuses)
@@ -188,7 +190,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	//Audit Document  Request Status
 	auditRoutes.GET("/audit-document-request-statuses", auditDocumentRequestStatusController.GetAllAuditDocumentRequestStatuses)
-	auditRoutes.GET("/audit-document-request-statuses/:id", auditDocumentRequestStatusController.GetAuditDocumentRequestStatusDetails)
 
 	// Audit Document Request
 	auditRoutes.GET("/audits/:auditId/document-requests", auditDocumentRequestController.GetAllAuditDocumentRequests)
@@ -196,5 +197,16 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.POST("/audits/:auditId/document-requests", auditDocumentRequestController.CreateAuditDocumentRequest)
 	auditRoutes.PUT("/audits/:auditId/document-requests/:id", auditDocumentRequestController.UpdateAuditDocumentRequest)
 	auditRoutes.POST("/audits/:auditId/document-requests/delete", auditDocumentRequestController.DeleteAuditDocumentRequests)
+	auditRoutes.GET("/audits/:auditId/findings/:id/root-cause-analysis", auditFindingRootCauseAnalysisController.GetAllAuditFindingRootCauseAnalyses)
+	auditRoutes.POST("/audits/:auditId/findings/:id/root-cause-analysis", auditFindingRootCauseAnalysisController.CreateAuditFindingRootCauseAnalysis)
+	auditRoutes.DELETE("/audits/:auditId/findings/:id/root-cause-analysis/:analysisId", auditFindingRootCauseAnalysisController.DeleteAuditFindingRootCauseAnalyses)
+
+	// Audit Finding Action Plan
+	auditRoutes.GET("/audit-finding-action-plans", auditFindingActionPlanController.GetAllAuditFindingActionPlans)
+	auditRoutes.GET("/audits/:auditId/findings/:id/action-plans", auditFindingActionPlanController.GetAllAuditFindingActionPlans)
+	auditRoutes.GET("/audits/:auditId/findings/:id/action-plans/:actionPlanId", auditFindingActionPlanController.GetAuditFindingActionPlanDetails)
+	auditRoutes.POST("/audits/:auditId/findings/:id/action-plans", auditFindingActionPlanController.CreateAuditFindingActionPlan)
+	auditRoutes.PUT("/audits/:auditId/findings/:id/action-plans/:actionPlanId", auditFindingActionPlanController.UpdateAuditFindingActionPlan)
+	auditRoutes.POST("/audits/:auditId/findings/:id/action-plans/delete", auditFindingActionPlanController.DeleteAuditFindingActionPlans)
 
 }
