@@ -1,7 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE TABLE audit_finding_action_plans
-(
+CREATE TABLE audit_finding_action_plans(
     id INT PRIMARY KEY IDENTITY(1, 1),
     audit_finding_id INT NOT NULL,
     title NVARCHAR(500) NOT NULL,
