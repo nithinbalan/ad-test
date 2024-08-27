@@ -144,9 +144,9 @@ func (awc *AuditWorkpaperController) UpdateAuditWorkpaper(c *gin.Context) {
 		return
 	}
 
-	var auditWorkpaperFormDTO dtos.AuditWorkpaperFormDTO
+	var auditWorkpaperUpdateFormDTO dtos.AuditWorkpaperUpdateFormDTO
 
-	if err := c.ShouldBindJSON(&auditWorkpaperFormDTO); err != nil {
+	if err := c.ShouldBindJSON(&auditWorkpaperUpdateFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
@@ -157,7 +157,7 @@ func (awc *AuditWorkpaperController) UpdateAuditWorkpaper(c *gin.Context) {
 		return
 	}
 
-	err = awc.service.Update(uint(auditWorkpaperID), uint(auditID), currentUserID, &auditWorkpaperFormDTO)
+	err = awc.service.Update(uint(auditWorkpaperID), uint(auditID), currentUserID, &auditWorkpaperUpdateFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
