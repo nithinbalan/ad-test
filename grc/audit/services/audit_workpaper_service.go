@@ -176,59 +176,74 @@ func (aws *AuditWorkpaperService) Create(auditID uint, currentUserID uint, formD
 
 func (aws *AuditWorkpaperService) Update(id uint, auditID uint, currentUserID uint, formDTO *auditDTOs.AuditWorkpaperUpdateFormDTO) error {
 	tx := aws.repo.BeginTransaction()
+
+	// Validate audit ID
 	if _, err := aws.auditSvc.GetByID(auditID); err != nil {
+		tx.Rollback()
 		return err
 	}
 
+	// Retrieve the existing workpaper by ID
 	workpaper, err := aws.repo.GetByID(id)
 	if err != nil {
 		tx.Rollback()
 		return utility.NewResourceNotFoundError(err, id)
 	}
 
+	// Update workpaper fields
 	workpaper.Title = formDTO.Title
 	workpaper.Description = formDTO.Description
 	workpaper.UpdatedBYID = &currentUserID
-	// Check if the file is new or updated
-	if formDTO.IsNewFile != nil && *formDTO.IsNewFile {
-		// Generate new token
-		dataToEncrypt := []byte(formDTO.FileName)
+
+	document := formDTO.Documents
+	if document.IsNewFile != nil && *document.IsNewFile {
+		// Generate new token for the new file
+		dataToEncrypt := []byte(document.FileName)
 		encryptedFilename, err := utility.EncryptData(dataToEncrypt)
 		if err != nil {
 			tx.Rollback()
 			return err
 		}
+
+		// Define the storage path
 		storagePath := filepath.Join("audits", "audit", strconv.FormatUint(uint64(auditID), 10), "audit-workpaper")
 
-		//remove old document
-		if err := utility.RemoveFile(*workpaper.Name, storagePath); err != nil {
-			tx.Rollback()
+		// Remove the old document if exists
+		if workpaper.Name != nil {
+			if err := utility.RemoveFile(*workpaper.Name, storagePath); err != nil {
+				tx.Rollback()
+				return err
+			}
 		}
+
 		// Generate new URL
 		url := utility.GenerateDocumentURL("audits", "audit", strconv.FormatUint(uint64(auditID), 10), "audit-workpaper")
 
 		// Store new document
-		if err := utility.StoreFile(formDTO.FileName, storagePath); err != nil {
+		if err := utility.StoreFile(document.FileName, storagePath); err != nil {
 			tx.Rollback()
 			return err
 		}
 
 		// Update workpaper with new file details
 		workpaper.URL = &url
-		workpaper.Name = &formDTO.FileName
-		workpaper.Size = &formDTO.Size
+		workpaper.Name = &document.FileName
+		workpaper.Size = &document.Size
 		workpaper.Token = &encryptedFilename
-		workpaper.OriginalName = &formDTO.OriginalName
+		workpaper.OriginalName = &document.OriginalName
 	}
 
+	// Save the updated workpaper
 	err = aws.repo.Update(workpaper, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
+	// Commit the transaction
 	tx.Commit()
 
+	// Asynchronously log the activity
 	go func() {
 		err := aws.activityLogSvc.LogActivity(
 			models.UpdateAction,

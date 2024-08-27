@@ -48,13 +48,9 @@ type AuditWorkpaperFormDTO struct {
 	Documents   []*commonDTOs.DocumentFormDTO `json:"documents" binding:"required"`
 }
 type AuditWorkpaperUpdateFormDTO struct {
-	Title        string  `json:"title" binding:"required,max=255"`
-	Description  *string `json:"description"`
-	URL          string  `json:"url"`
-	FileName     string  `json:"file_name"`
-	Size         int     `json:"size"`
-	OriginalName string  `json:"original_name"`
-	IsNewFile    *bool   `json:"is_new_file,omitempty"`
+	Title       string                     `json:"title" binding:"required,max=255"`
+	Description *string                    `json:"description"`
+	Documents   commonDTOs.DocumentFormDTO `json:"documents" binding:"required"`
 }
 type AuditWorkpaperDetailDTO struct {
 	ID            uint                             `json:"id"`
