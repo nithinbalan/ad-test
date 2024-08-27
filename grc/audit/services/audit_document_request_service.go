@@ -8,7 +8,6 @@ import (
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
-	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -80,8 +79,9 @@ func (adrs *AuditDocumentRequestService) GetFullDetailsByID(id uint, tx ...utili
 	if err != nil {
 		return nil, err
 	}
-	documentRequestDTO.RequestedAtString = documentRequest.RequestedAt.Format("2006-01-02")
-
+	if documentRequest.RequestedAt != nil {
+		documentRequestDTO.RequestedAtString = documentRequest.RequestedAt.Format("2006-01-02")
+	}
 	documentRequestDTO.CreatedAt = documentRequest.CreatedAt
 	if documentRequest.UpdatedAt != nil {
 		documentRequestDTO.UpdatedAt = documentRequest.UpdatedAt
@@ -135,17 +135,19 @@ func (adrs *AuditDocumentRequestService) Create(auditID uint, currentUserID uint
 			CreatedBYID:     currentUserID,
 		})
 	}
-
+	auditScheduleStatus, err := adrs.auditDocumentRequestStatusSvc.GetByType("draft")
+	if err != nil {
+		return nil, err
+	}
 	// Loop through the grouped data and create requests
 	var requestIDs []uint
 	for _, group := range responsibleUnitGroups {
 		// Create a new AuditDocumentRequest for each group
 		documentRequest := &models.AuditDocumentRequest{
 			AuditID:                      auditID,
-			AuditDocumentRequestStatusID: formDTO.AuditDocumentRequestStatusID,
+			AuditDocumentRequestStatusID: uint(auditScheduleStatus.ID),
 			Title:                        formDTO.Title,
 			Description:                  formDTO.Description,
-			RequestedAt:                  time.Now(),
 			ResponsibleUnitID:            group.ResponsibleUnitID,
 			CreatedBYID:                  currentUserID,
 		}
@@ -211,17 +213,12 @@ func (adrs *AuditDocumentRequestService) Update(auditID uint, id uint, currentUs
 		tx.Rollback()
 		return err
 	}
-	if err := adrs.validateAuditDocumentRequestFormDTO(formDTO); err != nil {
-		tx.Rollback()
-		return err
-	}
 	documentRequest, err := adrs.repo.GetByID(id)
 	if err != nil {
 		tx.Rollback()
 		return utility.NewResourceNotFoundError(err, id)
 	}
 
-	documentRequest.AuditDocumentRequestStatusID = formDTO.AuditDocumentRequestStatusID
 	documentRequest.Title = formDTO.Title
 	documentRequest.Description = formDTO.Description
 	documentRequest.UpdatedBYID = &currentUserID
@@ -263,7 +260,6 @@ func (adrs *AuditDocumentRequestService) Delete(ids []uint, currentUserID uint) 
 	tx := adrs.repo.BeginTransaction()
 	var failedIDs []uint
 	var successfulIDs []uint
-
 	for _, id := range ids {
 		documentRequest, err := adrs.GetFullDetailsByID(id, tx)
 		if err != nil {
@@ -273,6 +269,11 @@ func (adrs *AuditDocumentRequestService) Delete(ids []uint, currentUserID uint) 
 			}
 			tx.Rollback()
 			return nil, err
+		}
+		//Only Delete If the Audit Document Request Status is Draft
+		if documentRequest.AuditDocumentRequestStatus.Type != "draft" {
+			failedIDs = append(failedIDs, id)
+			continue
 		}
 		if len(documentRequest.AuditableItems) > 0 {
 			var deleteAuditableItemIDs []*uint
@@ -329,11 +330,6 @@ func (adrs *AuditDocumentRequestService) Delete(ids []uint, currentUserID uint) 
 }
 
 func (adrs *AuditDocumentRequestService) validateAuditDocumentRequestFormDTO(formDTO *auditDTOs.AuditDocumentRequestFormDTO) error {
-	// Validate the AuditDocumentRequestStatusID
-	if _, err := adrs.auditDocumentRequestStatusSvc.GetByID(formDTO.AuditDocumentRequestStatusID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("status does not exist"), "not_exist", "audit document request status")
-	}
-
 	// Validate AuditableItemIds
 	if formDTO.AuditableItemIds == nil {
 		return utility.NewValidationError(fmt.Errorf("auditable item IDs are required"), "required", "auditable item IDs")

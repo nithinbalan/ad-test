@@ -159,7 +159,7 @@ func (adrc *AuditDocumentRequestController) UpdateAuditDocumentRequest(c *gin.Co
 		return
 	}
 
-	err = adrc.service.Update(uint(auditDocumentRequestID), uint(auditID), currentUserID, &auditDocumentRequestFormDTO)
+	err = adrc.service.Update(uint(auditID), uint(auditDocumentRequestID), currentUserID, &auditDocumentRequestFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

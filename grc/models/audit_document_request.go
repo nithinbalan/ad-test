@@ -11,7 +11,7 @@ type AuditDocumentRequest struct {
 	ResponsibleUnitID            uint       `json:"responsible_unit_id" binding:"required" gorm:"not null"`
 	Title                        string     `json:"title" gorm:"type:nvarchar(255);not null"`
 	Description                  *string    `json:"description" gorm:"type:nvarchar(MAX);default:null"`
-	RequestedAt                  time.Time  `json:"requested_at" gorm:"type:datetime;not null"`
+	RequestedAt                  *time.Time `json:"requested_at" gorm:"type:datetime;default:null"`
 	CreatedAt                    time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt                    *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 	CreatedBYID                  uint       `json:"created_by_id" gorm:"not null"`
