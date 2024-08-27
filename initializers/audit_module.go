@@ -32,6 +32,8 @@ type AuditModule struct {
 	AuditFindingStatusController             *controllers.AuditFindingStatusController
 	AuditFindingCategoryController           *controllers.AuditFindingCategoryController
 	AuditFindingController                   *controllers.AuditFindingController
+	AuditDocumentRequestStatusController     *controllers.AuditDocumentRequestStatusController
+	AuditDocumentRequestController           *controllers.AuditDocumentRequestController
 }
 
 func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, complianceModule *ComplianceModule, riskModule *RiskModule, incidentModule *IncidentModule, documentModule *DocumentModule, settingModule *SettingsModule, masterModule *MasterModule) *AuditModule {
@@ -211,6 +213,20 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 	)
 	auditFindingController := controllers.NewAuditFindingController(auditFindingSvc)
 
+	auditDocumentRequestStatusRepo := repositories.NewAuditDocumentRequestStatusRepository(db)
+	auditDocumentRequestStatusSvc := services.NewAuditDocumentRequestStatusService(auditDocumentRequestStatusRepo)
+	auditDocumentRequestStatusController := controllers.NewAuditDocumentRequestStatusController(auditDocumentRequestStatusSvc)
+
+	auditDocumentRequestRepo := repositories.NewAuditDocumentRequestRepository(db)
+	auditDocumentRequestSvc := services.NewAuditDocumentRequestService(
+		auditDocumentRequestRepo,
+		sharedModule.ActivityLogService,
+		auditSvc,
+		auditDocumentRequestStatusSvc,
+		auditableItemSvc,
+	)
+	auditDocumentRequestController := controllers.NewAuditDocumentRequestController(auditDocumentRequestSvc)
+
 	return &AuditModule{
 		AuditorRiskRatingController:              auditorRiskRatingController,
 		AuditUniverseController:                  auditUniverseController,
@@ -235,5 +251,7 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		AuditFindingStatusController:             auditFindingStatusController,
 		AuditFindingCategoryController:           auditFindingCategoryController,
 		AuditFindingController:                   auditFindingController,
+		AuditDocumentRequestStatusController:     auditDocumentRequestStatusController,
+		AuditDocumentRequestController:           auditDocumentRequestController,
 	}
 }

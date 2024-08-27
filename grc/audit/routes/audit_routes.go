@@ -34,8 +34,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditMeetingController := app.AuditModule.AuditMeetingController
 	auditTimelineController := app.AuditModule.AuditTimelineController
 	auditFindingStatusController := app.AuditModule.AuditFindingStatusController
-	auditFindingCategoryController := app.AuditModule.AuditFindingCategoryController
+	auditFindingCategoryController := app.AuditModule.AuditFindingCategoryController 
 	auditFindingController := app.AuditModule.AuditFindingController
+	auditDocumentRequestStatusController := app.AuditModule.AuditDocumentRequestStatusController 
+	auditDocumentRequestController := app.AuditModule.AuditDocumentRequestController 
 
 	//Audit Status
 	auditRoutes.GET("/audit-statuses", auditStatusController.GetAllAuditStatuses)
@@ -183,5 +185,16 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.POST("/audits/:auditId/findings", auditFindingController.CreateAuditFinding)
 	auditRoutes.PUT("/audits/:auditId/findings/:id", auditFindingController.UpdateAuditFinding)
 	auditRoutes.POST("audits/:auditId/findings/delete", auditFindingController.DeleteAuditFindings)
+
+	//Audit Document  Request Status
+	auditRoutes.GET("/audit-document-request-statuses", auditDocumentRequestStatusController.GetAllAuditDocumentRequestStatuses)
+	auditRoutes.GET("/audit-document-request-statuses/:id", auditDocumentRequestStatusController.GetAuditDocumentRequestStatusDetails)
+
+	// Audit Document Request
+	auditRoutes.GET("/audits/:auditId/document-requests", auditDocumentRequestController.GetAllAuditDocumentRequests)
+	auditRoutes.GET("/audits/:auditId/document-requests/:id", auditDocumentRequestController.GetAuditDocumentRequestDetails)
+	auditRoutes.POST("/audits/:auditId/document-requests", auditDocumentRequestController.CreateAuditDocumentRequest)
+	auditRoutes.PUT("/audits/:auditId/document-requests/:id", auditDocumentRequestController.UpdateAuditDocumentRequest)
+	auditRoutes.POST("/audits/:auditId/document-requests/delete", auditDocumentRequestController.DeleteAuditDocumentRequests)
 
 }
