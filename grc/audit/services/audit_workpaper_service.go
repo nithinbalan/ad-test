@@ -5,6 +5,7 @@ import (
 	"fmt"
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
+	commonDTOs "jethur/grc/common/dtos"
 	logServices "jethur/grc/logs/services"
 	mastersServices "jethur/grc/masters/services"
 	"jethur/grc/models"
@@ -20,7 +21,7 @@ type AuditWorkpaperServiceInterface interface {
 	GetAll(auditID uint, params *auditDTOs.AuditWorkpaperListQueryParamsDTO) (*auditDTOs.AuditWorkpaperListResponseDTO, error)
 	GetByID(id uint) (*models.AuditWorkpaper, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditWorkpaperDetailDTO, error)
-	Create(auditID uint, currentUserID uint, auditWorkpaperFormDTO *auditDTOs.AuditWorkpaperFormDTO) (uint, error)
+	Create(auditID uint, currentUserID uint, auditWorkpaperFormDTO *auditDTOs.AuditWorkpaperFormDTO) ([]uint, error)
 	Update(id uint, auditID uint, currentUserID uint, auditWorkpaperFormDTO *auditDTOs.AuditWorkpaperFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 }
@@ -87,161 +88,185 @@ func (aws *AuditWorkpaperService) GetFullDetailsByID(id uint, tx ...utility.Data
 	return &workpaperDTO, nil
 }
 
-func (aws *AuditWorkpaperService) Create(auditID uint, currentUserID uint, formDTO *auditDTOs.AuditWorkpaperFormDTO) (uint, error) {
+func (aws *AuditWorkpaperService) Create(auditID uint, currentUserID uint, formDTO *auditDTOs.AuditWorkpaperFormDTO) ([]uint, error) {
 	tx := aws.repo.BeginTransaction()
+
+	// Validate audit ID
 	if _, err := aws.auditSvc.GetByID(auditID); err != nil {
 		tx.Rollback()
-		return 0, err
+		return nil, err
 	}
 
+	// Validate the form DTO
 	if err := aws.validateAuditWorkpaperFormDTO(formDTO); err != nil {
 		tx.Rollback()
-		return 0, err
+		return nil, err
 	}
 
-	//generate token
-	dataToEncrypt := []byte(formDTO.FileName)
-	encryptedFilename, err := utility.EncryptData(dataToEncrypt)
-	if err != nil {
-		return 0, err
-	}
+	// Prepare to collect IDs of created workpapers
+	var workpaperIDs []uint
 
-	//genereate URL
-	url := utility.GenerateDocumentURL("audits", "audit", strconv.FormatUint(uint64(auditID), 10), "audit-workpaper")
+	// Loop through each document and create a workpaper
+	for _, document := range formDTO.Documents {
+		// Generate token for the document file name
+		dataToEncrypt := []byte(document.FileName)
+		encryptedFilename, err := utility.EncryptData(dataToEncrypt)
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
 
-	workpaper := &models.AuditWorkpaper{
-		AuditID:      auditID,
-		SourceID:     formDTO.SourceID,
-		Title:        formDTO.Title,
-		Description:  formDTO.Description,
-		URL:          &url,
-		Name:         &formDTO.FileName,
-		Size:         &formDTO.Size,
-		Token:        &encryptedFilename,
-		OriginalName: &formDTO.OriginalName,
-		CreatedBYID:  currentUserID,
-	}
+		// Generate URL for the document
+		url := utility.GenerateDocumentURL("audits", "audit", strconv.FormatUint(uint64(auditID), 10), "audit-workpaper")
 
-	id, err := aws.repo.Create(workpaper, tx)
-	if err != nil {
-		tx.Rollback()
-		return 0, err
-	}
-	// Store Compliance Document File using utility.StoreFile
-	storagePath := filepath.Join("audits", "audit", strconv.FormatUint(uint64(auditID), 10), "audit-workpaper")
+		// Create workpaper model
+		workpaper := &models.AuditWorkpaper{
+			AuditID:      auditID,
+			SourceID:     formDTO.SourceID,
+			Title:        formDTO.Title,
+			Description:  formDTO.Description,
+			URL:          &url,
+			Name:         &document.FileName,
+			Size:         &document.Size,
+			Token:        &encryptedFilename,
+			OriginalName: &document.OriginalName,
+			CreatedBYID:  currentUserID,
+		}
 
-	if err := utility.StoreFile(formDTO.FileName, storagePath); err != nil {
-		tx.Rollback()
-		return 0, err
+		// Save the workpaper in the database
+		id, err := aws.repo.Create(workpaper, tx)
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+
+		// Store the document file
+		storagePath := filepath.Join("audits", "audit", strconv.FormatUint(uint64(auditID), 10), "audit-workpaper")
+		if err := utility.StoreFile(document.FileName, storagePath); err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+
+		// Append the created workpaper ID to the list
+		workpaperIDs = append(workpaperIDs, id)
+
+		// Log activity asynchronously
+		go func(id uint, document *commonDTOs.DocumentFormDTO) {
+			err := aws.activityLogSvc.LogActivity(
+				models.CreateAction,
+				models.AuditWorkpaper{}.TableName(),
+				id,
+				document,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.CreateAction,
+					"tableName": models.AuditWorkpaper{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+				utility.LogError("Failed to log activity", fields)
+			}
+		}(id, document)
 	}
 
 	tx.Commit()
-
-	go func() {
-		err := aws.activityLogSvc.LogActivity(
-			models.CreateAction,
-			models.AuditWorkpaper{}.TableName(),
-			id,
-			formDTO,
-			currentUserID,
-			nil,
-		)
-
-		if err != nil {
-			fields := map[string]interface{}{
-				"action":    models.CreateAction,
-				"tableName": models.AuditWorkpaper{}.TableName(),
-				"recordID":  id,
-				"userID":    currentUserID,
-				"error":     err.Error(),
-			}
-			utility.LogError("Failed to log activity", fields)
-		}
-	}()
-
-	return id, nil
+	return workpaperIDs, nil
 }
 
 func (aws *AuditWorkpaperService) Update(id uint, auditID uint, currentUserID uint, formDTO *auditDTOs.AuditWorkpaperFormDTO) error {
 	tx := aws.repo.BeginTransaction()
+
+	// Validate audit ID
 	if _, err := aws.auditSvc.GetByID(auditID); err != nil {
+		tx.Rollback()
 		return err
 	}
 
+	// Validate the form DTO
 	if err := aws.validateAuditWorkpaperFormDTO(formDTO); err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	workpaper, err := aws.repo.GetByID(id)
-	if err != nil {
-		tx.Rollback()
-		return utility.NewResourceNotFoundError(err, id)
-	}
+	// Loop through each document and update the corresponding workpaper
+	for _, document := range formDTO.Documents {
+		// Retrieve the existing workpaper by ID
+		workpaper, err := aws.repo.GetByID(id)
+		if err != nil {
+			tx.Rollback()
+			return utility.NewResourceNotFoundError(err, id)
+		}
 
-	workpaper.SourceID = formDTO.SourceID
-	workpaper.Title = formDTO.Title
-	workpaper.Description = formDTO.Description
-	workpaper.OriginalName = &formDTO.OriginalName
-	workpaper.UpdatedBYID = &currentUserID
-	// Check if the file is new or updated
-	if formDTO.IsNewFile != nil && *formDTO.IsNewFile {
-		// Generate new token
-		dataToEncrypt := []byte(formDTO.FileName)
-		encryptedFilename, err := utility.EncryptData(dataToEncrypt)
+		// Update workpaper fields
+		workpaper.SourceID = formDTO.SourceID
+		workpaper.Title = formDTO.Title
+		workpaper.Description = formDTO.Description
+		workpaper.UpdatedBYID = &currentUserID
+
+		// Check if the file is new or updated
+		if document.IsNewFile != nil && *document.IsNewFile {
+			// Generate new token
+			dataToEncrypt := []byte(document.FileName)
+			encryptedFilename, err := utility.EncryptData(dataToEncrypt)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			// Generate new URL
+			url := utility.GenerateDocumentURL("audits", "audit", strconv.FormatUint(uint64(auditID), 10), "audit-workpaper")
+
+			// Store new document
+			storagePath := filepath.Join("audits", "audit", strconv.FormatUint(uint64(auditID), 10), "audit-workpaper")
+			if err := utility.StoreFile(document.FileName, storagePath); err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			// Update workpaper with new file details
+			workpaper.URL = &url
+			workpaper.Name = &document.FileName
+			workpaper.Size = &document.Size
+			workpaper.Token = &encryptedFilename
+			workpaper.OriginalName = &document.OriginalName
+		}
+
+		// Update the workpaper in the database
+		err = aws.repo.Update(workpaper, tx)
 		if err != nil {
 			tx.Rollback()
 			return err
 		}
 
-		// Generate new URL
-		url := utility.GenerateDocumentURL("audits", "audit", strconv.FormatUint(uint64(auditID), 10), "audit-workpaper")
+		// Log activity asynchronously
+		go func(id uint, document *commonDTOs.DocumentFormDTO) {
+			err := aws.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.AuditWorkpaper{}.TableName(),
+				id,
+				document,
+				currentUserID,
+				nil,
+			)
 
-		// Store new document
-		storagePath := filepath.Join("audits", "audit", strconv.FormatUint(uint64(auditID), 10), "audit-workpaper")
-		if err := utility.StoreFile(formDTO.FileName, storagePath); err != nil {
-			tx.Rollback()
-			return err
-		}
-
-		// Update workpaper with new file details
-		workpaper.URL = &url
-		workpaper.Name = &formDTO.FileName
-		workpaper.Size = &formDTO.Size
-		workpaper.Token = &encryptedFilename
-		workpaper.OriginalName = &formDTO.OriginalName
-	}
-
-	err = aws.repo.Update(workpaper, tx)
-	if err != nil {
-		tx.Rollback()
-		return err
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.AuditWorkpaper{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+				utility.LogError("Failed to log activity", fields)
+			}
+		}(id, document)
 	}
 
 	tx.Commit()
-
-	go func() {
-		err := aws.activityLogSvc.LogActivity(
-			models.UpdateAction,
-			models.AuditWorkpaper{}.TableName(),
-			id,
-			formDTO,
-			currentUserID,
-			nil,
-		)
-
-		if err != nil {
-			fields := map[string]interface{}{
-				"action":    models.UpdateAction,
-				"tableName": models.AuditWorkpaper{}.TableName(),
-				"recordID":  id,
-				"userID":    currentUserID,
-				"error":     err.Error(),
-			}
-			utility.LogError("Failed to log activity", fields)
-		}
-	}()
-
 	return nil
 }
 
@@ -256,7 +281,7 @@ func (aws *AuditWorkpaperService) Delete(ids []uint, currentUserID uint) ([]uint
 			tx.Rollback()
 			return nil, err
 		}
-		
+
 		if err := aws.repo.Delete(id, tx); err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				failedIDs = append(failedIDs, id)

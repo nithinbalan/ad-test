@@ -3,7 +3,6 @@ package controllers
 import (
 	"jethur/grc/audit/dtos"
 	"jethur/grc/audit/services"
-	commonDTOs "jethur/grc/common/dtos"
 	"jethur/utility"
 	"net/http"
 	"strconv"
@@ -114,7 +113,7 @@ func (awc *AuditWorkpaperController) CreateAuditWorkpaper(c *gin.Context) {
 		return
 	}
 
-	id, err := awc.service.Create(uint(auditID), currentUserID, &auditWorkpaperFormDTO)
+	ids, err := awc.service.Create(uint(auditID), currentUserID, &auditWorkpaperFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -129,7 +128,7 @@ func (awc *AuditWorkpaperController) CreateAuditWorkpaper(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusCreated, commonDTOs.IDResponse{ID: id})
+	c.JSON(http.StatusCreated, gin.H{"ids": ids})
 }
 
 func (awc *AuditWorkpaperController) UpdateAuditWorkpaper(c *gin.Context) {
