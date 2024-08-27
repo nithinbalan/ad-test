@@ -4,7 +4,7 @@ CREATE TABLE audit_schedules
 (
     id INT PRIMARY KEY IDENTITY(1,1),
     audit_plan_id INT NOT NULL,
-    audit_plan_schedule_id INT NOT NULL,
+    audit_plan_schedule_id INT NULL,
     audit_activity_type_id INT NOT NULL,
     audit_id INT NOT NULL,
     title NVARCHAR(255) NOT NULL,

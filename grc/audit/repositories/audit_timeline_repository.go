@@ -52,7 +52,7 @@ func (repo *AuditTimelineRepository) GetAll(auditID uint, params *auditDTOs.Audi
 			performed_by.last_name_ar AS performed_by_last_name_ar,
 			performed_by.email AS performed_by_email,
 			performed_by.initial AS performed_by_initial,
-			performed_by.color AS performed_by_color,
+			performed_by.color AS performed_by_color_code,
 			performed_by.profile_image_path AS performed_by_profile_image_path,
 			audit_timelines.performed_at AS performed_at
 		`).

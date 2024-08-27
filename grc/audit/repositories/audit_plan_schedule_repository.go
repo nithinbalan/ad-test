@@ -20,6 +20,8 @@ type AuditPlanScheduleRepositoryInterface interface {
 
 	CreateAuditableItems(auditPlanScheduleAuditableItems []*models.AuditPlanScheduleAuditableItem, tx ...utility.DatabaseTransaction) error
 	DeleteAuditableItems(auditPlanScheduleAuditableItemIds []*uint, tx ...utility.DatabaseTransaction) error
+
+	GetAllSchedulesByAuditPlanID(auditPlanID uint, tx ...utility.DatabaseTransaction) ([]*models.AuditPlanSchedule, error)
 }
 
 type AuditPlanScheduleRepository struct {
@@ -284,4 +286,23 @@ func (repo *AuditPlanScheduleRepository) DeleteAuditableItems(auditPlanScheduleA
 	}
 
 	return nil
+}
+
+func (repo *AuditPlanScheduleRepository) GetAllSchedulesByAuditPlanID(auditPlanID uint, tx ...utility.DatabaseTransaction) ([]*models.AuditPlanSchedule, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var schedules []*models.AuditPlanSchedule
+
+	err := db.Where("audit_plan_id = ?", auditPlanID).
+		Preload("AuditableItems"). // Preloading AuditableItems
+		Find(&schedules).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return schedules, nil
 }
