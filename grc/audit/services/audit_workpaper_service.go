@@ -188,7 +188,6 @@ func (aws *AuditWorkpaperService) Update(id uint, auditID uint, currentUserID ui
 
 	workpaper.Title = formDTO.Title
 	workpaper.Description = formDTO.Description
-	workpaper.OriginalName = &formDTO.OriginalName
 	workpaper.UpdatedBYID = &currentUserID
 	// Check if the file is new or updated
 	if formDTO.IsNewFile != nil && *formDTO.IsNewFile {
