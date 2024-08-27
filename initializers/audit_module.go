@@ -33,6 +33,7 @@ type AuditModule struct {
 	AuditFindingCategoryController           *controllers.AuditFindingCategoryController
 	AuditFindingController                   *controllers.AuditFindingController
 	AuditFindingRootCauseAnalysisController  *controllers.AuditFindingRootCauseAnalysisController
+	AuditFindingActionPlanController         *controllers.AuditFindingActionPlanController
 }
 
 func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, complianceModule *ComplianceModule, riskModule *RiskModule, incidentModule *IncidentModule, documentModule *DocumentModule, settingModule *SettingsModule, masterModule *MasterModule) *AuditModule {
@@ -217,6 +218,17 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 	auditFindingRootCauseAnalysisSvc := services.NewAuditFindingRootCauseAnalysisService(auditFindingRootCauseAnalysisRepo, sharedModule.ActivityLogService, auditFindingSvc, auditTimelineSvc)
 	auditFindingRootCauseAnalysisController := controllers.NewAuditFindingRootCauseAnalysisController(auditFindingRootCauseAnalysisSvc)
 
+	auditFindingActionPlanRepo := repositories.NewAuditFindingActionPlanRepository(db)
+	auditFindingActionPlanSvc := services.NewAuditFindingActionPlanService(
+		auditFindingActionPlanRepo,
+		sharedModule.ActivityLogService,
+		auditFindingSvc,
+		masterModule.ActionPlanStatusSvc,
+		masterModule.SeverityLevelSvc,
+		auditTimelineSvc,
+	)
+	auditFindingActionPlanController := controllers.NewAuditFindingActionPlanController(auditFindingActionPlanSvc)
+
 	return &AuditModule{
 		AuditorRiskRatingController:              auditorRiskRatingController,
 		AuditUniverseController:                  auditUniverseController,
@@ -242,5 +254,6 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		AuditFindingCategoryController:           auditFindingCategoryController,
 		AuditFindingController:                   auditFindingController,
 		AuditFindingRootCauseAnalysisController:  auditFindingRootCauseAnalysisController,
+		AuditFindingActionPlanController:         auditFindingActionPlanController,
 	}
 }
