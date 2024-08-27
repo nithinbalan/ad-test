@@ -17,6 +17,9 @@ type AuditRepositoryInterface interface {
 	Create(audit *models.Audit, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(audit *models.Audit, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
+
+	CreateAuditSchedule(auditSchedule *models.AuditSchedule, tx ...utility.DatabaseTransaction) (*models.AuditSchedule, error)
+	CreateAuditScheduleAuditableItem(item *models.AuditScheduleAuditableItem, tx ...utility.DatabaseTransaction) error
 }
 
 type AuditRepository struct {
@@ -194,6 +197,15 @@ func (repo *AuditRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseT
 		Preload("AuditPlan.Members.User").
 		Preload("AuditPlan.AuditStatus").
 		Preload("AuditPlan.AuditableItems.AuditableItem.ResponsibleUnit").
+		Preload("AuditPlan.AuditableItems.AuditableItem.Process").
+		Preload("AuditPlan.AuditableItems.AuditableItem.Control").
+		Preload("AuditPlan.AuditableItems.AuditableItem.RiskRegister").
+		Preload("AuditPlan.AuditableItems.AuditableItem.IncidentRegister").
+		Preload("AuditPlan.AuditableItems.AuditableItem.ComplianceRequirement").
+		Preload("AuditPlan.AuditableItems.AuditableItem.User").
+		Preload("AuditPlan.AuditableItems.AuditableItem.Document").
+		Preload("AuditPlan.AuditableItems.AuditableItem.AuditorRiskRating").
+		Preload("AuditPlan.AuditableItems.AuditableItem.AuditStatus").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&audit, id)
@@ -236,6 +248,32 @@ func (repo *AuditRepository) Delete(id uint, tx ...utility.DatabaseTransaction) 
 	}
 	// Delete the Audit
 	if err := db.Delete(&models.Audit{}, id).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *AuditRepository) CreateAuditSchedule(auditSchedule *models.AuditSchedule, tx ...utility.DatabaseTransaction) (*models.AuditSchedule, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Create(auditSchedule).Error; err != nil {
+		return nil, err
+	}
+
+	return auditSchedule, nil
+}
+
+func (repo *AuditRepository) CreateAuditScheduleAuditableItem(item *models.AuditScheduleAuditableItem, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Create(item).Error; err != nil {
 		return err
 	}
 

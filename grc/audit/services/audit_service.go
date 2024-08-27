@@ -24,10 +24,11 @@ type AuditServiceInterface interface {
 }
 
 type AuditService struct {
-	repo             repositories.AuditRepositoryInterface
-	activityLogSvc   logServices.ActivityLogServiceInterface
-	auditPlanSvc     AuditPlanServiceInterface
-	auditTimelineSvc AuditTimelineServiceInterface
+	repo                 repositories.AuditRepositoryInterface
+	activityLogSvc       logServices.ActivityLogServiceInterface
+	auditPlanSvc         AuditPlanServiceInterface
+	auditTimelineSvc     AuditTimelineServiceInterface
+	auditPlanScheduleSvc AuditPlanScheduleServiceInterface
 }
 
 func NewAuditService(
@@ -35,12 +36,14 @@ func NewAuditService(
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	AuditPlanSvc AuditPlanServiceInterface,
 	auditTimelineSvc AuditTimelineServiceInterface,
+	auditPlanScheduleSvc AuditPlanScheduleServiceInterface,
 ) AuditServiceInterface {
 	return &AuditService{
-		repo:             repo,
-		activityLogSvc:   activityLogSvc,
-		auditPlanSvc:     AuditPlanSvc,
-		auditTimelineSvc: auditTimelineSvc,
+		repo:                 repo,
+		activityLogSvc:       activityLogSvc,
+		auditPlanSvc:         AuditPlanSvc,
+		auditTimelineSvc:     auditTimelineSvc,
+		auditPlanScheduleSvc: auditPlanScheduleSvc,
 	}
 }
 
@@ -106,6 +109,11 @@ func (as *AuditService) Create(currentUserID uint, auditFormDTO *auditDTOs.Audit
 
 	id, err := as.repo.Create(audit, tx)
 	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	if err := as.copyAuditPlanSchedulesToAuditSchedule(id, auditFormDTO.AuditPlanID, currentUserID, tx); err != nil {
 		tx.Rollback()
 		return 0, err
 	}
@@ -337,4 +345,46 @@ func (as *AuditService) parseAuditPlanDates(dto *auditDTOs.AuditFormDTO) (*audit
 	}
 
 	return parsed, nil
+}
+
+func (as *AuditService) copyAuditPlanSchedulesToAuditSchedule(auditID uint, auditPlanID uint, currentUserID uint, tx ...utility.DatabaseTransaction) error {
+	auditPlanSchedules, err := as.auditPlanScheduleSvc.GetAllSchedulesByAuditPlanID(auditPlanID, tx...)
+	if err != nil {
+		return err
+	}
+
+	for _, schedule := range auditPlanSchedules {
+		auditSchedule := &models.AuditSchedule{
+			AuditPlanID:           schedule.AuditPlanID,
+			AuditPlanScheduleID:   schedule.ID,
+			AuditActivityTypeID:   schedule.AuditActivityTypeID,
+			AuditID:               auditID,
+			Title:                 schedule.Title,
+			Description:           schedule.Description,
+			StartDate:             schedule.StartDate,
+			TargetDate:            schedule.TargetDate,
+			ResponsibleUserID:     schedule.ResponsibleUserID,
+			AuditScheduleStatusID: schedule.AuditScheduleStatusID,
+			CreatedByID:           currentUserID,
+		}
+
+		createdAuditSchedule, err := as.repo.CreateAuditSchedule(auditSchedule, tx...)
+		if err != nil {
+			return err
+		}
+
+		for _, auditableItem := range schedule.AuditableItems {
+			auditScheduleAuditableItem := &models.AuditScheduleAuditableItem{
+				AuditScheduleID: createdAuditSchedule.ID,
+				AuditableItemID: auditableItem.AuditableItemID,
+				CreatedBYID:     currentUserID,
+			}
+
+			if err := as.repo.CreateAuditScheduleAuditableItem(auditScheduleAuditableItem, tx...); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
