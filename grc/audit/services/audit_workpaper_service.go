@@ -276,9 +276,9 @@ func (aws *AuditWorkpaperService) Delete(ids []uint, currentUserID uint) ([]uint
 	var successfulIDs []uint
 
 	for _, id := range ids {
-		workpaper, err := aws.GetFullDetailsByID(id, tx)
+		workpaper, err := aws.GetByID(id)
 		if err != nil {
-			tx.Rollback()
+			failedIDs = append(failedIDs, id)
 			return nil, err
 		}
 
@@ -287,12 +287,12 @@ func (aws *AuditWorkpaperService) Delete(ids []uint, currentUserID uint) ([]uint
 				failedIDs = append(failedIDs, id)
 				continue
 			}
-			tx.Rollback()
 			return nil, err
 		}
 		storagePath := filepath.Join("audits", "audit", strconv.FormatUint(uint64(workpaper.AuditID), 10), "audit-workpaper")
 		if err := utility.RemoveFile(*workpaper.Name, storagePath); err != nil {
-			tx.Rollback()
+			failedIDs = append(failedIDs, id)
+			continue
 		}
 		successfulIDs = append(successfulIDs, id)
 	}
