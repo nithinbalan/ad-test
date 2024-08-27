@@ -194,6 +194,15 @@ func (repo *AuditRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseT
 		Preload("AuditPlan.Members.User").
 		Preload("AuditPlan.AuditStatus").
 		Preload("AuditPlan.AuditableItems.AuditableItem.ResponsibleUnit").
+		Preload("AuditPlan.AuditableItems.AuditableItem.Process").
+		Preload("AuditPlan.AuditableItems.AuditableItem.Control").
+		Preload("AuditPlan.AuditableItems.AuditableItem.RiskRegister").
+		Preload("AuditPlan.AuditableItems.AuditableItem.IncidentRegister").
+		Preload("AuditPlan.AuditableItems.AuditableItem.ComplianceRequirement").
+		Preload("AuditPlan.AuditableItems.AuditableItem.User").
+		Preload("AuditPlan.AuditableItems.AuditableItem.Document").
+		Preload("AuditPlan.AuditableItems.AuditableItem.AuditorRiskRating").
+		Preload("AuditPlan.AuditableItems.AuditableItem.AuditStatus").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&audit, id)
