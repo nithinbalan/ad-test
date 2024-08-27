@@ -1,10 +1,13 @@
 package repositories
 
 import (
+	"fmt"
 	auditDTOs "jethur/grc/audit/dtos"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
+	"strconv"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -17,6 +20,11 @@ type AuditFindingRepositoryInterface interface {
 	Create(auditFinding *models.AuditFinding, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(auditFinding *models.AuditFinding, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
+	GenerateReferenceNumber() (string, error)
+
+	CreateDocuments(docs []*models.AuditFindingDocument, tx ...utility.DatabaseTransaction) error
+	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
+	GetDocumentByID(id uint) (*models.AuditFindingDocument, error)
 }
 
 type AuditFindingRepository struct {
@@ -161,6 +169,7 @@ func (repo *AuditFindingRepository) GetFullDetailsByID(id uint, tx ...utility.Da
 		Preload("AuditFindingStatus").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
+		Preload("Documents").
 		First(&auditFinding, id)
 
 	if result.Error != nil {
@@ -205,4 +214,67 @@ func (repo *AuditFindingRepository) Delete(id uint, tx ...utility.DatabaseTransa
 	}
 
 	return nil
+}
+
+func (repo *AuditFindingRepository) GenerateReferenceNumber() (string, error) {
+	var lastReferenceNumber string
+	err := repo.db.Model(&models.AuditFinding{}).
+		Select("reference_number").
+		Order("reference_number desc").
+		Limit(1).
+		Pluck("reference_number", &lastReferenceNumber).
+		Error
+
+	if err != nil {
+		return "", err
+	}
+
+	lastDigits := "0000"
+	if lastReferenceNumber != "" && len(lastReferenceNumber) >= 4 {
+		lastDigits = lastReferenceNumber[len(lastReferenceNumber)-4:]
+	}
+
+	currentYear := time.Now().Year()
+	lastReferenceID, err := strconv.ParseUint(lastDigits, 10, 64)
+	if err != nil {
+		return "", err
+	}
+	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "IR", currentYear, lastReferenceID+1)
+
+	return newReferenceNumber, nil
+
+}
+
+func (repo *AuditFindingRepository) CreateDocuments(docs []*models.AuditFindingDocument, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	// Save all documents in a single transaction
+	if err := db.Create(&docs).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *AuditFindingRepository) DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Delete documents by IDs
+	if err := db.Where("id IN (?)", docIds).Delete(&models.AuditFindingDocument{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *AuditFindingRepository) GetDocumentByID(id uint) (*models.AuditFindingDocument, error) {
+	var document models.AuditFindingDocument
+	if err := repo.db.Where("id = ?", id).First(&document).Error; err != nil {
+		return nil, err
+	}
+	return &document, nil
 }

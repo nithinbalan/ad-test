@@ -47,6 +47,9 @@ func (repo *AuditFindingActionPlanRepository) GetAll(findingID uint, params *aud
 	query := repo.db.Table("audit_finding_action_plans").
 		Select(`
         audit_finding_action_plans.*,
+		audit_findings.title AS audit_finding_title,
+		audit_findings.reference_number AS audit_finding_reference_number,
+		audit_findings.description AS audit_finding_description,
 		CONVERT(VARCHAR, audit_finding_action_plans.target_date, 23) AS target_date,
         action_plan_statuses.title_en AS action_plan_status_title_en,
         action_plan_statuses.title_ar AS action_plan_status_title_ar,

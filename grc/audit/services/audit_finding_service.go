@@ -3,6 +3,8 @@ package services
 import (
 	"errors"
 	"fmt"
+	"path/filepath"
+	"strconv"
 	"time"
 
 	auditDTOs "jethur/grc/audit/dtos"
@@ -122,7 +124,15 @@ func (afs *AuditFindingService) Create(auditID uint, currentUserID uint, auditFi
 		return 0, err
 	}
 
+	referenceNumber, err := afs.repo.GenerateReferenceNumber()
+	if err != nil {
+		return 0, err
+	}
+
 	auditFinding := &models.AuditFinding{
+		ReferenceNumber:        referenceNumber,
+		Title:                  auditFindingFormDTO.Title,
+		Description:            auditFindingFormDTO.Description,
 		AuditID:                auditID,
 		AuditableItemID:        auditFindingFormDTO.AuditableItemID,
 		AuditFindingCategoryID: auditFindingFormDTO.AuditFindingCategoryID,
@@ -137,6 +147,52 @@ func (afs *AuditFindingService) Create(auditID uint, currentUserID uint, auditFi
 	if err != nil {
 		tx.Rollback()
 		return 0, err
+	}
+
+	var documents []*models.AuditFindingDocument
+
+	// Iterate over each document in the array
+	for _, doc := range auditFindingFormDTO.Documents {
+
+		// Encrypt the filename
+		dataToEncrypt := []byte(doc.FileName)
+		encryptedFilename, err := utility.EncryptData(dataToEncrypt)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
+		// Construct the URL for the document
+		url := utility.GenerateDocumentURL("audit", strconv.FormatUint(uint64(auditID), 10), "audit-findings", strconv.FormatUint(uint64(id), 10), "documents")
+
+		// Create a new IncidentDocument instance
+		document := &models.AuditFindingDocument{
+			AuditFindingID: id,
+			URL:            url,
+			Name:           doc.FileName,
+			Size:           doc.Size,
+			Token:          encryptedFilename,
+			OriginalName:   doc.OriginalName,
+			Type:           doc.Type,
+			CreatedByID:    currentUserID,
+		}
+
+		// Append the document to the slice
+		documents = append(documents, document)
+	}
+	if len(documents) > 0 {
+		// Save the IncidentDocument
+		if err := afs.repo.CreateDocuments(documents, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+		for _, doc := range documents {
+			storagePath := filepath.Join("audit", strconv.FormatUint(uint64(auditID), 10), "audit-findings", strconv.FormatUint(uint64(id), 10), "documents")
+			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+		}
 	}
 
 	tx.Commit()
@@ -196,6 +252,82 @@ func (afs *AuditFindingService) Update(auditID uint, id uint, currentUserID uint
 		return err
 	}
 
+	//documents update
+	var documents []*models.AuditFindingDocument
+	var deleteDocumentIds []*uint
+	var documentsToDelete []*models.AuditFindingDocument
+
+	// Iterate over each document in the array
+	for _, doc := range auditFindingFormDTO.Documents {
+		if doc.IsNewFile != nil && *doc.IsNewFile {
+			dataToEncrypt := []byte(doc.FileName)
+			encryptedFilename, err := utility.EncryptData(dataToEncrypt)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+			url := utility.GenerateDocumentURL("audit", strconv.FormatUint(uint64(auditID), 10), "audit-findings", strconv.FormatUint(uint64(id), 10), "documents")
+
+			// Create a new AuditFindingDocument instance
+			document := &models.AuditFindingDocument{
+				AuditFindingID: id,
+				URL:            url,
+				Name:           doc.FileName,
+				Size:           doc.Size,
+				Token:          encryptedFilename,
+				OriginalName:   doc.OriginalName,
+				Type:           doc.Type,
+				CreatedByID:    currentUserID,
+			}
+			documents = append(documents, document)
+
+		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
+			// Handle deleted file case
+			if doc.ID != nil {
+				existingDocument, err := afs.repo.GetDocumentByID(*doc.ID)
+				if err != nil {
+					return err
+				}
+				if existingDocument == nil {
+					tx.Rollback()
+					return fmt.Errorf("existing document not found for ID: %d", *doc.ID)
+				}
+				deleteDocumentIds = append(deleteDocumentIds, &existingDocument.ID)
+				documentsToDelete = append(documentsToDelete, existingDocument)
+			}
+		}
+	}
+	if len(documents) > 0 {
+		if err := afs.repo.CreateDocuments(documents, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+	if len(deleteDocumentIds) > 0 {
+		if err := afs.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+	if len(documents) > 0 {
+		for _, doc := range documents {
+			storagePath := filepath.Join("audit", strconv.FormatUint(uint64(auditID), 10), "audit-findings", strconv.FormatUint(uint64(existingAuditFinding.ID), 10), "documents")
+			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+	}
+	if len(documentsToDelete) > 0 {
+		for _, document := range documentsToDelete {
+			storagePath := filepath.Join("audit", strconv.FormatUint(uint64(auditID), 10), "audit-findings", strconv.FormatUint(uint64(existingAuditFinding.ID), 10), "documents")
+			if err := utility.RemoveFile(document.Name, storagePath); err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+	}
+
 	tx.Commit()
 
 	go func() {
@@ -231,10 +363,11 @@ func (afs *AuditFindingService) Delete(auditID uint, ids []uint, currentUserID u
 	tx := afs.repo.BeginTransaction()
 	var failedIDs []uint
 	var successfulIDs []uint
+	documentsToDelete := make(map[uint][]*auditDTOs.AuditFindingDocumentDTO)
 
 	for _, id := range ids {
 		// Get existing audit finding details
-		_, err := afs.GetFullDetailsByID(auditID, id, tx)
+		auditFinding, err := afs.GetFullDetailsByID(auditID, id, tx)
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				failedIDs = append(failedIDs, id)
@@ -242,6 +375,20 @@ func (afs *AuditFindingService) Delete(auditID uint, ids []uint, currentUserID u
 			}
 			tx.Rollback()
 			return nil, err
+		}
+
+		if len(auditFinding.Documents) > 0 {
+			var deleteDocumentIds []*uint
+			for _, doc := range auditFinding.Documents {
+				if doc != nil {
+					documentsToDelete[id] = append(documentsToDelete[id], doc)
+					deleteDocumentIds = append(deleteDocumentIds, doc.ID)
+				}
+			}
+			if err := afs.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
 		}
 
 		// Delete the audit finding itself
@@ -254,7 +401,20 @@ func (afs *AuditFindingService) Delete(auditID uint, ids []uint, currentUserID u
 	}
 
 	if len(successfulIDs) > 0 {
-		tx.Commit()
+		for auditFindingID, documents := range documentsToDelete {
+			for _, doc := range documents {
+				fmt.Println("filename=", doc.Name)
+				storagePath := filepath.Join("audit", strconv.FormatUint(uint64(auditID), 10), "audit-findings", strconv.FormatUint(uint64(auditFindingID), 10), "documents")
+				if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
+					tx.Rollback()
+					fmt.Printf("Failed to delete file at URL %s: %v\n", *doc.URL, err)
+				}
+			}
+		}
+	}
+
+	tx.Commit()
+	if len(successfulIDs) > 0 {
 
 		go func() {
 			for _, id := range successfulIDs {

@@ -8,10 +8,11 @@ import (
 )
 
 type AuditFindingActionPlanListDTO struct {
-	ID             uint `json:"id"`
-	AuditFindingID uint `json:"audit_finding_id"`
-	// AuditFindingReferenceNumber     string `json:"audit_finding_reference_number"`
-	// AuditFindingTitle               string `json:"audit_finding_title"`
+	ID                              uint   `json:"id"`
+	AuditFindingID                  uint   `json:"audit_finding_id"`
+	AuditFindingReferenceNumber     string `json:"audit_finding_reference_number"`
+	AuditFindingTitle               string `json:"audit_finding_title"`
+	AuditFindingDescription         string `json:"audit_finding_description"`
 	Title                           string `json:"title"`
 	Description                     string `json:"description"`
 	SeverityLevelTitleEn            string `json:"severity_level_title_en"`

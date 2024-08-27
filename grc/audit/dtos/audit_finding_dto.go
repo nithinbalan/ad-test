@@ -10,6 +10,9 @@ import (
 
 type AuditFindingListDTO struct {
 	ID                          uint    `json:"id"`
+	ReferenceNumber             string  `json:"reference_number"`
+	Title                       string  `json:"title"`
+	Description                 *string `json:"description"`
 	AuditableItemTitleEn        string  `json:"auditable_item_title_en"`
 	AuditableItemTitleAr        string  `json:"auditable_item_title_ar"`
 	AuditFindingCategoryTitleEn string  `json:"audit_finding_category_title_en"`
@@ -43,14 +46,31 @@ type AuditFindingListDTO struct {
 }
 
 type AuditFindingFormDTO struct {
-	AuditableItemID        uint    `json:"auditable_item_id" binding:"required"`
-	AuditFindingCategoryID uint    `json:"audit_finding_category_id" binding:"required"`
-	SeverityLevelID        uint    `json:"severity_level_id" binding:"required"`
-	Recommendations        *string `json:"recommendations,omitempty"`
+	Title                  string                         `json:"title" binding:"required,max=255"`
+	Description            *string                        `json:"description"`
+	AuditableItemID        uint                           `json:"auditable_item_id" binding:"required"`
+	AuditFindingCategoryID uint                           `json:"audit_finding_category_id" binding:"required"`
+	SeverityLevelID        uint                           `json:"severity_level_id" binding:"required"`
+	Recommendations        *string                        `json:"recommendations,omitempty"`
+	Documents              []*AuditFindingDocumentFormDTO `json:"documents" binding:"required"`
+}
+
+type AuditFindingDocumentFormDTO struct {
+	ID            *uint  `json:"id,omitempty"`
+	URL           string `json:"url"`
+	FileName      string `json:"file_name"`
+	OriginalName  string `json:"original_name"`
+	Type          string `json:"type"`
+	Size          int    `json:"size"`
+	IsNewFile     *bool  `json:"is_new_file,omitempty"`
+	IsDeletedFile *bool  `json:"is_deleted_file,omitempty"`
 }
 
 type AuditFindingDetailDTO struct {
 	ID                     uint                             `json:"id"`
+	ReferenceNumber        string                           `json:"reference_number"`
+	Title                  string                           `json:"title"`
+	Description            *string                          `json:"description"`
 	AuditID                uint                             `json:"audit_id"`
 	AuditableItemID        uint                             `json:"auditable_item_id"`
 	AuditFindingCategoryID uint                             `json:"audit_finding_category_id"`
@@ -65,6 +85,17 @@ type AuditFindingDetailDTO struct {
 	UpdatedAt              *time.Time                       `json:"updated_at"`
 	CreatedByUser          organizationDTOs.UserMinimalDTO  `json:"created_by"`
 	UpdatedByUser          *organizationDTOs.UserMinimalDTO `json:"updated_by"`
+	Documents              []*AuditFindingDocumentDTO       `json:"documents"`
+}
+
+type AuditFindingDocumentDTO struct {
+	ID           *uint   `json:"id"`
+	URL          *string `json:"url"`
+	Name         string  `json:"name"`
+	Token        string  `json:"token"`
+	OriginalName string  `json:"original_name"`
+	Type         string  `json:"type"`
+	Size         int     `json:"size"`
 }
 
 type AuditFindingListQueryParamsDTO struct {
