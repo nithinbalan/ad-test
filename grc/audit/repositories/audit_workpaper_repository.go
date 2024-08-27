@@ -83,6 +83,10 @@ func (repo *AuditWorkpaperRepository) GetAll(auditID uint, params *auditDTOs.Aud
 			query = query.Where(columnName+" IN (?)", values)
 		}
 	}
+	// Calculate total count for pagination
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
 
 	// Apply search keyword if exists
 	if params.Keyword != "" {

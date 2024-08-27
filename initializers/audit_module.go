@@ -32,6 +32,8 @@ type AuditModule struct {
 	AuditFindingStatusController             *controllers.AuditFindingStatusController
 	AuditFindingCategoryController           *controllers.AuditFindingCategoryController
 	AuditFindingController                   *controllers.AuditFindingController
+	AuditDocumentRequestStatusController     *controllers.AuditDocumentRequestStatusController
+	AuditDocumentRequestController           *controllers.AuditDocumentRequestController
 	AuditFindingRootCauseAnalysisController  *controllers.AuditFindingRootCauseAnalysisController
 	AuditFindingActionPlanController         *controllers.AuditFindingActionPlanController
 }
@@ -214,6 +216,19 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 	)
 	auditFindingController := controllers.NewAuditFindingController(auditFindingSvc)
 
+	auditDocumentRequestStatusRepo := repositories.NewAuditDocumentRequestStatusRepository(db)
+	auditDocumentRequestStatusSvc := services.NewAuditDocumentRequestStatusService(auditDocumentRequestStatusRepo)
+	auditDocumentRequestStatusController := controllers.NewAuditDocumentRequestStatusController(auditDocumentRequestStatusSvc)
+
+	auditDocumentRequestRepo := repositories.NewAuditDocumentRequestRepository(db)
+	auditDocumentRequestSvc := services.NewAuditDocumentRequestService(
+		auditDocumentRequestRepo,
+		sharedModule.ActivityLogService,
+		auditSvc,
+		auditDocumentRequestStatusSvc,
+		auditableItemSvc,
+	)
+	auditDocumentRequestController := controllers.NewAuditDocumentRequestController(auditDocumentRequestSvc)
 	auditFindingRootCauseAnalysisRepo := repositories.NewAuditFindingRootCauseAnalysisRepository(db)
 	auditFindingRootCauseAnalysisSvc := services.NewAuditFindingRootCauseAnalysisService(auditFindingRootCauseAnalysisRepo, sharedModule.ActivityLogService, auditFindingSvc, auditTimelineSvc)
 	auditFindingRootCauseAnalysisController := controllers.NewAuditFindingRootCauseAnalysisController(auditFindingRootCauseAnalysisSvc)
@@ -253,6 +268,8 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		AuditFindingStatusController:             auditFindingStatusController,
 		AuditFindingCategoryController:           auditFindingCategoryController,
 		AuditFindingController:                   auditFindingController,
+		AuditDocumentRequestStatusController:     auditDocumentRequestStatusController,
+		AuditDocumentRequestController:           auditDocumentRequestController,
 		AuditFindingRootCauseAnalysisController:  auditFindingRootCauseAnalysisController,
 		AuditFindingActionPlanController:         auditFindingActionPlanController,
 	}
