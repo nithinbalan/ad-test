@@ -61,8 +61,10 @@ func NewAuditFindingService(
 }
 
 func (afs *AuditFindingService) GetAll(auditID uint, params *auditDTOs.AuditFindingListQueryParamsDTO) (*auditDTOs.AuditFindingListResponseDTO, error) {
-	if _, err := afs.auditSvc.GetByID(auditID); err != nil {
-		return nil, err
+	if auditID != 0 {
+		if _, err := afs.auditSvc.GetByID(auditID); err != nil {
+			return nil, err
+		}
 	}
 
 	return afs.repo.GetAll(params)
