@@ -69,6 +69,7 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		sharedModule.ActivityLogService,
 		auditStatusSvc, auditorRiskRatingSvc,
 		settingModule.OrganizationUnitSvc,
+		organizationModule.UserSvc,
 	)
 	auditableItemController := controllers.NewAuditableItemController(auditableItemSvc)
 

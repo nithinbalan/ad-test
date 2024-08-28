@@ -54,6 +54,14 @@ func (repo *AuditableItemRepository) GetAll(params *auditDTOs.AuditableItemListQ
 			compliance_requirements.title AS compliance_requirement_title,
 			organization_units.title_en AS responsible_unit_title_en,
 			organization_units.title_ar AS responsible_unit_title_ar,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+            responsible_user.first_name_ar AS responsible_user_first_name_ar,
+            responsible_user.last_name_en AS responsible_user_last_name_en,
+            responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			responsible_user.initial AS responsible_user_initial,
+            responsible_user.color AS responsible_user_color,
+            responsible_user.email AS responsible_user_email,
+            responsible_user.profile_image_path AS responsible_user_profile_image_path,
 			risk_register.title AS risk_register_title,
 			users.id AS user_id,
 			users.first_name_en AS user_first_name_en,
@@ -102,6 +110,7 @@ func (repo *AuditableItemRepository) GetAll(params *auditDTOs.AuditableItemListQ
         LEFT JOIN users ON users.id = auditable_items.user_id
         LEFT JOIN users AS created_user ON created_user.id = auditable_items.created_by_id
         LEFT JOIN users AS updated_user ON updated_user.id = auditable_items.updated_by_id
+        LEFT JOIN users AS responsible_user ON responsible_user.id = auditable_items.responsible_user_id
         LEFT JOIN audit_statuses ON audit_statuses.id = auditable_items.audit_status_id
         LEFT JOIN auditor_risk_ratings ON auditor_risk_ratings.id = auditable_items.auditor_risk_rating_id
     `)
@@ -219,6 +228,7 @@ func (repo *AuditableItemRepository) GetFullDetailsByID(id uint, tx ...utility.D
 		Preload("RiskRegister").
 		Preload("User").
 		Preload("ResponsibleUnit").
+		Preload("ResponsibleUser").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&auditableItem, id)
