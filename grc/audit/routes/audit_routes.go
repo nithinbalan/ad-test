@@ -197,6 +197,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.POST("/audits/:auditId/document-requests", auditDocumentRequestController.CreateAuditDocumentRequest)
 	auditRoutes.PUT("/audits/:auditId/document-requests/:id", auditDocumentRequestController.UpdateAuditDocumentRequest)
 	auditRoutes.POST("/audits/:auditId/document-requests/delete", auditDocumentRequestController.DeleteAuditDocumentRequests)
+	auditRoutes.POST("/audits/:auditId/document-requests/:id/submit", auditDocumentRequestController.SubmitAuditDocumentRequest)
+	
 	auditRoutes.GET("/audits/:auditId/findings/:id/root-cause-analysis", auditFindingRootCauseAnalysisController.GetAllAuditFindingRootCauseAnalyses)
 	auditRoutes.POST("/audits/:auditId/findings/:id/root-cause-analysis", auditFindingRootCauseAnalysisController.CreateAuditFindingRootCauseAnalysis)
 	auditRoutes.DELETE("/audits/:auditId/findings/:id/root-cause-analysis/:analysisId", auditFindingRootCauseAnalysisController.DeleteAuditFindingRootCauseAnalyses)

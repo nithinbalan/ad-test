@@ -3,6 +3,7 @@ package dtos
 import (
 	commonDTOs "jethur/grc/common/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
+	settingsDTOs "jethur/grc/settings/dtos"
 	"time"
 )
 
@@ -68,6 +69,8 @@ type AuditDocumentRequestDetailDTO struct {
 	CreatedAt                  time.Time                                     `json:"created_at"`
 	UpdatedAt                  *time.Time                                    `json:"updated_at,omitempty"`
 	ResponsibleUser            *organizationDTOs.UserMinimalDTO              `json:"responsible_user"`
+	ResponsibleUnit            settingsDTOs.OrganizationUnitDTO              `json:"responsible_unit"`
+	RequestedByUser            *organizationDTOs.UserMinimalDTO              `json:"requested_by_user"`
 	CreatedByUser              organizationDTOs.UserMinimalDTO               `json:"created_by_user"`
 	UpdatedByUser              *organizationDTOs.UserMinimalDTO              `json:"updated_by_user,omitempty"`
 }

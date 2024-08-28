@@ -8,6 +8,7 @@ import (
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
+	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -19,6 +20,7 @@ type AuditDocumentRequestServiceInterface interface {
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditDocumentRequestDetailDTO, error)
 	Create(auditID uint, currentUserID uint, auditDocumentRequestFormDTO *auditDTOs.AuditDocumentRequestFormDTO) ([]uint, error)
 	Update(auditID uint, id uint, currentUserID uint, auditDocumentRequestFormDTO *auditDTOs.AuditDocumentRequestFormDTO) error
+	Submit(auditID uint, id uint, currentUserID uint) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 }
 
@@ -137,7 +139,7 @@ func (adrs *AuditDocumentRequestService) Create(auditID uint, currentUserID uint
 			CreatedBYID:     currentUserID,
 		})
 	}
-	auditScheduleStatus, err := adrs.auditDocumentRequestStatusSvc.GetByType("draft")
+	auditDocumentRequestStatus, err := adrs.auditDocumentRequestStatusSvc.GetByType("draft")
 	if err != nil {
 		return nil, err
 	}
@@ -147,7 +149,7 @@ func (adrs *AuditDocumentRequestService) Create(auditID uint, currentUserID uint
 		// Create a new AuditDocumentRequest for each group
 		documentRequest := &models.AuditDocumentRequest{
 			AuditID:                      auditID,
-			AuditDocumentRequestStatusID: uint(auditScheduleStatus.ID),
+			AuditDocumentRequestStatusID: uint(auditDocumentRequestStatus.ID),
 			Title:                        formDTO.Title,
 			Description:                  formDTO.Description,
 			ResponsibleUnitID:            group.ResponsibleUnitID,
@@ -240,6 +242,72 @@ func (adrs *AuditDocumentRequestService) Update(auditID uint, id uint, currentUs
 			models.AuditDocumentRequest{}.TableName(),
 			id,
 			formDTO,
+			currentUserID,
+			nil,
+		)
+
+		if err != nil {
+			fields := map[string]interface{}{
+				"action":    models.UpdateAction,
+				"tableName": models.AuditDocumentRequest{}.TableName(),
+				"recordID":  id,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			}
+			utility.LogError("Failed to log activity", fields)
+		}
+	}()
+
+	return nil
+}
+
+func (adrs *AuditDocumentRequestService) Submit(auditID uint, id uint, currentUserID uint) error {
+	tx := adrs.repo.BeginTransaction()
+	if _, err := adrs.auditSvc.GetByID(auditID); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	documentRequest, err := adrs.repo.GetByID(id)
+	if err != nil {
+		tx.Rollback()
+		return utility.NewResourceNotFoundError(err, id)
+	}
+	documentRequestFullDetails, err := adrs.GetFullDetailsByID(id, tx)
+	if err != nil {
+		tx.Rollback()
+		return utility.NewResourceNotFoundError(err, id)
+	}
+	if documentRequestFullDetails.AuditDocumentRequestStatus.Type != "draft" {
+		tx.Rollback()
+		return utility.NewForbiddenError("Cannot submit document request with draft status")
+	}
+
+	auditDocumentRequestStatus, err := adrs.auditDocumentRequestStatusSvc.GetByType("open")
+	if err != nil {
+		return err
+	}
+	now := time.Now() 
+	documentRequest.AuditDocumentRequestStatusID = uint(auditDocumentRequestStatus.ID)
+	documentRequest.RequestedAt = &now
+	documentRequest.RequestedBYID = &currentUserID
+
+	err = adrs.repo.Update(documentRequest, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	//todo -> send email notifications to responsible users
+
+	tx.Commit()
+
+	go func() {
+		err := adrs.activityLogSvc.LogActivity(
+			models.UpdateAction,
+			models.AuditDocumentRequest{}.TableName(),
+			id,
+			nil,
 			currentUserID,
 			nil,
 		)

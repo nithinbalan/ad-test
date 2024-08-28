@@ -190,6 +190,7 @@ func (repo *AuditDocumentRequestRepository) GetFullDetailsByID(id uint, tx ...ut
 		Preload("AuditableItems.AuditableItem.ResponsibleUnit").
 		Preload("ResponsibleUser").
 		Preload("ResponsibleUnit").
+		Preload("RequestedByUser").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&auditDocumentRequest, id)

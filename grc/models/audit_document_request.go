@@ -15,6 +15,7 @@ type AuditDocumentRequest struct {
 	RequestedAt                  *time.Time `json:"requested_at" gorm:"type:datetime;default:null"`
 	CreatedAt                    time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt                    *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
+	RequestedBYID                *uint      `json:"requested_by_id" gorm:"null"`
 	CreatedBYID                  uint       `json:"created_by_id" gorm:"not null"`
 	UpdatedBYID                  *uint      `json:"updated_by_id" gorm:"default:null"`
 
@@ -25,6 +26,7 @@ type AuditDocumentRequest struct {
 	ResponsibleUser            *User                                `gorm:"foreignKey:ResponsibleUserID"`
 	AuditableItems             []*AuditDocumentRequestAuditableItem `gorm:"foreignKey:AuditDocumentRequestID"`
 	CreatedByUser              *User                                `gorm:"foreignKey:CreatedBYID"`
+	RequestedByUser            *User                                `gorm:"foreignKey:RequestedBYID"`
 	UpdatedByUser              *User                                `gorm:"foreignKey:UpdatedBYID"`
 }
 
