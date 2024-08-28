@@ -56,7 +56,7 @@ func (repo *GRCDashboardRepository) GetGRCComplianceSummary(params *kpiDTOs.GRCD
 
 	// Calculate Compliance Requirement Fulfillment Rate
 	if totalComplianceRequirements > 0 {
-		summary.ComplianceRequirementFulfillmentRate = float64(compliantRequirements) / float64(totalComplianceRequirements) * 100
+		summary.ComplianceRequirementFulfillmentRate = math.Round(float64(compliantRequirements) / float64(totalComplianceRequirements) * 100)
 	}
 
 	// Calculate total number of compliance action plans
@@ -83,7 +83,7 @@ func (repo *GRCDashboardRepository) GetGRCComplianceSummary(params *kpiDTOs.GRCD
 
 	// Calculate Compliance Action Plan Resolution Rate
 	if totalActionPlans > 0 {
-		summary.ComplianceActionPlanResolutionRate = float64(completedActionPlans) / float64(totalActionPlans) * 100
+		summary.ComplianceActionPlanResolutionRate = math.Round(float64(completedActionPlans) / float64(totalActionPlans) * 100)
 	}
 
 	return summary, nil
@@ -118,7 +118,7 @@ func (repo *GRCDashboardRepository) GetGRCRiskSummary(params *kpiDTOs.GRCDashboa
 
 	// Calculate Risk Closure Rate
 	if totalRisks > 0 {
-		summary.RiskClosureRate = float64(closedRisks) / float64(totalRisks) * 100
+		summary.RiskClosureRate = math.Round(float64(closedRisks) / float64(totalRisks) * 100)
 	}
 
 	// Calculate count of open high-risk ratings
@@ -169,7 +169,7 @@ func (repo *GRCDashboardRepository) GetGRCAuditSummary(params *kpiDTOs.GRCDashbo
 	// Calculate Audit Completion Rate
 	var auditCompletionRate float64
 	if totalAudits > 0 {
-		auditCompletionRate = float64(completedAudits) / float64(totalAudits) * 100
+		auditCompletionRate = math.Round(float64(completedAudits) / float64(totalAudits) * 100)
 	}
 
 	// Count of Open Major Non-Conformities (NCs)
@@ -213,7 +213,7 @@ func (repo *GRCDashboardRepository) GetGRCAuditSummary(params *kpiDTOs.GRCDashbo
 	// Calculate Audit Finding Resolution Rate
 	var auditFindingResolutionRate float64
 	if totalFindings > 0 {
-		auditFindingResolutionRate = float64(closedFindings) / float64(totalFindings) * 100
+		auditFindingResolutionRate = math.Round(float64(closedFindings) / float64(totalFindings) * 100)
 	}
 
 	return &kpiDTOs.GRCAuditSummaryDTO{
@@ -296,11 +296,8 @@ func (repo *GRCDashboardRepository) GetGRCOrganizationSummary(params *kpiDTOs.GR
 	// Calculate effectiveness rate
 	effectivenessRate := 0.0
 	if totalControls > 0 {
-		effectivenessRate = float64(efficientControls) / float64(totalControls) * 100.0
+		effectivenessRate = math.Round(float64(efficientControls) / float64(totalControls) * 100.0)
 	}
-
-	// Round to the nearest integer
-	effectivenessRate = math.Round(effectivenessRate)
 
 	return &kpiDTOs.GRCOrganizationSummaryDTO{
 		ControlEffectivenessRate: effectivenessRate,
