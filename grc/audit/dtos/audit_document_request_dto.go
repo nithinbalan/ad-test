@@ -17,6 +17,15 @@ type AuditDocumentRequestListDTO struct {
 	ResponsibleUnitID                   uint    `json:"responsible_unit_id"`
 	ResponsibleUnitTitleEn              string  `json:"responsible_unit_title_en"`
 	ResponsibleUnitTitleAr              string  `json:"responsible_unit_title_ar"`
+	ResponsibleUserID                   uint    `json:"responsible_user_id"`
+	ResponsibleUserFirstNameEn          string  `json:"responsible_user_first_name_en"`
+	ResponsibleUserFirstNameAr          string  `json:"responsible_user_first_name_ar"`
+	ResponsibleUserLastNameEn           string  `json:"responsible_user_last_name_en"`
+	ResponsibleUserLastNameAr           string  `json:"responsible_user_last_name_ar"`
+	ResponsibleUserInitial              string  `json:"responsible_user_initial"`
+	ResponsibleUserColor                string  `json:"responsible_user_color"`
+	ResponsibleUserEmail                string  `json:"responsible_user_email"`
+	ResponsibleUserProfileImagePath     string  `json:"responsible_user_profile_image_path"`
 	Title                               string  `json:"title"`
 	Description                         string  `json:"description"`
 	RequestedAt                         *string `json:"requested_at"`
@@ -58,6 +67,7 @@ type AuditDocumentRequestDetailDTO struct {
 	RequestedAtString          string                                        `json:"requested_at"`
 	CreatedAt                  time.Time                                     `json:"created_at"`
 	UpdatedAt                  *time.Time                                    `json:"updated_at,omitempty"`
+	ResponsibleUser            *organizationDTOs.UserMinimalDTO              `json:"responsible_user"`
 	CreatedByUser              organizationDTOs.UserMinimalDTO               `json:"created_by_user"`
 	UpdatedByUser              *organizationDTOs.UserMinimalDTO              `json:"updated_by_user,omitempty"`
 }
@@ -89,8 +99,9 @@ type AuditDocumentRequestAuditableItemDTO struct {
 	CreatedBYID            uint `json:"created_by_id"`
 }
 
-type ResponsibleUnitGroupDTO struct {
+type ResponsibleUserGroupDTO struct {
 	ResponsibleUnitID uint                                    `json:"responsible_unit_id"`
+	ResponsibleUserID uint                                    `json:"responsible_user_id"`
 	AuditableItems    []*AuditDocumentRequestAuditableItemDTO `json:"auditable_items"`
 }
 

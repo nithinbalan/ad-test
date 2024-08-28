@@ -50,6 +50,14 @@ func (repo *AuditDocumentRequestRepository) GetAll(auditID uint, params *auditDT
 			audit_document_request_statuses.color_code AS audit_document_request_status_color_code,
 			organization_units.title_en AS responsible_unit_title_en,
 			organization_units.title_ar AS responsible_unit_title_ar,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+            responsible_user.first_name_ar AS responsible_user_first_name_ar,
+            responsible_user.last_name_en AS responsible_user_last_name_en,
+            responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			responsible_user.initial AS responsible_user_initial,
+            responsible_user.color AS responsible_user_color,
+            responsible_user.email AS responsible_user_email,
+            responsible_user.profile_image_path AS responsible_user_profile_image_path,
 			created_user.id AS created_user_id,
         	created_user.first_name_en AS created_user_first_name_en,
         	created_user.first_name_ar AS created_user_first_name_ar,
@@ -72,6 +80,7 @@ func (repo *AuditDocumentRequestRepository) GetAll(auditID uint, params *auditDT
 		Joins(`
 			LEFT JOIN audit_document_request_statuses ON audit_document_request_statuses.id = audit_document_requests.audit_document_request_status_id
 			LEFT JOIN organization_units ON organization_units.id = audit_document_requests.responsible_unit_id
+        	LEFT JOIN users AS responsible_user ON responsible_user.id = audit_document_requests.responsible_user_id
 			LEFT JOIN users AS created_user ON created_user.id = audit_document_requests.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = audit_document_requests.updated_by_id
 		`).Where(`audit_document_requests.audit_id = ?`, auditID)
@@ -179,6 +188,8 @@ func (repo *AuditDocumentRequestRepository) GetFullDetailsByID(id uint, tx ...ut
 		Preload("AuditableItems.AuditableItem.RiskRegister").
 		Preload("AuditableItems.AuditableItem.User").
 		Preload("AuditableItems.AuditableItem.ResponsibleUnit").
+		Preload("ResponsibleUser").
+		Preload("ResponsibleUnit").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&auditDocumentRequest, id)

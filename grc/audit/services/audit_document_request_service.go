@@ -103,8 +103,8 @@ func (adrs *AuditDocumentRequestService) Create(auditID uint, currentUserID uint
 		return nil, err
 	}
 
-	// Group auditable items by ResponsibleUnitID
-	var responsibleUnitGroups []*auditDTOs.ResponsibleUnitGroupDTO
+	// Group auditable items by ResponsibleUserID
+	var responsibleUserGroups []*auditDTOs.ResponsibleUserGroupDTO
 	for _, itemID := range formDTO.AuditableItemIds {
 		auditableItem, err := adrs.auditableItemSvc.GetByID(*itemID)
 		if err != nil {
@@ -113,20 +113,22 @@ func (adrs *AuditDocumentRequestService) Create(auditID uint, currentUserID uint
 		}
 
 		responsibleUnitID := auditableItem.ResponsibleUnitID
+		responsibleUserID := auditableItem.ResponsibleUserID
 		// Find or create the group for this ResponsibleUnitID
-		var group *auditDTOs.ResponsibleUnitGroupDTO
-		for _, existingGroup := range responsibleUnitGroups {
-			if existingGroup.ResponsibleUnitID == responsibleUnitID {
+		var group *auditDTOs.ResponsibleUserGroupDTO
+		for _, existingGroup := range responsibleUserGroups {
+			if existingGroup.ResponsibleUserID == responsibleUserID {
 				group = existingGroup
 				break
 			}
 		}
 		if group == nil {
-			group = &auditDTOs.ResponsibleUnitGroupDTO{
+			group = &auditDTOs.ResponsibleUserGroupDTO{
 				ResponsibleUnitID: responsibleUnitID,
+				ResponsibleUserID: responsibleUserID,
 				AuditableItems:    []*auditDTOs.AuditDocumentRequestAuditableItemDTO{},
 			}
-			responsibleUnitGroups = append(responsibleUnitGroups, group)
+			responsibleUserGroups = append(responsibleUserGroups, group)
 		}
 
 		// Add the auditable item to the group
@@ -141,7 +143,7 @@ func (adrs *AuditDocumentRequestService) Create(auditID uint, currentUserID uint
 	}
 	// Loop through the grouped data and create requests
 	var requestIDs []uint
-	for _, group := range responsibleUnitGroups {
+	for _, group := range responsibleUserGroups {
 		// Create a new AuditDocumentRequest for each group
 		documentRequest := &models.AuditDocumentRequest{
 			AuditID:                      auditID,
@@ -149,6 +151,7 @@ func (adrs *AuditDocumentRequestService) Create(auditID uint, currentUserID uint
 			Title:                        formDTO.Title,
 			Description:                  formDTO.Description,
 			ResponsibleUnitID:            group.ResponsibleUnitID,
+			ResponsibleUserID:            group.ResponsibleUserID,
 			CreatedBYID:                  currentUserID,
 		}
 
