@@ -30,6 +30,8 @@ type AuditSchedule struct {
 	AuditScheduleStatus *AuditScheduleStatus `gorm:"foreignKey:AuditScheduleStatusID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
 	CreatedByUser       *User                `gorm:"foreignKey:CreatedByID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
 	UpdatedByUser       *User                `gorm:"foreignKey:UpdatedByID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
+
+	AuditableItems []*AuditScheduleAuditableItem `gorm:"foreignKey:AuditScheduleID"`
 }
 
 // TableName overrides the table name used by GORM to `audit_schedules`
