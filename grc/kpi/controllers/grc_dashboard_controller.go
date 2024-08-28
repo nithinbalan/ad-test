@@ -91,3 +91,49 @@ func (gdc *GRCDashboardController) GetGRCAuditSummary(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, summary)
 }
+
+func (gdc *GRCDashboardController) GetGRCDocumentSummary(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := kpiDTOs.GRCDashboardListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+	summary, err := gdc.service.GetGRCDocumentSummary(&queryParams)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(gdc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, summary)
+}
+
+func (gdc *GRCDashboardController) GetGRCOrganizationSummary(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := kpiDTOs.GRCDashboardListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+	summary, err := gdc.service.GetGRCOrganizationSummary(&queryParams)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(gdc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, summary)
+}

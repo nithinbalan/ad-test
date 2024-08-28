@@ -14,6 +14,7 @@ type AuditFindingListDTO struct {
 	ReferenceNumber             string  `json:"reference_number"`
 	Title                       string  `json:"title"`
 	Description                 *string `json:"description"`
+	Recommendations             *string `json:"recommendations"`
 	AuditableItemTitleEn        string  `json:"auditable_item_title_en"`
 	AuditableItemTitleAr        string  `json:"auditable_item_title_ar"`
 	AuditFindingCategoryTitleEn string  `json:"audit_finding_category_title_en"`

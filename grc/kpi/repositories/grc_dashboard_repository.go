@@ -3,6 +3,7 @@ package repositories
 import (
 	kpiDTOs "jethur/grc/kpi/dtos"
 	"jethur/grc/models"
+	"math"
 
 	"gorm.io/gorm"
 )
@@ -11,6 +12,8 @@ type GRCDashboardRepositoryInteface interface {
 	GetGRCComplianceSummary(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCComplianceSummaryDTO, error)
 	GetGRCRiskSummary(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCRiskSummaryDTO, error)
 	GetGRCAuditSummary(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCAuditSummaryDTO, error)
+	GetGRCDocumentSummary(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCDocumentSummaryDTO, error)
+	GetGRCOrganizationSummary(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCOrganizationSummaryDTO, error)
 }
 
 type GRCDashboardRepository struct {
@@ -217,5 +220,89 @@ func (repo *GRCDashboardRepository) GetGRCAuditSummary(params *kpiDTOs.GRCDashbo
 		AuditCompletionRate:        auditCompletionRate,
 		OpenMajorNCCount:           openMajorNCCount,
 		AuditFindingResolutionRate: auditFindingResolutionRate,
+	}, nil
+}
+
+func (repo *GRCDashboardRepository) GetGRCDocumentSummary(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCDocumentSummaryDTO, error) {
+	var totalPolicies int64
+	var totalOtherDocuments int64
+
+	// Calculate Total Number of Policies & Procedures
+	policyQuery := repo.db.Model(&models.Document{}).
+		Joins("JOIN document_types ON document_types.id = documents.document_type_id").
+		Joins("JOIN document_statuses ON document_statuses.id = documents.document_status_id").
+		Where("document_statuses.type = ?", "published").
+		Where("document_types.type IN ?", []string{"policy", "procedure"})
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		policyQuery = policyQuery.Where("documents.created_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
+	}
+
+	err := policyQuery.Count(&totalPolicies).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Calculate Total Number of Other Documents
+	otherDocQuery := repo.db.Model(&models.Document{}).
+		Joins("JOIN document_types ON document_types.id = documents.document_type_id").
+		Joins("JOIN document_statuses ON document_statuses.id = documents.document_status_id").
+		Where("document_statuses.type = ?", "published").
+		Where("document_types.type = ?", "others")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		otherDocQuery = otherDocQuery.Where("documents.created_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
+	}
+
+	err = otherDocQuery.Count(&totalOtherDocuments).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &kpiDTOs.GRCDocumentSummaryDTO{
+		TotalPolicies:       totalPolicies,
+		TotalOtherDocuments: totalOtherDocuments,
+	}, nil
+}
+
+func (repo *GRCDashboardRepository) GetGRCOrganizationSummary(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCOrganizationSummaryDTO, error) {
+	var totalControls int64
+	var efficientControls int64
+
+	// Base query for controls
+	controlQuery := repo.db.Model(&models.Control{})
+
+	// Apply date filters if provided
+	if params.DateFrom != "" && params.DateTo != "" {
+		controlQuery = controlQuery.Where("controls.created_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
+	}
+
+	// Count total controls
+	err := controlQuery.Count(&totalControls).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Count efficient controls with the same date filters applied
+	efficientControlQuery := controlQuery.
+		Joins("JOIN control_efficiency_statuses ON control_efficiency_statuses.id = controls.control_efficiency_status_id").
+		Where("control_efficiency_statuses.type = ?", "efficient")
+
+	err = efficientControlQuery.Count(&efficientControls).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Calculate effectiveness rate
+	effectivenessRate := 0.0
+	if totalControls > 0 {
+		effectivenessRate = float64(efficientControls) / float64(totalControls) * 100.0
+	}
+
+	// Round to the nearest integer
+	effectivenessRate = math.Round(effectivenessRate)
+
+	return &kpiDTOs.GRCOrganizationSummaryDTO{
+		ControlEffectivenessRate: effectivenessRate,
 	}, nil
 }
