@@ -18,5 +18,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	//GRCDashboard Summary
 	kpiRoutes.GET("/kpis/grc-summary/compliance", grcDashboardController.GetGRCComplianceSummary)
 	kpiRoutes.GET("/kpis/grc-summary/risk", grcDashboardController.GetGRCRiskSummary)
+	kpiRoutes.GET("/kpis/grc-summary/audit", grcDashboardController.GetGRCAuditSummary)
+	kpiRoutes.GET("/kpis/grc-summary/document", grcDashboardController.GetGRCDocumentSummary)
+	kpiRoutes.GET("/kpis/grc-summary/organization", grcDashboardController.GetGRCOrganizationSummary)
 
 }
