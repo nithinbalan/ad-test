@@ -10,6 +10,12 @@ type GRCRiskSummaryDTO struct {
 	RiskClosureRate            float64 `json:"risk_closure_rate"`
 }
 
+type GRCAuditSummaryDTO struct {
+	AuditCompletionRate        float64 `json:"audit_completion_rate"`
+	OpenMajorNCCount           int64   `json:"open_major_nc_count"`
+	AuditFindingResolutionRate float64 `json:"audit_finding_resolution_rate"`
+}
+
 type GRCDashboardListQueryParamsDTO struct {
 	DateFrom string `json:"date_from"`
 	DateTo   string `json:"date_to"`

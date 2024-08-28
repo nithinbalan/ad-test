@@ -8,6 +8,7 @@ import (
 type GRCDashboardServiceInterface interface {
 	GetGRCComplianceSummary(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCComplianceSummaryDTO, error)
 	GetGRCRiskSummary(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCRiskSummaryDTO, error)
+	GetGRCAuditSummary(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCAuditSummaryDTO, error)
 }
 
 type GRCDashboardService struct {
@@ -18,12 +19,14 @@ func NewGRCDashboardService(repo repositories.GRCDashboardRepositoryInteface) GR
 	return &GRCDashboardService{repo: repo}
 }
 
-// Compliance Summary
 func (gds *GRCDashboardService) GetGRCComplianceSummary(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCComplianceSummaryDTO, error) {
 	return gds.repo.GetGRCComplianceSummary(params)
 }
 
-// Risk Summary
 func (gds *GRCDashboardService) GetGRCRiskSummary(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCRiskSummaryDTO, error) {
 	return gds.repo.GetGRCRiskSummary(params)
+}
+
+func (gds *GRCDashboardService) GetGRCAuditSummary(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCAuditSummaryDTO, error) {
+	return gds.repo.GetGRCAuditSummary(params)
 }

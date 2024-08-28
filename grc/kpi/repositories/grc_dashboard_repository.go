@@ -10,6 +10,7 @@ import (
 type GRCDashboardRepositoryInteface interface {
 	GetGRCComplianceSummary(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCComplianceSummaryDTO, error)
 	GetGRCRiskSummary(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCRiskSummaryDTO, error)
+	GetGRCAuditSummary(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCAuditSummaryDTO, error)
 }
 
 type GRCDashboardRepository struct {
@@ -133,4 +134,88 @@ func (repo *GRCDashboardRepository) GetGRCRiskSummary(params *kpiDTOs.GRCDashboa
 	summary.CountOfOpenHighRiskRatings = openHighRiskRatings
 
 	return summary, nil
+}
+
+func (repo *GRCDashboardRepository) GetGRCAuditSummary(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCAuditSummaryDTO, error) {
+	var totalAudits, completedAudits, openMajorNCCount, totalFindings, closedFindings int64
+
+	// Calculate total number of audits
+	totalAuditQuery := repo.db.Model(&models.Audit{})
+	if params.DateFrom != "" && params.DateTo != "" {
+		totalAuditQuery = totalAuditQuery.Joins("JOIN audit_plans ON audit_plans.id = audits.audit_plan_id").
+			Where("audits.created_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
+	}
+	err := totalAuditQuery.Count(&totalAudits).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Calculate number of completed audits
+	completedAuditQuery := repo.db.Model(&models.Audit{}).
+		Joins("JOIN audit_plans ON audit_plans.id = audits.audit_plan_id").
+		Joins("JOIN audit_statuses ON audit_statuses.id = audit_plans.audit_status_id").
+		Where("audit_statuses.type = ?", "completed")
+	if params.DateFrom != "" && params.DateTo != "" {
+		completedAuditQuery = completedAuditQuery.Where("audits.created_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
+	}
+	err = completedAuditQuery.Count(&completedAudits).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Calculate Audit Completion Rate
+	var auditCompletionRate float64
+	if totalAudits > 0 {
+		auditCompletionRate = float64(completedAudits) / float64(totalAudits) * 100
+	}
+
+	// Count of Open Major Non-Conformities (NCs)
+	openMajorNCQuery := repo.db.Model(&models.AuditFinding{}).
+		Joins("JOIN audit_finding_categories ON audit_finding_categories.id = audit_findings.audit_finding_category_id").
+		Joins("JOIN audit_finding_statuses ON audit_finding_statuses.id = audit_findings.audit_finding_status_id").
+		Where("audit_finding_categories.type = ?", "major-nc").
+		Where("audit_finding_statuses.is_closed = ?", false)
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		openMajorNCQuery = openMajorNCQuery.Where("audit_findings.created_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
+	}
+
+	err = openMajorNCQuery.Count(&openMajorNCCount).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Calculate total number of findings
+	totalFindingQuery := repo.db.Model(&models.AuditFinding{})
+	if params.DateFrom != "" && params.DateTo != "" {
+		totalFindingQuery = totalFindingQuery.Where("created_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
+	}
+	err = totalFindingQuery.Count(&totalFindings).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Calculate number of closed findings
+	closedFindingQuery := repo.db.Model(&models.AuditFinding{}).
+		Joins("JOIN audit_finding_statuses ON audit_finding_statuses.id = audit_findings.audit_finding_status_id").
+		Where("audit_finding_statuses.is_closed = ?", true)
+	if params.DateFrom != "" && params.DateTo != "" {
+		closedFindingQuery = closedFindingQuery.Where("audit_findings.created_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
+	}
+	err = closedFindingQuery.Count(&closedFindings).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Calculate Audit Finding Resolution Rate
+	var auditFindingResolutionRate float64
+	if totalFindings > 0 {
+		auditFindingResolutionRate = float64(closedFindings) / float64(totalFindings) * 100
+	}
+
+	return &kpiDTOs.GRCAuditSummaryDTO{
+		AuditCompletionRate:        auditCompletionRate,
+		OpenMajorNCCount:           openMajorNCCount,
+		AuditFindingResolutionRate: auditFindingResolutionRate,
+	}, nil
 }
