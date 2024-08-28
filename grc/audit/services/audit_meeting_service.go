@@ -50,10 +50,28 @@ func (ams *AuditMeetingService) GetAll(auditID uint, params *auditDTOs.AuditMeet
 	// Map the audit meetings to the response DTO
 	auditMeetingDTOs := make([]*auditDTOs.AuditMeetingListDTO, len(auditMeetings))
 	for i, meeting := range auditMeetings {
-		var updatedAt string
+		var updatedAt *string
 		if meeting.UpdatedAt != nil {
-			updatedAt = meeting.UpdatedAt.Format("2006-01-02 15:04:05")
+			formattedUpdatedAt := meeting.UpdatedAt.Format("2006-01-02 15:04:05")
+			updatedAt = &formattedUpdatedAt
 		}
+
+		// Initialize the UpdatedUser fields to empty strings
+		var updatedUserFirstNameEn, updatedUserFirstNameAr, updatedUserLastNameEn, updatedUserLastNameAr, updatedUserInitial, updatedUserColor, updatedUserEmail string
+		var updatedUserProfileImagePath *string
+
+		// Check if UpdatedByUser is not nil before accessing its fields
+		if meeting.UpdatedByUser != nil {
+			updatedUserFirstNameEn = meeting.UpdatedByUser.FirstNameEn
+			updatedUserFirstNameAr = meeting.UpdatedByUser.FirstNameAr
+			updatedUserLastNameEn = meeting.UpdatedByUser.LastNameEn
+			updatedUserLastNameAr = meeting.UpdatedByUser.LastNameAr
+			updatedUserInitial = meeting.UpdatedByUser.Initial
+			updatedUserColor = meeting.UpdatedByUser.Color
+			updatedUserEmail = meeting.UpdatedByUser.Email
+			updatedUserProfileImagePath = meeting.UpdatedByUser.ProfileImagePath
+		}
+
 		auditMeetingDTOs[i] = &auditDTOs.AuditMeetingListDTO{
 			ID:                          meeting.ID,
 			AuditID:                     meeting.AuditID,
@@ -64,7 +82,7 @@ func (ams *AuditMeetingService) GetAll(auditID uint, params *auditDTOs.AuditMeet
 			OtherParticipants:           meeting.OtherParticipants,
 			Mom:                         meeting.Mom,
 			CreatedAt:                   meeting.CreatedAt.Format("2006-01-02 15:04:05"),
-			UpdatedAt:                   &updatedAt,
+			UpdatedAt:                   updatedAt,
 			CreatedUserID:               meeting.CreatedBYID,
 			CreatedUserFirstNameEn:      meeting.CreatedByUser.FirstNameEn,
 			CreatedUserFirstNameAr:      meeting.CreatedByUser.FirstNameAr,
@@ -75,14 +93,14 @@ func (ams *AuditMeetingService) GetAll(auditID uint, params *auditDTOs.AuditMeet
 			CreatedUserEmail:            meeting.CreatedByUser.Email,
 			CreatedUserProfileImagePath: meeting.CreatedByUser.ProfileImagePath,
 			UpdatedUserID:               meeting.UpdatedBYID,
-			UpdatedUserFirstNameEn:      meeting.UpdatedByUser.FirstNameEn,
-			UpdatedUserFirstNameAr:      meeting.UpdatedByUser.FirstNameAr,
-			UpdatedUserLastNameEn:       meeting.UpdatedByUser.LastNameEn,
-			UpdatedUserLastNameAr:       meeting.UpdatedByUser.LastNameAr,
-			UpdatedUserInitial:          meeting.UpdatedByUser.Initial,
-			UpdatedUserColor:            meeting.UpdatedByUser.Color,
-			UpdatedUserEmail:            meeting.UpdatedByUser.Email,
-			UpdatedUserProfileImagePath: meeting.UpdatedByUser.ProfileImagePath,
+			UpdatedUserFirstNameEn:      updatedUserFirstNameEn,
+			UpdatedUserFirstNameAr:      updatedUserFirstNameAr,
+			UpdatedUserLastNameEn:       updatedUserLastNameEn,
+			UpdatedUserLastNameAr:       updatedUserLastNameAr,
+			UpdatedUserInitial:          updatedUserInitial,
+			UpdatedUserColor:            updatedUserColor,
+			UpdatedUserEmail:            updatedUserEmail,
+			UpdatedUserProfileImagePath: updatedUserProfileImagePath,
 			Participants:                mapParticipants(meeting.Participants),
 		}
 	}
