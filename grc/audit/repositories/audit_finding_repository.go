@@ -49,6 +49,7 @@ func (repo *AuditFindingRepository) GetAll(params *auditDTOs.AuditFindingListQue
 	query := repo.db.Table("audit_findings").
 		Select(`
 			audit_findings.*,
+			audit_plans.title AS audit_title,
 			auditable_items.title_en AS auditable_item_title_en,
 			auditable_items.title_ar AS auditable_item_title_ar,
 			audit_finding_categories.title_en AS audit_finding_category_title_en,
@@ -79,6 +80,8 @@ func (repo *AuditFindingRepository) GetAll(params *auditDTOs.AuditFindingListQue
         	updated_user.profile_image_path AS updated_user_profile_image_path
 		`).
 		Joins(`
+			LEFT JOIN audits ON audits.id = audit_findings.audit_id
+			LEFT JOIN audit_plans ON audit_plans.id = audits.audit_plan_id
 			LEFT JOIN auditable_items ON auditable_items.id = audit_findings.auditable_item_id
 			LEFT JOIN audit_finding_categories ON audit_finding_categories.id = audit_findings.audit_finding_category_id
 			LEFT JOIN severity_levels ON severity_levels.id = audit_findings.severity_level_id
