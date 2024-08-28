@@ -7,6 +7,7 @@ import (
 	auditRepositories "jethur/grc/audit/repositories"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
+	organizationServices "jethur/grc/organization/services"
 	settingServices "jethur/grc/settings/services"
 	"jethur/utility"
 
@@ -31,6 +32,7 @@ type AuditableItemService struct {
 	auditStatusSvc       AuditStatusServiceInterface
 	auditorRiskRatingSvc AuditorRiskRatingServiceInterface
 	organizationUnitSvc  settingServices.OrganizationUnitServiceInterface
+	userSvc              organizationServices.UserServiceInterface
 }
 
 func NewAuditableItemService(
@@ -38,13 +40,15 @@ func NewAuditableItemService(
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	auditStatusSvc AuditStatusServiceInterface,
 	auditorRiskRatingSvc AuditorRiskRatingServiceInterface,
-	organizationUnitSvc settingServices.OrganizationUnitServiceInterface) AuditableItemServiceInterface {
+	organizationUnitSvc settingServices.OrganizationUnitServiceInterface,
+	userSvc organizationServices.UserServiceInterface) AuditableItemServiceInterface {
 	return &AuditableItemService{
 		repo:                 repo,
 		activityLogSvc:       activityLogSvc,
 		auditStatusSvc:       auditStatusSvc,
 		auditorRiskRatingSvc: auditorRiskRatingSvc,
 		organizationUnitSvc:  organizationUnitSvc,
+		userSvc:              userSvc,
 	}
 }
 
@@ -99,13 +103,20 @@ func (ais *AuditableItemService) Create(currentUserID uint, auditableItemFormDTO
 	if err != nil {
 		return 0, err
 	}
+	var responsibleUnitID uint
+	unitID, err := ais.userSvc.GetUserPrimaryUnitID(auditableItemFormDTO.ResponsibleUserID)
+	if err != nil {
+		return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "responsible unit")
+	}
+	responsibleUnitID = unitID
 
 	auditableItem := &models.AuditableItem{
 		TitleEn:             &auditableItemFormDTO.TitleEn,
 		TitleAr:             &auditableItemFormDTO.TitleAr,
 		Comment:             auditableItemFormDTO.Comment,
 		AuditorRiskRatingID: auditableItemFormDTO.AuditorRiskRatingID,
-		ResponsibleUnitID:   auditableItemFormDTO.ResponsibleUnitID,
+		ResponsibleUserID:   auditableItemFormDTO.ResponsibleUserID,
+		ResponsibleUnitID:   responsibleUnitID,
 		AuditStatusID:       uint(auditStatus.ID),
 		CreatedByID:         currentUserID,
 	}
@@ -156,13 +167,19 @@ func (ais *AuditableItemService) Update(id uint, currentUserID uint, auditableIt
 	if err := ais.validateAuditableItemFormDTO(auditableItemFormDTO); err != nil {
 		return err
 	}
-
+	if existingAuditableItem.ResponsibleUserID != auditableItemFormDTO.ResponsibleUserID {
+		responsibleUnitID, err := ais.userSvc.GetUserPrimaryUnitID(auditableItemFormDTO.ResponsibleUserID)
+		if err != nil {
+			return utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "responsible unit")
+		}
+		existingAuditableItem.ResponsibleUnitID = responsibleUnitID
+	}
 	// Update Compliance ActionPlan
 	existingAuditableItem.TitleEn = &auditableItemFormDTO.TitleEn
 	existingAuditableItem.TitleAr = &auditableItemFormDTO.TitleAr
 	existingAuditableItem.Comment = auditableItemFormDTO.Comment
 	existingAuditableItem.AuditorRiskRatingID = auditableItemFormDTO.AuditorRiskRatingID
-	existingAuditableItem.ResponsibleUnitID = auditableItemFormDTO.ResponsibleUnitID
+	existingAuditableItem.ResponsibleUserID = auditableItemFormDTO.ResponsibleUserID
 	existingAuditableItem.UpdatedByID = &currentUserID
 
 	err = ais.repo.Update(existingAuditableItem, tx)
@@ -238,8 +255,8 @@ func (ais *AuditableItemService) validateAuditableItemFormDTO(auditableItemFormD
 	if _, err := ais.auditorRiskRatingSvc.GetByID(auditableItemFormDTO.AuditorRiskRatingID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("auditor risk rating does not exist"), "not_exist", "auditor risk rating")
 	}
-	if _, err := ais.organizationUnitSvc.GetByID(auditableItemFormDTO.ResponsibleUnitID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("responsible unit does not exist"), "not_exist", "responsible unit")
+	if _, err := ais.userSvc.GetByID(auditableItemFormDTO.ResponsibleUserID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("responsible user does not exist"), "not_exist", "responsible user")
 	}
 
 	return nil
