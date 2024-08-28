@@ -67,7 +67,15 @@ func (amc *AuditMeetingController) GetAllAuditMeetings(c *gin.Context) {
 		EndDate:     endDate,
 	}
 
-	auditMeetings, err := amc.service.GetAll(&queryParams)
+	idStr := c.Param("auditId")
+
+	auditId, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	auditMeetings, err := amc.service.GetAll(uint(auditId), &queryParams)
 	if err != nil {
 		utility.SendInternalErrResp(amc.db, c, err.Error())
 		return

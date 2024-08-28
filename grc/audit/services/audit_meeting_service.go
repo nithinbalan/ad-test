@@ -14,7 +14,7 @@ import (
 )
 
 type AuditMeetingServiceInterface interface {
-	GetAll(params *auditDTOs.AuditMeetingListQueryParamsDTO) (*auditDTOs.AuditMeetingListResponseDTO, error)
+	GetAll(auditID uint, params *auditDTOs.AuditMeetingListQueryParamsDTO) (*auditDTOs.AuditMeetingListResponseDTO, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditMeetingDetailDTO, error)
 	GetByID(id uint) (*models.AuditMeeting, error)
 	Create(currentUserID uint, auditMeetingFormDTO *auditDTOs.AuditMeetingFormDTO) (uint, error)
@@ -40,8 +40,59 @@ func NewAuditMeetingService(
 	}
 }
 
-func (ams *AuditMeetingService) GetAll(params *auditDTOs.AuditMeetingListQueryParamsDTO) (*auditDTOs.AuditMeetingListResponseDTO, error) {
-	return ams.repo.GetAll(params)
+func (ams *AuditMeetingService) GetAll(auditID uint, params *auditDTOs.AuditMeetingListQueryParamsDTO) (*auditDTOs.AuditMeetingListResponseDTO, error) {
+	// Fetch the audit meetings and pagination info from the repository
+	auditMeetings, pagination, err := ams.repo.GetAll(auditID, params)
+	if err != nil {
+		return nil, err
+	}
+
+	// Map the audit meetings to the response DTO
+	auditMeetingDTOs := make([]*auditDTOs.AuditMeetingListDTO, len(auditMeetings))
+	for i, meeting := range auditMeetings {
+		var updatedAt string
+		if meeting.UpdatedAt != nil {
+			updatedAt = meeting.UpdatedAt.Format("2006-01-02 15:04:05")
+		}
+		auditMeetingDTOs[i] = &auditDTOs.AuditMeetingListDTO{
+			ID:                          meeting.ID,
+			AuditID:                     meeting.AuditID,
+			Title:                       meeting.Title,
+			Date:                        meeting.Date.Format("2006-01-02"),
+			FromTime:                    meeting.FromTime,
+			ToTime:                      meeting.ToTime,
+			OtherParticipants:           meeting.OtherParticipants,
+			Mom:                         meeting.Mom,
+			CreatedAt:                   meeting.CreatedAt.Format("2006-01-02 15:04:05"),
+			UpdatedAt:                   &updatedAt,
+			CreatedUserID:               meeting.CreatedBYID,
+			CreatedUserFirstNameEn:      meeting.CreatedByUser.FirstNameEn,
+			CreatedUserFirstNameAr:      meeting.CreatedByUser.FirstNameAr,
+			CreatedUserLastNameEn:       meeting.CreatedByUser.LastNameEn,
+			CreatedUserLastNameAr:       meeting.CreatedByUser.LastNameAr,
+			CreatedUserInitial:          meeting.CreatedByUser.Initial,
+			CreatedUserColor:            meeting.CreatedByUser.Color,
+			CreatedUserEmail:            meeting.CreatedByUser.Email,
+			CreatedUserProfileImagePath: meeting.CreatedByUser.ProfileImagePath,
+			UpdatedUserID:               meeting.UpdatedBYID,
+			UpdatedUserFirstNameEn:      meeting.UpdatedByUser.FirstNameEn,
+			UpdatedUserFirstNameAr:      meeting.UpdatedByUser.FirstNameAr,
+			UpdatedUserLastNameEn:       meeting.UpdatedByUser.LastNameEn,
+			UpdatedUserLastNameAr:       meeting.UpdatedByUser.LastNameAr,
+			UpdatedUserInitial:          meeting.UpdatedByUser.Initial,
+			UpdatedUserColor:            meeting.UpdatedByUser.Color,
+			UpdatedUserEmail:            meeting.UpdatedByUser.Email,
+			UpdatedUserProfileImagePath: meeting.UpdatedByUser.ProfileImagePath,
+			Participants:                mapParticipants(meeting.Participants),
+		}
+	}
+
+	// Prepare and return the response with pagination info
+	response := &auditDTOs.AuditMeetingListResponseDTO{
+		Items:      auditMeetingDTOs,
+		Pagination: *pagination,
+	}
+	return response, nil
 }
 
 func (ams *AuditMeetingService) GetByID(id uint) (*models.AuditMeeting, error) {
@@ -395,4 +446,25 @@ func (ams *AuditMeetingService) parseAuditMeetingDates(dto *auditDTOs.AuditMeeti
 	}
 
 	return parsed, nil
+}
+
+func mapParticipants(participants []*models.AuditMeetingParticipant) []*organizationDTOs.UserMinimalDTO {
+	var participantDTOs []*organizationDTOs.UserMinimalDTO
+	for _, participant := range participants {
+		if participant.User != nil {
+			participantDTO := &organizationDTOs.UserMinimalDTO{
+				ID:               int(participant.UserID),
+				FirstNameEN:      participant.User.FirstNameEn,
+				LastNameEN:       participant.User.LastNameEn,
+				FirstNameAR:      participant.User.FirstNameAr,
+				LastNameAR:       participant.User.LastNameAr,
+				Email:            participant.User.Email,
+				Initial:          participant.User.Initial,
+				Color:            participant.User.Color,
+				ProfileImagePath: participant.User.ProfileImagePath,
+			}
+			participantDTOs = append(participantDTOs, participantDTO)
+		}
+	}
+	return participantDTOs
 }
