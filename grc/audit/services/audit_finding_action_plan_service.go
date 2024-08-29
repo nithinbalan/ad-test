@@ -18,11 +18,12 @@ import (
 type AuditFindingActionPlanServiceInterface interface {
 	GetAll(auditID uint, findingID uint, params *auditFindingDTOs.AuditFindingActionPlanListQueryParamsDTO) (*auditFindingDTOs.AuditFindingActionPlanListResponseDTO, error)
 	GetByID(auditID uint, findingID uint, id uint) (*models.AuditFindingActionPlan, error)
+	GetByFindingID(findingID uint, id uint) (*models.AuditFindingActionPlan, error)
 	GetFullDetailsByID(auditID uint, findingID uint, id uint) (*auditFindingDTOs.AuditFindingActionPlanDetailDTO, error)
 	Create(auditID uint, findingID uint, currentUserID uint, AuditFindingActionPlanFormDTO *auditFindingDTOs.AuditFindingActionPlanFormDTO) (uint, error)
 	Update(auditID uint, findingID uint, id uint, currentUserID uint, auditFinding *auditFindingDTOs.AuditFindingActionPlanFormDTO) error
 	Delete(auditID uint, findingID uint, ids []uint, currentUserID uint) ([]uint, error)
-	StatusUpdate(auditID uint, findingID uint, id uint, currentUserID uint, ActionPlanStatusID uint, tx utility.DatabaseTransaction) error
+	StatusUpdate(findingID uint, id uint, currentUserID uint, ActionPlanStatusID uint, tx utility.DatabaseTransaction) error
 }
 
 // Service and implementations
@@ -67,6 +68,18 @@ func (afaps AuditFindingActionPlanService) GetByID(auditID uint, findingID uint,
 		return nil, err
 	}
 
+	auditFindingActionPlan, err := afaps.repo.GetByID(id)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+	return auditFindingActionPlan, nil
+}
+
+func (afaps AuditFindingActionPlanService) GetByFindingID(findingID uint, id uint) (*models.AuditFindingActionPlan, error) {
 	auditFindingActionPlan, err := afaps.repo.GetByID(id)
 
 	if err != nil {
@@ -286,9 +299,9 @@ func (afaps *AuditFindingActionPlanService) Delete(auditID uint, findingID uint,
 	return failedIds, nil
 }
 
-func (afaps *AuditFindingActionPlanService) StatusUpdate(auditID uint, findingID uint, id uint, currentUserID uint, ActionPlanStatusID uint, tx utility.DatabaseTransaction) error {
+func (afaps *AuditFindingActionPlanService) StatusUpdate(findingID uint, id uint, currentUserID uint, ActionPlanStatusID uint, tx utility.DatabaseTransaction) error {
 
-	existingAuditFindingActionPlan, err := afaps.GetByID(auditID, findingID, id)
+	existingAuditFindingActionPlan, err := afaps.GetByFindingID(findingID, id)
 
 	if err != nil {
 		return err
