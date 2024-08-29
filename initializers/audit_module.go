@@ -9,33 +9,34 @@ import (
 )
 
 type AuditModule struct {
-	AuditStatusController                    *controllers.AuditStatusController
-	AuditorRiskRatingController              *controllers.AuditorRiskRatingController
-	AuditUniverseController                  *controllers.AuditUniverseController
-	AuditableItemController                  *controllers.AuditableItemController
-	AuditTeamController                      *controllers.AuditTeamController
-	AuditCategoryController                  *controllers.AuditCategoryController
-	AuditPlanController                      *controllers.AuditPlanController
-	AuditPlanChecklistController             *controllers.AuditPlanChecklistController
-	AuditPlanToolController                  *controllers.AuditPlanToolController
-	AuditPlanAuditableItemController         *controllers.AuditPlanAuditableItemController
-	AuditScheduleStatusController            *controllers.AuditScheduleStatusController
-	AuditActivityTypeController              *controllers.AuditActivityTypeController
-	AuditPlanBudgetController                *controllers.AuditPlanBudgetController
-	AuditPlanScheduleController              *controllers.AuditPlanScheduleController
-	AuditEngagementTypeController            *controllers.AuditEngagementTypeController
-	AuditPlanStakeholderEngagementController *controllers.AuditPlanStakeholderEngagementController
-	AuditController                          *controllers.AuditController
-	AuditWorkpaperController                 *controllers.AuditWorkpaperController
-	AuditMeetingController                   *controllers.AuditMeetingController
-	AuditTimelineController                  *controllers.AuditTimelineController
-	AuditFindingStatusController             *controllers.AuditFindingStatusController
-	AuditFindingCategoryController           *controllers.AuditFindingCategoryController
-	AuditFindingController                   *controllers.AuditFindingController
-	AuditDocumentRequestStatusController     *controllers.AuditDocumentRequestStatusController
-	AuditDocumentRequestController           *controllers.AuditDocumentRequestController
-	AuditFindingRootCauseAnalysisController  *controllers.AuditFindingRootCauseAnalysisController
-	AuditFindingActionPlanController         *controllers.AuditFindingActionPlanController
+	AuditStatusController                      *controllers.AuditStatusController
+	AuditorRiskRatingController                *controllers.AuditorRiskRatingController
+	AuditUniverseController                    *controllers.AuditUniverseController
+	AuditableItemController                    *controllers.AuditableItemController
+	AuditTeamController                        *controllers.AuditTeamController
+	AuditCategoryController                    *controllers.AuditCategoryController
+	AuditPlanController                        *controllers.AuditPlanController
+	AuditPlanChecklistController               *controllers.AuditPlanChecklistController
+	AuditPlanToolController                    *controllers.AuditPlanToolController
+	AuditPlanAuditableItemController           *controllers.AuditPlanAuditableItemController
+	AuditScheduleStatusController              *controllers.AuditScheduleStatusController
+	AuditActivityTypeController                *controllers.AuditActivityTypeController
+	AuditPlanBudgetController                  *controllers.AuditPlanBudgetController
+	AuditPlanScheduleController                *controllers.AuditPlanScheduleController
+	AuditEngagementTypeController              *controllers.AuditEngagementTypeController
+	AuditPlanStakeholderEngagementController   *controllers.AuditPlanStakeholderEngagementController
+	AuditController                            *controllers.AuditController
+	AuditWorkpaperController                   *controllers.AuditWorkpaperController
+	AuditMeetingController                     *controllers.AuditMeetingController
+	AuditTimelineController                    *controllers.AuditTimelineController
+	AuditFindingStatusController               *controllers.AuditFindingStatusController
+	AuditFindingCategoryController             *controllers.AuditFindingCategoryController
+	AuditFindingController                     *controllers.AuditFindingController
+	AuditDocumentRequestStatusController       *controllers.AuditDocumentRequestStatusController
+	AuditDocumentRequestController             *controllers.AuditDocumentRequestController
+	AuditDocumentRequestConversationController *controllers.AuditDocumentRequestConversationController
+	AuditFindingRootCauseAnalysisController    *controllers.AuditFindingRootCauseAnalysisController
+	AuditFindingActionPlanController           *controllers.AuditFindingActionPlanController
 }
 
 func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, complianceModule *ComplianceModule, riskModule *RiskModule, incidentModule *IncidentModule, documentModule *DocumentModule, settingModule *SettingsModule, masterModule *MasterModule) *AuditModule {
@@ -230,6 +231,17 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		auditableItemSvc,
 	)
 	auditDocumentRequestController := controllers.NewAuditDocumentRequestController(auditDocumentRequestSvc)
+
+	auditDocumentRequestConversationRepo := repositories.NewAuditDocumentRequestConversationRepository(db)
+	auditDocumentRequestConversationSvc := services.NewAuditDocumentRequestConversationService(
+		auditDocumentRequestConversationRepo,
+		sharedModule.ActivityLogService,
+		auditSvc,
+		auditDocumentRequestSvc,
+		auditDocumentRequestStatusSvc,
+	)
+	auditDocumentRequestConversationController := controllers.NewAuditDocumentRequestConversationController(auditDocumentRequestConversationSvc)
+
 	auditFindingRootCauseAnalysisRepo := repositories.NewAuditFindingRootCauseAnalysisRepository(db)
 	auditFindingRootCauseAnalysisSvc := services.NewAuditFindingRootCauseAnalysisService(auditFindingRootCauseAnalysisRepo, sharedModule.ActivityLogService, auditFindingSvc, auditTimelineSvc)
 	auditFindingRootCauseAnalysisController := controllers.NewAuditFindingRootCauseAnalysisController(auditFindingRootCauseAnalysisSvc)
@@ -246,32 +258,33 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 	auditFindingActionPlanController := controllers.NewAuditFindingActionPlanController(auditFindingActionPlanSvc)
 
 	return &AuditModule{
-		AuditorRiskRatingController:              auditorRiskRatingController,
-		AuditUniverseController:                  auditUniverseController,
-		AuditableItemController:                  auditableItemController,
-		AuditTeamController:                      auditTeamController,
-		AuditCategoryController:                  auditCategoryController,
-		AuditStatusController:                    auditStatusController,
-		AuditPlanController:                      auditPlanController,
-		AuditPlanChecklistController:             auditPlanChecklistController,
-		AuditPlanToolController:                  auditPlanToolController,
-		AuditPlanAuditableItemController:         auditPlanAuditableItemController,
-		AuditActivityTypeController:              auditActivityTypeController,
-		AuditScheduleStatusController:            auditScheduleStatusController,
-		AuditPlanBudgetController:                auditPlanBudgetController,
-		AuditPlanScheduleController:              auditPlanScheduleController,
-		AuditEngagementTypeController:            auditEngagementTypeController,
-		AuditPlanStakeholderEngagementController: auditPlanStakeholderEngagementController,
-		AuditController:                          auditController,
-		AuditWorkpaperController:                 auditWorkpaperController,
-		AuditMeetingController:                   auditMeetingController,
-		AuditTimelineController:                  auditTimelineController,
-		AuditFindingStatusController:             auditFindingStatusController,
-		AuditFindingCategoryController:           auditFindingCategoryController,
-		AuditFindingController:                   auditFindingController,
-		AuditDocumentRequestStatusController:     auditDocumentRequestStatusController,
-		AuditDocumentRequestController:           auditDocumentRequestController,
-		AuditFindingRootCauseAnalysisController:  auditFindingRootCauseAnalysisController,
-		AuditFindingActionPlanController:         auditFindingActionPlanController,
+		AuditorRiskRatingController:                auditorRiskRatingController,
+		AuditUniverseController:                    auditUniverseController,
+		AuditableItemController:                    auditableItemController,
+		AuditTeamController:                        auditTeamController,
+		AuditCategoryController:                    auditCategoryController,
+		AuditStatusController:                      auditStatusController,
+		AuditPlanController:                        auditPlanController,
+		AuditPlanChecklistController:               auditPlanChecklistController,
+		AuditPlanToolController:                    auditPlanToolController,
+		AuditPlanAuditableItemController:           auditPlanAuditableItemController,
+		AuditActivityTypeController:                auditActivityTypeController,
+		AuditScheduleStatusController:              auditScheduleStatusController,
+		AuditPlanBudgetController:                  auditPlanBudgetController,
+		AuditPlanScheduleController:                auditPlanScheduleController,
+		AuditEngagementTypeController:              auditEngagementTypeController,
+		AuditPlanStakeholderEngagementController:   auditPlanStakeholderEngagementController,
+		AuditController:                            auditController,
+		AuditWorkpaperController:                   auditWorkpaperController,
+		AuditMeetingController:                     auditMeetingController,
+		AuditTimelineController:                    auditTimelineController,
+		AuditFindingStatusController:               auditFindingStatusController,
+		AuditFindingCategoryController:             auditFindingCategoryController,
+		AuditFindingController:                     auditFindingController,
+		AuditDocumentRequestStatusController:       auditDocumentRequestStatusController,
+		AuditDocumentRequestController:             auditDocumentRequestController,
+		AuditDocumentRequestConversationController: auditDocumentRequestConversationController,
+		AuditFindingRootCauseAnalysisController:    auditFindingRootCauseAnalysisController,
+		AuditFindingActionPlanController:           auditFindingActionPlanController,
 	}
 }
