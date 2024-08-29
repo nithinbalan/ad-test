@@ -40,6 +40,9 @@ type UserServiceInterface interface {
 	GetCurrentUserDetails(id uint) (*userDTOs.CurrentUserDetailsDTO, error)
 	GetUserNotifications(userID uint, params *userDTOs.UserNotificationListQueryParamsDTO) (*userDTOs.UserNotificationListResponseDTO, error)
 	GetUserNewNotificationCount(userID uint) (int64, error)
+
+	MarkNotificationsAsRead(userID uint, formDTO *userDTOs.MarkNotificationAsReadFormDTO) (int64, error)
+	MarkNotificationsAsUnread(userID uint, formDTO *userDTOs.MarkNotificationAsReadFormDTO) (int64, error)
 }
 
 type UserService struct {
@@ -579,4 +582,28 @@ func (ns *UserService) GetUserNotifications(userID uint, params *userDTOs.UserNo
 
 func (us *UserService) GetUserNewNotificationCount(userID uint) (int64, error) {
 	return us.repo.GetUserNewNotificationCount(userID)
+}
+
+func (us *UserService) MarkNotificationsAsRead(userID uint, formDTO *userDTOs.MarkNotificationAsReadFormDTO) (int64, error) {
+	if formDTO.Type == "all" {
+		// Mark all notifications as read
+		return us.repo.MarkAllNotificationsAsRead(userID)
+	} else if formDTO.Type == "individual" && len(formDTO.UserNotificationIDs) > 0 {
+		// Mark specific notifications as read
+		return us.repo.MarkSpecificNotificationsAsRead(userID, formDTO.UserNotificationIDs)
+	} else {
+		return 0, fmt.Errorf("invalid parameters")
+	}
+}
+
+func (us *UserService) MarkNotificationsAsUnread(userID uint, formDTO *userDTOs.MarkNotificationAsReadFormDTO) (int64, error) {
+	if formDTO.Type == "all" {
+		// Mark all notifications as read
+		return us.repo.MarkAllNotificationsAsUnread(userID)
+	} else if formDTO.Type == "individual" && len(formDTO.UserNotificationIDs) > 0 {
+		// Mark specific notifications as read
+		return us.repo.MarkSpecificNotificationsAsUnread(userID, formDTO.UserNotificationIDs)
+	} else {
+		return 0, fmt.Errorf("invalid parameters")
+	}
 }

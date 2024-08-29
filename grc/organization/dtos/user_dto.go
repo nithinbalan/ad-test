@@ -250,3 +250,8 @@ type UserNotificationListResponseDTO struct {
 	Items      []*UserNotificationListDTO   `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }
+
+type MarkNotificationAsReadFormDTO struct {
+	Type                string `json:"type" binding:"required,oneof=all individual"`
+	UserNotificationIDs []uint `json:"user_notification_ids" binding:"required_if=Type individual,dive,gt=0"`
+}

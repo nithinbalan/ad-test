@@ -363,3 +363,49 @@ func (uc *UserController) GetUserNewNotificationCount(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"unread_count": count})
 }
+
+func (uc *UserController) MarkwNotificationAsRead(c *gin.Context) {
+	var formDTO organizationDTOs.MarkNotificationAsReadFormDTO
+
+	if err := c.ShouldBindJSON(&formDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(uc.db, c, err.Error())
+		return
+	}
+
+	_, err = uc.service.MarkNotificationsAsRead(currentUserID, &formDTO)
+	if err != nil {
+		utility.SendInternalErrResp(nil, c, err.Error())
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (uc *UserController) MarkwNotificationAsUnread(c *gin.Context) {
+	var formDTO organizationDTOs.MarkNotificationAsReadFormDTO
+
+	if err := c.ShouldBindJSON(&formDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(uc.db, c, err.Error())
+		return
+	}
+
+	_, err = uc.service.MarkNotificationsAsUnread(currentUserID, &formDTO)
+	if err != nil {
+		utility.SendInternalErrResp(nil, c, err.Error())
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
