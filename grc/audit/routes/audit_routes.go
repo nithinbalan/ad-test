@@ -41,6 +41,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditFindingRootCauseAnalysisController := app.AuditModule.AuditFindingRootCauseAnalysisController
 	auditFindingActionPlanController := app.AuditModule.AuditFindingActionPlanController
 	auditDocumentRequestConversationController := app.AuditModule.AuditDocumentRequestConversationController
+	auditFindingActionPlanStatusUpdateController := app.AuditModule.AuditFindingActionPlanStatusUpdateController
 
 	//Audit Status
 	auditRoutes.GET("/audit-statuses", auditStatusController.GetAllAuditStatuses)
@@ -215,5 +216,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.POST("/audits/:auditId/findings/:id/action-plans", auditFindingActionPlanController.CreateAuditFindingActionPlan)
 	auditRoutes.PUT("/audits/:auditId/findings/:id/action-plans/:actionPlanId", auditFindingActionPlanController.UpdateAuditFindingActionPlan)
 	auditRoutes.POST("/audits/:auditId/findings/:id/action-plans/delete", auditFindingActionPlanController.DeleteAuditFindingActionPlans)
+
+	auditRoutes.GET("/audit-findings/:findingId/action-plans/:actionPlanId/status-updates", auditFindingActionPlanStatusUpdateController.GetAllAuditFindingActionPlanStatusUpdates)
+	auditRoutes.POST("/audit-findings/:findingId/action-plans/:actionPlanId/status-updates", auditFindingActionPlanStatusUpdateController.CreateAuditFindingActionPlanStatusUpdate)
+	auditRoutes.PUT("/audit-findings/:findingId/action-plans/:actionPlanId/status-updates/:id", auditFindingActionPlanStatusUpdateController.UpdateAuditFindingActionPlanStatusUpdate)
+	auditRoutes.GET("/audit-findings/:findingId/action-plans/:actionPlanId/status-updates/latest", auditFindingActionPlanStatusUpdateController.GetLatestAuditFindingActionPlanStatusUpdate)
 
 }
