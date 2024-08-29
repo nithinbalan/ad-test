@@ -10,6 +10,7 @@ import (
 
 type AuditFindingListDTO struct {
 	ID                          uint    `json:"id"`
+	AuditID                     string  `json:"audit_id"`
 	AuditTitle                  string  `json:"audit_title"`
 	ReferenceNumber             string  `json:"reference_number"`
 	Title                       string  `json:"title"`
