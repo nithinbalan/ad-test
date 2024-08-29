@@ -49,6 +49,7 @@ func (repo *AuditFindingRepository) GetAll(params *auditDTOs.AuditFindingListQue
 	query := repo.db.Table("audit_findings").
 		Select(`
 			audit_findings.*,
+			audits.id AS audit_id,
 			audit_plans.title AS audit_title,
 			auditable_items.title_en AS auditable_item_title_en,
 			auditable_items.title_ar AS auditable_item_title_ar,
