@@ -14,6 +14,8 @@ type GRCDashboardRepositoryInteface interface {
 	GetGRCAuditSummary(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCAuditSummaryDTO, error)
 	GetGRCDocumentSummary(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCDocumentSummaryDTO, error)
 	GetGRCOrganizationSummary(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCOrganizationSummaryDTO, error)
+
+	GetGRCComplianceOverview(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCComplianceOverviewDTO, error)
 }
 
 type GRCDashboardRepository struct {
@@ -302,4 +304,58 @@ func (repo *GRCDashboardRepository) GetGRCOrganizationSummary(params *kpiDTOs.GR
 	return &kpiDTOs.GRCOrganizationSummaryDTO{
 		ControlEffectivenessRate: effectivenessRate,
 	}, nil
+}
+
+func (repo *GRCDashboardRepository) GetGRCComplianceOverview(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCComplianceOverviewDTO, error) {
+	summary := &kpiDTOs.GRCComplianceOverviewDTO{}
+
+	complianceQuery := repo.db.Model(&models.ComplianceRegister{}).
+		Joins("JOIN compliance_statuses ON compliance_statuses.id = compliance_register.compliance_status_id")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		complianceQuery = complianceQuery.Where("compliance_register.created_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
+	}
+
+	var totalComplaintsRegistered int64
+	err := complianceQuery.Count(&totalComplaintsRegistered).Error
+	if err != nil {
+		return nil, err
+	}
+
+	var compliant, notCompliant, partiallyCompliant, others int64
+	err = complianceQuery.Select("COUNT(*)").
+		Where("compliance_statuses.type = ?", "compliant").
+		Count(&compliant).Error
+	if err != nil {
+		return nil, err
+	}
+
+	err = complianceQuery.Select("COUNT(*)").
+		Where("compliance_statuses.type = ?", "not_compliant").
+		Count(&notCompliant).Error
+	if err != nil {
+		return nil, err
+	}
+
+	err = complianceQuery.Select("COUNT(*)").
+		Where("compliance_statuses.type = ?", "partially_compliant").
+		Count(&partiallyCompliant).Error
+	if err != nil {
+		return nil, err
+	}
+
+	err = complianceQuery.Select("COUNT(*)").
+		Where("compliance_statuses.type NOT IN (?)", []string{"compliant", "not_compliant", "partially_compliant"}).
+		Count(&others).Error
+	if err != nil {
+		return nil, err
+	}
+
+	summary.TotalComplaintsRegistered = totalComplaintsRegistered
+	summary.Compliant = compliant
+	summary.NotCompliant = notCompliant
+	summary.PartiallyCompliant = partiallyCompliant
+	summary.Others = others
+
+	return summary, nil
 }
