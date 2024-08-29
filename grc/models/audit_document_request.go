@@ -9,6 +9,7 @@ type AuditDocumentRequest struct {
 	AuditID                      uint       `json:"audit_id" gorm:"not null"`
 	AuditDocumentRequestStatusID uint       `json:"audit_document_request_status_id" gorm:"not null"`
 	ResponsibleUnitID            uint       `json:"responsible_unit_id" binding:"required" gorm:"not null"`
+	ResponsibleUserID            uint       `json:"responsible_user_id" binding:"required" gorm:"not null"`
 	Title                        string     `json:"title" gorm:"type:nvarchar(255);not null"`
 	Description                  *string    `json:"description" gorm:"type:nvarchar(MAX);default:null"`
 	RequestedAt                  *time.Time `json:"requested_at" gorm:"type:datetime;default:null"`
@@ -21,6 +22,7 @@ type AuditDocumentRequest struct {
 	Audit                      *Audit                               `gorm:"foreignKey:AuditID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
 	AuditDocumentRequestStatus *AuditDocumentRequestStatus          `gorm:"foreignKey:AuditDocumentRequestStatusID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
 	ResponsibleUnit            *OrganizationUnit                    `gorm:"foreignKey:ResponsibleUnitID"`
+	ResponsibleUser            *User                                `gorm:"foreignKey:ResponsibleUserID"`
 	AuditableItems             []*AuditDocumentRequestAuditableItem `gorm:"foreignKey:AuditDocumentRequestID"`
 	CreatedByUser              *User                                `gorm:"foreignKey:CreatedBYID"`
 	UpdatedByUser              *User                                `gorm:"foreignKey:UpdatedBYID"`
