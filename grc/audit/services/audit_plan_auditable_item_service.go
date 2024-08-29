@@ -95,6 +95,15 @@ func (apais *AuditPlanAuditableItemService) Create(auditPlanID uint, currentUser
 		tx.Rollback()
 		return 0, err
 	}
+	// Check if any of the AuditableItemIDs are already added to the table with this AuditPlanID
+	for _, itemID := range auditPlanFormDTO.AuditableItemIds {
+		var existingItem models.AuditPlanAuditableItem
+		err := apais.repo.GetByAuditPlanAndAuditableItemID(auditPlanID, *itemID, &existingItem, tx)
+		if err == nil {
+			tx.Rollback()
+			return 0, utility.NewForbiddenError(fmt.Sprintf("The auditable item with ID %d is already added to this plan", *itemID))
+		}
+	}
 
 	var auditableItems []*models.AuditPlanAuditableItem
 	for _, itemID := range auditPlanFormDTO.AuditableItemIds {
