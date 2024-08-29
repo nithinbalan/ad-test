@@ -16,6 +16,7 @@ type GRCDashboardRepositoryInteface interface {
 	GetGRCOrganizationSummary(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCOrganizationSummaryDTO, error)
 
 	GetGRCComplianceOverview(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCComplianceOverviewDTO, error)
+	GetGRCRiskOverview(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCRiskOverviewDTO, error)
 }
 
 type GRCDashboardRepository struct {
@@ -356,6 +357,53 @@ func (repo *GRCDashboardRepository) GetGRCComplianceOverview(params *kpiDTOs.GRC
 	summary.NotCompliant = notCompliant
 	summary.PartiallyCompliant = partiallyCompliant
 	summary.Others = others
+
+	return summary, nil
+}
+
+func (repo *GRCDashboardRepository) GetGRCRiskOverview(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCRiskOverviewDTO, error) {
+	summary := &kpiDTOs.GRCRiskOverviewDTO{}
+
+	// Base query to get all risk registers in the specified date range
+	riskQuery := repo.db.Model(&models.RiskRegister{}).
+		Joins("JOIN risk_matrix_risk_ratings ON risk_register.current_risk_rating_id = risk_matrix_risk_ratings.id")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		riskQuery = riskQuery.Where("risk_register.created_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
+	}
+
+	// Calculate Total Risks Registered
+	var totalRisksRegistered int64
+	err := riskQuery.Count(&totalRisksRegistered).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Get distinct risk ratings
+	var riskRatings []models.RiskMatrixRiskRating
+	err = repo.db.Model(&models.RiskMatrixRiskRating{}).Where("status = ?", "active").Find(&riskRatings).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Initialize a map to store risk counts by rating
+	riskCountsByRating := make(map[string]int64)
+
+	// Calculate the count for each risk rating dynamically
+	for _, rating := range riskRatings {
+		var count int64
+		err := repo.db.Model(&models.RiskRegister{}).
+			Where("current_risk_rating_id = ?", rating.ID).
+			Count(&count).Error
+		if err != nil {
+			return nil, err
+		}
+		riskCountsByRating[rating.Type] = count
+	}
+
+	// Populate the summary DTO
+	summary.TotalRisksRegistered = totalRisksRegistered
+	summary.RiskCountsByRating = riskCountsByRating
 
 	return summary, nil
 }
