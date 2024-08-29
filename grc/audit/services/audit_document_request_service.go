@@ -81,6 +81,13 @@ func (adrs *AuditDocumentRequestService) GetFullDetailsByID(id uint, tx ...utili
 	if err != nil {
 		return nil, err
 	}
+	// Call the repository function to get the conversation count
+	conversationCount, err := adrs.repo.CountConversationsByRequestID(id, tx...)
+	if err != nil {
+		return nil, err
+	}
+	documentRequestDTO.ConversationCount = int(conversationCount)
+	
 	if documentRequest.RequestedAt != nil {
 		documentRequestDTO.RequestedAtString = documentRequest.RequestedAt.Format("2006-01-02")
 	}

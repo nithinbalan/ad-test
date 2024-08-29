@@ -20,14 +20,15 @@ type AuditDocumentRequest struct {
 	UpdatedBYID                  *uint      `json:"updated_by_id" gorm:"default:null"`
 
 	// Relationships
-	Audit                      *Audit                               `gorm:"foreignKey:AuditID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
-	AuditDocumentRequestStatus *AuditDocumentRequestStatus          `gorm:"foreignKey:AuditDocumentRequestStatusID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
-	ResponsibleUnit            *OrganizationUnit                    `gorm:"foreignKey:ResponsibleUnitID"`
-	ResponsibleUser            *User                                `gorm:"foreignKey:ResponsibleUserID"`
-	AuditableItems             []*AuditDocumentRequestAuditableItem `gorm:"foreignKey:AuditDocumentRequestID"`
-	CreatedByUser              *User                                `gorm:"foreignKey:CreatedBYID"`
-	RequestedByUser            *User                                `gorm:"foreignKey:RequestedBYID"`
-	UpdatedByUser              *User                                `gorm:"foreignKey:UpdatedBYID"`
+	Audit                             *Audit                               `gorm:"foreignKey:AuditID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
+	AuditDocumentRequestStatus        *AuditDocumentRequestStatus          `gorm:"foreignKey:AuditDocumentRequestStatusID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
+	ResponsibleUnit                   *OrganizationUnit                    `gorm:"foreignKey:ResponsibleUnitID"`
+	ResponsibleUser                   *User                                `gorm:"foreignKey:ResponsibleUserID"`
+	AuditableItems                    []*AuditDocumentRequestAuditableItem `gorm:"foreignKey:AuditDocumentRequestID"`
+	AuditDocumentRequestConversations []*AuditDocumentRequestConversation  `gorm:"foreignKey:AuditDocumentRequestID"`
+	CreatedByUser                     *User                                `gorm:"foreignKey:CreatedBYID"`
+	RequestedByUser                   *User                                `gorm:"foreignKey:RequestedBYID"`
+	UpdatedByUser                     *User                                `gorm:"foreignKey:UpdatedBYID"`
 }
 
 // TableName overrides the table name used by AuditDocumentRequest to `audit_document_requests`

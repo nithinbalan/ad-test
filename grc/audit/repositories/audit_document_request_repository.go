@@ -19,6 +19,7 @@ type AuditDocumentRequestRepositoryInterface interface {
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	CreateAuditableItems(auditDocumentRequestAuditableItems []*models.AuditDocumentRequestAuditableItem, tx ...utility.DatabaseTransaction) error
 	DeleteAuditableItems(itemIds []*uint, tx ...utility.DatabaseTransaction) error
+	CountConversationsByRequestID(requestID uint, tx ...utility.DatabaseTransaction) (int64, error)
 }
 
 type AuditDocumentRequestRepository struct {
@@ -181,7 +182,6 @@ func (repo *AuditDocumentRequestRepository) GetFullDetailsByID(id uint, tx ...ut
 		db = tx[0].DB()
 	}
 	var auditDocumentRequest *models.AuditDocumentRequest
-
 	result := db.
 		Preload("Audit").
 		Preload("AuditDocumentRequestStatus").
@@ -270,4 +270,19 @@ func (repo *AuditDocumentRequestRepository) DeleteAuditableItems(itemIds []*uint
 	}
 
 	return nil
+}
+
+func (repo *AuditDocumentRequestRepository) CountConversationsByRequestID(requestID uint, tx ...utility.DatabaseTransaction) (int64, error) {
+	var conversationCount int64
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	err := db.Model(&models.AuditDocumentRequestConversation{}).
+		Where("audit_document_request_id = ?", requestID).
+		Count(&conversationCount).Error
+	if err != nil {
+		return 0, err
+	}
+	return conversationCount, nil
 }
