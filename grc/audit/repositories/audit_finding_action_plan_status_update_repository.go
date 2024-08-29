@@ -163,9 +163,9 @@ func (repo *AuditFindingActionPlanStatusUpdateRepository) DeleteDocuments(docIds
 	return nil
 }
 
-func (repo *AuditFindingActionPlanStatusUpdateRepository) GetLatestAuditFindingActionPlanStatusUpdate(auditFindingActionPlanID uint) (*auditDTOs.AuditFindingActionPlanStatusUpdateListDTO, error) {
+func (repo *AuditFindingActionPlanStatusUpdateRepository) GetLatestAuditFindingActionPlanStatusUpdate(audit_findingActionPlanID uint) (*auditDTOs.AuditFindingActionPlanStatusUpdateListDTO, error) {
 
-	var auditFindingActionPlanUpdate *auditDTOs.AuditFindingActionPlanStatusUpdateListDTO
+	var audit_findingActionPlanUpdate *auditDTOs.AuditFindingActionPlanStatusUpdateListDTO
 
 	query := repo.db.Table("audit_finding_action_plan_status_updates").
 		Select(`
@@ -175,7 +175,7 @@ func (repo *AuditFindingActionPlanStatusUpdateRepository) GetLatestAuditFindingA
             action_plan_statuses.title_ar AS action_plan_status_title_ar,
             action_plan_statuses.color_code AS action_plan_status_color_code,
         	created_user.id AS created_user_id,
-        	created_user.first_name_en AS created_user_first_name_en,
+        		created_user.first_name_en AS created_user_first_name_en,
         	created_user.first_name_ar AS created_user_first_name_ar,
         	created_user.last_name_en AS created_user_last_name_en,
         	created_user.last_name_ar AS created_user_last_name_ar,   
@@ -186,12 +186,12 @@ func (repo *AuditFindingActionPlanStatusUpdateRepository) GetLatestAuditFindingA
 			updated_user.id AS updated_user_id,
     		updated_user.first_name_en AS updated_user_first_name_en,
         	updated_user.first_name_ar AS updated_user_first_name_ar,
-        	updated_user.last_name_en AS updated_user.last_name_en,
-        	updated_user.last_name_ar AS updated_user.last_name_ar,
+        	updated_user.last_name_en AS updated_user_last_name_en,
+        	updated_user.last_name_ar AS updated_user_last_name_ar,
 			updated_user.initial AS updated_user_initial,
-        	updated_user.color AS updated_user.color,
-        	updated_user.email AS updated_user.email,
-        	updated_user.profile_image_path AS updated_user.profile_image_path
+        	updated_user.color AS updated_user_color,
+        	updated_user.email AS updated_user_email,
+        	updated_user.profile_image_path AS updated_user_profile_image_path
         `).
 		Joins(`
             LEFT JOIN audit_finding_action_plans ON audit_finding_action_plans.id = audit_finding_action_plan_status_updates.audit_finding_action_plan_id
@@ -199,14 +199,62 @@ func (repo *AuditFindingActionPlanStatusUpdateRepository) GetLatestAuditFindingA
             LEFT JOIN users AS created_user ON created_user.id = audit_finding_action_plan_status_updates.created_by_id
             LEFT JOIN users AS updated_user ON updated_user.id = audit_finding_action_plan_status_updates.updated_by_id
         `).
-		Where("audit_finding_action_plan_status_updates.audit_finding_action_plan_id = ?", auditFindingActionPlanID).
+		Where("audit_finding_action_plan_status_updates.audit_finding_action_plan_id = ?", audit_findingActionPlanID).
 		Order("audit_finding_action_plan_status_updates.created_at DESC").
-		First(&auditFindingActionPlanUpdate)
+		First(&audit_findingActionPlanUpdate)
 
 	if query.Error != nil {
 		return nil, query.Error
 	}
 
-	return auditFindingActionPlanUpdate, nil
+	return audit_findingActionPlanUpdate, nil
 
 }
+
+// func (repo *AuditFindingActionPlanStatusUpdateRepository) GetLatestAuditFindingActionPlanStatusUpdate(auditFindingActionPlanID uint) (*auditDTOs.AuditFindingActionPlanStatusUpdateListDTO, error) {
+
+// 	var auditFindingActionPlanUpdate *auditDTOs.AuditFindingActionPlanStatusUpdateListDTO
+
+// 	query := repo.db.Table("audit_finding_action_plan_status_updates").
+// 		Select(`
+//             audit_finding_action_plan_status_updates.*,
+//             audit_finding_action_plans.title AS audit_finding_action_plan_title,
+//             action_plan_statuses.title_en AS action_plan_status_title_en,
+//             action_plan_statuses.title_ar AS action_plan_status_title_ar,
+//             action_plan_statuses.color_code AS action_plan_status_color_code,
+//         	created_user.id AS created_user_id,
+//         	created_user.first_name_en AS created_user_first_name_en,
+//         	created_user.first_name_ar AS created_user_first_name_ar,
+//         	created_user.last_name_en AS created_user_last_name_en,
+//         	created_user.last_name_ar AS created_user_last_name_ar,
+//         	created_user.initial AS created_user_initial,
+//         	created_user.color AS created_user_color,
+//         	created_user.email AS created_user_email,
+//         	created_user.profile_image_path AS created_user_profile_image_path,
+// 			updated_user.id AS updated_user_id,
+//     		updated_user.first_name_en AS updated_user_first_name_en,
+//         	updated_user.first_name_ar AS updated_user_first_name_ar,
+//         	updated_user.last_name_en AS updated_user.last_name_en,
+//         	updated_user.last_name_ar AS updated_user.last_name_ar,
+// 			updated_user.initial AS updated_user_initial,
+//         	updated_user.color AS updated_user.color,
+//         	updated_user.email AS updated_user.email,
+//         	updated_user.profile_image_path AS updated_user.profile_image_path
+//         `).
+// 		Joins(`
+//             LEFT JOIN audit_finding_action_plans ON audit_finding_action_plans.id = audit_finding_action_plan_status_updates.audit_finding_action_plan_id
+//             LEFT JOIN action_plan_statuses ON action_plan_statuses.id = audit_finding_action_plan_status_updates.action_plan_status_id
+//             LEFT JOIN users AS created_user ON created_user.id = audit_finding_action_plan_status_updates.created_by_id
+//             LEFT JOIN users AS updated_user ON updated_user.id = audit_finding_action_plan_status_updates.updated_by_id
+//         `).
+// 		Where("audit_finding_action_plan_status_updates.audit_finding_action_plan_id = ?", auditFindingActionPlanID).
+// 		Order("audit_finding_action_plan_status_updates.created_at DESC").
+// 		First(&auditFindingActionPlanUpdate)
+
+// 	if query.Error != nil {
+// 		return nil, query.Error
+// 	}
+
+// 	return auditFindingActionPlanUpdate, nil
+
+// }

@@ -158,19 +158,20 @@ func (afaps *AuditFindingActionPlanService) Create(auditID uint, findingID uint,
 		return 0, err
 	}
 
-	// actionPlanStatusID := AuditFindingActionPlanFormDTO.ActionPlanStatusID
-	// auditFindingActionPlanUpdate := &models.AuditFindingActionPlanStatusUpdate{
-	// 	AuditFindingActionPlanID: id,
-	// 	ActionPlanStatusID:       actionPlanStatusID,
-	// 	Comment:                  "Initial action plan status",
-	// 	CreatedByID:              currentUserID,
-	// }
+	actionPlanStatusID := AuditFindingActionPlanFormDTO.ActionPlanStatusID
+	auditFindingActionPlanUpdate := &models.AuditFindingActionPlanStatusUpdate{
+		AuditFindingActionPlanID: id,
+		ActionPlanStatusID:       actionPlanStatusID,
+		Comment:                  "Initial action plan status",
+		CreatedByID:              currentUserID,
+	}
 
-	// _, err = afaps.repo.CreateInitialAuditFindingActionPlanStatusUpdate(auditFindingActionPlanUpdate, tx)
-	// if err != nil {
-	// 	tx.Rollback()
-	// 	return 0, err
-	// }
+	_, err = afaps.repo.CreateInitialAuditFindingActionPlanStatusUpdate(auditFindingActionPlanUpdate, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
 	tx.Commit()
 
 	go func() {
@@ -254,21 +255,21 @@ func (afaps *AuditFindingActionPlanService) Delete(auditID uint, findingID uint,
 	var successfulIds []uint
 	for _, id := range ids {
 
-		_, err := afaps.repo.GetFullDetailsByID(id)
+		auditFindingActionPlan, err := afaps.GetFullDetailsByID(auditID, findingID, id)
 
 		if err != nil {
 			continue
 		}
-		// if len(auditFindingActionPlan.ActionPlanStatusUpdates) > 0 {
-		// 	var deleteStatusUpdateIds []*uint
-		// 	for _, update := range auditFindingActionPlan.ActionPlanStatusUpdates {
-		// 		deleteStatusUpdateIds = append(deleteStatusUpdateIds, &update.ID)
-		// 	}
-		// 	if err := afaps.repo.DeleteAuditFindingActionPlanStatusUpdates(deleteStatusUpdateIds); err != nil {
-		// 		failedIds = append(failedIds, id)
-		// 		continue
-		// 	}
-		// }
+		if len(auditFindingActionPlan.ActionPlanStatusUpdates) > 0 {
+			var deleteStatusUpdateIds []*uint
+			for _, update := range auditFindingActionPlan.ActionPlanStatusUpdates {
+				deleteStatusUpdateIds = append(deleteStatusUpdateIds, &update.ID)
+			}
+			if err := afaps.repo.DeleteAuditFindingActionPlanStatusUpdates(deleteStatusUpdateIds); err != nil {
+				failedIds = append(failedIds, id)
+				continue
+			}
+		}
 		err = afaps.repo.Delete(id, tx)
 		if err != nil {
 			failedIds = append(failedIds, id)
