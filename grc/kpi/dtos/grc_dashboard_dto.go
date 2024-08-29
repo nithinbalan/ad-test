@@ -33,6 +33,11 @@ type GRCComplianceOverviewDTO struct {
 	Others                    int64 `json:"others"`
 }
 
+type GRCRiskOverviewDTO struct {
+	TotalRisksRegistered int64            `json:"total_risks_registered"`
+	RiskCountsByRating   map[string]int64 `json:"risk_counts_by_rating"`
+}
+
 type GRCDashboardListQueryParamsDTO struct {
 	DateFrom string `json:"date_from"`
 	DateTo   string `json:"date_to"`
