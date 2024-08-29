@@ -37,6 +37,7 @@ type AuditModule struct {
 	AuditFindingRootCauseAnalysisController      *controllers.AuditFindingRootCauseAnalysisController
 	AuditFindingActionPlanController             *controllers.AuditFindingActionPlanController
 	AuditFindingActionPlanStatusUpdateController *controllers.AuditFindingActionPlanStatusUpdateController
+	AuditDocumentRequestConversationController   *controllers.AuditDocumentRequestConversationController
 }
 
 func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, complianceModule *ComplianceModule, riskModule *RiskModule, incidentModule *IncidentModule, documentModule *DocumentModule, settingModule *SettingsModule, masterModule *MasterModule) *AuditModule {
@@ -70,6 +71,7 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		sharedModule.ActivityLogService,
 		auditStatusSvc, auditorRiskRatingSvc,
 		settingModule.OrganizationUnitSvc,
+		organizationModule.UserSvc,
 	)
 	auditableItemController := controllers.NewAuditableItemController(auditableItemSvc)
 
@@ -230,6 +232,17 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		auditableItemSvc,
 	)
 	auditDocumentRequestController := controllers.NewAuditDocumentRequestController(auditDocumentRequestSvc)
+
+	auditDocumentRequestConversationRepo := repositories.NewAuditDocumentRequestConversationRepository(db)
+	auditDocumentRequestConversationSvc := services.NewAuditDocumentRequestConversationService(
+		auditDocumentRequestConversationRepo,
+		sharedModule.ActivityLogService,
+		auditSvc,
+		auditDocumentRequestSvc,
+		auditDocumentRequestStatusSvc,
+	)
+	auditDocumentRequestConversationController := controllers.NewAuditDocumentRequestConversationController(auditDocumentRequestConversationSvc)
+
 	auditFindingRootCauseAnalysisRepo := repositories.NewAuditFindingRootCauseAnalysisRepository(db)
 	auditFindingRootCauseAnalysisSvc := services.NewAuditFindingRootCauseAnalysisService(auditFindingRootCauseAnalysisRepo, sharedModule.ActivityLogService, auditFindingSvc, auditTimelineSvc)
 	auditFindingRootCauseAnalysisController := controllers.NewAuditFindingRootCauseAnalysisController(auditFindingRootCauseAnalysisSvc)
@@ -278,5 +291,6 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		AuditFindingRootCauseAnalysisController:      auditFindingRootCauseAnalysisController,
 		AuditFindingActionPlanController:             auditFindingActionPlanController,
 		AuditFindingActionPlanStatusUpdateController: auditFindingActionPlanStatusUpdateController,
+		AuditDocumentRequestConversationController:   auditDocumentRequestConversationController,
 	}
 }

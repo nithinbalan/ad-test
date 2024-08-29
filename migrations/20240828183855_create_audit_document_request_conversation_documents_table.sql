@@ -6,6 +6,7 @@ CREATE TABLE audit_document_request_conversation_documents (
     url VARCHAR(1000) DEFAULT NULL,
     name NVARCHAR(255) NULL,
     size INT DEFAULT NULL,
+    original_name NVARCHAR(255) NULL,
     token VARCHAR(255) DEFAULT NULL,
     type VARCHAR(255) DEFAULT NULL,
     created_by_id INT,

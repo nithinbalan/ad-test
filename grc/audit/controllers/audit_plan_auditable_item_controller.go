@@ -140,6 +140,9 @@ func (apaic *AuditPlanAuditableItemController) CreateAuditPlanAuditableItem(c *g
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
 			return
+		case *utility.ForbiddenError:
+			// Return a 403 Forbidden response with the error message
+			utility.SendForbiddenErrResp(c, e.Error())
 		default:
 			utility.SendInternalErrResp(apaic.db, c, e.Error())
 			return
