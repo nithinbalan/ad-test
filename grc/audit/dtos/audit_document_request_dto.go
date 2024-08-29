@@ -27,6 +27,15 @@ type AuditDocumentRequestListDTO struct {
 	ResponsibleUserColor                string  `json:"responsible_user_color"`
 	ResponsibleUserEmail                string  `json:"responsible_user_email"`
 	ResponsibleUserProfileImagePath     string  `json:"responsible_user_profile_image_path"`
+	RequestedUserID                     uint    `json:"requested_user_id"`
+	RequestedUserFirstNameEn            string  `json:"requested_user_first_name_en"`
+	RequestedUserFirstNameAr            string  `json:"requested_user_first_name_ar"`
+	RequestedUserLastNameEn             string  `json:"requested_user_last_name_en"`
+	RequestedUserLastNameAr             string  `json:"requested_user_last_name_ar"`
+	RequestedUserInitial                string  `json:"requested_user_initial"`
+	RequestedUserColor                  string  `json:"requested_user_color"`
+	RequestedUserEmail                  string  `json:"requested_user_email"`
+	RequestedUserProfileImagePath       string  `json:"requested_user_profile_image_path"`
 	Title                               string  `json:"title"`
 	Description                         string  `json:"description"`
 	RequestedAt                         *string `json:"requested_at"`

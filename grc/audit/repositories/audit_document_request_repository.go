@@ -57,7 +57,15 @@ func (repo *AuditDocumentRequestRepository) GetAll(auditID uint, params *auditDT
             responsible_user.color AS responsible_user_color,
             responsible_user.email AS responsible_user_email,
             responsible_user.profile_image_path AS responsible_user_profile_image_path,
-			created_user.id AS created_user_id,
+			requested_user.id AS requested_user_id,
+			requested_user.first_name_en AS requested_user_first_name_en,
+        	requested_user.first_name_ar AS requested_user_first_name_ar,
+        	requested_user.last_name_en AS requested_user_last_name_en,
+        	requested_user.last_name_ar AS requested_user_last_name_ar,   
+        	requested_user.initial AS requested_user_initial,
+        	requested_user.color AS requested_user_color,
+        	requested_user.email AS requested_user_email,
+        	requested_user.profile_image_path AS requested_user_profile_image_path,
         	created_user.first_name_en AS created_user_first_name_en,
         	created_user.first_name_ar AS created_user_first_name_ar,
         	created_user.last_name_en AS created_user_last_name_en,
@@ -80,6 +88,7 @@ func (repo *AuditDocumentRequestRepository) GetAll(auditID uint, params *auditDT
 			LEFT JOIN audit_document_request_statuses ON audit_document_request_statuses.id = audit_document_requests.audit_document_request_status_id
 			LEFT JOIN organization_units ON organization_units.id = audit_document_requests.responsible_unit_id
         	LEFT JOIN users AS responsible_user ON responsible_user.id = audit_document_requests.responsible_user_id
+			LEFT JOIN users AS requested_user ON requested_user.id = audit_document_requests.requested_by_id
 			LEFT JOIN users AS created_user ON created_user.id = audit_document_requests.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = audit_document_requests.updated_by_id
 		`).Where(`audit_document_requests.audit_id = ?`, auditID)
