@@ -25,6 +25,14 @@ type GRCOrganizationSummaryDTO struct {
 	ControlEffectivenessRate float64 `json:"control_effectiveness_rate"`
 }
 
+type GRCComplianceOverviewDTO struct {
+	TotalComplaintsRegistered int64 `json:"total_complaints_registered"`
+	Compliant                 int64 `json:"compliant"`
+	NotCompliant              int64 `json:"not_compliant"`
+	PartiallyCompliant        int64 `json:"partially_compliant"`
+	Others                    int64 `json:"others"`
+}
+
 type GRCDashboardListQueryParamsDTO struct {
 	DateFrom string `json:"date_from"`
 	DateTo   string `json:"date_to"`
