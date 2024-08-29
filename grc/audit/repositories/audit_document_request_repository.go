@@ -43,7 +43,6 @@ func (repo *AuditDocumentRequestRepository) GetAll(auditID uint, params *auditDT
 	query := repo.db.Table("audit_document_requests").
 		Select(`
 			audit_document_requests.*,
-			CONVERT(VARCHAR, audit_document_requests.requested_at, 23) AS requested_at,
 			audit_document_request_statuses.title_en AS audit_document_request_status_title_en,
 			audit_document_request_statuses.title_ar AS audit_document_request_status_title_ar,
 			audit_document_request_statuses.type AS audit_document_request_status_type,
@@ -190,6 +189,7 @@ func (repo *AuditDocumentRequestRepository) GetFullDetailsByID(id uint, tx ...ut
 		Preload("AuditableItems.AuditableItem.ResponsibleUnit").
 		Preload("ResponsibleUser").
 		Preload("ResponsibleUnit").
+		Preload("RequestedByUser").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&auditDocumentRequest, id)
