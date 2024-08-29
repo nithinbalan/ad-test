@@ -280,7 +280,7 @@ func (adrs *AuditDocumentRequestService) Submit(auditID uint, id uint, currentUs
 	}
 	if documentRequestFullDetails.AuditDocumentRequestStatus.Type != "draft" {
 		tx.Rollback()
-		return utility.NewForbiddenError("Cannot submit document request with draft status")
+		return utility.NewForbiddenError("The document request has already been submitted.")
 	}
 
 	auditDocumentRequestStatus, err := adrs.auditDocumentRequestStatusSvc.GetByType("open")

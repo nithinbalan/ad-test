@@ -125,14 +125,16 @@ func (adrcs *AuditDocumentRequestConversationService) Create(auditID uint, audit
 		if err != nil {
 			return 0, err
 		}
-		documentRequest.AuditDocumentRequestStatusID = uint(auditDocumentRequestStatus.ID)
-		documentRequest.UpdatedAt = &now
-		documentRequest.UpdatedBYID = &currentUserID
+		if documentRequest.AuditDocumentRequestStatusID != uint(auditDocumentRequestStatus.ID) {
+			documentRequest.AuditDocumentRequestStatusID = uint(auditDocumentRequestStatus.ID)
+			documentRequest.UpdatedAt = &now
+			documentRequest.UpdatedBYID = &currentUserID
 
-		err = adrcs.repo.AuditDocumentRequestStatusUpdate(documentRequest, tx)
-		if err != nil {
-			tx.Rollback()
-			return 0, err
+			err = adrcs.repo.AuditDocumentRequestStatusUpdate(documentRequest, tx)
+			if err != nil {
+				tx.Rollback()
+				return 0, err
+			}
 		}
 	}
 	//todo -send notifications to users
