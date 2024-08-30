@@ -365,7 +365,7 @@ func (as *AuditService) copyAuditPlanSchedulesToAuditSchedule(auditID uint, audi
 			TargetDate:            schedule.TargetDate,
 			ResponsibleUserID:     schedule.ResponsibleUserID,
 			AuditScheduleStatusID: schedule.AuditScheduleStatusID,
-			CreatedByID:           currentUserID,
+			CreatedBYID:           currentUserID,
 		}
 
 		createdAuditSchedule, err := as.repo.CreateAuditSchedule(auditSchedule, tx...)

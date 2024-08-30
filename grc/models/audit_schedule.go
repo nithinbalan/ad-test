@@ -16,8 +16,8 @@ type AuditSchedule struct {
 	TargetDate            *time.Time `json:"target_date,omitempty" gorm:"type:date;default:null"`
 	ResponsibleUserID     *uint      `json:"responsible_user_id,omitempty" gorm:"default:null"`
 	AuditScheduleStatusID uint       `json:"audit_schedule_status_id" gorm:"not null"`
-	CreatedByID           uint       `json:"created_by_id" gorm:"not null"`
-	UpdatedByID           *uint      `json:"updated_by_id,omitempty" gorm:"default:null"`
+	CreatedBYID           uint       `json:"created_by_id" gorm:"not null"`
+	UpdatedBYID           *uint      `json:"updated_by_id,omitempty" gorm:"default:null"`
 	CreatedAt             time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt             *time.Time `json:"updated_at,omitempty" gorm:"type:datetime;default:null"`
 
@@ -28,8 +28,8 @@ type AuditSchedule struct {
 	Audit               *Audit               `gorm:"foreignKey:AuditID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
 	ResponsibleUser     *User                `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
 	AuditScheduleStatus *AuditScheduleStatus `gorm:"foreignKey:AuditScheduleStatusID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
-	CreatedByUser       *User                `gorm:"foreignKey:CreatedByID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
-	UpdatedByUser       *User                `gorm:"foreignKey:UpdatedByID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
+	CreatedByUser       *User                `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
+	UpdatedByUser       *User                `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
 
 	AuditableItems []*AuditScheduleAuditableItem `gorm:"foreignKey:AuditScheduleID"`
 }

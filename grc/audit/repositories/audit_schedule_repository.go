@@ -204,6 +204,16 @@ func (repo *AuditScheduleRepository) GetFullDetailsByID(id uint, tx ...utility.D
 
 	result := db.
 		Preload("AuditPlan").
+		Preload("AuditPlan.AuditCategory").
+		Preload("AuditPlan.AuditStatus").
+		Preload("AuditPlan.CreatedByUser").
+		Preload("AuditPlan.UpdatedByUser").
+		Preload("Audit").
+		Preload("Audit.AuditPlan").
+		Preload("Audit.AuditPlan.AuditCategory").
+		Preload("Audit.AuditPlan.AuditStatus").
+		Preload("Audit.CreatedByUser").
+		Preload("Audit.UpdatedByUser").
 		Preload("AuditPlanSchedule").
 		Preload("AuditActivityType").
 		Preload("AuditableItems").

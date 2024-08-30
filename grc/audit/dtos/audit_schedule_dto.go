@@ -67,6 +67,7 @@ type AuditScheduleFormDTO struct {
 type AuditScheduleDetailDTO struct {
 	ID                  uint                             `json:"id"`
 	Audit               AuditDetailDTO                   `json:"audit"`
+	AuditPlan           AuditPlanDetailDTO               `json:"audit_plan"`
 	AuditActivityType   AuditActivityTypeDTO             `json:"audit_activity_type"`
 	ResponsibleUser     *organizationDTOs.UserMinimalDTO `json:"responsible_user"`
 	Title               string                           `json:"title"`

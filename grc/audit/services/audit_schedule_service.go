@@ -119,8 +119,14 @@ func (ass *AuditScheduleService) Create(auditID uint, currentUserID uint, auditS
 		return 0, err
 	}
 
+	audit, err := ass.auditSvc.GetByID(auditID)
+	if err != nil {
+		return 0, err
+	}
+
 	auditSchedule := &models.AuditSchedule{
 		AuditID:               auditID,
+		AuditPlanID:           audit.AuditPlanID,
 		AuditActivityTypeID:   auditScheduleFormDTO.AuditActivityTypeID,
 		Title:                 auditScheduleFormDTO.Title,
 		Description:           auditScheduleFormDTO.Description,
@@ -128,7 +134,7 @@ func (ass *AuditScheduleService) Create(auditID uint, currentUserID uint, auditS
 		TargetDate:            dates.TargetDate,
 		ResponsibleUserID:     auditScheduleFormDTO.ResponsibleUserID,
 		AuditScheduleStatusID: uint(auditScheduleStatus.ID),
-		CreatedByID:           currentUserID,
+		CreatedBYID:           currentUserID,
 	}
 
 	id, err := ass.repo.Create(auditSchedule, tx)
@@ -208,7 +214,7 @@ func (ass *AuditScheduleService) Update(id uint, auditID uint, currentUserID uin
 	existingAuditSchedule.StartDate = dates.StartDate
 	existingAuditSchedule.TargetDate = dates.TargetDate
 	existingAuditSchedule.ResponsibleUserID = auditScheduleFormDTO.ResponsibleUserID
-	existingAuditSchedule.UpdatedByID = &currentUserID
+	existingAuditSchedule.UpdatedBYID = &currentUserID
 
 	err = ass.repo.Update(existingAuditSchedule, tx)
 	if err != nil {
