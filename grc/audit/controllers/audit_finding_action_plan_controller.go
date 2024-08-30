@@ -24,30 +24,18 @@ func NewAuditFindingActionPlanController(service services.AuditFindingActionPlan
 }
 
 func (afapc *AuditFindingActionPlanController) GetAllAuditFindingActionPlans(c *gin.Context) {
-	auditIDStr := c.Param("auditId")
-	findingIDStr := c.Param("id")
 
-	var auditID uint64
 	var findingID uint64
 	var err error
 
-	// Check if auditID and findingID are provided in the URL
-	if auditIDStr != "" && findingIDStr != "" {
-		auditID, err = strconv.ParseUint(auditIDStr, 10, 64)
-		if err != nil {
-			utility.SendNotFoundErrResp(c)
-			return
-		}
+	findingIDStr := c.Param("findingId")
 
-		findingID, err = strconv.ParseUint(findingIDStr, 10, 64)
-		if err != nil {
-			utility.SendNotFoundErrResp(c)
-			return
-		}
-	} else {
-		auditID = 0
-		findingID = 0
+	findingID, err = strconv.ParseUint(findingIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
 	}
+
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
@@ -92,7 +80,7 @@ func (afapc *AuditFindingActionPlanController) GetAllAuditFindingActionPlans(c *
 		TargetDateFrom: targetDateFrom,
 		TargetDateTo:   targetDateTo,
 	}
-	auditFindingActionPlans, err := afapc.service.GetAll(uint(auditID), uint(findingID), &queryParams)
+	auditFindingActionPlans, err := afapc.service.GetAll(uint(findingID), &queryParams)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -108,14 +96,8 @@ func (afapc *AuditFindingActionPlanController) GetAllAuditFindingActionPlans(c *
 }
 
 func (afapc *AuditFindingActionPlanController) GetAuditFindingActionPlanDetails(c *gin.Context) {
-	auditIDStr := c.Param("auditId")
-	findingIDStr := c.Param("id")
 
-	auditID, err := strconv.ParseUint(auditIDStr, 10, 64)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
+	findingIDStr := c.Param("findingId")
 
 	findingID, err := strconv.ParseUint(findingIDStr, 10, 64)
 	if err != nil {
@@ -131,7 +113,7 @@ func (afapc *AuditFindingActionPlanController) GetAuditFindingActionPlanDetails(
 		return
 	}
 
-	auditFindingActionPlan, err := afapc.service.GetFullDetailsByID(uint(auditID), uint(findingID), uint(id))
+	auditFindingActionPlan, err := afapc.service.GetFullDetailsByID(uint(findingID), uint(id))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -149,14 +131,7 @@ func (afapc *AuditFindingActionPlanController) GetAuditFindingActionPlanDetails(
 func (afapc *AuditFindingActionPlanController) CreateAuditFindingActionPlan(c *gin.Context) {
 	var AuditFindingActionPlanFormDTO auditFindingDTOs.AuditFindingActionPlanFormDTO
 
-	auditIDStr := c.Param("auditId")
-	findingIDStr := c.Param("id")
-
-	auditID, err := strconv.ParseUint(auditIDStr, 10, 64)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
+	findingIDStr := c.Param("findingId")
 
 	findingID, err := strconv.ParseUint(findingIDStr, 10, 64)
 	if err != nil {
@@ -175,7 +150,7 @@ func (afapc *AuditFindingActionPlanController) CreateAuditFindingActionPlan(c *g
 		return
 	}
 
-	id, err := afapc.service.Create(uint(auditID), uint(findingID), currentUserID, &AuditFindingActionPlanFormDTO)
+	id, err := afapc.service.Create(uint(findingID), currentUserID, &AuditFindingActionPlanFormDTO)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -197,14 +172,7 @@ func (afapc *AuditFindingActionPlanController) CreateAuditFindingActionPlan(c *g
 func (afapc *AuditFindingActionPlanController) UpdateAuditFindingActionPlan(c *gin.Context) {
 	var AuditFindingActionPlanFormDTO auditFindingDTOs.AuditFindingActionPlanFormDTO
 
-	auditIDStr := c.Param("auditId")
-	findingIDStr := c.Param("id")
-
-	auditID, err := strconv.ParseUint(auditIDStr, 10, 64)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
+	findingIDStr := c.Param("findingId")
 
 	findingID, err := strconv.ParseUint(findingIDStr, 10, 64)
 	if err != nil {
@@ -231,7 +199,7 @@ func (afapc *AuditFindingActionPlanController) UpdateAuditFindingActionPlan(c *g
 		return
 	}
 
-	err = afapc.service.Update(uint(auditID), uint(findingID), uint(id), currentUserID, &AuditFindingActionPlanFormDTO)
+	err = afapc.service.Update(uint(findingID), uint(id), currentUserID, &AuditFindingActionPlanFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -254,14 +222,7 @@ func (afapc *AuditFindingActionPlanController) DeleteAuditFindingActionPlans(c *
 		IDs []uint `json:"ids"`
 	}
 
-	auditIDStr := c.Param("auditId")
-	findingIDStr := c.Param("id")
-
-	auditID, err := strconv.ParseUint(auditIDStr, 10, 64)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
+	findingIDStr := c.Param("findingId")
 
 	findingID, err := strconv.ParseUint(findingIDStr, 10, 64)
 	if err != nil {
@@ -280,7 +241,7 @@ func (afapc *AuditFindingActionPlanController) DeleteAuditFindingActionPlans(c *
 		return
 	}
 
-	failedIDs, err := afapc.service.Delete(uint(auditID), uint(findingID), request.IDs, currentUserID)
+	failedIDs, err := afapc.service.Delete(uint(findingID), request.IDs, currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

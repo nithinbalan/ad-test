@@ -92,7 +92,7 @@ func (repo *AuditFindingActionPlanRepository) GetAll(findingID uint, params *aud
         LEFT JOIN users AS responsible_user ON responsible_user.id = audit_finding_action_plans.responsible_user_id
         LEFT JOIN users AS created_user ON created_user.id = audit_finding_action_plans.created_by_id
         LEFT JOIN users AS updated_user ON updated_user.id = audit_finding_action_plans.updated_by_id
-    `)
+    `).Where("audit_finding_action_plans.audit_finding_id = ?", findingID)
 
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
