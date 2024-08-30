@@ -22,6 +22,8 @@ type MasterModule struct {
 	ToolTypeController          *controllers.ToolTypeController
 	ExpenseCategoryController   *controllers.ExpenseCategoryController
 	SourceController            *controllers.SourceController
+	StatusController            *controllers.StatusController
+	ConformanceController       *controllers.ConformanceController
 
 	ReviewFrequencySvc   services.ReviewFrequencyServiceInterface
 	SeverityLevelSvc     services.SeverityLevelServiceInterface
@@ -36,6 +38,8 @@ type MasterModule struct {
 	ToolTypeSvc          services.ToolTypeServiceInterface
 	ExpenseCategorySvc   services.ExpenseCategoryServiceInterface
 	SourceSvc            services.SourceServiceInterface
+	StatusSvc            services.StatusServiceInterface
+	ConformanceSvc       services.ConformanceServiceInterface
 }
 
 func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
@@ -102,6 +106,16 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 	sourceSvc := services.NewSourceService(sourceRepo)
 	sourceController := controllers.NewSourceController(sourceSvc)
 
+	//Status
+	statusRepo := repositories.NewStatusRepository(db)
+	statusSvc := services.NewStatusService(statusRepo)
+	statusController := controllers.NewStatusController(statusSvc)
+
+	//Conformance
+	conformanceRepo := repositories.NewConformanceRepository(db)
+	conformanceSvc := services.NewConformanceService(conformanceRepo)
+	conformanceController := controllers.NewConformanceController(conformanceSvc)
+
 	return &MasterModule{
 		ReviewFrequencyController:   reviewFrequencyController,
 		SeverityLevelController:     severityLevelController,
@@ -116,6 +130,8 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 		ToolTypeController:          toolTypeController,
 		ExpenseCategoryController:   expenseCategoryController,
 		SourceController:            sourceController,
+		StatusController:            statusController,
+		ConformanceController:       conformanceController,
 
 		ReviewFrequencySvc:   reviewFrequencySvc,
 		SeverityLevelSvc:     severityLevelSvc,
@@ -130,5 +146,7 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 		ToolTypeSvc:          toolTypeSvc,
 		ExpenseCategorySvc:   expenseCategorySvc,
 		SourceSvc:            sourceSvc,
+		StatusSvc:            statusSvc,
+		ConformanceSvc:       conformanceSvc,
 	}
 }
