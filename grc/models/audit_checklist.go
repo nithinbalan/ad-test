@@ -23,9 +23,9 @@ type AuditChecklist struct {
 	Audit              *Audit              `gorm:"foreignKey:AuditID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
 	AuditPlanChecklist *AuditPlanChecklist `gorm:"foreignKey:AuditPlanChecklistID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
 	Conformance        *Conformance        `gorm:"foreignKey:ConformanceID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
-	AnsweredBy         *User               `gorm:"foreignKey:AnsweredByID"` // Nullable relationship
-	CreatedBy          *User               `gorm:"foreignKey:CreatedByID"`
-	UpdatedBy          *User               `gorm:"foreignKey:UpdatedByID"` // Nullable relationship
+	AnsweredByUser     *User               `gorm:"foreignKey:AnsweredByID"` // Nullable relationship
+	CreatedByUser      *User               `gorm:"foreignKey:CreatedByID"`
+	UpdatedByUser      *User               `gorm:"foreignKey:UpdatedByID"` // Nullable relationship
 	Status             *Status             `gorm:"foreignKey:StatusID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
 }
 

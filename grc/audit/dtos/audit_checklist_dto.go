@@ -56,11 +56,8 @@ type AuditChecklistListDTO struct {
 }
 
 type AuditChecklistFormDTO struct {
-	AuditPlanChecklistID *uint   `json:"audit_plan_checklist_id"`
-	Question             string  `json:"question" binding:"required"`
-	ConformanceID        *uint   `json:"conformance_id"`
-	Comment              *string `json:"comment"`
-	StatusID             uint    `json:"status_id" binding:"required"`
+	ConformanceID uint    `json:"conformance_id" binding:"required"`
+	Comment       *string `json:"comment"`
 }
 
 type AuditChecklistDetailDTO struct {
@@ -77,10 +74,19 @@ type AuditChecklistDetailDTO struct {
 	StatusID             uint                             `json:"status_id"`
 	AuditPlanChecklist   *AuditPlanChecklistDetailDTO     `json:"audit_plan_checklist"`
 	Conformance          *masterDTOs.ConformanceDTO       `json:"conformance"`
-	AnsweredBy           *organizationDTOs.UserMinimalDTO `json:"answered_by"`
+	AnsweredByUser       *organizationDTOs.UserMinimalDTO `json:"answered_by"`
 	CreatedAt            time.Time                        `json:"created_at"`
 	UpdatedAt            *time.Time                       `json:"updated_at"`
 	CreatedByUser        organizationDTOs.UserMinimalDTO  `json:"created_by"`
 	UpdatedByUser        *organizationDTOs.UserMinimalDTO `json:"updated_by"`
 	Status               *masterDTOs.StatusDTO            `json:"status"`
+}
+
+type AuditChecklistListQueryParamsDTO struct {
+	Sort        string
+	SortBy      string
+	Keyword     string
+	Status      string
+	Filters     map[string][]string
+	QuickFilter []string
 }
