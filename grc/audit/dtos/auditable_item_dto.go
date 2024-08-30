@@ -35,6 +35,15 @@ type AuditableItemListDTO struct {
 	DocumentTitleAr             string `json:"document_title_ar"`
 	ResponsibleUnitTitleEn      string `json:"responsible_unit_title_en"`
 	ResponsibleUnitTitleAr      string `json:"responsible_unit_title_ar"`
+	ResponsibleUserID                     uint   `json:"responsible_user_id"`
+    ResponsibleUserFirstNameEn            string `json:"responsible_user_first_name_en"`
+    ResponsibleUserFirstNameAr            string `json:"responsible_user_first_name_ar"`
+    ResponsibleUserLastNameEn             string `json:"responsible_user_last_name_en"`
+    ResponsibleUserLastNameAr             string `json:"responsible_user_last_name_ar"`
+    ResponsibleUserInitial                string `json:"responsible_user_initial"`
+    ResponsibleUserColor                  string `json:"responsible_user_color"`
+    ResponsibleUserEmail                  string `json:"responsible_user_email"`
+    ResponsibleUserProfileImagePath       string `json:"responsible_user_profile_image_path"`
 	IncidentRegisterTitle       string `json:"incident_register_title"`
 	ComplianceRequirementTitle  string `json:"compliance_requirement_title"`
 	RiskRegisterTitle           string `json:"risk_register_title"`

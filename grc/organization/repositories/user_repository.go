@@ -40,6 +40,10 @@ type UserRepositoryInterface interface {
 
 	GetUserNotifications(userID uint, params *userDTOs.UserNotificationListQueryParamsDTO) (*userDTOs.UserNotificationListResponseDTO, error)
 	GetUserNewNotificationCount(userID uint) (int64, error)
+	MarkAllNotificationsAsRead(userID uint) (int64, error)
+	MarkSpecificNotificationsAsRead(userID uint, notificationIDs []uint) (int64, error)
+	MarkAllNotificationsAsUnread(userID uint) (int64, error)
+	MarkSpecificNotificationsAsUnread(userID uint, notificationIDs []uint) (int64, error)
 }
 
 type UserRepository struct {
@@ -640,4 +644,36 @@ func (repo *UserRepository) GetUserNewNotificationCount(userID uint) (int64, err
 	}
 
 	return count, nil
+}
+
+func (repo *UserRepository) MarkAllNotificationsAsRead(userID uint) (int64, error) {
+	result := repo.db.Model(&models.UserNotification{}).
+		Where("user_id = ? AND is_read = ?", userID, false).
+		Update("is_read", true)
+
+	return result.RowsAffected, result.Error
+}
+
+func (repo *UserRepository) MarkSpecificNotificationsAsRead(userID uint, notificationIDs []uint) (int64, error) {
+	result := repo.db.Model(&models.UserNotification{}).
+		Where("user_id = ? AND id IN (?) AND is_read = ?", userID, notificationIDs, false).
+		Update("is_read", true)
+
+	return result.RowsAffected, result.Error
+}
+
+func (repo *UserRepository) MarkAllNotificationsAsUnread(userID uint) (int64, error) {
+	result := repo.db.Model(&models.UserNotification{}).
+		Where("user_id = ? AND is_read = ?", userID, true).
+		Update("is_read", false)
+
+	return result.RowsAffected, result.Error
+}
+
+func (repo *UserRepository) MarkSpecificNotificationsAsUnread(userID uint, notificationIDs []uint) (int64, error) {
+	result := repo.db.Model(&models.UserNotification{}).
+		Where("user_id = ? AND id IN (?) AND is_read = ?", userID, notificationIDs, true).
+		Update("is_read", false)
+
+	return result.RowsAffected, result.Error
 }
