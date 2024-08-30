@@ -204,17 +204,17 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.GET("/audits/:auditId/document-requests/:id/conversations", auditDocumentRequestConversationController.GetAllAuditDocumentRequestConversations)
 	auditRoutes.POST("/audits/:auditId/document-requests/:id/conversations", auditDocumentRequestConversationController.CreateAuditDocumentRequestConversation)
 
-	auditRoutes.GET("/audits/:auditId/findings/:id/root-cause-analysis", auditFindingRootCauseAnalysisController.GetAllAuditFindingRootCauseAnalyses)
-	auditRoutes.POST("/audits/:auditId/findings/:id/root-cause-analysis", auditFindingRootCauseAnalysisController.CreateAuditFindingRootCauseAnalysis)
-	auditRoutes.DELETE("/audits/:auditId/findings/:id/root-cause-analysis/:analysisId", auditFindingRootCauseAnalysisController.DeleteAuditFindingRootCauseAnalyses)
+	auditRoutes.GET("/audit-findings/:findingId/root-cause-analysis", auditFindingRootCauseAnalysisController.GetAllAuditFindingRootCauseAnalyses)
+	auditRoutes.POST("/audit-findings/:findingId/root-cause-analysis", auditFindingRootCauseAnalysisController.CreateAuditFindingRootCauseAnalysis)
+	auditRoutes.PUT("/audit-findings/:findingId/root-cause-analysis/:analysisId", auditFindingRootCauseAnalysisController.UpdateAuditFindingRootCauseAnalysis)
+	auditRoutes.DELETE("/audit-findings/:findingId/root-cause-analysis/:analysisId", auditFindingRootCauseAnalysisController.DeleteAuditFindingRootCauseAnalyses)
 
 	// Audit Finding Action Plan
-	auditRoutes.GET("/audit-finding-action-plans", auditFindingActionPlanController.GetAllAuditFindingActionPlans)
-	auditRoutes.GET("/audits/:auditId/findings/:id/action-plans", auditFindingActionPlanController.GetAllAuditFindingActionPlans)
-	auditRoutes.GET("/audits/:auditId/findings/:id/action-plans/:actionPlanId", auditFindingActionPlanController.GetAuditFindingActionPlanDetails)
-	auditRoutes.POST("/audits/:auditId/findings/:id/action-plans", auditFindingActionPlanController.CreateAuditFindingActionPlan)
-	auditRoutes.PUT("/audits/:auditId/findings/:id/action-plans/:actionPlanId", auditFindingActionPlanController.UpdateAuditFindingActionPlan)
-	auditRoutes.POST("/audits/:auditId/findings/:id/action-plans/delete", auditFindingActionPlanController.DeleteAuditFindingActionPlans)
+	auditRoutes.GET("/audit-findings/:findingId/action-plans", auditFindingActionPlanController.GetAllAuditFindingActionPlans)
+	auditRoutes.GET("/audit-findings/:findingId/action-plans/:actionPlanId", auditFindingActionPlanController.GetAuditFindingActionPlanDetails)
+	auditRoutes.POST("/audit-findings/:findingId/action-plans", auditFindingActionPlanController.CreateAuditFindingActionPlan)
+	auditRoutes.PUT("/audit-findings/:findingId/action-plans/:actionPlanId", auditFindingActionPlanController.UpdateAuditFindingActionPlan)
+	auditRoutes.POST("/audit-findings/:findingId/action-plans/delete", auditFindingActionPlanController.DeleteAuditFindingActionPlans)
 
 	auditRoutes.GET("/audit-findings/:findingId/action-plans/:actionPlanId/status-updates", auditFindingActionPlanStatusUpdateController.GetAllAuditFindingActionPlanStatusUpdates)
 	auditRoutes.POST("/audit-findings/:findingId/action-plans/:actionPlanId/status-updates", auditFindingActionPlanStatusUpdateController.CreateAuditFindingActionPlanStatusUpdate)
