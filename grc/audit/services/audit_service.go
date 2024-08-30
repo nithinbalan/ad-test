@@ -417,7 +417,8 @@ func (as *AuditService) CopyChecklistsToAudit(auditPlanID uint, auditID uint, cu
 			AuditID:              auditID,
 			AuditPlanChecklistID: &checklist.ID,
 			Question:             checklist.Question,
-			CreatedByID:          currentUserID,
+			CreatedByID:          uint(auditPlan.CreatedByUser.ID),
+			CreatedAt:            auditPlan.CreatedAt,
 			StatusID:             status.ID,
 		}
 		auditChecklists = append(auditChecklists, auditChecklist)

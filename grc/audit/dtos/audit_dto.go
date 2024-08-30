@@ -64,6 +64,7 @@ type AuditDetailDTO struct {
 	AuditPlan       AuditPlanDetailDTO               `json:"audit_plan"`
 	StartDateString string                           `json:"start_date"`
 	EndDateString   string                           `json:"end_date"`
+	AuditChecklists []*AuditChecklistDetailDTO       `json:"audit_checklists"`
 	CreatedAt       time.Time                        `json:"created_at"`
 	UpdatedAt       *time.Time                       `json:"updated_at"`
 	CreatedByUser   organizationDTOs.UserMinimalDTO  `json:"created_by"`
