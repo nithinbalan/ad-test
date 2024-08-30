@@ -7,6 +7,7 @@ import (
 type AuditDocumentRequestConversationListDTO struct {
 	ID                            uint                                           `json:"id"`
 	AuditDocumentRequestID        uint                                           `json:"audit_document_request_id"`
+	RequestedBYID                 uint    										 `json:"requested_by_id"`
 	Comment                       string                                         `json:"comment"`
 	CommentedAt                   string                                         `json:"commented_at"`
 	CommentedUserID               uint                                           `json:"commented_user_id"`

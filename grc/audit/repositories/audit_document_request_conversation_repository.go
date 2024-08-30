@@ -46,6 +46,7 @@ func (repo *AuditDocumentRequestConversationRepository) GetAll(auditDocumentRequ
             audit_document_request_conversations.audit_document_request_id,
             audit_document_request_conversations.comment,
             audit_document_request_conversations.commented_at,
+			audit_document_requests.requested_by_id,
             commented_user.id AS commented_user_id,
             commented_user.first_name_en AS commented_user_first_name_en,
             commented_user.first_name_ar AS commented_user_first_name_ar,
@@ -57,6 +58,7 @@ func (repo *AuditDocumentRequestConversationRepository) GetAll(auditDocumentRequ
             commented_user.profile_image_path AS commented_user_profile_image_path
         `).
 		Joins(`
+			LEFT JOIN audit_document_requests ON audit_document_requests.id = audit_document_request_conversations.audit_document_request_id
             LEFT JOIN users AS commented_user ON commented_user.id = audit_document_request_conversations.commented_by_id
         `).
 		Where("audit_document_request_conversations.audit_document_request_id = ?", auditDocumentRequestID)
