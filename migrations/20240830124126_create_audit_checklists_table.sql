@@ -6,7 +6,7 @@ CREATE TABLE audit_checklists
     audit_id INT NOT NULL,
     audit_plan_checklist_id INT NULL,
     question NVARCHAR(MAX) NOT NULL,
-    conformance_id INT NOT NULL,
+    conformance_id INT NULL,
     comment NVARCHAR(MAX) NULL,
     answered_by_id INT NULL,
     answered_at DATETIME NULL,
