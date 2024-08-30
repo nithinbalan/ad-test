@@ -43,14 +43,14 @@ func NewAuditFindingRootCauseAnalysisService(
 }
 
 func (afrcas *AuditFindingRootCauseAnalysisService) GetAll(auditID uint, findingID uint, params *auditDTOs.AuditFindingRootCauseAnalysisListQueryParamsDTO) ([]*auditDTOs.AuditFindingRootCauseAnalysisListDTO, error) {
-	if _, err := afrcas.auditFindingSvc.GetByID(auditID, findingID); err != nil {
+	if _, err := afrcas.auditFindingSvc.GetByID(findingID); err != nil {
 		return nil, err
 	}
 	return afrcas.repo.GetAll(findingID, params)
 }
 
 func (afrcas *AuditFindingRootCauseAnalysisService) GetByID(auditID uint, findingID uint, id uint) (*models.AuditFindingRootCauseAnalysis, error) {
-	if _, err := afrcas.auditFindingSvc.GetByID(auditID, findingID); err != nil {
+	if _, err := afrcas.auditFindingSvc.GetByID(findingID); err != nil {
 		return nil, err
 	}
 
@@ -68,7 +68,7 @@ func (afrcas *AuditFindingRootCauseAnalysisService) GetByID(auditID uint, findin
 func (afrcas *AuditFindingRootCauseAnalysisService) Create(auditID uint, findingID uint, currentUserID uint, rootCauseAnalysisFormDTO *auditDTOs.AuditFindingRootCauseAnalysisFormDTO) (uint, error) {
 	tx := afrcas.repo.BeginTransaction()
 
-	if _, err := afrcas.auditFindingSvc.GetByID(auditID, findingID); err != nil {
+	if _, err := afrcas.auditFindingSvc.GetByID(findingID); err != nil {
 		return 0, err
 	}
 	// Increment the "Why" field by 1
@@ -123,7 +123,7 @@ func (afrcas *AuditFindingRootCauseAnalysisService) Create(auditID uint, finding
 func (afrcas *AuditFindingRootCauseAnalysisService) Update(auditID uint, findingID uint, id uint, currentUserID uint, rootCauseAnalysisFormDTO *auditDTOs.AuditFindingRootCauseAnalysisFormDTO) error {
 	tx := afrcas.repo.BeginTransaction()
 
-	if _, err := afrcas.auditFindingSvc.GetByID(auditID, findingID); err != nil {
+	if _, err := afrcas.auditFindingSvc.GetByID(findingID); err != nil {
 		return err
 	}
 
@@ -153,7 +153,7 @@ func (afrcas *AuditFindingRootCauseAnalysisService) Update(auditID uint, finding
 func (afrcas *AuditFindingRootCauseAnalysisService) Delete(auditID uint, findingID uint, id uint, currentUserID uint) (uint, error) {
 	tx := afrcas.repo.BeginTransaction()
 
-	if _, err := afrcas.auditFindingSvc.GetByID(auditID, findingID); err != nil {
+	if _, err := afrcas.auditFindingSvc.GetByID(findingID); err != nil {
 		return 0, err
 	}
 

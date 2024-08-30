@@ -49,6 +49,7 @@ type AuditFindingListDTO struct {
 }
 
 type AuditFindingFormDTO struct {
+	AuditID                uint                           `json:"audit_id" binding:"required"`
 	Title                  string                         `json:"title" binding:"required,max=255"`
 	Description            *string                        `json:"description"`
 	AuditableItemID        uint                           `json:"auditable_item_id" binding:"required"`
