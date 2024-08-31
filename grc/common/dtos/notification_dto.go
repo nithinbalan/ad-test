@@ -1,18 +1,20 @@
 package dtos
 
 type DBNotificationDTO struct {
-	UserID               uint   `json:"user_id"`
-	ModuleIdentifier     string `json:"module_identifier"`
-	NotificationType     string `json:"notification_type"`
-	ReferenceNumber      string `json:"reference_number"`
-	HeadingEn            string `json:"heading_en"`
-	HeadingAr            string `json:"heading_ar"`
-	TitleEn              string `json:"title_en"`
-	TitleAr              string `json:"title_ar"`
-	URLParam             string `json:"url_param"`
-	QueryParam           string `json:"query_param"`
-	IsSystemNotification bool   `json:"is_system_notification"`
-	CreatedByID          *uint  `json:"created_by_id"`
+	UserID               uint    `json:"user_id"`
+	ModuleIdentifier     string  `json:"module_identifier"`
+	NotificationType     string  `json:"notification_type"`
+	ReferenceNumber      string  `json:"reference_number"`
+	HeadingEn            string  `json:"heading_en"`
+	HeadingAr            string  `json:"heading_ar"`
+	TitleEn              string  `json:"title_en"`
+	TitleAr              string  `json:"title_ar"`
+	Entity               *string `json:"entity"`
+	Action               *string `json:"action"`
+	URLParam             string  `json:"url_param"`
+	QueryParam           string  `json:"query_param"`
+	IsSystemNotification bool    `json:"is_system_notification"`
+	CreatedByID          *uint   `json:"created_by_id"`
 }
 
 type EmailNotificationDTO struct {

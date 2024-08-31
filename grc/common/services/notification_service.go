@@ -61,6 +61,8 @@ func (ns *NotificationService) SendNotification(notificationDTO *commonDTOs.DBNo
 		HeadingAr:            notificationDTO.HeadingAr,
 		TitleEn:              notificationDTO.TitleEn,
 		TitleAr:              notificationDTO.TitleAr,
+		Entity:               notificationDTO.Entity,
+		Action:               notificationDTO.Action,
 		URLParam:             notificationDTO.URLParam,
 		QueryParam:           notificationDTO.QueryParam,
 		IsSystemNotification: notificationDTO.IsSystemNotification,
