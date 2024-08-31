@@ -8,6 +8,7 @@ import (
 	"jethur/utility"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -294,10 +295,20 @@ func (uc *UserController) GetUserNotifications(c *gin.Context) {
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	isNew := c.Query("is_new")
-	isRead := c.Query("is_read")
-	isUnread := c.Query("is_unread")
-	moduleID := c.Query("module_id")
+	quickFilter := c.QueryArray("quick_filter")
+
+	moduleIDsStr := c.Query("module_ids")
+	var moduleIDs []uint
+	if moduleIDsStr != "" {
+		for _, idStr := range strings.Split(moduleIDsStr, ",") {
+			id, err := strconv.ParseUint(idStr, 10, 32)
+			if err != nil {
+				utility.SendInternalErrResp(uc.db, c, "Invalid module_id parameter")
+				return
+			}
+			moduleIDs = append(moduleIDs, uint(id))
+		}
+	}
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -319,15 +330,13 @@ func (uc *UserController) GetUserNotifications(c *gin.Context) {
 
 	// Prepare query parameters
 	queryParams := organizationDTOs.UserNotificationListQueryParamsDTO{
-		Sort:     sort,
-		SortBy:   sortBy,
-		Keyword:  keyword,
-		Page:     page,
-		PageSize: pageSize,
-		IsNew:    isNew,
-		IsRead:   isRead,
-		IsUnread: isUnread,
-		ModuleID: moduleID,
+		Sort:        sort,
+		SortBy:      sortBy,
+		Keyword:     keyword,
+		ModuleIDs:   moduleIDs,
+		Page:        page,
+		PageSize:    pageSize,
+		QuickFilter: quickFilter,
 	}
 
 	userNotifications, err := uc.service.GetUserNotifications(uint(currentUserID), &queryParams)
