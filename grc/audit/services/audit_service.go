@@ -410,24 +410,29 @@ func (as *AuditService) CopyChecklistsToAudit(auditPlanID uint, auditID uint, cu
 	}
 
 	var auditChecklists []*models.AuditChecklist
-
-	// Iterate through each checklist in the audit plan and create a corresponding audit checklist
-	for _, checklist := range auditPlan.AuditPlanChecklists {
-		auditChecklist := &models.AuditChecklist{
-			AuditID:              auditID,
-			AuditPlanChecklistID: &checklist.ID,
-			Question:             checklist.Question,
-			CreatedByID:          uint(auditPlan.CreatedByUser.ID),
-			CreatedAt:            auditPlan.CreatedAt,
-			StatusID:             status.ID,
+	if len(auditPlan.AuditPlanChecklists) > 0 {
+		// Iterate through each checklist in the audit plan and create a corresponding audit checklist
+		for _, checklist := range auditPlan.AuditPlanChecklists {
+			auditChecklist := &models.AuditChecklist{
+				AuditID:              auditID,
+				AuditPlanChecklistID: &checklist.ID,
+				AuditableItemID:      &checklist.AuditableItemID,
+				Question:             checklist.Question,
+				CreatedBYID:          uint(auditPlan.CreatedByUser.ID),
+				CreatedAt:            auditPlan.CreatedAt,
+				StatusID:             status.ID,
+			}
+			auditChecklists = append(auditChecklists, auditChecklist)
 		}
-		auditChecklists = append(auditChecklists, auditChecklist)
 	}
 
 	// Save the new audit checklists to the database
-	if err := as.repo.CreateAuditChecklists(auditChecklists, tx...); err != nil {
-		return err
+	if len(auditChecklists) > 0 {
+		if err := as.repo.CreateAuditChecklists(auditChecklists, tx...); err != nil {
+			return err
+		}
 	}
+
 
 	return nil
 }

@@ -20,6 +20,8 @@ type AuditPlanAuditableItemServiceInterface interface {
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditPlanAuditableItemDetailDTO, error)
 	Create(auditPlanID uint, currentUserID uint, auditPlanFormDTO *auditDTOs.AuditPlanAuditableItemFormDTO) (uint, error)
 	Delete(auditPlanID uint, ids []uint, currentUserID uint) ([]uint, error)
+	GetByAuditableItemID(auditableItemID uint) (*models.AuditPlanAuditableItem, error)
+
 }
 
 type AuditPlanAuditableItemService struct {
@@ -55,6 +57,17 @@ func (apais *AuditPlanAuditableItemService) GetByID(id uint, tx ...utility.Datab
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+	return auditPlanAuditableItem, nil
+}
+
+func (apais *AuditPlanAuditableItemService) GetByAuditableItemID(auditableItemID uint) (*models.AuditPlanAuditableItem, error) {
+	auditPlanAuditableItem, err := apais.repo.GetByAuditableItemID(auditableItemID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, auditableItemID)
 		}
 		return nil, err
 	}

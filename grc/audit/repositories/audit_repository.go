@@ -219,6 +219,7 @@ func (repo *AuditRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseT
 	return audit, nil
 }
 
+
 func (repo *AuditRepository) Create(audit *models.Audit, tx ...utility.DatabaseTransaction) (uint, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
