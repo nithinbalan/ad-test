@@ -172,6 +172,8 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 
 	urlParam := fmt.Sprintf(`{"id":%d}`, id)
 	queryParam := ""
+	entity := "process"
+	action := "responsible-user-assign"
 
 	dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 		UserID:               processFormDTO.OwnerID,
@@ -182,6 +184,8 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 		HeadingAr:            "مهمة العملية",
 		TitleEn:              processFormDTO.TitleEn,
 		TitleAr:              processFormDTO.TitleAr,
+		Entity:               &entity,
+		Action:               &action,
 		URLParam:             urlParam,
 		QueryParam:           queryParam,
 		IsSystemNotification: false,

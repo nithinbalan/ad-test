@@ -216,6 +216,8 @@ type UserNotificationListDTO struct {
 	HeadingEn                   string    `json:"heading_en"`
 	HeadingAr                   string    `json:"heading_ar"`
 	TitleEn                     string    `json:"title_en"`
+	Entity                      string    `json:"entity"`
+	Action                      string    `json:"action"`
 	TitleAr                     string    `json:"title_ar"`
 	URLParam                    string    `json:"url_param"`
 	QueryParam                  string    `json:"query_param"`
@@ -235,15 +237,13 @@ type UserNotificationListDTO struct {
 }
 
 type UserNotificationListQueryParamsDTO struct {
-	Sort     string `json:"sort" form:"sort"`
-	SortBy   string `json:"sort_by" form:"sort_by"`
-	Keyword  string `json:"keyword" form:"keyword"`
-	Page     int    `json:"page" form:"page"`
-	PageSize int    `json:"page_size" form:"page_size"`
-	ModuleID string `json:"module_id" form:"module_id"`
-	IsNew    string `json:"is_new" form:"is_new"`
-	IsRead   string `json:"is_read" form:"is_read"`
-	IsUnread string `json:"is_unread" form:"is_unread"`
+	Sort        string `json:"sort" form:"sort"`
+	SortBy      string `json:"sort_by" form:"sort_by"`
+	Keyword     string `json:"keyword" form:"keyword"`
+	ModuleIDs   []uint `json:"module_ids" form:"module_ids"`
+	Page        int    `json:"page" form:"page"`
+	PageSize    int    `json:"page_size" form:"page_size"`
+	QuickFilter []string
 }
 
 type UserNotificationListResponseDTO struct {
