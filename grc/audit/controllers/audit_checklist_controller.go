@@ -3,6 +3,7 @@ package controllers
 import (
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/services"
+	commonDTOs "jethur/grc/common/dtos"
 	"jethur/utility"
 	"net/http"
 	"strconv"
@@ -74,10 +75,54 @@ func (acc *AuditChecklistController) GetAuditChecklistDetails(c *gin.Context) {
 
 	process, err := acc.service.GetFullDetailsByID(uint(auditID), uint(checklistID))
 	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(acc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, process)
+}
+
+func (acc *AuditChecklistController) CreateAuditChecklist(c *gin.Context) {
+	var auditChecklistFormDTO auditDTOs.AuditChecklistFormDTO
+
+	auditID, err := strconv.Atoi(c.Param("auditId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&auditChecklistFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
 		utility.SendInternalErrResp(acc.db, c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, process)
+
+	id, err := acc.service.Create(uint(auditID), currentUserID, &auditChecklistFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(acc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusCreated, commonDTOs.IDResponse{ID: id})
 }
 
 func (acc *AuditChecklistController) UpdateAuditChecklist(c *gin.Context) {
@@ -124,6 +169,50 @@ func (acc *AuditChecklistController) UpdateAuditChecklist(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
+func (acc *AuditChecklistController) AuditChecklistAnswer(c *gin.Context) {
+	var auditChecklistAnswerFormDTO auditDTOs.AuditChecklistAnswerFormDTO
+
+	auditID, err := strconv.Atoi(c.Param("auditId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	auditChecklistID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&auditChecklistAnswerFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(acc.db, c, err.Error())
+		return
+	}
+
+	err = acc.service.Answer(uint(auditID), uint(auditChecklistID), currentUserID, &auditChecklistAnswerFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(acc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
 func (acc *AuditChecklistController) DeleteAuditChecklists(c *gin.Context) {
 	var request struct {
 		IDs []uint `json:"ids"`
@@ -147,6 +236,38 @@ func (acc *AuditChecklistController) DeleteAuditChecklists(c *gin.Context) {
 	}
 
 	failedIDs, err := acc.service.Delete(uint(auditID), request.IDs, currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(acc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}
+
+
+func (acc *AuditChecklistController) DeleteAuditChecklistAnswer(c *gin.Context) {
+	var request struct {
+		IDs []uint `json:"ids"`
+	}
+
+	auditID, err := strconv.Atoi(c.Param("auditId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(acc.db, c, err.Error())
+		return
+	}
+
+	failedIDs, err := acc.service.DeleteAnswer(uint(auditID), request.IDs, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(acc.db, c, err.Error())
 		return

@@ -13,6 +13,7 @@ type AuditChecklistRepositoryInterface interface {
 	GetAll(auditId uint, params *auditDTOs.AuditChecklistListQueryParamsDTO) ([]*auditDTOs.AuditChecklistListDTO, error)
 	GetByID(id uint) (*models.AuditChecklist, error)
 	GetFullDetailsByID(id uint) (*models.AuditChecklist, error)
+	Create(auditChecklist *models.AuditChecklist, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(auditChecklist *models.AuditChecklist, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 }
@@ -42,6 +43,18 @@ func (repo *AuditChecklistRepository) GetAll(auditId uint, params *auditDTOs.Aud
 			audit_checklists.audit_plan_checklist_id,
 			audit_checklists.question,
 			audit_checklists.conformance_id,
+			audit_checklists.auditable_item_id,
+			auditable_items.title_en AS auditable_item_title_en,
+			auditable_items.title_ar AS auditable_item_title_ar,
+			auditable_items.type AS auditable_item_type,
+			auditable_items.comment AS auditable_item_comment,
+			auditable_items.process_id AS auditable_item_process_id,
+			auditable_items.control_id AS auditable_item_control_id,
+			auditable_items.document_id AS auditable_item_document_id,
+			auditable_items.incident_register_id AS auditable_item_incident_register_id,
+			auditable_items.compliance_requirement_id AS auditable_item_compliance_requirement_id,
+			auditable_items.risk_register_id AS auditable_item_risk_register_id,
+			auditable_items.user_id AS auditable_item_user_id,
 			conformances.title_en AS conformance_title_en,
 			conformances.title_ar AS conformance_title_ar,
 			conformances.type AS conformance_type,
@@ -85,7 +98,7 @@ func (repo *AuditChecklistRepository) GetAll(auditId uint, params *auditDTOs.Aud
 		`).
 		Joins(`
 			LEFT JOIN audit_plan_checklists ON audit_plan_checklists.id = audit_checklists.audit_plan_checklist_id
-			LEFT JOIN auditable_items ON auditable_items.id = audit_plan_checklists.auditable_item_id
+			LEFT JOIN auditable_items ON auditable_items.id = audit_checklists.auditable_item_id
 			LEFT JOIN statuses ON statuses.id = audit_checklists.status_id
 			LEFT JOIN conformances ON conformances.id = audit_checklists.conformance_id
 			LEFT JOIN users AS answered_user ON answered_user.id = audit_checklists.answered_by_id
@@ -147,7 +160,6 @@ func (repo *AuditChecklistRepository) GetAll(auditId uint, params *auditDTOs.Aud
 	return auditChecklists, nil
 }
 
-
 func (repo *AuditChecklistRepository) GetByID(id uint) (*models.AuditChecklist, error) {
 	var auditChecklist *models.AuditChecklist
 
@@ -166,7 +178,8 @@ func (repo *AuditChecklistRepository) GetFullDetailsByID(id uint) (*models.Audit
 		Preload("Audit").
 		Preload("AuditPlanChecklist").
 		Preload("AuditPlanChecklist.AuditPlan").
-		Preload("AuditPlanChecklist.AuditableItem").
+		Preload("AuditableItem").
+		Preload("Conformance").
 		Preload("AnsweredByUser").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
@@ -178,6 +191,18 @@ func (repo *AuditChecklistRepository) GetFullDetailsByID(id uint) (*models.Audit
 	}
 
 	return checklist, nil
+}
+
+func (repo *AuditChecklistRepository) Create(auditChecklist *models.AuditChecklist, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(auditChecklist).Error; err != nil {
+		return 0, err
+	}
+
+	return auditChecklist.ID, nil
 }
 
 func (repo *AuditChecklistRepository) Update(auditChecklist *models.AuditChecklist, tx ...utility.DatabaseTransaction) error {
