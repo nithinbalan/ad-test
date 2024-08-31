@@ -20,7 +20,7 @@ type AuditChecklistServiceInterface interface {
 	GetAll(auditId uint, params *auditDTOs.AuditChecklistListQueryParamsDTO) ([]*auditDTOs.AuditChecklistListDTO, error)
 	GetByID(auditId uint, id uint) (*models.AuditChecklist, error)
 	GetFullDetailsByID(auditId uint, id uint) (*auditDTOs.AuditChecklistDetailDTO, error)
-	Create(auditId uint, currentUserID uint, auditChecklistFormDTO *auditDTOs.AuditChecklistFormDTO) (uint, error) 
+	Create(auditId uint, currentUserID uint, auditChecklistFormDTO *auditDTOs.AuditChecklistFormDTO) (uint, error)
 	Update(auditId uint, id uint, currentUserID uint, auditChecklistFormDTO *auditDTOs.AuditChecklistFormDTO) error
 	Delete(auditId uint, ids []uint, currentUserID uint) ([]uint, error)
 	Answer(auditId uint, id uint, currentUserID uint, auditChecklistAnswerFormDTO *auditDTOs.AuditChecklistAnswerFormDTO) error
@@ -28,12 +28,13 @@ type AuditChecklistServiceInterface interface {
 }
 
 type AuditChecklistService struct {
-	repo             repositories.AuditChecklistRepositoryInterface
-	activityLogSvc   logServices.ActivityLogServiceInterface
-	auditSvc         AuditServiceInterface
-	auditableItemSvc AuditableItemServiceInterface
-	conformanceSvc   masterServices.ConformanceServiceInterface
-	statusSvc        masterServices.StatusServiceInterface
+	repo                      repositories.AuditChecklistRepositoryInterface
+	activityLogSvc            logServices.ActivityLogServiceInterface
+	auditSvc                  AuditServiceInterface
+	auditableItemSvc          AuditableItemServiceInterface
+	conformanceSvc            masterServices.ConformanceServiceInterface
+	statusSvc                 masterServices.StatusServiceInterface
+	auditPlanAuditableItemSvc AuditPlanAuditableItemServiceInterface
 }
 
 func NewAuditChecklistService(
@@ -43,14 +44,16 @@ func NewAuditChecklistService(
 	auditableItemSvc AuditableItemServiceInterface,
 	conformanceSvc masterServices.ConformanceServiceInterface,
 	statusSvc masterServices.StatusServiceInterface,
+	auditPlanAuditableItemSvc AuditPlanAuditableItemServiceInterface,
 ) AuditChecklistServiceInterface {
 	return &AuditChecklistService{
-		repo:             repo,
-		activityLogSvc:   activityLogSvc,
-		auditSvc:         auditSvc,
-		auditableItemSvc: auditableItemSvc,
-		conformanceSvc:   conformanceSvc,
-		statusSvc:        statusSvc,
+		repo:                      repo,
+		activityLogSvc:            activityLogSvc,
+		auditSvc:                  auditSvc,
+		auditableItemSvc:          auditableItemSvc,
+		conformanceSvc:            conformanceSvc,
+		statusSvc:                 statusSvc,
+		auditPlanAuditableItemSvc: auditPlanAuditableItemSvc,
 	}
 }
 
@@ -111,10 +114,10 @@ func (acs *AuditChecklistService) Create(auditId uint, currentUserID uint, audit
 	}
 	status, err := acs.statusSvc.GetByType("pending")
 	if err != nil {
-		return 0,err
+		return 0, err
 	}
 	auditChecklist := &models.AuditChecklist{
-		AuditID:     auditId,
+		AuditID:         auditId,
 		AuditableItemID: auditChecklistFormDTO.AuditableItemID,
 		Question:        auditChecklistFormDTO.Question,
 		StatusID:        status.ID,
@@ -154,7 +157,6 @@ func (acs *AuditChecklistService) Create(auditId uint, currentUserID uint, audit
 
 	return id, nil
 }
-
 
 func (acs *AuditChecklistService) Update(auditId uint, id uint, currentUserID uint, auditChecklistFormDTO *auditDTOs.AuditChecklistFormDTO) error {
 	tx := acs.repo.BeginTransaction()
@@ -340,6 +342,10 @@ func (acs *AuditChecklistService) DeleteAnswer(auditId uint, ids []uint, current
 
 	var failedIDs []uint
 	var successfulIDs []uint
+	status, err := acs.statusSvc.GetByType("pending")
+	if err != nil {
+		return nil, err
+	}
 	for _, id := range ids {
 		existingAuditChecklist, err := acs.GetByID(auditId, id)
 		if err != nil {
@@ -350,11 +356,12 @@ func (acs *AuditChecklistService) DeleteAnswer(auditId uint, ids []uint, current
 		existingAuditChecklist.ConformanceID = nil
 		existingAuditChecklist.Comment = nil
 		existingAuditChecklist.AnsweredBYID = nil
+		existingAuditChecklist.StatusID = status.ID
 		existingAuditChecklist.AnsweredAt = nil
 
 		err = acs.repo.Update(existingAuditChecklist, tx)
 		if err != nil {
-			return nil,err
+			return nil, err
 		}
 
 		successfulIDs = append(successfulIDs, id)
@@ -395,13 +402,12 @@ func (acs *AuditChecklistService) DeleteAnswer(auditId uint, ids []uint, current
 }
 
 func (acs *AuditChecklistService) validateAuditChecklistFormDTO(dto *auditDTOs.AuditChecklistFormDTO) error {
-	if _, err := acs.auditableItemSvc.GetByID(*dto.AuditableItemID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("Auditable item does not exist"), "not_exist", "auditable item")
+	if _, err := acs.auditPlanAuditableItemSvc.GetByAuditableItemID(*dto.AuditableItemID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("Auditable item does not exist in auidt plan"), "not_exist", "auditable item")
 	}
 
 	return nil
 }
-
 
 func (acs *AuditChecklistService) validateAuditChecklistAnswerFormDTO(dto *auditDTOs.AuditChecklistAnswerFormDTO) error {
 	if _, err := acs.conformanceSvc.GetByID(dto.ConformanceID); err != nil {
