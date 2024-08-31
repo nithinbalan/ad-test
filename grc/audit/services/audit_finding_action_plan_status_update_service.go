@@ -44,7 +44,7 @@ func NewAuditFindingActionPlanStatusUpdateService(
 }
 
 func (afs *AuditFindingActionPlanStatusUpdateService) GetAll(auditFindingID uint, auditFindingActionPlanID uint, sort string, sortBy string, keyword string) ([]*auditDTOs.AuditFindingActionPlanStatusUpdateListDTO, error) {
-	if _, err := afs.auditFindingActionPlanSvc.GetByFindingID(auditFindingID, auditFindingActionPlanID); err != nil {
+	if _, err := afs.auditFindingActionPlanSvc.GetByID(auditFindingID, auditFindingActionPlanID); err != nil {
 		return nil, err
 	}
 
@@ -52,7 +52,7 @@ func (afs *AuditFindingActionPlanStatusUpdateService) GetAll(auditFindingID uint
 }
 
 func (afs AuditFindingActionPlanStatusUpdateService) GetByID(auditFindingID uint, auditFindingActionPlanID uint, id uint) (*models.AuditFindingActionPlanStatusUpdate, error) {
-	if _, err := afs.auditFindingActionPlanSvc.GetByFindingID(auditFindingID, auditFindingActionPlanID); err != nil {
+	if _, err := afs.auditFindingActionPlanSvc.GetByID(auditFindingID, auditFindingActionPlanID); err != nil {
 		return nil, err
 	}
 
@@ -70,7 +70,7 @@ func (afs AuditFindingActionPlanStatusUpdateService) GetByID(auditFindingID uint
 func (afs *AuditFindingActionPlanStatusUpdateService) Create(auditFindingID uint, auditFindingActionPlanID uint, currentUserID uint, auditFindingActionPlanStatusUpdateFormDTO *auditDTOs.AuditFindingActionPlanStatusUpdateFormDTO) (uint, error) {
 	tx := afs.repo.BeginTransaction()
 
-	if _, err := afs.auditFindingActionPlanSvc.GetByFindingID(auditFindingID, auditFindingActionPlanID); err != nil {
+	if _, err := afs.auditFindingActionPlanSvc.GetByID(auditFindingID, auditFindingActionPlanID); err != nil {
 		return 0, err
 	}
 
@@ -171,7 +171,7 @@ func (afs *AuditFindingActionPlanStatusUpdateService) Create(auditFindingID uint
 func (afs *AuditFindingActionPlanStatusUpdateService) Update(auditFindingID uint, auditFindingActionPlanID uint, id uint, currentUserID uint, auditFindingActionPlanStatusUpdateFormDTO *auditDTOs.AuditFindingActionPlanStatusUpdateFormDTO) error {
 	tx := afs.repo.BeginTransaction()
 
-	if _, err := afs.auditFindingActionPlanSvc.GetByFindingID(auditFindingID, auditFindingActionPlanID); err != nil {
+	if _, err := afs.auditFindingActionPlanSvc.GetByID(auditFindingID, auditFindingActionPlanID); err != nil {
 		return err
 	}
 
@@ -282,7 +282,7 @@ func (afs *AuditFindingActionPlanStatusUpdateService) Update(auditFindingID uint
 }
 
 func (afs AuditFindingActionPlanStatusUpdateService) GetLatestAuditFindingActionPlanStatusUpdate(auditFindingID uint, actionPlanID uint) (*auditDTOs.AuditFindingActionPlanStatusUpdateListDTO, error) {
-	if _, err := afs.auditFindingActionPlanSvc.GetByFindingID(auditFindingID, actionPlanID); err != nil {
+	if _, err := afs.auditFindingActionPlanSvc.GetByID(auditFindingID, actionPlanID); err != nil {
 		return nil, err
 	}
 
