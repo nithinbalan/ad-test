@@ -81,24 +81,25 @@ type AuditPlanFormDTO struct {
 }
 
 type AuditPlanDetailDTO struct {
-	ID               uint                             `json:"id"`
-	ReferenceNumber  string                           `json:"reference_number"`
-	AuditCategory    AuditCategoryDTO                 `json:"audit_category"`
-	AuditTeam        *AuditTeamDetailDTO              `json:"audit_team"`
-	TeamLead         *organizationDTOs.UserMinimalDTO `json:"team_lead"`
-	Title            string                           `json:"title"`
-	Description      *string                          `json:"description"`
-	StartDateString  string                           `json:"start_date"`
-	TargetDateString string                           `json:"target_date"`
-	Purpose          *string                          `json:"purpose"`
-	Objective        *string                          `json:"objective"`
-	AuditStatus      AuditStatusDTO                   `json:"audit_status"`
-	CreatedAt        time.Time                        `json:"created_at"`
-	UpdatedAt        *time.Time                       `json:"updated_at"`
-	CreatedByUser    organizationDTOs.UserMinimalDTO  `json:"created_by"`
-	UpdatedByUser    *organizationDTOs.UserMinimalDTO `json:"updated_by"`
-	AuditableItems   []*AuditPlanAuditableItemDTO     `json:"auditable_items"`
-	Members          []*AuditPlanAuditMemberDTO       `json:"members"`
+	ID                  uint                             `json:"id"`
+	ReferenceNumber     string                           `json:"reference_number"`
+	AuditCategory       AuditCategoryDTO                 `json:"audit_category"`
+	AuditTeam           *AuditTeamDetailDTO              `json:"audit_team"`
+	TeamLead            *organizationDTOs.UserMinimalDTO `json:"team_lead"`
+	Title               string                           `json:"title"`
+	Description         *string                          `json:"description"`
+	StartDateString     string                           `json:"start_date"`
+	TargetDateString    string                           `json:"target_date"`
+	Purpose             *string                          `json:"purpose"`
+	Objective           *string                          `json:"objective"`
+	AuditStatus         AuditStatusDTO                   `json:"audit_status"`
+	CreatedAt           time.Time                        `json:"created_at"`
+	UpdatedAt           *time.Time                       `json:"updated_at"`
+	CreatedByUser       organizationDTOs.UserMinimalDTO  `json:"created_by"`
+	UpdatedByUser       *organizationDTOs.UserMinimalDTO `json:"updated_by"`
+	AuditableItems      []*AuditPlanAuditableItemDTO     `json:"auditable_items"`
+	Members             []*AuditPlanAuditMemberDTO       `json:"members"`
+	AuditPlanChecklists []*AuditPlanChecklistDetailDTO   `json:"audit_plan_checklists"`
 }
 
 type AuditPlanListQueryParamsDTO struct {
