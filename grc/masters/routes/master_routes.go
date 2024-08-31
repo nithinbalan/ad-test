@@ -26,6 +26,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	toolTypeController := app.MasterModule.ToolTypeController
 	expenseCategoryController := app.MasterModule.ExpenseCategoryController
 	sourceController := app.MasterModule.SourceController
+	statusController := app.MasterModule.StatusController
+	conformanceController := app.MasterModule.ConformanceController
 
 	masterRoutes.GET("/review-frequencies", reviewFrequencyController.GetAllReviewFrequencies)
 	masterRoutes.GET("/review-frequencies/:id", reviewFrequencyController.GetReviewFrequencyDetails)
@@ -93,5 +95,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	masterRoutes.GET("/sources", sourceController.GetAllSources)
 	masterRoutes.GET("/sources/:id", sourceController.GetSourceDetails)
+
+	masterRoutes.GET("/statuses", statusController.GetAllStatuses)
+	masterRoutes.GET("/statuses/:id", statusController.GetStatusDetails)
+
+	masterRoutes.GET("/conformances", conformanceController.GetAllConformances)
+	masterRoutes.GET("/conformances/:id", conformanceController.GetConformanceDetails)
 
 }
