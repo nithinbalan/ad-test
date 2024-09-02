@@ -82,21 +82,22 @@ type ProcessFormDTO struct {
 }
 
 type ProcessDetailDTO struct {
-	ID              uint                              `json:"id"`
-	ReferenceNumber string                            `json:"reference_number"`
-	TitleEn         string                            `json:"title_en"`
-	TitleAr         string                            `json:"title_ar"`
-	Description     *string                           `json:"description"`
-	ProcessGroup    *ProcessGroupDTO                  `json:"process_group"`
-	OwnerUnit       *settingsDTOs.OrganizationUnitDTO `json:"owner_unit"`
-	Owner           *UserMinimalDTO                   `json:"owner"`
-	CreatedByUser   UserMinimalDTO                    `json:"created_by"`
-	UpdatedByUser   *UserMinimalDTO                   `json:"updated_by"`
-	LifecycleStatus masterDTOs.LifecycleStatusDTO     `json:"status"`
-	CreatedAt       time.Time                         `json:"created_at"`
-	UpdatedAt       *time.Time                        `json:"updated_at"`
-	Controls        []*ProcessControlDTO              `json:"controls"`
-	Documents       []*ProcessAssociatedDocumentDTO   `json:"documents"`
+	ID                    uint                              `json:"id"`
+	ReferenceNumber       string                            `json:"reference_number"`
+	TitleEn               string                            `json:"title_en"`
+	TitleAr               string                            `json:"title_ar"`
+	Description           *string                           `json:"description"`
+	ProcessGroup          *ProcessGroupDTO                  `json:"process_group"`
+	OwnerUnit             *settingsDTOs.OrganizationUnitDTO `json:"owner_unit"`
+	Owner                 *UserMinimalDTO                   `json:"owner"`
+	CreatedByUser         UserMinimalDTO                    `json:"created_by"`
+	UpdatedByUser         *UserMinimalDTO                   `json:"updated_by"`
+	LifecycleStatus       masterDTOs.LifecycleStatusDTO     `json:"status"`
+	CreatedAt             time.Time                         `json:"created_at"`
+	UpdatedAt             *time.Time                        `json:"updated_at"`
+	Controls              []*ProcessControlDTO              `json:"controls"`
+	Documents             []*ProcessAssociatedDocumentDTO   `json:"documents"`
+	MarkedAsAuditableItem bool                              `json:"marked_as_auditable_item"`
 }
 
 type ProcessControlDTO struct {

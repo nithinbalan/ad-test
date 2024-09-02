@@ -158,6 +158,7 @@ type RiskRegisterDetailDTO struct {
 	SLARegisters            []*RiskSLARegisterDTO            `json:"sla_registers"`
 	Kris                    []*RiskKRIDTO                    `json:"kris"`
 	AssociatedDocuments     []*RiskAssociatedDocumentDTO     `json:"associated_documents"`
+	MarkedAsAuditableItem   bool                             `json:"marked_as_auditable_item"`
 }
 
 type RiskAssociatedDocumentDTO struct {

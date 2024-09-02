@@ -179,6 +179,7 @@ type ControlDetailDTO struct {
 	ControlReviewStatus         ControlReviewStatusDTO           `json:"review_status"`
 	LatestControlTest           ControlTestDetailsDTO            `json:"latest_control_test"`
 	LatestControlReview         *ControlReviewDTO                `json:"control_review"`
+	MarkedAsAuditableItem       bool                             `json:"marked_as_auditable_item"`
 }
 type ControlReviewDTO struct {
 	ID             uint                          `json:"id"`
