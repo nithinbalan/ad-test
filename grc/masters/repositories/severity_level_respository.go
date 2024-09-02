@@ -12,6 +12,7 @@ import (
 type SeverityLevelRepositoryInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.SeverityLevel, error)
 	GetByID(id uint) (*models.SeverityLevel, error)
+	GetMaxSeverityWeight(tx ...utility.DatabaseTransaction) (int, error)
 }
 
 // implementation
@@ -62,4 +63,18 @@ func (repo *SeverityLevelRepository) GetByID(id uint) (*models.SeverityLevel, er
 	}
 
 	return severityLevel, result.Error
+}
+
+func (repo *SeverityLevelRepository) GetMaxSeverityWeight(tx ...utility.DatabaseTransaction) (int, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var maxWeight int
+	err := db.Table("severity_levels").Select("MAX(weight)").Scan(&maxWeight).Error
+	if err != nil {
+		return 0, err
+	}
+	return maxWeight, nil
 }
