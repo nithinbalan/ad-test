@@ -39,6 +39,7 @@ type AuditModule struct {
 	AuditFindingActionPlanStatusUpdateController *controllers.AuditFindingActionPlanStatusUpdateController
 	AuditDocumentRequestConversationController   *controllers.AuditDocumentRequestConversationController
 	AuditChecklistController                     *controllers.AuditChecklistController
+	AuditScheduleController                      *controllers.AuditScheduleController
 }
 
 func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, complianceModule *ComplianceModule, riskModule *RiskModule, incidentModule *IncidentModule, documentModule *DocumentModule, settingModule *SettingsModule, masterModule *MasterModule) *AuditModule {
@@ -268,6 +269,18 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 	auditChecklistSvc := services.NewAuditChecklistService(auditChecklistRepo, sharedModule.ActivityLogService, auditSvc, auditableItemSvc, masterModule.ConformanceSvc, masterModule.StatusSvc, auditPlanAuditableItemSvc)
 	auditChecklistController := controllers.NewAuditChecklistController(auditChecklistSvc)
 
+	auditScheduleRepo := repositories.NewAuditScheduleRepository(db)
+	auditScheduleSvc := services.NewAuditScheduleService(
+		auditScheduleRepo,
+		sharedModule.ActivityLogService,
+		auditSvc,
+		auditActivityTypeSvc,
+		organizationModule.UserSvc,
+		auditScheduleStatusSvc,
+		auditableItemSvc,
+	)
+	auditScheduleController := controllers.NewAuditScheduleController(auditScheduleSvc)
+
 	return &AuditModule{
 		AuditorRiskRatingController:                  auditorRiskRatingController,
 		AuditUniverseController:                      auditUniverseController,
@@ -299,5 +312,6 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		AuditFindingActionPlanStatusUpdateController: auditFindingActionPlanStatusUpdateController,
 		AuditDocumentRequestConversationController:   auditDocumentRequestConversationController,
 		AuditChecklistController:                     auditChecklistController,
+		AuditScheduleController:                      auditScheduleController,
 	}
 }

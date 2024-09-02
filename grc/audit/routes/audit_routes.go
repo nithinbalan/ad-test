@@ -43,6 +43,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditDocumentRequestConversationController := app.AuditModule.AuditDocumentRequestConversationController
 	auditFindingActionPlanStatusUpdateController := app.AuditModule.AuditFindingActionPlanStatusUpdateController
 	auditChecklistController := app.AuditModule.AuditChecklistController
+	auditScheduleController := app.AuditModule.AuditScheduleController
 
 	//Audit Status
 	auditRoutes.GET("/audit-statuses", auditStatusController.GetAllAuditStatuses)
@@ -231,5 +232,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.POST("audits/:auditId/checklists/delete", auditChecklistController.DeleteAuditChecklists)
 	auditRoutes.POST("/audits/:auditId/checklists/delete-answer", auditChecklistController.DeleteAuditChecklistAnswer)
 
+	//Audit Schedule
+	auditRoutes.GET("/audits/:auditId/schedules", auditScheduleController.GetAllAuditSchedules)
+	auditRoutes.GET("/audits/:auditId/schedules/:id", auditScheduleController.GetAuditScheduleDetails)
+	auditRoutes.POST("/audits/:auditId/schedules", auditScheduleController.CreateAuditSchedule)
+	auditRoutes.PUT("/audits/:auditId/schedules/:id", auditScheduleController.UpdateAuditSchedule)
+	auditRoutes.POST("/audits/:auditId/schedules/delete", auditScheduleController.DeleteAuditSchedules)
 
 }
