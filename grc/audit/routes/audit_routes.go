@@ -40,6 +40,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditDocumentRequestController := app.AuditModule.AuditDocumentRequestController
 	auditFindingRootCauseAnalysisController := app.AuditModule.AuditFindingRootCauseAnalysisController
 	auditFindingActionPlanController := app.AuditModule.AuditFindingActionPlanController
+	auditDocumentRequestConversationController := app.AuditModule.AuditDocumentRequestConversationController
+	auditFindingActionPlanStatusUpdateController := app.AuditModule.AuditFindingActionPlanStatusUpdateController
+	auditChecklistController := app.AuditModule.AuditChecklistController
 	auditScheduleController := app.AuditModule.AuditScheduleController
 
 	//Audit Status
@@ -183,11 +186,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	// Audit Finding
 	auditRoutes.GET("/audit-findings", auditFindingController.GetAllAuditFindings)
-	auditRoutes.GET("/audits/:auditId/findings", auditFindingController.GetAllAuditFindings)
-	auditRoutes.GET("/audits/:auditId/findings/:id", auditFindingController.GetAuditFindingDetails)
-	auditRoutes.POST("/audits/:auditId/findings", auditFindingController.CreateAuditFinding)
-	auditRoutes.PUT("/audits/:auditId/findings/:id", auditFindingController.UpdateAuditFinding)
-	auditRoutes.POST("audits/:auditId/findings/delete", auditFindingController.DeleteAuditFindings)
+	auditRoutes.GET("/audit-findings/:findingId", auditFindingController.GetAuditFindingDetails)
+	auditRoutes.POST("/audit-findings", auditFindingController.CreateAuditFinding)
+	auditRoutes.PUT("/audit-findings/:findingId", auditFindingController.UpdateAuditFinding)
+	auditRoutes.POST("/audit-findings/delete", auditFindingController.DeleteAuditFindings)
 
 	//Audit Document  Request Status
 	auditRoutes.GET("/audit-document-request-statuses", auditDocumentRequestStatusController.GetAllAuditDocumentRequestStatuses)
@@ -198,17 +200,37 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.POST("/audits/:auditId/document-requests", auditDocumentRequestController.CreateAuditDocumentRequest)
 	auditRoutes.PUT("/audits/:auditId/document-requests/:id", auditDocumentRequestController.UpdateAuditDocumentRequest)
 	auditRoutes.POST("/audits/:auditId/document-requests/delete", auditDocumentRequestController.DeleteAuditDocumentRequests)
-	auditRoutes.GET("/audits/:auditId/findings/:id/root-cause-analysis", auditFindingRootCauseAnalysisController.GetAllAuditFindingRootCauseAnalyses)
-	auditRoutes.POST("/audits/:auditId/findings/:id/root-cause-analysis", auditFindingRootCauseAnalysisController.CreateAuditFindingRootCauseAnalysis)
-	auditRoutes.DELETE("/audits/:auditId/findings/:id/root-cause-analysis/:analysisId", auditFindingRootCauseAnalysisController.DeleteAuditFindingRootCauseAnalyses)
+	auditRoutes.POST("/audits/:auditId/document-requests/:id/submit", auditDocumentRequestController.SubmitAuditDocumentRequest)
+
+	// Audit Document Request Conversations
+	auditRoutes.GET("/audits/:auditId/document-requests/:id/conversations", auditDocumentRequestConversationController.GetAllAuditDocumentRequestConversations)
+	auditRoutes.POST("/audits/:auditId/document-requests/:id/conversations", auditDocumentRequestConversationController.CreateAuditDocumentRequestConversation)
+
+	auditRoutes.GET("/audit-findings/:findingId/root-cause-analysis", auditFindingRootCauseAnalysisController.GetAllAuditFindingRootCauseAnalyses)
+	auditRoutes.POST("/audit-findings/:findingId/root-cause-analysis", auditFindingRootCauseAnalysisController.CreateAuditFindingRootCauseAnalysis)
+	auditRoutes.PUT("/audit-findings/:findingId/root-cause-analysis/:analysisId", auditFindingRootCauseAnalysisController.UpdateAuditFindingRootCauseAnalysis)
+	auditRoutes.DELETE("/audit-findings/:findingId/root-cause-analysis/:analysisId", auditFindingRootCauseAnalysisController.DeleteAuditFindingRootCauseAnalyses)
 
 	// Audit Finding Action Plan
-	auditRoutes.GET("/audit-finding-action-plans", auditFindingActionPlanController.GetAllAuditFindingActionPlans)
-	auditRoutes.GET("/audits/:auditId/findings/:id/action-plans", auditFindingActionPlanController.GetAllAuditFindingActionPlans)
-	auditRoutes.GET("/audits/:auditId/findings/:id/action-plans/:actionPlanId", auditFindingActionPlanController.GetAuditFindingActionPlanDetails)
-	auditRoutes.POST("/audits/:auditId/findings/:id/action-plans", auditFindingActionPlanController.CreateAuditFindingActionPlan)
-	auditRoutes.PUT("/audits/:auditId/findings/:id/action-plans/:actionPlanId", auditFindingActionPlanController.UpdateAuditFindingActionPlan)
-	auditRoutes.POST("/audits/:auditId/findings/:id/action-plans/delete", auditFindingActionPlanController.DeleteAuditFindingActionPlans)
+	auditRoutes.GET("/audit-findings/:findingId/action-plans", auditFindingActionPlanController.GetAllAuditFindingActionPlans)
+	auditRoutes.GET("/audit-findings/:findingId/action-plans/:actionPlanId", auditFindingActionPlanController.GetAuditFindingActionPlanDetails)
+	auditRoutes.POST("/audit-findings/:findingId/action-plans", auditFindingActionPlanController.CreateAuditFindingActionPlan)
+	auditRoutes.PUT("/audit-findings/:findingId/action-plans/:actionPlanId", auditFindingActionPlanController.UpdateAuditFindingActionPlan)
+	auditRoutes.POST("/audit-findings/:findingId/action-plans/delete", auditFindingActionPlanController.DeleteAuditFindingActionPlans)
+
+	auditRoutes.GET("/audit-findings/:findingId/action-plans/:actionPlanId/status-updates", auditFindingActionPlanStatusUpdateController.GetAllAuditFindingActionPlanStatusUpdates)
+	auditRoutes.POST("/audit-findings/:findingId/action-plans/:actionPlanId/status-updates", auditFindingActionPlanStatusUpdateController.CreateAuditFindingActionPlanStatusUpdate)
+	auditRoutes.PUT("/audit-findings/:findingId/action-plans/:actionPlanId/status-updates/:id", auditFindingActionPlanStatusUpdateController.UpdateAuditFindingActionPlanStatusUpdate)
+	auditRoutes.GET("/audit-findings/:findingId/action-plans/:actionPlanId/status-updates/latest", auditFindingActionPlanStatusUpdateController.GetLatestAuditFindingActionPlanStatusUpdate)
+
+	//Audit Checklist
+	auditRoutes.GET("/audits/:auditId/checklists", auditChecklistController.GetAllAuditChecklists)
+	auditRoutes.GET("/audits/:auditId/checklists/:id", auditChecklistController.GetAuditChecklistDetails)
+	auditRoutes.POST("/audits/:auditId/checklists", auditChecklistController.CreateAuditChecklist)
+	auditRoutes.PUT("/audits/:auditId/checklists/:id", auditChecklistController.UpdateAuditChecklist)
+	auditRoutes.PUT("/audits/:auditId/checklists/:id/answer", auditChecklistController.AuditChecklistAnswer)
+	auditRoutes.POST("audits/:auditId/checklists/delete", auditChecklistController.DeleteAuditChecklists)
+	auditRoutes.POST("/audits/:auditId/checklists/delete-answer", auditChecklistController.DeleteAuditChecklistAnswer)
 
 	//Audit Schedule
 	auditRoutes.GET("/audits/:auditId/schedules", auditScheduleController.GetAllAuditSchedules)

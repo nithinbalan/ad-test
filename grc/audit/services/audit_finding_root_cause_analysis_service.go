@@ -13,11 +13,11 @@ import (
 )
 
 type AuditFindingRootCauseAnalysisServiceInterface interface {
-	GetAll(auditID uint, findingID uint, params *auditDTOs.AuditFindingRootCauseAnalysisListQueryParamsDTO) ([]*auditDTOs.AuditFindingRootCauseAnalysisListDTO, error)
-	GetByID(auditID uint, findingID uint, id uint) (*models.AuditFindingRootCauseAnalysis, error)
-	Create(auditID uint, findingID uint, currentUserID uint, rootCauseAnalysisFormDTO *auditDTOs.AuditFindingRootCauseAnalysisFormDTO) (uint, error)
-	Update(auditID uint, findingID uint, id uint, currentUserID uint, rootCauseAnalysisFormDTO *auditDTOs.AuditFindingRootCauseAnalysisFormDTO) error
-	Delete(auditID uint, findingID uint, id uint, currentUserID uint) (uint, error)
+	GetAll(findingID uint, params *auditDTOs.AuditFindingRootCauseAnalysisListQueryParamsDTO) ([]*auditDTOs.AuditFindingRootCauseAnalysisListDTO, error)
+	GetByID(findingID uint, id uint) (*models.AuditFindingRootCauseAnalysis, error)
+	Create(findingID uint, currentUserID uint, rootCauseAnalysisFormDTO *auditDTOs.AuditFindingRootCauseAnalysisFormDTO) (uint, error)
+	Update(findingID uint, id uint, currentUserID uint, rootCauseAnalysisFormDTO *auditDTOs.AuditFindingRootCauseAnalysisFormDTO) error
+	Delete(findingID uint, id uint, currentUserID uint) (uint, error)
 }
 
 // Service and implementations
@@ -42,15 +42,15 @@ func NewAuditFindingRootCauseAnalysisService(
 	}
 }
 
-func (afrcas *AuditFindingRootCauseAnalysisService) GetAll(auditID uint, findingID uint, params *auditDTOs.AuditFindingRootCauseAnalysisListQueryParamsDTO) ([]*auditDTOs.AuditFindingRootCauseAnalysisListDTO, error) {
-	if _, err := afrcas.auditFindingSvc.GetByID(auditID, findingID); err != nil {
+func (afrcas *AuditFindingRootCauseAnalysisService) GetAll(findingID uint, params *auditDTOs.AuditFindingRootCauseAnalysisListQueryParamsDTO) ([]*auditDTOs.AuditFindingRootCauseAnalysisListDTO, error) {
+	if _, err := afrcas.auditFindingSvc.GetByID(findingID); err != nil {
 		return nil, err
 	}
 	return afrcas.repo.GetAll(findingID, params)
 }
 
-func (afrcas *AuditFindingRootCauseAnalysisService) GetByID(auditID uint, findingID uint, id uint) (*models.AuditFindingRootCauseAnalysis, error) {
-	if _, err := afrcas.auditFindingSvc.GetByID(auditID, findingID); err != nil {
+func (afrcas *AuditFindingRootCauseAnalysisService) GetByID(findingID uint, id uint) (*models.AuditFindingRootCauseAnalysis, error) {
+	if _, err := afrcas.auditFindingSvc.GetByID(findingID); err != nil {
 		return nil, err
 	}
 
@@ -65,10 +65,10 @@ func (afrcas *AuditFindingRootCauseAnalysisService) GetByID(auditID uint, findin
 	return auditFindingRootCauseAnalysis, nil
 }
 
-func (afrcas *AuditFindingRootCauseAnalysisService) Create(auditID uint, findingID uint, currentUserID uint, rootCauseAnalysisFormDTO *auditDTOs.AuditFindingRootCauseAnalysisFormDTO) (uint, error) {
+func (afrcas *AuditFindingRootCauseAnalysisService) Create(findingID uint, currentUserID uint, rootCauseAnalysisFormDTO *auditDTOs.AuditFindingRootCauseAnalysisFormDTO) (uint, error) {
 	tx := afrcas.repo.BeginTransaction()
 
-	if _, err := afrcas.auditFindingSvc.GetByID(auditID, findingID); err != nil {
+	if _, err := afrcas.auditFindingSvc.GetByID(findingID); err != nil {
 		return 0, err
 	}
 	// Increment the "Why" field by 1
@@ -120,14 +120,14 @@ func (afrcas *AuditFindingRootCauseAnalysisService) Create(auditID uint, finding
 	return id, nil
 }
 
-func (afrcas *AuditFindingRootCauseAnalysisService) Update(auditID uint, findingID uint, id uint, currentUserID uint, rootCauseAnalysisFormDTO *auditDTOs.AuditFindingRootCauseAnalysisFormDTO) error {
+func (afrcas *AuditFindingRootCauseAnalysisService) Update(findingID uint, id uint, currentUserID uint, rootCauseAnalysisFormDTO *auditDTOs.AuditFindingRootCauseAnalysisFormDTO) error {
 	tx := afrcas.repo.BeginTransaction()
 
-	if _, err := afrcas.auditFindingSvc.GetByID(auditID, findingID); err != nil {
+	if _, err := afrcas.auditFindingSvc.GetByID(findingID); err != nil {
 		return err
 	}
 
-	existingAuditFindingRootCauseAnalysis, err := afrcas.GetByID(auditID, findingID, id)
+	existingAuditFindingRootCauseAnalysis, err := afrcas.GetByID(findingID, id)
 
 	if err != nil {
 		return err
@@ -150,16 +150,16 @@ func (afrcas *AuditFindingRootCauseAnalysisService) Update(auditID uint, finding
 	return nil
 }
 
-func (afrcas *AuditFindingRootCauseAnalysisService) Delete(auditID uint, findingID uint, id uint, currentUserID uint) (uint, error) {
+func (afrcas *AuditFindingRootCauseAnalysisService) Delete(findingID uint, id uint, currentUserID uint) (uint, error) {
 	tx := afrcas.repo.BeginTransaction()
 
-	if _, err := afrcas.auditFindingSvc.GetByID(auditID, findingID); err != nil {
+	if _, err := afrcas.auditFindingSvc.GetByID(findingID); err != nil {
 		return 0, err
 	}
 
 	var failedId uint
 
-	entryToDelete, err := afrcas.GetByID(auditID, findingID, id)
+	entryToDelete, err := afrcas.GetByID(findingID, id)
 	if err != nil {
 		return 0, err
 	}

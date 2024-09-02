@@ -40,6 +40,10 @@ type UserRepositoryInterface interface {
 
 	GetUserNotifications(userID uint, params *userDTOs.UserNotificationListQueryParamsDTO) (*userDTOs.UserNotificationListResponseDTO, error)
 	GetUserNewNotificationCount(userID uint) (int64, error)
+	MarkAllNotificationsAsRead(userID uint) (int64, error)
+	MarkSpecificNotificationsAsRead(userID uint, notificationIDs []uint) (int64, error)
+	MarkAllNotificationsAsUnread(userID uint) (int64, error)
+	MarkSpecificNotificationsAsUnread(userID uint, notificationIDs []uint) (int64, error)
 }
 
 type UserRepository struct {
@@ -533,6 +537,8 @@ func (repo *UserRepository) GetUserNotifications(userID uint, params *userDTOs.U
 			user_notifications.heading_ar,
 			user_notifications.title_en,
 			user_notifications.title_ar,
+			user_notifications.entity,
+			user_notifications.action,
 			user_notifications.url_param,
 			user_notifications.query_param,
 			user_notifications.is_new,
@@ -557,20 +563,22 @@ func (repo *UserRepository) GetUserNotifications(userID uint, params *userDTOs.U
 		Joins("LEFT JOIN modules ON modules.id = user_notifications.module_id").
 		Where("user_notifications.user_id = ?", userID)
 
-	if params.ModuleID != "" {
-		query = query.Where("user_notifications.module_id = ?", params.ModuleID)
+	// Apply dynamic filters to the query
+	if len(params.ModuleIDs) > 0 {
+		query = query.Where("user_notifications.module_id IN (?)", params.ModuleIDs)
 	}
 
-	if params.IsNew != "" {
-		query = query.Where("user_notifications.is_new = ?", params.IsNew == "true")
-	}
+	// Apply quick filters
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "new":
+			query = query.Where("user_notifications.is_new = ?", true)
+		case "read":
+			query = query.Where("user_notifications.is_read = ?", true)
+		case "unread":
+			query = query.Where("user_notifications.is_read = ?", false)
 
-	if params.IsRead != "" {
-		query = query.Where("user_notifications.is_read = ?", params.IsRead == "true")
-	}
-
-	if params.IsUnread != "" {
-		query = query.Where("user_notifications.is_read = ?", params.IsUnread == "false")
+		}
 	}
 
 	if params.Keyword != "" {
@@ -640,4 +648,36 @@ func (repo *UserRepository) GetUserNewNotificationCount(userID uint) (int64, err
 	}
 
 	return count, nil
+}
+
+func (repo *UserRepository) MarkAllNotificationsAsRead(userID uint) (int64, error) {
+	result := repo.db.Model(&models.UserNotification{}).
+		Where("user_id = ? AND is_read = ?", userID, false).
+		Update("is_read", true)
+
+	return result.RowsAffected, result.Error
+}
+
+func (repo *UserRepository) MarkSpecificNotificationsAsRead(userID uint, notificationIDs []uint) (int64, error) {
+	result := repo.db.Model(&models.UserNotification{}).
+		Where("user_id = ? AND id IN (?) AND is_read = ?", userID, notificationIDs, false).
+		Update("is_read", true)
+
+	return result.RowsAffected, result.Error
+}
+
+func (repo *UserRepository) MarkAllNotificationsAsUnread(userID uint) (int64, error) {
+	result := repo.db.Model(&models.UserNotification{}).
+		Where("user_id = ? AND is_read = ?", userID, true).
+		Update("is_read", false)
+
+	return result.RowsAffected, result.Error
+}
+
+func (repo *UserRepository) MarkSpecificNotificationsAsUnread(userID uint, notificationIDs []uint) (int64, error) {
+	result := repo.db.Model(&models.UserNotification{}).
+		Where("user_id = ? AND id IN (?) AND is_read = ?", userID, notificationIDs, true).
+		Update("is_read", false)
+
+	return result.RowsAffected, result.Error
 }

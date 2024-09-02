@@ -20,6 +20,7 @@ type AuditRepositoryInterface interface {
 
 	CreateAuditSchedule(auditSchedule *models.AuditSchedule, tx ...utility.DatabaseTransaction) (*models.AuditSchedule, error)
 	CreateAuditScheduleAuditableItem(item *models.AuditScheduleAuditableItem, tx ...utility.DatabaseTransaction) error
+	CreateAuditChecklists(auditChecklists []*models.AuditChecklist, tx ...utility.DatabaseTransaction) error 
 }
 
 type AuditRepository struct {
@@ -206,6 +207,7 @@ func (repo *AuditRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseT
 		Preload("AuditPlan.AuditableItems.AuditableItem.Document").
 		Preload("AuditPlan.AuditableItems.AuditableItem.AuditorRiskRating").
 		Preload("AuditPlan.AuditableItems.AuditableItem.AuditStatus").
+		Preload("AuditChecklists").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&audit, id)
@@ -216,6 +218,7 @@ func (repo *AuditRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseT
 
 	return audit, nil
 }
+
 
 func (repo *AuditRepository) Create(audit *models.Audit, tx ...utility.DatabaseTransaction) (uint, error) {
 	db := repo.db
@@ -278,4 +281,17 @@ func (repo *AuditRepository) CreateAuditScheduleAuditableItem(item *models.Audit
 	}
 
 	return nil
+}
+
+func (repo *AuditRepository) CreateAuditChecklists(auditChecklists []*models.AuditChecklist, tx ...utility.DatabaseTransaction) error {
+    db := repo.db
+    if len(tx) > 0 && tx[0] != nil {
+        db = tx[0].DB()
+    }
+
+    if err := db.Create(&auditChecklists).Error; err != nil {
+        return err
+    }
+
+    return nil
 }

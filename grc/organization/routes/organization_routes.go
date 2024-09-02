@@ -60,6 +60,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.GET("/users/me", userController.GetCurrentUserDetails)
 	organizationRoutes.GET("/users/me/notifications", userController.GetUserNotifications)
 	organizationRoutes.GET("/users/me/notifications/new-count", userController.GetUserNewNotificationCount)
+	organizationRoutes.PUT("/users/me/notifications/mark-as-read", userController.MarkwNotificationAsRead)
+	organizationRoutes.PUT("/users/me/notifications/mark-as-unread", userController.MarkwNotificationAsUnread)
 
 	//Strategic Profile
 	organizationRoutes.GET("/strategic-profiles", strategicProfileController.GetStrategicProfile)

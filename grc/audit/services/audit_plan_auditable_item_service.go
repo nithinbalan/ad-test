@@ -20,6 +20,8 @@ type AuditPlanAuditableItemServiceInterface interface {
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditPlanAuditableItemDetailDTO, error)
 	Create(auditPlanID uint, currentUserID uint, auditPlanFormDTO *auditDTOs.AuditPlanAuditableItemFormDTO) (uint, error)
 	Delete(auditPlanID uint, ids []uint, currentUserID uint) ([]uint, error)
+	GetByAuditableItemID(auditableItemID uint) (*models.AuditPlanAuditableItem, error)
+
 }
 
 type AuditPlanAuditableItemService struct {
@@ -61,6 +63,17 @@ func (apais *AuditPlanAuditableItemService) GetByID(id uint, tx ...utility.Datab
 	return auditPlanAuditableItem, nil
 }
 
+func (apais *AuditPlanAuditableItemService) GetByAuditableItemID(auditableItemID uint) (*models.AuditPlanAuditableItem, error) {
+	auditPlanAuditableItem, err := apais.repo.GetByAuditableItemID(auditableItemID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, auditableItemID)
+		}
+		return nil, err
+	}
+	return auditPlanAuditableItem, nil
+}
+
 func (apais AuditPlanAuditableItemService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditPlanAuditableItemDetailDTO, error) {
 	var auditableItemDTO auditDTOs.AuditPlanAuditableItemDetailDTO
 
@@ -94,6 +107,15 @@ func (apais *AuditPlanAuditableItemService) Create(auditPlanID uint, currentUser
 	if err := apais.validateAuditPlanAuditableItemFormDTO(auditPlanFormDTO); err != nil {
 		tx.Rollback()
 		return 0, err
+	}
+	// Check if any of the AuditableItemIDs are already added to the table with this AuditPlanID
+	for _, itemID := range auditPlanFormDTO.AuditableItemIds {
+		var existingItem models.AuditPlanAuditableItem
+		err := apais.repo.GetByAuditPlanAndAuditableItemID(auditPlanID, *itemID, &existingItem, tx)
+		if err == nil {
+			tx.Rollback()
+			return 0, utility.NewForbiddenError(fmt.Sprintf("The auditable item with ID %d is already added to this plan", *itemID))
+		}
 	}
 
 	var auditableItems []*models.AuditPlanAuditableItem

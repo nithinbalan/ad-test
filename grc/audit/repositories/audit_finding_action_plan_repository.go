@@ -20,8 +20,8 @@ type AuditFindingActionPlanRepositoryInterface interface {
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	GetCountByRiskID(findingID uint, tx ...utility.DatabaseTransaction) (int64, error)
 
-	// CreateInitialAuditFindingActionPlanStatusUpdate(auditFindingActionPlanStatusUpdate *models.AuditFindingActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
-	// DeleteAuditFindingActionPlanStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error
+	CreateInitialAuditFindingActionPlanStatusUpdate(auditFindingActionPlanStatusUpdate *models.AuditFindingActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
+	DeleteAuditFindingActionPlanStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type AuditFindingActionPlanRepository struct {
@@ -92,7 +92,7 @@ func (repo *AuditFindingActionPlanRepository) GetAll(findingID uint, params *aud
         LEFT JOIN users AS responsible_user ON responsible_user.id = audit_finding_action_plans.responsible_user_id
         LEFT JOIN users AS created_user ON created_user.id = audit_finding_action_plans.created_by_id
         LEFT JOIN users AS updated_user ON updated_user.id = audit_finding_action_plans.updated_by_id
-    `)
+    `).Where("audit_finding_action_plans.audit_finding_id = ?", findingID)
 
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
@@ -200,7 +200,7 @@ func (repo *AuditFindingActionPlanRepository) GetFullDetailsByID(id uint) (*mode
 		Preload("ActionPlanStatus").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
-		// Preload("ActionPlanStatusUpdates").
+		Preload("ActionPlanStatusUpdates").
 		First(&auditFindingActionPlan, id)
 
 	if result.Error != nil {
@@ -250,30 +250,30 @@ func (repo *AuditFindingActionPlanRepository) Delete(id uint, tx ...utility.Data
 	return nil
 }
 
-// func (repo *AuditFindingActionPlanRepository) CreateInitialAuditFindingActionPlanStatusUpdate(auditFindingActionPlanStatusUpdate *models.AuditFindingActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error) {
-// 	db := repo.db
-// 	if len(tx) > 0 && tx[0] != nil {
-// 		db = tx[0].DB()
-// 	}
-// 	if err := db.Create(auditFindingActionPlanStatusUpdate).Error; err != nil {
-// 		return 0, err
-// 	}
-// 	return auditFindingActionPlanStatusUpdate.ID, nil
-// }
+func (repo *AuditFindingActionPlanRepository) CreateInitialAuditFindingActionPlanStatusUpdate(auditFindingActionPlanStatusUpdate *models.AuditFindingActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(auditFindingActionPlanStatusUpdate).Error; err != nil {
+		return 0, err
+	}
+	return auditFindingActionPlanStatusUpdate.ID, nil
+}
 
-// func (repo *AuditFindingActionPlanRepository) DeleteAuditFindingActionPlanStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error {
-// 	db := repo.db
-// 	if len(tx) > 0 && tx[0] != nil {
-// 		db = tx[0].DB()
-// 	}
+func (repo *AuditFindingActionPlanRepository) DeleteAuditFindingActionPlanStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 
-// 	if err := db.Where("id IN (?)", ids).Delete(&models.AuditFindingActionPlanStatusUpdate{}).Error; err != nil {
-// 		return err
-// 	}
+	if err := db.Where("id IN (?)", ids).Delete(&models.AuditFindingActionPlanStatusUpdate{}).Error; err != nil {
+		return err
+	}
 
-// 	return nil
+	return nil
 
-// }
+}
 
 func (repo *AuditFindingActionPlanRepository) GetCountByRiskID(findingID uint, tx ...utility.DatabaseTransaction) (int64, error) {
 	db := repo.db

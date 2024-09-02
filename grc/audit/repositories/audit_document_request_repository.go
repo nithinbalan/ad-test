@@ -19,6 +19,7 @@ type AuditDocumentRequestRepositoryInterface interface {
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	CreateAuditableItems(auditDocumentRequestAuditableItems []*models.AuditDocumentRequestAuditableItem, tx ...utility.DatabaseTransaction) error
 	DeleteAuditableItems(itemIds []*uint, tx ...utility.DatabaseTransaction) error
+	CountConversationsByRequestID(requestID uint, tx ...utility.DatabaseTransaction) (int64, error)
 }
 
 type AuditDocumentRequestRepository struct {
@@ -43,14 +44,29 @@ func (repo *AuditDocumentRequestRepository) GetAll(auditID uint, params *auditDT
 	query := repo.db.Table("audit_document_requests").
 		Select(`
 			audit_document_requests.*,
-			CONVERT(VARCHAR, audit_document_requests.requested_at, 23) AS requested_at,
 			audit_document_request_statuses.title_en AS audit_document_request_status_title_en,
 			audit_document_request_statuses.title_ar AS audit_document_request_status_title_ar,
 			audit_document_request_statuses.type AS audit_document_request_status_type,
 			audit_document_request_statuses.color_code AS audit_document_request_status_color_code,
 			organization_units.title_en AS responsible_unit_title_en,
 			organization_units.title_ar AS responsible_unit_title_ar,
-			created_user.id AS created_user_id,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+            responsible_user.first_name_ar AS responsible_user_first_name_ar,
+            responsible_user.last_name_en AS responsible_user_last_name_en,
+            responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			responsible_user.initial AS responsible_user_initial,
+            responsible_user.color AS responsible_user_color,
+            responsible_user.email AS responsible_user_email,
+            responsible_user.profile_image_path AS responsible_user_profile_image_path,
+			requested_user.id AS requested_user_id,
+			requested_user.first_name_en AS requested_user_first_name_en,
+        	requested_user.first_name_ar AS requested_user_first_name_ar,
+        	requested_user.last_name_en AS requested_user_last_name_en,
+        	requested_user.last_name_ar AS requested_user_last_name_ar,   
+        	requested_user.initial AS requested_user_initial,
+        	requested_user.color AS requested_user_color,
+        	requested_user.email AS requested_user_email,
+        	requested_user.profile_image_path AS requested_user_profile_image_path,
         	created_user.first_name_en AS created_user_first_name_en,
         	created_user.first_name_ar AS created_user_first_name_ar,
         	created_user.last_name_en AS created_user_last_name_en,
@@ -72,6 +88,8 @@ func (repo *AuditDocumentRequestRepository) GetAll(auditID uint, params *auditDT
 		Joins(`
 			LEFT JOIN audit_document_request_statuses ON audit_document_request_statuses.id = audit_document_requests.audit_document_request_status_id
 			LEFT JOIN organization_units ON organization_units.id = audit_document_requests.responsible_unit_id
+        	LEFT JOIN users AS responsible_user ON responsible_user.id = audit_document_requests.responsible_user_id
+			LEFT JOIN users AS requested_user ON requested_user.id = audit_document_requests.requested_by_id
 			LEFT JOIN users AS created_user ON created_user.id = audit_document_requests.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = audit_document_requests.updated_by_id
 		`).Where(`audit_document_requests.audit_id = ?`, auditID)
@@ -164,7 +182,6 @@ func (repo *AuditDocumentRequestRepository) GetFullDetailsByID(id uint, tx ...ut
 		db = tx[0].DB()
 	}
 	var auditDocumentRequest *models.AuditDocumentRequest
-
 	result := db.
 		Preload("Audit").
 		Preload("AuditDocumentRequestStatus").
@@ -179,6 +196,9 @@ func (repo *AuditDocumentRequestRepository) GetFullDetailsByID(id uint, tx ...ut
 		Preload("AuditableItems.AuditableItem.RiskRegister").
 		Preload("AuditableItems.AuditableItem.User").
 		Preload("AuditableItems.AuditableItem.ResponsibleUnit").
+		Preload("ResponsibleUser").
+		Preload("ResponsibleUnit").
+		Preload("RequestedByUser").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&auditDocumentRequest, id)
@@ -250,4 +270,19 @@ func (repo *AuditDocumentRequestRepository) DeleteAuditableItems(itemIds []*uint
 	}
 
 	return nil
+}
+
+func (repo *AuditDocumentRequestRepository) CountConversationsByRequestID(requestID uint, tx ...utility.DatabaseTransaction) (int64, error) {
+	var conversationCount int64
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	err := db.Model(&models.AuditDocumentRequestConversation{}).
+		Where("audit_document_request_id = ?", requestID).
+		Count(&conversationCount).Error
+	if err != nil {
+		return 0, err
+	}
+	return conversationCount, nil
 }

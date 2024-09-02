@@ -16,13 +16,13 @@ import (
 )
 
 type AuditFindingActionPlanServiceInterface interface {
-	GetAll(auditID uint, findingID uint, params *auditFindingDTOs.AuditFindingActionPlanListQueryParamsDTO) (*auditFindingDTOs.AuditFindingActionPlanListResponseDTO, error)
-	GetByID(auditID uint, findingID uint, id uint) (*models.AuditFindingActionPlan, error)
-	GetFullDetailsByID(auditID uint, findingID uint, id uint) (*auditFindingDTOs.AuditFindingActionPlanDetailDTO, error)
-	Create(auditID uint, findingID uint, currentUserID uint, AuditFindingActionPlanFormDTO *auditFindingDTOs.AuditFindingActionPlanFormDTO) (uint, error)
-	Update(auditID uint, findingID uint, id uint, currentUserID uint, auditFinding *auditFindingDTOs.AuditFindingActionPlanFormDTO) error
-	Delete(auditID uint, findingID uint, ids []uint, currentUserID uint) ([]uint, error)
-	StatusUpdate(auditID uint, findingID uint, id uint, currentUserID uint, ActionPlanStatusID uint, tx utility.DatabaseTransaction) error
+	GetAll(findingID uint, params *auditFindingDTOs.AuditFindingActionPlanListQueryParamsDTO) (*auditFindingDTOs.AuditFindingActionPlanListResponseDTO, error)
+	GetByID(findingID uint, id uint) (*models.AuditFindingActionPlan, error)
+	GetFullDetailsByID(findingID uint, id uint) (*auditFindingDTOs.AuditFindingActionPlanDetailDTO, error)
+	Create(findingID uint, currentUserID uint, AuditFindingActionPlanFormDTO *auditFindingDTOs.AuditFindingActionPlanFormDTO) (uint, error)
+	Update(findingID uint, id uint, currentUserID uint, auditFinding *auditFindingDTOs.AuditFindingActionPlanFormDTO) error
+	Delete(findingID uint, ids []uint, currentUserID uint) ([]uint, error)
+	StatusUpdate(findingID uint, id uint, currentUserID uint, ActionPlanStatusID uint, tx utility.DatabaseTransaction) error
 }
 
 // Service and implementations
@@ -53,17 +53,12 @@ func NewAuditFindingActionPlanService(
 	}
 }
 
-func (afaps *AuditFindingActionPlanService) GetAll(auditID uint, findingID uint, params *auditFindingDTOs.AuditFindingActionPlanListQueryParamsDTO) (*auditFindingDTOs.AuditFindingActionPlanListResponseDTO, error) {
-	if auditID != 0 && findingID != 0 {
-		if _, err := afaps.auditFindingSvc.GetByID(auditID, findingID); err != nil {
-			return nil, err
-		}
-	}
+func (afaps *AuditFindingActionPlanService) GetAll(findingID uint, params *auditFindingDTOs.AuditFindingActionPlanListQueryParamsDTO) (*auditFindingDTOs.AuditFindingActionPlanListResponseDTO, error) {
 	return afaps.repo.GetAll(findingID, params)
 }
 
-func (afaps AuditFindingActionPlanService) GetByID(auditID uint, findingID uint, id uint) (*models.AuditFindingActionPlan, error) {
-	if _, err := afaps.auditFindingSvc.GetByID(auditID, findingID); err != nil {
+func (afaps AuditFindingActionPlanService) GetByID(findingID uint, id uint) (*models.AuditFindingActionPlan, error) {
+	if _, err := afaps.auditFindingSvc.GetByID(findingID); err != nil {
 		return nil, err
 	}
 
@@ -78,10 +73,10 @@ func (afaps AuditFindingActionPlanService) GetByID(auditID uint, findingID uint,
 	return auditFindingActionPlan, nil
 }
 
-func (afaps AuditFindingActionPlanService) GetFullDetailsByID(auditID uint, findingID uint, id uint) (*auditFindingDTOs.AuditFindingActionPlanDetailDTO, error) {
+func (afaps AuditFindingActionPlanService) GetFullDetailsByID(findingID uint, id uint) (*auditFindingDTOs.AuditFindingActionPlanDetailDTO, error) {
 	var auditFindingActionPlanDTO auditFindingDTOs.AuditFindingActionPlanDetailDTO
 
-	if _, err := afaps.auditFindingSvc.GetByID(auditID, findingID); err != nil {
+	if _, err := afaps.auditFindingSvc.GetByID(findingID); err != nil {
 		return nil, err
 	}
 
@@ -111,9 +106,9 @@ func (afaps AuditFindingActionPlanService) GetFullDetailsByID(auditID uint, find
 	return &auditFindingActionPlanDTO, nil
 }
 
-func (afaps *AuditFindingActionPlanService) Create(auditID uint, findingID uint, currentUserID uint, AuditFindingActionPlanFormDTO *auditFindingDTOs.AuditFindingActionPlanFormDTO) (uint, error) {
+func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID uint, AuditFindingActionPlanFormDTO *auditFindingDTOs.AuditFindingActionPlanFormDTO) (uint, error) {
 	tx := afaps.repo.BeginTransaction()
-	if _, err := afaps.auditFindingSvc.GetByID(auditID, findingID); err != nil {
+	if _, err := afaps.auditFindingSvc.GetByID(findingID); err != nil {
 		return 0, err
 	}
 
@@ -145,19 +140,20 @@ func (afaps *AuditFindingActionPlanService) Create(auditID uint, findingID uint,
 		return 0, err
 	}
 
-	// actionPlanStatusID := AuditFindingActionPlanFormDTO.ActionPlanStatusID
-	// auditFindingActionPlanUpdate := &models.AuditFindingActionPlanStatusUpdate{
-	// 	AuditFindingActionPlanID: id,
-	// 	ActionPlanStatusID:       actionPlanStatusID,
-	// 	Comment:                  "Initial action plan status",
-	// 	CreatedByID:              currentUserID,
-	// }
+	actionPlanStatusID := AuditFindingActionPlanFormDTO.ActionPlanStatusID
+	auditFindingActionPlanUpdate := &models.AuditFindingActionPlanStatusUpdate{
+		AuditFindingActionPlanID: id,
+		ActionPlanStatusID:       actionPlanStatusID,
+		Comment:                  "Initial action plan status",
+		CreatedByID:              currentUserID,
+	}
 
-	// _, err = afaps.repo.CreateInitialAuditFindingActionPlanStatusUpdate(auditFindingActionPlanUpdate, tx)
-	// if err != nil {
-	// 	tx.Rollback()
-	// 	return 0, err
-	// }
+	_, err = afaps.repo.CreateInitialAuditFindingActionPlanStatusUpdate(auditFindingActionPlanUpdate, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
 	tx.Commit()
 
 	go func() {
@@ -186,14 +182,14 @@ func (afaps *AuditFindingActionPlanService) Create(auditID uint, findingID uint,
 	return id, nil
 }
 
-func (afaps *AuditFindingActionPlanService) Update(auditID uint, findingID uint, id uint, currentUserID uint, AuditFindingActionPlanFormDTO *auditFindingDTOs.AuditFindingActionPlanFormDTO) error {
+func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, currentUserID uint, AuditFindingActionPlanFormDTO *auditFindingDTOs.AuditFindingActionPlanFormDTO) error {
 	tx := afaps.repo.BeginTransaction()
 
-	if _, err := afaps.auditFindingSvc.GetByID(auditID, findingID); err != nil {
+	if _, err := afaps.auditFindingSvc.GetByID(findingID); err != nil {
 		return err
 	}
 
-	existingAuditFindingActionPlan, err := afaps.GetByID(auditID, findingID, id)
+	existingAuditFindingActionPlan, err := afaps.GetByID(findingID, id)
 
 	if err != nil {
 		return err
@@ -230,10 +226,10 @@ func (afaps *AuditFindingActionPlanService) Update(auditID uint, findingID uint,
 	return nil
 }
 
-func (afaps *AuditFindingActionPlanService) Delete(auditID uint, findingID uint, ids []uint, currentUserID uint) ([]uint, error) {
+func (afaps *AuditFindingActionPlanService) Delete(findingID uint, ids []uint, currentUserID uint) ([]uint, error) {
 	tx := afaps.repo.BeginTransaction()
 
-	if _, err := afaps.auditFindingSvc.GetByID(auditID, findingID); err != nil {
+	if _, err := afaps.auditFindingSvc.GetByID(findingID); err != nil {
 		return nil, err
 	}
 
@@ -241,21 +237,21 @@ func (afaps *AuditFindingActionPlanService) Delete(auditID uint, findingID uint,
 	var successfulIds []uint
 	for _, id := range ids {
 
-		_, err := afaps.repo.GetFullDetailsByID(id)
+		auditFindingActionPlan, err := afaps.GetFullDetailsByID(findingID, id)
 
 		if err != nil {
 			continue
 		}
-		// if len(auditFindingActionPlan.ActionPlanStatusUpdates) > 0 {
-		// 	var deleteStatusUpdateIds []*uint
-		// 	for _, update := range auditFindingActionPlan.ActionPlanStatusUpdates {
-		// 		deleteStatusUpdateIds = append(deleteStatusUpdateIds, &update.ID)
-		// 	}
-		// 	if err := afaps.repo.DeleteAuditFindingActionPlanStatusUpdates(deleteStatusUpdateIds); err != nil {
-		// 		failedIds = append(failedIds, id)
-		// 		continue
-		// 	}
-		// }
+		if len(auditFindingActionPlan.ActionPlanStatusUpdates) > 0 {
+			var deleteStatusUpdateIds []*uint
+			for _, update := range auditFindingActionPlan.ActionPlanStatusUpdates {
+				deleteStatusUpdateIds = append(deleteStatusUpdateIds, &update.ID)
+			}
+			if err := afaps.repo.DeleteAuditFindingActionPlanStatusUpdates(deleteStatusUpdateIds); err != nil {
+				failedIds = append(failedIds, id)
+				continue
+			}
+		}
 		err = afaps.repo.Delete(id, tx)
 		if err != nil {
 			failedIds = append(failedIds, id)
@@ -286,9 +282,9 @@ func (afaps *AuditFindingActionPlanService) Delete(auditID uint, findingID uint,
 	return failedIds, nil
 }
 
-func (afaps *AuditFindingActionPlanService) StatusUpdate(auditID uint, findingID uint, id uint, currentUserID uint, ActionPlanStatusID uint, tx utility.DatabaseTransaction) error {
+func (afaps *AuditFindingActionPlanService) StatusUpdate(findingID uint, id uint, currentUserID uint, ActionPlanStatusID uint, tx utility.DatabaseTransaction) error {
 
-	existingAuditFindingActionPlan, err := afaps.GetByID(auditID, findingID, id)
+	existingAuditFindingActionPlan, err := afaps.GetByID(findingID, id)
 
 	if err != nil {
 		return err

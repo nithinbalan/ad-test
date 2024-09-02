@@ -16,8 +16,8 @@ type AuditableItemListDTO struct {
 	AuditorRiskRatingID         uint   `json:"auditor_risk_rating_id"`
 	AuditStatusID               uint   `json:"audit_status_id"`
 	AuditableItemType           string `json:"auditable_item_type"`
-	TitleEn                     string `json:"title_en"`
-	TitleAr                     string `json:"title_ar"`
+	AuditableItemTitleEn        string `json:"auditable_item_title_en"`
+	AuditableItemTitleAr        string `json:"auditable_item_title_ar"`
 	Comment                     string `json:"comment"`
 	ProcessID                   *uint  `json:"process_id"`
 	ControlID                   *uint  `json:"control_id"`
@@ -35,6 +35,15 @@ type AuditableItemListDTO struct {
 	DocumentTitleAr             string `json:"document_title_ar"`
 	ResponsibleUnitTitleEn      string `json:"responsible_unit_title_en"`
 	ResponsibleUnitTitleAr      string `json:"responsible_unit_title_ar"`
+	ResponsibleUserID                     uint   `json:"responsible_user_id"`
+    ResponsibleUserFirstNameEn            string `json:"responsible_user_first_name_en"`
+    ResponsibleUserFirstNameAr            string `json:"responsible_user_first_name_ar"`
+    ResponsibleUserLastNameEn             string `json:"responsible_user_last_name_en"`
+    ResponsibleUserLastNameAr             string `json:"responsible_user_last_name_ar"`
+    ResponsibleUserInitial                string `json:"responsible_user_initial"`
+    ResponsibleUserColor                  string `json:"responsible_user_color"`
+    ResponsibleUserEmail                  string `json:"responsible_user_email"`
+    ResponsibleUserProfileImagePath       string `json:"responsible_user_profile_image_path"`
 	IncidentRegisterTitle       string `json:"incident_register_title"`
 	ComplianceRequirementTitle  string `json:"compliance_requirement_title"`
 	RiskRegisterTitle           string `json:"risk_register_title"`
@@ -94,7 +103,7 @@ type AuditableItemListResponseDTO struct {
 type AuditableItemFormDTO struct {
 	TitleEn             string `json:"title_en" binding:"required,max=500"`
 	TitleAr             string `json:"title_ar" binding:"required,max=500"`
-	ResponsibleUnitID   uint   `json:"responsible_unit_id" binding:"required"`
+	ResponsibleUserID   uint   `json:"responsible_user_id" binding:"required"`
 	Comment             string `json:"comment" binding:"required"`
 	AuditorRiskRatingID uint   `json:"auditor_risk_rating_id" binding:"required"`
 }
@@ -113,6 +122,8 @@ type AuditableItemDetailDTO struct {
 	IncidentRegisterID      *uint                                          `json:"incident_register_id"`
 	ComplianceRequirementID *uint                                          `json:"compliance_requirement_id"`
 	RiskRegisterID          *uint                                          `json:"risk_register_id"`
+	ResponsibleUnitID       *uint                                          `json:"responsible_unit_id"`
+	ResponsibleUserID       *uint                                          `json:"responsible_user_id"`
 	UserID                  *uint                                          `json:"user_id"`
 	Process                 *organizationDTOs.ProcessDetailDTO             `json:"process"`
 	Control                 *organizationDTOs.ControlDetailDTO             `json:"control"`
@@ -124,6 +135,7 @@ type AuditableItemDetailDTO struct {
 	ResponsibleUnit         settingsDTOs.OrganizationUnitDTO               `json:"responsible_unit"`
 	CreatedAt               time.Time                                      `json:"created_at"`
 	UpdatedAt               *time.Time                                     `json:"updated_at"`
+	ResponsibleUser         *organizationDTOs.UserMinimalDTO               `json:"responsible_user"`
 	CreatedByUser           *organizationDTOs.UserMinimalDTO               `json:"created_by"`
 	UpdatedByUser           *organizationDTOs.UserMinimalDTO               `json:"updated_by"`
 }

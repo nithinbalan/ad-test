@@ -16,6 +16,9 @@ type AuditPlanAuditableItemRepositoryInterface interface {
 	Create(auditPlanAuditableItems []*models.AuditPlanAuditableItem, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.AuditPlanAuditableItem, error)
+	GetByAuditPlanAndAuditableItemID(auditPlanID, auditableItemID uint, auditPlanAuditableItem *models.AuditPlanAuditableItem, tx ...utility.DatabaseTransaction) error
+	GetByAuditableItemID(auditableItemID uint) (*models.AuditPlanAuditableItem, error)
+
 }
 
 type AuditPlanAuditableItemRepository struct {
@@ -200,7 +203,6 @@ func (repo *AuditPlanAuditableItemRepository) GetByID(id uint, tx ...utility.Dat
 	return auditPlan, nil
 }
 
-
 func (repo *AuditPlanAuditableItemRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.AuditPlanAuditableItem, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
@@ -262,4 +264,24 @@ func (repo *AuditPlanAuditableItemRepository) Delete(id uint, tx ...utility.Data
 	}
 
 	return nil
+}
+
+func (repo *AuditPlanAuditableItemRepository) GetByAuditPlanAndAuditableItemID(auditPlanID, auditableItemID uint, auditPlanAuditableItem *models.AuditPlanAuditableItem, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Where("audit_plan_id = ? AND auditable_item_id = ?", auditPlanID, auditableItemID).First(auditPlanAuditableItem).Error
+}
+
+
+func (repo *AuditPlanAuditableItemRepository) GetByAuditableItemID(auditableItemID uint) (*models.AuditPlanAuditableItem, error) {
+	var auditPlanAuditableItem *models.AuditPlanAuditableItem
+
+	result := repo.db.Where("auditable_item_id = ?", auditableItemID).First(&auditPlanAuditableItem)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return auditPlanAuditableItem, nil
 }

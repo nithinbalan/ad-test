@@ -23,14 +23,15 @@ type AuditPlan struct {
 	UpdatedBYID     *uint      `json:"updated_by_id" gorm:"default:null"`
 
 	// Relationships
-	AuditCategory     *AuditCategory               `gorm:"foreignKey:AuditCategoryID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
-	AuditTeam         *AuditTeam                   `gorm:"foreignKey:AuditTeamID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
-	TeamLead          *User                        `gorm:"foreignKey:TeamLeadID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
-	AuditStatus       *AuditStatus                 `gorm:"foreignKey:AuditStatusID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
-	Members           []*AuditPlanAuditMember      `gorm:"foreignKey:AuditPlanID"`
-	AuditableItems    []*AuditPlanAuditableItem    `gorm:"foreignKey:AuditPlanID"`
-	CreatedByUser     *User                        `gorm:"foreignKey:CreatedBYID"`
-	UpdatedByUser     *User                        `gorm:"foreignKey:UpdatedBYID"`
+	AuditCategory       *AuditCategory            `gorm:"foreignKey:AuditCategoryID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
+	AuditTeam           *AuditTeam                `gorm:"foreignKey:AuditTeamID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
+	TeamLead            *User                     `gorm:"foreignKey:TeamLeadID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
+	AuditStatus         *AuditStatus              `gorm:"foreignKey:AuditStatusID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
+	Members             []*AuditPlanAuditMember   `gorm:"foreignKey:AuditPlanID"`
+	AuditableItems      []*AuditPlanAuditableItem `gorm:"foreignKey:AuditPlanID"`
+	AuditPlanChecklists []*AuditPlanChecklist     `gorm:"foreignKey:AuditPlanID"`
+	CreatedByUser       *User                     `gorm:"foreignKey:CreatedBYID"`
+	UpdatedByUser       *User                     `gorm:"foreignKey:UpdatedBYID"`
 }
 
 // TableName overrides the table name used by AuditPlan to `audit_plans`

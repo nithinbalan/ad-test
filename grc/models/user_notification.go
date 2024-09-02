@@ -14,6 +14,8 @@ type UserNotification struct {
 	HeadingAr            string    `json:"heading_ar" gorm:"size:255;not null" binding:"required"`
 	TitleEn              string    `json:"title_en" gorm:"size:500;not null" binding:"required"`
 	TitleAr              string    `json:"title_ar" gorm:"size:500;not null" binding:"required"`
+	Entity               *string   `json:"entity" gorm:"size:255"`
+	Action               *string   `json:"action" gorm:"size:255"`
 	URLParam             string    `json:"url_param" gorm:"type:nvarchar(max)"`
 	QueryParam           string    `json:"query_param" gorm:"type:nvarchar(max)"`
 	IsNew                bool      `json:"is_new" gorm:"default:true"`

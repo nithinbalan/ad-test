@@ -10,10 +10,12 @@ import (
 
 type AuditFindingListDTO struct {
 	ID                          uint    `json:"id"`
+	AuditID                     uint    `json:"audit_id"`
 	AuditTitle                  string  `json:"audit_title"`
 	ReferenceNumber             string  `json:"reference_number"`
 	Title                       string  `json:"title"`
 	Description                 *string `json:"description"`
+	Recommendations             *string `json:"recommendations"`
 	AuditableItemTitleEn        string  `json:"auditable_item_title_en"`
 	AuditableItemTitleAr        string  `json:"auditable_item_title_ar"`
 	AuditFindingCategoryTitleEn string  `json:"audit_finding_category_title_en"`
@@ -47,6 +49,7 @@ type AuditFindingListDTO struct {
 }
 
 type AuditFindingFormDTO struct {
+	AuditID                uint                           `json:"audit_id" binding:"required"`
 	Title                  string                         `json:"title" binding:"required,max=255"`
 	Description            *string                        `json:"description"`
 	AuditableItemID        uint                           `json:"auditable_item_id" binding:"required"`
