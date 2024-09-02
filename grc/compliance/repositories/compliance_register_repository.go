@@ -37,6 +37,8 @@ type ComplianceRegisterRepositoryInterface interface {
 
 	CreateInitialComplianceStatusUpdate(complianceStatusUpdate *models.ComplianceStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
 	DeleteComplianceStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error
+
+	UpdateComplianceTotalScore(complianceRegisterID uint, totalScore float64, tx utility.DatabaseTransaction) error
 }
 
 type ComplianceRegisterRepository struct {
@@ -476,6 +478,20 @@ func (repo *ComplianceRegisterRepository) DeleteComplianceStatusUpdates(ids []*u
 	}
 
 	if err := db.Where("id IN (?)", ids).Delete(&models.ComplianceStatusUpdate{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *ComplianceRegisterRepository) UpdateComplianceTotalScore(complianceRegisterID uint, totalScore float64, tx utility.DatabaseTransaction) error {
+	db := tx.DB()
+
+	err := db.Model(&models.ComplianceRegister{}).
+		Where("id = ?", complianceRegisterID).
+		Update("total_score", totalScore).
+		Error
+	if err != nil {
 		return err
 	}
 
