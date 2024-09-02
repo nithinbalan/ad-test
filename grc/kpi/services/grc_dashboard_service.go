@@ -14,6 +14,9 @@ type GRCDashboardServiceInterface interface {
 
 	GetGRCComplianceOverview(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCComplianceOverviewDTO, error)
 	GetGRCRiskOverview(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCRiskOverviewDTO, error)
+
+	GetGRCTopCompliances(params *kpiDTOs.GRCDashboardListQueryParamsDTO) ([]*kpiDTOs.GRCTopComplianceRegistersDTO, error)
+	GetGRCTopRisks(params *kpiDTOs.GRCDashboardListQueryParamsDTO) ([]*kpiDTOs.GRCTopRiskRegistersDTO, error)
 }
 
 type GRCDashboardService struct {
@@ -50,4 +53,12 @@ func (gds *GRCDashboardService) GetGRCComplianceOverview(params *kpiDTOs.GRCDash
 
 func (gds *GRCDashboardService) GetGRCRiskOverview(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCRiskOverviewDTO, error) {
 	return gds.repo.GetGRCRiskOverview(params)
+}
+
+func (gds *GRCDashboardService) GetGRCTopCompliances(params *kpiDTOs.GRCDashboardListQueryParamsDTO) ([]*kpiDTOs.GRCTopComplianceRegistersDTO, error) {
+	return gds.repo.GetTopComplianceRegisters(params)
+}
+
+func (gds *GRCDashboardService) GetGRCTopRisks(params *kpiDTOs.GRCDashboardListQueryParamsDTO) ([]*kpiDTOs.GRCTopRiskRegistersDTO, error) {
+	return gds.repo.GetTopRiskRegisters(params)
 }

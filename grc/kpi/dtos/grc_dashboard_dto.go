@@ -38,6 +38,22 @@ type GRCRiskOverviewDTO struct {
 	RiskCountsByRating   map[string]int64 `json:"risk_counts_by_rating"`
 }
 
+type GRCTopComplianceRegistersDTO struct {
+	ID         uint   `json:"id"`
+	TitleEn    string `json:"title_en"`
+	TitleAr    string `json:"title_ar"`
+	TotalScore int    `json:"total_score"`
+}
+
+type GRCTopRiskRegistersDTO struct {
+	ID                  uint   `json:"id"`
+	Title               string `json:"title"`
+	RiskRatingValue     uint   `json:"risk_rating_value"`
+	RiskRatingTitleEn   string `json:"risk_rating_title_en"`
+	RiskRatingTitleAr   string `json:"risk_rating_title_ar"`
+	RiskRatingColorCode string `json:"risk_rating_color_code"`
+}
+
 type GRCDashboardListQueryParamsDTO struct {
 	DateFrom string `json:"date_from"`
 	DateTo   string `json:"date_to"`
