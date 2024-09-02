@@ -20,6 +20,7 @@ type GRCDashboardRepositoryInteface interface {
 
 	GetTopComplianceRegisters(params *kpiDTOs.GRCDashboardListQueryParamsDTO) ([]*kpiDTOs.GRCTopComplianceRegistersDTO, error)
 	GetTopRiskRegisters(params *kpiDTOs.GRCDashboardListQueryParamsDTO) ([]*kpiDTOs.GRCTopRiskRegistersDTO, error)
+	GetTopPublishedDocuments(params *kpiDTOs.GRCDashboardListQueryParamsDTO) ([]*kpiDTOs.GRCTopDocumentsDTO, error)
 }
 
 type GRCDashboardRepository struct {
@@ -444,4 +445,42 @@ func (repo *GRCDashboardRepository) GetTopRiskRegisters(params *kpiDTOs.GRCDashb
 	}
 
 	return topRiskRegisters, nil
+}
+
+func (repo *GRCDashboardRepository) GetTopPublishedDocuments(params *kpiDTOs.GRCDashboardListQueryParamsDTO) ([]*kpiDTOs.GRCTopDocumentsDTO, error) {
+	topDocuments := []*kpiDTOs.GRCTopDocumentsDTO{}
+
+	// Base query to fetch documents
+	query := repo.db.Table("documents").
+		Select(`
+			documents.id, documents.reference_number, documents.title_en, documents.title_ar, 
+			document_types.type As document_type, 
+			document_statuses.title_en AS document_status_title_en, 
+			document_statuses.title_ar AS document_status_title_ar, 
+			document_statuses.color_code AS document_status_color_code
+		`).
+		Joins("JOIN document_types ON documents.document_type_id = document_types.id").
+		Joins("JOIN document_statuses ON documents.document_status_id = document_statuses.id").
+		Where("document_statuses.type = ?", "published").
+		Where("document_types.type IN ('procedure', 'policy')").
+		Order("documents.created_at DESC")
+
+	// Apply date filters if provided
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("documents.created_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
+	} else if params.DateFrom != "" {
+		query = query.Where("documents.created_at >= ?", params.DateFrom)
+	} else if params.DateTo != "" {
+		query = query.Where("documents.created_at <= ?", params.DateTo)
+	}
+
+	// Apply the limit after filtering
+	query = query.Limit(5)
+
+	// Execute the query and check for errors
+	if err := query.Find(&topDocuments).Error; err != nil {
+		return nil, err
+	}
+
+	return topDocuments, nil
 }

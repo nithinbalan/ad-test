@@ -54,6 +54,17 @@ type GRCTopRiskRegistersDTO struct {
 	RiskRatingColorCode string `json:"risk_rating_color_code"`
 }
 
+type GRCTopDocumentsDTO struct {
+	ID                      uint   `json:"id"`
+	ReferenceNumber         string `json:"reference_number"`
+	TitleEn                 string `json:"title_en"`
+	TitleAr                 string `json:"title_ar"`
+	DocumentType            string `json:"document_type"`
+	DocumentStatusTitleEn   string `json:"document_status_title_en"`
+	DocumentStatusTitleAr   string `json:"document_status_title_ar"`
+	DocumentStatusColorCode string `json:"document_status_color_code"`
+}
+
 type GRCDashboardListQueryParamsDTO struct {
 	DateFrom string `json:"date_from"`
 	DateTo   string `json:"date_to"`
