@@ -193,3 +193,58 @@ func (apc *AuditController) DeleteAudits(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
+
+func (apc *AuditController) GetAllAuditableItems(c *gin.Context) {
+	auditIDStr := c.Param("auditId")
+
+	auditID, err := strconv.ParseUint(auditIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+	status := c.Query("status")
+	quickFilter := c.QueryArray("quick_filter")
+
+	// Define an array of allowed parameter names
+	allowedParams := []string{
+		"audit_category_ids",
+		"audit_team_ids",
+		"team_lead_ids",
+		"audit_status_ids",
+	}
+
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(apc.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(apc.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	queryParams := auditDTOs.AuditAuditableItemListQueryParamsDTO{
+		Sort:        sort,
+		SortBy:      sortBy,
+		Keyword:     keyword,
+		Status:      status,
+		Page:        page,
+		PageSize:    pageSize,
+		Filters:     filters,
+		QuickFilter: quickFilter,
+	}
+
+	auditPlans, err := apc.service.GetAllAuditableItems(uint(auditID), &queryParams)
+	if err != nil {
+		utility.SendInternalErrResp(apc.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, auditPlans)
+}

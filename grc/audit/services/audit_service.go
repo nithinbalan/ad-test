@@ -22,6 +22,8 @@ type AuditServiceInterface interface {
 	Create(currentUserID uint, auditFormDTO *auditDTOs.AuditFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, auditFormDTO *auditDTOs.AuditFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+
+	GetAllAuditableItems(auditID uint, params *auditDTOs.AuditAuditableItemListQueryParamsDTO) (*auditDTOs.AuditAuditableItemListResponseDTO, error)
 }
 
 type AuditService struct {
@@ -433,6 +435,12 @@ func (as *AuditService) CopyChecklistsToAudit(auditPlanID uint, auditID uint, cu
 		}
 	}
 
-
 	return nil
+}
+
+func (as *AuditService) GetAllAuditableItems(auditID uint, params *auditDTOs.AuditAuditableItemListQueryParamsDTO) (*auditDTOs.AuditAuditableItemListResponseDTO, error) {
+	if _, err := as.GetByID(auditID); err != nil {
+		return nil, err
+	}
+	return as.repo.GetAllAuditableItems(auditID, params)
 }

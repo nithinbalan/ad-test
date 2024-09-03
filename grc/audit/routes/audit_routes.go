@@ -239,4 +239,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.PUT("/audits/:auditId/schedules/:id", auditScheduleController.UpdateAuditSchedule)
 	auditRoutes.POST("/audits/:auditId/schedules/delete", auditScheduleController.DeleteAuditSchedules)
 
+	//Audit Auditable items
+	auditRoutes.GET("/audits/:auditId/auditable-items", auditController.GetAllAuditableItems)
+
 }
