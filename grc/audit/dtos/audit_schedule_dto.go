@@ -118,3 +118,8 @@ type AuditScheduleAuditableItemDTO struct {
 	CreatedByUser   organizationDTOs.UserMinimalDTO  `json:"created_by_id"`
 	UpdatedByUser   *organizationDTOs.UserMinimalDTO `json:"updated_by_id"`
 }
+
+type AuditScheduleSummaryDTO struct {
+	PendingCount   int `json:"pending_count"`
+	CompletedCount int `json:"completed_count"`
+}

@@ -23,6 +23,7 @@ type AuditScheduleServiceInterface interface {
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 
 	GetAllSchedulesByAuditID(auditID uint, tx ...utility.DatabaseTransaction) ([]*models.AuditSchedule, error)
+	GetScheduleSummary(auditID uint) (*auditDTOs.AuditScheduleSummaryDTO, error)
 }
 
 type AuditScheduleService struct {
@@ -415,4 +416,18 @@ func (ass *AuditScheduleService) parseAuditScheduleDates(dto *auditDTOs.AuditSch
 
 func (ass *AuditScheduleService) GetAllSchedulesByAuditID(auditID uint, tx ...utility.DatabaseTransaction) ([]*models.AuditSchedule, error) {
 	return ass.repo.GetAllSchedulesByAuditID(auditID, tx...)
+}
+
+func (ass *AuditScheduleService) GetScheduleSummary(auditID uint) (*auditDTOs.AuditScheduleSummaryDTO, error) {
+	pendingCount, completedCount, err := ass.repo.GetScheduleSummary(auditID)
+	if err != nil {
+		return nil, err
+	}
+
+	summary := &auditDTOs.AuditScheduleSummaryDTO{
+		PendingCount:   pendingCount,
+		CompletedCount: completedCount,
+	}
+
+	return summary, nil
 }
