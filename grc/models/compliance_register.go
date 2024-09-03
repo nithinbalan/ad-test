@@ -33,6 +33,7 @@ type ComplianceRegister struct {
 	UpdatedByID              *uint      `json:"updated_by_id" gorm:"default:null"`
 	LifecycleStatusID        uint       `json:"lifecycle_status_id" gorm:"not null"`
 	ComplianceReviewStatusID *uint      `json:"compliance_review_status_id" gorm:"default:null"`
+	TotalScore               int        `json:"total_score" gorm:"default:0"`
 
 	// Relationships
 	ComplianceCategory      *ComplianceCategory       `gorm:"foreignKey:ComplianceCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`

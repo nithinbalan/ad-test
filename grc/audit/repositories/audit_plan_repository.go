@@ -217,6 +217,7 @@ func (repo *AuditPlanRepository) GetFullDetailsByID(id uint, tx ...utility.Datab
 		Preload("AuditStatus").
 		Preload("TeamLead").
 		Preload("Members").
+		Preload("AuditPlanChecklists").
 		Preload("Members.User").
 		Preload("AuditableItems").
 		Preload("CreatedByUser").

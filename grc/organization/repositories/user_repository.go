@@ -537,6 +537,8 @@ func (repo *UserRepository) GetUserNotifications(userID uint, params *userDTOs.U
 			user_notifications.heading_ar,
 			user_notifications.title_en,
 			user_notifications.title_ar,
+			user_notifications.entity,
+			user_notifications.action,
 			user_notifications.url_param,
 			user_notifications.query_param,
 			user_notifications.is_new,
@@ -561,20 +563,22 @@ func (repo *UserRepository) GetUserNotifications(userID uint, params *userDTOs.U
 		Joins("LEFT JOIN modules ON modules.id = user_notifications.module_id").
 		Where("user_notifications.user_id = ?", userID)
 
-	if params.ModuleID != "" {
-		query = query.Where("user_notifications.module_id = ?", params.ModuleID)
+	// Apply dynamic filters to the query
+	if len(params.ModuleIDs) > 0 {
+		query = query.Where("user_notifications.module_id IN (?)", params.ModuleIDs)
 	}
 
-	if params.IsNew != "" {
-		query = query.Where("user_notifications.is_new = ?", params.IsNew == "true")
-	}
+	// Apply quick filters
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "new":
+			query = query.Where("user_notifications.is_new = ?", true)
+		case "read":
+			query = query.Where("user_notifications.is_read = ?", true)
+		case "unread":
+			query = query.Where("user_notifications.is_read = ?", false)
 
-	if params.IsRead != "" {
-		query = query.Where("user_notifications.is_read = ?", params.IsRead == "true")
-	}
-
-	if params.IsUnread != "" {
-		query = query.Where("user_notifications.is_read = ?", params.IsUnread == "false")
+		}
 	}
 
 	if params.Keyword != "" {

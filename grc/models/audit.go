@@ -15,9 +15,10 @@ type Audit struct {
 	UpdatedBYID *uint      `json:"updated_by_id,omitempty" gorm:"null"`
 
 	// Relationships
-	AuditPlan     *AuditPlan `gorm:"foreignKey:AuditPlanID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
-	CreatedByUser *User      `gorm:"foreignKey:CreatedBYID"`
-	UpdatedByUser *User      `gorm:"foreignKey:UpdatedBYID"`
+	AuditPlan       *AuditPlan        `gorm:"foreignKey:AuditPlanID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
+	AuditChecklists []*AuditChecklist `gorm:"foreignKey:AuditID"`
+	CreatedByUser   *User             `gorm:"foreignKey:CreatedBYID"`
+	UpdatedByUser   *User             `gorm:"foreignKey:UpdatedBYID"`
 }
 
 // TableName overrides the default table name used by GORM

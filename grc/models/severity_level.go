@@ -7,6 +7,7 @@ type SeverityLevel struct {
 	ColorCode string `json:"color_code" binding:"required,max=25" gorm:"type:varchar(25);not null"`
 	Type      string `json:"type" binding:"required,max=10,oneof=high medium low" gorm:"type:varchar(10);not null"`
 	Status    string `json:"status" binding:"required,max=10,oneof=active inactive" gorm:"type:varchar(10);not null"`
+	Weight    int    `json:"weight" gorm:"not null;default:1"`
 }
 
 // TableName overrides the table name used by SeverityLevel to `severity_levels`

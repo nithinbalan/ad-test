@@ -38,6 +38,8 @@ type AuditModule struct {
 	AuditFindingActionPlanController             *controllers.AuditFindingActionPlanController
 	AuditFindingActionPlanStatusUpdateController *controllers.AuditFindingActionPlanStatusUpdateController
 	AuditDocumentRequestConversationController   *controllers.AuditDocumentRequestConversationController
+	AuditChecklistController                     *controllers.AuditChecklistController
+	AuditScheduleController                      *controllers.AuditScheduleController
 }
 
 func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, complianceModule *ComplianceModule, riskModule *RiskModule, incidentModule *IncidentModule, documentModule *DocumentModule, settingModule *SettingsModule, masterModule *MasterModule) *AuditModule {
@@ -177,6 +179,7 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		auditPlanSvc,
 		auditTimelineSvc,
 		auditPlanScheduleSvc,
+		masterModule.StatusSvc,
 	)
 	auditController := controllers.NewAuditController(auditSvc)
 
@@ -262,6 +265,22 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 	auditFindingActionPlanStatusUpdateSvc := services.NewAuditFindingActionPlanStatusUpdateService(auditFindingActionPlanStatusUpdateRepo, sharedModule.ActivityLogService, auditFindingActionPlanSvc, masterModule.ActionPlanStatusSvc)
 	auditFindingActionPlanStatusUpdateController := controllers.NewAuditFindingActionPlanStatusUpdateController(auditFindingActionPlanStatusUpdateSvc)
 
+	auditChecklistRepo := repositories.NewAuditChecklistRepository(db)
+	auditChecklistSvc := services.NewAuditChecklistService(auditChecklistRepo, sharedModule.ActivityLogService, auditSvc, auditableItemSvc, masterModule.ConformanceSvc, masterModule.StatusSvc, auditPlanAuditableItemSvc)
+	auditChecklistController := controllers.NewAuditChecklistController(auditChecklistSvc)
+
+	auditScheduleRepo := repositories.NewAuditScheduleRepository(db)
+	auditScheduleSvc := services.NewAuditScheduleService(
+		auditScheduleRepo,
+		sharedModule.ActivityLogService,
+		auditSvc,
+		auditActivityTypeSvc,
+		organizationModule.UserSvc,
+		auditScheduleStatusSvc,
+		auditableItemSvc,
+	)
+	auditScheduleController := controllers.NewAuditScheduleController(auditScheduleSvc)
+
 	return &AuditModule{
 		AuditorRiskRatingController:                  auditorRiskRatingController,
 		AuditUniverseController:                      auditUniverseController,
@@ -292,5 +311,7 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		AuditFindingActionPlanController:             auditFindingActionPlanController,
 		AuditFindingActionPlanStatusUpdateController: auditFindingActionPlanStatusUpdateController,
 		AuditDocumentRequestConversationController:   auditDocumentRequestConversationController,
+		AuditChecklistController:                     auditChecklistController,
+		AuditScheduleController:                      auditScheduleController,
 	}
 }

@@ -32,6 +32,8 @@ type ComplianceRegisterServiceInterface interface {
 	StatusUpdate(id uint, currentUserID uint, complianceStatusID uint, tx utility.DatabaseTransaction) error
 	ReviewStatusUpdate(complianceRegister *models.ComplianceRegister, tx utility.DatabaseTransaction) error
 
+	UpdateComplianceTotalScore(complianceID uint, totalScore float64, tx utility.DatabaseTransaction) error
+
 	GetDocumentPath(id uint, token string) (string, error)
 }
 
@@ -733,6 +735,11 @@ func (crs *ComplianceRegisterService) parseComplianceRegisterDates(dto *complian
 	}
 
 	return parsed, nil
+}
+
+func (crs *ComplianceRegisterService) UpdateComplianceTotalScore(complianceID uint, totalScore float64, tx utility.DatabaseTransaction) error {
+
+	return crs.repo.UpdateComplianceTotalScore(complianceID, totalScore, tx)
 }
 
 func (crs *ComplianceRegisterService) validateComplianceDocumentFormDTO(document *complianceDTOs.ComplianceDocumentFormDTO) error {

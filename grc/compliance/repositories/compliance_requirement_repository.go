@@ -6,6 +6,7 @@ import (
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
+	"math"
 	"time"
 
 	"gorm.io/gorm"
@@ -15,7 +16,7 @@ type ComplianceRequirementRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementListResponseDTO, error)
 	GetRequirementsByComplianceID(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementByComplianceIDListResponseDTO, error)
-	GetByID(id uint) (*models.ComplianceRequirement, error)
+	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceRequirement, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceRequirement, error)
 	Create(complianceRequirement *models.ComplianceRequirement, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(complianceRequirement *models.ComplianceRequirement, tx ...utility.DatabaseTransaction) error
@@ -35,6 +36,8 @@ type ComplianceRequirementRepositoryInterface interface {
 
 	CreateComplianceRequirementDocuments(documents []*models.ComplianceRequirementAssociatedDocument, tx ...utility.DatabaseTransaction) error
 	DeleteComplianceRequirementDocuments(documentIds []*uint, tx ...utility.DatabaseTransaction) error
+
+	CalculateAverageScore(complianceRegisterID uint, tx ...utility.DatabaseTransaction) (float64, error)
 }
 
 type ComplianceRequirementRepository struct {
@@ -359,9 +362,14 @@ func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(compl
 	}, nil
 }
 
-func (repo *ComplianceRequirementRepository) GetByID(id uint) (*models.ComplianceRequirement, error) {
+func (repo *ComplianceRequirementRepository) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceRequirement, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
 	var complianceRequirement *models.ComplianceRequirement
-	result := repo.db.
+	result := db.
 		Preload("ComplianceClause").
 		First(&complianceRequirement, id)
 
@@ -606,4 +614,41 @@ func (repo *ComplianceRequirementRepository) GetStatusUpdateByRequirementID(requ
 	}
 
 	return requirementStatusUpdates, nil
+}
+
+func (repo *ComplianceRequirementRepository) CalculateAverageScore(complianceRegisterID uint, tx ...utility.DatabaseTransaction) (float64, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var totalScore int
+	var requirementCount int
+
+	// Join ComplianceRequirement with ComplianceClause and ComplianceStatus to filter by ComplianceRegister ID
+	// and exclude requirements with status "exempt" or "not_applicable"
+	err := db.Table("compliance_requirements").
+		Joins("JOIN compliance_clauses ON compliance_requirements.compliance_clause_id = compliance_clauses.id").
+		Joins("JOIN compliance_statuses ON compliance_requirements.compliance_status_id = compliance_statuses.id").
+		Where("compliance_clauses.compliance_register_id = ?", complianceRegisterID).
+		Where("compliance_statuses.type NOT IN ('exempt', 'not_applicable')").
+		Select("SUM(compliance_requirements.score) AS total_score, COUNT(compliance_requirements.id) AS requirement_count").
+		Row().
+		Scan(&totalScore, &requirementCount)
+	if err != nil {
+		return 0, err
+	}
+
+	// Calculate the average score
+	var averageScore float64
+	if requirementCount > 0 {
+		averageScore = float64(totalScore) / float64(requirementCount)
+	} else {
+		averageScore = 0
+	}
+
+	// Round the average score to 2 decimal places
+	roundedScore := math.Round(averageScore*100) / 100
+
+	return roundedScore, nil
 }

@@ -6,6 +6,7 @@ import (
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
 	logServices "jethur/grc/logs/services"
+	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
 	"jethur/utility"
 	"time"
@@ -21,6 +22,8 @@ type AuditServiceInterface interface {
 	Create(currentUserID uint, auditFormDTO *auditDTOs.AuditFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, auditFormDTO *auditDTOs.AuditFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+
+	GetAllAuditableItems(auditID uint, params *auditDTOs.AuditAuditableItemListQueryParamsDTO) (*auditDTOs.AuditAuditableItemListResponseDTO, error)
 }
 
 type AuditService struct {
@@ -29,6 +32,7 @@ type AuditService struct {
 	auditPlanSvc         AuditPlanServiceInterface
 	auditTimelineSvc     AuditTimelineServiceInterface
 	auditPlanScheduleSvc AuditPlanScheduleServiceInterface
+	statusSvc            masterServices.StatusServiceInterface
 }
 
 func NewAuditService(
@@ -37,6 +41,7 @@ func NewAuditService(
 	AuditPlanSvc AuditPlanServiceInterface,
 	auditTimelineSvc AuditTimelineServiceInterface,
 	auditPlanScheduleSvc AuditPlanScheduleServiceInterface,
+	statusSvc masterServices.StatusServiceInterface,
 ) AuditServiceInterface {
 	return &AuditService{
 		repo:                 repo,
@@ -44,6 +49,7 @@ func NewAuditService(
 		auditPlanSvc:         AuditPlanSvc,
 		auditTimelineSvc:     auditTimelineSvc,
 		auditPlanScheduleSvc: auditPlanScheduleSvc,
+		statusSvc:            statusSvc,
 	}
 }
 
@@ -170,6 +176,10 @@ func (as *AuditService) Create(currentUserID uint, auditFormDTO *auditDTOs.Audit
 		return 0, err
 	}
 
+	if err := as.CopyChecklistsToAudit(auditFormDTO.AuditPlanID, id, currentUserID, tx); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
 	tx.Commit()
 
 	go func() {
@@ -365,7 +375,7 @@ func (as *AuditService) copyAuditPlanSchedulesToAuditSchedule(auditID uint, audi
 			TargetDate:            schedule.TargetDate,
 			ResponsibleUserID:     schedule.ResponsibleUserID,
 			AuditScheduleStatusID: schedule.AuditScheduleStatusID,
-			CreatedByID:           currentUserID,
+			CreatedBYID:           currentUserID,
 		}
 
 		createdAuditSchedule, err := as.repo.CreateAuditSchedule(auditSchedule, tx...)
@@ -387,4 +397,50 @@ func (as *AuditService) copyAuditPlanSchedulesToAuditSchedule(auditID uint, audi
 	}
 
 	return nil
+}
+
+func (as *AuditService) CopyChecklistsToAudit(auditPlanID uint, auditID uint, currentUserID uint, tx ...utility.DatabaseTransaction) error {
+	// Retrieve the full details of the audit plan, including the checklists
+	auditPlan, err := as.auditPlanSvc.GetFullDetailsByID(auditPlanID, tx...)
+	if err != nil {
+		return err
+	}
+
+	status, err := as.statusSvc.GetByType("pending")
+	if err != nil {
+		return err
+	}
+
+	var auditChecklists []*models.AuditChecklist
+	if len(auditPlan.AuditPlanChecklists) > 0 {
+		// Iterate through each checklist in the audit plan and create a corresponding audit checklist
+		for _, checklist := range auditPlan.AuditPlanChecklists {
+			auditChecklist := &models.AuditChecklist{
+				AuditID:              auditID,
+				AuditPlanChecklistID: &checklist.ID,
+				AuditableItemID:      &checklist.AuditableItemID,
+				Question:             checklist.Question,
+				CreatedBYID:          uint(auditPlan.CreatedByUser.ID),
+				CreatedAt:            auditPlan.CreatedAt,
+				StatusID:             status.ID,
+			}
+			auditChecklists = append(auditChecklists, auditChecklist)
+		}
+	}
+
+	// Save the new audit checklists to the database
+	if len(auditChecklists) > 0 {
+		if err := as.repo.CreateAuditChecklists(auditChecklists, tx...); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (as *AuditService) GetAllAuditableItems(auditID uint, params *auditDTOs.AuditAuditableItemListQueryParamsDTO) (*auditDTOs.AuditAuditableItemListResponseDTO, error) {
+	if _, err := as.GetByID(auditID); err != nil {
+		return nil, err
+	}
+	return as.repo.GetAllAuditableItems(auditID, params)
 }

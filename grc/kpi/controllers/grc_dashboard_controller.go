@@ -183,3 +183,118 @@ func (gdc *GRCDashboardController) GetGRCRiskOverview(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, summary)
 }
+
+func (gdc *GRCDashboardController) GetGRCDocumentOverview(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := kpiDTOs.GRCDashboardListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+	summary, err := gdc.service.GetGRCDocumentOverview(&queryParams)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(gdc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, summary)
+}
+
+func (gdc *GRCDashboardController) GetGRCTopCompliances(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := kpiDTOs.GRCDashboardListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+	summary, err := gdc.service.GetGRCTopCompliances(&queryParams)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(gdc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, summary)
+}
+
+func (gdc *GRCDashboardController) GetGRCTopRisks(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := kpiDTOs.GRCDashboardListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+	summary, err := gdc.service.GetGRCTopRisks(&queryParams)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(gdc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, summary)
+}
+
+func (gdc *GRCDashboardController) GetGRCTopPublishedDocuments(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := kpiDTOs.GRCDashboardListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+	summary, err := gdc.service.GetGRCTopPublishedDocuments(&queryParams)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(gdc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, summary)
+}
+
+func (gdc *GRCDashboardController) GetGRCDocumentTypeChart(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := kpiDTOs.GRCDashboardListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+	summary, err := gdc.service.GetGRCDocumentTypeChart(&queryParams)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(gdc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, summary)
+}

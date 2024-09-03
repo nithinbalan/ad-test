@@ -38,6 +38,48 @@ type GRCRiskOverviewDTO struct {
 	RiskCountsByRating   map[string]int64 `json:"risk_counts_by_rating"`
 }
 
+type GRCDocumentOverviewDTO struct {
+	TotalDocuments int64 `json:"total_documents"`
+	Policies       int64 `json:"policies"`
+	Procedures     int64 `json:"procedures"`
+	Others         int64 `json:"others"`
+}
+
+type GRCTopComplianceRegistersDTO struct {
+	ID         uint   `json:"id"`
+	TitleEn    string `json:"title_en"`
+	TitleAr    string `json:"title_ar"`
+	TotalScore int    `json:"total_score"`
+}
+
+type GRCTopRiskRegistersDTO struct {
+	ID                  uint   `json:"id"`
+	Title               string `json:"title"`
+	RiskRatingValue     uint   `json:"risk_rating_value"`
+	RiskRatingTitleEn   string `json:"risk_rating_title_en"`
+	RiskRatingTitleAr   string `json:"risk_rating_title_ar"`
+	RiskRatingColorCode string `json:"risk_rating_color_code"`
+}
+
+type GRCTopDocumentsDTO struct {
+	ID                      uint   `json:"id"`
+	ReferenceNumber         string `json:"reference_number"`
+	TitleEn                 string `json:"title_en"`
+	TitleAr                 string `json:"title_ar"`
+	DocumentType            string `json:"document_type"`
+	DocumentStatusTitleEn   string `json:"document_status_title_en"`
+	DocumentStatusTitleAr   string `json:"document_status_title_ar"`
+	DocumentStatusColorCode string `json:"document_status_color_code"`
+}
+
+type GRCDocumentTypeChartDTO struct {
+	Type       string `json:"type"`
+	TitleEn    string `json:"title_en"`
+	TitleAr    string `json:"title_ar"`
+	Percentage int64  `json:"percentage"`
+	Count      int64  `json:"count"`
+}
+
 type GRCDashboardListQueryParamsDTO struct {
 	DateFrom string `json:"date_from"`
 	DateTo   string `json:"date_to"`

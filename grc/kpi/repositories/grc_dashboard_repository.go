@@ -17,6 +17,13 @@ type GRCDashboardRepositoryInteface interface {
 
 	GetGRCComplianceOverview(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCComplianceOverviewDTO, error)
 	GetGRCRiskOverview(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCRiskOverviewDTO, error)
+	GetGRCDocumentOverview(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCDocumentOverviewDTO, error)
+
+	GetTopComplianceRegisters(params *kpiDTOs.GRCDashboardListQueryParamsDTO) ([]*kpiDTOs.GRCTopComplianceRegistersDTO, error)
+	GetTopRiskRegisters(params *kpiDTOs.GRCDashboardListQueryParamsDTO) ([]*kpiDTOs.GRCTopRiskRegistersDTO, error)
+	GetTopPublishedDocuments(params *kpiDTOs.GRCDashboardListQueryParamsDTO) ([]*kpiDTOs.GRCTopDocumentsDTO, error)
+
+	GetGRCDocumentTypeChart(params *kpiDTOs.GRCDashboardListQueryParamsDTO) ([]*kpiDTOs.GRCDocumentTypeChartDTO, error)
 }
 
 type GRCDashboardRepository struct {
@@ -97,7 +104,6 @@ func (repo *GRCDashboardRepository) GetGRCRiskSummary(params *kpiDTOs.GRCDashboa
 
 	var totalRisks, closedRisks, openHighRiskRatings int64
 
-	// Calculate total risks
 	totalRiskQuery := repo.db.Model(&models.RiskRegister{})
 	if params.DateFrom != "" && params.DateTo != "" {
 		totalRiskQuery = totalRiskQuery.Where("created_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
@@ -107,7 +113,6 @@ func (repo *GRCDashboardRepository) GetGRCRiskSummary(params *kpiDTOs.GRCDashboa
 		return nil, err
 	}
 
-	// Calculate closed risks
 	closedRiskQuery := repo.db.Model(&models.RiskRegister{}).
 		Joins("JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id").
 		Where("risk_statuses.type = ?", "closed")
@@ -119,12 +124,10 @@ func (repo *GRCDashboardRepository) GetGRCRiskSummary(params *kpiDTOs.GRCDashboa
 		return nil, err
 	}
 
-	// Calculate Risk Closure Rate
 	if totalRisks > 0 {
 		summary.RiskClosureRate = math.Round(float64(closedRisks) / float64(totalRisks) * 100)
 	}
 
-	// Calculate count of open high-risk ratings
 	highRiskQuery := repo.db.Model(&models.RiskRegister{}).
 		Joins("JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = risk_register.current_risk_rating_id").
 		Joins("JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id").
@@ -145,7 +148,6 @@ func (repo *GRCDashboardRepository) GetGRCRiskSummary(params *kpiDTOs.GRCDashboa
 func (repo *GRCDashboardRepository) GetGRCAuditSummary(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCAuditSummaryDTO, error) {
 	var totalAudits, completedAudits, openMajorNCCount, totalFindings, closedFindings int64
 
-	// Calculate total number of audits
 	totalAuditQuery := repo.db.Model(&models.Audit{})
 	if params.DateFrom != "" && params.DateTo != "" {
 		totalAuditQuery = totalAuditQuery.Joins("JOIN audit_plans ON audit_plans.id = audits.audit_plan_id").
@@ -156,7 +158,6 @@ func (repo *GRCDashboardRepository) GetGRCAuditSummary(params *kpiDTOs.GRCDashbo
 		return nil, err
 	}
 
-	// Calculate number of completed audits
 	completedAuditQuery := repo.db.Model(&models.Audit{}).
 		Joins("JOIN audit_plans ON audit_plans.id = audits.audit_plan_id").
 		Joins("JOIN audit_statuses ON audit_statuses.id = audit_plans.audit_status_id").
@@ -169,13 +170,11 @@ func (repo *GRCDashboardRepository) GetGRCAuditSummary(params *kpiDTOs.GRCDashbo
 		return nil, err
 	}
 
-	// Calculate Audit Completion Rate
 	var auditCompletionRate float64
 	if totalAudits > 0 {
 		auditCompletionRate = math.Round(float64(completedAudits) / float64(totalAudits) * 100)
 	}
 
-	// Count of Open Major Non-Conformities (NCs)
 	openMajorNCQuery := repo.db.Model(&models.AuditFinding{}).
 		Joins("JOIN audit_finding_categories ON audit_finding_categories.id = audit_findings.audit_finding_category_id").
 		Joins("JOIN audit_finding_statuses ON audit_finding_statuses.id = audit_findings.audit_finding_status_id").
@@ -191,7 +190,6 @@ func (repo *GRCDashboardRepository) GetGRCAuditSummary(params *kpiDTOs.GRCDashbo
 		return nil, err
 	}
 
-	// Calculate total number of findings
 	totalFindingQuery := repo.db.Model(&models.AuditFinding{})
 	if params.DateFrom != "" && params.DateTo != "" {
 		totalFindingQuery = totalFindingQuery.Where("created_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
@@ -201,7 +199,6 @@ func (repo *GRCDashboardRepository) GetGRCAuditSummary(params *kpiDTOs.GRCDashbo
 		return nil, err
 	}
 
-	// Calculate number of closed findings
 	closedFindingQuery := repo.db.Model(&models.AuditFinding{}).
 		Joins("JOIN audit_finding_statuses ON audit_finding_statuses.id = audit_findings.audit_finding_status_id").
 		Where("audit_finding_statuses.is_closed = ?", true)
@@ -213,7 +210,6 @@ func (repo *GRCDashboardRepository) GetGRCAuditSummary(params *kpiDTOs.GRCDashbo
 		return nil, err
 	}
 
-	// Calculate Audit Finding Resolution Rate
 	var auditFindingResolutionRate float64
 	if totalFindings > 0 {
 		auditFindingResolutionRate = math.Round(float64(closedFindings) / float64(totalFindings) * 100)
@@ -230,7 +226,6 @@ func (repo *GRCDashboardRepository) GetGRCDocumentSummary(params *kpiDTOs.GRCDas
 	var totalPolicies int64
 	var totalOtherDocuments int64
 
-	// Calculate Total Number of Policies & Procedures
 	policyQuery := repo.db.Model(&models.Document{}).
 		Joins("JOIN document_types ON document_types.id = documents.document_type_id").
 		Joins("JOIN document_statuses ON document_statuses.id = documents.document_status_id").
@@ -246,7 +241,6 @@ func (repo *GRCDashboardRepository) GetGRCDocumentSummary(params *kpiDTOs.GRCDas
 		return nil, err
 	}
 
-	// Calculate Total Number of Other Documents
 	otherDocQuery := repo.db.Model(&models.Document{}).
 		Joins("JOIN document_types ON document_types.id = documents.document_type_id").
 		Joins("JOIN document_statuses ON document_statuses.id = documents.document_status_id").
@@ -272,21 +266,17 @@ func (repo *GRCDashboardRepository) GetGRCOrganizationSummary(params *kpiDTOs.GR
 	var totalControls int64
 	var efficientControls int64
 
-	// Base query for controls
 	controlQuery := repo.db.Model(&models.Control{})
 
-	// Apply date filters if provided
 	if params.DateFrom != "" && params.DateTo != "" {
 		controlQuery = controlQuery.Where("controls.created_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
 	}
 
-	// Count total controls
 	err := controlQuery.Count(&totalControls).Error
 	if err != nil {
 		return nil, err
 	}
 
-	// Count efficient controls with the same date filters applied
 	efficientControlQuery := controlQuery.
 		Joins("JOIN control_efficiency_statuses ON control_efficiency_statuses.id = controls.control_efficiency_status_id").
 		Where("control_efficiency_statuses.type = ?", "efficient")
@@ -364,7 +354,6 @@ func (repo *GRCDashboardRepository) GetGRCComplianceOverview(params *kpiDTOs.GRC
 func (repo *GRCDashboardRepository) GetGRCRiskOverview(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCRiskOverviewDTO, error) {
 	summary := &kpiDTOs.GRCRiskOverviewDTO{}
 
-	// Base query to get all risk registers in the specified date range
 	riskQuery := repo.db.Model(&models.RiskRegister{}).
 		Joins("JOIN risk_matrix_risk_ratings ON risk_register.current_risk_rating_id = risk_matrix_risk_ratings.id")
 
@@ -372,24 +361,20 @@ func (repo *GRCDashboardRepository) GetGRCRiskOverview(params *kpiDTOs.GRCDashbo
 		riskQuery = riskQuery.Where("risk_register.created_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
 	}
 
-	// Calculate Total Risks Registered
 	var totalRisksRegistered int64
 	err := riskQuery.Count(&totalRisksRegistered).Error
 	if err != nil {
 		return nil, err
 	}
 
-	// Get distinct risk ratings
 	var riskRatings []models.RiskMatrixRiskRating
 	err = repo.db.Model(&models.RiskMatrixRiskRating{}).Where("status = ?", "active").Find(&riskRatings).Error
 	if err != nil {
 		return nil, err
 	}
 
-	// Initialize a map to store risk counts by rating
 	riskCountsByRating := make(map[string]int64)
 
-	// Calculate the count for each risk rating dynamically
 	for _, rating := range riskRatings {
 		var count int64
 		err := repo.db.Model(&models.RiskRegister{}).
@@ -401,9 +386,162 @@ func (repo *GRCDashboardRepository) GetGRCRiskOverview(params *kpiDTOs.GRCDashbo
 		riskCountsByRating[rating.Type] = count
 	}
 
-	// Populate the summary DTO
 	summary.TotalRisksRegistered = totalRisksRegistered
 	summary.RiskCountsByRating = riskCountsByRating
 
 	return summary, nil
+}
+
+func (repo *GRCDashboardRepository) GetGRCDocumentOverview(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCDocumentOverviewDTO, error) {
+	counts := &kpiDTOs.GRCDocumentOverviewDTO{}
+
+	documentQuery := repo.db.Model(&models.Document{}).
+		Joins("JOIN document_types ON document_types.id = documents.document_type_id")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		documentQuery = documentQuery.Where("documents.created_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
+	}
+
+	err := documentQuery.Select(`
+			COUNT(*) AS total_documents,
+			SUM(CASE WHEN document_types.type = 'policy' THEN 1 ELSE 0 END) AS policies,
+			SUM(CASE WHEN document_types.type = 'procedure' THEN 1 ELSE 0 END) AS procedures,
+			SUM(CASE WHEN document_types.type = 'others' THEN 1 ELSE 0 END) AS others
+		`).
+		Scan(&counts).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return counts, nil
+}
+
+func (repo *GRCDashboardRepository) GetTopComplianceRegisters(params *kpiDTOs.GRCDashboardListQueryParamsDTO) ([]*kpiDTOs.GRCTopComplianceRegistersDTO, error) {
+	var complianceRegisters []models.ComplianceRegister
+	query := repo.db.Model(&models.ComplianceRegister{}).
+		Order("total_score DESC")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("created_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
+	}
+
+	query = query.Limit(5)
+
+	err := query.Find(&complianceRegisters).Error
+	if err != nil {
+		return nil, err
+	}
+
+	var topRegisters []*kpiDTOs.GRCTopComplianceRegistersDTO
+	for _, register := range complianceRegisters {
+		complianceRegisterDTO := &kpiDTOs.GRCTopComplianceRegistersDTO{
+			ID:         register.ID,
+			TitleEn:    register.TitleEn,
+			TitleAr:    register.TitleAr,
+			TotalScore: register.TotalScore,
+		}
+		topRegisters = append(topRegisters, complianceRegisterDTO)
+	}
+
+	return topRegisters, nil
+}
+
+func (repo *GRCDashboardRepository) GetTopRiskRegisters(params *kpiDTOs.GRCDashboardListQueryParamsDTO) ([]*kpiDTOs.GRCTopRiskRegistersDTO, error) {
+	topRiskRegisters := []*kpiDTOs.GRCTopRiskRegistersDTO{}
+
+	query := repo.db.Table("risk_register").
+		Select(`
+			risk_register.id, risk_register.title, 
+			risk_matrix_risk_rating_values.value AS risk_rating_value, 
+			risk_matrix_risk_ratings.title_en AS risk_rating_title_en, 
+			risk_matrix_risk_ratings.title_ar AS risk_rating_title_ar, 
+			risk_matrix_risk_ratings.color_code AS risk_rating_color_code
+		`).
+		Joins("JOIN risk_matrix_risk_rating_values ON risk_register.current_risk_rating_value_id = risk_matrix_risk_rating_values.id").
+		Joins("JOIN risk_matrix_risk_ratings ON risk_matrix_risk_rating_values.risk_matrix_risk_rating_id = risk_matrix_risk_ratings.id").
+		Order("risk_matrix_risk_rating_values.value DESC")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("risk_register.created_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
+	}
+
+	query = query.Limit(5)
+
+	if err := query.Find(&topRiskRegisters).Error; err != nil {
+		return nil, err
+	}
+
+	return topRiskRegisters, nil
+}
+
+func (repo *GRCDashboardRepository) GetTopPublishedDocuments(params *kpiDTOs.GRCDashboardListQueryParamsDTO) ([]*kpiDTOs.GRCTopDocumentsDTO, error) {
+	topDocuments := []*kpiDTOs.GRCTopDocumentsDTO{}
+
+	// Base query to fetch documents
+	query := repo.db.Table("documents").
+		Select(`
+			documents.id, documents.reference_number, documents.title_en, documents.title_ar, 
+			document_types.type As document_type, 
+			document_statuses.title_en AS document_status_title_en, 
+			document_statuses.title_ar AS document_status_title_ar, 
+			document_statuses.color_code AS document_status_color_code
+		`).
+		Joins("JOIN document_types ON documents.document_type_id = document_types.id").
+		Joins("JOIN document_statuses ON documents.document_status_id = document_statuses.id").
+		Where("document_statuses.type = ?", "published").
+		Where("document_types.type IN ('procedure', 'policy')").
+		Order("documents.created_at DESC")
+
+	// Apply date filters if provided
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("documents.created_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
+	}
+
+	// Apply the limit after filtering
+	query = query.Limit(5)
+
+	// Execute the query and check for errors
+	if err := query.Find(&topDocuments).Error; err != nil {
+		return nil, err
+	}
+
+	return topDocuments, nil
+}
+
+func (repo *GRCDashboardRepository) GetGRCDocumentTypeChart(params *kpiDTOs.GRCDashboardListQueryParamsDTO) ([]*kpiDTOs.GRCDocumentTypeChartDTO, error) {
+	var totalDocuments int64
+	var typeCounts []*kpiDTOs.GRCDocumentTypeChartDTO
+
+	query := repo.db.Model(&models.Document{})
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("documents.created_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
+	}
+
+	// Get the total number of documents
+	err := query.Count(&totalDocuments).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Query to get document type counts, percentages, and more details
+	err = query.Table("documents").
+		Select(`
+			document_types.type AS type, 
+			document_types.title_en AS title_en,
+			document_types.title_ar AS title_ar,
+			COUNT(*) AS count,
+			CAST(ROUND(COUNT(*) * 100.0 / ?, 0) AS INT) AS percentage
+		`, totalDocuments).
+		Joins("JOIN document_types ON documents.document_type_id = document_types.id").
+		Group("document_types.type, document_types.title_en, document_types.title_ar").
+		Order("percentage DESC").
+		Scan(&typeCounts).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return typeCounts, nil
 }

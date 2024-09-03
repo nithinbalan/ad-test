@@ -42,6 +42,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditFindingActionPlanController := app.AuditModule.AuditFindingActionPlanController
 	auditDocumentRequestConversationController := app.AuditModule.AuditDocumentRequestConversationController
 	auditFindingActionPlanStatusUpdateController := app.AuditModule.AuditFindingActionPlanStatusUpdateController
+	auditChecklistController := app.AuditModule.AuditChecklistController
+	auditScheduleController := app.AuditModule.AuditScheduleController
 
 	//Audit Status
 	auditRoutes.GET("/audit-statuses", auditStatusController.GetAllAuditStatuses)
@@ -220,5 +222,24 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.POST("/audit-findings/:findingId/action-plans/:actionPlanId/status-updates", auditFindingActionPlanStatusUpdateController.CreateAuditFindingActionPlanStatusUpdate)
 	auditRoutes.PUT("/audit-findings/:findingId/action-plans/:actionPlanId/status-updates/:id", auditFindingActionPlanStatusUpdateController.UpdateAuditFindingActionPlanStatusUpdate)
 	auditRoutes.GET("/audit-findings/:findingId/action-plans/:actionPlanId/status-updates/latest", auditFindingActionPlanStatusUpdateController.GetLatestAuditFindingActionPlanStatusUpdate)
+
+	//Audit Checklist
+	auditRoutes.GET("/audits/:auditId/checklists", auditChecklistController.GetAllAuditChecklists)
+	auditRoutes.GET("/audits/:auditId/checklists/:id", auditChecklistController.GetAuditChecklistDetails)
+	auditRoutes.POST("/audits/:auditId/checklists", auditChecklistController.CreateAuditChecklist)
+	auditRoutes.PUT("/audits/:auditId/checklists/:id", auditChecklistController.UpdateAuditChecklist)
+	auditRoutes.PUT("/audits/:auditId/checklists/:id/answer", auditChecklistController.AuditChecklistAnswer)
+	auditRoutes.POST("audits/:auditId/checklists/delete", auditChecklistController.DeleteAuditChecklists)
+	auditRoutes.POST("/audits/:auditId/checklists/delete-answer", auditChecklistController.DeleteAuditChecklistAnswer)
+
+	//Audit Schedule
+	auditRoutes.GET("/audits/:auditId/schedules", auditScheduleController.GetAllAuditSchedules)
+	auditRoutes.GET("/audits/:auditId/schedules/:id", auditScheduleController.GetAuditScheduleDetails)
+	auditRoutes.POST("/audits/:auditId/schedules", auditScheduleController.CreateAuditSchedule)
+	auditRoutes.PUT("/audits/:auditId/schedules/:id", auditScheduleController.UpdateAuditSchedule)
+	auditRoutes.POST("/audits/:auditId/schedules/delete", auditScheduleController.DeleteAuditSchedules)
+
+	//Audit Auditable items
+	auditRoutes.GET("/audits/:auditId/auditable-items", auditController.GetAllAuditableItems)
 
 }

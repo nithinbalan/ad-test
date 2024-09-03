@@ -12,6 +12,8 @@ import (
 type ComplianceStatusRepositoryInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ComplianceStatus, error)
 	GetByID(id uint) (*models.ComplianceStatus, error)
+
+	GetMaxBaseScore(tx ...utility.DatabaseTransaction) (int, error)
 }
 
 // implementation
@@ -62,4 +64,18 @@ func (repo *ComplianceStatusRepository) GetByID(id uint) (*models.ComplianceStat
 	}
 
 	return status, result.Error
+}
+
+func (repo *ComplianceStatusRepository) GetMaxBaseScore(tx ...utility.DatabaseTransaction) (int, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var maxBaseScore int
+	err := db.Table("compliance_statuses").Select("MAX(base_score)").Scan(&maxBaseScore).Error
+	if err != nil {
+		return 0, err
+	}
+	return maxBaseScore, nil
 }
