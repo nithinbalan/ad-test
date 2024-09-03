@@ -3,6 +3,8 @@
 CREATE TABLE draft_audit_findings (
     id INT PRIMARY KEY IDENTITY(1, 1),
     audit_id INT NOT NULL,
+    title NVARCHAR(255) NOT NULL,
+    description NVARCHAR(MAX) NULL,
     audit_checklist_id INT NULL,
     auditable_item_id INT NULL,
     audit_finding_category_id INT NOT NULL,
