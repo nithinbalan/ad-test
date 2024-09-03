@@ -142,6 +142,8 @@ type AuditAuditableItemListDTO struct {
 	TeamLeadFirstNameAr         string `json:"team_lead_first_name_ar"`
 	TeamLeadLastNameEn          string `json:"team_lead_last_name_en"`
 	TeamLeadLastNameAr          string `json:"team_lead_last_name_ar"`
+	TeamLeadInitial             string `json:"team_lead_initial"`
+	TeamLeadColor               string `json:"team_lead_color"`
 	TeamLeadEmail               string `json:"team_lead_email"`
 	TeamLeadProfileImagePath    string `json:"team_lead_profile_image_path"`
 	AuditStatusTitleEn          string `json:"audit_status_title_en"`
