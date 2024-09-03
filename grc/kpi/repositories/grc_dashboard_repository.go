@@ -17,6 +17,7 @@ type GRCDashboardRepositoryInteface interface {
 
 	GetGRCComplianceOverview(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCComplianceOverviewDTO, error)
 	GetGRCRiskOverview(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCRiskOverviewDTO, error)
+	GetGRCDocumentOverview(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCDocumentOverviewDTO, error)
 
 	GetTopComplianceRegisters(params *kpiDTOs.GRCDashboardListQueryParamsDTO) ([]*kpiDTOs.GRCTopComplianceRegistersDTO, error)
 	GetTopRiskRegisters(params *kpiDTOs.GRCDashboardListQueryParamsDTO) ([]*kpiDTOs.GRCTopRiskRegistersDTO, error)
@@ -387,6 +388,34 @@ func (repo *GRCDashboardRepository) GetGRCRiskOverview(params *kpiDTOs.GRCDashbo
 	summary.RiskCountsByRating = riskCountsByRating
 
 	return summary, nil
+}
+
+func (repo *GRCDashboardRepository) GetGRCDocumentOverview(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCDocumentOverviewDTO, error) {
+	counts := &kpiDTOs.GRCDocumentOverviewDTO{}
+
+	// Base query to fetch document counts
+	documentQuery := repo.db.Model(&models.Document{}).
+		Joins("JOIN document_types ON document_types.id = documents.document_type_id")
+
+	// Apply date filters if provided
+	if params.DateFrom != "" && params.DateTo != "" {
+		documentQuery = documentQuery.Where("documents.created_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
+	}
+
+	// Query to count the total documents and specific types
+	err := documentQuery.Select(`
+			COUNT(*) AS total_documents,
+			SUM(CASE WHEN document_types.type = 'policy' THEN 1 ELSE 0 END) AS policies,
+			SUM(CASE WHEN document_types.type = 'procedure' THEN 1 ELSE 0 END) AS procedures,
+			SUM(CASE WHEN document_types.type = 'others' THEN 1 ELSE 0 END) AS others
+		`).
+		Scan(&counts).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return counts, nil
 }
 
 func (repo *GRCDashboardRepository) GetTopComplianceRegisters(params *kpiDTOs.GRCDashboardListQueryParamsDTO) ([]*kpiDTOs.GRCTopComplianceRegistersDTO, error) {

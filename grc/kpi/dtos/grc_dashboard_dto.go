@@ -38,6 +38,13 @@ type GRCRiskOverviewDTO struct {
 	RiskCountsByRating   map[string]int64 `json:"risk_counts_by_rating"`
 }
 
+type GRCDocumentOverviewDTO struct {
+	TotalDocuments int64 `json:"total_documents"`
+	Policies       int64 `json:"policies"`
+	Procedures     int64 `json:"procedures"`
+	Others         int64 `json:"others"`
+}
+
 type GRCTopComplianceRegistersDTO struct {
 	ID         uint   `json:"id"`
 	TitleEn    string `json:"title_en"`
