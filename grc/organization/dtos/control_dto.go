@@ -158,6 +158,7 @@ type ControlDetailDTO struct {
 	ControlType                 ControlTypeDTO                   `json:"control_type"`
 	ControlCategory             ControlCategoryDTO               `json:"control_category"`
 	OwnerUnit                   settingsDTOs.OrganizationUnitDTO `json:"owner_unit"`
+	OwnerID                     *uint                            `json:"owner_id"`
 	Owner                       *UserMinimalDTO                  `json:"owner"`
 	ControlImplementationStatus *ControlImplementationStatusDTO  `json:"control_implementation_status"`
 	ControlEfficiencyStatus     *ControlEfficiencyStatusDTO      `json:"control_efficiency_status"`
@@ -189,4 +190,12 @@ type ControlReviewDTO struct {
 	ReviewedByUser UserMinimalDTO                `json:"reviewed_by"`
 	UpdatedByUser  *UserMinimalDTO               `json:"updated_by"`
 	Documents      []*commonDTOs.DocumentFormDTO `json:"documents"`
+}
+
+type ControlMailDTO struct {
+	FirstNameEn string `json:"first_name_en"`
+	LastNameEn  string `json:"last_name_en"`
+	Subject     string `json:"subject"`
+	MessageEn   string `json:"message_en"`
+	RedirectURL string `json:"redirect_url"`
 }

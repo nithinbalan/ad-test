@@ -71,6 +71,24 @@ func (repo *AuditChecklistRepository) GetAll(auditId uint, params *auditDTOs.Aud
 			statuses.title_ar AS status_title_ar,
 			statuses.type AS status_type,
 			statuses.color_code AS status_color_code,
+			processes.title_en AS process_title_en,
+			processes.title_ar AS process_title_ar,
+			controls.title_en AS control_title_en,
+			controls.title_ar AS control_title_ar,
+			documents.title_en AS document_title_en,
+			documents.title_ar AS document_title_ar,
+			incident_register.title AS incident_register_title,
+			compliance_requirements.title AS compliance_requirement_title,
+			risk_register.title AS risk_register_title,
+			users.id AS user_id,
+			users.first_name_en AS user_first_name_en,
+			users.first_name_ar AS user_first_name_ar,
+			users.last_name_en AS user_last_name_en,
+			users.last_name_ar AS user_last_name_ar,
+			users.email AS user_email,
+			users.initial AS user_initial,
+			users.color AS user_color,
+			users.profile_image_path AS user_profile_image_path,
 			answered_user.first_name_en AS answered_user_first_name_en,
 			answered_user.first_name_ar AS answered_user_first_name_ar,
 			answered_user.last_name_en AS answered_user_last_name_en,
@@ -99,6 +117,13 @@ func (repo *AuditChecklistRepository) GetAll(auditId uint, params *auditDTOs.Aud
 		Joins(`
 			LEFT JOIN audit_plan_checklists ON audit_plan_checklists.id = audit_checklists.audit_plan_checklist_id
 			LEFT JOIN auditable_items ON auditable_items.id = audit_checklists.auditable_item_id
+			LEFT JOIN processes ON processes.id = auditable_items.process_id
+			LEFT JOIN controls ON controls.id = auditable_items.control_id
+			LEFT JOIN documents ON documents.id = auditable_items.document_id
+			LEFT JOIN incident_register ON incident_register.id = auditable_items.incident_register_id
+			LEFT JOIN compliance_requirements ON compliance_requirements.id = auditable_items.compliance_requirement_id
+			LEFT JOIN risk_register ON risk_register.id = auditable_items.risk_register_id
+			LEFT JOIN users ON users.id = auditable_items.user_id
 			LEFT JOIN statuses ON statuses.id = audit_checklists.status_id
 			LEFT JOIN conformances ON conformances.id = audit_checklists.conformance_id
 			LEFT JOIN users AS answered_user ON answered_user.id = audit_checklists.answered_by_id
@@ -180,6 +205,15 @@ func (repo *AuditChecklistRepository) GetFullDetailsByID(id uint) (*models.Audit
 		Preload("AuditPlanChecklist.AuditPlan").
 		Preload("AuditableItem").
 		Preload("Conformance").
+		Preload("AuditDraftFindings").
+		Preload("AuditDraftFindings.AuditableItem").
+		Preload("AuditDraftFindings.AuditFindingCategory").
+		Preload("AuditDraftFindings.SeverityLevel").
+		Preload("AuditDraftFindings.AuditDraftFindingStatus").
+		Preload("AuditDraftFindings.AuditChecklist").
+		Preload("AuditDraftFindings.CreatedByUser").
+		Preload("AuditDraftFindings.UpdatedByUser").
+		Preload("AuditDraftFindings.Documents").
 		Preload("AnsweredByUser").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").

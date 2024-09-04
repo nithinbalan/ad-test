@@ -15,6 +15,7 @@ type DocumentAuditLogRepositoryInterface interface {
 	GetAll(documentID uint, documentVersionID uint, params *documentDTOs.DocumentAuditLogListQueryParamsDTO) (*documentDTOs.DocumentAuditLogListResponseDTO, error)
 	GetByType(docuemntAuditLog string) (*models.DocumentAuditLogType, error)
 	Create(documentAuditLog *models.DocumentAuditLog, tx ...utility.DatabaseTransaction) error
+	DeleteByDocumentID(documentID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type DocumentAuditLogRepository struct {
@@ -157,4 +158,18 @@ func (repo *DocumentAuditLogRepository) Create(documentAuditLog *models.Document
 		db = tx[0].DB()
 	}
 	return db.Create(documentAuditLog).Error
+}
+
+func (repo *DocumentAuditLogRepository) DeleteByDocumentID(documentID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Perform the delete operation
+	if err := db.Where("document_id = ?", documentID).Delete(&models.DocumentAuditLog{}).Error; err != nil {
+		return err
+	}
+
+	return nil
 }

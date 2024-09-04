@@ -107,7 +107,8 @@ func NewOrganizationModule(
 		controlEfficiencyStatusSvc,
 		userSvc,
 		masterModule.ReviewFrequencySvc,
-		masterModule.LifecycleStatusSvc)
+		masterModule.LifecycleStatusSvc,
+		commonModule.NotificationService)
 	controlController := controllers.NewControlController(controlSvc)
 
 	controlTestRepo := repositories.NewControlTestRepository(db)

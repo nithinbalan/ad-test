@@ -72,6 +72,14 @@ type GRCTopDocumentsDTO struct {
 	DocumentStatusColorCode string `json:"document_status_color_code"`
 }
 
+type GRCDocumentTypeChartDTO struct {
+	Type       string `json:"type"`
+	TitleEn    string `json:"title_en"`
+	TitleAr    string `json:"title_ar"`
+	Percentage int64  `json:"percentage"`
+	Count      int64  `json:"count"`
+}
+
 type GRCDashboardListQueryParamsDTO struct {
 	DateFrom string `json:"date_from"`
 	DateTo   string `json:"date_to"`

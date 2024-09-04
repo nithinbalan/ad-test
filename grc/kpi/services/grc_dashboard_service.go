@@ -19,6 +19,8 @@ type GRCDashboardServiceInterface interface {
 	GetGRCTopCompliances(params *kpiDTOs.GRCDashboardListQueryParamsDTO) ([]*kpiDTOs.GRCTopComplianceRegistersDTO, error)
 	GetGRCTopRisks(params *kpiDTOs.GRCDashboardListQueryParamsDTO) ([]*kpiDTOs.GRCTopRiskRegistersDTO, error)
 	GetGRCTopPublishedDocuments(params *kpiDTOs.GRCDashboardListQueryParamsDTO) ([]*kpiDTOs.GRCTopDocumentsDTO, error)
+
+	GetGRCDocumentTypeChart(params *kpiDTOs.GRCDashboardListQueryParamsDTO) ([]*kpiDTOs.GRCDocumentTypeChartDTO, error)
 }
 
 type GRCDashboardService struct {
@@ -71,4 +73,8 @@ func (gds *GRCDashboardService) GetGRCTopRisks(params *kpiDTOs.GRCDashboardListQ
 
 func (gds *GRCDashboardService) GetGRCTopPublishedDocuments(params *kpiDTOs.GRCDashboardListQueryParamsDTO) ([]*kpiDTOs.GRCTopDocumentsDTO, error) {
 	return gds.repo.GetTopPublishedDocuments(params)
+}
+
+func (gds *GRCDashboardService) GetGRCDocumentTypeChart(params *kpiDTOs.GRCDashboardListQueryParamsDTO) ([]*kpiDTOs.GRCDocumentTypeChartDTO, error) {
+	return gds.repo.GetGRCDocumentTypeChart(params)
 }

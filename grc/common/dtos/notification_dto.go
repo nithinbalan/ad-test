@@ -27,10 +27,18 @@ type EmailNotificationDTO struct {
 type NotificationType string
 
 const (
-	AssignmentType NotificationType = "assignment"
-	SecurityType   NotificationType = "security"
-	ActionType     NotificationType = "action"
-	CompletionType NotificationType = "completion"
-	ReminderType   NotificationType = "reminder"
-	WarningType    NotificationType = "warning"
+	AssignmentType     NotificationType = "assignment"
+	SecurityType       NotificationType = "security"
+	ActionType         NotificationType = "action"
+	DeletionType       NotificationType = "deletion"
+	CompletionType     NotificationType = "completion"
+	ReminderType       NotificationType = "reminder"
+	WarningType        NotificationType = "warning"
+	InformationType    NotificationType = "information"
+	AcknowledgmentType NotificationType = "acknowledgment"
+	EscalationType     NotificationType = "escalation"
+	DeadlineType       NotificationType = "deadline"
+	ApprovalType       NotificationType = "approval"
+	ConfirmationType   NotificationType = "confirmation"
+	ErrorType          NotificationType = "error"
 )
