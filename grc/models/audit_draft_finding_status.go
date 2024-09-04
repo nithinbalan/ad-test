@@ -1,6 +1,6 @@
 package models
 
-type DraftAuditFindingStatus struct {
+type AuditDraftFindingStatus struct {
 	ID         uint   `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	TitleEn    string `json:"title_en" binding:"required,max=45" gorm:"type:nvarchar(45);not null"`
 	TitleAr    string `json:"title_ar" binding:"required,max=45" gorm:"type:nvarchar(45);not null"`
@@ -9,7 +9,7 @@ type DraftAuditFindingStatus struct {
 	IsFinalized bool  `json:"is_finalized" binding:"required" gorm:"type:tinyint(1);not null;default:0"`
 }
 
-// TableName overrides the table name used by DraftAuditFindingStatus to `draft_audit_finding_statuses`
-func (DraftAuditFindingStatus) TableName() string {
-	return "draft_audit_finding_statuses"
+// TableName overrides the table name used by AuditDraftFindingStatus to `audit_draft_finding_statuses`
+func (AuditDraftFindingStatus) TableName() string {
+	return "audit_draft_finding_statuses"
 }

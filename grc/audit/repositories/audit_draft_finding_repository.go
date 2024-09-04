@@ -12,43 +12,43 @@ import (
 	"gorm.io/gorm"
 )
 
-type DraftAuditFindingRepositoryInterface interface {
+type AuditDraftFindingRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(params *auditDTOs.DraftAuditFindingListQueryParamsDTO) (*auditDTOs.DraftAuditFindingListResponseDTO, error)
-	GetByID(id uint) (*models.DraftAuditFinding, error)
-	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.DraftAuditFinding, error)
-	Create(auditFinding *models.DraftAuditFinding, tx ...utility.DatabaseTransaction) (uint, error)
-	Update(auditFinding *models.DraftAuditFinding, tx ...utility.DatabaseTransaction) error
+	GetAll(params *auditDTOs.AuditDraftFindingListQueryParamsDTO) (*auditDTOs.AuditDraftFindingListResponseDTO, error)
+	GetByID(id uint) (*models.AuditDraftFinding, error)
+	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.AuditDraftFinding, error)
+	Create(auditFinding *models.AuditDraftFinding, tx ...utility.DatabaseTransaction) (uint, error)
+	Update(auditFinding *models.AuditDraftFinding, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	GenerateReferenceNumber() (string, error)
 
-	CreateDocuments(docs []*models.DraftAuditFindingDocument, tx ...utility.DatabaseTransaction) error
+	CreateDocuments(docs []*models.AuditDraftFindingDocument, tx ...utility.DatabaseTransaction) error
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
-	GetDocumentByID(id uint) (*models.DraftAuditFindingDocument, error)
+	GetDocumentByID(id uint) (*models.AuditDraftFindingDocument, error)
 }
 
-type DraftAuditFindingRepository struct {
+type AuditDraftFindingRepository struct {
 	db *gorm.DB
 }
 
-func NewDraftAuditFindingRepository(db *gorm.DB) *DraftAuditFindingRepository {
-	return &DraftAuditFindingRepository{
+func NewAuditDraftFindingRepository(db *gorm.DB) *AuditDraftFindingRepository {
+	return &AuditDraftFindingRepository{
 		db: db,
 	}
 }
 
 // BeginTransaction starts a new transaction.
-func (repo *DraftAuditFindingRepository) BeginTransaction() utility.DatabaseTransaction {
+func (repo *AuditDraftFindingRepository) BeginTransaction() utility.DatabaseTransaction {
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *DraftAuditFindingRepository) GetAll(params *auditDTOs.DraftAuditFindingListQueryParamsDTO) (*auditDTOs.DraftAuditFindingListResponseDTO, error) {
-	var auditFindings []*auditDTOs.DraftAuditFindingListDTO
+func (repo *AuditDraftFindingRepository) GetAll(params *auditDTOs.AuditDraftFindingListQueryParamsDTO) (*auditDTOs.AuditDraftFindingListResponseDTO, error) {
+	var auditFindings []*auditDTOs.AuditDraftFindingListDTO
 	var totalCount int64
 
-	query := repo.db.Table("draft_audit_findings").
+	query := repo.db.Table("audit_draft_findings").
 		Select(`
-			draft_audit_findings.*,
+			audit_draft_findings.*,
 			audits.id AS audit_id,
 			audit_plans.title AS audit_title,
 			auditable_items.title_en AS auditable_item_title_en,
@@ -58,9 +58,9 @@ func (repo *DraftAuditFindingRepository) GetAll(params *auditDTOs.DraftAuditFind
 			severity_levels.title_en AS severity_level_title_en,
 			severity_levels.title_ar AS severity_level_title_ar,
 			severity_levels.color_code AS severity_level_color_code,
-			draft_audit_finding_statuses.title_en AS draft_audit_finding_status_title_en,
-			draft_audit_finding_statuses.title_ar AS draft_audit_finding_status_title_ar,
-			draft_audit_finding_statuses.color_code AS draft_audit_finding_status_color_code,
+			audit_draft_finding_statuses.title_en AS audit_draft_finding_status_title_en,
+			audit_draft_finding_statuses.title_ar AS audit_draft_finding_status_title_ar,
+			audit_draft_finding_statuses.color_code AS audit_draft_finding_status_color_code,
 			created_user.id AS created_user_id,
         	created_user.first_name_en AS created_user_first_name_en,
         	created_user.first_name_ar AS created_user_first_name_ar,
@@ -81,14 +81,14 @@ func (repo *DraftAuditFindingRepository) GetAll(params *auditDTOs.DraftAuditFind
         	updated_user.profile_image_path AS updated_user_profile_image_path
 		`).
 		Joins(`
-			LEFT JOIN audits ON audits.id = draft_audit_findings.audit_id
+			LEFT JOIN audits ON audits.id = audit_draft_findings.audit_id
 			LEFT JOIN audit_plans ON audit_plans.id = audits.audit_plan_id
-			LEFT JOIN auditable_items ON auditable_items.id = draft_audit_findings.auditable_item_id
-			LEFT JOIN audit_finding_categories ON audit_finding_categories.id = draft_audit_findings.audit_finding_category_id
-			LEFT JOIN severity_levels ON severity_levels.id = draft_audit_findings.severity_level_id
-			LEFT JOIN draft_audit_finding_statuses ON draft_audit_finding_statuses.id = draft_audit_findings.draft_audit_finding_status_id
-			LEFT JOIN users AS created_user ON created_user.id = draft_audit_findings.created_by_id
-			LEFT JOIN users AS updated_user ON updated_user.id = draft_audit_findings.updated_by_id
+			LEFT JOIN auditable_items ON auditable_items.id = audit_draft_findings.auditable_item_id
+			LEFT JOIN audit_finding_categories ON audit_finding_categories.id = audit_draft_findings.audit_finding_category_id
+			LEFT JOIN severity_levels ON severity_levels.id = audit_draft_findings.severity_level_id
+			LEFT JOIN audit_draft_finding_statuses ON audit_draft_finding_statuses.id = audit_draft_findings.audit_draft_finding_status_id
+			LEFT JOIN users AS created_user ON created_user.id = audit_draft_findings.created_by_id
+			LEFT JOIN users AS updated_user ON updated_user.id = audit_draft_findings.updated_by_id
 		`)
 
 	// Apply dynamic filters to the query
@@ -110,15 +110,16 @@ func (repo *DraftAuditFindingRepository) GetAll(params *auditDTOs.DraftAuditFind
 			(auditable_items.title_en LIKE ? OR
 			audit_finding_categories.title_en LIKE ? OR
 			severity_levels.title_en LIKE ? OR
-			draft_audit_finding_statuses.title_en LIKE ? OR
+			audit_draft_finding_statuses.title_en LIKE ? OR
+			audit_draft_finding_statuses.title_ar LIKE ? OR
 			created_user.first_name_en LIKE ? OR
 			updated_user.first_name_en LIKE ?)`,
-			keyword, keyword, keyword, keyword, keyword, keyword)
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
 	// Sort by the specified column and order
 	if params.SortBy == "" {
-		params.SortBy = "draft_audit_findings.created_at" // Default sort by created_at if no sortBy is specified
+		params.SortBy = "audit_draft_findings.created_at" // Default sort by created_at if no sortBy is specified
 	}
 	if params.Sort != "asc" && params.Sort != "desc" {
 		params.Sort = "asc" // Default order is ascending if not specified
@@ -136,7 +137,7 @@ func (repo *DraftAuditFindingRepository) GetAll(params *auditDTOs.DraftAuditFind
 
 	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
 
-	response := &auditDTOs.DraftAuditFindingListResponseDTO{
+	response := &auditDTOs.AuditDraftFindingListResponseDTO{
 		Items: auditFindings,
 		Pagination: commonDTOs.PaginationInfoDTO{
 			CurrentPage: params.Page,
@@ -148,8 +149,8 @@ func (repo *DraftAuditFindingRepository) GetAll(params *auditDTOs.DraftAuditFind
 	return response, nil
 }
 
-func (repo *DraftAuditFindingRepository) GetByID(id uint) (*models.DraftAuditFinding, error) {
-	var auditFinding *models.DraftAuditFinding
+func (repo *AuditDraftFindingRepository) GetByID(id uint) (*models.AuditDraftFinding, error) {
+	var auditFinding *models.AuditDraftFinding
 
 	result := repo.db.First(&auditFinding, id)
 	if result.Error != nil {
@@ -159,18 +160,18 @@ func (repo *DraftAuditFindingRepository) GetByID(id uint) (*models.DraftAuditFin
 	return auditFinding, nil
 }
 
-func (repo *DraftAuditFindingRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.DraftAuditFinding, error) {
+func (repo *AuditDraftFindingRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.AuditDraftFinding, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	var auditFinding *models.DraftAuditFinding
+	var auditFinding *models.AuditDraftFinding
 
 	result := db.
 		Preload("AuditableItem").
 		Preload("AuditFindingCategory").
 		Preload("SeverityLevel").
-		Preload("DraftAuditFindingStatus").
+		Preload("AuditDraftFindingStatus").
 		Preload("AuditChecklist").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
@@ -184,7 +185,7 @@ func (repo *DraftAuditFindingRepository) GetFullDetailsByID(id uint, tx ...utili
 	return auditFinding, nil
 }
 
-func (repo *DraftAuditFindingRepository) Create(auditFinding *models.DraftAuditFinding, tx ...utility.DatabaseTransaction) (uint, error) {
+func (repo *AuditDraftFindingRepository) Create(auditFinding *models.AuditDraftFinding, tx ...utility.DatabaseTransaction) (uint, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -196,7 +197,7 @@ func (repo *DraftAuditFindingRepository) Create(auditFinding *models.DraftAuditF
 	return auditFinding.ID, nil
 }
 
-func (repo *DraftAuditFindingRepository) Update(auditFinding *models.DraftAuditFinding, tx ...utility.DatabaseTransaction) error {
+func (repo *AuditDraftFindingRepository) Update(auditFinding *models.AuditDraftFinding, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -208,22 +209,22 @@ func (repo *DraftAuditFindingRepository) Update(auditFinding *models.DraftAuditF
 	return nil
 }
 
-func (repo *DraftAuditFindingRepository) Delete(id uint, tx ...utility.DatabaseTransaction) error {
+func (repo *AuditDraftFindingRepository) Delete(id uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	// Delete the DraftAuditFinding
-	if err := db.Delete(&models.DraftAuditFinding{}, id).Error; err != nil {
+	// Delete the AuditDraftFinding
+	if err := db.Delete(&models.AuditDraftFinding{}, id).Error; err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (repo *DraftAuditFindingRepository) GenerateReferenceNumber() (string, error) {
+func (repo *AuditDraftFindingRepository) GenerateReferenceNumber() (string, error) {
 	var lastReferenceNumber string
-	err := repo.db.Model(&models.DraftAuditFinding{}).
+	err := repo.db.Model(&models.AuditDraftFinding{}).
 		Select("reference_number").
 		Order("reference_number desc").
 		Limit(1).
@@ -250,7 +251,7 @@ func (repo *DraftAuditFindingRepository) GenerateReferenceNumber() (string, erro
 
 }
 
-func (repo *DraftAuditFindingRepository) CreateDocuments(docs []*models.DraftAuditFindingDocument, tx ...utility.DatabaseTransaction) error {
+func (repo *AuditDraftFindingRepository) CreateDocuments(docs []*models.AuditDraftFindingDocument, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -262,22 +263,22 @@ func (repo *DraftAuditFindingRepository) CreateDocuments(docs []*models.DraftAud
 	return nil
 }
 
-func (repo *DraftAuditFindingRepository) DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error {
+func (repo *AuditDraftFindingRepository) DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
 
 	// Delete documents by IDs
-	if err := db.Where("id IN (?)", docIds).Delete(&models.DraftAuditFindingDocument{}).Error; err != nil {
+	if err := db.Where("id IN (?)", docIds).Delete(&models.AuditDraftFindingDocument{}).Error; err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (repo *DraftAuditFindingRepository) GetDocumentByID(id uint) (*models.DraftAuditFindingDocument, error) {
-	var document models.DraftAuditFindingDocument
+func (repo *AuditDraftFindingRepository) GetDocumentByID(id uint) (*models.AuditDraftFindingDocument, error) {
+	var document models.AuditDraftFindingDocument
 	if err := repo.db.Where("id = ?", id).First(&document).Error; err != nil {
 		return nil, err
 	}

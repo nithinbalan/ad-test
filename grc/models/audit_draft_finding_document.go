@@ -4,9 +4,9 @@ import (
 	"time"
 )
 
-type DraftAuditFindingDocument struct {
+type AuditDraftFindingDocument struct {
 	ID                  uint      `json:"id" gorm:"primary_key;auto_increment"`
-	DraftAuditFindingID uint      `json:"draft_audit_finding_id"`
+	AuditDraftFindingID uint      `json:"audit_draft_finding_id"`
 	URL                 string    `json:"url"`
 	Name                string    `json:"name" binding:"required"`
 	Size                int       `json:"size"`
@@ -19,11 +19,11 @@ type DraftAuditFindingDocument struct {
 	UpdatedAt           time.Time `json:"updated_at" gorm:"type:datetime;not null"`
 
 	// Relationships
-	DraftAuditFinding *DraftAuditFinding `gorm:"foreignKey:DraftAuditFindingID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	AuditDraftFinding *AuditDraftFinding `gorm:"foreignKey:AuditDraftFindingID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	CreatedByUser     *User              `gorm:"foreignKey:CreatedBYID"`
 	UpdatedByUser     *User              `gorm:"foreignKey:UpdatedBYID"`
 }
 
-func (DraftAuditFindingDocument) TableName() string {
-	return "draft_audit_finding_documents"
+func (AuditDraftFindingDocument) TableName() string {
+	return "audit_draft_finding_documents"
 }

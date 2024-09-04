@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-type DraftAuditFinding struct {
+type AuditDraftFinding struct {
 	ID                        uint       `json:"id" gorm:"primaryKey;AUTO_INCREMENT"`
 	AuditID                   uint       `json:"audit_id" gorm:"not null"`
 	Title                     string     `json:"title" binding:"required,max=255" gorm:"type:nvarchar(255);not null"`
@@ -14,7 +14,7 @@ type DraftAuditFinding struct {
 	AuditFindingCategoryID    uint       `json:"audit_finding_category_id" gorm:"not null"`
 	SeverityLevelID           *uint      `json:"severity_level_id" gorm:"default:null"`
 	Recommendations           *string    `json:"recommendations" gorm:"type:nvarchar(MAX);default:null"`
-	DraftAuditFindingStatusID uint       `json:"draft_audit_finding_status_id" gorm:"not null"`
+	AuditDraftFindingStatusID uint       `json:"audit_draft_finding_status_id" gorm:"not null"`
 	CreatedAt                 time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt                 *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 	CreatedBYID               uint       `json:"created_by_id" gorm:"not null"`
@@ -26,13 +26,13 @@ type DraftAuditFinding struct {
 	AuditableItem           *AuditableItem               `gorm:"foreignKey:AuditableItemID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
 	AuditFindingCategory    *AuditFindingCategory        `gorm:"foreignKey:AuditFindingCategoryID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
 	SeverityLevel           *SeverityLevel               `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
-	DraftAuditFindingStatus *DraftAuditFindingStatus     `gorm:"foreignKey:DraftAuditFindingStatusID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
-	Documents               []*DraftAuditFindingDocument `gorm:"foreignKey:DraftAuditFindingID"`
+	AuditDraftFindingStatus *AuditDraftFindingStatus     `gorm:"foreignKey:AuditDraftFindingStatusID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
+	Documents               []*AuditDraftFindingDocument `gorm:"foreignKey:AuditDraftFindingID"`
 	CreatedByUser           *User                        `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
 	UpdatedByUser           *User                        `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
 }
 
-// TableName overrides the table name used by DraftAuditFinding to `draft_audit_findings`
-func (DraftAuditFinding) TableName() string {
-	return "draft_audit_findings"
+// TableName overrides the table name used by AuditDraftFinding to `audit_draft_findings`
+func (AuditDraftFinding) TableName() string {
+	return "audit_draft_findings"
 }

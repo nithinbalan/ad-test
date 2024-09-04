@@ -12,18 +12,18 @@ import (
 	"gorm.io/gorm"
 )
 
-type DraftAuditFindingController struct {
-	service services.DraftAuditFindingServiceInterface
+type AuditDraftFindingController struct {
+	service services.AuditDraftFindingServiceInterface
 	db      *gorm.DB
 }
 
-func NewDraftAuditFindingController(service services.DraftAuditFindingServiceInterface) *DraftAuditFindingController {
-	return &DraftAuditFindingController{
+func NewAuditDraftFindingController(service services.AuditDraftFindingServiceInterface) *AuditDraftFindingController {
+	return &AuditDraftFindingController{
 		service: service,
 	}
 }
 
-func (dafc *DraftAuditFindingController) GetAllDraftAuditFindings(c *gin.Context) {
+func (adfc *AuditDraftFindingController) GetAllAuditDraftFindings(c *gin.Context) {
 
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
@@ -44,17 +44,17 @@ func (dafc *DraftAuditFindingController) GetAllDraftAuditFindings(c *gin.Context
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
-		utility.SendInternalErrResp(dafc.db, c, "Invalid page parameter")
+		utility.SendInternalErrResp(adfc.db, c, "Invalid page parameter")
 		return
 	}
 
 	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
 	if err != nil {
-		utility.SendInternalErrResp(dafc.db, c, "Invalid page_size parameter")
+		utility.SendInternalErrResp(adfc.db, c, "Invalid page_size parameter")
 		return
 	}
 
-	queryParams := auditDTOs.DraftAuditFindingListQueryParamsDTO{
+	queryParams := auditDTOs.AuditDraftFindingListQueryParamsDTO{
 		Sort:        sort,
 		SortBy:      sortBy,
 		Keyword:     keyword,
@@ -65,15 +65,15 @@ func (dafc *DraftAuditFindingController) GetAllDraftAuditFindings(c *gin.Context
 		QuickFilter: quickFilter,
 	}
 
-	draftAuditFindings, err := dafc.service.GetAll(&queryParams)
+	auditDraftFindings, err := adfc.service.GetAll(&queryParams)
 	if err != nil {
-		utility.SendInternalErrResp(dafc.db, c, err.Error())
+		utility.SendInternalErrResp(adfc.db, c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, draftAuditFindings)
+	c.JSON(http.StatusOK, auditDraftFindings)
 }
 
-func (dafc *DraftAuditFindingController) GetDraftAuditFindingDetails(c *gin.Context) {
+func (adfc *AuditDraftFindingController) GetAuditDraftFindingDetails(c *gin.Context) {
 
 	idStr := c.Param("findingId")
 
@@ -83,35 +83,35 @@ func (dafc *DraftAuditFindingController) GetDraftAuditFindingDetails(c *gin.Cont
 		return
 	}
 
-	draftAuditFinding, err := dafc.service.GetFullDetailsByID(uint(id))
+	auditDraftFinding, err := adfc.service.GetFullDetailsByID(uint(id))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 			return
 		default:
-			utility.SendInternalErrResp(dafc.db, c, e.Error())
+			utility.SendInternalErrResp(adfc.db, c, e.Error())
 			return
 		}
 	}
-	c.JSON(http.StatusOK, draftAuditFinding)
+	c.JSON(http.StatusOK, auditDraftFinding)
 }
 
-func (dafc *DraftAuditFindingController) CreateDraftAuditFinding(c *gin.Context) {
-	var draftAuditFindingFormDTO auditDTOs.DraftAuditFindingFormDTO
+func (adfc *AuditDraftFindingController) CreateAuditDraftFinding(c *gin.Context) {
+	var auditDraftFindingFormDTO auditDTOs.AuditDraftFindingFormDTO
 
-	if err := c.ShouldBindJSON(&draftAuditFindingFormDTO); err != nil {
+	if err := c.ShouldBindJSON(&auditDraftFindingFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(dafc.db, c, err.Error())
+		utility.SendInternalErrResp(adfc.db, c, err.Error())
 		return
 	}
 
-	id, err := dafc.service.Create(currentUserID, &draftAuditFindingFormDTO)
+	id, err := adfc.service.Create(currentUserID, &auditDraftFindingFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -121,7 +121,7 @@ func (dafc *DraftAuditFindingController) CreateDraftAuditFinding(c *gin.Context)
 			utility.SendInvalidErrResp(c, e)
 			return
 		default:
-			utility.SendInternalErrResp(dafc.db, c, e.Error())
+			utility.SendInternalErrResp(adfc.db, c, e.Error())
 			return
 		}
 	}
@@ -129,8 +129,8 @@ func (dafc *DraftAuditFindingController) CreateDraftAuditFinding(c *gin.Context)
 	c.JSON(http.StatusCreated, commonDTOs.IDResponse{ID: id})
 }
 
-func (dafc *DraftAuditFindingController) UpdateDraftAuditFinding(c *gin.Context) {
-	var draftAuditFindingFormDTO auditDTOs.DraftAuditFindingFormDTO
+func (adfc *AuditDraftFindingController) UpdateAuditDraftFinding(c *gin.Context) {
+	var auditDraftFindingFormDTO auditDTOs.AuditDraftFindingFormDTO
 
 	id, err := strconv.Atoi(c.Param("findingId"))
 	if err != nil {
@@ -138,18 +138,18 @@ func (dafc *DraftAuditFindingController) UpdateDraftAuditFinding(c *gin.Context)
 		return
 	}
 
-	if err := c.ShouldBindJSON(&draftAuditFindingFormDTO); err != nil {
+	if err := c.ShouldBindJSON(&auditDraftFindingFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(dafc.db, c, err.Error())
+		utility.SendInternalErrResp(adfc.db, c, err.Error())
 		return
 	}
 
-	err = dafc.service.Update(uint(id), currentUserID, &draftAuditFindingFormDTO)
+	err = adfc.service.Update(uint(id), currentUserID, &auditDraftFindingFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -159,7 +159,7 @@ func (dafc *DraftAuditFindingController) UpdateDraftAuditFinding(c *gin.Context)
 			utility.SendInvalidErrResp(c, e)
 			return
 		default:
-			utility.SendInternalErrResp(dafc.db, c, e.Error())
+			utility.SendInternalErrResp(adfc.db, c, e.Error())
 			return
 		}
 	}
@@ -167,7 +167,7 @@ func (dafc *DraftAuditFindingController) UpdateDraftAuditFinding(c *gin.Context)
 	c.Status(http.StatusOK)
 }
 
-func (dafc *DraftAuditFindingController) DeleteDraftAuditFindings(c *gin.Context) {
+func (adfc *AuditDraftFindingController) DeleteAuditDraftFindings(c *gin.Context) {
 	var request struct {
 		IDs []uint `json:"ids"`
 	}
@@ -179,13 +179,13 @@ func (dafc *DraftAuditFindingController) DeleteDraftAuditFindings(c *gin.Context
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(dafc.db, c, err.Error())
+		utility.SendInternalErrResp(adfc.db, c, err.Error())
 		return
 	}
 
-	failedIDs, err := dafc.service.Delete(request.IDs, currentUserID)
+	failedIDs, err := adfc.service.Delete(request.IDs, currentUserID)
 	if err != nil {
-		utility.SendInternalErrResp(dafc.db, c, err.Error())
+		utility.SendInternalErrResp(adfc.db, c, err.Error())
 		return
 	}
 

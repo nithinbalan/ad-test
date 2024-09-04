@@ -17,20 +17,20 @@ import (
 	"gorm.io/gorm"
 )
 
-type DraftAuditFindingServiceInterface interface {
-	GetAll(params *auditDTOs.DraftAuditFindingListQueryParamsDTO) (*auditDTOs.DraftAuditFindingListResponseDTO, error)
-	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*auditDTOs.DraftAuditFindingDetailDTO, error)
-	GetByID(id uint) (*models.DraftAuditFinding, error)
-	Create(currentUserID uint, draftAuditFindingFormDTO *auditDTOs.DraftAuditFindingFormDTO) (uint, error)
-	Update(id uint, currentUserID uint, draftAuditFindingFormDTO *auditDTOs.DraftAuditFindingFormDTO) error
+type AuditDraftFindingServiceInterface interface {
+	GetAll(params *auditDTOs.AuditDraftFindingListQueryParamsDTO) (*auditDTOs.AuditDraftFindingListResponseDTO, error)
+	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditDraftFindingDetailDTO, error)
+	GetByID(id uint) (*models.AuditDraftFinding, error)
+	Create(currentUserID uint, auditDraftFindingFormDTO *auditDTOs.AuditDraftFindingFormDTO) (uint, error)
+	Update(id uint, currentUserID uint, auditDraftFindingFormDTO *auditDTOs.AuditDraftFindingFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 }
 
-type DraftAuditFindingService struct {
-	repo                       repositories.DraftAuditFindingRepositoryInterface
+type AuditDraftFindingService struct {
+	repo                       repositories.AuditDraftFindingRepositoryInterface
 	activityLogSvc             logServices.ActivityLogServiceInterface
 	auditSvc                   AuditServiceInterface
-	draftAuditFindingStatusSvc DraftAuditFindingStatusServiceInterface
+	auditDraftFindingStatusSvc AuditDraftFindingStatusServiceInterface
 	auditTimelineSvc           AuditTimelineServiceInterface
 	auditableItemSvc           AuditableItemServiceInterface
 	auditFindingCategorySvc    AuditFindingCategoryServiceInterface
@@ -38,22 +38,22 @@ type DraftAuditFindingService struct {
 	auditChecklistSvc          AuditChecklistServiceInterface
 }
 
-func NewDraftAuditFindingService(
-	repo repositories.DraftAuditFindingRepositoryInterface,
+func NewAuditDraftFindingService(
+	repo repositories.AuditDraftFindingRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	auditSvc AuditServiceInterface,
-	draftAuditFindingStatusSvc DraftAuditFindingStatusServiceInterface,
+	auditDraftFindingStatusSvc AuditDraftFindingStatusServiceInterface,
 	auditTimelineSvc AuditTimelineServiceInterface,
 	auditableItemSvc AuditableItemServiceInterface,
 	auditFindingCategorySvc AuditFindingCategoryServiceInterface,
 	severityLevelSvc masterServices.SeverityLevelServiceInterface,
 	auditChecklistSvc AuditChecklistServiceInterface,
-) DraftAuditFindingServiceInterface {
-	return &DraftAuditFindingService{
+) AuditDraftFindingServiceInterface {
+	return &AuditDraftFindingService{
 		repo:                       repo,
 		activityLogSvc:             activityLogSvc,
 		auditSvc:                   auditSvc,
-		draftAuditFindingStatusSvc: draftAuditFindingStatusSvc,
+		auditDraftFindingStatusSvc: auditDraftFindingStatusSvc,
 		auditTimelineSvc:           auditTimelineSvc,
 		auditableItemSvc:           auditableItemSvc,
 		auditFindingCategorySvc:    auditFindingCategorySvc,
@@ -62,26 +62,26 @@ func NewDraftAuditFindingService(
 	}
 }
 
-func (dafs *DraftAuditFindingService) GetAll(params *auditDTOs.DraftAuditFindingListQueryParamsDTO) (*auditDTOs.DraftAuditFindingListResponseDTO, error) {
+func (adfs *AuditDraftFindingService) GetAll(params *auditDTOs.AuditDraftFindingListQueryParamsDTO) (*auditDTOs.AuditDraftFindingListResponseDTO, error) {
 
-	return dafs.repo.GetAll(params)
+	return adfs.repo.GetAll(params)
 }
 
-func (dafs *DraftAuditFindingService) GetByID(id uint) (*models.DraftAuditFinding, error) {
-	draftAuditFinding, err := dafs.repo.GetByID(id)
+func (adfs *AuditDraftFindingService) GetByID(id uint) (*models.AuditDraftFinding, error) {
+	auditDraftFinding, err := adfs.repo.GetByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
 		}
 		return nil, err
 	}
-	return draftAuditFinding, nil
+	return auditDraftFinding, nil
 }
 
-func (dafs *DraftAuditFindingService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*auditDTOs.DraftAuditFindingDetailDTO, error) {
-	var draftAuditFindingDTO auditDTOs.DraftAuditFindingDetailDTO
+func (adfs *AuditDraftFindingService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditDraftFindingDetailDTO, error) {
+	var auditDraftFindingDTO auditDTOs.AuditDraftFindingDetailDTO
 
-	draftAuditFinding, err := dafs.repo.GetFullDetailsByID(id, tx...)
+	auditDraftFinding, err := adfs.repo.GetFullDetailsByID(id, tx...)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -89,53 +89,53 @@ func (dafs *DraftAuditFindingService) GetFullDetailsByID(id uint, tx ...utility.
 		return nil, err
 	}
 
-	err = mapstructure.Decode(draftAuditFinding, &draftAuditFindingDTO)
+	err = mapstructure.Decode(auditDraftFinding, &auditDraftFindingDTO)
 	if err != nil {
 		return nil, err
 	}
 
-	draftAuditFindingDTO.CreatedAt = draftAuditFinding.CreatedAt
-	draftAuditFindingDTO.UpdatedAt = draftAuditFinding.UpdatedAt
+	auditDraftFindingDTO.CreatedAt = auditDraftFinding.CreatedAt
+	auditDraftFindingDTO.UpdatedAt = auditDraftFinding.UpdatedAt
 
-	return &draftAuditFindingDTO, nil
+	return &auditDraftFindingDTO, nil
 }
 
-func (dafs *DraftAuditFindingService) Create(currentUserID uint, draftAuditFindingFormDTO *auditDTOs.DraftAuditFindingFormDTO) (uint, error) {
-	tx := dafs.repo.BeginTransaction()
+func (adfs *AuditDraftFindingService) Create(currentUserID uint, auditDraftFindingFormDTO *auditDTOs.AuditDraftFindingFormDTO) (uint, error) {
+	tx := adfs.repo.BeginTransaction()
 
-	if err := dafs.validateDraftAuditFindingFormDTO(draftAuditFindingFormDTO); err != nil {
+	if err := adfs.validateAuditDraftFindingFormDTO(auditDraftFindingFormDTO); err != nil {
 		tx.Rollback()
 		return 0, err
 	}
 
-	draftAuditFindingStatus, err := dafs.draftAuditFindingStatusSvc.GetByType("open")
+	auditDraftFindingStatus, err := adfs.auditDraftFindingStatusSvc.GetByType("open")
 	if err != nil {
 		return 0, err
 	}
 
-	draftAuditFinding := &models.DraftAuditFinding{
-		Title:                     draftAuditFindingFormDTO.Title,
-		Description:               draftAuditFindingFormDTO.Description,
-		AuditID:                   draftAuditFindingFormDTO.AuditID,
-		AuditableItemID:           draftAuditFindingFormDTO.AuditableItemID,
-		AuditChecklistID:          draftAuditFindingFormDTO.AuditChecklistID,
-		AuditFindingCategoryID:    draftAuditFindingFormDTO.AuditFindingCategoryID,
-		SeverityLevelID:           &draftAuditFindingFormDTO.SeverityLevelID,
-		Recommendations:           draftAuditFindingFormDTO.Recommendations,
-		DraftAuditFindingStatusID: draftAuditFindingStatus.ID,
+	auditDraftFinding := &models.AuditDraftFinding{
+		Title:                     auditDraftFindingFormDTO.Title,
+		Description:               auditDraftFindingFormDTO.Description,
+		AuditID:                   auditDraftFindingFormDTO.AuditID,
+		AuditableItemID:           auditDraftFindingFormDTO.AuditableItemID,
+		AuditChecklistID:          auditDraftFindingFormDTO.AuditChecklistID,
+		AuditFindingCategoryID:    auditDraftFindingFormDTO.AuditFindingCategoryID,
+		SeverityLevelID:           &auditDraftFindingFormDTO.SeverityLevelID,
+		Recommendations:           auditDraftFindingFormDTO.Recommendations,
+		AuditDraftFindingStatusID: auditDraftFindingStatus.ID,
 		CreatedBYID:               currentUserID,
 	}
 
-	id, err := dafs.repo.Create(draftAuditFinding, tx)
+	id, err := adfs.repo.Create(auditDraftFinding, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
 	}
 
-	var documents []*models.DraftAuditFindingDocument
+	var documents []*models.AuditDraftFindingDocument
 
 	// Iterate over each document in the array
-	for _, doc := range draftAuditFindingFormDTO.Documents {
+	for _, doc := range auditDraftFindingFormDTO.Documents {
 
 		// Encrypt the filename
 		dataToEncrypt := []byte(doc.FileName)
@@ -149,8 +149,8 @@ func (dafs *DraftAuditFindingService) Create(currentUserID uint, draftAuditFindi
 		url := utility.GenerateDocumentURL("audit", "draft-audit-findings", strconv.FormatUint(uint64(id), 10), "documents")
 
 		// Create a new IncidentDocument instance
-		document := &models.DraftAuditFindingDocument{
-			DraftAuditFindingID: id,
+		document := &models.AuditDraftFindingDocument{
+			AuditDraftFindingID: id,
 			URL:                 url,
 			Name:                doc.FileName,
 			Size:                doc.Size,
@@ -165,7 +165,7 @@ func (dafs *DraftAuditFindingService) Create(currentUserID uint, draftAuditFindi
 	}
 	if len(documents) > 0 {
 		// Save the IncidentDocument
-		if err := dafs.repo.CreateDocuments(documents, tx); err != nil {
+		if err := adfs.repo.CreateDocuments(documents, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
@@ -181,11 +181,11 @@ func (dafs *DraftAuditFindingService) Create(currentUserID uint, draftAuditFindi
 	tx.Commit()
 
 	go func() {
-		err := dafs.activityLogSvc.LogActivity(
+		err := adfs.activityLogSvc.LogActivity(
 			models.CreateAction,
-			models.DraftAuditFinding{}.TableName(),
+			models.AuditDraftFinding{}.TableName(),
 			id,
-			draftAuditFindingFormDTO,
+			auditDraftFindingFormDTO,
 			currentUserID,
 			nil,
 		)
@@ -193,7 +193,7 @@ func (dafs *DraftAuditFindingService) Create(currentUserID uint, draftAuditFindi
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
-				"tableName": models.DraftAuditFinding{}.TableName(),
+				"tableName": models.AuditDraftFinding{}.TableName(),
 				"recordID":  id,
 				"userID":    currentUserID,
 				"error":     err.Error(),
@@ -206,42 +206,42 @@ func (dafs *DraftAuditFindingService) Create(currentUserID uint, draftAuditFindi
 	return id, nil
 }
 
-func (dafs *DraftAuditFindingService) Update(id uint, currentUserID uint, draftAuditFindingFormDTO *auditDTOs.DraftAuditFindingFormDTO) error {
-	tx := dafs.repo.BeginTransaction()
+func (adfs *AuditDraftFindingService) Update(id uint, currentUserID uint, auditDraftFindingFormDTO *auditDTOs.AuditDraftFindingFormDTO) error {
+	tx := adfs.repo.BeginTransaction()
 
-	existingDraftAuditFinding, err := dafs.repo.GetByID(id)
+	existingAuditDraftFinding, err := adfs.repo.GetByID(id)
 	if err != nil {
 		tx.Rollback()
 		return utility.NewResourceNotFoundError(err, id)
 	}
 
-	if err := dafs.validateDraftAuditFindingFormDTO(draftAuditFindingFormDTO); err != nil {
+	if err := adfs.validateAuditDraftFindingFormDTO(auditDraftFindingFormDTO); err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	existingDraftAuditFinding.AuditableItemID = draftAuditFindingFormDTO.AuditableItemID
-	existingDraftAuditFinding.Title = draftAuditFindingFormDTO.Title
-	existingDraftAuditFinding.Description = draftAuditFindingFormDTO.Description
-	existingDraftAuditFinding.AuditFindingCategoryID = draftAuditFindingFormDTO.AuditFindingCategoryID
-	existingDraftAuditFinding.AuditChecklistID = draftAuditFindingFormDTO.AuditChecklistID
-	existingDraftAuditFinding.SeverityLevelID = &draftAuditFindingFormDTO.SeverityLevelID
-	existingDraftAuditFinding.Recommendations = draftAuditFindingFormDTO.Recommendations
-	existingDraftAuditFinding.UpdatedBYID = &currentUserID
+	existingAuditDraftFinding.AuditableItemID = auditDraftFindingFormDTO.AuditableItemID
+	existingAuditDraftFinding.Title = auditDraftFindingFormDTO.Title
+	existingAuditDraftFinding.Description = auditDraftFindingFormDTO.Description
+	existingAuditDraftFinding.AuditFindingCategoryID = auditDraftFindingFormDTO.AuditFindingCategoryID
+	existingAuditDraftFinding.AuditChecklistID = auditDraftFindingFormDTO.AuditChecklistID
+	existingAuditDraftFinding.SeverityLevelID = &auditDraftFindingFormDTO.SeverityLevelID
+	existingAuditDraftFinding.Recommendations = auditDraftFindingFormDTO.Recommendations
+	existingAuditDraftFinding.UpdatedBYID = &currentUserID
 
-	err = dafs.repo.Update(existingDraftAuditFinding, tx)
+	err = adfs.repo.Update(existingAuditDraftFinding, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
 	//documents update
-	var documents []*models.DraftAuditFindingDocument
+	var documents []*models.AuditDraftFindingDocument
 	var deleteDocumentIds []*uint
-	var documentsToDelete []*models.DraftAuditFindingDocument
+	var documentsToDelete []*models.AuditDraftFindingDocument
 
 	// Iterate over each document in the array
-	for _, doc := range draftAuditFindingFormDTO.Documents {
+	for _, doc := range auditDraftFindingFormDTO.Documents {
 		if doc.IsNewFile != nil && *doc.IsNewFile {
 			dataToEncrypt := []byte(doc.FileName)
 			encryptedFilename, err := utility.EncryptData(dataToEncrypt)
@@ -251,9 +251,9 @@ func (dafs *DraftAuditFindingService) Update(id uint, currentUserID uint, draftA
 			}
 			url := utility.GenerateDocumentURL("audit", "draft-audit-findings", strconv.FormatUint(uint64(id), 10), "documents")
 
-			// Create a new DraftAuditFindingDocument instance
-			document := &models.DraftAuditFindingDocument{
-				DraftAuditFindingID: id,
+			// Create a new AuditDraftFindingDocument instance
+			document := &models.AuditDraftFindingDocument{
+				AuditDraftFindingID: id,
 				URL:                 url,
 				Name:                doc.FileName,
 				Size:                doc.Size,
@@ -267,7 +267,7 @@ func (dafs *DraftAuditFindingService) Update(id uint, currentUserID uint, draftA
 		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
 			// Handle deleted file case
 			if doc.ID != nil {
-				existingDocument, err := dafs.repo.GetDocumentByID(*doc.ID)
+				existingDocument, err := adfs.repo.GetDocumentByID(*doc.ID)
 				if err != nil {
 					return err
 				}
@@ -281,20 +281,20 @@ func (dafs *DraftAuditFindingService) Update(id uint, currentUserID uint, draftA
 		}
 	}
 	if len(documents) > 0 {
-		if err := dafs.repo.CreateDocuments(documents, tx); err != nil {
+		if err := adfs.repo.CreateDocuments(documents, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
 	}
 	if len(deleteDocumentIds) > 0 {
-		if err := dafs.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
+		if err := adfs.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
 	}
 	if len(documents) > 0 {
 		for _, doc := range documents {
-			storagePath := filepath.Join("audit", "draft-audit-findings", strconv.FormatUint(uint64(existingDraftAuditFinding.ID), 10), "documents")
+			storagePath := filepath.Join("audit", "draft-audit-findings", strconv.FormatUint(uint64(existingAuditDraftFinding.ID), 10), "documents")
 			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
 				tx.Rollback()
 				return err
@@ -303,7 +303,7 @@ func (dafs *DraftAuditFindingService) Update(id uint, currentUserID uint, draftA
 	}
 	if len(documentsToDelete) > 0 {
 		for _, document := range documentsToDelete {
-			storagePath := filepath.Join("audit", "draft-audit-findings", strconv.FormatUint(uint64(existingDraftAuditFinding.ID), 10), "documents")
+			storagePath := filepath.Join("audit", "draft-audit-findings", strconv.FormatUint(uint64(existingAuditDraftFinding.ID), 10), "documents")
 			if err := utility.RemoveFile(document.Name, storagePath); err != nil {
 				tx.Rollback()
 				return err
@@ -314,11 +314,11 @@ func (dafs *DraftAuditFindingService) Update(id uint, currentUserID uint, draftA
 	tx.Commit()
 
 	go func() {
-		err := dafs.activityLogSvc.LogActivity(
+		err := adfs.activityLogSvc.LogActivity(
 			models.UpdateAction,
-			models.DraftAuditFinding{}.TableName(),
+			models.AuditDraftFinding{}.TableName(),
 			id,
-			draftAuditFindingFormDTO,
+			auditDraftFindingFormDTO,
 			currentUserID,
 			nil,
 		)
@@ -326,7 +326,7 @@ func (dafs *DraftAuditFindingService) Update(id uint, currentUserID uint, draftA
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.UpdateAction,
-				"tableName": models.DraftAuditFinding{}.TableName(),
+				"tableName": models.AuditDraftFinding{}.TableName(),
 				"recordID":  id,
 				"userID":    currentUserID,
 				"error":     err.Error(),
@@ -339,16 +339,16 @@ func (dafs *DraftAuditFindingService) Update(id uint, currentUserID uint, draftA
 	return nil
 }
 
-func (dafs *DraftAuditFindingService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
+func (adfs *AuditDraftFindingService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 
-	tx := dafs.repo.BeginTransaction()
+	tx := adfs.repo.BeginTransaction()
 	var failedIDs []uint
 	var successfulIDs []uint
-	documentsToDelete := make(map[uint][]*auditDTOs.DraftAuditFindingDocumentDTO)
+	documentsToDelete := make(map[uint][]*auditDTOs.AuditDraftFindingDocumentDTO)
 
 	for _, id := range ids {
 		// Get existing audit finding details
-		draftAuditFinding, err := dafs.GetFullDetailsByID(id, tx)
+		auditDraftFinding, err := adfs.GetFullDetailsByID(id, tx)
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				failedIDs = append(failedIDs, id)
@@ -358,22 +358,22 @@ func (dafs *DraftAuditFindingService) Delete(ids []uint, currentUserID uint) ([]
 			return nil, err
 		}
 
-		if len(draftAuditFinding.Documents) > 0 {
+		if len(auditDraftFinding.Documents) > 0 {
 			var deleteDocumentIds []*uint
-			for _, doc := range draftAuditFinding.Documents {
+			for _, doc := range auditDraftFinding.Documents {
 				if doc != nil {
 					documentsToDelete[id] = append(documentsToDelete[id], doc)
 					deleteDocumentIds = append(deleteDocumentIds, doc.ID)
 				}
 			}
-			if err := dafs.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
+			if err := adfs.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
 				tx.Rollback()
 				return nil, err
 			}
 		}
 
 		// Delete the audit finding itself
-		if err := dafs.repo.Delete(id, tx); err != nil {
+		if err := adfs.repo.Delete(id, tx); err != nil {
 			failedIDs = append(failedIDs, id)
 			continue
 		}
@@ -382,10 +382,10 @@ func (dafs *DraftAuditFindingService) Delete(ids []uint, currentUserID uint) ([]
 	}
 
 	if len(successfulIDs) > 0 {
-		for draftAuditFindingID, documents := range documentsToDelete {
+		for auditDraftFindingID, documents := range documentsToDelete {
 			for _, doc := range documents {
 				fmt.Println("filename=", doc.Name)
-				storagePath := filepath.Join("audit", "audit-findings", strconv.FormatUint(uint64(draftAuditFindingID), 10), "documents")
+				storagePath := filepath.Join("audit", "audit-findings", strconv.FormatUint(uint64(auditDraftFindingID), 10), "documents")
 				if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
 					tx.Rollback()
 					fmt.Printf("Failed to delete file at URL %s: %v\n", *doc.URL, err)
@@ -399,9 +399,9 @@ func (dafs *DraftAuditFindingService) Delete(ids []uint, currentUserID uint) ([]
 
 		go func() {
 			for _, id := range successfulIDs {
-				err := dafs.activityLogSvc.LogActivity(
+				err := adfs.activityLogSvc.LogActivity(
 					models.DeleteAction,
-					models.DraftAuditFinding{}.TableName(),
+					models.AuditDraftFinding{}.TableName(),
 					id,
 					nil,
 					currentUserID,
@@ -411,7 +411,7 @@ func (dafs *DraftAuditFindingService) Delete(ids []uint, currentUserID uint) ([]
 				if err != nil {
 					fields := map[string]interface{}{
 						"action":    models.DeleteAction,
-						"tableName": models.DraftAuditFinding{}.TableName(),
+						"tableName": models.AuditDraftFinding{}.TableName(),
 						"recordID":  id,
 						"userID":    currentUserID,
 						"error":     err.Error(),
@@ -428,25 +428,25 @@ func (dafs *DraftAuditFindingService) Delete(ids []uint, currentUserID uint) ([]
 	return failedIDs, nil
 }
 
-func (dafs *DraftAuditFindingService) validateDraftAuditFindingFormDTO(dto *auditDTOs.DraftAuditFindingFormDTO) error {
+func (adfs *AuditDraftFindingService) validateAuditDraftFindingFormDTO(dto *auditDTOs.AuditDraftFindingFormDTO) error {
 
-	if _, err := dafs.auditSvc.GetByID(dto.AuditID); err != nil {
+	if _, err := adfs.auditSvc.GetByID(dto.AuditID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("audit does not exist"), "not_exist", "audit")
 	}
 
-	if _, err := dafs.auditableItemSvc.GetByID(*dto.AuditableItemID); err != nil {
+	if _, err := adfs.auditableItemSvc.GetByID(*dto.AuditableItemID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("auditable item does not exist"), "not_exist", "auditable item")
 	}
 
-	if _, err := dafs.auditChecklistSvc.GetByID(dto.AuditID, *dto.AuditChecklistID); err != nil {
+	if _, err := adfs.auditChecklistSvc.GetByID(dto.AuditID, *dto.AuditChecklistID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("audit checklist does not exist"), "not_exist", "audit checklist")
 	}
 
-	if _, err := dafs.auditFindingCategorySvc.GetByID(dto.AuditFindingCategoryID); err != nil {
+	if _, err := adfs.auditFindingCategorySvc.GetByID(dto.AuditFindingCategoryID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("audit finding category does not exist"), "not_exist", "audit finding category")
 	}
 
-	if _, err := dafs.severityLevelSvc.GetByID(dto.SeverityLevelID); err != nil {
+	if _, err := adfs.severityLevelSvc.GetByID(dto.SeverityLevelID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
 	}
 

@@ -30,10 +30,10 @@ type AuditModule struct {
 	AuditMeetingController                       *controllers.AuditMeetingController
 	AuditTimelineController                      *controllers.AuditTimelineController
 	AuditFindingStatusController                 *controllers.AuditFindingStatusController
-	DraftAuditFindingStatusController            *controllers.DraftAuditFindingStatusController
+	AuditDraftFindingStatusController            *controllers.AuditDraftFindingStatusController
 	AuditFindingCategoryController               *controllers.AuditFindingCategoryController
 	AuditFindingController                       *controllers.AuditFindingController
-	DraftAuditFindingController                  *controllers.DraftAuditFindingController
+	AuditDraftFindingController                  *controllers.AuditDraftFindingController
 	AuditDocumentRequestStatusController         *controllers.AuditDocumentRequestStatusController
 	AuditDocumentRequestController               *controllers.AuditDocumentRequestController
 	AuditFindingRootCauseAnalysisController      *controllers.AuditFindingRootCauseAnalysisController
@@ -206,9 +206,9 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 	auditFindingStatusSvc := services.NewAuditFindingStatusService(auditFindingStatusRepo)
 	auditFindingStatusController := controllers.NewAuditFindingStatusController(auditFindingStatusSvc)
 
-	draftAuditFindingStatusRepo := repositories.NewDraftAuditFindingStatusRepository(db)
-	draftAuditFindingStatusSvc := services.NewDraftAuditFindingStatusService(draftAuditFindingStatusRepo)
-	draftAuditFindingStatusController := controllers.NewDraftAuditFindingStatusController(draftAuditFindingStatusSvc)
+	auditDraftFindingStatusRepo := repositories.NewAuditDraftFindingStatusRepository(db)
+	auditDraftFindingStatusSvc := services.NewAuditDraftFindingStatusService(auditDraftFindingStatusRepo)
+	auditDraftFindingStatusController := controllers.NewAuditDraftFindingStatusController(auditDraftFindingStatusSvc)
 
 	auditFindingCategoryRepo := repositories.NewAuditFindingCategoryRepository(db)
 	auditFindingCategorySvc := services.NewAuditFindingCategoryService(auditFindingCategoryRepo, sharedModule.ActivityLogService)
@@ -232,19 +232,19 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 	)
 	auditFindingController := controllers.NewAuditFindingController(auditFindingSvc)
 
-	draftAuditFindingRepo := repositories.NewDraftAuditFindingRepository(db)
-	draftAuditFindingSvc := services.NewDraftAuditFindingService(
-		draftAuditFindingRepo,
+	auditDraftFindingRepo := repositories.NewAuditDraftFindingRepository(db)
+	auditDraftFindingSvc := services.NewAuditDraftFindingService(
+		auditDraftFindingRepo,
 		sharedModule.ActivityLogService,
 		auditSvc,
-		draftAuditFindingStatusSvc,
+		auditDraftFindingStatusSvc,
 		auditTimelineSvc,
 		auditableItemSvc,
 		auditFindingCategorySvc,
 		masterModule.SeverityLevelSvc,
 		auditChecklistSvc,
 	)
-	draftAuditFindingController := controllers.NewDraftAuditFindingController(draftAuditFindingSvc)
+	auditDraftFindingController := controllers.NewAuditDraftFindingController(auditDraftFindingSvc)
 
 	auditDocumentRequestStatusRepo := repositories.NewAuditDocumentRequestStatusRepository(db)
 	auditDocumentRequestStatusSvc := services.NewAuditDocumentRequestStatusService(auditDocumentRequestStatusRepo)
@@ -323,10 +323,10 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		AuditMeetingController:                       auditMeetingController,
 		AuditTimelineController:                      auditTimelineController,
 		AuditFindingStatusController:                 auditFindingStatusController,
-		DraftAuditFindingStatusController:            draftAuditFindingStatusController,
+		AuditDraftFindingStatusController:            auditDraftFindingStatusController,
 		AuditFindingCategoryController:               auditFindingCategoryController,
 		AuditFindingController:                       auditFindingController,
-		DraftAuditFindingController:                  draftAuditFindingController,
+		AuditDraftFindingController:                  auditDraftFindingController,
 		AuditDocumentRequestStatusController:         auditDocumentRequestStatusController,
 		AuditDocumentRequestController:               auditDocumentRequestController,
 		AuditFindingRootCauseAnalysisController:      auditFindingRootCauseAnalysisController,
