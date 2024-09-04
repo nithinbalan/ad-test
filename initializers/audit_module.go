@@ -30,8 +30,10 @@ type AuditModule struct {
 	AuditMeetingController                       *controllers.AuditMeetingController
 	AuditTimelineController                      *controllers.AuditTimelineController
 	AuditFindingStatusController                 *controllers.AuditFindingStatusController
+	AuditDraftFindingStatusController            *controllers.AuditDraftFindingStatusController
 	AuditFindingCategoryController               *controllers.AuditFindingCategoryController
 	AuditFindingController                       *controllers.AuditFindingController
+	AuditDraftFindingController                  *controllers.AuditDraftFindingController
 	AuditDocumentRequestStatusController         *controllers.AuditDocumentRequestStatusController
 	AuditDocumentRequestController               *controllers.AuditDocumentRequestController
 	AuditFindingRootCauseAnalysisController      *controllers.AuditFindingRootCauseAnalysisController
@@ -204,9 +206,17 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 	auditFindingStatusSvc := services.NewAuditFindingStatusService(auditFindingStatusRepo)
 	auditFindingStatusController := controllers.NewAuditFindingStatusController(auditFindingStatusSvc)
 
+	auditDraftFindingStatusRepo := repositories.NewAuditDraftFindingStatusRepository(db)
+	auditDraftFindingStatusSvc := services.NewAuditDraftFindingStatusService(auditDraftFindingStatusRepo)
+	auditDraftFindingStatusController := controllers.NewAuditDraftFindingStatusController(auditDraftFindingStatusSvc)
+
 	auditFindingCategoryRepo := repositories.NewAuditFindingCategoryRepository(db)
 	auditFindingCategorySvc := services.NewAuditFindingCategoryService(auditFindingCategoryRepo, sharedModule.ActivityLogService)
 	auditFindingCategoryController := controllers.NewAuditFindingCategoryController(auditFindingCategorySvc)
+
+	auditChecklistRepo := repositories.NewAuditChecklistRepository(db)
+	auditChecklistSvc := services.NewAuditChecklistService(auditChecklistRepo, sharedModule.ActivityLogService, auditSvc, auditableItemSvc, masterModule.ConformanceSvc, masterModule.StatusSvc, auditPlanAuditableItemSvc)
+	auditChecklistController := controllers.NewAuditChecklistController(auditChecklistSvc)
 
 	auditFindingRepo := repositories.NewAuditFindingRepository(db)
 
@@ -221,6 +231,20 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		masterModule.SeverityLevelSvc,
 	)
 	auditFindingController := controllers.NewAuditFindingController(auditFindingSvc)
+
+	auditDraftFindingRepo := repositories.NewAuditDraftFindingRepository(db)
+	auditDraftFindingSvc := services.NewAuditDraftFindingService(
+		auditDraftFindingRepo,
+		sharedModule.ActivityLogService,
+		auditSvc,
+		auditDraftFindingStatusSvc,
+		auditTimelineSvc,
+		auditableItemSvc,
+		auditFindingCategorySvc,
+		masterModule.SeverityLevelSvc,
+		auditChecklistSvc,
+	)
+	auditDraftFindingController := controllers.NewAuditDraftFindingController(auditDraftFindingSvc)
 
 	auditDocumentRequestStatusRepo := repositories.NewAuditDocumentRequestStatusRepository(db)
 	auditDocumentRequestStatusSvc := services.NewAuditDocumentRequestStatusService(auditDocumentRequestStatusRepo)
@@ -265,10 +289,6 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 	auditFindingActionPlanStatusUpdateSvc := services.NewAuditFindingActionPlanStatusUpdateService(auditFindingActionPlanStatusUpdateRepo, sharedModule.ActivityLogService, auditFindingActionPlanSvc, masterModule.ActionPlanStatusSvc)
 	auditFindingActionPlanStatusUpdateController := controllers.NewAuditFindingActionPlanStatusUpdateController(auditFindingActionPlanStatusUpdateSvc)
 
-	auditChecklistRepo := repositories.NewAuditChecklistRepository(db)
-	auditChecklistSvc := services.NewAuditChecklistService(auditChecklistRepo, sharedModule.ActivityLogService, auditSvc, auditableItemSvc, masterModule.ConformanceSvc, masterModule.StatusSvc, auditPlanAuditableItemSvc)
-	auditChecklistController := controllers.NewAuditChecklistController(auditChecklistSvc)
-
 	auditScheduleRepo := repositories.NewAuditScheduleRepository(db)
 	auditScheduleSvc := services.NewAuditScheduleService(
 		auditScheduleRepo,
@@ -303,8 +323,10 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		AuditMeetingController:                       auditMeetingController,
 		AuditTimelineController:                      auditTimelineController,
 		AuditFindingStatusController:                 auditFindingStatusController,
+		AuditDraftFindingStatusController:            auditDraftFindingStatusController,
 		AuditFindingCategoryController:               auditFindingCategoryController,
 		AuditFindingController:                       auditFindingController,
+		AuditDraftFindingController:                  auditDraftFindingController,
 		AuditDocumentRequestStatusController:         auditDocumentRequestStatusController,
 		AuditDocumentRequestController:               auditDocumentRequestController,
 		AuditFindingRootCauseAnalysisController:      auditFindingRootCauseAnalysisController,
