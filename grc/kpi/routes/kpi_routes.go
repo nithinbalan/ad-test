@@ -30,4 +30,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	kpiRoutes.GET("/kpis/grc-top-five/risks", grcDashboardController.GetGRCTopRisks)
 	kpiRoutes.GET("/kpis/grc-top-five/documents", grcDashboardController.GetGRCTopPublishedDocuments)
 
+	kpiRoutes.GET("/kpis/grc-chart/documents-by-type", grcDashboardController.GetGRCDocumentTypeChart)
+
 }

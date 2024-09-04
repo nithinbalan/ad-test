@@ -22,6 +22,8 @@ type GRCDashboardRepositoryInteface interface {
 	GetTopComplianceRegisters(params *kpiDTOs.GRCDashboardListQueryParamsDTO) ([]*kpiDTOs.GRCTopComplianceRegistersDTO, error)
 	GetTopRiskRegisters(params *kpiDTOs.GRCDashboardListQueryParamsDTO) ([]*kpiDTOs.GRCTopRiskRegistersDTO, error)
 	GetTopPublishedDocuments(params *kpiDTOs.GRCDashboardListQueryParamsDTO) ([]*kpiDTOs.GRCTopDocumentsDTO, error)
+
+	GetGRCDocumentTypeChart(params *kpiDTOs.GRCDashboardListQueryParamsDTO) ([]*kpiDTOs.GRCDocumentTypeChartDTO, error)
 }
 
 type GRCDashboardRepository struct {
@@ -393,16 +395,13 @@ func (repo *GRCDashboardRepository) GetGRCRiskOverview(params *kpiDTOs.GRCDashbo
 func (repo *GRCDashboardRepository) GetGRCDocumentOverview(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCDocumentOverviewDTO, error) {
 	counts := &kpiDTOs.GRCDocumentOverviewDTO{}
 
-	// Base query to fetch document counts
 	documentQuery := repo.db.Model(&models.Document{}).
 		Joins("JOIN document_types ON document_types.id = documents.document_type_id")
 
-	// Apply date filters if provided
 	if params.DateFrom != "" && params.DateTo != "" {
 		documentQuery = documentQuery.Where("documents.created_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
 	}
 
-	// Query to count the total documents and specific types
 	err := documentQuery.Select(`
 			COUNT(*) AS total_documents,
 			SUM(CASE WHEN document_types.type = 'policy' THEN 1 ELSE 0 END) AS policies,
@@ -497,10 +496,6 @@ func (repo *GRCDashboardRepository) GetTopPublishedDocuments(params *kpiDTOs.GRC
 	// Apply date filters if provided
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("documents.created_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
-	} else if params.DateFrom != "" {
-		query = query.Where("documents.created_at >= ?", params.DateFrom)
-	} else if params.DateTo != "" {
-		query = query.Where("documents.created_at <= ?", params.DateTo)
 	}
 
 	// Apply the limit after filtering
@@ -512,4 +507,39 @@ func (repo *GRCDashboardRepository) GetTopPublishedDocuments(params *kpiDTOs.GRC
 	}
 
 	return topDocuments, nil
+}
+
+func (repo *GRCDashboardRepository) GetGRCDocumentTypeChart(params *kpiDTOs.GRCDashboardListQueryParamsDTO) ([]*kpiDTOs.GRCDocumentTypeChartDTO, error) {
+	var totalDocuments int64
+	var typeCounts []*kpiDTOs.GRCDocumentTypeChartDTO
+
+	query := repo.db.Model(&models.Document{})
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("documents.created_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
+	}
+
+	err := query.Count(&totalDocuments).Error
+	if err != nil {
+		return nil, err
+	}
+
+	err = query.Table("documents").
+		Select(`
+			document_types.type AS type, 
+			document_types.title_en AS title_en,
+			document_types.title_ar AS title_ar,
+			COUNT(*) AS count,
+			CAST(ROUND(COUNT(*) * 100.0 / ?, 0) AS INT) AS percentage
+		`, totalDocuments).
+		Joins("JOIN document_types ON documents.document_type_id = document_types.id").
+		Group("document_types.type, document_types.title_en, document_types.title_ar").
+		Order("percentage DESC").
+		Scan(&typeCounts).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return typeCounts, nil
 }
