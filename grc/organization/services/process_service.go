@@ -201,7 +201,7 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 	redirectURL := fmt.Sprintf("process/%d", id)
 	emailTo := []string{resposibleUser.Email}
 	subject := fmt.Sprintf("Process/%s: Added", process.TitleEn)
-	templateRelativePath := "organization/templates/email/create_process_mail.html"
+	templateRelativePath := "organization/templates/email/create_process_owner_mail.html"
 
 	emailData := organizationDTOs.SendCreateProcessMailDTO{
 		FirstNameEn: resposibleUser.FirstNameEn,
@@ -259,21 +259,28 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 	tx := ps.repo.BeginTransaction()
 
 	process, err := ps.GetByID(id)
-
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
+
+	oldOwnerID := process.OwnerID
 
 	if err := ps.validateProcessFormDTO(processFormDTO); err != nil {
+		tx.Rollback()
 		return err
 	}
+
+	// If owner has changed, update the OwnerUnitID
 	if process.OwnerID != processFormDTO.OwnerID {
 		organizationUnitID, err := ps.userSvc.GetUserPrimaryUnitID(uint(processFormDTO.OwnerID))
 		if err != nil {
+			tx.Rollback()
 			return utility.NewValidationError(fmt.Errorf("organization unit not set for owner"), "not_exist", "process owner unit")
 		}
 		process.OwnerUnitID = organizationUnitID
 	}
+
 	process.ProcessGroupID = processFormDTO.ProcessGroupID
 	process.OwnerID = processFormDTO.OwnerID
 	process.TitleEn = processFormDTO.TitleEn
@@ -299,17 +306,14 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 		existingControlIDs[ctrl.ControlID] = true
 	}
 
-	// Collect new control IDs
 	newControlIDs := make(map[uint]bool)
 	for _, ctrl := range processFormDTO.ControlIds {
 		newControlIDs[*ctrl] = true
 	}
 
-	// Add new controls
 	var controlsToAdd []*models.ProcessControl
 	for _, newControlID := range processFormDTO.ControlIds {
 		if _, exists := existingControlIDs[*newControlID]; !exists {
-			// Create a new process control record
 			control := &models.ProcessControl{
 				ProcessID:   id,
 				ControlID:   *newControlID,
@@ -319,7 +323,6 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 		}
 	}
 
-	// Save the new controls
 	if len(controlsToAdd) > 0 {
 		if err := ps.repo.CreateProcessControls(controlsToAdd, tx); err != nil {
 			tx.Rollback()
@@ -327,17 +330,13 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 		}
 	}
 
-	// Remove controls not in the new list
 	var deleteControlIDs []*uint
-
 	for _, existingControl := range existingProcess.Controls {
 		if _, exists := newControlIDs[existingControl.ControlID]; !exists {
-			// Append control to delete list
 			deleteControlIDs = append(deleteControlIDs, existingControl.ID)
 		}
 	}
 
-	// Delete controls not in the new list
 	if len(deleteControlIDs) > 0 {
 		if err := ps.repo.DeleteProcessControls(deleteControlIDs, tx); err != nil {
 			tx.Rollback()
@@ -350,17 +349,14 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 		existingDocumentIDs[doc.DocumentID] = true
 	}
 
-	// Collect new document IDs
 	newDocumentIDs := make(map[uint]bool)
 	for _, doc := range processFormDTO.DocumentIds {
 		newDocumentIDs[*doc] = true
 	}
 
-	// Add new documents
 	var documentsToAdd []*models.ProcessAssociatedDocument
 	for _, newDocumentID := range processFormDTO.DocumentIds {
 		if _, exists := existingDocumentIDs[*newDocumentID]; !exists {
-			// Create a new process document record
 			document := &models.ProcessAssociatedDocument{
 				ProcessID:   id,
 				DocumentID:  *newDocumentID,
@@ -370,7 +366,6 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 		}
 	}
 
-	// Save the new documents
 	if len(documentsToAdd) > 0 {
 		if err := ps.repo.CreateProcessDocuments(documentsToAdd, tx); err != nil {
 			tx.Rollback()
@@ -378,17 +373,13 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 		}
 	}
 
-	// Remove documents not in the new list
 	var deleteDocumentIDs []*uint
-
 	for _, existingDocument := range existingProcess.Documents {
 		if _, exists := newDocumentIDs[existingDocument.DocumentID]; !exists {
-			// Append document to delete list
 			deleteDocumentIDs = append(deleteDocumentIDs, existingDocument.ID)
 		}
 	}
 
-	// Delete documents not in the new list
 	if len(deleteDocumentIDs) > 0 {
 		if err := ps.repo.DeleteProcessDocuments(deleteDocumentIDs, tx); err != nil {
 			tx.Rollback()
@@ -396,7 +387,128 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 		}
 	}
 
+	var dbNotificationDTO *commonDTOs.DBNotificationDTO
+	var emailNotificationDTO *commonDTOs.EmailNotificationDTO
+	var oldOwnerNotificationDTO *commonDTOs.DBNotificationDTO
+	var oldOwnerEmailNotificationDTO *commonDTOs.EmailNotificationDTO
+
+	if oldOwnerID != processFormDTO.OwnerID {
+		urlParam := fmt.Sprintf(`{"id":%d}`, id)
+		queryParam := ""
+		entity := "process"
+		action := "responsible-user-remove"
+
+		oldOwnerNotificationDTO = &commonDTOs.DBNotificationDTO{
+			UserID:               oldOwnerID,
+			ModuleIdentifier:     "organization",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			ReferenceNumber:      process.ReferenceNumber,
+			HeadingEn:            "Process Ownership Removal",
+			HeadingAr:            "إزالة مسؤولية العملية",
+			TitleEn:              processFormDTO.TitleEn,
+			TitleAr:              processFormDTO.TitleAr,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			QueryParam:           queryParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		oldOwnerUser, err := ps.userSvc.GetByID(oldOwnerID)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		oldOwnerEmailTo := []string{oldOwnerUser.Email}
+		oldOwnerSubject := fmt.Sprintf("Process/%s: Ownership Removed", process.TitleEn)
+		oldOwnerTemplateRelativePath := "organization/templates/email/remove_process_owner_mail.html"
+		redirectURL := fmt.Sprintf("process/%d", id)
+
+		oldOwnerEmailData := organizationDTOs.SendCreateProcessMailDTO{
+			FirstNameEn: oldOwnerUser.FirstNameEn,
+			LastNameEn:  oldOwnerUser.LastNameEn,
+			MessageEn:   process.TitleEn,
+			RedirectURL: redirectURL,
+		}
+
+		oldOwnerEmailNotificationDTO = &commonDTOs.EmailNotificationDTO{
+			EmailTo:              oldOwnerEmailTo,
+			Subject:              oldOwnerSubject,
+			TemplateRelativePath: oldOwnerTemplateRelativePath,
+			EmailData:            oldOwnerEmailData,
+		}
+
+		//new owner notification
+		newOwnerAction := "responsible-user-assign"
+
+		dbNotificationDTO = &commonDTOs.DBNotificationDTO{
+			UserID:               processFormDTO.OwnerID,
+			ModuleIdentifier:     "organization",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			ReferenceNumber:      process.ReferenceNumber,
+			HeadingEn:            "Process Ownership Change",
+			HeadingAr:            "تغيير مسؤولية العملية",
+			TitleEn:              processFormDTO.TitleEn,
+			TitleAr:              processFormDTO.TitleAr,
+			Entity:               &entity,
+			Action:               &newOwnerAction,
+			URLParam:             urlParam,
+			QueryParam:           queryParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		responsibleUser, err := ps.userSvc.GetByID(processFormDTO.OwnerID)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		emailTo := []string{responsibleUser.Email}
+		subject := fmt.Sprintf("Process/%s: Ownership Changed", process.TitleEn)
+		templateRelativePath := "organization/templates/email/change_process_owner_mail.html"
+
+		emailData := organizationDTOs.SendCreateProcessMailDTO{
+			FirstNameEn: responsibleUser.FirstNameEn,
+			LastNameEn:  responsibleUser.LastNameEn,
+			MessageEn:   process.TitleEn,
+			RedirectURL: redirectURL,
+		}
+
+		emailNotificationDTO = &commonDTOs.EmailNotificationDTO{
+			EmailTo:              emailTo,
+			Subject:              subject,
+			TemplateRelativePath: templateRelativePath,
+			EmailData:            emailData,
+		}
+	}
+
 	tx.Commit()
+
+	go func() {
+		if dbNotificationDTO != nil && emailNotificationDTO != nil {
+			err := ps.notificationSvc.SendNotification(
+				dbNotificationDTO, emailNotificationDTO, "process")
+			if err != nil {
+				utility.LogError("Failed to send notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+		}
+
+		if oldOwnerNotificationDTO != nil && oldOwnerEmailNotificationDTO != nil {
+			err = ps.notificationSvc.SendNotification(
+				oldOwnerNotificationDTO, oldOwnerEmailNotificationDTO, "process")
+			if err != nil {
+				utility.LogError("Failed to send old owner notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+		}
+	}()
+
 	return nil
 }
 
@@ -405,6 +517,12 @@ func (ps *ProcessService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 
 	var failedIds []uint
 	var successfulIds []uint
+	var notifications []struct {
+		OwnerID         *uint
+		TitleEn         string
+		TitleAr         string
+		ReferenceNumber string
+	}
 
 	for _, id := range ids {
 		process, err := ps.GetFullDetailsByID(id, tx)
@@ -412,6 +530,19 @@ func (ps *ProcessService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 			tx.Rollback()
 			return nil, err
 		}
+
+		// Prepare notification data before deletion
+		notifications = append(notifications, struct {
+			OwnerID         *uint
+			TitleEn         string
+			TitleAr         string
+			ReferenceNumber string
+		}{
+			OwnerID:         process.OwnerID,
+			TitleEn:         process.TitleEn,
+			TitleAr:         process.TitleAr,
+			ReferenceNumber: process.ReferenceNumber,
+		})
 
 		if len(process.Controls) > 0 {
 			var deleteControlIds []*uint
@@ -452,6 +583,7 @@ func (ps *ProcessService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 
 	if len(successfulIds) > 0 {
 		go func() {
+			// Log bulk delete activities
 			err := ps.activityLogSvc.LogBulkActivities(
 				models.DeleteAction,
 				models.Process{}.TableName(),
@@ -462,6 +594,66 @@ func (ps *ProcessService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 			)
 			if err != nil {
 				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+			}
+
+			// Send notifications to the owners of the deleted processes
+			for _, notification := range notifications {
+				urlParam := fmt.Sprintf(`{"id":%d}`, notification.OwnerID)
+				queryParam := ""
+				entity := "process"
+				action := "delete"
+
+				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+					UserID:               *notification.OwnerID,
+					ModuleIdentifier:     "organization",
+					NotificationType:     string(commonDTOs.DeletionType),
+					ReferenceNumber:      notification.ReferenceNumber,
+					HeadingEn:            "Process Deleted",
+					HeadingAr:            "تم حذف العملية",
+					TitleEn:              notification.TitleEn,
+					TitleAr:              notification.TitleAr,
+					Entity:               &entity,
+					Action:               &action,
+					URLParam:             urlParam,
+					QueryParam:           queryParam,
+					IsSystemNotification: false,
+					CreatedByID:          &currentUserID,
+				}
+
+				ownerUser, err := ps.userSvc.GetByID(*notification.OwnerID)
+				if err != nil {
+					utility.LogError("Failed to fetch owner details for notification", map[string]interface{}{
+						"error": err.Error(),
+					})
+					continue
+				}
+
+				ownerEmailTo := []string{ownerUser.Email}
+				subject := fmt.Sprintf("Process/%s: Deleted", notification.TitleEn)
+				templateRelativePath := "organization/templates/email/process_deleted_mail.html"
+				redirectURL := fmt.Sprintf("process/deleted/%d", notification.OwnerID)
+
+				emailData := organizationDTOs.SendCreateProcessMailDTO{
+					FirstNameEn: ownerUser.FirstNameEn,
+					LastNameEn:  ownerUser.LastNameEn,
+					MessageEn:   notification.TitleEn,
+					RedirectURL: redirectURL,
+				}
+
+				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+					EmailTo:              ownerEmailTo,
+					Subject:              subject,
+					TemplateRelativePath: templateRelativePath,
+					EmailData:            emailData,
+				}
+
+				err = ps.notificationSvc.SendNotification(
+					dbNotificationDTO, emailNotificationDTO, "process")
+				if err != nil {
+					utility.LogError("Failed to send deletion notifications", map[string]interface{}{
+						"error": err.Error(),
+					})
+				}
 			}
 		}()
 	}
