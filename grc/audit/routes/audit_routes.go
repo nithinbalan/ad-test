@@ -13,6 +13,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	auditRoutes.Use(middlewares.AuthMiddleware())
 
+	unauthenticatedRoutes := router.Group("/")
+
 	auditStatusController := app.AuditModule.AuditStatusController
 	auditorRiskRatingController := app.AuditModule.AuditorRiskRatingController
 	auditUniverseController := app.AuditModule.AuditUniverseController
@@ -165,6 +167,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.POST("/audits/:auditId/workpapers", auditWorkpaperController.CreateAuditWorkpaper)
 	auditRoutes.PUT("/audits/:auditId/workpapers/:id", auditWorkpaperController.UpdateAuditWorkpaper)
 	auditRoutes.POST("/audits/:auditId/workpapers/delete", auditWorkpaperController.DeleteAuditWorkpapers)
+
+	unauthenticatedRoutes.GET("/audits/:auditId/workpapers/document-download", auditWorkpaperController.DownloadWorkpaperDocument)
 
 	//Audit Meeting
 	auditRoutes.GET("/audits/:auditId/meetings", auditMeetingController.GetAllAuditMeetings)
