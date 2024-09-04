@@ -434,16 +434,12 @@ func (ds *DocumentService) Delete(ids []uint, currentUserID uint) ([]uint, error
 			}
 		}
 
-		// if len(document.DocumentAuditLogs) > 0 {
-		// 	var deleteAuditLogIds []*uint
-		// 	for _, unit := range document.DocumentAuditLogs {
-		// 		deleteAuditLogIds = append(deleteAuditLogIds, &unit.ID)
-		// 	}
-		// 	if err := ds.repo.DeleteAuditLogs(deleteAuditLogIds, tx); err != nil {
-		// 		tx.Rollback()
-		// 		return nil, err
-		// 	}
-		// }
+		if len(document.DocumentAuditLogs) > 0 {
+			if err := ds.documentAuditLogSvc.DeleteByDocumentID(id, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+		}
 
 		if len(document.DocumentVersions) > 0 {
 			var deleteDocumentIds []*uint

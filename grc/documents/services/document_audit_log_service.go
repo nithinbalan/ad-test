@@ -11,6 +11,7 @@ type DocumentAuditLogServiceInterface interface {
 	GetAll(documentID uint, params *documentDTOs.DocumentAuditLogListQueryParamsDTO) (*documentDTOs.DocumentAuditLogListResponseDTO, error)
 	GetByType(documentAuditLogType string) (*models.DocumentAuditLogType, error)
 	Create(documentAuditLogFormDTOs *documentDTOs.DocumentAuditLogFormDTO, tx ...utility.DatabaseTransaction) error
+	DeleteByDocumentID(documentID uint, tx ...utility.DatabaseTransaction) error
 }
 
 // Service and implementations
@@ -71,4 +72,12 @@ func (dals *DocumentAuditLogService) Create(documentAuditLogFormDTO *documentDTO
 	}
 	return nil
 
+}
+
+func (dals *DocumentAuditLogService) DeleteByDocumentID(documentID uint, tx ...utility.DatabaseTransaction) error {
+	if err := dals.repo.DeleteByDocumentID(documentID, tx...); err != nil {
+		return err
+	}
+
+	return nil
 }
