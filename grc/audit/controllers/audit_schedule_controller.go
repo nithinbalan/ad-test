@@ -204,3 +204,29 @@ func (asc *AuditScheduleController) DeleteAuditSchedules(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
+
+func (asc *AuditScheduleController) GetScheduleSummary(c *gin.Context) {
+	auditIdStr := c.Param("auditId")
+	auditId, err := strconv.ParseUint(auditIdStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	summary, err := asc.service.GetScheduleSummary(uint(auditId))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(asc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, summary)
+}

@@ -2,6 +2,8 @@ package services
 
 import (
 	"errors"
+	"fmt"
+	"jethur/config"
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
 	commonDTOs "jethur/grc/common/dtos"
@@ -9,6 +11,7 @@ import (
 	mastersServices "jethur/grc/masters/services"
 	"jethur/grc/models"
 	"jethur/utility"
+	"os"
 	"path/filepath"
 	"strconv"
 
@@ -23,6 +26,8 @@ type AuditWorkpaperServiceInterface interface {
 	Create(auditID uint, currentUserID uint, auditWorkpaperFormDTO *auditDTOs.AuditWorkpaperFormDTO) ([]uint, error)
 	Update(id uint, auditID uint, currentUserID uint, auditWorkpaperUpdateFormDTO *auditDTOs.AuditWorkpaperUpdateFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+
+	GetDocumentPath(auditId uint, token string) (string, error)
 }
 
 type AuditWorkpaperService struct {
@@ -327,4 +332,35 @@ func (aws *AuditWorkpaperService) Delete(ids []uint, currentUserID uint) ([]uint
 	}
 
 	return failedIDs, nil
+}
+
+func (aws *AuditWorkpaperService) GetDocumentPath(auditId uint, token string) (string, error) {
+	_, err := aws.auditSvc.GetByID(auditId)
+	if err != nil {
+		return "", err
+	}
+
+	decryptedFilenameBytes, err := utility.DecryptData(token)
+	if err != nil {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	decryptedFilename := string(decryptedFilenameBytes)
+	if decryptedFilename == "" {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	storagePath := filepath.Join("audits", "audit", strconv.FormatUint(uint64(auditId), 10), "audit-workpaper")
+
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
+
+	// Check if the file exists
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("file not found")
+	} else if err != nil {
+		return "", fmt.Errorf("error accessing file: %w", err)
+	}
+
+	return fullPath, nil
 }

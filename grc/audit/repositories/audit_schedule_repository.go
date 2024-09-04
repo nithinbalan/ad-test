@@ -20,6 +20,8 @@ type AuditScheduleRepositoryInterface interface {
 	CreateAuditableItems(auditScheduleAuditableItems []*models.AuditScheduleAuditableItem, tx ...utility.DatabaseTransaction) error
 	DeleteAuditableItems(auditScheduleAuditableItemIds []*uint, tx ...utility.DatabaseTransaction) error
 	GetAllSchedulesByAuditID(auditID uint, tx ...utility.DatabaseTransaction) ([]*models.AuditSchedule, error)
+
+	GetScheduleSummary(auditID uint) (pendingCount int, completedCount int, err error)
 }
 
 type AuditScheduleRepository struct {
@@ -311,4 +313,28 @@ func (repo *AuditScheduleRepository) GetAllSchedulesByAuditID(auditID uint, tx .
 	}
 
 	return schedules, nil
+}
+
+func (repo *AuditScheduleRepository) GetScheduleSummary(auditID uint) (pendingCount int, completedCount int, err error) {
+	var pending int64
+	var completed int64
+
+	err = repo.db.Model(&models.AuditSchedule{}).
+		Where("audit_id = ? AND audit_schedule_status_id IN (SELECT id FROM audit_schedule_statuses WHERE type IN ('scheduled', 'in_progress'))", auditID).
+		Count(&pending).Error
+	if err != nil {
+		return 0, 0, err
+	}
+
+	err = repo.db.Model(&models.AuditSchedule{}).
+		Where("audit_id = ? AND audit_schedule_status_id IN (SELECT id FROM audit_schedule_statuses WHERE type IN ('completed'))", auditID).
+		Count(&completed).Error
+	if err != nil {
+		return 0, 0, err
+	}
+
+	pendingCount = int(pending)
+	completedCount = int(completed)
+
+	return pendingCount, completedCount, nil
 }
