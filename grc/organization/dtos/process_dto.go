@@ -89,6 +89,7 @@ type ProcessDetailDTO struct {
 	Description           *string                           `json:"description"`
 	ProcessGroup          *ProcessGroupDTO                  `json:"process_group"`
 	OwnerUnit             *settingsDTOs.OrganizationUnitDTO `json:"owner_unit"`
+	OwnerID               *uint                             `json:"owner_id"`
 	Owner                 *UserMinimalDTO                   `json:"owner"`
 	CreatedByUser         UserMinimalDTO                    `json:"created_by"`
 	UpdatedByUser         *UserMinimalDTO                   `json:"updated_by"`
@@ -124,7 +125,7 @@ type DocumentDetailsDTO struct {
 	Acknowledged  *bool   `json:"acknowledged,omitempty"`
 }
 
-type SendCreateProcessMailDTO struct {
+type ProcessMailDTO struct {
 	FirstNameEn string `json:"first_name_en"`
 	LastNameEn  string `json:"last_name_en"`
 	Subject     string `json:"subject"`
