@@ -201,9 +201,9 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 	redirectURL := fmt.Sprintf("process/%d", id)
 	emailTo := []string{resposibleUser.Email}
 	subject := fmt.Sprintf("Process/%s: Added", process.TitleEn)
-	templateRelativePath := "organization/templates/email/create_process_owner_mail.html"
+	templateRelativePath := "organization/templates/email/process_create_owner_mail.html"
 
-	emailData := organizationDTOs.SendCreateProcessMailDTO{
+	emailData := organizationDTOs.ProcessMailDTO{
 		FirstNameEn: resposibleUser.FirstNameEn,
 		LastNameEn:  resposibleUser.LastNameEn,
 		MessageEn:   process.TitleEn,
@@ -401,7 +401,7 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 		oldOwnerNotificationDTO = &commonDTOs.DBNotificationDTO{
 			UserID:               oldOwnerID,
 			ModuleIdentifier:     "organization",
-			NotificationType:     string(commonDTOs.AssignmentType),
+			NotificationType:     string(commonDTOs.InformationType),
 			ReferenceNumber:      process.ReferenceNumber,
 			HeadingEn:            "Process Ownership Removal",
 			HeadingAr:            "إزالة مسؤولية العملية",
@@ -423,10 +423,10 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 
 		oldOwnerEmailTo := []string{oldOwnerUser.Email}
 		oldOwnerSubject := fmt.Sprintf("Process/%s: Ownership Removed", process.TitleEn)
-		oldOwnerTemplateRelativePath := "organization/templates/email/remove_process_owner_mail.html"
+		oldOwnerTemplateRelativePath := "organization/templates/email/process_remove_owner_mail.html"
 		redirectURL := fmt.Sprintf("process/%d", id)
 
-		oldOwnerEmailData := organizationDTOs.SendCreateProcessMailDTO{
+		oldOwnerEmailData := organizationDTOs.ProcessMailDTO{
 			FirstNameEn: oldOwnerUser.FirstNameEn,
 			LastNameEn:  oldOwnerUser.LastNameEn,
 			MessageEn:   process.TitleEn,
@@ -468,9 +468,9 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 
 		emailTo := []string{responsibleUser.Email}
 		subject := fmt.Sprintf("Process/%s: Ownership Changed", process.TitleEn)
-		templateRelativePath := "organization/templates/email/change_process_owner_mail.html"
+		templateRelativePath := "organization/templates/email/process_change_owner_mail.html"
 
-		emailData := organizationDTOs.SendCreateProcessMailDTO{
+		emailData := organizationDTOs.ProcessMailDTO{
 			FirstNameEn: responsibleUser.FirstNameEn,
 			LastNameEn:  responsibleUser.LastNameEn,
 			MessageEn:   process.TitleEn,
@@ -598,7 +598,7 @@ func (ps *ProcessService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 
 			// Send notifications to the owners of the deleted processes
 			for _, notification := range notifications {
-				urlParam := fmt.Sprintf(`{"id":%d}`, notification.OwnerID)
+				urlParam := ""
 				queryParam := ""
 				entity := "process"
 				action := "delete"
@@ -630,10 +630,10 @@ func (ps *ProcessService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 
 				ownerEmailTo := []string{ownerUser.Email}
 				subject := fmt.Sprintf("Process/%s: Deleted", notification.TitleEn)
-				templateRelativePath := "organization/templates/email/process_deleted_mail.html"
+				templateRelativePath := "organization/templates/email/process_delete_mail.html"
 				redirectURL := fmt.Sprintf("process/deleted/%d", notification.OwnerID)
 
-				emailData := organizationDTOs.SendCreateProcessMailDTO{
+				emailData := organizationDTOs.ProcessMailDTO{
 					FirstNameEn: ownerUser.FirstNameEn,
 					LastNameEn:  ownerUser.LastNameEn,
 					MessageEn:   notification.TitleEn,

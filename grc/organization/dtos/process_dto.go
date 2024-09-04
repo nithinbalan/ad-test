@@ -125,7 +125,7 @@ type DocumentDetailsDTO struct {
 	Acknowledged  *bool   `json:"acknowledged,omitempty"`
 }
 
-type SendCreateProcessMailDTO struct {
+type ProcessMailDTO struct {
 	FirstNameEn string `json:"first_name_en"`
 	LastNameEn  string `json:"last_name_en"`
 	Subject     string `json:"subject"`
