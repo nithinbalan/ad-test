@@ -1,6 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
-INSERT INTO draft_audit_finding_statuses
+INSERT INTO audit_draft_finding_statuses
     (title_en, title_ar, color_code, type, is_finalized)
 VALUES
     ('Open', 'مفتوح', '#007BFF', 'open', 0),-- blue
@@ -12,5 +12,5 @@ VALUES
 
 -- +goose Down
 -- +goose StatementBegin
-TRUNCATE TABLE draft_audit_finding_statuses;
+TRUNCATE TABLE audit_draft_finding_statuses;
 -- +goose StatementEnd
