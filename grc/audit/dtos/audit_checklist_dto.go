@@ -108,6 +108,7 @@ type AuditChecklistDetailDTO struct {
 	UpdatedByID          *uint                            `json:"updated_by_id"`
 	StatusID             uint                             `json:"status_id"`
 	AuditPlanChecklist   *AuditPlanChecklistDetailDTO     `json:"audit_plan_checklist"`
+	AuditDraftFindings   []*AuditDraftFindingDetailDTO    `json:"audit_draft_findings"`
 	AuditableItem        *AuditableItemDetailDTO          `json:"auditable_item"`
 	Conformance          *masterDTOs.ConformanceDTO       `json:"conformance"`
 	AnsweredByUser       *organizationDTOs.UserMinimalDTO `json:"answered_by"`

@@ -21,14 +21,15 @@ type AuditChecklist struct {
 	StatusID             uint       `json:"status_id" binding:"required" gorm:"not null"`
 
 	// Relationships
-	Audit              *Audit              `gorm:"foreignKey:AuditID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
-	AuditPlanChecklist *AuditPlanChecklist `gorm:"foreignKey:AuditPlanChecklistID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
-	Conformance        *Conformance        `gorm:"foreignKey:ConformanceID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
-	AuditableItem      *AuditableItem      `gorm:"foreignKey:AuditableItemID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
-	AnsweredByUser     *User               `gorm:"foreignKey:AnsweredBYID"` // Nullable relationship
-	CreatedByUser      *User               `gorm:"foreignKey:CreatedBYID"`
-	UpdatedByUser      *User               `gorm:"foreignKey:UpdatedBYID"` // Nullable relationship
-	Status             *Status             `gorm:"foreignKey:StatusID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
+	Audit              *Audit               `gorm:"foreignKey:AuditID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
+	AuditPlanChecklist *AuditPlanChecklist  `gorm:"foreignKey:AuditPlanChecklistID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
+	AuditDraftFindings []*AuditDraftFinding `gorm:"foreignKey:AuditChecklistID"`
+	Conformance        *Conformance         `gorm:"foreignKey:ConformanceID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
+	AuditableItem      *AuditableItem       `gorm:"foreignKey:AuditableItemID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
+	AnsweredByUser     *User                `gorm:"foreignKey:AnsweredBYID"` // Nullable relationship
+	CreatedByUser      *User                `gorm:"foreignKey:CreatedBYID"`
+	UpdatedByUser      *User                `gorm:"foreignKey:UpdatedBYID"` // Nullable relationship
+	Status             *Status              `gorm:"foreignKey:StatusID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
 }
 
 // TableName overrides the default table name used by GORM
