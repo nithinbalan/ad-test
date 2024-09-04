@@ -519,13 +519,11 @@ func (repo *GRCDashboardRepository) GetGRCDocumentTypeChart(params *kpiDTOs.GRCD
 		query = query.Where("documents.created_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
 	}
 
-	// Get the total number of documents
 	err := query.Count(&totalDocuments).Error
 	if err != nil {
 		return nil, err
 	}
 
-	// Query to get document type counts, percentages, and more details
 	err = query.Table("documents").
 		Select(`
 			document_types.type AS type, 

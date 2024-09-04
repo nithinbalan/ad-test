@@ -205,6 +205,15 @@ func (repo *AuditChecklistRepository) GetFullDetailsByID(id uint) (*models.Audit
 		Preload("AuditPlanChecklist.AuditPlan").
 		Preload("AuditableItem").
 		Preload("Conformance").
+		Preload("AuditDraftFindings").
+		Preload("AuditDraftFindings.AuditableItem").
+		Preload("AuditDraftFindings.AuditFindingCategory").
+		Preload("AuditDraftFindings.SeverityLevel").
+		Preload("AuditDraftFindings.AuditDraftFindingStatus").
+		Preload("AuditDraftFindings.AuditChecklist").
+		Preload("AuditDraftFindings.CreatedByUser").
+		Preload("AuditDraftFindings.UpdatedByUser").
+		Preload("AuditDraftFindings.Documents").
 		Preload("AnsweredByUser").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
