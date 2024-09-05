@@ -7,9 +7,9 @@ import (
 	"jethur/grc/audit/repositories"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
+	organiztionDTOs "jethur/grc/organization/dtos"
 	"jethur/utility"
 
-	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
 )
 
@@ -59,26 +59,71 @@ func (adrs *AuditDraftReportService) GetByID(id uint) (*models.AuditDraftReport,
 }
 
 func (adrs *AuditDraftReportService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditDraftReportDetailDTO, error) {
-	var auditDraftReportDTO auditDTOs.AuditDraftReportDetailDTO
-
-	auditDraftReport, err := adrs.repo.GetFullDetailsByID(id, tx...)
+	auditDraftReport, err := adrs.repo.GetFullDetailsByID(id)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, utility.NewResourceNotFoundError(err, id)
+		return nil, err
+	}
+
+	// Map the data to the DTO
+	auditReportDTO := &auditDTOs.AuditDraftReportDetailDTO{
+		ID:               auditDraftReport.ID,
+		AuditID:          auditDraftReport.AuditID,
+		Title:            auditDraftReport.Audit.AuditPlan.Title,
+		ReferenceNumber:  auditDraftReport.Audit.AuditPlan.ReferenceNumber,
+		ReportDateString: auditDraftReport.ReportDate.Format("2006-01-02"),
+		PreparedBy:       mapUserToUserMinimalDTO(auditDraftReport.Audit.CreatedByUser),
+		PreparedAt:       auditDraftReport.CreatedAt.String(),
+		ExecutiveSummary: *auditDraftReport.ExecutiveSummary,
+		TeamLead:         mapUserToUserMinimalDTO(auditDraftReport.Audit.AuditPlan.TeamLead),
+		Conclusion:       *auditDraftReport.Conclusion,
+	}
+
+	// Map auditors
+	for _, auditor := range auditDraftReport.Audit.AuditPlan.Members {
+		auditorDTO := mapAuditPlanAuditMemberToDTO(auditor)
+		auditReportDTO.Auditors = append(auditReportDTO.Auditors, auditorDTO)
+	}
+	// Map findings
+	for _, finding := range auditDraftReport.Audit.AuditDraftFindings {
+		findingDTO := auditDTOs.AuditDraftFindingDetailDTO{
+			ID:                        finding.ID,
+			Title:                     finding.Title,
+			Description:               finding.Description,
+			AuditID:                   finding.AuditID,
+			AuditableItemID:           finding.AuditableItemID,
+			AuditChecklistID:          finding.AuditChecklistID,
+			AuditFindingCategoryID:    finding.AuditFindingCategoryID,
+			Recommendations:           finding.Recommendations,
+			AuditDraftFindingStatusID: finding.AuditDraftFindingStatusID,
+			CreatedAt:                 finding.CreatedAt,
+			UpdatedAt:                 finding.UpdatedAt,
+			// CreatedByUser:             mapUserToUserMinimalDTO(finding.CreatedByUser),
+			// UpdatedByUser:             mapUserToUserMinimalDTO(finding.UpdatedByUser),
 		}
-		return nil, err
+
+		// Map documents
+		// for _, document := range finding.Documents {
+		// 	findingDTO.Documents = append(findingDTO.Documents, document)
+		// }
+		// for _, conversation := range finding.Conversations {
+		// 	findingDTO.Conversations = append(findingDTO.Conversations, ConversationDTO{
+		// 		Message: conversation.Message,
+		// 	})
+		// }
+
+		// // Map action plans
+		// for _, actionPlan := range finding.ActionPlans {
+		// 	findingDTO.ActionPlans = append(findingDTO.ActionPlans, ActionPlanDTO{
+		// 		Plan:           actionPlan.Plan,
+		// 		ResponsibleUser: actionPlan.ResponsibleUser,
+		// 		TargetDate:     actionPlan.TargetDate.Format("2006-01-02"),
+		// 	})
+		// }
+
+		auditReportDTO.AuditDraftFindings = append(auditReportDTO.AuditDraftFindings, &findingDTO)
 	}
 
-	err = mapstructure.Decode(auditDraftReport, &auditDraftReportDTO)
-	if err != nil {
-		return nil, err
-	}
-	auditDraftReportDTO.ReportDateString = auditDraftReport.ReportDate.Format("2006-01-02")
-
-	auditDraftReportDTO.CreatedAt = auditDraftReport.CreatedAt
-	auditDraftReportDTO.UpdatedAt = auditDraftReport.UpdatedAt
-
-	return &auditDraftReportDTO, nil
+	return auditReportDTO, nil
 }
 
 func (adrs *AuditDraftReportService) Create(auditID uint, currentUserID uint, auditDraftReportFormDTO *auditDTOs.AuditDraftReportFormDTO) (uint, error) {
@@ -250,4 +295,30 @@ func (adrs *AuditDraftReportService) parseAuditDraftReportDates(dto *auditDTOs.A
 	}
 
 	return parsed, nil
+}
+
+// Helper function to map User to UserMinimalDTO
+func mapUserToUserMinimalDTO(user *models.User) organiztionDTOs.UserMinimalDTO {
+	if user == nil {
+		return organiztionDTOs.UserMinimalDTO{}
+	}
+	return organiztionDTOs.UserMinimalDTO{
+		ID:               int(user.ID),
+		FirstNameEN:      user.FirstNameEn,
+		LastNameEN:       user.LastNameEn,
+		FirstNameAR:      user.FirstNameAr,
+		LastNameAR:       user.LastNameAr,
+		ProfileImagePath: user.ProfileImagePath,
+		Email:            user.Email,
+		Initial:          user.Initial,
+		Color:            user.Color,
+	}
+}
+func mapAuditPlanAuditMemberToDTO(member *models.AuditPlanAuditMember) *auditDTOs.AuditPlanAuditMemberDTO {
+	return &auditDTOs.AuditPlanAuditMemberDTO{
+		ID:          &member.ID,
+		AuditPlanID: member.AuditPlanID,
+		UserID:      member.UserID,
+		User:        mapUserToUserMinimalDTO(member.User),
+	}
 }
