@@ -27,6 +27,8 @@ type Document struct {
 	UpdatedBYID           *uint      `json:"updated_by_id" gorm:"default:null"`
 	CreatedAt             time.Time  `json:"created_at" binding:"required" gorm:"type:datetime;not null"`
 	UpdatedAt             *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
+	PublishedBYID         *uint      `json:"published_by_ID" gorm:"default:null"`
+	PublishedAt           *time.Time `json:"published_at" gorm:"type:datetime;default:null"`
 
 	// Relations
 	DocumentType       *DocumentType       `gorm:"foreignKey:DocumentTypeID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
@@ -39,6 +41,7 @@ type Document struct {
 	UpdatedByUser      *User               `gorm:"foreignKey:UpdatedBYID"`
 	LastCheckoutByUser *User               `gorm:"foreignKey:LastCheckoutBYID"`
 	LastCheckinByUser  *User               `gorm:"foreignKey:LastCheckinBYID"`
+	PublishedByUser    *User               `gorm:"foreignKey:PublishedBYID"`
 
 	LatestDocumentVersion *DocumentVersion      `gorm:"foreignKey:DocumentID"`
 	DocumentVersions      []*DocumentVersion    `gorm:"foreignKey:DocumentID"`
