@@ -58,7 +58,7 @@ type AuditDraftFindingFormDTO struct {
 	AuditFindingCategoryID uint                                `json:"audit_finding_category_id" binding:"required"`
 	SeverityLevelID        uint                                `json:"severity_level_id" binding:"required"`
 	Recommendations        *string                             `json:"recommendations,omitempty"`
-	Documents              []*AuditDraftFindingDocumentFormDTO `json:"documents" binding:"required"`
+	Documents              []*AuditDraftFindingDocumentFormDTO `json:"documents"`
 }
 
 type AuditDraftFindingDocumentFormDTO struct {
