@@ -87,6 +87,7 @@ type ControlActionPlanDetailDTO struct {
 	Title                   string                              `json:"title"`
 	Description             string                              `json:"description"`
 	SeverityLevel           *masterDTOs.SeverityLevelDTO        `json:"severity_level"`
+	ResponsibleUserID       uint                                `json:"responsible_user_id"`
 	ResponsibleUser         UserMinimalDTO                      `json:"responsible_user"`
 	ActionPlanStatus        masterDTOs.ActionPlanStatusDTO      `json:"action_plan_status"`
 	Percentage              *uint                               `json:"percentage"`
@@ -119,4 +120,12 @@ type ControlActionPlanStatusUpdateDocumentDTO struct {
 	Token        string `json:"token"`
 	OriginalName string `json:"original_name"`
 	Type         string `json:"type"`
+}
+
+type ControlActionPlanMailDTO struct {
+	FirstNameEn string `json:"first_name_en"`
+	LastNameEn  string `json:"last_name_en"`
+	Subject     string `json:"subject"`
+	MessageEn   string `json:"message_en"`
+	RedirectURL string `json:"redirect_url"`
 }
