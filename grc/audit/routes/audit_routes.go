@@ -48,6 +48,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditScheduleController := app.AuditModule.AuditScheduleController
 	auditDraftFindingStatusController := app.AuditModule.AuditDraftFindingStatusController
 	auditDraftFindingController := app.AuditModule.AuditDraftFindingController
+	auditDraftReportController := app.AuditModule.AuditDraftReportController
 
 	//Audit Status
 	auditRoutes.GET("/audit-statuses", auditStatusController.GetAllAuditStatuses)
@@ -232,6 +233,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	//Audit Checklist
 	auditRoutes.GET("/audits/:auditId/checklists", auditChecklistController.GetAllAuditChecklists)
 	auditRoutes.GET("/audits/:auditId/checklists/:id", auditChecklistController.GetAuditChecklistDetails)
+	auditRoutes.GET("/audits/:auditId/checklists/:id/draft-findings", auditChecklistController.GetAllAuditChecklistDraftFindings)
 	auditRoutes.POST("/audits/:auditId/checklists", auditChecklistController.CreateAuditChecklist)
 	auditRoutes.PUT("/audits/:auditId/checklists/:id", auditChecklistController.UpdateAuditChecklist)
 	auditRoutes.PUT("/audits/:auditId/checklists/:id/answer", auditChecklistController.AuditChecklistAnswer)
@@ -260,5 +262,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.POST("/audit-draft-findings", auditDraftFindingController.CreateAuditDraftFinding)
 	auditRoutes.PUT("/audit-draft-findings/:findingId", auditDraftFindingController.UpdateAuditDraftFinding)
 	auditRoutes.POST("/audit-draft-findings/delete", auditDraftFindingController.DeleteAuditDraftFindings)
+
+	//Audit Draft Report
+	auditRoutes.GET("/audits/:auditId/draft-reports", auditDraftReportController.GetAllAuditDraftReports)
+	auditRoutes.GET("/audits/:auditId/draft-reports/:id", auditDraftReportController.GetAuditDraftReportDetails)
+	auditRoutes.POST("/audits/:auditId/draft-reports", auditDraftReportController.CreateAuditDraftReport)
+	auditRoutes.PUT("/audits/:auditId/draft-reports/:id", auditDraftReportController.UpdateAuditDraftReport)
+	auditRoutes.POST("/audits/:auditId/draft-reports/delete", auditDraftReportController.DeleteAuditDraftReports)
 
 }
