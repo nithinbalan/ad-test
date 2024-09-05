@@ -183,50 +183,52 @@ func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizatio
 		return 0, err
 	}
 
-	urlParam := fmt.Sprintf(`{"id":%d}`, id)
-	entity := "control"
-	action := "responsible-user-assign"
-
-	// Send notification to new owner
-	dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-		UserID:               controlFormDTO.OwnerID,
-		ModuleIdentifier:     "organization",
-		NotificationType:     string(commonDTOs.AssignmentType),
-		ReferenceNumber:      referenceNumber,
-		HeadingEn:            "Control Assignment",
-		HeadingAr:            "مهمة التحكم",
-		TitleEn:              controlFormDTO.TitleEn,
-		TitleAr:              controlFormDTO.TitleAr,
-		Entity:               &entity,
-		Action:               &action,
-		URLParam:             urlParam,
-		IsSystemNotification: false,
-		CreatedByID:          &currentUserID,
-	}
-
-	owner, err := cs.userSvc.GetByID(controlFormDTO.OwnerID)
-	if err != nil {
-		return 0, err
-	}
-
-	emailTo := []string{owner.Email}
-	subject := fmt.Sprintf("Control/%s: Added", control.TitleEn)
-	templateRelativePath := "organization/templates/email/control_create_owner_mail.html"
-	emailData := organizationDTOs.ControlMailDTO{
-		FirstNameEn: owner.FirstNameEn,
-		LastNameEn:  owner.LastNameEn,
-		MessageEn:   control.TitleEn,
-	}
-
-	emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
-		EmailTo:              emailTo,
-		Subject:              subject,
-		TemplateRelativePath: templateRelativePath,
-		EmailData:            emailData,
-	}
-
 	go func() {
-		err := cs.notificationSvc.SendNotification(
+		urlParam := fmt.Sprintf(`{"id":%d}`, id)
+		entity := "control"
+		action := "responsible-user-assign"
+
+		// Send notification to new owner
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserID:               controlFormDTO.OwnerID,
+			ModuleIdentifier:     "organization",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			ReferenceNumber:      referenceNumber,
+			HeadingEn:            "Control Assignment",
+			HeadingAr:            "مهمة التحكم",
+			TitleEn:              controlFormDTO.TitleEn,
+			TitleAr:              controlFormDTO.TitleAr,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		owner, err := cs.userSvc.GetByID(controlFormDTO.OwnerID)
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		emailTo := []string{owner.Email}
+		subject := fmt.Sprintf("Control/%s: Added", control.TitleEn)
+		templateRelativePath := "organization/templates/email/control_create_owner_mail.html"
+		emailData := organizationDTOs.ControlMailDTO{
+			FirstNameEn: owner.FirstNameEn,
+			LastNameEn:  owner.LastNameEn,
+			MessageEn:   control.TitleEn,
+		}
+
+		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              emailTo,
+			Subject:              subject,
+			TemplateRelativePath: templateRelativePath,
+			EmailData:            emailData,
+		}
+		err = cs.notificationSvc.SendNotification(
 			dbNotificationDTO, emailNotificationDTO, "control")
 		if err != nil {
 			utility.LogError("Failed to send control notifications", map[string]interface{}{
@@ -312,96 +314,101 @@ func (cs *ControlService) Update(id uint, currentUserID uint, controlFormDTO *or
 	}
 
 	// If the owner has changed, send notifications to the old and new owner
-	if oldOwnerID != controlFormDTO.OwnerID {
-		urlParam := fmt.Sprintf(`{"id":%d}`, id)
-		entity := "control"
-		removeAction := "responsible-user-remove"
-		assignAction := "responsible-user-assign"
+	go func() {
+		if oldOwnerID != controlFormDTO.OwnerID {
+			urlParam := fmt.Sprintf(`{"id":%d}`, id)
+			entity := "control"
+			removeAction := "responsible-user-remove"
+			assignAction := "responsible-user-assign"
 
-		// Notify old owner
-		oldOwnerNotification := &commonDTOs.DBNotificationDTO{
-			UserID:               oldOwnerID,
-			ModuleIdentifier:     "organization",
-			NotificationType:     string(commonDTOs.InformationType),
-			ReferenceNumber:      existingControl.ReferenceNumber,
-			HeadingEn:            "Control Ownership Removed",
-			HeadingAr:            "إزالة مسؤولية التحكم",
-			TitleEn:              controlFormDTO.TitleEn,
-			TitleAr:              controlFormDTO.TitleAr,
-			Entity:               &entity,
-			Action:               &removeAction,
-			URLParam:             urlParam,
-			IsSystemNotification: false,
-			CreatedByID:          &currentUserID,
-		}
+			// Notify the old owner
+			oldOwnerNotification := &commonDTOs.DBNotificationDTO{
+				UserID:               oldOwnerID,
+				ModuleIdentifier:     "organization",
+				NotificationType:     string(commonDTOs.InformationType),
+				ReferenceNumber:      existingControl.ReferenceNumber,
+				HeadingEn:            "Control Ownership Removed",
+				HeadingAr:            "إزالة مسؤولية التحكم",
+				TitleEn:              controlFormDTO.TitleEn,
+				TitleAr:              controlFormDTO.TitleAr,
+				Entity:               &entity,
+				Action:               &removeAction,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
 
-		oldOwner, err := cs.userSvc.GetByID(oldOwnerID)
-		if err != nil {
-			return err
-		}
+			oldOwner, err := cs.userSvc.GetByID(oldOwnerID)
+			if err != nil {
+				utility.LogError("Failed to fetch old owner details", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
 
-		oldOwnerEmail := &commonDTOs.EmailNotificationDTO{
-			EmailTo: []string{oldOwner.Email},
-			Subject: fmt.Sprintf("Control/%s: Ownership Removed", existingControl.TitleEn),
-			EmailData: organizationDTOs.ControlMailDTO{
-				FirstNameEn: oldOwner.FirstNameEn,
-				LastNameEn:  oldOwner.LastNameEn,
-				MessageEn:   existingControl.TitleEn,
-			},
-			TemplateRelativePath: "organization/templates/email/control_remove_owner_mail.html",
-		}
+			oldOwnerEmail := &commonDTOs.EmailNotificationDTO{
+				EmailTo: []string{oldOwner.Email},
+				Subject: fmt.Sprintf("Control/%s: Ownership Removed", existingControl.TitleEn),
+				EmailData: organizationDTOs.ControlMailDTO{
+					FirstNameEn: oldOwner.FirstNameEn,
+					LastNameEn:  oldOwner.LastNameEn,
+					MessageEn:   existingControl.TitleEn,
+				},
+				TemplateRelativePath: "organization/templates/email/control_remove_owner_mail.html",
+			}
 
-		// Notify new owner
-		newOwnerNotification := &commonDTOs.DBNotificationDTO{
-			UserID:               controlFormDTO.OwnerID,
-			ModuleIdentifier:     "organization",
-			NotificationType:     string(commonDTOs.AssignmentType),
-			ReferenceNumber:      existingControl.ReferenceNumber,
-			HeadingEn:            "Control Ownership Assigned",
-			HeadingAr:            "تم تعيين مسؤولية التحكم",
-			TitleEn:              controlFormDTO.TitleEn,
-			TitleAr:              controlFormDTO.TitleAr,
-			Entity:               &entity,
-			Action:               &assignAction,
-			URLParam:             urlParam,
-			IsSystemNotification: false,
-			CreatedByID:          &currentUserID,
-		}
+			// Notify the new owner
+			newOwnerNotification := &commonDTOs.DBNotificationDTO{
+				UserID:               controlFormDTO.OwnerID,
+				ModuleIdentifier:     "organization",
+				NotificationType:     string(commonDTOs.AssignmentType),
+				ReferenceNumber:      existingControl.ReferenceNumber,
+				HeadingEn:            "Control Ownership Assigned",
+				HeadingAr:            "تم تعيين مسؤولية التحكم",
+				TitleEn:              controlFormDTO.TitleEn,
+				TitleAr:              controlFormDTO.TitleAr,
+				Entity:               &entity,
+				Action:               &assignAction,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
 
-		newOwner, err := cs.userSvc.GetByID(controlFormDTO.OwnerID)
-		if err != nil {
-			return err
-		}
+			newOwner, err := cs.userSvc.GetByID(controlFormDTO.OwnerID)
+			if err != nil {
+				utility.LogError("Failed to fetch new owner details", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
 
-		newOwnerEmail := &commonDTOs.EmailNotificationDTO{
-			EmailTo: []string{newOwner.Email},
-			Subject: fmt.Sprintf("Control/%s: Ownership Assigned", existingControl.TitleEn),
-			EmailData: organizationDTOs.ControlMailDTO{
-				FirstNameEn: newOwner.FirstNameEn,
-				LastNameEn:  newOwner.LastNameEn,
-				MessageEn:   existingControl.TitleEn,
-			},
-			TemplateRelativePath: "organization/templates/email/control_change_owner_mail.html",
-		}
+			newOwnerEmail := &commonDTOs.EmailNotificationDTO{
+				EmailTo: []string{newOwner.Email},
+				Subject: fmt.Sprintf("Control/%s: Ownership Assigned", existingControl.TitleEn),
+				EmailData: organizationDTOs.ControlMailDTO{
+					FirstNameEn: newOwner.FirstNameEn,
+					LastNameEn:  newOwner.LastNameEn,
+					MessageEn:   existingControl.TitleEn,
+				},
+				TemplateRelativePath: "organization/templates/email/control_change_owner_mail.html",
+			}
 
-		go func() {
-			err := cs.notificationSvc.SendNotification(
-				newOwnerNotification, newOwnerEmail, "control")
+			// Send notifications for old and new owners
+			err = cs.notificationSvc.SendNotification(newOwnerNotification, newOwnerEmail, "control")
 			if err != nil {
 				utility.LogError("Failed to send new owner notifications", map[string]interface{}{
 					"error": err.Error(),
 				})
 			}
 
-			err = cs.notificationSvc.SendNotification(
-				oldOwnerNotification, oldOwnerEmail, "control")
+			err = cs.notificationSvc.SendNotification(oldOwnerNotification, oldOwnerEmail, "control")
 			if err != nil {
 				utility.LogError("Failed to send old owner notifications", map[string]interface{}{
 					"error": err.Error(),
 				})
 			}
-		}()
-	}
+		}
+	}()
 
 	return nil
 }
