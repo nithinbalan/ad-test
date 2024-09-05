@@ -210,6 +210,7 @@ func (repo *AuditRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseT
 		Preload("AuditPlan.AuditableItems.AuditableItem.AuditorRiskRating").
 		Preload("AuditPlan.AuditableItems.AuditableItem.AuditStatus").
 		Preload("AuditChecklists").
+		Preload("AuditDraftFindings").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&audit, id)
