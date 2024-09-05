@@ -13,6 +13,7 @@ type AuditDraftFindingListDTO struct {
 	AuditID                          uint    `json:"audit_id"`
 	AuditableItemID                  *uint   `json:"auditable_item_id"`
 	AuditChecklistID                 *uint   `json:"audit_checklist_id"`
+	AuditFindingCategoryID           uint    `json:"audit_finding_category_id"`
 	AuditTitle                       string  `json:"audit_title"`
 	Title                            string  `json:"title"`
 	Description                      *string `json:"description"`
