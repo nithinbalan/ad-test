@@ -87,6 +87,33 @@ func (acc *AuditChecklistController) GetAuditChecklistDetails(c *gin.Context) {
 	c.JSON(http.StatusOK, process)
 }
 
+func (acc *AuditChecklistController) GetAllAuditChecklistDraftFindings(c *gin.Context) {
+	auditID, err := strconv.Atoi(c.Param("auditId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	checklistID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	process, err := acc.service.GetDraftFindingsDetailsByChecklistID(uint(auditID), uint(checklistID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(acc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, process)
+}
+
 func (acc *AuditChecklistController) CreateAuditChecklist(c *gin.Context) {
 	var auditChecklistFormDTO auditDTOs.AuditChecklistFormDTO
 
@@ -243,7 +270,6 @@ func (acc *AuditChecklistController) DeleteAuditChecklists(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
-
 
 func (acc *AuditChecklistController) DeleteAuditChecklistAnswer(c *gin.Context) {
 	var request struct {

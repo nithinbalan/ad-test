@@ -20,6 +20,7 @@ type AuditChecklistServiceInterface interface {
 	GetAll(auditId uint, params *auditDTOs.AuditChecklistListQueryParamsDTO) ([]*auditDTOs.AuditChecklistListDTO, error)
 	GetByID(auditId uint, id uint) (*models.AuditChecklist, error)
 	GetFullDetailsByID(auditId uint, id uint) (*auditDTOs.AuditChecklistDetailDTO, error)
+	GetDraftFindingsDetailsByChecklistID(auditID uint, checklistID uint) ([]*auditDTOs.AuditDraftFindingDetailDTO, error)
 	Create(auditId uint, currentUserID uint, auditChecklistFormDTO *auditDTOs.AuditChecklistFormDTO) (uint, error)
 	Update(auditId uint, id uint, currentUserID uint, auditChecklistFormDTO *auditDTOs.AuditChecklistFormDTO) error
 	Delete(auditId uint, ids []uint, currentUserID uint) ([]uint, error)
@@ -80,6 +81,9 @@ func (acs *AuditChecklistService) GetByID(auditId uint, id uint) (*models.AuditC
 }
 
 func (acs *AuditChecklistService) GetFullDetailsByID(auditId uint, id uint) (*auditDTOs.AuditChecklistDetailDTO, error) {
+	if _, err := acs.auditSvc.GetByID(auditId); err != nil {
+		return nil, err
+	}
 	var auditChecklitDetailDTO auditDTOs.AuditChecklistDetailDTO
 
 	checklist, err := acs.repo.GetFullDetailsByID(id)
@@ -99,6 +103,39 @@ func (acs *AuditChecklistService) GetFullDetailsByID(auditId uint, id uint) (*au
 	//todo :- also add extra fields which required in details screen
 
 	return &auditChecklitDetailDTO, nil
+}
+
+func (acs *AuditChecklistService) GetDraftFindingsDetailsByChecklistID(auditId uint, checklistID uint) ([]*auditDTOs.AuditDraftFindingDetailDTO, error) {
+	if _, err := acs.GetByID(auditId, checklistID); err != nil {
+		return nil, err
+	}
+	auditDraftFindings, err := acs.repo.GetDraftFindingsDetailsByChecklistID(checklistID)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// Return an empty array and no error if no records are found
+			return []*auditDTOs.AuditDraftFindingDetailDTO{}, nil
+		}
+		return nil, err
+	}
+
+	// Convert the slice of AuditDraftFinding to a slice of AuditDraftFindingDetailDTO
+	var auditDraftFindingDetailDTOs []*auditDTOs.AuditDraftFindingDetailDTO
+	for _, finding := range auditDraftFindings {
+		var dto auditDTOs.AuditDraftFindingDetailDTO
+		err = mapstructure.Decode(finding, &dto)
+		if err != nil {
+			return nil, err
+		}
+		auditDraftFindingDetailDTOs = append(auditDraftFindingDetailDTOs, &dto)
+	}
+
+	// If there are no findings, return an empty slice
+	if len(auditDraftFindingDetailDTOs) == 0 {
+		return []*auditDTOs.AuditDraftFindingDetailDTO{}, nil
+	}
+
+	return auditDraftFindingDetailDTOs, nil
 }
 
 func (acs *AuditChecklistService) Create(auditId uint, currentUserID uint, auditChecklistFormDTO *auditDTOs.AuditChecklistFormDTO) (uint, error) {

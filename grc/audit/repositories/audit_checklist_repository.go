@@ -13,6 +13,7 @@ type AuditChecklistRepositoryInterface interface {
 	GetAll(auditId uint, params *auditDTOs.AuditChecklistListQueryParamsDTO) ([]*auditDTOs.AuditChecklistListDTO, error)
 	GetByID(id uint) (*models.AuditChecklist, error)
 	GetFullDetailsByID(id uint) (*models.AuditChecklist, error)
+	GetDraftFindingsDetailsByChecklistID(checklistID uint) ([]*models.AuditDraftFinding, error)
 	Create(auditChecklist *models.AuditChecklist, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(auditChecklist *models.AuditChecklist, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
@@ -225,6 +226,30 @@ func (repo *AuditChecklistRepository) GetFullDetailsByID(id uint) (*models.Audit
 	}
 
 	return checklist, nil
+}
+
+func (repo *AuditChecklistRepository) GetDraftFindingsDetailsByChecklistID(checklistID uint) ([]*models.AuditDraftFinding, error) {
+	var auditFindings []*models.AuditDraftFinding
+
+	result := repo.db.
+		Preload("AuditableItem").
+		Preload("AuditableItem.ResponsibleUnit").
+		Preload("AuditableItem.ResponsibleUser").
+		Preload("AuditFindingCategory").
+		Preload("SeverityLevel").
+		Preload("AuditDraftFindingStatus").
+		Preload("AuditChecklist").
+		Preload("CreatedByUser").
+		Preload("UpdatedByUser").
+		Preload("Documents").
+		Where("audit_checklist_id = ?", checklistID).
+		Find(&auditFindings) // Note: Find to get all matching records
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return auditFindings, nil
 }
 
 func (repo *AuditChecklistRepository) Create(auditChecklist *models.AuditChecklist, tx ...utility.DatabaseTransaction) (uint, error) {
