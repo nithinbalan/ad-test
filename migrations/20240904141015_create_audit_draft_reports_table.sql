@@ -5,7 +5,7 @@ CREATE TABLE audit_draft_reports
     id INT PRIMARY KEY IDENTITY(1, 1),
     audit_id INT NOT NULL,
     report_date DATE NOT NULL,
-    excecutive_summary NVARCHAR(MAX) NULL,
+    executive_summary NVARCHAR(MAX) NULL,
     conclusion NVARCHAR(MAX) NULL,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NULL,
