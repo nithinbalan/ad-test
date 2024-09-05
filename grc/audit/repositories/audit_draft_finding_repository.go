@@ -55,6 +55,7 @@ func (repo *AuditDraftFindingRepository) GetAll(params *auditDTOs.AuditDraftFind
 			auditable_items.title_ar AS auditable_item_title_ar,
 			audit_finding_categories.title_en AS audit_finding_category_title_en,
 			audit_finding_categories.title_ar AS audit_finding_category_title_ar,
+			audit_finding_categories.type AS audit_finding_category_type,
 			severity_levels.title_en AS severity_level_title_en,
 			severity_levels.title_ar AS severity_level_title_ar,
 			severity_levels.color_code AS severity_level_color_code,
