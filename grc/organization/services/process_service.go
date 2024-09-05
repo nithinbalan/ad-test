@@ -170,57 +170,53 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 		}
 	}
 
-	urlParam := fmt.Sprintf(`{"id":%d}`, id)
-	queryParam := ""
-	entity := "process"
-	action := "responsible-user-assign"
-
-	dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-		UserID:               processFormDTO.OwnerID,
-		ModuleIdentifier:     "organization",
-		NotificationType:     string(commonDTOs.AssignmentType),
-		ReferenceNumber:      referenceNumber,
-		HeadingEn:            "Process Assignment",
-		HeadingAr:            "مهمة العملية",
-		TitleEn:              processFormDTO.TitleEn,
-		TitleAr:              processFormDTO.TitleAr,
-		Entity:               &entity,
-		Action:               &action,
-		URLParam:             urlParam,
-		QueryParam:           queryParam,
-		IsSystemNotification: false,
-		CreatedByID:          &currentUserID,
-	}
-
-	//email notification
-	resposibleUser, err := ps.userSvc.GetByID(processFormDTO.OwnerID)
-	if err != nil {
-		return 0, err
-	}
-
-	redirectURL := fmt.Sprintf("process/%d", id)
-	emailTo := []string{resposibleUser.Email}
-	subject := fmt.Sprintf("Process/%s: Added", process.TitleEn)
-	templateRelativePath := "organization/templates/email/process_create_owner_mail.html"
-
-	emailData := organizationDTOs.ProcessMailDTO{
-		FirstNameEn: resposibleUser.FirstNameEn,
-		LastNameEn:  resposibleUser.LastNameEn,
-		MessageEn:   process.TitleEn,
-		RedirectURL: redirectURL,
-	}
-
-	emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
-		EmailTo:              emailTo,
-		Subject:              subject,
-		TemplateRelativePath: templateRelativePath,
-		EmailData:            emailData,
-	}
-
 	tx.Commit()
 
 	go func() {
-		err := ps.notificationSvc.SendNotification(
+		urlParam := fmt.Sprintf(`{"id":%d}`, id)
+		entity := "process"
+		action := "responsible-user-assign"
+
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserID:               processFormDTO.OwnerID,
+			ModuleIdentifier:     "organization",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			ReferenceNumber:      process.ReferenceNumber,
+			HeadingEn:            "Process Assignment",
+			HeadingAr:            "مهمة العملية",
+			TitleEn:              processFormDTO.TitleEn,
+			TitleAr:              processFormDTO.TitleAr,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		responsibleUser, err := ps.userSvc.GetByID(processFormDTO.OwnerID)
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		emailTo := []string{responsibleUser.Email}
+		subject := fmt.Sprintf("Process/%s: Assigned", processFormDTO.TitleEn)
+		emailData := organizationDTOs.ProcessMailDTO{
+			FirstNameEn: responsibleUser.FirstNameEn,
+			LastNameEn:  responsibleUser.LastNameEn,
+			MessageEn:   processFormDTO.TitleEn,
+		}
+
+		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              emailTo,
+			Subject:              subject,
+			TemplateRelativePath: "organization/templates/email/process_create_owner_mail.html",
+			EmailData:            emailData,
+		}
+
+		err = ps.notificationSvc.SendNotification(
 			dbNotificationDTO, emailNotificationDTO, "process")
 		if err != nil {
 			utility.LogError("Failed to send notifications", map[string]interface{}{
@@ -387,126 +383,123 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 		}
 	}
 
-	var dbNotificationDTO *commonDTOs.DBNotificationDTO
-	var emailNotificationDTO *commonDTOs.EmailNotificationDTO
-	var oldOwnerNotificationDTO *commonDTOs.DBNotificationDTO
-	var oldOwnerEmailNotificationDTO *commonDTOs.EmailNotificationDTO
-
-	if oldOwnerID != processFormDTO.OwnerID {
-		urlParam := fmt.Sprintf(`{"id":%d}`, id)
-		queryParam := ""
-		entity := "process"
-		action := "responsible-user-remove"
-
-		oldOwnerNotificationDTO = &commonDTOs.DBNotificationDTO{
-			UserID:               oldOwnerID,
-			ModuleIdentifier:     "organization",
-			NotificationType:     string(commonDTOs.InformationType),
-			ReferenceNumber:      process.ReferenceNumber,
-			HeadingEn:            "Process Ownership Removal",
-			HeadingAr:            "إزالة مسؤولية العملية",
-			TitleEn:              processFormDTO.TitleEn,
-			TitleAr:              processFormDTO.TitleAr,
-			Entity:               &entity,
-			Action:               &action,
-			URLParam:             urlParam,
-			QueryParam:           queryParam,
-			IsSystemNotification: false,
-			CreatedByID:          &currentUserID,
-		}
-
-		oldOwnerUser, err := ps.userSvc.GetByID(oldOwnerID)
-		if err != nil {
-			tx.Rollback()
-			return err
-		}
-
-		oldOwnerEmailTo := []string{oldOwnerUser.Email}
-		oldOwnerSubject := fmt.Sprintf("Process/%s: Ownership Removed", process.TitleEn)
-		oldOwnerTemplateRelativePath := "organization/templates/email/process_remove_owner_mail.html"
-		redirectURL := fmt.Sprintf("process/%d", id)
-
-		oldOwnerEmailData := organizationDTOs.ProcessMailDTO{
-			FirstNameEn: oldOwnerUser.FirstNameEn,
-			LastNameEn:  oldOwnerUser.LastNameEn,
-			MessageEn:   process.TitleEn,
-			RedirectURL: redirectURL,
-		}
-
-		oldOwnerEmailNotificationDTO = &commonDTOs.EmailNotificationDTO{
-			EmailTo:              oldOwnerEmailTo,
-			Subject:              oldOwnerSubject,
-			TemplateRelativePath: oldOwnerTemplateRelativePath,
-			EmailData:            oldOwnerEmailData,
-		}
-
-		//new owner notification
-		newOwnerAction := "responsible-user-assign"
-
-		dbNotificationDTO = &commonDTOs.DBNotificationDTO{
-			UserID:               processFormDTO.OwnerID,
-			ModuleIdentifier:     "organization",
-			NotificationType:     string(commonDTOs.AssignmentType),
-			ReferenceNumber:      process.ReferenceNumber,
-			HeadingEn:            "Process Ownership Change",
-			HeadingAr:            "تغيير مسؤولية العملية",
-			TitleEn:              processFormDTO.TitleEn,
-			TitleAr:              processFormDTO.TitleAr,
-			Entity:               &entity,
-			Action:               &newOwnerAction,
-			URLParam:             urlParam,
-			QueryParam:           queryParam,
-			IsSystemNotification: false,
-			CreatedByID:          &currentUserID,
-		}
-
-		responsibleUser, err := ps.userSvc.GetByID(processFormDTO.OwnerID)
-		if err != nil {
-			tx.Rollback()
-			return err
-		}
-
-		emailTo := []string{responsibleUser.Email}
-		subject := fmt.Sprintf("Process/%s: Ownership Changed", process.TitleEn)
-		templateRelativePath := "organization/templates/email/process_change_owner_mail.html"
-
-		emailData := organizationDTOs.ProcessMailDTO{
-			FirstNameEn: responsibleUser.FirstNameEn,
-			LastNameEn:  responsibleUser.LastNameEn,
-			MessageEn:   process.TitleEn,
-			RedirectURL: redirectURL,
-		}
-
-		emailNotificationDTO = &commonDTOs.EmailNotificationDTO{
-			EmailTo:              emailTo,
-			Subject:              subject,
-			TemplateRelativePath: templateRelativePath,
-			EmailData:            emailData,
-		}
-	}
-
 	tx.Commit()
 
 	go func() {
-		if dbNotificationDTO != nil && emailNotificationDTO != nil {
-			err := ps.notificationSvc.SendNotification(
+		if oldOwnerID != processFormDTO.OwnerID {
+			urlParam := fmt.Sprintf(`{"id":%d}`, id)
+			queryParam := ""
+			entity := "process"
+			action := "responsible-user-remove"
+
+			oldOwnerNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserID:               oldOwnerID,
+				ModuleIdentifier:     "organization",
+				NotificationType:     string(commonDTOs.InformationType),
+				ReferenceNumber:      process.ReferenceNumber,
+				HeadingEn:            "Process Ownership Removal",
+				HeadingAr:            "إزالة مسؤولية العملية",
+				TitleEn:              processFormDTO.TitleEn,
+				TitleAr:              processFormDTO.TitleAr,
+				Entity:               &entity,
+				Action:               &action,
+				URLParam:             urlParam,
+				QueryParam:           queryParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			oldOwnerUser, err := ps.userSvc.GetByID(oldOwnerID)
+			if err != nil {
+				utility.LogError("Failed to fetch old responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			oldOwnerEmailTo := []string{oldOwnerUser.Email}
+			oldOwnerSubject := fmt.Sprintf("Process/%s: Ownership Removed", process.TitleEn)
+			oldOwnerTemplateRelativePath := "organization/templates/email/process_remove_owner_mail.html"
+			redirectURL := fmt.Sprintf("process/%d", id)
+
+			oldOwnerEmailData := organizationDTOs.ProcessMailDTO{
+				FirstNameEn: oldOwnerUser.FirstNameEn,
+				LastNameEn:  oldOwnerUser.LastNameEn,
+				MessageEn:   process.TitleEn,
+				RedirectURL: redirectURL,
+			}
+
+			oldOwnerEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              oldOwnerEmailTo,
+				Subject:              oldOwnerSubject,
+				TemplateRelativePath: oldOwnerTemplateRelativePath,
+				EmailData:            oldOwnerEmailData,
+			}
+
+			//new owner notification
+			newOwnerAction := "responsible-user-assign"
+
+			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserID:               processFormDTO.OwnerID,
+				ModuleIdentifier:     "organization",
+				NotificationType:     string(commonDTOs.AssignmentType),
+				ReferenceNumber:      process.ReferenceNumber,
+				HeadingEn:            "Process Ownership Change",
+				HeadingAr:            "تغيير مسؤولية العملية",
+				TitleEn:              processFormDTO.TitleEn,
+				TitleAr:              processFormDTO.TitleAr,
+				Entity:               &entity,
+				Action:               &newOwnerAction,
+				URLParam:             urlParam,
+				QueryParam:           queryParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			responsibleUser, err := ps.userSvc.GetByID(processFormDTO.OwnerID)
+			if err != nil {
+				utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			emailTo := []string{responsibleUser.Email}
+			subject := fmt.Sprintf("Process/%s: Ownership Changed", process.TitleEn)
+			templateRelativePath := "organization/templates/email/process_change_owner_mail.html"
+
+			emailData := organizationDTOs.ProcessMailDTO{
+				FirstNameEn: responsibleUser.FirstNameEn,
+				LastNameEn:  responsibleUser.LastNameEn,
+				MessageEn:   process.TitleEn,
+				RedirectURL: redirectURL,
+			}
+
+			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              emailTo,
+				Subject:              subject,
+				TemplateRelativePath: templateRelativePath,
+				EmailData:            emailData,
+			}
+
+			err = ps.notificationSvc.SendNotification(
 				dbNotificationDTO, emailNotificationDTO, "process")
 			if err != nil {
 				utility.LogError("Failed to send notifications", map[string]interface{}{
 					"error": err.Error(),
 				})
 			}
-		}
 
-		if oldOwnerNotificationDTO != nil && oldOwnerEmailNotificationDTO != nil {
 			err = ps.notificationSvc.SendNotification(
 				oldOwnerNotificationDTO, oldOwnerEmailNotificationDTO, "process")
 			if err != nil {
 				utility.LogError("Failed to send old owner notifications", map[string]interface{}{
 					"error": err.Error(),
 				})
+
 			}
 		}
+
 	}()
 
 	return nil
