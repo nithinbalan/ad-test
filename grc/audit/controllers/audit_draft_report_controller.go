@@ -23,61 +23,13 @@ func NewAuditDraftReportController(service services.AuditDraftReportServiceInter
 	}
 }
 
-func (adrc *AuditDraftReportController) GetAllAuditDraftReports(c *gin.Context) {
+func (adrc *AuditDraftReportController) GetAuditDraftReportDetails(c *gin.Context) {
 	auditID, err := strconv.Atoi(c.Param("auditId"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
-
-	sort := c.Query("sort_order")
-	sortBy := c.Query("sort_by")
-	keyword := c.Query("keyword")
-
-	allowedParams := []string{
-		"audit_id",
-	}
-
-	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
-
-	page, err := utility.ParseQueryParamToInt(c, "page", 1)
-	if err != nil {
-		utility.SendInternalErrResp(adrc.db, c, "Invalid page parameter")
-		return
-	}
-
-	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
-	if err != nil {
-		utility.SendInternalErrResp(adrc.db, c, "Invalid page_size parameter")
-		return
-	}
-
-	queryParams := dtos.AuditDraftReportListQueryParamsDTO{
-		Sort:     sort,
-		SortBy:   sortBy,
-		Keyword:  keyword,
-		Page:     page,
-		PageSize: pageSize,
-		Filters:  filters,
-	}
-
-	auditDraftReports, err := adrc.service.GetAll(uint(auditID), &queryParams)
-	if err != nil {
-		utility.SendInternalErrResp(adrc.db, c, err.Error())
-		return
-	}
-	c.JSON(http.StatusOK, auditDraftReports)
-}
-
-func (adrc *AuditDraftReportController) GetAuditDraftReportDetails(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := strconv.ParseUint(idStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	auditDraftReport, err := adrc.service.GetFullDetailsByID(uint(id))
+	auditDraftReport, err := adrc.service.GetFullDetailsByID(uint(auditID))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -153,7 +105,7 @@ func (adrc *AuditDraftReportController) UpdateAuditDraftReport(c *gin.Context) {
 		return
 	}
 
-	err = adrc.service.Update(uint(auditDraftReportID), uint(auditID), currentUserID, &auditDraftReportFormDTO)
+	err = adrc.service.Update(uint(auditID), uint(auditDraftReportID), currentUserID, &auditDraftReportFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -172,6 +124,11 @@ func (adrc *AuditDraftReportController) UpdateAuditDraftReport(c *gin.Context) {
 }
 
 func (adrc *AuditDraftReportController) DeleteAuditDraftReports(c *gin.Context) {
+	auditID, err := strconv.Atoi(c.Param("auditId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
 	var request struct {
 		IDs []uint `json:"ids"`
 	}
@@ -187,7 +144,7 @@ func (adrc *AuditDraftReportController) DeleteAuditDraftReports(c *gin.Context) 
 		return
 	}
 
-	failedIDs, err := adrc.service.Delete(request.IDs, currentUserID)
+	failedIDs, err := adrc.service.Delete(uint(auditID), request.IDs, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(adrc.db, c, err.Error())
 		return
