@@ -58,7 +58,8 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, tx ...util
 	auditDraftReport, err := adrs.repo.GetFullDetailsByID(auditID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, utility.NewResourceNotFoundError(err, auditID)
+			// Return nil instead of an error when no data is found
+			return nil, nil
 		}
 		return nil, err
 	}
