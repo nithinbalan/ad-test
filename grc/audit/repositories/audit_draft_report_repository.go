@@ -143,6 +143,8 @@ func (repo *AuditDraftReportRepository) GetFullDetailsByID(id uint, tx ...utilit
 	result := db.
 		Preload("Audit").
 		Preload("Audit.AuditDraftFindings").
+		Preload("Audit.AuditDraftFindings.AuditDraftFindingStatus").
+		Preload("Audit.AuditDraftFindings.Documents").
 		Preload("Audit.AuditPlan").
 		Preload("Audit.AuditPlan.AuditCategory").
 		Preload("Audit.AuditPlan.AuditStatus").

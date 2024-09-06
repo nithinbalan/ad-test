@@ -66,22 +66,28 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(id uint, tx ...utility.D
 
 	// Map the data to the DTO
 	auditReportDTO := &auditDTOs.AuditDraftReportDetailDTO{
-		ID:               auditDraftReport.ID,
-		AuditID:          auditDraftReport.AuditID,
-		Title:            auditDraftReport.Audit.AuditPlan.Title,
-		ReferenceNumber:  auditDraftReport.Audit.AuditPlan.ReferenceNumber,
-		ReportDateString: auditDraftReport.ReportDate.Format("2006-01-02"),
-		PreparedBy:       mapUserToUserMinimalDTO(auditDraftReport.Audit.CreatedByUser),
-		PreparedAt:       auditDraftReport.CreatedAt.String(),
-		ExecutiveSummary: *auditDraftReport.ExecutiveSummary,
-		TeamLead:         mapUserToUserMinimalDTO(auditDraftReport.Audit.AuditPlan.TeamLead),
-		Conclusion:       *auditDraftReport.Conclusion,
+		ID:                 auditDraftReport.ID,
+		AuditID:            auditDraftReport.AuditID,
+		Title:              auditDraftReport.Audit.AuditPlan.Title,
+		ReferenceNumber:    auditDraftReport.Audit.AuditPlan.ReferenceNumber,
+		ReportDateString:   auditDraftReport.ReportDate.Format("2006-01-02"),
+		PreparedBy:         mapUserToUserMinimalDTO(auditDraftReport.Audit.CreatedByUser),
+		PreparedAt:         auditDraftReport.CreatedAt.String(),
+		ExecutiveSummary:   *auditDraftReport.ExecutiveSummary,
+		TeamLead:           mapUserToUserMinimalDTO(auditDraftReport.Audit.AuditPlan.TeamLead),
+		Conclusion:         *auditDraftReport.Conclusion,
+		Auditors:           []*auditDTOs.AuditPlanAuditMemberDTO{}, // Initialize as empty slice
+		AuditDraftFindings: []*auditDTOs.AuditDraftFindingDetailDTO{},
 	}
 
 	// Map auditors
 	for _, auditor := range auditDraftReport.Audit.AuditPlan.Members {
-		auditorDTO := mapAuditPlanAuditMemberToDTO(auditor)
-		auditReportDTO.Auditors = append(auditReportDTO.Auditors, auditorDTO)
+		auditReportDTO.Auditors = append(auditReportDTO.Auditors, &auditDTOs.AuditPlanAuditMemberDTO{
+			ID:          &auditor.ID,
+			AuditPlanID: auditor.AuditPlanID,
+			UserID:      auditor.UserID,
+			User:        mapUserToUserMinimalDTO(auditor.User),
+		})
 	}
 	// Map findings
 	for _, finding := range auditDraftReport.Audit.AuditDraftFindings {
@@ -97,14 +103,35 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(id uint, tx ...utility.D
 			AuditDraftFindingStatusID: finding.AuditDraftFindingStatusID,
 			CreatedAt:                 finding.CreatedAt,
 			UpdatedAt:                 finding.UpdatedAt,
+			Documents:                 []*auditDTOs.AuditDraftFindingDocumentDTO{},
 			// CreatedByUser:             mapUserToUserMinimalDTO(finding.CreatedByUser),
 			// UpdatedByUser:             mapUserToUserMinimalDTO(finding.UpdatedByUser),
 		}
-
+		if finding.AuditDraftFindingStatus != nil {
+			// Map AuditDraftFindingStatus to DTO
+			findingDTO.AuditDraftFindingStatus = auditDTOs.AuditDraftFindingStatusDTO{
+				ID:          finding.AuditDraftFindingStatus.ID,
+				TitleEn:     finding.AuditDraftFindingStatus.TitleEn,
+				TitleAr:     finding.AuditDraftFindingStatus.TitleAr,
+				ColorCode:   finding.AuditDraftFindingStatus.ColorCode,
+				Type:        finding.AuditDraftFindingStatus.Type,
+				IsFinalized: finding.AuditDraftFindingStatus.IsFinalized,
+			}
+		}
 		// Map documents
-		// for _, document := range finding.Documents {
-		// 	findingDTO.Documents = append(findingDTO.Documents, document)
-		// }
+		for _, document := range finding.Documents {
+			// Map the document model to the DTO
+			documentDTO := &auditDTOs.AuditDraftFindingDocumentDTO{
+				ID:           &document.ID,
+				URL:          &document.URL,
+				Name:         document.Name,
+				Token:        document.Token,
+				OriginalName: document.OriginalName,
+				Type:         document.Type,
+				Size:         document.Size,
+			}
+			findingDTO.Documents = append(findingDTO.Documents, documentDTO)
+		}
 		// for _, conversation := range finding.Conversations {
 		// 	findingDTO.Conversations = append(findingDTO.Conversations, ConversationDTO{
 		// 		Message: conversation.Message,
@@ -312,13 +339,5 @@ func mapUserToUserMinimalDTO(user *models.User) organiztionDTOs.UserMinimalDTO {
 		Email:            user.Email,
 		Initial:          user.Initial,
 		Color:            user.Color,
-	}
-}
-func mapAuditPlanAuditMemberToDTO(member *models.AuditPlanAuditMember) *auditDTOs.AuditPlanAuditMemberDTO {
-	return &auditDTOs.AuditPlanAuditMemberDTO{
-		ID:          &member.ID,
-		AuditPlanID: member.AuditPlanID,
-		UserID:      member.UserID,
-		User:        mapUserToUserMinimalDTO(member.User),
 	}
 }
