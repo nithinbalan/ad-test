@@ -42,17 +42,18 @@ type AuditDraftReportFormDTO struct {
 }
 
 type AuditDraftReportDetailDTO struct {
-	ID               uint                             `json:"id"`
-	AuditID          uint                             `json:"audit_id"`
-	AuditTitle       string                           `json:"audit_title"`
-	ReportDateString string                           `json:"report_date"`
-	ExecutiveSummary *string                          `json:"executive_summary"`
-	Conclusion       *string                          `json:"conclusion"`
-	Audit            *AuditDetailDTO                  `json:"audit"`
-	CreatedAt        time.Time                        `json:"created_at"`
-	UpdatedAt        *time.Time                       `json:"updated_at"`
-	CreatedByUser    organizationDTOs.UserMinimalDTO  `json:"created_by_user"`
-	UpdatedByUser    *organizationDTOs.UserMinimalDTO `json:"updated_by_user"`
+	ID                 uint                            `json:"id"`
+	AuditID            uint                            `json:"audit_id"`
+	Title              string                          `json:"title"`
+	ReferenceNumber    string                          `json:"reference_number"`
+	ReportDateString   string                          `json:"report_date"`
+	PreparedBy         organizationDTOs.UserMinimalDTO `json:"prepared_by"`
+	PreparedAt         string                          `json:"prepared_at"`
+	ExecutiveSummary   string                          `json:"executive_summary"`
+	Auditors           []*AuditPlanAuditMemberDTO      `json:"auditors"`
+	TeamLead           organizationDTOs.UserMinimalDTO `json:"team_lead"`
+	AuditDraftFindings []*AuditDraftFindingDetailDTO   `json:"draft_findings"`
+	Conclusion         string                          `json:"conclusion"`
 }
 
 type AuditDraftReportListQueryParamsDTO struct {
