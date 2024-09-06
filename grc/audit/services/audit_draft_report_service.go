@@ -14,12 +14,11 @@ import (
 )
 
 type AuditDraftReportServiceInterface interface {
-	GetAll(auditID uint, params *auditDTOs.AuditDraftReportListQueryParamsDTO) (*auditDTOs.AuditDraftReportListResponseDTO, error)
-	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditDraftReportDetailDTO, error)
+	GetFullDetailsByID(auditID uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditDraftReportDetailDTO, error)
 	GetByID(id uint) (*models.AuditDraftReport, error)
 	Create(auditID uint, currentUserID uint, auditDraftReportFormDTO *auditDTOs.AuditDraftReportFormDTO) (uint, error)
-	Update(id uint, auditID uint, currentUserID uint, auditDraftReportFormDTO *auditDTOs.AuditDraftReportFormDTO) error
-	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	Update(auditID uint, id uint, currentUserID uint, auditDraftReportFormDTO *auditDTOs.AuditDraftReportFormDTO) error
+	Delete(auditID uint, ids []uint, currentUserID uint) ([]uint, error)
 }
 
 type AuditDraftReportService struct {
@@ -40,13 +39,6 @@ func NewAuditDraftReportService(
 	}
 }
 
-func (adrs *AuditDraftReportService) GetAll(auditID uint, params *auditDTOs.AuditDraftReportListQueryParamsDTO) (*auditDTOs.AuditDraftReportListResponseDTO, error) {
-	if _, err := adrs.auditSvc.GetByID(auditID); err != nil {
-		return nil, err
-	}
-	return adrs.repo.GetAll(auditID, params)
-}
-
 func (adrs *AuditDraftReportService) GetByID(id uint) (*models.AuditDraftReport, error) {
 	auditDraftReport, err := adrs.repo.GetByID(id)
 	if err != nil {
@@ -58,9 +50,16 @@ func (adrs *AuditDraftReportService) GetByID(id uint) (*models.AuditDraftReport,
 	return auditDraftReport, nil
 }
 
-func (adrs *AuditDraftReportService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditDraftReportDetailDTO, error) {
-	auditDraftReport, err := adrs.repo.GetFullDetailsByID(id)
+func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditDraftReportDetailDTO, error) {
+	if _, err := adrs.auditSvc.GetByID(auditID); err != nil {
+		return nil, err
+	}
+
+	auditDraftReport, err := adrs.repo.GetFullDetailsByID(auditID)
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, auditID)
+		}
 		return nil, err
 	}
 
@@ -205,7 +204,7 @@ func (adrs *AuditDraftReportService) Create(auditID uint, currentUserID uint, au
 	return id, nil
 }
 
-func (adrs *AuditDraftReportService) Update(id uint, auditID uint, currentUserID uint, auditDraftReportFormDTO *auditDTOs.AuditDraftReportFormDTO) error {
+func (adrs *AuditDraftReportService) Update(auditID uint, id uint, currentUserID uint, auditDraftReportFormDTO *auditDTOs.AuditDraftReportFormDTO) error {
 	tx := adrs.repo.BeginTransaction()
 	if _, err := adrs.auditSvc.GetByID(auditID); err != nil {
 		return err
@@ -254,13 +253,15 @@ func (adrs *AuditDraftReportService) Update(id uint, auditID uint, currentUserID
 	return nil
 }
 
-func (adrs *AuditDraftReportService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
+func (adrs *AuditDraftReportService) Delete(auditID uint, ids []uint, currentUserID uint) ([]uint, error) {
 	tx := adrs.repo.BeginTransaction()
 	var failedIDs []uint
 	var successfulIDs []uint
-
+	if _, err := adrs.auditSvc.GetByID(auditID); err != nil {
+		return nil, err
+	}
 	for _, id := range ids {
-		_, err := adrs.repo.GetFullDetailsByID(id, tx)
+		_, err := adrs.repo.GetFullDetailsByID(auditID, tx)
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				failedIDs = append(failedIDs, id)
