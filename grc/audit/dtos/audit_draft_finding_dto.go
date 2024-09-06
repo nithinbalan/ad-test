@@ -13,6 +13,7 @@ type AuditDraftFindingListDTO struct {
 	AuditID                          uint    `json:"audit_id"`
 	AuditableItemID                  *uint   `json:"auditable_item_id"`
 	AuditChecklistID                 *uint   `json:"audit_checklist_id"`
+	AuditFindingCategoryID           uint    `json:"audit_finding_category_id"`
 	AuditTitle                       string  `json:"audit_title"`
 	Title                            string  `json:"title"`
 	Description                      *string `json:"description"`
@@ -21,6 +22,7 @@ type AuditDraftFindingListDTO struct {
 	AuditableItemTitleAr             string  `json:"auditable_item_title_ar"`
 	AuditFindingCategoryTitleEn      string  `json:"audit_finding_category_title_en"`
 	AuditFindingCategoryTitleAr      string  `json:"audit_finding_category_title_ar"`
+	AuditFindingCategoryType         string  `json:"audit_finding_category_type"`
 	SeverityLevelTitleEn             string  `json:"severity_level_title_en"`
 	SeverityLevelTitleAr             string  `json:"severity_level_title_ar"`
 	SeverityLevelColorCode           string  `json:"severity_level_color_code"`
