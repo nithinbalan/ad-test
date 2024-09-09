@@ -49,6 +49,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditDraftFindingStatusController := app.AuditModule.AuditDraftFindingStatusController
 	auditDraftFindingController := app.AuditModule.AuditDraftFindingController
 	auditDraftReportController := app.AuditModule.AuditDraftReportController
+	auditDraftFindingConversationController := app.AuditModule.AuditDraftFindingConversationController
 
 	//Audit Status
 	auditRoutes.GET("/audit-statuses", auditStatusController.GetAllAuditStatuses)
@@ -268,5 +269,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.POST("/audits/:auditId/draft-reports", auditDraftReportController.CreateAuditDraftReport)
 	auditRoutes.PUT("/audits/:auditId/draft-reports/:id", auditDraftReportController.UpdateAuditDraftReport)
 	auditRoutes.POST("/audits/:auditId/draft-reports/delete", auditDraftReportController.DeleteAuditDraftReports)
+
+	// Audit Draft Finding Conversations
+	auditRoutes.GET("/audit-draft-findings/:findingId/conversations", auditDraftFindingConversationController.GetAllAuditDraftFindingConversations)
+	auditRoutes.GET("/audit-draft-findings/:findingId/conversations/:id", auditDraftFindingConversationController.GetAuditDraftFindingConversationDetails)
+	auditRoutes.POST("/audit-draft-findings/:findingId/conversations", auditDraftFindingConversationController.CreateAuditDraftFindingConversation)
+	auditRoutes.PUT("/audit-draft-findings/:findingId/conversations/:id", auditDraftFindingConversationController.UpdateAuditDraftFindingConversation)
+	auditRoutes.POST("/audit-draft-findings/:findingId/conversations/delete", auditDraftFindingConversationController.DeleteAuditDraftFindingConversations)
 
 }

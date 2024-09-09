@@ -43,6 +43,7 @@ type AuditModule struct {
 	AuditChecklistController                     *controllers.AuditChecklistController
 	AuditScheduleController                      *controllers.AuditScheduleController
 	AuditDraftReportController                   *controllers.AuditDraftReportController
+	AuditDraftFindingConversationController      *controllers.AuditDraftFindingConversationController
 }
 
 func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, complianceModule *ComplianceModule, riskModule *RiskModule, incidentModule *IncidentModule, documentModule *DocumentModule, settingModule *SettingsModule, masterModule *MasterModule) *AuditModule {
@@ -247,6 +248,15 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 	)
 	auditDraftFindingController := controllers.NewAuditDraftFindingController(auditDraftFindingSvc)
 
+	auditDraftFindingConversationRepo := repositories.NewAuditDraftFindingConversationRepository(db)
+	auditDraftFindingConversationSvc := services.NewAuditDraftFindingConversationService(
+		auditDraftFindingConversationRepo,
+		sharedModule.ActivityLogService,
+		auditDraftFindingSvc,
+		auditDraftFindingStatusSvc,
+	)
+	auditDraftFindingConversationController := controllers.NewAuditDraftFindingConversationController(auditDraftFindingConversationSvc)
+
 	auditDocumentRequestStatusRepo := repositories.NewAuditDocumentRequestStatusRepository(db)
 	auditDocumentRequestStatusSvc := services.NewAuditDocumentRequestStatusService(auditDocumentRequestStatusRepo)
 	auditDocumentRequestStatusController := controllers.NewAuditDocumentRequestStatusController(auditDocumentRequestStatusSvc)
@@ -345,5 +355,6 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		AuditChecklistController:                     auditChecklistController,
 		AuditScheduleController:                      auditScheduleController,
 		AuditDraftReportController:                   auditDraftReportController,
+		AuditDraftFindingConversationController:      auditDraftFindingConversationController,
 	}
 }
