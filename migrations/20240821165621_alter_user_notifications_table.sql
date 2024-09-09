@@ -5,7 +5,7 @@
 ALTER TABLE user_notifications
 ADD
     notification_type NVARCHAR(255) NOT NULL,
-    reference_number VARCHAR(45) NOT NULL,
+    reference_number VARCHAR(45) NULL,
     heading_en NVARCHAR(255) NOT NULL,
     heading_ar NVARCHAR(255) NOT NULL,
     title_en NVARCHAR(500) NOT NULL,
