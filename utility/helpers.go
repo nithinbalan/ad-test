@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"os"
 	"reflect"
 	"strings"
 	"time"
@@ -254,4 +255,12 @@ func GenerateColorCode(entityType string) string {
 	}
 
 	return color
+}
+
+func GetAppURL() string {
+	appURL := os.Getenv("APP_URL")
+	if appURL == "" {
+		appURL = "http://grc-dev.ervarioo.com"
+	}
+	return appURL
 }

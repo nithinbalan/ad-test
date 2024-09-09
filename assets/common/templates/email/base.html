@@ -1,59 +1,128 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>
-  body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    margin: 0;
-    padding: 0;
-    background-color: #f4f4f4;
-  }
-  .email-container {
-    max-width: 600px;
-    margin: auto;
-    background: #ffffff;
-    border: 1px solid #ddd;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-  .header {
-    background: #165D31; /* Green color from the attached colors */
-    color: white;
-    padding: 10px;
-    text-align: center;
-  }
-  .footer {
-    background: #165D31; /* Same green color for the footer for consistency */
-    color: white;
-    padding: 10px;
-    text-align: center;
-  }
-  .content {
-    padding: 20px;
-    color: #333333;
-  }
-  /* Compliance status uses the green color */
-  .compliance-status {
-    color: #165D31;
-    font-weight: bold;
-  }
-  /* High severity or important items use the orange color */
-  .severity-high {
-    color: #BC8E48;
-    font-weight: bold;
-  }
-</style>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="x-apple-disable-message-reformatting">
+    <meta name="format-detection" content="telephone=no,address=no,email=no,date=no,url=no">
+    <meta name="color-scheme" content="light">
+    <meta name="supported-color-schemes" content="light">
+    <title></title>
+
+    <!-- CSS Reset : BEGIN -->
+    <style>
+        html, body {
+            margin: 0 auto !important;
+            padding: 0 !important;
+            height: 100% !important;
+            width: 100% !important;
+        }
+
+        * {
+            -ms-text-size-adjust: 100%;
+            -webkit-text-size-adjust: 100%;
+        }
+
+        p {
+            font-size: 16px;
+        }
+
+        div[style*="margin: 16px 0"] {
+            margin: 0 !important;
+        }
+
+        table, td {
+            mso-table-lspace: 0pt !important;
+            mso-table-rspace: 0pt !important;
+        }
+
+        th {
+            font-weight: normal;
+        }
+
+        table {
+            border-spacing: 0 !important;
+            table-layout: fixed !important;
+            margin: 0 auto !important;
+        }
+
+        a {
+            text-decoration: none;
+        }
+
+        img {
+            -ms-interpolation-mode: bicubic;
+        }
+
+        a[x-apple-data-detectors], .unstyle-auto-detected-links a, .aBn {
+            border-bottom: 0 !important;
+            cursor: default !important;
+            color: inherit !important;
+            text-decoration: none !important;
+            font-size: inherit !important;
+            font-family: inherit !important;
+            font-weight: inherit !important;
+            line-height: inherit !important;
+        }
+
+        .im {
+            color: inherit !important;
+        }
+
+        .a6S {
+            display: none !important;
+            opacity: 0.01 !important;
+        }
+
+        img.g-img+div {
+            display: none !important;
+        }
+
+        /* Additional CSS */
+        .email-container {
+            background-color: #f5f5f5;
+            padding: 0;
+        }
+
+        .content {
+            padding: 40px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-size: 16px;
+            font-weight: 500;
+            line-height: 22px;
+        }
+    </style>
+    <!-- CSS Reset : END -->
 </head>
-<body>
-  <div class="email-container">
-    {{ template "header" . }}
-    <div class="content">
-      {{ block "content" . }}
-      <!-- The dynamic content will be inserted here -->
-      {{ end }}
-    </div>
-    {{ template "footer" . }}
-  </div>
+
+<body width="100%" style="margin: 0; padding: 0 !important; mso-line-height-rule: exactly; background-color: #f5f5f5;">
+    <center role="article" aria-roledescription="email" lang="en" style="width: 100%; background-color: #f5f5f5;">
+        <table align="center" role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" class="email-container">
+            <tr>
+                <td></td>
+                <td width="600">
+                    <!-- Include Header Template -->
+                    {{ template "header" . }}
+
+                    <!-- Main Content -->
+                    <table align="center" role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="background-color: #fff;">
+                        <tr>
+                            <td class="content">
+                                {{ block "content" . }}{{ end }}
+                            </td>
+                        </tr>
+                    </table>
+
+                    <!-- Include Footer Template -->
+                    {{ template "footer" . }}
+
+                </td>
+                <td></td>
+            </tr>
+        </table>
+    </center>
 </body>
+
 </html>
