@@ -153,8 +153,8 @@ func (cts *ControlTestService) Create(controlID uint, currentUserID uint, riskID
 		control.NextTestDate = &nextTestDate
 	}
 
-	control.ControlEfficiencyStatusID = &controlTestFormDTO.ControlEfficiencyStatusID
-	control.ControlImplementationStatusID = &controlTestFormDTO.ControlImplementationStatusID
+	control.ControlEfficiencyStatusID = controlTestFormDTO.ControlEfficiencyStatusID
+	control.ControlImplementationStatusID = controlTestFormDTO.ControlImplementationStatusID
 	control.EfficiencyScore = controlTestFormDTO.Score
 	control.LastTestDate = dates.TestedAt
 	control.UpdatedByID = &currentUserID
@@ -284,8 +284,8 @@ func (cts *ControlTestService) Update(controlID uint, id uint, currentUserID uin
 		control.NextTestDate = &nextTestDate
 	}
 
-	control.ControlEfficiencyStatusID = &controlTestFormDTO.ControlEfficiencyStatusID
-	control.ControlImplementationStatusID = &controlTestFormDTO.ControlImplementationStatusID
+	control.ControlEfficiencyStatusID = controlTestFormDTO.ControlEfficiencyStatusID
+	control.ControlImplementationStatusID = controlTestFormDTO.ControlImplementationStatusID
 	control.EfficiencyScore = controlTestFormDTO.Score
 	control.LastTestDate = dates.TestedAt
 	control.UpdatedByID = &currentUserID

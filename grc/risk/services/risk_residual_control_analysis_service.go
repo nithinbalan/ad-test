@@ -121,8 +121,8 @@ func (rcas *RiskResidualControlAnalysisService) Create(riskID uint, currentUserI
 		riskControlAnalysis := &models.RiskControlAnalysis{
 			RiskControlID:                 riskControl.ID,
 			Type:                          "residual",
-			ControlEfficiencyStatusID:     *control.ControlEfficiencyStatusID,
-			ControlImplementationStatusID: *control.ControlImplementationStatusID,
+			ControlEfficiencyStatusID:     control.ControlEfficiencyStatusID,
+			ControlImplementationStatusID: control.ControlImplementationStatusID,
 			CreatedByID:                   currentUserID,
 			CreatedAt:                     time.Now(),
 		}
