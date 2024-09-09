@@ -26,7 +26,7 @@ func NewProcessController(service services.ProcessServiceInterface) *ProcessCont
 
 func (pc *ProcessController) GetAllProcesses(c *gin.Context) {
 	sort := c.DefaultQuery("sort_order", "asc")
-	sortBy := c.DefaultQuery("sort_by", "process_title")
+	sortBy := c.DefaultQuery("sort_by", "title")
 	keyword := c.Query("keyword")
 	quickFilter := c.QueryArray("quick_filter")
 
@@ -53,11 +53,18 @@ func (pc *ProcessController) GetAllProcesses(c *gin.Context) {
 	}
 
 	validSortFields := map[string]string{
-		"process_title":   "processes.title_en",
-		"refrence_number": "processes.reference_number",
-		"description":     "processes.description",
-		"process_group":   "process_groups.title_en",
-		"status":          "lifecycle_statuses.title_enn",
+		"reference_number":     "processes.reference_number",
+		"title_en":             "processes.title_en",
+		"title_ar":             "processes.title_ar",
+		"description":          "processes.description",
+		"process_group_en":     "process_groups.title_en",
+		"process_group_ar":     "process_groups.title_ar",
+		"organization_unit_en": "organization_units.title_en",
+		"organization_unit_ar": "organization_units.title_ar",
+		"owner_en":             "owner.first_name_en",
+		"owner_ar":             "owner.first_name_ar",
+		"status_en":            "lifecycle_statuses.title_en",
+		"status_ar":            "lifecycle_statuses.title_ar",
 	}
 
 	sortField, valid := validSortFields[sortBy]
