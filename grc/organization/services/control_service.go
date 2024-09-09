@@ -504,7 +504,7 @@ func (cs *ControlService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 				templateRelativePath := "organization/templates/email/control_delete_mail.html"
 				redirectURL := fmt.Sprintf("control/deleted/%d", notification.OwnerID)
 
-				emailData := organizationDTOs.ProcessMailDTO{
+				emailData := organizationDTOs.ControlMailDTO{
 					FirstNameEn: ownerUser.FirstNameEn,
 					LastNameEn:  ownerUser.LastNameEn,
 					MessageEn:   notification.TitleEn,
