@@ -26,9 +26,15 @@ func NewProcessController(service services.ProcessServiceInterface) *ProcessCont
 
 func (pc *ProcessController) GetAllProcesses(c *gin.Context) {
 	sort := c.DefaultQuery("sort_order", "asc")
-	sortBy := c.DefaultQuery("sort_by", "title")
+	sortBy := c.DefaultQuery("sort_by", "title_en")
 	keyword := c.Query("keyword")
 	quickFilter := c.QueryArray("quick_filter")
+
+	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
+	if err != nil {
+		utility.SendInternalErrResp(pc.db, c, "Invalid export parameter")
+		return
+	}
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
@@ -82,11 +88,28 @@ func (pc *ProcessController) GetAllProcesses(c *gin.Context) {
 		PageSize:    pageSize,
 		Filters:     filters,
 		QuickFilter: quickFilter,
+		Export:      export,
 	}
 
 	processes, err := pc.service.GetAll(&queryParams)
 	if err != nil {
 		utility.SendInternalErrResp(pc.db, c, err.Error())
+		return
+	}
+
+	if export {
+		excelFile, err := pc.service.ExportProcesses(processes.Items)
+		if err != nil {
+			utility.SendInternalErrResp(pc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="Processes.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
 		return
 	}
 
@@ -251,4 +274,10 @@ func (pc *ProcessController) GetControlSummary(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, process)
+}
+
+func (pc *ProcessController) GetProcessesExport(c *gin.Context) {
+	c.Request.URL.RawQuery += "&export=true"
+
+	pc.GetAllProcesses(c)
 }
