@@ -95,6 +95,7 @@ type ComplianceRegisterListQueryParamsDTO struct {
 	ExpiryDateTo       string
 	NextReviewDateFrom string
 	NextReviewDateTo   string
+	Export             bool
 }
 
 type ComplianceRegisterListResponseDTO struct {
