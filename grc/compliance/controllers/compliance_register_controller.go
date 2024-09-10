@@ -31,6 +31,13 @@ func (crc *ComplianceRegisterController) GetAllComplianceRegisters(c *gin.Contex
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
 
+	// Convert the export parameter to a boolean
+	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, "Invalid export parameter")
+		return
+	}
+
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"compliance_category_ids",
@@ -84,13 +91,33 @@ func (crc *ComplianceRegisterController) GetAllComplianceRegisters(c *gin.Contex
 		ExpiryDateTo:       expiryDateTo,
 		NextReviewDateFrom: nextReviewDateFrom,
 		NextReviewDateTo:   nextReviewDateTo,
+		Export:             export,
 	}
-	compliances, err := crc.service.GetAll(&queryParams)
 
+	compliances, err := crc.service.GetAll(&queryParams)
 	if err != nil {
 		utility.SendInternalErrResp(crc.db, c, err.Error())
 		return
 	}
+
+	// If export is true, generate and return the Excel file
+	if export {
+		excelFile, err := crc.service.ExportComplianceRegisters(compliances.Items)
+		if err != nil {
+			utility.SendInternalErrResp(crc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="Compliance Register.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
+		return
+	}
+
+	// Otherwise, return the data as JSON
 	c.JSON(http.StatusOK, compliances)
 }
 
@@ -326,83 +353,8 @@ func (crc *ComplianceRegisterController) DownloadComplianceRegisterDocument(c *g
 	c.File(complianceDocumentPath)
 }
 
-func (crc *ComplianceRegisterController) ExportComplianceRegistersToExcel(c *gin.Context) {
-	sort := c.Query("sort_order")
-	sortBy := c.Query("sort_by")
-	keyword := c.Query("keyword")
-	status := c.Query("status")
-	quickFilter := c.QueryArray("quick_filter")
+func (crc *ComplianceRegisterController) GetComplianceRegisterExport(c *gin.Context) {
+	c.Request.URL.RawQuery += "&export=true"
 
-	// Define an array of allowed parameter names
-	allowedParams := []string{
-		"compliance_category_ids",
-		"severity_level_ids",
-		"compliance_status_ids",
-		"responsible_user_ids",
-		"responsible_unit_ids",
-		"review_frequency_ids",
-		"review_responsible_user_ids",
-		"lifecycle_status_ids",
-	}
-
-	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
-
-	deadlineFrom := c.Query("deadline_from")
-	deadlineTo := c.Query("deadline_to")
-	issueDateFrom := c.Query("issue_date_from")
-	issueDateTo := c.Query("issue_date_to")
-	expiryDateFrom := c.Query("expiry_date_from")
-	expiryDateTo := c.Query("expiry_date_to")
-	nextReviewDateFrom := c.Query("next_review_date_from")
-	nextReviewDateTo := c.Query("next_review_date_to")
-
-	page, err := utility.ParseQueryParamToInt(c, "page", 1)
-	if err != nil {
-		utility.SendInternalErrResp(crc.db, c, "Invalid page parameter")
-		return
-	}
-
-	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
-	if err != nil {
-		utility.SendInternalErrResp(crc.db, c, "Invalid page_size parameter")
-		return
-	}
-
-	queryParams := complianceDTOs.ComplianceRegisterListQueryParamsDTO{
-		Sort:               sort,
-		SortBy:             sortBy,
-		Keyword:            keyword,
-		Status:             status,
-		Page:               page,
-		PageSize:           pageSize,
-		Filters:            filters,
-		QuickFilter:        quickFilter,
-		DeadlineFrom:       deadlineFrom,
-		DeadlineTo:         deadlineTo,
-		IssueDateFrom:      issueDateFrom,
-		IssueDateTo:        issueDateTo,
-		ExpiryDateFrom:     expiryDateFrom,
-		ExpiryDateTo:       expiryDateTo,
-		NextReviewDateFrom: nextReviewDateFrom,
-		NextReviewDateTo:   nextReviewDateTo,
-	}
-	compliances, err := crc.service.GetAll(&queryParams)
-	if err != nil {
-		utility.SendInternalErrResp(crc.db, c, err.Error())
-		return
-	}
-
-	// Generate the Excel file
-	excelFile, err := crc.service.ExportComplianceRegisters(compliances.Items)
-	if err != nil {
-		utility.SendInternalErrResp(crc.db, c, err.Error())
-		return
-	}
-	defer excelFile.Close()
-
-	// Set the response headers
-	c.Header("Content-Description", "File Transfer")
-	c.Header("Content-Disposition", "attachment; filename=compliance_registers.xlsx")
-	c.Header("Content-Type", "application/octet-stream")
-	c.File(excelFile.Name())
+	crc.GetAllComplianceRegisters(c)
 }
