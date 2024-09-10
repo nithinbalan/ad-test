@@ -59,15 +59,25 @@ func (repo *ControlTestRepository) GetAll(controlID uint, params *organizationDT
 			control_tests.score,
 			control_tests.comments,
 			control_tests.tested_source,
+			tested_by_user.id AS tested_by_user_id,
 			tested_by_user.first_name_en AS tested_by_user_first_name_en,
 			tested_by_user.first_name_ar AS tested_by_user_first_name_ar,
 			tested_by_user.last_name_en AS tested_by_user_last_name_en,
 			tested_by_user.last_name_ar AS tested_by_user_last_name_ar,
+			tested_by_user.initial AS tested_by_user_initial,
+        	tested_by_user.color AS tested_by_user_color,
+        	tested_by_user.email AS tested_by_user_email,
+        	tested_by_user.profile_image_path AS tested_by_user_profile_image_path,
+			updated_by_user.id AS updated_user_id,
 			updated_by_user.first_name_en AS updated_user_first_name_en,
 			updated_by_user.first_name_ar AS updated_user_first_name_ar,
 			updated_by_user.last_name_en AS updated_user_last_name_en,
 			updated_by_user.last_name_ar AS updated_user_last_name_ar,
-			control_tests.tested_at,
+			updated_by_user.initial AS updated_user_initial,
+        	updated_by_user.color AS updated_user_color,
+        	updated_by_user.email AS updated_user_email,
+        	updated_by_user.profile_image_path AS updated_user_profile_image_path, 
+        	CONVERT(VARCHAR, control_tests.tested_at, 23) AS tested_at,
 			control_tests.updated_at
         `).
 		Joins("LEFT JOIN control_implementation_statuses ON control_implementation_statuses.id = control_tests.control_implementation_status_id").
@@ -126,7 +136,7 @@ func (repo *ControlTestRepository) GetAll(controlID uint, params *organizationDT
 				tested_by_user.first_name_en LIKE ? OR
 				tested_by_user.first_name_ar LIKE ? OR
 				tested_by_user.last_name_en LIKE ? OR
-				tested_by_user.last_name_ar LIKE ? OR)`,
+				tested_by_user.last_name_ar LIKE ?)`,
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")

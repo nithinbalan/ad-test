@@ -25,6 +25,11 @@ type ProcessRepositoryInterface interface {
 	CreateProcessControls(controls []*models.ProcessControl, tx ...utility.DatabaseTransaction) error
 	DeleteProcessControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error
 
+	CreateProcessDocuments(documents []*models.ProcessAssociatedDocument, tx ...utility.DatabaseTransaction) error
+	DeleteProcessDocuments(documentIds []*uint, tx ...utility.DatabaseTransaction) error
+
+	GetDocumentByID(id uint) (*models.Document, error)
+
 	//lifecycle status
 	GetIDsByLifecycleStatus(ids []uint, status string) ([]uint, error)
 	UpdateLifecycleStatusForIDs(ids []uint, statusId uint) ([]uint, error)
@@ -61,21 +66,36 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 		process_groups.title_ar AS process_group_title_ar,
 		organization_units.title_en AS owner_unit_title_en,
 		organization_units.title_ar AS owner_unit_title_ar,
+		owner.id AS owner_id,
 		owner.first_name_en AS owner_first_name_en,
 		owner.first_name_ar AS owner_first_name_ar,
 		owner.last_name_en AS owner_last_name_en,
 		owner.last_name_ar AS owner_last_name_ar,
+		owner.initial AS owner_initial,
+        owner.color AS owner_color,
+        owner.email AS owner_email,
+        owner.profile_image_path AS owner_profile_image_path,
 		lifecycle_statuses.title_en AS lifecycle_status_title_en,
 		lifecycle_statuses.title_ar AS lifecycle_status_title_ar,
 		lifecycle_statuses.color_code AS lifecycle_status_color_code,
-		created_user.first_name_en AS created_user_first_name_en,
+		created_user.id AS created_user_id,
+        created_user.first_name_en AS created_user_first_name_en,
 		created_user.first_name_ar AS created_user_first_name_ar,
 		created_user.last_name_en AS created_user_last_name_en,
 		created_user.last_name_ar AS created_user_last_name_ar,
-		updated_user.first_name_en AS updated_user_first_name_en,
+		created_user.initial AS created_user_initial,
+        created_user.color AS created_user_color,
+        created_user.email AS created_user_email,
+        created_user.profile_image_path AS created_user_profile_image_path,
+		updated_user.id AS updated_user_id,
+    	updated_user.first_name_en AS updated_user_first_name_en,
 		updated_user.first_name_ar AS updated_user_first_name_ar,
 		updated_user.last_name_en AS updated_user_last_name_en,
 		updated_user.last_name_ar AS updated_user_last_name_ar,
+		updated_user.initial AS updated_user_initial,
+        updated_user.color AS updated_user_color,
+        updated_user.email AS updated_user_email,
+        updated_user.profile_image_path AS updated_user_profile_image_path,
 		processes.created_at,
 		processes.updated_at
 	`).
@@ -173,6 +193,7 @@ func (repo *ProcessRepository) GetFullDetailsByID(id uint, tx ...utility.Databas
 		Preload("Owner.OrganizationUnit1").
 		Preload("LifecycleStatus").
 		Preload("Controls").
+		Preload("Documents").
 		Preload("CreatedByUser").
 		Preload("CreatedByUser.OrganizationUnit1").
 		Preload("UpdatedByUser").
@@ -295,6 +316,39 @@ func (repo *ProcessRepository) DeleteProcessControls(controlIds []*uint, tx ...u
 	}
 
 	return nil
+}
+
+func (repo *ProcessRepository) CreateProcessDocuments(documents []*models.ProcessAssociatedDocument, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&documents).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *ProcessRepository) DeleteProcessDocuments(documentIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", documentIds).Delete(&models.ProcessAssociatedDocument{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *ProcessRepository) GetDocumentByID(id uint) (*models.Document, error) {
+	var document *models.Document
+	result := repo.db.First(&document, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return document, nil
 }
 
 func (repo *ProcessRepository) GetControlSummary(processID uint) ([]models.ProcessControl, error) {

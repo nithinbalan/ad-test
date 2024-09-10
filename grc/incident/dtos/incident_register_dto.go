@@ -6,59 +6,83 @@ import (
 	masterDTOs "jethur/grc/masters/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
 	riskDTOs "jethur/grc/risk/dtos"
+	settingsDTOs "jethur/grc/settings/dtos"
 
 	"time"
 )
 
 type IncidentRegisterListDTO struct {
-	ID                         uint       `json:"id"`
-	ReferenceNumber            string     `json:"reference_number"`
-	Title                      string     `json:"title"`
-	Description                *string    `json:"description"`
-	IncidentAt                 time.Time  `json:"incident_at"`
-	Location                   *string    `json:"location"`
-	ReportedAt                 *time.Time `json:"reported_at"`
-	QuickAction                *string    `json:"quick_action"`
-	IncidentCategoryID         uint       `json:"incident_category_id"`
-	IncidentSubCategoryID      uint       `json:"incident_sub_category_id"`
-	IncidentTypeID             uint       `json:"incident_type_id"`
-	SeverityLevelID            uint       `json:"severity_level_id"`
-	IncidentStatusID           uint       `json:"incident_status_id"`
-	IncidentCategoryTitleEn    string     `json:"incident_category_title_en"`
-	IncidentCategoryTitleAr    string     `json:"incident_category_title_ar"`
-	IncidentSubCategoryTitleEn string     `json:"incident_sub_category_title_en"`
-	IncidentSubCategoryTitleAr string     `json:"incident_sub_category_title_ar"`
-	IncidentTypeTitleEn        string     `json:"incident_type_title_en"`
-	IncidentTypeTitleAr        string     `json:"incident_type_title_ar"`
-	SeverityLevelTitleEn       string     `json:"severity_level_title_en"`
-	SeverityLevelTitleAr       string     `json:"severity_level_title_ar"`
-	IncidentStatusTitleEn      string     `json:"incident_status_title_en"`
-	IncidentStatusTitleAr      string     `json:"incident_status_title_ar"`
-	IncidentStatusColorCode    string     `json:"incident_status_color_code"`
-	SeverityLevelColorCode     string     `json:"severity_level_color_code"`
-	ReportedUserFirstNameEn    string     `json:"reported_user_first_name_en"`
-	ReportedUserFirstNameAr    string     `json:"reported_user_first_name_ar"`
-	ReportedUserLastNameEn     string     `json:"reported_user_last_name_en"`
-	ReportedUserLastNameAr     string     `json:"reported_user_last_name_ar"`
-	CreatedAt                  string     `json:"created_at"`
-	UpdatedAt                  string     `json:"updated_at"`
-	CreatedUserFirstNameEn     string     `json:"created_user_first_name_en"`
-	CreatedUserFirstNameAr     string     `json:"created_user_first_name_ar"`
-	CreatedUserLastNameEn      string     `json:"created_user_last_name_en"`
-	CreatedUserLastNameAr      string     `json:"created_user_last_name_ar"`
-	UpdatedUserFirstNameEn     string     `json:"updated_user_first_name_en"`
-	UpdatedUserFirstNameAr     string     `json:"updated_user_first_name_ar"`
-	UpdatedUserLastNameEn      string     `json:"updated_user_last_name_en"`
-	UpdatedUserLastNameAr      string     `json:"updated_user_last_name_ar"`
+	ID                              uint    `json:"id"`
+	ReferenceNumber                 string  `json:"reference_number"`
+	Title                           string  `json:"title"`
+	Description                     *string `json:"description"`
+	IncidentAt                      string  `json:"incident_at"`
+	Location                        *string `json:"location"`
+	ReportedAt                      *string `json:"reported_at"`
+	QuickAction                     *string `json:"quick_action"`
+	IncidentCategoryID              uint    `json:"incident_category_id"`
+	IncidentTypeID                  uint    `json:"incident_type_id"`
+	SeverityLevelID                 uint    `json:"severity_level_id"`
+	IncidentStatusID                uint    `json:"incident_status_id"`
+	ResponsibleUnitTitleEn          string  `json:"responsible_unit_title_en"`
+	ResponsibleUnitTitleAr          string  `json:"responsible_unit_title_ar"`
+	ResponsibleUserID               uint    `json:"responsible_user_id"`
+	ResponsibleUserFirstNameEn      string  `json:"responsible_user_first_name_en"`
+	ResponsibleUserFirstNameAr      string  `json:"responsible_user_first_name_ar"`
+	ResponsibleUserLastNameEn       string  `json:"responsible_user_last_name_en"`
+	ResponsibleUserLastNameAr       string  `json:"responsible_user_last_name_ar"`
+	ResponsibleUserInitial          string  `json:"responsible_user_initial"`
+	ResponsibleUserColor            string  `json:"responsible_user_color"`
+	ResponsibleUserEmail            string  `json:"responsible_user_email"`
+	ResponsibleUserProfileImagePath string  `json:"responsible_user_profile_image_path"`
+	IncidentCategoryTitleEn         string  `json:"incident_category_title_en"`
+	IncidentCategoryTitleAr         string  `json:"incident_category_title_ar"`
+	IncidentTypeTitleEn             string  `json:"incident_type_title_en"`
+	IncidentTypeTitleAr             string  `json:"incident_type_title_ar"`
+	SeverityLevelTitleEn            string  `json:"severity_level_title_en"`
+	SeverityLevelTitleAr            string  `json:"severity_level_title_ar"`
+	IncidentStatusTitleEn           string  `json:"incident_status_title_en"`
+	IncidentStatusTitleAr           string  `json:"incident_status_title_ar"`
+	IncidentStatusColorCode         string  `json:"incident_status_color_code"`
+	SeverityLevelColorCode          string  `json:"severity_level_color_code"`
+	ReportedUserID                  uint    `json:"reported_user_id"`
+	ReportedUserFirstNameEn         string  `json:"reported_user_first_name_en"`
+	ReportedUserFirstNameAr         string  `json:"reported_user_first_name_ar"`
+	ReportedUserLastNameEn          string  `json:"reported_user_last_name_en"`
+	ReportedUserLastNameAr          string  `json:"reported_user_last_name_ar"`
+	ReportedUserInitial             string  `json:"reported_user_initial"`
+	ReportedUserColor               string  `json:"reported_user_color"`
+	ReportedUserEmail               string  `json:"reported_user_email"`
+	ReportedUserProfileImagePath    string  `json:"reported_user_profile_image_path"`
+	CreatedAt                       string  `json:"created_at"`
+	UpdatedAt                       string  `json:"updated_at"`
+	CreatedUserID                   uint    `json:"created_user_id"`
+	CreatedUserFirstNameEn          string  `json:"created_user_first_name_en"`
+	CreatedUserFirstNameAr          string  `json:"created_user_first_name_ar"`
+	CreatedUserLastNameEn           string  `json:"created_user_last_name_en"`
+	CreatedUserLastNameAr           string  `json:"created_user_last_name_ar"`
+	CreatedUserInitial              string  `json:"created_user_initial"`
+	CreatedUserColor                string  `json:"created_user_color"`
+	CreatedUserEmail                string  `json:"created_user_email"`
+	CreatedUserProfileImagePath     string  `json:"created_user_profile_image_path"`
+	UpdatedUserID                   *uint   `json:"updated_user_id"`
+	UpdatedUserFirstNameEn          string  `json:"updated_user_first_name_en"`
+	UpdatedUserFirstNameAr          string  `json:"updated_user_first_name_ar"`
+	UpdatedUserLastNameEn           string  `json:"updated_user_last_name_en"`
+	UpdatedUserLastNameAr           string  `json:"updated_user_last_name_ar"`
+	UpdatedUserInitial              string  `json:"updated_user_initial"`
+	UpdatedUserColor                string  `json:"updated_user_color"`
+	UpdatedUserEmail                string  `json:"updated_user_email"`
+	UpdatedUserProfileImagePath     string  `json:"updated_user_profile_image_path"`
 }
 
 type IncidentRegisterFormDTO struct {
 	IncidentCategoryID       uint                       `json:"incident_category_id" binding:"required"`
-	IncidentSubCategoryID    *uint                      `json:"incident_sub_category_id"`
-	IncidentTypeID           uint                       `json:"incident_type_id" binding:"required"`
+	IncidentTypeID           *uint                      `json:"incident_type_id"`
 	SeverityLevelID          *uint                      `json:"severity_level_id"`
-	IncidentStatusID         uint                       `json:"incident_status_id" binding:"required"`
+	IncidentStatusID         *uint                      `json:"incident_status_id"`
 	Title                    string                     `json:"title" binding:"required,max=255"`
+	ResponsibleUserID        uint                       `json:"responsible_user_id" binding:"required"`
 	Description              *string                    `json:"description"`
 	IncidentAt               string                     `json:"incident_at" binding:"required,datetime=2006-01-02"`
 	Location                 *string                    `json:"location"`
@@ -70,6 +94,8 @@ type IncidentRegisterFormDTO struct {
 	ControlIds               []*uint                    `json:"control_ids"`
 	RiskIds                  []*uint                    `json:"risk_ids"`
 	ProcessIDs               []*uint                    `json:"process_ids"`
+	SLARegisterIDs           []*uint                    `json:"sla_register_ids"`
+	DocumentIds              []*uint                    `json:"document_ids"`
 }
 
 type IncidentDocumentFormDTO struct {
@@ -116,12 +142,11 @@ type IncidentRegisterDetailDTO struct {
 	ReferenceNumber        string                              `json:"reference_number"`
 	Title                  string                              `json:"title"`
 	Description            string                              `json:"description"`
-	IncidentAt             time.Time                           `json:"incident_at"`
+	IncidentAtString       string                              `json:"incident_at"`
 	Location               *string                             `json:"location"`
-	ReportedAt             *time.Time                          `json:"reported_at"`
+	ReportedAtStaring      string                              `json:"reported_at"`
 	QuickAction            *string                             `json:"quick_action"`
 	IncidentCategory       IncidentCategoryDTO                 `json:"incident_category"`
-	IncidentSubCategory    IncidentSubCategoryDTO              `json:"incident_sub_category"`
 	IncidentType           IncidentTypeDTO                     `json:"incident_type"`
 	SeverityLevel          *masterDTOs.SeverityLevelDTO        `json:"severity_level"`
 	IncidentStatus         IncidentStatusDTO                   `json:"incident_status"`
@@ -131,11 +156,23 @@ type IncidentRegisterDetailDTO struct {
 	ComplianceRequirements []*IncidentComplianceRequirementDTO `json:"compliance_requirements"`
 	Risks                  []*IncidentRiskDTO                  `json:"risks"`
 	Processes              []*IncidentProcessDTO               `json:"processes"`
+	ResponsibleUnit        settingsDTOs.OrganizationUnitDTO    `json:"responsible_unit"`
+	ResponsibleUser        organizationDTOs.UserMinimalDTO     `json:"responsible_user"`
+	SLARegisters           []*IncidentSLARegisterDTO           `json:"sla_registers"`
+	AssociatedDocuments    []*IncidentAssociatedDocumentDTO    `json:"associated_documents"`
 	CreatedAt              time.Time                           `json:"created_at"`
 	UpdatedAt              *time.Time                          `json:"updated_at"`
 	CreatedByUser          organizationDTOs.UserMinimalDTO     `json:"created_by"`
 	UpdatedByUser          organizationDTOs.UserMinimalDTO     `json:"updated_by"`
 }
+
+type IncidentAssociatedDocumentDTO struct {
+	ID         *uint                               `json:"id"`
+	ProcessID  uint                                `json:"process_id"`
+	DocumentID uint                                `json:"document_id"`
+	Document   organizationDTOs.DocumentDetailsDTO `json:"document"`
+}
+
 type IncidentRegisterParsedDates struct {
 	ReportedAt *time.Time
 	IncidentAt *time.Time
@@ -167,4 +204,10 @@ type IncidentProcessDTO struct {
 	IncidentRegisterID uint                              `json:"incident_register_id"`
 	ProcessID          uint                              `json:"process_id"`
 	Process            organizationDTOs.ProcessDetailDTO `json:"process"`
+}
+type IncidentSLARegisterDTO struct {
+	ID                 *uint                               `json:"id"`
+	IncidentRegisterID uint                                `json:"incident_register_id"`
+	SLARegisterID      uint                                `json:"sla_register_id"`
+	SLARegister        complianceDTOs.SLARegisterDetailDTO `json:"sla_register"`
 }

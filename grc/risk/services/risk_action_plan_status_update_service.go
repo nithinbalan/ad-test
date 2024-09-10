@@ -19,6 +19,7 @@ type RiskActionPlanStatusUpdateServiceInterface interface {
 	GetAll(RiskID uint, RiskActionPlanID uint, sort string, sortBy string, keyword string) ([]*riskDTOs.RiskActionPlanStatusUpdateListDTO, error)
 	Create(RiskID uint, RiskActionPlanID uint, currentUserID uint, riskActionPlanStatusUpdateFormDTO *riskDTOs.RiskActionPlanStatusUpdateFormDTO) (uint, error)
 	Update(RiskID uint, RiskActionPlanID uint, id uint, currentUserID uint, riskActionPlanStatusUpdateFormDTO *riskDTOs.RiskActionPlanStatusUpdateFormDTO) error
+	GetLatestRiskActionPlanStatusUpdate(riskID uint, actionPlanID uint) (*riskDTOs.RiskActionPlanStatusUpdateListDTO, error)
 }
 
 type RiskActionPlanStatusUpdateService struct {
@@ -287,4 +288,12 @@ func (rasus *RiskActionPlanStatusUpdateService) validateRiskActionPlanStatusUpda
 	}
 
 	return nil
+}
+
+func (rasus RiskActionPlanStatusUpdateService) GetLatestRiskActionPlanStatusUpdate(riskID uint, actionPlanID uint) (*riskDTOs.RiskActionPlanStatusUpdateListDTO, error) {
+	if _, err := rasus.riskActionPlanSvc.GetByID(riskID, actionPlanID); err != nil {
+		return nil, err
+	}
+
+	return rasus.repo.GetLatestRiskActionPlanStatusUpdate(actionPlanID)
 }

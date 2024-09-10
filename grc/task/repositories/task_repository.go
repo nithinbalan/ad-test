@@ -15,7 +15,11 @@ import (
 type TaskRepositoryInteface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *taskDTOs.TaskListQueryParamsDTO) (*taskDTOs.TaskListResponseDTO, error)
-	CreateTask(task *models.Task, tx ...utility.DatabaseTransaction) error
+	GetByID(id uint) (*models.Task, error)
+	GetByFieldID(field string, value interface{}) (*models.Task, error)
+	Create(task *models.Task, tx ...utility.DatabaseTransaction) error
+	Update(task *models.Task, tx ...utility.DatabaseTransaction) error
+	Delete(id uint) error
 	GenerateReferenceNumber() (string, error)
 }
 
@@ -48,6 +52,7 @@ func (repo *TaskRepository) GetAll(params *taskDTOs.TaskListQueryParamsDTO) (*ta
 			severity_levels.title_en AS severity_level_title_en,
 			severity_levels.title_ar AS severity_level_title_ar,
 			severity_levels.color_code AS severity_level_color_code,
+			responsible_user.id AS responsible_user_id,
             responsible_user.first_name_en AS responsible_user_first_name_en,
             responsible_user.first_name_ar AS responsible_user_first_name_ar,
             responsible_user.last_name_en AS responsible_user_last_name_en,
@@ -56,7 +61,8 @@ func (repo *TaskRepository) GetAll(params *taskDTOs.TaskListQueryParamsDTO) (*ta
             responsible_user.color AS responsible_user_color,
             responsible_user.email AS responsible_user_email,
             responsible_user.profile_image_path AS responsible_user_profile_image_path,
-			created_user.first_name_en AS created_user_first_name_en,
+			created_user.id AS created_user_id,
+       		created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
             created_user.last_name_en AS created_user_last_name_en,
             created_user.last_name_ar AS created_user_last_name_ar,
@@ -64,7 +70,8 @@ func (repo *TaskRepository) GetAll(params *taskDTOs.TaskListQueryParamsDTO) (*ta
             created_user.color AS created_user_color,
             created_user.email AS created_user_email,
             created_user.profile_image_path AS created_user_profile_image_path,   
-			updated_user.first_name_en AS updated_user_first_name_en,
+			updated_user.id AS updated_user_id,
+    		updated_user.first_name_en AS updated_user_first_name_en,
             updated_user.first_name_ar AS updated_user_first_name_ar,
             updated_user.last_name_en AS updated_user_last_name_en,
             updated_user.last_name_ar AS updated_user_last_name_ar,
@@ -122,7 +129,8 @@ func (repo *TaskRepository) GetAll(params *taskDTOs.TaskListQueryParamsDTO) (*ta
 			created_user.last_name_en LIKE ? OR
 			created_user.last_name_ar LIKE ? OR
 			created_user.email LIKE ? OR
-			updated_user.first_name_en LIKE ? OR
+			updated_user.id AS updated_user_id,
+    		updated_user.first_name_en LIKE ? OR
 			updated_user.first_name_ar LIKE ? OR
 			updated_user.last_name_en LIKE ? OR
 			updated_user.last_name_en LIKE ? OR
@@ -164,7 +172,30 @@ func (repo *TaskRepository) GetAll(params *taskDTOs.TaskListQueryParamsDTO) (*ta
 	return response, nil
 }
 
-func (repo *TaskRepository) CreateTask(task *models.Task, tx ...utility.DatabaseTransaction) error {
+func (repo *TaskRepository) GetByID(id uint) (*models.Task, error) {
+	var task *models.Task
+
+	result := repo.db.First(&task, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return task, nil
+
+}
+
+func (repo *TaskRepository) GetByFieldID(field string, value interface{}) (*models.Task, error) {
+	var task models.Task
+
+	result := repo.db.Where(field+" = ?", value).First(&task)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return &task, nil
+}
+
+func (repo *TaskRepository) Create(task *models.Task, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -198,4 +229,30 @@ func (repo *TaskRepository) GenerateReferenceNumber() (string, error) {
 	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "T", currentYear, lastReferenceID+1)
 
 	return newReferenceNumber, nil
+}
+
+func (repo *TaskRepository) Update(task *models.Task, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(task).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *TaskRepository) Delete(id uint) error {
+
+	var task *models.Task
+	if err := repo.db.First(&task, id).Error; err != nil {
+		return err
+	}
+
+	result := repo.db.Delete(&models.Task{}, id)
+	if result.Error != nil {
+		return result.Error
+	}
+
+	return nil
 }

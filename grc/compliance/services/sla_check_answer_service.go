@@ -98,7 +98,7 @@ func (scas *SLACheckAnswerService) CreateAnswer(slaID uint, questionID uint, cur
 	}
 
 	// Fetch SLACheckQuestion from the database
-	slaCheckQuestion, err := scas.slaCheckQuestionSvc.GetQuestionByID(questionID)
+	slaCheckQuestion, err := scas.slaCheckQuestionSvc.GetQuestionByID(slaID, questionID)
 	if err != nil {
 		return 0, err
 	}
@@ -205,7 +205,7 @@ func (scas *SLACheckAnswerService) UpdateAnswer(slaID uint, questionID uint, ans
 		return err
 	}
 
-	if _, err := scas.slaCheckQuestionSvc.GetQuestionByID(questionID); err != nil {
+	if _, err := scas.slaCheckQuestionSvc.GetQuestionByID(slaID, questionID); err != nil {
 		return err
 	}
 
@@ -303,7 +303,7 @@ func (scas *SLACheckAnswerService) UpdateAnswer(slaID uint, questionID uint, ans
 			return err
 		}
 	}
-
+	tx.Commit()
 	// Log the activity
 	go func() {
 		err := scas.activityLogSvc.LogActivity(
@@ -330,48 +330,6 @@ func (scas *SLACheckAnswerService) UpdateAnswer(slaID uint, questionID uint, ans
 
 	return nil
 }
-
-// func (scas *SLACheckAnswerService) DeleteAnswer(slaID uint, questionID uint, answerID uint, currentUserID uint) (uint, error) {
-// 	if _, err := scas.slaRegisterSvc.GetByID(slaID); err != nil {
-// 		return 0, err
-// 	}
-
-// 	if _, err := scas.slaCheckQuestionSvc.GetQuestionByID(questionID); err != nil {
-// 		return 0, err
-// 	}
-// 	var failedId uint
-// 	var successfulId uint
-
-// 	answer, err := scas.GetByID(slaID, questionID, answerID)
-// 	if err != nil {
-// 		return 0, err
-// 	}
-
-// 	err = scas.repo.Delete(answerID)
-// 	if err != nil {
-// 		failedId = answerID
-// 	} else {
-// 		successfulId = answerID
-// 	}
-
-// 	if successfulId != 0 {
-// 		go func() {
-// 			err := scas.activityLogSvc.LogActivity(
-// 				models.DeleteAction,
-// 				models.SLACheckAnswer{}.TableName(),
-// 				successfulId,
-// 				answer,
-// 				currentUserID,
-// 				nil,
-// 			)
-// 			if err != nil {
-// 				fmt.Printf("Failed to log activity: %v\n", err)
-// 			}
-// 		}()
-// 	}
-
-// 	return failedId, nil
-// }
 
 func (scas *SLACheckAnswerService) DeleteAnswer(slaID uint, questionID uint, answerID uint, currentUserID uint) (uint, error) {
 	// tx := scas.repo.BeginTransaction()

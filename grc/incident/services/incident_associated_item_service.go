@@ -10,6 +10,8 @@ type IncidentAssociatedItemServiceInterface interface {
 	GetAllComplianceRequirements(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemComplianceRequirementListResponseDTO, error)
 	GetAllRisks(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemRiskListResponseDTO, error)
 	GetAllProcesses(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemProcessListResponseDTO, error)
+	GetAllSLAs(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemSLAListResponseDTO, error)
+	GetAllDocuments(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemDocumentListResponseDTO, error)
 }
 
 // Service and implementations
@@ -55,4 +57,18 @@ func (iais *IncidentAssociatedItemService) GetAllProcesses(incidentID uint, para
 		return nil, err
 	}
 	return iais.repo.GetAllProcesses(incidentID, params)
+}
+
+func (iais *IncidentAssociatedItemService) GetAllSLAs(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemSLAListResponseDTO, error) {
+	if _, err := iais.incidentRegisterSvc.GetByID(incidentID); err != nil {
+		return nil, err
+	}
+	return iais.repo.GetAllSLAs(incidentID, params)
+}
+
+func (iais *IncidentAssociatedItemService) GetAllDocuments(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemDocumentListResponseDTO, error) {
+	if _, err := iais.incidentRegisterSvc.GetByID(incidentID); err != nil {
+		return nil, err
+	}
+	return iais.repo.GetAllDocuments(incidentID, params)
 }

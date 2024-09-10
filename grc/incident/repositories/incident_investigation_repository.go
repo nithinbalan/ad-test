@@ -12,8 +12,8 @@ import (
 type IncidentInvestigationRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(incidentID uint, params *incidentDTOs.IncidentInvestigationListQueryParamsDTO) (*incidentDTOs.IncidentInvestigationListResponseDTO, error)
-	GetByID(id uint) (*models.IncidentInvestigation, error)
-	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.IncidentInvestigation, error)
+	GetByID(incidentID uint) (*models.IncidentInvestigation, error)
+	GetFullDetailsByID(incidentID uint, tx ...utility.DatabaseTransaction) (*models.IncidentInvestigation, error)
 	Create(incidentInvestigation *models.IncidentInvestigation, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(incidentInvestigation *models.IncidentInvestigation, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
@@ -49,35 +49,39 @@ func (repo *IncidentInvestigationRepository) GetAll(incidentID uint, params *inc
 
 	query := repo.db.Table("incident_investigations").
 		Select(`
-        incident_investigations.id,
-        incident_investigations.incident_register_id,
-        incident_investigations.initiated_at,
-        incident_investigations.description,
-        incident_investigations.team_lead_id,
-        incident_investigations.action_recommendation,
-        incident_investigations.incident_investigation_status_id,
-        incident_investigations.created_at,
-        incident_investigations.updated_at,
+        incident_investigations.*,
+		CONVERT(VARCHAR, incident_investigations.initiated_at, 23) AS initiated_at,
         incident_register.title as incident_title,
+		team_lead.id AS team_lead_id,
 		team_lead.first_name_en AS team_lead_first_name_en,
 		team_lead.first_name_ar AS team_lead_first_name_ar,
 		team_lead.last_name_en AS team_lead_last_name_en,
 		team_lead.last_name_ar AS team_lead_last_name_ar,
-		incident_investigation_statuses.title_en AS incident_investigation_status_title_en,
-		incident_investigation_statuses.title_ar AS incident_investigation_status_title_ar,
-		incident_investigation_statuses.color_code AS incident_investigation_status_color_code,
-		created_user.first_name_en AS created_user_first_name_en,
+		team_lead.initial AS team_lead_initial,
+    	team_lead.color AS team_lead_color,
+        team_lead.email AS team_lead_email,
+        team_lead.profile_image_path AS team_lead_profile_image_path,
+		created_user.id AS created_user_id,
+        created_user.first_name_en AS created_user_first_name_en,
 		created_user.first_name_ar AS created_user_first_name_ar,
 		created_user.last_name_en AS created_user_last_name_en,
-		created_user.last_name_ar AS created_user_last_name_ar,   
-		updated_user.first_name_en AS updated_user_first_name_en,
+		created_user.last_name_ar AS created_user_last_name_ar,
+		created_user.initial AS created_user_initial,
+        created_user.color AS created_user_color,
+        created_user.email AS created_user_email,
+        created_user.profile_image_path AS created_user_profile_image_path,
+		updated_user.id AS updated_user_id,
+    	updated_user.first_name_en AS updated_user_first_name_en,
 		updated_user.first_name_ar AS updated_user_first_name_ar,
 		updated_user.last_name_en AS updated_user_last_name_en,
-		updated_user.last_name_ar AS updated_user_last_name_ar 
+		updated_user.last_name_ar AS updated_user_last_name_ar,
+		updated_user.initial AS updated_user_initial,
+        updated_user.color AS updated_user_color,
+        updated_user.email AS updated_user_email,
+        updated_user.profile_image_path AS updated_user_profile_image_path
     `).
 		Joins(`
         LEFT JOIN incident_register ON incident_register.id = incident_investigations.incident_register_id
-        LEFT JOIN incident_investigation_statuses ON incident_investigation_statuses.id = incident_investigations.incident_investigation_status_id
 		LEFT JOIN users AS team_lead ON team_lead.id = incident_investigations.team_lead_id
 		LEFT JOIN users AS created_user ON created_user.id = incident_investigations.created_by_id
 		LEFT JOIN users AS updated_user ON updated_user.id = incident_investigations.updated_by_id
@@ -104,8 +108,6 @@ func (repo *IncidentInvestigationRepository) GetAll(incidentID uint, params *inc
 		query = query.Where(`
 			(incident_investigations.description LIKE ? OR
 			incident_register.title LIKE ? OR
-			incident_investigation_statuses.title_en LIKE ? OR
-			incident_investigation_statuses.title_ar LIKE ? OR
 			team_lead.first_name_en LIKE ? OR
 			team_lead.first_name_ar LIKE ? OR
 			team_lead.last_name_en LIKE ? OR
@@ -114,7 +116,8 @@ func (repo *IncidentInvestigationRepository) GetAll(incidentID uint, params *inc
 			created_user.first_name_ar LIKE ? OR
 			created_user.last_name_en LIKE ? OR
 			created_user.last_name_ar LIKE ? OR
-			updated_user.first_name_en LIKE ? OR
+			updated_user.id AS updated_user_id,
+    		updated_user.first_name_en LIKE ? OR
 			updated_user.first_name_ar LIKE ? OR
 			updated_user.last_name_en LIKE ? OR
 			updated_user.last_name_ar LIKE ?)`,
@@ -156,10 +159,10 @@ func (repo *IncidentInvestigationRepository) GetAll(incidentID uint, params *inc
 	return response, nil
 }
 
-func (repo *IncidentInvestigationRepository) GetByID(id uint) (*models.IncidentInvestigation, error) {
+func (repo *IncidentInvestigationRepository) GetByID(incidentID uint) (*models.IncidentInvestigation, error) {
 	var incidentInvestigation *models.IncidentInvestigation
 
-	result := repo.db.First(&incidentInvestigation, id)
+	result := repo.db.Where("incident_register_id = ?", incidentID).First(&incidentInvestigation)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -168,23 +171,22 @@ func (repo *IncidentInvestigationRepository) GetByID(id uint) (*models.IncidentI
 
 }
 
-func (repo *IncidentInvestigationRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.IncidentInvestigation, error) {
+func (repo *IncidentInvestigationRepository) GetFullDetailsByID(incidentID uint, tx ...utility.DatabaseTransaction) (*models.IncidentInvestigation, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
 	var incidentInvestigation *models.IncidentInvestigation
 
-	result := db.
+	result := db.Where("incident_register_id = ?", incidentID).
 		Preload("IncidentRegister").
 		Preload("TeamLead").
-		Preload("IncidentInvestigationStatus").
 		Preload("Documents").
 		Preload("Users.User").
 		Preload("Findings").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
-		First(&incidentInvestigation, id)
+		First(&incidentInvestigation)
 
 	if result.Error != nil {
 		return nil, result.Error

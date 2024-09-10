@@ -33,8 +33,17 @@ type UserRepositoryInterface interface {
 	CreateUserRole(userRoles []models.UserRole, tx ...utility.DatabaseTransaction) error
 	UpdateUserRoles(userID uint, desiredRoleIDs []uint, tx ...utility.DatabaseTransaction) error
 
-	GetUserLoginHistory(params *userDTOs.UserLoginHistoryListQueryParamsDTO) (*userDTOs.UserLoginHistoryListResponseDTO, error)
+	GetUserLoginHistory(userID uint, params *userDTOs.UserLoginHistoryListQueryParamsDTO) (*userDTOs.UserLoginHistoryListResponseDTO, error)
 	CreateUserLoginHistory(userLogin *models.UserLoginHistory, tx ...utility.DatabaseTransaction) error
+	GetUserPrimaryUnitID(primaryOrgUnitField string, userID uint) (uint, error)
+	GetUserIdsByRole(roleID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
+
+	GetUserNotifications(userID uint, params *userDTOs.UserNotificationListQueryParamsDTO) (*userDTOs.UserNotificationListResponseDTO, error)
+	GetUserNewNotificationCount(userID uint) (int64, error)
+	MarkAllNotificationsAsRead(userID uint) (int64, error)
+	MarkSpecificNotificationsAsRead(userID uint, notificationIDs []uint) (int64, error)
+	MarkAllNotificationsAsUnread(userID uint) (int64, error)
+	MarkSpecificNotificationsAsUnread(userID uint, notificationIDs []uint) (int64, error)
 }
 
 type UserRepository struct {
@@ -86,21 +95,47 @@ func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*us
 		Joins("LEFT JOIN user_statuses ON user_statuses.id = users.user_status_id").
 		Joins("LEFT JOIN (SELECT user_roles.user_id, STRING_AGG(roles.title_en, ', ') AS roles_en, STRING_AGG(roles.title_ar, ', ') AS roles_ar FROM user_roles JOIN roles ON roles.id = user_roles.role_id GROUP BY user_roles.user_id) roles_agg ON roles_agg.user_id = users.id")
 
-		// Apply dynamic filters to the query
+	// Check if quickfilter includes 'all'
+	showAllUsers := false
+	isLockedFilter := false
+	for _, filter := range params.QuickFilter {
+		if filter == "all" {
+			showAllUsers = true
+		}
+		if filter == "locked" {
+			isLockedFilter = true
+		}
+	}
+
+	// Apply the 'active' filter only if no "all" or "locked" filter is present
+	if !showAllUsers && !isLockedFilter {
+		query = query.Where("user_statuses.type = ?", "active")
+	}
+
+	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
 			query = query.Where(columnName+" IN (?)", values)
 		}
 	}
 
-	// Apply quick filters
+	if len(params.UserIDs) > 0 {
+		query = query.Where("users.id IN (?)", params.UserIDs)
+	}
+
 	for _, filter := range params.QuickFilter {
 		switch filter {
-		case "recently_added":
-			thirtyDaysAgo := time.Now().AddDate(0, 0, -30)
-			query = query.Where("users.created_at >= ?", thirtyDaysAgo)
-		case "admin_users":
-			query = query.Where("roles_agg.roles_en = ? OR roles_agg.roles_ar = ?", "Admin", "مسؤول")
+		case "active":
+			query = query.Where("user_statuses.type = ?", "active")
+		case "locked":
+			query = query.Where("user_statuses.type = ?", "locked")
+		case "super_admin":
+			query = query.Joins("JOIN user_roles ur ON ur.user_id = users.id").
+				Joins("JOIN roles r ON r.id = ur.role_id").
+				Where("r.is_super_admin = ?", true)
+		case "recent":
+			tenDaysAgo := time.Now().AddDate(0, 0, -10)
+			query = query.Where("users.created_at >= ?", tenDaysAgo)
 		case "logged_in_today":
 			query = query.Where("CONVERT(date, users.last_login_at) = CONVERT(date, GETDATE())")
 		case "logged_in_this_week":
@@ -137,7 +172,7 @@ func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*us
 
 	offset := (params.Page - 1) * params.PageSize
 
-	// Execute the queryc
+	// Execute the query
 	err := query.Offset(offset).Limit(params.PageSize).Find(&users).Error
 	if err != nil {
 		return nil, err
@@ -402,12 +437,13 @@ func contains(slice []uint, val uint) bool {
 	return false
 }
 
-func (repo *UserRepository) GetUserLoginHistory(params *userDTOs.UserLoginHistoryListQueryParamsDTO) (*userDTOs.UserLoginHistoryListResponseDTO, error) {
+func (repo *UserRepository) GetUserLoginHistory(userID uint, params *userDTOs.UserLoginHistoryListQueryParamsDTO) (*userDTOs.UserLoginHistoryListResponseDTO, error) {
 	var userLogins []*userDTOs.UserLoginHistoryListDTO
 	var totalCount int64
 
 	query := repo.db.Table("user_login_history").
-		Select("id, login_at, login_status, ip_address, location, device_info, browser_info")
+		Select("id, login_at, login_status, ip_address, location, device_info, browser_info").
+		Where("user_login_history.user_id = ?", userID)
 
 	if params.Keyword != "" {
 		query = query.Where("(login_status LIKE ? OR location LIKE ? OR ip_address LIKE ? OR device_info LIKE ? OR browser_info LIKE ?)", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
@@ -458,4 +494,212 @@ func (repo *UserRepository) CreateUserLoginHistory(userLogin *models.UserLoginHi
 		return err
 	}
 	return nil
+}
+
+func (repo *UserRepository) GetUserPrimaryUnitID(primaryOrgUnitField string, userID uint) (uint, error) {
+	var organizationUnitID uint
+	err := repo.db.
+		Table("users").
+		Select(primaryOrgUnitField).
+		Where("id = ?", userID).
+		Scan(&organizationUnitID).
+		Error
+	if err != nil {
+		return 0, err
+	}
+
+	return organizationUnitID, nil
+}
+
+func (repo *UserRepository) GetUserIdsByRole(roleID uint, tx ...utility.DatabaseTransaction) ([]uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var userIDs []uint
+	err := db.
+		Model(&models.User{}).
+		Joins("JOIN user_roles on user_roles.user_id = users.id").
+		Where("user_roles.role_id = ?", roleID).
+		Pluck("users.id", &userIDs).Error
+	if err != nil {
+		return nil, err
+	}
+	return userIDs, nil
+}
+
+func (repo *UserRepository) GetUserNotifications(userID uint, params *userDTOs.UserNotificationListQueryParamsDTO) (*userDTOs.UserNotificationListResponseDTO, error) {
+	var notifications []*userDTOs.UserNotificationListDTO
+	var totalCount int64
+
+	// Update all notifications to set is_new = false for the given user
+	if err := repo.db.Table("user_notifications").
+		Where("user_notifications.user_id = ? AND user_notifications.is_new = ?", userID, true).
+		Update("is_new", false).Error; err != nil {
+		return nil, err
+	}
+
+	query := repo.db.Table("user_notifications").
+		Select(`
+			user_notifications.id,
+			user_notifications.user_id,
+        	users.first_name_en AS user_first_name_en,
+			users.first_name_ar AS user_first_name_ar,
+			users.last_name_en AS user_last_name_en,
+			users.last_name_ar AS user_last_name_ar,
+			users.initial AS user_initial,
+       		users.color AS user_color,
+        	users.email AS user_email,
+        	users.profile_image_path AS user_profile_image_path,
+			user_notifications.module_id,
+			user_notifications.notification_type,
+			user_notifications.reference_number,
+			user_notifications.heading_en,
+			user_notifications.heading_ar,
+			user_notifications.title_en,
+			user_notifications.title_ar,
+			user_notifications.entity,
+			user_notifications.action,
+			user_notifications.url_param,
+			user_notifications.query_param,
+			user_notifications.is_new,
+			user_notifications.is_read,
+			user_notifications.is_system_notification,
+			user_notifications.created_at,
+			created_user.id AS created_user_id,
+        	created_user.first_name_en AS created_user_first_name_en,
+			created_user.first_name_ar AS created_user_first_name_ar,
+			created_user.last_name_en AS created_user_last_name_en,
+			created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+       		created_user.color AS created_user_color,
+        	created_user.email AS created_user_email,
+        	created_user.profile_image_path AS created_user_profile_image_path,
+			modules.identifier AS module_identifier,
+			modules.title_en AS module_title_en,
+			modules.title_ar AS module_title_ar
+		`).
+		Joins("LEFT JOIN users ON users.id = user_notifications.user_id").
+		Joins("LEFT JOIN users AS created_user ON created_user.id = user_notifications.created_by_id").
+		Joins("LEFT JOIN modules ON modules.id = user_notifications.module_id").
+		Where("user_notifications.user_id = ?", userID)
+
+	// Apply dynamic filters to the query
+	if len(params.ModuleIDs) > 0 {
+		query = query.Where("user_notifications.module_id IN (?)", params.ModuleIDs)
+	}
+
+	// Apply quick filters
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "new":
+			query = query.Where("user_notifications.is_new = ?", true)
+		case "read":
+			query = query.Where("user_notifications.is_read = ?", true)
+		case "unread":
+			query = query.Where("user_notifications.is_read = ?", false)
+
+		}
+	}
+
+	if params.Keyword != "" {
+		query = query.Where(`
+			(user_notifications.notification_type LIKE ? OR
+			 user_notifications.reference_number LIKE ? OR
+			 user_notifications.heading_en LIKE ? OR
+			 user_notifications.heading_ar LIKE ? OR
+			 user_notifications.title_en LIKE ? OR
+			 user_notifications.title_ar LIKE ? OR
+			 modules.identifier LIKE ? OR
+			 modules.title_en LIKE ? OR
+			 modules.title_ar LIKE ?)`,
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
+	}
+
+	// Calculate total count for pagination
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
+	// Apply sorting
+	if params.SortBy != "" && params.Sort != "" {
+		query = query.Order(params.SortBy + " " + params.Sort)
+	} else {
+		query = query.Order("user_notifications.created_at DESC") // Default sorting
+	}
+
+	// Apply pagination
+	offset := (params.Page - 1) * params.PageSize
+	query = query.Offset(offset).Limit(params.PageSize)
+
+	// Execute the query
+	err := query.Find(&notifications).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Calculate total pages
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	// Construct the response
+	response := &userDTOs.UserNotificationListResponseDTO{
+		Items: notifications,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+
+	return response, nil
+}
+
+func (repo *UserRepository) GetUserNewNotificationCount(userID uint) (int64, error) {
+	var count int64
+
+	err := repo.db.Table("user_notifications").
+		Where("user_notifications.user_id = ? AND user_notifications.is_new = ?", userID, true).
+		Count(&count).Error
+
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
+func (repo *UserRepository) MarkAllNotificationsAsRead(userID uint) (int64, error) {
+	result := repo.db.Model(&models.UserNotification{}).
+		Where("user_id = ? AND is_read = ?", userID, false).
+		Update("is_read", true)
+
+	return result.RowsAffected, result.Error
+}
+
+func (repo *UserRepository) MarkSpecificNotificationsAsRead(userID uint, notificationIDs []uint) (int64, error) {
+	result := repo.db.Model(&models.UserNotification{}).
+		Where("user_id = ? AND id IN (?) AND is_read = ?", userID, notificationIDs, false).
+		Update("is_read", true)
+
+	return result.RowsAffected, result.Error
+}
+
+func (repo *UserRepository) MarkAllNotificationsAsUnread(userID uint) (int64, error) {
+	result := repo.db.Model(&models.UserNotification{}).
+		Where("user_id = ? AND is_read = ?", userID, true).
+		Update("is_read", false)
+
+	return result.RowsAffected, result.Error
+}
+
+func (repo *UserRepository) MarkSpecificNotificationsAsUnread(userID uint, notificationIDs []uint) (int64, error) {
+	result := repo.db.Model(&models.UserNotification{}).
+		Where("user_id = ? AND id IN (?) AND is_read = ?", userID, notificationIDs, true).
+		Update("is_read", false)
+
+	return result.RowsAffected, result.Error
 }

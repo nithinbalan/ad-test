@@ -3,7 +3,6 @@ package services
 import (
 	"errors"
 	"fmt"
-	commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
@@ -24,18 +23,22 @@ type MeetingActionPlanServiceInterface interface {
 	Create(meetingID uint, currentUserID uint, MeetingActionPlanFormDTO *meetingDTOs.MeetingActionPlanFormDTO) (uint, error)
 	Update(meetingID uint, id uint, currentUserID uint, MeetingActionPlanFormDTO *meetingDTOs.MeetingActionPlanFormDTO) error
 	Delete(meetingID uint, ids []uint, currentUserID uint) ([]uint, error)
-	StatusUpdate(meetingID uint, id uint, currentUserID uint, actionPlanStatusID uint, percentage uint, tx ...utility.DatabaseTransaction) error
+	StatusUpdate(meetingID uint, id uint, currentUserID uint, meetingActionPlanStatusUpdateFormDTO *meetingDTOs.MeetingActionPlanStatusUpdateFormDTO, tx ...utility.DatabaseTransaction) error
+
+	GetMeetingActionPlanSummary(meetingID uint) (*meetingDTOs.ActionPlanSummaryDTO, error)
 }
 
 // Service and implementations
 type MeetingActionPlanService struct {
-	repo                meetingRepositories.MeetingActionPlanRepositoryInterface
-	activityLogSvc      logServices.ActivityLogServiceInterface
-	meetingSvc          MeetingServiceInterface
-	severityLevelSvc    masterServices.SeverityLevelServiceInterface
-	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface
-	userSvc             organizationServices.UserServiceInterface
-	notificationSvc     commonServices.NotificationServiceInterface
+	repo                   meetingRepositories.MeetingActionPlanRepositoryInterface
+	activityLogSvc         logServices.ActivityLogServiceInterface
+	meetingSvc             MeetingServiceInterface
+	severityLevelSvc       masterServices.SeverityLevelServiceInterface
+	actionPlanStatusSvc    masterServices.ActionPlanStatusServiceInterface
+	userSvc                organizationServices.UserServiceInterface
+	notificationSvc        commonServices.NotificationServiceInterface
+	meetingMinuteSvc       MeetingMinuteServiceInterface
+	meetingMinuteStatusSvc MeetingMinuteStatusServiceInterface
 }
 
 func NewMeetingActionPlanService(
@@ -45,21 +48,27 @@ func NewMeetingActionPlanService(
 	severityLevelSvc masterServices.SeverityLevelServiceInterface,
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
-	notificationSvc commonServices.NotificationServiceInterface) MeetingActionPlanServiceInterface {
+	notificationSvc commonServices.NotificationServiceInterface,
+	meetingMinuteSvc MeetingMinuteServiceInterface,
+	meetingMinuteStatusSvc MeetingMinuteStatusServiceInterface) MeetingActionPlanServiceInterface {
 	return &MeetingActionPlanService{
-		repo:                repo,
-		activityLogSvc:      activityLogSvc,
-		meetingSvc:          meetingSvc,
-		severityLevelSvc:    severityLevelSvc,
-		actionPlanStatusSvc: actionPlanStatusSvc,
-		userSvc:             userSvc,
-		notificationSvc:     notificationSvc,
+		repo:                   repo,
+		activityLogSvc:         activityLogSvc,
+		meetingSvc:             meetingSvc,
+		severityLevelSvc:       severityLevelSvc,
+		actionPlanStatusSvc:    actionPlanStatusSvc,
+		userSvc:                userSvc,
+		notificationSvc:        notificationSvc,
+		meetingMinuteSvc:       meetingMinuteSvc,
+		meetingMinuteStatusSvc: meetingMinuteStatusSvc,
 	}
 }
 
 func (maps *MeetingActionPlanService) GetAll(meetingID uint, params *meetingDTOs.MeetingActionPlanListQueryParamsDTO) (*meetingDTOs.MeetingActionPlanListResponseDTO, error) {
-	if _, err := maps.meetingSvc.GetByID(meetingID); err != nil {
-		return nil, err
+	if meetingID != 0 {
+		if _, err := maps.meetingSvc.GetByID(meetingID); err != nil {
+			return nil, err
+		}
 	}
 	return maps.repo.GetAll(meetingID, params)
 }
@@ -107,7 +116,9 @@ func (maps MeetingActionPlanService) GetFullDetailsByID(meetingID uint, id uint)
 }
 
 func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint, MeetingActionPlanFormDTO *meetingDTOs.MeetingActionPlanFormDTO) (uint, error) {
-	meeting, err := maps.meetingSvc.GetByID(meetingID)
+	tx := maps.repo.BeginTransaction()
+
+	_, err := maps.meetingSvc.GetByID(meetingID)
 	if err != nil {
 		return 0, err
 	}
@@ -127,62 +138,41 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 		Description:        MeetingActionPlanFormDTO.Description,
 		SeverityLevelID:    MeetingActionPlanFormDTO.SeverityLevelID,
 		ResponsibleUserID:  MeetingActionPlanFormDTO.ResponsibleUserID,
+		MeetingMinuteID:    MeetingActionPlanFormDTO.MeetingMinuteID,
 		TargetDate:         dates.TargetDate,
 		Percentage:         *MeetingActionPlanFormDTO.Percentage,
 		ActionPlanStatusID: MeetingActionPlanFormDTO.ActionPlanStatusID,
 		CreatedByID:        currentUserID,
 	}
 
-	id, err := maps.repo.Create(meetingActionPlan)
+	id, err := maps.repo.Create(meetingActionPlan, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	meetingMinuteStatus, err := maps.meetingMinuteStatusSvc.GetByType("open")
 	if err != nil {
 		return 0, err
 	}
-
-	eventDescriptionEn := "You have been added as responsible for a new Action Plan"
-	eventDescriptionAr := "تمت إضافتك كمسؤول لخطة عمل جديدة"
-
-	messageEn := fmt.Sprintf("%s: %s", eventDescriptionEn, MeetingActionPlanFormDTO.Title)
-	messageAr := fmt.Sprintf("%s: %s", eventDescriptionAr, MeetingActionPlanFormDTO.Title)
-
-	redirectURL := fmt.Sprintf("meeting/%d/action-plans/%d", meetingID, id)
-
-	dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-		UserID:           MeetingActionPlanFormDTO.ResponsibleUserID,
-		ModuleIdentifier: "meeting_action_plan",
-		Icon:             models.CreateIcon,
-		MessageEn:        messageEn,
-		MessageAr:        messageAr,
-		RedirectURL:      redirectURL,
-		CreatedByID:      currentUserID,
-	}
-
-	resposibleUser, err := maps.userSvc.GetByID(MeetingActionPlanFormDTO.ResponsibleUserID)
-	if err != nil {
+	if err := maps.meetingMinuteSvc.StatusUpdate(*MeetingActionPlanFormDTO.MeetingMinuteID, currentUserID, uint(meetingMinuteStatus.ID), tx); err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
-	emailTo := []string{resposibleUser.Email}
-	subject := fmt.Sprintf("Meeting/%s: Action Plan Added", meeting.Title)
-	templateRelativePath := "meeting/templates/email/create_action_plan_mail.html"
-	emailData := meetingDTOs.SendCreateActionPlanMailDTO{
-		FirstNameEn: resposibleUser.FirstNameEn,
-		LastNameEn:  resposibleUser.LastNameEn,
-		MessageEn:   messageEn,
-		RedirectURL: redirectURL,
+	actionPlanStatusID := MeetingActionPlanFormDTO.ActionPlanStatusID
+	meetingActionPlanUpdate := &models.MeetingActionPlanStatusUpdate{
+		MeetingActionPlanID: id,
+		ActionPlanStatusID:  actionPlanStatusID,
+		Comment:             "Initial action plan status",
+		CreatedByID:         currentUserID,
 	}
 
-	emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
-		EmailTo:              emailTo,
-		Subject:              subject,
-		TemplateRelativePath: templateRelativePath,
-		EmailData:            emailData,
-	}
-
-	err = maps.notificationSvc.SendNotification(
-		dbNotificationDTO, emailNotificationDTO, "create_meeting_action_plan")
+	_, err = maps.repo.CreateInitialMeetingActionPlanStatusUpdate(meetingActionPlanUpdate, tx)
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
+	tx.Commit()
 
 	go func() {
 		err := maps.activityLogSvc.LogActivity(
@@ -211,6 +201,8 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 }
 
 func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUserID uint, MeetingActionPlanFormDTO *meetingDTOs.MeetingActionPlanFormDTO) error {
+	tx := maps.repo.BeginTransaction()
+
 	if _, err := maps.meetingSvc.GetByID(meetingID); err != nil {
 		return err
 	}
@@ -230,7 +222,7 @@ func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUse
 		return err
 	}
 
-	// Update Compliance ActionPlan
+	// Update Meeting ActionPlan
 	existingMeetingActionPlan.Title = MeetingActionPlanFormDTO.Title
 	existingMeetingActionPlan.Description = MeetingActionPlanFormDTO.Description
 	existingMeetingActionPlan.SeverityLevelID = MeetingActionPlanFormDTO.SeverityLevelID
@@ -238,6 +230,7 @@ func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUse
 	existingMeetingActionPlan.TargetDate = dates.TargetDate
 	existingMeetingActionPlan.Percentage = *MeetingActionPlanFormDTO.Percentage
 	existingMeetingActionPlan.ActionPlanStatusID = MeetingActionPlanFormDTO.ActionPlanStatusID
+	existingMeetingActionPlan.MeetingMinuteID = MeetingActionPlanFormDTO.MeetingMinuteID
 	existingMeetingActionPlan.UpdatedByID = &currentUserID
 
 	err = maps.repo.Update(existingMeetingActionPlan)
@@ -245,11 +238,14 @@ func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUse
 	if err != nil {
 		return err
 	}
+	tx.Commit()
 
 	return nil
 }
 
 func (maps *MeetingActionPlanService) Delete(meetingID uint, ids []uint, currentUserID uint) ([]uint, error) {
+	tx := maps.repo.BeginTransaction()
+
 	if _, err := maps.meetingSvc.GetByID(meetingID); err != nil {
 		return nil, err
 	}
@@ -258,13 +254,23 @@ func (maps *MeetingActionPlanService) Delete(meetingID uint, ids []uint, current
 	var successfulIds []uint
 	for _, id := range ids {
 
-		_, err := maps.repo.GetByID(id)
+		meetingActionPlan, err := maps.GetFullDetailsByID(meetingID, id)
 
 		if err != nil {
 			continue
 		}
+		if len(meetingActionPlan.ActionPlanStatusUpdates) > 0 {
+			var deleteStatusUpdateIds []*uint
+			for _, update := range meetingActionPlan.ActionPlanStatusUpdates {
+				deleteStatusUpdateIds = append(deleteStatusUpdateIds, &update.ID)
+			}
+			if err := maps.repo.DeleteMeetingActionPlanStatusUpdates(deleteStatusUpdateIds, tx); err != nil {
+				failedIds = append(failedIds, id)
+				continue
+			}
+		}
 
-		err = maps.repo.Delete(id)
+		err = maps.repo.Delete(id, tx)
 		if err != nil {
 			failedIds = append(failedIds, id)
 		} else {
@@ -273,6 +279,7 @@ func (maps *MeetingActionPlanService) Delete(meetingID uint, ids []uint, current
 	}
 
 	if len(successfulIds) > 0 {
+		tx.Commit()
 
 		go func() {
 			err := maps.activityLogSvc.LogBulkActivities(
@@ -288,20 +295,25 @@ func (maps *MeetingActionPlanService) Delete(meetingID uint, ids []uint, current
 				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
 			}
 		}()
+	} else {
+		tx.Rollback()
+
 	}
 
 	return failedIds, nil
 }
 
-func (maps *MeetingActionPlanService) StatusUpdate(meetingID uint, id uint, currentUserID uint, actionPlanStatusID uint, percentage uint, tx ...utility.DatabaseTransaction) error {
+func (maps *MeetingActionPlanService) StatusUpdate(meetingID uint, id uint, currentUserID uint, meetingActionPlanStatusUpdateFormDTO *meetingDTOs.MeetingActionPlanStatusUpdateFormDTO, tx ...utility.DatabaseTransaction) error {
 	existingMeetingActionPlan, err := maps.GetByID(meetingID, id)
 
 	if err != nil {
 		return err
 	}
 
-	existingMeetingActionPlan.ActionPlanStatusID = actionPlanStatusID
-	existingMeetingActionPlan.Percentage = percentage
+	existingMeetingActionPlan.ActionPlanStatusID = meetingActionPlanStatusUpdateFormDTO.ActionPlanStatusID
+	existingMeetingActionPlan.Percentage = meetingActionPlanStatusUpdateFormDTO.Percentage
+	existingMeetingActionPlan.Comments = &meetingActionPlanStatusUpdateFormDTO.Comment
+
 	existingMeetingActionPlan.UpdatedByID = &currentUserID
 
 	err = maps.repo.Update(existingMeetingActionPlan, tx...)
@@ -327,6 +339,9 @@ func (maps *MeetingActionPlanService) validateMeetingActionPlanFormDTO(meetingAc
 	if _, err := maps.actionPlanStatusSvc.GetByID(meetingActionPlanFormDTO.ActionPlanStatusID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("action plan status does not exist"), "not_exist", "action plan status")
 	}
+	if _, err := maps.meetingMinuteSvc.GetByID(*meetingActionPlanFormDTO.MeetingMinuteID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("meeting minute does not exist"), "not_exist", "meeting minute")
+	}
 
 	return nil
 }
@@ -343,4 +358,18 @@ func (maps *MeetingActionPlanService) parseMeetingActionPlanDates(dto *meetingDT
 	}
 
 	return parsed, nil
+}
+
+func (maps *MeetingActionPlanService) GetMeetingActionPlanSummary(meetingID uint) (*meetingDTOs.ActionPlanSummaryDTO, error) {
+	openCount, closedCount, err := maps.repo.GetMeetingActionPlanSummary(meetingID)
+	if err != nil {
+		return nil, err
+	}
+
+	summary := &meetingDTOs.ActionPlanSummaryDTO{
+		OpenCount:   openCount,
+		ClosedCount: closedCount,
+	}
+
+	return summary, nil
 }

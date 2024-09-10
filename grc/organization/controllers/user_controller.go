@@ -8,6 +8,7 @@ import (
 	"jethur/utility"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -26,10 +27,17 @@ func NewUserController(service services.UserServiceInterface) *UserController {
 
 func (uc *UserController) GetAllUsers(c *gin.Context) {
 	sort := c.DefaultQuery("sort_order", "asc")
-	sortBy := c.DefaultQuery("sort_by", "name")
+	sortBy := c.DefaultQuery("sort_by", "first_name_en")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
+	userIdsStr := c.Query("user_ids")
+
+	userIds, err := utility.ParseCommaSeparatedStringToIntArray(userIdsStr)
+	if err != nil {
+		utility.SendInvalidErrResp(c, errors.New("invalid 'user_ids' parameter"))
+		return
+	}
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
@@ -43,12 +51,16 @@ func (uc *UserController) GetAllUsers(c *gin.Context) {
 	}
 
 	validSortFields := map[string]string{
-		"name":          "users.first_name_en",
-		"email":         "users.email",
-		"mobile_number": "users.mobile_number",
-		"designation":   "designations.title_en",
-		"role":          "roles_agg.roles_en",
-		"user_status":   "user_statuses.title_en",
+		"first_name_en":  "users.first_name_en",
+		"first_name_ar":  "users.first_name_ar",
+		"email":          "users.email",
+		"mobile_number":  "users.mobile_number",
+		"designation_en": "designations.title_en",
+		"designation_ar": "designations.title_ar",
+		"role_en":        "roles_agg.roles_en",
+		"role_ar":        "roles_agg.roles_ar",
+		"user_status_en": "user_statuses.title_en",
+		"user_status_ar": "user_statuses.title_ar",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
@@ -79,6 +91,7 @@ func (uc *UserController) GetAllUsers(c *gin.Context) {
 		Status:      status,
 		Page:        page,
 		PageSize:    pageSize,
+		UserIDs:     userIds,
 		Filters:     filters,
 		QuickFilter: quickFilter,
 	}
@@ -101,7 +114,7 @@ func (uc *UserController) GetUserDetails(c *gin.Context) {
 		return
 	}
 
-	control, err := uc.service.GetFullDetailsByID(uint(id))
+	user, err := uc.service.GetFullDetailsByID(uint(id))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -112,7 +125,7 @@ func (uc *UserController) GetUserDetails(c *gin.Context) {
 			return
 		}
 	}
-	c.JSON(http.StatusOK, control)
+	c.JSON(http.StatusOK, user)
 }
 
 func (uc *UserController) CreateUser(c *gin.Context) {
@@ -226,6 +239,12 @@ func (uc *UserController) GetUserLoginHistory(c *gin.Context) {
 		return
 	}
 
+	userID, err := strconv.Atoi(c.Param("userId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
 	queryParams := organizationDTOs.UserLoginHistoryListQueryParamsDTO{
 		Sort:        sort,
 		SortBy:      sortBy,
@@ -235,11 +254,170 @@ func (uc *UserController) GetUserLoginHistory(c *gin.Context) {
 		LoginAtFrom: loginAtFrom,
 		LoginAtTo:   loginAtTo,
 	}
-	userLoginHistory, err := uc.service.GetUserLoginHistory(&queryParams)
+	userLoginHistory, err := uc.service.GetUserLoginHistory(uint(userID), &queryParams)
 
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(uc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, userLoginHistory)
+}
+
+func (uc *UserController) GetCurrentUserDetails(c *gin.Context) {
+
+	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(uc.db, c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, userLoginHistory)
+
+	user, err := uc.service.GetCurrentUserDetails(uint(currentUserID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(uc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, user)
+}
+
+func (uc *UserController) GetUserNotifications(c *gin.Context) {
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+	quickFilter := c.QueryArray("quick_filter")
+
+	moduleIDsStr := c.Query("module_ids")
+	var moduleIDs []uint
+	if moduleIDsStr != "" {
+		for _, idStr := range strings.Split(moduleIDsStr, ",") {
+			id, err := strconv.ParseUint(idStr, 10, 32)
+			if err != nil {
+				utility.SendInternalErrResp(uc.db, c, "Invalid module_id parameter")
+				return
+			}
+			moduleIDs = append(moduleIDs, uint(id))
+		}
+	}
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(uc.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(uc.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(uc.db, c, err.Error())
+		return
+	}
+
+	// Prepare query parameters
+	queryParams := organizationDTOs.UserNotificationListQueryParamsDTO{
+		Sort:        sort,
+		SortBy:      sortBy,
+		Keyword:     keyword,
+		ModuleIDs:   moduleIDs,
+		Page:        page,
+		PageSize:    pageSize,
+		QuickFilter: quickFilter,
+	}
+
+	userNotifications, err := uc.service.GetUserNotifications(uint(currentUserID), &queryParams)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(uc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, userNotifications)
+}
+
+func (uc *UserController) GetUserNewNotificationCount(c *gin.Context) {
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(uc.db, c, err.Error())
+		return
+	}
+
+	count, err := uc.service.GetUserNewNotificationCount(currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(nil, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"unread_count": count})
+}
+
+func (uc *UserController) MarkwNotificationAsRead(c *gin.Context) {
+	var formDTO organizationDTOs.MarkNotificationAsReadFormDTO
+
+	if err := c.ShouldBindJSON(&formDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(uc.db, c, err.Error())
+		return
+	}
+
+	_, err = uc.service.MarkNotificationsAsRead(currentUserID, &formDTO)
+	if err != nil {
+		utility.SendInternalErrResp(nil, c, err.Error())
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (uc *UserController) MarkwNotificationAsUnread(c *gin.Context) {
+	var formDTO organizationDTOs.MarkNotificationAsReadFormDTO
+
+	if err := c.ShouldBindJSON(&formDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(uc.db, c, err.Error())
+		return
+	}
+
+	_, err = uc.service.MarkNotificationsAsUnread(currentUserID, &formDTO)
+	if err != nil {
+		utility.SendInternalErrResp(nil, c, err.Error())
+		return
+	}
+
+	c.Status(http.StatusOK)
 }

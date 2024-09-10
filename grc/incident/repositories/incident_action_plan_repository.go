@@ -15,9 +15,13 @@ type IncidentActionPlanRepositoryInterface interface {
 	GetAll(incidentID uint, params *incidentDTOs.IncidentActionPlanListQueryParamsDTO) (*incidentDTOs.IncidentActionPlanListResponseDTO, error)
 	GetByID(id uint) (*models.IncidentActionPlan, error)
 	GetFullDetailsByID(id uint) (*models.IncidentActionPlan, error)
-	Create(incidentActionPlan *models.IncidentActionPlan) (uint, error)
+	Create(incidentActionPlan *models.IncidentActionPlan, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(incidentActionPlan *models.IncidentActionPlan, tx ...utility.DatabaseTransaction) error
-	Delete(id uint) error
+	Delete(id uint, tx ...utility.DatabaseTransaction) error
+	GetCountByRiskID(incidentID uint, tx ...utility.DatabaseTransaction) (int64, error)
+
+	CreateInitialIncidentActionPlanStatusUpdate(incidentActionPlanStatusUpdate *models.IncidentActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
+	DeleteIncidentActionPlanStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type IncidentActionPlanRepository struct {
@@ -43,25 +47,45 @@ func (repo *IncidentActionPlanRepository) GetAll(incidentID uint, params *incide
 	query := repo.db.Table("incident_action_plans").
 		Select(`
         incident_action_plans.*,
+		incident_register.reference_number AS incident_reference_number,
+		incident_register.title AS incident_title,
+		CONVERT(VARCHAR, incident_action_plans.target_date, 23) AS target_date,
         action_plan_statuses.title_en AS action_plan_status_title_en,
         action_plan_statuses.title_ar AS action_plan_status_title_ar,
+		action_plan_statuses.color_code AS action_plan_status_color_code,
         severity_levels.title_en AS severity_level_title_en,
         severity_levels.title_ar AS severity_level_title_ar,
         severity_levels.color_code AS severity_level_color_code,
+		responsible_user.id AS responsible_user_id,
         responsible_user.first_name_en AS responsible_user_first_name_en,
         responsible_user.first_name_ar AS responsible_user_first_name_ar,
         responsible_user.last_name_en AS responsible_user_last_name_en,
         responsible_user.last_name_ar AS responsible_user_last_name_ar,
+		responsible_user.initial AS responsible_user_initial,
+        responsible_user.color AS responsible_user_color,
+        responsible_user.email AS responsible_user_email,
+        responsible_user.profile_image_path AS responsible_user_profile_image_path, 
+        created_user.id AS created_user_id,
         created_user.first_name_en AS created_user_first_name_en,
         created_user.first_name_ar AS created_user_first_name_ar,
         created_user.last_name_en AS created_user_last_name_en,
-        created_user.last_name_ar AS created_user_last_name_ar,   
-        updated_user.first_name_en AS updated_user_first_name_en,
+        created_user.last_name_ar AS created_user_last_name_ar,  
+		created_user.initial AS created_user_initial,
+        created_user.color AS created_user_color,
+        created_user.email AS created_user_email,
+        created_user.profile_image_path AS created_user_profile_image_path,
+    	updated_user.id AS updated_user_id,
+    	updated_user.first_name_en AS updated_user_first_name_en,
         updated_user.first_name_ar AS updated_user_first_name_ar,
         updated_user.last_name_en AS updated_user_last_name_en,
-        updated_user.last_name_ar AS updated_user_last_name_ar 
+        updated_user.last_name_ar AS updated_user_last_name_ar,
+		updated_user.initial AS updated_user_initial,
+        updated_user.color AS updated_user_color,
+        updated_user.email AS updated_user_email,
+        updated_user.profile_image_path AS updated_user_profile_image_path 
     `).
 		Joins(`
+		LEFT JOIN incident_register ON incident_register.id = incident_action_plans.incident_register_id
         LEFT JOIN action_plan_statuses ON action_plan_statuses.id = incident_action_plans.action_plan_status_id
         LEFT JOIN severity_levels ON severity_levels.id = incident_action_plans.severity_level_id
         LEFT JOIN users AS responsible_user ON responsible_user.id = incident_action_plans.responsible_user_id
@@ -173,6 +197,7 @@ func (repo *IncidentActionPlanRepository) GetFullDetailsByID(id uint) (*models.I
 		Preload("ResponsibleUser").
 		Preload("SeverityLevel").
 		Preload("ActionPlanStatus").
+		Preload("ActionPlanStatusUpdates").
 		First(&incidentActionPlan, id)
 
 	if result.Error != nil {
@@ -182,8 +207,12 @@ func (repo *IncidentActionPlanRepository) GetFullDetailsByID(id uint) (*models.I
 	return incidentActionPlan, nil
 }
 
-func (repo *IncidentActionPlanRepository) Create(incidentActionPlan *models.IncidentActionPlan) (uint, error) {
-	if err := repo.db.Create(incidentActionPlan).Error; err != nil {
+func (repo *IncidentActionPlanRepository) Create(incidentActionPlan *models.IncidentActionPlan, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(incidentActionPlan).Error; err != nil {
 		return 0, err
 	}
 	return incidentActionPlan.ID, nil
@@ -200,17 +229,59 @@ func (repo *IncidentActionPlanRepository) Update(incidentActionPlan *models.Inci
 	return nil
 }
 
-func (repo *IncidentActionPlanRepository) Delete(id uint) error {
-
+func (repo *IncidentActionPlanRepository) Delete(id uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 	var incidentActionPlan *models.IncidentActionPlan
-	if err := repo.db.First(&incidentActionPlan, id).Error; err != nil {
+	if err := db.First(&incidentActionPlan, id).Error; err != nil {
 		return err
 	}
 
-	result := repo.db.Delete(&models.IncidentActionPlan{}, id)
+	result := db.Delete(&models.IncidentActionPlan{}, id)
 	if result.Error != nil {
 		return result.Error
 	}
 
 	return nil
+}
+
+func (repo *IncidentActionPlanRepository) CreateInitialIncidentActionPlanStatusUpdate(incidentActionPlanStatusUpdate *models.IncidentActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(incidentActionPlanStatusUpdate).Error; err != nil {
+		return 0, err
+	}
+	return incidentActionPlanStatusUpdate.ID, nil
+}
+
+func (repo *IncidentActionPlanRepository) DeleteIncidentActionPlanStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", ids).Delete(&models.IncidentActionPlanStatusUpdate{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+func (repo *IncidentActionPlanRepository) GetCountByRiskID(incidentID uint, tx ...utility.DatabaseTransaction) (int64, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	var count int64
+	if err := db.Model(&models.IncidentActionPlan{}).
+		Where("incident_register_id = ?", incidentID).
+		Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
 }

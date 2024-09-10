@@ -1,10 +1,13 @@
 package repositories
 
 import (
+	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	meetingDTOs "jethur/grc/meeting/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
+	"strconv"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -19,6 +22,21 @@ type MeetingRepositoryInterface interface {
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	CreateParticipants(participants []*models.MeetingParticipant, tx ...utility.DatabaseTransaction) error
 	DeleteParticipants(participantIDs []uint, tx ...utility.DatabaseTransaction) error
+	CreateMeetingActionPlans(actionPlans []*models.MeetingActionPlan, tx ...utility.DatabaseTransaction) error
+	GenerateReferenceNumber() (string, error)
+
+	CreateMeetingComplianceRequirements(complianceRequirements []*models.MeetingComplianceRequirement, tx ...utility.DatabaseTransaction) error
+	CreateMeetingControls(controls []*models.MeetingControl, tx ...utility.DatabaseTransaction) error
+	DeleteMeetingControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteMeetingComplianceRequirements(requirementIds []*uint, tx ...utility.DatabaseTransaction) error
+	CreateMeetingRisks(risks []*models.MeetingRisk, tx ...utility.DatabaseTransaction) error
+	DeleteMeetingRisks(riskIds []*uint, tx ...utility.DatabaseTransaction) error
+	CreateMeetingProcesses(processes []*models.MeetingProcess, tx ...utility.DatabaseTransaction) error
+	DeleteMeetingProcesses(processIds []*uint, tx ...utility.DatabaseTransaction) error
+	CreateMeetingIncidents(incidents []*models.MeetingIncident, tx ...utility.DatabaseTransaction) error
+	DeleteMeetingIncidents(incidentIds []*uint, tx ...utility.DatabaseTransaction) error
+
+	GetAllCounts(meetingID uint) (*meetingDTOs.MeetingsCountResponseDTO, error)
 }
 
 type MeetingRepository struct {
@@ -47,28 +65,46 @@ func (repo *MeetingRepository) GetAll(currentUserID uint, params *meetingDTOs.Me
 			meeting_types.title_ar AS meeting_type_title_er,
 			meeting_frequencies.title_en AS meeting_frequency_title_en,
 			meeting_frequencies.title_ar AS meeting_frequency_title_ar,
+			meetings.reference_number,
 			meetings.title,
+			meetings.description,
 			meetings.location,
-			meetings.date,
+			CONVERT(VARCHAR, meetings.date, 23) AS date,
 			meetings.start_time,
 			meetings.end_time,
+			users.id AS organizer_user_id,
 			users.first_name_en AS organizer_user_first_name_en,
 			users.first_name_ar AS organizer_user_first_name_ar,
 			users.last_name_en AS organizer_user_last_name_en,
 			users.last_name_ar AS organizer_user_last_name_ar,
+			users.initial AS organizer_user_initial,
+        	users.color AS organizer_user_color,
+        	users.email AS organizer_user_email,
+        	users.profile_image_path AS organizer_user_profile_image_path,
 			meetings.created_at,
 			meetings.updated_at,
 			meetings.is_public,
 			meeting_statuses.title_en AS meeting_status_title_en,
 			meeting_statuses.title_ar AS meeting_status_title_ar,
-			created_user.first_name_en AS created_user_first_name_en,
-			created_user.first_name_ar AS created_user_first_name_ar,
-			created_user.last_name_en AS created_user_last_name_en,
-			created_user.last_name_ar AS created_user_last_name_ar,   
-			updated_user.first_name_en AS updated_user_first_name_en,
-			updated_user.first_name_ar AS updated_user_first_name_ar,
-			updated_user.last_name_en AS updated_user_last_name_en,
-			updated_user.last_name_ar AS updated_user_last_name_ar 
+			meeting_statuses.color_code AS meeting_status_color_code,
+        	created_user.id AS created_user_id,
+        	created_user.first_name_en AS created_user_first_name_en,
+        	created_user.first_name_ar AS created_user_first_name_ar,
+        	created_user.last_name_en AS created_user_last_name_en,
+        	created_user.last_name_ar AS created_user_last_name_ar,   
+        	created_user.initial AS created_user_initial,
+        	created_user.color AS created_user_color,
+        	created_user.email AS created_user_email,
+        	created_user.profile_image_path AS created_user_profile_image_path,   
+			updated_user.id AS updated_user_id,
+    		updated_user.first_name_en AS updated_user_first_name_en,
+        	updated_user.first_name_ar AS updated_user_first_name_ar,
+        	updated_user.last_name_en AS updated_user_last_name_en,
+        	updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+        	updated_user.color AS updated_user_color,
+        	updated_user.email AS updated_user_email,
+        	updated_user.profile_image_path AS updated_user_profile_image_path   
 		`).
 		Joins(`
 			LEFT JOIN meeting_types ON meetings.meeting_type_id = meeting_types.id
@@ -77,7 +113,8 @@ func (repo *MeetingRepository) GetAll(currentUserID uint, params *meetingDTOs.Me
 			LEFT JOIN meeting_statuses ON meetings.meeting_status_id = meeting_statuses.id
             LEFT JOIN users AS created_user ON created_user.id = meetings.created_by_id
             LEFT JOIN users AS updated_user ON updated_user.id = meetings.updated_by_id
-        `).Where("(meetings.is_public = ? OR meetings.organizer_id = ? OR meetings.id IN (SELECT meeting_id FROM meeting_participants WHERE user_id = ?))", true, currentUserID, currentUserID)
+        `)
+		//.Where("(meetings.is_public = ? OR meetings.organizer_id = ? OR meetings.id IN (SELECT meeting_id FROM meeting_participants WHERE user_id = ?))", true, currentUserID, currentUserID)
 
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
@@ -114,6 +151,7 @@ func (repo *MeetingRepository) GetAll(currentUserID uint, params *meetingDTOs.Me
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
 			(meetings.title LIKE ? OR
+			meetings.reference_number LIKE ? OR
 			meetings.location LIKE ? OR
 			meeting_types.title_en LIKE ? OR
 			meeting_types.title_ar LIKE ? OR
@@ -125,7 +163,7 @@ func (repo *MeetingRepository) GetAll(currentUserID uint, params *meetingDTOs.Me
 			users.last_name_ar LIKE ? OR
 			meeting_statuses.title_en LIKE ? OR
 			meeting_statuses.title_ar LIKE ?)`,
-			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
 	// Sort by the specified column and order
@@ -181,14 +219,26 @@ func (repo *MeetingRepository) GetFullDetailsByID(id uint, tx ...utility.Databas
 
 	result := db.
 		Preload("Meeting").
+		Preload("Meeting.MeetingType").
+		Preload("Meeting.MeetingFrequency").
+		Preload("Meeting.Organizer").
+		Preload("Meeting.MeetingStatus").
+		Preload("Meeting.CreatedByUser").
 		Preload("MeetingType").
 		Preload("MeetingFrequency").
 		Preload("Organizer").
 		Preload("MeetingStatus").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
+		Preload("Agendas").
+		Preload("Agendas.MeetingMinutes").
 		Preload("Participants").
 		Preload("Participants.User").
+		Preload("Controls").
+		Preload("ComplianceRequirements").
+		Preload("Risks").
+		Preload("Processes").
+		Preload("Incidents").
 		First(&meeting, id)
 
 	if result.Error != nil {
@@ -260,4 +310,205 @@ func (repo *MeetingRepository) DeleteParticipants(participantIDs []uint, tx ...u
 	}
 
 	return nil
+}
+
+func (repo *MeetingRepository) CreateMeetingActionPlans(actionPlans []*models.MeetingActionPlan, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Create(actionPlans).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *MeetingRepository) CreateMeetingComplianceRequirements(complianceRequirements []*models.MeetingComplianceRequirement, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&complianceRequirements).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *MeetingRepository) CreateMeetingControls(controls []*models.MeetingControl, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&controls).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *MeetingRepository) DeleteMeetingControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Delete controls by IDs
+	if err := db.Where("id IN (?)", controlIds).Delete(&models.MeetingControl{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *MeetingRepository) DeleteMeetingComplianceRequirements(requirementIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Delete compliance requirements by IDs
+	if err := db.Where("id IN (?)", requirementIds).Delete(&models.MeetingComplianceRequirement{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+func (repo *MeetingRepository) CreateMeetingRisks(risks []*models.MeetingRisk, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&risks).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *MeetingRepository) DeleteMeetingRisks(riskIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Delete risks by IDs
+	if err := db.Where("id IN (?)", riskIds).Delete(&models.MeetingRisk{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *MeetingRepository) CreateMeetingProcesses(processes []*models.MeetingProcess, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&processes).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *MeetingRepository) DeleteMeetingProcesses(processIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Delete process by IDs
+	if err := db.Where("id IN (?)", processIds).Delete(&models.MeetingProcess{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *MeetingRepository) CreateMeetingIncidents(incidents []*models.MeetingIncident, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&incidents).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *MeetingRepository) DeleteMeetingIncidents(incidentIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Delete incidents by IDs
+	if err := db.Where("id IN (?)", incidentIds).Delete(&models.MeetingIncident{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *MeetingRepository) GenerateReferenceNumber() (string, error) {
+	var lastReferenceNumber *string
+	err := repo.db.Model(&models.Meeting{}).
+		Select("reference_number").
+		Order("reference_number desc").
+		Limit(1).
+		Scan(&lastReferenceNumber).
+		Error
+
+	if err != nil {
+		return "", err
+	}
+
+	lastDigits := "0000"
+	if lastReferenceNumber != nil && len(*lastReferenceNumber) >= 4 {
+		lastDigits = (*lastReferenceNumber)[len(*lastReferenceNumber)-4:]
+	}
+
+	currentYear := time.Now().Year()
+	lastReferenceID, err := strconv.ParseUint(lastDigits, 10, 64)
+	if err != nil {
+		return "", err
+	}
+
+	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "MT", currentYear, lastReferenceID+1)
+	return newReferenceNumber, nil
+}
+
+func (repo *MeetingRepository) GetAllCounts(meetingID uint) (*meetingDTOs.MeetingsCountResponseDTO, error) {
+	var agendaCount, momCount, actionPlanCount int64
+	var err error
+
+	// Query for agenda count
+	err = repo.db.Model(&models.MeetingAgenda{}).
+		Where("meeting_id = ?", meetingID).
+		Count(&agendaCount).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Query for minutes of meeting (MoM) count through meeting_agendas
+	err = repo.db.Model(&models.MeetingMinute{}).
+		Joins("JOIN meeting_agendas ON meeting_agendas.id = meeting_minutes.meeting_agenda_id").
+		Where("meeting_agendas.meeting_id = ?", meetingID).
+		Count(&momCount).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Query for action plan count
+	err = repo.db.Model(&models.MeetingActionPlan{}).
+		Where("meeting_id = ?", meetingID).
+		Count(&actionPlanCount).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &meetingDTOs.MeetingsCountResponseDTO{
+		Agenda:     int(agendaCount),
+		Mom:        int(momCount),
+		ActionPlan: int(actionPlanCount),
+	}, nil
 }

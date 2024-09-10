@@ -29,8 +29,10 @@ type ComplianceModule struct {
 	SLARenewController                            *controllers.SLARenewController
 	SLAActionPlanController                       *controllers.SLAActionPlanController
 	SLAActionPlanStatusUpdateController           *controllers.SLAActionPlanStatusUpdateController
+	SLAAssociatedItemController                   *controllers.SLAAssociatedItemController
 
 	ComplianceRequirementSvc services.ComplianceRequirementServiceInterface
+	SlaRegisterSvc           services.SLARegisterServiceInterface
 }
 
 func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *MasterModule, organizationModule *OrganizationModule, taskModule *TaskModule, settingsModule *SettingsModule) *ComplianceModule {
@@ -118,7 +120,10 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		slaCategorySvc,
 		masterModule.SeverityLevelSvc,
 		masterModule.LifecycleStatusSvc,
-		sharedModule.ActivityLogService)
+		sharedModule.ActivityLogService,
+		organizationModule.ProcessSvc,
+		organizationModule.UserSvc,
+	)
 	slaRegisterController := controllers.NewSLARegisterController(slaRegisterSvc)
 
 	slaCheckQuestionRepo := repositories.NewSLACheckQuestionRepository(db)
@@ -161,6 +166,10 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 	complianceRequirementAssociatedItemSvc := services.NewComplianceRequirementAssociatedItemService(complianceRequirementAssociatedItemRepo, complianceRegisterSvc)
 	complianceRequirementAssociatedItemController := controllers.NewComplianceRequirementAssociatedItemController(complianceRequirementAssociatedItemSvc)
 
+	slaAssociatedItemRepo := repositories.NewSLAAssociatedItemRepository(db)
+	slaAssociatedItemSvc := services.NewSLAAssociatedItemService(slaAssociatedItemRepo, slaRegisterSvc)
+	slaAssociatedItemController := controllers.NewSLAAssociatedItemController(slaAssociatedItemSvc)
+
 	return &ComplianceModule{
 		ComplianceCategoryController:                  complianceCategoryController,
 		ComplianceStatusController:                    complianceStatusController,
@@ -182,7 +191,9 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		SLARenewController:                            slaRenewController,
 		SLAActionPlanController:                       slaActionPlanController,
 		SLAActionPlanStatusUpdateController:           slaActionPlanStatusUpdateController,
+		SLAAssociatedItemController:                   slaAssociatedItemController,
 
 		ComplianceRequirementSvc: complianceRequirementSvc,
+		SlaRegisterSvc:           slaRegisterSvc,
 	}
 }

@@ -6,29 +6,40 @@ import (
 )
 
 type ControlTestListDTO struct {
-	ID                                   uint       `json:"id"`
-	ControlID                            uint       `json:"control_id"`
-	Title                                string     `json:"title"`
-	ControlImplementationStatusTitleEn   string     `json:"control_implementation_status_title_en"`
-	ControlImplementationStatusTitleAr   string     `json:"control_implementation_status_title_ar"`
-	ControlImplementationStatusColorCode string     `json:"control_implementation_status_color_code"`
-	ControlEfficiencyStatusTitleEn       string     `json:"control_efficiency_status_title_en"`
-	ControlEfficiencyStatusTitleAr       string     `json:"control_efficiency_status_title_ar"`
-	ControlEfficiencyStatusColorCode     string     `json:"control_efficiency_status_color_code"`
-	Description                          *string    `json:"description"`
-	Score                                *uint      `json:"score"`
-	Comments                             *string    `json:"comments"`
-	TestedSource                         string     `json:"tested_source"`
-	TestedByUserFirstNameEn              string     `json:"tested_by_user_first_name_en"`
-	TestedByUserFirstNameAr              string     `json:"tested_by_user_first_name_ar"`
-	TestedByUserLastNameEn               string     `json:"tested_by_user_last_name_en"`
-	TestedByUserLastNameAr               string     `json:"tested_by_user_last_name_ar"`
-	UpdatedUserFirstNameEn               *string    `json:"updated_user_first_name_en"`
-	UpdatedUserFirstNameAr               *string    `json:"updated_user_first_name_ar"`
-	UpdatedUserLastNameEn                *string    `json:"updated_user_last_name_en"`
-	UpdatedUserLastNameAr                *string    `json:"updated_user_last_name_ar"`
-	TestedAt                             *time.Time `json:"tested_at"`
-	UpdatedAt                            *time.Time `json:"updated_at"`
+	ID                                   uint    `json:"id"`
+	ControlID                            uint    `json:"control_id"`
+	Title                                string  `json:"title"`
+	ControlImplementationStatusTitleEn   string  `json:"control_implementation_status_title_en"`
+	ControlImplementationStatusTitleAr   string  `json:"control_implementation_status_title_ar"`
+	ControlImplementationStatusColorCode string  `json:"control_implementation_status_color_code"`
+	ControlEfficiencyStatusTitleEn       string  `json:"control_efficiency_status_title_en"`
+	ControlEfficiencyStatusTitleAr       string  `json:"control_efficiency_status_title_ar"`
+	ControlEfficiencyStatusColorCode     string  `json:"control_efficiency_status_color_code"`
+	Description                          *string `json:"description"`
+	Score                                *uint   `json:"score"`
+	Comments                             *string `json:"comments"`
+	TestedSource                         string  `json:"tested_source"`
+	TestedByUserID                       uint    `json:"tested_by_user_id"`
+	TestedByUserFirstNameEn              string  `json:"tested_by_user_first_name_en"`
+	TestedByUserFirstNameAr              string  `json:"tested_by_user_first_name_ar"`
+	TestedByUserLastNameEn               string  `json:"tested_by_user_last_name_en"`
+	TestedByUserLastNameAr               string  `json:"tested_by_user_last_name_ar"`
+	TestedByUserInitial                  string  `json:"tested_by_user_initial"`
+	TestedByUserColor                    string  `json:"tested_by_user_color"`
+	TestedByUserEmail                    string  `json:"tested_by_user_email"`
+	TestedByUserProfileImagePath         string  `json:"tested_by_user_profile_image_path"`
+	UpdatedUserID                        *uint   `json:"updated_user_id"`
+	UpdatedUserFirstNameEn               *string `json:"updated_user_first_name_en"`
+	UpdatedUserFirstNameAr               *string `json:"updated_user_first_name_ar"`
+	UpdatedUserLastNameEn                *string `json:"updated_user_last_name_en"`
+	UpdatedUserLastNameAr                *string `json:"updated_user_last_name_ar"`
+	UpdatedUserInitial                   *string `json:"updated_user_initial"`
+	UpdatedUserColor                     *string `json:"updated_user_color"`
+	UpdatedUserEmail                     *string `json:"updated_user_email"`
+	UpdatedUserProfileImagePath          *string `json:"updated_user_profile_image_path"`
+
+	TestedAt  string     `json:"tested_at"`
+	UpdatedAt *time.Time `json:"updated_at"`
 }
 
 type ControlTestListResponseDTO struct {
@@ -37,15 +48,15 @@ type ControlTestListResponseDTO struct {
 }
 
 type ControlTestDetailsDTO struct {
-	ID           uint       `json:"id"`
-	ControlID    uint       `json:"control_id"`
-	Title        string     `json:"title"`
-	Description  *string    `json:"description"`
-	Score        *uint      `json:"score"`
-	Comments     *string    `json:"comments"`
-	TestedSource string     `json:"tested_source"`
-	TestedAt     *time.Time `json:"tested_at"`
-	UpdatedAt    *time.Time `json:"updated_at"`
+	ID             uint       `json:"id"`
+	ControlID      uint       `json:"control_id"`
+	Title          string     `json:"title"`
+	Description    *string    `json:"description"`
+	Score          *uint      `json:"score"`
+	Comments       *string    `json:"comments"`
+	TestedSource   string     `json:"tested_source"`
+	TestedAtString *string    `json:"tested_at"`
+	UpdatedAt      *time.Time `json:"updated_at"`
 
 	ControlImplementationStatus ControlImplementationStatusDTO `json:"control_implementation_status"`
 	ControlEfficiencyStatus     ControlEfficiencyStatusDTO     `json:"control_efficiency_status"`

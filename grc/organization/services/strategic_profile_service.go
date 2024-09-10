@@ -3,12 +3,18 @@ package services
 import (
 	"errors"
 	"fmt"
+	"jethur/config"
 	organizationDTOs "jethur/grc/organization/dtos"
 	"jethur/utility"
+	"mime/multipart"
+	"os"
+	"path/filepath"
 
+	commonRepositories "jethur/grc/common/repositories"
 	"jethur/grc/models"
 	organizationRepositories "jethur/grc/organization/repositories"
 
+	"github.com/google/uuid"
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
 )
@@ -19,16 +25,21 @@ type StrategicProfileServiceInterface interface {
 	UpdateVision(currentUserID uint, strategicProfileVision *organizationDTOs.StrategicProfileVisionFormDTO) error
 	UpdateMission(currentUserID uint, strategicProfileMission *organizationDTOs.StrategicProfileMissionFormDTO) error
 	UpdateValues(strategicProfileValues []*organizationDTOs.StrategicProfileValueFormDTO) error
+	UploadProfileImage(file *multipart.FileHeader) error
+	GetProfileImagePath() (string, error)
 }
 
 type StrategicProfileService struct {
-	repo organizationRepositories.StrategicProfileRepositoryInterface
+	repo     organizationRepositories.StrategicProfileRepositoryInterface
+	fileRepo commonRepositories.FileRepositoryInterface
 }
 
-func NewStrategicProfileService(repo organizationRepositories.StrategicProfileRepositoryInterface) StrategicProfileServiceInterface {
+func NewStrategicProfileService(repo organizationRepositories.StrategicProfileRepositoryInterface,
+	fileRepo commonRepositories.FileRepositoryInterface) StrategicProfileServiceInterface {
 
 	return &StrategicProfileService{
-		repo: repo,
+		repo:     repo,
+		fileRepo: fileRepo,
 	}
 }
 
@@ -176,6 +187,76 @@ func (sps *StrategicProfileService) UpdateValues(strategicProfileValuesDTO []*or
 	}
 	//@todo- activity log need to capture
 	return nil
+}
+
+func (sps *StrategicProfileService) UploadProfileImage(file *multipart.FileHeader) error {
+	allowedTypes := map[string]bool{"image/jpeg": true, "image/png": true}
+	if !allowedTypes[file.Header.Get("Content-Type")] {
+		return utility.NewValidationError(fmt.Errorf("only jpeg/png files are allowed"), "invalid_image_type", "type")
+	}
+
+	maxSize := int64(2 * 1024 * 1024)
+	if file.Size > maxSize {
+		return utility.NewValidationError(fmt.Errorf("only 2MB files are allowed"), "invalid_profile_file_size", "size")
+	}
+
+	fileExtension := filepath.Ext(file.Filename)
+	newFileName := uuid.New().String() + fileExtension
+	storagePath := "organization/profile_image/" + newFileName
+
+	_, err := sps.fileRepo.SaveFile(file, storagePath)
+	if err != nil {
+		return err
+	}
+
+	profile, err := sps.repo.Get()
+	if err != nil {
+		return utility.NewResourceNotFoundError(err, nil)
+	}
+
+	if profile.ProfileImage != nil {
+		oldFilePath := "organization/profile_image/" + *profile.ProfileImage
+		err := os.Remove(filepath.Join(config.GetEnv("STORAGE_PATH", ""), oldFilePath))
+		if err != nil && !os.IsNotExist(err) {
+			return err
+		}
+	}
+
+	// Generate token for the new file
+	dataToEncrypt := []byte(newFileName)
+	encryptedFilename, err := utility.EncryptData(dataToEncrypt)
+	if err != nil {
+		return err
+	}
+
+	// Update the profile with the new image
+	profile.ProfileImage = &newFileName
+	profile.ProfileImageToken = &encryptedFilename
+	if err := sps.repo.Update(profile); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (sps *StrategicProfileService) GetProfileImagePath() (string, error) {
+	profile, err := sps.repo.Get()
+	if err != nil {
+		return "", utility.NewResourceNotFoundError(err, nil)
+	}
+
+	if profile.ProfileImage == nil {
+		return "", utility.NewResourceNotFoundError(fmt.Errorf("profile image not found"), nil)
+	}
+
+	storagePath := config.GetEnv("STORAGE_PATH", "")
+	filePath := filepath.Join(storagePath, "organization/profile_image", *profile.ProfileImage)
+
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		return "", utility.NewResourceNotFoundError(fmt.Errorf("file not found"), nil)
+	}
+
+	return filePath, nil
 }
 
 func (us *StrategicProfileService) validateStrategicProfileFormDTO(strategicProfileDTO *organizationDTOs.StrategicProfileFormDTO) error {

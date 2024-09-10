@@ -23,6 +23,7 @@ type SLAActionPlanServiceInterface interface {
 	Update(slaID uint, id uint, currentUserID uint, slaActionPlanFormDTO *complianceDTOs.SLAActionPlanFormDTO) error
 	Delete(slaID uint, ids []uint, currentUserID uint) ([]uint, error)
 	StatusUpdate(slaID uint, id uint, currentUserID uint, ActionPlanStatusID uint, tx utility.DatabaseTransaction) error
+	GetSLAActionPlanCountByStatus(slaID uint) ([]complianceDTOs.SLAActionPlanStatusCountResponseDTO, error)
 }
 
 // Service and implementations
@@ -96,18 +97,21 @@ func (saps *SLAActionPlanService) GetFullDetailsByID(slaID uint, id uint) (*comp
 		return nil, err
 	}
 
-	// todo: add extra fields required in the details screen
+	if slaActionPlan.TargetDate != nil {
+		targetDate := slaActionPlan.TargetDate.Format("2006-01-02")
+		slaActionPlanDTO.TargetDateString = &targetDate
+	}
 
 	return &slaActionPlanDTO, nil
 }
 
 func (saps *SLAActionPlanService) Create(slaID uint, currentUserID uint, slaActionPlanFormDTO *complianceDTOs.SLAActionPlanFormDTO) (uint, error) {
-
+	tx := saps.repo.BeginTransaction()
 	if _, err := saps.slaRegisterSvc.GetByID(slaID); err != nil {
 		return 0, err
 	}
 
-	if err := saps.validateSLAActionPlanFormDTO(slaActionPlanFormDTO); err != nil {
+	if err := saps.validateSLAActionPlanFormDTO(slaID, slaActionPlanFormDTO); err != nil {
 		return 0, err
 	}
 
@@ -132,8 +136,25 @@ func (saps *SLAActionPlanService) Create(slaID uint, currentUserID uint, slaActi
 
 	id, err := saps.repo.Create(slaActionPlan)
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
+
+	actionPlanStatusID := slaActionPlanFormDTO.ActionPlanStatusID
+	slaActionPlanUpdate := &models.SLAActionPlanStatusUpdate{
+		SLAActionPlanID:    id,
+		ActionPlanStatusID: actionPlanStatusID,
+		Comment:            "Initial action plan status",
+		CreatedByID:        currentUserID,
+	}
+
+	_, err = saps.repo.CreateInitialSLAActionPlanStatusUpdate(slaActionPlanUpdate, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	tx.Commit()
 
 	go func() {
 		err := saps.activityLogSvc.LogActivity(
@@ -173,7 +194,7 @@ func (saps *SLAActionPlanService) Update(slaID uint, id uint, currentUserID uint
 		return err
 	}
 
-	if err := saps.validateSLAActionPlanFormDTO(slaActionPlanFormDTO); err != nil {
+	if err := saps.validateSLAActionPlanFormDTO(slaID, slaActionPlanFormDTO); err != nil {
 		return err
 	}
 
@@ -204,6 +225,7 @@ func (saps *SLAActionPlanService) Update(slaID uint, id uint, currentUserID uint
 }
 
 func (saps *SLAActionPlanService) Delete(slaID uint, ids []uint, currentUserID uint) ([]uint, error) {
+	tx := saps.repo.BeginTransaction()
 	if _, err := saps.slaRegisterSvc.GetByID(slaID); err != nil {
 		return nil, err
 	}
@@ -212,19 +234,38 @@ func (saps *SLAActionPlanService) Delete(slaID uint, ids []uint, currentUserID u
 	var successfulIds []uint
 	for _, id := range ids {
 
-		_, err := saps.repo.GetByID(id)
+		slaActionPlan, err := saps.GetFullDetailsByID(slaID, id)
 
 		if err != nil {
 			continue
 		}
 
-		err = saps.repo.Delete(id)
+		if len(slaActionPlan.ActionPlanStatusUpdates) > 0 {
+			var deleteStatusUpdateIds []*uint
+			for _, update := range slaActionPlan.ActionPlanStatusUpdates {
+				deleteStatusUpdateIds = append(deleteStatusUpdateIds, &update.ID)
+			}
+			if err := saps.repo.DeleteSLAActionPlanStatusUpdates(deleteStatusUpdateIds, tx); err != nil {
+				failedIds = append(failedIds, id)
+				continue
+			}
+		}
+
+		err = saps.repo.Delete(id, tx)
 		if err != nil {
 			failedIds = append(failedIds, id)
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+
 	}
+
+	if len(failedIds) > 0 {
+		tx.Rollback()
+		return failedIds, nil
+	}
+
+	tx.Commit()
 
 	if len(successfulIds) > 0 {
 
@@ -266,7 +307,7 @@ func (saps *SLAActionPlanService) StatusUpdate(slaID uint, id uint, currentUserI
 	return nil
 }
 
-func (saps *SLAActionPlanService) validateSLAActionPlanFormDTO(slaActionPlanFormDTO *complianceDTOs.SLAActionPlanFormDTO) error {
+func (saps *SLAActionPlanService) validateSLAActionPlanFormDTO(slaID uint, slaActionPlanFormDTO *complianceDTOs.SLAActionPlanFormDTO) error {
 
 	if slaActionPlanFormDTO.SeverityLevelID != nil {
 		if _, err := saps.severityLevelSvc.GetByID(*slaActionPlanFormDTO.SeverityLevelID); err != nil {
@@ -275,7 +316,7 @@ func (saps *SLAActionPlanService) validateSLAActionPlanFormDTO(slaActionPlanForm
 	}
 
 	if slaActionPlanFormDTO.SLACheckQuestionID != nil {
-		if _, err := saps.slaCheckQuestionSvc.GetQuestionByID(*slaActionPlanFormDTO.SLACheckQuestionID); err != nil {
+		if _, err := saps.slaCheckQuestionSvc.GetQuestionByID(slaID, *slaActionPlanFormDTO.SLACheckQuestionID); err != nil {
 			return utility.NewValidationError(fmt.Errorf("SLA requirement does not exist"), "not_exist", "SLA requirement")
 		}
 	}
@@ -299,4 +340,17 @@ func (saps *SLAActionPlanService) parseSLAActionPlanDates(dto *complianceDTOs.SL
 	}
 
 	return parsed, nil
+}
+
+func (saps *SLAActionPlanService) GetSLAActionPlanCountByStatus(slaID uint) ([]complianceDTOs.SLAActionPlanStatusCountResponseDTO, error) {
+	if _, err := saps.slaRegisterSvc.GetByID(slaID); err != nil {
+		return nil, err
+	}
+
+	response, err := saps.repo.GetSLAActionPlanCountByStatus(slaID)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
 }

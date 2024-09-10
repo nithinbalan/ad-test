@@ -14,11 +14,13 @@ type ComplianceActionPlanRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(complianceID uint, params *complianceDTOs.ComplianceActionPlanListQueryParamsDTO) (*complianceDTOs.ComplianceActionPlanListResponseDTO, error)
 	GetByID(id uint) (*models.ComplianceActionPlan, error)
-	GetFullDetailsByID(id uint) (*models.ComplianceActionPlan, error)
+	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceActionPlan, error)
 	Create(complianceActionPlan *models.ComplianceActionPlan, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(complianceActionPlan *models.ComplianceActionPlan, tx ...utility.DatabaseTransaction) error
 	Delete(id uint) error
-	CreateComplianceActionPlanStatusUpdate(complianceActionPlanStatusUpdate *models.ComplianceActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
+
+	CreateInitialComplianceActionPlanStatusUpdate(complianceActionPlanStatusUpdate *models.ComplianceActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
+	DeleteComplianceActionPlanStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type ComplianceActionPlanRepository struct {
@@ -44,6 +46,7 @@ func (repo *ComplianceActionPlanRepository) GetAll(complianceID uint, params *co
 	query := repo.db.Table("compliance_action_plans").
 		Select(`
         compliance_action_plans.*,
+		CONVERT(VARCHAR, compliance_action_plans.target_date, 23) AS target_date,
         compliance_requirements.title AS compliance_requirement_title,
         compliance_clauses.clause_no AS compliance_clause_no,
         compliance_clauses.title AS compliance_clause_title,
@@ -52,6 +55,7 @@ func (repo *ComplianceActionPlanRepository) GetAll(complianceID uint, params *co
         severity_levels.title_en AS severity_level_title_en,
         severity_levels.title_ar AS severity_level_title_ar,
         severity_levels.color_code AS severity_level_color_code,
+		responsible_user.id AS responsible_user_id,
         responsible_user.first_name_en AS responsible_user_first_name_en,
         responsible_user.first_name_ar AS responsible_user_first_name_ar,
         responsible_user.last_name_en AS responsible_user_last_name_en,
@@ -60,6 +64,7 @@ func (repo *ComplianceActionPlanRepository) GetAll(complianceID uint, params *co
         responsible_user.color AS responsible_user_color,
         responsible_user.email AS responsible_user_email,
         responsible_user.profile_image_path AS responsible_user_profile_image_path,
+        created_user.id AS created_user_id,
         created_user.first_name_en AS created_user_first_name_en,
         created_user.first_name_ar AS created_user_first_name_ar,
         created_user.last_name_en AS created_user_last_name_en,
@@ -68,7 +73,8 @@ func (repo *ComplianceActionPlanRepository) GetAll(complianceID uint, params *co
         created_user.color AS created_user_color,
         created_user.email AS created_user_email,
         created_user.profile_image_path AS created_user_profile_image_path,   
-		updated_user.first_name_en AS updated_user_first_name_en,
+		updated_user.id AS updated_user_id,
+    	updated_user.first_name_en AS updated_user_first_name_en,
         updated_user.first_name_ar AS updated_user_first_name_ar,
         updated_user.last_name_en AS updated_user_last_name_en,
         updated_user.last_name_ar AS updated_user_last_name_ar,
@@ -183,32 +189,24 @@ func (repo *ComplianceActionPlanRepository) GetByID(id uint) (*models.Compliance
 	return complianceActionPlan, nil
 }
 
-func (repo *ComplianceActionPlanRepository) GetFullDetailsByID(id uint) (*models.ComplianceActionPlan, error) {
+func (repo *ComplianceActionPlanRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceActionPlan, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
 	var complianceActionPlan models.ComplianceActionPlan
 
-	// Subquery to get the latest status update
-	latestStatusUpdateSubQuery := repo.db.
-		Table("compliance_action_plan_status_updates").
-		Select("id").
-		Where("compliance_action_plan_id = ?", id).
-		Order("created_at desc").
-		Limit(1)
-
 	// Load the compliance action plan with all related data
-	result := repo.db.
+	result := db.
 		Preload("ComplianceRequirement.ComplianceClause").
+		Preload("ComplianceRegister").
 		Preload("SeverityLevel").
 		Preload("ResponsibleUser").
 		Preload("ActionPlanStatus").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
-		Preload("ActionPlanStatusUpdates", func(db *gorm.DB) *gorm.DB {
-			return db.Where("id IN (?)", latestStatusUpdateSubQuery).
-				Preload("ActionPlanStatus").
-				Preload("CreatedByUser").
-				Preload("UpdatedByUser").
-				Preload("Documents")
-		}).
+		Preload("ActionPlanStatusUpdates").
 		First(&complianceActionPlan, id)
 
 	if result.Error != nil {
@@ -251,7 +249,7 @@ func (repo *ComplianceActionPlanRepository) Delete(id uint) error {
 	return nil
 }
 
-func (repo *ComplianceActionPlanRepository) CreateComplianceActionPlanStatusUpdate(complianceActionPlanStatusUpdate *models.ComplianceActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error) {
+func (repo *ComplianceActionPlanRepository) CreateInitialComplianceActionPlanStatusUpdate(complianceActionPlanStatusUpdate *models.ComplianceActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -260,4 +258,17 @@ func (repo *ComplianceActionPlanRepository) CreateComplianceActionPlanStatusUpda
 		return 0, err
 	}
 	return complianceActionPlanStatusUpdate.ID, nil
+}
+
+func (repo *ComplianceActionPlanRepository) DeleteComplianceActionPlanStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", ids).Delete(&models.ComplianceActionPlanStatusUpdate{}).Error; err != nil {
+		return err
+	}
+
+	return nil
 }

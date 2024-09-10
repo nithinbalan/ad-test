@@ -11,12 +11,16 @@ import (
 )
 
 type ControlActionPlanRepositoryInterface interface {
+	BeginTransaction() utility.DatabaseTransaction
 	GetAll(controlID uint, params *organizationDTOs.ControlActionPlanListQueryParamsDTO) (*organizationDTOs.ControlActionPlanListResponseDTO, error)
 	GetByID(id uint) (*models.ControlActionPlan, error)
 	GetFullDetailsByID(id uint) (*models.ControlActionPlan, error)
-	Create(complianceActionPlan *models.ControlActionPlan) (uint, error)
-	Update(complianceActionPlan *models.ControlActionPlan, tx ...utility.DatabaseTransaction) error
+	Create(controlActionPlan *models.ControlActionPlan) (uint, error)
+	Update(controlActionPlan *models.ControlActionPlan, tx ...utility.DatabaseTransaction) error
 	Delete(id uint) error
+
+	CreateInitialControlActionPlanStatusUpdate(controlActionPlanStatusUpdate *models.ControlActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
+	DeleteControlActionPlanStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type ControlActionPlanRepository struct {
@@ -29,6 +33,10 @@ func NewControlActionPlanRepository(db *gorm.DB) *ControlActionPlanRepository {
 	}
 }
 
+func (repo *ControlActionPlanRepository) BeginTransaction() utility.DatabaseTransaction {
+	return utility.NewGormDatabaseTransaction(repo.db)
+}
+
 func (repo *ControlActionPlanRepository) GetAll(controlID uint, params *organizationDTOs.ControlActionPlanListQueryParamsDTO) (*organizationDTOs.ControlActionPlanListResponseDTO, error) {
 
 	var controlActionPlans []*organizationDTOs.ControlActionPlanListDTO
@@ -39,21 +47,37 @@ func (repo *ControlActionPlanRepository) GetAll(controlID uint, params *organiza
         control_action_plans.*,
         action_plan_statuses.title_en AS action_plan_status_title_en,
         action_plan_statuses.title_ar AS action_plan_status_title_ar,
+        action_plan_statuses.color_code AS action_plan_status_color_code,
         severity_levels.title_en AS severity_level_title_en,
         severity_levels.title_ar AS severity_level_title_ar,
         severity_levels.color_code AS severity_level_color_code,
+		responsible_user.id AS responsible_user_id,
         responsible_user.first_name_en AS responsible_user_first_name_en,
         responsible_user.first_name_ar AS responsible_user_first_name_ar,
         responsible_user.last_name_en AS responsible_user_last_name_en,
         responsible_user.last_name_ar AS responsible_user_last_name_ar,
+		responsible_user.initial AS responsible_user_initial,
+        responsible_user.color AS responsible_user_color,
+        responsible_user.email AS responsible_user_email,
+        responsible_user.profile_image_path AS responsible_user_profile_image_path,
+        created_user.id AS created_user_id,
         created_user.first_name_en AS created_user_first_name_en,
-        created_user.first_name_ar AS created_user_first_name_ar,
-        created_user.last_name_en AS created_user_last_name_en,
-        created_user.last_name_ar AS created_user_last_name_ar,   
-        updated_user.first_name_en AS updated_user_first_name_en,
-        updated_user.first_name_ar AS updated_user_first_name_ar,
-        updated_user.last_name_en AS updated_user_last_name_en,
-        updated_user.last_name_ar AS updated_user_last_name_ar 
+		created_user.first_name_ar AS created_user_first_name_ar,
+		created_user.last_name_en AS created_user_last_name_en,
+		created_user.last_name_ar AS created_user_last_name_ar,
+		created_user.initial AS created_user_initial,
+        created_user.color AS created_user_color,
+        created_user.email AS created_user_email,
+        created_user.profile_image_path AS created_user_profile_image_path,
+		updated_user.id AS updated_user_id,
+    	updated_user.first_name_en AS updated_user_first_name_en,
+		updated_user.first_name_ar AS updated_user_first_name_ar,
+		updated_user.last_name_en AS updated_user_last_name_en,
+		updated_user.last_name_ar AS updated_user_last_name_ar,
+		updated_user.initial AS updated_user_initial,
+        updated_user.color AS updated_user_color,
+        updated_user.email AS updated_user_email,
+        updated_user.profile_image_path AS updated_user_profile_image_path
     `).
 		Joins(`
         LEFT JOIN action_plan_statuses ON action_plan_statuses.id = control_action_plans.action_plan_status_id
@@ -168,6 +192,7 @@ func (repo *ControlActionPlanRepository) GetFullDetailsByID(id uint) (*models.Co
 		Preload("CreatedByUser.OrganizationUnit1").
 		Preload("UpdatedByUser").
 		Preload("UpdatedByUser.OrganizationUnit1").
+		Preload("ActionPlanStatusUpdates").
 		First(&controlActionPlan, id)
 
 	if result.Error != nil {
@@ -205,6 +230,30 @@ func (repo *ControlActionPlanRepository) Delete(id uint) error {
 	result := repo.db.Delete(&models.ControlActionPlan{}, id)
 	if result.Error != nil {
 		return result.Error
+	}
+
+	return nil
+}
+
+func (repo *ControlActionPlanRepository) CreateInitialControlActionPlanStatusUpdate(controlActionPlanStatusUpdate *models.ControlActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(controlActionPlanStatusUpdate).Error; err != nil {
+		return 0, err
+	}
+	return controlActionPlanStatusUpdate.ID, nil
+}
+
+func (repo *ControlActionPlanRepository) DeleteControlActionPlanStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", ids).Delete(&models.ControlActionPlanStatusUpdate{}).Error; err != nil {
+		return err
 	}
 
 	return nil

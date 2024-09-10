@@ -8,18 +8,18 @@ import (
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
+	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
 )
 
 type IncidentClosureServiceInterface interface {
-	GetAll(incidentID uint, params *incidentDTOs.IncidentClosureListQueryParamsDTO) (*incidentDTOs.IncidentClosureListResponseDTO, error)
-	GetByID(incidentID uint, id uint) (*models.IncidentClosure, error)
-	GetFullDetailsByID(incidentID uint, id uint, tx ...utility.DatabaseTransaction) (*incidentDTOs.IncidentClosureDetailDTO, error)
+	GetByID(incidentID uint) (*models.IncidentClosure, error)
+	GetFullDetailsByID(incidentID uint, tx ...utility.DatabaseTransaction) (*incidentDTOs.IncidentClosureDetailDTO, error)
 	Create(incidentID uint, currentUserID uint, IncidentClosureFormDTO *incidentDTOs.IncidentClosureFormDTO) (uint, error)
-	Update(incidentID uint, id uint, currentUserID uint, incident *incidentDTOs.IncidentClosureFormDTO) error
-	Delete(incidentID uint, ids []uint, currentUserID uint) ([]uint, error)
+	Update(incidentID uint, currentUserID uint, incident *incidentDTOs.IncidentClosureFormDTO) error
+	Delete(incidentID uint, currentUserID uint) (uint, error)
 }
 
 // Service and implementations
@@ -27,56 +27,54 @@ type IncidentClosureService struct {
 	repo                incidentRepositories.IncidentClosureRepositoryInterface
 	activityLogSvc      logServices.ActivityLogServiceInterface
 	incidentRegisterSvc IncidentRegisterServiceInterface
+	incidentTimelineSvc IncidentTimelineServiceInterface
+	incidentStatusSvc   IncidentStatusServiceInterface
 }
 
 func NewIncidentClosureService(
 	repo incidentRepositories.IncidentClosureRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
-	incidentRegisterSvc IncidentRegisterServiceInterface) IncidentClosureServiceInterface {
+	incidentRegisterSvc IncidentRegisterServiceInterface,
+	incidentTimelineSvc IncidentTimelineServiceInterface,
+	incidentStatusSvc IncidentStatusServiceInterface,
+) IncidentClosureServiceInterface {
 	return &IncidentClosureService{
 		repo:                repo,
 		activityLogSvc:      activityLogSvc,
 		incidentRegisterSvc: incidentRegisterSvc,
+		incidentTimelineSvc: incidentTimelineSvc,
+		incidentStatusSvc:   incidentStatusSvc,
 	}
 }
 
-func (ics *IncidentClosureService) GetAll(incidentID uint, params *incidentDTOs.IncidentClosureListQueryParamsDTO) (*incidentDTOs.IncidentClosureListResponseDTO, error) {
-	if incidentID != 0 {
-		if _, err := ics.incidentRegisterSvc.GetByID(incidentID); err != nil {
-			return nil, err
-		}
-	}
-	return ics.repo.GetAll(incidentID, params)
-}
-
-func (ics IncidentClosureService) GetByID(incidentID uint, id uint) (*models.IncidentClosure, error) {
+func (ics IncidentClosureService) GetByID(incidentID uint) (*models.IncidentClosure, error) {
 	if _, err := ics.incidentRegisterSvc.GetByID(incidentID); err != nil {
 		return nil, err
 	}
 
-	incidentClosure, err := ics.repo.GetByID(id)
+	incidentClosure, err := ics.repo.GetByID(incidentID)
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, utility.NewResourceNotFoundError(err, id)
+			return nil, utility.NewResourceNotFoundError(err, incidentID)
 		}
 		return nil, err
 	}
 	return incidentClosure, nil
 }
 
-func (ics IncidentClosureService) GetFullDetailsByID(incidentID uint, id uint, tx ...utility.DatabaseTransaction) (*incidentDTOs.IncidentClosureDetailDTO, error) {
+func (ics IncidentClosureService) GetFullDetailsByID(incidentID uint, tx ...utility.DatabaseTransaction) (*incidentDTOs.IncidentClosureDetailDTO, error) {
 	var incidentClosureDTO incidentDTOs.IncidentClosureDetailDTO
 
 	if _, err := ics.incidentRegisterSvc.GetByID(incidentID); err != nil {
 		return nil, err
 	}
 
-	incidentClosure, err := ics.repo.GetFullDetailsByID(id, tx...)
+	incidentClosure, err := ics.repo.GetFullDetailsByID(incidentID, tx...)
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, utility.NewResourceNotFoundError(err, id)
+			return nil, utility.NewResourceNotFoundError(err, incidentID)
 		}
 		return nil, err
 	}
@@ -85,6 +83,13 @@ func (ics IncidentClosureService) GetFullDetailsByID(incidentID uint, id uint, t
 	if err != nil {
 		return nil, err
 	}
+	if incidentClosure.CompletionDate != nil {
+		completionDate := incidentClosure.CompletionDate.Format("2006-01-02")
+		incidentClosureDTO.CompletionDateString = &completionDate
+	}
+
+	incidentClosureDTO.CreatedAt = incidentClosure.CreatedAt
+	incidentClosureDTO.UpdatedAt = incidentClosure.UpdatedAt
 
 	//todo :- also add extra fields which required in details screen
 	return &incidentClosureDTO, nil
@@ -93,7 +98,8 @@ func (ics IncidentClosureService) GetFullDetailsByID(incidentID uint, id uint, t
 func (ics *IncidentClosureService) Create(incidentID uint, currentUserID uint, incidentClosureFormDTO *incidentDTOs.IncidentClosureFormDTO) (uint, error) {
 	tx := ics.repo.BeginTransaction()
 
-	if _, err := ics.incidentRegisterSvc.GetByID(incidentID); err != nil {
+	existingIncidentRegister, err := ics.incidentRegisterSvc.GetByID(incidentID)
+	if err != nil {
 		return 0, err
 	}
 
@@ -104,7 +110,7 @@ func (ics *IncidentClosureService) Create(incidentID uint, currentUserID uint, i
 
 	incidentClosure := &models.IncidentClosure{
 		IncidentRegisterID: incidentID,
-		CompletionDate:     *dates.CompletionDate,
+		CompletionDate:     dates.CompletionDate,
 		ResolutionSummary:  incidentClosureFormDTO.ResolutionSummary,
 		Notes:              incidentClosureFormDTO.Notes,
 		CreatedByID:        currentUserID,
@@ -131,6 +137,40 @@ func (ics *IncidentClosureService) Create(incidentID uint, currentUserID uint, i
 			return 0, err
 		}
 	}
+	//update incident status as closed
+	incidentStatus, err := ics.incidentStatusSvc.GetByType("closed")
+	if err != nil {
+		return 0, err
+	}
+	err = ics.incidentRegisterSvc.StatusUpdate(existingIncidentRegister.ID, currentUserID, incidentStatus.ID, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	//Update timeline
+	//todo
+	timelineType, err := ics.incidentTimelineSvc.GetByType("closure")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	//todo
+	timelineStatus, err := ics.incidentTimelineSvc.GetByStatusType("completed")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	currentTime := time.Now()
+	timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
+		PerformedByID:    &currentUserID,
+		TimelineStatusID: timelineStatus.ID,
+		PerformedAt:      &currentTime,
+	}
+	if err := ics.incidentTimelineSvc.Update(incidentID, timelineFormDTO, timelineType.ID, tx); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
 	tx.Commit()
 
 	go func() {
@@ -159,13 +199,13 @@ func (ics *IncidentClosureService) Create(incidentID uint, currentUserID uint, i
 	return id, nil
 }
 
-func (ics *IncidentClosureService) Update(incidentID uint, id uint, currentUserID uint, incidentClosureFormDTO *incidentDTOs.IncidentClosureFormDTO) error {
+func (ics *IncidentClosureService) Update(incidentID uint, currentUserID uint, incidentClosureFormDTO *incidentDTOs.IncidentClosureFormDTO) error {
 	tx := ics.repo.BeginTransaction()
 	if _, err := ics.incidentRegisterSvc.GetByID(incidentID); err != nil {
 		return err
 	}
 
-	existingIncidentClosure, err := ics.GetByID(incidentID, id)
+	existingIncidentClosure, err := ics.GetByID(incidentID)
 	if err != nil {
 		return err
 	}
@@ -175,7 +215,7 @@ func (ics *IncidentClosureService) Update(incidentID uint, id uint, currentUserI
 		return err
 	}
 	// Update Incident Closure
-	existingIncidentClosure.CompletionDate = *dates.CompletionDate
+	existingIncidentClosure.CompletionDate = dates.CompletionDate
 	existingIncidentClosure.ResolutionSummary = incidentClosureFormDTO.ResolutionSummary
 	existingIncidentClosure.Notes = incidentClosureFormDTO.Notes
 	existingIncidentClosure.UpdatedByID = &currentUserID
@@ -187,7 +227,7 @@ func (ics *IncidentClosureService) Update(incidentID uint, id uint, currentUserI
 		return err
 	}
 
-	existingIncidentClosureDetail, err := ics.GetFullDetailsByID(incidentID, id, tx)
+	existingIncidentClosureDetail, err := ics.GetFullDetailsByID(incidentID, tx)
 
 	if err != nil {
 		tx.Rollback()
@@ -250,7 +290,7 @@ func (ics *IncidentClosureService) Update(incidentID uint, id uint, currentUserI
 		err := ics.activityLogSvc.LogActivity(
 			models.UpdateAction,
 			models.IncidentClosure{}.TableName(),
-			id,
+			existingIncidentClosure.ID,
 			incidentClosureFormDTO,
 			currentUserID,
 			nil,
@@ -260,7 +300,7 @@ func (ics *IncidentClosureService) Update(incidentID uint, id uint, currentUserI
 			fields := map[string]interface{}{
 				"action":    models.UpdateAction,
 				"tableName": models.IncidentClosure{}.TableName(),
-				"recordID":  id,
+				"recordID":  existingIncidentClosure.ID,
 				"userID":    currentUserID,
 				"error":     err.Error(),
 			}
@@ -272,72 +312,85 @@ func (ics *IncidentClosureService) Update(incidentID uint, id uint, currentUserI
 	return nil
 }
 
-func (ics *IncidentClosureService) Delete(incidentID uint, ids []uint, currentUserID uint) ([]uint, error) {
+func (ics *IncidentClosureService) Delete(incidentID uint, currentUserID uint) (uint, error) {
 	tx := ics.repo.BeginTransaction()
+	var failedId uint
 
-	if _, err := ics.incidentRegisterSvc.GetByID(incidentID); err != nil {
-		return nil, err
+	existingIncidentRegister, err := ics.incidentRegisterSvc.GetByID(incidentID)
+	if err != nil {
+		return 0, err
 	}
-
-	var failedIds []uint
-	var successfulIds []uint
-	for _, id := range ids {
-
-		_, err := ics.repo.GetByID(id)
-
-		if err != nil {
-			continue
-		}
-		incidentClosure, err := ics.GetFullDetailsByID(incidentID, id, tx)
-		if err != nil {
-			tx.Rollback()
-			return nil, err
-		}
-
-		if len(incidentClosure.Lessons) > 0 {
-			var deleteLessonIds []*uint
-			for _, lesson := range incidentClosure.Lessons {
-				deleteLessonIds = append(deleteLessonIds, &lesson.ID)
-			}
-			if err := ics.repo.DeleteLessons(deleteLessonIds, tx); err != nil {
-				tx.Rollback()
-				return nil, err
-			}
-		}
-
-		err = ics.repo.Delete(id, tx)
-		if err != nil {
-			failedIds = append(failedIds, id)
-		} else {
-			successfulIds = append(successfulIds, id)
-		}
-	}
-	if len(failedIds) > 0 {
+	incidentClosure, err := ics.GetFullDetailsByID(incidentID, tx)
+	if err != nil {
 		tx.Rollback()
-		return failedIds, nil
+		return 0, err
 	}
 
+	if len(incidentClosure.Lessons) > 0 {
+		var deleteLessonIds []*uint
+		for _, lesson := range incidentClosure.Lessons {
+			deleteLessonIds = append(deleteLessonIds, &lesson.ID)
+		}
+		if err := ics.repo.DeleteLessons(deleteLessonIds, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+	//Delete-> update timeline performedAt as null
+	//todo
+	timelineType, err := ics.incidentTimelineSvc.GetByType("closure")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	//todo
+	timelineStatus, err := ics.incidentTimelineSvc.GetByStatusType("pending")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
+		PerformedByID:    nil,
+		TimelineStatusID: timelineStatus.ID,
+		PerformedAt:      nil,
+	}
+	if err := ics.incidentTimelineSvc.Update(incidentID, timelineFormDTO, timelineType.ID, tx); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	//update incident status as open
+	incidentStatus, err := ics.incidentStatusSvc.GetByType("open")
+	if err != nil {
+		return 0, err
+	}
+	err = ics.incidentRegisterSvc.StatusUpdate(existingIncidentRegister.ID, currentUserID, incidentStatus.ID, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	if err = ics.repo.Delete(uint(incidentClosure.ID), tx); err != nil {
+		failedId = uint(incidentClosure.ID)
+		return failedId, err
+	}
 	tx.Commit()
+	// Log successful delete activity
+	go func() {
+		err := ics.activityLogSvc.LogActivity(
+			models.DeleteAction,
+			models.IncidentClosure{}.TableName(),
+			uint(incidentClosure.ID),
+			nil,
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			// Handle error if logging fails
+			fmt.Printf("Failed to log delete activity: %v\n", err)
+		}
+	}()
 
-	if len(successfulIds) > 0 {
-
-		go func() {
-			err := ics.activityLogSvc.LogBulkActivities(
-				models.DeleteAction,
-				models.IncidentClosure{}.TableName(),
-				successfulIds,
-				nil,
-				currentUserID,
-				nil,
-			)
-			if err != nil {
-				// @todo - save to log file
-				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
-			}
-		}()
-	}
-
-	return failedIds, nil
+	return failedId, nil
 }
 
 func (ics *IncidentClosureService) parseIncidentClosureDates(dto *incidentDTOs.IncidentClosureFormDTO) (*incidentDTOs.IncidentClosureParsedDates, error) {

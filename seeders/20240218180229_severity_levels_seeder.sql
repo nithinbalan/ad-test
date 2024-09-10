@@ -1,11 +1,10 @@
 -- +goose Up
 -- +goose StatementBegin
-INSERT INTO severity_levels (title_en, title_ar, color_code, type, status) 
+INSERT INTO severity_levels (title_en, title_ar, color_code, type, status, weight) 
 VALUES 
-('High', 'عالي', '#FF0000', 'high', 'active'),
-('Medium', 'متوسط', '#FFFF00', 'medium', 'active'),
-('Low', 'منخفض', '#00FF00', 'low', 'active');
-
+('High', 'عالي', '#DC3545', 'high', 'active', 10),
+('Medium', 'متوسط', '#FFC107', 'medium', 'active', 5),
+('Low', 'منخفض', '#28A745', 'low', 'active', 2);
 -- +goose StatementEnd
 
 -- +goose Down

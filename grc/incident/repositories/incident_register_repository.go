@@ -34,6 +34,12 @@ type IncidentRegisterRepositoryInterface interface {
 	CreateDocuments(docs []*models.IncidentDocument, tx ...utility.DatabaseTransaction) error
 	GetDocumentByID(id uint) (*models.IncidentDocument, error)
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
+
+	CreateIncidentSLAs(slaRegisters []*models.IncidentSLA, tx ...utility.DatabaseTransaction) error
+	DeleteIncidentSLAs(slaRegisterIds []*uint, tx ...utility.DatabaseTransaction) error
+
+	CreateIncidentDocuments(documents []*models.IncidentAssociatedDocument, tx ...utility.DatabaseTransaction) error
+	DeleteIncidentDocuments(documentIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type IncidentRegisterRepository struct {
@@ -57,28 +63,11 @@ func (repo *IncidentRegisterRepository) GetAll(params *incidentDTOs.IncidentRegi
 
 	query := repo.db.Table("incident_register").
 		Select(`
-            incident_register.id,
-            incident_register.reference_number,
-            incident_register.incident_category_id,
-            incident_register.incident_sub_category_id,
-            incident_register.incident_type_id,
-            incident_register.severity_level_id,
-            incident_register.incident_status_id,
-            incident_register.title,
-            incident_register.description,
-            incident_register.incident_at,
-            incident_register.location,
-            incident_register.reported_by,
-            incident_register.reported_at,
-            incident_register.quick_action,
-            incident_register.created_by_id,
-            incident_register.updated_by_id,
-            incident_register.created_at,
-            incident_register.updated_at,
+            incident_register.*,
+			CONVERT(VARCHAR, incident_register.incident_at, 23) AS incident_at,
+			CONVERT(VARCHAR, incident_register.reported_at, 23) AS reported_at,
             incident_categories.title_en AS incident_category_title_en,
             incident_categories.title_ar AS incident_category_title_ar,
-            incident_sub_categories.title_en AS incident_sub_category_title_en,
-            incident_sub_categories.title_ar AS incident_sub_category_title_ar,
             incident_types.title_en AS incident_type_title_en,
             incident_types.title_ar AS incident_type_title_ar,
             incident_statuses.title_en AS incident_status_title_en,
@@ -86,18 +75,44 @@ func (repo *IncidentRegisterRepository) GetAll(params *incidentDTOs.IncidentRegi
 			severity_levels.title_en AS severity_level_title_en,
 			severity_levels.title_ar AS severity_level_title_ar,
 			severity_levels.color_code AS severity_level_color_code,
-            reported_user.first_name_en AS reported_by_first_name_en,
-            reported_user.first_name_ar AS reported_by_first_name_ar,
-            reported_user.last_name_en AS reported_by_last_name_en,
-            reported_user.last_name_ar AS reported_by_last_name_ar,
-			created_user.first_name_en AS created_user_first_name_en,
+			organization_units.title_en AS responsible_unit_title_en,
+			organization_units.title_ar AS responsible_unit_title_ar,
+			responsible_user.id AS responsible_user_id,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+            responsible_user.first_name_ar AS responsible_user_first_name_ar,
+            responsible_user.last_name_en AS responsible_user_last_name_en,
+            responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			responsible_user.initial AS responsible_user_initial,
+            responsible_user.color AS responsible_user_color,
+            responsible_user.email AS responsible_user_email,
+            responsible_user.profile_image_path AS responsible_user_profile_image_path,
+			reported_user.id AS reported_by_id,
+            reported_user.first_name_en AS reported_user_first_name_en,
+            reported_user.first_name_ar AS reported_user_first_name_ar,
+            reported_user.last_name_en AS reported_user_last_name_en,
+            reported_user.last_name_ar AS reported_user_last_name_ar,
+			reported_user.initial AS reported_user_initial,
+            reported_user.color AS reported_user_color,
+            reported_user.email AS reported_user_email,
+            reported_user.profile_image_path AS reported_user_profile_image_path,
+			created_user.id AS created_user_id,
+        	created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
             created_user.last_name_en AS created_user_last_name_en,
-            created_user.last_name_ar AS created_user_last_name_ar,   
-			updated_user.first_name_en AS updated_user_first_name_en,
+            created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+            created_user.color AS created_user_color,
+            created_user.email AS created_user_email,
+            created_user.profile_image_path AS created_user_profile_image_path,   
+			updated_user.id AS updated_user_id,
+    		updated_user.first_name_en AS updated_user_first_name_en,
             updated_user.first_name_ar AS updated_user_first_name_ar,
             updated_user.last_name_en AS updated_user_last_name_en,
-            updated_user.last_name_ar AS updated_user_last_name_ar  
+            updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+            updated_user.color AS updated_user_color,
+            updated_user.email AS updated_user_email,
+            updated_user.profile_image_path AS updated_user_profile_image_path  
         `).
 		Joins(`
             LEFT JOIN incident_categories ON incident_categories.id = incident_register.incident_category_id
@@ -105,7 +120,9 @@ func (repo *IncidentRegisterRepository) GetAll(params *incidentDTOs.IncidentRegi
             LEFT JOIN incident_types ON incident_types.id = incident_register.incident_type_id
             LEFT JOIN incident_statuses ON incident_statuses.id = incident_register.incident_status_id
 		    LEFT JOIN severity_levels ON severity_levels.id = incident_register.severity_level_id
-            LEFT JOIN users AS reported_user ON reported_user.id = incident_register.reported_by
+            LEFT JOIN organization_units ON organization_units.id = incident_register.responsible_unit_id
+		    LEFT JOIN users AS responsible_user ON responsible_user.id = incident_register.responsible_user_id
+			LEFT JOIN users AS reported_user ON reported_user.id = incident_register.reported_by
 			LEFT JOIN users AS created_user ON created_user.id = incident_register.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = incident_register.updated_by_id
         `)
@@ -133,14 +150,22 @@ func (repo *IncidentRegisterRepository) GetAll(params *incidentDTOs.IncidentRegi
 			incident_register.reference_number LIKE ? OR
 			incident_categories.title_en LIKE ? OR
 			incident_categories.title_ar LIKE ? OR
-			incident_sub_categories.title_en LIKE ? OR
-			incident_sub_categories.title_ar LIKE ? OR
 			incident_types.title_en LIKE ? OR
 			incident_types.title_ar LIKE ? OR
 			incident_statuses.title_en LIKE ? OR
 			incident_statuses.title_ar LIKE ? OR
 			severity_levels.title_en LIKE ? OR
 			severity_levels.title_ar LIKE ? OR
+			organization_units.title_en LIKE ? OR
+			organization_units.title_ar LIKE ? OR
+			responsible_user.first_name_en LIKE ? OR
+			responsible_user.first_name_ar LIKE ? OR
+			responsible_user.last_name_en LIKE ? OR
+			responsible_user.last_name_ar LIKE ? OR
+			responsible_user.email LIKE ? OR
+            responsible_user.initial LIKE ? OR
+            responsible_user.color LIKE ? OR
+            responsible_user.profile_image_path LIKE ? OR
 			reported_user.first_name_en LIKE ? OR
 			reported_user.first_name_ar LIKE ? OR
 			reported_user.last_name_en LIKE ? OR
@@ -149,13 +174,15 @@ func (repo *IncidentRegisterRepository) GetAll(params *incidentDTOs.IncidentRegi
 			created_user.first_name_ar LIKE ? OR
 			created_user.last_name_en LIKE ? OR
 			created_user.last_name_ar LIKE ? OR
-			updated_user.first_name_en LIKE ? OR
+			updated_user.id AS updated_user_id,
+    		updated_user.first_name_en LIKE ? OR
 			updated_user.first_name_ar LIKE ? OR
 			updated_user.last_name_en LIKE ? OR
 			updated_user.last_name_ar LIKE ?)`,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
 	// Sort by the specified column and order
@@ -211,7 +238,6 @@ func (repo *IncidentRegisterRepository) GetFullDetailsByID(id uint, tx ...utilit
 
 	result := db.
 		Preload("IncidentCategory").
-		Preload("IncidentSubCategory").
 		Preload("IncidentType").
 		Preload("IncidentStatus").
 		Preload("ReportedByUser").
@@ -221,6 +247,11 @@ func (repo *IncidentRegisterRepository) GetFullDetailsByID(id uint, tx ...utilit
 		Preload("ComplianceRequirements").
 		Preload("Risks").
 		Preload("Processes").
+		Preload("SLARegisters").
+		Preload("AssociatedDocuments").
+		Preload("ResponsibleUnit.ParentUnit.ParentUnit.ParentUnit.ParentUnit.ParentUnit").
+		Preload("ResponsibleUser").
+		Preload("ResponsibleUser.OrganizationUnit1").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&incident, id)
@@ -295,6 +326,7 @@ func (repo *IncidentRegisterRepository) GenerateReferenceNumber() (string, error
 	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "IR", currentYear, lastReferenceID+1)
 
 	return newReferenceNumber, nil
+
 }
 
 // Document func
@@ -426,6 +458,55 @@ func (repo *IncidentRegisterRepository) DeleteIncidentProcesses(processIds []*ui
 
 	// Delete processes by IDs
 	if err := db.Where("id IN (?)", processIds).Delete(&models.IncidentProcess{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *IncidentRegisterRepository) CreateIncidentSLAs(slaRegisters []*models.IncidentSLA, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&slaRegisters).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *IncidentRegisterRepository) DeleteIncidentSLAs(slaRegisterIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Delete SLARegister by IDs
+	if err := db.Where("id IN (?)", slaRegisterIds).Delete(&models.IncidentSLA{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *IncidentRegisterRepository) CreateIncidentDocuments(documents []*models.IncidentAssociatedDocument, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&documents).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *IncidentRegisterRepository) DeleteIncidentDocuments(documentIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", documentIds).Delete(&models.IncidentAssociatedDocument{}).Error; err != nil {
 		return err
 	}
 

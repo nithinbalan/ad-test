@@ -33,22 +33,24 @@ type ComplianceRegister struct {
 	UpdatedByID              *uint      `json:"updated_by_id" gorm:"default:null"`
 	LifecycleStatusID        uint       `json:"lifecycle_status_id" gorm:"not null"`
 	ComplianceReviewStatusID *uint      `json:"compliance_review_status_id" gorm:"default:null"`
+	TotalScore               int        `json:"total_score" gorm:"default:0"`
 
 	// Relationships
-	ComplianceCategory     *ComplianceCategory     `gorm:"foreignKey:ComplianceCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ComplianceStatus       *ComplianceStatus       `gorm:"foreignKey:ComplianceStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ResponsibleUnit        *OrganizationUnit       `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ResponsibleUser        *User                   `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ReviewFrequency        *ReviewFrequency        `gorm:"foreignKey:ReviewFrequencyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ReviewResponsibleUser  *User                   `gorm:"foreignKey:ReviewResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	SeverityLevel          *SeverityLevel          `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	LifecycleStatus        *LifecycleStatus        `gorm:"foreignKey:LifecycleStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	LastReviewedUser       *User                   `gorm:"foreignKey:LastReviewedUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ComplianceReviewStatus *ComplianceReviewStatus `gorm:"foreignKey:ComplianceReviewStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	Documents              []ComplianceDocument    `gorm:"foreignKey:ComplianceRegisterID"`
-	CreatedByUser          *User                   `gorm:"foreignKey:CreatedByID"`
-	UpdatedByUser          *User                   `gorm:"foreignKey:UpdatedByID"`
-	Controls               []*ComplianceControl    `gorm:"foreignKey:ComplianceRegisterID"`
+	ComplianceCategory      *ComplianceCategory       `gorm:"foreignKey:ComplianceCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ComplianceStatus        *ComplianceStatus         `gorm:"foreignKey:ComplianceStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ResponsibleUnit         *OrganizationUnit         `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ResponsibleUser         *User                     `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ReviewFrequency         *ReviewFrequency          `gorm:"foreignKey:ReviewFrequencyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ReviewResponsibleUser   *User                     `gorm:"foreignKey:ReviewResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	SeverityLevel           *SeverityLevel            `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	LifecycleStatus         *LifecycleStatus          `gorm:"foreignKey:LifecycleStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	LastReviewedUser        *User                     `gorm:"foreignKey:LastReviewedUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ComplianceReviewStatus  *ComplianceReviewStatus   `gorm:"foreignKey:ComplianceReviewStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Documents               []ComplianceDocument      `gorm:"foreignKey:ComplianceRegisterID"`
+	CreatedByUser           *User                     `gorm:"foreignKey:CreatedByID"`
+	UpdatedByUser           *User                     `gorm:"foreignKey:UpdatedByID"`
+	Controls                []*ComplianceControl      `gorm:"foreignKey:ComplianceRegisterID"`
+	ComplianceStatusUpdates []*ComplianceStatusUpdate `gorm:"foreignKey:ComplianceRegisterID"`
 }
 
 // TableName overrides the table name used by ComplianceRegister to `compliance_register`

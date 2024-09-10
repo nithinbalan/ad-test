@@ -2,6 +2,7 @@ package repositories
 
 import (
 	commonDTOs "jethur/grc/common/dtos"
+	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
 
 	"gorm.io/gorm"
@@ -11,6 +12,8 @@ type ProcessAssociatedItemRepositoryInterface interface {
 	GetAllControls(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) ([]*organizationDTOs.ProcessControlListDTO, error)
 	GetAllRisks(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemRiskListResponseDTO, error)
 	GetAllIncidents(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemIncidentListResponseDTO, error)
+	GetAllDocuments(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemDocumentListResponseDTO, error)
+	GetAllAssociatedCounts(processID uint) (*organizationDTOs.ProcessAssociatedItemsCountResponseDTO, error)
 }
 
 type ProcessAssociatedItemRepository struct {
@@ -28,10 +31,12 @@ func (repo *ProcessAssociatedItemRepository) GetAllControls(processID uint, para
 
 	query := repo.db.Table("process_controls").
 		Select(`
+			process_controls.id AS id,
+			process_controls.process_id AS process_id,
 			controls.id AS control_id,
             controls.reference_number AS control_reference_number,
             controls.code AS control_code,
-            controls.last_test_date AS control_last_test_date,
+			CONVERT(VARCHAR, controls.last_test_date, 23) AS control_last_test_date,
             control_categories.title_en AS control_category_title_en,
             control_categories.title_ar AS control_category_title_ar,
             control_types.title_en AS control_type_title_en,
@@ -39,14 +44,15 @@ func (repo *ProcessAssociatedItemRepository) GetAllControls(processID uint, para
             controls.title_en AS control_title_en,
             controls.title_ar AS control_title_ar,
             controls.description AS control_description,
-            control_efficiency_statuses.title_en AS control_efficiency_status_en,
-            control_efficiency_statuses.title_ar AS control_efficiency_status_ar,
+            control_efficiency_statuses.title_en AS control_efficiency_status_title_en,
+            control_efficiency_statuses.title_ar AS control_efficiency_status_title_ar,
             control_efficiency_statuses.type AS control_efficiency_status_type,
             control_efficiency_statuses.color_code AS control_efficiency_status_color_code,
-            control_implementation_statuses.title_en AS control_implementation_status_en,
-            control_implementation_statuses.title_ar AS control_implementation_status_ar,
+            control_implementation_statuses.title_en AS control_implementation_status_title_en,
+            control_implementation_statuses.title_ar AS control_implementation_status_title_ar,
             control_implementation_statuses.type AS control_implementation_status_type,
             control_implementation_statuses.color_code AS control_implementation_status_color_code,
+			owner.id AS control_owner_id,
 			owner.first_name_en AS control_owner_first_name_en,
 			owner.first_name_ar AS control_owner_first_name_ar,
 			owner.last_name_en AS control_owner_last_name_en,
@@ -113,6 +119,9 @@ func (repo *ProcessAssociatedItemRepository) GetAllRisks(processID uint, params 
 
 	query := repo.db.Table("risk_processes").
 		Select(`
+			risk_processes.id,
+			risk_processes.risk_register_id,
+			risk_processes.process_id,
 			risk_register.reference_number,
 			risk_register.title,
 			risk_register.description,
@@ -120,12 +129,17 @@ func (repo *ProcessAssociatedItemRepository) GetAllRisks(processID uint, params 
 			risk_categories.title_ar AS risk_category_title_ar,
 			risk_sources.title_en AS risk_source_title_en,
 			risk_sources.title_ar AS risk_source_title_ar,
-			organization_units.title_en AS owner_unit_title_en,
-			organization_units.title_ar AS owner_unit_title_ar,
-			users.first_name_en AS owner_first_name_en,
-			users.first_name_ar AS owner_first_name_ar,
-			users.last_name_en AS owner_last_name_en,
-			users.last_name_ar AS owner_last_name_ar,
+			organization_units.title_en AS responsible_unit_title_en,
+			organization_units.title_ar AS responsible_unit_title_ar,
+			users.id AS responsible_user_id,
+			users.first_name_en AS responsible_user_first_name_en,
+			users.first_name_ar AS responsible_user_first_name_ar,
+			users.last_name_en AS responsible_user_last_name_en,
+			users.last_name_ar AS responsible_user_last_name_ar,
+			users.initial AS responsible_user_initial,
+			users.color AS responsible_user_color,
+			users.email AS responsible_user_email,
+			users.profile_image_path AS responsible_user_profile_image_path,
 			risk_matrix_likelihoods.title_en AS risk_matrix_likelihood_title_en,
             risk_matrix_likelihoods.title_ar AS risk_matrix_likelihood_title_ar,
             risk_matrix_likelihoods.score AS risk_matrix_likelihood_score,
@@ -136,6 +150,7 @@ func (repo *ProcessAssociatedItemRepository) GetAllRisks(processID uint, params 
             risk_matrix_risk_ratings.title_ar AS risk_matrix_risk_rating_title_ar,
             risk_matrix_risk_ratings.type AS risk_matrix_risk_rating_type,
             risk_matrix_risk_ratings.color_code AS risk_matrix_risk_rating_color_code,
+			risk_matrix_risk_rating_values.value AS risk_matrix_risk_rating_value,
 			risk_statuses.title_en AS risk_status_title_en,
 			risk_statuses.title_ar AS risk_status_title_ar,
 			risk_statuses.color_code AS risk_status_color_code
@@ -144,11 +159,12 @@ func (repo *ProcessAssociatedItemRepository) GetAllRisks(processID uint, params 
 			LEFT JOIN risk_register ON risk_register.id = risk_processes.risk_register_id
 			LEFT JOIN risk_categories ON risk_categories.id = risk_register.risk_category_id
 			LEFT JOIN risk_sources ON risk_sources.id = risk_register.risk_source_id
-			LEFT JOIN organization_units ON organization_units.id = risk_register.owner_unit_id
-			LEFT JOIN users ON users.id = risk_register.owner_id
+			LEFT JOIN organization_units ON organization_units.id = risk_register.responsible_unit_id
+			LEFT JOIN users ON users.id = risk_register.responsible_user_id
 			LEFT JOIN risk_matrix_likelihoods ON risk_matrix_likelihoods.id = risk_register.current_likelihood_id
             LEFT JOIN risk_matrix_impacts ON risk_matrix_impacts.id = risk_register.current_impact_id
             LEFT JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = risk_register.current_risk_rating_id
+			LEFT JOIN risk_matrix_risk_rating_values ON risk_matrix_risk_rating_values.id = risk_register.current_risk_rating_value_id
 			LEFT JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id
 		`).Where("risk_processes.process_id = ?", processID)
 
@@ -176,6 +192,10 @@ func (repo *ProcessAssociatedItemRepository) GetAllRisks(processID uint, params 
 			risk_statuses.title_ar LIKE ? OR
 			risk_statuses.color_code LIKE ?)`,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+	}
+
+	if params.Value != 0 {
+		query = query.Where("risk_matrix_risk_rating_values.value = ?", params.Value)
 	}
 
 	if params.SortBy == "" {
@@ -214,6 +234,9 @@ func (repo *ProcessAssociatedItemRepository) GetAllIncidents(processID uint, par
 
 	query := repo.db.Table("incident_processes").
 		Select(`
+			incident_processes.id,
+			incident_processes.incident_register_id,
+			incident_processes.process_id,
 			incident_register.reference_number,
 			incident_register.title,
 			incident_register.description,
@@ -296,4 +319,128 @@ func (repo *ProcessAssociatedItemRepository) GetAllIncidents(processID uint, par
 		},
 	}
 	return response, nil
+}
+
+func (repo *ProcessAssociatedItemRepository) GetAllDocuments(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemDocumentListResponseDTO, error) {
+	var documentList []*organizationDTOs.ProcessDocumentListDTO
+	var totalCount int64
+
+	query := repo.db.Table("process_associated_documents").
+		Select(`
+			documents.id AS id,
+			documents.reference_number AS reference_number,
+			documents.title_en AS title_en,
+			documents.title_ar AS title_ar,
+			documents.description_en AS description_en,
+			documents.description_ar AS description_ar,
+			document_categories.title_en AS document_category_title_en,
+			document_categories.title_ar AS document_category_title_ar,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+			responsible_user.first_name_ar AS responsible_user_first_name_ar,
+			responsible_user.last_name_en AS responsible_user_last_name_en,
+			responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			organization_units.title_en AS responsible_unit_title_en,
+			organization_units.title_ar AS responsible_unit_title_ar,
+			document_statuses.title_en AS document_status_title_en,
+			document_statuses.title_ar AS document_status_title_ar,
+			document_statuses.color_code AS document_status_color_code,
+			documents.last_checkout_at AS last_checkout_at,
+			documents.last_checkin_at AS last_checkin_at,
+			documents.is_locked AS is_locked
+		`).
+		Joins(`
+			LEFT JOIN documents ON documents.id = process_associated_documents.document_id
+			LEFT JOIN document_categories ON documents.document_category_id = document_categories.id
+			LEFT JOIN users AS responsible_user ON documents.responsible_user_id = responsible_user.id
+			LEFT JOIN organization_units ON documents.responsible_unit_id = organization_units.id
+			LEFT JOIN document_statuses ON documents.document_status_id = document_statuses.id
+		`).
+		Where("process_associated_documents.process_id = ?", processID)
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+	// Apply search keyword if exists
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Where(`
+			(documents.title_en LIKE ? OR
+			documents.title_ar LIKE ? OR
+			documents.reference_number LIKE ? OR
+			document_categories.title_en LIKE ? OR
+			document_categories.title_ar LIKE ? OR
+			responsible_user.first_name_en LIKE ? OR
+			responsible_user.first_name_ar LIKE ? OR
+			responsible_user.last_name_en LIKE ? OR
+			responsible_user.last_name_ar LIKE ? OR
+			organization_units.title_en LIKE ? OR
+			organization_units.title_ar LIKE ? OR
+			document_statuses.title_en LIKE ? OR
+			document_statuses.title_ar LIKE ?)`,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+	}
+
+	if params.SortBy == "" {
+		params.SortBy = "documents.title_en"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	offset := (params.Page - 1) * params.PageSize
+
+	// Execute the query
+	err := query.Offset(offset).Limit(params.PageSize).Find(&documentList).Error
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &organizationDTOs.ProcessAssociatedItemDocumentListResponseDTO{
+		Items: documentList,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+	return response, nil
+}
+
+func (repo *ProcessAssociatedItemRepository) GetAllAssociatedCounts(processID uint) (*organizationDTOs.ProcessAssociatedItemsCountResponseDTO, error) {
+	var risksCount, controlsCount, incidentsCount int64
+	var err error
+
+	// Query for controls count
+	err = repo.db.Model(&models.ProcessControl{}).
+		Where("process_id = ?", processID).
+		Count(&controlsCount).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Query for risks count
+	err = repo.db.Model(&models.RiskProcess{}).
+		Where("process_id = ?", processID).
+		Count(&risksCount).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Query for incidents count
+	err = repo.db.Model(&models.IncidentProcess{}).
+		Where("process_id = ?", processID).
+		Count(&incidentsCount).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &organizationDTOs.ProcessAssociatedItemsCountResponseDTO{
+		Controls:  int(controlsCount),
+		Risks:     int(risksCount),
+		Incidents: int(incidentsCount),
+	}, nil
 }

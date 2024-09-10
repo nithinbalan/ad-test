@@ -3,6 +3,8 @@ package services
 import (
 	"errors"
 	"fmt"
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
@@ -38,6 +40,7 @@ type ControlService struct {
 	userSvc                        UserServiceInterface
 	reviewFrequencySvc             masterServices.ReviewFrequencyServiceInterface
 	lifecycleStatusSvc             masterServices.LifecycleStatusServiceInterface
+	notificationSvc                commonServices.NotificationServiceInterface
 }
 
 func NewControlService(
@@ -49,7 +52,8 @@ func NewControlService(
 	controlEfficiencyStatusSvc ControlEfficiencyStatusServiceInterface,
 	userSvc UserServiceInterface,
 	reviewFrequencySvc masterServices.ReviewFrequencyServiceInterface,
-	lifecycleStatusSvc masterServices.LifecycleStatusServiceInterface) ControlServiceInterface {
+	lifecycleStatusSvc masterServices.LifecycleStatusServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface) ControlServiceInterface {
 	return &ControlService{
 		repo:                           repo,
 		activityLogSvc:                 activityLogSvc,
@@ -60,6 +64,7 @@ func NewControlService(
 		userSvc:                        userSvc,
 		reviewFrequencySvc:             reviewFrequencySvc,
 		lifecycleStatusSvc:             lifecycleStatusSvc,
+		notificationSvc:                notificationSvc,
 	}
 }
 
@@ -141,12 +146,16 @@ func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizatio
 	if err != nil {
 		return 0, err
 	}
+	organizationUnitID, err := cs.userSvc.GetUserPrimaryUnitID(controlFormDTO.OwnerID)
+	if err != nil {
+		return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for owner"), "not_exist", "control owner unit")
+	}
 
 	control := &models.Control{
 		ControlTypeID:                 controlFormDTO.ControlTypeID,
 		ControlCategoryID:             controlFormDTO.ControlCategoryID,
-		OwnerUnitID:                   controlFormDTO.OwnerUnitID,
 		OwnerID:                       controlFormDTO.OwnerID,
+		OwnerUnitID:                   organizationUnitID,
 		ControlImplementationStatusID: controlFormDTO.ControlImplementationStatusID,
 		ControlEfficiencyStatusID:     controlFormDTO.ControlEfficiencyStatusID,
 		ReferenceNumber:               referenceNumber,
@@ -175,6 +184,60 @@ func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizatio
 	}
 
 	go func() {
+		urlParam := fmt.Sprintf(`{"id":%d}`, id)
+		entity := "control"
+		action := "responsible-user-assign"
+
+		// Send notification to new owner
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserID:               controlFormDTO.OwnerID,
+			ModuleIdentifier:     "organization",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			ReferenceNumber:      referenceNumber,
+			HeadingEn:            "Control Assignment",
+			HeadingAr:            "مهمة التحكم",
+			TitleEn:              controlFormDTO.TitleEn,
+			TitleAr:              controlFormDTO.TitleAr,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		owner, err := cs.userSvc.GetByID(controlFormDTO.OwnerID)
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		emailTo := []string{owner.Email}
+		subject := fmt.Sprintf("Control/%s: Added", control.TitleEn)
+		templateRelativePath := "organization/templates/email/control_create_owner_mail.html"
+		emailData := organizationDTOs.ControlMailDTO{
+			FirstNameEn: owner.FirstNameEn,
+			LastNameEn:  owner.LastNameEn,
+			MessageEn:   control.TitleEn,
+		}
+
+		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              emailTo,
+			Subject:              subject,
+			TemplateRelativePath: templateRelativePath,
+			EmailData:            emailData,
+		}
+		err = cs.notificationSvc.SendNotification(
+			dbNotificationDTO, emailNotificationDTO, "control")
+		if err != nil {
+			utility.LogError("Failed to send control notifications", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
+	}()
+
+	go func() {
 		err := cs.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.Control{}.TableName(),
@@ -193,7 +256,7 @@ func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizatio
 				"error":     err.Error(),
 			}
 
-			utility.LogError("Failed to log activity", fields)
+			utility.LogError("Failed to log control activity", fields)
 		}
 	}()
 
@@ -202,10 +265,11 @@ func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizatio
 
 func (cs *ControlService) Update(id uint, currentUserID uint, controlFormDTO *organizationDTOs.ControlFormDTO) error {
 	existingControl, err := cs.GetByID(id)
-
 	if err != nil {
 		return err
 	}
+
+	oldOwnerID := existingControl.OwnerID
 
 	if err := cs.validateControlFormDTO(controlFormDTO); err != nil {
 		return err
@@ -216,9 +280,15 @@ func (cs *ControlService) Update(id uint, currentUserID uint, controlFormDTO *or
 		return err
 	}
 
+	if existingControl.OwnerID != controlFormDTO.OwnerID {
+		organizationUnitID, err := cs.userSvc.GetUserPrimaryUnitID(controlFormDTO.OwnerID)
+		if err != nil {
+			return utility.NewValidationError(fmt.Errorf("organization unit not set for owner"), "not_exist", "control owner unit")
+		}
+		existingControl.OwnerUnitID = organizationUnitID
+	}
 	existingControl.ControlTypeID = controlFormDTO.ControlTypeID
 	existingControl.ControlCategoryID = controlFormDTO.ControlCategoryID
-	existingControl.OwnerUnitID = controlFormDTO.OwnerUnitID
 	existingControl.OwnerID = controlFormDTO.OwnerID
 	existingControl.ControlImplementationStatusID = controlFormDTO.ControlImplementationStatusID
 	existingControl.ControlEfficiencyStatusID = controlFormDTO.ControlEfficiencyStatusID
@@ -239,10 +309,106 @@ func (cs *ControlService) Update(id uint, currentUserID uint, controlFormDTO *or
 	existingControl.UpdatedByID = &currentUserID
 
 	err = cs.repo.Update(existingControl)
-
 	if err != nil {
 		return err
 	}
+
+	// If the owner has changed, send notifications to the old and new owner
+	go func() {
+		if oldOwnerID != controlFormDTO.OwnerID {
+			urlParam := fmt.Sprintf(`{"id":%d}`, id)
+			entity := "control"
+			removeAction := "responsible-user-remove"
+			assignAction := "responsible-user-assign"
+
+			// Notify the old owner
+			oldOwnerNotification := &commonDTOs.DBNotificationDTO{
+				UserID:               oldOwnerID,
+				ModuleIdentifier:     "organization",
+				NotificationType:     string(commonDTOs.InformationType),
+				ReferenceNumber:      existingControl.ReferenceNumber,
+				HeadingEn:            "Control Ownership Removed",
+				HeadingAr:            "إزالة مسؤولية التحكم",
+				TitleEn:              controlFormDTO.TitleEn,
+				TitleAr:              controlFormDTO.TitleAr,
+				Entity:               &entity,
+				Action:               &removeAction,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			oldOwner, err := cs.userSvc.GetByID(oldOwnerID)
+			if err != nil {
+				utility.LogError("Failed to fetch old owner details", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			oldOwnerEmail := &commonDTOs.EmailNotificationDTO{
+				EmailTo: []string{oldOwner.Email},
+				Subject: fmt.Sprintf("Control/%s: Ownership Removed", existingControl.TitleEn),
+				EmailData: organizationDTOs.ControlMailDTO{
+					FirstNameEn: oldOwner.FirstNameEn,
+					LastNameEn:  oldOwner.LastNameEn,
+					MessageEn:   existingControl.TitleEn,
+				},
+				TemplateRelativePath: "organization/templates/email/control_remove_owner_mail.html",
+			}
+
+			// Notify the new owner
+			newOwnerNotification := &commonDTOs.DBNotificationDTO{
+				UserID:               controlFormDTO.OwnerID,
+				ModuleIdentifier:     "organization",
+				NotificationType:     string(commonDTOs.AssignmentType),
+				ReferenceNumber:      existingControl.ReferenceNumber,
+				HeadingEn:            "Control Ownership Assigned",
+				HeadingAr:            "تم تعيين مسؤولية التحكم",
+				TitleEn:              controlFormDTO.TitleEn,
+				TitleAr:              controlFormDTO.TitleAr,
+				Entity:               &entity,
+				Action:               &assignAction,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			newOwner, err := cs.userSvc.GetByID(controlFormDTO.OwnerID)
+			if err != nil {
+				utility.LogError("Failed to fetch new owner details", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			newOwnerEmail := &commonDTOs.EmailNotificationDTO{
+				EmailTo: []string{newOwner.Email},
+				Subject: fmt.Sprintf("Control/%s: Ownership Assigned", existingControl.TitleEn),
+				EmailData: organizationDTOs.ControlMailDTO{
+					FirstNameEn: newOwner.FirstNameEn,
+					LastNameEn:  newOwner.LastNameEn,
+					MessageEn:   existingControl.TitleEn,
+				},
+				TemplateRelativePath: "organization/templates/email/control_change_owner_mail.html",
+			}
+
+			// Send notifications for old and new owners
+			err = cs.notificationSvc.SendNotification(newOwnerNotification, newOwnerEmail, "control")
+			if err != nil {
+				utility.LogError("Failed to send new owner notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+
+			err = cs.notificationSvc.SendNotification(oldOwnerNotification, oldOwnerEmail, "control")
+			if err != nil {
+				utility.LogError("Failed to send old owner notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+		}
+	}()
 
 	return nil
 }
@@ -250,14 +416,34 @@ func (cs *ControlService) Update(id uint, currentUserID uint, controlFormDTO *or
 func (cs *ControlService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
+	var notifications []struct {
+		OwnerID         *uint
+		TitleEn         string
+		TitleAr         string
+		ReferenceNumber string
+	}
+
 	for _, id := range ids {
-
-		_, err := cs.repo.GetByID(id)
-
+		control, err := cs.GetFullDetailsByID(id)
 		if err != nil {
+			failedIds = append(failedIds, id)
 			continue
 		}
 
+		// Prepare notification data before deletion
+		notifications = append(notifications, struct {
+			OwnerID         *uint
+			TitleEn         string
+			TitleAr         string
+			ReferenceNumber string
+		}{
+			OwnerID:         control.OwnerID,
+			TitleEn:         control.TitleEn,
+			TitleAr:         control.TitleAr,
+			ReferenceNumber: control.ReferenceNumber,
+		})
+
+		// Perform deletion
 		err = cs.repo.Delete(id)
 		if err != nil {
 			failedIds = append(failedIds, id)
@@ -267,10 +453,10 @@ func (cs *ControlService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 	}
 
 	if len(successfulIds) > 0 {
-
 		go func() {
+			// Log bulk delete activities
 			err := cs.activityLogSvc.LogBulkActivities(
-				models.DeleteAction, // Make sure this action constant is defined appropriately
+				models.DeleteAction,
 				models.Control{}.TableName(),
 				successfulIds,
 				nil,
@@ -278,8 +464,67 @@ func (cs *ControlService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 				nil,
 			)
 			if err != nil {
-				// @todo - save to log file
 				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+			}
+
+			// Send notifications to the owners of the deleted controls
+			for _, notification := range notifications {
+				urlParam := ""
+				queryParam := ""
+				entity := "control"
+				action := "delete"
+
+				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+					UserID:               *notification.OwnerID,
+					ModuleIdentifier:     "organization",
+					NotificationType:     string(commonDTOs.DeletionType),
+					ReferenceNumber:      notification.ReferenceNumber,
+					HeadingEn:            "Control Deleted",
+					HeadingAr:            "تم حذف التحكم",
+					TitleEn:              notification.TitleEn,
+					TitleAr:              notification.TitleAr,
+					Entity:               &entity,
+					Action:               &action,
+					URLParam:             urlParam,
+					QueryParam:           queryParam,
+					IsSystemNotification: false,
+					CreatedByID:          &currentUserID,
+				}
+
+				ownerUser, err := cs.userSvc.GetByID(*notification.OwnerID)
+				if err != nil {
+					utility.LogError("Failed to fetch owner details for notification", map[string]interface{}{
+						"error": err.Error(),
+					})
+					continue
+				}
+
+				ownerEmailTo := []string{ownerUser.Email}
+				subject := fmt.Sprintf("Control/%s: Deleted", notification.TitleEn)
+				templateRelativePath := "organization/templates/email/control_delete_mail.html"
+				redirectURL := fmt.Sprintf("control/deleted/%d", notification.OwnerID)
+
+				emailData := organizationDTOs.ControlMailDTO{
+					FirstNameEn: ownerUser.FirstNameEn,
+					LastNameEn:  ownerUser.LastNameEn,
+					MessageEn:   notification.TitleEn,
+					RedirectURL: redirectURL,
+				}
+
+				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+					EmailTo:              ownerEmailTo,
+					Subject:              subject,
+					TemplateRelativePath: templateRelativePath,
+					EmailData:            emailData,
+				}
+
+				err = cs.notificationSvc.SendNotification(
+					dbNotificationDTO, emailNotificationDTO, "control")
+				if err != nil {
+					utility.LogError("Failed to send deletion notifications", map[string]interface{}{
+						"error": err.Error(),
+					})
+				}
 			}
 		}()
 	}
@@ -389,22 +634,16 @@ func (cs *ControlService) validateControlFormDTO(controlFormDTO *organizationDTO
 		return utility.NewValidationError(fmt.Errorf("control category does not exist"), "not_exist", "control category")
 	}
 
-	if controlFormDTO.OwnerID != nil {
-		if _, err := cs.userSvc.GetByID(uint(*controlFormDTO.OwnerID)); err != nil {
-			return utility.NewValidationError(fmt.Errorf("control owner does not exist"), "not_exist", "control owner")
-		}
+	if _, err := cs.userSvc.GetByID(uint(controlFormDTO.OwnerID)); err != nil {
+		return utility.NewValidationError(fmt.Errorf("control owner does not exist"), "not_exist", "control owner")
 	}
 
-	if controlFormDTO.ControlImplementationStatusID != nil {
-		if _, err := cs.controlImplementationStatusSvc.GetByID(uint(*controlFormDTO.ControlImplementationStatusID)); err != nil {
-			return utility.NewValidationError(fmt.Errorf("control implementation status does not exist"), "not_exist", "control implementation status")
-		}
+	if _, err := cs.controlImplementationStatusSvc.GetByID(uint(controlFormDTO.ControlImplementationStatusID)); err != nil {
+		return utility.NewValidationError(fmt.Errorf("control implementation status does not exist"), "not_exist", "control implementation status")
 	}
 
-	if controlFormDTO.ControlEfficiencyStatusID != nil {
-		if _, err := cs.controlImplementationStatusSvc.GetByID(uint(*controlFormDTO.ControlEfficiencyStatusID)); err != nil {
-			return utility.NewValidationError(fmt.Errorf("control efficiency status does not exist"), "not_exist", "control efficiency status")
-		}
+	if _, err := cs.controlImplementationStatusSvc.GetByID(uint(controlFormDTO.ControlEfficiencyStatusID)); err != nil {
+		return utility.NewValidationError(fmt.Errorf("control efficiency status does not exist"), "not_exist", "control efficiency status")
 	}
 
 	if controlFormDTO.ReviewFrequencyID != nil {

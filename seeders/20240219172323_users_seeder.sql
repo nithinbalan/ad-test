@@ -1,6 +1,11 @@
 -- +goose Up
 -- +goose StatementBegin
 DECLARE @UserID INT;
+DECLARE @AdminDesignationID INT;
+DECLARE @SuperAdminRoleID INT;
+
+SELECT @AdminDesignationID = id FROM designations WHERE title_en = 'Admin';
+SELECT @SuperAdminRoleID = id FROM roles WHERE is_super_admin = 1;
 
 -- Insert a user
 INSERT INTO users (
@@ -12,6 +17,7 @@ INSERT INTO users (
     last_name_ar,
     email,
     user_status_id,
+    designation_id,
     profile_image_path,
     initial,
     color,
@@ -19,14 +25,15 @@ INSERT INTO users (
     created_at,
     updated_at
 ) VALUES (
-    (SELECT id FROM organization_units WHERE title_en = 'Information Technology Division'),
-    (SELECT id FROM organization_units WHERE title_en = 'IT Support Department'),
+    (SELECT id FROM organization_units WHERE title_en = 'Information Technology'),
+    (SELECT id FROM organization_units WHERE title_en = 'IT Support'),
     'Super',
     'Admin',
     'سوبر',
     'أدمن',
     'admin@jethur.com',
     1,
+    @AdminDesignationID,
     NULL,
     'SA',
     '#FFD700',
@@ -61,7 +68,7 @@ INSERT INTO user_roles (
     role_id
 ) VALUES (
     @UserID,
-    1
+    @SuperAdminRoleID
 );
 -- +goose StatementEnd
 

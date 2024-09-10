@@ -19,6 +19,7 @@ type ComplianceActionPlanStatusUpdateServiceInterface interface {
 	GetAll(ComplianceID uint, ComplianceActionPlanID uint, sort string, sortBy string, keyword string) ([]*complianceDTOs.ComplianceActionPlanStatusUpdateListDTO, error)
 	Create(ComplianceID uint, ComplianceActionPlanID uint, currentUserID uint, complianceActionPlanStatusUpdateFormDTO *complianceDTOs.ComplianceActionPlanStatusUpdateFormDTO) (uint, error)
 	Update(ComplianceID uint, ComplianceActionPlanID uint, id uint, currentUserID uint, complianceActionPlanStatusUpdateFormDTO *complianceDTOs.ComplianceActionPlanStatusUpdateFormDTO) error
+	GetLatestComplianceActionPlanStatusUpdate(complianceID uint, actionPlanID uint) (*complianceDTOs.ComplianceActionPlanStatusUpdateListDTO, error)
 }
 
 type ComplianceActionPlanStatusUpdateService struct {
@@ -169,7 +170,7 @@ func (casus *ComplianceActionPlanStatusUpdateService) Create(ComplianceID uint, 
 	return id, nil
 }
 
-func (casus *ComplianceActionPlanStatusUpdateService) Update(ComplianceID uint, ComplianceActionPlanID uint, id uint, currentUserID uint, ComplianceActionPlanStatusUpdateFormDTO *complianceDTOs.ComplianceActionPlanStatusUpdateFormDTO) error {
+func (casus *ComplianceActionPlanStatusUpdateService) Update(ComplianceID uint, ComplianceActionPlanID uint, id uint, currentUserID uint, complianceActionPlanStatusUpdateFormDTO *complianceDTOs.ComplianceActionPlanStatusUpdateFormDTO) error {
 	tx := casus.repo.BeginTransaction()
 
 	if _, err := casus.complianceActionPlanSvc.GetByID(ComplianceID, ComplianceActionPlanID); err != nil {
@@ -182,18 +183,24 @@ func (casus *ComplianceActionPlanStatusUpdateService) Update(ComplianceID uint, 
 		return err
 	}
 
-	if err := casus.validateComplianceActionPlanStatusUpdateFormDTO(ComplianceActionPlanStatusUpdateFormDTO); err != nil {
+	if err := casus.validateComplianceActionPlanStatusUpdateFormDTO(complianceActionPlanStatusUpdateFormDTO); err != nil {
 		return err
 	}
 
 	//@todo validate docuemnt form
 
-	// Update Compliance StatusUpdate-- only comments and percentage
-	existingComplianceActionPlanStatusUpdate.Comment = ComplianceActionPlanStatusUpdateFormDTO.Comment
-	existingComplianceActionPlanStatusUpdate.Percentage = ComplianceActionPlanStatusUpdateFormDTO.Percentage
+	existingComplianceActionPlanStatusUpdate.ActionPlanStatusID = complianceActionPlanStatusUpdateFormDTO.ActionPlanStatusID
+	existingComplianceActionPlanStatusUpdate.Comment = complianceActionPlanStatusUpdateFormDTO.Comment
+	existingComplianceActionPlanStatusUpdate.Percentage = complianceActionPlanStatusUpdateFormDTO.Percentage
 	existingComplianceActionPlanStatusUpdate.UpdatedByID = &currentUserID
 
 	err = casus.repo.Update(existingComplianceActionPlanStatusUpdate, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	err = casus.complianceActionPlanSvc.StatusUpdate(ComplianceID, ComplianceActionPlanID, currentUserID, complianceActionPlanStatusUpdateFormDTO, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -203,7 +210,7 @@ func (casus *ComplianceActionPlanStatusUpdateService) Update(ComplianceID uint, 
 	var deleteDocumentIds []*uint
 	var documentsToDelete []*models.ComplianceActionPlanStatusUpdateDocument
 
-	for _, doc := range ComplianceActionPlanStatusUpdateFormDTO.Documents {
+	for _, doc := range complianceActionPlanStatusUpdateFormDTO.Documents {
 
 		if doc.IsNewFile != nil && *doc.IsNewFile {
 			// Encrypt the filename
@@ -217,7 +224,7 @@ func (casus *ComplianceActionPlanStatusUpdateService) Update(ComplianceID uint, 
 
 			//genereate URL
 			url := utility.GenerateDocumentURL("compliance", "compliance-register", strconv.FormatUint(uint64(ComplianceID), 10), "action-plans", strconv.FormatUint(uint64(ComplianceActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
-			
+
 			// Create a new Control test Document instance
 			document := &models.ComplianceActionPlanStatusUpdateDocument{
 				ComplianceActionPlanStatusUpdateID: id,
@@ -292,4 +299,12 @@ func (casus *ComplianceActionPlanStatusUpdateService) validateComplianceActionPl
 	}
 
 	return nil
+}
+
+func (capsus ComplianceActionPlanStatusUpdateService) GetLatestComplianceActionPlanStatusUpdate(complianceID uint, actionPlanID uint) (*complianceDTOs.ComplianceActionPlanStatusUpdateListDTO, error) {
+	if _, err := capsus.complianceActionPlanSvc.GetByID(complianceID, actionPlanID); err != nil {
+		return nil, err
+	}
+
+	return capsus.repo.GetLatestComplianceActionPlanStatusUpdate(actionPlanID)
 }

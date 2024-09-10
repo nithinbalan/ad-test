@@ -22,6 +22,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	actionPlanStatusController := app.MasterModule.AtionPlanStatusController
 	currencyController := app.MasterModule.CurrencyController
 	timezoneController := app.MasterModule.TimezoneController
+	unitController := app.MasterModule.UnitController
+	toolTypeController := app.MasterModule.ToolTypeController
+	expenseCategoryController := app.MasterModule.ExpenseCategoryController
+	sourceController := app.MasterModule.SourceController
+	statusController := app.MasterModule.StatusController
+	conformanceController := app.MasterModule.ConformanceController
 
 	masterRoutes.GET("/review-frequencies", reviewFrequencyController.GetAllReviewFrequencies)
 	masterRoutes.GET("/review-frequencies/:id", reviewFrequencyController.GetReviewFrequencyDetails)
@@ -62,4 +68,38 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	masterRoutes.GET("/timezones", timezoneController.GetAllTimezones)
 	masterRoutes.GET("/timezones/:id", timezoneController.GetTimezoneDetails)
+
+	masterRoutes.GET("/units", unitController.GetAllUnits)
+	masterRoutes.POST("/units", unitController.CreateUnit)
+	masterRoutes.GET("/units/:id", unitController.GetUnitDetails)
+	masterRoutes.PUT("/units/:id", unitController.UpdateUnit)
+	masterRoutes.POST("/units/delete", unitController.DeleteUnits)
+	masterRoutes.PUT("/units/activate", unitController.ActivateUnits)
+	masterRoutes.PUT("/units/deactivate", unitController.DeactivateUnits)
+
+	masterRoutes.GET("/tool-types", toolTypeController.GetAllToolTypes)
+	masterRoutes.POST("/tool-types", toolTypeController.CreateToolType)
+	masterRoutes.GET("/tool-types/:id", toolTypeController.GetToolTypeDetails)
+	masterRoutes.PUT("/tool-types/:id", toolTypeController.UpdateToolType)
+	masterRoutes.POST("/tool-types/delete", toolTypeController.DeleteToolTypes)
+	masterRoutes.PUT("/tool-types/activate", toolTypeController.ActivateToolTypes)
+	masterRoutes.PUT("/tool-types/deactivate", toolTypeController.DeactivateToolTypes)
+
+	masterRoutes.GET("/expense-categories", expenseCategoryController.GetAllExpenseCategories)
+	masterRoutes.POST("/expense-categories", expenseCategoryController.CreateExpenseCategory)
+	masterRoutes.GET("/expense-categories/:id", expenseCategoryController.GetExpenseCategoryDetails)
+	masterRoutes.PUT("/expense-categories/:id", expenseCategoryController.UpdateExpenseCategory)
+	masterRoutes.POST("/expense-categories/delete", expenseCategoryController.DeleteExpenseCategories)
+	masterRoutes.PUT("/expense-categories/activate", expenseCategoryController.ActivateExpenseCategories)
+	masterRoutes.PUT("/expense-categories/deactivate", expenseCategoryController.DeactivateExpenseCategories)
+
+	masterRoutes.GET("/sources", sourceController.GetAllSources)
+	masterRoutes.GET("/sources/:id", sourceController.GetSourceDetails)
+
+	masterRoutes.GET("/statuses", statusController.GetAllStatuses)
+	masterRoutes.GET("/statuses/:id", statusController.GetStatusDetails)
+
+	masterRoutes.GET("/conformances", conformanceController.GetAllConformances)
+	masterRoutes.GET("/conformances/:id", conformanceController.GetConformanceDetails)
+
 }

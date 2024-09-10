@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"jethur/config"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	complianceRepositories "jethur/grc/compliance/repositories"
 	logServices "jethur/grc/logs/services"
@@ -30,6 +31,10 @@ type ComplianceRegisterServiceInterface interface {
 	Restore(ids []uint, currentUserID uint) ([]uint, error)
 	StatusUpdate(id uint, currentUserID uint, complianceStatusID uint, tx utility.DatabaseTransaction) error
 	ReviewStatusUpdate(complianceRegister *models.ComplianceRegister, tx utility.DatabaseTransaction) error
+
+	UpdateComplianceTotalScore(complianceID uint, totalScore float64, tx utility.DatabaseTransaction) error
+
+	GetDocumentPath(id uint, token string) (string, error)
 
 	ExportComplianceRegisters(data []*complianceDTOs.ComplianceRegisterListDTO) (*os.File, error)
 }
@@ -183,6 +188,20 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 	}
 
 	id, err := crs.repo.Create(complianceRegister, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	complianceStatusID := complianceRegisterFormDTO.ComplianceStatusID
+	complianceStatusUpdate := &models.ComplianceStatusUpdate{
+		ComplianceRegisterID: id,
+		ComplianceStatusID:   complianceStatusID,
+		Comment:              "Initial compliance status",
+		CreatedByID:          currentUserID,
+	}
+
+	_, err = crs.repo.CreateInitialComplianceStatusUpdate(complianceStatusUpdate, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -456,6 +475,17 @@ func (crs *ComplianceRegisterService) Delete(ids []uint, currentUserID uint) ([]
 			}
 		}
 
+		if len(complianceRegister.ComplianceStatusUpdates) > 0 {
+			var deleteStatusUpdateIds []*uint
+			for _, update := range complianceRegister.ComplianceStatusUpdates {
+				deleteStatusUpdateIds = append(deleteStatusUpdateIds, &update.ID)
+			}
+			if err := crs.repo.DeleteComplianceStatusUpdates(deleteStatusUpdateIds, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+		}
+
 		// Delete each Compliance document if documents exist
 		if len(complianceRegister.Documents) > 0 {
 			var deleteDocumentIds []*uint
@@ -648,28 +678,18 @@ func (crs *ComplianceRegisterService) validateComplianceRegisterFormDTO(complian
 
 	//Controls exist
 	controls := complianceRegisterFormDTO.ControlIDs
-	// If no controls are provided, simply return nil to exit the function
-	if len(controls) == 0 {
-		return nil
-	}
 
-	// Create a map to store control IDs
 	controlIDs := make(map[uint]bool)
 
-	// Check if each control exists
 	for _, control := range controls {
-		// Check if the control ID already exists in the map
 		if controlIDs[*control] {
-			// If the control ID already exists, return a validation error
 			return utility.NewValidationError(fmt.Errorf("duplicate control ID: %d", control), "duplicate", "control")
 		}
 
-		// Check if the control exists in the database
 		if _, err := crs.controlSvc.GetByID(*control); err != nil {
 			return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", control), "not_exist", "control")
 		}
 
-		// Add the control ID to the map
 		controlIDs[*control] = true
 	}
 
@@ -719,6 +739,11 @@ func (crs *ComplianceRegisterService) parseComplianceRegisterDates(dto *complian
 	return parsed, nil
 }
 
+func (crs *ComplianceRegisterService) UpdateComplianceTotalScore(complianceID uint, totalScore float64, tx utility.DatabaseTransaction) error {
+
+	return crs.repo.UpdateComplianceTotalScore(complianceID, totalScore, tx)
+}
+
 func (crs *ComplianceRegisterService) validateComplianceDocumentFormDTO(document *complianceDTOs.ComplianceDocumentFormDTO) error {
 	// Validate document
 	if document == nil {
@@ -739,21 +764,90 @@ func (crs *ComplianceRegisterService) validateComplianceDocumentFormDTO(document
 	return nil
 }
 
+func (crs *ComplianceRegisterService) GetDocumentPath(id uint, token string) (string, error) {
+	existingComplianceRegister, err := crs.GetFullDetailsByID(id)
+	if err != nil {
+		return "", err
+	}
 
-func (crs *ComplianceRegisterService) ExportComplianceRegisters(data []*complianceDTOs.ComplianceRegisterListDTO)  (*os.File, error){
-    // Define headers
-    headers := []string{
-        "ID", "Title (EN)", "Title (AR)", "Version", "Deadline", "Issue Date", "Expiry Date", "Lifecycle Status (EN)",
-    }
+	if len(existingComplianceRegister.Documents) == 0 {
+		return "", fmt.Errorf("no documents found for the compliance register")
+	}
 
-    // Convert data to [][]interface{}
-    rows := make([][]interface{}, len(data))
-    for i, item := range data {
-        rows[i] = []interface{}{
-            item.ID, item.TitleEn, item.TitleAr, item.Version, item.Deadline, item.IssueDate, item.ExpiryDate,item.LifecycleStatusTitleEn,
-        }
-    }
+	decryptedFilenameBytes, err := utility.DecryptData(token)
+	if err != nil {
+		return "", fmt.Errorf("resource not found")
+	}
 
-    // Generate the Excel file
-    return utility.GenerateExcelFile(headers, rows)
+	decryptedFilename := string(decryptedFilenameBytes)
+	if decryptedFilename == "" {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(id), 10), "documents")
+
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
+
+	// Check if the file exists
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("file not found")
+	} else if err != nil {
+		return "", fmt.Errorf("error accessing file: %w", err)
+	}
+
+	return fullPath, nil
+}
+
+func (crs *ComplianceRegisterService) GetDocumentPath(id uint, token string) (string, error) {
+	existingComplianceRegister, err := crs.GetFullDetailsByID(id)
+	if err != nil {
+		return "", err
+	}
+
+	if len(existingComplianceRegister.Documents) == 0 {
+		return "", fmt.Errorf("no documents found for the compliance register")
+	}
+
+	decryptedFilenameBytes, err := utility.DecryptData(token)
+	if err != nil {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	decryptedFilename := string(decryptedFilenameBytes)
+	if decryptedFilename == "" {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(id), 10), "documents")
+
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
+
+	// Check if the file exists
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("file not found")
+	} else if err != nil {
+		return "", fmt.Errorf("error accessing file: %w", err)
+	}
+
+	return fullPath, nil
+}
+
+func (crs *ComplianceRegisterService) ExportComplianceRegisters(data []*complianceDTOs.ComplianceRegisterListDTO) (*os.File, error) {
+	// Define headers
+	headers := []string{
+		"ID", "Title (EN)", "Title (AR)", "Version", "Deadline", "Issue Date", "Expiry Date", "Lifecycle Status (EN)",
+	}
+
+	// Convert data to [][]interface{}
+	rows := make([][]interface{}, len(data))
+	for i, item := range data {
+		rows[i] = []interface{}{
+			item.ID, item.TitleEn, item.TitleAr, item.Version, item.Deadline, item.IssueDate, item.ExpiryDate, item.LifecycleStatusTitleEn,
+		}
+	}
+
+	// Generate the Excel file
+	return utility.GenerateExcelFile(headers, rows)
 }

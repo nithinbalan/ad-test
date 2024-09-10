@@ -1,16 +1,23 @@
 package services
 
 import (
+	"errors"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	taskDTOs "jethur/grc/task/dtos"
 	"jethur/grc/task/repositories"
 	"jethur/utility"
+
+	"gorm.io/gorm"
 )
 
 type TaskServiceInterface interface {
 	GetAll(params *taskDTOs.TaskListQueryParamsDTO) (*taskDTOs.TaskListResponseDTO, error)
-	CreateTask(taskDTO commonDTOs.CreateTaskDTO, currentUserID uint, tx ...utility.DatabaseTransaction) error
+	GetByID(id uint) (*models.Task, error)
+	GetByFieldID(field string, value interface{}) (*models.Task, error)
+	Create(taskDTO commonDTOs.TaskFormDTO, currentUserID uint, tx ...utility.DatabaseTransaction) error
+	Update(currentUserID uint, taskDTO commonDTOs.TaskFormDTO,fieldName string, id uint, tx ...utility.DatabaseTransaction) error
+	Delete(id uint, currentUserID uint) (uint, error)
 }
 
 type TaskService struct {
@@ -26,7 +33,31 @@ func (ts *TaskService) GetAll(params *taskDTOs.TaskListQueryParamsDTO) (*taskDTO
 	return ts.repo.GetAll(params)
 }
 
-func (ts *TaskService) CreateTask(taskDTO commonDTOs.CreateTaskDTO, currentUserID uint, tx ...utility.DatabaseTransaction) error {
+func (ts TaskService) GetByID(id uint) (*models.Task, error) {
+	task, err := ts.repo.GetByID(id)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+	return task, nil
+}
+
+func (ts TaskService) GetByFieldID(field string, value interface{}) (*models.Task, error) {
+	task, err := ts.repo.GetByFieldID(field,value)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, value)
+		}
+		return nil, err
+	}
+	return task, nil
+}
+
+func (ts *TaskService) Create(taskDTO commonDTOs.TaskFormDTO, currentUserID uint, tx ...utility.DatabaseTransaction) error {
 	taskStatus, err := ts.taskStatusSvc.GetByType("open")
 	if err != nil {
 		return err
@@ -51,6 +82,41 @@ func (ts *TaskService) CreateTask(taskDTO commonDTOs.CreateTaskDTO, currentUserI
 		TaskStatusID:           taskStatus.ID,
 		CreatedByID:            currentUserID,
 	}
-	return ts.repo.CreateTask(task, tx...)
+	return ts.repo.Create(task, tx...)
 
+}
+
+func (ts *TaskService) Update(currentUserID uint,taskDTO commonDTOs.TaskFormDTO,fieldName string, id uint, tx ...utility.DatabaseTransaction) error {
+	existingTask, err := ts.GetByFieldID(fieldName,id)
+	if err != nil {
+		return err
+	}
+	existingTask.Title = taskDTO.Title
+	existingTask.Description = taskDTO.Description
+	existingTask.TargetDate = taskDTO.TargetDate
+	existingTask.SeverityLevelID = taskDTO.SeverityLevelID
+	existingTask.ResponsibleUserID = taskDTO.ResponsibleUserID
+	existingTask.UpdatedByID = currentUserID
+	err = ts.repo.Update(existingTask, tx...)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (ts *TaskService) Delete(id uint, currentUserID uint) (uint, error) {
+	var failedId uint
+
+	entryToDelete, err := ts.GetByID(id)
+	if err != nil {
+		return 0, err
+	}
+
+	// Delete the entry
+	if err := ts.repo.Delete(entryToDelete.ID); err != nil {
+		failedId = id
+		return failedId, err
+	}
+
+	return failedId, nil
 }

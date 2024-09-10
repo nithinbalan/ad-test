@@ -1,6 +1,9 @@
 package dtos
 
-import commonDTOs "jethur/grc/common/dtos"
+import (
+	commonDTOs "jethur/grc/common/dtos"
+	"time"
+)
 
 type IncidentControlListDTO struct {
 	ControlID                            uint    `json:"control_id"`
@@ -14,16 +17,17 @@ type IncidentControlListDTO struct {
 	ControlTitleEn                       string  `json:"control_title_en"`
 	ControlTitleAr                       string  `json:"control_title_ar"`
 	ControlDescription                   *string `json:"control_description"`
-	ControlEfficiencyStatusEn            string  `json:"control_efficiency_status_en"`
-	ControlEfficiencyStatusAr            string  `json:"control_efficiency_status_ar"`
+	ControlEfficiencyStatusTitleEn       string  `json:"control_efficiency_status_title_en"`
+	ControlEfficiencyStatusTitleAr       string  `json:"control_efficiency_status_title_ar"`
 	ControlEfficiencyStatusType          string  `json:"control_efficiency_status_type"`
 	ControlEfficiencyStatusColorCode     string  `json:"control_efficiency_status_color_code"`
-	ControlImplementationStatusEn        string  `json:"control_implementation_status_en"`
-	ControlImplementationStatusAr        string  `json:"control_implementation_status_ar"`
+	ControlImplementationStatusTitleEn   string  `json:"control_implementation_status_title_en"`
+	ControlImplementationStatusTitleAr   string  `json:"control_implementation_status_title_ar"`
 	ControlImplementationStatusType      string  `json:"control_implementation_status_type"`
 	ControlImplementationStatusColorCode string  `json:"control_implementation_status_color_code"`
 	ControlOwnerUnitTitleEn              *string `json:"control_owner_unit_title_en"`
 	ControlOwnerUnitTitleAr              *string `json:"control_owner_unit_title_ar"`
+	ControlOwnerID                       *uint   `json:"control_owner_id"`
 	ControlOwnerFirstNameEn              *string `json:"control_owner_first_name_en"`
 	ControlOwnerFirstNameAr              *string `json:"control_owner_first_name_ar"`
 	ControlOwnerLastNameEn               *string `json:"control_owner_last_name_en"`
@@ -58,6 +62,7 @@ type IncidentRiskListDTO struct {
 	Description                   *string `json:"description"`
 	OwnerUnitTitleEn              string  `json:"owner_unit_title_en"`
 	OwnerUnitTitleAr              string  `json:"owner_unit_title_ar"`
+	OwnerID                       uint    `json:"owner_id"`
 	OwnerFirstNameEn              string  `json:"owner_first_name_en"`
 	OwnerFirstNameAr              string  `json:"owner_first_name_ar"`
 	OwnerLastNameEn               string  `json:"owner_last_name_en"`
@@ -83,6 +88,7 @@ type IncidentProcessListDTO struct {
 	ProcessGroupTitleAr      string  `json:"process_group_title_ar"`
 	OwnerUnitTitleEn         *string `json:"owner_unit_title_en"`
 	OwnerUnitTitleAr         *string `json:"owner_unit_title_ar"`
+	OwnerID                  *uint   `json:"owner_id"`
 	OwnerFirstNameEn         *string `json:"owner_first_name_en"`
 	OwnerFirstNameAr         *string `json:"owner_first_name_ar"`
 	OwnerLastNameEn          *string `json:"owner_last_name_en"`
@@ -98,6 +104,59 @@ type IncidentProcessListDTO struct {
 	TitleEn                  string  `json:"title_en"`
 	TitleAr                  string  `json:"title_ar"`
 	Description              *string `json:"description"`
+}
+
+type IncidentSLAListDTO struct {
+	ReferenceNumber                 string `json:"reference_number"`
+	LifecycleStatusID               uint   `json:"lifecycle_status_id"`
+	LifecycleStatusTitleEn          string `json:"lifecycle_status_title_en"`
+	LifecycleStatusTitleAr          string `json:"lifecycle_status_title_ar"`
+	LifecycleStatusColorCode        string `json:"lifecycle_status_color_code"`
+	TitleEn                         string `json:"title_en"`
+	TitleAr                         string `json:"title_ar"`
+	Description                     string `json:"description"`
+	Client                          string `json:"client"`
+	SLACategoryTitleEn              string `json:"sla_category_title_en"`
+	SLACategoryTitleAr              string `json:"sla_category_title_ar"`
+	SeverityLevelTitleEn            string `json:"severity_level_title_en"`
+	SeverityLevelTitleAr            string `json:"severity_level_title_ar"`
+	ResponsibleUnitTitleEn          string `json:"responsible_unit_title_en"`
+	ResponsibleUnitTitleAr          string `json:"responsible_unit_title_ar"`
+	ResponsibleUserID               uint   `json:"responsible_user_id"`
+	ResponsibleUserFirstNameEn      string `json:"responsible_user_first_name_en"`
+	ResponsibleUserFirstNameAr      string `json:"responsible_user_first_name_ar"`
+	ResponsibleUserLastNameEn       string `json:"responsible_user_last_name_en"`
+	ResponsibleUserLastNameAr       string `json:"responsible_user_last_name_ar"`
+	ResponsibleUserInitial          string `json:"responsible_user_initial"`
+	ResponsibleUserColor            string `json:"responsible_user_color"`
+	ResponsibleUserEmail            string `json:"responsible_user_email"`
+	ResponsibleUserProfileImagePath string `json:"responsible_user_profile_image_path"`
+	ComplianceStatusTitleEn         string `json:"compliance_status_title_en"`
+	ComplianceStatusTitleAr         string `json:"compliance_status_title_ar"`
+	ComplianceStatusColorCode       string `json:"compliance_status_color_code"`
+}
+
+type IncidentDocumentListDTO struct {
+	ID                         uint       `json:"id"`
+	ReferenceNumber            string     `json:"reference_number"`
+	TitleEn                    string     `json:"title_en"`
+	TitleAr                    string     `json:"title_ar"`
+	DescriptionEn              *string    `json:"description_en"`
+	DescriptionAr              *string    `json:"description_ar"`
+	DocumentCategoryTitleEn    string     `json:"document_category_title_en"`
+	DocumentCategoryTitleAr    string     `json:"document_category_title_ar"`
+	ResponsibleUserFirstNameEn string     `json:"responsible_user_first_name_en"`
+	ResponsibleUserFirstNameAr string     `json:"responsible_user_first_name_ar"`
+	ResponsibleUserLastNameEn  string     `json:"responsible_user_last_name_en"`
+	ResponsibleUserLastNameAr  string     `json:"responsible_user_last_name_ar"`
+	ResponsibleUnitTitleEn     string     `json:"responsible_unit_title_en"`
+	ResponsibleUnitTitleAr     string     `json:"responsible_unit_title_ar"`
+	DocumentStatusTitleEn      string     `json:"document_status_title_en"`
+	DocumentStatusTitleAr      string     `json:"document_status_title_ar"`
+	DocumentStatusColorCode    string     `json:"document_status_color_code"`
+	LastCheckoutAt             *time.Time `json:"last_checkout_at"`
+	LastCheckinAt              *time.Time `json:"last_checkin_at"`
+	IsLocked                   bool       `json:"is_locked"`
 }
 
 type IncidentAssociatedItemListQueryParamsDTO struct {
@@ -127,5 +186,15 @@ type IncidentAssociatedItemRiskListResponseDTO struct {
 
 type IncidentAssociatedItemProcessListResponseDTO struct {
 	Items      []*IncidentProcessListDTO    `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
+}
+
+type IncidentAssociatedItemSLAListResponseDTO struct {
+	Items      []*IncidentSLAListDTO        `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
+}
+
+type IncidentAssociatedItemDocumentListResponseDTO struct {
+	Items      []*IncidentDocumentListDTO   `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }

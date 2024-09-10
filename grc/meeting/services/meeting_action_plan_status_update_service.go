@@ -20,13 +20,16 @@ type MeetingActionPlanStatusUpdateServiceInterface interface {
 	GetAll(meetingID uint, meetingActionPlanID uint, sort string, sortBy string, keyword string) ([]*meetingDTOs.MeetingActionPlanStatusUpdateListDTO, error)
 	Create(meetingID uint, meetingActionPlanID uint, currentUserID uint, meetingActionPlanStatusUpdateFormDTO *meetingDTOs.MeetingActionPlanStatusUpdateFormDTO) (uint, error)
 	Update(meetingID uint, meetingActionPlanID uint, id uint, currentUserID uint, meetingActionPlanStatusUpdateFormDTO *meetingDTOs.MeetingActionPlanStatusUpdateFormDTO) error
+	GetLatestMeetingActionPlanStatusUpdate(meetingID uint, actionPlanID uint) (*meetingDTOs.MeetingActionPlanStatusUpdateListDTO, error)
 }
 
 type MeetingActionPlanStatusUpdateService struct {
-	repo                 repositories.MeetingActionPlanStatusUpdateRepositoryInterface
-	activityLogSvc       logServices.ActivityLogServiceInterface
-	meetingActionPlanSvc MeetingActionPlanServiceInterface
-	actionPlanStatusSvc  masterServices.ActionPlanStatusServiceInterface
+	repo                   repositories.MeetingActionPlanStatusUpdateRepositoryInterface
+	activityLogSvc         logServices.ActivityLogServiceInterface
+	meetingActionPlanSvc   MeetingActionPlanServiceInterface
+	actionPlanStatusSvc    masterServices.ActionPlanStatusServiceInterface
+	meetingMinuteSvc       MeetingMinuteServiceInterface
+	meetingMinuteStatusSvc MeetingMinuteStatusServiceInterface
 }
 
 func NewMeetingActionPlanStatusUpdateService(
@@ -34,12 +37,16 @@ func NewMeetingActionPlanStatusUpdateService(
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	meetingActionPlanSvc MeetingActionPlanServiceInterface,
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
+	meetingMinuteSvc MeetingMinuteServiceInterface,
+	meetingMinuteStatusSvc MeetingMinuteStatusServiceInterface,
 ) MeetingActionPlanStatusUpdateServiceInterface {
 	return &MeetingActionPlanStatusUpdateService{
-		repo:                 repo,
-		activityLogSvc:       activityLogSvc,
-		meetingActionPlanSvc: meetingActionPlanSvc,
-		actionPlanStatusSvc:  actionPlanStatusSvc,
+		repo:                   repo,
+		activityLogSvc:         activityLogSvc,
+		meetingActionPlanSvc:   meetingActionPlanSvc,
+		actionPlanStatusSvc:    actionPlanStatusSvc,
+		meetingMinuteSvc:       meetingMinuteSvc,
+		meetingMinuteStatusSvc: meetingMinuteStatusSvc,
 	}
 }
 
@@ -70,7 +77,8 @@ func (masus MeetingActionPlanStatusUpdateService) GetByID(meetingID uint, meetin
 func (masus *MeetingActionPlanStatusUpdateService) Create(meetingID uint, meetingActionPlanID uint, currentUserID uint, meetingActionPlanStatusUpdateFormDTO *meetingDTOs.MeetingActionPlanStatusUpdateFormDTO) (uint, error) {
 	tx := masus.repo.BeginTransaction()
 
-	if _, err := masus.meetingActionPlanSvc.GetByID(meetingID, meetingActionPlanID); err != nil {
+	meetingActionPlan, err := masus.meetingActionPlanSvc.GetByID(meetingID, meetingActionPlanID)
+	if err != nil {
 		return 0, err
 	}
 
@@ -94,7 +102,7 @@ func (masus *MeetingActionPlanStatusUpdateService) Create(meetingID uint, meetin
 		return 0, err
 	}
 
-	err = masus.meetingActionPlanSvc.StatusUpdate(meetingID, meetingActionPlanID, currentUserID, meetingActionPlanStatusUpdateFormDTO.ActionPlanStatusID, meetingActionPlanStatusUpdateFormDTO.Percentage, tx)
+	err = masus.meetingActionPlanSvc.StatusUpdate(meetingID, meetingActionPlanID, currentUserID, meetingActionPlanStatusUpdateFormDTO, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -111,7 +119,7 @@ func (masus *MeetingActionPlanStatusUpdateService) Create(meetingID uint, meetin
 			return 0, err
 		}
 
-		url := utility.GenerateDocumentURL("organization", "meeting", strconv.FormatUint(uint64(meetingID), 10), "action-plans", strconv.FormatUint(uint64(meetingActionPlanID), 10), "action-plan-updates", strconv.FormatUint(uint64(id), 10), encryptedFileName)
+		url := utility.GenerateDocumentURL("meeting", "meeting", strconv.FormatUint(uint64(meetingID), 10), "action-plans", strconv.FormatUint(uint64(meetingActionPlanID), 10), "action-plan-updates", strconv.FormatUint(uint64(id), 10), encryptedFileName)
 
 		document := &models.MeetingActionPlanStatusUpdateDocument{
 			MeetingActionPlanStatusUpdateID: id,
@@ -134,7 +142,7 @@ func (masus *MeetingActionPlanStatusUpdateService) Create(meetingID uint, meetin
 		}
 		//move file to storage
 		for _, doc := range documents {
-			storagePath := filepath.Join("organization", "meeting", strconv.FormatUint(uint64(meetingID), 10), "action-plans", strconv.FormatUint(uint64(meetingActionPlanID), 10), "action-plan-updates", strconv.FormatUint(uint64(id), 10), "documents")
+			storagePath := filepath.Join("meeting", "meeting", strconv.FormatUint(uint64(meetingID), 10), "action-plans", strconv.FormatUint(uint64(meetingActionPlanID), 10), "action-plan-updates", strconv.FormatUint(uint64(id), 10), "documents")
 			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
 				tx.Rollback()
 				return 0, err
@@ -142,6 +150,45 @@ func (masus *MeetingActionPlanStatusUpdateService) Create(meetingID uint, meetin
 
 		}
 	}
+	// Check if all related action plans are completed or terminated
+	completedStatuses := []string{"completed", "terminated", "on_hold"}
+
+	meetingMinuteID := meetingActionPlan.MeetingMinuteID
+	meetingActionPlanStatus, err := masus.actionPlanStatusSvc.GetByID(meetingActionPlanStatusUpdateFormDTO.ActionPlanStatusID)
+	if err != nil {
+		return 0, err
+	}
+	// Check if meetingActionPlanStatus.Type exists in completedStatuses array
+	statusExists := false
+	for _, status := range completedStatuses {
+		if meetingActionPlanStatus.Type == status {
+			statusExists = true
+			break
+		}
+	}
+
+	if statusExists {
+		// Get the count of completed/terminated action plans excluding the current one
+		allMeetingMinutesCompleted, err := masus.repo.CheckAllActionPlansCompletedStatusCount(*meetingMinuteID, meetingActionPlanID, completedStatuses, tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
+		// If the total count equals the number of action plans, update the meeting minute status to "closed"
+		if allMeetingMinutesCompleted == 0 {
+			meetingMinuteStatus, err := masus.meetingMinuteStatusSvc.GetByType("closed")
+			if err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+			if err := masus.meetingMinuteSvc.StatusUpdate(*meetingMinuteID, currentUserID, uint(meetingMinuteStatus.ID), tx); err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+		}
+	}
+
 	tx.Commit()
 
 	go func() {
@@ -199,7 +246,7 @@ func (masus *MeetingActionPlanStatusUpdateService) Update(meetingID uint, meetin
 		return err
 	}
 
-	err = masus.meetingActionPlanSvc.StatusUpdate(meetingID, meetingActionPlanID, currentUserID, existingMeetingActionPlanStatusUpdate.ActionPlanStatusID, meetingActionPlanStatusUpdateFormDTO.Percentage, tx)
+	err = masus.meetingActionPlanSvc.StatusUpdate(meetingID, meetingActionPlanID, currentUserID, meetingActionPlanStatusUpdateFormDTO, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -222,7 +269,7 @@ func (masus *MeetingActionPlanStatusUpdateService) Update(meetingID uint, meetin
 			}
 
 			//genereate URL
-			url := utility.GenerateDocumentURL("organization", "meeting", strconv.FormatUint(uint64(meetingID), 10), "action-plans", strconv.FormatUint(uint64(meetingActionPlanID), 10), "action-plan-updates", strconv.FormatUint(uint64(id), 10), encryptedFileName)
+			url := utility.GenerateDocumentURL("meeting", "meeting", strconv.FormatUint(uint64(meetingID), 10), "action-plans", strconv.FormatUint(uint64(meetingActionPlanID), 10), "action-plan-updates", strconv.FormatUint(uint64(id), 10), encryptedFileName)
 
 			document := &models.MeetingActionPlanStatusUpdateDocument{
 				MeetingActionPlanStatusUpdateID: id,
@@ -269,7 +316,7 @@ func (masus *MeetingActionPlanStatusUpdateService) Update(meetingID uint, meetin
 	}
 
 	for _, doc := range documents {
-		storagePath := filepath.Join("organization", "meeting", strconv.FormatUint(uint64(meetingID), 10), "action-plans", strconv.FormatUint(uint64(meetingActionPlanID), 10), "action-plan-updates", strconv.FormatUint(uint64(id), 10), "documents")
+		storagePath := filepath.Join("meeting", "meeting", strconv.FormatUint(uint64(meetingID), 10), "action-plans", strconv.FormatUint(uint64(meetingActionPlanID), 10), "action-plan-updates", strconv.FormatUint(uint64(id), 10), "documents")
 
 		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
 			tx.Rollback()
@@ -278,7 +325,7 @@ func (masus *MeetingActionPlanStatusUpdateService) Update(meetingID uint, meetin
 	}
 
 	for _, document := range documentsToDelete {
-		storagePath := filepath.Join("organization", "meeting", strconv.FormatUint(uint64(meetingID), 10), "action-plans", strconv.FormatUint(uint64(meetingActionPlanID), 10), "action-plan-updates", strconv.FormatUint(uint64(id), 10), "documents")
+		storagePath := filepath.Join("meeting", "meeting", strconv.FormatUint(uint64(meetingID), 10), "action-plans", strconv.FormatUint(uint64(meetingActionPlanID), 10), "action-plan-updates", strconv.FormatUint(uint64(id), 10), "documents")
 		if err := utility.RemoveFile(document.Name, storagePath); err != nil {
 			tx.Rollback()
 			return err
@@ -297,4 +344,12 @@ func (masus *MeetingActionPlanStatusUpdateService) validateMeetingActionPlanStat
 	}
 
 	return nil
+}
+
+func (masus MeetingActionPlanStatusUpdateService) GetLatestMeetingActionPlanStatusUpdate(meetingID uint, actionPlanID uint) (*meetingDTOs.MeetingActionPlanStatusUpdateListDTO, error) {
+	if _, err := masus.meetingActionPlanSvc.GetByID(meetingID, actionPlanID); err != nil {
+		return nil, err
+	}
+
+	return masus.repo.GetLatestMeetingActionPlanStatusUpdate(actionPlanID)
 }

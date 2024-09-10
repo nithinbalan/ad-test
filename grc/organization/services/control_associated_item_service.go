@@ -12,6 +12,7 @@ type ControlAssociatedItemServiceInterface interface {
 	GetAllComplianceRequirements(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) (*organizationDTOs.ControlAssociatedItemComplianceRequirementListResponseDTO, error)
 	GetAllRisks(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) (*organizationDTOs.ControlAssociatedItemRiskListResponseDTO, error)
 	GetAllIncidents(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) (*organizationDTOs.ControlAssociatedItemIncidentListResponseDTO, error)
+	GetAllAssociatedCounts(controlID uint) (*organizationDTOs.ControlAssociatedItemsCountResponseDTO, error)
 }
 
 type ControlAssociatedItemService struct {
@@ -68,6 +69,7 @@ func (cais *ControlAssociatedItemService) GetAllComplianceRequirements(controlID
 			requirement := &organizationDTOs.ComplianceRequirementMinimalDTO{
 				ComplianceRequirementID:              item.ComplianceRequirementID,
 				ComplianceClauseTitle:                item.ComplianceClauseTitle,
+				ComplianceClauseNo:                   item.ComplianceClauseNo,
 				ComplianceRequirementCategoryTitleEn: item.ComplianceRequirementCategoryTitleEn,
 				ComplianceRequirementCategoryTitleAr: item.ComplianceRequirementCategoryTitleAr,
 				ComplianceRequirementTitle:           item.ComplianceRequirementTitle,
@@ -112,4 +114,16 @@ func (cais *ControlAssociatedItemService) GetAllIncidents(controlID uint, params
 		return nil, err
 	}
 	return cais.repo.GetAllIncidents(controlID, params)
+}
+
+func (cais *ControlAssociatedItemService) GetAllAssociatedCounts(controlID uint) (*organizationDTOs.ControlAssociatedItemsCountResponseDTO, error) {
+	if _, err := cais.controlSvc.GetByID(controlID); err != nil {
+		return nil, err
+	}
+	response, err := cais.repo.GetAllAssociatedCounts(controlID)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
 }

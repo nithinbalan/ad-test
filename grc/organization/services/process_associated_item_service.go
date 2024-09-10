@@ -10,6 +10,8 @@ type ProcessAssociatedItemServiceInterface interface {
 	GetAllControls(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) ([]map[string]interface{}, error)
 	GetAllRisks(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemRiskListResponseDTO, error)
 	GetAllIncidents(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemIncidentListResponseDTO, error)
+	GetAllDocuments(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemDocumentListResponseDTO, error)
+	GetAllAssociatedCounts(processID uint) (*organizationDTOs.ProcessAssociatedItemsCountResponseDTO, error)
 }
 
 type ProcessAssociatedItemService struct {
@@ -34,12 +36,10 @@ func NewProcessAssociatedItemService(
 }
 
 func (pais *ProcessAssociatedItemService) GetAllControls(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) ([]map[string]interface{}, error) {
-	// Check if the process exists
 	if _, err := pais.processSvc.GetByID(processID); err != nil {
 		return nil, err
 	}
 
-	// Fetch the controls from the repository
 	controlList, err := pais.repo.GetAllControls(processID, params)
 	if err != nil {
 		return nil, err
@@ -49,7 +49,6 @@ func (pais *ProcessAssociatedItemService) GetAllControls(processID uint, params 
 		return []map[string]interface{}{}, nil
 	}
 
-	// Fetching implementation status titles in both English and Arabic
 	implementationStatuses, err := pais.controlImplementationStatusSvc.GetAll("", "", "", "")
 	if err != nil {
 		return nil, err
@@ -59,7 +58,6 @@ func (pais *ProcessAssociatedItemService) GetAllControls(processID uint, params 
 		implementationStatusMap[status.Type] = *status
 	}
 
-	// Fetching efficiency status titles in both English and Arabic
 	efficiencyStatuses, err := pais.controlEfficiencyStatusService.GetAll("", "", "", "")
 	if err != nil {
 		return nil, err
@@ -69,7 +67,6 @@ func (pais *ProcessAssociatedItemService) GetAllControls(processID uint, params 
 		efficiencyStatusMap[status.Type] = *status
 	}
 
-	// Grouping controls by implementation status type and then by efficiency status type
 	groupedControls := make(map[string]map[string][]*organizationDTOs.ProcessControlListDTO)
 	for _, control := range controlList {
 		implementationStatusType := control.ControlImplementationStatusType
@@ -84,14 +81,13 @@ func (pais *ProcessAssociatedItemService) GetAllControls(processID uint, params 
 		groupedControls[implementationStatusType][efficiencyStatusType] = append(groupedControls[implementationStatusType][efficiencyStatusType], control)
 	}
 
-	// Transforming the grouped controls to the desired response format
 	var response []map[string]interface{}
 	for implStatusType, effMap := range groupedControls {
 		implItem := map[string]interface{}{
 			"status":   implStatusType,
 			"title_en": "",
-			"title_ar": "", // These will be filled in the next step
-			"count":    0,  // Count of implementation status items
+			"title_ar": "",
+			"count":    0, // Count of implementation status items
 			"items":    []map[string]interface{}{},
 		}
 
@@ -104,7 +100,7 @@ func (pais *ProcessAssociatedItemService) GetAllControls(processID uint, params 
 			effItem := map[string]interface{}{
 				"efficiency": effStatusType,
 				"title_en":   "",
-				"title_ar":   "",            // These will be filled in the next step
+				"title_ar":   "",
 				"count":      len(controls), // Count of efficiency status items
 				"items":      []map[string]interface{}{},
 			}
@@ -116,6 +112,8 @@ func (pais *ProcessAssociatedItemService) GetAllControls(processID uint, params 
 
 			for _, control := range controls {
 				controlItem := map[string]interface{}{
+					"id":                                       control.ID,
+					"process_id":                               control.ProcessID,
 					"control_id":                               control.ControlID,
 					"control_reference_number":                 control.ControlReferenceNumber,
 					"control_code":                             control.ControlCode,
@@ -127,12 +125,12 @@ func (pais *ProcessAssociatedItemService) GetAllControls(processID uint, params 
 					"control_title_en":                         control.ControlTitleEn,
 					"control_title_ar":                         control.ControlTitleAr,
 					"control_description":                      control.ControlDescription,
-					"control_efficiency_status_en":             control.ControlEfficiencyStatusEn,
-					"control_efficiency_status_ar":             control.ControlEfficiencyStatusAr,
+					"control_efficiency_status_title_en":       control.ControlEfficiencyStatusTitleEn,
+					"control_efficiency_status_title_ar":       control.ControlEfficiencyStatusTitleAr,
 					"control_efficiency_status_type":           control.ControlEfficiencyStatusType,
 					"control_efficiency_status_color_code":     control.ControlEfficiencyStatusColorCode,
-					"control_implementation_status_en":         control.ControlImplementationStatusEn,
-					"control_implementation_status_ar":         control.ControlImplementationStatusAr,
+					"control_implementation_status_title_en":   control.ControlImplementationStatusTitleEn,
+					"control_implementation_status_title_ar":   control.ControlImplementationStatusTitleAr,
 					"control_implementation_status_type":       control.ControlImplementationStatusType,
 					"control_implementation_status_color_code": control.ControlImplementationStatusColorCode,
 					"control_owner_first_name_en":              control.ControlOwnerFirstNameEn,
@@ -169,4 +167,23 @@ func (pais *ProcessAssociatedItemService) GetAllIncidents(processID uint, params
 		return nil, err
 	}
 	return pais.repo.GetAllIncidents(processID, params)
+}
+
+func (pais *ProcessAssociatedItemService) GetAllDocuments(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemDocumentListResponseDTO, error) {
+	if _, err := pais.processSvc.GetByID(processID); err != nil {
+		return nil, err
+	}
+	return pais.repo.GetAllDocuments(processID, params)
+}
+
+func (pais *ProcessAssociatedItemService) GetAllAssociatedCounts(processID uint) (*organizationDTOs.ProcessAssociatedItemsCountResponseDTO, error) {
+	if _, err := pais.processSvc.GetByID(processID); err != nil {
+		return nil, err
+	}
+	response, err := pais.repo.GetAllAssociatedCounts(processID)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
 }

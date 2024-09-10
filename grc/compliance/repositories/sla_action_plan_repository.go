@@ -11,12 +11,16 @@ import (
 )
 
 type SLAActionPlanRepositoryInterface interface {
+	BeginTransaction() utility.DatabaseTransaction
 	GetAll(slaID uint, params *complianceDTOs.SLAActionPlanListQueryParamsDTO) (*complianceDTOs.SLAActionPlanListResponseDTO, error)
 	GetByID(id uint) (*models.SLAActionPlan, error)
 	GetFullDetailsByID(id uint) (*models.SLAActionPlan, error)
 	Create(slaActionPlan *models.SLAActionPlan, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(slaActionPlan *models.SLAActionPlan, tx ...utility.DatabaseTransaction) error
-	Delete(id uint) error
+	Delete(id uint, tx ...utility.DatabaseTransaction) error
+	CreateInitialSLAActionPlanStatusUpdate(slaActionPlanStatusUpdate *models.SLAActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
+	DeleteSLAActionPlanStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error
+	GetSLAActionPlanCountByStatus(slaRegisterID uint) ([]complianceDTOs.SLAActionPlanStatusCountResponseDTO, error)
 }
 
 type SLAActionPlanRepository struct {
@@ -27,6 +31,10 @@ func NewSLAActionPlanRepository(db *gorm.DB) *SLAActionPlanRepository {
 	return &SLAActionPlanRepository{
 		db: db,
 	}
+}
+
+func (repo *SLAActionPlanRepository) BeginTransaction() utility.DatabaseTransaction {
+	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
 func (repo *SLAActionPlanRepository) GetAll(slaID uint, params *complianceDTOs.SLAActionPlanListQueryParamsDTO) (*complianceDTOs.SLAActionPlanListResponseDTO, error) {
@@ -40,10 +48,12 @@ func (repo *SLAActionPlanRepository) GetAll(slaID uint, params *complianceDTOs.S
         sla_check_questions.title_en AS sla_check_question_title_en,
 		sla_check_questions.title_ar AS sla_check_question_title_ar,
         action_plan_statuses.title_en AS action_plan_status_title_en,
+		CONVERT(VARCHAR, sla_action_plans.target_date, 23) AS target_date,
         action_plan_statuses.title_ar AS action_plan_status_title_ar,
         severity_levels.title_en AS severity_level_title_en,
         severity_levels.title_ar AS severity_level_title_ar,
         severity_levels.color_code AS severity_level_color_code,
+		responsible_user.id AS responsible_user_id,
         responsible_user.first_name_en AS responsible_user_first_name_en,
         responsible_user.first_name_ar AS responsible_user_first_name_ar,
         responsible_user.last_name_en AS responsible_user_last_name_en,
@@ -52,6 +62,7 @@ func (repo *SLAActionPlanRepository) GetAll(slaID uint, params *complianceDTOs.S
         responsible_user.color AS responsible_user_color,
         responsible_user.email AS responsible_user_email,
         responsible_user.profile_image_path AS responsible_user_profile_image_path,
+        created_user.id AS created_user_id,
         created_user.first_name_en AS created_user_first_name_en,
         created_user.first_name_ar AS created_user_first_name_ar,
         created_user.last_name_en AS created_user_last_name_en,
@@ -60,7 +71,8 @@ func (repo *SLAActionPlanRepository) GetAll(slaID uint, params *complianceDTOs.S
         created_user.color AS created_user_color,
         created_user.email AS created_user_email,
         created_user.profile_image_path AS created_user_profile_image_path,   
-		updated_user.first_name_en AS updated_user_first_name_en,
+		updated_user.id AS updated_user_id,
+    	updated_user.first_name_en AS updated_user_first_name_en,
         updated_user.first_name_ar AS updated_user_first_name_ar,
         updated_user.last_name_en AS updated_user_last_name_en,
         updated_user.last_name_ar AS updated_user_last_name_ar,
@@ -183,6 +195,9 @@ func (repo *SLAActionPlanRepository) GetFullDetailsByID(id uint) (*models.SLAAct
 		Preload("ResponsibleUser").
 		Preload("SeverityLevel").
 		Preload("ActionPlanStatus").
+		Preload("ActionPlanStatusUpdates").
+		Preload("CreatedByUser").
+		Preload("UpdatedByUser").
 		First(&slaActionPlan, id)
 
 	if result.Error != nil {
@@ -206,17 +221,77 @@ func (repo *SLAActionPlanRepository) Update(slaActionPlan *models.SLAActionPlan,
 	return nil
 }
 
-func (repo *SLAActionPlanRepository) Delete(id uint) error {
-
+func (repo *SLAActionPlanRepository) Delete(id uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 	var slaActionPlan *models.SLAActionPlan
-	if err := repo.db.First(&slaActionPlan, id).Error; err != nil {
+	if err := db.First(&slaActionPlan, id).Error; err != nil {
 		return err
 	}
 
-	result := repo.db.Delete(&models.SLAActionPlan{}, id)
+	result := db.Delete(&models.SLAActionPlan{}, id)
 	if result.Error != nil {
 		return result.Error
 	}
 
 	return nil
+}
+
+func (repo *SLAActionPlanRepository) CreateInitialSLAActionPlanStatusUpdate(slaActionPlanStatusUpdate *models.SLAActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(slaActionPlanStatusUpdate).Error; err != nil {
+		return 0, err
+	}
+	return slaActionPlanStatusUpdate.ID, nil
+}
+
+func (repo *SLAActionPlanRepository) DeleteSLAActionPlanStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", ids).Delete(&models.SLAActionPlanStatusUpdate{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *SLAActionPlanRepository) GetSLAActionPlanCountByStatus(slaRegisterID uint) ([]complianceDTOs.SLAActionPlanStatusCountResponseDTO, error) {
+	actionPlanStatusCounts := []complianceDTOs.SLAActionPlanStatusCountResponseDTO{}
+
+	query := `
+        SELECT 
+            action_plan_statuses.id, 
+            action_plan_statuses.type, 
+            action_plan_statuses.title_en, 
+            action_plan_statuses.title_ar, 
+            action_plan_statuses.color_code,
+            COUNT(sla_action_plans.id) AS count
+        FROM 
+            sla_action_plans
+        LEFT JOIN 
+            action_plan_statuses ON action_plan_statuses.id = sla_action_plans.action_plan_status_id
+        WHERE 
+            sla_action_plans.sla_register_id = ?
+        GROUP BY 
+            action_plan_statuses.id, 
+            action_plan_statuses.type, 
+            action_plan_statuses.title_en, 
+            action_plan_statuses.title_ar, 
+            action_plan_statuses.color_code
+    `
+
+	err := repo.db.Raw(query, slaRegisterID).Scan(&actionPlanStatusCounts).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return actionPlanStatusCounts, nil
 }

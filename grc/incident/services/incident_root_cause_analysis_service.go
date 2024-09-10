@@ -8,6 +8,7 @@ import (
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -16,7 +17,7 @@ type IncidentRootCauseAnalysisServiceInterface interface {
 	GetAll(incidentID uint, params *incidentDTOs.IncidentRootCauseAnalysisListQueryParamsDTO) ([]*incidentDTOs.IncidentRootCauseAnalysisListDTO, error)
 	GetByID(incidentID uint, id uint) (*models.IncidentRootCauseAnalysis, error)
 	Create(incidentID uint, currentUserID uint, rootCauseAnalysisFormDTO *incidentDTOs.IncidentRootCauseAnalysisFormDTO) (uint, error)
-	Update(incidentID uint, currentUserID uint, rootCauseAnalysisFormDTO *incidentDTOs.IncidentRootCauseAnalysisFormDTO) error
+	Update(incidentID uint, id uint, currentUserID uint, rootCauseAnalysisFormDTO *incidentDTOs.IncidentRootCauseAnalysisFormDTO) error
 	Delete(incidentID uint, id uint, currentUserID uint) (uint, error)
 }
 
@@ -25,17 +26,20 @@ type IncidentRootCauseAnalysisService struct {
 	repo                incidentRepositories.IncidentRootCauseAnalysisRepositoryInterface
 	activityLogSvc      logServices.ActivityLogServiceInterface
 	incidentRegisterSvc IncidentRegisterServiceInterface
+	incidentTimelineSvc IncidentTimelineServiceInterface
 }
 
 func NewIncidentRootCauseAnalysisService(
 	repo incidentRepositories.IncidentRootCauseAnalysisRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	incidentRegisterSvc IncidentRegisterServiceInterface,
+	incidentTimelineSvc IncidentTimelineServiceInterface,
 ) IncidentRootCauseAnalysisServiceInterface {
 	return &IncidentRootCauseAnalysisService{
 		repo:                repo,
 		activityLogSvc:      activityLogSvc,
 		incidentRegisterSvc: incidentRegisterSvc,
+		incidentTimelineSvc: incidentTimelineSvc,
 	}
 }
 
@@ -68,22 +72,51 @@ func (ircas *IncidentRootCauseAnalysisService) Create(incidentID uint, currentUs
 	if _, err := ircas.incidentRegisterSvc.GetByID(incidentID); err != nil {
 		return 0, err
 	}
-
-	var incidentRootCauseAnalyses []*models.IncidentRootCauseAnalysis
-
-	for _, analysisData := range rootCauseAnalysisFormDTO.Analyses {
-		incidentRootCauseAnalysis := &models.IncidentRootCauseAnalysis{
-			IncidentRegisterID: incidentID,
-			Why:                analysisData.Why,
-			Question:           analysisData.Question,
-			Answer:             analysisData.Answer,
-			CreatedByID:        currentUserID,
-		}
-		incidentRootCauseAnalyses = append(incidentRootCauseAnalyses, incidentRootCauseAnalysis)
-
+	// Increment the "Why" field by 1
+	latestWhy, err := ircas.repo.GetLatestWhyByIncidentID(incidentID)
+	if err != nil {
+		return 0, err
 	}
-	if len(incidentRootCauseAnalyses) > 0 {
-		if err := ircas.repo.Create(incidentRootCauseAnalyses, tx); err != nil {
+	why := latestWhy + 1
+
+	incidentRootCauseAnalysis := &models.IncidentRootCauseAnalysis{
+		IncidentRegisterID: incidentID,
+		Why:                why,
+		Question:           rootCauseAnalysisFormDTO.Question,
+		Answer:             rootCauseAnalysisFormDTO.Answer,
+		CreatedByID:        currentUserID,
+	}
+
+	id, err := ircas.repo.Create(incidentRootCauseAnalysis, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	rcaCount, err := ircas.repo.GetCountByRiskID(incidentID, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	if rcaCount == 1 {
+		//Update timeline
+		//todo
+		timelineType, err := ircas.incidentTimelineSvc.GetByType("rca")
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+		timelineStatus, err := ircas.incidentTimelineSvc.GetByStatusType("completed")
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+		currentTime := time.Now()
+		timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
+			PerformedByID:    &currentUserID,
+			TimelineStatusID: timelineStatus.ID,
+			PerformedAt:      &currentTime,
+		}
+		if err := ircas.incidentTimelineSvc.Update(incidentID, timelineFormDTO, timelineType.ID, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
@@ -94,7 +127,7 @@ func (ircas *IncidentRootCauseAnalysisService) Create(incidentID uint, currentUs
 		err := ircas.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.IncidentRootCauseAnalysis{}.TableName(),
-			incidentID,
+			id,
 			rootCauseAnalysisFormDTO,
 			currentUserID,
 			nil,
@@ -104,7 +137,7 @@ func (ircas *IncidentRootCauseAnalysisService) Create(incidentID uint, currentUs
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
 				"tableName": models.IncidentRootCauseAnalysis{}.TableName(),
-				"recordID":  incidentID,
+				"recordID":  id,
 				"userID":    currentUserID,
 				"error":     err.Error(),
 			}
@@ -113,84 +146,36 @@ func (ircas *IncidentRootCauseAnalysisService) Create(incidentID uint, currentUs
 		}
 	}()
 
-	return incidentID, nil
+	return id, nil
 }
 
-func (ircas *IncidentRootCauseAnalysisService) Update(incidentID uint, currentUserID uint, rootCauseAnalysisFormDTO *incidentDTOs.IncidentRootCauseAnalysisFormDTO) error {
+func (ircas *IncidentRootCauseAnalysisService) Update(incidentID uint, id uint, currentUserID uint, rootCauseAnalysisFormDTO *incidentDTOs.IncidentRootCauseAnalysisFormDTO) error {
 	tx := ircas.repo.BeginTransaction()
 
 	if _, err := ircas.incidentRegisterSvc.GetByID(incidentID); err != nil {
 		return err
 	}
 
-	// Get all existing incident root cause analyses for the given incident ID
-	existingAnalyses, err := ircas.repo.GetByIncidentID(incidentID)
+	existingIncidentRootCauseAnalysis, err := ircas.GetByID(incidentID, id)
+
+	if err != nil {
+		return err
+	}
+
+	// Update Incident RootCauseAnalysis
+	existingIncidentRootCauseAnalysis.Question = rootCauseAnalysisFormDTO.Question
+	existingIncidentRootCauseAnalysis.Answer = rootCauseAnalysisFormDTO.Answer
+	existingIncidentRootCauseAnalysis.UpdatedByID = &currentUserID
+
+	err = ircas.repo.Update(existingIncidentRootCauseAnalysis, tx)
+
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	// Create a map to store existing analyses by their ID for easier lookup
-	existingAnalysisMap := make(map[uint]*models.IncidentRootCauseAnalysis)
-	for _, analysis := range existingAnalyses {
-		existingAnalysisMap[analysis.ID] = analysis
-	}
-
-	var updatedAnalyses []*models.IncidentRootCauseAnalysis
-	var addedAnalyses []*models.IncidentRootCauseAnalysis
-
-	// Update or delete existing analyses based on the data in the form DTO
-	for _, analysisData := range rootCauseAnalysisFormDTO.Analyses {
-		if analysisData.ID == nil {
-			// Analysis ID is nil, indicating it's a new analysis
-			newAnalysis := &models.IncidentRootCauseAnalysis{
-				IncidentRegisterID: incidentID,
-				Why:                analysisData.Why,
-				Question:           analysisData.Question,
-				Answer:             analysisData.Answer,
-				CreatedByID:        currentUserID,
-			}
-			addedAnalyses = append(addedAnalyses, newAnalysis)
-		} else if existingAnalysis, ok := existingAnalysisMap[*analysisData.ID]; ok {
-			// Analysis exists, update it
-			existingAnalysis.Why = analysisData.Why
-			existingAnalysis.Question = analysisData.Question
-			existingAnalysis.Answer = analysisData.Answer
-			updatedAnalyses = append(updatedAnalyses, existingAnalysis)
-			// Remove the analysis from the map since it has been updated
-			delete(existingAnalysisMap, *analysisData.ID)
-		}
-
-	}
-	// Delete any analyses that are no longer present in the form DTO
-	var deletedAnalysisIDs []*uint
-	for _, analysis := range existingAnalysisMap {
-		deletedAnalysisIDs = append(deletedAnalysisIDs, &analysis.ID)
-	}
-	// Delete existing analyses
-	if len(deletedAnalysisIDs) > 0 {
-		if err := ircas.repo.DeleteAnalyses(deletedAnalysisIDs, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
-	// Update existing analyses
-	if len(updatedAnalyses) > 0 {
-		if err := ircas.repo.Update(updatedAnalyses, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
-
-	// Add new analyses
-	if len(addedAnalyses) > 0 {
-		if err := ircas.repo.Create(addedAnalyses, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
-
 	tx.Commit()
+
 	return nil
 }
 
@@ -207,7 +192,34 @@ func (ircas *IncidentRootCauseAnalysisService) Delete(incidentID uint, id uint, 
 	if err != nil {
 		return 0, err
 	}
-
+	//Delete-> update timeline performedAt as null
+	//todo
+	rcaCount, err := ircas.repo.GetCountByRiskID(incidentID, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	if rcaCount == 1 {
+		timelineType, err := ircas.incidentTimelineSvc.GetByType("rca")
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+		timelineStatus, err := ircas.incidentTimelineSvc.GetByStatusType("pending")
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+		timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
+			PerformedByID:    nil,
+			TimelineStatusID: timelineStatus.ID,
+			PerformedAt:      nil,
+		}
+		if err := ircas.incidentTimelineSvc.Update(incidentID, timelineFormDTO, timelineType.ID, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
 	// Delete the entry
 	if err := ircas.repo.Delete(id, tx); err != nil {
 		tx.Rollback()

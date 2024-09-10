@@ -1,44 +1,9 @@
 package dtos
 
 import (
-	commonDTOs "jethur/grc/common/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
 	"time"
 )
-
-type IncidentPostReviewListDTO struct {
-	ID                     uint      `json:"id"`
-	IncidentRegisterID     uint      `json:"incident_register_id"`
-	PostReviewDate         time.Time `json:"post_review_date"`
-	Summary                *string   `json:"summary"`
-	CreatedAt              string    `json:"created_at"`
-	UpdatedAt              string    `json:"updated_at"`
-	CreatedUserFirstNameEn string    `json:"created_user_first_name_en"`
-	CreatedUserFirstNameAr string    `json:"created_user_first_name_ar"`
-	CreatedUserLastNameEn  string    `json:"created_user_last_name_en"`
-	CreatedUserLastNameAr  string    `json:"created_user_last_name_ar"`
-	UpdatedUserFirstNameEn string    `json:"updated_user_first_name_en"`
-	UpdatedUserFirstNameAr string    `json:"updated_user_first_name_ar"`
-	UpdatedUserLastNameEn  string    `json:"updated_user_last_name_en"`
-	UpdatedUserLastNameAr  string    `json:"updated_user_last_name_ar"`
-}
-type IncidentPostReviewListQueryParamsDTO struct {
-	Sort           string
-	SortBy         string
-	Keyword        string
-	Status         string
-	Page           int
-	PageSize       int
-	Filters        map[string][]string
-	QuickFilter    []string
-	PostReviewDate string
-}
-
-type IncidentPostReviewListResponseDTO struct {
-	Items      []*IncidentPostReviewListDTO `json:"items"`
-	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
-}
-
 type IncidentPostReviewFormDTO struct {
 	IncidentRegisterID                uint      `json:"incident_register_id"`
 	IncidentPostReviewEffectivenessID uint      `json:"incident_post_review_effectiveness_id"`
@@ -50,10 +15,11 @@ type IncidentPostReviewFormDTO struct {
 }
 
 type IncidentPostReviewDetailDTO struct {
+	ID                              uint                                   `json:"id"`
 	IncidentRegister                IncidentRegisterDetailDTO              `json:"incident_register"`
 	IncidentPostReviewEffectiveness IncidentPostReviewEffectivenessDTO     `json:"incident_post_review_effectiveness_id"`
 	Summary                         *string                                `json:"summary"`
-	PostReviewDate                  time.Time                              `json:"post_review_date"`
+	PostReviewDateString            *string                                `json:"post_review_date"`
 	Recommendations                 []*IncidentPostReviewRecommendationDTO `json:"recommendations"`
 	Users                           []*IncidentPostReviewUserDTO           `json:"users"`
 	Lessons                         []*IncidentPostReviewLessonDTO         `json:"lessons"`

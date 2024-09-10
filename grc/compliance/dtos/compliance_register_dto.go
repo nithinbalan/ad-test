@@ -18,6 +18,7 @@ type ComplianceRegisterListDTO struct {
 	ComplianceStatusColorCode             string `json:"compliance_status_color_code"`
 	ResponsibleUnitTitleEn                string `json:"responsible_unit_title_en"`
 	ResponsibleUnitTitleAr                string `json:"responsible_unit_title_ar"`
+	ResponsibleUserID                     uint   `json:"responsible_user_id"`
 	ResponsibleUserFirstNameEn            string `json:"responsible_user_first_name_en"`
 	ResponsibleUserFirstNameAr            string `json:"responsible_user_first_name_ar"`
 	ResponsibleUserLastNameEn             string `json:"responsible_user_last_name_en"`
@@ -28,6 +29,7 @@ type ComplianceRegisterListDTO struct {
 	ResponsibleUserProfileImagePath       string `json:"responsible_user_profile_image_path"`
 	ReviewFrequencyTitleEn                string `json:"review_frequency_title_en"`
 	ReviewFrequencyTitleAr                string `json:"review_frequency_title_ar"`
+	ReviewResponsibleUserID               uint   `json:"review_responsible_user_id"`
 	ReviewResponsibleUserFirstNameEn      string `json:"review_responsible_user_first_name_en"`
 	ReviewResponsibleUserFirstNameAr      string `json:"review_responsible_user_first_name_ar"`
 	ReviewResponsibleUserLastNameEn       string `json:"review_responsible_user_last_name_en"`
@@ -53,6 +55,7 @@ type ComplianceRegisterListDTO struct {
 	LastReviewedDate                      string `json:"last_reviewed_date"`
 	CreatedAt                             string `json:"created_at"`
 	UpdatedAt                             string `json:"updated_at"`
+	CreatedUserID                         uint   `json:"created_user_id"`
 	CreatedUserFirstNameEn                string `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr                string `json:"created_user_first_name_ar"`
 	CreatedUserLastNameEn                 string `json:"created_user_last_name_en"`
@@ -61,6 +64,7 @@ type ComplianceRegisterListDTO struct {
 	CreatedUserColor                      string `json:"created_user_color"`
 	CreatedUserEmail                      string `json:"created_user_email"`
 	CreatedUserProfileImagePath           string `json:"created_user_profile_image_path"`
+	UpdatedUserID                         *uint  `json:"updated_user_id"`
 	UpdatedUserFirstNameEn                string `json:"updated_user_first_name_en"`
 	UpdatedUserFirstNameAr                string `json:"updated_user_first_name_ar"`
 	UpdatedUserLastNameEn                 string `json:"updated_user_last_name_en"`
@@ -155,36 +159,37 @@ type ComplianceRegisterParsedDates struct {
 }
 
 type ComplianceRegisterDetailDTO struct {
-	ID                     int                              `json:"id"`
-	ReferenceNumber        string                           `json:"reference_number"`
-	StandardCode           string                           `json:"standard_code"`
-	TitleEn                string                           `json:"title_en"`
-	TitleAr                string                           `json:"title_ar"`
-	DescriptionEn          *string                          `json:"description_en"`
-	DescriptionAr          *string                          `json:"description_ar"`
-	DeadlineString         *string                          `json:"deadline"`
-	IssueDateString        *string                          `json:"issue_date"`
-	ExpiryDateString       *string                          `json:"expiry_date"`
-	NextReviewDateString   *string                          `json:"next_review_date"`
-	LastReviewedDateString *string                          `json:"last_reviewed_date"`
-	LastReviewNote         *string                          `json:"last_review_note"`
-	LastReviewedUser       *organizationDTOs.UserMinimalDTO `json:"last_reviewed_user"`
-	ComplianceReviewStatus *ComplianceReviewStatusDTO       `json:"compliance_review_status"`
-	ComplianceCategory     ComplianceCategoryDTO            `json:"compliance_category"`
-	ComplianceStatus       ComplianceStatusDTO              `json:"compliance_status"`
-	ResponsibleUnit        settingsDTOs.OrganizationUnitDTO `json:"responsible_unit"`
-	ResponsibleUser        organizationDTOs.UserMinimalDTO  `json:"responsible_user"`
-	ReviewFrequency        *masterDTOs.ReviewFrequencyDTO   `json:"review_frequency"`
-	ReviewResponsibleUser  *organizationDTOs.UserMinimalDTO `json:"review_responsible_user"`
-	SeverityLevel          *masterDTOs.SeverityLevelDTO     `json:"severity_level"`
-	Version                *string                          `json:"version"`
-	CreatedAt              time.Time                        `json:"created_at"`
-	UpdatedAt              *time.Time                       `json:"updated_at"`
-	CreatedByUser          organizationDTOs.UserMinimalDTO  `json:"created_by"`
-	UpdatedByUser          *organizationDTOs.UserMinimalDTO `json:"updated_by"`
-	LifecycleStatus        masterDTOs.LifecycleStatusDTO    `json:"status"`
-	Documents              []ComplianceDocumentDTO          `json:"documents"`
-	Controls               []*ComplianceControlDTO          `json:"controls"`
+	ID                      int                                `json:"id"`
+	ReferenceNumber         string                             `json:"reference_number"`
+	StandardCode            string                             `json:"standard_code"`
+	TitleEn                 string                             `json:"title_en"`
+	TitleAr                 string                             `json:"title_ar"`
+	DescriptionEn           *string                            `json:"description_en"`
+	DescriptionAr           *string                            `json:"description_ar"`
+	DeadlineString          *string                            `json:"deadline"`
+	IssueDateString         *string                            `json:"issue_date"`
+	ExpiryDateString        *string                            `json:"expiry_date"`
+	NextReviewDateString    *string                            `json:"next_review_date"`
+	LastReviewedDateString  *string                            `json:"last_reviewed_date"`
+	LastReviewNote          *string                            `json:"last_review_note"`
+	LastReviewedUser        *organizationDTOs.UserMinimalDTO   `json:"last_reviewed_user"`
+	ComplianceReviewStatus  *ComplianceReviewStatusDTO         `json:"compliance_review_status"`
+	ComplianceCategory      ComplianceCategoryDTO              `json:"compliance_category"`
+	ComplianceStatus        ComplianceStatusDTO                `json:"compliance_status"`
+	ResponsibleUnit         settingsDTOs.OrganizationUnitDTO   `json:"responsible_unit"`
+	ResponsibleUser         organizationDTOs.UserMinimalDTO    `json:"responsible_user"`
+	ReviewFrequency         *masterDTOs.ReviewFrequencyDTO     `json:"review_frequency"`
+	ReviewResponsibleUser   *organizationDTOs.UserMinimalDTO   `json:"review_responsible_user"`
+	SeverityLevel           *masterDTOs.SeverityLevelDTO       `json:"severity_level"`
+	Version                 *string                            `json:"version"`
+	CreatedAt               time.Time                          `json:"created_at"`
+	UpdatedAt               *time.Time                         `json:"updated_at"`
+	CreatedByUser           organizationDTOs.UserMinimalDTO    `json:"created_by"`
+	UpdatedByUser           *organizationDTOs.UserMinimalDTO   `json:"updated_by"`
+	LifecycleStatus         masterDTOs.LifecycleStatusDTO      `json:"status"`
+	Documents               []ComplianceDocumentDTO            `json:"documents"`
+	Controls                []*ComplianceControlDTO            `json:"controls"`
+	ComplianceStatusUpdates []*ComplianceStatusUpdateDetailDTO `json:"compliance_status_updates"`
 }
 
 type ComplianceControlDTO struct {

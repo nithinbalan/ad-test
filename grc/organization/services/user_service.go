@@ -29,21 +29,31 @@ type UserServiceInterface interface {
 	Update(id uint, currentUserID uint, user *userDTOs.UserFormDTO) error
 	UpdatePartial(id uint, dto *userDTOs.UserUpdateDTO, tx utility.DatabaseTransaction) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
-	GetUserLoginHistory(params *userDTOs.UserLoginHistoryListQueryParamsDTO) (*userDTOs.UserLoginHistoryListResponseDTO, error)
+	GetUserLoginHistory(userID uint, params *userDTOs.UserLoginHistoryListQueryParamsDTO) (*userDTOs.UserLoginHistoryListResponseDTO, error)
 	CreateUserLoginHistory(user *models.User, loginStatus string, ipAddress string, location string, device string, browser string) error
 
 	GenerateRandomPassword(length int) (string, error)
 	SetUserSettingService(svc UserSettingServiceInterface)
+	GetUserPrimaryUnitID(userID uint) (uint, error)
+	GetUserIdsByRole(roleID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
+
+	GetCurrentUserDetails(id uint) (*userDTOs.CurrentUserDetailsDTO, error)
+	GetUserNotifications(userID uint, params *userDTOs.UserNotificationListQueryParamsDTO) (*userDTOs.UserNotificationListResponseDTO, error)
+	GetUserNewNotificationCount(userID uint) (int64, error)
+
+	MarkNotificationsAsRead(userID uint, formDTO *userDTOs.MarkNotificationAsReadFormDTO) (int64, error)
+	MarkNotificationsAsUnread(userID uint, formDTO *userDTOs.MarkNotificationAsReadFormDTO) (int64, error)
 }
 
 type UserService struct {
-	repo                organizationRepositories.UserRepositoryInterface
-	designationSvc      DesignationServiceInterface
-	userStatusSvc       UserStatusServiceInterface
-	activityLogSvc      logServices.ActivityLogServiceInterface
-	roleSvc             settingService.RoleServiceInterface
-	userSettingSvc      UserSettingServiceInterface
-	systemPreferenceSvc settingService.SystemPreferenceServiceInterface
+	repo                 organizationRepositories.UserRepositoryInterface
+	designationSvc       DesignationServiceInterface
+	userStatusSvc        UserStatusServiceInterface
+	activityLogSvc       logServices.ActivityLogServiceInterface
+	roleSvc              settingService.RoleServiceInterface
+	userSettingSvc       UserSettingServiceInterface
+	systemPreferenceSvc  settingService.SystemPreferenceServiceInterface
+	organizationLevelSvc settingService.OrganizationLevelServiceInterface
 }
 
 func NewUserService(
@@ -52,14 +62,17 @@ func NewUserService(
 	userStatusSvc UserStatusServiceInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	roleSvc settingService.RoleServiceInterface,
-	systemPreferenceSvc settingService.SystemPreferenceServiceInterface) UserServiceInterface {
+	systemPreferenceSvc settingService.SystemPreferenceServiceInterface,
+	organizationLevelSvc settingService.OrganizationLevelServiceInterface,
+) UserServiceInterface {
 	return &UserService{
-		repo:                repo,
-		designationSvc:      designationSvc,
-		userStatusSvc:       userStatusSvc,
-		activityLogSvc:      activityLogSvc,
-		roleSvc:             roleSvc,
-		systemPreferenceSvc: systemPreferenceSvc,
+		repo:                 repo,
+		designationSvc:       designationSvc,
+		userStatusSvc:        userStatusSvc,
+		activityLogSvc:       activityLogSvc,
+		roleSvc:              roleSvc,
+		systemPreferenceSvc:  systemPreferenceSvc,
+		organizationLevelSvc: organizationLevelSvc,
 	}
 }
 
@@ -288,6 +301,12 @@ func (us *UserService) Update(id uint, currentUserID uint, userFormDTO *userDTOs
 		return err
 	}
 
+	initial := existingUser.Initial
+
+	if existingUser.FirstNameEn != userFormDTO.FirstNameEn || existingUser.LastNameEn != userFormDTO.LastNameEn {
+		initial = generateInitial(userFormDTO.FirstNameEn, userFormDTO.LastNameEn)
+	}
+
 	existingUser.OrganizationUnit1ID = userFormDTO.OrganizationUnit1ID
 	existingUser.OrganizationUnit2ID = userFormDTO.OrganizationUnit2ID
 	existingUser.OrganizationUnit3ID = userFormDTO.OrganizationUnit3ID
@@ -301,6 +320,7 @@ func (us *UserService) Update(id uint, currentUserID uint, userFormDTO *userDTOs
 	existingUser.Email = userFormDTO.Email
 	existingUser.MobileNumber = userFormDTO.MobileNumber
 	existingUser.ProfileImagePath = userFormDTO.ProfileImagePath
+	existingUser.Initial = initial
 	existingUser.UpdatedByID = &currentUserID
 
 	err = us.repo.Update(existingUser, tx)
@@ -387,8 +407,13 @@ func (crs *UserService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	return failedIds, nil
 }
 
-func (us *UserService) GetUserLoginHistory(params *userDTOs.UserLoginHistoryListQueryParamsDTO) (*userDTOs.UserLoginHistoryListResponseDTO, error) {
-	return us.repo.GetUserLoginHistory(params)
+func (us *UserService) GetUserLoginHistory(userID uint, params *userDTOs.UserLoginHistoryListQueryParamsDTO) (*userDTOs.UserLoginHistoryListResponseDTO, error) {
+	_, err := us.GetByID(userID)
+
+	if err != nil {
+		return nil, err
+	}
+	return us.repo.GetUserLoginHistory(userID, params)
 }
 
 func (us *UserService) validateUserFormDTO(id *uint, userFormDTO *userDTOs.UserFormDTO) error {
@@ -476,4 +501,109 @@ func generateInitial(firstName, lastName string) string {
 	lastInitial := string(lastName[0])
 
 	return strings.ToUpper(firstInitial + lastInitial)
+}
+
+func (us *UserService) GetUserPrimaryUnitID(userID uint) (uint, error) {
+	_, err := us.GetByID(userID)
+	if err != nil {
+		return 0, err
+	}
+
+	primaryLevel, err := us.organizationLevelSvc.GetPrimaryLevel()
+	if err != nil {
+		return 0, err
+	}
+
+	var primaryOrgUnitField string
+
+	switch primaryLevel.Level {
+	case 1:
+		primaryOrgUnitField = "organization_unit_1_id"
+	case 2:
+		primaryOrgUnitField = "organization_unit_2_id"
+	case 3:
+		primaryOrgUnitField = "organization_unit_3_id"
+	case 4:
+		primaryOrgUnitField = "organization_unit_4_id"
+	case 5:
+		primaryOrgUnitField = "organization_unit_5_id"
+	default:
+		return 0, fmt.Errorf("unsupported primary level")
+	}
+
+	return us.repo.GetUserPrimaryUnitID(primaryOrgUnitField, userID)
+}
+
+func (us *UserService) GetUserIdsByRole(roleID uint, tx ...utility.DatabaseTransaction) ([]uint, error) {
+	userIds, err := us.repo.GetUserIdsByRole(roleID, tx...)
+	if err != nil {
+		return nil, err
+	}
+
+	return userIds, nil
+}
+
+func (us *UserService) GetCurrentUserDetails(id uint) (*userDTOs.CurrentUserDetailsDTO, error) {
+	var userDetailsDTO userDTOs.CurrentUserDetailsDTO
+
+	user, err := us.repo.GetFullDetailsByID(id)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+
+	err = mapstructure.Decode(user, &userDetailsDTO)
+	if err != nil {
+		return nil, err
+	}
+
+	roles := make([]settingDTOs.RoleDTO, 0, len(*user.UserRoles))
+	for _, userRole := range *user.UserRoles {
+		roles = append(roles, settingDTOs.RoleDTO{
+			ID:      userRole.Role.ID,
+			TitleEn: userRole.Role.TitleEn,
+			TitleAr: userRole.Role.TitleAr,
+			Status:  userRole.Role.Status,
+		})
+	}
+	userDetailsDTO.Roles = &roles
+
+	//todo :- also add extra fields which required in details screen
+
+	return &userDetailsDTO, nil
+}
+
+func (ns *UserService) GetUserNotifications(userID uint, params *userDTOs.UserNotificationListQueryParamsDTO) (*userDTOs.UserNotificationListResponseDTO, error) {
+	return ns.repo.GetUserNotifications(userID, params)
+}
+
+func (us *UserService) GetUserNewNotificationCount(userID uint) (int64, error) {
+	return us.repo.GetUserNewNotificationCount(userID)
+}
+
+func (us *UserService) MarkNotificationsAsRead(userID uint, formDTO *userDTOs.MarkNotificationAsReadFormDTO) (int64, error) {
+	if formDTO.Type == "all" {
+		// Mark all notifications as read
+		return us.repo.MarkAllNotificationsAsRead(userID)
+	} else if formDTO.Type == "individual" && len(formDTO.UserNotificationIDs) > 0 {
+		// Mark specific notifications as read
+		return us.repo.MarkSpecificNotificationsAsRead(userID, formDTO.UserNotificationIDs)
+	} else {
+		return 0, fmt.Errorf("invalid parameters")
+	}
+}
+
+func (us *UserService) MarkNotificationsAsUnread(userID uint, formDTO *userDTOs.MarkNotificationAsReadFormDTO) (int64, error) {
+	if formDTO.Type == "all" {
+		// Mark all notifications as read
+		return us.repo.MarkAllNotificationsAsUnread(userID)
+	} else if formDTO.Type == "individual" && len(formDTO.UserNotificationIDs) > 0 {
+		// Mark specific notifications as read
+		return us.repo.MarkSpecificNotificationsAsUnread(userID, formDTO.UserNotificationIDs)
+	} else {
+		return 0, fmt.Errorf("invalid parameters")
+	}
 }

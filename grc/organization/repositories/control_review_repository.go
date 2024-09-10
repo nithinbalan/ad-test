@@ -46,6 +46,7 @@ func (repo *ControlReviewRepository) GetAll(controlID uint, sort string, sortBy 
             controls.title_ar AS control_title_ar,
             controls.description AS control_description,
             controls.code AS control_code,
+			reviewed_user.id AS reviewed_user_id,
             reviewed_user.first_name_en AS reviewed_user_first_name_en,
             reviewed_user.first_name_ar AS reviewed_user_first_name_ar,
             reviewed_user.last_name_en AS reviewed_user_last_name_en,

@@ -20,7 +20,7 @@ type ControlTestServiceInterface interface {
 	GetAll(controlID uint, params *organizationDTOs.ControlTestListQueryParamsDTO) (*organizationDTOs.ControlTestListResponseDTO, error)
 	GetByID(id uint) (*models.ControlTest, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*organizationDTOs.ControlTestDetailsDTO, error)
-	Create(controlID uint, currentUserID uint, controlTestFormDTO *organizationDTOs.ControlTestFormDTO) (uint, error)
+	Create(controlID uint, currentUserID uint, riskID *uint, controlTestFormDTO *organizationDTOs.ControlTestFormDTO, testedSource string, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(controlID uint, id uint, currentUserID uint, controlTestFormDTO *organizationDTOs.ControlTestFormDTO) error
 	Delete(controlID uint, ids []uint, currentUserID uint) ([]uint, error)
 	GetTrendAnalysis(controlID uint) ([]*organizationDTOs.ControlTrendAnalysisDTO, error)
@@ -88,11 +88,24 @@ func (cts *ControlTestService) GetFullDetailsByID(id uint, tx ...utility.Databas
 	if err != nil {
 		return nil, err
 	}
+	if controlTest.TestedAt != nil {
+		testedAt := controlTest.TestedAt.Format("2006-01-02")
+		controlTestDetailsDTO.TestedAtString = &testedAt
+	}
+
+	controlTestDetailsDTO.UpdatedAt = controlTest.UpdatedAt
 	return &controlTestDetailsDTO, nil
 }
 
-func (cts *ControlTestService) Create(controlID uint, currentUserID uint, controlTestFormDTO *organizationDTOs.ControlTestFormDTO) (uint, error) {
-	tx := cts.repo.BeginTransaction()
+func (cts *ControlTestService) Create(controlID uint, currentUserID uint, riskID *uint, controlTestFormDTO *organizationDTOs.ControlTestFormDTO, testedSource string, tx ...utility.DatabaseTransaction) (uint, error) {
+	var transaction utility.DatabaseTransaction
+
+	if len(tx) > 0 && tx[0] != nil {
+		transaction = tx[0]
+	} else {
+		transaction = cts.repo.BeginTransaction()
+		defer transaction.Rollback() // Ensure rollback if transaction was started here and not committed
+	}
 
 	control, err := cts.controlSvc.GetByID(controlID)
 	if err != nil {
@@ -108,7 +121,12 @@ func (cts *ControlTestService) Create(controlID uint, currentUserID uint, contro
 		return 0, err
 	}
 
+	if testedSource == "" {
+		testedSource = "direct"
+	}
+
 	controlTest := &models.ControlTest{
+		RiskRegisterID:                riskID,
 		ControlID:                     controlID,
 		ControlImplementationStatusID: controlTestFormDTO.ControlImplementationStatusID,
 		ControlEfficiencyStatusID:     controlTestFormDTO.ControlEfficiencyStatusID,
@@ -116,14 +134,13 @@ func (cts *ControlTestService) Create(controlID uint, currentUserID uint, contro
 		Description:                   controlTestFormDTO.Description,
 		Score:                         controlTestFormDTO.Score,
 		Comments:                      controlTestFormDTO.Comments,
-		TestedSource:                  "direct",
+		TestedSource:                  testedSource,
 		TestedBy:                      currentUserID,
 		TestedAt:                      dates.TestedAt,
 	}
 
-	id, err := cts.repo.Create(controlTest, tx)
+	id, err := cts.repo.Create(controlTest, transaction)
 	if err != nil {
-		tx.Rollback()
 		return 0, err
 	}
 
@@ -136,15 +153,14 @@ func (cts *ControlTestService) Create(controlID uint, currentUserID uint, contro
 		control.NextTestDate = &nextTestDate
 	}
 
-	control.ControlEfficiencyStatusID = &controlTestFormDTO.ControlEfficiencyStatusID
-	control.ControlImplementationStatusID = &controlTestFormDTO.ControlImplementationStatusID
+	control.ControlEfficiencyStatusID = controlTestFormDTO.ControlEfficiencyStatusID
+	control.ControlImplementationStatusID = controlTestFormDTO.ControlImplementationStatusID
 	control.EfficiencyScore = controlTestFormDTO.Score
 	control.LastTestDate = dates.TestedAt
 	control.UpdatedByID = &currentUserID
 
-	err = cts.controlSvc.TestStatusUpdate(control, tx)
+	err = cts.controlSvc.TestStatusUpdate(control, transaction)
 	if err != nil {
-		tx.Rollback()
 		return 0, err
 	}
 
@@ -155,11 +171,10 @@ func (cts *ControlTestService) Create(controlID uint, currentUserID uint, contro
 		dataToEncrypt := []byte(doc.FileName)
 		encryptedFileName, err := utility.EncryptData(dataToEncrypt)
 		if err != nil {
-			tx.Rollback()
 			return 0, err
 		}
 
-		//genereate URL
+		// Generate URL
 		url := utility.GenerateDocumentURL("organization", "control", strconv.FormatUint(uint64(controlID), 10), "control-test", strconv.FormatUint(uint64(id), 10), "documents", encryptedFileName)
 
 		// Create a new Control test Document instance
@@ -178,8 +193,7 @@ func (cts *ControlTestService) Create(controlID uint, currentUserID uint, contro
 	}
 
 	if len(documents) > 0 {
-		if err := cts.repo.CreateDocuments(documents, tx); err != nil {
-			tx.Rollback()
+		if err := cts.repo.CreateDocuments(documents, transaction); err != nil {
 			return 0, err
 		}
 	}
@@ -187,12 +201,14 @@ func (cts *ControlTestService) Create(controlID uint, currentUserID uint, contro
 	for _, doc := range documents {
 		storagePath := filepath.Join("organization", "control", strconv.FormatUint(uint64(controlID), 10), "control-test", strconv.FormatUint(uint64(id), 10), "documents")
 		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
-			tx.Rollback()
 			return 0, err
 		}
 	}
 
-	tx.Commit()
+	// Commit if this function started the transaction
+	if len(tx) == 0 {
+		transaction.Commit()
+	}
 
 	go func() {
 		err := cts.activityLogSvc.LogActivity(
@@ -268,8 +284,8 @@ func (cts *ControlTestService) Update(controlID uint, id uint, currentUserID uin
 		control.NextTestDate = &nextTestDate
 	}
 
-	control.ControlEfficiencyStatusID = &controlTestFormDTO.ControlEfficiencyStatusID
-	control.ControlImplementationStatusID = &controlTestFormDTO.ControlImplementationStatusID
+	control.ControlEfficiencyStatusID = controlTestFormDTO.ControlEfficiencyStatusID
+	control.ControlImplementationStatusID = controlTestFormDTO.ControlImplementationStatusID
 	control.EfficiencyScore = controlTestFormDTO.Score
 	control.LastTestDate = dates.TestedAt
 	control.UpdatedByID = &currentUserID

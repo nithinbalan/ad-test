@@ -50,3 +50,18 @@ type RiskAppetiteAlignmentFormDTO struct {
 	RiskAppetiteStatementID      uint `json:"risk_appetite_statement_id"`
 	RiskAppetiteToleranceLevelID uint `json:"risk_appetite_tolerance_level_id"`
 }
+
+type RiskRegisterRiskRatingUpdateDTO struct {
+	InherentImpactID          *uint
+	InherentLikelihoodID      *uint
+	InherentRiskRatingID      *uint
+	InherentRiskRatingValueID *uint
+	ResidualImpactID          *uint
+	ResidualLikelihoodID      *uint
+	ResidualRiskRatingID      *uint
+	ResidualRiskRatingValueID *uint
+	CurrentImpactID           *uint
+	CurrentLikelihoodID       *uint
+	CurrentRiskRatingID       *uint
+	CurrentRiskRatingValueID  *uint
+}

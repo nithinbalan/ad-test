@@ -37,6 +37,7 @@ type OrganizationModule struct {
 	ControlSvc            services.ControlServiceInterface
 	ProcessSvc            services.ProcessServiceInterface
 	StrategicObjectiveSvc services.StrategicObjectiveServiceInterface
+	ControlTestSvc        services.ControlTestServiceInterface
 }
 
 func NewOrganizationModule(
@@ -44,7 +45,8 @@ func NewOrganizationModule(
 	sharedModule *SharedModule,
 	settingsModule *SettingsModule,
 	masterModule *MasterModule,
-	taskModule *TaskModule) *OrganizationModule {
+	taskModule *TaskModule,
+	commonModule *CommonModule) *OrganizationModule {
 
 	designationRepo := repositories.NewDesignationRepository(db)
 	designationSvc := services.NewDesignationService(designationRepo, sharedModule.ActivityLogService)
@@ -55,7 +57,7 @@ func NewOrganizationModule(
 	userStatusController := controllers.NewUserStatusController(userStatusSvc)
 
 	userRepo := repositories.NewUserRepository(db)
-	userSvc := services.NewUserService(userRepo, designationSvc, userStatusSvc, sharedModule.ActivityLogService, settingsModule.RoleSvc, settingsModule.SystemPreferenceSvc)
+	userSvc := services.NewUserService(userRepo, designationSvc, userStatusSvc, sharedModule.ActivityLogService, settingsModule.RoleSvc, settingsModule.SystemPreferenceSvc, settingsModule.OrganizationLevelSvc)
 	userSettingRepo := repositories.NewUserSettingRepository(db)
 	userSettingSvc := services.NewUserSettingService(userSettingRepo, sharedModule.ActivityLogService)
 	userSvc.SetUserSettingService(userSettingSvc)
@@ -64,7 +66,7 @@ func NewOrganizationModule(
 	userSettingController := controllers.NewUserSettingController(userSettingSvc)
 
 	strategicProfileRepo := repositories.NewStrategicProfileRepository(db)
-	strategicProfileSvc := services.NewStrategicProfileService(strategicProfileRepo)
+	strategicProfileSvc := services.NewStrategicProfileService(strategicProfileRepo, commonModule.FileRepo)
 	strategicProfileController := controllers.NewStrategicProfileController(strategicProfileSvc)
 
 	strategicObjectiveRepo := repositories.NewStrategicObjectiveRepository(db)
@@ -105,7 +107,8 @@ func NewOrganizationModule(
 		controlEfficiencyStatusSvc,
 		userSvc,
 		masterModule.ReviewFrequencySvc,
-		masterModule.LifecycleStatusSvc)
+		masterModule.LifecycleStatusSvc,
+		commonModule.NotificationService)
 	controlController := controllers.NewControlController(controlSvc)
 
 	controlTestRepo := repositories.NewControlTestRepository(db)
@@ -131,7 +134,7 @@ func NewOrganizationModule(
 	processGroupController := controllers.NewProcessGroupController(processGroupSvc)
 
 	controlActionPlanRepo := repositories.NewControlActionPlanRepository(db)
-	controlActionPlanSvc := services.NewControlActionPlanService(controlActionPlanRepo, sharedModule.ActivityLogService, controlSvc, masterModule.SeverityLevelSvc, masterModule.ActionPlanStatusSvc, userSvc)
+	controlActionPlanSvc := services.NewControlActionPlanService(controlActionPlanRepo, sharedModule.ActivityLogService, controlSvc, masterModule.SeverityLevelSvc, masterModule.ActionPlanStatusSvc, userSvc, commonModule.NotificationService)
 	controlActionPlanController := controllers.NewControlActionPlanController(controlActionPlanSvc)
 
 	controlActionPlanStatusUpdateRepo := repositories.NewControlActionPlanStatusUpdateRepository(db)
@@ -139,7 +142,7 @@ func NewOrganizationModule(
 	controlActionPlanStatusUpdateController := controllers.NewControlActionPlanStatusUpdateController(controlActionPlanStatusUpdateSvc)
 
 	processRepo := repositories.NewProcessRepository(db)
-	processSvc := services.NewProcessService(processRepo, sharedModule.ActivityLogService, processGroupSvc, userSvc, masterModule.LifecycleStatusSvc, controlSvc)
+	processSvc := services.NewProcessService(processRepo, sharedModule.ActivityLogService, processGroupSvc, userSvc, masterModule.LifecycleStatusSvc, controlSvc, commonModule.NotificationService)
 	processController := controllers.NewProcessController(processSvc)
 
 	userTaskRepo := repositories.NewUserTaskRepository(db)
@@ -179,5 +182,6 @@ func NewOrganizationModule(
 		ControlSvc:            controlSvc,
 		ProcessSvc:            processSvc,
 		StrategicObjectiveSvc: strategicObjectiveSvc,
+		ControlTestSvc:        controlTestSvc,
 	}
 }

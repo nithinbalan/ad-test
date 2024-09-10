@@ -15,9 +15,12 @@ type RiskActionPlanRepositoryInterface interface {
 	GetAll(riskID uint, params *riskDTOs.RiskActionPlanListQueryParamsDTO) (*riskDTOs.RiskActionPlanListResponseDTO, error)
 	GetByID(id uint) (*models.RiskActionPlan, error)
 	GetFullDetailsByID(id uint) (*models.RiskActionPlan, error)
-	Create(riskActionPlan *models.RiskActionPlan) (uint, error)
+	Create(riskActionPlan *models.RiskActionPlan, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(riskActionPlan *models.RiskActionPlan, tx ...utility.DatabaseTransaction) error
-	Delete(id uint) error
+	Delete(id uint, tx ...utility.DatabaseTransaction) error
+
+	CreateInitialRiskActionPlanStatusUpdate(riskActionPlanStatusUpdate *models.RiskActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
+	DeleteRiskActionPlanStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type RiskActionPlanRepository struct {
@@ -47,22 +50,38 @@ func (repo *RiskActionPlanRepository) GetAll(riskID uint, params *riskDTOs.RiskA
         risk_register.title AS risk_title,
         action_plan_statuses.title_en AS action_plan_status_title_en,
         action_plan_statuses.title_ar AS action_plan_status_title_ar,
+		action_plan_statuses.color_code AS action_plan_status_color_code,
         severity_levels.title_en AS severity_level_title_en,
         severity_levels.title_ar AS severity_level_title_ar,
         severity_levels.color_code AS severity_level_color_code,
 		CONVERT(VARCHAR, risk_action_plans.target_date, 23) AS target_date,
+		responsible_user.id AS responsible_user_id,
         responsible_user.first_name_en AS responsible_user_first_name_en,
         responsible_user.first_name_ar AS responsible_user_first_name_ar,
         responsible_user.last_name_en AS responsible_user_last_name_en,
         responsible_user.last_name_ar AS responsible_user_last_name_ar,
+		responsible_user.initial AS responsible_user_initial,
+        responsible_user.color AS responsible_user_color,
+        responsible_user.email AS responsible_user_email,
+        responsible_user.profile_image_path AS responsible_user_profile_image_path,
+        created_user.id AS created_user_id,
         created_user.first_name_en AS created_user_first_name_en,
         created_user.first_name_ar AS created_user_first_name_ar,
         created_user.last_name_en AS created_user_last_name_en,
-        created_user.last_name_ar AS created_user_last_name_ar,   
-        updated_user.first_name_en AS updated_user_first_name_en,
+        created_user.last_name_ar AS created_user_last_name_ar,
+		created_user.initial AS created_user_initial,
+        created_user.color AS created_user_color,
+        created_user.email AS created_user_email,
+        created_user.profile_image_path AS created_user_profile_image_path,   
+        updated_user.id AS updated_user_id,
+    	updated_user.first_name_en AS updated_user_first_name_en,
         updated_user.first_name_ar AS updated_user_first_name_ar,
         updated_user.last_name_en AS updated_user_last_name_en,
-        updated_user.last_name_ar AS updated_user_last_name_ar 
+        updated_user.last_name_ar AS updated_user_last_name_ar,
+		updated_user.initial AS updated_user_initial,
+        updated_user.color AS updated_user_color,
+        updated_user.email AS updated_user_email,
+        updated_user.profile_image_path AS updated_user_profile_image_path 
     `).
 		Joins(`
 		LEFT JOIN risk_register ON risk_register.id = risk_action_plans.risk_register_id
@@ -177,6 +196,7 @@ func (repo *RiskActionPlanRepository) GetFullDetailsByID(id uint) (*models.RiskA
 		Preload("ResponsibleUser").
 		Preload("SeverityLevel").
 		Preload("ActionPlanStatus").
+		Preload("ActionPlanStatusUpdates").
 		First(&riskActionPlan, id)
 
 	if result.Error != nil {
@@ -186,8 +206,12 @@ func (repo *RiskActionPlanRepository) GetFullDetailsByID(id uint) (*models.RiskA
 	return riskActionPlan, nil
 }
 
-func (repo *RiskActionPlanRepository) Create(riskActionPlan *models.RiskActionPlan) (uint, error) {
-	if err := repo.db.Create(riskActionPlan).Error; err != nil {
+func (repo *RiskActionPlanRepository) Create(riskActionPlan *models.RiskActionPlan, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(riskActionPlan).Error; err != nil {
 		return 0, err
 	}
 	return riskActionPlan.ID, nil
@@ -204,16 +228,43 @@ func (repo *RiskActionPlanRepository) Update(riskActionPlan *models.RiskActionPl
 	return nil
 }
 
-func (repo *RiskActionPlanRepository) Delete(id uint) error {
-
+func (repo *RiskActionPlanRepository) Delete(id uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 	var riskActionPlan *models.RiskActionPlan
-	if err := repo.db.First(&riskActionPlan, id).Error; err != nil {
+	if err := db.First(&riskActionPlan, id).Error; err != nil {
 		return err
 	}
 
-	result := repo.db.Delete(&models.RiskActionPlan{}, id)
+	result := db.Delete(&models.RiskActionPlan{}, id)
 	if result.Error != nil {
 		return result.Error
+	}
+
+	return nil
+}
+
+func (repo *RiskActionPlanRepository) CreateInitialRiskActionPlanStatusUpdate(riskActionPlanStatusUpdate *models.RiskActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(riskActionPlanStatusUpdate).Error; err != nil {
+		return 0, err
+	}
+	return riskActionPlanStatusUpdate.ID, nil
+}
+
+func (repo *RiskActionPlanRepository) DeleteRiskActionPlanStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", ids).Delete(&models.RiskActionPlanStatusUpdate{}).Error; err != nil {
+		return err
 	}
 
 	return nil

@@ -22,14 +22,15 @@ type ComplianceActionPlan struct {
 	UpdatedByID             *uint      `json:"updated_by_id" gorm:"default:null"`
 
 	// Relationships
-	ComplianceRegister      *ComplianceRegister                 `gorm:"foreignKey:ComplianceRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ComplianceRequirement   *ComplianceRequirement              `gorm:"foreignKey:ComplianceRequirementID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	SeverityLevel           *SeverityLevel                      `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ResponsibleUser         *User                               `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ActionPlanStatus        *ActionPlanStatus                   `gorm:"foreignKey:ActionPlanStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ActionPlanStatusUpdates []*ComplianceActionPlanStatusUpdate `gorm:"foreignKey:ComplianceActionPlanID"`
-	CreatedByUser           *User                               `gorm:"foreignKey:CreatedByID"`
-	UpdatedByUser           *User                               `gorm:"foreignKey:UpdatedByID"`
+	ComplianceRegister           *ComplianceRegister                 `gorm:"foreignKey:ComplianceRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ComplianceRequirement        *ComplianceRequirement              `gorm:"foreignKey:ComplianceRequirementID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	SeverityLevel                *SeverityLevel                      `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ResponsibleUser              *User                               `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ActionPlanStatus             *ActionPlanStatus                   `gorm:"foreignKey:ActionPlanStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ActionPlanStatusUpdates      []*ComplianceActionPlanStatusUpdate `gorm:"foreignKey:ComplianceActionPlanID"`
+	LatestActionPlanStatusUpdate *ComplianceActionPlanStatusUpdate   `gorm:"foreignKey:ComplianceActionPlanID"`
+	CreatedByUser                *User                               `gorm:"foreignKey:CreatedByID"`
+	UpdatedByUser                *User                               `gorm:"foreignKey:UpdatedByID"`
 }
 
 // TableName overrides the table name used by ComplianceActionPlan to `compliance_action_plans`

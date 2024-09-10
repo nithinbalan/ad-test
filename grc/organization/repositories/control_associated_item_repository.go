@@ -2,6 +2,7 @@ package repositories
 
 import (
 	commonDTOs "jethur/grc/common/dtos"
+	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
 
 	"gorm.io/gorm"
@@ -12,6 +13,7 @@ type ControlAssociatedItemRepositoryInterface interface {
 	GetAllComplianceRequirements(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) ([]organizationDTOs.ControlComplianceRequirementListDTO, int64, error)
 	GetAllRisks(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) (*organizationDTOs.ControlAssociatedItemRiskListResponseDTO, error)
 	GetAllIncidents(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) (*organizationDTOs.ControlAssociatedItemIncidentListResponseDTO, error)
+	GetAllAssociatedCounts(controlID uint) (*organizationDTOs.ControlAssociatedItemsCountResponseDTO, error)
 }
 
 type ControlAssociatedItemRepository struct {
@@ -39,6 +41,7 @@ func (repo *ControlAssociatedItemRepository) GetAllProcesses(controlID uint, par
 			process_groups.title_ar AS process_group_title_ar,
 			organization_units.title_en AS owner_unit_title_en,
 			organization_units.title_ar AS owner_unit_title_ar,
+			owner.id AS owner_id,
 			owner.first_name_en AS owner_first_name_en,
 			owner.first_name_ar AS owner_first_name_ar,
 			owner.last_name_en AS owner_last_name_en,
@@ -129,6 +132,7 @@ func (repo *ControlAssociatedItemRepository) GetAllComplianceRequirements(contro
 			compliance_register.title_ar AS compliance_register_title_ar,
 			compliance_controls.compliance_requirement_id AS compliance_requirement_id,
 			compliance_clauses.title AS compliance_clause_title,
+			compliance_clauses.clause_no AS compliance_clause_no,
 			compliance_requirement_categories.title_en AS compliance_requirement_category_title_en,
 			compliance_requirement_categories.title_ar AS compliance_requirement_category_title_ar,
 			compliance_requirements.title AS compliance_requirement_title,
@@ -151,8 +155,20 @@ func (repo *ControlAssociatedItemRepository) GetAllComplianceRequirements(contro
 	}
 
 	if params.Keyword != "" {
-		keyword := "%" + params.Keyword + "%"
-		query = query.Where(`(compliance_requirements.title LIKE ?)`, keyword)
+		query = query.Where(`
+			(compliance_register.title_en LIKE ? OR
+			compliance_register.title_ar LIKE ? OR
+			compliance_register.description_en LIKE ? OR
+			compliance_requirements.title LIKE ? OR
+			compliance_requirement_categories.title_en LIKE ? OR
+			compliance_requirement_categories.title_ar LIKE ? OR
+			compliance_clauses.clause_no LIKE ? OR
+			compliance_clauses.title LIKE ? OR
+			compliance_statuses.title_en LIKE ? OR
+			compliance_statuses.title_ar LIKE ?)`,
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%")
 	}
 
 	if params.SortBy == "" {
@@ -181,6 +197,9 @@ func (repo *ControlAssociatedItemRepository) GetAllRisks(controlID uint, params 
 
 	query := repo.db.Table("risk_controls").
 		Select(`
+			risk_controls.id,
+			risk_controls.risk_register_id,
+			risk_controls.control_id,
 			risk_register.reference_number,
 			risk_register.title,
 			risk_register.description,
@@ -188,12 +207,28 @@ func (repo *ControlAssociatedItemRepository) GetAllRisks(controlID uint, params 
 			risk_categories.title_ar AS risk_category_title_ar,
 			risk_sources.title_en AS risk_source_title_en,
 			risk_sources.title_ar AS risk_source_title_ar,
-			organization_units.title_en AS owner_unit_title_en,
-			organization_units.title_ar AS owner_unit_title_ar,
-			users.first_name_en AS owner_first_name_en,
-			users.first_name_ar AS owner_first_name_ar,
-			users.last_name_en AS owner_last_name_en,
-			users.last_name_ar AS owner_last_name_ar,
+			organization_units.title_en AS responsible_unit_title_en,
+			organization_units.title_ar AS responsible_unit_title_ar,
+			users.id AS responsible_user_id,
+			users.first_name_en AS responsible_user_first_name_en,
+			users.first_name_ar AS responsible_user_first_name_ar,
+			users.last_name_en AS responsible_user_last_name_en,
+			users.last_name_ar AS responsible_user_last_name_ar,
+			users.initial AS responsible_user_initial,
+			users.color AS responsible_user_color,
+			users.email AS responsible_user_email,
+			users.profile_image_path AS responsible_user_profile_image_path,
+			risk_matrix_likelihoods.title_en AS risk_matrix_likelihood_title_en,
+			risk_matrix_likelihoods.title_ar AS risk_matrix_likelihood_title_ar,
+			risk_matrix_likelihoods.score AS risk_matrix_likelihood_score,
+			risk_matrix_impacts.title_en AS risk_matrix_impact_title_en,
+			risk_matrix_impacts.title_ar AS risk_matrix_impact_title_ar,
+			risk_matrix_impacts.score AS risk_matrix_impact_score,
+			risk_matrix_risk_ratings.title_en AS risk_matrix_risk_rating_title_en,
+			risk_matrix_risk_ratings.title_ar AS risk_matrix_risk_rating_title_ar,
+			risk_matrix_risk_ratings.type AS risk_matrix_risk_rating_type,
+			risk_matrix_risk_ratings.color_code AS risk_matrix_risk_rating_color_code,
+			risk_matrix_risk_rating_values.value AS risk_matrix_risk_rating_value,
 			risk_statuses.title_en AS risk_status_title_en,
 			risk_statuses.title_ar AS risk_status_title_ar,
 			risk_statuses.color_code AS risk_status_color_code
@@ -202,8 +237,12 @@ func (repo *ControlAssociatedItemRepository) GetAllRisks(controlID uint, params 
 			LEFT JOIN risk_register ON risk_register.id = risk_controls.risk_register_id
 			LEFT JOIN risk_categories ON risk_categories.id = risk_register.risk_category_id
 			LEFT JOIN risk_sources ON risk_sources.id = risk_register.risk_source_id
-			LEFT JOIN organization_units ON organization_units.id = risk_register.owner_unit_id
-			LEFT JOIN users ON users.id = risk_register.owner_id
+			LEFT JOIN organization_units ON organization_units.id = risk_register.responsible_unit_id
+			LEFT JOIN users ON users.id = risk_register.responsible_user_id
+			LEFT JOIN risk_matrix_likelihoods ON risk_matrix_likelihoods.id = risk_register.current_likelihood_id
+			LEFT JOIN risk_matrix_impacts ON risk_matrix_impacts.id = risk_register.current_impact_id
+			LEFT JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = risk_register.current_risk_rating_id
+			LEFT JOIN risk_matrix_risk_rating_values ON risk_matrix_risk_rating_values.id = risk_register.current_risk_rating_value_id
 			LEFT JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id
 		`).Where("risk_controls.control_id = ?", controlID)
 
@@ -231,6 +270,10 @@ func (repo *ControlAssociatedItemRepository) GetAllRisks(controlID uint, params 
 			risk_statuses.title_ar LIKE ? OR
 			risk_statuses.color_code LIKE ?)`,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+	}
+
+	if params.Value != 0 {
+		query = query.Where("risk_matrix_risk_rating_values.value = ?", params.Value)
 	}
 
 	if params.SortBy == "" {
@@ -351,4 +394,47 @@ func (repo *ControlAssociatedItemRepository) GetAllIncidents(controlID uint, par
 		},
 	}
 	return response, nil
+}
+
+func (repo *ControlAssociatedItemRepository) GetAllAssociatedCounts(controlID uint) (*organizationDTOs.ControlAssociatedItemsCountResponseDTO, error) {
+	var processesCount, risksCount, incidentsCount, complianceRequirementsCount int64
+	var err error
+
+	// Query for controls count
+	err = repo.db.Model(&models.ProcessControl{}).
+		Where("control_id = ?", controlID).
+		Count(&processesCount).Error
+	if err != nil {
+		return nil, err
+	}
+
+	err = repo.db.Model(&models.ComplianceControl{}).
+		Where("control_id = ?", controlID).
+		Count(&complianceRequirementsCount).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Query for risks count
+	err = repo.db.Model(&models.RiskControl{}).
+		Where("control_id = ?", controlID).
+		Count(&risksCount).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Query for incidents count
+	err = repo.db.Model(&models.IncidentControl{}).
+		Where("control_id = ?", controlID).
+		Count(&incidentsCount).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &organizationDTOs.ControlAssociatedItemsCountResponseDTO{
+		Processes:              int(processesCount),
+		ComplianceRequirements: int(complianceRequirementsCount),
+		Risks:                  int(risksCount),
+		Incidents:              int(incidentsCount),
+	}, nil
 }

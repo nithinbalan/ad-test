@@ -8,6 +8,7 @@ import (
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
+	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -27,16 +28,20 @@ type IncidentCommunicationLogService struct {
 	repo                incidentRepositories.IncidentCommunicationLogRepositoryInterface
 	activityLogSvc      logServices.ActivityLogServiceInterface
 	incidentRegisterSvc IncidentRegisterServiceInterface
+	incidentTimelineSvc IncidentTimelineServiceInterface
 }
 
 func NewIncidentCommunicationLogService(
 	repo incidentRepositories.IncidentCommunicationLogRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
-	incidentRegisterSvc IncidentRegisterServiceInterface) IncidentCommunicationLogServiceInterface {
+	incidentRegisterSvc IncidentRegisterServiceInterface,
+	incidentTimelineSvc IncidentTimelineServiceInterface,
+) IncidentCommunicationLogServiceInterface {
 	return &IncidentCommunicationLogService{
 		repo:                repo,
 		activityLogSvc:      activityLogSvc,
 		incidentRegisterSvc: incidentRegisterSvc,
+		incidentTimelineSvc: incidentTimelineSvc,
 	}
 }
 
@@ -90,6 +95,8 @@ func (icls IncidentCommunicationLogService) GetFullDetailsByID(incidentID uint, 
 }
 
 func (icls *IncidentCommunicationLogService) Create(incidentID uint, currentUserID uint, incidentCommunicationLogFormDTO *incidentDTOs.IncidentCommunicationLogFormDTO) (uint, error) {
+	tx := icls.repo.BeginTransaction()
+
 	if _, err := icls.incidentRegisterSvc.GetByID(incidentID); err != nil {
 		return 0, err
 	}
@@ -109,10 +116,41 @@ func (icls *IncidentCommunicationLogService) Create(incidentID uint, currentUser
 		CreatedByID:         currentUserID,
 	}
 
-	id, err := icls.repo.Create(incidentCommunicationLog)
+	id, err := icls.repo.Create(incidentCommunicationLog, tx)
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
+	//Update timeline
+	//todo
+	communicationLogCount, err := icls.repo.GetCountByRiskID(incidentID, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	if communicationLogCount == 1 {
+		timelineType, err := icls.incidentTimelineSvc.GetByType("communication")
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+		timelineStatus, err := icls.incidentTimelineSvc.GetByStatusType("completed")
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+		currentTime := time.Now()
+		timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
+			PerformedByID:    &currentUserID,
+			TimelineStatusID: timelineStatus.ID,
+			PerformedAt:      &currentTime,
+		}
+		if err := icls.incidentTimelineSvc.Update(incidentID, timelineFormDTO, timelineType.ID, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+	tx.Commit()
 
 	go func() {
 		err := icls.activityLogSvc.LogActivity(
@@ -167,8 +205,10 @@ func (icls *IncidentCommunicationLogService) Update(incidentID uint, id uint, cu
 	err = icls.repo.Update(existingIncidentCommunicationLog, tx)
 
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
+
 	tx.Commit()
 
 	go func() {
@@ -198,6 +238,8 @@ func (icls *IncidentCommunicationLogService) Update(incidentID uint, id uint, cu
 }
 
 func (icls *IncidentCommunicationLogService) Delete(incidentID uint, ids []uint, currentUserID uint) ([]uint, error) {
+	tx := icls.repo.BeginTransaction()
+
 	if _, err := icls.incidentRegisterSvc.GetByID(incidentID); err != nil {
 		return nil, err
 	}
@@ -211,7 +253,34 @@ func (icls *IncidentCommunicationLogService) Delete(incidentID uint, ids []uint,
 		if err != nil {
 			continue
 		}
-
+		//Delete-> update timeline performedAt as null
+		//todo
+		communicationLogCount, err := icls.repo.GetCountByRiskID(incidentID, tx)
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+		if communicationLogCount == 1 {
+			timelineType, err := icls.incidentTimelineSvc.GetByType("communication")
+			if err != nil {
+				tx.Rollback()
+				return failedIds, err
+			}
+			timelineStatus, err := icls.incidentTimelineSvc.GetByStatusType("pending")
+			if err != nil {
+				tx.Rollback()
+				return failedIds, err
+			}
+			timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
+				PerformedByID:    nil,
+				TimelineStatusID: timelineStatus.ID,
+				PerformedAt:      nil,
+			}
+			if err := icls.incidentTimelineSvc.Update(incidentID, timelineFormDTO, timelineType.ID, tx); err != nil {
+				tx.Rollback()
+				return failedIds, err
+			}
+		}
 		err = icls.repo.Delete(id)
 		if err != nil {
 			failedIds = append(failedIds, id)
@@ -219,6 +288,7 @@ func (icls *IncidentCommunicationLogService) Delete(incidentID uint, ids []uint,
 			successfulIds = append(successfulIds, id)
 		}
 	}
+	tx.Commit()
 
 	if len(successfulIds) > 0 {
 

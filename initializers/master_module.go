@@ -18,6 +18,12 @@ type MasterModule struct {
 	AtionPlanStatusController   *controllers.ActionPlanStatusController
 	CurrencyController          *controllers.CurrencyController
 	TimezoneController          *controllers.TimezoneController
+	UnitController              *controllers.UnitController
+	ToolTypeController          *controllers.ToolTypeController
+	ExpenseCategoryController   *controllers.ExpenseCategoryController
+	SourceController            *controllers.SourceController
+	StatusController            *controllers.StatusController
+	ConformanceController       *controllers.ConformanceController
 
 	ReviewFrequencySvc   services.ReviewFrequencyServiceInterface
 	SeverityLevelSvc     services.SeverityLevelServiceInterface
@@ -28,6 +34,12 @@ type MasterModule struct {
 	ActionPlanStatusSvc  services.ActionPlanStatusServiceInterface
 	CurrencySvc          services.CurrencyServiceInterface
 	TimezoneSvc          services.TimezoneServiceInterface
+	UnitSvc              services.UnitServiceInterface
+	ToolTypeSvc          services.ToolTypeServiceInterface
+	ExpenseCategorySvc   services.ExpenseCategoryServiceInterface
+	SourceSvc            services.SourceServiceInterface
+	StatusSvc            services.StatusServiceInterface
+	ConformanceSvc       services.ConformanceServiceInterface
 }
 
 func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
@@ -74,6 +86,36 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 	timezoneSvc := services.NewTimezoneService(timezoneRepo)
 	timezoneController := controllers.NewTimezoneController(timezoneSvc)
 
+	//Units
+	unitRepo := repositories.NewUnitRepository(db)
+	unitSvc := services.NewUnitService(unitRepo, sharedModule.ActivityLogService)
+	unitController := controllers.NewUnitController(unitSvc)
+
+	//ToolTypes
+	toolTypeRepo := repositories.NewToolTypeRepository(db)
+	toolTypeSvc := services.NewToolTypeService(toolTypeRepo, sharedModule.ActivityLogService)
+	toolTypeController := controllers.NewToolTypeController(toolTypeSvc)
+
+	//ToolTypes
+	expenseCategoryRepo := repositories.NewExpenseCategoryRepository(db)
+	expenseCategorySvc := services.NewExpenseCategoryService(expenseCategoryRepo, sharedModule.ActivityLogService)
+	expenseCategoryController := controllers.NewExpenseCategoryController(expenseCategorySvc)
+
+	//Sources
+	sourceRepo := repositories.NewSourceRepository(db)
+	sourceSvc := services.NewSourceService(sourceRepo)
+	sourceController := controllers.NewSourceController(sourceSvc)
+
+	//Status
+	statusRepo := repositories.NewStatusRepository(db)
+	statusSvc := services.NewStatusService(statusRepo)
+	statusController := controllers.NewStatusController(statusSvc)
+
+	//Conformance
+	conformanceRepo := repositories.NewConformanceRepository(db)
+	conformanceSvc := services.NewConformanceService(conformanceRepo)
+	conformanceController := controllers.NewConformanceController(conformanceSvc)
+
 	return &MasterModule{
 		ReviewFrequencyController:   reviewFrequencyController,
 		SeverityLevelController:     severityLevelController,
@@ -84,6 +126,12 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 		AtionPlanStatusController:   actionPlanStatusController,
 		CurrencyController:          currencyController,
 		TimezoneController:          timezoneController,
+		UnitController:              unitController,
+		ToolTypeController:          toolTypeController,
+		ExpenseCategoryController:   expenseCategoryController,
+		SourceController:            sourceController,
+		StatusController:            statusController,
+		ConformanceController:       conformanceController,
 
 		ReviewFrequencySvc:   reviewFrequencySvc,
 		SeverityLevelSvc:     severityLevelSvc,
@@ -94,5 +142,11 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 		ActionPlanStatusSvc:  actionPlanStatusSvc,
 		CurrencySvc:          currencySvc,
 		TimezoneSvc:          timezoneSvc,
+		UnitSvc:              unitSvc,
+		ToolTypeSvc:          toolTypeSvc,
+		ExpenseCategorySvc:   expenseCategorySvc,
+		SourceSvc:            sourceSvc,
+		StatusSvc:            statusSvc,
+		ConformanceSvc:       conformanceSvc,
 	}
 }

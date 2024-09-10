@@ -34,6 +34,11 @@ type ComplianceRegisterRepositoryInterface interface {
 	GetDocumentByID(id uint) (*models.ComplianceDocument, error)
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
 	GetLatestDocumentByComplianceID(id uint) (*models.ComplianceDocument, error)
+
+	CreateInitialComplianceStatusUpdate(complianceStatusUpdate *models.ComplianceStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
+	DeleteComplianceStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error
+
+	UpdateComplianceTotalScore(complianceRegisterID uint, totalScore float64, tx utility.DatabaseTransaction) error
 }
 
 type ComplianceRegisterRepository struct {
@@ -71,6 +76,7 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
 			compliance_statuses.color_code AS compliance_status_color_code,
 			organization_units.title_en AS responsible_unit_title_en,
 			organization_units.title_ar AS responsible_unit_title_ar,
+			responsible_user.id AS responsible_user_id,
 			responsible_user.first_name_en AS responsible_user_first_name_en,
             responsible_user.first_name_ar AS responsible_user_first_name_ar,
             responsible_user.last_name_en AS responsible_user_last_name_en,
@@ -81,6 +87,7 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
             responsible_user.profile_image_path AS responsible_user_profile_image_path,
 			review_frequencies.title_en AS review_frequency_title_en,
 			review_frequencies.title_ar AS review_frequency_title_ar,
+			review_responsible_user.id AS review_responsible_user_id,
 			review_responsible_user.first_name_en AS review_responsible_user_first_name_en,
             review_responsible_user.first_name_ar AS review_responsible_user_first_name_ar,
             review_responsible_user.last_name_en AS review_responsible_user_last_name_en,
@@ -95,6 +102,7 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
 			lifecycle_statuses.title_en AS lifecycle_status_title_en,
 			lifecycle_statuses.title_ar AS lifecycle_status_title_ar,
 			lifecycle_statuses.color_code AS lifecycle_status_color_code,
+        	created_user.id AS created_user_id,
         	created_user.first_name_en AS created_user_first_name_en,
         	created_user.first_name_ar AS created_user_first_name_ar,
         	created_user.last_name_en AS created_user_last_name_en,
@@ -103,7 +111,8 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
         	created_user.color AS created_user_color,
         	created_user.email AS created_user_email,
         	created_user.profile_image_path AS created_user_profile_image_path,   
-			updated_user.first_name_en AS updated_user_first_name_en,
+			updated_user.id AS updated_user_id,
+    		updated_user.first_name_en AS updated_user_first_name_en,
         	updated_user.first_name_ar AS updated_user_first_name_ar,
         	updated_user.last_name_en AS updated_user_last_name_en,
         	updated_user.last_name_ar AS updated_user_last_name_ar,
@@ -284,6 +293,7 @@ func (repo *ComplianceRegisterRepository) GetFullDetailsByID(id uint, tx ...util
 		Preload("Controls").
 		Preload("Controls.Control.ControlCategory").
 		Preload("Controls.Control.ControlType").
+		Preload("ComplianceStatusUpdates").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&compliance, id)
@@ -448,4 +458,42 @@ func (repo *ComplianceRegisterRepository) GetLatestDocumentByComplianceID(id uin
 		return nil, err
 	}
 	return &document, nil
+}
+
+func (repo *ComplianceRegisterRepository) CreateInitialComplianceStatusUpdate(complianceStatusUpdate *models.ComplianceStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(complianceStatusUpdate).Error; err != nil {
+		return 0, err
+	}
+	return complianceStatusUpdate.ID, nil
+}
+
+func (repo *ComplianceRegisterRepository) DeleteComplianceStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", ids).Delete(&models.ComplianceStatusUpdate{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *ComplianceRegisterRepository) UpdateComplianceTotalScore(complianceRegisterID uint, totalScore float64, tx utility.DatabaseTransaction) error {
+	db := tx.DB()
+
+	err := db.Model(&models.ComplianceRegister{}).
+		Where("id = ?", complianceRegisterID).
+		Update("total_score", totalScore).
+		Error
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -18,6 +18,7 @@ type ComplianceActionPlanListDTO struct {
 	SeverityLevelTitleEn            string `json:"severity_level_title_en"`
 	SeverityLevelTitleAr            string `json:"severity_level_title_ar"`
 	SeverityLevelColorCode          string `json:"severity_level_color_code"`
+	ResponsibleUserID               uint   `json:"responsible_user_id"`
 	ResponsibleUserFirstNameEn      string `json:"responsible_user_first_name_en"`
 	ResponsibleUserFirstNameAr      string `json:"responsible_user_first_name_ar"`
 	ResponsibleUserLastNameEn       string `json:"responsible_user_last_name_en"`
@@ -32,6 +33,7 @@ type ComplianceActionPlanListDTO struct {
 	ActionPlanStatusTitleEn         string `json:"action_plan_status_title_en"`
 	ActionPlanStatusTitleAr         string `json:"action_plan_status_title_ar"`
 	ActionPlanStatusColorCode       string `json:"action_plan_status_color_code"`
+	CreatedUserID                   uint   `json:"created_user_id"`
 	CreatedUserFirstNameEn          string `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr          string `json:"created_user_first_name_ar"`
 	CreatedUserLastNameEn           string `json:"created_user_last_name_en"`
@@ -40,6 +42,7 @@ type ComplianceActionPlanListDTO struct {
 	CreatedUserColor                string `json:"created_user_color"`
 	CreatedUserEmail                string `json:"created_user_email"`
 	CreatedUserProfileImagePath     string `json:"created_user_profile_image_path"`
+	UpdatedUserID                   *uint  `json:"updated_user_id"`
 	UpdatedUserFirstNameEn          string `json:"updated_user_first_name_en"`
 	UpdatedUserFirstNameAr          string `json:"updated_user_first_name_ar"`
 	UpdatedUserLastNameEn           string `json:"updated_user_last_name_en"`
@@ -91,20 +94,22 @@ type ComplianceRequirementMinimalDTO struct {
 }
 
 type ComplianceActionPlanDetailDTO struct {
-	ID                     int                                  `json:"id"`
-	ComplianceRequirement  *ComplianceRequirementMinimalDTO     `json:"compliance_requirement"`
-	Title                  string                               `json:"title"`
-	Description            string                               `json:"description"`
-	SeverityLevel          *masterDTOs.SeverityLevelDTO         `json:"severity_level"`
-	ResponsibleUser        organizationDTOs.UserMinimalDTO      `json:"responsible_user"`
-	ActionPlanStatusUpdate *ComplianceActionPlanStatusUpdateDTO `json:"action_plan_status"`
-	Percentage             *uint                                `json:"percentage"`
-	Comments               *string                              `json:"comments"`
-	TargetDate             *time.Time                           `json:"target_date"`
-	CreatedAt              time.Time                            `json:"created_at"`
-	UpdatedAt              *time.Time                           `json:"updated_at"`
-	CreatedByUser          organizationDTOs.UserMinimalDTO      `json:"created_by_user"`
-	UpdatedByUser          *organizationDTOs.UserMinimalDTO     `json:"updated_by_user"`
+	ID                      int                                    `json:"id"`
+	ComplianceRequirement   *ComplianceRequirementMinimalDTO       `json:"compliance_requirement"`
+	ComplianceRegister      *ComplianceRegisterDetailDTO           `json:"compliance_register"`
+	Title                   string                                 `json:"title"`
+	Description             string                                 `json:"description"`
+	SeverityLevel           *masterDTOs.SeverityLevelDTO           `json:"severity_level"`
+	ResponsibleUser         organizationDTOs.UserMinimalDTO        `json:"responsible_user"`
+	ActionPlanStatus        masterDTOs.ActionPlanStatusDTO         `json:"action_plan_status"`
+	Percentage              *uint                                  `json:"percentage"`
+	Comments                *string                                `json:"comments"`
+	TargetDateString        *string                                `json:"target_date"`
+	CreatedAt               time.Time                              `json:"created_at"`
+	UpdatedAt               *time.Time                             `json:"updated_at"`
+	CreatedByUser           organizationDTOs.UserMinimalDTO        `json:"created_by_user"`
+	UpdatedByUser           *organizationDTOs.UserMinimalDTO       `json:"updated_by_user"`
+	ActionPlanStatusUpdates []*ComplianceActionPlanStatusUpdateDTO `json:"action_plan_status_updates"`
 }
 
 type ComplianceActionPlanStatusUpdateDTO struct {

@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"errors"
 	incidentDTOs "jethur/grc/incident/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
@@ -13,11 +14,12 @@ type IncidentRootCauseAnalysisRepositoryInterface interface {
 	GetAll(incidentID uint, params *incidentDTOs.IncidentRootCauseAnalysisListQueryParamsDTO) ([]*incidentDTOs.IncidentRootCauseAnalysisListDTO, error)
 	GetByID(id uint) (*models.IncidentRootCauseAnalysis, error)
 	GetByIncidentID(incidentID uint) ([]*models.IncidentRootCauseAnalysis, error)
-	Create(incidentRootCauseAnalyses []*models.IncidentRootCauseAnalysis, tx ...utility.DatabaseTransaction) error
-	Update(incidentRootCauseAnalyses []*models.IncidentRootCauseAnalysis, tx ...utility.DatabaseTransaction) error
+	Create(incidentRootCauseAnalysis *models.IncidentRootCauseAnalysis, tx ...utility.DatabaseTransaction) (uint, error)
+	Update(incidentRootCauseAnalysis *models.IncidentRootCauseAnalysis, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
-	DeleteAnalyses(analysisIds []*uint, tx ...utility.DatabaseTransaction) error
+	GetLatestWhyByIncidentID(incidentID uint) (uint, error)
 	UpdateWhyValuesAfterDeletion(incidentID uint, deletedWhy uint, tx ...utility.DatabaseTransaction) error
+	GetCountByRiskID(incidentID uint, tx ...utility.DatabaseTransaction) (int64, error)
 }
 
 type IncidentRootCauseAnalysisRepository struct {
@@ -42,14 +44,24 @@ func (repo *IncidentRootCauseAnalysisRepository) GetAll(incidentID uint, params 
 		Select(`
             incident_root_cause_analyses.*,
             incident_register.title AS incident_register_title,
-            created_user.first_name_en AS created_user_first_name_en,
+            created_user.id AS created_user_id,
+        	created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
             created_user.last_name_en AS created_user_last_name_en,
-            created_user.last_name_ar AS created_user_last_name_ar,   
-            updated_user.first_name_en AS updated_user_first_name_en,
+            created_user.last_name_ar AS created_user_last_name_ar, 
+			created_user.initial AS created_user_initial,
+        	created_user.color AS created_user_color,
+        	created_user.email AS created_user_email,
+        	created_user.profile_image_path AS created_user_profile_image_path,  
+            updated_user.id AS updated_user_id,
+    		updated_user.first_name_en AS updated_user_first_name_en,
             updated_user.first_name_ar AS updated_user_first_name_ar,
             updated_user.last_name_en AS updated_user_last_name_en,
-            updated_user.last_name_ar AS updated_user_last_name_ar          
+            updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+        	updated_user.color AS updated_user_color,
+        	updated_user.email AS updated_user_email,
+        	updated_user.profile_image_path AS updated_user_profile_image_path          
         `).
 		Joins(`
             LEFT JOIN incident_register ON incident_register.id = incident_root_cause_analyses.incident_register_id
@@ -106,25 +118,27 @@ func (repo *IncidentRootCauseAnalysisRepository) GetByIncidentID(incidentID uint
 	return analyses, nil
 }
 
-func (repo *IncidentRootCauseAnalysisRepository) Create(incidentRootCauseAnalyses []*models.IncidentRootCauseAnalysis, tx ...utility.DatabaseTransaction) error {
+func (repo *IncidentRootCauseAnalysisRepository) Create(incidentRootCauseAnalysis *models.IncidentRootCauseAnalysis, tx ...utility.DatabaseTransaction) (uint, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	if err := db.Create(&incidentRootCauseAnalyses).Error; err != nil {
-		return err
+	if err := db.Create(incidentRootCauseAnalysis).Error; err != nil {
+		return 0, err
 	}
-	return nil
+
+	return incidentRootCauseAnalysis.ID, nil
 }
 
-func (repo *IncidentRootCauseAnalysisRepository) Update(incidentRootCauseAnalyses []*models.IncidentRootCauseAnalysis, tx ...utility.DatabaseTransaction) error {
+func (repo *IncidentRootCauseAnalysisRepository) Update(incidentRootCauseAnalysis *models.IncidentRootCauseAnalysis, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	if err := db.Save(&incidentRootCauseAnalyses).Error; err != nil {
+	if err := db.Save(incidentRootCauseAnalysis).Error; err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -156,16 +170,30 @@ func (repo *IncidentRootCauseAnalysisRepository) UpdateWhyValuesAfterDeletion(in
 	return nil
 }
 
-func (repo *IncidentRootCauseAnalysisRepository) DeleteAnalyses(analysisIds []*uint, tx ...utility.DatabaseTransaction) error {
+func (repo *IncidentRootCauseAnalysisRepository) GetLatestWhyByIncidentID(incidentID uint) (uint, error) {
+	var latestWhy uint
+
+	err := repo.db.Model(&models.IncidentRootCauseAnalysis{}).Where("incident_register_id = ?", incidentID).Order("why DESC").Limit(1).Pluck("why", &latestWhy).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// If no records found, return 0
+			return 0, nil
+		}
+		return 0, err
+	}
+	return latestWhy, nil
+}
+
+func (repo *IncidentRootCauseAnalysisRepository) GetCountByRiskID(incidentID uint, tx ...utility.DatabaseTransaction) (int64, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-
-	// Delete documents by IDs
-	if err := db.Where("id IN (?)", analysisIds).Delete(&models.IncidentRootCauseAnalysis{}).Error; err != nil {
-		return err
+	var count int64
+	if err := db.Model(&models.IncidentRootCauseAnalysis{}).
+		Where("incident_register_id = ?", incidentID).
+		Count(&count).Error; err != nil {
+		return 0, err
 	}
-
-	return nil
+	return count, nil
 }

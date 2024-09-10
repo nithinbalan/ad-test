@@ -3,6 +3,8 @@ package services
 import (
 	"errors"
 	"fmt"
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
@@ -35,6 +37,7 @@ type ProcessService struct {
 	userSvc            UserServiceInterface
 	lifecycleStatusSvc masterServices.LifecycleStatusServiceInterface
 	controlSvc         ControlServiceInterface
+	notificationSvc    commonServices.NotificationServiceInterface
 }
 
 func NewProcessService(
@@ -43,7 +46,8 @@ func NewProcessService(
 	processGroupSvc ProcessGroupServiceInterface,
 	userSvc UserServiceInterface,
 	lifecycleStatusSvc masterServices.LifecycleStatusServiceInterface,
-	controlSvc ControlServiceInterface) ProcessServiceInterface {
+	controlSvc ControlServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface) ProcessServiceInterface {
 	return &ProcessService{
 		repo:               repo,
 		activityLogSvc:     activityLogSvc,
@@ -51,6 +55,7 @@ func NewProcessService(
 		userSvc:            userSvc,
 		lifecycleStatusSvc: lifecycleStatusSvc,
 		controlSvc:         controlSvc,
+		notificationSvc:    notificationSvc,
 	}
 }
 
@@ -87,7 +92,8 @@ func (ps *ProcessService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTran
 		return nil, err
 	}
 
-	//todo :- also add extra fields which required in details screen
+	processDetailDTO.CreatedAt = process.CreatedAt
+	processDetailDTO.UpdatedAt = process.UpdatedAt
 
 	return &processDetailDTO, nil
 }
@@ -108,17 +114,21 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 	if err != nil {
 		return 0, err
 	}
+	organizationUnitID, err := ps.userSvc.GetUserPrimaryUnitID(uint(processFormDTO.OwnerID))
+	if err != nil {
+		return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for owner"), "not_exist", "process owner unit")
+	}
 
 	process := &models.Process{
 		ProcessGroupID:    processFormDTO.ProcessGroupID,
-		OwnerUnitID:       processFormDTO.OwnerUnitID,
 		OwnerID:           processFormDTO.OwnerID,
+		OwnerUnitID:       organizationUnitID,
 		LifecycleStatusID: lifecycleStatus.ID,
 		ReferenceNumber:   referenceNumber,
 		TitleEn:           processFormDTO.TitleEn,
 		TitleAr:           processFormDTO.TitleAr,
 		Description:       processFormDTO.Description,
-		CreatedByID:       currentUserID,
+		CreatedBYID:       currentUserID,
 	}
 
 	id, err := ps.repo.Create(process)
@@ -144,7 +154,92 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 		}
 	}
 
+	var documents []*models.ProcessAssociatedDocument
+	for _, documentID := range processFormDTO.DocumentIds {
+		document := &models.ProcessAssociatedDocument{
+			ProcessID:   id,
+			DocumentID:  *documentID,
+			CreatedByID: currentUserID,
+		}
+		documents = append(documents, document)
+	}
+
+	if len(documents) > 0 {
+		if err := ps.repo.CreateProcessDocuments(documents, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
 	tx.Commit()
+
+	go func() {
+		urlParam := fmt.Sprintf(`{"id":%d}`, id)
+		entity := "process"
+		action := "responsible-user-assign"
+
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserID:               processFormDTO.OwnerID,
+			ModuleIdentifier:     "organization",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			ReferenceNumber:      process.ReferenceNumber,
+			HeadingEn:            "Process Assignment",
+			HeadingAr:            "مهمة العملية",
+			TitleEn:              processFormDTO.TitleEn,
+			TitleAr:              processFormDTO.TitleAr,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		responsibleUser, err := ps.userSvc.GetByID(processFormDTO.OwnerID)
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		existingProcess, err := ps.GetFullDetailsByID(process.ID)
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		emailTo := []string{responsibleUser.Email}
+		subject := fmt.Sprintf("Process/%s: Assigned", processFormDTO.TitleEn)
+		appURL := utility.GetAppURL()
+		emailData := map[string]interface{}{
+			"FirstNameEn":            responsibleUser.FirstNameEn,
+			"LastNameEn":             responsibleUser.LastNameEn,
+			"ProcessReferenceNumber": existingProcess.ReferenceNumber,
+			"ProcessName":            existingProcess.TitleEn,
+			"ProcessGroup":           existingProcess.ProcessGroup.TitleEn,
+			"AssignedByFirstNameEn":  existingProcess.CreatedByUser.FirstNameEN,
+			"AssignedByLastNameEn":   existingProcess.CreatedByUser.LastNameEN,
+			"AssignedOn":             existingProcess.CreatedAt.Format("2006-01-02"),
+			"RedirectURL":            fmt.Sprintf("%s/process/%d", appURL, id),
+		}
+
+		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              emailTo,
+			Subject:              subject,
+			TemplateRelativePath: "organization/templates/email/process_create_owner_mail.html",
+			EmailData:            emailData,
+		}
+
+		err = ps.notificationSvc.SendNotification(
+			dbNotificationDTO, emailNotificationDTO, "process")
+		if err != nil {
+			utility.LogError("Failed to send notifications", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
+	}()
 
 	go func() {
 		err := ps.activityLogSvc.LogActivity(
@@ -175,52 +270,62 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *organizationDTOs.ProcessFormDTO) error {
 	tx := ps.repo.BeginTransaction()
 
-	existingProcess, err := ps.GetByID(id)
-
+	process, err := ps.GetByID(id)
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
+
+	oldOwnerID := process.OwnerID
 
 	if err := ps.validateProcessFormDTO(processFormDTO); err != nil {
+		tx.Rollback()
 		return err
 	}
 
-	existingProcess.ProcessGroupID = processFormDTO.ProcessGroupID
-	existingProcess.OwnerUnitID = processFormDTO.OwnerUnitID
-	existingProcess.OwnerID = processFormDTO.OwnerID
-	existingProcess.TitleEn = processFormDTO.TitleEn
-	existingProcess.TitleAr = processFormDTO.TitleAr
-	existingProcess.Description = processFormDTO.Description
-	existingProcess.UpdatedByID = &currentUserID
+	// If owner has changed, update the OwnerUnitID
+	if process.OwnerID != processFormDTO.OwnerID {
+		organizationUnitID, err := ps.userSvc.GetUserPrimaryUnitID(uint(processFormDTO.OwnerID))
+		if err != nil {
+			tx.Rollback()
+			return utility.NewValidationError(fmt.Errorf("organization unit not set for owner"), "not_exist", "process owner unit")
+		}
+		process.OwnerUnitID = organizationUnitID
+	}
 
-	err = ps.repo.Update(existingProcess)
+	process.ProcessGroupID = processFormDTO.ProcessGroupID
+	process.OwnerID = processFormDTO.OwnerID
+	process.TitleEn = processFormDTO.TitleEn
+	process.TitleAr = processFormDTO.TitleAr
+	process.Description = processFormDTO.Description
+	process.UpdatedBYID = &currentUserID
+
+	err = ps.repo.Update(process)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
 	// Collect existing control IDs
-	existingProcessWithControls, err := ps.GetFullDetailsByID(id, tx)
+	existingProcess, err := ps.GetFullDetailsByID(id, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
+
 	existingControlIDs := make(map[uint]bool)
-	for _, ctrl := range existingProcessWithControls.Controls {
+	for _, ctrl := range existingProcess.Controls {
 		existingControlIDs[ctrl.ControlID] = true
 	}
 
-	// Collect new control IDs
 	newControlIDs := make(map[uint]bool)
 	for _, ctrl := range processFormDTO.ControlIds {
 		newControlIDs[*ctrl] = true
 	}
 
-	// Add new controls
 	var controlsToAdd []*models.ProcessControl
 	for _, newControlID := range processFormDTO.ControlIds {
 		if _, exists := existingControlIDs[*newControlID]; !exists {
-			// Create a new process control record
 			control := &models.ProcessControl{
 				ProcessID:   id,
 				ControlID:   *newControlID,
@@ -230,7 +335,6 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 		}
 	}
 
-	// Save the new controls
 	if len(controlsToAdd) > 0 {
 		if err := ps.repo.CreateProcessControls(controlsToAdd, tx); err != nil {
 			tx.Rollback()
@@ -238,17 +342,13 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 		}
 	}
 
-	// Remove controls not in the new list
 	var deleteControlIDs []*uint
-
-	for _, existingControl := range existingProcessWithControls.Controls {
+	for _, existingControl := range existingProcess.Controls {
 		if _, exists := newControlIDs[existingControl.ControlID]; !exists {
-			// Append control to delete list
 			deleteControlIDs = append(deleteControlIDs, existingControl.ID)
 		}
 	}
 
-	// Delete controls not in the new list
 	if len(deleteControlIDs) > 0 {
 		if err := ps.repo.DeleteProcessControls(deleteControlIDs, tx); err != nil {
 			tx.Rollback()
@@ -256,7 +356,178 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 		}
 	}
 
+	existingDocumentIDs := make(map[uint]bool)
+	for _, doc := range existingProcess.Documents {
+		existingDocumentIDs[doc.DocumentID] = true
+	}
+
+	newDocumentIDs := make(map[uint]bool)
+	for _, doc := range processFormDTO.DocumentIds {
+		newDocumentIDs[*doc] = true
+	}
+
+	var documentsToAdd []*models.ProcessAssociatedDocument
+	for _, newDocumentID := range processFormDTO.DocumentIds {
+		if _, exists := existingDocumentIDs[*newDocumentID]; !exists {
+			document := &models.ProcessAssociatedDocument{
+				ProcessID:   id,
+				DocumentID:  *newDocumentID,
+				CreatedByID: currentUserID,
+			}
+			documentsToAdd = append(documentsToAdd, document)
+		}
+	}
+
+	if len(documentsToAdd) > 0 {
+		if err := ps.repo.CreateProcessDocuments(documentsToAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	var deleteDocumentIDs []*uint
+	for _, existingDocument := range existingProcess.Documents {
+		if _, exists := newDocumentIDs[existingDocument.DocumentID]; !exists {
+			deleteDocumentIDs = append(deleteDocumentIDs, existingDocument.ID)
+		}
+	}
+
+	if len(deleteDocumentIDs) > 0 {
+		if err := ps.repo.DeleteProcessDocuments(deleteDocumentIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
 	tx.Commit()
+
+	go func() {
+		if oldOwnerID != processFormDTO.OwnerID {
+			urlParam := fmt.Sprintf(`{"id":%d}`, id)
+			queryParam := ""
+			entity := "process"
+			action := "responsible-user-remove"
+
+			oldOwnerNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserID:               oldOwnerID,
+				ModuleIdentifier:     "organization",
+				NotificationType:     string(commonDTOs.InformationType),
+				ReferenceNumber:      process.ReferenceNumber,
+				HeadingEn:            "Process Ownership Removal",
+				HeadingAr:            "إزالة مسؤولية العملية",
+				TitleEn:              processFormDTO.TitleEn,
+				TitleAr:              processFormDTO.TitleAr,
+				Entity:               &entity,
+				Action:               &action,
+				URLParam:             urlParam,
+				QueryParam:           queryParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			oldOwnerUser, err := ps.userSvc.GetByID(oldOwnerID)
+			if err != nil {
+				utility.LogError("Failed to fetch old responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			oldOwnerEmailTo := []string{oldOwnerUser.Email}
+			oldOwnerSubject := fmt.Sprintf("Process/%s: Ownership Removed", process.TitleEn)
+			oldOwnerTemplateRelativePath := "organization/templates/email/process_remove_owner_mail.html"
+
+			appURL := utility.GetAppURL()
+
+			oldOwnerEmailData := map[string]interface{}{
+				"FirstNameEn":            oldOwnerUser.FirstNameEn,
+				"LastNameEn":             oldOwnerUser.LastNameEn,
+				"ProcessReferenceNumber": existingProcess.ReferenceNumber,
+				"ProcessName":            existingProcess.TitleEn,
+			}
+
+			oldOwnerEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              oldOwnerEmailTo,
+				Subject:              oldOwnerSubject,
+				TemplateRelativePath: oldOwnerTemplateRelativePath,
+				EmailData:            oldOwnerEmailData,
+			}
+
+			//new owner notification
+			newOwnerAction := "responsible-user-assign"
+
+			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserID:               processFormDTO.OwnerID,
+				ModuleIdentifier:     "organization",
+				NotificationType:     string(commonDTOs.AssignmentType),
+				ReferenceNumber:      process.ReferenceNumber,
+				HeadingEn:            "Process Ownership Change",
+				HeadingAr:            "تغيير مسؤولية العملية",
+				TitleEn:              processFormDTO.TitleEn,
+				TitleAr:              processFormDTO.TitleAr,
+				Entity:               &entity,
+				Action:               &newOwnerAction,
+				URLParam:             urlParam,
+				QueryParam:           queryParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			responsibleUser, err := ps.userSvc.GetByID(processFormDTO.OwnerID)
+			if err != nil {
+				utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			emailTo := []string{responsibleUser.Email}
+			subject := fmt.Sprintf("Process/%s: Ownership Changed", process.TitleEn)
+			templateRelativePath := "organization/templates/email/process_change_owner_mail.html"
+
+			emailData := map[string]interface{}{
+				"FirstNameEn":              responsibleUser.FirstNameEn,
+				"LastNameEn":               responsibleUser.LastNameEn,
+				"ProcessReferenceNumber":   existingProcess.ReferenceNumber,
+				"ProcessName":              existingProcess.TitleEn,
+				"ProcessGroup":             existingProcess.ProcessGroup.TitleEn,
+				"PreviousOwnerFirstNameEn": oldOwnerUser.FirstNameEn,
+				"PreviousOwnerLastNameEn":  oldOwnerUser.LastNameEn,
+				"NewOwnerFirstNameEn":      responsibleUser.FirstNameEn,
+				"NewOwnerLastNameEn":       responsibleUser.LastNameEn,
+				"AssignedByFirstNameEn":    existingProcess.CreatedByUser.FirstNameEN,
+				"AssignedByLastNameEn":     existingProcess.CreatedByUser.LastNameEN,
+				"AssignedOn":               existingProcess.CreatedAt.Format("2006-01-02"),
+				"RedirectURL":              fmt.Sprintf("%s/process/%d", appURL, id),
+			}
+
+			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              emailTo,
+				Subject:              subject,
+				TemplateRelativePath: templateRelativePath,
+				EmailData:            emailData,
+			}
+
+			err = ps.notificationSvc.SendNotification(
+				dbNotificationDTO, emailNotificationDTO, "process")
+			if err != nil {
+				utility.LogError("Failed to send notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+
+			err = ps.notificationSvc.SendNotification(
+				oldOwnerNotificationDTO, oldOwnerEmailNotificationDTO, "process")
+			if err != nil {
+				utility.LogError("Failed to send old owner notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+
+			}
+		}
+
+	}()
+
 	return nil
 }
 
@@ -265,6 +536,12 @@ func (ps *ProcessService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 
 	var failedIds []uint
 	var successfulIds []uint
+	var notifications []struct {
+		OwnerID         *uint
+		TitleEn         string
+		TitleAr         string
+		ReferenceNumber string
+	}
 
 	for _, id := range ids {
 		process, err := ps.GetFullDetailsByID(id, tx)
@@ -273,12 +550,36 @@ func (ps *ProcessService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 			return nil, err
 		}
 
+		// Prepare notification data before deletion
+		notifications = append(notifications, struct {
+			OwnerID         *uint
+			TitleEn         string
+			TitleAr         string
+			ReferenceNumber string
+		}{
+			OwnerID:         process.OwnerID,
+			TitleEn:         process.TitleEn,
+			TitleAr:         process.TitleAr,
+			ReferenceNumber: process.ReferenceNumber,
+		})
+
 		if len(process.Controls) > 0 {
 			var deleteControlIds []*uint
 			for _, ctrl := range process.Controls {
 				deleteControlIds = append(deleteControlIds, ctrl.ID)
 			}
 			if err := ps.repo.DeleteProcessControls(deleteControlIds, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+		}
+
+		if len(process.Documents) > 0 {
+			var deleteDocumentIds []*uint
+			for _, document := range process.Documents {
+				deleteDocumentIds = append(deleteDocumentIds, document.ID)
+			}
+			if err := ps.repo.DeleteProcessDocuments(deleteDocumentIds, tx); err != nil {
 				tx.Rollback()
 				return nil, err
 			}
@@ -301,6 +602,7 @@ func (ps *ProcessService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 
 	if len(successfulIds) > 0 {
 		go func() {
+			// Log bulk delete activities
 			err := ps.activityLogSvc.LogBulkActivities(
 				models.DeleteAction,
 				models.Process{}.TableName(),
@@ -311,6 +613,67 @@ func (ps *ProcessService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 			)
 			if err != nil {
 				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+			}
+
+			// Send notifications to the owners of the deleted processes
+			for _, notification := range notifications {
+				urlParam := ""
+				queryParam := ""
+				entity := "process"
+				action := "delete"
+
+				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+					UserID:               *notification.OwnerID,
+					ModuleIdentifier:     "organization",
+					NotificationType:     string(commonDTOs.DeletionType),
+					ReferenceNumber:      notification.ReferenceNumber,
+					HeadingEn:            "Process Deleted",
+					HeadingAr:            "تم حذف العملية",
+					TitleEn:              notification.TitleEn,
+					TitleAr:              notification.TitleAr,
+					Entity:               &entity,
+					Action:               &action,
+					URLParam:             urlParam,
+					QueryParam:           queryParam,
+					IsSystemNotification: false,
+					CreatedByID:          &currentUserID,
+				}
+
+				ownerUser, err := ps.userSvc.GetByID(*notification.OwnerID)
+				if err != nil {
+					utility.LogError("Failed to fetch owner details for notification", map[string]interface{}{
+						"error": err.Error(),
+					})
+					continue
+				}
+
+				ownerEmailTo := []string{ownerUser.Email}
+				subject := fmt.Sprintf("Process/%s: Deleted", notification.TitleEn)
+				templateRelativePath := "organization/templates/email/process_delete_mail.html"
+				appURL := utility.GetAppURL()
+
+				emailData := map[string]interface{}{
+					"FirstNameEn":            ownerUser.FirstNameEn,
+					"LastNameEn":             ownerUser.LastNameEn,
+					"ProcessReferenceNumber": notification.ReferenceNumber,
+					"ProcessName":            notification.TitleEn,
+					"RedirectURL":            appURL,
+				}
+
+				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+					EmailTo:              ownerEmailTo,
+					Subject:              subject,
+					TemplateRelativePath: templateRelativePath,
+					EmailData:            emailData,
+				}
+
+				err = ps.notificationSvc.SendNotification(
+					dbNotificationDTO, emailNotificationDTO, "process")
+				if err != nil {
+					utility.LogError("Failed to send deletion notifications", map[string]interface{}{
+						"error": err.Error(),
+					})
+				}
 			}
 		}()
 	}
@@ -415,6 +778,22 @@ func (ps *ProcessService) validateProcessFormDTO(processFormDTO *organizationDTO
 		}
 
 		controlIDs[*control] = true
+	}
+
+	documents := processFormDTO.DocumentIds
+
+	documentIDs := make(map[uint]bool)
+
+	for _, document := range documents {
+		if documentIDs[*document] {
+			return utility.NewValidationError(fmt.Errorf("duplicate document ID: %d", document), "duplicate", "document")
+		}
+
+		if _, err := ps.repo.GetDocumentByID(*document); err != nil {
+			return utility.NewValidationError(fmt.Errorf("document does not exist for ID: %d", document), "not_exist", "document")
+		}
+
+		documentIDs[*document] = true
 	}
 
 	return nil

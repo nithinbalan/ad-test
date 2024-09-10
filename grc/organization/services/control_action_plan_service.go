@@ -3,6 +3,8 @@ package services
 import (
 	"errors"
 	"fmt"
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
@@ -32,6 +34,7 @@ type ControlActionPlanService struct {
 	severityLevelSvc    masterServices.SeverityLevelServiceInterface
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface
 	userSvc             UserServiceInterface
+	notificationSvc     commonServices.NotificationServiceInterface
 }
 
 func NewControlActionPlanService(
@@ -40,7 +43,8 @@ func NewControlActionPlanService(
 	controlSvc ControlServiceInterface,
 	severityLevelSvc masterServices.SeverityLevelServiceInterface,
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
-	userSvc UserServiceInterface) ControlActionPlanServiceInterface {
+	userSvc UserServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface) ControlActionPlanServiceInterface {
 	return &ControlActionPlanService{
 		repo:                repo,
 		activityLogSvc:      activityLogSvc,
@@ -48,6 +52,7 @@ func NewControlActionPlanService(
 		severityLevelSvc:    severityLevelSvc,
 		actionPlanStatusSvc: actionPlanStatusSvc,
 		userSvc:             userSvc,
+		notificationSvc:     notificationSvc,
 	}
 }
 
@@ -96,11 +101,20 @@ func (caps ControlActionPlanService) GetFullDetailsByID(controlID uint, id uint)
 	}
 
 	//todo :- also add extra fields which required in details screen
+	if controlActionPlan.TargetDate != nil {
+		targetDate := controlActionPlan.TargetDate.Format("2006-01-02")
+		controlActionPlanDTO.TargetDateString = &targetDate
+	}
+
+	controlActionPlanDTO.CreatedAt = controlActionPlan.CreatedAt
+	controlActionPlanDTO.UpdatedAt = controlActionPlan.UpdatedAt
 
 	return &controlActionPlanDTO, nil
 }
 
 func (caps *ControlActionPlanService) Create(controlID uint, currentUserID uint, ControlActionPlanFormDTO *organizationDTOs.ControlActionPlanFormDTO) (uint, error) {
+	tx := caps.repo.BeginTransaction()
+
 	if _, err := caps.controlSvc.GetByID(controlID); err != nil {
 		return 0, err
 	}
@@ -130,6 +144,75 @@ func (caps *ControlActionPlanService) Create(controlID uint, currentUserID uint,
 	if err != nil {
 		return 0, err
 	}
+
+	actionPlanStatusID := ControlActionPlanFormDTO.ActionPlanStatusID
+	controlActionPlanUpdate := &models.ControlActionPlanStatusUpdate{
+		ControlActionPlanID: id,
+		ActionPlanStatusID:  actionPlanStatusID,
+		Comment:             "Initial action plan status",
+		CreatedByID:         currentUserID,
+	}
+
+	_, err = caps.repo.CreateInitialControlActionPlanStatusUpdate(controlActionPlanUpdate, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	tx.Commit()
+
+	go func() {
+		urlParam := fmt.Sprintf(`{"id":%d}`, id)
+		entity := "control-action-plan"
+		action := "responsible-user-assign"
+
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserID:               controlActionPlan.ResponsibleUserID,
+			ModuleIdentifier:     "organization",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			ReferenceNumber:      "",
+			HeadingEn:            "Control Action Plan Assignment",
+			HeadingAr:            "تعيين خطة عمل التحكم",
+			TitleEn:              ControlActionPlanFormDTO.Title,
+			TitleAr:              ControlActionPlanFormDTO.Title,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		responsibleUser, err := caps.userSvc.GetByID(controlActionPlan.ResponsibleUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user for notification", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		emailTo := []string{responsibleUser.Email}
+		subject := fmt.Sprintf("Control Action Plan/%s: Assigned", ControlActionPlanFormDTO.Title)
+		templateRelativePath := "organization/templates/email/control_action_plan_create_responsible_user_mail.html"
+		emailData := organizationDTOs.ControlActionPlanMailDTO{
+			FirstNameEn: responsibleUser.FirstNameEn,
+			LastNameEn:  responsibleUser.LastNameEn,
+			MessageEn:   ControlActionPlanFormDTO.Title,
+		}
+
+		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              emailTo,
+			Subject:              subject,
+			TemplateRelativePath: templateRelativePath,
+			EmailData:            emailData,
+		}
+
+		err = caps.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "control_action_plan")
+		if err != nil {
+			utility.LogError("Failed to send control action plan notifications", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
+	}()
 
 	go func() {
 		err := caps.activityLogSvc.LogActivity(
@@ -163,10 +246,11 @@ func (caps *ControlActionPlanService) Update(controlID uint, id uint, currentUse
 	}
 
 	existingControlActionPlan, err := caps.GetByID(controlID, id)
-
 	if err != nil {
 		return err
 	}
+
+	oldResponsibleUserID := existingControlActionPlan.ResponsibleUserID
 
 	if err := caps.validateControlActionPlanFormDTO(ControlActionPlanFormDTO); err != nil {
 		return err
@@ -177,7 +261,7 @@ func (caps *ControlActionPlanService) Update(controlID uint, id uint, currentUse
 		return err
 	}
 
-	// Update Compliance ActionPlan
+	// Update Control ActionPlan
 	existingControlActionPlan.Title = ControlActionPlanFormDTO.Title
 	existingControlActionPlan.Description = ControlActionPlanFormDTO.Description
 	existingControlActionPlan.SeverityLevelID = ControlActionPlanFormDTO.SeverityLevelID
@@ -193,6 +277,102 @@ func (caps *ControlActionPlanService) Update(controlID uint, id uint, currentUse
 		return err
 	}
 
+	go func() {
+		if oldResponsibleUserID != ControlActionPlanFormDTO.ResponsibleUserID {
+			urlParam := fmt.Sprintf(`{"id":%d}`, id)
+			entity := "control-action-plan"
+			removeAction := "responsible-user-remove"
+			assignAction := "responsible-user-assign"
+
+			// Notify the old responsible user
+			oldResponsibleUserNotification := &commonDTOs.DBNotificationDTO{
+				UserID:               oldResponsibleUserID,
+				ModuleIdentifier:     "organization",
+				NotificationType:     string(commonDTOs.InformationType),
+				ReferenceNumber:      "",
+				HeadingEn:            "Control Action Plan Responsibility Removed",
+				HeadingAr:            "إزالة مسؤولية خطة العمل",
+				TitleEn:              ControlActionPlanFormDTO.Title,
+				TitleAr:              ControlActionPlanFormDTO.Title,
+				Entity:               &entity,
+				Action:               &removeAction,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			oldResponsibleUser, err := caps.userSvc.GetByID(oldResponsibleUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch old responsible user details", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			oldResponsibleUserEmail := &commonDTOs.EmailNotificationDTO{
+				EmailTo: []string{oldResponsibleUser.Email},
+				Subject: fmt.Sprintf("Control Action Plan/%s: Responsibility Removed", existingControlActionPlan.Title),
+				EmailData: organizationDTOs.ControlActionPlanMailDTO{
+					FirstNameEn: oldResponsibleUser.FirstNameEn,
+					LastNameEn:  oldResponsibleUser.LastNameEn,
+					MessageEn:   existingControlActionPlan.Title,
+				},
+				TemplateRelativePath: "organization/templates/email/control_action_plan_remove_responsible_user_mail.html",
+			}
+
+			// Notify the new responsible user
+			newResponsibleUserNotification := &commonDTOs.DBNotificationDTO{
+				UserID:               ControlActionPlanFormDTO.ResponsibleUserID,
+				ModuleIdentifier:     "organization",
+				NotificationType:     string(commonDTOs.AssignmentType),
+				ReferenceNumber:      "",
+				HeadingEn:            "Control Action Plan Assigned",
+				HeadingAr:            "تم تعيين مسؤولية خطة العمل",
+				TitleEn:              ControlActionPlanFormDTO.Title,
+				TitleAr:              ControlActionPlanFormDTO.Title,
+				Entity:               &entity,
+				Action:               &assignAction,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			newResponsibleUser, err := caps.userSvc.GetByID(ControlActionPlanFormDTO.ResponsibleUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch new responsible user details", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			newResponsibleUserEmail := &commonDTOs.EmailNotificationDTO{
+				EmailTo: []string{newResponsibleUser.Email},
+				Subject: fmt.Sprintf("Control Action Plan/%s: Assigned", existingControlActionPlan.Title),
+				EmailData: organizationDTOs.ControlActionPlanMailDTO{
+					FirstNameEn: newResponsibleUser.FirstNameEn,
+					LastNameEn:  newResponsibleUser.LastNameEn,
+					MessageEn:   existingControlActionPlan.Title,
+				},
+				TemplateRelativePath: "organization/templates/email/control_action_plan_change_responsible_user_mail.html",
+			}
+
+			// Send notifications for old and new responsible users
+			err = caps.notificationSvc.SendNotification(newResponsibleUserNotification, newResponsibleUserEmail, "control_action_plan")
+			if err != nil {
+				utility.LogError("Failed to send new responsible user notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+
+			err = caps.notificationSvc.SendNotification(oldResponsibleUserNotification, oldResponsibleUserEmail, "control_action_plan")
+			if err != nil {
+				utility.LogError("Failed to send old responsible user notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+		}
+	}()
+
 	return nil
 }
 
@@ -203,12 +383,41 @@ func (caps *ControlActionPlanService) Delete(controlID uint, ids []uint, current
 
 	var failedIds []uint
 	var successfulIds []uint
+	var notifications []struct {
+		ResponsibleUserID *uint
+		TitleEn           string
+		TitleAr           string
+		ReferenceNumber   string
+	}
+
 	for _, id := range ids {
-
-		_, err := caps.repo.GetByID(id)
-
+		controlActionPlan, err := caps.GetFullDetailsByID(controlID, id)
 		if err != nil {
+			failedIds = append(failedIds, id)
 			continue
+		}
+
+		notifications = append(notifications, struct {
+			ResponsibleUserID *uint
+			TitleEn           string
+			TitleAr           string
+			ReferenceNumber   string
+		}{
+			ResponsibleUserID: &controlActionPlan.ResponsibleUserID,
+			TitleEn:           controlActionPlan.Title,
+			TitleAr:           controlActionPlan.Title,
+		})
+
+		// Delete associated ActionPlanStatusUpdates if any
+		if len(controlActionPlan.ActionPlanStatusUpdates) > 0 {
+			var deleteStatusUpdateIds []*uint
+			for _, update := range controlActionPlan.ActionPlanStatusUpdates {
+				deleteStatusUpdateIds = append(deleteStatusUpdateIds, &update.ID)
+			}
+			if err := caps.repo.DeleteControlActionPlanStatusUpdates(deleteStatusUpdateIds); err != nil {
+				failedIds = append(failedIds, id)
+				continue
+			}
 		}
 
 		err = caps.repo.Delete(id)
@@ -220,7 +429,6 @@ func (caps *ControlActionPlanService) Delete(controlID uint, ids []uint, current
 	}
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := caps.activityLogSvc.LogBulkActivities(
 				models.DeleteAction,
@@ -231,8 +439,66 @@ func (caps *ControlActionPlanService) Delete(controlID uint, ids []uint, current
 				nil,
 			)
 			if err != nil {
-				// @todo - save to log file
 				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+			}
+
+			// Send notifications to the responsible users of the deleted ControlActionPlans
+			for _, notification := range notifications {
+				urlParam := ""
+				queryParam := ""
+				entity := "control-action-plan"
+				action := "delete"
+
+				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+					UserID:               *notification.ResponsibleUserID,
+					ModuleIdentifier:     "organization",
+					NotificationType:     string(commonDTOs.DeletionType),
+					ReferenceNumber:      notification.ReferenceNumber,
+					HeadingEn:            "Control Action Plan Deleted",
+					HeadingAr:            "تم حذف خطة العمل",
+					TitleEn:              notification.TitleEn,
+					TitleAr:              notification.TitleAr,
+					Entity:               &entity,
+					Action:               &action,
+					URLParam:             urlParam,
+					QueryParam:           queryParam,
+					IsSystemNotification: false,
+					CreatedByID:          &currentUserID,
+				}
+
+				responsibleUser, err := caps.userSvc.GetByID(*notification.ResponsibleUserID)
+				if err != nil {
+					utility.LogError("Failed to fetch responsible user details for notification", map[string]interface{}{
+						"error": err.Error(),
+					})
+					continue
+				}
+
+				emailTo := []string{responsibleUser.Email}
+				subject := fmt.Sprintf("Control Action Plan/%s: Deleted", notification.TitleEn)
+				templateRelativePath := "organization/templates/email/control_action_plan_delete_mail.html"
+				redirectURL := fmt.Sprintf("control-action-plan/deleted/%d", *notification.ResponsibleUserID)
+
+				emailData := organizationDTOs.ControlActionPlanMailDTO{
+					FirstNameEn: responsibleUser.FirstNameEn,
+					LastNameEn:  responsibleUser.LastNameEn,
+					MessageEn:   notification.TitleEn,
+					RedirectURL: redirectURL,
+				}
+
+				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+					EmailTo:              emailTo,
+					Subject:              subject,
+					TemplateRelativePath: templateRelativePath,
+					EmailData:            emailData,
+				}
+
+				err = caps.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "control_action_plan")
+				if err != nil {
+					utility.LogError("Failed to send deletion notifications", map[string]interface{}{
+						"error": err.Error(),
+					})
+				}
 			}
 		}()
 	}
@@ -273,6 +539,11 @@ func (caps *ControlActionPlanService) validateControlActionPlanFormDTO(ControlAc
 
 	if _, err := caps.actionPlanStatusSvc.GetByID(ControlActionPlanFormDTO.ActionPlanStatusID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("action plan status does not exist"), "not_exist", "action plan status")
+	}
+
+	if ControlActionPlanFormDTO.Percentage == nil {
+		defaultValue := uint(0)
+		ControlActionPlanFormDTO.Percentage = &defaultValue
 	}
 
 	return nil

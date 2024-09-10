@@ -6,7 +6,7 @@ import (
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
-	"log"
+	"math"
 	"time"
 
 	"gorm.io/gorm"
@@ -16,10 +16,9 @@ type ComplianceRequirementRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementListResponseDTO, error)
 	GetRequirementsByComplianceID(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementByComplianceIDListResponseDTO, error)
-	GetByID(id uint) (*models.ComplianceRequirement, error)
+	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceRequirement, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceRequirement, error)
 	Create(complianceRequirement *models.ComplianceRequirement, tx ...utility.DatabaseTransaction) (uint, error)
-	CreateComplianceRequirementStatusUpdate(complianceRequirementStatusUpdate *models.ComplianceRequirementStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(complianceRequirement *models.ComplianceRequirement, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	GetOrCreateComplianceClause(complianceClause *models.ComplianceClause, tx ...utility.DatabaseTransaction) (*models.ComplianceClause, error)
@@ -30,7 +29,15 @@ type ComplianceRequirementRepositoryInterface interface {
 	DeleteComplianceRequirementControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error
 	CreateComplianceRequirementStrategicObjectives(objectives []*models.ComplianceRequirementStrategicObjective, tx ...utility.DatabaseTransaction) error
 	DeleteComplianceRequirementStrategicObjectives(objectiveIds []*uint, tx ...utility.DatabaseTransaction) error
+
+	CreateInitialComplianceRequirementStatusUpdate(complianceRequirementStatusUpdate *models.ComplianceRequirementStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
+	GetStatusUpdateByRequirementID(requirementID uint, tx ...utility.DatabaseTransaction) ([]*models.ComplianceRequirementStatusUpdate, error)
 	DeleteComplianceRequirementStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error
+
+	CreateComplianceRequirementDocuments(documents []*models.ComplianceRequirementAssociatedDocument, tx ...utility.DatabaseTransaction) error
+	DeleteComplianceRequirementDocuments(documentIds []*uint, tx ...utility.DatabaseTransaction) error
+
+	CalculateAverageScore(complianceRegisterID uint, tx ...utility.DatabaseTransaction) (float64, error)
 }
 
 type ComplianceRequirementRepository struct {
@@ -65,6 +72,7 @@ func (repo *ComplianceRequirementRepository) GetAll(params *complianceDTOs.Compl
 			compliance_statuses.title_en AS compliance_status_title_en,
 			compliance_statuses.title_ar AS compliance_status_title_ar,
 			compliance_statuses.color_code AS compliance_status_color_code,
+			responsible_user.id AS responsible_user_id,
 			responsible_user.first_name_en AS responsible_user_first_name_en,
             responsible_user.first_name_ar AS responsible_user_first_name_ar,
             responsible_user.last_name_en AS responsible_user_last_name_en,
@@ -73,7 +81,8 @@ func (repo *ComplianceRequirementRepository) GetAll(params *complianceDTOs.Compl
             responsible_user.color AS responsible_user_color,
             responsible_user.email AS responsible_user_email,
             responsible_user.profile_image_path AS responsible_user_profile_image_path,
-			created_user.first_name_en AS created_user_first_name_en,
+			created_user.id AS created_user_id,
+        	created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
             created_user.last_name_en AS created_user_last_name_en,
             created_user.last_name_ar AS created_user_last_name_ar,   
@@ -81,7 +90,8 @@ func (repo *ComplianceRequirementRepository) GetAll(params *complianceDTOs.Compl
             created_user.color AS created_user_color,
             created_user.email AS created_user_email,
             created_user.profile_image_path AS created_user_profile_image_path,   
-			updated_user.first_name_en AS updated_user_first_name_en,
+			updated_user.id AS updated_user_id,
+    		updated_user.first_name_en AS updated_user_first_name_en,
             updated_user.first_name_ar AS updated_user_first_name_ar,
             updated_user.last_name_en AS updated_user_last_name_en,
             updated_user.last_name_ar AS updated_user_last_name_ar,
@@ -211,15 +221,18 @@ func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(compl
 			compliance_statuses.title_en AS compliance_status_title_en,
 			compliance_statuses.title_ar AS compliance_status_title_ar,
 			compliance_statuses.color_code AS compliance_status_color_code,
+			responsible_user.id AS responsible_user_id,
 			responsible_user.first_name_en AS responsible_user_first_name_en,
 			responsible_user.first_name_ar AS responsible_user_first_name_ar,
 			responsible_user.last_name_en AS responsible_user_last_name_en,
 			responsible_user.last_name_ar AS responsible_user_last_name_ar,
-			created_user.first_name_en AS created_user_first_name_en,
+			created_user.id AS created_user_id,
+        	created_user.first_name_en AS created_user_first_name_en,
 			created_user.first_name_ar AS created_user_first_name_ar,
 			created_user.last_name_en AS created_user_last_name_en,
 			created_user.last_name_ar AS created_user_last_name_ar,
-			updated_user.first_name_en AS updated_user_first_name_en,
+			updated_user.id AS updated_user_id,
+    		updated_user.first_name_en AS updated_user_first_name_en,
 			updated_user.first_name_ar AS updated_user_first_name_ar,
 			updated_user.last_name_en AS updated_user_last_name_en,
 			updated_user.last_name_ar AS updated_user_last_name_ar 
@@ -349,9 +362,16 @@ func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(compl
 	}, nil
 }
 
-func (repo *ComplianceRequirementRepository) GetByID(id uint) (*models.ComplianceRequirement, error) {
+func (repo *ComplianceRequirementRepository) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceRequirement, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
 	var complianceRequirement *models.ComplianceRequirement
-	result := repo.db.First(&complianceRequirement, id)
+	result := db.
+		Preload("ComplianceClause").
+		First(&complianceRequirement, id)
 
 	if result.Error != nil {
 		return nil, result.Error
@@ -368,14 +388,6 @@ func (repo *ComplianceRequirementRepository) GetFullDetailsByID(id uint, tx ...u
 
 	var complianceRequirement *models.ComplianceRequirement
 
-	// Subquery to get the latest status update
-	latestStatusUpdateSubQuery := db.
-		Table("compliance_requirement_status_updates").
-		Select("id").
-		Where("compliance_requirement_id = ?", id).
-		Order("created_at desc").
-		Limit(1)
-
 	result := db.
 		Preload("ComplianceClause").
 		Preload("ComplianceStatus").
@@ -386,23 +398,14 @@ func (repo *ComplianceRequirementRepository) GetFullDetailsByID(id uint, tx ...u
 		Preload("Controls.Control.ControlCategory").
 		Preload("Controls.Control.ControlType").
 		Preload("StrategicObjectives.StrategicObjective").
+		Preload("Documents").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
-		Preload("ComplianceRequirementStatusUpdates").
-		Preload("LatestComplianceRequirementStatusUpdate", func(db *gorm.DB) *gorm.DB {
-			return db.Where("id IN (?)", latestStatusUpdateSubQuery).
-				Preload("ComplianceStatus").
-				Preload("CreatedByUser").
-				Preload("UpdatedByUser").
-				Preload("Documents")
-		}).
 		First(&complianceRequirement, id)
 
 	if result.Error != nil {
 		return nil, result.Error
 	}
-
-	log.Printf("Fetched compliance requirement: %+v", complianceRequirement)
 
 	return complianceRequirement, nil
 }
@@ -418,7 +421,7 @@ func (repo *ComplianceRequirementRepository) Create(complianceRequirement *model
 	return complianceRequirement.ID, nil
 }
 
-func (repo *ComplianceRequirementRepository) CreateComplianceRequirementStatusUpdate(complianceRequirementStatusUpdate *models.ComplianceRequirementStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error) {
+func (repo *ComplianceRequirementRepository) CreateInitialComplianceRequirementStatusUpdate(complianceRequirementStatusUpdate *models.ComplianceRequirementStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -558,10 +561,37 @@ func (repo *ComplianceRequirementRepository) DeleteComplianceRequirementStrategi
 	return nil
 }
 
+func (repo *ComplianceRequirementRepository) CreateComplianceRequirementDocuments(documents []*models.ComplianceRequirementAssociatedDocument, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&documents).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *ComplianceRequirementRepository) DeleteComplianceRequirementDocuments(documentIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", documentIds).Delete(&models.ComplianceRequirementAssociatedDocument{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (repo *ComplianceRequirementRepository) DeleteComplianceRequirementStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
+	}
+	if err := db.Where("compliance_requirement_status_update_id IN (?)", ids).Delete(&models.ComplianceRequirementStatusUpdateDocument{}).Error; err != nil {
+		return err
 	}
 
 	if err := db.Where("id IN (?)", ids).Delete(&models.ComplianceRequirementStatusUpdate{}).Error; err != nil {
@@ -569,4 +599,56 @@ func (repo *ComplianceRequirementRepository) DeleteComplianceRequirementStatusUp
 	}
 
 	return nil
+}
+
+func (repo *ComplianceRequirementRepository) GetStatusUpdateByRequirementID(requirementID uint, tx ...utility.DatabaseTransaction) ([]*models.ComplianceRequirementStatusUpdate, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	var requirementStatusUpdates []*models.ComplianceRequirementStatusUpdate
+	result := db.Where("compliance_requirement_id = ?", requirementID).Find(&requirementStatusUpdates)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return requirementStatusUpdates, nil
+}
+
+func (repo *ComplianceRequirementRepository) CalculateAverageScore(complianceRegisterID uint, tx ...utility.DatabaseTransaction) (float64, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var totalScore int
+	var requirementCount int
+
+	// Join ComplianceRequirement with ComplianceClause and ComplianceStatus to filter by ComplianceRegister ID
+	// and exclude requirements with status "exempt" or "not_applicable"
+	err := db.Table("compliance_requirements").
+		Joins("JOIN compliance_clauses ON compliance_requirements.compliance_clause_id = compliance_clauses.id").
+		Joins("JOIN compliance_statuses ON compliance_requirements.compliance_status_id = compliance_statuses.id").
+		Where("compliance_clauses.compliance_register_id = ?", complianceRegisterID).
+		Where("compliance_statuses.type NOT IN ('exempt', 'not_applicable')").
+		Select("SUM(compliance_requirements.score) AS total_score, COUNT(compliance_requirements.id) AS requirement_count").
+		Row().
+		Scan(&totalScore, &requirementCount)
+	if err != nil {
+		return 0, err
+	}
+
+	// Calculate the average score
+	var averageScore float64
+	if requirementCount > 0 {
+		averageScore = float64(totalScore) / float64(requirementCount)
+	} else {
+		averageScore = 0
+	}
+
+	// Round the average score to 2 decimal places
+	roundedScore := math.Round(averageScore*100) / 100
+
+	return roundedScore, nil
 }

@@ -14,6 +14,7 @@ type RiskActionPlanStatusUpdateRepositoryInterface interface {
 	GetByID(id uint) (*models.RiskActionPlanStatusUpdate, error)
 	Create(RiskActionPlanStatusUpdate *models.RiskActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(RiskActionPlanStatusUpdate *models.RiskActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) error
+	GetLatestRiskActionPlanStatusUpdate(riskActionPlanID uint) (*riskDTOs.RiskActionPlanStatusUpdateListDTO, error)
 
 	//Document
 	CreateDocuments(docs []*models.RiskActionPlanStatusUpdateDocument, tx ...utility.DatabaseTransaction) error
@@ -47,11 +48,13 @@ func (repo *RiskActionPlanStatusUpdateRepository) GetAll(riskActionPlanID uint, 
             action_plan_statuses.title_en AS action_plan_status_title_en,
             action_plan_statuses.title_ar AS action_plan_status_title_ar,
             action_plan_statuses.color_code AS action_plan_status_color_code,
-            created_user.first_name_en AS created_user_first_name_en,
+            created_user.id AS created_user_id,
+        	created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
             created_user.last_name_en AS created_user_last_name_en,
             created_user.last_name_ar AS created_user_last_name_ar,
-            updated_user.first_name_en AS updated_user_first_name_en,
+            updated_user.id AS updated_user_id,
+    		updated_user.first_name_en AS updated_user_first_name_en,
             updated_user.first_name_ar AS updated_user_first_name_ar,
             updated_user.last_name_en AS updated_user_last_name_en,
             updated_user.last_name_ar AS updated_user_last_name_ar 
@@ -150,4 +153,52 @@ func (repo *RiskActionPlanStatusUpdateRepository) DeleteDocuments(docIds []*uint
 	}
 
 	return nil
+}
+
+func (repo *RiskActionPlanStatusUpdateRepository) GetLatestRiskActionPlanStatusUpdate(riskActionPlanID uint) (*riskDTOs.RiskActionPlanStatusUpdateListDTO, error) {
+
+	var riskActionPlanUpdate *riskDTOs.RiskActionPlanStatusUpdateListDTO
+
+	query := repo.db.Table("risk_action_plan_status_updates").
+		Select(`
+            risk_action_plan_status_updates.*,
+            risk_action_plans.title AS risk_action_plan_title,
+            action_plan_statuses.title_en AS action_plan_status_title_en,
+            action_plan_statuses.title_ar AS action_plan_status_title_ar,
+            action_plan_statuses.color_code AS action_plan_status_color_code,
+        	created_user.id AS created_user_id,
+        		created_user.first_name_en AS created_user_first_name_en,
+        	created_user.first_name_ar AS created_user_first_name_ar,
+        	created_user.last_name_en AS created_user_last_name_en,
+        	created_user.last_name_ar AS created_user_last_name_ar,   
+        	created_user.initial AS created_user_initial,
+        	created_user.color AS created_user_color,
+        	created_user.email AS created_user_email,
+        	created_user.profile_image_path AS created_user_profile_image_path,   
+			updated_user.id AS updated_user_id,
+    		updated_user.first_name_en AS updated_user_first_name_en,
+        	updated_user.first_name_ar AS updated_user_first_name_ar,
+        	updated_user.last_name_en AS updated_user_last_name_en,
+        	updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+        	updated_user.color AS updated_user_color,
+        	updated_user.email AS updated_user_email,
+        	updated_user.profile_image_path AS updated_user_profile_image_path
+        `).
+		Joins(`
+            LEFT JOIN risk_action_plans ON risk_action_plans.id = risk_action_plan_status_updates.risk_action_plan_id
+            LEFT JOIN action_plan_statuses ON action_plan_statuses.id = risk_action_plan_status_updates.action_plan_status_id
+            LEFT JOIN users AS created_user ON created_user.id = risk_action_plan_status_updates.created_by_id
+            LEFT JOIN users AS updated_user ON updated_user.id = risk_action_plan_status_updates.updated_by_id
+        `).
+		Where("risk_action_plan_status_updates.risk_action_plan_id = ?", riskActionPlanID).
+		Order("risk_action_plan_status_updates.created_at DESC").
+		First(&riskActionPlanUpdate)
+
+	if query.Error != nil {
+		return nil, query.Error
+	}
+
+	return riskActionPlanUpdate, nil
+
 }

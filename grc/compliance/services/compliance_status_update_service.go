@@ -21,6 +21,7 @@ type ComplianceStatusUpdateServiceInterface interface {
 	GetFullDetailsByID(complianceID uint, id uint) (*complianceDTOs.ComplianceStatusUpdateDetailDTO, error)
 	Create(complianceID uint, currentUserID uint, complianceStatusUpdateFormDTO *complianceDTOs.ComplianceStatusUpdateFormDTO) (uint, error)
 	Update(complianceID uint, id uint, currentUserID uint, ComplianceStatusUpdateFormDTO *complianceDTOs.ComplianceStatusUpdateFormDTO) error
+	GetLatestComplianceStatusUpdate(complianceID uint) (*complianceDTOs.ComplianceStatusUpdateListDTO, error)
 }
 
 // Service and implementations
@@ -306,4 +307,12 @@ func (csus *ComplianceStatusUpdateService) validateComplianceStatusUpdateFormDTO
 	}
 
 	return nil
+}
+
+func (csus ComplianceStatusUpdateService) GetLatestComplianceStatusUpdate(complianceID uint) (*complianceDTOs.ComplianceStatusUpdateListDTO, error) {
+	if _, err := csus.complianceRegisterSvc.GetByID(complianceID); err != nil {
+		return nil, err
+	}
+
+	return csus.repo.GetLatestComplianceStatusUpdate(complianceID)
 }

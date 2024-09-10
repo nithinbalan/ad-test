@@ -11,6 +11,7 @@ import (
 	masterServices "jethur/grc/masters/services"
 	organizationServices "jethur/grc/organization/services"
 	riskServices "jethur/grc/risk/services"
+	"time"
 
 	"jethur/grc/models"
 	"jethur/utility"
@@ -28,6 +29,7 @@ type IncidentRegisterServiceInterface interface {
 	Create(currentUserID uint, incidentRegisterFormDTO *incidentDTOs.IncidentRegisterFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, incident *incidentDTOs.IncidentRegisterFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	StatusUpdate(id uint, currentUserID uint, incidentStatusID uint, tx utility.DatabaseTransaction) error
 }
 
 // Service and implementations
@@ -35,7 +37,6 @@ type IncidentRegisterService struct {
 	repo                     incidentRepositories.IncidentRegisterRepositoryInterface
 	activityLogSvc           logServices.ActivityLogServiceInterface
 	incidentCategorySvc      IncidentCategoryServiceInterface
-	incidentSubCategorySvc   IncidentSubCategoryServiceInterface
 	incidentTypeSvc          IncidentTypeServiceInterface
 	incidentStatusSvc        IncidentStatusServiceInterface
 	severityLevelSvc         masterServices.SeverityLevelServiceInterface
@@ -43,13 +44,15 @@ type IncidentRegisterService struct {
 	complianceRequirementSvc complianceServices.ComplianceRequirementServiceInterface
 	riskRegisterSvc          riskServices.RiskRegisterServiceInterface
 	processSvc               organizationServices.ProcessServiceInterface
+	slaRegisterSvc           complianceServices.SLARegisterServiceInterface
+	incidentTimelineSvc      IncidentTimelineServiceInterface
+	userSvc                  organizationServices.UserServiceInterface
 }
 
 func NewIncidentRegisterService(
 	repo incidentRepositories.IncidentRegisterRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	incidentCategorySvc IncidentCategoryServiceInterface,
-	incidentSubCategorySvc IncidentSubCategoryServiceInterface,
 	incidentTypeSvc IncidentTypeServiceInterface,
 	incidentStatusSvc IncidentStatusServiceInterface,
 	severityLevelSvc masterRepositories.SeverityLevelRepositoryInterface,
@@ -57,12 +60,14 @@ func NewIncidentRegisterService(
 	complianceRequirementSvc complianceServices.ComplianceRequirementServiceInterface,
 	riskRegisterSvc riskServices.RiskRegisterServiceInterface,
 	processSvc organizationServices.ProcessServiceInterface,
+	slaRegisterSvc complianceServices.SLARegisterServiceInterface,
+	incidentTimelineSvc IncidentTimelineServiceInterface,
+	userSvc organizationServices.UserServiceInterface,
 ) IncidentRegisterServiceInterface {
 	return &IncidentRegisterService{
 		repo:                     repo,
 		activityLogSvc:           activityLogSvc,
 		incidentCategorySvc:      incidentCategorySvc,
-		incidentSubCategorySvc:   incidentSubCategorySvc,
 		incidentTypeSvc:          incidentTypeSvc,
 		incidentStatusSvc:        incidentStatusSvc,
 		severityLevelSvc:         severityLevelSvc,
@@ -70,6 +75,9 @@ func NewIncidentRegisterService(
 		complianceRequirementSvc: complianceRequirementSvc,
 		riskRegisterSvc:          riskRegisterSvc,
 		processSvc:               processSvc,
+		slaRegisterSvc:           slaRegisterSvc,
+		incidentTimelineSvc:      incidentTimelineSvc,
+		userSvc:                  userSvc,
 	}
 }
 
@@ -109,6 +117,18 @@ func (irs IncidentRegisterService) GetFullDetailsByID(id uint, tx ...utility.Dat
 	}
 
 	//todo :- also add extra fields which required in details screen
+	// Format time fields without time component
+	if incident.IncidentAt != nil {
+		incidentAt := incident.IncidentAt.Format("2006-01-02")
+		incidentDTO.IncidentAtString = incidentAt
+	}
+	if incident.ReportedAt != nil {
+		reportedAt := incident.ReportedAt.Format("2006-01-02")
+		incidentDTO.ReportedAtStaring = reportedAt
+	}
+
+	incidentDTO.CreatedAt = incident.CreatedAt
+	incidentDTO.UpdatedAt = incident.UpdatedAt
 
 	return &incidentDTO, nil
 }
@@ -132,22 +152,33 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 	if err := irs.validateIncidentDocumentFormDTO(incidentRegisterFormDTO.Documents); err != nil {
 		return 0, err
 	}
-
+	//update incident status as open
+	incidentStatus, err := irs.incidentStatusSvc.GetByType("open")
+	if err != nil {
+		return 0, err
+	}
+	var organizationUnitID uint
+	unitID, err := irs.userSvc.GetUserPrimaryUnitID(incidentRegisterFormDTO.ResponsibleUserID)
+	if err != nil {
+		return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for owner"), "not_exist", "responsible unit")
+	}
+	organizationUnitID = unitID
 	incidentRegister := &models.IncidentRegister{
-		ReferenceNumber:       referenceNumber,
-		IncidentCategoryID:    incidentRegisterFormDTO.IncidentCategoryID,
-		IncidentSubCategoryID: *incidentRegisterFormDTO.IncidentSubCategoryID,
-		IncidentTypeID:        incidentRegisterFormDTO.IncidentTypeID,
-		SeverityLevelID:       *incidentRegisterFormDTO.SeverityLevelID,
-		IncidentStatusID:      incidentRegisterFormDTO.IncidentStatusID,
-		Title:                 incidentRegisterFormDTO.Title,
-		Description:           incidentRegisterFormDTO.Description,
-		IncidentAt:            dates.IncidentAt,
-		Location:              incidentRegisterFormDTO.Location,
-		ReportedBy:            incidentRegisterFormDTO.ReportedBy,
-		ReportedAt:            dates.ReportedAt,
-		QuickAction:           incidentRegisterFormDTO.QuickAction,
-		CreatedByID:           currentUserID,
+		ReferenceNumber:    referenceNumber,
+		IncidentCategoryID: incidentRegisterFormDTO.IncidentCategoryID,
+		IncidentTypeID:     incidentRegisterFormDTO.IncidentTypeID,
+		SeverityLevelID:    *incidentRegisterFormDTO.SeverityLevelID,
+		IncidentStatusID:   &incidentStatus.ID,
+		ResponsibleUserID:  incidentRegisterFormDTO.ResponsibleUserID,
+		ResponsibleUnitID:  organizationUnitID,
+		Title:              incidentRegisterFormDTO.Title,
+		Description:        incidentRegisterFormDTO.Description,
+		IncidentAt:         dates.IncidentAt,
+		Location:           incidentRegisterFormDTO.Location,
+		ReportedBy:         incidentRegisterFormDTO.ReportedBy,
+		ReportedAt:         dates.ReportedAt,
+		QuickAction:        incidentRegisterFormDTO.QuickAction,
+		CreatedByID:        currentUserID,
 	}
 
 	id, err := irs.repo.Create(incidentRegister, tx)
@@ -157,10 +188,15 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 	}
 	// Save ComplianceRequirements
 	var complianceRequirements []*models.IncidentComplianceRequirement
-	for _, req := range incidentRegisterFormDTO.ComplianceRequirementIds {
+	for _, reqId := range incidentRegisterFormDTO.ComplianceRequirementIds {
+		complianceRequirement, err := irs.complianceRequirementSvc.GetByComplianceRequirementID(*reqId)
+		if err != nil {
+			return 0, err
+		}
 		requirement := &models.IncidentComplianceRequirement{
 			IncidentRegisterID:      id,
-			ComplianceRequirementID: *req,
+			ComplianceRegisterID:    complianceRequirement.ComplianceClause.ComplianceRegisterID,
+			ComplianceRequirementID: *reqId,
 			CreatedByID:             currentUserID,
 		}
 		complianceRequirements = append(complianceRequirements, requirement)
@@ -224,6 +260,93 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 			return 0, err
 		}
 	}
+	// Add SLA Register
+	var slaRegisters []*models.IncidentSLA
+	for _, slaRegisterID := range incidentRegisterFormDTO.SLARegisterIDs {
+		slaRegister := &models.IncidentSLA{
+			IncidentRegisterID: id,
+			SLARegisterID:      *slaRegisterID,
+			CreatedByID:        currentUserID,
+		}
+		slaRegisters = append(slaRegisters, slaRegister)
+	}
+
+	if len(slaRegisters) > 0 {
+		if err := irs.repo.CreateIncidentSLAs(slaRegisters, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
+	var associatedDocs []*models.IncidentAssociatedDocument
+	for _, documentID := range incidentRegisterFormDTO.DocumentIds {
+		document := &models.IncidentAssociatedDocument{
+			IncidentRegisterID: id,
+			DocumentID:         *documentID,
+			CreatedByID:        currentUserID,
+		}
+		associatedDocs = append(associatedDocs, document)
+	}
+
+	if len(associatedDocs) > 0 {
+		if err := irs.repo.CreateIncidentDocuments(associatedDocs, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
+	//Add timeline
+	//todo
+	timelineTypes, err := irs.incidentTimelineSvc.GetAllTypes()
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	// Get timeline statuses
+	completedStatus, err := irs.incidentTimelineSvc.GetByStatusType("completed")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	pendingStatus, err := irs.incidentTimelineSvc.GetByStatusType("pending")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	var timelineFormDTOs []*incidentDTOs.IncidentTimelineFormDTO
+
+	for _, timelineType := range timelineTypes {
+		var (
+			statusID      uint
+			performedByID *uint
+			currentTime   *time.Time
+		)
+
+		if timelineType.Type == "reporting" {
+			statusID = completedStatus.ID
+			performedByID = &currentUserID
+			now := time.Now()
+			currentTime = &now
+		} else {
+			statusID = pendingStatus.ID
+			performedByID = nil
+			currentTime = nil
+		}
+
+		timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
+			IncidentRegisterID:     id,
+			IncidentTimelineTypeID: timelineType.ID,
+			TimelineStatusID:       statusID,
+			PerformedByID:          performedByID,
+			PerformedAt:            currentTime,
+		}
+		timelineFormDTOs = append(timelineFormDTOs, timelineFormDTO)
+	}
+	if err := irs.incidentTimelineSvc.Create(timelineFormDTOs, tx); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
 
 	var documents []*models.IncidentDocument
 
@@ -267,6 +390,13 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
 				tx.Rollback()
 				return 0, err
+			}
+			// Convert DOCX to PDF if the document is a DOCX file
+			if filepath.Ext(doc.Name) == ".docx" {
+				if err := utility.ConvertDocxToPDF(storagePath, doc.Name, storagePath); err != nil {
+					tx.Rollback()
+					return 0, err
+				}
 			}
 		}
 	}
@@ -319,11 +449,16 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 	if err := irs.validateIncidentDocumentFormDTO(incidentRegisterFormDTO.Documents); err != nil {
 		return err
 	}
+	if existingIncidentRegister.ResponsibleUserID != incidentRegisterFormDTO.ResponsibleUserID {
+		organizationUnitID, err := irs.userSvc.GetUserPrimaryUnitID(incidentRegisterFormDTO.ResponsibleUserID)
+		if err != nil {
+			return utility.NewValidationError(fmt.Errorf("organization unit not set for owner"), "not_exist", "control owner unit")
+		}
+		existingIncidentRegister.ResponsibleUnitID = organizationUnitID
+	}
 	existingIncidentRegister.IncidentCategoryID = incidentRegisterFormDTO.IncidentCategoryID
-	existingIncidentRegister.IncidentSubCategoryID = *incidentRegisterFormDTO.IncidentSubCategoryID
 	existingIncidentRegister.IncidentTypeID = incidentRegisterFormDTO.IncidentTypeID
 	existingIncidentRegister.SeverityLevelID = *incidentRegisterFormDTO.SeverityLevelID
-	existingIncidentRegister.IncidentStatusID = incidentRegisterFormDTO.IncidentStatusID
 	existingIncidentRegister.Title = incidentRegisterFormDTO.Title
 	existingIncidentRegister.Description = incidentRegisterFormDTO.Description
 	existingIncidentRegister.IncidentAt = dates.IncidentAt
@@ -548,6 +683,130 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 		}
 	}
 
+	existingSLARegisterIDs := make(map[uint]bool)
+	for _, sla := range existingIncident.SLARegisters {
+		existingSLARegisterIDs[sla.SLARegisterID] = true
+	}
+
+	// Collect new slaess IDs
+	newSLARegisterIDs := make(map[uint]bool)
+	for _, sla := range incidentRegisterFormDTO.SLARegisterIDs {
+		newSLARegisterIDs[*sla] = true
+	}
+
+	// Add new SLA
+	var slaRegistersToAdd []*models.IncidentSLA
+	for _, newSLARegisterID := range incidentRegisterFormDTO.SLARegisterIDs {
+		if _, exists := existingSLARegisterIDs[*newSLARegisterID]; !exists {
+			// Create a new risk slaRegister record
+			slaRegister := &models.IncidentSLA{
+				IncidentRegisterID: id,
+				SLARegisterID:      *newSLARegisterID,
+				CreatedByID:        currentUserID,
+			}
+			slaRegistersToAdd = append(slaRegistersToAdd, slaRegister)
+		}
+	}
+
+	// Save the new slaRegisters
+	if len(slaRegistersToAdd) > 0 {
+		if err := irs.repo.CreateIncidentSLAs(slaRegistersToAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// Remove slaRegisters not in the new list
+	var deleteSLARegisterIDs []*uint
+
+	for _, existingSLARegister := range existingIncident.SLARegisters {
+		if _, exists := newSLARegisterIDs[existingSLARegister.SLARegisterID]; !exists {
+			// Append slaRegister to delete list
+			deleteSLARegisterIDs = append(deleteSLARegisterIDs, existingSLARegister.ID)
+		}
+	}
+
+	// Delete slaRegisters not in the new list
+	if len(deleteSLARegisterIDs) > 0 {
+		if err := irs.repo.DeleteIncidentSLAs(deleteSLARegisterIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	existingDocumentIDs := make(map[uint]bool)
+	for _, doc := range existingIncident.AssociatedDocuments {
+		existingDocumentIDs[doc.DocumentID] = true
+	}
+
+	// Collect new document IDs
+	newDocumentIDs := make(map[uint]bool)
+	for _, doc := range incidentRegisterFormDTO.DocumentIds {
+		newDocumentIDs[*doc] = true
+	}
+
+	// Add new documents
+	var documentsToAdd []*models.IncidentAssociatedDocument
+	for _, newDocumentID := range incidentRegisterFormDTO.DocumentIds {
+		if _, exists := existingDocumentIDs[*newDocumentID]; !exists {
+			// Create a new incident document record
+			document := &models.IncidentAssociatedDocument{
+				IncidentRegisterID: id,
+				DocumentID:         *newDocumentID,
+				CreatedByID:        currentUserID,
+			}
+			documentsToAdd = append(documentsToAdd, document)
+		}
+	}
+
+	// Save the new documents
+	if len(documentsToAdd) > 0 {
+		if err := irs.repo.CreateIncidentDocuments(documentsToAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// Remove documents not in the new list
+	var deleteDocumentIDs []*uint
+
+	for _, existingDocument := range existingIncident.AssociatedDocuments {
+		if _, exists := newDocumentIDs[existingDocument.DocumentID]; !exists {
+			// Append document to delete list
+			deleteDocumentIDs = append(deleteDocumentIDs, existingDocument.ID)
+		}
+	}
+
+	// Delete documents not in the new list
+	if len(deleteDocumentIDs) > 0 {
+		if err := irs.repo.DeleteIncidentDocuments(deleteDocumentIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	//Update timeline
+	//todo
+	timelineType, err := irs.incidentTimelineSvc.GetByType("reporting")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	timelineStatus, err := irs.incidentTimelineSvc.GetByStatusType("completed")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	currentTime := time.Now()
+	timelineFormDTO := &incidentDTOs.IncidentTimelineFormDTO{
+		PerformedByID:    &currentUserID,
+		TimelineStatusID: timelineStatus.ID,
+		PerformedAt:      &currentTime,
+	}
+	if err := irs.incidentTimelineSvc.Update(id, timelineFormDTO, timelineType.ID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
 	//documents update
 	var documents []*models.IncidentDocument
 	var deleteDocumentIds []*uint
@@ -711,6 +970,34 @@ func (irs *IncidentRegisterService) Delete(ids []uint, currentUserID uint) ([]ui
 				return nil, err
 			}
 		}
+		if len(incident.SLARegisters) > 0 {
+			var deleteSLARegisterIDs []*uint
+			for _, sla := range incident.SLARegisters {
+				deleteSLARegisterIDs = append(deleteSLARegisterIDs, sla.ID)
+			}
+			if err := irs.repo.DeleteIncidentSLAs(deleteSLARegisterIDs, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+		}
+
+		if len(incident.AssociatedDocuments) > 0 {
+			var deleteDocumentIds []*uint
+			for _, document := range incident.AssociatedDocuments {
+				deleteDocumentIds = append(deleteDocumentIds, document.ID)
+			}
+			if err := irs.repo.DeleteIncidentDocuments(deleteDocumentIds, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+		}
+
+		//Delete timeline
+		//todo
+		if err := irs.incidentTimelineSvc.Delete(id, tx); err != nil {
+			tx.Rollback()
+			return nil, err
+		}
 
 		// Delete each incident document if documents exist
 		if len(incident.Documents) > 0 {
@@ -778,25 +1065,42 @@ func (irs *IncidentRegisterService) Delete(ids []uint, currentUserID uint) ([]ui
 	return failedIds, nil
 }
 
+func (irs *IncidentRegisterService) StatusUpdate(id uint, currentUserID uint, incidentStatusID uint, tx utility.DatabaseTransaction) error {
+	existingIncident, err := irs.GetByID(id)
+
+	if err != nil {
+		return err
+	}
+
+	existingIncident.IncidentStatusID = &incidentStatusID
+	existingIncident.UpdatedByID = &currentUserID
+
+	err = irs.repo.Update(existingIncident, tx)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (irs *IncidentRegisterService) validateIncidentRegisterFormDTO(incidentRegisterFormDTO *incidentDTOs.IncidentRegisterFormDTO) error {
 	if _, err := irs.incidentCategorySvc.GetByID(incidentRegisterFormDTO.IncidentCategoryID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("incident category does not exist"), "not_exist", "incident category")
 	}
 
-	if _, err := irs.incidentSubCategorySvc.GetByID(*incidentRegisterFormDTO.IncidentSubCategoryID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("incident sub category does not exist"), "not_exist", "incident sub category")
+	if incidentRegisterFormDTO.IncidentTypeID != nil {
+		if _, err := irs.incidentTypeSvc.GetByID(*incidentRegisterFormDTO.IncidentTypeID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("incident type does not exist"), "not_exist", "incident type")
+		}
 	}
-
-	if _, err := irs.incidentTypeSvc.GetByID(incidentRegisterFormDTO.IncidentTypeID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("incident type does not exist"), "not_exist", "incident type")
+	if incidentRegisterFormDTO.SeverityLevelID != nil {
+		if _, err := irs.severityLevelSvc.GetByID(*incidentRegisterFormDTO.SeverityLevelID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
+		}
 	}
-
-	if _, err := irs.incidentStatusSvc.GetByID(incidentRegisterFormDTO.IncidentStatusID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("incident status does not exist"), "not_exist", "incident status")
-	}
-
-	if _, err := irs.severityLevelSvc.GetByID(*incidentRegisterFormDTO.SeverityLevelID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
+	if _, err := irs.userSvc.GetByID(uint(incidentRegisterFormDTO.ResponsibleUserID)); err != nil {
+		return utility.NewValidationError(fmt.Errorf("responsible user does not exist"), "not_exist", "responsible user")
 	}
 	//Controls exist
 	controls := incidentRegisterFormDTO.ControlIds
@@ -878,6 +1182,22 @@ func (irs *IncidentRegisterService) validateIncidentRegisterFormDTO(incidentRegi
 		}
 
 		processIDs[*processId] = true
+	}
+
+	slaRegisterIds := incidentRegisterFormDTO.SLARegisterIDs
+
+	slaRegisterIDs := make(map[uint]bool)
+
+	for _, slaRegisterId := range slaRegisterIds {
+		if slaRegisterIDs[*slaRegisterId] {
+			return utility.NewValidationError(fmt.Errorf("duplicate slaRegister ID: %d", slaRegisterId), "duplicate", "sla register")
+		}
+
+		if _, err := irs.slaRegisterSvc.GetByID(*slaRegisterId); err != nil {
+			return utility.NewValidationError(fmt.Errorf("slaRegister does not exist for ID: %d", slaRegisterId), "not_exist", "sla register")
+		}
+
+		slaRegisterIDs[*slaRegisterId] = true
 	}
 
 	return nil

@@ -9,7 +9,7 @@ import (
 
 type RiskInherentEvaluationRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetFullDetailsByID(riskID uint) (*models.RiskEvaluation, error)
+	GetFullDetailsByID(riskID uint, tx ...utility.DatabaseTransaction) (*models.RiskEvaluation, error)
 	GetByID(id uint) (*models.RiskEvaluation, error)
 	Create(riskInherentEvaluation *models.RiskEvaluation, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(riskInherentEvaluation *models.RiskEvaluation, tx ...utility.DatabaseTransaction) error
@@ -37,11 +37,15 @@ func (repo *RiskInherentEvaluationRepository) BeginTransaction() utility.Databas
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *RiskInherentEvaluationRepository) GetFullDetailsByID(riskID uint) (*models.RiskEvaluation, error) {
+func (repo *RiskInherentEvaluationRepository) GetFullDetailsByID(riskID uint, tx ...utility.DatabaseTransaction) (*models.RiskEvaluation, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 	var riskInherentEvaluation models.RiskEvaluation
 
 	// Preload all necessary relationships
-	result := repo.db.
+	result := db.
 		Preload("RiskMatrixLikelihood").
 		Preload("RiskMatrixImpact").
 		Preload("RiskMatrixRiskRating").
