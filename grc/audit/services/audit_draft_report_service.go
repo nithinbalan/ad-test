@@ -5,10 +5,14 @@ import (
 	"fmt"
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
+	complianceDTOs "jethur/grc/compliance/dtos"
+	documentDTOs "jethur/grc/documents/dtos"
+	incidentDTOs "jethur/grc/incident/dtos"
 	logServices "jethur/grc/logs/services"
 	masterDTOs "jethur/grc/masters/dtos"
 	"jethur/grc/models"
 	organiztionDTOs "jethur/grc/organization/dtos"
+	riskDTOs "jethur/grc/risk/dtos"
 	"jethur/utility"
 
 	"gorm.io/gorm"
@@ -119,7 +123,6 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, tx ...util
 				IsFinalized: finding.AuditDraftFindingStatus.IsFinalized,
 			}
 		}
-		
 		// Map AuditableItem to DTO
 		if finding.AuditableItem != nil {
 			findingDTO.AuditableItem = auditDTOs.AuditableItemDetailDTO{
@@ -135,7 +138,46 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, tx ...util
 				ComplianceRequirementID: finding.AuditableItem.ComplianceRequirementID,
 				RiskRegisterID:          finding.AuditableItem.RiskRegisterID,
 			}
+			if finding.AuditableItem.Process != nil {
+				findingDTO.AuditableItem.Process = &organiztionDTOs.ProcessDetailDTO{
+					TitleEn: safeStringPointer(&finding.AuditableItem.Process.TitleEn),
+					TitleAr: safeStringPointer(&finding.AuditableItem.Process.TitleAr),
+				}
+			}
+			if finding.AuditableItem.Control != nil {
+				findingDTO.AuditableItem.Control = &organiztionDTOs.ControlDetailDTO{
+					TitleEn: safeStringPointer(&finding.AuditableItem.Control.TitleEn),
+					TitleAr: safeStringPointer(&finding.AuditableItem.Control.TitleAr),
+				}
+			}
+			if finding.AuditableItem.Document != nil {
+				findingDTO.AuditableItem.Document = &documentDTOs.DocumentDetailsDTO{
+					TitleEn: safeStringPointer(&finding.AuditableItem.Document.TitleEn),
+					TitleAr: safeStringPointer(&finding.AuditableItem.Document.TitleAr),
+				}
+			}
+			if finding.AuditableItem.ComplianceRequirement != nil {
+				findingDTO.AuditableItem.ComplianceRequirement = &complianceDTOs.ComplianceRequirementDetailDTO{
+					Title: safeStringPointer(&finding.AuditableItem.ComplianceRequirement.Title),
+				}
+			}
+			if finding.AuditableItem.IncidentRegister != nil {
+				findingDTO.AuditableItem.IncidentRegister = &incidentDTOs.IncidentRegisterDetailDTO{
+					Title: safeStringPointer(&finding.AuditableItem.IncidentRegister.Title),
+				}
+			}
+			if finding.AuditableItem.RiskRegister != nil {
+				findingDTO.AuditableItem.RiskRegister = &riskDTOs.RiskRegisterDetailDTO{
+					Title: safeStringPointer(&finding.AuditableItem.RiskRegister.Title),
+				}
+			}
+			if finding.AuditableItem.User != nil {
+				userDTO := mapUserToUserMinimalDTO(finding.AuditableItem.User)
+				findingDTO.AuditableItem.User = &userDTO
+			}
+
 		}
+
 		// Map AuditFindingCategory to DTO
 		if finding.AuditFindingCategory != nil {
 			findingDTO.AuditFindingCategory = auditDTOs.AuditFindingCategoryDTO{
@@ -381,4 +423,12 @@ func mapUserToUserMinimalDTO(user *models.User) organiztionDTOs.UserMinimalDTO {
 		Initial:          user.Initial,
 		Color:            user.Color,
 	}
+}
+
+// Helper function to safely dereference string pointers
+func safeStringPointer(s *string) string {
+	if s != nil {
+		return *s
+	}
+	return ""
 }
