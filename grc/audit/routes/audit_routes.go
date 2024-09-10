@@ -49,6 +49,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditDraftFindingStatusController := app.AuditModule.AuditDraftFindingStatusController
 	auditDraftFindingController := app.AuditModule.AuditDraftFindingController
 	auditDraftReportController := app.AuditModule.AuditDraftReportController
+	rcmController := app.AuditModule.RCMController
 
 	//Audit Status
 	auditRoutes.GET("/audit-statuses", auditStatusController.GetAllAuditStatuses)
@@ -268,5 +269,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.POST("/audits/:auditId/draft-reports", auditDraftReportController.CreateAuditDraftReport)
 	auditRoutes.PUT("/audits/:auditId/draft-reports/:id", auditDraftReportController.UpdateAuditDraftReport)
 	auditRoutes.POST("/audits/:auditId/draft-reports/delete", auditDraftReportController.DeleteAuditDraftReports)
+
+	//Audit Risk Control Metrix
+	auditRoutes.GET("audits/:auditId/risk-control-matrix", rcmController.GetAllRiskControls)
 
 }

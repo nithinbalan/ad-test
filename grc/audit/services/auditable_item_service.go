@@ -17,7 +17,7 @@ import (
 
 type AuditableItemServiceInterface interface {
 	GetAll(params *auditDTOs.AuditableItemListQueryParamsDTO) (*auditDTOs.AuditableItemListResponseDTO, error)
-	GetByID(id uint) (*models.AuditableItem, error)
+	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.AuditableItem, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditableItemDetailDTO, error)
 	Create(currentUserID uint, auditableItemFormDTO *auditDTOs.AuditableItemFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, audit *auditDTOs.AuditableItemFormDTO) error
@@ -56,8 +56,8 @@ func (ais *AuditableItemService) GetAll(params *auditDTOs.AuditableItemListQuery
 	return ais.repo.GetAll(params)
 }
 
-func (ais AuditableItemService) GetByID(id uint) (*models.AuditableItem, error) {
-	auditableItem, err := ais.repo.GetByID(id)
+func (ais AuditableItemService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.AuditableItem, error) {
+	auditableItem, err := ais.repo.GetByID(id, tx...)
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {

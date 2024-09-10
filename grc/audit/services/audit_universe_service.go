@@ -154,6 +154,7 @@ func (aus *AuditUniverseService) Create(currentUserID uint, auditUniverseFormDTO
 
 	// Create all auditable items in one go
 	if len(auditableItems) > 0 {
+		fmt.Println("hii", len(auditableItems))
 		if err := aus.repo.Create(auditableItems, tx); err != nil {
 			tx.Rollback()
 			return err
