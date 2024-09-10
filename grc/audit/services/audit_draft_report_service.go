@@ -6,6 +6,7 @@ import (
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
 	logServices "jethur/grc/logs/services"
+	masterDTOs "jethur/grc/masters/dtos"
 	"jethur/grc/models"
 	organiztionDTOs "jethur/grc/organization/dtos"
 	"jethur/utility"
@@ -72,12 +73,12 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, tx ...util
 		ReferenceNumber:    auditDraftReport.Audit.AuditPlan.ReferenceNumber,
 		ReportDateString:   auditDraftReport.ReportDate.Format("2006-01-02"),
 		PreparedBy:         mapUserToUserMinimalDTO(auditDraftReport.Audit.CreatedByUser),
-		PreparedAt:         auditDraftReport.CreatedAt.String(),
+		PreparedAt:         auditDraftReport.CreatedAt.Format("2006-01-02"),
 		ExecutiveSummary:   *auditDraftReport.ExecutiveSummary,
 		TeamLead:           mapUserToUserMinimalDTO(auditDraftReport.Audit.AuditPlan.TeamLead),
 		Conclusion:         *auditDraftReport.Conclusion,
 		Auditors:           []*auditDTOs.AuditPlanAuditMemberDTO{}, // Initialize as empty slice
-		AuditDraftFindings: []*auditDTOs.AuditDraftFindingDetailDTO{},
+		AuditDraftFindings: []*auditDTOs.AuditDraftFindingReportDetailDTO{},
 	}
 
 	// Map auditors
@@ -91,7 +92,7 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, tx ...util
 	}
 	// Map findings
 	for _, finding := range auditDraftReport.Audit.AuditDraftFindings {
-		findingDTO := auditDTOs.AuditDraftFindingDetailDTO{
+		findingDTO := auditDTOs.AuditDraftFindingReportDetailDTO{
 			ID:                        finding.ID,
 			Title:                     finding.Title,
 			Description:               finding.Description,
@@ -118,6 +119,45 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, tx ...util
 				IsFinalized: finding.AuditDraftFindingStatus.IsFinalized,
 			}
 		}
+		
+		// Map AuditableItem to DTO
+		if finding.AuditableItem != nil {
+			findingDTO.AuditableItem = auditDTOs.AuditableItemDetailDTO{
+				ID:                      finding.AuditableItem.ID,
+				Type:                    finding.AuditableItem.Type,
+				TitleEn:                 *finding.AuditableItem.TitleEn,
+				TitleAr:                 *finding.AuditableItem.TitleAr,
+				Comment:                 &finding.AuditableItem.Comment,
+				ProcessID:               finding.AuditableItem.ProcessID,
+				ControlID:               finding.AuditableItem.ControlID,
+				DocumentID:              finding.AuditableItem.DocumentID,
+				IncidentRegisterID:      finding.AuditableItem.IncidentRegisterID,
+				ComplianceRequirementID: finding.AuditableItem.ComplianceRequirementID,
+				RiskRegisterID:          finding.AuditableItem.RiskRegisterID,
+			}
+		}
+		// Map AuditFindingCategory to DTO
+		if finding.AuditFindingCategory != nil {
+			findingDTO.AuditFindingCategory = auditDTOs.AuditFindingCategoryDTO{
+				ID:            int(finding.AuditFindingCategory.ID),
+				TitleEn:       finding.AuditFindingCategory.TitleEn,
+				TitleAr:       finding.AuditFindingCategory.TitleAr,
+				DescriptionEn: *finding.AuditFindingCategory.DescriptionEn,
+				DescriptionAr: *finding.AuditFindingCategory.DescriptionAr,
+			}
+		}
+
+		// Map SeverityLevel to DTO
+		if finding.SeverityLevel != nil {
+			findingDTO.SeverityLevel = masterDTOs.SeverityLevelDTO{
+				ID:        finding.SeverityLevel.ID,
+				TitleEn:   finding.SeverityLevel.TitleEn,
+				TitleAr:   finding.SeverityLevel.TitleAr,
+				ColorCode: finding.SeverityLevel.ColorCode,
+				Status:    finding.SeverityLevel.Status,
+			}
+		}
+
 		// Map documents
 		for _, document := range finding.Documents {
 			// Map the document model to the DTO
@@ -149,7 +189,6 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, tx ...util
 
 		auditReportDTO.AuditDraftFindings = append(auditReportDTO.AuditDraftFindings, &findingDTO)
 	}
-
 	return auditReportDTO, nil
 }
 
