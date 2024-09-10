@@ -128,8 +128,8 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, tx ...util
 			findingDTO.AuditableItem = auditDTOs.AuditableItemDetailDTO{
 				ID:                      finding.AuditableItem.ID,
 				Type:                    finding.AuditableItem.Type,
-				TitleEn:                 *finding.AuditableItem.TitleEn,
-				TitleAr:                 *finding.AuditableItem.TitleAr,
+				TitleEn:                 finding.AuditableItem.TitleEn,
+				TitleAr:                 finding.AuditableItem.TitleAr,
 				Comment:                 &finding.AuditableItem.Comment,
 				ProcessID:               finding.AuditableItem.ProcessID,
 				ControlID:               finding.AuditableItem.ControlID,
