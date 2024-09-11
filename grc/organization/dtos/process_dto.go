@@ -99,6 +99,7 @@ type ProcessDetailDTO struct {
 	UpdatedAt             *time.Time                        `json:"updated_at"`
 	Controls              []*ProcessControlDTO              `json:"controls"`
 	Documents             []*ProcessAssociatedDocumentDTO   `json:"documents"`
+	Risks                 []*ProcessRiskDTO                 `json:"processes"`
 	MarkedAsAuditableItem bool                              `json:"marked_as_auditable_item"`
 }
 
@@ -107,6 +108,18 @@ type ProcessControlDTO struct {
 	ProcessID uint             `json:"process_id"`
 	ControlID uint             `json:"control_id"`
 	Control   ControlDetailDTO `json:"control"`
+}
+
+type ProcessRiskDTO struct {
+	ID        *uint          `json:"id"`
+	ProcessID uint           `json:"process_id"`
+	RiskID    uint           `json:"risk_id"`
+	Risk      RiskMinimalDTO `json:"risk"`
+}
+
+type RiskMinimalDTO struct {
+	Title       string  `json:"title"`
+	Description *string `json:"description"`
 }
 
 type ProcessAssociatedDocumentDTO struct {

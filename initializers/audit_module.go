@@ -43,8 +43,12 @@ type AuditModule struct {
 	AuditChecklistController                     *controllers.AuditChecklistController
 	AuditScheduleController                      *controllers.AuditScheduleController
 	AuditDraftReportController                   *controllers.AuditDraftReportController
+<<<<<<< HEAD
 	AuditDraftFindingConversationController      *controllers.AuditDraftFindingConversationController
 	AuditDraftFindingActionPlanController        *controllers.AuditDraftFindingActionPlanController
+=======
+	RCMController                                *controllers.RCMController
+>>>>>>> cf108fa02e832c9b22d2ad77fc8ccea17a6c6418
 }
 
 func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, complianceModule *ComplianceModule, riskModule *RiskModule, incidentModule *IncidentModule, documentModule *DocumentModule, settingModule *SettingsModule, masterModule *MasterModule) *AuditModule {
@@ -330,6 +334,14 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 	)
 	auditDraftReportController := controllers.NewAuditDraftReportController(auditDraftReportSvc)
 
+	rcmRepo := repositories.NewRCMRepository(db)
+	rcmSvc := services.NewRCMService(
+		rcmRepo,
+		sharedModule.ActivityLogService,
+		auditSvc,
+	)
+	rcmController := controllers.NewRCMController(rcmSvc)
+
 	return &AuditModule{
 		AuditorRiskRatingController:                  auditorRiskRatingController,
 		AuditUniverseController:                      auditUniverseController,
@@ -365,7 +377,11 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		AuditChecklistController:                     auditChecklistController,
 		AuditScheduleController:                      auditScheduleController,
 		AuditDraftReportController:                   auditDraftReportController,
+<<<<<<< HEAD
 		AuditDraftFindingConversationController:      auditDraftFindingConversationController,
 		AuditDraftFindingActionPlanController:        auditDraftFindingActionPlanController,
+=======
+		RCMController:                                rcmController,
+>>>>>>> cf108fa02e832c9b22d2ad77fc8ccea17a6c6418
 	}
 }

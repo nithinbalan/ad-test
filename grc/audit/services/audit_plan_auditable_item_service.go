@@ -21,7 +21,6 @@ type AuditPlanAuditableItemServiceInterface interface {
 	Create(auditPlanID uint, currentUserID uint, auditPlanFormDTO *auditDTOs.AuditPlanAuditableItemFormDTO) (uint, error)
 	Delete(auditPlanID uint, ids []uint, currentUserID uint) ([]uint, error)
 	GetByAuditableItemID(auditableItemID uint) (*models.AuditPlanAuditableItem, error)
-
 }
 
 type AuditPlanAuditableItemService struct {
@@ -118,20 +117,74 @@ func (apais *AuditPlanAuditableItemService) Create(auditPlanID uint, currentUser
 		}
 	}
 
-	var auditableItems []*models.AuditPlanAuditableItem
+	//var auditPlanAuditableItems []*models.AuditPlanAuditableItem
 	for _, itemID := range auditPlanFormDTO.AuditableItemIds {
-		auditableItem := &models.AuditPlanAuditableItem{
+		auditableItem, err := apais.auditableItemSvc.GetByID(*itemID)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
+		auditPlanAuditableItem := &models.AuditPlanAuditableItem{
 			AuditPlanID:     auditPlanID,
 			AuditableItemID: *itemID,
 			CreatedBYID:     currentUserID,
 		}
-		auditableItems = append(auditableItems, auditableItem)
-	}
 
-	if len(auditableItems) > 0 {
-		if err := apais.repo.Create(auditableItems, tx); err != nil {
+		// Insert the AuditPlanAuditableItem and get the generated ID
+		auditPlanAuditableItemID, err := apais.repo.Create(auditPlanAuditableItem, tx)
+		if err != nil {
 			tx.Rollback()
 			return 0, err
+		}
+
+		if auditableItem.Type == "process" {
+			riskIDs, err := apais.GetProcessAssociatedRisks(*auditableItem.ProcessID, tx)
+			if err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+
+			// Insert associated risks for the newly inserted AuditPlanAuditableItem
+
+			for _, riskID := range riskIDs {
+				risk := &models.AuditPlanAuditableItemRisk{
+					AuditPlanAuditableItemID: auditPlanAuditableItemID,
+					RiskRegisterID:           riskID,
+					CreatedByID:              currentUserID,
+				}
+				auditPlanAuditableItemRiskID, err := apais.repo.CreateAuditableItemRisk(risk, tx)
+				if err != nil {
+					tx.Rollback()
+					return 0, err
+				}
+
+				controlIDs, err := apais.GetRiskControls(risk.RiskRegisterID, tx)
+				if err != nil {
+					tx.Rollback()
+					return 0, err
+				}
+
+				// Prepare risk control entries
+				var riskControlsToInsert []*models.AuditPlanAuditableItemRiskControl
+				for _, controlID := range controlIDs {
+					riskControl := &models.AuditPlanAuditableItemRiskControl{
+						AuditPlanAuditableItemRisksID: auditPlanAuditableItemRiskID,
+						ControlsID:                    controlID,
+						CreatedByID:                   currentUserID,
+					}
+					riskControlsToInsert = append(riskControlsToInsert, riskControl)
+				}
+
+				if len(riskControlsToInsert) > 0 {
+					if err := apais.repo.CreateAuditableItemRiskControls(riskControlsToInsert, tx); err != nil {
+						tx.Rollback()
+						return 0, err
+					}
+				}
+
+			}
+
 		}
 	}
 
@@ -227,25 +280,33 @@ func (apais *AuditPlanAuditableItemService) Delete(auditPlanID uint, ids []uint,
 }
 
 func (apais *AuditPlanAuditableItemService) validateAuditPlanAuditableItemFormDTO(dto *auditDTOs.AuditPlanAuditableItemFormDTO) error {
-    // Check if AuditableItemIds is nil
-    if dto.AuditableItemIds == nil {
-        return utility.NewValidationError(fmt.Errorf("auditable item IDs are required"), "required", "auditable item IDs")
-    }
+	// Check if AuditableItemIds is nil
+	if dto.AuditableItemIds == nil {
+		return utility.NewValidationError(fmt.Errorf("auditable item IDs are required"), "required", "auditable item IDs")
+	}
 
-    // Check if the list is empty
-    if len(dto.AuditableItemIds) == 0 {
-        return utility.NewValidationError(fmt.Errorf("at least one auditable item ID is required"), "required", "auditable item ID")
-    }
+	// Check if the list is empty
+	if len(dto.AuditableItemIds) == 0 {
+		return utility.NewValidationError(fmt.Errorf("at least one auditable item ID is required"), "required", "auditable item ID")
+	}
 
-    // Validate each AuditableItemId
-    for _, itemID := range dto.AuditableItemIds {
-        if itemID != nil {
-            if _, err := apais.auditableItemSvc.GetByID(*itemID); err != nil {
-                return utility.NewValidationError(fmt.Errorf("auditable item with ID %d does not exist", *itemID), "not_exist", "auditable item")
-            }
-        }
-    }
+	// Validate each AuditableItemId
+	for _, itemID := range dto.AuditableItemIds {
+		if itemID != nil {
+			if _, err := apais.auditableItemSvc.GetByID(*itemID); err != nil {
+				return utility.NewValidationError(fmt.Errorf("auditable item with ID %d does not exist", *itemID), "not_exist", "auditable item")
+			}
+		}
+	}
 
-    return nil
+	return nil
 }
 
+// New function to get risks by process ID
+func (apais *AuditPlanAuditableItemService) GetProcessAssociatedRisks(processID uint, tx ...utility.DatabaseTransaction) ([]uint, error) {
+	return apais.repo.GetProcessAssociatedRisks(processID, tx...)
+}
+
+func (apais *AuditPlanAuditableItemService) GetRiskControls(riskID uint, tx ...utility.DatabaseTransaction) ([]uint, error) {
+	return apais.repo.GetRiskControls(riskID, tx...)
+}

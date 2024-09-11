@@ -1204,6 +1204,54 @@ func (rrs *RiskRegisterService) UpdateRiskRating(riskID uint, currentUserID uint
 	return nil
 }
 
+// func (rrs *RiskRegisterService) UpdateProcessRiskRating(riskID uint, tx utility.DatabaseTransaction) error {
+// 	risk, err := rrs.repo.GetFullDetailsByID(riskID)
+// 	if err != nil {
+// 		tx.Rollback()
+// 		return err
+// 	}
+
+// 	// Iterate through each associated process and update their risk rating
+// 	for _, riskProcess := range risk.Processes {
+// 		// Get all risks associated with the current process
+// 		// var processRisks []models.RiskRegister
+// 		process, err := rrs.processSvc.GetFullDetailsByID(riskProcess.ProcessID)
+// 		if err != nil {
+// 			tx.Rollback()
+// 			return err
+// 		}
+
+// 		// Find the maximum risk rating value from all associated risks
+// 		var maxRiskRatingValue *models.RiskMatrixRiskRatingValue
+// 		for _, risk := range process.Risks {
+// 			if maxRiskRatingValue == nil || (risk.CurrentRiskRatingValue != nil && risk.CurrentRiskRatingValue.Value > maxRiskRatingValue.Value) {
+// 				maxRiskRatingValue = risk.CurrentRiskRatingValue
+// 			}
+// 		}
+
+// 		// If we found a max risk rating value, update the process with the corresponding rating
+// 		if maxRiskRatingValue != nil {
+// 			process, err := rrs.processSvc.GetByID(riskProcess.ProcessID)
+// 			if err != nil {
+// 				tx.Rollback()
+// 				return err
+// 			}
+
+// 			process.RiskMatrixRatingID = maxRiskRatingValue.RiskMatrixRiskRatingID
+// 			process.RiskMatrixRatingValueID = maxRiskRatingValue.ID
+
+// 			// Update the process risk rating in the database
+// 			err = rrs.repo.UpdateProcessRiskRating(process, tx)
+// 			if err != nil {
+// 				tx.Rollback()
+// 				return err
+// 			}
+// 		}
+// 	}
+
+// 	return nil
+// }
+
 func (rrs *RiskRegisterService) ClearRiskRating(riskID uint, updateDTO *riskDTOs.RiskRegisterRiskRatingUpdateDTO, tx utility.DatabaseTransaction) error {
 	riskRegister, err := rrs.GetByID(riskID)
 	if err != nil {
