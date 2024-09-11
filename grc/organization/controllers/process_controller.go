@@ -98,7 +98,14 @@ func (pc *ProcessController) GetAllProcesses(c *gin.Context) {
 	}
 
 	if export {
-		excelFile, err := pc.service.ExportProcesses(processes.Items)
+
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(pc.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := pc.service.ExportProcesses(processes.Items, currentUserID)
 		if err != nil {
 			utility.SendInternalErrResp(pc.db, c, err.Error())
 			return

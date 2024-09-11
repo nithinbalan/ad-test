@@ -141,7 +141,6 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
 	}
 
-	// Calculate total count for pagination
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
@@ -153,13 +152,11 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 		query = query.Offset(offset).Limit(params.PageSize)
 	}
 
-	// Execute the query to get compliance registers
 	err := query.Find(&processes).Error
 	if err != nil {
 		return nil, err
 	}
 
-	// Calculate total pages if not exporting
 	totalPages := 1
 	if !params.Export {
 		totalPages = int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))

@@ -53,3 +53,10 @@ func ParseMandatoryTime(timeStr string) (time.Time, error) {
 
 	return parsedTime, nil
 }
+
+func FormatDate(date *time.Time) string {
+	if date != nil {
+		return date.Format("2006-01-02") // Formats the date as YYYY-MM-DD
+	}
+	return ""
+}

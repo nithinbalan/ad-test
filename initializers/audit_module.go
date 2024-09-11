@@ -44,11 +44,17 @@ type AuditModule struct {
 	AuditScheduleController                      *controllers.AuditScheduleController
 	AuditDraftReportController                   *controllers.AuditDraftReportController
 <<<<<<< HEAD
+<<<<<<< HEAD
 	AuditDraftFindingConversationController      *controllers.AuditDraftFindingConversationController
 	AuditDraftFindingActionPlanController        *controllers.AuditDraftFindingActionPlanController
 =======
 	RCMController                                *controllers.RCMController
 >>>>>>> cf108fa02e832c9b22d2ad77fc8ccea17a6c6418
+=======
+	RCMController                                *controllers.RCMController
+	AuditDraftFindingConversationController      *controllers.AuditDraftFindingConversationController
+	AuditDraftFindingActionPlanController        *controllers.AuditDraftFindingActionPlanController
+>>>>>>> fd5d95295e85e9443dfdbec3d5390aabd011d554
 }
 
 func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, complianceModule *ComplianceModule, riskModule *RiskModule, incidentModule *IncidentModule, documentModule *DocumentModule, settingModule *SettingsModule, masterModule *MasterModule) *AuditModule {
@@ -378,10 +384,16 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		AuditScheduleController:                      auditScheduleController,
 		AuditDraftReportController:                   auditDraftReportController,
 <<<<<<< HEAD
+<<<<<<< HEAD
 		AuditDraftFindingConversationController:      auditDraftFindingConversationController,
 		AuditDraftFindingActionPlanController:        auditDraftFindingActionPlanController,
 =======
 		RCMController:                                rcmController,
 >>>>>>> cf108fa02e832c9b22d2ad77fc8ccea17a6c6418
+=======
+		RCMController:                                rcmController,
+		AuditDraftFindingConversationController:      auditDraftFindingConversationController,
+		AuditDraftFindingActionPlanController:        auditDraftFindingActionPlanController,
+>>>>>>> fd5d95295e85e9443dfdbec3d5390aabd011d554
 	}
 }

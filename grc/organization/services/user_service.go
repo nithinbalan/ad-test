@@ -11,6 +11,7 @@ import (
 	settingDTOs "jethur/grc/settings/dtos"
 	settingService "jethur/grc/settings/services"
 	"jethur/utility"
+	"os"
 	"reflect"
 	"strings"
 	"time"
@@ -43,6 +44,8 @@ type UserServiceInterface interface {
 
 	MarkNotificationsAsRead(userID uint, formDTO *userDTOs.MarkNotificationAsReadFormDTO) (int64, error)
 	MarkNotificationsAsUnread(userID uint, formDTO *userDTOs.MarkNotificationAsReadFormDTO) (int64, error)
+
+	ExportUsers(data []*userDTOs.UserListDTO, currentUserID uint) (*os.File, error)
 }
 
 type UserService struct {
@@ -606,4 +609,66 @@ func (us *UserService) MarkNotificationsAsUnread(userID uint, formDTO *userDTOs.
 	} else {
 		return 0, fmt.Errorf("invalid parameters")
 	}
+}
+
+func (us *UserService) ExportUsers(data []*userDTOs.UserListDTO, currentUserID uint) (*os.File, error) {
+	// Fetch user setting for language preference
+	userSetting, err := us.userSettingSvc.GetUserSetting(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Define headers based on user language setting
+	var headers []string
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"SL No.",
+			"User",
+			"Email",
+			"Mobile",
+			"Designation",
+			"Roles",
+			"Status",
+		}
+	} else {
+		// Default to English
+		headers = []string{
+			"SL No.",
+			"User",
+			"Email",
+			"Mobile",
+			"Designation",
+			"Roles",
+			"Status",
+		}
+	}
+
+	// Convert data to [][]interface{} based on language setting
+	rows := make([][]interface{}, len(data))
+	for i, user := range data {
+		if userSetting.Language == "ar" {
+			rows[i] = []interface{}{
+				i + 1,
+				user.FirstNameAr + " " + user.LastNameAr,
+				user.Email,
+				user.MobileNumber,
+				user.DesignationTitleAr,
+				user.RolesAr,
+				user.UserStatusTitleAr,
+			}
+		} else {
+			rows[i] = []interface{}{
+				i + 1,
+				user.FirstNameEn + " " + user.LastNameEn,
+				user.Email,
+				user.MobileNumber,
+				user.DesignationTitleEn,
+				user.RolesEn,
+				user.UserStatusTitleEn,
+			}
+		}
+	}
+
+	// Generate the Excel file
+	return utility.GenerateExcelFile(headers, rows)
 }

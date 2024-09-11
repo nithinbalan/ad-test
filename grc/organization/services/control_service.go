@@ -11,6 +11,7 @@ import (
 	organizationDTOs "jethur/grc/organization/dtos"
 	organizationRepositories "jethur/grc/organization/repositories"
 	"jethur/utility"
+	"os"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -28,6 +29,8 @@ type ControlServiceInterface interface {
 	Restore(ids []uint, currentUserID uint) ([]uint, error)
 	TestStatusUpdate(control *models.Control, tx utility.DatabaseTransaction) error
 	ReviewStatusUpdate(control *models.Control, tx utility.DatabaseTransaction) error
+
+	ExportControls(data []*organizationDTOs.ControlListDTO, currentUserID uint) (*os.File, error)
 }
 
 type ControlService struct {
@@ -41,6 +44,7 @@ type ControlService struct {
 	reviewFrequencySvc             masterServices.ReviewFrequencyServiceInterface
 	lifecycleStatusSvc             masterServices.LifecycleStatusServiceInterface
 	notificationSvc                commonServices.NotificationServiceInterface
+	userSettingSvc                 UserSettingServiceInterface
 }
 
 func NewControlService(
@@ -53,7 +57,8 @@ func NewControlService(
 	userSvc UserServiceInterface,
 	reviewFrequencySvc masterServices.ReviewFrequencyServiceInterface,
 	lifecycleStatusSvc masterServices.LifecycleStatusServiceInterface,
-	notificationSvc commonServices.NotificationServiceInterface) ControlServiceInterface {
+	notificationSvc commonServices.NotificationServiceInterface,
+	userSettingSvc UserSettingServiceInterface) ControlServiceInterface {
 	return &ControlService{
 		repo:                           repo,
 		activityLogSvc:                 activityLogSvc,
@@ -65,6 +70,7 @@ func NewControlService(
 		reviewFrequencySvc:             reviewFrequencySvc,
 		lifecycleStatusSvc:             lifecycleStatusSvc,
 		notificationSvc:                notificationSvc,
+		userSettingSvc:                 userSettingSvc,
 	}
 }
 
@@ -705,4 +711,115 @@ func (cs *ControlService) parseControlDates(dto *organizationDTOs.ControlFormDTO
 	}
 
 	return parsed, nil
+}
+
+func (cs *ControlService) ExportControls(data []*organizationDTOs.ControlListDTO, currentUserID uint) (*os.File, error) {
+	// Fetch user setting for language preference
+	userSetting, err := cs.userSettingSvc.GetUserSettingsByUserID(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Println(userSetting.Language)
+	// Define headers based on user language setting
+	var headers []string
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"SL No.",
+			"Reference Number",
+			"Control Code",
+			"Title",
+			"Description",
+			"Objective",
+			"Control Category",
+			"Control Type",
+			"Owner",
+			"Review Frequency",
+			"Implementation Status",
+			"Implementation Date",
+			"Efficiency Status",
+			"Last Test Date",
+			"Test Frequency",
+			"Next Test Date",
+			"Last Review Date",
+			"Next Review Date",
+			"Status",
+		}
+	} else {
+		// Default to English
+		headers = []string{
+			"SL No.",
+			"Reference Number",
+			"Control Code",
+			"Title",
+			"Description",
+			"Objective",
+			"Control Category",
+			"Control Type",
+			"Owner",
+			"Review Frequency",
+			"Implementation Status",
+			"Implementation Date",
+			"Efficiency Status",
+			"Last Test Date",
+			"Test Frequency",
+			"Next Test Date",
+			"Last Review Date",
+			"Next Review Date",
+			"Status",
+		}
+	}
+
+	// Convert the control data to [][]interface{} based on language setting
+	rows := make([][]interface{}, len(data))
+	for i, control := range data {
+		if userSetting.Language == "ar" {
+			rows[i] = []interface{}{
+				i + 1,
+				control.ReferenceNumber,
+				*control.Code,
+				control.TitleAr,
+				*control.Description,
+				*control.Objective,
+				control.ControlCategoryTitleAr,
+				control.ControlTypeTitleAr,
+				*control.OwnerFirstNameAr + " " + *control.OwnerLastNameAr,
+				control.ReviewFrequencyTitleAr,
+				control.ControlImplementationStatusTitleAr,
+				utility.FormatDate(control.ImplementedAt),
+				control.ControlEfficiencyStatusTitleAr,
+				utility.FormatDate(control.LastTestDate),
+				*control.TestFrequencyTitleAr,
+				utility.FormatDate(control.NextTestDate),
+				utility.FormatDate(control.LastReviewDate),
+				utility.FormatDate(control.NextReviewDate),
+				control.LifecycleStatusTitleAr,
+			}
+		} else {
+			rows[i] = []interface{}{
+				i + 1,
+				control.ReferenceNumber,
+				*control.Code,
+				control.TitleEn,
+				*control.Description,
+				*control.Objective,
+				control.ControlCategoryTitleEn,
+				control.ControlTypeTitleEn,
+				*control.OwnerFirstNameEn + " " + *control.OwnerLastNameEn,
+				control.ReviewFrequencyTitleEn,
+				control.ControlImplementationStatusTitleEn,
+				utility.FormatDate(control.ImplementedAt),
+				control.ControlEfficiencyStatusTitleEn,
+				utility.FormatDate(control.LastTestDate),
+				*control.TestFrequencyTitleEn,
+				utility.FormatDate(control.NextTestDate),
+				utility.FormatDate(control.LastReviewDate),
+				utility.FormatDate(control.NextReviewDate),
+				control.LifecycleStatusTitleEn,
+			}
+		}
+	}
+
+	// Generate the Excel file
+	return utility.GenerateExcelFile(headers, rows)
 }

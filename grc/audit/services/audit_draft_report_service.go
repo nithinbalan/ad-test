@@ -97,18 +97,20 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, tx ...util
 	// Map findings
 	for _, finding := range auditDraftReport.Audit.AuditDraftFindings {
 		findingDTO := auditDTOs.AuditDraftFindingReportDetailDTO{
-			ID:                        finding.ID,
-			Title:                     finding.Title,
-			Description:               finding.Description,
-			AuditID:                   finding.AuditID,
-			AuditableItemID:           finding.AuditableItemID,
-			AuditChecklistID:          finding.AuditChecklistID,
-			AuditFindingCategoryID:    finding.AuditFindingCategoryID,
-			Recommendations:           finding.Recommendations,
-			AuditDraftFindingStatusID: finding.AuditDraftFindingStatusID,
-			CreatedAt:                 finding.CreatedAt,
-			UpdatedAt:                 finding.UpdatedAt,
-			Documents:                 []*auditDTOs.AuditDraftFindingDocumentDTO{},
+			ID:                             finding.ID,
+			Title:                          finding.Title,
+			Description:                    finding.Description,
+			AuditID:                        finding.AuditID,
+			AuditableItemID:                finding.AuditableItemID,
+			AuditChecklistID:               finding.AuditChecklistID,
+			AuditFindingCategoryID:         finding.AuditFindingCategoryID,
+			Recommendations:                finding.Recommendations,
+			AuditDraftFindingStatusID:      finding.AuditDraftFindingStatusID,
+			CreatedAt:                      finding.CreatedAt,
+			UpdatedAt:                      finding.UpdatedAt,
+			Documents:                      []*auditDTOs.AuditDraftFindingDocumentDTO{},
+			AuditDraftFindingConversations: []*auditDTOs.AuditDraftFindingConversationDetailDTO{},
+			AuditDraftFindingActionPlans:   []*auditDTOs.AuditDraftFindingActionPlanDetailDTO{},
 			// CreatedByUser:             mapUserToUserMinimalDTO(finding.CreatedByUser),
 			// UpdatedByUser:             mapUserToUserMinimalDTO(finding.UpdatedByUser),
 		}
@@ -214,20 +216,27 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, tx ...util
 			}
 			findingDTO.Documents = append(findingDTO.Documents, documentDTO)
 		}
-		// for _, conversation := range finding.Conversations {
-		// 	findingDTO.Conversations = append(findingDTO.Conversations, ConversationDTO{
-		// 		Message: conversation.Message,
-		// 	})
-		// }
+		for _, conversation := range finding.AuditDraftFindingConversations {
+			findingDTO.AuditDraftFindingConversations = append(findingDTO.AuditDraftFindingConversations, &auditDTOs.AuditDraftFindingConversationDetailDTO{
+				ID:            int(conversation.ID),
+				Description:   conversation.Description,
+				Type:          conversation.Type,
+				CreatedAt:     conversation.CreatedAt,
+				CreatedByUser: mapUserToUserMinimalDTO(&conversation.CreatedByUser),
+			})
+		}
 
-		// // Map action plans
-		// for _, actionPlan := range finding.ActionPlans {
-		// 	findingDTO.ActionPlans = append(findingDTO.ActionPlans, ActionPlanDTO{
-		// 		Plan:           actionPlan.Plan,
-		// 		ResponsibleUser: actionPlan.ResponsibleUser,
-		// 		TargetDate:     actionPlan.TargetDate.Format("2006-01-02"),
-		// 	})
-		// }
+		// Map action plans
+		for _, actionPlan := range finding.AuditDraftFindingActionPlans {
+			targetDate := actionPlan.TargetDate.Format("2006-01-02")
+			findingDTO.AuditDraftFindingActionPlans = append(findingDTO.AuditDraftFindingActionPlans, &auditDTOs.AuditDraftFindingActionPlanDetailDTO{
+				ID:               int(actionPlan.ID),
+				Title:            actionPlan.Title,
+				Description:      actionPlan.Description,
+				ResponsibleUser:  mapUserToUserMinimalDTO(actionPlan.ResponsibleUser),
+				TargetDateString: &targetDate,
+			})
+		}
 
 		auditReportDTO.AuditDraftFindings = append(auditReportDTO.AuditDraftFindings, &findingDTO)
 	}
