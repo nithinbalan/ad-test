@@ -45,7 +45,7 @@ type UserServiceInterface interface {
 	MarkNotificationsAsRead(userID uint, formDTO *userDTOs.MarkNotificationAsReadFormDTO) (int64, error)
 	MarkNotificationsAsUnread(userID uint, formDTO *userDTOs.MarkNotificationAsReadFormDTO) (int64, error)
 
-	ExportUsers(data []*userDTOs.UserListDTO) (*os.File, error)
+	ExportUsers(data []*userDTOs.UserListDTO, currentUserID uint) (*os.File, error)
 }
 
 type UserService struct {
@@ -611,35 +611,61 @@ func (us *UserService) MarkNotificationsAsUnread(userID uint, formDTO *userDTOs.
 	}
 }
 
-func (us *UserService) ExportUsers(data []*userDTOs.UserListDTO) (*os.File, error) {
-	// Define headers
-	headers := []string{
-		"SL No.",
-		"User",
-		"Email",
-		"Mobile",
-		"Designation (EN)",
-		"Designation (AR)",
-		"Roles (EN)",
-		"Roles (AR)",
-		"Status (EN)",
-		"Status (AR)",
+func (us *UserService) ExportUsers(data []*userDTOs.UserListDTO, currentUserID uint) (*os.File, error) {
+	// Fetch user setting for language preference
+	userSetting, err := us.userSettingSvc.GetUserSetting(currentUserID)
+	if err != nil {
+		return nil, err
 	}
 
-	// Convert data to [][]interface{}
+	// Define headers based on user language setting
+	var headers []string
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"SL No.",
+			"User",
+			"Email",
+			"Mobile",
+			"Designation",
+			"Roles",
+			"Status",
+		}
+	} else {
+		// Default to English
+		headers = []string{
+			"SL No.",
+			"User",
+			"Email",
+			"Mobile",
+			"Designation",
+			"Roles",
+			"Status",
+		}
+	}
+
+	// Convert data to [][]interface{} based on language setting
 	rows := make([][]interface{}, len(data))
 	for i, user := range data {
-		rows[i] = []interface{}{
-			i + 1,
-			user.FirstNameEn + " " + user.LastNameEn,
-			user.Email,
-			user.MobileNumber,
-			user.DesignationTitleEn,
-			user.DesignationTitleAr,
-			user.RolesEn,
-			user.RolesAr,
-			user.UserStatusTitleEn,
-			user.UserStatusTitleAr,
+		if userSetting.Language == "ar" {
+			rows[i] = []interface{}{
+				i + 1,
+				user.FirstNameAr + " " + user.LastNameAr,
+				user.Email,
+				user.MobileNumber,
+				user.DesignationTitleAr,
+				user.RolesAr,
+				user.UserStatusTitleAr,
+			}
+		} else {
+			rows[i] = []interface{}{
+				i + 1,
+				user.FirstNameEn + " " + user.LastNameEn,
+				user.Email,
+				user.MobileNumber,
+				user.DesignationTitleEn,
+				user.RolesEn,
+				user.UserStatusTitleEn,
+			}
 		}
 	}
 

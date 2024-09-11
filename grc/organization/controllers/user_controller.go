@@ -110,7 +110,14 @@ func (uc *UserController) GetAllUsers(c *gin.Context) {
 	}
 
 	if export {
-		excelFile, err := uc.service.ExportUsers(users.Items)
+
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(uc.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := uc.service.ExportUsers(users.Items, currentUserID)
 		if err != nil {
 			utility.SendInternalErrResp(uc.db, c, err.Error())
 			return

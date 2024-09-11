@@ -141,7 +141,13 @@ func (cc *ControlController) GetAllControls(c *gin.Context) {
 	}
 
 	if export {
-		excelFile, err := cc.service.ExportControls(controls.Items)
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(cc.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := cc.service.ExportControls(controls.Items, currentUserID)
 		if err != nil {
 			utility.SendInternalErrResp(cc.db, c, err.Error())
 			return
