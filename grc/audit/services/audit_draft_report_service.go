@@ -14,6 +14,7 @@ import (
 	organiztionDTOs "jethur/grc/organization/dtos"
 	riskDTOs "jethur/grc/risk/dtos"
 	"jethur/utility"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -23,24 +24,28 @@ type AuditDraftReportServiceInterface interface {
 	GetByID(id uint) (*models.AuditDraftReport, error)
 	Create(auditID uint, currentUserID uint, auditDraftReportFormDTO *auditDTOs.AuditDraftReportFormDTO) (uint, error)
 	Update(auditID uint, id uint, currentUserID uint, auditDraftReportFormDTO *auditDTOs.AuditDraftReportFormDTO) error
+	Submit(auditID uint, id uint, currentUserID uint) error
 	Delete(auditID uint, ids []uint, currentUserID uint) ([]uint, error)
 }
 
 type AuditDraftReportService struct {
-	repo           repositories.AuditDraftReportRepositoryInterface
-	activityLogSvc logServices.ActivityLogServiceInterface
-	auditSvc       AuditServiceInterface
+	repo                      repositories.AuditDraftReportRepositoryInterface
+	activityLogSvc            logServices.ActivityLogServiceInterface
+	auditSvc                  AuditServiceInterface
+	auditDraftReportStatusSvc AuditDraftReportStatusServiceInterface
 }
 
 func NewAuditDraftReportService(
 	repo repositories.AuditDraftReportRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	auditSvc AuditServiceInterface,
+	auditDraftReportStatusSvc AuditDraftReportStatusServiceInterface,
 ) AuditDraftReportServiceInterface {
 	return &AuditDraftReportService{
-		repo:           repo,
-		activityLogSvc: activityLogSvc,
-		auditSvc:       auditSvc,
+		repo:                      repo,
+		activityLogSvc:            activityLogSvc,
+		auditSvc:                  auditSvc,
+		auditDraftReportStatusSvc: auditDraftReportStatusSvc,
 	}
 }
 
@@ -68,23 +73,38 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, tx ...util
 		}
 		return nil, err
 	}
-
+	submittedByUser := mapUserToUserMinimalDTO(auditDraftReport.SubmittedByUser)
+	createdByUser := mapUserToUserMinimalDTO(auditDraftReport.CreatedByUser)
+	updatedByUser := mapUserToUserMinimalDTO(auditDraftReport.UpdatedByUser)
+	submittedAt := auditDraftReport.SubmittedAt.Format("2006-01-02")
+	// Map the AuditDraftReportStatus
+	auditDraftReportStatusDTO := auditDTOs.AuditDraftReportStatusDTO{
+		ID:        auditDraftReport.AuditDraftReportStatus.ID,
+		TitleEn:   auditDraftReport.AuditDraftReportStatus.TitleEn,
+		TitleAr:   auditDraftReport.AuditDraftReportStatus.TitleAr,
+		Type:      auditDraftReport.AuditDraftReportStatus.Type,
+		ColorCode: auditDraftReport.AuditDraftReportStatus.ColorCode,
+	}
 	// Map the data to the DTO
 	auditReportDTO := &auditDTOs.AuditDraftReportDetailDTO{
-		ID:                 auditDraftReport.ID,
-		AuditID:            auditDraftReport.AuditID,
-		Title:              auditDraftReport.Audit.AuditPlan.Title,
-		ReferenceNumber:    auditDraftReport.Audit.AuditPlan.ReferenceNumber,
-		ReportDateString:   auditDraftReport.ReportDate.Format("2006-01-02"),
-		PreparedBy:         mapUserToUserMinimalDTO(auditDraftReport.Audit.CreatedByUser),
-		PreparedAt:         auditDraftReport.CreatedAt.Format("2006-01-02"),
-		ExecutiveSummary:   *auditDraftReport.ExecutiveSummary,
-		TeamLead:           mapUserToUserMinimalDTO(auditDraftReport.Audit.AuditPlan.TeamLead),
-		Conclusion:         *auditDraftReport.Conclusion,
-		Auditors:           []*auditDTOs.AuditPlanAuditMemberDTO{}, // Initialize as empty slice
-		AuditDraftFindings: []*auditDTOs.AuditDraftFindingReportDetailDTO{},
+		ID:                     auditDraftReport.ID,
+		AuditID:                auditDraftReport.AuditID,
+		Title:                  auditDraftReport.Audit.AuditPlan.Title,
+		ReferenceNumber:        auditDraftReport.Audit.AuditPlan.ReferenceNumber,
+		ReportDateString:       auditDraftReport.ReportDate.Format("2006-01-02"),
+		PreparedBy:             mapUserToUserMinimalDTO(auditDraftReport.Audit.CreatedByUser),
+		PreparedAt:             auditDraftReport.CreatedAt.Format("2006-01-02"),
+		SubmittedByUser:        &submittedByUser,
+		SubmittedAt:            &submittedAt,
+		ExecutiveSummary:       *auditDraftReport.ExecutiveSummary,
+		TeamLead:               mapUserToUserMinimalDTO(auditDraftReport.Audit.AuditPlan.TeamLead),
+		Conclusion:             *auditDraftReport.Conclusion,
+		AuditDraftReportStatus: &auditDraftReportStatusDTO,             // Initialize as empty slice
+		Auditors:               []*auditDTOs.AuditPlanAuditMemberDTO{}, // Initialize as empty slice
+		AuditDraftFindings:     []*auditDTOs.AuditDraftFindingReportDetailDTO{},
+		CreatedByUser:          createdByUser,
+		UpdatedByUser:          &updatedByUser,
 	}
-
 	// Map auditors
 	for _, auditor := range auditDraftReport.Audit.AuditPlan.Members {
 		auditReportDTO.Auditors = append(auditReportDTO.Auditors, &auditDTOs.AuditPlanAuditMemberDTO{
@@ -252,13 +272,18 @@ func (adrs *AuditDraftReportService) Create(auditID uint, currentUserID uint, au
 	if err != nil {
 		return 0, err
 	}
+	auditDraftReportStatus, err := adrs.auditDraftReportStatusSvc.GetByType("draft")
+	if err != nil {
+		return 0, err
+	}
 
 	auditDraftReport := &models.AuditDraftReport{
-		AuditID:          auditID,
-		ExecutiveSummary: auditDraftReportFormDTO.ExecutiveSummary,
-		Conclusion:       auditDraftReportFormDTO.Conclusion,
-		ReportDate:       *dates.ReportDate,
-		CreatedBYID:      currentUserID,
+		AuditID:                  auditID,
+		ExecutiveSummary:         auditDraftReportFormDTO.ExecutiveSummary,
+		Conclusion:               auditDraftReportFormDTO.Conclusion,
+		ReportDate:               *dates.ReportDate,
+		AuditDraftReportStatusID: auditDraftReportStatus.ID,
+		CreatedBYID:              currentUserID,
 	}
 
 	id, err := adrs.repo.Create(auditDraftReport, tx)
@@ -402,6 +427,71 @@ func (adrs *AuditDraftReportService) Delete(auditID uint, ids []uint, currentUse
 	}
 
 	return failedIDs, nil
+}
+
+func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID uint) error {
+	tx := adrs.repo.BeginTransaction()
+	if _, err := adrs.auditSvc.GetByID(auditID); err != nil {
+		return err
+	}
+	existingAuditDraftReport, err := adrs.repo.GetByID(id)
+	if err != nil {
+		tx.Rollback()
+		return utility.NewResourceNotFoundError(err, id)
+	}
+
+	auditDraftReportStatusDraft, err := adrs.auditDraftReportStatusSvc.GetByType("draft")
+	if err != nil {
+		return err
+	}
+	if existingAuditDraftReport.AuditDraftReportStatusID != auditDraftReportStatusDraft.ID {
+		tx.Rollback()
+		return utility.NewForbiddenError("The audit draft report has already been submitted.")
+	}
+
+	auditDraftReportStatus, err := adrs.auditDraftReportStatusSvc.GetByType("auditee-review")
+	if err != nil {
+		return err
+	}
+	now := time.Now()
+	existingAuditDraftReport.SubmittedAt = &now
+	existingAuditDraftReport.AuditDraftReportStatusID = auditDraftReportStatus.ID
+	existingAuditDraftReport.SubmittedBYID = &currentUserID
+
+	err = adrs.repo.Update(existingAuditDraftReport, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	//todo - notification to auditable item responsible user where findings captured.
+
+	tx.Commit()
+
+	go func() {
+		err := adrs.activityLogSvc.LogActivity(
+			models.UpdateAction,
+			models.AuditDraftReport{}.TableName(),
+			id,
+			nil,
+			currentUserID,
+			nil,
+		)
+
+		if err != nil {
+			fields := map[string]interface{}{
+				"action":    models.UpdateAction,
+				"tableName": models.AuditDraftReport{}.TableName(),
+				"recordID":  id,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			}
+
+			utility.LogError("Failed to log activity", fields)
+		}
+	}()
+
+	return nil
 }
 
 func (adrs *AuditDraftReportService) parseAuditDraftReportDates(dto *auditDTOs.AuditDraftReportFormDTO) (*auditDTOs.AuditDraftReportParsedDates, error) {

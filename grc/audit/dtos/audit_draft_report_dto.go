@@ -13,18 +13,23 @@ type AuditDraftReportFormDTO struct {
 }
 
 type AuditDraftReportDetailDTO struct {
-	ID                 uint                                `json:"id"`
-	AuditID            uint                                `json:"audit_id"`
-	Title              string                              `json:"title"`
-	ReferenceNumber    string                              `json:"reference_number"`
-	ReportDateString   string                              `json:"report_date"`
-	PreparedAt         string                              `json:"prepared_at"`
-	PreparedBy         organizationDTOs.UserMinimalDTO     `json:"prepared_by"`
-	ExecutiveSummary   string                              `json:"executive_summary"`
-	Auditors           []*AuditPlanAuditMemberDTO          `json:"auditors"`
-	TeamLead           organizationDTOs.UserMinimalDTO     `json:"team_lead"`
-	AuditDraftFindings []*AuditDraftFindingReportDetailDTO `json:"draft_findings"`
-	Conclusion         string                              `json:"conclusion"`
+	ID                     uint                                `json:"id"`
+	AuditID                uint                                `json:"audit_id"`
+	Title                  string                              `json:"title"`
+	ReferenceNumber        string                              `json:"reference_number"`
+	ReportDateString       string                              `json:"report_date"`
+	PreparedAt             string                              `json:"prepared_at"`
+	PreparedBy             organizationDTOs.UserMinimalDTO     `json:"prepared_by"`
+	ExecutiveSummary       string                              `json:"executive_summary"`
+	Auditors               []*AuditPlanAuditMemberDTO          `json:"auditors"`
+	TeamLead               organizationDTOs.UserMinimalDTO     `json:"team_lead"`
+	AuditDraftFindings     []*AuditDraftFindingReportDetailDTO `json:"draft_findings"`
+	Conclusion             string                              `json:"conclusion"`
+	SubmittedByUser        *organizationDTOs.UserMinimalDTO    `json:"submitted_by"`
+	SubmittedAt            *string                             `json:"submitted_at"`
+	AuditDraftReportStatus *AuditDraftReportStatusDTO          `json:"audit_draft_report_status"`
+	CreatedByUser          organizationDTOs.UserMinimalDTO     `json:"created_by"`
+	UpdatedByUser          *organizationDTOs.UserMinimalDTO    `json:"updated_by"`
 }
 type AuditDraftReportParsedDates struct {
 	ReportDate *time.Time
