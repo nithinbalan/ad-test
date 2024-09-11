@@ -169,9 +169,9 @@ func (apais *AuditPlanAuditableItemService) Create(auditPlanID uint, currentUser
 				var riskControlsToInsert []*models.AuditPlanAuditableItemRiskControl
 				for _, controlID := range controlIDs {
 					riskControl := &models.AuditPlanAuditableItemRiskControl{
-						AuditPlanAuditableItemRisksID: auditPlanAuditableItemRiskID,
-						ControlsID:                    controlID,
-						CreatedByID:                   currentUserID,
+						AuditPlanAuditableItemRiskID: auditPlanAuditableItemRiskID,
+						ControlID:                    controlID,
+						CreatedByID:                  currentUserID,
 					}
 					riskControlsToInsert = append(riskControlsToInsert, riskControl)
 				}
