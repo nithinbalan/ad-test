@@ -172,6 +172,8 @@ func (repo *AuditDraftFindingRepository) GetFullDetailsByID(id uint, tx ...utili
 		Preload("AuditableItem").
 		Preload("AuditFindingCategory").
 		Preload("SeverityLevel").
+		Preload("AuditDraftFindingConversations").
+		Preload("AuditDraftFindingActionPlans").
 		Preload("AuditDraftFindingStatus").
 		Preload("AuditChecklist").
 		Preload("CreatedByUser").

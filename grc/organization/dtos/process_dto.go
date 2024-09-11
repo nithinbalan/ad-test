@@ -62,6 +62,7 @@ type ProcessListQueryParamsDTO struct {
 	PageSize    int
 	Filters     map[string][]string
 	QuickFilter []string
+	Export      bool
 }
 
 // ProcessListResponseDTO encapsulates the paginated response for a list of processes

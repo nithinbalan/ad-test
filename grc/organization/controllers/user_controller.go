@@ -27,7 +27,7 @@ func NewUserController(service services.UserServiceInterface) *UserController {
 
 func (uc *UserController) GetAllUsers(c *gin.Context) {
 	sort := c.DefaultQuery("sort_order", "asc")
-	sortBy := c.DefaultQuery("sort_by", "name")
+	sortBy := c.DefaultQuery("sort_by", "first_name_en")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
@@ -51,13 +51,16 @@ func (uc *UserController) GetAllUsers(c *gin.Context) {
 	}
 
 	validSortFields := map[string]string{
-		"id":            "users.id",
-		"name":          "users.first_name_en",
-		"email":         "users.email",
-		"mobile_number": "users.mobile_number",
-		"designation":   "designations.title_en",
-		"role":          "roles_agg.roles_en",
-		"user_status":   "user_statuses.title_en",
+		"first_name_en":  "users.first_name_en",
+		"first_name_ar":  "users.first_name_ar",
+		"email":          "users.email",
+		"mobile_number":  "users.mobile_number",
+		"designation_en": "designations.title_en",
+		"designation_ar": "designations.title_ar",
+		"role_en":        "roles_agg.roles_en",
+		"role_ar":        "roles_agg.roles_ar",
+		"user_status_en": "user_statuses.title_en",
+		"user_status_ar": "user_statuses.title_ar",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())

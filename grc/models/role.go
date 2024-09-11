@@ -1,13 +1,14 @@
 package models
 
 type Role struct {
-	ID      uint   `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
-	TitleEn string `json:"title_en" binding:"required,max=100" gorm:"type:varchar(100);not null"`
-	TitleAr string `json:"title_ar" binding:"required,max=100" gorm:"type:nvarchar(100);not null"`
-	Status  string `json:"status" binding:"required,max=10,oneof=active inactive" gorm:"type:varchar(10);not null"`
+	ID           uint   `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
+	TitleEn      string `json:"title_en" binding:"required,max=100" gorm:"type:varchar(100);not null"`
+	TitleAr      string `json:"title_ar" binding:"required,max=100" gorm:"type:nvarchar(100);not null"`
+	Status       string `json:"status" binding:"required,max=10,oneof=active inactive" gorm:"type:varchar(10);not null"`
+	IsSuperAdmin bool   `json:"is_super_admin" gorm:"type:bit;not null;default:0"`
 }
 
-// TableName overrides the table name used by Roles to `role`
+// TableName overrides the table name used by Roles to `roles`
 func (Role) TableName() string {
 	return "roles"
 }

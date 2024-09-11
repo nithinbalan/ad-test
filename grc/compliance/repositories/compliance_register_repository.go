@@ -234,17 +234,22 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
 		params.Sort = "asc" // Default order is ascending if not specified
 	}
 
-	query = query.Order(params.SortBy + " " + params.Sort)
+	if !params.Export {
+		offset := (params.Page - 1) * params.PageSize
+		query = query.Offset(offset).Limit(params.PageSize)
+	}
 
-	offset := (params.Page - 1) * params.PageSize
-
-	// Execute the queryc
-	err := query.Offset(offset).Limit(params.PageSize).Find(&complianceRegisters).Error
+	// Execute the query to get compliance registers
+	err := query.Find(&complianceRegisters).Error
 	if err != nil {
 		return nil, err
 	}
 
-	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+	// Calculate total pages if not exporting
+	totalPages := 1
+	if !params.Export {
+		totalPages = int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+	}
 
 	response := &complianceDTOs.ComplianceRegisterListResponseDTO{
 		Items: complianceRegisters,
@@ -255,6 +260,7 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
 			TotalCount:  totalCount,
 		},
 	}
+
 	return response, nil
 }
 

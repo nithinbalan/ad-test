@@ -2,8 +2,10 @@
 -- +goose StatementBegin
 DECLARE @UserID INT;
 DECLARE @AdminDesignationID INT;
+DECLARE @SuperAdminRoleID INT;
 
 SELECT @AdminDesignationID = id FROM designations WHERE title_en = 'Admin';
+SELECT @SuperAdminRoleID = id FROM roles WHERE is_super_admin = 1;
 
 -- Insert a user
 INSERT INTO users (
@@ -66,7 +68,7 @@ INSERT INTO user_roles (
     role_id
 ) VALUES (
     @UserID,
-    1
+    @SuperAdminRoleID
 );
 -- +goose StatementEnd
 

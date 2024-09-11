@@ -219,14 +219,6 @@ func (repo *ControlRepository) GetAll(params *organizationDTOs.ControlListQueryP
 		return nil, err
 	}
 
-	// Sort by the specified column and order
-	if params.SortBy == "" {
-		params.SortBy = "title_en" // Default sort by title_en if no sortBy is specified
-	}
-	if params.Sort != "asc" && params.Sort != "desc" {
-		params.Sort = "asc" // Default order is ascending if not specified
-	}
-
 	query = query.Order(params.SortBy + " " + params.Sort)
 
 	offset := (params.Page - 1) * params.PageSize

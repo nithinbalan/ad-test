@@ -186,6 +186,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.GET("/controls/:controlId/action-plans/:controlActionPlanId/status-updates/latest", controlActionPlanStatusUpdateController.GetLatestControlActionPlanStatusUpdate)
 
 	//process
+	organizationRoutes.GET("/processes/export", processController.GetProcessesExport)
 	organizationRoutes.GET("/processes", processController.GetAllProcesses)
 	organizationRoutes.GET("/processes/:processId", processController.GetProcessDetails)
 	organizationRoutes.POST("/processes", processController.CreateProcess)

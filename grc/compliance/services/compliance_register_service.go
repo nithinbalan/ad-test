@@ -35,6 +35,8 @@ type ComplianceRegisterServiceInterface interface {
 	UpdateComplianceTotalScore(complianceID uint, totalScore float64, tx utility.DatabaseTransaction) error
 
 	GetDocumentPath(id uint, token string) (string, error)
+
+	ExportComplianceRegisters(data []*complianceDTOs.ComplianceRegisterListDTO) (*os.File, error)
 }
 
 // Service and implementations
@@ -795,4 +797,22 @@ func (crs *ComplianceRegisterService) GetDocumentPath(id uint, token string) (st
 	}
 
 	return fullPath, nil
+}
+
+func (crs *ComplianceRegisterService) ExportComplianceRegisters(data []*complianceDTOs.ComplianceRegisterListDTO) (*os.File, error) {
+	// Define headers
+	headers := []string{
+		"ID", "Title (EN)", "Title (AR)", "Version", "Deadline", "Issue Date", "Expiry Date", "Lifecycle Status (EN)",
+	}
+
+	// Convert data to [][]interface{}
+	rows := make([][]interface{}, len(data))
+	for i, item := range data {
+		rows[i] = []interface{}{
+			item.ID, item.TitleEn, item.TitleAr, item.Version, item.Deadline, item.IssueDate, item.ExpiryDate, item.LifecycleStatusTitleEn,
+		}
+	}
+
+	// Generate the Excel file
+	return utility.GenerateExcelFile(headers, rows)
 }

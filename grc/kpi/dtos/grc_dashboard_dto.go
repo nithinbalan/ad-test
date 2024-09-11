@@ -25,6 +25,11 @@ type GRCOrganizationSummaryDTO struct {
 	ControlEffectivenessRate float64 `json:"control_effectiveness_rate"`
 }
 
+type GRCIncidentSummaryDTO struct {
+	IncidentClosureRate   float64 `json:"incident_closure_rate"`
+	IncidentFrequencyRate float64 `json:"incident_frequency_rate"`
+}
+
 type GRCComplianceOverviewDTO struct {
 	TotalComplaintsRegistered int64 `json:"total_complaints_registered"`
 	Compliant                 int64 `json:"compliant"`
