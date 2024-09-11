@@ -11,6 +11,7 @@ import (
 	settingDTOs "jethur/grc/settings/dtos"
 	settingService "jethur/grc/settings/services"
 	"jethur/utility"
+	"os"
 	"reflect"
 	"strings"
 	"time"
@@ -43,6 +44,8 @@ type UserServiceInterface interface {
 
 	MarkNotificationsAsRead(userID uint, formDTO *userDTOs.MarkNotificationAsReadFormDTO) (int64, error)
 	MarkNotificationsAsUnread(userID uint, formDTO *userDTOs.MarkNotificationAsReadFormDTO) (int64, error)
+
+	ExportUsers(data []*userDTOs.UserListDTO) (*os.File, error)
 }
 
 type UserService struct {
@@ -606,4 +609,40 @@ func (us *UserService) MarkNotificationsAsUnread(userID uint, formDTO *userDTOs.
 	} else {
 		return 0, fmt.Errorf("invalid parameters")
 	}
+}
+
+func (us *UserService) ExportUsers(data []*userDTOs.UserListDTO) (*os.File, error) {
+	// Define headers
+	headers := []string{
+		"SL No.",
+		"User",
+		"Email",
+		"Mobile",
+		"Designation (EN)",
+		"Designation (AR)",
+		"Roles (EN)",
+		"Roles (AR)",
+		"Status (EN)",
+		"Status (AR)",
+	}
+
+	// Convert data to [][]interface{}
+	rows := make([][]interface{}, len(data))
+	for i, user := range data {
+		rows[i] = []interface{}{
+			i + 1,
+			user.FirstNameEn + " " + user.LastNameEn,
+			user.Email,
+			user.MobileNumber,
+			user.DesignationTitleEn,
+			user.DesignationTitleAr,
+			user.RolesEn,
+			user.RolesAr,
+			user.UserStatusTitleEn,
+			user.UserStatusTitleAr,
+		}
+	}
+
+	// Generate the Excel file
+	return utility.GenerateExcelFile(headers, rows)
 }

@@ -5,7 +5,6 @@ INSERT INTO user_statuses
 VALUES
     ('Active', 'نشيط', '#28A745', 'active', 'active'),
     ('On Leave', 'في إجازة', '#17A2B8', 'onleave', 'active'),
-    ('Inactive', 'غير نشيط', '#6C757D', 'inactive', 'active'),
     ('Locked', 'مقفل', '#DC3545', 'locked', 'active'),
     ('Retired', 'متقاعد', '#FFA500', 'retired', 'active'),
     ('Resigned', 'مستقيل', '#D2B48C', 'resigned', 'active'),

@@ -132,9 +132,14 @@ func (rs *RoleService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var successfulIds []uint
 	for _, id := range ids {
 
-		_, err := rs.repo.GetByID(id)
-
+		role, err := rs.repo.GetByID(id)
 		if err != nil {
+			continue
+		}
+
+		// Restrict deletion if the role is a super admin
+		if role.IsSuperAdmin {
+			failedIds = append(failedIds, id)
 			continue
 		}
 
@@ -147,7 +152,6 @@ func (rs *RoleService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	}
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := rs.activityLogSvc.LogBulkActivities(
 				models.DeleteAction, // Make sure this action constant is defined appropriately
@@ -159,7 +163,7 @@ func (rs *RoleService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 			)
 			if err != nil {
 				// @todo - save to log file
-				fmt.Printf("Failed to activity: %v\n", err)
+				fmt.Printf("Failed to log activity: %v\n", err)
 			}
 		}()
 	}

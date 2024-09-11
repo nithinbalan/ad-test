@@ -11,6 +11,7 @@ import (
 	organizationDTOs "jethur/grc/organization/dtos"
 	organizationRepositories "jethur/grc/organization/repositories"
 	"jethur/utility"
+	"os"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -28,6 +29,8 @@ type ProcessServiceInterface interface {
 	Restore(ids []uint, currentUserID uint) ([]uint, error)
 
 	GetControlSummary(id uint) (map[string]interface{}, error)
+
+	ExportProcesses(data []*organizationDTOs.ProcessListDTO) (*os.File, error)
 }
 
 type ProcessService struct {
@@ -871,4 +874,46 @@ func (ps *ProcessService) GetControlSummary(id uint) (map[string]interface{}, er
 	}
 
 	return summary, nil
+}
+
+func (ps *ProcessService) ExportProcesses(data []*organizationDTOs.ProcessListDTO) (*os.File, error) {
+	// Define headers
+	headers := []string{
+		"SL No.",
+		"Reference Number",
+		"Title (EN)",
+		"Title (AR)",
+		"Description",
+		"Process Group (EN)",
+		"Process Group (AR)",
+		"Owner Unit (EN)",
+		"Owner Unit (AR)",
+		"Owner Name (EN)",
+		"Owner Name (AR)",
+		"Lifecycle Status (EN)",
+		"Lifecycle Status (AR)",
+	}
+
+	// Convert data to [][]interface{}
+	rows := make([][]interface{}, len(data))
+	for i, process := range data {
+		rows[i] = []interface{}{
+			i + 1,
+			process.ReferenceNumber,
+			process.TitleEn,
+			process.TitleAr,
+			*process.Description,
+			process.ProcessGroupTitleEn,
+			process.ProcessGroupTitleAr,
+			*process.OwnerUnitTitleEn,
+			*process.OwnerUnitTitleAr,
+			*process.OwnerFirstNameEn + " " + *process.OwnerLastNameEn,
+			*process.OwnerFirstNameAr + " " + *process.OwnerLastNameAr,
+			process.LifecycleStatusTitleEn,
+			process.LifecycleStatusTitleAr,
+		}
+	}
+
+	// Generate the Excel file
+	return utility.GenerateExcelFile(headers, rows)
 }

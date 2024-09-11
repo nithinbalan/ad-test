@@ -5,7 +5,6 @@ import (
 	"time"
 )
 
-// RCMListDTO represents a single RCM entry in the list response.
 type RCMListDTO struct {
 	ID                       uint             `json:"id"`
 	AuditPlanAuditableItemID uint             `json:"audit_plan_auditable_item_id"`
@@ -17,7 +16,6 @@ type RCMListDTO struct {
 	Controls                 []*RCMControlDTO `json:"controls"`
 }
 
-// RCMControlDTO represents a control associated with a specific risk in the RCM.
 type RCMControlDTO struct {
 	ID                                   uint    `json:"id"`
 	ControlID                            uint    `json:"control_id"`
@@ -32,7 +30,6 @@ type RCMControlDTO struct {
 	ControlEfficiencyStatusColorCode     *string `json:"control_efficiency_status_color_code"`
 }
 
-// RCMListQueryParamsDTO contains the parameters used for querying the RCM list.
 type RCMListQueryParamsDTO struct {
 	Sort        string
 	SortBy      string
@@ -43,7 +40,6 @@ type RCMListQueryParamsDTO struct {
 	QuickFilter []string
 }
 
-// RCMListResponseDTO represents the response for the RCM list query.
 type RCMListResponseDTO struct {
 	Items      []*RCMListDTO                `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`

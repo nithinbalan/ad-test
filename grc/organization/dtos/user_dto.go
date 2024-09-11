@@ -46,6 +46,7 @@ type UserListQueryParamsDTO struct {
 	UserIDs     []int
 	Filters     map[string][]string
 	QuickFilter []string
+	Export      bool
 }
 
 type UserListResponseDTO struct {

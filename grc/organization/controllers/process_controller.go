@@ -26,9 +26,15 @@ func NewProcessController(service services.ProcessServiceInterface) *ProcessCont
 
 func (pc *ProcessController) GetAllProcesses(c *gin.Context) {
 	sort := c.DefaultQuery("sort_order", "asc")
-	sortBy := c.DefaultQuery("sort_by", "process_title")
+	sortBy := c.DefaultQuery("sort_by", "title_en")
 	keyword := c.Query("keyword")
 	quickFilter := c.QueryArray("quick_filter")
+
+	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
+	if err != nil {
+		utility.SendInternalErrResp(pc.db, c, "Invalid export parameter")
+		return
+	}
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
@@ -53,11 +59,18 @@ func (pc *ProcessController) GetAllProcesses(c *gin.Context) {
 	}
 
 	validSortFields := map[string]string{
-		"process_title":   "processes.title_en",
-		"refrence_number": "processes.reference_number",
-		"description":     "processes.description",
-		"process_group":   "process_groups.title_en",
-		"status":          "lifecycle_statuses.title_enn",
+		"reference_number":     "processes.reference_number",
+		"title_en":             "processes.title_en",
+		"title_ar":             "processes.title_ar",
+		"description":          "processes.description",
+		"process_group_en":     "process_groups.title_en",
+		"process_group_ar":     "process_groups.title_ar",
+		"organization_unit_en": "organization_units.title_en",
+		"organization_unit_ar": "organization_units.title_ar",
+		"owner_en":             "owner.first_name_en",
+		"owner_ar":             "owner.first_name_ar",
+		"status_en":            "lifecycle_statuses.title_en",
+		"status_ar":            "lifecycle_statuses.title_ar",
 	}
 
 	sortField, valid := validSortFields[sortBy]
@@ -75,11 +88,28 @@ func (pc *ProcessController) GetAllProcesses(c *gin.Context) {
 		PageSize:    pageSize,
 		Filters:     filters,
 		QuickFilter: quickFilter,
+		Export:      export,
 	}
 
 	processes, err := pc.service.GetAll(&queryParams)
 	if err != nil {
 		utility.SendInternalErrResp(pc.db, c, err.Error())
+		return
+	}
+
+	if export {
+		excelFile, err := pc.service.ExportProcesses(processes.Items)
+		if err != nil {
+			utility.SendInternalErrResp(pc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="Processes.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
 		return
 	}
 
@@ -244,4 +274,10 @@ func (pc *ProcessController) GetControlSummary(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, process)
+}
+
+func (pc *ProcessController) GetProcessesExport(c *gin.Context) {
+	c.Request.URL.RawQuery += "&export=true"
+
+	pc.GetAllProcesses(c)
 }

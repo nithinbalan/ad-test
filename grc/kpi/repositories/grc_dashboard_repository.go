@@ -4,6 +4,7 @@ import (
 	kpiDTOs "jethur/grc/kpi/dtos"
 	"jethur/grc/models"
 	"math"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -14,6 +15,7 @@ type GRCDashboardRepositoryInteface interface {
 	GetGRCAuditSummary(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCAuditSummaryDTO, error)
 	GetGRCDocumentSummary(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCDocumentSummaryDTO, error)
 	GetGRCOrganizationSummary(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCOrganizationSummaryDTO, error)
+	GetGRCIncidentSummary(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCIncidentSummaryDTO, error)
 
 	GetGRCComplianceOverview(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCComplianceOverviewDTO, error)
 	GetGRCRiskOverview(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCRiskOverviewDTO, error)
@@ -294,6 +296,80 @@ func (repo *GRCDashboardRepository) GetGRCOrganizationSummary(params *kpiDTOs.GR
 
 	return &kpiDTOs.GRCOrganizationSummaryDTO{
 		ControlEffectivenessRate: effectivenessRate,
+	}, nil
+}
+
+func (repo *GRCDashboardRepository) GetGRCIncidentSummary(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCIncidentSummaryDTO, error) {
+	var totalIncidents int64
+	var closedIncidents int64
+
+	incidentQuery := repo.db.Model(&models.IncidentRegister{})
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		incidentQuery = incidentQuery.Where("incident_register.incident_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
+	}
+
+	err := incidentQuery.Count(&totalIncidents).Error
+	if err != nil {
+		return nil, err
+	}
+
+	closedIncidentQuery := incidentQuery.
+		Joins("JOIN incident_statuses ON incident_statuses.id = incident_register.incident_status_id").
+		Where("incident_statuses.type = ?", "closed")
+
+	err = closedIncidentQuery.Count(&closedIncidents).Error
+	if err != nil {
+		return nil, err
+	}
+
+	closureRate := 0.0
+	if totalIncidents > 0 {
+		closureRate = math.Round(float64(closedIncidents) / float64(totalIncidents) * 100.0)
+	}
+
+	// Calculate the number of months between DateFrom and DateTo
+	// If no DateFrom and DateTo, calculate months from the earliest to the latest incident
+	var monthsBetween float64
+	if params.DateFrom != "" && params.DateTo != "" {
+		// If DateFrom and DateTo are provided, calculate the difference in months
+		dateFrom, err := time.Parse("2006-01-02", params.DateFrom)
+		if err != nil {
+			return nil, err
+		}
+		dateTo, err := time.Parse("2006-01-02", params.DateTo)
+		if err != nil {
+			return nil, err
+		}
+		monthsBetween = float64(dateTo.Year()*12 + int(dateTo.Month()) - (dateFrom.Year()*12 + int(dateFrom.Month())))
+		monthsBetween += 1 // Include the current month
+	} else {
+		// If DateFrom and DateTo are not provided, calculate months based on all incidents
+		var firstIncident, lastIncident time.Time
+		err := repo.db.Model(&models.IncidentRegister{}).
+			Select("MIN(incident_at)").Scan(&firstIncident).Error
+		if err != nil {
+			return nil, err
+		}
+		err = repo.db.Model(&models.IncidentRegister{}).
+			Select("MAX(incident_at)").Scan(&lastIncident).Error
+		if err != nil {
+			return nil, err
+		}
+
+		// Calculate months between the first and last incident
+		monthsBetween = float64(lastIncident.Year()*12 + int(lastIncident.Month()) - (firstIncident.Year()*12 + int(firstIncident.Month())))
+		monthsBetween += 1 // Include the current month
+	}
+
+	incidentFrequencyRate := 0.0
+	if monthsBetween > 0 {
+		incidentFrequencyRate = float64(totalIncidents) / monthsBetween
+	}
+
+	return &kpiDTOs.GRCIncidentSummaryDTO{
+		IncidentClosureRate:   closureRate,
+		IncidentFrequencyRate: incidentFrequencyRate,
 	}, nil
 }
 

@@ -11,6 +11,7 @@ import (
 	organizationDTOs "jethur/grc/organization/dtos"
 	organizationRepositories "jethur/grc/organization/repositories"
 	"jethur/utility"
+	"os"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -28,6 +29,8 @@ type ControlServiceInterface interface {
 	Restore(ids []uint, currentUserID uint) ([]uint, error)
 	TestStatusUpdate(control *models.Control, tx utility.DatabaseTransaction) error
 	ReviewStatusUpdate(control *models.Control, tx utility.DatabaseTransaction) error
+
+	ExportControls(data []*organizationDTOs.ControlListDTO) (*os.File, error)
 }
 
 type ControlService struct {
@@ -638,16 +641,12 @@ func (cs *ControlService) validateControlFormDTO(controlFormDTO *organizationDTO
 		return utility.NewValidationError(fmt.Errorf("control owner does not exist"), "not_exist", "control owner")
 	}
 
-	if controlFormDTO.ControlImplementationStatusID != nil {
-		if _, err := cs.controlImplementationStatusSvc.GetByID(uint(*controlFormDTO.ControlImplementationStatusID)); err != nil {
-			return utility.NewValidationError(fmt.Errorf("control implementation status does not exist"), "not_exist", "control implementation status")
-		}
+	if _, err := cs.controlImplementationStatusSvc.GetByID(uint(controlFormDTO.ControlImplementationStatusID)); err != nil {
+		return utility.NewValidationError(fmt.Errorf("control implementation status does not exist"), "not_exist", "control implementation status")
 	}
 
-	if controlFormDTO.ControlEfficiencyStatusID != nil {
-		if _, err := cs.controlImplementationStatusSvc.GetByID(uint(*controlFormDTO.ControlEfficiencyStatusID)); err != nil {
-			return utility.NewValidationError(fmt.Errorf("control efficiency status does not exist"), "not_exist", "control efficiency status")
-		}
+	if _, err := cs.controlImplementationStatusSvc.GetByID(uint(controlFormDTO.ControlEfficiencyStatusID)); err != nil {
+		return utility.NewValidationError(fmt.Errorf("control efficiency status does not exist"), "not_exist", "control efficiency status")
 	}
 
 	if controlFormDTO.ReviewFrequencyID != nil {
@@ -709,4 +708,74 @@ func (cs *ControlService) parseControlDates(dto *organizationDTOs.ControlFormDTO
 	}
 
 	return parsed, nil
+}
+
+func (cs *ControlService) ExportControls(data []*organizationDTOs.ControlListDTO) (*os.File, error) {
+	// Define headers for the Excel export
+	headers := []string{
+		"SL No.",
+		"Reference Number",
+		"Control Code",
+		"Title (EN)",
+		"Title (AR)",
+		"Description",
+		"Objective",
+		"Control Category (EN)",
+		"Control Category (AR)",
+		"Control Type (EN)",
+		"Control Type (AR)",
+		"Owner",
+		"Review Frequency (EN)",
+		"Review Frequency (AR)",
+		"Implementation Status (EN)",
+		"Implementation Status (AR)",
+		"Implementation Date",
+		"Efficiency Status (EN)",
+		"Efficiency Status (AR)",
+		"Last Test Date",
+		"Test Frequency (EN)",
+		"Test Frequency (AR)",
+		"Next Test Date",
+		"Last Review Date",
+		"Next Review Date",
+		"Status (EN)",
+		"Status (AR)",
+	}
+
+	// Convert the control data to [][]interface{}
+	rows := make([][]interface{}, len(data))
+	for i, control := range data {
+		rows[i] = []interface{}{
+			i + 1,
+			control.ReferenceNumber,
+			*control.Code,
+			control.TitleEn,
+			control.TitleAr,
+			*control.Description,
+			*control.Objective,
+			control.ControlCategoryTitleEn,
+			control.ControlCategoryTitleAr,
+			control.ControlTypeTitleEn,
+			control.ControlTypeTitleAr,
+			*control.OwnerFirstNameEn + " " + *control.OwnerLastNameEn,
+			control.ReviewFrequencyTitleEn,
+			control.ReviewFrequencyTitleAr,
+			control.ControlImplementationStatusTitleEn,
+			control.ControlImplementationStatusTitleAr,
+			utility.FormatDate(control.ImplementedAt),
+			control.ControlEfficiencyStatusTitleEn,
+			control.ControlEfficiencyStatusTitleAr,
+			utility.FormatDate(control.LastTestDate),
+			*control.TestFrequencyTitleEn,
+			*control.TestFrequencyTitleAr,
+			utility.FormatDate(control.NextTestDate),
+			utility.FormatDate(control.LastReviewDate),
+			utility.FormatDate(control.NextReviewDate),
+			control.LifecycleStatusTitleEn,
+			control.LifecycleStatusTitleAr,
+		}
+	}
+
+	// Generate the Excel file
+	return utility.GenerateExcelFile(headers, rows)
 }
