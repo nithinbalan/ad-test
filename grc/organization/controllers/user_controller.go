@@ -39,6 +39,12 @@ func (uc *UserController) GetAllUsers(c *gin.Context) {
 		return
 	}
 
+	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
+	if err != nil {
+		utility.SendInternalErrResp(uc.db, c, "Invalid export parameter")
+		return
+	}
+
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"designation_ids",
@@ -94,14 +100,31 @@ func (uc *UserController) GetAllUsers(c *gin.Context) {
 		UserIDs:     userIds,
 		Filters:     filters,
 		QuickFilter: quickFilter,
+		Export:      export,
 	}
 
 	users, err := uc.service.GetAll(&queryParams)
-
 	if err != nil {
 		utility.SendInternalErrResp(uc.db, c, err.Error())
 		return
 	}
+
+	if export {
+		excelFile, err := uc.service.ExportUsers(users.Items)
+		if err != nil {
+			utility.SendInternalErrResp(uc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="Users.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
+		return
+	}
+
 	c.JSON(http.StatusOK, users)
 }
 
@@ -420,4 +443,10 @@ func (uc *UserController) MarkwNotificationAsUnread(c *gin.Context) {
 	}
 
 	c.Status(http.StatusOK)
+}
+
+func (uc *UserController) GetUsersExport(c *gin.Context) {
+	c.Request.URL.RawQuery += "&export=true"
+
+	uc.GetAllUsers(c)
 }

@@ -888,33 +888,29 @@ func (ps *ProcessService) ExportProcesses(data []*organizationDTOs.ProcessListDT
 		"Process Group (AR)",
 		"Owner Unit (EN)",
 		"Owner Unit (AR)",
-		"Owner First Name (EN)",
-		"Owner Last Name (EN)",
-		"Owner First Name (AR)",
-		"Owner Last Name (AR)",
+		"Owner Name (EN)",
+		"Owner Name (AR)",
 		"Lifecycle Status (EN)",
 		"Lifecycle Status (AR)",
 	}
 
 	// Convert data to [][]interface{}
 	rows := make([][]interface{}, len(data))
-	for i, item := range data {
+	for i, process := range data {
 		rows[i] = []interface{}{
 			i + 1,
-			item.ReferenceNumber,
-			item.TitleEn,
-			item.TitleAr,
-			*item.Description,
-			item.ProcessGroupTitleEn,
-			item.ProcessGroupTitleAr,
-			*item.OwnerUnitTitleEn,
-			*item.OwnerUnitTitleAr,
-			*item.OwnerFirstNameEn,
-			*item.OwnerLastNameEn,
-			*item.OwnerLastNameEn,
-			*item.OwnerLastNameAr,
-			item.LifecycleStatusTitleEn,
-			item.LifecycleStatusTitleAr,
+			process.ReferenceNumber,
+			process.TitleEn,
+			process.TitleAr,
+			*process.Description,
+			process.ProcessGroupTitleEn,
+			process.ProcessGroupTitleAr,
+			*process.OwnerUnitTitleEn,
+			*process.OwnerUnitTitleAr,
+			*process.OwnerFirstNameEn + " " + *process.OwnerLastNameEn,
+			*process.OwnerFirstNameAr + " " + *process.OwnerLastNameAr,
+			process.LifecycleStatusTitleEn,
+			process.LifecycleStatusTitleAr,
 		}
 	}
 
