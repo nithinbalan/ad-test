@@ -35,15 +35,16 @@ func (repo *AuditUniverseRepository) BeginTransaction() utility.DatabaseTransact
 }
 
 func (repo *AuditUniverseRepository) Create(auditableItems []*models.AuditableItem, tx ...utility.DatabaseTransaction) error {
-    db := repo.db
-    if len(tx) > 0 && tx[0] != nil {
-        db = tx[0].DB()
-    }
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 
-    if err := db.Create(&auditableItems).Error; err != nil { 
-        return err
-    }
-    return nil
+	if err := db.Debug().Create(&auditableItems).Error; err != nil {
+
+		return err
+	}
+	return nil
 }
 
 func (repo *AuditUniverseRepository) UpdateMarkedAsAuditableItem(ids []uint, entityType interface{}, updates map[string]interface{}, tx ...utility.DatabaseTransaction) error {
