@@ -43,6 +43,7 @@ type AuditModule struct {
 	AuditChecklistController                     *controllers.AuditChecklistController
 	AuditScheduleController                      *controllers.AuditScheduleController
 	AuditDraftReportController                   *controllers.AuditDraftReportController
+	RCMController                                *controllers.RCMController
 	AuditDraftFindingConversationController      *controllers.AuditDraftFindingConversationController
 	AuditDraftFindingActionPlanController        *controllers.AuditDraftFindingActionPlanController
 }
@@ -330,6 +331,14 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 	)
 	auditDraftReportController := controllers.NewAuditDraftReportController(auditDraftReportSvc)
 
+	rcmRepo := repositories.NewRCMRepository(db)
+	rcmSvc := services.NewRCMService(
+		rcmRepo,
+		sharedModule.ActivityLogService,
+		auditSvc,
+	)
+	rcmController := controllers.NewRCMController(rcmSvc)
+
 	return &AuditModule{
 		AuditorRiskRatingController:                  auditorRiskRatingController,
 		AuditUniverseController:                      auditUniverseController,
@@ -365,6 +374,7 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		AuditChecklistController:                     auditChecklistController,
 		AuditScheduleController:                      auditScheduleController,
 		AuditDraftReportController:                   auditDraftReportController,
+		RCMController:                                rcmController,
 		AuditDraftFindingConversationController:      auditDraftFindingConversationController,
 		AuditDraftFindingActionPlanController:        auditDraftFindingActionPlanController,
 	}

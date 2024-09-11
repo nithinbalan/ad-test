@@ -13,7 +13,7 @@ import (
 type AuditableItemRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *auditDTOs.AuditableItemListQueryParamsDTO) (*auditDTOs.AuditableItemListResponseDTO, error)
-	GetByID(id uint) (*models.AuditableItem, error)
+	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.AuditableItem, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.AuditableItem, error)
 	Create(auditableItem *models.AuditableItem, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(auditableItem *models.AuditableItem, tx ...utility.DatabaseTransaction) error
@@ -199,9 +199,13 @@ func (repo *AuditableItemRepository) GetAll(params *auditDTOs.AuditableItemListQ
 	return response, nil
 }
 
-func (repo *AuditableItemRepository) GetByID(id uint) (*models.AuditableItem, error) {
+func (repo *AuditableItemRepository) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.AuditableItem, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 	var auditableItem *models.AuditableItem
-	result := repo.db.First(&auditableItem, id)
+	result := db.First(&auditableItem, id)
 
 	if result.Error != nil {
 		return nil, result.Error

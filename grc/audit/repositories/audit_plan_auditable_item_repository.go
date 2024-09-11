@@ -13,12 +13,16 @@ type AuditPlanAuditableItemRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(auditPlanID uint, params *auditDTOs.AuditPlanAuditableItemListQueryParamsDTO) (*auditDTOs.AuditPlanAuditableItemListResponseDTO, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.AuditPlanAuditableItem, error)
-	Create(auditPlanAuditableItems []*models.AuditPlanAuditableItem, tx ...utility.DatabaseTransaction) error
+	Create(auditPlanAuditableItem *models.AuditPlanAuditableItem, tx ...utility.DatabaseTransaction) (uint, error)
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.AuditPlanAuditableItem, error)
 	GetByAuditPlanAndAuditableItemID(auditPlanID, auditableItemID uint, auditPlanAuditableItem *models.AuditPlanAuditableItem, tx ...utility.DatabaseTransaction) error
 	GetByAuditableItemID(auditableItemID uint) (*models.AuditPlanAuditableItem, error)
 
+	GetProcessAssociatedRisks(processID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
+	GetRiskControls(riskRegisterID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
+	CreateAuditableItemRisk(risk *models.AuditPlanAuditableItemRisk, tx ...utility.DatabaseTransaction) (uint, error)
+	CreateAuditableItemRiskControls(riskControls []*models.AuditPlanAuditableItemRiskControl, tx ...utility.DatabaseTransaction) error
 }
 
 type AuditPlanAuditableItemRepository struct {
@@ -235,16 +239,16 @@ func (repo *AuditPlanAuditableItemRepository) GetFullDetailsByID(id uint, tx ...
 	return &auditableItem, nil
 }
 
-func (repo *AuditPlanAuditableItemRepository) Create(auditPlanAuditableItems []*models.AuditPlanAuditableItem, tx ...utility.DatabaseTransaction) error {
+func (repo *AuditPlanAuditableItemRepository) Create(auditPlanAuditableItem *models.AuditPlanAuditableItem, tx ...utility.DatabaseTransaction) (uint, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	if err := db.Create(&auditPlanAuditableItems).Error; err != nil {
-		return err
+	if err := db.Create(&auditPlanAuditableItem).Error; err != nil {
+		return 0, err
 	}
 
-	return nil
+	return auditPlanAuditableItem.ID, nil
 }
 
 func (repo *AuditPlanAuditableItemRepository) Delete(id uint, tx ...utility.DatabaseTransaction) error {
@@ -274,7 +278,6 @@ func (repo *AuditPlanAuditableItemRepository) GetByAuditPlanAndAuditableItemID(a
 	return db.Where("audit_plan_id = ? AND auditable_item_id = ?", auditPlanID, auditableItemID).First(auditPlanAuditableItem).Error
 }
 
-
 func (repo *AuditPlanAuditableItemRepository) GetByAuditableItemID(auditableItemID uint) (*models.AuditPlanAuditableItem, error) {
 	var auditPlanAuditableItem *models.AuditPlanAuditableItem
 
@@ -284,4 +287,60 @@ func (repo *AuditPlanAuditableItemRepository) GetByAuditableItemID(auditableItem
 	}
 
 	return auditPlanAuditableItem, nil
+}
+
+func (repo *AuditPlanAuditableItemRepository) GetProcessAssociatedRisks(processID uint, tx ...utility.DatabaseTransaction) ([]uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	var riskIDs []uint
+	err := db.Model(&models.RiskProcess{}).
+		Where("process_id = ?", processID).
+		Pluck("risk_register_id", &riskIDs).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return riskIDs, nil
+}
+
+func (repo *AuditPlanAuditableItemRepository) GetRiskControls(riskRegisterID uint, tx ...utility.DatabaseTransaction) ([]uint, error) {
+	var controls []uint
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Model(&models.RiskControl{}).Where("risk_register_id = ?", riskRegisterID).Pluck("control_id", &controls).Error; err != nil {
+		return nil, err
+	}
+
+	return controls, nil
+}
+
+func (repo *AuditPlanAuditableItemRepository) CreateAuditableItemRisk(risk *models.AuditPlanAuditableItemRisk, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Create(risk).Error; err != nil {
+		return 0, err
+	}
+
+	return risk.ID, nil
+}
+
+func (repo *AuditPlanAuditableItemRepository) CreateAuditableItemRiskControls(riskControls []*models.AuditPlanAuditableItemRiskControl, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Create(&riskControls).Error; err != nil {
+		return err
+	}
+
+	return nil
 }
