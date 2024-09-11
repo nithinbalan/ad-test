@@ -30,23 +30,25 @@ type AuditDraftReportParsedDates struct {
 	ReportDate *time.Time
 }
 type AuditDraftFindingReportDetailDTO struct {
-	ID                        uint                             `json:"id"`
-	Title                     string                           `json:"title"`
-	Description               *string                          `json:"description"`
-	AuditID                   uint                             `json:"audit_id"`
-	AuditableItemID           *uint                            `json:"auditable_item_id"`
-	AuditChecklistID          *uint                            `json:"audit_checklist_id"`
-	AuditFindingCategoryID    uint                             `json:"audit_finding_category_id"`
-	SeverityLevelID           uint                             `json:"severity_level_id"`
-	Recommendations           *string                          `json:"recommendations,omitempty"`
-	AuditDraftFindingStatusID uint                             `json:"audit_draft_finding_status_id"`
-	AuditableItem             AuditableItemDetailDTO           `json:"auditable_item"`
-	AuditFindingCategory      AuditFindingCategoryDTO          `json:"audit_finding_category"`
-	SeverityLevel             masterDTOs.SeverityLevelDTO      `json:"severity_level"`
-	AuditDraftFindingStatus   AuditDraftFindingStatusDTO       `json:"audit_draft_finding_status"`
-	CreatedAt                 time.Time                        `json:"created_at"`
-	UpdatedAt                 *time.Time                       `json:"updated_at"`
-	CreatedByUser             organizationDTOs.UserMinimalDTO  `json:"created_by"`
-	UpdatedByUser             *organizationDTOs.UserMinimalDTO `json:"updated_by"`
-	Documents                 []*AuditDraftFindingDocumentDTO  `json:"documents"`
+	ID                             uint                                      `json:"id"`
+	Title                          string                                    `json:"title"`
+	Description                    *string                                   `json:"description"`
+	AuditID                        uint                                      `json:"audit_id"`
+	AuditableItemID                *uint                                     `json:"auditable_item_id"`
+	AuditChecklistID               *uint                                     `json:"audit_checklist_id"`
+	AuditFindingCategoryID         uint                                      `json:"audit_finding_category_id"`
+	SeverityLevelID                uint                                      `json:"severity_level_id"`
+	Recommendations                *string                                   `json:"recommendations,omitempty"`
+	AuditDraftFindingStatusID      uint                                      `json:"audit_draft_finding_status_id"`
+	AuditableItem                  AuditableItemDetailDTO                    `json:"auditable_item"`
+	AuditFindingCategory           AuditFindingCategoryDTO                   `json:"audit_finding_category"`
+	SeverityLevel                  masterDTOs.SeverityLevelDTO               `json:"severity_level"`
+	AuditDraftFindingStatus        AuditDraftFindingStatusDTO                `json:"audit_draft_finding_status"`
+	CreatedAt                      time.Time                                 `json:"created_at"`
+	UpdatedAt                      *time.Time                                `json:"updated_at"`
+	CreatedByUser                  organizationDTOs.UserMinimalDTO           `json:"created_by"`
+	UpdatedByUser                  *organizationDTOs.UserMinimalDTO          `json:"updated_by"`
+	Documents                      []*AuditDraftFindingDocumentDTO           `json:"documents"`
+	AuditDraftFindingConversations []*AuditDraftFindingConversationDetailDTO `json:"conversations"`
+	AuditDraftFindingActionPlans   []*AuditDraftFindingActionPlanDetailDTO   `json:"action_plans"`
 }
