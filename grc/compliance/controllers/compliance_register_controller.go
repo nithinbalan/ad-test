@@ -31,6 +31,13 @@ func (crc *ComplianceRegisterController) GetAllComplianceRegisters(c *gin.Contex
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
 
+	// Convert the export parameter to a boolean
+	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, "Invalid export parameter")
+		return
+	}
+
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"compliance_category_ids",
@@ -84,13 +91,33 @@ func (crc *ComplianceRegisterController) GetAllComplianceRegisters(c *gin.Contex
 		ExpiryDateTo:       expiryDateTo,
 		NextReviewDateFrom: nextReviewDateFrom,
 		NextReviewDateTo:   nextReviewDateTo,
+		Export:             export,
 	}
-	compliances, err := crc.service.GetAll(&queryParams)
 
+	compliances, err := crc.service.GetAll(&queryParams)
 	if err != nil {
 		utility.SendInternalErrResp(crc.db, c, err.Error())
 		return
 	}
+
+	// If export is true, generate and return the Excel file
+	if export {
+		excelFile, err := crc.service.ExportComplianceRegisters(compliances.Items)
+		if err != nil {
+			utility.SendInternalErrResp(crc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="Compliance Register.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
+		return
+	}
+
+	// Otherwise, return the data as JSON
 	c.JSON(http.StatusOK, compliances)
 }
 
@@ -324,4 +351,10 @@ func (crc *ComplianceRegisterController) DownloadComplianceRegisterDocument(c *g
 
 	// Serve the file
 	c.File(complianceDocumentPath)
+}
+
+func (crc *ComplianceRegisterController) GetComplianceRegisterExport(c *gin.Context) {
+	c.Request.URL.RawQuery += "&export=true"
+
+	crc.GetAllComplianceRegisters(c)
 }

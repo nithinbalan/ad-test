@@ -122,8 +122,8 @@ func (rcas *RiskInherentControlAnalysisService) Create(riskID uint, currentUserI
 		riskControlAnalysis := &models.RiskControlAnalysis{
 			RiskControlID:                 riskControl.ID,
 			Type:                          "inherent",
-			ControlEfficiencyStatusID:     *control.ControlEfficiencyStatusID,
-			ControlImplementationStatusID: *control.ControlImplementationStatusID,
+			ControlEfficiencyStatusID:     control.ControlEfficiencyStatusID,
+			ControlImplementationStatusID: control.ControlImplementationStatusID,
 			Score:                         control.EfficiencyScore,
 			CreatedByID:                   currentUserID,
 			CreatedAt:                     time.Now(),
@@ -259,7 +259,7 @@ func (rcas *RiskInherentControlAnalysisService) Delete(riskID uint, ids []uint, 
 	} else {
 		tx.Rollback()
 	}
-	
+
 	return failedIds, nil
 }
 

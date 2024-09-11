@@ -95,7 +95,24 @@ func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*us
 		Joins("LEFT JOIN user_statuses ON user_statuses.id = users.user_status_id").
 		Joins("LEFT JOIN (SELECT user_roles.user_id, STRING_AGG(roles.title_en, ', ') AS roles_en, STRING_AGG(roles.title_ar, ', ') AS roles_ar FROM user_roles JOIN roles ON roles.id = user_roles.role_id GROUP BY user_roles.user_id) roles_agg ON roles_agg.user_id = users.id")
 
-		// Apply dynamic filters to the query
+	// Check if quickfilter includes 'all'
+	showAllUsers := false
+	isLockedFilter := false
+	for _, filter := range params.QuickFilter {
+		if filter == "all" {
+			showAllUsers = true
+		}
+		if filter == "locked" {
+			isLockedFilter = true
+		}
+	}
+
+	// Apply the 'active' filter only if no "all" or "locked" filter is present
+	if !showAllUsers && !isLockedFilter {
+		query = query.Where("user_statuses.type = ?", "active")
+	}
+
+	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
 			query = query.Where(columnName+" IN (?)", values)
@@ -106,14 +123,19 @@ func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*us
 		query = query.Where("users.id IN (?)", params.UserIDs)
 	}
 
-	// Apply quick filters
 	for _, filter := range params.QuickFilter {
 		switch filter {
-		case "recently_added":
-			thirtyDaysAgo := time.Now().AddDate(0, 0, -30)
-			query = query.Where("users.created_at >= ?", thirtyDaysAgo)
-		case "admin_users":
-			query = query.Where("roles_agg.roles_en = ? OR roles_agg.roles_ar = ?", "Admin", "مسؤول")
+		case "active":
+			query = query.Where("user_statuses.type = ?", "active")
+		case "locked":
+			query = query.Where("user_statuses.type = ?", "locked")
+		case "super_admin":
+			query = query.Joins("JOIN user_roles ur ON ur.user_id = users.id").
+				Joins("JOIN roles r ON r.id = ur.role_id").
+				Where("r.is_super_admin = ?", true)
+		case "recent":
+			tenDaysAgo := time.Now().AddDate(0, 0, -10)
+			query = query.Where("users.created_at >= ?", tenDaysAgo)
 		case "logged_in_today":
 			query = query.Where("CONVERT(date, users.last_login_at) = CONVERT(date, GETDATE())")
 		case "logged_in_this_week":
@@ -150,7 +172,7 @@ func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*us
 
 	offset := (params.Page - 1) * params.PageSize
 
-	// Execute the queryc
+	// Execute the query
 	err := query.Offset(offset).Limit(params.PageSize).Find(&users).Error
 	if err != nil {
 		return nil, err

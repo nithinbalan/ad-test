@@ -44,6 +44,8 @@ type AuditModule struct {
 	AuditScheduleController                      *controllers.AuditScheduleController
 	AuditDraftReportController                   *controllers.AuditDraftReportController
 	RCMController                                *controllers.RCMController
+	AuditDraftFindingConversationController      *controllers.AuditDraftFindingConversationController
+	AuditDraftFindingActionPlanController        *controllers.AuditDraftFindingActionPlanController
 }
 
 func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, complianceModule *ComplianceModule, riskModule *RiskModule, incidentModule *IncidentModule, documentModule *DocumentModule, settingModule *SettingsModule, masterModule *MasterModule) *AuditModule {
@@ -248,6 +250,24 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 	)
 	auditDraftFindingController := controllers.NewAuditDraftFindingController(auditDraftFindingSvc)
 
+	auditDraftFindingConversationRepo := repositories.NewAuditDraftFindingConversationRepository(db)
+	auditDraftFindingConversationSvc := services.NewAuditDraftFindingConversationService(
+		auditDraftFindingConversationRepo,
+		sharedModule.ActivityLogService,
+		auditDraftFindingSvc,
+		auditDraftFindingStatusSvc,
+	)
+	auditDraftFindingConversationController := controllers.NewAuditDraftFindingConversationController(auditDraftFindingConversationSvc)
+
+	auditDraftFindingActionPlanRepo := repositories.NewAuditDraftFindingActionPlanRepository(db)
+	auditDraftFindingActionPlanSvc := services.NewAuditDraftFindingActionPlanService(
+		auditDraftFindingActionPlanRepo,
+		sharedModule.ActivityLogService,
+		auditDraftFindingSvc,
+		auditDraftFindingStatusSvc,
+	)
+	auditDraftFindingActionPlanController := controllers.NewAuditDraftFindingActionPlanController(auditDraftFindingActionPlanSvc)
+
 	auditDocumentRequestStatusRepo := repositories.NewAuditDocumentRequestStatusRepository(db)
 	auditDocumentRequestStatusSvc := services.NewAuditDocumentRequestStatusService(auditDocumentRequestStatusRepo)
 	auditDocumentRequestStatusController := controllers.NewAuditDocumentRequestStatusController(auditDocumentRequestStatusSvc)
@@ -355,5 +375,7 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		AuditScheduleController:                      auditScheduleController,
 		AuditDraftReportController:                   auditDraftReportController,
 		RCMController:                                rcmController,
+		AuditDraftFindingConversationController:      auditDraftFindingConversationController,
+		AuditDraftFindingActionPlanController:        auditDraftFindingActionPlanController,
 	}
 }
