@@ -11,7 +11,7 @@ import (
 	logServices "jethur/grc/logs/services"
 	masterDTOs "jethur/grc/masters/dtos"
 	"jethur/grc/models"
-	organiztionDTOs "jethur/grc/organization/dtos"
+	organizationDTOs "jethur/grc/organization/dtos"
 	riskDTOs "jethur/grc/risk/dtos"
 	"jethur/utility"
 	"time"
@@ -73,10 +73,25 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, tx ...util
 		}
 		return nil, err
 	}
-	submittedByUser := mapUserToUserMinimalDTO(auditDraftReport.SubmittedByUser)
 	createdByUser := mapUserToUserMinimalDTO(auditDraftReport.CreatedByUser)
-	updatedByUser := mapUserToUserMinimalDTO(auditDraftReport.UpdatedByUser)
-	submittedAt := auditDraftReport.SubmittedAt.Format("2006-01-02")
+
+	var updatedByUser *organizationDTOs.UserMinimalDTO
+	var submittedByUser *organizationDTOs.UserMinimalDTO
+	var submittedAt *string
+
+	// Check if SubmittedByUser and SubmittedAt are present before accessing them
+	if auditDraftReport.SubmittedByUser != nil {
+		submittedByUserDTO := mapUserToUserMinimalDTO(auditDraftReport.SubmittedByUser)
+		submittedByUser = &submittedByUserDTO
+	}
+	if auditDraftReport.UpdatedByUser != nil {
+		updatedByUserDTO := mapUserToUserMinimalDTO(auditDraftReport.UpdatedByUser)
+		updatedByUser = &updatedByUserDTO
+	}
+	if auditDraftReport.SubmittedAt != nil {
+		formattedSubmittedAt := auditDraftReport.SubmittedAt.Format("2006-01-02")
+		submittedAt = &formattedSubmittedAt
+	}
 	// Map the AuditDraftReportStatus
 	auditDraftReportStatusDTO := auditDTOs.AuditDraftReportStatusDTO{
 		ID:        auditDraftReport.AuditDraftReportStatus.ID,
@@ -94,8 +109,8 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, tx ...util
 		ReportDateString:       auditDraftReport.ReportDate.Format("2006-01-02"),
 		PreparedBy:             mapUserToUserMinimalDTO(auditDraftReport.Audit.CreatedByUser),
 		PreparedAt:             auditDraftReport.CreatedAt.Format("2006-01-02"),
-		SubmittedByUser:        &submittedByUser,
-		SubmittedAt:            &submittedAt,
+		SubmittedByUser:        submittedByUser,
+		SubmittedAt:            submittedAt,
 		ExecutiveSummary:       *auditDraftReport.ExecutiveSummary,
 		TeamLead:               mapUserToUserMinimalDTO(auditDraftReport.Audit.AuditPlan.TeamLead),
 		Conclusion:             *auditDraftReport.Conclusion,
@@ -103,7 +118,7 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, tx ...util
 		Auditors:               []*auditDTOs.AuditPlanAuditMemberDTO{}, // Initialize as empty slice
 		AuditDraftFindings:     []*auditDTOs.AuditDraftFindingReportDetailDTO{},
 		CreatedByUser:          createdByUser,
-		UpdatedByUser:          &updatedByUser,
+		UpdatedByUser:          updatedByUser,
 	}
 	// Map auditors
 	for _, auditor := range auditDraftReport.Audit.AuditPlan.Members {
@@ -161,13 +176,13 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, tx ...util
 				RiskRegisterID:          finding.AuditableItem.RiskRegisterID,
 			}
 			if finding.AuditableItem.Process != nil {
-				findingDTO.AuditableItem.Process = &organiztionDTOs.ProcessDetailDTO{
+				findingDTO.AuditableItem.Process = &organizationDTOs.ProcessDetailDTO{
 					TitleEn: safeStringPointer(&finding.AuditableItem.Process.TitleEn),
 					TitleAr: safeStringPointer(&finding.AuditableItem.Process.TitleAr),
 				}
 			}
 			if finding.AuditableItem.Control != nil {
-				findingDTO.AuditableItem.Control = &organiztionDTOs.ControlDetailDTO{
+				findingDTO.AuditableItem.Control = &organizationDTOs.ControlDetailDTO{
 					TitleEn: safeStringPointer(&finding.AuditableItem.Control.TitleEn),
 					TitleAr: safeStringPointer(&finding.AuditableItem.Control.TitleAr),
 				}
@@ -507,11 +522,11 @@ func (adrs *AuditDraftReportService) parseAuditDraftReportDates(dto *auditDTOs.A
 }
 
 // Helper function to map User to UserMinimalDTO
-func mapUserToUserMinimalDTO(user *models.User) organiztionDTOs.UserMinimalDTO {
+func mapUserToUserMinimalDTO(user *models.User) organizationDTOs.UserMinimalDTO {
 	if user == nil {
-		return organiztionDTOs.UserMinimalDTO{}
+		return organizationDTOs.UserMinimalDTO{}
 	}
-	return organiztionDTOs.UserMinimalDTO{
+	return organizationDTOs.UserMinimalDTO{
 		ID:               int(user.ID),
 		FirstNameEN:      user.FirstNameEn,
 		LastNameEN:       user.LastNameEn,
