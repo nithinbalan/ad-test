@@ -28,6 +28,7 @@ type SLARegisterServiceInterface interface {
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	Archive(ids []uint, currentUserID uint) ([]uint, error)
 	Restore(ids []uint, currentUserID uint) ([]uint, error)
+	ExportSLARegisters(data []*complianceDTOs.SLARegisterListDTO, currentUserID uint) (*os.File, error)
 
 	GetDocumentPath(id uint, token string) (string, error)
 	AssessmentStatusSummary(slaID uint) ([]complianceDTOs.SLACheckAnswerStatusCountResponseDTO, error)
@@ -42,6 +43,7 @@ type SLARegisterService struct {
 	activityLogSvc     logServices.ActivityLogServiceInterface
 	processSvc         organizationServices.ProcessServiceInterface
 	userSvc            organizationServices.UserServiceInterface
+	userSettingSvc     organizationServices.UserSettingServiceInterface
 }
 
 func NewSLARegisterService(
@@ -51,7 +53,9 @@ func NewSLARegisterService(
 	lifecycleStatusSvc masterServices.LifecycleStatusServiceInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	processSvc organizationServices.ProcessServiceInterface,
-	userSvc organizationServices.UserServiceInterface) SLARegisterServiceInterface {
+	userSvc organizationServices.UserServiceInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface,
+) SLARegisterServiceInterface {
 	return &SLARegisterService{
 		repo:               repo,
 		slaCategorySvc:     slaCategorySvc,
@@ -60,6 +64,7 @@ func NewSLARegisterService(
 		activityLogSvc:     activityLogSvc,
 		processSvc:         processSvc,
 		userSvc:            userSvc,
+		userSettingSvc:     userSettingSvc,
 	}
 }
 
@@ -745,4 +750,96 @@ func (srs SLARegisterService) AssessmentStatusSummary(slaID uint) ([]complianceD
 	}
 
 	return assessmentStatusSummary, nil
+}
+
+func (srs *SLARegisterService) ExportSLARegisters(data []*complianceDTOs.SLARegisterListDTO, currentUserID uint) (*os.File, error) {
+	// Retrieve user settings for language preference
+	userSetting, err := srs.userSettingSvc.GetUserSetting(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	var headers []string
+	// Define headers based on the user's language setting
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"SL No.",
+			"Reference Number",
+			"Title (AR)",
+			"Category (AR)",
+			"Version",
+			"Issue Date",
+			"Expiry Date",
+			"Lifecycle Status (AR)",
+			"Responsible Unit (AR)",
+			"Compliance Status (AR)",
+			"Created User (AR)",
+			"Client",
+			"Description",
+			"Severity Level (AR)",
+			"Responsible User (AR)",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Reference Number",
+			"Title (EN)",
+			"Category (EN)",
+			"Version",
+			"Issue Date",
+			"Expiry Date",
+			"Lifecycle Status (EN)",
+			"Responsible Unit (EN)",
+			"Compliance Status (EN)",
+			"Created User (EN)",
+			"Client",
+			"Description",
+			"Severity Level (EN)",
+			"Responsible User (EN)",
+		}
+	}
+
+	// Convert data to [][]interface{} based on language preference
+	rows := make([][]interface{}, len(data))
+	for i, item := range data {
+		if userSetting.Language == "ar" {
+			rows[i] = []interface{}{
+				i + 1,
+				item.ReferenceNumber,
+				item.TitleAr,
+				item.SLACategoryTitleAr,
+				item.Version,
+				item.IssueDate,
+				item.ExpiryDate,
+				item.LifecycleStatusTitleAr,
+				item.ResponsibleUnitTitleAr,
+				item.ComplianceStatusTitleAr,
+				item.CreatedUserFirstNameAr + " " + item.CreatedUserLastNameAr,
+				item.Client,
+				item.Description,
+				item.SeverityLevelTitleAr,
+				item.ResponsibleUserFirstNameAr + " " + item.ResponsibleUserLastNameAr,
+			}
+		} else {
+			rows[i] = []interface{}{
+				i + 1,
+				item.ReferenceNumber,
+				item.TitleEn,
+				item.SLACategoryTitleEn,
+				item.Version,
+				item.IssueDate,
+				item.ExpiryDate,
+				item.LifecycleStatusTitleEn,
+				item.ResponsibleUnitTitleEn,
+				item.ComplianceStatusTitleEn,
+				item.CreatedUserFirstNameEn + " " + item.CreatedUserLastNameEn,
+				item.Client,
+				item.Description,
+				item.SeverityLevelTitleEn,
+				item.ResponsibleUserFirstNameEn + " " + item.ResponsibleUserLastNameEn,
+			}
+		}
+	}
+	// Generate the Excel file
+	return utility.GenerateExcelFile(headers, rows)
 }
