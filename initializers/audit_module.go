@@ -31,6 +31,7 @@ type AuditModule struct {
 	AuditTimelineController                      *controllers.AuditTimelineController
 	AuditFindingStatusController                 *controllers.AuditFindingStatusController
 	AuditDraftFindingStatusController            *controllers.AuditDraftFindingStatusController
+	AuditDraftReportStatusController             *controllers.AuditDraftReportStatusController
 	AuditFindingCategoryController               *controllers.AuditFindingCategoryController
 	AuditFindingController                       *controllers.AuditFindingController
 	AuditDraftFindingController                  *controllers.AuditDraftFindingController
@@ -214,6 +215,10 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 	auditDraftFindingStatusSvc := services.NewAuditDraftFindingStatusService(auditDraftFindingStatusRepo)
 	auditDraftFindingStatusController := controllers.NewAuditDraftFindingStatusController(auditDraftFindingStatusSvc)
 
+	auditDraftReportStatusRepo := repositories.NewAuditDraftReportStatusRepository(db)
+	auditDraftReportStatusSvc := services.NewAuditDraftReportStatusService(auditDraftReportStatusRepo)
+	auditDraftReportStatusController := controllers.NewAuditDraftReportStatusController(auditDraftReportStatusSvc)
+
 	auditFindingCategoryRepo := repositories.NewAuditFindingCategoryRepository(db)
 	auditFindingCategorySvc := services.NewAuditFindingCategoryService(auditFindingCategoryRepo, sharedModule.ActivityLogService)
 	auditFindingCategoryController := controllers.NewAuditFindingCategoryController(auditFindingCategorySvc)
@@ -328,6 +333,7 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		auditDraftReportRepo,
 		sharedModule.ActivityLogService,
 		auditSvc,
+		auditDraftReportStatusSvc,
 	)
 	auditDraftReportController := controllers.NewAuditDraftReportController(auditDraftReportSvc)
 
@@ -362,6 +368,7 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		AuditTimelineController:                      auditTimelineController,
 		AuditFindingStatusController:                 auditFindingStatusController,
 		AuditDraftFindingStatusController:            auditDraftFindingStatusController,
+		AuditDraftReportStatusController:             auditDraftReportStatusController,
 		AuditFindingCategoryController:               auditFindingCategoryController,
 		AuditFindingController:                       auditFindingController,
 		AuditDraftFindingController:                  auditDraftFindingController,

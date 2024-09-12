@@ -198,6 +198,7 @@ func (repo *ProcessRepository) GetFullDetailsByID(id uint, tx ...utility.Databas
 		Preload("LifecycleStatus").
 		Preload("Controls").
 		Preload("Documents").
+		Preload("Risks").
 		Preload("CreatedByUser").
 		Preload("CreatedByUser.OrganizationUnit1").
 		Preload("UpdatedByUser").
