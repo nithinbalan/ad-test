@@ -19,7 +19,7 @@ import (
 
 type ProcessServiceInterface interface {
 	GetAll(params *organizationDTOs.ProcessListQueryParamsDTO) (*organizationDTOs.ProcessListResponseDTO, error)
-	GetByID(id uint) (*models.Process, error)
+	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Process, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*organizationDTOs.ProcessDetailDTO, error)
 	Create(currentUserID uint, processFormDTO *organizationDTOs.ProcessFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, processFormDTO *organizationDTOs.ProcessFormDTO) error
@@ -31,6 +31,8 @@ type ProcessServiceInterface interface {
 	GetControlSummary(id uint) (map[string]interface{}, error)
 
 	ExportProcesses(data []*organizationDTOs.ProcessListDTO, currentUserID uint) (*os.File, error)
+
+	UpdateProcessRiskRating(process *models.Process, tx utility.DatabaseTransaction) error
 }
 
 type ProcessService struct {
@@ -69,8 +71,8 @@ func (ps *ProcessService) GetAll(params *organizationDTOs.ProcessListQueryParams
 	return ps.repo.GetAll(params)
 }
 
-func (ps *ProcessService) GetByID(id uint) (*models.Process, error) {
-	process, err := ps.repo.GetByID(id)
+func (ps *ProcessService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Process, error) {
+	process, err := ps.repo.GetByID(id, tx...)
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -940,4 +942,15 @@ func (ps *ProcessService) ExportProcesses(data []*organizationDTOs.ProcessListDT
 	}
 
 	return utility.GenerateExcelFile(headers, rows)
+}
+
+func (ps *ProcessService) UpdateProcessRiskRating(process *models.Process, tx utility.DatabaseTransaction) error {
+
+	err := ps.repo.Update(process, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return nil
 }

@@ -51,6 +51,10 @@ type ProcessListDTO struct {
 	UpdatedUserProfileImagePath string     `json:"updated_user_profile_image_path"`
 	CreatedAt                   time.Time  `json:"created_at"`
 	UpdatedAt                   *time.Time `json:"updated_at"`
+	RiskRatingTitleEn           *string    `json:"risk_rating_title_en"`
+	RiskRatingTitleAr           *string    `json:"risk_rating_title_ar"`
+	RiskRatingColorCode         *string    `json:"risk_rating_color_code"`
+	RiskRatingValue             *uint      `json:"risk_rating_value"`
 }
 
 // ProcessListQueryParamsDTO defines the filters and search parameters for querying processes
@@ -111,15 +115,25 @@ type ProcessControlDTO struct {
 }
 
 type ProcessRiskDTO struct {
-	ID        *uint          `json:"id"`
-	ProcessID uint           `json:"process_id"`
-	RiskID    uint           `json:"risk_id"`
-	Risk      RiskMinimalDTO `json:"risk"`
+	ID             *uint          `json:"id"`
+	ProcessID      uint           `json:"process_id"`
+	RiskRegisterID uint           `json:"risk_register_id"`
+	Risk           RiskMinimalDTO `json:"risk"`
 }
 
 type RiskMinimalDTO struct {
-	Title       string  `json:"title"`
-	Description *string `json:"description"`
+	ID                       uint                          `json:"id"`
+	Title                    string                        `json:"title"`
+	Description              *string                       `json:"description"`
+	CurrentRiskRatingID      *uint                         `json:"current_risk_rating_id"`
+	CurrentRiskRatingValueID *uint                         `json:"current_risk_rating_value_id"`
+	CurrentRiskRatingValue   *RiskMatrixRiskRatingValueDTO `json:"current_risk_rating_value"`
+}
+
+type RiskMatrixRiskRatingValueDTO struct {
+	ID                     uint `json:"id"`
+	Value                  int  `json:"value"` // This is used to find the maximum rating
+	RiskMatrixRiskRatingID uint `json:"risk_matrix_risk_rating_id"`
 }
 
 type ProcessAssociatedDocumentDTO struct {

@@ -15,7 +15,7 @@ import (
 type RiskRegisterRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *riskDTOs.RiskRegisterListQueryParamsDTO) (*riskDTOs.RiskRegisterListResponseDTO, error)
-	GetByID(id uint) (*models.RiskRegister, error)
+	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.RiskRegister, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.RiskRegister, error)
 	Create(riskRegister *models.RiskRegister, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(riskRegister *models.RiskRegister, tx ...utility.DatabaseTransaction) error
@@ -267,10 +267,15 @@ func (repo *RiskRegisterRepository) GetAll(params *riskDTOs.RiskRegisterListQuer
 	return response, nil
 }
 
-func (repo *RiskRegisterRepository) GetByID(id uint) (*models.RiskRegister, error) {
+func (repo *RiskRegisterRepository) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.RiskRegister, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
 	var risk *models.RiskRegister
 
-	result := repo.db.
+	result := db.
 		First(&risk, id)
 	if result.Error != nil {
 		return nil, result.Error
