@@ -433,15 +433,16 @@ func (adfs *AuditDraftFindingService) validateAuditDraftFindingFormDTO(dto *audi
 	if _, err := adfs.auditSvc.GetByID(dto.AuditID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("audit does not exist"), "not_exist", "audit")
 	}
-
-	if _, err := adfs.auditableItemSvc.GetByID(*dto.AuditableItemID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("auditable item does not exist"), "not_exist", "auditable item")
+	if dto.AuditableItemID != nil {
+		if _, err := adfs.auditableItemSvc.GetByID(*dto.AuditableItemID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("auditable item does not exist"), "not_exist", "auditable item")
+		}
 	}
-
-	if _, err := adfs.auditChecklistSvc.GetByID(dto.AuditID, *dto.AuditChecklistID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("audit checklist does not exist"), "not_exist", "audit checklist")
+	if dto.AuditChecklistID != nil {
+		if _, err := adfs.auditChecklistSvc.GetByID(dto.AuditID, *dto.AuditChecklistID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("audit checklist does not exist"), "not_exist", "audit checklist")
+		}
 	}
-
 	if _, err := adfs.auditFindingCategorySvc.GetByID(dto.AuditFindingCategoryID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("audit finding category does not exist"), "not_exist", "audit finding category")
 	}
