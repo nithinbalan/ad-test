@@ -244,6 +244,7 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 			return 0, err
 		}
 	}
+
 	// Add Strategic Objectives
 	var strategicObjectives []*models.RiskStrategicObjective
 	for _, strategicObjectiveID := range riskRegisterFormDTO.StrategicObjectiveIDs {
@@ -1201,56 +1202,69 @@ func (rrs *RiskRegisterService) UpdateRiskRating(riskID uint, currentUserID uint
 		return err
 	}
 
+	if err := rrs.UpdateProcessRiskRating(existingRisk.ID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	return nil
 }
 
-// func (rrs *RiskRegisterService) UpdateProcessRiskRating(riskID uint, tx utility.DatabaseTransaction) error {
-// 	risk, err := rrs.repo.GetFullDetailsByID(riskID)
-// 	if err != nil {
-// 		tx.Rollback()
-// 		return err
-// 	}
+func (rrs *RiskRegisterService) UpdateProcessRiskRating(riskID uint, tx utility.DatabaseTransaction) error {
+	// Get the risk register details for the given riskID
+	risk, err := rrs.repo.GetFullDetailsByID(riskID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
 
-// 	// Iterate through each associated process and update their risk rating
-// 	for _, riskProcess := range risk.Processes {
-// 		// Get all risks associated with the current process
-// 		// var processRisks []models.RiskRegister
-// 		process, err := rrs.processSvc.GetFullDetailsByID(riskProcess.ProcessID)
-// 		if err != nil {
-// 			tx.Rollback()
-// 			return err
-// 		}
+	// Iterate through each associated process and update their risk rating
+	for _, riskProcess := range risk.Processes {
+		// Get the full process details (including associated risks)
+		process, err := rrs.processSvc.GetFullDetailsByID(riskProcess.ProcessID, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
 
-// 		// Find the maximum risk rating value from all associated risks
-// 		var maxRiskRatingValue *models.RiskMatrixRiskRatingValue
-// 		for _, risk := range process.Risks {
-// 			if maxRiskRatingValue == nil || (risk.CurrentRiskRatingValue != nil && risk.CurrentRiskRatingValue.Value > maxRiskRatingValue.Value) {
-// 				maxRiskRatingValue = risk.CurrentRiskRatingValue
-// 			}
-// 		}
+		// Find the maximum risk rating value from all associated risks
+		var maxRiskRatingValue *models.RiskMatrixRiskRatingValue
+		for _, processRisk := range process.Risks {
 
-// 		// If we found a max risk rating value, update the process with the corresponding rating
-// 		if maxRiskRatingValue != nil {
-// 			process, err := rrs.processSvc.GetByID(riskProcess.ProcessID)
-// 			if err != nil {
-// 				tx.Rollback()
-// 				return err
-// 			}
+			riskDetail, err := rrs.repo.GetFullDetailsByID(processRisk.RiskRegisterID, tx)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
 
-// 			process.RiskMatrixRatingID = maxRiskRatingValue.RiskMatrixRiskRatingID
-// 			process.RiskMatrixRatingValueID = maxRiskRatingValue.ID
+			if maxRiskRatingValue == nil || (riskDetail.CurrentRiskRatingValue != nil && riskDetail.CurrentRiskRatingValue.Value > maxRiskRatingValue.Value) {
+				maxRiskRatingValue = riskDetail.CurrentRiskRatingValue
+			}
+		}
 
-// 			// Update the process risk rating in the database
-// 			err = rrs.repo.UpdateProcessRiskRating(process, tx)
-// 			if err != nil {
-// 				tx.Rollback()
-// 				return err
-// 			}
-// 		}
-// 	}
+		existingProcess, err := rrs.processSvc.GetByID(riskProcess.ProcessID, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
 
-// 	return nil
-// }
+		// If we found a max risk rating value, update the process with the corresponding rating
+		if maxRiskRatingValue != nil {
+			// Update the process risk rating values
+			existingProcess.RiskMatrixRiskRatingID = &maxRiskRatingValue.RiskMatrixRiskRatingID
+			existingProcess.RiskMatrixRiskRatingValueID = &maxRiskRatingValue.ID
+
+			// Update the process risk rating in the database
+			err = rrs.processSvc.UpdateProcessRiskRating(existingProcess, tx)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+	}
+
+	return nil
+}
 
 func (rrs *RiskRegisterService) ClearRiskRating(riskID uint, updateDTO *riskDTOs.RiskRegisterRiskRatingUpdateDTO, tx utility.DatabaseTransaction) error {
 	riskRegister, err := rrs.GetByID(riskID)

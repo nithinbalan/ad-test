@@ -15,7 +15,7 @@ import (
 type ProcessRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *organizationDTOs.ProcessListQueryParamsDTO) (*organizationDTOs.ProcessListResponseDTO, error)
-	GetByID(id uint) (*models.Process, error)
+	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Process, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.Process, error)
 	Create(process *models.Process, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(process *models.Process, tx ...utility.DatabaseTransaction) error
@@ -97,14 +97,20 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
         updated_user.email AS updated_user_email,
         updated_user.profile_image_path AS updated_user_profile_image_path,
 		processes.created_at,
-		processes.updated_at
+		processes.updated_at,
+		risk_matrix_risk_ratings.title_en AS risk_rating_title_en,
+    	risk_matrix_risk_ratings.title_ar AS risk_rating_title_ar,
+    	risk_matrix_risk_ratings.color_code AS risk_rating_color_code,
+    	risk_matrix_risk_rating_values.value AS risk_rating_value
 	`).
 		Joins("LEFT JOIN process_groups ON process_groups.id = processes.process_group_id").
 		Joins("LEFT JOIN organization_units ON organization_units.id = processes.owner_unit_id").
 		Joins("LEFT JOIN users AS owner ON owner.id = processes.owner_id").
 		Joins("LEFT JOIN lifecycle_statuses ON lifecycle_statuses.id = processes.lifecycle_status_id").
 		Joins("LEFT JOIN users AS created_user ON created_user.id = processes.created_by_id").
-		Joins("LEFT JOIN users AS updated_user ON updated_user.id = processes.updated_by_id")
+		Joins("LEFT JOIN users AS updated_user ON updated_user.id = processes.updated_by_id").
+		Joins("LEFT JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = processes.risk_matrix_risk_rating_id").
+		Joins("LEFT JOIN risk_matrix_risk_rating_values ON risk_matrix_risk_rating_values.id = processes.risk_matrix_risk_rating_value_id")
 
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
@@ -174,9 +180,14 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 	return response, nil
 }
 
-func (repo *ProcessRepository) GetByID(id uint) (*models.Process, error) {
+func (repo *ProcessRepository) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Process, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
 	var process *models.Process
-	result := repo.db.First(&process, id)
+	result := db.First(&process, id)
 	if result.Error != nil {
 		return nil, result.Error
 	}

@@ -47,12 +47,14 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditChecklistController := app.AuditModule.AuditChecklistController
 	auditScheduleController := app.AuditModule.AuditScheduleController
 	auditDraftFindingStatusController := app.AuditModule.AuditDraftFindingStatusController
-	auditDraftReportStatusController := app.AuditModule.AuditDraftReportStatusController
 	auditDraftFindingController := app.AuditModule.AuditDraftFindingController
 	auditDraftReportController := app.AuditModule.AuditDraftReportController
+<<<<<<< HEAD
+=======
 	rcmController := app.AuditModule.RCMController
 	auditDraftFindingConversationController := app.AuditModule.AuditDraftFindingConversationController
 	auditDraftFindingActionPlanController := app.AuditModule.AuditDraftFindingActionPlanController
+>>>>>>> fd5d95295e85e9443dfdbec3d5390aabd011d554
 
 	//Audit Status
 	auditRoutes.GET("/audit-statuses", auditStatusController.GetAllAuditStatuses)
@@ -267,17 +269,14 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.PUT("/audit-draft-findings/:findingId", auditDraftFindingController.UpdateAuditDraftFinding)
 	auditRoutes.POST("/audit-draft-findings/delete", auditDraftFindingController.DeleteAuditDraftFindings)
 
-	//Draft Audit Report Status
-	auditRoutes.GET("/audit-draft-report-statuses", auditDraftReportStatusController.GetAllAuditDraftReportStatuses)
-	auditRoutes.GET("/audit-draft-report-statuses/:id", auditDraftReportStatusController.GetAuditDraftReportStatusDetails)
-
 	//Audit Draft Report
 	auditRoutes.GET("/audits/:auditId/draft-reports", auditDraftReportController.GetAuditDraftReportDetails)
 	auditRoutes.POST("/audits/:auditId/draft-reports", auditDraftReportController.CreateAuditDraftReport)
 	auditRoutes.PUT("/audits/:auditId/draft-reports/:id", auditDraftReportController.UpdateAuditDraftReport)
 	auditRoutes.POST("/audits/:auditId/draft-reports/delete", auditDraftReportController.DeleteAuditDraftReports)
-	auditRoutes.POST("/audits/:auditId/draft-reports/:id/submit", auditDraftReportController.SubmitAuditDraftReport)
 
+<<<<<<< HEAD
+=======
 	//Audit Risk Control Metrix
 	auditRoutes.GET("audits/:auditId/risk-control-matrix", rcmController.GetAllRiskControls)
 
@@ -295,4 +294,5 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.PUT("/audit-draft-findings/:findingId/action-plans/:id", auditDraftFindingActionPlanController.UpdateAuditDraftFindingActionPlan)
 	auditRoutes.POST("/audit-draft-findings/:findingId/action-plans/delete", auditDraftFindingActionPlanController.DeleteAuditDraftFindingActionPlans)
 
+>>>>>>> fd5d95295e85e9443dfdbec3d5390aabd011d554
 }

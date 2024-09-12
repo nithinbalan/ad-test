@@ -12,7 +12,7 @@ type RiskProcess struct {
 	CreatedAt      time.Time `json:"created_at" gorm:"type:datetime;not null"`
 
 	// Relationships
-	RiskRegister  *RiskRegister `gorm:"foreignKey:RiskRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Risk          *RiskRegister `gorm:"foreignKey:RiskRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	Process       *Process      `gorm:"foreignKey:ProcessID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	CreatedByUser *User         `gorm:"foreignKey:CreatedByID"`
 }
