@@ -758,7 +758,6 @@ func (srs *SLARegisterService) ExportSLARegisters(data []*complianceDTOs.SLARegi
 	if err != nil {
 		return nil, err
 	}
-
 	var headers []string
 	// Define headers based on the user's language setting
 	if userSetting.Language == "ar" {
@@ -766,6 +765,7 @@ func (srs *SLARegisterService) ExportSLARegisters(data []*complianceDTOs.SLARegi
 			"SL No.",
 			"Reference Number",
 			"Title (AR)",
+			"Description (AR)",
 			"Category (AR)",
 			"Version",
 			"Issue Date",
@@ -773,9 +773,9 @@ func (srs *SLARegisterService) ExportSLARegisters(data []*complianceDTOs.SLARegi
 			"Lifecycle Status (AR)",
 			"Responsible Unit (AR)",
 			"Compliance Status (AR)",
-			"Created User (AR)",
 			"Client",
-			"Description",
+			"Sa1 Date",
+			"Sa2 Date",
 			"Severity Level (AR)",
 			"Responsible User (AR)",
 		}
@@ -784,6 +784,7 @@ func (srs *SLARegisterService) ExportSLARegisters(data []*complianceDTOs.SLARegi
 			"SL No.",
 			"Reference Number",
 			"Title (EN)",
+			"Description (EN)",
 			"Category (EN)",
 			"Version",
 			"Issue Date",
@@ -791,9 +792,9 @@ func (srs *SLARegisterService) ExportSLARegisters(data []*complianceDTOs.SLARegi
 			"Lifecycle Status (EN)",
 			"Responsible Unit (EN)",
 			"Compliance Status (EN)",
-			"Created User (EN)",
 			"Client",
-			"Description",
+			"Sa1 Date",
+			"Sa2 Date",
 			"Severity Level (EN)",
 			"Responsible User (EN)",
 		}
@@ -807,6 +808,7 @@ func (srs *SLARegisterService) ExportSLARegisters(data []*complianceDTOs.SLARegi
 				i + 1,
 				item.ReferenceNumber,
 				item.TitleAr,
+				item.Description,
 				item.SLACategoryTitleAr,
 				item.Version,
 				item.IssueDate,
@@ -814,9 +816,9 @@ func (srs *SLARegisterService) ExportSLARegisters(data []*complianceDTOs.SLARegi
 				item.LifecycleStatusTitleAr,
 				item.ResponsibleUnitTitleAr,
 				item.ComplianceStatusTitleAr,
-				item.CreatedUserFirstNameAr + " " + item.CreatedUserLastNameAr,
 				item.Client,
-				item.Description,
+				item.SA1Date,
+				item.SA2Date,
 				item.SeverityLevelTitleAr,
 				item.ResponsibleUserFirstNameAr + " " + item.ResponsibleUserLastNameAr,
 			}
@@ -825,6 +827,7 @@ func (srs *SLARegisterService) ExportSLARegisters(data []*complianceDTOs.SLARegi
 				i + 1,
 				item.ReferenceNumber,
 				item.TitleEn,
+				item.Description,
 				item.SLACategoryTitleEn,
 				item.Version,
 				item.IssueDate,
@@ -834,7 +837,8 @@ func (srs *SLARegisterService) ExportSLARegisters(data []*complianceDTOs.SLARegi
 				item.ComplianceStatusTitleEn,
 				item.CreatedUserFirstNameEn + " " + item.CreatedUserLastNameEn,
 				item.Client,
-				item.Description,
+				item.SA1Date,
+				item.SA2Date,
 				item.SeverityLevelTitleEn,
 				item.ResponsibleUserFirstNameEn + " " + item.ResponsibleUserLastNameEn,
 			}

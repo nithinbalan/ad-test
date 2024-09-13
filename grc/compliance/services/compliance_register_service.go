@@ -816,33 +816,39 @@ func (crs *ComplianceRegisterService) ExportComplianceRegisters(data []*complian
 		headers = []string{
 			"SL No.",
 			"Reference Number",
+			"Standard Code",
 			"Title (AR)",
 			"Category (AR)",
 			"Deadline",
 			"Issue Date",
 			"Expiry Date",
+			"Description (AR)",
 			"Lifecycle Status (AR)",
 			"Responsible Unit (AR)",
 			"Compliance Status (AR)",
-			"Created User (AR)",
 			"Severity Level (AR)",
 			"Responsible User (AR)",
+			"Review Frequency (AR)",
+			"Frequency Responsible User (AR)",
 		}
 	} else {
 		headers = []string{
 			"SL No.",
 			"Reference Number",
+			"Standard Code",
 			"Title (EN)",
 			"Category (EN)",
 			"Deadline",
 			"Issue Date",
 			"Expiry Date",
+			"Description (EN)",
 			"Lifecycle Status (EN)",
 			"Responsible Unit (EN)",
 			"Compliance Status (EN)",
-			"Created User (EN)",
 			"Severity Level (EN)",
 			"Responsible User (EN)",
+			"Review Frequency (EN)",
+			"Frequency Responsible User (EN)",
 		}
 	}
 
@@ -853,33 +859,39 @@ func (crs *ComplianceRegisterService) ExportComplianceRegisters(data []*complian
 			rows[i] = []interface{}{
 				i + 1,
 				item.ReferenceNumber,
+				item.StandardCode,
 				item.TitleAr,
 				item.ComplianceCategoryTitleAr,
 				item.Deadline,
 				item.IssueDate,
 				item.ExpiryDate,
+				item.DescriptionAr,
 				item.LifecycleStatusTitleAr,
 				item.ResponsibleUnitTitleAr,
 				item.ComplianceStatusTitleAr,
-				item.CreatedUserFirstNameAr + " " + item.CreatedUserLastNameAr,
 				item.SeverityLevelTitleAr,
 				item.ResponsibleUserFirstNameAr + " " + item.ResponsibleUserLastNameAr,
+				item.ReviewFrequencyTitleAr,
+				item.ReviewResponsibleUserFirstNameAr + " " + item.ReviewResponsibleUserLastNameAr,
 			}
 		} else {
 			rows[i] = []interface{}{
 				i + 1,
 				item.ReferenceNumber,
+				item.StandardCode,
 				item.TitleEn,
 				item.ComplianceCategoryTitleEn,
 				item.Deadline,
 				item.IssueDate,
 				item.ExpiryDate,
+				item.DescriptionEn,
 				item.LifecycleStatusTitleEn,
 				item.ResponsibleUnitTitleEn,
 				item.ComplianceStatusTitleEn,
-				item.CreatedUserFirstNameEn + " " + item.CreatedUserLastNameEn,
 				item.SeverityLevelTitleEn,
 				item.ResponsibleUserFirstNameEn + " " + item.ResponsibleUserLastNameEn,
+				item.ReviewFrequencyTitleEn,
+				item.ReviewResponsibleUserFirstNameEn + " " + item.ReviewResponsibleUserLastNameEn,
 			}
 		}
 	}

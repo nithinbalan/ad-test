@@ -72,6 +72,8 @@ func (src *SLARegisterController) GetAllSLARegisters(c *gin.Context) {
 		"title_ar":             "sla_register.title_ar",
 		"description":          "sla_register.description",
 		"client":               "sla_register.client",
+		"sa1":                  "sla_documents.sa1_date",
+		"sa2":                  "sla_documents.sa2_date",
 		"sla_category_en":      "sla_categories.title_en",
 		"sla_category_ar":      "sla_categories.title_ar",
 		"severity_level_en":    "severity_levels.title_en",
