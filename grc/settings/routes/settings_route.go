@@ -38,6 +38,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	settingRoutes.PUT("/roles/activate", roleController.ActivateRoles)
 	settingRoutes.PUT("/roles/deactivate", roleController.DeactivateRoles)
 
+	settingRoutes.PUT("/roles/:id/permissions", roleController.UpdateRolePermissions)
+
 	// Organization Unit
 	settingRoutes.GET("/organization-units", organizationUnitController.GetAllOrganizationUnits)
 	settingRoutes.GET("/organization-units/:id", organizationUnitController.GetOrganizationUnitDetails)
