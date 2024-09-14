@@ -9,6 +9,7 @@ import (
 	organizationServices "jethur/grc/organization/services"
 	riskDTOs "jethur/grc/risk/dtos"
 	riskRepositories "jethur/grc/risk/repositories"
+	"os"
 	"path/filepath"
 	"strconv"
 	"time"
@@ -32,6 +33,8 @@ type RiskRegisterServiceInterface interface {
 	GetControlPerformance(riskID uint) (map[string]float64, error)
 	UpdateRiskRating(riskID uint, currentUserID uint, riskEvaluationDetails *models.RiskEvaluation, tx utility.DatabaseTransaction, evaluationType string) error
 	ClearRiskRating(riskID uint, updateDTO *riskDTOs.RiskRegisterRiskRatingUpdateDTO, tx utility.DatabaseTransaction) error
+
+	ExportRiskRegister(data []*riskDTOs.RiskRegisterListDTO, currentUserID uint) (*os.File, error)
 }
 
 // Service and implementations
@@ -50,6 +53,7 @@ type RiskRegisterService struct {
 	slaRegisterSvc           complianceServices.SLARegisterServiceInterface
 	riskMatrixSvc            RiskMatrixServiceInterface
 	riskTimelineSvc          RiskTimelineServiceInterface
+	userSettingSvc           organizationServices.UserSettingServiceInterface
 }
 
 func NewRiskRegisterService(
@@ -67,6 +71,7 @@ func NewRiskRegisterService(
 	slaRegisterSvc complianceServices.SLARegisterServiceInterface,
 	riskMatrixSvc RiskMatrixServiceInterface,
 	riskTimelineSvc RiskTimelineServiceInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface,
 ) RiskRegisterServiceInterface {
 	return &RiskRegisterService{
 		repo:                     repo,
@@ -83,6 +88,7 @@ func NewRiskRegisterService(
 		slaRegisterSvc:           slaRegisterSvc,
 		riskMatrixSvc:            riskMatrixSvc,
 		riskTimelineSvc:          riskTimelineSvc,
+		userSettingSvc:           userSettingSvc,
 	}
 }
 
@@ -1418,3 +1424,136 @@ func (rrs *RiskRegisterService) parseRiskRegisterDates(dto *riskDTOs.RiskRegiste
 
 	return parsed, nil
 }
+
+func (cs *RiskRegisterService) ExportRiskRegister(data []*riskDTOs.RiskRegisterListDTO, currentUserID uint) (*os.File, error) {
+	// Fetch user setting for language preference
+	userSetting, err := cs.userSettingSvc.GetUserSettingsByUserID(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Define headers based on user language setting
+	var headers []string
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"SL No.",
+			"Ref Number",
+			"Risk Title",
+			"Description",
+			"Risk Category",
+			"Responsible Unit (TBD)",
+			"Responsible User",
+			"Risk Source",
+			"Risk Status",
+			"Likelihood",
+			"Impact",
+			"Risk Rating",
+			"Risk Response",
+			"Residual Likelihood",
+			"Residual Impact",
+			"Residual Risk Rating",
+			"Reported At",
+			"Review Frequency",
+			"Next Review Date",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Ref Number",
+			"Risk Title",
+			"Description",
+			"Risk Category",
+			"Responsible Unit (TBD)",
+			"Responsible User",
+			"Risk Source",
+			"Risk Status",
+			"Likelihood",
+			"Impact",
+			"Risk Rating",
+			"Risk Response",
+			"Residual Likelihood",
+			"Residual Impact",
+			"Residual Risk Rating",
+			"Reported At",
+			"Review Frequency",
+			"Next Review Date",
+		}
+	}
+	// Prepare the data rows
+	rows := make([][]interface{}, len(data))
+	for i, risk := range data {
+		// Initialize data variables with default values
+		var riskTitle, riskCategory, responsibleUnit, responsibleUser, riskSource, riskStatus string
+		var riskResponse, residualLikelihood, residualImpact, residualRiskRating string
+		var description, likelihood, impact, riskRating string
+		var reviewFrequency, nextReviewDate, reportedAt string
+
+		// Assign values based on language preference and check for nil pointers
+		if userSetting.Language == "ar" {
+			riskCategory = risk.RiskCategoryTitleAr
+			responsibleUnit = risk.ResponsibleUnitTitleAr
+			responsibleUser = risk.ResponsibleUserFirstNameAr + " " + risk.ResponsibleUserLastNameAr
+			riskSource = utility.GetStringValue(risk.RiskSourceTitleAr)
+			riskStatus = risk.RiskStatusTitleAr
+			riskResponse = risk.RiskResponseStrategyTitleAr
+			likelihood = utility.GetStringValue(risk.InherentLikelihoodTitleAr)
+			impact = utility.GetStringValue(risk.InherentImpactTitleAr)
+			riskRating = utility.GetStringValue(risk.InherentRiskRatingTitleAr)
+			residualLikelihood = utility.GetStringValue(risk.ResidualLikelihoodTitleAr)
+			residualImpact = utility.GetStringValue(risk.ResidualImpactTitleAr)
+			residualRiskRating = utility.GetStringValue(risk.ResidualRiskRatingTitleAr)
+			reviewFrequency = utility.GetStringValue(risk.ReviewFrequencyTitleAr)
+		} else {
+			riskCategory = risk.RiskCategoryTitleEn
+			responsibleUnit = risk.ResponsibleUnitTitleEn
+			responsibleUser = risk.ResponsibleUserFirstNameEn + " " + risk.ResponsibleUserLastNameEn
+			riskSource = utility.GetStringValue(risk.RiskSourceTitleEn)
+			riskStatus = risk.RiskStatusTitleEn
+			riskResponse = risk.RiskResponseStrategyTitleEn
+			likelihood = utility.GetStringValue(risk.InherentLikelihoodTitleEn)
+			impact = utility.GetStringValue(risk.InherentImpactTitleEn)
+			riskRating = utility.GetStringValue(risk.InherentRiskRatingTitleEn)
+			residualLikelihood = utility.GetStringValue(risk.ResidualLikelihoodTitleEn)
+			residualImpact = utility.GetStringValue(risk.ResidualImpactTitleEn)
+			residualRiskRating = utility.GetStringValue(risk.ResidualRiskRatingTitleEn)
+			reviewFrequency = utility.GetStringValue(risk.ReviewFrequencyTitleEn)
+		}
+
+		riskTitle = risk.Title
+		description = utility.GetStringValue(risk.Description)
+		nextReviewDate = utility.GetStringValue(risk.NextReviewDate)
+		reportedAt = utility.FormatDate(risk.ReportedAt)
+
+		rows[i] = []interface{}{
+			i + 1,
+			risk.ReferenceNumber,
+			riskTitle,
+			description,
+			riskCategory,
+			responsibleUnit,
+			responsibleUser,
+			riskSource,
+			riskStatus,
+			likelihood,
+			impact,
+			riskRating,
+			riskResponse,
+			residualLikelihood,
+			residualImpact,
+			residualRiskRating,
+			reportedAt,
+			reviewFrequency,
+			nextReviewDate,
+		}
+	}
+
+	// Generate the Excel file
+	return utility.GenerateExcelFile(headers, rows)
+}
+
+// func getStringValue(pointer *string) string {
+// 	if pointer != nil {
+// 		return *pointer
+// 	}
+// 	return ""
+// }
