@@ -9,8 +9,8 @@ type Module struct {
 	Order      int    `json:"order" gorm:"not null" binding:"required"`
 
 	// Self-referencing relationship
-	Parent   *Module   `json:"parent,omitempty" gorm:"foreignKey:ModuleID"`
-	Children *[]Module `json:"children,omitempty" gorm:"foreignKey:ModuleID"`
+	Parent     *Module   `json:"parent,omitempty" gorm:"foreignKey:ModuleID"`
+	SubModules *[]Module `json:"sub_modules,omitempty" gorm:"foreignKey:ModuleID"`
 
 	// One-to-many relationship
 	NotificationMasters *[]NotificationMaster `json:"notification_masters,omitempty" gorm:"foreignKey:ModuleID"`

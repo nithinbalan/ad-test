@@ -9,20 +9,23 @@ import (
 )
 
 type SettingsModule struct {
-	OrganizationLevelController *controllers.OrganizationLevelController
-	SystemPreferenceController  *controllers.SystemPreferenceController
-	RoleController              *controllers.RoleController
-	OrganizationUnitController  *controllers.OrganizationUnitController
-	LogSettingsController       *controllers.LogSettingsController
-	WorkflowLevelTypeController *controllers.WorkflowLevelTypeController
-	WorkflowCOntroller          *controllers.WorkflowController
+	OrganizationLevelController  *controllers.OrganizationLevelController
+	SystemPreferenceController   *controllers.SystemPreferenceController
+	RoleController               *controllers.RoleController
+	OrganizationUnitController   *controllers.OrganizationUnitController
+	LogSettingsController        *controllers.LogSettingsController
+	WorkflowLevelTypeController  *controllers.WorkflowLevelTypeController
+	WorkflowController           *controllers.WorkflowController
+	RolePermissionTypeController *controllers.RolePermissionTypeController
+	ModuleController             *controllers.ModuleController
 
-	SystemPreferenceSvc  services.SystemPreferenceServiceInterface
-	OrganizationUnitSvc  services.OrganizationUnitServiceInterface
-	OrganizationLevelSvc services.OrganizationLevelServiceInterface
-	RoleSvc              services.RoleServiceInterface
-	ModuleSvc            services.ModuleServiceInterface
-	WorkflowSvc          services.WorkflowServiceInterface
+	SystemPreferenceSvc   services.SystemPreferenceServiceInterface
+	OrganizationUnitSvc   services.OrganizationUnitServiceInterface
+	OrganizationLevelSvc  services.OrganizationLevelServiceInterface
+	RoleSvc               services.RoleServiceInterface
+	ModuleSvc             services.ModuleServiceInterface
+	WorkflowSvc           services.WorkflowServiceInterface
+	RolePermissionTypeSvc services.RolePermissionTypeServiceInterface
 }
 
 func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *MasterModule) *SettingsModule {
@@ -34,8 +37,16 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 	systemPreferenceSvc := services.NewSystemPreferenceService(systemPreferenceRepo, sharedModule.ActivityLogService, masterModule.CurrencySvc)
 	systemPreferenceController := controllers.NewSystemPreferenceController(systemPreferenceSvc)
 
+	moduleRepo := repositories.NewModuleRepository(db)
+	moduleSvc := services.NewModuleService(moduleRepo)
+	moduleController := controllers.NewModuleController(moduleSvc)
+
+	rolePermissionTypeRepo := repositories.NewRolePermissionTypeRepository(db)
+	rolePermissionTypeSvc := services.NewRolePermissionTypeService(rolePermissionTypeRepo)
+	rolePermissionTypeController := controllers.NewRolePermissionTypeController(rolePermissionTypeSvc)
+
 	roleRepo := repositories.NewRoleRepository(db)
-	roleSvc := services.NewRoleService(roleRepo, sharedModule.ActivityLogService)
+	roleSvc := services.NewRoleService(roleRepo, sharedModule.ActivityLogService, moduleSvc, rolePermissionTypeRepo)
 	roleController := controllers.NewRoleController(roleSvc)
 
 	organizationUnitRepo := repositories.NewOrganizationUnitRepository(db)
@@ -54,23 +65,23 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 	workflowSvc := services.NewWorkflowService(workflowRepo, sharedModule.ActivityLogService, workflowLevelTypeSvc)
 	workflowController := controllers.NewWorkflowController(workflowSvc)
 
-	moduleRepo := repositories.NewModuleRepository(db)
-	moduleSvc := services.NewModuleService(moduleRepo)
-
 	return &SettingsModule{
-		OrganizationLevelController: organizationLevelController,
-		SystemPreferenceController:  systemPreferenceController,
-		RoleController:              roleController,
-		OrganizationUnitController:  organizationUnitController,
-		LogSettingsController:       logSettingsController,
-		WorkflowLevelTypeController: workflowLevelTypeController,
-		WorkflowCOntroller:          workflowController,
+		OrganizationLevelController:  organizationLevelController,
+		SystemPreferenceController:   systemPreferenceController,
+		RoleController:               roleController,
+		OrganizationUnitController:   organizationUnitController,
+		LogSettingsController:        logSettingsController,
+		WorkflowLevelTypeController:  workflowLevelTypeController,
+		WorkflowController:           workflowController,
+		RolePermissionTypeController: rolePermissionTypeController,
+		ModuleController:             moduleController,
 
-		SystemPreferenceSvc:  systemPreferenceSvc,
-		OrganizationLevelSvc: organizationLevelSvc,
-		RoleSvc:              roleSvc,
-		ModuleSvc:            moduleSvc,
-		WorkflowSvc:          workflowSvc,
-		OrganizationUnitSvc:  organizationUnitSvc,
+		SystemPreferenceSvc:   systemPreferenceSvc,
+		OrganizationLevelSvc:  organizationLevelSvc,
+		RoleSvc:               roleSvc,
+		ModuleSvc:             moduleSvc,
+		WorkflowSvc:           workflowSvc,
+		OrganizationUnitSvc:   organizationUnitSvc,
+		RolePermissionTypeSvc: rolePermissionTypeSvc,
 	}
 }

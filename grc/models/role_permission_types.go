@@ -9,5 +9,5 @@ type RolePermissionType struct {
 }
 
 func (RolePermissionType) TableName() string {
-	return "workflow_level_types"
+	return "role_permission_types"
 }
