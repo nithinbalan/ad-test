@@ -8,6 +8,7 @@ import (
 )
 
 type RoleRepositoryInterface interface {
+	BeginTransaction() utility.DatabaseTransaction
 	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.Role, error)
 	GetByID(id uint) (*models.Role, error)
 	Create(role *models.Role) (*models.Role, error)
@@ -17,6 +18,12 @@ type RoleRepositoryInterface interface {
 	Deactivate(ids []uint) ([]uint, error)
 	ExistsByTitle(titleEn string, titleAr string) (bool, error)
 	ExistsByTitleExcludingID(id uint, titleEn, titleAr string) (bool, error)
+
+	CreateRolePermission(rolePermission *models.RolePermission, tx ...utility.DatabaseTransaction) (uint, error)
+	DeleteRolePermissionsByRoleID(roleID uint, tx ...utility.DatabaseTransaction) error
+
+	GetPermissionsForModule(roleID, moduleID uint) (map[string]bool, error)
+	GetAllPermissionTypes() ([]string, error)
 }
 
 type RoleRepository struct {
@@ -27,6 +34,10 @@ func NewRoleRepository(db *gorm.DB) *RoleRepository {
 	return &RoleRepository{
 		db: db,
 	}
+}
+
+func (repo *RoleRepository) BeginTransaction() utility.DatabaseTransaction {
+	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
 func (repo *RoleRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.Role, error) {
@@ -177,4 +188,55 @@ func (repo *RoleRepository) ExistsByTitleExcludingID(id uint, titleEn, titleAr s
 	}
 
 	return count > 0, nil
+}
+
+func (repo *RoleRepository) DeleteRolePermissionsByRoleID(roleID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	result := db.Where("role_id = ?", roleID).Delete(&models.RolePermission{})
+	return result.Error
+}
+
+func (repo *RoleRepository) CreateRolePermission(rolePermission *models.RolePermission, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	result := db.Create(rolePermission)
+	if result.Error != nil {
+		return 0, result.Error
+	}
+	return rolePermission.ID, nil
+}
+
+func (repo *RoleRepository) GetAllPermissionTypes() ([]string, error) {
+	var permissionTypes []string
+	err := repo.db.Table("role_permission_types").Select("type").Find(&permissionTypes).Error
+	if err != nil {
+		return nil, err
+	}
+	return permissionTypes, nil
+}
+
+func (repo *RoleRepository) GetPermissionsForModule(roleID, moduleID uint) (map[string]bool, error) {
+	var permissionTypes []string
+	permissions := map[string]bool{}
+
+	err := repo.db.Table("role_permissions").
+		Select("role_permission_types.type").
+		Joins("JOIN role_permission_types ON role_permissions.role_permission_type_id = role_permission_types.id").
+		Where("role_permissions.role_id = ? AND role_permissions.module_id = ? AND role_permissions.is_granted = ?", roleID, moduleID, 1).
+		Pluck("role_permission_types.type", &permissionTypes).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	for _, permissionType := range permissionTypes {
+		permissions[permissionType] = true
+	}
+
+	return permissions, nil
 }

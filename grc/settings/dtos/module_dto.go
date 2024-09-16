@@ -7,18 +7,20 @@ type ModuleListQueryParamsDTO struct {
 }
 
 type ModuleListDTO struct {
-	ID         uint               `json:"id"`
-	Identifier string             `json:"identifier"`
-	TitleEn    string             `json:"title_en"`
-	TitleAr    string             `json:"title_ar"`
-	Order      int                `json:"order"`
-	SubModules []SubModuleListDTO `json:"sub_modules"`
+	ID          uint               `json:"id"`
+	Identifier  string             `json:"identifier"`
+	TitleEn     string             `json:"title_en"`
+	TitleAr     string             `json:"title_ar"`
+	Order       int                `json:"order"`
+	SubModules  []SubModuleListDTO `json:"sub_modules"`
+	Permissions map[string]bool    `json:"permissions"` // Add Permissions field
 }
 
 type SubModuleListDTO struct {
-	ID         uint   `json:"id"`
-	Identifier string `json:"identifier"`
-	TitleEn    string `json:"title_en"`
-	TitleAr    string `json:"title_ar"`
-	Order      int    `json:"order"`
+	ID          uint            `json:"id"`
+	Identifier  string          `json:"identifier"`
+	TitleEn     string          `json:"title_en"`
+	TitleAr     string          `json:"title_ar"`
+	Order       int             `json:"order"`
+	Permissions map[string]bool `json:"permissions"` // Add Permissions field
 }

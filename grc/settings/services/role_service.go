@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
+	"jethur/grc/settings/dtos"
 	"jethur/grc/settings/repositories"
+
 	"jethur/utility"
 	"log"
 
@@ -20,18 +22,27 @@ type RoleServiceInterface interface {
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	Activate(ids []uint, currentUserID uint) error
 	Deactivate(ids []uint, currentUserID uint) error
+
+	UpdateRolePermissions(roleID uint, currentUserID uint, rolePermissions []*dtos.RolePermissionFormDTO) error
+	GetAllWithPermissions(params *dtos.ModuleListQueryParamsDTO, roleID uint) (*[]dtos.ModuleListDTO, error)
 }
 
-// Service and implementations
 type RoleService struct {
-	repo           repositories.RoleRepositoryInterface
-	activityLogSvc services.ActivityLogServiceInterface
+	repo                  repositories.RoleRepositoryInterface
+	activityLogSvc        services.ActivityLogServiceInterface
+	moduleSvc             ModuleServiceInterface
+	rolePermissionTypeSvc RolePermissionTypeServiceInterface
 }
 
-func NewRoleService(repo repositories.RoleRepositoryInterface, activityLogSvc services.ActivityLogServiceInterface) RoleServiceInterface {
+func NewRoleService(repo repositories.RoleRepositoryInterface,
+	activityLogSvc services.ActivityLogServiceInterface,
+	moduleSvc ModuleServiceInterface,
+	rolePermissionTypeSvc RolePermissionTypeServiceInterface) RoleServiceInterface {
 	return &RoleService{
-		repo:           repo,
-		activityLogSvc: activityLogSvc,
+		repo:                  repo,
+		activityLogSvc:        activityLogSvc,
+		moduleSvc:             moduleSvc,
+		rolePermissionTypeSvc: rolePermissionTypeSvc,
 	}
 }
 
@@ -241,4 +252,145 @@ func (rs *RoleService) validateRoleForm(role *models.Role, id *uint) error {
 	}
 
 	return nil
+}
+
+func (rs *RoleService) UpdateRolePermissions(roleID uint, currentUserID uint, rolePermissions []*dtos.RolePermissionFormDTO) error {
+	tx := rs.repo.BeginTransaction()
+
+	_, err := rs.GetByID(roleID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	for _, rolePermissionDTO := range rolePermissions {
+		if err := rs.validateRolePermissionFormDTO(rolePermissionDTO); err != nil {
+			return err
+		}
+	}
+
+	err = rs.repo.DeleteRolePermissionsByRoleID(roleID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	for _, rolePermissionDTO := range rolePermissions {
+
+		rolePermission := &models.RolePermission{
+			RoleID:               roleID,
+			ModuleID:             rolePermissionDTO.ModuleID,
+			RolePermissionTypeID: rolePermissionDTO.RolePermissionTypeID,
+			IsGranted:            rolePermissionDTO.IsGranted,
+			CreatedBy:            currentUserID,
+		}
+
+		_, err := rs.repo.CreateRolePermission(rolePermission, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	tx.Commit()
+
+	go func() {
+		for _, permDTO := range rolePermissions {
+			err := rs.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.RolePermission{}.TableName(),
+				roleID,
+				permDTO,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.RolePermission{}.TableName(),
+					"recordID":  roleID,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+				utility.LogError("Failed to log activity", fields)
+			}
+		}
+	}()
+
+	return nil
+}
+
+func (rs *RoleService) validateRolePermissionFormDTO(rolePermissionFormDTO *dtos.RolePermissionFormDTO) error {
+	if _, err := rs.moduleSvc.GetByID(uint(rolePermissionFormDTO.ModuleID)); err != nil {
+		return utility.NewValidationError(fmt.Errorf("module does not exist"), "not_exist", "module")
+	}
+
+	if _, err := rs.rolePermissionTypeSvc.GetByID(uint(rolePermissionFormDTO.RolePermissionTypeID)); err != nil {
+		return utility.NewValidationError(fmt.Errorf("role permission type does not exist"), "not_exist", "role permission type")
+	}
+
+	return nil
+}
+
+func (rs *RoleService) GetAllWithPermissions(params *dtos.ModuleListQueryParamsDTO, roleID uint) (*[]dtos.ModuleListDTO, error) {
+	modules, err := rs.moduleSvc.GetAll(params)
+	if err != nil {
+		return nil, err
+	}
+
+	permissionTypes, err := rs.repo.GetAllPermissionTypes()
+	if err != nil {
+		return nil, err
+	}
+
+	var moduleList []dtos.ModuleListDTO
+
+	for _, module := range *modules {
+		var submoduleDTOs []dtos.SubModuleListDTO
+		if module.SubModules != nil {
+			for _, submodule := range module.SubModules {
+				subPermissions := initializePermissionsMap(permissionTypes)
+
+				grantedSubPermissions, err := rs.repo.GetPermissionsForModule(roleID, submodule.ID)
+				if err != nil {
+					return nil, err
+				}
+
+				for permissionType := range grantedSubPermissions {
+					subPermissions[permissionType] = true
+				}
+
+				submoduleDTO := dtos.SubModuleListDTO{
+					ID:          submodule.ID,
+					Identifier:  submodule.Identifier,
+					TitleEn:     submodule.TitleEn,
+					TitleAr:     submodule.TitleAr,
+					Order:       submodule.Order,
+					Permissions: subPermissions,
+				}
+				submoduleDTOs = append(submoduleDTOs, submoduleDTO)
+			}
+		}
+
+		moduleDTO := dtos.ModuleListDTO{
+			ID:         module.ID,
+			Identifier: module.Identifier,
+			TitleEn:    module.TitleEn,
+			TitleAr:    module.TitleAr,
+			Order:      module.Order,
+			SubModules: submoduleDTOs,
+		}
+		moduleList = append(moduleList, moduleDTO)
+	}
+
+	return &moduleList, nil
+}
+
+func initializePermissionsMap(permissionTypes []string) map[string]bool {
+	permissions := make(map[string]bool)
+	for _, permissionType := range permissionTypes {
+		permissions[permissionType] = false
+	}
+	return permissions
 }
