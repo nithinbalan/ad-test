@@ -130,6 +130,7 @@ type IncidentRegisterListQueryParamsDTO struct {
 	QuickFilter []string
 	IncidentAt  string
 	ReportedAt  string
+	Export      bool
 }
 
 type IncidentRegisterListResponseDTO struct {
