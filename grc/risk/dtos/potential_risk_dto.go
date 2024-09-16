@@ -52,6 +52,7 @@ type PotentialRiskListQueryParamsDTO struct {
 	PageSize    int
 	Filters     map[string][]string
 	QuickFilter []string
+	Export      bool
 }
 
 type PotentialRiskListResponseDTO struct {

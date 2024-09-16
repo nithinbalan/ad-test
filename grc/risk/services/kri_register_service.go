@@ -10,6 +10,7 @@ import (
 	riskDTOs "jethur/grc/risk/dtos"
 	riskRepositories "jethur/grc/risk/repositories"
 	"jethur/utility"
+	"os"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -23,6 +24,8 @@ type KRIRegisterServiceInterface interface {
 	Update(id uint, currentUserID uint, kriRegisterFormDTO *riskDTOs.KRIRegisterFormDTO) error
 	UpdateValue(kriRegister *models.KRIRegister, tx utility.DatabaseTransaction) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+
+	ExportKriRegister(data []*riskDTOs.KRIRegisterListDTO, currentUserID uint) (*os.File, error)
 }
 
 // Service and implementations
@@ -34,6 +37,7 @@ type KRIRegisterService struct {
 	riskLevelSvc       RiskLevelServiceInterface
 	reviewFrequencySvc masterServices.ReviewFrequencyServiceInterface
 	unitSvc            masterServices.UnitServiceInterface
+	userSettingSvc     organizationServices.UserSettingServiceInterface
 }
 
 func NewKRIRegisterService(
@@ -44,6 +48,7 @@ func NewKRIRegisterService(
 	riskLevelSvc RiskLevelServiceInterface,
 	reviewFrequencySvc masterServices.ReviewFrequencyServiceInterface,
 	unitSvc masterServices.UnitServiceInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface,
 ) KRIRegisterServiceInterface {
 	return &KRIRegisterService{
 		repo:               repo,
@@ -53,6 +58,7 @@ func NewKRIRegisterService(
 		riskLevelSvc:       riskLevelSvc,
 		reviewFrequencySvc: reviewFrequencySvc,
 		unitSvc:            unitSvc,
+		userSettingSvc:     userSettingSvc,
 	}
 }
 
@@ -91,14 +97,14 @@ func (krs KRIRegisterService) GetFullDetailsByID(id uint) (*riskDTOs.KRIRegister
 
 	kriRegisterNextReviewDate := kriRegister.NextReviewDate.Format("2006-01-02")
 	kriRegisterDTO.NextReviewDateString = kriRegisterNextReviewDate
-    
+
 	if kriRegister.LastReviewedDate != nil {
-        kriRegisterLastReviewedDate := kriRegister.LastReviewedDate.Format("2006-01-02")
-        kriRegisterDTO.LastReviewedDateString = kriRegisterLastReviewedDate
-    }
- 
-    kriRegisterDTO.CreatedAt = kriRegister.CreatedAt
-    kriRegisterDTO.UpdatedAt = kriRegister.UpdatedAt
+		kriRegisterLastReviewedDate := kriRegister.LastReviewedDate.Format("2006-01-02")
+		kriRegisterDTO.LastReviewedDateString = kriRegisterLastReviewedDate
+	}
+
+	kriRegisterDTO.CreatedAt = kriRegister.CreatedAt
+	kriRegisterDTO.UpdatedAt = kriRegister.UpdatedAt
 
 	//todo :- also add extra fields which required in details screen
 
@@ -335,4 +341,96 @@ func (krs *KRIRegisterService) parseKRIRegisterDates(dto *riskDTOs.KRIRegisterFo
 	}
 
 	return parsed, nil
+}
+
+func (krs *KRIRegisterService) ExportKriRegister(data []*riskDTOs.KRIRegisterListDTO, currentUserID uint) (*os.File, error) {
+	// Fetch user setting for language preference
+	userSetting, err := krs.userSettingSvc.GetUserSettingsByUserID(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Define headers based on user language setting
+	var headers []string
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"SL No.",
+			"Ref No",
+			"Title",
+			"Description",
+			"Category",
+			"Calculation Type",
+			"Responsible User",
+			"Low Threshold",
+			"Medium Threshold",
+			"High Threshold",
+			"Current Value",
+			"Unit",
+			"Risk Level",
+			"Review Frequency",
+			"Reviewed At",
+			"Next Review Date",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Ref No",
+			"Title",
+			"Description",
+			"Category",
+			"Calculation Type",
+			"Responsible User",
+			"Low Threshold",
+			"Medium Threshold",
+			"High Threshold",
+			"Current Value",
+			"Unit",
+			"Risk Level",
+			"Review Frequency",
+			"Reviewed At",
+			"Next Review Date",
+		}
+	}
+	// Prepare the data rows
+	rows := make([][]interface{}, len(data))
+	for i, kri := range data {
+		var category, responsibleUser, unit, riskLevel, reviewFrequency string
+
+		// Assign values based on language preference and check for nil pointers
+		if userSetting.Language == "ar" {
+			category = kri.KRICategoryTitleAr
+			responsibleUser = kri.ResponsibleUserFirstNameAr + " " + kri.ResponsibleUserLastNameAr
+			unit = kri.UnitTitleAr
+			riskLevel = kri.RiskLevelTitleAr
+			reviewFrequency = kri.ReviewFrequencyTitleAr
+		} else {
+			category = kri.KRICategoryTitleEn
+			responsibleUser = kri.ResponsibleUserFirstNameEn + " " + kri.ResponsibleUserLastNameEn
+			unit = kri.UnitTitleEn
+			riskLevel = kri.RiskLevelTitleEn
+			reviewFrequency = kri.ReviewFrequencyTitleEn
+		}
+
+		rows[i] = []interface{}{
+			i + 1,
+			kri.ReferenceNumber,
+			kri.Title,
+			utility.GetStringValue(kri.Description),
+			category,
+			kri.CalculationType,
+			responsibleUser,
+			utility.GetIntValueAsString(kri.LowThreshold),
+			utility.GetIntValueAsString(kri.MediumThreshold),
+			utility.GetIntValueAsString(kri.HighThreshold),
+			utility.GetIntValueAsString(kri.CurrentValue),
+			unit,
+			riskLevel,
+			reviewFrequency,
+			kri.LastReviewedDate,
+			kri.NextReviewDate,
+		}
+	}
+
+	// Generate the Excel file
+	return utility.GenerateExcelFile(headers, rows)
 }

@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	commonDTOs "jethur/grc/common/dtos"
 	riskDTOs "jethur/grc/risk/dtos"
 	"jethur/grc/risk/services"
@@ -25,12 +26,17 @@ func NewKRIRegisterController(service services.KRIRegisterServiceInterface) *KRI
 
 func (krc *KRIRegisterController) GetAllKRIRegisters(c *gin.Context) {
 
-	sort := c.Query("sort_order")
-	sortBy := c.Query("sort_by")
+	sort := c.DefaultQuery("sort_order", "asc")
+	sortBy := c.DefaultQuery("sort_by", "title")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
 
+	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
+	if err != nil {
+		utility.SendInternalErrResp(krc.db, c, "Invalid export parameter")
+		return
+	}
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"kri_category_ids",
@@ -38,6 +44,29 @@ func (krc *KRIRegisterController) GetAllKRIRegisters(c *gin.Context) {
 		"review_frequency_ids",
 		"owner_ids",
 		"owner_unit_ids",
+	}
+
+	validSortFields := map[string]string{
+		"reference_number":    "kri_register.reference_number",
+		"title":               "kri_register.title",
+		"description":         "kri_register.description",
+		"kri_category_en":     "kri_categories.title_en",
+		"kri_category_ar":     "kri_categories.title_ar",
+		"calculation_type":    "kri_register.calculation_type",
+		"responsible_user_en": "responsible_user.first_name_en",
+		"responsible_user_ar": "responsible_user.first_name_ar",
+		"low_threshold":       "kri_register.low_threshold",
+		"medium_threshold":    "kri_register.medium_threshold",
+		"high_threshold":      "kri_register.high_threshold",
+		"current_value":       "kri_register.current_value",
+		"unit_en":             "units.title_en",
+		"unit_ar":             "units.title_ar",
+		"risk_level_en":       "risk_levels.title_en",
+		"risk_level_ar":       "risk_levels.title_ar",
+		"review_frequency_en": "review_frequencies.title_en",
+		"review_frequency_ar": "review_frequencies.title_ar",
+		"review_at":           "kri_register.last_reviewed_date",
+		"next_review_date":    "kri_register.next_review_date",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
@@ -54,20 +83,49 @@ func (krc *KRIRegisterController) GetAllKRIRegisters(c *gin.Context) {
 		return
 	}
 
+	dbField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
 	queryParams := riskDTOs.KRIRegisterListQueryParamsDTO{
 		Sort:        sort,
-		SortBy:      sortBy,
+		SortBy:      dbField,
 		Keyword:     keyword,
 		Status:      status,
 		Page:        page,
 		PageSize:    pageSize,
 		Filters:     filters,
 		QuickFilter: quickFilter,
+		Export:      export,
 	}
 	kriRegisters, err := krc.service.GetAll(&queryParams)
 
 	if err != nil {
 		utility.SendInternalErrResp(krc.db, c, err.Error())
+		return
+	}
+	if export {
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(krc.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := krc.service.ExportKriRegister(kriRegisters.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(krc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="KRI register.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
 		return
 	}
 	c.JSON(http.StatusOK, kriRegisters)

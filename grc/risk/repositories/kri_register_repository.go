@@ -176,27 +176,28 @@ func (repo *KRIRegisterRepository) GetAll(params *riskDTOs.KRIRegisterListQueryP
 			keyword, keyword, keyword, keyword)
 	}
 
+	// Sort by the specified column and order
+	query = query.Order(params.SortBy + " " + params.Sort)
+
 	// Calculate total count for pagination
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
 
-	// Sort by the specified column and order
-	if params.SortBy == "" {
-		params.SortBy = "kri_register.title" // Default sort by title if no sortBy is specified
-	}
-	if params.Sort != "asc" && params.Sort != "desc" {
-		params.Sort = "asc" // Default order is ascending if not specified
+	// Apply pagination only if not exporting
+	if !params.Export {
+		offset := (params.Page - 1) * params.PageSize
+		query = query.Offset(offset).Limit(params.PageSize)
 	}
 
-	query = query.Order(params.SortBy + " " + params.Sort)
-
-	offset := (params.Page - 1) * params.PageSize
-
-	// Execute the query
-	err := query.Offset(offset).Limit(params.PageSize).Find(&kriRegisters).Error
-	if err != nil {
+	if err := query.Find(&kriRegisters).Error; err != nil {
 		return nil, err
+	}
+
+	if params.Export {
+		return &riskDTOs.KRIRegisterListResponseDTO{
+			Items: kriRegisters,
+		}, nil
 	}
 
 	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))

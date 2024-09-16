@@ -6,9 +6,11 @@ import (
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
+	organizationServices "jethur/grc/organization/services"
 	riskDTOs "jethur/grc/risk/dtos"
 	riskRepositories "jethur/grc/risk/repositories"
 	"jethur/utility"
+	"os"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -22,6 +24,8 @@ type PotentialRiskServiceInterface interface {
 	Update(id uint, currentUserID uint, potentialRiskFormDTO *riskDTOs.PotentialRiskFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	StatusUpdate(id uint, currentUserID uint, potentialRiskStatusID uint) error
+
+	ExportPotentialRisk(data []*riskDTOs.PotentialRiskListDTO, currentUserID uint) (*os.File, error)
 }
 
 // Service and implementations
@@ -31,6 +35,7 @@ type PotentialRiskService struct {
 	severityLevelSvc       masterServices.SeverityLevelServiceInterface
 	riskCategorySvc        RiskCategoryServiceInterface
 	potentialRiskStatusSvc PotentialRiskStatusServiceInterface
+	userSettingSvc         organizationServices.UserSettingServiceInterface
 }
 
 func NewPotentialRiskService(
@@ -38,13 +43,15 @@ func NewPotentialRiskService(
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	severityLevelSvc masterServices.SeverityLevelServiceInterface,
 	riskCategorySvc RiskCategoryServiceInterface,
-	potentialRiskStatusSvc PotentialRiskStatusServiceInterface) PotentialRiskServiceInterface {
+	potentialRiskStatusSvc PotentialRiskStatusServiceInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface) PotentialRiskServiceInterface {
 	return &PotentialRiskService{
 		repo:                   repo,
 		activityLogSvc:         activityLogSvc,
 		severityLevelSvc:       severityLevelSvc,
 		riskCategorySvc:        riskCategorySvc,
 		potentialRiskStatusSvc: potentialRiskStatusSvc,
+		userSettingSvc:         userSettingSvc,
 	}
 }
 
@@ -69,7 +76,7 @@ func (prs PotentialRiskService) GetFullDetailsByID(id uint) (*riskDTOs.Potential
 	var potentialRiskDTO riskDTOs.PotentialRiskDetailsDTO
 
 	potentialRisk, err := prs.repo.GetFullDetailsByID(id)
- 
+
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -250,4 +257,61 @@ func (prs *PotentialRiskService) validatePotentialRiskFormDTO(potentialRiskFormD
 	}
 
 	return nil
+}
+
+func (prs *PotentialRiskService) ExportPotentialRisk(data []*riskDTOs.PotentialRiskListDTO, currentUserID uint) (*os.File, error) {
+	// Fetch user setting for language preference
+	userSetting, err := prs.userSettingSvc.GetUserSettingsByUserID(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Define headers based on user language setting
+	var headers []string
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"SL No.",
+			"Title",
+			"Description",
+			"Risk Category",
+			"Severity Level",
+			"Status",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Title",
+			"Description",
+			"Risk Category",
+			"Severity Level",
+			"Status",
+		}
+	}
+	// Prepare the data rows
+	rows := make([][]interface{}, len(data))
+	for i, risk := range data {
+		var riskCategory, severityLevel, status string
+
+		if userSetting.Language == "ar" {
+			riskCategory = risk.RiskCategoryTitleAr
+			severityLevel = risk.SeverityLevelTitleAr
+			status = risk.PotentialRiskStatusTitleAr
+		} else {
+			riskCategory = risk.RiskCategoryTitleEn
+			severityLevel = risk.SeverityLevelTitleEn
+			status = risk.PotentialRiskStatusTitleEn
+		}
+
+		rows[i] = []interface{}{
+			i + 1,
+			risk.Title,
+			utility.GetStringValue(risk.Description),
+			riskCategory,
+			severityLevel,
+			status,
+		}
+	}
+
+	// Generate the Excel file
+	return utility.GenerateExcelFile(headers, rows)
 }

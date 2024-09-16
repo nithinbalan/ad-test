@@ -19,7 +19,7 @@ type KRIRegisterListDTO struct {
 	ResponsibleUserFirstNameEn      string  `json:"responsible_user_first_name_en"`
 	ResponsibleUserFirstNameAr      string  `json:"responsible_user_first_name_ar"`
 	ResponsibleUserLastNameEn       string  `json:"responsible_user_last_name_en"`
-	ResponsibleUserLastNameAr       *string `json:"responsible_user_last_name_ar"`
+	ResponsibleUserLastNameAr       string  `json:"responsible_user_last_name_ar"`
 	ResponsibleUserInitial          *string `json:"responsible_user_initial"`
 	ResponsibleUserColor            *string `json:"responsible_user_color"`
 	ResponsibleUserEmail            *string `json:"responsible_user_email"`
@@ -40,7 +40,7 @@ type KRIRegisterListDTO struct {
 	LowThreshold                    *int    `json:"low_threshold"`
 	MediumThreshold                 *int    `json:"medium_threshold"`
 	HighThreshold                   *int    `json:"high_threshold"`
-	CurrentValue                    int     `json:"current_value"`
+	CurrentValue                    *int    `json:"current_value"`
 	LastReviewedDate                string  `json:"last_reviewed_date"`
 	NextReviewDate                  string  `json:"next_review_date"`
 	LastReviewNote                  string  `json:"last_review_note"`
@@ -79,6 +79,7 @@ type KRIRegisterListQueryParamsDTO struct {
 	LastReviewedDateTo   string
 	NextReviewDateFrom   string
 	NextReviewDateTo     string
+	Export               bool
 }
 
 type KRIRegisterListResponseDTO struct {
