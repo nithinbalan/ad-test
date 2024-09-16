@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"jethur/grc/models"
+	"jethur/grc/settings/dtos"
 	"jethur/grc/settings/services"
 	"jethur/utility"
 	"net/http"
@@ -193,6 +194,73 @@ func (rc *RoleController) DeactivateRoles(c *gin.Context) {
 	if err != nil {
 		utility.SendInternalErrResp(rc.db, c, err.Error())
 		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (rc *RoleController) GetRolePermissions(c *gin.Context) {
+	sort := c.DefaultQuery("sort_order", "asc")
+	sortBy := c.DefaultQuery("sort_by", "title_en")
+	keyword := c.Query("keyword")
+
+	queryParams := dtos.ModuleListQueryParamsDTO{
+		Sort:    sort,
+		SortBy:  sortBy,
+		Keyword: keyword,
+	}
+
+	idStr := c.Param("id")
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	role, err := rc.service.GetAllWithPermissions(&queryParams, uint(id))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	c.JSON(http.StatusOK, role)
+}
+
+func (rc *RoleController) UpdateRolePermissions(c *gin.Context) {
+	var rolePermissionsFormDTOs []*dtos.RolePermissionFormDTO
+
+	roleIDStr := c.Param("id")
+	roleID, err := strconv.ParseUint(roleIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&rolePermissionsFormDTOs); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(rc.db, c, err.Error())
+		return
+	}
+
+	err = rc.service.UpdateRolePermissions(uint(roleID), currentUserID, rolePermissionsFormDTOs)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(rc.db, c, e.Error())
+			return
+		}
 	}
 
 	c.Status(http.StatusOK)
