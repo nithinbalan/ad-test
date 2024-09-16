@@ -72,6 +72,7 @@ func NewIncidentModule(db *gorm.DB,
 		complianceModule.SlaRegisterSvc,
 		incidentTimelineSvc,
 		organizationModule.UserSvc,
+		organizationModule.UserSettingSvc,
 	)
 	incidentRegisterController := controllers.NewIncidentRegisterController(incidentRegisterSvc)
 

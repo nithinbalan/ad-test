@@ -62,6 +62,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	incidentRoutes.GET("/incident-statuses/:id", incidentStatusController.GetIncidentStatusDetails)
 
 	//Incident Register
+	incidentRoutes.GET("/incident-register/export", incidentRegisterController.GetIncidentRegisterExport)
 	incidentRoutes.GET("/incident-register", incidentRegisterController.GetAllIncidentRegisters)
 	incidentRoutes.GET("/incident-register/:id", incidentRegisterController.GetIncidentRegisterDetails)
 	incidentRoutes.POST("/incident-register", incidentRegisterController.CreateIncidentRegister)
