@@ -36,7 +36,7 @@ type ComplianceRegisterServiceInterface interface {
 
 	GetDocumentPath(id uint, token string) (string, error)
 
-	ExportComplianceRegisters(data []*complianceDTOs.ComplianceRegisterListDTO) (*os.File, error)
+	ExportComplianceRegisters(data []*complianceDTOs.ComplianceRegisterListDTO, currentUserID uint) (*os.File, error)
 }
 
 // Service and implementations
@@ -49,6 +49,7 @@ type ComplianceRegisterService struct {
 	reviewFrequencySvc    masterServices.ReviewFrequencyServiceInterface
 	severityLevelSvc      masterServices.SeverityLevelServiceInterface
 	controlSvc            organizationServices.ControlServiceInterface
+	userSettingSvc        organizationServices.UserSettingServiceInterface
 }
 
 func NewComplianceRegisterService(
@@ -59,7 +60,9 @@ func NewComplianceRegisterService(
 	complianceStatusSvc ComplianceStatusServiceInterface,
 	reviewFrequencySvc masterServices.ReviewFrequencyServiceInterface,
 	severityLevelSvc masterRepositories.SeverityLevelRepositoryInterface,
-	controlSvc organizationServices.ControlServiceInterface) ComplianceRegisterServiceInterface {
+	controlSvc organizationServices.ControlServiceInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface,
+) ComplianceRegisterServiceInterface {
 	return &ComplianceRegisterService{
 		repo:                  repo,
 		activityLogSvc:        activityLogSvc,
@@ -69,6 +72,7 @@ func NewComplianceRegisterService(
 		reviewFrequencySvc:    reviewFrequencySvc,
 		severityLevelSvc:      severityLevelSvc,
 		controlSvc:            controlSvc,
+		userSettingSvc:        userSettingSvc,
 	}
 }
 
@@ -799,20 +803,98 @@ func (crs *ComplianceRegisterService) GetDocumentPath(id uint, token string) (st
 	return fullPath, nil
 }
 
-func (crs *ComplianceRegisterService) ExportComplianceRegisters(data []*complianceDTOs.ComplianceRegisterListDTO) (*os.File, error) {
-	// Define headers
-	headers := []string{
-		"ID", "Title (EN)", "Title (AR)", "Version", "Deadline", "Issue Date", "Expiry Date", "Lifecycle Status (EN)",
+func (crs *ComplianceRegisterService) ExportComplianceRegisters(data []*complianceDTOs.ComplianceRegisterListDTO, currentUserID uint) (*os.File, error) {
+	// Retrieve user settings for language preference
+	userSetting, err := crs.userSettingSvc.GetUserSetting(currentUserID)
+	if err != nil {
+		return nil, err
 	}
 
-	// Convert data to [][]interface{}
-	rows := make([][]interface{}, len(data))
-	for i, item := range data {
-		rows[i] = []interface{}{
-			item.ID, item.TitleEn, item.TitleAr, item.Version, item.Deadline, item.IssueDate, item.ExpiryDate, item.LifecycleStatusTitleEn,
+	var headers []string
+	// Define headers based on the user's language setting
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"SL No.",
+			"Reference Number",
+			"Standard Code",
+			"Title (AR)",
+			"Category (AR)",
+			"Deadline",
+			"Issue Date",
+			"Expiry Date",
+			"Description (AR)",
+			"Lifecycle Status (AR)",
+			"Responsible Unit (AR)",
+			"Compliance Status (AR)",
+			"Severity Level (AR)",
+			"Responsible User (AR)",
+			"Review Frequency (AR)",
+			"Frequency Responsible User (AR)",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Reference Number",
+			"Standard Code",
+			"Title (EN)",
+			"Category (EN)",
+			"Deadline",
+			"Issue Date",
+			"Expiry Date",
+			"Description (EN)",
+			"Lifecycle Status (EN)",
+			"Responsible Unit (EN)",
+			"Compliance Status (EN)",
+			"Severity Level (EN)",
+			"Responsible User (EN)",
+			"Review Frequency (EN)",
+			"Frequency Responsible User (EN)",
 		}
 	}
 
+	// Convert data to [][]interface{} based on language preference
+	rows := make([][]interface{}, len(data))
+	for i, item := range data {
+		if userSetting.Language == "ar" {
+			rows[i] = []interface{}{
+				i + 1,
+				item.ReferenceNumber,
+				item.StandardCode,
+				item.TitleAr,
+				item.ComplianceCategoryTitleAr,
+				item.Deadline,
+				item.IssueDate,
+				item.ExpiryDate,
+				item.DescriptionAr,
+				item.LifecycleStatusTitleAr,
+				item.ResponsibleUnitTitleAr,
+				item.ComplianceStatusTitleAr,
+				item.SeverityLevelTitleAr,
+				item.ResponsibleUserFirstNameAr + " " + item.ResponsibleUserLastNameAr,
+				item.ReviewFrequencyTitleAr,
+				item.ReviewResponsibleUserFirstNameAr + " " + item.ReviewResponsibleUserLastNameAr,
+			}
+		} else {
+			rows[i] = []interface{}{
+				i + 1,
+				item.ReferenceNumber,
+				item.StandardCode,
+				item.TitleEn,
+				item.ComplianceCategoryTitleEn,
+				item.Deadline,
+				item.IssueDate,
+				item.ExpiryDate,
+				item.DescriptionEn,
+				item.LifecycleStatusTitleEn,
+				item.ResponsibleUnitTitleEn,
+				item.ComplianceStatusTitleEn,
+				item.SeverityLevelTitleEn,
+				item.ResponsibleUserFirstNameEn + " " + item.ResponsibleUserLastNameEn,
+				item.ReviewFrequencyTitleEn,
+				item.ReviewResponsibleUserFirstNameEn + " " + item.ReviewResponsibleUserLastNameEn,
+			}
+		}
+	}
 	// Generate the Excel file
 	return utility.GenerateExcelFile(headers, rows)
 }

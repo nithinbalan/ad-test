@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/services"
@@ -25,10 +26,10 @@ func NewComplianceRegisterController(service services.ComplianceRegisterServiceI
 }
 
 func (crc *ComplianceRegisterController) GetAllComplianceRegisters(c *gin.Context) {
-	sort := c.Query("sort_order")
-	sortBy := c.Query("sort_by")
-	keyword := c.Query("keyword")
+	sort := c.DefaultQuery("sort_order", "asc")
+	sortBy := c.DefaultQuery("sort_by", "title_en")
 	status := c.Query("status")
+	keyword := c.Query("keyword")
 	quickFilter := c.QueryArray("quick_filter")
 
 	// Convert the export parameter to a boolean
@@ -73,10 +74,40 @@ func (crc *ComplianceRegisterController) GetAllComplianceRegisters(c *gin.Contex
 		utility.SendInternalErrResp(crc.db, c, "Invalid page_size parameter")
 		return
 	}
+	validSortFields := map[string]string{
+		"reference_number":           "compliance_register.reference_number",
+		"standard_code":              "compliance_register.standard_code",
+		"title_en":                   "compliance_register.title_en",
+		"title_ar":                   "compliance_register.title_ar",
+		"description_en":             "compliance_register.description_en",
+		"description_ar":             "compliance_register.description_ar",
+		"category_title_en":          "compliance_categories.title_en",
+		"category_title_ar":          "compliance_categories.title_ar",
+		"severity_level_en":          "severity_levels.title_en",
+		"severity_level_ar":          "severity_levels.title_ar",
+		"responsible_unit_en":        "organization_units.title_en",
+		"responsible_unit_ar":        "organization_units.title_ar",
+		"responsible_user_en":        "responsible_user.first_name_en",
+		"responsible_user_ar":        "responsible_user.first_name_ar",
+		"review_frequency_title_en":  "review_frequencies.title_en",
+		"review_frequency_title_ar":  "review_frequencies.title_ar",
+		"review_responsible_user_en": "review_responsible_user.first_name_en",
+		"review_responsible_user_ar": "review_responsible_user.first_name_ar",
+		"status_en":                  "lifecycle_statuses.title_en",
+		"status_ar":                  "lifecycle_statuses.title_ar",
+		"compliance_status_en":       "compliance_statuses.title_en",
+		"compliance_status_ar":       "compliance_statuses.title_ar",
+	}
 
+	sortField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
 	queryParams := complianceDTOs.ComplianceRegisterListQueryParamsDTO{
 		Sort:               sort,
-		SortBy:             sortBy,
+		SortBy:             sortField,
 		Keyword:            keyword,
 		Status:             status,
 		Page:               page,
@@ -102,7 +133,13 @@ func (crc *ComplianceRegisterController) GetAllComplianceRegisters(c *gin.Contex
 
 	// If export is true, generate and return the Excel file
 	if export {
-		excelFile, err := crc.service.ExportComplianceRegisters(compliances.Items)
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(crc.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := crc.service.ExportComplianceRegisters(compliances.Items, currentUserID)
 		if err != nil {
 			utility.SendInternalErrResp(crc.db, c, err.Error())
 			return
