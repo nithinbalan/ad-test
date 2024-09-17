@@ -5,9 +5,10 @@ import (
 	"jethur/middlewares"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
-func RegisterRoutes(app *initializers.App, router *gin.Engine) {
+func RegisterRoutes(app *initializers.App, router *gin.Engine, db *gorm.DB) {
 
 	organizationRoutes := router.Group("/")
 
@@ -51,7 +52,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	//User
 	organizationRoutes.GET("/users/export", userController.GetUsersExport)
-	organizationRoutes.GET("/users", userController.GetAllUsers)
+	organizationRoutes.GET("/users", middlewares.RolePermissionMiddleware(db, "user", "view"), userController.GetAllUsers)
 	organizationRoutes.GET("/users/:userId", userController.GetUserDetails)
 	organizationRoutes.POST("/users", userController.CreateUser)
 	organizationRoutes.PUT("/users/:userId", userController.UpdateUser)
