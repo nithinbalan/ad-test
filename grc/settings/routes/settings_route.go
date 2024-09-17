@@ -19,7 +19,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationUnitController := app.SettingsModule.OrganizationUnitController
 	logSettingsController := app.SettingsModule.LogSettingsController
 	workflowLevelTypeController := app.SettingsModule.WorkflowLevelTypeController
-	workflowController := app.SettingsModule.WorkflowCOntroller
+	workflowController := app.SettingsModule.WorkflowController
+	rolePermissionTypeController := app.SettingsModule.RolePermissionTypeController
+	moduleController := app.SettingsModule.ModuleController
 
 	//Organization Level
 	settingRoutes.GET("/organization-levels", organizationLevelController.GetAllOrganizationLevels)
@@ -29,6 +31,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	settingRoutes.GET("/system-preferences", systemPreferenceController.GetSystemPreference)
 	settingRoutes.PUT("/system-preferences/:id", systemPreferenceController.UpdateSystemPreference)
 
+	settingRoutes.GET("/role-permission-types", rolePermissionTypeController.GetAllRolePermissionTypes)
+	settingRoutes.GET("/role-permission-types/:id", rolePermissionTypeController.GetRolePermissionTypeDetails)
+
 	//Role
 	settingRoutes.GET("/roles", roleController.GetAllRoles)
 	settingRoutes.GET("/roles/:id", roleController.GetRoleDetails)
@@ -37,6 +42,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	settingRoutes.POST("/roles/delete", roleController.DeleteRoles)
 	settingRoutes.PUT("/roles/activate", roleController.ActivateRoles)
 	settingRoutes.PUT("/roles/deactivate", roleController.DeactivateRoles)
+
+	settingRoutes.GET("/roles/:id/permissions", roleController.GetRolePermissions)
+	settingRoutes.PUT("/roles/:id/permissions", roleController.UpdateRolePermissions)
 
 	// Organization Unit
 	settingRoutes.GET("/organization-units", organizationUnitController.GetAllOrganizationUnits)
@@ -58,5 +66,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	settingRoutes.GET("/workflows/:workflowId/levels", workflowController.GetWorkflowlevels)
 	settingRoutes.POST("/workflows/:workflowId/levels", workflowController.CreateWorkflowLevel)
 	settingRoutes.DELETE("/workflows/:workflowId/levels/:levelId", workflowController.DeleteWorkflowLevel)
+
+	settingRoutes.GET("/modules", moduleController.GetAllModules)
 
 }

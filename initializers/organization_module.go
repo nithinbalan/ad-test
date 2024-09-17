@@ -57,7 +57,7 @@ func NewOrganizationModule(
 	userStatusController := controllers.NewUserStatusController(userStatusSvc)
 
 	userRepo := repositories.NewUserRepository(db)
-	userSvc := services.NewUserService(userRepo, designationSvc, userStatusSvc, sharedModule.ActivityLogService, settingsModule.RoleSvc, settingsModule.SystemPreferenceSvc, settingsModule.OrganizationLevelSvc)
+	userSvc := services.NewUserService(userRepo, designationSvc, userStatusSvc, sharedModule.ActivityLogService, settingsModule.RoleSvc, settingsModule.SystemPreferenceSvc, settingsModule.OrganizationLevelSvc, settingsModule.ModuleSvc)
 	userSettingRepo := repositories.NewUserSettingRepository(db)
 	userSettingSvc := services.NewUserSettingService(userSettingRepo, sharedModule.ActivityLogService)
 	userSvc.SetUserSettingService(userSettingSvc)
@@ -108,7 +108,7 @@ func NewOrganizationModule(
 		userSvc,
 		masterModule.ReviewFrequencySvc,
 		masterModule.LifecycleStatusSvc,
-		commonModule.NotificationService)
+		commonModule.NotificationService, userSettingSvc)
 	controlController := controllers.NewControlController(controlSvc)
 
 	controlTestRepo := repositories.NewControlTestRepository(db)
@@ -142,7 +142,7 @@ func NewOrganizationModule(
 	controlActionPlanStatusUpdateController := controllers.NewControlActionPlanStatusUpdateController(controlActionPlanStatusUpdateSvc)
 
 	processRepo := repositories.NewProcessRepository(db)
-	processSvc := services.NewProcessService(processRepo, sharedModule.ActivityLogService, processGroupSvc, userSvc, masterModule.LifecycleStatusSvc, controlSvc, commonModule.NotificationService)
+	processSvc := services.NewProcessService(processRepo, sharedModule.ActivityLogService, processGroupSvc, userSvc, masterModule.LifecycleStatusSvc, controlSvc, commonModule.NotificationService, userSettingSvc)
 	processController := controllers.NewProcessController(processSvc)
 
 	userTaskRepo := repositories.NewUserTaskRepository(db)

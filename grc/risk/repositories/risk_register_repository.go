@@ -15,7 +15,7 @@ import (
 type RiskRegisterRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *riskDTOs.RiskRegisterListQueryParamsDTO) (*riskDTOs.RiskRegisterListResponseDTO, error)
-	GetByID(id uint) (*models.RiskRegister, error)
+	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.RiskRegister, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.RiskRegister, error)
 	Create(riskRegister *models.RiskRegister, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(riskRegister *models.RiskRegister, tx ...utility.DatabaseTransaction) error
@@ -235,22 +235,27 @@ func (repo *RiskRegisterRepository) GetAll(params *riskDTOs.RiskRegisterListQuer
 		query = query.Where("current_risk_rating_value.value = ?", params.Value)
 	}
 
-	// Sort by the specified column and order
-	if params.SortBy == "" {
-		params.SortBy = "title" // Default sort by title if no sortBy is specified
-	}
-	if params.Sort != "asc" && params.Sort != "desc" {
-		params.Sort = "asc" // Default order is ascending if not specified
-	}
-
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	offset := (params.Page - 1) * params.PageSize
-
-	// Execute the query
-	err := query.Offset(offset).Limit(params.PageSize).Find(&riskRegisters).Error
-	if err != nil {
+	// Count total results
+	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
+	}
+
+	// Apply pagination only if not exporting
+	if !params.Export {
+		offset := (params.Page - 1) * params.PageSize
+		query = query.Offset(offset).Limit(params.PageSize)
+	}
+
+	if err := query.Find(&riskRegisters).Error; err != nil {
+		return nil, err
+	}
+
+	if params.Export {
+		return &riskDTOs.RiskRegisterListResponseDTO{
+			Items: riskRegisters,
+		}, nil
 	}
 
 	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
@@ -267,10 +272,15 @@ func (repo *RiskRegisterRepository) GetAll(params *riskDTOs.RiskRegisterListQuer
 	return response, nil
 }
 
-func (repo *RiskRegisterRepository) GetByID(id uint) (*models.RiskRegister, error) {
+func (repo *RiskRegisterRepository) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.RiskRegister, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
 	var risk *models.RiskRegister
 
-	result := repo.db.
+	result := db.
 		First(&risk, id)
 	if result.Error != nil {
 		return nil, result.Error

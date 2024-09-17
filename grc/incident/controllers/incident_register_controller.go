@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	commonDTOs "jethur/grc/common/dtos"
 	incidentDTOs "jethur/grc/incident/dtos"
 	"jethur/grc/incident/services"
@@ -24,11 +25,18 @@ func NewIncidentRegisterController(service services.IncidentRegisterServiceInter
 }
 
 func (irc *IncidentRegisterController) GetAllIncidentRegisters(c *gin.Context) {
-	sort := c.Query("sort_order")
-	sortBy := c.Query("sort_by")
-	keyword := c.Query("keyword")
+	sort := c.DefaultQuery("sort_order", "asc")
+	sortBy := c.DefaultQuery("sort_by", "title")
 	status := c.Query("status")
+	keyword := c.Query("keyword")
 	quickFilter := c.QueryArray("quick_filter")
+
+	// Convert the export parameter to a boolean
+	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
+	if err != nil {
+		utility.SendInternalErrResp(irc.db, c, "Invalid export parameter")
+		return
+	}
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
@@ -38,6 +46,34 @@ func (irc *IncidentRegisterController) GetAllIncidentRegisters(c *gin.Context) {
 		"incident_status_ids",
 		"reported_user_ids",
 		"incident_type_ids",
+	}
+	validSortFields := map[string]string{
+		"incident_at":                    "incident_register.incident_at",
+		"reported_at":                    "incident_register.reported_at",
+		"reference_number":               "incident_register.reference_number",
+		"title":                          "incident_register.title",
+		"description":                    "incident_register.description",
+		"incident_category_en":           "incident_categories.title_en",
+		"incident_category_ar":           "incident_categories.title_ar",
+		"incident_type_en":               "incident_types.title_en",
+		"incident_type_ar":               "incident_types.title_ar",
+		"incident_status_en":             "incident_statuses.title_en",
+		"incident_status_ar":             "incident_statuses.title_ar",
+		"severity_level_en":              "severity_levels.title_en",
+		"severity_level_ar":              "severity_levels.title_ar",
+		"severity_level_color_code":      "severity_levels.color_code",
+		"responsible_unit_en":            "organization_units.title_en",
+		"responsible_unit_ar":            "organization_units.title_ar",
+		"responsible_user_first_name_en": "responsible_user.first_name_en",
+		"responsible_user_first_name_ar": "responsible_user.first_name_ar",
+		"responsible_user_last_name_en":  "responsible_user.last_name_en",
+		"responsible_user_last_name_ar":  "responsible_user.last_name_ar",
+		"responsible_user_email":         "responsible_user.email",
+		"responsible_user_initial":       "responsible_user.initial",
+		"reported_by_first_name_en":      "reported_user.first_name_en",
+		"reported_by_first_name_ar":      "reported_user.first_name_ar",
+		"reported_by_last_name_en":       "reported_user.last_name_en",
+		"reported_by_last_name_ar":       "reported_user.last_name_ar",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
@@ -56,10 +92,15 @@ func (irc *IncidentRegisterController) GetAllIncidentRegisters(c *gin.Context) {
 		utility.SendInternalErrResp(irc.db, c, "Invalid page_size parameter")
 		return
 	}
-
+	sortField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
 	queryParams := incidentDTOs.IncidentRegisterListQueryParamsDTO{
 		Sort:        sort,
-		SortBy:      sortBy,
+		SortBy:      sortField,
 		Keyword:     keyword,
 		Status:      status,
 		Page:        page,
@@ -68,6 +109,7 @@ func (irc *IncidentRegisterController) GetAllIncidentRegisters(c *gin.Context) {
 		QuickFilter: quickFilter,
 		IncidentAt:  incidentAt,
 		ReportedAt:  reportedAt,
+		Export:      export,
 	}
 	incidents, err := irc.service.GetAll(&queryParams)
 
@@ -75,6 +117,29 @@ func (irc *IncidentRegisterController) GetAllIncidentRegisters(c *gin.Context) {
 		utility.SendInternalErrResp(irc.db, c, err.Error())
 		return
 	}
+
+	if export {
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(irc.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := irc.service.ExportIncidentRegister(incidents.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(irc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="Incident Register.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
+		return
+	}
+
 	c.JSON(http.StatusOK, incidents)
 }
 
@@ -195,4 +260,10 @@ func (irc *IncidentRegisterController) DeleteIncidentRegisters(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}
+
+func (irc *IncidentRegisterController) GetIncidentRegisterExport(c *gin.Context) {
+	c.Request.URL.RawQuery += "&export=true"
+
+	irc.GetAllIncidentRegisters(c)
 }

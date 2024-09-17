@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	commonDTOs "jethur/grc/common/dtos"
 	slaDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/services"
@@ -25,12 +26,18 @@ func NewSLARegisterController(service services.SLARegisterServiceInterface) *SLA
 }
 
 func (src *SLARegisterController) GetAllSLARegisters(c *gin.Context) {
-	sort := c.Query("sort_order")
-	sortBy := c.Query("sort_by")
-	keyword := c.Query("keyword")
+	sort := c.DefaultQuery("sort_order", "asc")
+	sortBy := c.DefaultQuery("sort_by", "title_en")
 	status := c.Query("status")
+	keyword := c.Query("keyword")
 	quickFilter := c.QueryArray("quick_filter")
 
+	// Convert the export parameter to a boolean
+	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
+	if err != nil {
+		utility.SendInternalErrResp(src.db, c, "Invalid export parameter")
+		return
+	}
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"sla_category_ids",
@@ -59,10 +66,37 @@ func (src *SLARegisterController) GetAllSLARegisters(c *gin.Context) {
 		utility.SendInternalErrResp(src.db, c, "Invalid page_size parameter")
 		return
 	}
+	validSortFields := map[string]string{
+		"reference_number":     "sla_register.reference_number",
+		"title_en":             "sla_register.title_en",
+		"title_ar":             "sla_register.title_ar",
+		"description":          "sla_register.description",
+		"client":               "sla_register.client",
+		"sa1":                  "sla_documents.sa1_date",
+		"sa2":                  "sla_documents.sa2_date",
+		"sla_category_en":      "sla_categories.title_en",
+		"sla_category_ar":      "sla_categories.title_ar",
+		"severity_level_en":    "severity_levels.title_en",
+		"severity_level_ar":    "severity_levels.title_ar",
+		"responsible_unit_en":  "organization_units.title_en",
+		"responsible_unit_ar":  "organization_units.title_ar",
+		"responsible_user_en":  "responsible_user.first_name_en",
+		"responsible_user_ar":  "responsible_user.first_name_ar",
+		"status_en":            "lifecycle_statuses.title_en",
+		"status_ar":            "lifecycle_statuses.title_ar",
+		"compliance_status_en": "compliance_statuses.title_en",
+		"compliance_status_ar": "compliance_statuses.title_ar",
+	}
 
+	sortField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
 	queryParams := slaDTOs.SLARegisterListQueryParamsDTO{
 		Sort:           sort,
-		SortBy:         sortBy,
+		SortBy:         sortField,
 		Keyword:        keyword,
 		Status:         status,
 		Page:           page,
@@ -73,6 +107,7 @@ func (src *SLARegisterController) GetAllSLARegisters(c *gin.Context) {
 		IssueDateTo:    issueDateTo,
 		ExpiryDateFrom: expiryDateFrom,
 		ExpiryDateTo:   expiryDateTo,
+		Export:         export,
 	}
 	slaRegisters, err := src.service.GetAll(&queryParams)
 
@@ -80,6 +115,30 @@ func (src *SLARegisterController) GetAllSLARegisters(c *gin.Context) {
 		utility.SendInternalErrResp(src.db, c, err.Error())
 		return
 	}
+	// If export is true, generate and return the Excel file
+	if export {
+
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(src.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := src.service.ExportSLARegisters(slaRegisters.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(src.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="SLARegister.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
+		return
+	}
+
 	c.JSON(http.StatusOK, slaRegisters)
 
 }
@@ -347,4 +406,10 @@ func (src *SLARegisterController) AssessmentStatusSummary(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, assessmentStatusSummary)
+}
+
+func (src *SLARegisterController) GetSLARegisterExport(c *gin.Context) {
+	c.Request.URL.RawQuery += "&export=true"
+
+	src.GetAllSLARegisters(c)
 }

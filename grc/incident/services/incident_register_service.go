@@ -11,6 +11,7 @@ import (
 	masterServices "jethur/grc/masters/services"
 	organizationServices "jethur/grc/organization/services"
 	riskServices "jethur/grc/risk/services"
+	"os"
 	"time"
 
 	"jethur/grc/models"
@@ -30,6 +31,7 @@ type IncidentRegisterServiceInterface interface {
 	Update(id uint, currentUserID uint, incident *incidentDTOs.IncidentRegisterFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	StatusUpdate(id uint, currentUserID uint, incidentStatusID uint, tx utility.DatabaseTransaction) error
+	ExportIncidentRegister(data []*incidentDTOs.IncidentRegisterListDTO, currentUserID uint) (*os.File, error)
 }
 
 // Service and implementations
@@ -47,6 +49,7 @@ type IncidentRegisterService struct {
 	slaRegisterSvc           complianceServices.SLARegisterServiceInterface
 	incidentTimelineSvc      IncidentTimelineServiceInterface
 	userSvc                  organizationServices.UserServiceInterface
+	userSettingSvc           organizationServices.UserSettingServiceInterface
 }
 
 func NewIncidentRegisterService(
@@ -63,6 +66,7 @@ func NewIncidentRegisterService(
 	slaRegisterSvc complianceServices.SLARegisterServiceInterface,
 	incidentTimelineSvc IncidentTimelineServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface,
 ) IncidentRegisterServiceInterface {
 	return &IncidentRegisterService{
 		repo:                     repo,
@@ -78,6 +82,7 @@ func NewIncidentRegisterService(
 		slaRegisterSvc:           slaRegisterSvc,
 		incidentTimelineSvc:      incidentTimelineSvc,
 		userSvc:                  userSvc,
+		userSettingSvc:           userSettingSvc,
 	}
 }
 
@@ -1231,4 +1236,101 @@ func (irs *IncidentRegisterService) validateIncidentDocumentFormDTO(documents []
 	}
 
 	return nil
+}
+
+func (is *IncidentRegisterService) ExportIncidentRegister(data []*incidentDTOs.IncidentRegisterListDTO, currentUserID uint) (*os.File, error) {
+	// Fetch user setting for language preference
+	userSetting, err := is.userSettingSvc.GetUserSettingsByUserID(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+	var headers []string
+	// Define headers based on the user's language setting
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"SL No.",
+			"Reference Number",
+			"Title",
+			"Incident AT",
+			"Category",
+			"Severity Level",
+			"Location",
+			"Reported By",
+			"Responsible User",
+			"Reported Date & Time",
+			"Current Status",
+			"Action Taken",
+			"Investigation Date & Time",
+			"Investigation Details",
+			"Communicated By",
+			"Communicated To",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Reference Number",
+			"Title",
+			"Incident AT",
+			"Category",
+			"Severity Level",
+			"Location",
+			"Reported By",
+			"Responsible User",
+			"Reported Date & Time",
+			"Current Status",
+			"Action Taken",
+			"Investigation Date & Time",
+			"Investigation Details",
+			"Communicated By",
+			"Communicated To",
+		}
+	}
+	// Convert the incident register data to [][]interface{} based on language setting
+	rows := make([][]interface{}, len(data))
+	for i, incident := range data {
+		if userSetting.Language == "ar" {
+			// Populate row data in Arabic
+			rows[i] = []interface{}{
+				i + 1,
+				incident.ReferenceNumber,
+				incident.Title,
+				incident.IncidentAt,
+				incident.IncidentCategoryTitleAr,
+				incident.SeverityLevelTitleAr,
+				incident.Location,
+				incident.ReportedUserFirstNameAr + " " + incident.ReportedUserLastNameAr,
+				incident.ResponsibleUserFirstNameAr + " " + incident.ResponsibleUserLastNameAr,
+				incident.ReportedAt,
+				incident.IncidentStatusTitleAr,
+				incident.QuickAction,
+				// incident.InvestigationInitiatedAt,
+				// incident.InvestigationDescription,
+				// *incident.CommunicatedByFirstNameAr + " " + *incident.CommunicatedByLastNameAr,
+				// incident.CommunicatedViaAr,
+			}
+		} else {
+			// Populate row data in English
+			rows[i] = []interface{}{
+				i + 1,
+				incident.ReferenceNumber,
+				incident.Title,
+				incident.IncidentAt,
+				incident.IncidentCategoryTitleEn,
+				incident.SeverityLevelTitleEn,
+				incident.Location,
+				incident.ReportedUserFirstNameEn + " " + incident.ReportedUserFirstNameEn,
+				incident.ResponsibleUserFirstNameEn + " " + incident.ResponsibleUserLastNameEn,
+				incident.ReportedAt,
+				incident.IncidentStatusTitleEn,
+				incident.QuickAction,
+				// incident.InvestigationInitiatedAt,
+				// incident.InvestigationDescription,
+				// incident.CommunicatedByFirstNameEn + " " + *incident.CommunicatedByLastNameEn,
+				// incident.CommunicatedViaEn,
+			}
+		}
+	}
+
+	// Generate the Excel file
+	return utility.GenerateExcelFile(headers, rows)
 }

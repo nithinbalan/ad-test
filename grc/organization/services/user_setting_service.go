@@ -17,6 +17,7 @@ type UserSettingServiceInterface interface {
 	SetUserService(svc UserServiceInterface)
 
 	GetUserSetting(userID uint) (*userDTOs.UserSettingDTO, error)
+	GetUserSettingsByUserID(userID uint) (*models.UserSetting, error)
 	CreateUserSetting(userID uint, userSettingFormDTO *userDTOs.UserSettingFormDTO, tx ...utility.DatabaseTransaction) error
 	UpdateUserSetting(userID uint, currentUserID uint, userSettingFormDTO *userDTOs.UserSettingFormDTO) error
 	EnableMainNotification(userID uint) error
@@ -60,6 +61,16 @@ func (uss *UserSettingService) GetUserSetting(userID uint) (*userDTOs.UserSettin
 	}
 
 	return userSettingDTO, nil
+}
+
+func (uss *UserSettingService) GetUserSettingsByUserID(userID uint) (*models.UserSetting, error) {
+	userSetting, err := uss.repo.GetUserSettingsByUserID(userID)
+
+	if err != nil {
+		return nil, utility.NewResourceNotFoundError(err, userID)
+	}
+
+	return userSetting, nil
 }
 
 func (uss *UserSettingService) CreateUserSetting(userID uint, userSettingFormDTO *userDTOs.UserSettingFormDTO, tx ...utility.DatabaseTransaction) error {

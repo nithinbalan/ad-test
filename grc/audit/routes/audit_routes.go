@@ -47,11 +47,13 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditChecklistController := app.AuditModule.AuditChecklistController
 	auditScheduleController := app.AuditModule.AuditScheduleController
 	auditDraftFindingStatusController := app.AuditModule.AuditDraftFindingStatusController
+	auditDraftReportStatusController := app.AuditModule.AuditDraftReportStatusController
 	auditDraftFindingController := app.AuditModule.AuditDraftFindingController
 	auditDraftReportController := app.AuditModule.AuditDraftReportController
 	rcmController := app.AuditModule.RCMController
 	auditDraftFindingConversationController := app.AuditModule.AuditDraftFindingConversationController
 	auditDraftFindingActionPlanController := app.AuditModule.AuditDraftFindingActionPlanController
+	auditScheduleStatusUpdateController := app.AuditModule.AuditScheduleStatusUpdateController
 
 	//Audit Status
 	auditRoutes.GET("/audit-statuses", auditStatusController.GetAllAuditStatuses)
@@ -245,9 +247,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	//Audit Schedule
 	auditRoutes.GET("/audits/:auditId/schedules", auditScheduleController.GetAllAuditSchedules)
-	auditRoutes.GET("/audits/:auditId/schedules/:id", auditScheduleController.GetAuditScheduleDetails)
+	auditRoutes.GET("/audits/:auditId/schedules/:scheduleId", auditScheduleController.GetAuditScheduleDetails)
 	auditRoutes.POST("/audits/:auditId/schedules", auditScheduleController.CreateAuditSchedule)
-	auditRoutes.PUT("/audits/:auditId/schedules/:id", auditScheduleController.UpdateAuditSchedule)
+	auditRoutes.PUT("/audits/:auditId/schedules/:scheduleId", auditScheduleController.UpdateAuditSchedule)
 	auditRoutes.POST("/audits/:auditId/schedules/delete", auditScheduleController.DeleteAuditSchedules)
 
 	auditRoutes.GET("/audits/:auditId/schedules-summary", auditScheduleController.GetScheduleSummary)
@@ -266,11 +268,16 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.PUT("/audit-draft-findings/:findingId", auditDraftFindingController.UpdateAuditDraftFinding)
 	auditRoutes.POST("/audit-draft-findings/delete", auditDraftFindingController.DeleteAuditDraftFindings)
 
+	//Draft Audit Report Status
+	auditRoutes.GET("/audit-draft-report-statuses", auditDraftReportStatusController.GetAllAuditDraftReportStatuses)
+	auditRoutes.GET("/audit-draft-report-statuses/:id", auditDraftReportStatusController.GetAuditDraftReportStatusDetails)
+
 	//Audit Draft Report
 	auditRoutes.GET("/audits/:auditId/draft-reports", auditDraftReportController.GetAuditDraftReportDetails)
 	auditRoutes.POST("/audits/:auditId/draft-reports", auditDraftReportController.CreateAuditDraftReport)
 	auditRoutes.PUT("/audits/:auditId/draft-reports/:id", auditDraftReportController.UpdateAuditDraftReport)
 	auditRoutes.POST("/audits/:auditId/draft-reports/delete", auditDraftReportController.DeleteAuditDraftReports)
+	auditRoutes.POST("/audits/:auditId/draft-reports/:id/submit", auditDraftReportController.SubmitAuditDraftReport)
 
 	//Audit Risk Control Metrix
 	auditRoutes.GET("audits/:auditId/risk-control-matrix", rcmController.GetAllRiskControls)
@@ -288,5 +295,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.POST("/audit-draft-findings/:findingId/action-plans", auditDraftFindingActionPlanController.CreateAuditDraftFindingActionPlan)
 	auditRoutes.PUT("/audit-draft-findings/:findingId/action-plans/:id", auditDraftFindingActionPlanController.UpdateAuditDraftFindingActionPlan)
 	auditRoutes.POST("/audit-draft-findings/:findingId/action-plans/delete", auditDraftFindingActionPlanController.DeleteAuditDraftFindingActionPlans)
+
+	// Audit Schedule status update
+	auditRoutes.GET("/audits/:auditId/schedules/:scheduleId/status-updates", auditScheduleStatusUpdateController.GetAllAuditScheduleStatusUpdates)
+	auditRoutes.POST("/audits/:auditId/schedules/:scheduleId/status-updates", auditScheduleStatusUpdateController.CreateAuditScheduleStatusUpdate)
+	auditRoutes.PUT("/audits/:auditId/schedules/:scheduleId/status-updates/:id", auditScheduleStatusUpdateController.UpdateAuditScheduleStatusUpdate)
+	auditRoutes.GET("/audits/:auditId/schedules/:scheduleId/status-updates/latest", auditScheduleStatusUpdateController.GetLatestAuditScheduleStatusUpdate)
 
 }

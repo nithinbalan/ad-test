@@ -24,6 +24,8 @@ type AuditScheduleServiceInterface interface {
 
 	GetAllSchedulesByAuditID(auditID uint, tx ...utility.DatabaseTransaction) ([]*models.AuditSchedule, error)
 	GetScheduleSummary(auditID uint) (*auditDTOs.AuditScheduleSummaryDTO, error)
+
+	StatusUpdate(auditScheduleID uint, statusID uint, currentUserID uint, tx utility.DatabaseTransaction) error
 }
 
 type AuditScheduleService struct {
@@ -430,4 +432,21 @@ func (ass *AuditScheduleService) GetScheduleSummary(auditID uint) (*auditDTOs.Au
 	}
 
 	return summary, nil
+}
+
+func (ass *AuditScheduleService) StatusUpdate(auditScheduleID uint, statusID uint, currentUserID uint, tx utility.DatabaseTransaction) error {
+	existingAuditSchedule, err := ass.GetByID(auditScheduleID)
+	if err != nil {
+		return err
+	}
+
+	existingAuditSchedule.AuditScheduleStatusID = statusID
+	existingAuditSchedule.UpdatedBYID = &currentUserID
+
+	err = ass.repo.Update(existingAuditSchedule, tx)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

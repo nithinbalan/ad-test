@@ -31,6 +31,7 @@ type AuditModule struct {
 	AuditTimelineController                      *controllers.AuditTimelineController
 	AuditFindingStatusController                 *controllers.AuditFindingStatusController
 	AuditDraftFindingStatusController            *controllers.AuditDraftFindingStatusController
+	AuditDraftReportStatusController             *controllers.AuditDraftReportStatusController
 	AuditFindingCategoryController               *controllers.AuditFindingCategoryController
 	AuditFindingController                       *controllers.AuditFindingController
 	AuditDraftFindingController                  *controllers.AuditDraftFindingController
@@ -46,6 +47,7 @@ type AuditModule struct {
 	RCMController                                *controllers.RCMController
 	AuditDraftFindingConversationController      *controllers.AuditDraftFindingConversationController
 	AuditDraftFindingActionPlanController        *controllers.AuditDraftFindingActionPlanController
+	AuditScheduleStatusUpdateController          *controllers.AuditScheduleStatusUpdateController
 }
 
 func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, complianceModule *ComplianceModule, riskModule *RiskModule, incidentModule *IncidentModule, documentModule *DocumentModule, settingModule *SettingsModule, masterModule *MasterModule) *AuditModule {
@@ -214,6 +216,10 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 	auditDraftFindingStatusSvc := services.NewAuditDraftFindingStatusService(auditDraftFindingStatusRepo)
 	auditDraftFindingStatusController := controllers.NewAuditDraftFindingStatusController(auditDraftFindingStatusSvc)
 
+	auditDraftReportStatusRepo := repositories.NewAuditDraftReportStatusRepository(db)
+	auditDraftReportStatusSvc := services.NewAuditDraftReportStatusService(auditDraftReportStatusRepo)
+	auditDraftReportStatusController := controllers.NewAuditDraftReportStatusController(auditDraftReportStatusSvc)
+
 	auditFindingCategoryRepo := repositories.NewAuditFindingCategoryRepository(db)
 	auditFindingCategorySvc := services.NewAuditFindingCategoryService(auditFindingCategoryRepo, sharedModule.ActivityLogService)
 	auditFindingCategoryController := controllers.NewAuditFindingCategoryController(auditFindingCategorySvc)
@@ -328,6 +334,7 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		auditDraftReportRepo,
 		sharedModule.ActivityLogService,
 		auditSvc,
+		auditDraftReportStatusSvc,
 	)
 	auditDraftReportController := controllers.NewAuditDraftReportController(auditDraftReportSvc)
 
@@ -338,6 +345,10 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		auditSvc,
 	)
 	rcmController := controllers.NewRCMController(rcmSvc)
+
+	auditScheduleStatusUpdateRepo := repositories.NewAuditScheduleStatusUpdateRepository(db)
+	auditScheduleStatusUpdateSvc := services.NewAuditScheduleStatusUpdateService(auditScheduleStatusUpdateRepo, sharedModule.ActivityLogService, auditScheduleSvc, auditScheduleStatusSvc)
+	auditScheduleStatusUpdateController := controllers.NewAuditScheduleStatusUpdateController(auditScheduleStatusUpdateSvc)
 
 	return &AuditModule{
 		AuditorRiskRatingController:                  auditorRiskRatingController,
@@ -362,6 +373,7 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		AuditTimelineController:                      auditTimelineController,
 		AuditFindingStatusController:                 auditFindingStatusController,
 		AuditDraftFindingStatusController:            auditDraftFindingStatusController,
+		AuditDraftReportStatusController:             auditDraftReportStatusController,
 		AuditFindingCategoryController:               auditFindingCategoryController,
 		AuditFindingController:                       auditFindingController,
 		AuditDraftFindingController:                  auditDraftFindingController,
@@ -377,5 +389,6 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		RCMController:                                rcmController,
 		AuditDraftFindingConversationController:      auditDraftFindingConversationController,
 		AuditDraftFindingActionPlanController:        auditDraftFindingActionPlanController,
+		AuditScheduleStatusUpdateController:          auditScheduleStatusUpdateController,
 	}
 }

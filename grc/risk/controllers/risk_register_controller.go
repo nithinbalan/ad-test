@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	commonDTOs "jethur/grc/common/dtos"
 	riskDTOs "jethur/grc/risk/dtos"
 	"jethur/grc/risk/services"
@@ -24,12 +25,18 @@ func NewRiskRegisterController(service services.RiskRegisterServiceInterface) *R
 }
 
 func (rrc *RiskRegisterController) GetAllRiskRegisters(c *gin.Context) {
-	sort := c.Query("sort_order")
-	sortBy := c.Query("sort_by")
+	sort := c.DefaultQuery("sort_order", "asc")
+	sortBy := c.DefaultQuery("sort_by", "title")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
 	valueStr := c.Query("value")
+
+	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
+	if err != nil {
+		utility.SendInternalErrResp(rrc.db, c, "Invalid export parameter")
+		return
+	}
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
@@ -39,6 +46,40 @@ func (rrc *RiskRegisterController) GetAllRiskRegisters(c *gin.Context) {
 		"responsible_user_ids",
 		"risk_status_ids",
 		"review_frequency_ids",
+	}
+
+	validSortFields := map[string]string{
+		"reference_number":          "risk_register.reference_number",
+		"title":                     "risk_register.title",
+		"description":               "risk_register.description",
+		"risk_category_en":          "risk_categories.title_en",
+		"risk_category_ar":          "risk_categories.title_ar",
+		"organization_unit_en":      "organization_units.title_en",
+		"organization_unit_ar":      "organization_units.title_ar",
+		"responsible_user_en":       "users.first_name_en",
+		"responsible_user_ar":       "users.first_name_ar",
+		"risk_source_en":            "risk_sources.title_en",
+		"risk_source_ar":            "risk_sources.title_ar",
+		"risk_status_en":            "risk_statuses.title_en",
+		"risk_status_ar":            "risk_statuses.title_ar",
+		"inherent_likelihood_en":    "inherent_likelihood.title_en",
+		"inherent_likelihood_ar":    "inherent_likelihood.title_ar",
+		"inherent_impact_en":        "inherent_impact.title_en",
+		"inherent_impact_ar":        "inherent_impact.title_ar",
+		"inherent_risk_rating_en":   "inherent_risk_rating.title_en",
+		"inherent_risk_rating_ar":   "inherent_risk_rating.title_ar",
+		"risk_response_strategy_en": "risk_response_strategies.title_en",
+		"risk_response_strategy_ar": "risk_response_strategies.title_ar",
+		"residual_likelihood_en":    "residual_likelihood.title_en",
+		"residual_likelihood_ar":    "residual_likelihood.title_ar",
+		"residual_impact_en":        "residual_impact.title_en",
+		"residual_impact_ar":        "residual_impact.title_ar",
+		"residual_risk_rating_en":   "residual_risk_rating.title_en",
+		"residual_risk_rating_ar":   "residual_risk_rating.title_ar",
+		"reported_at":               "risk_register.reported_at",
+		"review_frequency_en":       "review_frequencies.title_en",
+		"review_frequency_ar":       "review_frequencies.title_ar",
+		"next_review_date":          "risk_register.next_review_date",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
@@ -69,9 +110,16 @@ func (rrc *RiskRegisterController) GetAllRiskRegisters(c *gin.Context) {
 		}
 	}
 
+	dbField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
 	queryParams := riskDTOs.RiskRegisterListQueryParamsDTO{
 		Sort:               sort,
-		SortBy:             sortBy,
+		SortBy:             dbField,
 		Keyword:            keyword,
 		Status:             status,
 		Page:               page,
@@ -83,11 +131,34 @@ func (rrc *RiskRegisterController) GetAllRiskRegisters(c *gin.Context) {
 		ReportedAtTo:       reportedAtTo,
 		NextReviewDateFrom: nextReviewDateFrom,
 		NextReviewDateTo:   nextReviewDateTo,
+		Export:             export,
 	}
 	risks, err := rrc.service.GetAll(&queryParams)
 
 	if err != nil {
 		utility.SendInternalErrResp(rrc.db, c, err.Error())
+		return
+	}
+
+	if export {
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(rrc.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := rrc.service.ExportRiskRegister(risks.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(rrc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="Risk register.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
 		return
 	}
 	c.JSON(http.StatusOK, risks)

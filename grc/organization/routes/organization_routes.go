@@ -50,6 +50,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.GET("/user-statuses/:id", userStatusController.GetUserStatusDetails)
 
 	//User
+	organizationRoutes.GET("/users/export", userController.GetUsersExport)
 	organizationRoutes.GET("/users", userController.GetAllUsers)
 	organizationRoutes.GET("/users/:userId", userController.GetUserDetails)
 	organizationRoutes.POST("/users", userController.CreateUser)
@@ -58,6 +59,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.GET("/users/:userId/login-history", userController.GetUserLoginHistory)
 
 	organizationRoutes.GET("/users/me", userController.GetCurrentUserDetails)
+	organizationRoutes.GET("/users/me/permissions", userController.GetUserPermissions)
 	organizationRoutes.GET("/users/me/notifications", userController.GetUserNotifications)
 	organizationRoutes.GET("/users/me/notifications/new-count", userController.GetUserNewNotificationCount)
 	organizationRoutes.PUT("/users/me/notifications/mark-as-read", userController.MarkwNotificationAsRead)
@@ -138,6 +140,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.PUT("/controls/:controlId/reviews/:id", controlReviewController.UpdateControlReview)
 
 	//Control
+	organizationRoutes.GET("/controls/export", controlController.GetControlsExport)
 	organizationRoutes.GET("/controls", controlController.GetAllControls)
 	organizationRoutes.GET("/controls/:controlId", controlController.GetControlDetails)
 	organizationRoutes.POST("/controls", controlController.CreateControl)

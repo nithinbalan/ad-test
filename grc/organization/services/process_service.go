@@ -19,7 +19,7 @@ import (
 
 type ProcessServiceInterface interface {
 	GetAll(params *organizationDTOs.ProcessListQueryParamsDTO) (*organizationDTOs.ProcessListResponseDTO, error)
-	GetByID(id uint) (*models.Process, error)
+	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Process, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*organizationDTOs.ProcessDetailDTO, error)
 	Create(currentUserID uint, processFormDTO *organizationDTOs.ProcessFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, processFormDTO *organizationDTOs.ProcessFormDTO) error
@@ -30,7 +30,9 @@ type ProcessServiceInterface interface {
 
 	GetControlSummary(id uint) (map[string]interface{}, error)
 
-	ExportProcesses(data []*organizationDTOs.ProcessListDTO) (*os.File, error)
+	ExportProcesses(data []*organizationDTOs.ProcessListDTO, currentUserID uint) (*os.File, error)
+
+	UpdateProcessRiskRating(process *models.Process, tx utility.DatabaseTransaction) error
 }
 
 type ProcessService struct {
@@ -41,6 +43,7 @@ type ProcessService struct {
 	lifecycleStatusSvc masterServices.LifecycleStatusServiceInterface
 	controlSvc         ControlServiceInterface
 	notificationSvc    commonServices.NotificationServiceInterface
+	userSettingSvc     UserSettingServiceInterface
 }
 
 func NewProcessService(
@@ -50,7 +53,8 @@ func NewProcessService(
 	userSvc UserServiceInterface,
 	lifecycleStatusSvc masterServices.LifecycleStatusServiceInterface,
 	controlSvc ControlServiceInterface,
-	notificationSvc commonServices.NotificationServiceInterface) ProcessServiceInterface {
+	notificationSvc commonServices.NotificationServiceInterface,
+	userSettingSvc UserSettingServiceInterface) ProcessServiceInterface {
 	return &ProcessService{
 		repo:               repo,
 		activityLogSvc:     activityLogSvc,
@@ -59,6 +63,7 @@ func NewProcessService(
 		lifecycleStatusSvc: lifecycleStatusSvc,
 		controlSvc:         controlSvc,
 		notificationSvc:    notificationSvc,
+		userSettingSvc:     userSettingSvc,
 	}
 }
 
@@ -66,8 +71,8 @@ func (ps *ProcessService) GetAll(params *organizationDTOs.ProcessListQueryParams
 	return ps.repo.GetAll(params)
 }
 
-func (ps *ProcessService) GetByID(id uint) (*models.Process, error) {
-	process, err := ps.repo.GetByID(id)
+func (ps *ProcessService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Process, error) {
+	process, err := ps.repo.GetByID(id, tx...)
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -876,48 +881,76 @@ func (ps *ProcessService) GetControlSummary(id uint) (map[string]interface{}, er
 	return summary, nil
 }
 
-func (ps *ProcessService) ExportProcesses(data []*organizationDTOs.ProcessListDTO) (*os.File, error) {
-	// Define headers
-	headers := []string{
-		"SL No.",
-		"Reference Number",
-		"Title (EN)",
-		"Title (AR)",
-		"Description",
-		"Process Group (EN)",
-		"Process Group (AR)",
-		"Owner Unit (EN)",
-		"Owner Unit (AR)",
-		"Owner First Name (EN)",
-		"Owner Last Name (EN)",
-		"Owner First Name (AR)",
-		"Owner Last Name (AR)",
-		"Lifecycle Status (EN)",
-		"Lifecycle Status (AR)",
+func (ps *ProcessService) ExportProcesses(data []*organizationDTOs.ProcessListDTO, currentUserID uint) (*os.File, error) {
+	userSetting, err := ps.userSettingSvc.GetUserSetting(currentUserID)
+	if err != nil {
+		return nil, err
 	}
 
-	// Convert data to [][]interface{}
-	rows := make([][]interface{}, len(data))
-	for i, item := range data {
-		rows[i] = []interface{}{
-			i + 1,
-			item.ReferenceNumber,
-			item.TitleEn,
-			item.TitleAr,
-			*item.Description,
-			item.ProcessGroupTitleEn,
-			item.ProcessGroupTitleAr,
-			*item.OwnerUnitTitleEn,
-			*item.OwnerUnitTitleAr,
-			*item.OwnerFirstNameEn,
-			*item.OwnerLastNameEn,
-			*item.OwnerLastNameEn,
-			*item.OwnerLastNameAr,
-			item.LifecycleStatusTitleEn,
-			item.LifecycleStatusTitleAr,
+	fmt.Println(userSetting)
+
+	var headers []string
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"SL No.",
+			"Reference Number",
+			"Title",
+			"Description",
+			"Process Group",
+			"Owner Unit",
+			"Owner Name",
+			"Lifecycle Status",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Reference Number",
+			"Title",
+			"Description",
+			"Process Group",
+			"Owner Unit",
+			"Owner Name",
+			"Lifecycle Status",
 		}
 	}
 
-	// Generate the Excel file
+	rows := make([][]interface{}, len(data))
+	for i, process := range data {
+		if userSetting.Language == "ar" {
+			rows[i] = []interface{}{
+				i + 1,
+				process.ReferenceNumber,
+				process.TitleAr,
+				*process.Description,
+				process.ProcessGroupTitleAr,
+				*process.OwnerUnitTitleAr,
+				*process.OwnerFirstNameAr + " " + *process.OwnerLastNameAr,
+				process.LifecycleStatusTitleAr,
+			}
+		} else {
+			rows[i] = []interface{}{
+				i + 1,
+				process.ReferenceNumber,
+				process.TitleEn,
+				*process.Description,
+				process.ProcessGroupTitleEn,
+				*process.OwnerUnitTitleEn,
+				*process.OwnerFirstNameEn + " " + *process.OwnerLastNameEn,
+				process.LifecycleStatusTitleEn,
+			}
+		}
+	}
+
 	return utility.GenerateExcelFile(headers, rows)
+}
+
+func (ps *ProcessService) UpdateProcessRiskRating(process *models.Process, tx utility.DatabaseTransaction) error {
+
+	err := ps.repo.Update(process, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return nil
 }

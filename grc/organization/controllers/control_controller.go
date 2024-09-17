@@ -31,6 +31,12 @@ func (cc *ControlController) GetAllControls(c *gin.Context) {
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
 
+	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
+	if err != nil {
+		utility.SendInternalErrResp(cc.db, c, "Invalid export parameter")
+		return
+	}
+
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"control_type_ids",
@@ -125,13 +131,37 @@ func (cc *ControlController) GetAllControls(c *gin.Context) {
 		NextTestDateTo:     nextTestDateTo,
 		ImplementedAtFrom:  implementedAtFrom,
 		ImplementedAtTo:    implementedAtTo,
+		Export:             export,
 	}
-	controls, err := cc.service.GetAll(&queryParams)
 
+	controls, err := cc.service.GetAll(&queryParams)
 	if err != nil {
 		utility.SendInternalErrResp(cc.db, c, err.Error())
 		return
 	}
+
+	if export {
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(cc.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := cc.service.ExportControls(controls.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(cc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="Controls.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
+		return
+	}
+
 	c.JSON(http.StatusOK, controls)
 }
 
@@ -299,4 +329,10 @@ func (cc *ControlController) RestoreControls(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"successfulIds": successfulIds})
+}
+
+func (cc *ControlController) GetControlsExport(c *gin.Context) {
+	c.Request.URL.RawQuery += "&export=true"
+
+	cc.GetAllControls(c)
 }

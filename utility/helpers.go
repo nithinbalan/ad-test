@@ -264,3 +264,17 @@ func GetAppURL() string {
 	}
 	return appURL
 }
+
+func GetIntValueAsString(pointer *int) string {
+	if pointer != nil {
+		return fmt.Sprintf("%d", *pointer)
+	}
+	return ""
+}
+
+func GetStringValue(pointer *string) string {
+	if pointer != nil {
+		return *pointer
+	}
+	return ""
+}

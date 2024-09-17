@@ -65,7 +65,12 @@ func (repo *AuditDraftReportRepository) GetFullDetailsByID(auditID uint, tx ...u
 		Preload("Audit.AuditDraftFindings.AuditFindingCategory").
 		Preload("Audit.AuditDraftFindings.SeverityLevel").
 		Preload("Audit.AuditDraftFindings.AuditDraftFindingConversations").
+		Preload("Audit.AuditDraftFindings.AuditDraftFindingConversations.CreatedByUser").
+		Preload("Audit.AuditDraftFindings.AuditDraftFindingConversations.UpdatedByUser").
 		Preload("Audit.AuditDraftFindings.AuditDraftFindingActionPlans").
+		Preload("Audit.AuditDraftFindings.AuditDraftFindingActionPlans.ResponsibleUser").
+		Preload("Audit.AuditDraftFindings.AuditDraftFindingActionPlans.CreatedByUser").
+		Preload("Audit.AuditDraftFindings.AuditDraftFindingActionPlans.UpdatedByUser").
 		Preload("Audit.AuditPlan").
 		Preload("Audit.AuditPlan.AuditCategory").
 		Preload("Audit.AuditPlan.AuditStatus").
@@ -74,10 +79,11 @@ func (repo *AuditDraftReportRepository) GetFullDetailsByID(auditID uint, tx ...u
 		Preload("Audit.AuditPlan.Members.User").
 		Preload("Audit.CreatedByUser").
 		Preload("Audit.UpdatedByUser").
+		Preload("AuditDraftReportStatus").
+		Preload("SubmittedByUser").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&auditDraftReport)
-
 	if result.Error != nil {
 		return nil, result.Error
 	}

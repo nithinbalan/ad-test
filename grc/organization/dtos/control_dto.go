@@ -25,12 +25,12 @@ type ControlListDTO struct {
 	OwnerColor                           string     `json:"owner_color"`
 	OwnerEmail                           string     `json:"owner_email"`
 	OwnerProfileImagePath                string     `json:"owner_profile_image_path"`
-	ControlImplementationStatusTitleEn   *string    `json:"control_implementation_status_title_en"`
-	ControlImplementationStatusTitleAr   *string    `json:"control_implementation_status_title_ar"`
-	ControlImplementationStatusColorCode *string    `json:"control_implementation_status_color_code"`
-	ControlEfficiencyStatusTitleEn       *string    `json:"control_efficiency_status_title_en"`
-	ControlEfficiencyStatusTitleAr       *string    `json:"control_efficiency_status_title_ar"`
-	ControlEfficiencyStatusColorCode     *string    `json:"control_efficiency_status_color_code"`
+	ControlImplementationStatusTitleEn   string     `json:"control_implementation_status_title_en"`
+	ControlImplementationStatusTitleAr   string     `json:"control_implementation_status_title_ar"`
+	ControlImplementationStatusColorCode string     `json:"control_implementation_status_color_code"`
+	ControlEfficiencyStatusTitleEn       string     `json:"control_efficiency_status_title_en"`
+	ControlEfficiencyStatusTitleAr       string     `json:"control_efficiency_status_title_ar"`
+	ControlEfficiencyStatusColorCode     string     `json:"control_efficiency_status_color_code"`
 	ReferenceNumber                      string     `json:"reference_number"`
 	Code                                 *string    `json:"code"`
 	TitleEn                              string     `json:"title_en"`
@@ -109,6 +109,7 @@ type ControlListQueryParamsDTO struct {
 	NextTestDateTo     string
 	ImplementedAtFrom  string
 	ImplementedAtTo    string
+	Export             bool
 }
 
 type ControlListResponseDTO struct {

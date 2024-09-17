@@ -95,6 +95,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	//SLA Register
 	unauthenticatedRoutes.GET("/sla-register/:id/document-download", SLARegisterController.DownloadSLARegisterDocument)
 	unauthenticatedRoutes.GET("/sla-register/:id/document-preview", SLARegisterController.GetSLARegisterDocumentPreview)
+	complianceRoutes.GET("/sla-register/export", SLARegisterController.GetSLARegisterExport)
 	complianceRoutes.GET("/sla-register", SLARegisterController.GetAllSLARegisters)
 	complianceRoutes.GET("/sla-register/:id", SLARegisterController.GetSLARegisterDetails)
 	complianceRoutes.POST("/sla-register", SLARegisterController.CreateSLARegister)

@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	commonDTOs "jethur/grc/common/dtos"
 	riskDTOs "jethur/grc/risk/dtos"
 	"jethur/grc/risk/services"
@@ -25,17 +26,34 @@ func NewPotentialRiskController(service services.PotentialRiskServiceInterface) 
 
 func (prc *PotentialRiskController) GetAllPotentialRisks(c *gin.Context) {
 
-	sort := c.Query("sort_order")
-	sortBy := c.Query("sort_by")
+	sort := c.DefaultQuery("sort_order", "asc")
+	sortBy := c.DefaultQuery("sort_by", "title")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
+
+	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
+	if err != nil {
+		utility.SendInternalErrResp(prc.db, c, "Invalid export parameter")
+		return
+	}
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"risk_category_ids",
 		"severity_level_ids",
 		"potential_risk_status_ids",
+	}
+
+	validSortFields := map[string]string{
+		"title":             "potential_risks.title",
+		"description":       "potential_risks.description",
+		"risk_category_en":  "risk_categories.title_en",
+		"risk_category_ar":  "risk_categories.title_ar",
+		"severity_level_en": "severity_levels.title_en",
+		"severity_level_ar": "severity_levels.title_ar",
+		"status_en":         "potential_risk_statuses.title_en",
+		"status_ar":         "potential_risk_statuses.title_ar",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
@@ -52,20 +70,50 @@ func (prc *PotentialRiskController) GetAllPotentialRisks(c *gin.Context) {
 		return
 	}
 
+	dbField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
 	queryParams := riskDTOs.PotentialRiskListQueryParamsDTO{
 		Sort:        sort,
-		SortBy:      sortBy,
+		SortBy:      dbField,
 		Keyword:     keyword,
 		Status:      status,
 		Page:        page,
 		PageSize:    pageSize,
 		Filters:     filters,
 		QuickFilter: quickFilter,
+		Export:      export,
 	}
 	potentialRisks, err := prc.service.GetAll(&queryParams)
 
 	if err != nil {
 		utility.SendInternalErrResp(prc.db, c, err.Error())
+		return
+	}
+
+	if export {
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(prc.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := prc.service.ExportPotentialRisk(potentialRisks.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(prc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="Potential risk.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
 		return
 	}
 	c.JSON(http.StatusOK, potentialRisks)

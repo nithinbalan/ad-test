@@ -5,6 +5,7 @@ import (
 	commonDTOs "jethur/grc/common/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
 	"jethur/grc/organization/services"
+	settingDTOs "jethur/grc/settings/dtos"
 	"jethur/utility"
 	"net/http"
 	"strconv"
@@ -36,6 +37,12 @@ func (uc *UserController) GetAllUsers(c *gin.Context) {
 	userIds, err := utility.ParseCommaSeparatedStringToIntArray(userIdsStr)
 	if err != nil {
 		utility.SendInvalidErrResp(c, errors.New("invalid 'user_ids' parameter"))
+		return
+	}
+
+	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
+	if err != nil {
+		utility.SendInternalErrResp(uc.db, c, "Invalid export parameter")
 		return
 	}
 
@@ -94,14 +101,38 @@ func (uc *UserController) GetAllUsers(c *gin.Context) {
 		UserIDs:     userIds,
 		Filters:     filters,
 		QuickFilter: quickFilter,
+		Export:      export,
 	}
 
 	users, err := uc.service.GetAll(&queryParams)
-
 	if err != nil {
 		utility.SendInternalErrResp(uc.db, c, err.Error())
 		return
 	}
+
+	if export {
+
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(uc.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := uc.service.ExportUsers(users.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(uc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="Users.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
+		return
+	}
+
 	c.JSON(http.StatusOK, users)
 }
 
@@ -420,4 +451,36 @@ func (uc *UserController) MarkwNotificationAsUnread(c *gin.Context) {
 	}
 
 	c.Status(http.StatusOK)
+}
+
+func (uc *UserController) GetUsersExport(c *gin.Context) {
+	c.Request.URL.RawQuery += "&export=true"
+
+	uc.GetAllUsers(c)
+}
+
+func (uc *UserController) GetUserPermissions(c *gin.Context) {
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(uc.db, c, err.Error())
+		return
+	}
+
+	sort := c.DefaultQuery("sort_order", "asc")
+	sortBy := c.DefaultQuery("sort_by", "title_en")
+	keyword := c.Query("keyword")
+
+	queryParams := settingDTOs.ModuleListQueryParamsDTO{
+		Sort:    sort,
+		SortBy:  sortBy,
+		Keyword: keyword,
+	}
+
+	permissions, err := uc.service.GetUserPermissions(currentUserID, &queryParams)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	c.JSON(http.StatusOK, permissions)
 }

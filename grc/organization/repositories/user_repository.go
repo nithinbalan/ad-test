@@ -44,6 +44,9 @@ type UserRepositoryInterface interface {
 	MarkSpecificNotificationsAsRead(userID uint, notificationIDs []uint) (int64, error)
 	MarkAllNotificationsAsUnread(userID uint) (int64, error)
 	MarkSpecificNotificationsAsUnread(userID uint, notificationIDs []uint) (int64, error)
+
+	GetPermissionsForModule(roleID, moduleID uint) (map[string]bool, error)
+	GetUserRoles(userID uint) ([]models.UserRole, error)
 }
 
 type UserRepository struct {
@@ -170,15 +173,20 @@ func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*us
 
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	offset := (params.Page - 1) * params.PageSize
+	if !params.Export {
+		offset := (params.Page - 1) * params.PageSize
+		query = query.Offset(offset).Limit(params.PageSize)
+	}
 
-	// Execute the query
-	err := query.Offset(offset).Limit(params.PageSize).Find(&users).Error
+	err := query.Find(&users).Error
 	if err != nil {
 		return nil, err
 	}
 
-	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+	totalPages := 1
+	if !params.Export {
+		totalPages = int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+	}
 
 	response := &userDTOs.UserListResponseDTO{
 		Items: users,
@@ -702,4 +710,34 @@ func (repo *UserRepository) MarkSpecificNotificationsAsUnread(userID uint, notif
 		Update("is_read", false)
 
 	return result.RowsAffected, result.Error
+}
+
+func (repo *UserRepository) GetPermissionsForModule(roleID, moduleID uint) (map[string]bool, error) {
+	var permissionTypes []string
+	permissions := map[string]bool{}
+
+	err := repo.db.Table("role_permissions").
+		Select("role_permission_types.type").
+		Joins("JOIN role_permission_types ON role_permissions.role_permission_type_id = role_permission_types.id").
+		Where("role_permissions.role_id = ? AND role_permissions.module_id = ?", roleID, moduleID).
+		Pluck("role_permission_types.type", &permissionTypes).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	for _, permissionType := range permissionTypes {
+		permissions[permissionType] = true
+	}
+
+	return permissions, nil
+}
+
+func (repo *UserRepository) GetUserRoles(userID uint) ([]models.UserRole, error) {
+	var userRoles []models.UserRole
+	err := repo.db.Where("user_id = ?", userID).Find(&userRoles).Error
+	if err != nil {
+		return nil, err
+	}
+	return userRoles, nil
 }
