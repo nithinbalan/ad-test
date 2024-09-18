@@ -47,6 +47,7 @@ type AuditModule struct {
 	RCMController                                *controllers.RCMController
 	AuditDraftFindingConversationController      *controllers.AuditDraftFindingConversationController
 	AuditDraftFindingActionPlanController        *controllers.AuditDraftFindingActionPlanController
+	AuditInsightsAuditPlanController             *controllers.AuditInsightsAuditPlanController
 	AuditScheduleStatusUpdateController          *controllers.AuditScheduleStatusUpdateController
 }
 
@@ -345,6 +346,17 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		auditSvc,
 	)
 	rcmController := controllers.NewRCMController(rcmSvc)
+	auditInsightsAuditPlanRepo := repositories.NewAuditInsightsAuditPlanRepository(db)
+	auditInsightsAuditPlanSvc := services.NewAuditInsightsAuditPlanService(
+		auditInsightsAuditPlanRepo,
+		sharedModule.ActivityLogService,
+		auditCategorySvc,
+		auditStatusSvc,
+		auditTeamSvc,
+		organizationModule.UserSvc,
+		auditableItemSvc,
+	)
+	auditInsightsAuditPlanController := controllers.NewAuditInsightsAuditPlanController(auditInsightsAuditPlanSvc)
 
 	auditScheduleStatusUpdateRepo := repositories.NewAuditScheduleStatusUpdateRepository(db)
 	auditScheduleStatusUpdateSvc := services.NewAuditScheduleStatusUpdateService(auditScheduleStatusUpdateRepo, sharedModule.ActivityLogService, auditScheduleSvc, auditScheduleStatusSvc)
@@ -389,6 +401,7 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		RCMController:                                rcmController,
 		AuditDraftFindingConversationController:      auditDraftFindingConversationController,
 		AuditDraftFindingActionPlanController:        auditDraftFindingActionPlanController,
+		AuditInsightsAuditPlanController:             auditInsightsAuditPlanController,
 		AuditScheduleStatusUpdateController:          auditScheduleStatusUpdateController,
 	}
 }
