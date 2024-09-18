@@ -13,6 +13,7 @@ type NotificationRepositoryInteface interface {
 	Create(notification *models.UserNotification, tx ...utility.DatabaseTransaction) error
 	GetNotificationMasterByIdentifier(identifier string) (*models.NotificationMaster, error)
 	GetUserNotificationSetting(userID uint, notificationMasterID uint) (*models.UserNotificationSetting, error)
+	CreateEmailLog(emailLog *models.EmailLog, tx ...utility.DatabaseTransaction) error
 }
 
 type NotificationRepository struct {
@@ -55,4 +56,13 @@ func (repo *NotificationRepository) GetUserNotificationSetting(userID uint, noti
 		return nil, err
 	}
 	return &setting, nil
+}
+
+func (repo *NotificationRepository) CreateEmailLog(emailLog *models.EmailLog, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Create(&emailLog).Error
 }

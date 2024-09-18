@@ -1,15 +1,19 @@
 package services
 
 import (
+	"encoding/json"
+	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/common/repositories"
 	"jethur/grc/models"
 	"jethur/grc/settings/services"
 	"jethur/utility"
+	"time"
 )
 
 type NotificationServiceInterface interface {
 	SendNotification(notificationDTO *commonDTOs.DBNotificationDTO, emailNotificationDTO *commonDTOs.EmailNotificationDTO, notificationMasterIdentifier string, tx ...utility.DatabaseTransaction) error
+	LogEmail(recipientEmail string, subject string, templatePath string, emailData interface{}, status string, errorMessage string, sentAt *time.Time, createdByID uint) error
 }
 
 type NotificationService struct {
@@ -90,4 +94,43 @@ func (ns *NotificationService) IsNotificationEnabled(userID uint, notificationMa
 	}
 
 	return setting != nil && setting.IsEnable, nil
+}
+
+func (ns *NotificationService) LogEmail(recipientEmail string, subject string, templatePath string, emailData interface{}, status string, errorMessage string, sentAt *time.Time, createdByID uint) error {
+	// Assert that emailData is of type map[string]interface{}
+	emailDataMap, ok := emailData.(map[string]interface{})
+	if !ok {
+		utility.LogError("Failed to assert email data to map[string]interface{}", map[string]interface{}{
+			"error": "Type assertion failed",
+		})
+		return fmt.Errorf("invalid email data format")
+	}
+
+	// Serialize email data to store in log
+	emailDataBytes, err := json.Marshal(emailDataMap)
+	if err != nil {
+		utility.LogError("Failed to serialize email data", map[string]interface{}{"error": err.Error()})
+		return err
+	}
+
+	emailLog := &models.EmailLog{
+		RecipientEmail: recipientEmail,
+		Subject:        subject,
+		TemplatePath:   templatePath,
+		EmailData:      string(emailDataBytes),
+		SendStatus:     status,
+		ErrorMessage:   errorMessage,
+		SentAt:         sentAt,
+		CreatedByID:    createdByID,
+		CreatedAt:      time.Now(),
+	}
+
+	if err := ns.repo.CreateEmailLog(emailLog); err != nil {
+		utility.LogError("Failed to create email log", map[string]interface{}{
+			"error": err.Error(),
+		})
+		return err
+	}
+
+	return nil
 }
