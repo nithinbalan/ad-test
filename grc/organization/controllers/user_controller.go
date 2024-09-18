@@ -5,6 +5,7 @@ import (
 	commonDTOs "jethur/grc/common/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
 	"jethur/grc/organization/services"
+	settingDTOs "jethur/grc/settings/dtos"
 	"jethur/utility"
 	"net/http"
 	"strconv"
@@ -456,4 +457,30 @@ func (uc *UserController) GetUsersExport(c *gin.Context) {
 	c.Request.URL.RawQuery += "&export=true"
 
 	uc.GetAllUsers(c)
+}
+
+func (uc *UserController) GetUserPermissions(c *gin.Context) {
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(uc.db, c, err.Error())
+		return
+	}
+
+	sort := c.DefaultQuery("sort_order", "asc")
+	sortBy := c.DefaultQuery("sort_by", "title_en")
+	keyword := c.Query("keyword")
+
+	queryParams := settingDTOs.ModuleListQueryParamsDTO{
+		Sort:    sort,
+		SortBy:  sortBy,
+		Keyword: keyword,
+	}
+
+	permissions, err := uc.service.GetUserPermissions(currentUserID, &queryParams)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	c.JSON(http.StatusOK, permissions)
 }
