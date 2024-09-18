@@ -55,6 +55,8 @@ type DocumentServiceInterface interface {
 	GetSharedUnits(documentId uint) ([]*settingDTOs.OrganizationUnitDTO, error)
 
 	GetDocumentLastEditSummary(documentID uint) (*documentDTOs.DocumentLastEditSummaryDTO, error)
+
+	ExportDocuments(data []*documentDTOs.DocumentListDTO, currentUserID uint) (*os.File, error)
 }
 
 type DocumentService struct {
@@ -70,6 +72,7 @@ type DocumentService struct {
 	documentWorkflowStatusSvc DocumentWorkflowStatusServiceInterface
 	activityLogSvc            services.ActivityLogServiceInterface
 	documentAuditLogSvc       DocumentAuditLogServiceInterface
+	userSettingSvc            organizationSvc.UserSettingServiceInterface
 }
 
 func NewDocumentService(
@@ -85,6 +88,7 @@ func NewDocumentService(
 	documentWorkflowStatusSvc DocumentWorkflowStatusServiceInterface,
 	activityLogSvc services.ActivityLogServiceInterface,
 	documentAuditLogSvc DocumentAuditLogServiceInterface,
+	userSettingSvc organizationSvc.UserSettingServiceInterface,
 ) DocumentServiceInterface {
 	return &DocumentService{
 		repo:                      repo,
@@ -99,6 +103,7 @@ func NewDocumentService(
 		documentWorkflowStatusSvc: documentWorkflowStatusSvc,
 		activityLogSvc:            activityLogSvc,
 		documentAuditLogSvc:       documentAuditLogSvc,
+		userSettingSvc:            userSettingSvc,
 	}
 }
 
@@ -1811,4 +1816,67 @@ func (ds *DocumentService) GetDocumentLastEditSummary(documentID uint) (*documen
 	}
 
 	return responseDTO, nil
+}
+
+func (ds *DocumentService) ExportDocuments(data []*documentDTOs.DocumentListDTO, currentUserID uint) (*os.File, error) {
+	// Fetch user setting for language preference
+	userSetting, err := ds.userSettingSvc.GetUserSettingsByUserID(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Define headers based on user language setting
+	var headers []string
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"SL No.",
+			"Type",
+			"Title",
+			"Responsible User",
+			"Category",
+			"Status",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Type",
+			"Title",
+			"Responsible User",
+			"Category",
+			"Status",
+		}
+	}
+	// Prepare the data rows
+	rows := make([][]interface{}, len(data))
+	for i, document := range data {
+		var category, responsibleUser, status, title, documentType string
+
+		// Assign values based on language preference and check for nil pointers
+		if userSetting.Language == "ar" {
+			documentType = document.DocumentTypeTitleAr
+			title = document.TitleAr
+			responsibleUser = document.ResponsibleUserFirstNameAr + " " + document.ResponsibleUserLastNameAr
+			category = document.DocumentCategoryTitleAr
+			status = document.DocumentStatusTitleAr
+
+		} else {
+			documentType = document.DocumentTypeTitleEn
+			title = document.TitleEn
+			responsibleUser = document.ResponsibleUserFirstNameEn + " " + document.ResponsibleUserLastNameEn
+			category = document.DocumentCategoryTitleEn
+			status = document.DocumentStatusTitleEn
+		}
+
+		rows[i] = []interface{}{
+			i + 1,
+			documentType,
+			title,
+			responsibleUser,
+			category,
+			status,
+		}
+	}
+
+	// Generate the Excel file
+	return utility.GenerateExcelFile(headers, rows)
 }

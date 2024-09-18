@@ -74,6 +74,7 @@ type DocumentListQueryParamsDTO struct {
 	EnableAcknowledgedStatus bool
 	DocumentTypes            []string
 	DocumentStatus           []string
+	Export                   bool
 }
 
 type DocumentListResponseDTO struct {

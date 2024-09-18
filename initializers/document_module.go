@@ -72,7 +72,8 @@ func NewDocumentModule(db *gorm.DB,
 		documentWorkflowStatusSvc,
 		documentWorkflowStatusSvc,
 		sharedModule.ActivityLogService,
-		documentAuditLogSvc)
+		documentAuditLogSvc,
+		organizationModule.UserSettingSvc)
 	documentController := controllers.NewDocumentController(documentSvc)
 
 	documentAcknowledgeUserRepo := repositories.NewDocumentAcknowledgeUserRepository(db)

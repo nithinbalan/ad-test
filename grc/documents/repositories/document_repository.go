@@ -191,11 +191,6 @@ func (repo *DocumentRepository) GetAll(params *documentDTOs.DocumentListQueryPar
 		}
 	}
 
-	// Calculate total count for pagination
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
-
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		query = query.Where(`
@@ -226,21 +221,27 @@ func (repo *DocumentRepository) GetAll(params *documentDTOs.DocumentListQueryPar
 	}
 
 	// Sort by the specified column and order
-	if params.SortBy == "" {
-		params.SortBy = "title_en" // Default sort by title_en if no sortBy is specified
-	}
-	if params.Sort != "asc" && params.Sort != "desc" {
-		params.Sort = "asc" // Default order is ascending if not specified
-	}
 
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	offset := (params.Page - 1) * params.PageSize
-
-	// Execute the queryc
-	err := query.Offset(offset).Limit(params.PageSize).Find(&documents).Error
-	if err != nil {
+	// Calculate total count for pagination
+	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
+	}
+
+	if !params.Export {
+		offset := (params.Page - 1) * params.PageSize
+		query = query.Offset(offset).Limit(params.PageSize)
+	}
+
+	if err := query.Find(&documents).Error; err != nil {
+		return nil, err
+	}
+
+	if params.Export {
+		return &documentDTOs.DocumentListResponseDTO{
+			Items: documents,
+		}, nil
 	}
 
 	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
