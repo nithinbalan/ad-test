@@ -26,3 +26,11 @@ type DocumentAcknowledgementListResponseDTO struct {
 	Items      []DocumentAcknowledgementListDTO `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO     `json:"pagination"`
 }
+
+type DocumentAcknowledgmentSummaryDTO struct {
+	TotalUsers             int64   `json:"total_users"`
+	AcknowledgedUsers      int64   `json:"acknowledged_users"`
+	NotAcknowledgedUsers   int64   `json:"not_acknowledged_users"`
+	AcknowledgedPercent    float64 `json:"acknowledged_percent"`
+	NotAcknowledgedPercent float64 `json:"not_acknowledged_percent"`
+}
