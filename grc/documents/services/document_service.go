@@ -145,9 +145,9 @@ func (ds *DocumentService) GetFullDetailsByID(id uint, currentUserID *uint, tx .
 func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentDTOs.DocumentFormDTO) (uint, error) {
 	tx := ds.repo.BeginTransaction()
 
-	if err := ds.validateDocumentFormDTO(documentFormDTO); err != nil {
-		return 0, err
-	}
+	// if err := ds.validateDocumentFormDTO(documentFormDTO); err != nil {
+	// 	return 0, err
+	// }
 
 	referenceNumber, err := ds.repo.GenerateReferenceNumber()
 	if err != nil {
@@ -356,11 +356,11 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 		}
 	}
 
-	err = ds.CreateDocumentWorkflow(id, docVersionId, documentFormDTO.DocumentTypeID, currentUserID, tx)
-	if err != nil {
-		tx.Rollback()
-		return 0, err
-	}
+	// err = ds.CreateDocumentWorkflow(id, docVersionId, documentFormDTO.DocumentTypeID, currentUserID, tx)
+	// if err != nil {
+	// 	tx.Rollback()
+	// 	return 0, err
+	// }
 
 	tx.Commit()
 
