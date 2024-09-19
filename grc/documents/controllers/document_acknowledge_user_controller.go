@@ -37,11 +37,6 @@ func (dauc *DocumentAcknowledgeUserController) GetAllDocumentAcknowledgeUsers(c 
 	sortBy := c.DefaultQuery("sort_by", "first_name_en")
 	keyword := c.Query("keyword")
 
-	allowedParams := []string{
-		"user_ids",
-		"organization_unit_ids",
-	}
-
 	allowedSortFields := map[string]bool{
 		"first_name_en":              true,
 		"first_name_ar":              true,
@@ -57,8 +52,6 @@ func (dauc *DocumentAcknowledgeUserController) GetAllDocumentAcknowledgeUsers(c 
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
-
-	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -78,7 +71,6 @@ func (dauc *DocumentAcknowledgeUserController) GetAllDocumentAcknowledgeUsers(c 
 		Keyword:  keyword,
 		Page:     page,
 		PageSize: pageSize,
-		Filters:  filters,
 	}
 
 	users, err := dauc.service.GetAll(uint(documentId), &queryParams)

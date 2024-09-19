@@ -8,7 +8,6 @@ type DocumentAcknowledgeListQueryParamsDTO struct {
 	Keyword  string
 	Page     int
 	PageSize int
-	Filters  map[string][]string
 }
 
 type DocumentAcknowledgementListDTO struct {
