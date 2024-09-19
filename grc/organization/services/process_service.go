@@ -12,6 +12,7 @@ import (
 	organizationRepositories "jethur/grc/organization/repositories"
 	"jethur/utility"
 	"os"
+	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -240,12 +241,50 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 			EmailData:            emailData,
 		}
 
-		err = ps.notificationSvc.SendNotification(
-			dbNotificationDTO, emailNotificationDTO, "process")
+		// Log email before sending (status: "Pending")
+		err = ps.notificationSvc.LogEmail(
+			emailNotificationDTO.EmailTo[0],
+			emailNotificationDTO.Subject,
+			emailNotificationDTO.TemplateRelativePath,
+			emailNotificationDTO.EmailData,
+			"Pending",
+			"",
+			nil,
+			currentUserID,
+		)
 		if err != nil {
+			utility.LogError("Failed to log email", map[string]interface{}{"error": err.Error()})
+		}
+
+		err = ps.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "process")
+		if err != nil {
+			// Log the email as "Failed"
+			ps.notificationSvc.LogEmail(
+				emailNotificationDTO.EmailTo[0],
+				emailNotificationDTO.Subject,
+				emailNotificationDTO.TemplateRelativePath,
+				emailNotificationDTO.EmailData,
+				"Failed",
+				err.Error(),
+				nil,
+				currentUserID,
+			)
 			utility.LogError("Failed to send notifications", map[string]interface{}{
 				"error": err.Error(),
 			})
+		} else {
+			now := time.Now()
+			// Log the email as "Sent"
+			ps.notificationSvc.LogEmail(
+				emailNotificationDTO.EmailTo[0],
+				emailNotificationDTO.Subject,
+				emailNotificationDTO.TemplateRelativePath,
+				emailNotificationDTO.EmailData,
+				"Sent",
+				"",
+				&now,
+				currentUserID,
+			)
 		}
 	}()
 
