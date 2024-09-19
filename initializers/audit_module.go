@@ -49,6 +49,7 @@ type AuditModule struct {
 	AuditDraftFindingActionPlanController        *controllers.AuditDraftFindingActionPlanController
 	AuditInsightsAuditPlanController             *controllers.AuditInsightsAuditPlanController
 	AuditScheduleStatusUpdateController          *controllers.AuditScheduleStatusUpdateController
+	AuditInsightsAuditController                 *controllers.AuditInsightsAuditController
 }
 
 func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, complianceModule *ComplianceModule, riskModule *RiskModule, incidentModule *IncidentModule, documentModule *DocumentModule, settingModule *SettingsModule, masterModule *MasterModule) *AuditModule {
@@ -362,6 +363,14 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 	auditScheduleStatusUpdateSvc := services.NewAuditScheduleStatusUpdateService(auditScheduleStatusUpdateRepo, sharedModule.ActivityLogService, auditScheduleSvc, auditScheduleStatusSvc)
 	auditScheduleStatusUpdateController := controllers.NewAuditScheduleStatusUpdateController(auditScheduleStatusUpdateSvc)
 
+	auditInsightsAuditRepo := repositories.NewAuditInsightsAuditRepository(db)
+	auditInsightsAuditSvc := services.NewAuditInsightsAuditService(
+		auditInsightsAuditRepo,
+		sharedModule.ActivityLogService,
+		organizationModule.UserSvc,
+	)
+	auditInsightsAuditController := controllers.NewAuditInsightsAuditController(auditInsightsAuditSvc)
+
 	return &AuditModule{
 		AuditorRiskRatingController:                  auditorRiskRatingController,
 		AuditUniverseController:                      auditUniverseController,
@@ -403,5 +412,6 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		AuditDraftFindingActionPlanController:        auditDraftFindingActionPlanController,
 		AuditInsightsAuditPlanController:             auditInsightsAuditPlanController,
 		AuditScheduleStatusUpdateController:          auditScheduleStatusUpdateController,
+		AuditInsightsAuditController:                 auditInsightsAuditController,
 	}
 }

@@ -7,10 +7,10 @@ import (
 )
 
 type AuditListDTO struct {
-	ID                          uint    `json:"id"`
-	AuditPlanID                 uint    `json:"audit_plan_id"`
-	StartDate                   string  `json:"start_date"`
-	EndDate                     string  `json:"end_date"`
+	ID                          uint    `json:"id" gorm:"column:id"`
+	AuditPlanID                 uint    `json:"audit_plan_id" gorm:"column:audit_plan_id"`
+	StartDate                   string  `json:"start_date" gorm:"column:start_date"`
+	EndDate                     string  `json:"end_date" gorm:"column:end_date"`
 	AuditCategoryTitleEn        string  `json:"audit_category_title_en"`
 	AuditCategoryTitleAr        string  `json:"audit_category_title_ar"`
 	AuditStatusTitleEn          string  `json:"audit_status_title_en"`
@@ -59,16 +59,17 @@ type AuditFormDTO struct {
 }
 
 type AuditDetailDTO struct {
-	ID              uint                             `json:"id"`
-	AuditPlanID     uint                             `json:"audit_plan_id"`
-	AuditPlan       AuditPlanDetailDTO               `json:"audit_plan"`
-	StartDateString string                           `json:"start_date"`
-	EndDateString   string                           `json:"end_date"`
-	AuditChecklists []*AuditChecklistDetailDTO       `json:"audit_checklists"`
-	CreatedAt       time.Time                        `json:"created_at"`
-	UpdatedAt       *time.Time                       `json:"updated_at"`
-	CreatedByUser   organizationDTOs.UserMinimalDTO  `json:"created_by"`
-	UpdatedByUser   *organizationDTOs.UserMinimalDTO `json:"updated_by"`
+	ID                 uint                             `json:"id"`
+	AuditPlanID        uint                             `json:"audit_plan_id"`
+	AuditPlan          AuditPlanDetailDTO               `json:"audit_plan"`
+	StartDateString    string                           `json:"start_date"`
+	EndDateString      string                           `json:"end_date"`
+	AuditChecklists    []*AuditChecklistDetailDTO       `json:"audit_checklists"`
+	AuditDraftFindings []*AuditDraftFindingDetailDTO    `json:"audit_draft_findings"`
+	CreatedAt          time.Time                        `json:"created_at"`
+	UpdatedAt          *time.Time                       `json:"updated_at"`
+	CreatedByUser      organizationDTOs.UserMinimalDTO  `json:"created_by"`
+	UpdatedByUser      *organizationDTOs.UserMinimalDTO `json:"updated_by"`
 }
 
 type AuditListQueryParamsDTO struct {
