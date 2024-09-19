@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	documentDTOs "jethur/grc/documents/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
 
@@ -10,6 +11,7 @@ import (
 // Interfaces
 type DocumentAcknowledgeUserRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
+	GetAll(documentID uint) (*documentDTOs.DocumentAcknowledgementListResponseDTO, error)
 	Create(documentAcknowledgeUser *models.DocumentAcknowledgeUser, tx ...utility.DatabaseTransaction) (*models.DocumentAcknowledgeUser, error)
 	Exists(documentID uint, userID uint, tx ...utility.DatabaseTransaction) (bool, error)
 	Delete(documentID uint, currentUserID uint, tx ...utility.DatabaseTransaction) error
@@ -29,6 +31,43 @@ func NewDocumentAcknowledgeUserRepository(db *gorm.DB) *DocumentAcknowledgeUserR
 // BeginTransaction starts a new transaction.
 func (repo *DocumentAcknowledgeUserRepository) BeginTransaction() utility.DatabaseTransaction {
 	return utility.NewGormDatabaseTransaction(repo.db)
+}
+
+func (repo *DocumentAcknowledgeUserRepository) GetAll(documentID uint) (*documentDTOs.DocumentAcknowledgementListResponseDTO, error) {
+	var acknowledgementList []documentDTOs.DocumentAcknowledgementListDTO
+
+	// Construct raw SQL query with UNION to combine shared users and department users
+	rawSQL := `
+        SELECT users.id, users.first_name_en, users.first_name_ar, users.email,
+            CASE WHEN document_acknowledge_users.id IS NOT NULL THEN 1 ELSE 0 END AS acknowledged
+        FROM document_shared_users
+        JOIN users ON users.id = document_shared_users.user_id
+        LEFT JOIN document_acknowledge_users ON document_acknowledge_users.user_id = users.id AND document_acknowledge_users.document_id = ?
+        WHERE document_shared_users.document_id = ?
+
+        UNION
+
+        SELECT users.id, users.first_name_en, users.first_name_ar, users.email,
+            CASE WHEN document_acknowledge_users.id IS NOT NULL THEN 1 ELSE 0 END AS acknowledged
+        FROM document_shared_units
+        JOIN organization_units ON organization_units.id = document_shared_units.organization_unit_id
+        JOIN users ON users.organization_unit_1_id = organization_units.id
+        LEFT JOIN document_acknowledge_users ON document_acknowledge_users.user_id = users.id AND document_acknowledge_users.document_id = ?
+        WHERE document_shared_units.document_id = ?
+    `
+
+	// Execute the raw SQL query with GORM
+	query := repo.db.Raw(rawSQL, documentID, documentID, documentID, documentID).Scan(&acknowledgementList)
+
+	if query.Error != nil {
+		return nil, query.Error
+	}
+
+	response := &documentDTOs.DocumentAcknowledgementListResponseDTO{
+		Acknowledgements: acknowledgementList,
+	}
+
+	return response, nil
 }
 
 func (repo *DocumentAcknowledgeUserRepository) Create(documentAcknowledgeUser *models.DocumentAcknowledgeUser, tx ...utility.DatabaseTransaction) (*models.DocumentAcknowledgeUser, error) {
@@ -84,5 +123,3 @@ func (repo *DocumentAcknowledgeUserRepository) Delete(documentID uint, currentUs
 
 	return nil
 }
-
-

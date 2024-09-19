@@ -2,13 +2,16 @@ package services
 
 import (
 	"fmt"
+	documentDTOs "jethur/grc/documents/dtos"
 	"jethur/grc/documents/repositories"
 	logServices "jethur/grc/logs/services"
+
 	"jethur/grc/models"
 	"jethur/utility"
 )
 
 type DocumentAcknowledgeUserServiceInterface interface {
+	GetAll(documentID uint, params *documentDTOs.DocumentAcknowledgeListQueryParamsDTO) (*documentDTOs.DocumentAcknowledgementListResponseDTO, error)
 	Create(docuemntID uint, currentUserID uint) (uint, error)
 	Delete(docuemntID uint, currentUserID uint) (uint, error)
 }
@@ -25,6 +28,10 @@ func NewDocumentAcknowledgeUserService(repo repositories.DocumentAcknowledgeUser
 		activityLogSvc: activityLogSvc,
 		documentSvc:    documentSvc,
 	}
+}
+
+func (daus *DocumentAcknowledgeUserService) GetAll(documentID uint, params *documentDTOs.DocumentAcknowledgeListQueryParamsDTO) (*documentDTOs.DocumentAcknowledgementListResponseDTO, error) {
+	return daus.repo.GetAll(documentID)
 }
 
 func (daus *DocumentAcknowledgeUserService) Create(docuemntID uint, currentUserID uint) (uint, error) {
