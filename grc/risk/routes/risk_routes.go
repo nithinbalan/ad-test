@@ -57,6 +57,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.GET("/potential-risk-statuses", potentialRiskStatusController.GetAllPotentialRiskStatuses)
 	riskRoutes.GET("/potential-risk-statuses/:id", potentialRiskStatusController.GetPotentialRiskStatusDetails)
 
+	riskRoutes.GET("/potential-risks/export", potentialRiskController.GetPotentialRiskExport)
 	riskRoutes.GET("/potential-risks", potentialRiskController.GetAllPotentialRisks)
 	riskRoutes.GET("/potential-risks/:id", potentialRiskController.GetPotentialRiskDetails)
 	riskRoutes.POST("/potential-risks", potentialRiskController.CreatePotentialRisk)
@@ -85,6 +86,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.PUT("/kri-categories/activate", kriCategoryController.ActivateKRICategories)
 	riskRoutes.PUT("/kri-categories/deactivate", kriCategoryController.DeactivateKRICategories)
 
+	riskRoutes.GET("/kri-register/export", kriRegisterController.GetKriRegisterExport)
 	riskRoutes.GET("/kri-register", kriRegisterController.GetAllKRIRegisters)
 	riskRoutes.GET("/kri-register/:id", kriRegisterController.GetKRIRegisterDetails)
 	riskRoutes.POST("/kri-register", kriRegisterController.CreateKRIRegister)
@@ -153,6 +155,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.GET("/risk-statuses/:id", riskStatusController.GetRiskStatusDetails)
 
 	// Risk Register
+	riskRoutes.GET("/risk-register/export", riskRegisterController.GetRiskRegisterExport)
 	riskRoutes.GET("/risk-register", riskRegisterController.GetAllRiskRegisters)
 	riskRoutes.GET("/risk-register/:id", riskRegisterController.GetRiskRegisterDetails)
 	riskRoutes.POST("/risk-register", riskRegisterController.CreateRiskRegister)

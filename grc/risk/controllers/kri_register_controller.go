@@ -243,3 +243,9 @@ func (krc *KRIRegisterController) DeleteKRIRegisters(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
+
+func (krc *KRIRegisterController) GetKriRegisterExport(c *gin.Context) {
+	c.Request.URL.RawQuery += "&export=true"
+
+	krc.GetAllKRIRegisters(c)
+}

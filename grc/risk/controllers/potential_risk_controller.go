@@ -235,3 +235,9 @@ func (prc *PotentialRiskController) DeletePotentialRisks(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
+
+func (prc *PotentialRiskController) GetPotentialRiskExport(c *gin.Context) {
+	c.Request.URL.RawQuery += "&export=true"
+
+	prc.GetAllPotentialRisks(c)
+}
