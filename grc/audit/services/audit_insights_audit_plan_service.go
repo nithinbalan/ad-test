@@ -23,30 +23,18 @@ type AuditInsightsAuditPlanServiceInterface interface {
 type AuditInsightsAuditPlanService struct {
 	repo             repositories.AuditInsightsAuditPlanRepositoryInterface
 	activityLogSvc   logServices.ActivityLogServiceInterface
-	auditCategorySvc AuditCategoryServiceInterface
-	auditStatusSvc   AuditStatusServiceInterface
-	auditTeamSvc     AuditTeamServiceInterface
 	userSvc          organizationServices.UserServiceInterface
-	auditableItemSvc AuditableItemServiceInterface
 }
 
 func NewAuditInsightsAuditPlanService(
 	repo repositories.AuditInsightsAuditPlanRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
-	auditCategorySvc AuditCategoryServiceInterface,
-	auditStatusSvc AuditStatusServiceInterface,
-	auditTeamSvc AuditTeamServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
-	auditableItemSvc AuditableItemServiceInterface,
 ) AuditInsightsAuditPlanServiceInterface {
 	return &AuditInsightsAuditPlanService{
 		repo:             repo,
 		activityLogSvc:   activityLogSvc,
-		auditCategorySvc: auditCategorySvc,
-		auditStatusSvc:   auditStatusSvc,
-		auditTeamSvc:     auditTeamSvc,
 		userSvc:          userSvc,
-		auditableItemSvc: auditableItemSvc,
 	}
 }
 
@@ -55,7 +43,7 @@ func (aiaps *AuditInsightsAuditPlanService) GetAll(params *auditDTOs.AuditPlanLi
 	if err != nil {
 		return nil, err
 	}
-	return aiaps.repo.GetAll(params, currentUserID, orgUnitID)
+	return aiaps.repo.GetAll(params, orgUnitID)
 }
 
 func (aiaps *AuditInsightsAuditPlanService) GetByID(id uint) (*models.AuditPlan, error) {

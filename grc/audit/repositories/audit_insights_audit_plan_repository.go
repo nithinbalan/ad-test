@@ -11,7 +11,7 @@ import (
 
 type AuditInsightsAuditPlanRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(params *auditDTOs.AuditPlanListQueryParamsDTO, currentUserID uint, currentUserResponsibleUnitID uint) (*auditDTOs.AuditPlanListResponseDTO, error)
+	GetAll(params *auditDTOs.AuditPlanListQueryParamsDTO, currentUserResponsibleUnitID uint) (*auditDTOs.AuditPlanListResponseDTO, error)
 	GetByID(id uint) (*models.AuditPlan, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.AuditPlan, error)
 }
@@ -31,13 +31,18 @@ func (repo *AuditInsightsAuditPlanRepository) BeginTransaction() utility.Databas
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *AuditInsightsAuditPlanRepository) GetAll(params *auditDTOs.AuditPlanListQueryParamsDTO, currentUserID uint, currentUserResponsibleUnitID uint) (*auditDTOs.AuditPlanListResponseDTO, error) {
+func (repo *AuditInsightsAuditPlanRepository) GetAll(params *auditDTOs.AuditPlanListQueryParamsDTO, currentUserResponsibleUnitID uint) (*auditDTOs.AuditPlanListResponseDTO, error) {
 	var auditPlans []*auditDTOs.AuditPlanListDTO
 	var totalCount int64
 
-	query := repo.db.Table("audit_plans").
+	query := repo.db.Table("audit_plan_auditable_items").
 		Select(`
-			audit_plans.*,
+			audit_plans.id,
+			audit_plans.reference_number,
+			audit_plans.audit_category_id,
+			audit_plans.audit_team_id,
+			audit_plans.team_lead_id,
+			audit_plans.title,
 			audit_categories.title_en AS audit_category_title_en,
 			audit_categories.title_ar AS audit_category_title_ar,
 			CONVERT(VARCHAR, audit_plans.start_date, 23) AS start_date,
@@ -55,7 +60,7 @@ func (repo *AuditInsightsAuditPlanRepository) GetAll(params *auditDTOs.AuditPlan
 			team_lead.initial AS team_lead_initial,
 			team_lead.profile_image_path AS team_lead_profile_image_path,
 			audit_teams.title_en AS audit_team_title_en,
-			audit_teams.title_en AS audit_team_title_en,
+			audit_teams.title_ar AS audit_team_title_ar,
 			audit_teams_team_lead.id AS audit_team_team_lead_id,
 			audit_teams_team_lead.first_name_en AS audit_team_team_lead_first_name_en,
 			audit_teams_team_lead.first_name_ar AS audit_team_team_lead_first_name_ar,
@@ -85,6 +90,8 @@ func (repo *AuditInsightsAuditPlanRepository) GetAll(params *auditDTOs.AuditPlan
         	updated_user.profile_image_path AS updated_user_profile_image_path
 		`).
 		Joins(`
+			LEFT JOIN auditable_items ON auditable_items.id = audit_plan_auditable_items.auditable_item_id
+			LEFT JOIN audit_plans ON audit_plans.id = audit_plan_auditable_items.audit_plan_id
 			LEFT JOIN audit_categories ON audit_categories.id = audit_plans.audit_category_id
 			LEFT JOIN audit_teams ON audit_teams.id = audit_plans.audit_team_id
         	LEFT JOIN users AS audit_teams_team_lead ON audit_teams_team_lead.id = audit_teams.team_lead_id
@@ -92,10 +99,60 @@ func (repo *AuditInsightsAuditPlanRepository) GetAll(params *auditDTOs.AuditPlan
 			LEFT JOIN users AS team_lead ON team_lead.id = audit_plans.team_lead_id
 			LEFT JOIN users AS created_user ON created_user.id = audit_plans.created_by_id
         	LEFT JOIN users AS updated_user ON updated_user.id = audit_plans.updated_by_id
-			LEFT JOIN audit_plan_auditable_items ON audit_plan_auditable_items.audit_plan_id = audit_plans.id
-			LEFT JOIN auditable_items ON auditable_items.id = audit_plan_auditable_items.auditable_item_id
-			LEFT JOIN audit_plan_audit_members ON audit_plan_audit_members.audit_plan_id = audit_plans.id
-	
+		`).
+		Where(`auditable_items.responsible_unit_id = ?`, currentUserResponsibleUnitID).
+		Group(`
+			audit_plans.id,
+			audit_plans.reference_number,
+			audit_plans.audit_category_id,
+			audit_plans.audit_team_id,
+			audit_plans.team_lead_id,
+			audit_plans.title,
+			audit_categories.title_en,
+			audit_categories.title_ar,
+			audit_plans.start_date,
+			audit_plans.target_date,
+			audit_statuses.title_en,
+			audit_statuses.title_ar,
+			audit_statuses.type,
+			audit_statuses.color_code,
+			team_lead.id,
+			team_lead.first_name_en,
+			team_lead.first_name_ar,
+			team_lead.last_name_en,
+			team_lead.last_name_ar,
+			team_lead.email,
+			team_lead.initial,
+			team_lead.profile_image_path,
+			audit_teams.title_en,
+			audit_teams.title_ar,
+			audit_teams_team_lead.id,
+			audit_teams_team_lead.first_name_en,
+			audit_teams_team_lead.first_name_ar,
+			audit_teams_team_lead.last_name_en,
+			audit_teams_team_lead.last_name_ar,
+			audit_teams_team_lead.email,
+			audit_teams_team_lead.initial,
+			audit_teams_team_lead.color,
+			audit_teams_team_lead.profile_image_path,
+			created_user.id,
+			created_user.first_name_en,
+			created_user.first_name_ar,
+			created_user.last_name_en,
+			created_user.last_name_ar,
+			created_user.initial,
+			created_user.color,
+			created_user.email,
+			created_user.profile_image_path,
+			updated_user.id,
+			updated_user.first_name_en,
+			updated_user.first_name_ar,
+			updated_user.last_name_en,
+			updated_user.last_name_ar,
+			updated_user.initial,
+			updated_user.color,
+			updated_user.email,
+			updated_user.profile_image_path
 		`)
 
 	// Apply dynamic filters to the query
@@ -123,12 +180,6 @@ func (repo *AuditInsightsAuditPlanRepository) GetAll(params *auditDTOs.AuditPlan
 			query = query.Where("audit_statuses.type = ?", "in_progress")
 		}
 	}
-	// **Apply user-specific filtering**:
-	query = query.Where(`
-		team_lead.id = ? OR
-		audit_plan_audit_members.user_id = ? OR
-		auditable_items.responsible_unit_id = ?`,
-		currentUserID, currentUserID, currentUserResponsibleUnitID)
 
 	// Calculate total count for pagination
 	if err := query.Count(&totalCount).Error; err != nil {
