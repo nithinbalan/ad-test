@@ -1,7 +1,10 @@
 package controllers
 
 import (
+	"errors"
 	commonDTOs "jethur/grc/common/dtos"
+	documentDTOs "jethur/grc/documents/dtos"
+
 	"jethur/grc/documents/services"
 	"jethur/utility"
 	"net/http"
@@ -20,6 +23,63 @@ func NewDocumentAcknowledgeUserController(service services.DocumentAcknowledgeUs
 	return &DocumentAcknowledgeUserController{
 		service: service,
 	}
+}
+
+func (dauc *DocumentAcknowledgeUserController) GetAllDocumentAcknowledgeUsers(c *gin.Context) {
+	idStr := c.Param("id")
+	documentId, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.DefaultQuery("sort_order", "asc")
+	sortBy := c.DefaultQuery("sort_by", "first_name_en")
+	keyword := c.Query("keyword")
+
+	allowedSortFields := map[string]bool{
+		"first_name_en":              true,
+		"first_name_ar":              true,
+		"last_name_en":               true,
+		"last_name_ar":               true,
+		"email":                      true,
+		"organization_unit_title_en": true,
+		"organization_unit_title_ar": true,
+	}
+
+	if !allowedSortFields[sortBy] {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(dauc.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(dauc.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	queryParams := documentDTOs.DocumentAcknowledgeListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+	}
+
+	users, err := dauc.service.GetAll(uint(documentId), &queryParams)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	c.JSON(http.StatusOK, users)
 }
 
 func (dauc *DocumentAcknowledgeUserController) CreateDocumentAcknowledgeUser(c *gin.Context) {
