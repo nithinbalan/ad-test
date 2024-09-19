@@ -668,3 +668,9 @@ func (dc *DocumentController) GetLastEditSummary(c *gin.Context) {
 
 	c.JSON(http.StatusOK, lastEditSummary)
 }
+
+func (dc *DocumentController) GetDocumentExport(c *gin.Context) {
+	c.Request.URL.RawQuery += "&export=true"
+
+	dc.GetAllDocuments(c)
+}

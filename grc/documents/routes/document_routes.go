@@ -61,6 +61,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentRoutes.GET("/document-workflow-statuses", documentWorkflowStatusController.GetAllDocumentWorkflowStatuses)
 	documentRoutes.GET("/document-workflow-statuses/:id", documentWorkflowStatusController.GetDocumentWorkflowStatusDetails)
 	//document
+	documentRoutes.GET("/documents/export", documentController.GetDocumentExport)
 	documentRoutes.GET("/documents", documentController.GetAllDocuments)
 	documentRoutes.GET("/documents/:id", documentController.GetDocumentDetails)
 	documentRoutes.POST("/documents", documentController.CreateDocument)
