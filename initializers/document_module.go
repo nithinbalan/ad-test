@@ -76,7 +76,7 @@ func NewDocumentModule(db *gorm.DB,
 	documentController := controllers.NewDocumentController(documentSvc)
 
 	documentAcknowledgeUserRepo := repositories.NewDocumentAcknowledgeUserRepository(db)
-	documentAcknowledgeUserSvc := services.NewDocumentAcknowledgeUserService(documentAcknowledgeUserRepo, sharedModule.ActivityLogService, documentSvc)
+	documentAcknowledgeUserSvc := services.NewDocumentAcknowledgeUserService(documentAcknowledgeUserRepo, sharedModule.ActivityLogService, documentSvc, organizationModule.UserSvc, settingsModule.OrganizationLevelSvc)
 	documentAcknowledgeUserController := controllers.NewDocumentAcknowledgeUserController(documentAcknowledgeUserSvc)
 
 	documentClauseRepo := repositories.NewDocumentClauseRepository(db)
