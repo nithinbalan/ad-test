@@ -1,6 +1,8 @@
 package repositories
 
 import (
+	"fmt"
+	commonDTOs "jethur/grc/common/dtos"
 	documentDTOs "jethur/grc/documents/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
@@ -11,7 +13,7 @@ import (
 // Interfaces
 type DocumentAcknowledgeUserRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(documentID uint) (*documentDTOs.DocumentAcknowledgementListResponseDTO, error)
+	GetAll(documentID uint, primaryOrgUnitField string, params *documentDTOs.DocumentAcknowledgeListQueryParamsDTO) (*documentDTOs.DocumentAcknowledgementListResponseDTO, error)
 	Create(documentAcknowledgeUser *models.DocumentAcknowledgeUser, tx ...utility.DatabaseTransaction) (*models.DocumentAcknowledgeUser, error)
 	Exists(documentID uint, userID uint, tx ...utility.DatabaseTransaction) (bool, error)
 	Delete(documentID uint, currentUserID uint, tx ...utility.DatabaseTransaction) error
@@ -28,43 +30,95 @@ func NewDocumentAcknowledgeUserRepository(db *gorm.DB) *DocumentAcknowledgeUserR
 	}
 }
 
-// BeginTransaction starts a new transaction.
 func (repo *DocumentAcknowledgeUserRepository) BeginTransaction() utility.DatabaseTransaction {
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *DocumentAcknowledgeUserRepository) GetAll(documentID uint) (*documentDTOs.DocumentAcknowledgementListResponseDTO, error) {
+func (repo *DocumentAcknowledgeUserRepository) GetAll(documentID uint, primaryOrgUnitField string, params *documentDTOs.DocumentAcknowledgeListQueryParamsDTO) (*documentDTOs.DocumentAcknowledgementListResponseDTO, error) {
 	var acknowledgementList []documentDTOs.DocumentAcknowledgementListDTO
+	var totalCount int64
 
-	// Construct raw SQL query with UNION to combine shared users and department users
-	rawSQL := `
-        SELECT users.id, users.first_name_en, users.first_name_ar, users.email,
-            CASE WHEN document_acknowledge_users.id IS NOT NULL THEN 1 ELSE 0 END AS acknowledged
+	// Prepare the keyword search filter
+	keywordFilter := ""
+	if params.Keyword != "" {
+		keywordFilter = fmt.Sprintf(`
+            AND (users.first_name_en LIKE '%%%s%%' 
+            OR users.first_name_ar LIKE '%%%s%%' 
+            OR users.last_name_en LIKE '%%%s%%' 
+            OR users.last_name_ar LIKE '%%%s%%' 
+            OR users.email LIKE '%%%s%%'
+            OR organization_units.title_en LIKE '%%%s%%'
+            OR organization_units.title_ar LIKE '%%%s%%')`,
+			params.Keyword, params.Keyword, params.Keyword, params.Keyword, params.Keyword, params.Keyword, params.Keyword)
+	}
+
+	// Construct the SQL query dynamically using the passed primary organization unit field, keyword filter, and sorting
+	rawSQL := fmt.Sprintf(`
+        SELECT 
+            users.id, 
+            users.first_name_en, 
+            users.first_name_ar, 
+            users.last_name_en, 
+            users.last_name_ar, 
+            users.email,
+            organization_units.title_en AS organization_unit_title_en,
+            organization_units.title_ar AS organization_unit_title_ar,
+            CASE 
+                WHEN document_acknowledge_users.id IS NOT NULL THEN 1 
+                ELSE 0 
+            END AS acknowledged
         FROM document_shared_users
         JOIN users ON users.id = document_shared_users.user_id
         LEFT JOIN document_acknowledge_users ON document_acknowledge_users.user_id = users.id AND document_acknowledge_users.document_id = ?
-        WHERE document_shared_users.document_id = ?
-
+        LEFT JOIN organization_units ON organization_units.id = users.%s
+        WHERE document_shared_users.document_id = ? %s
+        
         UNION
-
-        SELECT users.id, users.first_name_en, users.first_name_ar, users.email,
-            CASE WHEN document_acknowledge_users.id IS NOT NULL THEN 1 ELSE 0 END AS acknowledged
+        
+        SELECT 
+            users.id, 
+            users.first_name_en, 
+            users.first_name_ar, 
+            users.last_name_en, 
+            users.last_name_ar, 
+            users.email,
+            organization_units.title_en AS organization_unit_title_en,
+            organization_units.title_ar AS organization_unit_title_ar,
+            CASE 
+                WHEN document_acknowledge_users.id IS NOT NULL THEN 1 
+                ELSE 0 
+            END AS acknowledged
         FROM document_shared_units
         JOIN organization_units ON organization_units.id = document_shared_units.organization_unit_id
-        JOIN users ON users.organization_unit_1_id = organization_units.id
+        JOIN users ON users.%s = organization_units.id
         LEFT JOIN document_acknowledge_users ON document_acknowledge_users.user_id = users.id AND document_acknowledge_users.document_id = ?
-        WHERE document_shared_units.document_id = ?
-    `
+        WHERE document_shared_units.document_id = ? %s
+    `, primaryOrgUnitField, keywordFilter, primaryOrgUnitField, keywordFilter)
 
-	// Execute the raw SQL query with GORM
-	query := repo.db.Raw(rawSQL, documentID, documentID, documentID, documentID).Scan(&acknowledgementList)
-
-	if query.Error != nil {
-		return nil, query.Error
+	countSQL := fmt.Sprintf("SELECT COUNT(*) FROM (%s) AS subquery", rawSQL)
+	err := repo.db.Raw(countSQL, documentID, documentID, documentID, documentID).Scan(&totalCount).Error
+	if err != nil {
+		return nil, err
 	}
 
+	offset := (params.Page - 1) * params.PageSize
+	paginatedSQL := fmt.Sprintf("%s ORDER BY %s %s OFFSET %d ROWS FETCH NEXT %d ROWS ONLY", rawSQL, params.SortBy, params.Sort, offset, params.PageSize)
+
+	err = repo.db.Raw(paginatedSQL, documentID, documentID, documentID, documentID).Scan(&acknowledgementList).Error
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
 	response := &documentDTOs.DocumentAcknowledgementListResponseDTO{
-		Acknowledgements: acknowledgementList,
+		Items: acknowledgementList,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
 	}
 
 	return response, nil

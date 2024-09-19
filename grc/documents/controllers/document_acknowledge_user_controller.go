@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	commonDTOs "jethur/grc/common/dtos"
 	documentDTOs "jethur/grc/documents/dtos"
 
@@ -32,13 +33,29 @@ func (dauc *DocumentAcknowledgeUserController) GetAllDocumentAcknowledgeUsers(c 
 		return
 	}
 
-	sort := c.Query("sort_order")
-	sortBy := c.Query("sort_by")
+	sort := c.DefaultQuery("sort_order", "asc")
+	sortBy := c.DefaultQuery("sort_by", "first_name_en")
 	keyword := c.Query("keyword")
 
-	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"user_ids",
+		"organization_unit_ids",
+	}
+
+	allowedSortFields := map[string]bool{
+		"first_name_en":              true,
+		"first_name_ar":              true,
+		"last_name_en":               true,
+		"last_name_ar":               true,
+		"email":                      true,
+		"organization_unit_title_en": true,
+		"organization_unit_title_ar": true,
+	}
+
+	if !allowedSortFields[sortBy] {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
