@@ -86,6 +86,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentRoutes.GET("/documents/:id/acknowledge-users", documentAcknowledgeUserController.GetAllDocumentAcknowledgeUsers)
 	documentRoutes.POST("/documents/:id/acknowledge", documentAcknowledgeUserController.CreateDocumentAcknowledgeUser)
 	documentRoutes.DELETE("/documents/:id/acknowledge", documentAcknowledgeUserController.DeleteDocumentAcknowledgeUser)
+	documentRoutes.GET("/documents/:id/acknowledge-user-summary", documentAcknowledgeUserController.GetDocumentAcknowledgmentSummary)
 
 	documentRoutes.GET("/documents/:id/audit-logs", documentAuditLogController.GetAllDocumentAuditLogs)
 

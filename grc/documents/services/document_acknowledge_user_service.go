@@ -16,6 +16,7 @@ type DocumentAcknowledgeUserServiceInterface interface {
 	GetAll(documentID uint, params *documentDTOs.DocumentAcknowledgeListQueryParamsDTO) (*documentDTOs.DocumentAcknowledgementListResponseDTO, error)
 	Create(docuemntID uint, currentUserID uint) (uint, error)
 	Delete(docuemntID uint, currentUserID uint) (uint, error)
+	GetDocumentAcknowledgmentSummary(documentID uint) (*documentDTOs.DocumentAcknowledgmentSummaryDTO, error)
 }
 
 type DocumentAcknowledgeUserService struct {
@@ -177,4 +178,29 @@ func (daus *DocumentAcknowledgeUserService) Delete(docuemntID uint, currentUserI
 	}()
 
 	return failedId, nil
+}
+
+func (daus *DocumentAcknowledgeUserService) GetDocumentAcknowledgmentSummary(documentID uint) (*documentDTOs.DocumentAcknowledgmentSummaryDTO, error) {
+	primaryLevel, err := daus.organizationLevelSvc.GetPrimaryLevel()
+	if err != nil {
+		return nil, err
+	}
+
+	var primaryOrgUnitField string
+
+	switch primaryLevel.Level {
+	case 1:
+		primaryOrgUnitField = "organization_unit_1_id"
+	case 2:
+		primaryOrgUnitField = "organization_unit_2_id"
+	case 3:
+		primaryOrgUnitField = "organization_unit_3_id"
+	case 4:
+		primaryOrgUnitField = "organization_unit_4_id"
+	case 5:
+		primaryOrgUnitField = "organization_unit_5_id"
+	default:
+		return nil, fmt.Errorf("unsupported primary level")
+	}
+	return daus.repo.GetDocumentAcknowledgmentSummary(documentID, primaryOrgUnitField)
 }

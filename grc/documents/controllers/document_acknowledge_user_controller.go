@@ -153,3 +153,26 @@ func (dauc *DocumentAcknowledgeUserController) DeleteDocumentAcknowledgeUser(c *
 
 	c.JSON(http.StatusOK, gin.H{"failed_id": failedID})
 }
+
+func (dauc *DocumentAcknowledgeUserController) GetDocumentAcknowledgmentSummary(c *gin.Context) {
+	documentIdStr := c.Param("id")
+	documentId, err := strconv.ParseUint(documentIdStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	summary, err := dauc.service.GetDocumentAcknowledgmentSummary(uint(documentId))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(dauc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, summary)
+}
