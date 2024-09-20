@@ -7,7 +7,7 @@ import (
 type AuditSchedule struct {
 	ID                    uint       `json:"id" gorm:"primaryKey;AUTO_INCREMENT"`
 	AuditPlanID           uint       `json:"audit_plan_id" gorm:"not null"`
-	AuditPlanScheduleID   uint       `json:"audit_plan_schedule_id" gorm:"default:null"`
+	AuditPlanScheduleID   *uint      `json:"audit_plan_schedule_id" gorm:"default:null"`
 	AuditActivityTypeID   uint       `json:"audit_activity_type_id" gorm:"not null"`
 	AuditID               uint       `json:"audit_id" gorm:"not null"`
 	Title                 string     `json:"title" gorm:"type:nvarchar(255);not null"`

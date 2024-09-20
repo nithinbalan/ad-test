@@ -366,7 +366,7 @@ func (as *AuditService) copyAuditPlanSchedulesToAuditSchedule(auditID uint, audi
 	for _, schedule := range auditPlanSchedules {
 		auditSchedule := &models.AuditSchedule{
 			AuditPlanID:           schedule.AuditPlanID,
-			AuditPlanScheduleID:   schedule.ID,
+			AuditPlanScheduleID:   &schedule.ID,
 			AuditActivityTypeID:   schedule.AuditActivityTypeID,
 			AuditID:               auditID,
 			Title:                 schedule.Title,
@@ -380,6 +380,16 @@ func (as *AuditService) copyAuditPlanSchedulesToAuditSchedule(auditID uint, audi
 
 		createdAuditSchedule, err := as.repo.CreateAuditSchedule(auditSchedule, tx...)
 		if err != nil {
+			return err
+		}
+
+		statusUpdate := &models.AuditScheduleStatusUpdate{
+			AuditScheduleID:       createdAuditSchedule.ID,
+			AuditScheduleStatusID: auditSchedule.AuditScheduleStatusID,
+			Comment:               "Initial audit schedule status",
+			CreatedBYID:           currentUserID,
+		}
+		if err := as.repo.CreateAuditScheduleStatusUpdate(statusUpdate, tx...); err != nil {
 			return err
 		}
 

@@ -112,10 +112,10 @@ func (ass *AuditScheduleService) Create(auditID uint, currentUserID uint, auditS
 	if err != nil {
 		return 0, err
 	}
-	auditScheduleStatus, err := ass.auditScheduleStatusSvc.GetByType("scheduled")
-	if err != nil {
-		return 0, err
-	}
+	// auditScheduleStatus, err := ass.auditScheduleStatusSvc.GetByType("scheduled")
+	// if err != nil {
+	// 	return 0, err
+	// }
 
 	if err := ass.validateAuditScheduleFormDTO(auditScheduleFormDTO); err != nil {
 		tx.Rollback()
@@ -136,7 +136,7 @@ func (ass *AuditScheduleService) Create(auditID uint, currentUserID uint, auditS
 		StartDate:             dates.StartDate,
 		TargetDate:            dates.TargetDate,
 		ResponsibleUserID:     auditScheduleFormDTO.ResponsibleUserID,
-		AuditScheduleStatusID: uint(auditScheduleStatus.ID),
+		AuditScheduleStatusID: auditScheduleFormDTO.AuditScheduleStatusID,
 		CreatedBYID:           currentUserID,
 	}
 
@@ -145,6 +145,21 @@ func (ass *AuditScheduleService) Create(auditID uint, currentUserID uint, auditS
 		tx.Rollback()
 		return 0, err
 	}
+
+	scheduleStatusID := auditScheduleFormDTO.AuditScheduleStatusID
+	auditScheduleStatusUpdate := &models.AuditScheduleStatusUpdate{
+		AuditScheduleID:       id,
+		AuditScheduleStatusID: scheduleStatusID,
+		Comment:               "Initial audit schedule status",
+		CreatedBYID:           currentUserID,
+	}
+
+	_, err = ass.repo.CreateInitialAuditScheduleStatusUpdate(auditScheduleStatusUpdate, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
 	var auditableItems []*models.AuditScheduleAuditableItem
 	for _, itemID := range auditScheduleFormDTO.AuditableItemIds {
 		auditableItem := &models.AuditScheduleAuditableItem{

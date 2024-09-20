@@ -22,6 +22,7 @@ type AuditScheduleRepositoryInterface interface {
 	GetAllSchedulesByAuditID(auditID uint, tx ...utility.DatabaseTransaction) ([]*models.AuditSchedule, error)
 
 	GetScheduleSummary(auditID uint) (pendingCount int, completedCount int, err error)
+	CreateInitialAuditScheduleStatusUpdate(auditScheduleStatusUpdate *models.AuditScheduleStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
 }
 
 type AuditScheduleRepository struct {
@@ -337,4 +338,15 @@ func (repo *AuditScheduleRepository) GetScheduleSummary(auditID uint) (pendingCo
 	completedCount = int(completed)
 
 	return pendingCount, completedCount, nil
+}
+
+func (repo *AuditScheduleRepository) CreateInitialAuditScheduleStatusUpdate(auditScheduleStatusUpdate *models.AuditScheduleStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(auditScheduleStatusUpdate).Error; err != nil {
+		return 0, err
+	}
+	return auditScheduleStatusUpdate.ID, nil
 }
