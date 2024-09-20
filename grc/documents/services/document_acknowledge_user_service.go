@@ -42,6 +42,12 @@ func NewDocumentAcknowledgeUserService(repo repositories.DocumentAcknowledgeUser
 }
 
 func (daus *DocumentAcknowledgeUserService) GetAll(documentID uint, params *documentDTOs.DocumentAcknowledgeListQueryParamsDTO) (*documentDTOs.DocumentAcknowledgementListResponseDTO, error) {
+	document, err := daus.documentSvc.GetFullDetailsByID(documentID, nil)
+	if err != nil {
+
+		return nil, err
+	}
+
 	primaryLevel, err := daus.organizationLevelSvc.GetPrimaryLevel()
 	if err != nil {
 		return nil, err
@@ -64,7 +70,11 @@ func (daus *DocumentAcknowledgeUserService) GetAll(documentID uint, params *docu
 		return nil, fmt.Errorf("unsupported primary level")
 	}
 
+	if document.DocumentAccessType.Type == "public" {
+		return daus.repo.GetAllForPublicDocument(documentID, primaryOrgUnitField, params)
+	}
 	return daus.repo.GetAll(documentID, primaryOrgUnitField, params)
+
 }
 
 func (daus *DocumentAcknowledgeUserService) Create(docuemntID uint, currentUserID uint) (uint, error) {
