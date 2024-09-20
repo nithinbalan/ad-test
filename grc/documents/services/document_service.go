@@ -55,6 +55,8 @@ type DocumentServiceInterface interface {
 	GetSharedUnits(documentId uint) ([]*settingDTOs.OrganizationUnitDTO, error)
 
 	GetDocumentLastEditSummary(documentID uint) (*documentDTOs.DocumentLastEditSummaryDTO, error)
+
+	ExportDocuments(data []*documentDTOs.DocumentListDTO, currentUserID uint) (*os.File, error)
 }
 
 type DocumentService struct {
@@ -70,6 +72,7 @@ type DocumentService struct {
 	documentWorkflowStatusSvc DocumentWorkflowStatusServiceInterface
 	activityLogSvc            services.ActivityLogServiceInterface
 	documentAuditLogSvc       DocumentAuditLogServiceInterface
+	userSettingSvc            organizationSvc.UserSettingServiceInterface
 }
 
 func NewDocumentService(
@@ -85,6 +88,7 @@ func NewDocumentService(
 	documentWorkflowStatusSvc DocumentWorkflowStatusServiceInterface,
 	activityLogSvc services.ActivityLogServiceInterface,
 	documentAuditLogSvc DocumentAuditLogServiceInterface,
+	userSettingSvc organizationSvc.UserSettingServiceInterface,
 ) DocumentServiceInterface {
 	return &DocumentService{
 		repo:                      repo,
@@ -99,6 +103,7 @@ func NewDocumentService(
 		documentWorkflowStatusSvc: documentWorkflowStatusSvc,
 		activityLogSvc:            activityLogSvc,
 		documentAuditLogSvc:       documentAuditLogSvc,
+		userSettingSvc:            userSettingSvc,
 	}
 }
 
@@ -140,12 +145,7 @@ func (ds *DocumentService) GetFullDetailsByID(id uint, currentUserID *uint, tx .
 func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentDTOs.DocumentFormDTO) (uint, error) {
 	tx := ds.repo.BeginTransaction()
 
-	// if err := ds.validateDocumentFormDTO(documentFormDTO); err != nil {
-	// 	return 0, err
-	// }
-
-	referenceNumber, err := ds.repo.GenerateReferenceNumber()
-	if err != nil {
+	if err := ds.validateDocumentFormDTO(documentFormDTO); err != nil {
 		return 0, err
 	}
 
@@ -160,7 +160,6 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 	}
 
 	document := &models.Document{
-		ReferenceNumber:      referenceNumber,
 		DocumentTypeID:       documentFormDTO.DocumentTypeID,
 		TitleEn:              documentFormDTO.TitleEn,
 		TitleAr:              documentFormDTO.TitleAr,
@@ -351,11 +350,11 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 		}
 	}
 
-	// err = ds.CreateDocumentWorkflow(id, docVersionId, documentFormDTO.DocumentTypeID, currentUserID, tx)
-	// if err != nil {
-	// 	tx.Rollback()
-	// 	return 0, err
-	// }
+	err = ds.CreateDocumentWorkflow(id, docVersionId, documentFormDTO.DocumentTypeID, currentUserID, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
 
 	tx.Commit()
 
@@ -1142,6 +1141,10 @@ func (ds *DocumentService) SubmitDocument(id uint, currentUserID uint) error {
 
 func (ds *DocumentService) PublishDocument(id uint, currentUserID uint) error {
 	tx := ds.repo.BeginTransaction()
+	referenceNumber, err := ds.repo.GenerateReferenceNumber()
+	if err != nil {
+		return err
+	}
 	document, err := ds.GetFullDetailsByID(id, nil, tx)
 	if err != nil {
 		tx.Rollback()
@@ -1160,7 +1163,17 @@ func (ds *DocumentService) PublishDocument(id uint, currentUserID uint) error {
 		return err
 	}
 
+	currentDateStr := time.Now().Format("2006-01-02")
+	publishedAt, err := utility.ParseDate(currentDateStr)
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("error parsing current date: %w", err)
+	}
+
 	existingDocument.DocumentStatusID = documentStatus.ID
+	existingDocument.ReferenceNumber = referenceNumber
+	existingDocument.PublishedBYID = &currentUserID
+	existingDocument.PublishedAt = publishedAt
 
 	err = ds.repo.Update(existingDocument, tx)
 	if err != nil {
@@ -1172,13 +1185,6 @@ func (ds *DocumentService) PublishDocument(id uint, currentUserID uint) error {
 	if err != nil {
 		tx.Rollback()
 		return err
-	}
-
-	currentDateStr := time.Now().Format("2006-01-02")
-	publishedAt, err := utility.ParseDate(currentDateStr)
-	if err != nil {
-		tx.Rollback()
-		return fmt.Errorf("error parsing current date: %w", err)
 	}
 
 	documentVersion.PublishedBYID = &currentUserID
@@ -1811,4 +1817,67 @@ func (ds *DocumentService) GetDocumentLastEditSummary(documentID uint) (*documen
 	}
 
 	return responseDTO, nil
+}
+
+func (ds *DocumentService) ExportDocuments(data []*documentDTOs.DocumentListDTO, currentUserID uint) (*os.File, error) {
+	// Fetch user setting for language preference
+	userSetting, err := ds.userSettingSvc.GetUserSettingsByUserID(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Define headers based on user language setting
+	var headers []string
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"SL No.",
+			"Type",
+			"Title",
+			"Responsible User",
+			"Category",
+			"Status",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Type",
+			"Title",
+			"Responsible User",
+			"Category",
+			"Status",
+		}
+	}
+	// Prepare the data rows
+	rows := make([][]interface{}, len(data))
+	for i, document := range data {
+		var category, responsibleUser, status, title, documentType string
+
+		// Assign values based on language preference and check for nil pointers
+		if userSetting.Language == "ar" {
+			documentType = document.DocumentTypeTitleAr
+			title = document.TitleAr
+			responsibleUser = document.ResponsibleUserFirstNameAr + " " + document.ResponsibleUserLastNameAr
+			category = document.DocumentCategoryTitleAr
+			status = document.DocumentStatusTitleAr
+
+		} else {
+			documentType = document.DocumentTypeTitleEn
+			title = document.TitleEn
+			responsibleUser = document.ResponsibleUserFirstNameEn + " " + document.ResponsibleUserLastNameEn
+			category = document.DocumentCategoryTitleEn
+			status = document.DocumentStatusTitleEn
+		}
+
+		rows[i] = []interface{}{
+			i + 1,
+			documentType,
+			title,
+			responsibleUser,
+			category,
+			status,
+		}
+	}
+
+	// Generate the Excel file
+	return utility.GenerateExcelFile(headers, rows)
 }
