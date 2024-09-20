@@ -353,6 +353,7 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		auditInsightsAuditPlanRepo,
 		sharedModule.ActivityLogService,
 		organizationModule.UserSvc,
+		auditPlanSvc,
 	)
 	auditInsightsAuditPlanController := controllers.NewAuditInsightsAuditPlanController(auditInsightsAuditPlanSvc)
 
@@ -365,6 +366,7 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		auditInsightsAuditRepo,
 		sharedModule.ActivityLogService,
 		organizationModule.UserSvc,
+		auditSvc,
 	)
 	auditInsightsAuditController := controllers.NewAuditInsightsAuditController(auditInsightsAuditSvc)
 

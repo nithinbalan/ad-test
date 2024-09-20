@@ -3,17 +3,12 @@ package repositories
 import (
 	auditDTOs "jethur/grc/audit/dtos"
 	commonDTOs "jethur/grc/common/dtos"
-	"jethur/grc/models"
-	"jethur/utility"
 
 	"gorm.io/gorm"
 )
 
 type AuditInsightsAuditRepositoryInterface interface {
-	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *auditDTOs.AuditListQueryParamsDTO, currentUserResponsibleUnitID uint) (*auditDTOs.AuditListResponseDTO, error)
-	GetByID(id uint) (*models.Audit, error)
-	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.Audit, error)
 }
 
 type AuditInsightsAuditRepository struct {
@@ -24,11 +19,6 @@ func NewAuditInsightsAuditRepository(db *gorm.DB) *AuditInsightsAuditRepository 
 	return &AuditInsightsAuditRepository{
 		db: db,
 	}
-}
-
-// BeginTransaction starts a new transaction.
-func (repo *AuditInsightsAuditRepository) BeginTransaction() utility.DatabaseTransaction {
-	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
 func (repo *AuditInsightsAuditRepository) GetAll(params *auditDTOs.AuditListQueryParamsDTO, currentUserResponsibleUnitID uint) (*auditDTOs.AuditListResponseDTO, error) {
@@ -208,53 +198,4 @@ func (repo *AuditInsightsAuditRepository) GetAll(params *auditDTOs.AuditListQuer
 		},
 	}
 	return response, nil
-}
-
-func (repo *AuditInsightsAuditRepository) GetByID(id uint) (*models.Audit, error) {
-	var audit *models.Audit
-
-	result := repo.db.First(&audit, id)
-	if result.Error != nil {
-		return nil, result.Error
-	}
-
-	return audit, nil
-}
-
-func (repo *AuditInsightsAuditRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.Audit, error) {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-	var audit *models.Audit
-
-	result := db.
-		Preload("AuditPlan").
-		Preload("AuditPlan.AuditCategory").
-		Preload("AuditPlan.AuditTeam").
-		Preload("AuditPlan.TeamLead").
-		Preload("AuditPlan.Members").
-		Preload("AuditPlan.Members.User").
-		Preload("AuditPlan.AuditStatus").
-		Preload("AuditPlan.AuditableItems.AuditableItem.ResponsibleUnit").
-		Preload("AuditPlan.AuditableItems.AuditableItem.Process").
-		Preload("AuditPlan.AuditableItems.AuditableItem.Control").
-		Preload("AuditPlan.AuditableItems.AuditableItem.RiskRegister").
-		Preload("AuditPlan.AuditableItems.AuditableItem.IncidentRegister").
-		Preload("AuditPlan.AuditableItems.AuditableItem.ComplianceRequirement").
-		Preload("AuditPlan.AuditableItems.AuditableItem.User").
-		Preload("AuditPlan.AuditableItems.AuditableItem.Document").
-		Preload("AuditPlan.AuditableItems.AuditableItem.AuditorRiskRating").
-		Preload("AuditPlan.AuditableItems.AuditableItem.AuditStatus").
-		Preload("AuditChecklists").
-		Preload("AuditDraftFindings").
-		Preload("CreatedByUser").
-		Preload("UpdatedByUser").
-		First(&audit, id)
-
-	if result.Error != nil {
-		return nil, result.Error
-	}
-
-	return audit, nil
 }

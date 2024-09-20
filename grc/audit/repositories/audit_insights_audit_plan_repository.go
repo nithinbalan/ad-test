@@ -3,17 +3,12 @@ package repositories
 import (
 	auditDTOs "jethur/grc/audit/dtos"
 	commonDTOs "jethur/grc/common/dtos"
-	"jethur/grc/models"
-	"jethur/utility"
 
 	"gorm.io/gorm"
 )
 
 type AuditInsightsAuditPlanRepositoryInterface interface {
-	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *auditDTOs.AuditPlanListQueryParamsDTO, currentUserResponsibleUnitID uint) (*auditDTOs.AuditPlanListResponseDTO, error)
-	GetByID(id uint) (*models.AuditPlan, error)
-	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.AuditPlan, error)
 }
 
 type AuditInsightsAuditPlanRepository struct {
@@ -24,11 +19,6 @@ func NewAuditInsightsAuditPlanRepository(db *gorm.DB) *AuditInsightsAuditPlanRep
 	return &AuditInsightsAuditPlanRepository{
 		db: db,
 	}
-}
-
-// BeginTransaction starts a new transaction.
-func (repo *AuditInsightsAuditPlanRepository) BeginTransaction() utility.DatabaseTransaction {
-	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
 func (repo *AuditInsightsAuditPlanRepository) GetAll(params *auditDTOs.AuditPlanListQueryParamsDTO, currentUserResponsibleUnitID uint) (*auditDTOs.AuditPlanListResponseDTO, error) {
@@ -237,45 +227,4 @@ func (repo *AuditInsightsAuditPlanRepository) GetAll(params *auditDTOs.AuditPlan
 		},
 	}
 	return response, nil
-}
-
-func (repo *AuditInsightsAuditPlanRepository) GetByID(id uint) (*models.AuditPlan, error) {
-	var auditPlan *models.AuditPlan
-
-	result := repo.db.First(&auditPlan, id)
-	if result.Error != nil {
-		return nil, result.Error
-	}
-
-	return auditPlan, nil
-}
-
-func (repo *AuditInsightsAuditPlanRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.AuditPlan, error) {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-	var auditPlan *models.AuditPlan
-
-	result := db.
-		Preload("AuditCategory").
-		Preload("AuditTeam").
-		Preload("AuditTeam.Users").
-		Preload("AuditTeam.Users.User").
-		Preload("AuditTeam.TeamLead").
-		Preload("AuditStatus").
-		Preload("TeamLead").
-		Preload("Members").
-		Preload("AuditInsightsAuditPlanChecklists").
-		Preload("Members.User").
-		Preload("AuditableItems").
-		Preload("CreatedByUser").
-		Preload("UpdatedByUser").
-		First(&auditPlan, id)
-
-	if result.Error != nil {
-		return nil, result.Error
-	}
-
-	return auditPlan, nil
 }
