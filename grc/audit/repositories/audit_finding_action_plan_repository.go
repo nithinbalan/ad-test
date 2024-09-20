@@ -22,6 +22,8 @@ type AuditFindingActionPlanRepositoryInterface interface {
 
 	CreateInitialAuditFindingActionPlanStatusUpdate(auditFindingActionPlanStatusUpdate *models.AuditFindingActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
 	DeleteAuditFindingActionPlanStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error
+
+	GetAuditFindingActionPlanCountByStatus(findingID uint) ([]auditFindingDTOs.AuditFindingActionPlanStatusCountResponseDTO, error)
 }
 
 type AuditFindingActionPlanRepository struct {
@@ -287,4 +289,37 @@ func (repo *AuditFindingActionPlanRepository) GetCountByRiskID(findingID uint, t
 		return 0, err
 	}
 	return count, nil
+}
+
+func (repo *AuditFindingActionPlanRepository) GetAuditFindingActionPlanCountByStatus(findingID uint) ([]auditFindingDTOs.AuditFindingActionPlanStatusCountResponseDTO, error) {
+	actionPlanStatusCounts := []auditFindingDTOs.AuditFindingActionPlanStatusCountResponseDTO{}
+
+	query := `
+        SELECT 
+            action_plan_statuses.id, 
+            action_plan_statuses.type, 
+            action_plan_statuses.title_en, 
+            action_plan_statuses.title_ar, 
+            action_plan_statuses.color_code,
+            COUNT(audit_finding_action_plans.id) AS count
+        FROM 
+            audit_finding_action_plans
+        LEFT JOIN 
+            action_plan_statuses ON action_plan_statuses.id = audit_finding_action_plans.action_plan_status_id
+        WHERE 
+            audit_finding_action_plans.audit_finding_id = ?
+        GROUP BY 
+            action_plan_statuses.id, 
+            action_plan_statuses.type, 
+            action_plan_statuses.title_en, 
+            action_plan_statuses.title_ar, 
+            action_plan_statuses.color_code
+    `
+
+	err := repo.db.Raw(query, findingID).Scan(&actionPlanStatusCounts).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return actionPlanStatusCounts, nil
 }
