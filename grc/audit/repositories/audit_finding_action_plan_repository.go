@@ -301,7 +301,7 @@ func (repo *AuditFindingActionPlanRepository) GetAuditFindingActionPlanCountBySt
             action_plan_statuses.title_en, 
             action_plan_statuses.title_ar, 
             action_plan_statuses.color_code,
-            COUNT(sla_action_plans.id) AS count
+            COUNT(audit_finding_action_plans.id) AS count
         FROM 
             audit_finding_action_plans
         LEFT JOIN 
