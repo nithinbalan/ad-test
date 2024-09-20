@@ -54,13 +54,14 @@ type AuditScheduleListDTO struct {
 
 // AuditScheduleFormDTO represents the form data for creating or updating an audit schedule.
 type AuditScheduleFormDTO struct {
-	AuditActivityTypeID uint    `json:"audit_activity_type_id" binding:"required"`
-	ResponsibleUserID   *uint   `json:"responsible_user_id"`
-	Title               string  `json:"title" binding:"required,max=255"`
-	Description         *string `json:"description"`
-	StartDate           *string `json:"start_date"`
-	TargetDate          *string `json:"target_date"`
-	AuditableItemIds    []*uint `json:"auditable_item_ids"`
+	AuditActivityTypeID   uint    `json:"audit_activity_type_id" binding:"required"`
+	ResponsibleUserID     *uint   `json:"responsible_user_id"`
+	Title                 string  `json:"title" binding:"required,max=255"`
+	Description           *string `json:"description"`
+	StartDate             *string `json:"start_date"`
+	TargetDate            *string `json:"target_date"`
+	AuditScheduleStatusID uint    `json:"auidt_schedule_status_id" binding:"required"`
+	AuditableItemIds      []*uint `json:"auditable_item_ids"`
 }
 
 // AuditScheduleDetailDTO represents the detailed view of an audit schedule.

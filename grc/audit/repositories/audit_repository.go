@@ -19,6 +19,7 @@ type AuditRepositoryInterface interface {
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 
 	CreateAuditSchedule(auditSchedule *models.AuditSchedule, tx ...utility.DatabaseTransaction) (*models.AuditSchedule, error)
+	CreateAuditScheduleStatusUpdate(statusUpdate *models.AuditScheduleStatusUpdate, tx ...utility.DatabaseTransaction) error
 	CreateAuditScheduleAuditableItem(item *models.AuditScheduleAuditableItem, tx ...utility.DatabaseTransaction) error
 	CreateAuditChecklists(auditChecklists []*models.AuditChecklist, tx ...utility.DatabaseTransaction) error
 
@@ -270,6 +271,18 @@ func (repo *AuditRepository) CreateAuditSchedule(auditSchedule *models.AuditSche
 	}
 
 	return auditSchedule, nil
+}
+
+func (repo *AuditRepository) CreateAuditScheduleStatusUpdate(statusUpdate *models.AuditScheduleStatusUpdate, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 {
+		db = tx[0].DB()
+	}
+	if err := db.Create(statusUpdate).Error; err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (repo *AuditRepository) CreateAuditScheduleAuditableItem(item *models.AuditScheduleAuditableItem, tx ...utility.DatabaseTransaction) error {

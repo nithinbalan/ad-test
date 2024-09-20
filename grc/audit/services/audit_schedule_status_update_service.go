@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"fmt"
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
 	logServices "jethur/grc/logs/services"
@@ -47,7 +48,7 @@ func (asus *AuditScheduleStatusUpdateService) GetAll(auditScheduleID uint, sort 
 
 func (asus *AuditScheduleStatusUpdateService) Create(auditScheduleID uint, currentUserID uint, auditScheduleStatusUpdateFormDTO *auditDTOs.AuditScheduleStatusUpdateFormDTO) (uint, error) {
 	tx := asus.repo.BeginTransaction()
-
+	fmt.Println("123")
 	auditScheduleStatusUpdate := &models.AuditScheduleStatusUpdate{
 		AuditScheduleID:       auditScheduleID,
 		AuditScheduleStatusID: auditScheduleStatusUpdateFormDTO.AuditScheduleStatusID,
