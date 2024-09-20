@@ -25,6 +25,8 @@ type AuditDraftFindingRepositoryInterface interface {
 	CreateDocuments(docs []*models.AuditDraftFindingDocument, tx ...utility.DatabaseTransaction) error
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
 	GetDocumentByID(id uint) (*models.AuditDraftFindingDocument, error)
+
+	GetAuditDraftFindingCountByStatus(auditID uint) ([]auditDTOs.AuditDraftFindingStatusCountResponseDTO, error)
 }
 
 type AuditDraftFindingRepository struct {
@@ -286,4 +288,37 @@ func (repo *AuditDraftFindingRepository) GetDocumentByID(id uint) (*models.Audit
 		return nil, err
 	}
 	return &document, nil
+}
+
+func (repo *AuditDraftFindingRepository) GetAuditDraftFindingCountByStatus(auditID uint) ([]auditDTOs.AuditDraftFindingStatusCountResponseDTO, error) {
+	draftFindingStatusCounts := []auditDTOs.AuditDraftFindingStatusCountResponseDTO{}
+
+	query := `
+        SELECT 
+            audit_draft_finding_statuses.id, 
+            audit_draft_finding_statuses.type, 
+            audit_draft_finding_statuses.title_en, 
+            audit_draft_finding_statuses.title_ar, 
+            audit_draft_finding_statuses.color_code,
+            COUNT(audit_draft_findings.id) AS count
+        FROM 
+            audit_draft_findings
+        LEFT JOIN 
+            audit_draft_finding_statuses ON audit_draft_finding_statuses.id = audit_draft_findings.audit_draft_finding_status_id
+        WHERE 
+            audit_draft_findings.audit_id = ?
+        GROUP BY 
+            audit_draft_finding_statuses.id, 
+            audit_draft_finding_statuses.type, 
+            audit_draft_finding_statuses.title_en, 
+            audit_draft_finding_statuses.title_ar, 
+            audit_draft_finding_statuses.color_code
+    `
+
+	err := repo.db.Raw(query, auditID).Scan(&draftFindingStatusCounts).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return draftFindingStatusCounts, nil
 }

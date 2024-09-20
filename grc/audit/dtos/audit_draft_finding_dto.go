@@ -124,3 +124,12 @@ type AuditDraftFindingListResponseDTO struct {
 	Items      []*AuditDraftFindingListDTO  `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }
+
+type AuditDraftFindingStatusCountResponseDTO struct {
+	ID        int    `json:"id"`
+	Type      string `json:"type"`
+	TitleEn   string `json:"title_en"`
+	TitleAr   string `json:"title_ar"`
+	ColorCode string `json:"color_code"`
+	Count     int    `json:"count"`
+}
