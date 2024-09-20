@@ -60,6 +60,15 @@ type DocumentListDTO struct {
 	CreatedAt                       time.Time  `json:"created_at"`
 	UpdatedAt                       *time.Time `json:"updated_at"`
 	Acknowledged                    *bool      `json:"acknowledged,omitempty"`
+	PublishedUserFirstNameEn        string     `json:"published_user_first_name_en"`
+	PublishedUserFirstNameAr        string     `json:"published_user_first_name_ar"`
+	PublishedUserLastNameEn         string     `json:"published_user_last_name_en"`
+	PublishedUserLastNameAr         string     `json:"published_user_last_name_ar"`
+	PublishedUserInitial            string     `json:"published_user_initial"`
+	PublishedUserColor              string     `json:"published_user_color"`
+	PublishedUserEmail              string     `json:"published_user_email"`
+	PublishedUserProfileImagePath   string     `json:"published_user_profile_image_path"`
+	PublishedAt                     *time.Time `json:"published_at"`
 }
 
 type DocumentListQueryParamsDTO struct {

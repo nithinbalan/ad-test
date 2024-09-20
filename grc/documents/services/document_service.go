@@ -145,12 +145,7 @@ func (ds *DocumentService) GetFullDetailsByID(id uint, currentUserID *uint, tx .
 func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentDTOs.DocumentFormDTO) (uint, error) {
 	tx := ds.repo.BeginTransaction()
 
-	// if err := ds.validateDocumentFormDTO(documentFormDTO); err != nil {
-	// 	return 0, err
-	// }
-
-	referenceNumber, err := ds.repo.GenerateReferenceNumber()
-	if err != nil {
+	if err := ds.validateDocumentFormDTO(documentFormDTO); err != nil {
 		return 0, err
 	}
 
@@ -165,7 +160,6 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 	}
 
 	document := &models.Document{
-		ReferenceNumber:      referenceNumber,
 		DocumentTypeID:       documentFormDTO.DocumentTypeID,
 		TitleEn:              documentFormDTO.TitleEn,
 		TitleAr:              documentFormDTO.TitleAr,
@@ -356,11 +350,11 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 		}
 	}
 
-	// err = ds.CreateDocumentWorkflow(id, docVersionId, documentFormDTO.DocumentTypeID, currentUserID, tx)
-	// if err != nil {
-	// 	tx.Rollback()
-	// 	return 0, err
-	// }
+	err = ds.CreateDocumentWorkflow(id, docVersionId, documentFormDTO.DocumentTypeID, currentUserID, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
 
 	tx.Commit()
 
@@ -1147,6 +1141,10 @@ func (ds *DocumentService) SubmitDocument(id uint, currentUserID uint) error {
 
 func (ds *DocumentService) PublishDocument(id uint, currentUserID uint) error {
 	tx := ds.repo.BeginTransaction()
+	referenceNumber, err := ds.repo.GenerateReferenceNumber()
+	if err != nil {
+		return err
+	}
 	document, err := ds.GetFullDetailsByID(id, nil, tx)
 	if err != nil {
 		tx.Rollback()
@@ -1165,7 +1163,17 @@ func (ds *DocumentService) PublishDocument(id uint, currentUserID uint) error {
 		return err
 	}
 
+	currentDateStr := time.Now().Format("2006-01-02")
+	publishedAt, err := utility.ParseDate(currentDateStr)
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("error parsing current date: %w", err)
+	}
+
 	existingDocument.DocumentStatusID = documentStatus.ID
+	existingDocument.ReferenceNumber = referenceNumber
+	existingDocument.PublishedBYID = &currentUserID
+	existingDocument.PublishedAt = publishedAt
 
 	err = ds.repo.Update(existingDocument, tx)
 	if err != nil {
@@ -1177,13 +1185,6 @@ func (ds *DocumentService) PublishDocument(id uint, currentUserID uint) error {
 	if err != nil {
 		tx.Rollback()
 		return err
-	}
-
-	currentDateStr := time.Now().Format("2006-01-02")
-	publishedAt, err := utility.ParseDate(currentDateStr)
-	if err != nil {
-		tx.Rollback()
-		return fmt.Errorf("error parsing current date: %w", err)
 	}
 
 	documentVersion.PublishedBYID = &currentUserID

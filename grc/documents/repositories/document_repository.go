@@ -125,7 +125,16 @@ func (repo *DocumentRepository) GetAll(params *documentDTOs.DocumentListQueryPar
 	updated_user.initial AS updated_user_initial,
 	updated_user.color AS updated_user_color,
 	updated_user.email AS updated_user_email,
-	updated_user.profile_image_path AS updated_user_profile_image_path
+	updated_user.profile_image_path AS updated_user_profile_image_path,
+	published_user.first_name_en AS published_user_first_name_en,
+	published_user.first_name_ar AS published_user_first_name_ar,
+	published_user.last_name_en AS published_user_last_name_en,
+	published_user.last_name_ar AS published_user_last_name_ar,
+	published_user.initial AS published_user_initial,
+	published_user.color AS published_user_color,
+	published_user.email AS published_user_email,
+	published_user.profile_image_path AS published_user_profile_image_path
+	
 `
 
 	joinAcknowledge := false
@@ -146,6 +155,7 @@ func (repo *DocumentRepository) GetAll(params *documentDTOs.DocumentListQueryPar
 			LEFT JOIN document_statuses ON document_statuses.id = documents.document_status_id
 			LEFT JOIN users AS created_user ON created_user.id = documents.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = documents.updated_by_id
+			LEFT JOIN users AS published_user ON published_user.id = documents.published_by_id
 		`)
 
 	if joinAcknowledge {
@@ -467,7 +477,8 @@ func (repo *DocumentRepository) GenerateReferenceNumber() (string, error) {
 	var lastReferenceNumber string
 	err := repo.db.Model(&models.Document{}).
 		Select("reference_number").
-		Order("reference_number desc").
+		Where("reference_number IS NOT NULL"). // Ensure to filter out NULL values
+		Order("reference_number DESC").
 		Limit(1).
 		Pluck("reference_number", &lastReferenceNumber).
 		Error
