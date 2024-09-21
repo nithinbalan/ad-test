@@ -166,10 +166,8 @@ func (caps *ControlActionPlanService) Create(controlID uint, currentUserID uint,
 		return 0, err
 	}
 
-	// Construct the URL for the task
 	urlParam := fmt.Sprintf(`{"id":%d}`, id)
 
-	// Prepare the task DTO
 	taskDTO := commonDTOs.TaskFormDTO{
 		ModuleIdentifier:    "control",
 		ControlActionPlanID: &id,
