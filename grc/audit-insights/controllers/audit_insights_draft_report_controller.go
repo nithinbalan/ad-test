@@ -1,8 +1,8 @@
 package controllers
 
 import (
-	"jethur/grc/audit/dtos"
-	"jethur/grc/audit/services"
+	"jethur/grc/audit-insights/services"
+	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/utility"
 	"net/http"
 	"strconv"
@@ -11,30 +11,36 @@ import (
 	"gorm.io/gorm"
 )
 
-type AuditInsightsDocumentRequestController struct {
-	service services.AuditInsightsDocumentRequestServiceInterface
+type AuditInsightsDraftReportController struct {
+	service services.AuditInsightsDraftReportServiceInterface
 	db      *gorm.DB
 }
 
-func NewAuditInsightsDocumentRequestController(service services.AuditInsightsDocumentRequestServiceInterface) *AuditInsightsDocumentRequestController {
-	return &AuditInsightsDocumentRequestController{
+func NewAuditInsightsDraftReportController(service services.AuditInsightsDraftReportServiceInterface) *AuditInsightsDraftReportController {
+	return &AuditInsightsDraftReportController{
 		service: service,
 	}
 }
 
-func (aidrc *AuditInsightsDocumentRequestController) GetAllAuditInsightsDocumentRequests(c *gin.Context) {
+func (aidrc *AuditInsightsDraftReportController) GetAllAuditInsightsDraftReports(c *gin.Context) {
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
+	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
-	requestedAt := c.Query("requested_at")
 
+	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"audit_ids",
-		"audit_document_request_status_ids",
+		"audit_category_ids",
+		"audit_team_ids",
+		"team_lead_ids",
+		"audit_status_ids",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+
+	reportDate := c.Query("report_date")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -48,38 +54,40 @@ func (aidrc *AuditInsightsDocumentRequestController) GetAllAuditInsightsDocument
 		return
 	}
 
-	queryParams := dtos.AuditDocumentRequestListQueryParamsDTO{
+	queryParams := auditDTOs.AuditDraftReportListQueryParamsDTO{
 		Sort:        sort,
 		SortBy:      sortBy,
 		Keyword:     keyword,
+		Status:      status,
 		Page:        page,
 		PageSize:    pageSize,
 		Filters:     filters,
 		QuickFilter: quickFilter,
-		RequestedAt: requestedAt,
+		ReportDate:  reportDate,
 	}
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(aidrc.db, c, err.Error())
 		return
 	}
-	auditDocumentRequests, err := aidrc.service.GetAll(&queryParams, currentUserID)
+	auditDraftReports, err := aidrc.service.GetAll(&queryParams, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(aidrc.db, c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, auditDocumentRequests)
+	c.JSON(http.StatusOK, auditDraftReports)
 }
 
-func (aidrc *AuditInsightsDocumentRequestController) GetAuditInsightsDocumentRequestDetails(c *gin.Context) {
+func (aidrc *AuditInsightsDraftReportController) GetAuditInsightsDraftReportDetails(c *gin.Context) {
 	idStr := c.Param("id")
-	id, err := strconv.ParseUint(idStr, 10, 32)
+
+	auditID, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
 
-	auditDocumentRequest, err := aidrc.service.GetFullDetailsByID(uint(id))
+	audit, err := aidrc.service.GetFullDetailsByID(uint(auditID))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -90,5 +98,5 @@ func (aidrc *AuditInsightsDocumentRequestController) GetAuditInsightsDocumentReq
 			return
 		}
 	}
-	c.JSON(http.StatusOK, auditDocumentRequest)
+	c.JSON(http.StatusOK, audit)
 }

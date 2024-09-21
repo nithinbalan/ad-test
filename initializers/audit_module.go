@@ -47,11 +47,12 @@ type AuditModule struct {
 	RCMController                                *controllers.RCMController
 	AuditDraftFindingConversationController      *controllers.AuditDraftFindingConversationController
 	AuditDraftFindingActionPlanController        *controllers.AuditDraftFindingActionPlanController
-	AuditInsightsAuditPlanController             *controllers.AuditInsightsAuditPlanController
 	AuditScheduleStatusUpdateController          *controllers.AuditScheduleStatusUpdateController
-	AuditInsightsAuditController                 *controllers.AuditInsightsAuditController
-	AuditInsightsDocumentRequestController       *controllers.AuditInsightsDocumentRequestController
-	AuditInsightsDraftReportController           *controllers.AuditInsightsDraftReportController
+
+	AuditPlanSvc            services.AuditPlanServiceInterface
+	AuditSvc                services.AuditServiceInterface
+	AuditDocumentRequestSvc services.AuditDocumentRequestServiceInterface
+	AuditDraftReportSvc     services.AuditDraftReportServiceInterface
 }
 
 func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, complianceModule *ComplianceModule, riskModule *RiskModule, incidentModule *IncidentModule, documentModule *DocumentModule, settingModule *SettingsModule, masterModule *MasterModule) *AuditModule {
@@ -349,46 +350,10 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		auditSvc,
 	)
 	rcmController := controllers.NewRCMController(rcmSvc)
-	auditInsightsAuditPlanRepo := repositories.NewAuditInsightsAuditPlanRepository(db)
-	auditInsightsAuditPlanSvc := services.NewAuditInsightsAuditPlanService(
-		auditInsightsAuditPlanRepo,
-		sharedModule.ActivityLogService,
-		organizationModule.UserSvc,
-		auditPlanSvc,
-	)
-	auditInsightsAuditPlanController := controllers.NewAuditInsightsAuditPlanController(auditInsightsAuditPlanSvc)
 
 	auditScheduleStatusUpdateRepo := repositories.NewAuditScheduleStatusUpdateRepository(db)
 	auditScheduleStatusUpdateSvc := services.NewAuditScheduleStatusUpdateService(auditScheduleStatusUpdateRepo, sharedModule.ActivityLogService, auditScheduleSvc, auditScheduleStatusSvc)
 	auditScheduleStatusUpdateController := controllers.NewAuditScheduleStatusUpdateController(auditScheduleStatusUpdateSvc)
-
-	auditInsightsAuditRepo := repositories.NewAuditInsightsAuditRepository(db)
-	auditInsightsAuditSvc := services.NewAuditInsightsAuditService(
-		auditInsightsAuditRepo,
-		sharedModule.ActivityLogService,
-		organizationModule.UserSvc,
-		auditSvc,
-	)
-	auditInsightsAuditController := controllers.NewAuditInsightsAuditController(auditInsightsAuditSvc)
-
-	auditInsightsDocumentRequestRepo := repositories.NewAuditInsightsDocumentRequestRepository(db)
-	auditInsightsDocumentRequestSvc := services.NewAuditInsightsDocumentRequestService(
-		auditInsightsDocumentRequestRepo,
-		sharedModule.ActivityLogService,
-		organizationModule.UserSvc,
-		auditDocumentRequestSvc,
-	)
-	auditInsightsDocumentRequestController := controllers.NewAuditInsightsDocumentRequestController(auditInsightsDocumentRequestSvc)
-
-	auditInsightsDraftReportRepo := repositories.NewAuditInsightsDraftReportRepository(db)
-	auditInsightsDraftReportSvc := services.NewAuditInsightsDraftReportService(
-		auditInsightsDraftReportRepo,
-		sharedModule.ActivityLogService,
-		organizationModule.UserSvc,
-		auditSvc,
-		auditDraftReportSvc,
-	)
-	auditInsightsDraftReportController := controllers.NewAuditInsightsDraftReportController(auditInsightsDraftReportSvc)
 
 	return &AuditModule{
 		AuditorRiskRatingController:                  auditorRiskRatingController,
@@ -429,10 +394,11 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		RCMController:                                rcmController,
 		AuditDraftFindingConversationController:      auditDraftFindingConversationController,
 		AuditDraftFindingActionPlanController:        auditDraftFindingActionPlanController,
-		AuditInsightsAuditPlanController:             auditInsightsAuditPlanController,
 		AuditScheduleStatusUpdateController:          auditScheduleStatusUpdateController,
-		AuditInsightsAuditController:                 auditInsightsAuditController,
-		AuditInsightsDocumentRequestController:       auditInsightsDocumentRequestController,
-		AuditInsightsDraftReportController:           auditInsightsDraftReportController,
+
+		AuditPlanSvc:            auditPlanSvc,
+		AuditSvc:                auditSvc,
+		AuditDocumentRequestSvc: auditDocumentRequestSvc,
+		AuditDraftReportSvc:     auditDraftReportSvc,
 	}
 }
