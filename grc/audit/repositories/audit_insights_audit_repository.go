@@ -79,7 +79,7 @@ func (repo *AuditInsightsAuditRepository) GetAll(params *auditDTOs.AuditListQuer
         LEFT JOIN users AS created_user ON created_user.id = audits.created_by_id
         LEFT JOIN users AS updated_user ON updated_user.id = audits.updated_by_id
     `).
-		Where(`auditable_items.responsible_unit_id = ?`, currentUserResponsibleUnitID).
+		Where(`auditable_items.responsible_unit_id = ? AND audits.id IS NOT NULL`, currentUserResponsibleUnitID).
 		Group(`
         audits.id,
         audits.audit_plan_id,
