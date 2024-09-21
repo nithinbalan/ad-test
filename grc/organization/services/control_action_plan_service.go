@@ -10,6 +10,7 @@ import (
 	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
 	organizationRepositories "jethur/grc/organization/repositories"
+	taskServices "jethur/grc/task/services"
 	"jethur/utility"
 
 	"github.com/mitchellh/mapstructure"
@@ -35,6 +36,7 @@ type ControlActionPlanService struct {
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface
 	userSvc             UserServiceInterface
 	notificationSvc     commonServices.NotificationServiceInterface
+	taskSvc             taskServices.TaskServiceInterface
 }
 
 func NewControlActionPlanService(
@@ -44,7 +46,8 @@ func NewControlActionPlanService(
 	severityLevelSvc masterServices.SeverityLevelServiceInterface,
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
 	userSvc UserServiceInterface,
-	notificationSvc commonServices.NotificationServiceInterface) ControlActionPlanServiceInterface {
+	notificationSvc commonServices.NotificationServiceInterface,
+	taskSvc taskServices.TaskServiceInterface) ControlActionPlanServiceInterface {
 	return &ControlActionPlanService{
 		repo:                repo,
 		activityLogSvc:      activityLogSvc,
@@ -53,6 +56,7 @@ func NewControlActionPlanService(
 		actionPlanStatusSvc: actionPlanStatusSvc,
 		userSvc:             userSvc,
 		notificationSvc:     notificationSvc,
+		taskSvc:             taskSvc,
 	}
 }
 
@@ -142,6 +146,7 @@ func (caps *ControlActionPlanService) Create(controlID uint, currentUserID uint,
 
 	id, err := caps.repo.Create(controlActionPlan)
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
@@ -159,10 +164,31 @@ func (caps *ControlActionPlanService) Create(controlID uint, currentUserID uint,
 		return 0, err
 	}
 
+	// Construct the URL for the task
+	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+
+	// Prepare the task DTO
+	taskDTO := commonDTOs.TaskFormDTO{
+		ModuleIdentifier:    "control",
+		ControlActionPlanID: &id,
+		Title:               ControlActionPlanFormDTO.Title,
+		Description:         ControlActionPlanFormDTO.Description,
+		TargetDate:          dates.TargetDate,
+		URLParam:            &urlParam,
+		QueryParam:          nil,
+		SeverityLevelID:     ControlActionPlanFormDTO.SeverityLevelID,
+		ResponsibleUserID:   ControlActionPlanFormDTO.ResponsibleUserID,
+	}
+
+	if err := caps.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
 	tx.Commit()
 
 	go func() {
-		urlParam := fmt.Sprintf(`{"id":%d}`, id)
+
 		entity := "control-action-plan"
 		action := "responsible-user-assign"
 

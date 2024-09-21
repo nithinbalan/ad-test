@@ -46,15 +46,17 @@ type DocumentFormDTO struct {
 
 type TaskFormDTO struct {
 	ID                     *uint      `json:"id,omitempty"`
-	ModuleID               uint       `json:"module_id" binding:"required"`
+	ModuleIdentifier       string     `json:"module_identifier" binding:"required"`
 	ComplianceActionPlanID *uint      `json:"compliance_action_plan_id,omitempty"`
 	SLAActionPlanID        *uint      `json:"sla_action_plan_id,omitempty"`
 	IncidentActionPlanID   *uint      `json:"incident_action_plan_id,omitempty"`
 	ControlActionPlanID    *uint      `json:"control_action_plan_id,omitempty"`
+	RiskActionPlanID       *uint      `json:"risk_action_plan_id,omitempty"`
 	Title                  string     `json:"title" binding:"required"`
 	Description            *string    `json:"description,omitempty"`
 	TargetDate             *time.Time `json:"target_date,omitempty"`
-	URL                    string     `json:"url" binding:"required"`
+	URLParam               *string    `json:"url_param,omitempty"`
+	QueryParam             *string    `json:"query_param,omitempty"`
 	SeverityLevelID        *uint      `json:"severity_level_id,omitempty"`
 	ResponsibleUserID      uint       `json:"responsible_user_id" binding:"required"`
 	TaskStatusID           *uint      `json:"task_status_id"`
