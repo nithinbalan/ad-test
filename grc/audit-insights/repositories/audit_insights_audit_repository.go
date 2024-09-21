@@ -25,7 +25,7 @@ func (repo *AuditInsightsAuditRepository) GetAll(params *auditDTOs.AuditListQuer
 	var audits []*auditDTOs.AuditListDTO
 	var totalCount int64
 
-	query := repo.db.Debug().Table("audit_plan_auditable_items").
+	query := repo.db.Table("audit_plan_auditable_items").
 		Select(`
         audits.id,
         audits.audit_plan_id,

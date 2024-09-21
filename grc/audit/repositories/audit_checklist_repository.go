@@ -234,7 +234,13 @@ func (repo *AuditChecklistRepository) GetDraftFindingsDetailsByChecklistID(check
 	result := repo.db.
 		Preload("AuditableItem").
 		Preload("AuditableItem.ResponsibleUnit").
-		Preload("AuditableItem.ResponsibleUser").
+		Preload("AuditableItem.Process").
+		Preload("AuditableItem.Control").
+		Preload("AuditableItem.Document").
+		Preload("AuditableItem.IncidentRegister").
+		Preload("AuditableItem.ComplianceRequirement").
+		Preload("AuditableItem.RiskRegister").
+		Preload("AuditableItem.User").
 		Preload("AuditFindingCategory").
 		Preload("SeverityLevel").
 		Preload("AuditDraftFindingStatus").
