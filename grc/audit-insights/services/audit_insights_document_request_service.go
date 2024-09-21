@@ -1,8 +1,9 @@
 package services
 
 import (
+	"jethur/grc/audit-insights/repositories"
 	auditDTOs "jethur/grc/audit/dtos"
-	"jethur/grc/audit/repositories"
+	auditServices "jethur/grc/audit/services"
 	logServices "jethur/grc/logs/services"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
@@ -14,24 +15,24 @@ type AuditInsightsDocumentRequestServiceInterface interface {
 }
 
 type AuditInsightsDocumentRequestService struct {
-	repo           repositories.AuditInsightsDocumentRequestRepositoryInterface
-	activityLogSvc logServices.ActivityLogServiceInterface
-	userSvc        organizationServices.UserServiceInterface
-	auditDocumentRequestSvc       AuditDocumentRequestServiceInterface
+	repo                    repositories.AuditInsightsDocumentRequestRepositoryInterface
+	activityLogSvc          logServices.ActivityLogServiceInterface
+	userSvc                 organizationServices.UserServiceInterface
+	auditDocumentRequestSvc auditServices.AuditDocumentRequestServiceInterface
 }
 
 func NewAuditInsightsDocumentRequestService(
 	repo repositories.AuditInsightsDocumentRequestRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
-	auditDocumentRequestSvc       AuditDocumentRequestServiceInterface,
+	auditDocumentRequestSvc auditServices.AuditDocumentRequestServiceInterface,
 
 ) AuditInsightsDocumentRequestServiceInterface {
 	return &AuditInsightsDocumentRequestService{
-		repo:           repo,
-		activityLogSvc: activityLogSvc,
-		userSvc:        userSvc,
-		auditDocumentRequestSvc:        auditDocumentRequestSvc,
+		repo:                    repo,
+		activityLogSvc:          activityLogSvc,
+		userSvc:                 userSvc,
+		auditDocumentRequestSvc: auditDocumentRequestSvc,
 	}
 }
 

@@ -1,8 +1,8 @@
 package controllers
 
 import (
+	"jethur/grc/audit-insights/services"
 	auditDTOs "jethur/grc/audit/dtos"
-	"jethur/grc/audit/services"
 	"jethur/utility"
 	"net/http"
 	"strconv"

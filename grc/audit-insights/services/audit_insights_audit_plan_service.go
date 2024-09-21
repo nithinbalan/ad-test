@@ -1,8 +1,9 @@
 package services
 
 import (
+	"jethur/grc/audit-insights/repositories"
 	auditDTOs "jethur/grc/audit/dtos"
-	"jethur/grc/audit/repositories"
+	auditServices "jethur/grc/audit/services"
 	logServices "jethur/grc/logs/services"
 	organizationServices "jethur/grc/organization/services"
 
@@ -15,23 +16,23 @@ type AuditInsightsAuditPlanServiceInterface interface {
 }
 
 type AuditInsightsAuditPlanService struct {
-	repo             repositories.AuditInsightsAuditPlanRepositoryInterface
-	activityLogSvc   logServices.ActivityLogServiceInterface
-	userSvc          organizationServices.UserServiceInterface
-	auditPlanSvc           AuditPlanServiceInterface
+	repo           repositories.AuditInsightsAuditPlanRepositoryInterface
+	activityLogSvc logServices.ActivityLogServiceInterface
+	userSvc        organizationServices.UserServiceInterface
+	auditPlanSvc   auditServices.AuditPlanServiceInterface
 }
 
 func NewAuditInsightsAuditPlanService(
 	repo repositories.AuditInsightsAuditPlanRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
-	auditPlanSvc           AuditPlanServiceInterface,
+	auditPlanSvc auditServices.AuditPlanServiceInterface,
 ) AuditInsightsAuditPlanServiceInterface {
 	return &AuditInsightsAuditPlanService{
-		repo:             repo,
-		activityLogSvc:   activityLogSvc,
-		userSvc:          userSvc,
-		auditPlanSvc:          auditPlanSvc,
+		repo:           repo,
+		activityLogSvc: activityLogSvc,
+		userSvc:        userSvc,
+		auditPlanSvc:   auditPlanSvc,
 	}
 }
 
@@ -50,4 +51,3 @@ func (aiaps *AuditInsightsAuditPlanService) GetFullDetailsByID(id uint, tx ...ut
 	}
 	return auditPlan, nil
 }
-
