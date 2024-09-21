@@ -23,6 +23,8 @@ type AuditFindingActionPlanServiceInterface interface {
 	Update(findingID uint, id uint, currentUserID uint, auditFinding *auditFindingDTOs.AuditFindingActionPlanFormDTO) error
 	Delete(findingID uint, ids []uint, currentUserID uint) ([]uint, error)
 	StatusUpdate(findingID uint, id uint, currentUserID uint, ActionPlanStatusID uint, tx utility.DatabaseTransaction) error
+
+	GetAuditFindingActionPlanCountByStatus(findingId uint) ([]auditFindingDTOs.AuditFindingActionPlanStatusCountResponseDTO, error)
 }
 
 // Service and implementations
@@ -328,4 +330,17 @@ func (afaps *AuditFindingActionPlanService) parseAuditFindingActionPlanDates(dto
 	}
 
 	return parsed, nil
+}
+
+func (afaps *AuditFindingActionPlanService) GetAuditFindingActionPlanCountByStatus(findingId uint) ([]auditFindingDTOs.AuditFindingActionPlanStatusCountResponseDTO, error) {
+	if _, err := afaps.auditFindingSvc.GetByID(findingId); err != nil {
+		return nil, err
+	}
+
+	response, err := afaps.repo.GetAuditFindingActionPlanCountByStatus(findingId)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
 }
