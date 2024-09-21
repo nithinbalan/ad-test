@@ -56,7 +56,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditInsightsAuditPlanController := app.AuditModule.AuditInsightsAuditPlanController
 	auditScheduleStatusUpdateController := app.AuditModule.AuditScheduleStatusUpdateController
 	auditInsightsAuditController := app.AuditModule.AuditInsightsAuditController
-	auditInsightsDocumentRequestController := app.AuditModule.AuditInsightsDocumentRequestController
+	auditInsightsDocumentRequestController := app.AuditModule.AuditInsightsDocumentRequestController 
+	auditInsightsDraftReportController := app.AuditModule.AuditInsightsDraftReportController
 
 
 	//Audit Status
@@ -316,6 +317,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	//Audit Insights Audits Document Requests
 	auditRoutes.GET("/audit-insights/document-requests", auditInsightsDocumentRequestController.GetAllAuditInsightsDocumentRequests)
 	auditRoutes.GET("/audit-insights/document-requests/:id", auditInsightsDocumentRequestController.GetAuditInsightsDocumentRequestDetails)
-
+	
+	//Audit Insights Draft Report
+	auditRoutes.GET("/audit-insights/draft-reports", auditInsightsDraftReportController.GetAllAuditInsightsDraftReports)
+	auditRoutes.GET("/audit-insights/audits/:id/draft-reports", auditInsightsDraftReportController.GetAuditInsightsDraftReportDetails)
 
 }

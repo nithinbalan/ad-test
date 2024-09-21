@@ -51,6 +51,7 @@ type AuditModule struct {
 	AuditScheduleStatusUpdateController          *controllers.AuditScheduleStatusUpdateController
 	AuditInsightsAuditController                 *controllers.AuditInsightsAuditController
 	AuditInsightsDocumentRequestController       *controllers.AuditInsightsDocumentRequestController
+	AuditInsightsDraftReportController           *controllers.AuditInsightsDraftReportController
 }
 
 func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, complianceModule *ComplianceModule, riskModule *RiskModule, incidentModule *IncidentModule, documentModule *DocumentModule, settingModule *SettingsModule, masterModule *MasterModule) *AuditModule {
@@ -379,6 +380,16 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 	)
 	auditInsightsDocumentRequestController := controllers.NewAuditInsightsDocumentRequestController(auditInsightsDocumentRequestSvc)
 
+	auditInsightsDraftReportRepo := repositories.NewAuditInsightsDraftReportRepository(db)
+	auditInsightsDraftReportSvc := services.NewAuditInsightsDraftReportService(
+		auditInsightsDraftReportRepo,
+		sharedModule.ActivityLogService,
+		organizationModule.UserSvc,
+		auditSvc,
+		auditDraftReportSvc,
+	)
+	auditInsightsDraftReportController := controllers.NewAuditInsightsDraftReportController(auditInsightsDraftReportSvc)
+
 	return &AuditModule{
 		AuditorRiskRatingController:                  auditorRiskRatingController,
 		AuditUniverseController:                      auditUniverseController,
@@ -422,5 +433,6 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		AuditScheduleStatusUpdateController:          auditScheduleStatusUpdateController,
 		AuditInsightsAuditController:                 auditInsightsAuditController,
 		AuditInsightsDocumentRequestController:       auditInsightsDocumentRequestController,
+		AuditInsightsDraftReportController:           auditInsightsDraftReportController,
 	}
 }
