@@ -5,20 +5,21 @@ import (
 )
 
 type App struct {
-	SettingsModule     *SettingsModule
-	CommonModule       *CommonModule
-	MasterModule       *MasterModule
-	MeetingModule      *MeetingModule
-	LibraryModule      *LibraryModule
-	OrganizationModule *OrganizationModule
-	AuthModule         *AuthModule
-	ComplianceModule   *ComplianceModule
-	RiskModule         *RiskModule
-	IncidentModule     *IncidentModule
-	TaskModule         *TaskModule
-	DocumentModule     *DocumentModule
-	AuditModule        *AuditModule
-	KPIModule          *KPIModule
+	SettingsModule      *SettingsModule
+	CommonModule        *CommonModule
+	MasterModule        *MasterModule
+	MeetingModule       *MeetingModule
+	LibraryModule       *LibraryModule
+	OrganizationModule  *OrganizationModule
+	AuthModule          *AuthModule
+	ComplianceModule    *ComplianceModule
+	RiskModule          *RiskModule
+	IncidentModule      *IncidentModule
+	TaskModule          *TaskModule
+	DocumentModule      *DocumentModule
+	AuditModule         *AuditModule
+	KPIModule           *KPIModule
+	AuditInsightsModule *AuditInsightsModule
 }
 
 func NewApp(db *gorm.DB) *App {
@@ -37,21 +38,23 @@ func NewApp(db *gorm.DB) *App {
 	meetingModule := NewMeetingModule(db, sharedModule, organizationModule, masterModule, commonModule, complianceModule, riskModule, incidentModule)
 	auditModule := NewAuditModule(db, sharedModule, organizationModule, complianceModule, riskModule, incidentModule, documentModule, settingsModule, masterModule)
 	kpiModule := NewKPIModule(db)
+	auditInsightsModule := NewAuditInsightsModule(db, sharedModule, organizationModule, auditModule)
 
 	return &App{
-		SettingsModule:     settingsModule,
-		CommonModule:       commonModule,
-		MasterModule:       masterModule,
-		LibraryModule:      libraryModule,
-		OrganizationModule: organizationModule,
-		AuthModule:         authModule,
-		TaskModule:         taskModule,
-		ComplianceModule:   complianceModule,
-		RiskModule:         riskModule,
-		IncidentModule:     incidentModule,
-		DocumentModule:     documentModule,
-		MeetingModule:      meetingModule,
-		AuditModule:        auditModule,
-		KPIModule:          kpiModule,
+		SettingsModule:      settingsModule,
+		CommonModule:        commonModule,
+		MasterModule:        masterModule,
+		LibraryModule:       libraryModule,
+		OrganizationModule:  organizationModule,
+		AuthModule:          authModule,
+		TaskModule:          taskModule,
+		ComplianceModule:    complianceModule,
+		RiskModule:          riskModule,
+		IncidentModule:      incidentModule,
+		DocumentModule:      documentModule,
+		MeetingModule:       meetingModule,
+		AuditModule:         auditModule,
+		KPIModule:           kpiModule,
+		AuditInsightsModule: auditInsightsModule,
 	}
 }
