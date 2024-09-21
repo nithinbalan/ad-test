@@ -15,13 +15,13 @@ type TaskModule struct {
 	TaskService services.TaskServiceInterface
 }
 
-func NewTaskModule(db *gorm.DB) *TaskModule {
+func NewTaskModule(db *gorm.DB, settingsModule *SettingsModule) *TaskModule {
 	taskStatusRepo := repositories.NewTaskStatusRepository(db)
 	taskStatusSvc := services.NewTaskStatusService(taskStatusRepo)
 	taskStatusController := controllers.NewTaskStatusController(taskStatusSvc)
 
 	taskRepo := repositories.NewTaskRepository(db)
-	taskSvc := services.NewTaskService(taskRepo, taskStatusSvc)
+	taskSvc := services.NewTaskService(taskRepo, taskStatusSvc, settingsModule.ModuleSvc)
 	taskController := controllers.NewTaskController(taskSvc)
 
 	return &TaskModule{

@@ -10,6 +10,7 @@ import (
 	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
 	organizationRepositories "jethur/grc/organization/repositories"
+	taskServices "jethur/grc/task/services"
 	"jethur/utility"
 	"time"
 
@@ -36,6 +37,7 @@ type ControlActionPlanService struct {
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface
 	userSvc             UserServiceInterface
 	notificationSvc     commonServices.NotificationServiceInterface
+	taskSvc             taskServices.TaskServiceInterface
 }
 
 func NewControlActionPlanService(
@@ -45,7 +47,8 @@ func NewControlActionPlanService(
 	severityLevelSvc masterServices.SeverityLevelServiceInterface,
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
 	userSvc UserServiceInterface,
-	notificationSvc commonServices.NotificationServiceInterface) ControlActionPlanServiceInterface {
+	notificationSvc commonServices.NotificationServiceInterface,
+	taskSvc taskServices.TaskServiceInterface) ControlActionPlanServiceInterface {
 	return &ControlActionPlanService{
 		repo:                repo,
 		activityLogSvc:      activityLogSvc,
@@ -54,6 +57,7 @@ func NewControlActionPlanService(
 		actionPlanStatusSvc: actionPlanStatusSvc,
 		userSvc:             userSvc,
 		notificationSvc:     notificationSvc,
+		taskSvc:             taskSvc,
 	}
 }
 
@@ -162,7 +166,81 @@ func (caps *ControlActionPlanService) Create(controlID uint, currentUserID uint,
 		return 0, err
 	}
 
+	// Construct the URL for the task
+	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+
+	// Prepare the task DTO
+	taskDTO := commonDTOs.TaskFormDTO{
+		ModuleIdentifier:    "control",
+		ControlActionPlanID: &id,
+		Title:               ControlActionPlanFormDTO.Title,
+		Description:         ControlActionPlanFormDTO.Description,
+		TargetDate:          dates.TargetDate,
+		URLParam:            &urlParam,
+		QueryParam:          nil,
+		SeverityLevelID:     ControlActionPlanFormDTO.SeverityLevelID,
+		ResponsibleUserID:   ControlActionPlanFormDTO.ResponsibleUserID,
+	}
+
+	if err := caps.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
 	tx.Commit()
+
+	go func() {
+
+		entity := "control-action-plan"
+		action := "responsible-user-assign"
+
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserID:               controlActionPlan.ResponsibleUserID,
+			ModuleIdentifier:     "organization",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			ReferenceNumber:      "",
+			HeadingEn:            "Control Action Plan Assignment",
+			HeadingAr:            "تعيين خطة عمل التحكم",
+			TitleEn:              ControlActionPlanFormDTO.Title,
+			TitleAr:              ControlActionPlanFormDTO.Title,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		responsibleUser, err := caps.userSvc.GetByID(controlActionPlan.ResponsibleUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user for notification", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		emailTo := []string{responsibleUser.Email}
+		subject := fmt.Sprintf("Control Action Plan/%s: Assigned", ControlActionPlanFormDTO.Title)
+		templateRelativePath := "organization/templates/email/control_action_plan_create_responsible_user_mail.html"
+		emailData := organizationDTOs.ControlActionPlanMailDTO{
+			FirstNameEn: responsibleUser.FirstNameEn,
+			LastNameEn:  responsibleUser.LastNameEn,
+			MessageEn:   ControlActionPlanFormDTO.Title,
+		}
+
+		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              emailTo,
+			Subject:              subject,
+			TemplateRelativePath: templateRelativePath,
+			EmailData:            emailData,
+		}
+
+		err = caps.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "control_action_plan")
+		if err != nil {
+			utility.LogError("Failed to send control action plan notifications", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
+	}()
 
 	go func() {
 		// Log activity
