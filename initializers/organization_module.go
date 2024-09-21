@@ -134,7 +134,7 @@ func NewOrganizationModule(
 	processGroupController := controllers.NewProcessGroupController(processGroupSvc)
 
 	controlActionPlanRepo := repositories.NewControlActionPlanRepository(db)
-	controlActionPlanSvc := services.NewControlActionPlanService(controlActionPlanRepo, sharedModule.ActivityLogService, controlSvc, masterModule.SeverityLevelSvc, masterModule.ActionPlanStatusSvc, userSvc, commonModule.NotificationService)
+	controlActionPlanSvc := services.NewControlActionPlanService(controlActionPlanRepo, sharedModule.ActivityLogService, controlSvc, masterModule.SeverityLevelSvc, masterModule.ActionPlanStatusSvc, userSvc, commonModule.NotificationService, taskModule.TaskService)
 	controlActionPlanController := controllers.NewControlActionPlanController(controlActionPlanSvc)
 
 	controlActionPlanStatusUpdateRepo := repositories.NewControlActionPlanStatusUpdateRepository(db)

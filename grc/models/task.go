@@ -12,10 +12,12 @@ type Task struct {
 	SLAActionPlanID        *uint      `json:"sla_action_plan_id"`
 	IncidentActionPlanID   *uint      `json:"incident_action_plan_id"`
 	ControlActionPlanID    *uint      `json:"control_action_plan_id"`
+	RiskActionPlanID       *uint      `json:"risk_action_plan_id"`
 	Title                  string     `json:"title" binding:"required,max=255"`
 	Description            *string    `json:"description" gorm:"type:nvarchar(max)"`
 	TargetDate             *time.Time `json:"target_date"`
-	URL                    string     `json:"url" binding:"required,max=1000"`
+	URLParam               *string    `json:"url_param" gorm:"type:nvarchar(max)"`
+	QueryParam             *string    `json:"query_param" gorm:"type:nvarchar(max)"`
 	SeverityLevelID        *uint      `json:"severity_level_id"`
 	ResponsibleUserID      uint       `json:"responsible_user_id"`
 	TaskStatusID           uint       `json:"task_status_id" binding:"required"`
@@ -30,6 +32,7 @@ type Task struct {
 	SLAActionPlan        *SLAActionPlan        `gorm:"foreignKey:SLAActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	IncidentActionPlan   *IncidentActionPlan   `gorm:"foreignKey:IncidentActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	ControlActionPlan    *ControlActionPlan    `gorm:"foreignKey:ControlActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	RiskActionPlan       *RiskActionPlan       `gorm:"foreignKey:RiskActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"` // New relationship added
 	SeverityLevel        *SeverityLevel        `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	ResponsibleUser      *User                 `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	TaskStatus           *TaskStatus           `gorm:"foreignKey:TaskStatusID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
