@@ -66,6 +66,7 @@ type MeetingActionPlanListQueryParamsDTO struct {
 	QuickFilter    []string
 	TargetDateFrom string
 	TargetDateTo   string
+	Export         bool
 }
 
 type MeetingActionPlanListResponseDTO struct {

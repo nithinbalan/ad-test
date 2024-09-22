@@ -26,7 +26,7 @@ func NewApp(db *gorm.DB) *App {
 	sharedModule := NewSharedModule(db)
 	masterModule := NewMasterModule(db, sharedModule)
 	settingsModule := NewSettingsModule(db, sharedModule, masterModule)
-	taskModule := NewTaskModule(db)
+	taskModule := NewTaskModule(db, settingsModule)
 	commonModule := NewCommonModule(db, settingsModule)
 	libraryModule := NewLibraryModule(db, sharedModule, masterModule)
 	organizationModule := NewOrganizationModule(db, sharedModule, settingsModule, masterModule, taskModule, commonModule)

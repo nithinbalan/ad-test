@@ -10,7 +10,9 @@ import (
 	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
 	organizationRepositories "jethur/grc/organization/repositories"
+	taskServices "jethur/grc/task/services"
 	"jethur/utility"
+	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -35,6 +37,7 @@ type ControlActionPlanService struct {
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface
 	userSvc             UserServiceInterface
 	notificationSvc     commonServices.NotificationServiceInterface
+	taskSvc             taskServices.TaskServiceInterface
 }
 
 func NewControlActionPlanService(
@@ -44,7 +47,8 @@ func NewControlActionPlanService(
 	severityLevelSvc masterServices.SeverityLevelServiceInterface,
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
 	userSvc UserServiceInterface,
-	notificationSvc commonServices.NotificationServiceInterface) ControlActionPlanServiceInterface {
+	notificationSvc commonServices.NotificationServiceInterface,
+	taskSvc taskServices.TaskServiceInterface) ControlActionPlanServiceInterface {
 	return &ControlActionPlanService{
 		repo:                repo,
 		activityLogSvc:      activityLogSvc,
@@ -53,6 +57,7 @@ func NewControlActionPlanService(
 		actionPlanStatusSvc: actionPlanStatusSvc,
 		userSvc:             userSvc,
 		notificationSvc:     notificationSvc,
+		taskSvc:             taskSvc,
 	}
 }
 
@@ -115,7 +120,8 @@ func (caps ControlActionPlanService) GetFullDetailsByID(controlID uint, id uint)
 func (caps *ControlActionPlanService) Create(controlID uint, currentUserID uint, ControlActionPlanFormDTO *organizationDTOs.ControlActionPlanFormDTO) (uint, error) {
 	tx := caps.repo.BeginTransaction()
 
-	if _, err := caps.controlSvc.GetByID(controlID); err != nil {
+	control, err := caps.controlSvc.GetByID(controlID)
+	if err != nil {
 		return 0, err
 	}
 
@@ -142,6 +148,7 @@ func (caps *ControlActionPlanService) Create(controlID uint, currentUserID uint,
 
 	id, err := caps.repo.Create(controlActionPlan)
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
@@ -159,10 +166,29 @@ func (caps *ControlActionPlanService) Create(controlID uint, currentUserID uint,
 		return 0, err
 	}
 
+	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+
+	taskDTO := commonDTOs.TaskFormDTO{
+		ModuleIdentifier:    "control",
+		ControlActionPlanID: &id,
+		Title:               ControlActionPlanFormDTO.Title,
+		Description:         ControlActionPlanFormDTO.Description,
+		TargetDate:          dates.TargetDate,
+		URLParam:            &urlParam,
+		QueryParam:          nil,
+		SeverityLevelID:     ControlActionPlanFormDTO.SeverityLevelID,
+		ResponsibleUserID:   ControlActionPlanFormDTO.ResponsibleUserID,
+	}
+
+	if err := caps.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
 	tx.Commit()
 
 	go func() {
-		urlParam := fmt.Sprintf(`{"id":%d}`, id)
+
 		entity := "control-action-plan"
 		action := "responsible-user-assign"
 
@@ -215,6 +241,7 @@ func (caps *ControlActionPlanService) Create(controlID uint, currentUserID uint,
 	}()
 
 	go func() {
+		// Log activity
 		err := caps.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.ControlActionPlan{}.TableName(),
@@ -232,8 +259,76 @@ func (caps *ControlActionPlanService) Create(controlID uint, currentUserID uint,
 				"userID":    currentUserID,
 				"error":     err.Error(),
 			}
-
 			utility.LogError("Failed to log activity", fields)
+		}
+
+		// Prepare notification
+		urlParam := fmt.Sprintf(`{"id":%d}`, id)
+		entity := "control-action-plan"
+		action := "action-plan-assigned"
+
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserID:               ControlActionPlanFormDTO.ResponsibleUserID,
+			ModuleIdentifier:     "organization",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			ReferenceNumber:      control.ReferenceNumber,
+			HeadingEn:            "Control Action Plan Assigned",
+			HeadingAr:            "خطة عمل التحكم المعينة",
+			TitleEn:              ControlActionPlanFormDTO.Title,
+			TitleAr:              ControlActionPlanFormDTO.Title,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		responsibleUser, err := caps.userSvc.GetByID(ControlActionPlanFormDTO.ResponsibleUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		assignedBy, err := caps.userSvc.GetByID(currentUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		emailTo := []string{responsibleUser.Email}
+		subject := fmt.Sprintf("Control Action Plan Assigned: %s", ControlActionPlanFormDTO.Title)
+		appURL := utility.GetAppURL()
+		emailData := map[string]interface{}{
+			"FirstNameEn":            responsibleUser.FirstNameEn,
+			"LastNameEn":             responsibleUser.LastNameEn,
+			"ControlReferenceNumber": control.ReferenceNumber,
+			"ControlTitle":           control.TitleEn,
+			"ActionPlanTitle":        ControlActionPlanFormDTO.Title,
+			"ActionPlanDescription":  ControlActionPlanFormDTO.Description,
+			"TargetDate":             dates.TargetDate.Format("2006-01-02"),
+			"AssignedByFirstNameEn":  assignedBy.FirstNameEn,
+			"AssignedByLastNameEn":   assignedBy.LastNameEn,
+			"AssignedOn":             time.Now().Format("2006-01-02"),
+			"RedirectURL":            fmt.Sprintf("%s/control-action-plan/%d", appURL, id),
+		}
+
+		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              emailTo,
+			Subject:              subject,
+			TemplateRelativePath: "organization/templates/email/control_action_plan_create_responsible_user_mail.html",
+			EmailData:            emailData,
+		}
+
+		// Send Notification and Email
+		err = caps.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "control_action_plan")
+		if err != nil {
+			utility.LogError("Failed to send notifications", map[string]interface{}{
+				"error": err.Error(),
+			})
 		}
 	}()
 
