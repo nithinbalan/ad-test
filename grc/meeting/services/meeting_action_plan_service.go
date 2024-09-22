@@ -11,6 +11,7 @@ import (
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
+	"os"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -26,6 +27,7 @@ type MeetingActionPlanServiceInterface interface {
 	StatusUpdate(meetingID uint, id uint, currentUserID uint, meetingActionPlanStatusUpdateFormDTO *meetingDTOs.MeetingActionPlanStatusUpdateFormDTO, tx ...utility.DatabaseTransaction) error
 
 	GetMeetingActionPlanSummary(meetingID uint) (*meetingDTOs.ActionPlanSummaryDTO, error)
+	ExportMeetingActionPlan(data []*meetingDTOs.MeetingActionPlanListDTO, currentUserID uint) (*os.File, error)
 }
 
 // Service and implementations
@@ -39,6 +41,7 @@ type MeetingActionPlanService struct {
 	notificationSvc        commonServices.NotificationServiceInterface
 	meetingMinuteSvc       MeetingMinuteServiceInterface
 	meetingMinuteStatusSvc MeetingMinuteStatusServiceInterface
+	userSettingSvc         organizationServices.UserSettingServiceInterface
 }
 
 func NewMeetingActionPlanService(
@@ -50,7 +53,8 @@ func NewMeetingActionPlanService(
 	userSvc organizationServices.UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
 	meetingMinuteSvc MeetingMinuteServiceInterface,
-	meetingMinuteStatusSvc MeetingMinuteStatusServiceInterface) MeetingActionPlanServiceInterface {
+	meetingMinuteStatusSvc MeetingMinuteStatusServiceInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface) MeetingActionPlanServiceInterface {
 	return &MeetingActionPlanService{
 		repo:                   repo,
 		activityLogSvc:         activityLogSvc,
@@ -61,6 +65,7 @@ func NewMeetingActionPlanService(
 		notificationSvc:        notificationSvc,
 		meetingMinuteSvc:       meetingMinuteSvc,
 		meetingMinuteStatusSvc: meetingMinuteStatusSvc,
+		userSettingSvc:         userSettingSvc,
 	}
 }
 
@@ -372,4 +377,70 @@ func (maps *MeetingActionPlanService) GetMeetingActionPlanSummary(meetingID uint
 	}
 
 	return summary, nil
+}
+
+func (maps *MeetingActionPlanService) ExportMeetingActionPlan(data []*meetingDTOs.MeetingActionPlanListDTO, currentUserID uint) (*os.File, error) {
+	// Fetch user setting for language preference
+	userSetting, err := maps.userSettingSvc.GetUserSettingsByUserID(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Define headers based on user language setting
+	var headers []string
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"SL No.",
+			"Action Plan",
+			"Meeting",
+			"Description",
+			"Severity",
+			"Responsible User",
+			"Target Date",
+			"Percentage",
+			"Status",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Action Plan",
+			"Meeting",
+			"Description",
+			"Severity",
+			"Responsible User",
+			"Target Date",
+			"Percentage",
+			"Status",
+		}
+	}
+	// Prepare the data rows
+	rows := make([][]interface{}, len(data))
+	for i, actionPlan := range data {
+		var responsibleUser, severity, status string
+
+		if userSetting.Language == "ar" {
+			responsibleUser = actionPlan.ResponsibleUserFirstNameAr
+			severity = utility.GetStringValue(actionPlan.SeverityLevelTitleAr)
+			status = actionPlan.ActionPlanStatusTitleAr
+		} else {
+			responsibleUser = actionPlan.ResponsibleUserFirstNameEn
+			severity = utility.GetStringValue(actionPlan.SeverityLevelTitleEn)
+			status = actionPlan.ActionPlanStatusTitleEn
+		}
+
+		rows[i] = []interface{}{
+			i + 1,
+			actionPlan.Title,
+			actionPlan.MeetingTitle,
+			utility.GetStringValue(actionPlan.Description),
+			severity,
+			responsibleUser,
+			utility.GetStringValue(actionPlan.TargetDate),
+			actionPlan.Percentage,
+			status,
+		}
+	}
+
+	// Generate the Excel file
+	return utility.GenerateExcelFile(headers, rows)
 }
