@@ -53,7 +53,8 @@ func NewMeetingModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		complianceModule.ComplianceRequirementSvc,
 		riskModule.RiskRegisterSvc,
 		organizationModule.ProcessSvc,
-		incidentModule.IncidentRegisterSvc)
+		incidentModule.IncidentRegisterSvc,
+		organizationModule.UserSettingSvc)
 	meetingController := controllers.NewMeetingController(meetingSvc)
 
 	meetingAgendaRepo := repositories.NewMeetingAgendaRepository(db)
@@ -69,11 +70,11 @@ func NewMeetingModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 	meetingMinuteController := controllers.NewMeetingMinuteController(meetingMinuteSvc)
 
 	meetingActionPlanRepo := repositories.NewMeetingActionPlanRepository(db)
-	meetingActionPlanSvc := services.NewMeetingActionPlanService(meetingActionPlanRepo, sharedModule.ActivityLogService, meetingSvc, masterModule.SeverityLevelSvc, masterModule.ActionPlanStatusSvc, organizationModule.UserSvc, commonModule.NotificationService, meetingMinuteSvc,meetingMinuteStatusSvc)
+	meetingActionPlanSvc := services.NewMeetingActionPlanService(meetingActionPlanRepo, sharedModule.ActivityLogService, meetingSvc, masterModule.SeverityLevelSvc, masterModule.ActionPlanStatusSvc, organizationModule.UserSvc, commonModule.NotificationService, meetingMinuteSvc, meetingMinuteStatusSvc, organizationModule.UserSettingSvc)
 	meetingActionPlanController := controllers.NewMeetingActionPlanController(meetingActionPlanSvc)
 
 	meetingActionPlanStatusUpdateRepo := repositories.NewMeetingActionPlanStatusUpdateRepository(db)
-	meetingActionPlanStatusUpdateSvc := services.NewMeetingActionPlanStatusUpdateService(meetingActionPlanStatusUpdateRepo, sharedModule.ActivityLogService, meetingActionPlanSvc, masterModule.ActionPlanStatusSvc,meetingMinuteSvc,meetingMinuteStatusSvc)
+	meetingActionPlanStatusUpdateSvc := services.NewMeetingActionPlanStatusUpdateService(meetingActionPlanStatusUpdateRepo, sharedModule.ActivityLogService, meetingActionPlanSvc, masterModule.ActionPlanStatusSvc, meetingMinuteSvc, meetingMinuteStatusSvc)
 	meetingActionPlanStatusUpdateController := controllers.NewMeetingActionPlanStatusUpdateController(meetingActionPlanStatusUpdateSvc)
 
 	meetingAssociatedItemRepo := repositories.NewMeetingAssociatedItemRepository(db)

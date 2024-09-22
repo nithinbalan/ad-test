@@ -9,7 +9,9 @@ import (
 	masterRepositories "jethur/grc/masters/repositories"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
+	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
+	"os"
 	"time"
 
 	"github.com/mitchellh/mapstructure"
@@ -24,6 +26,8 @@ type IncidentActionPlanServiceInterface interface {
 	Update(incidentID uint, id uint, currentUserID uint, incident *incidentDTOs.IncidentActionPlanFormDTO) error
 	Delete(incidentID uint, ids []uint, currentUserID uint) ([]uint, error)
 	StatusUpdate(incidentID uint, id uint, currentUserID uint, ActionPlanStatusID uint, tx utility.DatabaseTransaction) error
+
+	ExportIncidentActionPlan(data []*incidentDTOs.IncidentActionPlanListDTO, currentUserID uint) (*os.File, error)
 }
 
 // Service and implementations
@@ -34,6 +38,7 @@ type IncidentActionPlanService struct {
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface
 	severityLevelSvc    masterServices.SeverityLevelServiceInterface
 	incidentTimelineSvc IncidentTimelineServiceInterface
+	userSettingSvc      organizationServices.UserSettingServiceInterface
 }
 
 func NewIncidentActionPlanService(
@@ -43,6 +48,7 @@ func NewIncidentActionPlanService(
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
 	severityLevelSvc masterRepositories.SeverityLevelRepositoryInterface,
 	incidentTimelineSvc IncidentTimelineServiceInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface,
 ) IncidentActionPlanServiceInterface {
 	return &IncidentActionPlanService{
 		repo:                repo,
@@ -51,6 +57,7 @@ func NewIncidentActionPlanService(
 		actionPlanStatusSvc: actionPlanStatusSvc,
 		severityLevelSvc:    severityLevelSvc,
 		incidentTimelineSvc: incidentTimelineSvc,
+		userSettingSvc:      userSettingSvc,
 	}
 }
 
@@ -388,4 +395,67 @@ func (iaps *IncidentActionPlanService) parseIncidentActionPlanDates(dto *inciden
 	}
 
 	return parsed, nil
+}
+
+func (iaps *IncidentActionPlanService) ExportIncidentActionPlan(data []*incidentDTOs.IncidentActionPlanListDTO, currentUserID uint) (*os.File, error) {
+	// Fetch user setting for language preference
+	userSetting, err := iaps.userSettingSvc.GetUserSettingsByUserID(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Define headers based on user language setting
+	var headers []string
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"SL No.",
+			"Action Plan",
+			"Incident",
+			"Description",
+			"Severity",
+			"Responsible User",
+			"Target Date",
+			"Status",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Action Plan",
+			"Incident",
+			"Description",
+			"Severity",
+			"Responsible User",
+			"Target Date",
+			"Status",
+		}
+	}
+	// Prepare the data rows
+	rows := make([][]interface{}, len(data))
+	for i, actionPlan := range data {
+		var responsibleUser, severity, status string
+
+		if userSetting.Language == "ar" {
+			responsibleUser = actionPlan.ResponsibleUserFirstNameAr
+			severity = utility.GetStringValue(actionPlan.SeverityLevelTitleAr)
+			status = actionPlan.ActionPlanStatusTitleAr
+		} else {
+			responsibleUser = actionPlan.ResponsibleUserFirstNameEn
+			severity = utility.GetStringValue(actionPlan.SeverityLevelTitleEn)
+			status = actionPlan.ActionPlanStatusTitleEn
+		}
+
+		rows[i] = []interface{}{
+			i + 1,
+			actionPlan.Title,
+			actionPlan.IncidentTitle,
+			utility.GetStringValue(actionPlan.Description),
+			severity,
+			responsibleUser,
+			utility.GetStringValue(actionPlan.TargetDate),
+			status,
+		}
+	}
+
+	// Generate the Excel file
+	return utility.GenerateExcelFile(headers, rows)
 }

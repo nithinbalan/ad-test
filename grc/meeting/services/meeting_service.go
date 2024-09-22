@@ -10,6 +10,7 @@ import (
 	meetingRepositories "jethur/grc/meeting/repositories"
 	organizationServices "jethur/grc/organization/services"
 	riskServices "jethur/grc/risk/services"
+	"os"
 
 	"jethur/grc/models"
 	"jethur/utility"
@@ -26,6 +27,8 @@ type MeetingServiceInterface interface {
 	Update(id uint, currentUserID uint, meetingFormDTO *meetingDTOs.MeetingFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	GetAllCounts(meetingID uint) (*meetingDTOs.MeetingsCountResponseDTO, error)
+
+	ExportMeeting(data []*meetingDTOs.MeetingListDTO, currentUserID uint) (*os.File, error)
 }
 
 type MeetingService struct {
@@ -40,6 +43,7 @@ type MeetingService struct {
 	riskRegisterSvc          riskServices.RiskRegisterServiceInterface
 	processSvc               organizationServices.ProcessServiceInterface
 	incidentRegisterSvc      incidentServices.IncidentRegisterServiceInterface
+	userSettingSvc           organizationServices.UserSettingServiceInterface
 }
 
 func NewMeetingService(
@@ -54,7 +58,7 @@ func NewMeetingService(
 	riskRegisterSvc riskServices.RiskRegisterServiceInterface,
 	processSvc organizationServices.ProcessServiceInterface,
 	incidentRegisterSvc incidentServices.IncidentRegisterServiceInterface,
-) MeetingServiceInterface {
+	userSettingSvc organizationServices.UserSettingServiceInterface) MeetingServiceInterface {
 	return &MeetingService{
 		repo:                     repo,
 		activityLogSvc:           activityLogSvc,
@@ -67,6 +71,7 @@ func NewMeetingService(
 		riskRegisterSvc:          riskRegisterSvc,
 		processSvc:               processSvc,
 		incidentRegisterSvc:      incidentRegisterSvc,
+		userSettingSvc:           userSettingSvc,
 	}
 }
 
@@ -109,8 +114,7 @@ func (ms MeetingService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTrans
 		meetingDate := meeting.Meeting.Date.Format("2006-01-02")
 		meetingDTO.Meeting.DateString = &meetingDate
 	}
-	
-	
+
 	meetingDTO.CreatedAt = meeting.CreatedAt
 	meetingDTO.UpdatedAt = meeting.UpdatedAt
 
@@ -1040,4 +1044,72 @@ func (ms *MeetingService) GetAllCounts(meetingID uint) (*meetingDTOs.MeetingsCou
 	}
 
 	return response, nil
+}
+
+func (ms *MeetingService) ExportMeeting(data []*meetingDTOs.MeetingListDTO, currentUserID uint) (*os.File, error) {
+	// Fetch user setting for language preference
+	userSetting, err := ms.userSettingSvc.GetUserSettingsByUserID(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Define headers based on user language setting
+	var headers []string
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"SL No.",
+			"Ref No",
+			"Title",
+			"Meeting Category",
+			"Date",
+			"Time",
+			"Location",
+			"Organizer",
+			"Status",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Ref No",
+			"Title",
+			"Meeting Category",
+			"Date",
+			"Time",
+			"Location",
+			"Organizer",
+			"Status",
+		}
+	}
+	// Prepare the data rows
+	rows := make([][]interface{}, len(data))
+	for i, meeting := range data {
+		var meetingCategory, location, organizer, status string
+
+		if userSetting.Language == "ar" {
+			meetingCategory = utility.GetStringValue(meeting.MeetingTypeTitleAr)
+			location = utility.GetStringValue(meeting.Location)
+			organizer = utility.GetStringValue(meeting.OrganizerUserFirstNameAr)
+			status = utility.GetStringValue(meeting.MeetingStatusTitleAr)
+		} else {
+			meetingCategory = utility.GetStringValue(meeting.MeetingTypeTitleAr)
+			location = utility.GetStringValue(meeting.Location)
+			organizer = utility.GetStringValue(meeting.OrganizerUserFirstNameAr)
+			status = utility.GetStringValue(meeting.MeetingStatusTitleAr)
+		}
+
+		rows[i] = []interface{}{
+			i + 1,
+			meeting.ReferenceNumber,
+			meeting.Title,
+			meetingCategory,
+			meeting.Date,
+			meeting.StartTime,
+			location,
+			organizer,
+			status,
+		}
+	}
+
+	// Generate the Excel file
+	return utility.GenerateExcelFile(headers, rows)
 }

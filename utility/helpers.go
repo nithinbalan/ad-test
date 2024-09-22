@@ -265,16 +265,26 @@ func GetAppURL() string {
 	return appURL
 }
 
-func GetIntValueAsString(pointer *int) string {
-	if pointer != nil {
-		return fmt.Sprintf("%d", *pointer)
+func GetIntValueAsString(value interface{}) string {
+	switch v := value.(type) {
+	case *int:
+		if v != nil {
+			return fmt.Sprintf("%d", *v)
+		}
+	case int:
+		return fmt.Sprintf("%d", v)
 	}
 	return ""
 }
 
-func GetStringValue(pointer *string) string {
-	if pointer != nil {
-		return *pointer
+func GetStringValue(value interface{}) string {
+	switch v := value.(type) {
+	case *string:
+		if v != nil {
+			return *v
+		}
+	case string:
+		return v
 	}
 	return ""
 }
