@@ -146,7 +146,7 @@ func (caps *ControlActionPlanService) Create(controlID uint, currentUserID uint,
 		CreatedByID:        currentUserID,
 	}
 
-	id, err := caps.repo.Create(controlActionPlan)
+	id, err := caps.repo.Create(controlActionPlan, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -169,7 +169,7 @@ func (caps *ControlActionPlanService) Create(controlID uint, currentUserID uint,
 	urlParam := fmt.Sprintf(`{"id":%d}`, id)
 
 	taskDTO := commonDTOs.TaskFormDTO{
-		ModuleIdentifier:    "control",
+		ModuleIdentifier:    "organization",
 		ControlActionPlanID: &id,
 		Title:               ControlActionPlanFormDTO.Title,
 		Description:         ControlActionPlanFormDTO.Description,
@@ -186,59 +186,6 @@ func (caps *ControlActionPlanService) Create(controlID uint, currentUserID uint,
 	}
 
 	tx.Commit()
-
-	go func() {
-
-		entity := "control-action-plan"
-		action := "responsible-user-assign"
-
-		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               controlActionPlan.ResponsibleUserID,
-			ModuleIdentifier:     "organization",
-			NotificationType:     string(commonDTOs.AssignmentType),
-			ReferenceNumber:      "",
-			HeadingEn:            "Control Action Plan Assignment",
-			HeadingAr:            "تعيين خطة عمل التحكم",
-			TitleEn:              ControlActionPlanFormDTO.Title,
-			TitleAr:              ControlActionPlanFormDTO.Title,
-			Entity:               &entity,
-			Action:               &action,
-			URLParam:             urlParam,
-			IsSystemNotification: false,
-			CreatedByID:          &currentUserID,
-		}
-
-		responsibleUser, err := caps.userSvc.GetByID(controlActionPlan.ResponsibleUserID)
-		if err != nil {
-			utility.LogError("Failed to fetch responsible user for notification", map[string]interface{}{
-				"error": err.Error(),
-			})
-			return
-		}
-
-		emailTo := []string{responsibleUser.Email}
-		subject := fmt.Sprintf("Control Action Plan/%s: Assigned", ControlActionPlanFormDTO.Title)
-		templateRelativePath := "organization/templates/email/control_action_plan_create_responsible_user_mail.html"
-		emailData := organizationDTOs.ControlActionPlanMailDTO{
-			FirstNameEn: responsibleUser.FirstNameEn,
-			LastNameEn:  responsibleUser.LastNameEn,
-			MessageEn:   ControlActionPlanFormDTO.Title,
-		}
-
-		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
-			EmailTo:              emailTo,
-			Subject:              subject,
-			TemplateRelativePath: templateRelativePath,
-			EmailData:            emailData,
-		}
-
-		err = caps.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "control_action_plan")
-		if err != nil {
-			utility.LogError("Failed to send control action plan notifications", map[string]interface{}{
-				"error": err.Error(),
-			})
-		}
-	}()
 
 	go func() {
 		// Log activity
@@ -265,15 +212,14 @@ func (caps *ControlActionPlanService) Create(controlID uint, currentUserID uint,
 		// Prepare notification
 		urlParam := fmt.Sprintf(`{"id":%d}`, id)
 		entity := "control-action-plan"
-		action := "action-plan-assigned"
+		action := "responsible-user-assign"
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 			UserID:               ControlActionPlanFormDTO.ResponsibleUserID,
 			ModuleIdentifier:     "organization",
 			NotificationType:     string(commonDTOs.AssignmentType),
-			ReferenceNumber:      control.ReferenceNumber,
-			HeadingEn:            "Control Action Plan Assigned",
-			HeadingAr:            "خطة عمل التحكم المعينة",
+			HeadingEn:            "Control Action Plan Assignment",
+			HeadingAr:            "تعيين خطة عمل التحكم",
 			TitleEn:              ControlActionPlanFormDTO.Title,
 			TitleAr:              ControlActionPlanFormDTO.Title,
 			Entity:               &entity,
@@ -300,7 +246,7 @@ func (caps *ControlActionPlanService) Create(controlID uint, currentUserID uint,
 		}
 
 		emailTo := []string{responsibleUser.Email}
-		subject := fmt.Sprintf("Control Action Plan Assigned: %s", ControlActionPlanFormDTO.Title)
+		subject := fmt.Sprintf("Control Action Plan/%s: Responsibility Assigned", ControlActionPlanFormDTO.Title)
 		appURL := utility.GetAppURL()
 		emailData := map[string]interface{}{
 			"FirstNameEn":            responsibleUser.FirstNameEn,
@@ -336,7 +282,9 @@ func (caps *ControlActionPlanService) Create(controlID uint, currentUserID uint,
 }
 
 func (caps *ControlActionPlanService) Update(controlID uint, id uint, currentUserID uint, ControlActionPlanFormDTO *organizationDTOs.ControlActionPlanFormDTO) error {
-	if _, err := caps.controlSvc.GetByID(controlID); err != nil {
+	tx := caps.repo.BeginTransaction()
+	control, err := caps.controlSvc.GetByID(controlID)
+	if err != nil {
 		return err
 	}
 
@@ -347,6 +295,7 @@ func (caps *ControlActionPlanService) Update(controlID uint, id uint, currentUse
 
 	oldResponsibleUserID := existingControlActionPlan.ResponsibleUserID
 
+	// Validate the incoming data
 	if err := caps.validateControlActionPlanFormDTO(ControlActionPlanFormDTO); err != nil {
 		return err
 	}
@@ -356,7 +305,6 @@ func (caps *ControlActionPlanService) Update(controlID uint, id uint, currentUse
 		return err
 	}
 
-	// Update Control ActionPlan
 	existingControlActionPlan.Title = ControlActionPlanFormDTO.Title
 	existingControlActionPlan.Description = ControlActionPlanFormDTO.Description
 	existingControlActionPlan.SeverityLevelID = ControlActionPlanFormDTO.SeverityLevelID
@@ -366,31 +314,64 @@ func (caps *ControlActionPlanService) Update(controlID uint, id uint, currentUse
 	existingControlActionPlan.ActionPlanStatusID = ControlActionPlanFormDTO.ActionPlanStatusID
 	existingControlActionPlan.UpdatedByID = &currentUserID
 
-	err = caps.repo.Update(existingControlActionPlan)
-
+	err = caps.repo.Update(existingControlActionPlan, tx)
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
+	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+
+	taskUpdateDTO := commonDTOs.TaskFormDTO{
+		Title:             ControlActionPlanFormDTO.Title,
+		Description:       ControlActionPlanFormDTO.Description,
+		TargetDate:        dates.TargetDate,
+		URLParam:          &urlParam,
+		SeverityLevelID:   ControlActionPlanFormDTO.SeverityLevelID,
+		ResponsibleUserID: ControlActionPlanFormDTO.ResponsibleUserID,
+	}
+
+	err = caps.taskSvc.Update(currentUserID, taskUpdateDTO, "control_action_plan_id", id, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+
 	go func() {
 		if oldResponsibleUserID != ControlActionPlanFormDTO.ResponsibleUserID {
+
 			urlParam := fmt.Sprintf(`{"id":%d}`, id)
 			entity := "control-action-plan"
-			removeAction := "responsible-user-remove"
-			assignAction := "responsible-user-assign"
 
-			// Notify the old responsible user
-			oldResponsibleUserNotification := &commonDTOs.DBNotificationDTO{
+			oldResponsibleUserAction := "responsible-user-remove"
+			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
 				UserID:               oldResponsibleUserID,
 				ModuleIdentifier:     "organization",
 				NotificationType:     string(commonDTOs.InformationType),
-				ReferenceNumber:      "",
-				HeadingEn:            "Control Action Plan Responsibility Removed",
-				HeadingAr:            "إزالة مسؤولية خطة العمل",
-				TitleEn:              ControlActionPlanFormDTO.Title,
-				TitleAr:              ControlActionPlanFormDTO.Title,
+				HeadingEn:            "Control Action Plan Removal",
+				HeadingAr:            "إزالة خطة عمل التحكم",
+				TitleEn:              existingControlActionPlan.Title,
+				TitleAr:              existingControlActionPlan.Title,
 				Entity:               &entity,
-				Action:               &removeAction,
+				Action:               &oldResponsibleUserAction,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			newResponsibleUserAction := "responsible-user-assign"
+			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserID:               ControlActionPlanFormDTO.ResponsibleUserID,
+				ModuleIdentifier:     "organization",
+				NotificationType:     string(commonDTOs.AssignmentType),
+				HeadingEn:            "Control Action Plan Assignment",
+				HeadingAr:            "تعيين خطة عمل التحكم",
+				TitleEn:              existingControlActionPlan.Title,
+				TitleAr:              existingControlActionPlan.Title,
+				Entity:               &entity,
+				Action:               &newResponsibleUserAction,
 				URLParam:             urlParam,
 				IsSystemNotification: false,
 				CreatedByID:          &currentUserID,
@@ -398,68 +379,87 @@ func (caps *ControlActionPlanService) Update(controlID uint, id uint, currentUse
 
 			oldResponsibleUser, err := caps.userSvc.GetByID(oldResponsibleUserID)
 			if err != nil {
-				utility.LogError("Failed to fetch old responsible user details", map[string]interface{}{
+				utility.LogError("Failed to fetch old responsible user", map[string]interface{}{
 					"error": err.Error(),
 				})
 				return
-			}
-
-			oldResponsibleUserEmail := &commonDTOs.EmailNotificationDTO{
-				EmailTo: []string{oldResponsibleUser.Email},
-				Subject: fmt.Sprintf("Control Action Plan/%s: Responsibility Removed", existingControlActionPlan.Title),
-				EmailData: organizationDTOs.ControlActionPlanMailDTO{
-					FirstNameEn: oldResponsibleUser.FirstNameEn,
-					LastNameEn:  oldResponsibleUser.LastNameEn,
-					MessageEn:   existingControlActionPlan.Title,
-				},
-				TemplateRelativePath: "organization/templates/email/control_action_plan_remove_responsible_user_mail.html",
-			}
-
-			// Notify the new responsible user
-			newResponsibleUserNotification := &commonDTOs.DBNotificationDTO{
-				UserID:               ControlActionPlanFormDTO.ResponsibleUserID,
-				ModuleIdentifier:     "organization",
-				NotificationType:     string(commonDTOs.AssignmentType),
-				ReferenceNumber:      "",
-				HeadingEn:            "Control Action Plan Assigned",
-				HeadingAr:            "تم تعيين مسؤولية خطة العمل",
-				TitleEn:              ControlActionPlanFormDTO.Title,
-				TitleAr:              ControlActionPlanFormDTO.Title,
-				Entity:               &entity,
-				Action:               &assignAction,
-				URLParam:             urlParam,
-				IsSystemNotification: false,
-				CreatedByID:          &currentUserID,
 			}
 
 			newResponsibleUser, err := caps.userSvc.GetByID(ControlActionPlanFormDTO.ResponsibleUserID)
 			if err != nil {
-				utility.LogError("Failed to fetch new responsible user details", map[string]interface{}{
+				utility.LogError("Failed to fetch new responsible user", map[string]interface{}{
 					"error": err.Error(),
 				})
 				return
 			}
 
-			newResponsibleUserEmail := &commonDTOs.EmailNotificationDTO{
-				EmailTo: []string{newResponsibleUser.Email},
-				Subject: fmt.Sprintf("Control Action Plan/%s: Assigned", existingControlActionPlan.Title),
-				EmailData: organizationDTOs.ControlActionPlanMailDTO{
-					FirstNameEn: newResponsibleUser.FirstNameEn,
-					LastNameEn:  newResponsibleUser.LastNameEn,
-					MessageEn:   existingControlActionPlan.Title,
-				},
-				TemplateRelativePath: "organization/templates/email/control_action_plan_change_responsible_user_mail.html",
+			assignedBy, err := caps.userSvc.GetByID(currentUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
 			}
 
-			// Send notifications for old and new responsible users
-			err = caps.notificationSvc.SendNotification(newResponsibleUserNotification, newResponsibleUserEmail, "control_action_plan")
+			appURL := utility.GetAppURL()
+
+			oldResponsibleUserEmailTo := []string{oldResponsibleUser.Email}
+			oldResponsibleUserSubject := fmt.Sprintf("Control Action Plan/%s: Responsibility Removed", existingControlActionPlan.Title)
+			oldResponsibleUserTemplateRelativePath := "organization/templates/email/control_action_plan_remove_responsible_user_mail.html"
+			oldResponsibleUserEmailData := map[string]interface{}{
+				"FirstNameEn":            oldResponsibleUser.FirstNameEn,
+				"LastNameEn":             oldResponsibleUser.LastNameEn,
+				"ControlReferenceNumber": control.ReferenceNumber,
+				"ControlTitle":           existingControlActionPlan.Title,
+				"ActionPlanTitle":        existingControlActionPlan.Title,
+				"ActionPlanDescription":  existingControlActionPlan.Description,
+				"RedirectURL":            fmt.Sprintf("%s/control-action-plan/%d", appURL, id),
+			}
+
+			oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              oldResponsibleUserEmailTo,
+				Subject:              oldResponsibleUserSubject,
+				TemplateRelativePath: oldResponsibleUserTemplateRelativePath,
+				EmailData:            oldResponsibleUserEmailData,
+			}
+
+			newResponsibleUserEmailTo := []string{newResponsibleUser.Email}
+			newResponsibleUserSubject := fmt.Sprintf("Control Action Plan/%s: Responsibility Assigned", existingControlActionPlan.Title)
+			newResponsibleUserTemplateRelativePath := "organization/templates/email/control_action_plan_change_responsible_user_mail.html"
+			newResponsibleUserEmailData := map[string]interface{}{
+				"FirstNameEn":            newResponsibleUser.FirstNameEn,
+				"LastNameEn":             newResponsibleUser.LastNameEn,
+				"ControlReferenceNumber": control.ReferenceNumber,
+				"ControlTitle":           control.TitleEn,
+				"ActionPlanTitle":        existingControlActionPlan.Title,
+				"ActionPlanDescription":  existingControlActionPlan.Description,
+				"TargetDate":             existingControlActionPlan.TargetDate.Format("2006-01-02"),
+				"AssignedByFirstNameEn":  assignedBy.FirstNameEn,
+				"AssignedByLastNameEn":   assignedBy.LastNameEn,
+				"AssignedOn":             time.Now().Format("2006-01-02"),
+				"RedirectURL":            fmt.Sprintf("%s/control-action-plan/%d", appURL, id),
+			}
+
+			newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              newResponsibleUserEmailTo,
+				Subject:              newResponsibleUserSubject,
+				TemplateRelativePath: newResponsibleUserTemplateRelativePath,
+				EmailData:            newResponsibleUserEmailData,
+			}
+
+			// Send notifications and emails
+			err = caps.notificationSvc.SendNotification(
+				newResponsibleUserNotificationDTO, newResponsibleUserEmailNotificationDTO, "control_action_plan",
+			)
 			if err != nil {
 				utility.LogError("Failed to send new responsible user notifications", map[string]interface{}{
 					"error": err.Error(),
 				})
 			}
 
-			err = caps.notificationSvc.SendNotification(oldResponsibleUserNotification, oldResponsibleUserEmail, "control_action_plan")
+			err = caps.notificationSvc.SendNotification(
+				oldResponsibleUserNotificationDTO, oldResponsibleUserEmailNotificationDTO, "control_action_plan",
+			)
 			if err != nil {
 				utility.LogError("Failed to send old responsible user notifications", map[string]interface{}{
 					"error": err.Error(),
@@ -479,10 +479,12 @@ func (caps *ControlActionPlanService) Delete(controlID uint, ids []uint, current
 	var failedIds []uint
 	var successfulIds []uint
 	var notifications []struct {
-		ResponsibleUserID *uint
-		TitleEn           string
-		TitleAr           string
-		ReferenceNumber   string
+		OwnerID         *uint
+		TitleEn         string
+		TitleAr         string
+		Description     string
+		ReferenceNumber string
+		ControlTitle    string
 	}
 
 	for _, id := range ids {
@@ -492,15 +494,21 @@ func (caps *ControlActionPlanService) Delete(controlID uint, ids []uint, current
 			continue
 		}
 
+		// Prepare notification data before deletion
 		notifications = append(notifications, struct {
-			ResponsibleUserID *uint
-			TitleEn           string
-			TitleAr           string
-			ReferenceNumber   string
+			OwnerID         *uint
+			TitleEn         string
+			TitleAr         string
+			Description     string
+			ReferenceNumber string
+			ControlTitle    string
 		}{
-			ResponsibleUserID: &controlActionPlan.ResponsibleUserID,
-			TitleEn:           controlActionPlan.Title,
-			TitleAr:           controlActionPlan.Title,
+			OwnerID:         &controlActionPlan.ResponsibleUserID,
+			TitleEn:         controlActionPlan.Title,
+			TitleAr:         controlActionPlan.Title,
+			Description:     controlActionPlan.Description,
+			ReferenceNumber: controlActionPlan.Control.ReferenceNumber,
+			ControlTitle:    controlActionPlan.Control.TitleEn,
 		})
 
 		// Delete associated ActionPlanStatusUpdates if any
@@ -515,6 +523,19 @@ func (caps *ControlActionPlanService) Delete(controlID uint, ids []uint, current
 			}
 		}
 
+		//delete the task
+		existingTask, err := caps.taskSvc.GetByFieldID("control_action_plan_id", id)
+		if err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+		taskID, err := caps.taskSvc.Delete(existingTask.ID, currentUserID)
+		if err != nil {
+			failedIds = append(failedIds, taskID)
+			continue
+		}
+
+		// Delete the Control Action Plan
 		err = caps.repo.Delete(id)
 		if err != nil {
 			failedIds = append(failedIds, id)
@@ -525,6 +546,7 @@ func (caps *ControlActionPlanService) Delete(controlID uint, ids []uint, current
 
 	if len(successfulIds) > 0 {
 		go func() {
+			// Log bulk delete activities
 			err := caps.activityLogSvc.LogBulkActivities(
 				models.DeleteAction,
 				models.ControlActionPlan{}.TableName(),
@@ -537,58 +559,57 @@ func (caps *ControlActionPlanService) Delete(controlID uint, ids []uint, current
 				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
 			}
 
-			// Send notifications to the responsible users of the deleted ControlActionPlans
+			// Send notifications to the owners of the deleted control action plans
 			for _, notification := range notifications {
 				urlParam := ""
-				queryParam := ""
 				entity := "control-action-plan"
 				action := "delete"
 
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserID:               *notification.ResponsibleUserID,
+					UserID:               *notification.OwnerID,
 					ModuleIdentifier:     "organization",
 					NotificationType:     string(commonDTOs.DeletionType),
-					ReferenceNumber:      notification.ReferenceNumber,
-					HeadingEn:            "Control Action Plan Deleted",
-					HeadingAr:            "تم حذف خطة العمل",
+					HeadingEn:            "Control Action Plan Deletion",
+					HeadingAr:            "حذف خطة عمل التحكم",
 					TitleEn:              notification.TitleEn,
 					TitleAr:              notification.TitleAr,
 					Entity:               &entity,
 					Action:               &action,
 					URLParam:             urlParam,
-					QueryParam:           queryParam,
 					IsSystemNotification: false,
 					CreatedByID:          &currentUserID,
 				}
 
-				responsibleUser, err := caps.userSvc.GetByID(*notification.ResponsibleUserID)
+				ownerUser, err := caps.userSvc.GetByID(*notification.OwnerID)
 				if err != nil {
-					utility.LogError("Failed to fetch responsible user details for notification", map[string]interface{}{
+					utility.LogError("Failed to fetch owner details for notification", map[string]interface{}{
 						"error": err.Error(),
 					})
 					continue
 				}
 
-				emailTo := []string{responsibleUser.Email}
+				ownerEmailTo := []string{ownerUser.Email}
 				subject := fmt.Sprintf("Control Action Plan/%s: Deleted", notification.TitleEn)
 				templateRelativePath := "organization/templates/email/control_action_plan_delete_mail.html"
-				redirectURL := fmt.Sprintf("control-action-plan/deleted/%d", *notification.ResponsibleUserID)
 
-				emailData := organizationDTOs.ControlActionPlanMailDTO{
-					FirstNameEn: responsibleUser.FirstNameEn,
-					LastNameEn:  responsibleUser.LastNameEn,
-					MessageEn:   notification.TitleEn,
-					RedirectURL: redirectURL,
+				emailData := map[string]interface{}{
+					"FirstNameEn":            ownerUser.FirstNameEn,
+					"LastNameEn":             ownerUser.LastNameEn,
+					"ControlReferenceNumber": notification.ReferenceNumber,
+					"ControlTitle":           notification.ControlTitle,
+					"ActionPlanTitle":        notification.TitleEn,
+					"ActionPlanDescription":  notification.Description,
 				}
 
 				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
-					EmailTo:              emailTo,
+					EmailTo:              ownerEmailTo,
 					Subject:              subject,
 					TemplateRelativePath: templateRelativePath,
 					EmailData:            emailData,
 				}
 
-				err = caps.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "control_action_plan")
+				err = caps.notificationSvc.SendNotification(
+					dbNotificationDTO, emailNotificationDTO, "control_action_plan")
 				if err != nil {
 					utility.LogError("Failed to send deletion notifications", map[string]interface{}{
 						"error": err.Error(),

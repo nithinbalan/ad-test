@@ -15,7 +15,7 @@ type ControlActionPlanRepositoryInterface interface {
 	GetAll(controlID uint, params *organizationDTOs.ControlActionPlanListQueryParamsDTO) (*organizationDTOs.ControlActionPlanListResponseDTO, error)
 	GetByID(id uint) (*models.ControlActionPlan, error)
 	GetFullDetailsByID(id uint) (*models.ControlActionPlan, error)
-	Create(controlActionPlan *models.ControlActionPlan) (uint, error)
+	Create(controlActionPlan *models.ControlActionPlan, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(controlActionPlan *models.ControlActionPlan, tx ...utility.DatabaseTransaction) error
 	Delete(id uint) error
 
@@ -202,8 +202,12 @@ func (repo *ControlActionPlanRepository) GetFullDetailsByID(id uint) (*models.Co
 	return controlActionPlan, nil
 }
 
-func (repo *ControlActionPlanRepository) Create(controlActionPlan *models.ControlActionPlan) (uint, error) {
-	if err := repo.db.Create(controlActionPlan).Error; err != nil {
+func (repo *ControlActionPlanRepository) Create(controlActionPlan *models.ControlActionPlan, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(controlActionPlan).Error; err != nil {
 		return 0, err
 	}
 	return controlActionPlan.ID, nil
