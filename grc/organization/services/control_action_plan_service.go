@@ -166,24 +166,24 @@ func (caps *ControlActionPlanService) Create(controlID uint, currentUserID uint,
 		return 0, err
 	}
 
-	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+	// urlParam := fmt.Sprintf(`{"id":%d}`, id)
 
-	taskDTO := commonDTOs.TaskFormDTO{
-		ModuleIdentifier:    "organization",
-		ControlActionPlanID: &id,
-		Title:               ControlActionPlanFormDTO.Title,
-		Description:         ControlActionPlanFormDTO.Description,
-		TargetDate:          dates.TargetDate,
-		URLParam:            &urlParam,
-		QueryParam:          nil,
-		SeverityLevelID:     ControlActionPlanFormDTO.SeverityLevelID,
-		ResponsibleUserID:   ControlActionPlanFormDTO.ResponsibleUserID,
-	}
+	// taskDTO := commonDTOs.TaskFormDTO{
+	// 	ModuleIdentifier:    "organization",
+	// 	ControlActionPlanID: &id,
+	// 	Title:               ControlActionPlanFormDTO.Title,
+	// 	Description:         ControlActionPlanFormDTO.Description,
+	// 	TargetDate:          dates.TargetDate,
+	// 	URLParam:            &urlParam,
+	// 	QueryParam:          nil,
+	// 	SeverityLevelID:     ControlActionPlanFormDTO.SeverityLevelID,
+	// 	ResponsibleUserID:   ControlActionPlanFormDTO.ResponsibleUserID,
+	// }
 
-	if err := caps.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
-		tx.Rollback()
-		return 0, err
-	}
+	// if err := caps.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
+	// 	tx.Rollback()
+	// 	return 0, err
+	// }
 
 	tx.Commit()
 
@@ -458,10 +458,12 @@ func (caps *ControlActionPlanService) Delete(controlID uint, ids []uint, current
 	var failedIds []uint
 	var successfulIds []uint
 	var notifications []struct {
-		ResponsibleUserID *uint
-		TitleEn           string
-		TitleAr           string
-		ReferenceNumber   string
+		OwnerID         *uint
+		TitleEn         string
+		TitleAr         string
+		Description     string
+		ReferenceNumber string
+		ControlTitle    string
 	}
 
 	for _, id := range ids {
@@ -471,15 +473,21 @@ func (caps *ControlActionPlanService) Delete(controlID uint, ids []uint, current
 			continue
 		}
 
+		// Prepare notification data before deletion
 		notifications = append(notifications, struct {
-			ResponsibleUserID *uint
-			TitleEn           string
-			TitleAr           string
-			ReferenceNumber   string
+			OwnerID         *uint
+			TitleEn         string
+			TitleAr         string
+			Description     string
+			ReferenceNumber string
+			ControlTitle    string
 		}{
-			ResponsibleUserID: &controlActionPlan.ResponsibleUserID,
-			TitleEn:           controlActionPlan.Title,
-			TitleAr:           controlActionPlan.Title,
+			OwnerID:         &controlActionPlan.ResponsibleUserID,
+			TitleEn:         controlActionPlan.Title,
+			TitleAr:         controlActionPlan.Title,
+			Description:     controlActionPlan.Description,
+			ReferenceNumber: controlActionPlan.Control.ReferenceNumber,
+			ControlTitle:    controlActionPlan.Control.TitleEn,
 		})
 
 		// Delete associated ActionPlanStatusUpdates if any
@@ -494,6 +502,7 @@ func (caps *ControlActionPlanService) Delete(controlID uint, ids []uint, current
 			}
 		}
 
+		// Delete the Control Action Plan
 		err = caps.repo.Delete(id)
 		if err != nil {
 			failedIds = append(failedIds, id)
@@ -504,6 +513,7 @@ func (caps *ControlActionPlanService) Delete(controlID uint, ids []uint, current
 
 	if len(successfulIds) > 0 {
 		go func() {
+			// Log bulk delete activities
 			err := caps.activityLogSvc.LogBulkActivities(
 				models.DeleteAction,
 				models.ControlActionPlan{}.TableName(),
@@ -516,16 +526,15 @@ func (caps *ControlActionPlanService) Delete(controlID uint, ids []uint, current
 				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
 			}
 
-			// Send notifications to the responsible users of the deleted ControlActionPlans
+			// Send notifications to the owners of the deleted control action plans
 			for _, notification := range notifications {
 				urlParam := ""
-				queryParam := ""
 				entity := "control-action-plan"
 				action := "delete"
 
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserID:               *notification.ResponsibleUserID,
-					ModuleIdentifier:     "organization",
+					UserID:               *notification.OwnerID,
+					ModuleIdentifier:     "control_action_plan",
 					NotificationType:     string(commonDTOs.DeletionType),
 					ReferenceNumber:      notification.ReferenceNumber,
 					HeadingEn:            "Control Action Plan Deletion",
@@ -535,39 +544,40 @@ func (caps *ControlActionPlanService) Delete(controlID uint, ids []uint, current
 					Entity:               &entity,
 					Action:               &action,
 					URLParam:             urlParam,
-					QueryParam:           queryParam,
 					IsSystemNotification: false,
 					CreatedByID:          &currentUserID,
 				}
 
-				responsibleUser, err := caps.userSvc.GetByID(*notification.ResponsibleUserID)
+				ownerUser, err := caps.userSvc.GetByID(*notification.OwnerID)
 				if err != nil {
-					utility.LogError("Failed to fetch responsible user details for notification", map[string]interface{}{
+					utility.LogError("Failed to fetch owner details for notification", map[string]interface{}{
 						"error": err.Error(),
 					})
 					continue
 				}
 
-				emailTo := []string{responsibleUser.Email}
+				ownerEmailTo := []string{ownerUser.Email}
 				subject := fmt.Sprintf("Control Action Plan/%s: Deleted", notification.TitleEn)
 				templateRelativePath := "organization/templates/email/control_action_plan_delete_mail.html"
-				redirectURL := fmt.Sprintf("control-action-plan/deleted/%d", *notification.ResponsibleUserID)
 
-				emailData := organizationDTOs.ControlActionPlanMailDTO{
-					FirstNameEn: responsibleUser.FirstNameEn,
-					LastNameEn:  responsibleUser.LastNameEn,
-					MessageEn:   notification.TitleEn,
-					RedirectURL: redirectURL,
+				emailData := map[string]interface{}{
+					"FirstNameEn":            ownerUser.FirstNameEn,
+					"LastNameEn":             ownerUser.LastNameEn,
+					"ControlReferenceNumber": notification.ReferenceNumber,
+					"ControlTitle":           notification.ControlTitle,
+					"ActionPlanTitle":        notification.TitleEn,
+					"ActionPlanDescription":  notification.Description,
 				}
 
 				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
-					EmailTo:              emailTo,
+					EmailTo:              ownerEmailTo,
 					Subject:              subject,
 					TemplateRelativePath: templateRelativePath,
 					EmailData:            emailData,
 				}
 
-				err = caps.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "control_action_plan")
+				err = caps.notificationSvc.SendNotification(
+					dbNotificationDTO, emailNotificationDTO, "control_action_plan")
 				if err != nil {
 					utility.LogError("Failed to send deletion notifications", map[string]interface{}{
 						"error": err.Error(),
