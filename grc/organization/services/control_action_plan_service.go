@@ -534,9 +534,8 @@ func (caps *ControlActionPlanService) Delete(controlID uint, ids []uint, current
 
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 					UserID:               *notification.OwnerID,
-					ModuleIdentifier:     "control_action_plan",
+					ModuleIdentifier:     "organization",
 					NotificationType:     string(commonDTOs.DeletionType),
-					ReferenceNumber:      notification.ReferenceNumber,
 					HeadingEn:            "Control Action Plan Deletion",
 					HeadingAr:            "حذف خطة عمل التحكم",
 					TitleEn:              notification.TitleEn,
