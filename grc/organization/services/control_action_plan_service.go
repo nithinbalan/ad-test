@@ -166,24 +166,24 @@ func (caps *ControlActionPlanService) Create(controlID uint, currentUserID uint,
 		return 0, err
 	}
 
-	// urlParam := fmt.Sprintf(`{"id":%d}`, id)
+	urlParam := fmt.Sprintf(`{"id":%d}`, id)
 
-	// taskDTO := commonDTOs.TaskFormDTO{
-	// 	ModuleIdentifier:    "organization",
-	// 	ControlActionPlanID: &id,
-	// 	Title:               ControlActionPlanFormDTO.Title,
-	// 	Description:         ControlActionPlanFormDTO.Description,
-	// 	TargetDate:          dates.TargetDate,
-	// 	URLParam:            &urlParam,
-	// 	QueryParam:          nil,
-	// 	SeverityLevelID:     ControlActionPlanFormDTO.SeverityLevelID,
-	// 	ResponsibleUserID:   ControlActionPlanFormDTO.ResponsibleUserID,
-	// }
+	taskDTO := commonDTOs.TaskFormDTO{
+		ModuleIdentifier:    "organization",
+		ControlActionPlanID: &id,
+		Title:               ControlActionPlanFormDTO.Title,
+		Description:         ControlActionPlanFormDTO.Description,
+		TargetDate:          dates.TargetDate,
+		URLParam:            &urlParam,
+		QueryParam:          nil,
+		SeverityLevelID:     ControlActionPlanFormDTO.SeverityLevelID,
+		ResponsibleUserID:   ControlActionPlanFormDTO.ResponsibleUserID,
+	}
 
-	// if err := caps.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
-	// 	tx.Rollback()
-	// 	return 0, err
-	// }
+	if err := caps.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
 
 	tx.Commit()
 
@@ -282,6 +282,7 @@ func (caps *ControlActionPlanService) Create(controlID uint, currentUserID uint,
 }
 
 func (caps *ControlActionPlanService) Update(controlID uint, id uint, currentUserID uint, ControlActionPlanFormDTO *organizationDTOs.ControlActionPlanFormDTO) error {
+	tx := caps.repo.BeginTransaction()
 	control, err := caps.controlSvc.GetByID(controlID)
 	if err != nil {
 		return err
@@ -313,10 +314,30 @@ func (caps *ControlActionPlanService) Update(controlID uint, id uint, currentUse
 	existingControlActionPlan.ActionPlanStatusID = ControlActionPlanFormDTO.ActionPlanStatusID
 	existingControlActionPlan.UpdatedByID = &currentUserID
 
-	err = caps.repo.Update(existingControlActionPlan)
+	err = caps.repo.Update(existingControlActionPlan, tx)
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
+
+	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+
+	taskUpdateDTO := commonDTOs.TaskFormDTO{
+		Title:             ControlActionPlanFormDTO.Title,
+		Description:       ControlActionPlanFormDTO.Description,
+		TargetDate:        dates.TargetDate,
+		URLParam:          &urlParam,
+		SeverityLevelID:   ControlActionPlanFormDTO.SeverityLevelID,
+		ResponsibleUserID: ControlActionPlanFormDTO.ResponsibleUserID,
+	}
+
+	err = caps.taskSvc.Update(currentUserID, taskUpdateDTO, "control_action_plan_id", id, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
 
 	go func() {
 		if oldResponsibleUserID != ControlActionPlanFormDTO.ResponsibleUserID {
@@ -500,6 +521,18 @@ func (caps *ControlActionPlanService) Delete(controlID uint, ids []uint, current
 				failedIds = append(failedIds, id)
 				continue
 			}
+		}
+
+		//delete the task
+		existingTask, err := caps.taskSvc.GetByFieldID("control_action_plan_id", id)
+		if err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+		taskID, err := caps.taskSvc.Delete(existingTask.ID, currentUserID)
+		if err != nil {
+			failedIds = append(failedIds, taskID)
+			continue
 		}
 
 		// Delete the Control Action Plan
