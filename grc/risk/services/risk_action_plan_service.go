@@ -3,6 +3,8 @@ package services
 import (
 	"errors"
 	"fmt"
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
 	masterRepositories "jethur/grc/masters/repositories"
 	masterServices "jethur/grc/masters/services"
@@ -10,6 +12,7 @@ import (
 	riskDTOs "jethur/grc/risk/dtos"
 	riskRepositories "jethur/grc/risk/repositories"
 	"jethur/utility"
+	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -32,6 +35,7 @@ type RiskActionPlanService struct {
 	riskRegisterSvc     RiskRegisterServiceInterface
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface
 	severityLevelSvc    masterServices.SeverityLevelServiceInterface
+	notificationSvc commonServices.NotificationServiceInterface
 }
 
 func NewRiskActionPlanService(
@@ -39,13 +43,16 @@ func NewRiskActionPlanService(
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	riskRegisterSvc RiskRegisterServiceInterface,
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
-	severityLevelSvc masterRepositories.SeverityLevelRepositoryInterface) RiskActionPlanServiceInterface {
+	severityLevelSvc masterRepositories.SeverityLevelRepositoryInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
+	) RiskActionPlanServiceInterface {
 	return &RiskActionPlanService{
 		repo:                repo,
 		activityLogSvc:      activityLogSvc,
 		riskRegisterSvc:     riskRegisterSvc,
 		actionPlanStatusSvc: actionPlanStatusSvc,
 		severityLevelSvc:    severityLevelSvc,
+		notificationSvc: notificationSvc,
 	}
 }
 
@@ -53,7 +60,7 @@ func (raps *RiskActionPlanService) GetAll(riskID uint, params *riskDTOs.RiskActi
 	if riskID != 0 {
 		if _, err := raps.riskRegisterSvc.GetByID(riskID); err != nil {
 			return nil, err
-		}
+		}	
 	}
 	return raps.repo.GetAll(riskID, params)
 }
@@ -168,6 +175,10 @@ func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskA
 
 			utility.LogError("Failed to log activity", fields)
 		}
+
+	//sends notification and email 
+	raps.sendRiskActionPlanNotification(riskActionPlan,currentUserID,"create")
+
 	}()
 
 	return id, nil
@@ -185,6 +196,9 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 	if err != nil {
 		return err
 	}
+
+	//Store the old responsible user ID for notification
+	oldResponsibleUserID := existingRiskActionPlan.ResponsibleUserID
 
 	if err := raps.validateRiskActionPlanFormDTO(RiskActionPlanFormDTO); err != nil {
 		return err
@@ -213,6 +227,13 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 		return err
 	}
 	tx.Commit()
+
+	go func(){
+		//sends notification if responsible user has changed
+		if oldResponsibleUserID !=existingRiskActionPlan.ResponsibleUserID {
+		raps.sendRiskActionPlanNotification(existingRiskActionPlan,currentUserID,"update")
+		}
+	}()
 
 	return nil
 }
@@ -247,6 +268,7 @@ func (raps *RiskActionPlanService) Delete(riskID uint, ids []uint, currentUserID
 			failedIds = append(failedIds, id)
 		} else {
 			successfulIds = append(successfulIds, id)
+			go raps.sendRiskActionPlanNotification(riskActionPlan,currentUserID,"delete")
 		}
 	}
 
@@ -265,6 +287,8 @@ func (raps *RiskActionPlanService) Delete(riskID uint, ids []uint, currentUserID
 				// @todo - save to log file
 				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
 			}
+
+			
 		}()
 	}
 
@@ -317,4 +341,59 @@ func (raps *RiskActionPlanService) parseRiskActionPlanDates(dto *riskDTOs.RiskAc
 	}
 
 	return parsed, nil
+}
+
+
+//Methods to send notifications for risk action plans
+func (raps *RiskActionPlanService) sendRiskActionPlanNotification(riskActionPlan *models.RiskActionPlan, currentUserID uint,action string) {
+
+// Fetch responsible user details to get the email
+responsibleUser, err:=raps.riskRegisterSvc.GetByID(riskActionPlan.RiskRegisterID)
+if err != nil {
+	utility.LogError("Failed to fetch responsible user details", map[string]interface{}{
+		"error": err.Error(),
+	})
+	return
+}
+
+//prepare email and notification data
+emailTo:=[]string{responsibleUser.ResponsibleUser.Email}
+subject:=fmt.Sprintf("Risk Action Plan/%s: Responsibility %s",riskActionPlan.Title,action)
+appURL:=utility.GetAppURL()
+emailData:= map[string]interface{}{
+"RiskTitle":              riskActionPlan.Title,
+		"ActionPlanDescription":  riskActionPlan.Description,
+		"TargetDate":             riskActionPlan.TargetDate.Format("2006-01-02"),
+		"AssignedOn":             time.Now().Format("2006-01-02"),
+		"RedirectURL":            fmt.Sprintf("%s/risk-action-plan/%d", appURL, riskActionPlan.ID),
+}
+
+//email template
+emailNotificationDTO:= &commonDTOs.EmailNotificationDTO{
+	EmailTo: emailTo,
+	Subject: subject,
+	TemplateRelativePath: "risk/templates/email/risk_action_plan_notification.html",
+	EmailData: emailData,
+}
+
+// Notifications DTO
+dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+	UserID:               riskActionPlan.ResponsibleUserID,
+	ModuleIdentifier:     "risk",
+	NotificationType:     string(commonDTOs.AssignmentType),
+	HeadingEn:            "Risk Action Plan Assignment",
+	TitleEn:              riskActionPlan.Title,
+	IsSystemNotification: false,
+	CreatedByID:          &currentUserID,
+}
+
+// Send notification and email
+err = raps.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "risk_action_plan")
+if err != nil {
+	utility.LogError("Failed to send notifications", map[string]interface{}{
+		"error": err.Error(),
+	})
+}
+
+
 }

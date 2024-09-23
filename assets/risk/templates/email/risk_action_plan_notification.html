@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Risk Action Plan Notification</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        margin: 0;
+        padding: 20px;
+        background-color: #f9f9f9;
+      }
+      .container {
+        max-width: 600px;
+        margin: auto;
+        background: #fff;
+        padding: 20px;
+        border-radius: 5px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+      h1 {
+        color: #333;
+      }
+      p {
+        color: #555;
+      }
+      .footer {
+        margin-top: 20px;
+        font-size: 12px;
+        color: #aaa;
+      }
+      a {
+        color: #1a73e8;
+        text-decoration: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Risk Action Plan Notification</h1>
+      <p>Dear {{FirstNameEn}} {{LastNameEn}},</p>
+
+      {{#if (eq Action "assign")}}
+      <p>You have been assigned a new risk action plan:</p>
+      <ul>
+        <li><strong>Risk Title:</strong> {{RiskTitle}}</li>
+        <li><strong>Description:</strong> {{ActionPlanDescription}}</li>
+        <li><strong>Target Date:</strong> {{TargetDate}}</li>
+        <li><strong>Assigned On:</strong> {{AssignedOn}}</li>
+      </ul>
+      <p>For more details, please visit the following link:</p>
+      <p><a href="{{RedirectURL}}">View Risk Action Plan</a></p>
+      {{/if}} {{#if (eq Action "change")}}
+      <p>The responsibility for the risk action plan has changed:</p>
+      <ul>
+        <li><strong>Risk Title:</strong> {{RiskTitle}}</li>
+        <li><strong>New Responsible User:</strong> {{NewResponsibleUser}}</li>
+        <li>
+          <strong>Previous Responsible User:</strong> {{OldResponsibleUser}}
+        </li>
+        <li><strong>Target Date:</strong> {{TargetDate}}</li>
+      </ul>
+      <p>For more details, please visit the following link:</p>
+      <p><a href="{{RedirectURL}}">View Risk Action Plan</a></p>
+      {{/if}} {{#if (eq Action "delete")}}
+      <p>The following risk action plan has been deleted:</p>
+      <ul>
+        <li><strong>Risk Title:</strong> {{RiskTitle}}</li>
+        <li><strong>Description:</strong> {{ActionPlanDescription}}</li>
+      </ul>
+      <p>If you have any questions, please contact your administrator.</p>
+      {{/if}}
+
+      <p>Best regards,<br />Your Team</p>
+      <div class="footer">
+        <p>This email was sent automatically. Please do not reply.</p>
+      </div>
+    </div>
+  </body>
+</html>
