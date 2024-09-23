@@ -24,12 +24,14 @@ type OrganizationUnitListDTO struct {
 }
 
 type OrganizationUnitListQueryParamsDTO struct {
-	Sort    string
-	SortBy  string
-	Keyword string
-	Status  string
-	Primary bool
-	Filters map[string][]string
+	Sort          string
+	SortBy        string
+	Keyword       string
+	Status        string
+	Primary       bool
+	Filters       map[string][]string
+	Level         uint
+	ParentUnitIDs []uint
 }
 
 type OrganizationUnitFormDTO struct {
