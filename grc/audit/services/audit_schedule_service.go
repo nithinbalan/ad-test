@@ -210,28 +210,30 @@ func (ass *AuditScheduleService) Update(id uint, auditID uint, currentUserID uin
 	if _, err := ass.auditSvc.GetByID(auditID); err != nil {
 		return err
 	}
+	println("123")
 	dates, err := ass.parseAuditScheduleDates(auditScheduleFormDTO)
 	if err != nil {
 		return err
 	}
-
+	println("124")
 	if err := ass.validateAuditScheduleFormDTO(auditScheduleFormDTO); err != nil {
 		tx.Rollback()
 		return err
 	}
-
+	println("125")
 	existingAuditSchedule, err := ass.repo.GetByID(id)
 	if err != nil {
 		tx.Rollback()
 		return utility.NewResourceNotFoundError(err, id)
 	}
-
+	println("126")
 	existingAuditSchedule.AuditActivityTypeID = auditScheduleFormDTO.AuditActivityTypeID
 	existingAuditSchedule.Title = auditScheduleFormDTO.Title
 	existingAuditSchedule.Description = auditScheduleFormDTO.Description
 	existingAuditSchedule.StartDate = dates.StartDate
 	existingAuditSchedule.TargetDate = dates.TargetDate
 	existingAuditSchedule.ResponsibleUserID = auditScheduleFormDTO.ResponsibleUserID
+	existingAuditSchedule.AuditScheduleStatusID = auditScheduleFormDTO.AuditScheduleStatusID
 	existingAuditSchedule.UpdatedBYID = &currentUserID
 
 	err = ass.repo.Update(existingAuditSchedule, tx)
@@ -239,6 +241,7 @@ func (ass *AuditScheduleService) Update(id uint, auditID uint, currentUserID uin
 		tx.Rollback()
 		return err
 	}
+	println("127")
 	existingSchedule, err := ass.GetFullDetailsByID(id, tx)
 	if err != nil {
 		tx.Rollback()

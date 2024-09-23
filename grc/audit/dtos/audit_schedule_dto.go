@@ -13,6 +13,8 @@ type AuditScheduleListDTO struct {
 	AuditActivityTypeTitleEn        string  `json:"audit_activity_type_title_en"`
 	AuditActivityTypeTitleAr        string  `json:"audit_activity_type_title_ar"`
 	ResponsibleUserID               *uint   `json:"responsible_user_id"`
+	Comment                         *string `json:"comment"`
+	Percentage                      uint    `json:"percentage"`
 	ResponsibleUserFirstNameEn      string  `json:"responsible_user_first_name_en"`
 	ResponsibleUserFirstNameAr      string  `json:"responsible_user_first_name_ar"`
 	ResponsibleUserLastNameEn       string  `json:"responsible_user_last_name_en"`
@@ -58,7 +60,7 @@ type AuditScheduleFormDTO struct {
 	Description           *string `json:"description"`
 	StartDate             *string `json:"start_date"`
 	TargetDate            *string `json:"target_date"`
-	AuditScheduleStatusID uint    `json:"auidt_schedule_status_id" binding:"required"`
+	AuditScheduleStatusID uint    `json:"audit_schedule_status_id" binding:"required"`
 	AuditableItemIds      []*uint `json:"auditable_item_ids"`
 }
 
@@ -72,6 +74,8 @@ type AuditScheduleDetailDTO struct {
 	Description                *string                          `json:"description"`
 	StartDateString            string                           `json:"start_date"`
 	TargetDateString           string                           `json:"target_date"`
+	Comment                    *string                          `json:"comment"`
+	Percentage                 uint                             `json:"percentage"`
 	AuditScheduleStatus        AuditScheduleStatusDTO           `json:"audit_schedule_status"`
 	AuditableItems             []*AuditScheduleAuditableItemDTO `json:"auditable_items"`
 	CreatedAt                  time.Time                        `json:"created_at"`
