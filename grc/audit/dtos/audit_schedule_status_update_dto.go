@@ -2,6 +2,8 @@ package dtos
 
 import (
 	commonDTOs "jethur/grc/common/dtos"
+	organizationDTOs "jethur/grc/organization/dtos"
+	"time"
 )
 
 type AuditScheduleStatusUpdateListDTO struct {
@@ -39,4 +41,26 @@ type AuditScheduleStatusUpdateFormDTO struct {
 	Comment               string                        `json:"comment" binding:"required"`
 	Percentage            *uint                         `json:"percentage" binding:"required"`
 	Documents             []*commonDTOs.DocumentFormDTO `json:"documents" binding:"omitempty"`
+}
+
+type AuditScheduleStatusUpdateDTO struct {
+	ID                  uint                                    `json:"id"`
+	AuditScheduleStatus AuditScheduleStatusDTO                  `json:"audit_schedule_status"`
+	Comment             string                                  `json:"comment"`
+	Percentage          *uint                                   `json:"percentage"`
+	CreatedAt           time.Time                               `json:"created_at"`
+	UpdatedAt           *time.Time                              `json:"updated_at"`
+	CreatedByUser       organizationDTOs.UserMinimalDTO         `json:"created_by_user"`
+	UpdatedByUser       *organizationDTOs.UserMinimalDTO        `json:"updated_by_user"`
+	Documents           []*AuditScheduleStatusUpdateDocumentDTO `json:"documents"`
+}
+
+type AuditScheduleStatusUpdateDocumentDTO struct {
+	ID           uint   `json:"id"`
+	URL          string `json:"url"`
+	Name         string `json:"name"`
+	Size         int    `json:"size"`
+	Token        string `json:"token"`
+	OriginalName string `json:"original_name"`
+	Type         string `json:"type"`
 }

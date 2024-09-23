@@ -20,6 +20,8 @@ type AuditScheduleStatusUpdate struct {
 	AuditScheduleStatus *AuditScheduleStatus `gorm:"foreignKey:AuditScheduleStatusID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	CreatedByUser       *User                `gorm:"foreignKey:CreatedBYID"`
 	UpdatedByUser       *User                `gorm:"foreignKey:UpdatedBYID"`
+
+	Documents []*AuditScheduleStatusUpdateDocument `gorm:"foreignKey:AuditScheduleStatusUpdateID"`
 }
 
 func (AuditScheduleStatusUpdate) TableName() string {

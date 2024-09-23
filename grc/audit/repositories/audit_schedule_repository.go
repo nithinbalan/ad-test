@@ -225,6 +225,11 @@ func (repo *AuditScheduleRepository) GetFullDetailsByID(id uint, tx ...utility.D
 		Preload("AuditScheduleStatus").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
+		Preload("AuditScheduleStatusUpdates").
+		Preload("AuditScheduleStatusUpdates.AuditScheduleStatus").
+		Preload("AuditScheduleStatusUpdates.Documents").
+		Preload("AuditScheduleStatusUpdates.CreatedByUser").
+		Preload("AuditScheduleStatusUpdates.UpdatedByUser").
 		First(&auditSchedule, id)
 
 	if result.Error != nil {
