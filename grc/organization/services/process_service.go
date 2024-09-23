@@ -220,7 +220,7 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 		}
 
 		emailTo := []string{responsibleUser.Email}
-		subject := fmt.Sprintf("Process/%s: Assigned", processFormDTO.TitleEn)
+		subject := fmt.Sprintf("Process/%s: Ownership Assigned", processFormDTO.TitleEn)
 		appURL := utility.GetAppURL()
 		emailData := map[string]interface{}{
 			"FirstNameEn":            responsibleUser.FirstNameEn,
@@ -676,8 +676,8 @@ func (ps *ProcessService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 					ModuleIdentifier:     "organization",
 					NotificationType:     string(commonDTOs.DeletionType),
 					ReferenceNumber:      notification.ReferenceNumber,
-					HeadingEn:            "Process Deleted",
-					HeadingAr:            "تم حذف العملية",
+					HeadingEn:            "Process Deletion",
+					HeadingAr:            "حذف العملية",
 					TitleEn:              notification.TitleEn,
 					TitleAr:              notification.TitleAr,
 					Entity:               &entity,
