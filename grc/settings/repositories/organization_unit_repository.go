@@ -69,6 +69,13 @@ func (repo *OrganizationUnitRepository) GetAll(params *settingsDTOs.Organization
 		query = query.Where("organization_levels.is_primary = ?", true)
 	}
 
+	if params.Level != 0 {
+		query = query.Where("organization_units.organization_level_id = ?", params.Level)
+	}
+	if len(params.ParentUnitIDs) > 0 {
+		query = query.Where("organization_units.organization_unit_id IN (?)", params.ParentUnitIDs)
+	}
+
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"

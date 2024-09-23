@@ -6,6 +6,7 @@ import (
 	"jethur/utility"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -29,6 +30,8 @@ func (ouc *OrganizationUnitController) GetAllOrganizationUnits(c *gin.Context) {
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 	primaryStr := c.Query("primary")
+	levelStr := c.Query("level")
+	parentUnitIDsStr := c.Query("parent_unit_ids")
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
@@ -50,13 +53,38 @@ func (ouc *OrganizationUnitController) GetAllOrganizationUnits(c *gin.Context) {
 		}
 	}
 
+	var level uint
+	var err error
+	if levelStr != "" {
+		levelParsed, err := strconv.ParseUint(levelStr, 10, 32) // Parse as uint32 to avoid overflow on 32-bit systems
+		if err != nil {
+			utility.SendInternalErrResp(ouc.db, c, "Invalid level parameter")
+			return
+		}
+		level = uint(levelParsed)
+	}
+
+	var parentUnitIDs []uint
+	if parentUnitIDsStr != "" {
+		for _, idStr := range strings.Split(parentUnitIDsStr, ",") {
+			id, err := strconv.ParseUint(idStr, 10, 64)
+			if err != nil {
+				utility.SendInternalErrResp(ouc.db, c, "Invalid parent unit ID")
+				return
+			}
+			parentUnitIDs = append(parentUnitIDs, uint(id))
+		}
+	}
+
 	queryParams := settingsDTOs.OrganizationUnitListQueryParamsDTO{
-		Sort:    sort,
-		SortBy:  sortBy,
-		Keyword: keyword,
-		Status:  status,
-		Filters: filters,
-		Primary: primary,
+		Sort:          sort,
+		SortBy:        sortBy,
+		Keyword:       keyword,
+		Status:        status,
+		Filters:       filters,
+		Primary:       primary,
+		Level:         level,
+		ParentUnitIDs: parentUnitIDs,
 	}
 
 	organizationUnits, err := ouc.service.GetAll(&queryParams)
