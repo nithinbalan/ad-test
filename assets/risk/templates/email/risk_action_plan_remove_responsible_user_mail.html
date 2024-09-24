@@ -1,0 +1,145 @@
+{{ define "content" }}
+<p>Dear {{ .FirstNameEn }} {{ .LastNameEn }},</p>
+<p>
+  Your responsibility for the Risk Action Plan titled
+  <strong>{{.ActionPlanTitle}}</strong> has been removed. Below are the details:
+</p>
+
+<table
+  style="
+    width: 100%;
+    background-color: #fff;
+    border-collapse: collapse;
+    margin: 20px 0;
+  "
+>
+  <tbody>
+    <tr style="border: 1px solid #eaedf2">
+      <th
+        style="
+          text-align: left;
+          width: 30%;
+          padding: 7px;
+          background-color: #f6f6f6;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+            Helvetica, Arial, sans-serif;
+          color: #525967;
+        "
+      >
+        Risk Reference Number
+      </th>
+      <td
+        style="
+          text-align: center;
+          padding: 7px;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+            Helvetica, Arial, sans-serif;
+          color: #1e1e1e;
+        "
+      >
+        {{.RiskReferenceNumber}}
+      </td>
+    </tr>
+    <tr style="border: 1px solid #eaedf2">
+      <th
+        style="
+          text-align: left;
+          width: 30%;
+          padding: 7px;
+          background-color: #f6f6f6;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+            Helvetica, Arial, sans-serif;
+          color: #525967;
+        "
+      >
+        Risk Title
+      </th>
+      <td
+        style="
+          text-align: center;
+          padding: 7px;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+            Helvetica, Arial, sans-serif;
+          color: #1e1e1e;
+        "
+      >
+        {{.RiskTitle}}
+      </td>
+    </tr>
+    <tr style="border: 1px solid #eaedf2">
+      <th
+        style="
+          text-align: left;
+          width: 30%;
+          padding: 7px;
+          background-color: #f6f6f6;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+            Helvetica, Arial, sans-serif;
+          color: #525967;
+        "
+      >
+        Action Plan Title
+      </th>
+      <td
+        style="
+          text-align: center;
+          padding: 7px;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+            Helvetica, Arial, sans-serif;
+          color: #1e1e1e;
+        "
+      >
+        {{.ActionPlanTitle}}
+      </td>
+    </tr>
+    <tr style="border: 1px solid #eaedf2">
+      <th
+        style="
+          text-align: left;
+          width: 30%;
+          padding: 7px;
+          background-color: #f6f6f6;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+            Helvetica, Arial, sans-serif;
+          color: #525967;
+        "
+      >
+        Action Plan Description
+      </th>
+      <td
+        style="
+          text-align: center;
+          padding: 7px;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+            Helvetica, Arial, sans-serif;
+          color: #1e1e1e;
+        "
+      >
+        {{.ActionPlanDescription}}
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<p>
+  You are no longer responsible for this Risk Action Plan. For more details,
+  please log into the system.
+</p>
+
+<div style="text-align: center">
+  <a
+    href="{{.RedirectURL}}"
+    style="
+      background-color: #165d31;
+      color: #ffffff;
+      padding: 10px 20px;
+      text-decoration: none;
+      border-radius: 4px;
+      display: inline-block;
+    "
+    >View Action Plan</a
+  >
+</div>
+
+<p>Thank you for your previous contributions.</p>
+{{ end }}
