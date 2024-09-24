@@ -718,6 +718,8 @@ func (us *UserService) GetUserPermissions(userID uint, params *settingDTOs.Modul
 			TitleEn:    module.TitleEn,
 			TitleAr:    module.TitleAr,
 			Order:      module.Order,
+			Icon:       module.Icon,
+			Route:      module.Route,
 		}
 
 		for _, submodule := range module.SubModules {
@@ -728,6 +730,8 @@ func (us *UserService) GetUserPermissions(userID uint, params *settingDTOs.Modul
 					TitleEn:     submodule.TitleEn,
 					TitleAr:     submodule.TitleAr,
 					Order:       submodule.Order,
+					Icon:        submodule.Icon,
+					Route:       submodule.Route,
 					Permissions: userPermissions[submodule.ID],
 				}
 				moduleDTO.SubModules = append(moduleDTO.SubModules, submoduleDTO)

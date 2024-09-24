@@ -7,6 +7,8 @@ type Module struct {
 	TitleAr    string `json:"title_ar" gorm:"size:100;not null" binding:"required"`
 	ModuleID   *uint  `json:"module_id,omitempty" binding:"omitempty"`
 	Order      int    `json:"order" gorm:"not null" binding:"required"`
+	Icon       string `json:"icon" gorm:"size:45" binding:"required"`
+	Route      string `json:"route" gorm:"size:255" binding:"required"`
 
 	// Self-referencing relationship
 	Parent     *Module   `json:"parent,omitempty" gorm:"foreignKey:ModuleID"`
