@@ -87,6 +87,9 @@ func (repo *DocumentAcknowledgeUserRepository) GetAll(documentID uint, primaryOr
             users.last_name_en, 
             users.last_name_ar, 
             users.email,
+			users.initial,
+            users.color,
+            users.profile_image_path,
             organization_units.title_en AS organization_unit_title_en,
             organization_units.title_ar AS organization_unit_title_ar,
             CASE 

@@ -79,7 +79,7 @@ func (aidrc *AuditInsightsDraftReportController) GetAllAuditInsightsDraftReports
 }
 
 func (aidrc *AuditInsightsDraftReportController) GetAuditInsightsDraftReportDetails(c *gin.Context) {
-	idStr := c.Param("id")
+	idStr := c.Param("auditId")
 
 	auditID, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {

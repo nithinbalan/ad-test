@@ -72,7 +72,7 @@ func (aidrc *AuditInsightsDocumentRequestController) GetAllAuditInsightsDocument
 }
 
 func (aidrc *AuditInsightsDocumentRequestController) GetAuditInsightsDocumentRequestDetails(c *gin.Context) {
-	idStr := c.Param("id")
+	idStr := c.Param("documentRequestId")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)

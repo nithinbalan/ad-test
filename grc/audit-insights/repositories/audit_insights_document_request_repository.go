@@ -32,6 +32,8 @@ func (repo *AuditInsightsDocumentRequestRepository) GetAll(params *auditDTOs.Aud
 			audit_document_request_statuses.title_ar AS audit_document_request_status_title_ar,
 			audit_document_request_statuses.type AS audit_document_request_status_type,
 			audit_document_request_statuses.color_code AS audit_document_request_status_color_code,
+			audit_plans.id AS audit_plan_id,
+			audit_plans.title AS audit_plan_title,
 			organization_units.title_en AS responsible_unit_title_en,
 			organization_units.title_ar AS responsible_unit_title_ar,
 			responsible_user.first_name_en AS responsible_user_first_name_en,
@@ -72,6 +74,8 @@ func (repo *AuditInsightsDocumentRequestRepository) GetAll(params *auditDTOs.Aud
 		Joins(`
 			LEFT JOIN audit_document_request_statuses ON audit_document_request_statuses.id = audit_document_requests.audit_document_request_status_id
 			LEFT JOIN organization_units ON organization_units.id = audit_document_requests.responsible_unit_id
+			LEFT JOIN audits ON audits.id = audit_document_requests.audit_id
+			LEFT JOIN audit_plans ON audit_plans.id = audits.audit_plan_id
         	LEFT JOIN users AS responsible_user ON responsible_user.id = audit_document_requests.responsible_user_id
 			LEFT JOIN users AS requested_user ON requested_user.id = audit_document_requests.requested_by_id
 			LEFT JOIN users AS created_user ON created_user.id = audit_document_requests.created_by_id
@@ -108,13 +112,14 @@ func (repo *AuditInsightsDocumentRequestRepository) GetAll(params *auditDTOs.Aud
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
+			audit_plans.title LIKE ? OR
 			audit_document_requests.title LIKE ? OR
 			audit_document_requests.description LIKE ? OR
 			organization_units.title_en LIKE ? OR
 			organization_units.title_ar LIKE ? OR
 			audit_document_request_statuses.title_en LIKE ? OR
 			audit_document_request_statuses.title_ar LIKE ?`,
-			keyword, keyword, keyword, keyword, keyword, keyword)
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
 	// Sort by the specified column and order
