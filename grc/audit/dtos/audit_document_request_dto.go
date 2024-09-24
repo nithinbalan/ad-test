@@ -10,6 +10,8 @@ import (
 type AuditDocumentRequestListDTO struct {
 	ID                                  uint    `json:"id"`
 	AuditID                             uint    `json:"audit_id"`
+	AuditPlanID                         uint    `json:"audit_plan_id"`
+	AuditPlanTitle                      string  `json:"audit_plan_title"`
 	AuditDocumentRequestStatusID        uint    `json:"audit_document_request_status_id"`
 	AuditDocumentRequestStatusTitleEn   string  `json:"audit_document_request_status_title_en"`
 	AuditDocumentRequestStatusTitleAr   string  `json:"audit_document_request_status_title_ar"`

@@ -9,12 +9,11 @@ import (
 )
 
 type AuditInsightsModule struct {
-	AuditInsightsAuditPlanController       *controllers.AuditInsightsAuditPlanController
-	AuditInsightsAuditController           *controllers.AuditInsightsAuditController
-	AuditInsightsDocumentRequestController *controllers.AuditInsightsDocumentRequestController
-	AuditInsightsDraftReportController     *controllers.AuditInsightsDraftReportController
-
-
+	AuditInsightsAuditPlanController                   *controllers.AuditInsightsAuditPlanController
+	AuditInsightsAuditController                       *controllers.AuditInsightsAuditController
+	AuditInsightsDocumentRequestController             *controllers.AuditInsightsDocumentRequestController
+	AuditInsightsDraftReportController                 *controllers.AuditInsightsDraftReportController
+	AuditInsightsDocumentRequestConversationController *controllers.AuditInsightsDocumentRequestConversationController
 }
 
 func NewAuditInsightsModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, auditModule *AuditModule) *AuditInsightsModule {
@@ -45,6 +44,14 @@ func NewAuditInsightsModule(db *gorm.DB, sharedModule *SharedModule, organizatio
 	)
 	auditInsightsDocumentRequestController := controllers.NewAuditInsightsDocumentRequestController(auditInsightsDocumentRequestSvc)
 
+	//repo not using
+	auditInsightsDocumentRequestConversationSvc := services.NewAuditInsightsDocumentRequestConversationService(
+		sharedModule.ActivityLogService,
+		auditModule.AuditDocumentRequestConversationSvc,
+		auditModule.AuditDocumentRequestSvc,
+	)
+	auditInsightsDocumentRequestConversationController := controllers.NewAuditInsightsDocumentRequestConversationController(auditInsightsDocumentRequestConversationSvc)
+
 	auditInsightsDraftReportRepo := repositories.NewAuditInsightsDraftReportRepository(db)
 	auditInsightsDraftReportSvc := services.NewAuditInsightsDraftReportService(
 		auditInsightsDraftReportRepo,
@@ -56,9 +63,10 @@ func NewAuditInsightsModule(db *gorm.DB, sharedModule *SharedModule, organizatio
 	auditInsightsDraftReportController := controllers.NewAuditInsightsDraftReportController(auditInsightsDraftReportSvc)
 
 	return &AuditInsightsModule{
-		AuditInsightsAuditPlanController:       auditInsightsAuditPlanController,
-		AuditInsightsAuditController:           auditInsightsAuditController,
-		AuditInsightsDocumentRequestController: auditInsightsDocumentRequestController,
-		AuditInsightsDraftReportController:     auditInsightsDraftReportController,
+		AuditInsightsAuditPlanController:                   auditInsightsAuditPlanController,
+		AuditInsightsAuditController:                       auditInsightsAuditController,
+		AuditInsightsDocumentRequestController:             auditInsightsDocumentRequestController,
+		AuditInsightsDraftReportController:                 auditInsightsDraftReportController,
+		AuditInsightsDocumentRequestConversationController: auditInsightsDocumentRequestConversationController,
 	}
 }
