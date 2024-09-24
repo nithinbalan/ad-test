@@ -10,28 +10,34 @@ import (
 func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	auditInsightsRoutes := router.Group("/")
-
+	unauthenticatedRoutes := router.Group("/")
 	auditInsightsRoutes.Use(middlewares.AuthMiddleware())
 
 	auditInsightsAuditPlanController := app.AuditInsightsModule.AuditInsightsAuditPlanController
 	auditInsightsAuditController := app.AuditInsightsModule.AuditInsightsAuditController
 	auditInsightsDocumentRequestController := app.AuditInsightsModule.AuditInsightsDocumentRequestController
+	auditInsightsDocumentRequestConversationController := app.AuditInsightsModule.AuditInsightsDocumentRequestConversationController
 	auditInsightsDraftReportController := app.AuditInsightsModule.AuditInsightsDraftReportController
 
 	// Audit Insights Audit plans
 	auditInsightsRoutes.GET("/audit-insights/audit-plans", auditInsightsAuditPlanController.GetAllAuditInsightsAuditPlans)
-	auditInsightsRoutes.GET("/audit-insights/audit-plans/:id", auditInsightsAuditPlanController.GetAuditInsightsAuditPlanDetails)
+	auditInsightsRoutes.GET("/audit-insights/audit-plans/:auditPlanId", auditInsightsAuditPlanController.GetAuditInsightsAuditPlanDetails)
 
 	// Audit Insights Audits
 	auditInsightsRoutes.GET("/audit-insights/audits", auditInsightsAuditController.GetAllAuditInsightsAudits)
-	auditInsightsRoutes.GET("/audit-insights/audits/:id", auditInsightsAuditController.GetAuditInsightsAuditDetails)
+	auditInsightsRoutes.GET("/audit-insights/audits/:auditId", auditInsightsAuditController.GetAuditInsightsAuditDetails)
 
-	//Audit Insights Audits Document Requests
+	// Audit Insights Audits Document Requests
 	auditInsightsRoutes.GET("/audit-insights/document-requests", auditInsightsDocumentRequestController.GetAllAuditInsightsDocumentRequests)
-	auditInsightsRoutes.GET("/audit-insights/document-requests/:id", auditInsightsDocumentRequestController.GetAuditInsightsDocumentRequestDetails)
+	auditInsightsRoutes.GET("/audit-insights/document-requests/:documentRequestId", auditInsightsDocumentRequestController.GetAuditInsightsDocumentRequestDetails)
 
-	//Audit Insights Draft Report
+	// Audit Insights Document Requests Add conversations
+	auditInsightsRoutes.GET("/audit-insights/document-requests/:documentRequestId/conversations", auditInsightsDocumentRequestConversationController.GetAllAuditInsightsDocumentRequestConversations)
+	auditInsightsRoutes.POST("/audit-insights/document-requests/:documentRequestId/conversations", auditInsightsDocumentRequestConversationController.CreateAuditInsightsDocumentRequestConversation)
+	unauthenticatedRoutes.GET("/audit-insights/document-requests/:documentRequestId/conversations/:conversationId/document-download", auditInsightsDocumentRequestConversationController.DownloadDocumentRequestConversationDocument)
+
+	// Audit Insights Draft Report
 	auditInsightsRoutes.GET("/audit-insights/draft-reports", auditInsightsDraftReportController.GetAllAuditInsightsDraftReports)
-	auditInsightsRoutes.GET("/audit-insights/audits/:id/draft-reports", auditInsightsDraftReportController.GetAuditInsightsDraftReportDetails)
+	auditInsightsRoutes.GET("/audit-insights/audits/:auditId/draft-reports", auditInsightsDraftReportController.GetAuditInsightsDraftReportDetails)
 
 }

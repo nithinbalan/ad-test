@@ -192,7 +192,7 @@ func (adfc *AuditDraftFindingController) DeleteAuditDraftFindings(c *gin.Context
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
 
-func (adfc *AuditDraftFindingController) GetAuditDraftFindingCountByStatus(c *gin.Context) {
+func (adfc *AuditDraftFindingController) GetAuditDraftFindingCountByCategory(c *gin.Context) {
 	auditIDStr := c.Param("auditId")
 
 	auditId, err := strconv.ParseUint(auditIDStr, 10, 64)
@@ -201,7 +201,7 @@ func (adfc *AuditDraftFindingController) GetAuditDraftFindingCountByStatus(c *gi
 		return
 	}
 
-	draftFindingCounts, err := adfc.service.GetAuditDraftFindingCountByStatus(uint(auditId))
+	draftFindingCounts, err := adfc.service.GetAuditDraftFindingCountByCategory(uint(auditId))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

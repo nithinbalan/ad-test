@@ -961,10 +961,10 @@ func (ps *ProcessService) ExportProcesses(data []*organizationDTOs.ProcessListDT
 				i + 1,
 				process.ReferenceNumber,
 				process.TitleAr,
-				*process.Description,
+				utility.GetStringValue(process.Description),
 				process.ProcessGroupTitleAr,
-				*process.OwnerUnitTitleAr,
-				*process.OwnerFirstNameAr + " " + *process.OwnerLastNameAr,
+				utility.GetStringValue(process.OwnerUnitTitleAr),
+				utility.GetStringValue(process.OwnerFirstNameAr) + " " + utility.GetStringValue(process.OwnerLastNameAr),
 				process.LifecycleStatusTitleAr,
 			}
 		} else {
@@ -972,10 +972,10 @@ func (ps *ProcessService) ExportProcesses(data []*organizationDTOs.ProcessListDT
 				i + 1,
 				process.ReferenceNumber,
 				process.TitleEn,
-				*process.Description,
+				utility.GetStringValue(process.Description),
 				process.ProcessGroupTitleEn,
-				*process.OwnerUnitTitleEn,
-				*process.OwnerFirstNameEn + " " + *process.OwnerLastNameEn,
+				utility.GetStringValue(process.OwnerUnitTitleEn),
+				utility.GetStringValue(process.OwnerFirstNameEn) + " " + utility.GetStringValue(process.OwnerLastNameEn),
 				process.LifecycleStatusTitleEn,
 			}
 		}
