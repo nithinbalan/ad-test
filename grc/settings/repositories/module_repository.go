@@ -38,6 +38,8 @@ func (repo *ModuleRepository) GetAll(params *dtos.ModuleListQueryParamsDTO) (*[]
 			modules.identifier,
 			modules.title_en,
 			modules.title_ar,
+			modules.icon,
+			modules.route,
 			[modules].[order]  -- Escape the 'order' column
 		`)
 
@@ -76,6 +78,8 @@ func (repo *ModuleRepository) GetAll(params *dtos.ModuleListQueryParamsDTO) (*[]
 					TitleEn:    submodule.TitleEn,
 					TitleAr:    submodule.TitleAr,
 					Order:      submodule.Order,
+					Icon:       submodule.Icon,
+					Route:      submodule.Route,
 				}
 				submoduleDTOs = append(submoduleDTOs, submoduleDTO)
 			}
@@ -91,6 +95,8 @@ func (repo *ModuleRepository) GetAll(params *dtos.ModuleListQueryParamsDTO) (*[]
 			TitleEn:    module.TitleEn,
 			TitleAr:    module.TitleAr,
 			Order:      module.Order,
+			Icon:       module.Icon,
+			Route:      module.Route,
 			SubModules: submoduleDTOs,
 		}
 
