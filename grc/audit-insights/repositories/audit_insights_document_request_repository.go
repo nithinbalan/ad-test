@@ -80,7 +80,8 @@ func (repo *AuditInsightsDocumentRequestRepository) GetAll(params *auditDTOs.Aud
 			LEFT JOIN users AS requested_user ON requested_user.id = audit_document_requests.requested_by_id
 			LEFT JOIN users AS created_user ON created_user.id = audit_document_requests.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = audit_document_requests.updated_by_id
-		`).Where(`audit_document_requests.responsible_unit_id = ?`, currentUserResponsibleUnitID)
+		`).Where(`audit_document_requests.responsible_unit_id = ?`, currentUserResponsibleUnitID).
+		   Where("audit_document_request_statuses.type != ?", "draft")
 
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
