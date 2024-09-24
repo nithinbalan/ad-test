@@ -64,7 +64,7 @@ func (asus *AuditScheduleStatusUpdateService) Create(auditScheduleID uint, curre
 	}
 
 	// Update the audit schedule status
-	err = asus.auditScheduleSvc.StatusUpdate(auditScheduleID, auditScheduleStatusUpdateFormDTO.AuditScheduleStatusID, currentUserID, tx)
+	err = asus.auditScheduleSvc.StatusUpdate(auditScheduleID, auditScheduleStatusUpdateFormDTO, currentUserID, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err

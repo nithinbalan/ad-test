@@ -16,6 +16,8 @@ type AuditSchedule struct {
 	TargetDate            *time.Time `json:"target_date,omitempty" gorm:"type:date;default:null"`
 	ResponsibleUserID     *uint      `json:"responsible_user_id,omitempty" gorm:"default:null"`
 	AuditScheduleStatusID uint       `json:"audit_schedule_status_id" gorm:"not null"`
+	Comment               string     `json:"comment" gorm:"type:nvarchar(max);default:null"`
+	Percentage            *uint      `json:"percentage" binding:"omitempty,min=0,max=100" gorm:"not null;default:0"`
 	CreatedBYID           uint       `json:"created_by_id" gorm:"not null"`
 	UpdatedBYID           *uint      `json:"updated_by_id,omitempty" gorm:"default:null"`
 	CreatedAt             time.Time  `json:"created_at" gorm:"type:datetime;not null"`
@@ -31,7 +33,8 @@ type AuditSchedule struct {
 	CreatedByUser       *User                `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
 	UpdatedByUser       *User                `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
 
-	AuditableItems []*AuditScheduleAuditableItem `gorm:"foreignKey:AuditScheduleID"`
+	AuditableItems             []*AuditScheduleAuditableItem `gorm:"foreignKey:AuditScheduleID"`
+	AuditScheduleStatusUpdates []*AuditScheduleStatusUpdate  `gorm:"foreignKey:AuditScheduleID"`
 }
 
 // TableName overrides the table name used by GORM to `audit_schedules`

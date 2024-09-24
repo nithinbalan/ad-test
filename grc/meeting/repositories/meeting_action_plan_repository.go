@@ -125,10 +125,6 @@ func (repo *MeetingActionPlanRepository) GetAll(meetingID uint, params *meetingD
 		}
 	}
 
-	// Calculate total count for pagination
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
@@ -151,22 +147,26 @@ func (repo *MeetingActionPlanRepository) GetAll(meetingID uint, params *meetingD
 		query = query.Where("meeting_action_plans.meeting_id = ?", meetingID)
 	}
 
-	// Sort by the specified column and order
-	if params.SortBy == "" {
-		params.SortBy = "title" // Default sort by title if no sortBy is specified
-	}
-	if params.Sort != "asc" && params.Sort != "desc" {
-		params.Sort = "asc" // Default order is ascending if not specified
-	}
-
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	offset := (params.Page - 1) * params.PageSize
-
-	// Execute the query
-	err := query.Offset(offset).Limit(params.PageSize).Find(&meetingActionPlans).Error
-	if err != nil {
+	// Calculate total count for pagination
+	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
+	}
+
+	if !params.Export {
+		offset := (params.Page - 1) * params.PageSize
+		query = query.Offset(offset).Limit(params.PageSize)
+	}
+
+	if err := query.Find(&meetingActionPlans).Error; err != nil {
+		return nil, err
+	}
+
+	if params.Export {
+		return &meetingDTOs.MeetingActionPlanListResponseDTO{
+			Items: meetingActionPlans,
+		}, nil
 	}
 
 	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))

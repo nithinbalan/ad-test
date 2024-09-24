@@ -68,6 +68,8 @@ func (uc *UserController) GetAllUsers(c *gin.Context) {
 		"role_ar":        "roles_agg.roles_ar",
 		"user_status_en": "user_statuses.title_en",
 		"user_status_ar": "user_statuses.title_ar",
+		"name_en":        "CONCAT(users.first_name_en, ' ', users.last_name_en)",
+		"name_ar":        "CONCAT(users.first_name_ar, ' ', users.last_name_ar)",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())

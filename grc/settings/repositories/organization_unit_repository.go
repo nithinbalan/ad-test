@@ -42,6 +42,7 @@ func (repo *OrganizationUnitRepository) GetAll(params *settingsDTOs.Organization
 		Select(`
             organization_units.id,
 			organization_units.organization_level_id,
+			organization_levels.level AS organization_level,
             organization_levels.title_en AS organization_level_title_en,
             organization_levels.title_ar AS organization_level_title_ar,
 			parent.id AS parent_organization_unit_id,
@@ -67,6 +68,13 @@ func (repo *OrganizationUnitRepository) GetAll(params *settingsDTOs.Organization
 
 	if params.Primary {
 		query = query.Where("organization_levels.is_primary = ?", true)
+	}
+
+	if params.Level != 0 {
+		query = query.Where("organization_units.organization_level_id = ?", params.Level)
+	}
+	if len(params.ParentUnitIDs) > 0 {
+		query = query.Where("organization_units.organization_unit_id IN (?)", params.ParentUnitIDs)
 	}
 
 	// Apply search keyword if exists

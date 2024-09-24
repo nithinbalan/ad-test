@@ -125,11 +125,9 @@ type AuditDraftFindingListResponseDTO struct {
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }
 
-type AuditDraftFindingStatusCountResponseDTO struct {
-	ID        int    `json:"id"`
-	Type      string `json:"type"`
-	TitleEn   string `json:"title_en"`
-	TitleAr   string `json:"title_ar"`
-	ColorCode string `json:"color_code"`
-	Count     int    `json:"count"`
+type AuditDraftFindingCategoryCountResponseDTO struct {
+	ID      uint   `json:"id"`
+	TitleEn string `json:"title_en"`
+	TitleAr string `json:"title_ar"`
+	Count   int    `json:"count"`
 }

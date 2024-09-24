@@ -25,7 +25,7 @@ type AuditDraftFindingServiceInterface interface {
 	Update(id uint, currentUserID uint, auditDraftFindingFormDTO *auditDTOs.AuditDraftFindingFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 
-	GetAuditDraftFindingCountByStatus(auditId uint) ([]auditDTOs.AuditDraftFindingStatusCountResponseDTO, error)
+	GetAuditDraftFindingCountByCategory(auditId uint) ([]auditDTOs.AuditDraftFindingCategoryCountResponseDTO, error)
 }
 
 type AuditDraftFindingService struct {
@@ -456,12 +456,12 @@ func (adfs *AuditDraftFindingService) validateAuditDraftFindingFormDTO(dto *audi
 	return nil
 }
 
-func (adfs *AuditDraftFindingService) GetAuditDraftFindingCountByStatus(auditId uint) ([]auditDTOs.AuditDraftFindingStatusCountResponseDTO, error) {
+func (adfs *AuditDraftFindingService) GetAuditDraftFindingCountByCategory(auditId uint) ([]auditDTOs.AuditDraftFindingCategoryCountResponseDTO, error) {
 	if _, err := adfs.auditSvc.GetByID(auditId); err != nil {
 		return nil, err
 	}
 
-	response, err := adfs.repo.GetAuditDraftFindingCountByStatus(auditId)
+	response, err := adfs.repo.GetAuditDraftFindingCountByCategory(auditId)
 	if err != nil {
 		return nil, err
 	}
