@@ -10,7 +10,7 @@ import (
 func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	auditInsightsRoutes := router.Group("/")
-
+	unauthenticatedRoutes := router.Group("/")
 	auditInsightsRoutes.Use(middlewares.AuthMiddleware())
 
 	auditInsightsAuditPlanController := app.AuditInsightsModule.AuditInsightsAuditPlanController
@@ -34,6 +34,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// Audit Insights Document Requests Add conversations
 	auditInsightsRoutes.GET("/audit-insights/document-requests/:documentRequestId/conversations", auditInsightsDocumentRequestConversationController.GetAllAuditInsightsDocumentRequestConversations)
 	auditInsightsRoutes.POST("/audit-insights/document-requests/:documentRequestId/conversations", auditInsightsDocumentRequestConversationController.CreateAuditInsightsDocumentRequestConversation)
+	unauthenticatedRoutes.GET("/audit-insights/document-requests/:documentRequestId/conversations/:conversationId/document-download", auditInsightsDocumentRequestConversationController.DownloadDocumentRequestConversationDocument)
 
 	// Audit Insights Draft Report
 	auditInsightsRoutes.GET("/audit-insights/draft-reports", auditInsightsDraftReportController.GetAllAuditInsightsDraftReports)

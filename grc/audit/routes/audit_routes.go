@@ -217,6 +217,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// Audit Document Request Conversations
 	auditRoutes.GET("/audits/:auditId/document-requests/:id/conversations", auditDocumentRequestConversationController.GetAllAuditDocumentRequestConversations)
 	auditRoutes.POST("/audits/:auditId/document-requests/:id/conversations", auditDocumentRequestConversationController.CreateAuditDocumentRequestConversation)
+	unauthenticatedRoutes.GET("/audits/:auditId/document-requests/:id/conversations/:conversationId/document-download", auditDocumentRequestConversationController.DownloadDocumentRequestConversationDocument)
 
 	auditRoutes.GET("/audit-findings/:findingId/root-cause-analysis", auditFindingRootCauseAnalysisController.GetAllAuditFindingRootCauseAnalyses)
 	auditRoutes.POST("/audit-findings/:findingId/root-cause-analysis", auditFindingRootCauseAnalysisController.CreateAuditFindingRootCauseAnalysis)
