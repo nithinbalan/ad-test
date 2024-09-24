@@ -122,6 +122,9 @@ func (apc *AuditController) CreateAudit(c *gin.Context) {
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
 			return
+		case *utility.ForbiddenError:
+			// Return a 403 Forbidden response with the error message
+			utility.SendForbiddenErrResp(c, e.Error())
 		default:
 			utility.SendInternalErrResp(apc.db, c, e.Error())
 			return
