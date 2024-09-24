@@ -125,7 +125,7 @@ func (adrcs *AuditDocumentRequestConversationService) Create(auditID uint, audit
 	}
 	// Check if IsClose is not nil and its value is true
 	if formDTO.IsClose != nil && *formDTO.IsClose {
-		if documentRequest.AuditDocumentRequestStatusID == uint(auditDocumentRequestClosedStatus.ID) {
+		if documentRequest.AuditDocumentRequestStatusID != uint(auditDocumentRequestClosedStatus.ID) {
 			documentRequest.AuditDocumentRequestStatusID = uint(auditDocumentRequestClosedStatus.ID)
 			documentRequest.UpdatedAt = &now
 			documentRequest.UpdatedBYID = &currentUserID
@@ -143,7 +143,7 @@ func (adrcs *AuditDocumentRequestConversationService) Create(auditID uint, audit
 			if err != nil {
 				return 0, err
 			}
-			if documentRequest.AuditDocumentRequestStatusID == uint(auditDocumentRequestOpenStatus.ID) {
+			if documentRequest.AuditDocumentRequestStatusID != uint(auditDocumentRequestOpenStatus.ID) {
 				documentRequest.AuditDocumentRequestStatusID = uint(auditDocumentRequestOpenStatus.ID)
 				documentRequest.UpdatedAt = &now
 				documentRequest.UpdatedBYID = &currentUserID
