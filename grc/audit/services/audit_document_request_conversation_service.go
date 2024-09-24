@@ -119,14 +119,15 @@ func (adrcs *AuditDocumentRequestConversationService) Create(auditID uint, audit
 			}
 		}
 	}
+	auditDocumentRequestClosedStatus, err := adrcs.auditDocumentRequestStatusSvc.GetByType("closed")
+	if err != nil {
+		return 0, err
+	}
 	// Check if IsClose is not nil and its value is true
 	if formDTO.IsClose != nil && *formDTO.IsClose {
-		auditDocumentRequestStatus, err := adrcs.auditDocumentRequestStatusSvc.GetByType("closed")
-		if err != nil {
-			return 0, err
-		}
-		if documentRequest.AuditDocumentRequestStatusID != uint(auditDocumentRequestStatus.ID) {
-			documentRequest.AuditDocumentRequestStatusID = uint(auditDocumentRequestStatus.ID)
+		
+		if documentRequest.AuditDocumentRequestStatusID != uint(auditDocumentRequestClosedStatus.ID) {
+			documentRequest.AuditDocumentRequestStatusID = uint(auditDocumentRequestClosedStatus.ID)
 			documentRequest.UpdatedAt = &now
 			documentRequest.UpdatedBYID = &currentUserID
 
@@ -136,6 +137,23 @@ func (adrcs *AuditDocumentRequestConversationService) Create(auditID uint, audit
 				return 0, err
 			}
 		}
+	}
+	//Reopen the status when a new comment is added, if the status is closed
+	if documentRequest.AuditDocumentRequestStatusID == uint(auditDocumentRequestClosedStatus.ID) {
+		auditDocumentRequestOpenStatus, err := adrcs.auditDocumentRequestStatusSvc.GetByType("open")
+		if err != nil {
+			return 0, err
+		}
+		documentRequest.AuditDocumentRequestStatusID = uint(auditDocumentRequestOpenStatus.ID)
+		documentRequest.UpdatedAt = &now
+		documentRequest.UpdatedBYID = &currentUserID
+
+		err = adrcs.repo.AuditDocumentRequestStatusUpdate(documentRequest, tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
 	}
 	//todo -send notifications to users
 	tx.Commit()
