@@ -10,12 +10,13 @@ import (
 type AuditInsightsDocumentRequestConversationServiceInterface interface {
 	GetAll(auditDocumentRequestID uint, queryParams *dtos.AuditDocumentRequestConversationListQueryParamsDTO, tx ...utility.DatabaseTransaction) ([]*dtos.AuditDocumentRequestConversationListDTO, error)
 	Create(auditDocumentRequestID uint, currentUserID uint, formDTO *dtos.AuditDocumentRequestConversationFormDTO, tx ...utility.DatabaseTransaction) (uint, error)
+	GetDocumentPath(auditDocumentRequestID uint, conversationID uint, token string, tx ...utility.DatabaseTransaction) (string, error)
 }
 
 type AuditInsightsDocumentRequestConversationService struct {
 	activityLogSvc                      logServices.ActivityLogServiceInterface
 	auditDocumentRequestConversationSvc auditServices.AuditDocumentRequestConversationServiceInterface
-	auditDocumentRequestSvc auditServices.AuditDocumentRequestServiceInterface
+	auditDocumentRequestSvc             auditServices.AuditDocumentRequestServiceInterface
 }
 
 func NewAuditInsightsDocumentRequestConversationService(
@@ -26,7 +27,7 @@ func NewAuditInsightsDocumentRequestConversationService(
 	return &AuditInsightsDocumentRequestConversationService{
 		activityLogSvc:                      activityLogSvc,
 		auditDocumentRequestConversationSvc: auditDocumentRequestConversationSvc,
-		auditDocumentRequestSvc: auditDocumentRequestSvc,
+		auditDocumentRequestSvc:             auditDocumentRequestSvc,
 	}
 }
 
@@ -53,6 +54,21 @@ func (aidrcs *AuditInsightsDocumentRequestConversationService) Create(auditDocum
 	auditDocumentRequest, err := aidrcs.auditDocumentRequestConversationSvc.Create(auditID, auditDocumentRequestID, currentUserID, formDTO)
 	if err != nil {
 		return 0, err
+	}
+
+	return auditDocumentRequest, nil
+}
+
+func (aidrcs *AuditInsightsDocumentRequestConversationService) GetDocumentPath(auditDocumentRequestID uint, conversationID uint, token string, tx ...utility.DatabaseTransaction) (string, error) {
+	documentRequest, err := aidrcs.auditDocumentRequestSvc.GetFullDetailsByID(auditDocumentRequestID, tx...)
+	if err != nil {
+		return "", err
+	}
+	auditID := documentRequest.Audit.ID
+
+	auditDocumentRequest, err := aidrcs.auditDocumentRequestConversationSvc.GetDocumentPath(auditID, auditDocumentRequestID, conversationID, token)
+	if err != nil {
+		return "", err
 	}
 
 	return auditDocumentRequest, nil
