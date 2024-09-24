@@ -94,17 +94,16 @@ func (as *AuditService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransa
 }
 
 func (as *AuditService) Create(currentUserID uint, auditFormDTO *auditDTOs.AuditFormDTO) (uint, error) {
-	tx := as.repo.BeginTransaction()
 	// First, check if an audit already exists for the given AuditPlanID
 	existingAudit, err := as.repo.GetAuditByAuditPlanID(auditFormDTO.AuditPlanID)
 	if err != nil {
 		return 0, err // Handle DB query error
 	}
-
 	// If an audit already exists, return an error without starting a transaction
 	if existingAudit != nil {
-		return 0, utility.NewForbiddenError(fmt.Sprintf("The audit plan with ID %d is already added to audit", auditFormDTO.AuditPlanID))
+		return 0, utility.NewForbiddenError("Audit has already been created for this audit plan")
 	}
+	tx := as.repo.BeginTransaction()
 
 	dates, err := as.parseAuditPlanDates(auditFormDTO)
 	if err != nil {
