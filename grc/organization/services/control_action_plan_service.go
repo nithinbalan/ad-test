@@ -638,11 +638,12 @@ func (caps *ControlActionPlanService) StatusUpdate(controlID uint, id uint, curr
 		return err
 	}
 
-	taskUpdateDTO := commonDTOs.TaskFormDTO{
-		TaskStatusID: &actionPlanStatusID,
+	// Fetch the corresponding task and update its status
+	existingTask, err := caps.taskSvc.GetByFieldID("control_action_plan_id", id)
+	if err != nil {
+		return err
 	}
-
-	err = caps.taskSvc.Update(currentUserID, taskUpdateDTO, "control_action_plan_id", id, tx...)
+	err = caps.taskSvc.UpdateStatus(currentUserID, existingTask.ID, actionPlanStatusID, tx...)
 	if err != nil {
 		return err
 	}
