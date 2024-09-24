@@ -298,6 +298,7 @@ func (repo *AuditDraftFindingRepository) GetAuditDraftFindingCountByCategory(aud
             audit_finding_categories.id, 
             audit_finding_categories.title_en, 
             audit_finding_categories.title_ar, 
+            audit_finding_categories.color_code, 
             COUNT(audit_draft_findings.id) AS count
         FROM 
             audit_draft_findings
@@ -308,7 +309,8 @@ func (repo *AuditDraftFindingRepository) GetAuditDraftFindingCountByCategory(aud
         GROUP BY 
             audit_finding_categories.id, 
             audit_finding_categories.title_en, 
-            audit_finding_categories.title_ar 
+            audit_finding_categories.title_ar,
+			audit_finding_categories.color_code
     `
 
 	err := repo.db.Raw(query, auditID).Scan(&categoryCounts).Error
