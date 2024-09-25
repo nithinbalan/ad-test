@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	commonDTOs "jethur/grc/common/dtos"
+	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
 	settingService "jethur/grc/settings/services"
 	taskDTOs "jethur/grc/task/dtos"
@@ -19,20 +20,26 @@ type TaskServiceInterface interface {
 	Create(taskDTO commonDTOs.TaskFormDTO, currentUserID uint, tx ...utility.DatabaseTransaction) error
 	Update(currentUserID uint, taskDTO commonDTOs.TaskFormDTO, fieldName string, id uint, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, currentUserID uint) (uint, error)
+
+	MapActionPlanStatusToTaskStatus(actionPlanStatusID uint) (*models.TaskStatus, error)
+	UpdateStatus(currentUserID uint, taskID uint, actionPlanStatusID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type TaskService struct {
-	repo          repositories.TaskRepositoryInteface
-	taskStatusSvc TaskStatusServiceInterface
-	moduleSvc     settingService.ModuleServiceInterface
+	repo                repositories.TaskRepositoryInteface
+	taskStatusSvc       TaskStatusServiceInterface
+	moduleSvc           settingService.ModuleServiceInterface
+	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface
 }
 
 func NewTaskService(repo repositories.TaskRepositoryInteface,
 	taskStatusSvc TaskStatusServiceInterface,
-	moduleSvc settingService.ModuleServiceInterface) TaskServiceInterface {
+	moduleSvc settingService.ModuleServiceInterface,
+	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface) TaskServiceInterface {
 	return &TaskService{repo: repo,
-		taskStatusSvc: taskStatusSvc,
-		moduleSvc:     moduleSvc}
+		taskStatusSvc:       taskStatusSvc,
+		moduleSvc:           moduleSvc,
+		actionPlanStatusSvc: actionPlanStatusSvc}
 }
 
 func (ts *TaskService) GetAll(params *taskDTOs.TaskListQueryParamsDTO) (*taskDTOs.TaskListResponseDTO, error) {
@@ -131,4 +138,48 @@ func (ts *TaskService) Delete(id uint, currentUserID uint) (uint, error) {
 	}
 
 	return failedId, nil
+}
+
+func (ts *TaskService) UpdateStatus(currentUserID uint, taskID uint, actionPlanStatusID uint, tx ...utility.DatabaseTransaction) error {
+	existingTask, err := ts.GetByID(taskID)
+	if err != nil {
+		return err
+	}
+
+	taskStatus, err := ts.MapActionPlanStatusToTaskStatus(actionPlanStatusID)
+	if err != nil {
+		return err
+	}
+
+	existingTask.TaskStatusID = taskStatus.ID
+	existingTask.UpdatedByID = currentUserID
+
+	return ts.repo.Update(existingTask, tx...)
+}
+
+func (ts *TaskService) MapActionPlanStatusToTaskStatus(actionPlanStatusID uint) (*models.TaskStatus, error) {
+	actionPlanStatus, err := ts.actionPlanStatusSvc.GetByID(actionPlanStatusID)
+	if err != nil {
+		return nil, err
+	}
+
+	var taskStatusType string
+
+	switch actionPlanStatus.Type {
+	case "new":
+		taskStatusType = "new"
+	case "in_progress":
+		taskStatusType = "in_progress"
+	case "completed", "on_hold", "terminated":
+		taskStatusType = "closed"
+	default:
+		taskStatusType = "new"
+	}
+
+	statusResult, err := ts.taskStatusSvc.GetByType(taskStatusType)
+	if err != nil {
+		return nil, err
+	}
+
+	return statusResult, nil
 }
