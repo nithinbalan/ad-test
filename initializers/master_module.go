@@ -24,6 +24,7 @@ type MasterModule struct {
 	SourceController            *controllers.SourceController
 	StatusController            *controllers.StatusController
 	ConformanceController       *controllers.ConformanceController
+	WorkflowStatusController    *controllers.WorkflowStatusController
 
 	ReviewFrequencySvc   services.ReviewFrequencyServiceInterface
 	SeverityLevelSvc     services.SeverityLevelServiceInterface
@@ -40,6 +41,7 @@ type MasterModule struct {
 	SourceSvc            services.SourceServiceInterface
 	StatusSvc            services.StatusServiceInterface
 	ConformanceSvc       services.ConformanceServiceInterface
+	WorkflowStatusSvc    services.WorkflowStatusServiceInterface
 }
 
 func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
@@ -115,6 +117,10 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 	conformanceRepo := repositories.NewConformanceRepository(db)
 	conformanceSvc := services.NewConformanceService(conformanceRepo)
 	conformanceController := controllers.NewConformanceController(conformanceSvc)
+	//Workflow Status
+	workflowStatusRepo := repositories.NewWorkflowStatusRepository(db)
+	workflowStatusSvc := services.NewWorkflowStatusService(workflowStatusRepo)
+	workflowStatusController := controllers.NewWorkflowStatusController(workflowStatusSvc)
 
 	return &MasterModule{
 		ReviewFrequencyController:   reviewFrequencyController,
@@ -132,6 +138,7 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 		SourceController:            sourceController,
 		StatusController:            statusController,
 		ConformanceController:       conformanceController,
+		WorkflowStatusController:    workflowStatusController,
 
 		ReviewFrequencySvc:   reviewFrequencySvc,
 		SeverityLevelSvc:     severityLevelSvc,
@@ -148,5 +155,6 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 		SourceSvc:            sourceSvc,
 		StatusSvc:            statusSvc,
 		ConformanceSvc:       conformanceSvc,
+		WorkflowStatusSvc:    workflowStatusSvc,
 	}
 }

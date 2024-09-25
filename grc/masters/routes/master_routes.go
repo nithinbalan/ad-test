@@ -28,6 +28,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	sourceController := app.MasterModule.SourceController
 	statusController := app.MasterModule.StatusController
 	conformanceController := app.MasterModule.ConformanceController
+	workflowStatusController := app.MasterModule.WorkflowStatusController
 
 	masterRoutes.GET("/review-frequencies", reviewFrequencyController.GetAllReviewFrequencies)
 	masterRoutes.GET("/review-frequencies/:id", reviewFrequencyController.GetReviewFrequencyDetails)
@@ -101,5 +102,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	masterRoutes.GET("/conformances", conformanceController.GetAllConformances)
 	masterRoutes.GET("/conformances/:id", conformanceController.GetConformanceDetails)
+
+	masterRoutes.GET("/workflow-statuses", workflowStatusController.GetAllWorkflowStatuses)
+	masterRoutes.GET("/workflow-statuses/:id", workflowStatusController.GetWorkflowStatusDetails)
 
 }

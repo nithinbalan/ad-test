@@ -4,9 +4,11 @@ import (
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
 	logServices "jethur/grc/logs/services"
+	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
+	"time"
 )
 
 type AuditDraftReportReviewServiceInterface interface {
@@ -14,12 +16,13 @@ type AuditDraftReportReviewServiceInterface interface {
 }
 
 type AuditDraftReportReviewService struct {
-	repo                   repositories.AuditDraftReportReviewRepositoryInterface
-	activityLogSvc         logServices.ActivityLogServiceInterface
-	auditSvc               AuditServiceInterface
-	auditDraftReportSvc    AuditDraftReportServiceInterface
-	auditWorkflowStatusSvc AuditWorkflowStatusServiceInterface
-	userSvc                organizationServices.UserServiceInterface
+	repo                      repositories.AuditDraftReportReviewRepositoryInterface
+	activityLogSvc            logServices.ActivityLogServiceInterface
+	auditSvc                  AuditServiceInterface
+	auditDraftReportSvc       AuditDraftReportServiceInterface
+	workflowStatusSvc         masterServices.WorkflowStatusServiceInterface
+	userSvc                   organizationServices.UserServiceInterface
+	auditDraftReportStatusSvc AuditDraftReportStatusServiceInterface
 }
 
 func NewAuditDraftReportReviewService(
@@ -27,16 +30,18 @@ func NewAuditDraftReportReviewService(
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	auditSvc AuditServiceInterface,
 	auditDraftReportSvc AuditDraftReportServiceInterface,
-	auditWorkflowStatusSvc AuditWorkflowStatusServiceInterface,
+	workflowStatusSvc masterServices.WorkflowStatusServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
+	auditDraftReportStatusSvc AuditDraftReportStatusServiceInterface,
 ) AuditDraftReportReviewServiceInterface {
 	return &AuditDraftReportReviewService{
-		repo:                   repo,
-		activityLogSvc:         activityLogSvc,
-		auditSvc:               auditSvc,
-		auditDraftReportSvc:    auditDraftReportSvc,
-		auditWorkflowStatusSvc: auditWorkflowStatusSvc,
-		userSvc:                userSvc,
+		repo:                      repo,
+		activityLogSvc:            activityLogSvc,
+		auditSvc:                  auditSvc,
+		auditDraftReportSvc:       auditDraftReportSvc,
+		workflowStatusSvc:         workflowStatusSvc,
+		userSvc:                   userSvc,
+		auditDraftReportStatusSvc: auditDraftReportStatusSvc,
 	}
 }
 
@@ -45,23 +50,34 @@ func (adrrs *AuditDraftReportReviewService) Submit(auditID uint, auditDraftRepor
 	if _, err := adrrs.auditSvc.GetByID(auditID); err != nil {
 		return err
 	}
-
-	auditDraftReportStatus, err := adrrs.auditWorkflowStatusSvc.GetByType("pending")
+	existingAuditDraftReport, err := adrrs.auditDraftReportSvc.GetByID(auditDraftReportID)
+	if err != nil {
+		tx.Rollback()
+		return utility.NewResourceNotFoundError(err, auditDraftReportID)
+	}
+	auditDraftReportStatusDraft, err := adrrs.auditDraftReportStatusSvc.GetByType("draft")
+	if err != nil {
+		return err
+	}
+	if existingAuditDraftReport.AuditDraftReportStatusID != auditDraftReportStatusDraft.ID {
+		tx.Rollback()
+		return utility.NewForbiddenError("The audit draft report has already been submitted.")
+	}
+	workflowSubmitStatus, err := adrrs.workflowStatusSvc.GetByType("submit")
 	if err != nil {
 		return err
 	}
 	approvalType := "anyone"
 	workflowType := "draft-report"
 	auditReportWorkflow := &models.AuditReportWorkflow{
-		AuditDraftReportID:    &auditDraftReportID,
-		AuditWorkflowStatusID: auditDraftReportStatus.ID,
-		Level:                 1,
-		ApprovalType:          approvalType,
-		Type:                  workflowType,
-		Comment:               auditReportWorkflowFormDTO.Comment,
-		CreatedBYID:           currentUserID,
+		AuditDraftReportID: &auditDraftReportID,
+		WorkflowStatusID:   workflowSubmitStatus.ID,
+		Level:              1,
+		ApprovalType:       approvalType,
+		Type:               workflowType,
+		CreatedBYID:        currentUserID,
 	}
-	id, err := adrrs.repo.Create(auditReportWorkflow, tx)
+	auditReportWorkflowID, err := adrrs.repo.CreateAuditReportWorkflow(auditReportWorkflow, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -69,7 +85,7 @@ func (adrrs *AuditDraftReportReviewService) Submit(auditID uint, auditDraftRepor
 	var participants []*models.AuditReportWorkflowParticipant
 	for _, userID := range auditReportWorkflowFormDTO.UserIDs {
 		auditReportWorkflowParticipant := &models.AuditReportWorkflowParticipant{
-			AuditReportWorkflowID: id,
+			AuditReportWorkflowID: auditReportWorkflowID,
 			UserID:                *userID,
 			CreatedBYID:           currentUserID,
 		}
@@ -82,6 +98,34 @@ func (adrrs *AuditDraftReportReviewService) Submit(auditID uint, auditDraftRepor
 			return err
 		}
 	}
+	//add review for history
+	auditReportReview := &models.AuditReportReview{
+		AuditDraftReportID:    auditDraftReportID,
+		AuditReportWorkflowID: auditReportWorkflowID,
+		WorkflowStatusID:      workflowSubmitStatus.ID, // Initially set to 'pending'
+		UserID:                currentUserID,
+		CreatedByID:           currentUserID,
+	}
+	id, err := adrrs.repo.Create(auditReportReview, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	auditDraftReportInReviewStatus, err := adrrs.auditDraftReportStatusSvc.GetByType("in-review")
+	if err != nil {
+		return err
+	}
+	now := time.Now()
+	existingAuditDraftReport.SubmittedAt = &now
+	existingAuditDraftReport.AuditDraftReportStatusID = auditDraftReportInReviewStatus.ID
+	existingAuditDraftReport.SubmittedBYID = &currentUserID
+
+	// err = adrrs.auditDraftReportSvc.Update(existingAuditDraftReport, tx)
+	// if err != nil {
+	// 	tx.Rollback()
+	// 	return err
+	// }
 	//todo - notification to workflow user
 
 	tx.Commit()
@@ -89,7 +133,7 @@ func (adrrs *AuditDraftReportReviewService) Submit(auditID uint, auditDraftRepor
 	go func() {
 		err := adrrs.activityLogSvc.LogActivity(
 			models.SubmitAction,
-			models.AuditReportWorkflow{}.TableName(),
+			models.AuditReportReview{}.TableName(),
 			id,
 			auditReportWorkflowFormDTO,
 			currentUserID,
@@ -99,7 +143,7 @@ func (adrrs *AuditDraftReportReviewService) Submit(auditID uint, auditDraftRepor
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.SubmitAction,
-				"tableName": models.AuditReportWorkflow{}.TableName(),
+				"tableName": models.AuditReportReview{}.TableName(),
 				"recordID":  id,
 				"userID":    currentUserID,
 				"error":     err.Error(),

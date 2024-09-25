@@ -9,7 +9,8 @@ import (
 
 type AuditDraftReportReviewRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	Create(auditReportWorkflow *models.AuditReportWorkflow, tx ...utility.DatabaseTransaction) (uint, error)
+	CreateAuditReportWorkflow(auditReportWorkflow *models.AuditReportWorkflow, tx ...utility.DatabaseTransaction) (uint, error)
+	Create(auditReportReview *models.AuditReportReview, tx ...utility.DatabaseTransaction) (uint, error)
 	CreateAuditReportWorkflowParticipants(participants []*models.AuditReportWorkflowParticipant, tx ...utility.DatabaseTransaction) error
 }
 
@@ -28,7 +29,7 @@ func (repo *AuditDraftReportReviewRepository) BeginTransaction() utility.Databas
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *AuditDraftReportReviewRepository) Create(auditReportWorkflow *models.AuditReportWorkflow, tx ...utility.DatabaseTransaction) (uint, error) {
+func (repo *AuditDraftReportReviewRepository) CreateAuditReportWorkflow(auditReportWorkflow *models.AuditReportWorkflow, tx ...utility.DatabaseTransaction) (uint, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -39,6 +40,19 @@ func (repo *AuditDraftReportReviewRepository) Create(auditReportWorkflow *models
 
 	return auditReportWorkflow.ID, nil
 }
+
+func (repo *AuditDraftReportReviewRepository) Create(auditReportReview *models.AuditReportReview, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(auditReportReview).Error; err != nil {
+		return 0, err
+	}
+
+	return auditReportReview.ID, nil
+}
+
 
 func (repo *AuditDraftReportReviewRepository) CreateAuditReportWorkflowParticipants(participants []*models.AuditReportWorkflowParticipant, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
