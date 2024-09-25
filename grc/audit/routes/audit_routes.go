@@ -52,8 +52,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditDraftReportController := app.AuditModule.AuditDraftReportController
 	rcmController := app.AuditModule.RCMController
 	auditDraftFindingConversationController := app.AuditModule.AuditDraftFindingConversationController
-	auditDraftFindingActionPlanController := app.AuditModule.AuditDraftFindingActionPlanController
+	auditDraftFindingActionPlanController := app.AuditModule.AuditDraftFindingActionPlanController 
 	auditScheduleStatusUpdateController := app.AuditModule.AuditScheduleStatusUpdateController
+	auditWorkflowStatusController := app.AuditModule.AuditWorkflowStatusController
+	auditDraftReportReviewController := app.AuditModule.AuditDraftReportReviewController
 
 	//Audit Status
 	auditRoutes.GET("/audit-statuses", auditStatusController.GetAllAuditStatuses)
@@ -280,7 +282,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.POST("/audits/:auditId/draft-reports", auditDraftReportController.CreateAuditDraftReport)
 	auditRoutes.PUT("/audits/:auditId/draft-reports/:id", auditDraftReportController.UpdateAuditDraftReport)
 	auditRoutes.POST("/audits/:auditId/draft-reports/delete", auditDraftReportController.DeleteAuditDraftReports)
-	auditRoutes.POST("/audits/:auditId/draft-reports/:id/submit", auditDraftReportController.SubmitAuditDraftReport)
+	auditRoutes.POST("/audits/:auditId/draft-reports/:id/department-submit", auditDraftReportController.SubmitAuditDraftReport)
 
 	//Audit Risk Control Metrix
 	auditRoutes.GET("audits/:auditId/risk-control-matrix", rcmController.GetAllRiskControls)
@@ -304,5 +306,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.POST("/audits/:auditId/schedules/:scheduleId/status-updates", auditScheduleStatusUpdateController.CreateAuditScheduleStatusUpdate)
 	auditRoutes.PUT("/audits/:auditId/schedules/:scheduleId/status-updates/:id", auditScheduleStatusUpdateController.UpdateAuditScheduleStatusUpdate)
 	auditRoutes.GET("/audits/:auditId/schedules/:scheduleId/status-updates/latest", auditScheduleStatusUpdateController.GetLatestAuditScheduleStatusUpdate)
+	
+	//Draft Audit Workflow Status
+	auditRoutes.GET("/audit-workflow-statuses", auditWorkflowStatusController.GetAllAuditWorkflowStatuses)
+	auditRoutes.GET("/audit-workflow-statuses/:id", auditWorkflowStatusController.GetAuditWorkflowStatusDetails)
 
+	//Audit Draft Report Review
+	auditRoutes.POST("/audits/:auditId/draft-reports/:id/review/submit", auditDraftReportReviewController.SubmitAuditDraftReport)
 }

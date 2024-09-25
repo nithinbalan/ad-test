@@ -48,6 +48,8 @@ type AuditModule struct {
 	AuditDraftFindingConversationController      *controllers.AuditDraftFindingConversationController
 	AuditDraftFindingActionPlanController        *controllers.AuditDraftFindingActionPlanController
 	AuditScheduleStatusUpdateController          *controllers.AuditScheduleStatusUpdateController
+	AuditWorkflowStatusController                *controllers.AuditWorkflowStatusController
+	AuditDraftReportReviewController             *controllers.AuditDraftReportReviewController
 
 	AuditPlanSvc                        services.AuditPlanServiceInterface
 	AuditSvc                            services.AuditServiceInterface
@@ -356,6 +358,21 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 	auditScheduleStatusUpdateSvc := services.NewAuditScheduleStatusUpdateService(auditScheduleStatusUpdateRepo, sharedModule.ActivityLogService, auditScheduleSvc, auditScheduleStatusSvc)
 	auditScheduleStatusUpdateController := controllers.NewAuditScheduleStatusUpdateController(auditScheduleStatusUpdateSvc)
 
+	auditWorkflowStatusRepo := repositories.NewAuditWorkflowStatusRepository(db)
+	auditWorkflowStatusSvc := services.NewAuditWorkflowStatusService(auditWorkflowStatusRepo)
+	auditWorkflowStatusController := controllers.NewAuditWorkflowStatusController(auditWorkflowStatusSvc)
+
+	auditDraftReportReviewRepo := repositories.NewAuditDraftReportReviewRepository(db)
+	auditDraftReportReviewSvc := services.NewAuditDraftReportReviewService(
+		auditDraftReportReviewRepo,
+		sharedModule.ActivityLogService,
+		auditSvc,
+		auditDraftReportSvc,
+		auditWorkflowStatusSvc,
+		organizationModule.UserSvc,
+	)
+	auditDraftReportReviewController := controllers.NewAuditDraftReportReviewController(auditDraftReportReviewSvc)
+
 	return &AuditModule{
 		AuditorRiskRatingController:                  auditorRiskRatingController,
 		AuditUniverseController:                      auditUniverseController,
@@ -396,6 +413,8 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		AuditDraftFindingConversationController:      auditDraftFindingConversationController,
 		AuditDraftFindingActionPlanController:        auditDraftFindingActionPlanController,
 		AuditScheduleStatusUpdateController:          auditScheduleStatusUpdateController,
+		AuditWorkflowStatusController:                auditWorkflowStatusController,
+		AuditDraftReportReviewController:             auditDraftReportReviewController,
 
 		AuditPlanSvc:                        auditPlanSvc,
 		AuditSvc:                            auditSvc,
