@@ -51,8 +51,9 @@ func NewRiskModule(db *gorm.DB,
 	masterModule *MasterModule,
 	libraryModule *LibraryModule,
 	organizationModule *OrganizationModule,
-	complianceModule *ComplianceModule) *RiskModule {
-
+	complianceModule *ComplianceModule,
+	commonModule *CommonModule,
+) *RiskModule {
 	riskCategoryRepo := repositories.NewRiskCategoryRepository(db)
 	riskCategorySvc := services.NewRiskCategoryService(riskCategoryRepo, sharedModule.ActivityLogService)
 	riskCategoryController := controllers.NewRiskCategoryController(riskCategorySvc)
@@ -88,7 +89,7 @@ func NewRiskModule(db *gorm.DB,
 	kriCategorySvc := services.NewKRICategoryService(kriCategoryRepository, sharedModule.ActivityLogService)
 	kriCategoryController := controllers.NewKRICategoryController(kriCategorySvc)
 
-	//set kri categories service to kri library service
+	// set kri categories service to kri library service
 	libraryModule.KriLibrarySvc.SetKriCategoryService(kriCategorySvc)
 
 	kriRegisterRepo := repositories.NewKRIRegisterRepository(db)
@@ -217,6 +218,7 @@ func NewRiskModule(db *gorm.DB,
 		masterModule.ActionPlanStatusSvc,
 		masterModule.SeverityLevelSvc,
 		organizationModule.UserSettingSvc,
+		organizationModule.UserSvc, commonModule.NotificationService,
 	)
 	riskActionPlanController := controllers.NewRiskActionPlanController(riskActionPlanSvc)
 
@@ -303,5 +305,4 @@ func NewRiskModule(db *gorm.DB,
 
 		RiskRegisterSvc: riskRegisterSvc,
 	}
-
 }
