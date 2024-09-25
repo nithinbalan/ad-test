@@ -17,8 +17,8 @@ type AuditMeetingServiceInterface interface {
 	GetAll(auditID uint, params *auditDTOs.AuditMeetingListQueryParamsDTO) (*auditDTOs.AuditMeetingListResponseDTO, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditMeetingDetailDTO, error)
 	GetByID(id uint) (*models.AuditMeeting, error)
-	Create(currentUserID uint, auditMeetingFormDTO *auditDTOs.AuditMeetingFormDTO) (uint, error)
-	Update(id uint, currentUserID uint, auditMeetingFormDTO *auditDTOs.AuditMeetingFormDTO) error
+	Create(currentUserID uint, auditMeetingFormDTO *auditDTOs.AuditMeetingFormDTO, auditId uint) (uint, error)
+	Update(id uint, currentUserID uint, auditMeetingFormDTO *auditDTOs.AuditMeetingFormDTO, auditId uint) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 }
 
@@ -196,7 +196,7 @@ func (ams *AuditMeetingService) GetFullDetailsByID(id uint, tx ...utility.Databa
 	return &auditMeetingDTO, nil
 }
 
-func (ams *AuditMeetingService) Create(currentUserID uint, auditMeetingFormDTO *auditDTOs.AuditMeetingFormDTO) (uint, error) {
+func (ams *AuditMeetingService) Create(currentUserID uint, auditMeetingFormDTO *auditDTOs.AuditMeetingFormDTO, auditId uint) (uint, error) {
 	tx := ams.repo.BeginTransaction()
 
 	dates, err := ams.parseAuditMeetingDates(auditMeetingFormDTO)
@@ -204,13 +204,8 @@ func (ams *AuditMeetingService) Create(currentUserID uint, auditMeetingFormDTO *
 		return 0, err
 	}
 
-	if err := ams.validateAuditMeetingFormDTO(auditMeetingFormDTO); err != nil {
-		tx.Rollback()
-		return 0, err
-	}
-
 	auditMeeting := &models.AuditMeeting{
-		AuditID:           auditMeetingFormDTO.AuditID,
+		AuditID:           auditId,
 		Title:             auditMeetingFormDTO.Title,
 		Date:              dates.Date,
 		FromTime:          &auditMeetingFormDTO.FromTime,
@@ -270,7 +265,7 @@ func (ams *AuditMeetingService) Create(currentUserID uint, auditMeetingFormDTO *
 	return id, nil
 }
 
-func (ams *AuditMeetingService) Update(id uint, currentUserID uint, auditMeetingFormDTO *auditDTOs.AuditMeetingFormDTO) error {
+func (ams *AuditMeetingService) Update(id uint, currentUserID uint, auditMeetingFormDTO *auditDTOs.AuditMeetingFormDTO, auditId uint) error {
 	tx := ams.repo.BeginTransaction()
 
 	existingAuditMeeting, err := ams.GetByID(id)
@@ -279,18 +274,13 @@ func (ams *AuditMeetingService) Update(id uint, currentUserID uint, auditMeeting
 		return utility.NewResourceNotFoundError(err, id)
 	}
 
-	if err := ams.validateAuditMeetingFormDTO(auditMeetingFormDTO); err != nil {
-		tx.Rollback()
-		return err
-	}
-
 	dates, err := ams.parseAuditMeetingDates(auditMeetingFormDTO)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	existingAuditMeeting.AuditID = auditMeetingFormDTO.AuditID
+	existingAuditMeeting.AuditID = auditId
 	existingAuditMeeting.Title = auditMeetingFormDTO.Title
 	existingAuditMeeting.Date = dates.Date
 	existingAuditMeeting.FromTime = &auditMeetingFormDTO.FromTime
@@ -444,13 +434,6 @@ func (ams *AuditMeetingService) Delete(ids []uint, currentUserID uint) ([]uint, 
 	}
 
 	return failedIDs, nil
-}
-
-func (ams *AuditMeetingService) validateAuditMeetingFormDTO(auditMeetingDTO *auditDTOs.AuditMeetingFormDTO) error {
-	if _, err := ams.auditSvc.GetByID(auditMeetingDTO.AuditID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("audit does not exist"), "not_exist", "audit")
-	}
-	return nil
 }
 
 func (ams *AuditMeetingService) parseAuditMeetingDates(dto *auditDTOs.AuditMeetingFormDTO) (*auditDTOs.AuditMeetingParsedDates, error) {
