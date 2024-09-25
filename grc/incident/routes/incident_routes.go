@@ -80,6 +80,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	incidentRoutes.DELETE("/incidents/:incidentID/investigation", incidentInvestigationController.DeleteIncidentInvestigations)
 
 	//Incident Action Plan
+	incidentRoutes.GET("/incident-action-plans/export", incidentActionPlanController.GetIncidentActionPlanExport)
 	incidentRoutes.GET("/incident-action-plans", incidentActionPlanController.GetAllIncidentActionPlans)
 	incidentRoutes.GET("/incidents/:incidentID/action-plans", incidentActionPlanController.GetAllIncidentActionPlans)
 	incidentRoutes.GET("/incidents/:incidentID/action-plans/:actionPlanId", incidentActionPlanController.GetIncidentActionPlanDetails)
