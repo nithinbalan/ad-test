@@ -7,9 +7,11 @@ import (
 	masterRepositories "jethur/grc/masters/repositories"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
+	organizationServices "jethur/grc/organization/services"
 	riskDTOs "jethur/grc/risk/dtos"
 	riskRepositories "jethur/grc/risk/repositories"
 	"jethur/utility"
+	"os"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -23,6 +25,8 @@ type RiskActionPlanServiceInterface interface {
 	Update(riskID uint, id uint, currentUserID uint, risk *riskDTOs.RiskActionPlanFormDTO) error
 	Delete(riskID uint, ids []uint, currentUserID uint) ([]uint, error)
 	StatusUpdate(riskID uint, id uint, currentUserID uint, ActionPlanStatusID uint, tx utility.DatabaseTransaction) error
+
+	ExportRiskActionPlan(data []*riskDTOs.RiskActionPlanListDTO, currentUserID uint) (*os.File, error)
 }
 
 // Service and implementations
@@ -32,6 +36,7 @@ type RiskActionPlanService struct {
 	riskRegisterSvc     RiskRegisterServiceInterface
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface
 	severityLevelSvc    masterServices.SeverityLevelServiceInterface
+	userSettingSvc      organizationServices.UserSettingServiceInterface
 }
 
 func NewRiskActionPlanService(
@@ -39,13 +44,15 @@ func NewRiskActionPlanService(
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	riskRegisterSvc RiskRegisterServiceInterface,
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
-	severityLevelSvc masterRepositories.SeverityLevelRepositoryInterface) RiskActionPlanServiceInterface {
+	severityLevelSvc masterRepositories.SeverityLevelRepositoryInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface) RiskActionPlanServiceInterface {
 	return &RiskActionPlanService{
 		repo:                repo,
 		activityLogSvc:      activityLogSvc,
 		riskRegisterSvc:     riskRegisterSvc,
 		actionPlanStatusSvc: actionPlanStatusSvc,
 		severityLevelSvc:    severityLevelSvc,
+		userSettingSvc:      userSettingSvc,
 	}
 }
 
@@ -317,4 +324,67 @@ func (raps *RiskActionPlanService) parseRiskActionPlanDates(dto *riskDTOs.RiskAc
 	}
 
 	return parsed, nil
+}
+
+func (raps *RiskActionPlanService) ExportRiskActionPlan(data []*riskDTOs.RiskActionPlanListDTO, currentUserID uint) (*os.File, error) {
+	// Fetch user setting for language preference
+	userSetting, err := raps.userSettingSvc.GetUserSettingsByUserID(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Define headers based on user language setting
+	var headers []string
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"SL No.",
+			"Action Plan",
+			"Risk",
+			"Description",
+			"Severity",
+			"Responsible User",
+			"Target Date",
+			"Status",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Action Plan",
+			"Incident",
+			"Description",
+			"Severity",
+			"Responsible User",
+			"Target Date",
+			"Status",
+		}
+	}
+	// Prepare the data rows
+	rows := make([][]interface{}, len(data))
+	for i, actionPlan := range data {
+		var responsibleUser, severity, status string
+
+		if userSetting.Language == "ar" {
+			responsibleUser = actionPlan.ResponsibleUserFirstNameAr
+			severity = utility.GetStringValue(actionPlan.SeverityLevelTitleAr)
+			status = actionPlan.ActionPlanStatusTitleAr
+		} else {
+			responsibleUser = actionPlan.ResponsibleUserFirstNameEn
+			severity = utility.GetStringValue(actionPlan.SeverityLevelTitleEn)
+			status = actionPlan.ActionPlanStatusTitleEn
+		}
+
+		rows[i] = []interface{}{
+			i + 1,
+			actionPlan.Title,
+			actionPlan.RiskTitle,
+			utility.GetStringValue(actionPlan.Description),
+			severity,
+			responsibleUser,
+			utility.GetStringValue(actionPlan.TargetDate),
+			status,
+		}
+	}
+
+	// Generate the Excel file
+	return utility.GenerateExcelFile(headers, rows)
 }
