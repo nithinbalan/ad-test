@@ -64,6 +64,7 @@ type RiskActionPlanListQueryParamsDTO struct {
 	QuickFilter    []string
 	TargetDateFrom string
 	TargetDateTo   string
+	Export         bool
 }
 
 type RiskActionPlanListResponseDTO struct {

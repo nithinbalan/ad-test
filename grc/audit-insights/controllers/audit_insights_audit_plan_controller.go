@@ -80,7 +80,7 @@ func (aiapc *AuditInsightsAuditPlanController) GetAllAuditInsightsAuditPlans(c *
 }
 
 func (aiapc *AuditInsightsAuditPlanController) GetAuditInsightsAuditPlanDetails(c *gin.Context) {
-	idStr := c.Param("id")
+	idStr := c.Param("auditPlanId")
 
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {

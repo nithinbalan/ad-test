@@ -25,7 +25,7 @@ type AuditScheduleServiceInterface interface {
 	GetAllSchedulesByAuditID(auditID uint, tx ...utility.DatabaseTransaction) ([]*models.AuditSchedule, error)
 	GetScheduleSummary(auditID uint) (*auditDTOs.AuditScheduleSummaryDTO, error)
 
-	StatusUpdate(auditScheduleID uint, statusID uint, currentUserID uint, tx utility.DatabaseTransaction) error
+	StatusUpdate(auditScheduleID uint, auditScheduleStatusUpdateFormDTO *auditDTOs.AuditScheduleStatusUpdateFormDTO, currentUserID uint, tx utility.DatabaseTransaction) error
 }
 
 type AuditScheduleService struct {
@@ -210,6 +210,7 @@ func (ass *AuditScheduleService) Update(id uint, auditID uint, currentUserID uin
 	if _, err := ass.auditSvc.GetByID(auditID); err != nil {
 		return err
 	}
+
 	dates, err := ass.parseAuditScheduleDates(auditScheduleFormDTO)
 	if err != nil {
 		return err
@@ -232,6 +233,7 @@ func (ass *AuditScheduleService) Update(id uint, auditID uint, currentUserID uin
 	existingAuditSchedule.StartDate = dates.StartDate
 	existingAuditSchedule.TargetDate = dates.TargetDate
 	existingAuditSchedule.ResponsibleUserID = auditScheduleFormDTO.ResponsibleUserID
+	existingAuditSchedule.AuditScheduleStatusID = auditScheduleFormDTO.AuditScheduleStatusID
 	existingAuditSchedule.UpdatedBYID = &currentUserID
 
 	err = ass.repo.Update(existingAuditSchedule, tx)
@@ -239,6 +241,7 @@ func (ass *AuditScheduleService) Update(id uint, auditID uint, currentUserID uin
 		tx.Rollback()
 		return err
 	}
+
 	existingSchedule, err := ass.GetFullDetailsByID(id, tx)
 	if err != nil {
 		tx.Rollback()
@@ -449,13 +452,15 @@ func (ass *AuditScheduleService) GetScheduleSummary(auditID uint) (*auditDTOs.Au
 	return summary, nil
 }
 
-func (ass *AuditScheduleService) StatusUpdate(auditScheduleID uint, statusID uint, currentUserID uint, tx utility.DatabaseTransaction) error {
+func (ass *AuditScheduleService) StatusUpdate(auditScheduleID uint, auditScheduleStatusUpdateFormDTO *auditDTOs.AuditScheduleStatusUpdateFormDTO, currentUserID uint, tx utility.DatabaseTransaction) error {
 	existingAuditSchedule, err := ass.GetByID(auditScheduleID)
 	if err != nil {
 		return err
 	}
 
-	existingAuditSchedule.AuditScheduleStatusID = statusID
+	existingAuditSchedule.AuditScheduleStatusID = auditScheduleStatusUpdateFormDTO.AuditScheduleStatusID
+	existingAuditSchedule.Comment = auditScheduleStatusUpdateFormDTO.Comment
+	existingAuditSchedule.Percentage = auditScheduleStatusUpdateFormDTO.Percentage
 	existingAuditSchedule.UpdatedBYID = &currentUserID
 
 	err = ass.repo.Update(existingAuditSchedule, tx)

@@ -24,6 +24,7 @@ type AuditRepositoryInterface interface {
 	CreateAuditChecklists(auditChecklists []*models.AuditChecklist, tx ...utility.DatabaseTransaction) error
 
 	GetAllAuditableItems(auditID uint, params *auditDTOs.AuditAuditableItemListQueryParamsDTO) (*auditDTOs.AuditAuditableItemListResponseDTO, error)
+	GetAuditByAuditPlanID(auditPlanID uint) (*models.Audit, error) 
 }
 
 type AuditRepository struct {
@@ -462,4 +463,23 @@ func (repo *AuditRepository) GetAllAuditableItems(auditID uint, params *auditDTO
 		},
 	}
 	return response, nil
+}
+
+func (repo *AuditRepository) GetAuditByAuditPlanID(auditPlanID uint) (*models.Audit, error) {
+	var audit models.Audit
+
+	// Query the database to find if an audit exists with the given AuditPlanID
+	result := repo.db.Where("audit_plan_id = ?", auditPlanID).First(&audit)
+
+	if result.Error != nil {
+		if result.Error == gorm.ErrRecordNotFound {
+			// Return nil if no audit is found (not an error, meaning it's safe to create a new audit)
+			return nil, nil
+		}
+		// Return an error if something went wrong during the query
+		return nil, result.Error
+	}
+
+	// Return the found audit if it exists
+	return &audit, nil
 }

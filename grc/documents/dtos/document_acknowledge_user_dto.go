@@ -17,6 +17,9 @@ type DocumentAcknowledgementListDTO struct {
 	LastNameEn              string `json:"last_name_en"`
 	LastNameAr              string `json:"last_name_ar"`
 	Email                   string `json:"email"`
+	Initial                 string `json:"initial"`
+	Color                   string `json:"color"`
+	ProfileImagePath        string `json:"profile_image_path"`
 	OrganizationUnitTitleEn string `json:"organization_unit_title_en"`
 	OrganizationUnitTitleAr string `json:"organization_unit_title_ar"`
 	Acknowledged            bool   `json:"acknowledged"`

@@ -189,6 +189,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.GET("/risks/:riskId/control-performance", riskRegisterController.GetControlPerformance)
 
 	// Risk Action Plan
+	riskRoutes.GET("/risk-action-plans/export", riskActionPlanController.GetRiskActionPlanExport)
 	riskRoutes.GET("/risk-action-plans", riskActionPlanController.GetAllRiskActionPlans)
 	riskRoutes.GET("/risks/:riskId/action-plans", riskActionPlanController.GetAllRiskActionPlans)
 	riskRoutes.GET("/risks/:riskId/action-plans/:actionPlanId", riskActionPlanController.GetRiskActionPlanDetails)

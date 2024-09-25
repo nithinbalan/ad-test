@@ -11,10 +11,11 @@ type OrganizationUnitDTO struct {
 
 type OrganizationUnitListDTO struct {
 	ID                            uint   `json:"id"`
-	OrganizationLevelID           string `json:"organization_level_id"`
+	OrganizationLevelID           uint   `json:"organization_level_id"`
+	OrganizationLevel             uint8  `json:"organization_level"`
 	OrganizationLevelTitleEn      string `json:"organization_level_title_en"`
 	OrganizationLevelTitleAr      string `json:"organization_level_title_ar"`
-	ParentOrganizationUnitID      string `json:"parent_organization_unit_id"`
+	ParentOrganizationUnitID      uint   `json:"parent_organization_unit_id"`
 	ParentOrganizationUnitTitleEn string `json:"parent_organization_unit_title_en"`
 	ParentOrganizationUnitTitleAr string `json:"parent_organization_unit_title_ar"`
 	ColorCode                     string `json:"color_code"`
@@ -24,12 +25,14 @@ type OrganizationUnitListDTO struct {
 }
 
 type OrganizationUnitListQueryParamsDTO struct {
-	Sort    string
-	SortBy  string
-	Keyword string
-	Status  string
-	Primary bool
-	Filters map[string][]string
+	Sort          string
+	SortBy        string
+	Keyword       string
+	Status        string
+	Primary       bool
+	Filters       map[string][]string
+	Level         uint
+	ParentUnitIDs []uint
 }
 
 type OrganizationUnitFormDTO struct {

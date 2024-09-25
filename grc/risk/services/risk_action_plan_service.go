@@ -3,10 +3,6 @@ package services
 import (
 	"errors"
 	"fmt"
-	"time"
-
-	commonDTOs "jethur/grc/common/dtos"
-	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
 	masterRepositories "jethur/grc/masters/repositories"
 	masterServices "jethur/grc/masters/services"
@@ -15,6 +11,7 @@ import (
 	riskDTOs "jethur/grc/risk/dtos"
 	riskRepositories "jethur/grc/risk/repositories"
 	"jethur/utility"
+	"os"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -28,6 +25,8 @@ type RiskActionPlanServiceInterface interface {
 	Update(riskID uint, id uint, currentUserID uint, risk *riskDTOs.RiskActionPlanFormDTO) error
 	Delete(riskID uint, ids []uint, currentUserID uint) ([]uint, error)
 	StatusUpdate(riskID uint, id uint, currentUserID uint, ActionPlanStatusID uint, tx utility.DatabaseTransaction) error
+
+	ExportRiskActionPlan(data []*riskDTOs.RiskActionPlanListDTO, currentUserID uint) (*os.File, error)
 }
 
 // Service and implementations
@@ -37,8 +36,7 @@ type RiskActionPlanService struct {
 	riskRegisterSvc     RiskRegisterServiceInterface
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface
 	severityLevelSvc    masterServices.SeverityLevelServiceInterface
-	userSvc             organizationServices.UserServiceInterface
-	notificationSvc     commonServices.NotificationServiceInterface
+	userSettingSvc      organizationServices.UserSettingServiceInterface
 }
 
 func NewRiskActionPlanService(
@@ -47,17 +45,14 @@ func NewRiskActionPlanService(
 	riskRegisterSvc RiskRegisterServiceInterface,
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
 	severityLevelSvc masterRepositories.SeverityLevelRepositoryInterface,
-	userSvc organizationServices.UserServiceInterface,
-	notificationSvc commonServices.NotificationServiceInterface,
-) RiskActionPlanServiceInterface {
+	userSettingSvc organizationServices.UserSettingServiceInterface) RiskActionPlanServiceInterface {
 	return &RiskActionPlanService{
 		repo:                repo,
 		activityLogSvc:      activityLogSvc,
 		riskRegisterSvc:     riskRegisterSvc,
 		actionPlanStatusSvc: actionPlanStatusSvc,
 		severityLevelSvc:    severityLevelSvc,
-		notificationSvc:     notificationSvc,
-		userSvc:             userSvc,
+		userSettingSvc:      userSettingSvc,
 	}
 }
 
@@ -76,6 +71,7 @@ func (raps RiskActionPlanService) GetByID(riskID uint, id uint) (*models.RiskAct
 	}
 
 	riskActionPlan, err := raps.repo.GetByID(id)
+
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -93,6 +89,7 @@ func (raps RiskActionPlanService) GetFullDetailsByID(riskID uint, id uint) (*ris
 	}
 
 	riskActionPlan, err := raps.repo.GetFullDetailsByID(id)
+
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -105,7 +102,7 @@ func (raps RiskActionPlanService) GetFullDetailsByID(riskID uint, id uint) (*ris
 		return nil, err
 	}
 
-	// todo :- also add extra fields which required in details screen
+	//todo :- also add extra fields which required in details screen
 
 	return &riskActionPlanDTO, nil
 }
@@ -166,6 +163,7 @@ func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskA
 			currentUserID,
 			nil,
 		)
+
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -176,74 +174,6 @@ func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskA
 			}
 
 			utility.LogError("Failed to log activity", fields)
-		}
-
-		// prepare notification
-		urlParam := fmt.Sprintf(`{"id":%d}`, id)
-		entity := "risk-action-plan"
-		action := "responsible-user-assign"
-
-		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserID:               RiskActionPlanFormDTO.ResponsibleUserID,
-			ModuleIdentifier:     "risk",
-			NotificationType:     string(commonDTOs.AssignmentType),
-			HeadingEn:            "Risk Action Plan Assignment",
-			HeadingAr:            "تعيين خطة عمل المخاطر",
-			TitleEn:              RiskActionPlanFormDTO.Title,
-			TitleAr:              RiskActionPlanFormDTO.Title,
-			Entity:               &entity,
-			Action:               &action,
-			URLParam:             urlParam,
-			IsSystemNotification: false,
-			CreatedByID:          &currentUserID,
-		}
-
-		responsibleUser, err := raps.userSvc.GetByID(RiskActionPlanFormDTO.ResponsibleUserID)
-		if err != nil {
-			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
-				"error": err.Error(),
-			})
-			return
-		}
-
-		assignedBy, err := raps.userSvc.GetByID(currentUserID)
-		if err != nil {
-			utility.LogError("Failed to fetch assigning user", map[string]interface{}{
-				"error": err.Error(),
-			})
-			return
-		}
-
-		emailTo := []string{responsibleUser.Email}
-		subject := fmt.Sprintf("Risk Action Plan/%s: Responsibility Assigned", RiskActionPlanFormDTO.Title)
-		appURL := utility.GetAppURL()
-		emailData := map[string]interface{}{
-			"FistNameEn":            responsibleUser.FirstNameEn,
-			"LastnameEn":            responsibleUser.LastNameEn,
-			"RiskReferenceNumber":   riskActionPlan.RiskRegister.ReferenceNumber,
-			"RiskTitle":             riskActionPlan.RiskRegister.Title,
-			"ActionPlanTitle":       RiskActionPlanFormDTO.Title,
-			"ActionPlanDescription": RiskActionPlanFormDTO.Description,
-			"TargetDate":            dates.TargetDate.Format("2006-01-02"),
-			"AssignedByFistNameEn":  assignedBy.FirstNameEn,
-			"AssignedByLastNameEn":  assignedBy.LastNameEn,
-			"AssignedOn":            time.Now().Format("2006-01-02"),
-			"RedirectURL":           fmt.Sprintf("%s/risk-action-plan/%d", appURL, id),
-		}
-
-		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
-			EmailTo:              emailTo,
-			Subject:              subject,
-			TemplateRelativePath: "risk/templates/email/risk_action_plan_create_responsible_user_mail.html",
-			EmailData:            emailData,
-		}
-
-		// send notification and mail
-		err = raps.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "risk_action_plan")
-		if err != nil {
-			utility.LogError("Failed to send notifications", map[string]interface{}{
-				"error": err.Error(),
-			})
 		}
 	}()
 
@@ -258,11 +188,10 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 	}
 
 	existingRiskActionPlan, err := raps.GetByID(riskID, id)
+
 	if err != nil {
 		return err
 	}
-
-	oldResponsibleUserID := existingRiskActionPlan.ResponsibleUserID
 
 	if err := raps.validateRiskActionPlanFormDTO(RiskActionPlanFormDTO); err != nil {
 		return err
@@ -285,139 +214,12 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 	existingRiskActionPlan.UpdatedBYID = &currentUserID
 
 	err = raps.repo.Update(existingRiskActionPlan, tx)
+
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 	tx.Commit()
-
-	go func() {
-		// sends notification if responsible user has changed
-		if oldResponsibleUserID != existingRiskActionPlan.ResponsibleUserID {
-			urlParam := fmt.Sprintf(`{"id:%d"}`, id)
-			entity := "risk-action-plan"
-
-			oldResponsibleUserAction := "responsible-user-remove"
-			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               oldResponsibleUserID,
-				ModuleIdentifier:     "risk",
-				NotificationType:     string(commonDTOs.InformationType),
-				HeadingEn:            "Risk Action Plan Removal",
-				HeadingAr:            " إزالة خطة عمل المخاطر",
-				TitleEn:              existingRiskActionPlan.Title,
-				TitleAr:              existingRiskActionPlan.Title,
-				Entity:               &entity,
-				Action:               &oldResponsibleUserAction,
-				URLParam:             urlParam,
-				IsSystemNotification: false,
-				CreatedByID:          &currentUserID,
-			}
-
-			newResponsibleUserAction := "responsible-user-assign"
-			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               RiskActionPlanFormDTO.ResponsibleUserID,
-				ModuleIdentifier:     "risk",
-				NotificationType:     string(commonDTOs.AssignmentType),
-				HeadingEn:            "Risk Action Plan Assignment",
-				HeadingAr:            "تعيين خطة عمل المخاطر",
-				TitleEn:              existingRiskActionPlan.Title,
-				Entity:               &entity,
-				Action:               &newResponsibleUserAction,
-				URLParam:             urlParam,
-				IsSystemNotification: false,
-				CreatedByID:          &currentUserID,
-			}
-
-			oldResponsibleUser, err := raps.userSvc.GetByID(oldResponsibleUserID)
-			if err != nil {
-				utility.LogError("Failed to fetch old responsible user", map[string]interface{}{
-					"error": err.Error(),
-				})
-				return
-			}
-
-			newResponsibleUser, err := raps.userSvc.GetByID(RiskActionPlanFormDTO.ResponsibleUserID)
-			if err != nil {
-				utility.LogError("Failed to fetch new responsible user", map[string]interface{}{
-					"error": err.Error(),
-				})
-				return
-			}
-
-			assignedBy, err := raps.userSvc.GetByID(currentUserID)
-			if err != nil {
-				utility.LogError("Failed to fetch assigning user", map[string]interface{}{
-					"error": err.Error(),
-				})
-				return
-			}
-
-			appURL := utility.GetAppURL()
-
-			oldResponsibleUserEmailTo := []string{oldResponsibleUser.Email}
-			oldResponsibleUserSubject := fmt.Sprintf("Risk Action Plan/%s: Responsibility Removed", existingRiskActionPlan.Title)
-			oldResponsibleUserTemplateRelativePath := "risk/templates/email/risk_action_plan_remove_responsible_user_mail.html"
-			oldResponsibleUserEmailData := map[string]interface{}{
-				"FirstNameEn":           oldResponsibleUser.FirstNameEn,
-				"LastNameEn":            oldResponsibleUser.LastNameEn,
-				"RiskReferenceNumber":   existingRiskActionPlan.RiskRegister.ReferenceNumber,
-				"RiskTitle":             existingRiskActionPlan.Title,
-				"ActionPlanTitle":       existingRiskActionPlan.Title,
-				"ActionPlanDescription": existingRiskActionPlan.Description,
-				"RedirectURL":           fmt.Sprintf("%s/risk-action-plan/%d", appURL, id),
-			}
-
-			oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
-				EmailTo:              oldResponsibleUserEmailTo,
-				Subject:              oldResponsibleUserSubject,
-				TemplateRelativePath: oldResponsibleUserTemplateRelativePath,
-				EmailData:            oldResponsibleUserEmailData,
-			}
-
-			newResponsibleUserEmailTo := []string{newResponsibleUser.Email}
-			newResponsibleUserSubject := fmt.Sprintf("Risk Action Plan/%s: Responsibility Assigned", existingRiskActionPlan.Title)
-			newResponsibleUserTemplateRelativePath := "risk/templates/email/risk_action_plan_change_responsible_user_mail.html"
-			newResponsibleUserEmailData := map[string]interface{}{
-				"FirstNameEn":           newResponsibleUser.FirstNameEn,
-				"LastNameEn":            newResponsibleUser.LastNameEn,
-				"RiskReferenceNumber":   existingRiskActionPlan.RiskRegister.ReferenceNumber,
-				"RiskTitle":             existingRiskActionPlan.RiskRegister.Title,
-				"ActionPlanTitle":       existingRiskActionPlan.Title,
-				"ActionPlanDescription": existingRiskActionPlan.Description,
-				"TargetDate":            existingRiskActionPlan.TargetDate.Format("2006-01-02"),
-				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
-				"AssignedByLastNameEn":  assignedBy.LastNameEn,
-				"AssignedOn":            time.Now().Format("2006-01-02"),
-				"RedirectURL":           fmt.Sprintf("%s/risk-action-plan/%d", appURL, id),
-			}
-
-			newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
-				EmailTo:              newResponsibleUserEmailTo,
-				Subject:              newResponsibleUserSubject,
-				TemplateRelativePath: newResponsibleUserTemplateRelativePath,
-				EmailData:            newResponsibleUserEmailData,
-			}
-
-			err = raps.notificationSvc.SendNotification(
-				newResponsibleUserNotificationDTO, newResponsibleUserEmailNotificationDTO, "risk_action_plan",
-			)
-			if err != nil {
-				utility.LogError("Failed to send new responsible user notifications", map[string]interface{}{
-					"error": err.Error(),
-				})
-			}
-
-			err = raps.notificationSvc.SendNotification(
-				oldResponsibleUserNotificationDTO, oldResponsibleUserEmailNotificationDTO, "risk_action_plan",
-			)
-			if err != nil {
-				utility.LogError("Failed to send old responsible user notifications", map[string]interface{}{
-					"error": err.Error(),
-				})
-			}
-
-		}
-	}()
 
 	return nil
 }
@@ -429,38 +231,13 @@ func (raps *RiskActionPlanService) Delete(riskID uint, ids []uint, currentUserID
 
 	var failedIds []uint
 	var successfulIds []uint
-	var notifications []struct {
-		OwnerID         *uint
-		TitleEn         string
-		TitleAr         string
-		Description     string
-		ReferenceNumber string
-		RiskTitle       string
-	}
 	for _, id := range ids {
 
 		riskActionPlan, err := raps.repo.GetFullDetailsByID(id)
+
 		if err != nil {
 			continue
 		}
-
-		// Prepare notification data before deletion
-		notifications = append(notifications, struct {
-			OwnerID         *uint
-			TitleEn         string
-			TitleAr         string
-			Description     string
-			ReferenceNumber string
-			RiskTitle       string
-		}{
-			OwnerID:         &riskActionPlan.ResponsibleUserID,
-			TitleEn:         riskActionPlan.Title,
-			TitleAr:         riskActionPlan.Title,
-			Description:     *riskActionPlan.Description,
-			ReferenceNumber: riskActionPlan.RiskRegister.ReferenceNumber,
-			RiskTitle:       riskActionPlan.RiskRegister.Title,
-		})
-
 		if len(riskActionPlan.ActionPlanStatusUpdates) > 0 {
 			var deleteStatusUpdateIds []*uint
 			for _, update := range riskActionPlan.ActionPlanStatusUpdates {
@@ -481,6 +258,7 @@ func (raps *RiskActionPlanService) Delete(riskID uint, ids []uint, currentUserID
 	}
 
 	if len(successfulIds) > 0 {
+
 		go func() {
 			err := raps.activityLogSvc.LogBulkActivities(
 				models.DeleteAction,
@@ -494,64 +272,6 @@ func (raps *RiskActionPlanService) Delete(riskID uint, ids []uint, currentUserID
 				// @todo - save to log file
 				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
 			}
-
-			for _, notification := range notifications {
-				urlParam := ""
-				entity := "risk-action-plan"
-				action := "delete"
-
-				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserID:               *notification.OwnerID,
-					ModuleIdentifier:     "risk",
-					NotificationType:     string(commonDTOs.DeletionType),
-					HeadingEn:            "Risk Action Plan Deletion",
-					HeadingAr:            "حذف خطة عمل المخاطر",
-					TitleEn:              notification.TitleEn,
-					TitleAr:              notification.TitleAr,
-					Entity:               &entity,
-					Action:               &action,
-					URLParam:             urlParam,
-					IsSystemNotification: false,
-					CreatedByID:          &currentUserID,
-				}
-
-				ownerUser, err := raps.userSvc.GetByID(*notification.OwnerID)
-				if err != nil {
-					utility.LogError("Failed to fetch owner details for notification", map[string]interface{}{
-						"error": err.Error(),
-					})
-					continue
-				}
-
-				ownerEmailTo := []string{ownerUser.Email}
-				subject := fmt.Sprintf("Risk Action Plan/%s: Deleted", notification.TitleEn)
-				templateRelativePath := "risk/templates/email/risk_action_plan_delete_mail.html"
-
-				emailData := map[string]interface{}{
-					"FirstNameEn":           ownerUser.FirstNameEn,
-					"LastNameEn":            ownerUser.LastNameEn,
-					"RiskReferenceNumber":   notification.ReferenceNumber,
-					"RiskTitle":             notification.RiskTitle,
-					"ActionPlanTitle":       notification.TitleEn,
-					"ActionPlanDescription": notification.Description,
-				}
-
-				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
-					EmailTo:              ownerEmailTo,
-					Subject:              subject,
-					TemplateRelativePath: templateRelativePath,
-					EmailData:            emailData,
-				}
-
-				err = raps.notificationSvc.SendNotification(
-					dbNotificationDTO, emailNotificationDTO, "risk_action_plan")
-				if err != nil {
-					utility.LogError("Failed to send deletion notifications", map[string]interface{}{
-						"error": err.Error(),
-					})
-				}
-
-			}
 		}()
 	}
 
@@ -559,7 +279,9 @@ func (raps *RiskActionPlanService) Delete(riskID uint, ids []uint, currentUserID
 }
 
 func (raps *RiskActionPlanService) StatusUpdate(riskID uint, id uint, currentUserID uint, ActionPlanStatusID uint, tx utility.DatabaseTransaction) error {
+
 	existingRiskActionPlan, err := raps.GetByID(riskID, id)
+
 	if err != nil {
 		return err
 	}
@@ -568,6 +290,7 @@ func (raps *RiskActionPlanService) StatusUpdate(riskID uint, id uint, currentUse
 	existingRiskActionPlan.UpdatedBYID = &currentUserID
 
 	err = raps.repo.Update(existingRiskActionPlan, tx)
+
 	if err != nil {
 		return err
 	}
@@ -601,4 +324,67 @@ func (raps *RiskActionPlanService) parseRiskActionPlanDates(dto *riskDTOs.RiskAc
 	}
 
 	return parsed, nil
+}
+
+func (raps *RiskActionPlanService) ExportRiskActionPlan(data []*riskDTOs.RiskActionPlanListDTO, currentUserID uint) (*os.File, error) {
+	// Fetch user setting for language preference
+	userSetting, err := raps.userSettingSvc.GetUserSettingsByUserID(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Define headers based on user language setting
+	var headers []string
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"SL No.",
+			"Action Plan",
+			"Risk",
+			"Description",
+			"Severity",
+			"Responsible User",
+			"Target Date",
+			"Status",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Action Plan",
+			"Incident",
+			"Description",
+			"Severity",
+			"Responsible User",
+			"Target Date",
+			"Status",
+		}
+	}
+	// Prepare the data rows
+	rows := make([][]interface{}, len(data))
+	for i, actionPlan := range data {
+		var responsibleUser, severity, status string
+
+		if userSetting.Language == "ar" {
+			responsibleUser = actionPlan.ResponsibleUserFirstNameAr
+			severity = utility.GetStringValue(actionPlan.SeverityLevelTitleAr)
+			status = actionPlan.ActionPlanStatusTitleAr
+		} else {
+			responsibleUser = actionPlan.ResponsibleUserFirstNameEn
+			severity = utility.GetStringValue(actionPlan.SeverityLevelTitleEn)
+			status = actionPlan.ActionPlanStatusTitleEn
+		}
+
+		rows[i] = []interface{}{
+			i + 1,
+			actionPlan.Title,
+			actionPlan.RiskTitle,
+			utility.GetStringValue(actionPlan.Description),
+			severity,
+			responsibleUser,
+			utility.GetStringValue(actionPlan.TargetDate),
+			status,
+		}
+	}
+
+	// Generate the Excel file
+	return utility.GenerateExcelFile(headers, rows)
 }

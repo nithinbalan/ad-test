@@ -12,6 +12,8 @@ type ModuleListDTO struct {
 	TitleEn    string             `json:"title_en"`
 	TitleAr    string             `json:"title_ar"`
 	Order      int                `json:"order"`
+	Icon       string             `json:"icon"`
+	Route      string             `json:"route"`
 	SubModules []SubModuleListDTO `json:"sub_modules"`
 }
 
@@ -21,5 +23,7 @@ type SubModuleListDTO struct {
 	TitleEn     string          `json:"title_en"`
 	TitleAr     string          `json:"title_ar"`
 	Order       int             `json:"order"`
-	Permissions map[string]bool `json:"permissions"` // Add Permissions field
+	Icon        string          `json:"icon"`
+	Route       string          `json:"route"`
+	Permissions map[string]bool `json:"permissions"`
 }
