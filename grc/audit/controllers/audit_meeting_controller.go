@@ -114,13 +114,21 @@ func (amc *AuditMeetingController) CreateAuditMeeting(c *gin.Context) {
 		return
 	}
 
+	idStr := c.Param("auditId")
+
+	auditId, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(amc.db, c, err.Error())
 		return
 	}
 
-	id, err := amc.service.Create(currentUserID, &auditMeetingFormDTO)
+	id, err := amc.service.Create(currentUserID, &auditMeetingFormDTO, uint(auditId))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -152,13 +160,21 @@ func (amc *AuditMeetingController) UpdateAuditMeeting(c *gin.Context) {
 		return
 	}
 
+	idStr := c.Param("auditId")
+
+	auditId, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(amc.db, c, err.Error())
 		return
 	}
 
-	err = amc.service.Update(uint(meetingID), currentUserID, &auditMeetingFormDTO)
+	err = amc.service.Update(uint(meetingID), currentUserID, &auditMeetingFormDTO, uint(auditId))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

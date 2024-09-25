@@ -496,6 +496,7 @@ func (repo *GRCDashboardRepository) GetGRCDocumentOverview(params *kpiDTOs.GRCDa
 func (repo *GRCDashboardRepository) GetTopComplianceRegisters(params *kpiDTOs.GRCDashboardListQueryParamsDTO) ([]*kpiDTOs.GRCTopComplianceRegistersDTO, error) {
 	var complianceRegisters []models.ComplianceRegister
 	query := repo.db.Model(&models.ComplianceRegister{}).
+		Preload("ComplianceStatus").
 		Order("total_score DESC")
 
 	if params.DateFrom != "" && params.DateTo != "" {
@@ -512,10 +513,14 @@ func (repo *GRCDashboardRepository) GetTopComplianceRegisters(params *kpiDTOs.GR
 	var topRegisters []*kpiDTOs.GRCTopComplianceRegistersDTO
 	for _, register := range complianceRegisters {
 		complianceRegisterDTO := &kpiDTOs.GRCTopComplianceRegistersDTO{
-			ID:         register.ID,
-			TitleEn:    register.TitleEn,
-			TitleAr:    register.TitleAr,
-			TotalScore: register.TotalScore,
+			ID:                        register.ID,
+			TitleEn:                   register.TitleEn,
+			TitleAr:                   register.TitleAr,
+			TotalScore:                register.TotalScore,
+			ComplianceStatusTitleEn:   register.ComplianceStatus.TitleEn,
+			ComplianceStatusTitleAr:   register.ComplianceStatus.TitleAr,
+			ComplianceStatusType:      register.ComplianceStatus.Type,
+			ComplianceStatusColorCode: register.ComplianceStatus.ColorCode,
 		}
 		topRegisters = append(topRegisters, complianceRegisterDTO)
 	}

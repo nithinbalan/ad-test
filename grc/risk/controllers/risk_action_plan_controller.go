@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	commonDTOs "jethur/grc/common/dtos"
 	riskDTOs "jethur/grc/risk/dtos"
 	"jethur/grc/risk/services"
@@ -38,11 +39,17 @@ func (rapc *RiskActionPlanController) GetAllRiskActionPlans(c *gin.Context) {
 	} else {
 		riskID = 0
 	}
-	sort := c.Query("sort_order")
-	sortBy := c.Query("sort_by")
+	sort := c.DefaultQuery("sort_order", "asc")
+	sortBy := c.DefaultQuery("sort_by", "title")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
+
+	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
+	if err != nil {
+		utility.SendInternalErrResp(rapc.db, c, "Invalid export parameter")
+		return
+	}
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
@@ -50,6 +57,19 @@ func (rapc *RiskActionPlanController) GetAllRiskActionPlans(c *gin.Context) {
 		"responsible_user_ids",
 		"action_plan_status_ids",
 		"risk_register_ids",
+	}
+
+	validSortFields := map[string]string{
+		"title":               "risk_action_plans.title",
+		"risk_title":          "risk_register.title",
+		"severity_level_en":   "severity_levels.title_en",
+		"severity_level_ar":   "severity_levels.title_ar",
+		"responsible_user_en": "responsible_user.first_name_en",
+		"responsible_user_ar": "responsible_user.first_name_ar",
+		"target_date":         "risk_action_plans.target_date",
+		"percentage":          "risk_action_plans.percentage",
+		"status_en":           "action_plan_statuses.title_en",
+		"status_ar":           "action_plan_statuses.title_ar",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
@@ -70,9 +90,16 @@ func (rapc *RiskActionPlanController) GetAllRiskActionPlans(c *gin.Context) {
 		return
 	}
 
+	dbField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
 	queryParams := riskDTOs.RiskActionPlanListQueryParamsDTO{
 		Sort:           sort,
-		SortBy:         sortBy,
+		SortBy:         dbField,
 		Keyword:        keyword,
 		Status:         status,
 		Page:           page,
@@ -81,6 +108,7 @@ func (rapc *RiskActionPlanController) GetAllRiskActionPlans(c *gin.Context) {
 		QuickFilter:    quickFilter,
 		TargetDateFrom: targetDateFrom,
 		TargetDateTo:   targetDateTo,
+		Export:         export,
 	}
 	riskActionPlans, err := rapc.service.GetAll(uint(riskID), &queryParams)
 
@@ -93,6 +121,28 @@ func (rapc *RiskActionPlanController) GetAllRiskActionPlans(c *gin.Context) {
 			utility.SendInternalErrResp(rapc.db, c, e.Error())
 			return
 		}
+	}
+
+	if export {
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(rapc.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := rapc.service.ExportRiskActionPlan(riskActionPlans.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(rapc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="Risk action plan.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
+		return
 	}
 	c.JSON(http.StatusOK, riskActionPlans)
 }
@@ -258,4 +308,10 @@ func (rapc *RiskActionPlanController) DeleteRiskActionPlans(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}
+
+func (rapc *RiskActionPlanController) GetRiskActionPlanExport(c *gin.Context) {
+	c.Request.URL.RawQuery += "&export=true"
+
+	rapc.GetAllRiskActionPlans(c)
 }
