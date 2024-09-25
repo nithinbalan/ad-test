@@ -1,0 +1,230 @@
+{{ define "content" }}
+<p>Dear {{ .FirstNameEn }} {{ .LastNameEn }},</p>
+<p>
+  We wanted to let you know that you have been assigned an action plan for the
+  Risk titled <strong>{{ .RiskTitle }}</strong>. Below are the details of the
+  assigned action plan:
+</p>
+
+<table
+  style="
+    width: 100%;
+    background-color: #fff;
+    border-collapse: collapse;
+    margin: 20px 0;
+  "
+>
+  <tbody>
+    <tr style="border: 1px solid #eaedf2">
+      <th
+        style="
+          text-align: left;
+          width: 30%;
+          padding: 7px;
+          background-color: #f6f6f6;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+            Helvetica, Arial, sans-serif;
+          color: #525967;
+        "
+      >
+        Risk Reference Number
+      </th>
+      <td
+        style="
+          text-align: center;
+          padding: 7px;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+            Helvetica, Arial, sans-serif;
+          color: #1e1e1e;
+        "
+      >
+        {{.RiskReferenceNumber}}
+      </td>
+    </tr>
+    <tr style="border: 1px solid #eaedf2">
+      <th
+        style="
+          text-align: left;
+          width: 30%;
+          padding: 7px;
+          background-color: #f6f6f6;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+            Helvetica, Arial, sans-serif;
+          color: #525967;
+        "
+      >
+        Risk Title
+      </th>
+      <td
+        style="
+          text-align: center;
+          padding: 7px;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+            Helvetica, Arial, sans-serif;
+          color: #1e1e1e;
+        "
+      >
+        {{.RiskTitle}}
+      </td>
+    </tr>
+    <tr style="border: 1px solid #eaedf2">
+      <th
+        style="
+          text-align: left;
+          width: 30%;
+          padding: 7px;
+          background-color: #f6f6f6;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+            Helvetica, Arial, sans-serif;
+          color: #525967;
+        "
+      >
+        Action Plan Title
+      </th>
+      <td
+        style="
+          text-align: center;
+          padding: 7px;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+            Helvetica, Arial, sans-serif;
+          color: #1e1e1e;
+        "
+      >
+        {{.ActionPlanTitle}}
+      </td>
+    </tr>
+    <tr style="border: 1px solid #eaedf2">
+      <th
+        style="
+          text-align: left;
+          width: 30%;
+          padding: 7px;
+          background-color: #f6f6f6;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+            Helvetica, Arial, sans-serif;
+          color: #525967;
+        "
+      >
+        Action Plan Description
+      </th>
+      <td
+        style="
+          text-align: center;
+          padding: 7px;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+            Helvetica, Arial, sans-serif;
+          color: #1e1e1e;
+        "
+      >
+        {{.ActionPlanDescription}}
+      </td>
+    </tr>
+    <tr style="border: 1px solid #eaedf2">
+      <th
+        style="
+          text-align: left;
+          width: 30%;
+          padding: 7px;
+          background-color: #f6f6f6;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+            Helvetica, Arial, sans-serif;
+          color: #525967;
+        "
+      >
+        Target Date
+      </th>
+      <td
+        style="
+          text-align: center;
+          padding: 7px;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+            Helvetica, Arial, sans-serif;
+          color: #1e1e1e;
+        "
+      >
+        {{.TargetDate}}
+      </td>
+    </tr>
+    <tr style="border: 1px solid #eaedf2">
+      <th
+        style="
+          text-align: left;
+          width: 30%;
+          padding: 7px;
+          background-color: #f6f6f6;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+            Helvetica, Arial, sans-serif;
+          color: #525967;
+        "
+      >
+        Assigned By
+      </th>
+      <td
+        style="
+          text-align: center;
+          padding: 7px;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+            Helvetica, Arial, sans-serif;
+          color: #1e1e1e;
+        "
+      >
+        {{.AssignedByFirstNameEn}} {{ .AssignedByLastNameEn }}
+      </td>
+    </tr>
+    <tr style="border: 1px solid #eaedf2">
+      <th
+        style="
+          text-align: left;
+          width: 30%;
+          padding: 7px;
+          background-color: #f6f6f6;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+            Helvetica, Arial, sans-serif;
+          color: #525967;
+        "
+      >
+        Assigned On
+      </th>
+      <td
+        style="
+          text-align: center;
+          padding: 7px;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+            Helvetica, Arial, sans-serif;
+          color: #1e1e1e;
+        "
+      >
+        {{.AssignedOn}}
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<p>
+  Please log into the system to review the action plan details and take the
+  necessary actions.
+</p>
+
+<div style="text-align: center">
+  <a
+    href="{{.RedirectURL}}"
+    style="
+      background-color: #165d31;
+      color: #ffffff;
+      padding: 10px 20px;
+      text-align: center;
+      text-decoration: none;
+      border-radius: 4px;
+      display: inline-block;
+      margin-top: 30px;
+    "
+    >View Action Plan</a
+  >
+</div>
+
+<p>
+  Thank you for your prompt attention to this matter. Your efforts in managing
+  action plans are crucial to maintaining the control effectiveness.
+</p>
+
+{{ end }}
