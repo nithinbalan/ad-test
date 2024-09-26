@@ -169,21 +169,21 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 	}
 	// url := fmt.Sprintf("compliance-register/%d/action-plans/%d", complianceID, id)
 
-	taskDTO := commonDTOs.TaskFormDTO{
-		ModuleIdentifier:       "compliance_action_plan",
-		ComplianceActionPlanID: &id,
-		Title:                  ComplianceActionPlanFormDTO.Title,
-		Description:            ComplianceActionPlanFormDTO.Description,
-		TargetDate:             dates.TargetDate,
-		// URL:                    url,
-		SeverityLevelID:   ComplianceActionPlanFormDTO.SeverityLevelID,
-		ResponsibleUserID: ComplianceActionPlanFormDTO.ResponsibleUserID,
-	}
+	// taskDTO := commonDTOs.TaskFormDTO{
+	// 	ModuleIdentifier:       "compliance_action_plan",
+	// 	ComplianceActionPlanID: &id,
+	// 	Title:                  ComplianceActionPlanFormDTO.Title,
+	// 	Description:            ComplianceActionPlanFormDTO.Description,
+	// 	TargetDate:             dates.TargetDate,
+	// 	// URL:                    url,
+	// 	SeverityLevelID:   ComplianceActionPlanFormDTO.SeverityLevelID,
+	// 	ResponsibleUserID: ComplianceActionPlanFormDTO.ResponsibleUserID,
+	// }
 
-	if err := caps.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
-		tx.Rollback()
-		return 0, err
-	}
+	// if err := caps.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
+	// 	tx.Rollback()
+	// 	return 0, err
+	// }
 	tx.Commit()
 
 	go func() {
