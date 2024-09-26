@@ -140,6 +140,7 @@ func (caps *ControlActionPlanService) Create(controlID uint, currentUserID uint,
 		Description:        ControlActionPlanFormDTO.Description,
 		SeverityLevelID:    ControlActionPlanFormDTO.SeverityLevelID,
 		ResponsibleUserID:  ControlActionPlanFormDTO.ResponsibleUserID,
+		ReviewUserID:       ControlActionPlanFormDTO.ReviewUserID,
 		TargetDate:         dates.TargetDate,
 		Percentage:         *ControlActionPlanFormDTO.Percentage,
 		ActionPlanStatusID: ControlActionPlanFormDTO.ActionPlanStatusID,
@@ -309,6 +310,7 @@ func (caps *ControlActionPlanService) Update(controlID uint, id uint, currentUse
 	existingControlActionPlan.Description = ControlActionPlanFormDTO.Description
 	existingControlActionPlan.SeverityLevelID = ControlActionPlanFormDTO.SeverityLevelID
 	existingControlActionPlan.ResponsibleUserID = ControlActionPlanFormDTO.ResponsibleUserID
+	existingControlActionPlan.ReviewUserID = ControlActionPlanFormDTO.ReviewUserID
 	existingControlActionPlan.TargetDate = dates.TargetDate
 	existingControlActionPlan.Percentage = *ControlActionPlanFormDTO.Percentage
 	existingControlActionPlan.ActionPlanStatusID = ControlActionPlanFormDTO.ActionPlanStatusID
