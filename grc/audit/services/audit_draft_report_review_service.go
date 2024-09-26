@@ -8,7 +8,6 @@ import (
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
-	"time"
 )
 
 type AuditDraftReportReviewServiceInterface interface {
@@ -68,7 +67,7 @@ func (adrrs *AuditDraftReportReviewService) Submit(auditID uint, auditDraftRepor
 		return err
 	}
 	approvalType := "anyone"
-	workflowType := "draft-report"
+	workflowType := "draft"
 	auditReportWorkflow := &models.AuditReportWorkflow{
 		AuditDraftReportID: &auditDraftReportID,
 		WorkflowStatusID:   workflowSubmitStatus.ID,
@@ -102,8 +101,9 @@ func (adrrs *AuditDraftReportReviewService) Submit(auditID uint, auditDraftRepor
 	auditReportReview := &models.AuditReportReview{
 		AuditDraftReportID:    auditDraftReportID,
 		AuditReportWorkflowID: auditReportWorkflowID,
-		WorkflowStatusID:      workflowSubmitStatus.ID, // Initially set to 'pending'
+		WorkflowStatusID:      workflowSubmitStatus.ID,
 		UserID:                currentUserID,
+		Comment:               auditReportWorkflowFormDTO.Comment,
 		CreatedByID:           currentUserID,
 	}
 	id, err := adrrs.repo.Create(auditReportReview, tx)
@@ -111,21 +111,16 @@ func (adrrs *AuditDraftReportReviewService) Submit(auditID uint, auditDraftRepor
 		tx.Rollback()
 		return err
 	}
-
+	//update status & AuditeeReviewSubmitted user details on draft report
 	auditDraftReportInReviewStatus, err := adrrs.auditDraftReportStatusSvc.GetByType("in-review")
 	if err != nil {
 		return err
 	}
-	now := time.Now()
-	existingAuditDraftReport.SubmittedAt = &now
-	existingAuditDraftReport.AuditDraftReportStatusID = auditDraftReportInReviewStatus.ID
-	existingAuditDraftReport.SubmittedBYID = &currentUserID
-
-	// err = adrrs.auditDraftReportSvc.Update(existingAuditDraftReport, tx)
-	// if err != nil {
-	// 	tx.Rollback()
-	// 	return err
-	// }
+	err = adrrs.auditDraftReportSvc.StatusUpdate(auditDraftReportID, currentUserID, auditDraftReportInReviewStatus.ID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
 	//todo - notification to workflow user
 
 	tx.Commit()

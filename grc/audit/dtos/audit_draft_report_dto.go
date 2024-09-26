@@ -6,23 +6,37 @@ import (
 	organizationDTOs "jethur/grc/organization/dtos"
 	"time"
 )
+
 type AuditDraftReportListDTO struct {
 	// Audit Draft Report Information
 	ID               uint   `json:"id"`
 	ReportDate       string `json:"report_date"`
 	ExecutiveSummary string `json:"executive_summary"`
 	Conclusion       string `json:"conclusion"`
-	// Submitted User Information
-	SubmittedAt               string `json:"submitted_at"`
-	SubmittedUserID           uint   `json:"submitted_user_id"`
-	SubmittedUserFirstNameEn  string `json:"submitted_user_first_name_en"`
-	SubmittedUserFirstNameAr  string `json:"submitted_user_first_name_ar"`
-	SubmittedUserLastNameEn   string `json:"submitted_user_last_name_en"`
-	SubmittedUserLastNameAr   string `json:"submitted_user_last_name_ar"`
-	SubmittedUserInitial      string `json:"submitted_user_initial"`
-	SubmittedUserColor        string `json:"submitted_user_color"`
-	SubmittedUserEmail        string `json:"submitted_user_email"`
-	SubmittedUserProfileImage string `json:"submitted_user_profile_image_path"`
+	// Internal Review Submitted User Information
+	InternalReviewSubmittedAt               string `json:"internal_review_submitted_at"`
+	InternalReviewSubmittedUserID           uint   `json:"internal_review_submitted_user_id"`
+	InternalReviewSubmittedUserFirstNameEn  string `json:"internal_review_submitted_user_first_name_en"`
+	InternalReviewSubmittedUserFirstNameAr  string `json:"internal_review_submitted_user_first_name_ar"`
+	InternalReviewSubmittedUserLastNameEn   string `json:"internal_review_submitted_user_last_name_en"`
+	InternalReviewSubmittedUserLastNameAr   string `json:"internal_review_submitted_user_last_name_ar"`
+	InternalReviewSubmittedUserInitial      string `json:"internal_review_submitted_user_initial"`
+	InternalReviewSubmittedUserColor        string `json:"internal_review_submitted_user_color"`
+	InternalReviewSubmittedUserEmail        string `json:"internal_review_submitted_user_email"`
+	InternalReviewSubmittedUserProfileImage string `json:"internal_review_submitted_user_profile_image_path"`
+
+	// Auditee Review Submitted User Information
+	AuditeeReviewSubmittedAt               string `json:"auditee_review_submitted_at"`
+	AuditeeReviewSubmittedUserID           uint   `json:"auditee_review_submitted_user_id"`
+	AuditeeReviewSubmittedUserFirstNameEn  string `json:"auditee_review_submitted_user_first_name_en"`
+	AuditeeReviewSubmittedUserFirstNameAr  string `json:"auditee_review_submitted_user_first_name_ar"`
+	AuditeeReviewSubmittedUserLastNameEn   string `json:"auditee_review_submitted_user_last_name_en"`
+	AuditeeReviewSubmittedUserLastNameAr   string `json:"auditee_review_submitted_user_last_name_ar"`
+	AuditeeReviewSubmittedUserInitial      string `json:"auditee_review_submitted_user_initial"`
+	AuditeeReviewSubmittedUserColor        string `json:"auditee_review_submitted_user_color"`
+	AuditeeReviewSubmittedUserEmail        string `json:"auditee_review_submitted_user_email"`
+	AuditeeReviewSubmittedUserProfileImage string `json:"auditee_review_submitted_user_profile_image_path"`
+
 	// Audit Draft Report Status
 	AuditDraftReportStatusID        uint   `json:"audit_draft_report_status_id"`
 	AuditDraftReportStatusTitleEn   string `json:"audit_draft_report_status_title_en"`
@@ -101,23 +115,25 @@ type AuditDraftReportFormDTO struct {
 }
 
 type AuditDraftReportDetailDTO struct {
-	ID                     uint                                `json:"id"`
-	AuditID                uint                                `json:"audit_id"`
-	Title                  string                              `json:"title"`
-	ReferenceNumber        string                              `json:"reference_number"`
-	ReportDateString       string                              `json:"report_date"`
-	PreparedAt             string                              `json:"prepared_at"`
-	PreparedBy             organizationDTOs.UserMinimalDTO     `json:"prepared_by"`
-	ExecutiveSummary       string                              `json:"executive_summary"`
-	Auditors               []*AuditPlanAuditMemberDTO          `json:"auditors"`
-	TeamLead               organizationDTOs.UserMinimalDTO     `json:"team_lead"`
-	AuditDraftFindings     []*AuditDraftFindingReportDetailDTO `json:"draft_findings"`
-	Conclusion             string                              `json:"conclusion"`
-	SubmittedByUser        *organizationDTOs.UserMinimalDTO    `json:"submitted_by"`
-	SubmittedAt            *string                             `json:"submitted_at"`
-	AuditDraftReportStatus *AuditDraftReportStatusDTO          `json:"audit_draft_report_status"`
-	CreatedByUser          organizationDTOs.UserMinimalDTO     `json:"created_by"`
-	UpdatedByUser          *organizationDTOs.UserMinimalDTO    `json:"updated_by"`
+	ID                            uint                                `json:"id"`
+	AuditID                       uint                                `json:"audit_id"`
+	Title                         string                              `json:"title"`
+	ReferenceNumber               string                              `json:"reference_number"`
+	ReportDateString              string                              `json:"report_date"`
+	PreparedAt                    string                              `json:"prepared_at"`
+	PreparedBy                    organizationDTOs.UserMinimalDTO     `json:"prepared_by"`
+	ExecutiveSummary              string                              `json:"executive_summary"`
+	Auditors                      []*AuditPlanAuditMemberDTO          `json:"auditors"`
+	TeamLead                      organizationDTOs.UserMinimalDTO     `json:"team_lead"`
+	AuditDraftFindings            []*AuditDraftFindingReportDetailDTO `json:"draft_findings"`
+	Conclusion                    string                              `json:"conclusion"`
+	InternalReviewSubmittedByUser *organizationDTOs.UserMinimalDTO    `json:"internal_review_submitted_by"`
+	InternalReviewSubmittedAt     *string                             `json:"internal_review_submitted_at"`
+	AuditeeReviewSubmittedByUser  *organizationDTOs.UserMinimalDTO    `json:"auditee_review_submitted_by"`
+	AuditeeReviewSubmittedAt      *string                             `json:"auditee_review_submitted_at"`
+	AuditDraftReportStatus        *AuditDraftReportStatusDTO          `json:"audit_draft_report_status"`
+	CreatedByUser                 organizationDTOs.UserMinimalDTO     `json:"created_by"`
+	UpdatedByUser                 *organizationDTOs.UserMinimalDTO    `json:"updated_by"`
 }
 type AuditDraftReportParsedDates struct {
 	ReportDate *time.Time
