@@ -307,5 +307,5 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.GET("/audits/:auditId/schedules/:scheduleId/status-updates/latest", auditScheduleStatusUpdateController.GetLatestAuditScheduleStatusUpdate)
 	
 	//Audit Draft Report Review
-	auditRoutes.POST("/audits/:auditId/draft-reports/:id/review/submit", auditDraftReportReviewController.SubmitAuditDraftReport)
+	auditRoutes.POST("/audits/:auditId/draft-reports/:id/review-submit", auditDraftReportReviewController.SubmitAuditDraftReport)
 }
