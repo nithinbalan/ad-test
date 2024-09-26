@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	documentDTOs "jethur/grc/documents/dtos"
 	"jethur/grc/documents/services"
 	"jethur/utility"
@@ -33,11 +34,11 @@ func (dc *DocumentController) GetAllDocuments(c *gin.Context) {
 	documentTypes := utility.ParseCommaSeparatedStringToArray(c.Query("document_types"))
 	documentStatus := utility.ParseCommaSeparatedStringToArray(c.Query("document_status"))
 
-	// export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
-	// if err != nil {
-	// 	utility.SendInternalErrResp(dc.db, c, "Invalid export parameter")
-	// 	return
-	// }
+	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
+	if err != nil {
+		utility.SendInternalErrResp(dc.db, c, "Invalid export parameter")
+		return
+	}
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
@@ -49,18 +50,18 @@ func (dc *DocumentController) GetAllDocuments(c *gin.Context) {
 		"document_status_ids",
 	}
 
-	// validSortFields := map[string]string{
-	// 	"type_ar":             "document_types.title_ar",
-	// 	"type_en":             "document_types.title_en",
-	// 	"title_ar":            "documents.title_ar",
-	// 	"title_en":            "documents.title_en",
-	// 	"responsible_user_en": "responsible_user.first_name_en",
-	// 	"responsible_user_ar": "responsible_user.first_name_ar",
-	// 	"category_en":         "document_categories.title_en",
-	// 	"category_ar":         "document_categories.title_ar",
-	// 	"status_en":           "document_statuses.title_ar",
-	// 	"status_ar":           "document_statuses.title_en",
-	// }
+	validSortFields := map[string]string{
+		"type_ar":             "document_types.title_ar",
+		"type_en":             "document_types.title_en",
+		"title_ar":            "documents.title_ar",
+		"title_en":            "documents.title_en",
+		"responsible_user_en": "responsible_user.first_name_en",
+		"responsible_user_ar": "responsible_user.first_name_ar",
+		"category_en":         "document_categories.title_en",
+		"category_ar":         "document_categories.title_ar",
+		"status_en":           "document_statuses.title_ar",
+		"status_ar":           "document_statuses.title_en",
+	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
@@ -76,16 +77,16 @@ func (dc *DocumentController) GetAllDocuments(c *gin.Context) {
 		return
 	}
 
-	// dbField, valid := validSortFields[sortBy]
-	// if !valid {
-	// 	err := errors.New("invalid 'sort_by' parameter")
-	// 	utility.SendInvalidErrResp(c, err)
-	// 	return
-	// }
+	dbField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
 
 	queryParams := documentDTOs.DocumentListQueryParamsDTO{
 		Sort:                     sort,
-		SortBy:                   sortBy,
+		SortBy:                   dbField,
 		Keyword:                  keyword,
 		Status:                   status,
 		Page:                     page,
@@ -95,7 +96,7 @@ func (dc *DocumentController) GetAllDocuments(c *gin.Context) {
 		EnableAcknowledgedStatus: enableAcknowledgedStatus == "true",
 		DocumentTypes:            documentTypes,
 		DocumentStatus:           documentStatus,
-		//Export:                   export,
+		Export:                   export,
 	}
 
 	currentUserID, err := utility.GetCurrentUserID(c)
@@ -110,27 +111,27 @@ func (dc *DocumentController) GetAllDocuments(c *gin.Context) {
 		return
 	}
 
-	// if export {
-	// 	currentUserID, err := utility.GetCurrentUserID(c)
-	// 	if err != nil {
-	// 		utility.SendInternalErrResp(dc.db, c, err.Error())
-	// 		return
-	// 	}
+	if export {
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(dc.db, c, err.Error())
+			return
+		}
 
-	// 	excelFile, err := dc.service.ExportDocuments(documents.Items, currentUserID)
-	// 	if err != nil {
-	// 		utility.SendInternalErrResp(dc.db, c, err.Error())
-	// 		return
-	// 	}
-	// 	defer excelFile.Close()
+		excelFile, err := dc.service.ExportDocuments(documents.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(dc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
 
-	// 	c.Header("Content-Description", "File Transfer")
-	// 	c.Header("Content-Disposition", `attachment; filename="Document.xlsx"`)
-	// 	c.Header("Content-Type", "application/octet-stream")
-	// 	c.File(excelFile.Name())
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="Document.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
 
-	// 	return
-	// }
+		return
+	}
 	c.JSON(http.StatusOK, documents)
 }
 
@@ -562,87 +563,6 @@ func (dc *DocumentController) DownloadDocument(c *gin.Context) {
 
 	// Serve the file
 	c.File(documentPath)
-}
-
-func (dc *DocumentController) GetSharedUsers(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := strconv.ParseUint(idStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	page, err := utility.ParseQueryParamToInt(c, "page", 1)
-	if err != nil {
-		utility.SendInternalErrResp(dc.db, c, "Invalid page parameter")
-		return
-	}
-
-	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
-	if err != nil {
-		utility.SendInternalErrResp(dc.db, c, "Invalid page_size parameter")
-		return
-	}
-
-	sharedUsers, err := dc.service.GetSharedUsers(uint(id), uint(page), uint(pageSize))
-	if err != nil {
-		switch e := err.(type) {
-		case *utility.ResourceNotFoundError:
-			utility.SendNotFoundErrResp(c)
-			return
-		default:
-			utility.SendInternalErrResp(dc.db, c, e.Error())
-			return
-		}
-	}
-
-	c.JSON(http.StatusOK, sharedUsers)
-}
-
-func (dc *DocumentController) GetReviewUsers(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := strconv.ParseUint(idStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	reviewUsers, err := dc.service.GetReviewUsers(uint(id))
-	if err != nil {
-		switch e := err.(type) {
-		case *utility.ResourceNotFoundError:
-			utility.SendNotFoundErrResp(c)
-			return
-		default:
-			utility.SendInternalErrResp(dc.db, c, e.Error())
-			return
-		}
-	}
-
-	c.JSON(http.StatusOK, reviewUsers)
-}
-
-func (dc *DocumentController) GetSharedUnits(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := strconv.ParseUint(idStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	sharedUnits, err := dc.service.GetSharedUnits(uint(id))
-	if err != nil {
-		switch e := err.(type) {
-		case *utility.ResourceNotFoundError:
-			utility.SendNotFoundErrResp(c)
-			return
-		default:
-			utility.SendInternalErrResp(dc.db, c, e.Error())
-			return
-		}
-	}
-
-	c.JSON(http.StatusOK, sharedUnits)
 }
 
 func (dc *DocumentController) GetLastEditSummary(c *gin.Context) {

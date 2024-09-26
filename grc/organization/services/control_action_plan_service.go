@@ -636,7 +636,16 @@ func (caps *ControlActionPlanService) StatusUpdate(controlID uint, id uint, curr
 	existingControlActionPlan.UpdatedByID = &currentUserID
 
 	err = caps.repo.Update(existingControlActionPlan, tx...)
+	if err != nil {
+		return err
+	}
 
+	// Fetch the corresponding task and update its status
+	existingTask, err := caps.taskSvc.GetByFieldID("control_action_plan_id", id)
+	if err != nil {
+		return err
+	}
+	err = caps.taskSvc.UpdateStatus(currentUserID, existingTask.ID, actionPlanStatusID, tx...)
 	if err != nil {
 		return err
 	}

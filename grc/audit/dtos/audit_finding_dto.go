@@ -117,3 +117,11 @@ type AuditFindingListResponseDTO struct {
 	Items      []*AuditFindingListDTO       `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }
+
+type AuditFindingCategoryCountResponseDTO struct {
+	ID        uint   `json:"id"`
+	TitleEn   string `json:"title_en"`
+	TitleAr   string `json:"title_ar"`
+	ColorCode string `json:"color_code"`
+	Count     int    `json:"count"`
+}

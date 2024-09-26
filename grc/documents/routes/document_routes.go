@@ -22,6 +22,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentAccessTypeController := app.DocumentModule.DocumentAccessTypeController
 	documentWorkflowStatusController := app.DocumentModule.DocumentWorkflowStatusController
 	documentController := app.DocumentModule.DocumentController
+	documentAccessController := app.DocumentModule.DocumentAccessController
 	documentAcknowledgeUserController := app.DocumentModule.DocumentAcknowledgeUserController
 	documentAuditLogController := app.DocumentModule.DocumentAuditLogController
 
@@ -71,9 +72,14 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentRoutes.POST("/documents/:id/check-out-revert", documentController.RevertDocumentCheckout)
 	documentRoutes.POST("/documents/:id/submit", documentController.SubmitDocument)
 	documentRoutes.POST("/documents/:id/publish", documentController.PublishDocument)
-	documentRoutes.GET("/documents/:id/shared-users", documentController.GetSharedUsers)
-	documentRoutes.GET("/documents/:id/review-users", documentController.GetReviewUsers)
-	documentRoutes.GET("/documents/:id/shared-units", documentController.GetSharedUnits)
+
+	documentRoutes.GET("/documents/:id/shared-users", documentAccessController.GetSharedUsers)
+	documentRoutes.POST("/documents/:id/shared-users", documentAccessController.CreateSharedUsers)
+	documentRoutes.POST("/documents/:id/shared-users/delete", documentAccessController.DeleteSharedUsers)
+	documentRoutes.GET("/documents/:id/shared-units", documentAccessController.GetSharedUnits)
+	documentRoutes.POST("/documents/:id/shared-units", documentAccessController.CreateSharedUnits)
+	documentRoutes.POST("/documents/:id/shared-units/delete", documentAccessController.DeleteSharedUnits)
+	documentRoutes.GET("/documents/:id/review-users", documentAccessController.GetReviewUsers)
 
 	unauthenticatedRoutes.GET("/documents/:id/document-preview", documentController.GetDocumentPreview)
 	unauthenticatedRoutes.GET("/documents/:id/document-download", documentController.DownloadDocument)

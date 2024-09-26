@@ -26,6 +26,7 @@ type AuditDraftReportServiceInterface interface {
 	Update(auditID uint, id uint, currentUserID uint, auditDraftReportFormDTO *auditDTOs.AuditDraftReportFormDTO) error
 	Submit(auditID uint, id uint, currentUserID uint) error
 	Delete(auditID uint, ids []uint, currentUserID uint) ([]uint, error)
+	StatusUpdate(id uint, currentUserID uint, auditDraftReportStatusID uint, tx utility.DatabaseTransaction) error
 }
 
 type AuditDraftReportService struct {
@@ -80,16 +81,16 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, tx ...util
 	var submittedAt *string
 
 	// Check if SubmittedByUser and SubmittedAt are present before accessing them
-	if auditDraftReport.SubmittedByUser != nil {
-		submittedByUserDTO := mapUserToUserMinimalDTO(auditDraftReport.SubmittedByUser)
+	if auditDraftReport.InternalReviewSubmittedByUser != nil {
+		submittedByUserDTO := mapUserToUserMinimalDTO(auditDraftReport.InternalReviewSubmittedByUser)
 		submittedByUser = &submittedByUserDTO
 	}
 	if auditDraftReport.UpdatedByUser != nil {
 		updatedByUserDTO := mapUserToUserMinimalDTO(auditDraftReport.UpdatedByUser)
 		updatedByUser = &updatedByUserDTO
 	}
-	if auditDraftReport.SubmittedAt != nil {
-		formattedSubmittedAt := auditDraftReport.SubmittedAt.Format("2006-01-02")
+	if auditDraftReport.InternalReviewSubmittedAt != nil {
+		formattedSubmittedAt := auditDraftReport.InternalReviewSubmittedAt.Format("2006-01-02")
 		submittedAt = &formattedSubmittedAt
 	}
 	// Map the AuditDraftReportStatus
@@ -102,23 +103,23 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, tx ...util
 	}
 	// Map the data to the DTO
 	auditReportDTO := &auditDTOs.AuditDraftReportDetailDTO{
-		ID:                     auditDraftReport.ID,
-		AuditID:                auditDraftReport.AuditID,
-		Title:                  auditDraftReport.Audit.AuditPlan.Title,
-		ReferenceNumber:        auditDraftReport.Audit.AuditPlan.ReferenceNumber,
-		ReportDateString:       auditDraftReport.ReportDate.Format("2006-01-02"),
-		PreparedBy:             mapUserToUserMinimalDTO(auditDraftReport.Audit.CreatedByUser),
-		PreparedAt:             auditDraftReport.CreatedAt.Format("2006-01-02"),
-		SubmittedByUser:        submittedByUser,
-		SubmittedAt:            submittedAt,
-		ExecutiveSummary:       *auditDraftReport.ExecutiveSummary,
-		TeamLead:               mapUserToUserMinimalDTO(auditDraftReport.Audit.AuditPlan.TeamLead),
-		Conclusion:             *auditDraftReport.Conclusion,
-		AuditDraftReportStatus: &auditDraftReportStatusDTO,             // Initialize as empty slice
-		Auditors:               []*auditDTOs.AuditPlanAuditMemberDTO{}, // Initialize as empty slice
-		AuditDraftFindings:     []*auditDTOs.AuditDraftFindingReportDetailDTO{},
-		CreatedByUser:          createdByUser,
-		UpdatedByUser:          updatedByUser,
+		ID:                            auditDraftReport.ID,
+		AuditID:                       auditDraftReport.AuditID,
+		Title:                         auditDraftReport.Audit.AuditPlan.Title,
+		ReferenceNumber:               auditDraftReport.Audit.AuditPlan.ReferenceNumber,
+		ReportDateString:              auditDraftReport.ReportDate.Format("2006-01-02"),
+		PreparedBy:                    mapUserToUserMinimalDTO(auditDraftReport.Audit.CreatedByUser),
+		PreparedAt:                    auditDraftReport.CreatedAt.Format("2006-01-02"),
+		InternalReviewSubmittedByUser: submittedByUser,
+		InternalReviewSubmittedAt:     submittedAt,
+		ExecutiveSummary:              *auditDraftReport.ExecutiveSummary,
+		TeamLead:                      mapUserToUserMinimalDTO(auditDraftReport.Audit.AuditPlan.TeamLead),
+		Conclusion:                    *auditDraftReport.Conclusion,
+		AuditDraftReportStatus:        &auditDraftReportStatusDTO,             // Initialize as empty slice
+		Auditors:                      []*auditDTOs.AuditPlanAuditMemberDTO{}, // Initialize as empty slice
+		AuditDraftFindings:            []*auditDTOs.AuditDraftFindingReportDetailDTO{},
+		CreatedByUser:                 createdByUser,
+		UpdatedByUser:                 updatedByUser,
 	}
 	// Map auditors
 	for _, auditor := range auditDraftReport.Audit.AuditPlan.Members {
@@ -464,14 +465,15 @@ func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID
 		return utility.NewForbiddenError("The audit draft report has already been submitted.")
 	}
 
-	auditDraftReportStatus, err := adrs.auditDraftReportStatusSvc.GetByType("auditee-review")
+	auditDraftReportStatus, err := adrs.auditDraftReportStatusSvc.GetByType("in-department-review")
 	if err != nil {
 		return err
 	}
 	now := time.Now()
-	existingAuditDraftReport.SubmittedAt = &now
+	existingAuditDraftReport.AuditeeReviewSubmittedAt = &now
 	existingAuditDraftReport.AuditDraftReportStatusID = auditDraftReportStatus.ID
-	existingAuditDraftReport.SubmittedBYID = &currentUserID
+	existingAuditDraftReport.AuditeeReviewSubmittedBYID = &currentUserID
+	existingAuditDraftReport.UpdatedBYID = &currentUserID
 
 	err = adrs.repo.Update(existingAuditDraftReport, tx)
 	if err != nil {
@@ -505,6 +507,29 @@ func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID
 			utility.LogError("Failed to log activity", fields)
 		}
 	}()
+
+	return nil
+}
+
+func (adrs *AuditDraftReportService) StatusUpdate(id uint, currentUserID uint, auditDraftReportStatusID uint, tx utility.DatabaseTransaction) error {
+	existingAuditDraftReport, err := adrs.GetByID(id)
+	if err != nil {
+		return err
+	}
+
+	now := time.Now()
+
+	existingAuditDraftReport.InternalReviewSubmittedAt = &now
+	existingAuditDraftReport.AuditDraftReportStatusID = auditDraftReportStatusID
+	existingAuditDraftReport.InternalReviewSubmittedBYID = &currentUserID
+	existingAuditDraftReport.UpdatedBYID = &currentUserID
+
+
+	err = adrs.repo.Update(existingAuditDraftReport, tx)
+
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

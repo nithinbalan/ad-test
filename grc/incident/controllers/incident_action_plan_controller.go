@@ -69,8 +69,8 @@ func (iapc *IncidentActionPlanController) GetAllIncidentActionPlans(c *gin.Conte
 		"responsible_user_ar": "responsible_user.first_name_ar",
 		"target_date":         "incident_action_plans.target_date",
 		"percentage":          "incident_action_plans.percentage",
-		"status_en":           " action_plan_statuses.title_en",
-		"status_ar":           " action_plan_statuses.title_ar",
+		"status_en":           "action_plan_statuses.title_en",
+		"status_ar":           "action_plan_statuses.title_ar",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())

@@ -54,6 +54,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditDraftFindingConversationController := app.AuditModule.AuditDraftFindingConversationController
 	auditDraftFindingActionPlanController := app.AuditModule.AuditDraftFindingActionPlanController
 	auditScheduleStatusUpdateController := app.AuditModule.AuditScheduleStatusUpdateController
+	auditDraftReportReviewController := app.AuditModule.AuditDraftReportReviewController
 
 	//Audit Status
 	auditRoutes.GET("/audit-statuses", auditStatusController.GetAllAuditStatuses)
@@ -202,6 +203,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.POST("/audit-findings", auditFindingController.CreateAuditFinding)
 	auditRoutes.PUT("/audit-findings/:findingId", auditFindingController.UpdateAuditFinding)
 	auditRoutes.POST("/audit-findings/delete", auditFindingController.DeleteAuditFindings)
+	auditRoutes.GET("audits/:auditId/audit-finding-summary", auditFindingController.GetAuditFindingCountByCategory)
 
 	//Audit Document  Request Status
 	auditRoutes.GET("/audit-document-request-statuses", auditDocumentRequestStatusController.GetAllAuditDocumentRequestStatuses)
@@ -305,4 +307,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.PUT("/audits/:auditId/schedules/:scheduleId/status-updates/:id", auditScheduleStatusUpdateController.UpdateAuditScheduleStatusUpdate)
 	auditRoutes.GET("/audits/:auditId/schedules/:scheduleId/status-updates/latest", auditScheduleStatusUpdateController.GetLatestAuditScheduleStatusUpdate)
 
+	//Audit Draft Report Review
+	auditRoutes.POST("/audits/:auditId/draft-reports/:id/review-submit", auditDraftReportReviewController.SubmitAuditDraftReport)
 }

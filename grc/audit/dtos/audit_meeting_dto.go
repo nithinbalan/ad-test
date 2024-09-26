@@ -39,7 +39,6 @@ type AuditMeetingListDTO struct {
 }
 
 type AuditMeetingFormDTO struct {
-	AuditID           uint    `json:"audit_id" binding:"required"`
 	Title             string  `json:"title" binding:"required"`
 	Date              string  `json:"date" binding:"required"`
 	FromTime          string  `json:"from_time"`
