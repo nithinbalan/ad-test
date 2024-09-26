@@ -1,6 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE TABLE audit_report_workflows (
+CREATE TABLE audit_report_workflows
+(
     id INT PRIMARY KEY IDENTITY(1,1),
     audit_draft_report_id INT NULL,
     level INT NOT NULL,
