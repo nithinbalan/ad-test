@@ -5,6 +5,7 @@ import (
 )
 
 type App struct {
+	DB                 *gorm.DB
 	SettingsModule     *SettingsModule
 	CommonModule       *CommonModule
 	MasterModule       *MasterModule
@@ -39,6 +40,7 @@ func NewApp(db *gorm.DB) *App {
 	kpiModule := NewKPIModule(db)
 
 	return &App{
+		DB:                 db,
 		SettingsModule:     settingsModule,
 		CommonModule:       commonModule,
 		MasterModule:       masterModule,

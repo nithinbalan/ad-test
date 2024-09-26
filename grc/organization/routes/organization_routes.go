@@ -5,14 +5,15 @@ import (
 	"jethur/middlewares"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
-func RegisterRoutes(app *initializers.App, router *gin.Engine, db *gorm.DB) {
+func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	organizationRoutes := router.Group("/")
 
 	organizationRoutes.Use(middlewares.AuthMiddleware())
+
+	db := app.DB
 
 	designationController := app.OrganizationModule.DesignationController
 	userStatusController := app.OrganizationModule.UserStatusController

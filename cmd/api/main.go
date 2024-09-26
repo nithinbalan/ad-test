@@ -52,7 +52,7 @@ func main() {
 	meetingRoutes.RegisterRoutes(app, r)
 	authRoutes.RegisterRoutes(app, r)
 	complianceRoutes.RegisterRoutes(app, r)
-	organizationRoutes.RegisterRoutes(app, r, db)
+	organizationRoutes.RegisterRoutes(app, r)
 	settingRoutes.RegisterRoutes(app, r)
 	libraryRoutes.RegisterRoutes(app, r)
 	commonRoutes.RegisterRoutes(db, r)
