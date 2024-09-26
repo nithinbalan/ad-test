@@ -5,8 +5,9 @@ type ActionPlanStatus struct {
 	TitleEn   string `json:"title_en" binding:"required,max=100" gorm:"type:nvarchar(100);not null"`
 	TitleAr   string `json:"title_ar" binding:"required,max=100" gorm:"type:nvarchar(100);not null"`
 	ColorCode string `json:"color_code" binding:"required,max=25" gorm:"type:varchar(25);not null"`
-	Type      string `json:"type" binding:"required,max=20,oneof=new in_progress completed on_hold terminated" gorm:"type:varchar(20);not null"`
+	Type      string `json:"type" binding:"required,max=20,oneof=new in_progress completed on_hold terminated close reopen" gorm:"type:varchar(20);not null"`
 	Status    string `json:"status" binding:"required,max=10,oneof=active inactive" gorm:"type:varchar(10);not null"`
+	IsClosed  bool   `json:"is_closed" gorm:"type:bit;not null;default:0"` // New boolean field for "is_closed"
 }
 
 // TableName overrides the table name used by ActionPlanStatus to `action_plan_statuses`
