@@ -3,7 +3,6 @@ package services
 import (
 	"errors"
 	"fmt"
-	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	complianceRepositories "jethur/grc/compliance/repositories"
 	logServices "jethur/grc/logs/services"
@@ -251,20 +250,20 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 		tx.Rollback()
 		return err
 	}
-	//update task
-	taskDTO := commonDTOs.TaskFormDTO{
-		Title:             ComplianceActionPlanFormDTO.Title,
-		Description:       ComplianceActionPlanFormDTO.Description,
-		TargetDate:        dates.TargetDate,
-		SeverityLevelID:   ComplianceActionPlanFormDTO.SeverityLevelID,
-		ResponsibleUserID: ComplianceActionPlanFormDTO.ResponsibleUserID,
-	}
-	err = caps.taskSvc.Update(currentUserID, taskDTO, "compliance_action_plan_id", id, tx)
+	// //update task
+	// taskDTO := commonDTOs.TaskFormDTO{
+	// 	Title:             ComplianceActionPlanFormDTO.Title,
+	// 	Description:       ComplianceActionPlanFormDTO.Description,
+	// 	TargetDate:        dates.TargetDate,
+	// 	SeverityLevelID:   ComplianceActionPlanFormDTO.SeverityLevelID,
+	// 	ResponsibleUserID: ComplianceActionPlanFormDTO.ResponsibleUserID,
+	// }
+	// err = caps.taskSvc.Update(currentUserID, taskDTO, "compliance_action_plan_id", id, tx)
 
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
+	// if err != nil {
+	// 	tx.Rollback()
+	// 	return err
+	// }
 	tx.Commit()
 
 	return nil
@@ -296,16 +295,16 @@ func (caps *ComplianceActionPlanService) Delete(complianceID uint, ids []uint, c
 				continue
 			}
 		}
-		existingTask, err := caps.taskSvc.GetByFieldID("compliance_action_plan_id", id)
-		if err != nil {
-			failedIds = append(failedIds, id)
-			continue
-		}
-		taskID, err := caps.taskSvc.Delete(existingTask.ID, currentUserID)
-		if err != nil {
-			failedIds = append(failedIds, taskID)
-			continue
-		}
+		// existingTask, err := caps.taskSvc.GetByFieldID("compliance_action_plan_id", id)
+		// if err != nil {
+		// 	failedIds = append(failedIds, id)
+		// 	continue
+		// }
+		// taskID, err := caps.taskSvc.Delete(existingTask.ID, currentUserID)
+		// if err != nil {
+		// 	failedIds = append(failedIds, taskID)
+		// 	continue
+		// }
 		err = caps.repo.Delete(id)
 		if err != nil {
 			failedIds = append(failedIds, id)
