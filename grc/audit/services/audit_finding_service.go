@@ -25,6 +25,8 @@ type AuditFindingServiceInterface interface {
 	Create(currentUserID uint, auditFindingFormDTO *auditDTOs.AuditFindingFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, auditFindingFormDTO *auditDTOs.AuditFindingFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+
+	GetAuditFindingCountByCategory(auditId uint) ([]auditDTOs.AuditFindingCategoryCountResponseDTO, error)
 }
 
 type AuditFindingService struct {
@@ -448,4 +450,17 @@ func (afs *AuditFindingService) validateAuditFindingFormDTO(dto *auditDTOs.Audit
 	}
 
 	return nil
+}
+
+func (afs *AuditFindingService) GetAuditFindingCountByCategory(auditId uint) ([]auditDTOs.AuditFindingCategoryCountResponseDTO, error) {
+	if _, err := afs.auditSvc.GetByID(auditId); err != nil {
+		return nil, err
+	}
+
+	response, err := afs.repo.GetAuditFindingCountByCategory(auditId)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
 }
