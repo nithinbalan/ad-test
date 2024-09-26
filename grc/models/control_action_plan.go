@@ -4,7 +4,6 @@ import (
 	"time"
 )
 
-// ControlActionPlan represents the control_action_plans table in the database.
 type ControlActionPlan struct {
 	ID                 uint       `json:"id" gorm:"primaryKey;autoIncrement"`
 	ControlID          uint       `json:"control_id" gorm:"not null" binding:"required"`
@@ -14,6 +13,7 @@ type ControlActionPlan struct {
 	TargetDate         *time.Time `json:"target_date" binding:"omitempty" gorm:"type:date,default:null"`
 	ResponsibleUserID  uint       `json:"responsible_user_id" gorm:"not null" binding:"required"`
 	ActionPlanStatusID uint       `json:"action_plan_status_id" gorm:"not null" binding:"required"`
+	ReviewUserID       *uint      `json:"review_user_id" gorm:"default:null"`
 	Percentage         uint       `json:"percentage" gorm:"default:0;not null" binding:"required"`
 	CreatedAt          time.Time  `json:"created_at" gorm:"not null" binding:"required"`
 	UpdatedAt          *time.Time `json:"updated_at" gorm:"default:null"`
@@ -21,13 +21,14 @@ type ControlActionPlan struct {
 	UpdatedByID        *uint      `json:"updated_by_id,omitempty" gorm:"default:null; column:updated_by_id"`
 
 	// Relationships
-	Control                      *Control                         `gorm:"foreignKey:ControlID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	SeverityLevel                *SeverityLevel                   `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ResponsibleUser              *User                            `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ActionPlanStatus             *ActionPlanStatus                `gorm:"foreignKey:ActionPlanStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ActionPlanStatusUpdates      []*ControlActionPlanStatusUpdate `gorm:"foreignKey:ControlActionPlanID"`
-	CreatedByUser                *User                            `gorm:"foreignKey:CreatedByID"`
-	UpdatedByUser                *User                            `gorm:"foreignKey:UpdatedByID"`
+	Control                 *Control                         `gorm:"foreignKey:ControlID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	SeverityLevel           *SeverityLevel                   `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ResponsibleUser         *User                            `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ReviewUser              *User                            `gorm:"foreignKey:ReviewUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"` // New foreign key relationship
+	ActionPlanStatus        *ActionPlanStatus                `gorm:"foreignKey:ActionPlanStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ActionPlanStatusUpdates []*ControlActionPlanStatusUpdate `gorm:"foreignKey:ControlActionPlanID"`
+	CreatedByUser           *User                            `gorm:"foreignKey:CreatedByID"`
+	UpdatedByUser           *User                            `gorm:"foreignKey:UpdatedByID"`
 }
 
 func (ControlActionPlan) TableName() string {
