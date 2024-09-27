@@ -35,8 +35,9 @@ func (adrcc *AuditDraftReportCommentController) GetAllAuditDraftReportComments(c
 		utility.SendNotFoundErrResp(c)
 		return
 	}
+
 	sort := c.DefaultQuery("sort_order", "asc")
-	sortBy := c.DefaultQuery("sort_by", "comment")
+	sortBy := c.DefaultQuery("sort_by", "id")
 	status := c.Query("status")
 	keyword := c.Query("keyword")
 	quickFilter := c.QueryArray("quick_filter")
@@ -44,22 +45,14 @@ func (adrcc *AuditDraftReportCommentController) GetAllAuditDraftReportComments(c
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"audit_draft_report_ids",
+		"audit_draft_finding_ids",
+		"type",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
-	page, err := utility.ParseQueryParamToInt(c, "page", 1)
-	if err != nil {
-		utility.SendInternalErrResp(adrcc.db, c, "Invalid page parameter")
-		return
-	}
-
-	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
-	if err != nil {
-		utility.SendInternalErrResp(adrcc.db, c, "Invalid page_size parameter")
-		return
-	}
 	validSortFields := map[string]string{
+		"id":      "audit_draft_report_comments.id",
 		"comment": "audit_draft_report_comments.comment",
 	}
 
@@ -74,8 +67,6 @@ func (adrcc *AuditDraftReportCommentController) GetAllAuditDraftReportComments(c
 		SortBy:      sortField,
 		Keyword:     keyword,
 		Status:      status,
-		Page:        page,
-		PageSize:    pageSize,
 		Filters:     filters,
 		QuickFilter: quickFilter,
 	}

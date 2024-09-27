@@ -16,7 +16,7 @@ import (
 )
 
 type AuditDraftReportCommentServiceInterface interface {
-	GetAll(auditID uint, auditDraftReportID uint, params *dtos.AuditDraftReportCommentListQueryParamsDTO) (*dtos.AuditDraftReportCommentResponseDTO, error)
+	GetAll(auditID uint, auditDraftReportID uint, params *dtos.AuditDraftReportCommentListQueryParamsDTO) ([]*dtos.AuditDraftReportCommentListDTO, error)
 	GetByID(id uint) (*models.AuditDraftReportComment, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*dtos.AuditDraftReportCommentDetailDTO, error)
 	Create(auditID uint, auditDraftReportID uint, currentUserID uint, formDTO *dtos.AuditDraftReportCommentFormDTO) (uint, error)
@@ -45,7 +45,7 @@ func NewAuditDraftReportCommentService(
 	}
 }
 
-func (adrcs *AuditDraftReportCommentService) GetAll(auditID uint, auditDraftReportID uint, params *dtos.AuditDraftReportCommentListQueryParamsDTO) (*dtos.AuditDraftReportCommentResponseDTO, error) {
+func (adrcs *AuditDraftReportCommentService) GetAll(auditID uint, auditDraftReportID uint, params *dtos.AuditDraftReportCommentListQueryParamsDTO) ([]*dtos.AuditDraftReportCommentListDTO, error) {
 	if _, err := adrcs.auditSvc.GetByID(auditID); err != nil {
 		return nil, err
 	}

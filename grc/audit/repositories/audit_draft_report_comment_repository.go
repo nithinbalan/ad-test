@@ -2,7 +2,6 @@ package repositories
 
 import (
 	"jethur/grc/audit/dtos"
-	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
 
@@ -11,7 +10,7 @@ import (
 
 type AuditDraftReportCommentRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(params *dtos.AuditDraftReportCommentListQueryParamsDTO) (*dtos.AuditDraftReportCommentResponseDTO, error)
+	GetAll(params *dtos.AuditDraftReportCommentListQueryParamsDTO) ([]*dtos.AuditDraftReportCommentListDTO, error)
 	GetByID(id uint) (*models.AuditDraftReportComment, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.AuditDraftReportComment, error)
 	Create(auditDraftReportComment *models.AuditDraftReportComment, tx ...utility.DatabaseTransaction) (uint, error)
@@ -39,11 +38,8 @@ func (repo *AuditDraftReportCommentRepository) BeginTransaction() utility.Databa
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *AuditDraftReportCommentRepository) GetAll(params *dtos.AuditDraftReportCommentListQueryParamsDTO) (*dtos.AuditDraftReportCommentResponseDTO, error) {
-
+func (repo *AuditDraftReportCommentRepository) GetAll(params *dtos.AuditDraftReportCommentListQueryParamsDTO) ([]*dtos.AuditDraftReportCommentListDTO, error) {
 	var comments []*dtos.AuditDraftReportCommentListDTO
-	var totalCount int64
-
 	query := repo.db.Table("audit_draft_report_comments").
 		Select(`
 			audit_draft_report_comments.*,
@@ -74,53 +70,24 @@ func (repo *AuditDraftReportCommentRepository) GetAll(params *dtos.AuditDraftRep
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		query = query.Where(`
-			(audit_draft_report_comments.comment LIKE ? OR
-			created_user.first_name_en LIKE ? OR
-			created_user.last_name_en LIKE ? OR
-			updated_user.first_name_en LIKE ? OR
-			updated_user.last_name_en LIKE ?)`,
-			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
-			"%"+params.Keyword+"%", "%"+params.Keyword+"%")
+			(audit_draft_report_comments.comment LIKE ? )`,
+			"%"+params.Keyword+"%")
 	}
-
-	// Calculate total count for pagination
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
-
-	// Apply pagination and sorting
-	// if !params.Export {
-	// 	offset := (params.Page - 1) * params.PageSize
-	// 	query = query.Offset(offset).Limit(params.PageSize)
-	// }
-	offset := (params.Page - 1) * params.PageSize
-	query = query.Offset(offset).Limit(params.PageSize)
 	query = query.Order(params.SortBy + " " + params.Sort)
+	result := query.Find(&comments)
 
-	// Execute the query
-	err := query.Find(&comments).Error
-	if err != nil {
-		return nil, err
+	// Fetching related documents for each comment
+	for _, comment := range comments {
+		var documents []*dtos.AuditDraftReportCommentDocumentDTO
+
+		repo.db.Model(&models.AuditDraftReportCommentDocument{}).
+			Where("audit_draft_report_comment_id = ?", comment.ID).
+			Find(&documents)
+
+		comment.Documents = documents
 	}
 
-	// Calculate total pages
-	totalPages := 1
-	// if !params.Export {
-	// 	totalPages = int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
-	// }
-	totalPages = int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
-
-	// Prepare the response
-	response := &dtos.AuditDraftReportCommentResponseDTO{
-		Items: comments,
-		Pagination: commonDTOs.PaginationInfoDTO{
-			CurrentPage: params.Page,
-			PageSize:    params.PageSize,
-			TotalPages:  totalPages,
-			TotalCount:  totalCount,
-		},
-	}
-	return response, nil
+	return comments, result.Error
 }
 
 func (repo *AuditDraftReportCommentRepository) GetByID(id uint) (*models.AuditDraftReportComment, error) {
