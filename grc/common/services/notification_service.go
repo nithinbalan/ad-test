@@ -17,15 +17,19 @@ type NotificationServiceInterface interface {
 }
 
 type NotificationService struct {
-	repo      repositories.NotificationRepositoryInteface
-	moduleSvc services.ModuleServiceInterface
+	repo                     repositories.NotificationRepositoryInteface
+	moduleSvc                services.ModuleServiceInterface
+	emailTemplateSettingsSvc services.EmailTemplateSettingsServiceInterface
 }
 
 func NewNotificationService(repo repositories.NotificationRepositoryInteface,
-	moduleSvc services.ModuleServiceInterface) NotificationServiceInterface {
+	moduleSvc services.ModuleServiceInterface,
+	emailTemplateSettingsSvc services.EmailTemplateSettingsServiceInterface,
+) NotificationServiceInterface {
 	return &NotificationService{
-		repo:      repo,
-		moduleSvc: moduleSvc,
+		repo:                     repo,
+		moduleSvc:                moduleSvc,
+		emailTemplateSettingsSvc: emailTemplateSettingsSvc,
 	}
 }
 
@@ -37,11 +41,35 @@ func (ns *NotificationService) SendNotification(notificationDTO *commonDTOs.DBNo
 	}
 
 	if isEnabled {
-		err := utility.SendTemplatedEmail(
+		emailTemplateSettings, err := ns.emailTemplateSettingsSvc.GetEmailTemplateSettings()
+		if err != nil {
+			fmt.Printf("failed to get email template settings: %w", err)
+			return err
+		}
+
+		socialLinks, err := ns.repo.GetSocialMediaLinks()
+		if err != nil {
+			return err
+		}
+
+		emailTemplateAndSocialDTO := &commonDTOs.EmailTemplateAndSocialDTO{
+			HeaderImageURL: emailTemplateSettings.HeaderImageURL,
+			SupportText:    emailTemplateSettings.SupportText,
+			ClosingText:    emailTemplateSettings.ClosingText,
+			FooterLogoURL:  emailTemplateSettings.FooterLogoURL,
+			FooterAddress:  emailTemplateSettings.FooterAddress,
+			FooterEmail:    emailTemplateSettings.FooterEmail,
+			Linkedin:       &socialLinks.Linkedin,
+			X:              &socialLinks.X,
+			Facebook:       &socialLinks.Facebook,
+		}
+
+		err = utility.SendTemplatedEmail(
 			emailNotificationDTO.EmailTo,
 			emailNotificationDTO.Subject,
 			emailNotificationDTO.TemplateRelativePath,
 			emailNotificationDTO.EmailData,
+			emailTemplateAndSocialDTO,
 			nil,
 		)
 		if err != nil {

@@ -42,3 +42,21 @@ const (
 	ConfirmationType   NotificationType = "confirmation"
 	ErrorType          NotificationType = "error"
 )
+
+type SocialMediaLinksDTO struct {
+	Linkedin string `json:"linkedin"`
+	X        string `json:"x"`
+	Facebook string `json:"facebook"`
+}
+
+type EmailTemplateAndSocialDTO struct {
+	HeaderImageURL string  `json:"header_image_url"`
+	SupportText    string  `json:"support_text"`
+	ClosingText    string  `json:"closing_text"`
+	FooterLogoURL  string  `json:"footer_logo_url"`
+	FooterAddress  string  `json:"footer_address"`
+	FooterEmail    string  `json:"footer_email"`
+	Linkedin       *string `json:"linkedin"`
+	X              *string `json:"x"`
+	Facebook       *string `json:"facebook"`
+}

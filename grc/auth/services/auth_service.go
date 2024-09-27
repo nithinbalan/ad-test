@@ -325,7 +325,7 @@ func (as AuthService) SetPassword(setPasswordFormDTO authDTOs.PasswordRecoverySe
 	subject := "Important: Password Update Confirmation for Your Jethur Account"
 	templateRelativePath := "auth/templates/email/password_change_confirmation.html"
 
-	err = utility.SendTemplatedEmail(to, subject, templateRelativePath, emailData, nil)
+	err = utility.SendTemplatedEmail(to, subject, templateRelativePath, emailData, nil, nil)
 	if err != nil {
 		return err
 	}
@@ -386,7 +386,7 @@ func (as AuthService) sendOTP(userSecurity *models.UserSecurity, user *models.Us
 	subject := mailSubject
 	templateRelativePath := mailRelativePath
 
-	err = utility.SendTemplatedEmail(to, subject, templateRelativePath, emailData, nil)
+	err = utility.SendTemplatedEmail(to, subject, templateRelativePath, emailData, nil, nil)
 	if err != nil {
 		return err
 	}

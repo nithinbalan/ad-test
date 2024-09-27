@@ -283,7 +283,7 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 	subject := "Important: Welcome to Jethur!"
 	templateRelativePath := "organization/templates/email/user_welcome.html"
 
-	err = utility.SendTemplatedEmail(to, subject, templateRelativePath, emailData, nil)
+	err = utility.SendTemplatedEmail(to, subject, templateRelativePath, emailData, nil, nil)
 
 	if err != nil {
 		return 0, err
