@@ -49,6 +49,7 @@ type AuditModule struct {
 	AuditDraftFindingActionPlanController        *controllers.AuditDraftFindingActionPlanController
 	AuditScheduleStatusUpdateController          *controllers.AuditScheduleStatusUpdateController
 	AuditDraftReportReviewController             *controllers.AuditDraftReportReviewController
+	AuditDraftReportCommentController            *controllers.AuditDraftReportCommentController
 
 	AuditPlanSvc                        services.AuditPlanServiceInterface
 	AuditSvc                            services.AuditServiceInterface
@@ -369,6 +370,15 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 	)
 	auditDraftReportReviewController := controllers.NewAuditDraftReportReviewController(auditDraftReportReviewSvc)
 
+	auditDraftReportCommentRepo := repositories.NewAuditDraftReportCommentRepository(db)
+	auditDraftReportCommentSvc := services.NewAuditDraftReportCommentService(
+		auditDraftReportCommentRepo,
+		sharedModule.ActivityLogService,
+		auditSvc,
+		auditDraftReportSvc,
+	)
+	auditDraftReportCommentController := controllers.NewAuditDraftReportCommentController(auditDraftReportCommentSvc)
+
 	return &AuditModule{
 		AuditorRiskRatingController:                  auditorRiskRatingController,
 		AuditUniverseController:                      auditUniverseController,
@@ -410,6 +420,7 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		AuditDraftFindingActionPlanController:        auditDraftFindingActionPlanController,
 		AuditScheduleStatusUpdateController:          auditScheduleStatusUpdateController,
 		AuditDraftReportReviewController:             auditDraftReportReviewController,
+		AuditDraftReportCommentController:            auditDraftReportCommentController,
 
 		AuditPlanSvc:                        auditPlanSvc,
 		AuditSvc:                            auditSvc,
