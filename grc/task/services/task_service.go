@@ -170,8 +170,10 @@ func (ts *TaskService) MapActionPlanStatusToTaskStatus(actionPlanStatusID uint) 
 		taskStatusType = "new"
 	case "in_progress":
 		taskStatusType = "in_progress"
-	case "completed", "on_hold", "terminated":
+	case "completed", "on_hold", "terminated", "closed":
 		taskStatusType = "closed"
+	case "reopen":
+		taskStatusType = "in_progress"
 	default:
 		taskStatusType = "new"
 	}
