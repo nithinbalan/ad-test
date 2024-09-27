@@ -3,11 +3,13 @@ package services
 import (
 	"errors"
 	"fmt"
+	"jethur/config"
 	"jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
+	"os"
 	"path/filepath"
 	"strconv"
 
@@ -20,8 +22,10 @@ type AuditDraftReportCommentServiceInterface interface {
 	GetByID(id uint) (*models.AuditDraftReportComment, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*dtos.AuditDraftReportCommentDetailDTO, error)
 	Create(auditID uint, auditDraftReportID uint, currentUserID uint, formDTO *dtos.AuditDraftReportCommentFormDTO) (uint, error)
-	Update(auditID uint, auditDraftReportID uint, id uint, currentUserID uint, auditFinding *dtos.AuditDraftReportCommentFormDTO) error
+	Update(auditID uint, auditDraftReportID uint, id uint, currentUserID uint, auditDraftReportCommentFormDTO *dtos.AuditDraftReportCommentFormDTO) error
 	Delete(auditID uint, auditDraftReportID uint, ids []uint, currentUserID uint) ([]uint, error)
+	StatusUpdate(auditID uint, auditDraftReportID uint, id uint, currentUserID uint, auditDraftReportCommentStatusUpdateFormDTO *dtos.AuditDraftReportCommentStatusUpdateFormDTO) error
+	GetDocumentPath(auditId uint, auditDraftReportID uint, id uint, token string) (string, error)
 }
 
 type AuditDraftReportCommentService struct {
@@ -389,4 +393,92 @@ func (adrcs *AuditDraftReportCommentService) Delete(auditID uint, auditDraftRepo
 	}
 
 	return failedIds, nil
+}
+
+func (adrcs *AuditDraftReportCommentService) StatusUpdate(auditID uint, auditDraftReportID uint, id uint, currentUserID uint, auditDraftReportCommentStatusUpdateFormDTO *dtos.AuditDraftReportCommentStatusUpdateFormDTO) error {
+	tx := adrcs.repo.BeginTransaction()
+	if _, err := adrcs.auditSvc.GetByID(auditID); err != nil {
+		return err
+	}
+	if _, err := adrcs.auditDraftReportSvc.GetByID(auditDraftReportID); err != nil {
+		return err
+	}
+
+	existingAuditDraftReportComment, err := adrcs.GetByID(id)
+	if err != nil {
+		return err
+	}
+
+	// Update Audit Draft Report Comment
+	existingAuditDraftReportComment.IsResolved = *auditDraftReportCommentStatusUpdateFormDTO.IsResolved
+	existingAuditDraftReportComment.UpdatedBYID = &currentUserID
+
+	err = adrcs.repo.Update(existingAuditDraftReportComment, tx)
+	if err != nil {
+		return err
+	}
+	tx.Commit()
+
+	go func() {
+		err := adrcs.activityLogSvc.LogActivity(
+			models.UpdateAction,
+			models.AuditDraftReportComment{}.TableName(),
+			id,
+			auditDraftReportCommentStatusUpdateFormDTO,
+			currentUserID,
+			nil,
+		)
+
+		if err != nil {
+			fields := map[string]interface{}{
+				"action":    models.UpdateAction,
+				"tableName": models.AuditDraftReportComment{}.TableName(),
+				"recordID":  id,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			}
+
+			utility.LogError("Failed to log activity", fields)
+		}
+	}()
+
+	return nil
+}
+
+func (adrcs *AuditDraftReportCommentService) GetDocumentPath(auditID uint, auditDraftReportID uint, id uint, token string) (string, error) {
+	if _, err := adrcs.auditSvc.GetByID(auditID); err != nil {
+		return "", err
+	}
+	if _, err := adrcs.auditDraftReportSvc.GetByID(auditDraftReportID); err != nil {
+		return "", err
+	}
+
+	_, err := adrcs.GetByID(id)
+	if err != nil {
+		return "", err
+	}
+
+	decryptedFilenameBytes, err := utility.DecryptData(token)
+	if err != nil {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	decryptedFilename := string(decryptedFilenameBytes)
+	if decryptedFilename == "" {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	storagePath := filepath.Join("audits", "audit", strconv.FormatUint(uint64(auditID), 10), "draft-report", strconv.FormatUint(uint64(auditDraftReportID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
+
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
+
+	// Check if the file exists
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("file not found")
+	} else if err != nil {
+		return "", fmt.Errorf("error accessing file: %w", err)
+	}
+
+	return fullPath, nil
 }

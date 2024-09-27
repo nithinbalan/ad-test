@@ -9,6 +9,7 @@ type AuditDraftReportCommentListDTO struct {
 	ID                          uint                                  `json:"id"`
 	Comment                     string                                `json:"comment" binding:"required"`
 	Type                        string                                `json:"type"`
+	IsResolved                  bool                                  `json:"is_resolved"`
 	AuditDraftReportID          uint                                  `json:"audit_draft_report_id"`
 	AuditDraftFindingID         *uint                                 `json:"audit_draft_finding_id"`
 	CreatedAt                   string                                `json:"created_at"`
@@ -49,7 +50,9 @@ type AuditDraftReportCommentFormDTO struct {
 	Type                string                              `json:"type" binding:"required,oneof=executive-summary finding conclusion"`
 	Documents           []*AuditDraftFindingDocumentFormDTO `json:"documents"`
 }
-
+type AuditDraftReportCommentStatusUpdateFormDTO struct {
+	IsResolved *bool `json:"is_resolved" binding:"required"`
+}
 type AuditDraftReportCommentDocumentFormDTO struct {
 	ID            *uint  `json:"id,omitempty"`
 	URL           string `json:"url"`
@@ -64,7 +67,7 @@ type AuditDraftReportCommentDocumentFormDTO struct {
 type AuditDraftReportCommentDetailDTO struct {
 	ID                  uint                                  `json:"id"`
 	Comment             string                                `json:"comment"`
-	Status              string                                `json:"status"`
+	IsResolved          bool                                  `json:"is_resolved"`
 	AuditDraftReportID  uint                                  `json:"audit_draft_report_id"`
 	AuditDraftFindingID *uint                                 `json:"audit_draft_finding_id"`
 	Documents           []*AuditDraftReportCommentDocumentDTO `json:"documents"`

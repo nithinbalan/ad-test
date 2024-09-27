@@ -310,12 +310,14 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	//Audit Draft Report Review
 	auditRoutes.POST("/audits/:auditId/draft-reports/:id/review-submit", auditDraftReportReviewController.SubmitAuditDraftReport)
-	
+
 	// Audit Draft Report Comments
 	auditRoutes.GET("/audits/:auditId/draft-reports/:id/comments", auditDraftReportCommentController.GetAllAuditDraftReportComments)
 	auditRoutes.GET("/audits/:auditId/draft-reports/:id/comments/:commentId", auditDraftReportCommentController.GetAuditDraftReportCommentDetails)
 	auditRoutes.POST("/audits/:auditId/draft-reports/:id/comments", auditDraftReportCommentController.CreateAuditDraftReportComment)
 	auditRoutes.PUT("/audits/:auditId/draft-reports/:id/comments/:commentId", auditDraftReportCommentController.UpdateAuditDraftReportComment)
 	auditRoutes.POST("/audits/:auditId/draft-reports/:id/comments/delete", auditDraftReportCommentController.DeleteAuditDraftReportComments)
+	auditRoutes.POST("/audits/:auditId/draft-reports/:id/comments/:commentId/status-update", auditDraftReportCommentController.StatusUpdateAuditDraftReportComment)
+	unauthenticatedRoutes.GET("/audits/:auditId/draft-reports/:id/comments/:commentId/document-download", auditDraftReportCommentController.DownloadAuditDraftReportCommentDocument)
 
 }
