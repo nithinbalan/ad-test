@@ -148,7 +148,7 @@ func (adfs *AuditDraftFindingService) Create(currentUserID uint, auditDraftFindi
 		}
 
 		// Construct the URL for the document
-		url := utility.GenerateDocumentURL("audit", "draft-audit-findings", strconv.FormatUint(uint64(id), 10), "documents")
+		url := utility.GenerateDocumentURL("audits", "audit", "draft-audit-findings", strconv.FormatUint(uint64(auditDraftFindingFormDTO.AuditID), 10), "documents")
 
 		// Create a new IncidentDocument instance
 		document := &models.AuditDraftFindingDocument{
@@ -172,7 +172,7 @@ func (adfs *AuditDraftFindingService) Create(currentUserID uint, auditDraftFindi
 			return 0, err
 		}
 		for _, doc := range documents {
-			storagePath := filepath.Join("audit", "draft-audit-findings", strconv.FormatUint(uint64(id), 10), "documents")
+			storagePath := filepath.Join("audits", "audit", strconv.FormatUint(uint64(auditDraftFindingFormDTO.AuditID), 10), strconv.FormatUint(uint64(id), 10), "draft-audit-findings", strconv.FormatUint(uint64(id), 10), "documents")
 			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
 				tx.Rollback()
 				return 0, err
@@ -251,7 +251,7 @@ func (adfs *AuditDraftFindingService) Update(id uint, currentUserID uint, auditD
 				tx.Rollback()
 				return err
 			}
-			url := utility.GenerateDocumentURL("audit", "draft-audit-findings", strconv.FormatUint(uint64(id), 10), "documents")
+			url := utility.GenerateDocumentURL("audits", "audit", strconv.FormatUint(uint64(auditDraftFindingFormDTO.AuditID), 10), "draft-audit-findings", strconv.FormatUint(uint64(id), 10), "documents")
 
 			// Create a new AuditDraftFindingDocument instance
 			document := &models.AuditDraftFindingDocument{
@@ -296,7 +296,7 @@ func (adfs *AuditDraftFindingService) Update(id uint, currentUserID uint, auditD
 	}
 	if len(documents) > 0 {
 		for _, doc := range documents {
-			storagePath := filepath.Join("audit", "draft-audit-findings", strconv.FormatUint(uint64(existingAuditDraftFinding.ID), 10), "documents")
+			storagePath := filepath.Join("audits", "audit", strconv.FormatUint(uint64(auditDraftFindingFormDTO.AuditID), 10), "draft-audit-findings", strconv.FormatUint(uint64(existingAuditDraftFinding.ID), 10), "documents")
 			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
 				tx.Rollback()
 				return err
@@ -305,7 +305,7 @@ func (adfs *AuditDraftFindingService) Update(id uint, currentUserID uint, auditD
 	}
 	if len(documentsToDelete) > 0 {
 		for _, document := range documentsToDelete {
-			storagePath := filepath.Join("audit", "draft-audit-findings", strconv.FormatUint(uint64(existingAuditDraftFinding.ID), 10), "documents")
+			storagePath := filepath.Join("audits", "audit", strconv.FormatUint(uint64(auditDraftFindingFormDTO.AuditID), 10), "draft-audit-findings", strconv.FormatUint(uint64(existingAuditDraftFinding.ID), 10), "documents")
 			if err := utility.RemoveFile(document.Name, storagePath); err != nil {
 				tx.Rollback()
 				return err
@@ -347,7 +347,7 @@ func (adfs *AuditDraftFindingService) Delete(ids []uint, currentUserID uint) ([]
 	var failedIDs []uint
 	var successfulIDs []uint
 	documentsToDelete := make(map[uint][]*auditDTOs.AuditDraftFindingDocumentDTO)
-
+	var auditID uint64
 	for _, id := range ids {
 		// Get existing audit finding details
 		auditDraftFinding, err := adfs.GetFullDetailsByID(id, tx)
@@ -373,7 +373,7 @@ func (adfs *AuditDraftFindingService) Delete(ids []uint, currentUserID uint) ([]
 				return nil, err
 			}
 		}
-
+		auditID=uint64(auditDraftFinding.AuditID)
 		// Delete the audit finding itself
 		if err := adfs.repo.Delete(id, tx); err != nil {
 			failedIDs = append(failedIDs, id)
@@ -387,7 +387,7 @@ func (adfs *AuditDraftFindingService) Delete(ids []uint, currentUserID uint) ([]
 		for auditDraftFindingID, documents := range documentsToDelete {
 			for _, doc := range documents {
 				fmt.Println("filename=", doc.Name)
-				storagePath := filepath.Join("audit", "audit-findings", strconv.FormatUint(uint64(auditDraftFindingID), 10), "documents")
+				storagePath := filepath.Join("audits", "audit", strconv.FormatUint(uint64(auditID), 10), "audit-findings", strconv.FormatUint(uint64(auditDraftFindingID), 10), "documents")
 				if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
 					tx.Rollback()
 					fmt.Printf("Failed to delete file at URL %s: %v\n", *doc.URL, err)
