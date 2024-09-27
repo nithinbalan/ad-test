@@ -39,8 +39,16 @@ type GRCComplianceOverviewDTO struct {
 }
 
 type GRCRiskOverviewDTO struct {
-	TotalRisksRegistered int64            `json:"total_risks_registered"`
-	RiskCountsByRating   map[string]int64 `json:"risk_counts_by_rating"`
+	TotalRisksRegistered int64                `json:"total_risks_registered"`
+	RiskCountsByRating   []RiskRatingCountDTO `json:"risk_counts_by_rating"`
+}
+
+type RiskRatingCountDTO struct {
+	TitleEn   string `json:"title_en"`
+	TitleAr   string `json:"title_ar"`
+	ColorCode string `json:"color_code"`
+	Type      string `json:"type"`
+	Count     int64  `json:"count"`
 }
 
 type GRCDocumentOverviewDTO struct {
