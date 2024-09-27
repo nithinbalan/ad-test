@@ -7,7 +7,7 @@ CREATE TABLE audit_draft_report_comments
     audit_draft_finding_id INT NULL,
     audit_draft_report_comment_id INT NULL,
     type VARCHAR(50) NOT NULL,
-    CONSTRAINT CHK_audit_draft_report_comments_type CHECK (type IN ('executive-summary', 'finding', 'conclusion')),
+    CONSTRAINT CHK_audit_draft_report_comments_type CHECK (type IN ('executive_summary', 'finding', 'conclusion')),
     comment NVARCHAR(MAX) NULL,
     is_resolved BIT NOT NULL DEFAULT 0,
     created_at DATETIME NOT NULL,

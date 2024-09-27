@@ -22,6 +22,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	workflowController := app.SettingsModule.WorkflowController
 	rolePermissionTypeController := app.SettingsModule.RolePermissionTypeController
 	moduleController := app.SettingsModule.ModuleController
+	emailTemplateSettingsController := app.SettingsModule.EmailTemplateSettingsController
 
 	//Organization Level
 	settingRoutes.GET("/organization-levels", organizationLevelController.GetAllOrganizationLevels)
@@ -30,6 +31,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	//System Preference
 	settingRoutes.GET("/system-preferences", systemPreferenceController.GetSystemPreference)
 	settingRoutes.PUT("/system-preferences/:id", systemPreferenceController.UpdateSystemPreference)
+
+	//Email template settings
+	settingRoutes.GET("/email-template-settings", emailTemplateSettingsController.GetEmailTemplateSettings)
+	settingRoutes.PUT("/email-template-settings/:id", emailTemplateSettingsController.UpdateEmailTemplateSettings)
 
 	settingRoutes.GET("/role-permission-types", rolePermissionTypeController.GetAllRolePermissionTypes)
 	settingRoutes.GET("/role-permission-types/:id", rolePermissionTypeController.GetRolePermissionTypeDetails)
