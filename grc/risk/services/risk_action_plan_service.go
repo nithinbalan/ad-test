@@ -119,7 +119,8 @@ func (raps RiskActionPlanService) GetFullDetailsByID(riskID uint, id uint) (*ris
 func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskActionPlanFormDTO *riskDTOs.RiskActionPlanFormDTO) (uint, error) {
 	tx := raps.repo.BeginTransaction()
 
-	if _, err := raps.riskRegisterSvc.GetByID(riskID); err != nil {
+	risk, err := raps.riskRegisterSvc.GetByID(riskID)
+	if err != nil {
 		return 0, err
 	}
 
@@ -210,7 +211,6 @@ func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskA
 			})
 			return
 		}
-
 		assignedBy, err := raps.userSvc.GetByID(currentUserID)
 		if err != nil {
 			utility.LogError("Failed to fetch assigning user", map[string]interface{}{
@@ -223,12 +223,14 @@ func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskA
 		subject := fmt.Sprintf("Risk Action Plan/%s: Responsibility Assigned", RiskActionPlanFormDTO.Title)
 		appURL := utility.GetAppURL()
 		emailData := map[string]interface{}{
-			"FistNameEn":            responsibleUser.FirstNameEn,
-			"LastnameEn":            responsibleUser.LastNameEn,
-			"RiskTitle":             RiskActionPlanFormDTO.Title,
+			"FirstNameEn":           responsibleUser.FirstNameEn,
+			"LastNameEn":            responsibleUser.LastNameEn,
+			"RiskReferenceNumber":   risk.ReferenceNumber,
+			"RiskTitle":             risk.Title,
+			"ActionPlanTitle":       RiskActionPlanFormDTO.Title,
 			"ActionPlanDescription": RiskActionPlanFormDTO.Description,
 			"TargetDate":            dates.TargetDate.Format("2006-01-02"),
-			"AssignedByFistNameEn":  assignedBy.FirstNameEn,
+			"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 			"AssignedByLastNameEn":  assignedBy.LastNameEn,
 			"AssignedOn":            time.Now().Format("2006-01-02"),
 			"RedirectURL":           fmt.Sprintf("%s/risk-action-plan/%d", appURL, id),
@@ -256,7 +258,8 @@ func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskA
 func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID uint, RiskActionPlanFormDTO *riskDTOs.RiskActionPlanFormDTO) error {
 	tx := raps.repo.BeginTransaction()
 
-	if _, err := raps.riskRegisterSvc.GetByID(riskID); err != nil {
+	risk, err := raps.riskRegisterSvc.GetByID(riskID)
+	if err != nil {
 		return err
 	}
 
@@ -363,7 +366,8 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 			oldResponsibleUserEmailData := map[string]interface{}{
 				"FirstNameEn":           oldResponsibleUser.FirstNameEn,
 				"LastNameEn":            oldResponsibleUser.LastNameEn,
-				"RiskTitle":             existingRiskActionPlan.Title,
+				"RiskReferenceNumber":       risk.ReferenceNumber,
+				"RiskTitle":             risk.Title,
 				"ActionPlanTitle":       existingRiskActionPlan.Title,
 				"ActionPlanDescription": existingRiskActionPlan.Description,
 				"RedirectURL":           fmt.Sprintf("%s/risk-action-plan/%d", appURL, id),
@@ -382,7 +386,9 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 			newResponsibleUserEmailData := map[string]interface{}{
 				"FirstNameEn":           newResponsibleUser.FirstNameEn,
 				"LastNameEn":            newResponsibleUser.LastNameEn,
-				"RiskTitle":             existingRiskActionPlan.Title,
+				"RiskReferenceNumber":   risk.ReferenceNumber,
+				"RiskTitle":             risk.Title,
+				"ActionPlanTitle":       existingRiskActionPlan.Description,
 				"ActionPlanDescription": existingRiskActionPlan.Description,
 				"TargetDate":            existingRiskActionPlan.TargetDate.Format("2006-01-02"),
 				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
