@@ -9,15 +9,16 @@ import (
 )
 
 type SettingsModule struct {
-	OrganizationLevelController  *controllers.OrganizationLevelController
-	SystemPreferenceController   *controllers.SystemPreferenceController
-	RoleController               *controllers.RoleController
-	OrganizationUnitController   *controllers.OrganizationUnitController
-	LogSettingsController        *controllers.LogSettingsController
-	WorkflowLevelTypeController  *controllers.WorkflowLevelTypeController
-	WorkflowController           *controllers.WorkflowController
-	RolePermissionTypeController *controllers.RolePermissionTypeController
-	ModuleController             *controllers.ModuleController
+	OrganizationLevelController     *controllers.OrganizationLevelController
+	SystemPreferenceController      *controllers.SystemPreferenceController
+	RoleController                  *controllers.RoleController
+	OrganizationUnitController      *controllers.OrganizationUnitController
+	LogSettingsController           *controllers.LogSettingsController
+	WorkflowLevelTypeController     *controllers.WorkflowLevelTypeController
+	WorkflowController              *controllers.WorkflowController
+	RolePermissionTypeController    *controllers.RolePermissionTypeController
+	ModuleController                *controllers.ModuleController
+	EmailTemplateSettingsController *controllers.EmailTemplateSettingsController
 
 	SystemPreferenceSvc   services.SystemPreferenceServiceInterface
 	OrganizationUnitSvc   services.OrganizationUnitServiceInterface
@@ -36,6 +37,10 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 	systemPreferenceRepo := repositories.NewSystemPreferenceRepository(db)
 	systemPreferenceSvc := services.NewSystemPreferenceService(systemPreferenceRepo, sharedModule.ActivityLogService, masterModule.CurrencySvc)
 	systemPreferenceController := controllers.NewSystemPreferenceController(systemPreferenceSvc)
+
+	emailTemplateSettingsRepo := repositories.NewEmailTemplateSettingsRepository(db)
+	emailTemplateSettingsService := services.NewEmailTemplateSettingsService(emailTemplateSettingsRepo, sharedModule.ActivityLogService)
+	emailTemplateSettingsController := controllers.NewEmailTemplateSettingsController(emailTemplateSettingsService)
 
 	moduleRepo := repositories.NewModuleRepository(db)
 	moduleSvc := services.NewModuleService(moduleRepo)
@@ -66,15 +71,16 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 	workflowController := controllers.NewWorkflowController(workflowSvc)
 
 	return &SettingsModule{
-		OrganizationLevelController:  organizationLevelController,
-		SystemPreferenceController:   systemPreferenceController,
-		RoleController:               roleController,
-		OrganizationUnitController:   organizationUnitController,
-		LogSettingsController:        logSettingsController,
-		WorkflowLevelTypeController:  workflowLevelTypeController,
-		WorkflowController:           workflowController,
-		RolePermissionTypeController: rolePermissionTypeController,
-		ModuleController:             moduleController,
+		OrganizationLevelController:     organizationLevelController,
+		SystemPreferenceController:      systemPreferenceController,
+		RoleController:                  roleController,
+		OrganizationUnitController:      organizationUnitController,
+		LogSettingsController:           logSettingsController,
+		WorkflowLevelTypeController:     workflowLevelTypeController,
+		WorkflowController:              workflowController,
+		RolePermissionTypeController:    rolePermissionTypeController,
+		ModuleController:                moduleController,
+		EmailTemplateSettingsController: emailTemplateSettingsController,
 
 		SystemPreferenceSvc:   systemPreferenceSvc,
 		OrganizationLevelSvc:  organizationLevelSvc,
