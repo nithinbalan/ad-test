@@ -35,7 +35,7 @@ type RiskAppetiteStatementListDTO struct {
 	UpdatedUserColor            string                 `json:"updated_user_color"`
 	UpdatedUserEmail            string                 `json:"updated_user_email"`
 	UpdatedUserProfileImagePath string                 `json:"updated_user_profile_image_path"`
-	Risks                       []*RiskRegisterListDTO `json:"risks,omitempty" gorm:"-"`
+	Risks                       []*RiskRegisterListDTO `json:"risks" gorm:"-"`
 }
 
 type RiskAppetiteStatementListQueryParamsDTO struct {
