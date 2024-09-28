@@ -26,7 +26,7 @@ type AuditDraftReportServiceInterface interface {
 	Update(auditID uint, id uint, currentUserID uint, auditDraftReportFormDTO *auditDTOs.AuditDraftReportFormDTO) error
 	Submit(auditID uint, id uint, currentUserID uint) error
 	Delete(auditID uint, ids []uint, currentUserID uint) ([]uint, error)
-	StatusUpdate(id uint, currentUserID uint, auditDraftReportStatusID uint, tx utility.DatabaseTransaction) error
+	StatusUpdate(id uint, currentUserID uint, auditDraftReportStatusID uint, nextReviewLevel int, tx utility.DatabaseTransaction) error
 }
 
 type AuditDraftReportService struct {
@@ -511,17 +511,19 @@ func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID
 	return nil
 }
 
-func (adrs *AuditDraftReportService) StatusUpdate(id uint, currentUserID uint, auditDraftReportStatusID uint, tx utility.DatabaseTransaction) error {
+// Status update mainly using for review - AuditDraftReportReviewService
+func (adrs *AuditDraftReportService) StatusUpdate(id uint, currentUserID uint, auditDraftReportStatusID uint, nextReviewLevel int, tx utility.DatabaseTransaction) error {
 	existingAuditDraftReport, err := adrs.GetByID(id)
 	if err != nil {
 		return err
 	}
 
 	now := time.Now()
-
+	
 	existingAuditDraftReport.InternalReviewSubmittedAt = &now
 	existingAuditDraftReport.AuditDraftReportStatusID = auditDraftReportStatusID
 	existingAuditDraftReport.InternalReviewSubmittedBYID = &currentUserID
+	existingAuditDraftReport.NextReviewLevel = nextReviewLevel
 	existingAuditDraftReport.UpdatedBYID = &currentUserID
 
 

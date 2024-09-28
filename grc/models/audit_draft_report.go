@@ -15,6 +15,7 @@ type AuditDraftReport struct {
 	AuditeeReviewSubmittedBYID  *uint      `json:"auditee_review_submitted_by_id" gorm:"default:null"`
 	AuditeeReviewSubmittedAt    *time.Time `json:"auditee_review_submitted_at" gorm:"type:datetime;default:null"`
 	AuditDraftReportStatusID    uint       `json:"audit_draft_report_status_id" gorm:"not null;"`
+	NextReviewLevel             int        `json:"next_review_level" gorm:"default:0"`
 	CreatedAt                   time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt                   *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 	CreatedBYID                 uint       `json:"created_by_id" gorm:"not null"`
