@@ -21,8 +21,8 @@ type TaskServiceInterface interface {
 	Update(currentUserID uint, taskDTO commonDTOs.TaskFormDTO, fieldName string, id uint, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, currentUserID uint) (uint, error)
 
-	MapActionPlanStatusToTaskStatus(actionPlanStatusID uint) (*models.TaskStatus, error)
-	UpdateStatus(currentUserID uint, taskID uint, actionPlanStatusID uint, tx ...utility.DatabaseTransaction) error
+	MapActionPlanStatusToTaskStatus(actionPlanStatusID uint, isReviewUserNull bool) (*models.TaskStatus, error)
+	UpdateStatus(currentUserID uint, taskID uint, actionPlanStatusID uint, isReviewUserNull bool, tx ...utility.DatabaseTransaction) error
 }
 
 type TaskService struct {
@@ -140,13 +140,13 @@ func (ts *TaskService) Delete(id uint, currentUserID uint) (uint, error) {
 	return failedId, nil
 }
 
-func (ts *TaskService) UpdateStatus(currentUserID uint, taskID uint, actionPlanStatusID uint, tx ...utility.DatabaseTransaction) error {
+func (ts *TaskService) UpdateStatus(currentUserID uint, taskID uint, actionPlanStatusID uint, isReviewUserNull bool, tx ...utility.DatabaseTransaction) error {
 	existingTask, err := ts.GetByID(taskID)
 	if err != nil {
 		return err
 	}
 
-	taskStatus, err := ts.MapActionPlanStatusToTaskStatus(actionPlanStatusID)
+	taskStatus, err := ts.MapActionPlanStatusToTaskStatus(actionPlanStatusID, isReviewUserNull)
 	if err != nil {
 		return err
 	}
@@ -157,7 +157,7 @@ func (ts *TaskService) UpdateStatus(currentUserID uint, taskID uint, actionPlanS
 	return ts.repo.Update(existingTask, tx...)
 }
 
-func (ts *TaskService) MapActionPlanStatusToTaskStatus(actionPlanStatusID uint) (*models.TaskStatus, error) {
+func (ts *TaskService) MapActionPlanStatusToTaskStatus(actionPlanStatusID uint, isReviewUserNull bool) (*models.TaskStatus, error) {
 	actionPlanStatus, err := ts.actionPlanStatusSvc.GetByID(actionPlanStatusID)
 	if err != nil {
 		return nil, err
@@ -165,17 +165,23 @@ func (ts *TaskService) MapActionPlanStatusToTaskStatus(actionPlanStatusID uint) 
 
 	var taskStatusType string
 
-	switch actionPlanStatus.Type {
-	case "new":
-		taskStatusType = "new"
-	case "in_progress":
-		taskStatusType = "in_progress"
-	case "completed", "on_hold", "terminated", "closed":
+	if isReviewUserNull && actionPlanStatus.Type == "completed" {
 		taskStatusType = "closed"
-	case "reopen":
-		taskStatusType = "in_progress"
-	default:
-		taskStatusType = "new"
+	} else {
+		switch actionPlanStatus.Type {
+		case "new":
+			taskStatusType = "new"
+		case "in_progress":
+			taskStatusType = "in_progress"
+		case "completed":
+			taskStatusType = "in_progress"
+		case "on_hold", "terminated", "closed":
+			taskStatusType = "closed"
+		case "reopen":
+			taskStatusType = "in_progress"
+		default:
+			taskStatusType = "new"
+		}
 	}
 
 	statusResult, err := ts.taskStatusSvc.GetByType(taskStatusType)
