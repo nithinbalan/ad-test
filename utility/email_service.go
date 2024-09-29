@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"jethur/assets"
 	"jethur/config"
+	"jethur/grc/common/dtos"
 
 	"gopkg.in/gomail.v2"
 )
@@ -18,10 +19,10 @@ type EmailConfig struct {
 	From     string
 }
 
-func SendTemplatedEmail(to []string, subject, templateRelativePath string, templateData interface{}, attachments []string) error {
+func SendTemplatedEmail(to []string, subject, templateRelativePath string, templateData interface{}, emailTemplateSettingsData *dtos.EmailTemplateAndSocialDTO, attachments []string) error {
 	emailConfig := getEmailConfig()
 
-	templates, err := parseEmailTemplates(templateRelativePath)
+	templates, err := parseEmailTemplates(templateRelativePath, emailTemplateSettingsData)
 	if err != nil {
 		fmt.Printf("Failed to parse templates from path '%s': %v\n", templateRelativePath, err)
 		return err
@@ -56,7 +57,7 @@ func getEmailConfig() EmailConfig {
 	}
 }
 
-func parseEmailTemplates(templateRelativePath string) (*template.Template, error) {
+func parseEmailTemplates(templateRelativePath string, emailTemplateSettingsData *dtos.EmailTemplateAndSocialDTO) (*template.Template, error) {
 	baseTemplatePath := "common/templates/email/base.html"
 	headerTemplatePath := "common/templates/email/header.html"
 	footerTemplatePath := "common/templates/email/footer.html"
@@ -78,7 +79,17 @@ func parseEmailTemplates(templateRelativePath string) (*template.Template, error
 		return nil, err
 	}
 
-	templates, err := template.New("email").Parse(string(baseTemplate))
+	templates, err := template.New("email").Funcs(template.FuncMap{
+		"headerImageURL": func() string { return emailTemplateSettingsData.HeaderImageURL },
+		"footerAddress":  func() string { return emailTemplateSettingsData.FooterAddress },
+		"footerEmail":    func() string { return emailTemplateSettingsData.FooterEmail },
+		"footerLogoURL":  func() string { return emailTemplateSettingsData.FooterLogoURL },
+		"supportText":    func() string { return emailTemplateSettingsData.SupportText },
+		"closingText":    func() string { return emailTemplateSettingsData.ClosingText },
+		"facebook":       func() string { return *emailTemplateSettingsData.Facebook },
+		"linkedin":       func() string { return *emailTemplateSettingsData.Linkedin },
+		"twitter":        func() string { return *emailTemplateSettingsData.X },
+	}).Parse(string(baseTemplate))
 	if err != nil {
 		return nil, err
 	}
