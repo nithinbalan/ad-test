@@ -15,6 +15,7 @@ import (
 	organizationServices "jethur/grc/organization/services"
 	riskDTOs "jethur/grc/risk/dtos"
 	riskRepositories "jethur/grc/risk/repositories"
+	taskServices "jethur/grc/task/services"
 	"jethur/utility"
 
 	"github.com/mitchellh/mapstructure"
@@ -43,6 +44,7 @@ type RiskActionPlanService struct {
 	userSettingSvc      organizationServices.UserSettingServiceInterface
 	userSvc             organizationServices.UserServiceInterface
 	notificationSvc     commonServices.NotificationServiceInterface
+	taskSvc             taskServices.TaskServiceInterface
 }
 
 func NewRiskActionPlanService(
@@ -54,6 +56,7 @@ func NewRiskActionPlanService(
 	userSettingSvc organizationServices.UserSettingServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
+	taskSvc taskServices.TaskServiceInterface,
 ) RiskActionPlanServiceInterface {
 	return &RiskActionPlanService{
 		repo:                repo,
@@ -64,6 +67,7 @@ func NewRiskActionPlanService(
 		userSettingSvc:      userSettingSvc,
 		userSvc:             userSvc,
 		notificationSvc:     notificationSvc,
+		taskSvc:             taskSvc,
 	}
 }
 
@@ -150,6 +154,7 @@ func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskA
 	if err != nil {
 		return 0, err
 	}
+
 	actionPlanStatusID := RiskActionPlanFormDTO.ActionPlanStatusID
 	riskActionPlanUpdate := &models.RiskActionPlanStatusUpdate{
 		RiskActionPlanID:   id,
@@ -162,6 +167,25 @@ func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskA
 		tx.Rollback()
 		return 0, err
 	}
+
+	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+	taskDTO := commonDTOs.TaskFormDTO{
+		ModuleIdentifier:  "risk",
+		RiskActionPlanID:  &id,
+		Title:             RiskActionPlanFormDTO.Title,
+		Description:       RiskActionPlanFormDTO.Description,
+		TargetDate:        dates.TargetDate,
+		URLParam:          &urlParam,
+		QueryParam:        nil,
+		SeverityLevelID:   RiskActionPlanFormDTO.SeverityLevelID,
+		ResponsibleUserID: RiskActionPlanFormDTO.ResponsibleUserID,
+	}
+
+	if err := raps.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
 	tx.Commit()
 
 	go func() {
@@ -295,6 +319,24 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 		tx.Rollback()
 		return err
 	}
+
+	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+
+	taskUpdateDTO := commonDTOs.TaskFormDTO{
+		Title:             RiskActionPlanFormDTO.Title,
+		Description:       RiskActionPlanFormDTO.Description,
+		TargetDate:        dates.TargetDate,
+		URLParam:          &urlParam,
+		SeverityLevelID:   RiskActionPlanFormDTO.SeverityLevelID,
+		ResponsibleUserID: RiskActionPlanFormDTO.ResponsibleUserID,
+	}
+
+	err = raps.taskSvc.Update(currentUserID, taskUpdateDTO, "risk_action_plan_id", id, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	tx.Commit()
 
 	go func() {
@@ -366,7 +408,7 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 			oldResponsibleUserEmailData := map[string]interface{}{
 				"FirstNameEn":           oldResponsibleUser.FirstNameEn,
 				"LastNameEn":            oldResponsibleUser.LastNameEn,
-				"RiskReferenceNumber":       risk.ReferenceNumber,
+				"RiskReferenceNumber":   risk.ReferenceNumber,
 				"RiskTitle":             risk.Title,
 				"ActionPlanTitle":       existingRiskActionPlan.Title,
 				"ActionPlanDescription": existingRiskActionPlan.Description,
@@ -388,7 +430,7 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 				"LastNameEn":            newResponsibleUser.LastNameEn,
 				"RiskReferenceNumber":   risk.ReferenceNumber,
 				"RiskTitle":             risk.Title,
-				"ActionPlanTitle":       existingRiskActionPlan.Description,
+				"ActionPlanTitle":       existingRiskActionPlan.Title,
 				"ActionPlanDescription": existingRiskActionPlan.Description,
 				"TargetDate":            existingRiskActionPlan.TargetDate.Format("2006-01-02"),
 				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
@@ -467,6 +509,17 @@ func (raps *RiskActionPlanService) Delete(riskID uint, ids []uint, currentUserID
 			ReferenceNumber: riskActionPlan.RiskRegister.ReferenceNumber,
 			RiskTitle:       riskActionPlan.RiskRegister.Title,
 		})
+
+		existingTask, err := raps.taskSvc.GetByFieldID("risk_action_plan_id", id)
+		if err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+
+		taskID, err := raps.taskSvc.Delete(existingTask.ID, currentUserID)
+		if err != nil {
+			failedIds = append(failedIds, taskID)
+		}
 
 		if len(riskActionPlan.ActionPlanStatusUpdates) > 0 {
 			var deleteStatusUpdateIds []*uint
