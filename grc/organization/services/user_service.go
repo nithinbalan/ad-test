@@ -4,6 +4,8 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	commonDTOs "jethur/grc/common/dtos"
+	commonService "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	userDTOs "jethur/grc/organization/dtos"
@@ -51,15 +53,17 @@ type UserServiceInterface interface {
 }
 
 type UserService struct {
-	repo                 organizationRepositories.UserRepositoryInterface
-	designationSvc       DesignationServiceInterface
-	userStatusSvc        UserStatusServiceInterface
-	activityLogSvc       logServices.ActivityLogServiceInterface
-	roleSvc              settingService.RoleServiceInterface
-	userSettingSvc       UserSettingServiceInterface
-	systemPreferenceSvc  settingService.SystemPreferenceServiceInterface
-	organizationLevelSvc settingService.OrganizationLevelServiceInterface
-	moduleSvc            settingService.ModuleServiceInterface
+	repo                     organizationRepositories.UserRepositoryInterface
+	designationSvc           DesignationServiceInterface
+	userStatusSvc            UserStatusServiceInterface
+	activityLogSvc           logServices.ActivityLogServiceInterface
+	roleSvc                  settingService.RoleServiceInterface
+	userSettingSvc           UserSettingServiceInterface
+	systemPreferenceSvc      settingService.SystemPreferenceServiceInterface
+	organizationLevelSvc     settingService.OrganizationLevelServiceInterface
+	moduleSvc                settingService.ModuleServiceInterface
+	emailTemplateSettingsSvc settingService.EmailTemplateSettingsServiceInterface
+	notificationSvc          commonService.NotificationServiceInterface
 }
 
 func NewUserService(
@@ -71,16 +75,20 @@ func NewUserService(
 	systemPreferenceSvc settingService.SystemPreferenceServiceInterface,
 	organizationLevelSvc settingService.OrganizationLevelServiceInterface,
 	moduleSvc settingService.ModuleServiceInterface,
+	emailTemplateSettingsSvc settingService.EmailTemplateSettingsServiceInterface,
+	notificationSvc commonService.NotificationServiceInterface,
 ) UserServiceInterface {
 	return &UserService{
-		repo:                 repo,
-		designationSvc:       designationSvc,
-		userStatusSvc:        userStatusSvc,
-		activityLogSvc:       activityLogSvc,
-		roleSvc:              roleSvc,
-		systemPreferenceSvc:  systemPreferenceSvc,
-		organizationLevelSvc: organizationLevelSvc,
-		moduleSvc:            moduleSvc,
+		repo:                     repo,
+		designationSvc:           designationSvc,
+		userStatusSvc:            userStatusSvc,
+		activityLogSvc:           activityLogSvc,
+		roleSvc:                  roleSvc,
+		systemPreferenceSvc:      systemPreferenceSvc,
+		organizationLevelSvc:     organizationLevelSvc,
+		moduleSvc:                moduleSvc,
+		emailTemplateSettingsSvc: emailTemplateSettingsSvc,
+		notificationSvc:          notificationSvc,
 	}
 }
 
@@ -272,6 +280,28 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 		}
 	}()
 
+	emailTemplateSettings, err := us.emailTemplateSettingsSvc.GetEmailTemplateSettings()
+	if err != nil {
+		return 0, err
+	}
+
+	socialLinks, err := us.notificationSvc.GetSocialMediaLinks()
+	if err != nil {
+		return 0, err
+	}
+
+	emailTemplateAndSocialDTO := &commonDTOs.EmailTemplateAndSocialDTO{
+		HeaderImageURL: emailTemplateSettings.HeaderImageURL,
+		SupportText:    emailTemplateSettings.SupportText,
+		ClosingText:    emailTemplateSettings.ClosingText,
+		FooterLogoURL:  emailTemplateSettings.FooterLogoURL,
+		FooterAddress:  emailTemplateSettings.FooterAddress,
+		FooterEmail:    emailTemplateSettings.FooterEmail,
+		Linkedin:       &socialLinks.Linkedin,
+		X:              &socialLinks.X,
+		Facebook:       &socialLinks.Facebook,
+	}
+
 	emailData := userDTOs.SendNewPasswordEmailDTO{
 		FirstNameEn: userFormDTO.FirstNameEn,
 		LastNameEn:  userFormDTO.LastNameEn,
@@ -283,7 +313,7 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 	subject := "Important: Welcome to Jethur!"
 	templateRelativePath := "organization/templates/email/user_welcome.html"
 
-	err = utility.SendTemplatedEmail(to, subject, templateRelativePath, emailData, nil, nil)
+	err = utility.SendTemplatedEmail(to, subject, templateRelativePath, emailData, emailTemplateAndSocialDTO, nil)
 
 	if err != nil {
 		return 0, err

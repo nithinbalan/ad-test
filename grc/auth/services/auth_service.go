@@ -4,8 +4,11 @@ import (
 	"errors"
 	"fmt"
 	authDTOs "jethur/grc/auth/dtos"
+	commonDTOs "jethur/grc/common/dtos"
+	commonService "jethur/grc/common/services"
 	"jethur/grc/models"
 	"jethur/grc/organization/services"
+	settingService "jethur/grc/settings/services"
 	"jethur/utility"
 
 	"golang.org/x/crypto/bcrypt"
@@ -27,14 +30,22 @@ type AuthServiceInterface interface {
 
 // Service and implementations
 type AuthService struct {
-	userService        services.UserServiceInterface
-	userSettingService services.UserSettingServiceInterface
+	userService              services.UserServiceInterface
+	userSettingService       services.UserSettingServiceInterface
+	notificationSvc          commonService.NotificationServiceInterface
+	emailTemplateSettingsSvc settingService.EmailTemplateSettingsServiceInterface
 }
 
-func NewAuthService(userService services.UserServiceInterface, userSettingService services.UserSettingServiceInterface) AuthServiceInterface {
+func NewAuthService(
+	userService services.UserServiceInterface,
+	userSettingService services.UserSettingServiceInterface,
+	notificationSvc commonService.NotificationServiceInterface,
+	emailTemplateSettingsSvc settingService.EmailTemplateSettingsServiceInterface) AuthServiceInterface {
 	return &AuthService{
-		userService:        userService,
-		userSettingService: userSettingService,
+		userService:              userService,
+		userSettingService:       userSettingService,
+		notificationSvc:          notificationSvc,
+		emailTemplateSettingsSvc: emailTemplateSettingsSvc,
 	}
 }
 
@@ -315,6 +326,28 @@ func (as AuthService) SetPassword(setPasswordFormDTO authDTOs.PasswordRecoverySe
 		return err
 	}
 
+	emailTemplateSettings, err := as.emailTemplateSettingsSvc.GetEmailTemplateSettings()
+	if err != nil {
+		return err
+	}
+
+	socialLinks, err := as.notificationSvc.GetSocialMediaLinks()
+	if err != nil {
+		return err
+	}
+
+	emailTemplateAndSocialDTO := &commonDTOs.EmailTemplateAndSocialDTO{
+		HeaderImageURL: emailTemplateSettings.HeaderImageURL,
+		SupportText:    emailTemplateSettings.SupportText,
+		ClosingText:    emailTemplateSettings.ClosingText,
+		FooterLogoURL:  emailTemplateSettings.FooterLogoURL,
+		FooterAddress:  emailTemplateSettings.FooterAddress,
+		FooterEmail:    emailTemplateSettings.FooterEmail,
+		Linkedin:       &socialLinks.Linkedin,
+		X:              &socialLinks.X,
+		Facebook:       &socialLinks.Facebook,
+	}
+
 	emailData := authDTOs.PasswordRecoverySetPasswordEmailDTO{
 		FirstNameEn: user.FirstNameEn,
 		LastNameEn:  user.LastNameEn,
@@ -325,7 +358,7 @@ func (as AuthService) SetPassword(setPasswordFormDTO authDTOs.PasswordRecoverySe
 	subject := "Important: Password Update Confirmation for Your Jethur Account"
 	templateRelativePath := "auth/templates/email/password_change_confirmation.html"
 
-	err = utility.SendTemplatedEmail(to, subject, templateRelativePath, emailData, nil, nil)
+	err = utility.SendTemplatedEmail(to, subject, templateRelativePath, emailData, emailTemplateAndSocialDTO, nil)
 	if err != nil {
 		return err
 	}
@@ -376,6 +409,28 @@ func (as AuthService) sendOTP(userSecurity *models.UserSecurity, user *models.Us
 		return err
 	}
 
+	emailTemplateSettings, err := as.emailTemplateSettingsSvc.GetEmailTemplateSettings()
+	if err != nil {
+		return err
+	}
+
+	socialLinks, err := as.notificationSvc.GetSocialMediaLinks()
+	if err != nil {
+		return err
+	}
+
+	emailTemplateAndSocialDTO := &commonDTOs.EmailTemplateAndSocialDTO{
+		HeaderImageURL: emailTemplateSettings.HeaderImageURL,
+		SupportText:    emailTemplateSettings.SupportText,
+		ClosingText:    emailTemplateSettings.ClosingText,
+		FooterLogoURL:  emailTemplateSettings.FooterLogoURL,
+		FooterAddress:  emailTemplateSettings.FooterAddress,
+		FooterEmail:    emailTemplateSettings.FooterEmail,
+		Linkedin:       &socialLinks.Linkedin,
+		X:              &socialLinks.X,
+		Facebook:       &socialLinks.Facebook,
+	}
+
 	emailData := authDTOs.PasswordRecoveryDataDTO{
 		FirstNameEn: user.FirstNameEn,
 		LastNameEn:  user.LastNameEn,
@@ -386,7 +441,7 @@ func (as AuthService) sendOTP(userSecurity *models.UserSecurity, user *models.Us
 	subject := mailSubject
 	templateRelativePath := mailRelativePath
 
-	err = utility.SendTemplatedEmail(to, subject, templateRelativePath, emailData, nil, nil)
+	err = utility.SendTemplatedEmail(to, subject, templateRelativePath, emailData, emailTemplateAndSocialDTO, nil)
 	if err != nil {
 		return err
 	}

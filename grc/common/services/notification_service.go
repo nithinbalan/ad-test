@@ -14,6 +14,8 @@ import (
 type NotificationServiceInterface interface {
 	SendNotification(notificationDTO *commonDTOs.DBNotificationDTO, emailNotificationDTO *commonDTOs.EmailNotificationDTO, notificationMasterIdentifier string, tx ...utility.DatabaseTransaction) error
 	LogEmail(recipientEmail string, subject string, templatePath string, emailData interface{}, status string, errorMessage string, sentAt *time.Time, createdByID uint) error
+
+	GetSocialMediaLinks() (*commonDTOs.SocialMediaLinksDTO, error)
 }
 
 type NotificationService struct {
@@ -47,7 +49,7 @@ func (ns *NotificationService) SendNotification(notificationDTO *commonDTOs.DBNo
 			return err
 		}
 
-		socialLinks, err := ns.repo.GetSocialMediaLinks()
+		socialLinks, err := ns.GetSocialMediaLinks()
 		if err != nil {
 			return err
 		}
@@ -161,4 +163,12 @@ func (ns *NotificationService) LogEmail(recipientEmail string, subject string, t
 	}
 
 	return nil
+}
+
+func (ns *NotificationService) GetSocialMediaLinks() (*commonDTOs.SocialMediaLinksDTO, error) {
+	socialLinks, err := ns.repo.GetSocialMediaLinks()
+	if err != nil {
+		return nil, err
+	}
+	return socialLinks, nil
 }
