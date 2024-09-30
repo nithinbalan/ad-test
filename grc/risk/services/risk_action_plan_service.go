@@ -143,6 +143,7 @@ func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskA
 		Description:        RiskActionPlanFormDTO.Description,
 		SeverityLevelID:    RiskActionPlanFormDTO.SeverityLevelID,
 		ResponsibleUserID:  RiskActionPlanFormDTO.ResponsibleUserID,
+		ReviewUserID:       RiskActionPlanFormDTO.ReviewUserID,
 		TargetDate:         dates.TargetDate,
 		Percentage:         RiskActionPlanFormDTO.Percentage,
 		Comments:           RiskActionPlanFormDTO.Comments,
@@ -308,6 +309,7 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 	existingRiskActionPlan.Description = RiskActionPlanFormDTO.Description
 	existingRiskActionPlan.SeverityLevelID = RiskActionPlanFormDTO.SeverityLevelID
 	existingRiskActionPlan.ResponsibleUserID = RiskActionPlanFormDTO.ResponsibleUserID
+	existingRiskActionPlan.ReviewUserID = RiskActionPlanFormDTO.ReviewUserID
 	existingRiskActionPlan.TargetDate = dates.TargetDate
 	existingRiskActionPlan.Percentage = RiskActionPlanFormDTO.Percentage
 	existingRiskActionPlan.Comments = RiskActionPlanFormDTO.Comments
@@ -628,6 +630,18 @@ func (raps *RiskActionPlanService) StatusUpdate(riskID uint, id uint, currentUse
 	existingRiskActionPlan.UpdatedBYID = &currentUserID
 
 	err = raps.repo.Update(existingRiskActionPlan, tx)
+	if err != nil {
+		return err
+	}
+
+	isReviewUserNull := existingRiskActionPlan.ReviewUserID == nil
+
+	// Fetch the corresponding task and update its status
+	existingTask, err := raps.taskSvc.GetByFieldID("risk_action_plan_id", id)
+	if err != nil {
+		return err
+	}
+	err = raps.taskSvc.UpdateStatus(currentUserID, existingTask.ID, ActionPlanStatusID, isReviewUserNull, tx)
 	if err != nil {
 		return err
 	}
