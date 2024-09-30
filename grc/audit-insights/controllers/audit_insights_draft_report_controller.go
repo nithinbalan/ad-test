@@ -79,15 +79,15 @@ func (aidrc *AuditInsightsDraftReportController) GetAllAuditInsightsDraftReports
 }
 
 func (aidrc *AuditInsightsDraftReportController) GetAuditInsightsDraftReportDetails(c *gin.Context) {
-	idStr := c.Param("auditId")
+	idStr := c.Param("id")
 
-	auditID, err := strconv.ParseUint(idStr, 10, 32)
+	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
 
-	audit, err := aidrc.service.GetFullDetailsByID(uint(auditID))
+	audit, err := aidrc.service.GetFullDetailsByID(uint(id))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
