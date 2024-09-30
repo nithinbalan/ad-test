@@ -1213,6 +1213,11 @@ func (rrs *RiskRegisterService) UpdateRiskRating(riskID uint, currentUserID uint
 		return err
 	}
 
+	if err := rrs.UpdateControlRiskRating(existingRisk.ID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	return nil
 }
 
@@ -1272,6 +1277,62 @@ func (rrs *RiskRegisterService) UpdateProcessRiskRating(riskID uint, tx utility.
 	return nil
 }
 
+func (rrs *RiskRegisterService) UpdateControlRiskRating(riskID uint, tx utility.DatabaseTransaction) error {
+	// Get the risk register details for the given riskID
+	risk, err := rrs.repo.GetFullDetailsByID(riskID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Iterate through each associated control and update their risk rating
+	for _, riskControl := range risk.Controls {
+		// Get the full control details (including associated risks)
+		control, err := rrs.controlSvc.GetFullDetailsByID(riskControl.ControlID, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		// Find the maximum risk rating value from all associated risks
+		var maxRiskRatingValue *models.RiskMatrixRiskRatingValue
+		for _, controlRisk := range control.Risks {
+
+			riskDetail, err := rrs.repo.GetFullDetailsByID(controlRisk.RiskRegisterID, tx)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			if maxRiskRatingValue == nil || (riskDetail.CurrentRiskRatingValue != nil && riskDetail.CurrentRiskRatingValue.Value > maxRiskRatingValue.Value) {
+				maxRiskRatingValue = riskDetail.CurrentRiskRatingValue
+			}
+		}
+
+		existingControl, err := rrs.controlSvc.GetByID(riskControl.ControlID, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		// If we found a max risk rating value, update the control with the corresponding rating
+		if maxRiskRatingValue != nil {
+			// Update the control risk rating values
+			existingControl.RiskMatrixRiskRatingID = &maxRiskRatingValue.RiskMatrixRiskRatingID
+			existingControl.RiskMatrixRiskRatingValueID = &maxRiskRatingValue.ID
+
+			// Update the control risk rating in the database
+			err = rrs.controlSvc.UpdateControlRiskRating(existingControl, tx)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
 func (rrs *RiskRegisterService) ClearRiskRating(riskID uint, updateDTO *riskDTOs.RiskRegisterRiskRatingUpdateDTO, tx utility.DatabaseTransaction) error {
 	riskRegister, err := rrs.GetByID(riskID)
 	if err != nil {
@@ -1294,6 +1355,16 @@ func (rrs *RiskRegisterService) ClearRiskRating(riskID uint, updateDTO *riskDTOs
 	riskRegister.ResidualRiskRatingValueID = updateDTO.ResidualRiskRatingValueID
 
 	if err := rrs.repo.Update(riskRegister, tx); err != nil {
+		return err
+	}
+
+	if err := rrs.UpdateProcessRiskRating(riskRegister.ID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := rrs.UpdateControlRiskRating(riskRegister.ID, tx); err != nil {
+		tx.Rollback()
 		return err
 	}
 
