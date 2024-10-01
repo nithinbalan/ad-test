@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	commonDTOs "jethur/grc/common/dtos"
 	incidentDTOs "jethur/grc/incident/dtos"
 	incidentRepositories "jethur/grc/incident/repositories"
 	logServices "jethur/grc/logs/services"
@@ -10,6 +11,7 @@ import (
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
+	taskServices "jethur/grc/task/services"
 	"jethur/utility"
 	"os"
 	"time"
@@ -39,6 +41,7 @@ type IncidentActionPlanService struct {
 	severityLevelSvc    masterServices.SeverityLevelServiceInterface
 	incidentTimelineSvc IncidentTimelineServiceInterface
 	userSettingSvc      organizationServices.UserSettingServiceInterface
+	taskSvc             taskServices.TaskServiceInterface
 }
 
 func NewIncidentActionPlanService(
@@ -49,6 +52,7 @@ func NewIncidentActionPlanService(
 	severityLevelSvc masterRepositories.SeverityLevelRepositoryInterface,
 	incidentTimelineSvc IncidentTimelineServiceInterface,
 	userSettingSvc organizationServices.UserSettingServiceInterface,
+	taskSvc taskServices.TaskServiceInterface,
 ) IncidentActionPlanServiceInterface {
 	return &IncidentActionPlanService{
 		repo:                repo,
@@ -58,6 +62,7 @@ func NewIncidentActionPlanService(
 		severityLevelSvc:    severityLevelSvc,
 		incidentTimelineSvc: incidentTimelineSvc,
 		userSettingSvc:      userSettingSvc,
+		taskSvc:             taskSvc,
 	}
 }
 
@@ -140,6 +145,7 @@ func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uin
 		Description:        IncidentActionPlanFormDTO.Description,
 		SeverityLevelID:    IncidentActionPlanFormDTO.SeverityLevelID,
 		ResponsibleUserID:  IncidentActionPlanFormDTO.ResponsibleUserID,
+		ReviewUserID:       IncidentActionPlanFormDTO.ReviewUserID,
 		TargetDate:         dates.TargetDate,
 		Percentage:         IncidentActionPlanFormDTO.Percentage,
 		Comments:           IncidentActionPlanFormDTO.Comments,
@@ -192,6 +198,24 @@ func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uin
 			tx.Rollback()
 			return 0, err
 		}
+	}
+
+	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+	taskDTO := commonDTOs.TaskFormDTO{
+		ModuleIdentifier:     "incident",
+		IncidentActionPlanID: &id,
+		Title:                IncidentActionPlanFormDTO.Title,
+		Description:          IncidentActionPlanFormDTO.Description,
+		TargetDate:           dates.TargetDate,
+		URLParam:             &urlParam,
+		QueryParam:           nil,
+		SeverityLevelID:      IncidentActionPlanFormDTO.SeverityLevelID,
+		ResponsibleUserID:    IncidentActionPlanFormDTO.ResponsibleUserID,
+	}
+
+	if err := iaps.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
+		tx.Rollback()
+		return 0, err
 	}
 	tx.Commit()
 
@@ -248,6 +272,7 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 	existingIncidentActionPlan.Description = IncidentActionPlanFormDTO.Description
 	existingIncidentActionPlan.SeverityLevelID = IncidentActionPlanFormDTO.SeverityLevelID
 	existingIncidentActionPlan.ResponsibleUserID = IncidentActionPlanFormDTO.ResponsibleUserID
+	existingIncidentActionPlan.ReviewUserID = IncidentActionPlanFormDTO.ReviewUserID
 	existingIncidentActionPlan.TargetDate = dates.TargetDate
 	existingIncidentActionPlan.Percentage = IncidentActionPlanFormDTO.Percentage
 	existingIncidentActionPlan.Comments = IncidentActionPlanFormDTO.Comments
@@ -257,6 +282,23 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 	err = iaps.repo.Update(existingIncidentActionPlan, tx)
 
 	if err != nil {
+		return err
+	}
+
+	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+
+	taskUpdateDTO := commonDTOs.TaskFormDTO{
+		Title:             IncidentActionPlanFormDTO.Title,
+		Description:       IncidentActionPlanFormDTO.Description,
+		TargetDate:        dates.TargetDate,
+		URLParam:          &urlParam,
+		SeverityLevelID:   IncidentActionPlanFormDTO.SeverityLevelID,
+		ResponsibleUserID: IncidentActionPlanFormDTO.ResponsibleUserID,
+	}
+
+	err = iaps.taskSvc.Update(currentUserID, taskUpdateDTO, "incident_action_plan_id", id, tx)
+	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -281,6 +323,18 @@ func (iaps *IncidentActionPlanService) Delete(incidentID uint, ids []uint, curre
 		if err != nil {
 			continue
 		}
+
+		existingTask, err := iaps.taskSvc.GetByFieldID("incident_action_plan_id", id)
+		if err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+
+		taskID, err := iaps.taskSvc.Delete(existingTask.ID, currentUserID)
+		if err != nil {
+			failedIds = append(failedIds, taskID)
+		}
+
 		if len(incidentActionPlan.ActionPlanStatusUpdates) > 0 {
 			var deleteStatusUpdateIds []*uint
 			for _, update := range incidentActionPlan.ActionPlanStatusUpdates {
@@ -362,6 +416,18 @@ func (iaps *IncidentActionPlanService) StatusUpdate(incidentID uint, id uint, cu
 
 	err = iaps.repo.Update(existingIncidentActionPlan, tx)
 
+	if err != nil {
+		return err
+	}
+
+	isReviewUserNull := existingIncidentActionPlan.ReviewUserID == nil
+
+	// Fetch the corresponding task and update its status
+	existingTask, err := iaps.taskSvc.GetByFieldID("incident_action_plan_id", id)
+	if err != nil {
+		return err
+	}
+	err = iaps.taskSvc.UpdateStatus(currentUserID, existingTask.ID, ActionPlanStatusID, isReviewUserNull, tx)
 	if err != nil {
 		return err
 	}
