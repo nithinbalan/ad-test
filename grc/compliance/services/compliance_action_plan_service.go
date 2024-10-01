@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	complianceRepositories "jethur/grc/compliance/repositories"
 	logServices "jethur/grc/logs/services"
@@ -140,6 +141,7 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 		Description:             ComplianceActionPlanFormDTO.Description,
 		SeverityLevelID:         ComplianceActionPlanFormDTO.SeverityLevelID,
 		ResponsibleUserID:       ComplianceActionPlanFormDTO.ResponsibleUserID,
+		ReviewUserID:            ComplianceActionPlanFormDTO.ReviewUserID,
 		TargetDate:              dates.TargetDate,
 		Percentage:              ComplianceActionPlanFormDTO.Percentage,
 		Comments:                ComplianceActionPlanFormDTO.Comments,
@@ -166,23 +168,23 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 		tx.Rollback()
 		return 0, err
 	}
-	// url := fmt.Sprintf("compliance-register/%d/action-plans/%d", complianceID, id)
+	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+	taskDTO := commonDTOs.TaskFormDTO{
+		ModuleIdentifier:       "compliance",
+		ComplianceActionPlanID: &id,
+		Title:                  ComplianceActionPlanFormDTO.Title,
+		Description:            ComplianceActionPlanFormDTO.Description,
+		TargetDate:             dates.TargetDate,
+		URLParam:               &urlParam,
+		QueryParam:             nil,
+		SeverityLevelID:        ComplianceActionPlanFormDTO.SeverityLevelID,
+		ResponsibleUserID:      ComplianceActionPlanFormDTO.ResponsibleUserID,
+	}
 
-	// taskDTO := commonDTOs.TaskFormDTO{
-	// 	ModuleIdentifier:       "compliance_action_plan",
-	// 	ComplianceActionPlanID: &id,
-	// 	Title:                  ComplianceActionPlanFormDTO.Title,
-	// 	Description:            ComplianceActionPlanFormDTO.Description,
-	// 	TargetDate:             dates.TargetDate,
-	// 	// URL:                    url,
-	// 	SeverityLevelID:   ComplianceActionPlanFormDTO.SeverityLevelID,
-	// 	ResponsibleUserID: ComplianceActionPlanFormDTO.ResponsibleUserID,
-	// }
-
-	// if err := caps.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
-	// 	tx.Rollback()
-	// 	return 0, err
-	// }
+	if err := caps.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
 	tx.Commit()
 
 	go func() {
@@ -238,6 +240,7 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 	existingComplianceActionPlan.Description = ComplianceActionPlanFormDTO.Description
 	existingComplianceActionPlan.SeverityLevelID = ComplianceActionPlanFormDTO.SeverityLevelID
 	existingComplianceActionPlan.ResponsibleUserID = ComplianceActionPlanFormDTO.ResponsibleUserID
+	existingComplianceActionPlan.ReviewUserID = ComplianceActionPlanFormDTO.ReviewUserID
 	existingComplianceActionPlan.TargetDate = dates.TargetDate
 	existingComplianceActionPlan.Percentage = ComplianceActionPlanFormDTO.Percentage
 	existingComplianceActionPlan.Comments = ComplianceActionPlanFormDTO.Comments
@@ -251,19 +254,22 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 		return err
 	}
 	// //update task
-	// taskDTO := commonDTOs.TaskFormDTO{
-	// 	Title:             ComplianceActionPlanFormDTO.Title,
-	// 	Description:       ComplianceActionPlanFormDTO.Description,
-	// 	TargetDate:        dates.TargetDate,
-	// 	SeverityLevelID:   ComplianceActionPlanFormDTO.SeverityLevelID,
-	// 	ResponsibleUserID: ComplianceActionPlanFormDTO.ResponsibleUserID,
-	// }
-	// err = caps.taskSvc.Update(currentUserID, taskDTO, "compliance_action_plan_id", id, tx)
+	urlParam := fmt.Sprintf(`{"id":%d}`, id)
 
-	// if err != nil {
-	// 	tx.Rollback()
-	// 	return err
-	// }
+	taskUpdateDTO := commonDTOs.TaskFormDTO{
+		Title:             ComplianceActionPlanFormDTO.Title,
+		Description:       ComplianceActionPlanFormDTO.Description,
+		TargetDate:        dates.TargetDate,
+		URLParam:          &urlParam,
+		SeverityLevelID:   ComplianceActionPlanFormDTO.SeverityLevelID,
+		ResponsibleUserID: ComplianceActionPlanFormDTO.ResponsibleUserID,
+	}
+
+	err = caps.taskSvc.Update(currentUserID, taskUpdateDTO, "compliance_action_plan_id", id, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
 	tx.Commit()
 
 	return nil
@@ -295,16 +301,17 @@ func (caps *ComplianceActionPlanService) Delete(complianceID uint, ids []uint, c
 				continue
 			}
 		}
-		// existingTask, err := caps.taskSvc.GetByFieldID("compliance_action_plan_id", id)
-		// if err != nil {
-		// 	failedIds = append(failedIds, id)
-		// 	continue
-		// }
-		// taskID, err := caps.taskSvc.Delete(existingTask.ID, currentUserID)
-		// if err != nil {
-		// 	failedIds = append(failedIds, taskID)
-		// 	continue
-		// }
+		existingTask, err := caps.taskSvc.GetByFieldID("compliance_action_plan_id", id)
+		if err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+
+		taskID, err := caps.taskSvc.Delete(existingTask.ID, currentUserID)
+		if err != nil {
+			failedIds = append(failedIds, taskID)
+		}
+
 		err = caps.repo.Delete(id)
 		if err != nil {
 			failedIds = append(failedIds, id)
@@ -353,6 +360,18 @@ func (caps *ComplianceActionPlanService) StatusUpdate(complianceID uint, id uint
 
 	err = caps.repo.Update(existingComplianceActionPlan, tx)
 
+	if err != nil {
+		return err
+	}
+
+	isReviewUserNull := existingComplianceActionPlan.ReviewUserID == nil
+
+	// Fetch the corresponding task and update its status
+	existingTask, err := caps.taskSvc.GetByFieldID("compliance_action_plan_id", id)
+	if err != nil {
+		return err
+	}
+	err = caps.taskSvc.UpdateStatus(currentUserID, existingTask.ID, complianceActionPlanStatusUpdateFormDTO.ActionPlanStatusID, isReviewUserNull, tx)
 	if err != nil {
 		return err
 	}
