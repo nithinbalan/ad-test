@@ -355,7 +355,7 @@ func (adrrs *AuditDraftReportReviewService) Revert(auditID uint, auditDraftRepor
 	}
 
 	//update status & AuditeeReviewSubmitted user details on draft report
-	auditDraftReportDraftStatus, err := adrrs.auditDraftReportStatusSvc.GetByType("draft")
+	auditDraftReportDraftStatus, err := adrrs.auditDraftReportStatusSvc.GetByType("revert")
 	if err != nil {
 		return err
 	}
