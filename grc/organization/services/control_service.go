@@ -19,8 +19,8 @@ import (
 
 type ControlServiceInterface interface {
 	GetAll(params *organizationDTOs.ControlListQueryParamsDTO) (*organizationDTOs.ControlListResponseDTO, error)
-	GetByID(id uint) (*models.Control, error)
-	GetFullDetailsByID(id uint) (*organizationDTOs.ControlDetailDTO, error)
+	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Control, error)
+	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*organizationDTOs.ControlDetailDTO, error)
 	Create(currentUserID uint, controlFormDTO *organizationDTOs.ControlFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, controlFormDTO *organizationDTOs.ControlFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
@@ -31,6 +31,8 @@ type ControlServiceInterface interface {
 	ReviewStatusUpdate(control *models.Control, tx utility.DatabaseTransaction) error
 
 	ExportControls(data []*organizationDTOs.ControlListDTO, currentUserID uint) (*os.File, error)
+
+	UpdateControlRiskRating(control *models.Control, tx utility.DatabaseTransaction) error
 }
 
 type ControlService struct {
@@ -78,8 +80,8 @@ func (cs *ControlService) GetAll(params *organizationDTOs.ControlListQueryParams
 	return cs.repo.GetAll(params)
 }
 
-func (cs *ControlService) GetByID(id uint) (*models.Control, error) {
-	control, err := cs.repo.GetByID(id)
+func (cs *ControlService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Control, error) {
+	control, err := cs.repo.GetByID(id, tx...)
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -90,10 +92,10 @@ func (cs *ControlService) GetByID(id uint) (*models.Control, error) {
 	return control, nil
 }
 
-func (cs *ControlService) GetFullDetailsByID(id uint) (*organizationDTOs.ControlDetailDTO, error) {
+func (cs *ControlService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*organizationDTOs.ControlDetailDTO, error) {
 	var controlDetailDTO organizationDTOs.ControlDetailDTO
 
-	control, err := cs.repo.GetFullDetailsByID(id)
+	control, err := cs.repo.GetFullDetailsByID(id, tx...)
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -822,4 +824,15 @@ func (cs *ControlService) ExportControls(data []*organizationDTOs.ControlListDTO
 
 	// Generate the Excel file
 	return utility.GenerateExcelFile(headers, rows)
+}
+
+func (cs *ControlService) UpdateControlRiskRating(control *models.Control, tx utility.DatabaseTransaction) error {
+
+	err := cs.repo.Update(control, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return nil
 }
