@@ -7,7 +7,8 @@ VALUES
     ('In Review', 'قيد المراجعة', 'in-review', '#90DD75', 'active'),     -- Light green
     ('Approved', 'موافَق عليه', 'approved', '#28A745', 'active'),       --  Green
     ('In Department Review', 'مراجعة القسم', 'in-department-review', '#17A2B8', 'active'), -- Light Blue
-    ('Completed', 'مكتمل', 'completed', '#DC3545', 'active');           -- Red
+    ('Completed', 'مكتمل', 'completed', '#DC3545', 'active'),           -- Red
+    ('Revert', 'مرتجع', 'revert', '#FD7E14', 'active'); --Orange
 
 -- +goose Down
 -- +goose StatementBegin
