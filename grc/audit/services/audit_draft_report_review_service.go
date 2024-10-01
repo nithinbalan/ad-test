@@ -406,13 +406,13 @@ func (adrrs *AuditDraftReportReviewService) ReSubmit(auditID uint, auditDraftRep
 		tx.Rollback()
 		return utility.NewResourceNotFoundError(err, auditDraftReportID)
 	}
-	auditDraftReportStatusDraft, err := adrrs.auditDraftReportStatusSvc.GetByType("draft")
+	auditDraftReportStatusDraft, err := adrrs.auditDraftReportStatusSvc.GetByType("revert")
 	if err != nil {
 		return err
 	}
 	if existingAuditDraftReport.AuditDraftReportStatusID != auditDraftReportStatusDraft.ID {
 		tx.Rollback()
-		return utility.NewForbiddenError("The audit draft report has already been submitted.")
+		return utility.NewForbiddenError("The audit draft report is not in the 'reverted' status.")
 	}
 	// Check if there is an existing AuditReportWorkflow for the draft report
 	existingAuditReportWorkflow, err := adrrs.repo.GetAuditReportWorkflowByDraftReportID(auditDraftReportID, tx)
