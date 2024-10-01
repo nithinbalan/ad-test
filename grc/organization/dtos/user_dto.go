@@ -34,6 +34,7 @@ type UserListDTO struct {
 	UserStatusTitleEn        string  `json:"user_status_title_en"`
 	UserStatusTitleAr        string  `json:"user_status_title_ar"`
 	UserStatusColorCode      string  `json:"user_status_color_code"`
+	UserStatusIsActive       bool    `json:"user_status_is_active"`
 }
 
 type UserListQueryParamsDTO struct {
