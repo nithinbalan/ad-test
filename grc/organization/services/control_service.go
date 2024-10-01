@@ -127,6 +127,10 @@ func (cs *ControlService) GetFullDetailsByID(id uint) (*organizationDTOs.Control
 		implementedAtString := control.ImplementedAt.Format("2006-01-02")
 		controlDetailDTO.ImplementedAtString = &implementedAtString
 	}
+	if control.ApplicabilityChangeDate != nil {
+		applicabilityChangeDateString := control.ApplicabilityChangeDate.Format("2006-01-02")
+		controlDetailDTO.ApplicabilityChangeDateString = &applicabilityChangeDateString
+	}
 
 	//todo :- also add extra fields which required in details screen
 
@@ -182,6 +186,9 @@ func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizatio
 		NextTestDate:                  dates.NextTestDate,
 		LifecycleStatusID:             lifecycleStatus.ID,
 		CreatedByID:                   currentUserID,
+		IsApplicable:                  controlFormDTO.IsApplicable,
+		Justification:                 controlFormDTO.Justification,
+		ApplicabilityChangeDate:       dates.ApplicabilityChangeDate,
 	}
 
 	id, err := cs.repo.Create(control)
@@ -312,6 +319,9 @@ func (cs *ControlService) Update(id uint, currentUserID uint, controlFormDTO *or
 	existingControl.ImplementedAt = dates.ImplementedAt
 	existingControl.LastTestDate = dates.LastTestDate
 	existingControl.NextTestDate = dates.NextTestDate
+	existingControl.IsApplicable = controlFormDTO.IsApplicable
+	existingControl.Justification = controlFormDTO.Justification
+	existingControl.ApplicabilityChangeDate = dates.ApplicabilityChangeDate
 	existingControl.UpdatedByID = &currentUserID
 
 	err = cs.repo.Update(existingControl)
@@ -707,6 +717,13 @@ func (cs *ControlService) parseControlDates(dto *organizationDTOs.ControlFormDTO
 		parsed.ImplementedAt, err = utility.ParseDate(*dto.ImplementedAt)
 		if err != nil {
 			return nil, utility.NewValidationError(fmt.Errorf("invalid implemented at date"), "invalid_date", "implemented at date")
+		}
+	}
+
+	if dto.ApplicabilityChangeDate != nil {
+		parsed.ApplicabilityChangeDate, err = utility.ParseDate(*dto.ApplicabilityChangeDate)
+		if err != nil {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid applicability change date"), "invalid_date", "applicability change date")
 		}
 	}
 
