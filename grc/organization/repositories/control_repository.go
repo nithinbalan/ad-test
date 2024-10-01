@@ -121,7 +121,9 @@ func (repo *ControlRepository) GetAll(params *organizationDTOs.ControlListQueryP
 		Joins("LEFT JOIN users AS created_user ON created_user.id = controls.created_by_id").
 		Joins("LEFT JOIN users AS updated_user ON updated_user.id = controls.updated_by_id").
 		Joins("LEFT JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = controls.risk_matrix_risk_rating_id").
-		Joins("LEFT JOIN risk_matrix_risk_rating_values ON risk_matrix_risk_rating_values.id = controls.risk_matrix_risk_rating_value_id")
+		Joins("LEFT JOIN risk_matrix_risk_rating_values ON risk_matrix_risk_rating_values.id = controls.risk_matrix_risk_rating_value_id").
+		Joins("LEFT JOIN compliance_controls ON compliance_controls.control_id = controls.id").
+		Joins("LEFT JOIN compliance_register ON compliance_register.id = compliance_controls.compliance_register_id")
 
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
@@ -140,9 +142,9 @@ func (repo *ControlRepository) GetAll(params *organizationDTOs.ControlListQueryP
 		case "implemented":
 			query = query.Where("control_implementation_statuses.type = ?", "implemented")
 		case "not_implemented":
-			query = query.Where("control_implementation_statuses.type = ?", "not_implemented")
+			query = query.Where("control_implementation_statuses.type = ?", "not-implemented")
 		case "partially_implemented":
-			query = query.Where("control_implementation_statuses.type = ?", "partially_implemented")
+			query = query.Where("control_implementation_statuses.type = ?", "partially-implemented")
 		case "efficient":
 			query = query.Where("control_efficiency_statuses.type = ?", "efficient")
 		case "archived":
@@ -153,6 +155,8 @@ func (repo *ControlRepository) GetAll(params *organizationDTOs.ControlListQueryP
 			query = query.Where("compliance_register.standard_code = ?", "SAMA")
 		case "ISMS":
 			query = query.Where("compliance_register.standard_code = ?", "ISMS")
+		case "high_risk":
+			query = query.Where("risk_matrix_risk_ratings.type IN (?)", []string{"high", "very_high"})
 		}
 	}
 
