@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"errors"
+	"jethur/grc/common/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
 
@@ -14,6 +15,8 @@ type NotificationRepositoryInteface interface {
 	GetNotificationMasterByIdentifier(identifier string) (*models.NotificationMaster, error)
 	GetUserNotificationSetting(userID uint, notificationMasterID uint) (*models.UserNotificationSetting, error)
 	CreateEmailLog(emailLog *models.EmailLog, tx ...utility.DatabaseTransaction) error
+
+	GetSocialMediaLinks() (*dtos.SocialMediaLinksDTO, error)
 }
 
 type NotificationRepository struct {
@@ -65,4 +68,20 @@ func (repo *NotificationRepository) CreateEmailLog(emailLog *models.EmailLog, tx
 	}
 
 	return db.Create(&emailLog).Error
+}
+
+func (repo *NotificationRepository) GetSocialMediaLinks() (*dtos.SocialMediaLinksDTO, error) {
+	var links dtos.SocialMediaLinksDTO
+	result := repo.db.Model(&models.StrategicProfile{}).
+		Select("linkedin", "x", "facebook").
+		First(&links)
+
+	if result.Error != nil {
+		if result.Error == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, result.Error
+	}
+
+	return &links, nil
 }

@@ -2,16 +2,21 @@
 <table align="center" role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="margin-top: 20px; background-color: #fff; font-family: Arial, sans-serif;">
     <tr>
         <td style="padding: 20px 0; text-align: center; border-top: 1px solid #D9D9D9;">
-            <!-- Adjusted logo size and social icons size -->
-            <img src="https://grc-beta.ervarioo.com/assets/email-template/logo.png" width="50" alt="Jethur GRC" style="margin-bottom: 10px;">
+            <img src="{{ footerLogoURL }}" width="50" alt="Jethur GRC" style="margin-bottom: 10px;">
             <p style="font-size: 12px; color: #787878; margin-bottom: 5px;">
-                Dammam City, P.O.Box: 76296, Mutlaq Dist.<br>
-                Email us at <a href="mailto:info@jethur.com" style="color: #165D31; text-decoration: none;">info@jethur.com</a>
+                {{ footerAddress }}<br>
+                Email us at <a href="mailto:{{ footerEmail }}" style="color: #165D31; text-decoration: none;">{{ footerEmail }}</a>
             </p>
             <p>
-                <a href="https://facebook.com"><img src="https://grc-beta.ervarioo.com/assets/email-template/icon-facebook.png" alt="Facebook" width="15"></a>
-                <a href="https://linkedin.com"><img src="https://grc-beta.ervarioo.com/assets/email-template/icon-linkedin.png" width="15"></a>
-                <a href="https://twitter.com"><img src="https://grc-beta.ervarioo.com/assets/email-template/icon-twitter.png" width="15"></a>
+                {{ if facebook }}
+                <a href="{{ facebook }}"><img src="https://grc-beta.ervarioo.com/assets/email-template/icon-facebook.png" alt="Facebook" width="15"></a>
+                {{ end }}
+                {{ if linkedin }}
+                <a href="{{ linkedin }}"><img src="https://grc-beta.ervarioo.com/assets/email-template/icon-linkedin.png" width="15"></a>
+                {{ end }}
+                {{ if twitter }}
+                <a href="{{ twitter }}"><img src="https://grc-beta.ervarioo.com/assets/email-template/icon-twitter.png" width="15"></a>
+                {{ end }}
             </p>
         </td>
     </tr>

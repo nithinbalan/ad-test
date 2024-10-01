@@ -18,7 +18,7 @@ type AuditReportWorkflow struct {
 	// Relations
 	AuditDraftReport *AuditDraftReport `gorm:"foreignKey:AuditDraftReportID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	WorkflowStatus   *WorkflowStatus   `gorm:"foreignKey:WorkflowStatusID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	CreatedBy        *User             `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	CreatedByUser    *User             `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 
 	AuditReportWorkflowParticipants []*AuditReportWorkflowParticipant `gorm:"foreignKey:AuditReportWorkflowID"`
 }
