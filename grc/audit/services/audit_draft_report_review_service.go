@@ -76,113 +76,44 @@ func (adrrs *AuditDraftReportReviewService) Submit(auditID uint, auditDraftRepor
 		tx.Rollback()
 		return utility.NewForbiddenError("The audit draft report has already been submitted.")
 	}
-	// Check if there is an existing AuditReportWorkflow for the draft report
-	existingAuditReportWorkflow, err := adrrs.repo.GetAuditReportWorkflowByDraftReportID(auditDraftReportID, tx)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
+	
 	workflowSubmitStatus, err := adrrs.workflowStatusSvc.GetByType("submit")
 	if err != nil {
 		return err
 	}
-	// If the workflow already exists, we will not create a new one
-	// In the case of re-submit
-	var auditReportWorkflowID uint
-	if existingAuditReportWorkflow == nil {
-		// No existing workflow, create a new one
-		approvalType := "anyone"
-		workflowType := "draft"
-		auditReportWorkflow := &models.AuditReportWorkflow{
-			AuditDraftReportID: &auditDraftReportID,
-			WorkflowStatusID:   workflowSubmitStatus.ID,
-			Level:              1,
-			ApprovalType:       approvalType,
-			Type:               workflowType,
-			CreatedBYID:        currentUserID,
+	// No existing workflow, create a new one
+	approvalType := "anyone"
+	workflowType := "draft"
+	auditReportWorkflow := &models.AuditReportWorkflow{
+		AuditDraftReportID: &auditDraftReportID,
+		WorkflowStatusID:   workflowSubmitStatus.ID,
+		Level:              1,
+		ApprovalType:       approvalType,
+		Type:               workflowType,
+		CreatedBYID:        currentUserID,
+	}
+	auditReportWorkflowID, err := adrrs.repo.CreateAuditReportWorkflow(auditReportWorkflow, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	var participants []*models.AuditReportWorkflowParticipant
+	for _, userID := range auditReportWorkflowFormDTO.UserIDs {
+		auditReportWorkflowParticipant := &models.AuditReportWorkflowParticipant{
+			AuditReportWorkflowID: auditReportWorkflowID,
+			UserID:                *userID,
+			CreatedBYID:           currentUserID,
 		}
-		auditReportWorkflowID, err := adrrs.repo.CreateAuditReportWorkflow(auditReportWorkflow, tx)
-		if err != nil {
+		participants = append(participants, auditReportWorkflowParticipant)
+	}
+
+	if len(participants) > 0 {
+		if err := adrrs.repo.CreateAuditReportWorkflowParticipants(participants, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
-		var participants []*models.AuditReportWorkflowParticipant
-		for _, userID := range auditReportWorkflowFormDTO.UserIDs {
-			auditReportWorkflowParticipant := &models.AuditReportWorkflowParticipant{
-				AuditReportWorkflowID: auditReportWorkflowID,
-				UserID:                *userID,
-				CreatedBYID:           currentUserID,
-			}
-			participants = append(participants, auditReportWorkflowParticipant)
-		}
-
-		if len(participants) > 0 {
-			if err := adrrs.repo.CreateAuditReportWorkflowParticipants(participants, tx); err != nil {
-				tx.Rollback()
-				return err
-			}
-		}
-	} else {
-		auditReportWorkflowID = existingAuditReportWorkflow.ID
-		// Create a map for existing participant user IDs
-		existingUserIDs := make(map[uint]bool)
-		for _, participant := range existingAuditReportWorkflow.AuditReportWorkflowParticipants {
-			existingUserIDs[participant.UserID] = true
-		}
-
-		// Create a map for new user IDs from the form DTO
-		newUserIDs := make(map[uint]bool)
-		for _, userID := range auditReportWorkflowFormDTO.UserIDs {
-			newUserIDs[*userID] = true
-		}
-
-		// Prepare a slice to hold users to add
-		var participantsToAdd []*models.AuditReportWorkflowParticipant
-		for _, userID := range auditReportWorkflowFormDTO.UserIDs {
-			if _, exists := existingUserIDs[*userID]; !exists {
-				participant := &models.AuditReportWorkflowParticipant{
-					AuditReportWorkflowID: auditReportWorkflowID,
-					UserID:                *userID,
-					CreatedBYID:           currentUserID,
-				}
-				participantsToAdd = append(participantsToAdd, participant)
-			}
-		}
-
-		// Prepare a slice to hold users to remove
-		var participantsToRemove []*models.AuditReportWorkflowParticipant
-		for userID := range existingUserIDs {
-			if _, exists := newUserIDs[userID]; !exists {
-				participantsToRemove = append(participantsToRemove, &models.AuditReportWorkflowParticipant{
-					AuditReportWorkflowID: auditReportWorkflowID,
-					UserID:                userID,
-				})
-			}
-		}
-		// Extract participant IDs to remove
-		var participantIDsToRemove []*uint
-		for _, user := range participantsToRemove {
-			userID := user.UserID
-			participantIDsToRemove = append(participantIDsToRemove, &userID)
-		}
-
-		// Add new participants
-		if len(participantsToAdd) > 0 {
-			if err := adrrs.repo.CreateAuditReportWorkflowParticipants(participantsToAdd, tx); err != nil {
-				tx.Rollback()
-				return err
-			}
-		}
-
-		// Remove old participants
-		if len(participantIDsToRemove) > 0 {
-			if err := adrrs.repo.DeleteAuditReportWorkflowParticipants(participantIDsToRemove, tx); err != nil {
-				tx.Rollback()
-				return err
-			}
-		}
-
 	}
+	
 	//add review for history
 	auditReportReview := &models.AuditReportReview{
 		AuditDraftReportID:    auditDraftReportID,
