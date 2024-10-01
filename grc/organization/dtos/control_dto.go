@@ -79,6 +79,10 @@ type ControlListDTO struct {
 	UpdatedUserProfileImagePath          string     `json:"updated_user_profile_image_path"`
 	CreatedAt                            time.Time  `json:"created_at"`
 	UpdatedAt                            *time.Time `json:"updated_at"`
+	RiskRatingTitleEn                    *string    `json:"risk_rating_title_en"`
+	RiskRatingTitleAr                    *string    `json:"risk_rating_title_ar"`
+	RiskRatingColorCode                  *string    `json:"risk_rating_color_code"`
+	RiskRatingValue                      *uint      `json:"risk_rating_value"`
 }
 
 type ControlMinimalListDTO struct {
@@ -182,6 +186,16 @@ type ControlDetailDTO struct {
 	LatestControlTest           ControlTestDetailsDTO            `json:"latest_control_test"`
 	LatestControlReview         *ControlReviewDTO                `json:"control_review"`
 	MarkedAsAuditableItem       bool                             `json:"marked_as_auditable_item"`
+	Risks                       []*ControlRiskDTO                `json:"risks"`
+	RiskMatrixRating            *RiskMatrixRiskRatingDTO         `json:"risk_matrix_risk_rating"`
+	RiskMatrixRatingValue       *RiskMatrixRiskRatingValueDTO    `json:"risk_matrix_rating_value"`
+}
+
+type ControlRiskDTO struct {
+	ID             *uint          `json:"id"`
+	ControlID      uint           `json:"control_id"`
+	RiskRegisterID uint           `json:"risk_register_id"`
+	Risk           RiskMinimalDTO `json:"risk"`
 }
 type ControlReviewDTO struct {
 	ID             uint                          `json:"id"`
