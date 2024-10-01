@@ -56,6 +56,9 @@ type ControlListDTO struct {
 	LastTestDate                         *time.Time `json:"last_test_date"`
 	NextTestDate                         *time.Time `json:"next_test_date"`
 	ImplementedAt                        *time.Time `json:"implemented_at"`
+	IsApplicable                         bool       `json:"is_applicable"`
+	Justification                        *string    `json:"justification"`
+	ApplicabilityChangeDate              *string    `json:"applicability_change_date"`
 	LifecycleStatusTitleEn               string     `json:"lifecycle_status_title_en"`
 	LifecycleStatusTitleAr               string     `json:"lifecycle_status_title_ar"`
 	LifecycleStatusColorCode             string     `json:"lifecycle_status_color_code"`
@@ -142,14 +145,18 @@ type ControlFormDTO struct {
 	LastTestDate                  *string `json:"last_test_date" binding:"omitempty,datetime=2006-01-02"`
 	NextTestDate                  *string `json:"next_test_date" binding:"omitempty,datetime=2006-01-02"`
 	ImplementedAt                 *string `json:"implemented_at" binding:"omitempty,datetime=2006-01-02"`
+	IsApplicable                  bool    `json:"is_applicable" binding:"required"`
+	Justification                 *string `json:"justification" binding:"omitempty"`
+	ApplicabilityChangeDate       *string `json:"applicability_change_date" binding:"omitempty,datetime=2006-01-02"`
 }
 
 type ControlParsedDates struct {
-	LastReviewDate *time.Time
-	NextReviewDate *time.Time
-	LastTestDate   *time.Time
-	NextTestDate   *time.Time
-	ImplementedAt  *time.Time
+	LastReviewDate          *time.Time
+	NextReviewDate          *time.Time
+	LastTestDate            *time.Time
+	NextTestDate            *time.Time
+	ImplementedAt           *time.Time
+	ApplicabilityChangeDate *time.Time
 }
 
 type ControlDetailDTO struct {

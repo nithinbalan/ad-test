@@ -130,49 +130,13 @@ func (repo *ControlRepository) GetAll(params *organizationDTOs.ControlListQueryP
 		}
 	}
 
-	// Apply last_review_date filters
-	if params.LastReviewDateFrom != "" {
-		query = query.Where("last_review_date >= ?", params.LastReviewDateFrom)
-	}
-	if params.LastReviewDateTo != "" {
-		query = query.Where("last_review_date <= ?", params.LastReviewDateTo)
-	}
-
-	// Apply next_review_date filters
-	if params.NextReviewDateFrom != "" {
-		query = query.Where("next_review_date >= ?", params.NextReviewDateFrom)
-	}
-	if params.NextReviewDateTo != "" {
-		query = query.Where("next_review_date <= ?", params.NextReviewDateTo)
-	}
-
-	// Apply last_test_date filters
-	if params.LastTestDateFrom != "" {
-		query = query.Where("last_test_date >= ?", params.LastTestDateFrom)
-	}
-	if params.LastTestDateTo != "" {
-		query = query.Where("last_test_date <= ?", params.LastTestDateTo)
-	}
-
-	// Apply next_test_date filters
-	if params.NextTestDateFrom != "" {
-		query = query.Where("next_test_date >= ?", params.NextTestDateFrom)
-	}
-	if params.NextTestDateTo != "" {
-		query = query.Where("next_test_date <= ?", params.NextTestDateTo)
-	}
-
-	// Apply implemented_at filters
-	if params.ImplementedAtFrom != "" {
-		query = query.Where("implemented_at >= ?", params.ImplementedAtFrom)
-	}
-	if params.ImplementedAtTo != "" {
-		query = query.Where("implemented_at <= ?", params.ImplementedAtTo)
-	}
-
-	//Apply quick filters
+	// Apply standard code filters
 	for _, filter := range params.QuickFilter {
 		switch filter {
+		case "applicable":
+			query = query.Where("controls.is_applicable = ?", true)
+		case "not_applicable":
+			query = query.Where("controls.is_applicable = ?", false)
 		case "implemented":
 			query = query.Where("control_implementation_statuses.type = ?", "implemented")
 		case "not_implemented":
@@ -183,7 +147,12 @@ func (repo *ControlRepository) GetAll(params *organizationDTOs.ControlListQueryP
 			query = query.Where("control_efficiency_statuses.type = ?", "efficient")
 		case "archived":
 			query = query.Where("lifecycle_statuses.type = ?", "archived")
-
+		case "NCA":
+			query = query.Where("compliance_register.standard_code = ?", "NCA")
+		case "SAMA":
+			query = query.Where("compliance_register.standard_code = ?", "SAMA")
+		case "ISMS":
+			query = query.Where("compliance_register.standard_code = ?", "ISMS")
 		}
 	}
 
@@ -216,7 +185,7 @@ func (repo *ControlRepository) GetAll(params *organizationDTOs.ControlListQueryP
 			test_responsible_user.last_name_ar LIKE ? OR
 			lifecycle_statuses.title_en LIKE ? OR
 			lifecycle_statuses.title_ar LIKE ?)`,
-			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
