@@ -79,7 +79,6 @@ func (adrrc *AuditDraftReportReviewController) GetAllAuditDraftReportReviews(c *
 	c.JSON(http.StatusOK, auditDraftReportComments)
 }
 
-
 func (adrrc *AuditDraftReportReviewController) SubmitAuditDraftReport(c *gin.Context) {
 	auditID, err := strconv.Atoi(c.Param("auditId"))
 	if err != nil {
@@ -215,3 +214,47 @@ func (adrrc *AuditDraftReportReviewController) RevertAuditDraftReport(c *gin.Con
 	c.Status(http.StatusOK)
 }
 
+func (adrrc *AuditDraftReportReviewController) ReSubmitAuditDraftReport(c *gin.Context) {
+	auditID, err := strconv.Atoi(c.Param("auditId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	auditDraftReportID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(adrrc.db, c, err.Error())
+		return
+	}
+	var auditReportWorkflowFormDTO dtos.AuditReportWorkflowSubmitFormDTO
+
+	if err := c.ShouldBindJSON(&auditReportWorkflowFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	err = adrrc.service.ReSubmit(uint(auditID), uint(auditDraftReportID), currentUserID, &auditReportWorkflowFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			// Return a 403 Forbidden response with the error message
+			utility.SendForbiddenErrResp(c, e.Error())
+		default:
+			utility.SendInternalErrResp(adrrc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
