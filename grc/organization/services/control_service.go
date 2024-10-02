@@ -33,6 +33,8 @@ type ControlServiceInterface interface {
 	ExportControls(data []*organizationDTOs.ControlListDTO, currentUserID uint) (*os.File, error)
 
 	UpdateControlRiskRating(control *models.Control, tx utility.DatabaseTransaction) error
+	MarkControlAsApplicable(controlID uint, currentUserID uint) error
+	MarkControlAsNotApplicable(controlID uint, currentUserID uint) error
 }
 
 type ControlService struct {
@@ -848,6 +850,40 @@ func (cs *ControlService) UpdateControlRiskRating(control *models.Control, tx ut
 	err := cs.repo.Update(control, tx)
 	if err != nil {
 		tx.Rollback()
+		return err
+	}
+
+	return nil
+}
+
+func (cs *ControlService) MarkControlAsApplicable(controlID uint, currentUserID uint) error {
+	existingControl, err := cs.GetByID(controlID)
+	if err != nil {
+		return err
+	}
+
+	existingControl.IsApplicable = true
+	existingControl.UpdatedByID = &currentUserID
+
+	err = cs.repo.Update(existingControl)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (cs *ControlService) MarkControlAsNotApplicable(controlID uint, currentUserID uint) error {
+	existingControl, err := cs.GetByID(controlID)
+	if err != nil {
+		return err
+	}
+
+	existingControl.IsApplicable = false
+	existingControl.UpdatedByID = &currentUserID
+
+	err = cs.repo.Update(existingControl)
+	if err != nil {
 		return err
 	}
 

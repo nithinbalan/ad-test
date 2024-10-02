@@ -161,6 +161,7 @@ type ControlParsedDates struct {
 
 type ControlDetailDTO struct {
 <<<<<<< HEAD
+<<<<<<< HEAD
 	ID                          uint                             `json:"id"`
 	ReferenceNumber             string                           `json:"reference_number"`
 	Code                        string                           `json:"code"`
@@ -205,6 +206,8 @@ type ControlRiskDTO struct {
 	RiskRegisterID uint           `json:"risk_register_id"`
 	Risk           RiskMinimalDTO `json:"risk"`
 =======
+=======
+>>>>>>> 16d6e21cbfdfa0ac795434ffd6500d6a4ed934d4
 	ID                            uint                             `json:"id"`
 	ReferenceNumber               string                           `json:"reference_number"`
 	Code                          string                           `json:"code"`
@@ -238,10 +241,23 @@ type ControlRiskDTO struct {
 	LatestControlTest             ControlTestDetailsDTO            `json:"latest_control_test"`
 	LatestControlReview           *ControlReviewDTO                `json:"control_review"`
 	MarkedAsAuditableItem         bool                             `json:"marked_as_auditable_item"`
+	Risks                         []*ControlRiskDTO                `json:"risks"`
+	RiskMatrixRating              *RiskMatrixRiskRatingDTO         `json:"risk_matrix_risk_rating"`
+	RiskMatrixRatingValue         *RiskMatrixRiskRatingValueDTO    `json:"risk_matrix_rating_value"`
 	IsApplicable                  bool                             `json:"is_applicable"`
 	Justification                 *string                          `json:"justification"`
 	ApplicabilityChangeDateString *string                          `json:"applicability_change_date"`
+<<<<<<< HEAD
 >>>>>>> c984634a924d4ea73f308ba9f06e7153dc0f62b2
+=======
+}
+
+type ControlRiskDTO struct {
+	ID             *uint          `json:"id"`
+	ControlID      uint           `json:"control_id"`
+	RiskRegisterID uint           `json:"risk_register_id"`
+	Risk           RiskMinimalDTO `json:"risk"`
+>>>>>>> 16d6e21cbfdfa0ac795434ffd6500d6a4ed934d4
 }
 type ControlReviewDTO struct {
 	ID             uint                          `json:"id"`

@@ -48,6 +48,9 @@ func (repo *ControlRepository) GetAll(params *organizationDTOs.ControlListQueryP
 	query := repo.db.Table("controls").
 		Select(`
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 16d6e21cbfdfa0ac795434ffd6500d6a4ed934d4
 				controls.*,
 				control_types.title_en AS control_type_title_en,
 				control_types.title_ar AS control_type_title_ar,
@@ -109,6 +112,7 @@ func (repo *ControlRepository) GetAll(params *organizationDTOs.ControlListQueryP
     			risk_matrix_risk_ratings.color_code AS risk_rating_color_code,
     			risk_matrix_risk_rating_values.value AS risk_rating_value  
         `).
+<<<<<<< HEAD
 =======
 			controls.*,
 			control_types.title_en AS control_type_title_en,
@@ -168,6 +172,8 @@ func (repo *ControlRepository) GetAll(params *organizationDTOs.ControlListQueryP
 			updated_user.profile_image_path AS updated_user_profile_image_path  
 		`).
 >>>>>>> c984634a924d4ea73f308ba9f06e7153dc0f62b2
+=======
+>>>>>>> 16d6e21cbfdfa0ac795434ffd6500d6a4ed934d4
 		Joins("LEFT JOIN control_types ON control_types.id = controls.control_type_id").
 		Joins("LEFT JOIN control_categories ON control_categories.id = controls.control_category_id").
 		Joins("LEFT JOIN organization_units ON organization_units.id = controls.owner_unit_id").
@@ -181,12 +187,19 @@ func (repo *ControlRepository) GetAll(params *organizationDTOs.ControlListQueryP
 		Joins("LEFT JOIN users AS created_user ON created_user.id = controls.created_by_id").
 		Joins("LEFT JOIN users AS updated_user ON updated_user.id = controls.updated_by_id").
 <<<<<<< HEAD
+<<<<<<< HEAD
 		Joins("LEFT JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = controls.risk_matrix_risk_rating_id").
 		Joins("LEFT JOIN risk_matrix_risk_rating_values ON risk_matrix_risk_rating_values.id = controls.risk_matrix_risk_rating_value_id")
 =======
 		Joins("LEFT JOIN compliance_controls ON compliance_controls.control_id = controls.id").
 		Joins("LEFT JOIN compliance_register ON compliance_register.id = compliance_controls.compliance_register_id")
 >>>>>>> c984634a924d4ea73f308ba9f06e7153dc0f62b2
+=======
+		Joins("LEFT JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = controls.risk_matrix_risk_rating_id").
+		Joins("LEFT JOIN risk_matrix_risk_rating_values ON risk_matrix_risk_rating_values.id = controls.risk_matrix_risk_rating_value_id").
+		Joins("LEFT JOIN compliance_controls ON compliance_controls.control_id = controls.id").
+		Joins("LEFT JOIN compliance_register ON compliance_register.id = compliance_controls.compliance_register_id")
+>>>>>>> 16d6e21cbfdfa0ac795434ffd6500d6a4ed934d4
 
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
@@ -205,9 +218,9 @@ func (repo *ControlRepository) GetAll(params *organizationDTOs.ControlListQueryP
 		case "implemented":
 			query = query.Where("control_implementation_statuses.type = ?", "implemented")
 		case "not_implemented":
-			query = query.Where("control_implementation_statuses.type = ?", "not_implemented")
+			query = query.Where("control_implementation_statuses.type = ?", "not-implemented")
 		case "partially_implemented":
-			query = query.Where("control_implementation_statuses.type = ?", "partially_implemented")
+			query = query.Where("control_implementation_statuses.type = ?", "partially-implemented")
 		case "efficient":
 			query = query.Where("control_efficiency_statuses.type = ?", "efficient")
 		case "archived":
@@ -218,6 +231,8 @@ func (repo *ControlRepository) GetAll(params *organizationDTOs.ControlListQueryP
 			query = query.Where("compliance_register.standard_code = ?", "SAMA")
 		case "ISMS":
 			query = query.Where("compliance_register.standard_code = ?", "ISMS")
+		case "high_risk":
+			query = query.Where("risk_matrix_risk_ratings.type IN (?)", []string{"high", "very_high"})
 		}
 	}
 
