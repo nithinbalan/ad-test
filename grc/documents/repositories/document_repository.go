@@ -1,7 +1,6 @@
 package repositories
 
 import (
-	"errors"
 	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	documentDTOs "jethur/grc/documents/dtos"
@@ -24,10 +23,10 @@ type DocumentRepositoryInterface interface {
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	GenerateReferenceNumber() (string, error)
 
-	CreateSharedUsers(sharedUsers []*models.DocumentSharedUser, tx ...utility.DatabaseTransaction) error
-	DeleteSharedUsers(sharedUserIds []*uint, tx ...utility.DatabaseTransaction) error
-	CreateSharedUnits(sharedUnits []*models.DocumentSharedUnit, tx ...utility.DatabaseTransaction) error
-	DeleteSharedUnits(sharedUnitIds []*uint, tx ...utility.DatabaseTransaction) error
+	//CreateSharedUsers(sharedUsers []*models.DocumentSharedUser, tx ...utility.DatabaseTransaction) error
+	//DeleteSharedUsers(sharedUserIds []*uint, tx ...utility.DatabaseTransaction) error
+	//CreateSharedUnits(sharedUnits []*models.DocumentSharedUnit, tx ...utility.DatabaseTransaction) error
+	//DeleteSharedUnits(sharedUnitIds []*uint, tx ...utility.DatabaseTransaction) error
 
 	GetDocumentVersionByID(id uint, tx ...utility.DatabaseTransaction) (*models.DocumentVersion, error)
 	CreateDocumentVersion(documentVersion *models.DocumentVersion, tx ...utility.DatabaseTransaction) (uint, error)
@@ -37,20 +36,20 @@ type DocumentRepositoryInterface interface {
 	CreateDocumentEditHistory(documentHistory *models.DocumentEditHistory, tx ...utility.DatabaseTransaction) (uint, error)
 	DeleteDocumentEditHistory(docHistoryEditIds []*uint, tx ...utility.DatabaseTransaction) error
 
-	GetDocumentWorkflowByID(id uint, tx ...utility.DatabaseTransaction) (*models.DocumentWorkflow, error)
-	CreateDocumentWorkflow(documentWorkflow *models.DocumentWorkflow, tx ...utility.DatabaseTransaction) (uint, error)
-	UpdateDocumentWorkflow(documentWorkflow *models.DocumentWorkflow, tx ...utility.DatabaseTransaction) error
-	CreateDocumentWorkflowParticipant(docWorkflowParticipant *models.DocumentWorkflowParticipant, tx ...utility.DatabaseTransaction) error
+	//GetDocumentWorkflowByID(id uint, tx ...utility.DatabaseTransaction) (*models.DocumentWorkflow, error)
+	//CreateDocumentWorkflow(documentWorkflow *models.DocumentWorkflow, tx ...utility.DatabaseTransaction) (uint, error)
+	//UpdateDocumentWorkflow(documentWorkflow *models.DocumentWorkflow, tx ...utility.DatabaseTransaction) error
+	//CreateDocumentWorkflowParticipant(docWorkflowParticipant *models.DocumentWorkflowParticipant, tx ...utility.DatabaseTransaction) error
 	DeleteDocumentWorkflowParticipants(participantIds []*uint, tx ...utility.DatabaseTransaction) error
 
-	GetComments(docVersionId uint, currentApprovalLevel int) (*models.DocumentVersion, error)
-	GetDocumentWorkflowByLevel(docVersionId uint, currentApprovalLevel int, tx ...utility.DatabaseTransaction) (*models.DocumentWorkflow, error)
-	GetNextLevel(documentVersionID uint, currentLevel int, tx ...utility.DatabaseTransaction) (*models.DocumentWorkflow, error)
+	//GetComments(docVersionId uint, currentApprovalLevel int) (*models.DocumentVersion, error)
+	//GetDocumentWorkflowByLevel(docVersionId uint, currentApprovalLevel int, tx ...utility.DatabaseTransaction) (*models.DocumentWorkflow, error)
+	//GetNextLevel(documentVersionID uint, currentLevel int, tx ...utility.DatabaseTransaction) (*models.DocumentWorkflow, error)
 	GetWorkflowList(docVersionId uint) (*models.DocumentVersion, error)
 	DeleteDocumentWorkflows(workflowIds []*uint, tx ...utility.DatabaseTransaction) error
 
-	CreateDocumentWorkflowReview(documentWorkflowReview *models.DocumentWorkflowReview, tx ...utility.DatabaseTransaction) error
-	CountApprovedParticipants(workflowID uint, tx ...utility.DatabaseTransaction) (int, error)
+	//CreateDocumentWorkflowReview(documentWorkflowReview *models.DocumentWorkflowReview, tx ...utility.DatabaseTransaction) error
+	//CountApprovedParticipants(workflowID uint, tx ...utility.DatabaseTransaction) (int, error)
 	DeleteDocumentWorkflowReviews(reviewIds []*uint, tx ...utility.DatabaseTransaction) error
 
 	GetDocumentLatestEditHistory(documentVersionID uint) (*models.DocumentEditHistory, error)
@@ -420,54 +419,54 @@ func (repo *DocumentRepository) DeleteDocumentVersions(docIds []*uint, tx ...uti
 	return nil
 }
 
-func (repo *DocumentRepository) CreateSharedUsers(sharedUsers []*models.DocumentSharedUser, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
+// func (repo *DocumentRepository) CreateSharedUsers(sharedUsers []*models.DocumentSharedUser, tx ...utility.DatabaseTransaction) error {
+// 	db := repo.db
+// 	if len(tx) > 0 && tx[0] != nil {
+// 		db = tx[0].DB()
+// 	}
 
-	if err := db.Create(&sharedUsers).Error; err != nil {
-		return err
-	}
-	return nil
-}
+// 	if err := db.Create(&sharedUsers).Error; err != nil {
+// 		return err
+// 	}
+// 	return nil
+// }
 
-func (repo *DocumentRepository) DeleteSharedUsers(sharedUserIds []*uint, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
+// func (repo *DocumentRepository) DeleteSharedUsers(sharedUserIds []*uint, tx ...utility.DatabaseTransaction) error {
+// 	db := repo.db
+// 	if len(tx) > 0 && tx[0] != nil {
+// 		db = tx[0].DB()
+// 	}
 
-	if err := db.Where("id IN (?)", sharedUserIds).Delete(&models.DocumentSharedUser{}).Error; err != nil {
-		return err
-	}
+// 	if err := db.Where("id IN (?)", sharedUserIds).Delete(&models.DocumentSharedUser{}).Error; err != nil {
+// 		return err
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
-func (repo *DocumentRepository) CreateSharedUnits(sharedUnits []*models.DocumentSharedUnit, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-	if err := db.Create(&sharedUnits).Error; err != nil {
-		return err
-	}
-	return nil
-}
+// func (repo *DocumentRepository) CreateSharedUnits(sharedUnits []*models.DocumentSharedUnit, tx ...utility.DatabaseTransaction) error {
+// 	db := repo.db
+// 	if len(tx) > 0 && tx[0] != nil {
+// 		db = tx[0].DB()
+// 	}
+// 	if err := db.Create(&sharedUnits).Error; err != nil {
+// 		return err
+// 	}
+// 	return nil
+// }
 
-func (repo *DocumentRepository) DeleteSharedUnits(sharedUnitIds []*uint, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
+// func (repo *DocumentRepository) DeleteSharedUnits(sharedUnitIds []*uint, tx ...utility.DatabaseTransaction) error {
+// 	db := repo.db
+// 	if len(tx) > 0 && tx[0] != nil {
+// 		db = tx[0].DB()
+// 	}
 
-	if err := db.Where("id IN (?)", sharedUnitIds).Delete(&models.DocumentSharedUnit{}).Error; err != nil {
-		return err
-	}
+// 	if err := db.Where("id IN (?)", sharedUnitIds).Delete(&models.DocumentSharedUnit{}).Error; err != nil {
+// 		return err
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
 func (repo *DocumentRepository) GenerateReferenceNumber() (string, error) {
 	var lastReferenceNumber string
@@ -522,149 +521,149 @@ func (repo *DocumentRepository) DeleteDocumentEditHistory(docEditHistoryIds []*u
 	return nil
 }
 
-func (repo *DocumentRepository) GetDocumentWorkflowByID(id uint, tx ...utility.DatabaseTransaction) (*models.DocumentWorkflow, error) {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
+// func (repo *DocumentRepository) GetDocumentWorkflowByID(id uint, tx ...utility.DatabaseTransaction) (*models.DocumentWorkflow, error) {
+// 	db := repo.db
+// 	if len(tx) > 0 && tx[0] != nil {
+// 		db = tx[0].DB()
+// 	}
 
-	var documentWorkflow *models.DocumentWorkflow
+// 	var documentWorkflow *models.DocumentWorkflow
 
-	result := db.First(&documentWorkflow, id)
-	if result.Error != nil {
-		return nil, result.Error
-	}
+// 	result := db.First(&documentWorkflow, id)
+// 	if result.Error != nil {
+// 		return nil, result.Error
+// 	}
 
-	return documentWorkflow, nil
-}
+// 	return documentWorkflow, nil
+// }
 
-func (repo *DocumentRepository) CreateDocumentWorkflow(documentWorkflow *models.DocumentWorkflow, tx ...utility.DatabaseTransaction) (uint, error) {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-	if err := db.Create(documentWorkflow).Error; err != nil {
-		return 0, err
-	}
+// func (repo *DocumentRepository) CreateDocumentWorkflow(documentWorkflow *models.DocumentWorkflow, tx ...utility.DatabaseTransaction) (uint, error) {
+// 	db := repo.db
+// 	if len(tx) > 0 && tx[0] != nil {
+// 		db = tx[0].DB()
+// 	}
+// 	if err := db.Create(documentWorkflow).Error; err != nil {
+// 		return 0, err
+// 	}
 
-	return documentWorkflow.ID, nil
-}
+// 	return documentWorkflow.ID, nil
+// }
 
-func (repo *DocumentRepository) UpdateDocumentWorkflow(documentWorkflow *models.DocumentWorkflow, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-	if err := db.Save(documentWorkflow).Error; err != nil {
-		return err
-	}
+// func (repo *DocumentRepository) UpdateDocumentWorkflow(documentWorkflow *models.DocumentWorkflow, tx ...utility.DatabaseTransaction) error {
+// 	db := repo.db
+// 	if len(tx) > 0 && tx[0] != nil {
+// 		db = tx[0].DB()
+// 	}
+// 	if err := db.Save(documentWorkflow).Error; err != nil {
+// 		return err
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
-func (repo *DocumentRepository) CreateDocumentWorkflowParticipant(docWorkflowParticipant *models.DocumentWorkflowParticipant, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-	if err := db.Create(docWorkflowParticipant).Error; err != nil {
-		return err
-	}
+// func (repo *DocumentRepository) CreateDocumentWorkflowParticipant(docWorkflowParticipant *models.DocumentWorkflowParticipant, tx ...utility.DatabaseTransaction) error {
+// 	db := repo.db
+// 	if len(tx) > 0 && tx[0] != nil {
+// 		db = tx[0].DB()
+// 	}
+// 	if err := db.Create(docWorkflowParticipant).Error; err != nil {
+// 		return err
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
-func (repo *DocumentRepository) GetComments(docVersionId uint, currentApprovalLevel int) (*models.DocumentVersion, error) {
-	var documentVersion models.DocumentVersion
-	result := repo.db.
-		Preload("SubmittedByUser").
-		Preload("DocumentWorkflows", "level <= ?", currentApprovalLevel).
-		Preload("DocumentWorkflows.DocumentWorkflowStatus").
-		Preload("DocumentWorkflows.DocumentWorkflowParticipants").
-		Preload("DocumentWorkflows.DocumentWorkflowParticipants.User").
-		Preload("DocumentWorkflows.DocumentWorkflowReviews").
-		Preload("DocumentWorkflows.DocumentWorkflowReviews.DocumentWorkflowStatus").
-		Preload("DocumentWorkflows.DocumentWorkflowReviews.CreatedByUser").
-		Preload("DocumentWorkflows.DocumentWorkflowReviews.UpdatedByUser").
-		Where("id = ?", docVersionId).
-		Find(&documentVersion)
+// func (repo *DocumentRepository) GetComments(docVersionId uint, currentApprovalLevel int) (*models.DocumentVersion, error) {
+// 	var documentVersion models.DocumentVersion
+// 	result := repo.db.
+// 		Preload("SubmittedByUser").
+// 		Preload("DocumentWorkflows", "level <= ?", currentApprovalLevel).
+// 		Preload("DocumentWorkflows.DocumentWorkflowStatus").
+// 		Preload("DocumentWorkflows.DocumentWorkflowParticipants").
+// 		Preload("DocumentWorkflows.DocumentWorkflowParticipants.User").
+// 		Preload("DocumentWorkflows.DocumentWorkflowReviews").
+// 		Preload("DocumentWorkflows.DocumentWorkflowReviews.DocumentWorkflowStatus").
+// 		Preload("DocumentWorkflows.DocumentWorkflowReviews.CreatedByUser").
+// 		Preload("DocumentWorkflows.DocumentWorkflowReviews.UpdatedByUser").
+// 		Where("id = ?", docVersionId).
+// 		Find(&documentVersion)
 
-	if result.Error != nil {
-		return nil, result.Error
-	}
+// 	if result.Error != nil {
+// 		return nil, result.Error
+// 	}
 
-	return &documentVersion, nil
-}
+// 	return &documentVersion, nil
+// }
 
-func (repo *DocumentRepository) GetDocumentWorkflowByLevel(docVersionId uint, currentApprovalLevel int, tx ...utility.DatabaseTransaction) (*models.DocumentWorkflow, error) {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-	var documentWorkflow *models.DocumentWorkflow
-	result := db.
-		Preload("WorkflowLevelType").
-		Preload("DocumentWorkflowParticipants").
-		Preload("DocumentWorkflowReviews").
-		Preload("DocumentWorkflowParticipants.User").
-		Where("document_version_id = ? AND level = ?", docVersionId, currentApprovalLevel).
-		Find(&documentWorkflow)
+// func (repo *DocumentRepository) GetDocumentWorkflowByLevel(docVersionId uint, currentApprovalLevel int, tx ...utility.DatabaseTransaction) (*models.DocumentWorkflow, error) {
+// 	db := repo.db
+// 	if len(tx) > 0 && tx[0] != nil {
+// 		db = tx[0].DB()
+// 	}
+// 	var documentWorkflow *models.DocumentWorkflow
+// 	result := db.
+// 		Preload("WorkflowLevelType").
+// 		Preload("DocumentWorkflowParticipants").
+// 		Preload("DocumentWorkflowReviews").
+// 		Preload("DocumentWorkflowParticipants.User").
+// 		Where("document_version_id = ? AND level = ?", docVersionId, currentApprovalLevel).
+// 		Find(&documentWorkflow)
 
-	if result.Error != nil {
-		return nil, result.Error
-	}
+// 	if result.Error != nil {
+// 		return nil, result.Error
+// 	}
 
-	return documentWorkflow, nil
-}
+// 	return documentWorkflow, nil
+// }
 
-func (repo *DocumentRepository) GetNextLevel(documentVersionID uint, currentLevel int, tx ...utility.DatabaseTransaction) (*models.DocumentWorkflow, error) {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
+// func (repo *DocumentRepository) GetNextLevel(documentVersionID uint, currentLevel int, tx ...utility.DatabaseTransaction) (*models.DocumentWorkflow, error) {
+// 	db := repo.db
+// 	if len(tx) > 0 && tx[0] != nil {
+// 		db = tx[0].DB()
+// 	}
 
-	var nextWorkflow models.DocumentWorkflow
-	result := db.Where("document_version_id = ? AND level > ?", documentVersionID, currentLevel).
-		Order("level ASC").  // Ensure we are ascending by level
-		First(&nextWorkflow) // Retrieve the first result only which will be the next level
+// 	var nextWorkflow models.DocumentWorkflow
+// 	result := db.Where("document_version_id = ? AND level > ?", documentVersionID, currentLevel).
+// 		Order("level ASC").  // Ensure we are ascending by level
+// 		First(&nextWorkflow) // Retrieve the first result only which will be the next level
 
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, nil // No further levels available
-	} else if result.Error != nil {
-		return nil, result.Error // Other error occurred
-	}
+// 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+// 		return nil, nil // No further levels available
+// 	} else if result.Error != nil {
+// 		return nil, result.Error // Other error occurred
+// 	}
 
-	return &nextWorkflow, nil
-}
+// 	return &nextWorkflow, nil
+// }
 
-func (repo *DocumentRepository) CreateDocumentWorkflowReview(documentWorkflowReview *models.DocumentWorkflowReview, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-	if err := db.Create(documentWorkflowReview).Error; err != nil {
-		return err
-	}
-	return nil
-}
+// func (repo *DocumentRepository) CreateDocumentWorkflowReview(documentWorkflowReview *models.DocumentWorkflowReview, tx ...utility.DatabaseTransaction) error {
+// 	db := repo.db
+// 	if len(tx) > 0 && tx[0] != nil {
+// 		db = tx[0].DB()
+// 	}
+// 	if err := db.Create(documentWorkflowReview).Error; err != nil {
+// 		return err
+// 	}
+// 	return nil
+// }
 
-func (repo *DocumentRepository) CountApprovedParticipants(workflowID uint, tx ...utility.DatabaseTransaction) (int, error) {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-	var count int64
-	err := db.Model(&models.DocumentWorkflowReview{}).
-		Where("document_workflow_id = ? AND document_workflow_status_id = (SELECT id FROM document_workflow_statuses WHERE type = 'approve')", workflowID).
-		Distinct("created_by_id").
-		Count(&count).Error
+// func (repo *DocumentRepository) CountApprovedParticipants(workflowID uint, tx ...utility.DatabaseTransaction) (int, error) {
+// 	db := repo.db
+// 	if len(tx) > 0 && tx[0] != nil {
+// 		db = tx[0].DB()
+// 	}
+// 	var count int64
+// 	err := db.Model(&models.DocumentWorkflowReview{}).
+// 		Where("document_workflow_id = ? AND document_workflow_status_id = (SELECT id FROM document_workflow_statuses WHERE type = 'approve')", workflowID).
+// 		Distinct("created_by_id").
+// 		Count(&count).Error
 
-	if err != nil {
-		return 0, err
-	}
+// 	if err != nil {
+// 		return 0, err
+// 	}
 
-	return int(count), nil
-}
+// 	return int(count), nil
+// }
 
 func (repo *DocumentRepository) GetWorkflowList(docVersionId uint) (*models.DocumentVersion, error) {
 	var documentVersion models.DocumentVersion

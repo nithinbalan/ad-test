@@ -18,8 +18,11 @@ type DocumentAccessServiceInterface interface {
 
 	CreateSharedUsers(documentID uint, userIDs []uint, createdBy uint) error
 	CreateSharedUnits(documentID uint, unitIDs []uint, createdBy uint) error
-	DeleteSharedUsers(documentID uint, userIDs []uint) error
-	DeleteSharedUnits(documentID uint, unitIDs []uint) error
+	DeleteSharedUsers(documentID uint, userIDs []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteSharedUnits(documentID uint, unitIDs []*uint, tx ...utility.DatabaseTransaction) error
+
+	CreateUsers(sharedUsers []*models.DocumentSharedUser, tx ...utility.DatabaseTransaction) error
+	CreateUnits(sharedUnits []*models.DocumentSharedUnit, tx ...utility.DatabaseTransaction) error
 }
 
 type DocumentAccessService struct {
@@ -142,7 +145,7 @@ func (das *DocumentAccessService) CreateSharedUsers(documentID uint, userIDs []u
 		return utility.NewForbiddenError("all provided user IDs already exist as shared users for this document.")
 	}
 
-	return das.repo.CreateSharedUsers(newSharedUsers)
+	return das.CreateUsers(newSharedUsers)
 }
 
 func (das *DocumentAccessService) CreateSharedUnits(documentID uint, unitIDs []uint, createdBy uint) error {
@@ -175,10 +178,10 @@ func (das *DocumentAccessService) CreateSharedUnits(documentID uint, unitIDs []u
 		return utility.NewForbiddenError("all provided unit IDs already exist as shared units for this document.")
 	}
 
-	return das.repo.CreateSharedUnits(newSharedUnits)
+	return das.CreateUnits(newSharedUnits)
 }
 
-func (das *DocumentAccessService) DeleteSharedUsers(documentID uint, userIDs []uint) error {
+func (das *DocumentAccessService) DeleteSharedUsers(documentID uint, userIDs []*uint, tx ...utility.DatabaseTransaction) error {
 	if _, err := das.documentSvc.GetByID(documentID); err != nil {
 		return err
 	}
@@ -188,7 +191,7 @@ func (das *DocumentAccessService) DeleteSharedUsers(documentID uint, userIDs []u
 	return das.repo.DeleteSharedUsers(documentID, userIDs)
 }
 
-func (das *DocumentAccessService) DeleteSharedUnits(documentID uint, unitIDs []uint) error {
+func (das *DocumentAccessService) DeleteSharedUnits(documentID uint, unitIDs []*uint, tx ...utility.DatabaseTransaction) error {
 	if _, err := das.documentSvc.GetByID(documentID); err != nil {
 		return err
 	}
@@ -196,4 +199,22 @@ func (das *DocumentAccessService) DeleteSharedUnits(documentID uint, unitIDs []u
 		return fmt.Errorf("no unit IDs provided for deletion")
 	}
 	return das.repo.DeleteSharedUnits(documentID, unitIDs)
+}
+
+func (das *DocumentAccessService) CreateUsers(sharedUsers []*models.DocumentSharedUser, tx ...utility.DatabaseTransaction) error {
+	if len(sharedUsers) > 0 {
+		if err := das.repo.CreateSharedUsers(sharedUsers, tx...); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (das *DocumentAccessService) CreateUnits(sharedUnits []*models.DocumentSharedUnit, tx ...utility.DatabaseTransaction) error {
+	if len(sharedUnits) > 0 {
+		if err := das.repo.CreateSharedUnits(sharedUnits, tx...); err != nil {
+			return err
+		}
+	}
+	return nil
 }

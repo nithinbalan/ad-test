@@ -428,69 +428,69 @@ func (dc *DocumentController) PublishDocument(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-func (dc *DocumentController) GetComments(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := strconv.ParseUint(idStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
+// func (dc *DocumentController) GetComments(c *gin.Context) {
+// 	idStr := c.Param("id")
+// 	id, err := strconv.ParseUint(idStr, 10, 32)
+// 	if err != nil {
+// 		utility.SendNotFoundErrResp(c)
+// 		return
+// 	}
 
-	comments, err := dc.service.GetComments(uint(id))
-	if err != nil {
-		switch e := err.(type) {
-		case *utility.ValidationError:
-			utility.SendInvalidErrResp(c, e)
-			return
-		case *utility.ForbiddenError:
-			utility.SendForbiddenErrResp(c, err.Error())
-			return
-		default:
-			utility.SendInternalErrResp(dc.db, c, e.Error())
-			return
-		}
-	}
+// 	comments, err := dc.service.GetComments(uint(id))
+// 	if err != nil {
+// 		switch e := err.(type) {
+// 		case *utility.ValidationError:
+// 			utility.SendInvalidErrResp(c, e)
+// 			return
+// 		case *utility.ForbiddenError:
+// 			utility.SendForbiddenErrResp(c, err.Error())
+// 			return
+// 		default:
+// 			utility.SendInternalErrResp(dc.db, c, e.Error())
+// 			return
+// 		}
+// 	}
 
-	c.JSON(http.StatusOK, comments)
-}
+// 	c.JSON(http.StatusOK, comments)
+// }
 
-func (dc *DocumentController) AddComment(c *gin.Context) {
-	var documentReviewCommentFormDTO documentDTOs.DocumentReviewCommentFormDTO
-	if err := c.ShouldBindJSON(&documentReviewCommentFormDTO); err != nil {
-		utility.SendInvalidErrResp(c, err)
-		return
-	}
+// func (dc *DocumentController) AddComment(c *gin.Context) {
+// 	var documentReviewCommentFormDTO documentDTOs.DocumentReviewCommentFormDTO
+// 	if err := c.ShouldBindJSON(&documentReviewCommentFormDTO); err != nil {
+// 		utility.SendInvalidErrResp(c, err)
+// 		return
+// 	}
 
-	idStr := c.Param("id")
-	id, err := strconv.ParseUint(idStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
+// 	idStr := c.Param("id")
+// 	id, err := strconv.ParseUint(idStr, 10, 32)
+// 	if err != nil {
+// 		utility.SendNotFoundErrResp(c)
+// 		return
+// 	}
 
-	currentUserID, err := utility.GetCurrentUserID(c)
-	if err != nil {
-		utility.SendInternalErrResp(dc.db, c, err.Error())
-		return
-	}
+// 	currentUserID, err := utility.GetCurrentUserID(c)
+// 	if err != nil {
+// 		utility.SendInternalErrResp(dc.db, c, err.Error())
+// 		return
+// 	}
 
-	err = dc.service.AddComment(uint(id), currentUserID, &documentReviewCommentFormDTO)
-	if err != nil {
-		switch e := err.(type) {
-		case *utility.ValidationError:
-			utility.SendInvalidErrResp(c, e)
-			return
-		case *utility.ForbiddenError:
-			utility.SendForbiddenErrResp(c, err.Error())
-			return
-		default:
-			utility.SendInternalErrResp(dc.db, c, e.Error())
-			return
-		}
-	}
+// 	err = dc.service.AddComment(uint(id), currentUserID, &documentReviewCommentFormDTO)
+// 	if err != nil {
+// 		switch e := err.(type) {
+// 		case *utility.ValidationError:
+// 			utility.SendInvalidErrResp(c, e)
+// 			return
+// 		case *utility.ForbiddenError:
+// 			utility.SendForbiddenErrResp(c, err.Error())
+// 			return
+// 		default:
+// 			utility.SendInternalErrResp(dc.db, c, e.Error())
+// 			return
+// 		}
+// 	}
 
-	c.Status(http.StatusOK)
-}
+// 	c.Status(http.StatusOK)
+// }
 
 func (dc *DocumentController) GetWorkflowList(c *gin.Context) {
 	idStr := c.Param("id")
