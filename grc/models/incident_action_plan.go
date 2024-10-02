@@ -11,6 +11,7 @@ type IncidentActionPlan struct {
 	Description        *string    `json:"description" gorm:"type:nvarchar(max);null"`
 	SeverityLevelID    *uint      `json:"severity_level_id" binding:"omitempty" gorm:"not null"`
 	ResponsibleUserID  uint       `json:"responsible_user_id" binding:"required" gorm:"not null"`
+	ReviewUserID       *uint      `json:"review_user_id" gorm:"default:null"`
 	Comments           *string    `json:"comments" gorm:"type:nvarchar(max);null"`
 	TargetDate         *time.Time `json:"target_date" binding:"omitempty" gorm:"type:date,default:null"`
 	ActionPlanStatusID uint       `json:"action_plan_status_id" binding:"required" gorm:"not null"`
@@ -24,6 +25,7 @@ type IncidentActionPlan struct {
 	IncidentRegister        *IncidentRegister                 `gorm:"foreignKey:IncidentRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	SeverityLevel           *SeverityLevel                    `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ResponsibleUser         *User                             `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ReviewUser              *User                             `gorm:"foreignKey:ReviewUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"` // New foreign key relationship
 	ActionPlanStatus        *ActionPlanStatus                 `gorm:"foreignKey:ActionPlanStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ActionPlanStatusUpdates []*IncidentActionPlanStatusUpdate `gorm:"foreignKey:IncidentActionPlanID"`
 	CreatedByUser           *User                             `gorm:"foreignKey:CreatedBYID"`

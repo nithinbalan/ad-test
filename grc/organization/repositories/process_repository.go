@@ -210,6 +210,8 @@ func (repo *ProcessRepository) GetFullDetailsByID(id uint, tx ...utility.Databas
 		Preload("Controls").
 		Preload("Documents").
 		Preload("Risks").
+		Preload("RiskMatrixRating").
+		Preload("RiskMatrixRatingValue").
 		Preload("CreatedByUser").
 		Preload("CreatedByUser.OrganizationUnit1").
 		Preload("UpdatedByUser").

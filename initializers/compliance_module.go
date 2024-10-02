@@ -157,6 +157,7 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		slaCheckQuestionSvc,
 		masterModule.ActionPlanStatusSvc,
 		masterModule.SeverityLevelSvc,
+		taskModule.TaskService,
 	)
 	slaActionPlanController := controllers.NewSLAActionPlanController(slaActionPlanSvc)
 

@@ -103,8 +103,20 @@ type ProcessDetailDTO struct {
 	UpdatedAt             *time.Time                        `json:"updated_at"`
 	Controls              []*ProcessControlDTO              `json:"controls"`
 	Documents             []*ProcessAssociatedDocumentDTO   `json:"documents"`
-	Risks                 []*ProcessRiskDTO                 `json:"processes"`
+	Risks                 []*ProcessRiskDTO                 `json:"risks"`
 	MarkedAsAuditableItem bool                              `json:"marked_as_auditable_item"`
+	RiskMatrixRating      *RiskMatrixRiskRatingDTO          `json:"risk_matrix_risk_rating"`
+	RiskMatrixRatingValue *RiskMatrixRiskRatingValueDTO     `json:"risk_matrix_rating_value"`
+}
+
+type RiskMatrixRiskRatingDTO struct {
+	ID           uint   `json:"id"`
+	RiskMatrixID uint   `json:"risk_matrix_id"`
+	TitleEn      string `json:"title_en"`
+	TitleAr      string `json:"title_ar"`
+	ColorCode    string `json:"color_code"`
+	Type         string `json:"type"`
+	Status       string `json:"status"`
 }
 
 type ProcessControlDTO struct {

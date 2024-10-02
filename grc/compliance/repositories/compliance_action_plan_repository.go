@@ -64,6 +64,15 @@ func (repo *ComplianceActionPlanRepository) GetAll(complianceID uint, params *co
         responsible_user.color AS responsible_user_color,
         responsible_user.email AS responsible_user_email,
         responsible_user.profile_image_path AS responsible_user_profile_image_path,
+		review_user.id AS review_user_id,
+    	review_user.first_name_en AS review_user_first_name_en,
+		review_user.first_name_ar AS review_user_first_name_ar,
+		review_user.last_name_en AS review_user_last_name_en,
+		review_user.last_name_ar AS review_user_last_name_ar,
+		review_user.initial AS review_user_initial,
+        review_user.color AS review_user_color,
+        review_user.email AS review_user_email,
+        review_user.profile_image_path AS review_user_profile_image_path,
         created_user.id AS created_user_id,
         created_user.first_name_en AS created_user_first_name_en,
         created_user.first_name_ar AS created_user_first_name_ar,
@@ -87,6 +96,7 @@ func (repo *ComplianceActionPlanRepository) GetAll(complianceID uint, params *co
         LEFT JOIN action_plan_statuses ON action_plan_statuses.id = compliance_action_plans.action_plan_status_id
         LEFT JOIN severity_levels ON severity_levels.id = compliance_action_plans.severity_level_id
         LEFT JOIN users AS responsible_user ON responsible_user.id = compliance_action_plans.responsible_user_id
+		LEFT JOIN users AS review_user ON review_user.id = compliance_action_plans.review_user_id
         LEFT JOIN users AS created_user ON created_user.id = compliance_action_plans.created_by_id
         LEFT JOIN users AS updated_user ON updated_user.id = compliance_action_plans.updated_by_id
         LEFT JOIN compliance_requirements ON compliance_requirements.id = compliance_action_plans.compliance_requirement_id
@@ -207,6 +217,7 @@ func (repo *ComplianceActionPlanRepository) GetFullDetailsByID(id uint, tx ...ut
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		Preload("ActionPlanStatusUpdates").
+		Preload("ReviewUser").
 		First(&complianceActionPlan, id)
 
 	if result.Error != nil {

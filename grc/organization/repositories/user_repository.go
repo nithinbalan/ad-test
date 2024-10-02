@@ -98,23 +98,6 @@ func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*us
 		Joins("LEFT JOIN user_statuses ON user_statuses.id = users.user_status_id").
 		Joins("LEFT JOIN (SELECT user_roles.user_id, STRING_AGG(roles.title_en, ', ') AS roles_en, STRING_AGG(roles.title_ar, ', ') AS roles_ar FROM user_roles JOIN roles ON roles.id = user_roles.role_id GROUP BY user_roles.user_id) roles_agg ON roles_agg.user_id = users.id")
 
-	// Check if quickfilter includes 'all'
-	showAllUsers := false
-	isLockedFilter := false
-	for _, filter := range params.QuickFilter {
-		if filter == "all" {
-			showAllUsers = true
-		}
-		if filter == "locked" {
-			isLockedFilter = true
-		}
-	}
-
-	// Apply the 'active' filter only if no "all" or "locked" filter is present
-	if !showAllUsers && !isLockedFilter {
-		query = query.Where("user_statuses.type = ?", "active")
-	}
-
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
@@ -129,7 +112,9 @@ func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*us
 	for _, filter := range params.QuickFilter {
 		switch filter {
 		case "active":
-			query = query.Where("user_statuses.type = ?", "active")
+			query = query.Where("user_statuses.is_active = ?", true)
+		case "inactive":
+			query = query.Where("user_statuses.is_active = ?", false)
 		case "locked":
 			query = query.Where("user_statuses.type = ?", "locked")
 		case "super_admin":

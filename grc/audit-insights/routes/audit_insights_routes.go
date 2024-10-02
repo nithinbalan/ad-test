@@ -38,6 +38,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	// Audit Insights Draft Report
 	auditInsightsRoutes.GET("/audit-insights/draft-reports", auditInsightsDraftReportController.GetAllAuditInsightsDraftReports)
-	auditInsightsRoutes.GET("/audit-insights/audits/:auditId/draft-reports", auditInsightsDraftReportController.GetAuditInsightsDraftReportDetails)
+	auditInsightsRoutes.GET("/audit-insights/draft-reports/:id", auditInsightsDraftReportController.GetAuditInsightsDraftReportDetails)
 
 }

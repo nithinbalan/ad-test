@@ -178,11 +178,6 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 		return 0, err
 	}
 
-	userStatus, err := us.userStatusSvc.GetByType("active")
-	if err != nil {
-		return 0, err
-	}
-
 	timezone, err := us.systemPreferenceSvc.GetSystemPreference()
 	if err != nil {
 		return 0, err
@@ -199,17 +194,18 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 		OrganizationUnit4ID: userFormDTO.OrganizationUnit4ID,
 		OrganizationUnit5ID: userFormDTO.OrganizationUnit5ID,
 		DesignationID:       userFormDTO.DesignationID,
-		UserStatusID:        userStatus.ID,
-		FirstNameEn:         userFormDTO.FirstNameEn,
-		LastNameEn:          userFormDTO.LastNameEn,
-		FirstNameAr:         userFormDTO.FirstNameAr,
-		LastNameAr:          userFormDTO.LastNameAr,
-		Email:               userFormDTO.Email,
-		MobileNumber:        userFormDTO.MobileNumber,
-		ProfileImagePath:    userFormDTO.ProfileImagePath,
-		CreatedByID:         currentUserID,
-		Initial:             initial,
-		Color:               color,
+		//UserStatusID:        userFormDTO.UserStatusID,
+		UserStatusID:     1,
+		FirstNameEn:      userFormDTO.FirstNameEn,
+		LastNameEn:       userFormDTO.LastNameEn,
+		FirstNameAr:      userFormDTO.FirstNameAr,
+		LastNameAr:       userFormDTO.LastNameAr,
+		Email:            userFormDTO.Email,
+		MobileNumber:     userFormDTO.MobileNumber,
+		ProfileImagePath: userFormDTO.ProfileImagePath,
+		CreatedByID:      currentUserID,
+		Initial:          initial,
+		Color:            color,
 	}
 
 	userID, err := us.repo.Create(user, tx)
@@ -360,6 +356,7 @@ func (us *UserService) Update(id uint, currentUserID uint, userFormDTO *userDTOs
 	existingUser.ProfileImagePath = userFormDTO.ProfileImagePath
 	existingUser.Initial = initial
 	existingUser.UpdatedByID = &currentUserID
+	existingUser.UserStatusID = userFormDTO.UserStatusID
 
 	err = us.repo.Update(existingUser, tx)
 	if err != nil {

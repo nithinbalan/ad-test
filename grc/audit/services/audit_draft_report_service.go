@@ -456,13 +456,13 @@ func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID
 		return utility.NewResourceNotFoundError(err, id)
 	}
 
-	auditDraftReportStatusDraft, err := adrs.auditDraftReportStatusSvc.GetByType("draft")
+	auditDraftReportStatusApproved, err := adrs.auditDraftReportStatusSvc.GetByType("approved")
 	if err != nil {
 		return err
 	}
-	if existingAuditDraftReport.AuditDraftReportStatusID != auditDraftReportStatusDraft.ID {
+	if existingAuditDraftReport.AuditDraftReportStatusID != auditDraftReportStatusApproved.ID {
 		tx.Rollback()
-		return utility.NewForbiddenError("The audit draft report has already been submitted.")
+		return utility.NewForbiddenError("The audit draft report has not been approved.")
 	}
 
 	auditDraftReportStatus, err := adrs.auditDraftReportStatusSvc.GetByType("in-department-review")
