@@ -13,6 +13,7 @@ type Task struct {
 	IncidentActionPlanID   *uint      `json:"incident_action_plan_id"`
 	ControlActionPlanID    *uint      `json:"control_action_plan_id"`
 	RiskActionPlanID       *uint      `json:"risk_action_plan_id"`
+	MeetingActionPlanID    *uint      `json:"meeting_action_plan_id"`
 	Title                  string     `json:"title" binding:"required,max=255"`
 	Description            *string    `json:"description" gorm:"type:nvarchar(max)"`
 	TargetDate             *time.Time `json:"target_date"`

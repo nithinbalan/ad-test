@@ -227,7 +227,7 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 
 		// prepare notification
 		urlParam := fmt.Sprintf(`{"id":%d}`, id)
-		entity := "risk-action-plan"
+		entity := "meeting-action-plan"
 		action := "responsible-user-assign"
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
@@ -235,7 +235,7 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 			ModuleIdentifier:     "meeting",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Meeting Action Plan Assignment",
-			HeadingAr:            "تعيين خطة عمل المخاطر",
+			HeadingAr:            "تعيين خطة عمل الاجتماع",
 			TitleEn:              MeetingActionPlanFormDTO.Title,
 			TitleAr:              MeetingActionPlanFormDTO.Title,
 			Entity:               &entity,
@@ -274,7 +274,7 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 			"AssignedByFirstNameEn":  assignedBy.FirstNameEn,
 			"AssignedByLastNameEn":   assignedBy.LastNameEn,
 			"AssignedOn":             time.Now().Format("2006-01-02"),
-			"RedirectURL":            fmt.Sprintf("%s/risk-action-plan/%d", appURL, id),
+			"RedirectURL":            fmt.Sprintf("%s/meeting-action-plan/%d", appURL, id),
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -285,7 +285,7 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 		}
 
 		// send notification and mail
-		err = maps.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "risk_action_plan")
+		err = maps.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "meeting_action_plan")
 		if err != nil {
 			utility.LogError("Failed to send notifications", map[string]interface{}{
 				"error": err.Error(),
@@ -299,7 +299,8 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUserID uint, MeetingActionPlanFormDTO *meetingDTOs.MeetingActionPlanFormDTO) error {
 	tx := maps.repo.BeginTransaction()
 
-	if _, err := maps.meetingSvc.GetByID(meetingID); err != nil {
+	meeting, err := maps.meetingSvc.GetByID(meetingID)
+	if err != nil {
 		return err
 	}
 
@@ -307,6 +308,8 @@ func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUse
 	if err != nil {
 		return err
 	}
+
+	oldResponsibleUserID := existingMeetingActionPlan.ResponsibleUserID
 
 	if err := maps.validateMeetingActionPlanFormDTO(MeetingActionPlanFormDTO); err != nil {
 		return err
@@ -332,7 +335,153 @@ func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUse
 	if err != nil {
 		return err
 	}
+
+	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+	taskUpdateDTO := commonDTOs.TaskFormDTO{
+		Title:             MeetingActionPlanFormDTO.Title,
+		Description:       MeetingActionPlanFormDTO.Description,
+		TargetDate:        dates.TargetDate,
+		URLParam:          &urlParam,
+		SeverityLevelID:   MeetingActionPlanFormDTO.SeverityLevelID,
+		ResponsibleUserID: MeetingActionPlanFormDTO.ResponsibleUserID,
+	}
+
+	err = maps.taskSvc.Update(currentUserID, taskUpdateDTO, "meeting_action_plan_id", id, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	tx.Commit()
+
+	go func() {
+		// send notification if responsible user changed
+		if oldResponsibleUserID != existingMeetingActionPlan.ResponsibleUserID {
+			urlParam := fmt.Sprintf(`{"id":%d}`, id)
+			entity := "meeting-action-plan"
+
+			oldResponsibleUserAction := "responsible-user-remove"
+			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserID:               oldResponsibleUserID,
+				ModuleIdentifier:     "meeting",
+				NotificationType:     string(commonDTOs.AssignmentType),
+				HeadingEn:            "Meeting Action Plan Assignment",
+				HeadingAr:            "تعيين خطة عمل الاجتماع",
+				TitleEn:              existingMeetingActionPlan.Title,
+				TitleAr:              existingMeetingActionPlan.Title,
+				Entity:               &entity,
+				Action:               &oldResponsibleUserAction,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			newResponsibleUserAction := "responsible-user-assign"
+			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserID:               MeetingActionPlanFormDTO.ResponsibleUserID,
+				ModuleIdentifier:     "meeting",
+				NotificationType:     string(commonDTOs.AssignmentType),
+				HeadingEn:            "Meeting Action Plan Assignment",
+				HeadingAr:            "تعيين خطة عمل الاجتماع",
+				TitleEn:              existingMeetingActionPlan.Title,
+				TitleAr:              existingMeetingActionPlan.Title,
+				Entity:               &entity,
+				Action:               &newResponsibleUserAction,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			oldResponsibleUser, err := maps.userSvc.GetByID(oldResponsibleUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch old responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			newResponsibleUser, err := maps.userSvc.GetByID(MeetingActionPlanFormDTO.ResponsibleUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch new responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			assignedBy, err := maps.userSvc.GetByID(currentUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			appURL := utility.GetAppURL()
+
+			oldResponsibleUserEmailTo := []string{oldResponsibleUser.Email}
+			oldResponsibleUserSubject := fmt.Sprintf("Meeting Action Plan/%s: Responsibility Removed", existingMeetingActionPlan.Title)
+			oldResponsibleUserTemplateRelativePath := "meeting/templates/email/meeting_action_plan_remove_responsible_user_mail.html"
+			oldResponsibleUserEmailData := map[string]interface{}{
+				"FirstNameEn":            oldResponsibleUser.FirstNameEn,
+				"LastNameEn":             oldResponsibleUser.LastNameEn,
+				"MeetingReferenceNumber": meeting.ReferenceNumber,
+				"MeetingTitle":           meeting.Title,
+				"ActionPlanTitle":        existingMeetingActionPlan.Title,
+				"ActionPlanDescription":  existingMeetingActionPlan.Description,
+				"RedirectURL":            fmt.Sprintf("%s/meeting-action-plan/%d", appURL, id),
+			}
+
+			oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              oldResponsibleUserEmailTo,
+				Subject:              oldResponsibleUserSubject,
+				TemplateRelativePath: oldResponsibleUserTemplateRelativePath,
+				EmailData:            oldResponsibleUserEmailData,
+			}
+
+			newResponsibleUserEmailTo := []string{newResponsibleUser.Email}
+			newResponsibleUserSubject := fmt.Sprintf("Meeting Action Plan/%s: Responsibility Assigned", existingMeetingActionPlan.Title)
+			newResponsibleUserTemplateRelativePath := "meeting/templates/email/meeting_action_plan_change_responsible_user_mail.html"
+			newResponsibleUserEmailData := map[string]interface{}{
+				"FirstNameEn":            newResponsibleUser.FirstNameEn,
+				"LastNameEn":             newResponsibleUser.LastNameEn,
+				"MeetingReferenceNumber": meeting.ReferenceNumber,
+				"MeetingTitle":           meeting.Title,
+				"ActionPlanTitle":        existingMeetingActionPlan.Title,
+				"ActionPlanDescription":  existingMeetingActionPlan.Description,
+				"TargetDate":             existingMeetingActionPlan.TargetDate.Format("2006-01-02"),
+				"AssignedByFirstNameEn":  assignedBy.FirstNameEn,
+				"AssignedByLastNameEn":   assignedBy.LastNameEn,
+				"AssignedOn":             time.Now().Format("2006-01-02"),
+				"RedirectURL":            fmt.Sprintf("%s/meeting-action-plan/%d", appURL, id),
+			}
+
+			newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              newResponsibleUserEmailTo,
+				Subject:              newResponsibleUserSubject,
+				TemplateRelativePath: newResponsibleUserTemplateRelativePath,
+				EmailData:            newResponsibleUserEmailData,
+			}
+
+			err = maps.notificationSvc.SendNotification(
+				newResponsibleUserNotificationDTO, newResponsibleUserEmailNotificationDTO, "meeting_action_plan",
+			)
+			if err != nil {
+				utility.LogError("Failed to send new responsible user notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+
+			err = maps.notificationSvc.SendNotification(
+				oldResponsibleUserNotificationDTO, oldResponsibleUserEmailNotificationDTO, "meeting_action_plan",
+			)
+			if err != nil {
+				utility.LogError("Failed to send old responsible user notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+
+		}
+	}()
 
 	return nil
 }
@@ -340,18 +489,56 @@ func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUse
 func (maps *MeetingActionPlanService) Delete(meetingID uint, ids []uint, currentUserID uint) ([]uint, error) {
 	tx := maps.repo.BeginTransaction()
 
-	if _, err := maps.meetingSvc.GetByID(meetingID); err != nil {
+	meeting, err := maps.meetingSvc.GetByID(meetingID)
+	if err != nil {
 		return nil, err
 	}
 
 	var failedIds []uint
 	var successfulIds []uint
-	for _, id := range ids {
+	var notifications []struct {
+		OwnerID         *uint
+		TitleEn         string
+		TitleAr         string
+		Description     string
+		ReferenceNumber string
+		MeetingTitle    string
+	}
 
-		meetingActionPlan, err := maps.GetFullDetailsByID(meetingID, id)
+	for _, id := range ids {
+		meetingActionPlan, err := maps.repo.GetFullDetailsByID(id)
 		if err != nil {
 			continue
 		}
+
+		// Prepare notification data before deletion
+		notifications = append(notifications, struct {
+			OwnerID         *uint
+			TitleEn         string
+			TitleAr         string
+			Description     string
+			ReferenceNumber string
+			MeetingTitle    string
+		}{
+			OwnerID:         &meetingActionPlan.ResponsibleUserID,
+			TitleEn:         meetingActionPlan.Title,
+			TitleAr:         meetingActionPlan.Title,
+			Description:     *meetingActionPlan.Description,
+			ReferenceNumber: meeting.ReferenceNumber,
+			MeetingTitle:    meeting.Title,
+		})
+
+		existingTask, err := maps.taskSvc.GetByFieldID("meeting_action_plan_id", id)
+		if err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+
+		taskID, err := maps.taskSvc.Delete(existingTask.ID, currentUserID)
+		if err != nil {
+			failedIds = append(failedIds, taskID)
+		}
+
 		if len(meetingActionPlan.ActionPlanStatusUpdates) > 0 {
 			var deleteStatusUpdateIds []*uint
 			for _, update := range meetingActionPlan.ActionPlanStatusUpdates {
@@ -386,6 +573,64 @@ func (maps *MeetingActionPlanService) Delete(meetingID uint, ids []uint, current
 			if err != nil {
 				// @todo - save to log file
 				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+			}
+
+			for _, notification := range notifications {
+				urlParam := ""
+				entity := "meeting-action-plan"
+				action := "delete"
+
+				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+					UserID:               *notification.OwnerID,
+					ModuleIdentifier:     "meeting",
+					NotificationType:     string(commonDTOs.DeletionType),
+					HeadingEn:            "Meeting Action Plan Deletion",
+					HeadingAr:            "حذف خطة عمل الاجتماع",
+					TitleEn:              notification.TitleEn,
+					TitleAr:              notification.TitleAr,
+					Entity:               &entity,
+					Action:               &action,
+					URLParam:             urlParam,
+					IsSystemNotification: false,
+					CreatedByID:          &currentUserID,
+				}
+
+				ownerUser, err := maps.userSvc.GetByID(*notification.OwnerID)
+				if err != nil {
+					utility.LogError("Failed to fetch owner details for notification", map[string]interface{}{
+						"error": err.Error(),
+					})
+					continue
+				}
+
+				ownerEmailTo := []string{ownerUser.Email}
+				subject := fmt.Sprintf("Meeting Action Plan/%s: Deleted", notification.TitleEn)
+				templateRelativePath := "meeting/templates/email/meeting_action_plan_delete_mail.html"
+
+				emailData := map[string]interface{}{
+					"FirstNameEn":            ownerUser.FirstNameEn,
+					"LastNameEn":             ownerUser.LastNameEn,
+					"MeetingReferenceNumber": notification.ReferenceNumber,
+					"MeetingTitle":           notification.MeetingTitle,
+					"ActionPlanTitle":        notification.TitleEn,
+					"ActionPlanDescription":  notification.Description,
+				}
+
+				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+					EmailTo:              ownerEmailTo,
+					Subject:              subject,
+					TemplateRelativePath: templateRelativePath,
+					EmailData:            emailData,
+				}
+
+				err = maps.notificationSvc.SendNotification(
+					dbNotificationDTO, emailNotificationDTO, "meeting_action_plan")
+				if err != nil {
+					utility.LogError("Failed to send deletion notifications", map[string]interface{}{
+						"error": err.Error(),
+					})
+				}
+
 			}
 		}()
 	} else {
