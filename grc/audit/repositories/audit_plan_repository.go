@@ -123,8 +123,10 @@ func (repo *AuditPlanRepository) GetAll(params *auditDTOs.AuditPlanListQueryPara
 	// Apply quick filters
 	for _, filter := range params.QuickFilter {
 		switch filter {
-		case "pending":
-			query = query.Where("audit_statuses.type = ?", "pending")
+		case "draft":
+			query = query.Where("audit_statuses.type = ?", "draft")
+		case "published":
+			query = query.Where("audit_statuses.type = ?", "published")
 		case "completed":
 			query = query.Where("audit_statuses.type = ?", "completed")
 		case "in_progress":
