@@ -186,7 +186,7 @@ func (das *DocumentAccessService) DeleteSharedUsers(documentID uint, userIDs []*
 		return err
 	}
 	if len(userIDs) == 0 {
-		return fmt.Errorf("no user IDs provided for deletion")
+		return nil
 	}
 	return das.repo.DeleteSharedUsers(documentID, userIDs)
 }
@@ -196,7 +196,7 @@ func (das *DocumentAccessService) DeleteSharedUnits(documentID uint, unitIDs []*
 		return err
 	}
 	if len(unitIDs) == 0 {
-		return fmt.Errorf("no unit IDs provided for deletion")
+		return nil
 	}
 	return das.repo.DeleteSharedUnits(documentID, unitIDs)
 }

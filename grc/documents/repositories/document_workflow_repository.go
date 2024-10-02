@@ -9,9 +9,13 @@ import (
 )
 
 type DocumentWorkflowRepositoryInterface interface {
+	GetWorkflowList(docVersionId uint) (*models.DocumentVersion, error)
 	CreateDocumentWorkflow(documentWorkflow *models.DocumentWorkflow, tx ...utility.DatabaseTransaction) (uint, error)
 	UpdateDocumentWorkflow(documentWorkflow *models.DocumentWorkflow, tx ...utility.DatabaseTransaction) error
 	CreateDocumentWorkflowParticipant(docWorkflowParticipant *models.DocumentWorkflowParticipant, tx ...utility.DatabaseTransaction) error
+	DeleteDocumentWorkflowParticipants(participantIds []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteDocumentWorkflowReviews(reviewIds []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteDocumentWorkflows(workflowIds []*uint, tx ...utility.DatabaseTransaction) error
 
 	GetDocumentWorkflowByID(id uint, tx ...utility.DatabaseTransaction) (*models.DocumentWorkflow, error)
 	GetDocumentWorkflowByLevel(docVersionId uint, currentApprovalLevel int, tx ...utility.DatabaseTransaction) (*models.DocumentWorkflow, error)
@@ -26,6 +30,27 @@ type DocumentWorkflowRepository struct {
 
 func NewDocumentWorkflowRepository(db *gorm.DB) *DocumentWorkflowRepository {
 	return &DocumentWorkflowRepository{db: db}
+}
+
+func (repo *DocumentWorkflowRepository) GetWorkflowList(docVersionId uint) (*models.DocumentVersion, error) {
+	var documentVersion models.DocumentVersion
+	result := repo.db.
+		Preload("SubmittedByUser").
+		Preload("DocumentWorkflows").
+		Preload("DocumentWorkflows.DocumentWorkflowStatus").
+		Preload("DocumentWorkflows.DocumentWorkflowParticipants").
+		Preload("DocumentWorkflows.DocumentWorkflowParticipants.User").
+		Preload("DocumentWorkflows.DocumentWorkflowParticipants.Role").
+		Preload("DocumentWorkflows.DocumentWorkflowReviews", "document_workflow_status_id IN (?)", repo.db.Model(&models.DocumentWorkflowStatus{}).Select("id").Where("type = ?", "approve")).
+		Preload("DocumentWorkflows.DocumentWorkflowReviews.CreatedByUser").
+		Where("id = ?", docVersionId).
+		Find(&documentVersion)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return &documentVersion, nil
 }
 
 func (repo *DocumentWorkflowRepository) CreateDocumentWorkflow(documentWorkflow *models.DocumentWorkflow, tx ...utility.DatabaseTransaction) (uint, error) {
@@ -137,4 +162,43 @@ func (repo *DocumentWorkflowRepository) CountApprovedParticipants(workflowID uin
 	}
 
 	return int(count), nil
+}
+
+func (repo *DocumentWorkflowRepository) DeleteDocumentWorkflowParticipants(participantIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", participantIds).Delete(&models.DocumentWorkflowParticipant{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *DocumentWorkflowRepository) DeleteDocumentWorkflowReviews(reviewIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", reviewIds).Delete(&models.DocumentWorkflowReview{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *DocumentWorkflowRepository) DeleteDocumentWorkflows(workflowIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", workflowIds).Delete(&models.DocumentWorkflow{}).Error; err != nil {
+		return err
+	}
+
+	return nil
 }

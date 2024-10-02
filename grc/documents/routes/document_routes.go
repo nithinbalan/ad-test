@@ -23,6 +23,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentWorkflowStatusController := app.DocumentModule.DocumentWorkflowStatusController
 	documentController := app.DocumentModule.DocumentController
 	documentReviewController := app.DocumentModule.DocumentReviewController
+	documentWorkflowController := app.DocumentModule.DocumentWorkflowController
 	documentAccessController := app.DocumentModule.DocumentAccessController
 	documentAcknowledgeUserController := app.DocumentModule.DocumentAcknowledgeUserController
 	documentAuditLogController := app.DocumentModule.DocumentAuditLogController
@@ -87,7 +88,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	documentRoutes.GET("/documents/:id/comments", documentReviewController.GetComments)
 	documentRoutes.POST("/documents/:id/comments", documentReviewController.AddComment)
-	documentRoutes.GET("/documents/:id/workflow-list", documentController.GetWorkflowList)
+	documentRoutes.GET("/documents/:id/workflow-list", documentWorkflowController.GetWorkflowList)
 
 	documentRoutes.GET("/documents/:id/last-edit-summary", documentController.GetLastEditSummary)
 

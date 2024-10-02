@@ -92,6 +92,7 @@ func NewDocumentModule(db *gorm.DB,
 
 	documentSvc.SetDocumentAccessService(documentAccessSvc)
 	documentWorkflowSvc.SetDocumentAccessService(documentAccessSvc)
+	documentWorkflowSvc.SetDocumentService(documentSvc)
 
 	documentController := controllers.NewDocumentController(documentSvc)
 

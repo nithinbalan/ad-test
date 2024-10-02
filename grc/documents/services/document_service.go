@@ -42,14 +42,8 @@ type DocumentServiceInterface interface {
 
 	SubmitDocument(id uint, currentUserID uint) error
 	PublishDocument(id uint, currentUserID uint) error
-	//GetComments(id uint) (*documentDTOs.DocumentVersionWorkflowDTO, error)
-
-	//CreateSharedUsers(sharedUsers []*models.DocumentSharedUser, tx ...utility.DatabaseTransaction) error
-	//CreateSharedUnits(sharedUnits []*models.DocumentSharedUnit, tx ...utility.DatabaseTransaction) error
 
 	GetDocumentPath(id uint, token string, fileType string, tx ...utility.DatabaseTransaction) (string, error)
-	//AddComment(id uint, currentUserID uint, documentReviewCommentFormDTO *documentDTOs.DocumentReviewCommentFormDTO) error
-	GetDocumentWorkflowList(id uint) (*documentDTOs.DocumentVersionWorkflowListDTO, error)
 
 	CreateDocumentAuditLog(documentID uint, documentVersionID uint, userID uint, logType string, tx ...utility.DatabaseTransaction) error
 	DirectDocumentAuditLog(documentID uint, userID uint, logType string) error
@@ -88,22 +82,20 @@ func NewDocumentService(
 	documentStatusSvc DocumentStatusServiceInterface,
 	userSvc organizationSvc.UserServiceInterface,
 	workflowSvc settinsSvc.WorkflowServiceInterface,
-	//documentWorkflowSvc DocumentWorkflowStatusServiceInterface,
 	documentWorkflowStatusSvc DocumentWorkflowStatusServiceInterface,
 	activityLogSvc services.ActivityLogServiceInterface,
 	documentAuditLogSvc DocumentAuditLogServiceInterface,
 	userSettingSvc organizationSvc.UserSettingServiceInterface,
 ) DocumentServiceInterface {
 	return &DocumentService{
-		repo:                  repo,
-		documentCategorySvc:   documentCategorySvc,
-		documentTypeSvc:       documentTypeSvc,
-		documentTemplateSvc:   documentTemplateSvc,
-		documentAccessTypeSvc: documentAccessTypeSvc,
-		documentStatusSvc:     documentStatusSvc,
-		userSvc:               userSvc,
-		workflowSvc:           workflowSvc,
-		//documentWorkflowSvc:       documentWorkflowSvc,
+		repo:                      repo,
+		documentCategorySvc:       documentCategorySvc,
+		documentTypeSvc:           documentTypeSvc,
+		documentTemplateSvc:       documentTemplateSvc,
+		documentAccessTypeSvc:     documentAccessTypeSvc,
+		documentStatusSvc:         documentStatusSvc,
+		userSvc:                   userSvc,
+		workflowSvc:               workflowSvc,
 		documentWorkflowStatusSvc: documentWorkflowStatusSvc,
 		activityLogSvc:            activityLogSvc,
 		documentAuditLogSvc:       documentAuditLogSvc,
@@ -497,17 +489,17 @@ func (ds *DocumentService) Delete(ids []uint, currentUserID uint) ([]uint, error
 				}
 			}
 
-			if err := ds.repo.DeleteDocumentWorkflowParticipants(deleteDocumentWorkflowParticipantIds, tx); err != nil {
+			if err := ds.documentWorkflowSvc.DeleteDocumentWorkflowParticipants(deleteDocumentWorkflowParticipantIds, tx); err != nil {
 				tx.Rollback()
 				return nil, err
 			}
 
-			if err := ds.repo.DeleteDocumentWorkflowReviews(deleteDocumentWorkflowReviewIds, tx); err != nil {
+			if err := ds.documentWorkflowSvc.DeleteDocumentWorkflowReviews(deleteDocumentWorkflowReviewIds, tx); err != nil {
 				tx.Rollback()
 				return nil, err
 			}
 
-			if err := ds.repo.DeleteDocumentWorkflows(deleteDocumentWorkflowIds, tx); err != nil {
+			if err := ds.documentWorkflowSvc.DeleteDocumentWorkflows(deleteDocumentWorkflowIds, tx); err != nil {
 				tx.Rollback()
 				return nil, err
 			}
@@ -649,24 +641,6 @@ func (ds *DocumentService) ValidateDocument(document *commonDTOs.DocumentFormDTO
 
 	return nil
 }
-
-// func (ds *DocumentService) CreateSharedUsers(sharedUsers []*models.DocumentSharedUser, tx ...utility.DatabaseTransaction) error {
-// 	if len(sharedUsers) > 0 {
-// 		if err := ds.repo.CreateSharedUsers(sharedUsers, tx...); err != nil {
-// 			return err
-// 		}
-// 	}
-// 	return nil
-// }
-
-// func (ds *DocumentService) CreateSharedUnits(sharedUnits []*models.DocumentSharedUnit, tx ...utility.DatabaseTransaction) error {
-// 	if len(sharedUnits) > 0 {
-// 		if err := ds.repo.CreateSharedUnits(sharedUnits, tx...); err != nil {
-// 			return err
-// 		}
-// 	}
-// 	return nil
-// }
 
 func (ds *DocumentService) CreateDocumentEditHistory(documentEditHistoryDTO *documentDTOs.DocumentEditHistoryDTO, sourceDir *string, currentUserId uint, tx ...utility.DatabaseTransaction) error {
 	if sourceDir != nil {
@@ -985,120 +959,6 @@ func (ds *DocumentService) GetDocumentPath(id uint, token string, fileType strin
 	return fullPath, nil
 }
 
-// func (ds *DocumentService) CreateDocumentWorkflow(documentId uint, documentVersionId uint, documentTypeId uint, currentUserID uint, tx ...utility.DatabaseTransaction) error {
-// 	workflow, err := ds.workflowSvc.GetWorkflowByDocumentType(documentTypeId, tx...)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	workflowLevels, err := ds.workflowSvc.GetWorkflowLevels(workflow.ID, tx...)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	documentWorkflowStatus, err := ds.documentWorkflowStatusSvc.GetByType("pending")
-
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	var sharedUsers []*models.DocumentSharedUser
-// 	uniqueUsers := make(map[uint]bool) // Map to track added users
-
-// 	for _, level := range workflowLevels.WorkflowLevels {
-// 		documentWorkflow := &models.DocumentWorkflow{
-// 			DocumentVersionID:        documentVersionId,
-// 			Level:                    level.Level,
-// 			WorkflowLevelTypeID:      level.WorkflowLevelType.ID,
-// 			ApprovalTypes:            level.ApprovalType,
-// 			DocumentWorkflowStatusID: documentWorkflowStatus.ID,
-// 			CreatedBYID:              currentUserID,
-// 		}
-
-// 		docWorkflowId, err := ds.repo.CreateDocumentWorkflow(documentWorkflow, tx...)
-// 		if err != nil {
-// 			return err
-// 		}
-
-// 		// Handle participants for each level
-// 		for _, participant := range level.Participants {
-// 			if participant.Role != nil {
-
-// 				userIds, err := ds.userSvc.GetUserIdsByRole(participant.Role.ID, tx...)
-// 				if err != nil {
-// 					return err
-// 				}
-
-// 				for _, userId := range userIds {
-// 					err = ds.createWorkflowParticipant(userId, docWorkflowId, &participant, currentUserID, tx...)
-// 					if err != nil {
-// 						return err
-// 					}
-
-// 					if _, exists := uniqueUsers[userId]; exists {
-// 						continue
-// 					}
-
-// 					uniqueUsers[userId] = true
-
-// 					// Append to sharedUsers slice
-// 					sharedUsers = append(sharedUsers, &models.DocumentSharedUser{
-// 						DocumentID:  documentId,
-// 						UserID:      userId,
-// 						Type:        "review-user",
-// 						CreatedBYID: currentUserID,
-// 					})
-
-// 				}
-// 			} else if participant.User != nil {
-// 				userId := uint(participant.User.ID)
-// 				err = ds.createWorkflowParticipant(userId, docWorkflowId, &participant, currentUserID, tx...)
-// 				if err != nil {
-// 					return err
-// 				}
-
-// 				if _, exists := uniqueUsers[userId]; exists {
-// 					continue
-// 				}
-
-// 				uniqueUsers[userId] = true
-
-// 				// Append to sharedUsers slice
-// 				sharedUsers = append(sharedUsers, &models.DocumentSharedUser{
-// 					DocumentID:  documentVersionId,
-// 					UserID:      userId,
-// 					Type:        "review-user",
-// 					CreatedBYID: currentUserID,
-// 				})
-// 			}
-// 		}
-// 	}
-
-// 	if err := ds.CreateSharedUsers(sharedUsers, tx...); err != nil {
-// 		return err
-// 	}
-
-// 	return nil
-// }
-
-// func (ds *DocumentService) createWorkflowParticipant(userID uint, documentWorkflowID uint, participant *settingDTOs.WorkflowLevelParticipantDTO, currentUserID uint, tx ...utility.DatabaseTransaction) error {
-// 	docWorkflowParticipant := &models.DocumentWorkflowParticipant{
-// 		DocumentWorkflowID: documentWorkflowID,
-// 		UserID:             userID,
-// 		CreatedBYID:        currentUserID,
-// 	}
-
-// 	if participant.Role != nil {
-// 		docWorkflowParticipant.RoleID = &participant.Role.ID
-// 	}
-
-// 	err := ds.repo.CreateDocumentWorkflowParticipant(docWorkflowParticipant, tx...)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	return nil
-// }
-
 func (ds *DocumentService) SubmitDocument(id uint, currentUserID uint) error {
 	tx := ds.repo.BeginTransaction()
 	document, err := ds.GetFullDetailsByID(id, nil, tx)
@@ -1251,418 +1111,6 @@ func (ds *DocumentService) PublishDocument(id uint, currentUserID uint) error {
 	return nil
 }
 
-// func (ds *DocumentService) GetComments(id uint) (*documentDTOs.DocumentVersionWorkflowDTO, error) {
-// 	var documentVersionWorkflowDTO documentDTOs.DocumentVersionWorkflowDTO
-
-// 	document, err := ds.GetFullDetailsByID(id, nil)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	if document.DocumentStatus.Type == "draft" {
-// 		return nil, utility.NewForbiddenError("Document must be submitted for review to access comments.")
-// 	}
-
-// 	currentApprovalLevel := document.LatestDocumentVersion.NextReviewLevel
-
-// 	documentVersionWorkflows, err := ds.repo.GetComments(document.LatestDocumentVersion.ID, *currentApprovalLevel)
-
-// 	if err != nil {
-// 		if errors.Is(err, gorm.ErrRecordNotFound) {
-// 			return nil, utility.NewResourceNotFoundError(err, id)
-// 		}
-// 		return nil, err
-// 	}
-
-// 	err = mapstructure.Decode(documentVersionWorkflows, &documentVersionWorkflowDTO)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	return &documentVersionWorkflowDTO, err
-// }
-
-// func (ds *DocumentService) AddComment(id uint, currentUserID uint, documentReviewCommentFormDTO *documentDTOs.DocumentReviewCommentFormDTO) error {
-// 	document, err := ds.GetFullDetailsByID(id, nil)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	currentApprovalLevel := document.LatestDocumentVersion.NextReviewLevel
-
-// 	currentDocumentWorkflow, err := ds.repo.GetDocumentWorkflowByLevel(document.LatestDocumentVersion.ID, *currentApprovalLevel)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	if documentReviewCommentFormDTO.IsApproved {
-// 		documentWorkflowStatus, err := ds.documentWorkflowStatusSvc.GetByType("approve")
-// 		if err != nil {
-// 			return err
-// 		}
-// 		switch currentDocumentWorkflow.WorkflowLevelType.Type {
-// 		case "individual":
-// 			if currentUserID != currentDocumentWorkflow.DocumentWorkflowParticipants[0].UserID {
-// 				return utility.NewForbiddenError("you have no permission to approve")
-// 			}
-
-// 			documentWorkflowReview := &models.DocumentWorkflowReview{
-// 				DocumentWorkflowID:       currentDocumentWorkflow.ID,
-// 				DocumentWorkflowStatusID: documentWorkflowStatus.ID,
-// 				Comment:                  documentReviewCommentFormDTO.Comment,
-// 				CreatedBYID:              currentUserID,
-// 			}
-
-// 			err = ds.repo.CreateDocumentWorkflowReview(documentWorkflowReview)
-// 			if err != nil {
-// 				return err
-// 			}
-
-// 			documentWorkflow, err := ds.repo.GetDocumentWorkflowByID(currentDocumentWorkflow.ID)
-// 			if err != nil {
-// 				return err
-// 			}
-
-// 			documentWorkflow.DocumentWorkflowStatusID = documentWorkflowStatus.ID
-// 			err = ds.repo.UpdateDocumentWorkflow(documentWorkflow)
-// 			if err != nil {
-// 				return err
-// 			}
-
-// 			nextDocWorkflowLevel, err := ds.repo.GetNextLevel(document.LatestDocumentVersion.ID, *currentApprovalLevel)
-// 			if err != nil {
-// 				return err // Handle other errors that might occur
-// 			}
-
-// 			if nextDocWorkflowLevel == nil {
-// 				documentStatus, err := ds.documentStatusSvc.GetByType("approved")
-// 				if err != nil {
-// 					return err
-// 				}
-// 				existingDocument, err := ds.repo.GetByID(id)
-// 				if err != nil {
-// 					return err
-// 				}
-
-// 				existingDocument.DocumentStatusID = documentStatus.ID
-// 				err = ds.repo.Update(existingDocument)
-// 				if err != nil {
-// 					return err
-// 				}
-// 			} else {
-// 				existingdocVersion, err := ds.repo.GetDocumentVersionByID(document.LatestDocumentVersion.ID)
-// 				if err != nil {
-// 					return err
-// 				}
-
-// 				existingdocVersion.NextReviewLevel = &nextDocWorkflowLevel.Level
-// 				err = ds.repo.UpdateDocumentVersion(existingdocVersion)
-// 				if err != nil {
-// 					return err
-// 				}
-// 			}
-// 		case "multiple-users", "role":
-// 			// Check if the current user ID is in the list of participants
-// 			allowed := false
-// 			for _, participant := range currentDocumentWorkflow.DocumentWorkflowParticipants {
-// 				if participant.UserID == currentUserID {
-// 					allowed = true
-// 					break
-// 				}
-// 			}
-
-// 			if !allowed {
-// 				return utility.NewForbiddenError("you have no permission to approve")
-// 			}
-
-// 			documentWorkflowReview := &models.DocumentWorkflowReview{
-// 				DocumentWorkflowID:       currentDocumentWorkflow.ID,
-// 				DocumentWorkflowStatusID: documentWorkflowStatus.ID,
-// 				Comment:                  documentReviewCommentFormDTO.Comment,
-// 				CreatedBYID:              currentUserID,
-// 			}
-
-// 			err = ds.repo.CreateDocumentWorkflowReview(documentWorkflowReview)
-// 			if err != nil {
-// 				return err
-// 			}
-
-// 			if currentDocumentWorkflow.ApprovalTypes == "all" {
-// 				allApproved, err := ds.CheckAllParticipantsApproved(currentDocumentWorkflow.ID, currentDocumentWorkflow.DocumentWorkflowParticipants)
-// 				if err != nil {
-// 					return err
-// 				}
-
-// 				if !allApproved {
-// 					return nil // Not all users have approved, so do not proceed to next level
-// 				} else {
-// 					documentWorkflow, err := ds.repo.GetDocumentWorkflowByID(currentDocumentWorkflow.ID)
-// 					if err != nil {
-// 						return err
-// 					}
-
-// 					documentWorkflow.DocumentWorkflowStatusID = documentWorkflowStatus.ID
-// 					err = ds.repo.UpdateDocumentWorkflow(documentWorkflow)
-// 					if err != nil {
-// 						return err
-// 					}
-
-// 					nextDocWorkflowLevel, err := ds.repo.GetNextLevel(document.LatestDocumentVersion.ID, *currentApprovalLevel)
-// 					if err != nil {
-// 						return err // Handle other errors that might occur
-// 					}
-
-// 					if nextDocWorkflowLevel == nil {
-// 						documentStatus, err := ds.documentStatusSvc.GetByType("approved")
-// 						if err != nil {
-// 							return err
-// 						}
-// 						existingDocument, err := ds.repo.GetByID(id)
-// 						if err != nil {
-// 							return err
-// 						}
-
-// 						existingDocument.DocumentStatusID = documentStatus.ID
-// 						err = ds.repo.Update(existingDocument)
-// 						if err != nil {
-// 							return err
-// 						}
-// 					} else {
-// 						existingdocVersion, err := ds.repo.GetDocumentVersionByID(document.LatestDocumentVersion.ID)
-// 						if err != nil {
-// 							return err
-// 						}
-
-// 						existingdocVersion.NextReviewLevel = &nextDocWorkflowLevel.Level
-// 						err = ds.repo.UpdateDocumentVersion(existingdocVersion)
-// 						if err != nil {
-// 							return err
-// 						}
-// 					}
-// 				}
-// 			} else {
-// 				documentWorkflow, err := ds.repo.GetDocumentWorkflowByID(currentDocumentWorkflow.ID)
-// 				if err != nil {
-// 					return err
-// 				}
-
-// 				documentWorkflow.DocumentWorkflowStatusID = documentWorkflowStatus.ID
-// 				err = ds.repo.UpdateDocumentWorkflow(documentWorkflow)
-// 				if err != nil {
-// 					return err
-// 				}
-
-// 				nextDocWorkflowLevel, err := ds.repo.GetNextLevel(document.LatestDocumentVersion.ID, *currentApprovalLevel)
-// 				if err != nil {
-// 					return err // Handle other errors that might occur
-// 				}
-
-// 				if nextDocWorkflowLevel == nil {
-// 					documentStatus, err := ds.documentStatusSvc.GetByType("approved")
-// 					if err != nil {
-// 						return err
-// 					}
-// 					existingDocument, err := ds.repo.GetByID(id)
-// 					if err != nil {
-// 						return err
-// 					}
-
-// 					existingDocument.DocumentStatusID = documentStatus.ID
-// 					err = ds.repo.Update(existingDocument)
-// 					if err != nil {
-// 						return err
-// 					}
-// 				} else {
-// 					existingdocVersion, err := ds.repo.GetDocumentVersionByID(document.LatestDocumentVersion.ID)
-// 					if err != nil {
-// 						return err
-// 					}
-
-// 					existingdocVersion.NextReviewLevel = &nextDocWorkflowLevel.Level
-// 					err = ds.repo.UpdateDocumentVersion(existingdocVersion)
-// 					if err != nil {
-// 						return err
-// 					}
-// 				}
-// 			}
-// 		}
-
-// 	} else if documentReviewCommentFormDTO.IsRejected {
-// 		documentWorkflowStatus, err := ds.documentWorkflowStatusSvc.GetByType("reject")
-// 		if err != nil {
-// 			return err
-// 		}
-
-// 		documentWorkflowReview := &models.DocumentWorkflowReview{
-// 			DocumentWorkflowID:       currentDocumentWorkflow.ID,
-// 			DocumentWorkflowStatusID: documentWorkflowStatus.ID,
-// 			Comment:                  documentReviewCommentFormDTO.Comment,
-// 			CreatedBYID:              currentUserID,
-// 		}
-
-// 		err = ds.repo.CreateDocumentWorkflowReview(documentWorkflowReview)
-// 		if err != nil {
-// 			return err
-// 		}
-
-// 		documentWorkflow, err := ds.repo.GetDocumentWorkflowByID(currentDocumentWorkflow.ID)
-// 		if err != nil {
-// 			return err
-// 		}
-
-// 		documentWorkflow.DocumentWorkflowStatusID = documentWorkflowStatus.ID
-// 		err = ds.repo.UpdateDocumentWorkflow(documentWorkflow)
-// 		if err != nil {
-// 			return err
-// 		}
-
-// 		documentStatus, err := ds.documentStatusSvc.GetByType("rejected")
-// 		if err != nil {
-// 			return err
-// 		}
-// 		existingDocument, err := ds.repo.GetByID(id)
-// 		if err != nil {
-// 			return err
-// 		}
-
-// 		existingDocument.DocumentStatusID = documentStatus.ID
-// 		err = ds.repo.Update(existingDocument)
-// 		if err != nil {
-// 			return err
-// 		}
-
-// 	} else if documentReviewCommentFormDTO.IsReverted {
-// 		documentWorkflowStatus, err := ds.documentWorkflowStatusSvc.GetByType("revert")
-// 		if err != nil {
-// 			return err
-// 		}
-// 		documentWorkflowReview := &models.DocumentWorkflowReview{
-// 			DocumentWorkflowID:       currentDocumentWorkflow.ID,
-// 			DocumentWorkflowStatusID: documentWorkflowStatus.ID,
-// 			Comment:                  documentReviewCommentFormDTO.Comment,
-// 			CreatedBYID:              currentUserID,
-// 		}
-
-// 		err = ds.repo.CreateDocumentWorkflowReview(documentWorkflowReview)
-// 		if err != nil {
-// 			return err
-// 		}
-
-// 	} else {
-// 		documentWorkflowStatus, err := ds.documentWorkflowStatusSvc.GetByType("comment")
-// 		if err != nil {
-// 			return err
-// 		}
-// 		documentWorkflowReview := &models.DocumentWorkflowReview{
-// 			DocumentWorkflowID:       currentDocumentWorkflow.ID,
-// 			DocumentWorkflowStatusID: documentWorkflowStatus.ID,
-// 			Comment:                  documentReviewCommentFormDTO.Comment,
-// 			CreatedBYID:              currentUserID,
-// 		}
-
-// 		err = ds.repo.CreateDocumentWorkflowReview(documentWorkflowReview)
-// 		if err != nil {
-// 			return err
-// 		}
-// 	}
-
-// 	return nil
-// }
-
-// func (ds *DocumentService) CheckAllParticipantsApproved(workflowID uint, workflowParticipants []*models.DocumentWorkflowParticipant) (bool, error) {
-// 	count, err := ds.repo.CountApprovedParticipants(workflowID)
-// 	if err != nil {
-// 		return false, err
-// 	}
-
-// 	// If the count of unique approvers is less than the number of participants, not all have approved.
-// 	if count < len(workflowParticipants) {
-// 		return false, nil
-// 	}
-
-// 	return true, nil
-// }
-
-func (ds *DocumentService) GetDocumentWorkflowList(id uint) (*documentDTOs.DocumentVersionWorkflowListDTO, error) {
-	document, err := ds.GetFullDetailsByID(id, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	documentVersion, err := ds.repo.GetWorkflowList(document.LatestDocumentVersion.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	dto := &documentDTOs.DocumentVersionWorkflowListDTO{
-		ID:                documentVersion.ID,
-		DocumentID:        documentVersion.DocumentID,
-		SubmittedAt:       documentVersion.SubmittedAt,
-		SubmittedByUser:   mapUserToDTO(documentVersion.SubmittedByUser),
-		DocumentWorkflows: []*documentDTOs.DocumentWorkflowListDTO{},
-	}
-
-	for _, workflow := range documentVersion.DocumentWorkflows {
-		workflowDTO := &documentDTOs.DocumentWorkflowListDTO{
-			Level:         workflow.Level,
-			ApprovalType:  workflow.ApprovalTypes,
-			CurrentStatus: mapStatusToDTO(workflow.DocumentWorkflowStatus),
-			ApprovedUsers: []*organizationDTOs.UserMinimalDTO{},
-			ReviewUsers:   []*organizationDTOs.UserMinimalDTO{},
-		}
-
-		var lastApprovedAt time.Time
-		for _, review := range workflow.DocumentWorkflowReviews {
-			userDTO := mapUserToDTO(review.CreatedByUser)
-			workflowDTO.ApprovedUsers = append(workflowDTO.ApprovedUsers, userDTO)
-			if review.CreatedAt.After(lastApprovedAt) {
-				lastApprovedAt = review.CreatedAt
-			}
-		}
-
-		for _, participant := range workflow.DocumentWorkflowParticipants {
-			userDTO := mapUserToDTO(participant.User)
-			workflowDTO.ReviewUsers = append(workflowDTO.ReviewUsers, userDTO)
-		}
-
-		workflowDTO.ApprovedAt = lastApprovedAt
-		dto.DocumentWorkflows = append(dto.DocumentWorkflows, workflowDTO)
-	}
-
-	return dto, nil
-}
-
-func mapUserToDTO(user *models.User) *organizationDTOs.UserMinimalDTO {
-	if user == nil {
-		return &organizationDTOs.UserMinimalDTO{}
-	}
-	return &organizationDTOs.UserMinimalDTO{
-		ID:               int(user.ID),
-		FirstNameEN:      user.FirstNameEn,
-		LastNameEN:       user.LastNameEn,
-		FirstNameAR:      user.FirstNameAr,
-		LastNameAR:       user.LastNameAr,
-		ProfileImagePath: user.ProfileImagePath,
-		Email:            user.Email,
-		Initial:          user.Initial,
-		Color:            user.Color,
-	}
-}
-
-func mapStatusToDTO(status *models.DocumentWorkflowStatus) documentDTOs.DocumentStatusDTO {
-	if status == nil {
-		return documentDTOs.DocumentStatusDTO{}
-	}
-	return documentDTOs.DocumentStatusDTO{
-		ID:        int(status.ID),
-		Type:      status.Type,
-		TitleEn:   status.TitleEn,
-		TitleAr:   status.TitleAr,
-		ColorCode: status.ColorCode,
-		Status:    status.Status,
-	}
-}
-
 func (ds *DocumentService) CreateDocumentAuditLog(documentID uint, documentVersionID uint, userID uint, logType string, tx ...utility.DatabaseTransaction) error {
 	// Get the audit log type by the provided logType
 	documentAuditLogType, err := ds.documentAuditLogSvc.GetByType(logType)
@@ -1706,7 +1154,6 @@ func (ds *DocumentService) DirectDocumentAuditLog(documentID uint, userID uint, 
 
 	tx.Commit()
 	return nil
-
 }
 
 func (ds *DocumentService) GetDocumentLastEditSummary(documentID uint) (*documentDTOs.DocumentLastEditSummaryDTO, error) {

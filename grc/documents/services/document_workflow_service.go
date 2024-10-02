@@ -1,17 +1,23 @@
 package services
 
 import (
+	"fmt"
+	documentDTOs "jethur/grc/documents/dtos"
 	"jethur/grc/documents/repositories"
 	logSvc "jethur/grc/logs/services"
 	"jethur/grc/models"
+	organizationDTOs "jethur/grc/organization/dtos"
 	organizationSvc "jethur/grc/organization/services"
 	settingDTOs "jethur/grc/settings/dtos"
 	settinsSvc "jethur/grc/settings/services"
 	"jethur/utility"
+	"time"
 )
 
 type DocumentWorkflowServiceInterface interface {
 	SetDocumentAccessService(svc DocumentAccessServiceInterface)
+	SetDocumentService(svc DocumentServiceInterface)
+	GetDocumentWorkflowList(id uint) (*documentDTOs.DocumentVersionWorkflowListDTO, error)
 	CreateDocumentWorkflow(documentId uint, documentVersionId uint, documentTypeId uint, currentUserID uint, tx ...utility.DatabaseTransaction) error
 	UpdateDocumentWorkflow(documentWorkflow *models.DocumentWorkflow, tx ...utility.DatabaseTransaction) error
 	createWorkflowParticipant(userID uint, documentWorkflowID uint, participant *settingDTOs.WorkflowLevelParticipantDTO, currentUserID uint, tx ...utility.DatabaseTransaction) error
@@ -20,6 +26,10 @@ type DocumentWorkflowServiceInterface interface {
 	GetDocumentWorkflowByID(id uint, tx ...utility.DatabaseTransaction) (*models.DocumentWorkflow, error)
 	GetNextLevel(documentVersionID uint, currentLevel int, tx ...utility.DatabaseTransaction) (*models.DocumentWorkflow, error)
 	CheckAllParticipantsApproved(workflowID uint, workflowParticipants []*models.DocumentWorkflowParticipant) (bool, error)
+
+	DeleteDocumentWorkflowParticipants(participantIds []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteDocumentWorkflowReviews(reviewIds []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteDocumentWorkflows(workflowIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type DocumentWorkflowService struct {
@@ -29,6 +39,7 @@ type DocumentWorkflowService struct {
 	documentWorkflowStatusSvc DocumentWorkflowStatusServiceInterface
 	userSvc                   organizationSvc.UserServiceInterface
 	documentAccessSvc         DocumentAccessServiceInterface
+	documentSvc               DocumentServiceInterface
 }
 
 func NewDocumentWorkflowService(
@@ -49,6 +60,59 @@ func NewDocumentWorkflowService(
 
 func (dws *DocumentWorkflowService) SetDocumentAccessService(svc DocumentAccessServiceInterface) {
 	dws.documentAccessSvc = svc
+}
+
+func (dws *DocumentWorkflowService) SetDocumentService(svc DocumentServiceInterface) {
+	dws.documentSvc = svc
+}
+
+func (ds *DocumentWorkflowService) GetDocumentWorkflowList(id uint) (*documentDTOs.DocumentVersionWorkflowListDTO, error) {
+	document, err := ds.documentSvc.GetFullDetailsByID(id, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	documentVersion, err := ds.repo.GetWorkflowList(document.LatestDocumentVersion.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	dto := &documentDTOs.DocumentVersionWorkflowListDTO{
+		ID:                documentVersion.ID,
+		DocumentID:        documentVersion.DocumentID,
+		SubmittedAt:       documentVersion.SubmittedAt,
+		SubmittedByUser:   mapUserToDTO(documentVersion.SubmittedByUser),
+		DocumentWorkflows: []*documentDTOs.DocumentWorkflowListDTO{},
+	}
+
+	for _, workflow := range documentVersion.DocumentWorkflows {
+		workflowDTO := &documentDTOs.DocumentWorkflowListDTO{
+			Level:         workflow.Level,
+			ApprovalType:  workflow.ApprovalTypes,
+			CurrentStatus: mapStatusToDTO(workflow.DocumentWorkflowStatus),
+			ApprovedUsers: []*organizationDTOs.UserMinimalDTO{},
+			ReviewUsers:   []*organizationDTOs.UserMinimalDTO{},
+		}
+
+		var lastApprovedAt time.Time
+		for _, review := range workflow.DocumentWorkflowReviews {
+			userDTO := mapUserToDTO(review.CreatedByUser)
+			workflowDTO.ApprovedUsers = append(workflowDTO.ApprovedUsers, userDTO)
+			if review.CreatedAt.After(lastApprovedAt) {
+				lastApprovedAt = review.CreatedAt
+			}
+		}
+
+		for _, participant := range workflow.DocumentWorkflowParticipants {
+			userDTO := mapUserToDTO(participant.User)
+			workflowDTO.ReviewUsers = append(workflowDTO.ReviewUsers, userDTO)
+		}
+
+		workflowDTO.ApprovedAt = lastApprovedAt
+		dto.DocumentWorkflows = append(dto.DocumentWorkflows, workflowDTO)
+	}
+
+	return dto, nil
 }
 
 func (dws *DocumentWorkflowService) CreateDocumentWorkflow(documentId uint, documentVersionId uint, documentTypeId uint, currentUserID uint, tx ...utility.DatabaseTransaction) error {
@@ -209,4 +273,74 @@ func (dws *DocumentWorkflowService) CheckAllParticipantsApproved(workflowID uint
 	}
 
 	return true, nil
+}
+
+func (dws *DocumentWorkflowService) DeleteDocumentWorkflowParticipants(participantIds []*uint, tx ...utility.DatabaseTransaction) error {
+	if len(participantIds) == 0 {
+		return nil
+	}
+
+	err := dws.repo.DeleteDocumentWorkflowParticipants(participantIds, tx...)
+	if err != nil {
+		return fmt.Errorf("failed to delete document workflow participants: %w", err)
+	}
+
+	return nil
+}
+
+func (dws *DocumentWorkflowService) DeleteDocumentWorkflowReviews(reviewIds []*uint, tx ...utility.DatabaseTransaction) error {
+	if len(reviewIds) == 0 {
+		return nil
+	}
+
+	err := dws.repo.DeleteDocumentWorkflowReviews(reviewIds, tx...)
+	if err != nil {
+		return fmt.Errorf("failed to delete document workflow reviews: %w", err)
+	}
+
+	return nil
+}
+
+func (dws *DocumentWorkflowService) DeleteDocumentWorkflows(workflowIds []*uint, tx ...utility.DatabaseTransaction) error {
+	if len(workflowIds) == 0 {
+		return nil
+	}
+
+	err := dws.repo.DeleteDocumentWorkflows(workflowIds, tx...)
+	if err != nil {
+		return fmt.Errorf("failed to delete document workflows: %w", err)
+	}
+
+	return nil
+}
+
+func mapUserToDTO(user *models.User) *organizationDTOs.UserMinimalDTO {
+	if user == nil {
+		return &organizationDTOs.UserMinimalDTO{}
+	}
+	return &organizationDTOs.UserMinimalDTO{
+		ID:               int(user.ID),
+		FirstNameEN:      user.FirstNameEn,
+		LastNameEN:       user.LastNameEn,
+		FirstNameAR:      user.FirstNameAr,
+		LastNameAR:       user.LastNameAr,
+		ProfileImagePath: user.ProfileImagePath,
+		Email:            user.Email,
+		Initial:          user.Initial,
+		Color:            user.Color,
+	}
+}
+
+func mapStatusToDTO(status *models.DocumentWorkflowStatus) documentDTOs.DocumentStatusDTO {
+	if status == nil {
+		return documentDTOs.DocumentStatusDTO{}
+	}
+	return documentDTOs.DocumentStatusDTO{
+		ID:        int(status.ID),
+		Type:      status.Type,
+		TitleEn:   status.TitleEn,
+		TitleAr:   status.TitleAr,
+		ColorCode: status.ColorCode,
+		Status:    status.Status,
+	}
 }
