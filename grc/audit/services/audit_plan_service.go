@@ -21,7 +21,9 @@ type AuditPlanServiceInterface interface {
 	GetByID(id uint) (*models.AuditPlan, error)
 	Create(currentUserID uint, auditPlanFormDTO *auditDTOs.AuditPlanFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, auditPlanFormDTO *auditDTOs.AuditPlanFormDTO) error
+	Publish(id uint, currentUserID uint) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	StatusUpdate(id uint, currentUserID uint, auditStatusID uint, tx utility.DatabaseTransaction) error
 }
 
 type AuditPlanService struct {
@@ -113,7 +115,7 @@ func (aps *AuditPlanService) Create(currentUserID uint, auditPlanFormDTO *auditD
 	if err != nil {
 		return 0, err
 	}
-	auditStatus, err := aps.auditStatusSvc.GetByType("pending")
+	auditStatus, err := aps.auditStatusSvc.GetByType("draft")
 	if err != nil {
 		return 0, err
 	}
@@ -449,6 +451,76 @@ func (aps *AuditPlanService) Delete(ids []uint, currentUserID uint) ([]uint, err
 	}
 
 	return failedIDs, nil
+}
+
+func (aps *AuditPlanService) StatusUpdate(id uint, currentUserID uint, auditStatusID uint, tx utility.DatabaseTransaction) error {
+	existingAuditPlan, err := aps.GetByID(id)
+	if err != nil {
+		return err
+	}
+
+	existingAuditPlan.AuditStatusID =  auditStatusID
+	existingAuditPlan.UpdatedBYID = &currentUserID
+
+	err = aps.repo.Update(existingAuditPlan, tx)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (aps *AuditPlanService) Publish(id uint, currentUserID uint) error {
+	tx := aps.repo.BeginTransaction()
+	existingAuditPlan, err := aps.repo.GetByID(id)
+	if err != nil {
+		tx.Rollback()
+		return utility.NewResourceNotFoundError(err, id)
+	}
+	auditStatus, err := aps.auditStatusSvc.GetByType("published")
+	if err != nil {
+		return err
+	}
+	if existingAuditPlan.AuditStatusID == uint(auditStatus.ID) {
+		tx.Rollback()
+		return utility.NewForbiddenError("The audit draft report has already been published.")
+	}
+	existingAuditPlan.AuditStatusID = uint(auditStatus.ID)
+	existingAuditPlan.UpdatedBYID = &currentUserID
+
+	err = aps.repo.Update(existingAuditPlan, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+
+	go func() {
+		err := aps.activityLogSvc.LogActivity(
+			models.UpdateAction,
+			models.AuditPlan{}.TableName(),
+			id,
+			nil,
+			currentUserID,
+			nil,
+		)
+
+		if err != nil {
+			fields := map[string]interface{}{
+				"action":    models.UpdateAction,
+				"tableName": models.AuditPlan{}.TableName(),
+				"recordID":  id,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			}
+
+			utility.LogError("Failed to log activity", fields)
+		}
+	}()
+
+	return nil
 }
 
 func (aps *AuditPlanService) validateAuditPlanFormDTO(dto *auditDTOs.AuditPlanFormDTO) error {
