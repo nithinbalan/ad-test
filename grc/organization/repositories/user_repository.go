@@ -87,7 +87,8 @@ func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*us
 			roles_agg.roles_ar,
 			user_statuses.title_en AS user_status_title_en,
 			user_statuses.title_ar AS user_status_title_ar,
-			user_statuses.color_code AS user_status_color_code
+			user_statuses.color_code AS user_status_color_code,
+			user_statuses.is_active AS user_status_is_active
 		`).
 		Joins("INNER JOIN organization_units org1 ON org1.id = users.organization_unit_1_id").
 		Joins("LEFT JOIN organization_units org2 ON org2.id = users.organization_unit_2_id").

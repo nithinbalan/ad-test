@@ -336,3 +336,49 @@ func (cc *ControlController) GetControlsExport(c *gin.Context) {
 
 	cc.GetAllControls(c)
 }
+
+func (cc *ControlController) MarkControlAsApplicable(c *gin.Context) {
+
+	controlID, err := strconv.Atoi(c.Param("controlId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(cc.db, c, err.Error())
+		return
+	}
+
+	err = cc.service.MarkControlAsApplicable(uint(controlID), currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(nil, c, err.Error())
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (cc *ControlController) MarkControlAsNotApplicable(c *gin.Context) {
+
+	controlID, err := strconv.Atoi(c.Param("controlId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(cc.db, c, err.Error())
+		return
+	}
+
+	err = cc.service.MarkControlAsNotApplicable(uint(controlID), currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(nil, c, err.Error())
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
