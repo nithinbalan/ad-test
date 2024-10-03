@@ -15,6 +15,10 @@ type AuditDraftFinding struct {
 	SeverityLevelID           *uint      `json:"severity_level_id" gorm:"default:null"`
 	Recommendations           *string    `json:"recommendations" gorm:"type:nvarchar(MAX);default:null"`
 	AuditDraftFindingStatusID uint       `json:"audit_draft_finding_status_id" gorm:"not null"`
+	AcceptedBYID              *uint      `json:"accepted_by_id" gorm:"default:null"`
+	AcceptedAt                *time.Time `json:"accepted_at" gorm:"type:datetime;default:null"`
+	ChallengedBYID            *uint      `json:"challenged_by_id" gorm:"default:null"`
+	ChallengedAt              *time.Time `json:"challenged_at" gorm:"type:datetime;default:null"`
 	CreatedAt                 time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt                 *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 	CreatedBYID               uint       `json:"created_by_id" gorm:"not null"`
@@ -30,6 +34,8 @@ type AuditDraftFinding struct {
 	Documents                      []*AuditDraftFindingDocument     `gorm:"foreignKey:AuditDraftFindingID"`
 	AuditDraftFindingConversations []*AuditDraftFindingConversation `gorm:"foreignKey:AuditDraftFindingID"`
 	AuditDraftFindingActionPlans   []*AuditDraftFindingActionPlan   `gorm:"foreignKey:AuditDraftFindingID"`
+	AcceptedByUser                 *User                            `gorm:"foreignKey:AcceptedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
+	ChallengedByUser               *User                            `gorm:"foreignKey:ChallengedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
 	CreatedByUser                  *User                            `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
 	UpdatedByUser                  *User                            `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
 }

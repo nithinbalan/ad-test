@@ -81,7 +81,23 @@ func (repo *AuditDraftFindingRepository) GetAll(params *auditDTOs.AuditDraftFind
 			updated_user.initial AS updated_user_initial,
         	updated_user.color AS updated_user_color,
         	updated_user.email AS updated_user_email,
-        	updated_user.profile_image_path AS updated_user_profile_image_path
+        	updated_user.profile_image_path AS updated_user_profile_image_path,
+			accepted_user.first_name_en AS accepted_user_first_name_en,
+			accepted_user.first_name_ar AS accepted_user_first_name_ar,
+			accepted_user.last_name_en AS accepted_user_last_name_en,
+			accepted_user.last_name_ar AS accepted_user_last_name_ar,
+			accepted_user.initial AS accepted_user_initial,
+			accepted_user.color AS accepted_user_color,
+			accepted_user.email AS accepted_user_email,
+			accepted_user.profile_image_path AS accepted_user_profile_image_path,
+			challenged_user.first_name_en AS challenged_user_first_name_en,
+			challenged_user.first_name_ar AS challenged_user_first_name_ar,
+			challenged_user.last_name_en AS challenged_user_last_name_en,
+			challenged_user.last_name_ar AS challenged_user_last_name_ar,
+			challenged_user.initial AS challenged_user_initial,
+			challenged_user.color AS challenged_user_color,
+			challenged_user.email AS challenged_user_email,
+			challenged_user.profile_image_path AS challenged_user_profile_image_path
 		`).
 		Joins(`
 			LEFT JOIN audits ON audits.id = audit_draft_findings.audit_id
@@ -92,6 +108,8 @@ func (repo *AuditDraftFindingRepository) GetAll(params *auditDTOs.AuditDraftFind
 			LEFT JOIN audit_draft_finding_statuses ON audit_draft_finding_statuses.id = audit_draft_findings.audit_draft_finding_status_id
 			LEFT JOIN users AS created_user ON created_user.id = audit_draft_findings.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = audit_draft_findings.updated_by_id
+			LEFT JOIN users AS accepted_user ON accepted_user.id = audit_draft_findings.accepted_by_id
+			LEFT JOIN users AS challenged_user ON challenged_user.id = audit_draft_findings.challenged_by_id
 		`)
 
 	// Apply dynamic filters to the query
@@ -180,6 +198,8 @@ func (repo *AuditDraftFindingRepository) GetFullDetailsByID(id uint, tx ...utili
 		Preload("AuditChecklist").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
+		Preload("AcceptedByUser").
+		Preload("ChallengedByUser").
 		Preload("Documents").
 		First(&auditFinding, id)
 
