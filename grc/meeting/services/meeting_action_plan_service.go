@@ -3,6 +3,10 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
+	"time"
+
+	commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
@@ -10,8 +14,8 @@ import (
 	meetingRepositories "jethur/grc/meeting/repositories"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
+	taskServices "jethur/grc/task/services"
 	"jethur/utility"
-	"os"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -42,6 +46,7 @@ type MeetingActionPlanService struct {
 	meetingMinuteSvc       MeetingMinuteServiceInterface
 	meetingMinuteStatusSvc MeetingMinuteStatusServiceInterface
 	userSettingSvc         organizationServices.UserSettingServiceInterface
+	taskSvc                taskServices.TaskServiceInterface
 }
 
 func NewMeetingActionPlanService(
@@ -54,7 +59,9 @@ func NewMeetingActionPlanService(
 	notificationSvc commonServices.NotificationServiceInterface,
 	meetingMinuteSvc MeetingMinuteServiceInterface,
 	meetingMinuteStatusSvc MeetingMinuteStatusServiceInterface,
-	userSettingSvc organizationServices.UserSettingServiceInterface) MeetingActionPlanServiceInterface {
+	userSettingSvc organizationServices.UserSettingServiceInterface,
+	taskSvc taskServices.TaskServiceInterface,
+) MeetingActionPlanServiceInterface {
 	return &MeetingActionPlanService{
 		repo:                   repo,
 		activityLogSvc:         activityLogSvc,
@@ -66,6 +73,7 @@ func NewMeetingActionPlanService(
 		meetingMinuteSvc:       meetingMinuteSvc,
 		meetingMinuteStatusSvc: meetingMinuteStatusSvc,
 		userSettingSvc:         userSettingSvc,
+		taskSvc:                taskSvc,
 	}
 }
 
@@ -84,7 +92,6 @@ func (maps MeetingActionPlanService) GetByID(meetingID uint, id uint) (*models.M
 	}
 
 	meetingActionPlan, err := maps.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -102,7 +109,6 @@ func (maps MeetingActionPlanService) GetFullDetailsByID(meetingID uint, id uint)
 	}
 
 	meetingActionPlan, err := maps.repo.GetFullDetailsByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -115,7 +121,7 @@ func (maps MeetingActionPlanService) GetFullDetailsByID(meetingID uint, id uint)
 		return nil, err
 	}
 
-	//todo :- also add extra fields which required in details screen
+	// todo :- also add extra fields which required in details screen
 
 	return &meetingActionPlanDTO, nil
 }
@@ -123,7 +129,7 @@ func (maps MeetingActionPlanService) GetFullDetailsByID(meetingID uint, id uint)
 func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint, MeetingActionPlanFormDTO *meetingDTOs.MeetingActionPlanFormDTO) (uint, error) {
 	tx := maps.repo.BeginTransaction()
 
-	_, err := maps.meetingSvc.GetByID(meetingID)
+	meeting, err := maps.meetingSvc.GetByID(meetingID)
 	if err != nil {
 		return 0, err
 	}
@@ -143,6 +149,7 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 		Description:        MeetingActionPlanFormDTO.Description,
 		SeverityLevelID:    MeetingActionPlanFormDTO.SeverityLevelID,
 		ResponsibleUserID:  MeetingActionPlanFormDTO.ResponsibleUserID,
+		ReviewUserID:       MeetingActionPlanFormDTO.ReviewUserID,
 		MeetingMinuteID:    MeetingActionPlanFormDTO.MeetingMinuteID,
 		TargetDate:         dates.TargetDate,
 		Percentage:         *MeetingActionPlanFormDTO.Percentage,
@@ -177,6 +184,25 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 		tx.Rollback()
 		return 0, err
 	}
+
+	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+	taskDTO := commonDTOs.TaskFormDTO{
+		ModuleIdentifier:    "meeting",
+		MeetingActionPlanID: &id,
+		Title:               MeetingActionPlanFormDTO.Title,
+		Description:         MeetingActionPlanFormDTO.Description,
+		TargetDate:          dates.TargetDate,
+		URLParam:            &urlParam,
+		QueryParam:          nil,
+		SeverityLevelID:     MeetingActionPlanFormDTO.SeverityLevelID,
+		ResponsibleUserID:   MeetingActionPlanFormDTO.ResponsibleUserID,
+	}
+
+	if err := maps.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
 	tx.Commit()
 
 	go func() {
@@ -188,7 +214,6 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -200,6 +225,73 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 
 			utility.LogError("Failed to log activity", fields)
 		}
+
+		// prepare notification
+		urlParam := fmt.Sprintf(`{"id":%d}`, id)
+		entity := "meeting-action-plan"
+		action := "responsible-user-assign"
+
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserID:               MeetingActionPlanFormDTO.ResponsibleUserID,
+			ModuleIdentifier:     "meeting",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			HeadingEn:            "Meeting Action Plan Assignment",
+			HeadingAr:            "تعيين خطة عمل الاجتماع",
+			TitleEn:              MeetingActionPlanFormDTO.Title,
+			TitleAr:              MeetingActionPlanFormDTO.Title,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		responsibleUser, err := maps.userSvc.GetByID(MeetingActionPlanFormDTO.ResponsibleUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		assignedBy, err := maps.userSvc.GetByID(currentUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		emailTo := []string{responsibleUser.Email}
+		subject := fmt.Sprintf("Meeting Action Plan/%s: Responsibility Assigned", MeetingActionPlanFormDTO.Title)
+		appURL := utility.GetAppURL()
+		emailData := map[string]interface{}{
+			"FirstNameEn":            responsibleUser.FirstNameEn,
+			"LastNameEn":             responsibleUser.LastNameEn,
+			"MeetingReferenceNumber": meeting.ReferenceNumber,
+			"MeetingTitle":           meeting.Title,
+			"ActionPlanTitle":        MeetingActionPlanFormDTO.Title,
+			"ActionPlanDescription":  MeetingActionPlanFormDTO.Description,
+			"TargetDate":             dates.TargetDate.Format("2006-01-02"),
+			"AssignedByFirstNameEn":  assignedBy.FirstNameEn,
+			"AssignedByLastNameEn":   assignedBy.LastNameEn,
+			"AssignedOn":             time.Now().Format("2006-01-02"),
+			"RedirectURL":            fmt.Sprintf("%s/meeting-action-plan/%d", appURL, id),
+		}
+
+		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              emailTo,
+			Subject:              subject,
+			TemplateRelativePath: "meeting/templates/email/meeting_action_plan_create_responsible_user_mail.html",
+			EmailData:            emailData,
+		}
+
+		// send notification and mail
+		err = maps.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "meeting_action_plan")
+		if err != nil {
+			utility.LogError("Failed to send notifications", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
 	}()
 
 	return id, nil
@@ -208,15 +300,17 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUserID uint, MeetingActionPlanFormDTO *meetingDTOs.MeetingActionPlanFormDTO) error {
 	tx := maps.repo.BeginTransaction()
 
-	if _, err := maps.meetingSvc.GetByID(meetingID); err != nil {
+	meeting, err := maps.meetingSvc.GetByID(meetingID)
+	if err != nil {
 		return err
 	}
 
 	existingMeetingActionPlan, err := maps.GetByID(meetingID, id)
-
 	if err != nil {
 		return err
 	}
+
+	oldResponsibleUserID := existingMeetingActionPlan.ResponsibleUserID
 
 	if err := maps.validateMeetingActionPlanFormDTO(MeetingActionPlanFormDTO); err != nil {
 		return err
@@ -232,6 +326,7 @@ func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUse
 	existingMeetingActionPlan.Description = MeetingActionPlanFormDTO.Description
 	existingMeetingActionPlan.SeverityLevelID = MeetingActionPlanFormDTO.SeverityLevelID
 	existingMeetingActionPlan.ResponsibleUserID = MeetingActionPlanFormDTO.ResponsibleUserID
+	existingMeetingActionPlan.ReviewUserID = MeetingActionPlanFormDTO.ReviewUserID
 	existingMeetingActionPlan.TargetDate = dates.TargetDate
 	existingMeetingActionPlan.Percentage = *MeetingActionPlanFormDTO.Percentage
 	existingMeetingActionPlan.ActionPlanStatusID = MeetingActionPlanFormDTO.ActionPlanStatusID
@@ -239,11 +334,156 @@ func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUse
 	existingMeetingActionPlan.UpdatedByID = &currentUserID
 
 	err = maps.repo.Update(existingMeetingActionPlan)
-
 	if err != nil {
 		return err
 	}
+
+	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+	taskUpdateDTO := commonDTOs.TaskFormDTO{
+		Title:             MeetingActionPlanFormDTO.Title,
+		Description:       MeetingActionPlanFormDTO.Description,
+		TargetDate:        dates.TargetDate,
+		URLParam:          &urlParam,
+		SeverityLevelID:   MeetingActionPlanFormDTO.SeverityLevelID,
+		ResponsibleUserID: MeetingActionPlanFormDTO.ResponsibleUserID,
+	}
+
+	err = maps.taskSvc.Update(currentUserID, taskUpdateDTO, "meeting_action_plan_id", id, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	tx.Commit()
+
+	go func() {
+		// send notification if responsible user changed
+		if oldResponsibleUserID != existingMeetingActionPlan.ResponsibleUserID {
+			urlParam := fmt.Sprintf(`{"id":%d}`, id)
+			entity := "meeting-action-plan"
+
+			oldResponsibleUserAction := "responsible-user-remove"
+			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserID:               oldResponsibleUserID,
+				ModuleIdentifier:     "meeting",
+				NotificationType:     string(commonDTOs.AssignmentType),
+				HeadingEn:            "Meeting Action Plan Assignment",
+				HeadingAr:            "تعيين خطة عمل الاجتماع",
+				TitleEn:              existingMeetingActionPlan.Title,
+				TitleAr:              existingMeetingActionPlan.Title,
+				Entity:               &entity,
+				Action:               &oldResponsibleUserAction,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			newResponsibleUserAction := "responsible-user-assign"
+			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserID:               MeetingActionPlanFormDTO.ResponsibleUserID,
+				ModuleIdentifier:     "meeting",
+				NotificationType:     string(commonDTOs.AssignmentType),
+				HeadingEn:            "Meeting Action Plan Assignment",
+				HeadingAr:            "تعيين خطة عمل الاجتماع",
+				TitleEn:              existingMeetingActionPlan.Title,
+				TitleAr:              existingMeetingActionPlan.Title,
+				Entity:               &entity,
+				Action:               &newResponsibleUserAction,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			oldResponsibleUser, err := maps.userSvc.GetByID(oldResponsibleUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch old responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			newResponsibleUser, err := maps.userSvc.GetByID(MeetingActionPlanFormDTO.ResponsibleUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch new responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			assignedBy, err := maps.userSvc.GetByID(currentUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			appURL := utility.GetAppURL()
+
+			oldResponsibleUserEmailTo := []string{oldResponsibleUser.Email}
+			oldResponsibleUserSubject := fmt.Sprintf("Meeting Action Plan/%s: Responsibility Removed", existingMeetingActionPlan.Title)
+			oldResponsibleUserTemplateRelativePath := "meeting/templates/email/meeting_action_plan_remove_responsible_user_mail.html"
+			oldResponsibleUserEmailData := map[string]interface{}{
+				"FirstNameEn":            oldResponsibleUser.FirstNameEn,
+				"LastNameEn":             oldResponsibleUser.LastNameEn,
+				"MeetingReferenceNumber": meeting.ReferenceNumber,
+				"MeetingTitle":           meeting.Title,
+				"ActionPlanTitle":        existingMeetingActionPlan.Title,
+				"ActionPlanDescription":  existingMeetingActionPlan.Description,
+				"RedirectURL":            fmt.Sprintf("%s/meeting-action-plan/%d", appURL, id),
+			}
+
+			oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              oldResponsibleUserEmailTo,
+				Subject:              oldResponsibleUserSubject,
+				TemplateRelativePath: oldResponsibleUserTemplateRelativePath,
+				EmailData:            oldResponsibleUserEmailData,
+			}
+
+			newResponsibleUserEmailTo := []string{newResponsibleUser.Email}
+			newResponsibleUserSubject := fmt.Sprintf("Meeting Action Plan/%s: Responsibility Assigned", existingMeetingActionPlan.Title)
+			newResponsibleUserTemplateRelativePath := "meeting/templates/email/meeting_action_plan_change_responsible_user_mail.html"
+			newResponsibleUserEmailData := map[string]interface{}{
+				"FirstNameEn":            newResponsibleUser.FirstNameEn,
+				"LastNameEn":             newResponsibleUser.LastNameEn,
+				"MeetingReferenceNumber": meeting.ReferenceNumber,
+				"MeetingTitle":           meeting.Title,
+				"ActionPlanTitle":        existingMeetingActionPlan.Title,
+				"ActionPlanDescription":  existingMeetingActionPlan.Description,
+				"TargetDate":             existingMeetingActionPlan.TargetDate.Format("2006-01-02"),
+				"AssignedByFirstNameEn":  assignedBy.FirstNameEn,
+				"AssignedByLastNameEn":   assignedBy.LastNameEn,
+				"AssignedOn":             time.Now().Format("2006-01-02"),
+				"RedirectURL":            fmt.Sprintf("%s/meeting-action-plan/%d", appURL, id),
+			}
+
+			newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              newResponsibleUserEmailTo,
+				Subject:              newResponsibleUserSubject,
+				TemplateRelativePath: newResponsibleUserTemplateRelativePath,
+				EmailData:            newResponsibleUserEmailData,
+			}
+
+			err = maps.notificationSvc.SendNotification(
+				newResponsibleUserNotificationDTO, newResponsibleUserEmailNotificationDTO, "meeting_action_plan",
+			)
+			if err != nil {
+				utility.LogError("Failed to send new responsible user notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+
+			err = maps.notificationSvc.SendNotification(
+				oldResponsibleUserNotificationDTO, oldResponsibleUserEmailNotificationDTO, "meeting_action_plan",
+			)
+			if err != nil {
+				utility.LogError("Failed to send old responsible user notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+
+		}
+	}()
 
 	return nil
 }
@@ -251,19 +491,56 @@ func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUse
 func (maps *MeetingActionPlanService) Delete(meetingID uint, ids []uint, currentUserID uint) ([]uint, error) {
 	tx := maps.repo.BeginTransaction()
 
-	if _, err := maps.meetingSvc.GetByID(meetingID); err != nil {
+	meeting, err := maps.meetingSvc.GetByID(meetingID)
+	if err != nil {
 		return nil, err
 	}
 
 	var failedIds []uint
 	var successfulIds []uint
+	var notifications []struct {
+		OwnerID         *uint
+		TitleEn         string
+		TitleAr         string
+		Description     string
+		ReferenceNumber string
+		MeetingTitle    string
+	}
+
 	for _, id := range ids {
-
-		meetingActionPlan, err := maps.GetFullDetailsByID(meetingID, id)
-
+		meetingActionPlan, err := maps.repo.GetFullDetailsByID(id)
 		if err != nil {
 			continue
 		}
+
+		// Prepare notification data before deletion
+		notifications = append(notifications, struct {
+			OwnerID         *uint
+			TitleEn         string
+			TitleAr         string
+			Description     string
+			ReferenceNumber string
+			MeetingTitle    string
+		}{
+			OwnerID:         &meetingActionPlan.ResponsibleUserID,
+			TitleEn:         meetingActionPlan.Title,
+			TitleAr:         meetingActionPlan.Title,
+			Description:     *meetingActionPlan.Description,
+			ReferenceNumber: meeting.ReferenceNumber,
+			MeetingTitle:    meeting.Title,
+		})
+
+		existingTask, err := maps.taskSvc.GetByFieldID("meeting_action_plan_id", id)
+		if err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+
+		taskID, err := maps.taskSvc.Delete(existingTask.ID, currentUserID)
+		if err != nil {
+			failedIds = append(failedIds, taskID)
+		}
+
 		if len(meetingActionPlan.ActionPlanStatusUpdates) > 0 {
 			var deleteStatusUpdateIds []*uint
 			for _, update := range meetingActionPlan.ActionPlanStatusUpdates {
@@ -299,10 +576,67 @@ func (maps *MeetingActionPlanService) Delete(meetingID uint, ids []uint, current
 				// @todo - save to log file
 				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
 			}
+
+			for _, notification := range notifications {
+				urlParam := ""
+				entity := "meeting-action-plan"
+				action := "delete"
+
+				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+					UserID:               *notification.OwnerID,
+					ModuleIdentifier:     "meeting",
+					NotificationType:     string(commonDTOs.DeletionType),
+					HeadingEn:            "Meeting Action Plan Deletion",
+					HeadingAr:            "حذف خطة عمل الاجتماع",
+					TitleEn:              notification.TitleEn,
+					TitleAr:              notification.TitleAr,
+					Entity:               &entity,
+					Action:               &action,
+					URLParam:             urlParam,
+					IsSystemNotification: false,
+					CreatedByID:          &currentUserID,
+				}
+
+				ownerUser, err := maps.userSvc.GetByID(*notification.OwnerID)
+				if err != nil {
+					utility.LogError("Failed to fetch owner details for notification", map[string]interface{}{
+						"error": err.Error(),
+					})
+					continue
+				}
+
+				ownerEmailTo := []string{ownerUser.Email}
+				subject := fmt.Sprintf("Meeting Action Plan/%s: Deleted", notification.TitleEn)
+				templateRelativePath := "meeting/templates/email/meeting_action_plan_delete_mail.html"
+
+				emailData := map[string]interface{}{
+					"FirstNameEn":            ownerUser.FirstNameEn,
+					"LastNameEn":             ownerUser.LastNameEn,
+					"MeetingReferenceNumber": notification.ReferenceNumber,
+					"MeetingTitle":           notification.MeetingTitle,
+					"ActionPlanTitle":        notification.TitleEn,
+					"ActionPlanDescription":  notification.Description,
+				}
+
+				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+					EmailTo:              ownerEmailTo,
+					Subject:              subject,
+					TemplateRelativePath: templateRelativePath,
+					EmailData:            emailData,
+				}
+
+				err = maps.notificationSvc.SendNotification(
+					dbNotificationDTO, emailNotificationDTO, "meeting_action_plan")
+				if err != nil {
+					utility.LogError("Failed to send deletion notifications", map[string]interface{}{
+						"error": err.Error(),
+					})
+				}
+
+			}
 		}()
 	} else {
 		tx.Rollback()
-
 	}
 
 	return failedIds, nil
@@ -310,7 +644,6 @@ func (maps *MeetingActionPlanService) Delete(meetingID uint, ids []uint, current
 
 func (maps *MeetingActionPlanService) StatusUpdate(meetingID uint, id uint, currentUserID uint, meetingActionPlanStatusUpdateFormDTO *meetingDTOs.MeetingActionPlanStatusUpdateFormDTO, tx ...utility.DatabaseTransaction) error {
 	existingMeetingActionPlan, err := maps.GetByID(meetingID, id)
-
 	if err != nil {
 		return err
 	}
@@ -322,7 +655,18 @@ func (maps *MeetingActionPlanService) StatusUpdate(meetingID uint, id uint, curr
 	existingMeetingActionPlan.UpdatedByID = &currentUserID
 
 	err = maps.repo.Update(existingMeetingActionPlan, tx...)
+	if err != nil {
+		return err
+	}
 
+	isReviewUserNull := existingMeetingActionPlan.ReviewUserID == nil
+
+	// Fetch the corresponding task and update its status
+	existingTask, err := maps.taskSvc.GetByFieldID("meeting_action_plan_id", id)
+	if err != nil {
+		return err
+	}
+	err = maps.taskSvc.UpdateStatus(currentUserID, existingTask.ID, meetingActionPlanStatusUpdateFormDTO.ActionPlanStatusID, isReviewUserNull, tx...)
 	if err != nil {
 		return err
 	}

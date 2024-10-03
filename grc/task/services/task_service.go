@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+
 	commonDTOs "jethur/grc/common/dtos"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
@@ -35,11 +36,14 @@ type TaskService struct {
 func NewTaskService(repo repositories.TaskRepositoryInteface,
 	taskStatusSvc TaskStatusServiceInterface,
 	moduleSvc settingService.ModuleServiceInterface,
-	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface) TaskServiceInterface {
-	return &TaskService{repo: repo,
+	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
+) TaskServiceInterface {
+	return &TaskService{
+		repo:                repo,
 		taskStatusSvc:       taskStatusSvc,
 		moduleSvc:           moduleSvc,
-		actionPlanStatusSvc: actionPlanStatusSvc}
+		actionPlanStatusSvc: actionPlanStatusSvc,
+	}
 }
 
 func (ts *TaskService) GetAll(params *taskDTOs.TaskListQueryParamsDTO) (*taskDTOs.TaskListResponseDTO, error) {
@@ -48,7 +52,6 @@ func (ts *TaskService) GetAll(params *taskDTOs.TaskListQueryParamsDTO) (*taskDTO
 
 func (ts TaskService) GetByID(id uint) (*models.Task, error) {
 	task, err := ts.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -60,7 +63,6 @@ func (ts TaskService) GetByID(id uint) (*models.Task, error) {
 
 func (ts TaskService) GetByFieldID(field string, value interface{}) (*models.Task, error) {
 	task, err := ts.repo.GetByFieldID(field, value)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, value)
@@ -91,6 +93,7 @@ func (ts *TaskService) Create(taskDTO commonDTOs.TaskFormDTO, currentUserID uint
 		IncidentActionPlanID:     taskDTO.IncidentActionPlanID,
 		ControlActionPlanID:      taskDTO.ControlActionPlanID,
 		RiskActionPlanID:         taskDTO.RiskActionPlanID,
+		MeetingActionPlanID:      taskDTO.MeetingActionPlanID,
 		AuditFindingActionPlanID: taskDTO.AuditFindingActionPlanID,
 		Title:                    taskDTO.Title,
 		Description:              taskDTO.Description,
@@ -103,7 +106,6 @@ func (ts *TaskService) Create(taskDTO commonDTOs.TaskFormDTO, currentUserID uint
 		CreatedByID:              currentUserID,
 	}
 	return ts.repo.Create(task, tx...)
-
 }
 
 func (ts *TaskService) Update(currentUserID uint, taskDTO commonDTOs.TaskFormDTO, fieldName string, id uint, tx ...utility.DatabaseTransaction) error {
