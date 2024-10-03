@@ -5,6 +5,10 @@
 ALTER TABLE tasks
 ADD risk_action_plan_id INT NULL;
 
+-- Add the new meeting_action_plan_id column
+ALTER TABLE tasks
+ADD meeting_action_plan_id INT NULL;
+
 -- Remove the existing url column
 ALTER TABLE tasks
 DROP COLUMN url;
@@ -22,6 +26,10 @@ ADD url_param NVARCHAR(MAX) NULL,
 -- Remove the risk_action_plan_id column
 ALTER TABLE tasks
 DROP COLUMN risk_action_plan_id;
+
+-- Remove the meeting_action_plan_id column
+ALTER TABLE tasks
+DROP COLUMN meeting_action_plan_id;
 
 -- Add the url column back
 ALTER TABLE tasks
