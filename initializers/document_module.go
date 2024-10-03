@@ -31,7 +31,9 @@ func NewDocumentModule(db *gorm.DB,
 	sharedModule *SharedModule,
 	settingsModule *SettingsModule,
 	masterModule *MasterModule,
-	organizationModule *OrganizationModule) *DocumentModule {
+	organizationModule *OrganizationModule,
+	taskModule *TaskModule,
+	commonModule *CommonModule) *DocumentModule {
 
 	documentCategoryRepo := repositories.NewDocumentCategoryRepository(db)
 	documentCategorySvc := services.NewDocumentCategoryService(documentCategoryRepo, sharedModule.ActivityLogService)
@@ -83,7 +85,9 @@ func NewDocumentModule(db *gorm.DB,
 		documentWorkflowStatusSvc,
 		sharedModule.ActivityLogService,
 		documentAuditLogSvc,
-		organizationModule.UserSettingSvc)
+		organizationModule.UserSettingSvc,
+		taskModule.TaskService,
+		commonModule.NotificationService)
 
 	documentSvc.SetDocumentWorkflowService(documentWorkflowSvc)
 

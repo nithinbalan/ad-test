@@ -39,6 +39,7 @@ const (
 	EscalationType     NotificationType = "escalation"
 	DeadlineType       NotificationType = "deadline"
 	ApprovalType       NotificationType = "approval"
+	ReviewType         NotificationType = "review"
 	ConfirmationType   NotificationType = "confirmation"
 	ErrorType          NotificationType = "error"
 )

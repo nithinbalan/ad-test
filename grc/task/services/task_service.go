@@ -91,6 +91,7 @@ func (ts *TaskService) Create(taskDTO commonDTOs.TaskFormDTO, currentUserID uint
 		IncidentActionPlanID:   taskDTO.IncidentActionPlanID,
 		ControlActionPlanID:    taskDTO.ControlActionPlanID,
 		RiskActionPlanID:       taskDTO.RiskActionPlanID,
+		DocumentID:             taskDTO.DocumentID,
 		Title:                  taskDTO.Title,
 		Description:            taskDTO.Description,
 		TargetDate:             taskDTO.TargetDate,

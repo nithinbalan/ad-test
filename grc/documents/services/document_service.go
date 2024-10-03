@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"jethur/config"
 	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	documentDTOs "jethur/grc/documents/dtos"
 	"jethur/grc/documents/repositories"
 	"jethur/grc/logs/services"
@@ -12,6 +13,7 @@ import (
 	organizationDTOs "jethur/grc/organization/dtos"
 	organizationSvc "jethur/grc/organization/services"
 	settinsSvc "jethur/grc/settings/services"
+	taskServices "jethur/grc/task/services"
 	"jethur/utility"
 	"log"
 	"os"
@@ -71,6 +73,8 @@ type DocumentService struct {
 	documentAuditLogSvc       DocumentAuditLogServiceInterface
 	userSettingSvc            organizationSvc.UserSettingServiceInterface
 	documentAccessSvc         DocumentAccessServiceInterface
+	taskSvc                   taskServices.TaskServiceInterface
+	notificationSvc           commonServices.NotificationServiceInterface
 }
 
 func NewDocumentService(
@@ -86,6 +90,8 @@ func NewDocumentService(
 	activityLogSvc services.ActivityLogServiceInterface,
 	documentAuditLogSvc DocumentAuditLogServiceInterface,
 	userSettingSvc organizationSvc.UserSettingServiceInterface,
+	taskSvc taskServices.TaskServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
 ) DocumentServiceInterface {
 	return &DocumentService{
 		repo:                      repo,
@@ -100,6 +106,8 @@ func NewDocumentService(
 		activityLogSvc:            activityLogSvc,
 		documentAuditLogSvc:       documentAuditLogSvc,
 		userSettingSvc:            userSettingSvc,
+		taskSvc:                   taskSvc,
+		notificationSvc:           notificationSvc,
 	}
 }
 
@@ -1012,10 +1020,102 @@ func (ds *DocumentService) SubmitDocument(id uint, currentUserID uint) error {
 		return err
 	}
 
+	// Fetch the workflow level details, including participants (review users)
+	docWorkflowLevel, err := ds.documentWorkflowSvc.GetDocumentWorkflowByLevel(document.LatestDocumentVersion.ID, level, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+
+	for _, participant := range docWorkflowLevel.DocumentWorkflowParticipants {
+		taskDTO := commonDTOs.TaskFormDTO{
+			ModuleIdentifier:  "document",
+			DocumentID:        &id,
+			Title:             existingDocument.TitleEn,
+			URLParam:          &urlParam,
+			QueryParam:        nil,
+			ResponsibleUserID: participant.User.ID,
+		}
+
+		if err := ds.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+
+	}
 	tx.Commit()
 
 	//to do
 	//activity log
+
+	// Prepare notification
+	go func() {
+		urlParam = fmt.Sprintf(`{"id":%d}`, id)
+		entity := "document"
+		action := "review-user-assign"
+
+		for _, participant := range docWorkflowLevel.DocumentWorkflowParticipants {
+			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserID:               participant.User.ID,
+				ModuleIdentifier:     "document",
+				NotificationType:     string(commonDTOs.ReviewType),
+				HeadingEn:            "Document Review",
+				HeadingAr:            "مراجعة الوثيقة",
+				TitleEn:              existingDocument.TitleEn,
+				TitleAr:              existingDocument.TitleAr,
+				Entity:               &entity,
+				Action:               &action,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			responsibleUser, err := ds.userSvc.GetByID(participant.User.ID)
+			if err != nil {
+				utility.LogError("Failed to fetch review user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			assignedBy, err := ds.userSvc.GetByID(currentUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			emailTo := []string{responsibleUser.Email}
+			subject := fmt.Sprintf("Document/%s: Review Assigned", existingDocument.TitleEn)
+			appURL := utility.GetAppURL()
+			emailData := map[string]interface{}{
+				"FirstNameEn":           responsibleUser.FirstNameEn,
+				"LastNameEn":            responsibleUser.LastNameEn,
+				"DocumentTitle":         existingDocument.TitleEn,
+				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
+				"AssignedByLastNameEn":  assignedBy.LastNameEn,
+				"AssignedOn":            time.Now().Format("2006-01-02"),
+				"RedirectURL":           fmt.Sprintf("%s/documents/%d", appURL, id),
+			}
+
+			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              emailTo,
+				Subject:              subject,
+				TemplateRelativePath: "document/templates/email/document_workflow_review_user_mail.html",
+				EmailData:            emailData,
+			}
+
+			// Send Notification and Email
+			err = ds.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "document")
+			if err != nil {
+				utility.LogError("Failed to send notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+		}
+	}()
 
 	return nil
 }
