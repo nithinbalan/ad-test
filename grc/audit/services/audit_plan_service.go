@@ -7,6 +7,7 @@ import (
 	"jethur/grc/audit/repositories"
 	logServices "jethur/grc/logs/services"
 	organizationServices "jethur/grc/organization/services"
+	"time"
 
 	"jethur/grc/models"
 	"jethur/utility"
@@ -93,7 +94,9 @@ func (aps *AuditPlanService) GetFullDetailsByID(id uint, tx ...utility.DatabaseT
 	if auditPlan.TargetDate != nil {
 		auditPlanDTO.TargetDateString = auditPlan.TargetDate.Format("2006-01-02")
 	}
-
+	if auditPlan.PublishedAt != nil {
+		auditPlanDTO.PublishedDateString = auditPlan.PublishedAt.Format("2006-01-02")
+	}
 	auditPlanDTO.CreatedAt = auditPlan.CreatedAt
 	auditPlanDTO.UpdatedAt = auditPlan.UpdatedAt
 
@@ -458,7 +461,9 @@ func (aps *AuditPlanService) StatusUpdate(id uint, currentUserID uint, auditStat
 	if err != nil {
 		return err
 	}
-
+	now := time.Now()
+	
+	existingAuditPlan.UpdatedAt = &now
 	existingAuditPlan.AuditStatusID =  auditStatusID
 	existingAuditPlan.UpdatedBYID = &currentUserID
 
@@ -486,8 +491,11 @@ func (aps *AuditPlanService) Publish(id uint, currentUserID uint) error {
 		tx.Rollback()
 		return utility.NewForbiddenError("The audit draft report has already been published.")
 	}
+	now := time.Now()
+	
+	existingAuditPlan.PublishedAt = &now
 	existingAuditPlan.AuditStatusID = uint(auditStatus.ID)
-	existingAuditPlan.UpdatedBYID = &currentUserID
+	existingAuditPlan.PublishedBYID = &currentUserID
 
 	err = aps.repo.Update(existingAuditPlan, tx)
 	if err != nil {
