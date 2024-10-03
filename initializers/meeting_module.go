@@ -27,8 +27,8 @@ type MeetingModule struct {
 	MeetingMinuteStatusSvc services.MeetingMinuteStatusServiceInterface
 }
 
-func NewMeetingModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, masterModule *MasterModule, commonModule *CommonModule, complianceModule *ComplianceModule, riskModule *RiskModule, incidentModule *IncidentModule) *MeetingModule {
-	//Meeting Frequency
+func NewMeetingModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, masterModule *MasterModule, commonModule *CommonModule, complianceModule *ComplianceModule, riskModule *RiskModule, incidentModule *IncidentModule, taskModule *TaskModule) *MeetingModule {
+	// Meeting Frequency
 	meetingFrequencyRepo := repositories.NewMeetingFrequencyRepository(db)
 	meetingFrequencySvc := services.NewMeetingFrequencyService(meetingFrequencyRepo)
 	meetingFrequencyController := controllers.NewMeetingFrequencyController(meetingFrequencySvc)
@@ -70,7 +70,7 @@ func NewMeetingModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 	meetingMinuteController := controllers.NewMeetingMinuteController(meetingMinuteSvc)
 
 	meetingActionPlanRepo := repositories.NewMeetingActionPlanRepository(db)
-	meetingActionPlanSvc := services.NewMeetingActionPlanService(meetingActionPlanRepo, sharedModule.ActivityLogService, meetingSvc, masterModule.SeverityLevelSvc, masterModule.ActionPlanStatusSvc, organizationModule.UserSvc, commonModule.NotificationService, meetingMinuteSvc, meetingMinuteStatusSvc, organizationModule.UserSettingSvc)
+	meetingActionPlanSvc := services.NewMeetingActionPlanService(meetingActionPlanRepo, sharedModule.ActivityLogService, meetingSvc, masterModule.SeverityLevelSvc, masterModule.ActionPlanStatusSvc, organizationModule.UserSvc, commonModule.NotificationService, meetingMinuteSvc, meetingMinuteStatusSvc, organizationModule.UserSettingSvc, taskModule.TaskService)
 	meetingActionPlanController := controllers.NewMeetingActionPlanController(meetingActionPlanSvc)
 
 	meetingActionPlanStatusUpdateRepo := repositories.NewMeetingActionPlanStatusUpdateRepository(db)

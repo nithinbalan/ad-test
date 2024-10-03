@@ -1,11 +1,11 @@
 package dtos
 
 import (
+	"time"
+
 	commonDTOs "jethur/grc/common/dtos"
 	masterDTOs "jethur/grc/masters/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
-
-	"time"
 )
 
 type MeetingActionPlanListDTO struct {
@@ -95,6 +95,7 @@ type MeetingActionPlanDetailDTO struct {
 	Title                   string                              `json:"title"`
 	Description             string                              `json:"description"`
 	SeverityLevel           *masterDTOs.SeverityLevelDTO        `json:"severity_level"`
+	ResponsibleUserID       uint                                `json:"responsible_user_id"`
 	ResponsibleUser         organizationDTOs.UserMinimalDTO     `json:"responsible_user"`
 	ActionPlanStatus        masterDTOs.ActionPlanStatusDTO      `json:"action_plan_status"`
 	MeetingMinute           *MeetingMinuteDetailDTO             `json:"meeting_minute"`
