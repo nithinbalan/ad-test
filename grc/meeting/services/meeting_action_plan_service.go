@@ -149,6 +149,7 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 		Description:        MeetingActionPlanFormDTO.Description,
 		SeverityLevelID:    MeetingActionPlanFormDTO.SeverityLevelID,
 		ResponsibleUserID:  MeetingActionPlanFormDTO.ResponsibleUserID,
+		ReviewUserID:       MeetingActionPlanFormDTO.ReviewUserID,
 		MeetingMinuteID:    MeetingActionPlanFormDTO.MeetingMinuteID,
 		TargetDate:         dates.TargetDate,
 		Percentage:         *MeetingActionPlanFormDTO.Percentage,
@@ -325,6 +326,7 @@ func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUse
 	existingMeetingActionPlan.Description = MeetingActionPlanFormDTO.Description
 	existingMeetingActionPlan.SeverityLevelID = MeetingActionPlanFormDTO.SeverityLevelID
 	existingMeetingActionPlan.ResponsibleUserID = MeetingActionPlanFormDTO.ResponsibleUserID
+	existingMeetingActionPlan.ReviewUserID = MeetingActionPlanFormDTO.ReviewUserID
 	existingMeetingActionPlan.TargetDate = dates.TargetDate
 	existingMeetingActionPlan.Percentage = *MeetingActionPlanFormDTO.Percentage
 	existingMeetingActionPlan.ActionPlanStatusID = MeetingActionPlanFormDTO.ActionPlanStatusID
@@ -653,6 +655,18 @@ func (maps *MeetingActionPlanService) StatusUpdate(meetingID uint, id uint, curr
 	existingMeetingActionPlan.UpdatedByID = &currentUserID
 
 	err = maps.repo.Update(existingMeetingActionPlan, tx...)
+	if err != nil {
+		return err
+	}
+
+	isReviewUserNull := existingMeetingActionPlan.ReviewUserID == nil
+
+	// Fetch the corresponding task and update its status
+	existingTask, err := maps.taskSvc.GetByFieldID("meeting_action_plan_id", id)
+	if err != nil {
+		return err
+	}
+	err = maps.taskSvc.UpdateStatus(currentUserID, existingTask.ID, meetingActionPlanStatusUpdateFormDTO.ActionPlanStatusID, isReviewUserNull, tx...)
 	if err != nil {
 		return err
 	}
