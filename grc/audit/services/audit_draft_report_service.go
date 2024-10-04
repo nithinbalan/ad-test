@@ -22,6 +22,7 @@ import (
 type AuditDraftReportServiceInterface interface {
 	GetFullDetailsByID(auditID uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditDraftReportDetailDTO, error)
 	GetByID(id uint) (*models.AuditDraftReport, error)
+	GetByAuditID(auditID uint) (*models.AuditDraftReport, error) //used in auditInsights
 	Create(auditID uint, currentUserID uint, auditDraftReportFormDTO *auditDTOs.AuditDraftReportFormDTO) (uint, error)
 	Update(auditID uint, id uint, currentUserID uint, auditDraftReportFormDTO *auditDTOs.AuditDraftReportFormDTO) error
 	Submit(auditID uint, id uint, currentUserID uint) error
@@ -55,6 +56,17 @@ func (adrs *AuditDraftReportService) GetByID(id uint) (*models.AuditDraftReport,
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+	return auditDraftReport, nil
+}
+
+func (adrs *AuditDraftReportService) GetByAuditID(auditID uint) (*models.AuditDraftReport, error) {
+	auditDraftReport, err := adrs.repo.GetByAuditID(auditID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, auditID)
 		}
 		return nil, err
 	}
