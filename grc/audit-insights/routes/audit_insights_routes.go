@@ -18,7 +18,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditInsightsDocumentRequestController := app.AuditInsightsModule.AuditInsightsDocumentRequestController
 	auditInsightsDocumentRequestConversationController := app.AuditInsightsModule.AuditInsightsDocumentRequestConversationController
 	auditInsightsDraftReportController := app.AuditInsightsModule.AuditInsightsDraftReportController
-	auditDraftFindingController := app.AuditInsightsModule.AuditDraftFindingController
+	auditDraftFindingController := app.AuditInsightsModule.AuditInsightsDraftFindingController
 
 	// Audit Insights Audit plans
 	auditInsightsRoutes.GET("/audit-insights/audit-plans", auditInsightsAuditPlanController.GetAllAuditInsightsAuditPlans)
@@ -42,8 +42,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditInsightsRoutes.GET("/audit-insights/draft-reports/:id", auditInsightsDraftReportController.GetAuditInsightsDraftReportDetails)
 
 	//Audit Insights Draft Findings
-	auditInsightsRoutes.GET("/audit-insights/audit-draft-findings/:findingId/accept", auditDraftFindingController.GetAllAuditDraftFindingAccept)
-	auditInsightsRoutes.GET("/audit-insights/audit-draft-findings/:findingId/challenge", auditDraftFindingController.GetAllAuditDraftFindingChallenge)
+	auditInsightsRoutes.POST("/audit-insights/audit-draft-findings/:findingId/accept", auditDraftFindingController.AcceptAuditDraftFinding)
+	auditInsightsRoutes.POST("/audit-insights/audit-draft-findings/:findingId/challenge", auditDraftFindingController.ChallengeAuditDraftFinding)
 
 
 }

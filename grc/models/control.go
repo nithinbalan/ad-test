@@ -36,19 +36,8 @@ type Control struct {
 	LastReviewedUserID            *uint      `json:"last_reviewed_user_id" gorm:"default:null"`
 	ControlReviewStatusID         *uint      `json:"control_review_status_id" gorm:"default:null"`
 	MarkedAsAuditableItem         bool       `json:"marked_as_auditable_item" gorm:"default:false" binding:"-"`
-<<<<<<< HEAD
 	RiskMatrixRiskRatingID        *uint      `json:"risk_matrix_risk_rating_id" gorm:"default:null"`
 	RiskMatrixRiskRatingValueID   *uint      `json:"risk_matrix_risk_rating_value_id" gorm:"default:null"`
-	IsApplicable                  bool       `json:"is_applicable" gorm:"default:false" binding:"required"`
-	Justification                 *string    `json:"justification,omitempty" gorm:"type:nvarchar(MAX);default:null" binding:"omitempty"`
-	ApplicabilityChangeDate       *time.Time `json:"applicability_change_date,omitempty" gorm:"type:datetime;default:null" binding:"omitempty"`
-=======
-	IsApplicable                  bool       `json:"is_applicable" gorm:"default:false" binding:"required"`
-	Justification                 *string    `json:"justification,omitempty" gorm:"type:nvarchar(MAX);default:null" binding:"omitempty"`
-	ApplicabilityChangeDate       *time.Time `json:"applicability_change_date,omitempty" gorm:"type:datetime;default:null" binding:"omitempty"`
-	RiskMatrixRiskRatingID        *uint      `json:"risk_matrix_risk_rating_id" gorm:"default:null"`
-	RiskMatrixRiskRatingValueID   *uint      `json:"risk_matrix_risk_rating_value_id" gorm:"default:null"`
->>>>>>> 16d6e21cbfdfa0ac795434ffd6500d6a4ed934d4
 
 	// Relationships
 	ControlType                 *ControlType                 `gorm:"foreignKey:ControlTypeID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
