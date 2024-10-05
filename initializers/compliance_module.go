@@ -35,7 +35,7 @@ type ComplianceModule struct {
 	SlaRegisterSvc           services.SLARegisterServiceInterface
 }
 
-func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *MasterModule, organizationModule *OrganizationModule, taskModule *TaskModule, settingsModule *SettingsModule) *ComplianceModule {
+func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *MasterModule, organizationModule *OrganizationModule, taskModule *TaskModule, settingsModule *SettingsModule, commonModule *CommonModule) *ComplianceModule {
 	complianceCategoryRepo := repositories.NewComplianceCategoryRepository(db)
 	complianceCategorySvc := services.NewComplianceCategoryService(complianceCategoryRepo, sharedModule.ActivityLogService)
 	complianceCategoryController := controllers.NewComplianceCategoryController(complianceCategorySvc)
@@ -92,7 +92,7 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		masterModule.ActionPlanStatusSvc,
 		masterModule.SeverityLevelSvc,
 		taskModule.TaskService,
-		settingsModule.ModuleSvc,
+		settingsModule.ModuleSvc, organizationModule.UserSvc, commonModule.NotificationService,
 	)
 	complianceActionPlanController := controllers.NewComplianceActionPlanController(complianceActionPlanSvc)
 
