@@ -11,6 +11,7 @@ import (
 )
 
 type AuditDraftReportReviewServiceInterface interface {
+	GetAll(auditID uint, auditDraftReportID uint, params *auditDTOs.AuditReportReviewListQueryParamsDTO) ([]*auditDTOs.AuditReportReviewListDTO, error)
 	Submit(auditID uint, auditDraftReportID uint, currentUserID uint, auditReportWorkflowFormDTO *auditDTOs.AuditReportWorkflowSubmitFormDTO) error
 	Approve(auditID uint, auditDraftReportID uint, currentUserID uint, auditReportWorkflowFormDTO *auditDTOs.AuditReportWorkflowApproveFormDTO) error
 	Revert(auditID uint, auditDraftReportID uint, currentUserID uint, auditReportWorkflowFormDTO *auditDTOs.AuditReportWorkflowApproveFormDTO) error
@@ -44,6 +45,16 @@ func NewAuditDraftReportReviewService(
 		userSvc:                   userSvc,
 		auditDraftReportStatusSvc: auditDraftReportStatusSvc,
 	}
+}
+func (adrcs *AuditDraftReportReviewService) GetAll(auditID uint, auditDraftReportID uint, params *auditDTOs.AuditReportReviewListQueryParamsDTO) ([]*auditDTOs.AuditReportReviewListDTO, error) {
+	if _, err := adrcs.auditSvc.GetByID(auditID); err != nil {
+		return nil, err
+	}
+	if _, err := adrcs.auditDraftReportSvc.GetByID(auditDraftReportID); err != nil {
+		return nil, err
+	}
+
+	return adrcs.repo.GetAll(params)
 }
 
 func (adrrs *AuditDraftReportReviewService) Submit(auditID uint, auditDraftReportID uint, currentUserID uint, auditReportWorkflowFormDTO *auditDTOs.AuditReportWorkflowSubmitFormDTO) error {
