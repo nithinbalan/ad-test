@@ -15,6 +15,7 @@ type AuditInsightsModule struct {
 	AuditInsightsDraftReportController                 *controllers.AuditInsightsDraftReportController
 	AuditInsightsDocumentRequestConversationController *controllers.AuditInsightsDocumentRequestConversationController
 	AuditInsightsDraftFindingController                *controllers.AuditInsightsDraftFindingController
+	AuditInsightsDraftFindingConversationController    *controllers.AuditInsightsDraftFindingConversationController
 }
 
 func NewAuditInsightsModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, auditModule *AuditModule) *AuditInsightsModule {
@@ -77,6 +78,16 @@ func NewAuditInsightsModule(db *gorm.DB, sharedModule *SharedModule, organizatio
 	)
 	auditInsightsDraftFindingController := controllers.NewAuditInsightsDraftFindingController(auditInsightsDraftFindingSvc)
 
+	auditInsightsDraftFindingConversationRepo := repositories.NewAuditInsightsDraftFindingConversationRepository(db)
+	auditInsightsDraftFindingConversationSvc := services.NewAuditInsightsDraftFindingConversationService(
+		auditInsightsDraftFindingConversationRepo,
+		sharedModule.ActivityLogService,
+		auditModule.AuditDraftFindingStatusSvc,
+		auditModule.AuditDraftFindingSvc,
+		auditModule.AuditSvc,
+	)
+	auditInsightsDraftFindingConversationController := controllers.NewAuditInsightsDraftFindingConversationController(auditInsightsDraftFindingConversationSvc)
+
 	return &AuditInsightsModule{
 		AuditInsightsAuditPlanController:                   auditInsightsAuditPlanController,
 		AuditInsightsAuditController:                       auditInsightsAuditController,
@@ -84,5 +95,6 @@ func NewAuditInsightsModule(db *gorm.DB, sharedModule *SharedModule, organizatio
 		AuditInsightsDraftReportController:                 auditInsightsDraftReportController,
 		AuditInsightsDocumentRequestConversationController: auditInsightsDocumentRequestConversationController,
 		AuditInsightsDraftFindingController:                auditInsightsDraftFindingController,
+		AuditInsightsDraftFindingConversationController:    auditInsightsDraftFindingConversationController,
 	}
 }

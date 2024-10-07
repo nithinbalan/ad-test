@@ -275,6 +275,7 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		sharedModule.ActivityLogService,
 		auditDraftFindingSvc,
 		auditDraftFindingStatusSvc,
+		auditSvc,
 	)
 	auditDraftFindingConversationController := controllers.NewAuditDraftFindingConversationController(auditDraftFindingConversationSvc)
 
