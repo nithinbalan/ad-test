@@ -172,7 +172,7 @@ func (saps *SLAActionPlanService) Create(slaID uint, currentUserID uint, slaActi
 
 	urlParam := fmt.Sprintf(`{"id":%d}`, id)
 	taskDTO := commonDTOs.TaskFormDTO{
-		ModuleIdentifier:  "sla_contracts",
+		ModuleIdentifier:  "compliance",
 		SLAActionPlanID:   &id,
 		Title:             slaActionPlanFormDTO.Title,
 		Description:       slaActionPlanFormDTO.Description,
@@ -218,10 +218,10 @@ func (saps *SLAActionPlanService) Create(slaID uint, currentUserID uint, slaActi
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 			UserID:               slaActionPlanFormDTO.ResponsibleUserID,
-			ModuleIdentifier:     "sla_contracts",
+			ModuleIdentifier:     "compliance",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Sla Action Plan Assignment",
-			HeadingAr:            "اتفاقية مستوى الخدمة تعيين خطة العمل",
+			HeadingAr:            "تعيين خطة العمل لاتفاقية مستوى الخدمة (SLA)",
 			TitleEn:              slaActionPlanFormDTO.Title,
 			TitleAr:              slaActionPlanFormDTO.Title,
 			Entity:               &entity,
@@ -352,10 +352,10 @@ func (saps *SLAActionPlanService) Update(slaID uint, id uint, currentUserID uint
 			oldResponsibleUserAction := "responsible-user-remove"
 			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
 				UserID:               oldResponsibleUserID,
-				ModuleIdentifier:     "sla_contracts",
+				ModuleIdentifier:     "compliance",
 				NotificationType:     string(commonDTOs.InformationType),
-				HeadingEn:            "sla Action Plan Removal",
-				HeadingAr:            "إزالة خطة العمل الامتثالية",
+				HeadingEn:            "Sla Action Plan Removal",
+				HeadingAr:            "إزالة خطة العمل لاتفاقية مستوى الخدمة (SLA)",
 				TitleEn:              existingSLAActionPlan.Title,
 				TitleAr:              existingSLAActionPlan.Title,
 				Entity:               &entity,
@@ -368,10 +368,10 @@ func (saps *SLAActionPlanService) Update(slaID uint, id uint, currentUserID uint
 			newResponsibleUserAction := "responsible-user-assign"
 			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
 				UserID:               existingSLAActionPlan.ResponsibleUserID,
-				ModuleIdentifier:     "sla_contracts",
+				ModuleIdentifier:     "compliance",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Sla Action Plan Assignment",
-				HeadingAr:            "تعيين خطة العمل الامتثالية",
+				HeadingAr:            "تعيين خطة العمل لاتفاقية مستوى الخدمة (SLA)",
 				TitleEn:              existingSLAActionPlan.Title,
 				TitleAr:              existingSLAActionPlan.Title,
 				Entity:               &entity,
@@ -571,15 +571,15 @@ func (saps *SLAActionPlanService) Delete(slaID uint, ids []uint, currentUserID u
 
 			for _, notification := range notifications {
 				urlParam := ""
-				entity := "sla-register-action-plan"
+				entity := "sla-action-plan"
 				action := "delete"
 
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 					UserID:               *notification.OwnerID,
-					ModuleIdentifier:     "sla_contracts",
+					ModuleIdentifier:     "compliance",
 					NotificationType:     string(commonDTOs.DeletionType),
 					HeadingEn:            "Sla Action Plan Deletion",
-					HeadingAr:            "حذف خطة عمل الامتثال",
+					HeadingAr:            "حذف خطة العمل لاتفاقية مستوى الخدمة (SLA)",
 					TitleEn:              notification.TitleEn,
 					TitleAr:              notification.TitleAr,
 					Entity:               &entity,
