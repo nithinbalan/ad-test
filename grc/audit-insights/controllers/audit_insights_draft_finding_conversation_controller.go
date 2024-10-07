@@ -23,7 +23,7 @@ func NewAuditInsightsDraftFindingConversationController(service services.AuditIn
 	}
 }
 
-func (aidrcc *AuditInsightsDraftFindingConversationController) GetAllAuditInsightsDraftFindingConversations(c *gin.Context) {
+func (aidfc *AuditInsightsDraftFindingConversationController) GetAllAuditInsightsDraftFindingConversations(c *gin.Context) {
 	findingID, err := strconv.Atoi(c.Param("findingId"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -41,29 +41,34 @@ func (aidrcc *AuditInsightsDraftFindingConversationController) GetAllAuditInsigh
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
-	queryParams := dtos.AuditDocumentRequestConversationListQueryParamsDTO{
+	queryParams := dtos.AuditDraftFindingConversationListQueryParamsDTO{
 		Sort:        sort,
 		SortBy:      sortBy,
 		Keyword:     keyword,
 		Filters:     filters,
 		QuickFilter: quickFilter,
 	}
-
-	auditInsightsDraftFindingConversations, err := aidrcc.service.GetAll(uint(findingID), &queryParams)
+	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(aidrcc.db, c, err.Error())
+		utility.SendInternalErrResp(aidfc.db, c, err.Error())
+		return
+	}
+
+	auditInsightsDraftFindingConversations, err := aidfc.service.GetAll(uint(findingID),currentUserID, &queryParams)
+	if err != nil {
+		utility.SendInternalErrResp(aidfc.db, c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, auditInsightsDraftFindingConversations)
 }
 
-func (aidrcc *AuditInsightsDraftFindingConversationController) CreateAuditInsightsDraftFindingConversation(c *gin.Context) {
+func (aidfc *AuditInsightsDraftFindingConversationController) CreateAuditInsightsDraftFindingConversation(c *gin.Context) {
 	findingId, err := strconv.Atoi(c.Param("findingId"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
-	var auditInsightsDraftFindingConversationFormDTO dtos.AuditDocumentRequestConversationFormDTO
+	var auditInsightsDraftFindingConversationFormDTO dtos.AuditDraftFindingConversationFormDTO
 
 	if err := c.ShouldBindJSON(&auditInsightsDraftFindingConversationFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
@@ -72,11 +77,11 @@ func (aidrcc *AuditInsightsDraftFindingConversationController) CreateAuditInsigh
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(aidrcc.db, c, err.Error())
+		utility.SendInternalErrResp(aidfc.db, c, err.Error())
 		return
 	}
 
-	id, err := aidrcc.service.Create(uint(findingId), currentUserID, &auditInsightsDraftFindingConversationFormDTO)
+	id, err := aidfc.service.Create(uint(findingId), currentUserID, &auditInsightsDraftFindingConversationFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -86,7 +91,7 @@ func (aidrcc *AuditInsightsDraftFindingConversationController) CreateAuditInsigh
 			utility.SendInvalidErrResp(c, e)
 			return
 		default:
-			utility.SendInternalErrResp(aidrcc.db, c, e.Error())
+			utility.SendInternalErrResp(aidfc.db, c, e.Error())
 			return
 		}
 	}

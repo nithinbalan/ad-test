@@ -83,8 +83,10 @@ func NewAuditInsightsModule(db *gorm.DB, sharedModule *SharedModule, organizatio
 		auditInsightsDraftFindingConversationRepo,
 		sharedModule.ActivityLogService,
 		auditModule.AuditDraftFindingStatusSvc,
+		auditModule.AuditDraftFindingConversationSvc,
 		auditModule.AuditDraftFindingSvc,
 		auditModule.AuditSvc,
+		organizationModule.UserSvc,
 	)
 	auditInsightsDraftFindingConversationController := controllers.NewAuditInsightsDraftFindingConversationController(auditInsightsDraftFindingConversationSvc)
 

@@ -1,74 +1,70 @@
 package services
 
 import (
+	"jethur/grc/audit-insights/repositories"
 	"jethur/grc/audit/dtos"
 	auditServices "jethur/grc/audit/services"
 	logServices "jethur/grc/logs/services"
+	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
 )
 
-type AuditInsightsDocumentRequestConversationServiceInterface interface {
-	GetAll(auditDocumentRequestID uint, queryParams *dtos.AuditDocumentRequestConversationListQueryParamsDTO, tx ...utility.DatabaseTransaction) ([]*dtos.AuditDocumentRequestConversationListDTO, error)
-	Create(auditDocumentRequestID uint, currentUserID uint, formDTO *dtos.AuditDocumentRequestConversationFormDTO, tx ...utility.DatabaseTransaction) (uint, error)
-	GetDocumentPath(auditDocumentRequestID uint, conversationID uint, token string, tx ...utility.DatabaseTransaction) (string, error)
+type AuditInsightsDraftFindingConversationServiceInterface interface {
+	GetAll(auditDraftFindingID uint, currentUserID uint, queryParams *dtos.AuditDraftFindingConversationListQueryParamsDTO, tx ...utility.DatabaseTransaction) ([]*dtos.AuditDraftFindingConversationListDTO, error)
+	Create(auditDraftFindingID uint, currentUserID uint, formDTO *dtos.AuditDraftFindingConversationFormDTO, tx ...utility.DatabaseTransaction) (uint, error)
 }
 
-type AuditInsightsDocumentRequestConversationService struct {
-	activityLogSvc                      logServices.ActivityLogServiceInterface
-	auditDocumentRequestConversationSvc auditServices.AuditDocumentRequestConversationServiceInterface
-	auditDocumentRequestSvc             auditServices.AuditDocumentRequestServiceInterface
+type AuditInsightsDraftFindingConversationService struct {
+	repo                             repositories.AuditInsightsDraftFindingConversationRepositoryInterface
+	activityLogSvc                   logServices.ActivityLogServiceInterface
+	auditDraftFindingStatusSvc       auditServices.AuditDraftFindingStatusServiceInterface
+	auditDraftFindingConversationSvc auditServices.AuditDraftFindingConversationServiceInterface
+	auditDraftFindingSvc             auditServices.AuditDraftFindingServiceInterface
+	auditSvc                         auditServices.AuditServiceInterface
+	userSvc                          organizationServices.UserServiceInterface
 }
 
-func NewAuditInsightsDocumentRequestConversationService(
+func NewAuditInsightsDraftFindingConversationService(
+	repo repositories.AuditInsightsDraftFindingConversationRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
-	auditDocumentRequestConversationSvc auditServices.AuditDocumentRequestConversationServiceInterface,
-	auditDocumentRequestSvc auditServices.AuditDocumentRequestServiceInterface,
-) AuditInsightsDocumentRequestConversationServiceInterface {
-	return &AuditInsightsDocumentRequestConversationService{
-		activityLogSvc:                      activityLogSvc,
-		auditDocumentRequestConversationSvc: auditDocumentRequestConversationSvc,
-		auditDocumentRequestSvc:             auditDocumentRequestSvc,
+	auditDraftFindingStatusSvc auditServices.AuditDraftFindingStatusServiceInterface,
+	auditDraftFindingConversationSvc auditServices.AuditDraftFindingConversationServiceInterface,
+	auditDraftFindingSvc auditServices.AuditDraftFindingServiceInterface,
+	auditSvc auditServices.AuditServiceInterface,
+	userSvc organizationServices.UserServiceInterface,
+) AuditInsightsDraftFindingConversationServiceInterface {
+	return &AuditInsightsDraftFindingConversationService{
+		repo:                             repo,
+		activityLogSvc:                   activityLogSvc,
+		auditDraftFindingStatusSvc:       auditDraftFindingStatusSvc,
+		auditDraftFindingConversationSvc: auditDraftFindingConversationSvc,
+		auditDraftFindingSvc:             auditDraftFindingSvc,
+		auditSvc:                         auditSvc,
+		userSvc:                          userSvc,
 	}
 }
 
-func (aidrcs *AuditInsightsDocumentRequestConversationService) GetAll(auditDocumentRequestID uint, queryParams *dtos.AuditDocumentRequestConversationListQueryParamsDTO, tx ...utility.DatabaseTransaction) ([]*dtos.AuditDocumentRequestConversationListDTO, error) {
-	documentRequest, err := aidrcs.auditDocumentRequestSvc.GetFullDetailsByID(auditDocumentRequestID, tx...)
+func (aidfcs *AuditInsightsDraftFindingConversationService) GetAll(auditDraftFindingID uint, currentUserID uint, queryParams *dtos.AuditDraftFindingConversationListQueryParamsDTO, tx ...utility.DatabaseTransaction) ([]*dtos.AuditDraftFindingConversationListDTO, error) {
+	_, err := aidfcs.auditDraftFindingSvc.GetFullDetailsByID(auditDraftFindingID, tx...)
 	if err != nil {
 		return nil, err
 	}
-	auditID := documentRequest.Audit.ID
-	auditDocumentRequestConversation, err := aidrcs.auditDocumentRequestConversationSvc.GetAll(auditID, auditDocumentRequestID, queryParams)
+	orgUnitID, err := aidfcs.userSvc.GetUserPrimaryUnitID(currentUserID)
 	if err != nil {
 		return nil, err
 	}
-	return auditDocumentRequestConversation, nil
+	auditDraftFindingConversation, err := aidfcs.repo.GetAll(orgUnitID, auditDraftFindingID, queryParams)
+	if err != nil {
+		return nil, err
+	}
+	return auditDraftFindingConversation, nil
 }
 
-func (aidrcs *AuditInsightsDocumentRequestConversationService) Create(auditDocumentRequestID uint, currentUserID uint, formDTO *dtos.AuditDocumentRequestConversationFormDTO, tx ...utility.DatabaseTransaction) (uint, error) {
-	documentRequest, err := aidrcs.auditDocumentRequestSvc.GetFullDetailsByID(auditDocumentRequestID, tx...)
+func (aidfcs *AuditInsightsDraftFindingConversationService) Create(auditDraftFindingID uint, currentUserID uint, formDTO *dtos.AuditDraftFindingConversationFormDTO, tx ...utility.DatabaseTransaction) (uint, error) {
+
+	auditDocumentRequest, err := aidfcs.auditDraftFindingConversationSvc.Create(auditDraftFindingID, currentUserID, formDTO)
 	if err != nil {
 		return 0, err
-	}
-	auditID := documentRequest.Audit.ID
-
-	auditDocumentRequest, err := aidrcs.auditDocumentRequestConversationSvc.Create(auditID, auditDocumentRequestID, currentUserID, formDTO)
-	if err != nil {
-		return 0, err
-	}
-
-	return auditDocumentRequest, nil
-}
-
-func (aidrcs *AuditInsightsDocumentRequestConversationService) GetDocumentPath(auditDocumentRequestID uint, conversationID uint, token string, tx ...utility.DatabaseTransaction) (string, error) {
-	documentRequest, err := aidrcs.auditDocumentRequestSvc.GetFullDetailsByID(auditDocumentRequestID, tx...)
-	if err != nil {
-		return "", err
-	}
-	auditID := documentRequest.Audit.ID
-
-	auditDocumentRequest, err := aidrcs.auditDocumentRequestConversationSvc.GetDocumentPath(auditID, auditDocumentRequestID, conversationID, token)
-	if err != nil {
-		return "", err
 	}
 
 	return auditDocumentRequest, nil
