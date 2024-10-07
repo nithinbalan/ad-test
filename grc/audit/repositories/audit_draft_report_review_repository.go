@@ -48,24 +48,28 @@ func (repo *AuditDraftReportReviewRepository) GetAll(params *dtos.AuditReportRev
 			workflow_statuses.color_code AS workflow_status_color_code,
 			workflow_statuses.type AS workflow_status_type,
 			audit_report_reviews.user_id,
-			usr.first_name_en AS user_first_name_en,
-			usr.first_name_ar AS user_first_name_ar,
-			usr.last_name_en AS user_last_name_en,
-			usr.last_name_ar AS user_last_name_ar,
-			usr.email AS user_email,
-			usr.profile_image_path AS user_profile_image_path,
+			review_user.first_name_en AS review_user_first_name_en,
+			review_user.first_name_ar AS review_user_first_name_ar,
+			review_user.last_name_en AS review_user_last_name_en,
+			review_user.last_name_ar AS review_user_last_name_ar,
+			review_user.email AS review_user_email,
+			review_user.initial AS review_user_initial,
+        	review_user.color AS review_user_color,
+			review_user.profile_image_path AS review_user_profile_image_path,
 			audit_report_reviews.comment,
 			audit_report_reviews.created_by_id,
 			created_user.first_name_en AS created_user_first_name_en,
 			created_user.first_name_ar AS created_user_first_name_ar,
 			created_user.last_name_en AS created_user_last_name_en,
 			created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+        	created_user.color AS created_user_color,
 			created_user.email AS created_user_email,
 			created_user.profile_image_path AS created_user_profile_image_path
 		`).
 		Joins(`
 			LEFT JOIN users AS created_user ON created_user.id = audit_report_reviews.created_by_id
-			LEFT JOIN users AS usr ON usr.id = audit_report_reviews.user_id
+			LEFT JOIN users AS review_user ON review_user.id = audit_report_reviews.user_id
 			LEFT JOIN workflow_statuses ON workflow_statuses.id = audit_report_reviews.workflow_status_id`)
 
 	// Apply dynamic filters

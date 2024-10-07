@@ -14,14 +14,14 @@ type AuditReportReviewListDTO struct {
 	WorkflowStatusColorCode string `json:"workflow_status_color_code"`
 	WorkflowStatusType      string `json:"workflow_status_type"`
 	UserID                  uint   `json:"user_id"`
-	UserFirstNameEn         string `json:"user_first_name_en"`
-	UserFirstNameAr         string `json:"user_first_name_ar"`
-	UserLastNameEn          string `json:"user_last_name_en"`
-	UserLastNameAr          string `json:"user_last_name_ar"`
-	UserInitial             string `json:"user_initial"`
-	UserColor               string `json:"user_color"`
-	UserEmail               string `json:"user_email"`
-	UserProfileImage        string `json:"user_profile_image_path"`
+	ReviewUserFirstNameEn   string `json:"review_user_user_first_name_en"`
+	ReviewUserFirstNameAr   string `json:"review_user_user_first_name_ar"`
+	ReviewUserLastNameEn    string `json:"review_user_user_last_name_en"`
+	ReviewUserLastNameAr    string `json:"review_user_user_last_name_ar"`
+	ReviewUserInitial       string `json:"review_user_user_initial"`
+	ReviewUserColor         string `json:"review_user_user_color"`
+	ReviewUserEmail         string `json:"review_user_user_email"`
+	ReviewUserProfileImage  string `json:"review_user_user_profile_image_path"`
 	Comment                 string `json:"comment"`
 	CreatedByID             uint   `json:"created_by_id"`
 	CreatedUserFirstNameEn  string `json:"created_user_first_name_en"`
