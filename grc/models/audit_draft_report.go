@@ -22,12 +22,13 @@ type AuditDraftReport struct {
 	UpdatedBYID                 *uint      `json:"updated_by_id" gorm:"default:null"`
 
 	// Relationships
-	Audit                         *Audit                  `gorm:"foreignKey:AuditID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
-	CreatedByUser                 *User                   `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
-	UpdatedByUser                 *User                   `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
-	InternalReviewSubmittedByUser *User                   `gorm:"foreignKey:InternalReviewSubmittedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
-	AuditeeReviewSubmittedByUser  *User                   `gorm:"foreignKey:AuditeeReviewSubmittedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
-	AuditDraftReportStatus        *AuditDraftReportStatus `gorm:"foreignKey:AuditDraftReportStatusID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
+	Audit                         *Audit                     `gorm:"foreignKey:AuditID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
+	CreatedByUser                 *User                      `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
+	UpdatedByUser                 *User                      `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
+	InternalReviewSubmittedByUser *User                      `gorm:"foreignKey:InternalReviewSubmittedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
+	AuditeeReviewSubmittedByUser  *User                      `gorm:"foreignKey:AuditeeReviewSubmittedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
+	AuditDraftReportStatus        *AuditDraftReportStatus    `gorm:"foreignKey:AuditDraftReportStatusID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
+	AuditDraftReportComments      []*AuditDraftReportComment `gorm:"foreignKey:AuditDraftReportID"`
 }
 
 // TableName overrides the table name used by AuditDraftReport to `audit_draft_reports`
