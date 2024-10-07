@@ -201,6 +201,7 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		auditTimelineSvc,
 		auditPlanScheduleSvc,
 		masterModule.StatusSvc,
+		auditStatusSvc,
 	)
 	auditController := controllers.NewAuditController(auditSvc)
 

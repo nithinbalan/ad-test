@@ -98,6 +98,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.POST("/audit-plans", auditPlanController.CreateAuditPlan)
 	auditRoutes.PUT("/audit-plans/:planId", auditPlanController.UpdateAuditPlan)
 	auditRoutes.POST("/audit-plans/delete", auditPlanController.DeleteAuditPlans)
+	auditRoutes.POST("/audit-plans/:planId/publish", auditPlanController.PublishAuditPlan)
+
 
 	//AuditPlan Checklist
 	auditRoutes.GET("/audit-plans/:planId/checklists", auditPlanChecklistController.GetAllAuditPlanChecklists)
@@ -310,16 +312,18 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	//Audit Draft Report Review
 	auditRoutes.POST("/audits/:auditId/draft-reports/:id/submit", auditDraftReportReviewController.SubmitAuditDraftReport)
+	auditRoutes.POST("/audits/:auditId/draft-reports/:id/re-submit", auditDraftReportReviewController.ReSubmitAuditDraftReport)
 	auditRoutes.POST("/audits/:auditId/draft-reports/:id/approve", auditDraftReportReviewController.ApproveAuditDraftReport)
 	auditRoutes.POST("/audits/:auditId/draft-reports/:id/revert", auditDraftReportReviewController.RevertAuditDraftReport)
 
 	// Audit Draft Report Comments
-	auditRoutes.GET("/audits/:auditId/draft-reports/:id/comments", auditDraftReportCommentController.GetAllAuditDraftReportComments)
+	auditRoutes.GET("/audits/:auditId/draft-reportss/:id/comments", auditDraftReportCommentController.GetAllAuditDraftReportComments)
 	auditRoutes.GET("/audits/:auditId/draft-reports/:id/comments/:commentId", auditDraftReportCommentController.GetAuditDraftReportCommentDetails)
 	auditRoutes.POST("/audits/:auditId/draft-reports/:id/comments", auditDraftReportCommentController.CreateAuditDraftReportComment)
 	auditRoutes.PUT("/audits/:auditId/draft-reports/:id/comments/:commentId", auditDraftReportCommentController.UpdateAuditDraftReportComment)
 	auditRoutes.POST("/audits/:auditId/draft-reports/:id/comments/delete", auditDraftReportCommentController.DeleteAuditDraftReportComments)
 	auditRoutes.POST("/audits/:auditId/draft-reports/:id/comments/:commentId/status-update", auditDraftReportCommentController.StatusUpdateAuditDraftReportComment)
 	unauthenticatedRoutes.GET("/audits/:auditId/draft-reports/:id/comments/:commentId/document-download", auditDraftReportCommentController.DownloadAuditDraftReportCommentDocument)
+	auditRoutes.GET("/audits/:auditId/draft-reports/:id/review-history", auditDraftReportReviewController.GetAllAuditDraftReportReviews)
 
 }

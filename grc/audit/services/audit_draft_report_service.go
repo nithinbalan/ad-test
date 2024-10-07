@@ -113,6 +113,40 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, tx ...util
 		Type:      auditDraftReport.AuditDraftReportStatus.Type,
 		ColorCode: auditDraftReport.AuditDraftReportStatus.ColorCode,
 	}
+	// Declare variables to hold the counts for resolved/unresolved comments
+	var executiveSummaryResolvedCount, executiveSummaryOpenCount int
+	var conclusionResolvedCount, conclusionOpenCount int
+	// Map to store the count of resolved and unresolved comments by type
+	commentCountByType := make(map[string]map[string]int)
+
+	for _, comment := range auditDraftReport.AuditDraftReportComments {
+		// Initialize the inner map for a new type
+		if _, exists := commentCountByType[comment.Type]; !exists {
+			commentCountByType[comment.Type] = map[string]int{
+				"resolved":   0,
+				"unresolved": 0,
+			}
+		}
+
+		// Increment the count based on whether the comment is resolved or not
+		if comment.IsResolved {
+			commentCountByType[comment.Type]["resolved"]++
+		} else {
+			commentCountByType[comment.Type]["unresolved"]++
+		}
+	}
+
+	// Assigning the counts for "executive-summary"
+	if count, exists := commentCountByType["executive-summary"]; exists {
+		executiveSummaryResolvedCount = count["resolved"]
+		executiveSummaryOpenCount = count["unresolved"]
+	}
+
+	// Assigning the counts for "conclusion"
+	if count, exists := commentCountByType["conclusion"]; exists {
+		conclusionResolvedCount = count["resolved"]
+		conclusionOpenCount = count["unresolved"]
+	}
 	// Map the data to the DTO
 	auditReportDTO := &auditDTOs.AuditDraftReportDetailDTO{
 		ID:                            auditDraftReport.ID,
@@ -132,7 +166,12 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, tx ...util
 		AuditDraftFindings:            []*auditDTOs.AuditDraftFindingReportDetailDTO{},
 		CreatedByUser:                 createdByUser,
 		UpdatedByUser:                 updatedByUser,
+		ExecutiveSummaryResolvedCount: executiveSummaryResolvedCount,
+		ExecutiveSummaryOpenCount:     executiveSummaryOpenCount,
+		ConclusionResolvedCount:       conclusionResolvedCount,
+		ConclusionOpenCount:           conclusionOpenCount,
 	}
+
 	// Map auditors
 	for _, auditor := range auditDraftReport.Audit.AuditPlan.Members {
 		auditReportDTO.Auditors = append(auditReportDTO.Auditors, &auditDTOs.AuditPlanAuditMemberDTO{
@@ -531,13 +570,12 @@ func (adrs *AuditDraftReportService) StatusUpdate(id uint, currentUserID uint, a
 	}
 
 	now := time.Now()
-	
+
 	existingAuditDraftReport.InternalReviewSubmittedAt = &now
 	existingAuditDraftReport.AuditDraftReportStatusID = auditDraftReportStatusID
 	existingAuditDraftReport.InternalReviewSubmittedBYID = &currentUserID
 	existingAuditDraftReport.NextReviewLevel = nextReviewLevel
 	existingAuditDraftReport.UpdatedBYID = &currentUserID
-
 
 	err = adrs.repo.Update(existingAuditDraftReport, tx)
 

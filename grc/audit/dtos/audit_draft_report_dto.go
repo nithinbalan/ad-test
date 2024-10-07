@@ -134,6 +134,10 @@ type AuditDraftReportDetailDTO struct {
 	AuditDraftReportStatus        *AuditDraftReportStatusDTO          `json:"audit_draft_report_status"`
 	CreatedByUser                 organizationDTOs.UserMinimalDTO     `json:"created_by"`
 	UpdatedByUser                 *organizationDTOs.UserMinimalDTO    `json:"updated_by"`
+	ExecutiveSummaryResolvedCount int                                 `json:"executive_summary_resolved_count"`
+	ExecutiveSummaryOpenCount     int                                 `json:"executive_summary_open_count"`
+	ConclusionResolvedCount       int                                 `json:"conclusion_resolved_count"`
+	ConclusionOpenCount           int                                 `json:"conclusion_open_count"`
 }
 type AuditDraftReportParsedDates struct {
 	ReportDate *time.Time
