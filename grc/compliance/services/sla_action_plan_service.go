@@ -3,12 +3,14 @@ package services
 import (
 	"errors"
 	"fmt"
+	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	complianceRepositories "jethur/grc/compliance/repositories"
 	logServices "jethur/grc/logs/services"
 	masterRepositories "jethur/grc/masters/repositories"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
+	taskServices "jethur/grc/task/services"
 	"jethur/utility"
 
 	"github.com/mitchellh/mapstructure"
@@ -34,6 +36,7 @@ type SLAActionPlanService struct {
 	slaCheckQuestionSvc SLACheckQuestionServiceInterface
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface
 	severityLevelSvc    masterServices.SeverityLevelServiceInterface
+	taskSvc             taskServices.TaskServiceInterface
 }
 
 func NewSLAActionPlanService(
@@ -42,7 +45,8 @@ func NewSLAActionPlanService(
 	slaRegisterSvc SLARegisterServiceInterface,
 	slaCheckQuestionSvc SLACheckQuestionServiceInterface,
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
-	severityLevelSvc masterRepositories.SeverityLevelRepositoryInterface) SLAActionPlanServiceInterface {
+	severityLevelSvc masterRepositories.SeverityLevelRepositoryInterface,
+	taskSvc taskServices.TaskServiceInterface) SLAActionPlanServiceInterface {
 	return &SLAActionPlanService{
 		repo:                repo,
 		activityLogSvc:      activityLogSvc,
@@ -50,6 +54,7 @@ func NewSLAActionPlanService(
 		slaCheckQuestionSvc: slaCheckQuestionSvc,
 		actionPlanStatusSvc: actionPlanStatusSvc,
 		severityLevelSvc:    severityLevelSvc,
+		taskSvc:             taskSvc,
 	}
 }
 
@@ -127,6 +132,7 @@ func (saps *SLAActionPlanService) Create(slaID uint, currentUserID uint, slaActi
 		Description:        slaActionPlanFormDTO.Description,
 		SeverityLevelID:    slaActionPlanFormDTO.SeverityLevelID,
 		ResponsibleUserID:  slaActionPlanFormDTO.ResponsibleUserID,
+		ReviewUserID:       slaActionPlanFormDTO.ReviewUserID,
 		TargetDate:         dates.TargetDate,
 		Percentage:         slaActionPlanFormDTO.Percentage,
 		Comments:           slaActionPlanFormDTO.Comments,
@@ -150,6 +156,24 @@ func (saps *SLAActionPlanService) Create(slaID uint, currentUserID uint, slaActi
 
 	_, err = saps.repo.CreateInitialSLAActionPlanStatusUpdate(slaActionPlanUpdate, tx)
 	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+	taskDTO := commonDTOs.TaskFormDTO{
+		ModuleIdentifier:  "sla_contracts",
+		SLAActionPlanID:   &id,
+		Title:             slaActionPlanFormDTO.Title,
+		Description:       slaActionPlanFormDTO.Description,
+		TargetDate:        dates.TargetDate,
+		URLParam:          &urlParam,
+		QueryParam:        nil,
+		SeverityLevelID:   slaActionPlanFormDTO.SeverityLevelID,
+		ResponsibleUserID: slaActionPlanFormDTO.ResponsibleUserID,
+	}
+
+	if err := saps.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
 		tx.Rollback()
 		return 0, err
 	}
@@ -184,6 +208,8 @@ func (saps *SLAActionPlanService) Create(slaID uint, currentUserID uint, slaActi
 
 func (saps *SLAActionPlanService) Update(slaID uint, id uint, currentUserID uint, slaActionPlanFormDTO *complianceDTOs.SLAActionPlanFormDTO) error {
 
+	tx := saps.repo.BeginTransaction()
+
 	if _, err := saps.slaRegisterSvc.GetByID(slaID); err != nil {
 		return err
 	}
@@ -209,17 +235,37 @@ func (saps *SLAActionPlanService) Update(slaID uint, id uint, currentUserID uint
 	existingSLAActionPlan.Description = slaActionPlanFormDTO.Description
 	existingSLAActionPlan.SeverityLevelID = slaActionPlanFormDTO.SeverityLevelID
 	existingSLAActionPlan.ResponsibleUserID = slaActionPlanFormDTO.ResponsibleUserID
+	existingSLAActionPlan.ReviewUserID = slaActionPlanFormDTO.ReviewUserID
 	existingSLAActionPlan.TargetDate = dates.TargetDate
 	existingSLAActionPlan.Percentage = slaActionPlanFormDTO.Percentage
 	existingSLAActionPlan.Comments = slaActionPlanFormDTO.Comments
 	existingSLAActionPlan.ActionPlanStatusID = slaActionPlanFormDTO.ActionPlanStatusID
 	existingSLAActionPlan.UpdatedByID = &currentUserID
 
-	err = saps.repo.Update(existingSLAActionPlan)
+	err = saps.repo.Update(existingSLAActionPlan, tx)
 
 	if err != nil {
 		return err
 	}
+
+	// //update task
+	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+
+	taskUpdateDTO := commonDTOs.TaskFormDTO{
+		Title:             slaActionPlanFormDTO.Title,
+		Description:       slaActionPlanFormDTO.Description,
+		TargetDate:        dates.TargetDate,
+		URLParam:          &urlParam,
+		SeverityLevelID:   slaActionPlanFormDTO.SeverityLevelID,
+		ResponsibleUserID: slaActionPlanFormDTO.ResponsibleUserID,
+	}
+
+	err = saps.taskSvc.Update(currentUserID, taskUpdateDTO, "sla_action_plan_id", id, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	tx.Commit()
 
 	return nil
 }
@@ -249,6 +295,17 @@ func (saps *SLAActionPlanService) Delete(slaID uint, ids []uint, currentUserID u
 				failedIds = append(failedIds, id)
 				continue
 			}
+		}
+
+		existingTask, err := saps.taskSvc.GetByFieldID("sla_action_plan_id", id)
+		if err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+
+		taskID, err := saps.taskSvc.Delete(existingTask.ID, currentUserID)
+		if err != nil {
+			failedIds = append(failedIds, taskID)
 		}
 
 		err = saps.repo.Delete(id, tx)
@@ -300,6 +357,18 @@ func (saps *SLAActionPlanService) StatusUpdate(slaID uint, id uint, currentUserI
 
 	err = saps.repo.Update(existingSLAActionPlan, tx)
 
+	if err != nil {
+		return err
+	}
+
+	isReviewUserNull := existingSLAActionPlan.ReviewUserID == nil
+
+	// Fetch the corresponding task and update its status
+	existingTask, err := saps.taskSvc.GetByFieldID("sla_action_plan_id", id)
+	if err != nil {
+		return err
+	}
+	err = saps.taskSvc.UpdateStatus(currentUserID, existingTask.ID, ActionPlanStatusID, isReviewUserNull, tx)
 	if err != nil {
 		return err
 	}

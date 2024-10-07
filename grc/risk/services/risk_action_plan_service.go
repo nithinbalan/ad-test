@@ -371,6 +371,7 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 				HeadingEn:            "Risk Action Plan Assignment",
 				HeadingAr:            "تعيين خطة عمل المخاطر",
 				TitleEn:              existingRiskActionPlan.Title,
+				TitleAr:              existingRiskActionPlan.Title,
 				Entity:               &entity,
 				Action:               &newResponsibleUserAction,
 				URLParam:             urlParam,
@@ -558,7 +559,7 @@ func (raps *RiskActionPlanService) Delete(riskID uint, ids []uint, currentUserID
 			}
 
 			for _, notification := range notifications {
-				urlParam := ""
+				urlParam := ""	
 				entity := "risk-action-plan"
 				action := "delete"
 
