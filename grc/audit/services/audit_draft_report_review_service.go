@@ -55,7 +55,7 @@ func (adrcs *AuditDraftReportReviewService) GetAll(auditID uint, auditDraftRepor
 		return nil, err
 	}
 
-	return adrcs.repo.GetAll(params)
+	return adrcs.repo.GetAll(auditDraftReportID, params)
 }
 
 func (adrrs *AuditDraftReportReviewService) Submit(auditID uint, auditDraftReportID uint, currentUserID uint, auditReportWorkflowFormDTO *auditDTOs.AuditReportWorkflowSubmitFormDTO) error {
