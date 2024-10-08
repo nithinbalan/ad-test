@@ -27,7 +27,7 @@ type AuditDraftFindingConversationService struct {
 	activityLogSvc             logServices.ActivityLogServiceInterface
 	auditDraftFindingSvc       AuditDraftFindingServiceInterface
 	auditDraftFindingStatusSvc AuditDraftFindingStatusServiceInterface
-	auditSvc                  AuditServiceInterface
+	auditSvc                   AuditServiceInterface
 }
 
 func NewAuditDraftFindingConversationService(
@@ -35,14 +35,14 @@ func NewAuditDraftFindingConversationService(
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	auditDraftFindingSvc AuditDraftFindingServiceInterface,
 	auditDraftFindingStatusSvc AuditDraftFindingStatusServiceInterface,
-	auditSvc                  AuditServiceInterface,
+	auditSvc AuditServiceInterface,
 ) AuditDraftFindingConversationServiceInterface {
 	return &AuditDraftFindingConversationService{
 		repo:                       repo,
 		activityLogSvc:             activityLogSvc,
 		auditDraftFindingSvc:       auditDraftFindingSvc,
 		auditDraftFindingStatusSvc: auditDraftFindingStatusSvc,
-		auditSvc: auditSvc,
+		auditSvc:                   auditSvc,
 	}
 }
 
@@ -107,7 +107,7 @@ func (adfcs *AuditDraftFindingConversationService) Create(auditDraftFindingID ui
 	if formDTO.Type == "AR" {
 		// Fetch the related audit by AuditDraftFindingID
 		auditID := existingAuditDraftFinding.AuditID
-		audit, err := adfcs.auditSvc.GetFullDetailsByID(auditID) 
+		audit, err := adfcs.auditSvc.GetFullDetailsByID(auditID)
 		if err != nil {
 			tx.Rollback()
 			return 0, err
@@ -132,7 +132,7 @@ func (adfcs *AuditDraftFindingConversationService) Create(auditDraftFindingID ui
 		// If the current user is not authorized, rollback and return forbidden error
 		if !isAuthorizedUser {
 			tx.Rollback()
-			return 0,utility.NewForbiddenError("The current user is not authorized to perform this action.")
+			return 0, utility.NewForbiddenError("The current user is not authorized to perform this action.")
 		}
 	}
 
@@ -140,6 +140,7 @@ func (adfcs *AuditDraftFindingConversationService) Create(auditDraftFindingID ui
 		AuditDraftFindingID: auditDraftFindingID,
 		Description:         formDTO.Description,
 		Type:                formDTO.Type,
+		IsAccepted:          *formDTO.IsAccepted,
 		CreatedBYID:         currentUserID,
 	}
 
@@ -147,6 +148,24 @@ func (adfcs *AuditDraftFindingConversationService) Create(auditDraftFindingID ui
 	if err != nil {
 		tx.Rollback()
 		return 0, err
+	}
+	// Check if the form indicates that the finding should be accepted
+	if formDTO.IsAccepted != nil && *formDTO.IsAccepted {
+		// Check if the finding is already accepted
+		auditDraftFindingStatus, err := adfcs.auditDraftFindingStatusSvc.GetByType("accepted")
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+		if existingAuditDraftFinding.AuditDraftFindingStatusID == auditDraftFindingStatus.ID {
+			tx.Rollback()
+			return 0, utility.NewForbiddenError("The finding has already been accepted.")
+		}
+		// Update Audit Draft Finding Status
+		if err := adfcs.auditDraftFindingSvc.StatusUpdate(auditDraftFindingID, currentUserID, auditDraftFindingStatus.ID); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
 	}
 
 	tx.Commit()
