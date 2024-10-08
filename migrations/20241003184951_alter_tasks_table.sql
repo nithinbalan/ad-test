@@ -15,5 +15,5 @@ ALTER TABLE taks
 DROP CONSTRAINT FK_meeting_action_plans;
 
 ALTER TABLE tasks
-DROP COLUMN meeting_finding_action_plan_id;
+DROP COLUMN meeting_action_plan_id;
 -- +goose StatementEnd
