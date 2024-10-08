@@ -10,7 +10,7 @@ import (
 
 type AuditDraftReportCommentRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(params *dtos.AuditDraftReportCommentListQueryParamsDTO) ([]*dtos.AuditDraftReportCommentListDTO, error)
+	GetAll(auditDraftReportID uint, params *dtos.AuditDraftReportCommentListQueryParamsDTO) ([]*dtos.AuditDraftReportCommentListDTO, error)
 	GetByID(id uint) (*models.AuditDraftReportComment, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.AuditDraftReportComment, error)
 	Create(auditDraftReportComment *models.AuditDraftReportComment, tx ...utility.DatabaseTransaction) (uint, error)
@@ -38,7 +38,7 @@ func (repo *AuditDraftReportCommentRepository) BeginTransaction() utility.Databa
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *AuditDraftReportCommentRepository) GetAll(params *dtos.AuditDraftReportCommentListQueryParamsDTO) ([]*dtos.AuditDraftReportCommentListDTO, error) {
+func (repo *AuditDraftReportCommentRepository) GetAll(auditDraftReportID uint, params *dtos.AuditDraftReportCommentListQueryParamsDTO) ([]*dtos.AuditDraftReportCommentListDTO, error) {
 	var comments []*dtos.AuditDraftReportCommentListDTO
 	query := repo.db.Table("audit_draft_report_comments").
 		Select(`
@@ -62,7 +62,9 @@ func (repo *AuditDraftReportCommentRepository) GetAll(params *dtos.AuditDraftRep
 		Joins(`
 			LEFT JOIN users AS created_user ON created_user.id = audit_draft_report_comments.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = audit_draft_report_comments.updated_by_id
-		`)
+		`).
+		Where(`audit_draft_report_comments.audit_draft_report_id = ?`, auditDraftReportID)
+
 
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {

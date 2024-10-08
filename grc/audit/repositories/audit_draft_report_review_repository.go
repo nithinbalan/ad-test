@@ -58,6 +58,7 @@ func (repo *AuditDraftReportReviewRepository) GetAll(auditDraftReportID uint, pa
 			review_user.profile_image_path AS review_user_profile_image_path,
 			audit_report_reviews.comment,
 			audit_report_reviews.created_by_id,
+			audit_report_reviews.created_at,
 			created_user.first_name_en AS created_user_first_name_en,
 			created_user.first_name_ar AS created_user_first_name_ar,
 			created_user.last_name_en AS created_user_last_name_en,
