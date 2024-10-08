@@ -53,6 +53,24 @@ func (repo *AuditPlanChecklistRepository) GetAll(auditPlanId uint, params *audit
 			audit_plan_checklists.question,
 			audit_plan_checklists.created_at,
 			audit_plan_checklists.updated_at,
+			processes.title_en AS process_title_en,
+			processes.title_ar AS process_title_ar,
+			controls.title_en AS control_title_en,
+			controls.title_ar AS control_title_ar,
+			documents.title_en AS document_title_en,
+			documents.title_ar AS document_title_ar,
+			incident_register.title AS incident_register_title,
+			compliance_requirements.title AS compliance_requirement_title,
+			risk_register.title AS risk_register_title,
+			users.id AS user_id,
+			users.first_name_en AS user_first_name_en,
+			users.first_name_ar AS user_first_name_ar,
+			users.last_name_en AS user_last_name_en,
+			users.last_name_ar AS user_last_name_ar,
+			users.email AS user_email,
+			users.initial AS user_initial,
+			users.color AS user_color,
+			users.profile_image_path AS user_profile_image_path,
 			created_user.id AS created_user_id,
         	created_user.first_name_en AS created_user_first_name_en,
 			created_user.first_name_ar AS created_user_first_name_ar,
@@ -74,6 +92,13 @@ func (repo *AuditPlanChecklistRepository) GetAll(auditPlanId uint, params *audit
 		`).
 		Joins(`
 			LEFT JOIN auditable_items ON auditable_items.id = audit_plan_checklists.auditable_item_id
+			LEFT JOIN processes ON processes.id = auditable_items.process_id
+			LEFT JOIN controls ON controls.id = auditable_items.control_id
+			LEFT JOIN documents ON documents.id = auditable_items.document_id
+			LEFT JOIN incident_register ON incident_register.id = auditable_items.incident_register_id
+			LEFT JOIN compliance_requirements ON compliance_requirements.id = auditable_items.compliance_requirement_id
+			LEFT JOIN risk_register ON risk_register.id = auditable_items.risk_register_id
+			LEFT JOIN users ON users.id = auditable_items.user_id
 			LEFT JOIN users AS created_user ON created_user.id = audit_plan_checklists.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = audit_plan_checklists.updated_by_id
 		`).Where(`audit_plan_checklists.audit_plan_id`, auditPlanId)
