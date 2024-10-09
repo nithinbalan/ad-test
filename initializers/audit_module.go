@@ -55,7 +55,12 @@ type AuditModule struct {
 	AuditSvc                            services.AuditServiceInterface
 	AuditDocumentRequestSvc             services.AuditDocumentRequestServiceInterface
 	AuditDocumentRequestConversationSvc services.AuditDocumentRequestConversationServiceInterface
+	AuditDraftReportStatusSvc           services.AuditDraftReportStatusServiceInterface
 	AuditDraftReportSvc                 services.AuditDraftReportServiceInterface
+	AuditDraftFindingSvc                services.AuditDraftFindingServiceInterface
+	AuditDraftFindingStatusSvc          services.AuditDraftFindingStatusServiceInterface
+	AuditDraftFindingConversationSvc    services.AuditDraftFindingConversationServiceInterface
+	AuditDraftFindingActionPlanSvc      services.AuditDraftFindingActionPlanServiceInterface
 }
 
 func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, complianceModule *ComplianceModule, riskModule *RiskModule, incidentModule *IncidentModule, documentModule *DocumentModule, settingModule *SettingsModule, masterModule *MasterModule, taskModule *TaskModule) *AuditModule {
@@ -429,5 +434,10 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		AuditDocumentRequestSvc:             auditDocumentRequestSvc,
 		AuditDocumentRequestConversationSvc: auditDocumentRequestConversationSvc,
 		AuditDraftReportSvc:                 auditDraftReportSvc,
+		AuditDraftReportStatusSvc:           auditDraftReportStatusSvc,
+		AuditDraftFindingSvc:                auditDraftFindingSvc,
+		AuditDraftFindingStatusSvc:          auditDraftFindingStatusSvc,
+		AuditDraftFindingConversationSvc:    auditDraftFindingConversationSvc,
+		AuditDraftFindingActionPlanSvc:      auditDraftFindingActionPlanSvc,
 	}
 }

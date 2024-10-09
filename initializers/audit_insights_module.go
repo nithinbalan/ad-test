@@ -14,6 +14,7 @@ type AuditInsightsModule struct {
 	AuditInsightsDocumentRequestController             *controllers.AuditInsightsDocumentRequestController
 	AuditInsightsDraftReportController                 *controllers.AuditInsightsDraftReportController
 	AuditInsightsDocumentRequestConversationController *controllers.AuditInsightsDocumentRequestConversationController
+	AuditInsightsDraftFindingController                *controllers.AuditInsightsDraftFindingController
 }
 
 func NewAuditInsightsModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, auditModule *AuditModule) *AuditInsightsModule {
@@ -62,11 +63,26 @@ func NewAuditInsightsModule(db *gorm.DB, sharedModule *SharedModule, organizatio
 	)
 	auditInsightsDraftReportController := controllers.NewAuditInsightsDraftReportController(auditInsightsDraftReportSvc)
 
+	auditInsightsDraftFindingRepo := repositories.NewAuditInsightsDraftFindingRepository(db)
+	auditInsightsDraftFindingSvc := services.NewAuditInsightsDraftFindingService(
+		auditInsightsDraftFindingRepo,
+		sharedModule.ActivityLogService,
+		organizationModule.UserSvc,
+		auditModule.AuditDraftReportSvc,
+		auditModule.AuditDraftReportStatusSvc,
+		auditModule.AuditDraftFindingSvc,
+		auditModule.AuditDraftFindingStatusSvc,
+		auditModule.AuditDraftFindingConversationSvc,
+		auditModule.AuditDraftFindingActionPlanSvc,
+	)
+	auditInsightsDraftFindingController := controllers.NewAuditInsightsDraftFindingController(auditInsightsDraftFindingSvc)
+
 	return &AuditInsightsModule{
 		AuditInsightsAuditPlanController:                   auditInsightsAuditPlanController,
 		AuditInsightsAuditController:                       auditInsightsAuditController,
 		AuditInsightsDocumentRequestController:             auditInsightsDocumentRequestController,
 		AuditInsightsDraftReportController:                 auditInsightsDraftReportController,
 		AuditInsightsDocumentRequestConversationController: auditInsightsDocumentRequestConversationController,
+		AuditInsightsDraftFindingController:                auditInsightsDraftFindingController,
 	}
 }
