@@ -10,7 +10,7 @@ import (
 
 type AuditDraftReportReviewRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(params *dtos.AuditReportReviewListQueryParamsDTO) ([]*dtos.AuditReportReviewListDTO, error)
+	GetAll(auditDraftReportID uint, params *dtos.AuditReportReviewListQueryParamsDTO) ([]*dtos.AuditReportReviewListDTO, error)
 	CreateAuditReportWorkflow(auditReportWorkflow *models.AuditReportWorkflow, tx ...utility.DatabaseTransaction) (uint, error)
 	UpdateAuditReportWorkflow(auditReportWorkflow *models.AuditReportWorkflow, tx ...utility.DatabaseTransaction) error
 	Create(auditReportReview *models.AuditReportReview, tx ...utility.DatabaseTransaction) (uint, error)
@@ -34,7 +34,7 @@ func (repo *AuditDraftReportReviewRepository) BeginTransaction() utility.Databas
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *AuditDraftReportReviewRepository) GetAll(params *dtos.AuditReportReviewListQueryParamsDTO) ([]*dtos.AuditReportReviewListDTO, error) {
+func (repo *AuditDraftReportReviewRepository) GetAll(auditDraftReportID uint, params *dtos.AuditReportReviewListQueryParamsDTO) ([]*dtos.AuditReportReviewListDTO, error) {
 	var reviews []*dtos.AuditReportReviewListDTO
 
 	query := repo.db.Table("audit_report_reviews").
@@ -58,6 +58,7 @@ func (repo *AuditDraftReportReviewRepository) GetAll(params *dtos.AuditReportRev
 			review_user.profile_image_path AS review_user_profile_image_path,
 			audit_report_reviews.comment,
 			audit_report_reviews.created_by_id,
+			audit_report_reviews.created_at,
 			created_user.first_name_en AS created_user_first_name_en,
 			created_user.first_name_ar AS created_user_first_name_ar,
 			created_user.last_name_en AS created_user_last_name_en,
@@ -70,7 +71,8 @@ func (repo *AuditDraftReportReviewRepository) GetAll(params *dtos.AuditReportRev
 		Joins(`
 			LEFT JOIN users AS created_user ON created_user.id = audit_report_reviews.created_by_id
 			LEFT JOIN users AS review_user ON review_user.id = audit_report_reviews.user_id
-			LEFT JOIN workflow_statuses ON workflow_statuses.id = audit_report_reviews.workflow_status_id`)
+			LEFT JOIN workflow_statuses ON workflow_statuses.id = audit_report_reviews.workflow_status_id`).
+		Where(`audit_report_reviews.audit_draft_report_id = ?`, auditDraftReportID)
 
 	// Apply dynamic filters
 	for columnName, values := range params.Filters {

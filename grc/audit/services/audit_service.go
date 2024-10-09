@@ -117,11 +117,15 @@ func (as *AuditService) Create(currentUserID uint, auditFormDTO *auditDTOs.Audit
 		tx.Rollback()
 		return 0, err
 	}
-
+	auditStatus, err := as.auditStatusSvc.GetByType("in-progress")
+	if err != nil {
+		return 0,err
+	}
 	audit := &models.Audit{
 		AuditPlanID: auditFormDTO.AuditPlanID,
 		StartDate:   dates.StartDate,
 		EndDate:     dates.EndDate,
+		AuditStatusID:   uint(auditStatus.ID),
 		CreatedBYID: currentUserID,
 	}
 
@@ -193,10 +197,6 @@ func (as *AuditService) Create(currentUserID uint, auditFormDTO *auditDTOs.Audit
 		return 0, err
 	}
 	//Update Audit plan status in to in-progress
-	auditStatus, err := as.auditStatusSvc.GetByType("in-progress")
-	if err != nil {
-		return 0, err
-	}
 	auditStatusID :=auditStatus.ID
 	if err := as.auditPlanSvc.StatusUpdate(auditFormDTO.AuditPlanID, currentUserID, uint(auditStatusID), tx); err != nil {
 		tx.Rollback()

@@ -29,6 +29,7 @@ type AuditDraftReport struct {
 	AuditeeReviewSubmittedByUser  *User                      `gorm:"foreignKey:AuditeeReviewSubmittedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
 	AuditDraftReportStatus        *AuditDraftReportStatus    `gorm:"foreignKey:AuditDraftReportStatusID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
 	AuditDraftReportComments      []*AuditDraftReportComment `gorm:"foreignKey:AuditDraftReportID"`
+	AuditReportWorkflows          []*AuditReportWorkflow     `gorm:"foreignKey:AuditDraftReportID"`
 }
 
 // TableName overrides the table name used by AuditDraftReport to `audit_draft_reports`
