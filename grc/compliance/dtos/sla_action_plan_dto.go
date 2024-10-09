@@ -1,11 +1,11 @@
 package dtos
 
 import (
+	"time"
+
 	commonDTOs "jethur/grc/common/dtos"
 	masterDTOs "jethur/grc/masters/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
-
-	"time"
 )
 
 type SLAActionPlanListDTO struct {
@@ -98,9 +98,12 @@ type SLAActionPlanParsedDates struct {
 
 type SLAActionPlanDetailDTO struct {
 	ID                      int                              `json:"id"`
+	SlaRegister             *SLAActionPlanDetailDTO          `json:"sla_register"`
+	ReferenceNumber         string                           `json:"reference_number"`
 	Title                   string                           `json:"title"`
 	Description             string                           `json:"description"`
 	SeverityLevel           *masterDTOs.SeverityLevelDTO     `json:"severity_level"`
+	ResponsibleUserID       uint                             `json:"responsible_user_id" binding:"required" gorm:"not null"`
 	ResponsibleUser         organizationDTOs.UserMinimalDTO  `json:"responsible_user"`
 	ReviewUser              organizationDTOs.UserMinimalDTO  `json:"review_user"`
 	ActionPlanStatus        masterDTOs.ActionPlanStatusDTO   `json:"action_plan_status"`
