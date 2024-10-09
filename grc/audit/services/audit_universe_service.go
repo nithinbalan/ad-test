@@ -73,7 +73,7 @@ func (aus *AuditUniverseService) Create(currentUserID uint, auditUniverseFormDTO
 	}
 
 	// Retrieve audit status
-	auditStatus, err := aus.auditStatusSvc.GetByType("pending")
+	auditStatus, err := aus.auditStatusSvc.GetByType("draft")
 	if err != nil {
 		return err
 	}

@@ -54,6 +54,7 @@ func (repo *AuditPlanRepository) GetAll(params *auditDTOs.AuditPlanListQueryPara
 			audit_categories.title_ar AS audit_category_title_ar,
 			CONVERT(VARCHAR, audit_plans.start_date, 23) AS start_date,
 			CONVERT(VARCHAR, audit_plans.target_date, 23) AS target_date,
+			CONVERT(VARCHAR, audit_plans.published_at, 23) AS published_at,
 			audit_statuses.title_en AS audit_status_title_en,
 			audit_statuses.title_ar AS audit_status_title_ar,
 			audit_statuses.type AS audit_status_type,
@@ -66,6 +67,13 @@ func (repo *AuditPlanRepository) GetAll(params *auditDTOs.AuditPlanListQueryPara
 			team_lead.email AS team_lead_email,
 			team_lead.initial AS team_lead_initial,
 			team_lead.profile_image_path AS team_lead_profile_image_path,
+			published_user.first_name_en AS published_user_first_name_en,
+			published_user.first_name_ar AS published_user_first_name_ar,
+			published_user.last_name_en AS published_user_last_name_en,
+			published_user.last_name_ar AS published_user_last_name_ar,
+			published_user.email AS published_user_email,
+			published_user.initial AS published_user_initial,
+			published_user.profile_image_path AS published_user_profile_image_path,
 			audit_teams.title_en AS audit_team_title_en,
 			audit_teams.title_en AS audit_team_title_en,
 			audit_teams_team_lead.id AS audit_team_team_lead_id,
@@ -102,6 +110,7 @@ func (repo *AuditPlanRepository) GetAll(params *auditDTOs.AuditPlanListQueryPara
         	LEFT JOIN users AS audit_teams_team_lead ON audit_teams_team_lead.id = audit_teams.team_lead_id
 			LEFT JOIN audit_statuses ON audit_statuses.id = audit_plans.audit_status_id
 			LEFT JOIN users AS team_lead ON team_lead.id = audit_plans.team_lead_id
+			LEFT JOIN users AS published_user ON published_user.id = audit_plans.published_by_id
 			LEFT JOIN users AS created_user ON created_user.id = audit_plans.created_by_id
         	LEFT JOIN users AS updated_user ON updated_user.id = audit_plans.updated_by_id
 		`)
@@ -123,8 +132,10 @@ func (repo *AuditPlanRepository) GetAll(params *auditDTOs.AuditPlanListQueryPara
 	// Apply quick filters
 	for _, filter := range params.QuickFilter {
 		switch filter {
-		case "pending":
-			query = query.Where("audit_statuses.type = ?", "pending")
+		case "draft":
+			query = query.Where("audit_statuses.type = ?", "draft")
+		case "published":
+			query = query.Where("audit_statuses.type = ?", "published")
 		case "completed":
 			query = query.Where("audit_statuses.type = ?", "completed")
 		case "in_progress":
@@ -222,6 +233,7 @@ func (repo *AuditPlanRepository) GetFullDetailsByID(id uint, tx ...utility.Datab
 		Preload("AuditableItems").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
+		Preload("PublishedByUser").
 		First(&auditPlan, id)
 
 	if result.Error != nil {

@@ -10,7 +10,7 @@ import (
 
 type AuditDraftReportCommentRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(params *dtos.AuditDraftReportCommentListQueryParamsDTO) ([]*dtos.AuditDraftReportCommentListDTO, error)
+	GetAll(auditDraftReportID uint, params *dtos.AuditDraftReportCommentListQueryParamsDTO) ([]*dtos.AuditDraftReportCommentListDTO, error)
 	GetByID(id uint) (*models.AuditDraftReportComment, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.AuditDraftReportComment, error)
 	Create(auditDraftReportComment *models.AuditDraftReportComment, tx ...utility.DatabaseTransaction) (uint, error)
@@ -38,7 +38,7 @@ func (repo *AuditDraftReportCommentRepository) BeginTransaction() utility.Databa
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *AuditDraftReportCommentRepository) GetAll(params *dtos.AuditDraftReportCommentListQueryParamsDTO) ([]*dtos.AuditDraftReportCommentListDTO, error) {
+func (repo *AuditDraftReportCommentRepository) GetAll(auditDraftReportID uint, params *dtos.AuditDraftReportCommentListQueryParamsDTO) ([]*dtos.AuditDraftReportCommentListDTO, error) {
 	var comments []*dtos.AuditDraftReportCommentListDTO
 	query := repo.db.Table("audit_draft_report_comments").
 		Select(`
@@ -48,17 +48,23 @@ func (repo *AuditDraftReportCommentRepository) GetAll(params *dtos.AuditDraftRep
 			created_user.last_name_en AS created_user_last_name_en,
 			created_user.last_name_ar AS created_user_last_name_ar,
 			created_user.email AS created_user_email,
+			created_user.initial AS created_user_initial,
+        	created_user.color AS created_user_color,
 			created_user.profile_image_path AS created_user_profile_image_path,
 			updated_user.first_name_en AS updated_user_first_name_en,
 			updated_user.first_name_ar AS updated_user_first_name_ar,
 			updated_user.last_name_en AS updated_user_last_name_en,
 			updated_user.email AS updated_user_email,
+			updated_user.initial AS updated_user_initial,
+        	updated_user.color AS updated_user_color,
 			updated_user.profile_image_path AS updated_user_profile_image_path
 		`).
 		Joins(`
 			LEFT JOIN users AS created_user ON created_user.id = audit_draft_report_comments.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = audit_draft_report_comments.updated_by_id
-		`)
+		`).
+		Where(`audit_draft_report_comments.audit_draft_report_id = ?`, auditDraftReportID)
+
 
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {

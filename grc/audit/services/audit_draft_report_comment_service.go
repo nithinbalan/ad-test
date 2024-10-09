@@ -57,7 +57,7 @@ func (adrcs *AuditDraftReportCommentService) GetAll(auditID uint, auditDraftRepo
 		return nil, err
 	}
 
-	return adrcs.repo.GetAll(params)
+	return adrcs.repo.GetAll(auditDraftReportID,params)
 }
 
 func (adrcs AuditDraftReportCommentService) GetByID(id uint) (*models.AuditDraftReportComment, error) {

@@ -3,13 +3,17 @@ package services
 import (
 	"errors"
 	"fmt"
+	"time"
+
 	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	complianceRepositories "jethur/grc/compliance/repositories"
 	logServices "jethur/grc/logs/services"
 	masterRepositories "jethur/grc/masters/repositories"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
+	organizationServices "jethur/grc/organization/services"
 	taskServices "jethur/grc/task/services"
 	"jethur/utility"
 
@@ -37,6 +41,8 @@ type SLAActionPlanService struct {
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface
 	severityLevelSvc    masterServices.SeverityLevelServiceInterface
 	taskSvc             taskServices.TaskServiceInterface
+	userSvc             organizationServices.UserServiceInterface
+	notificationSvc     commonServices.NotificationServiceInterface
 }
 
 func NewSLAActionPlanService(
@@ -46,7 +52,10 @@ func NewSLAActionPlanService(
 	slaCheckQuestionSvc SLACheckQuestionServiceInterface,
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
 	severityLevelSvc masterRepositories.SeverityLevelRepositoryInterface,
-	taskSvc taskServices.TaskServiceInterface) SLAActionPlanServiceInterface {
+	taskSvc taskServices.TaskServiceInterface,
+	userSvc organizationServices.UserServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
+) SLAActionPlanServiceInterface {
 	return &SLAActionPlanService{
 		repo:                repo,
 		activityLogSvc:      activityLogSvc,
@@ -55,6 +64,8 @@ func NewSLAActionPlanService(
 		actionPlanStatusSvc: actionPlanStatusSvc,
 		severityLevelSvc:    severityLevelSvc,
 		taskSvc:             taskSvc,
+		userSvc:             userSvc,
+		notificationSvc:     notificationSvc,
 	}
 }
 
@@ -71,7 +82,6 @@ func (saps *SLAActionPlanService) GetByID(slaID uint, id uint) (*models.SLAActio
 	}
 
 	slaActionPlan, err := saps.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -89,7 +99,6 @@ func (saps *SLAActionPlanService) GetFullDetailsByID(slaID uint, id uint) (*comp
 	var slaActionPlanDTO complianceDTOs.SLAActionPlanDetailDTO
 
 	slaActionPlan, err := saps.repo.GetFullDetailsByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -112,7 +121,8 @@ func (saps *SLAActionPlanService) GetFullDetailsByID(slaID uint, id uint) (*comp
 
 func (saps *SLAActionPlanService) Create(slaID uint, currentUserID uint, slaActionPlanFormDTO *complianceDTOs.SLAActionPlanFormDTO) (uint, error) {
 	tx := saps.repo.BeginTransaction()
-	if _, err := saps.slaRegisterSvc.GetByID(slaID); err != nil {
+	sla, err := saps.slaRegisterSvc.GetByID(slaID)
+	if err != nil {
 		return 0, err
 	}
 
@@ -162,7 +172,7 @@ func (saps *SLAActionPlanService) Create(slaID uint, currentUserID uint, slaActi
 
 	urlParam := fmt.Sprintf(`{"id":%d}`, id)
 	taskDTO := commonDTOs.TaskFormDTO{
-		ModuleIdentifier:  "sla_contracts",
+		ModuleIdentifier:  "compliance",
 		SLAActionPlanID:   &id,
 		Title:             slaActionPlanFormDTO.Title,
 		Description:       slaActionPlanFormDTO.Description,
@@ -189,7 +199,6 @@ func (saps *SLAActionPlanService) Create(slaID uint, currentUserID uint, slaActi
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -201,24 +210,92 @@ func (saps *SLAActionPlanService) Create(slaID uint, currentUserID uint, slaActi
 
 			utility.LogError("Failed to log activity", fields)
 		}
+
+		// prepare notification
+		urlParam := fmt.Sprintf(`{"id":%d}`, id)
+		entity := "sla-action-plan"
+		action := "responsible-user-assign"
+
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserID:               slaActionPlanFormDTO.ResponsibleUserID,
+			ModuleIdentifier:     "compliance",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			HeadingEn:            "Sla Action Plan Assignment",
+			HeadingAr:            "تعيين خطة العمل لاتفاقية مستوى الخدمة (SLA)",
+			TitleEn:              slaActionPlanFormDTO.Title,
+			TitleAr:              slaActionPlanFormDTO.Title,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		responsibleUser, err := saps.userSvc.GetByID(slaActionPlanFormDTO.ResponsibleUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		assignedBy, err := saps.userSvc.GetByID(currentUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		emailTo := []string{responsibleUser.Email}
+		subject := fmt.Sprintf("Sla Action Plan/%s: Responsibility Assigned", slaActionPlanFormDTO.Title)
+		appURL := utility.GetAppURL()
+		emailData := map[string]interface{}{
+			"FirstNameEn":           responsibleUser.FirstNameEn,
+			"LastNameEn":            responsibleUser.LastNameEn,
+			"SlaReferenceNumber":    sla.ReferenceNumber,
+			"SlaTitle":              sla.TitleEn,
+			"ActionPlanTitle":       slaActionPlanFormDTO.Title,
+			"ActionPlanDescription": slaActionPlanFormDTO.Description,
+			"TargetDate":            dates.TargetDate.Format("2006-01-02"),
+			"AssignedByFirstNameEn": assignedBy.FirstNameEn,
+			"AssignedByLastNameEn":  assignedBy.LastNameEn,
+			"AssignedOn":            time.Now().Format("2006-01-02"),
+			"RedirectURL":           fmt.Sprintf("%s/sla-action-plan/%d", appURL, id),
+		}
+
+		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              emailTo,
+			Subject:              subject,
+			TemplateRelativePath: "sla/templates/email/sla_action_plan_create_responsible_user_mail.html",
+			EmailData:            emailData,
+		}
+
+		// send notification and mail
+		err = saps.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "sla_register_action_plan")
+		if err != nil {
+			utility.LogError("Failed to send notifications", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
 	}()
 
 	return id, nil
 }
 
 func (saps *SLAActionPlanService) Update(slaID uint, id uint, currentUserID uint, slaActionPlanFormDTO *complianceDTOs.SLAActionPlanFormDTO) error {
-
 	tx := saps.repo.BeginTransaction()
 
-	if _, err := saps.slaRegisterSvc.GetByID(slaID); err != nil {
+	sla, err := saps.slaRegisterSvc.GetByID(slaID)
+	if err != nil {
 		return err
 	}
 
 	existingSLAActionPlan, err := saps.GetByID(slaID, id)
-
 	if err != nil {
 		return err
 	}
+
+	oldResponsibleUserID := existingSLAActionPlan.ResponsibleUserID
 
 	if err := saps.validateSLAActionPlanFormDTO(slaID, slaActionPlanFormDTO); err != nil {
 		return err
@@ -243,7 +320,6 @@ func (saps *SLAActionPlanService) Update(slaID uint, id uint, currentUserID uint
 	existingSLAActionPlan.UpdatedByID = &currentUserID
 
 	err = saps.repo.Update(existingSLAActionPlan, tx)
-
 	if err != nil {
 		return err
 	}
@@ -267,24 +343,178 @@ func (saps *SLAActionPlanService) Update(slaID uint, id uint, currentUserID uint
 	}
 	tx.Commit()
 
+	go func() {
+		// sends notification if responsible user has changed
+		if oldResponsibleUserID != existingSLAActionPlan.ResponsibleUserID {
+			urlParam := fmt.Sprintf(`{"id:%d"}`, id)
+			entity := "sla-action-plan"
+
+			oldResponsibleUserAction := "responsible-user-remove"
+			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserID:               oldResponsibleUserID,
+				ModuleIdentifier:     "compliance",
+				NotificationType:     string(commonDTOs.InformationType),
+				HeadingEn:            "Sla Action Plan Removal",
+				HeadingAr:            "إزالة خطة العمل لاتفاقية مستوى الخدمة (SLA)",
+				TitleEn:              existingSLAActionPlan.Title,
+				TitleAr:              existingSLAActionPlan.Title,
+				Entity:               &entity,
+				Action:               &oldResponsibleUserAction,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			newResponsibleUserAction := "responsible-user-assign"
+			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserID:               existingSLAActionPlan.ResponsibleUserID,
+				ModuleIdentifier:     "compliance",
+				NotificationType:     string(commonDTOs.AssignmentType),
+				HeadingEn:            "Sla Action Plan Assignment",
+				HeadingAr:            "تعيين خطة العمل لاتفاقية مستوى الخدمة (SLA)",
+				TitleEn:              existingSLAActionPlan.Title,
+				TitleAr:              existingSLAActionPlan.Title,
+				Entity:               &entity,
+				Action:               &newResponsibleUserAction,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			oldResponsibleUser, err := saps.userSvc.GetByID(oldResponsibleUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch old responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			newResponsibleUser, err := saps.userSvc.GetByID(existingSLAActionPlan.ResponsibleUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch new responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			assignedBy, err := saps.userSvc.GetByID(currentUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			appURL := utility.GetAppURL()
+
+			oldResponsibleUserEmailTo := []string{oldResponsibleUser.Email}
+			oldResponsibleUserSubject := fmt.Sprintf("Sla Action Plan/%s: Responsibility Removed", existingSLAActionPlan.Title)
+			oldResponsibleUserTemplateRelativePath := "sla/templates/email/sla_action_plan_remove_responsible_user_mail.html"
+			oldResponsibleUserEmailData := map[string]interface{}{
+				"FirstNameEn":           oldResponsibleUser.FirstNameEn,
+				"LastNameEn":            oldResponsibleUser.LastNameEn,
+				"SlaReferenceNumber":    sla.ReferenceNumber,
+				"SlaTitle":              sla.TitleEn,
+				"ActionPlanTitle":       existingSLAActionPlan.Title,
+				"ActionPlanDescription": existingSLAActionPlan.Description,
+				"RedirectURL":           fmt.Sprintf("%s/sla-action-plan/%d", appURL, id),
+			}
+
+			oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              oldResponsibleUserEmailTo,
+				Subject:              oldResponsibleUserSubject,
+				TemplateRelativePath: oldResponsibleUserTemplateRelativePath,
+				EmailData:            oldResponsibleUserEmailData,
+			}
+
+			newResponsibleUserEmailTo := []string{newResponsibleUser.Email}
+			newResponsibleUserSubject := fmt.Sprintf("sla Action Plan/%s: Responsibility Assigned", existingSLAActionPlan.Title)
+			newResponsibleUserTemplateRelativePath := "sla/templates/email/sla_action_plan_change_responsible_user_mail.html"
+			newResponsibleUserEmailData := map[string]interface{}{
+				"FirstNameEn":           newResponsibleUser.FirstNameEn,
+				"LastNameEn":            newResponsibleUser.LastNameEn,
+				"SlaReferenceNumber":    sla.ReferenceNumber,
+				"SlaTitle":              sla.TitleEn,
+				"ActionPlanTitle":       existingSLAActionPlan.Title,
+				"ActionPlanDescription": existingSLAActionPlan.Description,
+				"TargetDate":            existingSLAActionPlan.TargetDate.Format("2006-01-02"),
+				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
+				"AssignedByLastNameEn":  assignedBy.LastNameEn,
+				"AssignedOn":            time.Now().Format("2006-01-02"),
+				"RedirectURL":           fmt.Sprintf("%s/sla-action-plan/%d", appURL, id),
+			}
+
+			newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              newResponsibleUserEmailTo,
+				Subject:              newResponsibleUserSubject,
+				TemplateRelativePath: newResponsibleUserTemplateRelativePath,
+				EmailData:            newResponsibleUserEmailData,
+			}
+
+			err = saps.notificationSvc.SendNotification(
+				newResponsibleUserNotificationDTO, newResponsibleUserEmailNotificationDTO, "sla_register_action_plan",
+			)
+			if err != nil {
+				utility.LogError("Failed to send new responsible user notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+
+			err = saps.notificationSvc.SendNotification(
+				oldResponsibleUserNotificationDTO, oldResponsibleUserEmailNotificationDTO, "sla_register_action_plan",
+			)
+			if err != nil {
+				utility.LogError("Failed to send old responsible user notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+		}
+	}()
+
 	return nil
 }
 
 func (saps *SLAActionPlanService) Delete(slaID uint, ids []uint, currentUserID uint) ([]uint, error) {
 	tx := saps.repo.BeginTransaction()
-	if _, err := saps.slaRegisterSvc.GetByID(slaID); err != nil {
+
+	sla, err := saps.slaRegisterSvc.GetByID(slaID)
+	if err != nil {
 		return nil, err
 	}
 
 	var failedIds []uint
 	var successfulIds []uint
+	var notifications []struct {
+		OwnerID         *uint
+		TitleEn         string
+		TitleAr         string
+		Description     string
+		ReferenceNumber string
+		SlaTitle        string
+	}
 	for _, id := range ids {
 
 		slaActionPlan, err := saps.GetFullDetailsByID(slaID, id)
-
 		if err != nil {
 			continue
 		}
+
+		// Prepare notification data before deletion
+		notifications = append(notifications, struct {
+			OwnerID         *uint
+			TitleEn         string
+			TitleAr         string
+			Description     string
+			ReferenceNumber string
+			SlaTitle        string
+		}{
+			OwnerID:         &slaActionPlan.ResponsibleUserID,
+			TitleEn:         slaActionPlan.Title,
+			TitleAr:         slaActionPlan.Title,
+			Description:     slaActionPlan.Description,
+			ReferenceNumber: sla.ReferenceNumber,
+			SlaTitle:        slaActionPlan.Title,
+		})
 
 		if len(slaActionPlan.ActionPlanStatusUpdates) > 0 {
 			var deleteStatusUpdateIds []*uint
@@ -325,7 +555,6 @@ func (saps *SLAActionPlanService) Delete(slaID uint, ids []uint, currentUserID u
 	tx.Commit()
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := saps.activityLogSvc.LogBulkActivities(
 				models.DeleteAction,
@@ -339,6 +568,64 @@ func (saps *SLAActionPlanService) Delete(slaID uint, ids []uint, currentUserID u
 				// @todo - save to log file
 				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
 			}
+
+			for _, notification := range notifications {
+				urlParam := ""
+				entity := "sla-action-plan"
+				action := "delete"
+
+				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+					UserID:               *notification.OwnerID,
+					ModuleIdentifier:     "compliance",
+					NotificationType:     string(commonDTOs.DeletionType),
+					HeadingEn:            "Sla Action Plan Deletion",
+					HeadingAr:            "حذف خطة العمل لاتفاقية مستوى الخدمة (SLA)",
+					TitleEn:              notification.TitleEn,
+					TitleAr:              notification.TitleAr,
+					Entity:               &entity,
+					Action:               &action,
+					URLParam:             urlParam,
+					IsSystemNotification: false,
+					CreatedByID:          &currentUserID,
+				}
+
+				ownerUser, err := saps.userSvc.GetByID(*notification.OwnerID)
+				if err != nil {
+					utility.LogError("Failed to fetch owner details for notification", map[string]interface{}{
+						"error": err.Error(),
+					})
+					continue
+				}
+
+				ownerEmailTo := []string{ownerUser.Email}
+				subject := fmt.Sprintf("Sla Action Plan/%s: Deleted", notification.TitleEn)
+				templateRelativePath := "sla/templates/email/sla_action_plan_delete_mail.html"
+
+				emailData := map[string]interface{}{
+					"FirstNameEn":           ownerUser.FirstNameEn,
+					"LastNameEn":            ownerUser.LastNameEn,
+					"SlaReferenceNumber":    notification.ReferenceNumber,
+					"SlaTitle":              notification.SlaTitle,
+					"ActionPlanTitle":       notification.TitleEn,
+					"ActionPlanDescription": notification.Description,
+				}
+
+				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+					EmailTo:              ownerEmailTo,
+					Subject:              subject,
+					TemplateRelativePath: templateRelativePath,
+					EmailData:            emailData,
+				}
+
+				err = saps.notificationSvc.SendNotification(
+					dbNotificationDTO, emailNotificationDTO, "sla_register_action_plan")
+				if err != nil {
+					utility.LogError("Failed to send deletion notifications", map[string]interface{}{
+						"error": err.Error(),
+					})
+				}
+
+			}
 		}()
 	}
 
@@ -347,7 +634,6 @@ func (saps *SLAActionPlanService) Delete(slaID uint, ids []uint, currentUserID u
 
 func (saps *SLAActionPlanService) StatusUpdate(slaID uint, id uint, currentUserID uint, ActionPlanStatusID uint, tx utility.DatabaseTransaction) error {
 	existingSLAActionPlan, err := saps.GetByID(slaID, id)
-
 	if err != nil {
 		return err
 	}
@@ -356,7 +642,6 @@ func (saps *SLAActionPlanService) StatusUpdate(slaID uint, id uint, currentUserI
 	existingSLAActionPlan.UpdatedByID = &currentUserID
 
 	err = saps.repo.Update(existingSLAActionPlan, tx)
-
 	if err != nil {
 		return err
 	}
@@ -377,7 +662,6 @@ func (saps *SLAActionPlanService) StatusUpdate(slaID uint, id uint, currentUserI
 }
 
 func (saps *SLAActionPlanService) validateSLAActionPlanFormDTO(slaID uint, slaActionPlanFormDTO *complianceDTOs.SLAActionPlanFormDTO) error {
-
 	if slaActionPlanFormDTO.SeverityLevelID != nil {
 		if _, err := saps.severityLevelSvc.GetByID(*slaActionPlanFormDTO.SeverityLevelID); err != nil {
 			return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
