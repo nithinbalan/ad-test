@@ -173,7 +173,7 @@ func (ts *TaskService) MapActionPlanStatusToTaskStatus(actionPlanStatusID uint, 
 	} else {
 		switch actionPlanStatus.Type {
 		case "new":
-			taskStatusType = "new"
+			taskStatusType = "open"
 		case "in_progress":
 			taskStatusType = "in_progress"
 		case "completed":
@@ -183,7 +183,7 @@ func (ts *TaskService) MapActionPlanStatusToTaskStatus(actionPlanStatusID uint, 
 		case "reopen":
 			taskStatusType = "in_progress"
 		default:
-			taskStatusType = "new"
+			taskStatusType = "open"
 		}
 	}
 
