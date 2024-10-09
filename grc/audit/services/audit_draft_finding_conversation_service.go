@@ -167,6 +167,29 @@ func (adfcs *AuditDraftFindingConversationService) Create(auditDraftFindingID ui
 			return 0, err
 		}
 	}
+	// Check if the form indicates that the finding should be IsDismissed
+	if formDTO.IsDismissed != nil && *formDTO.IsDismissed {
+		// Check if the finding is already IsDismissed
+		auditDraftFindingStatusDismissed, err := adfcs.auditDraftFindingStatusSvc.GetByType("dismissed")
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+		auditDraftFindingStatusOpen, err := adfcs.auditDraftFindingStatusSvc.GetByType("open")
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+		if existingAuditDraftFinding.AuditDraftFindingStatusID != auditDraftFindingStatusOpen.ID {
+			tx.Rollback()
+			return 0, utility.NewForbiddenError("Action not allowed. The audit finding must be in 'Open' status before any further actions can be taken.")
+		}
+		// Update Audit Draft Finding Status
+		if err := adfcs.auditDraftFindingSvc.StatusUpdate(auditDraftFindingID, currentUserID, auditDraftFindingStatusDismissed.ID); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
 
 	tx.Commit()
 
