@@ -70,7 +70,7 @@ type UserFormDTO struct {
 	MobileNumber        *string `json:"mobile_number" binding:"omitempty,max=45"`
 	ProfileImagePath    *string `json:"profile_image_path" binding:"omitempty"`
 	RoleIDs             []uint  `json:"role_ids" binding:"required"`
-	UserStatusID        uint    `json:"user_status_id"`
+	UserStatusID        uint    `json:"user_status_id" binding:"required"`
 }
 
 type UserUpdateDTO struct {
