@@ -27,6 +27,7 @@ type AuditDraftFindingConversationService struct {
 	activityLogSvc             logServices.ActivityLogServiceInterface
 	auditDraftFindingSvc       AuditDraftFindingServiceInterface
 	auditDraftFindingStatusSvc AuditDraftFindingStatusServiceInterface
+	auditSvc                  AuditServiceInterface
 }
 
 func NewAuditDraftFindingConversationService(
@@ -34,12 +35,14 @@ func NewAuditDraftFindingConversationService(
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	auditDraftFindingSvc AuditDraftFindingServiceInterface,
 	auditDraftFindingStatusSvc AuditDraftFindingStatusServiceInterface,
+	auditSvc                  AuditServiceInterface,
 ) AuditDraftFindingConversationServiceInterface {
 	return &AuditDraftFindingConversationService{
 		repo:                       repo,
 		activityLogSvc:             activityLogSvc,
 		auditDraftFindingSvc:       auditDraftFindingSvc,
 		auditDraftFindingStatusSvc: auditDraftFindingStatusSvc,
+		auditSvc: auditSvc,
 	}
 }
 
@@ -96,9 +99,41 @@ func (adfcs AuditDraftFindingConversationService) GetFullDetailsByID(auditDraftF
 func (adfcs *AuditDraftFindingConversationService) Create(auditDraftFindingID uint, currentUserID uint, formDTO *dtos.AuditDraftFindingConversationFormDTO) (uint, error) {
 	tx := adfcs.repo.BeginTransaction()
 
-	_, err := adfcs.auditDraftFindingSvc.GetByID(auditDraftFindingID)
+	existingAuditDraftFinding, err := adfcs.auditDraftFindingSvc.GetByID(auditDraftFindingID)
 	if err != nil {
 		return 0, err
+	}
+	// Check if the type is 'AR', restrict to auditees or audit members
+	if formDTO.Type == "AR" {
+		// Fetch the related audit by AuditDraftFindingID
+		auditID := existingAuditDraftFinding.AuditID
+		audit, err := adfcs.auditSvc.GetFullDetailsByID(auditID) 
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
+		// Check if the current user is the TeamLead
+		isAuthorizedUser := false
+		if uint(audit.AuditPlan.TeamLead.ID) == currentUserID {
+			isAuthorizedUser = true
+		}
+
+		// Check if the current user is one of the AuditPlan Members
+		if !isAuthorizedUser {
+			for _, member := range audit.AuditPlan.Members {
+				if member.UserID == currentUserID {
+					isAuthorizedUser = true
+					break
+				}
+			}
+		}
+
+		// If the current user is not authorized, rollback and return forbidden error
+		if !isAuthorizedUser {
+			tx.Rollback()
+			return 0,utility.NewForbiddenError("The current user is not authorized to perform this action.")
+		}
 	}
 
 	conversation := &models.AuditDraftFindingConversation{
