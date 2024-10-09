@@ -43,6 +43,7 @@ func (repo *AuditPlanChecklistRepository) GetAll(auditPlanId uint, params *audit
 			audit_plan_checklists.auditable_item_id,
 			auditable_items.title_en AS auditable_item_title_en,
 			auditable_items.title_ar AS auditable_item_title_ar,
+			auditable_items.type AS auditable_item_type,
 			auditable_items.process_id,
 			auditable_items.control_id,
 			auditable_items.document_id,

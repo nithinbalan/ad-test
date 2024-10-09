@@ -10,6 +10,7 @@ type AuditPlanChecklistListDTO struct {
 	AuditableItemID             uint       `json:"auditable_item_id"`
 	AuditableItemTitleEn        string     `json:"auditable_item_title_en"`
 	AuditableItemTitleAr        string     `json:"auditable_item_title_ar"`
+	AuditableItemType           string     `json:"auditable_item_type"`
 	ProcessID                   *uint      `json:"process_id"`
 	ControlID                   *uint      `json:"control_id"`
 	DocumentID                  *uint      `json:"document_id"`
