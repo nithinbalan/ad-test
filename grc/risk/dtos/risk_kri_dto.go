@@ -10,6 +10,7 @@ type RiskKriListDTO struct {
 	ID                              uint    `json:"id"`
 	ReferenceNumber                 string  `json:"reference_number"`
 	Title                           string  `json:"title"`
+	KRIRegisterID               	uint    `json:"kri_register_id"`
 	KRICategoryTitleEn              string  `json:"kri_category_title_en"`
 	KRICategoryTitleAr              string  `json:"kri_category_title_ar"`
 	ResponsibleUnitTitleEn          string  `json:"responsible_unit_title_en" gorm:"column:responsible_unit_title_en"`

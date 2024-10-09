@@ -5,10 +5,12 @@ import (
 	"fmt"
 	auditFindingDTOs "jethur/grc/audit/dtos"
 	auditFindingRepositories "jethur/grc/audit/repositories"
+	commonDTOs "jethur/grc/common/dtos"
 	logServices "jethur/grc/logs/services"
 	masterRepositories "jethur/grc/masters/repositories"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
+	taskServices "jethur/grc/task/services"
 	"jethur/utility"
 
 	"github.com/mitchellh/mapstructure"
@@ -35,6 +37,7 @@ type AuditFindingActionPlanService struct {
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface
 	severityLevelSvc    masterServices.SeverityLevelServiceInterface
 	auditTimelineSvc    AuditTimelineServiceInterface
+	taskSvc             taskServices.TaskServiceInterface
 }
 
 func NewAuditFindingActionPlanService(
@@ -44,6 +47,7 @@ func NewAuditFindingActionPlanService(
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
 	severityLevelSvc masterRepositories.SeverityLevelRepositoryInterface,
 	auditTimelineSvc AuditTimelineServiceInterface,
+	taskSvc taskServices.TaskServiceInterface,
 ) AuditFindingActionPlanServiceInterface {
 	return &AuditFindingActionPlanService{
 		repo:                repo,
@@ -52,6 +56,7 @@ func NewAuditFindingActionPlanService(
 		actionPlanStatusSvc: actionPlanStatusSvc,
 		severityLevelSvc:    severityLevelSvc,
 		auditTimelineSvc:    auditTimelineSvc,
+		taskSvc:             taskSvc,
 	}
 }
 
@@ -129,6 +134,7 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 		Description:        AuditFindingActionPlanFormDTO.Description,
 		SeverityLevelID:    AuditFindingActionPlanFormDTO.SeverityLevelID,
 		ResponsibleUserID:  AuditFindingActionPlanFormDTO.ResponsibleUserID,
+		ReviewUserID:       AuditFindingActionPlanFormDTO.ReviewUserID,
 		TargetDate:         dates.TargetDate,
 		Percentage:         AuditFindingActionPlanFormDTO.Percentage,
 		Comments:           AuditFindingActionPlanFormDTO.Comments,
@@ -152,6 +158,24 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 
 	_, err = afaps.repo.CreateInitialAuditFindingActionPlanStatusUpdate(auditFindingActionPlanUpdate, tx)
 	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+	taskDTO := commonDTOs.TaskFormDTO{
+		ModuleIdentifier:         "audit",
+		AuditFindingActionPlanID: &id,
+		Title:                    AuditFindingActionPlanFormDTO.Title,
+		Description:              AuditFindingActionPlanFormDTO.Description,
+		TargetDate:               dates.TargetDate,
+		URLParam:                 &urlParam,
+		QueryParam:               nil,
+		SeverityLevelID:          AuditFindingActionPlanFormDTO.SeverityLevelID,
+		ResponsibleUserID:        AuditFindingActionPlanFormDTO.ResponsibleUserID,
+	}
+
+	if err := afaps.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
 		tx.Rollback()
 		return 0, err
 	}
@@ -211,6 +235,7 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 	existingAuditFindingActionPlan.Description = AuditFindingActionPlanFormDTO.Description
 	existingAuditFindingActionPlan.SeverityLevelID = AuditFindingActionPlanFormDTO.SeverityLevelID
 	existingAuditFindingActionPlan.ResponsibleUserID = AuditFindingActionPlanFormDTO.ResponsibleUserID
+	existingAuditFindingActionPlan.ReviewUserID = AuditFindingActionPlanFormDTO.ReviewUserID
 	existingAuditFindingActionPlan.TargetDate = dates.TargetDate
 	existingAuditFindingActionPlan.Percentage = AuditFindingActionPlanFormDTO.Percentage
 	existingAuditFindingActionPlan.Comments = AuditFindingActionPlanFormDTO.Comments
@@ -220,6 +245,24 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 	err = afaps.repo.Update(existingAuditFindingActionPlan, tx)
 
 	if err != nil {
+		return err
+	}
+
+	// //update task
+	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+
+	taskUpdateDTO := commonDTOs.TaskFormDTO{
+		Title:             AuditFindingActionPlanFormDTO.Title,
+		Description:       AuditFindingActionPlanFormDTO.Description,
+		TargetDate:        dates.TargetDate,
+		URLParam:          &urlParam,
+		SeverityLevelID:   AuditFindingActionPlanFormDTO.SeverityLevelID,
+		ResponsibleUserID: AuditFindingActionPlanFormDTO.ResponsibleUserID,
+	}
+
+	err = afaps.taskSvc.Update(currentUserID, taskUpdateDTO, "audit_finding_action_plan_id", id, tx)
+	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -254,6 +297,18 @@ func (afaps *AuditFindingActionPlanService) Delete(findingID uint, ids []uint, c
 				continue
 			}
 		}
+
+		existingTask, err := afaps.taskSvc.GetByFieldID("audit_finding_action_plan_id", id)
+		if err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+
+		taskID, err := afaps.taskSvc.Delete(existingTask.ID, currentUserID)
+		if err != nil {
+			failedIds = append(failedIds, taskID)
+		}
+
 		err = afaps.repo.Delete(id, tx)
 		if err != nil {
 			failedIds = append(failedIds, id)
@@ -297,6 +352,18 @@ func (afaps *AuditFindingActionPlanService) StatusUpdate(findingID uint, id uint
 
 	err = afaps.repo.Update(existingAuditFindingActionPlan, tx)
 
+	if err != nil {
+		return err
+	}
+
+	isReviewUserNull := existingAuditFindingActionPlan.ReviewUserID == nil
+
+	// Fetch the corresponding task and update its status
+	existingTask, err := afaps.taskSvc.GetByFieldID("audit_finding_action_plan_id", id)
+	if err != nil {
+		return err
+	}
+	err = afaps.taskSvc.UpdateStatus(currentUserID, existingTask.ID, ActionPlanStatusID, isReviewUserNull, tx)
 	if err != nil {
 		return err
 	}
