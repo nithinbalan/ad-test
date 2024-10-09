@@ -92,6 +92,9 @@ func (repo *AuditDraftReportRepository) GetFullDetailsByID(auditID uint, tx ...u
 		Preload("Audit.CreatedByUser").
 		Preload("Audit.UpdatedByUser").
 		Preload("AuditDraftReportStatus").
+		Preload("AuditReportWorkflows").
+		Preload("AuditReportWorkflows.AuditReportWorkflowParticipants").
+		Preload("AuditReportWorkflows.AuditReportWorkflowParticipants.User").
 		Preload("InternalReviewSubmittedByUser").
 		Preload("AuditeeReviewSubmittedByUser").
 		Preload("CreatedByUser").

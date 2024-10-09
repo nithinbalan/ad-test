@@ -55,12 +55,13 @@ func (adrcs *AuditDraftReportReviewService) GetAll(auditID uint, auditDraftRepor
 		return nil, err
 	}
 
-	return adrcs.repo.GetAll(params)
+	return adrcs.repo.GetAll(auditDraftReportID, params)
 }
 
 func (adrrs *AuditDraftReportReviewService) Submit(auditID uint, auditDraftReportID uint, currentUserID uint, auditReportWorkflowFormDTO *auditDTOs.AuditReportWorkflowSubmitFormDTO) error {
 	tx := adrrs.repo.BeginTransaction()
 	if _, err := adrrs.auditSvc.GetByID(auditID); err != nil {
+		tx.Rollback()
 		return err
 	}
 	existingAuditDraftReport, err := adrrs.auditDraftReportSvc.GetByID(auditDraftReportID)
@@ -70,6 +71,7 @@ func (adrrs *AuditDraftReportReviewService) Submit(auditID uint, auditDraftRepor
 	}
 	auditDraftReportStatusDraft, err := adrrs.auditDraftReportStatusSvc.GetByType("draft")
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 	if existingAuditDraftReport.AuditDraftReportStatusID != auditDraftReportStatusDraft.ID {
@@ -79,6 +81,7 @@ func (adrrs *AuditDraftReportReviewService) Submit(auditID uint, auditDraftRepor
 	
 	workflowSubmitStatus, err := adrrs.workflowStatusSvc.GetByType("submit")
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 	// No existing workflow, create a new one
@@ -131,6 +134,7 @@ func (adrrs *AuditDraftReportReviewService) Submit(auditID uint, auditDraftRepor
 	//update status & AuditeeReviewSubmitted user details on draft report
 	auditDraftReportInReviewStatus, err := adrrs.auditDraftReportStatusSvc.GetByType("in-review")
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 	nextReviewLevel := 1
@@ -173,6 +177,7 @@ func (adrrs *AuditDraftReportReviewService) Submit(auditID uint, auditDraftRepor
 func (adrrs *AuditDraftReportReviewService) Approve(auditID uint, auditDraftReportID uint, currentUserID uint, auditReportWorkflowFormDTO *auditDTOs.AuditReportWorkflowApproveFormDTO) error {
 	tx := adrrs.repo.BeginTransaction()
 	if _, err := adrrs.auditSvc.GetByID(auditID); err != nil {
+		tx.Rollback()
 		return err
 	}
 	existingAuditDraftReport, err := adrrs.auditDraftReportSvc.GetByID(auditDraftReportID)
@@ -209,6 +214,7 @@ func (adrrs *AuditDraftReportReviewService) Approve(auditID uint, auditDraftRepo
 	}
 	auditDraftReportStatusInReview, err := adrrs.auditDraftReportStatusSvc.GetByType("in-review")
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 	if existingAuditDraftReport.AuditDraftReportStatusID != auditDraftReportStatusInReview.ID {
@@ -217,6 +223,7 @@ func (adrrs *AuditDraftReportReviewService) Approve(auditID uint, auditDraftRepo
 	}
 	workflowApproveStatus, err := adrrs.workflowStatusSvc.GetByType("approve")
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 	// Update the WorkflowStatusID to workflowApproveStatus
@@ -244,6 +251,7 @@ func (adrrs *AuditDraftReportReviewService) Approve(auditID uint, auditDraftRepo
 	//update status & AuditeeReviewSubmitted user details on draft report
 	auditDraftReportApprovedStatus, err := adrrs.auditDraftReportStatusSvc.GetByType("approved")
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 	nextReviewLevel := 2
@@ -285,6 +293,7 @@ func (adrrs *AuditDraftReportReviewService) Approve(auditID uint, auditDraftRepo
 func (adrrs *AuditDraftReportReviewService) Revert(auditID uint, auditDraftReportID uint, currentUserID uint, auditReportWorkflowFormDTO *auditDTOs.AuditReportWorkflowApproveFormDTO) error {
 	tx := adrrs.repo.BeginTransaction()
 	if _, err := adrrs.auditSvc.GetByID(auditID); err != nil {
+		tx.Rollback()
 		return err
 	}
 	existingAuditDraftReport, err := adrrs.auditDraftReportSvc.GetByID(auditDraftReportID)
@@ -321,6 +330,7 @@ func (adrrs *AuditDraftReportReviewService) Revert(auditID uint, auditDraftRepor
 	}
 	auditDraftReportStatusInReview, err := adrrs.auditDraftReportStatusSvc.GetByType("in-review")
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 	if existingAuditDraftReport.AuditDraftReportStatusID != auditDraftReportStatusInReview.ID {
@@ -329,6 +339,7 @@ func (adrrs *AuditDraftReportReviewService) Revert(auditID uint, auditDraftRepor
 	}
 	workflowRevertStatus, err := adrrs.workflowStatusSvc.GetByType("revert")
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 	// Update the WorkflowStatusID to workflowRevertStatus
@@ -357,6 +368,7 @@ func (adrrs *AuditDraftReportReviewService) Revert(auditID uint, auditDraftRepor
 	//update status & AuditeeReviewSubmitted user details on draft report
 	auditDraftReportDraftStatus, err := adrrs.auditDraftReportStatusSvc.GetByType("revert")
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 	nextReviewLevel := 0

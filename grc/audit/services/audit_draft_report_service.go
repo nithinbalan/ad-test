@@ -163,6 +163,7 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, tx ...util
 		Conclusion:                    *auditDraftReport.Conclusion,
 		AuditDraftReportStatus:        &auditDraftReportStatusDTO,             // Initialize as empty slice
 		Auditors:                      []*auditDTOs.AuditPlanAuditMemberDTO{}, // Initialize as empty slice
+		ReviewUsers:                   []*auditDTOs.AuditReportWorkflowParticipantDTO{},
 		AuditDraftFindings:            []*auditDTOs.AuditDraftFindingReportDetailDTO{},
 		CreatedByUser:                 createdByUser,
 		UpdatedByUser:                 updatedByUser,
@@ -181,6 +182,18 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, tx ...util
 			User:        mapUserToUserMinimalDTO(auditor.User),
 		})
 	}
+	// Map review users (AuditReportWorkflowParticipants)
+	for _, workflow := range auditDraftReport.AuditReportWorkflows {
+		for _, participant := range workflow.AuditReportWorkflowParticipants {
+			auditReportDTO.ReviewUsers = append(auditReportDTO.ReviewUsers, &auditDTOs.AuditReportWorkflowParticipantDTO{
+				ID:                    participant.ID,
+				AuditReportWorkflowID: participant.AuditReportWorkflowID,
+				UserID:                participant.UserID,
+				User:                  mapUserToUserMinimalDTO(participant.User),
+			})
+		}
+	}
+		
 	// Map findings
 	for _, finding := range auditDraftReport.Audit.AuditDraftFindings {
 		findingDTO := auditDTOs.AuditDraftFindingReportDetailDTO{

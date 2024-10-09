@@ -23,6 +23,7 @@ type AuditReportReviewListDTO struct {
 	ReviewUserEmail         string `json:"review_user_user_email"`
 	ReviewUserProfileImage  string `json:"review_user_user_profile_image_path"`
 	Comment                 string `json:"comment"`
+	CreatedAt               string `json:"created_at"`
 	CreatedByID             uint   `json:"created_by_id"`
 	CreatedUserFirstNameEn  string `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr  string `json:"created_user_first_name_ar"`
