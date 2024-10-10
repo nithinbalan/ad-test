@@ -260,7 +260,7 @@ func (saps *SLAActionPlanService) Create(slaID uint, currentUserID uint, slaActi
 			"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 			"AssignedByLastNameEn":  assignedBy.LastNameEn,
 			"AssignedOn":            time.Now().Format("2006-01-02"),
-			"RedirectURL":           fmt.Sprintf("%s/sla-action-plan/%d", appURL, id),
+			"RedirectURL":           fmt.Sprintf("%scompliance/sla-contracts/%d/action-plans?action_plan_id=%d", appURL, slaID, id),
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -417,7 +417,7 @@ func (saps *SLAActionPlanService) Update(slaID uint, id uint, currentUserID uint
 				"SlaTitle":              sla.TitleEn,
 				"ActionPlanTitle":       existingSLAActionPlan.Title,
 				"ActionPlanDescription": existingSLAActionPlan.Description,
-				"RedirectURL":           fmt.Sprintf("%s/sla-action-plan/%d", appURL, id),
+				"RedirectURL":           fmt.Sprintf("%scompliance/sla-contracts/%d/action-plans?action_plan_id=%d", appURL, slaID, id),
 			}
 
 			oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -441,7 +441,7 @@ func (saps *SLAActionPlanService) Update(slaID uint, id uint, currentUserID uint
 				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 				"AssignedByLastNameEn":  assignedBy.LastNameEn,
 				"AssignedOn":            time.Now().Format("2006-01-02"),
-				"RedirectURL":           fmt.Sprintf("%s/sla-action-plan/%d", appURL, id),
+				"RedirectURL":           fmt.Sprintf("%scompliance/sla-contracts/%d/action-plans?action_plan_id=%d", appURL, slaID, id),
 			}
 
 			newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{

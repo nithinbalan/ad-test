@@ -339,6 +339,13 @@ func (cc *ControlController) GetControlsExport(c *gin.Context) {
 
 func (cc *ControlController) MarkControlAsApplicable(c *gin.Context) {
 
+	var controlApplicableFormDTO organizationDTOs.ControlApplicableFormDTO
+
+	if err := c.ShouldBindJSON(&controlApplicableFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
 	controlID, err := strconv.Atoi(c.Param("controlId"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -351,7 +358,7 @@ func (cc *ControlController) MarkControlAsApplicable(c *gin.Context) {
 		return
 	}
 
-	err = cc.service.MarkControlAsApplicable(uint(controlID), currentUserID)
+	err = cc.service.MarkControlAsApplicable(uint(controlID), currentUserID, &controlApplicableFormDTO)
 	if err != nil {
 		utility.SendInternalErrResp(nil, c, err.Error())
 		return
@@ -361,6 +368,12 @@ func (cc *ControlController) MarkControlAsApplicable(c *gin.Context) {
 }
 
 func (cc *ControlController) MarkControlAsNotApplicable(c *gin.Context) {
+	var controlApplicableFormDTO organizationDTOs.ControlApplicableFormDTO
+
+	if err := c.ShouldBindJSON(&controlApplicableFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
 
 	controlID, err := strconv.Atoi(c.Param("controlId"))
 	if err != nil {
@@ -374,7 +387,7 @@ func (cc *ControlController) MarkControlAsNotApplicable(c *gin.Context) {
 		return
 	}
 
-	err = cc.service.MarkControlAsNotApplicable(uint(controlID), currentUserID)
+	err = cc.service.MarkControlAsNotApplicable(uint(controlID), currentUserID, &controlApplicableFormDTO)
 	if err != nil {
 		utility.SendInternalErrResp(nil, c, err.Error())
 		return

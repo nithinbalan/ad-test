@@ -128,8 +128,8 @@ type ControlFormDTO struct {
 	ControlTypeID                 uint    `json:"control_type_id" binding:"required"`
 	ControlCategoryID             uint    `json:"control_category_id" binding:"required"`
 	OwnerID                       uint    `json:"owner_id" binding:"required"`
-	ControlImplementationStatusID uint    `json:"control_implementation_status_id" binding:"omitempty"`
-	ControlEfficiencyStatusID     uint    `json:"control_efficiency_status_id" binding:"omitempty"`
+	ControlImplementationStatusID *uint   `json:"control_implementation_status_id" binding:"omitempty"`
+	ControlEfficiencyStatusID     *uint   `json:"control_efficiency_status_id" binding:"omitempty"`
 	Code                          *string `json:"code" binding:"omitempty"`
 	TitleEn                       string  `json:"title_en" binding:"required"`
 	TitleAr                       string  `json:"title_ar" binding:"required"`
@@ -223,4 +223,9 @@ type ControlMailDTO struct {
 	Subject     string `json:"subject"`
 	MessageEn   string `json:"message_en"`
 	RedirectURL string `json:"redirect_url"`
+}
+
+type ControlApplicableFormDTO struct {
+	Justification           *string `json:"justification" binding:"omitempty"`
+	ApplicabilityChangeDate *string `json:"applicability_change_date" binding:"omitempty,datetime=2006-01-02"`
 }
