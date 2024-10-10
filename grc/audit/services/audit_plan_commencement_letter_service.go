@@ -121,7 +121,7 @@ func generateLetterBody(auditableItems []*auditDTOs.AuditPlanAuditableItemDTO, a
 	body := fmt.Sprintf(`
 Dear %s,
 
-This is to inform you that JethurGRC will commence an audit of your organization for the period %s to %s. The audit will assess compliance, internal controls, and financial accuracy.
+This is to inform you that JethurGRC will commence an audit of your department for the period %s to %s.
 
 The audit scope will include:
 %s
