@@ -25,6 +25,8 @@ type AuditFindingRepositoryInterface interface {
 	CreateDocuments(docs []*models.AuditFindingDocument, tx ...utility.DatabaseTransaction) error
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
 	GetDocumentByID(id uint) (*models.AuditFindingDocument, error)
+
+	GetAuditFindingCountByCategory(auditID uint) ([]auditDTOs.AuditFindingCategoryCountResponseDTO, error)
 }
 
 type AuditFindingRepository struct {
@@ -281,4 +283,35 @@ func (repo *AuditFindingRepository) GetDocumentByID(id uint) (*models.AuditFindi
 		return nil, err
 	}
 	return &document, nil
+}
+
+func (repo *AuditFindingRepository) GetAuditFindingCountByCategory(auditID uint) ([]auditDTOs.AuditFindingCategoryCountResponseDTO, error) {
+	categoryCounts := []auditDTOs.AuditFindingCategoryCountResponseDTO{}
+
+	query := `
+        SELECT 
+            audit_finding_categories.id, 
+            audit_finding_categories.title_en, 
+            audit_finding_categories.title_ar, 
+            audit_finding_categories.color_code, 
+            COUNT(audit_findings.id) AS count
+        FROM 
+            audit_findings
+        JOIN 
+            audit_finding_categories ON audit_finding_categories.id = audit_findings.audit_finding_category_id
+        WHERE 
+            audit_findings.audit_id = ?
+        GROUP BY 
+            audit_finding_categories.id, 
+            audit_finding_categories.title_en, 
+            audit_finding_categories.title_ar,
+			audit_finding_categories.color_code
+    `
+
+	err := repo.db.Raw(query, auditID).Scan(&categoryCounts).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return categoryCounts, nil
 }

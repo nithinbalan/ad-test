@@ -19,10 +19,12 @@ type AuditRepositoryInterface interface {
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 
 	CreateAuditSchedule(auditSchedule *models.AuditSchedule, tx ...utility.DatabaseTransaction) (*models.AuditSchedule, error)
+	CreateAuditScheduleStatusUpdate(statusUpdate *models.AuditScheduleStatusUpdate, tx ...utility.DatabaseTransaction) error
 	CreateAuditScheduleAuditableItem(item *models.AuditScheduleAuditableItem, tx ...utility.DatabaseTransaction) error
 	CreateAuditChecklists(auditChecklists []*models.AuditChecklist, tx ...utility.DatabaseTransaction) error
 
 	GetAllAuditableItems(auditID uint, params *auditDTOs.AuditAuditableItemListQueryParamsDTO) (*auditDTOs.AuditAuditableItemListResponseDTO, error)
+	GetAuditByAuditPlanID(auditPlanID uint) (*models.Audit, error) 
 }
 
 type AuditRepository struct {
@@ -57,6 +59,10 @@ func (repo *AuditRepository) GetAll(params *auditDTOs.AuditListQueryParamsDTO) (
 			audit_statuses.title_ar AS audit_status_title_ar,
 			audit_statuses.type AS audit_status_type,
 			audit_statuses.color_code AS audit_status_color_code,
+			audit_plan_statuses.title_en AS audit_plan_status_title_en,
+			audit_plan_statuses.title_ar AS audit_plan_status_title_ar,
+			audit_plan_statuses.type AS audit_plan_status_type,
+			audit_plan_statuses.color_code AS audit_plan_status_color_code,
 			audit_categories.title_en AS audit_category_title_en,
 			audit_categories.title_ar AS audit_category_title_ar,
 			team_lead.id AS team_lead_id,
@@ -89,7 +95,8 @@ func (repo *AuditRepository) GetAll(params *auditDTOs.AuditListQueryParamsDTO) (
 		`).
 		Joins(`
 			LEFT JOIN audit_plans ON audit_plans.id = audits.audit_plan_id
-			LEFT JOIN audit_statuses ON audit_statuses.id = audit_plans.audit_status_id
+			LEFT JOIN audit_statuses ON audit_statuses.id = audits.audit_status_id
+			LEFT JOIN audit_statuses AS audit_plan_statuses ON audit_plan_statuses.id = audit_plans.audit_status_id
 			LEFT JOIN audit_categories ON audit_categories.id = audit_plans.audit_category_id
 			LEFT JOIN users AS team_lead ON team_lead.id = audit_plans.team_lead_id
 			LEFT JOIN users AS created_user ON created_user.id = audits.created_by_id
@@ -109,6 +116,19 @@ func (repo *AuditRepository) GetAll(params *auditDTOs.AuditListQueryParamsDTO) (
 	}
 	if params.EndDate != "" {
 		query = query.Where("audits.end_date <= ?", params.EndDate)
+	}
+	// Apply quick filters
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "draft":
+			query = query.Where("audit_statuses.type = ?", "draft")
+		case "published":
+			query = query.Where("audit_statuses.type = ?", "published")
+		case "completed":
+			query = query.Where("audit_statuses.type = ?", "completed")
+		case "in_progress":
+			query = query.Where("audit_statuses.type = ?", "in_progress")
+		}
 	}
 
 	// Calculate total count for pagination
@@ -211,6 +231,7 @@ func (repo *AuditRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseT
 		Preload("AuditPlan.AuditableItems.AuditableItem.AuditStatus").
 		Preload("AuditChecklists").
 		Preload("AuditDraftFindings").
+		Preload("AuditStatus").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&audit, id)
@@ -270,6 +291,18 @@ func (repo *AuditRepository) CreateAuditSchedule(auditSchedule *models.AuditSche
 	}
 
 	return auditSchedule, nil
+}
+
+func (repo *AuditRepository) CreateAuditScheduleStatusUpdate(statusUpdate *models.AuditScheduleStatusUpdate, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 {
+		db = tx[0].DB()
+	}
+	if err := db.Create(statusUpdate).Error; err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (repo *AuditRepository) CreateAuditScheduleAuditableItem(item *models.AuditScheduleAuditableItem, tx ...utility.DatabaseTransaction) error {
@@ -449,4 +482,23 @@ func (repo *AuditRepository) GetAllAuditableItems(auditID uint, params *auditDTO
 		},
 	}
 	return response, nil
+}
+
+func (repo *AuditRepository) GetAuditByAuditPlanID(auditPlanID uint) (*models.Audit, error) {
+	var audit models.Audit
+
+	// Query the database to find if an audit exists with the given AuditPlanID
+	result := repo.db.Where("audit_plan_id = ?", auditPlanID).First(&audit)
+
+	if result.Error != nil {
+		if result.Error == gorm.ErrRecordNotFound {
+			// Return nil if no audit is found (not an error, meaning it's safe to create a new audit)
+			return nil, nil
+		}
+		// Return an error if something went wrong during the query
+		return nil, result.Error
+	}
+
+	// Return the found audit if it exists
+	return &audit, nil
 }

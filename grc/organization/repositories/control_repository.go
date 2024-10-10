@@ -13,9 +13,10 @@ import (
 )
 
 type ControlRepositoryInterface interface {
+	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *organizationDTOs.ControlListQueryParamsDTO) (*organizationDTOs.ControlListResponseDTO, error)
-	GetByID(id uint) (*models.Control, error)
-	GetFullDetailsByID(id uint) (*models.Control, error)
+	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Control, error)
+	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.Control, error)
 	Create(control *models.Control) (uint, error)
 	Update(complianceRegister *models.Control, tx ...utility.DatabaseTransaction) error
 	Delete(id uint) error
@@ -34,6 +35,10 @@ func NewControlRepository(db *gorm.DB) *ControlRepository {
 	return &ControlRepository{
 		db: db,
 	}
+}
+
+func (repo *ControlRepository) BeginTransaction() utility.DatabaseTransaction {
+	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
 func (repo *ControlRepository) GetAll(params *organizationDTOs.ControlListQueryParamsDTO) (*organizationDTOs.ControlListResponseDTO, error) {
@@ -97,7 +102,11 @@ func (repo *ControlRepository) GetAll(params *organizationDTOs.ControlListQueryP
 				updated_user.initial AS updated_user_initial,
         		updated_user.color AS updated_user_color,
         		updated_user.email AS updated_user_email,
-        		updated_user.profile_image_path AS updated_user_profile_image_path  
+        		updated_user.profile_image_path AS updated_user_profile_image_path,
+				risk_matrix_risk_ratings.title_en AS risk_rating_title_en,
+    			risk_matrix_risk_ratings.title_ar AS risk_rating_title_ar,
+    			risk_matrix_risk_ratings.color_code AS risk_rating_color_code,
+    			risk_matrix_risk_rating_values.value AS risk_rating_value  
         `).
 		Joins("LEFT JOIN control_types ON control_types.id = controls.control_type_id").
 		Joins("LEFT JOIN control_categories ON control_categories.id = controls.control_category_id").
@@ -110,7 +119,11 @@ func (repo *ControlRepository) GetAll(params *organizationDTOs.ControlListQueryP
 		Joins("LEFT JOIN review_frequencies AS test_frequencies ON test_frequencies.id = controls.test_frequency_id").
 		Joins("LEFT JOIN lifecycle_statuses ON lifecycle_statuses.id = controls.lifecycle_status_id").
 		Joins("LEFT JOIN users AS created_user ON created_user.id = controls.created_by_id").
-		Joins("LEFT JOIN users AS updated_user ON updated_user.id = controls.updated_by_id")
+		Joins("LEFT JOIN users AS updated_user ON updated_user.id = controls.updated_by_id").
+		Joins("LEFT JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = controls.risk_matrix_risk_rating_id").
+		Joins("LEFT JOIN risk_matrix_risk_rating_values ON risk_matrix_risk_rating_values.id = controls.risk_matrix_risk_rating_value_id").
+		Joins("LEFT JOIN compliance_controls ON compliance_controls.control_id = controls.id").
+		Joins("LEFT JOIN compliance_register ON compliance_register.id = compliance_controls.compliance_register_id")
 
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
@@ -159,20 +172,31 @@ func (repo *ControlRepository) GetAll(params *organizationDTOs.ControlListQueryP
 		query = query.Where("implemented_at <= ?", params.ImplementedAtTo)
 	}
 
-	//Apply quick filters
+	// Apply standard code filters
 	for _, filter := range params.QuickFilter {
 		switch filter {
+		case "applicable":
+			query = query.Where("controls.is_applicable = ?", true)
+		case "not_applicable":
+			query = query.Where("controls.is_applicable = ?", false)
 		case "implemented":
 			query = query.Where("control_implementation_statuses.type = ?", "implemented")
 		case "not_implemented":
-			query = query.Where("control_implementation_statuses.type = ?", "not_implemented")
+			query = query.Where("control_implementation_statuses.type = ?", "not-implemented")
 		case "partially_implemented":
-			query = query.Where("control_implementation_statuses.type = ?", "partially_implemented")
+			query = query.Where("control_implementation_statuses.type = ?", "partially-implemented")
 		case "efficient":
 			query = query.Where("control_efficiency_statuses.type = ?", "efficient")
 		case "archived":
 			query = query.Where("lifecycle_statuses.type = ?", "archived")
-
+		case "NCA":
+			query = query.Where("compliance_register.standard_code = ?", "NCA")
+		case "SAMA":
+			query = query.Where("compliance_register.standard_code = ?", "SAMA")
+		case "ISMS":
+			query = query.Where("compliance_register.standard_code = ?", "ISMS")
+		case "high_risk":
+			query = query.Where("risk_matrix_risk_ratings.type IN (?)", []string{"high", "very_high"})
 		}
 	}
 
@@ -205,7 +229,6 @@ func (repo *ControlRepository) GetAll(params *organizationDTOs.ControlListQueryP
 			test_responsible_user.last_name_ar LIKE ? OR
 			lifecycle_statuses.title_en LIKE ? OR
 			lifecycle_statuses.title_ar LIKE ?)`,
-			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
@@ -248,10 +271,14 @@ func (repo *ControlRepository) GetAll(params *organizationDTOs.ControlListQueryP
 	return response, nil
 }
 
-func (repo *ControlRepository) GetByID(id uint) (*models.Control, error) {
+func (repo *ControlRepository) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Control, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 	var control *models.Control
 
-	result := repo.db.First(&control, id)
+	result := db.First(&control, id)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -260,24 +287,29 @@ func (repo *ControlRepository) GetByID(id uint) (*models.Control, error) {
 
 }
 
-func (repo *ControlRepository) GetFullDetailsByID(id uint) (*models.Control, error) {
+func (repo *ControlRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.Control, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
 	var control *models.Control
 
-	latestControlTestSubQuery := repo.db.
+	latestControlTestSubQuery := db.
 		Table("control_tests").
 		Select("id").
 		Where("control_id = ?", id).
 		Order("tested_at desc").
 		Limit(1)
 
-	latestControlReviewSubQuery := repo.db.
+	latestControlReviewSubQuery := db.
 		Table("control_reviews").
 		Select("id").
 		Where("control_id = ?", id).
 		Order("reviewed_at desc").
 		Limit(1)
 
-	result := repo.db.
+	result := db.
 		Preload("ControlType").
 		Preload("ControlCategory").
 		Preload("OwnerUnit").
@@ -293,6 +325,9 @@ func (repo *ControlRepository) GetFullDetailsByID(id uint) (*models.Control, err
 		Preload("LifecycleStatus").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
+		Preload("Risks").
+		Preload("RiskMatrixRating").
+		Preload("RiskMatrixRatingValue").
 		Preload("LatestControlTest", func(db *gorm.DB) *gorm.DB {
 			return db.Where("id IN (?)", latestControlTestSubQuery).
 				Preload("TestedByUser")

@@ -1,27 +1,37 @@
 package services
 
 import (
+	"encoding/json"
+	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/common/repositories"
 	"jethur/grc/models"
 	"jethur/grc/settings/services"
 	"jethur/utility"
+	"time"
 )
 
 type NotificationServiceInterface interface {
 	SendNotification(notificationDTO *commonDTOs.DBNotificationDTO, emailNotificationDTO *commonDTOs.EmailNotificationDTO, notificationMasterIdentifier string, tx ...utility.DatabaseTransaction) error
+	LogEmail(recipientEmail string, subject string, templatePath string, emailData interface{}, status string, errorMessage string, sentAt *time.Time, createdByID uint) error
+
+	GetSocialMediaLinks() (*commonDTOs.SocialMediaLinksDTO, error)
 }
 
 type NotificationService struct {
-	repo      repositories.NotificationRepositoryInteface
-	moduleSvc services.ModuleServiceInterface
+	repo                     repositories.NotificationRepositoryInteface
+	moduleSvc                services.ModuleServiceInterface
+	emailTemplateSettingsSvc services.EmailTemplateSettingsServiceInterface
 }
 
 func NewNotificationService(repo repositories.NotificationRepositoryInteface,
-	moduleSvc services.ModuleServiceInterface) NotificationServiceInterface {
+	moduleSvc services.ModuleServiceInterface,
+	emailTemplateSettingsSvc services.EmailTemplateSettingsServiceInterface,
+) NotificationServiceInterface {
 	return &NotificationService{
-		repo:      repo,
-		moduleSvc: moduleSvc,
+		repo:                     repo,
+		moduleSvc:                moduleSvc,
+		emailTemplateSettingsSvc: emailTemplateSettingsSvc,
 	}
 }
 
@@ -33,11 +43,35 @@ func (ns *NotificationService) SendNotification(notificationDTO *commonDTOs.DBNo
 	}
 
 	if isEnabled {
-		err := utility.SendTemplatedEmail(
+		emailTemplateSettings, err := ns.emailTemplateSettingsSvc.GetEmailTemplateSettings()
+		if err != nil {
+			fmt.Printf("failed to get email template settings: %w", err)
+			return err
+		}
+
+		socialLinks, err := ns.GetSocialMediaLinks()
+		if err != nil {
+			return err
+		}
+
+		emailTemplateAndSocialDTO := &commonDTOs.EmailTemplateAndSocialDTO{
+			HeaderImageURL: emailTemplateSettings.HeaderImageURL,
+			SupportText:    emailTemplateSettings.SupportText,
+			ClosingText:    emailTemplateSettings.ClosingText,
+			FooterLogoURL:  emailTemplateSettings.FooterLogoURL,
+			FooterAddress:  emailTemplateSettings.FooterAddress,
+			FooterEmail:    emailTemplateSettings.FooterEmail,
+			Linkedin:       &socialLinks.Linkedin,
+			X:              &socialLinks.X,
+			Facebook:       &socialLinks.Facebook,
+		}
+
+		err = utility.SendTemplatedEmail(
 			emailNotificationDTO.EmailTo,
 			emailNotificationDTO.Subject,
 			emailNotificationDTO.TemplateRelativePath,
 			emailNotificationDTO.EmailData,
+			emailTemplateAndSocialDTO,
 			nil,
 		)
 		if err != nil {
@@ -90,4 +124,51 @@ func (ns *NotificationService) IsNotificationEnabled(userID uint, notificationMa
 	}
 
 	return setting != nil && setting.IsEnable, nil
+}
+
+func (ns *NotificationService) LogEmail(recipientEmail string, subject string, templatePath string, emailData interface{}, status string, errorMessage string, sentAt *time.Time, createdByID uint) error {
+	// Assert that emailData is of type map[string]interface{}
+	emailDataMap, ok := emailData.(map[string]interface{})
+	if !ok {
+		utility.LogError("Failed to assert email data to map[string]interface{}", map[string]interface{}{
+			"error": "Type assertion failed",
+		})
+		return fmt.Errorf("invalid email data format")
+	}
+
+	// Serialize email data to store in log
+	emailDataBytes, err := json.Marshal(emailDataMap)
+	if err != nil {
+		utility.LogError("Failed to serialize email data", map[string]interface{}{"error": err.Error()})
+		return err
+	}
+
+	emailLog := &models.EmailLog{
+		RecipientEmail: recipientEmail,
+		Subject:        subject,
+		TemplatePath:   templatePath,
+		EmailData:      string(emailDataBytes),
+		SendStatus:     status,
+		ErrorMessage:   errorMessage,
+		SentAt:         sentAt,
+		CreatedByID:    createdByID,
+		CreatedAt:      time.Now(),
+	}
+
+	if err := ns.repo.CreateEmailLog(emailLog); err != nil {
+		utility.LogError("Failed to create email log", map[string]interface{}{
+			"error": err.Error(),
+		})
+		return err
+	}
+
+	return nil
+}
+
+func (ns *NotificationService) GetSocialMediaLinks() (*commonDTOs.SocialMediaLinksDTO, error) {
+	socialLinks, err := ns.repo.GetSocialMediaLinks()
+	if err != nil {
+		return nil, err
+	}
+	return socialLinks, nil
 }

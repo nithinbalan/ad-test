@@ -115,6 +115,17 @@
                         </tr>
                     </table>
 
+                    <!-- Support and Contact Information -->
+                    <table align="center" role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="background-color: #fff;">
+                        <tr>
+                            <td style="padding: 20px; text-align: left; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 14px;">
+                                <p>{{ supportText }} <a href="mailto:{{ footerEmail }}">{{ footerEmail }}</a></p>
+                                <p>{{ closingText }}</p> 
+                                <!-- <p>For assistance, contact us at <a href="mailto:{{ footerEmail }}">{{ footerEmail }}</a></p> -->
+                            </td>
+                        </tr>
+                    </table>
+
                     <!-- Include Footer Template -->
                     {{ template "footer" . }}
 

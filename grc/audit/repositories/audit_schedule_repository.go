@@ -22,6 +22,7 @@ type AuditScheduleRepositoryInterface interface {
 	GetAllSchedulesByAuditID(auditID uint, tx ...utility.DatabaseTransaction) ([]*models.AuditSchedule, error)
 
 	GetScheduleSummary(auditID uint) (pendingCount int, completedCount int, err error)
+	CreateInitialAuditScheduleStatusUpdate(auditScheduleStatusUpdate *models.AuditScheduleStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
 }
 
 type AuditScheduleRepository struct {
@@ -51,6 +52,8 @@ func (repo *AuditScheduleRepository) GetAll(auditID uint, params *auditDTOs.Audi
 			audit_activity_types.title_en AS audit_activity_type_title_en,
 			audit_activity_types.title_ar AS audit_activity_type_title_ar,
 			audit_schedules.responsible_user_id,
+			audit_schedules.comment,
+			audit_schedules.percentage,
 			responsible_user.first_name_en AS responsible_user_first_name_en,
 			responsible_user.first_name_ar AS responsible_user_first_name_ar,
 			responsible_user.last_name_en AS responsible_user_last_name_en,
@@ -224,6 +227,11 @@ func (repo *AuditScheduleRepository) GetFullDetailsByID(id uint, tx ...utility.D
 		Preload("AuditScheduleStatus").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
+		Preload("AuditScheduleStatusUpdates").
+		Preload("AuditScheduleStatusUpdates.AuditScheduleStatus").
+		Preload("AuditScheduleStatusUpdates.Documents").
+		Preload("AuditScheduleStatusUpdates.CreatedByUser").
+		Preload("AuditScheduleStatusUpdates.UpdatedByUser").
 		First(&auditSchedule, id)
 
 	if result.Error != nil {
@@ -337,4 +345,15 @@ func (repo *AuditScheduleRepository) GetScheduleSummary(auditID uint) (pendingCo
 	completedCount = int(completed)
 
 	return pendingCount, completedCount, nil
+}
+
+func (repo *AuditScheduleRepository) CreateInitialAuditScheduleStatusUpdate(auditScheduleStatusUpdate *models.AuditScheduleStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(auditScheduleStatusUpdate).Error; err != nil {
+		return 0, err
+	}
+	return auditScheduleStatusUpdate.ID, nil
 }

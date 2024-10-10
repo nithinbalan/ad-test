@@ -430,6 +430,7 @@ func (repo *GRCDashboardRepository) GetGRCComplianceOverview(params *kpiDTOs.GRC
 func (repo *GRCDashboardRepository) GetGRCRiskOverview(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCRiskOverviewDTO, error) {
 	summary := &kpiDTOs.GRCRiskOverviewDTO{}
 
+	// Query to calculate total risks registered
 	riskQuery := repo.db.Model(&models.RiskRegister{}).
 		Joins("JOIN risk_matrix_risk_ratings ON risk_register.current_risk_rating_id = risk_matrix_risk_ratings.id")
 
@@ -443,14 +444,18 @@ func (repo *GRCDashboardRepository) GetGRCRiskOverview(params *kpiDTOs.GRCDashbo
 		return nil, err
 	}
 
+	// Fetch active risk ratings with details
 	var riskRatings []models.RiskMatrixRiskRating
-	err = repo.db.Model(&models.RiskMatrixRiskRating{}).Where("status = ?", "active").Find(&riskRatings).Error
+	err = repo.db.Model(&models.RiskMatrixRiskRating{}).
+		Where("status = ?", "active").
+		Find(&riskRatings).Error
 	if err != nil {
 		return nil, err
 	}
 
-	riskCountsByRating := make(map[string]int64)
+	riskCountsByRating := make([]kpiDTOs.RiskRatingCountDTO, 0)
 
+	// Loop over risk ratings and count associated risks
 	for _, rating := range riskRatings {
 		var count int64
 		err := repo.db.Model(&models.RiskRegister{}).
@@ -459,7 +464,15 @@ func (repo *GRCDashboardRepository) GetGRCRiskOverview(params *kpiDTOs.GRCDashbo
 		if err != nil {
 			return nil, err
 		}
-		riskCountsByRating[rating.Type] = count
+
+		// Populate risk rating details
+		riskCountsByRating = append(riskCountsByRating, kpiDTOs.RiskRatingCountDTO{
+			TitleEn:   rating.TitleEn,
+			TitleAr:   rating.TitleAr,
+			ColorCode: rating.ColorCode,
+			Type:      rating.Type,
+			Count:     count,
+		})
 	}
 
 	summary.TotalRisksRegistered = totalRisksRegistered
@@ -496,6 +509,7 @@ func (repo *GRCDashboardRepository) GetGRCDocumentOverview(params *kpiDTOs.GRCDa
 func (repo *GRCDashboardRepository) GetTopComplianceRegisters(params *kpiDTOs.GRCDashboardListQueryParamsDTO) ([]*kpiDTOs.GRCTopComplianceRegistersDTO, error) {
 	var complianceRegisters []models.ComplianceRegister
 	query := repo.db.Model(&models.ComplianceRegister{}).
+		Preload("ComplianceStatus").
 		Order("total_score DESC")
 
 	if params.DateFrom != "" && params.DateTo != "" {
@@ -512,10 +526,14 @@ func (repo *GRCDashboardRepository) GetTopComplianceRegisters(params *kpiDTOs.GR
 	var topRegisters []*kpiDTOs.GRCTopComplianceRegistersDTO
 	for _, register := range complianceRegisters {
 		complianceRegisterDTO := &kpiDTOs.GRCTopComplianceRegistersDTO{
-			ID:         register.ID,
-			TitleEn:    register.TitleEn,
-			TitleAr:    register.TitleAr,
-			TotalScore: register.TotalScore,
+			ID:                        register.ID,
+			TitleEn:                   register.TitleEn,
+			TitleAr:                   register.TitleAr,
+			TotalScore:                register.TotalScore,
+			ComplianceStatusTitleEn:   register.ComplianceStatus.TitleEn,
+			ComplianceStatusTitleAr:   register.ComplianceStatus.TitleAr,
+			ComplianceStatusType:      register.ComplianceStatus.Type,
+			ComplianceStatusColorCode: register.ComplianceStatus.ColorCode,
 		}
 		topRegisters = append(topRegisters, complianceRegisterDTO)
 	}

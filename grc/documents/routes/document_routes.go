@@ -22,6 +22,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentAccessTypeController := app.DocumentModule.DocumentAccessTypeController
 	documentWorkflowStatusController := app.DocumentModule.DocumentWorkflowStatusController
 	documentController := app.DocumentModule.DocumentController
+	documentAccessController := app.DocumentModule.DocumentAccessController
 	documentAcknowledgeUserController := app.DocumentModule.DocumentAcknowledgeUserController
 	documentAuditLogController := app.DocumentModule.DocumentAuditLogController
 
@@ -61,6 +62,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentRoutes.GET("/document-workflow-statuses", documentWorkflowStatusController.GetAllDocumentWorkflowStatuses)
 	documentRoutes.GET("/document-workflow-statuses/:id", documentWorkflowStatusController.GetDocumentWorkflowStatusDetails)
 	//document
+	documentRoutes.GET("/documents/export", documentController.GetDocumentExport)
 	documentRoutes.GET("/documents", documentController.GetAllDocuments)
 	documentRoutes.GET("/documents/:id", documentController.GetDocumentDetails)
 	documentRoutes.POST("/documents", documentController.CreateDocument)
@@ -70,9 +72,14 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentRoutes.POST("/documents/:id/check-out-revert", documentController.RevertDocumentCheckout)
 	documentRoutes.POST("/documents/:id/submit", documentController.SubmitDocument)
 	documentRoutes.POST("/documents/:id/publish", documentController.PublishDocument)
-	documentRoutes.GET("/documents/:id/shared-users", documentController.GetSharedUsers)
-	documentRoutes.GET("/documents/:id/review-users", documentController.GetReviewUsers)
-	documentRoutes.GET("/documents/:id/shared-units", documentController.GetSharedUnits)
+
+	documentRoutes.GET("/documents/:id/shared-users", documentAccessController.GetSharedUsers)
+	documentRoutes.POST("/documents/:id/shared-users", documentAccessController.CreateSharedUsers)
+	documentRoutes.POST("/documents/:id/shared-users/delete", documentAccessController.DeleteSharedUsers)
+	documentRoutes.GET("/documents/:id/shared-units", documentAccessController.GetSharedUnits)
+	documentRoutes.POST("/documents/:id/shared-units", documentAccessController.CreateSharedUnits)
+	documentRoutes.POST("/documents/:id/shared-units/delete", documentAccessController.DeleteSharedUnits)
+	documentRoutes.GET("/documents/:id/review-users", documentAccessController.GetReviewUsers)
 
 	unauthenticatedRoutes.GET("/documents/:id/document-preview", documentController.GetDocumentPreview)
 	unauthenticatedRoutes.GET("/documents/:id/document-download", documentController.DownloadDocument)
@@ -83,8 +90,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	documentRoutes.GET("/documents/:id/last-edit-summary", documentController.GetLastEditSummary)
 
+	documentRoutes.GET("/documents/:id/acknowledge-users", documentAcknowledgeUserController.GetAllDocumentAcknowledgeUsers)
 	documentRoutes.POST("/documents/:id/acknowledge", documentAcknowledgeUserController.CreateDocumentAcknowledgeUser)
 	documentRoutes.DELETE("/documents/:id/acknowledge", documentAcknowledgeUserController.DeleteDocumentAcknowledgeUser)
+	documentRoutes.GET("/documents/:id/acknowledge-user-summary", documentAcknowledgeUserController.GetDocumentAcknowledgmentSummary)
 
 	documentRoutes.GET("/documents/:id/audit-logs", documentAuditLogController.GetAllDocumentAuditLogs)
 

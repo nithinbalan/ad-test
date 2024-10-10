@@ -23,6 +23,15 @@ type ControlActionPlanListDTO struct {
 	ResponsibleUserColor            string  `json:"responsible_user_color"`
 	ResponsibleUserEmail            string  `json:"responsible_user_email"`
 	ResponsibleUserProfileImagePath string  `json:"responsible_user_profile_image_path"`
+	ReviewUserFirstNameEn           string  `json:"review_user_first_name_en"`
+	ReviewUserID                    *uint   `json:"review_user_id"`
+	ReviewUserFirstNameAr           *string `json:"review_user_first_name_ar"`
+	ReviewUserLastNameEn            *string `json:"review_user_last_name_en"`
+	ReviewUserLastNameAr            *string `json:"review_user_last_name_ar"`
+	ReviewUserInitial               *string `json:"review_user_initial"`
+	ReviewUserColor                 *string `json:"review_user_color"`
+	ReviewUserEmail                 *string `json:"review_user_email"`
+	ReviewUserProfileImagePath      *string `json:"review_user_profile_image_path"`
 	TargetDate                      string  `json:"target_date"`
 	Percentage                      uint    `json:"percentage"`
 	Comments                        string  `json:"comments"`
@@ -75,6 +84,7 @@ type ControlActionPlanFormDTO struct {
 	TargetDate         *string `json:"target_date" binding:"omitempty,datetime=2006-01-02"`
 	Percentage         *uint   `json:"percentage" binding:"omitempty"`
 	Comments           *string `json:"comments" binding:"omitempty"`
+	ReviewUserID       *uint   `json:"review_user_id"`
 	ActionPlanStatusID uint    `json:"action_plan_status_id" binding:"required"`
 }
 
@@ -97,6 +107,8 @@ type ControlActionPlanDetailDTO struct {
 	UpdatedAt               *time.Time                          `json:"updated_at"`
 	CreatedByUser           UserMinimalDTO                      `json:"created_by_user"`
 	UpdatedByUser           *UserMinimalDTO                     `json:"updated_by_user"`
+	Control                 *ControlDetailDTO                   `json:"control"`
+	ReviewUser              *UserMinimalDTO                     `json:"review_user"`
 	ActionPlanStatusUpdates []*ControlActionPlanStatusUpdateDTO `json:"action_plan_status_updates"`
 }
 

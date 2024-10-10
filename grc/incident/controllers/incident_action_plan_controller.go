@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	commonDTOs "jethur/grc/common/dtos"
 	incidentDTOs "jethur/grc/incident/dtos"
 	"jethur/grc/incident/services"
@@ -39,11 +40,17 @@ func (iapc *IncidentActionPlanController) GetAllIncidentActionPlans(c *gin.Conte
 	} else {
 		incidentID = 0
 	}
-	sort := c.Query("sort_order")
-	sortBy := c.Query("sort_by")
+	sort := c.DefaultQuery("sort_order", "asc")
+	sortBy := c.DefaultQuery("sort_by", "title")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
+
+	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
+	if err != nil {
+		utility.SendInternalErrResp(iapc.db, c, "Invalid export parameter")
+		return
+	}
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
@@ -51,6 +58,19 @@ func (iapc *IncidentActionPlanController) GetAllIncidentActionPlans(c *gin.Conte
 		"responsible_user_ids",
 		"action_plan_status_ids",
 		"incident_register_ids",
+	}
+
+	validSortFields := map[string]string{
+		"title":               "incident_action_plans.title",
+		"incident_title":      "incident_register.title",
+		"severity_level_en":   "severity_levels.title_en",
+		"severity_level_ar":   "severity_levels.title_ar",
+		"responsible_user_en": "responsible_user.first_name_en",
+		"responsible_user_ar": "responsible_user.first_name_ar",
+		"target_date":         "incident_action_plans.target_date",
+		"percentage":          "incident_action_plans.percentage",
+		"status_en":           "action_plan_statuses.title_en",
+		"status_ar":           "action_plan_statuses.title_ar",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
@@ -71,9 +91,16 @@ func (iapc *IncidentActionPlanController) GetAllIncidentActionPlans(c *gin.Conte
 		return
 	}
 
+	dbField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
 	queryParams := incidentDTOs.IncidentActionPlanListQueryParamsDTO{
 		Sort:           sort,
-		SortBy:         sortBy,
+		SortBy:         dbField,
 		Keyword:        keyword,
 		Status:         status,
 		Page:           page,
@@ -82,9 +109,10 @@ func (iapc *IncidentActionPlanController) GetAllIncidentActionPlans(c *gin.Conte
 		QuickFilter:    quickFilter,
 		TargetDateFrom: targetDateFrom,
 		TargetDateTo:   targetDateTo,
+		Export:         export,
 	}
 	incidentActionPlans, err := iapc.service.GetAll(uint(incidentID), &queryParams)
-	
+
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -94,6 +122,28 @@ func (iapc *IncidentActionPlanController) GetAllIncidentActionPlans(c *gin.Conte
 			utility.SendInternalErrResp(iapc.db, c, e.Error())
 			return
 		}
+	}
+
+	if export {
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(iapc.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := iapc.service.ExportIncidentActionPlan(incidentActionPlans.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(iapc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="Incident action plan.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
+		return
 	}
 	c.JSON(http.StatusOK, incidentActionPlans)
 }
@@ -259,4 +309,10 @@ func (iapc *IncidentActionPlanController) DeleteIncidentActionPlans(c *gin.Conte
 	}
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}
+
+func (iapc *IncidentActionPlanController) GetIncidentActionPlanExport(c *gin.Context) {
+	c.Request.URL.RawQuery += "&export=true"
+
+	iapc.GetAllIncidentActionPlans(c)
 }

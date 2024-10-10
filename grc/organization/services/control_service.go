@@ -19,8 +19,8 @@ import (
 
 type ControlServiceInterface interface {
 	GetAll(params *organizationDTOs.ControlListQueryParamsDTO) (*organizationDTOs.ControlListResponseDTO, error)
-	GetByID(id uint) (*models.Control, error)
-	GetFullDetailsByID(id uint) (*organizationDTOs.ControlDetailDTO, error)
+	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Control, error)
+	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*organizationDTOs.ControlDetailDTO, error)
 	Create(currentUserID uint, controlFormDTO *organizationDTOs.ControlFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, controlFormDTO *organizationDTOs.ControlFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
@@ -31,6 +31,10 @@ type ControlServiceInterface interface {
 	ReviewStatusUpdate(control *models.Control, tx utility.DatabaseTransaction) error
 
 	ExportControls(data []*organizationDTOs.ControlListDTO, currentUserID uint) (*os.File, error)
+
+	UpdateControlRiskRating(control *models.Control, tx utility.DatabaseTransaction) error
+	MarkControlAsApplicable(controlID uint, currentUserID uint, controlApplicableFormDTO *organizationDTOs.ControlApplicableFormDTO) error
+	MarkControlAsNotApplicable(controlID uint, currentUserID uint, controlApplicableFormDTO *organizationDTOs.ControlApplicableFormDTO) error
 }
 
 type ControlService struct {
@@ -78,8 +82,8 @@ func (cs *ControlService) GetAll(params *organizationDTOs.ControlListQueryParams
 	return cs.repo.GetAll(params)
 }
 
-func (cs *ControlService) GetByID(id uint) (*models.Control, error) {
-	control, err := cs.repo.GetByID(id)
+func (cs *ControlService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Control, error) {
+	control, err := cs.repo.GetByID(id, tx...)
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -90,10 +94,10 @@ func (cs *ControlService) GetByID(id uint) (*models.Control, error) {
 	return control, nil
 }
 
-func (cs *ControlService) GetFullDetailsByID(id uint) (*organizationDTOs.ControlDetailDTO, error) {
+func (cs *ControlService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*organizationDTOs.ControlDetailDTO, error) {
 	var controlDetailDTO organizationDTOs.ControlDetailDTO
 
-	control, err := cs.repo.GetFullDetailsByID(id)
+	control, err := cs.repo.GetFullDetailsByID(id, tx...)
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -126,6 +130,10 @@ func (cs *ControlService) GetFullDetailsByID(id uint) (*organizationDTOs.Control
 	if control.ImplementedAt != nil {
 		implementedAtString := control.ImplementedAt.Format("2006-01-02")
 		controlDetailDTO.ImplementedAtString = &implementedAtString
+	}
+	if control.ApplicabilityChangeDate != nil {
+		applicabilityChangeDateString := control.ApplicabilityChangeDate.Format("2006-01-02")
+		controlDetailDTO.ApplicabilityChangeDateString = &applicabilityChangeDateString
 	}
 
 	//todo :- also add extra fields which required in details screen
@@ -182,6 +190,9 @@ func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizatio
 		NextTestDate:                  dates.NextTestDate,
 		LifecycleStatusID:             lifecycleStatus.ID,
 		CreatedByID:                   currentUserID,
+		IsApplicable:                  controlFormDTO.IsApplicable,
+		Justification:                 controlFormDTO.Justification,
+		ApplicabilityChangeDate:       dates.ApplicabilityChangeDate,
 	}
 
 	id, err := cs.repo.Create(control)
@@ -312,6 +323,9 @@ func (cs *ControlService) Update(id uint, currentUserID uint, controlFormDTO *or
 	existingControl.ImplementedAt = dates.ImplementedAt
 	existingControl.LastTestDate = dates.LastTestDate
 	existingControl.NextTestDate = dates.NextTestDate
+	existingControl.IsApplicable = controlFormDTO.IsApplicable
+	existingControl.Justification = controlFormDTO.Justification
+	existingControl.ApplicabilityChangeDate = dates.ApplicabilityChangeDate
 	existingControl.UpdatedByID = &currentUserID
 
 	err = cs.repo.Update(existingControl)
@@ -710,6 +724,13 @@ func (cs *ControlService) parseControlDates(dto *organizationDTOs.ControlFormDTO
 		}
 	}
 
+	if dto.ApplicabilityChangeDate != nil {
+		parsed.ApplicabilityChangeDate, err = utility.ParseDate(*dto.ApplicabilityChangeDate)
+		if err != nil {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid applicability change date"), "invalid_date", "applicability change date")
+		}
+	}
+
 	return parsed, nil
 }
 
@@ -777,19 +798,19 @@ func (cs *ControlService) ExportControls(data []*organizationDTOs.ControlListDTO
 			rows[i] = []interface{}{
 				i + 1,
 				control.ReferenceNumber,
-				*control.Code,
+				utility.GetStringValue(control.Code),
 				control.TitleAr,
-				*control.Description,
-				*control.Objective,
+				utility.GetStringValue(control.Description),
+				utility.GetStringValue(control.Objective),
 				control.ControlCategoryTitleAr,
 				control.ControlTypeTitleAr,
-				*control.OwnerFirstNameAr + " " + *control.OwnerLastNameAr,
+				utility.GetStringValue(control.OwnerFirstNameAr) + " " + utility.GetStringValue(control.OwnerLastNameAr),
 				control.ReviewFrequencyTitleAr,
 				control.ControlImplementationStatusTitleAr,
 				utility.FormatDate(control.ImplementedAt),
 				control.ControlEfficiencyStatusTitleAr,
 				utility.FormatDate(control.LastTestDate),
-				*control.TestFrequencyTitleAr,
+				utility.GetStringValue(control.TestFrequencyTitleAr),
 				utility.FormatDate(control.NextTestDate),
 				utility.FormatDate(control.LastReviewDate),
 				utility.FormatDate(control.NextReviewDate),
@@ -799,19 +820,19 @@ func (cs *ControlService) ExportControls(data []*organizationDTOs.ControlListDTO
 			rows[i] = []interface{}{
 				i + 1,
 				control.ReferenceNumber,
-				*control.Code,
+				utility.GetStringValue(control.Code),
 				control.TitleEn,
-				*control.Description,
-				*control.Objective,
+				utility.GetStringValue(control.Description),
+				utility.GetStringValue(control.Objective),
 				control.ControlCategoryTitleEn,
 				control.ControlTypeTitleEn,
-				*control.OwnerFirstNameEn + " " + *control.OwnerLastNameEn,
+				utility.GetStringValue(control.OwnerFirstNameEn) + " " + utility.GetStringValue(control.OwnerLastNameEn),
 				control.ReviewFrequencyTitleEn,
 				control.ControlImplementationStatusTitleEn,
 				utility.FormatDate(control.ImplementedAt),
 				control.ControlEfficiencyStatusTitleEn,
 				utility.FormatDate(control.LastTestDate),
-				*control.TestFrequencyTitleEn,
+				utility.GetStringValue(control.TestFrequencyTitleAr),
 				utility.FormatDate(control.NextTestDate),
 				utility.FormatDate(control.LastReviewDate),
 				utility.FormatDate(control.NextReviewDate),
@@ -822,4 +843,63 @@ func (cs *ControlService) ExportControls(data []*organizationDTOs.ControlListDTO
 
 	// Generate the Excel file
 	return utility.GenerateExcelFile(headers, rows)
+}
+
+func (cs *ControlService) UpdateControlRiskRating(control *models.Control, tx utility.DatabaseTransaction) error {
+
+	err := cs.repo.Update(control, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return nil
+}
+
+func (cs *ControlService) MarkControlAsApplicable(controlID uint, currentUserID uint, controlApplicableFormDTO *organizationDTOs.ControlApplicableFormDTO) error {
+	existingControl, err := cs.GetByID(controlID)
+	if err != nil {
+		return err
+	}
+
+	parsedApplicabilityChangeDate, err := utility.ParseDate(*controlApplicableFormDTO.ApplicabilityChangeDate)
+	if err != nil {
+		return utility.NewValidationError(fmt.Errorf("invalid applicability change date"), "invalid_date", "applicability change date")
+	}
+
+	existingControl.Justification = controlApplicableFormDTO.Justification
+	existingControl.ApplicabilityChangeDate = parsedApplicabilityChangeDate
+	existingControl.IsApplicable = true
+	existingControl.UpdatedByID = &currentUserID
+
+	err = cs.repo.Update(existingControl)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (cs *ControlService) MarkControlAsNotApplicable(controlID uint, currentUserID uint, controlApplicableFormDTO *organizationDTOs.ControlApplicableFormDTO) error {
+	existingControl, err := cs.GetByID(controlID)
+	if err != nil {
+		return err
+	}
+
+	parsedApplicabilityChangeDate, err := utility.ParseDate(*controlApplicableFormDTO.ApplicabilityChangeDate)
+	if err != nil {
+		return utility.NewValidationError(fmt.Errorf("invalid applicability change date"), "invalid_date", "applicability change date")
+	}
+
+	existingControl.Justification = controlApplicableFormDTO.Justification
+	existingControl.ApplicabilityChangeDate = parsedApplicabilityChangeDate
+	existingControl.IsApplicable = false
+	existingControl.UpdatedByID = &currentUserID
+
+	err = cs.repo.Update(existingControl)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -12,6 +12,7 @@ import (
 	organizationRepositories "jethur/grc/organization/repositories"
 	"jethur/utility"
 	"os"
+	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -219,7 +220,7 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 		}
 
 		emailTo := []string{responsibleUser.Email}
-		subject := fmt.Sprintf("Process/%s: Assigned", processFormDTO.TitleEn)
+		subject := fmt.Sprintf("Process/%s: Ownership Assigned", processFormDTO.TitleEn)
 		appURL := utility.GetAppURL()
 		emailData := map[string]interface{}{
 			"FirstNameEn":            responsibleUser.FirstNameEn,
@@ -240,12 +241,50 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 			EmailData:            emailData,
 		}
 
-		err = ps.notificationSvc.SendNotification(
-			dbNotificationDTO, emailNotificationDTO, "process")
+		// Log email before sending (status: "Pending")
+		err = ps.notificationSvc.LogEmail(
+			emailNotificationDTO.EmailTo[0],
+			emailNotificationDTO.Subject,
+			emailNotificationDTO.TemplateRelativePath,
+			emailNotificationDTO.EmailData,
+			"Pending",
+			"",
+			nil,
+			currentUserID,
+		)
 		if err != nil {
+			utility.LogError("Failed to log email", map[string]interface{}{"error": err.Error()})
+		}
+
+		err = ps.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "process")
+		if err != nil {
+			// Log the email as "Failed"
+			ps.notificationSvc.LogEmail(
+				emailNotificationDTO.EmailTo[0],
+				emailNotificationDTO.Subject,
+				emailNotificationDTO.TemplateRelativePath,
+				emailNotificationDTO.EmailData,
+				"Failed",
+				err.Error(),
+				nil,
+				currentUserID,
+			)
 			utility.LogError("Failed to send notifications", map[string]interface{}{
 				"error": err.Error(),
 			})
+		} else {
+			now := time.Now()
+			// Log the email as "Sent"
+			ps.notificationSvc.LogEmail(
+				emailNotificationDTO.EmailTo[0],
+				emailNotificationDTO.Subject,
+				emailNotificationDTO.TemplateRelativePath,
+				emailNotificationDTO.EmailData,
+				"Sent",
+				"",
+				&now,
+				currentUserID,
+			)
 		}
 	}()
 
@@ -452,6 +491,7 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 				"LastNameEn":             oldOwnerUser.LastNameEn,
 				"ProcessReferenceNumber": existingProcess.ReferenceNumber,
 				"ProcessName":            existingProcess.TitleEn,
+				"ProcessGroup":           existingProcess.ProcessGroup.TitleEn,
 			}
 
 			oldOwnerEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -494,19 +534,17 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 			templateRelativePath := "organization/templates/email/process_change_owner_mail.html"
 
 			emailData := map[string]interface{}{
-				"FirstNameEn":              responsibleUser.FirstNameEn,
-				"LastNameEn":               responsibleUser.LastNameEn,
-				"ProcessReferenceNumber":   existingProcess.ReferenceNumber,
-				"ProcessName":              existingProcess.TitleEn,
-				"ProcessGroup":             existingProcess.ProcessGroup.TitleEn,
-				"PreviousOwnerFirstNameEn": oldOwnerUser.FirstNameEn,
-				"PreviousOwnerLastNameEn":  oldOwnerUser.LastNameEn,
-				"NewOwnerFirstNameEn":      responsibleUser.FirstNameEn,
-				"NewOwnerLastNameEn":       responsibleUser.LastNameEn,
-				"AssignedByFirstNameEn":    existingProcess.CreatedByUser.FirstNameEN,
-				"AssignedByLastNameEn":     existingProcess.CreatedByUser.LastNameEN,
-				"AssignedOn":               existingProcess.CreatedAt.Format("2006-01-02"),
-				"RedirectURL":              fmt.Sprintf("%s/process/%d", appURL, id),
+				"FirstNameEn":            responsibleUser.FirstNameEn,
+				"LastNameEn":             responsibleUser.LastNameEn,
+				"ProcessReferenceNumber": existingProcess.ReferenceNumber,
+				"ProcessName":            existingProcess.TitleEn,
+				"ProcessGroup":           existingProcess.ProcessGroup.TitleEn,
+				"NewOwnerFirstNameEn":    responsibleUser.FirstNameEn,
+				"NewOwnerLastNameEn":     responsibleUser.LastNameEn,
+				"AssignedByFirstNameEn":  existingProcess.CreatedByUser.FirstNameEN,
+				"AssignedByLastNameEn":   existingProcess.CreatedByUser.LastNameEN,
+				"AssignedOn":             existingProcess.CreatedAt.Format("2006-01-02"),
+				"RedirectURL":            fmt.Sprintf("%s/process/%d", appURL, id),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -549,6 +587,7 @@ func (ps *ProcessService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 		TitleEn         string
 		TitleAr         string
 		ReferenceNumber string
+		ProcessGroup    string
 	}
 
 	for _, id := range ids {
@@ -564,11 +603,13 @@ func (ps *ProcessService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 			TitleEn         string
 			TitleAr         string
 			ReferenceNumber string
+			ProcessGroup    string
 		}{
 			OwnerID:         process.OwnerID,
 			TitleEn:         process.TitleEn,
 			TitleAr:         process.TitleAr,
 			ReferenceNumber: process.ReferenceNumber,
+			ProcessGroup:    process.ProcessGroup.TitleEn,
 		})
 
 		if len(process.Controls) > 0 {
@@ -635,8 +676,8 @@ func (ps *ProcessService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 					ModuleIdentifier:     "organization",
 					NotificationType:     string(commonDTOs.DeletionType),
 					ReferenceNumber:      notification.ReferenceNumber,
-					HeadingEn:            "Process Deleted",
-					HeadingAr:            "تم حذف العملية",
+					HeadingEn:            "Process Deletion",
+					HeadingAr:            "حذف العملية",
 					TitleEn:              notification.TitleEn,
 					TitleAr:              notification.TitleAr,
 					Entity:               &entity,
@@ -658,14 +699,13 @@ func (ps *ProcessService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 				ownerEmailTo := []string{ownerUser.Email}
 				subject := fmt.Sprintf("Process/%s: Deleted", notification.TitleEn)
 				templateRelativePath := "organization/templates/email/process_delete_mail.html"
-				appURL := utility.GetAppURL()
 
 				emailData := map[string]interface{}{
 					"FirstNameEn":            ownerUser.FirstNameEn,
 					"LastNameEn":             ownerUser.LastNameEn,
 					"ProcessReferenceNumber": notification.ReferenceNumber,
 					"ProcessName":            notification.TitleEn,
-					"RedirectURL":            appURL,
+					"ProcessGroup":           notification.ProcessGroup,
 				}
 
 				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -921,10 +961,10 @@ func (ps *ProcessService) ExportProcesses(data []*organizationDTOs.ProcessListDT
 				i + 1,
 				process.ReferenceNumber,
 				process.TitleAr,
-				*process.Description,
+				utility.GetStringValue(process.Description),
 				process.ProcessGroupTitleAr,
-				*process.OwnerUnitTitleAr,
-				*process.OwnerFirstNameAr + " " + *process.OwnerLastNameAr,
+				utility.GetStringValue(process.OwnerUnitTitleAr),
+				utility.GetStringValue(process.OwnerFirstNameAr) + " " + utility.GetStringValue(process.OwnerLastNameAr),
 				process.LifecycleStatusTitleAr,
 			}
 		} else {
@@ -932,10 +972,10 @@ func (ps *ProcessService) ExportProcesses(data []*organizationDTOs.ProcessListDT
 				i + 1,
 				process.ReferenceNumber,
 				process.TitleEn,
-				*process.Description,
+				utility.GetStringValue(process.Description),
 				process.ProcessGroupTitleEn,
-				*process.OwnerUnitTitleEn,
-				*process.OwnerFirstNameEn + " " + *process.OwnerLastNameEn,
+				utility.GetStringValue(process.OwnerUnitTitleEn),
+				utility.GetStringValue(process.OwnerFirstNameEn) + " " + utility.GetStringValue(process.OwnerLastNameEn),
 				process.LifecycleStatusTitleEn,
 			}
 		}

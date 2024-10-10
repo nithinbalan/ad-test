@@ -53,6 +53,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	rcmController := app.AuditModule.RCMController
 	auditDraftFindingConversationController := app.AuditModule.AuditDraftFindingConversationController
 	auditDraftFindingActionPlanController := app.AuditModule.AuditDraftFindingActionPlanController
+	auditScheduleStatusUpdateController := app.AuditModule.AuditScheduleStatusUpdateController
+	auditDraftReportReviewController := app.AuditModule.AuditDraftReportReviewController
+	auditDraftReportCommentController := app.AuditModule.AuditDraftReportCommentController
 
 	//Audit Status
 	auditRoutes.GET("/audit-statuses", auditStatusController.GetAllAuditStatuses)
@@ -95,6 +98,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.POST("/audit-plans", auditPlanController.CreateAuditPlan)
 	auditRoutes.PUT("/audit-plans/:planId", auditPlanController.UpdateAuditPlan)
 	auditRoutes.POST("/audit-plans/delete", auditPlanController.DeleteAuditPlans)
+	auditRoutes.POST("/audit-plans/:planId/publish", auditPlanController.PublishAuditPlan)
+
 
 	//AuditPlan Checklist
 	auditRoutes.GET("/audit-plans/:planId/checklists", auditPlanChecklistController.GetAllAuditPlanChecklists)
@@ -201,6 +206,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.POST("/audit-findings", auditFindingController.CreateAuditFinding)
 	auditRoutes.PUT("/audit-findings/:findingId", auditFindingController.UpdateAuditFinding)
 	auditRoutes.POST("/audit-findings/delete", auditFindingController.DeleteAuditFindings)
+	auditRoutes.GET("audits/:auditId/audit-finding-summary", auditFindingController.GetAuditFindingCountByCategory)
 
 	//Audit Document  Request Status
 	auditRoutes.GET("/audit-document-request-statuses", auditDocumentRequestStatusController.GetAllAuditDocumentRequestStatuses)
@@ -216,6 +222,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// Audit Document Request Conversations
 	auditRoutes.GET("/audits/:auditId/document-requests/:id/conversations", auditDocumentRequestConversationController.GetAllAuditDocumentRequestConversations)
 	auditRoutes.POST("/audits/:auditId/document-requests/:id/conversations", auditDocumentRequestConversationController.CreateAuditDocumentRequestConversation)
+	unauthenticatedRoutes.GET("/audits/:auditId/document-requests/:id/conversations/:conversationId/document-download", auditDocumentRequestConversationController.DownloadDocumentRequestConversationDocument)
 
 	auditRoutes.GET("/audit-findings/:findingId/root-cause-analysis", auditFindingRootCauseAnalysisController.GetAllAuditFindingRootCauseAnalyses)
 	auditRoutes.POST("/audit-findings/:findingId/root-cause-analysis", auditFindingRootCauseAnalysisController.CreateAuditFindingRootCauseAnalysis)
@@ -228,6 +235,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.POST("/audit-findings/:findingId/action-plans", auditFindingActionPlanController.CreateAuditFindingActionPlan)
 	auditRoutes.PUT("/audit-findings/:findingId/action-plans/:actionPlanId", auditFindingActionPlanController.UpdateAuditFindingActionPlan)
 	auditRoutes.POST("/audit-findings/:findingId/action-plans/delete", auditFindingActionPlanController.DeleteAuditFindingActionPlans)
+	auditRoutes.GET("/audit-findings/:findingId/action-plan-summary", auditFindingActionPlanController.GetAuditFindingActionPlanCountByStatus)
 
 	auditRoutes.GET("/audit-findings/:findingId/action-plans/:actionPlanId/status-updates", auditFindingActionPlanStatusUpdateController.GetAllAuditFindingActionPlanStatusUpdates)
 	auditRoutes.POST("/audit-findings/:findingId/action-plans/:actionPlanId/status-updates", auditFindingActionPlanStatusUpdateController.CreateAuditFindingActionPlanStatusUpdate)
@@ -246,9 +254,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	//Audit Schedule
 	auditRoutes.GET("/audits/:auditId/schedules", auditScheduleController.GetAllAuditSchedules)
-	auditRoutes.GET("/audits/:auditId/schedules/:id", auditScheduleController.GetAuditScheduleDetails)
+	auditRoutes.GET("/audits/:auditId/schedules/:scheduleId", auditScheduleController.GetAuditScheduleDetails)
 	auditRoutes.POST("/audits/:auditId/schedules", auditScheduleController.CreateAuditSchedule)
-	auditRoutes.PUT("/audits/:auditId/schedules/:id", auditScheduleController.UpdateAuditSchedule)
+	auditRoutes.PUT("/audits/:auditId/schedules/:scheduleId", auditScheduleController.UpdateAuditSchedule)
 	auditRoutes.POST("/audits/:auditId/schedules/delete", auditScheduleController.DeleteAuditSchedules)
 
 	auditRoutes.GET("/audits/:auditId/schedules-summary", auditScheduleController.GetScheduleSummary)
@@ -261,11 +269,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.GET("/audit-draft-finding-statuses/:id", auditDraftFindingStatusController.GetAuditDraftFindingStatusDetails)
 
 	// Draft Audit Finding
-	auditRoutes.GET("/audit-draft-findings", auditDraftFindingController.GetAllAuditDraftFindings)
+	auditRoutes.GET("audit-draft-findings", auditDraftFindingController.GetAllAuditDraftFindings)
 	auditRoutes.GET("/audit-draft-findings/:findingId", auditDraftFindingController.GetAuditDraftFindingDetails)
 	auditRoutes.POST("/audit-draft-findings", auditDraftFindingController.CreateAuditDraftFinding)
 	auditRoutes.PUT("/audit-draft-findings/:findingId", auditDraftFindingController.UpdateAuditDraftFinding)
 	auditRoutes.POST("/audit-draft-findings/delete", auditDraftFindingController.DeleteAuditDraftFindings)
+	auditRoutes.GET("audits/:auditId/audit-draft-finding-summary", auditDraftFindingController.GetAuditDraftFindingCountByCategory)
 
 	//Draft Audit Report Status
 	auditRoutes.GET("/audit-draft-report-statuses", auditDraftReportStatusController.GetAllAuditDraftReportStatuses)
@@ -276,7 +285,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.POST("/audits/:auditId/draft-reports", auditDraftReportController.CreateAuditDraftReport)
 	auditRoutes.PUT("/audits/:auditId/draft-reports/:id", auditDraftReportController.UpdateAuditDraftReport)
 	auditRoutes.POST("/audits/:auditId/draft-reports/delete", auditDraftReportController.DeleteAuditDraftReports)
-	auditRoutes.POST("/audits/:auditId/draft-reports/:id/submit", auditDraftReportController.SubmitAuditDraftReport)
+	auditRoutes.POST("/audits/:auditId/draft-reports/:id/auditee-submit", auditDraftReportController.SubmitAuditDraftReport)
 
 	//Audit Risk Control Metrix
 	auditRoutes.GET("audits/:auditId/risk-control-matrix", rcmController.GetAllRiskControls)
@@ -294,5 +303,27 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.POST("/audit-draft-findings/:findingId/action-plans", auditDraftFindingActionPlanController.CreateAuditDraftFindingActionPlan)
 	auditRoutes.PUT("/audit-draft-findings/:findingId/action-plans/:id", auditDraftFindingActionPlanController.UpdateAuditDraftFindingActionPlan)
 	auditRoutes.POST("/audit-draft-findings/:findingId/action-plans/delete", auditDraftFindingActionPlanController.DeleteAuditDraftFindingActionPlans)
+
+	// Audit Schedule status update
+	auditRoutes.GET("/audits/:auditId/schedules/:scheduleId/status-updates", auditScheduleStatusUpdateController.GetAllAuditScheduleStatusUpdates)
+	auditRoutes.POST("/audits/:auditId/schedules/:scheduleId/status-updates", auditScheduleStatusUpdateController.CreateAuditScheduleStatusUpdate)
+	auditRoutes.PUT("/audits/:auditId/schedules/:scheduleId/status-updates/:id", auditScheduleStatusUpdateController.UpdateAuditScheduleStatusUpdate)
+	auditRoutes.GET("/audits/:auditId/schedules/:scheduleId/status-updates/latest", auditScheduleStatusUpdateController.GetLatestAuditScheduleStatusUpdate)
+
+	//Audit Draft Report Review
+	auditRoutes.POST("/audits/:auditId/draft-reports/:id/submit", auditDraftReportReviewController.SubmitAuditDraftReport)
+	auditRoutes.POST("/audits/:auditId/draft-reports/:id/re-submit", auditDraftReportReviewController.ReSubmitAuditDraftReport)
+	auditRoutes.POST("/audits/:auditId/draft-reports/:id/approve", auditDraftReportReviewController.ApproveAuditDraftReport)
+	auditRoutes.POST("/audits/:auditId/draft-reports/:id/revert", auditDraftReportReviewController.RevertAuditDraftReport)
+
+	// Audit Draft Report Comments
+	auditRoutes.GET("/audits/:auditId/draft-reports/:id/comments", auditDraftReportCommentController.GetAllAuditDraftReportComments)
+	auditRoutes.GET("/audits/:auditId/draft-reports/:id/comments/:commentId", auditDraftReportCommentController.GetAuditDraftReportCommentDetails)
+	auditRoutes.POST("/audits/:auditId/draft-reports/:id/comments", auditDraftReportCommentController.CreateAuditDraftReportComment)
+	auditRoutes.PUT("/audits/:auditId/draft-reports/:id/comments/:commentId", auditDraftReportCommentController.UpdateAuditDraftReportComment)
+	auditRoutes.POST("/audits/:auditId/draft-reports/:id/comments/delete", auditDraftReportCommentController.DeleteAuditDraftReportComments)
+	auditRoutes.POST("/audits/:auditId/draft-reports/:id/comments/:commentId/status-update", auditDraftReportCommentController.StatusUpdateAuditDraftReportComment)
+	unauthenticatedRoutes.GET("/audits/:auditId/draft-reports/:id/comments/:commentId/document-download", auditDraftReportCommentController.DownloadAuditDraftReportCommentDocument)
+	auditRoutes.GET("/audits/:auditId/draft-reports/:id/review-history", auditDraftReportReviewController.GetAllAuditDraftReportReviews)
 
 }

@@ -258,3 +258,26 @@ func (afapc *AuditFindingActionPlanController) DeleteAuditFindingActionPlans(c *
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
+
+func (afapc *AuditFindingActionPlanController) GetAuditFindingActionPlanCountByStatus(c *gin.Context) {
+	findingIDStr := c.Param("findingId")
+
+	findingId, err := strconv.ParseUint(findingIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	actionPlanCounts, err := afapc.service.GetAuditFindingActionPlanCountByStatus(uint(findingId))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(afapc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, actionPlanCounts)
+}

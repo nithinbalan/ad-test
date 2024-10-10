@@ -37,6 +37,7 @@ func (adrc *AuditDocumentRequestController) GetAllAuditDocumentRequests(c *gin.C
 
 	allowedParams := []string{
 		"audit_ids",
+		"requested_by_ids",
 		"audit_document_request_status_ids",
 	}
 

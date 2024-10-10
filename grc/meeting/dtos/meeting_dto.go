@@ -69,6 +69,7 @@ type MeetingListQueryParamsDTO struct {
 	QuickFilter []string
 	DateFrom    string
 	DateTo      string
+	Export      bool
 }
 
 type MeetingListResponseDTO struct {

@@ -54,6 +54,8 @@ type IncidentRegisterListDTO struct {
 	ReportedUserColor               string  `json:"reported_user_color"`
 	ReportedUserEmail               string  `json:"reported_user_email"`
 	ReportedUserProfileImagePath    string  `json:"reported_user_profile_image_path"`
+	InvestigationInitiatedAt        *string `json:"investigation_initiated_at"`
+	InvestigationDescription        *string `json:"investigation_description"`
 	CreatedAt                       string  `json:"created_at"`
 	UpdatedAt                       string  `json:"updated_at"`
 	CreatedUserID                   uint    `json:"created_user_id"`

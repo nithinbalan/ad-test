@@ -64,6 +64,15 @@ func (repo *RiskActionPlanRepository) GetAll(riskID uint, params *riskDTOs.RiskA
         responsible_user.color AS responsible_user_color,
         responsible_user.email AS responsible_user_email,
         responsible_user.profile_image_path AS responsible_user_profile_image_path,
+		review_user.id AS review_user_id,
+    	review_user.first_name_en AS review_user_first_name_en,
+		review_user.first_name_ar AS review_user_first_name_ar,
+		review_user.last_name_en AS review_user_last_name_en,
+		review_user.last_name_ar AS review_user_last_name_ar,
+		review_user.initial AS review_user_initial,
+        review_user.color AS review_user_color,
+        review_user.email AS review_user_email,
+        review_user.profile_image_path AS review_user_profile_image_path,
         created_user.id AS created_user_id,
         created_user.first_name_en AS created_user_first_name_en,
         created_user.first_name_ar AS created_user_first_name_ar,
@@ -88,6 +97,7 @@ func (repo *RiskActionPlanRepository) GetAll(riskID uint, params *riskDTOs.RiskA
         LEFT JOIN action_plan_statuses ON action_plan_statuses.id = risk_action_plans.action_plan_status_id
         LEFT JOIN severity_levels ON severity_levels.id = risk_action_plans.severity_level_id
         LEFT JOIN users AS responsible_user ON responsible_user.id = risk_action_plans.responsible_user_id
+		LEFT JOIN users AS review_user ON review_user.id = risk_action_plans.review_user_id
         LEFT JOIN users AS created_user ON created_user.id = risk_action_plans.created_by_id
         LEFT JOIN users AS updated_user ON updated_user.id = risk_action_plans.updated_by_id
     `)
@@ -119,10 +129,6 @@ func (repo *RiskActionPlanRepository) GetAll(riskID uint, params *riskDTOs.RiskA
 		}
 	}
 
-	// Calculate total count for pagination
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
@@ -144,22 +150,26 @@ func (repo *RiskActionPlanRepository) GetAll(riskID uint, params *riskDTOs.RiskA
 		query = query.Where("risk_action_plans.risk_register_id = ?", riskID)
 	}
 
-	// Sort by the specified column and order
-	if params.SortBy == "" {
-		params.SortBy = "title" // Default sort by title if no sortBy is specified
-	}
-	if params.Sort != "asc" && params.Sort != "desc" {
-		params.Sort = "asc" // Default order is ascending if not specified
-	}
-
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	offset := (params.Page - 1) * params.PageSize
-
-	// Execute the query
-	err := query.Offset(offset).Limit(params.PageSize).Find(&riskActionPlans).Error
-	if err != nil {
+	// Calculate total count for pagination
+	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
+	}
+
+	if !params.Export {
+		offset := (params.Page - 1) * params.PageSize
+		query = query.Offset(offset).Limit(params.PageSize)
+	}
+
+	if err := query.Find(&riskActionPlans).Error; err != nil {
+		return nil, err
+	}
+
+	if params.Export {
+		return &riskDTOs.RiskActionPlanListResponseDTO{
+			Items: riskActionPlans,
+		}, nil
 	}
 
 	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
@@ -197,6 +207,7 @@ func (repo *RiskActionPlanRepository) GetFullDetailsByID(id uint) (*models.RiskA
 		Preload("SeverityLevel").
 		Preload("ActionPlanStatus").
 		Preload("ActionPlanStatusUpdates").
+		Preload("ReviewUser").
 		First(&riskActionPlan, id)
 
 	if result.Error != nil {

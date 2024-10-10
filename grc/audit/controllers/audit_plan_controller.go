@@ -193,3 +193,38 @@ func (apc *AuditPlanController) DeleteAuditPlans(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
+
+
+func (apc *AuditPlanController) PublishAuditPlan(c *gin.Context) {
+	auditPlanID, err := strconv.Atoi(c.Param("planId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(apc.db, c, err.Error())
+		return
+	}
+
+	err = apc.service.Publish(uint(auditPlanID), currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			// Return a 403 Forbidden response with the error message
+			utility.SendForbiddenErrResp(c, e.Error())
+		default:
+			utility.SendInternalErrResp(apc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}

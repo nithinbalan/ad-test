@@ -247,7 +247,7 @@ func (uss *UserSettingService) ResetPassword(userID uint) error {
 	subject := "Important: Your Account Password Has Been Updated"
 	templateRelativePath := "organization/templates/email/send_new_password.html"
 
-	err = utility.SendTemplatedEmail(to, subject, templateRelativePath, emailData, nil)
+	err = utility.SendTemplatedEmail(to, subject, templateRelativePath, emailData, nil, nil)
 
 	if err != nil {
 		return err

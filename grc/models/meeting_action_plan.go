@@ -13,6 +13,7 @@ type MeetingActionPlan struct {
 	SeverityLevelID    *uint      `json:"severity_level_id" gorm:"default:null" binding:"omitempty"`
 	TargetDate         *time.Time `json:"target_date" binding:"omitempty" gorm:"type:date,default:null"`
 	ResponsibleUserID  uint       `json:"responsible_user_id" gorm:"not null" binding:"required"`
+	ReviewUserID       *uint      `json:"review_user_id" gorm:"default:null"`
 	ActionPlanStatusID uint       `json:"action_plan_status_id" gorm:"not null" binding:"required"`
 	Percentage         uint       `json:"percentage" gorm:"default:0;not null" binding:"required"`
 	Comments           *string    `json:"comments" gorm:"type:nvarchar(max);null"`
@@ -26,6 +27,7 @@ type MeetingActionPlan struct {
 	MeetingMinute                *MeetingMinute                   `gorm:"foreignKey:MeetingMinuteID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	SeverityLevel                *SeverityLevel                   `gorm:"foreignkey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ResponsibleUser              *User                            `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ReviewUser                   *User                            `gorm:"foreignKey:ReviewUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"` // New foreign key relationship
 	ActionPlanStatus             *ActionPlanStatus                `gorm:"foreignKey:ActionPlanStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ActionPlanStatusUpdates      []*MeetingActionPlanStatusUpdate `gorm:"foreignKey:MeetingActionPlanID"`
 	LatestActionPlanStatusUpdate *MeetingActionPlanStatusUpdate   `gorm:"foreignKey:MeetingActionPlanID"`

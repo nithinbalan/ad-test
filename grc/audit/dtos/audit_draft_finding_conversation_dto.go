@@ -9,6 +9,8 @@ type AuditDraftFindingConversationListDTO struct {
 	ID                          uint   `json:"id"`
 	AuditDraftFindingID         uint   `json:"audit_draft_finding_id"`
 	Description                 string `json:"description"`
+	IsAccepted                  bool   `json:"is_accepted"`
+	IsDismissed                 bool   `json:"is_dismissed"`
 	CreatedAt                   string `json:"created_at"`
 	CreatedUserID               uint   `json:"created_user_id"`
 	CreatedUserFirstNameEn      string `json:"created_user_first_name_en"`
@@ -24,6 +26,8 @@ type AuditDraftFindingConversationListDTO struct {
 type AuditDraftFindingConversationFormDTO struct {
 	Description string `json:"description" binding:"required,max=500"`
 	Type        string `json:"type" binding:"required,max=10"`
+	IsAccepted  *bool  `json:"is_accepted" binding:"omitempty"`
+	IsDismissed *bool  `json:"is_dismissed" binding:"omitempty"`
 }
 
 type AuditDraftFindingConversationListQueryParamsDTO struct {
@@ -43,6 +47,8 @@ type AuditDraftFindingConversationDetailDTO struct {
 	Type              string                          `json:"type"`
 	Description       string                          `json:"description"`
 	AuditDraftFinding AuditDraftFindingDetailDTO      `json:"audit_draft_finding"`
+	IsAccepted        bool                            `json:"is_accepted"`
+	IsDismissed       bool                            `json:"is_dismissed"`
 	CreatedAt         time.Time                       `json:"created_at"`
 	UpdatedAt         *time.Time                      `json:"updated_at"`
 	CreatedByUser     organizationDTOs.UserMinimalDTO `json:"created_by_user"`

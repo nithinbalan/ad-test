@@ -6,7 +6,6 @@ import (
 	"time"
 )
 
-// AuditScheduleListDTO represents a list view of audit schedules.
 type AuditScheduleListDTO struct {
 	ID                              uint    `json:"id"`
 	AuditID                         uint    `json:"audit_id"`
@@ -14,6 +13,8 @@ type AuditScheduleListDTO struct {
 	AuditActivityTypeTitleEn        string  `json:"audit_activity_type_title_en"`
 	AuditActivityTypeTitleAr        string  `json:"audit_activity_type_title_ar"`
 	ResponsibleUserID               *uint   `json:"responsible_user_id"`
+	Comment                         *string `json:"comment"`
+	Percentage                      uint    `json:"percentage"`
 	ResponsibleUserFirstNameEn      string  `json:"responsible_user_first_name_en"`
 	ResponsibleUserFirstNameAr      string  `json:"responsible_user_first_name_ar"`
 	ResponsibleUserLastNameEn       string  `json:"responsible_user_last_name_en"`
@@ -52,37 +53,48 @@ type AuditScheduleListDTO struct {
 	UpdatedAt                       *string `json:"updated_at"`
 }
 
-// AuditScheduleFormDTO represents the form data for creating or updating an audit schedule.
 type AuditScheduleFormDTO struct {
-	AuditActivityTypeID uint    `json:"audit_activity_type_id" binding:"required"`
-	ResponsibleUserID   *uint   `json:"responsible_user_id"`
-	Title               string  `json:"title" binding:"required,max=255"`
-	Description         *string `json:"description"`
-	StartDate           *string `json:"start_date"`
-	TargetDate          *string `json:"target_date"`
-	AuditableItemIds    []*uint `json:"auditable_item_ids"`
+	AuditActivityTypeID   uint    `json:"audit_activity_type_id" binding:"required"`
+	ResponsibleUserID     *uint   `json:"responsible_user_id"`
+	Title                 string  `json:"title" binding:"required,max=255"`
+	Description           *string `json:"description"`
+	StartDate             *string `json:"start_date"`
+	TargetDate            *string `json:"target_date"`
+	AuditScheduleStatusID uint    `json:"audit_schedule_status_id" binding:"required"`
+	AuditableItemIds      []*uint `json:"auditable_item_ids"`
 }
 
-// AuditScheduleDetailDTO represents the detailed view of an audit schedule.
 type AuditScheduleDetailDTO struct {
-	ID                  uint                             `json:"id"`
-	Audit               AuditDetailDTO                   `json:"audit"`
-	AuditPlan           AuditPlanDetailDTO               `json:"audit_plan"`
-	AuditActivityType   AuditActivityTypeDTO             `json:"audit_activity_type"`
-	ResponsibleUser     *organizationDTOs.UserMinimalDTO `json:"responsible_user"`
-	Title               string                           `json:"title"`
-	Description         *string                          `json:"description"`
-	StartDateString     string                           `json:"start_date"`
-	TargetDateString    string                           `json:"target_date"`
-	AuditScheduleStatus AuditScheduleStatusDTO           `json:"audit_schedule_status"`
-	AuditableItems      []*AuditScheduleAuditableItemDTO `json:"auditable_items"`
-	CreatedAt           time.Time                        `json:"created_at"`
-	UpdatedAt           *time.Time                       `json:"updated_at"`
-	CreatedByUser       organizationDTOs.UserMinimalDTO  `json:"created_by_id"`
-	UpdatedByUser       *organizationDTOs.UserMinimalDTO `json:"updated_by_id"`
+	ID                         uint                             `json:"id"`
+	Audit                      AuditDetailDTO                   `json:"audit"`
+	AuditPlan                  AuditPlanDetailDTO               `json:"audit_plan"`
+	AuditActivityType          AuditActivityTypeDTO             `json:"audit_activity_type"`
+	ResponsibleUser            *organizationDTOs.UserMinimalDTO `json:"responsible_user"`
+	Title                      string                           `json:"title"`
+	Description                *string                          `json:"description"`
+	StartDateString            string                           `json:"start_date"`
+	TargetDateString           string                           `json:"target_date"`
+	Comment                    *string                          `json:"comment"`
+	Percentage                 uint                             `json:"percentage"`
+	AuditScheduleStatus        AuditScheduleStatusDTO           `json:"audit_schedule_status"`
+	AuditableItems             []*AuditScheduleAuditableItemDTO `json:"auditable_items"`
+	CreatedAt                  time.Time                        `json:"created_at"`
+	UpdatedAt                  *time.Time                       `json:"updated_at"`
+	CreatedByUser              organizationDTOs.UserMinimalDTO  `json:"created_by_id"`
+	UpdatedByUser              *organizationDTOs.UserMinimalDTO `json:"updated_by_id"`
+	AuditScheduleStatusUpdates []*AuditScheduleStatusUpdateDTO  `json:"audit_schedule_status_updates"`
 }
 
-// AuditScheduleListQueryParamsDTO represents the query parameters for filtering, sorting, and pagination.
+type SLAActionPlanStatusUpdateDocumentDTO struct {
+	ID           uint   `json:"id"`
+	URL          string `json:"url"`
+	Name         string `json:"name"`
+	Size         int    `json:"size"`
+	Token        string `json:"token"`
+	OriginalName string `json:"original_name"`
+	Type         string `json:"type"`
+}
+
 type AuditScheduleListQueryParamsDTO struct {
 	Sort        string
 	SortBy      string
@@ -96,19 +108,16 @@ type AuditScheduleListQueryParamsDTO struct {
 	TargetDate  string
 }
 
-// AuditScheduleListResponseDTO represents the paginated response format for listing audit schedules.
 type AuditScheduleListResponseDTO struct {
 	Items      []*AuditScheduleListDTO      `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }
 
-// AuditScheduleParsedDates represents parsed date fields for easier manipulation in services.
 type AuditScheduleParsedDates struct {
 	StartDate  *time.Time
 	TargetDate *time.Time
 }
 
-// AuditScheduleAuditableItemDTO represents the auditable items associated with an audit schedule.
 type AuditScheduleAuditableItemDTO struct {
 	ID              uint                             `json:"id"`
 	AuditScheduleID uint                             `json:"audit_schedule_id"`

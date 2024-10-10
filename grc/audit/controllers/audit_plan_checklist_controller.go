@@ -39,6 +39,7 @@ func (apc *AuditPlanChecklistController) GetAllAuditPlanChecklists(c *gin.Contex
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"auditable_item_ids",
+		"auditable_item_type",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())

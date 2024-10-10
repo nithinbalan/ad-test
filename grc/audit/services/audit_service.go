@@ -33,6 +33,7 @@ type AuditService struct {
 	auditTimelineSvc     AuditTimelineServiceInterface
 	auditPlanScheduleSvc AuditPlanScheduleServiceInterface
 	statusSvc            masterServices.StatusServiceInterface
+	auditStatusSvc       AuditStatusServiceInterface
 }
 
 func NewAuditService(
@@ -42,6 +43,7 @@ func NewAuditService(
 	auditTimelineSvc AuditTimelineServiceInterface,
 	auditPlanScheduleSvc AuditPlanScheduleServiceInterface,
 	statusSvc masterServices.StatusServiceInterface,
+	auditStatusSvc AuditStatusServiceInterface,
 ) AuditServiceInterface {
 	return &AuditService{
 		repo:                 repo,
@@ -50,6 +52,7 @@ func NewAuditService(
 		auditTimelineSvc:     auditTimelineSvc,
 		auditPlanScheduleSvc: auditPlanScheduleSvc,
 		statusSvc:            statusSvc,
+		auditStatusSvc:       auditStatusSvc,
 	}
 }
 
@@ -94,6 +97,15 @@ func (as *AuditService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransa
 }
 
 func (as *AuditService) Create(currentUserID uint, auditFormDTO *auditDTOs.AuditFormDTO) (uint, error) {
+	// First, check if an audit already exists for the given AuditPlanID
+	existingAudit, err := as.repo.GetAuditByAuditPlanID(auditFormDTO.AuditPlanID)
+	if err != nil {
+		return 0, err // Handle DB query error
+	}
+	// If an audit already exists, return an error without starting a transaction
+	if existingAudit != nil {
+		return 0, utility.NewForbiddenError("Audit has already been created for this audit plan")
+	}
 	tx := as.repo.BeginTransaction()
 
 	dates, err := as.parseAuditPlanDates(auditFormDTO)
@@ -105,11 +117,15 @@ func (as *AuditService) Create(currentUserID uint, auditFormDTO *auditDTOs.Audit
 		tx.Rollback()
 		return 0, err
 	}
-
+	auditStatus, err := as.auditStatusSvc.GetByType("in-progress")
+	if err != nil {
+		return 0,err
+	}
 	audit := &models.Audit{
 		AuditPlanID: auditFormDTO.AuditPlanID,
 		StartDate:   dates.StartDate,
 		EndDate:     dates.EndDate,
+		AuditStatusID:   uint(auditStatus.ID),
 		CreatedBYID: currentUserID,
 	}
 
@@ -177,6 +193,12 @@ func (as *AuditService) Create(currentUserID uint, auditFormDTO *auditDTOs.Audit
 	}
 
 	if err := as.CopyChecklistsToAudit(auditFormDTO.AuditPlanID, id, currentUserID, tx); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	//Update Audit plan status in to in-progress
+	auditStatusID :=auditStatus.ID
+	if err := as.auditPlanSvc.StatusUpdate(auditFormDTO.AuditPlanID, currentUserID, uint(auditStatusID), tx); err != nil {
 		tx.Rollback()
 		return 0, err
 	}
@@ -366,7 +388,7 @@ func (as *AuditService) copyAuditPlanSchedulesToAuditSchedule(auditID uint, audi
 	for _, schedule := range auditPlanSchedules {
 		auditSchedule := &models.AuditSchedule{
 			AuditPlanID:           schedule.AuditPlanID,
-			AuditPlanScheduleID:   schedule.ID,
+			AuditPlanScheduleID:   &schedule.ID,
 			AuditActivityTypeID:   schedule.AuditActivityTypeID,
 			AuditID:               auditID,
 			Title:                 schedule.Title,
@@ -380,6 +402,16 @@ func (as *AuditService) copyAuditPlanSchedulesToAuditSchedule(auditID uint, audi
 
 		createdAuditSchedule, err := as.repo.CreateAuditSchedule(auditSchedule, tx...)
 		if err != nil {
+			return err
+		}
+
+		statusUpdate := &models.AuditScheduleStatusUpdate{
+			AuditScheduleID:       createdAuditSchedule.ID,
+			AuditScheduleStatusID: auditSchedule.AuditScheduleStatusID,
+			Comment:               "Initial audit schedule status",
+			CreatedBYID:           currentUserID,
+		}
+		if err := as.repo.CreateAuditScheduleStatusUpdate(statusUpdate, tx...); err != nil {
 			return err
 		}
 

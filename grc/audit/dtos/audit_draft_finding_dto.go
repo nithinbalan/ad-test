@@ -49,6 +49,26 @@ type AuditDraftFindingListDTO struct {
 	UpdatedUserColor                 *string `json:"updated_user_color"`
 	UpdatedUserEmail                 *string `json:"updated_user_email"`
 	UpdatedUserProfileImagePath      *string `json:"updated_user_profile_image_path"`
+	AcceptedByID                     *uint   `json:"accepted_by_id"`
+	AcceptedAt                       *string `json:"accepted_at"`
+	AcceptedUserFirstNameEn          *string `json:"accepted_user_first_name_en"`
+	AcceptedUserFirstNameAr          *string `json:"accepted_user_first_name_ar"`
+	AcceptedUserLastNameEn           *string `json:"accepted_user_last_name_en"`
+	AcceptedUserLastNameAr           *string `json:"accepted_user_last_name_ar"`
+	AcceptedUserInitial              *string `json:"accepted_user_initial"`
+	AcceptedUserColor                *string `json:"accepted_user_color"`
+	AcceptedUserEmail                *string `json:"accepted_user_email"`
+	AcceptedUserProfileImagePath     *string `json:"accepted_user_profile_image_path"`
+	ChallengedByID                   *uint   `json:"challenged_by_id"`
+	ChallengedAt                     *string `json:"challenged_at"`
+	ChallengedUserFirstNameEn        *string `json:"challenged_user_first_name_en"`
+	ChallengedUserFirstNameAr        *string `json:"challenged_user_first_name_ar"`
+	ChallengedUserLastNameEn         *string `json:"challenged_user_last_name_en"`
+	ChallengedUserLastNameAr         *string `json:"challenged_user_last_name_ar"`
+	ChallengedUserInitial            *string `json:"challenged_user_initial"`
+	ChallengedUserColor              *string `json:"challenged_user_color"`
+	ChallengedUserEmail              *string `json:"challenged_user_email"`
+	ChallengedUserProfileImagePath   *string `json:"challenged_user_profile_image_path"`
 }
 
 type AuditDraftFindingFormDTO struct {
@@ -97,6 +117,10 @@ type AuditDraftFindingDetailDTO struct {
 	Documents                      []*AuditDraftFindingDocumentDTO           `json:"documents"`
 	AuditDraftFindingConversations []*AuditDraftFindingConversationDetailDTO `json:"conversations"`
 	AuditDraftFindingActionPlans   []*AuditDraftFindingActionPlanDetailDTO   `json:"action_plans"`
+	AcceptedByUser                 *organizationDTOs.UserMinimalDTO          `json:"accepted_by"`
+	AcceptedAt                     *time.Time                                `json:"accepted_at"`
+	ChallengedByUser               *organizationDTOs.UserMinimalDTO          `json:"challenged_by"`
+	ChallengedAt                   *time.Time                                `json:"challenged_at"`
 }
 
 type AuditDraftFindingDocumentDTO struct {
@@ -123,4 +147,12 @@ type AuditDraftFindingListQueryParamsDTO struct {
 type AuditDraftFindingListResponseDTO struct {
 	Items      []*AuditDraftFindingListDTO  `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
+}
+
+type AuditDraftFindingCategoryCountResponseDTO struct {
+	ID        uint   `json:"id"`
+	TitleEn   string `json:"title_en"`
+	TitleAr   string `json:"title_ar"`
+	ColorCode string `json:"color_code"`
+	Count     int    `json:"count"`
 }

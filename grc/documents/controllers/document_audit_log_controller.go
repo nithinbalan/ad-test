@@ -57,10 +57,6 @@ func (dalc *DocumentAuditLogController) GetAllDocumentAuditLogs(c *gin.Context) 
 		PageSize:    pageSize,
 		QuickFilter: quickFilter,
 	}
-	if err != nil {
-		utility.SendInternalErrResp(dalc.db, c, "Invalid page_size parameter")
-		return
-	}
 
 	documentTimelines, err := dalc.service.GetAll(uint(documentID), &queryParams)
 

@@ -379,3 +379,9 @@ func (rrc *RiskRegisterController) GetControlPerformance(c *gin.Context) {
 
 	c.JSON(http.StatusOK, controlPerformance)
 }
+
+func (rrc *RiskRegisterController) GetRiskRegisterExport(c *gin.Context) {
+	c.Request.URL.RawQuery += "&export=true"
+
+	rrc.GetAllRiskRegisters(c)
+}

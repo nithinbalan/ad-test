@@ -41,6 +41,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	meetingRoutes.PUT("/meeting-types/deactivate", meetingTypeController.DeactivateMeetingTypes)
 
 	// Meetings
+	meetingRoutes.GET("/meetings/export", meetingController.GetMeetingExport)
 	meetingRoutes.GET("/meetings", meetingController.GetAllMeetings)
 	meetingRoutes.GET("/meetings/:id", meetingController.GetMeetingDetails)
 	meetingRoutes.POST("/meetings", meetingController.CreateMeeting)
@@ -49,6 +50,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	meetingRoutes.GET("/meetings/:id/meeting-summary", meetingController.GetAllCounts)
 
 	//Meeting action plan
+	meetingRoutes.GET("/meeting-action-plans/export", meetingActionPlanController.GetMeetingActionPlanExport)
 	meetingRoutes.GET("/meeting-action-plans", meetingActionPlanController.GetAllMeetingActionPlans)
 	meetingRoutes.GET("/meetings/:id/action-plans", meetingActionPlanController.GetAllMeetingActionPlans)
 	meetingRoutes.GET("/meetings/:id/action-plans/:meetingActionPlanId", meetingActionPlanController.GetMeetingActionPlanDetails)

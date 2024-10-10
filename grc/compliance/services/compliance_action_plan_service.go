@@ -3,13 +3,17 @@ package services
 import (
 	"errors"
 	"fmt"
+	"time"
+
 	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	complianceRepositories "jethur/grc/compliance/repositories"
 	logServices "jethur/grc/logs/services"
 	masterRepositories "jethur/grc/masters/repositories"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
+	organizationServices "jethur/grc/organization/services"
 	settingService "jethur/grc/settings/services"
 	taskServices "jethur/grc/task/services"
 	"jethur/utility"
@@ -38,6 +42,8 @@ type ComplianceActionPlanService struct {
 	severityLevelSvc         masterServices.SeverityLevelServiceInterface
 	taskSvc                  taskServices.TaskServiceInterface
 	moduleSvc                settingService.ModuleServiceInterface
+	userSvc                  organizationServices.UserServiceInterface
+	notificationSvc          commonServices.NotificationServiceInterface
 }
 
 func NewComplianceActionPlanService(
@@ -48,7 +54,10 @@ func NewComplianceActionPlanService(
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
 	severityLevelSvc masterRepositories.SeverityLevelRepositoryInterface,
 	taskSvc taskServices.TaskServiceInterface,
-	moduleSvc settingService.ModuleServiceInterface) ComplianceActionPlanServiceInterface {
+	moduleSvc settingService.ModuleServiceInterface,
+	userSvc organizationServices.UserServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
+) ComplianceActionPlanServiceInterface {
 	return &ComplianceActionPlanService{
 		repo:                     repo,
 		activityLogSvc:           activityLogSvc,
@@ -58,6 +67,8 @@ func NewComplianceActionPlanService(
 		severityLevelSvc:         severityLevelSvc,
 		taskSvc:                  taskSvc,
 		moduleSvc:                moduleSvc,
+		userSvc:                  userSvc,
+		notificationSvc:          notificationSvc,
 	}
 }
 
@@ -74,7 +85,6 @@ func (caps ComplianceActionPlanService) GetByID(complianceID uint, id uint) (*mo
 	}
 
 	complianceActionPlan, err := caps.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -121,7 +131,9 @@ func (caps ComplianceActionPlanService) GetFullDetailsByID(complianceID uint, id
 
 func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID uint, ComplianceActionPlanFormDTO *complianceDTOs.ComplianceActionPlanFormDTO) (uint, error) {
 	tx := caps.repo.BeginTransaction()
-	if _, err := caps.complianceRegisterSvc.GetByID(complianceID); err != nil {
+
+	compliance, err := caps.complianceRegisterSvc.GetByID(complianceID)
+	if err != nil {
 		return 0, err
 	}
 
@@ -141,6 +153,7 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 		Description:             ComplianceActionPlanFormDTO.Description,
 		SeverityLevelID:         ComplianceActionPlanFormDTO.SeverityLevelID,
 		ResponsibleUserID:       ComplianceActionPlanFormDTO.ResponsibleUserID,
+		ReviewUserID:            ComplianceActionPlanFormDTO.ReviewUserID,
 		TargetDate:              dates.TargetDate,
 		Percentage:              ComplianceActionPlanFormDTO.Percentage,
 		Comments:                ComplianceActionPlanFormDTO.Comments,
@@ -167,21 +180,15 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 		tx.Rollback()
 		return 0, err
 	}
-
-	complianceActionPlanModuleID, err := caps.moduleSvc.GetModuleIDByIdentifier("compliance_action_plan")
-	if err != nil {
-		tx.Rollback()
-		return 0, err
-	}
-	url := fmt.Sprintf("compliance-register/%d/action-plans/%d", complianceID, id)
-
+	urlParam := fmt.Sprintf(`{"id":%d}`, id)
 	taskDTO := commonDTOs.TaskFormDTO{
-		ModuleID:               complianceActionPlanModuleID,
+		ModuleIdentifier:       "compliance",
 		ComplianceActionPlanID: &id,
 		Title:                  ComplianceActionPlanFormDTO.Title,
 		Description:            ComplianceActionPlanFormDTO.Description,
 		TargetDate:             dates.TargetDate,
-		URL:                    url,
+		URLParam:               &urlParam,
+		QueryParam:             nil,
 		SeverityLevelID:        ComplianceActionPlanFormDTO.SeverityLevelID,
 		ResponsibleUserID:      ComplianceActionPlanFormDTO.ResponsibleUserID,
 	}
@@ -201,7 +208,6 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -213,6 +219,73 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 
 			utility.LogError("Failed to log activity", fields)
 		}
+
+		// prepare notification
+		urlParam := fmt.Sprintf(`{"id":%d}`, id)
+		entity := "compliance-action-plan"
+		action := "responsible-user-assign"
+
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserID:               ComplianceActionPlanFormDTO.ResponsibleUserID,
+			ModuleIdentifier:     "compliance",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			HeadingEn:            "Compliance Action Plan Assignment",
+			HeadingAr:            "تعيين خطة عمل المخاطر",
+			TitleEn:              ComplianceActionPlanFormDTO.Title,
+			TitleAr:              ComplianceActionPlanFormDTO.Title,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		responsibleUser, err := caps.userSvc.GetByID(ComplianceActionPlanFormDTO.ResponsibleUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		assignedBy, err := caps.userSvc.GetByID(currentUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		emailTo := []string{responsibleUser.Email}
+		subject := fmt.Sprintf("compliance Action Plan/%s: Responsibility Assigned", ComplianceActionPlanFormDTO.Title)
+		appURL := utility.GetAppURL()
+		emailData := map[string]interface{}{
+			"FirstNameEn":               responsibleUser.FirstNameEn,
+			"LastNameEn":                responsibleUser.LastNameEn,
+			"ComplianceReferenceNumber": compliance.ReferenceNumber,
+			"ComplianceTitle":           compliance.TitleEn,
+			"ActionPlanTitle":           ComplianceActionPlanFormDTO.Title,
+			"ActionPlanDescription":     ComplianceActionPlanFormDTO.Description,
+			"TargetDate":                dates.TargetDate.Format("2006-01-02"),
+			"AssignedByFirstNameEn":     assignedBy.FirstNameEn,
+			"AssignedByLastNameEn":      assignedBy.LastNameEn,
+			"AssignedOn":                time.Now().Format("2006-01-02"),
+			"RedirectURL":               fmt.Sprintf("%scompliance/register/%d/action-plans?action_plan_id=%d", appURL, complianceID, id),
+		}
+
+		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              emailTo,
+			Subject:              subject,
+			TemplateRelativePath: "compliance/templates/email/compliance_action_plan_create_responsible_user_mail.html",
+			EmailData:            emailData,
+		}
+
+		// send notification and mail
+		err = caps.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "compliance_action_plan")
+		if err != nil {
+			utility.LogError("Failed to send notifications", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
 	}()
 
 	return id, nil
@@ -220,16 +293,18 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 
 func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, currentUserID uint, ComplianceActionPlanFormDTO *complianceDTOs.ComplianceActionPlanFormDTO) error {
 	tx := caps.repo.BeginTransaction()
-	
-	if _, err := caps.complianceRegisterSvc.GetByID(complianceID); err != nil {
+
+	compliance, err := caps.complianceRegisterSvc.GetByID(complianceID)
+	if err != nil {
 		return err
 	}
 
 	existingComplianceActionPlan, err := caps.GetByID(complianceID, id)
-
 	if err != nil {
 		return err
 	}
+
+	oldResponsibleUserID := existingComplianceActionPlan.ResponsibleUserID
 
 	if err := caps.validateComplianceActionPlanFormDTO(complianceID, ComplianceActionPlanFormDTO); err != nil {
 		return err
@@ -245,52 +320,206 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 	existingComplianceActionPlan.Description = ComplianceActionPlanFormDTO.Description
 	existingComplianceActionPlan.SeverityLevelID = ComplianceActionPlanFormDTO.SeverityLevelID
 	existingComplianceActionPlan.ResponsibleUserID = ComplianceActionPlanFormDTO.ResponsibleUserID
+	existingComplianceActionPlan.ReviewUserID = ComplianceActionPlanFormDTO.ReviewUserID
 	existingComplianceActionPlan.TargetDate = dates.TargetDate
 	existingComplianceActionPlan.Percentage = ComplianceActionPlanFormDTO.Percentage
 	existingComplianceActionPlan.Comments = ComplianceActionPlanFormDTO.Comments
 	existingComplianceActionPlan.ActionPlanStatusID = ComplianceActionPlanFormDTO.ActionPlanStatusID
 	existingComplianceActionPlan.UpdatedByID = &currentUserID
 
-	err = caps.repo.Update(existingComplianceActionPlan,tx)
-
+	err = caps.repo.Update(existingComplianceActionPlan, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
-	//update task
-	taskDTO := commonDTOs.TaskFormDTO{
-		Title:                  ComplianceActionPlanFormDTO.Title,
-		Description:            ComplianceActionPlanFormDTO.Description,
-		TargetDate:             dates.TargetDate,
-		SeverityLevelID:        ComplianceActionPlanFormDTO.SeverityLevelID,
-		ResponsibleUserID:      ComplianceActionPlanFormDTO.ResponsibleUserID,
-	}
-	err = caps.taskSvc.Update(currentUserID,taskDTO,"compliance_action_plan_id",id, tx)
+	// //update task
+	urlParam := fmt.Sprintf(`{"id":%d}`, id)
 
+	taskUpdateDTO := commonDTOs.TaskFormDTO{
+		Title:             ComplianceActionPlanFormDTO.Title,
+		Description:       ComplianceActionPlanFormDTO.Description,
+		TargetDate:        dates.TargetDate,
+		URLParam:          &urlParam,
+		SeverityLevelID:   ComplianceActionPlanFormDTO.SeverityLevelID,
+		ResponsibleUserID: ComplianceActionPlanFormDTO.ResponsibleUserID,
+	}
+
+	err = caps.taskSvc.Update(currentUserID, taskUpdateDTO, "compliance_action_plan_id", id, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 	tx.Commit()
 
+	go func() {
+		// sends notification if responsible user has changed
+		if oldResponsibleUserID != existingComplianceActionPlan.ResponsibleUserID {
+			urlParam := fmt.Sprintf(`{"id:%d"}`, id)
+			entity := "compliance-action-plan"
+
+			oldResponsibleUserAction := "responsible-user-remove"
+			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserID:               oldResponsibleUserID,
+				ModuleIdentifier:     "compliance",
+				NotificationType:     string(commonDTOs.InformationType),
+				HeadingEn:            "Compliance Action Plan Removal",
+				HeadingAr:            "إزالة خطة العمل الامتثالية",
+				TitleEn:              existingComplianceActionPlan.Title,
+				TitleAr:              existingComplianceActionPlan.Title,
+				Entity:               &entity,
+				Action:               &oldResponsibleUserAction,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			newResponsibleUserAction := "responsible-user-assign"
+			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserID:               ComplianceActionPlanFormDTO.ResponsibleUserID,
+				ModuleIdentifier:     "compliance",
+				NotificationType:     string(commonDTOs.AssignmentType),
+				HeadingEn:            "Compliance Action Plan Assignment",
+				HeadingAr:            "تعيين خطة العمل الامتثالية",
+				TitleEn:              existingComplianceActionPlan.Title,
+				TitleAr:              existingComplianceActionPlan.Title,
+				Entity:               &entity,
+				Action:               &newResponsibleUserAction,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			oldResponsibleUser, err := caps.userSvc.GetByID(oldResponsibleUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch old responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			newResponsibleUser, err := caps.userSvc.GetByID(ComplianceActionPlanFormDTO.ResponsibleUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch new responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			assignedBy, err := caps.userSvc.GetByID(currentUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			appURL := utility.GetAppURL()
+
+			oldResponsibleUserEmailTo := []string{oldResponsibleUser.Email}
+			oldResponsibleUserSubject := fmt.Sprintf("Compliance Action Plan/%s: Responsibility Removed", existingComplianceActionPlan.Title)
+			oldResponsibleUserTemplateRelativePath := "compliance/templates/email/compliance_action_plan_remove_responsible_user_mail.html"
+			oldResponsibleUserEmailData := map[string]interface{}{
+				"FirstNameEn":               oldResponsibleUser.FirstNameEn,
+				"LastNameEn":                oldResponsibleUser.LastNameEn,
+				"ComplianceReferenceNumber": compliance.ReferenceNumber,
+				"ComplianceTitle":           compliance.TitleEn,
+				"ActionPlanTitle":           existingComplianceActionPlan.Title,
+				"ActionPlanDescription":     existingComplianceActionPlan.Description,
+				"RedirectURL":               fmt.Sprintf("%scompliance/register/%d/action-plans?action_plan_id=%d", appURL, complianceID, id),
+			}
+
+			oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              oldResponsibleUserEmailTo,
+				Subject:              oldResponsibleUserSubject,
+				TemplateRelativePath: oldResponsibleUserTemplateRelativePath,
+				EmailData:            oldResponsibleUserEmailData,
+			}
+
+			newResponsibleUserEmailTo := []string{newResponsibleUser.Email}
+			newResponsibleUserSubject := fmt.Sprintf("Compliance Action Plan/%s: Responsibility Assigned", existingComplianceActionPlan.Title)
+			newResponsibleUserTemplateRelativePath := "compliance/templates/email/compliance_action_plan_change_responsible_user_mail.html"
+			newResponsibleUserEmailData := map[string]interface{}{
+				"FirstNameEn":               newResponsibleUser.FirstNameEn,
+				"LastNameEn":                newResponsibleUser.LastNameEn,
+				"ComplianceReferenceNumber": compliance.ReferenceNumber,
+				"ComplianceTitle":           compliance.TitleEn,
+				"ActionPlanTitle":           existingComplianceActionPlan.Title,
+				"ActionPlanDescription":     existingComplianceActionPlan.Description,
+				"TargetDate":                existingComplianceActionPlan.TargetDate.Format("2006-01-02"),
+				"AssignedByFirstNameEn":     assignedBy.FirstNameEn,
+				"AssignedByLastNameEn":      assignedBy.LastNameEn,
+				"AssignedOn":                time.Now().Format("2006-01-02"),
+				"RedirectURL":               fmt.Sprintf("%scompliance/register/%d/action-plans?action_plan_id=%d", appURL, complianceID, id),
+			}
+
+			newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              newResponsibleUserEmailTo,
+				Subject:              newResponsibleUserSubject,
+				TemplateRelativePath: newResponsibleUserTemplateRelativePath,
+				EmailData:            newResponsibleUserEmailData,
+			}
+
+			err = caps.notificationSvc.SendNotification(
+				newResponsibleUserNotificationDTO, newResponsibleUserEmailNotificationDTO, "compliance_action_plan",
+			)
+			if err != nil {
+				utility.LogError("Failed to send new responsible user notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+
+			err = caps.notificationSvc.SendNotification(
+				oldResponsibleUserNotificationDTO, oldResponsibleUserEmailNotificationDTO, "compliance_action_plan",
+			)
+			if err != nil {
+				utility.LogError("Failed to send old responsible user notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+		}
+	}()
+
 	return nil
 }
 
 func (caps *ComplianceActionPlanService) Delete(complianceID uint, ids []uint, currentUserID uint) ([]uint, error) {
-
 	if _, err := caps.complianceRegisterSvc.GetByID(complianceID); err != nil {
 		return nil, err
 	}
 
 	var failedIds []uint
 	var successfulIds []uint
+	var notifications []struct {
+		OwnerID         *uint
+		TitleEn         string
+		TitleAr         string
+		Description     string
+		ReferenceNumber string
+		ComplianceTitle string
+	}
 	for _, id := range ids {
 
 		complianceActionPlan, err := caps.GetFullDetailsByID(complianceID, id)
-
 		if err != nil {
 			continue
 		}
+
+		// Prepare notification data before deletion
+		notifications = append(notifications, struct {
+			OwnerID         *uint
+			TitleEn         string
+			TitleAr         string
+			Description     string
+			ReferenceNumber string
+			ComplianceTitle string
+		}{
+			OwnerID:         &complianceActionPlan.ResponsibleUserID,
+			TitleEn:         complianceActionPlan.Title,
+			TitleAr:         complianceActionPlan.Title,
+			Description:     complianceActionPlan.Description,
+			ReferenceNumber: complianceActionPlan.ComplianceRegister.ReferenceNumber,
+			ComplianceTitle: complianceActionPlan.ComplianceRegister.TitleEn,
+		})
 
 		if len(complianceActionPlan.ActionPlanStatusUpdates) > 0 {
 			var deleteStatusUpdateIds []*uint
@@ -302,16 +531,17 @@ func (caps *ComplianceActionPlanService) Delete(complianceID uint, ids []uint, c
 				continue
 			}
 		}
-		existingTask, err := caps.taskSvc.GetByFieldID("compliance_action_plan_id",id)
+		existingTask, err := caps.taskSvc.GetByFieldID("compliance_action_plan_id", id)
 		if err != nil {
 			failedIds = append(failedIds, id)
 			continue
 		}
+
 		taskID, err := caps.taskSvc.Delete(existingTask.ID, currentUserID)
 		if err != nil {
 			failedIds = append(failedIds, taskID)
-			continue
 		}
+
 		err = caps.repo.Delete(id)
 		if err != nil {
 			failedIds = append(failedIds, id)
@@ -326,7 +556,6 @@ func (caps *ComplianceActionPlanService) Delete(complianceID uint, ids []uint, c
 	}
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := caps.activityLogSvc.LogBulkActivities(
 				models.DeleteAction,
@@ -340,6 +569,64 @@ func (caps *ComplianceActionPlanService) Delete(complianceID uint, ids []uint, c
 				// @todo - save to log file
 				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
 			}
+
+			for _, notification := range notifications {
+				urlParam := ""
+				entity := "compliance-action-plan"
+				action := "delete"
+
+				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+					UserID:               *notification.OwnerID,
+					ModuleIdentifier:     "compliance",
+					NotificationType:     string(commonDTOs.DeletionType),
+					HeadingEn:            "Compliance Action Plan Deletion",
+					HeadingAr:            "حذف خطة عمل الامتثال",
+					TitleEn:              notification.TitleEn,
+					TitleAr:              notification.TitleAr,
+					Entity:               &entity,
+					Action:               &action,
+					URLParam:             urlParam,
+					IsSystemNotification: false,
+					CreatedByID:          &currentUserID,
+				}
+
+				ownerUser, err := caps.userSvc.GetByID(*notification.OwnerID)
+				if err != nil {
+					utility.LogError("Failed to fetch owner details for notification", map[string]interface{}{
+						"error": err.Error(),
+					})
+					continue
+				}
+
+				ownerEmailTo := []string{ownerUser.Email}
+				subject := fmt.Sprintf("Compliance Action Plan/%s: Deleted", notification.TitleEn)
+				templateRelativePath := "compliance/templates/email/compliance_action_plan_delete_mail.html"
+
+				emailData := map[string]interface{}{
+					"FirstNameEn":               ownerUser.FirstNameEn,
+					"LastNameEn":                ownerUser.LastNameEn,
+					"ComplianceReferenceNumber": notification.ReferenceNumber,
+					"ComplianceTitle":           notification.ComplianceTitle,
+					"ActionPlanTitle":           notification.TitleEn,
+					"ActionPlanDescription":     notification.Description,
+				}
+
+				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+					EmailTo:              ownerEmailTo,
+					Subject:              subject,
+					TemplateRelativePath: templateRelativePath,
+					EmailData:            emailData,
+				}
+
+				err = caps.notificationSvc.SendNotification(
+					dbNotificationDTO, emailNotificationDTO, "compliance_action_plan")
+				if err != nil {
+					utility.LogError("Failed to send deletion notifications", map[string]interface{}{
+						"error": err.Error(),
+					})
+				}
+
+			}
 		}()
 	}
 
@@ -348,7 +635,6 @@ func (caps *ComplianceActionPlanService) Delete(complianceID uint, ids []uint, c
 
 func (caps *ComplianceActionPlanService) StatusUpdate(complianceID uint, id uint, currentUserID uint, complianceActionPlanStatusUpdateFormDTO *complianceDTOs.ComplianceActionPlanStatusUpdateFormDTO, tx utility.DatabaseTransaction) error {
 	existingComplianceActionPlan, err := caps.GetByID(complianceID, id)
-
 	if err != nil {
 		return err
 	}
@@ -359,7 +645,18 @@ func (caps *ComplianceActionPlanService) StatusUpdate(complianceID uint, id uint
 	existingComplianceActionPlan.UpdatedByID = &currentUserID
 
 	err = caps.repo.Update(existingComplianceActionPlan, tx)
+	if err != nil {
+		return err
+	}
 
+	isReviewUserNull := existingComplianceActionPlan.ReviewUserID == nil
+
+	// Fetch the corresponding task and update its status
+	existingTask, err := caps.taskSvc.GetByFieldID("compliance_action_plan_id", id)
+	if err != nil {
+		return err
+	}
+	err = caps.taskSvc.UpdateStatus(currentUserID, existingTask.ID, complianceActionPlanStatusUpdateFormDTO.ActionPlanStatusID, isReviewUserNull, tx)
 	if err != nil {
 		return err
 	}
@@ -383,12 +680,11 @@ func (caps *ComplianceActionPlanService) validateComplianceActionPlanFormDTO(com
 	if _, err := caps.actionPlanStatusSvc.GetByID(ComplianceActionPlanFormDTO.ActionPlanStatusID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("action plan status does not exist"), "not_exist", "action plan status")
 	}
-	
+
 	if ComplianceActionPlanFormDTO.Percentage == nil {
 		defaultValue := uint(0)
 		ComplianceActionPlanFormDTO.Percentage = &defaultValue
 	}
-
 
 	return nil
 }

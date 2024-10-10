@@ -72,6 +72,7 @@ func (repo *IncidentRegisterRepository) GetAll(params *incidentDTOs.IncidentRegi
             incident_types.title_ar AS incident_type_title_ar,
             incident_statuses.title_en AS incident_status_title_en,
             incident_statuses.title_ar AS incident_status_title_ar,
+			incident_statuses.color_code AS incident_status_color_code,
 			severity_levels.title_en AS severity_level_title_en,
 			severity_levels.title_ar AS severity_level_title_ar,
 			severity_levels.color_code AS severity_level_color_code,
@@ -95,6 +96,8 @@ func (repo *IncidentRegisterRepository) GetAll(params *incidentDTOs.IncidentRegi
             reported_user.color AS reported_user_color,
             reported_user.email AS reported_user_email,
             reported_user.profile_image_path AS reported_user_profile_image_path,
+			CONVERT(VARCHAR, incident_investigations.initiated_at, 23) AS investigation_initiated_at,
+			incident_investigations.description AS investigation_description,
 			created_user.id AS created_user_id,
         	created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
@@ -123,6 +126,7 @@ func (repo *IncidentRegisterRepository) GetAll(params *incidentDTOs.IncidentRegi
             LEFT JOIN organization_units ON organization_units.id = incident_register.responsible_unit_id
 		    LEFT JOIN users AS responsible_user ON responsible_user.id = incident_register.responsible_user_id
 			LEFT JOIN users AS reported_user ON reported_user.id = incident_register.reported_by
+			LEFT JOIN incident_investigations ON incident_investigations.incident_register_id = incident_register.id
 			LEFT JOIN users AS created_user ON created_user.id = incident_register.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = incident_register.updated_by_id
         `)

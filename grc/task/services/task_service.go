@@ -2,8 +2,11 @@ package services
 
 import (
 	"errors"
+
 	commonDTOs "jethur/grc/common/dtos"
+	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
+	settingService "jethur/grc/settings/services"
 	taskDTOs "jethur/grc/task/dtos"
 	"jethur/grc/task/repositories"
 	"jethur/utility"
@@ -16,17 +19,31 @@ type TaskServiceInterface interface {
 	GetByID(id uint) (*models.Task, error)
 	GetByFieldID(field string, value interface{}) (*models.Task, error)
 	Create(taskDTO commonDTOs.TaskFormDTO, currentUserID uint, tx ...utility.DatabaseTransaction) error
-	Update(currentUserID uint, taskDTO commonDTOs.TaskFormDTO,fieldName string, id uint, tx ...utility.DatabaseTransaction) error
+	Update(currentUserID uint, taskDTO commonDTOs.TaskFormDTO, fieldName string, id uint, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, currentUserID uint) (uint, error)
+
+	MapActionPlanStatusToTaskStatus(actionPlanStatusID uint, isReviewUserNull bool) (*models.TaskStatus, error)
+	UpdateStatus(currentUserID uint, taskID uint, actionPlanStatusID uint, isReviewUserNull bool, tx ...utility.DatabaseTransaction) error
 }
 
 type TaskService struct {
-	repo          repositories.TaskRepositoryInteface
-	taskStatusSvc TaskStatusServiceInterface
+	repo                repositories.TaskRepositoryInteface
+	taskStatusSvc       TaskStatusServiceInterface
+	moduleSvc           settingService.ModuleServiceInterface
+	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface
 }
 
-func NewTaskService(repo repositories.TaskRepositoryInteface, taskStatusSvc TaskStatusServiceInterface) TaskServiceInterface {
-	return &TaskService{repo: repo, taskStatusSvc: taskStatusSvc}
+func NewTaskService(repo repositories.TaskRepositoryInteface,
+	taskStatusSvc TaskStatusServiceInterface,
+	moduleSvc settingService.ModuleServiceInterface,
+	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
+) TaskServiceInterface {
+	return &TaskService{
+		repo:                repo,
+		taskStatusSvc:       taskStatusSvc,
+		moduleSvc:           moduleSvc,
+		actionPlanStatusSvc: actionPlanStatusSvc,
+	}
 }
 
 func (ts *TaskService) GetAll(params *taskDTOs.TaskListQueryParamsDTO) (*taskDTOs.TaskListResponseDTO, error) {
@@ -35,7 +52,6 @@ func (ts *TaskService) GetAll(params *taskDTOs.TaskListQueryParamsDTO) (*taskDTO
 
 func (ts TaskService) GetByID(id uint) (*models.Task, error) {
 	task, err := ts.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -46,8 +62,7 @@ func (ts TaskService) GetByID(id uint) (*models.Task, error) {
 }
 
 func (ts TaskService) GetByFieldID(field string, value interface{}) (*models.Task, error) {
-	task, err := ts.repo.GetByFieldID(field,value)
-
+	task, err := ts.repo.GetByFieldID(field, value)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, value)
@@ -66,28 +81,35 @@ func (ts *TaskService) Create(taskDTO commonDTOs.TaskFormDTO, currentUserID uint
 	if err != nil {
 		return err
 	}
+	moduleID, err := ts.moduleSvc.GetModuleIDByIdentifier(taskDTO.ModuleIdentifier)
+	if err != nil {
+		return err
+	}
 	task := &models.Task{
-		ReferenceNumber:        referenceNumber,
-		ModuleID:               taskDTO.ModuleID,
-		ComplianceActionPlanID: taskDTO.ComplianceActionPlanID,
-		SLAActionPlanID:        taskDTO.SLAActionPlanID,
-		IncidentActionPlanID:   taskDTO.IncidentActionPlanID,
-		ControlActionPlanID:    taskDTO.ControlActionPlanID,
-		Title:                  taskDTO.Title,
-		Description:            taskDTO.Description,
-		TargetDate:             taskDTO.TargetDate,
-		URL:                    taskDTO.URL,
-		SeverityLevelID:        taskDTO.SeverityLevelID,
-		ResponsibleUserID:      taskDTO.ResponsibleUserID,
-		TaskStatusID:           taskStatus.ID,
-		CreatedByID:            currentUserID,
+		ReferenceNumber:          referenceNumber,
+		ModuleID:                 moduleID,
+		ComplianceActionPlanID:   taskDTO.ComplianceActionPlanID,
+		SLAActionPlanID:          taskDTO.SLAActionPlanID,
+		IncidentActionPlanID:     taskDTO.IncidentActionPlanID,
+		ControlActionPlanID:      taskDTO.ControlActionPlanID,
+		RiskActionPlanID:         taskDTO.RiskActionPlanID,
+		MeetingActionPlanID:      taskDTO.MeetingActionPlanID,
+		AuditFindingActionPlanID: taskDTO.AuditFindingActionPlanID,
+		Title:                    taskDTO.Title,
+		Description:              taskDTO.Description,
+		TargetDate:               taskDTO.TargetDate,
+		URLParam:                 taskDTO.URLParam,
+		QueryParam:               taskDTO.QueryParam,
+		SeverityLevelID:          taskDTO.SeverityLevelID,
+		ResponsibleUserID:        taskDTO.ResponsibleUserID,
+		TaskStatusID:             taskStatus.ID,
+		CreatedByID:              currentUserID,
 	}
 	return ts.repo.Create(task, tx...)
-
 }
 
-func (ts *TaskService) Update(currentUserID uint,taskDTO commonDTOs.TaskFormDTO,fieldName string, id uint, tx ...utility.DatabaseTransaction) error {
-	existingTask, err := ts.GetByFieldID(fieldName,id)
+func (ts *TaskService) Update(currentUserID uint, taskDTO commonDTOs.TaskFormDTO, fieldName string, id uint, tx ...utility.DatabaseTransaction) error {
+	existingTask, err := ts.GetByFieldID(fieldName, id)
 	if err != nil {
 		return err
 	}
@@ -119,4 +141,56 @@ func (ts *TaskService) Delete(id uint, currentUserID uint) (uint, error) {
 	}
 
 	return failedId, nil
+}
+
+func (ts *TaskService) UpdateStatus(currentUserID uint, taskID uint, actionPlanStatusID uint, isReviewUserNull bool, tx ...utility.DatabaseTransaction) error {
+	existingTask, err := ts.GetByID(taskID)
+	if err != nil {
+		return err
+	}
+
+	taskStatus, err := ts.MapActionPlanStatusToTaskStatus(actionPlanStatusID, isReviewUserNull)
+	if err != nil {
+		return err
+	}
+
+	existingTask.TaskStatusID = taskStatus.ID
+	existingTask.UpdatedByID = currentUserID
+
+	return ts.repo.Update(existingTask, tx...)
+}
+
+func (ts *TaskService) MapActionPlanStatusToTaskStatus(actionPlanStatusID uint, isReviewUserNull bool) (*models.TaskStatus, error) {
+	actionPlanStatus, err := ts.actionPlanStatusSvc.GetByID(actionPlanStatusID)
+	if err != nil {
+		return nil, err
+	}
+
+	var taskStatusType string
+
+	if isReviewUserNull && actionPlanStatus.Type == "completed" {
+		taskStatusType = "closed"
+	} else {
+		switch actionPlanStatus.Type {
+		case "new":
+			taskStatusType = "open"
+		case "in_progress":
+			taskStatusType = "in_progress"
+		case "completed":
+			taskStatusType = "in_progress"
+		case "on_hold", "terminated", "closed":
+			taskStatusType = "closed"
+		case "reopen":
+			taskStatusType = "in_progress"
+		default:
+			taskStatusType = "open"
+		}
+	}
+
+	statusResult, err := ts.taskStatusSvc.GetByType(taskStatusType)
+	if err != nil {
+		return nil, err
+	}
+
+	return statusResult, nil
 }

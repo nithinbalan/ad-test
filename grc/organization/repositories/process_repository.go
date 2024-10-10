@@ -122,8 +122,12 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 	//Apply quick filters
 	for _, filter := range params.QuickFilter {
 		switch filter {
+		case "active":
+			query = query.Where("lifecycle_statuses.type = ?", "active")
 		case "archived":
 			query = query.Where("lifecycle_statuses.type = ?", "archived")
+		case "high_risk":
+			query = query.Where("risk_matrix_risk_ratings.type IN (?)", []string{"high", "very_high"})
 
 		}
 	}
@@ -210,6 +214,8 @@ func (repo *ProcessRepository) GetFullDetailsByID(id uint, tx ...utility.Databas
 		Preload("Controls").
 		Preload("Documents").
 		Preload("Risks").
+		Preload("RiskMatrixRating").
+		Preload("RiskMatrixRatingValue").
 		Preload("CreatedByUser").
 		Preload("CreatedByUser.OrganizationUnit1").
 		Preload("UpdatedByUser").

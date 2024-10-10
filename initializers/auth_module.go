@@ -11,9 +11,13 @@ type AuthModule struct {
 	AuthController *controllers.AuthController
 }
 
-func NewAuthModule(db *gorm.DB, organizationModule *OrganizationModule) *AuthModule {
+func NewAuthModule(db *gorm.DB, organizationModule *OrganizationModule, settingsModule *SettingsModule, commonModule *CommonModule) *AuthModule {
 
-	authService := services.NewAuthService(organizationModule.UserSvc, organizationModule.UserSettingSvc)
+	authService := services.NewAuthService(
+		organizationModule.UserSvc,
+		organizationModule.UserSettingSvc,
+		commonModule.NotificationService,
+		settingsModule.EmailTemplateSettingsSvc)
 	authController := controllers.NewAuthController(db, authService)
 
 	return &AuthModule{

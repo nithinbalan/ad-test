@@ -151,6 +151,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.PUT("/controls/archive", controlController.ArchiveControls)
 	organizationRoutes.PUT("/controls/restore", controlController.RestoreControls)
 
+	organizationRoutes.PUT("/controls/:controlId/mark-as-applicable", controlController.MarkControlAsApplicable)
+	organizationRoutes.PUT("/controls/:controlId/mark-as-not-applicable", controlController.MarkControlAsNotApplicable)
+
 	//control Test
 	organizationRoutes.GET("/controls/:controlId/tests", controlTestController.GetAllControlTests)
 	organizationRoutes.GET("/controls/:controlId/tests/:controlTestId", controlTestController.GetControlTestDetails)

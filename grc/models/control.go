@@ -36,6 +36,11 @@ type Control struct {
 	LastReviewedUserID            *uint      `json:"last_reviewed_user_id" gorm:"default:null"`
 	ControlReviewStatusID         *uint      `json:"control_review_status_id" gorm:"default:null"`
 	MarkedAsAuditableItem         bool       `json:"marked_as_auditable_item" gorm:"default:false" binding:"-"`
+	IsApplicable                  bool       `json:"is_applicable" gorm:"default:false" binding:"required"`
+	Justification                 *string    `json:"justification,omitempty" gorm:"type:nvarchar(MAX);default:null" binding:"omitempty"`
+	ApplicabilityChangeDate       *time.Time `json:"applicability_change_date,omitempty" gorm:"type:datetime;default:null" binding:"omitempty"`
+	RiskMatrixRiskRatingID        *uint      `json:"risk_matrix_risk_rating_id" gorm:"default:null"`
+	RiskMatrixRiskRatingValueID   *uint      `json:"risk_matrix_risk_rating_value_id" gorm:"default:null"`
 
 	// Relationships
 	ControlType                 *ControlType                 `gorm:"foreignKey:ControlTypeID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
@@ -52,6 +57,9 @@ type Control struct {
 	LatestControlTest           *ControlTest                 `gorm:"foreignKey:ControlID"`
 	LastReviewedUser            *User                        `gorm:"foreignKey:LastReviewedUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	LatestControlReview         *ControlReview               `gorm:"foreignKey:ControlID"`
+	RiskMatrixRating            *RiskMatrixRiskRating        `gorm:"foreignKey:RiskMatrixRiskRatingID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	RiskMatrixRatingValue       *RiskMatrixRiskRatingValue   `gorm:"foreignKey:RiskMatrixRiskRatingValueID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Risks                       []*RiskControl               `gorm:"foreignKey:ControlID"`
 	CreatedByUser               *User                        `gorm:"foreignKey:CreatedByID"`
 	UpdatedByUser               *User                        `gorm:"foreignKey:UpdatedByID"`
 }

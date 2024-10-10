@@ -39,8 +39,16 @@ type GRCComplianceOverviewDTO struct {
 }
 
 type GRCRiskOverviewDTO struct {
-	TotalRisksRegistered int64            `json:"total_risks_registered"`
-	RiskCountsByRating   map[string]int64 `json:"risk_counts_by_rating"`
+	TotalRisksRegistered int64                `json:"total_risks_registered"`
+	RiskCountsByRating   []RiskRatingCountDTO `json:"risk_counts_by_rating"`
+}
+
+type RiskRatingCountDTO struct {
+	TitleEn   string `json:"title_en"`
+	TitleAr   string `json:"title_ar"`
+	ColorCode string `json:"color_code"`
+	Type      string `json:"type"`
+	Count     int64  `json:"count"`
 }
 
 type GRCDocumentOverviewDTO struct {
@@ -51,10 +59,14 @@ type GRCDocumentOverviewDTO struct {
 }
 
 type GRCTopComplianceRegistersDTO struct {
-	ID         uint   `json:"id"`
-	TitleEn    string `json:"title_en"`
-	TitleAr    string `json:"title_ar"`
-	TotalScore int    `json:"total_score"`
+	ID                        uint   `json:"id"`
+	TitleEn                   string `json:"title_en"`
+	TitleAr                   string `json:"title_ar"`
+	TotalScore                int    `json:"total_score"`
+	ComplianceStatusTitleEn   string `json:"compliance_status_title_en"`
+	ComplianceStatusTitleAr   string `json:"compliance_status_title_ar"`
+	ComplianceStatusType      string `json:"compliance_status_type"`
+	ComplianceStatusColorCode string `json:"compliance_status_color_code"`
 }
 
 type GRCTopRiskRegistersDTO struct {

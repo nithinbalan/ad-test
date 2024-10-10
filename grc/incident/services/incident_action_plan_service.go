@@ -3,14 +3,20 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
+	"time"
+
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	incidentDTOs "jethur/grc/incident/dtos"
 	incidentRepositories "jethur/grc/incident/repositories"
 	logServices "jethur/grc/logs/services"
 	masterRepositories "jethur/grc/masters/repositories"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
+	organizationServices "jethur/grc/organization/services"
+	taskServices "jethur/grc/task/services"
 	"jethur/utility"
-	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -24,6 +30,8 @@ type IncidentActionPlanServiceInterface interface {
 	Update(incidentID uint, id uint, currentUserID uint, incident *incidentDTOs.IncidentActionPlanFormDTO) error
 	Delete(incidentID uint, ids []uint, currentUserID uint) ([]uint, error)
 	StatusUpdate(incidentID uint, id uint, currentUserID uint, ActionPlanStatusID uint, tx utility.DatabaseTransaction) error
+
+	ExportIncidentActionPlan(data []*incidentDTOs.IncidentActionPlanListDTO, currentUserID uint) (*os.File, error)
 }
 
 // Service and implementations
@@ -34,6 +42,10 @@ type IncidentActionPlanService struct {
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface
 	severityLevelSvc    masterServices.SeverityLevelServiceInterface
 	incidentTimelineSvc IncidentTimelineServiceInterface
+	userSettingSvc      organizationServices.UserSettingServiceInterface
+	taskSvc             taskServices.TaskServiceInterface
+	userSvc             organizationServices.UserServiceInterface
+	notificationSvc     commonServices.NotificationServiceInterface
 }
 
 func NewIncidentActionPlanService(
@@ -43,6 +55,10 @@ func NewIncidentActionPlanService(
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
 	severityLevelSvc masterRepositories.SeverityLevelRepositoryInterface,
 	incidentTimelineSvc IncidentTimelineServiceInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface,
+	taskSvc taskServices.TaskServiceInterface,
+	userSvc organizationServices.UserServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
 ) IncidentActionPlanServiceInterface {
 	return &IncidentActionPlanService{
 		repo:                repo,
@@ -51,6 +67,10 @@ func NewIncidentActionPlanService(
 		actionPlanStatusSvc: actionPlanStatusSvc,
 		severityLevelSvc:    severityLevelSvc,
 		incidentTimelineSvc: incidentTimelineSvc,
+		userSettingSvc:      userSettingSvc,
+		taskSvc:             taskSvc,
+		userSvc:             userSvc,
+		notificationSvc:     notificationSvc,
 	}
 }
 
@@ -69,7 +89,6 @@ func (iaps IncidentActionPlanService) GetByID(incidentID uint, id uint) (*models
 	}
 
 	incidentActionPlan, err := iaps.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -87,7 +106,6 @@ func (iaps IncidentActionPlanService) GetFullDetailsByID(incidentID uint, id uin
 	}
 
 	incidentActionPlan, err := iaps.repo.GetFullDetailsByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -100,7 +118,7 @@ func (iaps IncidentActionPlanService) GetFullDetailsByID(incidentID uint, id uin
 		return nil, err
 	}
 
-	//todo :- also add extra fields which required in details screen
+	// todo :- also add extra fields which required in details screen
 	if incidentActionPlan.TargetDate != nil {
 		targetDate := incidentActionPlan.TargetDate.Format("2006-01-02")
 		incidentActionPlanDTO.TargetDateString = &targetDate
@@ -114,7 +132,9 @@ func (iaps IncidentActionPlanService) GetFullDetailsByID(incidentID uint, id uin
 
 func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uint, IncidentActionPlanFormDTO *incidentDTOs.IncidentActionPlanFormDTO) (uint, error) {
 	tx := iaps.repo.BeginTransaction()
-	if _, err := iaps.incidentRegisterSvc.GetByID(incidentID); err != nil {
+
+	incident, err := iaps.incidentRegisterSvc.GetByID(incidentID)
+	if err != nil {
 		return 0, err
 	}
 
@@ -133,6 +153,7 @@ func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uin
 		Description:        IncidentActionPlanFormDTO.Description,
 		SeverityLevelID:    IncidentActionPlanFormDTO.SeverityLevelID,
 		ResponsibleUserID:  IncidentActionPlanFormDTO.ResponsibleUserID,
+		ReviewUserID:       IncidentActionPlanFormDTO.ReviewUserID,
 		TargetDate:         dates.TargetDate,
 		Percentage:         IncidentActionPlanFormDTO.Percentage,
 		Comments:           IncidentActionPlanFormDTO.Comments,
@@ -157,8 +178,8 @@ func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uin
 		tx.Rollback()
 		return 0, err
 	}
-	//Update timeline
-	//todo
+	// Update timeline
+	// todo
 	actinPlanCount, err := iaps.repo.GetCountByRiskID(incidentID, tx)
 	if err != nil {
 		tx.Rollback()
@@ -186,6 +207,24 @@ func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uin
 			return 0, err
 		}
 	}
+
+	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+	taskDTO := commonDTOs.TaskFormDTO{
+		ModuleIdentifier:     "incident",
+		IncidentActionPlanID: &id,
+		Title:                IncidentActionPlanFormDTO.Title,
+		Description:          IncidentActionPlanFormDTO.Description,
+		TargetDate:           dates.TargetDate,
+		URLParam:             &urlParam,
+		QueryParam:           nil,
+		SeverityLevelID:      IncidentActionPlanFormDTO.SeverityLevelID,
+		ResponsibleUserID:    IncidentActionPlanFormDTO.ResponsibleUserID,
+	}
+
+	if err := iaps.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
 	tx.Commit()
 
 	go func() {
@@ -197,7 +236,6 @@ func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uin
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -209,6 +247,73 @@ func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uin
 
 			utility.LogError("Failed to log activity", fields)
 		}
+
+		// prepare notification
+		urlParam := fmt.Sprintf(`{"id":%d}`, id)
+		entity := "incident-action-plan"
+		action := "responsible-user-assign"
+
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserID:               IncidentActionPlanFormDTO.ResponsibleUserID,
+			ModuleIdentifier:     "incident",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			HeadingEn:            "incident Action Plan Assignment",
+			HeadingAr:            "تعيين خطة عمل الحادث",
+			TitleEn:              IncidentActionPlanFormDTO.Title,
+			TitleAr:              IncidentActionPlanFormDTO.Title,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		responsibleUser, err := iaps.userSvc.GetByID(IncidentActionPlanFormDTO.ResponsibleUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		assignedBy, err := iaps.userSvc.GetByID(currentUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		emailTo := []string{responsibleUser.Email}
+		subject := fmt.Sprintf("Incident Action Plan/%s: Responsibility Assigned", IncidentActionPlanFormDTO.Title)
+		appURL := utility.GetAppURL()
+		emailData := map[string]interface{}{
+			"FirstNameEn":             responsibleUser.FirstNameEn,
+			"LastNameEn":              responsibleUser.LastNameEn,
+			"IncidentReferenceNumber": incident.ReferenceNumber,
+			"IncidentTitle":           incident.Title,
+			"ActionPlanTitle":         IncidentActionPlanFormDTO.Title,
+			"ActionPlanDescription":   IncidentActionPlanFormDTO.Description,
+			"TargetDate":              dates.TargetDate.Format("2006-01-02"),
+			"AssignedByFirstNameEn":   assignedBy.FirstNameEn,
+			"AssignedByLastNameEn":    assignedBy.LastNameEn,
+			"AssignedOn":              time.Now().Format("2006-01-02"),
+			"RedirectURL":             fmt.Sprintf("%sincident/action-plan?action_plan_id=%d", appURL, id),
+		}
+
+		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              emailTo,
+			Subject:              subject,
+			TemplateRelativePath: "incident/templates/email/incident_action_plan_create_responsible_user_mail.html",
+			EmailData:            emailData,
+		}
+
+		// send notification and mail
+		err = iaps.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "incident_action_plan")
+		if err != nil {
+			utility.LogError("Failed to send notifications", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
 	}()
 
 	return id, nil
@@ -217,15 +322,17 @@ func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uin
 func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentUserID uint, IncidentActionPlanFormDTO *incidentDTOs.IncidentActionPlanFormDTO) error {
 	tx := iaps.repo.BeginTransaction()
 
-	if _, err := iaps.incidentRegisterSvc.GetByID(incidentID); err != nil {
+	incident, err := iaps.incidentRegisterSvc.GetByID(incidentID)
+	if err != nil {
 		return err
 	}
 
 	existingIncidentActionPlan, err := iaps.GetByID(incidentID, id)
-
 	if err != nil {
 		return err
 	}
+
+	oldResponsibleUserID := existingIncidentActionPlan.ResponsibleUserID
 
 	if err := iaps.validateIncidentActionPlanFormDTO(IncidentActionPlanFormDTO); err != nil {
 		return err
@@ -241,6 +348,7 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 	existingIncidentActionPlan.Description = IncidentActionPlanFormDTO.Description
 	existingIncidentActionPlan.SeverityLevelID = IncidentActionPlanFormDTO.SeverityLevelID
 	existingIncidentActionPlan.ResponsibleUserID = IncidentActionPlanFormDTO.ResponsibleUserID
+	existingIncidentActionPlan.ReviewUserID = IncidentActionPlanFormDTO.ReviewUserID
 	existingIncidentActionPlan.TargetDate = dates.TargetDate
 	existingIncidentActionPlan.Percentage = IncidentActionPlanFormDTO.Percentage
 	existingIncidentActionPlan.Comments = IncidentActionPlanFormDTO.Comments
@@ -248,12 +356,157 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 	existingIncidentActionPlan.UpdatedBYID = &currentUserID
 
 	err = iaps.repo.Update(existingIncidentActionPlan, tx)
-
 	if err != nil {
 		return err
 	}
 
+	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+
+	taskUpdateDTO := commonDTOs.TaskFormDTO{
+		Title:             IncidentActionPlanFormDTO.Title,
+		Description:       IncidentActionPlanFormDTO.Description,
+		TargetDate:        dates.TargetDate,
+		URLParam:          &urlParam,
+		SeverityLevelID:   IncidentActionPlanFormDTO.SeverityLevelID,
+		ResponsibleUserID: IncidentActionPlanFormDTO.ResponsibleUserID,
+	}
+
+	err = iaps.taskSvc.Update(currentUserID, taskUpdateDTO, "incident_action_plan_id", id, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	tx.Commit()
+
+	go func() {
+		// sends notification if responsible user has changed
+		if oldResponsibleUserID != existingIncidentActionPlan.ResponsibleUserID {
+			urlParam := fmt.Sprintf(`{"id:%d"}`, id)
+			entity := "incident-action-plan"
+
+			oldResponsibleUserAction := "responsible-user-remove"
+			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserID:               oldResponsibleUserID,
+				ModuleIdentifier:     "incident",
+				NotificationType:     string(commonDTOs.InformationType),
+				HeadingEn:            "Incident Action Plan Removal",
+				HeadingAr:            "إزالة خطة عمل الحادث",
+				TitleEn:              existingIncidentActionPlan.Title,
+				TitleAr:              existingIncidentActionPlan.Title,
+				Entity:               &entity,
+				Action:               &oldResponsibleUserAction,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			newResponsibleUserAction := "responsible-user-assign"
+			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserID:               IncidentActionPlanFormDTO.ResponsibleUserID,
+				ModuleIdentifier:     "incident",
+				NotificationType:     string(commonDTOs.AssignmentType),
+				HeadingEn:            "Incident Action Plan Assignment",
+				HeadingAr:            "تعيين خطة عمل الحادث",
+				TitleEn:              existingIncidentActionPlan.Title,
+				TitleAr:              existingIncidentActionPlan.Title,
+				Entity:               &entity,
+				Action:               &newResponsibleUserAction,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			oldResponsibleUser, err := iaps.userSvc.GetByID(oldResponsibleUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch old responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			newResponsibleUser, err := iaps.userSvc.GetByID(IncidentActionPlanFormDTO.ResponsibleUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch new responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			assignedBy, err := iaps.userSvc.GetByID(currentUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			appURL := utility.GetAppURL()
+
+			oldResponsibleUserEmailTo := []string{oldResponsibleUser.Email}
+			oldResponsibleUserSubject := fmt.Sprintf("Incident Action Plan/%s: Responsibility Removed", existingIncidentActionPlan.Title)
+			oldResponsibleUserTemplateRelativePath := "incident/templates/email/incident_action_plan_remove_responsible_user_mail.html"
+			oldResponsibleUserEmailData := map[string]interface{}{
+				"FirstNameEn":             oldResponsibleUser.FirstNameEn,
+				"LastNameEn":              oldResponsibleUser.LastNameEn,
+				"IncidentReferenceNumber": incident.ReferenceNumber,
+				"IncidentTitle":           incident.Title,
+				"ActionPlanTitle":         existingIncidentActionPlan.Title,
+				"ActionPlanDescription":   existingIncidentActionPlan.Description,
+				"RedirectURL":             fmt.Sprintf("%sincident/action-plan?action_plan_id=%d", appURL, id),
+			}
+
+			oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              oldResponsibleUserEmailTo,
+				Subject:              oldResponsibleUserSubject,
+				TemplateRelativePath: oldResponsibleUserTemplateRelativePath,
+				EmailData:            oldResponsibleUserEmailData,
+			}
+
+			newResponsibleUserEmailTo := []string{newResponsibleUser.Email}
+			newResponsibleUserSubject := fmt.Sprintf("Incident Action Plan/%s: Responsibility Assigned", existingIncidentActionPlan.Title)
+			newResponsibleUserTemplateRelativePath := "incident/templates/email/incident_action_plan_change_responsible_user_mail.html"
+			newResponsibleUserEmailData := map[string]interface{}{
+				"FirstNameEn":             newResponsibleUser.FirstNameEn,
+				"LastNameEn":              newResponsibleUser.LastNameEn,
+				"IncidentReferenceNumber": incident.ReferenceNumber,
+				"IncidentTitle":           incident.Title,
+				"ActionPlanTitle":         existingIncidentActionPlan.Title,
+				"ActionPlanDescription":   existingIncidentActionPlan.Description,
+				"TargetDate":              existingIncidentActionPlan.TargetDate.Format("2006-01-02"),
+				"AssignedByFirstNameEn":   assignedBy.FirstNameEn,
+				"AssignedByLastNameEn":    assignedBy.LastNameEn,
+				"AssignedOn":              time.Now().Format("2006-01-02"),
+				"RedirectURL":             fmt.Sprintf("%sincident/action-plan?action_plan_id=%d", appURL, id),
+			}
+
+			newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              newResponsibleUserEmailTo,
+				Subject:              newResponsibleUserSubject,
+				TemplateRelativePath: newResponsibleUserTemplateRelativePath,
+				EmailData:            newResponsibleUserEmailData,
+			}
+
+			err = iaps.notificationSvc.SendNotification(
+				newResponsibleUserNotificationDTO, newResponsibleUserEmailNotificationDTO, "incident_action_plan",
+			)
+			if err != nil {
+				utility.LogError("Failed to send new responsible user notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+
+			err = iaps.notificationSvc.SendNotification(
+				oldResponsibleUserNotificationDTO, oldResponsibleUserEmailNotificationDTO, "incident_action_plan",
+			)
+			if err != nil {
+				utility.LogError("Failed to send old responsible user notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+
+		}
+	}()
 
 	return nil
 }
@@ -267,13 +520,49 @@ func (iaps *IncidentActionPlanService) Delete(incidentID uint, ids []uint, curre
 
 	var failedIds []uint
 	var successfulIds []uint
+	var notifications []struct {
+		OwnerID         *uint
+		TitleEn         string
+		TitleAr         string
+		Description     string
+		ReferenceNumber string
+		IncidentTitle   string
+	}
 	for _, id := range ids {
 
 		incidentActionPlan, err := iaps.repo.GetFullDetailsByID(id)
-
 		if err != nil {
 			continue
 		}
+
+		// Prepare notification data before deletion
+		notifications = append(notifications, struct {
+			OwnerID         *uint
+			TitleEn         string
+			TitleAr         string
+			Description     string
+			ReferenceNumber string
+			IncidentTitle   string
+		}{
+			OwnerID:         &incidentActionPlan.ResponsibleUserID,
+			TitleEn:         incidentActionPlan.Title,
+			TitleAr:         incidentActionPlan.Title,
+			Description:     *incidentActionPlan.Description,
+			ReferenceNumber: incidentActionPlan.IncidentRegister.ReferenceNumber,
+			IncidentTitle:   incidentActionPlan.IncidentRegister.Title,
+		})
+
+		existingTask, err := iaps.taskSvc.GetByFieldID("incident_action_plan_id", id)
+		if err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+
+		taskID, err := iaps.taskSvc.Delete(existingTask.ID, currentUserID)
+		if err != nil {
+			failedIds = append(failedIds, taskID)
+		}
+
 		if len(incidentActionPlan.ActionPlanStatusUpdates) > 0 {
 			var deleteStatusUpdateIds []*uint
 			for _, update := range incidentActionPlan.ActionPlanStatusUpdates {
@@ -284,8 +573,8 @@ func (iaps *IncidentActionPlanService) Delete(incidentID uint, ids []uint, curre
 				continue
 			}
 		}
-		//Delete-> update timeline performedAt as null
-		//todo
+		// Delete-> update timeline performedAt as null
+		// todo
 		actinPlanCount, err := iaps.repo.GetCountByRiskID(incidentID, tx)
 		if err != nil {
 			tx.Rollback()
@@ -322,7 +611,6 @@ func (iaps *IncidentActionPlanService) Delete(incidentID uint, ids []uint, curre
 	tx.Commit()
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := iaps.activityLogSvc.LogBulkActivities(
 				models.DeleteAction,
@@ -336,6 +624,64 @@ func (iaps *IncidentActionPlanService) Delete(incidentID uint, ids []uint, curre
 				// @todo - save to log file
 				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
 			}
+
+			for _, notification := range notifications {
+				urlParam := ""
+				entity := "incident-action-plan"
+				action := "delete"
+
+				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+					UserID:               *notification.OwnerID,
+					ModuleIdentifier:     "incident",
+					NotificationType:     string(commonDTOs.DeletionType),
+					HeadingEn:            "Incident Action Plan Deletion",
+					HeadingAr:            "حذف خطة عمل الحادث",
+					TitleEn:              notification.TitleEn,
+					TitleAr:              notification.TitleAr,
+					Entity:               &entity,
+					Action:               &action,
+					URLParam:             urlParam,
+					IsSystemNotification: false,
+					CreatedByID:          &currentUserID,
+				}
+
+				ownerUser, err := iaps.userSvc.GetByID(*notification.OwnerID)
+				if err != nil {
+					utility.LogError("Failed to fetch owner details for notification", map[string]interface{}{
+						"error": err.Error(),
+					})
+					continue
+				}
+
+				ownerEmailTo := []string{ownerUser.Email}
+				subject := fmt.Sprintf("incident Action Plan/%s: Deleted", notification.TitleEn)
+				templateRelativePath := "incident/templates/email/incident_action_plan_delete_mail.html"
+
+				emailData := map[string]interface{}{
+					"FirstNameEn":             ownerUser.FirstNameEn,
+					"LastNameEn":              ownerUser.LastNameEn,
+					"IncidentReferenceNumber": notification.ReferenceNumber,
+					"IncidentTitle":           notification.IncidentTitle,
+					"ActionPlanTitle":         notification.TitleEn,
+					"ActionPlanDescription":   notification.Description,
+				}
+
+				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+					EmailTo:              ownerEmailTo,
+					Subject:              subject,
+					TemplateRelativePath: templateRelativePath,
+					EmailData:            emailData,
+				}
+
+				err = iaps.notificationSvc.SendNotification(
+					dbNotificationDTO, emailNotificationDTO, "incident_action_plan")
+				if err != nil {
+					utility.LogError("Failed to send deletion notifications", map[string]interface{}{
+						"error": err.Error(),
+					})
+				}
+
+			}
 		}()
 	}
 
@@ -343,9 +689,7 @@ func (iaps *IncidentActionPlanService) Delete(incidentID uint, ids []uint, curre
 }
 
 func (iaps *IncidentActionPlanService) StatusUpdate(incidentID uint, id uint, currentUserID uint, ActionPlanStatusID uint, tx utility.DatabaseTransaction) error {
-
 	existingIncidentActionPlan, err := iaps.GetByID(incidentID, id)
-
 	if err != nil {
 		return err
 	}
@@ -354,7 +698,18 @@ func (iaps *IncidentActionPlanService) StatusUpdate(incidentID uint, id uint, cu
 	existingIncidentActionPlan.UpdatedBYID = &currentUserID
 
 	err = iaps.repo.Update(existingIncidentActionPlan, tx)
+	if err != nil {
+		return err
+	}
 
+	isReviewUserNull := existingIncidentActionPlan.ReviewUserID == nil
+
+	// Fetch the corresponding task and update its status
+	existingTask, err := iaps.taskSvc.GetByFieldID("incident_action_plan_id", id)
+	if err != nil {
+		return err
+	}
+	err = iaps.taskSvc.UpdateStatus(currentUserID, existingTask.ID, ActionPlanStatusID, isReviewUserNull, tx)
 	if err != nil {
 		return err
 	}
@@ -388,4 +743,67 @@ func (iaps *IncidentActionPlanService) parseIncidentActionPlanDates(dto *inciden
 	}
 
 	return parsed, nil
+}
+
+func (iaps *IncidentActionPlanService) ExportIncidentActionPlan(data []*incidentDTOs.IncidentActionPlanListDTO, currentUserID uint) (*os.File, error) {
+	// Fetch user setting for language preference
+	userSetting, err := iaps.userSettingSvc.GetUserSettingsByUserID(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Define headers based on user language setting
+	var headers []string
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"SL No.",
+			"Action Plan",
+			"Incident",
+			"Description",
+			"Severity",
+			"Responsible User",
+			"Target Date",
+			"Status",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Action Plan",
+			"Incident",
+			"Description",
+			"Severity",
+			"Responsible User",
+			"Target Date",
+			"Status",
+		}
+	}
+	// Prepare the data rows
+	rows := make([][]interface{}, len(data))
+	for i, actionPlan := range data {
+		var responsibleUser, severity, status string
+
+		if userSetting.Language == "ar" {
+			responsibleUser = actionPlan.ResponsibleUserFirstNameAr
+			severity = utility.GetStringValue(actionPlan.SeverityLevelTitleAr)
+			status = actionPlan.ActionPlanStatusTitleAr
+		} else {
+			responsibleUser = actionPlan.ResponsibleUserFirstNameEn
+			severity = utility.GetStringValue(actionPlan.SeverityLevelTitleEn)
+			status = actionPlan.ActionPlanStatusTitleEn
+		}
+
+		rows[i] = []interface{}{
+			i + 1,
+			actionPlan.Title,
+			actionPlan.IncidentTitle,
+			utility.GetStringValue(actionPlan.Description),
+			severity,
+			responsibleUser,
+			utility.GetStringValue(actionPlan.TargetDate),
+			status,
+		}
+	}
+
+	// Generate the Excel file
+	return utility.GenerateExcelFile(headers, rows)
 }

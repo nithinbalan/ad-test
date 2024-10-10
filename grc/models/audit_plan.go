@@ -17,6 +17,8 @@ type AuditPlan struct {
 	Purpose         *string    `json:"purpose" gorm:"type:nvarchar(MAX);default:null"`
 	Objective       *string    `json:"objective" gorm:"type:nvarchar(MAX);default:null"`
 	AuditStatusID   uint       `json:"audit_status_id" gorm:"not null"`
+	PublishedBYID   *uint      `json:"published_by_id" gorm:"default:null"`
+	PublishedAt     *time.Time `json:"published_at" gorm:"type:datetime;default:null"`
 	CreatedAt       time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt       *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 	CreatedBYID     uint       `json:"created_by_id" gorm:"not null"`
@@ -30,6 +32,7 @@ type AuditPlan struct {
 	Members             []*AuditPlanAuditMember   `gorm:"foreignKey:AuditPlanID"`
 	AuditableItems      []*AuditPlanAuditableItem `gorm:"foreignKey:AuditPlanID"`
 	AuditPlanChecklists []*AuditPlanChecklist     `gorm:"foreignKey:AuditPlanID"`
+	PublishedByUser     *User                     `gorm:"foreignKey:PublishedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
 	CreatedByUser       *User                     `gorm:"foreignKey:CreatedBYID"`
 	UpdatedByUser       *User                     `gorm:"foreignKey:UpdatedBYID"`
 }

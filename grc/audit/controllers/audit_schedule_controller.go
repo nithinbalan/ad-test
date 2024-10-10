@@ -79,7 +79,7 @@ func (asc *AuditScheduleController) GetAllAuditSchedules(c *gin.Context) {
 }
 
 func (asc *AuditScheduleController) GetAuditScheduleDetails(c *gin.Context) {
-	idStr := c.Param("id")
+	idStr := c.Param("scheduleId")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -145,7 +145,7 @@ func (asc *AuditScheduleController) UpdateAuditSchedule(c *gin.Context) {
 	}
 	var auditScheduleFormDTO dtos.AuditScheduleFormDTO
 
-	auditScheduleID, err := strconv.Atoi(c.Param("id"))
+	auditScheduleID, err := strconv.Atoi(c.Param("scheduleId"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
@@ -24,6 +25,10 @@ type AuditDraftFindingServiceInterface interface {
 	Create(currentUserID uint, auditDraftFindingFormDTO *auditDTOs.AuditDraftFindingFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, auditDraftFindingFormDTO *auditDTOs.AuditDraftFindingFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+
+	GetAuditDraftFindingCountByCategory(auditId uint) ([]auditDTOs.AuditDraftFindingCategoryCountResponseDTO, error)
+	StatusUpdate(id uint, currentUserID uint, auditDraftFindingStatusID uint, tx ...utility.DatabaseTransaction) error
+
 }
 
 type AuditDraftFindingService struct {
@@ -146,7 +151,7 @@ func (adfs *AuditDraftFindingService) Create(currentUserID uint, auditDraftFindi
 		}
 
 		// Construct the URL for the document
-		url := utility.GenerateDocumentURL("audit", "draft-audit-findings", strconv.FormatUint(uint64(id), 10), "documents")
+		url := utility.GenerateDocumentURL("audits", "audit", "draft-audit-findings", strconv.FormatUint(uint64(auditDraftFindingFormDTO.AuditID), 10), "documents")
 
 		// Create a new IncidentDocument instance
 		document := &models.AuditDraftFindingDocument{
@@ -170,7 +175,7 @@ func (adfs *AuditDraftFindingService) Create(currentUserID uint, auditDraftFindi
 			return 0, err
 		}
 		for _, doc := range documents {
-			storagePath := filepath.Join("audit", "draft-audit-findings", strconv.FormatUint(uint64(id), 10), "documents")
+			storagePath := filepath.Join("audits", "audit", strconv.FormatUint(uint64(auditDraftFindingFormDTO.AuditID), 10), strconv.FormatUint(uint64(id), 10), "draft-audit-findings", strconv.FormatUint(uint64(id), 10), "documents")
 			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
 				tx.Rollback()
 				return 0, err
@@ -249,7 +254,7 @@ func (adfs *AuditDraftFindingService) Update(id uint, currentUserID uint, auditD
 				tx.Rollback()
 				return err
 			}
-			url := utility.GenerateDocumentURL("audit", "draft-audit-findings", strconv.FormatUint(uint64(id), 10), "documents")
+			url := utility.GenerateDocumentURL("audits", "audit", strconv.FormatUint(uint64(auditDraftFindingFormDTO.AuditID), 10), "draft-audit-findings", strconv.FormatUint(uint64(id), 10), "documents")
 
 			// Create a new AuditDraftFindingDocument instance
 			document := &models.AuditDraftFindingDocument{
@@ -294,7 +299,7 @@ func (adfs *AuditDraftFindingService) Update(id uint, currentUserID uint, auditD
 	}
 	if len(documents) > 0 {
 		for _, doc := range documents {
-			storagePath := filepath.Join("audit", "draft-audit-findings", strconv.FormatUint(uint64(existingAuditDraftFinding.ID), 10), "documents")
+			storagePath := filepath.Join("audits", "audit", strconv.FormatUint(uint64(auditDraftFindingFormDTO.AuditID), 10), "draft-audit-findings", strconv.FormatUint(uint64(existingAuditDraftFinding.ID), 10), "documents")
 			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
 				tx.Rollback()
 				return err
@@ -303,7 +308,7 @@ func (adfs *AuditDraftFindingService) Update(id uint, currentUserID uint, auditD
 	}
 	if len(documentsToDelete) > 0 {
 		for _, document := range documentsToDelete {
-			storagePath := filepath.Join("audit", "draft-audit-findings", strconv.FormatUint(uint64(existingAuditDraftFinding.ID), 10), "documents")
+			storagePath := filepath.Join("audits", "audit", strconv.FormatUint(uint64(auditDraftFindingFormDTO.AuditID), 10), "draft-audit-findings", strconv.FormatUint(uint64(existingAuditDraftFinding.ID), 10), "documents")
 			if err := utility.RemoveFile(document.Name, storagePath); err != nil {
 				tx.Rollback()
 				return err
@@ -345,7 +350,7 @@ func (adfs *AuditDraftFindingService) Delete(ids []uint, currentUserID uint) ([]
 	var failedIDs []uint
 	var successfulIDs []uint
 	documentsToDelete := make(map[uint][]*auditDTOs.AuditDraftFindingDocumentDTO)
-
+	var auditID uint64
 	for _, id := range ids {
 		// Get existing audit finding details
 		auditDraftFinding, err := adfs.GetFullDetailsByID(id, tx)
@@ -371,7 +376,7 @@ func (adfs *AuditDraftFindingService) Delete(ids []uint, currentUserID uint) ([]
 				return nil, err
 			}
 		}
-
+		auditID=uint64(auditDraftFinding.AuditID)
 		// Delete the audit finding itself
 		if err := adfs.repo.Delete(id, tx); err != nil {
 			failedIDs = append(failedIDs, id)
@@ -385,7 +390,7 @@ func (adfs *AuditDraftFindingService) Delete(ids []uint, currentUserID uint) ([]
 		for auditDraftFindingID, documents := range documentsToDelete {
 			for _, doc := range documents {
 				fmt.Println("filename=", doc.Name)
-				storagePath := filepath.Join("audit", "audit-findings", strconv.FormatUint(uint64(auditDraftFindingID), 10), "documents")
+				storagePath := filepath.Join("audits", "audit", strconv.FormatUint(uint64(auditID), 10), "audit-findings", strconv.FormatUint(uint64(auditDraftFindingID), 10), "documents")
 				if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
 					tx.Rollback()
 					fmt.Printf("Failed to delete file at URL %s: %v\n", *doc.URL, err)
@@ -449,6 +454,53 @@ func (adfs *AuditDraftFindingService) validateAuditDraftFindingFormDTO(dto *audi
 
 	if _, err := adfs.severityLevelSvc.GetByID(dto.SeverityLevelID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
+	}
+
+	return nil
+}
+
+func (adfs *AuditDraftFindingService) GetAuditDraftFindingCountByCategory(auditId uint) ([]auditDTOs.AuditDraftFindingCategoryCountResponseDTO, error) {
+	if _, err := adfs.auditSvc.GetByID(auditId); err != nil {
+		return nil, err
+	}
+
+	response, err := adfs.repo.GetAuditDraftFindingCountByCategory(auditId)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
+func (adfs *AuditDraftFindingService) StatusUpdate(id uint, currentUserID uint, auditDraftFindingStatusID uint, tx ...utility.DatabaseTransaction) error {
+	existingAuditDraftFinding, err := adfs.GetByID(id)
+	if err != nil {
+		return err
+	}
+	auditDraftFindingStatusAccepted, err := adfs.auditDraftFindingStatusSvc.GetByType("accepted")
+	if err != nil {
+		return err
+	}
+	auditDraftFindingStatusChallenged, err := adfs.auditDraftFindingStatusSvc.GetByType("challenged")
+	if err != nil {
+		return err
+	}
+	now := time.Now()
+	existingAuditDraftFinding.AuditDraftFindingStatusID = auditDraftFindingStatusID
+
+	if auditDraftFindingStatusID == auditDraftFindingStatusAccepted.ID {
+		existingAuditDraftFinding.AcceptedBYID = &currentUserID
+		existingAuditDraftFinding.AcceptedAt = &now
+	}
+	if auditDraftFindingStatusID == auditDraftFindingStatusChallenged.ID {
+		existingAuditDraftFinding.ChallengedBYID = &currentUserID
+		existingAuditDraftFinding.ChallengedAt = &now
+	}
+
+	err = adfs.repo.Update(existingAuditDraftFinding, tx...)
+
+	if err != nil {
+		return err
 	}
 
 	return nil

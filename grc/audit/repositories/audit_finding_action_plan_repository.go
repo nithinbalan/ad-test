@@ -22,6 +22,8 @@ type AuditFindingActionPlanRepositoryInterface interface {
 
 	CreateInitialAuditFindingActionPlanStatusUpdate(auditFindingActionPlanStatusUpdate *models.AuditFindingActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
 	DeleteAuditFindingActionPlanStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error
+
+	GetAuditFindingActionPlanCountByStatus(findingID uint) ([]auditFindingDTOs.AuditFindingActionPlanStatusCountResponseDTO, error)
 }
 
 type AuditFindingActionPlanRepository struct {
@@ -66,6 +68,15 @@ func (repo *AuditFindingActionPlanRepository) GetAll(findingID uint, params *aud
         responsible_user.color AS responsible_user_color,
         responsible_user.email AS responsible_user_email,
         responsible_user.profile_image_path AS responsible_user_profile_image_path, 
+		review_user.id AS review_user_id,
+    	review_user.first_name_en AS review_user_first_name_en,
+		review_user.first_name_ar AS review_user_first_name_ar,
+		review_user.last_name_en AS review_user_last_name_en,
+		review_user.last_name_ar AS review_user_last_name_ar,
+		review_user.initial AS review_user_initial,
+        review_user.color AS review_user_color,
+        review_user.email AS review_user_email,
+        review_user.profile_image_path AS review_user_profile_image_path,
         created_user.id AS created_user_id,
         created_user.first_name_en AS created_user_first_name_en,
         created_user.first_name_ar AS created_user_first_name_ar,
@@ -90,6 +101,7 @@ func (repo *AuditFindingActionPlanRepository) GetAll(findingID uint, params *aud
         LEFT JOIN action_plan_statuses ON action_plan_statuses.id = audit_finding_action_plans.action_plan_status_id
         LEFT JOIN severity_levels ON severity_levels.id = audit_finding_action_plans.severity_level_id
         LEFT JOIN users AS responsible_user ON responsible_user.id = audit_finding_action_plans.responsible_user_id
+		LEFT JOIN users AS review_user ON review_user.id = audit_finding_action_plans.review_user_id
         LEFT JOIN users AS created_user ON created_user.id = audit_finding_action_plans.created_by_id
         LEFT JOIN users AS updated_user ON updated_user.id = audit_finding_action_plans.updated_by_id
     `).Where("audit_finding_action_plans.audit_finding_id = ?", findingID)
@@ -201,6 +213,7 @@ func (repo *AuditFindingActionPlanRepository) GetFullDetailsByID(id uint) (*mode
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		Preload("ActionPlanStatusUpdates").
+		Preload("ReviewUser").
 		First(&auditFindingActionPlan, id)
 
 	if result.Error != nil {
@@ -287,4 +300,37 @@ func (repo *AuditFindingActionPlanRepository) GetCountByRiskID(findingID uint, t
 		return 0, err
 	}
 	return count, nil
+}
+
+func (repo *AuditFindingActionPlanRepository) GetAuditFindingActionPlanCountByStatus(findingID uint) ([]auditFindingDTOs.AuditFindingActionPlanStatusCountResponseDTO, error) {
+	actionPlanStatusCounts := []auditFindingDTOs.AuditFindingActionPlanStatusCountResponseDTO{}
+
+	query := `
+        SELECT 
+            action_plan_statuses.id, 
+            action_plan_statuses.type, 
+            action_plan_statuses.title_en, 
+            action_plan_statuses.title_ar, 
+            action_plan_statuses.color_code,
+            COUNT(audit_finding_action_plans.id) AS count
+        FROM 
+            audit_finding_action_plans
+        LEFT JOIN 
+            action_plan_statuses ON action_plan_statuses.id = audit_finding_action_plans.action_plan_status_id
+        WHERE 
+            audit_finding_action_plans.audit_finding_id = ?
+        GROUP BY 
+            action_plan_statuses.id, 
+            action_plan_statuses.type, 
+            action_plan_statuses.title_en, 
+            action_plan_statuses.title_ar, 
+            action_plan_statuses.color_code
+    `
+
+	err := repo.db.Raw(query, findingID).Scan(&actionPlanStatusCounts).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return actionPlanStatusCounts, nil
 }

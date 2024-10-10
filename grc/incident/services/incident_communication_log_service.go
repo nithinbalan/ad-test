@@ -88,7 +88,13 @@ func (icls IncidentCommunicationLogService) GetFullDetailsByID(incidentID uint, 
 	if err != nil {
 		return nil, err
 	}
+	//todo :- also add extra fields which required in details screen
+	// Format time fields without time component
+	incidentCommunicationLogAt := incidentCommunicationLog.CommunicatedAt.Format("2006-01-02")
+	incidentCommunicationLogDTO.CommunicatedAtString = incidentCommunicationLogAt
 
+	incidentCommunicationLogDTO.CreatedAt = incidentCommunicationLog.CreatedAt
+	incidentCommunicationLogDTO.UpdatedAt = incidentCommunicationLog.UpdatedAt
 	//todo :- also add extra fields which required in details screen
 
 	return &incidentCommunicationLogDTO, nil
