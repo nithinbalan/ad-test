@@ -72,14 +72,36 @@ func (aps *AuditPlanCommencementLetterService) Create(auditPlanId uint, currentU
 
 func generateLetterBody(auditableItems []*auditDTOs.AuditPlanAuditableItemDTO, auditPlan *auditDTOs.AuditPlanDetailDTO) string {
 	auditScope := ""
+	var responsibleUnitName string
+
 	for _, item := range auditableItems {
+		// Generate the audit scope
 		if item.AuditableItem.TitleEn != nil {
 			auditScope += fmt.Sprintf("- %s\n", *item.AuditableItem.TitleEn) // Use English title if available
 		} else if item.AuditableItem.TitleAr != nil {
 			auditScope += fmt.Sprintf("- %s\n", *item.AuditableItem.TitleAr) // Fall back to Arabic title if necessary
 		}
+
+		// Get the responsible unit's name (TitleEn or TitleAr)
+		if item.AuditableItem.ResponsibleUnit.TitleEn != "" {
+			responsibleUnitName = item.AuditableItem.ResponsibleUnit.TitleEn
+		} else {
+			responsibleUnitName = item.AuditableItem.ResponsibleUnit.TitleAr
+		}
 	}
 
+	// Team lead information
+	teamLeadName := fmt.Sprintf("%s %s", auditPlan.TeamLead.FirstNameEN, auditPlan.TeamLead.LastNameEN)
+	teamLeadEmail := auditPlan.TeamLead.Email
+	teamLeadPhone := auditPlan.TeamLead.MobileNumber
+
+	// Conditionally format contact information based on the presence of a phone number
+	contactInfo := fmt.Sprintf("%s at %s", teamLeadName, teamLeadEmail)
+	if teamLeadPhone != nil {
+		contactInfo += fmt.Sprintf(" or %s", *teamLeadPhone)
+	}
+
+	// Generate the body of the letter
 	body := fmt.Sprintf(`
 Dear %s,
 
@@ -88,13 +110,13 @@ This is to inform you that JethurGRC will commence an audit of your organization
 The audit scope will include:
 %s
 
-Please prepare relevant documents for review. Our team will contact you to schedule an initial meeting.
+Please prepare relevant documents for review. Our team, led by %s, will contact you to schedule an initial meeting.
 
-Your cooperation is appreciated. For any questions, please contact us.
+Your cooperation is appreciated. For any questions, please contact %s.
 
 Thank you,
 %s
-`, "Responsible Unit Name", auditPlan.StartDateString, auditPlan.TargetDateString, auditScope, "Audit Department Name")
+`, responsibleUnitName, auditPlan.StartDateString, auditPlan.TargetDateString, auditScope, teamLeadName, contactInfo, "Audit Department Name")
 
 	return body
 }
