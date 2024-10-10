@@ -297,7 +297,7 @@ func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uin
 			"AssignedByFirstNameEn":   assignedBy.FirstNameEn,
 			"AssignedByLastNameEn":    assignedBy.LastNameEn,
 			"AssignedOn":              time.Now().Format("2006-01-02"),
-			"RedirectURL":             fmt.Sprintf("%s/incident-action-plan/%d", appURL, id),
+			"RedirectURL":             fmt.Sprintf("%sincident/action-plan?action_plan_id=%d", appURL, id),
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -453,7 +453,7 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 				"IncidentTitle":           incident.Title,
 				"ActionPlanTitle":         existingIncidentActionPlan.Title,
 				"ActionPlanDescription":   existingIncidentActionPlan.Description,
-				"RedirectURL":             fmt.Sprintf("%s/incident-action-plan/%d", appURL, id),
+				"RedirectURL":             fmt.Sprintf("%sincident/action-plan?action_plan_id=%d", appURL, id),
 			}
 
 			oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -477,7 +477,7 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 				"AssignedByFirstNameEn":   assignedBy.FirstNameEn,
 				"AssignedByLastNameEn":    assignedBy.LastNameEn,
 				"AssignedOn":              time.Now().Format("2006-01-02"),
-				"RedirectURL":             fmt.Sprintf("%s/incident-action-plan/%d", appURL, id),
+				"RedirectURL":             fmt.Sprintf("%sincident/action-plan?action_plan_id=%d", appURL, id),
 			}
 
 			newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
