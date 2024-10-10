@@ -9,6 +9,8 @@ type AuditDraftFindingConversation struct {
 	AuditDraftFindingID uint       `json:"audit_draft_finding_id" binding:"required" gorm:"not null"`
 	Description         string     `gorm:"type:nvarchar(MAX);null"`
 	Type                string     `gorm:"type:varchar(20);not null;check:type IN ('DR', 'AC')"`
+	IsAccepted          bool       `json:"is_accepted" binding:"required" gorm:"type:tinyint(1);not null;default:0"`
+	IsDismissed         bool       `json:"is_dismissed" binding:"required" gorm:"type:tinyint(1);not null;default:0"`
 	CreatedAt           time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt           *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 	CreatedBYID         uint       `json:"created_by_id" gorm:"not null"`
