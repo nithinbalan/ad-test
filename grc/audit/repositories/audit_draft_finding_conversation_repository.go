@@ -43,7 +43,7 @@ func (repo *AuditDraftFindingConversationRepository) GetAll(auditDraftFindingID 
 		Select(`
             audit_draft_finding_conversations.id,
             audit_draft_finding_conversations.audit_draft_finding_id,
-            audit_draft_finding_conversations.description,
+            audit_draft_finding_conversations.comment,
             audit_draft_finding_conversations.created_at,
             created_user.id AS created_user_id,
             created_user.first_name_en AS created_user_first_name_en,
@@ -75,7 +75,7 @@ func (repo *AuditDraftFindingConversationRepository) GetAll(auditDraftFindingID 
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
-			audit_draft_finding_conversations.description LIKE ? OR
+			audit_draft_finding_conversations.comment LIKE ? OR
 			created_user.first_name_en LIKE ? OR
             created_user.first_name_ar LIKE ? OR
             created_user.last_name_en LIKE ? OR

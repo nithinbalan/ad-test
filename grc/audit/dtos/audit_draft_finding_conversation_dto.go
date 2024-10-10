@@ -8,7 +8,7 @@ import (
 type AuditDraftFindingConversationListDTO struct {
 	ID                          uint   `json:"id"`
 	AuditDraftFindingID         uint   `json:"audit_draft_finding_id"`
-	Description                 string `json:"description"`
+	Comment                     string `json:"comment"`
 	IsAccepted                  bool   `json:"is_accepted"`
 	IsDismissed                 bool   `json:"is_dismissed"`
 	CreatedAt                   string `json:"created_at"`
@@ -24,7 +24,7 @@ type AuditDraftFindingConversationListDTO struct {
 }
 
 type AuditDraftFindingConversationFormDTO struct {
-	Description string `json:"description" binding:"required,max=500"`
+	Comment     string `json:"comment" binding:"required,max=1000"`
 	Type        string `json:"type" binding:"required,max=10"`
 	IsAccepted  *bool  `json:"is_accepted" binding:"omitempty"`
 	IsDismissed *bool  `json:"is_dismissed" binding:"omitempty"`
@@ -45,7 +45,7 @@ type AuditDraftFindingConversationListQueryParamsDTO struct {
 type AuditDraftFindingConversationDetailDTO struct {
 	ID                int                             `json:"id"`
 	Type              string                          `json:"type"`
-	Description       string                          `json:"description"`
+	Comment           string                          `json:"comment"`
 	AuditDraftFinding AuditDraftFindingDetailDTO      `json:"audit_draft_finding"`
 	IsAccepted        bool                            `json:"is_accepted"`
 	IsDismissed       bool                            `json:"is_dismissed"`

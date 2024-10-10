@@ -91,6 +91,8 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, tx ...util
 	var updatedByUser *organizationDTOs.UserMinimalDTO
 	var submittedByUser *organizationDTOs.UserMinimalDTO
 	var submittedAt *string
+	var auditeeReviewAubmittedByUser *organizationDTOs.UserMinimalDTO
+	var auditeeReviewAubmittedAt *string
 
 	// Check if SubmittedByUser and SubmittedAt are present before accessing them
 	if auditDraftReport.InternalReviewSubmittedByUser != nil {
@@ -104,6 +106,14 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, tx ...util
 	if auditDraftReport.InternalReviewSubmittedAt != nil {
 		formattedSubmittedAt := auditDraftReport.InternalReviewSubmittedAt.Format("2006-01-02")
 		submittedAt = &formattedSubmittedAt
+	}
+	if auditDraftReport.AuditeeReviewSubmittedByUser != nil {
+		auditeeSubmittedByUserDTO := mapUserToUserMinimalDTO(auditDraftReport.AuditeeReviewSubmittedByUser)
+		auditeeReviewAubmittedByUser = &auditeeSubmittedByUserDTO
+	}
+	if auditDraftReport.AuditeeReviewSubmittedAt != nil {
+		auditeeFormattedSubmittedAt := auditDraftReport.AuditeeReviewSubmittedAt.Format("2006-01-02")
+		auditeeReviewAubmittedAt = &auditeeFormattedSubmittedAt
 	}
 	// Map the AuditDraftReportStatus
 	auditDraftReportStatusDTO := auditDTOs.AuditDraftReportStatusDTO{
@@ -158,6 +168,8 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, tx ...util
 		PreparedAt:                    auditDraftReport.CreatedAt.Format("2006-01-02"),
 		InternalReviewSubmittedByUser: submittedByUser,
 		InternalReviewSubmittedAt:     submittedAt,
+		AuditeeReviewSubmittedByUser:  auditeeReviewAubmittedByUser,
+		AuditeeReviewSubmittedAt:      auditeeReviewAubmittedAt,
 		ExecutiveSummary:              *auditDraftReport.ExecutiveSummary,
 		TeamLead:                      mapUserToUserMinimalDTO(auditDraftReport.Audit.AuditPlan.TeamLead),
 		Conclusion:                    *auditDraftReport.Conclusion,
@@ -332,7 +344,7 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, tx ...util
 		for _, conversation := range finding.AuditDraftFindingConversations {
 			findingDTO.AuditDraftFindingConversations = append(findingDTO.AuditDraftFindingConversations, &auditDTOs.AuditDraftFindingConversationDetailDTO{
 				ID:            int(conversation.ID),
-				Description:   conversation.Description,
+				Comment:       conversation.Comment,
 				Type:          conversation.Type,
 				CreatedAt:     conversation.CreatedAt,
 				CreatedByUser: mapUserToUserMinimalDTO(&conversation.CreatedByUser),

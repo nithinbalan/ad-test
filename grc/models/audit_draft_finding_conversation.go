@@ -7,7 +7,7 @@ import (
 type AuditDraftFindingConversation struct {
 	ID                  uint       `gorm:"primaryKey;autoIncrement"`
 	AuditDraftFindingID uint       `json:"audit_draft_finding_id" binding:"required" gorm:"not null"`
-	Description         string     `gorm:"type:nvarchar(MAX);null"`
+	Comment             string     `json:"comment" binding:"required" gorm:"type:nvarchar(MAX);not null"`
 	Type                string     `gorm:"type:varchar(20);not null;check:type IN ('DR', 'AC')"`
 	IsAccepted          bool       `json:"is_accepted" binding:"required" gorm:"type:tinyint(1);not null;default:0"`
 	IsDismissed         bool       `json:"is_dismissed" binding:"required" gorm:"type:tinyint(1);not null;default:0"`

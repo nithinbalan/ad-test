@@ -138,9 +138,10 @@ func (adfcs *AuditDraftFindingConversationService) Create(auditDraftFindingID ui
 
 	conversation := &models.AuditDraftFindingConversation{
 		AuditDraftFindingID: auditDraftFindingID,
-		Description:         formDTO.Description,
+		Comment:         formDTO.Comment,
 		Type:                formDTO.Type,
 		IsAccepted:          *formDTO.IsAccepted,
+		IsDismissed:         *formDTO.IsDismissed,
 		CreatedBYID:         currentUserID,
 	}
 
@@ -231,7 +232,7 @@ func (adfcs *AuditDraftFindingConversationService) Update(auditDraftFindingID ui
 	}
 
 	// Update Audit Finding ActionPlan
-	existingAuditDraftFindingConversation.Description = AuditDraftFindingConversationFormDTO.Description
+	existingAuditDraftFindingConversation.Comment = AuditDraftFindingConversationFormDTO.Comment
 	existingAuditDraftFindingConversation.Type = AuditDraftFindingConversationFormDTO.Type
 	existingAuditDraftFindingConversation.UpdatedBYID = &currentUserID
 
