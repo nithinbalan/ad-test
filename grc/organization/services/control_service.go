@@ -658,12 +658,16 @@ func (cs *ControlService) validateControlFormDTO(controlFormDTO *organizationDTO
 		return utility.NewValidationError(fmt.Errorf("control owner does not exist"), "not_exist", "control owner")
 	}
 
-	if _, err := cs.controlImplementationStatusSvc.GetByID(uint(controlFormDTO.ControlImplementationStatusID)); err != nil {
-		return utility.NewValidationError(fmt.Errorf("control implementation status does not exist"), "not_exist", "control implementation status")
+	if controlFormDTO.ControlImplementationStatusID != nil {
+		if _, err := cs.controlImplementationStatusSvc.GetByID(uint(*controlFormDTO.ControlImplementationStatusID)); err != nil {
+			return utility.NewValidationError(fmt.Errorf("control implementation status does not exist"), "not_exist", "control implementation status")
+		}
 	}
 
-	if _, err := cs.controlImplementationStatusSvc.GetByID(uint(controlFormDTO.ControlEfficiencyStatusID)); err != nil {
-		return utility.NewValidationError(fmt.Errorf("control efficiency status does not exist"), "not_exist", "control efficiency status")
+	if controlFormDTO.ControlEfficiencyStatusID != nil {
+		if _, err := cs.controlImplementationStatusSvc.GetByID(uint(*controlFormDTO.ControlEfficiencyStatusID)); err != nil {
+			return utility.NewValidationError(fmt.Errorf("control efficiency status does not exist"), "not_exist", "control efficiency status")
+		}
 	}
 
 	if controlFormDTO.ReviewFrequencyID != nil {
