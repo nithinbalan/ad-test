@@ -224,3 +224,8 @@ type ControlMailDTO struct {
 	MessageEn   string `json:"message_en"`
 	RedirectURL string `json:"redirect_url"`
 }
+
+type ControlApplicableFormDTO struct {
+	Justification           *string `json:"justification" binding:"omitempty"`
+	ApplicabilityChangeDate *string `json:"applicability_change_date" binding:"omitempty,datetime=2006-01-02"`
+}

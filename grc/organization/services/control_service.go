@@ -33,8 +33,8 @@ type ControlServiceInterface interface {
 	ExportControls(data []*organizationDTOs.ControlListDTO, currentUserID uint) (*os.File, error)
 
 	UpdateControlRiskRating(control *models.Control, tx utility.DatabaseTransaction) error
-	MarkControlAsApplicable(controlID uint, currentUserID uint) error
-	MarkControlAsNotApplicable(controlID uint, currentUserID uint) error
+	MarkControlAsApplicable(controlID uint, currentUserID uint, controlApplicableFormDTO *organizationDTOs.ControlApplicableFormDTO) error
+	MarkControlAsNotApplicable(controlID uint, currentUserID uint, controlApplicableFormDTO *organizationDTOs.ControlApplicableFormDTO) error
 }
 
 type ControlService struct {
@@ -856,12 +856,19 @@ func (cs *ControlService) UpdateControlRiskRating(control *models.Control, tx ut
 	return nil
 }
 
-func (cs *ControlService) MarkControlAsApplicable(controlID uint, currentUserID uint) error {
+func (cs *ControlService) MarkControlAsApplicable(controlID uint, currentUserID uint, controlApplicableFormDTO *organizationDTOs.ControlApplicableFormDTO) error {
 	existingControl, err := cs.GetByID(controlID)
 	if err != nil {
 		return err
 	}
 
+	parsedApplicabilityChangeDate, err := utility.ParseDate(*controlApplicableFormDTO.ApplicabilityChangeDate)
+	if err != nil {
+		return utility.NewValidationError(fmt.Errorf("invalid applicability change date"), "invalid_date", "applicability change date")
+	}
+
+	existingControl.Justification = controlApplicableFormDTO.Justification
+	existingControl.ApplicabilityChangeDate = parsedApplicabilityChangeDate
 	existingControl.IsApplicable = true
 	existingControl.UpdatedByID = &currentUserID
 
@@ -873,12 +880,19 @@ func (cs *ControlService) MarkControlAsApplicable(controlID uint, currentUserID 
 	return nil
 }
 
-func (cs *ControlService) MarkControlAsNotApplicable(controlID uint, currentUserID uint) error {
+func (cs *ControlService) MarkControlAsNotApplicable(controlID uint, currentUserID uint, controlApplicableFormDTO *organizationDTOs.ControlApplicableFormDTO) error {
 	existingControl, err := cs.GetByID(controlID)
 	if err != nil {
 		return err
 	}
 
+	parsedApplicabilityChangeDate, err := utility.ParseDate(*controlApplicableFormDTO.ApplicabilityChangeDate)
+	if err != nil {
+		return utility.NewValidationError(fmt.Errorf("invalid applicability change date"), "invalid_date", "applicability change date")
+	}
+
+	existingControl.Justification = controlApplicableFormDTO.Justification
+	existingControl.ApplicabilityChangeDate = parsedApplicabilityChangeDate
 	existingControl.IsApplicable = false
 	existingControl.UpdatedByID = &currentUserID
 
