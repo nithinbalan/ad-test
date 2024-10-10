@@ -74,14 +74,14 @@ func (aidfc *AuditInsightsDraftFindingController) ChallengeAuditDraftFinding(c *
 		utility.SendInternalErrResp(aidfc.db, c, err.Error())
 		return
 	}
-	var auditInsightsDraftFindingApproveFormDTO dtos.AuditInsightsDraftFindingApproveFormDTO
+	var auditInsightsDraftFindingChallengeFormDTO dtos.AuditInsightsDraftFindingChallengeFormDTO
 
-	if err := c.ShouldBindJSON(&auditInsightsDraftFindingApproveFormDTO); err != nil {
+	if err := c.ShouldBindJSON(&auditInsightsDraftFindingChallengeFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
 
-	err = aidfc.service.Challenge(uint(auditDraftFindingID), currentUserID, &auditInsightsDraftFindingApproveFormDTO)
+	err = aidfc.service.Challenge(uint(auditDraftFindingID), currentUserID, &auditInsightsDraftFindingChallengeFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

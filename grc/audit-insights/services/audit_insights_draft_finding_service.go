@@ -13,7 +13,7 @@ import (
 
 type AuditInsightsDraftFindingServiceInterface interface {
 	Accept(auditDraftFindingID uint, currentUserID uint, auditInsightsDraftFindingApproveFormDTO *dtos.AuditInsightsDraftFindingApproveFormDTO) error
-	Challenge(auditDraftFindingID uint, currentUserID uint, auditInsightsDraftFindingApproveFormDTO *dtos.AuditInsightsDraftFindingApproveFormDTO) error
+	Challenge(auditDraftFindingID uint, currentUserID uint, auditInsightsDraftFindingChallengeFormDTO *dtos.AuditInsightsDraftFindingChallengeFormDTO) error
 }
 
 type AuditInsightsDraftFindingService struct {
@@ -98,7 +98,7 @@ func (aidfs *AuditInsightsDraftFindingService) Accept(auditDraftFindingID uint, 
 		return err
 	}
 	auditDraftFindingConversationFormDTO := auditDTOs.AuditDraftFindingConversationFormDTO{
-		Description: *auditInsightsDraftFindingApproveFormDTO.Description,
+		Description: auditInsightsDraftFindingApproveFormDTO.Comment,
 		Type:        auditInsightsDraftFindingApproveFormDTO.Type,
 	}
 	if _, err := aidfs.auditDraftFindingConversationSvc.Create(auditDraftFindingID, currentUserID, &auditDraftFindingConversationFormDTO); err != nil {
@@ -143,7 +143,7 @@ func (aidfs *AuditInsightsDraftFindingService) Accept(auditDraftFindingID uint, 
 	return nil
 }
 
-func (aidfs *AuditInsightsDraftFindingService) Challenge(auditDraftFindingID uint, currentUserID uint, auditInsightsDraftFindingApproveFormDTO *dtos.AuditInsightsDraftFindingApproveFormDTO) error {
+func (aidfs *AuditInsightsDraftFindingService) Challenge(auditDraftFindingID uint, currentUserID uint, auditInsightsDraftFindingChallengeFormDTO *dtos.AuditInsightsDraftFindingChallengeFormDTO) error {
 	existingAuditDraftFinding, err := aidfs.auditDraftFindingSvc.GetFullDetailsByID(auditDraftFindingID)
 	if err != nil {
 		return utility.NewResourceNotFoundError(err, auditDraftFindingID)
@@ -190,8 +190,8 @@ func (aidfs *AuditInsightsDraftFindingService) Challenge(auditDraftFindingID uin
 		return err
 	}
 	auditDraftFindingConversationFormDTO := auditDTOs.AuditDraftFindingConversationFormDTO{
-		Description: *auditInsightsDraftFindingApproveFormDTO.Description,
-		Type:        auditInsightsDraftFindingApproveFormDTO.Type,
+		Description: auditInsightsDraftFindingChallengeFormDTO.Comment,
+		Type:        auditInsightsDraftFindingChallengeFormDTO.Type,
 	}
 	if _, err := aidfs.auditDraftFindingConversationSvc.Create(auditDraftFindingID, currentUserID, &auditDraftFindingConversationFormDTO); err != nil {
 		return err
@@ -204,7 +204,7 @@ func (aidfs *AuditInsightsDraftFindingService) Challenge(auditDraftFindingID uin
 			models.CreateAction,
 			models.AuditDraftFindingConversation{}.TableName(),
 			auditDraftFindingID,
-			auditInsightsDraftFindingApproveFormDTO,
+			auditInsightsDraftFindingChallengeFormDTO,
 			currentUserID,
 			nil,
 		)

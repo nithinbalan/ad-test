@@ -11,6 +11,11 @@ type AuditInsightsDraftFindingApproveFormDTO struct {
 	TargetDate        *string `json:"target_date" binding:"omitempty,datetime=2006-01-02"`
 }
 
+type AuditInsightsDraftFindingChallengeFormDTO struct {
+	Comment           string  `json:"comment" binding:"required"`
+	Type              string  `json:"type" binding:"required,oneof=DR"`
+}
+
 type AuditInsightsDraftFindingActionPlanParsedDates struct {
 	TargetDate *time.Time
 }
