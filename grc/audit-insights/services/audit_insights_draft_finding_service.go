@@ -61,7 +61,7 @@ func (aidfs *AuditInsightsDraftFindingService) Accept(auditDraftFindingID uint, 
 	if err != nil {
 		return err
 	}
-	if *existingAuditDraftFinding.AuditableItem.ResponsibleUnitID != orgUnitID {
+	if existingAuditDraftFinding.AuditableItem.ResponsibleUnitID != orgUnitID {
 		return utility.NewForbiddenError("You are not authorized to accept this draft finding. Only users from the responsible unit can perform this action.")
 	}
 
@@ -156,7 +156,7 @@ func (aidfs *AuditInsightsDraftFindingService) Challenge(auditDraftFindingID uin
 		return err
 	}
 
-	if *existingAuditDraftFinding.AuditableItem.ResponsibleUnitID != orgUnitID {
+	if existingAuditDraftFinding.AuditableItem.ResponsibleUnitID != orgUnitID {
 		return utility.NewForbiddenError("You are not authorized to accept this draft finding. Only users from the responsible unit can perform this action.")
 	}
 
