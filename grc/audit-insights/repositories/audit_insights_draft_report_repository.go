@@ -112,7 +112,7 @@ func (repo *AuditInsightsDraftReportRepository) GetAll(params *auditDTOs.AuditDr
             LEFT JOIN users AS created_user ON created_user.id = audit_draft_reports.created_by_id
             LEFT JOIN users AS updated_user ON updated_user.id = audit_draft_reports.updated_by_id
         `).
-		Where(`auditable_items.responsible_unit_id = ? AND audit_draft_reports.id IS NOT NULL`, currentUserResponsibleUnitID).
+		Where(`auditable_items.responsible_unit_id = ? AND audit_draft_reports.id IS NOT NULL AND audit_draft_report_statuses.type = ?`, currentUserResponsibleUnitID,"in-department-review").
 		Group(`
             audit_draft_reports.id,
             audit_draft_reports.audit_id,

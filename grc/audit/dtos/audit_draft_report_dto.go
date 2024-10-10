@@ -165,4 +165,8 @@ type AuditDraftFindingReportDetailDTO struct {
 	Documents                      []*AuditDraftFindingDocumentDTO           `json:"documents"`
 	AuditDraftFindingConversations []*AuditDraftFindingConversationDetailDTO `json:"conversations"`
 	AuditDraftFindingActionPlans   []*AuditDraftFindingActionPlanDetailDTO   `json:"action_plans"`
+	AcceptedByUser                 *organizationDTOs.UserMinimalDTO          `json:"accepted_by"`
+	AcceptedAt                     *time.Time                                `json:"accepted_at"`
+	ChallengedByUser               *organizationDTOs.UserMinimalDTO          `json:"challenged_by"`
+	ChallengedAt                   *time.Time                                `json:"challenged_at"`
 }

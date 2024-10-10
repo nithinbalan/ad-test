@@ -193,9 +193,20 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, tx ...util
 			})
 		}
 	}
-		
+
 	// Map findings
+	var acceptedByUser *organizationDTOs.UserMinimalDTO
+	var challengedByUser *organizationDTOs.UserMinimalDTO
+
 	for _, finding := range auditDraftReport.Audit.AuditDraftFindings {
+		if finding.AcceptedByUser != nil {
+			acceptedByUserDTO := mapUserToUserMinimalDTO(finding.AcceptedByUser)
+			acceptedByUser = &acceptedByUserDTO
+		}
+		if finding.ChallengedByUser != nil {
+			challengedByUserDTO := mapUserToUserMinimalDTO(finding.ChallengedByUser)
+			challengedByUser = &challengedByUserDTO
+		}
 		findingDTO := auditDTOs.AuditDraftFindingReportDetailDTO{
 			ID:                             finding.ID,
 			Title:                          finding.Title,
@@ -211,8 +222,10 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, tx ...util
 			Documents:                      []*auditDTOs.AuditDraftFindingDocumentDTO{},
 			AuditDraftFindingConversations: []*auditDTOs.AuditDraftFindingConversationDetailDTO{},
 			AuditDraftFindingActionPlans:   []*auditDTOs.AuditDraftFindingActionPlanDetailDTO{},
-			// CreatedByUser:             mapUserToUserMinimalDTO(finding.CreatedByUser),
-			// UpdatedByUser:             mapUserToUserMinimalDTO(finding.UpdatedByUser),
+			AcceptedByUser:                 acceptedByUser,
+			AcceptedAt:                     finding.AcceptedAt,
+			ChallengedByUser:               challengedByUser,
+			ChallengedAt:                   finding.ChallengedAt,
 		}
 		if finding.AuditDraftFindingStatus != nil {
 			// Map AuditDraftFindingStatus to DTO
@@ -330,11 +343,12 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, tx ...util
 		for _, actionPlan := range finding.AuditDraftFindingActionPlans {
 			targetDate := actionPlan.TargetDate.Format("2006-01-02")
 			findingDTO.AuditDraftFindingActionPlans = append(findingDTO.AuditDraftFindingActionPlans, &auditDTOs.AuditDraftFindingActionPlanDetailDTO{
-				ID:               int(actionPlan.ID),
-				Title:            actionPlan.Title,
-				Description:      actionPlan.Description,
-				ResponsibleUser:  mapUserToUserMinimalDTO(actionPlan.ResponsibleUser),
-				TargetDateString: &targetDate,
+				ID:                  int(actionPlan.ID),
+				AuditDraftFindingID: actionPlan.AuditDraftFindingID,
+				Title:               actionPlan.Title,
+				Description:         actionPlan.Description,
+				ResponsibleUser:     mapUserToUserMinimalDTO(actionPlan.ResponsibleUser),
+				TargetDateString:    &targetDate,
 			})
 		}
 
