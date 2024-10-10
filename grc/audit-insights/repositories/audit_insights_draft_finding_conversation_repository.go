@@ -42,7 +42,7 @@ func (repo *AuditInsightsDraftFindingConversationRepository) GetAll(currentUserR
 		`).
 		Joins(`
 			INNER JOIN audit_draft_findings ON audit_draft_findings.id = audit_draft_finding_conversations.audit_draft_finding_id
-			INNER JOIN auditable_items ON auditable_items.id = audit_draft_findings.auditable_item_id
+			LEFT JOIN auditable_items ON auditable_items.id = audit_draft_findings.auditable_item_id
 			LEFT JOIN users AS created_user ON created_user.id = audit_draft_finding_conversations.created_by_id
 		`).
 		Where("auditable_items.responsible_unit_id = ? AND audit_draft_finding_conversations.audit_draft_finding_id = ?", currentUserResponsibleUnitID, auditDraftFindingID).

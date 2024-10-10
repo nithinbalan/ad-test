@@ -63,7 +63,7 @@ type AuditModule struct {
 	AuditDraftFindingActionPlanSvc      services.AuditDraftFindingActionPlanServiceInterface
 }
 
-func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, complianceModule *ComplianceModule, riskModule *RiskModule, incidentModule *IncidentModule, documentModule *DocumentModule, settingModule *SettingsModule, masterModule *MasterModule, taskModule *TaskModule) *AuditModule {
+func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, complianceModule *ComplianceModule, riskModule *RiskModule, incidentModule *IncidentModule, documentModule *DocumentModule, settingModule *SettingsModule, masterModule *MasterModule, taskModule *TaskModule, commonModule *CommonModule) *AuditModule {
 
 	auditStatusRepo := repositories.NewAuditStatusRepository(db)
 	auditStatusSvc := services.NewAuditStatusService(auditStatusRepo)
@@ -326,6 +326,8 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		masterModule.SeverityLevelSvc,
 		auditTimelineSvc,
 		taskModule.TaskService,
+		organizationModule.UserSvc,
+		commonModule.NotificationService,
 	)
 	auditFindingActionPlanController := controllers.NewAuditFindingActionPlanController(auditFindingActionPlanSvc)
 

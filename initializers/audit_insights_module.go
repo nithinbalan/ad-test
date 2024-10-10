@@ -16,6 +16,7 @@ type AuditInsightsModule struct {
 	AuditInsightsDocumentRequestConversationController *controllers.AuditInsightsDocumentRequestConversationController
 	AuditInsightsDraftFindingController                *controllers.AuditInsightsDraftFindingController
 	AuditInsightsDraftFindingConversationController    *controllers.AuditInsightsDraftFindingConversationController
+	AuditInsightsDraftFindingActionPlanController      *controllers.AuditInsightsDraftFindingActionPlanController
 }
 
 func NewAuditInsightsModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, auditModule *AuditModule) *AuditInsightsModule {
@@ -90,6 +91,19 @@ func NewAuditInsightsModule(db *gorm.DB, sharedModule *SharedModule, organizatio
 	)
 	auditInsightsDraftFindingConversationController := controllers.NewAuditInsightsDraftFindingConversationController(auditInsightsDraftFindingConversationSvc)
 
+	auditInsightsDraftFindingActionPlanRepo := repositories.NewAuditInsightsDraftFindingActionPlanRepository(db)
+	auditInsightsDraftFindingActionPlanSvc := services.NewAuditInsightsDraftFindingActionPlanService(
+		auditInsightsDraftFindingActionPlanRepo,
+		sharedModule.ActivityLogService,
+		auditModule.AuditDraftFindingSvc,
+		auditModule.AuditDraftFindingStatusSvc,
+		auditModule.AuditDraftFindingActionPlanSvc,
+		organizationModule.UserSvc,
+		auditModule.AuditDraftReportSvc,
+		auditModule.AuditDraftReportStatusSvc,
+	)
+	auditInsightsDraftFindingActionPlanController := controllers.NewAuditInsightsDraftFindingActionPlanController(auditInsightsDraftFindingActionPlanSvc)
+
 	return &AuditInsightsModule{
 		AuditInsightsAuditPlanController:                   auditInsightsAuditPlanController,
 		AuditInsightsAuditController:                       auditInsightsAuditController,
@@ -98,5 +112,6 @@ func NewAuditInsightsModule(db *gorm.DB, sharedModule *SharedModule, organizatio
 		AuditInsightsDocumentRequestConversationController: auditInsightsDocumentRequestConversationController,
 		AuditInsightsDraftFindingController:                auditInsightsDraftFindingController,
 		AuditInsightsDraftFindingConversationController:    auditInsightsDraftFindingConversationController,
+		AuditInsightsDraftFindingActionPlanController:      auditInsightsDraftFindingActionPlanController,
 	}
 }
