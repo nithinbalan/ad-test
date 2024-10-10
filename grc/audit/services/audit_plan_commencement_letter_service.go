@@ -5,6 +5,8 @@ import (
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
 	logServices "jethur/grc/logs/services"
+	organizationDTOs "jethur/grc/organization/dtos"
+	organizationServices "jethur/grc/organization/services"
 
 	"jethur/grc/models"
 )
@@ -17,17 +19,20 @@ type AuditPlanCommencementLetterService struct {
 	repo           repositories.AuditPlanCommencementLetterRepositoryInterface
 	activityLogSvc logServices.ActivityLogServiceInterface
 	auditPlanSvc   AuditPlanServiceInterface
+	userSvc        organizationServices.UserServiceInterface
 }
 
 func NewAuditPlanCommencementLetterService(
 	repo repositories.AuditPlanCommencementLetterRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	auditPlanSvc AuditPlanServiceInterface,
+	userSvc organizationServices.UserServiceInterface,
 ) AuditPlanCommencementLetterServiceInterface {
 	return &AuditPlanCommencementLetterService{
 		repo:           repo,
 		activityLogSvc: activityLogSvc,
 		auditPlanSvc:   auditPlanSvc,
+		userSvc:        userSvc,
 	}
 }
 
@@ -38,6 +43,14 @@ func (aps *AuditPlanCommencementLetterService) Create(auditPlanId uint, currentU
 	if err != nil {
 		return err
 	}
+
+	// Load the user details for FromUserID
+	fromUser, err := aps.userSvc.GetFullDetailsByID(*auditPlanDetails.TeamLeadID) // Assuming fromUserID is the team lead or passed correctly
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	// Group Auditable Items by ResponsibleUnitID
 	unitToItemsMap := make(map[uint][]*auditDTOs.AuditPlanAuditableItemDTO)
 	for _, item := range auditPlanDetails.AuditableItems {
@@ -47,16 +60,15 @@ func (aps *AuditPlanCommencementLetterService) Create(auditPlanId uint, currentU
 	}
 
 	for unitID, auditableItems := range unitToItemsMap {
-
 		subject := fmt.Sprintf("Audit Commencement Letter - %s", auditPlanDetails.Title)
-		body := generateLetterBody(auditableItems, auditPlanDetails)
+		body := generateLetterBody(auditableItems, auditPlanDetails, fromUser)
 
 		commencementLetter := &models.AuditPlanCommencementLetter{
 			AuditPlanID:       auditPlanId,
 			ResponsibleUnitID: unitID,
 			Subject:           subject,
 			Body:              body,
-			FromUserID:        currentUserID,
+			FromUserID:        *auditPlanDetails.TeamLeadID,
 			CreatedByID:       currentUserID,
 		}
 
@@ -70,7 +82,7 @@ func (aps *AuditPlanCommencementLetterService) Create(auditPlanId uint, currentU
 	return nil
 }
 
-func generateLetterBody(auditableItems []*auditDTOs.AuditPlanAuditableItemDTO, auditPlan *auditDTOs.AuditPlanDetailDTO) string {
+func generateLetterBody(auditableItems []*auditDTOs.AuditPlanAuditableItemDTO, auditPlan *auditDTOs.AuditPlanDetailDTO, fromUser *organizationDTOs.UserDetailsDTO) string {
 	auditScope := ""
 	var responsibleUnitName string
 
@@ -101,6 +113,10 @@ func generateLetterBody(auditableItems []*auditDTOs.AuditPlanAuditableItemDTO, a
 		contactInfo += fmt.Sprintf(" or %s", *teamLeadPhone)
 	}
 
+	// From User details for the signature
+	fromUserName := fmt.Sprintf("%s %s", fromUser.FirstNameEn, fromUser.LastNameEn)
+	fromUserDesignation := fromUser.Designation // Assuming designation is preloaded and available
+
 	// Generate the body of the letter
 	body := fmt.Sprintf(`
 Dear %s,
@@ -116,7 +132,8 @@ Your cooperation is appreciated. For any questions, please contact %s.
 
 Thank you,
 %s
-`, responsibleUnitName, auditPlan.StartDateString, auditPlan.TargetDateString, auditScope, teamLeadName, contactInfo, "Audit Department Name")
+%s
+`, responsibleUnitName, auditPlan.StartDateString, auditPlan.TargetDateString, auditScope, teamLeadName, contactInfo, fromUserName, fromUserDesignation.TitleEn)
 
 	return body
 }
