@@ -1,12 +1,12 @@
 package dtos
 
 import (
+	"time"
+
 	commonDTOs "jethur/grc/common/dtos"
 	masterDTOs "jethur/grc/masters/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
 	settingsDTOs "jethur/grc/settings/dtos"
-
-	"time"
 )
 
 type ComplianceRegisterListDTO struct {
@@ -179,6 +179,7 @@ type ComplianceRegisterDetailDTO struct {
 	ComplianceStatus        ComplianceStatusDTO                `json:"compliance_status"`
 	ResponsibleUnit         settingsDTOs.OrganizationUnitDTO   `json:"responsible_unit"`
 	ResponsibleUser         organizationDTOs.UserMinimalDTO    `json:"responsible_user"`
+	ResponsibleUserID       uint                               `json:"responsible_user_id" binding:"required" gorm:"not null"`
 	ReviewFrequency         *masterDTOs.ReviewFrequencyDTO     `json:"review_frequency"`
 	ReviewResponsibleUser   *organizationDTOs.UserMinimalDTO   `json:"review_responsible_user"`
 	SeverityLevel           *masterDTOs.SeverityLevelDTO       `json:"severity_level"`
