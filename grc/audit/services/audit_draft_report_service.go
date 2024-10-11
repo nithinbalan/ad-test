@@ -26,6 +26,7 @@ type AuditDraftReportServiceInterface interface {
 	Create(auditID uint, currentUserID uint, auditDraftReportFormDTO *auditDTOs.AuditDraftReportFormDTO) (uint, error)
 	Update(auditID uint, id uint, currentUserID uint, auditDraftReportFormDTO *auditDTOs.AuditDraftReportFormDTO) error
 	Submit(auditID uint, id uint, currentUserID uint) error
+	Complete(auditID uint, id uint, currentUserID uint) error
 	Delete(auditID uint, ids []uint, currentUserID uint) ([]uint, error)
 	StatusUpdate(id uint, currentUserID uint, auditDraftReportStatusID uint, nextReviewLevel int, tx utility.DatabaseTransaction) error
 }
@@ -35,6 +36,7 @@ type AuditDraftReportService struct {
 	activityLogSvc            logServices.ActivityLogServiceInterface
 	auditSvc                  AuditServiceInterface
 	auditDraftReportStatusSvc AuditDraftReportStatusServiceInterface
+	auditDraftFindingSvc      AuditDraftFindingServiceInterface
 }
 
 func NewAuditDraftReportService(
@@ -42,12 +44,14 @@ func NewAuditDraftReportService(
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	auditSvc AuditServiceInterface,
 	auditDraftReportStatusSvc AuditDraftReportStatusServiceInterface,
+	auditDraftFindingSvc AuditDraftFindingServiceInterface,
 ) AuditDraftReportServiceInterface {
 	return &AuditDraftReportService{
 		repo:                      repo,
 		activityLogSvc:            activityLogSvc,
 		auditSvc:                  auditSvc,
 		auditDraftReportStatusSvc: auditDraftReportStatusSvc,
+		auditDraftFindingSvc:      auditDraftFindingSvc,
 	}
 }
 
@@ -563,6 +567,7 @@ func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID
 	existingAuditDraftReport.AuditDraftReportStatusID = auditDraftReportStatus.ID
 	existingAuditDraftReport.AuditeeReviewSubmittedBYID = &currentUserID
 	existingAuditDraftReport.UpdatedBYID = &currentUserID
+	existingAuditDraftReport.UpdatedAt = &now
 
 	err = adrs.repo.Update(existingAuditDraftReport, tx)
 	if err != nil {
@@ -660,4 +665,81 @@ func safeStringPointer(s *string) string {
 		return *s
 	}
 	return ""
+}
+
+func (adrs *AuditDraftReportService) Complete(auditID uint, id uint, currentUserID uint) error {
+	tx := adrs.repo.BeginTransaction()
+	if _, err := adrs.auditSvc.GetByID(auditID); err != nil {
+		return err
+	}
+	existingAuditDraftReport, err := adrs.repo.GetByID(id)
+	if err != nil {
+		tx.Rollback()
+		return utility.NewResourceNotFoundError(err, id)
+	}
+
+	auditDraftReportStatus, err := adrs.auditDraftReportStatusSvc.GetByType("in-department-review")
+	if err != nil {
+		return err
+	}
+
+	if existingAuditDraftReport.AuditDraftReportStatusID != auditDraftReportStatus.ID {
+		tx.Rollback()
+		return utility.NewForbiddenError("The audit draft report has not been in department review.")
+	}
+	auditDraftFindings, err := adrs.auditDraftFindingSvc.GetAllFindingsByAuditID(existingAuditDraftReport.AuditID)
+	if err != nil {
+		return err
+	}
+	// Check if all findings are finalized
+	for _, finding := range auditDraftFindings {
+		// Ensure the status of each finding is finalized
+		if finding.AuditDraftFindingStatus != nil && !finding.AuditDraftFindingStatus.IsFinalized {
+			tx.Rollback()
+			return utility.NewForbiddenError(fmt.Sprintf("Finding '%s' is not finalized.", finding.Title))
+		}
+	}
+	auditDraftReportStatusCompleted, err := adrs.auditDraftReportStatusSvc.GetByType("completed")
+	if err != nil {
+		return err
+	}
+	now := time.Now()
+	existingAuditDraftReport.AuditDraftReportStatusID = auditDraftReportStatusCompleted.ID
+	existingAuditDraftReport.UpdatedBYID = &currentUserID
+	existingAuditDraftReport.UpdatedAt = &now
+
+	err = adrs.repo.Update(existingAuditDraftReport, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	//todo - notification to auditable item responsible user where findings captured.
+
+	tx.Commit()
+
+	go func() {
+		err := adrs.activityLogSvc.LogActivity(
+			models.UpdateAction,
+			models.AuditDraftReport{}.TableName(),
+			id,
+			nil,
+			currentUserID,
+			nil,
+		)
+
+		if err != nil {
+			fields := map[string]interface{}{
+				"action":    models.UpdateAction,
+				"tableName": models.AuditDraftReport{}.TableName(),
+				"recordID":  id,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			}
+
+			utility.LogError("Failed to log activity", fields)
+		}
+	}()
+
+	return nil
 }

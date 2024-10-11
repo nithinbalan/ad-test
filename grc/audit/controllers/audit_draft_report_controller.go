@@ -191,3 +191,42 @@ func (adrc *AuditDraftReportController) SubmitAuditDraftReport(c *gin.Context) {
 
 	c.Status(http.StatusOK)
 }
+
+func (adrc *AuditDraftReportController) CompleteAuditDraftReport(c *gin.Context) {
+	auditID, err := strconv.Atoi(c.Param("auditId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	auditDraftReportID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(adrc.db, c, err.Error())
+		return
+	}
+
+	err = adrc.service.Complete(uint(auditID), uint(auditDraftReportID), currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			// Return a 403 Forbidden response with the error message
+			utility.SendForbiddenErrResp(c, e.Error())
+		default:
+			utility.SendInternalErrResp(adrc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
