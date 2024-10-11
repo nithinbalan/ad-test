@@ -3,7 +3,12 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+
 	"jethur/config"
+	commonServices "jethur/grc/common/services"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	complianceRepositories "jethur/grc/compliance/repositories"
 	logServices "jethur/grc/logs/services"
@@ -11,9 +16,6 @@ import (
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
-	"os"
-	"path/filepath"
-	"strconv"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -44,6 +46,7 @@ type SLARegisterService struct {
 	processSvc         organizationServices.ProcessServiceInterface
 	userSvc            organizationServices.UserServiceInterface
 	userSettingSvc     organizationServices.UserSettingServiceInterface
+	notificationSvc    commonServices.NotificationServiceInterface
 }
 
 func NewSLARegisterService(
@@ -55,6 +58,7 @@ func NewSLARegisterService(
 	processSvc organizationServices.ProcessServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	userSettingSvc organizationServices.UserSettingServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
 ) SLARegisterServiceInterface {
 	return &SLARegisterService{
 		repo:               repo,
@@ -65,6 +69,7 @@ func NewSLARegisterService(
 		processSvc:         processSvc,
 		userSvc:            userSvc,
 		userSettingSvc:     userSettingSvc,
+		notificationSvc:    notificationSvc,
 	}
 }
 
@@ -74,7 +79,6 @@ func (srs *SLARegisterService) GetAll(params *complianceDTOs.SLARegisterListQuer
 
 func (srs SLARegisterService) GetByID(id uint) (*models.SLARegister, error) {
 	sla, err := srs.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -89,7 +93,6 @@ func (srs SLARegisterService) GetFullDetailsByID(id uint, tx ...utility.Database
 	var slaRegisterDTO complianceDTOs.SLARegisterDetailDTO
 
 	slaRegister, err := srs.repo.GetFullDetailsByID(id, tx...)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -139,6 +142,7 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *co
 	if err != nil {
 		return 0, err
 	}
+
 	referenceNumber, err := srs.repo.GenerateReferenceNumber()
 	if err != nil {
 		return 0, err
@@ -251,7 +255,6 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *co
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -381,7 +384,7 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 
 	if slaRegisterFormDTO.Document.IsNewFile != nil && *slaRegisterFormDTO.Document.IsNewFile {
 		existingSLADocumentFileName := existingSLADocument.Name
-		//Encrypt the filename
+		// Encrypt the filename
 		dataToEncrypt := []byte(slaRegisterFormDTO.Document.FileName)
 		encryptedFilename, err := utility.EncryptData(dataToEncrypt)
 		if err != nil {
@@ -429,7 +432,6 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.UpdateAction,
@@ -550,7 +552,6 @@ func (srs *SLARegisterService) Archive(ids []uint, currentUserID uint) ([]uint, 
 	}
 
 	successfulIds, err := srs.repo.UpdateLifecycleStatusForIDs(idsToUpdate, lifecycleStatus.ID)
-
 	if err != nil {
 		return nil, err
 	}
@@ -576,7 +577,6 @@ func (srs *SLARegisterService) Archive(ids []uint, currentUserID uint) ([]uint, 
 }
 
 func (srs *SLARegisterService) Restore(ids []uint, currentUserID uint) ([]uint, error) {
-
 	lifecycleStatus, err := srs.lifecycleStatusSvc.GetByType("active")
 	if err != nil {
 		return nil, err
@@ -587,7 +587,6 @@ func (srs *SLARegisterService) Restore(ids []uint, currentUserID uint) ([]uint, 
 	}
 
 	successfulIds, err := srs.repo.UpdateLifecycleStatusForIDs(idsToUpdate, lifecycleStatus.ID)
-
 	if err != nil {
 		return nil, err
 	}
@@ -686,7 +685,6 @@ func (srs *SLARegisterService) parseSLARegisterDates(slaRegisterForm *compliance
 }
 
 func (srs *SLARegisterService) validateSLADocumentFormDTO(document *complianceDTOs.SLADocumentFormDTO) error {
-
 	//@Review
 	//All items are mandatory during creation
 
