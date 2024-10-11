@@ -207,10 +207,9 @@ func (adrs *AuditDraftReportService) GetFullDetailsByID(auditID uint, tx ...util
 	}
 
 	// Map findings
-	var acceptedByUser *organizationDTOs.UserMinimalDTO
-	var challengedByUser *organizationDTOs.UserMinimalDTO
-
 	for _, finding := range auditDraftReport.Audit.AuditDraftFindings {
+		var acceptedByUser *organizationDTOs.UserMinimalDTO = nil
+		var challengedByUser *organizationDTOs.UserMinimalDTO = nil
 		if finding.AcceptedByUser != nil {
 			acceptedByUserDTO := mapUserToUserMinimalDTO(finding.AcceptedByUser)
 			acceptedByUser = &acceptedByUserDTO
