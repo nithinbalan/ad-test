@@ -127,6 +127,7 @@ type RiskRegisterDetailDTO struct {
 	RiskSource              *RiskSourceDTO                   `json:"risk_source"`
 	ResponsibleUnit         settingsDTOs.OrganizationUnitDTO `json:"responsible_unit"`
 	ResponsibleUser         organizationDTOs.UserMinimalDTO  `json:"responsible_user"`
+	ResponsibleUserID       uint                             `json:"responsible_user_id" binding:"required" gorm:"not null"`
 	RiskStatus              RiskStatusDTO                    `json:"risk_status"`
 	Title                   string                           `json:"title"`
 	Description             *string                          `json:"description"`

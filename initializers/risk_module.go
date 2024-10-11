@@ -196,7 +196,8 @@ func NewRiskModule(db *gorm.DB,
 		complianceModule.SlaRegisterSvc,
 		riskMatrixSvc,
 		riskTimelineSvc,
-		organizationModule.UserSettingSvc)
+		organizationModule.UserSettingSvc,
+		commonModule.NotificationService)
 	riskRegisterController := controllers.NewRiskRegisterController(riskRegisterSvc)
 
 	riskRootCauseAnalysisRepo := repositories.NewRiskRootCauseAnalysisRepository(db)
