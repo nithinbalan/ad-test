@@ -6,8 +6,10 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"jethur/config"
+	commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	complianceRepositories "jethur/grc/compliance/repositories"
@@ -265,6 +267,84 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *co
 			}
 
 			utility.LogError("Failed to log activity", fields)
+		}
+
+		// Prepare notification and email
+		urlParam := fmt.Sprintf(`{"id":%d}`, id)
+		entity := "sla-register"
+		action := "responsible-user-assign"
+
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserID:               slaRegisterFormDTO.ResponsibleUserID,
+			ModuleIdentifier:     "compliance",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			HeadingEn:            "Sla Register Assignment",
+			HeadingAr:            "تعيين سجل الامتثال",
+			TitleEn:              slaRegisterFormDTO.TitleEn,
+			TitleAr:              slaRegisterFormDTO.TitleAr,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		responsibleUser, err := srs.userSvc.GetByID(slaRegisterFormDTO.ResponsibleUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		createdBy, err := srs.userSvc.GetByID(currentUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		// Assuming GetByID returns only an error and no severity level
+		severityLevel, err := srs.severityLevelSvc.GetByID(*&slaRegister.SeverityLevelID)
+		if err != nil {
+			utility.LogError("Failed to fetch severity level", map[string]interface{}{
+				"error":   err.Error(),
+				"levelID": slaRegister.SeverityLevelID,
+			})
+			return
+		}
+
+		emailTo := []string{responsibleUser.Email}
+		subject := fmt.Sprintf("Sla Register/%s: Responsibility Assigned", slaRegister.TitleEn)
+		appURL := utility.GetAppURL()
+
+		emailData := map[string]interface{}{
+			"FirstNameEn":          responsibleUser.FirstNameEn,
+			"LastNameEn":           responsibleUser.LastNameEn,
+			"ReferenceNumber":      slaRegister.ReferenceNumber,
+			"TitleEn":              slaRegister.TitleEn,
+			"TitleAr":              slaRegister.TitleAr,
+			"Description":          slaRegister.Description,
+			"SeverityLevel":        severityLevel.TitleEn,
+			"CreatedByFirstNameEn": createdBy.FirstNameEn,
+			"CreatedByLastNameEn":  createdBy.LastNameEn,
+			"AssignedOn":           time.Now().Format("2006-01-02"),
+			"RedirectURL":          fmt.Sprintf("%s/sla/register/%d", appURL, id),
+		}
+
+		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              emailTo,
+			Subject:              subject,
+			TemplateRelativePath: "sla/templates/email/sla_register_create_responsible_user_mail.html",
+			EmailData:            emailData,
+		}
+
+		err = srs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "compliance_register")
+		if err != nil {
+			utility.LogError("Failed to send notifications", map[string]interface{}{
+				"error": err.Error(),
+			})
 		}
 	}()
 

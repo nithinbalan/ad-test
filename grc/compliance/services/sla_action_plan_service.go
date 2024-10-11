@@ -271,7 +271,7 @@ func (saps *SLAActionPlanService) Create(slaID uint, currentUserID uint, slaActi
 		}
 
 		// send notification and mail
-		err = saps.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "sla_register_action_plan")
+		err = saps.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "sla_register")
 		if err != nil {
 			utility.LogError("Failed to send notifications", map[string]interface{}{
 				"error": err.Error(),
