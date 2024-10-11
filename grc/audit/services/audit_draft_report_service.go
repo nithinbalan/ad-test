@@ -27,7 +27,7 @@ type AuditDraftReportServiceInterface interface {
 	Update(auditID uint, id uint, currentUserID uint, auditDraftReportFormDTO *auditDTOs.AuditDraftReportFormDTO) error
 	Submit(auditID uint, id uint, currentUserID uint) error
 	Complete(auditID uint, id uint, currentUserID uint) error
-	Delete(auditID uint, ids []uint, currentUserID uint) ([]uint, error)
+	Delete(auditID uint, currentUserID uint) error 
 	StatusUpdate(id uint, currentUserID uint, auditDraftReportStatusID uint, nextReviewLevel int, tx utility.DatabaseTransaction) error
 }
 
@@ -478,64 +478,45 @@ func (adrs *AuditDraftReportService) Update(auditID uint, id uint, currentUserID
 	return nil
 }
 
-func (adrs *AuditDraftReportService) Delete(auditID uint, ids []uint, currentUserID uint) ([]uint, error) {
+func (adrs *AuditDraftReportService) Delete(auditID uint, currentUserID uint) error {
 	tx := adrs.repo.BeginTransaction()
-	var failedIDs []uint
-	var successfulIDs []uint
-	if _, err := adrs.auditSvc.GetByID(auditID); err != nil {
-		return nil, err
-	}
-	for _, id := range ids {
-		_, err := adrs.repo.GetFullDetailsByID(auditID, tx)
-		if err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				failedIDs = append(failedIDs, id)
-				continue
-			}
-			tx.Rollback()
-			return nil, err
-		}
-
-		if err := adrs.repo.Delete(id, tx); err != nil {
-			failedIDs = append(failedIDs, id)
-			continue
-		}
-
-		successfulIDs = append(successfulIDs, id)
-	}
-
-	if len(successfulIDs) > 0 {
-		tx.Commit()
-
-		go func() {
-			for _, id := range successfulIDs {
-				err := adrs.activityLogSvc.LogActivity(
-					models.DeleteAction,
-					models.AuditDraftReport{}.TableName(),
-					id,
-					nil,
-					currentUserID,
-					nil,
-				)
-
-				if err != nil {
-					fields := map[string]interface{}{
-						"action":    models.DeleteAction,
-						"tableName": models.AuditDraftReport{}.TableName(),
-						"recordID":  id,
-						"userID":    currentUserID,
-						"error":     err.Error(),
-					}
-
-					utility.LogError("Failed to log activity", fields)
-				}
-			}
-		}()
-	} else {
+	auditDraftReport, err := adrs.repo.GetFullDetailsByID(auditID, tx)
+	if err != nil {
 		tx.Rollback()
+		return err
 	}
 
-	return failedIDs, nil
+	if err := adrs.repo.Delete(auditDraftReport.ID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	tx.Commit()
+
+	go func() {
+		err := adrs.activityLogSvc.LogActivity(
+			models.DeleteAction,
+			models.AuditDraftReport{}.TableName(),
+			auditDraftReport.ID,
+			nil,
+			currentUserID,
+			nil,
+		)
+
+		if err != nil {
+			fields := map[string]interface{}{
+				"action":    models.DeleteAction,
+				"tableName": models.AuditDraftReport{}.TableName(),
+				"recordID":  auditDraftReport.ID,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			}
+
+			utility.LogError("Failed to log activity", fields)
+		}
+	}()
+
+
+	return nil
 }
 
 func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID uint) error {

@@ -129,14 +129,6 @@ func (adrc *AuditDraftReportController) DeleteAuditDraftReports(c *gin.Context) 
 		utility.SendNotFoundErrResp(c)
 		return
 	}
-	var request struct {
-		IDs []uint `json:"ids"`
-	}
-
-	if err := c.ShouldBindJSON(&request); err != nil {
-		utility.SendInvalidErrResp(c, err)
-		return
-	}
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
@@ -144,13 +136,13 @@ func (adrc *AuditDraftReportController) DeleteAuditDraftReports(c *gin.Context) 
 		return
 	}
 
-	failedIDs, err := adrc.service.Delete(uint(auditID), request.IDs, currentUserID)
+	err = adrc.service.Delete(uint(auditID), currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(adrc.db, c, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+	c.Status(http.StatusOK)
 }
 
 func (adrc *AuditDraftReportController) SubmitAuditDraftReport(c *gin.Context) {
