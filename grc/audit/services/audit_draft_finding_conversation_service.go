@@ -176,14 +176,8 @@ func (adfcs *AuditDraftFindingConversationService) Create(auditDraftFindingID ui
 			tx.Rollback()
 			return 0, err
 		}
-		auditDraftFindingStatusOpen, err := adfcs.auditDraftFindingStatusSvc.GetByType("open")
-		if err != nil {
-			tx.Rollback()
-			return 0, err
-		}
-		if existingAuditDraftFinding.AuditDraftFindingStatusID != auditDraftFindingStatusOpen.ID {
-			tx.Rollback()
-			return 0, utility.NewForbiddenError("Action not allowed. The audit finding must be in 'Open' status before any further actions can be taken.")
+		if existingAuditDraftFinding.AuditDraftFindingStatus != nil && existingAuditDraftFinding.AuditDraftFindingStatus.IsFinalized {
+			return 0, utility.NewForbiddenError("Action not allowed. The audit finding must be in not finalized' status before any further actions can be taken.")
 		}
 		// Update Audit Draft Finding Status
 		if err := adfcs.auditDraftFindingSvc.StatusUpdate(auditDraftFindingID, currentUserID, auditDraftFindingStatusDismissed.ID); err != nil {
