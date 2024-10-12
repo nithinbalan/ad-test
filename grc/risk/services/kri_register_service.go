@@ -245,7 +245,7 @@ func (krs *KRIRegisterService) Create(currentUserID uint, kriRegisterFormDTO *ri
 			EmailData:            emailData,
 		}
 
-		err = krs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "risk")
+		err = krs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "kri_register")
 		if err != nil {
 			utility.LogError("Failed to send notifications", map[string]interface{}{
 				"error": err.Error(),
@@ -436,14 +436,14 @@ func (krs *KRIRegisterService) Update(id uint, currentUserID uint, kriRegisterFo
 			}
 
 			// Send notifications and emails
-			err = krs.notificationSvc.SendNotification(newResponsibleUserNotificationDTO, newResponsibleUserEmailNotificationDTO, "risk")
+			err = krs.notificationSvc.SendNotification(newResponsibleUserNotificationDTO, newResponsibleUserEmailNotificationDTO, "kri_register")
 			if err != nil {
 				utility.LogError("Failed to send notifications to new responsible user", map[string]interface{}{
 					"error": err.Error(),
 				})
 			}
 
-			err = krs.notificationSvc.SendNotification(oldResponsibleUserNotificationDTO, oldResponsibleUserEmailNotificationDTO, "risk")
+			err = krs.notificationSvc.SendNotification(oldResponsibleUserNotificationDTO, oldResponsibleUserEmailNotificationDTO, "kri_register")
 			if err != nil {
 				utility.LogError("Failed to send notifications to old responsible user", map[string]interface{}{
 					"error": err.Error(),
@@ -580,7 +580,7 @@ func (krs *KRIRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 
 				// Send DB and email notifications
 				err = krs.notificationSvc.SendNotification(
-					dbNotificationDTO, emailNotificationDTO, "risk")
+					dbNotificationDTO, emailNotificationDTO, "kri_register")
 				if err != nil {
 					utility.LogError("Failed to send deletion notifications", map[string]interface{}{
 						"error": err.Error(),
