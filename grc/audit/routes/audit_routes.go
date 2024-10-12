@@ -326,5 +326,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	unauthenticatedRoutes.GET("/audits/:auditId/draft-reports/:id/comments/:commentId/document-download", auditDraftReportCommentController.DownloadAuditDraftReportCommentDocument)
 	auditRoutes.GET("/audits/:auditId/draft-reports/:id/review-history", auditDraftReportReviewController.GetAllAuditDraftReportReviews)
 
+	auditRoutes.GET("/audit-plans/:planId/commencement-letters", auditPlanCommencementLetterController.GetAllAuditPlanCommencementLetters)
+	auditRoutes.GET("/audit-plans/:planId/commencement-letters/:id", auditPlanCommencementLetterController.GetAuditPlanCommencementLetterDetails)
 	auditRoutes.POST("/audit-plans/:planId/commencement-letters", auditPlanCommencementLetterController.CreateAuditPlanCommencementLetters)
+	auditRoutes.PUT("/audit-plans/:planId/commencement-letters/:id", auditPlanCommencementLetterController.UpdateAuditPlanCommencementLetter)
+	auditRoutes.DELETE("/audit-plans/:planId/commencement-letters/:id", auditPlanCommencementLetterController.DeleteAuditPlanCommencementLetter)
+
 }
