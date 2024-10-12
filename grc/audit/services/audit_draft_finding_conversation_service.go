@@ -8,6 +8,8 @@ import (
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
+	"path/filepath"
+	"strconv"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -138,7 +140,7 @@ func (adfcs *AuditDraftFindingConversationService) Create(auditDraftFindingID ui
 
 	conversation := &models.AuditDraftFindingConversation{
 		AuditDraftFindingID: auditDraftFindingID,
-		Comment:         formDTO.Comment,
+		Comment:             formDTO.Comment,
 		Type:                formDTO.Type,
 		IsAccepted:          *formDTO.IsAccepted,
 		IsDismissed:         *formDTO.IsDismissed,
@@ -185,7 +187,43 @@ func (adfcs *AuditDraftFindingConversationService) Create(auditDraftFindingID ui
 			return 0, err
 		}
 	}
+	var documents []*models.AuditDraftFindingConversationDocument
+	for _, doc := range formDTO.Documents {
+		encryptedFilename, err := utility.EncryptData([]byte(doc.FileName))
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
 
+		url := utility.GenerateDocumentURL("audits", "audit", strconv.FormatUint(uint64(existingAuditDraftFinding.AuditID), 10), "draft-findings", strconv.FormatUint(uint64(auditDraftFindingID), 10), "conversations", strconv.FormatUint(uint64(id), 10), "documents", encryptedFilename)
+
+		document := &models.AuditDraftFindingConversationDocument{
+			AuditDraftFindingConversationID: id,
+			URL:                             url,
+			Name:                            doc.FileName,
+			Size:                            doc.Size,
+			Token:                           encryptedFilename,
+			OriginalName:                    doc.OriginalName,
+			Type:                            doc.Type,
+			CreatedBYID:                     currentUserID,
+		}
+
+		documents = append(documents, document)
+	}
+
+	if len(documents) > 0 {
+		if err := adfcs.repo.CreateDocuments(documents, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+		for _, doc := range documents {
+			storagePath := filepath.Join("audits", "audit", strconv.FormatUint(uint64(existingAuditDraftFinding.AuditID), 10), "draft-findings", strconv.FormatUint(uint64(auditDraftFindingID), 10), "conversations", strconv.FormatUint(uint64(id), 10), "documents")
+			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+		}
+	}
 	tx.Commit()
 
 	go func() {
@@ -212,10 +250,11 @@ func (adfcs *AuditDraftFindingConversationService) Create(auditDraftFindingID ui
 	return id, nil
 }
 
-func (adfcs *AuditDraftFindingConversationService) Update(auditDraftFindingID uint, id uint, currentUserID uint, AuditDraftFindingConversationFormDTO *dtos.AuditDraftFindingConversationFormDTO) error {
+func (adfcs *AuditDraftFindingConversationService) Update(auditDraftFindingID uint, id uint, currentUserID uint, auditDraftFindingConversationFormDTO *dtos.AuditDraftFindingConversationFormDTO) error {
 	tx := adfcs.repo.BeginTransaction()
 
-	if _, err := adfcs.auditDraftFindingSvc.GetByID(auditDraftFindingID); err != nil {
+	existingAuditDraftFinding, err := adfcs.auditDraftFindingSvc.GetByID(auditDraftFindingID)
+	if err != nil {
 		return err
 	}
 
@@ -226,8 +265,8 @@ func (adfcs *AuditDraftFindingConversationService) Update(auditDraftFindingID ui
 	}
 
 	// Update Audit Finding ActionPlan
-	existingAuditDraftFindingConversation.Comment = AuditDraftFindingConversationFormDTO.Comment
-	existingAuditDraftFindingConversation.Type = AuditDraftFindingConversationFormDTO.Type
+	existingAuditDraftFindingConversation.Comment = auditDraftFindingConversationFormDTO.Comment
+	existingAuditDraftFindingConversation.Type = auditDraftFindingConversationFormDTO.Type
 	existingAuditDraftFindingConversation.UpdatedBYID = &currentUserID
 
 	err = adfcs.repo.Update(existingAuditDraftFindingConversation, tx)
@@ -235,7 +274,87 @@ func (adfcs *AuditDraftFindingConversationService) Update(auditDraftFindingID ui
 	if err != nil {
 		return err
 	}
+	auditID := existingAuditDraftFinding.AuditID
+	//update document
+	var documents []*models.AuditDraftFindingConversationDocument
+	var deleteDocumentIds []*uint
+	var documentsToDelete []*models.AuditDraftFindingConversationDocument
 
+	for _, doc := range auditDraftFindingConversationFormDTO.Documents {
+		if doc.IsNewFile != nil && *doc.IsNewFile {
+			// Encrypt the filename
+			dataToEncrypt := []byte(doc.FileName)
+			encryptedFileName, err := utility.EncryptData(dataToEncrypt)
+
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			//genereate URL
+			url := utility.GenerateDocumentURL("audits", "audit", strconv.FormatUint(uint64(auditID), 10), "draft-findings", strconv.FormatUint(uint64(auditDraftFindingID), 10), "conversations", strconv.FormatUint(uint64(id), 10), "documents", encryptedFileName)
+
+			// Create a new Control test Document instance
+			document := &models.AuditDraftFindingConversationDocument{
+				AuditDraftFindingConversationID: id,
+				URL:                             url,
+				Name:                            doc.FileName,
+				Size:                            doc.Size,
+				Token:                           encryptedFileName,
+				OriginalName:                    doc.OriginalName,
+				Type:                            doc.Type,
+				CreatedBYID:                     currentUserID,
+			}
+
+			// Append the document to the slice
+			documents = append(documents, document)
+
+		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
+			if doc.ID != nil {
+				existingDocument, err := adfcs.repo.GetDocumentByID(*doc.ID)
+				if err != nil {
+					if errors.Is(err, gorm.ErrRecordNotFound) {
+						return utility.NewResourceNotFoundError(err, id)
+					}
+					return err
+				}
+
+				documentsToDelete = append(documentsToDelete, existingDocument)
+				deleteDocumentIds = append(deleteDocumentIds, &existingDocument.ID)
+			}
+		}
+	}
+
+	if len(documents) > 0 {
+		if err := adfcs.repo.CreateDocuments(documents, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	if len(deleteDocumentIds) > 0 {
+		if err := adfcs.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	for _, doc := range documents {
+		storagePath := filepath.Join("audits", "audit", strconv.FormatUint(uint64(auditID), 10), "draft-findings", strconv.FormatUint(uint64(auditDraftFindingID), 10), "conversations", strconv.FormatUint(uint64(id), 10), "documents")
+
+		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	for _, document := range documentsToDelete {
+		storagePath := filepath.Join("audits", "audit", strconv.FormatUint(uint64(auditID), 10), "draft-findings", strconv.FormatUint(uint64(auditDraftFindingID), 10), "conversations", strconv.FormatUint(uint64(id), 10), "documents")
+		if err := utility.RemoveFile(document.Name, storagePath); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
 	tx.Commit()
 
 	return nil
@@ -243,26 +362,57 @@ func (adfcs *AuditDraftFindingConversationService) Update(auditDraftFindingID ui
 
 func (adfcs *AuditDraftFindingConversationService) Delete(auditDraftFindingID uint, ids []uint, currentUserID uint) ([]uint, error) {
 	tx := adfcs.repo.BeginTransaction()
-
-	if _, err := adfcs.auditDraftFindingSvc.GetByID(auditDraftFindingID); err != nil {
+	existingAuditDraftFinding, err := adfcs.auditDraftFindingSvc.GetByID(auditDraftFindingID)
+	if err != nil {
 		return nil, err
 	}
+	auditID := existingAuditDraftFinding.AuditID
 
 	var failedIds []uint
 	var successfulIds []uint
+	documentsToDelete := make(map[uint][]*dtos.AuditDraftFindingConversationDocumentDTO)
+
 	for _, id := range ids {
-
-		_, err := adfcs.GetFullDetailsByID(auditDraftFindingID, id)
-
+		auditDraftFindingConversation, err := adfcs.GetFullDetailsByID(auditDraftFindingID, id)
 		if err != nil {
 			continue
 		}
+		if len(auditDraftFindingConversation.Documents) > 0 {
+			var deleteDocumentIds []*uint
+			for _, doc := range auditDraftFindingConversation.Documents {
+				if doc != nil {
+					documentsToDelete[id] = append(documentsToDelete[id], doc)
+					deleteDocumentIds = append(deleteDocumentIds, &doc.ID)
+				}
+			}
+			if err := adfcs.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
 
+		}
 		err = adfcs.repo.Delete(id, tx)
 		if err != nil {
 			failedIds = append(failedIds, id)
 		} else {
 			successfulIds = append(successfulIds, id)
+		}
+	}
+	if len(failedIds) > 0 {
+		tx.Rollback()
+		return failedIds, nil
+	}
+	// Deleting files should not affect the main operation result
+	if len(successfulIds) > 0 {
+		for auditDraftFindingConversationID, documents := range documentsToDelete {
+			for _, doc := range documents {
+				fmt.Println("filename=", doc.Name)
+				storagePath := filepath.Join("audits", "audit", strconv.FormatUint(uint64(auditID), 10), "draft-findings", strconv.FormatUint(uint64(auditDraftFindingID), 10), "conversations", strconv.FormatUint(uint64(auditDraftFindingConversationID), 10), "documents")
+				if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
+					tx.Rollback()
+					fmt.Printf("Failed to delete file at URL %s: %v\n", doc.URL, err)
+				}
+			}
 		}
 	}
 	tx.Commit()
