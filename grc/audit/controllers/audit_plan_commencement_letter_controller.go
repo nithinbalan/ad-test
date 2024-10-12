@@ -181,3 +181,47 @@ func (apclc *AuditPlanCommencementLetterController) DeleteAuditPlanCommencementL
 
 	c.JSON(http.StatusOK, gin.H{"failed_id": failedID})
 }
+
+func (apclc *AuditPlanCommencementLetterController) SendAuditPlanCommencementLetter(c *gin.Context) {
+	auditPlanID, err := strconv.Atoi(c.Param("planId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	commencementLetterID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	var commencementLetterSendFormDTO auditDTOs.AuditPlanCommencementLetterSendFormDTO
+
+	if err := c.ShouldBindJSON(&commencementLetterSendFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(apclc.db, c, err.Error())
+		return
+	}
+
+	err = apclc.service.Send(uint(auditPlanID), uint(commencementLetterID), currentUserID, &commencementLetterSendFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(apclc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}

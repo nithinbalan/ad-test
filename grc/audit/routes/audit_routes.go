@@ -331,5 +331,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.POST("/audit-plans/:planId/commencement-letters", auditPlanCommencementLetterController.CreateAuditPlanCommencementLetters)
 	auditRoutes.PUT("/audit-plans/:planId/commencement-letters/:id", auditPlanCommencementLetterController.UpdateAuditPlanCommencementLetter)
 	auditRoutes.DELETE("/audit-plans/:planId/commencement-letters/:id", auditPlanCommencementLetterController.DeleteAuditPlanCommencementLetter)
+	auditRoutes.PUT("/audit-plans/:planId/commencement-letters/:id/send", auditPlanCommencementLetterController.SendAuditPlanCommencementLetter)
 
 }

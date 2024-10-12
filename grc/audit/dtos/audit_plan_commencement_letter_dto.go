@@ -64,3 +64,10 @@ type AuditPlanCommencementLetterDetailDTO struct {
 	UpdatedByUser *organizationDTOs.UserMinimalDTO `json:"updated_by"`
 	AuditPlan     *AuditPlanDetailDTO              `json:"audit_plan"`
 }
+
+type AuditPlanCommencementLetterSendFormDTO struct {
+	ToUserIDs  []uint  `json:"to_user_ids" binding:"required"`
+	ToEmailIDs *string `json:"to_email_ids"`
+	CCUserIDs  []*uint `json:"cc_user_ids"`
+	CCEmailIDs string  `json:"cc_email_ids"`
+}

@@ -8,6 +8,8 @@ type AuditPlanCommencementLetter struct {
 	ID                uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	AuditPlanID       uint       `json:"audit_plan_id" binding:"required" gorm:"not null"`
 	ResponsibleUnitID uint       `json:"responsible_unit_id" binding:"required" gorm:"not null"`
+	ToEmailIDs        *string    `json:"to_email_ids" gorm:"type:text;default:null"`
+	CCEmailIDs        *string    `json:"cc_email_ids" gorm:"type:text;default:null"`
 	SubjectEn         string     `json:"subject_en" gorm:"type:nvarchar(255);not null"`
 	SubjectAr         string     `json:"subject_ar" gorm:"type:nvarchar(255);not null"`
 	BodyEn            string     `json:"body_en" gorm:"type:text;not null"`

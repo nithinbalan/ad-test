@@ -14,8 +14,11 @@ type AuditPlanCommencementLetterRepositoryInterface interface {
 	GetByID(id uint) (*models.AuditPlanCommencementLetter, error)
 	GetFullDetailsByID(auditPlanID uint, letterID uint, tx ...utility.DatabaseTransaction) (*models.AuditPlanCommencementLetter, error)
 	Create(auditPlanCommencementLetter *models.AuditPlanCommencementLetter, tx ...utility.DatabaseTransaction) (uint, error)
-	Update(commencementLetter *models.AuditPlanCommencementLetter) error
+	Update(commencementLetter *models.AuditPlanCommencementLetter, tx ...utility.DatabaseTransaction) error
 	Delete(id uint) error
+
+	CreateToUser(toUser *models.AuditPlanCommencementLetterToUserID, tx ...utility.DatabaseTransaction) error
+	CreateCCUser(ccUser *models.AuditPlanCommencementLetterCCUserID, tx ...utility.DatabaseTransaction) error
 }
 
 type AuditPlanCommencementLetterRepository struct {
@@ -136,8 +139,12 @@ func (repo *AuditPlanCommencementLetterRepository) Create(auditPlanCommencementL
 	return auditPlanCommencementLetter.ID, nil
 }
 
-func (repo *AuditPlanCommencementLetterRepository) Update(commencementLetter *models.AuditPlanCommencementLetter) error {
-	if err := repo.db.Save(commencementLetter).Error; err != nil {
+func (repo *AuditPlanCommencementLetterRepository) Update(commencementLetter *models.AuditPlanCommencementLetter, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(commencementLetter).Error; err != nil {
 		return err
 	}
 
@@ -150,5 +157,29 @@ func (repo *AuditPlanCommencementLetterRepository) Delete(id uint) error {
 		return err
 	}
 
+	return nil
+}
+
+func (repo *AuditPlanCommencementLetterRepository) CreateToUser(toUser *models.AuditPlanCommencementLetterToUserID, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Create(toUser).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *AuditPlanCommencementLetterRepository) CreateCCUser(ccUser *models.AuditPlanCommencementLetterCCUserID, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Create(ccUser).Error; err != nil {
+		return err
+	}
 	return nil
 }

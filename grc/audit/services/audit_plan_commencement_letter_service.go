@@ -6,7 +6,6 @@ import (
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
 	logServices "jethur/grc/logs/services"
-	organizationDTOs "jethur/grc/organization/dtos"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
 	"time"
@@ -24,6 +23,7 @@ type AuditPlanCommencementLetterServiceInterface interface {
 	Create(auditPlanId uint, currentUserID uint) error
 	Update(auditPlanID uint, letterID uint, currentUserID uint, commencementLetterFormDTO *auditDTOs.AuditPlanCommencementLetterFormDTO) error
 	Delete(auditPlanID uint, letterID uint, currentUserID uint) (uint, error)
+	Send(auditPlanID uint, letterID uint, currentUserID uint, commencementLetterSendFormDTO *auditDTOs.AuditPlanCommencementLetterSendFormDTO) error
 }
 
 type AuditPlanCommencementLetterService struct {
@@ -97,12 +97,6 @@ func (aps *AuditPlanCommencementLetterService) Create(auditPlanId uint, currentU
 		return err
 	}
 
-	fromUser, err := aps.userSvc.GetFullDetailsByID(*auditPlanDetails.TeamLeadID)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
 	// Group Auditable Items by ResponsibleUnitID
 	unitToItemsMap := make(map[uint][]*auditDTOs.AuditPlanAuditableItemDTO)
 	for _, item := range auditPlanDetails.AuditableItems {
@@ -114,8 +108,8 @@ func (aps *AuditPlanCommencementLetterService) Create(auditPlanId uint, currentU
 	for unitID, auditableItems := range unitToItemsMap {
 		subjectEn := fmt.Sprintf("Audit Commencement Letter - %s", auditPlanDetails.Title)
 		subjectAr := fmt.Sprintf("خطاب بدء التدقيق - %s", auditPlanDetails.Title)
-		bodyEn := generateLetterBodyEn(auditableItems, auditPlanDetails, fromUser)
-		bodyAr := generateLetterBodyAr(auditableItems, auditPlanDetails, fromUser)
+		bodyEn := generateLetterBodyEn(auditableItems, auditPlanDetails)
+		bodyAr := generateLetterBodyAr(auditableItems, auditPlanDetails)
 
 		commencementLetter := &models.AuditPlanCommencementLetter{
 			AuditPlanID:       auditPlanId,
@@ -202,7 +196,63 @@ func (aps *AuditPlanCommencementLetterService) Delete(auditPlanID uint, letterID
 	return failedID, nil
 }
 
-func generateLetterBodyEn(auditableItems []*auditDTOs.AuditPlanAuditableItemDTO, auditPlan *auditDTOs.AuditPlanDetailDTO, fromUser *organizationDTOs.UserDetailsDTO) string {
+func (aps *AuditPlanCommencementLetterService) Send(auditPlanID uint, letterID uint, currentUserID uint, commencementLetterSendFormDTO *auditDTOs.AuditPlanCommencementLetterSendFormDTO) error {
+	if _, err := aps.auditPlanSvc.GetByID(auditPlanID); err != nil {
+		return err
+	}
+
+	existingCommencementLetter, err := aps.GetByID(auditPlanID, letterID)
+	if err != nil {
+		return err
+	}
+
+	tx := aps.repo.BeginTransaction()
+
+	existingCommencementLetter.ToEmailIDs = commencementLetterSendFormDTO.ToEmailIDs
+	existingCommencementLetter.CCEmailIDs = &commencementLetterSendFormDTO.CCEmailIDs
+	existingCommencementLetter.UpdatedBYID = &currentUserID
+
+	err = aps.repo.Update(existingCommencementLetter, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Handle ToUserIDs - Loop over the to_user_ids from the DTO
+	for _, userID := range commencementLetterSendFormDTO.ToUserIDs {
+		toUser := &models.AuditPlanCommencementLetterToUserID{
+			AuditPlanCommencementLetterID: letterID,
+			UserID:                        userID,
+			CreatedByID:                   currentUserID,
+		}
+
+		err := aps.repo.CreateToUser(toUser, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	for _, ccUserID := range commencementLetterSendFormDTO.CCUserIDs {
+		ccUser := &models.AuditPlanCommencementLetterCCUserID{
+			AuditPlanCommencementLetterID: letterID,
+			UserID:                        *ccUserID,
+			CreatedByID:                   currentUserID,
+		}
+
+		err := aps.repo.CreateCCUser(ccUser, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	tx.Commit()
+
+	return nil
+}
+
+func generateLetterBodyEn(auditableItems []*auditDTOs.AuditPlanAuditableItemDTO, auditPlan *auditDTOs.AuditPlanDetailDTO) string {
 	auditScope := ""
 	var responsibleUnitName string
 
@@ -237,7 +287,7 @@ Thank you,
 	return body
 }
 
-func generateLetterBodyAr(auditableItems []*auditDTOs.AuditPlanAuditableItemDTO, auditPlan *auditDTOs.AuditPlanDetailDTO, fromUser *organizationDTOs.UserDetailsDTO) string {
+func generateLetterBodyAr(auditableItems []*auditDTOs.AuditPlanAuditableItemDTO, auditPlan *auditDTOs.AuditPlanDetailDTO) string {
 	auditScope := ""
 	var responsibleUnitName string
 
