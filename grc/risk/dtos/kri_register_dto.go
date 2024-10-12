@@ -111,6 +111,7 @@ type KRIRegisterDetailsDTO struct {
 	KRICategory            KRICategoryDTO                    `json:"kri_category"`
 	ResponsibleUnit        *settingsDTOs.OrganizationUnitDTO `json:"responsible_unit"`
 	ResponsibleUser        *organizationDTOs.UserMinimalDTO  `json:"responsible_user"`
+	ResponsibleUserID      uint                              `json:"responsible_user_id" binding:"required" gorm:"not null"`
 	ReviewFrequency        masterDTOs.ReviewFrequencyDTO     `json:"review_frequency"`
 	RiskLevel              *RiskLevelDTO                     `json:"risk_level"`
 	Unit                   *masterDTOs.UnitDTO               `json:"unit"`
