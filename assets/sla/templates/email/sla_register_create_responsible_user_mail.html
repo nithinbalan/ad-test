@@ -1,8 +1,8 @@
 {{ define "content" }}
 <p>Dear {{ .FirstNameEn }} {{ .LastNameEn }},</p>
 <p>
-    We wanted to let you know that You have been assigned as the responsible person for the SLA titled  <strong>{{ .TitleEn }}</strong>. Below are the details of the assigned SLA Register:
-</p>
+    We wanted to let you know that You have been assigned as the responsible person for the Sla titled <strong>{{ .TitleEn }}</strong>. Below are the details of the assigned Sla Register:
+  </p>
 
 <table style="width: 100%; background-color: #fff; border-collapse: collapse; margin: 20px 0;">
     <tbody>
@@ -21,7 +21,8 @@
         <tr style="border: 1px solid #EAEDF2;">
             <th style="text-align: left; width: 30%; padding: 7px; background-color: #F6F6F6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #525967;">Description</th>
             <td style="text-align: center; padding: 7px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1E1E1E;">{{.Description}}</td>
-        </tr><tr style="border: 1px solid #EAEDF2;">
+        </tr>
+        <tr style="border: 1px solid #EAEDF2;">
             <th style="text-align: left; width: 30%; padding: 7px; background-color: #F6F6F6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #525967;">Severity Level</th>
             <td style="text-align: center; padding: 7px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1E1E1E;">{{.SeverityLevel}}</td>
         </tr>
@@ -36,12 +37,12 @@
     </tbody>
 </table>
 
-<p>Please log into the system to review the action plan details and take the necessary actions.</p>
+<p>Please log into the system to review the Sla register details and take the necessary actions.</p>
 
 <div style="text-align: center;">
-    <a href="{{.RedirectURL}}" style="background-color: #165D31; color: #ffffff; padding: 10px 20px; text-align: center; text-decoration: none; border-radius: 4px; display: inline-block; margin-top: 30px;">View Action Plan</a>
+    <a href="{{.RedirectURL}}" style="background-color: #165D31; color: #ffffff; padding: 10px 20px; text-align: center; text-decoration: none; border-radius: 4px; display: inline-block; margin-top: 30px;">View Sla Register</a>
 </div>
 
-<p>Thank you for your prompt attention to this matter. Your efforts in managing action plans are crucial to maintaining the Sla effectiveness.</p>
+<p>Thank you for your prompt attention to this matter. Your efforts in managing Sla are crucial to maintaining the organization's effectiveness.</p>
 
 {{ end }}
