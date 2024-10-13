@@ -161,6 +161,7 @@ type IncidentRegisterDetailDTO struct {
 	Processes              []*IncidentProcessDTO               `json:"processes"`
 	ResponsibleUnit        settingsDTOs.OrganizationUnitDTO    `json:"responsible_unit"`
 	ResponsibleUser        organizationDTOs.UserMinimalDTO     `json:"responsible_user"`
+	ResponsibleUserID      uint                                `json:"responsible_user_id" binding:"required" gorm:"not null"`
 	SLARegisters           []*IncidentSLARegisterDTO           `json:"sla_registers"`
 	AssociatedDocuments    []*IncidentAssociatedDocumentDTO    `json:"associated_documents"`
 	CreatedAt              time.Time                           `json:"created_at"`
