@@ -396,6 +396,7 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		sharedModule.ActivityLogService,
 		auditPlanSvc,
 		organizationModule.UserSvc,
+		commonModule.NotificationService,
 	)
 	auditPlanCommencementLetterController := controllers.NewAuditPlanCommencementLetterController(auditPlanCommencementLetterSvc)
 

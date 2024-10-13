@@ -5,12 +5,13 @@ import (
 	"fmt"
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
+	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
 	"time"
-
-	"jethur/grc/models"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -27,10 +28,11 @@ type AuditPlanCommencementLetterServiceInterface interface {
 }
 
 type AuditPlanCommencementLetterService struct {
-	repo           repositories.AuditPlanCommencementLetterRepositoryInterface
-	activityLogSvc logServices.ActivityLogServiceInterface
-	auditPlanSvc   AuditPlanServiceInterface
-	userSvc        organizationServices.UserServiceInterface
+	repo            repositories.AuditPlanCommencementLetterRepositoryInterface
+	activityLogSvc  logServices.ActivityLogServiceInterface
+	auditPlanSvc    AuditPlanServiceInterface
+	userSvc         organizationServices.UserServiceInterface
+	notificationSvc commonServices.NotificationServiceInterface
 }
 
 func NewAuditPlanCommencementLetterService(
@@ -38,12 +40,14 @@ func NewAuditPlanCommencementLetterService(
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	auditPlanSvc AuditPlanServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
 ) AuditPlanCommencementLetterServiceInterface {
 	return &AuditPlanCommencementLetterService{
-		repo:           repo,
-		activityLogSvc: activityLogSvc,
-		auditPlanSvc:   auditPlanSvc,
-		userSvc:        userSvc,
+		repo:            repo,
+		activityLogSvc:  activityLogSvc,
+		auditPlanSvc:    auditPlanSvc,
+		userSvc:         userSvc,
+		notificationSvc: notificationSvc,
 	}
 }
 
@@ -247,7 +251,60 @@ func (aps *AuditPlanCommencementLetterService) Send(auditPlanID uint, letterID u
 		}
 	}
 
+	fromUser, err := aps.userSvc.GetByID(existingCommencementLetter.FromUserID)
+	if err != nil {
+		return err
+	}
+
 	tx.Commit()
+
+	go func() {
+		// Prepare notification
+		entity := "audit-plan-commencement-letter"
+		action := "send"
+
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserID:               currentUserID,
+			ModuleIdentifier:     "audit",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			HeadingEn:            "Audit Commencement Letter Sent",
+			HeadingAr:            "تم إرسال خطاب بدء التدقيق",
+			TitleEn:              "Audit Commencement Letter",
+			TitleAr:              "خطاب بدء التدقيق",
+			Entity:               &entity,
+			Action:               &action,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		emailTo := []string{fromUser.Email}
+		subject := fmt.Sprintf("Audit Commencement Letter/%s", existingCommencementLetter.SubjectEn)
+
+		emailData := map[string]interface{}{
+			"FirstNameEn": fromUser.FirstNameEn,
+			"LastNameEn":  fromUser.LastNameEn,
+			"SubjectEn":   existingCommencementLetter.SubjectEn,
+			"SubjectAr":   existingCommencementLetter.SubjectAr,
+			"BodyEn":      existingCommencementLetter.BodyEn,
+			"BodyAr":      existingCommencementLetter.BodyAr,
+			"SentOn":      time.Now().Format("2006-01-02"),
+		}
+
+		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              emailTo,
+			Subject:              subject,
+			TemplateRelativePath: "audit/templates/email/audit_commencement_letter_send.html",
+			EmailData:            emailData,
+		}
+
+		// Send Notifications and Email
+		err = aps.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "audit")
+		if err != nil {
+			utility.LogError("Failed to send notifications", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
+	}()
 
 	return nil
 }

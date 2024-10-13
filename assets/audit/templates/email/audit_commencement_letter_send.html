@@ -1,0 +1,33 @@
+{{ define "content" }}
+<p>Dear {{ .FirstNameEn }} {{ .LastNameEn }},</p>
+<p>
+    The following audit commencement letter has been sent:
+</p>
+
+<table style="width: 100%; background-color: #fff; border-collapse: collapse; margin: 20px 0;">
+    <tbody>
+        <tr>
+            <th style="text-align: left; padding: 7px;">Subject (EN)</th>
+            <td>{{.SubjectEn}}</td>
+        </tr>
+        <tr>
+            <th style="text-align: left; padding: 7px;">Subject (AR)</th>
+            <td>{{.SubjectAr}}</td>
+        </tr>
+        <tr>
+            <th style="text-align: left; padding: 7px;">Body (EN)</th>
+            <td>{{.BodyEn}}</td>
+        </tr>
+        <tr>
+            <th style="text-align: left; padding: 7px;">Body (AR)</th>
+            <td>{{.BodyAr}}</td>
+        </tr>
+        <tr>
+            <th style="text-align: left; padding: 7px;">Sent On</th>
+            <td>{{.SentOn}}</td>
+        </tr>
+    </tbody>
+</table>
+
+<p>Please contact us if you have any questions regarding this letter.</p>
+{{ end }}
