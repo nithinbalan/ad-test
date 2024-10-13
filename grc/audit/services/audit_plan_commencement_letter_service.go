@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"html/template"
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
 	commonDTOs "jethur/grc/common/dtos"
@@ -11,6 +12,7 @@ import (
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
+	"strings"
 	"time"
 
 	"github.com/mitchellh/mapstructure"
@@ -278,21 +280,19 @@ func (aps *AuditPlanCommencementLetterService) Send(auditPlanID uint, letterID u
 		}
 
 		emailTo := []string{fromUser.Email}
-		subject := fmt.Sprintf("Audit Commencement Letter/%s", existingCommencementLetter.SubjectEn)
+		// subject := fmt.Sprintf("Audit Commencement Letter/%s", existingCommencementLetter.SubjectEn)
 
 		emailData := map[string]interface{}{
 			"FirstNameEn": fromUser.FirstNameEn,
 			"LastNameEn":  fromUser.LastNameEn,
 			"SubjectEn":   existingCommencementLetter.SubjectEn,
-			"SubjectAr":   existingCommencementLetter.SubjectAr,
-			"BodyEn":      existingCommencementLetter.BodyEn,
-			"BodyAr":      existingCommencementLetter.BodyAr,
+			"BodyEn":      template.HTML(strings.ReplaceAll(existingCommencementLetter.BodyEn, "\n", "<br>")),
 			"SentOn":      time.Now().Format("2006-01-02"),
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 			EmailTo:              emailTo,
-			Subject:              subject,
+			Subject:              existingCommencementLetter.SubjectEn,
 			TemplateRelativePath: "audit/templates/email/audit_commencement_letter_send.html",
 			EmailData:            emailData,
 		}
