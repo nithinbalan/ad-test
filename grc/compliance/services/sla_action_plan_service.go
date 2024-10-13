@@ -266,7 +266,7 @@ func (saps *SLAActionPlanService) Create(slaID uint, currentUserID uint, slaActi
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 			EmailTo:              emailTo,
 			Subject:              subject,
-			TemplateRelativePath: "sla/templates/email/sla_action_plan_create_responsible_user_mail.html",
+			TemplateRelativePath: "compliance/templates/email/sla_action_plan_create_responsible_user_mail.html",
 			EmailData:            emailData,
 		}
 
@@ -409,7 +409,7 @@ func (saps *SLAActionPlanService) Update(slaID uint, id uint, currentUserID uint
 
 			oldResponsibleUserEmailTo := []string{oldResponsibleUser.Email}
 			oldResponsibleUserSubject := fmt.Sprintf("Sla Action Plan/%s: Responsibility Removed", existingSLAActionPlan.Title)
-			oldResponsibleUserTemplateRelativePath := "sla/templates/email/sla_action_plan_remove_responsible_user_mail.html"
+			oldResponsibleUserTemplateRelativePath := "compliance/templates/email/sla_action_plan_remove_responsible_user_mail.html"
 			oldResponsibleUserEmailData := map[string]interface{}{
 				"FirstNameEn":           oldResponsibleUser.FirstNameEn,
 				"LastNameEn":            oldResponsibleUser.LastNameEn,
@@ -429,7 +429,7 @@ func (saps *SLAActionPlanService) Update(slaID uint, id uint, currentUserID uint
 
 			newResponsibleUserEmailTo := []string{newResponsibleUser.Email}
 			newResponsibleUserSubject := fmt.Sprintf("sla Action Plan/%s: Responsibility Assigned", existingSLAActionPlan.Title)
-			newResponsibleUserTemplateRelativePath := "sla/templates/email/sla_action_plan_change_responsible_user_mail.html"
+			newResponsibleUserTemplateRelativePath := "compliance/templates/email/sla_action_plan_change_responsible_user_mail.html"
 			newResponsibleUserEmailData := map[string]interface{}{
 				"FirstNameEn":           newResponsibleUser.FirstNameEn,
 				"LastNameEn":            newResponsibleUser.LastNameEn,
@@ -599,7 +599,7 @@ func (saps *SLAActionPlanService) Delete(slaID uint, ids []uint, currentUserID u
 
 				ownerEmailTo := []string{ownerUser.Email}
 				subject := fmt.Sprintf("Sla Action Plan/%s: Deleted", notification.TitleEn)
-				templateRelativePath := "sla/templates/email/sla_action_plan_delete_mail.html"
+				templateRelativePath := "compliance/templates/email/sla_action_plan_delete_mail.html"
 
 				emailData := map[string]interface{}{
 					"FirstNameEn":           ownerUser.FirstNameEn,

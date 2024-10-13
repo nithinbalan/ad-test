@@ -330,13 +330,13 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *co
 			"CreatedByFirstNameEn": createdBy.FirstNameEn,
 			"CreatedByLastNameEn":  createdBy.LastNameEn,
 			"AssignedOn":           time.Now().Format("2006-01-02"),
-			"RedirectURL":          fmt.Sprintf("%s/sla/register/%d", appURL, id),
+			"RedirectURL":          fmt.Sprintf("%s/compliance/sla-contracts/%d/overview", appURL, id),
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 			EmailTo:              emailTo,
 			Subject:              subject,
-			TemplateRelativePath: "sla/templates/email/sla_register_create_responsible_user_mail.html",
+			TemplateRelativePath: "compliance/templates/email/sla_register_create_responsible_user_mail.html",
 			EmailData:            emailData,
 		}
 
@@ -612,13 +612,13 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 				"TitleEn":         existingSLARegister.TitleEn,
 				"TitleAr":         existingSLARegister.TitleAr,
 				"Description":     existingSLARegister.Description,
-				"RedirectURL":     fmt.Sprintf("%s/sla/register/%d", appURL, id),
+				"RedirectURL":     fmt.Sprintf("%s/compliance/sla-contracts/%d/overview", appURL, id),
 			}
 
 			oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 				EmailTo:              oldResponsibleUserEmailTo,
 				Subject:              oldResponsibleUserSubject,
-				TemplateRelativePath: "sla/templates/email/sla_register_remove_responsible_user_mail.html",
+				TemplateRelativePath: "compliance/templates/email/sla_register_remove_responsible_user_mail.html",
 				EmailData:            oldResponsibleUserEmailData,
 			}
 
@@ -636,13 +636,13 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 				"AssignedByFirstNameEn": updatedByUser.FirstNameEn,
 				"AssignedByLastNameEn":  updatedByUser.LastNameEn,
 				"AssignedOn":            time.Now().Format("2006-01-02"),
-				"RedirectURL":           fmt.Sprintf("%s/sla/register/%d", appURL, id),
+				"RedirectURL":           fmt.Sprintf("%s/compliance/sla-contracts/%d/overview", appURL, id),
 			}
 
 			newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 				EmailTo:              newResponsibleUserEmailTo,
 				Subject:              newResponsibleUserSubject,
-				TemplateRelativePath: "sla/templates/email/sla_register_change_responsible_user_mail.html",
+				TemplateRelativePath: "compliance/templates/email/sla_register_change_responsible_user_mail.html",
 				EmailData:            newResponsibleUserEmailData,
 			}
 
@@ -810,7 +810,7 @@ func (srs *SLARegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 				// Prepare email notification
 				ownerEmailTo := []string{ownerUser.Email}
 				subject := fmt.Sprintf("Sla Register/%s: Deleted", notification.TitleEn)
-				templateRelativePath := "sla/templates/email/sla_register_delete_mail.html"
+				templateRelativePath := "compliance/templates/email/sla_register_delete_mail.html"
 
 				emailData := map[string]interface{}{
 					"FirstNameEn":     ownerUser.FirstNameEn,
