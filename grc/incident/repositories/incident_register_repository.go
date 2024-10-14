@@ -64,8 +64,6 @@ func (repo *IncidentRegisterRepository) GetAll(params *incidentDTOs.IncidentRegi
 	query := repo.db.Table("incident_register").
 		Select(`
             incident_register.*,
-			CONVERT(VARCHAR, incident_register.incident_at, 23) AS incident_at,
-			CONVERT(VARCHAR, incident_register.reported_at, 23) AS reported_at,
             incident_categories.title_en AS incident_category_title_en,
             incident_categories.title_ar AS incident_category_title_ar,
             incident_types.title_en AS incident_type_title_en,
