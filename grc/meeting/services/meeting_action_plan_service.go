@@ -202,7 +202,7 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 		ResponsibleUserID:   MeetingActionPlanFormDTO.ResponsibleUserID,
 	}
 
-	if err := maps.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
+	if _, err := maps.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
 		tx.Rollback()
 		return 0, err
 	}

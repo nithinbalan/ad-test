@@ -17,6 +17,7 @@ type Task struct {
 	AuditFindingActionPlanID *uint      `json:"audit_finding_action_plan_id"`
 	DocumentID               *uint      `json:"document_id"`
 	DocumentWorkflowID       *uint      `json:"document_workflow_id"`
+	RelatedTaskIDs           *string    `json:"related_task_ids" gorm:"type:json"`
 	Title                    string     `json:"title" binding:"required,max=255"`
 	Description              *string    `json:"description" gorm:"type:nvarchar(max)"`
 	TargetDate               *time.Time `json:"target_date"`
