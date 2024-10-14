@@ -5,6 +5,7 @@ import (
 )
 
 type App struct {
+	DB                  *gorm.DB
 	SettingsModule      *SettingsModule
 	CommonModule        *CommonModule
 	MasterModule        *MasterModule
@@ -41,6 +42,7 @@ func NewApp(db *gorm.DB) *App {
 	auditInsightsModule := NewAuditInsightsModule(db, sharedModule, organizationModule, auditModule)
 
 	return &App{
+		DB:                  db,
 		SettingsModule:      settingsModule,
 		CommonModule:        commonModule,
 		MasterModule:        masterModule,
