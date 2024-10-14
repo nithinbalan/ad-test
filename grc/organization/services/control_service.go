@@ -871,6 +871,18 @@ func (cs *ControlService) MarkControlAsApplicable(controlID uint, currentUserID 
 		return utility.NewValidationError(fmt.Errorf("invalid applicability change date"), "invalid_date", "applicability change date")
 	}
 
+	defaultImplementationStatus, err := cs.controlImplementationStatusSvc.GetByType("not-implemented")
+	if err != nil {
+		return err
+	}
+
+	defaultEfficiencyStatus, err := cs.controlEfficiencyStatusSvc.GetByType("inefficient")
+	if err != nil {
+		return err
+	}
+
+	existingControl.ControlImplementationStatusID = &defaultImplementationStatus.ID
+	existingControl.ControlEfficiencyStatusID = &defaultEfficiencyStatus.ID
 	existingControl.Justification = controlApplicableFormDTO.Justification
 	existingControl.ApplicabilityChangeDate = parsedApplicabilityChangeDate
 	existingControl.IsApplicable = true

@@ -121,6 +121,10 @@ func (maps MeetingActionPlanService) GetFullDetailsByID(meetingID uint, id uint)
 		return nil, err
 	}
 
+	if meetingActionPlan.TargetDate != nil {
+		targetDate := meetingActionPlan.TargetDate.Format("2006-01-02")
+		meetingActionPlanDTO.TargetDateString = &targetDate
+	}
 	// todo :- also add extra fields which required in details screen
 
 	return &meetingActionPlanDTO, nil
