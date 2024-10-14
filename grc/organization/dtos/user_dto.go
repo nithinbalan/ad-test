@@ -113,6 +113,7 @@ type UserMinimalDTO struct {
 	Email            string  `json:"email"`
 	Initial          string  `json:"initial"`
 	Color            string  `json:"color"`
+	MobileNumber     *string `json:"mobile_number"`
 }
 
 type UserRoleDTO struct {

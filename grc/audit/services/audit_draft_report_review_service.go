@@ -78,7 +78,7 @@ func (adrrs *AuditDraftReportReviewService) Submit(auditID uint, auditDraftRepor
 		tx.Rollback()
 		return utility.NewForbiddenError("The audit draft report has already been submitted.")
 	}
-	
+
 	workflowSubmitStatus, err := adrrs.workflowStatusSvc.GetByType("submit")
 	if err != nil {
 		tx.Rollback()
@@ -116,7 +116,7 @@ func (adrrs *AuditDraftReportReviewService) Submit(auditID uint, auditDraftRepor
 			return err
 		}
 	}
-	
+
 	//add review for history
 	auditReportReview := &models.AuditReportReview{
 		AuditDraftReportID:    auditDraftReportID,
@@ -301,7 +301,7 @@ func (adrrs *AuditDraftReportReviewService) Revert(auditID uint, auditDraftRepor
 		tx.Rollback()
 		return utility.NewResourceNotFoundError(err, auditDraftReportID)
 	}
-	
+
 	existingAuditReportWorkflow, err := adrrs.repo.GetAuditReportWorkflowByDraftReportID(auditDraftReportID, tx)
 	if err != nil {
 		tx.Rollback()
@@ -438,9 +438,8 @@ func (adrrs *AuditDraftReportReviewService) ReSubmit(auditID uint, auditDraftRep
 	}
 	// If the workflow already exists, we will not create a new one
 	// In the case of re-submit
-	var auditReportWorkflowID uint
-	
-	auditReportWorkflowID = existingAuditReportWorkflow.ID
+
+	auditReportWorkflowID := existingAuditReportWorkflow.ID
 	// Create a map for existing participant user IDs
 	existingUserIDs := make(map[uint]bool)
 	for _, participant := range existingAuditReportWorkflow.AuditReportWorkflowParticipants {
@@ -498,7 +497,6 @@ func (adrrs *AuditDraftReportReviewService) ReSubmit(auditID uint, auditDraftRep
 			return err
 		}
 	}
-
 
 	//add review for history
 	auditReportReview := &models.AuditReportReview{

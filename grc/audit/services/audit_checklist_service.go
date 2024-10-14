@@ -440,7 +440,7 @@ func (acs *AuditChecklistService) DeleteAnswer(auditId uint, ids []uint, current
 
 func (acs *AuditChecklistService) validateAuditChecklistFormDTO(dto *auditDTOs.AuditChecklistFormDTO) error {
 	if _, err := acs.auditPlanAuditableItemSvc.GetByAuditableItemID(*dto.AuditableItemID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("Auditable item does not exist in auidt plan"), "not_exist", "auditable item")
+		return utility.NewValidationError(fmt.Errorf("auditable item does not exist in auidt plan"), "not_exist", "auditable item")
 	}
 
 	return nil
@@ -448,7 +448,7 @@ func (acs *AuditChecklistService) validateAuditChecklistFormDTO(dto *auditDTOs.A
 
 func (acs *AuditChecklistService) validateAuditChecklistAnswerFormDTO(dto *auditDTOs.AuditChecklistAnswerFormDTO) error {
 	if _, err := acs.conformanceSvc.GetByID(dto.ConformanceID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("Conformance does not exist"), "not_exist", "conformance")
+		return utility.NewValidationError(fmt.Errorf("conformance does not exist"), "not_exist", "conformance")
 	}
 
 	return nil
