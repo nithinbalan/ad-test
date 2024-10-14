@@ -40,6 +40,10 @@ const (
 	DeadlineType       NotificationType = "deadline"
 	ApprovalType       NotificationType = "approval"
 	ReviewType         NotificationType = "review"
+	RejectType         NotificationType = "reject"
+	RevertType         NotificationType = "revert"
+	CommentType        NotificationType = "comment"
+	PublishType        NotificationType = "publish"
 	ConfirmationType   NotificationType = "confirmation"
 	ErrorType          NotificationType = "error"
 )

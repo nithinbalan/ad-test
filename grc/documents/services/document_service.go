@@ -1,6 +1,7 @@
 package services
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"jethur/config"
@@ -75,6 +76,7 @@ type DocumentService struct {
 	documentAccessSvc         DocumentAccessServiceInterface
 	taskSvc                   taskServices.TaskServiceInterface
 	notificationSvc           commonServices.NotificationServiceInterface
+	orgLevelSvc               settinsSvc.OrganizationLevelServiceInterface
 }
 
 func NewDocumentService(
@@ -92,6 +94,7 @@ func NewDocumentService(
 	userSettingSvc organizationSvc.UserSettingServiceInterface,
 	taskSvc taskServices.TaskServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
+	orgLevelSvc settinsSvc.OrganizationLevelServiceInterface,
 ) DocumentServiceInterface {
 	return &DocumentService{
 		repo:                      repo,
@@ -108,6 +111,7 @@ func NewDocumentService(
 		userSettingSvc:            userSettingSvc,
 		taskSvc:                   taskSvc,
 		notificationSvc:           notificationSvc,
+		orgLevelSvc:               orgLevelSvc,
 	}
 }
 
@@ -1027,6 +1031,7 @@ func (ds *DocumentService) SubmitDocument(id uint, currentUserID uint) error {
 		return err
 	}
 	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+	var taskIDs []uint
 
 	for _, participant := range docWorkflowLevel.DocumentWorkflowParticipants {
 		taskDTO := commonDTOs.TaskFormDTO{
@@ -1039,11 +1044,34 @@ func (ds *DocumentService) SubmitDocument(id uint, currentUserID uint) error {
 			ResponsibleUserID: participant.User.ID,
 		}
 
-		if err := ds.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
+		taskID, err := ds.taskSvc.Create(taskDTO, currentUserID, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		taskIDs = append(taskIDs, taskID)
+
+	}
+
+	for _, taskID := range taskIDs {
+		relatedTaskIDs := []uint{}
+		for _, otherTaskID := range taskIDs {
+			if otherTaskID != taskID {
+				relatedTaskIDs = append(relatedTaskIDs, otherTaskID)
+			}
+		}
+
+		relatedTaskIDsJSON, err := json.Marshal(relatedTaskIDs)
+		if err != nil {
 			tx.Rollback()
 			return err
 		}
 
+		err = ds.taskSvc.UpdateTaskWithRelatedIDs(taskID, string(relatedTaskIDsJSON), tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
 	}
 	tx.Commit()
 
@@ -1206,6 +1234,8 @@ func (ds *DocumentService) PublishDocument(id uint, currentUserID uint) error {
 	}
 
 	tx.Commit()
+
+	ds.notifyUsersOnPublish(document, id, currentUserID)
 
 	//to do
 	//activity log
@@ -1396,4 +1426,154 @@ func (ds *DocumentService) UpdateDocumentVersion(documentVersion *models.Documen
 	}
 
 	return nil
+}
+
+func (ds *DocumentService) notifyUsersOnPublish(document *documentDTOs.DocumentDetailsDTO, documentID uint, publishedBy uint) {
+	go func() {
+		entity := "document"
+		action := "published"
+		appURL := utility.GetAppURL()
+		subject := fmt.Sprintf("Document/%s: Published Notification", document.TitleEn)
+		redirectURL := fmt.Sprintf("%s/documents/%d", appURL, documentID)
+
+		publishedUser, _ := ds.userSvc.GetByID(publishedBy)
+
+		// Collect users to notify based on access type
+		var usersToNotify []*organizationDTOs.UserMinimalDTO
+
+		if document.DocumentAccessType.Type == "public" {
+			params := &organizationDTOs.UserListQueryParamsDTO{
+				Sort:        "",
+				SortBy:      "",
+				Keyword:     "",
+				Status:      "",
+				Page:        1,
+				PageSize:    0,
+				UserIDs:     nil,
+				Filters:     nil,
+				QuickFilter: nil,
+				Export:      true,
+			}
+
+			userResponse, err := ds.userSvc.GetAll(params)
+			if err != nil {
+				utility.LogError("Failed to fetch all users for public document notification", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+			for _, user := range userResponse.Items {
+				minimalUser := &organizationDTOs.UserMinimalDTO{
+					ID:          int(user.ID),
+					FirstNameEN: user.FirstNameEn,
+					LastNameEN:  user.LastNameEn,
+					Email:       user.Email,
+				}
+				usersToNotify = append(usersToNotify, minimalUser)
+			}
+		} else if document.DocumentAccessType.Type == "shared" {
+			const page = 1
+			const pageSize = 10000
+			sharedUsers, _ := ds.documentAccessSvc.GetSharedUsers(documentID, page, pageSize)
+			usersToNotify = append(usersToNotify, sharedUsers.Items...)
+
+			reviewUsers, _ := ds.documentAccessSvc.GetReviewUsers(documentID)
+			usersToNotify = append(usersToNotify, reviewUsers...)
+
+			primaryLevel, _ := ds.orgLevelSvc.GetPrimaryLevel()
+			columnName := fmt.Sprintf("organization_unit_%d_id", primaryLevel.Level)
+
+			sharedUnits, _ := ds.documentAccessSvc.GetSharedUnits(documentID)
+			unitIDs := make([]uint, len(sharedUnits))
+			for i, unit := range sharedUnits {
+				unitIDs[i] = uint(unit.ID)
+			}
+
+			// Convert unit IDs to string slice
+			unitIDsStr := make([]string, len(unitIDs))
+			for i, id := range unitIDs {
+				unitIDsStr[i] = strconv.Itoa(int(id))
+			}
+
+			params := &organizationDTOs.UserListQueryParamsDTO{
+				Sort:        "",
+				SortBy:      "",
+				Keyword:     "",
+				Status:      "",
+				Page:        1,
+				PageSize:    0,
+				UserIDs:     nil,
+				Filters:     map[string][]string{columnName: unitIDsStr},
+				QuickFilter: nil,
+				Export:      true,
+			}
+
+			userResponse, err := ds.userSvc.GetAll(params)
+			if err != nil {
+				utility.LogError("Failed to fetch all users for public document notification", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			for _, user := range userResponse.Items {
+				minimalUser := &organizationDTOs.UserMinimalDTO{
+					ID:          int(user.ID),
+					FirstNameEN: user.FirstNameEn,
+					LastNameEN:  user.LastNameEn,
+					Email:       user.Email,
+				}
+				usersToNotify = append(usersToNotify, minimalUser)
+			}
+
+		}
+
+		// Send notifications to all users in the usersToNotify list
+		for _, user := range usersToNotify {
+
+			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserID:               uint(user.ID),
+				ModuleIdentifier:     "document",
+				NotificationType:     string(commonDTOs.PublishType),
+				HeadingEn:            "Document Published",
+				HeadingAr:            "تم نشر الوثيقة",
+				TitleEn:              document.TitleEn,
+				TitleAr:              document.TitleAr,
+				Entity:               &entity,
+				Action:               &action,
+				URLParam:             fmt.Sprintf(`{"id":%d}`, documentID),
+				IsSystemNotification: false,
+				CreatedByID:          &publishedBy,
+			}
+
+			// Prepare email data
+			emailTo := []string{user.Email}
+			emailData := map[string]interface{}{
+				"FirstNameEn":            user.FirstNameEN,
+				"LastNameEn":             user.LastNameEN,
+				"DocumentTitle":          document.TitleEn,
+				"DocumentType":           document.DocumentType.TitleEn,
+				"PublishedByFirstNameEn": publishedUser.FirstNameEn,
+				"PublishedByFirstLastEn": publishedUser.LastNameEn,
+				"PublishedAt":            time.Now().Format("2006-01-02"),
+				"RedirectURL":            redirectURL,
+			}
+
+			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              emailTo,
+				Subject:              subject,
+				TemplateRelativePath: "document/templates/email/document_publish_user_mail.html",
+				EmailData:            emailData,
+			}
+
+			// Send both database and email notifications
+			err := ds.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "document")
+			if err != nil {
+				utility.LogError("Failed to send document publish notification", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+
+		}
+	}()
 }

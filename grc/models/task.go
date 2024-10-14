@@ -22,6 +22,7 @@ type Task struct {
 	SeverityLevelID        *uint      `json:"severity_level_id"`
 	ResponsibleUserID      uint       `json:"responsible_user_id"`
 	TaskStatusID           uint       `json:"task_status_id" binding:"required"`
+	RelatedTaskIDs         *string    `json:"related_task_ids" gorm:"type:json"`
 	CreatedAt              time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt              *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 	CreatedByID            uint       `json:"created_by_id" gorm:"not null"`

@@ -17,12 +17,14 @@ type TaskServiceInterface interface {
 	GetAll(params *taskDTOs.TaskListQueryParamsDTO) (*taskDTOs.TaskListResponseDTO, error)
 	GetByID(id uint) (*models.Task, error)
 	GetByFieldID(field string, value interface{}) (*models.Task, error)
-	Create(taskDTO commonDTOs.TaskFormDTO, currentUserID uint, tx ...utility.DatabaseTransaction) error
+	Create(taskDTO commonDTOs.TaskFormDTO, currentUserID uint, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(currentUserID uint, taskDTO commonDTOs.TaskFormDTO, fieldName string, id uint, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, currentUserID uint) (uint, error)
 
 	MapActionPlanStatusToTaskStatus(actionPlanStatusID uint, isReviewUserNull bool) (*models.TaskStatus, error)
 	UpdateStatus(currentUserID uint, taskID uint, actionPlanStatusID uint, isReviewUserNull bool, tx ...utility.DatabaseTransaction) error
+	UpdateTaskWithRelatedIDs(taskID uint, relatedTaskIDsJSON string, tx ...utility.DatabaseTransaction) error
+	UpdateDocumentTaskStatus(documentID uint, userID uint) (*models.Task, error)
 }
 
 type TaskService struct {
@@ -70,18 +72,18 @@ func (ts TaskService) GetByFieldID(field string, value interface{}) (*models.Tas
 	return task, nil
 }
 
-func (ts *TaskService) Create(taskDTO commonDTOs.TaskFormDTO, currentUserID uint, tx ...utility.DatabaseTransaction) error {
+func (ts *TaskService) Create(taskDTO commonDTOs.TaskFormDTO, currentUserID uint, tx ...utility.DatabaseTransaction) (uint, error) {
 	taskStatus, err := ts.taskStatusSvc.GetByType("open")
 	if err != nil {
-		return err
+		return 0, err
 	}
 	referenceNumber, err := ts.repo.GenerateReferenceNumber()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	moduleID, err := ts.moduleSvc.GetModuleIDByIdentifier(taskDTO.ModuleIdentifier)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	task := &models.Task{
 		ReferenceNumber:        referenceNumber,
@@ -102,7 +104,12 @@ func (ts *TaskService) Create(taskDTO commonDTOs.TaskFormDTO, currentUserID uint
 		TaskStatusID:           taskStatus.ID,
 		CreatedByID:            currentUserID,
 	}
-	return ts.repo.Create(task, tx...)
+	id, err := ts.repo.Create(task, tx...)
+	if err != nil {
+		return 0, err
+	}
+
+	return id, nil
 
 }
 
@@ -191,4 +198,21 @@ func (ts *TaskService) MapActionPlanStatusToTaskStatus(actionPlanStatusID uint, 
 	}
 
 	return statusResult, nil
+}
+
+func (ts *TaskService) UpdateTaskWithRelatedIDs(taskID uint, relatedTaskIDsJSON string, tx ...utility.DatabaseTransaction) error {
+	return ts.repo.UpdateTaskRelatedIDs(taskID, relatedTaskIDsJSON, tx...)
+}
+
+func (ts *TaskService) UpdateDocumentTaskStatus(documentID uint, userID uint) (*models.Task, error) {
+	taskStatus, err := ts.taskStatusSvc.GetByType("closed")
+	if err != nil {
+		return nil, err
+	}
+	task, err := ts.repo.UpdateDocumentTaskStatus(documentID, userID, taskStatus.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return task, nil
 }

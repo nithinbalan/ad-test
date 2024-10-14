@@ -87,7 +87,8 @@ func NewDocumentModule(db *gorm.DB,
 		documentAuditLogSvc,
 		organizationModule.UserSettingSvc,
 		taskModule.TaskService,
-		commonModule.NotificationService)
+		commonModule.NotificationService,
+		settingsModule.OrganizationLevelSvc)
 
 	documentSvc.SetDocumentWorkflowService(documentWorkflowSvc)
 
@@ -113,7 +114,8 @@ func NewDocumentModule(db *gorm.DB,
 		documentWorkflowStatusSvc,
 		documentStatusSvc,
 		organizationModule.UserSvc,
-		commonModule.NotificationService)
+		commonModule.NotificationService,
+		taskModule.TaskService)
 	documentReviewController := controllers.NewDocumentReviewController(documentReviewSvc)
 
 	documentAcknowledgeUserRepo := repositories.NewDocumentAcknowledgeUserRepository(db)
