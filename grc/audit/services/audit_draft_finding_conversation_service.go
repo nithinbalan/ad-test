@@ -3,11 +3,13 @@ package services
 import (
 	"errors"
 	"fmt"
+	"jethur/config"
 	"jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
+	"os"
 	"path/filepath"
 	"strconv"
 
@@ -22,6 +24,7 @@ type AuditDraftFindingConversationServiceInterface interface {
 	Create(auditDraftFindingID uint, currentUserID uint, formDTO *dtos.AuditDraftFindingConversationFormDTO) (uint, error)
 	Update(auditDraftFindingID uint, id uint, currentUserID uint, auditFinding *dtos.AuditDraftFindingConversationFormDTO) error
 	Delete(auditDraftFindingID uint, ids []uint, currentUserID uint) ([]uint, error)
+	GetDocumentPath(auditDraftFindingID uint, id uint, token string) (string, error)
 }
 
 type AuditDraftFindingConversationService struct {
@@ -436,4 +439,36 @@ func (adfcs *AuditDraftFindingConversationService) Delete(auditDraftFindingID ui
 	}
 
 	return failedIds, nil
+}
+
+func (adfcs *AuditDraftFindingConversationService) GetDocumentPath(auditDraftFindingID uint, id uint, token string) (string, error) {
+	existingAuditDraftFinding, err := adfcs.auditDraftFindingSvc.GetByID(auditDraftFindingID)
+	if err != nil {
+		return "", err
+	}
+	auditID := existingAuditDraftFinding.AuditID
+
+	decryptedFilenameBytes, err := utility.DecryptData(token)
+	if err != nil {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	decryptedFilename := string(decryptedFilenameBytes)
+	if decryptedFilename == "" {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	storagePath := filepath.Join("audits", "audit", strconv.FormatUint(uint64(auditID), 10), "draft-findings", strconv.FormatUint(uint64(auditDraftFindingID), 10), "conversations", strconv.FormatUint(uint64(id), 10), "documents")
+
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
+
+	// Check if the file exists
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("file not found")
+	} else if err != nil {
+		return "", fmt.Errorf("error accessing file: %w", err)
+	}
+
+	return fullPath, nil
 }
