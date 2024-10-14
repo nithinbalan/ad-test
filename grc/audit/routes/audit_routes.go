@@ -56,6 +56,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditScheduleStatusUpdateController := app.AuditModule.AuditScheduleStatusUpdateController
 	auditDraftReportReviewController := app.AuditModule.AuditDraftReportReviewController
 	auditDraftReportCommentController := app.AuditModule.AuditDraftReportCommentController
+	auditPlanCommencementLetterController := app.AuditModule.AuditPlanCommencementLetterController
 
 	//Audit Status
 	auditRoutes.GET("/audit-statuses", auditStatusController.GetAllAuditStatuses)
@@ -99,7 +100,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.PUT("/audit-plans/:planId", auditPlanController.UpdateAuditPlan)
 	auditRoutes.POST("/audit-plans/delete", auditPlanController.DeleteAuditPlans)
 	auditRoutes.POST("/audit-plans/:planId/publish", auditPlanController.PublishAuditPlan)
-
 
 	//AuditPlan Checklist
 	auditRoutes.GET("/audit-plans/:planId/checklists", auditPlanChecklistController.GetAllAuditPlanChecklists)
@@ -327,5 +327,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.POST("/audits/:auditId/draft-reports/:id/comments/:commentId/status-update", auditDraftReportCommentController.StatusUpdateAuditDraftReportComment)
 	unauthenticatedRoutes.GET("/audits/:auditId/draft-reports/:id/comments/:commentId/document-download", auditDraftReportCommentController.DownloadAuditDraftReportCommentDocument)
 	auditRoutes.GET("/audits/:auditId/draft-reports/:id/review-history", auditDraftReportReviewController.GetAllAuditDraftReportReviews)
+
+	auditRoutes.GET("/audit-plans/:planId/commencement-letters", auditPlanCommencementLetterController.GetAllAuditPlanCommencementLetters)
+	auditRoutes.GET("/audit-plans/:planId/commencement-letters/:id", auditPlanCommencementLetterController.GetAuditPlanCommencementLetterDetails)
+	auditRoutes.POST("/audit-plans/:planId/commencement-letters", auditPlanCommencementLetterController.CreateAuditPlanCommencementLetters)
+	auditRoutes.PUT("/audit-plans/:planId/commencement-letters/:id", auditPlanCommencementLetterController.UpdateAuditPlanCommencementLetter)
+	auditRoutes.DELETE("/audit-plans/:planId/commencement-letters/:id", auditPlanCommencementLetterController.DeleteAuditPlanCommencementLetter)
+	auditRoutes.PUT("/audit-plans/:planId/commencement-letters/:id/send", auditPlanCommencementLetterController.SendAuditPlanCommencementLetter)
 
 }

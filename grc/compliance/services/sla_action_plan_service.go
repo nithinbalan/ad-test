@@ -183,7 +183,7 @@ func (saps *SLAActionPlanService) Create(slaID uint, currentUserID uint, slaActi
 		ResponsibleUserID: slaActionPlanFormDTO.ResponsibleUserID,
 	}
 
-	if err := saps.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
+	if _, err := saps.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
 		tx.Rollback()
 		return 0, err
 	}

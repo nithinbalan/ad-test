@@ -698,7 +698,7 @@ func (crs *ComplianceRegisterService) Delete(ids []uint, currentUserID uint) ([]
 		OwnerID         *uint
 		TitleEn         string
 		TitleAr         string
-		Description     string
+		Description     *string
 		ReferenceNumber string
 	}
 
@@ -716,13 +716,13 @@ func (crs *ComplianceRegisterService) Delete(ids []uint, currentUserID uint) ([]
 			OwnerID         *uint
 			TitleEn         string
 			TitleAr         string
-			Description     string
+			Description     *string
 			ReferenceNumber string
 		}{
 			OwnerID:         &complianceRegister.ResponsibleUserID,
 			TitleEn:         complianceRegister.TitleEn,
 			TitleAr:         complianceRegister.TitleAr,
-			Description:     *complianceRegister.DescriptionEn,
+			Description:     complianceRegister.DescriptionEn,
 			ReferenceNumber: complianceRegister.ReferenceNumber,
 		})
 

@@ -186,7 +186,7 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 		ResponsibleUserID:        AuditFindingActionPlanFormDTO.ResponsibleUserID,
 	}
 
-	if err := afaps.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
+	if _, err := afaps.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
 		tx.Rollback()
 		return 0, err
 	}
