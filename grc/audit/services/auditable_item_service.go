@@ -99,7 +99,7 @@ func (ais *AuditableItemService) Create(currentUserID uint, auditableItemFormDTO
 	if err := ais.validateAuditableItemFormDTO(auditableItemFormDTO); err != nil {
 		return 0, err
 	}
-	auditStatus, err := ais.auditStatusSvc.GetByType("pending")
+	auditStatus, err := ais.auditStatusSvc.GetByType("draft")
 	if err != nil {
 		return 0, err
 	}

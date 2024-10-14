@@ -160,8 +160,13 @@ func (repo *SLARegisterRepository) GetAll(params *complianceDTOs.SLARegisterList
 			query = query.Where("compliance_statuses.type = ?", "not_implemented")
 		case "archived":
 			query = query.Where("lifecycle_statuses.type = ?", "archived")
+		case "is_expired":
+			query = query.Where("sla_documents.expiry_date < ?", time.Now())
+		case "active":
+			query = query.Where("lifecycle_statuses.type = ?", "active")
 
 		}
+
 	}
 
 	// Calculate total count for pagination

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
@@ -21,11 +22,13 @@ type AuditDraftFindingServiceInterface interface {
 	GetAll(params *auditDTOs.AuditDraftFindingListQueryParamsDTO) (*auditDTOs.AuditDraftFindingListResponseDTO, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditDraftFindingDetailDTO, error)
 	GetByID(id uint) (*models.AuditDraftFinding, error)
+	GetAllFindingsByAuditID(auditId uint) ([]*models.AuditDraftFinding, error)
 	Create(currentUserID uint, auditDraftFindingFormDTO *auditDTOs.AuditDraftFindingFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, auditDraftFindingFormDTO *auditDTOs.AuditDraftFindingFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 
 	GetAuditDraftFindingCountByCategory(auditId uint) ([]auditDTOs.AuditDraftFindingCategoryCountResponseDTO, error)
+	StatusUpdate(id uint, currentUserID uint, auditDraftFindingStatusID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type AuditDraftFindingService struct {
@@ -100,6 +103,21 @@ func (adfs *AuditDraftFindingService) GetFullDetailsByID(id uint, tx ...utility.
 	auditDraftFindingDTO.UpdatedAt = auditDraftFinding.UpdatedAt
 
 	return &auditDraftFindingDTO, nil
+}
+
+func (adfs *AuditDraftFindingService) GetAllFindingsByAuditID(auditId uint) ([]*models.AuditDraftFinding, error) {
+	// Retrieve audit findings from the repository by audit ID
+	auditDraftFindings, err := adfs.repo.GetAllFindingsByAuditID(auditId)
+	if err != nil {
+		// If no records found, return a "not found" error
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, auditId)
+		}
+		// Return any other error encountered during retrieval
+		return nil, err
+	}
+
+	return auditDraftFindings, nil
 }
 
 func (adfs *AuditDraftFindingService) Create(currentUserID uint, auditDraftFindingFormDTO *auditDTOs.AuditDraftFindingFormDTO) (uint, error) {
@@ -373,7 +391,7 @@ func (adfs *AuditDraftFindingService) Delete(ids []uint, currentUserID uint) ([]
 				return nil, err
 			}
 		}
-		auditID=uint64(auditDraftFinding.AuditID)
+		auditID = uint64(auditDraftFinding.AuditID)
 		// Delete the audit finding itself
 		if err := adfs.repo.Delete(id, tx); err != nil {
 			failedIDs = append(failedIDs, id)
@@ -467,4 +485,38 @@ func (adfs *AuditDraftFindingService) GetAuditDraftFindingCountByCategory(auditI
 	}
 
 	return response, nil
+}
+
+func (adfs *AuditDraftFindingService) StatusUpdate(id uint, currentUserID uint, auditDraftFindingStatusID uint, tx ...utility.DatabaseTransaction) error {
+	existingAuditDraftFinding, err := adfs.GetByID(id)
+	if err != nil {
+		return err
+	}
+	auditDraftFindingStatusAccepted, err := adfs.auditDraftFindingStatusSvc.GetByType("accepted")
+	if err != nil {
+		return err
+	}
+	auditDraftFindingStatusChallenged, err := adfs.auditDraftFindingStatusSvc.GetByType("challenged")
+	if err != nil {
+		return err
+	}
+	now := time.Now()
+	existingAuditDraftFinding.AuditDraftFindingStatusID = auditDraftFindingStatusID
+
+	if auditDraftFindingStatusID == auditDraftFindingStatusAccepted.ID {
+		existingAuditDraftFinding.AcceptedBYID = &currentUserID
+		existingAuditDraftFinding.AcceptedAt = &now
+	}
+	if auditDraftFindingStatusID == auditDraftFindingStatusChallenged.ID {
+		existingAuditDraftFinding.ChallengedBYID = &currentUserID
+		existingAuditDraftFinding.ChallengedAt = &now
+	}
+
+	err = adfs.repo.Update(existingAuditDraftFinding, tx...)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

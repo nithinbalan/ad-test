@@ -3,12 +3,18 @@ package services
 import (
 	"errors"
 	"fmt"
+	"time"
+
 	auditFindingDTOs "jethur/grc/audit/dtos"
 	auditFindingRepositories "jethur/grc/audit/repositories"
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
 	masterRepositories "jethur/grc/masters/repositories"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
+	organizationServices "jethur/grc/organization/services"
+	taskServices "jethur/grc/task/services"
 	"jethur/utility"
 
 	"github.com/mitchellh/mapstructure"
@@ -35,6 +41,9 @@ type AuditFindingActionPlanService struct {
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface
 	severityLevelSvc    masterServices.SeverityLevelServiceInterface
 	auditTimelineSvc    AuditTimelineServiceInterface
+	taskSvc             taskServices.TaskServiceInterface
+	userSvc             organizationServices.UserServiceInterface
+	notificationSvc     commonServices.NotificationServiceInterface
 }
 
 func NewAuditFindingActionPlanService(
@@ -44,6 +53,9 @@ func NewAuditFindingActionPlanService(
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
 	severityLevelSvc masterRepositories.SeverityLevelRepositoryInterface,
 	auditTimelineSvc AuditTimelineServiceInterface,
+	taskSvc taskServices.TaskServiceInterface,
+	userSvc organizationServices.UserServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
 ) AuditFindingActionPlanServiceInterface {
 	return &AuditFindingActionPlanService{
 		repo:                repo,
@@ -52,6 +64,9 @@ func NewAuditFindingActionPlanService(
 		actionPlanStatusSvc: actionPlanStatusSvc,
 		severityLevelSvc:    severityLevelSvc,
 		auditTimelineSvc:    auditTimelineSvc,
+		taskSvc:             taskSvc,
+		userSvc:             userSvc,
+		notificationSvc:     notificationSvc,
 	}
 }
 
@@ -110,7 +125,8 @@ func (afaps AuditFindingActionPlanService) GetFullDetailsByID(findingID uint, id
 
 func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID uint, AuditFindingActionPlanFormDTO *auditFindingDTOs.AuditFindingActionPlanFormDTO) (uint, error) {
 	tx := afaps.repo.BeginTransaction()
-	if _, err := afaps.auditFindingSvc.GetByID(findingID); err != nil {
+	audit, err := afaps.auditFindingSvc.GetByID(findingID)
+	if err != nil {
 		return 0, err
 	}
 
@@ -129,6 +145,7 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 		Description:        AuditFindingActionPlanFormDTO.Description,
 		SeverityLevelID:    AuditFindingActionPlanFormDTO.SeverityLevelID,
 		ResponsibleUserID:  AuditFindingActionPlanFormDTO.ResponsibleUserID,
+		ReviewUserID:       AuditFindingActionPlanFormDTO.ReviewUserID,
 		TargetDate:         dates.TargetDate,
 		Percentage:         AuditFindingActionPlanFormDTO.Percentage,
 		Comments:           AuditFindingActionPlanFormDTO.Comments,
@@ -156,6 +173,24 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 		return 0, err
 	}
 
+	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+	taskDTO := commonDTOs.TaskFormDTO{
+		ModuleIdentifier:         "audit",
+		AuditFindingActionPlanID: &id,
+		Title:                    AuditFindingActionPlanFormDTO.Title,
+		Description:              AuditFindingActionPlanFormDTO.Description,
+		TargetDate:               dates.TargetDate,
+		URLParam:                 &urlParam,
+		QueryParam:               nil,
+		SeverityLevelID:          AuditFindingActionPlanFormDTO.SeverityLevelID,
+		ResponsibleUserID:        AuditFindingActionPlanFormDTO.ResponsibleUserID,
+	}
+
+	if err := afaps.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
 	tx.Commit()
 
 	go func() {
@@ -179,6 +214,73 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 
 			utility.LogError("Failed to log activity", fields)
 		}
+
+		// prepare notification
+		urlParam := fmt.Sprintf(`{"id":%d}`, id)
+		entity := "audit-finding-action-plan"
+		action := "responsible-user-assign"
+
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserID:               AuditFindingActionPlanFormDTO.ResponsibleUserID,
+			ModuleIdentifier:     "audit",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			HeadingEn:            "Audit Finding Action Plan Assignment",
+			HeadingAr:            "حذف خطة عمل نتائج التدقيق",
+			TitleEn:              AuditFindingActionPlanFormDTO.Title,
+			TitleAr:              AuditFindingActionPlanFormDTO.Title,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		responsibleUser, err := afaps.userSvc.GetByID(AuditFindingActionPlanFormDTO.ResponsibleUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		assignedBy, err := afaps.userSvc.GetByID(currentUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		emailTo := []string{responsibleUser.Email}
+		subject := fmt.Sprintf("Audit Finding Action Plan/%s: Responsibility Assigned", AuditFindingActionPlanFormDTO.Title)
+		appURL := utility.GetAppURL()
+		emailData := map[string]interface{}{
+			"FirstNameEn":                 responsibleUser.FirstNameEn,
+			"LastNameEn":                  responsibleUser.LastNameEn,
+			"AuditFindingReferenceNumber": audit.ReferenceNumber,
+			"AuditFindingTitle":           audit.Title,
+			"ActionPlanTitle":             AuditFindingActionPlanFormDTO.Title,
+			"ActionPlanDescription":       AuditFindingActionPlanFormDTO.Description,
+			"TargetDate":                  dates.TargetDate.Format("2006-01-02"),
+			"AssignedByFirstNameEn":       assignedBy.FirstNameEn,
+			"AssignedByLastNameEn":        assignedBy.LastNameEn,
+			"AssignedOn":                  time.Now().Format("2006-01-02"),
+			"RedirectURL":                 fmt.Sprintf("%saudit/audit-findings/%d/action-plans", appURL, findingID),
+		}
+
+		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              emailTo,
+			Subject:              subject,
+			TemplateRelativePath: "audit/templates/email/audit_finding_action_plan_create_responsible_user_mail.html",
+			EmailData:            emailData,
+		}
+
+		// send notification and mail
+		err = afaps.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "audit_finding_action_plan")
+		if err != nil {
+			utility.LogError("Failed to send notifications", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
 	}()
 
 	return id, nil
@@ -187,7 +289,8 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, currentUserID uint, AuditFindingActionPlanFormDTO *auditFindingDTOs.AuditFindingActionPlanFormDTO) error {
 	tx := afaps.repo.BeginTransaction()
 
-	if _, err := afaps.auditFindingSvc.GetByID(findingID); err != nil {
+	audit, err := afaps.auditFindingSvc.GetByID(findingID)
+	if err != nil {
 		return err
 	}
 
@@ -196,6 +299,8 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 	if err != nil {
 		return err
 	}
+
+	oldResponsibleUserID := existingAuditFindingActionPlan.ResponsibleUserID
 
 	if err := afaps.validateAuditFindingActionPlanFormDTO(AuditFindingActionPlanFormDTO); err != nil {
 		return err
@@ -211,6 +316,7 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 	existingAuditFindingActionPlan.Description = AuditFindingActionPlanFormDTO.Description
 	existingAuditFindingActionPlan.SeverityLevelID = AuditFindingActionPlanFormDTO.SeverityLevelID
 	existingAuditFindingActionPlan.ResponsibleUserID = AuditFindingActionPlanFormDTO.ResponsibleUserID
+	existingAuditFindingActionPlan.ReviewUserID = AuditFindingActionPlanFormDTO.ReviewUserID
 	existingAuditFindingActionPlan.TargetDate = dates.TargetDate
 	existingAuditFindingActionPlan.Percentage = AuditFindingActionPlanFormDTO.Percentage
 	existingAuditFindingActionPlan.Comments = AuditFindingActionPlanFormDTO.Comments
@@ -223,7 +329,154 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 		return err
 	}
 
+	// //update task
+	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+
+	taskUpdateDTO := commonDTOs.TaskFormDTO{
+		Title:             AuditFindingActionPlanFormDTO.Title,
+		Description:       AuditFindingActionPlanFormDTO.Description,
+		TargetDate:        dates.TargetDate,
+		URLParam:          &urlParam,
+		SeverityLevelID:   AuditFindingActionPlanFormDTO.SeverityLevelID,
+		ResponsibleUserID: AuditFindingActionPlanFormDTO.ResponsibleUserID,
+	}
+
+	err = afaps.taskSvc.Update(currentUserID, taskUpdateDTO, "audit_finding_action_plan_id", id, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	tx.Commit()
+
+	go func() {
+		// sends notification if responsible user has changed
+		if oldResponsibleUserID != existingAuditFindingActionPlan.ResponsibleUserID {
+			urlParam := fmt.Sprintf(`{"id:%d"}`, id)
+			entity := "audit-finding-action-plan"
+
+			oldResponsibleUserAction := "responsible-user-remove"
+			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserID:               oldResponsibleUserID,
+				ModuleIdentifier:     "audit",
+				NotificationType:     string(commonDTOs.InformationType),
+				HeadingEn:            "Audit Finding Action Plan Removal",
+				HeadingAr:            "حذف خطة عمل نتائج التدقيق",
+				TitleEn:              existingAuditFindingActionPlan.Title,
+				TitleAr:              existingAuditFindingActionPlan.Title,
+				Entity:               &entity,
+				Action:               &oldResponsibleUserAction,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			newResponsibleUserAction := "responsible-user-assign"
+			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserID:               AuditFindingActionPlanFormDTO.ResponsibleUserID,
+				ModuleIdentifier:     "audit",
+				NotificationType:     string(commonDTOs.AssignmentType),
+				HeadingEn:            "Audit Finding Action Plan Assignment",
+				HeadingAr:            "حذف خطة عمل نتائج التدقيق",
+				TitleEn:              existingAuditFindingActionPlan.Title,
+				TitleAr:              existingAuditFindingActionPlan.Title,
+				Entity:               &entity,
+				Action:               &newResponsibleUserAction,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			oldResponsibleUser, err := afaps.userSvc.GetByID(oldResponsibleUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch old responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			newResponsibleUser, err := afaps.userSvc.GetByID(AuditFindingActionPlanFormDTO.ResponsibleUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch new responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			assignedBy, err := afaps.userSvc.GetByID(currentUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			appURL := utility.GetAppURL()
+
+			oldResponsibleUserEmailTo := []string{oldResponsibleUser.Email}
+			oldResponsibleUserSubject := fmt.Sprintf("Audit Finding Action Plan/%s: Responsibility Removed", existingAuditFindingActionPlan.Title)
+			oldResponsibleUserTemplateRelativePath := "audit/templates/email/audit_finding_action_plan_remove_responsible_user_mail.html"
+			oldResponsibleUserEmailData := map[string]interface{}{
+				"FirstNameEn":                 oldResponsibleUser.FirstNameEn,
+				"LastNameEn":                  oldResponsibleUser.LastNameEn,
+				"AuditFindingReferenceNumber": audit.ReferenceNumber,
+				"AuditFindingTitle":           audit.Title,
+				"ActionPlanTitle":             existingAuditFindingActionPlan.Title,
+				"ActionPlanDescription":       existingAuditFindingActionPlan.Description,
+				"RedirectURL":                 fmt.Sprintf("%saudit/audit-findings/%d/action-plans", appURL, findingID),
+			}
+
+			oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              oldResponsibleUserEmailTo,
+				Subject:              oldResponsibleUserSubject,
+				TemplateRelativePath: oldResponsibleUserTemplateRelativePath,
+				EmailData:            oldResponsibleUserEmailData,
+			}
+
+			newResponsibleUserEmailTo := []string{newResponsibleUser.Email}
+			newResponsibleUserSubject := fmt.Sprintf("Audit Finding Action Plan/%s: Responsibility Assigned", existingAuditFindingActionPlan.Title)
+			newResponsibleUserTemplateRelativePath := "audit/templates/email/audit_finding_action_plan_change_responsible_user_mail.html"
+			newResponsibleUserEmailData := map[string]interface{}{
+				"FirstNameEn":                 newResponsibleUser.FirstNameEn,
+				"LastNameEn":                  newResponsibleUser.LastNameEn,
+				"AuditFindingReferenceNumber": audit.ReferenceNumber,
+				"AuditFindingTitle":           audit.Title,
+				"ActionPlanTitle":             existingAuditFindingActionPlan.Title,
+				"ActionPlanDescription":       existingAuditFindingActionPlan.Description,
+				"TargetDate":                  existingAuditFindingActionPlan.TargetDate.Format("2006-01-02"),
+				"AssignedByFirstNameEn":       assignedBy.FirstNameEn,
+				"AssignedByLastNameEn":        assignedBy.LastNameEn,
+				"AssignedOn":                  time.Now().Format("2006-01-02"),
+				"RedirectURL":                 fmt.Sprintf("%saudit/audit-findings/%d/action-plans", appURL, findingID),
+			}
+
+			newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              newResponsibleUserEmailTo,
+				Subject:              newResponsibleUserSubject,
+				TemplateRelativePath: newResponsibleUserTemplateRelativePath,
+				EmailData:            newResponsibleUserEmailData,
+			}
+
+			err = afaps.notificationSvc.SendNotification(
+				newResponsibleUserNotificationDTO, newResponsibleUserEmailNotificationDTO, "audit_finding_action_plan",
+			)
+			if err != nil {
+				utility.LogError("Failed to send new responsible user notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+
+			err = afaps.notificationSvc.SendNotification(
+				oldResponsibleUserNotificationDTO, oldResponsibleUserEmailNotificationDTO, "audit_finding_action_plan",
+			)
+			if err != nil {
+				utility.LogError("Failed to send old responsible user notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+
+		}
+	}()
 
 	return nil
 }
@@ -237,13 +490,39 @@ func (afaps *AuditFindingActionPlanService) Delete(findingID uint, ids []uint, c
 
 	var failedIds []uint
 	var successfulIds []uint
+	var notifications []struct {
+		OwnerID           *uint
+		TitleEn           string
+		TitleAr           string
+		Description       string
+		ReferenceNumber   string
+		AuditFindingTitle string
+	}
 	for _, id := range ids {
 
-		auditFindingActionPlan, err := afaps.GetFullDetailsByID(findingID, id)
+		auditFindingActionPlan, err := afaps.repo.GetFullDetailsByID(id)
 
 		if err != nil {
 			continue
 		}
+
+		// Prepare notification data before deletion
+		notifications = append(notifications, struct {
+			OwnerID           *uint
+			TitleEn           string
+			TitleAr           string
+			Description       string
+			ReferenceNumber   string
+			AuditFindingTitle string
+		}{
+			OwnerID:           &auditFindingActionPlan.ResponsibleUserID,
+			TitleEn:           auditFindingActionPlan.Title,
+			TitleAr:           auditFindingActionPlan.Title,
+			Description:       *auditFindingActionPlan.Description,
+			ReferenceNumber:   auditFindingActionPlan.AuditFinding.ReferenceNumber,
+			AuditFindingTitle: auditFindingActionPlan.AuditFinding.Title,
+		})
+
 		if len(auditFindingActionPlan.ActionPlanStatusUpdates) > 0 {
 			var deleteStatusUpdateIds []*uint
 			for _, update := range auditFindingActionPlan.ActionPlanStatusUpdates {
@@ -254,6 +533,18 @@ func (afaps *AuditFindingActionPlanService) Delete(findingID uint, ids []uint, c
 				continue
 			}
 		}
+
+		existingTask, err := afaps.taskSvc.GetByFieldID("audit_finding_action_plan_id", id)
+		if err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+
+		taskID, err := afaps.taskSvc.Delete(existingTask.ID, currentUserID)
+		if err != nil {
+			failedIds = append(failedIds, taskID)
+		}
+
 		err = afaps.repo.Delete(id, tx)
 		if err != nil {
 			failedIds = append(failedIds, id)
@@ -278,6 +569,64 @@ func (afaps *AuditFindingActionPlanService) Delete(findingID uint, ids []uint, c
 				// @todo - save to log file
 				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
 			}
+
+			for _, notification := range notifications {
+				urlParam := ""
+				entity := "audit-finding-action-plan"
+				action := "delete"
+
+				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+					UserID:               *notification.OwnerID,
+					ModuleIdentifier:     "audit",
+					NotificationType:     string(commonDTOs.DeletionType),
+					HeadingEn:            "Audit Finding Action Plan Deletion",
+					HeadingAr:            "حذف خطة عمل نتائج التدقيق",
+					TitleEn:              notification.TitleEn,
+					TitleAr:              notification.TitleAr,
+					Entity:               &entity,
+					Action:               &action,
+					URLParam:             urlParam,
+					IsSystemNotification: false,
+					CreatedByID:          &currentUserID,
+				}
+
+				ownerUser, err := afaps.userSvc.GetByID(*notification.OwnerID)
+				if err != nil {
+					utility.LogError("Failed to fetch owner details for notification", map[string]interface{}{
+						"error": err.Error(),
+					})
+					continue
+				}
+
+				ownerEmailTo := []string{ownerUser.Email}
+				subject := fmt.Sprintf("Audit Finding Action Plan/%s: Deleted", notification.TitleEn)
+				templateRelativePath := "audit/templates/email/audit_finding_action_plan_delete_mail.html"
+
+				emailData := map[string]interface{}{
+					"FirstNameEn":                 ownerUser.FirstNameEn,
+					"LastNameEn":                  ownerUser.LastNameEn,
+					"AuditFindingReferenceNumber": notification.ReferenceNumber,
+					"AuditFindingTitle":           notification.AuditFindingTitle,
+					"ActionPlanTitle":             notification.TitleEn,
+					"ActionPlanDescription":       notification.Description,
+				}
+
+				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+					EmailTo:              ownerEmailTo,
+					Subject:              subject,
+					TemplateRelativePath: templateRelativePath,
+					EmailData:            emailData,
+				}
+
+				err = afaps.notificationSvc.SendNotification(
+					dbNotificationDTO, emailNotificationDTO, "audit_finding_action_plan")
+				if err != nil {
+					utility.LogError("Failed to send deletion notifications", map[string]interface{}{
+						"error": err.Error(),
+					})
+				}
+
+			}
 		}()
 	}
 
@@ -297,6 +646,18 @@ func (afaps *AuditFindingActionPlanService) StatusUpdate(findingID uint, id uint
 
 	err = afaps.repo.Update(existingAuditFindingActionPlan, tx)
 
+	if err != nil {
+		return err
+	}
+
+	isReviewUserNull := existingAuditFindingActionPlan.ReviewUserID == nil
+
+	// Fetch the corresponding task and update its status
+	existingTask, err := afaps.taskSvc.GetByFieldID("audit_finding_action_plan_id", id)
+	if err != nil {
+		return err
+	}
+	err = afaps.taskSvc.UpdateStatus(currentUserID, existingTask.ID, ActionPlanStatusID, isReviewUserNull, tx)
 	if err != nil {
 		return err
 	}

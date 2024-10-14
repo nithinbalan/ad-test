@@ -103,6 +103,7 @@ func NewRiskModule(db *gorm.DB,
 		masterModule.ReviewFrequencySvc,
 		masterModule.UnitSvc,
 		organizationModule.UserSettingSvc,
+		commonModule.NotificationService,
 	)
 	kriRegisterController := controllers.NewKRIRegisterController(kriRegisterSvc)
 
@@ -196,7 +197,8 @@ func NewRiskModule(db *gorm.DB,
 		complianceModule.SlaRegisterSvc,
 		riskMatrixSvc,
 		riskTimelineSvc,
-		organizationModule.UserSettingSvc)
+		organizationModule.UserSettingSvc,
+		commonModule.NotificationService)
 	riskRegisterController := controllers.NewRiskRegisterController(riskRegisterSvc)
 
 	riskRootCauseAnalysisRepo := repositories.NewRiskRootCauseAnalysisRepository(db)

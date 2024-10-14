@@ -122,8 +122,8 @@ type AuditableItemDetailDTO struct {
 	IncidentRegisterID      *uint                                          `json:"incident_register_id"`
 	ComplianceRequirementID *uint                                          `json:"compliance_requirement_id"`
 	RiskRegisterID          *uint                                          `json:"risk_register_id"`
-	ResponsibleUnitID       *uint                                          `json:"responsible_unit_id"`
-	ResponsibleUserID       *uint                                          `json:"responsible_user_id"`
+	ResponsibleUnitID       uint                                           `json:"responsible_unit_id"`
+	ResponsibleUserID       uint                                           `json:"responsible_user_id"`
 	UserID                  *uint                                          `json:"user_id"`
 	Process                 *organizationDTOs.ProcessDetailDTO             `json:"process"`
 	Control                 *organizationDTOs.ControlDetailDTO             `json:"control"`

@@ -63,7 +63,7 @@ func (repo *ControlEfficiencyStatusRepository) GetByID(id uint) (*models.Control
 func (repo *ControlEfficiencyStatusRepository) GetByType(status string) (*models.ControlEfficiencyStatus, error) {
 	var controlEfficiencyStatus *models.ControlEfficiencyStatus
 
-	result := repo.db.Where("status = ?", status).First(&controlEfficiencyStatus)
+	result := repo.db.Where("type = ?", status).First(&controlEfficiencyStatus)
 
 	if result.Error != nil {
 		return nil, result.Error

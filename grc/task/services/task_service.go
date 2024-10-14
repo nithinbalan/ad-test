@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+
 	commonDTOs "jethur/grc/common/dtos"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
@@ -37,11 +38,14 @@ type TaskService struct {
 func NewTaskService(repo repositories.TaskRepositoryInteface,
 	taskStatusSvc TaskStatusServiceInterface,
 	moduleSvc settingService.ModuleServiceInterface,
-	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface) TaskServiceInterface {
-	return &TaskService{repo: repo,
+	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
+) TaskServiceInterface {
+	return &TaskService{
+		repo:                repo,
 		taskStatusSvc:       taskStatusSvc,
 		moduleSvc:           moduleSvc,
-		actionPlanStatusSvc: actionPlanStatusSvc}
+		actionPlanStatusSvc: actionPlanStatusSvc,
+	}
 }
 
 func (ts *TaskService) GetAll(params *taskDTOs.TaskListQueryParamsDTO) (*taskDTOs.TaskListResponseDTO, error) {
@@ -50,7 +54,6 @@ func (ts *TaskService) GetAll(params *taskDTOs.TaskListQueryParamsDTO) (*taskDTO
 
 func (ts TaskService) GetByID(id uint) (*models.Task, error) {
 	task, err := ts.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -62,7 +65,6 @@ func (ts TaskService) GetByID(id uint) (*models.Task, error) {
 
 func (ts TaskService) GetByFieldID(field string, value interface{}) (*models.Task, error) {
 	task, err := ts.repo.GetByFieldID(field, value)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, value)
@@ -86,24 +88,26 @@ func (ts *TaskService) Create(taskDTO commonDTOs.TaskFormDTO, currentUserID uint
 		return 0, err
 	}
 	task := &models.Task{
-		ReferenceNumber:        referenceNumber,
-		ModuleID:               moduleID,
-		ComplianceActionPlanID: taskDTO.ComplianceActionPlanID,
-		SLAActionPlanID:        taskDTO.SLAActionPlanID,
-		IncidentActionPlanID:   taskDTO.IncidentActionPlanID,
-		ControlActionPlanID:    taskDTO.ControlActionPlanID,
-		RiskActionPlanID:       taskDTO.RiskActionPlanID,
-		DocumentID:             taskDTO.DocumentID,
-		DocumentWorkflowID:     taskDTO.DocumentWorkflowID,
-		Title:                  taskDTO.Title,
-		Description:            taskDTO.Description,
-		TargetDate:             taskDTO.TargetDate,
-		URLParam:               taskDTO.URLParam,
-		QueryParam:             taskDTO.QueryParam,
-		SeverityLevelID:        taskDTO.SeverityLevelID,
-		ResponsibleUserID:      taskDTO.ResponsibleUserID,
-		TaskStatusID:           taskStatus.ID,
-		CreatedByID:            currentUserID,
+		ReferenceNumber:          referenceNumber,
+		ModuleID:                 moduleID,
+		ComplianceActionPlanID:   taskDTO.ComplianceActionPlanID,
+		SLAActionPlanID:          taskDTO.SLAActionPlanID,
+		IncidentActionPlanID:     taskDTO.IncidentActionPlanID,
+		ControlActionPlanID:      taskDTO.ControlActionPlanID,
+		RiskActionPlanID:         taskDTO.RiskActionPlanID,
+		MeetingActionPlanID:      taskDTO.MeetingActionPlanID,
+		AuditFindingActionPlanID: taskDTO.AuditFindingActionPlanID,
+		DocumentID:               taskDTO.DocumentID,
+		DocumentWorkflowID:       taskDTO.DocumentWorkflowID,
+		Title:                    taskDTO.Title,
+		Description:              taskDTO.Description,
+		TargetDate:               taskDTO.TargetDate,
+		URLParam:                 taskDTO.URLParam,
+		QueryParam:               taskDTO.QueryParam,
+		SeverityLevelID:          taskDTO.SeverityLevelID,
+		ResponsibleUserID:        taskDTO.ResponsibleUserID,
+		TaskStatusID:             taskStatus.ID,
+		CreatedByID:              currentUserID,
 	}
 	id, err := ts.repo.Create(task, tx...)
 	if err != nil {
@@ -111,7 +115,6 @@ func (ts *TaskService) Create(taskDTO commonDTOs.TaskFormDTO, currentUserID uint
 	}
 
 	return id, nil
-
 }
 
 func (ts *TaskService) Update(currentUserID uint, taskDTO commonDTOs.TaskFormDTO, fieldName string, id uint, tx ...utility.DatabaseTransaction) error {
@@ -179,7 +182,7 @@ func (ts *TaskService) MapActionPlanStatusToTaskStatus(actionPlanStatusID uint, 
 	} else {
 		switch actionPlanStatus.Type {
 		case "new":
-			taskStatusType = "new"
+			taskStatusType = "open"
 		case "in_progress":
 			taskStatusType = "in_progress"
 		case "completed":
@@ -189,7 +192,7 @@ func (ts *TaskService) MapActionPlanStatusToTaskStatus(actionPlanStatusID uint, 
 		case "reopen":
 			taskStatusType = "in_progress"
 		default:
-			taskStatusType = "new"
+			taskStatusType = "open"
 		}
 	}
 

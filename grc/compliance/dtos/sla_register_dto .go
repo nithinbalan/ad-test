@@ -1,11 +1,12 @@
 package dtos
 
 import (
+	"time"
+
 	commonDTOs "jethur/grc/common/dtos"
 	masterDTOs "jethur/grc/masters/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
 	settingsDTOs "jethur/grc/settings/dtos"
-	"time"
 )
 
 type SLARegisterListDTO struct {
@@ -155,25 +156,26 @@ type ParsedSLADates struct {
 }
 
 type SLARegisterDetailDTO struct {
-	ID               uint                             `json:"id"`
-	ReferenceNumber  string                           `json:"reference_number"`
-	SLACategory      SLACategoryDTO                   `json:"sla_category"`
-	SeverityLevel    *masterDTOs.SeverityLevelDTO     `json:"severity_level"`
-	ResponsibleUnit  settingsDTOs.OrganizationUnitDTO `json:"responsible_unit"`
-	ResponsibleUser  organizationDTOs.UserMinimalDTO  `json:"responsible_user"`
-	LifecycleStatus  masterDTOs.LifecycleStatusDTO    `json:"lifecycle_status"`
-	ComplianceStatus *ComplianceStatusDTO             `json:"compliance_status,omitempty"`
-	TitleEn          string                           `json:"title_en"`
-	TitleAr          string                           `json:"title_ar"`
-	Description      *string                          `json:"description,omitempty"`
-	Client           string                           `json:"client"`
-	CreatedAt        time.Time                        `json:"created_at"`
-	UpdatedAt        *time.Time                       `json:"updated_at"`
-	CreatedByUser    organizationDTOs.UserMinimalDTO  `json:"created_by"`
-	UpdatedByUser    *organizationDTOs.UserMinimalDTO `json:"updated_by,omitempty"`
-	Documents        []*SLADocumentDTO                `json:"documents"`
-	Checks           []*SLAChecksDTO                  `json:"checks"`
-	Processes        []*SLAProcessDTO                 `json:"processes"`
+	ID                uint                             `json:"id"`
+	ReferenceNumber   string                           `json:"reference_number"`
+	SLACategory       SLACategoryDTO                   `json:"sla_category"`
+	SeverityLevel     *masterDTOs.SeverityLevelDTO     `json:"severity_level"`
+	ResponsibleUnit   settingsDTOs.OrganizationUnitDTO `json:"responsible_unit"`
+	ResponsibleUser   organizationDTOs.UserMinimalDTO  `json:"responsible_user"`
+	ResponsibleUserID uint                             `json:"responsible_user_id" binding:"required" gorm:"not null"`
+	LifecycleStatus   masterDTOs.LifecycleStatusDTO    `json:"lifecycle_status"`
+	ComplianceStatus  *ComplianceStatusDTO             `json:"compliance_status,omitempty"`
+	TitleEn           string                           `json:"title_en"`
+	TitleAr           string                           `json:"title_ar"`
+	Description       *string                          `json:"description,omitempty"`
+	Client            string                           `json:"client"`
+	CreatedAt         time.Time                        `json:"created_at"`
+	UpdatedAt         *time.Time                       `json:"updated_at"`
+	CreatedByUser     organizationDTOs.UserMinimalDTO  `json:"created_by"`
+	UpdatedByUser     *organizationDTOs.UserMinimalDTO `json:"updated_by,omitempty"`
+	Documents         []*SLADocumentDTO                `json:"documents"`
+	Checks            []*SLAChecksDTO                  `json:"checks"`
+	Processes         []*SLAProcessDTO                 `json:"processes"`
 }
 
 type SLAChecksDTO struct {

@@ -14,6 +14,9 @@ type AuditInsightsModule struct {
 	AuditInsightsDocumentRequestController             *controllers.AuditInsightsDocumentRequestController
 	AuditInsightsDraftReportController                 *controllers.AuditInsightsDraftReportController
 	AuditInsightsDocumentRequestConversationController *controllers.AuditInsightsDocumentRequestConversationController
+	AuditInsightsDraftFindingController                *controllers.AuditInsightsDraftFindingController
+	AuditInsightsDraftFindingConversationController    *controllers.AuditInsightsDraftFindingConversationController
+	AuditInsightsDraftFindingActionPlanController      *controllers.AuditInsightsDraftFindingActionPlanController
 }
 
 func NewAuditInsightsModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, auditModule *AuditModule) *AuditInsightsModule {
@@ -62,11 +65,53 @@ func NewAuditInsightsModule(db *gorm.DB, sharedModule *SharedModule, organizatio
 	)
 	auditInsightsDraftReportController := controllers.NewAuditInsightsDraftReportController(auditInsightsDraftReportSvc)
 
+	auditInsightsDraftFindingRepo := repositories.NewAuditInsightsDraftFindingRepository(db)
+	auditInsightsDraftFindingSvc := services.NewAuditInsightsDraftFindingService(
+		auditInsightsDraftFindingRepo,
+		sharedModule.ActivityLogService,
+		organizationModule.UserSvc,
+		auditModule.AuditDraftReportSvc,
+		auditModule.AuditDraftReportStatusSvc,
+		auditModule.AuditDraftFindingSvc,
+		auditModule.AuditDraftFindingStatusSvc,
+		auditModule.AuditDraftFindingConversationSvc,
+		auditModule.AuditDraftFindingActionPlanSvc,
+	)
+	auditInsightsDraftFindingController := controllers.NewAuditInsightsDraftFindingController(auditInsightsDraftFindingSvc)
+
+	auditInsightsDraftFindingConversationRepo := repositories.NewAuditInsightsDraftFindingConversationRepository(db)
+	auditInsightsDraftFindingConversationSvc := services.NewAuditInsightsDraftFindingConversationService(
+		auditInsightsDraftFindingConversationRepo,
+		sharedModule.ActivityLogService,
+		auditModule.AuditDraftFindingStatusSvc,
+		auditModule.AuditDraftFindingConversationSvc,
+		auditModule.AuditDraftFindingSvc,
+		auditModule.AuditSvc,
+		organizationModule.UserSvc,
+	)
+	auditInsightsDraftFindingConversationController := controllers.NewAuditInsightsDraftFindingConversationController(auditInsightsDraftFindingConversationSvc)
+
+	auditInsightsDraftFindingActionPlanRepo := repositories.NewAuditInsightsDraftFindingActionPlanRepository(db)
+	auditInsightsDraftFindingActionPlanSvc := services.NewAuditInsightsDraftFindingActionPlanService(
+		auditInsightsDraftFindingActionPlanRepo,
+		sharedModule.ActivityLogService,
+		auditModule.AuditDraftFindingSvc,
+		auditModule.AuditDraftFindingStatusSvc,
+		auditModule.AuditDraftFindingActionPlanSvc,
+		organizationModule.UserSvc,
+		auditModule.AuditDraftReportSvc,
+		auditModule.AuditDraftReportStatusSvc,
+	)
+	auditInsightsDraftFindingActionPlanController := controllers.NewAuditInsightsDraftFindingActionPlanController(auditInsightsDraftFindingActionPlanSvc)
+
 	return &AuditInsightsModule{
 		AuditInsightsAuditPlanController:                   auditInsightsAuditPlanController,
 		AuditInsightsAuditController:                       auditInsightsAuditController,
 		AuditInsightsDocumentRequestController:             auditInsightsDocumentRequestController,
 		AuditInsightsDraftReportController:                 auditInsightsDraftReportController,
 		AuditInsightsDocumentRequestConversationController: auditInsightsDocumentRequestConversationController,
+		AuditInsightsDraftFindingController:                auditInsightsDraftFindingController,
+		AuditInsightsDraftFindingConversationController:    auditInsightsDraftFindingConversationController,
+		AuditInsightsDraftFindingActionPlanController:      auditInsightsDraftFindingActionPlanController,
 	}
 }

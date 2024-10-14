@@ -56,6 +56,9 @@ type ControlListDTO struct {
 	LastTestDate                         *time.Time `json:"last_test_date"`
 	NextTestDate                         *time.Time `json:"next_test_date"`
 	ImplementedAt                        *time.Time `json:"implemented_at"`
+	IsApplicable                         bool       `json:"is_applicable"`
+	Justification                        *string    `json:"justification"`
+	ApplicabilityChangeDate              *string    `json:"applicability_change_date"`
 	LifecycleStatusTitleEn               string     `json:"lifecycle_status_title_en"`
 	LifecycleStatusTitleAr               string     `json:"lifecycle_status_title_ar"`
 	LifecycleStatusColorCode             string     `json:"lifecycle_status_color_code"`
@@ -125,8 +128,8 @@ type ControlFormDTO struct {
 	ControlTypeID                 uint    `json:"control_type_id" binding:"required"`
 	ControlCategoryID             uint    `json:"control_category_id" binding:"required"`
 	OwnerID                       uint    `json:"owner_id" binding:"required"`
-	ControlImplementationStatusID uint    `json:"control_implementation_status_id" binding:"omitempty"`
-	ControlEfficiencyStatusID     uint    `json:"control_efficiency_status_id" binding:"omitempty"`
+	ControlImplementationStatusID *uint   `json:"control_implementation_status_id" binding:"omitempty"`
+	ControlEfficiencyStatusID     *uint   `json:"control_efficiency_status_id" binding:"omitempty"`
 	Code                          *string `json:"code" binding:"omitempty"`
 	TitleEn                       string  `json:"title_en" binding:"required"`
 	TitleAr                       string  `json:"title_ar" binding:"required"`
@@ -142,53 +145,60 @@ type ControlFormDTO struct {
 	LastTestDate                  *string `json:"last_test_date" binding:"omitempty,datetime=2006-01-02"`
 	NextTestDate                  *string `json:"next_test_date" binding:"omitempty,datetime=2006-01-02"`
 	ImplementedAt                 *string `json:"implemented_at" binding:"omitempty,datetime=2006-01-02"`
+	IsApplicable                  bool    `json:"is_applicable" binding:"required"`
+	Justification                 *string `json:"justification" binding:"omitempty"`
+	ApplicabilityChangeDate       *string `json:"applicability_change_date" binding:"omitempty,datetime=2006-01-02"`
 }
 
 type ControlParsedDates struct {
-	LastReviewDate *time.Time
-	NextReviewDate *time.Time
-	LastTestDate   *time.Time
-	NextTestDate   *time.Time
-	ImplementedAt  *time.Time
+	LastReviewDate          *time.Time
+	NextReviewDate          *time.Time
+	LastTestDate            *time.Time
+	NextTestDate            *time.Time
+	ImplementedAt           *time.Time
+	ApplicabilityChangeDate *time.Time
 }
 
 type ControlDetailDTO struct {
-	ID                          uint                             `json:"id"`
-	ReferenceNumber             string                           `json:"reference_number"`
-	Code                        string                           `json:"code"`
-	TitleEn                     string                           `json:"title_en"`
-	TitleAr                     string                           `json:"title_ar"`
-	Description                 *string                          `json:"description"`
-	Objective                   *string                          `json:"objective"`
-	ControlType                 ControlTypeDTO                   `json:"control_type"`
-	ControlCategory             ControlCategoryDTO               `json:"control_category"`
-	OwnerUnit                   settingsDTOs.OrganizationUnitDTO `json:"owner_unit"`
-	OwnerID                     *uint                            `json:"owner_id"`
-	Owner                       *UserMinimalDTO                  `json:"owner"`
-	ControlImplementationStatus *ControlImplementationStatusDTO  `json:"control_implementation_status"`
-	ControlEfficiencyStatus     *ControlEfficiencyStatusDTO      `json:"control_efficiency_status"`
-	EfficiencyScore             *uint                            `json:"efficiency_score"`
-	ReviewFrequency             *masterDTOs.ReviewFrequencyDTO   `json:"review_frequency"`
-	LastReviewDateString        *string                          `json:"last_review_date"`
-	NextReviewDateString        *string                          `json:"next_review_date"`
-	LastReviewNote              *string                          `json:"last_review_note"`
-	TestResponsibleUser         UserMinimalDTO                   `json:"test_responsible_user"`
-	TestFrequency               *masterDTOs.ReviewFrequencyDTO   `json:"test_frequency"`
-	LastTestDateString          *string                          `json:"last_test_date"`
-	NextTestDateString          *string                          `json:"next_test_date"`
-	ImplementedAtString         *string                          `json:"implemented_at"`
-	CreatedAt                   time.Time                        `json:"created_at"`
-	UpdatedAt                   *time.Time                       `json:"updated_at"`
-	CreatedByUser               UserMinimalDTO                   `json:"created_by"`
-	UpdatedByUser               *UserMinimalDTO                  `json:"updated_by"`
-	LifecycleStatus             masterDTOs.LifecycleStatusDTO    `json:"status"`
-	ControlReviewStatus         ControlReviewStatusDTO           `json:"review_status"`
-	LatestControlTest           ControlTestDetailsDTO            `json:"latest_control_test"`
-	LatestControlReview         *ControlReviewDTO                `json:"control_review"`
-	MarkedAsAuditableItem       bool                             `json:"marked_as_auditable_item"`
-	Risks                       []*ControlRiskDTO                `json:"risks"`
-	RiskMatrixRating            *RiskMatrixRiskRatingDTO         `json:"risk_matrix_risk_rating"`
-	RiskMatrixRatingValue       *RiskMatrixRiskRatingValueDTO    `json:"risk_matrix_rating_value"`
+	ID                            uint                             `json:"id"`
+	ReferenceNumber               string                           `json:"reference_number"`
+	Code                          string                           `json:"code"`
+	TitleEn                       string                           `json:"title_en"`
+	TitleAr                       string                           `json:"title_ar"`
+	Description                   *string                          `json:"description"`
+	Objective                     *string                          `json:"objective"`
+	ControlType                   ControlTypeDTO                   `json:"control_type"`
+	ControlCategory               ControlCategoryDTO               `json:"control_category"`
+	OwnerUnit                     settingsDTOs.OrganizationUnitDTO `json:"owner_unit"`
+	OwnerID                       *uint                            `json:"owner_id"`
+	Owner                         *UserMinimalDTO                  `json:"owner"`
+	ControlImplementationStatus   *ControlImplementationStatusDTO  `json:"control_implementation_status"`
+	ControlEfficiencyStatus       *ControlEfficiencyStatusDTO      `json:"control_efficiency_status"`
+	EfficiencyScore               *uint                            `json:"efficiency_score"`
+	ReviewFrequency               *masterDTOs.ReviewFrequencyDTO   `json:"review_frequency"`
+	LastReviewDateString          *string                          `json:"last_review_date"`
+	NextReviewDateString          *string                          `json:"next_review_date"`
+	LastReviewNote                *string                          `json:"last_review_note"`
+	TestResponsibleUser           UserMinimalDTO                   `json:"test_responsible_user"`
+	TestFrequency                 *masterDTOs.ReviewFrequencyDTO   `json:"test_frequency"`
+	LastTestDateString            *string                          `json:"last_test_date"`
+	NextTestDateString            *string                          `json:"next_test_date"`
+	ImplementedAtString           *string                          `json:"implemented_at"`
+	CreatedAt                     time.Time                        `json:"created_at"`
+	UpdatedAt                     *time.Time                       `json:"updated_at"`
+	CreatedByUser                 UserMinimalDTO                   `json:"created_by"`
+	UpdatedByUser                 *UserMinimalDTO                  `json:"updated_by"`
+	LifecycleStatus               masterDTOs.LifecycleStatusDTO    `json:"status"`
+	ControlReviewStatus           ControlReviewStatusDTO           `json:"review_status"`
+	LatestControlTest             ControlTestDetailsDTO            `json:"latest_control_test"`
+	LatestControlReview           *ControlReviewDTO                `json:"control_review"`
+	MarkedAsAuditableItem         bool                             `json:"marked_as_auditable_item"`
+	Risks                         []*ControlRiskDTO                `json:"risks"`
+	RiskMatrixRating              *RiskMatrixRiskRatingDTO         `json:"risk_matrix_risk_rating"`
+	RiskMatrixRatingValue         *RiskMatrixRiskRatingValueDTO    `json:"risk_matrix_rating_value"`
+	IsApplicable                  bool                             `json:"is_applicable"`
+	Justification                 *string                          `json:"justification"`
+	ApplicabilityChangeDateString *string                          `json:"applicability_change_date"`
 }
 
 type ControlRiskDTO struct {
@@ -213,4 +223,9 @@ type ControlMailDTO struct {
 	Subject     string `json:"subject"`
 	MessageEn   string `json:"message_en"`
 	RedirectURL string `json:"redirect_url"`
+}
+
+type ControlApplicableFormDTO struct {
+	Justification           *string `json:"justification" binding:"omitempty"`
+	ApplicabilityChangeDate *string `json:"applicability_change_date" binding:"omitempty,datetime=2006-01-02"`
 }

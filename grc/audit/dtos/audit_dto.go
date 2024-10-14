@@ -17,6 +17,10 @@ type AuditListDTO struct {
 	AuditStatusTitleAr          string  `json:"audit_status_title_ar"`
 	AuditStatusType             string  `json:"audit_status_type"`
 	AuditStatusColorCode        string  `json:"audit_status_color_code"`
+	AuditPlanStatusTitleEn      string  `json:"audit_plan_status_title_en"`
+	AuditPlanStatusTitleAr      string  `json:"audit_plan_status_title_ar"`
+	AuditPlanStatusType         string  `json:"audit_plan_status_type"`
+	AuditPlanStatusColorCode    string  `json:"audit_plan_status_color_code"`
 	AuditPlanTitle              string  `json:"audit_plan_title"`
 	AuditPlanDescription        string  `json:"audit_plan_description"`
 	AuditPlanPurpose            string  `json:"audit_plan_purpose"`
@@ -66,6 +70,7 @@ type AuditDetailDTO struct {
 	EndDateString      string                           `json:"end_date"`
 	AuditChecklists    []*AuditChecklistDetailDTO       `json:"audit_checklists"`
 	AuditDraftFindings []*AuditDraftFindingDetailDTO    `json:"audit_draft_findings"`
+	AuditStatus        AuditStatusDTO                   `json:"audit_status"`
 	CreatedAt          time.Time                        `json:"created_at"`
 	UpdatedAt          *time.Time                       `json:"updated_at"`
 	CreatedByUser      organizationDTOs.UserMinimalDTO  `json:"created_by"`

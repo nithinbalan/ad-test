@@ -56,6 +56,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditScheduleStatusUpdateController := app.AuditModule.AuditScheduleStatusUpdateController
 	auditDraftReportReviewController := app.AuditModule.AuditDraftReportReviewController
 	auditDraftReportCommentController := app.AuditModule.AuditDraftReportCommentController
+	auditPlanCommencementLetterController := app.AuditModule.AuditPlanCommencementLetterController
 
 	//Audit Status
 	auditRoutes.GET("/audit-statuses", auditStatusController.GetAllAuditStatuses)
@@ -98,6 +99,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.POST("/audit-plans", auditPlanController.CreateAuditPlan)
 	auditRoutes.PUT("/audit-plans/:planId", auditPlanController.UpdateAuditPlan)
 	auditRoutes.POST("/audit-plans/delete", auditPlanController.DeleteAuditPlans)
+	auditRoutes.POST("/audit-plans/:planId/publish", auditPlanController.PublishAuditPlan)
 
 	//AuditPlan Checklist
 	auditRoutes.GET("/audit-plans/:planId/checklists", auditPlanChecklistController.GetAllAuditPlanChecklists)
@@ -284,6 +286,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.PUT("/audits/:auditId/draft-reports/:id", auditDraftReportController.UpdateAuditDraftReport)
 	auditRoutes.POST("/audits/:auditId/draft-reports/delete", auditDraftReportController.DeleteAuditDraftReports)
 	auditRoutes.POST("/audits/:auditId/draft-reports/:id/auditee-submit", auditDraftReportController.SubmitAuditDraftReport)
+	auditRoutes.POST("/audits/:auditId/draft-reports/:id/complete", auditDraftReportController.CompleteAuditDraftReport)
 
 	//Audit Risk Control Metrix
 	auditRoutes.GET("audits/:auditId/risk-control-matrix", rcmController.GetAllRiskControls)
@@ -294,6 +297,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.POST("/audit-draft-findings/:findingId/conversations", auditDraftFindingConversationController.CreateAuditDraftFindingConversation)
 	auditRoutes.PUT("/audit-draft-findings/:findingId/conversations/:id", auditDraftFindingConversationController.UpdateAuditDraftFindingConversation)
 	auditRoutes.POST("/audit-draft-findings/:findingId/conversations/delete", auditDraftFindingConversationController.DeleteAuditDraftFindingConversations)
+	unauthenticatedRoutes.GET("/audit-draft-findings/:findingId/conversations/:id/document-download", auditDraftFindingConversationController.DownloadAuditDraftFindingConversationDocument)
 
 	// Audit Draft Finding Action plans
 	auditRoutes.GET("/audit-draft-findings/:findingId/action-plans", auditDraftFindingActionPlanController.GetAllAuditDraftFindingActionPlans)
@@ -310,6 +314,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	//Audit Draft Report Review
 	auditRoutes.POST("/audits/:auditId/draft-reports/:id/submit", auditDraftReportReviewController.SubmitAuditDraftReport)
+	auditRoutes.POST("/audits/:auditId/draft-reports/:id/re-submit", auditDraftReportReviewController.ReSubmitAuditDraftReport)
 	auditRoutes.POST("/audits/:auditId/draft-reports/:id/approve", auditDraftReportReviewController.ApproveAuditDraftReport)
 	auditRoutes.POST("/audits/:auditId/draft-reports/:id/revert", auditDraftReportReviewController.RevertAuditDraftReport)
 
@@ -321,5 +326,13 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.POST("/audits/:auditId/draft-reports/:id/comments/delete", auditDraftReportCommentController.DeleteAuditDraftReportComments)
 	auditRoutes.POST("/audits/:auditId/draft-reports/:id/comments/:commentId/status-update", auditDraftReportCommentController.StatusUpdateAuditDraftReportComment)
 	unauthenticatedRoutes.GET("/audits/:auditId/draft-reports/:id/comments/:commentId/document-download", auditDraftReportCommentController.DownloadAuditDraftReportCommentDocument)
+	auditRoutes.GET("/audits/:auditId/draft-reports/:id/review-history", auditDraftReportReviewController.GetAllAuditDraftReportReviews)
+
+	auditRoutes.GET("/audit-plans/:planId/commencement-letters", auditPlanCommencementLetterController.GetAllAuditPlanCommencementLetters)
+	auditRoutes.GET("/audit-plans/:planId/commencement-letters/:id", auditPlanCommencementLetterController.GetAuditPlanCommencementLetterDetails)
+	auditRoutes.POST("/audit-plans/:planId/commencement-letters", auditPlanCommencementLetterController.CreateAuditPlanCommencementLetters)
+	auditRoutes.PUT("/audit-plans/:planId/commencement-letters/:id", auditPlanCommencementLetterController.UpdateAuditPlanCommencementLetter)
+	auditRoutes.DELETE("/audit-plans/:planId/commencement-letters/:id", auditPlanCommencementLetterController.DeleteAuditPlanCommencementLetter)
+	auditRoutes.PUT("/audit-plans/:planId/commencement-letters/:id/send", auditPlanCommencementLetterController.SendAuditPlanCommencementLetter)
 
 }

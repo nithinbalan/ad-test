@@ -75,14 +75,15 @@ type AuditDraftFindingActionPlanParsedDates struct {
 }
 
 type AuditDraftFindingActionPlanDetailDTO struct {
-	ID                int                             `json:"id"`
-	Title             string                          `json:"title"`
-	Description       string                          `json:"description"`
-	AuditDraftFinding AuditDraftFindingDetailDTO      `json:"audit_draft_finding"`
-	ResponsibleUser   organizationDTOs.UserMinimalDTO `json:"responsible_user"`
-	TargetDateString  *string                         `json:"target_date"`
-	CreatedAt         time.Time                       `json:"created_at"`
-	UpdatedAt         *time.Time                      `json:"updated_at"`
-	CreatedByUser     organizationDTOs.UserMinimalDTO `json:"created_by_user"`
-	UpdatedByUser     organizationDTOs.UserMinimalDTO `json:"updated_by_user"`
+	ID                  int                             `json:"id"`
+	AuditDraftFindingID uint                            `json:"audit_draft_finding_id"`
+	Title               string                          `json:"title"`
+	Description         string                          `json:"description"`
+	AuditDraftFinding   AuditDraftFindingDetailDTO      `json:"audit_draft_finding"`
+	ResponsibleUser     organizationDTOs.UserMinimalDTO `json:"responsible_user"`
+	TargetDateString    *string                         `json:"target_date"`
+	CreatedAt           time.Time                       `json:"created_at"`
+	UpdatedAt           *time.Time                      `json:"updated_at"`
+	CreatedByUser       organizationDTOs.UserMinimalDTO `json:"created_by_user"`
+	UpdatedByUser       organizationDTOs.UserMinimalDTO `json:"updated_by_user"`
 }

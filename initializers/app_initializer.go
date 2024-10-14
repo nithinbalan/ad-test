@@ -5,6 +5,7 @@ import (
 )
 
 type App struct {
+	DB                  *gorm.DB
 	SettingsModule      *SettingsModule
 	CommonModule        *CommonModule
 	MasterModule        *MasterModule
@@ -31,16 +32,17 @@ func NewApp(db *gorm.DB) *App {
 	libraryModule := NewLibraryModule(db, sharedModule, masterModule)
 	organizationModule := NewOrganizationModule(db, sharedModule, settingsModule, masterModule, taskModule, commonModule)
 	authModule := NewAuthModule(db, organizationModule, settingsModule, commonModule)
-	complianceModule := NewComplianceModule(db, sharedModule, masterModule, organizationModule, taskModule, settingsModule)
+	complianceModule := NewComplianceModule(db, sharedModule, masterModule, organizationModule, taskModule, settingsModule, commonModule)
 	riskModule := NewRiskModule(db, sharedModule, settingsModule, masterModule, libraryModule, organizationModule, complianceModule, commonModule, taskModule)
-	incidentModule := NewIncidentModule(db, sharedModule, settingsModule, masterModule, organizationModule, complianceModule, riskModule, taskModule)
+	incidentModule := NewIncidentModule(db, sharedModule, settingsModule, masterModule, organizationModule, complianceModule, riskModule, taskModule, commonModule)
 	documentModule := NewDocumentModule(db, sharedModule, settingsModule, masterModule, organizationModule, taskModule, commonModule)
-	meetingModule := NewMeetingModule(db, sharedModule, organizationModule, masterModule, commonModule, complianceModule, riskModule, incidentModule)
-	auditModule := NewAuditModule(db, sharedModule, organizationModule, complianceModule, riskModule, incidentModule, documentModule, settingsModule, masterModule)
+	meetingModule := NewMeetingModule(db, sharedModule, organizationModule, masterModule, commonModule, complianceModule, riskModule, incidentModule, taskModule)
+	auditModule := NewAuditModule(db, sharedModule, organizationModule, complianceModule, riskModule, incidentModule, documentModule, settingsModule, masterModule, taskModule, commonModule)
 	kpiModule := NewKPIModule(db)
 	auditInsightsModule := NewAuditInsightsModule(db, sharedModule, organizationModule, auditModule)
 
 	return &App{
+		DB:                  db,
 		SettingsModule:      settingsModule,
 		CommonModule:        commonModule,
 		MasterModule:        masterModule,

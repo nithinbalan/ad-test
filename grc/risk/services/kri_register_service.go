@@ -3,6 +3,11 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
+	"time"
+
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
@@ -10,7 +15,6 @@ import (
 	riskDTOs "jethur/grc/risk/dtos"
 	riskRepositories "jethur/grc/risk/repositories"
 	"jethur/utility"
-	"os"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -38,6 +42,7 @@ type KRIRegisterService struct {
 	reviewFrequencySvc masterServices.ReviewFrequencyServiceInterface
 	unitSvc            masterServices.UnitServiceInterface
 	userSettingSvc     organizationServices.UserSettingServiceInterface
+	notificationSvc    commonServices.NotificationServiceInterface
 }
 
 func NewKRIRegisterService(
@@ -49,6 +54,7 @@ func NewKRIRegisterService(
 	reviewFrequencySvc masterServices.ReviewFrequencyServiceInterface,
 	unitSvc masterServices.UnitServiceInterface,
 	userSettingSvc organizationServices.UserSettingServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
 ) KRIRegisterServiceInterface {
 	return &KRIRegisterService{
 		repo:               repo,
@@ -59,6 +65,7 @@ func NewKRIRegisterService(
 		reviewFrequencySvc: reviewFrequencySvc,
 		unitSvc:            unitSvc,
 		userSettingSvc:     userSettingSvc,
+		notificationSvc:    notificationSvc,
 	}
 }
 
@@ -179,6 +186,71 @@ func (krs *KRIRegisterService) Create(currentUserID uint, kriRegisterFormDTO *ri
 
 			utility.LogError("Failed to log activity", fields)
 		}
+
+		// Prepare notification and email
+		urlParam := fmt.Sprintf(`{"id":%d}`, id)
+		entity := "kri-register"
+		action := "responsible-user-assign"
+
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserID:               kriRegisterFormDTO.ResponsibleUserID,
+			ModuleIdentifier:     "risk",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			HeadingEn:            "KRI Register Assignment",
+			HeadingAr:            "مهمة تسجيل KRI",
+			TitleEn:              kriRegisterFormDTO.Title,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		responsibleUser, err := krs.userSvc.GetByID(kriRegisterFormDTO.ResponsibleUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		createdBy, err := krs.userSvc.GetByID(currentUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		emailTo := []string{responsibleUser.Email}
+		subject := fmt.Sprintf("KRI Register/%s: Responsibility Assigned", kriRegister.Title)
+		appURL := utility.GetAppURL()
+
+		emailData := map[string]interface{}{
+			"FirstNameEn":          responsibleUser.FirstNameEn,
+			"LastNameEn":           responsibleUser.LastNameEn,
+			"KriReferenceNumber":   kriRegister.ReferenceNumber,
+			"KriTitleEn":           kriRegister.Title,
+			"KriDescription":       kriRegister.Description,
+			"CreatedByFirstNameEn": createdBy.FirstNameEn,
+			"CreatedByLastNameEn":  createdBy.LastNameEn,
+			"AssignedOn":           time.Now().Format("2006-01-02"),
+			"RedirectURL":          fmt.Sprintf("%srisk/kri-register/%d/overview", appURL, id),
+		}
+
+		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              emailTo,
+			Subject:              subject,
+			TemplateRelativePath: "risk/templates/email/kri_register_create_responsible_user_mail.html",
+			EmailData:            emailData,
+		}
+
+		err = krs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "kri_register")
+		if err != nil {
+			utility.LogError("Failed to send notifications", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
 	}()
 
 	return id, nil
@@ -206,6 +278,9 @@ func (krs *KRIRegisterService) Update(id uint, currentUserID uint, kriRegisterFo
 		}
 		existingKRIRegister.ResponsibleUnitID = organizationUnitID
 	}
+
+	oldResponsibleUserID := existingKRIRegister.ResponsibleUserID
+
 	existingKRIRegister.KRICategoryID = kriRegisterFormDTO.KRICategoryID
 	existingKRIRegister.ResponsibleUserID = kriRegisterFormDTO.ResponsibleUserID
 	existingKRIRegister.ReviewFrequencyID = kriRegisterFormDTO.ReviewFrequencyID
@@ -231,6 +306,152 @@ func (krs *KRIRegisterService) Update(id uint, currentUserID uint, kriRegisterFo
 		return err
 	}
 
+	go func() {
+		// Log the update activity
+		err := krs.activityLogSvc.LogActivity(
+			models.UpdateAction,
+			models.KRIRegister{}.TableName(),
+			id,
+			kriRegisterFormDTO,
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			utility.LogError("Failed to log activity", map[string]interface{}{
+				"action":    models.UpdateAction,
+				"tableName": models.KRIRegister{}.TableName(),
+				"recordID":  id,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			})
+		}
+
+		// Send notifications to old and new responsible users if the responsible user has changed
+		if oldResponsibleUserID != existingKRIRegister.ResponsibleUserID {
+			// URL param for notifications
+			urlParam := fmt.Sprintf(`{"id":%d}`, id)
+			entity := "kri-register"
+
+			// Old responsible user notification (Removal)
+			oldResponsibleUserAction := "responsible-user-remove"
+			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserID:               oldResponsibleUserID,
+				ModuleIdentifier:     "risk",
+				NotificationType:     string(commonDTOs.InformationType),
+				HeadingEn:            "Kri Register Responsibility Removed",
+				HeadingAr:            "تمت إزالة مسؤولية تسجيل Kri",
+				TitleEn:              existingKRIRegister.Title,
+				Entity:               &entity,
+				Action:               &oldResponsibleUserAction,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			// New responsible user notification (Assignment)
+			newResponsibleUserAction := "responsible-user-assign"
+			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserID:               kriRegisterFormDTO.ResponsibleUserID,
+				ModuleIdentifier:     "risk",
+				NotificationType:     string(commonDTOs.AssignmentType),
+				HeadingEn:            "Kri Register Responsibility Assigned",
+				HeadingAr:            "Kri تسجيل المسؤولية المعينة",
+				TitleEn:              existingKRIRegister.Title,
+				Entity:               &entity,
+				Action:               &newResponsibleUserAction,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			// Fetch the responsible users' data
+			oldResponsibleUser, err := krs.userSvc.GetByID(oldResponsibleUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch old responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			newResponsibleUser, err := krs.userSvc.GetByID(kriRegisterFormDTO.ResponsibleUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch new responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			// Fetch details of the user making the assignment
+			updatedByUser, err := krs.userSvc.GetByID(currentUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			appURL := utility.GetAppURL()
+
+			// Email notification for the old responsible user
+			oldResponsibleUserEmailTo := []string{oldResponsibleUser.Email}
+			oldResponsibleUserSubject := fmt.Sprintf("Kri Register/%s: Responsibility Removed", existingKRIRegister.Title)
+			oldResponsibleUserEmailData := map[string]interface{}{
+				"FirstNameEn":          oldResponsibleUser.FirstNameEn,
+				"LastNameEn":           oldResponsibleUser.LastNameEn,
+				"KriReferenceNumber":   existingKRIRegister.ReferenceNumber,
+				"KriTitle":             existingKRIRegister.Title,
+				"KriDescription":       existingKRIRegister.Description,
+				"UpdatedByFirstNameEn": updatedByUser.FirstNameEn,
+				"UpdatedByLastNameEn":  updatedByUser.LastNameEn,
+				"RedirectURL":          fmt.Sprintf("%srisk/kri-register/%d/overview", appURL, id),
+			}
+
+			oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              oldResponsibleUserEmailTo,
+				Subject:              oldResponsibleUserSubject,
+				TemplateRelativePath: "risk/templates/email/kri_register_remove_responsible_user_mail.html",
+				EmailData:            oldResponsibleUserEmailData,
+			}
+
+			// Email notification for the new responsible user
+			newResponsibleUserEmailTo := []string{newResponsibleUser.Email}
+			newResponsibleUserSubject := fmt.Sprintf("KRI Register/%s: Responsibility Assigned", existingKRIRegister.Title)
+			newResponsibleUserEmailData := map[string]interface{}{
+				"FirstNameEn":           newResponsibleUser.FirstNameEn,
+				"LastNameEn":            newResponsibleUser.LastNameEn,
+				"KriReferenceNumber":    existingKRIRegister.ReferenceNumber,
+				"KriTitle":              existingKRIRegister.Title,
+				"KriDescription":        existingKRIRegister.Description,
+				"AssignedByFirstNameEn": updatedByUser.FirstNameEn,
+				"AssignedByLastNameEn":  updatedByUser.LastNameEn,
+				"AssignedOn":            time.Now().Format("2006-01-02"),
+				"RedirectURL":           fmt.Sprintf("%srisk/kri-register/%d/overview", appURL, id),
+			}
+
+			newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              newResponsibleUserEmailTo,
+				Subject:              newResponsibleUserSubject,
+				TemplateRelativePath: "risk/templates/email/kri_register_change_responsible_user_mail.html",
+				EmailData:            newResponsibleUserEmailData,
+			}
+
+			// Send notifications and emails
+			err = krs.notificationSvc.SendNotification(newResponsibleUserNotificationDTO, newResponsibleUserEmailNotificationDTO, "kri_register")
+			if err != nil {
+				utility.LogError("Failed to send notifications to new responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+
+			err = krs.notificationSvc.SendNotification(oldResponsibleUserNotificationDTO, oldResponsibleUserEmailNotificationDTO, "kri_register")
+			if err != nil {
+				utility.LogError("Failed to send notifications to old responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+		}
+	}()
+
 	return nil
 }
 
@@ -246,6 +467,15 @@ func (krs *KRIRegisterService) UpdateValue(kriRegister *models.KRIRegister, tx u
 func (krs *KRIRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
+
+	var notifications []struct {
+		OwnerID         *uint
+		TitleEn         string
+		TitleAr         string
+		Description     string
+		ReferenceNumber string
+	}
+
 	for _, id := range ids {
 
 		_, err := krs.repo.GetByID(id)
@@ -254,12 +484,31 @@ func (krs *KRIRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 			continue
 		}
 
+		kriRegister, err := krs.GetFullDetailsByID(id)
+		if err != nil {
+			return nil, err
+		}
+
 		err = krs.repo.Delete(id)
 		if err != nil {
 			failedIds = append(failedIds, id)
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+
+		// Prepare notification data before deletion
+		notifications = append(notifications, struct {
+			OwnerID         *uint
+			TitleEn         string
+			TitleAr         string
+			Description     string
+			ReferenceNumber string
+		}{
+			OwnerID:         &kriRegister.ResponsibleUserID,
+			TitleEn:         kriRegister.Title,
+			Description:     *kriRegister.Description,
+			ReferenceNumber: kriRegister.ReferenceNumber,
+		})
 	}
 
 	if len(successfulIds) > 0 {
@@ -276,6 +525,67 @@ func (krs *KRIRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 			if err != nil {
 				// @todo - save to log file
 				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+			}
+
+			// Send DB and email notifications for each successfully deleted kri register
+			for _, notification := range notifications {
+				urlParam := ""
+				entity := "kri-register"
+				action := "delete"
+
+				// Prepare DB notification
+				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+					UserID:               *notification.OwnerID,
+					ModuleIdentifier:     "risk",
+					NotificationType:     string(commonDTOs.DeletionType),
+					HeadingEn:            "KRI Register Deleted",
+					HeadingAr:            "تم حذف تسجيل KRI",
+					TitleEn:              notification.TitleEn,
+					TitleAr:              notification.TitleAr,
+					Entity:               &entity,
+					Action:               &action,
+					URLParam:             urlParam,
+					IsSystemNotification: false,
+					CreatedByID:          &currentUserID,
+				}
+
+				// Fetch owner details (responsible user)
+				ownerUser, err := krs.userSvc.GetByID(*notification.OwnerID)
+				if err != nil {
+					utility.LogError("Failed to fetch owner details for notification", map[string]interface{}{
+						"error": err.Error(),
+					})
+					continue
+				}
+
+				// Prepare email notification
+				ownerEmailTo := []string{ownerUser.Email}
+				subject := fmt.Sprintf("KRI Register/%s: Deleted", notification.TitleEn)
+				templateRelativePath := "risk/templates/email/kri_register_delete_mail.html"
+
+				emailData := map[string]interface{}{
+					"FirstNameEn":        ownerUser.FirstNameEn,
+					"LastNameEn":         ownerUser.LastNameEn,
+					"KriReferenceNumber": notification.ReferenceNumber,
+					"KriTitle":           notification.TitleEn,
+					"KriDescription":     notification.Description,
+				}
+
+				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+					EmailTo:              ownerEmailTo,
+					Subject:              subject,
+					TemplateRelativePath: templateRelativePath,
+					EmailData:            emailData,
+				}
+
+				// Send DB and email notifications
+				err = krs.notificationSvc.SendNotification(
+					dbNotificationDTO, emailNotificationDTO, "kri_register")
+				if err != nil {
+					utility.LogError("Failed to send deletion notifications", map[string]interface{}{
+						"error": err.Error(),
+					})
+				}
 			}
 		}()
 	}

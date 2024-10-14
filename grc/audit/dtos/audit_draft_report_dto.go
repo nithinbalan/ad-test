@@ -115,25 +115,30 @@ type AuditDraftReportFormDTO struct {
 }
 
 type AuditDraftReportDetailDTO struct {
-	ID                            uint                                `json:"id"`
-	AuditID                       uint                                `json:"audit_id"`
-	Title                         string                              `json:"title"`
-	ReferenceNumber               string                              `json:"reference_number"`
-	ReportDateString              string                              `json:"report_date"`
-	PreparedAt                    string                              `json:"prepared_at"`
-	PreparedBy                    organizationDTOs.UserMinimalDTO     `json:"prepared_by"`
-	ExecutiveSummary              string                              `json:"executive_summary"`
-	Auditors                      []*AuditPlanAuditMemberDTO          `json:"auditors"`
-	TeamLead                      organizationDTOs.UserMinimalDTO     `json:"team_lead"`
-	AuditDraftFindings            []*AuditDraftFindingReportDetailDTO `json:"draft_findings"`
-	Conclusion                    string                              `json:"conclusion"`
-	InternalReviewSubmittedByUser *organizationDTOs.UserMinimalDTO    `json:"internal_review_submitted_by"`
-	InternalReviewSubmittedAt     *string                             `json:"internal_review_submitted_at"`
-	AuditeeReviewSubmittedByUser  *organizationDTOs.UserMinimalDTO    `json:"auditee_review_submitted_by"`
-	AuditeeReviewSubmittedAt      *string                             `json:"auditee_review_submitted_at"`
-	AuditDraftReportStatus        *AuditDraftReportStatusDTO          `json:"audit_draft_report_status"`
-	CreatedByUser                 organizationDTOs.UserMinimalDTO     `json:"created_by"`
-	UpdatedByUser                 *organizationDTOs.UserMinimalDTO    `json:"updated_by"`
+	ID                            uint                                 `json:"id"`
+	AuditID                       uint                                 `json:"audit_id"`
+	Title                         string                               `json:"title"`
+	ReferenceNumber               string                               `json:"reference_number"`
+	ReportDateString              string                               `json:"report_date"`
+	PreparedAt                    string                               `json:"prepared_at"`
+	PreparedBy                    organizationDTOs.UserMinimalDTO      `json:"prepared_by"`
+	ExecutiveSummary              string                               `json:"executive_summary"`
+	Auditors                      []*AuditPlanAuditMemberDTO           `json:"auditors"`
+	ReviewUsers                   []*AuditReportWorkflowParticipantDTO `json:"review_users"`
+	TeamLead                      organizationDTOs.UserMinimalDTO      `json:"team_lead"`
+	AuditDraftFindings            []*AuditDraftFindingReportDetailDTO  `json:"draft_findings"`
+	Conclusion                    string                               `json:"conclusion"`
+	InternalReviewSubmittedByUser *organizationDTOs.UserMinimalDTO     `json:"internal_review_submitted_by"`
+	InternalReviewSubmittedAt     *string                              `json:"internal_review_submitted_at"`
+	AuditeeReviewSubmittedByUser  *organizationDTOs.UserMinimalDTO     `json:"auditee_review_submitted_by"`
+	AuditeeReviewSubmittedAt      *string                              `json:"auditee_review_submitted_at"`
+	AuditDraftReportStatus        *AuditDraftReportStatusDTO           `json:"audit_draft_report_status"`
+	CreatedByUser                 organizationDTOs.UserMinimalDTO      `json:"created_by"`
+	UpdatedByUser                 *organizationDTOs.UserMinimalDTO     `json:"updated_by"`
+	ExecutiveSummaryResolvedCount int                                  `json:"executive_summary_resolved_count"`
+	ExecutiveSummaryOpenCount     int                                  `json:"executive_summary_open_count"`
+	ConclusionResolvedCount       int                                  `json:"conclusion_resolved_count"`
+	ConclusionOpenCount           int                                  `json:"conclusion_open_count"`
 }
 type AuditDraftReportParsedDates struct {
 	ReportDate *time.Time
@@ -160,4 +165,8 @@ type AuditDraftFindingReportDetailDTO struct {
 	Documents                      []*AuditDraftFindingDocumentDTO           `json:"documents"`
 	AuditDraftFindingConversations []*AuditDraftFindingConversationDetailDTO `json:"conversations"`
 	AuditDraftFindingActionPlans   []*AuditDraftFindingActionPlanDetailDTO   `json:"action_plans"`
+	AcceptedByUser                 *organizationDTOs.UserMinimalDTO          `json:"accepted_by"`
+	AcceptedAt                     *time.Time                                `json:"accepted_at"`
+	ChallengedByUser               *organizationDTOs.UserMinimalDTO          `json:"challenged_by"`
+	ChallengedAt                   *time.Time                                `json:"challenged_at"`
 }

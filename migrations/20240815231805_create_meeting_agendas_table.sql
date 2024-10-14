@@ -4,7 +4,7 @@ CREATE TABLE meeting_agendas
 (
     id INT PRIMARY KEY IDENTITY(1, 1),
     meeting_id INT NOT NULL,
-    time_from NVARCHAR(45) NULL,
+    title NVARCHAR(255) NOT NULL,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NULL,
     created_by_id INT NOT NULL,

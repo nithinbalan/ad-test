@@ -87,7 +87,8 @@ func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*us
 			roles_agg.roles_ar,
 			user_statuses.title_en AS user_status_title_en,
 			user_statuses.title_ar AS user_status_title_ar,
-			user_statuses.color_code AS user_status_color_code
+			user_statuses.color_code AS user_status_color_code,
+			user_statuses.is_active AS user_status_is_active
 		`).
 		Joins("INNER JOIN organization_units org1 ON org1.id = users.organization_unit_1_id").
 		Joins("LEFT JOIN organization_units org2 ON org2.id = users.organization_unit_2_id").
@@ -134,21 +135,25 @@ func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*us
 	}
 
 	// Apply search keyword if exists
+	// Apply search keyword if exists
 	if params.Keyword != "" {
 		query = query.Where(`
-		(users.first_name_en LIKE ? OR
-			 users.last_name_en LIKE ? OR
-			 users.first_name_ar LIKE ? OR
-			 users.last_name_ar LIKE ? OR
-			 users.email LIKE ? OR
-			 users.mobile_number LIKE ? OR
-			 designations.title_en LIKE ? OR
-			 designations.title_ar LIKE ? OR
-			 user_statuses.title_en LIKE ? OR
-			 user_statuses.title_ar LIKE ?)`,
+        (users.first_name_en LIKE ? OR
+         users.last_name_en LIKE ? OR
+         users.first_name_ar LIKE ? OR
+         users.last_name_ar LIKE ? OR
+         users.email LIKE ? OR
+         users.mobile_number LIKE ? OR
+         designations.title_en LIKE ? OR
+         designations.title_ar LIKE ? OR
+         user_statuses.title_en LIKE ? OR
+         user_statuses.title_ar LIKE ? OR
+         roles_agg.roles_en LIKE ? OR
+         roles_agg.roles_ar LIKE ?)
+        `,
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
-			"%"+params.Keyword+"%", "%"+params.Keyword+"%")
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
 	}
 
 	// Calculate total count for pagination

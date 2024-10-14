@@ -63,7 +63,7 @@ func (repo *ControlImplementationStatusRepository) GetByID(id uint) (*models.Con
 func (repo *ControlImplementationStatusRepository) GetByType(status string) (*models.ControlImplementationStatus, error) {
 	var controlImplementationStatus *models.ControlImplementationStatus
 
-	result := repo.db.Where("status = ?", status).First(&controlImplementationStatus)
+	result := repo.db.Where("type = ?", status).First(&controlImplementationStatus)
 
 	if result.Error != nil {
 		return nil, result.Error
