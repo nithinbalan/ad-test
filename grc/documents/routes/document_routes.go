@@ -22,6 +22,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentAccessTypeController := app.DocumentModule.DocumentAccessTypeController
 	documentWorkflowStatusController := app.DocumentModule.DocumentWorkflowStatusController
 	documentController := app.DocumentModule.DocumentController
+	documentReviewController := app.DocumentModule.DocumentReviewController
+	documentWorkflowController := app.DocumentModule.DocumentWorkflowController
 	documentAccessController := app.DocumentModule.DocumentAccessController
 	documentAcknowledgeUserController := app.DocumentModule.DocumentAcknowledgeUserController
 	documentAuditLogController := app.DocumentModule.DocumentAuditLogController
@@ -84,9 +86,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	unauthenticatedRoutes.GET("/documents/:id/document-preview", documentController.GetDocumentPreview)
 	unauthenticatedRoutes.GET("/documents/:id/document-download", documentController.DownloadDocument)
 
-	documentRoutes.GET("/documents/:id/comments", documentController.GetComments)
-	documentRoutes.POST("/documents/:id/comments", documentController.AddComment)
-	documentRoutes.GET("/documents/:id/workflow-list", documentController.GetWorkflowList)
+	documentRoutes.GET("/documents/:id/comments", documentReviewController.GetComments)
+	documentRoutes.POST("/documents/:id/comments", documentReviewController.AddComment)
+	documentRoutes.GET("/documents/:id/workflow-list", documentWorkflowController.GetWorkflowList)
 
 	documentRoutes.GET("/documents/:id/last-edit-summary", documentController.GetLastEditSummary)
 

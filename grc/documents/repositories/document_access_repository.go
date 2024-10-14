@@ -3,6 +3,7 @@ package repositories
 import (
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
+	"jethur/utility"
 
 	"gorm.io/gorm"
 )
@@ -15,10 +16,10 @@ type DocumentAccessRepositoryInterface interface {
 	GetExistingSharedUserIDs(documentID uint, userIDs []uint) ([]uint, error)
 	GetExistingSharedUnitIDs(documentID uint, unitIDs []uint) ([]uint, error)
 
-	CreateSharedUsers(sharedUsers []*models.DocumentSharedUser) error
-	CreateSharedUnits(sharedUnits []*models.DocumentSharedUnit) error
-	DeleteSharedUsers(documentID uint, userIDs []uint) error
-	DeleteSharedUnits(documentID uint, unitIDs []uint) error
+	CreateSharedUsers(sharedUsers []*models.DocumentSharedUser, tx ...utility.DatabaseTransaction) error
+	CreateSharedUnits(sharedUnits []*models.DocumentSharedUnit, tx ...utility.DatabaseTransaction) error
+	DeleteSharedUsers(documentID uint, userIDs []*uint) error
+	DeleteSharedUnits(documentID uint, unitIDs []*uint) error
 }
 
 type DocumentAccessRepository struct {
@@ -111,20 +112,28 @@ func (repo *DocumentAccessRepository) GetExistingSharedUnitIDs(documentID uint, 
 	return existingUnitIDs, nil
 }
 
-func (repo *DocumentAccessRepository) CreateSharedUsers(sharedUsers []*models.DocumentSharedUser) error {
-	return repo.db.Create(sharedUsers).Error
+func (repo *DocumentAccessRepository) CreateSharedUsers(sharedUsers []*models.DocumentSharedUser, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(sharedUsers).Error
 }
 
-func (repo *DocumentAccessRepository) CreateSharedUnits(sharedUnits []*models.DocumentSharedUnit) error {
-	return repo.db.Create(sharedUnits).Error
+func (repo *DocumentAccessRepository) CreateSharedUnits(sharedUnits []*models.DocumentSharedUnit, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(sharedUnits).Error
 }
 
-func (repo *DocumentAccessRepository) DeleteSharedUsers(documentID uint, userIDs []uint) error {
+func (repo *DocumentAccessRepository) DeleteSharedUsers(documentID uint, userIDs []*uint) error {
 	return repo.db.Where("document_id = ? AND user_id IN (?)", documentID, userIDs).
 		Delete(&models.DocumentSharedUser{}).Error
 }
 
-func (repo *DocumentAccessRepository) DeleteSharedUnits(documentID uint, unitIDs []uint) error {
+func (repo *DocumentAccessRepository) DeleteSharedUnits(documentID uint, unitIDs []*uint) error {
 	return repo.db.Where("document_id = ? AND organization_unit_id IN (?)", documentID, unitIDs).
 		Delete(&models.DocumentSharedUnit{}).Error
 }
