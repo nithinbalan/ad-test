@@ -135,21 +135,25 @@ func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*us
 	}
 
 	// Apply search keyword if exists
+	// Apply search keyword if exists
 	if params.Keyword != "" {
 		query = query.Where(`
-		(users.first_name_en LIKE ? OR
-			 users.last_name_en LIKE ? OR
-			 users.first_name_ar LIKE ? OR
-			 users.last_name_ar LIKE ? OR
-			 users.email LIKE ? OR
-			 users.mobile_number LIKE ? OR
-			 designations.title_en LIKE ? OR
-			 designations.title_ar LIKE ? OR
-			 user_statuses.title_en LIKE ? OR
-			 user_statuses.title_ar LIKE ?)`,
+        (users.first_name_en LIKE ? OR
+         users.last_name_en LIKE ? OR
+         users.first_name_ar LIKE ? OR
+         users.last_name_ar LIKE ? OR
+         users.email LIKE ? OR
+         users.mobile_number LIKE ? OR
+         designations.title_en LIKE ? OR
+         designations.title_ar LIKE ? OR
+         user_statuses.title_en LIKE ? OR
+         user_statuses.title_ar LIKE ? OR
+         roles_agg.roles_en LIKE ? OR
+         roles_agg.roles_ar LIKE ?)
+        `,
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
-			"%"+params.Keyword+"%", "%"+params.Keyword+"%")
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
 	}
 
 	// Calculate total count for pagination

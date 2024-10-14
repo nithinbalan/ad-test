@@ -126,6 +126,8 @@ type DocumentDetailsDTO struct {
 	DocumentSharedUnits   []*DocumentSharedUnitDTO         `json:"document_shared_units"`
 	CreatedByUser         organizationDTOs.UserMinimalDTO  `json:"created_by"`
 	UpdatedByUser         *organizationDTOs.UserMinimalDTO `json:"updated_by"`
+	CreatedAt             time.Time                        `json:"created_at"`
+	UpdatedAt             time.Time                        `json:"updated_at"`
 	Acknowledged          *bool                            `json:"acknowledged,omitempty"`
 }
 
@@ -185,13 +187,6 @@ type DocumentCheckinFormDTO struct {
 	Document commonDTOs.DocumentFormDTO `json:"document"`
 }
 
-type DocumentReviewCommentFormDTO struct {
-	Comment    string `json:"comment"`
-	IsApproved bool   `json:"is_approved"`
-	IsReverted bool   `json:"is_reverted"`
-	IsRejected bool   `json:"is_rejected"`
-}
-
 type DocumentVersionWorkflowDTO struct {
 	ID                uint                            `json:"id"`
 	DocumentID        uint                            `json:"document_id"`
@@ -220,23 +215,6 @@ type WorkflowLevelParticipantDTO struct {
 	ID   uint                             `json:"id"`
 	User *organizationDTOs.UserMinimalDTO `json:"user,omitempty"`
 	Role *settingsDTOs.RoleDTO            `json:"role,omitempty" `
-}
-
-type DocumentVersionWorkflowListDTO struct {
-	ID                uint                             `json:"id"`
-	DocumentID        uint                             `json:"document_id"`
-	SubmittedAt       *time.Time                       `json:"submitted_at"`
-	SubmittedByUser   *organizationDTOs.UserMinimalDTO `json:"submitted_by"`
-	DocumentWorkflows []*DocumentWorkflowListDTO       `json:"document_workflows"`
-}
-
-type DocumentWorkflowListDTO struct {
-	Level         int                                `json:"level"`
-	ApprovalType  string                             `json:"approval_type"`
-	ReviewUsers   []*organizationDTOs.UserMinimalDTO `json:"review_users"`
-	ApprovedUsers []*organizationDTOs.UserMinimalDTO `json:"approved_users"`
-	ApprovedAt    time.Time                          `json:"approved_at,omitempty"`
-	CurrentStatus DocumentStatusDTO                  `json:"current_status"`
 }
 
 type DocumentWorkflowReviewListDTO struct {

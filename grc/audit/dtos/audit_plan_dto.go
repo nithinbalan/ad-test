@@ -95,6 +95,7 @@ type AuditPlanDetailDTO struct {
 	ReferenceNumber     string                           `json:"reference_number"`
 	AuditCategory       AuditCategoryDTO                 `json:"audit_category"`
 	AuditTeam           *AuditTeamDetailDTO              `json:"audit_team"`
+	TeamLeadID          *uint                            `json:"team_lead_id"`
 	TeamLead            *organizationDTOs.UserMinimalDTO `json:"team_lead"`
 	Title               string                           `json:"title"`
 	Description         *string                          `json:"description"`
