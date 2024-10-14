@@ -24,7 +24,7 @@ type TaskServiceInterface interface {
 	MapActionPlanStatusToTaskStatus(actionPlanStatusID uint, isReviewUserNull bool) (*models.TaskStatus, error)
 	UpdateStatus(currentUserID uint, taskID uint, actionPlanStatusID uint, isReviewUserNull bool, tx ...utility.DatabaseTransaction) error
 	UpdateTaskWithRelatedIDs(taskID uint, relatedTaskIDsJSON string, tx ...utility.DatabaseTransaction) error
-	UpdateDocumentTaskStatus(documentID uint, userID uint) (*models.Task, error)
+	UpdateDocumentTaskStatus(documentID uint, userID uint, documentWorkflowID uint) (*models.Task, error)
 }
 
 type TaskService struct {
@@ -94,6 +94,7 @@ func (ts *TaskService) Create(taskDTO commonDTOs.TaskFormDTO, currentUserID uint
 		ControlActionPlanID:    taskDTO.ControlActionPlanID,
 		RiskActionPlanID:       taskDTO.RiskActionPlanID,
 		DocumentID:             taskDTO.DocumentID,
+		DocumentWorkflowID:     taskDTO.DocumentWorkflowID,
 		Title:                  taskDTO.Title,
 		Description:            taskDTO.Description,
 		TargetDate:             taskDTO.TargetDate,
@@ -204,12 +205,12 @@ func (ts *TaskService) UpdateTaskWithRelatedIDs(taskID uint, relatedTaskIDsJSON 
 	return ts.repo.UpdateTaskRelatedIDs(taskID, relatedTaskIDsJSON, tx...)
 }
 
-func (ts *TaskService) UpdateDocumentTaskStatus(documentID uint, userID uint) (*models.Task, error) {
+func (ts *TaskService) UpdateDocumentTaskStatus(documentID uint, userID uint, documentWorkflowID uint) (*models.Task, error) {
 	taskStatus, err := ts.taskStatusSvc.GetByType("closed")
 	if err != nil {
 		return nil, err
 	}
-	task, err := ts.repo.UpdateDocumentTaskStatus(documentID, userID, taskStatus.ID)
+	task, err := ts.repo.UpdateDocumentTaskStatus(documentID, userID, documentWorkflowID, taskStatus.ID)
 	if err != nil {
 		return nil, err
 	}

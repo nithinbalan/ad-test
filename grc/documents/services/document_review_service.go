@@ -146,7 +146,7 @@ func (drs *DocumentReviewService) handleApprovedCase(id uint, currentUserID uint
 			return err
 		}
 
-		_, err = drs.taskSvc.UpdateDocumentTaskStatus(id, currentUserID)
+		_, err = drs.taskSvc.UpdateDocumentTaskStatus(id, currentUserID, currentDocumentWorkflow.ID)
 		if err != nil {
 			return err
 		}
@@ -158,10 +158,7 @@ func (drs *DocumentReviewService) handleApprovedCase(id uint, currentUserID uint
 			return err
 		}
 
-		fmt.Println("120")
-
 		if nextDocWorkflowLevel == nil {
-			fmt.Println("121")
 			documentStatus, err := drs.documentStatusSvc.GetByType("approved")
 			if err != nil {
 				return err
@@ -177,12 +174,10 @@ func (drs *DocumentReviewService) handleApprovedCase(id uint, currentUserID uint
 				return err
 			}
 		} else {
-			fmt.Println("122")
 			existingdocVersion, err := drs.documentSvc.GetDocumentVersionByID(document.LatestDocumentVersion.ID)
 			if err != nil {
 				return err
 			}
-			fmt.Println("123")
 			existingdocVersion.NextReviewLevel = &nextDocWorkflowLevel.Level
 			err = drs.documentSvc.UpdateDocumentVersion(existingdocVersion)
 			if err != nil {
@@ -196,7 +191,6 @@ func (drs *DocumentReviewService) handleApprovedCase(id uint, currentUserID uint
 			if err != nil {
 				return err
 			}
-			fmt.Println("125")
 
 			drs.notifyNextLevelUsers(id, nextWorkflow, document)
 		}
@@ -228,7 +222,7 @@ func (drs *DocumentReviewService) handleApprovedCase(id uint, currentUserID uint
 		drs.sendApprovalNotification(id, currentUserID, document)
 
 		if currentDocumentWorkflow.ApprovalTypes == "all" {
-			_, err := drs.taskSvc.UpdateDocumentTaskStatus(id, currentUserID)
+			_, err := drs.taskSvc.UpdateDocumentTaskStatus(id, currentUserID, currentDocumentWorkflow.ID)
 			if err != nil {
 				return err
 			}
@@ -306,7 +300,7 @@ func (drs *DocumentReviewService) handleApprovedCase(id uint, currentUserID uint
 				return err
 			}
 
-			task, err := drs.taskSvc.UpdateDocumentTaskStatus(id, currentUserID)
+			task, err := drs.taskSvc.UpdateDocumentTaskStatus(id, currentUserID, currentDocumentWorkflow.ID)
 			if err != nil {
 				return err
 			}
@@ -324,7 +318,7 @@ func (drs *DocumentReviewService) handleApprovedCase(id uint, currentUserID uint
 					if err != nil {
 						return err
 					}
-					_, err = drs.taskSvc.UpdateDocumentTaskStatus(id, relatedTask.ResponsibleUserID)
+					_, err = drs.taskSvc.UpdateDocumentTaskStatus(id, relatedTask.ResponsibleUserID, currentDocumentWorkflow.ID)
 					if err != nil {
 						return err
 					}
@@ -425,7 +419,7 @@ func (drs *DocumentReviewService) handleRejectedCase(id uint, currentUserID uint
 		return err
 	}
 
-	task, err := drs.taskSvc.UpdateDocumentTaskStatus(id, currentUserID)
+	task, err := drs.taskSvc.UpdateDocumentTaskStatus(id, currentUserID, currentDocumentWorkflow.ID)
 	if err != nil {
 		return err
 	}
@@ -443,7 +437,7 @@ func (drs *DocumentReviewService) handleRejectedCase(id uint, currentUserID uint
 			if err != nil {
 				return err
 			}
-			_, err = drs.taskSvc.UpdateDocumentTaskStatus(id, relatedTask.ResponsibleUserID)
+			_, err = drs.taskSvc.UpdateDocumentTaskStatus(id, relatedTask.ResponsibleUserID, currentDocumentWorkflow.ID)
 			if err != nil {
 				return err
 			}
@@ -472,7 +466,7 @@ func (drs *DocumentReviewService) handleRevertedCase(id, currentUserID uint, doc
 		return err
 	}
 
-	task, err := drs.taskSvc.UpdateDocumentTaskStatus(id, currentUserID)
+	task, err := drs.taskSvc.UpdateDocumentTaskStatus(id, currentUserID, currentDocumentWorkflow.ID)
 	if err != nil {
 		return err
 	}
@@ -490,7 +484,7 @@ func (drs *DocumentReviewService) handleRevertedCase(id, currentUserID uint, doc
 			if err != nil {
 				return err
 			}
-			_, err = drs.taskSvc.UpdateDocumentTaskStatus(id, relatedTask.ResponsibleUserID)
+			_, err = drs.taskSvc.UpdateDocumentTaskStatus(id, relatedTask.ResponsibleUserID, currentDocumentWorkflow.ID)
 			if err != nil {
 				return err
 			}
@@ -560,7 +554,7 @@ func (drs *DocumentReviewService) sendApprovalNotification(id uint, currentUserI
 		appURL := utility.GetAppURL()
 		emailTo := []string{document.ResponsibleUser.Email}
 		subject := fmt.Sprintf("Document/%s: Approval Notification", document.TitleEn)
-		urlParam = fmt.Sprintf("%s/documents/%d", appURL, id)
+		urlParam = fmt.Sprintf("%s/document/register/%d", appURL, id)
 
 		emailData := map[string]interface{}{
 			"FirstNameEn":           document.ResponsibleUser.FirstNameEN,
@@ -618,7 +612,7 @@ func (drs *DocumentReviewService) notifyNextLevelUsers(id uint, nextDocWorkflowL
 				TitleAr:              document.TitleAr,
 				Entity:               &entity,
 				Action:               &action,
-				URLParam:             fmt.Sprintf(`{"id":%d}`, id),
+				URLParam:             urlParam,
 				IsSystemNotification: false,
 				CreatedByID:          &createdByID,
 			}
@@ -626,6 +620,7 @@ func (drs *DocumentReviewService) notifyNextLevelUsers(id uint, nextDocWorkflowL
 			// Prepare email notification DTO
 			emailTo := []string{responsibleUser.Email}
 			subject := fmt.Sprintf("Document/%s: Review Assigned", document.TitleEn)
+			appURL := utility.GetAppURL()
 
 			emailData := map[string]interface{}{
 				"FirstNameEn":           responsibleUser.FirstNameEn,
@@ -635,7 +630,7 @@ func (drs *DocumentReviewService) notifyNextLevelUsers(id uint, nextDocWorkflowL
 				"AssignedByFirstNameEn": document.ResponsibleUser.FirstNameEN,
 				"AssignedByLastNameEn":  document.ResponsibleUser.LastNameEN,
 				"AssignedOn":            time.Now().Format("2006-01-02"),
-				"RedirectURL":           urlParam,
+				"RedirectURL":           fmt.Sprintf("%s/document/register/%d", appURL, id),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -660,19 +655,18 @@ func (drs *DocumentReviewService) CreateTasksForNextLevelUsers(documentID uint, 
 	urlParam := fmt.Sprintf(`{"id":%d}`, documentID)
 	var taskIDs []uint
 
-	fmt.Println("131")
 	createdByID := uint(document.ResponsibleUser.ID)
 	// Loop through each participant and create a task
 	for _, participant := range workflowLevel.DocumentWorkflowParticipants {
-		fmt.Println("135")
 		taskDTO := commonDTOs.TaskFormDTO{
-			ModuleIdentifier:  "document",
-			DocumentID:        &documentID,
-			Title:             document.TitleEn,
-			Description:       document.DescriptionEn,
-			URLParam:          &urlParam,
-			QueryParam:        nil,
-			ResponsibleUserID: participant.User.ID,
+			ModuleIdentifier:   "document",
+			DocumentID:         &documentID,
+			DocumentWorkflowID: &workflowLevel.ID,
+			Title:              document.TitleEn,
+			Description:        document.DescriptionEn,
+			URLParam:           &urlParam,
+			QueryParam:         nil,
+			ResponsibleUserID:  participant.User.ID,
 		}
 
 		taskID, err := drs.taskSvc.Create(taskDTO, createdByID)
@@ -681,8 +675,6 @@ func (drs *DocumentReviewService) CreateTasksForNextLevelUsers(documentID uint, 
 		}
 		taskIDs = append(taskIDs, taskID)
 	}
-
-	fmt.Println("132")
 
 	// Set up related task IDs for each task
 	for _, taskID := range taskIDs {
@@ -743,7 +735,7 @@ func (drs *DocumentReviewService) sendRejectedNotification(id uint, currentUserI
 		appURL := utility.GetAppURL()
 		emailTo := []string{document.ResponsibleUser.Email}
 		subject := fmt.Sprintf("Document/%s: Rejected Notification", document.TitleEn)
-		urlParam = fmt.Sprintf("%s/documents/%d", appURL, id)
+		urlParam = fmt.Sprintf("%s/document/register/%d", appURL, id)
 
 		emailData := map[string]interface{}{
 			"FirstNameEn":           document.ResponsibleUser.FirstNameEN,
@@ -810,7 +802,7 @@ func (drs *DocumentReviewService) sendRevertedNotification(id uint, currentUserI
 		appURL := utility.GetAppURL()
 		emailTo := []string{document.ResponsibleUser.Email}
 		subject := fmt.Sprintf("Document/%s: Reverted Notification", document.TitleEn)
-		urlParam = fmt.Sprintf("%s/documents/%d", appURL, id)
+		urlParam = fmt.Sprintf("%s/document/register/%d", appURL, id)
 
 		emailData := map[string]interface{}{
 			"FirstNameEn":           document.ResponsibleUser.FirstNameEN,
@@ -877,7 +869,7 @@ func (drs *DocumentReviewService) sendCommentNotification(id uint, currentUserID
 		appURL := utility.GetAppURL()
 		emailTo := []string{document.ResponsibleUser.Email}
 		subject := fmt.Sprintf("Document/%s: New Comment Notification", document.TitleEn)
-		urlParam = fmt.Sprintf("%s/documents/%d", appURL, id)
+		urlParam = fmt.Sprintf("%s/document/register/%d", appURL, id)
 
 		emailData := map[string]interface{}{
 			"FirstNameEn":          document.ResponsibleUser.FirstNameEN,

@@ -1035,13 +1035,14 @@ func (ds *DocumentService) SubmitDocument(id uint, currentUserID uint) error {
 
 	for _, participant := range docWorkflowLevel.DocumentWorkflowParticipants {
 		taskDTO := commonDTOs.TaskFormDTO{
-			ModuleIdentifier:  "document",
-			DocumentID:        &id,
-			Title:             existingDocument.TitleEn,
-			Description:       existingDocument.DescriptionEn,
-			URLParam:          &urlParam,
-			QueryParam:        nil,
-			ResponsibleUserID: participant.User.ID,
+			ModuleIdentifier:   "document",
+			DocumentID:         &id,
+			DocumentWorkflowID: &docWorkflowLevel.ID,
+			Title:              existingDocument.TitleEn,
+			Description:        existingDocument.DescriptionEn,
+			URLParam:           &urlParam,
+			QueryParam:         nil,
+			ResponsibleUserID:  participant.User.ID,
 		}
 
 		taskID, err := ds.taskSvc.Create(taskDTO, currentUserID, tx)
@@ -1127,7 +1128,7 @@ func (ds *DocumentService) SubmitDocument(id uint, currentUserID uint) error {
 				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 				"AssignedByLastNameEn":  assignedBy.LastNameEn,
 				"AssignedOn":            time.Now().Format("2006-01-02"),
-				"RedirectURL":           fmt.Sprintf("%s/documents/%d", appURL, id),
+				"RedirectURL":           fmt.Sprintf("%s/document/register/%d", appURL, id),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -1434,7 +1435,7 @@ func (ds *DocumentService) notifyUsersOnPublish(document *documentDTOs.DocumentD
 		action := "published"
 		appURL := utility.GetAppURL()
 		subject := fmt.Sprintf("Document/%s: Published Notification", document.TitleEn)
-		redirectURL := fmt.Sprintf("%s/documents/%d", appURL, documentID)
+		redirectURL := fmt.Sprintf("%s/document/register/%d", appURL, documentID)
 
 		publishedUser, _ := ds.userSvc.GetByID(publishedBy)
 
@@ -1443,8 +1444,8 @@ func (ds *DocumentService) notifyUsersOnPublish(document *documentDTOs.DocumentD
 
 		if document.DocumentAccessType.Type == "public" {
 			params := &organizationDTOs.UserListQueryParamsDTO{
-				Sort:        "",
-				SortBy:      "",
+				Sort:        "asc",
+				SortBy:      "first_name_en",
 				Keyword:     "",
 				Status:      "",
 				Page:        1,
@@ -1484,52 +1485,61 @@ func (ds *DocumentService) notifyUsersOnPublish(document *documentDTOs.DocumentD
 			columnName := fmt.Sprintf("organization_unit_%d_id", primaryLevel.Level)
 
 			sharedUnits, _ := ds.documentAccessSvc.GetSharedUnits(documentID)
-			unitIDs := make([]uint, len(sharedUnits))
-			for i, unit := range sharedUnits {
-				unitIDs[i] = uint(unit.ID)
-			}
+			if len(sharedUnits) > 0 {
 
-			// Convert unit IDs to string slice
-			unitIDsStr := make([]string, len(unitIDs))
-			for i, id := range unitIDs {
-				unitIDsStr[i] = strconv.Itoa(int(id))
-			}
-
-			params := &organizationDTOs.UserListQueryParamsDTO{
-				Sort:        "",
-				SortBy:      "",
-				Keyword:     "",
-				Status:      "",
-				Page:        1,
-				PageSize:    0,
-				UserIDs:     nil,
-				Filters:     map[string][]string{columnName: unitIDsStr},
-				QuickFilter: nil,
-				Export:      true,
-			}
-
-			userResponse, err := ds.userSvc.GetAll(params)
-			if err != nil {
-				utility.LogError("Failed to fetch all users for public document notification", map[string]interface{}{
-					"error": err.Error(),
-				})
-				return
-			}
-
-			for _, user := range userResponse.Items {
-				minimalUser := &organizationDTOs.UserMinimalDTO{
-					ID:          int(user.ID),
-					FirstNameEN: user.FirstNameEn,
-					LastNameEN:  user.LastNameEn,
-					Email:       user.Email,
+				unitIDs := make([]uint, len(sharedUnits))
+				for i, unit := range sharedUnits {
+					unitIDs[i] = uint(unit.ID)
 				}
-				usersToNotify = append(usersToNotify, minimalUser)
+
+				// Convert unit IDs to string slice
+				unitIDsStr := make([]string, len(unitIDs))
+				for i, id := range unitIDs {
+					unitIDsStr[i] = strconv.Itoa(int(id))
+				}
+
+				params := &organizationDTOs.UserListQueryParamsDTO{
+					Sort:        "asc",
+					SortBy:      "first_name_en",
+					Keyword:     "",
+					Status:      "",
+					Page:        1,
+					PageSize:    0,
+					UserIDs:     nil,
+					Filters:     map[string][]string{columnName: unitIDsStr},
+					QuickFilter: nil,
+					Export:      true,
+				}
+
+				unitUserResponse, err := ds.userSvc.GetAll(params)
+				if err != nil {
+					utility.LogError("Failed to fetch all users for public document notification", map[string]interface{}{
+						"error": err.Error(),
+					})
+					return
+				}
+
+				for _, user := range unitUserResponse.Items {
+					minimalUser := &organizationDTOs.UserMinimalDTO{
+						ID:          int(user.ID),
+						FirstNameEN: user.FirstNameEn,
+						LastNameEN:  user.LastNameEn,
+						Email:       user.Email,
+					}
+					usersToNotify = append(usersToNotify, minimalUser)
+				}
 			}
 
 		}
 
 		// Send notifications to all users in the usersToNotify list
+		uniqueUsers := make(map[uint]bool)
 		for _, user := range usersToNotify {
+			if _, exists := uniqueUsers[uint(user.ID)]; exists {
+				continue
+			}
+
+			uniqueUsers[uint(user.ID)] = true
 
 			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 				UserID:               uint(user.ID),

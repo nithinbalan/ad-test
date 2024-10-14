@@ -53,6 +53,7 @@ type TaskFormDTO struct {
 	ControlActionPlanID    *uint      `json:"control_action_plan_id,omitempty"`
 	RiskActionPlanID       *uint      `json:"risk_action_plan_id,omitempty"`
 	DocumentID             *uint      `json:"document_id,omitempty"`
+	DocumentWorkflowID     *uint      `json:"document_workflow_id,omitempty"`
 	Title                  string     `json:"title" binding:"required"`
 	Description            *string    `json:"description,omitempty"`
 	TargetDate             *time.Time `json:"target_date,omitempty"`

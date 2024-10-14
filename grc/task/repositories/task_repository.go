@@ -23,7 +23,7 @@ type TaskRepositoryInteface interface {
 	GenerateReferenceNumber() (string, error)
 
 	UpdateTaskRelatedIDs(taskID uint, relatedTaskIDsJSON string, tx ...utility.DatabaseTransaction) error
-	UpdateDocumentTaskStatus(documentID uint, userID uint, status uint) (*models.Task, error)
+	UpdateDocumentTaskStatus(documentID uint, userID uint, documentWorkflowID uint, status uint) (*models.Task, error)
 }
 
 type TaskRepository struct {
@@ -276,11 +276,11 @@ func (repo *TaskRepository) UpdateTaskRelatedIDs(taskID uint, relatedTaskIDsJSON
 		Update("related_task_ids", relatedTaskIDsJSON).Error
 }
 
-func (repo *TaskRepository) UpdateDocumentTaskStatus(documentID uint, userID uint, status uint) (*models.Task, error) {
+func (repo *TaskRepository) UpdateDocumentTaskStatus(documentID uint, userID uint, documentWorkflowID uint, status uint) (*models.Task, error) {
 	var task models.Task
 
 	// Find the task by document and user ID
-	if err := repo.db.Where("document_id = ? AND responsible_user_id = ?", documentID, userID).First(&task).Error; err != nil {
+	if err := repo.db.Where("document_id = ? AND responsible_user_id = ? AND document_workflow_id = ?", documentID, userID, documentWorkflowID).First(&task).Error; err != nil {
 		return nil, err
 	}
 
