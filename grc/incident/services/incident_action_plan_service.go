@@ -221,7 +221,7 @@ func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uin
 		ResponsibleUserID:    IncidentActionPlanFormDTO.ResponsibleUserID,
 	}
 
-	if err := iaps.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
+	if _, err := iaps.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
 		tx.Rollback()
 		return 0, err
 	}
