@@ -3,6 +3,9 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
+	"time"
+
 	commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
@@ -11,7 +14,6 @@ import (
 	organizationDTOs "jethur/grc/organization/dtos"
 	organizationRepositories "jethur/grc/organization/repositories"
 	"jethur/utility"
-	"os"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -62,7 +64,8 @@ func NewControlService(
 	reviewFrequencySvc masterServices.ReviewFrequencyServiceInterface,
 	lifecycleStatusSvc masterServices.LifecycleStatusServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
-	userSettingSvc UserSettingServiceInterface) ControlServiceInterface {
+	userSettingSvc UserSettingServiceInterface,
+) ControlServiceInterface {
 	return &ControlService{
 		repo:                           repo,
 		activityLogSvc:                 activityLogSvc,
@@ -84,7 +87,6 @@ func (cs *ControlService) GetAll(params *organizationDTOs.ControlListQueryParams
 
 func (cs *ControlService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Control, error) {
 	control, err := cs.repo.GetByID(id, tx...)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -98,7 +100,6 @@ func (cs *ControlService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTran
 	var controlDetailDTO organizationDTOs.ControlDetailDTO
 
 	control, err := cs.repo.GetFullDetailsByID(id, tx...)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -136,7 +137,7 @@ func (cs *ControlService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTran
 		controlDetailDTO.ApplicabilityChangeDateString = &applicabilityChangeDateString
 	}
 
-	//todo :- also add extra fields which required in details screen
+	// todo :- also add extra fields which required in details screen
 
 	return &controlDetailDTO, nil
 }
@@ -230,25 +231,41 @@ func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizatio
 			return
 		}
 
+		createdBy, err := cs.userSvc.GetByID(currentUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
 		emailTo := []string{owner.Email}
-		subject := fmt.Sprintf("Control/%s: Added", control.TitleEn)
-		templateRelativePath := "organization/templates/email/control_create_owner_mail.html"
-		emailData := organizationDTOs.ControlMailDTO{
-			FirstNameEn: owner.FirstNameEn,
-			LastNameEn:  owner.LastNameEn,
-			MessageEn:   control.TitleEn,
+		subject := fmt.Sprintf("Control/%s: Responsibility Assigned", control.TitleEn)
+		appURL := utility.GetAppURL()
+
+		emailData := map[string]interface{}{
+			"FirstNameEn":          owner.FirstNameEn,
+			"LastNameEn":           owner.LastNameEn,
+			"ReferenceNumber":      control.ReferenceNumber,
+			"TitleEn":              control.TitleEn,
+			"TitleAr":              control.TitleAr,
+			"Description":          control.Description,
+			"CreatedByFirstNameEn": createdBy.FirstNameEn,
+			"CreatedByLastNameEn":  createdBy.LastNameEn,
+			"AssignedOn":           time.Now().Format("2006-01-02"),
+			"RedirectURL":          fmt.Sprintf("%s/compliance/controls/%d/overview", appURL, id),
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 			EmailTo:              emailTo,
 			Subject:              subject,
-			TemplateRelativePath: templateRelativePath,
+			TemplateRelativePath: "organization/templates/email/control_create_owner_mail.html",
 			EmailData:            emailData,
 		}
-		err = cs.notificationSvc.SendNotification(
-			dbNotificationDTO, emailNotificationDTO, "control")
+
+		err = cs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "control")
 		if err != nil {
-			utility.LogError("Failed to send control notifications", map[string]interface{}{
+			utility.LogError("Failed to send notifications", map[string]interface{}{
 				"error": err.Error(),
 			})
 		}
@@ -263,7 +280,6 @@ func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizatio
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -286,7 +302,7 @@ func (cs *ControlService) Update(id uint, currentUserID uint, controlFormDTO *or
 		return err
 	}
 
-	oldOwnerID := existingControl.OwnerID
+	oldResponsibleUserID := existingControl.OwnerID
 
 	if err := cs.validateControlFormDTO(controlFormDTO); err != nil {
 		return err
@@ -335,15 +351,15 @@ func (cs *ControlService) Update(id uint, currentUserID uint, controlFormDTO *or
 
 	// If the owner has changed, send notifications to the old and new owner
 	go func() {
-		if oldOwnerID != controlFormDTO.OwnerID {
+		if oldResponsibleUserID != controlFormDTO.OwnerID {
 			urlParam := fmt.Sprintf(`{"id":%d}`, id)
 			entity := "control"
 			removeAction := "responsible-user-remove"
 			assignAction := "responsible-user-assign"
 
 			// Notify the old owner
-			oldOwnerNotification := &commonDTOs.DBNotificationDTO{
-				UserID:               oldOwnerID,
+			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserID:               oldResponsibleUserID,
 				ModuleIdentifier:     "organization",
 				NotificationType:     string(commonDTOs.InformationType),
 				ReferenceNumber:      existingControl.ReferenceNumber,
@@ -358,27 +374,8 @@ func (cs *ControlService) Update(id uint, currentUserID uint, controlFormDTO *or
 				CreatedByID:          &currentUserID,
 			}
 
-			oldOwner, err := cs.userSvc.GetByID(oldOwnerID)
-			if err != nil {
-				utility.LogError("Failed to fetch old owner details", map[string]interface{}{
-					"error": err.Error(),
-				})
-				return
-			}
-
-			oldOwnerEmail := &commonDTOs.EmailNotificationDTO{
-				EmailTo: []string{oldOwner.Email},
-				Subject: fmt.Sprintf("Control/%s: Ownership Removed", existingControl.TitleEn),
-				EmailData: organizationDTOs.ControlMailDTO{
-					FirstNameEn: oldOwner.FirstNameEn,
-					LastNameEn:  oldOwner.LastNameEn,
-					MessageEn:   existingControl.TitleEn,
-				},
-				TemplateRelativePath: "organization/templates/email/control_remove_owner_mail.html",
-			}
-
 			// Notify the new owner
-			newOwnerNotification := &commonDTOs.DBNotificationDTO{
+			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
 				UserID:               controlFormDTO.OwnerID,
 				ModuleIdentifier:     "organization",
 				NotificationType:     string(commonDTOs.AssignmentType),
@@ -394,39 +391,92 @@ func (cs *ControlService) Update(id uint, currentUserID uint, controlFormDTO *or
 				CreatedByID:          &currentUserID,
 			}
 
-			newOwner, err := cs.userSvc.GetByID(controlFormDTO.OwnerID)
+			// Fetch the responsible users' data
+			oldResponsibleUser, err := cs.userSvc.GetByID(oldResponsibleUserID)
 			if err != nil {
-				utility.LogError("Failed to fetch new owner details", map[string]interface{}{
+				utility.LogError("Failed to fetch old responsible user", map[string]interface{}{
 					"error": err.Error(),
 				})
 				return
 			}
 
-			newOwnerEmail := &commonDTOs.EmailNotificationDTO{
-				EmailTo: []string{newOwner.Email},
-				Subject: fmt.Sprintf("Control/%s: Ownership Assigned", existingControl.TitleEn),
-				EmailData: organizationDTOs.ControlMailDTO{
-					FirstNameEn: newOwner.FirstNameEn,
-					LastNameEn:  newOwner.LastNameEn,
-					MessageEn:   existingControl.TitleEn,
-				},
+			newResponsibleUser, err := cs.userSvc.GetByID(controlFormDTO.OwnerID)
+			if err != nil {
+				utility.LogError("Failed to fetch new responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			// Fetch details of the user making the assignment
+			updatedByUser, err := cs.userSvc.GetByID(currentUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			appURL := utility.GetAppURL()
+
+			// Email notification for the old responsible user
+			oldResponsibleUserEmailTo := []string{oldResponsibleUser.Email}
+			oldResponsibleUserSubject := fmt.Sprintf("Control/%s: Responsibility Removed", existingControl.TitleEn)
+			oldResponsibleUserEmailData := map[string]interface{}{
+				"FirstNameEn":     oldResponsibleUser.FirstNameEn,
+				"LastNameEn":      oldResponsibleUser.LastNameEn,
+				"ReferenceNumber": existingControl.ReferenceNumber,
+				"TitleEn":         existingControl.TitleEn,
+				"TitleAr":         existingControl.TitleAr,
+				"Description":     existingControl.Description,
+				"RedirectURL":     fmt.Sprintf("%s/compliance/controls/%d/overview", appURL, id),
+			}
+
+			oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              oldResponsibleUserEmailTo,
+				Subject:              oldResponsibleUserSubject,
+				TemplateRelativePath: "organization/templates/email/control_remove_owner_mail.html",
+				EmailData:            oldResponsibleUserEmailData,
+			}
+
+			// Email notification for the new responsible user
+			newResponsibleUserEmailTo := []string{newResponsibleUser.Email}
+			newResponsibleUserSubject := fmt.Sprintf("Control/%s: Responsibility Assigned", existingControl.TitleEn)
+			newResponsibleUserEmailData := map[string]interface{}{
+				"FirstNameEn":           newResponsibleUser.FirstNameEn,
+				"LastNameEn":            newResponsibleUser.LastNameEn,
+				"ReferenceNumber":       existingControl.ReferenceNumber,
+				"TitleEn":               existingControl.TitleEn,
+				"TitleAr":               existingControl.TitleAr,
+				"Description":           existingControl.Description,
+				"AssignedByFirstNameEn": updatedByUser.FirstNameEn,
+				"AssignedByLastNameEn":  updatedByUser.LastNameEn,
+				"AssignedOn":            time.Now().Format("2006-01-02"),
+				"RedirectURL":           fmt.Sprintf("%s/compliance/controls/%d/overview", appURL, id),
+			}
+
+			newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              newResponsibleUserEmailTo,
+				Subject:              newResponsibleUserSubject,
 				TemplateRelativePath: "organization/templates/email/control_change_owner_mail.html",
+				EmailData:            newResponsibleUserEmailData,
 			}
 
-			// Send notifications for old and new owners
-			err = cs.notificationSvc.SendNotification(newOwnerNotification, newOwnerEmail, "control")
+			// Send notifications and emails
+			err = cs.notificationSvc.SendNotification(newResponsibleUserNotificationDTO, newResponsibleUserEmailNotificationDTO, "control")
 			if err != nil {
-				utility.LogError("Failed to send new owner notifications", map[string]interface{}{
+				utility.LogError("Failed to send notifications to new responsible user", map[string]interface{}{
 					"error": err.Error(),
 				})
 			}
 
-			err = cs.notificationSvc.SendNotification(oldOwnerNotification, oldOwnerEmail, "control")
+			err = cs.notificationSvc.SendNotification(oldResponsibleUserNotificationDTO, oldResponsibleUserEmailNotificationDTO, "control")
 			if err != nil {
-				utility.LogError("Failed to send old owner notifications", map[string]interface{}{
+				utility.LogError("Failed to send notifications to old responsible user", map[string]interface{}{
 					"error": err.Error(),
 				})
 			}
+
 		}
 	}()
 
@@ -440,6 +490,7 @@ func (cs *ControlService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 		OwnerID         *uint
 		TitleEn         string
 		TitleAr         string
+		Description     string
 		ReferenceNumber string
 	}
 
@@ -455,11 +506,13 @@ func (cs *ControlService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 			OwnerID         *uint
 			TitleEn         string
 			TitleAr         string
+			Description     string
 			ReferenceNumber string
 		}{
 			OwnerID:         control.OwnerID,
 			TitleEn:         control.TitleEn,
 			TitleAr:         control.TitleAr,
+			Description:     *control.Description,
 			ReferenceNumber: control.ReferenceNumber,
 		})
 
@@ -519,16 +572,18 @@ func (cs *ControlService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 					continue
 				}
 
+				// Prepare email notification
 				ownerEmailTo := []string{ownerUser.Email}
 				subject := fmt.Sprintf("Control/%s: Deleted", notification.TitleEn)
 				templateRelativePath := "organization/templates/email/control_delete_mail.html"
-				redirectURL := fmt.Sprintf("control/deleted/%d", notification.OwnerID)
 
-				emailData := organizationDTOs.ControlMailDTO{
-					FirstNameEn: ownerUser.FirstNameEn,
-					LastNameEn:  ownerUser.LastNameEn,
-					MessageEn:   notification.TitleEn,
-					RedirectURL: redirectURL,
+				emailData := map[string]interface{}{
+					"FirstNameEn":     ownerUser.FirstNameEn,
+					"LastNameEn":      ownerUser.LastNameEn,
+					"ReferenceNumber": notification.ReferenceNumber,
+					"TitleEn":         notification.TitleEn,
+					"TitleAr":         notification.TitleAr,
+					"Description":     notification.Description,
 				}
 
 				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -538,6 +593,7 @@ func (cs *ControlService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 					EmailData:            emailData,
 				}
 
+				// Send DB and email notifications
 				err = cs.notificationSvc.SendNotification(
 					dbNotificationDTO, emailNotificationDTO, "control")
 				if err != nil {
@@ -564,7 +620,6 @@ func (cs *ControlService) Archive(ids []uint, currentUserID uint) ([]uint, error
 	}
 
 	successfulIds, err := cs.repo.UpdateLifecycleStatusForIDs(idsToUpdate, lifecycleStatus.ID)
-
 	if err != nil {
 		return nil, err
 	}
@@ -601,7 +656,6 @@ func (cs *ControlService) Restore(ids []uint, currentUserID uint) ([]uint, error
 	}
 
 	successfulIds, err := cs.repo.UpdateLifecycleStatusForIDs(idsToUpdate, lifecycleStatus.ID)
-
 	if err != nil {
 		return nil, err
 	}
@@ -636,7 +690,6 @@ func (cs *ControlService) TestStatusUpdate(control *models.Control, tx utility.D
 }
 
 func (cs *ControlService) ReviewStatusUpdate(control *models.Control, tx utility.DatabaseTransaction) error {
-
 	err := cs.repo.Update(control, tx)
 	if err != nil {
 		return err
@@ -850,7 +903,6 @@ func (cs *ControlService) ExportControls(data []*organizationDTOs.ControlListDTO
 }
 
 func (cs *ControlService) UpdateControlRiskRating(control *models.Control, tx utility.DatabaseTransaction) error {
-
 	err := cs.repo.Update(control, tx)
 	if err != nil {
 		tx.Rollback()

@@ -16,9 +16,10 @@ type AuditDraftFindingConversation struct {
 	CreatedBYID         uint       `json:"created_by_id" gorm:"not null"`
 	UpdatedBYID         *uint      `json:"updated_by_id" gorm:"default:null"`
 
-	AuditDraftFinding AuditDraftFinding `gorm:"foreignKey:AuditDraftFindingID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
-	CreatedByUser     User              `gorm:"foreignKey:CreatedBYID"`
-	UpdatedByUser     *User             `gorm:"foreignKey:UpdatedBYID"`
+	AuditDraftFinding AuditDraftFinding                        `gorm:"foreignKey:AuditDraftFindingID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
+	Documents         []*AuditDraftFindingConversationDocument `gorm:"foreignKey:AuditDraftFindingConversationID"`
+	CreatedByUser     User                                     `gorm:"foreignKey:CreatedBYID"`
+	UpdatedByUser     *User                                    `gorm:"foreignKey:UpdatedBYID"`
 }
 
 // TableName overrides the table name used by AuditDraftFindingConversation to `audit_draft_finding_conversations`
