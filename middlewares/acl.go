@@ -27,10 +27,29 @@ func RolePermissionMiddleware(db *gorm.DB, moduleIdentifier string, requiredPerm
 			return
 		}
 
-		// Extract role IDs
+		// Extract role IDs and check if the user is a super admin
 		roleIDs := make([]uint, len(userRoles))
+		isSuperAdmin := false
 		for i, userRole := range userRoles {
 			roleIDs[i] = userRole.RoleID
+
+			// Check if any of the roles is a super admin role
+			var role models.Role
+			if err := db.Where("id = ?", userRole.RoleID).First(&role).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching role details"})
+				c.Abort()
+				return
+			}
+			if role.IsSuperAdmin {
+				isSuperAdmin = true
+				break
+			}
+		}
+
+		// If the user is a super admin, bypass the permission check
+		if isSuperAdmin {
+			c.Next()
+			return
 		}
 
 		// Fetch permissions from role_permissions table for the user's roles and module
