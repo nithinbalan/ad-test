@@ -20,7 +20,6 @@ type AuditDraftFindingConversationDocument struct {
 
 	// Relationships
 	AuditDraftFindingConversation *AuditDraftFindingConversation           `gorm:"foreignKey:AuditDraftFindingConversationID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	Documents                     []*AuditDraftFindingConversationDocument `gorm:"foreignKey:AuditDraftFindingConversationID"`
 	CreatedByUser                 *User                                    `gorm:"foreignKey:CreatedBYID"`
 	UpdatedByUser                 *User                                    `gorm:"foreignKey:UpdatedBYID"`
 }

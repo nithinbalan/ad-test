@@ -131,6 +131,7 @@ func (repo *AuditDraftFindingConversationRepository) GetFullDetailsByID(id uint,
 
 	result := db.
 		Preload("AuditDraftFinding").
+		Preload("Documents").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&auditDraftFindingConversation, id)
