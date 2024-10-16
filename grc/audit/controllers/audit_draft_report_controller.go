@@ -29,7 +29,12 @@ func (adrc *AuditDraftReportController) GetAuditDraftReportDetails(c *gin.Contex
 		utility.SendNotFoundErrResp(c)
 		return
 	}
-	auditDraftReport, err := adrc.service.GetFullDetailsByID(uint(auditID))
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(adrc.db, c, err.Error())
+		return
+	}
+	auditDraftReport, err := adrc.service.GetFullDetailsByID(uint(auditID),currentUserID, "")
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

@@ -11,7 +11,7 @@ import (
 
 type AuditInsightsDraftReportServiceInterface interface {
 	GetAll(params *auditDTOs.AuditDraftReportListQueryParamsDTO, currentUserID uint) (*auditDTOs.AuditDraftReportListResponseDTO, error)
-	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditDraftReportDetailDTO, error)
+	GetFullDetailsByID(id uint, currentUserID uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditDraftReportDetailDTO, error)
 }
 
 type AuditInsightsDraftReportService struct {
@@ -46,13 +46,13 @@ func (aidrs *AuditInsightsDraftReportService) GetAll(params *auditDTOs.AuditDraf
 	return aidrs.repo.GetAll(params, orgUnitID)
 }
 
-func (aidrs *AuditInsightsDraftReportService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditDraftReportDetailDTO, error) {
+func (aidrs *AuditInsightsDraftReportService) GetFullDetailsByID(id uint, currentUserID uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditDraftReportDetailDTO, error) {
 	auditDraftReport, err := aidrs.auditDraftReportSvc.GetByID(id)
 	if err != nil {
 		return nil, err
 	}
 	auditID := auditDraftReport.AuditID
-	audit, err := aidrs.auditDraftReportSvc.GetFullDetailsByID(auditID, tx...)
+	audit, err := aidrs.auditDraftReportSvc.GetFullDetailsByID(auditID, currentUserID, "audit-insight", tx...)
 	if err != nil {
 		return nil, err
 	}
