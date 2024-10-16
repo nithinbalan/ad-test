@@ -892,7 +892,7 @@ func (ms *MeetingService) Update(id uint, currentUserID uint, meetingFormDTO *me
 					"EndTime":            meeting.EndTime,
 					"CreatedByFirstName": createdBy.FirstNameEn,
 					"CreatedByLastName":  createdBy.LastNameEn,
-					"RedirectURL":        fmt.Sprintf("%s/meetings/%d/overview", appURL, id),
+					"RedirectURL":        fmt.Sprintf("%s/review-meeting/meetings/%d/overview", appURL, id),
 				},
 			}
 
