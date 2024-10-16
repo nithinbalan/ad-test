@@ -86,10 +86,10 @@ type IncidentRegisterFormDTO struct {
 	Title                    string                     `json:"title" binding:"required,max=255"`
 	ResponsibleUserID        uint                       `json:"responsible_user_id" binding:"required"`
 	Description              *string                    `json:"description"`
-	IncidentAt               string                     `json:"incident_at" binding:"required,datetime=2006-01-02"`
+	IncidentAt               string                     `json:"incident_at" binding:"required"`
 	Location                 *string                    `json:"location"`
 	ReportedBy               uint                       `json:"reported_by" binding:"required"`
-	ReportedAt               string                     `json:"reported_at" binding:"required,datetime=2006-01-02"`
+	ReportedAt               string                     `json:"reported_at" binding:"required"`
 	QuickAction              *string                    `json:"quick_action"`
 	Documents                []*IncidentDocumentFormDTO `json:"documents" binding:"required"`
 	ComplianceRequirementIds []*uint                    `json:"compliance_requirement_ids"`
@@ -145,9 +145,9 @@ type IncidentRegisterDetailDTO struct {
 	ReferenceNumber        string                              `json:"reference_number"`
 	Title                  string                              `json:"title"`
 	Description            string                              `json:"description"`
-	IncidentAtString       string                              `json:"incident_at"`
+	IncidentAt             time.Time                           `json:"incident_at"`
 	Location               *string                             `json:"location"`
-	ReportedAtStaring      string                              `json:"reported_at"`
+	ReportedAt             time.Time                           `json:"reported_at"`
 	QuickAction            *string                             `json:"quick_action"`
 	IncidentCategory       IncidentCategoryDTO                 `json:"incident_category"`
 	IncidentType           IncidentTypeDTO                     `json:"incident_type"`

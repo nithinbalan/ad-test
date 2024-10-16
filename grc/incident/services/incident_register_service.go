@@ -127,17 +127,6 @@ func (irs IncidentRegisterService) GetFullDetailsByID(id uint, tx ...utility.Dat
 		return nil, err
 	}
 
-	//todo :- also add extra fields which required in details screen
-	// Format time fields without time component
-	if incident.IncidentAt != nil {
-		incidentAt := incident.IncidentAt.Format("2006-01-02")
-		incidentDTO.IncidentAtString = incidentAt
-	}
-	if incident.ReportedAt != nil {
-		reportedAt := incident.ReportedAt.Format("2006-01-02")
-		incidentDTO.ReportedAtStaring = reportedAt
-	}
-
 	incidentDTO.CreatedAt = incident.CreatedAt
 	incidentDTO.UpdatedAt = incident.UpdatedAt
 
@@ -1489,14 +1478,14 @@ func (irs *IncidentRegisterService) parseIncidentRegisterDates(dto *incidentDTOs
 
 	var err error
 	if dto.ReportedAt != "" {
-		parsed.ReportedAt, err = utility.ParseDate(dto.ReportedAt)
+		parsed.ReportedAt, err = utility.ParseDateTime(dto.ReportedAt)
 		if err != nil {
 			return nil, utility.NewValidationError(fmt.Errorf("invalid reported date"), "invalid_date", "reported at")
 		}
 	}
 
 	if dto.IncidentAt != "" {
-		parsed.IncidentAt, err = utility.ParseDate(dto.IncidentAt)
+		parsed.IncidentAt, err = utility.ParseDateTime(dto.IncidentAt)
 		if err != nil {
 			return nil, utility.NewValidationError(fmt.Errorf("invalid incident date"), "invalid_date", "incident at")
 		}
