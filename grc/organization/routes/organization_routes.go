@@ -37,6 +37,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	controlAssociatedItemController := app.OrganizationModule.ControlAssociatedItemController
 	controlReviewStatusController := app.OrganizationModule.ControlReviewStatusController
 	controlReviewController := app.OrganizationModule.ControlReviewController
+	userProfileController := app.OrganizationModule.UserProfileController
 
 	//Designation
 	organizationRoutes.GET("/designations", middlewares.RolePermissionMiddleware(db, "organization_setting", "view"), designationController.GetAllDesignations)
@@ -66,6 +67,26 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.GET("/users/me/notifications/new-count", middlewares.RolePermissionMiddleware(db, "user_management", "view"), userController.GetUserNewNotificationCount)
 	organizationRoutes.PUT("/users/me/notifications/mark-as-read", middlewares.RolePermissionMiddleware(db, "user_management", "modify"), userController.MarkwNotificationAsRead)
 	organizationRoutes.PUT("/users/me/notifications/mark-as-unread", middlewares.RolePermissionMiddleware(db, "user_management", "modify"), userController.MarkwNotificationAsUnread)
+
+	//User Profile Settings
+	organizationRoutes.GET("/users/me/settings/preferences", userProfileController.GetProfileSetting)
+	organizationRoutes.PUT("/users/me/settings/preferences", userProfileController.UpdateProfileSetting)
+
+	organizationRoutes.PUT("/users/me/settings/security/enable-mfa", userProfileController.EnableMFA)
+	organizationRoutes.PUT("/users/me/settings/security/disable-mfa", userProfileController.DisableMFA)
+	organizationRoutes.POST("/users/me/settings/security/reset-password", userProfileController.NewPassword)
+
+	organizationRoutes.PUT("/users/me/settings/enable-notification", userProfileController.EnableMainNotification)
+	organizationRoutes.PUT("/users/me/settings/disable-notification", userProfileController.DisableMainNotification)
+
+	organizationRoutes.GET("/users/me/settings/notifications", userProfileController.GetNotificationSettings)
+	organizationRoutes.POST("/users/me/settings/notifications/:notificationMasterId/enable", userProfileController.EnableNotification)
+	organizationRoutes.POST("/users/me/settings/notifications/:notificationMasterId/disable", userProfileController.DisableNotification)
+
+	organizationRoutes.GET("/users/me/tasks", userProfileController.GetAllUserTasks)
+	organizationRoutes.GET("/users/me/task-summary", userProfileController.GetUserTaskSummary)
+
+	organizationRoutes.GET("/users/me/login-history", userProfileController.GetUserLoginHistory)
 
 	//Strategic Profile
 	organizationRoutes.GET("/strategic-profiles", middlewares.RolePermissionMiddleware(db, "strategic_profile", "view"), strategicProfileController.GetStrategicProfile)
