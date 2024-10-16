@@ -31,6 +31,7 @@ type OrganizationModule struct {
 	ProcessAssociatedItemController         *controllers.ProcessAssociatedItemController
 	ControlAssociatedItemController         *controllers.ControlAssociatedItemController
 	ControlReviewController                 *controllers.ControlReviewController
+	UserProfileController                   *controllers.UserProfileController
 
 	UserSvc               services.UserServiceInterface
 	UserSettingSvc        services.UserSettingServiceInterface
@@ -163,6 +164,8 @@ func NewOrganizationModule(
 	processAssociatedItemSvc := services.NewProcessAssociatedItemService(processAssociatedItemRepo, processSvc, controlImplementationStatusSvc, controlEfficiencyStatusRepo)
 	processAssociatedItemController := controllers.NewProcessAssociatedItemController(processAssociatedItemSvc)
 
+	userProfileController := controllers.NewUserProfileController(userSettingSvc, userTaskSvc, userSvc)
+
 	return &OrganizationModule{
 		DesignationController:                   designationController,
 		UserStatusController:                    userStatusController,
@@ -186,6 +189,7 @@ func NewOrganizationModule(
 		ProcessAssociatedItemController:         processAssociatedItemController,
 		ControlAssociatedItemController:         controlAssociatedItemController,
 		ControlReviewController:                 controlReviewController,
+		UserProfileController:                   userProfileController,
 
 		UserSvc:               userSvc,
 		UserSettingSvc:        userSettingSvc,
