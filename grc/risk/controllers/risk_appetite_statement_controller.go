@@ -30,6 +30,56 @@ func (rasc *RiskAppetiteStatementController) GetAllRiskAppetiteStatements(c *gin
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
+	// byCategory := c.Query("by_category")
+
+	// Define an array of allowed parameter names
+	allowedParams := []string{
+		"risk_category_ids",
+		"severity_level_ids",
+		"potential_risk_status_ids",
+	}
+
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(rasc.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(rasc.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	queryParams := riskDTOs.RiskAppetiteStatementListQueryParamsDTO{
+		Sort:        sort,
+		SortBy:      sortBy,
+		Keyword:     keyword,
+		Status:      status,
+		Page:        page,
+		PageSize:    pageSize,
+		Filters:     filters,
+		QuickFilter: quickFilter,
+	}
+	var riskAppetiteStatements interface{}
+	riskAppetiteStatements, err = rasc.service.GetAll(&queryParams)
+
+	if err != nil {
+		utility.SendInternalErrResp(rasc.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, riskAppetiteStatements)
+}
+
+func (rasc *RiskAppetiteStatementController) GetAllRiskAppetiteStatementByCategory(c *gin.Context) {
+
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+	status := c.Query("status")
+	quickFilter := c.QueryArray("quick_filter")
 	byCategory := c.Query("by_category")
 
 	// Define an array of allowed parameter names
@@ -66,8 +116,6 @@ func (rasc *RiskAppetiteStatementController) GetAllRiskAppetiteStatements(c *gin
 	var riskAppetiteStatements interface{}
 	if byCategory != "" {
 		riskAppetiteStatements, err = rasc.service.GetAllByCategories(&queryParams)
-	} else {
-		riskAppetiteStatements, err = rasc.service.GetAll(&queryParams)
 	}
 
 	if err != nil {
