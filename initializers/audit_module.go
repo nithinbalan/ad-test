@@ -50,6 +50,7 @@ type AuditModule struct {
 	AuditScheduleStatusUpdateController          *controllers.AuditScheduleStatusUpdateController
 	AuditDraftReportReviewController             *controllers.AuditDraftReportReviewController
 	AuditDraftReportCommentController            *controllers.AuditDraftReportCommentController
+	AuditPlanCommencementLetterStatusController  *controllers.AuditPlanCommencementLetterStatusController
 	AuditPlanCommencementLetterController        *controllers.AuditPlanCommencementLetterController
 
 	AuditPlanSvc                        services.AuditPlanServiceInterface
@@ -392,6 +393,10 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 	)
 	auditDraftReportCommentController := controllers.NewAuditDraftReportCommentController(auditDraftReportCommentSvc)
 
+	auditPlanCommencementLetterStatusRepo := repositories.NewAuditPlanCommencementLetterStatusRepository(db)
+	auditPlanCommencementLetterStatusSvc := services.NewAuditPlanCommencementLetterStatusService(auditPlanCommencementLetterStatusRepo)
+	auditPlanCommencementLetterStatusController := controllers.NewAuditPlanCommencementLetterStatusController(auditPlanCommencementLetterStatusSvc)
+
 	auditPlanCommencementLetterRepo := repositories.NewAuditPlanCommencementLetterRepository(db)
 	auditPlanCommencementLetterSvc := services.NewAuditPlanCommencementLetterService(
 		auditPlanCommencementLetterRepo,
@@ -399,6 +404,7 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		auditPlanSvc,
 		organizationModule.UserSvc,
 		commonModule.NotificationService,
+		auditPlanCommencementLetterStatusSvc,
 	)
 	auditPlanCommencementLetterController := controllers.NewAuditPlanCommencementLetterController(auditPlanCommencementLetterSvc)
 
@@ -444,6 +450,7 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		AuditScheduleStatusUpdateController:          auditScheduleStatusUpdateController,
 		AuditDraftReportReviewController:             auditDraftReportReviewController,
 		AuditDraftReportCommentController:            auditDraftReportCommentController,
+		AuditPlanCommencementLetterStatusController:  auditPlanCommencementLetterStatusController,
 		AuditPlanCommencementLetterController:        auditPlanCommencementLetterController,
 
 		AuditPlanSvc:                        auditPlanSvc,

@@ -8,6 +8,11 @@ import (
 type AuditPlanCommencementLetterListDTO struct {
 	ID                          uint    `json:"id"`
 	AuditPlanID                 uint    `json:"audit_plan_id"`
+	StatusTitleEn               string  `json:"status_title_en"`
+	StatusTitleAr               string  `json:"status_title_ar"`
+	StatusColorCode             string  `json:"status_color_code"`
+	StatusType                  string  `json:"status_type"`
+	SentAt                      *string `json:"sent_at,omitempty"`
 	ResponsibleUnitTitleEn      string  `json:"responsible_unit_title_en"`
 	ResponsibleUnitTitleAr      string  `json:"responsible_unit_title_ar"`
 	ToEmailIDs                  *string `json:"to_email_ids"`

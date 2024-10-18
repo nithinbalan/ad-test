@@ -56,6 +56,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditScheduleStatusUpdateController := app.AuditModule.AuditScheduleStatusUpdateController
 	auditDraftReportReviewController := app.AuditModule.AuditDraftReportReviewController
 	auditDraftReportCommentController := app.AuditModule.AuditDraftReportCommentController
+	auditPlanCommencementLetterStatusController := app.AuditModule.AuditPlanCommencementLetterStatusController
 	auditPlanCommencementLetterController := app.AuditModule.AuditPlanCommencementLetterController
 
 	//Audit Status
@@ -327,6 +328,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.POST("/audits/:auditId/draft-reports/:id/comments/:commentId/status-update", auditDraftReportCommentController.StatusUpdateAuditDraftReportComment)
 	unauthenticatedRoutes.GET("/audits/:auditId/draft-reports/:id/comments/:commentId/document-download", auditDraftReportCommentController.DownloadAuditDraftReportCommentDocument)
 	auditRoutes.GET("/audits/:auditId/draft-reports/:id/review-history", auditDraftReportReviewController.GetAllAuditDraftReportReviews)
+
+	auditRoutes.GET("/audit-plan-commencement-letter-statuses", auditPlanCommencementLetterStatusController.GetAllStatuses)
+	auditRoutes.GET("/audit-plan-commencement-letter-statuses/:id", auditPlanCommencementLetterStatusController.GetStatusDetails)
 
 	auditRoutes.GET("/audit-plans/:planId/commencement-letters", auditPlanCommencementLetterController.GetAllAuditPlanCommencementLetters)
 	auditRoutes.GET("/audit-plans/:planId/commencement-letters/:id", auditPlanCommencementLetterController.GetAuditPlanCommencementLetterDetails)

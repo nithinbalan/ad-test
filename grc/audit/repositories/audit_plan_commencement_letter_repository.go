@@ -42,6 +42,7 @@ func (repo *AuditPlanCommencementLetterRepository) GetAll(auditPlanID uint, keyw
 		Select(`
 		audit_plan_commencement_letters.id,
 		audit_plan_commencement_letters.audit_plan_id,
+		audit_plan_commencement_letters.sent_at,
 		organization_units.title_en AS responsible_unit_title_en,
 		organization_units.title_ar AS responsible_unit_title_ar,
 		STRING_AGG(to_user.email, ', ') AS to_user_emails,
@@ -54,6 +55,10 @@ func (repo *AuditPlanCommencementLetterRepository) GetAll(auditPlanID uint, keyw
 		from_user.color AS from_user_color,
 		from_user.email AS from_user_email,
 		from_user.profile_image_path AS from_user_profile_image_path,
+		audit_plan_commencement_letter_statuses.title_en AS status_title_en,
+		audit_plan_commencement_letter_statuses.title_ar AS status_title_ar,
+		audit_plan_commencement_letter_statuses.color_code AS status_color_code,
+		audit_plan_commencement_letter_statuses.type AS status_type,
 		audit_plan_commencement_letters.created_at,
 		audit_plan_commencement_letters.updated_at,
 		created_user.id AS created_user_id,
@@ -79,12 +84,15 @@ func (repo *AuditPlanCommencementLetterRepository) GetAll(auditPlanID uint, keyw
 		Joins(`LEFT JOIN users AS from_user ON from_user.id = audit_plan_commencement_letters.from_user_id`).
 		Joins(`LEFT JOIN users AS created_user ON created_user.id = audit_plan_commencement_letters.created_by_id`).
 		Joins(`LEFT JOIN users AS updated_user ON updated_user.id = audit_plan_commencement_letters.updated_by_id`).
-		Joins(`LEFT JOIN audit_plan_commencement_letter_to_user_ids ON audit_plan_commencement_letters.id = audit_plan_commencement_letter_to_user_ids.audit_plan_commencement_letter_id`).
-		Joins(`LEFT JOIN users AS to_user ON to_user.id = audit_plan_commencement_letter_to_user_ids.user_id`).
+		Joins(`LEFT JOIN audit_plan_commencement_letter_to_users ON audit_plan_commencement_letters.id = audit_plan_commencement_letter_to_users.audit_plan_commencement_letter_id`).
+		Joins(`LEFT JOIN users AS to_user ON to_user.id = audit_plan_commencement_letter_to_users.user_id`).
+		Joins(`LEFT JOIN audit_plan_commencement_letter_statuses ON audit_plan_commencement_letter_statuses.id = audit_plan_commencement_letters.audit_plan_commencement_letter_status_id`). // New Join
 		Where("audit_plan_commencement_letters.audit_plan_id = ?", auditPlanID).
 		Group(`
 		audit_plan_commencement_letters.id,
 		audit_plan_commencement_letters.audit_plan_id,
+		audit_plan_commencement_letters.audit_plan_commencement_letter_status_id,
+		audit_plan_commencement_letters.sent_at,
 		organization_units.title_en,
 		organization_units.title_ar,
 		from_user.id,
@@ -96,6 +104,10 @@ func (repo *AuditPlanCommencementLetterRepository) GetAll(auditPlanID uint, keyw
 		from_user.color,
 		from_user.email,
 		from_user.profile_image_path,
+		audit_plan_commencement_letter_statuses.title_en,
+		audit_plan_commencement_letter_statuses.title_ar,
+		audit_plan_commencement_letter_statuses.color_code,
+		audit_plan_commencement_letter_statuses.type,
 		audit_plan_commencement_letters.created_at,
 		audit_plan_commencement_letters.updated_at,
 		created_user.id,
