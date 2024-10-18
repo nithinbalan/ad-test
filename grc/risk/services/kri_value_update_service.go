@@ -679,6 +679,100 @@ func (kvus *KRIValueUpdateService) Delete(kriRegisterID uint, ids []uint, curren
 			existingKRIRegister.LastReviewNote = nil
 			// existingKRIRegister.LastReviewedDate = nil
 			existingKRIRegister.NextReviewDate = utility.CalculateNextReviewDate(reviewFrequency.Type)
+
+			// getting risks related to jri
+			existingRisks, err := kvus.repo.GetRisksByKriID(kriRegisterID)
+			if err != nil {
+				log.Println("error :", err.Error())
+			}
+
+			for _, existingRisk := range existingRisks {
+				existingKRIRegister, err := kvus.kriRegisterSvc.GetByID(kriRegisterID)
+				if err != nil {
+					return nil, err
+				}
+
+				// Prepare notification data before deletion
+				notifications = append(notifications, struct {
+					OwnerID         *uint
+					TitleEn         string
+					TitleAr         string
+					Description     string
+					ReferenceNumber string
+				}{
+					OwnerID:         &existingRisk.ResponsibleUserID,
+					TitleEn:         existingKRIRegister.Title,
+					Description:     existingKRIRegister.Description,
+					ReferenceNumber: existingKRIRegister.ReferenceNumber,
+				})
+
+				// Send DB and email notifications for each successfully deleted risk register
+				for _, notification := range notifications {
+					urlParam := ""
+					entity := "kri-value-update"
+					action := "delete"
+
+					// Prepare DB notification
+					dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+						UserID:               *notification.OwnerID,
+						ModuleIdentifier:     "risk",
+						NotificationType:     string(commonDTOs.DeletionType),
+						HeadingEn:            "KRi Value Update Deleted",
+						HeadingAr:            "تم حذف تحديث قيمة KR",
+						TitleEn:              notification.TitleEn,
+						Entity:               &entity,
+						Action:               &action,
+						URLParam:             urlParam,
+						IsSystemNotification: false,
+						CreatedByID:          &currentUserID,
+					}
+
+					// Fetch owner details (responsible user)
+					ownerUser, err := kvus.userSvc.GetByID(*notification.OwnerID)
+					if err != nil {
+						utility.LogError("Failed to fetch owner details for notification", map[string]interface{}{
+							"error": err.Error(),
+						})
+						continue
+					}
+
+					// Prepare email notification
+					ownerEmailTo := []string{ownerUser.Email}
+					subject := fmt.Sprintf("KRI:%s,The latest update has been removed, and the value has reverted to the previous one.", notification.TitleEn)
+					appURL := utility.GetAppURL()
+					templateRelativePath := "risk/templates/email/kri_value_update_delete_mail.html"
+
+					emailData := map[string]interface{}{
+						"FirstNameEn":         ownerUser.FirstNameEn,
+						"LastNameEn":          ownerUser.LastNameEn,
+						"KRIReferenceNumber":  existingKRIRegister.ReferenceNumber,
+						"KRITitle":            existingKRIRegister.Title,
+						"KRIDescription":      existingKRIRegister.Description,
+						"RiskReferenceNumber": existingRisk.ReferenceNumber,
+						"RiskTitle":           existingRisk.Title,
+						"RiskDescription":     existingRisk.Description,
+						"CurrentValue":        0,
+						"AssignedOn":          time.Now().Format("2006-01-02"),
+						"RedirectURL":         fmt.Sprintf("%srisk/kri-register/%d/overview", appURL, kriRegisterID),
+					}
+
+					emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+						EmailTo:              ownerEmailTo,
+						Subject:              subject,
+						TemplateRelativePath: templateRelativePath,
+						EmailData:            emailData,
+					}
+
+					// Send DB and email notifications
+					err = kvus.notificationSvc.SendNotification(
+						dbNotificationDTO, emailNotificationDTO, "incident_register")
+					if err != nil {
+						utility.LogError("Failed to send deletion notifications", map[string]interface{}{
+							"error": err.Error(),
+						})
+					}
+				}
+			}
 		}
 
 		if err := kvus.kriRegisterSvc.UpdateValue(existingKRIRegister, tx); err != nil {
