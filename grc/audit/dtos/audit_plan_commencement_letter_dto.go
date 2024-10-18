@@ -10,7 +10,7 @@ type AuditPlanCommencementLetterListDTO struct {
 	AuditPlanID                 uint    `json:"audit_plan_id"`
 	ResponsibleUnitTitleEn      string  `json:"responsible_unit_title_en"`
 	ResponsibleUnitTitleAr      string  `json:"responsible_unit_title_ar"`
-	ToEmailIDs                  string  `json:"to_email_ids"`
+	ToEmailIDs                  *string `json:"to_email_ids"`
 	FromUserID                  uint    `json:"from_user_id"`
 	FromUserFirstNameEn         string  `json:"from_user_first_name_en"`
 	FromUserFirstNameAr         string  `json:"from_user_first_name_ar"`
@@ -20,6 +20,7 @@ type AuditPlanCommencementLetterListDTO struct {
 	FromUserColor               string  `json:"from_user_color"`
 	FromUserEmail               string  `json:"from_user_email"`
 	FromUserProfileImagePath    string  `json:"from_user_profile_image_path"`
+	ToUserEmails                string  `json:"to_user_emails"`
 	CreatedAt                   string  `json:"created_at"`
 	UpdatedAt                   *string `json:"updated_at"`
 	CreatedUserID               uint    `json:"created_user_id"`
