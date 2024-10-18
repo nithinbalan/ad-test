@@ -21,11 +21,13 @@ type AuditPlanCommencementLetter struct {
 	UpdatedAt         *time.Time `json:"updated_at,omitempty" gorm:"type:datetime;default:null"`
 
 	// Relationships
-	AuditPlan       *AuditPlan        `gorm:"foreignKey:AuditPlanID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ResponsibleUnit *OrganizationUnit `gorm:"foreignKey:ResponsibleUnitID"`
-	FromUser        *User             `gorm:"foreignKey:FromUserID"`
-	CreatedByUser   *User             `gorm:"foreignKey:CreatedBYID"`
-	UpdatedByUser   *User             `gorm:"foreignKey:UpdatedBYID"`
+	AuditPlan       *AuditPlan                           `gorm:"foreignKey:AuditPlanID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ResponsibleUnit *OrganizationUnit                    `gorm:"foreignKey:ResponsibleUnitID"`
+	FromUser        *User                                `gorm:"foreignKey:FromUserID"`
+	CreatedByUser   *User                                `gorm:"foreignKey:CreatedBYID"`
+	UpdatedByUser   *User                                `gorm:"foreignKey:UpdatedBYID"`
+	ToUser          *AuditPlanCommencementLetterToUser   `gorm:"foreignKey:AuditPlanCommencementLetterID"`
+	CCUsers         *[]AuditPlanCommencementLetterCCUser `gorm:"foreignKey:AuditPlanCommencementLetterID"`
 }
 
 // TableName overrides the table name used by AuditPlanCommencementLetter to `audit_plan_commencement_letters`

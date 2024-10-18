@@ -225,7 +225,7 @@ func (aps *AuditPlanCommencementLetterService) Send(auditPlanID uint, letterID u
 		return err
 	}
 
-	toUser := &models.AuditPlanCommencementLetterToUserID{
+	toUser := &models.AuditPlanCommencementLetterToUser{
 		AuditPlanCommencementLetterID: letterID,
 		UserID:                        commencementLetterSendFormDTO.ToUserID,
 		CreatedByID:                   currentUserID,
@@ -238,7 +238,7 @@ func (aps *AuditPlanCommencementLetterService) Send(auditPlanID uint, letterID u
 	}
 
 	for _, ccUserID := range commencementLetterSendFormDTO.CCUserIDs {
-		ccUser := &models.AuditPlanCommencementLetterCCUserID{
+		ccUser := &models.AuditPlanCommencementLetterCCUser{
 			AuditPlanCommencementLetterID: letterID,
 			UserID:                        *ccUserID,
 			CreatedByID:                   currentUserID,
