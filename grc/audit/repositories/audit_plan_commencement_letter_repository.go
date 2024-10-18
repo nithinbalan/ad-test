@@ -17,8 +17,8 @@ type AuditPlanCommencementLetterRepositoryInterface interface {
 	Update(commencementLetter *models.AuditPlanCommencementLetter, tx ...utility.DatabaseTransaction) error
 	Delete(id uint) error
 
-	CreateToUser(toUser *models.AuditPlanCommencementLetterToUserID, tx ...utility.DatabaseTransaction) error
-	CreateCCUser(ccUser *models.AuditPlanCommencementLetterCCUserID, tx ...utility.DatabaseTransaction) error
+	CreateToUser(toUser *models.AuditPlanCommencementLetterToUser, tx ...utility.DatabaseTransaction) error
+	CreateCCUser(ccUser *models.AuditPlanCommencementLetterCCUser, tx ...utility.DatabaseTransaction) error
 }
 
 type AuditPlanCommencementLetterRepository struct {
@@ -151,6 +151,8 @@ func (repo *AuditPlanCommencementLetterRepository) GetFullDetailsByID(auditPlanI
 	var commencementLetter *models.AuditPlanCommencementLetter
 
 	result := db.
+		Preload("ToUser.User").
+		Preload("CCUsers.User").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		Preload("ResponsibleUnit").
@@ -197,7 +199,7 @@ func (repo *AuditPlanCommencementLetterRepository) Delete(id uint) error {
 	return nil
 }
 
-func (repo *AuditPlanCommencementLetterRepository) CreateToUser(toUser *models.AuditPlanCommencementLetterToUserID, tx ...utility.DatabaseTransaction) error {
+func (repo *AuditPlanCommencementLetterRepository) CreateToUser(toUser *models.AuditPlanCommencementLetterToUser, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -209,7 +211,7 @@ func (repo *AuditPlanCommencementLetterRepository) CreateToUser(toUser *models.A
 	return nil
 }
 
-func (repo *AuditPlanCommencementLetterRepository) CreateCCUser(ccUser *models.AuditPlanCommencementLetterCCUserID, tx ...utility.DatabaseTransaction) error {
+func (repo *AuditPlanCommencementLetterRepository) CreateCCUser(ccUser *models.AuditPlanCommencementLetterCCUser, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
