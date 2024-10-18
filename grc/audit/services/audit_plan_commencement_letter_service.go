@@ -30,11 +30,12 @@ type AuditPlanCommencementLetterServiceInterface interface {
 }
 
 type AuditPlanCommencementLetterService struct {
-	repo            repositories.AuditPlanCommencementLetterRepositoryInterface
-	activityLogSvc  logServices.ActivityLogServiceInterface
-	auditPlanSvc    AuditPlanServiceInterface
-	userSvc         organizationServices.UserServiceInterface
-	notificationSvc commonServices.NotificationServiceInterface
+	repo                                 repositories.AuditPlanCommencementLetterRepositoryInterface
+	activityLogSvc                       logServices.ActivityLogServiceInterface
+	auditPlanSvc                         AuditPlanServiceInterface
+	userSvc                              organizationServices.UserServiceInterface
+	notificationSvc                      commonServices.NotificationServiceInterface
+	auditPlanCommencementLetterStatusSvc AuditPlanCommencementLetterStatusServiceInterface
 }
 
 func NewAuditPlanCommencementLetterService(
@@ -43,13 +44,15 @@ func NewAuditPlanCommencementLetterService(
 	auditPlanSvc AuditPlanServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
+	auditPlanCommencementLetterStatusSvc AuditPlanCommencementLetterStatusServiceInterface,
 ) AuditPlanCommencementLetterServiceInterface {
 	return &AuditPlanCommencementLetterService{
-		repo:            repo,
-		activityLogSvc:  activityLogSvc,
-		auditPlanSvc:    auditPlanSvc,
-		userSvc:         userSvc,
-		notificationSvc: notificationSvc,
+		repo:                                 repo,
+		activityLogSvc:                       activityLogSvc,
+		auditPlanSvc:                         auditPlanSvc,
+		userSvc:                              userSvc,
+		notificationSvc:                      notificationSvc,
+		auditPlanCommencementLetterStatusSvc: auditPlanCommencementLetterStatusSvc,
 	}
 }
 
@@ -111,6 +114,11 @@ func (aps *AuditPlanCommencementLetterService) Create(auditPlanId uint, currentU
 
 	}
 
+	auditPlanCommencementLetterStatus, err := aps.auditPlanCommencementLetterStatusSvc.GetByType("draft")
+	if err != nil {
+		return err
+	}
+
 	for unitID, auditableItems := range unitToItemsMap {
 		subjectEn := fmt.Sprintf("Audit Commencement Letter - %s", auditPlanDetails.Title)
 		subjectAr := fmt.Sprintf("خطاب بدء التدقيق - %s", auditPlanDetails.Title)
@@ -118,15 +126,16 @@ func (aps *AuditPlanCommencementLetterService) Create(auditPlanId uint, currentU
 		bodyAr := generateLetterBodyAr(auditableItems, auditPlanDetails)
 
 		commencementLetter := &models.AuditPlanCommencementLetter{
-			AuditPlanID:       auditPlanId,
-			ResponsibleUnitID: unitID,
-			SubjectEn:         subjectEn,
-			SubjectAr:         subjectAr,
-			BodyEn:            bodyEn,
-			BodyAr:            bodyAr,
-			FromUserID:        *auditPlanDetails.TeamLeadID,
-			CreatedBYID:       currentUserID,
-			CreatedAt:         time.Now(),
+			AuditPlanID:                         auditPlanId,
+			ResponsibleUnitID:                   unitID,
+			SubjectEn:                           subjectEn,
+			SubjectAr:                           subjectAr,
+			BodyEn:                              bodyEn,
+			BodyAr:                              bodyAr,
+			FromUserID:                          *auditPlanDetails.TeamLeadID,
+			AuditPlanCommencementLetterStatusID: auditPlanCommencementLetterStatus.ID,
+			CreatedBYID:                         currentUserID,
+			CreatedAt:                           time.Now(),
 		}
 
 		if _, err := aps.repo.Create(commencementLetter, tx); err != nil {
@@ -216,7 +225,14 @@ func (aps *AuditPlanCommencementLetterService) Send(auditPlanID uint, letterID u
 
 	tx := aps.repo.BeginTransaction()
 
-	// Update email details in commencement letter
+	auditPlanCommencementLetterStatus, err := aps.auditPlanCommencementLetterStatusSvc.GetByType("sent")
+	if err != nil {
+		return err
+	}
+
+	currentTime := time.Now()
+	existingCommencementLetter.AuditPlanCommencementLetterStatusID = auditPlanCommencementLetterStatus.ID
+	existingCommencementLetter.SentAt = &currentTime
 	existingCommencementLetter.UpdatedBYID = &currentUserID
 
 	err = aps.repo.Update(existingCommencementLetter, tx)
