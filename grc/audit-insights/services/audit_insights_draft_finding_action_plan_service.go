@@ -120,7 +120,7 @@ func (aidfaps *AuditInsightsDraftFindingActionPlanService) validateAuditInsights
 		return err
 	}
 
-	if *existingAuditDraftFinding.AuditableItem.ResponsibleUnitID != orgUnitID {
+	if existingAuditDraftFinding.AuditableItem.ResponsibleUnitID != orgUnitID {
 		return utility.NewForbiddenError("Action not allowed:  Only users from the responsible unit can perform this action.")
 	}
 

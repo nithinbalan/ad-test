@@ -193,7 +193,7 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 		ResponsibleUserID:      ComplianceActionPlanFormDTO.ResponsibleUserID,
 	}
 
-	if err := caps.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
+	if _, err := caps.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
 		tx.Rollback()
 		return 0, err
 	}

@@ -286,6 +286,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.PUT("/audits/:auditId/draft-reports/:id", auditDraftReportController.UpdateAuditDraftReport)
 	auditRoutes.POST("/audits/:auditId/draft-reports/delete", auditDraftReportController.DeleteAuditDraftReports)
 	auditRoutes.POST("/audits/:auditId/draft-reports/:id/auditee-submit", auditDraftReportController.SubmitAuditDraftReport)
+	auditRoutes.POST("/audits/:auditId/draft-reports/:id/complete", auditDraftReportController.CompleteAuditDraftReport)
 
 	//Audit Risk Control Metrix
 	auditRoutes.GET("audits/:auditId/risk-control-matrix", rcmController.GetAllRiskControls)
@@ -296,6 +297,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.POST("/audit-draft-findings/:findingId/conversations", auditDraftFindingConversationController.CreateAuditDraftFindingConversation)
 	auditRoutes.PUT("/audit-draft-findings/:findingId/conversations/:id", auditDraftFindingConversationController.UpdateAuditDraftFindingConversation)
 	auditRoutes.POST("/audit-draft-findings/:findingId/conversations/delete", auditDraftFindingConversationController.DeleteAuditDraftFindingConversations)
+	unauthenticatedRoutes.GET("/audit-draft-findings/:findingId/conversations/:id/document-download", auditDraftFindingConversationController.DownloadAuditDraftFindingConversationDocument)
 
 	// Audit Draft Finding Action plans
 	auditRoutes.GET("/audit-draft-findings/:findingId/action-plans", auditDraftFindingActionPlanController.GetAllAuditDraftFindingActionPlans)

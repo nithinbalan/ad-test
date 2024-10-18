@@ -3,7 +3,14 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+	"time"
+
 	"jethur/config"
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	complianceRepositories "jethur/grc/compliance/repositories"
 	logServices "jethur/grc/logs/services"
@@ -11,9 +18,6 @@ import (
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
-	"os"
-	"path/filepath"
-	"strconv"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -44,6 +48,7 @@ type SLARegisterService struct {
 	processSvc         organizationServices.ProcessServiceInterface
 	userSvc            organizationServices.UserServiceInterface
 	userSettingSvc     organizationServices.UserSettingServiceInterface
+	notificationSvc    commonServices.NotificationServiceInterface
 }
 
 func NewSLARegisterService(
@@ -55,6 +60,7 @@ func NewSLARegisterService(
 	processSvc organizationServices.ProcessServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	userSettingSvc organizationServices.UserSettingServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
 ) SLARegisterServiceInterface {
 	return &SLARegisterService{
 		repo:               repo,
@@ -65,6 +71,7 @@ func NewSLARegisterService(
 		processSvc:         processSvc,
 		userSvc:            userSvc,
 		userSettingSvc:     userSettingSvc,
+		notificationSvc:    notificationSvc,
 	}
 }
 
@@ -74,7 +81,6 @@ func (srs *SLARegisterService) GetAll(params *complianceDTOs.SLARegisterListQuer
 
 func (srs SLARegisterService) GetByID(id uint) (*models.SLARegister, error) {
 	sla, err := srs.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -89,7 +95,6 @@ func (srs SLARegisterService) GetFullDetailsByID(id uint, tx ...utility.Database
 	var slaRegisterDTO complianceDTOs.SLARegisterDetailDTO
 
 	slaRegister, err := srs.repo.GetFullDetailsByID(id, tx...)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -139,6 +144,7 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *co
 	if err != nil {
 		return 0, err
 	}
+
 	referenceNumber, err := srs.repo.GenerateReferenceNumber()
 	if err != nil {
 		return 0, err
@@ -251,7 +257,6 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *co
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -262,6 +267,84 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *co
 			}
 
 			utility.LogError("Failed to log activity", fields)
+		}
+
+		// Prepare notification and email
+		urlParam := fmt.Sprintf(`{"id":%d}`, id)
+		entity := "sla-register"
+		action := "responsible-user-assign"
+
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserID:               slaRegisterFormDTO.ResponsibleUserID,
+			ModuleIdentifier:     "compliance",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			HeadingEn:            "Sla Register Assignment",
+			HeadingAr:            "تعيين سجل الامتثال",
+			TitleEn:              slaRegisterFormDTO.TitleEn,
+			TitleAr:              slaRegisterFormDTO.TitleAr,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		responsibleUser, err := srs.userSvc.GetByID(slaRegisterFormDTO.ResponsibleUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		createdBy, err := srs.userSvc.GetByID(currentUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		// Assuming GetByID returns only an error and no severity level
+		severityLevel, err := srs.severityLevelSvc.GetByID(*&slaRegister.SeverityLevelID)
+		if err != nil {
+			utility.LogError("Failed to fetch severity level", map[string]interface{}{
+				"error":   err.Error(),
+				"levelID": slaRegister.SeverityLevelID,
+			})
+			return
+		}
+
+		emailTo := []string{responsibleUser.Email}
+		subject := fmt.Sprintf("Sla Register/%s: Responsibility Assigned", slaRegister.TitleEn)
+		appURL := utility.GetAppURL()
+
+		emailData := map[string]interface{}{
+			"FirstNameEn":          responsibleUser.FirstNameEn,
+			"LastNameEn":           responsibleUser.LastNameEn,
+			"ReferenceNumber":      slaRegister.ReferenceNumber,
+			"TitleEn":              slaRegister.TitleEn,
+			"TitleAr":              slaRegister.TitleAr,
+			"Description":          slaRegister.Description,
+			"SeverityLevel":        severityLevel.TitleEn,
+			"CreatedByFirstNameEn": createdBy.FirstNameEn,
+			"CreatedByLastNameEn":  createdBy.LastNameEn,
+			"AssignedOn":           time.Now().Format("2006-01-02"),
+			"RedirectURL":          fmt.Sprintf("%s/compliance/sla-contracts/%d/overview", appURL, id),
+		}
+
+		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              emailTo,
+			Subject:              subject,
+			TemplateRelativePath: "compliance/templates/email/sla_register_create_responsible_user_mail.html",
+			EmailData:            emailData,
+		}
+
+		err = srs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "compliance_register")
+		if err != nil {
+			utility.LogError("Failed to send notifications", map[string]interface{}{
+				"error": err.Error(),
+			})
 		}
 	}()
 
@@ -274,6 +357,8 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 	if err != nil {
 		return err
 	}
+
+	oldResponsibleUserID := existingSLARegister.ResponsibleUserID
 
 	if err := srs.validateSLARegisterFormDTO(slaRegisterFormDTO); err != nil {
 		return err
@@ -381,7 +466,7 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 
 	if slaRegisterFormDTO.Document.IsNewFile != nil && *slaRegisterFormDTO.Document.IsNewFile {
 		existingSLADocumentFileName := existingSLADocument.Name
-		//Encrypt the filename
+		// Encrypt the filename
 		dataToEncrypt := []byte(slaRegisterFormDTO.Document.FileName)
 		encryptedFilename, err := utility.EncryptData(dataToEncrypt)
 		if err != nil {
@@ -429,7 +514,6 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.UpdateAction,
@@ -441,6 +525,142 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 
 			utility.LogError("Failed to log activity", fields)
 		}
+
+		// Send notifications to old and new responsible users if the responsible user has changed
+		if oldResponsibleUserID != existingSLARegister.ResponsibleUserID {
+			urlParam := fmt.Sprintf(`{"id":%d}`, id)
+			entity := "sla-register"
+
+			oldResponsibleUserAction := "responsible-user-remove"
+			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserID:               oldResponsibleUserID,
+				ModuleIdentifier:     "compliance",
+				NotificationType:     string(commonDTOs.InformationType),
+				HeadingEn:            "Sla Register Responsibility Removal",
+				HeadingAr:            "إزالة مسؤولية تسجيل (Sla)",
+				TitleEn:              existingSLARegister.TitleEn,
+				TitleAr:              existingSLARegister.TitleAr,
+				Entity:               &entity,
+				Action:               &oldResponsibleUserAction,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			// New responsible user notification (Assignment)
+			newResponsibleUserAction := "responsible-user-assign"
+			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserID:               slaRegisterFormDTO.ResponsibleUserID,
+				ModuleIdentifier:     "compliance",
+				NotificationType:     string(commonDTOs.AssignmentType),
+				HeadingEn:            "Sla Register Responsibility Assigned",
+				HeadingAr:            "تم تعيين مسؤولية تسجيل (Sla)",
+				TitleEn:              existingSLARegister.TitleEn,
+				TitleAr:              existingSLARegister.TitleAr,
+				Entity:               &entity,
+				Action:               &newResponsibleUserAction,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			// Fetch the responsible users' data
+			oldResponsibleUser, err := srs.userSvc.GetByID(oldResponsibleUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch old responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			newResponsibleUser, err := srs.userSvc.GetByID(slaRegisterFormDTO.ResponsibleUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch new responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			// Fetch details of the user making the assignment
+			updatedByUser, err := srs.userSvc.GetByID(currentUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			appURL := utility.GetAppURL()
+
+			// Assuming GetByID returns only an error and no severity level
+			severityLevel, err := srs.severityLevelSvc.GetByID(*&existingSLARegister.SeverityLevelID)
+			if err != nil {
+				utility.LogError("Failed to fetch severity level", map[string]interface{}{
+					"error":   err.Error(),
+					"levelID": existingSLARegister.SeverityLevelID,
+				})
+				return
+			}
+
+			// Email notification for the old responsible user
+			oldResponsibleUserEmailTo := []string{oldResponsibleUser.Email}
+			oldResponsibleUserSubject := fmt.Sprintf("Sla Register/%s: Responsibility Removed", existingSLARegister.TitleEn)
+			oldResponsibleUserEmailData := map[string]interface{}{
+				"FirstNameEn":     oldResponsibleUser.FirstNameEn,
+				"LastNameEn":      oldResponsibleUser.LastNameEn,
+				"ReferenceNumber": existingSLARegister.ReferenceNumber,
+				"TitleEn":         existingSLARegister.TitleEn,
+				"TitleAr":         existingSLARegister.TitleAr,
+				"Description":     existingSLARegister.Description,
+				"RedirectURL":     fmt.Sprintf("%s/compliance/sla-contracts/%d/overview", appURL, id),
+			}
+
+			oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              oldResponsibleUserEmailTo,
+				Subject:              oldResponsibleUserSubject,
+				TemplateRelativePath: "compliance/templates/email/sla_register_remove_responsible_user_mail.html",
+				EmailData:            oldResponsibleUserEmailData,
+			}
+
+			// Email notification for the new responsible user
+			newResponsibleUserEmailTo := []string{newResponsibleUser.Email}
+			newResponsibleUserSubject := fmt.Sprintf("Sla Register/%s: Responsibility Assigned", existingSLARegister.TitleEn)
+			newResponsibleUserEmailData := map[string]interface{}{
+				"FirstNameEn":           newResponsibleUser.FirstNameEn,
+				"LastNameEn":            newResponsibleUser.LastNameEn,
+				"ReferenceNumber":       existingSLARegister.ReferenceNumber,
+				"TitleEn":               existingSLARegister.TitleEn,
+				"TitleAr":               existingSLARegister.TitleAr,
+				"Description":           existingSLARegister.Description,
+				"SeverityLevel":         severityLevel.TitleEn,
+				"AssignedByFirstNameEn": updatedByUser.FirstNameEn,
+				"AssignedByLastNameEn":  updatedByUser.LastNameEn,
+				"AssignedOn":            time.Now().Format("2006-01-02"),
+				"RedirectURL":           fmt.Sprintf("%s/compliance/sla-contracts/%d/overview", appURL, id),
+			}
+
+			newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              newResponsibleUserEmailTo,
+				Subject:              newResponsibleUserSubject,
+				TemplateRelativePath: "compliance/templates/email/sla_register_change_responsible_user_mail.html",
+				EmailData:            newResponsibleUserEmailData,
+			}
+
+			// Send notifications and emails
+			err = srs.notificationSvc.SendNotification(newResponsibleUserNotificationDTO, newResponsibleUserEmailNotificationDTO, "compliance_register")
+			if err != nil {
+				utility.LogError("Failed to send notifications to new responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+
+			err = srs.notificationSvc.SendNotification(oldResponsibleUserNotificationDTO, oldResponsibleUserEmailNotificationDTO, "compliance_register")
+			if err != nil {
+				utility.LogError("Failed to send notifications to old responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+		}
 	}()
 
 	return nil
@@ -450,6 +670,13 @@ func (srs *SLARegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 	tx := srs.repo.BeginTransaction()
 	var failedIds []uint
 	var successfulIds []uint
+	var notifications []struct {
+		OwnerID         *uint
+		TitleEn         string
+		TitleAr         string
+		Description     string
+		ReferenceNumber string
+	}
 	documentsToDelete := make(map[uint][]*complianceDTOs.SLADocumentDTO)
 
 	for _, id := range ids {
@@ -458,6 +685,22 @@ func (srs *SLARegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 			tx.Rollback()
 			return nil, err
 		}
+
+		// Prepare notification data before deletion
+		notifications = append(notifications, struct {
+			OwnerID         *uint
+			TitleEn         string
+			TitleAr         string
+			Description     string
+			ReferenceNumber string
+		}{
+			OwnerID:         &slaRegister.ResponsibleUserID,
+			TitleEn:         slaRegister.TitleEn,
+			TitleAr:         slaRegister.TitleAr,
+			Description:     *slaRegister.Description,
+			ReferenceNumber: slaRegister.ReferenceNumber,
+		})
+
 		// Check if controls exist
 		if len(slaRegister.Processes) > 0 {
 			var deleteProcessIDs []*uint
@@ -532,6 +775,68 @@ func (srs *SLARegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 				// @todo - save to log file
 				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
 			}
+
+			// Send DB and email notifications for each successfully deleted
+			for _, notification := range notifications {
+				urlParam := ""
+				entity := "sla-register"
+				action := "delete"
+
+				// Prepare DB notification
+				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+					UserID:               *notification.OwnerID,
+					ModuleIdentifier:     "compliance",
+					NotificationType:     string(commonDTOs.DeletionType),
+					HeadingEn:            "Sla Register Deleted",
+					HeadingAr:            "تم حذف تسجيل Sla",
+					TitleEn:              notification.TitleEn,
+					TitleAr:              notification.TitleAr,
+					Entity:               &entity,
+					Action:               &action,
+					URLParam:             urlParam,
+					IsSystemNotification: false,
+					CreatedByID:          &currentUserID,
+				}
+
+				// Fetch owner details (responsible user)
+				ownerUser, err := srs.userSvc.GetByID(*notification.OwnerID)
+				if err != nil {
+					utility.LogError("Failed to fetch owner details for notification", map[string]interface{}{
+						"error": err.Error(),
+					})
+					continue
+				}
+
+				// Prepare email notification
+				ownerEmailTo := []string{ownerUser.Email}
+				subject := fmt.Sprintf("Sla Register/%s: Deleted", notification.TitleEn)
+				templateRelativePath := "compliance/templates/email/sla_register_delete_mail.html"
+
+				emailData := map[string]interface{}{
+					"FirstNameEn":     ownerUser.FirstNameEn,
+					"LastNameEn":      ownerUser.LastNameEn,
+					"ReferenceNumber": notification.ReferenceNumber,
+					"TitleEn":         notification.TitleEn,
+					"TitleAr":         notification.TitleAr,
+					"Description":     notification.Description,
+				}
+
+				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+					EmailTo:              ownerEmailTo,
+					Subject:              subject,
+					TemplateRelativePath: templateRelativePath,
+					EmailData:            emailData,
+				}
+
+				// Send DB and email notifications
+				err = srs.notificationSvc.SendNotification(
+					dbNotificationDTO, emailNotificationDTO, "compliance_register")
+				if err != nil {
+					utility.LogError("Failed to send deletion notifications", map[string]interface{}{
+						"error": err.Error(),
+					})
+				}
+			}
 		}()
 	}
 
@@ -550,7 +855,6 @@ func (srs *SLARegisterService) Archive(ids []uint, currentUserID uint) ([]uint, 
 	}
 
 	successfulIds, err := srs.repo.UpdateLifecycleStatusForIDs(idsToUpdate, lifecycleStatus.ID)
-
 	if err != nil {
 		return nil, err
 	}
@@ -576,7 +880,6 @@ func (srs *SLARegisterService) Archive(ids []uint, currentUserID uint) ([]uint, 
 }
 
 func (srs *SLARegisterService) Restore(ids []uint, currentUserID uint) ([]uint, error) {
-
 	lifecycleStatus, err := srs.lifecycleStatusSvc.GetByType("active")
 	if err != nil {
 		return nil, err
@@ -587,7 +890,6 @@ func (srs *SLARegisterService) Restore(ids []uint, currentUserID uint) ([]uint, 
 	}
 
 	successfulIds, err := srs.repo.UpdateLifecycleStatusForIDs(idsToUpdate, lifecycleStatus.ID)
-
 	if err != nil {
 		return nil, err
 	}
@@ -686,7 +988,6 @@ func (srs *SLARegisterService) parseSLARegisterDates(slaRegisterForm *compliance
 }
 
 func (srs *SLARegisterService) validateSLADocumentFormDTO(document *complianceDTOs.SLADocumentFormDTO) error {
-
 	//@Review
 	//All items are mandatory during creation
 

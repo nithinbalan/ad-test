@@ -3,8 +3,8 @@
 ALTER TABLE audit_plan_commencement_letters
 ADD subject_en NVARCHAR(255) NOT NULL,
     subject_ar NVARCHAR(255) NOT NULL,
-    body_en TEXT NOT NULL,
-    body_ar TEXT NOT NULL;
+    body_en NVARCHAR(MAX) NOT NULL,
+    body_ar NVARCHAR(MAX) NOT NULL;
 
 ALTER TABLE audit_plan_commencement_letters
 DROP COLUMN subject;
@@ -19,7 +19,7 @@ ALTER TABLE audit_plan_commencement_letters
 ADD subject NVARCHAR(255) NOT NULL;
 
 ALTER TABLE audit_plan_commencement_letters
-ADD body TEXT NOT NULL;
+ADD body NVARCHAR(MAX) NOT NULL;
 
 ALTER TABLE audit_plan_commencement_letters
 DROP COLUMN subject_en;

@@ -182,7 +182,7 @@ func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskA
 		ResponsibleUserID: RiskActionPlanFormDTO.ResponsibleUserID,
 	}
 
-	if err := raps.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
+	if _, err := raps.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
 		tx.Rollback()
 		return 0, err
 	}

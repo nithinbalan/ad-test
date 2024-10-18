@@ -106,9 +106,9 @@ func (aps *AuditPlanCommencementLetterService) Create(auditPlanId uint, currentU
 	// Group Auditable Items by ResponsibleUnitID
 	unitToItemsMap := make(map[uint][]*auditDTOs.AuditPlanAuditableItemDTO)
 	for _, item := range auditPlanDetails.AuditableItems {
-		if item.AuditableItem.ResponsibleUnitID != nil {
-			unitToItemsMap[*item.AuditableItem.ResponsibleUnitID] = append(unitToItemsMap[*item.AuditableItem.ResponsibleUnitID], item)
-		}
+
+		unitToItemsMap[item.AuditableItem.ResponsibleUnitID] = append(unitToItemsMap[item.AuditableItem.ResponsibleUnitID], item)
+
 	}
 
 	for unitID, auditableItems := range unitToItemsMap {

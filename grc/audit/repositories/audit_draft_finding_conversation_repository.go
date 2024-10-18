@@ -16,6 +16,9 @@ type AuditDraftFindingConversationRepositoryInterface interface {
 	Create(auditDraftFindingConversation *models.AuditDraftFindingConversation, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(auditDraftFindingConversation *models.AuditDraftFindingConversation, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
+	CreateDocuments(docs []*models.AuditDraftFindingConversationDocument, tx ...utility.DatabaseTransaction) error
+	GetDocumentByID(id uint) (*models.AuditDraftFindingConversationDocument, error)
+	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
 
 }
 
@@ -43,7 +46,7 @@ func (repo *AuditDraftFindingConversationRepository) GetAll(auditDraftFindingID 
 		Select(`
             audit_draft_finding_conversations.id,
             audit_draft_finding_conversations.audit_draft_finding_id,
-            audit_draft_finding_conversations.description,
+            audit_draft_finding_conversations.comment,
             audit_draft_finding_conversations.created_at,
             created_user.id AS created_user_id,
             created_user.first_name_en AS created_user_first_name_en,
@@ -75,7 +78,7 @@ func (repo *AuditDraftFindingConversationRepository) GetAll(auditDraftFindingID 
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
-			audit_draft_finding_conversations.description LIKE ? OR
+			audit_draft_finding_conversations.comment LIKE ? OR
 			created_user.first_name_en LIKE ? OR
             created_user.first_name_ar LIKE ? OR
             created_user.last_name_en LIKE ? OR
@@ -93,6 +96,17 @@ func (repo *AuditDraftFindingConversationRepository) GetAll(auditDraftFindingID 
 
 	query = query.Order(params.SortBy + " " + params.Sort)
 	result := query.Find(&conversations)
+
+	// Fetching related documents for each conversations
+	for _, conversation := range conversations {
+		var documents []*dtos.AuditDraftFindingConversationDocumentDTO
+
+		repo.db.Model(&models.AuditDraftFindingConversationDocument{}).
+			Where("audit_draft_finding_conversation_id = ?", conversation.ID).
+			Find(&documents)
+
+		conversation.Documents = documents
+	}
 
 	return conversations, result.Error
 }
@@ -117,6 +131,7 @@ func (repo *AuditDraftFindingConversationRepository) GetFullDetailsByID(id uint,
 
 	result := db.
 		Preload("AuditDraftFinding").
+		Preload("Documents").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&auditDraftFindingConversation, id)
@@ -161,6 +176,40 @@ func (repo *AuditDraftFindingConversationRepository) Delete(id uint, tx ...utili
 	}
 	// Delete the Audit Plan
 	if err := db.Delete(&models.AuditDraftFindingConversation{}, id).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *AuditDraftFindingConversationRepository) CreateDocuments(docs []*models.AuditDraftFindingConversationDocument, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	// Save all documents in a single transaction
+	if err := db.Create(&docs).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *AuditDraftFindingConversationRepository) GetDocumentByID(id uint) (*models.AuditDraftFindingConversationDocument, error) {
+	var document models.AuditDraftFindingConversationDocument
+	if err := repo.db.Where("id = ?", id).First(&document).Error; err != nil {
+		return nil, err
+	}
+	return &document, nil
+}
+
+func (repo *AuditDraftFindingConversationRepository) DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Delete documents by IDs
+	if err := db.Where("id IN (?)", docIds).Delete(&models.AuditDraftFindingConversationDocument{}).Error; err != nil {
 		return err
 	}
 

@@ -61,12 +61,12 @@ func (aidfs *AuditInsightsDraftFindingService) Accept(auditDraftFindingID uint, 
 	if err != nil {
 		return err
 	}
-	if *existingAuditDraftFinding.AuditableItem.ResponsibleUnitID != orgUnitID {
+	if existingAuditDraftFinding.AuditableItem.ResponsibleUnitID != orgUnitID {
 		return utility.NewForbiddenError("You are not authorized to accept this draft finding. Only users from the responsible unit can perform this action.")
 	}
 
 	// Retrieve the AuditDraftReport using AuditID from AuditDraftFinding.Audit
-	auditID :=existingAuditDraftFinding.AuditID
+	auditID := existingAuditDraftFinding.AuditID
 	auditDraftReport, err := aidfs.auditDraftReportSvc.GetByAuditID(auditID)
 	if err != nil {
 		return err
@@ -92,30 +92,33 @@ func (aidfs *AuditInsightsDraftFindingService) Accept(auditDraftFindingID uint, 
 	if err != nil {
 		return err
 	}
-	
+
 	// Update Audit Draft Finding Status
 	if err := aidfs.auditDraftFindingSvc.StatusUpdate(auditDraftFindingID, currentUserID, auditDraftFindingStatusAccepted.ID); err != nil {
 		return err
 	}
+	isAccepted := false
+	isDismissed := false
 	auditDraftFindingConversationFormDTO := auditDTOs.AuditDraftFindingConversationFormDTO{
-		Description: auditInsightsDraftFindingApproveFormDTO.Comment,
+		Comment:     auditInsightsDraftFindingApproveFormDTO.Comment,
 		Type:        auditInsightsDraftFindingApproveFormDTO.Type,
+		IsAccepted:  &isAccepted,
+		IsDismissed: &isDismissed,
 	}
 	if _, err := aidfs.auditDraftFindingConversationSvc.Create(auditDraftFindingID, currentUserID, &auditDraftFindingConversationFormDTO); err != nil {
 		return err
 	}
 	auditDraftFindingActionPlanFormDTO := auditDTOs.AuditDraftFindingActionPlanFormDTO{
-		Title:               auditInsightsDraftFindingApproveFormDTO.Title,
-		Description:         auditInsightsDraftFindingApproveFormDTO.Description,
-		ResponsibleUserID:   auditInsightsDraftFindingApproveFormDTO.ResponsibleUserID,
-		TargetDate:          auditInsightsDraftFindingApproveFormDTO.TargetDate,
+		Title:             auditInsightsDraftFindingApproveFormDTO.Title,
+		Description:       auditInsightsDraftFindingApproveFormDTO.Description,
+		ResponsibleUserID: auditInsightsDraftFindingApproveFormDTO.ResponsibleUserID,
+		TargetDate:        auditInsightsDraftFindingApproveFormDTO.TargetDate,
 	}
 
 	if _, err := aidfs.auditDraftFindingActionPlanSvc.Create(auditDraftFindingID, currentUserID, &auditDraftFindingActionPlanFormDTO); err != nil {
 		return err
 	}
 	//todo - notification to user
-
 
 	go func() {
 		err := aidfs.activityLogSvc.LogActivity(
@@ -153,12 +156,12 @@ func (aidfs *AuditInsightsDraftFindingService) Challenge(auditDraftFindingID uin
 		return err
 	}
 
-	if *existingAuditDraftFinding.AuditableItem.ResponsibleUnitID != orgUnitID {
+	if existingAuditDraftFinding.AuditableItem.ResponsibleUnitID != orgUnitID {
 		return utility.NewForbiddenError("You are not authorized to accept this draft finding. Only users from the responsible unit can perform this action.")
 	}
 
 	// Retrieve the AuditDraftReport using AuditID from AuditDraftFinding.Audit
-	auditID :=existingAuditDraftFinding.AuditID
+	auditID := existingAuditDraftFinding.AuditID
 	auditDraftReport, err := aidfs.auditDraftReportSvc.GetByAuditID(auditID)
 	if err != nil {
 		return err
@@ -184,20 +187,23 @@ func (aidfs *AuditInsightsDraftFindingService) Challenge(auditDraftFindingID uin
 	if err != nil {
 		return err
 	}
-	
+
 	// Update Audit Draft Finding Status
 	if err := aidfs.auditDraftFindingSvc.StatusUpdate(auditDraftFindingID, currentUserID, auditDraftFindingStatusChallenged.ID); err != nil {
 		return err
 	}
+	isAccepted := false
+	isDismissed := false
 	auditDraftFindingConversationFormDTO := auditDTOs.AuditDraftFindingConversationFormDTO{
-		Description: auditInsightsDraftFindingChallengeFormDTO.Comment,
+		Comment:     auditInsightsDraftFindingChallengeFormDTO.Comment,
 		Type:        auditInsightsDraftFindingChallengeFormDTO.Type,
+		IsAccepted:  &isAccepted,
+		IsDismissed: &isDismissed,
 	}
 	if _, err := aidfs.auditDraftFindingConversationSvc.Create(auditDraftFindingID, currentUserID, &auditDraftFindingConversationFormDTO); err != nil {
 		return err
 	}
 	//todo - notification to user
-
 
 	go func() {
 		err := aidfs.activityLogSvc.LogActivity(
