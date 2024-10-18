@@ -22,6 +22,7 @@ type EmailNotificationDTO struct {
 	Subject              string      `json:"subject"`
 	TemplateRelativePath string      `json:"template_relative_path"`
 	EmailData            interface{} `json:"email_data"`
+	CC                   []string    `json:"cc"`
 }
 
 type NotificationType string

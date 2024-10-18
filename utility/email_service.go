@@ -19,7 +19,7 @@ type EmailConfig struct {
 	From     string
 }
 
-func SendTemplatedEmail(to []string, subject, templateRelativePath string, templateData interface{}, emailTemplateSettingsData *dtos.EmailTemplateAndSocialDTO, attachments []string) error {
+func SendTemplatedEmail(to []string, subject, templateRelativePath string, templateData interface{}, emailTemplateSettingsData *dtos.EmailTemplateAndSocialDTO, attachments []string, cc ...[]string) error {
 	emailConfig := getEmailConfig()
 
 	templates, err := parseEmailTemplates(templateRelativePath, emailTemplateSettingsData)
@@ -29,6 +29,7 @@ func SendTemplatedEmail(to []string, subject, templateRelativePath string, templ
 	} else {
 		fmt.Println("Templates parsed successfully.")
 	}
+
 	var body bytes.Buffer
 	if err := templates.Execute(&body, templateData); err != nil {
 		fmt.Printf("Failed to execute template with data %v: %v\n", templateData, err)
@@ -38,6 +39,11 @@ func SendTemplatedEmail(to []string, subject, templateRelativePath string, templ
 	}
 
 	message := createEmailMessage(to, subject, body.String(), attachments, emailConfig.From)
+
+	// Check if CC is provided and not empty, then set CC in the header
+	if len(cc) > 0 && len(cc[0]) > 0 {
+		message.SetHeader("Cc", cc[0]...)
+	}
 
 	d := gomail.NewDialer(emailConfig.Host, emailConfig.Port, emailConfig.Username, emailConfig.Password)
 	if err := d.DialAndSend(message); err != nil {

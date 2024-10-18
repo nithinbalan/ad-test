@@ -66,8 +66,6 @@ type AuditPlanCommencementLetterDetailDTO struct {
 }
 
 type AuditPlanCommencementLetterSendFormDTO struct {
-	ToUserIDs  []uint  `json:"to_user_ids" binding:"required"`
-	ToEmailIDs *string `json:"to_email_ids"`
-	CCUserIDs  []*uint `json:"cc_user_ids"`
-	CCEmailIDs string  `json:"cc_email_ids"`
+	ToUserID  uint    `json:"to_user_id" binding:"required"`
+	CCUserIDs []*uint `json:"cc_user_ids"`
 }
