@@ -575,7 +575,7 @@ func (kvus *KRIValueUpdateService) Delete(kriRegisterID uint, ids []uint, curren
 			return nil, err
 		}
 
-		if nextValueUpdate != nil {
+		if nextValueUpdate != nil && nextValueUpdate.ID != 0 {
 			existingKRIRegister.CurrentValue = &nextValueUpdate.Value
 			existingKRIRegister.LastReviewNote = nextValueUpdate.Remarks
 			existingKRIRegister.LastReviewedDate = &nextValueUpdate.ReviewedDate
@@ -638,7 +638,7 @@ func (kvus *KRIValueUpdateService) Delete(kriRegisterID uint, ids []uint, curren
 
 					// Prepare email notification
 					ownerEmailTo := []string{ownerUser.Email}
-					subject := fmt.Sprintf("KRI:%s,The latest update has been removed, and the value has reverted to the previous one.", notification.TitleEn)
+					subject := fmt.Sprintf("KRI:%s,KRI value is updated.", notification.TitleEn)
 					appURL := utility.GetAppURL()
 					templateRelativePath := "risk/templates/email/kri_value_update_delete_mail.html"
 
@@ -665,7 +665,7 @@ func (kvus *KRIValueUpdateService) Delete(kriRegisterID uint, ids []uint, curren
 
 					// Send DB and email notifications
 					err = kvus.notificationSvc.SendNotification(
-						dbNotificationDTO, emailNotificationDTO, "incident_register")
+						dbNotificationDTO, emailNotificationDTO, "kri_register")
 					if err != nil {
 						utility.LogError("Failed to send deletion notifications", map[string]interface{}{
 							"error": err.Error(),
@@ -738,10 +738,10 @@ func (kvus *KRIValueUpdateService) Delete(kriRegisterID uint, ids []uint, curren
 
 					// Prepare email notification
 					ownerEmailTo := []string{ownerUser.Email}
-					subject := fmt.Sprintf("KRI:%s,The latest update has been removed, and the value has reverted to the previous one.", notification.TitleEn)
+					subject := fmt.Sprintf("KRI:%s,KRI value is updated.", notification.TitleEn)
 					appURL := utility.GetAppURL()
 					templateRelativePath := "risk/templates/email/kri_value_update_delete_mail.html"
-
+					currentValue := "NIL"
 					emailData := map[string]interface{}{
 						"FirstNameEn":         ownerUser.FirstNameEn,
 						"LastNameEn":          ownerUser.LastNameEn,
@@ -751,7 +751,7 @@ func (kvus *KRIValueUpdateService) Delete(kriRegisterID uint, ids []uint, curren
 						"RiskReferenceNumber": existingRisk.ReferenceNumber,
 						"RiskTitle":           existingRisk.Title,
 						"RiskDescription":     existingRisk.Description,
-						"CurrentValue":        0,
+						"CurrentValue":        currentValue,
 						"AssignedOn":          time.Now().Format("2006-01-02"),
 						"RedirectURL":         fmt.Sprintf("%srisk/kri-register/%d/overview", appURL, kriRegisterID),
 					}
@@ -765,7 +765,7 @@ func (kvus *KRIValueUpdateService) Delete(kriRegisterID uint, ids []uint, curren
 
 					// Send DB and email notifications
 					err = kvus.notificationSvc.SendNotification(
-						dbNotificationDTO, emailNotificationDTO, "incident_register")
+						dbNotificationDTO, emailNotificationDTO, "kri_register")
 					if err != nil {
 						utility.LogError("Failed to send deletion notifications", map[string]interface{}{
 							"error": err.Error(),
