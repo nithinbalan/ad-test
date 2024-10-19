@@ -23,14 +23,14 @@ type AuditPlanCommencementLetter struct {
 	SentAt                              *time.Time `json:"sent_at,omitempty" gorm:"type:datetime;default:null"`                         // New field
 
 	// Relationships
-	AuditPlan       *AuditPlan                           `gorm:"foreignKey:AuditPlanID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ResponsibleUnit *OrganizationUnit                    `gorm:"foreignKey:ResponsibleUnitID"`
-	FromUser        *User                                `gorm:"foreignKey:FromUserID"`
-	CreatedByUser   *User                                `gorm:"foreignKey:CreatedBYID"`
-	UpdatedByUser   *User                                `gorm:"foreignKey:UpdatedBYID"`
-	ToUser          *AuditPlanCommencementLetterToUser   `gorm:"foreignKey:AuditPlanCommencementLetterID"`
-	CCUsers         *[]AuditPlanCommencementLetterCCUser `gorm:"foreignKey:AuditPlanCommencementLetterID"`
-	Status          *AuditPlanCommencementLetterStatus   `gorm:"foreignKey:AuditPlanCommencementLetterStatusID"` // New relationship
+	AuditPlan                         *AuditPlan                           `gorm:"foreignKey:AuditPlanID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ResponsibleUnit                   *OrganizationUnit                    `gorm:"foreignKey:ResponsibleUnitID"`
+	FromUser                          *User                                `gorm:"foreignKey:FromUserID"`
+	CreatedByUser                     *User                                `gorm:"foreignKey:CreatedBYID"`
+	UpdatedByUser                     *User                                `gorm:"foreignKey:UpdatedBYID"`
+	ToUser                            *AuditPlanCommencementLetterToUser   `gorm:"foreignKey:AuditPlanCommencementLetterID"`
+	CCUsers                           *[]AuditPlanCommencementLetterCCUser `gorm:"foreignKey:AuditPlanCommencementLetterID"`
+	AuditPlanCommencementLetterStatus *AuditPlanCommencementLetterStatus   `gorm:"foreignKey:AuditPlanCommencementLetterStatusID"` // New relationship
 }
 
 // TableName overrides the table name used by AuditPlanCommencementLetter to `audit_plan_commencement_letters`

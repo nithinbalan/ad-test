@@ -169,6 +169,7 @@ func (repo *AuditPlanCommencementLetterRepository) GetFullDetailsByID(auditPlanI
 		Preload("UpdatedByUser").
 		Preload("ResponsibleUnit").
 		Preload("FromUser.Designation").
+		Preload("AuditPlanCommencementLetterStatus").
 		Where("audit_plan_id = ? AND id = ?", auditPlanID, letterID).
 		First(&commencementLetter)
 
