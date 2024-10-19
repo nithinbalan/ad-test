@@ -61,12 +61,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.POST("/users/delete", middlewares.RolePermissionMiddleware(db, "user_management", "modify"), userController.DeleteUsers)
 	organizationRoutes.GET("/users/:userId/login-history", middlewares.RolePermissionMiddleware(db, "user_management", "view"), userController.GetUserLoginHistory)
 
-	organizationRoutes.GET("/users/me", middlewares.RolePermissionMiddleware(db, "user_management", "view"), userController.GetCurrentUserDetails)
-	organizationRoutes.GET("/users/me/permissions", middlewares.RolePermissionMiddleware(db, "user_management", "view"), userController.GetUserPermissions)
-	organizationRoutes.GET("/users/me/notifications", middlewares.RolePermissionMiddleware(db, "user_management", "view"), userController.GetUserNotifications)
-	organizationRoutes.GET("/users/me/notifications/new-count", middlewares.RolePermissionMiddleware(db, "user_management", "view"), userController.GetUserNewNotificationCount)
-	organizationRoutes.PUT("/users/me/notifications/mark-as-read", middlewares.RolePermissionMiddleware(db, "user_management", "modify"), userController.MarkwNotificationAsRead)
-	organizationRoutes.PUT("/users/me/notifications/mark-as-unread", middlewares.RolePermissionMiddleware(db, "user_management", "modify"), userController.MarkwNotificationAsUnread)
+	organizationRoutes.GET("/users/me", userController.GetCurrentUserDetails)
+	organizationRoutes.GET("/users/me/permissions", userController.GetUserPermissions)
+	organizationRoutes.GET("/users/me/notifications", userController.GetUserNotifications)
+	organizationRoutes.GET("/users/me/notifications/new-count", userController.GetUserNewNotificationCount)
+	organizationRoutes.PUT("/users/me/notifications/mark-as-read", userController.MarkwNotificationAsRead)
+	organizationRoutes.PUT("/users/me/notifications/mark-as-unread", userController.MarkwNotificationAsUnread)
 
 	//User Profile Settings
 	organizationRoutes.GET("/users/me/settings/preferences", userProfileController.GetProfileSetting)
