@@ -182,23 +182,17 @@ func (das *DocumentAccessService) CreateSharedUnits(documentID uint, unitIDs []u
 }
 
 func (das *DocumentAccessService) DeleteSharedUsers(documentID uint, userIDs []*uint, tx ...utility.DatabaseTransaction) error {
-	if _, err := das.documentSvc.GetByID(documentID); err != nil {
-		return err
-	}
 	if len(userIDs) == 0 {
 		return nil
 	}
-	return das.repo.DeleteSharedUsers(documentID, userIDs)
+	return das.repo.DeleteSharedUsers(documentID, userIDs, tx...)
 }
 
 func (das *DocumentAccessService) DeleteSharedUnits(documentID uint, unitIDs []*uint, tx ...utility.DatabaseTransaction) error {
-	if _, err := das.documentSvc.GetByID(documentID); err != nil {
-		return err
-	}
 	if len(unitIDs) == 0 {
 		return nil
 	}
-	return das.repo.DeleteSharedUnits(documentID, unitIDs)
+	return das.repo.DeleteSharedUnits(documentID, unitIDs, tx...)
 }
 
 func (das *DocumentAccessService) CreateUsers(sharedUsers []*models.DocumentSharedUser, tx ...utility.DatabaseTransaction) error {

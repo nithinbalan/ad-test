@@ -196,6 +196,47 @@ func (dc *DocumentController) CreateDocument(c *gin.Context) {
 	c.JSON(http.StatusCreated, createdDocument)
 }
 
+func (dc *DocumentController) UpdateDocument(c *gin.Context) {
+	documentID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	var documentFormDTO documentDTOs.DocumentFormDTO
+	if err := c.ShouldBindJSON(&documentFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(dc.db, c, err.Error())
+		return
+	}
+
+	err = dc.service.Update(uint(documentID), currentUserID, &documentFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, err.Error())
+			return
+		default:
+			utility.SendInternalErrResp(dc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+
+}
+
 func (dc *DocumentController) DeleteDocuments(c *gin.Context) {
 	var request struct {
 		IDs []uint `json:"ids"`
