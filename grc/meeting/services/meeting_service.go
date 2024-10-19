@@ -3,6 +3,11 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
+	"time"
+
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	complianceServices "jethur/grc/compliance/services"
 	incidentServices "jethur/grc/incident/services"
 	logServices "jethur/grc/logs/services"
@@ -10,7 +15,6 @@ import (
 	meetingRepositories "jethur/grc/meeting/repositories"
 	organizationServices "jethur/grc/organization/services"
 	riskServices "jethur/grc/risk/services"
-	"os"
 
 	"jethur/grc/models"
 	"jethur/utility"
@@ -44,6 +48,7 @@ type MeetingService struct {
 	processSvc               organizationServices.ProcessServiceInterface
 	incidentRegisterSvc      incidentServices.IncidentRegisterServiceInterface
 	userSettingSvc           organizationServices.UserSettingServiceInterface
+	notificationSvc          commonServices.NotificationServiceInterface
 }
 
 func NewMeetingService(
@@ -58,7 +63,9 @@ func NewMeetingService(
 	riskRegisterSvc riskServices.RiskRegisterServiceInterface,
 	processSvc organizationServices.ProcessServiceInterface,
 	incidentRegisterSvc incidentServices.IncidentRegisterServiceInterface,
-	userSettingSvc organizationServices.UserSettingServiceInterface) MeetingServiceInterface {
+	userSettingSvc organizationServices.UserSettingServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
+) MeetingServiceInterface {
 	return &MeetingService{
 		repo:                     repo,
 		activityLogSvc:           activityLogSvc,
@@ -72,6 +79,7 @@ func NewMeetingService(
 		processSvc:               processSvc,
 		incidentRegisterSvc:      incidentRegisterSvc,
 		userSettingSvc:           userSettingSvc,
+		notificationSvc:          notificationSvc,
 	}
 }
 
@@ -159,6 +167,7 @@ func (ms *MeetingService) Create(currentUserID uint, meetingFormDTO *meetingDTOs
 		tx.Rollback()
 		return 0, err
 	}
+
 	// Save ComplianceRequirements
 	var complianceRequirements []*models.MeetingComplianceRequirement
 	for _, req := range meetingFormDTO.ComplianceRequirementIds {
@@ -330,7 +339,6 @@ func (ms *MeetingService) Create(currentUserID uint, meetingFormDTO *meetingDTOs
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -341,6 +349,109 @@ func (ms *MeetingService) Create(currentUserID uint, meetingFormDTO *meetingDTOs
 			}
 
 			utility.LogError("Failed to log activity", fields)
+		}
+
+		urlParam := fmt.Sprintf(`{"id":%d}`, id)
+		entity := "meeting"
+		action := "responsible-user-assign"
+
+		// Send notification to all participants
+		for _, participantID := range meetingFormDTO.UserIDs {
+			participant, err := ms.userSvc.GetByID(*participantID)
+			if err != nil {
+				utility.LogError("Failed to fetch meeting participant", map[string]interface{}{
+					"error": err.Error(),
+				})
+				continue
+			}
+
+			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserID:               *participantID,
+				ModuleIdentifier:     "meeting",
+				NotificationType:     string(commonDTOs.AssignmentType),
+				ReferenceNumber:      referenceNumber,
+				HeadingEn:            "Meeting Scheduled",
+				HeadingAr:            "جدولة الاجتماع",
+				TitleEn:              meeting.Title,
+				TitleAr:              meeting.Title,
+				Entity:               &entity,
+				Action:               &action,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			createdBy, err := ms.userSvc.GetByID(currentUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			// Fetch Meeting Status Title
+			var meetingStatusTitle string
+			meetingStatus, err := ms.meetingStatusSvc.GetByID(meetingFormDTO.MeetingStatusID)
+			if err != nil {
+				utility.LogError("Failed to fetch meeting status", map[string]interface{}{
+					"error":    err.Error(),
+					"statusID": meetingFormDTO.MeetingStatusID,
+				})
+			} else {
+				if meetingStatus != nil {
+					meetingStatusTitle = meetingStatus.TitleEn
+				}
+			}
+
+			// Fetch Meeting Type Title
+			var meetingTypeTitle string
+			meetingType, err := ms.meetingTypeSvc.GetByID(meetingFormDTO.MeetingTypeID)
+			if err != nil {
+				utility.LogError("Failed to fetch meeting type", map[string]interface{}{
+					"error":  err.Error(),
+					"typeID": meetingFormDTO.MeetingTypeID,
+				})
+			} else {
+				if meetingType != nil {
+					meetingTypeTitle = meetingType.TitleEn
+				}
+			}
+
+			// Send notification
+			emailTo := []string{participant.Email}
+			subject := fmt.Sprintf("Meeting/%s: You have been assigned", meeting.Title)
+			appURL := utility.GetAppURL()
+
+			emailData := map[string]interface{}{
+				"FirstNameEn":        participant.FirstNameEn,
+				"LastNameEn":         participant.LastNameEn,
+				"ReferenceNumber":    meeting.ReferenceNumber,
+				"Title":              meeting.Title,
+				"Status":             meetingStatusTitle,
+				"Type":               meetingTypeTitle,
+				"Date":               meeting.Date.Format("2006-01-02"),
+				"StartTime":          meeting.StartTime,
+				"EndTime":            meeting.EndTime,
+				"Description":        meeting.Description,
+				"CreatedByFirstName": createdBy.FirstNameEn,
+				"CreatedByLastName":  createdBy.LastNameEn,
+				"AssignedOn":         time.Now().Format("2006-01-02"),
+				"RedirectURL":        fmt.Sprintf("%s/review-meeting/meetings/%d/overview", appURL, id),
+			}
+
+			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              emailTo,
+				Subject:              subject,
+				TemplateRelativePath: "meeting/templates/email/meeting_create_user_mail.html",
+				EmailData:            emailData,
+			}
+
+			err = ms.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "meeting")
+			if err != nil {
+				utility.LogError("Failed to send meeting notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
 		}
 	}()
 
@@ -635,6 +746,21 @@ func (ms *MeetingService) Update(id uint, currentUserID uint, meetingFormDTO *me
 		}
 	}
 
+	var removedParticipants []uint
+	for oldUserID := range existingParticipantIDs {
+		if _, exists := newParticipantIDs[oldUserID]; !exists {
+			removedParticipants = append(removedParticipants, oldUserID)
+		}
+	}
+
+	// Step 4: Identify New Participants (users in new list but not in old list)
+	var newParticipants []uint
+	for newUserID := range newParticipantIDs {
+		if _, exists := existingParticipantIDs[newUserID]; !exists {
+			newParticipants = append(newParticipants, newUserID)
+		}
+	}
+
 	if len(participantsToAdd) > 0 {
 		if err := ms.repo.CreateParticipants(participantsToAdd, tx); err != nil {
 			tx.Rollback()
@@ -668,7 +794,6 @@ func (ms *MeetingService) Update(id uint, currentUserID uint, meetingFormDTO *me
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.UpdateAction,
@@ -679,6 +804,161 @@ func (ms *MeetingService) Update(id uint, currentUserID uint, meetingFormDTO *me
 			}
 
 			utility.LogError("Failed to log activity", fields)
+		}
+
+		createdBy, err := ms.userSvc.GetByID(currentUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		// Fetch Meeting Status Title
+		var meetingStatusTitle string
+		meetingStatus, err := ms.meetingStatusSvc.GetByID(meetingFormDTO.MeetingStatusID)
+		if err != nil {
+			utility.LogError("Failed to fetch meeting status", map[string]interface{}{
+				"error":    err.Error(),
+				"statusID": meetingFormDTO.MeetingStatusID,
+			})
+		} else {
+			if meetingStatus != nil {
+				meetingStatusTitle = meetingStatus.TitleEn
+			}
+		}
+
+		// Fetch Meeting Type Title
+		var meetingTypeTitle string
+		meetingType, err := ms.meetingTypeSvc.GetByID(meetingFormDTO.MeetingTypeID)
+		if err != nil {
+			utility.LogError("Failed to fetch meeting type", map[string]interface{}{
+				"error":  err.Error(),
+				"typeID": meetingFormDTO.MeetingTypeID,
+			})
+		} else {
+			if meetingType != nil {
+				meetingTypeTitle = meetingType.TitleEn
+			}
+		}
+
+		urlParam := fmt.Sprintf(`{"id":%d}`, id)
+		entity := "control"
+		removeAction := "responsible-user-remove"
+		assignAction := "responsible-user-assign"
+		appURL := utility.GetAppURL()
+
+		for _, removedUserID := range removedParticipants {
+
+			removedUser, err := ms.userSvc.GetByID(removedUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch removed participant details", map[string]interface{}{
+					"userID": removedUserID,
+					"error":  err.Error(),
+				})
+				continue
+			}
+
+			removedUserNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserID:               removedUserID,
+				ModuleIdentifier:     "meeting",
+				NotificationType:     string(commonDTOs.InformationType),
+				ReferenceNumber:      existingMeeting.ReferenceNumber,
+				HeadingEn:            "Meeting Participation Removed",
+				HeadingAr:            "تمت إزالة المشاركة في الاجتماع",
+				TitleEn:              existingMeeting.Title,
+				TitleAr:              existingMeeting.Title,
+				Entity:               &entity,
+				Action:               &removeAction,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			removedUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              []string{removedUser.Email},
+				Subject:              fmt.Sprintf("Meeting/%s: You have been removed", existingMeeting.Title),
+				TemplateRelativePath: "meeting/templates/email/meeting_remove_user_mail.html",
+				EmailData: map[string]interface{}{
+					"FirstNameEn":        removedUser.FirstNameEn,
+					"LastNameEn":         removedUser.LastNameEn,
+					"ReferenceNumber":    existingMeeting.ReferenceNumber,
+					"TitleEn":            existingMeeting.Title,
+					"Description":        existingMeeting.Description,
+					"Status":             meetingStatusTitle,
+					"Type":               meetingTypeTitle,
+					"Date":               meeting.Date.Format("2006-01-02"),
+					"StartTime":          meeting.StartTime,
+					"EndTime":            meeting.EndTime,
+					"CreatedByFirstName": createdBy.FirstNameEn,
+					"CreatedByLastName":  createdBy.LastNameEn,
+					"RedirectURL":        fmt.Sprintf("%s/review-meeting/meetings/%d/overview", appURL, id),
+				},
+			}
+
+			err = ms.notificationSvc.SendNotification(removedUserNotificationDTO, removedUserEmailNotificationDTO, "meeting")
+			if err != nil {
+				utility.LogError("Failed to send removal notification", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+		}
+
+		for _, newUserID := range newParticipants {
+
+			newUser, err := ms.userSvc.GetByID(newUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch new participant details", map[string]interface{}{
+					"userID": newUserID,
+					"error":  err.Error(),
+				})
+				continue
+			}
+
+			newUserNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserID:               newUserID,
+				ModuleIdentifier:     "meeting",
+				NotificationType:     string(commonDTOs.AssignmentType),
+				ReferenceNumber:      existingMeeting.ReferenceNumber,
+				HeadingEn:            "Meeting Participation Assigned",
+				HeadingAr:            "تم تعيين المشاركة في الاجتماع",
+				TitleEn:              existingMeeting.Title,
+				TitleAr:              existingMeeting.Title,
+				Entity:               &entity,
+				Action:               &assignAction,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			newUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              []string{newUser.Email},
+				Subject:              fmt.Sprintf("Meeting/%s: You have been added", existingMeeting.Title),
+				TemplateRelativePath: "meeting/templates/email/meeting_change_user_mail.html",
+				EmailData: map[string]interface{}{
+					"FirstNameEn":        newUser.FirstNameEn,
+					"LastNameEn":         newUser.LastNameEn,
+					"ReferenceNumber":    existingMeeting.ReferenceNumber,
+					"Title":              existingMeeting.Title,
+					"Description":        existingMeeting.Description,
+					"Status":             meetingStatusTitle,
+					"Type":               meetingTypeTitle,
+					"Date":               meeting.Date.Format("2006-01-02"),
+					"StartTime":          meeting.StartTime,
+					"EndTime":            meeting.EndTime,
+					"CreatedByFirstName": createdBy.FirstNameEn,
+					"CreatedByLastName":  createdBy.LastNameEn,
+					"AssignedOn":         time.Now().Format("2006-01-02"),
+					"RedirectURL":        fmt.Sprintf("%s/review-meeting/meetings/%d/overview", appURL, id),
+				},
+			}
+
+			err = ms.notificationSvc.SendNotification(newUserNotificationDTO, newUserEmailNotificationDTO, "meeting")
+			if err != nil {
+				utility.LogError("Failed to send assignment notification", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
 		}
 	}()
 
@@ -697,6 +977,68 @@ func (ms *MeetingService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 		if err != nil {
 			failedIds = append(failedIds, id)
 			continue
+		}
+
+		// Notify participants about the meeting deletion
+		if len(meeting.Participants) > 0 {
+			entity := "meeting"
+			action := "meeting-deleted"
+			urlParam := fmt.Sprintf(`{"id":%d}`, id)
+
+			// Loop through participants to send notifications and emails
+			for _, participant := range meeting.Participants {
+				// Create system notification
+				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+					UserID:               participant.UserID,
+					ModuleIdentifier:     "meeting",
+					NotificationType:     string(commonDTOs.InformationType),
+					ReferenceNumber:      meeting.ReferenceNumber,
+					HeadingEn:            "Meeting Deleted",
+					HeadingAr:            "تم حذف الاجتماع",
+					TitleEn:              meeting.Title,
+					TitleAr:              meeting.Title,
+					Entity:               &entity,
+					Action:               &action,
+					URLParam:             urlParam,
+					IsSystemNotification: false,
+					CreatedByID:          &currentUserID,
+				}
+
+				// Fetch participant details
+				user, err := ms.userSvc.GetByID(participant.UserID)
+				if err != nil {
+					utility.LogError("Failed to fetch participant details for deletion notification", map[string]interface{}{
+						"error": err.Error(),
+					})
+					continue
+				}
+
+				// Prepare email notification
+				emailTo := []string{user.Email}
+				subject := fmt.Sprintf("Meeting/%s: Deleted", meeting.Title)
+				emailData := map[string]interface{}{
+					"FirstNameEn":     user.FirstNameEn,
+					"LastNameEn":      user.LastNameEn,
+					"Title":           meeting.Title,
+					"Description":     meeting.Description,
+					"ReferenceNumber": meeting.ReferenceNumber,
+				}
+
+				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+					EmailTo:              emailTo,
+					Subject:              subject,
+					TemplateRelativePath: "meeting/templates/email/meeting_delete_user_mail.html",
+					EmailData:            emailData,
+				}
+
+				// Send system and email notifications
+				err = ms.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "meeting")
+				if err != nil {
+					utility.LogError("Failed to send meeting deletion notifications", map[string]interface{}{
+						"error": err.Error(),
+					})
+				}
+			}
 		}
 
 		// Delete participants associated with the meeting
@@ -747,7 +1089,7 @@ func (ms *MeetingService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 				return nil, err
 			}
 		}
-		//Process Delete
+		// Process Delete
 		if len(meeting.Processes) > 0 {
 			var deleteProcessIDs []*uint
 			for _, process := range meeting.Processes {
@@ -758,7 +1100,7 @@ func (ms *MeetingService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 				return nil, err
 			}
 		}
-		//Incidents Delete
+		// Incidents Delete
 		if len(meeting.Incidents) > 0 {
 			var deleteIncidentIDs []*uint
 			for _, incident := range meeting.Incidents {
@@ -830,7 +1172,7 @@ func (ms *MeetingService) validateMeetingFormDTO(meetingFormDTO *meetingDTOs.Mee
 		}
 	}
 
-	//Controls exist
+	// Controls exist
 	controls := meetingFormDTO.ControlIds
 	controlIDs := make(map[uint]bool)
 
@@ -846,7 +1188,7 @@ func (ms *MeetingService) validateMeetingFormDTO(meetingFormDTO *meetingDTOs.Mee
 		controlIDs[*control] = true
 	}
 
-	//Compliance Requirements Exist
+	// Compliance Requirements Exist
 	requirements := meetingFormDTO.ComplianceRequirementIds
 
 	requirementIDs := make(map[uint]bool)
@@ -863,7 +1205,7 @@ func (ms *MeetingService) validateMeetingFormDTO(meetingFormDTO *meetingDTOs.Mee
 		requirementIDs[*requirement] = true
 	}
 
-	//Risks exist
+	// Risks exist
 	risks := meetingFormDTO.RiskIds
 	riskIDs := make(map[uint]bool)
 
@@ -879,7 +1221,7 @@ func (ms *MeetingService) validateMeetingFormDTO(meetingFormDTO *meetingDTOs.Mee
 		riskIDs[*risk] = true
 	}
 
-	//Process exist
+	// Process exist
 	processes := meetingFormDTO.ProcessIds
 	processIds := make(map[uint]bool)
 
@@ -894,7 +1236,7 @@ func (ms *MeetingService) validateMeetingFormDTO(meetingFormDTO *meetingDTOs.Mee
 		processIds[*process] = true
 	}
 
-	//incident exist
+	// incident exist
 	incidents := meetingFormDTO.IncidentIds
 	incidentIDs := make(map[uint]bool)
 
