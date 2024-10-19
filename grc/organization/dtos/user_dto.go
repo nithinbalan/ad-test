@@ -34,6 +34,7 @@ type UserListDTO struct {
 	UserStatusTitleEn        string  `json:"user_status_title_en"`
 	UserStatusTitleAr        string  `json:"user_status_title_ar"`
 	UserStatusColorCode      string  `json:"user_status_color_code"`
+	UserStatusIsActive       bool    `json:"user_status_is_active"`
 }
 
 type UserListQueryParamsDTO struct {
@@ -69,7 +70,7 @@ type UserFormDTO struct {
 	MobileNumber        *string `json:"mobile_number" binding:"omitempty,max=45"`
 	ProfileImagePath    *string `json:"profile_image_path" binding:"omitempty"`
 	RoleIDs             []uint  `json:"role_ids" binding:"required"`
-	UserStatusID        uint    `json:"user_status_id"`
+	UserStatusID        uint    `json:"user_status_id" binding:"required"`
 }
 
 type UserUpdateDTO struct {
@@ -112,6 +113,7 @@ type UserMinimalDTO struct {
 	Email            string  `json:"email"`
 	Initial          string  `json:"initial"`
 	Color            string  `json:"color"`
+	MobileNumber     *string `json:"mobile_number"`
 }
 
 type UserRoleDTO struct {

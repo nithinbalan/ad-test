@@ -121,6 +121,10 @@ func (maps MeetingActionPlanService) GetFullDetailsByID(meetingID uint, id uint)
 		return nil, err
 	}
 
+	if meetingActionPlan.TargetDate != nil {
+		targetDate := meetingActionPlan.TargetDate.Format("2006-01-02")
+		meetingActionPlanDTO.TargetDateString = &targetDate
+	}
 	// todo :- also add extra fields which required in details screen
 
 	return &meetingActionPlanDTO, nil
@@ -198,7 +202,7 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 		ResponsibleUserID:   MeetingActionPlanFormDTO.ResponsibleUserID,
 	}
 
-	if err := maps.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
+	if _, err := maps.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
 		tx.Rollback()
 		return 0, err
 	}
@@ -275,7 +279,7 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 			"AssignedByFirstNameEn":  assignedBy.FirstNameEn,
 			"AssignedByLastNameEn":   assignedBy.LastNameEn,
 			"AssignedOn":             time.Now().Format("2006-01-02"),
-			"RedirectURL":            fmt.Sprintf("%s/meeting-action-plan/%d", appURL, id),
+			"RedirectURL":            fmt.Sprintf("%sreview-meeting/action-plan-list?action_plan_id=%d", appURL, id),
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -430,7 +434,7 @@ func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUse
 				"MeetingTitle":           meeting.Title,
 				"ActionPlanTitle":        existingMeetingActionPlan.Title,
 				"ActionPlanDescription":  existingMeetingActionPlan.Description,
-				"RedirectURL":            fmt.Sprintf("%s/meeting-action-plan/%d", appURL, id),
+				"RedirectURL":            fmt.Sprintf("%sreview-meeting/action-plan-list?action_plan_id=%d", appURL, id),
 			}
 
 			oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -454,7 +458,7 @@ func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUse
 				"AssignedByFirstNameEn":  assignedBy.FirstNameEn,
 				"AssignedByLastNameEn":   assignedBy.LastNameEn,
 				"AssignedOn":             time.Now().Format("2006-01-02"),
-				"RedirectURL":            fmt.Sprintf("%s/meeting-action-plan/%d", appURL, id),
+				"RedirectURL":            fmt.Sprintf("%sreview-meeting/action-plan-list?action_plan_id=%d", appURL, id),
 			}
 
 			newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{

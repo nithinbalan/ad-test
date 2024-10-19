@@ -33,6 +33,7 @@ type AuditService struct {
 	auditTimelineSvc     AuditTimelineServiceInterface
 	auditPlanScheduleSvc AuditPlanScheduleServiceInterface
 	statusSvc            masterServices.StatusServiceInterface
+	auditStatusSvc       AuditStatusServiceInterface
 }
 
 func NewAuditService(
@@ -42,6 +43,7 @@ func NewAuditService(
 	auditTimelineSvc AuditTimelineServiceInterface,
 	auditPlanScheduleSvc AuditPlanScheduleServiceInterface,
 	statusSvc masterServices.StatusServiceInterface,
+	auditStatusSvc AuditStatusServiceInterface,
 ) AuditServiceInterface {
 	return &AuditService{
 		repo:                 repo,
@@ -50,6 +52,7 @@ func NewAuditService(
 		auditTimelineSvc:     auditTimelineSvc,
 		auditPlanScheduleSvc: auditPlanScheduleSvc,
 		statusSvc:            statusSvc,
+		auditStatusSvc:       auditStatusSvc,
 	}
 }
 
@@ -114,11 +117,15 @@ func (as *AuditService) Create(currentUserID uint, auditFormDTO *auditDTOs.Audit
 		tx.Rollback()
 		return 0, err
 	}
-
+	auditStatus, err := as.auditStatusSvc.GetByType("in-progress")
+	if err != nil {
+		return 0,err
+	}
 	audit := &models.Audit{
 		AuditPlanID: auditFormDTO.AuditPlanID,
 		StartDate:   dates.StartDate,
 		EndDate:     dates.EndDate,
+		AuditStatusID:   uint(auditStatus.ID),
 		CreatedBYID: currentUserID,
 	}
 
@@ -186,6 +193,12 @@ func (as *AuditService) Create(currentUserID uint, auditFormDTO *auditDTOs.Audit
 	}
 
 	if err := as.CopyChecklistsToAudit(auditFormDTO.AuditPlanID, id, currentUserID, tx); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	//Update Audit plan status in to in-progress
+	auditStatusID :=auditStatus.ID
+	if err := as.auditPlanSvc.StatusUpdate(auditFormDTO.AuditPlanID, currentUserID, uint(auditStatusID), tx); err != nil {
 		tx.Rollback()
 		return 0, err
 	}

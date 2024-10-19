@@ -86,8 +86,12 @@ func (aidrc *AuditInsightsDraftReportController) GetAuditInsightsDraftReportDeta
 		utility.SendNotFoundErrResp(c)
 		return
 	}
-
-	audit, err := aidrc.service.GetFullDetailsByID(uint(id))
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(aidrc.db, c, err.Error())
+		return
+	}
+	audit, err := aidrc.service.GetFullDetailsByID(uint(id), currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

@@ -3,6 +3,13 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+	"time"
+
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	complianceServices "jethur/grc/compliance/services"
 	incidentDTOs "jethur/grc/incident/dtos"
 	incidentRepositories "jethur/grc/incident/repositories"
@@ -11,13 +18,9 @@ import (
 	masterServices "jethur/grc/masters/services"
 	organizationServices "jethur/grc/organization/services"
 	riskServices "jethur/grc/risk/services"
-	"os"
-	"time"
 
 	"jethur/grc/models"
 	"jethur/utility"
-	"path/filepath"
-	"strconv"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -50,6 +53,7 @@ type IncidentRegisterService struct {
 	incidentTimelineSvc      IncidentTimelineServiceInterface
 	userSvc                  organizationServices.UserServiceInterface
 	userSettingSvc           organizationServices.UserSettingServiceInterface
+	notificationSvc          commonServices.NotificationServiceInterface
 }
 
 func NewIncidentRegisterService(
@@ -67,6 +71,7 @@ func NewIncidentRegisterService(
 	incidentTimelineSvc IncidentTimelineServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	userSettingSvc organizationServices.UserSettingServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
 ) IncidentRegisterServiceInterface {
 	return &IncidentRegisterService{
 		repo:                     repo,
@@ -83,6 +88,7 @@ func NewIncidentRegisterService(
 		incidentTimelineSvc:      incidentTimelineSvc,
 		userSvc:                  userSvc,
 		userSettingSvc:           userSettingSvc,
+		notificationSvc:          notificationSvc,
 	}
 }
 
@@ -119,17 +125,6 @@ func (irs IncidentRegisterService) GetFullDetailsByID(id uint, tx ...utility.Dat
 	err = mapstructure.Decode(incident, &incidentDTO)
 	if err != nil {
 		return nil, err
-	}
-
-	//todo :- also add extra fields which required in details screen
-	// Format time fields without time component
-	if incident.IncidentAt != nil {
-		incidentAt := incident.IncidentAt.Format("2006-01-02")
-		incidentDTO.IncidentAtString = incidentAt
-	}
-	if incident.ReportedAt != nil {
-		reportedAt := incident.ReportedAt.Format("2006-01-02")
-		incidentDTO.ReportedAtStaring = reportedAt
 	}
 
 	incidentDTO.CreatedAt = incident.CreatedAt
@@ -429,6 +424,64 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 
 			utility.LogError("Failed to log activity", fields)
 		}
+
+		// Prepare notification and email
+		urlParam := fmt.Sprintf(`{"id":%d}`, id)
+		entity := "incident-register"
+		action := "responsible-user-assign"
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserID:               incidentRegisterFormDTO.ResponsibleUserID,
+			ModuleIdentifier:     "incident",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			HeadingEn:            "Incident Register Assignment",
+			HeadingAr:            "مهمة تسجيل الحوادث",
+			TitleEn:              incidentRegisterFormDTO.Title,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+		responsibleUser, err := irs.userSvc.GetByID(incidentRegisterFormDTO.ResponsibleUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		createdBy, err := irs.userSvc.GetByID(currentUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		emailTo := []string{responsibleUser.Email}
+		subject := fmt.Sprintf("Incident Register/%s: Responsibility Assigned", incidentRegister.Title)
+		appURL := utility.GetAppURL()
+		emailData := map[string]interface{}{
+			"FirstNameEn":             responsibleUser.FirstNameEn,
+			"LastNameEn":              responsibleUser.LastNameEn,
+			"IncidentReferenceNumber": incidentRegister.ReferenceNumber,
+			"IncidentTitle":           incidentRegister.Title,
+			"IncidentDescription":     incidentRegister.Description,
+			"CreatedByFirstNameEn":    createdBy.FirstNameEn,
+			"CreatedByLastNameEn":     createdBy.LastNameEn,
+			"AssignedOn":              time.Now().Format("2006-01-02"),
+			"RedirectURL":             fmt.Sprintf("%sincident/register/%d/overview", appURL, id),
+		}
+		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              emailTo,
+			Subject:              subject,
+			TemplateRelativePath: "incident/templates/email/incident_register_create_responsible_user_mail.html",
+			EmailData:            emailData,
+		}
+		err = irs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "incident_register")
+		if err != nil {
+			utility.LogError("Failed to send notifications", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
 	}()
 
 	return id, nil
@@ -438,6 +491,8 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 	tx := irs.repo.BeginTransaction()
 
 	existingIncidentRegister, err := irs.repo.GetByID(id)
+
+	oldResponsibleUserID := existingIncidentRegister.ResponsibleUserID
 
 	if err != nil {
 		return utility.NewResourceNotFoundError(err, id)
@@ -464,6 +519,7 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 	existingIncidentRegister.IncidentCategoryID = incidentRegisterFormDTO.IncidentCategoryID
 	existingIncidentRegister.IncidentTypeID = incidentRegisterFormDTO.IncidentTypeID
 	existingIncidentRegister.SeverityLevelID = *incidentRegisterFormDTO.SeverityLevelID
+	existingIncidentRegister.ResponsibleUserID = incidentRegisterFormDTO.ResponsibleUserID
 	existingIncidentRegister.Title = incidentRegisterFormDTO.Title
 	existingIncidentRegister.Description = incidentRegisterFormDTO.Description
 	existingIncidentRegister.IncidentAt = dates.IncidentAt
@@ -910,6 +966,131 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 
 			utility.LogError("Failed to log activity", fields)
 		}
+
+		// Send notifications to old and new responsible users if the responsible user has changed
+		if oldResponsibleUserID != existingIncidentRegister.ResponsibleUserID {
+			// URL param for notifications
+			urlParam := fmt.Sprintf(`{"id":%d}`, id)
+			entity := "incident-register"
+
+			// Old responsible user notification (Removal)
+			oldResponsibleUserAction := "responsible-user-remove"
+			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserID:               oldResponsibleUserID,
+				ModuleIdentifier:     "incident",
+				NotificationType:     string(commonDTOs.InformationType),
+				HeadingEn:            "Incident Register Responsibility Removed",
+				HeadingAr:            "تمت إزالة مسؤولية تسجيل الحوادث",
+				TitleEn:              existingIncidentRegister.Title,
+				Entity:               &entity,
+				Action:               &oldResponsibleUserAction,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			// New responsible user notification (Assignment)
+			newResponsibleUserAction := "responsible-user-assign"
+			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserID:               incidentRegisterFormDTO.ResponsibleUserID,
+				ModuleIdentifier:     "incident",
+				NotificationType:     string(commonDTOs.AssignmentType),
+				HeadingEn:            "Incident Register Responsibility Assigned",
+				HeadingAr:            "تسجيل الحوادث المسؤولية المعينة",
+				TitleEn:              existingIncidentRegister.Title,
+				Entity:               &entity,
+				Action:               &newResponsibleUserAction,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			// Fetch the responsible users' data
+			oldResponsibleUser, err := irs.userSvc.GetByID(oldResponsibleUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch old responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			newResponsibleUser, err := irs.userSvc.GetByID(incidentRegisterFormDTO.ResponsibleUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch new responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			// Fetch details of the user making the assignment
+			updatedByUser, err := irs.userSvc.GetByID(currentUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			appURL := utility.GetAppURL()
+
+			// Email notification for the old responsible user
+			oldResponsibleUserEmailTo := []string{oldResponsibleUser.Email}
+			oldResponsibleUserSubject := fmt.Sprintf("Incident Register/%s: Responsibility Removed", existingIncidentRegister.Title)
+			oldResponsibleUserEmailData := map[string]interface{}{
+				"FirstNameEn":             oldResponsibleUser.FirstNameEn,
+				"LastNameEn":              oldResponsibleUser.LastNameEn,
+				"IncidentReferenceNumber": existingIncidentRegister.ReferenceNumber,
+				"IncidentTitle":           existingIncidentRegister.Title,
+				"IncidentDescription":     existingIncidentRegister.Description,
+				"UpdatedByFirstNameEn":    updatedByUser.FirstNameEn,
+				"UpdatedByLastNameEn":     updatedByUser.LastNameEn,
+				"RedirectURL":             fmt.Sprintf("%sincident/register/%d/overview", appURL, id),
+			}
+
+			oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              oldResponsibleUserEmailTo,
+				Subject:              oldResponsibleUserSubject,
+				TemplateRelativePath: "incident/templates/email/incident_register_remove_responsible_user_mail.html",
+				EmailData:            oldResponsibleUserEmailData,
+			}
+
+			// Email notification for the new responsible user
+			newResponsibleUserEmailTo := []string{newResponsibleUser.Email}
+			newResponsibleUserSubject := fmt.Sprintf("Incident Register/%s: Responsibility Assigned", existingIncidentRegister.Title)
+			newResponsibleUserEmailData := map[string]interface{}{
+				"FirstNameEn":             newResponsibleUser.FirstNameEn,
+				"LastNameEn":              newResponsibleUser.LastNameEn,
+				"IncidentReferenceNumber": existingIncidentRegister.ReferenceNumber,
+				"IncidentTitle":           existingIncidentRegister.Title,
+				"IncidentDescription":     existingIncidentRegister.Description,
+				"AssignedByFirstNameEn":   updatedByUser.FirstNameEn,
+				"AssignedByLastNameEn":    updatedByUser.LastNameEn,
+				"AssignedOn":              time.Now().Format("2006-01-02"),
+				"RedirectURL":             fmt.Sprintf("%sincident/register/%d/overview", appURL, id),
+			}
+
+			newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              newResponsibleUserEmailTo,
+				Subject:              newResponsibleUserSubject,
+				TemplateRelativePath: "incident/templates/email/incident_register_change_responsible_user_mail.html",
+				EmailData:            newResponsibleUserEmailData,
+			}
+
+			// Send notifications and emails
+			err = irs.notificationSvc.SendNotification(newResponsibleUserNotificationDTO, newResponsibleUserEmailNotificationDTO, "incident_register")
+			if err != nil {
+				utility.LogError("Failed to send notifications to new responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+
+			err = irs.notificationSvc.SendNotification(oldResponsibleUserNotificationDTO, oldResponsibleUserEmailNotificationDTO, "incident_register")
+			if err != nil {
+				utility.LogError("Failed to send notifications to old responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+		}
 	}()
 
 	return nil
@@ -919,6 +1100,15 @@ func (irs *IncidentRegisterService) Delete(ids []uint, currentUserID uint) ([]ui
 	tx := irs.repo.BeginTransaction()
 	var failedIds []uint
 	var successfulIds []uint
+
+	var notifications []struct {
+		OwnerID         *uint
+		TitleEn         string
+		TitleAr         string
+		Description     string
+		ReferenceNumber string
+	}
+
 	documentsToDelete := make(map[uint][]*incidentDTOs.IncidentDocumentDTO)
 
 	for _, id := range ids {
@@ -927,6 +1117,21 @@ func (irs *IncidentRegisterService) Delete(ids []uint, currentUserID uint) ([]ui
 			tx.Rollback()
 			return nil, err
 		}
+
+		// Prepare notification data before deletion
+		notifications = append(notifications, struct {
+			OwnerID         *uint
+			TitleEn         string
+			TitleAr         string
+			Description     string
+			ReferenceNumber string
+		}{
+			OwnerID:         &incident.ResponsibleUserID,
+			TitleEn:         incident.Title,
+			Description:     incident.Description,
+			ReferenceNumber: incident.ReferenceNumber,
+		})
+
 		// Check if controls exist
 		if len(incident.Controls) > 0 {
 			var deleteControlIds []*uint
@@ -1063,6 +1268,66 @@ func (irs *IncidentRegisterService) Delete(ids []uint, currentUserID uint) ([]ui
 			if err != nil {
 				// @todo - save to log file
 				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+			}
+
+			// Send DB and email notifications for each successfully deleted risk register
+			for _, notification := range notifications {
+				urlParam := ""
+				entity := "incident-register"
+				action := "delete"
+
+				// Prepare DB notification
+				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+					UserID:               *notification.OwnerID,
+					ModuleIdentifier:     "incident",
+					NotificationType:     string(commonDTOs.DeletionType),
+					HeadingEn:            "Incident Register Deleted",
+					HeadingAr:            "تم حذف سجل الحوادث",
+					TitleEn:              notification.TitleEn,
+					Entity:               &entity,
+					Action:               &action,
+					URLParam:             urlParam,
+					IsSystemNotification: false,
+					CreatedByID:          &currentUserID,
+				}
+
+				// Fetch owner details (responsible user)
+				ownerUser, err := irs.userSvc.GetByID(*notification.OwnerID)
+				if err != nil {
+					utility.LogError("Failed to fetch owner details for notification", map[string]interface{}{
+						"error": err.Error(),
+					})
+					continue
+				}
+
+				// Prepare email notification
+				ownerEmailTo := []string{ownerUser.Email}
+				subject := fmt.Sprintf("Incident Register/%s: Deleted", notification.TitleEn)
+				templateRelativePath := "incident/templates/email/incident_register_delete_mail.html"
+
+				emailData := map[string]interface{}{
+					"FirstNameEn":             ownerUser.FirstNameEn,
+					"LastNameEn":              ownerUser.LastNameEn,
+					"IncidentReferenceNumber": notification.ReferenceNumber,
+					"IncidentTitle":           notification.TitleEn,
+					"IncidentDescription":     notification.Description,
+				}
+
+				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+					EmailTo:              ownerEmailTo,
+					Subject:              subject,
+					TemplateRelativePath: templateRelativePath,
+					EmailData:            emailData,
+				}
+
+				// Send DB and email notifications
+				err = irs.notificationSvc.SendNotification(
+					dbNotificationDTO, emailNotificationDTO, "incident_register")
+				if err != nil {
+					utility.LogError("Failed to send deletion notifications", map[string]interface{}{
+						"error": err.Error(),
+					})
+				}
 			}
 		}()
 	}
@@ -1213,14 +1478,14 @@ func (irs *IncidentRegisterService) parseIncidentRegisterDates(dto *incidentDTOs
 
 	var err error
 	if dto.ReportedAt != "" {
-		parsed.ReportedAt, err = utility.ParseDate(dto.ReportedAt)
+		parsed.ReportedAt, err = utility.ParseDateTime(dto.ReportedAt)
 		if err != nil {
 			return nil, utility.NewValidationError(fmt.Errorf("invalid reported date"), "invalid_date", "reported at")
 		}
 	}
 
 	if dto.IncidentAt != "" {
-		parsed.IncidentAt, err = utility.ParseDate(dto.IncidentAt)
+		parsed.IncidentAt, err = utility.ParseDateTime(dto.IncidentAt)
 		if err != nil {
 			return nil, utility.NewValidationError(fmt.Errorf("invalid incident date"), "invalid_date", "incident at")
 		}

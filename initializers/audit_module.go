@@ -50,15 +50,22 @@ type AuditModule struct {
 	AuditScheduleStatusUpdateController          *controllers.AuditScheduleStatusUpdateController
 	AuditDraftReportReviewController             *controllers.AuditDraftReportReviewController
 	AuditDraftReportCommentController            *controllers.AuditDraftReportCommentController
+	AuditPlanCommencementLetterStatusController  *controllers.AuditPlanCommencementLetterStatusController
+	AuditPlanCommencementLetterController        *controllers.AuditPlanCommencementLetterController
 
 	AuditPlanSvc                        services.AuditPlanServiceInterface
 	AuditSvc                            services.AuditServiceInterface
 	AuditDocumentRequestSvc             services.AuditDocumentRequestServiceInterface
 	AuditDocumentRequestConversationSvc services.AuditDocumentRequestConversationServiceInterface
+	AuditDraftReportStatusSvc           services.AuditDraftReportStatusServiceInterface
 	AuditDraftReportSvc                 services.AuditDraftReportServiceInterface
+	AuditDraftFindingSvc                services.AuditDraftFindingServiceInterface
+	AuditDraftFindingStatusSvc          services.AuditDraftFindingStatusServiceInterface
+	AuditDraftFindingConversationSvc    services.AuditDraftFindingConversationServiceInterface
+	AuditDraftFindingActionPlanSvc      services.AuditDraftFindingActionPlanServiceInterface
 }
 
-func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, complianceModule *ComplianceModule, riskModule *RiskModule, incidentModule *IncidentModule, documentModule *DocumentModule, settingModule *SettingsModule, masterModule *MasterModule, taskModule *TaskModule) *AuditModule {
+func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, complianceModule *ComplianceModule, riskModule *RiskModule, incidentModule *IncidentModule, documentModule *DocumentModule, settingModule *SettingsModule, masterModule *MasterModule, taskModule *TaskModule, commonModule *CommonModule) *AuditModule {
 
 	auditStatusRepo := repositories.NewAuditStatusRepository(db)
 	auditStatusSvc := services.NewAuditStatusService(auditStatusRepo)
@@ -196,6 +203,7 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		auditTimelineSvc,
 		auditPlanScheduleSvc,
 		masterModule.StatusSvc,
+		auditStatusSvc,
 	)
 	auditController := controllers.NewAuditController(auditSvc)
 
@@ -270,6 +278,7 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		sharedModule.ActivityLogService,
 		auditDraftFindingSvc,
 		auditDraftFindingStatusSvc,
+		auditSvc,
 	)
 	auditDraftFindingConversationController := controllers.NewAuditDraftFindingConversationController(auditDraftFindingConversationSvc)
 
@@ -319,6 +328,8 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		masterModule.SeverityLevelSvc,
 		auditTimelineSvc,
 		taskModule.TaskService,
+		organizationModule.UserSvc,
+		commonModule.NotificationService,
 	)
 	auditFindingActionPlanController := controllers.NewAuditFindingActionPlanController(auditFindingActionPlanSvc)
 
@@ -344,6 +355,8 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		sharedModule.ActivityLogService,
 		auditSvc,
 		auditDraftReportStatusSvc,
+		auditDraftFindingSvc,
+		organizationModule.UserSvc,
 	)
 	auditDraftReportController := controllers.NewAuditDraftReportController(auditDraftReportSvc)
 
@@ -379,6 +392,21 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		auditDraftReportSvc,
 	)
 	auditDraftReportCommentController := controllers.NewAuditDraftReportCommentController(auditDraftReportCommentSvc)
+
+	auditPlanCommencementLetterStatusRepo := repositories.NewAuditPlanCommencementLetterStatusRepository(db)
+	auditPlanCommencementLetterStatusSvc := services.NewAuditPlanCommencementLetterStatusService(auditPlanCommencementLetterStatusRepo)
+	auditPlanCommencementLetterStatusController := controllers.NewAuditPlanCommencementLetterStatusController(auditPlanCommencementLetterStatusSvc)
+
+	auditPlanCommencementLetterRepo := repositories.NewAuditPlanCommencementLetterRepository(db)
+	auditPlanCommencementLetterSvc := services.NewAuditPlanCommencementLetterService(
+		auditPlanCommencementLetterRepo,
+		sharedModule.ActivityLogService,
+		auditPlanSvc,
+		organizationModule.UserSvc,
+		commonModule.NotificationService,
+		auditPlanCommencementLetterStatusSvc,
+	)
+	auditPlanCommencementLetterController := controllers.NewAuditPlanCommencementLetterController(auditPlanCommencementLetterSvc)
 
 	return &AuditModule{
 		AuditorRiskRatingController:                  auditorRiskRatingController,
@@ -422,11 +450,18 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		AuditScheduleStatusUpdateController:          auditScheduleStatusUpdateController,
 		AuditDraftReportReviewController:             auditDraftReportReviewController,
 		AuditDraftReportCommentController:            auditDraftReportCommentController,
+		AuditPlanCommencementLetterStatusController:  auditPlanCommencementLetterStatusController,
+		AuditPlanCommencementLetterController:        auditPlanCommencementLetterController,
 
 		AuditPlanSvc:                        auditPlanSvc,
 		AuditSvc:                            auditSvc,
 		AuditDocumentRequestSvc:             auditDocumentRequestSvc,
 		AuditDocumentRequestConversationSvc: auditDocumentRequestConversationSvc,
 		AuditDraftReportSvc:                 auditDraftReportSvc,
+		AuditDraftReportStatusSvc:           auditDraftReportStatusSvc,
+		AuditDraftFindingSvc:                auditDraftFindingSvc,
+		AuditDraftFindingStatusSvc:          auditDraftFindingStatusSvc,
+		AuditDraftFindingConversationSvc:    auditDraftFindingConversationSvc,
+		AuditDraftFindingActionPlanSvc:      auditDraftFindingActionPlanSvc,
 	}
 }

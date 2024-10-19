@@ -13,6 +13,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	meetingRoutes.Use(middlewares.AuthMiddleware())
 
+	db := app.DB
+
 	meetingFrequencyController := app.MeetingModule.MeetingFrequencyController
 	meetingStatusController := app.MeetingModule.MeetingStatusController
 	meetingTypeController := app.MeetingModule.MeetingTypeController
@@ -24,72 +26,72 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	meetingAssociatedItemController := app.MeetingModule.MeetingAssociatedItemController
 	meetingMinuteStatusController := app.MeetingModule.MeetingMinuteStatusController
 
-	meetingRoutes.GET("/meeting-frequencies", meetingFrequencyController.GetAllMeetingFrequencies)
-	meetingRoutes.GET("/meeting-frequencies/:id", meetingFrequencyController.GetMeetingFrequencyDetails)
+	meetingRoutes.GET("/meeting-frequencies", middlewares.RolePermissionMiddleware(db, "meeting_setting", "view"), meetingFrequencyController.GetAllMeetingFrequencies)
+	meetingRoutes.GET("/meeting-frequencies/:id", middlewares.RolePermissionMiddleware(db, "meeting_setting", "view"), meetingFrequencyController.GetMeetingFrequencyDetails)
 
 	// Meeting Status
-	meetingRoutes.GET("/meeting-statuses", meetingStatusController.GetAllMeetingStatuses)
-	meetingRoutes.GET("/meeting-statuses/:id", meetingStatusController.GetMeetingStatusDetails)
+	meetingRoutes.GET("/meeting-statuses", middlewares.RolePermissionMiddleware(db, "meeting_setting", "view"), meetingStatusController.GetAllMeetingStatuses)
+	meetingRoutes.GET("/meeting-statuses/:id", middlewares.RolePermissionMiddleware(db, "meeting_setting", "view"), meetingStatusController.GetMeetingStatusDetails)
 
 	// Meeting Type
-	meetingRoutes.GET("/meeting-types", meetingTypeController.GetAllMeetingTypes)
-	meetingRoutes.GET("/meeting-types/:id", meetingTypeController.GetMeetingTypeDetails)
-	meetingRoutes.POST("/meeting-types", meetingTypeController.CreateMeetingType)
-	meetingRoutes.PUT("/meeting-types/:id", meetingTypeController.UpdateMeetingType)
-	meetingRoutes.POST("/meeting-types/delete", meetingTypeController.DeleteMeetingTypes)
-	meetingRoutes.PUT("/meeting-types/activate", meetingTypeController.ActivateMeetingTypes)
-	meetingRoutes.PUT("/meeting-types/deactivate", meetingTypeController.DeactivateMeetingTypes)
+	meetingRoutes.GET("/meeting-types", middlewares.RolePermissionMiddleware(db, "meeting_setting", "view"), meetingTypeController.GetAllMeetingTypes)
+	meetingRoutes.GET("/meeting-types/:id", middlewares.RolePermissionMiddleware(db, "meeting_setting", "view"), meetingTypeController.GetMeetingTypeDetails)
+	meetingRoutes.POST("/meeting-types", middlewares.RolePermissionMiddleware(db, "meeting_setting", "modify"), meetingTypeController.CreateMeetingType)
+	meetingRoutes.PUT("/meeting-types/:id", middlewares.RolePermissionMiddleware(db, "meeting_setting", "modify"), meetingTypeController.UpdateMeetingType)
+	meetingRoutes.POST("/meeting-types/delete", middlewares.RolePermissionMiddleware(db, "meeting_setting", "modify"), meetingTypeController.DeleteMeetingTypes)
+	meetingRoutes.PUT("/meeting-types/activate", middlewares.RolePermissionMiddleware(db, "meeting_setting", "modify"), meetingTypeController.ActivateMeetingTypes)
+	meetingRoutes.PUT("/meeting-types/deactivate", middlewares.RolePermissionMiddleware(db, "meeting_setting", "modify"), meetingTypeController.DeactivateMeetingTypes)
 
 	// Meetings
-	meetingRoutes.GET("/meetings/export", meetingController.GetMeetingExport)
-	meetingRoutes.GET("/meetings", meetingController.GetAllMeetings)
-	meetingRoutes.GET("/meetings/:id", meetingController.GetMeetingDetails)
-	meetingRoutes.POST("/meetings", meetingController.CreateMeeting)
-	meetingRoutes.PUT("/meetings/:id", meetingController.UpdateMeeting)
-	meetingRoutes.POST("/meetings/delete", meetingController.DeleteMeetings)
-	meetingRoutes.GET("/meetings/:id/meeting-summary", meetingController.GetAllCounts)
+	meetingRoutes.GET("/meetings/export", middlewares.RolePermissionMiddleware(db, "meeting", "view"), meetingController.GetMeetingExport)
+	meetingRoutes.GET("/meetings", middlewares.RolePermissionMiddleware(db, "meeting", "view"), meetingController.GetAllMeetings)
+	meetingRoutes.GET("/meetings/:id", middlewares.RolePermissionMiddleware(db, "meeting", "view"), meetingController.GetMeetingDetails)
+	meetingRoutes.POST("/meetings", middlewares.RolePermissionMiddleware(db, "meeting", "modify"), meetingController.CreateMeeting)
+	meetingRoutes.PUT("/meetings/:id", middlewares.RolePermissionMiddleware(db, "meeting", "modify"), meetingController.UpdateMeeting)
+	meetingRoutes.POST("/meetings/delete", middlewares.RolePermissionMiddleware(db, "meeting", "modify"), meetingController.DeleteMeetings)
+	meetingRoutes.GET("/meetings/:id/meeting-summary", middlewares.RolePermissionMiddleware(db, "meeting", "view"), meetingController.GetAllCounts)
 
 	//Meeting action plan
-	meetingRoutes.GET("/meeting-action-plans/export", meetingActionPlanController.GetMeetingActionPlanExport)
-	meetingRoutes.GET("/meeting-action-plans", meetingActionPlanController.GetAllMeetingActionPlans)
-	meetingRoutes.GET("/meetings/:id/action-plans", meetingActionPlanController.GetAllMeetingActionPlans)
-	meetingRoutes.GET("/meetings/:id/action-plans/:meetingActionPlanId", meetingActionPlanController.GetMeetingActionPlanDetails)
-	meetingRoutes.POST("/meetings/:id/action-plans", meetingActionPlanController.CreateMeetingActionPlan)
-	meetingRoutes.PUT("/meetings/:id/action-plans/:meetingActionPlanId", meetingActionPlanController.UpdateMeetingActionPlan)
-	meetingRoutes.POST("/meetings/:id/action-plans/delete", meetingActionPlanController.DeleteMeetingActionPlans)
+	meetingRoutes.GET("/meeting-action-plans/export", middlewares.RolePermissionMiddleware(db, "meeting_action_plan", "view"), meetingActionPlanController.GetMeetingActionPlanExport)
+	meetingRoutes.GET("/meeting-action-plans", middlewares.RolePermissionMiddleware(db, "meeting_action_plan", "view"), meetingActionPlanController.GetAllMeetingActionPlans)
+	meetingRoutes.GET("/meetings/:id/action-plans", middlewares.RolePermissionMiddleware(db, "meeting_action_plan", "view"), meetingActionPlanController.GetAllMeetingActionPlans)
+	meetingRoutes.GET("/meetings/:id/action-plans/:meetingActionPlanId", middlewares.RolePermissionMiddleware(db, "meeting_action_plan", "view"), meetingActionPlanController.GetMeetingActionPlanDetails)
+	meetingRoutes.POST("/meetings/:id/action-plans", middlewares.RolePermissionMiddleware(db, "meeting_action_plan", "modify"), meetingActionPlanController.CreateMeetingActionPlan)
+	meetingRoutes.PUT("/meetings/:id/action-plans/:meetingActionPlanId", middlewares.RolePermissionMiddleware(db, "meeting_action_plan", "modify"), meetingActionPlanController.UpdateMeetingActionPlan)
+	meetingRoutes.POST("/meetings/:id/action-plans/delete", middlewares.RolePermissionMiddleware(db, "meeting_action_plan", "modify"), meetingActionPlanController.DeleteMeetingActionPlans)
 
-	meetingRoutes.GET("/meetings/:id/action-plan-summary", meetingActionPlanController.GetMeetingActionPlanSummary)
+	meetingRoutes.GET("/meetings/:id/action-plan-summary", middlewares.RolePermissionMiddleware(db, "meeting_action_plan", "view"), meetingActionPlanController.GetMeetingActionPlanSummary)
 
 	//Meeting action plan status updates
-	meetingRoutes.GET("/meetings/:id/action-plans/:meetingActionPlanId/status-updates", meetingActionPlanStatusUpdateController.GetAllMeetingActionPlanStatusUpdates)
-	meetingRoutes.GET("/meetings/:id/action-plans/:meetingActionPlanId/status-updates/:meetingActionPlanUpdateId", meetingActionPlanStatusUpdateController.GetMeetingActionPlanStatusUpdateDetails)
-	meetingRoutes.POST("/meetings/:id/action-plans/:meetingActionPlanId/status-updates", meetingActionPlanStatusUpdateController.CreateMeetingActionPlanStatusUpdate)
-	meetingRoutes.PUT("/meetings/:id/action-plans/:meetingActionPlanId/status-updates/:meetingActionPlanUpdateId", meetingActionPlanStatusUpdateController.UpdateMeetingActionPlanStatusUpdate)
-	meetingRoutes.GET("/meetings/:id/action-plans/:meetingActionPlanId/status-updates/latest", meetingActionPlanStatusUpdateController.GetLatestMeetingActionPlanStatusUpdate)
+	meetingRoutes.GET("/meetings/:id/action-plans/:meetingActionPlanId/status-updates", middlewares.RolePermissionMiddleware(db, "meeting_action_plan", "view"), meetingActionPlanStatusUpdateController.GetAllMeetingActionPlanStatusUpdates)
+	meetingRoutes.GET("/meetings/:id/action-plans/:meetingActionPlanId/status-updates/:meetingActionPlanUpdateId", middlewares.RolePermissionMiddleware(db, "meeting_action_plan", "view"), meetingActionPlanStatusUpdateController.GetMeetingActionPlanStatusUpdateDetails)
+	meetingRoutes.POST("/meetings/:id/action-plans/:meetingActionPlanId/status-updates", middlewares.RolePermissionMiddleware(db, "meeting_action_plan", "modify"), meetingActionPlanStatusUpdateController.CreateMeetingActionPlanStatusUpdate)
+	meetingRoutes.PUT("/meetings/:id/action-plans/:meetingActionPlanId/status-updates/:meetingActionPlanUpdateId", middlewares.RolePermissionMiddleware(db, "meeting_action_plan", "modify"), meetingActionPlanStatusUpdateController.UpdateMeetingActionPlanStatusUpdate)
+	meetingRoutes.GET("/meetings/:id/action-plans/:meetingActionPlanId/status-updates/latest", middlewares.RolePermissionMiddleware(db, "meeting_action_plan", "view"), meetingActionPlanStatusUpdateController.GetLatestMeetingActionPlanStatusUpdate)
 
 	//Meeting Agendas
-	meetingRoutes.GET("/meetings/:id/agendas", meetingAgendaController.GetAllMeetingAgendas)
-	meetingRoutes.GET("/meetings/:id/agendas/:agendaID", meetingAgendaController.GetMeetingAgendaDetails)
-	meetingRoutes.POST("/meetings/:id/agendas", meetingAgendaController.CreateMeetingAgenda)
-	meetingRoutes.PUT("/meetings/:id/agendas/:agendaID", meetingAgendaController.UpdateMeetingAgenda)
-	meetingRoutes.POST("/meetings/:id/agendas/delete", meetingAgendaController.DeleteMeetingAgendas)
+	meetingRoutes.GET("/meetings/:id/agendas", middlewares.RolePermissionMiddleware(db, "meeting", "view"), meetingAgendaController.GetAllMeetingAgendas)
+	meetingRoutes.GET("/meetings/:id/agendas/:agendaID", middlewares.RolePermissionMiddleware(db, "meeting", "view"), meetingAgendaController.GetMeetingAgendaDetails)
+	meetingRoutes.POST("/meetings/:id/agendas", middlewares.RolePermissionMiddleware(db, "meeting", "modify"), meetingAgendaController.CreateMeetingAgenda)
+	meetingRoutes.PUT("/meetings/:id/agendas/:agendaID", middlewares.RolePermissionMiddleware(db, "meeting", "modify"), meetingAgendaController.UpdateMeetingAgenda)
+	meetingRoutes.POST("/meetings/:id/agendas/delete", middlewares.RolePermissionMiddleware(db, "meeting", "modify"), meetingAgendaController.DeleteMeetingAgendas)
 
 	//Meeting Minutes
-	meetingRoutes.GET("/meetings/:id/meeting-minutes", meetingMinuteController.GetAllMeetingMinutes)
-	meetingRoutes.GET("/meetings/:id/meeting-minutes/:meetingMinuteID", meetingMinuteController.GetMeetingMinuteDetails)
-	meetingRoutes.POST("/meetings/:id/meeting-minutes", meetingMinuteController.CreateMeetingMinute)
-	meetingRoutes.PUT("/meetings/:id/meeting-minutes/:meetingMinuteID", meetingMinuteController.UpdateMeetingMinute)
-	meetingRoutes.POST("/meetings/:id/meeting-minutes/delete", meetingMinuteController.DeleteMeetingMinutes)
+	meetingRoutes.GET("/meetings/:id/meeting-minutes", middlewares.RolePermissionMiddleware(db, "meeting", "view"), meetingMinuteController.GetAllMeetingMinutes)
+	meetingRoutes.GET("/meetings/:id/meeting-minutes/:meetingMinuteID", middlewares.RolePermissionMiddleware(db, "meeting", "view"), meetingMinuteController.GetMeetingMinuteDetails)
+	meetingRoutes.POST("/meetings/:id/meeting-minutes", middlewares.RolePermissionMiddleware(db, "meeting", "modify"), meetingMinuteController.CreateMeetingMinute)
+	meetingRoutes.PUT("/meetings/:id/meeting-minutes/:meetingMinuteID", middlewares.RolePermissionMiddleware(db, "meeting", "modify"), meetingMinuteController.UpdateMeetingMinute)
+	meetingRoutes.POST("/meetings/:id/meeting-minutes/delete", middlewares.RolePermissionMiddleware(db, "meeting", "modify"), meetingMinuteController.DeleteMeetingMinutes)
 
 	//Meeting Associated Items
-	meetingRoutes.GET("/meetings/:id/controls", meetingAssociatedItemController.GetAllMeetingControls)
-	meetingRoutes.GET("/meetings/:id/compliance-requirements", meetingAssociatedItemController.GetAllMeetingComplianceRequirements)
-	meetingRoutes.GET("/meetings/:id/risks", meetingAssociatedItemController.GetAllMeetingRisks)
-	meetingRoutes.GET("/meetings/:id/processes", meetingAssociatedItemController.GetAllMeetingProcesses)
-	meetingRoutes.GET("/meetings/:id/incidents", meetingAssociatedItemController.GetAllMeetingIncidents)
+	meetingRoutes.GET("/meetings/:id/controls", middlewares.RolePermissionMiddleware(db, "meeting", "view"), meetingAssociatedItemController.GetAllMeetingControls)
+	meetingRoutes.GET("/meetings/:id/compliance-requirements", middlewares.RolePermissionMiddleware(db, "meeting", "view"), meetingAssociatedItemController.GetAllMeetingComplianceRequirements)
+	meetingRoutes.GET("/meetings/:id/risks", middlewares.RolePermissionMiddleware(db, "meeting", "view"), meetingAssociatedItemController.GetAllMeetingRisks)
+	meetingRoutes.GET("/meetings/:id/processes", middlewares.RolePermissionMiddleware(db, "meeting", "view"), meetingAssociatedItemController.GetAllMeetingProcesses)
+	meetingRoutes.GET("/meetings/:id/incidents", middlewares.RolePermissionMiddleware(db, "meeting", "view"), meetingAssociatedItemController.GetAllMeetingIncidents)
 
 	// Meeting Minute Status
-	meetingRoutes.GET("/meeting-minute-statuses", meetingMinuteStatusController.GetAllMeetingMinuteStatuses)
-	meetingRoutes.GET("/meeting-minute-statuses/:id", meetingMinuteStatusController.GetMeetingMinuteStatusDetails)
+	meetingRoutes.GET("/meeting-minute-statuses", middlewares.RolePermissionMiddleware(db, "meeting_setting", "view"), meetingMinuteStatusController.GetAllMeetingMinuteStatuses)
+	meetingRoutes.GET("/meeting-minute-statuses/:id", middlewares.RolePermissionMiddleware(db, "meeting_setting", "view"), meetingMinuteStatusController.GetMeetingMinuteStatusDetails)
 
 }

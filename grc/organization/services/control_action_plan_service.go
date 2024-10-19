@@ -181,7 +181,7 @@ func (caps *ControlActionPlanService) Create(controlID uint, currentUserID uint,
 		ResponsibleUserID:   ControlActionPlanFormDTO.ResponsibleUserID,
 	}
 
-	if err := caps.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
+	if _, err := caps.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
 		tx.Rollback()
 		return 0, err
 	}
@@ -260,7 +260,7 @@ func (caps *ControlActionPlanService) Create(controlID uint, currentUserID uint,
 			"AssignedByFirstNameEn":  assignedBy.FirstNameEn,
 			"AssignedByLastNameEn":   assignedBy.LastNameEn,
 			"AssignedOn":             time.Now().Format("2006-01-02"),
-			"RedirectURL":            fmt.Sprintf("%s/control-action-plan/%d", appURL, id),
+			"RedirectURL":            fmt.Sprintf("%scompliance/controls/%d/action-plans?action_plan_id=%d", appURL, controlID, id),
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -415,7 +415,7 @@ func (caps *ControlActionPlanService) Update(controlID uint, id uint, currentUse
 				"ControlTitle":           existingControlActionPlan.Title,
 				"ActionPlanTitle":        existingControlActionPlan.Title,
 				"ActionPlanDescription":  existingControlActionPlan.Description,
-				"RedirectURL":            fmt.Sprintf("%s/control-action-plan/%d", appURL, id),
+				"RedirectURL":            fmt.Sprintf("%scompliance/controls/%d/action-plans?action_plan_id=%d", appURL, controlID, id),
 			}
 
 			oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -439,7 +439,7 @@ func (caps *ControlActionPlanService) Update(controlID uint, id uint, currentUse
 				"AssignedByFirstNameEn":  assignedBy.FirstNameEn,
 				"AssignedByLastNameEn":   assignedBy.LastNameEn,
 				"AssignedOn":             time.Now().Format("2006-01-02"),
-				"RedirectURL":            fmt.Sprintf("%s/control-action-plan/%d", appURL, id),
+				"RedirectURL":            fmt.Sprintf("%scompliance/controls/%d/action-plans?action_plan_id=%d", appURL, controlID, id),
 			}
 
 			newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{

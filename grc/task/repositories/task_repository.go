@@ -17,10 +17,13 @@ type TaskRepositoryInteface interface {
 	GetAll(params *taskDTOs.TaskListQueryParamsDTO) (*taskDTOs.TaskListResponseDTO, error)
 	GetByID(id uint) (*models.Task, error)
 	GetByFieldID(field string, value interface{}) (*models.Task, error)
-	Create(task *models.Task, tx ...utility.DatabaseTransaction) error
+	Create(task *models.Task, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(task *models.Task, tx ...utility.DatabaseTransaction) error
 	Delete(id uint) error
 	GenerateReferenceNumber() (string, error)
+
+	UpdateTaskRelatedIDs(taskID uint, relatedTaskIDsJSON string, tx ...utility.DatabaseTransaction) error
+	UpdateDocumentTaskStatus(documentID uint, userID uint, documentWorkflowID uint, status uint) (*models.Task, error)
 }
 
 type TaskRepository struct {
@@ -195,12 +198,15 @@ func (repo *TaskRepository) GetByFieldID(field string, value interface{}) (*mode
 	return &task, nil
 }
 
-func (repo *TaskRepository) Create(task *models.Task, tx ...utility.DatabaseTransaction) error {
+func (repo *TaskRepository) Create(task *models.Task, tx ...utility.DatabaseTransaction) (uint, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	return db.Create(&task).Error
+	if err := db.Create(task).Error; err != nil {
+		return 0, err
+	}
+	return task.ID, nil
 }
 
 func (repo *TaskRepository) GenerateReferenceNumber() (string, error) {
@@ -255,4 +261,35 @@ func (repo *TaskRepository) Delete(id uint) error {
 	}
 
 	return nil
+}
+
+func (repo *TaskRepository) UpdateTaskRelatedIDs(taskID uint, relatedTaskIDsJSON string, tx ...utility.DatabaseTransaction) error {
+	// Use the transaction's database if provided
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Update the related_task_ids column for the given task ID
+	return db.Model(&models.Task{}).
+		Where("id = ?", taskID).
+		Update("related_task_ids", relatedTaskIDsJSON).Error
+}
+
+func (repo *TaskRepository) UpdateDocumentTaskStatus(documentID uint, userID uint, documentWorkflowID uint, status uint) (*models.Task, error) {
+	var task models.Task
+
+	// Find the task by document and user ID
+	if err := repo.db.Where("document_id = ? AND responsible_user_id = ? AND document_workflow_id = ?", documentID, userID, documentWorkflowID).First(&task).Error; err != nil {
+		return nil, err
+	}
+
+	// Update the task status
+	task.TaskStatusID = status
+	task.UpdatedByID = userID
+	if err := repo.db.Save(&task).Error; err != nil {
+		return nil, err
+	}
+
+	return &task, nil
 }

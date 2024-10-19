@@ -22,6 +22,16 @@ type AuditPlanListDTO struct {
 	AuditStatusTitleAr                string  `json:"audit_status_title_ar"`
 	AuditStatusType                   string  `json:"audit_status_type"`
 	AuditStatusColorCode              string  `json:"audit_status_color_code"`
+	PublishedBYID                     *uint   `json:"published_by_id"`
+	PublishedUserFirstNameEn          *string `json:"published_user_first_name_en"`
+	PublishedUserFirstNameAr          *string `json:"published_user_first_name_ar"`
+	PublishedUserLastNameEn           *string `json:"published_user_last_name_en"`
+	PublishedUserLastNameAr           *string `json:"published_user_last_name_ar"`
+	PublishedUserInitial              *string `json:"published_user_initial"`
+	PublishedUserColor                *string `json:"published_user_color"`
+	PublishedUserEmail                *string `json:"published_user_email"`
+	PublishedUserProfileImagePath     *string `json:"published_user_profile_image_path"`
+	PublishedAt                       *string `json:"published_at"`
 	TeamLeadFirstNameEn               string  `json:"team_lead_first_name_en"`
 	TeamLeadFirstNameAr               string  `json:"team_lead_first_name_ar"`
 	TeamLeadLastNameEn                string  `json:"team_lead_last_name_en"`
@@ -85,11 +95,13 @@ type AuditPlanDetailDTO struct {
 	ReferenceNumber     string                           `json:"reference_number"`
 	AuditCategory       AuditCategoryDTO                 `json:"audit_category"`
 	AuditTeam           *AuditTeamDetailDTO              `json:"audit_team"`
+	TeamLeadID          *uint                            `json:"team_lead_id"`
 	TeamLead            *organizationDTOs.UserMinimalDTO `json:"team_lead"`
 	Title               string                           `json:"title"`
 	Description         *string                          `json:"description"`
 	StartDateString     string                           `json:"start_date"`
 	TargetDateString    string                           `json:"target_date"`
+	PublishedDateString string                           `json:"published_date"`
 	Purpose             *string                          `json:"purpose"`
 	Objective           *string                          `json:"objective"`
 	AuditStatus         AuditStatusDTO                   `json:"audit_status"`
@@ -97,6 +109,7 @@ type AuditPlanDetailDTO struct {
 	UpdatedAt           *time.Time                       `json:"updated_at"`
 	CreatedByUser       organizationDTOs.UserMinimalDTO  `json:"created_by"`
 	UpdatedByUser       *organizationDTOs.UserMinimalDTO `json:"updated_by"`
+	PublishedByUser     *organizationDTOs.UserMinimalDTO `json:"published_by"`
 	AuditableItems      []*AuditPlanAuditableItemDTO     `json:"auditable_items"`
 	Members             []*AuditPlanAuditMemberDTO       `json:"members"`
 	AuditPlanChecklists []*AuditPlanChecklistDetailDTO   `json:"audit_plan_checklists"`

@@ -35,7 +35,7 @@ type ComplianceModule struct {
 	SlaRegisterSvc           services.SLARegisterServiceInterface
 }
 
-func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *MasterModule, organizationModule *OrganizationModule, taskModule *TaskModule, settingsModule *SettingsModule) *ComplianceModule {
+func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *MasterModule, organizationModule *OrganizationModule, taskModule *TaskModule, settingsModule *SettingsModule, commonModule *CommonModule) *ComplianceModule {
 	complianceCategoryRepo := repositories.NewComplianceCategoryRepository(db)
 	complianceCategorySvc := services.NewComplianceCategoryService(complianceCategoryRepo, sharedModule.ActivityLogService)
 	complianceCategoryController := controllers.NewComplianceCategoryController(complianceCategorySvc)
@@ -59,6 +59,7 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		masterModule.SeverityLevelSvc,
 		organizationModule.ControlSvc,
 		organizationModule.UserSettingSvc,
+		organizationModule.UserSvc, commonModule.NotificationService,
 	)
 	complianceRegisterController := controllers.NewComplianceRegisterController(complianceRegisterSvc)
 
@@ -92,7 +93,7 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		masterModule.ActionPlanStatusSvc,
 		masterModule.SeverityLevelSvc,
 		taskModule.TaskService,
-		settingsModule.ModuleSvc,
+		settingsModule.ModuleSvc, organizationModule.UserSvc, commonModule.NotificationService,
 	)
 	complianceActionPlanController := controllers.NewComplianceActionPlanController(complianceActionPlanSvc)
 
@@ -124,7 +125,7 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		sharedModule.ActivityLogService,
 		organizationModule.ProcessSvc,
 		organizationModule.UserSvc,
-		organizationModule.UserSettingSvc,
+		organizationModule.UserSettingSvc, commonModule.NotificationService,
 	)
 	slaRegisterController := controllers.NewSLARegisterController(slaRegisterSvc)
 
@@ -158,6 +159,7 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		masterModule.ActionPlanStatusSvc,
 		masterModule.SeverityLevelSvc,
 		taskModule.TaskService,
+		organizationModule.UserSvc, commonModule.NotificationService,
 	)
 	slaActionPlanController := controllers.NewSLAActionPlanController(slaActionPlanSvc)
 

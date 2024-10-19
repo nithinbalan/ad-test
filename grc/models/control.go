@@ -10,8 +10,8 @@ type Control struct {
 	ControlCategoryID             uint       `json:"control_category_id" gorm:"not null" binding:"required"`
 	OwnerUnitID                   uint       `json:"owner_unit_id" gorm:"not null" binding:"required"`
 	OwnerID                       uint       `json:"owner_id" gorm:"not null" binding:"required"`
-	ControlImplementationStatusID uint       `json:"control_implementation_status_id" gorm:"not null" binding:"required"`
-	ControlEfficiencyStatusID     uint       `json:"control_efficiency_status_id" gorm:"not null" binding:"required"`
+	ControlImplementationStatusID *uint      `json:"control_implementation_status_id" gorm:"default:null"`
+	ControlEfficiencyStatusID     *uint      `json:"control_efficiency_status_id" gorm:"default:null"`
 	ReferenceNumber               string     `json:"reference_number" gorm:"type:varchar(45);not null;unique" binding:"required"`
 	Code                          *string    `json:"code,omitempty" gorm:"type:varchar(45);default:null" binding:"omitempty"`
 	TitleEn                       string     `json:"title_en" gorm:"type:nvarchar(500);not null" binding:"required"`
@@ -36,6 +36,9 @@ type Control struct {
 	LastReviewedUserID            *uint      `json:"last_reviewed_user_id" gorm:"default:null"`
 	ControlReviewStatusID         *uint      `json:"control_review_status_id" gorm:"default:null"`
 	MarkedAsAuditableItem         bool       `json:"marked_as_auditable_item" gorm:"default:false" binding:"-"`
+	IsApplicable                  bool       `json:"is_applicable" gorm:"default:false" binding:"required"`
+	Justification                 *string    `json:"justification,omitempty" gorm:"type:nvarchar(MAX);default:null" binding:"omitempty"`
+	ApplicabilityChangeDate       *time.Time `json:"applicability_change_date,omitempty" gorm:"type:datetime;default:null" binding:"omitempty"`
 	RiskMatrixRiskRatingID        *uint      `json:"risk_matrix_risk_rating_id" gorm:"default:null"`
 	RiskMatrixRiskRatingValueID   *uint      `json:"risk_matrix_risk_rating_value_id" gorm:"default:null"`
 

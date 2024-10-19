@@ -10,6 +10,7 @@ import (
 type AuditDraftReportRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetByID(id uint) (*models.AuditDraftReport, error)
+	GetByAuditID(auditID uint) (*models.AuditDraftReport, error)
 	GetFullDetailsByID(auditID uint, tx ...utility.DatabaseTransaction) (*models.AuditDraftReport, error)
 	Create(auditDraftReport *models.AuditDraftReport, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(auditDraftReport *models.AuditDraftReport, tx ...utility.DatabaseTransaction) error
@@ -42,6 +43,17 @@ func (repo *AuditDraftReportRepository) GetByID(id uint) (*models.AuditDraftRepo
 	return auditDraftReport, nil
 }
 
+func (repo *AuditDraftReportRepository) GetByAuditID(auditID uint) (*models.AuditDraftReport, error) {
+	var auditDraftReport *models.AuditDraftReport
+
+	result := repo.db.Where("audit_id = ?", auditID).First(&auditDraftReport)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return auditDraftReport, nil
+}
+
 func (repo *AuditDraftReportRepository) GetFullDetailsByID(auditID uint, tx ...utility.DatabaseTransaction) (*models.AuditDraftReport, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
@@ -62,6 +74,7 @@ func (repo *AuditDraftReportRepository) GetFullDetailsByID(auditID uint, tx ...u
 		Preload("Audit.AuditDraftFindings.AuditableItem.ComplianceRequirement").
 		Preload("Audit.AuditDraftFindings.AuditableItem.RiskRegister").
 		Preload("Audit.AuditDraftFindings.AuditableItem.User").
+		Preload("Audit.AuditDraftFindings.AuditableItem.ResponsibleUnit").
 		Preload("Audit.AuditDraftFindings.AuditFindingCategory").
 		Preload("Audit.AuditDraftFindings.SeverityLevel").
 		Preload("Audit.AuditDraftFindings.AuditDraftFindingConversations").
@@ -71,6 +84,8 @@ func (repo *AuditDraftReportRepository) GetFullDetailsByID(auditID uint, tx ...u
 		Preload("Audit.AuditDraftFindings.AuditDraftFindingActionPlans.ResponsibleUser").
 		Preload("Audit.AuditDraftFindings.AuditDraftFindingActionPlans.CreatedByUser").
 		Preload("Audit.AuditDraftFindings.AuditDraftFindingActionPlans.UpdatedByUser").
+		Preload("Audit.AuditDraftFindings.AcceptedByUser").
+		Preload("Audit.AuditDraftFindings.ChallengedByUser").
 		Preload("Audit.AuditPlan").
 		Preload("Audit.AuditPlan.AuditCategory").
 		Preload("Audit.AuditPlan.AuditStatus").
@@ -80,6 +95,9 @@ func (repo *AuditDraftReportRepository) GetFullDetailsByID(auditID uint, tx ...u
 		Preload("Audit.CreatedByUser").
 		Preload("Audit.UpdatedByUser").
 		Preload("AuditDraftReportStatus").
+		Preload("AuditReportWorkflows").
+		Preload("AuditReportWorkflows.AuditReportWorkflowParticipants").
+		Preload("AuditReportWorkflows.AuditReportWorkflowParticipants.User").
 		Preload("InternalReviewSubmittedByUser").
 		Preload("AuditeeReviewSubmittedByUser").
 		Preload("CreatedByUser").
