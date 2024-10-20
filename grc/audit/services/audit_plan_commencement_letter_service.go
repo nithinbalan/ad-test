@@ -223,54 +223,24 @@ func (aps *AuditPlanCommencementLetterService) Send(auditPlanID uint, letterID u
 		return err
 	}
 
-	tx := aps.repo.BeginTransaction()
-
-	auditPlanCommencementLetterStatus, err := aps.auditPlanCommencementLetterStatusSvc.GetByType("sent")
-	if err != nil {
-		return err
-	}
-
-	currentTime := time.Now()
-	existingCommencementLetter.AuditPlanCommencementLetterStatusID = auditPlanCommencementLetterStatus.ID
-	existingCommencementLetter.SentAt = &currentTime
-	existingCommencementLetter.UpdatedBYID = &currentUserID
-
-	err = aps.repo.Update(existingCommencementLetter, tx)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	toUser := &models.AuditPlanCommencementLetterToUser{
-		AuditPlanCommencementLetterID: letterID,
-		UserID:                        commencementLetterSendFormDTO.ToUserID,
-		CreatedByID:                   currentUserID,
-	}
-
-	err = aps.repo.CreateToUser(toUser, tx)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	for _, ccUserID := range commencementLetterSendFormDTO.CCUserIDs {
-		ccUser := &models.AuditPlanCommencementLetterCCUser{
-			AuditPlanCommencementLetterID: letterID,
-			UserID:                        *ccUserID,
-			CreatedByID:                   currentUserID,
-		}
-
-		err := aps.repo.CreateCCUser(ccUser, tx)
-		if err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
-
-	tx.Commit()
-
 	// Start sending notifications and emails asynchronously
 	go func() {
+		// Notification success flag
+		notificationSuccess := false
+
+		// Start a transaction
+		tx := aps.repo.BeginTransaction()
+
+		// Fetch the 'sent' status
+		auditPlanCommencementLetterStatus, err := aps.auditPlanCommencementLetterStatusSvc.GetByType("sent")
+		if err != nil {
+			utility.LogError("Failed to fetch status", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		// Fetch ToUser details
 		toUserDetails, err := aps.userSvc.GetByID(commencementLetterSendFormDTO.ToUserID)
 		if err != nil {
 			utility.LogError("Failed to fetch user details", map[string]interface{}{
@@ -280,6 +250,7 @@ func (aps *AuditPlanCommencementLetterService) Send(auditPlanID uint, letterID u
 			return
 		}
 
+		// Fetch FromUser details
 		fromUserDetails, err := aps.userSvc.GetFullDetailsByID(existingCommencementLetter.FromUserID)
 		if err != nil {
 			utility.LogError("Failed to fetch user details", map[string]interface{}{
@@ -292,7 +263,7 @@ func (aps *AuditPlanCommencementLetterService) Send(auditPlanID uint, letterID u
 		// Fetch CC User Details
 		var ccEmails []string
 		for _, ccUserID := range commencementLetterSendFormDTO.CCUserIDs {
-			ccUserDetails, err := aps.userSvc.GetByID(*ccUserID) // Ensure *ccUserID is dereferenced safely
+			ccUserDetails, err := aps.userSvc.GetByID(*ccUserID)
 			if err != nil {
 				utility.LogError("Failed to fetch CC user details", map[string]interface{}{
 					"error":  err.Error(),
@@ -303,7 +274,7 @@ func (aps *AuditPlanCommencementLetterService) Send(auditPlanID uint, letterID u
 			ccEmails = append(ccEmails, ccUserDetails.Email)
 		}
 
-		// Prepare DB Notification (unchanged)
+		// Prepare DB Notification
 		entity := "audit-plan-commencement-letter"
 		action := "send"
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
@@ -352,7 +323,29 @@ func (aps *AuditPlanCommencementLetterService) Send(auditPlanID uint, letterID u
 				"error": err.Error(),
 				"user":  toUserDetails.Email,
 			})
+			return
 		}
+
+		// If notifications were sent successfully, update the commencement letter status and sent_at
+		notificationSuccess = true
+		if notificationSuccess {
+			currentTime := time.Now()
+			existingCommencementLetter.AuditPlanCommencementLetterStatusID = auditPlanCommencementLetterStatus.ID
+			existingCommencementLetter.SentAt = &currentTime
+			existingCommencementLetter.UpdatedBYID = &currentUserID
+
+			err = aps.repo.Update(existingCommencementLetter, tx)
+			if err != nil {
+				tx.Rollback()
+				utility.LogError("Failed to update commencement letter status", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+		}
+
+		// Commit the transaction
+		tx.Commit()
 	}()
 
 	return nil
