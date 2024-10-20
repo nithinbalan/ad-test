@@ -45,7 +45,7 @@ func (repo *AuditPlanCommencementLetterRepository) GetAll(auditPlanID uint, keyw
 		audit_plan_commencement_letters.sent_at,
 		organization_units.title_en AS responsible_unit_title_en,
 		organization_units.title_ar AS responsible_unit_title_ar,
-		STRING_AGG(to_user.email, ', ') AS to_user_emails,
+		to_user.email AS to_user_email,
 		from_user.id AS from_user_id,
 		from_user.first_name_en AS from_user_first_name_en,
 		from_user.first_name_ar AS from_user_first_name_ar,
@@ -87,48 +87,7 @@ func (repo *AuditPlanCommencementLetterRepository) GetAll(auditPlanID uint, keyw
 		Joins(`LEFT JOIN audit_plan_commencement_letter_to_users ON audit_plan_commencement_letters.id = audit_plan_commencement_letter_to_users.audit_plan_commencement_letter_id`).
 		Joins(`LEFT JOIN users AS to_user ON to_user.id = audit_plan_commencement_letter_to_users.user_id`).
 		Joins(`LEFT JOIN audit_plan_commencement_letter_statuses ON audit_plan_commencement_letter_statuses.id = audit_plan_commencement_letters.audit_plan_commencement_letter_status_id`). // New Join
-		Where("audit_plan_commencement_letters.audit_plan_id = ?", auditPlanID).
-		Group(`
-		audit_plan_commencement_letters.id,
-		audit_plan_commencement_letters.audit_plan_id,
-		audit_plan_commencement_letters.audit_plan_commencement_letter_status_id,
-		audit_plan_commencement_letters.sent_at,
-		organization_units.title_en,
-		organization_units.title_ar,
-		from_user.id,
-		from_user.first_name_en,
-		from_user.first_name_ar,
-		from_user.last_name_en,
-		from_user.last_name_ar,
-		from_user.initial,
-		from_user.color,
-		from_user.email,
-		from_user.profile_image_path,
-		audit_plan_commencement_letter_statuses.title_en,
-		audit_plan_commencement_letter_statuses.title_ar,
-		audit_plan_commencement_letter_statuses.color_code,
-		audit_plan_commencement_letter_statuses.type,
-		audit_plan_commencement_letters.created_at,
-		audit_plan_commencement_letters.updated_at,
-		created_user.id,
-		created_user.first_name_en,
-		created_user.first_name_ar,
-		created_user.last_name_en,
-		created_user.last_name_ar,
-		created_user.initial,
-		created_user.color,
-		created_user.email,
-		created_user.profile_image_path,
-		updated_user.id,
-		updated_user.first_name_en,
-		updated_user.first_name_ar,
-		updated_user.last_name_en,
-		updated_user.last_name_ar,
-		updated_user.initial,
-		updated_user.color,
-		updated_user.email,
-		updated_user.profile_image_path
-	`)
+		Where("audit_plan_commencement_letters.audit_plan_id = ?", auditPlanID)
 
 	// Apply optional keyword filter
 	if keyword != "" {

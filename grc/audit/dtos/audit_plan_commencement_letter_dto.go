@@ -25,7 +25,7 @@ type AuditPlanCommencementLetterListDTO struct {
 	FromUserColor               string  `json:"from_user_color"`
 	FromUserEmail               string  `json:"from_user_email"`
 	FromUserProfileImagePath    string  `json:"from_user_profile_image_path"`
-	ToUserEmails                string  `json:"to_user_emails"`
+	ToUserEmail                 *string `json:"to_user_email"`
 	CreatedAt                   string  `json:"created_at"`
 	UpdatedAt                   *string `json:"updated_at"`
 	CreatedUserID               uint    `json:"created_user_id"`
@@ -71,7 +71,7 @@ type AuditPlanCommencementLetterDetailDTO struct {
 	UpdatedByUser                     *organizationDTOs.UserMinimalDTO        `json:"updated_by"`
 	AuditPlan                         *AuditPlanDetailDTO                     `json:"audit_plan"`
 	FromUser                          organizationDTOs.UserDetailsDTO         `json:"from_user"`
-	ToUser                            AuditPlanCommencementLetterToUserDTO    `json:"to_user"`
+	ToUser                            *AuditPlanCommencementLetterToUserDTO   `json:"to_user"`
 	CCUsers                           *[]AuditPlanCommencementLetterCCUserDTO `json:"cc_users"`
 	AuditPlanCommencementLetterStatus AuditPlanCommencementLetterStatusDTO    `json:"audit_plan_commencement_letter_status"`
 }
