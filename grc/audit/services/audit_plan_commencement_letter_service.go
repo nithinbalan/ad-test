@@ -30,11 +30,12 @@ type AuditPlanCommencementLetterServiceInterface interface {
 }
 
 type AuditPlanCommencementLetterService struct {
-	repo            repositories.AuditPlanCommencementLetterRepositoryInterface
-	activityLogSvc  logServices.ActivityLogServiceInterface
-	auditPlanSvc    AuditPlanServiceInterface
-	userSvc         organizationServices.UserServiceInterface
-	notificationSvc commonServices.NotificationServiceInterface
+	repo                                 repositories.AuditPlanCommencementLetterRepositoryInterface
+	activityLogSvc                       logServices.ActivityLogServiceInterface
+	auditPlanSvc                         AuditPlanServiceInterface
+	userSvc                              organizationServices.UserServiceInterface
+	notificationSvc                      commonServices.NotificationServiceInterface
+	auditPlanCommencementLetterStatusSvc AuditPlanCommencementLetterStatusServiceInterface
 }
 
 func NewAuditPlanCommencementLetterService(
@@ -43,13 +44,15 @@ func NewAuditPlanCommencementLetterService(
 	auditPlanSvc AuditPlanServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
+	auditPlanCommencementLetterStatusSvc AuditPlanCommencementLetterStatusServiceInterface,
 ) AuditPlanCommencementLetterServiceInterface {
 	return &AuditPlanCommencementLetterService{
-		repo:            repo,
-		activityLogSvc:  activityLogSvc,
-		auditPlanSvc:    auditPlanSvc,
-		userSvc:         userSvc,
-		notificationSvc: notificationSvc,
+		repo:                                 repo,
+		activityLogSvc:                       activityLogSvc,
+		auditPlanSvc:                         auditPlanSvc,
+		userSvc:                              userSvc,
+		notificationSvc:                      notificationSvc,
+		auditPlanCommencementLetterStatusSvc: auditPlanCommencementLetterStatusSvc,
 	}
 }
 
@@ -111,6 +114,11 @@ func (aps *AuditPlanCommencementLetterService) Create(auditPlanId uint, currentU
 
 	}
 
+	auditPlanCommencementLetterStatus, err := aps.auditPlanCommencementLetterStatusSvc.GetByType("draft")
+	if err != nil {
+		return err
+	}
+
 	for unitID, auditableItems := range unitToItemsMap {
 		subjectEn := fmt.Sprintf("Audit Commencement Letter - %s", auditPlanDetails.Title)
 		subjectAr := fmt.Sprintf("خطاب بدء التدقيق - %s", auditPlanDetails.Title)
@@ -118,15 +126,16 @@ func (aps *AuditPlanCommencementLetterService) Create(auditPlanId uint, currentU
 		bodyAr := generateLetterBodyAr(auditableItems, auditPlanDetails)
 
 		commencementLetter := &models.AuditPlanCommencementLetter{
-			AuditPlanID:       auditPlanId,
-			ResponsibleUnitID: unitID,
-			SubjectEn:         subjectEn,
-			SubjectAr:         subjectAr,
-			BodyEn:            bodyEn,
-			BodyAr:            bodyAr,
-			FromUserID:        *auditPlanDetails.TeamLeadID,
-			CreatedBYID:       currentUserID,
-			CreatedAt:         time.Now(),
+			AuditPlanID:                         auditPlanId,
+			ResponsibleUnitID:                   unitID,
+			SubjectEn:                           subjectEn,
+			SubjectAr:                           subjectAr,
+			BodyEn:                              bodyEn,
+			BodyAr:                              bodyAr,
+			FromUserID:                          *auditPlanDetails.TeamLeadID,
+			AuditPlanCommencementLetterStatusID: auditPlanCommencementLetterStatus.ID,
+			CreatedBYID:                         currentUserID,
+			CreatedAt:                           time.Now(),
 		}
 
 		if _, err := aps.repo.Create(commencementLetter, tx); err != nil {
@@ -216,9 +225,14 @@ func (aps *AuditPlanCommencementLetterService) Send(auditPlanID uint, letterID u
 
 	tx := aps.repo.BeginTransaction()
 
-	// Update email details in commencement letter
-	existingCommencementLetter.ToEmailIDs = commencementLetterSendFormDTO.ToEmailIDs
-	existingCommencementLetter.CCEmailIDs = &commencementLetterSendFormDTO.CCEmailIDs
+	auditPlanCommencementLetterStatus, err := aps.auditPlanCommencementLetterStatusSvc.GetByType("sent")
+	if err != nil {
+		return err
+	}
+
+	currentTime := time.Now()
+	existingCommencementLetter.AuditPlanCommencementLetterStatusID = auditPlanCommencementLetterStatus.ID
+	existingCommencementLetter.SentAt = &currentTime
 	existingCommencementLetter.UpdatedBYID = &currentUserID
 
 	err = aps.repo.Update(existingCommencementLetter, tx)
@@ -227,23 +241,20 @@ func (aps *AuditPlanCommencementLetterService) Send(auditPlanID uint, letterID u
 		return err
 	}
 
-	// Handle ToUserIDs - Loop over the to_user_ids from the DTO
-	for _, userID := range commencementLetterSendFormDTO.ToUserIDs {
-		toUser := &models.AuditPlanCommencementLetterToUserID{
-			AuditPlanCommencementLetterID: letterID,
-			UserID:                        userID,
-			CreatedByID:                   currentUserID,
-		}
+	toUser := &models.AuditPlanCommencementLetterToUser{
+		AuditPlanCommencementLetterID: letterID,
+		UserID:                        commencementLetterSendFormDTO.ToUserID,
+		CreatedByID:                   currentUserID,
+	}
 
-		err := aps.repo.CreateToUser(toUser, tx)
-		if err != nil {
-			tx.Rollback()
-			return err
-		}
+	err = aps.repo.CreateToUser(toUser, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
 	}
 
 	for _, ccUserID := range commencementLetterSendFormDTO.CCUserIDs {
-		ccUser := &models.AuditPlanCommencementLetterCCUserID{
+		ccUser := &models.AuditPlanCommencementLetterCCUser{
 			AuditPlanCommencementLetterID: letterID,
 			UserID:                        *ccUserID,
 			CreatedByID:                   currentUserID,
@@ -260,57 +271,87 @@ func (aps *AuditPlanCommencementLetterService) Send(auditPlanID uint, letterID u
 
 	// Start sending notifications and emails asynchronously
 	go func() {
-		for _, userID := range commencementLetterSendFormDTO.ToUserIDs {
-			toUserDetails, err := aps.userSvc.GetByID(userID)
+		toUserDetails, err := aps.userSvc.GetByID(commencementLetterSendFormDTO.ToUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch user details", map[string]interface{}{
+				"error":  err.Error(),
+				"userID": commencementLetterSendFormDTO.ToUserID,
+			})
+			return
+		}
+
+		fromUserDetails, err := aps.userSvc.GetFullDetailsByID(existingCommencementLetter.FromUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch user details", map[string]interface{}{
+				"error":  err.Error(),
+				"userID": existingCommencementLetter.FromUserID,
+			})
+			return
+		}
+
+		// Fetch CC User Details
+		var ccEmails []string
+		for _, ccUserID := range commencementLetterSendFormDTO.CCUserIDs {
+			ccUserDetails, err := aps.userSvc.GetByID(*ccUserID) // Ensure *ccUserID is dereferenced safely
 			if err != nil {
-				utility.LogError("Failed to fetch user details", map[string]interface{}{
+				utility.LogError("Failed to fetch CC user details", map[string]interface{}{
 					"error":  err.Error(),
-					"userID": userID,
+					"userID": *ccUserID,
 				})
 				continue
 			}
+			ccEmails = append(ccEmails, ccUserDetails.Email)
+		}
 
-			// Prepare DB Notification
-			entity := "audit-plan-commencement-letter"
-			action := "send"
-			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserID:               userID,
-				ModuleIdentifier:     "audit",
-				NotificationType:     string(commonDTOs.AssignmentType),
-				HeadingEn:            "Audit Commencement Letter Sent",
-				HeadingAr:            "تم إرسال خطاب بدء التدقيق",
-				TitleEn:              existingCommencementLetter.SubjectEn,
-				TitleAr:              existingCommencementLetter.SubjectAr,
-				Entity:               &entity,
-				Action:               &action,
-				IsSystemNotification: false,
-				CreatedByID:          &currentUserID,
-			}
+		// Prepare DB Notification (unchanged)
+		entity := "audit-plan-commencement-letter"
+		action := "send"
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserID:               commencementLetterSendFormDTO.ToUserID,
+			ModuleIdentifier:     "audit",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			HeadingEn:            "Audit Commencement Letter Sent",
+			HeadingAr:            "تم إرسال خطاب بدء التدقيق",
+			TitleEn:              existingCommencementLetter.SubjectEn,
+			TitleAr:              existingCommencementLetter.SubjectAr,
+			Entity:               &entity,
+			Action:               &action,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
 
-			// Prepare Email Notification
-			emailTo := []string{toUserDetails.Email}
-			emailData := map[string]interface{}{
-				"FirstNameEn": toUserDetails.FirstNameEn,
-				"LastNameEn":  toUserDetails.LastNameEn,
-				"SubjectEn":   existingCommencementLetter.SubjectEn,
-				"BodyEn":      template.HTML(strings.ReplaceAll(existingCommencementLetter.BodyEn, "\n", "<br>")),
-				"SentOn":      time.Now().Format("2006-01-02"),
-			}
-			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
-				EmailTo:              emailTo,
-				Subject:              existingCommencementLetter.SubjectEn,
-				TemplateRelativePath: "audit/templates/email/audit_commencement_letter_send.html",
-				EmailData:            emailData,
-			}
+		// Prepare Email Notification
+		emailTo := []string{toUserDetails.Email}
+		emailData := map[string]interface{}{
+			"FirstNameEn":          toUserDetails.FirstNameEn,
+			"LastNameEn":           toUserDetails.LastNameEn,
+			"SubjectEn":            existingCommencementLetter.SubjectEn,
+			"BodyEn":               template.HTML(strings.ReplaceAll(existingCommencementLetter.BodyEn, "\n", "<br>")),
+			"FromUserFirstNameEn":  fromUserDetails.FirstNameEn,
+			"FromUserLastNameEn":   fromUserDetails.LastNameEn,
+			"FromUserDesignation":  fromUserDetails.Designation.TitleEn,
+			"FromUserMobileNumber": fromUserDetails.MobileNumber,
+			"FromUserEmail":        fromUserDetails.Email,
+		}
+		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              emailTo,
+			Subject:              existingCommencementLetter.SubjectEn,
+			TemplateRelativePath: "audit/templates/email/audit_commencement_letter_send.html",
+			EmailData:            emailData,
+		}
 
-			// Send Notifications and Email
-			err = aps.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "audit")
-			if err != nil {
-				utility.LogError("Failed to send notifications", map[string]interface{}{
-					"error": err.Error(),
-					"user":  toUserDetails.Email,
-				})
-			}
+		// Include CC Emails if they exist
+		if len(ccEmails) > 0 {
+			emailNotificationDTO.CC = ccEmails
+		}
+
+		// Send Notifications and Email
+		err = aps.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "audit")
+		if err != nil {
+			utility.LogError("Failed to send notifications", map[string]interface{}{
+				"error": err.Error(),
+				"user":  toUserDetails.Email,
+			})
 		}
 	}()
 

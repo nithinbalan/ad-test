@@ -2,10 +2,13 @@ package services
 
 import (
 	"errors"
+	commonDTOs "jethur/grc/common/dtos"
+	commonService "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	userDTOs "jethur/grc/organization/dtos"
 	organizationRepositories "jethur/grc/organization/repositories"
+	settingService "jethur/grc/settings/services"
 	"jethur/utility"
 	"sort"
 
@@ -35,17 +38,23 @@ type UserSettingServiceInterface interface {
 }
 
 type UserSettingService struct {
-	repo           organizationRepositories.UserSettingRepositoryInterface
-	userSvc        UserServiceInterface
-	activityLogSvc logServices.ActivityLogServiceInterface
+	repo                     organizationRepositories.UserSettingRepositoryInterface
+	userSvc                  UserServiceInterface
+	activityLogSvc           logServices.ActivityLogServiceInterface
+	notificationSvc          commonService.NotificationServiceInterface
+	emailTemplateSettingsSvc settingService.EmailTemplateSettingsServiceInterface
 }
 
 func NewUserSettingService(
 	repo organizationRepositories.UserSettingRepositoryInterface,
-	activityLogSvc logServices.ActivityLogServiceInterface) UserSettingServiceInterface {
+	activityLogSvc logServices.ActivityLogServiceInterface,
+	notificationSvc commonService.NotificationServiceInterface,
+	emailTemplateSettingsSvc settingService.EmailTemplateSettingsServiceInterface) UserSettingServiceInterface {
 	return &UserSettingService{
-		repo:           repo,
-		activityLogSvc: activityLogSvc,
+		repo:                     repo,
+		activityLogSvc:           activityLogSvc,
+		notificationSvc:          notificationSvc,
+		emailTemplateSettingsSvc: emailTemplateSettingsSvc,
 	}
 }
 
@@ -236,6 +245,28 @@ func (uss *UserSettingService) ResetPassword(userID uint) error {
 		return err
 	}
 
+	emailTemplateSettings, err := uss.emailTemplateSettingsSvc.GetEmailTemplateSettings()
+	if err != nil {
+		return err
+	}
+
+	socialLinks, err := uss.notificationSvc.GetSocialMediaLinks()
+	if err != nil {
+		return err
+	}
+
+	emailTemplateAndSocialDTO := &commonDTOs.EmailTemplateAndSocialDTO{
+		HeaderImageURL: emailTemplateSettings.HeaderImageURL,
+		SupportText:    emailTemplateSettings.SupportText,
+		ClosingText:    emailTemplateSettings.ClosingText,
+		FooterLogoURL:  emailTemplateSettings.FooterLogoURL,
+		FooterAddress:  emailTemplateSettings.FooterAddress,
+		FooterEmail:    emailTemplateSettings.FooterEmail,
+		Linkedin:       &socialLinks.Linkedin,
+		X:              &socialLinks.X,
+		Facebook:       &socialLinks.Facebook,
+	}
+
 	emailData := userDTOs.SendNewPasswordEmailDTO{
 		FirstNameEn: user.FirstNameEn,
 		LastNameEn:  user.LastNameEn,
@@ -247,7 +278,7 @@ func (uss *UserSettingService) ResetPassword(userID uint) error {
 	subject := "Important: Your Account Password Has Been Updated"
 	templateRelativePath := "organization/templates/email/send_new_password.html"
 
-	err = utility.SendTemplatedEmail(to, subject, templateRelativePath, emailData, nil, nil)
+	err = utility.SendTemplatedEmail(to, subject, templateRelativePath, emailData, emailTemplateAndSocialDTO, nil)
 
 	if err != nil {
 		return err
