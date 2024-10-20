@@ -8,17 +8,17 @@ WHERE identifier = 'grc_dashboard';
 
 -- Update icon for Audit Menu
 UPDATE modules
-SET icon = 'icon-audit-menu'
+SET icon = 'icon-audit-menu.svg'
 WHERE identifier = 'audit';
 
 -- Update icon for Audit Insight Menu
 UPDATE modules
-SET icon = 'icon-audit-insight-menu'
+SET icon = 'icon-audit-insight-menu.svg'
 WHERE identifier = 'audit_insights';
 
 -- Update icon for Incident Menu
 UPDATE modules
-SET icon = 'icon-incident-menu'
+SET icon = 'icon-incident-menu.svg'
 WHERE identifier = 'incident';
 
 -- Insert General Setting Sub-Module under Settings
