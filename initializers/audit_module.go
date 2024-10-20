@@ -51,6 +51,8 @@ type AuditModule struct {
 	AuditDraftReportReviewController             *controllers.AuditDraftReportReviewController
 	AuditDraftReportCommentController            *controllers.AuditDraftReportCommentController
 	AuditPlanCommencementLetterController        *controllers.AuditPlanCommencementLetterController
+	AuditFinalReportStatusController             *controllers.AuditFinalReportStatusController
+	AuditFinalReportController                   *controllers.AuditFinalReportController
 
 	AuditPlanSvc                        services.AuditPlanServiceInterface
 	AuditSvc                            services.AuditServiceInterface
@@ -402,6 +404,23 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 	)
 	auditPlanCommencementLetterController := controllers.NewAuditPlanCommencementLetterController(auditPlanCommencementLetterSvc)
 
+	auditFinalReportStatusRepo := repositories.NewAuditFinalReportStatusRepository(db)
+	auditFinalReportStatusSvc := services.NewAuditFinalReportStatusService(auditFinalReportStatusRepo)
+	auditFinalReportStatusController := controllers.NewAuditFinalReportStatusController(auditFinalReportStatusSvc)
+
+	auditFinalReportRepo := repositories.NewAuditFinalReportRepository(db)
+	auditFinalReportSvc := services.NewAuditFinalReportService(
+		auditFinalReportRepo,
+		sharedModule.ActivityLogService,
+		auditSvc,
+		auditDraftReportStatusSvc,
+		auditDraftReportSvc,
+		auditDraftFindingSvc,
+		organizationModule.UserSvc,
+		auditFinalReportStatusSvc,
+	)
+	auditFinalReportController := controllers.NewAuditFinalReportController(auditFinalReportSvc)
+
 	return &AuditModule{
 		AuditorRiskRatingController:                  auditorRiskRatingController,
 		AuditUniverseController:                      auditUniverseController,
@@ -445,6 +464,8 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		AuditDraftReportReviewController:             auditDraftReportReviewController,
 		AuditDraftReportCommentController:            auditDraftReportCommentController,
 		AuditPlanCommencementLetterController:        auditPlanCommencementLetterController,
+		AuditFinalReportStatusController:             auditFinalReportStatusController,
+		AuditFinalReportController:                   auditFinalReportController,
 
 		AuditPlanSvc:                        auditPlanSvc,
 		AuditSvc:                            auditSvc,

@@ -57,6 +57,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditDraftReportReviewController := app.AuditModule.AuditDraftReportReviewController
 	auditDraftReportCommentController := app.AuditModule.AuditDraftReportCommentController
 	auditPlanCommencementLetterController := app.AuditModule.AuditPlanCommencementLetterController
+	auditFinalReportStatusController := app.AuditModule.AuditFinalReportStatusController
+	auditFinalReportController := app.AuditModule.AuditFinalReportController
 
 	//Audit Status
 	auditRoutes.GET("/audit-statuses", auditStatusController.GetAllAuditStatuses)
@@ -334,5 +336,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.PUT("/audit-plans/:planId/commencement-letters/:id", auditPlanCommencementLetterController.UpdateAuditPlanCommencementLetter)
 	auditRoutes.DELETE("/audit-plans/:planId/commencement-letters/:id", auditPlanCommencementLetterController.DeleteAuditPlanCommencementLetter)
 	auditRoutes.PUT("/audit-plans/:planId/commencement-letters/:id/send", auditPlanCommencementLetterController.SendAuditPlanCommencementLetter)
+	
+	//Audit Final Report Status
+	auditRoutes.GET("/audit-final-report-statuses", auditFinalReportStatusController.GetAllAuditFinalReportStatuses)
+	auditRoutes.GET("/audit-final-report-statuses/:id", auditFinalReportStatusController.GetAuditFinalReportStatusDetails)
+
+	//Audit Final Reports
+	auditRoutes.POST("/audits/:auditId/final-reports", auditFinalReportController.CreateAuditFinalReport)
 
 }

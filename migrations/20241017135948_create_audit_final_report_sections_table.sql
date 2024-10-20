@@ -3,7 +3,6 @@
 CREATE TABLE audit_final_report_sections
 (
     id INT PRIMARY KEY IDENTITY(1, 1),
-    reference_number VARCHAR(45) NOT NULL,
     audit_final_report_id INT NOT NULL,
     title_en NVARCHAR(255) NOT NULL,
     title_ar NVARCHAR(255) NOT NULL,

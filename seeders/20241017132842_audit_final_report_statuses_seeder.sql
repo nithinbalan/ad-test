@@ -1,6 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
-INSERT INTO audit_final_draft_report_statuses
+INSERT INTO audit_final_report_statuses
     (title_en, title_ar, type, color_code, status)
 VALUES
     ('Draft', 'مسودة', 'draft', '#FFC107', 'active'),
@@ -14,5 +14,5 @@ VALUES
 
 -- +goose Down
 -- +goose StatementBegin
-TRUNCATE TABLE audit_final_draft_report_statuses;
+TRUNCATE TABLE audit_final_report_statuses;
 -- +goose StatementEnd

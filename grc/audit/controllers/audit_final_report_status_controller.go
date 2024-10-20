@@ -1,0 +1,54 @@
+package controllers
+
+import (
+	"jethur/grc/audit/services"
+	"jethur/utility"
+	"net/http"
+	"strconv"
+
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
+)
+
+type AuditFinalReportStatusController struct {
+	service services.AuditFinalReportStatusServiceInterface
+	db      *gorm.DB
+}
+
+func NewAuditFinalReportStatusController(service services.AuditFinalReportStatusServiceInterface) *AuditFinalReportStatusController {
+	return &AuditFinalReportStatusController{
+		service: service,
+	}
+}
+
+func (afrs *AuditFinalReportStatusController) GetAllAuditFinalReportStatuses(c *gin.Context) {
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+
+	auditFinalReportStatuses, err := afrs.service.GetAll(sort, sortBy, keyword)
+
+	if err != nil {
+		utility.SendInternalErrResp(afrs.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, auditFinalReportStatuses)
+}
+
+func (afrs *AuditFinalReportStatusController) GetAuditFinalReportStatusDetails(c *gin.Context) {
+	idStr := c.Param("id")
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	auditFinalReportStatus, err := afrs.service.GetByID(uint(id))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	c.JSON(http.StatusOK, auditFinalReportStatus)
+}
