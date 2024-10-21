@@ -18,8 +18,8 @@ type DocumentAccessRepositoryInterface interface {
 
 	CreateSharedUsers(sharedUsers []*models.DocumentSharedUser, tx ...utility.DatabaseTransaction) error
 	CreateSharedUnits(sharedUnits []*models.DocumentSharedUnit, tx ...utility.DatabaseTransaction) error
-	DeleteSharedUsers(documentID uint, userIDs []*uint) error
-	DeleteSharedUnits(documentID uint, unitIDs []*uint) error
+	DeleteSharedUsers(documentID uint, userIDs []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteSharedUnits(documentID uint, unitIDs []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type DocumentAccessRepository struct {
@@ -128,12 +128,22 @@ func (repo *DocumentAccessRepository) CreateSharedUnits(sharedUnits []*models.Do
 	return db.Create(sharedUnits).Error
 }
 
-func (repo *DocumentAccessRepository) DeleteSharedUsers(documentID uint, userIDs []*uint) error {
-	return repo.db.Where("document_id = ? AND user_id IN (?)", documentID, userIDs).
+func (repo *DocumentAccessRepository) DeleteSharedUsers(documentID uint, userIDs []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Where("document_id = ? AND user_id IN (?)", documentID, userIDs).
 		Delete(&models.DocumentSharedUser{}).Error
 }
 
-func (repo *DocumentAccessRepository) DeleteSharedUnits(documentID uint, unitIDs []*uint) error {
-	return repo.db.Where("document_id = ? AND organization_unit_id IN (?)", documentID, unitIDs).
+func (repo *DocumentAccessRepository) DeleteSharedUnits(documentID uint, unitIDs []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Where("document_id = ? AND organization_unit_id IN (?)", documentID, unitIDs).
 		Delete(&models.DocumentSharedUnit{}).Error
 }
