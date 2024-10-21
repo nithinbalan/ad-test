@@ -165,6 +165,24 @@ func (krs *KRIRegisterService) Create(currentUserID uint, kriRegisterFormDTO *ri
 	if err != nil {
 		return 0, err
 	}
+
+	initialValue := "Initial kri value"
+	kriValueUpdate := &models.KRIValueUpdate{
+		KRIRegisterID:   id,
+		UnitID:          kriRegisterFormDTO.UnitID,
+		ReviewedDate:    *dates.NextReviewDate,
+		Value:           *kriRegisterFormDTO.CurrentValue,
+		LowThreshold:    kriRegisterFormDTO.LowThreshold,
+		MediumThreshold: kriRegisterFormDTO.MediumThreshold,
+		HighThreshold:   kriRegisterFormDTO.HighThreshold,
+		Remarks:         &initialValue,
+		CreatedByID:     currentUserID,
+	}
+	_, err = krs.repo.CreateInitialKriValueUpdate(kriValueUpdate)
+	if err != nil {
+		return 0, err
+	}
+
 	go func() {
 		err := krs.activityLogSvc.LogActivity(
 			models.CreateAction,
@@ -484,11 +502,21 @@ func (krs *KRIRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 			continue
 		}
 
-		kriRegister, err := krs.GetFullDetailsByID(id)
+		kriRegister, err := krs.repo.GetFullDetailsByID(id)
 		if err != nil {
 			return nil, err
 		}
 
+		if len(kriRegister.ValueUpdates) > 0 {
+			var deleteStatusUpdateIds []*uint
+			for _, update := range kriRegister.ValueUpdates {
+				deleteStatusUpdateIds = append(deleteStatusUpdateIds, &update.ID)
+			}
+			if err := krs.repo.DeleteKriValueUpdates(deleteStatusUpdateIds); err != nil {
+				failedIds = append(failedIds, id)
+				continue
+			}
+		}
 		err = krs.repo.Delete(id)
 		if err != nil {
 			failedIds = append(failedIds, id)
@@ -506,7 +534,7 @@ func (krs *KRIRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 		}{
 			OwnerID:         &kriRegister.ResponsibleUserID,
 			TitleEn:         kriRegister.Title,
-			Description:     *kriRegister.Description,
+			Description:     kriRegister.Description,
 			ReferenceNumber: kriRegister.ReferenceNumber,
 		})
 	}

@@ -22,6 +22,8 @@ type KRIRegisterRepositoryInterface interface {
 	ExistsByTitle(Title string, KRICategoryID uint) (bool, error)
 	ExistsByTitleExcludingID(id uint, Title string, KRICategoryID uint) (bool, error)
 	GenerateReferenceNumber() (string, error)
+	CreateInitialKriValueUpdate(kriValueUpdate *models.KRIValueUpdate, tx ...utility.DatabaseTransaction) (uint, error)
+	DeleteKriValueUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type KRIRegisterRepository struct {
@@ -236,6 +238,7 @@ func (repo *KRIRegisterRepository) GetFullDetailsByID(id uint) (*models.KRIRegis
 		Preload("ReviewFrequency").
 		Preload("RiskLevel").
 		Preload("Unit").
+		Preload("ValueUpdates").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&kriRegister, id)
@@ -334,4 +337,28 @@ func (repo *KRIRegisterRepository) GenerateReferenceNumber() (string, error) {
 	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "KRI", currentYear, lastReferenceID+1)
 
 	return newReferenceNumber, nil
+}
+
+func (repo *KRIRegisterRepository) CreateInitialKriValueUpdate(kriValueUpdate *models.KRIValueUpdate, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(kriValueUpdate).Error; err != nil {
+		return 0, err
+	}
+	return kriValueUpdate.ID, nil
+}
+
+func (repo *KRIRegisterRepository) DeleteKriValueUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", ids).Delete(&models.KRIValueUpdate{}).Error; err != nil {
+		return err
+	}
+
+	return nil
 }
