@@ -1,7 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
 INSERT INTO roles (title_en, title_ar, status, is_super_admin) VALUES
-('Admin', 'مدير النظام', 'active', 1),
+('Super Admin', 'المشرف الفائق', 'active', 1),
 ('Auditor', 'محرر', 'active', 0),
 ('Risk Manager', 'مشاهد', 'active', 0),
 ('Risk Exicutive', 'ضيف', 'active', 0);
