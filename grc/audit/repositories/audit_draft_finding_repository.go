@@ -188,6 +188,7 @@ func (repo *AuditDraftFindingRepository) GetAllFindingsByAuditID(auditId uint) (
 	// Query to retrieve all findings by audit_id
 	result := repo.db.
 		Preload("AuditDraftFindingStatus").
+		Preload("AuditDraftFindingActionPlans").
 		Where("audit_id = ?", auditId).
 		Find(&auditFindings)
 

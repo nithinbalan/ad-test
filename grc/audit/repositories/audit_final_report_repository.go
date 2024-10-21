@@ -15,7 +15,7 @@ type AuditFinalReportRepositoryInterface interface {
 	GenerateReferenceNumber() (string, error)
 	GetByAuditID(auditID uint) (*models.AuditFinalReport, error)
 	Create(auditFinalReport *models.AuditFinalReport, tx ...utility.DatabaseTransaction) (uint, error)
-	CreateAuditFindings(findings []*models.AuditFinding, tx ...utility.DatabaseTransaction) error
+	CreateAuditFindingActionPlans(actionPlans []*models.AuditFindingActionPlan, tx ...utility.DatabaseTransaction) error
 	CreateAuditFinalReportSections(sections []*models.AuditFinalReportSection, tx ...utility.DatabaseTransaction) error
 	GetSectionByType(sectionType string, tx ...utility.DatabaseTransaction) (*models.AuditFinalReportSection, error)
 }
@@ -34,7 +34,6 @@ func NewAuditFinalReportRepository(db *gorm.DB) *AuditFinalReportRepository {
 func (repo *AuditFinalReportRepository) BeginTransaction() utility.DatabaseTransaction {
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
-
 
 func (repo *AuditFinalReportRepository) Create(auditFinalReport *models.AuditFinalReport, tx ...utility.DatabaseTransaction) (uint, error) {
 	db := repo.db
@@ -92,13 +91,13 @@ func (repo *AuditFinalReportRepository) GetByAuditID(auditID uint) (*models.Audi
 	return &auditFinalReport, nil
 }
 
-func (repo *AuditFinalReportRepository) CreateAuditFindings(findings []*models.AuditFinding, tx ...utility.DatabaseTransaction) error {
+func (repo *AuditFinalReportRepository) CreateAuditFindingActionPlans(actionPlans []*models.AuditFindingActionPlan, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
 
-	if err := db.Create(&findings).Error; err != nil {
+	if err := db.Create(&actionPlans).Error; err != nil {
 		return err
 	}
 
@@ -106,21 +105,19 @@ func (repo *AuditFinalReportRepository) CreateAuditFindings(findings []*models.A
 }
 
 func (repo *AuditFinalReportRepository) CreateAuditFinalReportSections(sections []*models.AuditFinalReportSection, tx ...utility.DatabaseTransaction) error {
-    db := repo.db
-    if len(tx) > 0 && tx[0] != nil {
-        db = tx[0].DB()
-    }
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 
-    // Insert the sections and automatically update their IDs
-    if err := db.Create(&sections).Error; err != nil {
-        return err
-    }
+	// Insert the sections and automatically update their IDs
+	if err := db.Create(&sections).Error; err != nil {
+		return err
+	}
 
-    // The IDs of the inserted sections should now be available in each section object.
-    return nil
+	// The IDs of the inserted sections should now be available in each section object.
+	return nil
 }
-
-
 
 func (repo *AuditFinalReportRepository) GetSectionByType(sectionType string, tx ...utility.DatabaseTransaction) (*models.AuditFinalReportSection, error) {
 	var section models.AuditFinalReportSection

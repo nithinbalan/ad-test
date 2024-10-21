@@ -2,6 +2,8 @@ package services
 
 import (
 	"errors"
+	"fmt"
+	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
@@ -25,6 +27,7 @@ type AuditFinalReportService struct {
 	auditDraftFindingSvc      AuditDraftFindingServiceInterface
 	userSvc                   organizationServices.UserServiceInterface
 	auditFinalReportStatusSvc AuditFinalReportStatusServiceInterface
+	auditFindingSvc           AuditFindingServiceInterface
 }
 
 func NewAuditFinalReportService(
@@ -36,6 +39,7 @@ func NewAuditFinalReportService(
 	auditDraftFindingSvc AuditDraftFindingServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	auditFinalReportStatusSvc AuditFinalReportStatusServiceInterface,
+	auditFindingSvc AuditFindingServiceInterface,
 ) AuditFinalReportServiceInterface {
 	return &AuditFinalReportService{
 		repo:                      repo,
@@ -46,6 +50,7 @@ func NewAuditFinalReportService(
 		auditDraftFindingSvc:      auditDraftFindingSvc,
 		userSvc:                   userSvc,
 		auditFinalReportStatusSvc: auditFinalReportStatusSvc,
+		auditFindingSvc:           auditFindingSvc,
 	}
 }
 
@@ -63,33 +68,35 @@ func (afrs *AuditFinalReportService) GetByAuditID(auditID uint) (*models.AuditFi
 func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (uint, error) {
 	tx := afrs.repo.BeginTransaction()
 	if _, err := afrs.auditSvc.GetByID(auditID); err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 	// Check if a final report already exists for this audit
-	existingReport, err := afrs.repo.GetByAuditID(auditID)
-	if err != nil {
-		tx.Rollback()
-		return 0, err
-	}
+	// existingReport, err := afrs.repo.GetByAuditID(auditID)
+	// if err != nil {
+	//     tx.Rollback()
+	//     return 0, err
+	// }
 
-	// If an existing report is found, do not allow creation
-	if existingReport != nil {
-		tx.Rollback()
-		return 0, utility.NewForbiddenError("An audit final report already exists for this audit.")
-	}
+	// // If an existing report is found, rollback and return an error
+	// if existingReport != nil {
+	//     tx.Rollback()
+	//     return 0, utility.NewForbiddenError("An audit final report already exists for this audit.")
+	// }
 	auditDraftReport, err := afrs.auditDraftReportSvc.GetByAuditID(auditID)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
 	}
 
-
 	// Check if AuditDraftReportStatus is 'completed'
 	completedStatus, err := afrs.auditDraftReportStatusSvc.GetByType("completed")
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 	if auditDraftReport.AuditDraftReportStatusID != completedStatus.ID {
+		tx.Rollback()
 		return 0, utility.NewForbiddenError("Action not allowed: Only audit draft reports with an 'Completed' status can be accepted.")
 	}
 	audit, err := afrs.auditSvc.GetFullDetailsByID(auditID)
@@ -121,10 +128,12 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 	}
 	auditFinalReportStatus, err := afrs.auditFinalReportStatusSvc.GetByType("draft")
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 	referenceNumber, err := afrs.repo.GenerateReferenceNumber()
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 	auditFinalReport := &models.AuditFinalReport{
@@ -177,7 +186,6 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 
 	// Step 2: For each main section, insert sub-sections based on their type
 	var reportSubSections []*models.AuditFinalReportSection
-	var findings []*models.AuditFinding
 
 	for _, section := range reportSections {
 		mainSection, err := afrs.repo.GetSectionByType(section.Type, tx)
@@ -227,73 +235,78 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 			})
 		}
 		if section.Type == "overview" && auditDraftReport.Audit.AuditPlan.AuditableItems != nil {
-			// Add a general "Audit Procedure" section first
+			// Prepare an HTML list for the auditable items
+			auditableItemsListEn := "<ul>"
+			auditableItemsListAr := "<ul>"
+
+			// Helper function to add items to the list
+			addToList := func(titleEn, titleAr string) {
+				auditableItemsListEn += fmt.Sprintf("<li>%s</li>", titleEn)
+				auditableItemsListAr += fmt.Sprintf("<li>%s</li>", titleAr)
+			}
+
+			for _, auditableItem := range auditDraftReport.Audit.AuditPlan.AuditableItems {
+				titleEn, titleAr := "", ""
+
+				switch auditableItem.AuditableItem.Type {
+				case "process":
+					titleEn = auditableItem.AuditableItem.Process.TitleEn
+					titleAr = auditableItem.AuditableItem.Process.TitleAr
+
+				case "control":
+					titleEn = auditableItem.AuditableItem.Control.TitleEn
+					titleAr = auditableItem.AuditableItem.Control.TitleAr
+
+				case "document":
+					titleEn = auditableItem.AuditableItem.Document.TitleEn
+					titleAr = auditableItem.AuditableItem.Document.TitleAr
+
+				case "incident":
+					titleEn = auditableItem.AuditableItem.IncidentRegister.Title
+					titleAr = auditableItem.AuditableItem.IncidentRegister.Title
+
+				case "compliance_requirement":
+					titleEn = auditableItem.AuditableItem.ComplianceRequirement.Title
+					titleAr = auditableItem.AuditableItem.ComplianceRequirement.Title
+
+				case "risk":
+					titleEn = auditableItem.AuditableItem.RiskRegister.Title
+					titleAr = auditableItem.AuditableItem.RiskRegister.Title
+
+				case "user":
+					titleEn = auditableItem.AuditableItem.User.FirstNameEn
+					titleAr = auditableItem.AuditableItem.User.FirstNameAr
+
+				case "custom":
+					if auditableItem.AuditableItem.TitleEn != nil && auditableItem.AuditableItem.TitleAr != nil {
+						titleEn = *auditableItem.AuditableItem.TitleEn
+						titleAr = *auditableItem.AuditableItem.TitleAr
+					}
+				}
+
+				// Only add to the list if titles are not empty
+				if titleEn != "" || titleAr != "" {
+					addToList(titleEn, titleAr)
+				}
+			}
+
+			// Close the HTML lists
+			auditableItemsListEn += "</ul>"
+			auditableItemsListAr += "</ul>"
+
+			// Add a single section with the full list of auditable items in both languages
 			reportSubSections = append(reportSubSections, &models.AuditFinalReportSection{
 				AuditFinalReportID:        id,
 				AuditFinalReportSectionID: &mainSection.ID,
 				TitleEn:                   "Scope of the Audit",
-				TitleAr:                   "ملخص تنفيذي",
-				// DescriptionEn:             auditDraftReport.Audit.AuditPlan.Purpose,
-				// DescriptionAr:             auditDraftReport.Audit.AuditPlan.Purpose,
+				TitleAr:                   "نطاق التدقيق",
+				DescriptionEn:             &auditableItemsListEn,
+				DescriptionAr:             &auditableItemsListAr,
 				Type:                      section.Type,
 				Order:                     float64Ptr(subOrder + 0.1),
 				CreatedBYID:               currentUserID,
 			})
-		
-			// Add a section for each auditable item
-			subOrder += 0.1 
-			for _, auditableItem := range auditDraftReport.Audit.AuditPlan.AuditableItems {
-				// Create a section for each auditable item
-				reportSubSections = append(reportSubSections, &models.AuditFinalReportSection{
-					AuditFinalReportID:        id,
-					AuditFinalReportSectionID: &mainSection.ID, 
-					TitleEn:                   "Scope of the Audit",
-					TitleAr:                   "البند القابل للتدقيق ",
-					DescriptionEn:             auditableItem.AuditableItem.TitleEn, 
-					DescriptionAr:             auditableItem.AuditableItem.TitleAr, 
-					Type:                      section.Type,
-					Order:                     float64Ptr(subOrder + 0.1),
-					CreatedBYID:               currentUserID,
-				})
-				subOrder += 0.1
-			}
-		}
-		
 
-		if section.Type == "findings" {
-			auditDraftFindings, err := afrs.auditDraftFindingSvc.GetAllFindingsByAuditID(auditID)
-			if err != nil {
-				tx.Rollback()
-				return 0, err
-			}
-			for _, draftFinding := range auditDraftFindings {
-				if draftFinding.AuditDraftFindingStatus != nil && draftFinding.AuditDraftFindingStatus.IsFinalized {
-					finding := &models.AuditFinding{
-						AuditID:                draftFinding.AuditID,
-						Title:                  draftFinding.Title,
-						Description:            draftFinding.Description,
-						AuditableItemID:        *draftFinding.AuditableItemID,
-						AuditFindingCategoryID: draftFinding.AuditFindingCategoryID,
-						SeverityLevelID:        *draftFinding.SeverityLevelID,
-						Recommendations:        draftFinding.Recommendations,
-						AuditFindingStatusID:   draftFinding.AuditDraftFindingStatusID,
-						CreatedBYID:            currentUserID,
-					}
-					findings = append(findings, finding)
-
-					reportSubSections = append(reportSubSections, &models.AuditFinalReportSection{
-						AuditFinalReportID:        id,
-						AuditFinalReportSectionID: &mainSection.ID,
-						TitleEn:                   draftFinding.Title,
-						TitleAr:                   draftFinding.Title,
-						DescriptionEn:             draftFinding.Description,
-						DescriptionAr:             draftFinding.Description,
-						Type:                      section.Type,
-						Order:                     float64Ptr(subOrder + 0.1),
-						CreatedBYID:               currentUserID,
-					})
-				}
-			}
 		}
 
 		if section.Type == "conclusion" && auditDraftReport.Conclusion != nil {
@@ -310,10 +323,54 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 			})
 		}
 	}
+	// findings only copying from draft findings to AuditFinding, not saving in to AuditFinalReportSection
+	auditDraftFindings, err := afrs.auditDraftFindingSvc.GetAllFindingsByAuditID(auditID)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	// Initialize slices for findings and action plans
+	var actionPlans []*models.AuditFindingActionPlan
 
-	//Bulk insert findings
-	if len(findings) > 0 {
-		if err := afrs.repo.CreateAuditFindings(findings, tx); err != nil {
+	for _, draftFinding := range auditDraftFindings {
+		if draftFinding.AuditDraftFindingStatus != nil && draftFinding.AuditDraftFindingStatus.IsFinalized {
+			// Create AuditFinding
+			findingDTO := &auditDTOs.AuditFindingFormDTO{
+				AuditID:                draftFinding.AuditID,
+				Title:                  draftFinding.Title,
+				Description:            draftFinding.Description,
+				AuditableItemID:        *draftFinding.AuditableItemID,
+				AuditFindingCategoryID: draftFinding.AuditFindingCategoryID,
+				SeverityLevelID:        *draftFinding.SeverityLevelID,
+				Recommendations:        draftFinding.Recommendations,
+			}
+			findingID, err := afrs.auditFindingSvc.Create(currentUserID, findingDTO)
+			if err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+			// Copy action plans from draft findings to final findings
+			for _, draftActionPlan := range draftFinding.AuditDraftFindingActionPlans {
+				actionPlan := &models.AuditFindingActionPlan{
+					Title:             draftActionPlan.Title,
+					AuditFindingID:    findingID,
+					Description:       &draftActionPlan.Description,
+					ResponsibleUserID: *draftActionPlan.ResponsibleUserID,
+					TargetDate:        draftActionPlan.TargetDate,
+					CreatedBYID:       currentUserID,
+					// SeverityLevelID:    draftActionPlan.SeverityLevelID,
+					ActionPlanStatusID: 1, //todo -- add ActionPlanStatusID
+				}
+				// Attach action plan to its respective AuditFinding
+				actionPlans = append(actionPlans, actionPlan)
+			}
+		}
+	}
+
+	// Bulk insert findings
+	if len(actionPlans) > 0 {
+		// Bulk insert action plans
+		if err := afrs.repo.CreateAuditFindingActionPlans(actionPlans, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
