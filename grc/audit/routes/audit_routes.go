@@ -15,6 +15,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	unauthenticatedRoutes := router.Group("/")
 
+	db := app.DB
+
 	auditStatusController := app.AuditModule.AuditStatusController
 	auditorRiskRatingController := app.AuditModule.AuditorRiskRatingController
 	auditUniverseController := app.AuditModule.AuditUniverseController
@@ -59,280 +61,280 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditPlanCommencementLetterController := app.AuditModule.AuditPlanCommencementLetterController
 
 	//Audit Status
-	auditRoutes.GET("/audit-statuses", auditStatusController.GetAllAuditStatuses)
-	auditRoutes.GET("/audit-statuses/:id", auditStatusController.GetAuditStatusDetails)
+	auditRoutes.GET("/audit-statuses", middlewares.RolePermissionMiddleware(db, "audit_setting", "view"), auditStatusController.GetAllAuditStatuses)
+	auditRoutes.GET("/audit-statuses/:id", middlewares.RolePermissionMiddleware(db, "audit_setting", "view"), auditStatusController.GetAuditStatusDetails)
 
 	//Auditor Risk Rating
-	auditRoutes.GET("/auditor-risk-ratings", auditorRiskRatingController.GetAllAuditorRiskRatings)
-	auditRoutes.GET("/auditor-risk-ratings/:id", auditorRiskRatingController.GetAuditorRiskRatingDetails)
+	auditRoutes.GET("/auditor-risk-ratings", middlewares.RolePermissionMiddleware(db, "audit_setting", "view"), auditorRiskRatingController.GetAllAuditorRiskRatings)
+	auditRoutes.GET("/auditor-risk-ratings/:id", middlewares.RolePermissionMiddleware(db, "audit_setting", "view"), auditorRiskRatingController.GetAuditorRiskRatingDetails)
 
 	//Audit Universe
-	auditRoutes.POST("/audit-universe/mark-as-auditable-item", auditUniverseController.MarkAsAuditableItem)
-	auditRoutes.POST("/audit-universe/unmark-as-auditable-item", auditUniverseController.UnmarkAsAuditableItem)
+	auditRoutes.POST("/audit-universe/mark-as-auditable-item", middlewares.RolePermissionMiddleware(db, "audit_universe", "modify"), auditUniverseController.MarkAsAuditableItem)
+	auditRoutes.POST("/audit-universe/unmark-as-auditable-item", middlewares.RolePermissionMiddleware(db, "audit_universe", "modify"), auditUniverseController.UnmarkAsAuditableItem)
 
 	//Auditable Item
-	auditRoutes.GET("/auditable-items", auditableItemController.GetAllAuditableItems)
-	auditRoutes.GET("/auditable-items/:id", auditableItemController.GetAuditableItemDetails)
-	auditRoutes.POST("/auditable-items", auditableItemController.CreateAuditableItem)
-	auditRoutes.PUT("/auditable-items/:id", auditableItemController.UpdateAuditableItem)
-	auditRoutes.POST("/auditable-items/delete", auditableItemController.DeleteAuditableItems)
+	auditRoutes.GET("/auditable-items", middlewares.RolePermissionMiddleware(db, "audit_universe", "view"), auditableItemController.GetAllAuditableItems)
+	auditRoutes.GET("/auditable-items/:id", middlewares.RolePermissionMiddleware(db, "audit_universe", "view"), auditableItemController.GetAuditableItemDetails)
+	auditRoutes.POST("/auditable-items", middlewares.RolePermissionMiddleware(db, "audit_universe", "modify"), auditableItemController.CreateAuditableItem)
+	auditRoutes.PUT("/auditable-items/:id", middlewares.RolePermissionMiddleware(db, "audit_universe", "modify"), auditableItemController.UpdateAuditableItem)
+	auditRoutes.POST("/auditable-items/delete", middlewares.RolePermissionMiddleware(db, "audit_universe", "modify"), auditableItemController.DeleteAuditableItems)
 
 	//Audit Team
-	auditRoutes.GET("/audit-teams", auditTeamController.GetAllAuditTeams)
-	auditRoutes.GET("/audit-teams/:id", auditTeamController.GetAuditTeamDetails)
-	auditRoutes.POST("/audit-teams", auditTeamController.CreateAuditTeam)
-	auditRoutes.PUT("/audit-teams/:id", auditTeamController.UpdateAuditTeam)
-	auditRoutes.POST("/audit-teams/delete", auditTeamController.DeleteAuditTeams)
+	auditRoutes.GET("/audit-teams", middlewares.RolePermissionMiddleware(db, "audit_setting", "view"), auditTeamController.GetAllAuditTeams)
+	auditRoutes.GET("/audit-teams/:id", middlewares.RolePermissionMiddleware(db, "audit_setting", "view"), auditTeamController.GetAuditTeamDetails)
+	auditRoutes.POST("/audit-teams", middlewares.RolePermissionMiddleware(db, "audit_setting", "modify"), auditTeamController.CreateAuditTeam)
+	auditRoutes.PUT("/audit-teams/:id", middlewares.RolePermissionMiddleware(db, "audit_setting", "modify"), auditTeamController.UpdateAuditTeam)
+	auditRoutes.POST("/audit-teams/delete", middlewares.RolePermissionMiddleware(db, "audit_setting", "modify"), auditTeamController.DeleteAuditTeams)
 
 	//Audit Category
-	auditRoutes.GET("/audit-categories", auditCategoryController.GetAllAuditCategories)
-	auditRoutes.GET("/audit-categories/:id", auditCategoryController.GetAuditCategoryDetails)
-	auditRoutes.POST("/audit-categories", auditCategoryController.CreateAuditCategory)
-	auditRoutes.PUT("/audit-categories/:id", auditCategoryController.UpdateAuditCategory)
-	auditRoutes.POST("/audit-categories/delete", auditCategoryController.DeleteAuditCategories)
-	auditRoutes.PUT("/audit-categories/activate", auditCategoryController.ActivateAuditCategories)
-	auditRoutes.PUT("/audit-categories/deactivate", auditCategoryController.DeactivateAuditCategories)
+	auditRoutes.GET("/audit-categories", middlewares.RolePermissionMiddleware(db, "audit_setting", "view"), auditCategoryController.GetAllAuditCategories)
+	auditRoutes.GET("/audit-categories/:id", middlewares.RolePermissionMiddleware(db, "audit_setting", "view"), auditCategoryController.GetAuditCategoryDetails)
+	auditRoutes.POST("/audit-categories", middlewares.RolePermissionMiddleware(db, "audit_setting", "modify"), auditCategoryController.CreateAuditCategory)
+	auditRoutes.PUT("/audit-categories/:id", middlewares.RolePermissionMiddleware(db, "audit_setting", "modify"), auditCategoryController.UpdateAuditCategory)
+	auditRoutes.POST("/audit-categories/delete", middlewares.RolePermissionMiddleware(db, "audit_setting", "modify"), auditCategoryController.DeleteAuditCategories)
+	auditRoutes.PUT("/audit-categories/activate", middlewares.RolePermissionMiddleware(db, "audit_setting", "modify"), auditCategoryController.ActivateAuditCategories)
+	auditRoutes.PUT("/audit-categories/deactivate", middlewares.RolePermissionMiddleware(db, "audit_setting", "modify"), auditCategoryController.DeactivateAuditCategories)
 
 	//AuditPlan
-	auditRoutes.GET("/audit-plans", auditPlanController.GetAllAuditPlans)
-	auditRoutes.GET("/audit-plans/:planId", auditPlanController.GetAuditPlanDetails)
-	auditRoutes.POST("/audit-plans", auditPlanController.CreateAuditPlan)
-	auditRoutes.PUT("/audit-plans/:planId", auditPlanController.UpdateAuditPlan)
-	auditRoutes.POST("/audit-plans/delete", auditPlanController.DeleteAuditPlans)
-	auditRoutes.POST("/audit-plans/:planId/publish", auditPlanController.PublishAuditPlan)
+	auditRoutes.GET("/audit-plans", middlewares.RolePermissionMiddleware(db, "audit_plans", "view"), auditPlanController.GetAllAuditPlans)
+	auditRoutes.GET("/audit-plans/:planId", middlewares.RolePermissionMiddleware(db, "audit_plans", "view"), auditPlanController.GetAuditPlanDetails)
+	auditRoutes.POST("/audit-plans", middlewares.RolePermissionMiddleware(db, "audit_plans", "modify"), auditPlanController.CreateAuditPlan)
+	auditRoutes.PUT("/audit-plans/:planId", middlewares.RolePermissionMiddleware(db, "audit_plans", "modify"), auditPlanController.UpdateAuditPlan)
+	auditRoutes.POST("/audit-plans/delete", middlewares.RolePermissionMiddleware(db, "audit_plans", "modify"), auditPlanController.DeleteAuditPlans)
+	auditRoutes.POST("/audit-plans/:planId/publish", middlewares.RolePermissionMiddleware(db, "audit_plans", "modify"), auditPlanController.PublishAuditPlan)
 
 	//AuditPlan Checklist
-	auditRoutes.GET("/audit-plans/:planId/checklists", auditPlanChecklistController.GetAllAuditPlanChecklists)
-	auditRoutes.GET("/audit-plans/:planId/checklists/:id", auditPlanChecklistController.GetAuditPlanChecklistDetails)
-	auditRoutes.POST("/audit-plans/:planId/checklists", auditPlanChecklistController.CreateAuditPlanChecklists)
-	auditRoutes.PUT("/audit-plans/:planId/checklists/:id", auditPlanChecklistController.UpdateAuditPlanChecklist)
-	auditRoutes.POST("/audit-plans/:planId/checklists/delete", auditPlanChecklistController.DeleteAuditPlanChecklists)
+	auditRoutes.GET("/audit-plans/:planId/checklists", middlewares.RolePermissionMiddleware(db, "audit_plans", "view"), auditPlanChecklistController.GetAllAuditPlanChecklists)
+	auditRoutes.GET("/audit-plans/:planId/checklists/:id", middlewares.RolePermissionMiddleware(db, "audit_plans", "view"), auditPlanChecklistController.GetAuditPlanChecklistDetails)
+	auditRoutes.POST("/audit-plans/:planId/checklists", middlewares.RolePermissionMiddleware(db, "audit_plans", "modify"), auditPlanChecklistController.CreateAuditPlanChecklists)
+	auditRoutes.PUT("/audit-plans/:planId/checklists/:id", middlewares.RolePermissionMiddleware(db, "audit_plans", "modify"), auditPlanChecklistController.UpdateAuditPlanChecklist)
+	auditRoutes.POST("/audit-plans/:planId/checklists/delete", middlewares.RolePermissionMiddleware(db, "audit_plans", "modify"), auditPlanChecklistController.DeleteAuditPlanChecklists)
 
 	//AuditPlan Tools
-	auditRoutes.GET("/audit-plans/:planId/tools", auditPlanToolController.GetAllAuditPlanTools)
-	auditRoutes.GET("/audit-plans/:planId/tools/:id", auditPlanToolController.GetAuditPlanToolDetails)
-	auditRoutes.POST("/audit-plans/:planId/tools", auditPlanToolController.CreateAuditPlanTool)
-	auditRoutes.PUT("/audit-plans/:planId/tools/:id", auditPlanToolController.UpdateAuditPlanTool)
-	auditRoutes.POST("/audit-plans/:planId/tools/delete", auditPlanToolController.DeleteAuditPlanTools)
+	auditRoutes.GET("/audit-plans/:planId/tools", middlewares.RolePermissionMiddleware(db, "audit_plans", "view"), auditPlanToolController.GetAllAuditPlanTools)
+	auditRoutes.GET("/audit-plans/:planId/tools/:id", middlewares.RolePermissionMiddleware(db, "audit_plans", "view"), auditPlanToolController.GetAuditPlanToolDetails)
+	auditRoutes.POST("/audit-plans/:planId/tools", middlewares.RolePermissionMiddleware(db, "audit_plans", "modify"), auditPlanToolController.CreateAuditPlanTool)
+	auditRoutes.PUT("/audit-plans/:planId/tools/:id", middlewares.RolePermissionMiddleware(db, "audit_plans", "modify"), auditPlanToolController.UpdateAuditPlanTool)
+	auditRoutes.POST("/audit-plans/:planId/tools/delete", middlewares.RolePermissionMiddleware(db, "audit_plans", "modify"), auditPlanToolController.DeleteAuditPlanTools)
 
 	//AuditPlan Auditable Item
-	auditRoutes.GET("/audit-plans/:planId/auditable-items", auditPlanAuditableItemController.GetAllAuditPlanAuditableItems)
-	auditRoutes.GET("/audit-plans/:planId/auditable-items/:id", auditPlanAuditableItemController.GetAllAuditPlanAuditableItemDetails)
-	auditRoutes.POST("/audit-plans/:planId/auditable-items", auditPlanAuditableItemController.CreateAuditPlanAuditableItem)
-	auditRoutes.POST("/audit-plans/:planId/auditable-items/delete", auditPlanAuditableItemController.DeleteAuditPlanAuditableItems)
+	auditRoutes.GET("/audit-plans/:planId/auditable-items", middlewares.RolePermissionMiddleware(db, "audit_plans", "view"), auditPlanAuditableItemController.GetAllAuditPlanAuditableItems)
+	auditRoutes.GET("/audit-plans/:planId/auditable-items/:id", middlewares.RolePermissionMiddleware(db, "audit_plans", "view"), auditPlanAuditableItemController.GetAllAuditPlanAuditableItemDetails)
+	auditRoutes.POST("/audit-plans/:planId/auditable-items", middlewares.RolePermissionMiddleware(db, "audit_plans", "modify"), auditPlanAuditableItemController.CreateAuditPlanAuditableItem)
+	auditRoutes.POST("/audit-plans/:planId/auditable-items/delete", middlewares.RolePermissionMiddleware(db, "audit_plans", "modify"), auditPlanAuditableItemController.DeleteAuditPlanAuditableItems)
 
 	//Audit Activity Type
-	auditRoutes.GET("/audit-activity-types", auditActivityTypeController.GetAllAuditActivityTypes)
-	auditRoutes.GET("/audit-activity-types/:id", auditActivityTypeController.GetAuditActivityTypeDetails)
-	auditRoutes.POST("/audit-activity-types", auditActivityTypeController.CreateAuditActivityType)
-	auditRoutes.PUT("/audit-activity-types/:id", auditActivityTypeController.UpdateAuditActivityType)
-	auditRoutes.POST("/audit-activity-types/delete", auditActivityTypeController.DeleteAuditActivityTypes)
-	auditRoutes.PUT("/audit-activity-types/activate", auditActivityTypeController.ActivateAuditActivityTypes)
-	auditRoutes.PUT("/audit-activity-types/deactivate", auditActivityTypeController.DeactivateAuditActivityTypes)
+	auditRoutes.GET("/audit-activity-types", middlewares.RolePermissionMiddleware(db, "audit_setting", "view"), auditActivityTypeController.GetAllAuditActivityTypes)
+	auditRoutes.GET("/audit-activity-types/:id", middlewares.RolePermissionMiddleware(db, "audit_setting", "view"), auditActivityTypeController.GetAuditActivityTypeDetails)
+	auditRoutes.POST("/audit-activity-types", middlewares.RolePermissionMiddleware(db, "audit_setting", "modify"), auditActivityTypeController.CreateAuditActivityType)
+	auditRoutes.PUT("/audit-activity-types/:id", middlewares.RolePermissionMiddleware(db, "audit_setting", "modify"), auditActivityTypeController.UpdateAuditActivityType)
+	auditRoutes.POST("/audit-activity-types/delete", middlewares.RolePermissionMiddleware(db, "audit_setting", "modify"), auditActivityTypeController.DeleteAuditActivityTypes)
+	auditRoutes.PUT("/audit-activity-types/activate", middlewares.RolePermissionMiddleware(db, "audit_setting", "modify"), auditActivityTypeController.ActivateAuditActivityTypes)
+	auditRoutes.PUT("/audit-activity-types/deactivate", middlewares.RolePermissionMiddleware(db, "audit_setting", "modify"), auditActivityTypeController.DeactivateAuditActivityTypes)
 
 	//Audit Schedule Statuses
-	auditRoutes.GET("/audit-schedule-statuses", auditScheduleStatusController.GetAllAuditScheduleStatuses)
-	auditRoutes.GET("/audit-schedule-statuses/:id", auditScheduleStatusController.GetAuditScheduleStatusDetails)
+	auditRoutes.GET("/audit-schedule-statuses", middlewares.RolePermissionMiddleware(db, "audit_setting", "view"), auditScheduleStatusController.GetAllAuditScheduleStatuses)
+	auditRoutes.GET("/audit-schedule-statuses/:id", middlewares.RolePermissionMiddleware(db, "audit_setting", "view"), auditScheduleStatusController.GetAuditScheduleStatusDetails)
 
 	//AuditPlan Tools
-	auditRoutes.GET("/audit-plans/:planId/budgets", auditPlanBudgetController.GetAllAuditPlanBudgets)
-	auditRoutes.GET("/audit-plans/:planId/budgets/:id", auditPlanBudgetController.GetAuditPlanBudgetDetails)
-	auditRoutes.POST("/audit-plans/:planId/budgets", auditPlanBudgetController.CreateAuditPlanBudget)
-	auditRoutes.PUT("/audit-plans/:planId/budgets/:id", auditPlanBudgetController.UpdateAuditPlanBudget)
-	auditRoutes.POST("/audit-plans/:planId/budgets/delete", auditPlanBudgetController.DeleteAuditPlanBudgets)
+	auditRoutes.GET("/audit-plans/:planId/budgets", middlewares.RolePermissionMiddleware(db, "audit_plans", "view"), auditPlanBudgetController.GetAllAuditPlanBudgets)
+	auditRoutes.GET("/audit-plans/:planId/budgets/:id", middlewares.RolePermissionMiddleware(db, "audit_plans", "view"), auditPlanBudgetController.GetAuditPlanBudgetDetails)
+	auditRoutes.POST("/audit-plans/:planId/budgets", middlewares.RolePermissionMiddleware(db, "audit_plans", "modify"), auditPlanBudgetController.CreateAuditPlanBudget)
+	auditRoutes.PUT("/audit-plans/:planId/budgets/:id", middlewares.RolePermissionMiddleware(db, "audit_plans", "modify"), auditPlanBudgetController.UpdateAuditPlanBudget)
+	auditRoutes.POST("/audit-plans/:planId/budgets/delete", middlewares.RolePermissionMiddleware(db, "audit_plans", "modify"), auditPlanBudgetController.DeleteAuditPlanBudgets)
 
 	//Audit Schedule
-	auditRoutes.GET("/audit-plans/:planId/schedules", auditPlanScheduleController.GetAllAuditPlanSchedules)
-	auditRoutes.GET("/audit-plans/:planId/schedules/:id", auditPlanScheduleController.GetAuditPlanScheduleDetails)
-	auditRoutes.POST("/audit-plans/:planId/schedules", auditPlanScheduleController.CreateAuditPlanSchedule)
-	auditRoutes.PUT("/audit-plans/:planId/schedules/:id", auditPlanScheduleController.UpdateAuditPlanSchedule)
-	auditRoutes.POST("/audit-plans/:planId/schedules/delete", auditPlanScheduleController.DeleteAuditPlanSchedules)
+	auditRoutes.GET("/audit-plans/:planId/schedules", middlewares.RolePermissionMiddleware(db, "audit_plans", "view"), auditPlanScheduleController.GetAllAuditPlanSchedules)
+	auditRoutes.GET("/audit-plans/:planId/schedules/:id", middlewares.RolePermissionMiddleware(db, "audit_plans", "view"), auditPlanScheduleController.GetAuditPlanScheduleDetails)
+	auditRoutes.POST("/audit-plans/:planId/schedules", middlewares.RolePermissionMiddleware(db, "audit_plans", "modify"), auditPlanScheduleController.CreateAuditPlanSchedule)
+	auditRoutes.PUT("/audit-plans/:planId/schedules/:id", middlewares.RolePermissionMiddleware(db, "audit_plans", "modify"), auditPlanScheduleController.UpdateAuditPlanSchedule)
+	auditRoutes.POST("/audit-plans/:planId/schedules/delete", middlewares.RolePermissionMiddleware(db, "audit_plans", "modify"), auditPlanScheduleController.DeleteAuditPlanSchedules)
 
 	//Audit Engagement Type
-	auditRoutes.GET("/audit-engagement-types", auditEngagementTypeController.GetAllAuditEngagementTypes)
-	auditRoutes.GET("/audit-engagement-types/:id", auditEngagementTypeController.GetAuditEngagementTypeDetails)
-	auditRoutes.POST("/audit-engagement-types", auditEngagementTypeController.CreateAuditEngagementType)
-	auditRoutes.PUT("/audit-engagement-types/:id", auditEngagementTypeController.UpdateAuditEngagementType)
-	auditRoutes.POST("/audit-engagement-types/delete", auditEngagementTypeController.DeleteAuditEngagementTypes)
-	auditRoutes.PUT("/audit-engagement-types/activate", auditEngagementTypeController.ActivateAuditEngagementTypes)
-	auditRoutes.PUT("/audit-engagement-types/deactivate", auditEngagementTypeController.DeactivateAuditEngagementTypes)
+	auditRoutes.GET("/audit-engagement-types", middlewares.RolePermissionMiddleware(db, "audit_setting", "view"), auditEngagementTypeController.GetAllAuditEngagementTypes)
+	auditRoutes.GET("/audit-engagement-types/:id", middlewares.RolePermissionMiddleware(db, "audit_setting", "view"), auditEngagementTypeController.GetAuditEngagementTypeDetails)
+	auditRoutes.POST("/audit-engagement-types", middlewares.RolePermissionMiddleware(db, "audit_setting", "modify"), auditEngagementTypeController.CreateAuditEngagementType)
+	auditRoutes.PUT("/audit-engagement-types/:id", middlewares.RolePermissionMiddleware(db, "audit_setting", "modify"), auditEngagementTypeController.UpdateAuditEngagementType)
+	auditRoutes.POST("/audit-engagement-types/delete", middlewares.RolePermissionMiddleware(db, "audit_setting", "modify"), auditEngagementTypeController.DeleteAuditEngagementTypes)
+	auditRoutes.PUT("/audit-engagement-types/activate", middlewares.RolePermissionMiddleware(db, "audit_setting", "modify"), auditEngagementTypeController.ActivateAuditEngagementTypes)
+	auditRoutes.PUT("/audit-engagement-types/deactivate", middlewares.RolePermissionMiddleware(db, "audit_setting", "modify"), auditEngagementTypeController.DeactivateAuditEngagementTypes)
 
 	//Audit Plan Stakeholder Engagement
-	auditRoutes.GET("/audit-plans/:planId/stakeholder-engagements", auditPlanStakeholderEngagementController.GetAllAuditPlanStakeholderEngagements)
-	auditRoutes.GET("/audit-plans/:planId/stakeholder-engagements/:id", auditPlanStakeholderEngagementController.GetAuditPlanStakeholderEngagementDetails)
-	auditRoutes.POST("/audit-plans/:planId/stakeholder-engagements", auditPlanStakeholderEngagementController.CreateAuditPlanStakeholderEngagement)
-	auditRoutes.PUT("/audit-plans/:planId/stakeholder-engagements/:id", auditPlanStakeholderEngagementController.UpdateAuditPlanStakeholderEngagement)
-	auditRoutes.POST("/audit-plans/:planId/stakeholder-engagements/delete", auditPlanStakeholderEngagementController.DeleteAuditPlanStakeholderEngagements)
+	auditRoutes.GET("/audit-plans/:planId/stakeholder-engagements", middlewares.RolePermissionMiddleware(db, "audit_plans", "view"), auditPlanStakeholderEngagementController.GetAllAuditPlanStakeholderEngagements)
+	auditRoutes.GET("/audit-plans/:planId/stakeholder-engagements/:id", middlewares.RolePermissionMiddleware(db, "audit_plans", "view"), auditPlanStakeholderEngagementController.GetAuditPlanStakeholderEngagementDetails)
+	auditRoutes.POST("/audit-plans/:planId/stakeholder-engagements", middlewares.RolePermissionMiddleware(db, "audit_plans", "modify"), auditPlanStakeholderEngagementController.CreateAuditPlanStakeholderEngagement)
+	auditRoutes.PUT("/audit-plans/:planId/stakeholder-engagements/:id", middlewares.RolePermissionMiddleware(db, "audit_plans", "modify"), auditPlanStakeholderEngagementController.UpdateAuditPlanStakeholderEngagement)
+	auditRoutes.POST("/audit-plans/:planId/stakeholder-engagements/delete", middlewares.RolePermissionMiddleware(db, "audit_plans", "modify"), auditPlanStakeholderEngagementController.DeleteAuditPlanStakeholderEngagements)
 
 	//Audit
-	auditRoutes.GET("/audits", auditController.GetAllAudits)
-	auditRoutes.GET("/audits/:auditId", auditController.GetAuditDetails)
-	auditRoutes.POST("/audits", auditController.CreateAudit)
-	auditRoutes.PUT("/audits/:auditId", auditController.UpdateAudit)
-	auditRoutes.POST("/audits/delete", auditController.DeleteAudits)
+	auditRoutes.GET("/audits", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditController.GetAllAudits)
+	auditRoutes.GET("/audits/:auditId", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditController.GetAuditDetails)
+	auditRoutes.POST("/audits", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditController.CreateAudit)
+	auditRoutes.PUT("/audits/:auditId", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditController.UpdateAudit)
+	auditRoutes.POST("/audits/delete", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditController.DeleteAudits)
 
 	//Audit Schedule
-	auditRoutes.GET("/audits/:auditId/workpapers", auditWorkpaperController.GetAllAuditWorkpapers)
-	auditRoutes.GET("/audits/:auditId/workpapers/:id", auditWorkpaperController.GetAuditWorkpaperDetails)
-	auditRoutes.POST("/audits/:auditId/workpapers", auditWorkpaperController.CreateAuditWorkpaper)
-	auditRoutes.PUT("/audits/:auditId/workpapers/:id", auditWorkpaperController.UpdateAuditWorkpaper)
-	auditRoutes.POST("/audits/:auditId/workpapers/delete", auditWorkpaperController.DeleteAuditWorkpapers)
+	auditRoutes.GET("/audits/:auditId/workpapers", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditWorkpaperController.GetAllAuditWorkpapers)
+	auditRoutes.GET("/audits/:auditId/workpapers/:id", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditWorkpaperController.GetAuditWorkpaperDetails)
+	auditRoutes.POST("/audits/:auditId/workpapers", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditWorkpaperController.CreateAuditWorkpaper)
+	auditRoutes.PUT("/audits/:auditId/workpapers/:id", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditWorkpaperController.UpdateAuditWorkpaper)
+	auditRoutes.POST("/audits/:auditId/workpapers/delete", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditWorkpaperController.DeleteAuditWorkpapers)
 
 	unauthenticatedRoutes.GET("/audits/:auditId/workpapers/document-download", auditWorkpaperController.DownloadWorkpaperDocument)
 
 	//Audit Meeting
-	auditRoutes.GET("/audits/:auditId/meetings", auditMeetingController.GetAllAuditMeetings)
-	auditRoutes.GET("/audits/:auditId/meetings/:meetingId", auditMeetingController.GetAuditMeetingDetails)
-	auditRoutes.POST("/audits/:auditId/meetings", auditMeetingController.CreateAuditMeeting)
-	auditRoutes.PUT("/audits/:auditId/meetings/:meetingId", auditMeetingController.UpdateAuditMeeting)
-	auditRoutes.POST("/audits/:auditId/meetings/delete", auditMeetingController.DeleteAuditMeetings)
+	auditRoutes.GET("/audits/:auditId/meetings", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditMeetingController.GetAllAuditMeetings)
+	auditRoutes.GET("/audits/:auditId/meetings/:meetingId", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditMeetingController.GetAuditMeetingDetails)
+	auditRoutes.POST("/audits/:auditId/meetings", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditMeetingController.CreateAuditMeeting)
+	auditRoutes.PUT("/audits/:auditId/meetings/:meetingId", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditMeetingController.UpdateAuditMeeting)
+	auditRoutes.POST("/audits/:auditId/meetings/delete", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditMeetingController.DeleteAuditMeetings)
 
 	//Audit timeline
-	auditRoutes.GET("/audits/:auditId/timelines", auditTimelineController.GetAllAuditTimelines)
+	auditRoutes.GET("/audits/:auditId/timelines", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditTimelineController.GetAllAuditTimelines)
 
 	//Audit Status
-	auditRoutes.GET("/audit-finding-statuses", auditFindingStatusController.GetAllAuditFindingStatuses)
-	auditRoutes.GET("/audit-finding-statuses/:id", auditFindingStatusController.GetAuditFindingStatusDetails)
+	auditRoutes.GET("/audit-finding-statuses", middlewares.RolePermissionMiddleware(db, "audit_setting", "view"), auditFindingStatusController.GetAllAuditFindingStatuses)
+	auditRoutes.GET("/audit-finding-statuses/:id", middlewares.RolePermissionMiddleware(db, "audit_setting", "view"), auditFindingStatusController.GetAuditFindingStatusDetails)
 
 	//Audit Finding Category
-	auditRoutes.GET("/audit-finding-categories", auditFindingCategoryController.GetAllAuditFindingCategories)
-	auditRoutes.GET("/audit-finding-categories/:id", auditFindingCategoryController.GetAuditFindingCategoryDetails)
-	auditRoutes.PUT("/audit-finding-categories/:id", auditFindingCategoryController.UpdateAuditFindingCategory)
-	auditRoutes.POST("/audit-finding-categories/delete", auditFindingCategoryController.DeleteAuditFindingCategories)
+	auditRoutes.GET("/audit-finding-categories", middlewares.RolePermissionMiddleware(db, "audit_setting", "view"), auditFindingCategoryController.GetAllAuditFindingCategories)
+	auditRoutes.GET("/audit-finding-categories/:id", middlewares.RolePermissionMiddleware(db, "audit_setting", "view"), auditFindingCategoryController.GetAuditFindingCategoryDetails)
+	auditRoutes.PUT("/audit-finding-categories/:id", middlewares.RolePermissionMiddleware(db, "audit_setting", "modify"), auditFindingCategoryController.UpdateAuditFindingCategory)
+	auditRoutes.POST("/audit-finding-categories/delete", middlewares.RolePermissionMiddleware(db, "audit_setting", "modify"), auditFindingCategoryController.DeleteAuditFindingCategories)
 
 	// Audit Finding
-	auditRoutes.GET("/audit-findings", auditFindingController.GetAllAuditFindings)
-	auditRoutes.GET("/audit-findings/:findingId", auditFindingController.GetAuditFindingDetails)
-	auditRoutes.POST("/audit-findings", auditFindingController.CreateAuditFinding)
-	auditRoutes.PUT("/audit-findings/:findingId", auditFindingController.UpdateAuditFinding)
-	auditRoutes.POST("/audit-findings/delete", auditFindingController.DeleteAuditFindings)
-	auditRoutes.GET("audits/:auditId/audit-finding-summary", auditFindingController.GetAuditFindingCountByCategory)
+	auditRoutes.GET("/audit-findings", middlewares.RolePermissionMiddleware(db, "audit_findings", "view"), auditFindingController.GetAllAuditFindings)
+	auditRoutes.GET("/audit-findings/:findingId", middlewares.RolePermissionMiddleware(db, "audit_findings", "view"), auditFindingController.GetAuditFindingDetails)
+	auditRoutes.POST("/audit-findings", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingController.CreateAuditFinding)
+	auditRoutes.PUT("/audit-findings/:findingId", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingController.UpdateAuditFinding)
+	auditRoutes.POST("/audit-findings/delete", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingController.DeleteAuditFindings)
+	auditRoutes.GET("audits/:auditId/audit-finding-summary", middlewares.RolePermissionMiddleware(db, "audit_findings", "view"), auditFindingController.GetAuditFindingCountByCategory)
 
 	//Audit Document  Request Status
-	auditRoutes.GET("/audit-document-request-statuses", auditDocumentRequestStatusController.GetAllAuditDocumentRequestStatuses)
+	auditRoutes.GET("/audit-document-request-statuses", middlewares.RolePermissionMiddleware(db, "audit_setting", "view"), auditDocumentRequestStatusController.GetAllAuditDocumentRequestStatuses)
 
 	// Audit Document Request
-	auditRoutes.GET("/audits/:auditId/document-requests", auditDocumentRequestController.GetAllAuditDocumentRequests)
-	auditRoutes.GET("/audits/:auditId/document-requests/:id", auditDocumentRequestController.GetAuditDocumentRequestDetails)
-	auditRoutes.POST("/audits/:auditId/document-requests", auditDocumentRequestController.CreateAuditDocumentRequest)
-	auditRoutes.PUT("/audits/:auditId/document-requests/:id", auditDocumentRequestController.UpdateAuditDocumentRequest)
-	auditRoutes.POST("/audits/:auditId/document-requests/delete", auditDocumentRequestController.DeleteAuditDocumentRequests)
-	auditRoutes.POST("/audits/:auditId/document-requests/:id/submit", auditDocumentRequestController.SubmitAuditDocumentRequest)
+	auditRoutes.GET("/audits/:auditId/document-requests", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditDocumentRequestController.GetAllAuditDocumentRequests)
+	auditRoutes.GET("/audits/:auditId/document-requests/:id", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditDocumentRequestController.GetAuditDocumentRequestDetails)
+	auditRoutes.POST("/audits/:auditId/document-requests", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditDocumentRequestController.CreateAuditDocumentRequest)
+	auditRoutes.PUT("/audits/:auditId/document-requests/:id", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditDocumentRequestController.UpdateAuditDocumentRequest)
+	auditRoutes.POST("/audits/:auditId/document-requests/delete", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditDocumentRequestController.DeleteAuditDocumentRequests)
+	auditRoutes.POST("/audits/:auditId/document-requests/:id/submit", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditDocumentRequestController.SubmitAuditDocumentRequest)
 
 	// Audit Document Request Conversations
-	auditRoutes.GET("/audits/:auditId/document-requests/:id/conversations", auditDocumentRequestConversationController.GetAllAuditDocumentRequestConversations)
-	auditRoutes.POST("/audits/:auditId/document-requests/:id/conversations", auditDocumentRequestConversationController.CreateAuditDocumentRequestConversation)
+	auditRoutes.GET("/audits/:auditId/document-requests/:id/conversations", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditDocumentRequestConversationController.GetAllAuditDocumentRequestConversations)
+	auditRoutes.POST("/audits/:auditId/document-requests/:id/conversations", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditDocumentRequestConversationController.CreateAuditDocumentRequestConversation)
 	unauthenticatedRoutes.GET("/audits/:auditId/document-requests/:id/conversations/:conversationId/document-download", auditDocumentRequestConversationController.DownloadDocumentRequestConversationDocument)
 
-	auditRoutes.GET("/audit-findings/:findingId/root-cause-analysis", auditFindingRootCauseAnalysisController.GetAllAuditFindingRootCauseAnalyses)
-	auditRoutes.POST("/audit-findings/:findingId/root-cause-analysis", auditFindingRootCauseAnalysisController.CreateAuditFindingRootCauseAnalysis)
-	auditRoutes.PUT("/audit-findings/:findingId/root-cause-analysis/:analysisId", auditFindingRootCauseAnalysisController.UpdateAuditFindingRootCauseAnalysis)
-	auditRoutes.DELETE("/audit-findings/:findingId/root-cause-analysis/:analysisId", auditFindingRootCauseAnalysisController.DeleteAuditFindingRootCauseAnalyses)
+	auditRoutes.GET("/audit-findings/:findingId/root-cause-analysis", middlewares.RolePermissionMiddleware(db, "audit_findings", "view"), auditFindingRootCauseAnalysisController.GetAllAuditFindingRootCauseAnalyses)
+	auditRoutes.POST("/audit-findings/:findingId/root-cause-analysis", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingRootCauseAnalysisController.CreateAuditFindingRootCauseAnalysis)
+	auditRoutes.PUT("/audit-findings/:findingId/root-cause-analysis/:analysisId", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingRootCauseAnalysisController.UpdateAuditFindingRootCauseAnalysis)
+	auditRoutes.DELETE("/audit-findings/:findingId/root-cause-analysis/:analysisId", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingRootCauseAnalysisController.DeleteAuditFindingRootCauseAnalyses)
 
 	// Audit Finding Action Plan
-	auditRoutes.GET("/audit-findings/:findingId/action-plans", auditFindingActionPlanController.GetAllAuditFindingActionPlans)
-	auditRoutes.GET("/audit-findings/:findingId/action-plans/:actionPlanId", auditFindingActionPlanController.GetAuditFindingActionPlanDetails)
-	auditRoutes.POST("/audit-findings/:findingId/action-plans", auditFindingActionPlanController.CreateAuditFindingActionPlan)
-	auditRoutes.PUT("/audit-findings/:findingId/action-plans/:actionPlanId", auditFindingActionPlanController.UpdateAuditFindingActionPlan)
-	auditRoutes.POST("/audit-findings/:findingId/action-plans/delete", auditFindingActionPlanController.DeleteAuditFindingActionPlans)
-	auditRoutes.GET("/audit-findings/:findingId/action-plan-summary", auditFindingActionPlanController.GetAuditFindingActionPlanCountByStatus)
+	auditRoutes.GET("/audit-findings/:findingId/action-plans", middlewares.RolePermissionMiddleware(db, "audit_findings", "view"), auditFindingActionPlanController.GetAllAuditFindingActionPlans)
+	auditRoutes.GET("/audit-findings/:findingId/action-plans/:actionPlanId", middlewares.RolePermissionMiddleware(db, "audit_findings", "view"), auditFindingActionPlanController.GetAuditFindingActionPlanDetails)
+	auditRoutes.POST("/audit-findings/:findingId/action-plans", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingActionPlanController.CreateAuditFindingActionPlan)
+	auditRoutes.PUT("/audit-findings/:findingId/action-plans/:actionPlanId", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingActionPlanController.UpdateAuditFindingActionPlan)
+	auditRoutes.POST("/audit-findings/:findingId/action-plans/delete", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingActionPlanController.DeleteAuditFindingActionPlans)
+	auditRoutes.GET("/audit-findings/:findingId/action-plan-summary", middlewares.RolePermissionMiddleware(db, "audit_findings", "view"), auditFindingActionPlanController.GetAuditFindingActionPlanCountByStatus)
 
-	auditRoutes.GET("/audit-findings/:findingId/action-plans/:actionPlanId/status-updates", auditFindingActionPlanStatusUpdateController.GetAllAuditFindingActionPlanStatusUpdates)
-	auditRoutes.POST("/audit-findings/:findingId/action-plans/:actionPlanId/status-updates", auditFindingActionPlanStatusUpdateController.CreateAuditFindingActionPlanStatusUpdate)
-	auditRoutes.PUT("/audit-findings/:findingId/action-plans/:actionPlanId/status-updates/:id", auditFindingActionPlanStatusUpdateController.UpdateAuditFindingActionPlanStatusUpdate)
-	auditRoutes.GET("/audit-findings/:findingId/action-plans/:actionPlanId/status-updates/latest", auditFindingActionPlanStatusUpdateController.GetLatestAuditFindingActionPlanStatusUpdate)
+	auditRoutes.GET("/audit-findings/:findingId/action-plans/:actionPlanId/status-updates", middlewares.RolePermissionMiddleware(db, "audit_findings", "view"), auditFindingActionPlanStatusUpdateController.GetAllAuditFindingActionPlanStatusUpdates)
+	auditRoutes.POST("/audit-findings/:findingId/action-plans/:actionPlanId/status-updates", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingActionPlanStatusUpdateController.CreateAuditFindingActionPlanStatusUpdate)
+	auditRoutes.PUT("/audit-findings/:findingId/action-plans/:actionPlanId/status-updates/:id", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingActionPlanStatusUpdateController.UpdateAuditFindingActionPlanStatusUpdate)
+	auditRoutes.GET("/audit-findings/:findingId/action-plans/:actionPlanId/status-updates/latest", middlewares.RolePermissionMiddleware(db, "audit_findings", "view"), auditFindingActionPlanStatusUpdateController.GetLatestAuditFindingActionPlanStatusUpdate)
 
 	//Audit Checklist
-	auditRoutes.GET("/audits/:auditId/checklists", auditChecklistController.GetAllAuditChecklists)
-	auditRoutes.GET("/audits/:auditId/checklists/:id", auditChecklistController.GetAuditChecklistDetails)
-	auditRoutes.GET("/audits/:auditId/checklists/:id/draft-findings", auditChecklistController.GetAllAuditChecklistDraftFindings)
-	auditRoutes.POST("/audits/:auditId/checklists", auditChecklistController.CreateAuditChecklist)
-	auditRoutes.PUT("/audits/:auditId/checklists/:id", auditChecklistController.UpdateAuditChecklist)
-	auditRoutes.PUT("/audits/:auditId/checklists/:id/answer", auditChecklistController.AuditChecklistAnswer)
-	auditRoutes.POST("audits/:auditId/checklists/delete", auditChecklistController.DeleteAuditChecklists)
-	auditRoutes.POST("/audits/:auditId/checklists/delete-answer", auditChecklistController.DeleteAuditChecklistAnswer)
+	auditRoutes.GET("/audits/:auditId/checklists", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditChecklistController.GetAllAuditChecklists)
+	auditRoutes.GET("/audits/:auditId/checklists/:id", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditChecklistController.GetAuditChecklistDetails)
+	auditRoutes.GET("/audits/:auditId/checklists/:id/draft-findings", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditChecklistController.GetAllAuditChecklistDraftFindings)
+	auditRoutes.POST("/audits/:auditId/checklists", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditChecklistController.CreateAuditChecklist)
+	auditRoutes.PUT("/audits/:auditId/checklists/:id", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditChecklistController.UpdateAuditChecklist)
+	auditRoutes.PUT("/audits/:auditId/checklists/:id/answer", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditChecklistController.AuditChecklistAnswer)
+	auditRoutes.POST("audits/:auditId/checklists/delete", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditChecklistController.DeleteAuditChecklists)
+	auditRoutes.POST("/audits/:auditId/checklists/delete-answer", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditChecklistController.DeleteAuditChecklistAnswer)
 
 	//Audit Schedule
-	auditRoutes.GET("/audits/:auditId/schedules", auditScheduleController.GetAllAuditSchedules)
-	auditRoutes.GET("/audits/:auditId/schedules/:scheduleId", auditScheduleController.GetAuditScheduleDetails)
-	auditRoutes.POST("/audits/:auditId/schedules", auditScheduleController.CreateAuditSchedule)
-	auditRoutes.PUT("/audits/:auditId/schedules/:scheduleId", auditScheduleController.UpdateAuditSchedule)
-	auditRoutes.POST("/audits/:auditId/schedules/delete", auditScheduleController.DeleteAuditSchedules)
+	auditRoutes.GET("/audits/:auditId/schedules", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditScheduleController.GetAllAuditSchedules)
+	auditRoutes.GET("/audits/:auditId/schedules/:scheduleId", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditScheduleController.GetAuditScheduleDetails)
+	auditRoutes.POST("/audits/:auditId/schedules", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditScheduleController.CreateAuditSchedule)
+	auditRoutes.PUT("/audits/:auditId/schedules/:scheduleId", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditScheduleController.UpdateAuditSchedule)
+	auditRoutes.POST("/audits/:auditId/schedules/delete", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditScheduleController.DeleteAuditSchedules)
 
-	auditRoutes.GET("/audits/:auditId/schedules-summary", auditScheduleController.GetScheduleSummary)
+	auditRoutes.GET("/audits/:auditId/schedules-summary", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditScheduleController.GetScheduleSummary)
 
 	//Audit Auditable items
-	auditRoutes.GET("/audits/:auditId/auditable-items", auditController.GetAllAuditableItems)
+	auditRoutes.GET("/audits/:auditId/auditable-items", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditController.GetAllAuditableItems)
 
 	//Draft Audit Finding Status
-	auditRoutes.GET("/audit-draft-finding-statuses", auditDraftFindingStatusController.GetAllAuditDraftFindingStatuses)
-	auditRoutes.GET("/audit-draft-finding-statuses/:id", auditDraftFindingStatusController.GetAuditDraftFindingStatusDetails)
+	auditRoutes.GET("/audit-draft-finding-statuses", middlewares.RolePermissionMiddleware(db, "audit_setting", "view"), auditDraftFindingStatusController.GetAllAuditDraftFindingStatuses)
+	auditRoutes.GET("/audit-draft-finding-statuses/:id", middlewares.RolePermissionMiddleware(db, "audit_setting", "view"), auditDraftFindingStatusController.GetAuditDraftFindingStatusDetails)
 
 	// Draft Audit Finding
-	auditRoutes.GET("audit-draft-findings", auditDraftFindingController.GetAllAuditDraftFindings)
-	auditRoutes.GET("/audit-draft-findings/:findingId", auditDraftFindingController.GetAuditDraftFindingDetails)
-	auditRoutes.POST("/audit-draft-findings", auditDraftFindingController.CreateAuditDraftFinding)
-	auditRoutes.PUT("/audit-draft-findings/:findingId", auditDraftFindingController.UpdateAuditDraftFinding)
-	auditRoutes.POST("/audit-draft-findings/delete", auditDraftFindingController.DeleteAuditDraftFindings)
-	auditRoutes.GET("audits/:auditId/audit-draft-finding-summary", auditDraftFindingController.GetAuditDraftFindingCountByCategory)
+	auditRoutes.GET("audit-draft-findings", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditDraftFindingController.GetAllAuditDraftFindings)
+	auditRoutes.GET("/audit-draft-findings/:findingId", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditDraftFindingController.GetAuditDraftFindingDetails)
+	auditRoutes.POST("/audit-draft-findings", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditDraftFindingController.CreateAuditDraftFinding)
+	auditRoutes.PUT("/audit-draft-findings/:findingId", middlewares.RolePermissionMiddleware(db, "audits", "modfiy"), auditDraftFindingController.UpdateAuditDraftFinding)
+	auditRoutes.POST("/audit-draft-findings/delete", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditDraftFindingController.DeleteAuditDraftFindings)
+	auditRoutes.GET("audits/:auditId/audit-draft-finding-summary", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditDraftFindingController.GetAuditDraftFindingCountByCategory)
 
 	//Draft Audit Report Status
-	auditRoutes.GET("/audit-draft-report-statuses", auditDraftReportStatusController.GetAllAuditDraftReportStatuses)
-	auditRoutes.GET("/audit-draft-report-statuses/:id", auditDraftReportStatusController.GetAuditDraftReportStatusDetails)
+	auditRoutes.GET("/audit-draft-report-statuses", middlewares.RolePermissionMiddleware(db, "audit_setting", "view"), auditDraftReportStatusController.GetAllAuditDraftReportStatuses)
+	auditRoutes.GET("/audit-draft-report-statuses/:id", middlewares.RolePermissionMiddleware(db, "audit_setting", "view"), auditDraftReportStatusController.GetAuditDraftReportStatusDetails)
 
 	//Audit Draft Report
-	auditRoutes.GET("/audits/:auditId/draft-reports", auditDraftReportController.GetAuditDraftReportDetails)
-	auditRoutes.POST("/audits/:auditId/draft-reports", auditDraftReportController.CreateAuditDraftReport)
-	auditRoutes.PUT("/audits/:auditId/draft-reports/:id", auditDraftReportController.UpdateAuditDraftReport)
-	auditRoutes.POST("/audits/:auditId/draft-reports/delete", auditDraftReportController.DeleteAuditDraftReports)
-	auditRoutes.POST("/audits/:auditId/draft-reports/:id/auditee-submit", auditDraftReportController.SubmitAuditDraftReport)
-	auditRoutes.POST("/audits/:auditId/draft-reports/:id/complete", auditDraftReportController.CompleteAuditDraftReport)
+	auditRoutes.GET("/audits/:auditId/draft-reports", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditDraftReportController.GetAuditDraftReportDetails)
+	auditRoutes.POST("/audits/:auditId/draft-reports", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditDraftReportController.CreateAuditDraftReport)
+	auditRoutes.PUT("/audits/:auditId/draft-reports/:id", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditDraftReportController.UpdateAuditDraftReport)
+	auditRoutes.POST("/audits/:auditId/draft-reports/delete", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditDraftReportController.DeleteAuditDraftReports)
+	auditRoutes.POST("/audits/:auditId/draft-reports/:id/auditee-submit", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditDraftReportController.SubmitAuditDraftReport)
+	auditRoutes.POST("/audits/:auditId/draft-reports/:id/complete", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditDraftReportController.CompleteAuditDraftReport)
 
 	//Audit Risk Control Metrix
-	auditRoutes.GET("audits/:auditId/risk-control-matrix", rcmController.GetAllRiskControls)
+	auditRoutes.GET("audits/:auditId/risk-control-matrix", middlewares.RolePermissionMiddleware(db, "audits", "view"), rcmController.GetAllRiskControls)
 
 	// Audit Draft Finding Conversations
-	auditRoutes.GET("/audit-draft-findings/:findingId/conversations", auditDraftFindingConversationController.GetAllAuditDraftFindingConversations)
-	auditRoutes.GET("/audit-draft-findings/:findingId/conversations/:id", auditDraftFindingConversationController.GetAuditDraftFindingConversationDetails)
-	auditRoutes.POST("/audit-draft-findings/:findingId/conversations", auditDraftFindingConversationController.CreateAuditDraftFindingConversation)
-	auditRoutes.PUT("/audit-draft-findings/:findingId/conversations/:id", auditDraftFindingConversationController.UpdateAuditDraftFindingConversation)
-	auditRoutes.POST("/audit-draft-findings/:findingId/conversations/delete", auditDraftFindingConversationController.DeleteAuditDraftFindingConversations)
+	auditRoutes.GET("/audit-draft-findings/:findingId/conversations", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditDraftFindingConversationController.GetAllAuditDraftFindingConversations)
+	auditRoutes.GET("/audit-draft-findings/:findingId/conversations/:id", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditDraftFindingConversationController.GetAuditDraftFindingConversationDetails)
+	auditRoutes.POST("/audit-draft-findings/:findingId/conversations", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditDraftFindingConversationController.CreateAuditDraftFindingConversation)
+	auditRoutes.PUT("/audit-draft-findings/:findingId/conversations/:id", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditDraftFindingConversationController.UpdateAuditDraftFindingConversation)
+	auditRoutes.POST("/audit-draft-findings/:findingId/conversations/delete", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditDraftFindingConversationController.DeleteAuditDraftFindingConversations)
 	unauthenticatedRoutes.GET("/audit-draft-findings/:findingId/conversations/:id/document-download", auditDraftFindingConversationController.DownloadAuditDraftFindingConversationDocument)
 
 	// Audit Draft Finding Action plans
-	auditRoutes.GET("/audit-draft-findings/:findingId/action-plans", auditDraftFindingActionPlanController.GetAllAuditDraftFindingActionPlans)
-	auditRoutes.GET("/audit-draft-findings/:findingId/action-plans/:id", auditDraftFindingActionPlanController.GetAuditDraftFindingActionPlanDetails)
-	auditRoutes.POST("/audit-draft-findings/:findingId/action-plans", auditDraftFindingActionPlanController.CreateAuditDraftFindingActionPlan)
-	auditRoutes.PUT("/audit-draft-findings/:findingId/action-plans/:id", auditDraftFindingActionPlanController.UpdateAuditDraftFindingActionPlan)
-	auditRoutes.POST("/audit-draft-findings/:findingId/action-plans/delete", auditDraftFindingActionPlanController.DeleteAuditDraftFindingActionPlans)
+	auditRoutes.GET("/audit-draft-findings/:findingId/action-plans", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditDraftFindingActionPlanController.GetAllAuditDraftFindingActionPlans)
+	auditRoutes.GET("/audit-draft-findings/:findingId/action-plans/:id", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditDraftFindingActionPlanController.GetAuditDraftFindingActionPlanDetails)
+	auditRoutes.POST("/audit-draft-findings/:findingId/action-plans", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditDraftFindingActionPlanController.CreateAuditDraftFindingActionPlan)
+	auditRoutes.PUT("/audit-draft-findings/:findingId/action-plans/:id", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditDraftFindingActionPlanController.UpdateAuditDraftFindingActionPlan)
+	auditRoutes.POST("/audit-draft-findings/:findingId/action-plans/delete", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditDraftFindingActionPlanController.DeleteAuditDraftFindingActionPlans)
 
 	// Audit Schedule status update
-	auditRoutes.GET("/audits/:auditId/schedules/:scheduleId/status-updates", auditScheduleStatusUpdateController.GetAllAuditScheduleStatusUpdates)
-	auditRoutes.POST("/audits/:auditId/schedules/:scheduleId/status-updates", auditScheduleStatusUpdateController.CreateAuditScheduleStatusUpdate)
-	auditRoutes.PUT("/audits/:auditId/schedules/:scheduleId/status-updates/:id", auditScheduleStatusUpdateController.UpdateAuditScheduleStatusUpdate)
-	auditRoutes.GET("/audits/:auditId/schedules/:scheduleId/status-updates/latest", auditScheduleStatusUpdateController.GetLatestAuditScheduleStatusUpdate)
+	auditRoutes.GET("/audits/:auditId/schedules/:scheduleId/status-updates", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditScheduleStatusUpdateController.GetAllAuditScheduleStatusUpdates)
+	auditRoutes.POST("/audits/:auditId/schedules/:scheduleId/status-updates", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditScheduleStatusUpdateController.CreateAuditScheduleStatusUpdate)
+	auditRoutes.PUT("/audits/:auditId/schedules/:scheduleId/status-updates/:id", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditScheduleStatusUpdateController.UpdateAuditScheduleStatusUpdate)
+	auditRoutes.GET("/audits/:auditId/schedules/:scheduleId/status-updates/latest", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditScheduleStatusUpdateController.GetLatestAuditScheduleStatusUpdate)
 
 	//Audit Draft Report Review
-	auditRoutes.POST("/audits/:auditId/draft-reports/:id/submit", auditDraftReportReviewController.SubmitAuditDraftReport)
-	auditRoutes.POST("/audits/:auditId/draft-reports/:id/re-submit", auditDraftReportReviewController.ReSubmitAuditDraftReport)
-	auditRoutes.POST("/audits/:auditId/draft-reports/:id/approve", auditDraftReportReviewController.ApproveAuditDraftReport)
-	auditRoutes.POST("/audits/:auditId/draft-reports/:id/revert", auditDraftReportReviewController.RevertAuditDraftReport)
+	auditRoutes.POST("/audits/:auditId/draft-reports/:id/submit", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditDraftReportReviewController.SubmitAuditDraftReport)
+	auditRoutes.POST("/audits/:auditId/draft-reports/:id/re-submit", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditDraftReportReviewController.ReSubmitAuditDraftReport)
+	auditRoutes.POST("/audits/:auditId/draft-reports/:id/approve", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditDraftReportReviewController.ApproveAuditDraftReport)
+	auditRoutes.POST("/audits/:auditId/draft-reports/:id/revert", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditDraftReportReviewController.RevertAuditDraftReport)
 
 	// Audit Draft Report Comments
-	auditRoutes.GET("/audits/:auditId/draft-reports/:id/comments", auditDraftReportCommentController.GetAllAuditDraftReportComments)
-	auditRoutes.GET("/audits/:auditId/draft-reports/:id/comments/:commentId", auditDraftReportCommentController.GetAuditDraftReportCommentDetails)
-	auditRoutes.POST("/audits/:auditId/draft-reports/:id/comments", auditDraftReportCommentController.CreateAuditDraftReportComment)
-	auditRoutes.PUT("/audits/:auditId/draft-reports/:id/comments/:commentId", auditDraftReportCommentController.UpdateAuditDraftReportComment)
-	auditRoutes.POST("/audits/:auditId/draft-reports/:id/comments/delete", auditDraftReportCommentController.DeleteAuditDraftReportComments)
-	auditRoutes.POST("/audits/:auditId/draft-reports/:id/comments/:commentId/status-update", auditDraftReportCommentController.StatusUpdateAuditDraftReportComment)
+	auditRoutes.GET("/audits/:auditId/draft-reports/:id/comments", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditDraftReportCommentController.GetAllAuditDraftReportComments)
+	auditRoutes.GET("/audits/:auditId/draft-reports/:id/comments/:commentId", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditDraftReportCommentController.GetAuditDraftReportCommentDetails)
+	auditRoutes.POST("/audits/:auditId/draft-reports/:id/comments", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditDraftReportCommentController.CreateAuditDraftReportComment)
+	auditRoutes.PUT("/audits/:auditId/draft-reports/:id/comments/:commentId", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditDraftReportCommentController.UpdateAuditDraftReportComment)
+	auditRoutes.POST("/audits/:auditId/draft-reports/:id/comments/delete", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditDraftReportCommentController.DeleteAuditDraftReportComments)
+	auditRoutes.POST("/audits/:auditId/draft-reports/:id/comments/:commentId/status-update", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditDraftReportCommentController.StatusUpdateAuditDraftReportComment)
 	unauthenticatedRoutes.GET("/audits/:auditId/draft-reports/:id/comments/:commentId/document-download", auditDraftReportCommentController.DownloadAuditDraftReportCommentDocument)
-	auditRoutes.GET("/audits/:auditId/draft-reports/:id/review-history", auditDraftReportReviewController.GetAllAuditDraftReportReviews)
+	auditRoutes.GET("/audits/:auditId/draft-reports/:id/review-history", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditDraftReportReviewController.GetAllAuditDraftReportReviews)
 
-	auditRoutes.GET("/audit-plans/:planId/commencement-letters", auditPlanCommencementLetterController.GetAllAuditPlanCommencementLetters)
-	auditRoutes.GET("/audit-plans/:planId/commencement-letters/:id", auditPlanCommencementLetterController.GetAuditPlanCommencementLetterDetails)
-	auditRoutes.POST("/audit-plans/:planId/commencement-letters", auditPlanCommencementLetterController.CreateAuditPlanCommencementLetters)
-	auditRoutes.PUT("/audit-plans/:planId/commencement-letters/:id", auditPlanCommencementLetterController.UpdateAuditPlanCommencementLetter)
-	auditRoutes.DELETE("/audit-plans/:planId/commencement-letters/:id", auditPlanCommencementLetterController.DeleteAuditPlanCommencementLetter)
-	auditRoutes.PUT("/audit-plans/:planId/commencement-letters/:id/send", auditPlanCommencementLetterController.SendAuditPlanCommencementLetter)
+	auditRoutes.GET("/audit-plans/:planId/commencement-letters", middlewares.RolePermissionMiddleware(db, "audit_plans", "view"), auditPlanCommencementLetterController.GetAllAuditPlanCommencementLetters)
+	auditRoutes.GET("/audit-plans/:planId/commencement-letters/:id", middlewares.RolePermissionMiddleware(db, "audit_plans", "view"), auditPlanCommencementLetterController.GetAuditPlanCommencementLetterDetails)
+	auditRoutes.POST("/audit-plans/:planId/commencement-letters", middlewares.RolePermissionMiddleware(db, "audit_plans", "modify"), auditPlanCommencementLetterController.CreateAuditPlanCommencementLetters)
+	auditRoutes.PUT("/audit-plans/:planId/commencement-letters/:id", middlewares.RolePermissionMiddleware(db, "audit_plans", "modify"), auditPlanCommencementLetterController.UpdateAuditPlanCommencementLetter)
+	auditRoutes.DELETE("/audit-plans/:planId/commencement-letters/:id", middlewares.RolePermissionMiddleware(db, "audit_plans", "modify"), auditPlanCommencementLetterController.DeleteAuditPlanCommencementLetter)
+	auditRoutes.PUT("/audit-plans/:planId/commencement-letters/:id/send", middlewares.RolePermissionMiddleware(db, "audit_plans", "modify"), auditPlanCommencementLetterController.SendAuditPlanCommencementLetter)
 
 }
