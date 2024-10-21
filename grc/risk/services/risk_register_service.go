@@ -1885,7 +1885,7 @@ func (cs *RiskRegisterService) ExportRiskRegister(data []*riskDTOs.RiskRegisterL
 		riskTitle = risk.Title
 		description = utility.GetStringValue(risk.Description)
 		nextReviewDate = utility.GetStringValue(risk.NextReviewDate)
-		reportedAt = utility.FormatDate(risk.ReportedAt)
+		reportedAt = utility.GetStringValue(risk.ReportedAt)
 
 		rows[i] = []interface{}{
 			i + 1,

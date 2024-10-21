@@ -69,7 +69,7 @@ func (repo *RiskRegisterRepository) GetAll(params *riskDTOs.RiskRegisterListQuer
             risk_register.reference_number,
             risk_register.title,
             risk_register.description,
-            risk_register.reported_at,
+			CONVERT(VARCHAR, risk_register.reported_at, 23) AS reported_at,
             risk_register.created_at,
             risk_register.updated_at,
 			risk_register.current_risk_rating_value_id,
