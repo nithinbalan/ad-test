@@ -73,6 +73,7 @@ func (ns *NotificationService) SendNotification(notificationDTO *commonDTOs.DBNo
 			emailNotificationDTO.EmailData,
 			emailTemplateAndSocialDTO,
 			nil,
+			emailNotificationDTO.CC,
 		)
 		if err != nil {
 			utility.LogError("Failed to send email", map[string]interface{}{

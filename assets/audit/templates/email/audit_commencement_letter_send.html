@@ -1,6 +1,9 @@
 {{ define "content" }}
 <div class="content"> 
-    <p>{{ .BodyEn }}</p>
+    <p>{{ .BodyEn }}</p>    
+    <p style="margin: 0;"><strong>{{ .FromUserFirstNameEn }} {{ .FromUserLastNameEn }}</strong></p>
+    <p style="margin: 0;">{{ .FromUserDesignation }}</p>
+    <p style="margin: 0;">{{ .FromUserMobileNumber }}</p>
+    <p style="margin: 0;"><a href="mailto:{{ .FromUserEmail }}">{{ .FromUserEmail }}</a></p>
 </div>
-
 {{ end }}

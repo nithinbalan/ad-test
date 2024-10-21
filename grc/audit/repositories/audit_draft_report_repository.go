@@ -45,8 +45,8 @@ func (repo *AuditDraftReportRepository) GetByID(id uint) (*models.AuditDraftRepo
 
 func (repo *AuditDraftReportRepository) GetByAuditID(auditID uint) (*models.AuditDraftReport, error) {
 	var auditDraftReport *models.AuditDraftReport
-
-	result := repo.db.Where("audit_id = ?", auditID).First(&auditDraftReport)
+	
+	result := repo.db.Where("audit_id = ?", auditID).Preload("Audit").Preload("Audit.AuditPlan").Preload("Audit.AuditPlan.AuditableItems").Preload("Audit.AuditPlan.AuditableItems.AuditableItem").First(&auditDraftReport)
 	if result.Error != nil {
 		return nil, result.Error
 	}

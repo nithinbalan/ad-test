@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-type AuditPlanCommencementLetterToUserID struct {
+type AuditPlanCommencementLetterToUser struct {
 	ID                            uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	AuditPlanCommencementLetterID uint       `json:"audit_plan_commencement_letter_id" binding:"required" gorm:"not null"`
 	UserID                        uint       `json:"user_id" binding:"required" gorm:"not null"`
@@ -21,6 +21,6 @@ type AuditPlanCommencementLetterToUserID struct {
 }
 
 // TableName overrides the table name used by AuditPlanCommencementLetterToUserID to `audit_plan_commencement_letter_to_user_ids`
-func (AuditPlanCommencementLetterToUserID) TableName() string {
-	return "audit_plan_commencement_letter_to_user_ids"
+func (AuditPlanCommencementLetterToUser) TableName() string {
+	return "audit_plan_commencement_letter_to_users"
 }

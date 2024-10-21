@@ -58,7 +58,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditScheduleStatusUpdateController := app.AuditModule.AuditScheduleStatusUpdateController
 	auditDraftReportReviewController := app.AuditModule.AuditDraftReportReviewController
 	auditDraftReportCommentController := app.AuditModule.AuditDraftReportCommentController
+	auditPlanCommencementLetterStatusController := app.AuditModule.AuditPlanCommencementLetterStatusController
 	auditPlanCommencementLetterController := app.AuditModule.AuditPlanCommencementLetterController
+	auditFinalReportStatusController := app.AuditModule.AuditFinalReportStatusController
+	auditFinalReportController := app.AuditModule.AuditFinalReportController
 
 	//Audit Status
 	auditRoutes.GET("/audit-statuses", middlewares.RolePermissionMiddleware(db, "audit_setting", "view"), auditStatusController.GetAllAuditStatuses)
@@ -330,11 +333,21 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	unauthenticatedRoutes.GET("/audits/:auditId/draft-reports/:id/comments/:commentId/document-download", auditDraftReportCommentController.DownloadAuditDraftReportCommentDocument)
 	auditRoutes.GET("/audits/:auditId/draft-reports/:id/review-history", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditDraftReportReviewController.GetAllAuditDraftReportReviews)
 
+	auditRoutes.GET("/audit-plan-commencement-letter-statuses", auditPlanCommencementLetterStatusController.GetAllStatuses)
+	auditRoutes.GET("/audit-plan-commencement-letter-statuses/:id", auditPlanCommencementLetterStatusController.GetStatusDetails)
+
 	auditRoutes.GET("/audit-plans/:planId/commencement-letters", middlewares.RolePermissionMiddleware(db, "audit_plans", "view"), auditPlanCommencementLetterController.GetAllAuditPlanCommencementLetters)
 	auditRoutes.GET("/audit-plans/:planId/commencement-letters/:id", middlewares.RolePermissionMiddleware(db, "audit_plans", "view"), auditPlanCommencementLetterController.GetAuditPlanCommencementLetterDetails)
 	auditRoutes.POST("/audit-plans/:planId/commencement-letters", middlewares.RolePermissionMiddleware(db, "audit_plans", "modify"), auditPlanCommencementLetterController.CreateAuditPlanCommencementLetters)
 	auditRoutes.PUT("/audit-plans/:planId/commencement-letters/:id", middlewares.RolePermissionMiddleware(db, "audit_plans", "modify"), auditPlanCommencementLetterController.UpdateAuditPlanCommencementLetter)
 	auditRoutes.DELETE("/audit-plans/:planId/commencement-letters/:id", middlewares.RolePermissionMiddleware(db, "audit_plans", "modify"), auditPlanCommencementLetterController.DeleteAuditPlanCommencementLetter)
 	auditRoutes.PUT("/audit-plans/:planId/commencement-letters/:id/send", middlewares.RolePermissionMiddleware(db, "audit_plans", "modify"), auditPlanCommencementLetterController.SendAuditPlanCommencementLetter)
+
+	//Audit Final Report Status
+	auditRoutes.GET("/audit-final-report-statuses", auditFinalReportStatusController.GetAllAuditFinalReportStatuses)
+	auditRoutes.GET("/audit-final-report-statuses/:id", auditFinalReportStatusController.GetAuditFinalReportStatusDetails)
+
+	//Audit Final Reports
+	auditRoutes.POST("/audits/:auditId/final-reports", auditFinalReportController.CreateAuditFinalReport)
 
 }

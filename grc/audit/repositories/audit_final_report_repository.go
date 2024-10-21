@@ -1,0 +1,137 @@
+package repositories
+
+import (
+	"fmt"
+	"jethur/grc/models"
+	"jethur/utility"
+	"strconv"
+	"time"
+
+	"gorm.io/gorm"
+)
+
+type AuditFinalReportRepositoryInterface interface {
+	BeginTransaction() utility.DatabaseTransaction
+	GenerateReferenceNumber() (string, error)
+	GetByAuditID(auditID uint) (*models.AuditFinalReport, error)
+	Create(auditFinalReport *models.AuditFinalReport, tx ...utility.DatabaseTransaction) (uint, error)
+	CreateAuditFindings(findings []*models.AuditFinding, tx ...utility.DatabaseTransaction) error
+	CreateAuditFinalReportSections(sections []*models.AuditFinalReportSection, tx ...utility.DatabaseTransaction) error
+	GetSectionByType(sectionType string, tx ...utility.DatabaseTransaction) (*models.AuditFinalReportSection, error)
+}
+
+type AuditFinalReportRepository struct {
+	db *gorm.DB
+}
+
+func NewAuditFinalReportRepository(db *gorm.DB) *AuditFinalReportRepository {
+	return &AuditFinalReportRepository{
+		db: db,
+	}
+}
+
+// BeginTransaction starts a new transaction.
+func (repo *AuditFinalReportRepository) BeginTransaction() utility.DatabaseTransaction {
+	return utility.NewGormDatabaseTransaction(repo.db)
+}
+
+
+func (repo *AuditFinalReportRepository) Create(auditFinalReport *models.AuditFinalReport, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(auditFinalReport).Error; err != nil {
+		return 0, err
+	}
+
+	return auditFinalReport.ID, nil
+}
+
+func (repo *AuditFinalReportRepository) GenerateReferenceNumber() (string, error) {
+	var lastReferenceNumber string
+	err := repo.db.Model(&models.AuditPlan{}).
+		Select("reference_number").
+		Order("reference_number desc").
+		Limit(1).
+		Pluck("reference_number", &lastReferenceNumber).
+		Error
+
+	if err != nil {
+		return "", err
+	}
+
+	lastDigits := "0000"
+	if lastReferenceNumber != "" && len(lastReferenceNumber) >= 4 {
+		lastDigits = lastReferenceNumber[len(lastReferenceNumber)-4:]
+	}
+
+	currentYear := time.Now().Year()
+	lastReferenceID, err := strconv.ParseUint(lastDigits, 10, 64)
+	if err != nil {
+		return "", err
+	}
+	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "AFR", currentYear, lastReferenceID+1)
+
+	return newReferenceNumber, nil
+}
+
+func (repo *AuditFinalReportRepository) GetByAuditID(auditID uint) (*models.AuditFinalReport, error) {
+	var auditFinalReport models.AuditFinalReport // Not a pointer, so it won't be nil on not found
+
+	result := repo.db.Where("audit_id = ?", auditID).First(&auditFinalReport)
+	if result.Error != nil {
+		if result.Error == gorm.ErrRecordNotFound {
+			// No final report found for this audit
+			return nil, nil
+		}
+		// Some other error occurred
+		return nil, result.Error
+	}
+
+	return &auditFinalReport, nil
+}
+
+func (repo *AuditFinalReportRepository) CreateAuditFindings(findings []*models.AuditFinding, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Create(&findings).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *AuditFinalReportRepository) CreateAuditFinalReportSections(sections []*models.AuditFinalReportSection, tx ...utility.DatabaseTransaction) error {
+    db := repo.db
+    if len(tx) > 0 && tx[0] != nil {
+        db = tx[0].DB()
+    }
+
+    // Insert the sections and automatically update their IDs
+    if err := db.Create(&sections).Error; err != nil {
+        return err
+    }
+
+    // The IDs of the inserted sections should now be available in each section object.
+    return nil
+}
+
+
+
+func (repo *AuditFinalReportRepository) GetSectionByType(sectionType string, tx ...utility.DatabaseTransaction) (*models.AuditFinalReportSection, error) {
+	var section models.AuditFinalReportSection
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("type = ? AND audit_final_report_section_id IS NULL", sectionType).First(&section).Error; err != nil {
+		return nil, err
+	}
+
+	return &section, nil
+}

@@ -8,9 +8,14 @@ import (
 type AuditPlanCommencementLetterListDTO struct {
 	ID                          uint    `json:"id"`
 	AuditPlanID                 uint    `json:"audit_plan_id"`
+	StatusTitleEn               string  `json:"status_title_en"`
+	StatusTitleAr               string  `json:"status_title_ar"`
+	StatusColorCode             string  `json:"status_color_code"`
+	StatusType                  string  `json:"status_type"`
+	SentAt                      *string `json:"sent_at,omitempty"`
 	ResponsibleUnitTitleEn      string  `json:"responsible_unit_title_en"`
 	ResponsibleUnitTitleAr      string  `json:"responsible_unit_title_ar"`
-	ToEmailIDs                  string  `json:"to_email_ids"`
+	ToEmailIDs                  *string `json:"to_email_ids"`
 	FromUserID                  uint    `json:"from_user_id"`
 	FromUserFirstNameEn         string  `json:"from_user_first_name_en"`
 	FromUserFirstNameAr         string  `json:"from_user_first_name_ar"`
@@ -20,6 +25,7 @@ type AuditPlanCommencementLetterListDTO struct {
 	FromUserColor               string  `json:"from_user_color"`
 	FromUserEmail               string  `json:"from_user_email"`
 	FromUserProfileImagePath    string  `json:"from_user_profile_image_path"`
+	ToUserEmail                 *string `json:"to_user_email"`
 	CreatedAt                   string  `json:"created_at"`
 	UpdatedAt                   *string `json:"updated_at"`
 	CreatedUserID               uint    `json:"created_user_id"`
@@ -51,25 +57,38 @@ type AuditPlanCommencementLetterFormDTO struct {
 }
 
 type AuditPlanCommencementLetterDetailDTO struct {
-	ID              uint                                  `json:"id"`
-	ResponsibleUnit organizationDTOs.OrganizationUnit1DTO `json:"responsible_unit"`
-	AuditPlanID     uint                                  `json:"audit_plan_id"`
-	ToEmailIDs      string                                `json:"to_email_ids"`
-	SubjectEn       string                                `json:"subject_en"`
-	SubjectAr       string                                `json:"subject_ar"`
-	BodyEn          string                                `json:"body_en"`
-	BodyAr          string                                `json:"body_ar"`
-	CreatedAt       time.Time                             `json:"created_at"`
-	UpdatedAt       *time.Time                            `json:"updated_at,omitempty"`
-	CreatedByUser   organizationDTOs.UserMinimalDTO       `json:"created_by"`
-	UpdatedByUser   *organizationDTOs.UserMinimalDTO      `json:"updated_by"`
-	AuditPlan       *AuditPlanDetailDTO                   `json:"audit_plan"`
-	FromUser        organizationDTOs.UserDetailsDTO       `json:"from_user"`
+	ID                                uint                                    `json:"id"`
+	ResponsibleUnit                   organizationDTOs.OrganizationUnit1DTO   `json:"responsible_unit"`
+	AuditPlanID                       uint                                    `json:"audit_plan_id"`
+	ToEmailIDs                        string                                  `json:"to_email_ids"`
+	SubjectEn                         string                                  `json:"subject_en"`
+	SubjectAr                         string                                  `json:"subject_ar"`
+	BodyEn                            string                                  `json:"body_en"`
+	BodyAr                            string                                  `json:"body_ar"`
+	CreatedAt                         time.Time                               `json:"created_at"`
+	UpdatedAt                         *time.Time                              `json:"updated_at,omitempty"`
+	CreatedByUser                     organizationDTOs.UserMinimalDTO         `json:"created_by"`
+	UpdatedByUser                     *organizationDTOs.UserMinimalDTO        `json:"updated_by"`
+	AuditPlan                         *AuditPlanDetailDTO                     `json:"audit_plan"`
+	FromUser                          organizationDTOs.UserDetailsDTO         `json:"from_user"`
+	ToUser                            *AuditPlanCommencementLetterToUserDTO   `json:"to_user"`
+	CCUsers                           *[]AuditPlanCommencementLetterCCUserDTO `json:"cc_users"`
+	AuditPlanCommencementLetterStatus AuditPlanCommencementLetterStatusDTO    `json:"audit_plan_commencement_letter_status"`
+}
+
+type AuditPlanCommencementLetterToUserDTO struct {
+	ID     uint                            `json:"id"`
+	UserID uint                            `json:"user_id"`
+	User   organizationDTOs.UserMinimalDTO `json:"user"`
+}
+
+type AuditPlanCommencementLetterCCUserDTO struct {
+	ID     uint                            `json:"id"`
+	UserID uint                            `json:"user_id"`
+	User   organizationDTOs.UserMinimalDTO `json:"user"`
 }
 
 type AuditPlanCommencementLetterSendFormDTO struct {
-	ToUserIDs  []uint  `json:"to_user_ids" binding:"required"`
-	ToEmailIDs *string `json:"to_email_ids"`
-	CCUserIDs  []*uint `json:"cc_user_ids"`
-	CCEmailIDs string  `json:"cc_email_ids"`
+	ToUserID  uint    `json:"to_user_id" binding:"required"`
+	CCUserIDs []*uint `json:"cc_user_ids"`
 }
