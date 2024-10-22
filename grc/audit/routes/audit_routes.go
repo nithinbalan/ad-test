@@ -62,6 +62,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditPlanCommencementLetterController := app.AuditModule.AuditPlanCommencementLetterController
 	auditFinalReportStatusController := app.AuditModule.AuditFinalReportStatusController
 	auditFinalReportController := app.AuditModule.AuditFinalReportController
+	auditFinalReportSectionController := app.AuditModule.AuditFinalReportSectionController
 
 	//Audit Status
 	auditRoutes.GET("/audit-statuses", middlewares.RolePermissionMiddleware(db, "audit_setting", "view"), auditStatusController.GetAllAuditStatuses)
@@ -350,5 +351,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	//Audit Final Reports
 	auditRoutes.GET("/audits/:auditId/final-reports", auditFinalReportController.GetAuditFinalReportDetails)
 	auditRoutes.POST("/audits/:auditId/final-reports", auditFinalReportController.CreateAuditFinalReport)
+
+	//Audit Final Report Section
+	auditRoutes.PUT("/audits/:auditId/final-report-sections/:id", auditFinalReportSectionController.UpdateAuditFinalReportSection)
 
 }
