@@ -13,6 +13,7 @@ import (
 type AuditFinalReportRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GenerateReferenceNumber() (string, error)
+	GetFullDetailsByID(auditID uint, tx ...utility.DatabaseTransaction) (*models.AuditFinalReport, error)
 	GetByAuditID(auditID uint) (*models.AuditFinalReport, error)
 	Create(auditFinalReport *models.AuditFinalReport, tx ...utility.DatabaseTransaction) (uint, error)
 	CreateAuditFindingActionPlans(actionPlans []*models.AuditFindingActionPlan, tx ...utility.DatabaseTransaction) error
@@ -33,6 +34,45 @@ func NewAuditFinalReportRepository(db *gorm.DB) *AuditFinalReportRepository {
 // BeginTransaction starts a new transaction.
 func (repo *AuditFinalReportRepository) BeginTransaction() utility.DatabaseTransaction {
 	return utility.NewGormDatabaseTransaction(repo.db)
+}
+
+func (repo *AuditFinalReportRepository) GetFullDetailsByID(auditID uint, tx ...utility.DatabaseTransaction) (*models.AuditFinalReport, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	var auditFinalReport *models.AuditFinalReport
+
+	result := db.Where("audit_id = ?", auditID).
+		Preload("Audit").
+		Preload("Audit.AuditFindings").
+		Preload("Audit.AuditFindings.Documents").
+		Preload("Audit.AuditFindings.AuditFindingActionPlans").
+		Preload("Audit.AuditFindings.AuditableItem").
+		Preload("Audit.AuditFindings.AuditableItem.Process").
+		Preload("Audit.AuditFindings.AuditableItem.Control").
+		Preload("Audit.AuditFindings.AuditableItem.Document").
+		Preload("Audit.AuditFindings.AuditableItem.IncidentRegister").
+		Preload("Audit.AuditFindings.AuditableItem.ComplianceRequirement").
+		Preload("Audit.AuditFindings.AuditableItem.RiskRegister").
+		Preload("Audit.AuditFindings.AuditableItem.User").
+		Preload("Audit.AuditFindings.AuditableItem.ResponsibleUnit").
+		Preload("Audit.AuditPlan").
+		Preload("Audit.AuditPlan.AuditableItems").
+		Preload("AuditFinalReportStatus").
+		Preload("AuditFinalReportSections").
+		Preload("AuditFinalReportSections.ParentSection").
+		Preload("AuditFinalReportSections.CreatedByUser").
+		Preload("AuditFinalReportSections.UpdatedByUser").
+		Preload("CreatedByUser").
+		Preload("UpdatedByUser").
+		First(&auditFinalReport)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return auditFinalReport, nil
 }
 
 func (repo *AuditFinalReportRepository) Create(auditFinalReport *models.AuditFinalReport, tx ...utility.DatabaseTransaction) (uint, error) {
