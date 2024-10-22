@@ -33,38 +33,38 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentClauseController := app.DocumentModule.DocumentClauseController
 	documentAssociatedItemController := app.DocumentModule.DocumentAssociatedItemController
 
-	documentRoutes.GET("/document-categories", middlewares.RolePermissionMiddleware(db, "document_setting", "view"), documentCategoryController.GetAllDocumentCategories)
-	documentRoutes.GET("/document-categories/:id", middlewares.RolePermissionMiddleware(db, "document_setting", "view"), documentCategoryController.GetDocumentCategoryDetails)
+	documentRoutes.GET("/document-categories", documentCategoryController.GetAllDocumentCategories)
+	documentRoutes.GET("/document-categories/:id", documentCategoryController.GetDocumentCategoryDetails)
 	documentRoutes.POST("/document-categories", middlewares.RolePermissionMiddleware(db, "document_setting", "modify"), documentCategoryController.CreateDocumentCategory)
 	documentRoutes.PUT("/document-categories/:id", middlewares.RolePermissionMiddleware(db, "document_setting", "modify"), documentCategoryController.UpdateDocumentCategory)
 	documentRoutes.POST("/document-categories/delete", middlewares.RolePermissionMiddleware(db, "document_setting", "modify"), documentCategoryController.DeleteDocumentCategories)
 	documentRoutes.PUT("/document-categories/activate", middlewares.RolePermissionMiddleware(db, "document_setting", "modify"), documentCategoryController.ActivateDocumentCategories)
 	documentRoutes.PUT("/document-categories/deactivate", middlewares.RolePermissionMiddleware(db, "document_setting", "modify"), documentCategoryController.DeactivateDocumentCategories)
 
-	documentRoutes.GET("/document-types", middlewares.RolePermissionMiddleware(db, "document_setting", "view"), documentTypeController.GetAllDocumentTypes)
-	documentRoutes.GET("/document-types/:id", middlewares.RolePermissionMiddleware(db, "document_setting", "view"), documentTypeController.GetDocumentTypeDetails)
+	documentRoutes.GET("/document-types", documentTypeController.GetAllDocumentTypes)
+	documentRoutes.GET("/document-types/:id", documentTypeController.GetDocumentTypeDetails)
 	documentRoutes.POST("/document-types", middlewares.RolePermissionMiddleware(db, "document_setting", "modify"), documentTypeController.CreateDocumentType)
 	documentRoutes.PUT("/document-types/:id", middlewares.RolePermissionMiddleware(db, "document_setting", "modify"), documentTypeController.UpdateDocumentType)
 	documentRoutes.POST("/document-types/delete", middlewares.RolePermissionMiddleware(db, "document_setting", "modify"), documentTypeController.DeleteDocumentTypes)
 	documentRoutes.PUT("/document-types/activate", middlewares.RolePermissionMiddleware(db, "document_setting", "modify"), documentTypeController.ActivateDocumentTypes)
 	documentRoutes.PUT("/document-types/deactivate", middlewares.RolePermissionMiddleware(db, "document_setting", "modify"), documentTypeController.DeactivateDocumentTypes)
 
-	documentRoutes.GET("/document-templates", middlewares.RolePermissionMiddleware(db, "document_setting", "view"), documentTemplateController.GetAllDocumentTemplates)
-	documentRoutes.GET("/document-templates/:id", middlewares.RolePermissionMiddleware(db, "document_setting", "view"), documentTemplateController.GetDocumentTemplateDetails)
+	documentRoutes.GET("/document-templates", documentTemplateController.GetAllDocumentTemplates)
+	documentRoutes.GET("/document-templates/:id", documentTemplateController.GetDocumentTemplateDetails)
 	documentRoutes.POST("/document-templates", middlewares.RolePermissionMiddleware(db, "document_setting", "modify"), documentTemplateController.CreateDocumentTemplate)
 	documentRoutes.PUT("/document-templates/:id", middlewares.RolePermissionMiddleware(db, "document_setting", "modify"), documentTemplateController.UpdateDocumentTemplate)
 	documentRoutes.POST("/document-templates/delete", middlewares.RolePermissionMiddleware(db, "document_setting", "modify"), documentTemplateController.DeleteDocumentTemplates)
 	documentRoutes.PUT("/document-templates/activate", middlewares.RolePermissionMiddleware(db, "document_setting", "modify"), documentTemplateController.ActivateDocumentTemplates)
 	documentRoutes.PUT("/document-templates/deactivate", middlewares.RolePermissionMiddleware(db, "document_setting", "modify"), documentTemplateController.DeactivateDocumentTemplates)
 
-	documentRoutes.GET("/document-statuses", middlewares.RolePermissionMiddleware(db, "document_setting", "view"), documentStatusController.GetAllDocumentStatuses)
-	documentRoutes.GET("/document-statuses/:id", middlewares.RolePermissionMiddleware(db, "document_setting", "view"), documentStatusController.GetDocumentStatusDetails)
+	documentRoutes.GET("/document-statuses", documentStatusController.GetAllDocumentStatuses)
+	documentRoutes.GET("/document-statuses/:id", documentStatusController.GetDocumentStatusDetails)
 
-	documentRoutes.GET("/document-access-types", middlewares.RolePermissionMiddleware(db, "document_setting", "view"), documentAccessTypeController.GetAllDocumentAccessTypes)
-	documentRoutes.GET("/document-access-types/:id", middlewares.RolePermissionMiddleware(db, "document_setting", "view"), documentAccessTypeController.GetDocumentAccessTypeDetails)
+	documentRoutes.GET("/document-access-types", documentAccessTypeController.GetAllDocumentAccessTypes)
+	documentRoutes.GET("/document-access-types/:id", documentAccessTypeController.GetDocumentAccessTypeDetails)
 
-	documentRoutes.GET("/document-workflow-statuses", middlewares.RolePermissionMiddleware(db, "document_setting", "view"), documentWorkflowStatusController.GetAllDocumentWorkflowStatuses)
-	documentRoutes.GET("/document-workflow-statuses/:id", middlewares.RolePermissionMiddleware(db, "document_setting", "view"), documentWorkflowStatusController.GetDocumentWorkflowStatusDetails)
+	documentRoutes.GET("/document-workflow-statuses", documentWorkflowStatusController.GetAllDocumentWorkflowStatuses)
+	documentRoutes.GET("/document-workflow-statuses/:id", documentWorkflowStatusController.GetDocumentWorkflowStatusDetails)
 	//document
 	documentRoutes.GET("/documents/export", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentController.GetDocumentExport)
 	documentRoutes.GET("/documents", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentController.GetAllDocuments)
