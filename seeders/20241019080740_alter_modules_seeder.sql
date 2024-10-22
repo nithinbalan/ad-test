@@ -25,7 +25,7 @@ WHERE identifier = 'incident';
 INSERT INTO modules (identifier, title_en, title_ar, module_id, [order], icon, route)
 VALUES 
     ('general_setting', 'General Setting', 'الإعداد العام', 
-     (SELECT module_id FROM modules WHERE identifier = 'setting'), 10, NULL, '/setting/general-setting');
+     (SELECT id FROM modules WHERE identifier = 'setting'), 10, NULL, '/setting/general-setting');
 -- +goose StatementEnd
 
 -- +goose Down
