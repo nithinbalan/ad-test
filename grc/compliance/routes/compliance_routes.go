@@ -40,8 +40,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	slaAssociatedItemController := app.ComplianceModule.SLAAssociatedItemController
 
 	//Compliance Category
-	complianceRoutes.GET("/compliance-categories", middlewares.RolePermissionMiddleware(db, "compliance_setting", "view"), complianceCategoryController.GetAllComplianceCategories)
-	complianceRoutes.GET("/compliance-categories/:id", middlewares.RolePermissionMiddleware(db, "compliance_setting", "view"), complianceCategoryController.GetComplianceCategoryDetails)
+	complianceRoutes.GET("/compliance-categories", complianceCategoryController.GetAllComplianceCategories)
+	complianceRoutes.GET("/compliance-categories/:id", complianceCategoryController.GetComplianceCategoryDetails)
 	complianceRoutes.POST("/compliance-categories", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), complianceCategoryController.CreateComplianceCategory)
 	complianceRoutes.PUT("/compliance-categories/:id", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), complianceCategoryController.UpdateComplianceCategory)
 	complianceRoutes.POST("/compliance-categories/delete", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), complianceCategoryController.DeleteComplianceCategories)
@@ -49,12 +49,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.PUT("/compliance-categories/deactivate", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), complianceCategoryController.DeactivateComplianceCategories)
 
 	//Compliance Status
-	complianceRoutes.GET("/compliance-statuses", middlewares.RolePermissionMiddleware(db, "compliance_setting", "view"), complianceStatusController.GetAllComplianceStatuses)
-	complianceRoutes.GET("/compliance-statuses/:id", middlewares.RolePermissionMiddleware(db, "compliance_setting", "view"), complianceStatusController.GetComplianceStatusDetails)
+	complianceRoutes.GET("/compliance-statuses", complianceStatusController.GetAllComplianceStatuses)
+	complianceRoutes.GET("/compliance-statuses/:id", complianceStatusController.GetComplianceStatusDetails)
 
 	//Compliance Requirement Category
-	complianceRoutes.GET("/compliance-requirement-categories", middlewares.RolePermissionMiddleware(db, "compliance_setting", "view"), complianceRequirementCategoryController.GetAllComplianceRequirementCategories)
-	complianceRoutes.GET("/compliance-requirement-categories/:id", middlewares.RolePermissionMiddleware(db, "compliance_setting", "view"), complianceRequirementCategoryController.GetComplianceRequirementCategoryDetails)
+	complianceRoutes.GET("/compliance-requirement-categories", complianceRequirementCategoryController.GetAllComplianceRequirementCategories)
+	complianceRoutes.GET("/compliance-requirement-categories/:id", complianceRequirementCategoryController.GetComplianceRequirementCategoryDetails)
 	complianceRoutes.POST("/compliance-requirement-categories", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), complianceRequirementCategoryController.CreateComplianceRequirementCategory)
 	complianceRoutes.PUT("/compliance-requirement-categories/:id", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), complianceRequirementCategoryController.UpdateComplianceRequirementCategory)
 	complianceRoutes.POST("/compliance-requirement-categories/delete", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), complianceRequirementCategoryController.DeleteComplianceRequirementCategories)
@@ -62,17 +62,17 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.PUT("/compliance-requirement-categories/deactivate", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), complianceRequirementCategoryController.DeactivateComplianceRequirementCategories)
 
 	//SLA Category
-	complianceRoutes.GET("/sla-categories/:id", middlewares.RolePermissionMiddleware(db, "compliance_setting", "view"), SLACategoryController.GetSLACategoryDetails)
+	complianceRoutes.GET("/sla-categories/:id", SLACategoryController.GetSLACategoryDetails)
 	complianceRoutes.POST("/sla-categories", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), SLACategoryController.CreateCategory)
-	complianceRoutes.GET("/sla-categories", middlewares.RolePermissionMiddleware(db, "compliance_setting", "view"), SLACategoryController.GetAllSLACategories)
+	complianceRoutes.GET("/sla-categories", SLACategoryController.GetAllSLACategories)
 	complianceRoutes.PUT("/sla-categories/:id", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), SLACategoryController.UpdateCategory)
 	complianceRoutes.POST("/sla-categories/delete", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), SLACategoryController.DeleteSLACategories)
 	complianceRoutes.PUT("/sla-categories/activate", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), SLACategoryController.ActivateSLACategories)
 	complianceRoutes.PUT("/sla-categories/deactivate", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), SLACategoryController.DeactivateSLACategories)
 
 	//Compliance Review Statuses
-	complianceRoutes.GET("/compliance-review-statuses", middlewares.RolePermissionMiddleware(db, "compliance_setting", "view"), complianceReviewStatusController.GetAllComplianceReviewStatuses)
-	complianceRoutes.GET("/compliance-review-statuses/:id", middlewares.RolePermissionMiddleware(db, "compliance_setting", "view"), complianceReviewStatusController.GetComplianceReviewStatusDetails)
+	complianceRoutes.GET("/compliance-review-statuses", complianceReviewStatusController.GetAllComplianceReviewStatuses)
+	complianceRoutes.GET("/compliance-review-statuses/:id", complianceReviewStatusController.GetComplianceReviewStatusDetails)
 
 	//Compliance Register
 	unauthenticatedRoutes.GET("/compliance-register/:id/document-preview", complianceRegisterController.GetComplianceRegisterDocumentPreview)

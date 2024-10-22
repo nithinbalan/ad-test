@@ -48,16 +48,16 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskKriController := app.RiskModule.RiskKriController
 	riskTimelineController := app.RiskModule.RiskTimelineController
 
-	riskRoutes.GET("/risk-categories", middlewares.RolePermissionMiddleware(db, "risk_setting", "view"), riskCategoryController.GetAllRiskCategories)
-	riskRoutes.GET("/risk-categories/:id", middlewares.RolePermissionMiddleware(db, "risk_setting", "view"), riskCategoryController.GetRiskCategoryDetails)
+	riskRoutes.GET("/risk-categories", riskCategoryController.GetAllRiskCategories)
+	riskRoutes.GET("/risk-categories/:id", riskCategoryController.GetRiskCategoryDetails)
 	riskRoutes.POST("/risk-categories", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskCategoryController.CreateRiskCategory)
 	riskRoutes.PUT("/risk-categories/:id", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskCategoryController.UpdateRiskCategory)
 	riskRoutes.POST("/risk-categories/delete", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskCategoryController.DeleteRiskCategories)
 	riskRoutes.PUT("/risk-categories/activate", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskCategoryController.ActivateRiskCategories)
 	riskRoutes.PUT("/risk-categories/deactivate", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskCategoryController.DeactivateRiskCategories)
 
-	riskRoutes.GET("/potential-risk-statuses", middlewares.RolePermissionMiddleware(db, "risk_setting", "view"), potentialRiskStatusController.GetAllPotentialRiskStatuses)
-	riskRoutes.GET("/potential-risk-statuses/:id", middlewares.RolePermissionMiddleware(db, "risk_setting", "view"), potentialRiskStatusController.GetPotentialRiskStatusDetails)
+	riskRoutes.GET("/potential-risk-statuses", potentialRiskStatusController.GetAllPotentialRiskStatuses)
+	riskRoutes.GET("/potential-risk-statuses/:id", potentialRiskStatusController.GetPotentialRiskStatusDetails)
 
 	riskRoutes.GET("/potential-risks/export", middlewares.RolePermissionMiddleware(db, "potential_risk", "view"), potentialRiskController.GetPotentialRiskExport)
 	riskRoutes.GET("/potential-risks", middlewares.RolePermissionMiddleware(db, "potential_risk", "view"), potentialRiskController.GetAllPotentialRisks)
@@ -66,24 +66,24 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.PUT("/potential-risks/:id", middlewares.RolePermissionMiddleware(db, "potential_risk", "modify"), potentialRiskController.UpdatePotentialRisk)
 	riskRoutes.POST("/potential-risks/delete", middlewares.RolePermissionMiddleware(db, "potential_risk", "modify"), potentialRiskController.DeletePotentialRisks)
 
-	riskRoutes.GET("/risk-levels", middlewares.RolePermissionMiddleware(db, "risk_setting", "view"), riskLevelController.GetAllRiskLevels)
-	riskRoutes.GET("/risk-levels/:id", middlewares.RolePermissionMiddleware(db, "risk_setting", "view"), riskLevelController.GetRiskLevelDetails)
+	riskRoutes.GET("/risk-levels", riskLevelController.GetAllRiskLevels)
+	riskRoutes.GET("/risk-levels/:id", riskLevelController.GetRiskLevelDetails)
 
 	riskRoutes.GET("/potential-risks/:id/status-updates", middlewares.RolePermissionMiddleware(db, "potential_risk", "view"), potentialRiskStatusUpdateController.GetAllPotentialRiskStatusUpdates)
 	riskRoutes.POST("/potential-risks/:id/status-updates", middlewares.RolePermissionMiddleware(db, "potential_risk", "modify"), potentialRiskStatusUpdateController.CreatePotentialRiskStatusUpdate)
 
-	riskRoutes.GET("/risk-appetite-statements", middlewares.RolePermissionMiddleware(db, "risk_setting", "view"), riskAppetiteStatementController.GetAllRiskAppetiteStatements)
+	riskRoutes.GET("/risk-appetite-statements", riskAppetiteStatementController.GetAllRiskAppetiteStatements)
 	riskRoutes.GET("/risk-appetite-statements-by-category", middlewares.RolePermissionMiddleware(db, "risk_appetite_statement", "view"), riskAppetiteStatementController.GetAllRiskAppetiteStatementByCategory)
-	riskRoutes.GET("/risk-appetite-statements/:id", middlewares.RolePermissionMiddleware(db, "risk_setting", "view"), riskAppetiteStatementController.GetRiskAppetiteStatementDetails)
+	riskRoutes.GET("/risk-appetite-statements/:id", riskAppetiteStatementController.GetRiskAppetiteStatementDetails)
 	riskRoutes.POST("/risk-appetite-statements", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskAppetiteStatementController.CreateRiskAppetiteStatement)
 	riskRoutes.PUT("/risk-appetite-statements/:id", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskAppetiteStatementController.UpdateRiskAppetiteStatement)
 	riskRoutes.POST("/risk-appetite-statements/delete", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskAppetiteStatementController.DeleteRiskAppetiteStatements)
 	riskRoutes.PUT("/risk-appetite-statements/activate", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskAppetiteStatementController.ActivateRiskAppetiteStatements)
 	riskRoutes.PUT("/risk-appetite-statements/deactivate", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskAppetiteStatementController.DeactivateRiskAppetiteStatements)
 
-	riskRoutes.GET("/kri-categories", middlewares.RolePermissionMiddleware(db, "risk_setting", "view"), kriCategoryController.GetAllKRICategories)
+	riskRoutes.GET("/kri-categories", kriCategoryController.GetAllKRICategories)
 	riskRoutes.POST("/kri-categories", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), kriCategoryController.CreateKRICategory)
-	riskRoutes.GET("/kri-categories/:id", middlewares.RolePermissionMiddleware(db, "risk_setting", "view"), kriCategoryController.GetKRICategoryDetails)
+	riskRoutes.GET("/kri-categories/:id", kriCategoryController.GetKRICategoryDetails)
 	riskRoutes.PUT("/kri-categories/:id", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), kriCategoryController.UpdateKRICategory)
 	riskRoutes.POST("/kri-categories/delete", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), kriCategoryController.DeleteKRICategories)
 	riskRoutes.PUT("/kri-categories/activate", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), kriCategoryController.ActivateKRICategories)
@@ -102,51 +102,51 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.PUT("/kri-register/:id/value-updates/:updateId", middlewares.RolePermissionMiddleware(db, "kri", "modify"), kriValueUpdateController.UpdateKRIValueUpdate)
 	riskRoutes.POST("/kri-register/:id/value-updates/delete", middlewares.RolePermissionMiddleware(db, "kri", "modify"), kriValueUpdateController.DeleteKRIValueUpdates)
 
-	riskRoutes.GET("/risk-matrix-impacts", middlewares.RolePermissionMiddleware(db, "risk_setting", "view"), riskMatrixImpactController.GetAllRiskMatrixImpacts)
-	riskRoutes.GET("/risk-matrix-impacts/:id", middlewares.RolePermissionMiddleware(db, "risk_setting", "view"), riskMatrixImpactController.GetRiskMatrixImpactDetails)
+	riskRoutes.GET("/risk-matrix-impacts", riskMatrixImpactController.GetAllRiskMatrixImpacts)
+	riskRoutes.GET("/risk-matrix-impacts/:id", riskMatrixImpactController.GetRiskMatrixImpactDetails)
 	riskRoutes.POST("/risk-matrix-impacts", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskMatrixImpactController.CreateRiskMatrixImpact)
 	riskRoutes.PUT("/risk-matrix-impacts/:id", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskMatrixImpactController.UpdateRiskMatrixImpact)
 	riskRoutes.POST("/risk-matrix-impacts/delete", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskMatrixImpactController.DeleteRiskMatrixImpacts)
 	riskRoutes.PUT("/risk-matrix-impacts/activate", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskMatrixImpactController.ActivateRiskMatrixImpact)
 	riskRoutes.PUT("/risk-matrix-impacts/deactivate", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskMatrixImpactController.DeactivateRiskMatrixImpact)
 
-	riskRoutes.GET("/risk-matrix-likelihood", middlewares.RolePermissionMiddleware(db, "risk_setting", "view"), riskMatrixLikelihoodController.GetAllRiskMatrixLikelihoods)
-	riskRoutes.GET("/risk-matrix-likelihood/:id", middlewares.RolePermissionMiddleware(db, "risk_setting", "view"), riskMatrixLikelihoodController.GetRiskMatrixLikelihoodDetails)
+	riskRoutes.GET("/risk-matrix-likelihood", riskMatrixLikelihoodController.GetAllRiskMatrixLikelihoods)
+	riskRoutes.GET("/risk-matrix-likelihood/:id", riskMatrixLikelihoodController.GetRiskMatrixLikelihoodDetails)
 	riskRoutes.POST("/risk-matrix-likelihood", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskMatrixLikelihoodController.CreateRiskMatrixLikelihood)
 	riskRoutes.PUT("/risk-matrix-likelihood/:id", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskMatrixLikelihoodController.UpdateRiskMatrixLikelihood)
 	riskRoutes.POST("/risk-matrix-likelihood/delete", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskMatrixLikelihoodController.DeleteRiskMatrixLikelihoods)
 	riskRoutes.PUT("/risk-matrix-likelihood/activate", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskMatrixLikelihoodController.ActivateRiskMatrixLikelihood)
 	riskRoutes.PUT("/risk-matrix-likelihood/deactivate", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskMatrixLikelihoodController.DeactivateRiskMatrixLikelihood)
 
-	riskRoutes.GET("/risk-matrix-risk-ratings", middlewares.RolePermissionMiddleware(db, "risk_setting", "view"), riskMatrixRiskRatingController.GetAllRiskMatrixRiskRatings)
-	riskRoutes.GET("/risk-matrix-risk-ratings/:id", middlewares.RolePermissionMiddleware(db, "risk_setting", "view"), riskMatrixRiskRatingController.GetRiskMatrixRiskRatingDetails)
+	riskRoutes.GET("/risk-matrix-risk-ratings", riskMatrixRiskRatingController.GetAllRiskMatrixRiskRatings)
+	riskRoutes.GET("/risk-matrix-risk-ratings/:id", riskMatrixRiskRatingController.GetRiskMatrixRiskRatingDetails)
 	riskRoutes.POST("/risk-matrix-risk-ratings", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskMatrixRiskRatingController.CreateRiskMatrixRiskRating)
 	riskRoutes.PUT("/risk-matrix-risk-ratings/:id", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskMatrixRiskRatingController.UpdateRiskMatrixRiskRating)
 	riskRoutes.POST("/risk-matrix-risk-ratings/delete", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskMatrixRiskRatingController.DeleteRiskMatrixRiskRatings)
 	riskRoutes.PUT("/risk-matrix-risk-ratings/activate", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskMatrixRiskRatingController.ActivateRiskMatrixRiskRating)
 	riskRoutes.PUT("/risk-matrix-risk-ratings/deactivate", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskMatrixRiskRatingController.DeactivateRiskMatrixRiskRating)
 
-	riskRoutes.GET("/risk-matrix-risk-rating-value", middlewares.RolePermissionMiddleware(db, "risk_setting", "view"), riskMatrixRiskRatingValueController.GetAllRiskMatrixRiskRatingValue)
+	riskRoutes.GET("/risk-matrix-risk-rating-value", riskMatrixRiskRatingValueController.GetAllRiskMatrixRiskRatingValue)
 	riskRoutes.POST("/risk-matrix-risk-rating-value", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskMatrixRiskRatingValueController.CreateRiskMatrixRiskRatingValue)
 	riskRoutes.GET("/risk-matrix-configuration", middlewares.RolePermissionMiddleware(db, "risk_matrix", "view"), riskMatrixRiskRatingValueController.GetRiskMatrix)
 
-	riskRoutes.GET("/risk-impact-categories", middlewares.RolePermissionMiddleware(db, "risk_setting", "view"), riskImpactCategoryController.GetAllRiskImpactCategories)
-	riskRoutes.GET("/risk-impact-categories/:id", middlewares.RolePermissionMiddleware(db, "risk_setting", "view"), riskImpactCategoryController.GetRiskImpactCategoryDetails)
+	riskRoutes.GET("/risk-impact-categories", riskImpactCategoryController.GetAllRiskImpactCategories)
+	riskRoutes.GET("/risk-impact-categories/:id", riskImpactCategoryController.GetRiskImpactCategoryDetails)
 	riskRoutes.POST("/risk-impact-categories", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskImpactCategoryController.CreateRiskImpactCategory)
 	riskRoutes.PUT("/risk-impact-categories/:id", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskImpactCategoryController.UpdateRiskImpactCategory)
 	riskRoutes.POST("/risk-impact-categories/delete", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskImpactCategoryController.DeleteRiskImpactCategories)
 	riskRoutes.PUT("/risk-impact-categories/activate", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskImpactCategoryController.ActivateRiskImpactCategories)
 	riskRoutes.PUT("/risk-impact-categories/deactivate", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskImpactCategoryController.DeactivateRiskImpactCategories)
 
-	riskRoutes.GET("/risk-matrix-impact-guidelines", middlewares.RolePermissionMiddleware(db, "risk_setting", "view"), riskMatrixImpactGuidelineController.GetAllRiskMatrixImpactGuidelines)
-	riskRoutes.GET("/risk-matrix-impact-guidelines/:id", middlewares.RolePermissionMiddleware(db, "risk_setting", "view"), riskMatrixImpactGuidelineController.GetRiskMatrixImpactGuidelineDetails)
+	riskRoutes.GET("/risk-matrix-impact-guidelines", riskMatrixImpactGuidelineController.GetAllRiskMatrixImpactGuidelines)
+	riskRoutes.GET("/risk-matrix-impact-guidelines/:id", riskMatrixImpactGuidelineController.GetRiskMatrixImpactGuidelineDetails)
 	riskRoutes.POST("/risk-matrix-impact-guidelines", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskMatrixImpactGuidelineController.CreateRiskMatrixImpactGuideline)
 	riskRoutes.PUT("/risk-matrix-impact-guidelines/:id", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskMatrixImpactGuidelineController.UpdateRiskMatrixImpactGuideline)
 	riskRoutes.POST("/risk-matrix-impact-guidelines/delete", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskMatrixImpactGuidelineController.DeleteRiskMatrixImpactGuidelines)
 
 	// Risk Source
-	riskRoutes.GET("/risk-sources", middlewares.RolePermissionMiddleware(db, "risk_setting", "view"), riskSourceController.GetAllRiskSources)
-	riskRoutes.GET("/risk-sources/:id", middlewares.RolePermissionMiddleware(db, "risk_setting", "view"), riskSourceController.GetRiskSourceDetails)
+	riskRoutes.GET("/risk-sources", riskSourceController.GetAllRiskSources)
+	riskRoutes.GET("/risk-sources/:id", riskSourceController.GetRiskSourceDetails)
 	riskRoutes.POST("/risk-sources", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskSourceController.CreateRiskSource)
 	riskRoutes.PUT("/risk-sources/:id", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskSourceController.UpdateRiskSource)
 	riskRoutes.POST("/risk-sources/delete", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskSourceController.DeleteRiskSources)
@@ -154,8 +154,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.PUT("/risk-sources/deactivate", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskSourceController.DeactivateRiskSources)
 
 	// Risk Status
-	riskRoutes.GET("/risk-statuses", middlewares.RolePermissionMiddleware(db, "risk_setting", "view"), riskStatusController.GetAllRiskStatuses)
-	riskRoutes.GET("/risk-statuses/:id", middlewares.RolePermissionMiddleware(db, "risk_setting", "view"), riskStatusController.GetRiskStatusDetails)
+	riskRoutes.GET("/risk-statuses", riskStatusController.GetAllRiskStatuses)
+	riskRoutes.GET("/risk-statuses/:id", riskStatusController.GetRiskStatusDetails)
 
 	// Risk Register
 	riskRoutes.GET("/risk-register/export", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskRegisterController.GetRiskRegisterExport)
@@ -170,8 +170,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.PUT("risks/:riskId/root-cause-analysis/:id", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskRootCauseAnalysisController.UpdateRiskRootCauseAnalysis)
 	riskRoutes.DELETE("risks/:riskId/root-cause-analysis/:id", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskRootCauseAnalysisController.DeleteRiskRootCauseAnalysis)
 
-	riskRoutes.GET("/risk-appetite-tolerance-levels", middlewares.RolePermissionMiddleware(db, "risk_setting", "view"), riskAppetiteToleranceLevelController.GetAllRiskAppetiteToleranceLevels)
-	riskRoutes.GET("/risk-appetite-tolerance-levels/:id", middlewares.RolePermissionMiddleware(db, "risk_setting", "view"), riskAppetiteToleranceLevelController.GetRiskAppetiteToleranceLevelDetails)
+	riskRoutes.GET("/risk-appetite-tolerance-levels", riskAppetiteToleranceLevelController.GetAllRiskAppetiteToleranceLevels)
+	riskRoutes.GET("/risk-appetite-tolerance-levels/:id", riskAppetiteToleranceLevelController.GetRiskAppetiteToleranceLevelDetails)
 
 	riskRoutes.GET("risks/:riskId/inherent-evaluation", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskInherentEvaluationController.GetRiskInherentEvaluation)
 	riskRoutes.POST("risks/:riskId/inherent-evaluation", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskInherentEvaluationController.CreateRiskInherentEvaluation)
@@ -206,8 +206,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.GET("/risks/:riskId/action-plans/:actionPlanId/status-updates/latest", middlewares.RolePermissionMiddleware(db, "risk_mitigation", "view"), riskActionPlanStatusUpdateController.GetLatestRiskActionPlanStatusUpdate)
 
 	// Risk Treatment Guides
-	riskRoutes.GET("/risk-treatment-guidelines", middlewares.RolePermissionMiddleware(db, "risk_setting", "view"), riskTreatmentGuidelineController.GetAllRiskTreatmentGuidelines)
-	riskRoutes.GET("/risk-treatment-guidelines/:id", middlewares.RolePermissionMiddleware(db, "risk_setting", "view"), riskTreatmentGuidelineController.GetRiskTreatmentGuidelineDetails)
+	riskRoutes.GET("/risk-treatment-guidelines", riskTreatmentGuidelineController.GetAllRiskTreatmentGuidelines)
+	riskRoutes.GET("/risk-treatment-guidelines/:id", riskTreatmentGuidelineController.GetRiskTreatmentGuidelineDetails)
 	riskRoutes.POST("/risk-treatment-guidelines", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskTreatmentGuidelineController.CreateRiskTreatmentGuideline)
 	riskRoutes.PUT("/risk-treatment-guidelines/:id", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskTreatmentGuidelineController.UpdateRiskTreatmentGuideline)
 	riskRoutes.POST("/risk-treatment-guidelines/delete", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskTreatmentGuidelineController.DeleteRiskTreatmentGuidelines)
@@ -215,8 +215,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.PUT("/risk-treatment-guidelines/deactivate", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskTreatmentGuidelineController.DeactivateRiskTreatmentGuidelines)
 
 	// Risk Response Strategy
-	riskRoutes.GET("/risk-response-strategies", middlewares.RolePermissionMiddleware(db, "risk_setting", "view"), riskResponseStrategyController.GetAllRiskResponseStrategies)
-	riskRoutes.GET("/risk-response-strategies/:id", middlewares.RolePermissionMiddleware(db, "risk_setting", "view"), riskResponseStrategyController.GetRiskResponseStrategyDetails)
+	riskRoutes.GET("/risk-response-strategies", riskResponseStrategyController.GetAllRiskResponseStrategies)
+	riskRoutes.GET("/risk-response-strategies/:id", riskResponseStrategyController.GetRiskResponseStrategyDetails)
 	riskRoutes.POST("/risk-response-strategies", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskResponseStrategyController.CreateRiskResponseStrategy)
 	riskRoutes.PUT("/risk-response-strategies/:id", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskResponseStrategyController.UpdateRiskResponseStrategy)
 	riskRoutes.POST("/risk-response-strategies/delete", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskResponseStrategyController.DeleteRiskResponseStrategies)
