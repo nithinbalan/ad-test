@@ -26,16 +26,16 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	meetingAssociatedItemController := app.MeetingModule.MeetingAssociatedItemController
 	meetingMinuteStatusController := app.MeetingModule.MeetingMinuteStatusController
 
-	meetingRoutes.GET("/meeting-frequencies", middlewares.RolePermissionMiddleware(db, "meeting_setting", "view"), meetingFrequencyController.GetAllMeetingFrequencies)
-	meetingRoutes.GET("/meeting-frequencies/:id", middlewares.RolePermissionMiddleware(db, "meeting_setting", "view"), meetingFrequencyController.GetMeetingFrequencyDetails)
+	meetingRoutes.GET("/meeting-frequencies", meetingFrequencyController.GetAllMeetingFrequencies)
+	meetingRoutes.GET("/meeting-frequencies/:id", meetingFrequencyController.GetMeetingFrequencyDetails)
 
 	// Meeting Status
-	meetingRoutes.GET("/meeting-statuses", middlewares.RolePermissionMiddleware(db, "meeting_setting", "view"), meetingStatusController.GetAllMeetingStatuses)
-	meetingRoutes.GET("/meeting-statuses/:id", middlewares.RolePermissionMiddleware(db, "meeting_setting", "view"), meetingStatusController.GetMeetingStatusDetails)
+	meetingRoutes.GET("/meeting-statuses", meetingStatusController.GetAllMeetingStatuses)
+	meetingRoutes.GET("/meeting-statuses/:id", meetingStatusController.GetMeetingStatusDetails)
 
 	// Meeting Type
-	meetingRoutes.GET("/meeting-types", middlewares.RolePermissionMiddleware(db, "meeting_setting", "view"), meetingTypeController.GetAllMeetingTypes)
-	meetingRoutes.GET("/meeting-types/:id", middlewares.RolePermissionMiddleware(db, "meeting_setting", "view"), meetingTypeController.GetMeetingTypeDetails)
+	meetingRoutes.GET("/meeting-types", meetingTypeController.GetAllMeetingTypes)
+	meetingRoutes.GET("/meeting-types/:id", meetingTypeController.GetMeetingTypeDetails)
 	meetingRoutes.POST("/meeting-types", middlewares.RolePermissionMiddleware(db, "meeting_setting", "modify"), meetingTypeController.CreateMeetingType)
 	meetingRoutes.PUT("/meeting-types/:id", middlewares.RolePermissionMiddleware(db, "meeting_setting", "modify"), meetingTypeController.UpdateMeetingType)
 	meetingRoutes.POST("/meeting-types/delete", middlewares.RolePermissionMiddleware(db, "meeting_setting", "modify"), meetingTypeController.DeleteMeetingTypes)
@@ -91,7 +91,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	meetingRoutes.GET("/meetings/:id/incidents", middlewares.RolePermissionMiddleware(db, "meeting", "view"), meetingAssociatedItemController.GetAllMeetingIncidents)
 
 	// Meeting Minute Status
-	meetingRoutes.GET("/meeting-minute-statuses", middlewares.RolePermissionMiddleware(db, "meeting_setting", "view"), meetingMinuteStatusController.GetAllMeetingMinuteStatuses)
-	meetingRoutes.GET("/meeting-minute-statuses/:id", middlewares.RolePermissionMiddleware(db, "meeting_setting", "view"), meetingMinuteStatusController.GetMeetingMinuteStatusDetails)
+	meetingRoutes.GET("/meeting-minute-statuses", meetingMinuteStatusController.GetAllMeetingMinuteStatuses)
+	meetingRoutes.GET("/meeting-minute-statuses/:id", meetingMinuteStatusController.GetMeetingMinuteStatusDetails)
 
 }
