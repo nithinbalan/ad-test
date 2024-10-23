@@ -20,9 +20,11 @@ type ComplianceReportController struct {
 	db                    *gorm.DB
 }
 
-func NewComplianceReportController(service services.ComplianceReportServiceInterface) *ComplianceReportController {
+func NewComplianceReportController(service services.ComplianceReportServiceInterface,
+	complianceRegisterSvc complianceServices.ComplianceRegisterServiceInterface) *ComplianceReportController {
 	return &ComplianceReportController{
-		service: service,
+		service:               service,
+		complianceRegisterSvc: complianceRegisterSvc,
 	}
 }
 
@@ -63,6 +65,9 @@ func (crc *ComplianceReportController) GetAllComplianceRegisters(c *gin.Context)
 	expiryDateTo := c.Query("expiry_date_to")
 	nextReviewDateFrom := c.Query("next_review_date_from")
 	nextReviewDateTo := c.Query("next_review_date_to")
+
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -123,6 +128,8 @@ func (crc *ComplianceReportController) GetAllComplianceRegisters(c *gin.Context)
 		ExpiryDateTo:       expiryDateTo,
 		NextReviewDateFrom: nextReviewDateFrom,
 		NextReviewDateTo:   nextReviewDateTo,
+		DateFrom:           dateFrom,
+		DateTo:             dateTo,
 		Export:             export,
 	}
 

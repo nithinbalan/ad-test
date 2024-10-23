@@ -173,6 +173,10 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
 		query = query.Where("next_review_date <= ?", params.NextReviewDateTo)
 	}
 
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("compliance_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
 	// Apply quick filters
 	for _, filter := range params.QuickFilter {
 		switch filter {
