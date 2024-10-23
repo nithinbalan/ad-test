@@ -14,9 +14,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	reportsRoutes.Use(middlewares.AuthMiddleware())
 
 	complianceReportController := app.ReportsModule.ComplianceReportController
+	organizationReportController := app.ReportsModule.OrganizationReportController
 
 	reportsRoutes.GET("/reports/compliance-registers", complianceReportController.GetAllComplianceRegisters)
 	reportsRoutes.GET("/reports/compliance-registers/export", complianceReportController.ComplianceRegisterReportExport)
 	reportsRoutes.GET("/reports/compliance-by-category", complianceReportController.GetComplianceByCategory)
+
+	reportsRoutes.GET("/reports/users-by-status", organizationReportController.GetUsersByStatus)
 
 }

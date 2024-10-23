@@ -9,16 +9,22 @@ import (
 )
 
 type ReportsModule struct {
-	ComplianceReportController *controllers.ComplianceReportController
+	ComplianceReportController   *controllers.ComplianceReportController
+	OrganizationReportController *controllers.OrganizationReportController
 }
 
-func NewReportsModule(db *gorm.DB, complianceModule *ComplianceModule) *ReportsModule {
+func NewReportsModule(db *gorm.DB, complianceModule *ComplianceModule, organizationModule *OrganizationModule) *ReportsModule {
+
+	organizationReportRepo := repositories.NewOrganizationReportRepository(db)
+	organizationReportSvc := services.NewOrganizationReportService(organizationReportRepo)
+	organizationReportController := controllers.NewOrganizationReportController(organizationReportSvc)
 
 	complianceReportRepo := repositories.NewComplianceReportRepository(db)
 	complianceReportSvc := services.NewComplianceReportService(complianceReportRepo)
 	complianceReportController := controllers.NewComplianceReportController(complianceReportSvc, complianceModule.ComplianceRegisterSvc)
 
 	return &ReportsModule{
-		ComplianceReportController: complianceReportController,
+		ComplianceReportController:   complianceReportController,
+		OrganizationReportController: organizationReportController,
 	}
 }
