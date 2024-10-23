@@ -354,5 +354,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	//Audit Final Report Section
 	auditRoutes.PUT("/audits/:auditId/final-report-sections/:id", auditFinalReportSectionController.UpdateAuditFinalReportSection)
+	auditRoutes.DELETE("/audits/:auditId/final-report-sections/:id", auditFinalReportSectionController.DeleteAuditFinalReportSection)
 
 }

@@ -64,3 +64,44 @@ func (afrsc *AuditFinalReportSectionController) UpdateAuditFinalReportSection(c 
 
 	c.Status(http.StatusOK)
 }
+
+
+func (afrsc *AuditFinalReportSectionController) DeleteAuditFinalReportSection(c *gin.Context) {
+	auditID, err := strconv.Atoi(c.Param("auditId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	idStr := c.Param("id")
+
+	id, err := strconv.ParseUint(idStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(afrsc.db, c, err.Error())
+		return
+	}
+
+	failedID, err := afrsc.service.Delete(uint(auditID), uint(id), currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ForbiddenError:
+			// Return a 403 Forbidden response with the error message
+			utility.SendForbiddenErrResp(c, e.Error())
+			return
+		default:
+			utility.SendInternalErrResp(afrsc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"failed_id": failedID})
+}

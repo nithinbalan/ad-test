@@ -83,6 +83,14 @@ func (afrs *AuditFinalReportService) GetFullDetailsByID(auditID uint, currentUse
 		updatedByUserDTO := mapUserToUserMinimalDTO(auditFinalReport.UpdatedByUser)
 		updatedByUser = &updatedByUserDTO
 	}
+	// Map the AuditDraftReportStatus
+	auditFinalReportStatusDTO := auditDTOs.AuditFinalReportStatusDTO{
+		ID:        auditFinalReport.AuditFinalReportStatus.ID,
+		TitleEn:   auditFinalReport.AuditFinalReportStatus.TitleEn,
+		TitleAr:   auditFinalReport.AuditFinalReportStatus.TitleAr,
+		Type:      auditFinalReport.AuditFinalReportStatus.Type,
+		ColorCode: auditFinalReport.AuditFinalReportStatus.ColorCode,
+	}
 
 	// Map audit final report sections
 	mainSections := []*auditDTOs.AuditFinalReportSectionDTO{}
@@ -209,14 +217,15 @@ func (afrs *AuditFinalReportService) GetFullDetailsByID(auditID uint, currentUse
 
 	// Map other fields and create the DTO
 	auditReportDTO := &auditDTOs.AuditFinalReportDetailDTO{
-		ID:              auditFinalReport.ID,
-		AuditID:         auditFinalReport.AuditID,
-		Title:           auditFinalReport.Audit.AuditPlan.Title,
-		ReferenceNumber: auditFinalReport.Audit.AuditPlan.ReferenceNumber,
-		MainSections:    mainSections,
-		PreparedBy:      createdByUser,
-		UpdatedByUser:   updatedByUser,
-		PreparedAt:      auditFinalReport.CreatedAt.Format("2006-01-02"),
+		ID:                     auditFinalReport.ID,
+		AuditID:                auditFinalReport.AuditID,
+		Title:                  auditFinalReport.Audit.AuditPlan.Title,
+		ReferenceNumber:        auditFinalReport.Audit.AuditPlan.ReferenceNumber,
+		MainSections:           mainSections,
+		AuditFinalReportStatus: &auditFinalReportStatusDTO,
+		PreparedBy:             createdByUser,
+		UpdatedByUser:          updatedByUser,
+		PreparedAt:             auditFinalReport.CreatedAt.Format("2006-01-02"),
 	}
 
 	// Return the DTO
@@ -386,7 +395,7 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 				DescriptionEn:             auditDraftReport.Audit.AuditPlan.Objective,
 				DescriptionAr:             auditDraftReport.Audit.AuditPlan.Objective,
 				Type:                      section.Type,
-				Order:                     float64Ptr(subOrder + 0.1),
+				Order:                     float64Ptr(subOrder + 0.2),
 				CreatedBYID:               currentUserID,
 			})
 		}
@@ -399,7 +408,7 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 				DescriptionEn:             auditDraftReport.Audit.AuditPlan.Purpose,
 				DescriptionAr:             auditDraftReport.Audit.AuditPlan.Purpose,
 				Type:                      section.Type,
-				Order:                     float64Ptr(subOrder + 0.1),
+				Order:                     float64Ptr(subOrder + 0.3),
 				CreatedBYID:               currentUserID,
 			})
 		}
@@ -472,7 +481,7 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 				DescriptionEn:             &auditableItemsListEn,
 				DescriptionAr:             &auditableItemsListAr,
 				Type:                      section.Type,
-				Order:                     float64Ptr(subOrder + 0.1),
+				Order:                     float64Ptr(subOrder + 0.4),
 				CreatedBYID:               currentUserID,
 			})
 

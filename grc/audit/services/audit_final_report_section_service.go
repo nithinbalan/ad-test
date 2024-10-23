@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"fmt"
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
 	logServices "jethur/grc/logs/services"
@@ -14,6 +15,7 @@ import (
 type AuditFinalReportSectionServiceInterface interface {
 	GetByID(id uint) (*models.AuditFinalReportSection, error)
 	Update(auditID uint, id uint, currentUserID uint, auditFinalReportSectionFormDTO *auditDTOs.AuditFinalReportSectionFormDTO) error
+	Delete(auditID uint, id uint, currentUserID uint) (uint, error)
 }
 
 type AuditFinalReportSectionService struct {
@@ -97,4 +99,81 @@ func (afrss *AuditFinalReportSectionService) Update(auditID uint, id uint, curre
 	}()
 
 	return nil
+}
+
+func (afrss *AuditFinalReportSectionService) Delete(auditID uint, id uint, currentUserID uint) (uint, error) {
+	// Begin a transaction
+	tx := afrss.repo.BeginTransaction()
+	// Check if the Audit exists
+	if _, err := afrss.auditSvc.GetByID(auditID); err != nil {
+		return 0, err
+	}
+
+	var failedId uint
+
+	// Check if the section to be deleted exists
+	sectionToDelete, err := afrss.GetByID(id)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	if sectionToDelete.AuditFinalReportSectionID == nil {
+		tx.Rollback()
+		return 0, utility.NewForbiddenError("Deletion failed: Main sections cannot be deleted. Please delete the subsections first.")
+	}
+
+	// Delete the section
+	if err := afrss.repo.Delete(id, tx); err != nil {
+		tx.Rollback()
+		failedId = id
+		return failedId, err
+	}
+
+	// Reorder the remaining sub sections after deletion
+	// Fetch all remaining sub sections for this audit
+	if sectionToDelete.AuditFinalReportSectionID != nil {
+		parentID := *sectionToDelete.AuditFinalReportSectionID
+		subSections, err := afrss.repo.GetAllSubSectionsByParentID(parentID, tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+		parent, err := afrss.GetByID(parentID)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+		baseOrder := *parent.Order // Get the base order from the parent
+
+		// Iterate through subSections and update their order
+		for i, section := range subSections {
+			// Set new order based on parent's order + index increment
+			newOrder := baseOrder + float64(i+1)*0.1 // This ensures distinct ordering
+			section.Order = float64Ptr(newOrder) // Use the helper function to create a pointer
+			if err := afrss.repo.Update(&section, tx); err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+		}
+	}
+	tx.Commit()
+
+	// Log successful delete activity asynchronously
+	go func() {
+		err := afrss.activityLogSvc.LogActivity(
+			models.DeleteAction,
+			models.AuditFinalReportSection{}.TableName(),
+			id,
+			nil,
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			// Handle error if logging fails
+			fmt.Printf("Failed to log delete activity: %v\n", err)
+		}
+	}()
+
+	return failedId, nil
 }

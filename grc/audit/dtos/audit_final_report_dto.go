@@ -18,9 +18,7 @@ type AuditFinalReportDetailDTO struct {
 	PreparedBy             organizationDTOs.UserMinimalDTO  `json:"prepared_by"`
 	MainSections           []*AuditFinalReportSectionDTO    `json:"main_sections"` // Main sections with subsections
 	AuditFinalReportStatus *AuditFinalReportStatusDTO       `json:"audit_final_report_status"`
-	CreatedByUser          organizationDTOs.UserMinimalDTO  `json:"created_by"`
 	UpdatedByUser          *organizationDTOs.UserMinimalDTO `json:"updated_by"`
-	CreatedAt              string                           `json:"created_at"`
 	UpdatedAt              *string                          `json:"updated_at"`
 }
 

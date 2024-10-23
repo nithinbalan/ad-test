@@ -11,6 +11,8 @@ type AuditFinalReportSectionRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetByID(id uint) (*models.AuditFinalReportSection, error)
 	Update(auditFinalReportSection *models.AuditFinalReportSection, tx ...utility.DatabaseTransaction) error
+	Delete(id uint, tx ...utility.DatabaseTransaction) error
+	GetAllSubSectionsByParentID(parentID uint, tx ...utility.DatabaseTransaction) ([]models.AuditFinalReportSection, error)
 }
 
 type AuditFinalReportSectionRepository struct {
@@ -49,4 +51,33 @@ func (repo *AuditFinalReportSectionRepository) Update(auditFinalReportSection *m
 	}
 
 	return nil
+}
+
+func (repo *AuditFinalReportSectionRepository) Delete(id uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Delete(&models.AuditFinalReportSection{}, id).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *AuditFinalReportSectionRepository) GetAllSubSectionsByParentID(parentID uint, tx ...utility.DatabaseTransaction) ([]models.AuditFinalReportSection, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	// Define a slice to hold the sub-sections
+	var subSections []models.AuditFinalReportSection
+
+	// Query to find all sub-sections where the parent ID matches
+	if err := db.Where("audit_final_report_section_id = ?", parentID).Order("[order] ASC").Find(&subSections).Error; err != nil {
+		return nil, err
+	}
+
+	return subSections, nil
 }
