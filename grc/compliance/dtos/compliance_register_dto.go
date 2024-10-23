@@ -93,6 +93,8 @@ type ComplianceRegisterListQueryParamsDTO struct {
 	IssueDateTo        string
 	ExpiryDateFrom     string
 	ExpiryDateTo       string
+	DateFrom           string
+	DateTo             string
 	NextReviewDateFrom string
 	NextReviewDateTo   string
 	Export             bool

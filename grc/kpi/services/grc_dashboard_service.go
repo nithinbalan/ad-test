@@ -25,10 +25,10 @@ type GRCDashboardServiceInterface interface {
 }
 
 type GRCDashboardService struct {
-	repo repositories.GRCDashboardRepositoryInteface
+	repo repositories.GRCDashboardRepositoryInterface
 }
 
-func NewGRCDashboardService(repo repositories.GRCDashboardRepositoryInteface) GRCDashboardServiceInterface {
+func NewGRCDashboardService(repo repositories.GRCDashboardRepositoryInterface) GRCDashboardServiceInterface {
 	return &GRCDashboardService{repo: repo}
 }
 

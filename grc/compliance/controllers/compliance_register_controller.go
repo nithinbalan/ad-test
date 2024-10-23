@@ -63,6 +63,9 @@ func (crc *ComplianceRegisterController) GetAllComplianceRegisters(c *gin.Contex
 	nextReviewDateFrom := c.Query("next_review_date_from")
 	nextReviewDateTo := c.Query("next_review_date_to")
 
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
 		utility.SendInternalErrResp(crc.db, c, "Invalid page parameter")
@@ -122,6 +125,8 @@ func (crc *ComplianceRegisterController) GetAllComplianceRegisters(c *gin.Contex
 		ExpiryDateTo:       expiryDateTo,
 		NextReviewDateFrom: nextReviewDateFrom,
 		NextReviewDateTo:   nextReviewDateTo,
+		DateFrom:           dateFrom,
+		DateTo:             dateTo,
 		Export:             export,
 	}
 

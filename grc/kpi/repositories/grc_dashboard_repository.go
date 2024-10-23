@@ -9,7 +9,7 @@ import (
 	"gorm.io/gorm"
 )
 
-type GRCDashboardRepositoryInteface interface {
+type GRCDashboardRepositoryInterface interface {
 	GetGRCComplianceSummary(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCComplianceSummaryDTO, error)
 	GetGRCRiskSummary(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCRiskSummaryDTO, error)
 	GetGRCAuditSummary(params *kpiDTOs.GRCDashboardListQueryParamsDTO) (*kpiDTOs.GRCAuditSummaryDTO, error)
@@ -47,7 +47,7 @@ func (repo *GRCDashboardRepository) GetGRCComplianceSummary(params *kpiDTOs.GRCD
 	// Calculate total number of compliance requirements
 	complianceRequirementQuery := repo.db.Model(&models.ComplianceRequirement{})
 	if params.DateFrom != "" && params.DateTo != "" {
-		complianceRequirementQuery = complianceRequirementQuery.Where("created_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
+		complianceRequirementQuery = complianceRequirementQuery.Where("created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 	err := complianceRequirementQuery.Count(&totalComplianceRequirements).Error
 	if err != nil {
@@ -59,7 +59,7 @@ func (repo *GRCDashboardRepository) GetGRCComplianceSummary(params *kpiDTOs.GRCD
 		Joins("JOIN compliance_statuses ON compliance_statuses.id = compliance_requirements.compliance_status_id").
 		Where("compliance_statuses.type = ?", "compliant")
 	if params.DateFrom != "" && params.DateTo != "" {
-		compliantQuery = compliantQuery.Where("compliance_requirements.created_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
+		compliantQuery = compliantQuery.Where("compliance_requirements.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 	err = compliantQuery.Count(&compliantRequirements).Error
 	if err != nil {
@@ -74,7 +74,7 @@ func (repo *GRCDashboardRepository) GetGRCComplianceSummary(params *kpiDTOs.GRCD
 	// Calculate total number of compliance action plans
 	actionPlanQuery := repo.db.Model(&models.ComplianceActionPlan{})
 	if params.DateFrom != "" && params.DateTo != "" {
-		actionPlanQuery = actionPlanQuery.Where("created_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
+		actionPlanQuery = actionPlanQuery.Where("created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 	err = actionPlanQuery.Count(&totalActionPlans).Error
 	if err != nil {
@@ -86,7 +86,7 @@ func (repo *GRCDashboardRepository) GetGRCComplianceSummary(params *kpiDTOs.GRCD
 		Joins("JOIN action_plan_statuses ON action_plan_statuses.id = compliance_action_plans.action_plan_status_id").
 		Where("action_plan_statuses.type = ?", "completed")
 	if params.DateFrom != "" && params.DateTo != "" {
-		completedQuery = completedQuery.Where("compliance_action_plans.created_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
+		completedQuery = completedQuery.Where("compliance_action_plans.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 	err = completedQuery.Count(&completedActionPlans).Error
 	if err != nil {
@@ -108,7 +108,7 @@ func (repo *GRCDashboardRepository) GetGRCRiskSummary(params *kpiDTOs.GRCDashboa
 
 	totalRiskQuery := repo.db.Model(&models.RiskRegister{})
 	if params.DateFrom != "" && params.DateTo != "" {
-		totalRiskQuery = totalRiskQuery.Where("created_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
+		totalRiskQuery = totalRiskQuery.Where("created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 	err := totalRiskQuery.Count(&totalRisks).Error
 	if err != nil {
@@ -119,7 +119,7 @@ func (repo *GRCDashboardRepository) GetGRCRiskSummary(params *kpiDTOs.GRCDashboa
 		Joins("JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id").
 		Where("risk_statuses.type = ?", "closed")
 	if params.DateFrom != "" && params.DateTo != "" {
-		closedRiskQuery = closedRiskQuery.Where("risk_register.created_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
+		closedRiskQuery = closedRiskQuery.Where("risk_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 	err = closedRiskQuery.Count(&closedRisks).Error
 	if err != nil {
@@ -136,7 +136,7 @@ func (repo *GRCDashboardRepository) GetGRCRiskSummary(params *kpiDTOs.GRCDashboa
 		Where("risk_matrix_risk_ratings.type = ?", "very_high").
 		Where("risk_statuses.type = ?", "open")
 	if params.DateFrom != "" && params.DateTo != "" {
-		highRiskQuery = highRiskQuery.Where("risk_register.created_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
+		highRiskQuery = highRiskQuery.Where("risk_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 	err = highRiskQuery.Count(&openHighRiskRatings).Error
 	if err != nil {
@@ -153,7 +153,7 @@ func (repo *GRCDashboardRepository) GetGRCAuditSummary(params *kpiDTOs.GRCDashbo
 	totalAuditQuery := repo.db.Model(&models.Audit{})
 	if params.DateFrom != "" && params.DateTo != "" {
 		totalAuditQuery = totalAuditQuery.Joins("JOIN audit_plans ON audit_plans.id = audits.audit_plan_id").
-			Where("audits.created_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
+			Where("audits.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 	err := totalAuditQuery.Count(&totalAudits).Error
 	if err != nil {
@@ -165,7 +165,7 @@ func (repo *GRCDashboardRepository) GetGRCAuditSummary(params *kpiDTOs.GRCDashbo
 		Joins("JOIN audit_statuses ON audit_statuses.id = audit_plans.audit_status_id").
 		Where("audit_statuses.type = ?", "completed")
 	if params.DateFrom != "" && params.DateTo != "" {
-		completedAuditQuery = completedAuditQuery.Where("audits.created_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
+		completedAuditQuery = completedAuditQuery.Where("audits.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 	err = completedAuditQuery.Count(&completedAudits).Error
 	if err != nil {
@@ -184,7 +184,7 @@ func (repo *GRCDashboardRepository) GetGRCAuditSummary(params *kpiDTOs.GRCDashbo
 		Where("audit_finding_statuses.is_closed = ?", false)
 
 	if params.DateFrom != "" && params.DateTo != "" {
-		openMajorNCQuery = openMajorNCQuery.Where("audit_findings.created_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
+		openMajorNCQuery = openMajorNCQuery.Where("audit_findings.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 
 	err = openMajorNCQuery.Count(&openMajorNCCount).Error
@@ -194,7 +194,7 @@ func (repo *GRCDashboardRepository) GetGRCAuditSummary(params *kpiDTOs.GRCDashbo
 
 	totalFindingQuery := repo.db.Model(&models.AuditFinding{})
 	if params.DateFrom != "" && params.DateTo != "" {
-		totalFindingQuery = totalFindingQuery.Where("created_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
+		totalFindingQuery = totalFindingQuery.Where("created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 	err = totalFindingQuery.Count(&totalFindings).Error
 	if err != nil {
@@ -205,7 +205,7 @@ func (repo *GRCDashboardRepository) GetGRCAuditSummary(params *kpiDTOs.GRCDashbo
 		Joins("JOIN audit_finding_statuses ON audit_finding_statuses.id = audit_findings.audit_finding_status_id").
 		Where("audit_finding_statuses.is_closed = ?", true)
 	if params.DateFrom != "" && params.DateTo != "" {
-		closedFindingQuery = closedFindingQuery.Where("audit_findings.created_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
+		closedFindingQuery = closedFindingQuery.Where("audit_findings.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 	err = closedFindingQuery.Count(&closedFindings).Error
 	if err != nil {
@@ -235,7 +235,7 @@ func (repo *GRCDashboardRepository) GetGRCDocumentSummary(params *kpiDTOs.GRCDas
 		Where("document_types.type IN ?", []string{"policy", "procedure"})
 
 	if params.DateFrom != "" && params.DateTo != "" {
-		policyQuery = policyQuery.Where("documents.created_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
+		policyQuery = policyQuery.Where("documents.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 
 	err := policyQuery.Count(&totalPolicies).Error
@@ -250,7 +250,7 @@ func (repo *GRCDashboardRepository) GetGRCDocumentSummary(params *kpiDTOs.GRCDas
 		Where("document_types.type = ?", "others")
 
 	if params.DateFrom != "" && params.DateTo != "" {
-		otherDocQuery = otherDocQuery.Where("documents.created_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
+		otherDocQuery = otherDocQuery.Where("documents.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 
 	err = otherDocQuery.Count(&totalOtherDocuments).Error
@@ -271,7 +271,7 @@ func (repo *GRCDashboardRepository) GetGRCOrganizationSummary(params *kpiDTOs.GR
 	controlQuery := repo.db.Model(&models.Control{})
 
 	if params.DateFrom != "" && params.DateTo != "" {
-		controlQuery = controlQuery.Where("controls.created_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
+		controlQuery = controlQuery.Where("controls.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 
 	err := controlQuery.Count(&totalControls).Error
@@ -306,7 +306,7 @@ func (repo *GRCDashboardRepository) GetGRCIncidentSummary(params *kpiDTOs.GRCDas
 	incidentQuery := repo.db.Model(&models.IncidentRegister{})
 
 	if params.DateFrom != "" && params.DateTo != "" {
-		incidentQuery = incidentQuery.Where("incident_register.incident_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
+		incidentQuery = incidentQuery.Where("incident_register.incident_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 
 	err := incidentQuery.Count(&totalIncidents).Error
@@ -380,7 +380,7 @@ func (repo *GRCDashboardRepository) GetGRCComplianceOverview(params *kpiDTOs.GRC
 		Joins("JOIN compliance_statuses ON compliance_statuses.id = compliance_register.compliance_status_id")
 
 	if params.DateFrom != "" && params.DateTo != "" {
-		complianceQuery = complianceQuery.Where("compliance_register.created_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
+		complianceQuery = complianceQuery.Where("compliance_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 
 	var totalComplaintsRegistered int64
@@ -435,7 +435,7 @@ func (repo *GRCDashboardRepository) GetGRCRiskOverview(params *kpiDTOs.GRCDashbo
 		Joins("JOIN risk_matrix_risk_ratings ON risk_register.current_risk_rating_id = risk_matrix_risk_ratings.id")
 
 	if params.DateFrom != "" && params.DateTo != "" {
-		riskQuery = riskQuery.Where("risk_register.created_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
+		riskQuery = riskQuery.Where("risk_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 
 	var totalRisksRegistered int64
@@ -488,7 +488,7 @@ func (repo *GRCDashboardRepository) GetGRCDocumentOverview(params *kpiDTOs.GRCDa
 		Joins("JOIN document_types ON document_types.id = documents.document_type_id")
 
 	if params.DateFrom != "" && params.DateTo != "" {
-		documentQuery = documentQuery.Where("documents.created_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
+		documentQuery = documentQuery.Where("documents.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 
 	err := documentQuery.Select(`
@@ -513,7 +513,7 @@ func (repo *GRCDashboardRepository) GetTopComplianceRegisters(params *kpiDTOs.GR
 		Order("total_score DESC")
 
 	if params.DateFrom != "" && params.DateTo != "" {
-		query = query.Where("created_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
+		query = query.Where("created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 
 	query = query.Limit(5)
@@ -558,7 +558,7 @@ func (repo *GRCDashboardRepository) GetTopRiskRegisters(params *kpiDTOs.GRCDashb
 		Order("risk_matrix_risk_rating_values.value DESC")
 
 	if params.DateFrom != "" && params.DateTo != "" {
-		query = query.Where("risk_register.created_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
+		query = query.Where("risk_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 
 	query = query.Limit(5)
@@ -590,7 +590,7 @@ func (repo *GRCDashboardRepository) GetTopPublishedDocuments(params *kpiDTOs.GRC
 
 	// Apply date filters if provided
 	if params.DateFrom != "" && params.DateTo != "" {
-		query = query.Where("documents.created_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
+		query = query.Where("documents.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 
 	// Apply the limit after filtering
@@ -611,7 +611,7 @@ func (repo *GRCDashboardRepository) GetGRCDocumentTypeChart(params *kpiDTOs.GRCD
 	query := repo.db.Model(&models.Document{})
 
 	if params.DateFrom != "" && params.DateTo != "" {
-		query = query.Where("documents.created_at BETWEEN ? AND ?", params.DateFrom, params.DateTo)
+		query = query.Where("documents.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 
 	err := query.Count(&totalDocuments).Error
