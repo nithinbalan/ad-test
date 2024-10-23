@@ -84,6 +84,13 @@ func (repo *IncidentActionPlanStatusUpdateRepository) GetAll(incidentActionPlanI
 	query = query.Order(sortBy + " " + sort)
 	result := query.Find(&incidentActionPlanUpdates)
 
+	// Fetching documents for each incident action plan status updates
+	for _, update := range incidentActionPlanUpdates {
+		var documents []*models.IncidentActionPlanStatusUpdateDocument
+		repo.db.Model(&models.IncidentActionPlanStatusUpdateDocument{}).Where("incident_action_plan_status_update_id = ?", update.ID).Find(&documents)
+		update.Documents = documents
+	}
+
 	return incidentActionPlanUpdates, result.Error
 }
 

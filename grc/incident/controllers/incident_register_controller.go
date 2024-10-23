@@ -277,7 +277,7 @@ func (irc *IncidentRegisterController) GetIncidentRegisterDocumentPreview(c *gin
 		return
 	}
 
-	complianceDocumentPath, err := irc.service.GetDocumentPath(uint(id), token)
+	incidentDocumentPath, err := irc.service.GetDocumentPath(uint(id), token)
 	if err != nil {
 		switch err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -287,7 +287,7 @@ func (irc *IncidentRegisterController) GetIncidentRegisterDocumentPreview(c *gin
 		}
 		return
 	}
-	c.File(complianceDocumentPath)
+	c.File(incidentDocumentPath)
 }
 
 func (irc *IncidentRegisterController) DownloadIncidentRegisterDocument(c *gin.Context) {
@@ -304,7 +304,7 @@ func (irc *IncidentRegisterController) DownloadIncidentRegisterDocument(c *gin.C
 		return
 	}
 
-	complianceDocumentPath, err := irc.service.GetDocumentPath(uint(id), token)
+	incidentDocumentPath, err := irc.service.GetDocumentPath(uint(id), token)
 	if err != nil {
 		switch err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -314,7 +314,7 @@ func (irc *IncidentRegisterController) DownloadIncidentRegisterDocument(c *gin.C
 		}
 		return
 	}
-	filename := filepath.Base(complianceDocumentPath)
+	filename := filepath.Base(incidentDocumentPath)
 
 	// Set the content type and disposition headers for the file download
 	c.Header("Content-Description", "File Transfer")
@@ -326,7 +326,7 @@ func (irc *IncidentRegisterController) DownloadIncidentRegisterDocument(c *gin.C
 	c.Header("Pragma", "public")
 
 	// Serve the file
-	c.File(complianceDocumentPath)
+	c.File(incidentDocumentPath)
 }
 
 func (irc *IncidentRegisterController) GetIncidentRegisterExport(c *gin.Context) {

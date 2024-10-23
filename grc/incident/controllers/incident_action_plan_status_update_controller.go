@@ -6,6 +6,7 @@ import (
 	"jethur/grc/incident/services"
 	"jethur/utility"
 	"net/http"
+	"path/filepath"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -164,7 +165,6 @@ func (iasuc *IncidentActionPlanStatusUpdateController) UpdateIncidentActionPlanS
 	c.Status(http.StatusOK)
 }
 
-
 func (iasuc *IncidentActionPlanStatusUpdateController) GetLatestIncidentActionPlanStatusUpdate(c *gin.Context) {
 	incidentIDStr := c.Param("incidentID")
 
@@ -195,4 +195,103 @@ func (iasuc *IncidentActionPlanStatusUpdateController) GetLatestIncidentActionPl
 	}
 
 	c.JSON(http.StatusOK, incidentActionPlanStatusUpdate)
+}
+
+func (iasuc *IncidentActionPlanStatusUpdateController) GetIncidentActionPlanStatusUpdateDocumentPreview(c *gin.Context) {
+
+	incidentIDStr := c.Param("incidentID")
+
+	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	actionPlanIDStr := c.Param("actionPlanId")
+
+	actionPlanID, err := strconv.ParseUint(actionPlanIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	incidentActionPlanStatusUpdateDocumentPath, err := iasuc.service.GetDocumentPath(uint(incidentID), uint(actionPlanID), uint(id), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(iasuc.db, c, err.Error())
+		}
+		return
+	}
+	c.File(incidentActionPlanStatusUpdateDocumentPath)
+}
+
+func (iasuc *IncidentActionPlanStatusUpdateController) DownloadIncidentActionPlanStatusUpdateDocument(c *gin.Context) {
+	incidentIDStr := c.Param("incidentID")
+
+	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	actionPlanIDStr := c.Param("actionPlanId")
+
+	actionPlanID, err := strconv.ParseUint(actionPlanIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	incidentActionPlanStatusUpdateDocumentPath, err := iasuc.service.GetDocumentPath(uint(incidentID), uint(actionPlanID), uint(id), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(iasuc.db, c, err.Error())
+		}
+		return
+	}
+	filename := filepath.Base(incidentActionPlanStatusUpdateDocumentPath)
+
+	// Set the content type and disposition headers for the file download
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Type", "application/octet-stream")
+	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Header("Content-Transfer-Encoding", "binary")
+	c.Header("Expires", "0")
+	c.Header("Cache-Control", "must-revalidate")
+	c.Header("Pragma", "public")
+
+	// Serve the file
+	c.File(incidentActionPlanStatusUpdateDocumentPath)
 }
