@@ -8,6 +8,7 @@ import (
 
 type OrganizationReportRepositoryInterface interface {
 	GetUsersByStatus(params *dtos.ReportListQueryParamsDTO) ([]*dtos.UsersByStatusDTO, error)
+	GetUsersByRole(params *dtos.ReportListQueryParamsDTO) ([]*dtos.UsersByRoleDTO, error)
 }
 
 type OrganizationReportRepository struct {
@@ -19,7 +20,7 @@ func NewOrganizationReportRepository(db *gorm.DB) *OrganizationReportRepository 
 }
 
 func (repo *OrganizationReportRepository) GetUsersByStatus(params *dtos.ReportListQueryParamsDTO) ([]*dtos.UsersByStatusDTO, error) {
-	var results []*dtos.UsersByStatusDTO
+	results := []*dtos.UsersByStatusDTO{}
 
 	query := repo.db.Table("users").
 		Select(`
@@ -31,6 +32,32 @@ func (repo *OrganizationReportRepository) GetUsersByStatus(params *dtos.ReportLi
 			COUNT(users.id) AS count`).
 		Joins("JOIN user_statuses ON user_statuses.id = users.user_status_id").
 		Group("user_statuses.id, user_statuses.title_en, user_statuses.title_ar, user_statuses.color_code, user_statuses.type")
+
+	// Apply date filters if provided
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("users.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	err := query.Scan(&results).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
+func (repo *OrganizationReportRepository) GetUsersByRole(params *dtos.ReportListQueryParamsDTO) ([]*dtos.UsersByRoleDTO, error) {
+	results := []*dtos.UsersByRoleDTO{}
+
+	query := repo.db.Table("user_roles").
+		Select(`
+			roles.id AS id,
+			roles.title_en AS role_title_en,
+			roles.title_ar AS role_title_ar,
+			COUNT(users.id) AS count`).
+		Joins("JOIN users ON users.id = user_roles.user_id").
+		Joins("JOIN roles ON roles.id = user_roles.role_id").
+		Group("roles.id, roles.title_en, roles.title_ar")
 
 	// Apply date filters if provided
 	if params.DateFrom != "" && params.DateTo != "" {

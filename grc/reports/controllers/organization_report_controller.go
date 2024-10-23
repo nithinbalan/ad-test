@@ -43,3 +43,20 @@ func (orc *OrganizationReportController) GetUsersByStatus(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, usersByStatusReport)
 }
+
+func (orc *OrganizationReportController) GetUsersByRole(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := dtos.ReportListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+
+	usersByRoleReport, err := orc.service.GetUsersByRole(&queryParams)
+	if err != nil {
+		utility.SendInternalErrResp(orc.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, usersByRoleReport)
+}

@@ -21,5 +21,5 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	reportsRoutes.GET("/reports/compliance-by-category", complianceReportController.GetComplianceByCategory)
 
 	reportsRoutes.GET("/reports/users-by-status", organizationReportController.GetUsersByStatus)
-
+	reportsRoutes.GET("/reports/users-by-role", organizationReportController.GetUsersByRole)
 }
