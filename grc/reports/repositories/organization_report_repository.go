@@ -9,6 +9,7 @@ import (
 type OrganizationReportRepositoryInterface interface {
 	GetUsersByStatus(params *dtos.ReportListQueryParamsDTO) ([]*dtos.UsersByStatusDTO, error)
 	GetUsersByRole(params *dtos.ReportListQueryParamsDTO) ([]*dtos.UsersByRoleDTO, error)
+	GetUsersByDesignation(params *dtos.ReportListQueryParamsDTO) ([]*dtos.UsersByDesignationDTO, error)
 }
 
 type OrganizationReportRepository struct {
@@ -67,6 +68,36 @@ func (repo *OrganizationReportRepository) GetUsersByRole(params *dtos.ReportList
 	err := query.Scan(&results).Error
 	if err != nil {
 		return nil, err
+	}
+
+	return results, nil
+}
+
+func (repo *OrganizationReportRepository) GetUsersByDesignation(params *dtos.ReportListQueryParamsDTO) ([]*dtos.UsersByDesignationDTO, error) {
+	results := []*dtos.UsersByDesignationDTO{}
+
+	query := repo.db.Table("users").
+		Select(`
+			designations.id AS id,
+			designations.title_en AS designation_title_en,
+			designations.title_ar AS designation_title_ar,
+			COUNT(users.id) AS count`).
+		Joins("JOIN designations ON designations.id = users.designation_id").
+		Group("designations.id, designations.title_en, designations.title_ar")
+
+	// Apply date filters if provided
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("users.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	err := query.Scan(&results).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Return empty array if no results
+	if results == nil {
+		results = []*dtos.UsersByDesignationDTO{}
 	}
 
 	return results, nil

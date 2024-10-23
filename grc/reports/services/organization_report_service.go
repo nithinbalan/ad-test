@@ -8,6 +8,7 @@ import (
 type OrganizationReportServiceInterface interface {
 	GetUsersByStatus(params *dtos.ReportListQueryParamsDTO) ([]*dtos.UsersByStatusDTO, error)
 	GetUsersByRole(params *dtos.ReportListQueryParamsDTO) ([]*dtos.UsersByRoleDTO, error)
+	GetUsersByDesignation(params *dtos.ReportListQueryParamsDTO) ([]*dtos.UsersByDesignationDTO, error)
 }
 
 type OrganizationReportService struct {
@@ -24,4 +25,8 @@ func (ors *OrganizationReportService) GetUsersByStatus(params *dtos.ReportListQu
 
 func (ors *OrganizationReportService) GetUsersByRole(params *dtos.ReportListQueryParamsDTO) ([]*dtos.UsersByRoleDTO, error) {
 	return ors.repo.GetUsersByRole(params)
+}
+
+func (ors *OrganizationReportService) GetUsersByDesignation(params *dtos.ReportListQueryParamsDTO) ([]*dtos.UsersByDesignationDTO, error) {
+	return ors.repo.GetUsersByDesignation(params)
 }

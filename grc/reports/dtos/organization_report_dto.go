@@ -15,3 +15,10 @@ type UsersByRoleDTO struct {
 	RoleTitleAr string `json:"role_title_ar"`
 	Count       int    `json:"count"`
 }
+
+type UsersByDesignationDTO struct {
+	ID                 uint   `json:"id"`
+	DesignationTitleEn string `json:"designation_title_en"`
+	DesignationTitleAr string `json:"designation_title_ar"`
+	Count              int    `json:"count"`
+}
