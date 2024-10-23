@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"jethur/config"
 	commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
 	complianceServices "jethur/grc/compliance/services"
@@ -34,6 +35,7 @@ type IncidentRegisterServiceInterface interface {
 	Update(id uint, currentUserID uint, incident *incidentDTOs.IncidentRegisterFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	StatusUpdate(id uint, currentUserID uint, incidentStatusID uint, tx utility.DatabaseTransaction) error
+	GetDocumentPath(id uint, token string) (string, error)
 	ExportIncidentRegister(data []*incidentDTOs.IncidentRegisterListDTO, currentUserID uint) (*os.File, error)
 }
 
@@ -1501,6 +1503,41 @@ func (irs *IncidentRegisterService) validateIncidentDocumentFormDTO(documents []
 	}
 
 	return nil
+}
+
+func (irs *IncidentRegisterService) GetDocumentPath(id uint, token string) (string, error) {
+	existingIncidentRegister, err := irs.GetFullDetailsByID(id)
+	if err != nil {
+		return "", err
+	}
+
+	if len(existingIncidentRegister.Documents) == 0 {
+		return "", fmt.Errorf("no documents found for the incident register")
+	}
+
+	decryptedFilenameBytes, err := utility.DecryptData(token)
+	if err != nil {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	decryptedFilename := string(decryptedFilenameBytes)
+	if decryptedFilename == "" {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	storagePath := filepath.Join("incident", "incident-register", strconv.FormatUint(uint64(id), 10), "documents")
+
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
+
+	// Check if the file exists
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("file not found")
+	} else if err != nil {
+		return "", fmt.Errorf("error accessing file: %w", err)
+	}
+
+	return fullPath, nil
 }
 
 func (is *IncidentRegisterService) ExportIncidentRegister(data []*incidentDTOs.IncidentRegisterListDTO, currentUserID uint) (*os.File, error) {
