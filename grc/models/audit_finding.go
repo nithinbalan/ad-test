@@ -21,14 +21,15 @@ type AuditFinding struct {
 	UpdatedBYID            *uint      `json:"updated_by_id" gorm:"default:null"`
 
 	// Relationships
-	Audit                *Audit                  `gorm:"foreignKey:AuditID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
-	AuditableItem        *AuditableItem          `gorm:"foreignKey:AuditableItemID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
-	AuditFindingCategory *AuditFindingCategory   `gorm:"foreignKey:AuditFindingCategoryID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
-	SeverityLevel        *SeverityLevel          `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
-	AuditFindingStatus   *AuditFindingStatus     `gorm:"foreignKey:AuditFindingStatusID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
-	CreatedByUser        *User                   `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
-	UpdatedByUser        *User                   `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
-	Documents            []*AuditFindingDocument `gorm:"foreignKey:AuditFindingID"`
+	Audit                   *Audit                    `gorm:"foreignKey:AuditID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
+	AuditableItem           *AuditableItem            `gorm:"foreignKey:AuditableItemID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
+	AuditFindingCategory    *AuditFindingCategory     `gorm:"foreignKey:AuditFindingCategoryID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
+	SeverityLevel           *SeverityLevel            `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
+	AuditFindingStatus      *AuditFindingStatus       `gorm:"foreignKey:AuditFindingStatusID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
+	CreatedByUser           *User                     `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
+	UpdatedByUser           *User                     `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
+	Documents               []*AuditFindingDocument   `gorm:"foreignKey:AuditFindingID"`
+	AuditFindingActionPlans []*AuditFindingActionPlan `gorm:"foreignKey:AuditFindingID"`
 }
 
 // TableName overrides the table name used by AuditFinding to `audit_findings`
