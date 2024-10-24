@@ -15,7 +15,7 @@ import (
 )
 
 type WorkflowServiceInterface interface {
-	GetAllWorkflowsByType(workflowType string) ([]*settingsDTOs.WorkflowListDTO, error)
+	GetAllWorkflowsByType(workflowType string, moduleIdentifier string) ([]*settingsDTOs.WorkflowListDTO, error)
 	GetWorkflowByDocumentType(documentTypeId uint, tx ...utility.DatabaseTransaction) (*models.Workflow, error)
 	GetWorkflowLevels(workflowID uint, tx ...utility.DatabaseTransaction) (*settingsDTOs.WorkflowLevelListDTO, error)
 	CreateWorkFlowLevel(workflowId uint, currentUserID uint, workflowFormDTO *settingsDTOs.WorkflowLevelFormDTO) (uint, error)
@@ -39,8 +39,8 @@ func NewWorkflowService(
 	}
 }
 
-func (ws *WorkflowService) GetAllWorkflowsByType(workflowType string) ([]*settingsDTOs.WorkflowListDTO, error) {
-	return ws.repo.GetAllWorkflowsByType(workflowType)
+func (ws *WorkflowService) GetAllWorkflowsByType(workflowType string, moduleIdentifier string) ([]*settingsDTOs.WorkflowListDTO, error) {
+	return ws.repo.GetAllWorkflowsByType(workflowType, moduleIdentifier)
 }
 
 func (ws *WorkflowService) GetWorkflowByDocumentType(documentTypeId uint, tx ...utility.DatabaseTransaction) (*models.Workflow, error) {
