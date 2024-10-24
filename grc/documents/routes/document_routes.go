@@ -33,6 +33,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentClauseController := app.DocumentModule.DocumentClauseController
 	documentAssociatedItemController := app.DocumentModule.DocumentAssociatedItemController
 
+	documentChangeRequestTypeController := app.DocumentModule.DocumentChangeRequestTypeController
+	documentChangeRequestStatusController := app.DocumentModule.DocumentChangeRequestStatusController
+
 	documentRoutes.GET("/document-categories", documentCategoryController.GetAllDocumentCategories)
 	documentRoutes.GET("/document-categories/:id", documentCategoryController.GetDocumentCategoryDetails)
 	documentRoutes.POST("/document-categories", middlewares.RolePermissionMiddleware(db, "document_setting", "modify"), documentCategoryController.CreateDocumentCategory)
@@ -115,5 +118,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentRoutes.GET("documents/:id/slas", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentAssociatedItemController.GetAllDocumentSLAs)
 	documentRoutes.GET("documents/:id/incidents", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentAssociatedItemController.GetAllDocumentIncidents)
 	documentRoutes.GET("documents/:id/risks", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentAssociatedItemController.GetAllDocumentRisks)
+
+	documentRoutes.GET("/document-change-request-types", documentChangeRequestTypeController.GetAllDocumentChangeRequestTypes)
+	documentRoutes.GET("/document-change-request-types/:id", documentChangeRequestTypeController.GetDocumentChangeRequestTypeDetails)
+
+	documentRoutes.GET("/document-change-request-statuses", documentChangeRequestStatusController.GetAllDocumentChangeRequestStatuses)
+	documentRoutes.GET("/document-change-request-statuses/:id", documentChangeRequestStatusController.GetDocumentChangeRequestStatusDetails)
 
 }
