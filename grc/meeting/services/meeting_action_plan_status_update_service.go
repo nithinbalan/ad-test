@@ -122,7 +122,7 @@ func (masus *MeetingActionPlanStatusUpdateService) Create(meetingID uint, meetin
 			return 0, err
 		}
 
-		url := utility.GenerateDocumentURL("meeting", "meeting", strconv.FormatUint(uint64(meetingID), 10), "action-plans", strconv.FormatUint(uint64(meetingActionPlanID), 10), "action-plan-updates", strconv.FormatUint(uint64(id), 10), encryptedFileName)
+		url := utility.GenerateDocumentURL("meeting", "meetings", strconv.FormatUint(uint64(meetingID), 10), "action-plans", strconv.FormatUint(uint64(meetingActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 
 		document := &models.MeetingActionPlanStatusUpdateDocument{
 			MeetingActionPlanStatusUpdateID: id,
@@ -145,7 +145,7 @@ func (masus *MeetingActionPlanStatusUpdateService) Create(meetingID uint, meetin
 		}
 		// move file to storage
 		for _, doc := range documents {
-			storagePath := filepath.Join("meeting", "meeting", strconv.FormatUint(uint64(meetingID), 10), "action-plans", strconv.FormatUint(uint64(meetingActionPlanID), 10), "action-plan-updates", strconv.FormatUint(uint64(id), 10), "documents")
+			storagePath := filepath.Join("meeting", "meetings", strconv.FormatUint(uint64(meetingID), 10), "action-plans", strconv.FormatUint(uint64(meetingActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
 				tx.Rollback()
 				return 0, err
@@ -268,7 +268,7 @@ func (masus *MeetingActionPlanStatusUpdateService) Update(meetingID uint, meetin
 			}
 
 			// genereate URL
-			url := utility.GenerateDocumentURL("meeting", "meeting", strconv.FormatUint(uint64(meetingID), 10), "action-plans", strconv.FormatUint(uint64(meetingActionPlanID), 10), "action-plan-updates", strconv.FormatUint(uint64(id), 10), encryptedFileName)
+			url := utility.GenerateDocumentURL("meeting", "meetings", strconv.FormatUint(uint64(meetingID), 10), "action-plans", strconv.FormatUint(uint64(meetingActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 
 			document := &models.MeetingActionPlanStatusUpdateDocument{
 				MeetingActionPlanStatusUpdateID: id,
@@ -315,7 +315,7 @@ func (masus *MeetingActionPlanStatusUpdateService) Update(meetingID uint, meetin
 	}
 
 	for _, doc := range documents {
-		storagePath := filepath.Join("meeting", "meeting", strconv.FormatUint(uint64(meetingID), 10), "action-plans", strconv.FormatUint(uint64(meetingActionPlanID), 10), "action-plan-updates", strconv.FormatUint(uint64(id), 10), "documents")
+		storagePath := filepath.Join("meeting", "meetings", strconv.FormatUint(uint64(meetingID), 10), "action-plans", strconv.FormatUint(uint64(meetingActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 
 		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
 			tx.Rollback()
@@ -324,7 +324,7 @@ func (masus *MeetingActionPlanStatusUpdateService) Update(meetingID uint, meetin
 	}
 
 	for _, document := range documentsToDelete {
-		storagePath := filepath.Join("meeting", "meeting", strconv.FormatUint(uint64(meetingID), 10), "action-plans", strconv.FormatUint(uint64(meetingActionPlanID), 10), "action-plan-updates", strconv.FormatUint(uint64(id), 10), "documents")
+		storagePath := filepath.Join("meeting", "meetings", strconv.FormatUint(uint64(meetingID), 10), "action-plans", strconv.FormatUint(uint64(meetingActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 		if err := utility.RemoveFile(document.Name, storagePath); err != nil {
 			tx.Rollback()
 			return err
@@ -372,7 +372,7 @@ func (masus *MeetingActionPlanStatusUpdateService) GetDocumentPath(meetingID uin
 		return "", fmt.Errorf("resource not found")
 	}
 
-	storagePath := filepath.Join("meeting", "meeting", strconv.FormatUint(uint64(meetingID), 10), "action-plans", strconv.FormatUint(uint64(meetingActionPlanID), 10), "action-plan-updates", strconv.FormatUint(uint64(meetingActionPlanUpdateID), 10), "documents")
+	storagePath := filepath.Join("meeting", "meetings", strconv.FormatUint(uint64(meetingID), 10), "action-plans", strconv.FormatUint(uint64(meetingActionPlanID), 10), "updates", strconv.FormatUint(uint64(meetingActionPlanUpdateID), 10), "documents")
 
 	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
 	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
