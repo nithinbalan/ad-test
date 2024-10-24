@@ -1,6 +1,7 @@
 package dtos
 
 import (
+	masterDTOs "jethur/grc/masters/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
 )
 
@@ -42,10 +43,12 @@ type AuditFinalReportSectionDTO struct {
 type AuditFinalReportFindingDTO struct {
 	ID                     uint                             `json:"id"`
 	Title                  string                           `json:"title"`
-	Description            string                           `json:"description"`
+	Description            *string                          `json:"description"`
 	SeverityLevelID        uint                             `json:"severity_level_id"`
 	AuditFindingCategoryID uint                             `json:"audit_finding_category_id"`
-	Recommendations        string                           `json:"recommendations"`
+	Recommendations        *string                          `json:"recommendations"`
+	AuditFindingCategory   AuditFindingCategoryDTO          `json:"audit_finding_category"`
+	SeverityLevel          masterDTOs.SeverityLevelDTO      `json:"severity_level"`
 	AuditableItem          AuditableItemDetailDTO           `json:"auditable_item"`
 	ActionPlans            []*AuditFindingActionPlanDTO     `json:"action_plans"` // Nested action plans for each finding
 	CreatedByUser          organizationDTOs.UserMinimalDTO  `json:"created_by"`
@@ -57,7 +60,7 @@ type AuditFinalReportFindingDTO struct {
 type AuditFindingActionPlanDTO struct {
 	ID                 uint                             `json:"id"`
 	Title              string                           `json:"title"`
-	Description        string                           `json:"description"`
+	Description        *string                          `json:"description"`
 	ResponsibleUserID  uint                             `json:"responsible_user_id"`
 	TargetDate         string                           `json:"target_date"`
 	ActionPlanStatusID uint                             `json:"action_plan_status_id"`

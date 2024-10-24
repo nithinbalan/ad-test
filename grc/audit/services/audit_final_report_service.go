@@ -9,6 +9,7 @@ import (
 	documentDTOs "jethur/grc/documents/dtos"
 	incidentDTOs "jethur/grc/incident/dtos"
 	logServices "jethur/grc/logs/services"
+	masterDTOs "jethur/grc/masters/dtos"
 	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
 	organizationServices "jethur/grc/organization/services"
@@ -117,10 +118,14 @@ func (afrs *AuditFinalReportService) GetFullDetailsByID(auditID uint, currentUse
 					// Map action plans for the finding
 					actionPlansDTOs := []*auditDTOs.AuditFindingActionPlanDTO{}
 					for _, actionPlan := range finding.AuditFindingActionPlans {
+						var description *string
+						if actionPlan.Description != nil {
+							description = actionPlan.Description
+						}
 						actionPlanDTO := auditDTOs.AuditFindingActionPlanDTO{
 							ID:                 actionPlan.ID,
 							Title:              actionPlan.Title,
-							Description:        *actionPlan.Description,
+							Description:        description,
 							ResponsibleUserID:  actionPlan.ResponsibleUserID,
 							TargetDate:         actionPlan.TargetDate.Format("2006-01-02"),
 							ActionPlanStatusID: actionPlan.ActionPlanStatusID,
@@ -129,15 +134,22 @@ func (afrs *AuditFinalReportService) GetFullDetailsByID(auditID uint, currentUse
 						}
 						actionPlansDTOs = append(actionPlansDTOs, &actionPlanDTO)
 					}
-
+					var findingDescription *string
+					var recommendation *string
+					if finding.Description != nil {
+						findingDescription = finding.Description
+					}
+					if finding.Recommendations != nil {
+						recommendation = finding.Recommendations
+					}
 					// Map the finding DTO
 					findingDTO := auditDTOs.AuditFinalReportFindingDTO{
 						ID:                     finding.ID,
 						Title:                  finding.Title,
-						Description:            *finding.Description,
+						Description:            findingDescription,
 						SeverityLevelID:        finding.SeverityLevelID,
 						AuditFindingCategoryID: finding.AuditFindingCategoryID,
-						Recommendations:        *finding.Recommendations,
+						Recommendations:        recommendation,
 						ActionPlans:            actionPlansDTOs,
 						CreatedByUser:          mapUserToUserMinimalDTO(finding.CreatedByUser),
 						CreatedAt:              finding.CreatedAt.Format("2006-01-02"),
@@ -156,7 +168,27 @@ func (afrs *AuditFinalReportService) GetFullDetailsByID(auditID uint, currentUse
 						ComplianceRequirementID: finding.AuditableItem.ComplianceRequirementID,
 						RiskRegisterID:          finding.AuditableItem.RiskRegisterID,
 					}
+					// Map AuditFindingCategory to DTO
+					if finding.AuditFindingCategory != nil {
+						findingDTO.AuditFindingCategory = auditDTOs.AuditFindingCategoryDTO{
+							ID:            int(finding.AuditFindingCategory.ID),
+							TitleEn:       finding.AuditFindingCategory.TitleEn,
+							TitleAr:       finding.AuditFindingCategory.TitleAr,
+							DescriptionEn: *finding.AuditFindingCategory.DescriptionEn,
+							DescriptionAr: *finding.AuditFindingCategory.DescriptionAr,
+						}
+					}
 
+					// Map SeverityLevel to DTO
+					if finding.SeverityLevel != nil {
+						findingDTO.SeverityLevel = masterDTOs.SeverityLevelDTO{
+							ID:        finding.SeverityLevel.ID,
+							TitleEn:   finding.SeverityLevel.TitleEn,
+							TitleAr:   finding.SeverityLevel.TitleAr,
+							ColorCode: finding.SeverityLevel.ColorCode,
+							Status:    finding.SeverityLevel.Status,
+						}
+					}
 					// Map additional related entities if they exist
 					if finding.AuditableItem.Process != nil {
 						findingDTO.AuditableItem.Process = &organizationDTOs.ProcessDetailDTO{
