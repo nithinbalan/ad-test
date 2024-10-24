@@ -3,14 +3,17 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+
+	"jethur/config"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	meetingDTOs "jethur/grc/meeting/dtos"
 	"jethur/grc/meeting/repositories"
 	"jethur/grc/models"
 	"jethur/utility"
-	"path/filepath"
-	"strconv"
 
 	"gorm.io/gorm"
 )
@@ -21,6 +24,7 @@ type MeetingActionPlanStatusUpdateServiceInterface interface {
 	Create(meetingID uint, meetingActionPlanID uint, currentUserID uint, meetingActionPlanStatusUpdateFormDTO *meetingDTOs.MeetingActionPlanStatusUpdateFormDTO) (uint, error)
 	Update(meetingID uint, meetingActionPlanID uint, id uint, currentUserID uint, meetingActionPlanStatusUpdateFormDTO *meetingDTOs.MeetingActionPlanStatusUpdateFormDTO) error
 	GetLatestMeetingActionPlanStatusUpdate(meetingID uint, actionPlanID uint) (*meetingDTOs.MeetingActionPlanStatusUpdateListDTO, error)
+	GetDocumentPath(meetingID uint, meetingActionPlanID uint, id uint, token string) (string, error)
 }
 
 type MeetingActionPlanStatusUpdateService struct {
@@ -64,7 +68,6 @@ func (masus MeetingActionPlanStatusUpdateService) GetByID(meetingID uint, meetin
 	}
 
 	meetingActionPlanStatusUpdate, err := masus.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -140,7 +143,7 @@ func (masus *MeetingActionPlanStatusUpdateService) Create(meetingID uint, meetin
 			tx.Rollback()
 			return 0, err
 		}
-		//move file to storage
+		// move file to storage
 		for _, doc := range documents {
 			storagePath := filepath.Join("meeting", "meeting", strconv.FormatUint(uint64(meetingID), 10), "action-plans", strconv.FormatUint(uint64(meetingActionPlanID), 10), "action-plan-updates", strconv.FormatUint(uint64(id), 10), "documents")
 			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
@@ -200,7 +203,6 @@ func (masus *MeetingActionPlanStatusUpdateService) Create(meetingID uint, meetin
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -225,7 +227,6 @@ func (masus *MeetingActionPlanStatusUpdateService) Update(meetingID uint, meetin
 	}
 
 	existingMeetingActionPlanStatusUpdate, err := masus.GetByID(meetingID, meetingActionPlanID, id)
-
 	if err != nil {
 		return err
 	}
@@ -257,18 +258,16 @@ func (masus *MeetingActionPlanStatusUpdateService) Update(meetingID uint, meetin
 	var documentsToDelete []*models.MeetingActionPlanStatusUpdateDocument
 
 	for _, doc := range meetingActionPlanStatusUpdateFormDTO.Documents {
-
 		if doc.IsNewFile != nil && *doc.IsNewFile {
 			// Encrypt the filename
 			dataToEncrypt := []byte(doc.FileName)
 			encryptedFileName, err := utility.EncryptData(dataToEncrypt)
-
 			if err != nil {
 				tx.Rollback()
 				return err
 			}
 
-			//genereate URL
+			// genereate URL
 			url := utility.GenerateDocumentURL("meeting", "meeting", strconv.FormatUint(uint64(meetingID), 10), "action-plans", strconv.FormatUint(uint64(meetingActionPlanID), 10), "action-plan-updates", strconv.FormatUint(uint64(id), 10), encryptedFileName)
 
 			document := &models.MeetingActionPlanStatusUpdateDocument{
@@ -338,7 +337,6 @@ func (masus *MeetingActionPlanStatusUpdateService) Update(meetingID uint, meetin
 }
 
 func (masus *MeetingActionPlanStatusUpdateService) validateMeetingActionPlanStatusUpdateFormDTO(meetingActionPlanStatusUpdateFormDTO *meetingDTOs.MeetingActionPlanStatusUpdateFormDTO) error {
-
 	if _, err := masus.actionPlanStatusSvc.GetByID(meetingActionPlanStatusUpdateFormDTO.ActionPlanStatusID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("action plan status does not exist"), "not_exist", "action plan status")
 	}
@@ -352,4 +350,38 @@ func (masus MeetingActionPlanStatusUpdateService) GetLatestMeetingActionPlanStat
 	}
 
 	return masus.repo.GetLatestMeetingActionPlanStatusUpdate(actionPlanID)
+}
+
+func (masus *MeetingActionPlanStatusUpdateService) GetDocumentPath(meetingID uint, meetingActionPlanID uint, meetingActionPlanUpdateID uint, token string) (string, error) {
+	existingMeetingActionPlanStatusUpdate, err := masus.GetByID(meetingID, meetingActionPlanID, meetingActionPlanUpdateID)
+	if err != nil {
+		return "", err
+	}
+
+	if len(existingMeetingActionPlanStatusUpdate.Documents) == 0 {
+		return "", fmt.Errorf("no documents found for the meeting action plan update")
+	}
+
+	decryptedFilenameBytes, err := utility.DecryptData(token)
+	if err != nil {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	decryptedFilename := string(decryptedFilenameBytes)
+	if decryptedFilename == "" {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	storagePath := filepath.Join("meeting", "meeting", strconv.FormatUint(uint64(meetingID), 10), "action-plans", strconv.FormatUint(uint64(meetingActionPlanID), 10), "action-plan-updates", strconv.FormatUint(uint64(meetingActionPlanUpdateID), 10), "documents")
+
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
+
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("file not found")
+	} else if err != nil {
+		return "", fmt.Errorf("error accessing file: %w", err)
+	}
+
+	return fullPath, nil
 }
