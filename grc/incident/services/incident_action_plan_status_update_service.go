@@ -114,7 +114,7 @@ func (iasus *IncidentActionPlanStatusUpdateService) Create(IncidentID uint, Inci
 			return 0, err
 		}
 
-		url := utility.GenerateDocumentURL("incident", strconv.FormatUint(uint64(IncidentID), 10), "action-plans", strconv.FormatUint(uint64(IncidentActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
+		url := utility.GenerateDocumentURL("incident", "incident-register", strconv.FormatUint(uint64(IncidentID), 10), "action-plans", strconv.FormatUint(uint64(IncidentActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 
 		document := &models.IncidentActionPlanStatusUpdateDocument{
 			IncidentActionPlanStatusUpdateID: id,
@@ -218,7 +218,7 @@ func (iasus *IncidentActionPlanStatusUpdateService) Update(IncidentID uint, Inci
 			}
 
 			//genereate URL
-			url := utility.GenerateDocumentURL("incident", strconv.FormatUint(uint64(IncidentID), 10), "action-plans", strconv.FormatUint(uint64(IncidentActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
+			url := utility.GenerateDocumentURL("incident", "incident-register", strconv.FormatUint(uint64(IncidentID), 10), "action-plans", strconv.FormatUint(uint64(IncidentActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 			// Create a new Control test Document instance
 			document := &models.IncidentActionPlanStatusUpdateDocument{
 				IncidentActionPlanStatusUpdateID: id,
