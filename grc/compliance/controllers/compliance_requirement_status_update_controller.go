@@ -6,6 +6,7 @@ import (
 	"jethur/grc/compliance/services"
 	"jethur/utility"
 	"net/http"
+	"path/filepath"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -194,4 +195,100 @@ func (csuc *ComplianceRequirementStatusUpdateController) GetLatestComplianceRequ
 	}
 
 	c.JSON(http.StatusOK, complianceRequirementStatusUpdate)
+}
+func (casuc *ComplianceRequirementStatusUpdateController) GetComplianceRequirementStatusUpdateDocumentPreview(c *gin.Context) {
+	complianceIDStr := c.Param("complianceId")
+
+	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	requirementIDStr := c.Param("requirementId")
+
+	requirementID, err := strconv.ParseUint(requirementIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	complianceRequirementStatusUpdateDocumentPath, err := casuc.service.GetDocumentPath(uint(complianceID), uint(requirementID), uint(id), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(casuc.db, c, err.Error())
+		}
+		return
+	}
+	c.File(complianceRequirementStatusUpdateDocumentPath)
+}
+
+func (casuc *ComplianceRequirementStatusUpdateController) DownloadComplianceRequirementStatusUpdateDocument(c *gin.Context) {
+	complianceIDStr := c.Param("complianceId")
+
+	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	requirementIDStr := c.Param("requirementId")
+
+	requirementID, err := strconv.ParseUint(requirementIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	complianceRequirementStatusUpdateDocumentPath, err := casuc.service.GetDocumentPath(uint(complianceID), uint(requirementID), uint(id), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(casuc.db, c, err.Error())
+		}
+		return
+	}
+	filename := filepath.Base(complianceRequirementStatusUpdateDocumentPath)
+
+	// Set the content type and disposition headers for the file download
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Type", "application/octet-stream")
+	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Header("Content-Transfer-Encoding", "binary")
+	c.Header("Expires", "0")
+	c.Header("Cache-Control", "must-revalidate")
+	c.Header("Pragma", "public")
+
+	// Serve the file
+	c.File(complianceRequirementStatusUpdateDocumentPath)
 }

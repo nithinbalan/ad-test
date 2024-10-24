@@ -104,7 +104,7 @@ func (repo *SLAActionPlanStatusUpdateRepository) GetAll(slaActionPlanID uint, so
 
 func (repo *SLAActionPlanStatusUpdateRepository) GetByID(id uint) (*models.SLAActionPlanStatusUpdate, error) {
 	var slaActionPlanStatusUpdate *models.SLAActionPlanStatusUpdate
-	result := repo.db.First(&slaActionPlanStatusUpdate, id)
+	result := repo.db.Preload("Documents").First(&slaActionPlanStatusUpdate, id)
 
 	if result.Error != nil {
 		return nil, result.Error
