@@ -10,6 +10,8 @@ type OrganizationReportRepositoryInterface interface {
 	GetUsersByStatus(params *dtos.ReportListQueryParamsDTO) ([]*dtos.UsersByStatusDTO, error)
 	GetUsersByRole(params *dtos.ReportListQueryParamsDTO) ([]*dtos.UsersByRoleDTO, error)
 	GetUsersByDesignation(params *dtos.ReportListQueryParamsDTO) ([]*dtos.UsersByDesignationDTO, error)
+
+	GetProcessesByResponsibleUnit(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ProcessByUnitDTO, error)
 }
 
 type OrganizationReportRepository struct {
@@ -95,9 +97,32 @@ func (repo *OrganizationReportRepository) GetUsersByDesignation(params *dtos.Rep
 		return nil, err
 	}
 
-	// Return empty array if no results
-	if results == nil {
-		results = []*dtos.UsersByDesignationDTO{}
+	return results, nil
+}
+
+func (repo *OrganizationReportRepository) GetProcessesByResponsibleUnit(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ProcessByUnitDTO, error) {
+	results := []*dtos.ProcessByUnitDTO{}
+
+	query := repo.db.Table("processes").
+		Select(`
+			processes.owner_unit_id AS owner_unit_id,
+			organization_units.title_en AS owner_unit_title_en,
+			organization_units.title_ar AS owner_unit_title_ar,
+			organization_units.color_code AS owner_unit_color_code,
+			organization_units.status AS owner_unit_status,
+			COUNT(processes.id) AS count
+		`).
+		Joins("JOIN organization_units ON organization_units.id = processes.owner_unit_id").
+		Group("processes.owner_unit_id, organization_units.title_en, organization_units.title_ar, organization_units.color_code, organization_units.status")
+
+	// Apply date filters if provided
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("processes.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	err := query.Scan(&results).Error
+	if err != nil {
+		return nil, err
 	}
 
 	return results, nil

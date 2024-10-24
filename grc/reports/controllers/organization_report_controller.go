@@ -215,3 +215,21 @@ func (orc *OrganizationReportController) GetUsersByDesignation(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, usersByDesignationReport)
 }
+
+func (orc *OrganizationReportController) GetProcessesByResponsibleUnit(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := dtos.ReportListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+
+	processByResponsibleUnitReport, err := orc.service.GetProcessesByResponsibleUnit(&queryParams)
+	if err != nil {
+		utility.SendInternalErrResp(orc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, processByResponsibleUnitReport)
+}

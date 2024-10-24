@@ -22,3 +22,12 @@ type UsersByDesignationDTO struct {
 	DesignationTitleAr string `json:"designation_title_ar"`
 	Count              int    `json:"count"`
 }
+
+type ProcessByUnitDTO struct {
+	OwnerUnitID        uint   `json:"owner_unit_id"`
+	OwnerUnitTitleEn   string `json:"owner_unit_title_en"`
+	OwnerUnitTitleAr   string `json:"owner_unit_title_ar"`
+	OwnerUnitColorCode string `json:"owner_unit_color_code"`
+	OwnerUnitStatus    string `json:"owner_unit_status"`
+	Count              int    `json:"count"`
+}
