@@ -14,6 +14,7 @@ import (
 	organizationDTOs "jethur/grc/organization/dtos"
 	organizationServices "jethur/grc/organization/services"
 	riskDTOs "jethur/grc/risk/dtos"
+	settingsDTOs "jethur/grc/settings/dtos"
 	"jethur/utility"
 	"sort"
 
@@ -122,13 +123,26 @@ func (afrs *AuditFinalReportService) GetFullDetailsByID(auditID uint, currentUse
 						if actionPlan.Description != nil {
 							description = actionPlan.Description
 						}
+						// Map the ResponsibleUser
+						responsibleUserDTO := mapUserToUserMinimalDTO(actionPlan.ResponsibleUser)
+
+						// Map the ActionPlanStatus
+						actionPlanStatusDTO := auditDTOs.AuditFindingActionPlanStatusDTO{
+							ID:        actionPlan.ActionPlanStatus.ID,
+							TitleEn:   actionPlan.ActionPlanStatus.TitleEn,
+							TitleAr:   actionPlan.ActionPlanStatus.TitleAr,
+							ColorCode: actionPlan.ActionPlanStatus.ColorCode,
+							Type:      actionPlan.ActionPlanStatus.Type,
+						}
 						actionPlanDTO := auditDTOs.AuditFindingActionPlanDTO{
 							ID:                 actionPlan.ID,
 							Title:              actionPlan.Title,
 							Description:        description,
 							ResponsibleUserID:  actionPlan.ResponsibleUserID,
+							ResponsibleUser:    responsibleUserDTO,
 							TargetDate:         actionPlan.TargetDate.Format("2006-01-02"),
 							ActionPlanStatusID: actionPlan.ActionPlanStatusID,
+							ActionPlanStatus:   actionPlanStatusDTO,
 							CreatedByUser:      mapUserToUserMinimalDTO(actionPlan.CreatedByUser),
 							CreatedAt:          actionPlan.CreatedAt.Format("2006-01-02"),
 						}
@@ -174,6 +188,7 @@ func (afrs *AuditFinalReportService) GetFullDetailsByID(auditID uint, currentUse
 							ID:            int(finding.AuditFindingCategory.ID),
 							TitleEn:       finding.AuditFindingCategory.TitleEn,
 							TitleAr:       finding.AuditFindingCategory.TitleAr,
+							ColorCode:     finding.AuditFindingCategory.ColorCode,
 							DescriptionEn: *finding.AuditFindingCategory.DescriptionEn,
 							DescriptionAr: *finding.AuditFindingCategory.DescriptionAr,
 						}
@@ -227,6 +242,15 @@ func (afrs *AuditFinalReportService) GetFullDetailsByID(auditID uint, currentUse
 						userDTO := mapUserToUserMinimalDTO(finding.AuditableItem.User)
 						findingDTO.AuditableItem.User = &userDTO
 					}
+					if finding.AuditableItem.ResponsibleUnit != nil {
+						findingDTO.AuditableItem.ResponsibleUnit = settingsDTOs.OrganizationUnitDTO{
+							ID:        int(finding.AuditableItem.ResponsibleUnit.ID),
+							TitleEn:   finding.AuditableItem.ResponsibleUnit.TitleEn,
+							TitleAr:   finding.AuditableItem.ResponsibleUnit.TitleAr,
+							ColorCode: finding.AuditableItem.ResponsibleUnit.ColorCode,
+							Status:    finding.AuditableItem.ResponsibleUnit.Status,
+						}
+					}
 					findingsDTOs = append(findingsDTOs, &findingDTO)
 				}
 				// Assign findings to the main section DTO
@@ -252,6 +276,7 @@ func (afrs *AuditFinalReportService) GetFullDetailsByID(auditID uint, currentUse
 		ID:                     auditFinalReport.ID,
 		AuditID:                auditFinalReport.AuditID,
 		Title:                  auditFinalReport.Audit.AuditPlan.Title,
+		Description:            auditFinalReport.Audit.AuditPlan.Description,
 		ReferenceNumber:        auditFinalReport.Audit.AuditPlan.ReferenceNumber,
 		MainSections:           mainSections,
 		AuditFinalReportStatus: &auditFinalReportStatusDTO,

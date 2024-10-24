@@ -15,6 +15,7 @@ type AuditFinalReportDetailDTO struct {
 	AuditID                uint                             `json:"audit_id"`
 	ReferenceNumber        string                           `json:"reference_number"`
 	Title                  string                           `json:"title"`
+	Description            *string                          `json:"description"`
 	PreparedAt             string                           `json:"prepared_at"`
 	PreparedBy             organizationDTOs.UserMinimalDTO  `json:"prepared_by"`
 	MainSections           []*AuditFinalReportSectionDTO    `json:"main_sections"` // Main sections with subsections
@@ -62,8 +63,10 @@ type AuditFindingActionPlanDTO struct {
 	Title              string                           `json:"title"`
 	Description        *string                          `json:"description"`
 	ResponsibleUserID  uint                             `json:"responsible_user_id"`
+	ResponsibleUser    organizationDTOs.UserMinimalDTO  `json:"responsible_user"`
 	TargetDate         string                           `json:"target_date"`
 	ActionPlanStatusID uint                             `json:"action_plan_status_id"`
+	ActionPlanStatus   AuditFindingActionPlanStatusDTO  `json:"action_plan_status"`
 	CreatedByUser      organizationDTOs.UserMinimalDTO  `json:"created_by"`
 	UpdatedByUser      *organizationDTOs.UserMinimalDTO `json:"updated_by"`
 	CreatedAt          string                           `json:"created_at"`

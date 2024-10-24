@@ -50,7 +50,10 @@ func (repo *AuditFinalReportRepository) GetFullDetailsByID(auditID uint, tx ...u
 		Preload("Audit.AuditFindings.AuditFindingCategory").
 		Preload("Audit.AuditFindings.SeverityLevel").
 		Preload("Audit.AuditFindings.AuditFindingActionPlans").
+		Preload("Audit.AuditFindings.AuditFindingActionPlans.ResponsibleUser").
+		Preload("Audit.AuditFindings.AuditFindingActionPlans.ActionPlanStatus").
 		Preload("Audit.AuditFindings.AuditableItem").
+		Preload("Audit.AuditFindings.AuditableItem.ResponsibleUnit").
 		Preload("Audit.AuditFindings.AuditableItem.Process").
 		Preload("Audit.AuditFindings.AuditableItem.Control").
 		Preload("Audit.AuditFindings.AuditableItem.Document").
