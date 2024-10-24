@@ -185,7 +185,7 @@ func (iis *IncidentInvestigationService) Create(incidentID uint, currentUserID u
 			return 0, err
 		}
 		// Construct the URL for the document
-		url := utility.GenerateDocumentURL("incident", "investigations", strconv.FormatUint(uint64(incidentInvestigation.ID), 10), "documents")
+		url := utility.GenerateDocumentURL("incident", "incident-register", strconv.FormatUint(uint64(incidentID), 10), "investigations", strconv.FormatUint(uint64(incidentInvestigation.ID), 10), "documents")
 
 		// Create a new Incident Investigation Document instance
 		document := &models.IncidentInvestigationDocument{
@@ -208,7 +208,7 @@ func (iis *IncidentInvestigationService) Create(incidentID uint, currentUserID u
 			return 0, err
 		}
 		for _, doc := range documents {
-			storagePath := filepath.Join("incident", "investigations", strconv.FormatUint(uint64(incidentInvestigation.ID), 10), "documents")
+			storagePath := filepath.Join("incident", "incident-register", strconv.FormatUint(uint64(incidentID), 10), "investigations", strconv.FormatUint(uint64(incidentInvestigation.ID), 10), "documents")
 			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
 				tx.Rollback()
 				return 0, err
@@ -415,7 +415,7 @@ func (iis *IncidentInvestigationService) Update(incidentID uint, currentUserID u
 				tx.Rollback()
 				return err
 			}
-			url := utility.GenerateDocumentURL("incident", "investigations", strconv.FormatUint(uint64(existingIncidentInvestigation.ID), 10), "documents")
+			url := utility.GenerateDocumentURL("incident", "incident-register", strconv.FormatUint(uint64(incidentID), 10), "investigations", strconv.FormatUint(uint64(existingIncidentInvestigation.ID), 10), "documents")
 
 			document := &models.IncidentInvestigationDocument{
 				IncidentInvestigationID: existingIncidentInvestigation.ID,
@@ -461,7 +461,7 @@ func (iis *IncidentInvestigationService) Update(incidentID uint, currentUserID u
 	//Store File
 	if len(documents) > 0 {
 		for _, doc := range documents {
-			storagePath := filepath.Join("incident", "investigations", strconv.FormatUint(uint64(existingIncidentInvestigation.ID), 10), "documents")
+			storagePath := filepath.Join("incident", "incident-register", strconv.FormatUint(uint64(incidentID), 10), "investigations", strconv.FormatUint(uint64(existingIncidentInvestigation.ID), 10), "documents")
 			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
 				tx.Rollback()
 				return err
@@ -472,7 +472,7 @@ func (iis *IncidentInvestigationService) Update(incidentID uint, currentUserID u
 	//Remove File
 	if len(documentsToDelete) > 0 {
 		for _, document := range documentsToDelete {
-			storagePath := filepath.Join("incident", "investigations", strconv.FormatUint(uint64(existingIncidentInvestigation.ID), 10), "documents")
+			storagePath := filepath.Join("incident", "incident-register", strconv.FormatUint(uint64(incidentID), 10), "investigations", strconv.FormatUint(uint64(existingIncidentInvestigation.ID), 10), "documents")
 			if err := utility.RemoveFile(document.Name, storagePath); err != nil {
 				tx.Rollback()
 				return err
@@ -586,7 +586,7 @@ func (iis *IncidentInvestigationService) Delete(incidentID uint, currentUserID u
 	if len(documentsToDelete) > 0 {
 		for incidentInvestigationID, documents := range documentsToDelete {
 			for _, doc := range documents {
-				storagePath := filepath.Join("incident", "investigations", strconv.FormatUint(uint64(incidentInvestigationID), 10), "documents")
+				storagePath := filepath.Join("incident", "incident-register", strconv.FormatUint(uint64(incidentID), 10), "investigations", strconv.FormatUint(uint64(incidentInvestigationID), 10), "documents")
 				if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
 					tx.Rollback()
 					fmt.Printf("Failed to delete file at URL %s: %v\n", *doc.URL, err)
@@ -686,7 +686,7 @@ func (iis *IncidentInvestigationService) GetDocumentPath(IncidentID uint, token 
 		return "", fmt.Errorf("resource not found")
 	}
 
-	storagePath := filepath.Join("incident", "investigations", strconv.FormatUint(uint64(existingIncidentInvestigation.ID), 10), "documents")
+	storagePath := filepath.Join("incident", "incident-register", strconv.FormatUint(uint64(IncidentID), 10), "investigations", strconv.FormatUint(uint64(existingIncidentInvestigation.ID), 10), "documents")
 
 	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
 	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
