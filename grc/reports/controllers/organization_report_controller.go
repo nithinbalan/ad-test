@@ -233,3 +233,54 @@ func (orc *OrganizationReportController) GetProcessesByResponsibleUnit(c *gin.Co
 
 	c.JSON(http.StatusOK, processByResponsibleUnitReport)
 }
+
+func (orc *OrganizationReportController) GetProcessesByRiskRating(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := dtos.ReportListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+
+	processesByRiskRating, err := orc.service.GetProcessesByRiskRating(&queryParams)
+	if err != nil {
+		utility.SendInternalErrResp(orc.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, processesByRiskRating)
+}
+
+func (orc *OrganizationReportController) GetProcessesByResponsibleUser(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := dtos.ReportListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+
+	processesByResponsibleUser, err := orc.service.GetProcessesByResponsibleUser(&queryParams)
+	if err != nil {
+		utility.SendInternalErrResp(orc.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, processesByResponsibleUser)
+}
+
+func (orc *OrganizationReportController) GetProcessesByProcessGroup(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := dtos.ReportListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+
+	processesByProcessGroup, err := orc.service.GetProcessesByProcessGroup(&queryParams)
+	if err != nil {
+		utility.SendInternalErrResp(orc.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, processesByProcessGroup)
+}
