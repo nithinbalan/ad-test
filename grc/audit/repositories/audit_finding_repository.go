@@ -153,7 +153,7 @@ func (repo *AuditFindingRepository) GetAll(params *auditDTOs.AuditFindingListQue
 func (repo *AuditFindingRepository) GetByID(id uint) (*models.AuditFinding, error) {
 	var auditFinding *models.AuditFinding
 
-	result := repo.db.First(&auditFinding, id)
+	result := repo.db.Preload("Documents").First(&auditFinding, id)
 	if result.Error != nil {
 		return nil, result.Error
 	}
