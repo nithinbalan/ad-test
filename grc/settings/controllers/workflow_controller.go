@@ -25,8 +25,8 @@ func NewWorkflowController(service services.WorkflowServiceInterface) *WorkflowC
 
 func (wfc *WorkflowController) GetAllWorkflows(c *gin.Context) {
 	workflow_type := c.Query("type")
-
-	workflows, err := wfc.service.GetAllWorkflowsByType(workflow_type)
+	module_identifier := c.Query("module")
+	workflows, err := wfc.service.GetAllWorkflowsByType(workflow_type, module_identifier)
 	if err != nil {
 		utility.SendInternalErrResp(wfc.db, c, err.Error())
 		return
