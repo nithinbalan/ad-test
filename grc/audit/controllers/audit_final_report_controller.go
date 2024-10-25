@@ -86,3 +86,35 @@ func (afrc *AuditFinalReportController) CreateAuditFinalReport(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, commonDTOs.IDResponse{ID: id})
 }
+
+func (afrc *AuditFinalReportController) DeleteAuditFinalReport(c *gin.Context) {
+	auditID, err := strconv.Atoi(c.Param("auditId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(afrc.db, c, err.Error())
+		return
+	}
+
+	err = afrc.service.Delete(uint(auditID),currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ForbiddenError:
+			// Return a 403 Forbidden response with the error message
+			utility.SendForbiddenErrResp(c, e.Error())
+			return
+		default:
+			utility.SendInternalErrResp(afrc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}

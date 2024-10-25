@@ -25,6 +25,7 @@ type AuditFinalReportServiceInterface interface {
 	GetFullDetailsByID(auditID uint, currentUserID uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditFinalReportDetailDTO, error)
 	Create(auditID uint, currentUserID uint) (uint, error)
 	GetByAuditID(auditID uint) (*models.AuditFinalReport, error)
+	Delete(auditID uint, currentUserID uint) error 
 }
 
 type AuditFinalReportService struct {
@@ -643,6 +644,87 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 	}()
 
 	return id, nil
+}
+
+func (afrs *AuditFinalReportService) Delete(auditID uint, currentUserID uint) error {
+	tx := afrs.repo.BeginTransaction()
+	auditFinalReport, err := afrs.repo.GetFullDetailsByID(auditID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	// Collect section IDs
+	if len(auditFinalReport.AuditFinalReportSections) > 0 {
+		var deleteSectionIDs []*uint
+		for _, section := range auditFinalReport.AuditFinalReportSections {
+			deleteSectionIDs = append(deleteSectionIDs, &section.ID)
+		}
+
+		// Delete sections by collected IDs
+		if err := afrs.repo.DeleteAuditFinalReportSections(deleteSectionIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+	// Delete related Action Plans for each Audit Finding
+	var deleteFindingIDs []*uint
+	if len(auditFinalReport.Audit.AuditFindings) > 0 {
+		for _, finding := range auditFinalReport.Audit.AuditFindings {
+			deleteFindingIDs = append(deleteFindingIDs, &finding.ID)
+			// Collect Action Plan IDs for each finding
+			if len(finding.AuditFindingActionPlans) > 0 {
+				var deleteActionPlanIDs []*uint
+				for _, actionPlan := range finding.AuditFindingActionPlans {
+					deleteActionPlanIDs = append(deleteActionPlanIDs, &actionPlan.ID)
+				}
+
+				// Delete Action Plans by collected IDs
+				if err := afrs.repo.DeleteAuditFindingActionPlans(deleteActionPlanIDs, tx); err != nil {
+					tx.Rollback()
+					return err
+				}
+			}
+		}
+		// Collect Finding IDs to delete them
+		if len(deleteFindingIDs) > 0 {
+			// Delete Findings by collected IDs
+			if err := afrs.repo.DeleteAuditFindings(deleteFindingIDs, tx); err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+	}
+
+	if err := afrs.repo.Delete(auditFinalReport.ID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	tx.Commit()
+
+	go func() {
+		err := afrs.activityLogSvc.LogActivity(
+			models.DeleteAction,
+			models.AuditFinalReport{}.TableName(),
+			auditFinalReport.ID,
+			nil,
+			currentUserID,
+			nil,
+		)
+
+		if err != nil {
+			fields := map[string]interface{}{
+				"action":    models.DeleteAction,
+				"tableName": models.AuditFinalReport{}.TableName(),
+				"recordID":  auditFinalReport.ID,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			}
+
+			utility.LogError("Failed to log activity", fields)
+		}
+	}()
+
+	return nil
 }
 
 // Helper function to return a pointer to a float64 value

@@ -19,6 +19,10 @@ type AuditFinalReportRepositoryInterface interface {
 	CreateAuditFindingActionPlans(actionPlans []*models.AuditFindingActionPlan, tx ...utility.DatabaseTransaction) error
 	CreateAuditFinalReportSections(sections []*models.AuditFinalReportSection, tx ...utility.DatabaseTransaction) error
 	GetSectionByType(sectionType string, tx ...utility.DatabaseTransaction) (*models.AuditFinalReportSection, error)
+	DeleteAuditFinalReportSections(sectionIDs []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteAuditFindingActionPlans(deleteActionPlanIDs []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteAuditFindings(deleteFindingIDs []*uint, tx ...utility.DatabaseTransaction) error
+	Delete(id uint, tx ...utility.DatabaseTransaction) error
 }
 
 type AuditFinalReportRepository struct {
@@ -176,4 +180,56 @@ func (repo *AuditFinalReportRepository) GetSectionByType(sectionType string, tx 
 	}
 
 	return &section, nil
+}
+
+func (repo *AuditFinalReportRepository) DeleteAuditFinalReportSections(sectionIDs []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", sectionIDs).Delete(&models.AuditFinalReportSection{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *AuditFinalReportRepository) Delete(id uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Delete(&models.AuditFinalReport{}, id).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *AuditFinalReportRepository) DeleteAuditFindingActionPlans(deleteActionPlanIDs []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", deleteActionPlanIDs).Delete(&models.AuditFindingActionPlan{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *AuditFinalReportRepository) DeleteAuditFindings(deleteFindingIDs []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", deleteFindingIDs).Delete(&models.AuditFinding{}).Error; err != nil {
+		return err
+	}
+
+	return nil
 }

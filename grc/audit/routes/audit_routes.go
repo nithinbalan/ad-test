@@ -351,6 +351,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	//Audit Final Reports
 	auditRoutes.GET("/audits/:auditId/final-reports", auditFinalReportController.GetAuditFinalReportDetails)
 	auditRoutes.POST("/audits/:auditId/final-reports", auditFinalReportController.CreateAuditFinalReport)
+	auditRoutes.POST("/audits/:auditId/final-reports/delete", auditFinalReportController.DeleteAuditFinalReport)
 
 	//Audit Final Report Section
 	auditRoutes.GET("/audits/:auditId/final-report-sections/:id", auditFinalReportSectionController.GetAuditFinalReportSectionDetails)
