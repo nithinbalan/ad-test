@@ -22,6 +22,33 @@ func NewAuditFinalReportSectionController(service services.AuditFinalReportSecti
 	}
 }
 
+func (afrsc *AuditFinalReportSectionController) GetAuditFinalReportSectionDetails(c *gin.Context) {
+	_, err := strconv.Atoi(c.Param("auditId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sectionID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	auditFinalReportSection, err := afrsc.service.GetByID(uint(sectionID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(afrsc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, auditFinalReportSection)
+}
+
 func (afrsc *AuditFinalReportSectionController) UpdateAuditFinalReportSection(c *gin.Context) {
 	auditID, err := strconv.Atoi(c.Param("auditId"))
 	if err != nil {
@@ -64,7 +91,6 @@ func (afrsc *AuditFinalReportSectionController) UpdateAuditFinalReportSection(c 
 
 	c.Status(http.StatusOK)
 }
-
 
 func (afrsc *AuditFinalReportSectionController) DeleteAuditFinalReportSection(c *gin.Context) {
 	auditID, err := strconv.Atoi(c.Param("auditId"))
