@@ -864,7 +864,7 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 				return err
 			}
 
-			url := utility.GenerateDocumentURL("risk-register", strconv.FormatUint(uint64(id), 10), "documents")
+			url := utility.GenerateDocumentURL("risk", "risk-register", strconv.FormatUint(uint64(id), 10), "documents")
 			// Create a new RiskDocument instance
 			document := &models.RiskDocument{
 				RiskRegisterID: id,
