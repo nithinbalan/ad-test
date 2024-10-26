@@ -12,14 +12,17 @@ import (
 )
 
 type DocumentAccessServiceInterface interface {
-	GetSharedUsers(documentId uint, page uint, pageSize uint) (*documentDTOs.DocumentSharedUserListResponseDTO, error)
-	GetReviewUsers(documentId uint) ([]*organizationDTOs.UserMinimalDTO, error)
-	GetSharedUnits(documentId uint) ([]*settingDTOs.OrganizationUnitDTO, error)
+	GetSharedUsers(documentId uint, page uint, pageSize uint, tx ...utility.DatabaseTransaction) (*documentDTOs.DocumentSharedUserListResponseDTO, error)
+	GetReviewUsers(documentId uint, tx ...utility.DatabaseTransaction) ([]*organizationDTOs.UserMinimalDTO, error)
+	GetSharedUnits(documentId uint, tx ...utility.DatabaseTransaction) ([]*settingDTOs.OrganizationUnitDTO, error)
 
 	CreateSharedUsers(documentID uint, userIDs []uint, createdBy uint) error
 	CreateSharedUnits(documentID uint, unitIDs []uint, createdBy uint) error
 	DeleteSharedUsers(documentID uint, userIDs []*uint, tx ...utility.DatabaseTransaction) error
 	DeleteSharedUnits(documentID uint, unitIDs []*uint, tx ...utility.DatabaseTransaction) error
+
+	DeleteReviewUsers(documentID uint, userIDs []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteResponsibleUser(documentID uint, userID *uint, tx ...utility.DatabaseTransaction) error
 
 	CreateUsers(sharedUsers []*models.DocumentSharedUser, tx ...utility.DatabaseTransaction) error
 	CreateUnits(sharedUnits []*models.DocumentSharedUnit, tx ...utility.DatabaseTransaction) error
@@ -42,8 +45,8 @@ func NewDocumentAccessService(
 	}
 }
 
-func (das *DocumentAccessService) GetSharedUsers(documentId uint, page uint, pageSize uint) (*documentDTOs.DocumentSharedUserListResponseDTO, error) {
-	users, pagination, err := das.repo.GetSharedUsers(documentId, page, pageSize)
+func (das *DocumentAccessService) GetSharedUsers(documentId uint, page uint, pageSize uint, tx ...utility.DatabaseTransaction) (*documentDTOs.DocumentSharedUserListResponseDTO, error) {
+	users, pagination, err := das.repo.GetSharedUsers(documentId, page, pageSize, tx...)
 	if err != nil {
 		return nil, err
 	}
@@ -72,8 +75,8 @@ func (das *DocumentAccessService) GetSharedUsers(documentId uint, page uint, pag
 	return responseDTO, nil
 }
 
-func (das *DocumentAccessService) GetReviewUsers(documentId uint) ([]*organizationDTOs.UserMinimalDTO, error) {
-	users, err := das.repo.GetReviewUsers(documentId)
+func (das *DocumentAccessService) GetReviewUsers(documentId uint, tx ...utility.DatabaseTransaction) ([]*organizationDTOs.UserMinimalDTO, error) {
+	users, err := das.repo.GetReviewUsers(documentId, tx...)
 	if err != nil {
 		return nil, err
 	}
@@ -96,8 +99,8 @@ func (das *DocumentAccessService) GetReviewUsers(documentId uint) ([]*organizati
 	return dtos, nil
 }
 
-func (das *DocumentAccessService) GetSharedUnits(documentId uint) ([]*settingDTOs.OrganizationUnitDTO, error) {
-	units, err := das.repo.GetSharedUnits(documentId)
+func (das *DocumentAccessService) GetSharedUnits(documentId uint, tx ...utility.DatabaseTransaction) ([]*settingDTOs.OrganizationUnitDTO, error) {
+	units, err := das.repo.GetSharedUnits(documentId, tx...)
 	if err != nil {
 		return nil, err
 	}
@@ -211,4 +214,15 @@ func (das *DocumentAccessService) CreateUnits(sharedUnits []*models.DocumentShar
 		}
 	}
 	return nil
+}
+
+func (das *DocumentAccessService) DeleteReviewUsers(documentID uint, userIDs []*uint, tx ...utility.DatabaseTransaction) error {
+	if len(userIDs) == 0 {
+		return nil
+	}
+	return das.repo.DeleteReviewUsers(documentID, userIDs, tx...)
+}
+
+func (das *DocumentAccessService) DeleteResponsibleUser(documentID uint, userID *uint, tx ...utility.DatabaseTransaction) error {
+	return das.repo.DeleteResponsibleUser(documentID, userID, tx...)
 }

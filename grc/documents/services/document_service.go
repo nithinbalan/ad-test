@@ -479,17 +479,23 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 			Type:        "responsible-user",
 			CreatedBYID: currentUserID,
 		})
+
+		err = ds.documentAccessSvc.DeleteResponsibleUser(id, &existingDocument.ResponsibleUserID, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
 	}
 
 	if existingDocument.DocumentAccessTypeID == documentFormDTO.DocumentAccessTypeID {
 		switch documentAccessType.Type {
 		case "shared":
-			existingSharedUsers, err := ds.documentAccessSvc.GetSharedUsers(id, 1, 10000)
+			existingSharedUsers, err := ds.documentAccessSvc.GetSharedUsers(id, 1, 10000, tx)
 			if err != nil {
 				tx.Rollback()
 				return err
 			}
-			existingSharedUnits, err := ds.documentAccessSvc.GetSharedUnits(id)
+			existingSharedUnits, err := ds.documentAccessSvc.GetSharedUnits(id, tx)
 			if err != nil {
 				tx.Rollback()
 				return err
@@ -573,7 +579,7 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 			}
 
 		case "public":
-			existingSharedUsers, err := ds.documentAccessSvc.GetSharedUsers(id, 1, 10000)
+			existingSharedUsers, err := ds.documentAccessSvc.GetSharedUsers(id, 1, 10000, tx)
 			if err != nil {
 				tx.Rollback()
 				return err
@@ -591,7 +597,7 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 				return err
 			}
 
-			existingSharedUnits, err := ds.documentAccessSvc.GetSharedUnits(id)
+			existingSharedUnits, err := ds.documentAccessSvc.GetSharedUnits(id, tx)
 			if err != nil {
 				tx.Rollback()
 				return err
@@ -732,6 +738,24 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 			return err
 		}
 
+		existingReviewUsers, err := ds.documentAccessSvc.GetReviewUsers(id, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		userIDsToDelete := make([]*uint, 0)
+		for _, user := range existingReviewUsers {
+			userID := uint(user.ID)
+			userIDsToDelete = append(userIDsToDelete, &userID)
+		}
+
+		err = ds.documentAccessSvc.DeleteReviewUsers(id, userIDsToDelete, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
 		err = ds.documentWorkflowSvc.CreateDocumentWorkflow(id, documentFullDetails.LatestDocumentVersion.ID, documentFormDTO.DocumentTypeID, currentUserID, tx)
 		if err != nil {
 			tx.Rollback()
@@ -743,8 +767,10 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 	tx.Commit()
 
 	go func() {
-		if err := utility.ConvertDocxToPDF(destinationDir, documentFormDTO.Document.FileName, destinationDir); err != nil {
-			log.Printf("Failed to convert document to PDF: %v", err)
+		if documentFormDTO.Document.IsNewFile != nil && *documentFormDTO.Document.IsNewFile {
+			if err := utility.ConvertDocxToPDF(destinationDir, documentFormDTO.Document.FileName, destinationDir); err != nil {
+				log.Printf("Failed to convert document to PDF: %v", err)
+			}
 		}
 	}()
 
@@ -969,21 +995,21 @@ func (ds *DocumentService) validateDocumentFormDTO(documentFormDTO *documentDTOs
 		}
 	}
 
-	accessType, err := ds.documentAccessTypeSvc.GetByID(documentFormDTO.DocumentAccessTypeID)
-	if err != nil {
-		return utility.NewValidationError(fmt.Errorf("failed to get document access type"), "not_exist", "document access type")
-	}
+	// accessType, err := ds.documentAccessTypeSvc.GetByID(documentFormDTO.DocumentAccessTypeID)
+	// if err != nil {
+	// 	return utility.NewValidationError(fmt.Errorf("failed to get document access type"), "not_exist", "document access type")
+	// }
 
-	switch accessType.Type {
-	case "shared-users":
-		if documentFormDTO.SharedUserIDs == nil || len(documentFormDTO.SharedUserIDs) == 0 {
-			return utility.NewValidationError(fmt.Errorf("shared user IDs are required for shared-user access type"), "required", "shared_users")
-		}
-	case "shared-units":
-		if documentFormDTO.SharedUnitIDs == nil || len(documentFormDTO.SharedUnitIDs) == 0 {
-			return utility.NewValidationError(fmt.Errorf("shared unit IDs are required for shared-unit access type"), "required", "shared_units")
-		}
-	}
+	// switch accessType.Type {
+	// case "shared-users":
+	// 	if documentFormDTO.SharedUserIDs == nil || len(documentFormDTO.SharedUserIDs) == 0 {
+	// 		return utility.NewValidationError(fmt.Errorf("shared user IDs are required for shared-user access type"), "required", "shared_users")
+	// 	}
+	// case "shared-units":
+	// 	if documentFormDTO.SharedUnitIDs == nil || len(documentFormDTO.SharedUnitIDs) == 0 {
+	// 		return utility.NewValidationError(fmt.Errorf("shared unit IDs are required for shared-unit access type"), "required", "shared_units")
+	// 	}
+	// }
 	return nil
 }
 
