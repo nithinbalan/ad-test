@@ -42,20 +42,24 @@ type AuditFinalReportSectionDTO struct {
 }
 
 type AuditFinalReportFindingDTO struct {
-	ID                     uint                             `json:"id"`
-	Title                  string                           `json:"title"`
-	Description            *string                          `json:"description"`
-	SeverityLevelID        uint                             `json:"severity_level_id"`
-	AuditFindingCategoryID uint                             `json:"audit_finding_category_id"`
-	Recommendations        *string                          `json:"recommendations"`
-	AuditFindingCategory   AuditFindingCategoryDTO          `json:"audit_finding_category"`
-	SeverityLevel          masterDTOs.SeverityLevelDTO      `json:"severity_level"`
-	AuditableItem          AuditableItemDetailDTO           `json:"auditable_item"`
-	ActionPlans            []*AuditFindingActionPlanDTO     `json:"action_plans"` // Nested action plans for each finding
-	CreatedByUser          organizationDTOs.UserMinimalDTO  `json:"created_by"`
-	UpdatedByUser          *organizationDTOs.UserMinimalDTO `json:"updated_by"`
-	CreatedAt              string                           `json:"created_at"`
-	UpdatedAt              *string                          `json:"updated_at"`
+	ID                       uint                            `json:"id"`
+	Title                    string                          `json:"title"`
+	Description              *string                         `json:"description"`
+	SeverityLevelID          uint                            `json:"severity_level_id"`
+	AuditFindingCategoryID   uint                            `json:"audit_finding_category_id"`
+	Recommendations          *string                         `json:"recommendations"`
+	AuditFindingCategory     AuditFindingCategoryDTO         `json:"audit_finding_category"`
+	SeverityLevel            masterDTOs.SeverityLevelDTO     `json:"severity_level"`
+	AuditableItem            AuditableItemDetailDTO          `json:"auditable_item"`
+	ActionPlans              []*AuditFindingActionPlanDTO    `json:"action_plans"`
+	DepartmentResponse       *string                         `json:"department_response"`
+	DepartmentResponseByID   *uint                           `json:"department_response_by_id"`
+	DepartmentResponseByUser *organizationDTOs.UserMinimalDTO `json:"department_response_by"`
+	DepartmentResponseAt     *string                         `json:"department_response_at"`
+	CreatedByUser organizationDTOs.UserMinimalDTO  `json:"created_by"`
+	UpdatedByUser *organizationDTOs.UserMinimalDTO `json:"updated_by"`
+	CreatedAt     string                           `json:"created_at"`
+	UpdatedAt     *string                          `json:"updated_at"`
 }
 
 type AuditFindingActionPlanDTO struct {

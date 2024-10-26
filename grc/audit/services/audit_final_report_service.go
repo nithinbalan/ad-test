@@ -17,6 +17,7 @@ import (
 	settingsDTOs "jethur/grc/settings/dtos"
 	"jethur/utility"
 	"sort"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -25,7 +26,7 @@ type AuditFinalReportServiceInterface interface {
 	GetFullDetailsByID(auditID uint, currentUserID uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditFinalReportDetailDTO, error)
 	Create(auditID uint, currentUserID uint) (uint, error)
 	GetByAuditID(auditID uint) (*models.AuditFinalReport, error)
-	Delete(auditID uint, currentUserID uint) error 
+	Delete(auditID uint, currentUserID uint) error
 }
 
 type AuditFinalReportService struct {
@@ -157,17 +158,31 @@ func (afrs *AuditFinalReportService) GetFullDetailsByID(auditID uint, currentUse
 					if finding.Recommendations != nil {
 						recommendation = finding.Recommendations
 					}
+					var departmentResponsibleUserDTO *organizationDTOs.UserMinimalDTO
+					if finding.DepartmentResponseByUser != nil {
+						mappedUser := mapUserToUserMinimalDTO(finding.DepartmentResponseByUser)
+						departmentResponsibleUserDTO = &mappedUser
+					}
+					var departmentResponseAt *string
+					if finding.DepartmentResponseAt != nil {
+						formattedDepartmentResponseAt := finding.DepartmentResponseAt.Format("2006-01-02")
+						departmentResponseAt = &formattedDepartmentResponseAt
+					}
 					// Map the finding DTO
 					findingDTO := auditDTOs.AuditFinalReportFindingDTO{
-						ID:                     finding.ID,
-						Title:                  finding.Title,
-						Description:            findingDescription,
-						SeverityLevelID:        finding.SeverityLevelID,
-						AuditFindingCategoryID: finding.AuditFindingCategoryID,
-						Recommendations:        recommendation,
-						ActionPlans:            actionPlansDTOs,
-						CreatedByUser:          mapUserToUserMinimalDTO(finding.CreatedByUser),
-						CreatedAt:              finding.CreatedAt.Format("2006-01-02"),
+						ID:                       finding.ID,
+						Title:                    finding.Title,
+						Description:              findingDescription,
+						SeverityLevelID:          finding.SeverityLevelID,
+						DepartmentResponse:       finding.DepartmentResponse,
+						DepartmentResponseByID:   finding.DepartmentResponseBYID,
+						DepartmentResponseByUser: departmentResponsibleUserDTO,
+						DepartmentResponseAt:     departmentResponseAt,
+						AuditFindingCategoryID:   finding.AuditFindingCategoryID,
+						Recommendations:          recommendation,
+						ActionPlans:              actionPlansDTOs,
+						CreatedByUser:            mapUserToUserMinimalDTO(finding.CreatedByUser),
+						CreatedAt:                finding.CreatedAt.Format("2006-01-02"),
 					}
 					// Map AuditableItem to DTO
 					findingDTO.AuditableItem = auditDTOs.AuditableItemDetailDTO{
@@ -570,6 +585,17 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 
 	for _, draftFinding := range auditDraftFindings {
 		if draftFinding.AuditDraftFindingStatus != nil && draftFinding.AuditDraftFindingStatus.IsFinalized {
+			var latestComment *string
+			var latestCreatedByID *uint
+			var latestCreatedAt *time.Time
+
+			// Retrieve the latest conversation if available
+			if len(draftFinding.AuditDraftFindingConversations) > 0 {
+				latestConversation := draftFinding.AuditDraftFindingConversations[0] // Assumes already ordered by created_at DESC
+				latestComment = &latestConversation.Comment
+				latestCreatedByID = &latestConversation.CreatedBYID
+				latestCreatedAt = &latestConversation.CreatedAt
+			}
 			// Create AuditFinding
 			findingDTO := &auditDTOs.AuditFindingFormDTO{
 				AuditID:                draftFinding.AuditID,
@@ -579,12 +605,16 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 				AuditFindingCategoryID: draftFinding.AuditFindingCategoryID,
 				SeverityLevelID:        *draftFinding.SeverityLevelID,
 				Recommendations:        draftFinding.Recommendations,
+				DepartmentResponse:     latestComment,
+				DepartmentResponseBYID: latestCreatedByID,
+				DepartmentResponseAt:   latestCreatedAt,
 			}
 			findingID, err := afrs.auditFindingSvc.Create(currentUserID, findingDTO)
 			if err != nil {
 				tx.Rollback()
 				return 0, err
 			}
+
 			// Copy action plans from draft findings to final findings
 			for _, draftActionPlan := range draftFinding.AuditDraftFindingActionPlans {
 				actionPlan := &models.AuditFindingActionPlan{
