@@ -50,6 +50,7 @@ func (repo *AuditFinalReportRepository) GetFullDetailsByID(auditID uint, tx ...u
 	result := db.Where("audit_id = ?", auditID).
 		Preload("Audit").
 		Preload("Audit.AuditFindings").
+		Preload("Audit.AuditFindings.DepartmentResponseByUser").
 		Preload("Audit.AuditFindings.Documents").
 		Preload("Audit.AuditFindings.AuditFindingCategory").
 		Preload("Audit.AuditFindings.SeverityLevel").
