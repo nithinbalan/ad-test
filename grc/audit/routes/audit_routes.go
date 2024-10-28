@@ -63,6 +63,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditFinalReportStatusController := app.AuditModule.AuditFinalReportStatusController
 	auditFinalReportController := app.AuditModule.AuditFinalReportController
 	auditFinalReportSectionController := app.AuditModule.AuditFinalReportSectionController
+	auditReportWorkflowController := app.AuditModule.AuditReportWorkflowController
 
 	//Audit Status
 	auditRoutes.GET("/audit-statuses", auditStatusController.GetAllAuditStatuses)
@@ -357,5 +358,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.GET("/audits/:auditId/final-report-sections/:id", auditFinalReportSectionController.GetAuditFinalReportSectionDetails)
 	auditRoutes.PUT("/audits/:auditId/final-report-sections/:id", auditFinalReportSectionController.UpdateAuditFinalReportSection)
 	auditRoutes.DELETE("/audits/:auditId/final-report-sections/:id", auditFinalReportSectionController.DeleteAuditFinalReportSection)
+
+	//workflow
+	auditRoutes.GET("/audits/:auditId/workflow-list", auditReportWorkflowController.GetWorkflowList)
+
 
 }

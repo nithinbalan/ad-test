@@ -23,6 +23,7 @@ type AuditReportWorkflow struct {
 	CreatedByUser    *User             `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 
 	AuditReportWorkflowParticipants []*AuditReportWorkflowParticipant `gorm:"foreignKey:AuditReportWorkflowID"`
+	AuditReportReviews              []*AuditReportReview              `gorm:"foreignKey:AuditReportWorkflowID"`
 }
 
 // TableName overrides the default table name used by GORM
