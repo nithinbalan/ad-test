@@ -273,7 +273,7 @@ func (ms *MeetingService) Create(currentUserID uint, meetingFormDTO *meetingDTOs
 			SeverityLevelID:   actionPlan.SeverityLevelID,
 			ResponsibleUserID: actionPlan.ResponsibleUserID,
 			// TargetDate:         actionPlan.TargetDate,
-			Percentage:         *actionPlan.Percentage,
+			Percentage:         actionPlan.Percentage,
 			ActionPlanStatusID: actionPlan.ActionPlanStatusID,
 			CreatedByID:        currentUserID,
 		}

@@ -739,6 +739,15 @@ func (cs *ControlService) validateControlFormDTO(controlFormDTO *organizationDTO
 		}
 	}
 
+	if controlFormDTO.IsApplicable {
+		if controlFormDTO.ControlImplementationStatusID == nil {
+			return utility.NewValidationError(fmt.Errorf("control implementation status is required when control is applicable"), "required", "control implementation status id")
+		}
+		if controlFormDTO.ControlEfficiencyStatusID == nil {
+			return utility.NewValidationError(fmt.Errorf("control efficiency status is required when control is applicable"), "required", "control efficiency status id")
+		}
+	}
+
 	return nil
 }
 
