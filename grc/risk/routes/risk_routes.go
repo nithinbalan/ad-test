@@ -8,10 +8,11 @@ import (
 )
 
 func RegisterRoutes(app *initializers.App, router *gin.Engine) {
-
 	riskRoutes := router.Group("/")
 
 	riskRoutes.Use(middlewares.AuthMiddleware())
+
+	unauthenticatedRoutes := router.Group("/")
 
 	db := app.DB
 
@@ -158,6 +159,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.GET("/risk-statuses/:id", riskStatusController.GetRiskStatusDetails)
 
 	// Risk Register
+	unauthenticatedRoutes.GET("/risk-register/:id/document-preview", riskRegisterController.GetRiskRegisterDocumentPreview)
+	unauthenticatedRoutes.GET("/risk-register/:id/document-download", riskRegisterController.DownloadRiskRegisterDocument)
 	riskRoutes.GET("/risk-register/export", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskRegisterController.GetRiskRegisterExport)
 	riskRoutes.GET("/risk-register", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskRegisterController.GetAllRiskRegisters)
 	riskRoutes.GET("/risk-register/:id", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskRegisterController.GetRiskRegisterDetails)
@@ -234,7 +237,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.GET("compliances/:complianceId/risk-heatmap", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), riskHeatmapController.GetComplianceRiskHeatmap)
 	riskRoutes.GET("slas/:slaId/risk-heatmap", middlewares.RolePermissionMiddleware(db, "sla_contracts", "view"), riskHeatmapController.GetSLARiskHeatmap)
 
-	//Risk Control Analysis
+	// Risk Control Analysis
 	riskRoutes.GET("risks/:riskId/inherent-control-analysis", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskInherentControlAnalysisController.GetAllRiskControlAnalyses)
 	riskRoutes.GET("risks/:riskId/inherent-control-analysis/:id", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskInherentControlAnalysisController.GetRiskControlAnalysisDetails)
 	riskRoutes.POST("risks/:riskId/inherent-control-analysis", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskInherentControlAnalysisController.CreateRiskControlAnalysis)
@@ -243,13 +246,13 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	riskRoutes.GET("risks/:riskId/inherent-control-analysis/control-summary", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskInherentControlAnalysisController.GetRiskControlSummary)
 
-	//Risk Residual Evaluation
+	// Risk Residual Evaluation
 	riskRoutes.GET("risks/:riskId/residual-evaluation", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskResidualEvaluationController.GetRiskResidualEvaluation)
 	riskRoutes.POST("risks/:riskId/residual-evaluation", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskResidualEvaluationController.CreateRiskResidualEvaluation)
 	riskRoutes.PUT("risks/:riskId/residual-evaluation/:id", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskResidualEvaluationController.UpdateRiskResidualEvaluation)
 	riskRoutes.DELETE("risks/:riskId/residual-evaluation/:id", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskResidualEvaluationController.DeleteRiskResidualEvaluation)
 
-	//Risk Control Analysis
+	// Risk Control Analysis
 	riskRoutes.GET("risks/:riskId/residual-control-analysis", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskResidualControlAnalysisController.GetAllRiskControlAnalyses)
 	riskRoutes.GET("risks/:riskId/residual-control-analysis/:id", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskResidualControlAnalysisController.GetRiskResidualControlAnalysisDetails)
 	riskRoutes.POST("risks/:riskId/residual-control-analysis", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskResidualControlAnalysisController.CreateRiskControlAnalysis)
@@ -264,7 +267,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.PUT("/risks/:riskId/kris", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskKriController.UpdateRiskKri)
 	riskRoutes.POST("/risks/:riskId/kris/delete", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskKriController.DeleteRiskKris)
 
-	//Risk Timelines
+	// Risk Timelines
 	riskRoutes.GET("/risks/:riskId/timelines", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskTimelineController.GetAllRiskTimelines)
-
 }

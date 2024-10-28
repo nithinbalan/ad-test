@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"jethur/config"
 	commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
 	complianceServices "jethur/grc/compliance/services"
@@ -36,6 +37,8 @@ type RiskRegisterServiceInterface interface {
 	GetControlPerformance(riskID uint) (map[string]float64, error)
 	UpdateRiskRating(riskID uint, currentUserID uint, riskEvaluationDetails *models.RiskEvaluation, tx utility.DatabaseTransaction, evaluationType string) error
 	ClearRiskRating(riskID uint, updateDTO *riskDTOs.RiskRegisterRiskRatingUpdateDTO, tx utility.DatabaseTransaction) error
+
+	GetDocumentPath(id uint, token string) (string, error)
 
 	ExportRiskRegister(data []*riskDTOs.RiskRegisterListDTO, currentUserID uint) (*os.File, error)
 }
@@ -104,7 +107,6 @@ func (rrs *RiskRegisterService) GetAll(params *riskDTOs.RiskRegisterListQueryPar
 
 func (rrs RiskRegisterService) GetByID(id uint) (*models.RiskRegister, error) {
 	risk, err := rrs.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -118,7 +120,6 @@ func (rrs RiskRegisterService) GetFullDetailsByID(id uint, tx ...utility.Databas
 	var riskDTO riskDTOs.RiskRegisterDetailDTO
 
 	risk, err := rrs.repo.GetFullDetailsByID(id, tx...)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -310,8 +311,8 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 		}
 	}
 
-	//Add timeline
-	//todo
+	// Add timeline
+	// todo
 	timelineTypes, err := rrs.riskTimelineSvc.GetAllTypes()
 	if err != nil {
 		tx.Rollback()
@@ -377,7 +378,7 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 		}
 
 		// Construct the URL for the document
-		url := utility.GenerateDocumentURL("risk-register", strconv.FormatUint(uint64(riskRegister.ID), 10), encryptedFilename)
+		url := utility.GenerateDocumentURL("risk", "risk-register", strconv.FormatUint(uint64(riskRegister.ID), 10), "documents")
 
 		// Create a new RiskDocument instance
 		document := &models.RiskDocument{
@@ -420,7 +421,6 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -864,7 +864,7 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 				return err
 			}
 
-			url := utility.GenerateDocumentURL("risk-register", strconv.FormatUint(uint64(id), 10), encryptedFilename)
+			url := utility.GenerateDocumentURL("risk", "risk-register", strconv.FormatUint(uint64(id), 10), "documents")
 			// Create a new RiskDocument instance
 			document := &models.RiskDocument{
 				RiskRegisterID: id,
@@ -1086,7 +1086,6 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.UpdateAction,
@@ -1204,8 +1203,8 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 			}
 		}
 
-		//Delete timeline
-		//todo
+		// Delete timeline
+		// todo
 		if err := rrs.riskTimelineSvc.Delete(id, tx); err != nil {
 			tx.Rollback()
 			return nil, err
@@ -1352,8 +1351,8 @@ func (rrs *RiskRegisterService) UpdateResponseStrategy(riskID uint, currentUserI
 		tx.Rollback()
 		return err
 	}
-	//update timeline
-	//todo
+	// update timeline
+	// todo
 	timelineType, err := rrs.riskTimelineSvc.GetByType("risk_response")
 	if err != nil {
 		tx.Rollback()
@@ -1395,8 +1394,8 @@ func (rrs *RiskRegisterService) DeleteResponseStrategy(riskID uint, currentUserI
 		tx.Rollback()
 		return err
 	}
-	//update timeline
-	//todo
+	// update timeline
+	// todo
 	timelineType, err := rrs.riskTimelineSvc.GetByType("risk_response")
 	if err != nil {
 		tx.Rollback()
@@ -1423,7 +1422,6 @@ func (rrs *RiskRegisterService) DeleteResponseStrategy(riskID uint, currentUserI
 }
 
 func (rrs *RiskRegisterService) GetControlPerformance(riskID uint) (map[string]float64, error) {
-
 	_, err := rrs.GetByID(riskID)
 	if err != nil {
 		return nil, err
@@ -1471,7 +1469,6 @@ func (rrs *RiskRegisterService) getControlScoreByType(riskID uint, controlType s
 }
 
 func (rrs *RiskRegisterService) UpdateRiskRating(riskID uint, currentUserID uint, riskEvaluationDetails *models.RiskEvaluation, tx utility.DatabaseTransaction, evaluationType string) error {
-
 	existingRisk, err := rrs.GetByID(riskID)
 	if err != nil {
 		tx.Rollback()
@@ -1786,6 +1783,46 @@ func (rrs *RiskRegisterService) parseRiskRegisterDates(dto *riskDTOs.RiskRegiste
 	}
 
 	return parsed, nil
+}
+
+func (rrs *RiskRegisterService) GetDocumentPath(id uint, token string) (string, error) {
+	// Get full details of the risk register by ID
+	existingRiskRegister, err := rrs.GetFullDetailsByID(id)
+	if err != nil {
+		return "", err
+	}
+
+	// Check if there are any associated documents
+	if len(existingRiskRegister.Documents) == 0 {
+		return "", fmt.Errorf("no documents found for the risk register")
+	}
+
+	// Decrypt the token to get the file name
+	decryptedFilenameBytes, err := utility.DecryptData(token)
+	if err != nil {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	decryptedFilename := string(decryptedFilenameBytes)
+	if decryptedFilename == "" {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	// Define the storage path
+	storagePath := filepath.Join("risk", "risk-register", strconv.FormatUint(uint64(id), 10), "documents")
+
+	// Get the base storage path from environment variables
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
+
+	// Check if the file exists at the specified path
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("file not found")
+	} else if err != nil {
+		return "", fmt.Errorf("error accessing file: %w", err)
+	}
+
+	return fullPath, nil
 }
 
 func (cs *RiskRegisterService) ExportRiskRegister(data []*riskDTOs.RiskRegisterListDTO, currentUserID uint) (*os.File, error) {
