@@ -1,0 +1,53 @@
+package services
+
+import (
+	"jethur/grc/reports/dtos"
+	"jethur/grc/reports/repositories"
+)
+
+type OrganizationReportServiceInterface interface {
+	GetUsersByStatus(params *dtos.ReportListQueryParamsDTO) ([]*dtos.UsersByStatusDTO, error)
+	GetUsersByRole(params *dtos.ReportListQueryParamsDTO) ([]*dtos.UsersByRoleDTO, error)
+	GetUsersByDesignation(params *dtos.ReportListQueryParamsDTO) ([]*dtos.UsersByDesignationDTO, error)
+
+	GetProcessesByResponsibleUnit(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ProcessByUnitDTO, error)
+	GetProcessesByRiskRating(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ProcessByRiskRatingDTO, error)
+	GetProcessesByResponsibleUser(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ProcessByResponsibleUserDTO, error)
+	GetProcessesByProcessGroup(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ProcessByProcessGroupDTO, error)
+}
+
+type OrganizationReportService struct {
+	repo repositories.OrganizationReportRepositoryInterface
+}
+
+func NewOrganizationReportService(repo repositories.OrganizationReportRepositoryInterface) OrganizationReportServiceInterface {
+	return &OrganizationReportService{repo: repo}
+}
+
+func (ors *OrganizationReportService) GetUsersByStatus(params *dtos.ReportListQueryParamsDTO) ([]*dtos.UsersByStatusDTO, error) {
+	return ors.repo.GetUsersByStatus(params)
+}
+
+func (ors *OrganizationReportService) GetUsersByRole(params *dtos.ReportListQueryParamsDTO) ([]*dtos.UsersByRoleDTO, error) {
+	return ors.repo.GetUsersByRole(params)
+}
+
+func (ors *OrganizationReportService) GetUsersByDesignation(params *dtos.ReportListQueryParamsDTO) ([]*dtos.UsersByDesignationDTO, error) {
+	return ors.repo.GetUsersByDesignation(params)
+}
+
+func (ors *OrganizationReportService) GetProcessesByResponsibleUnit(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ProcessByUnitDTO, error) {
+	return ors.repo.GetProcessesByResponsibleUnit(params)
+}
+
+func (ors *OrganizationReportService) GetProcessesByRiskRating(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ProcessByRiskRatingDTO, error) {
+	return ors.repo.GetProcessesByRiskRating(params)
+}
+
+func (ors *OrganizationReportService) GetProcessesByResponsibleUser(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ProcessByResponsibleUserDTO, error) {
+	return ors.repo.GetProcessesByResponsibleUser(params)
+}
+
+func (ors *OrganizationReportService) GetProcessesByProcessGroup(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ProcessByProcessGroupDTO, error) {
+	return ors.repo.GetProcessesByProcessGroup(params)
+}

@@ -58,6 +58,9 @@ func (pc *ProcessController) GetAllProcesses(c *gin.Context) {
 		return
 	}
 
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
 	validSortFields := map[string]string{
 		"reference_number":     "processes.reference_number",
 		"title_en":             "processes.title_en",
@@ -89,6 +92,8 @@ func (pc *ProcessController) GetAllProcesses(c *gin.Context) {
 		Filters:     filters,
 		QuickFilter: quickFilter,
 		Export:      export,
+		DateFrom:    dateFrom,
+		DateTo:      dateTo,
 	}
 
 	processes, err := pc.service.GetAll(&queryParams)

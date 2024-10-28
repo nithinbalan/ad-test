@@ -86,6 +86,9 @@ func (uc *UserController) GetAllUsers(c *gin.Context) {
 		return
 	}
 
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
 	dbField, valid := validSortFields[sortBy]
 	if !valid {
 		err := errors.New("invalid 'sort_by' parameter")
@@ -104,6 +107,8 @@ func (uc *UserController) GetAllUsers(c *gin.Context) {
 		Filters:     filters,
 		QuickFilter: quickFilter,
 		Export:      export,
+		DateFrom:    dateFrom,
+		DateTo:      dateTo,
 	}
 
 	users, err := uc.service.GetAll(&queryParams)
