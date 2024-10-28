@@ -422,7 +422,9 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		sharedModule.ActivityLogService,
 		settingModule.WorkflowSvc,
 		masterModule.WorkflowStatusSvc,
-		organizationModule.UserSvc)
+		organizationModule.UserSvc,
+		auditSvc,
+	)
 
 	auditFinalReportRepo := repositories.NewAuditFinalReportRepository(db)
 	auditFinalReportSvc := services.NewAuditFinalReportService(
