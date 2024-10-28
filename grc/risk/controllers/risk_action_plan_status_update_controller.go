@@ -1,11 +1,13 @@
 package controllers
 
 import (
+	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	riskDTOs "jethur/grc/risk/dtos"
 	"jethur/grc/risk/services"
 	"jethur/utility"
 	"net/http"
+	"path/filepath"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -194,4 +196,64 @@ func (rasuc *RiskActionPlanStatusUpdateController) GetLatestRiskActionPlanStatus
 	}
 
 	c.JSON(http.StatusOK, riskActionPlanStatusUpdate)
+}
+
+func (rasuc *RiskActionPlanStatusUpdateController) GetDocumentPreview(c *gin.Context) {
+    // Parse parameters
+    riskIDStr := c.Param("riskId")
+    actionPlanIDStr := c.Param("actionPlanId")
+    statusUpdateIDStr := c.Param("statusUpdateId")
+    token := c.Query("token")
+
+    fmt.Printf("Parameters received - RiskID: %s, ActionPlanID: %s, StatusUpdateID: %s, Token: %s\n", riskIDStr, actionPlanIDStr, statusUpdateIDStr, token)
+
+    // Convert params to uint
+    riskID, err := strconv.ParseUint(riskIDStr, 10, 32)
+    if err != nil {
+        fmt.Printf("Failed to parse riskID: %v\n", err)
+        utility.SendNotFoundErrResp(c)
+        return
+    }
+    actionPlanID, err := strconv.ParseUint(actionPlanIDStr, 10, 32)
+    if err != nil {
+        fmt.Printf("Failed to parse actionPlanID: %v\n", err)
+        utility.SendNotFoundErrResp(c)
+        return
+    }
+    statusUpdateID, err := strconv.ParseUint(statusUpdateIDStr, 10, 32)
+    if err != nil {
+        fmt.Printf("Failed to parse statusUpdateID: %v\n", err)
+        utility.SendNotFoundErrResp(c)
+        return
+    }
+
+    // Call service to get the document path
+    documentPath, err := rasuc.service.GetDocumentPath(uint(riskID), uint(actionPlanID), uint(statusUpdateID), token)
+    if err != nil {
+        fmt.Printf("Error in service call for document path: %v\n", err)
+        utility.SendNotFoundErrResp(c)
+        return
+    }
+
+    // Send the document path in the response
+    c.File(documentPath)
+}
+
+
+// Document Download
+func (rasuc *RiskActionPlanStatusUpdateController) DownloadRiskActionPlanDocument(c *gin.Context) {
+	riskID, _ := strconv.ParseUint(c.Param("riskId"), 10, 32)
+	actionPlanID, _ := strconv.ParseUint(c.Param("actionPlanId"), 10, 32)
+	statusUpdateID, _ := strconv.ParseUint(c.Param("statusUpdateId"), 10, 32)
+	token := c.Query("token")
+
+	documentPath, err := rasuc.service.GetDocumentPath(uint(riskID), uint(actionPlanID), uint(statusUpdateID), token)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	fileName := filepath.Base(documentPath)
+	c.Header("Content-Disposition", "attachment; filename="+fileName)
+	c.File(documentPath)
 }

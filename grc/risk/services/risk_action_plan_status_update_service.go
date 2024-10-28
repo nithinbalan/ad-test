@@ -3,14 +3,17 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+
+	"jethur/config"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
 	riskDTOs "jethur/grc/risk/dtos"
 	"jethur/grc/risk/repositories"
 	"jethur/utility"
-	"path/filepath"
-	"strconv"
 
 	"gorm.io/gorm"
 )
@@ -20,6 +23,7 @@ type RiskActionPlanStatusUpdateServiceInterface interface {
 	Create(RiskID uint, RiskActionPlanID uint, currentUserID uint, riskActionPlanStatusUpdateFormDTO *riskDTOs.RiskActionPlanStatusUpdateFormDTO) (uint, error)
 	Update(RiskID uint, RiskActionPlanID uint, id uint, currentUserID uint, riskActionPlanStatusUpdateFormDTO *riskDTOs.RiskActionPlanStatusUpdateFormDTO) error
 	GetLatestRiskActionPlanStatusUpdate(riskID uint, actionPlanID uint) (*riskDTOs.RiskActionPlanStatusUpdateListDTO, error)
+	GetDocumentPath(riskID, actionPlanID, statusUpdateID uint, token string) (string, error)
 }
 
 type RiskActionPlanStatusUpdateService struct {
@@ -57,7 +61,6 @@ func (rasus RiskActionPlanStatusUpdateService) GetByID(RiskID uint, RiskActionPl
 	}
 
 	riskActionPlanStatusUpdate, err := rasus.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -111,7 +114,7 @@ func (rasus *RiskActionPlanStatusUpdateService) Create(RiskID uint, RiskActionPl
 			return 0, err
 		}
 
-		url := utility.GenerateDocumentURL("risks", strconv.FormatUint(uint64(RiskID), 10), "action-plans", strconv.FormatUint(uint64(RiskActionPlanID), 10), "status-updates", encryptedFilename)
+		url := utility.GenerateDocumentURL("risk", "risk-register", strconv.FormatUint(uint64(RiskID), 10), "action-plans", strconv.FormatUint(uint64(RiskActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 
 		document := &models.RiskActionPlanStatusUpdateDocument{
 			RiskActionPlanStatusUpdateID: id,
@@ -131,7 +134,7 @@ func (rasus *RiskActionPlanStatusUpdateService) Create(RiskID uint, RiskActionPl
 			tx.Rollback()
 			return 0, err
 		}
-		//move file to storage
+		// move file to storage
 		for _, doc := range documents {
 			storagePath := filepath.Join("risk", "risk-register", strconv.FormatUint(uint64(RiskID), 10), "action-plans", strconv.FormatUint(uint64(RiskActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
@@ -152,7 +155,6 @@ func (rasus *RiskActionPlanStatusUpdateService) Create(RiskID uint, RiskActionPl
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -177,7 +179,6 @@ func (rasus *RiskActionPlanStatusUpdateService) Update(RiskID uint, RiskActionPl
 	}
 
 	existingRiskActionPlanStatusUpdate, err := rasus.GetByID(RiskID, RiskActionPlanID, id)
-
 	if err != nil {
 		return err
 	}
@@ -202,19 +203,17 @@ func (rasus *RiskActionPlanStatusUpdateService) Update(RiskID uint, RiskActionPl
 	var documentsToDelete []*models.RiskActionPlanStatusUpdateDocument
 
 	for _, doc := range RiskActionPlanStatusUpdateFormDTO.Documents {
-
 		if doc.IsNewFile != nil && *doc.IsNewFile {
 			// Encrypt the filename
 			dataToEncrypt := []byte(doc.FileName)
 			encryptedFileName, err := utility.EncryptData(dataToEncrypt)
-
 			if err != nil {
 				tx.Rollback()
 				return err
 			}
 
-			//genereate URL
-			url := utility.GenerateDocumentURL("risks", strconv.FormatUint(uint64(RiskID), 10), "action-plans", strconv.FormatUint(uint64(RiskActionPlanID), 10), "status-updates", encryptedFileName)
+			// genereate URL
+			url := utility.GenerateDocumentURL("risk", "risk-register", strconv.FormatUint(uint64(RiskID), 10), "action-plans", strconv.FormatUint(uint64(RiskActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 			// Create a new Control test Document instance
 			document := &models.RiskActionPlanStatusUpdateDocument{
 				RiskActionPlanStatusUpdateID: id,
@@ -282,7 +281,6 @@ func (rasus *RiskActionPlanStatusUpdateService) Update(RiskID uint, RiskActionPl
 }
 
 func (rasus *RiskActionPlanStatusUpdateService) validateRiskActionPlanStatusUpdateFormDTO(riskActionPlanStatusUpdateFormDTO *riskDTOs.RiskActionPlanStatusUpdateFormDTO) error {
-
 	if _, err := rasus.actionPlanStatusSvc.GetByID(riskActionPlanStatusUpdateFormDTO.ActionPlanStatusID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("action plan status does not exist"), "not_exist", "action plan status")
 	}
@@ -296,4 +294,46 @@ func (rasus RiskActionPlanStatusUpdateService) GetLatestRiskActionPlanStatusUpda
 	}
 
 	return rasus.repo.GetLatestRiskActionPlanStatusUpdate(actionPlanID)
+}
+
+func (rasus *RiskActionPlanStatusUpdateService) GetDocumentPath(riskID, actionPlanID, statusUpdateID uint, token string) (string, error) {
+	// Retrieve the specific status update to check if documents exist
+	statusUpdate, err := rasus.GetByID(riskID, actionPlanID, statusUpdateID)
+	if err != nil {
+		fmt.Printf("Error fetching status update by ID: %v\n", err)
+		return "", err
+	}
+
+	// Check if documents are associated with the status update
+	if len(statusUpdate.Documents) == 0 {
+		fmt.Println("No documents associated with the status update")
+		return "", fmt.Errorf("no documents found for the risk action plan update")
+	}
+
+	// Decrypt the token to get the filename
+	decryptedFilenameBytes, err := utility.DecryptData(token)
+	if err != nil || len(decryptedFilenameBytes) == 0 {
+		fmt.Printf("Token decryption failed: %v\n", err)
+		return "", fmt.Errorf("resource not found")
+	}
+	decryptedFilename := string(decryptedFilenameBytes)
+	fmt.Printf("Decrypted filename: %s\n", decryptedFilename)
+
+	// Construct the storage path
+	storagePath := filepath.Join("risk", "risk-register", strconv.FormatUint(uint64(riskID), 10), "action-plans", strconv.FormatUint(uint64(actionPlanID), 10), "updates", strconv.FormatUint(uint64(statusUpdateID), 10), "documents")
+
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
+	fmt.Printf("Constructed file path: %s\n", fullPath)
+
+	// Verify if the file exists
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		fmt.Printf("File does not exist at path: %s\n", fullPath)
+		return "", fmt.Errorf("file not found")
+	} else if err != nil {
+		fmt.Printf("Error accessing file at path %s: %v\n", fullPath, err)
+		return "", fmt.Errorf("error accessing file: %w", err)
+	}
+
+	return fullPath, nil
 }

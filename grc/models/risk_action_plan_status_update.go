@@ -16,10 +16,11 @@ type RiskActionPlanStatusUpdate struct {
 	UpdatedByID        *uint      `json:"updated_by_id" gorm:"default:null"`
 
 	// Relationships
-	RiskActionPlan   *RiskActionPlan   `gorm:"foreignKey:RiskActionPlanID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ActionPlanStatus *ActionPlanStatus `gorm:"foreignKey:ActionPlanStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser    *User             `gorm:"foreignKey:CreatedByID"`
-	UpdatedByUser    *User             `gorm:"foreignKey:UpdatedByID"`
+	RiskActionPlan   *RiskActionPlan                       `gorm:"foreignKey:RiskActionPlanID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ActionPlanStatus *ActionPlanStatus                     `gorm:"foreignKey:ActionPlanStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	CreatedByUser    *User                                 `gorm:"foreignKey:CreatedByID"`
+	UpdatedByUser    *User                                 `gorm:"foreignKey:UpdatedByID"`
+	Documents        []*RiskActionPlanStatusUpdateDocument `json:"documents,omitempty" gorm:"foreignKey:RiskActionPlanStatusUpdateID"`
 }
 
 // TableName overrides the table name used by RiskActionPlanStatusUpdate to `risk_action_plan_status_updates`
