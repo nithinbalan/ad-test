@@ -105,7 +105,7 @@ func (repo *ComplianceActionPlanStatusUpdateRepository) GetAll(complianceActionP
 
 func (repo *ComplianceActionPlanStatusUpdateRepository) GetByID(id uint) (*models.ComplianceActionPlanStatusUpdate, error) {
 	var complianceActionPlanStatusUpdate *models.ComplianceActionPlanStatusUpdate
-	result := repo.db.First(&complianceActionPlanStatusUpdate, id)
+	result := repo.db.Preload("Documents").First(&complianceActionPlanStatusUpdate, id)
 
 	if result.Error != nil {
 		return nil, result.Error
