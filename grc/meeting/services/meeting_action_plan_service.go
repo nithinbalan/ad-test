@@ -156,7 +156,7 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 		ReviewUserID:       MeetingActionPlanFormDTO.ReviewUserID,
 		MeetingMinuteID:    MeetingActionPlanFormDTO.MeetingMinuteID,
 		TargetDate:         dates.TargetDate,
-		Percentage:         *MeetingActionPlanFormDTO.Percentage,
+		Percentage:         MeetingActionPlanFormDTO.Percentage,
 		ActionPlanStatusID: MeetingActionPlanFormDTO.ActionPlanStatusID,
 		CreatedByID:        currentUserID,
 	}
@@ -332,7 +332,7 @@ func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUse
 	existingMeetingActionPlan.ResponsibleUserID = MeetingActionPlanFormDTO.ResponsibleUserID
 	existingMeetingActionPlan.ReviewUserID = MeetingActionPlanFormDTO.ReviewUserID
 	existingMeetingActionPlan.TargetDate = dates.TargetDate
-	existingMeetingActionPlan.Percentage = *MeetingActionPlanFormDTO.Percentage
+	existingMeetingActionPlan.Percentage = MeetingActionPlanFormDTO.Percentage
 	existingMeetingActionPlan.ActionPlanStatusID = MeetingActionPlanFormDTO.ActionPlanStatusID
 	existingMeetingActionPlan.MeetingMinuteID = MeetingActionPlanFormDTO.MeetingMinuteID
 	existingMeetingActionPlan.UpdatedByID = &currentUserID
@@ -653,7 +653,7 @@ func (maps *MeetingActionPlanService) StatusUpdate(meetingID uint, id uint, curr
 	}
 
 	existingMeetingActionPlan.ActionPlanStatusID = meetingActionPlanStatusUpdateFormDTO.ActionPlanStatusID
-	existingMeetingActionPlan.Percentage = meetingActionPlanStatusUpdateFormDTO.Percentage
+	existingMeetingActionPlan.Percentage = &meetingActionPlanStatusUpdateFormDTO.Percentage
 	existingMeetingActionPlan.Comments = &meetingActionPlanStatusUpdateFormDTO.Comment
 
 	existingMeetingActionPlan.UpdatedByID = &currentUserID

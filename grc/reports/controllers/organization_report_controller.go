@@ -15,16 +15,19 @@ import (
 )
 
 type OrganizationReportController struct {
-	service services.OrganizationReportServiceInterface
-	userSvc organizationServices.UserServiceInterface
-	db      *gorm.DB
+	service    services.OrganizationReportServiceInterface
+	userSvc    organizationServices.UserServiceInterface
+	processSvc organizationServices.ProcessServiceInterface
+	db         *gorm.DB
 }
 
 func NewOrganizationReportController(service services.OrganizationReportServiceInterface,
-	userSvc organizationServices.UserServiceInterface) *OrganizationReportController {
+	userSvc organizationServices.UserServiceInterface,
+	processSvc organizationServices.ProcessServiceInterface) *OrganizationReportController {
 	return &OrganizationReportController{
-		service: service,
-		userSvc: userSvc,
+		service:    service,
+		userSvc:    userSvc,
+		processSvc: processSvc,
 	}
 }
 
@@ -214,6 +217,117 @@ func (orc *OrganizationReportController) GetUsersByDesignation(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, usersByDesignationReport)
+}
+
+func (orc *OrganizationReportController) GetAllProcesses(c *gin.Context) {
+	sort := c.DefaultQuery("sort_order", "asc")
+	sortBy := c.DefaultQuery("sort_by", "title_en")
+	keyword := c.Query("keyword")
+	quickFilter := c.QueryArray("quick_filter")
+
+	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
+	if err != nil {
+		utility.SendInternalErrResp(orc.db, c, "Invalid export parameter")
+		return
+	}
+
+	// Define an array of allowed parameter names
+	allowedParams := []string{
+		"process_group_ids",
+		"owner_unit_ids",
+		"owner_ids",
+		"lifecycle_status_ids",
+		"risk_matrix_risk_rating_ids",
+	}
+
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(orc.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(orc.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	validSortFields := map[string]string{
+		"reference_number":     "processes.reference_number",
+		"title_en":             "processes.title_en",
+		"title_ar":             "processes.title_ar",
+		"description":          "processes.description",
+		"process_group_en":     "process_groups.title_en",
+		"process_group_ar":     "process_groups.title_ar",
+		"organization_unit_en": "organization_units.title_en",
+		"organization_unit_ar": "organization_units.title_ar",
+		"owner_en":             "owner.first_name_en",
+		"owner_ar":             "owner.first_name_ar",
+		"status_en":            "lifecycle_statuses.title_en",
+		"status_ar":            "lifecycle_statuses.title_ar",
+	}
+
+	sortField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	queryParams := organizationDTOs.ProcessListQueryParamsDTO{
+		Sort:        sort,
+		SortBy:      sortField,
+		Keyword:     keyword,
+		Page:        page,
+		PageSize:    pageSize,
+		Filters:     filters,
+		QuickFilter: quickFilter,
+		Export:      export,
+		DateFrom:    dateFrom,
+		DateTo:      dateTo,
+	}
+
+	processes, err := orc.processSvc.GetAll(&queryParams)
+	if err != nil {
+		utility.SendInternalErrResp(orc.db, c, err.Error())
+		return
+	}
+
+	if export {
+
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(orc.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := orc.processSvc.ExportProcesses(processes.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(orc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="Processes.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
+		return
+	}
+
+	c.JSON(http.StatusOK, processes)
+}
+
+func (orc *OrganizationReportController) GetProcessesExport(c *gin.Context) {
+	c.Request.URL.RawQuery += "&export=true"
+
+	orc.GetAllProcesses(c)
 }
 
 func (orc *OrganizationReportController) GetProcessesByResponsibleUnit(c *gin.Context) {

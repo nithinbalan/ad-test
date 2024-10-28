@@ -17,7 +17,7 @@ func NewReportsModule(db *gorm.DB, complianceModule *ComplianceModule, organizat
 
 	organizationReportRepo := repositories.NewOrganizationReportRepository(db)
 	organizationReportSvc := services.NewOrganizationReportService(organizationReportRepo)
-	organizationReportController := controllers.NewOrganizationReportController(organizationReportSvc, organizationModule.UserSvc)
+	organizationReportController := controllers.NewOrganizationReportController(organizationReportSvc, organizationModule.UserSvc, organizationModule.ProcessSvc)
 
 	complianceReportRepo := repositories.NewComplianceReportRepository(db)
 	complianceReportSvc := services.NewComplianceReportService(complianceReportRepo)
