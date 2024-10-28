@@ -23,6 +23,7 @@ import (
 )
 
 type AuditFinalReportServiceInterface interface {
+	SetAuditReportWorkflowService(svc AuditReportWorkflowServiceInterface)
 	GetFullDetailsByID(auditID uint, currentUserID uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditFinalReportDetailDTO, error)
 	Create(auditID uint, currentUserID uint) (uint, error)
 	GetByAuditID(auditID uint) (*models.AuditFinalReport, error)
@@ -39,6 +40,7 @@ type AuditFinalReportService struct {
 	userSvc                   organizationServices.UserServiceInterface
 	auditFinalReportStatusSvc AuditFinalReportStatusServiceInterface
 	auditFindingSvc           AuditFindingServiceInterface
+	auditReportWorkflowSvc       AuditReportWorkflowServiceInterface
 }
 
 func NewAuditFinalReportService(
@@ -64,7 +66,9 @@ func NewAuditFinalReportService(
 		auditFindingSvc:           auditFindingSvc,
 	}
 }
-
+func (afrs *AuditFinalReportService) SetAuditReportWorkflowService(svc AuditReportWorkflowServiceInterface) {
+	afrs.auditReportWorkflowSvc = svc
+}
 func (afrs *AuditFinalReportService) GetFullDetailsByID(auditID uint, currentUserID uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditFinalReportDetailDTO, error) {
 	// Check if the audit exists
 	if _, err := afrs.auditSvc.GetByID(auditID); err != nil {
@@ -648,6 +652,12 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 			return 0, err
 		}
 	}
+	//Add workflow
+	err = afrs.auditReportWorkflowSvc.CreateAuditReportWorkflow(id, "final-report", currentUserID, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
 	tx.Commit()
 
 	go func() {
@@ -724,7 +734,41 @@ func (afrs *AuditFinalReportService) Delete(auditID uint, currentUserID uint) er
 			}
 		}
 	}
+	//delete workflow
+	var deleteAuditReportWorkflowIds []*uint
+	var deleteAuditReportWorkflowParticipantIds []*uint
+	var deleteAuditReportWorkflowReviewIds []*uint
+	if len(auditFinalReport.AuditReportWorkflows) > 0 {
+		for _, auditReportWorkflow := range auditFinalReport.AuditReportWorkflows {
+			deleteAuditReportWorkflowIds = append(deleteAuditReportWorkflowIds, &auditReportWorkflow.ID)
 
+			if len(auditReportWorkflow.AuditReportWorkflowParticipants) > 0 {
+				for _, participant := range auditReportWorkflow.AuditReportWorkflowParticipants {
+					deleteAuditReportWorkflowParticipantIds = append(deleteAuditReportWorkflowParticipantIds, &participant.ID)
+				}
+			}
+
+			if len(auditReportWorkflow.AuditReportReviews) > 0 {
+				for _, reviews := range auditReportWorkflow.AuditReportReviews {
+					deleteAuditReportWorkflowReviewIds = append(deleteAuditReportWorkflowReviewIds, &reviews.ID)
+				}
+			}
+		}
+	}
+	if err := afrs.auditReportWorkflowSvc.DeleteAuditReportWorkflowParticipants(deleteAuditReportWorkflowParticipantIds, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := afrs.auditReportWorkflowSvc.DeleteAuditReportWorkflowReviews(deleteAuditReportWorkflowReviewIds, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := afrs.auditReportWorkflowSvc.DeleteAuditReportWorkflows(deleteAuditReportWorkflowIds, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
 	if err := afrs.repo.Delete(auditFinalReport.ID, tx); err != nil {
 		tx.Rollback()
 		return err
