@@ -22,14 +22,14 @@ func NewAuditReportWorkflowController(service services.AuditReportWorkflowServic
 }
 
 func (arwc *AuditReportWorkflowController) GetWorkflowList(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := strconv.ParseUint(idStr, 10, 32)
+	auditIDStr := c.Param("auditId")
+	auditID, err := strconv.ParseUint(auditIDStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
 
-	workflows, err := arwc.service.GetAuditReportWorkflowList(uint(id))
+	workflows, err := arwc.service.GetAuditReportWorkflowList(uint(auditID))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:

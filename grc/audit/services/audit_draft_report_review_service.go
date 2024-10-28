@@ -124,7 +124,7 @@ func (adrrs *AuditDraftReportReviewService) Submit(auditID uint, auditDraftRepor
 		WorkflowStatusID:      workflowSubmitStatus.ID,
 		UserID:                currentUserID,
 		Comment:               auditReportWorkflowFormDTO.Comment,
-		CreatedByID:           currentUserID,
+		CreatedBYID:           currentUserID,
 	}
 	id, err := adrrs.repo.Create(auditReportReview, tx)
 	if err != nil {
@@ -241,7 +241,7 @@ func (adrrs *AuditDraftReportReviewService) Approve(auditID uint, auditDraftRepo
 		WorkflowStatusID:      workflowApproveStatus.ID,
 		UserID:                currentUserID,
 		Comment:               auditReportWorkflowFormDTO.Comment,
-		CreatedByID:           currentUserID,
+		CreatedBYID:           currentUserID,
 	}
 	id, err := adrrs.repo.Create(auditReportReview, tx)
 	if err != nil {
@@ -357,7 +357,7 @@ func (adrrs *AuditDraftReportReviewService) Revert(auditID uint, auditDraftRepor
 		WorkflowStatusID:      workflowRevertStatus.ID,
 		UserID:                currentUserID,
 		Comment:               auditReportWorkflowFormDTO.Comment,
-		CreatedByID:           currentUserID,
+		CreatedBYID:           currentUserID,
 	}
 	id, err := adrrs.repo.Create(auditReportReview, tx)
 	if err != nil {
@@ -505,7 +505,7 @@ func (adrrs *AuditDraftReportReviewService) ReSubmit(auditID uint, auditDraftRep
 		WorkflowStatusID:      workflowSubmitStatus.ID,
 		UserID:                currentUserID,
 		Comment:               auditReportWorkflowFormDTO.Comment,
-		CreatedByID:           currentUserID,
+		CreatedBYID:           currentUserID,
 	}
 	id, err := adrrs.repo.Create(auditReportReview, tx)
 	if err != nil {

@@ -18,7 +18,7 @@ import (
 
 type AuditReportWorkflowServiceInterface interface {
 	SetAuditFinalReportService(svc AuditFinalReportServiceInterface)
-	GetAuditReportWorkflowList(id uint) (*auditDTOs.AuditFinalReportWorkflowListDTO, error)
+	GetAuditReportWorkflowList(auditID uint) (*auditDTOs.AuditFinalReportWorkflowListDTO, error)
 	CreateAuditReportWorkflow(auditFinalReportID uint, workflowType string, currentUserID uint, tx ...utility.DatabaseTransaction) error
 	UpdateAuditReportWorkflow(auditReportWorkflow *models.AuditReportWorkflow, tx ...utility.DatabaseTransaction) error
 	createWorkflowParticipant(userID uint, auditReportWorkflowID uint, participant *settingDTOs.WorkflowLevelParticipantDTO, currentUserID uint, tx ...utility.DatabaseTransaction) error
@@ -40,6 +40,7 @@ type AuditReportWorkflowService struct {
 	workflowStatusSvc   masterSvc.WorkflowStatusServiceInterface
 	userSvc             organizationSvc.UserServiceInterface
 	auditFinalReportSvc AuditFinalReportServiceInterface
+	auditSvc                  AuditServiceInterface
 }
 
 func NewAuditReportWorkflowService(
@@ -48,6 +49,7 @@ func NewAuditReportWorkflowService(
 	workflowSvc settinsSvc.WorkflowServiceInterface,
 	workflowStatusSvc masterSvc.WorkflowStatusServiceInterface,
 	userSvc organizationSvc.UserServiceInterface,
+	auditSvc AuditServiceInterface,
 ) AuditReportWorkflowServiceInterface {
 	return &AuditReportWorkflowService{
 		repo:              repo,
@@ -55,6 +57,7 @@ func NewAuditReportWorkflowService(
 		workflowSvc:       workflowSvc,
 		workflowStatusSvc: workflowStatusSvc,
 		userSvc:           userSvc,
+		auditSvc:           auditSvc,
 	}
 }
 
@@ -62,13 +65,17 @@ func (arws *AuditReportWorkflowService) SetAuditFinalReportService(svc AuditFina
 	arws.auditFinalReportSvc = svc
 }
 
-func (arws *AuditReportWorkflowService) GetAuditReportWorkflowList(id uint) (*auditDTOs.AuditFinalReportWorkflowListDTO, error) {
-	// auditFinalReport, err := arws.auditFinalReportSvc.GetByAuditID(id)
-	// if err != nil {
-	// 	return nil, err
-	// }
+func (arws *AuditReportWorkflowService) GetAuditReportWorkflowList(auditID uint) (*auditDTOs.AuditFinalReportWorkflowListDTO, error) {
+	_, err := arws.auditSvc.GetByID(auditID)
+	if err != nil {
+		return nil, err
+	}
+	finalReport, err := arws.auditFinalReportSvc.GetByAuditID(auditID)
+	if err != nil {
+		return nil, err
+	}
 
-	auditFinalReport, err := arws.repo.GetWorkflowList(id)
+	auditFinalReport, err := arws.repo.GetWorkflowList(finalReport.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +100,7 @@ func (arws *AuditReportWorkflowService) GetAuditReportWorkflowList(id uint) (*au
 
 		var lastApprovedAt time.Time
 		for _, review := range workflow.AuditReportReviews {
-			userDTO := arws.mapUserToDTO(review.CreatedBy)
+			userDTO := arws.mapUserToDTO(review.CreatedByUser)
 			workflowDTO.ApprovedUsers = append(workflowDTO.ApprovedUsers, userDTO)
 			if review.CreatedAt.After(lastApprovedAt) {
 				lastApprovedAt = review.CreatedAt
@@ -130,12 +137,12 @@ func (arws *AuditReportWorkflowService) CreateAuditReportWorkflow(auditFinalRepo
 
 	for _, level := range workflowLevels.WorkflowLevels {
 		auditReportWorkflow := &models.AuditReportWorkflow{
-			AuditFinalReportID: &auditFinalReportID,
-			Level:              level.Level,
-			// WorkflowLevelTypeID:      level.WorkflowLevelType.ID,
-			ApprovalType:     level.ApprovalType,
-			WorkflowStatusID: workflowStatus.ID,
-			CreatedBYID:      currentUserID,
+			AuditFinalReportID:  &auditFinalReportID,
+			Level:               level.Level,
+			WorkflowLevelTypeID: level.WorkflowLevelType.ID,
+			ApprovalType:        level.ApprovalType,
+			WorkflowStatusID:    workflowStatus.ID,
+			CreatedBYID:         currentUserID,
 		}
 
 		docWorkflowId, err := arws.repo.CreateAuditReportWorkflow(auditReportWorkflow, tx...)
