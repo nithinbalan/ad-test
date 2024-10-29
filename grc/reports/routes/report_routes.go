@@ -38,4 +38,5 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	reportsRoutes.GET("/reports/controls-by-risk-rating", organizationReportController.GetControlsByRiskRating)
 	reportsRoutes.GET("/reports/controls-by-implementation-status", organizationReportController.GetControlsByImplementationStatus)
 	reportsRoutes.GET("/reports/controls-by-efficiency-status", organizationReportController.GetControlsByEfficiencyStatus)
+	reportsRoutes.GET("/reports/controls-by-applicability", organizationReportController.GetControlsByApplicability)
 }

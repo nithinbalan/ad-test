@@ -22,6 +22,7 @@ type OrganizationReportRepositoryInterface interface {
 	GetControlsByRiskRating(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ControlsByRiskRatingDTO, error)
 	GetControlsByImplementationStatus(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ControlsByImplementationStatusDTO, error)
 	GetControlsByEfficiencyStatus(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ControlsByEfficiencyDTO, error)
+	GetControlsByApplicability(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ControlsByApplicabilityDTO, error)
 }
 
 type OrganizationReportRepository struct {
@@ -327,6 +328,24 @@ func (repo *OrganizationReportRepository) GetControlsByEfficiencyStatus(params *
 			COUNT(controls.id) AS count`).
 		Joins("JOIN control_efficiency_statuses ON control_efficiency_statuses.id = controls.control_efficiency_status_id").
 		Group("control_efficiency_statuses.id, control_efficiency_statuses.title_en, control_efficiency_statuses.title_ar, control_efficiency_statuses.color_code, control_efficiency_statuses.type")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("controls.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	err := query.Scan(&results).Error
+	return results, err
+}
+
+// repositories/OrganizationReportRepository.go
+func (repo *OrganizationReportRepository) GetControlsByApplicability(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ControlsByApplicabilityDTO, error) {
+	results := []*dtos.ControlsByApplicabilityDTO{}
+
+	query := repo.db.Table("controls").
+		Select(`
+            controls.is_applicable AS is_applicable,
+            COUNT(controls.id) AS count`).
+		Group("controls.is_applicable")
 
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("controls.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")

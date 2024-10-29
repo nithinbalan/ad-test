@@ -21,6 +21,7 @@ type OrganizationReportServiceInterface interface {
 	GetControlsByRiskRating(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ControlsByRiskRatingDTO, error)
 	GetControlsByImplementationStatus(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ControlsByImplementationStatusDTO, error)
 	GetControlsByEfficiencyStatus(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ControlsByEfficiencyDTO, error)
+	GetControlsByApplicability(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ControlsByApplicabilityDTO, error)
 }
 
 type OrganizationReportService struct {
@@ -81,4 +82,8 @@ func (ors *OrganizationReportService) GetControlsByImplementationStatus(queryPar
 
 func (ors *OrganizationReportService) GetControlsByEfficiencyStatus(queryParams *dtos.ReportListQueryParamsDTO) ([]*dtos.ControlsByEfficiencyDTO, error) {
 	return ors.repo.GetControlsByEfficiencyStatus(queryParams)
+}
+
+func (ors *OrganizationReportService) GetControlsByApplicability(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ControlsByApplicabilityDTO, error) {
+	return ors.repo.GetControlsByApplicability(params)
 }

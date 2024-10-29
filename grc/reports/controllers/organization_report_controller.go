@@ -506,3 +506,22 @@ func (orc *OrganizationReportController) GetControlsByEfficiencyStatus(c *gin.Co
 
 	c.JSON(http.StatusOK, results)
 }
+
+// controllers/OrganizationReportController.go
+func (orc *OrganizationReportController) GetControlsByApplicability(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := dtos.ReportListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+
+	controlsByApplicabilityReport, err := orc.service.GetControlsByApplicability(&queryParams)
+	if err != nil {
+		utility.SendInternalErrResp(orc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, controlsByApplicabilityReport)
+}

@@ -107,3 +107,8 @@ type ControlsByEfficiencyDTO struct {
 	ControlEfficiencyStatusType      string `json:"control_efficiency_status_type"`
 	Count                            int    `json:"count"`
 }
+
+type ControlsByApplicabilityDTO struct {
+	IsApplicable bool `json:"is_applicable"`
+	Count        int  `json:"count"`
+}
