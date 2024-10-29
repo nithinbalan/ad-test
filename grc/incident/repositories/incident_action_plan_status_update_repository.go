@@ -96,7 +96,7 @@ func (repo *IncidentActionPlanStatusUpdateRepository) GetAll(incidentActionPlanI
 
 func (repo *IncidentActionPlanStatusUpdateRepository) GetByID(id uint) (*models.IncidentActionPlanStatusUpdate, error) {
 	var incidentActionPlanStatusUpdate *models.IncidentActionPlanStatusUpdate
-	result := repo.db.First(&incidentActionPlanStatusUpdate, id)
+	result := repo.db.Preload("Documents").First(&incidentActionPlanStatusUpdate, id)
 
 	if result.Error != nil {
 		return nil, result.Error

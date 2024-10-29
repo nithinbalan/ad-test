@@ -9,7 +9,7 @@ type KRIValueUpdate struct {
 	KRIRegisterID   uint       `json:"kri_register_id" binding:"required" gorm:"not null"`
 	ReviewedDate    time.Time  `json:"reviewed_date" binding:"required" gorm:"type:date;not null"`
 	UnitID          uint       `json:"unit_id" binding:"required" gorm:"not null"`
-	Value           int        `json:"value" gorm:"type:int;not null"`
+	Value           *int       `json:"value" gorm:"type:int;not null"`
 	LowThreshold    *int       `json:"low_threshold" gorm:"type:int;null"`
 	MediumThreshold *int       `json:"medium_threshold" gorm:"type:int;null"`
 	HighThreshold   *int       `json:"high_threshold" gorm:"type:int;null"`

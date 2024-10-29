@@ -87,9 +87,9 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 	}
 	kriValueUpdate := &models.KRIValueUpdate{
 		KRIRegisterID:   kriRegisterID,
-		UnitID:          existingKRIRegister.UnitID,
+		UnitID:          *existingKRIRegister.UnitID,
 		ReviewedDate:    *dates.ReviewedDate,
-		Value:           kriValueUpdateFormDTO.Value,
+		Value:           &kriValueUpdateFormDTO.Value,
 		LowThreshold:    existingKRIRegister.LowThreshold,
 		MediumThreshold: existingKRIRegister.MediumThreshold,
 		HighThreshold:   existingKRIRegister.HighThreshold,
@@ -194,9 +194,9 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 					return
 				}
 				// Prepare notification and email
-				urlParam := fmt.Sprintf(`{"id":%d}`, id)
+				urlParam := fmt.Sprintf(`{"id":%d}`, kriRegisterID)
 				entity := "kri-value-update"
-				action := "responsible-user-assign"
+				action := "value-update-high"
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 					UserID:               existingRisk.ResponsibleUserID,
 					ModuleIdentifier:     "risk",
@@ -304,8 +304,8 @@ func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentU
 	// Update KRI Value Update
 	existingKRIUpdate.KRIRegisterID = kriRegisterID
 	existingKRIUpdate.ReviewedDate = *dates.ReviewedDate
-	existingKRIUpdate.UnitID = existingKRIRegister.UnitID
-	existingKRIUpdate.Value = kriValueUpdateFormDTO.Value
+	existingKRIUpdate.UnitID = *existingKRIRegister.UnitID
+	existingKRIUpdate.Value = &kriValueUpdateFormDTO.Value
 	existingKRIUpdate.Remarks = kriValueUpdateFormDTO.Remarks
 
 	err = kvus.repo.Update(existingKRIUpdate, tx)
@@ -435,9 +435,9 @@ func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentU
 					return
 				}
 				// Prepare notification and email
-				urlParam := fmt.Sprintf(`{"id":%d}`, updateId)
+				urlParam := fmt.Sprintf(`{"id":%d}`, kriRegisterID)
 				entity := "kri-value-update"
-				action := "responsible-user-assign"
+				action := "value-update-high"
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 					UserID:               existingRisk.ResponsibleUserID,
 					ModuleIdentifier:     "risk",
@@ -576,7 +576,7 @@ func (kvus *KRIValueUpdateService) Delete(kriRegisterID uint, ids []uint, curren
 		}
 
 		if nextValueUpdate != nil && nextValueUpdate.ID != 0 {
-			existingKRIRegister.CurrentValue = &nextValueUpdate.Value
+			existingKRIRegister.CurrentValue = nextValueUpdate.Value
 			existingKRIRegister.LastReviewNote = nextValueUpdate.Remarks
 			existingKRIRegister.LastReviewedDate = &nextValueUpdate.ReviewedDate
 			existingKRIRegister.NextReviewDate = utility.CalculateNextReviewDate(reviewFrequency.Type)
@@ -602,8 +602,8 @@ func (kvus *KRIValueUpdateService) Delete(kriRegisterID uint, ids []uint, curren
 				}{
 					OwnerID:         &existingRisk.ResponsibleUserID,
 					TitleEn:         existingKRIRegister.Title,
-					Description:     existingKRIRegister.Description,
-					ReferenceNumber: existingKRIRegister.ReferenceNumber,
+					Description:     *existingKRIRegister.Description,
+					ReferenceNumber: *existingKRIRegister.ReferenceNumber,
 				})
 
 				// Send DB and email notifications for each successfully deleted risk register
@@ -702,8 +702,8 @@ func (kvus *KRIValueUpdateService) Delete(kriRegisterID uint, ids []uint, curren
 				}{
 					OwnerID:         &existingRisk.ResponsibleUserID,
 					TitleEn:         existingKRIRegister.Title,
-					Description:     existingKRIRegister.Description,
-					ReferenceNumber: existingKRIRegister.ReferenceNumber,
+					Description:     *existingKRIRegister.Description,
+					ReferenceNumber: *existingKRIRegister.ReferenceNumber,
 				})
 
 				// Send DB and email notifications for each successfully deleted risk register

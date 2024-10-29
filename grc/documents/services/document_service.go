@@ -457,6 +457,7 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 	existingDocument.DocumentCategoryID = documentFormDTO.DocumentCategoryID
 	existingDocument.ResponsibleUserID = documentFormDTO.ResponsibleUserID
 	existingDocument.ResponsibleUnitID = responsibleUnitID
+	existingDocument.DocumentAccessTypeID = documentFormDTO.DocumentAccessTypeID
 	existingDocument.UpdatedBYID = &currentUserID
 
 	if err := ds.repo.Update(existingDocument, tx); err != nil {
@@ -1461,6 +1462,7 @@ func (ds *DocumentService) SubmitDocument(id uint, currentUserID uint) error {
 				UserID:               participant.User.ID,
 				ModuleIdentifier:     "document",
 				NotificationType:     string(commonDTOs.ReviewType),
+				ReferenceNumber:      existingDocument.ReferenceNumber,
 				HeadingEn:            "Document Review",
 				HeadingAr:            "مراجعة الوثيقة",
 				TitleEn:              existingDocument.TitleEn,
@@ -1918,6 +1920,7 @@ func (ds *DocumentService) notifyUsersOnPublish(document *documentDTOs.DocumentD
 				NotificationType:     string(commonDTOs.PublishType),
 				HeadingEn:            "Document Published",
 				HeadingAr:            "تم نشر الوثيقة",
+				ReferenceNumber:      document.ReferenceNumber,
 				TitleEn:              document.TitleEn,
 				TitleAr:              document.TitleAr,
 				Entity:               &entity,

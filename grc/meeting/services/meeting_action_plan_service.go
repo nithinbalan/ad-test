@@ -231,7 +231,8 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 		}
 
 		// prepare notification
-		urlParam := fmt.Sprintf(`{"id":%d}`, id)
+		urlParam := fmt.Sprintf(`{"meeting_id":%d, "action_plan_id":%d}`, meetingID, id)
+		queryParam := ""
 		entity := "meeting-action-plan"
 		action := "responsible-user-assign"
 
@@ -239,13 +240,14 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 			UserID:               MeetingActionPlanFormDTO.ResponsibleUserID,
 			ModuleIdentifier:     "meeting",
 			NotificationType:     string(commonDTOs.AssignmentType),
-			HeadingEn:            "Meeting Action Plan Assignment",
-			HeadingAr:            "تعيين خطة عمل الاجتماع",
+			HeadingEn:            "Meeting Action Plan Responsibility Assigned",
+			HeadingAr:            "تم تعيين مسؤولية خطة عمل الاجتماع",
 			TitleEn:              MeetingActionPlanFormDTO.Title,
 			TitleAr:              MeetingActionPlanFormDTO.Title,
 			Entity:               &entity,
 			Action:               &action,
 			URLParam:             urlParam,
+			QueryParam:           queryParam,
 			IsSystemNotification: false,
 			CreatedByID:          &currentUserID,
 		}
@@ -363,7 +365,8 @@ func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUse
 	go func() {
 		// send notification if responsible user changed
 		if oldResponsibleUserID != existingMeetingActionPlan.ResponsibleUserID {
-			urlParam := fmt.Sprintf(`{"id":%d}`, id)
+			urlParam := fmt.Sprintf(`{"meeting_id":%d, "action_plan_id":%d}`, meetingID, id)
+			queryParam := ""
 			entity := "meeting-action-plan"
 
 			oldResponsibleUserAction := "responsible-user-remove"
@@ -371,13 +374,14 @@ func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUse
 				UserID:               oldResponsibleUserID,
 				ModuleIdentifier:     "meeting",
 				NotificationType:     string(commonDTOs.AssignmentType),
-				HeadingEn:            "Meeting Action Plan Assignment",
-				HeadingAr:            "تعيين خطة عمل الاجتماع",
+				HeadingEn:            "Meeting Action Plan Responsibility Removed",
+				HeadingAr:            "تمت إزالة مسؤولية خطة عمل الاجتماع",
 				TitleEn:              existingMeetingActionPlan.Title,
 				TitleAr:              existingMeetingActionPlan.Title,
 				Entity:               &entity,
 				Action:               &oldResponsibleUserAction,
 				URLParam:             urlParam,
+				QueryParam:           queryParam,
 				IsSystemNotification: false,
 				CreatedByID:          &currentUserID,
 			}
@@ -387,13 +391,14 @@ func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUse
 				UserID:               MeetingActionPlanFormDTO.ResponsibleUserID,
 				ModuleIdentifier:     "meeting",
 				NotificationType:     string(commonDTOs.AssignmentType),
-				HeadingEn:            "Meeting Action Plan Assignment",
-				HeadingAr:            "تعيين خطة عمل الاجتماع",
+				HeadingEn:            "Meeting Action Plan Responsibility Assigned",
+				HeadingAr:            "تم تعيين مسؤولية خطة عمل الاجتماع",
 				TitleEn:              existingMeetingActionPlan.Title,
 				TitleAr:              existingMeetingActionPlan.Title,
 				Entity:               &entity,
 				Action:               &newResponsibleUserAction,
 				URLParam:             urlParam,
+				QueryParam:           queryParam,
 				IsSystemNotification: false,
 				CreatedByID:          &currentUserID,
 			}
@@ -590,8 +595,8 @@ func (maps *MeetingActionPlanService) Delete(meetingID uint, ids []uint, current
 					UserID:               *notification.OwnerID,
 					ModuleIdentifier:     "meeting",
 					NotificationType:     string(commonDTOs.DeletionType),
-					HeadingEn:            "Meeting Action Plan Deletion",
-					HeadingAr:            "حذف خطة عمل الاجتماع",
+					HeadingEn:            "Meeting Action Plan Deleted",
+					HeadingAr:            "تم حذف خطة عمل الاجتماع",
 					TitleEn:              notification.TitleEn,
 					TitleAr:              notification.TitleAr,
 					Entity:               &entity,

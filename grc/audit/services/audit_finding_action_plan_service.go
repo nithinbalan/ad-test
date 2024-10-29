@@ -216,7 +216,8 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 		}
 
 		// prepare notification
-		urlParam := fmt.Sprintf(`{"id":%d}`, id)
+		urlParam := fmt.Sprintf(`{"audit_finding_id":%d, "action_plan_id":%d}`, findingID, id)
+		queryParam := ""
 		entity := "audit-finding-action-plan"
 		action := "responsible-user-assign"
 
@@ -224,13 +225,14 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 			UserID:               AuditFindingActionPlanFormDTO.ResponsibleUserID,
 			ModuleIdentifier:     "audit",
 			NotificationType:     string(commonDTOs.AssignmentType),
-			HeadingEn:            "Audit Finding Action Plan Assignment",
-			HeadingAr:            "حذف خطة عمل نتائج التدقيق",
+			HeadingEn:            "Audit Finding Action Plan Responsiblity Assigned",
+			HeadingAr:            "تم تعيين مسؤولية خطة العمل الخاصة بالتدقيق",
 			TitleEn:              AuditFindingActionPlanFormDTO.Title,
 			TitleAr:              AuditFindingActionPlanFormDTO.Title,
 			Entity:               &entity,
 			Action:               &action,
 			URLParam:             urlParam,
+			QueryParam:           queryParam,
 			IsSystemNotification: false,
 			CreatedByID:          &currentUserID,
 		}
@@ -352,7 +354,8 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 	go func() {
 		// sends notification if responsible user has changed
 		if oldResponsibleUserID != existingAuditFindingActionPlan.ResponsibleUserID {
-			urlParam := fmt.Sprintf(`{"id:%d"}`, id)
+			urlParam := fmt.Sprintf(`{"audit_finding_id":%d, "action_plan_id":%d}`, findingID, id)
+			queryParam := ""
 			entity := "audit-finding-action-plan"
 
 			oldResponsibleUserAction := "responsible-user-remove"
@@ -360,13 +363,14 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 				UserID:               oldResponsibleUserID,
 				ModuleIdentifier:     "audit",
 				NotificationType:     string(commonDTOs.InformationType),
-				HeadingEn:            "Audit Finding Action Plan Removal",
-				HeadingAr:            "حذف خطة عمل نتائج التدقيق",
+				HeadingEn:            "Audit Finding Action Plan Responsibility Removed",
+				HeadingAr:            "تمت إزالة مسؤولية خطة عمل العثور على التدقيق",
 				TitleEn:              existingAuditFindingActionPlan.Title,
 				TitleAr:              existingAuditFindingActionPlan.Title,
 				Entity:               &entity,
 				Action:               &oldResponsibleUserAction,
 				URLParam:             urlParam,
+				QueryParam:           queryParam,
 				IsSystemNotification: false,
 				CreatedByID:          &currentUserID,
 			}
@@ -376,13 +380,14 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 				UserID:               AuditFindingActionPlanFormDTO.ResponsibleUserID,
 				ModuleIdentifier:     "audit",
 				NotificationType:     string(commonDTOs.AssignmentType),
-				HeadingEn:            "Audit Finding Action Plan Assignment",
-				HeadingAr:            "حذف خطة عمل نتائج التدقيق",
+				HeadingEn:            "Audit Finding Action Plan Responsibility Assigned",
+				HeadingAr:            "تم تعيين مسؤولية خطة العمل الخاصة بالتدقيق",
 				TitleEn:              existingAuditFindingActionPlan.Title,
 				TitleAr:              existingAuditFindingActionPlan.Title,
 				Entity:               &entity,
 				Action:               &newResponsibleUserAction,
 				URLParam:             urlParam,
+				QueryParam:           queryParam,
 				IsSystemNotification: false,
 				CreatedByID:          &currentUserID,
 			}
@@ -579,8 +584,8 @@ func (afaps *AuditFindingActionPlanService) Delete(findingID uint, ids []uint, c
 					UserID:               *notification.OwnerID,
 					ModuleIdentifier:     "audit",
 					NotificationType:     string(commonDTOs.DeletionType),
-					HeadingEn:            "Audit Finding Action Plan Deletion",
-					HeadingAr:            "حذف خطة عمل نتائج التدقيق",
+					HeadingEn:            "Audit Finding Action Plan Deleted",
+					HeadingAr:            "تم حذف خطة عمل نتائج التدقيق",
 					TitleEn:              notification.TitleEn,
 					TitleAr:              notification.TitleAr,
 					Entity:               &entity,
