@@ -457,6 +457,7 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 	existingDocument.DocumentCategoryID = documentFormDTO.DocumentCategoryID
 	existingDocument.ResponsibleUserID = documentFormDTO.ResponsibleUserID
 	existingDocument.ResponsibleUnitID = responsibleUnitID
+	existingDocument.DocumentAccessTypeID = documentFormDTO.DocumentAccessTypeID
 	existingDocument.UpdatedBYID = &currentUserID
 
 	if err := ds.repo.Update(existingDocument, tx); err != nil {
