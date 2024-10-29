@@ -783,7 +783,7 @@ func (afrs *AuditFinalReportService) Delete(auditID uint, currentUserID uint) er
 		return err
 	}
 
-	if err := afrs.auditReportWorkflowSvc.DeleteAuditReportWorkflowReviews(deleteAuditReportWorkflowReviewIds, tx); err != nil {
+	if err := afrs.auditReportWorkflowSvc.DeleteAuditReportReviews(deleteAuditReportWorkflowReviewIds, tx); err != nil {
 		tx.Rollback()
 		return err
 	}

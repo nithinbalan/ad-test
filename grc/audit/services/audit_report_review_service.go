@@ -100,6 +100,21 @@ func (arrs *AuditReportReviewService) Submit(auditID uint, currentUserID uint) e
 		tx.Rollback()
 		return err
 	}
+	// workflowStatus, err := arrs.workflowStatusSvc.GetByType("submit")
+	// if err != nil {
+	// 	return err
+	// }
+	// auditReportReview := &models.AuditReportReview{
+	// 	AuditReportWorkflowID: currentAuditReportWorkflow.ID,
+	// 	WorkflowStatusID:      workflowStatus.ID,
+	// 	Comment:               &auditReportReviewCommentFormDTO.Comment,
+	// 	CreatedBYID:           currentUserID,
+	// }
+
+	// err = arrs.repo.CreateAuditReportReview(auditReportReview)
+	// if err != nil {
+	// 	return err
+	// }
 
 	auditFinalReportStatus, err := arrs.auditFinalReportStatusSvc.GetByType("in-review")
 	if err != nil {
@@ -259,7 +274,7 @@ func (arrs *AuditReportReviewService) handleApprovedCase(id uint, currentUserID 
 		}
 
 		if nextAuditReportWorkflowLevel == nil {
-			auditFinalReportStatus, err := arrs.auditFinalReportStatusSvc.GetByType("approved")
+			auditFinalReportStatus, err := arrs.auditFinalReportStatusSvc.GetByType("approve")
 			if err != nil {
 				return err
 			}
@@ -353,7 +368,7 @@ func (arrs *AuditReportReviewService) handleApprovedCase(id uint, currentUserID 
 				}
 
 				if nextAuditReportWorkflowLevel == nil {
-					auditFinalReportStatus, err := arrs.auditFinalReportStatusSvc.GetByType("approved")
+					auditFinalReportStatus, err := arrs.auditFinalReportStatusSvc.GetByType("approve")
 					if err != nil {
 						return err
 					}
@@ -434,7 +449,7 @@ func (arrs *AuditReportReviewService) handleApprovedCase(id uint, currentUserID 
 			}
 
 			if nextAuditReportWorkflowLevel == nil {
-				auditFinalReportStatus, err := arrs.auditFinalReportStatusSvc.GetByType("approved")
+				auditFinalReportStatus, err := arrs.auditFinalReportStatusSvc.GetByType("approve")
 				if err != nil {
 					return err
 				}
