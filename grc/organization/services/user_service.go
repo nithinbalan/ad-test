@@ -215,7 +215,7 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 
 	userSecurityDTO := &userDTOs.UserSecurityFormDTO{
 		PasswordHash: string(passwordHash),
-		IsMFA:        false,
+		IsMFA:        true,
 	}
 
 	if err = us.userSettingSvc.CreateUserSecurity(userID, userSecurityDTO, tx); err != nil {
