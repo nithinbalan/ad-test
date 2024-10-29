@@ -369,7 +369,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.DELETE("/audits/:auditId/final-report-sections/:id", auditFinalReportSectionController.DeleteAuditFinalReportSection)
 
 	//workflow
-	auditRoutes.GET("/audits/:auditId/workflow-list", auditReportWorkflowController.GetWorkflowList)
+	auditRoutes.GET("/audits/:auditId/final-reports/workflow-list", auditReportWorkflowController.GetWorkflowList)
 
 
 }
