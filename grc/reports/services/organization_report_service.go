@@ -14,6 +14,8 @@ type OrganizationReportServiceInterface interface {
 	GetProcessesByRiskRating(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ProcessByRiskRatingDTO, error)
 	GetProcessesByResponsibleUser(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ProcessByResponsibleUserDTO, error)
 	GetProcessesByProcessGroup(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ProcessByProcessGroupDTO, error)
+
+	GetControlsByControlType(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ControlsByControlTypeDTO, error)
 }
 
 type OrganizationReportService struct {
@@ -50,4 +52,8 @@ func (ors *OrganizationReportService) GetProcessesByResponsibleUser(params *dtos
 
 func (ors *OrganizationReportService) GetProcessesByProcessGroup(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ProcessByProcessGroupDTO, error) {
 	return ors.repo.GetProcessesByProcessGroup(params)
+}
+
+func (ors *OrganizationReportService) GetControlsByControlType(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ControlsByControlTypeDTO, error) {
+	return ors.repo.GetControlsByControlType(params)
 }

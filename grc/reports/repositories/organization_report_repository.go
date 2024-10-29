@@ -15,6 +15,8 @@ type OrganizationReportRepositoryInterface interface {
 	GetProcessesByRiskRating(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ProcessByRiskRatingDTO, error)
 	GetProcessesByResponsibleUser(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ProcessByResponsibleUserDTO, error)
 	GetProcessesByProcessGroup(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ProcessByProcessGroupDTO, error)
+
+	GetControlsByControlType(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ControlsByControlTypeDTO, error)
 }
 
 type OrganizationReportRepository struct {
@@ -196,6 +198,32 @@ func (repo *OrganizationReportRepository) GetProcessesByProcessGroup(params *dto
 
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("processes.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	err := query.Scan(&results).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
+func (repo *OrganizationReportRepository) GetControlsByControlType(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ControlsByControlTypeDTO, error) {
+	results := []*dtos.ControlsByControlTypeDTO{}
+
+	query := repo.db.Table("controls").
+		Select(`
+            control_types.id AS control_type_id,
+            control_types.title_en AS control_type_title_en,
+            control_types.title_ar AS control_type_title_ar,
+            COUNT(controls.id) AS count
+        `).
+		Joins("JOIN control_types ON control_types.id = controls.control_type_id").
+		Group("control_types.id, control_types.title_en, control_types.title_ar")
+
+	// Apply date filters if provided
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("controls.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 
 	err := query.Scan(&results).Error

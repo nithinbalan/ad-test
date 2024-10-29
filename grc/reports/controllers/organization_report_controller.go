@@ -398,3 +398,21 @@ func (orc *OrganizationReportController) GetProcessesByProcessGroup(c *gin.Conte
 	}
 	c.JSON(http.StatusOK, processesByProcessGroup)
 }
+
+func (orc *OrganizationReportController) GetControlsByControlType(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := dtos.ReportListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+
+	controlsByControlTypeReport, err := orc.service.GetControlsByControlType(&queryParams)
+	if err != nil {
+		utility.SendInternalErrResp(orc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, controlsByControlTypeReport)
+}

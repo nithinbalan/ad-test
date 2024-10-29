@@ -60,3 +60,10 @@ type ProcessByProcessGroupDTO struct {
 	ProcessGroupTitleAr string `json:"process_group_title_ar"`
 	Count               int    `json:"count"`
 }
+
+type ControlsByControlTypeDTO struct {
+	ControlTypeID      uint   `json:"control_type_id"`
+	ControlTypeTitleEn string `json:"control_type_title_en"`
+	ControlTypeTitleAr string `json:"control_type_title_ar"`
+	Count              int    `json:"count"`
+}
