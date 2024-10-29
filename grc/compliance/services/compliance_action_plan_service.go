@@ -221,7 +221,8 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 		}
 
 		// prepare notification
-		urlParam := fmt.Sprintf(`{"id":%d}`, id)
+		urlParam := fmt.Sprintf(`{"compliance_register_id":%d, "action_plan_id":%d}`, complianceID, id)
+		queryParam := ""
 		entity := "compliance-action-plan"
 		action := "responsible-user-assign"
 
@@ -229,13 +230,14 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 			UserID:               ComplianceActionPlanFormDTO.ResponsibleUserID,
 			ModuleIdentifier:     "compliance",
 			NotificationType:     string(commonDTOs.AssignmentType),
-			HeadingEn:            "Compliance Action Plan Assignment",
-			HeadingAr:            "تعيين خطة عمل المخاطر",
+			HeadingEn:            "Compliance Action Plan Responsibility Assigned",
+			HeadingAr:            "تم تعيين مسؤولية خطة عمل الامتثال",
 			TitleEn:              ComplianceActionPlanFormDTO.Title,
 			TitleAr:              ComplianceActionPlanFormDTO.Title,
 			Entity:               &entity,
 			Action:               &action,
 			URLParam:             urlParam,
+			QueryParam:           queryParam,
 			IsSystemNotification: false,
 			CreatedByID:          &currentUserID,
 		}
@@ -354,7 +356,8 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 	go func() {
 		// sends notification if responsible user has changed
 		if oldResponsibleUserID != existingComplianceActionPlan.ResponsibleUserID {
-			urlParam := fmt.Sprintf(`{"id:%d"}`, id)
+			urlParam := fmt.Sprintf(`{"compliance_register_id":%d, "action_plan_id":%d}`, complianceID, id)
+			queryParam := ""
 			entity := "compliance-action-plan"
 
 			oldResponsibleUserAction := "responsible-user-remove"
@@ -362,13 +365,14 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 				UserID:               oldResponsibleUserID,
 				ModuleIdentifier:     "compliance",
 				NotificationType:     string(commonDTOs.InformationType),
-				HeadingEn:            "Compliance Action Plan Removal",
-				HeadingAr:            "إزالة خطة العمل الامتثالية",
+				HeadingEn:            "Compliance Action Plan Responsibility Removed",
+				HeadingAr:            "تمت إزالة مسؤولية خطة عمل الامتثال",
 				TitleEn:              existingComplianceActionPlan.Title,
 				TitleAr:              existingComplianceActionPlan.Title,
 				Entity:               &entity,
 				Action:               &oldResponsibleUserAction,
 				URLParam:             urlParam,
+				QueryParam:           queryParam,
 				IsSystemNotification: false,
 				CreatedByID:          &currentUserID,
 			}
@@ -378,13 +382,14 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 				UserID:               ComplianceActionPlanFormDTO.ResponsibleUserID,
 				ModuleIdentifier:     "compliance",
 				NotificationType:     string(commonDTOs.AssignmentType),
-				HeadingEn:            "Compliance Action Plan Assignment",
-				HeadingAr:            "تعيين خطة العمل الامتثالية",
+				HeadingEn:            "Compliance Action Plan Responsibility Assigned",
+				HeadingAr:            "تم تعيين مسؤولية خطة عمل الامتثال",
 				TitleEn:              existingComplianceActionPlan.Title,
 				TitleAr:              existingComplianceActionPlan.Title,
 				Entity:               &entity,
 				Action:               &newResponsibleUserAction,
 				URLParam:             urlParam,
+				QueryParam:           queryParam,
 				IsSystemNotification: false,
 				CreatedByID:          &currentUserID,
 			}
@@ -579,8 +584,8 @@ func (caps *ComplianceActionPlanService) Delete(complianceID uint, ids []uint, c
 					UserID:               *notification.OwnerID,
 					ModuleIdentifier:     "compliance",
 					NotificationType:     string(commonDTOs.DeletionType),
-					HeadingEn:            "Compliance Action Plan Deletion",
-					HeadingAr:            "حذف خطة عمل الامتثال",
+					HeadingEn:            "Compliance Action Plan Deleted",
+					HeadingAr:            "تم حذف خطة عمل الامتثال",
 					TitleEn:              notification.TitleEn,
 					TitleAr:              notification.TitleAr,
 					Entity:               &entity,

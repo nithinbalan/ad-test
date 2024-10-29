@@ -353,7 +353,7 @@ func (ms *MeetingService) Create(currentUserID uint, meetingFormDTO *meetingDTOs
 
 		urlParam := fmt.Sprintf(`{"id":%d}`, id)
 		entity := "meeting"
-		action := "responsible-user-assign"
+		action := "participant-assign"
 
 		// Send notification to all participants
 		for _, participantID := range meetingFormDTO.UserIDs {
@@ -843,9 +843,9 @@ func (ms *MeetingService) Update(id uint, currentUserID uint, meetingFormDTO *me
 		}
 
 		urlParam := fmt.Sprintf(`{"id":%d}`, id)
-		entity := "control"
-		removeAction := "responsible-user-remove"
-		assignAction := "responsible-user-assign"
+		entity := "meeting"
+		removeAction := "participant-remove"
+		assignAction := "participant-assign"
 		appURL := utility.GetAppURL()
 
 		for _, removedUserID := range removedParticipants {
@@ -982,7 +982,7 @@ func (ms *MeetingService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 		// Notify participants about the meeting deletion
 		if len(meeting.Participants) > 0 {
 			entity := "meeting"
-			action := "meeting-deleted"
+			action := "delete"
 			urlParam := fmt.Sprintf(`{"id":%d}`, id)
 
 			// Loop through participants to send notifications and emails
