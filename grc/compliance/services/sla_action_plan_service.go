@@ -212,7 +212,8 @@ func (saps *SLAActionPlanService) Create(slaID uint, currentUserID uint, slaActi
 		}
 
 		// prepare notification
-		urlParam := fmt.Sprintf(`{"id":%d}`, id)
+		urlParam := fmt.Sprintf(`{"id":%d}`, slaID)
+		queryParam := fmt.Sprintf(`{"id":%d}`, id)
 		entity := "sla-action-plan"
 		action := "responsible-user-assign"
 
@@ -220,13 +221,14 @@ func (saps *SLAActionPlanService) Create(slaID uint, currentUserID uint, slaActi
 			UserID:               slaActionPlanFormDTO.ResponsibleUserID,
 			ModuleIdentifier:     "compliance",
 			NotificationType:     string(commonDTOs.AssignmentType),
-			HeadingEn:            "Sla Action Plan Assignment",
-			HeadingAr:            "تعيين خطة العمل لاتفاقية مستوى الخدمة (SLA)",
+			HeadingEn:            "Sla Action Plan Responsiblity Assigned",
+			HeadingAr:            "تم تعيين مسؤولية خطة عمل Sla",
 			TitleEn:              slaActionPlanFormDTO.Title,
 			TitleAr:              slaActionPlanFormDTO.Title,
 			Entity:               &entity,
 			Action:               &action,
 			URLParam:             urlParam,
+			QueryParam:           queryParam,
 			IsSystemNotification: false,
 			CreatedByID:          &currentUserID,
 		}
@@ -346,7 +348,8 @@ func (saps *SLAActionPlanService) Update(slaID uint, id uint, currentUserID uint
 	go func() {
 		// sends notification if responsible user has changed
 		if oldResponsibleUserID != existingSLAActionPlan.ResponsibleUserID {
-			urlParam := fmt.Sprintf(`{"id:%d"}`, id)
+			urlParam := fmt.Sprintf(`{"id":%d}`, slaID)
+			queryParam := fmt.Sprintf(`{"id":%d}`, id)
 			entity := "sla-action-plan"
 
 			oldResponsibleUserAction := "responsible-user-remove"
@@ -354,13 +357,14 @@ func (saps *SLAActionPlanService) Update(slaID uint, id uint, currentUserID uint
 				UserID:               oldResponsibleUserID,
 				ModuleIdentifier:     "compliance",
 				NotificationType:     string(commonDTOs.InformationType),
-				HeadingEn:            "Sla Action Plan Removal",
-				HeadingAr:            "إزالة خطة العمل لاتفاقية مستوى الخدمة (SLA)",
+				HeadingEn:            "Sla Action Plan Responsibility Removed",
+				HeadingAr:            "تمت إزالة مسؤولية خطة عمل Sla",
 				TitleEn:              existingSLAActionPlan.Title,
 				TitleAr:              existingSLAActionPlan.Title,
 				Entity:               &entity,
 				Action:               &oldResponsibleUserAction,
 				URLParam:             urlParam,
+				QueryParam:           queryParam,
 				IsSystemNotification: false,
 				CreatedByID:          &currentUserID,
 			}
@@ -370,8 +374,8 @@ func (saps *SLAActionPlanService) Update(slaID uint, id uint, currentUserID uint
 				UserID:               existingSLAActionPlan.ResponsibleUserID,
 				ModuleIdentifier:     "compliance",
 				NotificationType:     string(commonDTOs.AssignmentType),
-				HeadingEn:            "Sla Action Plan Assignment",
-				HeadingAr:            "تعيين خطة العمل لاتفاقية مستوى الخدمة (SLA)",
+				HeadingEn:            "Sla Action Plan Responsibility Assigned",
+				HeadingAr:            "تم تعيين مسؤولية خطة عمل Sla",
 				TitleEn:              existingSLAActionPlan.Title,
 				TitleAr:              existingSLAActionPlan.Title,
 				Entity:               &entity,
@@ -578,8 +582,8 @@ func (saps *SLAActionPlanService) Delete(slaID uint, ids []uint, currentUserID u
 					UserID:               *notification.OwnerID,
 					ModuleIdentifier:     "compliance",
 					NotificationType:     string(commonDTOs.DeletionType),
-					HeadingEn:            "Sla Action Plan Deletion",
-					HeadingAr:            "حذف خطة العمل لاتفاقية مستوى الخدمة (SLA)",
+					HeadingEn:            "Sla Action Plan Deleted",
+					HeadingAr:            "تم حذف خطة عمل Sla",
 					TitleEn:              notification.TitleEn,
 					TitleAr:              notification.TitleAr,
 					Entity:               &entity,

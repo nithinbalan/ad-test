@@ -249,7 +249,8 @@ func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uin
 		}
 
 		// prepare notification
-		urlParam := fmt.Sprintf(`{"id":%d}`, id)
+		urlParam := fmt.Sprintf(`{"id:%d"}`, incidentID)
+		queryParam := fmt.Sprintf(`{"id:%d"}`, id)
 		entity := "incident-action-plan"
 		action := "responsible-user-assign"
 
@@ -257,13 +258,14 @@ func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uin
 			UserID:               IncidentActionPlanFormDTO.ResponsibleUserID,
 			ModuleIdentifier:     "incident",
 			NotificationType:     string(commonDTOs.AssignmentType),
-			HeadingEn:            "incident Action Plan Assignment",
-			HeadingAr:            "تعيين خطة عمل الحادث",
+			HeadingEn:            "Incident Action Plan Responsibility Assigned",
+			HeadingAr:            "تم تعيين مسؤولية خطة عمل الحادث",
 			TitleEn:              IncidentActionPlanFormDTO.Title,
 			TitleAr:              IncidentActionPlanFormDTO.Title,
 			Entity:               &entity,
 			Action:               &action,
 			URLParam:             urlParam,
+			QueryParam:           queryParam,
 			IsSystemNotification: false,
 			CreatedByID:          &currentUserID,
 		}
@@ -382,7 +384,8 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 	go func() {
 		// sends notification if responsible user has changed
 		if oldResponsibleUserID != existingIncidentActionPlan.ResponsibleUserID {
-			urlParam := fmt.Sprintf(`{"id:%d"}`, id)
+			urlParam := fmt.Sprintf(`{"id:%d"}`, incidentID)
+			queryParam := fmt.Sprintf(`{"id:%d"}`, id)
 			entity := "incident-action-plan"
 
 			oldResponsibleUserAction := "responsible-user-remove"
@@ -390,13 +393,14 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 				UserID:               oldResponsibleUserID,
 				ModuleIdentifier:     "incident",
 				NotificationType:     string(commonDTOs.InformationType),
-				HeadingEn:            "Incident Action Plan Removal",
-				HeadingAr:            "إزالة خطة عمل الحادث",
+				HeadingEn:            "Incident Action Plan Responsibility Removed",
+				HeadingAr:            "تمت إزالة مسؤولية خطة عمل الحادث",
 				TitleEn:              existingIncidentActionPlan.Title,
 				TitleAr:              existingIncidentActionPlan.Title,
 				Entity:               &entity,
 				Action:               &oldResponsibleUserAction,
 				URLParam:             urlParam,
+				QueryParam:           queryParam,
 				IsSystemNotification: false,
 				CreatedByID:          &currentUserID,
 			}
@@ -406,13 +410,14 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 				UserID:               IncidentActionPlanFormDTO.ResponsibleUserID,
 				ModuleIdentifier:     "incident",
 				NotificationType:     string(commonDTOs.AssignmentType),
-				HeadingEn:            "Incident Action Plan Assignment",
-				HeadingAr:            "تعيين خطة عمل الحادث",
+				HeadingEn:            "Incident Action Plan Responsibility Assigned",
+				HeadingAr:            "تم تعيين مسؤولية خطة عمل الحادث",
 				TitleEn:              existingIncidentActionPlan.Title,
 				TitleAr:              existingIncidentActionPlan.Title,
 				Entity:               &entity,
 				Action:               &newResponsibleUserAction,
 				URLParam:             urlParam,
+				QueryParam:           queryParam,
 				IsSystemNotification: false,
 				CreatedByID:          &currentUserID,
 			}
@@ -634,8 +639,8 @@ func (iaps *IncidentActionPlanService) Delete(incidentID uint, ids []uint, curre
 					UserID:               *notification.OwnerID,
 					ModuleIdentifier:     "incident",
 					NotificationType:     string(commonDTOs.DeletionType),
-					HeadingEn:            "Incident Action Plan Deletion",
-					HeadingAr:            "حذف خطة عمل الحادث",
+					HeadingEn:            "Incident Action Plan Deleted",
+					HeadingAr:            "تم حذف خطة عمل الحادث",
 					TitleEn:              notification.TitleEn,
 					TitleAr:              notification.TitleAr,
 					Entity:               &entity,

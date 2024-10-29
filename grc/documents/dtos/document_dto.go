@@ -109,6 +109,7 @@ type DocumentFormDTO struct {
 
 type DocumentDetailsDTO struct {
 	ID                    int                              `json:"id"`
+	ReferenceNumber       string                           `json:"reference_number"`
 	TitleEn               string                           `json:"title_en"`
 	TitleAr               string                           `json:"title_ar"`
 	DescriptionEn         *string                          `json:"description_en"`
