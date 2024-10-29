@@ -32,6 +32,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	reportsRoutes.GET("/reports/processes-by-risk-rating", organizationReportController.GetProcessesByRiskRating)
 	reportsRoutes.GET("/reports/processes-by-responsible-user", organizationReportController.GetProcessesByResponsibleUser)
 
+	reportsRoutes.GET("/reports/controls", organizationReportController.GetAllControls)
+	reportsRoutes.GET("/reports/controls/export", organizationReportController.GetControlsExport)
 	reportsRoutes.GET("/reports/controls-by-control-type", organizationReportController.GetControlsByControlType)
 	reportsRoutes.GET("/reports/controls-by-control-category", organizationReportController.GetControlsByCategory)
 	reportsRoutes.GET("/reports/controls-by-compliance-register", organizationReportController.GetControlsByComplianceRegister)

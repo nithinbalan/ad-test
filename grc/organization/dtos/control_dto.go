@@ -98,25 +98,28 @@ type ControlMinimalListDTO struct {
 }
 
 type ControlListQueryParamsDTO struct {
-	Sort               string
-	SortBy             string
-	Keyword            string
-	Status             string
-	Page               int
-	PageSize           int
-	Filters            map[string][]string
-	QuickFilter        []string
-	LastReviewDateFrom string
-	LastReviewDateTo   string
-	NextReviewDateFrom string
-	NextReviewDateTo   string
-	LastTestDateFrom   string
-	LastTestDateTo     string
-	NextTestDateFrom   string
-	NextTestDateTo     string
-	ImplementedAtFrom  string
-	ImplementedAtTo    string
-	Export             bool
+	Sort                  string
+	SortBy                string
+	Keyword               string
+	Status                string
+	Page                  int
+	PageSize              int
+	Filters               map[string][]string
+	QuickFilter           []string
+	LastReviewDateFrom    string
+	LastReviewDateTo      string
+	NextReviewDateFrom    string
+	NextReviewDateTo      string
+	LastTestDateFrom      string
+	LastTestDateTo        string
+	NextTestDateFrom      string
+	NextTestDateTo        string
+	ImplementedAtFrom     string
+	ImplementedAtTo       string
+	Export                bool
+	DateFrom              string
+	DateTo                string
+	ComplianceRegisterIDs []int
 }
 
 type ControlListResponseDTO struct {

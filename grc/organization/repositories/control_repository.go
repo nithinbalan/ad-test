@@ -47,67 +47,67 @@ func (repo *ControlRepository) GetAll(params *organizationDTOs.ControlListQueryP
 
 	query := repo.db.Table("controls").
 		Select(`
-				controls.*,
-				control_types.title_en AS control_type_title_en,
-				control_types.title_ar AS control_type_title_ar,
-				control_categories.title_en AS control_category_title_en,
-				control_categories.title_ar AS control_category_title_ar,
-				organization_units.title_en AS owner_unit_title_en,
-				organization_units.title_ar AS owner_unit_title_ar,
-				owner.id AS owner_id,
-				owner.first_name_en AS owner_first_name_en,
-				owner.first_name_ar AS owner_first_name_ar,
-				owner.last_name_en AS owner_last_name_en,
-				owner.last_name_ar AS owner_last_name_ar,
-				owner.initial AS owner_initial,
-        		owner.color AS owner_color,
-        		owner.email AS owner_email,
-        		owner.profile_image_path AS owner_profile_image_path,
-				review_frequencies.title_en AS review_frequency_title_en,
-				review_frequencies.title_ar AS review_frequency_title_ar,
-				test_responsible_user.id AS test_responsible_user_id,
-				test_responsible_user.first_name_en AS test_responsible_user_first_name_en,
-				test_responsible_user.first_name_ar AS test_responsible_user_first_name_ar,
-				test_responsible_user.last_name_en AS test_responsible_user_last_name_en,
-				test_responsible_user.last_name_ar AS test_responsible_user_last_name_ar,
-				test_responsible_user.initial AS test_responsible_user_initial,
-        		test_responsible_user.color AS test_responsible_user_color,
-        		test_responsible_user.email AS test_responsible_user_email,
-        		test_responsible_user.profile_image_path AS test_responsible_user_profile_image_path,
-				test_frequencies.title_en AS test_frequency_title_en,
-				test_frequencies.title_ar AS test_frequency_title_ar,
-				lifecycle_statuses.title_en AS lifecycle_status_title_en,
-				lifecycle_statuses.title_ar AS lifecycle_status_title_ar,
-				lifecycle_statuses.color_code AS lifecycle_status_color_code,
-				control_implementation_statuses.title_en AS control_implementation_status_title_en,
-				control_implementation_statuses.title_ar AS control_implementation_status_title_ar,
-				control_implementation_statuses.color_code AS control_implementation_status_color_code,
-				control_efficiency_statuses.title_en AS control_efficiency_status_title_en,
-				control_efficiency_statuses.title_ar AS control_efficiency_status_title_ar,
-				control_efficiency_statuses.color_code AS control_efficiency_status_color_code,
-				created_user.id AS created_user_id,
-        		created_user.first_name_en AS created_user_first_name_en,
-				created_user.first_name_ar AS created_user_first_name_ar,
-				created_user.last_name_en AS created_user_last_name_en,
-				created_user.last_name_ar AS created_user_last_name_ar,
-				created_user.initial AS created_user_initial,
-        		created_user.color AS created_user_color,
-        		created_user.email AS created_user_email,
-        		created_user.profile_image_path AS created_user_profile_image_path,   
-				updated_user.id AS updated_user_id,
-    			updated_user.first_name_en AS updated_user_first_name_en,
-				updated_user.first_name_ar AS updated_user_first_name_ar,
-				updated_user.last_name_en AS updated_user_last_name_en,
-				updated_user.last_name_ar AS updated_user_last_name_ar,
-				updated_user.initial AS updated_user_initial,
-        		updated_user.color AS updated_user_color,
-        		updated_user.email AS updated_user_email,
-        		updated_user.profile_image_path AS updated_user_profile_image_path,
-				risk_matrix_risk_ratings.title_en AS risk_rating_title_en,
-    			risk_matrix_risk_ratings.title_ar AS risk_rating_title_ar,
-    			risk_matrix_risk_ratings.color_code AS risk_rating_color_code,
-    			risk_matrix_risk_rating_values.value AS risk_rating_value  
-        `).
+			controls.*,
+			control_types.title_en AS control_type_title_en,
+			control_types.title_ar AS control_type_title_ar,
+			control_categories.title_en AS control_category_title_en,
+			control_categories.title_ar AS control_category_title_ar,
+			organization_units.title_en AS owner_unit_title_en,
+			organization_units.title_ar AS owner_unit_title_ar,
+			owner.id AS owner_id,
+			owner.first_name_en AS owner_first_name_en,
+			owner.first_name_ar AS owner_first_name_ar,
+			owner.last_name_en AS owner_last_name_en,
+			owner.last_name_ar AS owner_last_name_ar,
+			owner.initial AS owner_initial,
+			owner.color AS owner_color,
+			owner.email AS owner_email,
+			owner.profile_image_path AS owner_profile_image_path,
+			review_frequencies.title_en AS review_frequency_title_en,
+			review_frequencies.title_ar AS review_frequency_title_ar,
+			test_responsible_user.id AS test_responsible_user_id,
+			test_responsible_user.first_name_en AS test_responsible_user_first_name_en,
+			test_responsible_user.first_name_ar AS test_responsible_user_first_name_ar,
+			test_responsible_user.last_name_en AS test_responsible_user_last_name_en,
+			test_responsible_user.last_name_ar AS test_responsible_user_last_name_ar,
+			test_responsible_user.initial AS test_responsible_user_initial,
+			test_responsible_user.color AS test_responsible_user_color,
+			test_responsible_user.email AS test_responsible_user_email,
+			test_responsible_user.profile_image_path AS test_responsible_user_profile_image_path,
+			test_frequencies.title_en AS test_frequency_title_en,
+			test_frequencies.title_ar AS test_frequency_title_ar,
+			lifecycle_statuses.title_en AS lifecycle_status_title_en,
+			lifecycle_statuses.title_ar AS lifecycle_status_title_ar,
+			lifecycle_statuses.color_code AS lifecycle_status_color_code,
+			control_implementation_statuses.title_en AS control_implementation_status_title_en,
+			control_implementation_statuses.title_ar AS control_implementation_status_title_ar,
+			control_implementation_statuses.color_code AS control_implementation_status_color_code,
+			control_efficiency_statuses.title_en AS control_efficiency_status_title_en,
+			control_efficiency_statuses.title_ar AS control_efficiency_status_title_ar,
+			control_efficiency_statuses.color_code AS control_efficiency_status_color_code,
+			created_user.id AS created_user_id,
+			created_user.first_name_en AS created_user_first_name_en,
+			created_user.first_name_ar AS created_user_first_name_ar,
+			created_user.last_name_en AS created_user_last_name_en,
+			created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+			created_user.color AS created_user_color,
+			created_user.email AS created_user_email,
+			created_user.profile_image_path AS created_user_profile_image_path,   
+			updated_user.id AS updated_user_id,
+			updated_user.first_name_en AS updated_user_first_name_en,
+			updated_user.first_name_ar AS updated_user_first_name_ar,
+			updated_user.last_name_en AS updated_user_last_name_en,
+			updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+			updated_user.color AS updated_user_color,
+			updated_user.email AS updated_user_email,
+			updated_user.profile_image_path AS updated_user_profile_image_path,
+			risk_matrix_risk_ratings.title_en AS risk_rating_title_en,
+			risk_matrix_risk_ratings.title_ar AS risk_rating_title_ar,
+			risk_matrix_risk_ratings.color_code AS risk_rating_color_code,
+			risk_matrix_risk_rating_values.value AS risk_rating_value  
+		`).
 		Joins("LEFT JOIN control_types ON control_types.id = controls.control_type_id").
 		Joins("LEFT JOIN control_categories ON control_categories.id = controls.control_category_id").
 		Joins("LEFT JOIN organization_units ON organization_units.id = controls.owner_unit_id").
@@ -128,8 +128,16 @@ func (repo *ControlRepository) GetAll(params *organizationDTOs.ControlListQueryP
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
-			query = query.Where(columnName+" IN (?)", values)
+			query = query.Where("controls."+columnName+" IN (?)", values)
 		}
+	}
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("controls.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	if len(params.ComplianceRegisterIDs) > 0 {
+		query = query.Where("compliance_register.id IN (?)", params.ComplianceRegisterIDs)
 	}
 
 	// Apply last_review_date filters

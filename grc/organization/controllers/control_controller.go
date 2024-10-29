@@ -30,6 +30,13 @@ func (cc *ControlController) GetAllControls(c *gin.Context) {
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
+	complianceRegisterIDsStr := c.Query("compliance_register_ids")
+
+	complianceRegisterIDs, err := utility.ParseCommaSeparatedStringToIntArray(complianceRegisterIDsStr)
+	if err != nil {
+		utility.SendInvalidErrResp(c, errors.New("invalid 'compliance_register_ids' parameter"))
+		return
+	}
 
 	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
 	if err != nil {
@@ -47,6 +54,7 @@ func (cc *ControlController) GetAllControls(c *gin.Context) {
 		"control_efficiency_status_ids",
 		"test_responsible_user_ids",
 		"lifecycle_status_ids",
+		"risk_matrix_risk_rating_ids",
 	}
 
 	validSortFields := map[string]string{
@@ -93,6 +101,9 @@ func (cc *ControlController) GetAllControls(c *gin.Context) {
 	implementedAtFrom := c.Query("implemented_at_from")
 	implementedAtTo := c.Query("implemented_at_to")
 
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
 		utility.SendInternalErrResp(cc.db, c, "Invalid page parameter")
@@ -113,25 +124,28 @@ func (cc *ControlController) GetAllControls(c *gin.Context) {
 	}
 
 	queryParams := organizationDTOs.ControlListQueryParamsDTO{
-		Sort:               sort,
-		SortBy:             dbField,
-		Keyword:            keyword,
-		Status:             status,
-		Page:               page,
-		PageSize:           pageSize,
-		Filters:            filters,
-		QuickFilter:        quickFilter,
-		LastReviewDateFrom: lastReviewDateFrom,
-		LastReviewDateTo:   lastReviewDateTo,
-		NextReviewDateFrom: nextReviewDateFrom,
-		NextReviewDateTo:   nextReviewDateTo,
-		LastTestDateFrom:   lastTestDateFrom,
-		LastTestDateTo:     lastTestDateTo,
-		NextTestDateFrom:   nextTestDateFrom,
-		NextTestDateTo:     nextTestDateTo,
-		ImplementedAtFrom:  implementedAtFrom,
-		ImplementedAtTo:    implementedAtTo,
-		Export:             export,
+		Sort:                  sort,
+		SortBy:                dbField,
+		Keyword:               keyword,
+		Status:                status,
+		Page:                  page,
+		PageSize:              pageSize,
+		Filters:               filters,
+		QuickFilter:           quickFilter,
+		LastReviewDateFrom:    lastReviewDateFrom,
+		LastReviewDateTo:      lastReviewDateTo,
+		NextReviewDateFrom:    nextReviewDateFrom,
+		NextReviewDateTo:      nextReviewDateTo,
+		LastTestDateFrom:      lastTestDateFrom,
+		LastTestDateTo:        lastTestDateTo,
+		NextTestDateFrom:      nextTestDateFrom,
+		NextTestDateTo:        nextTestDateTo,
+		ImplementedAtFrom:     implementedAtFrom,
+		ImplementedAtTo:       implementedAtTo,
+		Export:                export,
+		DateFrom:              dateFrom,
+		DateTo:                dateTo,
+		ComplianceRegisterIDs: complianceRegisterIDs,
 	}
 
 	controls, err := cc.service.GetAll(&queryParams)
