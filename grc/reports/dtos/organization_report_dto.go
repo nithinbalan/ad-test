@@ -67,3 +67,43 @@ type ControlsByControlTypeDTO struct {
 	ControlTypeTitleAr string `json:"control_type_title_ar"`
 	Count              int    `json:"count"`
 }
+type ControlsByControlCategoryDTO struct {
+	ControlCategoryID      uint   `json:"control_category_id"`
+	ControlCategoryTitleEn string `json:"control_category_title_en"`
+	ControlCategoryTitleAr string `json:"control_category_title_ar"`
+	Count                  int    `json:"count"`
+}
+
+type ControlsByComplianceRegisterDTO struct {
+	ComplianceRegisterID      uint   `json:"compliance_register_id"`
+	ComplianceRegisterTitleEn string `json:"compliance_register_title_en"`
+	ComplianceRegisterTitleAr string `json:"compliance_register_title_ar"`
+	Count                     int    `json:"count"`
+}
+
+type ControlsByRiskRatingDTO struct {
+	RiskRatingID        uint   `json:"risk_rating_id"`
+	RiskRatingTitleEn   string `json:"risk_rating_title_en"`
+	RiskRatingTitleAr   string `json:"risk_rating_title_ar"`
+	RiskRatingColorCode string `json:"risk_rating_color_code"`
+	RiskRatingType      string `json:"risk_rating_type"`
+	Count               int    `json:"count"`
+}
+
+type ControlsByImplementationStatusDTO struct {
+	ControlImplementationStatusID       uint   `json:"control_implementation_status_id"`
+	ControlImplementationStatusTitleEn  string `json:"control_implementation_status_title_en"`
+	ControlImplementationStatusTitleAr  string `json:"control_implementation_status_title_ar"`
+	ControlImplementationStatusolorCode string `json:"control_implementation_status_color_code"`
+	ControlImplementationStatusType     string `json:"control_implementation_status_type"`
+	Count                               int    `json:"count"`
+}
+
+type ControlsByEfficiencyDTO struct {
+	ControlEfficiencyStatusID        uint   `json:"control_efficiency_status_id"`
+	ControlEfficiencyStatusTitleEn   string `json:"control_efficiency_status_title_en"`
+	ControlEfficiencyStatusTitleAr   string `json:"control_efficiency_status_title_ar"`
+	ControlEfficiencyStatusColorCode string `json:"control_efficiency_status_color_code"`
+	ControlEfficiencyStatusType      string `json:"control_efficiency_status_type"`
+	Count                            int    `json:"count"`
+}

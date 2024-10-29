@@ -416,3 +416,93 @@ func (orc *OrganizationReportController) GetControlsByControlType(c *gin.Context
 
 	c.JSON(http.StatusOK, controlsByControlTypeReport)
 }
+
+func (orc *OrganizationReportController) GetControlsByCategory(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := dtos.ReportListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+
+	results, err := orc.service.GetControlsByCategory(&queryParams)
+	if err != nil {
+		utility.SendInternalErrResp(orc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, results)
+}
+
+func (orc *OrganizationReportController) GetControlsByComplianceRegister(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := dtos.ReportListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+
+	results, err := orc.service.GetControlsByComplianceRegister(&queryParams)
+	if err != nil {
+		utility.SendInternalErrResp(orc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, results)
+}
+
+func (orc *OrganizationReportController) GetControlsByRiskRating(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := dtos.ReportListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+
+	results, err := orc.service.GetControlsByRiskRating(&queryParams)
+	if err != nil {
+		utility.SendInternalErrResp(orc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, results)
+}
+
+func (orc *OrganizationReportController) GetControlsByImplementationStatus(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := dtos.ReportListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+
+	results, err := orc.service.GetControlsByImplementationStatus(&queryParams)
+	if err != nil {
+		utility.SendInternalErrResp(orc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, results)
+}
+
+func (orc *OrganizationReportController) GetControlsByEfficiencyStatus(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := dtos.ReportListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+
+	results, err := orc.service.GetControlsByEfficiencyStatus(&queryParams)
+	if err != nil {
+		utility.SendInternalErrResp(orc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, results)
+}

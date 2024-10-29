@@ -16,6 +16,11 @@ type OrganizationReportServiceInterface interface {
 	GetProcessesByProcessGroup(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ProcessByProcessGroupDTO, error)
 
 	GetControlsByControlType(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ControlsByControlTypeDTO, error)
+	GetControlsByCategory(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ControlsByControlCategoryDTO, error)
+	GetControlsByComplianceRegister(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ControlsByComplianceRegisterDTO, error)
+	GetControlsByRiskRating(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ControlsByRiskRatingDTO, error)
+	GetControlsByImplementationStatus(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ControlsByImplementationStatusDTO, error)
+	GetControlsByEfficiencyStatus(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ControlsByEfficiencyDTO, error)
 }
 
 type OrganizationReportService struct {
@@ -56,4 +61,24 @@ func (ors *OrganizationReportService) GetProcessesByProcessGroup(params *dtos.Re
 
 func (ors *OrganizationReportService) GetControlsByControlType(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ControlsByControlTypeDTO, error) {
 	return ors.repo.GetControlsByControlType(params)
+}
+
+func (ors *OrganizationReportService) GetControlsByCategory(queryParams *dtos.ReportListQueryParamsDTO) ([]*dtos.ControlsByControlCategoryDTO, error) {
+	return ors.repo.GetControlsByCategory(queryParams)
+}
+
+func (ors *OrganizationReportService) GetControlsByComplianceRegister(queryParams *dtos.ReportListQueryParamsDTO) ([]*dtos.ControlsByComplianceRegisterDTO, error) {
+	return ors.repo.GetControlsByComplianceRegister(queryParams)
+}
+
+func (ors *OrganizationReportService) GetControlsByRiskRating(queryParams *dtos.ReportListQueryParamsDTO) ([]*dtos.ControlsByRiskRatingDTO, error) {
+	return ors.repo.GetControlsByRiskRating(queryParams)
+}
+
+func (ors *OrganizationReportService) GetControlsByImplementationStatus(queryParams *dtos.ReportListQueryParamsDTO) ([]*dtos.ControlsByImplementationStatusDTO, error) {
+	return ors.repo.GetControlsByImplementationStatus(queryParams)
+}
+
+func (ors *OrganizationReportService) GetControlsByEfficiencyStatus(queryParams *dtos.ReportListQueryParamsDTO) ([]*dtos.ControlsByEfficiencyDTO, error) {
+	return ors.repo.GetControlsByEfficiencyStatus(queryParams)
 }

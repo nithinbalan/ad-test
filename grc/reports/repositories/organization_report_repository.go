@@ -17,6 +17,11 @@ type OrganizationReportRepositoryInterface interface {
 	GetProcessesByProcessGroup(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ProcessByProcessGroupDTO, error)
 
 	GetControlsByControlType(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ControlsByControlTypeDTO, error)
+	GetControlsByCategory(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ControlsByControlCategoryDTO, error)
+	GetControlsByComplianceRegister(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ControlsByComplianceRegisterDTO, error)
+	GetControlsByRiskRating(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ControlsByRiskRatingDTO, error)
+	GetControlsByImplementationStatus(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ControlsByImplementationStatusDTO, error)
+	GetControlsByEfficiencyStatus(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ControlsByEfficiencyDTO, error)
 }
 
 type OrganizationReportRepository struct {
@@ -208,28 +213,125 @@ func (repo *OrganizationReportRepository) GetProcessesByProcessGroup(params *dto
 	return results, nil
 }
 
+// Controls count by Control Type
 func (repo *OrganizationReportRepository) GetControlsByControlType(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ControlsByControlTypeDTO, error) {
 	results := []*dtos.ControlsByControlTypeDTO{}
 
 	query := repo.db.Table("controls").
-		Select(`
-            control_types.id AS control_type_id,
-            control_types.title_en AS control_type_title_en,
-            control_types.title_ar AS control_type_title_ar,
-            COUNT(controls.id) AS count
-        `).
+		Select(`control_types.id AS control_type_id,
+			control_types.title_en AS control_type_title_en,
+			control_types.title_ar AS control_type_title_ar,
+			COUNT(controls.id) AS count`).
 		Joins("JOIN control_types ON control_types.id = controls.control_type_id").
 		Group("control_types.id, control_types.title_en, control_types.title_ar")
 
-	// Apply date filters if provided
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("controls.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 
 	err := query.Scan(&results).Error
-	if err != nil {
-		return nil, err
+	return results, err
+}
+
+// Controls count by Control Category
+func (repo *OrganizationReportRepository) GetControlsByCategory(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ControlsByControlCategoryDTO, error) {
+	results := []*dtos.ControlsByControlCategoryDTO{}
+	query := repo.db.Table("controls").
+		Select(`control_categories.id AS control_category_id,
+			control_categories.title_en AS control_category_title_en,
+			control_categories.title_ar AS control_category_title_ar,
+			COUNT(controls.id) AS count`).
+		Joins("JOIN control_categories ON control_categories.id = controls.control_category_id").
+		Group("control_categories.id, control_categories.title_en, control_categories.title_ar")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("controls.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 
-	return results, nil
+	err := query.Scan(&results).Error
+	return results, err
+}
+
+// Controls count by Compliance Register
+func (repo *OrganizationReportRepository) GetControlsByComplianceRegister(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ControlsByComplianceRegisterDTO, error) {
+	results := []*dtos.ControlsByComplianceRegisterDTO{}
+	query := repo.db.Table("compliance_controls").
+		Select(`compliance_register.id AS compliance_register_id,
+			compliance_register.title_en AS compliance_register_title_en,
+			compliance_register.title_ar AS compliance_register_title_ar,
+			COUNT(compliance_controls.control_id) AS count`).
+		Joins("JOIN compliance_register ON compliance_register.id = compliance_controls.compliance_register_id").
+		Joins("JOIN controls ON controls.id = compliance_controls.control_id").
+		Group("compliance_register.id, compliance_register.title_en, compliance_register.title_ar")
+
+	// Apply date filter based on controls.created_at
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("controls.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	err := query.Scan(&results).Error
+	return results, err
+}
+
+// Controls count by Risk Rating
+func (repo *OrganizationReportRepository) GetControlsByRiskRating(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ControlsByRiskRatingDTO, error) {
+	results := []*dtos.ControlsByRiskRatingDTO{}
+	query := repo.db.Table("controls").
+		Select(`risk_matrix_risk_ratings.id AS risk_rating_id,
+			risk_matrix_risk_ratings.title_en AS risk_rating_title_en,
+			risk_matrix_risk_ratings.title_ar AS risk_rating_title_ar,
+			risk_matrix_risk_ratings.color_code AS risk_rating_color_code,
+			risk_matrix_risk_ratings.type AS risk_rating_type,
+			COUNT(controls.id) AS count`).
+		Joins("JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = controls.risk_matrix_risk_rating_id").
+		Group("risk_matrix_risk_ratings.id, risk_matrix_risk_ratings.title_en, risk_matrix_risk_ratings.title_ar, risk_matrix_risk_ratings.color_code, risk_matrix_risk_ratings.type")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("controls.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	err := query.Scan(&results).Error
+	return results, err
+}
+
+// Controls count by Implementation Status
+func (repo *OrganizationReportRepository) GetControlsByImplementationStatus(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ControlsByImplementationStatusDTO, error) {
+	results := []*dtos.ControlsByImplementationStatusDTO{}
+	query := repo.db.Table("controls").
+		Select(`control_implementation_statuses.id AS control_implementation_status_id,
+			control_implementation_statuses.title_en AS control_implementation_status_title_en,
+			control_implementation_statuses.title_ar AS control_implementation_status_title_ar,
+			control_implementation_statuses.color_code AS control_implementation_status_color_code,
+			control_implementation_statuses.type AS control_implementation_status_type,
+			COUNT(controls.id) AS count`).
+		Joins("JOIN control_implementation_statuses ON control_implementation_statuses.id = controls.control_implementation_status_id").
+		Group("control_implementation_statuses.id, control_implementation_statuses.title_en, control_implementation_statuses.title_ar, control_implementation_statuses.color_code, control_implementation_statuses.type")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("controls.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	err := query.Scan(&results).Error
+	return results, err
+}
+
+// Controls count by Efficiency
+func (repo *OrganizationReportRepository) GetControlsByEfficiencyStatus(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ControlsByEfficiencyDTO, error) {
+	results := []*dtos.ControlsByEfficiencyDTO{}
+	query := repo.db.Table("controls").
+		Select(`control_efficiency_statuses.id AS control_efficiency_status_id,
+			control_efficiency_statuses.title_en AS control_efficiency_status_title_en,
+			control_efficiency_statuses.title_ar AS control_efficiency_status_title_ar,
+			control_efficiency_statuses.color_code AS control_efficiency_status_color_code,
+			control_efficiency_statuses.type AS control_efficiency_status_type,
+			COUNT(controls.id) AS count`).
+		Joins("JOIN control_efficiency_statuses ON control_efficiency_statuses.id = controls.control_efficiency_status_id").
+		Group("control_efficiency_statuses.id, control_efficiency_statuses.title_en, control_efficiency_statuses.title_ar, control_efficiency_statuses.color_code, control_efficiency_statuses.type")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("controls.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	err := query.Scan(&results).Error
+	return results, err
 }
