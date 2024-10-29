@@ -24,8 +24,10 @@ import (
 
 type AuditFinalReportServiceInterface interface {
 	SetAuditReportWorkflowService(svc AuditReportWorkflowServiceInterface)
+	GetByID(id uint) (*models.AuditFinalReport, error)
 	GetFullDetailsByID(auditID uint, currentUserID uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditFinalReportDetailDTO, error)
 	Create(auditID uint, currentUserID uint) (uint, error)
+	Update(auditFinalReport *models.AuditFinalReport) error
 	GetByAuditID(auditID uint) (*models.AuditFinalReport, error)
 	Delete(auditID uint, currentUserID uint) error
 }
@@ -69,6 +71,18 @@ func NewAuditFinalReportService(
 func (afrs *AuditFinalReportService) SetAuditReportWorkflowService(svc AuditReportWorkflowServiceInterface) {
 	afrs.auditReportWorkflowSvc = svc
 }
+
+func (afrs *AuditFinalReportService) GetByID(id uint) (*models.AuditFinalReport, error) {
+	auditFinalReport, err := afrs.repo.GetByID(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+	return auditFinalReport, nil
+}
+
 func (afrs *AuditFinalReportService) GetFullDetailsByID(auditID uint, currentUserID uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditFinalReportDetailDTO, error) {
 	// Check if the audit exists
 	if _, err := afrs.auditSvc.GetByID(auditID); err != nil {
@@ -684,6 +698,15 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 	}()
 
 	return id, nil
+}
+
+func (afrs *AuditFinalReportService) Update(auditFinalReport *models.AuditFinalReport) error {
+	err := afrs.repo.Update(auditFinalReport)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (afrs *AuditFinalReportService) Delete(auditID uint, currentUserID uint) error {

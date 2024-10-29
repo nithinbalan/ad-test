@@ -13,12 +13,14 @@ import (
 type AuditFinalReportRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GenerateReferenceNumber() (string, error)
+	GetByID(id uint) (*models.AuditFinalReport, error)
 	GetFullDetailsByID(auditID uint, tx ...utility.DatabaseTransaction) (*models.AuditFinalReport, error)
 	GetByAuditID(auditID uint) (*models.AuditFinalReport, error)
 	Create(auditFinalReport *models.AuditFinalReport, tx ...utility.DatabaseTransaction) (uint, error)
 	CreateAuditFindingActionPlans(actionPlans []*models.AuditFindingActionPlan, tx ...utility.DatabaseTransaction) error
 	CreateAuditFinalReportSections(sections []*models.AuditFinalReportSection, tx ...utility.DatabaseTransaction) error
 	GetSectionByType(sectionType string, tx ...utility.DatabaseTransaction) (*models.AuditFinalReportSection, error)
+	Update(auditFinalReport *models.AuditFinalReport) error 
 	DeleteAuditFinalReportSections(sectionIDs []*uint, tx ...utility.DatabaseTransaction) error
 	DeleteAuditFindingActionPlans(deleteActionPlanIDs []*uint, tx ...utility.DatabaseTransaction) error
 	DeleteAuditFindings(deleteFindingIDs []*uint, tx ...utility.DatabaseTransaction) error
@@ -38,6 +40,22 @@ func NewAuditFinalReportRepository(db *gorm.DB) *AuditFinalReportRepository {
 // BeginTransaction starts a new transaction.
 func (repo *AuditFinalReportRepository) BeginTransaction() utility.DatabaseTransaction {
 	return utility.NewGormDatabaseTransaction(repo.db)
+}
+
+func (repo *AuditFinalReportRepository) GetByID(id uint) (*models.AuditFinalReport, error) {
+	var auditFinalReport models.AuditFinalReport // Not a pointer, so it won't be nil on not found
+
+	result := repo.db.Where("id = ?", id).First(&auditFinalReport)
+	if result.Error != nil {
+		if result.Error == gorm.ErrRecordNotFound {
+			// No final report found for this audit
+			return nil, nil
+		}
+		// Some other error occurred
+		return nil, result.Error
+	}
+
+	return &auditFinalReport, nil
 }
 
 func (repo *AuditFinalReportRepository) GetFullDetailsByID(auditID uint, tx ...utility.DatabaseTransaction) (*models.AuditFinalReport, error) {
@@ -193,6 +211,14 @@ func (repo *AuditFinalReportRepository) DeleteAuditFinalReportSections(sectionID
 	}
 
 	if err := db.Where("id IN (?)", sectionIDs).Delete(&models.AuditFinalReportSection{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *AuditFinalReportRepository) Update(auditFinalReport *models.AuditFinalReport) error {
+	if err := repo.db.Save(auditFinalReport).Error; err != nil {
 		return err
 	}
 
