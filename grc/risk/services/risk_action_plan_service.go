@@ -210,8 +210,8 @@ func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskA
 			utility.LogError("Failed to log activity", fields)
 		}
 		// prepare notification
-		urlParam := fmt.Sprintf(`{"id":%d}`, riskID)
-		queryParam := fmt.Sprintf(`{"id":%d}`, id)
+		urlParam := fmt.Sprintf(`{"risk_register_id":%d, "action_plan_id":%d}`, riskID, id)
+		queryParam := ""
 		entity := "risk-action-plan"
 		action := "responsible-user-assign"
 
@@ -346,8 +346,8 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 	go func() {
 		// sends notification if responsible user has changed
 		if oldResponsibleUserID != existingRiskActionPlan.ResponsibleUserID {
-			urlParam := fmt.Sprintf(`{"id":%d}`, riskID)
-			queryParam := fmt.Sprintf(`{"id":%d}`, id)
+			urlParam := fmt.Sprintf(`{"risk_register_id":%d, "action_plan_id":%d}`, riskID, id)
+			queryParam := ""
 			entity := "risk-action-plan"
 
 			oldResponsibleUserAction := "responsible-user-remove"

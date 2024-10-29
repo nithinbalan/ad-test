@@ -231,8 +231,8 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 		}
 
 		// prepare notification
-		urlParam := fmt.Sprintf(`{"id":%d}`, meetingID)
-		queryParam := fmt.Sprintf(`{"id":%d}`, id)
+		urlParam := fmt.Sprintf(`{"meeting_id":%d, "action_plan_id":%d}`, meetingID, id)
+		queryParam := ""
 		entity := "meeting-action-plan"
 		action := "responsible-user-assign"
 
@@ -365,8 +365,8 @@ func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUse
 	go func() {
 		// send notification if responsible user changed
 		if oldResponsibleUserID != existingMeetingActionPlan.ResponsibleUserID {
-			urlParam := fmt.Sprintf(`{"id":%d}`, meetingID)
-			queryParam := fmt.Sprintf(`{"id":%d}`, id)
+			urlParam := fmt.Sprintf(`{"meeting_id":%d, "action_plan_id":%d}`, meetingID, id)
+			queryParam := ""
 			entity := "meeting-action-plan"
 
 			oldResponsibleUserAction := "responsible-user-remove"

@@ -216,8 +216,8 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 		}
 
 		// prepare notification
-		urlParam := fmt.Sprintf(`{"id":%d}`, findingID)
-		queryParam := fmt.Sprintf(`{"id":%d}`, id)
+		urlParam := fmt.Sprintf(`{"audit_finding_id":%d, "action_plan_id":%d}`, findingID, id)
+		queryParam := ""
 		entity := "audit-finding-action-plan"
 		action := "responsible-user-assign"
 
@@ -354,8 +354,8 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 	go func() {
 		// sends notification if responsible user has changed
 		if oldResponsibleUserID != existingAuditFindingActionPlan.ResponsibleUserID {
-			urlParam := fmt.Sprintf(`{"id":%d}`, findingID)
-			queryParam := fmt.Sprintf(`{"id":%d}`, id)
+			urlParam := fmt.Sprintf(`{"audit_finding_id":%d, "action_plan_id":%d}`, findingID, id)
+			queryParam := ""
 			entity := "audit-finding-action-plan"
 
 			oldResponsibleUserAction := "responsible-user-remove"

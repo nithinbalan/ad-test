@@ -212,8 +212,8 @@ func (saps *SLAActionPlanService) Create(slaID uint, currentUserID uint, slaActi
 		}
 
 		// prepare notification
-		urlParam := fmt.Sprintf(`{"id":%d}`, slaID)
-		queryParam := fmt.Sprintf(`{"id":%d}`, id)
+		urlParam := fmt.Sprintf(`{"sla_register_id":%d, "action_plan_id":%d}`, slaID, id)
+		queryParam := ""
 		entity := "sla-action-plan"
 		action := "responsible-user-assign"
 
@@ -348,8 +348,8 @@ func (saps *SLAActionPlanService) Update(slaID uint, id uint, currentUserID uint
 	go func() {
 		// sends notification if responsible user has changed
 		if oldResponsibleUserID != existingSLAActionPlan.ResponsibleUserID {
-			urlParam := fmt.Sprintf(`{"id":%d}`, slaID)
-			queryParam := fmt.Sprintf(`{"id":%d}`, id)
+			urlParam := fmt.Sprintf(`{"sla_register_id":%d, "action_plan_id":%d}`, slaID, id)
+			queryParam := ""
 			entity := "sla-action-plan"
 
 			oldResponsibleUserAction := "responsible-user-remove"

@@ -249,8 +249,8 @@ func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uin
 		}
 
 		// prepare notification
-		urlParam := fmt.Sprintf(`{"id:%d"}`, incidentID)
-		queryParam := fmt.Sprintf(`{"id:%d"}`, id)
+		urlParam := fmt.Sprintf(`{"incident_register_id":%d, "action_plan_id":%d}`, incidentID, id)
+		queryParam := ""
 		entity := "incident-action-plan"
 		action := "responsible-user-assign"
 
@@ -384,8 +384,8 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 	go func() {
 		// sends notification if responsible user has changed
 		if oldResponsibleUserID != existingIncidentActionPlan.ResponsibleUserID {
-			urlParam := fmt.Sprintf(`{"id:%d"}`, incidentID)
-			queryParam := fmt.Sprintf(`{"id:%d"}`, id)
+			urlParam := fmt.Sprintf(`{"incident_register_id":%d, "action_plan_id":%d}`, incidentID, id)
+			queryParam := ""
 			entity := "incident-action-plan"
 
 			oldResponsibleUserAction := "responsible-user-remove"

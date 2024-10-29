@@ -221,8 +221,8 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 		}
 
 		// prepare notification
-		urlParam := fmt.Sprintf(`{"id":%d}`, complianceID)
-		queryParam := fmt.Sprintf(`{"id":%d}`, id)
+		urlParam := fmt.Sprintf(`{"compliance_register_id":%d, "action_plan_id":%d}`, complianceID, id)
+		queryParam := ""
 		entity := "compliance-action-plan"
 		action := "responsible-user-assign"
 
@@ -356,8 +356,8 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 	go func() {
 		// sends notification if responsible user has changed
 		if oldResponsibleUserID != existingComplianceActionPlan.ResponsibleUserID {
-			urlParam := fmt.Sprintf(`{"id":%d}`, complianceID)
-			queryParam := fmt.Sprintf(`{"id":%d}`, id)
+			urlParam := fmt.Sprintf(`{"compliance_register_id":%d, "action_plan_id":%d}`, complianceID, id)
+			queryParam := ""
 			entity := "compliance-action-plan"
 
 			oldResponsibleUserAction := "responsible-user-remove"
