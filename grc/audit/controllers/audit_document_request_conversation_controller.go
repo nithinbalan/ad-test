@@ -107,6 +107,43 @@ func (adrcc *AuditDocumentRequestConversationController) CreateAuditDocumentRequ
 	c.JSON(http.StatusCreated, commonDTOs.IDResponse{ID: id})
 }
 
+func (adrcc *AuditDocumentRequestConversationController) GetDocumentRequestConversationDocumentPreview(c *gin.Context) {
+	auditIdStr := c.Param("auditId")
+	auditId, err := strconv.ParseUint(auditIdStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	auditDocumentRequestID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	conversationID, err := strconv.Atoi(c.Param("conversationId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	documentPath, err := adrcc.service.GetDocumentPath(uint(auditId), uint(auditDocumentRequestID), uint(conversationID), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(adrcc.db, c, err.Error())
+		}
+		return
+	}
+	c.File(documentPath)
+}
+
 func (adrcc *AuditDocumentRequestConversationController) DownloadDocumentRequestConversationDocument(c *gin.Context) {
 	auditIdStr := c.Param("auditId")
 	auditId, err := strconv.ParseUint(auditIdStr, 10, 32)

@@ -7,6 +7,7 @@ import (
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/utility"
 	"net/http"
+	"path/filepath"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -197,4 +198,102 @@ func (afsuc *AuditFindingActionPlanStatusUpdateController) GetLatestAuditFinding
 	}
 
 	c.JSON(http.StatusOK, auditFindingActionPlanStatusUpdate)
+}
+
+func (afsuc *AuditFindingActionPlanStatusUpdateController) GetAuditFindingActionPlanStatusUpdateDocumentPreview(c *gin.Context) {
+	findingIDStr := c.Param("findingId")
+
+	findingID, err := strconv.ParseUint(findingIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	actionPlanIDStr := c.Param("actionPlanId")
+
+	actionPlanID, err := strconv.ParseUint(actionPlanIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	auditScheduleStatusUpdateDocumentPath, err := afsuc.service.GetDocumentPath(uint(findingID), uint(actionPlanID), uint(id), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(afsuc.db, c, err.Error())
+		}
+		return
+	}
+	c.File(auditScheduleStatusUpdateDocumentPath)
+}
+
+func (afsuc *AuditFindingActionPlanStatusUpdateController) DownloadAuditFindingActionPlanStatusUpdateDocument(c *gin.Context) {
+	findingIDStr := c.Param("findingId")
+
+	findingID, err := strconv.ParseUint(findingIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	actionPlanIDStr := c.Param("actionPlanId")
+
+	actionPlanID, err := strconv.ParseUint(actionPlanIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	auditScheduleStatusUpdateDocumentPath, err := afsuc.service.GetDocumentPath(uint(findingID), uint(actionPlanID), uint(id), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(afsuc.db, c, err.Error())
+		}
+		return
+	}
+	filename := filepath.Base(auditScheduleStatusUpdateDocumentPath)
+
+	// Set the content type and disposition headers for the file download
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Type", "application/octet-stream")
+	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Header("Content-Transfer-Encoding", "binary")
+	c.Header("Expires", "0")
+	c.Header("Cache-Control", "must-revalidate")
+	c.Header("Pragma", "public")
+
+	// Serve the file
+	c.File(auditScheduleStatusUpdateDocumentPath)
 }

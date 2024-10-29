@@ -113,7 +113,7 @@ func (repo *ComplianceStatusUpdateRepository) GetAll(complianceID uint, sort str
 
 func (repo *ComplianceStatusUpdateRepository) GetByID(id uint) (*models.ComplianceStatusUpdate, error) {
 	var complianceStatusUpdate *models.ComplianceStatusUpdate
-	result := repo.db.First(&complianceStatusUpdate, id)
+	result := repo.db.Preload("Documents").First(&complianceStatusUpdate, id)
 
 	if result.Error != nil {
 		return nil, result.Error

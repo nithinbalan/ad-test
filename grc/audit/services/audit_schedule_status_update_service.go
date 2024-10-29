@@ -3,11 +3,13 @@ package services
 import (
 	"errors"
 	"fmt"
+	"jethur/config"
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
+	"os"
 	"path/filepath"
 	"strconv"
 
@@ -19,6 +21,7 @@ type AuditScheduleStatusUpdateServiceInterface interface {
 	Create(auditScheduleID uint, currentUserID uint, auditScheduleStatusUpdateFormDTO *auditDTOs.AuditScheduleStatusUpdateFormDTO) (uint, error)
 	Update(auditScheduleID uint, id uint, currentUserID uint, auditScheduleStatusUpdateFormDTO *auditDTOs.AuditScheduleStatusUpdateFormDTO) error
 	GetLatestAuditScheduleStatusUpdate(auditScheduleID uint) (*auditDTOs.AuditScheduleStatusUpdateListDTO, error)
+	GetDocumentPath(auditID uint, auditScheduleID uint, id uint, token string) (string, error)
 }
 
 type AuditScheduleStatusUpdateService struct {
@@ -46,9 +49,28 @@ func (asus *AuditScheduleStatusUpdateService) GetAll(auditScheduleID uint, sort 
 	return asus.repo.GetAll(auditScheduleID, sort, sortBy, keyword)
 }
 
+func (asus AuditScheduleStatusUpdateService) GetByID(auditID uint, auditScheduleID uint, id uint) (*models.AuditScheduleStatusUpdate, error) {
+	if _, err := asus.auditScheduleSvc.GetByID(auditScheduleID); err != nil {
+		return nil, err
+	}
+
+	auditScheduleStatusUpdate, err := asus.repo.GetByID(id)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+	return auditScheduleStatusUpdate, nil
+}
+
 func (asus *AuditScheduleStatusUpdateService) Create(auditScheduleID uint, currentUserID uint, auditScheduleStatusUpdateFormDTO *auditDTOs.AuditScheduleStatusUpdateFormDTO) (uint, error) {
 	tx := asus.repo.BeginTransaction()
-	fmt.Println("123")
+	auditSchedule, err := asus.auditScheduleSvc.GetByID(auditScheduleID)
+	if err != nil {
+		return 0, err
+	}
 	auditScheduleStatusUpdate := &models.AuditScheduleStatusUpdate{
 		AuditScheduleID:       auditScheduleID,
 		AuditScheduleStatusID: auditScheduleStatusUpdateFormDTO.AuditScheduleStatusID,
@@ -79,7 +101,7 @@ func (asus *AuditScheduleStatusUpdateService) Create(auditScheduleID uint, curre
 			return 0, err
 		}
 
-		url := utility.GenerateDocumentURL("audits", "audit-schedules", strconv.FormatUint(uint64(auditScheduleID), 10), "status-updates", strconv.FormatUint(uint64(id), 10), "documents", encryptedFilename)
+		url := utility.GenerateDocumentURL("audit", "audits", strconv.FormatUint(uint64(auditSchedule.AuditID), 10), "audit-schedules", strconv.FormatUint(uint64(auditScheduleID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents", encryptedFilename)
 
 		document := &models.AuditScheduleStatusUpdateDocument{
 			AuditScheduleStatusUpdateID: id,
@@ -103,7 +125,7 @@ func (asus *AuditScheduleStatusUpdateService) Create(auditScheduleID uint, curre
 
 		//move file to storage
 		for _, doc := range documents {
-			storagePath := filepath.Join("audits", "audit-schedules", strconv.FormatUint(uint64(auditScheduleID), 10), "status-updates", strconv.FormatUint(uint64(id), 10), "documents")
+			storagePath := filepath.Join("audit", "audits", strconv.FormatUint(uint64(auditSchedule.AuditID), 10), "audit-schedules", strconv.FormatUint(uint64(auditScheduleID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
 				tx.Rollback()
 				return 0, err
@@ -143,7 +165,10 @@ func (asus *AuditScheduleStatusUpdateService) Create(auditScheduleID uint, curre
 
 func (asus *AuditScheduleStatusUpdateService) Update(auditScheduleID uint, id uint, currentUserID uint, auditScheduleStatusUpdateFormDTO *auditDTOs.AuditScheduleStatusUpdateFormDTO) error {
 	tx := asus.repo.BeginTransaction()
-
+	auditSchedule, err := asus.auditScheduleSvc.GetByID(auditScheduleID)
+	if err != nil {
+		return err
+	}
 	existingUpdate, err := asus.repo.GetByID(id)
 	if err != nil {
 		tx.Rollback()
@@ -178,7 +203,7 @@ func (asus *AuditScheduleStatusUpdateService) Update(auditScheduleID uint, id ui
 			}
 
 			// Generate URL
-			url := utility.GenerateDocumentURL("audits", "audit-schedules", strconv.FormatUint(uint64(auditScheduleID), 10), "status-updates", strconv.FormatUint(uint64(id), 10), "documents", encryptedFileName)
+			url := utility.GenerateDocumentURL("audit", "audits", strconv.FormatUint(uint64(auditSchedule.AuditID), 10), "audit-schedules", strconv.FormatUint(uint64(auditScheduleID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents", encryptedFileName)
 			document := &models.AuditScheduleStatusUpdateDocument{
 				AuditScheduleStatusUpdateID: id,
 				URL:                         url,
@@ -221,7 +246,7 @@ func (asus *AuditScheduleStatusUpdateService) Update(auditScheduleID uint, id ui
 	}
 
 	for _, doc := range documents {
-		storagePath := filepath.Join("audits", "audit-schedules", strconv.FormatUint(uint64(auditScheduleID), 10), "status-updates", strconv.FormatUint(uint64(id), 10), "documents")
+		storagePath := filepath.Join("audit", "audits", strconv.FormatUint(uint64(auditSchedule.AuditID), 10), "audit-schedules", strconv.FormatUint(uint64(auditScheduleID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
 			tx.Rollback()
 			return err
@@ -229,7 +254,7 @@ func (asus *AuditScheduleStatusUpdateService) Update(auditScheduleID uint, id ui
 	}
 
 	for _, document := range documentsToDelete {
-		storagePath := filepath.Join("audits", "audit-schedules", strconv.FormatUint(uint64(auditScheduleID), 10), "status-updates", strconv.FormatUint(uint64(id), 10), "documents")
+		storagePath := filepath.Join("audit", "audits", strconv.FormatUint(uint64(auditSchedule.AuditID), 10), "audit-schedules", strconv.FormatUint(uint64(auditScheduleID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 		if err := utility.RemoveFile(document.Name, storagePath); err != nil {
 			tx.Rollback()
 			return err
@@ -243,4 +268,45 @@ func (asus *AuditScheduleStatusUpdateService) Update(auditScheduleID uint, id ui
 
 func (asus *AuditScheduleStatusUpdateService) GetLatestAuditScheduleStatusUpdate(auditScheduleID uint) (*auditDTOs.AuditScheduleStatusUpdateListDTO, error) {
 	return asus.repo.GetLatestAuditScheduleStatusUpdate(auditScheduleID)
+}
+
+func (asus *AuditScheduleStatusUpdateService) GetDocumentPath(auditID uint, auditScheduleID uint, id uint, token string) (string, error) {
+
+	auditSchedule, err := asus.auditScheduleSvc.GetByID(auditScheduleID)
+	if err != nil {
+		return "", err
+	}
+
+	existingAuditScheduleStatusUpdate, err := asus.GetByID(auditID, auditScheduleID, id)
+	if err != nil {
+		return "", err
+	}
+
+	if len(existingAuditScheduleStatusUpdate.Documents) == 0 {
+		return "", fmt.Errorf("no documents found for the audit finding")
+	}
+
+	decryptedFilenameBytes, err := utility.DecryptData(token)
+	if err != nil {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	decryptedFilename := string(decryptedFilenameBytes)
+	if decryptedFilename == "" {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	storagePath := filepath.Join("audit", "audits", strconv.FormatUint(uint64(auditSchedule.AuditID), 10), "audit-schedules", strconv.FormatUint(uint64(auditScheduleID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
+
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
+
+	// Check if the file exists
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("file not found")
+	} else if err != nil {
+		return "", fmt.Errorf("error accessing file: %w", err)
+	}
+
+	return fullPath, nil
 }

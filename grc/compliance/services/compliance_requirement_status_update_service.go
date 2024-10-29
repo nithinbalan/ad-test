@@ -3,11 +3,13 @@ package services
 import (
 	"errors"
 	"fmt"
+	"jethur/config"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/repositories"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
+	"os"
 	"path/filepath"
 	"strconv"
 
@@ -19,6 +21,7 @@ type ComplianceRequirementStatusUpdateServiceInterface interface {
 	Create(ComplianceID uint, ComplianceRequirementID uint, currentUserID uint, complianceRequirementStatusUpdateFormDTO *complianceDTOs.ComplianceRequirementStatusUpdateFormDTO) (uint, error)
 	Update(ComplianceID uint, ComplianceRequirementID uint, id uint, currentUserID uint, ComplianceRequirementStatusUpdateFormDTO *complianceDTOs.ComplianceRequirementStatusUpdateFormDTO) error
 	GetLatestComplianceRequirementStatusUpdate(complianceID uint, requirementID uint) (*complianceDTOs.ComplianceRequirementStatusUpdateListDTO, error)
+	GetDocumentPath(complianceID uint, requirementID uint, id uint, token string) (string, error)
 }
 
 // Service and implementations
@@ -297,4 +300,39 @@ func (crsus ComplianceRequirementStatusUpdateService) GetLatestComplianceRequire
 	}
 
 	return crsus.repo.GetLatestComplianceRequirementStatusUpdate(requirementID)
+}
+
+func (crsus *ComplianceRequirementStatusUpdateService) GetDocumentPath(ComplianceID, requirementID, id uint, token string) (string, error) {
+
+	existingComplianceRequirementStatusUpdate, err := crsus.GetByID(ComplianceID, requirementID, id)
+	if err != nil {
+		return "", err
+	}
+	if len(existingComplianceRequirementStatusUpdate.Documents) == 0 {
+		return "", fmt.Errorf("no documents found for the compliance requirement")
+	}
+
+	decryptedFilenameBytes, err := utility.DecryptData(token)
+	if err != nil {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	decryptedFilename := string(decryptedFilenameBytes)
+	if decryptedFilename == "" {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(ComplianceID), 10), "requirements", strconv.FormatUint(uint64(requirementID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
+
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
+
+	// Check if the file exists
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("file not found")
+	} else if err != nil {
+		return "", fmt.Errorf("error accessing file: %w", err)
+	}
+
+	return fullPath, nil
 }

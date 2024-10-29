@@ -94,7 +94,7 @@ func (adrcs *AuditDocumentRequestConversationService) Create(auditID uint, audit
 			return 0, err
 		}
 
-		url := utility.GenerateDocumentURL("audits", "audit", strconv.FormatUint(uint64(auditID), 10), "document-requests", strconv.FormatUint(uint64(auditDocumentRequestID), 10), "conversations", encryptedFilename)
+		url := utility.GenerateDocumentURL("audit", "audits", strconv.FormatUint(uint64(auditID), 10), "document-requests", strconv.FormatUint(uint64(auditDocumentRequestID), 10), "conversations", strconv.FormatUint(uint64(id), 10), "documents")
 
 		document := &models.AuditDocumentRequestConversationDocument{
 			AuditDocumentRequestConversationID: id,
@@ -116,7 +116,7 @@ func (adrcs *AuditDocumentRequestConversationService) Create(auditID uint, audit
 			return 0, err
 		}
 		for _, doc := range documents {
-			storagePath := filepath.Join("audits", "audit", strconv.FormatUint(uint64(auditID), 10), "document-requests", strconv.FormatUint(uint64(auditDocumentRequestID), 10), "conversations", strconv.FormatUint(uint64(id), 10), "documents")
+			storagePath := filepath.Join("audit", "audits", strconv.FormatUint(uint64(auditID), 10), "document-requests", strconv.FormatUint(uint64(auditDocumentRequestID), 10), "conversations", strconv.FormatUint(uint64(id), 10), "documents")
 			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
 				tx.Rollback()
 				return 0, err
@@ -219,7 +219,7 @@ func (adrcs *AuditDocumentRequestConversationService) GetDocumentPath(auditId ui
 		return "", fmt.Errorf("resource not found")
 	}
 
-	storagePath := filepath.Join("audits", "audit", strconv.FormatUint(uint64(auditId), 10), "document-requests", strconv.FormatUint(uint64(auditDocumentRequestID), 10), "conversations", strconv.FormatUint(uint64(conversationID), 10), "documents")
+	storagePath := filepath.Join("audit", "audits", strconv.FormatUint(uint64(auditId), 10), "document-requests", strconv.FormatUint(uint64(auditDocumentRequestID), 10), "conversations", strconv.FormatUint(uint64(conversationID), 10), "documents")
 
 	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
 	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)

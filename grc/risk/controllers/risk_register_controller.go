@@ -2,12 +2,14 @@ package controllers
 
 import (
 	"errors"
+	"net/http"
+	"path/filepath"
+	"strconv"
+
 	commonDTOs "jethur/grc/common/dtos"
 	riskDTOs "jethur/grc/risk/dtos"
 	"jethur/grc/risk/services"
 	"jethur/utility"
-	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -134,7 +136,6 @@ func (rrc *RiskRegisterController) GetAllRiskRegisters(c *gin.Context) {
 		Export:             export,
 	}
 	risks, err := rrc.service.GetAll(&queryParams)
-
 	if err != nil {
 		utility.SendInternalErrResp(rrc.db, c, err.Error())
 		return
@@ -202,7 +203,6 @@ func (rrc *RiskRegisterController) CreateRiskRegister(c *gin.Context) {
 	}
 
 	id, err := rrc.service.Create(currentUserID, &riskRegisterFormDTO)
-
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:
@@ -378,6 +378,72 @@ func (rrc *RiskRegisterController) GetControlPerformance(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, controlPerformance)
+}
+
+func (rrc *RiskRegisterController) GetRiskRegisterDocumentPreview(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	documentPath, err := rrc.service.GetDocumentPath(uint(id), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(rrc.db, c, err.Error())
+		}
+		return
+	}
+	c.File(documentPath)
+}
+
+func (rrc *RiskRegisterController) DownloadRiskRegisterDocument(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	documentPath, err := rrc.service.GetDocumentPath(uint(id), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(rrc.db, c, err.Error())
+		}
+		return
+	}
+	filename := filepath.Base(documentPath)
+
+	// Set headers for file download
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Type", "application/octet-stream")
+	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Header("Content-Transfer-Encoding", "binary")
+	c.Header("Expires", "0")
+	c.Header("Cache-Control", "must-revalidate")
+	c.Header("Pragma", "public")
+
+	// Serve the file
+	c.File(documentPath)
 }
 
 func (rrc *RiskRegisterController) GetRiskRegisterExport(c *gin.Context) {

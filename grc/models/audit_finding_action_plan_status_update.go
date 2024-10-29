@@ -16,10 +16,11 @@ type AuditFindingActionPlanStatusUpdate struct {
 	UpdatedByID              *uint      `json:"updated_by_id" gorm:"default:null"`
 
 	// Relationships
-	AuditFindingActionPlan *AuditFindingActionPlan `gorm:"foreignKey:AuditFindingActionPlanID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ActionPlanStatus       *ActionPlanStatus       `gorm:"foreignKey:ActionPlanStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser          *User                   `gorm:"foreignKey:CreatedByID"`
-	UpdatedByUser          *User                   `gorm:"foreignKey:UpdatedByID"`
+	AuditFindingActionPlan *AuditFindingActionPlan                       `gorm:"foreignKey:AuditFindingActionPlanID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ActionPlanStatus       *ActionPlanStatus                             `gorm:"foreignKey:ActionPlanStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	CreatedByUser          *User                                         `gorm:"foreignKey:CreatedByID"`
+	UpdatedByUser          *User                                         `gorm:"foreignKey:UpdatedByID"`
+	Documents              []*AuditFindingActionPlanStatusUpdateDocument `gorm:"foreignKey:AuditFindingActionPlanStatusUpdateID"`
 }
 
 // TableName overrides the table name used by AuditFindingActionPlanStatusUpdate to `audit_finding_action_plan_status_updates`

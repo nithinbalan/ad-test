@@ -3,10 +3,12 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strconv"
 	"time"
 
+	"jethur/config"
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
 	logServices "jethur/grc/logs/services"
@@ -27,6 +29,7 @@ type AuditFindingServiceInterface interface {
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 
 	GetAuditFindingCountByCategory(auditId uint) ([]auditDTOs.AuditFindingCategoryCountResponseDTO, error)
+	GetDocumentPath(id uint, token string) (string, error)
 }
 
 type AuditFindingService struct {
@@ -466,4 +469,39 @@ func (afs *AuditFindingService) GetAuditFindingCountByCategory(auditId uint) ([]
 	}
 
 	return response, nil
+}
+
+func (afs *AuditFindingService) GetDocumentPath(id uint, token string) (string, error) {
+	existingAuditFinding, err := afs.GetByID(id)
+	if err != nil {
+		return "", err
+	}
+
+	if len(existingAuditFinding.Documents) == 0 {
+		return "", fmt.Errorf("no documents found for the audit finding")
+	}
+
+	decryptedFilenameBytes, err := utility.DecryptData(token)
+	if err != nil {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	decryptedFilename := string(decryptedFilenameBytes)
+	if decryptedFilename == "" {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	storagePath := filepath.Join("audit", "audit-findings", strconv.FormatUint(uint64(id), 10), "documents")
+
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
+
+	// Check if the file exists
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("file not found")
+	} else if err != nil {
+		return "", fmt.Errorf("error accessing file: %w", err)
+	}
+
+	return fullPath, nil
 }

@@ -74,6 +74,9 @@ func (repo *AuditFinalReportRepository) GetFullDetailsByID(auditID uint, tx ...u
 		Preload("AuditFinalReportSections.ParentSection").
 		Preload("AuditFinalReportSections.CreatedByUser").
 		Preload("AuditFinalReportSections.UpdatedByUser").
+		Preload("AuditReportWorkflows").
+		Preload("AuditReportWorkflows.AuditReportWorkflowParticipants").
+		Preload("AuditReportWorkflows.AuditReportReviews").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&auditFinalReport)

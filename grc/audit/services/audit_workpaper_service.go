@@ -115,7 +115,7 @@ func (aws *AuditWorkpaperService) Create(auditID uint, currentUserID uint, formD
 		}
 
 		// Generate URL for the document
-		url := utility.GenerateDocumentURL("audits", "audit", strconv.FormatUint(uint64(auditID), 10), "audit-workpaper")
+		url := utility.GenerateDocumentURL("audit", "audits", strconv.FormatUint(uint64(auditID), 10), "audit-workpaper")
 
 		source, err := aws.sourceSvc.GetByType("direct")
 		if err != nil {
@@ -143,7 +143,7 @@ func (aws *AuditWorkpaperService) Create(auditID uint, currentUserID uint, formD
 		}
 
 		// Store the document file
-		storagePath := filepath.Join("audits", "audit", strconv.FormatUint(uint64(auditID), 10), "audit-workpaper")
+		storagePath := filepath.Join("audit", "audits", strconv.FormatUint(uint64(auditID), 10), "audit-workpaper")
 		if err := utility.StoreFile(document.FileName, storagePath); err != nil {
 			tx.Rollback()
 			return nil, err
@@ -211,7 +211,7 @@ func (aws *AuditWorkpaperService) Update(id uint, auditID uint, currentUserID ui
 		}
 
 		// Define the storage path
-		storagePath := filepath.Join("audits", "audit", strconv.FormatUint(uint64(auditID), 10), "audit-workpaper")
+		storagePath := filepath.Join("audit", "audits", strconv.FormatUint(uint64(auditID), 10), "audit-workpaper")
 
 		// Remove the old document if exists
 		if workpaper.Name != nil {
@@ -222,7 +222,7 @@ func (aws *AuditWorkpaperService) Update(id uint, auditID uint, currentUserID ui
 		}
 
 		// Generate new URL
-		url := utility.GenerateDocumentURL("audits", "audit", strconv.FormatUint(uint64(auditID), 10), "audit-workpaper")
+		url := utility.GenerateDocumentURL("audit", "audits", strconv.FormatUint(uint64(auditID), 10), "audit-workpaper")
 
 		// Store new document
 		if err := utility.StoreFile(document.FileName, storagePath); err != nil {
@@ -293,7 +293,7 @@ func (aws *AuditWorkpaperService) Delete(ids []uint, currentUserID uint) ([]uint
 			}
 			return nil, err
 		}
-		storagePath := filepath.Join("audits", "audit", strconv.FormatUint(uint64(workpaper.AuditID), 10), "audit-workpaper")
+		storagePath := filepath.Join("audit", "audits", strconv.FormatUint(uint64(workpaper.AuditID), 10), "audit-workpaper")
 		if err := utility.RemoveFile(*workpaper.Name, storagePath); err != nil {
 			failedIDs = append(failedIDs, id)
 			continue
@@ -350,7 +350,7 @@ func (aws *AuditWorkpaperService) GetDocumentPath(auditId uint, token string) (s
 		return "", fmt.Errorf("resource not found")
 	}
 
-	storagePath := filepath.Join("audits", "audit", strconv.FormatUint(uint64(auditId), 10), "audit-workpaper")
+	storagePath := filepath.Join("audit", "audits", strconv.FormatUint(uint64(auditId), 10), "audit-workpaper")
 
 	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
 	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)

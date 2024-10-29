@@ -194,9 +194,9 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 					return
 				}
 				// Prepare notification and email
-				urlParam := fmt.Sprintf(`{"id":%d}`, id)
+				urlParam := fmt.Sprintf(`{"id":%d}`, kriRegisterID)
 				entity := "kri-value-update"
-				action := "responsible-user-assign"
+				action := "value-update-high"
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 					UserID:               existingRisk.ResponsibleUserID,
 					ModuleIdentifier:     "risk",
@@ -435,9 +435,9 @@ func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentU
 					return
 				}
 				// Prepare notification and email
-				urlParam := fmt.Sprintf(`{"id":%d}`, updateId)
+				urlParam := fmt.Sprintf(`{"id":%d}`, kriRegisterID)
 				entity := "kri-value-update"
-				action := "responsible-user-assign"
+				action := "value-update-high"
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 					UserID:               existingRisk.ResponsibleUserID,
 					ModuleIdentifier:     "risk",

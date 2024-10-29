@@ -67,6 +67,8 @@ type ProcessListQueryParamsDTO struct {
 	Filters     map[string][]string
 	QuickFilter []string
 	Export      bool
+	DateFrom    string
+	DateTo      string
 }
 
 // ProcessListResponseDTO encapsulates the paginated response for a list of processes

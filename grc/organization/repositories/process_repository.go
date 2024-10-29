@@ -72,36 +72,36 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 		owner.last_name_en AS owner_last_name_en,
 		owner.last_name_ar AS owner_last_name_ar,
 		owner.initial AS owner_initial,
-        owner.color AS owner_color,
-        owner.email AS owner_email,
-        owner.profile_image_path AS owner_profile_image_path,
+		owner.color AS owner_color,
+		owner.email AS owner_email,
+		owner.profile_image_path AS owner_profile_image_path,
 		lifecycle_statuses.title_en AS lifecycle_status_title_en,
 		lifecycle_statuses.title_ar AS lifecycle_status_title_ar,
 		lifecycle_statuses.color_code AS lifecycle_status_color_code,
 		created_user.id AS created_user_id,
-        created_user.first_name_en AS created_user_first_name_en,
+		created_user.first_name_en AS created_user_first_name_en,
 		created_user.first_name_ar AS created_user_first_name_ar,
 		created_user.last_name_en AS created_user_last_name_en,
 		created_user.last_name_ar AS created_user_last_name_ar,
 		created_user.initial AS created_user_initial,
-        created_user.color AS created_user_color,
-        created_user.email AS created_user_email,
-        created_user.profile_image_path AS created_user_profile_image_path,
+		created_user.color AS created_user_color,
+		created_user.email AS created_user_email,
+		created_user.profile_image_path AS created_user_profile_image_path,
 		updated_user.id AS updated_user_id,
-    	updated_user.first_name_en AS updated_user_first_name_en,
+		updated_user.first_name_en AS updated_user_first_name_en,
 		updated_user.first_name_ar AS updated_user_first_name_ar,
 		updated_user.last_name_en AS updated_user_last_name_en,
 		updated_user.last_name_ar AS updated_user_last_name_ar,
 		updated_user.initial AS updated_user_initial,
-        updated_user.color AS updated_user_color,
-        updated_user.email AS updated_user_email,
-        updated_user.profile_image_path AS updated_user_profile_image_path,
+		updated_user.color AS updated_user_color,
+		updated_user.email AS updated_user_email,
+		updated_user.profile_image_path AS updated_user_profile_image_path,
 		processes.created_at,
 		processes.updated_at,
 		risk_matrix_risk_ratings.title_en AS risk_rating_title_en,
-    	risk_matrix_risk_ratings.title_ar AS risk_rating_title_ar,
-    	risk_matrix_risk_ratings.color_code AS risk_rating_color_code,
-    	risk_matrix_risk_rating_values.value AS risk_rating_value
+		risk_matrix_risk_ratings.title_ar AS risk_rating_title_ar,
+		risk_matrix_risk_ratings.color_code AS risk_rating_color_code,
+		risk_matrix_risk_rating_values.value AS risk_rating_value
 	`).
 		Joins("LEFT JOIN process_groups ON process_groups.id = processes.process_group_id").
 		Joins("LEFT JOIN organization_units ON organization_units.id = processes.owner_unit_id").
@@ -115,11 +115,15 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
-			query = query.Where(columnName+" IN (?)", values)
+			query = query.Where("processes."+columnName+" IN (?)", values)
 		}
 	}
 
-	//Apply quick filters
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("processes.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	// Apply quick filters
 	for _, filter := range params.QuickFilter {
 		switch filter {
 		case "active":
@@ -128,29 +132,30 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 			query = query.Where("lifecycle_statuses.type = ?", "archived")
 		case "high_risk":
 			query = query.Where("risk_matrix_risk_ratings.type IN (?)", []string{"high", "very_high"})
-
 		}
 	}
+
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		query = query.Where(`
 		(processes.reference_number LIKE ? OR
-			processes.title_en LIKE ? OR
-			processes.title_ar LIKE ? OR
-			processes.description LIKE ? OR
-			process_groups.title_en LIKE ? OR
-			process_groups.title_ar LIKE ? OR
-			organization_units.title_en LIKE ? OR
-			organization_units.title_ar LIKE ? OR
-			owner.first_name_en LIKE ? OR
-			owner.first_name_ar LIKE ? OR
-			lifecycle_statuses.title_en LIKE ? OR
-			lifecycle_statuses.title_ar LIKE ?)`,
+		 processes.title_en LIKE ? OR
+		 processes.title_ar LIKE ? OR
+		 processes.description LIKE ? OR
+		 process_groups.title_en LIKE ? OR
+		 process_groups.title_ar LIKE ? OR
+		 organization_units.title_en LIKE ? OR
+		 organization_units.title_ar LIKE ? OR
+		 owner.first_name_en LIKE ? OR
+		 owner.first_name_ar LIKE ? OR
+		 lifecycle_statuses.title_en LIKE ? OR
+		 lifecycle_statuses.title_ar LIKE ?)`,
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
 	}
 
+	// Count total records for pagination
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
