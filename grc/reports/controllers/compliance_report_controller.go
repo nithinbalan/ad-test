@@ -172,7 +172,7 @@ func (crc *ComplianceReportController) ComplianceRegisterReportExport(c *gin.Con
 	crc.GetAllComplianceRegisters(c)
 }
 
-func (crc *ComplianceReportController) GetComplianceByCategory(c *gin.Context) {
+func (crc *ComplianceReportController) GetComplianceByComplianceCategory(c *gin.Context) {
 	dateFrom := c.Query("date_from")
 	dateTo := c.Query("date_to")
 
@@ -180,7 +180,7 @@ func (crc *ComplianceReportController) GetComplianceByCategory(c *gin.Context) {
 		DateFrom: dateFrom,
 		DateTo:   dateTo,
 	}
-	complianceReport, err := crc.service.GetComplianceByCategory(&queryParams)
+	complianceReport, err := crc.service.GetComplianceByComplianceCategory(&queryParams)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -193,4 +193,68 @@ func (crc *ComplianceReportController) GetComplianceByCategory(c *gin.Context) {
 		}
 	}
 	c.JSON(http.StatusOK, complianceReport)
+}
+
+func (crc *ComplianceReportController) GetComplianceBySeverityLevel(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := reportDTOs.ReportListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+	result, err := crc.service.GetComplianceBySeverityLevel(&queryParams)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, result)
+}
+
+func (crc *ComplianceReportController) GetComplianceByComplianceStatus(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := reportDTOs.ReportListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+	result, err := crc.service.GetComplianceByComplianceStatus(&queryParams)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, result)
+}
+
+func (crc *ComplianceReportController) GetComplianceByResponsibleUnit(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := reportDTOs.ReportListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+	result, err := crc.service.GetComplianceByResponsibleUnit(&queryParams)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, result)
+}
+
+func (crc *ComplianceReportController) GetComplianceByResponsibleUser(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := reportDTOs.ReportListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+	result, err := crc.service.GetComplianceByResponsibleUser(&queryParams)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, result)
 }
