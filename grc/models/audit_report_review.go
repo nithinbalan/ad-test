@@ -7,7 +7,7 @@ import (
 // AuditReportReview represents the structure of the audit_report_reviews table
 type AuditReportReview struct {
 	ID                    uint      `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
-	AuditDraftReportID    uint      `json:"audit_draft_report_id" binding:"required" gorm:"not null"`
+	AuditDraftReportID    *uint     `json:"audit_draft_report_id" gorm:"default:null"`
 	AuditReportWorkflowID uint      `json:"audit_report_workflow_id" binding:"required" gorm:"not null"`
 	WorkflowStatusID      uint      `json:"workflow_status_id" binding:"required" gorm:"not null"`
 	UserID                uint      `json:"user_id" binding:"required" gorm:"not null"`

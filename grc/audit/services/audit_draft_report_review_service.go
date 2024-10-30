@@ -119,7 +119,7 @@ func (adrrs *AuditDraftReportReviewService) Submit(auditID uint, auditDraftRepor
 
 	//add review for history
 	auditReportReview := &models.AuditReportReview{
-		AuditDraftReportID:    auditDraftReportID,
+		AuditDraftReportID:    &auditDraftReportID,
 		AuditReportWorkflowID: auditReportWorkflowID,
 		WorkflowStatusID:      workflowSubmitStatus.ID,
 		UserID:                currentUserID,
@@ -236,7 +236,7 @@ func (adrrs *AuditDraftReportReviewService) Approve(auditID uint, auditDraftRepo
 	}
 	//add review for history
 	auditReportReview := &models.AuditReportReview{
-		AuditDraftReportID:    auditDraftReportID,
+		AuditDraftReportID:    &auditDraftReportID,
 		AuditReportWorkflowID: existingAuditReportWorkflow.ID,
 		WorkflowStatusID:      workflowApproveStatus.ID,
 		UserID:                currentUserID,
@@ -352,7 +352,7 @@ func (adrrs *AuditDraftReportReviewService) Revert(auditID uint, auditDraftRepor
 	}
 	//add review for history
 	auditReportReview := &models.AuditReportReview{
-		AuditDraftReportID:    auditDraftReportID,
+		AuditDraftReportID:    &auditDraftReportID,
 		AuditReportWorkflowID: existingAuditReportWorkflow.ID,
 		WorkflowStatusID:      workflowRevertStatus.ID,
 		UserID:                currentUserID,
@@ -500,7 +500,7 @@ func (adrrs *AuditDraftReportReviewService) ReSubmit(auditID uint, auditDraftRep
 
 	//add review for history
 	auditReportReview := &models.AuditReportReview{
-		AuditDraftReportID:    auditDraftReportID,
+		AuditDraftReportID:    &auditDraftReportID,
 		AuditReportWorkflowID: auditReportWorkflowID,
 		WorkflowStatusID:      workflowSubmitStatus.ID,
 		UserID:                currentUserID,

@@ -618,6 +618,8 @@ func (arrs *AuditReportReviewService) handleCommentOnlyCase(id, currentUserID ui
 	if err != nil {
 		return err
 	}
+	fmt.Println("AuditReportWorkflow ID: %d", currentAuditReportWorkflow.ID)
+
 	auditReportReview := &models.AuditReportReview{
 		AuditReportWorkflowID: currentAuditReportWorkflow.ID,
 		WorkflowStatusID:      workflowStatus.ID,
