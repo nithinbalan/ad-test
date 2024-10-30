@@ -287,6 +287,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.PUT("/audit-draft-findings/:findingId", middlewares.RolePermissionMiddleware(db, "audits", "modfiy"), auditDraftFindingController.UpdateAuditDraftFinding)
 	auditRoutes.POST("/audit-draft-findings/delete", middlewares.RolePermissionMiddleware(db, "audits", "modify"), auditDraftFindingController.DeleteAuditDraftFindings)
 	auditRoutes.GET("audits/:auditId/audit-draft-finding-summary", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditDraftFindingController.GetAuditDraftFindingCountByCategory)
+	unauthenticatedRoutes.GET("/audit-draft-findings/:findingId/document-preview", auditDraftFindingController.GetAuditDraftFindingDocumentPreview)
+	unauthenticatedRoutes.GET("/audit-draft-findings/:findingId/document-download", auditDraftFindingController.DownloadAuditDraftFindingDocument)
 
 	//Draft Audit Report Status
 	auditRoutes.GET("/audit-draft-report-statuses", auditDraftReportStatusController.GetAllAuditDraftReportStatuses)
@@ -370,6 +372,5 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	//workflow
 	auditRoutes.GET("/audits/:auditId/final-reports/workflow-list", auditReportWorkflowController.GetWorkflowList)
-
 
 }

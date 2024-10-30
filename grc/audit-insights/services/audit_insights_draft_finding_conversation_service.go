@@ -12,6 +12,7 @@ import (
 type AuditInsightsDraftFindingConversationServiceInterface interface {
 	GetAll(auditDraftFindingID uint, currentUserID uint, queryParams *dtos.AuditDraftFindingConversationListQueryParamsDTO, tx ...utility.DatabaseTransaction) ([]*dtos.AuditDraftFindingConversationListDTO, error)
 	Create(auditDraftFindingID uint, currentUserID uint, formDTO *dtos.AuditDraftFindingConversationFormDTO, tx ...utility.DatabaseTransaction) (uint, error)
+	GetDocumentPath(auditDraftFindingID uint, id uint, token string) (string, error)
 }
 
 type AuditInsightsDraftFindingConversationService struct {
@@ -65,6 +66,16 @@ func (aidfcs *AuditInsightsDraftFindingConversationService) Create(auditDraftFin
 	auditDocumentRequest, err := aidfcs.auditDraftFindingConversationSvc.Create(auditDraftFindingID, currentUserID, formDTO)
 	if err != nil {
 		return 0, err
+	}
+
+	return auditDocumentRequest, nil
+}
+
+func (aidfcs *AuditInsightsDraftFindingConversationService) GetDocumentPath(auditDraftFindingID uint, id uint, token string) (string, error) {
+
+	auditDocumentRequest, err := aidfcs.auditDraftFindingConversationSvc.GetDocumentPath(auditDraftFindingID, id, token)
+	if err != nil {
+		return "", err
 	}
 
 	return auditDocumentRequest, nil
