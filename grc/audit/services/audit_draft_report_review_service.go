@@ -122,7 +122,7 @@ func (adrrs *AuditDraftReportReviewService) Submit(auditID uint, auditDraftRepor
 		AuditDraftReportID:    &auditDraftReportID,
 		AuditReportWorkflowID: auditReportWorkflowID,
 		WorkflowStatusID:      workflowSubmitStatus.ID,
-		UserID:                currentUserID,
+		UserID:                &currentUserID,
 		Comment:               auditReportWorkflowFormDTO.Comment,
 		CreatedBYID:           currentUserID,
 	}
@@ -239,7 +239,7 @@ func (adrrs *AuditDraftReportReviewService) Approve(auditID uint, auditDraftRepo
 		AuditDraftReportID:    &auditDraftReportID,
 		AuditReportWorkflowID: existingAuditReportWorkflow.ID,
 		WorkflowStatusID:      workflowApproveStatus.ID,
-		UserID:                currentUserID,
+		UserID:                &currentUserID,
 		Comment:               auditReportWorkflowFormDTO.Comment,
 		CreatedBYID:           currentUserID,
 	}
@@ -355,7 +355,7 @@ func (adrrs *AuditDraftReportReviewService) Revert(auditID uint, auditDraftRepor
 		AuditDraftReportID:    &auditDraftReportID,
 		AuditReportWorkflowID: existingAuditReportWorkflow.ID,
 		WorkflowStatusID:      workflowRevertStatus.ID,
-		UserID:                currentUserID,
+		UserID:                &currentUserID,
 		Comment:               auditReportWorkflowFormDTO.Comment,
 		CreatedBYID:           currentUserID,
 	}
@@ -503,7 +503,7 @@ func (adrrs *AuditDraftReportReviewService) ReSubmit(auditID uint, auditDraftRep
 		AuditDraftReportID:    &auditDraftReportID,
 		AuditReportWorkflowID: auditReportWorkflowID,
 		WorkflowStatusID:      workflowSubmitStatus.ID,
-		UserID:                currentUserID,
+		UserID:                &currentUserID,
 		Comment:               auditReportWorkflowFormDTO.Comment,
 		CreatedBYID:           currentUserID,
 	}

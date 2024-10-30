@@ -42,7 +42,7 @@ type AuditFinalReportService struct {
 	userSvc                   organizationServices.UserServiceInterface
 	auditFinalReportStatusSvc AuditFinalReportStatusServiceInterface
 	auditFindingSvc           AuditFindingServiceInterface
-	auditReportWorkflowSvc       AuditReportWorkflowServiceInterface
+	auditReportWorkflowSvc    AuditReportWorkflowServiceInterface
 }
 
 func NewAuditFinalReportService(
@@ -309,6 +309,7 @@ func (afrs *AuditFinalReportService) GetFullDetailsByID(auditID uint, currentUse
 	auditReportDTO := &auditDTOs.AuditFinalReportDetailDTO{
 		ID:                     auditFinalReport.ID,
 		AuditID:                auditFinalReport.AuditID,
+		NextReviewLevel:        auditFinalReport.NextReviewLevel,
 		Title:                  auditFinalReport.Audit.AuditPlan.Title,
 		Description:            auditFinalReport.Audit.AuditPlan.Description,
 		ReferenceNumber:        auditFinalReport.Audit.AuditPlan.ReferenceNumber,

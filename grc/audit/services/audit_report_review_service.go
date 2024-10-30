@@ -19,7 +19,7 @@ import (
 )
 
 type AuditReportReviewServiceInterface interface {
-	GetComments(auditID uint) (*auditDTOs.AuditFinalReportWorkflowListDTO, error)
+	GetComments(auditID uint) (*auditDTOs.AuditFinalReportWorkflowDTO, error)
 	Submit(auditID uint, currentUserID uint) error
 	AddComment(id uint, currentUserID uint, auditReportReviewCommentFormDTO *auditDTOs.AuditReportReviewCommentFormDTO) error
 }
@@ -60,8 +60,8 @@ func NewAuditReportReviewService(
 	}
 }
 
-func (arrs *AuditReportReviewService) GetComments(auditID uint) (*auditDTOs.AuditFinalReportWorkflowListDTO, error) {
-	var auditFinalReportWorkflowListDTO auditDTOs.AuditFinalReportWorkflowListDTO
+func (arrs *AuditReportReviewService) GetComments(auditID uint) (*auditDTOs.AuditFinalReportWorkflowDTO, error) {
+	var auditFinalReportWorkflowDTO auditDTOs.AuditFinalReportWorkflowDTO
 
 	auditFinalReport, err := arrs.auditFinalReportSvc.GetByAuditID(auditID)
 	if err != nil {
@@ -85,12 +85,12 @@ func (arrs *AuditReportReviewService) GetComments(auditID uint) (*auditDTOs.Audi
 		return nil, err
 	}
 
-	err = mapstructure.Decode(auditFinalReportWorkflows, &auditFinalReportWorkflowListDTO)
+	err = mapstructure.Decode(auditFinalReportWorkflows, &auditFinalReportWorkflowDTO)
 	if err != nil {
 		return nil, err
 	}
 
-	return &auditFinalReportWorkflowListDTO, nil
+	return &auditFinalReportWorkflowDTO, nil
 }
 
 func (arrs *AuditReportReviewService) Submit(auditID uint, currentUserID uint) error {
@@ -618,7 +618,6 @@ func (arrs *AuditReportReviewService) handleCommentOnlyCase(id, currentUserID ui
 	if err != nil {
 		return err
 	}
-	fmt.Println("AuditReportWorkflow ID: %d", currentAuditReportWorkflow.ID)
 
 	auditReportReview := &models.AuditReportReview{
 		AuditReportWorkflowID: currentAuditReportWorkflow.ID,
