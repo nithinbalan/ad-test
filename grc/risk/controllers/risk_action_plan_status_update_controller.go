@@ -2,13 +2,14 @@ package controllers
 
 import (
 	"fmt"
+	"net/http"
+	"path/filepath"
+	"strconv"
+
 	commonDTOs "jethur/grc/common/dtos"
 	riskDTOs "jethur/grc/risk/dtos"
 	"jethur/grc/risk/services"
 	"jethur/utility"
-	"net/http"
-	"path/filepath"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -47,7 +48,6 @@ func (rasuc *RiskActionPlanStatusUpdateController) GetAllRiskActionPlanStatusUpd
 	keyword := c.Query("keyword")
 
 	riskStatuses, err := rasuc.service.GetAll(uint(riskID), uint(actionPlanID), sort, sortBy, keyword)
-
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -92,7 +92,6 @@ func (rasuc *RiskActionPlanStatusUpdateController) CreateRiskActionPlanStatusUpd
 	}
 
 	createdID, err := rasuc.service.Create(uint(riskID), uint(actionPlanID), currentUserID, &riskStatusUpdateFormDTO)
-
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -199,46 +198,45 @@ func (rasuc *RiskActionPlanStatusUpdateController) GetLatestRiskActionPlanStatus
 }
 
 func (rasuc *RiskActionPlanStatusUpdateController) GetDocumentPreview(c *gin.Context) {
-    // Parse parameters
-    riskIDStr := c.Param("riskId")
-    actionPlanIDStr := c.Param("actionPlanId")
-    statusUpdateIDStr := c.Param("statusUpdateId")
-    token := c.Query("token")
+	// Parse parameters
+	riskIDStr := c.Param("riskId")
+	actionPlanIDStr := c.Param("actionPlanId")
+	statusUpdateIDStr := c.Param("statusUpdateId")
+	token := c.Query("token")
 
-    fmt.Printf("Parameters received - RiskID: %s, ActionPlanID: %s, StatusUpdateID: %s, Token: %s\n", riskIDStr, actionPlanIDStr, statusUpdateIDStr, token)
+	fmt.Printf("Parameters received - RiskID: %s, ActionPlanID: %s, StatusUpdateID: %s, Token: %s\n", riskIDStr, actionPlanIDStr, statusUpdateIDStr, token)
 
-    // Convert params to uint
-    riskID, err := strconv.ParseUint(riskIDStr, 10, 32)
-    if err != nil {
-        fmt.Printf("Failed to parse riskID: %v\n", err)
-        utility.SendNotFoundErrResp(c)
-        return
-    }
-    actionPlanID, err := strconv.ParseUint(actionPlanIDStr, 10, 32)
-    if err != nil {
-        fmt.Printf("Failed to parse actionPlanID: %v\n", err)
-        utility.SendNotFoundErrResp(c)
-        return
-    }
-    statusUpdateID, err := strconv.ParseUint(statusUpdateIDStr, 10, 32)
-    if err != nil {
-        fmt.Printf("Failed to parse statusUpdateID: %v\n", err)
-        utility.SendNotFoundErrResp(c)
-        return
-    }
+	// Convert params to uint
+	riskID, err := strconv.ParseUint(riskIDStr, 10, 32)
+	if err != nil {
+		fmt.Printf("Failed to parse riskID: %v\n", err)
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	actionPlanID, err := strconv.ParseUint(actionPlanIDStr, 10, 32)
+	if err != nil {
+		fmt.Printf("Failed to parse actionPlanID: %v\n", err)
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	statusUpdateID, err := strconv.ParseUint(statusUpdateIDStr, 10, 32)
+	if err != nil {
+		fmt.Printf("Failed to parse statusUpdateID: %v\n", err)
+		utility.SendNotFoundErrResp(c)
+		return
+	}
 
-    // Call service to get the document path
-    documentPath, err := rasuc.service.GetDocumentPath(uint(riskID), uint(actionPlanID), uint(statusUpdateID), token)
-    if err != nil {
-        fmt.Printf("Error in service call for document path: %v\n", err)
-        utility.SendNotFoundErrResp(c)
-        return
-    }
+	// Call service to get the document path
+	documentPath, err := rasuc.service.GetDocumentPath(uint(riskID), uint(actionPlanID), uint(statusUpdateID), token)
+	if err != nil {
+		fmt.Printf("Error in service call for document path: %v\n", err)
+		utility.SendNotFoundErrResp(c)
+		return
+	}
 
-    // Send the document path in the response
-    c.File(documentPath)
+	// Send the document path in the response
+	c.File(documentPath)
 }
-
 
 // Document Download
 func (rasuc *RiskActionPlanStatusUpdateController) DownloadRiskActionPlanDocument(c *gin.Context) {
@@ -254,6 +252,15 @@ func (rasuc *RiskActionPlanStatusUpdateController) DownloadRiskActionPlanDocumen
 	}
 
 	fileName := filepath.Base(documentPath)
+	// Set headers for file download
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Type", "application/octet-stream")
 	c.Header("Content-Disposition", "attachment; filename="+fileName)
+	c.Header("Content-Transfer-Encoding", "binary")
+	c.Header("Expires", "0")
+	c.Header("Cache-Control", "must-revalidate")
+	c.Header("Pragma", "public")
+
+	// Serve the file
 	c.File(documentPath)
 }

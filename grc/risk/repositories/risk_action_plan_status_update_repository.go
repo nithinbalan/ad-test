@@ -89,7 +89,7 @@ func (repo *RiskActionPlanStatusUpdateRepository) GetAll(riskActionPlanID uint, 
 
 func (repo *RiskActionPlanStatusUpdateRepository) GetByID(id uint) (*models.RiskActionPlanStatusUpdate, error) {
 	var riskActionPlanStatusUpdate *models.RiskActionPlanStatusUpdate
-	result := repo.db.First(&riskActionPlanStatusUpdate, id)
+	result := repo.db.Preload("Documents").First(&riskActionPlanStatusUpdate, id)
 
 	if result.Error != nil {
 		return nil, result.Error
