@@ -18,7 +18,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	reportsRoutes.GET("/reports/compliance-registers", complianceReportController.GetAllComplianceRegisters)
 	reportsRoutes.GET("/reports/compliance-registers/export", complianceReportController.ComplianceRegisterReportExport)
-	reportsRoutes.GET("/reports/compliance-by-category", complianceReportController.GetComplianceByCategory)
+	reportsRoutes.GET("/reports/compliance-by-compliance-category", complianceReportController.GetComplianceByComplianceCategory)
+	reportsRoutes.GET("/reports/compliance-by-severity-level", complianceReportController.GetComplianceBySeverityLevel)
+	reportsRoutes.GET("/reports/compliance-by-compliance-status", complianceReportController.GetComplianceByComplianceStatus)
+	reportsRoutes.GET("/reports/compliance-by-responsible-unit", complianceReportController.GetComplianceByResponsibleUnit)
+	reportsRoutes.GET("/reports/compliance-by-responsible-user", complianceReportController.GetComplianceByResponsibleUser)
 
 	reportsRoutes.GET("/reports/users", organizationReportController.GetAllUsers)
 	reportsRoutes.GET("/reports/users/export", organizationReportController.GetUsersExport)
@@ -31,6 +35,14 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	reportsRoutes.GET("/reports/processes-by-responsible-unit", organizationReportController.GetProcessesByResponsibleUnit)
 	reportsRoutes.GET("/reports/processes-by-risk-rating", organizationReportController.GetProcessesByRiskRating)
 	reportsRoutes.GET("/reports/processes-by-responsible-user", organizationReportController.GetProcessesByResponsibleUser)
-	reportsRoutes.GET("/reports/processes-by-process-group", organizationReportController.GetProcessesByProcessGroup)
 
+	reportsRoutes.GET("/reports/controls", organizationReportController.GetAllControls)
+	reportsRoutes.GET("/reports/controls/export", organizationReportController.GetControlsExport)
+	reportsRoutes.GET("/reports/controls-by-control-type", organizationReportController.GetControlsByControlType)
+	reportsRoutes.GET("/reports/controls-by-control-category", organizationReportController.GetControlsByCategory)
+	reportsRoutes.GET("/reports/controls-by-compliance-register", organizationReportController.GetControlsByComplianceRegister)
+	reportsRoutes.GET("/reports/controls-by-risk-rating", organizationReportController.GetControlsByRiskRating)
+	reportsRoutes.GET("/reports/controls-by-implementation-status", organizationReportController.GetControlsByImplementationStatus)
+	reportsRoutes.GET("/reports/controls-by-efficiency-status", organizationReportController.GetControlsByEfficiencyStatus)
+	reportsRoutes.GET("/reports/controls-by-applicability", organizationReportController.GetControlsByApplicability)
 }
