@@ -3,10 +3,12 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strconv"
 	"time"
 
+	"jethur/config"
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
 	logServices "jethur/grc/logs/services"
@@ -29,6 +31,7 @@ type AuditDraftFindingServiceInterface interface {
 
 	GetAuditDraftFindingCountByCategory(auditId uint) ([]auditDTOs.AuditDraftFindingCategoryCountResponseDTO, error)
 	StatusUpdate(id uint, currentUserID uint, auditDraftFindingStatusID uint, tx ...utility.DatabaseTransaction) error
+	GetDocumentPath(id uint, token string) (string, error)
 }
 
 type AuditDraftFindingService struct {
@@ -166,7 +169,7 @@ func (adfs *AuditDraftFindingService) Create(currentUserID uint, auditDraftFindi
 		}
 
 		// Construct the URL for the document
-		url := utility.GenerateDocumentURL("audits", "audit", "draft-audit-findings", strconv.FormatUint(uint64(auditDraftFindingFormDTO.AuditID), 10), "documents")
+		url := utility.GenerateDocumentURL("audit", "audits", strconv.FormatUint(uint64(auditDraftFindingFormDTO.AuditID), 10), "draft-findings", strconv.FormatUint(uint64(auditDraftFindingFormDTO.AuditID), 10), "documents")
 
 		// Create a new IncidentDocument instance
 		document := &models.AuditDraftFindingDocument{
@@ -190,7 +193,7 @@ func (adfs *AuditDraftFindingService) Create(currentUserID uint, auditDraftFindi
 			return 0, err
 		}
 		for _, doc := range documents {
-			storagePath := filepath.Join("audits", "audit", strconv.FormatUint(uint64(auditDraftFindingFormDTO.AuditID), 10), strconv.FormatUint(uint64(id), 10), "draft-audit-findings", strconv.FormatUint(uint64(id), 10), "documents")
+			storagePath := filepath.Join("audit", "audits", strconv.FormatUint(uint64(auditDraftFindingFormDTO.AuditID), 10), "draft-findings", strconv.FormatUint(uint64(id), 10), "documents")
 			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
 				tx.Rollback()
 				return 0, err
@@ -314,7 +317,7 @@ func (adfs *AuditDraftFindingService) Update(id uint, currentUserID uint, auditD
 	}
 	if len(documents) > 0 {
 		for _, doc := range documents {
-			storagePath := filepath.Join("audits", "audit", strconv.FormatUint(uint64(auditDraftFindingFormDTO.AuditID), 10), "draft-audit-findings", strconv.FormatUint(uint64(existingAuditDraftFinding.ID), 10), "documents")
+			storagePath := filepath.Join("audit", "audits", strconv.FormatUint(uint64(auditDraftFindingFormDTO.AuditID), 10), "draft-findings", strconv.FormatUint(uint64(existingAuditDraftFinding.ID), 10), "documents")
 			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
 				tx.Rollback()
 				return err
@@ -323,7 +326,7 @@ func (adfs *AuditDraftFindingService) Update(id uint, currentUserID uint, auditD
 	}
 	if len(documentsToDelete) > 0 {
 		for _, document := range documentsToDelete {
-			storagePath := filepath.Join("audits", "audit", strconv.FormatUint(uint64(auditDraftFindingFormDTO.AuditID), 10), "draft-audit-findings", strconv.FormatUint(uint64(existingAuditDraftFinding.ID), 10), "documents")
+			storagePath := filepath.Join("audit", "audits", strconv.FormatUint(uint64(auditDraftFindingFormDTO.AuditID), 10), "draft-findings", strconv.FormatUint(uint64(existingAuditDraftFinding.ID), 10), "documents")
 			if err := utility.RemoveFile(document.Name, storagePath); err != nil {
 				tx.Rollback()
 				return err
@@ -405,7 +408,7 @@ func (adfs *AuditDraftFindingService) Delete(ids []uint, currentUserID uint) ([]
 		for auditDraftFindingID, documents := range documentsToDelete {
 			for _, doc := range documents {
 				fmt.Println("filename=", doc.Name)
-				storagePath := filepath.Join("audits", "audit", strconv.FormatUint(uint64(auditID), 10), "audit-findings", strconv.FormatUint(uint64(auditDraftFindingID), 10), "documents")
+				storagePath := filepath.Join("audit", "audits", strconv.FormatUint(uint64(auditID), 10), "draft-findings", strconv.FormatUint(uint64(auditDraftFindingID), 10), "documents")
 				if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
 					tx.Rollback()
 					fmt.Printf("Failed to delete file at URL %s: %v\n", *doc.URL, err)
@@ -519,4 +522,36 @@ func (adfs *AuditDraftFindingService) StatusUpdate(id uint, currentUserID uint, 
 	}
 
 	return nil
+}
+func (adfs *AuditDraftFindingService) GetDocumentPath(id uint, token string) (string, error) {
+	fmt.Println("asd")
+	existingAuditDraftFinding, err := adfs.GetByID(id)
+	if err != nil {
+		return "", err
+	}
+	auditID := existingAuditDraftFinding.AuditID
+
+	decryptedFilenameBytes, err := utility.DecryptData(token)
+	if err != nil {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	decryptedFilename := string(decryptedFilenameBytes)
+	if decryptedFilename == "" {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	storagePath := filepath.Join("audit", "audits", strconv.FormatUint(uint64(auditID), 10), "draft-findings", strconv.FormatUint(uint64(id), 10), "documents")
+
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
+
+	// Check if the file exists
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("file not found")
+	} else if err != nil {
+		return "", fmt.Errorf("error accessing file: %w", err)
+	}
+
+	return fullPath, nil
 }
