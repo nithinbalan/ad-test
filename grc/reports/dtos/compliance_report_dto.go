@@ -7,6 +7,45 @@ type ComplianceByCategoryDTO struct {
 	Count                     int64  `json:"count"`
 }
 
+type ComplianceBySeverityLevelDTO struct {
+	SeverityLevelID        uint   `json:"severity_level_id"`
+	SeverityLevelTitleEn   string `json:"severity_level_title_en"`
+	SeverityLevelTitleAr   string `json:"severity_level_title_ar"`
+	SeverityLevelColorCode string `json:"severity_level_color_code"`
+	SeverityLevelType      string `json:"severity_level_type"`
+	Count                  int64  `json:"count"`
+}
+
+type ComplianceByStatusDTO struct {
+	ComplianceStatusID        uint   `json:"compliance_status_id"`
+	ComplianceStatusTitleEn   string `json:"compliance_status_title_en"`
+	ComplianceStatusTitleAr   string `json:"compliance_status_title_ar"`
+	ComplianceStatusColorCode string `json:"compliance_status_color_code"`
+	ComplianceStatusType      string `json:"compliance_status_type"`
+	Count                     int64  `json:"count"`
+}
+
+type ComplianceByResponsibleUnitDTO struct {
+	ResponsibleUnitID        uint   `json:"responsible_unit_id"`
+	ResponsibleUnitTitleEn   string `json:"responsible_unit_title_en"`
+	ResponsibleUnitTitleAr   string `json:"responsible_unit_title_ar"`
+	ResponsibleUnitColorCode string `json:"responsible_unit_color_code"`
+	Count                    int64  `json:"count"`
+}
+
+type ComplianceByResponsibleUserDTO struct {
+	ResponsibleUserID               uint   `json:"responsible_user_id"`
+	ResponsibleUserFirstNameEn      string `json:"responsible_user_first_name_en"`
+	ResponsibleUserFirstNameAr      string `json:"responsible_user_first_name_ar"`
+	ResponsibleUserLastNameEn       string `json:"responsible_user_last_name_en"`
+	ResponsibleUserLastNameAr       string `json:"responsible_user_last_name_ar"`
+	ResponsibleUserInitial          string `json:"responsible_user_initial"`
+	ResponsibleUserColor            string `json:"responsible_user_color"`
+	ResponsibleUserEmail            string `json:"responsible_user_email"`
+	ResponsibleUserProfileImagePath string `json:"responsible_user_profile_image_path"`
+	Count                           int64  `json:"count"`
+}
+
 type ReportListQueryParamsDTO struct {
 	DateFrom string `json:"date_from"`
 	DateTo   string `json:"date_to"`
