@@ -40,6 +40,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditInsightsRoutes.GET("/audit-insights/document-requests/:documentRequestId/conversations", middlewares.RolePermissionMiddleware(db, "document_requests", "view"), auditInsightsDocumentRequestConversationController.GetAllAuditInsightsDocumentRequestConversations)
 	auditInsightsRoutes.POST("/audit-insights/document-requests/:documentRequestId/conversations", middlewares.RolePermissionMiddleware(db, "document_requests", "modify"), auditInsightsDocumentRequestConversationController.CreateAuditInsightsDocumentRequestConversation)
 	unauthenticatedRoutes.GET("/audit-insights/document-requests/:documentRequestId/conversations/:conversationId/document-download", auditInsightsDocumentRequestConversationController.DownloadDocumentRequestConversationDocument)
+	unauthenticatedRoutes.GET("/audit-insights/document-requests/:documentRequestId/conversations/:conversationId/document-preview", auditInsightsDocumentRequestConversationController.GetDocumentRequestConversationDocumentPreview)
 
 	// Audit Insights Draft Report
 	auditInsightsRoutes.GET("/audit-insights/draft-reports", middlewares.RolePermissionMiddleware(db, "draft_reports", "view"), auditInsightsDraftReportController.GetAllAuditInsightsDraftReports)
@@ -52,6 +53,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// Audit Insights  Draft Finding Conversations
 	auditInsightsRoutes.GET("/audit-insights/audit-draft-findings/:findingId/conversations", middlewares.RolePermissionMiddleware(db, "draft_reports", "view"), auditInsightsDraftFindingConversationController.GetAllAuditInsightsDraftFindingConversations)
 	auditInsightsRoutes.POST("/audit-insights/audit-draft-findings/:findingId/conversations", middlewares.RolePermissionMiddleware(db, "draft_reports", "modify"), auditInsightsDraftFindingConversationController.CreateAuditInsightsDraftFindingConversation)
+	unauthenticatedRoutes.GET("/audit-insights/audit-draft-findings/:findingId/conversations/:id/document-download", auditInsightsDraftFindingConversationController.DownloadAuditDraftFindingConversationDocument)
+	unauthenticatedRoutes.GET("/audit-insights/audit-draft-findings/:findingId/conversations/:id/document-preview", auditInsightsDraftFindingConversationController.GetAuditDraftFindingConversationDocumentPreview)
 
 	// Audit Insights  Draft Finding Action plans
 	auditInsightsRoutes.GET("/audit-insights/audit-draft-findings/:findingId/action-plans", middlewares.RolePermissionMiddleware(db, "draft_reports", "view"), auditInsightsDraftFindingActionPlanController.GetAllAuditInsightsDraftFindingActionPlans)
