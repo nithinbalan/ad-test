@@ -122,6 +122,7 @@ func (rasus *RiskActionPlanStatusUpdateService) Create(RiskID uint, RiskActionPl
 			Name:                         doc.FileName,
 			Size:                         doc.Size,
 			Token:                        encryptedFilename,
+			OriginalName:                 doc.OriginalName,
 			Type:                         doc.Type,
 			CreatedByID:                  currentUserID,
 		}
@@ -221,6 +222,7 @@ func (rasus *RiskActionPlanStatusUpdateService) Update(RiskID uint, RiskActionPl
 				Name:                         doc.FileName,
 				Size:                         doc.Size,
 				Token:                        encryptedFileName,
+				OriginalName:                 doc.OriginalName,
 				Type:                         doc.Type,
 				CreatedByID:                  currentUserID,
 			}
