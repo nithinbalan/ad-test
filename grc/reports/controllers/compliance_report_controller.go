@@ -258,3 +258,91 @@ func (crc *ComplianceReportController) GetComplianceByResponsibleUser(c *gin.Con
 	}
 	c.JSON(http.StatusOK, result)
 }
+
+func (crc *ComplianceReportController) GetComplianceRequirementByComplianceStatus(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := reportDTOs.ReportListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+	results, err := crc.service.GetComplianceRequirementByComplianceStatus(&queryParams)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(crc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, results)
+}
+
+func (crc *ComplianceReportController) GetComplianceRequirementBySeverityLevel(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := reportDTOs.ReportListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+	results, err := crc.service.GetComplianceRequirementBySeverity(&queryParams)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(crc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, results)
+}
+
+func (crc *ComplianceReportController) GetComplianceRequirementByCategory(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := reportDTOs.ReportListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+	results, err := crc.service.GetComplianceRequirementByCategory(&queryParams)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(crc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, results)
+}
+
+func (crc *ComplianceReportController) GetComplianceRequirementByResponsibleUser(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := reportDTOs.ReportListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+	results, err := crc.service.GetComplianceRequirementByResponsibleUser(&queryParams)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(crc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, results)
+}
