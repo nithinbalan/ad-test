@@ -20,7 +20,7 @@ type Task struct {
 	RelatedTaskIDs           *string    `json:"related_task_ids" gorm:"type:json"`
 	Title                    string     `json:"title" binding:"required,max=255"`
 	Description              *string    `json:"description" gorm:"type:nvarchar(max)"`
-	TargetDate               *time.Time `json:"target_date"`
+	TargetDate               *time.Time `json:"target_date" gorm:"type:date;default:null"`
 	URLParam                 *string    `json:"url_param" gorm:"type:nvarchar(max)"`
 	QueryParam               *string    `json:"query_param" gorm:"type:nvarchar(max)"`
 	SeverityLevelID          *uint      `json:"severity_level_id"`

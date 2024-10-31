@@ -180,7 +180,7 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 		tx.Rollback()
 		return 0, err
 	}
-	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+	urlParam := fmt.Sprintf(`{"compliance_register_id":%d, "action_plan_id":%d}`, complianceID, id)
 	taskDTO := commonDTOs.TaskFormDTO{
 		ModuleIdentifier:       "compliance",
 		ComplianceActionPlanID: &id,
@@ -335,7 +335,7 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 		return err
 	}
 	// //update task
-	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+	urlParam := fmt.Sprintf(`{"compliance_register_id":%d, "action_plan_id":%d}`, complianceID, id)
 
 	taskUpdateDTO := commonDTOs.TaskFormDTO{
 		Title:             ComplianceActionPlanFormDTO.Title,
