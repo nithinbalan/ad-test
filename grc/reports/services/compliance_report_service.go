@@ -19,6 +19,10 @@ type ComplianceReportServiceInterface interface {
 
 	GetComplianceActionPlanByStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceActionPlanByStatusDTO, error)
 	GetComplianceActionPlanByResponsibleUser(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceActionPlanByResponsibleUserDTO, error)
+
+	GetSLAByCategory(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.SLAByCategoryDTO, error)
+	GetSLABySeverityLevel(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.SLABySeverityLevelDTO, error)
+	GetSLAByComplianceStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.SLAByComplianceStatusDTO, error)
 }
 
 type ComplianceReportService struct {
@@ -71,4 +75,16 @@ func (crs *ComplianceReportService) GetComplianceActionPlanByStatus(params *repo
 
 func (crs *ComplianceReportService) GetComplianceActionPlanByResponsibleUser(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceActionPlanByResponsibleUserDTO, error) {
 	return crs.repo.GetComplianceActionPlanByResponsibleUser(params)
+}
+
+func (crs *ComplianceReportService) GetSLAByCategory(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.SLAByCategoryDTO, error) {
+	return crs.repo.GetSLAByCategory(params)
+}
+
+func (crs *ComplianceReportService) GetSLABySeverityLevel(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.SLABySeverityLevelDTO, error) {
+	return crs.repo.GetSLABySeverityLevel(params)
+}
+
+func (crs *ComplianceReportService) GetSLAByComplianceStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.SLAByComplianceStatusDTO, error) {
+	return crs.repo.GetSLAByComplianceStatus(params)
 }

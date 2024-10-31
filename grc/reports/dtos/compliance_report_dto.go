@@ -101,6 +101,26 @@ type ComplianceActionPlanByResponsibleUserDTO struct {
 	ResponsibleUserProfileImagePath string `json:"responsible_user_profile_image_path"`
 	Count                           int64  `json:"count"`
 }
+type SLAByCategoryDTO struct {
+	SLACategoryID      uint   `json:"sla_category_id"`
+	SLACategoryTitleEn string `json:"sla_category_title_en"`
+	SLACategoryTitleAr string `json:"sla_category_title_ar"`
+	Count              int64  `json:"count"`
+}
+type SLABySeverityLevelDTO struct {
+	SeverityLevelID        uint   `json:"severity_level_id"`
+	SeverityLevelTitleEn   string `json:"severity_level_title_en"`
+	SeverityLevelTitleAr   string `json:"severity_level_title_ar"`
+	SeverityLevelColorCode string `json:"severity_level_color_code"`
+	SeverityLevelType      string `json:"severity_level_type"`
+	Count                  int64  `json:"count"`
+}
+type SLAByComplianceStatusDTO struct {
+	ComplianceStatusID      uint   `json:"compliance_status_id"`
+	ComplianceStatusTitleEn string `json:"compliance_status_title_en"`
+	ComplianceStatusTitleAr string `json:"compliance_status_title_ar"`
+	Count                   int64  `json:"count"`
+}
 
 type ReportListQueryParamsDTO struct {
 	DateFrom string `json:"date_from"`
