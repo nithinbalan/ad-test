@@ -32,7 +32,7 @@ type TaskListDTO struct {
 	ResponsibleUserEmail            string  `json:"responsible_user_email"`
 	ResponsibleUserProfileImagePath string  `json:"responsible_user_profile_image_path"`
 	TargetDate                      string  `json:"target_date"`
-	URL                             string  `json:"url"`
+	URLParam                        string  `json:"url_param"`
 	TaskStatusTitleEn               string  `json:"task_status_title_en"`
 	TaskStatusTitleAr               string  `json:"task_status_title_ar"`
 	TaskStatusColorCode             string  `json:"task_status_color_code"`
