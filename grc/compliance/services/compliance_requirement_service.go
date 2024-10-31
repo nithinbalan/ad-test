@@ -296,7 +296,8 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		}
 
 		// prepare notification
-		urlParam := fmt.Sprintf(`{"id":%d}`, id)
+		urlParam := fmt.Sprintf(`{"compliance_register_id":%d,"requirement_id":%d}`, complianceID, id)
+		queryParam := ""
 		entity := "compliance-requirement"
 		action := "responsible-user-assign"
 
@@ -304,14 +305,15 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 			UserID:               complianceRequirementFormDTO.ResponsibleUserID,
 			ModuleIdentifier:     "compliance",
 			NotificationType:     string(commonDTOs.AssignmentType),
-			HeadingEn:            "Compliance Requirement Assignment",
-			HeadingAr:            "تعيين متطلبات الامتثال",
+			HeadingEn:            "Compliance Requirement Responsiblity Assigned",
+			HeadingAr:            "تم تعيين مسؤولية متطلبات الامتثال",
 			TitleEn:              complianceRequirementFormDTO.Title,
 			TitleAr:              complianceRequirementFormDTO.Title,
 			ReferenceNumber:      compliance.ReferenceNumber,
 			Entity:               &entity,
 			Action:               &action,
 			URLParam:             urlParam,
+			QueryParam:           queryParam,
 			IsSystemNotification: false,
 			CreatedByID:          &currentUserID,
 		}
@@ -613,7 +615,8 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 		// Send notifications if the responsible user has changed
 		if oldResponsibleUserID != existingComplianceRequirement.ResponsibleUserID {
 			// URL param for notifications
-			urlParam := fmt.Sprintf(`{"id":%d}`, id)
+			urlParam := fmt.Sprintf(`{"compliance_register_id":%d,"requirement_id":%d}`, complianceID, id)
+			queryParam := ""
 			entity := "compliance-requirement"
 
 			// Old responsible user notification (Removal)
@@ -630,6 +633,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 				Entity:               &entity,
 				Action:               &oldResponsibleUserAction,
 				URLParam:             urlParam,
+				QueryParam:           queryParam,
 				IsSystemNotification: false,
 				CreatedByID:          &currentUserID,
 			}
@@ -648,6 +652,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 				Entity:               &entity,
 				Action:               &newResponsibleUserAction,
 				URLParam:             urlParam,
+				QueryParam:           queryParam,
 				IsSystemNotification: false,
 				CreatedByID:          &currentUserID,
 			}
