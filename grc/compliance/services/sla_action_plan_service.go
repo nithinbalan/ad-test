@@ -170,7 +170,7 @@ func (saps *SLAActionPlanService) Create(slaID uint, currentUserID uint, slaActi
 		return 0, err
 	}
 
-	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+	urlParam := fmt.Sprintf(`{"sla_register_id":%d, "action_plan_id":%d}`, slaID, id)
 	taskDTO := commonDTOs.TaskFormDTO{
 		ModuleIdentifier:  "compliance",
 		SLAActionPlanID:   &id,
@@ -327,7 +327,7 @@ func (saps *SLAActionPlanService) Update(slaID uint, id uint, currentUserID uint
 	}
 
 	// //update task
-	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+	urlParam := fmt.Sprintf(`{"sla_register_id":%d, "action_plan_id":%d}`, slaID, id)
 
 	taskUpdateDTO := commonDTOs.TaskFormDTO{
 		Title:             slaActionPlanFormDTO.Title,

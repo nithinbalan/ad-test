@@ -38,6 +38,7 @@ type Task struct {
 	IncidentActionPlan     *IncidentActionPlan     `gorm:"foreignKey:IncidentActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	ControlActionPlan      *ControlActionPlan      `gorm:"foreignKey:ControlActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	RiskActionPlan         *RiskActionPlan         `gorm:"foreignKey:RiskActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`         // New relationship added
+	MeetingActionPlan      *MeetingActionPlan      `gorm:"foreignKey:MeetingActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`      // New relationship added
 	AuditFindingActionPlan *AuditFindingActionPlan `gorm:"foreignKey:AuditFindingActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"` // New relationship added
 	SeverityLevel          *SeverityLevel          `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	ResponsibleUser        *User                   `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
