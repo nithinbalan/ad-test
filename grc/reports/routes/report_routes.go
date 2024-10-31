@@ -29,6 +29,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	reportsRoutes.GET("/reports/compliance-requirement-by-category", complianceReportController.GetComplianceRequirementByCategory)
 	reportsRoutes.GET("/reports/compliance-requirement-by-responsible-user", complianceReportController.GetComplianceRequirementByResponsibleUser)
 
+	reportsRoutes.GET("/reports/compliance-action-plan-by-status", complianceReportController.GetComplianceActionPlanByStatus)
+	reportsRoutes.GET("/reports/compliance-action-plan-by-responsible-user", complianceReportController.GetComplianceActionPlanByResponsibleUser)
+
 	reportsRoutes.GET("/reports/users", organizationReportController.GetAllUsers)
 	reportsRoutes.GET("/reports/users/export", organizationReportController.GetUsersExport)
 	reportsRoutes.GET("/reports/users-by-status", organizationReportController.GetUsersByStatus)

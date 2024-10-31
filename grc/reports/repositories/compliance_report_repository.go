@@ -17,6 +17,9 @@ type ComplianceReportRepositoryInterface interface {
 	GetComplianceRequirementBySeverity(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceRequirementBySeverityLevelDTO, error)
 	GetComplianceRequirementByCategory(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceRequirementByCategoryDTO, error)
 	GetComplianceRequirementByResponsibleUser(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceRequirementByResponsibleUserDTO, error)
+
+	GetComplianceActionPlanByStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceActionPlanByStatusDTO, error)
+	GetComplianceActionPlanByResponsibleUser(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceActionPlanByResponsibleUserDTO, error)
 }
 
 type ComplianceReportRepository struct {
@@ -221,6 +224,53 @@ func (repo *ComplianceReportRepository) GetComplianceRequirementByResponsibleUse
 
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("compliance_requirements.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	err := query.Scan(&results).Error
+	return results, err
+}
+
+func (repo *ComplianceReportRepository) GetComplianceActionPlanByStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceActionPlanByStatusDTO, error) {
+	var results []*reportDTOs.ComplianceActionPlanByStatusDTO
+	query := repo.db.Table("compliance_action_plans").
+		Select(`
+			action_plan_statuses.id AS action_plan_status_id,
+			action_plan_statuses.title_en AS action_plan_status_title_en,
+			action_plan_statuses.title_ar AS action_plan_status_title_ar,
+			action_plan_statuses.color_code AS action_plan_status_color_code,
+			action_plan_statuses.type AS action_plan_status_type,
+			COUNT(compliance_action_plans.id) AS count
+		`).
+		Joins("JOIN action_plan_statuses ON action_plan_statuses.id = compliance_action_plans.action_plan_status_id").
+		Group("action_plan_statuses.id, action_plan_statuses.title_en, action_plan_statuses.title_ar, action_plan_statuses.color_code, action_plan_statuses.type")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("compliance_action_plans.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	err := query.Scan(&results).Error
+	return results, err
+}
+
+func (repo *ComplianceReportRepository) GetComplianceActionPlanByResponsibleUser(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceActionPlanByResponsibleUserDTO, error) {
+	var results []*reportDTOs.ComplianceActionPlanByResponsibleUserDTO
+	query := repo.db.Table("compliance_action_plans").
+		Select(`
+			users.id AS responsible_user_id,
+			users.first_name_en AS responsible_user_first_name_en,
+			users.first_name_ar AS responsible_user_first_name_ar,
+			users.last_name_en AS responsible_user_last_name_en,
+			users.last_name_ar AS responsible_user_last_name_ar,
+			users.email AS responsible_user_email,
+			users.color AS responsible_user_color,
+			users.profile_image_path AS responsible_user_profile_image_path,
+			COUNT(compliance_action_plans.id) AS count
+		`).
+		Joins("JOIN users ON users.id = compliance_action_plans.responsible_user_id").
+		Group("users.id, users.first_name_en, users.first_name_ar, users.last_name_en, users.last_name_ar, users.email, users.color, users.profile_image_path")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("compliance_action_plans.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 
 	err := query.Scan(&results).Error

@@ -81,6 +81,27 @@ type ComplianceRequirementByResponsibleUserDTO struct {
 	Count                           int64  `json:"count"`
 }
 
+type ComplianceActionPlanByStatusDTO struct {
+	ActionPlanStatusID        uint   `json:"action_plan_status_id"`
+	ActionPlanStatusTitleEn   string `json:"action_plan_status_title_en"`
+	ActionPlanStatusTitleAr   string `json:"action_plan_status_title_ar"`
+	ActionPlanStatusColorCode string `json:"action_plan_status_color_code"`
+	ActionPlanStatusType      string `json:"action_plan_status_type"`
+	Count                     int64  `json:"count"`
+}
+
+type ComplianceActionPlanByResponsibleUserDTO struct {
+	ResponsibleUserID               uint   `json:"responsible_user_id"`
+	ResponsibleUserFirstNameEn      string `json:"responsible_user_first_name_en"`
+	ResponsibleUserFirstNameAr      string `json:"responsible_user_first_name_ar"`
+	ResponsibleUserLastNameEn       string `json:"responsible_user_last_name_en"`
+	ResponsibleUserLastNameAr       string `json:"responsible_user_last_name_ar"`
+	ResponsibleUserEmail            string `json:"responsible_user_email"`
+	ResponsibleUserColor            string `json:"responsible_user_color"`
+	ResponsibleUserProfileImagePath string `json:"responsible_user_profile_image_path"`
+	Count                           int64  `json:"count"`
+}
+
 type ReportListQueryParamsDTO struct {
 	DateFrom string `json:"date_from"`
 	DateTo   string `json:"date_to"`
