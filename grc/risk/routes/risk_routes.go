@@ -203,6 +203,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.PUT("/risks/:riskId/action-plans/:actionPlanId", middlewares.RolePermissionMiddleware(db, "risk_mitigation", "modify"), riskActionPlanController.UpdateRiskActionPlan)
 	riskRoutes.POST("/risks/:riskId/action-plans/delete", middlewares.RolePermissionMiddleware(db, "risk_mitigation", "modify"), riskActionPlanController.DeleteRiskActionPlans)
 
+	// Document Preview and Download for Risk Action Plan Status Update
+	unauthenticatedRoutes.GET("/risks/:riskId/action-plans/:actionPlanId/status-updates/:statusUpdateId/document-preview", riskActionPlanStatusUpdateController.GetDocumentPreview)
+	unauthenticatedRoutes.GET("/risks/:riskId/action-plans/:actionPlanId/status-updates/:statusUpdateId/document-download", riskActionPlanStatusUpdateController.DownloadRiskActionPlanDocument)
+
 	riskRoutes.GET("/risks/:riskId/action-plans/:actionPlanId/status-updates", middlewares.RolePermissionMiddleware(db, "risk_mitigation", "view"), riskActionPlanStatusUpdateController.GetAllRiskActionPlanStatusUpdates)
 	riskRoutes.POST("/risks/:riskId/action-plans/:actionPlanId/status-updates", middlewares.RolePermissionMiddleware(db, "risk_mitigation", "modify"), riskActionPlanStatusUpdateController.CreateRiskActionPlanStatusUpdate)
 	riskRoutes.PUT("/risks/:riskId/action-plans/:actionPlanId/status-updates/:id", middlewares.RolePermissionMiddleware(db, "risk_mitigation", "modify"), riskActionPlanStatusUpdateController.UpdateRiskActionPlanStatusUpdate)
