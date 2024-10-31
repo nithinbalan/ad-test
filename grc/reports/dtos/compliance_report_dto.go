@@ -46,6 +46,41 @@ type ComplianceByResponsibleUserDTO struct {
 	Count                           int64  `json:"count"`
 }
 
+type ComplianceRequirementByComplianceStatusDTO struct {
+	ComplianceStatusID      uint   `json:"compliance_status_id"`
+	ComplianceStatusTitleEn string `json:"compliance_status_title_en"`
+	ComplianceStatusTitleAr string `json:"compliance_status_title_ar"`
+	Count                   int64  `json:"count"`
+}
+
+type ComplianceRequirementBySeverityLevelDTO struct {
+	SeverityLevelID        uint   `json:"severity_level_id"`
+	SeverityLevelTitleEn   string `json:"severity_level_title_en"`
+	SeverityLevelTitleAr   string `json:"severity_level_title_ar"`
+	SeverityLevelColorCode string `json:"severity_level_color_code"`
+	SeverityLevelType      string `json:"severity_level_type"`
+	Count                  int64  `json:"count"`
+}
+
+type ComplianceRequirementByCategoryDTO struct {
+	ComplianceRequirementCategoryID      uint   `json:"compliance_requirement_category_id"`
+	ComplianceRequirementCategoryTitleEn string `json:"compliance_requirement_category_title_en"`
+	ComplianceRequirementCategoryTitleAr string `json:"compliance_requirement_category_title_ar"`
+	Count                                int64  `json:"count"`
+}
+
+type ComplianceRequirementByResponsibleUserDTO struct {
+	ResponsibleUserID               uint   `json:"responsible_user_id"`
+	ResponsibleUserFirstNameEn      string `json:"responsible_user_first_name_en"`
+	ResponsibleUserFirstNameAr      string `json:"responsible_user_first_name_ar"`
+	ResponsibleUserLastNameEn       string `json:"responsible_user_last_name_en"`
+	ResponsibleUserLastNameAr       string `json:"responsible_user_last_name_ar"`
+	ResponsibleUserEmail            string `json:"responsible_user_email"`
+	ResponsibleUserColor            string `json:"responsible_user_color"`
+	ResponsibleUserProfileImagePath string `json:"responsible_user_profile_image_path"`
+	Count                           int64  `json:"count"`
+}
+
 type ReportListQueryParamsDTO struct {
 	DateFrom string `json:"date_from"`
 	DateTo   string `json:"date_to"`

@@ -11,6 +11,11 @@ type ComplianceReportServiceInterface interface {
 	GetComplianceByComplianceStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceByStatusDTO, error)
 	GetComplianceByResponsibleUnit(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceByResponsibleUnitDTO, error)
 	GetComplianceByResponsibleUser(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceByResponsibleUserDTO, error)
+
+	GetComplianceRequirementByComplianceStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceRequirementByComplianceStatusDTO, error)
+	GetComplianceRequirementBySeverity(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceRequirementBySeverityLevelDTO, error)
+	GetComplianceRequirementByCategory(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceRequirementByCategoryDTO, error)
+	GetComplianceRequirementByResponsibleUser(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceRequirementByResponsibleUserDTO, error)
 }
 
 type ComplianceReportService struct {
@@ -39,4 +44,20 @@ func (crs *ComplianceReportService) GetComplianceByResponsibleUnit(params *repor
 
 func (crs *ComplianceReportService) GetComplianceByResponsibleUser(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceByResponsibleUserDTO, error) {
 	return crs.repo.GetComplianceByResponsibleUser(params)
+}
+
+func (crs *ComplianceReportService) GetComplianceRequirementByComplianceStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceRequirementByComplianceStatusDTO, error) {
+	return crs.repo.GetComplianceRequirementByComplianceStatus(params)
+}
+
+func (crs *ComplianceReportService) GetComplianceRequirementBySeverity(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceRequirementBySeverityLevelDTO, error) {
+	return crs.repo.GetComplianceRequirementBySeverity(params)
+}
+
+func (crs *ComplianceReportService) GetComplianceRequirementByCategory(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceRequirementByCategoryDTO, error) {
+	return crs.repo.GetComplianceRequirementByCategory(params)
+}
+
+func (crs *ComplianceReportService) GetComplianceRequirementByResponsibleUser(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceRequirementByResponsibleUserDTO, error) {
+	return crs.repo.GetComplianceRequirementByResponsibleUser(params)
 }
