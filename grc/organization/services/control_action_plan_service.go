@@ -167,7 +167,7 @@ func (caps *ControlActionPlanService) Create(controlID uint, currentUserID uint,
 		return 0, err
 	}
 
-	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+	urlParam := fmt.Sprintf(`{"control_id":%d, "action_plan_id":%d}`, controlID, id)
 
 	taskDTO := commonDTOs.TaskFormDTO{
 		ModuleIdentifier:    "organization",
@@ -324,7 +324,7 @@ func (caps *ControlActionPlanService) Update(controlID uint, id uint, currentUse
 		return err
 	}
 
-	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+	urlParam := fmt.Sprintf(`{"control_id":%d, "action_plan_id":%d}`, controlID, id)
 
 	taskUpdateDTO := commonDTOs.TaskFormDTO{
 		Title:             ControlActionPlanFormDTO.Title,

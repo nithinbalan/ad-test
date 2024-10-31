@@ -208,7 +208,7 @@ func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uin
 		}
 	}
 
-	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+	urlParam := fmt.Sprintf(`{"incident_register_id":%d, "action_plan_id":%d}`, incidentID, id)
 	taskDTO := commonDTOs.TaskFormDTO{
 		ModuleIdentifier:     "incident",
 		IncidentActionPlanID: &id,
@@ -362,7 +362,7 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 		return err
 	}
 
-	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+	urlParam := fmt.Sprintf(`{"incident_register_id":%d, "action_plan_id":%d}`, incidentID, id)
 
 	taskUpdateDTO := commonDTOs.TaskFormDTO{
 		Title:             IncidentActionPlanFormDTO.Title,

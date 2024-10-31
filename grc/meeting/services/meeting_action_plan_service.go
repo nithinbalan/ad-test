@@ -189,7 +189,7 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 		return 0, err
 	}
 
-	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+	urlParam := fmt.Sprintf(`{"meeting_id":%d, "action_plan_id":%d}`, meetingID, id)
 	taskDTO := commonDTOs.TaskFormDTO{
 		ModuleIdentifier:    "meeting",
 		MeetingActionPlanID: &id,
@@ -344,7 +344,7 @@ func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUse
 		return err
 	}
 
-	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+	urlParam := fmt.Sprintf(`{"meeting_id":%d, "action_plan_id":%d}`, meetingID, id)
 	taskUpdateDTO := commonDTOs.TaskFormDTO{
 		Title:             MeetingActionPlanFormDTO.Title,
 		Description:       MeetingActionPlanFormDTO.Description,

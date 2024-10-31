@@ -169,7 +169,7 @@ func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskA
 		return 0, err
 	}
 
-	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+	urlParam := fmt.Sprintf(`{"risk_register_id":%d, "action_plan_id":%d}`, riskID, id)
 	taskDTO := commonDTOs.TaskFormDTO{
 		ModuleIdentifier:  "risk",
 		RiskActionPlanID:  &id,
@@ -324,7 +324,7 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 		return err
 	}
 
-	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+	urlParam := fmt.Sprintf(`{"risk_register_id":%d, "action_plan_id":%d}`, riskID, id)
 
 	taskUpdateDTO := commonDTOs.TaskFormDTO{
 		Title:             RiskActionPlanFormDTO.Title,

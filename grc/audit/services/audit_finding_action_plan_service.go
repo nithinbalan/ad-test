@@ -173,7 +173,7 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 		return 0, err
 	}
 
-	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+	urlParam := fmt.Sprintf(`{"audit_id":%d,"audit_finding_id":%d, "action_plan_id":%d}`, audit.AuditID, findingID, id)
 	taskDTO := commonDTOs.TaskFormDTO{
 		ModuleIdentifier:         "audit",
 		AuditFindingActionPlanID: &id,
@@ -216,7 +216,7 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 		}
 
 		// prepare notification
-		urlParam := fmt.Sprintf(`{"audit_finding_id":%d, "action_plan_id":%d}`, findingID, id)
+		urlParam := fmt.Sprintf(`{"audit_id":%d,"audit_finding_id":%d, "action_plan_id":%d}`, audit.AuditID, findingID, id)
 		queryParam := ""
 		entity := "audit-finding-action-plan"
 		action := "responsible-user-assign"
@@ -332,7 +332,7 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 	}
 
 	// //update task
-	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+	urlParam := fmt.Sprintf(`{"audit_id":%d,"audit_finding_id":%d, "action_plan_id":%d}`, audit.AuditID, findingID, id)
 
 	taskUpdateDTO := commonDTOs.TaskFormDTO{
 		Title:             AuditFindingActionPlanFormDTO.Title,
@@ -354,7 +354,7 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 	go func() {
 		// sends notification if responsible user has changed
 		if oldResponsibleUserID != existingAuditFindingActionPlan.ResponsibleUserID {
-			urlParam := fmt.Sprintf(`{"audit_finding_id":%d, "action_plan_id":%d}`, findingID, id)
+			urlParam := fmt.Sprintf(`{"audit_id":%d,"audit_finding_id":%d, "action_plan_id":%d}`, audit.AuditID, findingID, id)
 			queryParam := ""
 			entity := "audit-finding-action-plan"
 
