@@ -20,7 +20,7 @@ type AuditFinalReportRepositoryInterface interface {
 	CreateAuditFindingActionPlans(actionPlans []*models.AuditFindingActionPlan, tx ...utility.DatabaseTransaction) error
 	CreateAuditFinalReportSections(sections []*models.AuditFinalReportSection, tx ...utility.DatabaseTransaction) error
 	GetSectionByType(sectionType string, tx ...utility.DatabaseTransaction) (*models.AuditFinalReportSection, error)
-	Update(auditFinalReport *models.AuditFinalReport) error 
+	Update(auditFinalReport *models.AuditFinalReport) error
 	DeleteAuditFinalReportSections(sectionIDs []*uint, tx ...utility.DatabaseTransaction) error
 	DeleteAuditFindingActionPlans(deleteActionPlanIDs []*uint, tx ...utility.DatabaseTransaction) error
 	DeleteAuditFindings(deleteFindingIDs []*uint, tx ...utility.DatabaseTransaction) error
@@ -147,19 +147,17 @@ func (repo *AuditFinalReportRepository) GenerateReferenceNumber() (string, error
 }
 
 func (repo *AuditFinalReportRepository) GetByAuditID(auditID uint) (*models.AuditFinalReport, error) {
-	var auditFinalReport models.AuditFinalReport // Not a pointer, so it won't be nil on not found
+	var auditFinalReport *models.AuditFinalReport
 
-	result := repo.db.Where("audit_id = ?", auditID).First(&auditFinalReport)
+	result := repo.db.Where("audit_id = ?", auditID).
+		Preload("Audit").
+		Preload("Audit.AuditPlan").
+		First(&auditFinalReport)
 	if result.Error != nil {
-		if result.Error == gorm.ErrRecordNotFound {
-			// No final report found for this audit
-			return nil, nil
-		}
-		// Some other error occurred
 		return nil, result.Error
 	}
 
-	return &auditFinalReport, nil
+	return auditFinalReport, nil
 }
 
 func (repo *AuditFinalReportRepository) CreateAuditFindingActionPlans(actionPlans []*models.AuditFindingActionPlan, tx ...utility.DatabaseTransaction) error {

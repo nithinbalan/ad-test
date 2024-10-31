@@ -24,6 +24,7 @@ type TaskRepositoryInteface interface {
 
 	UpdateTaskRelatedIDs(taskID uint, relatedTaskIDsJSON string, tx ...utility.DatabaseTransaction) error
 	UpdateDocumentTaskStatus(documentID uint, userID uint, documentWorkflowID uint, status uint) (*models.Task, error)
+	UpdateAuditReportTaskStatus(auditFinalReportID uint, userID uint, auditReportWorkflowID uint, status uint) (*models.Task, error)
 }
 
 type TaskRepository struct {
@@ -281,6 +282,24 @@ func (repo *TaskRepository) UpdateDocumentTaskStatus(documentID uint, userID uin
 
 	// Find the task by document and user ID
 	if err := repo.db.Where("document_id = ? AND responsible_user_id = ? AND document_workflow_id = ?", documentID, userID, documentWorkflowID).First(&task).Error; err != nil {
+		return nil, err
+	}
+
+	// Update the task status
+	task.TaskStatusID = status
+	task.UpdatedByID = userID
+	if err := repo.db.Save(&task).Error; err != nil {
+		return nil, err
+	}
+
+	return &task, nil
+}
+
+func (repo *TaskRepository) UpdateAuditReportTaskStatus(auditFinalReportID uint, userID uint, auditReportWorkflowID uint, status uint) (*models.Task, error) {
+	var task models.Task
+
+	// Find the task by audit_final_report_id and user ID
+	if err := repo.db.Where("audit_final_report_id = ? AND responsible_user_id = ? AND audit_report_workflow_id = ?", auditFinalReportID, userID, auditReportWorkflowID).First(&task).Error; err != nil {
 		return nil, err
 	}
 
