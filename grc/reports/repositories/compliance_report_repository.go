@@ -20,6 +20,10 @@ type ComplianceReportRepositoryInterface interface {
 
 	GetComplianceActionPlanByStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceActionPlanByStatusDTO, error)
 	GetComplianceActionPlanByResponsibleUser(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceActionPlanByResponsibleUserDTO, error)
+
+	GetSLAByCategory(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.SLAByCategoryDTO, error)
+	GetSLABySeverityLevel(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.SLABySeverityLevelDTO, error)
+	GetSLAByComplianceStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.SLAByComplianceStatusDTO, error)
 }
 
 type ComplianceReportRepository struct {
@@ -34,6 +38,7 @@ func NewComplianceReportRepository(db *gorm.DB) *ComplianceReportRepository {
 
 func (repo *ComplianceReportRepository) GetComplianceByComplianceCategory(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceByCategoryDTO, error) {
 	results := []*reportDTOs.ComplianceByCategoryDTO{}
+
 	query := repo.db.Table("compliance_register").
 		Select(`
 			compliance_categories.id AS compliance_category_id,
@@ -54,6 +59,7 @@ func (repo *ComplianceReportRepository) GetComplianceByComplianceCategory(params
 
 func (repo *ComplianceReportRepository) GetComplianceBySeverityLevel(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceBySeverityLevelDTO, error) {
 	results := []*reportDTOs.ComplianceBySeverityLevelDTO{}
+
 	query := repo.db.Table("compliance_register").
 		Select(`
 			severity_levels.id AS severity_level_id,
@@ -76,6 +82,7 @@ func (repo *ComplianceReportRepository) GetComplianceBySeverityLevel(params *rep
 
 func (repo *ComplianceReportRepository) GetComplianceByComplianceStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceByStatusDTO, error) {
 	results := []*reportDTOs.ComplianceByStatusDTO{}
+
 	query := repo.db.Table("compliance_register").
 		Select(`
 			compliance_statuses.id AS compliance_status_id,
@@ -98,6 +105,7 @@ func (repo *ComplianceReportRepository) GetComplianceByComplianceStatus(params *
 
 func (repo *ComplianceReportRepository) GetComplianceByResponsibleUnit(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceByResponsibleUnitDTO, error) {
 	results := []*reportDTOs.ComplianceByResponsibleUnitDTO{}
+
 	query := repo.db.Table("compliance_register").
 		Select(`
 			organization_units.id AS responsible_unit_id,
@@ -119,6 +127,7 @@ func (repo *ComplianceReportRepository) GetComplianceByResponsibleUnit(params *r
 
 func (repo *ComplianceReportRepository) GetComplianceByResponsibleUser(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceByResponsibleUserDTO, error) {
 	results := []*reportDTOs.ComplianceByResponsibleUserDTO{}
+
 	query := repo.db.Table("compliance_register").
 		Select(`
 			users.id AS responsible_user_id,
@@ -144,7 +153,8 @@ func (repo *ComplianceReportRepository) GetComplianceByResponsibleUser(params *r
 }
 
 func (repo *ComplianceReportRepository) GetComplianceRequirementByComplianceStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceRequirementByComplianceStatusDTO, error) {
-	var results []*reportDTOs.ComplianceRequirementByComplianceStatusDTO
+	results := []*reportDTOs.ComplianceRequirementByComplianceStatusDTO{}
+
 	query := repo.db.Table("compliance_requirements").
 		Select(`
             compliance_statuses.id AS compliance_status_id,
@@ -164,7 +174,8 @@ func (repo *ComplianceReportRepository) GetComplianceRequirementByComplianceStat
 }
 
 func (repo *ComplianceReportRepository) GetComplianceRequirementBySeverity(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceRequirementBySeverityLevelDTO, error) {
-	var results []*reportDTOs.ComplianceRequirementBySeverityLevelDTO
+	results := []*reportDTOs.ComplianceRequirementBySeverityLevelDTO{}
+
 	query := repo.db.Table("compliance_requirements").
 		Select(`
             severity_levels.id AS severity_level_id,
@@ -186,7 +197,8 @@ func (repo *ComplianceReportRepository) GetComplianceRequirementBySeverity(param
 }
 
 func (repo *ComplianceReportRepository) GetComplianceRequirementByCategory(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceRequirementByCategoryDTO, error) {
-	var results []*reportDTOs.ComplianceRequirementByCategoryDTO
+	results := []*reportDTOs.ComplianceRequirementByCategoryDTO{}
+
 	query := repo.db.Table("compliance_requirements").
 		Select(`
             compliance_requirement_categories.id AS compliance_requirement_category_id,
@@ -206,7 +218,7 @@ func (repo *ComplianceReportRepository) GetComplianceRequirementByCategory(param
 }
 
 func (repo *ComplianceReportRepository) GetComplianceRequirementByResponsibleUser(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceRequirementByResponsibleUserDTO, error) {
-	var results []*reportDTOs.ComplianceRequirementByResponsibleUserDTO
+	results := []*reportDTOs.ComplianceRequirementByResponsibleUserDTO{}
 	query := repo.db.Table("compliance_requirements").
 		Select(`
             users.id AS responsible_user_id,
@@ -231,7 +243,8 @@ func (repo *ComplianceReportRepository) GetComplianceRequirementByResponsibleUse
 }
 
 func (repo *ComplianceReportRepository) GetComplianceActionPlanByStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceActionPlanByStatusDTO, error) {
-	var results []*reportDTOs.ComplianceActionPlanByStatusDTO
+	results := []*reportDTOs.ComplianceActionPlanByStatusDTO{}
+
 	query := repo.db.Table("compliance_action_plans").
 		Select(`
 			action_plan_statuses.id AS action_plan_status_id,
@@ -253,7 +266,8 @@ func (repo *ComplianceReportRepository) GetComplianceActionPlanByStatus(params *
 }
 
 func (repo *ComplianceReportRepository) GetComplianceActionPlanByResponsibleUser(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceActionPlanByResponsibleUserDTO, error) {
-	var results []*reportDTOs.ComplianceActionPlanByResponsibleUserDTO
+	results := []*reportDTOs.ComplianceActionPlanByResponsibleUserDTO{}
+
 	query := repo.db.Table("compliance_action_plans").
 		Select(`
 			users.id AS responsible_user_id,
@@ -271,6 +285,71 @@ func (repo *ComplianceReportRepository) GetComplianceActionPlanByResponsibleUser
 
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("compliance_action_plans.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	err := query.Scan(&results).Error
+	return results, err
+}
+
+func (repo *ComplianceReportRepository) GetSLAByCategory(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.SLAByCategoryDTO, error) {
+	results := []*reportDTOs.SLAByCategoryDTO{}
+
+	query := repo.db.Table("sla_register").
+		Select(`
+			sla_categories.id AS sla_category_id,
+			sla_categories.title_en AS sla_category_title_en,
+			sla_categories.title_ar AS sla_category_title_ar,
+			COUNT(sla_register.id) AS count
+		`).
+		Joins("JOIN sla_categories ON sla_categories.id = sla_register.sla_category_id").
+		Group("sla_categories.id, sla_categories.title_en, sla_categories.title_ar")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("sla_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	err := query.Scan(&results).Error
+	return results, err
+}
+
+func (repo *ComplianceReportRepository) GetSLABySeverityLevel(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.SLABySeverityLevelDTO, error) {
+	results := []*reportDTOs.SLABySeverityLevelDTO{}
+
+	query := repo.db.Table("sla_register").
+		Select(`
+			severity_levels.id AS severity_level_id,
+			severity_levels.title_en AS severity_level_title_en,
+			severity_levels.title_ar AS severity_level_title_ar,
+			severity_levels.color_code AS severity_level_color_code,
+			severity_levels.type AS severity_level_type,
+			COUNT(sla_register.id) AS count
+		`).
+		Joins("JOIN severity_levels ON severity_levels.id = sla_register.severity_level_id").
+		Group("severity_levels.id, severity_levels.title_en, severity_levels.title_ar, severity_levels.color_code, severity_levels.type")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("sla_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	err := query.Scan(&results).Error
+	return results, err
+}
+
+func (repo *ComplianceReportRepository) GetSLAByComplianceStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.SLAByComplianceStatusDTO, error) {
+	results := []*reportDTOs.SLAByComplianceStatusDTO{}
+
+	query := repo.db.Table("sla_register").
+		Select(`
+			compliance_statuses.id AS compliance_status_id,
+			compliance_statuses.title_en AS compliance_status_title_en,
+			compliance_statuses.title_ar AS compliance_status_title_ar,
+			COUNT(sla_register.id) AS count
+		`).
+		Joins("JOIN compliance_statuses ON compliance_statuses.id = sla_register.compliance_status_id").
+		Group("compliance_statuses.id, compliance_statuses.title_en, compliance_statuses.title_ar")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("sla_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 
 	err := query.Scan(&results).Error

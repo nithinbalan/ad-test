@@ -390,3 +390,68 @@ func (crc *ComplianceReportController) GetComplianceActionPlanByResponsibleUser(
 	}
 	c.JSON(http.StatusOK, results)
 }
+func (crc *ComplianceReportController) GetSLAByCategory(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := reportDTOs.ReportListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+	results, err := crc.service.GetSLAByCategory(&queryParams)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(crc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, results)
+}
+
+func (crc *ComplianceReportController) GetSLABySeverityLevel(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := reportDTOs.ReportListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+	results, err := crc.service.GetSLABySeverityLevel(&queryParams)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(crc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, results)
+}
+
+func (crc *ComplianceReportController) GetSLAByComplianceStatus(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := reportDTOs.ReportListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+	results, err := crc.service.GetSLAByComplianceStatus(&queryParams)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(crc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, results)
+}

@@ -214,7 +214,6 @@ func (repo *OrganizationReportRepository) GetProcessesByProcessGroup(params *dto
 	return results, nil
 }
 
-// Controls count by Control Type
 func (repo *OrganizationReportRepository) GetControlsByControlType(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ControlsByControlTypeDTO, error) {
 	results := []*dtos.ControlsByControlTypeDTO{}
 
@@ -234,9 +233,9 @@ func (repo *OrganizationReportRepository) GetControlsByControlType(params *dtos.
 	return results, err
 }
 
-// Controls count by Control Category
 func (repo *OrganizationReportRepository) GetControlsByCategory(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ControlsByControlCategoryDTO, error) {
 	results := []*dtos.ControlsByControlCategoryDTO{}
+
 	query := repo.db.Table("controls").
 		Select(`control_categories.id AS control_category_id,
 			control_categories.title_en AS control_category_title_en,
@@ -253,9 +252,9 @@ func (repo *OrganizationReportRepository) GetControlsByCategory(params *dtos.Rep
 	return results, err
 }
 
-// Controls count by Compliance Register
 func (repo *OrganizationReportRepository) GetControlsByComplianceRegister(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ControlsByComplianceRegisterDTO, error) {
 	results := []*dtos.ControlsByComplianceRegisterDTO{}
+
 	query := repo.db.Table("compliance_controls").
 		Select(`compliance_register.id AS compliance_register_id,
 			compliance_register.title_en AS compliance_register_title_en,
@@ -274,9 +273,9 @@ func (repo *OrganizationReportRepository) GetControlsByComplianceRegister(params
 	return results, err
 }
 
-// Controls count by Risk Rating
 func (repo *OrganizationReportRepository) GetControlsByRiskRating(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ControlsByRiskRatingDTO, error) {
 	results := []*dtos.ControlsByRiskRatingDTO{}
+
 	query := repo.db.Table("controls").
 		Select(`risk_matrix_risk_ratings.id AS risk_rating_id,
 			risk_matrix_risk_ratings.title_en AS risk_rating_title_en,
@@ -295,9 +294,9 @@ func (repo *OrganizationReportRepository) GetControlsByRiskRating(params *dtos.R
 	return results, err
 }
 
-// Controls count by Implementation Status
 func (repo *OrganizationReportRepository) GetControlsByImplementationStatus(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ControlsByImplementationStatusDTO, error) {
 	results := []*dtos.ControlsByImplementationStatusDTO{}
+
 	query := repo.db.Table("controls").
 		Select(`control_implementation_statuses.id AS control_implementation_status_id,
 			control_implementation_statuses.title_en AS control_implementation_status_title_en,
@@ -316,9 +315,9 @@ func (repo *OrganizationReportRepository) GetControlsByImplementationStatus(para
 	return results, err
 }
 
-// Controls count by Efficiency
 func (repo *OrganizationReportRepository) GetControlsByEfficiencyStatus(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ControlsByEfficiencyDTO, error) {
 	results := []*dtos.ControlsByEfficiencyDTO{}
+
 	query := repo.db.Table("controls").
 		Select(`control_efficiency_statuses.id AS control_efficiency_status_id,
 			control_efficiency_statuses.title_en AS control_efficiency_status_title_en,
@@ -337,7 +336,6 @@ func (repo *OrganizationReportRepository) GetControlsByEfficiencyStatus(params *
 	return results, err
 }
 
-// repositories/OrganizationReportRepository.go
 func (repo *OrganizationReportRepository) GetControlsByApplicability(params *dtos.ReportListQueryParamsDTO) ([]*dtos.ControlsByApplicabilityDTO, error) {
 	results := []*dtos.ControlsByApplicabilityDTO{}
 
