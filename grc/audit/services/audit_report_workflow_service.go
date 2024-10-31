@@ -29,7 +29,7 @@ type AuditReportWorkflowServiceInterface interface {
 	CheckAllParticipantsApproved(workflowID uint, workflowParticipants []*models.AuditReportWorkflowParticipant) (bool, error)
 
 	DeleteAuditReportWorkflowParticipants(participantIds []*uint, tx ...utility.DatabaseTransaction) error
-	DeleteAuditReportWorkflowReviews(reviewIds []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteAuditReportReviews(reviewIds []*uint, tx ...utility.DatabaseTransaction) error
 	DeleteAuditReportWorkflows(workflowIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
@@ -40,7 +40,7 @@ type AuditReportWorkflowService struct {
 	workflowStatusSvc   masterSvc.WorkflowStatusServiceInterface
 	userSvc             organizationSvc.UserServiceInterface
 	auditFinalReportSvc AuditFinalReportServiceInterface
-	auditSvc                  AuditServiceInterface
+	auditSvc            AuditServiceInterface
 }
 
 func NewAuditReportWorkflowService(
@@ -57,7 +57,7 @@ func NewAuditReportWorkflowService(
 		workflowSvc:       workflowSvc,
 		workflowStatusSvc: workflowStatusSvc,
 		userSvc:           userSvc,
-		auditSvc:           auditSvc,
+		auditSvc:          auditSvc,
 	}
 }
 
@@ -124,7 +124,10 @@ func (arws *AuditReportWorkflowService) CreateAuditReportWorkflow(auditFinalRepo
 	if err != nil {
 		return err
 	}
-
+	auditReportWorkflowType := "final"
+	if workflowType == "draft-report" {
+		auditReportWorkflowType = "draft"
+	}
 	workflowLevels, err := arws.workflowSvc.GetWorkflowLevels(workflow[0].ID, tx...)
 	if err != nil {
 		return err
@@ -139,6 +142,7 @@ func (arws *AuditReportWorkflowService) CreateAuditReportWorkflow(auditFinalRepo
 		auditReportWorkflow := &models.AuditReportWorkflow{
 			AuditFinalReportID:  &auditFinalReportID,
 			Level:               level.Level,
+			Type:                auditReportWorkflowType,
 			WorkflowLevelTypeID: level.WorkflowLevelType.ID,
 			ApprovalType:        level.ApprovalType,
 			WorkflowStatusID:    workflowStatus.ID,
@@ -255,12 +259,12 @@ func (arws *AuditReportWorkflowService) DeleteAuditReportWorkflowParticipants(pa
 	return nil
 }
 
-func (arws *AuditReportWorkflowService) DeleteAuditReportWorkflowReviews(reviewIds []*uint, tx ...utility.DatabaseTransaction) error {
+func (arws *AuditReportWorkflowService) DeleteAuditReportReviews(reviewIds []*uint, tx ...utility.DatabaseTransaction) error {
 	if len(reviewIds) == 0 {
 		return nil
 	}
 
-	err := arws.repo.DeleteAuditReportWorkflowReviews(reviewIds, tx...)
+	err := arws.repo.DeleteAuditReportReviews(reviewIds, tx...)
 	if err != nil {
 		return fmt.Errorf("failed to delete audit report workflow reviews: %w", err)
 	}

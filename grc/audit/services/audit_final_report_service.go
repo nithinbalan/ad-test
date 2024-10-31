@@ -24,8 +24,10 @@ import (
 
 type AuditFinalReportServiceInterface interface {
 	SetAuditReportWorkflowService(svc AuditReportWorkflowServiceInterface)
+	GetByID(id uint) (*models.AuditFinalReport, error)
 	GetFullDetailsByID(auditID uint, currentUserID uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditFinalReportDetailDTO, error)
 	Create(auditID uint, currentUserID uint) (uint, error)
+	Update(auditFinalReport *models.AuditFinalReport) error
 	GetByAuditID(auditID uint) (*models.AuditFinalReport, error)
 	Delete(auditID uint, currentUserID uint) error
 }
@@ -40,7 +42,7 @@ type AuditFinalReportService struct {
 	userSvc                   organizationServices.UserServiceInterface
 	auditFinalReportStatusSvc AuditFinalReportStatusServiceInterface
 	auditFindingSvc           AuditFindingServiceInterface
-	auditReportWorkflowSvc       AuditReportWorkflowServiceInterface
+	auditReportWorkflowSvc    AuditReportWorkflowServiceInterface
 }
 
 func NewAuditFinalReportService(
@@ -69,6 +71,18 @@ func NewAuditFinalReportService(
 func (afrs *AuditFinalReportService) SetAuditReportWorkflowService(svc AuditReportWorkflowServiceInterface) {
 	afrs.auditReportWorkflowSvc = svc
 }
+
+func (afrs *AuditFinalReportService) GetByID(id uint) (*models.AuditFinalReport, error) {
+	auditFinalReport, err := afrs.repo.GetByID(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+	return auditFinalReport, nil
+}
+
 func (afrs *AuditFinalReportService) GetFullDetailsByID(auditID uint, currentUserID uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditFinalReportDetailDTO, error) {
 	// Check if the audit exists
 	if _, err := afrs.auditSvc.GetByID(auditID); err != nil {
@@ -295,6 +309,7 @@ func (afrs *AuditFinalReportService) GetFullDetailsByID(auditID uint, currentUse
 	auditReportDTO := &auditDTOs.AuditFinalReportDetailDTO{
 		ID:                     auditFinalReport.ID,
 		AuditID:                auditFinalReport.AuditID,
+		NextReviewLevel:        auditFinalReport.NextReviewLevel,
 		Title:                  auditFinalReport.Audit.AuditPlan.Title,
 		Description:            auditFinalReport.Audit.AuditPlan.Description,
 		ReferenceNumber:        auditFinalReport.Audit.AuditPlan.ReferenceNumber,
@@ -686,6 +701,15 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 	return id, nil
 }
 
+func (afrs *AuditFinalReportService) Update(auditFinalReport *models.AuditFinalReport) error {
+	err := afrs.repo.Update(auditFinalReport)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (afrs *AuditFinalReportService) Delete(auditID uint, currentUserID uint) error {
 	tx := afrs.repo.BeginTransaction()
 	auditFinalReport, err := afrs.repo.GetFullDetailsByID(auditID, tx)
@@ -760,7 +784,7 @@ func (afrs *AuditFinalReportService) Delete(auditID uint, currentUserID uint) er
 		return err
 	}
 
-	if err := afrs.auditReportWorkflowSvc.DeleteAuditReportWorkflowReviews(deleteAuditReportWorkflowReviewIds, tx); err != nil {
+	if err := afrs.auditReportWorkflowSvc.DeleteAuditReportReviews(deleteAuditReportWorkflowReviewIds, tx); err != nil {
 		tx.Rollback()
 		return err
 	}

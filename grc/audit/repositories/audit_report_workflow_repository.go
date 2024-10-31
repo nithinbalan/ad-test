@@ -14,7 +14,7 @@ type AuditReportWorkflowRepositoryInterface interface {
 	UpdateAuditReportWorkflow(auditReportWorkflow *models.AuditReportWorkflow, tx ...utility.DatabaseTransaction) error
 	CreateAuditReportWorkflowParticipant(auditWorkflowParticipant *models.AuditReportWorkflowParticipant, tx ...utility.DatabaseTransaction) error
 	DeleteAuditReportWorkflowParticipants(participantIds []*uint, tx ...utility.DatabaseTransaction) error
-	DeleteAuditReportWorkflowReviews(reviewIds []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteAuditReportReviews(reviewIds []*uint, tx ...utility.DatabaseTransaction) error
 	DeleteAuditReportWorkflows(workflowIds []*uint, tx ...utility.DatabaseTransaction) error
 
 	GetAuditReportWorkflowByID(id uint, tx ...utility.DatabaseTransaction) (*models.AuditReportWorkflow, error)
@@ -98,9 +98,9 @@ func (repo *AuditReportWorkflowRepository) GetAuditReportWorkflowByLevel(auditFi
 	result := db.
 		Preload("WorkflowLevelType").
 		Preload("AuditReportWorkflowParticipants").
-		Preload("AuditReportWorkflowReviews").
+		Preload("AuditReportReviews").
 		Preload("AuditReportWorkflowParticipants.User").
-		Where("document_version_id = ? AND level = ?", auditFinalReportID, currentApprovalLevel).
+		Where("audit_final_report_id = ? AND level = ?", auditFinalReportID, currentApprovalLevel).
 		Find(&auditReportWorkflow)
 
 	if result.Error != nil {
@@ -177,7 +177,7 @@ func (repo *AuditReportWorkflowRepository) DeleteAuditReportWorkflowParticipants
 	return nil
 }
 
-func (repo *AuditReportWorkflowRepository) DeleteAuditReportWorkflowReviews(reviewIds []*uint, tx ...utility.DatabaseTransaction) error {
+func (repo *AuditReportWorkflowRepository) DeleteAuditReportReviews(reviewIds []*uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
