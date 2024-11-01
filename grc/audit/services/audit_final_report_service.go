@@ -16,7 +16,9 @@ import (
 	riskDTOs "jethur/grc/risk/dtos"
 	settingsDTOs "jethur/grc/settings/dtos"
 	"jethur/utility"
+	"path/filepath"
 	"sort"
+	"strconv"
 	"time"
 
 	"gorm.io/gorm"
@@ -601,7 +603,7 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 	}
 	// Initialize slices for findings and action plans
 	var actionPlans []*models.AuditFindingActionPlan
-
+	var auditFindingDocuments []*models.AuditFindingDocument
 	for _, draftFinding := range auditDraftFindings {
 		if draftFinding.AuditDraftFindingStatus != nil && draftFinding.AuditDraftFindingStatus.IsFinalized {
 			var latestComment *string
@@ -633,6 +635,34 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 				tx.Rollback()
 				return 0, err
 			}
+			for _, draftDoc := range draftFinding.Documents {
+				finalDocument := &models.AuditFindingDocument{
+					AuditFindingID:  findingID, // ID of the final AuditFinding
+					URL:             draftDoc.URL,
+					Name:            draftDoc.Name,
+					Size:            draftDoc.Size,
+					Token:           draftDoc.Token,
+					OriginalName:    draftDoc.OriginalName,
+					Type:            draftDoc.Type,
+					CreatedByID:     currentUserID,
+					CreatedAt:       time.Now(),
+					UpdatedAt:       time.Now(),
+				}
+				// Append the final document to the slice
+				auditFindingDocuments = append(auditFindingDocuments, finalDocument)
+				// Define draft and final storage directories
+				draftDir := filepath.Join("audit", "audits", strconv.FormatUint(uint64(draftFinding.AuditID), 10), "draft-findings", strconv.FormatUint(uint64(draftFinding.ID), 10), "documents")
+				finalDir := filepath.Join("audit", "audits", strconv.FormatUint(uint64(draftFinding.AuditID), 10), "audit-findings", strconv.FormatUint(uint64(findingID), 10), "documents")
+
+				// Use CopyFileFromPaths to copy each document
+				err = utility.CopyFileFromPaths(draftDir, finalDir, draftDoc.Name)
+				if err != nil {
+					// Handle any errors (rollback transaction, log error, etc.)
+					fmt.Println("Error copying file:", err)
+					tx.Rollback()
+					return 0, err
+				}
+			}
 
 			// Copy action plans from draft findings to final findings
 			for _, draftActionPlan := range draftFinding.AuditDraftFindingActionPlans {
@@ -651,7 +681,12 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 			}
 		}
 	}
-
+	if len(auditFindingDocuments) > 0 {
+		if err := afrs.repo.CreateAuditFindingDocuments(auditFindingDocuments, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
 	// Bulk insert findings
 	if len(actionPlans) > 0 {
 		// Bulk insert action plans
@@ -732,9 +767,11 @@ func (afrs *AuditFinalReportService) Delete(auditID uint, currentUserID uint) er
 	}
 	// Delete related Action Plans for each Audit Finding
 	var deleteFindingIDs []*uint
+	documentsToDelete := make(map[uint][]*auditDTOs.AuditFindingDocumentDTO)
 	if len(auditFinalReport.Audit.AuditFindings) > 0 {
 		for _, finding := range auditFinalReport.Audit.AuditFindings {
 			deleteFindingIDs = append(deleteFindingIDs, &finding.ID)
+
 			// Collect Action Plan IDs for each finding
 			if len(finding.AuditFindingActionPlans) > 0 {
 				var deleteActionPlanIDs []*uint
@@ -748,7 +785,44 @@ func (afrs *AuditFinalReportService) Delete(auditID uint, currentUserID uint) er
 					return err
 				}
 			}
+
+			if len(finding.Documents) > 0 {
+				var deleteDocumentIds []*uint
+				for _, doc := range finding.Documents {
+					if doc != nil {
+						// Convert *models.AuditFindingDocument to *auditDTOs.AuditFindingDocumentDTO
+						docDTO := &auditDTOs.AuditFindingDocumentDTO{
+							ID:   &doc.ID,
+							Name: doc.Name,
+							URL:  &doc.URL,
+						}
+						documentsToDelete[finding.ID] = append(documentsToDelete[finding.ID], docDTO)
+
+						// Append the ID pointer for deletion
+						deleteDocumentIds = append(deleteDocumentIds, &doc.ID)
+					}
+				}
+
+				if err := afrs.repo.DeleteAuditFindingDocuments(deleteDocumentIds, tx); err != nil {
+					tx.Rollback()
+					return err
+				}
+			}
 		}
+
+		if len(documentsToDelete) > 0 {
+			for auditFindingID, documents := range documentsToDelete {
+				for _, doc := range documents {
+					fmt.Println("filename=", doc.Name)
+					storagePath := filepath.Join("audit", "audit-findings", strconv.FormatUint(uint64(auditFindingID), 10), "documents")
+					if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
+						tx.Rollback()
+						fmt.Printf("Failed to delete file at URL %s: %v\n", *doc.URL, err)
+					}
+				}
+			}
+		}
+
 		// Collect Finding IDs to delete them
 		if len(deleteFindingIDs) > 0 {
 			// Delete Findings by collected IDs
@@ -758,6 +832,7 @@ func (afrs *AuditFinalReportService) Delete(auditID uint, currentUserID uint) er
 			}
 		}
 	}
+
 	//delete workflow
 	var deleteAuditReportWorkflowIds []*uint
 	var deleteAuditReportWorkflowParticipantIds []*uint

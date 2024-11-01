@@ -25,6 +25,9 @@ type AuditFinalReportRepositoryInterface interface {
 	DeleteAuditFindingActionPlans(deleteActionPlanIDs []*uint, tx ...utility.DatabaseTransaction) error
 	DeleteAuditFindings(deleteFindingIDs []*uint, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
+
+	CreateAuditFindingDocuments(docs []*models.AuditFindingDocument, tx ...utility.DatabaseTransaction) error
+	DeleteAuditFindingDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type AuditFinalReportRepository struct {
@@ -256,6 +259,32 @@ func (repo *AuditFinalReportRepository) DeleteAuditFindings(deleteFindingIDs []*
 	}
 
 	if err := db.Where("id IN (?)", deleteFindingIDs).Delete(&models.AuditFinding{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *AuditFinalReportRepository) CreateAuditFindingDocuments(docs []*models.AuditFindingDocument, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	// Save all documents in a single transaction
+	if err := db.Create(&docs).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *AuditFinalReportRepository) DeleteAuditFindingDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Delete documents by IDs
+	if err := db.Where("id IN (?)", docIds).Delete(&models.AuditFindingDocument{}).Error; err != nil {
 		return err
 	}
 
