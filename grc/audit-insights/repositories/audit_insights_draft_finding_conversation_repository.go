@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"jethur/grc/audit/dtos"
+	"jethur/grc/models"
 
 	"gorm.io/gorm"
 )
@@ -94,6 +95,17 @@ func (repo *AuditInsightsDraftFindingConversationRepository) GetAll(currentUserR
 
 	query = query.Order(params.SortBy + " " + params.Sort)
 	result := query.Find(&conversations)
+
+	// Fetching related documents for each conversations
+	for _, conversation := range conversations {
+		var documents []*dtos.AuditDraftFindingConversationDocumentDTO
+
+		repo.db.Model(&models.AuditDraftFindingConversationDocument{}).
+			Where("audit_draft_finding_conversation_id = ?", conversation.ID).
+			Find(&documents)
+
+		conversation.Documents = documents
+	}
 
 	return conversations, result.Error
 }
