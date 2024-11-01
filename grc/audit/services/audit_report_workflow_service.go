@@ -143,7 +143,7 @@ func (arws *AuditReportWorkflowService) CreateAuditReportWorkflow(auditFinalRepo
 			AuditFinalReportID:  &auditFinalReportID,
 			Level:               level.Level,
 			Type:                auditReportWorkflowType,
-			WorkflowLevelTypeID: level.WorkflowLevelType.ID,
+			WorkflowLevelTypeID: &level.WorkflowLevelType.ID,
 			ApprovalType:        level.ApprovalType,
 			WorkflowStatusID:    workflowStatus.ID,
 			CreatedBYID:         currentUserID,

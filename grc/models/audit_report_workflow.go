@@ -12,7 +12,7 @@ type AuditReportWorkflow struct {
 	Level               int       `json:"level" binding:"required" gorm:"not null"`
 	ApprovalType        string    `json:"approval_type" binding:"required,oneof='anyone' 'all'" gorm:"type:varchar(255);not null;default:'anyone';check:approval_type IN ('anyone', 'all')"`
 	Type                string    `json:"type" binding:"required,oneof='draft' 'final'" gorm:"type:varchar(255);not null;default:'draft';check:type IN ('draft', 'final')"`
-	WorkflowLevelTypeID uint      `json:"workflow_level_type_id" binding:"required" gorm:"not null"`
+	WorkflowLevelTypeID *uint     `json:"workflow_level_type_id" gorm:"default:null"`
 	WorkflowStatusID    uint      `json:"workflow_status_id" binding:"required" gorm:"not null"`
 	CreatedBYID         uint      `json:"created_by_id" binding:"required" gorm:"not null"`
 	CreatedAt           time.Time `json:"created_at" binding:"required" gorm:"type:datetime;not null"`
