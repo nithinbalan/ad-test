@@ -7,7 +7,7 @@ import (
 type WorkflowListDTO struct {
 	ID                          uint       `json:"id"`
 	Type                        string     `json:"type"`
-	TitleEn                     *string    `json:"title_an"`
+	TitleEn                     *string    `json:"title_en"`
 	TitleAr                     *string    `json:"title_ar"`
 	DocumentTypeID              *uint      `json:"document_type_id"`
 	Status                      string     `json:"status"`

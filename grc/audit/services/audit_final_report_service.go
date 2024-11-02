@@ -652,7 +652,7 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 				auditFindingDocuments = append(auditFindingDocuments, finalDocument)
 				// Define draft and final storage directories
 				draftDir := filepath.Join("audit", "audits", strconv.FormatUint(uint64(draftFinding.AuditID), 10), "draft-findings", strconv.FormatUint(uint64(draftFinding.ID), 10), "documents")
-				finalDir := filepath.Join("audit", "audits", strconv.FormatUint(uint64(draftFinding.AuditID), 10), "audit-findings", strconv.FormatUint(uint64(findingID), 10), "documents")
+				finalDir := filepath.Join("audit", "audits","audit-findings", strconv.FormatUint(uint64(findingID), 10), "documents")
 
 				// Use CopyFileFromPaths to copy each document
 				err = utility.CopyFileFromPaths(draftDir, finalDir, draftDoc.Name)

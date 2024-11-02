@@ -495,6 +495,7 @@ func (arrs *AuditReportReviewService) handleApprovedCase(id uint, currentUserID 
 	return nil
 }
 
+//not using reject api
 func (arrs *AuditReportReviewService) handleRejectedCase(id uint, currentUserID uint, auditReportReviewCommentFormDTO *auditDTOs.AuditReportReviewCommentFormDTO, auditFinalReportDetailDTO *auditDTOs.AuditFinalReportDetailDTO, currentAuditReportWorkflow *models.AuditReportWorkflow) error {
 	workflowStatus, err := arrs.workflowStatusSvc.GetByType("reject")
 	if err != nil {
