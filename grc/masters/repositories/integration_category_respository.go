@@ -24,7 +24,7 @@ func NewIntegrationCategoryRepository(db *gorm.DB) *IntegrationCategoryRepositor
 
 func (repo *IntegrationCategoryRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.IntegrationCategory, error) {
 
-	var reviewFrequencies []*models.IntegrationCategory
+	var integrationCategories []*models.IntegrationCategory
 
 	query := repo.db
 
@@ -43,7 +43,7 @@ func (repo *IntegrationCategoryRepository) GetAll(sort string, sortBy string, ke
 	}
 
 	query = query.Order(sortBy + " " + sort)
-	result := query.Find(&reviewFrequencies)
+	result := query.Find(&integrationCategories)
 
-	return reviewFrequencies, result.Error
+	return integrationCategories, result.Error
 }

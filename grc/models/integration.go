@@ -10,6 +10,7 @@ type Integration struct {
 	DescriptionEn         *string    `json:"description_en" gorm:"type:text"`
 	DescriptionAr         *string    `json:"description_ar" gorm:"type:text"`
 	LogoUrl               *string    `json:"logo_url" gorm:"type:text"`
+	ApiBaseUrl            *string    `json:"api_base_url" gorm:"type:text"`
 	IsEnable              bool       `json:"is_enable" gorm:"not null;type:tinyint;default:0" binding:"required"`
 	CreatedByID           uint       `json:"created_by_id" binding:"required"`
 	UpdatedByID           *uint      `json:"updated_by_id"`

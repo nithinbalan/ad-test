@@ -11,6 +11,7 @@ type IntegrationDTO struct {
 	TitleAr                    string     `json:"title_ar"`
 	DescriptionEn              *string    `json:"description_en"`
 	DescriptionAr              *string    `json:"description_ar"`
+	ApiBaseUrl                 *string    `json:"api_base_url"`
 	LogoUrl                    *string    `json:"logo_url"`
 	IsEnable                   bool       `json:"is_enable"`
 	CreatedByID                uint       `json:"created_by_id"`
