@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	assetDTOs "jethur/grc/asset/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
 
@@ -9,10 +10,10 @@ import (
 
 // Interfaces
 type AssetCategoryRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.AssetCategory, error)
+	GetAll(params *assetDTOs.AssetCategoryListQueryParamsDTO) ([]*assetDTOs.AssetCategoryDTO, error)
 	GetByID(id uint) (*models.AssetCategory, error)
-	Create(assetCategory *models.AssetCategory) (*models.AssetCategory, error)
-	Update(id uint, assetCategory *models.AssetCategory) (*models.AssetCategory, error)
+	Create(category *models.AssetCategory) (uint, error)
+	Update(category *models.AssetCategory) error
 	Delete(id uint) error
 	Activate(ids []uint) ([]uint, error)
 	Deactivate(ids []uint) ([]uint, error)
@@ -31,63 +32,72 @@ func NewAssetCategoryRepository(db *gorm.DB) *AssetCategoryRepository {
 	}
 }
 
-func (repo *AssetCategoryRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.AssetCategory, error) {
-	var assetCategories []*models.AssetCategory
-	query := repo.db
+func (repo *AssetCategoryRepository) GetAll(params *assetDTOs.AssetCategoryListQueryParamsDTO) ([]*assetDTOs.AssetCategoryDTO, error) {
+	var assetCategories []*assetDTOs.AssetCategoryDTO
 
-	if keyword != "" {
-		query = query.Where("(title_en LIKE ? OR title_ar LIKE ?)", "%"+keyword+"%", "%"+keyword+"%")
+	query := repo.db.Table("asset_categories").
+		Select(`
+            asset_categories.*, asset_types.title_en as asset_type_title_en, asset_types.title_ar as asset_type_title_ar`).
+		Joins(`
+		    LEFT JOIN asset_types ON asset_types.id = asset_categories.asset_type_id
+		`)
+	// Apply dynamic filters to the query
+	for columnName, values := range params.Filters {
+		if len(values) > 0 {
+			query = query.Where(columnName+" IN (?)", values)
+		}
 	}
-	if sortBy == "" {
-		sortBy = "title_en"
+	if params.Keyword != "" {
+		query = query.Where(`
+				(asset_categories.title_en LIKE ? OR
+				asset_categories.title_ar LIKE ?)`,
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%")
 	}
-	if sort != "asc" && sort != "desc" {
-		sort = "asc"
+	// Sort by the specified column and order
+	if params.SortBy == "" {
+		params.SortBy = "title_en" // Default sort by title_en if no sortBy is specified
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc" // Default order is ascending if not specified
 	}
 
-	if status == "active" || status == "inactive" {
-		query = query.Where("status = ?", status)
-	}
+	query = query.Order(params.SortBy + " " + params.Sort)
 
-	query = query.Order(sortBy + " " + sort)
 	result := query.Find(&assetCategories)
 
 	return assetCategories, result.Error
 }
 
 func (repo *AssetCategoryRepository) GetByID(id uint) (*models.AssetCategory, error) {
-	var assetCategory *models.AssetCategory
-	result := repo.db.First(&assetCategory, id)
+	var category *models.AssetCategory
+	result := repo.db.Preload("AssetType").First(&category, id)
 
 	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	return assetCategory, nil
+	return category, nil
 }
 
-func (repo *AssetCategoryRepository) Create(assetCategory *models.AssetCategory) (*models.AssetCategory, error) {
-	result := repo.db.Create(&assetCategory)
+func (repo *AssetCategoryRepository) Create(category *models.AssetCategory) (uint, error) {
+	if err := repo.db.Create(category).Error; err != nil {
+		return 0, err
+	}
 
-	return assetCategory, result.Error
+	return category.ID, nil
 }
 
-func (repo *AssetCategoryRepository) Update(id uint, updatedCategory *models.AssetCategory) (*models.AssetCategory, error) {
-	var assetCategory *models.AssetCategory
-	if err := repo.db.First(&assetCategory, id).Error; err != nil {
-		return nil, err
+func (repo *AssetCategoryRepository) Update(updatedCategory *models.AssetCategory) error {
+	if err := repo.db.Save(updatedCategory).Error; err != nil {
+		return err
 	}
 
-	if err := repo.db.Model(&assetCategory).Updates(updatedCategory).Error; err != nil {
-		return nil, err
-	}
-
-	return assetCategory, nil
+	return nil
 }
 
 func (repo *AssetCategoryRepository) Delete(id uint) error {
-	var assetCategory *models.AssetCategory
-	if err := repo.db.First(&assetCategory, id).Error; err != nil {
+	var category *models.AssetCategory
+	if err := repo.db.First(&category, id).Error; err != nil {
 		return err
 	}
 
@@ -101,12 +111,14 @@ func (repo *AssetCategoryRepository) Delete(id uint) error {
 
 func (repo *AssetCategoryRepository) Activate(ids []uint) ([]uint, error) {
 	var idsToUpdate []uint
+	// Fetch IDs of records that are currently 'inactive' and within the provided 'ids' slice
 	if err := repo.db.Model(&models.AssetCategory{}).
 		Where("id IN ? AND status = ?", ids, "inactive").
 		Pluck("id", &idsToUpdate).Error; err != nil {
 		return nil, err
 	}
 
+	// If there are any IDs to update, perform the update operation
 	if len(idsToUpdate) > 0 {
 		if err := repo.db.Model(&models.AssetCategory{}).
 			Where("id IN ?", idsToUpdate).
@@ -114,17 +126,20 @@ func (repo *AssetCategoryRepository) Activate(ids []uint) ([]uint, error) {
 			return nil, err
 		}
 	}
+	// Return the IDs of the records that were activated
 	return idsToUpdate, nil
 }
 
 func (repo *AssetCategoryRepository) Deactivate(ids []uint) ([]uint, error) {
 	var idsToUpdate []uint
+	// Fetch IDs of records that are currently 'active' and within the provided 'ids' slice
 	if err := repo.db.Model(&models.AssetCategory{}).
 		Where("id IN ? AND status = ?", ids, "active").
 		Pluck("id", &idsToUpdate).Error; err != nil {
 		return nil, err
 	}
 
+	// If there are any IDs to update, perform the update operation
 	if len(idsToUpdate) > 0 {
 		if err := repo.db.Model(&models.AssetCategory{}).
 			Where("id IN ?", idsToUpdate).
@@ -138,10 +153,10 @@ func (repo *AssetCategoryRepository) Deactivate(ids []uint) ([]uint, error) {
 func (repo *AssetCategoryRepository) ExistsByTitle(titleEn, titleAr string) (bool, error) {
 	var count int64
 
+	// Check for the existence of titleEn or titleAr in a single query
 	err := repo.db.Model(&models.AssetCategory{}).
-		Where("title_en = ? OR title_ar = ?", titleEn, titleAr).
+		Where("(title_en = ? OR title_ar = ?)", titleEn, titleAr).
 		Count(&count).Error
-
 	if err != nil {
 		return false, utility.NewInternalServerError(err)
 	}

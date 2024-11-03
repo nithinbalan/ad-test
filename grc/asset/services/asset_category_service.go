@@ -3,37 +3,33 @@ package services
 import (
 	"errors"
 	"fmt"
+	assetDTOs "jethur/grc/asset/dtos"
 	"jethur/grc/asset/repositories"
-	logServices "jethur/grc/logs/services"
+	activityLogServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
-	"log"
 
 	"gorm.io/gorm"
 )
 
 type AssetCategoryServiceInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.AssetCategory, error)
+	GetAll(params *assetDTOs.AssetCategoryListQueryParamsDTO) ([]*assetDTOs.AssetCategoryDTO, error)
 	GetByID(id uint) (*models.AssetCategory, error)
-	Create(currentUserID uint, assetCategory *models.AssetCategory) (*models.AssetCategory, error)
-	Update(id uint, currentUserID uint, assetCategory *models.AssetCategory) (*models.AssetCategory, error)
+	Create(currentUserID uint, assetCategoryFormDTO *assetDTOs.AssetCategoryFormDTO) (uint, error)
+	Update(id uint, currentUserID uint, assetCategoryFormDTO *assetDTOs.AssetCategoryFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	Activate(ids []uint, currentUserID uint) error
 	Deactivate(ids []uint, currentUserID uint) error
 }
 
-// Service implementation
+// Service and implementations
 type AssetCategoryService struct {
 	repo           repositories.AssetCategoryRepositoryInterface
 	assetTypeSvc   AssetTypeServiceInterface
-	activityLogSvc logServices.ActivityLogServiceInterface
+	activityLogSvc activityLogServices.ActivityLogServiceInterface
 }
 
-func NewAssetCategoryService(
-	repo repositories.AssetCategoryRepositoryInterface,
-	assetTypeSvc AssetTypeServiceInterface,
-	activityLogSvc logServices.ActivityLogServiceInterface,
-) AssetCategoryServiceInterface {
+func NewAssetCategoryService(repo repositories.AssetCategoryRepositoryInterface, assetTypeSvc AssetTypeServiceInterface, activityLogSvc activityLogServices.ActivityLogServiceInterface) AssetCategoryServiceInterface {
 	return &AssetCategoryService{
 		repo:           repo,
 		assetTypeSvc:   assetTypeSvc,
@@ -41,11 +37,11 @@ func NewAssetCategoryService(
 	}
 }
 
-func (acs *AssetCategoryService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.AssetCategory, error) {
-	return acs.repo.GetAll(sort, sortBy, keyword, status)
+func (acs *AssetCategoryService) GetAll(params *assetDTOs.AssetCategoryListQueryParamsDTO) ([]*assetDTOs.AssetCategoryDTO, error) {
+	return acs.repo.GetAll(params)
 }
 
-func (acs *AssetCategoryService) GetByID(id uint) (*models.AssetCategory, error) {
+func (acs AssetCategoryService) GetByID(id uint) (*models.AssetCategory, error) {
 	assetCategory, err := acs.repo.GetByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -56,95 +52,71 @@ func (acs *AssetCategoryService) GetByID(id uint) (*models.AssetCategory, error)
 	return assetCategory, nil
 }
 
-func (acs *AssetCategoryService) Create(currentUserID uint, assetCategory *models.AssetCategory) (*models.AssetCategory, error) {
-	if assetCategory.AssetTypeID != nil {
-		// Validate asset type exists
-		_, err := acs.assetTypeSvc.GetByID(*assetCategory.AssetTypeID)
-		if err != nil {
-			return nil, utility.NewValidationError(fmt.Errorf("asset type does not exist"), "not_exist", "asset type")
-		}
+func (acs *AssetCategoryService) Create(currentUserID uint, assetCategoryFormDTO *assetDTOs.AssetCategoryFormDTO) (uint, error) {
+	if err := acs.validateAssetCategoryFormDTO(assetCategoryFormDTO, nil); err != nil {
+		return 0, err
 	}
 
-	if exists, err := acs.repo.ExistsByTitle(assetCategory.TitleEn, assetCategory.TitleAr); err != nil {
-		return nil, err
-	} else if exists {
-		return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
+	assetCategory := &models.AssetCategory{
+		AssetTypeID: assetCategoryFormDTO.AssetTypeID,
+		TitleEn:     assetCategoryFormDTO.TitleEn,
+		TitleAr:     assetCategoryFormDTO.TitleAr,
+		Status:      assetCategoryFormDTO.Status,
 	}
 
-	createdCategory, err := acs.repo.Create(assetCategory)
+	id, err := acs.repo.Create(assetCategory)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
 	go func() {
 		err := acs.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.AssetCategory{}.TableName(),
-			createdCategory.ID,
-			createdCategory,
+			id,
+			assetCategoryFormDTO,
 			currentUserID,
 			nil,
 		)
+
 		if err != nil {
-			log.Printf("Failed to log activity: %v", err)
+			fields := map[string]interface{}{
+				"action":    models.CreateAction,
+				"tableName": models.AssetCategory{}.TableName(),
+				"recordID":  id,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			}
+
+			utility.LogError("Failed to log activity", fields)
 		}
 	}()
 
-	return createdCategory, nil
+	return id, nil
+
 }
 
-func (acs *AssetCategoryService) Update(id uint, currentUserID uint, updatedCategory *models.AssetCategory) (*models.AssetCategory, error) {
-	existingCategory, err := acs.repo.GetByID(id)
+func (acs *AssetCategoryService) Update(id uint, currentUserID uint, assetCategoryFormDTO *assetDTOs.AssetCategoryFormDTO) error {
+	existingAssetCategory, err := acs.GetByID(id)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	if updatedCategory.AssetTypeID != nil && *updatedCategory.AssetTypeID != *existingCategory.AssetTypeID {
-		// Validate asset type exists
-		_, err := acs.assetTypeSvc.GetByID(*updatedCategory.AssetTypeID)
-		if err != nil {
-			return nil, utility.NewValidationError(fmt.Errorf("asset type does not exist"), "not_exist", "asset type")
-		}
+	if err := acs.validateAssetCategoryFormDTO(assetCategoryFormDTO, &id); err != nil {
+		return err
 	}
 
-	if updatedCategory.TitleEn != existingCategory.TitleEn || updatedCategory.TitleAr != existingCategory.TitleAr {
-		if exists, err := acs.repo.ExistsByTitleExcludingID(id, updatedCategory.TitleEn, updatedCategory.TitleAr); err != nil {
-			return nil, err
-		} else if exists {
-			return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
-		}
-	}
+	existingAssetCategory.AssetTypeID = assetCategoryFormDTO.AssetTypeID
+	existingAssetCategory.TitleEn = assetCategoryFormDTO.TitleEn
+	existingAssetCategory.TitleAr = assetCategoryFormDTO.TitleAr
+	existingAssetCategory.Status = assetCategoryFormDTO.Status
 
-	result, err := acs.repo.Update(id, updatedCategory)
+	err = acs.repo.Update(existingAssetCategory)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	fieldsToCompare := []string{"TitleEn", "TitleAr", "Status", "AssetTypeID"}
-	changes, err := utility.CompareFields(existingCategory, updatedCategory, fieldsToCompare)
-	if err != nil {
-		log.Println("error :", err.Error())
-	}
-
-	changedDataJSON, err := utility.ChangesToJSON(changes)
-	if err != nil {
-		log.Println("error :", err.Error())
-	}
-
-	go func() {
-		err := acs.activityLogSvc.LogActivity(
-			models.UpdateAction,
-			models.AssetCategory{}.TableName(),
-			result.ID,
-			changedDataJSON,
-			currentUserID,
-			nil,
-		)
-		if err != nil {
-			fmt.Printf("Failed to log bulk delete activity: %v\n", err)
-		}
-	}()
-	return result, err
+	return nil
 }
 
 func (acs *AssetCategoryService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
@@ -226,4 +198,28 @@ func (acs *AssetCategoryService) Deactivate(ids []uint, currentUserID uint) erro
 	}
 
 	return err
+}
+
+func (acs *AssetCategoryService) validateAssetCategoryFormDTO(assetCategoryFormDTO *assetDTOs.AssetCategoryFormDTO, id *uint) error {
+	if assetCategoryFormDTO.AssetTypeID != nil {
+		if _, err := acs.assetTypeSvc.GetByID(*assetCategoryFormDTO.AssetTypeID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("asset type does not exist"), "not_exist", "asset type")
+		}
+	}
+
+	if id == nil {
+		if exists, err := acs.repo.ExistsByTitle(assetCategoryFormDTO.TitleEn, assetCategoryFormDTO.TitleAr); err != nil {
+			return err
+		} else if exists {
+			return utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
+		}
+	} else {
+		if exists, err := acs.repo.ExistsByTitleExcludingID(*id, assetCategoryFormDTO.TitleEn, assetCategoryFormDTO.TitleAr); err != nil {
+			return err
+		} else if exists {
+			return utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
+		}
+	}
+
+	return nil
 }

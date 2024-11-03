@@ -1,8 +1,8 @@
 package controllers
 
 import (
+	assetDTOs "jethur/grc/asset/dtos"
 	"jethur/grc/asset/services"
-	"jethur/grc/models"
 	"jethur/utility"
 	"net/http"
 	"strconv"
@@ -27,8 +27,20 @@ func (acc *AssetCategoryController) GetAllAssetCategories(c *gin.Context) {
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
+	allowedParams := []string{
+		"asset_type_ids",
+	}
 
-	assetCategories, err := acc.service.GetAll(sort, sortBy, keyword, status)
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+
+	queryParams := assetDTOs.AssetCategoryListQueryParamsDTO{
+		Sort:    sort,
+		SortBy:  sortBy,
+		Keyword: keyword,
+		Status:  status,
+		Filters: filters,
+	}
+	assetCategories, err := acc.service.GetAll(&queryParams)
 
 	if err != nil {
 		utility.SendInternalErrResp(acc.db, c, err.Error())
@@ -56,9 +68,9 @@ func (acc *AssetCategoryController) GetAssetCategoryDetails(c *gin.Context) {
 }
 
 func (acc *AssetCategoryController) CreateAssetCategory(c *gin.Context) {
-	var assetCategory *models.AssetCategory
+	var category *assetDTOs.AssetCategoryFormDTO
 
-	if err := c.ShouldBindJSON(&assetCategory); err != nil {
+	if err := c.ShouldBindJSON(&category); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
@@ -67,8 +79,8 @@ func (acc *AssetCategoryController) CreateAssetCategory(c *gin.Context) {
 		utility.SendInternalErrResp(acc.db, c, err.Error())
 		return
 	}
+	id, err := acc.service.Create(currentUserID, category)
 
-	createdCategory, err := acc.service.Create(currentUserID, assetCategory)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:
@@ -79,31 +91,28 @@ func (acc *AssetCategoryController) CreateAssetCategory(c *gin.Context) {
 			return
 		}
 	}
-
-	c.JSON(http.StatusCreated, createdCategory)
+	c.JSON(http.StatusCreated, id)
 }
 
 func (acc *AssetCategoryController) UpdateAssetCategory(c *gin.Context) {
-	var updatedCategory *models.AssetCategory
-
-	assetCategoryID, err := strconv.Atoi(c.Param("id"))
+	categoryID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
 
-	if err := c.ShouldBindJSON(&updatedCategory); err != nil {
+	var updatedAssetCategory *assetDTOs.AssetCategoryFormDTO
+	if err := c.ShouldBindJSON(&updatedAssetCategory); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
-
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(acc.db, c, err.Error())
 		return
 	}
 
-	updatedCategory, err = acc.service.Update(uint(assetCategoryID), currentUserID, updatedCategory)
+	err = acc.service.Update(uint(categoryID), currentUserID, updatedAssetCategory)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -118,7 +127,7 @@ func (acc *AssetCategoryController) UpdateAssetCategory(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, updatedCategory)
+	c.Status(http.StatusOK)
 }
 
 func (acc *AssetCategoryController) DeleteAssetCategories(c *gin.Context) {
