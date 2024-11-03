@@ -14,7 +14,7 @@ type AssetModule struct {
 	AssetStatusController                        *controllers.AssetStatusController
 	AssetCriticalityMatrixFactorController       *controllers.AssetCriticalityMatrixFactorController
 	AssetCriticalityMatrixFactorRatingController *controllers.AssetCriticalityMatrixFactorRatingController
-	AssetCriticalityRatingScaleController        *controllers.AssetCriticalityRatingScaleController
+	AssetCriticalityMatrixRatingScaleController  *controllers.AssetCriticalityMatrixRatingScaleController
 }
 
 func NewAssetModule(db *gorm.DB,
@@ -45,9 +45,9 @@ func NewAssetModule(db *gorm.DB,
 	assetCriticalityMatrixFactorRatingSvc := services.NewAssetCriticalityMatrixFactorRatingService(assetCriticalityMatrixFactorRatingRepo, sharedModule.ActivityLogService)
 	assetCriticalityMatrixFactorRatingController := controllers.NewAssetCriticalityMatrixFactorRatingController(assetCriticalityMatrixFactorRatingSvc)
 
-	assetCriticalityRatingScaleRepo := repositories.NewAssetCriticalityRatingScaleRepository(db)
-	assetCriticalityRatingScaleSvc := services.NewAssetCriticalityRatingScaleService(assetCriticalityRatingScaleRepo, sharedModule.ActivityLogService)
-	assetCriticalityRatingScaleController := controllers.NewAssetCriticalityRatingScaleController(assetCriticalityRatingScaleSvc)
+	assetCriticalityMatrixRatingScaleRepo := repositories.NewAssetCriticalityMatrixRatingScaleRepository(db)
+	assetCriticalityMatrixRatingScaleSvc := services.NewAssetCriticalityMatrixRatingScaleService(assetCriticalityMatrixRatingScaleRepo, sharedModule.ActivityLogService)
+	assetCriticalityMatrixRatingScaleController := controllers.NewAssetCriticalityMatrixRatingScaleController(assetCriticalityMatrixRatingScaleSvc)
 
 	return &AssetModule{
 		AssetTypeController:                          assetTypeController,
@@ -55,6 +55,6 @@ func NewAssetModule(db *gorm.DB,
 		AssetStatusController:                        assetStatusController,
 		AssetCriticalityMatrixFactorController:       assetCriticalityMatrixFactorController,
 		AssetCriticalityMatrixFactorRatingController: assetCriticalityMatrixFactorRatingController,
-		AssetCriticalityRatingScaleController:        assetCriticalityRatingScaleController,
+		AssetCriticalityMatrixRatingScaleController:  assetCriticalityMatrixRatingScaleController,
 	}
 }
