@@ -9,9 +9,12 @@ import (
 )
 
 type AssetModule struct {
-	AssetTypeController     *controllers.AssetTypeController
-	AssetCategoryController *controllers.AssetCategoryController
-	AssetStatusController   *controllers.AssetStatusController
+	AssetTypeController                          *controllers.AssetTypeController
+	AssetCategoryController                      *controllers.AssetCategoryController
+	AssetStatusController                        *controllers.AssetStatusController
+	AssetCriticalityMatrixFactorController       *controllers.AssetCriticalityMatrixFactorController
+	AssetCriticalityMatrixFactorRatingController *controllers.AssetCriticalityMatrixFactorRatingController
+	AssetCriticalityMatrixRatingScaleController  *controllers.AssetCriticalityMatrixRatingScaleController
 }
 
 func NewAssetModule(db *gorm.DB,
@@ -34,9 +37,24 @@ func NewAssetModule(db *gorm.DB,
 	assetStatusSvc := services.NewAssetStatusService(assetStatusRepo)
 	assetStatusController := controllers.NewAssetStatusController(assetStatusSvc)
 
+	assetCriticalityMatrixFactorRepo := repositories.NewAssetCriticalityMatrixFactorRepository(db)
+	assetCriticalityMatrixFactorSvc := services.NewAssetCriticalityMatrixFactorService(assetCriticalityMatrixFactorRepo, sharedModule.ActivityLogService)
+	assetCriticalityMatrixFactorController := controllers.NewAssetCriticalityMatrixFactorController(assetCriticalityMatrixFactorSvc)
+
+	assetCriticalityMatrixFactorRatingRepo := repositories.NewAssetCriticalityMatrixFactorRatingRepository(db)
+	assetCriticalityMatrixFactorRatingSvc := services.NewAssetCriticalityMatrixFactorRatingService(assetCriticalityMatrixFactorRatingRepo, sharedModule.ActivityLogService)
+	assetCriticalityMatrixFactorRatingController := controllers.NewAssetCriticalityMatrixFactorRatingController(assetCriticalityMatrixFactorRatingSvc)
+
+	assetCriticalityMatrixRatingScaleRepo := repositories.NewAssetCriticalityMatrixRatingScaleRepository(db)
+	assetCriticalityMatrixRatingScaleSvc := services.NewAssetCriticalityMatrixRatingScaleService(assetCriticalityMatrixRatingScaleRepo, sharedModule.ActivityLogService)
+	assetCriticalityMatrixRatingScaleController := controllers.NewAssetCriticalityMatrixRatingScaleController(assetCriticalityMatrixRatingScaleSvc)
+
 	return &AssetModule{
-		AssetTypeController:     assetTypeController,
-		AssetCategoryController: assetCategoryController,
-		AssetStatusController:   assetStatusController,
+		AssetTypeController:                          assetTypeController,
+		AssetCategoryController:                      assetCategoryController,
+		AssetStatusController:                        assetStatusController,
+		AssetCriticalityMatrixFactorController:       assetCriticalityMatrixFactorController,
+		AssetCriticalityMatrixFactorRatingController: assetCriticalityMatrixFactorRatingController,
+		AssetCriticalityMatrixRatingScaleController:  assetCriticalityMatrixRatingScaleController,
 	}
 }
