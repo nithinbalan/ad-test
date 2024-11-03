@@ -167,7 +167,7 @@ func (caps *ControlActionPlanService) Create(controlID uint, currentUserID uint,
 		return 0, err
 	}
 
-	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+	urlParam := fmt.Sprintf(`{"control_id":%d, "action_plan_id":%d}`, controlID, id)
 
 	taskDTO := commonDTOs.TaskFormDTO{
 		ModuleIdentifier:    "organization",
@@ -211,7 +211,8 @@ func (caps *ControlActionPlanService) Create(controlID uint, currentUserID uint,
 		}
 
 		// Prepare notification
-		urlParam := fmt.Sprintf(`{"id":%d}`, id)
+		urlParam := fmt.Sprintf(`{"control_id":%d, "action_plan_id":%d}`, controlID, id)
+		queryParam := ""
 		entity := "control-action-plan"
 		action := "responsible-user-assign"
 
@@ -226,6 +227,7 @@ func (caps *ControlActionPlanService) Create(controlID uint, currentUserID uint,
 			Entity:               &entity,
 			Action:               &action,
 			URLParam:             urlParam,
+			QueryParam:           queryParam,
 			IsSystemNotification: false,
 			CreatedByID:          &currentUserID,
 		}
@@ -322,7 +324,7 @@ func (caps *ControlActionPlanService) Update(controlID uint, id uint, currentUse
 		return err
 	}
 
-	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+	urlParam := fmt.Sprintf(`{"control_id":%d, "action_plan_id":%d}`, controlID, id)
 
 	taskUpdateDTO := commonDTOs.TaskFormDTO{
 		Title:             ControlActionPlanFormDTO.Title,
@@ -344,7 +346,8 @@ func (caps *ControlActionPlanService) Update(controlID uint, id uint, currentUse
 	go func() {
 		if oldResponsibleUserID != ControlActionPlanFormDTO.ResponsibleUserID {
 
-			urlParam := fmt.Sprintf(`{"id":%d}`, id)
+			urlParam := fmt.Sprintf(`{"control_id":%d, "action_plan_id":%d}`, controlID, id)
+			queryParam := ""
 			entity := "control-action-plan"
 
 			oldResponsibleUserAction := "responsible-user-remove"
@@ -359,6 +362,7 @@ func (caps *ControlActionPlanService) Update(controlID uint, id uint, currentUse
 				Entity:               &entity,
 				Action:               &oldResponsibleUserAction,
 				URLParam:             urlParam,
+				QueryParam:           queryParam,
 				IsSystemNotification: false,
 				CreatedByID:          &currentUserID,
 			}
@@ -375,6 +379,7 @@ func (caps *ControlActionPlanService) Update(controlID uint, id uint, currentUse
 				Entity:               &entity,
 				Action:               &newResponsibleUserAction,
 				URLParam:             urlParam,
+				QueryParam:           queryParam,
 				IsSystemNotification: false,
 				CreatedByID:          &currentUserID,
 			}

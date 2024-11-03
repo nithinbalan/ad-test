@@ -125,7 +125,6 @@ func (adfcc *AuditDraftFindingConversationController) CreateAuditDraftFindingCon
 	c.JSON(http.StatusCreated, commonDTOs.IDResponse{ID: id})
 }
 
-
 func (adfcc *AuditDraftFindingConversationController) UpdateAuditDraftFindingConversation(c *gin.Context) {
 	var AuditDraftFindingConversationFormDTO dtos.AuditDraftFindingConversationFormDTO
 
@@ -214,6 +213,41 @@ func (adfcc *AuditDraftFindingConversationController) DeleteAuditDraftFindingCon
 	}
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}
+
+func (adfcc *AuditDraftFindingConversationController) GetAuditDraftFindingConversationDocumentPreview(c *gin.Context) {
+
+	findingIdStr := c.Param("findingId")
+	findingId, err := strconv.ParseUint(findingIdStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	idStr := c.Param("id")
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	documentPath, err := adfcc.service.GetDocumentPath(uint(findingId), uint(id), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(adfcc.db, c, err.Error())
+		}
+		return
+	}
+	c.File(documentPath)
 }
 
 func (adfcc *AuditDraftFindingConversationController) DownloadAuditDraftFindingConversationDocument(c *gin.Context) {

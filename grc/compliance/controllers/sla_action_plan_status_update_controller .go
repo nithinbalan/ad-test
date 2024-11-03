@@ -6,6 +6,7 @@ import (
 	"jethur/grc/compliance/services"
 	"jethur/utility"
 	"net/http"
+	"path/filepath"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -194,4 +195,101 @@ func (sasuc *SLAActionPlanStatusUpdateController) GetLatestSLAActionPlanStatusUp
 	}
 
 	c.JSON(http.StatusOK, slaActionPlanStatusUpdate)
+}
+
+func (sasuc *SLAActionPlanStatusUpdateController) GetSLAActionPlanStatusUpdateDocumentPreview(c *gin.Context) {
+	slaIDStr := c.Param("slaId")
+
+	slaID, err := strconv.ParseUint(slaIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	actionPlanIDStr := c.Param("actionPlanId")
+
+	actionPlanID, err := strconv.ParseUint(actionPlanIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	slaActionPlanStatusUpdateDocumentPath, err := sasuc.service.GetDocumentPath(uint(slaID), uint(actionPlanID), uint(id), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(sasuc.db, c, err.Error())
+		}
+		return
+	}
+	c.File(slaActionPlanStatusUpdateDocumentPath)
+}
+
+func (sasuc *SLAActionPlanStatusUpdateController) DownloadSLAActionPlanStatusUpdateDocument(c *gin.Context) {
+	slaIDStr := c.Param("slaId")
+
+	slaID, err := strconv.ParseUint(slaIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	actionPlanIDStr := c.Param("actionPlanId")
+
+	actionPlanID, err := strconv.ParseUint(actionPlanIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	slaActionPlanStatusUpdateDocumentPath, err := sasuc.service.GetDocumentPath(uint(slaID), uint(actionPlanID), uint(id), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(sasuc.db, c, err.Error())
+		}
+		return
+	}
+	filename := filepath.Base(slaActionPlanStatusUpdateDocumentPath)
+
+	// Set the content type and disposition headers for the file download
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Type", "application/octet-stream")
+	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Header("Content-Transfer-Encoding", "binary")
+	c.Header("Expires", "0")
+	c.Header("Cache-Control", "must-revalidate")
+	c.Header("Pragma", "public")
+
+	// Serve the file
+	c.File(slaActionPlanStatusUpdateDocumentPath)
 }

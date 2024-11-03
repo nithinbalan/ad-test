@@ -136,3 +136,34 @@ func (aidrcc *AuditInsightsDocumentRequestConversationController) DownloadDocume
 	// Serve the file
 	c.File(documentPath)
 }
+
+func (aidrcc *AuditInsightsDocumentRequestConversationController) GetDocumentRequestConversationDocumentPreview(c *gin.Context) {
+
+	auditDocumentRequestID, err := strconv.Atoi(c.Param("documentRequestId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	conversationID, err := strconv.Atoi(c.Param("conversationId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	documentPath, err := aidrcc.service.GetDocumentPath(uint(auditDocumentRequestID), uint(conversationID), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(aidrcc.db, c, err.Error())
+		}
+		return
+	}
+	c.File(documentPath)
+}

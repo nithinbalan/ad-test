@@ -40,8 +40,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	userProfileController := app.OrganizationModule.UserProfileController
 
 	//Designation
-	organizationRoutes.GET("/designations", middlewares.RolePermissionMiddleware(db, "organization_setting", "view"), designationController.GetAllDesignations)
-	organizationRoutes.GET("/designations/:id", middlewares.RolePermissionMiddleware(db, "organization_setting", "view"), designationController.GetDesignationDetails)
+	organizationRoutes.GET("/designations", designationController.GetAllDesignations)
+	organizationRoutes.GET("/designations/:id", designationController.GetDesignationDetails)
 	organizationRoutes.POST("/designations", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), designationController.CreateDesignation)
 	organizationRoutes.PUT("/designations/:id", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), designationController.UpdateDesignation)
 	organizationRoutes.POST("/designations/delete", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), designationController.DeleteDesignations)
@@ -49,8 +49,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.PUT("/designations/deactivate", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), designationController.DeactivateDesignations)
 
 	//User Status
-	organizationRoutes.GET("/user-statuses", middlewares.RolePermissionMiddleware(db, "organization_setting", "view"), userStatusController.GetAllUserStatuses)
-	organizationRoutes.GET("/user-statuses/:id", middlewares.RolePermissionMiddleware(db, "organization_setting", "view"), userStatusController.GetUserStatusDetails)
+	organizationRoutes.GET("/user-statuses", userStatusController.GetAllUserStatuses)
+	organizationRoutes.GET("/user-statuses/:id", userStatusController.GetUserStatusDetails)
 
 	//User
 	organizationRoutes.GET("/users/export", middlewares.RolePermissionMiddleware(db, "user_management", "view"), userController.GetUsersExport)
@@ -61,12 +61,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.POST("/users/delete", middlewares.RolePermissionMiddleware(db, "user_management", "modify"), userController.DeleteUsers)
 	organizationRoutes.GET("/users/:userId/login-history", middlewares.RolePermissionMiddleware(db, "user_management", "view"), userController.GetUserLoginHistory)
 
-	organizationRoutes.GET("/users/me", middlewares.RolePermissionMiddleware(db, "user_management", "view"), userController.GetCurrentUserDetails)
-	organizationRoutes.GET("/users/me/permissions", middlewares.RolePermissionMiddleware(db, "user_management", "view"), userController.GetUserPermissions)
-	organizationRoutes.GET("/users/me/notifications", middlewares.RolePermissionMiddleware(db, "user_management", "view"), userController.GetUserNotifications)
-	organizationRoutes.GET("/users/me/notifications/new-count", middlewares.RolePermissionMiddleware(db, "user_management", "view"), userController.GetUserNewNotificationCount)
-	organizationRoutes.PUT("/users/me/notifications/mark-as-read", middlewares.RolePermissionMiddleware(db, "user_management", "modify"), userController.MarkwNotificationAsRead)
-	organizationRoutes.PUT("/users/me/notifications/mark-as-unread", middlewares.RolePermissionMiddleware(db, "user_management", "modify"), userController.MarkwNotificationAsUnread)
+	organizationRoutes.GET("/users/me", userController.GetCurrentUserDetails)
+	organizationRoutes.GET("/users/me/permissions", userController.GetUserPermissions)
+	organizationRoutes.GET("/users/me/notifications", userController.GetUserNotifications)
+	organizationRoutes.GET("/users/me/notifications/new-count", userController.GetUserNewNotificationCount)
+	organizationRoutes.PUT("/users/me/notifications/mark-as-read", userController.MarkwNotificationAsRead)
+	organizationRoutes.PUT("/users/me/notifications/mark-as-unread", userController.MarkwNotificationAsUnread)
 
 	//User Profile Settings
 	organizationRoutes.GET("/users/me/settings/preferences", userProfileController.GetProfileSetting)
@@ -106,8 +106,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.POST("/strategic-profiles/values/delete", middlewares.RolePermissionMiddleware(db, "strategic_profile", "modify"), strategicProfileValueController.DeleteStrategicProfileValues)
 
 	//Strategic Objective
-	organizationRoutes.GET("/strategic-objectives", middlewares.RolePermissionMiddleware(db, "organization_setting", "view"), strategicObjectiveController.GetAllStrategicObjectives)
-	organizationRoutes.GET("/strategic-objectives/:id", middlewares.RolePermissionMiddleware(db, "organization_setting", "view"), strategicObjectiveController.GetStrategicObjectiveDetails)
+	organizationRoutes.GET("/strategic-objectives", strategicObjectiveController.GetAllStrategicObjectives)
+	organizationRoutes.GET("/strategic-objectives/:id", strategicObjectiveController.GetStrategicObjectiveDetails)
 	organizationRoutes.POST("/strategic-objectives", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), strategicObjectiveController.CreateStrategicObjective)
 	organizationRoutes.PUT("/strategic-objectives/:id", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), strategicObjectiveController.UpdateStrategicObjective)
 	organizationRoutes.POST("/strategic-objectives/delete", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), strategicObjectiveController.DeleteStrategicObjectives)
@@ -134,8 +134,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.GET("/users/:userId/task-summary", middlewares.RolePermissionMiddleware(db, "user_management", "view"), userTaskController.GetUserTaskSummary)
 
 	//Control Category
-	organizationRoutes.GET("/control-categories", middlewares.RolePermissionMiddleware(db, "organization_setting", "view"), controlCategoryController.GetAllControlCategories)
-	organizationRoutes.GET("/control-categories/:id", middlewares.RolePermissionMiddleware(db, "organization_setting", "view"), controlCategoryController.GetControlCategoryDetails)
+	organizationRoutes.GET("/control-categories", controlCategoryController.GetAllControlCategories)
+	organizationRoutes.GET("/control-categories/:id", controlCategoryController.GetControlCategoryDetails)
 	organizationRoutes.POST("/control-categories", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), controlCategoryController.CreateControlCategory)
 	organizationRoutes.PUT("/control-categories/:id", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), controlCategoryController.UpdateControlCategory)
 	organizationRoutes.POST("/control-categories/delete", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), controlCategoryController.DeleteControlCategory)
@@ -143,19 +143,19 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.PUT("/control-categories/deactivate", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), controlCategoryController.DeactivateControlCategories)
 
 	//Control Type
-	organizationRoutes.GET("/control-types", middlewares.RolePermissionMiddleware(db, "organization_setting", "view"), controlTypeController.GetAllControlTypes)
+	organizationRoutes.GET("/control-types", controlTypeController.GetAllControlTypes)
 
 	//Control Implementation Status
-	organizationRoutes.GET("/control-implementation-statuses", middlewares.RolePermissionMiddleware(db, "organization_setting", "view"), controlImplementationStatusController.GetAllControlImplementationStatuses)
-	organizationRoutes.GET("/control-implementation-statuses/:id", middlewares.RolePermissionMiddleware(db, "organization_setting", "view"), controlImplementationStatusController.GetControlImplementationStatusDetails)
+	organizationRoutes.GET("/control-implementation-statuses", controlImplementationStatusController.GetAllControlImplementationStatuses)
+	organizationRoutes.GET("/control-implementation-statuses/:id", controlImplementationStatusController.GetControlImplementationStatusDetails)
 
 	//Control Efficiency Status
-	organizationRoutes.GET("/control-efficiency-statuses", middlewares.RolePermissionMiddleware(db, "organization_setting", "view"), controlEfficiencyStatusController.GetAllControlEfficiencyStatuses)
-	organizationRoutes.GET("/control-efficiency-statuses/:id", middlewares.RolePermissionMiddleware(db, "organization_setting", "view"), controlEfficiencyStatusController.GetControlEfficiencyStatusDetails)
+	organizationRoutes.GET("/control-efficiency-statuses", controlEfficiencyStatusController.GetAllControlEfficiencyStatuses)
+	organizationRoutes.GET("/control-efficiency-statuses/:id", controlEfficiencyStatusController.GetControlEfficiencyStatusDetails)
 
 	//Control Review Statuses
-	organizationRoutes.GET("/control-review-statuses", middlewares.RolePermissionMiddleware(db, "organization_setting", "view"), controlReviewStatusController.GetAllControlReviewStatuses)
-	organizationRoutes.GET("/control-review-statuses/:id", middlewares.RolePermissionMiddleware(db, "organization_setting", "view"), controlReviewStatusController.GetControlReviewStatusDetails)
+	organizationRoutes.GET("/control-review-statuses", controlReviewStatusController.GetAllControlReviewStatuses)
+	organizationRoutes.GET("/control-review-statuses/:id", controlReviewStatusController.GetControlReviewStatusDetails)
 
 	//Control Review
 	organizationRoutes.GET("/controls/:controlId/reviews", middlewares.RolePermissionMiddleware(db, "controls", "view"), controlReviewController.GetAllControlReviews)
@@ -191,8 +191,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.GET("/controls/:controlId/associated-item-summary", middlewares.RolePermissionMiddleware(db, "controls", "view"), controlAssociatedItemController.GetAllAssociatedCounts)
 
 	//Process Group
-	organizationRoutes.GET("/process-groups", middlewares.RolePermissionMiddleware(db, "organization_setting", "view"), processGroupController.GetAllProcessGroups)
-	organizationRoutes.GET("/process-groups/:id", middlewares.RolePermissionMiddleware(db, "organization_setting", "view"), processGroupController.GetProcessGroupDetails)
+	organizationRoutes.GET("/process-groups", processGroupController.GetAllProcessGroups)
+	organizationRoutes.GET("/process-groups/:id", processGroupController.GetProcessGroupDetails)
 	organizationRoutes.POST("/process-groups", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), processGroupController.CreateProcessGroup)
 	organizationRoutes.PUT("/process-groups/:id", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), processGroupController.UpdateProcessGroup)
 	organizationRoutes.POST("/process-groups/delete", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), processGroupController.DeleteProcessGroups)

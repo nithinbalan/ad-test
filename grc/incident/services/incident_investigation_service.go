@@ -3,10 +3,12 @@ package services
 import (
 	"errors"
 	"fmt"
+	"jethur/config"
 	incidentDTOs "jethur/grc/incident/dtos"
 	incidentRepositories "jethur/grc/incident/repositories"
 	logServices "jethur/grc/logs/services"
 	organizationServices "jethur/grc/organization/services"
+	"os"
 	"time"
 
 	"jethur/grc/models"
@@ -25,6 +27,7 @@ type IncidentInvestigationServiceInterface interface {
 	Create(incidentID uint, currentUserID uint, incidentInvestigationFormDTO *incidentDTOs.IncidentInvestigationFormDTO) (uint, error)
 	Update(incidentID uint, currentUserID uint, incident *incidentDTOs.IncidentInvestigationFormDTO) error
 	Delete(incidentID uint, currentUserID uint) (uint, error)
+	GetDocumentPath(incidentID uint, token string) (string, error)
 }
 
 // Service and implementations
@@ -182,7 +185,7 @@ func (iis *IncidentInvestigationService) Create(incidentID uint, currentUserID u
 			return 0, err
 		}
 		// Construct the URL for the document
-		url := utility.GenerateDocumentURL("incident-investigations", strconv.FormatUint(uint64(incidentInvestigation.ID), 10), encryptedFilename)
+		url := utility.GenerateDocumentURL("incident", "incident-register", strconv.FormatUint(uint64(incidentID), 10), "investigations", strconv.FormatUint(uint64(incidentInvestigation.ID), 10), "documents")
 
 		// Create a new Incident Investigation Document instance
 		document := &models.IncidentInvestigationDocument{
@@ -205,7 +208,7 @@ func (iis *IncidentInvestigationService) Create(incidentID uint, currentUserID u
 			return 0, err
 		}
 		for _, doc := range documents {
-			storagePath := filepath.Join("incident", "investigations", strconv.FormatUint(uint64(incidentInvestigation.ID), 10), "documents")
+			storagePath := filepath.Join("incident", "incident-register", strconv.FormatUint(uint64(incidentID), 10), "investigations", strconv.FormatUint(uint64(incidentInvestigation.ID), 10), "documents")
 			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
 				tx.Rollback()
 				return 0, err
@@ -412,7 +415,7 @@ func (iis *IncidentInvestigationService) Update(incidentID uint, currentUserID u
 				tx.Rollback()
 				return err
 			}
-			url := utility.GenerateDocumentURL("incident-investigations", strconv.FormatUint(uint64(existingIncidentInvestigation.ID), 10), encryptedFilename)
+			url := utility.GenerateDocumentURL("incident", "incident-register", strconv.FormatUint(uint64(incidentID), 10), "investigations", strconv.FormatUint(uint64(existingIncidentInvestigation.ID), 10), "documents")
 
 			document := &models.IncidentInvestigationDocument{
 				IncidentInvestigationID: existingIncidentInvestigation.ID,
@@ -458,7 +461,7 @@ func (iis *IncidentInvestigationService) Update(incidentID uint, currentUserID u
 	//Store File
 	if len(documents) > 0 {
 		for _, doc := range documents {
-			storagePath := filepath.Join("incident", "investigations", strconv.FormatUint(uint64(existingIncidentInvestigation.ID), 10), "documents")
+			storagePath := filepath.Join("incident", "incident-register", strconv.FormatUint(uint64(incidentID), 10), "investigations", strconv.FormatUint(uint64(existingIncidentInvestigation.ID), 10), "documents")
 			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
 				tx.Rollback()
 				return err
@@ -469,7 +472,7 @@ func (iis *IncidentInvestigationService) Update(incidentID uint, currentUserID u
 	//Remove File
 	if len(documentsToDelete) > 0 {
 		for _, document := range documentsToDelete {
-			storagePath := filepath.Join("incident", "investigations", strconv.FormatUint(uint64(existingIncidentInvestigation.ID), 10), "documents")
+			storagePath := filepath.Join("incident", "incident-register", strconv.FormatUint(uint64(incidentID), 10), "investigations", strconv.FormatUint(uint64(existingIncidentInvestigation.ID), 10), "documents")
 			if err := utility.RemoveFile(document.Name, storagePath); err != nil {
 				tx.Rollback()
 				return err
@@ -583,7 +586,7 @@ func (iis *IncidentInvestigationService) Delete(incidentID uint, currentUserID u
 	if len(documentsToDelete) > 0 {
 		for incidentInvestigationID, documents := range documentsToDelete {
 			for _, doc := range documents {
-				storagePath := filepath.Join("incident", "investigations", strconv.FormatUint(uint64(incidentInvestigationID), 10), "documents")
+				storagePath := filepath.Join("incident", "incident-register", strconv.FormatUint(uint64(incidentID), 10), "investigations", strconv.FormatUint(uint64(incidentInvestigationID), 10), "documents")
 				if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
 					tx.Rollback()
 					fmt.Printf("Failed to delete file at URL %s: %v\n", *doc.URL, err)
@@ -657,4 +660,43 @@ func (iis *IncidentInvestigationService) parseIncidentInvestigationDates(dto *in
 	}
 
 	return parsed, nil
+}
+
+func (iis *IncidentInvestigationService) GetDocumentPath(IncidentID uint, token string) (string, error) {
+	existingIncidentInvestigation, err := iis.GetFullDetailsByID(IncidentID)
+	if err != nil {
+		return "", err
+	}
+
+	if existingIncidentInvestigation == nil {
+		return "", errors.New("existing incident investigation not found")
+	}
+
+	if len(existingIncidentInvestigation.Documents) == 0 {
+		return "", fmt.Errorf("no documents found for the incident investigation")
+	}
+
+	decryptedFilenameBytes, err := utility.DecryptData(token)
+	if err != nil {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	decryptedFilename := string(decryptedFilenameBytes)
+	if decryptedFilename == "" {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	storagePath := filepath.Join("incident", "incident-register", strconv.FormatUint(uint64(IncidentID), 10), "investigations", strconv.FormatUint(uint64(existingIncidentInvestigation.ID), 10), "documents")
+
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
+
+	// Check if the file exists
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("file not found")
+	} else if err != nil {
+		return "", fmt.Errorf("error accessing file: %w", err)
+	}
+
+	return fullPath, nil
 }

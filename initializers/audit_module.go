@@ -52,6 +52,11 @@ type AuditModule struct {
 	AuditDraftReportCommentController            *controllers.AuditDraftReportCommentController
 	AuditPlanCommencementLetterStatusController  *controllers.AuditPlanCommencementLetterStatusController
 	AuditPlanCommencementLetterController        *controllers.AuditPlanCommencementLetterController
+	AuditFinalReportStatusController             *controllers.AuditFinalReportStatusController
+	AuditFinalReportController                   *controllers.AuditFinalReportController
+	AuditFinalReportSectionController            *controllers.AuditFinalReportSectionController
+	AuditReportWorkflowController                *controllers.AuditReportWorkflowController
+	AuditReportReviewController                  *controllers.AuditReportReviewController
 
 	AuditPlanSvc                        services.AuditPlanServiceInterface
 	AuditSvc                            services.AuditServiceInterface
@@ -408,6 +413,59 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 	)
 	auditPlanCommencementLetterController := controllers.NewAuditPlanCommencementLetterController(auditPlanCommencementLetterSvc)
 
+	auditFinalReportStatusRepo := repositories.NewAuditFinalReportStatusRepository(db)
+	auditFinalReportStatusSvc := services.NewAuditFinalReportStatusService(auditFinalReportStatusRepo)
+	auditFinalReportStatusController := controllers.NewAuditFinalReportStatusController(auditFinalReportStatusSvc)
+
+	auditReportWorkflowRepo := repositories.NewAuditReportWorkflowRepository(db)
+	auditReportWorkflowSvc := services.NewAuditReportWorkflowService(
+		auditReportWorkflowRepo,
+		sharedModule.ActivityLogService,
+		settingModule.WorkflowSvc,
+		masterModule.WorkflowStatusSvc,
+		organizationModule.UserSvc,
+		auditSvc,
+	)
+
+	auditFinalReportRepo := repositories.NewAuditFinalReportRepository(db)
+	auditFinalReportSvc := services.NewAuditFinalReportService(
+		auditFinalReportRepo,
+		sharedModule.ActivityLogService,
+		auditSvc,
+		auditDraftReportStatusSvc,
+		auditDraftReportSvc,
+		auditDraftFindingSvc,
+		organizationModule.UserSvc,
+		auditFinalReportStatusSvc,
+		auditFindingSvc,
+	)
+	auditFinalReportController := controllers.NewAuditFinalReportController(auditFinalReportSvc)
+
+	auditFinalReportSectionRepo := repositories.NewAuditFinalReportSectionRepository(db)
+	auditFinalReportSectionSvc := services.NewAuditFinalReportSectionService(
+		auditFinalReportSectionRepo,
+		sharedModule.ActivityLogService,
+		auditSvc,
+		auditFindingSvc,
+	)
+	auditFinalReportSectionController := controllers.NewAuditFinalReportSectionController(auditFinalReportSectionSvc)
+
+	auditFinalReportSvc.SetAuditReportWorkflowService(auditReportWorkflowSvc)
+	auditReportWorkflowSvc.SetAuditFinalReportService(auditFinalReportSvc)
+	auditReportWorkflowController := controllers.NewAuditReportWorkflowController(auditReportWorkflowSvc)
+
+	auditReportReviewRepo := repositories.NewAuditReportReviewRepository(db)
+	auditReportReviewSvc := services.NewAuditReportReviewService(
+		auditReportReviewRepo,
+		sharedModule.ActivityLogService,
+		auditFinalReportSvc,
+		auditReportWorkflowSvc,
+		masterModule.WorkflowStatusSvc,
+		auditFinalReportStatusSvc,
+		organizationModule.UserSvc,
+		commonModule.NotificationService,
+		taskModule.TaskService)
+	auditReportReviewController := controllers.NewAuditReportReviewController(auditReportReviewSvc)
 	return &AuditModule{
 		AuditorRiskRatingController:                  auditorRiskRatingController,
 		AuditUniverseController:                      auditUniverseController,
@@ -452,6 +510,11 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		AuditDraftReportCommentController:            auditDraftReportCommentController,
 		AuditPlanCommencementLetterStatusController:  auditPlanCommencementLetterStatusController,
 		AuditPlanCommencementLetterController:        auditPlanCommencementLetterController,
+		AuditFinalReportStatusController:             auditFinalReportStatusController,
+		AuditFinalReportController:                   auditFinalReportController,
+		AuditFinalReportSectionController:            auditFinalReportSectionController,
+		AuditReportWorkflowController:                auditReportWorkflowController,
+		AuditReportReviewController:                  auditReportReviewController,
 
 		AuditPlanSvc:                        auditPlanSvc,
 		AuditSvc:                            auditSvc,

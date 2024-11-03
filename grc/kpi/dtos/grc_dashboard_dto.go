@@ -60,6 +60,7 @@ type GRCDocumentOverviewDTO struct {
 
 type GRCTopComplianceRegistersDTO struct {
 	ID                        uint   `json:"id"`
+	StandardCode              string `json:"standard_code"`
 	TitleEn                   string `json:"title_en"`
 	TitleAr                   string `json:"title_ar"`
 	TotalScore                int    `json:"total_score"`

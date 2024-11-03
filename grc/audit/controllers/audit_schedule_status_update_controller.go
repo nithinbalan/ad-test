@@ -6,6 +6,7 @@ import (
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/utility"
 	"net/http"
+	"path/filepath"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -153,4 +154,103 @@ func (assuc *AuditScheduleStatusUpdateController) GetLatestAuditScheduleStatusUp
 	}
 
 	c.JSON(http.StatusOK, latestUpdate)
+}
+
+func (iasuc *AuditScheduleStatusUpdateController) GetAuditScheduleStatusUpdateDocumentPreview(c *gin.Context) {
+
+	auditIDStr := c.Param("auditId")
+
+	auditID, err := strconv.ParseUint(auditIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	auditScheduleIDStr := c.Param("scheduleId")
+
+	auditScheduleID, err := strconv.ParseUint(auditScheduleIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	auditScheduleStatusUpdateDocumentPath, err := iasuc.service.GetDocumentPath(uint(auditID), uint(auditScheduleID), uint(id), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(iasuc.db, c, err.Error())
+		}
+		return
+	}
+	c.File(auditScheduleStatusUpdateDocumentPath)
+}
+
+func (iasuc *AuditScheduleStatusUpdateController) DownloadAuditScheduleStatusUpdateDocument(c *gin.Context) {
+	auditIDStr := c.Param("auditId")
+
+	auditID, err := strconv.ParseUint(auditIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	auditScheduleIDStr := c.Param("scheduleId")
+
+	auditScheduleID, err := strconv.ParseUint(auditScheduleIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	auditScheduleStatusUpdateDocumentPath, err := iasuc.service.GetDocumentPath(uint(auditID), uint(auditScheduleID), uint(id), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(iasuc.db, c, err.Error())
+		}
+		return
+	}
+	filename := filepath.Base(auditScheduleStatusUpdateDocumentPath)
+
+	// Set the content type and disposition headers for the file download
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Type", "application/octet-stream")
+	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Header("Content-Transfer-Encoding", "binary")
+	c.Header("Expires", "0")
+	c.Header("Cache-Control", "must-revalidate")
+	c.Header("Pragma", "public")
+
+	// Serve the file
+	c.File(auditScheduleStatusUpdateDocumentPath)
 }

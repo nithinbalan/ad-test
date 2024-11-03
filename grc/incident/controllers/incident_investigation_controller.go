@@ -6,6 +6,7 @@ import (
 	"jethur/grc/incident/services"
 	"jethur/utility"
 	"net/http"
+	"path/filepath"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -214,4 +215,73 @@ func (iic *IncidentInvestigationController) DeleteIncidentInvestigations(c *gin.
 	}
 
 	c.JSON(http.StatusOK, gin.H{"failed_id": failedID})
+}
+
+func (iasuc *IncidentInvestigationController) GetIncidentInvestigationDocumentPreview(c *gin.Context) {
+
+	incidentIDStr := c.Param("incidentID")
+
+	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	incidentInvestigationDocumentPath, err := iasuc.service.GetDocumentPath(uint(incidentID), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(iasuc.db, c, err.Error())
+		}
+		return
+	}
+	c.File(incidentInvestigationDocumentPath)
+}
+
+func (iasuc *IncidentInvestigationController) DownloadIncidentInvestigationDocument(c *gin.Context) {
+	incidentIDStr := c.Param("incidentID")
+
+	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	incidentInvestigationDocumentPath, err := iasuc.service.GetDocumentPath(uint(incidentID), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(iasuc.db, c, err.Error())
+		}
+		return
+	}
+	filename := filepath.Base(incidentInvestigationDocumentPath)
+
+	// Set the content type and disposition headers for the file download
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Type", "application/octet-stream")
+	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Header("Content-Transfer-Encoding", "binary")
+	c.Header("Expires", "0")
+	c.Header("Cache-Control", "must-revalidate")
+	c.Header("Pragma", "public")
+
+	// Serve the file
+	c.File(incidentInvestigationDocumentPath)
 }

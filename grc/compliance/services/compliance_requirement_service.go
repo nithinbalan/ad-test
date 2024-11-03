@@ -3,6 +3,10 @@ package services
 import (
 	"errors"
 	"fmt"
+	"time"
+
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	complianceRepositories "jethur/grc/compliance/repositories"
 	logServices "jethur/grc/logs/services"
@@ -38,6 +42,8 @@ type ComplianceRequirementService struct {
 	severityLevelSvc                 masterServices.SeverityLevelServiceInterface
 	controlSvc                       organizationServices.ControlServiceInterface
 	strategicObjectiveSvc            organizationServices.StrategicObjectiveServiceInterface
+	userSvc                          organizationServices.UserServiceInterface
+	notificationSvc                  commonServices.NotificationServiceInterface
 }
 
 func NewComplianceRequirementService(
@@ -49,6 +55,8 @@ func NewComplianceRequirementService(
 	severityLevelSvc masterRepositories.SeverityLevelRepositoryInterface,
 	controlSvc organizationServices.ControlServiceInterface,
 	strategicObjectiveSvc organizationServices.StrategicObjectiveServiceInterface,
+	userSvc organizationServices.UserServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
 ) ComplianceRequirementServiceInterface {
 	return &ComplianceRequirementService{
 		repo:                             repo,
@@ -59,6 +67,8 @@ func NewComplianceRequirementService(
 		severityLevelSvc:                 severityLevelSvc,
 		controlSvc:                       controlSvc,
 		strategicObjectiveSvc:            strategicObjectiveSvc,
+		userSvc:                          userSvc,
+		notificationSvc:                  notificationSvc,
 	}
 }
 
@@ -76,7 +86,6 @@ func (crs ComplianceRequirementService) GetByID(complianceID uint, id uint, tx .
 	}
 
 	complianceRequirement, err := crs.repo.GetByID(id, tx...)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -87,9 +96,7 @@ func (crs ComplianceRequirementService) GetByID(complianceID uint, id uint, tx .
 }
 
 func (crs ComplianceRequirementService) GetByComplianceRequirementID(id uint) (*models.ComplianceRequirement, error) {
-
 	complianceRequirement, err := crs.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -131,7 +138,8 @@ func (crs ComplianceRequirementService) GetFullDetailsByID(complianceID uint, id
 func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID uint, complianceRequirementFormDTO *complianceDTOs.ComplianceRequirementFormDTO) (uint, error) {
 	tx := crs.repo.BeginTransaction()
 
-	if _, err := crs.complianceRegisterSvc.GetByID(complianceID); err != nil {
+	compliance, err := crs.complianceRegisterSvc.GetByID(complianceID)
+	if err != nil {
 		return 0, err
 	}
 
@@ -275,7 +283,6 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -287,6 +294,82 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 
 			utility.LogError("Failed to log activity", fields)
 		}
+
+		// prepare notification
+		urlParam := fmt.Sprintf(`{"compliance_register_id":%d,"requirement_id":%d}`, complianceID, id)
+		queryParam := ""
+		entity := "compliance-requirement"
+		action := "responsible-user-assign"
+
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserID:               complianceRequirementFormDTO.ResponsibleUserID,
+			ModuleIdentifier:     "compliance",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			HeadingEn:            "Compliance Requirement Responsiblity Assigned",
+			HeadingAr:            "تم تعيين مسؤولية متطلبات الامتثال",
+			TitleEn:              complianceRequirementFormDTO.Title,
+			TitleAr:              complianceRequirementFormDTO.Title,
+			ReferenceNumber:      compliance.ReferenceNumber,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			QueryParam:           queryParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		responsibleUser, err := crs.userSvc.GetByID(complianceRequirementFormDTO.ResponsibleUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		assignedBy, err := crs.userSvc.GetByID(currentUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		complianceRequirementCategory, err := crs.complianceRequirementCategorySvc.GetByID(complianceRequirementFormDTO.ComplianceRequirementCategoryID)
+		if err != nil {
+			return
+		}
+
+		emailTo := []string{responsibleUser.Email}
+		subject := fmt.Sprintf("Compliance Requirement/%s: Responsibility Assigned", complianceRequirementFormDTO.Title)
+		appURL := utility.GetAppURL()
+		emailData := map[string]interface{}{
+			"FirstNameEn":                   responsibleUser.FirstNameEn,
+			"LastNameEn":                    responsibleUser.LastNameEn,
+			"ComplianceReferenceNumber":     compliance.ReferenceNumber,
+			"ComplianceTitleEn":             compliance.TitleEn,
+			"ComplianceRequirementCategory": complianceRequirementCategory.TitleEn,
+			"RequirementTitleEn":            complianceRequirementFormDTO.Title,
+			"ComplianceClauseTitle":         complianceRequirementFormDTO.ComplianceClauseTitle,
+			"Deadline":                      dates.Deadline.Format("2006-01-02"),
+			"AssignedByFirstNameEn":         assignedBy.FirstNameEn,
+			"AssignedByLastNameEn":          assignedBy.LastNameEn,
+			"AssignedOn":                    time.Now().Format("2006-01-02"),
+			"RedirectURL":                   fmt.Sprintf("%scompliance/register/%d/requirements?requirements=%d", appURL, complianceID, id),
+		}
+
+		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              emailTo,
+			Subject:              subject,
+			TemplateRelativePath: "compliance/templates/email/compliance_requirement_create_responsible_user_mail.html",
+			EmailData:            emailData,
+		}
+
+		// send notification and mail
+		err = crs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "compliance_requirement")
+		if err != nil {
+			utility.LogError("Failed to send notifications", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
 	}()
 
 	return id, nil
@@ -295,15 +378,17 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, currentUserID uint, complianceRequirementFormDTO *complianceDTOs.ComplianceRequirementFormDTO) error {
 	tx := crs.repo.BeginTransaction()
 
-	if _, err := crs.complianceRegisterSvc.GetByID(complianceID); err != nil {
+	compliance, err := crs.complianceRegisterSvc.GetByID(complianceID)
+	if err != nil {
 		return err
 	}
 
 	existingComplianceRequirement, err := crs.GetByID(complianceID, id, tx)
-
 	if err != nil {
 		return err
 	}
+
+	oldResponsibleUserID := existingComplianceRequirement.ResponsibleUserID
 
 	if err := crs.validateComplianceRequirementFormDTO(complianceRequirementFormDTO); err != nil {
 		return err
@@ -525,6 +610,152 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 	}
 
 	tx.Commit()
+
+	go func() {
+		// Send notifications if the responsible user has changed
+		if oldResponsibleUserID != existingComplianceRequirement.ResponsibleUserID {
+			// URL param for notifications
+			urlParam := fmt.Sprintf(`{"compliance_register_id":%d,"requirement_id":%d}`, complianceID, id)
+			queryParam := ""
+			entity := "compliance-requirement"
+
+			// Old responsible user notification (Removal)
+			oldResponsibleUserAction := "responsible-user-remove"
+			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserID:               oldResponsibleUserID,
+				ModuleIdentifier:     "compliance",
+				NotificationType:     string(commonDTOs.InformationType),
+				HeadingEn:            "Compliance Requirement Responsibility Removed",
+				HeadingAr:            "تمت إزالة مسؤولية متطلبات الامتثال",
+				TitleEn:              existingComplianceRequirement.Title,
+				ReferenceNumber:      compliance.ReferenceNumber,
+				TitleAr:              existingComplianceRequirement.Title,
+				Entity:               &entity,
+				Action:               &oldResponsibleUserAction,
+				URLParam:             urlParam,
+				QueryParam:           queryParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			// New responsible user notification (Assignment)
+			newResponsibleUserAction := "responsible-user-assign"
+			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserID:               complianceRequirementFormDTO.ResponsibleUserID,
+				ModuleIdentifier:     "compliance",
+				NotificationType:     string(commonDTOs.AssignmentType),
+				HeadingEn:            "Compliance Requirement Responsibility Assigned",
+				HeadingAr:            "تم تعيين المسؤولية لمتطلبات الامتثال",
+				TitleEn:              existingComplianceRequirement.Title,
+				TitleAr:              existingComplianceRequirement.Title,
+				ReferenceNumber:      compliance.ReferenceNumber,
+				Entity:               &entity,
+				Action:               &newResponsibleUserAction,
+				URLParam:             urlParam,
+				QueryParam:           queryParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			// Fetch the responsible users' data
+			oldResponsibleUser, err := crs.userSvc.GetByID(oldResponsibleUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch old responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			newResponsibleUser, err := crs.userSvc.GetByID(complianceRequirementFormDTO.ResponsibleUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch new responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			// Fetch details of the user making the assignment
+			updatedByUser, err := crs.userSvc.GetByID(currentUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			complianceRequirementCategory, err := crs.complianceRequirementCategorySvc.GetByID(complianceRequirementFormDTO.ComplianceRequirementCategoryID)
+			if err != nil {
+				return
+			}
+
+			appURL := utility.GetAppURL()
+
+			// Email notification for the old responsible user
+			oldResponsibleUserEmailTo := []string{oldResponsibleUser.Email}
+			oldResponsibleUserSubject := fmt.Sprintf("Compliance Requirement/%s: Responsibility Removed", existingComplianceRequirement.Title)
+			oldResponsibleUserEmailData := map[string]interface{}{
+				"FirstNameEn":                   oldResponsibleUser.FirstNameEn,
+				"LastNameEn":                    oldResponsibleUser.LastNameEn,
+				"ComplianceReferenceNumber":     compliance.ReferenceNumber,
+				"ComplianceTitle":               compliance.TitleEn,
+				"ComplianceRequirementCategory": complianceRequirementCategory.TitleEn,
+				"RequirementTitleEn":            existingComplianceRequirement.Title,
+				"ComplianceClauseTitle":         complianceClause.Title,
+				"Deadline":                      dates.Deadline.Format("2006-01-02"),
+				"UpdatedByFirstNameEn":          updatedByUser.FirstNameEn,
+				"UpdatedByLastNameEn":           updatedByUser.LastNameEn,
+				"AssignedOn":                    time.Now().Format("2006-01-02"),
+				"RedirectURL":                   fmt.Sprintf("%scompliance/register/%d/requirements?requirements=%d", appURL, complianceID, id),
+			}
+
+			oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              oldResponsibleUserEmailTo,
+				Subject:              oldResponsibleUserSubject,
+				TemplateRelativePath: "compliance/templates/email/compliance_requirement_remove_responsible_user_mail.html",
+				EmailData:            oldResponsibleUserEmailData,
+			}
+
+			// Email notification for the new responsible user
+			newResponsibleUserEmailTo := []string{newResponsibleUser.Email}
+			newResponsibleUserSubject := fmt.Sprintf("Compliance Requirement/%s: Responsibility Assigned", existingComplianceRequirement.Title)
+			newResponsibleUserEmailData := map[string]interface{}{
+				"FirstNameEn":                   newResponsibleUser.FirstNameEn,
+				"LastNameEn":                    newResponsibleUser.LastNameEn,
+				"ComplianceReferenceNumber":     compliance.ReferenceNumber,
+				"ComplianceTitle":               compliance.TitleEn,
+				"ComplianceRequirementCategory": complianceRequirementCategory.TitleEn,
+				"RequirementTitleEn":            existingComplianceRequirement.Title,
+				"ComplianceClauseTitle":         complianceClause.Title,
+				"Deadline":                      dates.Deadline.Format("2006-01-02"),
+				"UpdatedByFirstNameEn":          updatedByUser.FirstNameEn,
+				"UpdatedByLastNameEn":           updatedByUser.LastNameEn,
+				"AssignedOn":                    time.Now().Format("2006-01-02"),
+				"RedirectURL":                   fmt.Sprintf("%scompliance/register/%d/requirements?requirements=%d", appURL, complianceID, id),
+			}
+
+			newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              newResponsibleUserEmailTo,
+				Subject:              newResponsibleUserSubject,
+				TemplateRelativePath: "compliance/templates/email/compliance_requirement_change_responsible_user_mail.html",
+				EmailData:            newResponsibleUserEmailData,
+			}
+
+			// Send notifications and emails
+			err = crs.notificationSvc.SendNotification(newResponsibleUserNotificationDTO, newResponsibleUserEmailNotificationDTO, "compliance_requirement")
+			if err != nil {
+				utility.LogError("Failed to send notifications to new responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+
+			err = crs.notificationSvc.SendNotification(oldResponsibleUserNotificationDTO, oldResponsibleUserEmailNotificationDTO, "compliance_requirement")
+			if err != nil {
+				utility.LogError("Failed to send notifications to old responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+		}
+	}()
 	return nil
 }
 
@@ -534,8 +765,19 @@ func (crs *ComplianceRequirementService) Delete(complianceID uint, ids []uint, c
 		return nil, err
 	}
 
+	compliance, err := crs.complianceRegisterSvc.GetByID(complianceID)
+	if err != nil {
+		return nil, err
+	}
+
 	var failedIds []uint
 	var successfulIds []uint
+	var notifications []struct {
+		OwnerID          *uint
+		Title            string
+		RequirementTitle string
+		ReferenceNumber  string
+	}
 
 	// Track clause IDs for deletion
 	clauseIDsToDelete := make(map[uint]bool)
@@ -546,6 +788,19 @@ func (crs *ComplianceRequirementService) Delete(complianceID uint, ids []uint, c
 			failedIds = append(failedIds, id)
 			continue
 		}
+
+		// Prepare notification data before deletion
+		notifications = append(notifications, struct {
+			OwnerID          *uint
+			Title            string
+			RequirementTitle string
+			ReferenceNumber  string
+		}{
+			OwnerID:          &requirement.ResponsibleUserID,
+			Title:            compliance.TitleEn,
+			RequirementTitle: requirement.Title,
+			ReferenceNumber:  compliance.ReferenceNumber,
+		})
 
 		// Check if controls exist
 		if len(requirement.Controls) > 0 {
@@ -650,6 +905,67 @@ func (crs *ComplianceRequirementService) Delete(complianceID uint, ids []uint, c
 				// Log error, but proceed as it might be recoverable later
 				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
 			}
+			// Send DB and email notifications for each successfully deleted compliance register
+			for _, notification := range notifications {
+				urlParam := ""
+				entity := "compliance-requirement"
+				action := "delete"
+
+				// Prepare DB notification
+				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+					UserID:               *notification.OwnerID,
+					ModuleIdentifier:     "compliance",
+					NotificationType:     string(commonDTOs.DeletionType),
+					HeadingEn:            "Compliance Requirement Deleted",
+					HeadingAr:            "تم حذف متطلبات الامتثال",
+					TitleEn:              notification.RequirementTitle,
+					TitleAr:              notification.RequirementTitle,
+					ReferenceNumber:      compliance.ReferenceNumber,
+					Entity:               &entity,
+					Action:               &action,
+					URLParam:             urlParam,
+					IsSystemNotification: false,
+					CreatedByID:          &currentUserID,
+				}
+
+				// Fetch owner details (responsible user)
+				ownerUser, err := crs.userSvc.GetByID(*notification.OwnerID)
+				if err != nil {
+					utility.LogError("Failed to fetch owner details for notification", map[string]interface{}{
+						"error": err.Error(),
+					})
+					continue
+				}
+
+				// Prepare email notification
+				ownerEmailTo := []string{ownerUser.Email}
+				subject := fmt.Sprintf("Compliance Requirement/%s: Deleted", notification.RequirementTitle)
+				templateRelativePath := "compliance/templates/email/compliance_requirement_delete_mail.html"
+
+				emailData := map[string]interface{}{
+					"FirstNameEn":               ownerUser.FirstNameEn,
+					"LastNameEn":                ownerUser.LastNameEn,
+					"ComplianceReferenceNumber": notification.ReferenceNumber,
+					"ComplianceTitle":           notification.Title,
+					"RequirementTitleEn":        notification.RequirementTitle,
+				}
+
+				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+					EmailTo:              ownerEmailTo,
+					Subject:              subject,
+					TemplateRelativePath: templateRelativePath,
+					EmailData:            emailData,
+				}
+
+				// Send DB and email notifications
+				err = crs.notificationSvc.SendNotification(
+					dbNotificationDTO, emailNotificationDTO, "compliance_requirement")
+				if err != nil {
+					utility.LogError("Failed to send deletion notifications", map[string]interface{}{
+						"error": err.Error(),
+					})
+				}
+			}
 		}()
 	}
 
@@ -660,7 +976,6 @@ func (crs *ComplianceRequirementService) Delete(complianceID uint, ids []uint, c
 
 func (crs *ComplianceRequirementService) StatusUpdate(complianceID uint, id uint, currentUserID uint, complianceStatusID uint, tx utility.DatabaseTransaction) error {
 	existingComplianceRequirement, err := crs.GetByID(complianceID, id)
-
 	if err != nil {
 		return err
 	}
@@ -669,7 +984,6 @@ func (crs *ComplianceRequirementService) StatusUpdate(complianceID uint, id uint
 	existingComplianceRequirement.UpdatedByID = &currentUserID
 
 	err = crs.repo.Update(existingComplianceRequirement, tx)
-
 	if err != nil {
 		return err
 	}

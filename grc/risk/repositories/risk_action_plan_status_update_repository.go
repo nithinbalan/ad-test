@@ -84,12 +84,19 @@ func (repo *RiskActionPlanStatusUpdateRepository) GetAll(riskActionPlanID uint, 
 	query = query.Order(sortBy + " " + sort)
 	result := query.Find(&riskActionPlanUpdates)
 
+	for _, statusUpdate := range riskActionPlanUpdates {
+		var documents []*riskDTOs.RiskActionPlanStatusUpdateDocumentDTO
+
+		repo.db.Model(&models.RiskActionPlanStatusUpdateDocument{}).Where("risk_action_plan_status_update_id = ?", statusUpdate.ID).Find(&documents)
+		statusUpdate.Documents = documents
+	}
+
 	return riskActionPlanUpdates, result.Error
 }
 
 func (repo *RiskActionPlanStatusUpdateRepository) GetByID(id uint) (*models.RiskActionPlanStatusUpdate, error) {
 	var riskActionPlanStatusUpdate *models.RiskActionPlanStatusUpdate
-	result := repo.db.First(&riskActionPlanStatusUpdate, id)
+	result := repo.db.Preload("Documents").First(&riskActionPlanStatusUpdate, id)
 
 	if result.Error != nil {
 		return nil, result.Error

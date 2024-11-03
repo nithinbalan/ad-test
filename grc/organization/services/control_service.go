@@ -212,8 +212,8 @@ func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizatio
 			ModuleIdentifier:     "organization",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			ReferenceNumber:      referenceNumber,
-			HeadingEn:            "Control Assignment",
-			HeadingAr:            "مهمة التحكم",
+			HeadingEn:            "Control Responsibility Assigned",
+			HeadingAr:            "مسؤولية التحكم المعينة",
 			TitleEn:              controlFormDTO.TitleEn,
 			TitleAr:              controlFormDTO.TitleAr,
 			Entity:               &entity,
@@ -363,8 +363,8 @@ func (cs *ControlService) Update(id uint, currentUserID uint, controlFormDTO *or
 				ModuleIdentifier:     "organization",
 				NotificationType:     string(commonDTOs.InformationType),
 				ReferenceNumber:      existingControl.ReferenceNumber,
-				HeadingEn:            "Control Ownership Removed",
-				HeadingAr:            "إزالة مسؤولية التحكم",
+				HeadingEn:            "Control Responsibility Removed",
+				HeadingAr:            "تمت إزالة مسؤولية التحكم",
 				TitleEn:              controlFormDTO.TitleEn,
 				TitleAr:              controlFormDTO.TitleAr,
 				Entity:               &entity,
@@ -380,8 +380,8 @@ func (cs *ControlService) Update(id uint, currentUserID uint, controlFormDTO *or
 				ModuleIdentifier:     "organization",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				ReferenceNumber:      existingControl.ReferenceNumber,
-				HeadingEn:            "Control Ownership Assigned",
-				HeadingAr:            "تم تعيين مسؤولية التحكم",
+				HeadingEn:            "Control Responsibility Assigned",
+				HeadingAr:            "مسؤولية التحكم المعينة",
 				TitleEn:              controlFormDTO.TitleEn,
 				TitleAr:              controlFormDTO.TitleAr,
 				Entity:               &entity,
@@ -736,6 +736,15 @@ func (cs *ControlService) validateControlFormDTO(controlFormDTO *organizationDTO
 	if controlFormDTO.TestFrequencyID != nil {
 		if _, err := cs.reviewFrequencySvc.GetByID(uint(*controlFormDTO.TestFrequencyID)); err != nil {
 			return utility.NewValidationError(fmt.Errorf("review test frequiency does not exist"), "not_exist", "test frequiency")
+		}
+	}
+
+	if controlFormDTO.IsApplicable {
+		if controlFormDTO.ControlImplementationStatusID == nil {
+			return utility.NewValidationError(fmt.Errorf("control implementation status is required when control is applicable"), "required", "control implementation status id")
+		}
+		if controlFormDTO.ControlEfficiencyStatusID == nil {
+			return utility.NewValidationError(fmt.Errorf("control efficiency status is required when control is applicable"), "required", "control efficiency status id")
 		}
 	}
 

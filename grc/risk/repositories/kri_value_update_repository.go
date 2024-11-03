@@ -21,6 +21,7 @@ type KRIValueUpdateRepositoryInterface interface {
 	CreateDocuments(docs []*models.KRIValueUpdateDocument, tx ...utility.DatabaseTransaction) error
 	GetDocumentByID(id uint) (*models.KRIValueUpdateDocument, error)
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
+	GetRisksByKriID(kriID uint) ([]*models.RiskRegister, error)
 
 	GetNextKRIValueUpdate(kriRegisterID uint, deletedIDs []uint, tx ...utility.DatabaseTransaction) (*models.KRIValueUpdate, error)
 }
@@ -280,4 +281,27 @@ func (repo *KRIValueUpdateRepository) GetNextKRIValueUpdate(kriRegisterID uint, 
 	}
 
 	return &nextValueUpdate, nil
+}
+
+func (repo *KRIValueUpdateRepository) GetRisksByKriID(kriID uint) ([]*models.RiskRegister, error) {
+	var kriRisks []*models.RiskKri
+
+	// First, retrieve the records from the RiskKri table
+	if err := repo.db.Where("kri_register_id = ?", kriID).Find(&kriRisks).Error; err != nil {
+		return nil, err
+	}
+
+	// Extract the risk register IDs from the kriRisks
+	var riskIDs []uint
+	for _, kriRisk := range kriRisks {
+		riskIDs = append(riskIDs, kriRisk.RiskRegisterID) // Assuming RiskRegisterID is the foreign key in RiskKri
+	}
+
+	// Retrieve the records from the RiskRegister table using the IDs
+	var risks []*models.RiskRegister
+	if err := repo.db.Where("id IN (?)", riskIDs).Find(&risks).Error; err != nil {
+		return nil, err
+	}
+
+	return risks, nil
 }

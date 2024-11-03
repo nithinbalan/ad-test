@@ -21,6 +21,7 @@ type App struct {
 	AuditModule         *AuditModule
 	KPIModule           *KPIModule
 	AuditInsightsModule *AuditInsightsModule
+	ReportsModule       *ReportsModule
 }
 
 func NewApp(db *gorm.DB) *App {
@@ -40,6 +41,7 @@ func NewApp(db *gorm.DB) *App {
 	auditModule := NewAuditModule(db, sharedModule, organizationModule, complianceModule, riskModule, incidentModule, documentModule, settingsModule, masterModule, taskModule, commonModule)
 	kpiModule := NewKPIModule(db)
 	auditInsightsModule := NewAuditInsightsModule(db, sharedModule, organizationModule, auditModule)
+	reportsModule := NewReportsModule(db, complianceModule, organizationModule)
 
 	return &App{
 		DB:                  db,
@@ -58,5 +60,6 @@ func NewApp(db *gorm.DB) *App {
 		AuditModule:         auditModule,
 		KPIModule:           kpiModule,
 		AuditInsightsModule: auditInsightsModule,
+		ReportsModule:       reportsModule,
 	}
 }

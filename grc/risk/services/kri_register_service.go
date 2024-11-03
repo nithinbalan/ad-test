@@ -138,15 +138,15 @@ func (krs *KRIRegisterService) Create(currentUserID uint, kriRegisterFormDTO *ri
 	}
 	organizationUnitID = unitID
 	kriRegister := &models.KRIRegister{
-		ReferenceNumber:   referenceNumber,
+		ReferenceNumber:   &referenceNumber,
 		KRICategoryID:     kriRegisterFormDTO.KRICategoryID,
 		ResponsibleUnitID: organizationUnitID,
 		ResponsibleUserID: kriRegisterFormDTO.ResponsibleUserID,
 		ReviewFrequencyID: kriRegisterFormDTO.ReviewFrequencyID,
 		RiskLevelID:       kriRegisterFormDTO.RiskLevelID,
-		UnitID:            kriRegisterFormDTO.UnitID,
+		UnitID:            &kriRegisterFormDTO.UnitID,
 		Title:             kriRegisterFormDTO.Title,
-		Description:       kriRegisterFormDTO.Description,
+		Description:       &kriRegisterFormDTO.Description,
 		CalculationType:   kriRegisterFormDTO.CalculationType,
 		LowThreshold:      kriRegisterFormDTO.LowThreshold,
 		MediumThreshold:   kriRegisterFormDTO.MediumThreshold,
@@ -165,6 +165,24 @@ func (krs *KRIRegisterService) Create(currentUserID uint, kriRegisterFormDTO *ri
 	if err != nil {
 		return 0, err
 	}
+
+	initialValue := "Initial kri value"
+	kriValueUpdate := &models.KRIValueUpdate{
+		KRIRegisterID:   id,
+		UnitID:          kriRegisterFormDTO.UnitID,
+		ReviewedDate:    *dates.NextReviewDate,
+		Value:           kriRegisterFormDTO.CurrentValue,
+		LowThreshold:    kriRegisterFormDTO.LowThreshold,
+		MediumThreshold: kriRegisterFormDTO.MediumThreshold,
+		HighThreshold:   kriRegisterFormDTO.HighThreshold,
+		Remarks:         &initialValue,
+		CreatedByID:     currentUserID,
+	}
+	_, err = krs.repo.CreateInitialKriValueUpdate(kriValueUpdate)
+	if err != nil {
+		return 0, err
+	}
+
 	go func() {
 		err := krs.activityLogSvc.LogActivity(
 			models.CreateAction,
@@ -196,9 +214,10 @@ func (krs *KRIRegisterService) Create(currentUserID uint, kriRegisterFormDTO *ri
 			UserID:               kriRegisterFormDTO.ResponsibleUserID,
 			ModuleIdentifier:     "risk",
 			NotificationType:     string(commonDTOs.AssignmentType),
-			HeadingEn:            "KRI Register Assignment",
+			HeadingEn:            "KRI Register Responsibililty Assigned",
 			HeadingAr:            "مهمة تسجيل KRI",
 			TitleEn:              kriRegisterFormDTO.Title,
+			ReferenceNumber:      referenceNumber,
 			Entity:               &entity,
 			Action:               &action,
 			URLParam:             urlParam,
@@ -285,9 +304,9 @@ func (krs *KRIRegisterService) Update(id uint, currentUserID uint, kriRegisterFo
 	existingKRIRegister.ResponsibleUserID = kriRegisterFormDTO.ResponsibleUserID
 	existingKRIRegister.ReviewFrequencyID = kriRegisterFormDTO.ReviewFrequencyID
 	existingKRIRegister.RiskLevelID = kriRegisterFormDTO.RiskLevelID
-	existingKRIRegister.UnitID = kriRegisterFormDTO.UnitID
+	existingKRIRegister.UnitID = &kriRegisterFormDTO.UnitID
 	existingKRIRegister.Title = kriRegisterFormDTO.Title
-	existingKRIRegister.Description = kriRegisterFormDTO.Description
+	existingKRIRegister.Description = &kriRegisterFormDTO.Description
 	existingKRIRegister.CalculationType = kriRegisterFormDTO.CalculationType
 	existingKRIRegister.LowThreshold = kriRegisterFormDTO.LowThreshold
 	existingKRIRegister.MediumThreshold = kriRegisterFormDTO.MediumThreshold
@@ -341,6 +360,7 @@ func (krs *KRIRegisterService) Update(id uint, currentUserID uint, kriRegisterFo
 				HeadingEn:            "Kri Register Responsibility Removed",
 				HeadingAr:            "تمت إزالة مسؤولية تسجيل Kri",
 				TitleEn:              existingKRIRegister.Title,
+				ReferenceNumber:      *existingKRIRegister.ReferenceNumber,
 				Entity:               &entity,
 				Action:               &oldResponsibleUserAction,
 				URLParam:             urlParam,
@@ -357,6 +377,7 @@ func (krs *KRIRegisterService) Update(id uint, currentUserID uint, kriRegisterFo
 				HeadingEn:            "Kri Register Responsibility Assigned",
 				HeadingAr:            "Kri تسجيل المسؤولية المعينة",
 				TitleEn:              existingKRIRegister.Title,
+				ReferenceNumber:      *existingKRIRegister.ReferenceNumber,
 				Entity:               &entity,
 				Action:               &newResponsibleUserAction,
 				URLParam:             urlParam,
@@ -484,11 +505,21 @@ func (krs *KRIRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 			continue
 		}
 
-		kriRegister, err := krs.GetFullDetailsByID(id)
+		kriRegister, err := krs.repo.GetFullDetailsByID(id)
 		if err != nil {
 			return nil, err
 		}
 
+		if len(kriRegister.ValueUpdates) > 0 {
+			var deleteStatusUpdateIds []*uint
+			for _, update := range kriRegister.ValueUpdates {
+				deleteStatusUpdateIds = append(deleteStatusUpdateIds, &update.ID)
+			}
+			if err := krs.repo.DeleteKriValueUpdates(deleteStatusUpdateIds); err != nil {
+				failedIds = append(failedIds, id)
+				continue
+			}
+		}
 		err = krs.repo.Delete(id)
 		if err != nil {
 			failedIds = append(failedIds, id)
@@ -507,7 +538,7 @@ func (krs *KRIRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 			OwnerID:         &kriRegister.ResponsibleUserID,
 			TitleEn:         kriRegister.Title,
 			Description:     *kriRegister.Description,
-			ReferenceNumber: kriRegister.ReferenceNumber,
+			ReferenceNumber: *kriRegister.ReferenceNumber,
 		})
 	}
 
@@ -542,6 +573,7 @@ func (krs *KRIRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 					HeadingAr:            "تم حذف تسجيل KRI",
 					TitleEn:              notification.TitleEn,
 					TitleAr:              notification.TitleAr,
+					ReferenceNumber:      notification.ReferenceNumber,
 					Entity:               &entity,
 					Action:               &action,
 					URLParam:             urlParam,
@@ -710,14 +742,14 @@ func (krs *KRIRegisterService) ExportKriRegister(data []*riskDTOs.KRIRegisterLis
 		if userSetting.Language == "ar" {
 			category = kri.KRICategoryTitleAr
 			responsibleUser = kri.ResponsibleUserFirstNameAr + " " + kri.ResponsibleUserLastNameAr
-			unit = kri.UnitTitleAr
-			riskLevel = kri.RiskLevelTitleAr
+			unit = *kri.UnitTitleAr
+			riskLevel = *kri.RiskLevelTitleAr
 			reviewFrequency = kri.ReviewFrequencyTitleAr
 		} else {
 			category = kri.KRICategoryTitleEn
 			responsibleUser = kri.ResponsibleUserFirstNameEn + " " + kri.ResponsibleUserLastNameEn
-			unit = kri.UnitTitleEn
-			riskLevel = kri.RiskLevelTitleEn
+			unit = *kri.UnitTitleEn
+			riskLevel = *kri.RiskLevelTitleEn
 			reviewFrequency = kri.ReviewFrequencyTitleEn
 		}
 

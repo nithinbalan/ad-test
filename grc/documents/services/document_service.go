@@ -35,6 +35,7 @@ type DocumentServiceInterface interface {
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Document, error)
 	GetFullDetailsByID(id uint, currentUserID *uint, tx ...utility.DatabaseTransaction) (*documentDTOs.DocumentDetailsDTO, error)
 	Create(currentUserID uint, documentFormDTO *documentDTOs.DocumentFormDTO) (uint, error)
+	Update(id uint, currentUserID uint, documentFormDTO *documentDTOs.DocumentFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 
 	UpdateDocument(document *models.Document, tx ...utility.DatabaseTransaction) error
@@ -406,11 +407,373 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 	return id, nil
 }
 
-func (ds *DocumentService) UpdateDocument(document *models.Document, tx ...utility.DatabaseTransaction) error {
-	err := ds.repo.Update(document, tx...)
+func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *documentDTOs.DocumentFormDTO) error {
+	tx := ds.repo.BeginTransaction()
+	// Fetch existing document details
+	existingDocument, err := ds.repo.GetByID(id)
 	if err != nil {
 		return err
 	}
+	documentAccessType, err := ds.documentAccessTypeSvc.GetByID(documentFormDTO.DocumentAccessTypeID)
+	if err != nil {
+		return err
+	}
+	responsibleUnitID, err := ds.userSvc.GetUserPrimaryUnitID(uint(documentFormDTO.ResponsibleUserID))
+	if err != nil {
+		return utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "responsible user unit")
+	}
+
+	// Check if the document type has changed
+	documentTypeChanged := existingDocument.DocumentTypeID != documentFormDTO.DocumentTypeID
+	if documentTypeChanged {
+		documentStatus, err := ds.documentStatusSvc.GetByType("draft")
+		if err != nil {
+			return err
+		}
+		if existingDocument.DocumentStatusID != documentStatus.ID {
+			return utility.NewForbiddenError("Document type can only be changed in draft status")
+		}
+	}
+
+	if documentFormDTO.Document.IsNewFile != nil && *documentFormDTO.Document.IsNewFile {
+		documentStatus, err := ds.documentStatusSvc.GetByType("draft")
+		if err != nil {
+			return err
+		}
+		if existingDocument.DocumentStatusID != documentStatus.ID {
+			return utility.NewForbiddenError("Document can only be changed in draft status")
+		}
+	}
+
+	if err := ds.validateDocumentFormDTO(documentFormDTO); err != nil {
+		return err
+	}
+
+	existingDocument.DocumentTypeID = documentFormDTO.DocumentTypeID
+	existingDocument.TitleEn = documentFormDTO.TitleEn
+	existingDocument.TitleAr = documentFormDTO.TitleAr
+	existingDocument.DescriptionEn = documentFormDTO.DescriptionEn
+	existingDocument.DescriptionAr = documentFormDTO.DescriptionAr
+	existingDocument.DocumentCategoryID = documentFormDTO.DocumentCategoryID
+	existingDocument.ResponsibleUserID = documentFormDTO.ResponsibleUserID
+	existingDocument.ResponsibleUnitID = responsibleUnitID
+	existingDocument.DocumentAccessTypeID = documentFormDTO.DocumentAccessTypeID
+	existingDocument.UpdatedBYID = &currentUserID
+
+	if err := ds.repo.Update(existingDocument, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	documentFullDetails, err := ds.repo.GetFullDetailsByID(id, nil, tx)
+	if err != nil {
+		return err
+	}
+
+	var sharedUsers []*models.DocumentSharedUser
+	var sharedUnits []*models.DocumentSharedUnit
+
+	if existingDocument.ResponsibleUserID != documentFormDTO.ResponsibleUserID {
+		sharedUsers = append(sharedUsers, &models.DocumentSharedUser{
+			DocumentID:  id,
+			UserID:      documentFormDTO.ResponsibleUserID,
+			Type:        "responsible-user",
+			CreatedBYID: currentUserID,
+		})
+
+		err = ds.documentAccessSvc.DeleteResponsibleUser(id, &existingDocument.ResponsibleUserID, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	if existingDocument.DocumentAccessTypeID == documentFormDTO.DocumentAccessTypeID {
+		switch documentAccessType.Type {
+		case "shared":
+			existingSharedUsers, err := ds.documentAccessSvc.GetSharedUsers(id, 1, 10000, tx)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+			existingSharedUnits, err := ds.documentAccessSvc.GetSharedUnits(id, tx)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			existingUserIDs := map[uint]bool{}
+			for _, user := range existingSharedUsers.Items {
+				existingUserIDs[uint(user.ID)] = true
+			}
+
+			existingUnitIDs := map[uint]bool{}
+			for _, unit := range existingSharedUnits {
+				existingUnitIDs[uint(unit.ID)] = true
+			}
+
+			for _, userID := range documentFormDTO.SharedUserIDs {
+				if !existingUserIDs[*userID] {
+					sharedUsers = append(sharedUsers, &models.DocumentSharedUser{
+						DocumentID:  id,
+						UserID:      *userID,
+						Type:        "shared-user",
+						CreatedBYID: currentUserID,
+					})
+				} else {
+					delete(existingUserIDs, *userID)
+				}
+			}
+
+			userIDsToDelete := make([]*uint, 0)
+			for userID := range existingUserIDs {
+				userIDsToDelete = append(userIDsToDelete, &userID)
+			}
+
+			err = ds.documentAccessSvc.DeleteSharedUsers(id, userIDsToDelete, tx)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			for _, unitID := range documentFormDTO.SharedUnitIDs {
+				if !existingUnitIDs[*unitID] {
+					sharedUnits = append(sharedUnits, &models.DocumentSharedUnit{
+						DocumentID:         id,
+						OrganizationUnitID: *unitID,
+						CreatedBYID:        currentUserID,
+					})
+				} else {
+					delete(existingUnitIDs, *unitID)
+				}
+			}
+
+			unitIDsToDelete := make([]*uint, 0)
+			for unitID := range existingUnitIDs {
+				unitIDsToDelete = append(unitIDsToDelete, &unitID)
+			}
+
+			err = ds.documentAccessSvc.DeleteSharedUnits(id, unitIDsToDelete, tx)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+	} else {
+		switch documentAccessType.Type {
+		case "shared":
+			for _, userID := range documentFormDTO.SharedUserIDs {
+				sharedUsers = append(sharedUsers, &models.DocumentSharedUser{
+					DocumentID:  id,
+					UserID:      *userID,
+					Type:        "shared-user",
+					CreatedBYID: currentUserID,
+				})
+			}
+
+			for _, unitID := range documentFormDTO.SharedUnitIDs {
+				sharedUnits = append(sharedUnits, &models.DocumentSharedUnit{
+					DocumentID:         id,
+					OrganizationUnitID: *unitID,
+					CreatedBYID:        currentUserID,
+				})
+			}
+
+		case "public":
+			existingSharedUsers, err := ds.documentAccessSvc.GetSharedUsers(id, 1, 10000, tx)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			userIDsToDelete := make([]*uint, 0)
+			for _, user := range existingSharedUsers.Items {
+				userID := uint(user.ID)
+				userIDsToDelete = append(userIDsToDelete, &userID)
+			}
+
+			err = ds.documentAccessSvc.DeleteSharedUsers(id, userIDsToDelete, tx)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			existingSharedUnits, err := ds.documentAccessSvc.GetSharedUnits(id, tx)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			unitIDsToDelete := make([]*uint, 0)
+			for _, unit := range existingSharedUnits {
+				unitID := uint(unit.ID)
+				unitIDsToDelete = append(unitIDsToDelete, &unitID)
+			}
+
+			err = ds.documentAccessSvc.DeleteSharedUnits(id, unitIDsToDelete, tx)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+		}
+
+	}
+
+	// Add new shared users and units
+	if err := ds.documentAccessSvc.CreateUsers(sharedUsers, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := ds.documentAccessSvc.CreateUnits(sharedUnits, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	destinationDir := filepath.Join("document", "draft", strconv.FormatUint(uint64(id), 10), "documents")
+	if documentFormDTO.Document.IsNewFile != nil && *documentFormDTO.Document.IsNewFile {
+		existingDocumentFileName := documentFullDetails.LatestDocumentVersion.Name
+		baseFileName := strings.TrimSuffix(existingDocumentFileName, filepath.Ext(existingDocumentFileName))
+
+		url := utility.GenerateDocumentURL("document", "draft", strconv.FormatUint(uint64(id), 10), "documents")
+
+		dataToEncrypt := []byte(documentFormDTO.Document.FileName)
+		encryptedFilename, err := utility.EncryptData(dataToEncrypt)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		existingDocVersion, err := ds.repo.GetDocumentVersionByID(documentFullDetails.LatestDocumentVersion.ID, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		existingDocVersion.Version = documentFormDTO.DocumentVersion
+		existingDocVersion.URL = url
+		existingDocVersion.Name = documentFormDTO.Document.FileName
+		existingDocVersion.Size = documentFormDTO.Document.Size
+		existingDocVersion.Token = encryptedFilename
+		existingDocVersion.OriginalName = &documentFormDTO.Document.OriginalName
+		existingDocVersion.Type = documentFormDTO.Document.Type
+		existingDocVersion.UpdatedBYID = &currentUserID
+
+		err = ds.repo.UpdateDocumentVersion(existingDocVersion, tx)
+
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		if err := utility.RemoveFile(existingDocumentFileName, destinationDir); err != nil {
+			tx.Rollback()
+			return err
+		}
+		pdfFileName := baseFileName + ".pdf"
+		if err := utility.RemoveFile(pdfFileName, destinationDir); err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		if err := utility.StoreFile(documentFormDTO.Document.FileName, destinationDir); err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		//add document history
+		documentEditHistory := &documentDTOs.DocumentEditHistoryDTO{
+			DocumentID:        id,
+			DocumentVersionID: existingDocVersion.ID,
+			ActionType:        "update",
+			FileName:          &documentFormDTO.Document.FileName,
+			OriginalName:      &documentFormDTO.Document.OriginalName,
+			Type:              &documentFormDTO.Document.Type,
+			Size:              &documentFormDTO.Document.Size,
+		}
+
+		err = ds.CreateDocumentEditHistory(documentEditHistory, &destinationDir, currentUserID, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+	}
+
+	if existingDocument.DocumentTypeID != documentFormDTO.DocumentTypeID {
+
+		var deleteDocumentWorkflowIds []*uint
+		var deleteDocumentWorkflowParticipantIds []*uint
+		var deleteDocumentWorkflowReviewIds []*uint
+
+		if len(documentFullDetails.LatestDocumentVersion.DocumentWorkflows) > 0 {
+			for _, docWorkflow := range documentFullDetails.LatestDocumentVersion.DocumentWorkflows {
+				deleteDocumentWorkflowIds = append(deleteDocumentWorkflowIds, &docWorkflow.ID)
+
+				if len(docWorkflow.DocumentWorkflowParticipants) > 0 {
+					for _, participant := range docWorkflow.DocumentWorkflowParticipants {
+						deleteDocumentWorkflowParticipantIds = append(deleteDocumentWorkflowParticipantIds, &participant.ID)
+					}
+				}
+
+				if len(docWorkflow.DocumentWorkflowReviews) > 0 {
+					for _, reviews := range docWorkflow.DocumentWorkflowReviews {
+						deleteDocumentWorkflowReviewIds = append(deleteDocumentWorkflowReviewIds, &reviews.ID)
+					}
+				}
+			}
+		}
+
+		if err := ds.documentWorkflowSvc.DeleteDocumentWorkflowParticipants(deleteDocumentWorkflowParticipantIds, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		if err := ds.documentWorkflowSvc.DeleteDocumentWorkflowReviews(deleteDocumentWorkflowReviewIds, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		if err := ds.documentWorkflowSvc.DeleteDocumentWorkflows(deleteDocumentWorkflowIds, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		existingReviewUsers, err := ds.documentAccessSvc.GetReviewUsers(id, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		userIDsToDelete := make([]*uint, 0)
+		for _, user := range existingReviewUsers {
+			userID := uint(user.ID)
+			userIDsToDelete = append(userIDsToDelete, &userID)
+		}
+
+		err = ds.documentAccessSvc.DeleteReviewUsers(id, userIDsToDelete, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		err = ds.documentWorkflowSvc.CreateDocumentWorkflow(id, documentFullDetails.LatestDocumentVersion.ID, documentFormDTO.DocumentTypeID, currentUserID, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+	}
+
+	tx.Commit()
+
+	go func() {
+		if documentFormDTO.Document.IsNewFile != nil && *documentFormDTO.Document.IsNewFile {
+			if err := utility.ConvertDocxToPDF(destinationDir, documentFormDTO.Document.FileName, destinationDir); err != nil {
+				log.Printf("Failed to convert document to PDF: %v", err)
+			}
+		}
+	}()
 
 	return nil
 }
@@ -596,6 +959,15 @@ func (ds *DocumentService) Delete(ids []uint, currentUserID uint) ([]uint, error
 	return failedIds, nil
 }
 
+func (ds *DocumentService) UpdateDocument(document *models.Document, tx ...utility.DatabaseTransaction) error {
+	err := ds.repo.Update(document, tx...)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (ds *DocumentService) validateDocumentFormDTO(documentFormDTO *documentDTOs.DocumentFormDTO) error {
 	if _, err := ds.documentCategorySvc.GetByID(documentFormDTO.DocumentCategoryID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("document category does not exist"), "not_exist", "document category")
@@ -624,21 +996,21 @@ func (ds *DocumentService) validateDocumentFormDTO(documentFormDTO *documentDTOs
 		}
 	}
 
-	accessType, err := ds.documentAccessTypeSvc.GetByID(documentFormDTO.DocumentAccessTypeID)
-	if err != nil {
-		return utility.NewValidationError(fmt.Errorf("failed to get document access type"), "not_exist", "document access type")
-	}
+	// accessType, err := ds.documentAccessTypeSvc.GetByID(documentFormDTO.DocumentAccessTypeID)
+	// if err != nil {
+	// 	return utility.NewValidationError(fmt.Errorf("failed to get document access type"), "not_exist", "document access type")
+	// }
 
-	switch accessType.Type {
-	case "shared-users":
-		if documentFormDTO.SharedUserIDs == nil || len(documentFormDTO.SharedUserIDs) == 0 {
-			return utility.NewValidationError(fmt.Errorf("shared user IDs are required for shared-user access type"), "required", "shared_users")
-		}
-	case "shared-units":
-		if documentFormDTO.SharedUnitIDs == nil || len(documentFormDTO.SharedUnitIDs) == 0 {
-			return utility.NewValidationError(fmt.Errorf("shared unit IDs are required for shared-unit access type"), "required", "shared_units")
-		}
-	}
+	// switch accessType.Type {
+	// case "shared-users":
+	// 	if documentFormDTO.SharedUserIDs == nil || len(documentFormDTO.SharedUserIDs) == 0 {
+	// 		return utility.NewValidationError(fmt.Errorf("shared user IDs are required for shared-user access type"), "required", "shared_users")
+	// 	}
+	// case "shared-units":
+	// 	if documentFormDTO.SharedUnitIDs == nil || len(documentFormDTO.SharedUnitIDs) == 0 {
+	// 		return utility.NewValidationError(fmt.Errorf("shared unit IDs are required for shared-unit access type"), "required", "shared_units")
+	// 	}
+	// }
 	return nil
 }
 
@@ -1090,6 +1462,7 @@ func (ds *DocumentService) SubmitDocument(id uint, currentUserID uint) error {
 				UserID:               participant.User.ID,
 				ModuleIdentifier:     "document",
 				NotificationType:     string(commonDTOs.ReviewType),
+				ReferenceNumber:      existingDocument.ReferenceNumber,
 				HeadingEn:            "Document Review",
 				HeadingAr:            "مراجعة الوثيقة",
 				TitleEn:              existingDocument.TitleEn,
@@ -1547,6 +1920,7 @@ func (ds *DocumentService) notifyUsersOnPublish(document *documentDTOs.DocumentD
 				NotificationType:     string(commonDTOs.PublishType),
 				HeadingEn:            "Document Published",
 				HeadingAr:            "تم نشر الوثيقة",
+				ReferenceNumber:      document.ReferenceNumber,
 				TitleEn:              document.TitleEn,
 				TitleAr:              document.TitleAr,
 				Entity:               &entity,

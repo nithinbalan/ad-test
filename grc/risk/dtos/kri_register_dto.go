@@ -10,7 +10,7 @@ import (
 
 type KRIRegisterListDTO struct {
 	ID                              uint    `json:"id"`
-	ReferenceNumber                 string  `json:"reference_number"`
+	ReferenceNumber                 *string `json:"reference_number"`
 	KRICategoryTitleEn              string  `json:"kri_category_title_en"`
 	KRICategoryTitleAr              string  `json:"kri_category_title_ar"`
 	ResponsibleUnitTitleEn          string  `json:"responsible_unit_title_en" gorm:"column:responsible_unit_title_en"`
@@ -26,14 +26,14 @@ type KRIRegisterListDTO struct {
 	ResponsibleUserProfileImagePath *string `json:"responsible_user_profile_image_path"`
 	ReviewFrequencyTitleEn          string  `json:"review_frequency_title_en"`
 	ReviewFrequencyTitleAr          string  `json:"review_frequency_title_ar"`
-	RiskLevelTitleEn                string  `json:"risk_level_title_en"`
-	RiskLevelTitleAr                string  `json:"risk_level_title_ar"`
-	RiskLevelColorCode              string  `json:"risk_level_color_code"`
-	UnitTitleEn                     string  `json:"unit_title_en"`
-	UnitTitleAr                     string  `json:"unit_title_ar"`
-	UnitCodeEn                      string  `json:"unit_code_en"`
-	UnitCodeAr                      string  `json:"unit_code_ar"`
-	UnitColorCode                   string  `json:"unit_color_code"`
+	RiskLevelTitleEn                *string `json:"risk_level_title_en"`
+	RiskLevelTitleAr                *string `json:"risk_level_title_ar"`
+	RiskLevelColorCode              *string `json:"risk_level_color_code"`
+	UnitTitleEn                     *string `json:"unit_title_en"`
+	UnitTitleAr                     *string `json:"unit_title_ar"`
+	UnitCodeEn                      *string `json:"unit_code_en"`
+	UnitCodeAr                      *string `json:"unit_code_ar"`
+	UnitColorCode                   *string `json:"unit_color_code"`
 	Title                           string  `json:"title"`
 	Description                     *string `json:"description"`
 	CalculationType                 string  `json:"calculation_type"`
@@ -41,9 +41,9 @@ type KRIRegisterListDTO struct {
 	MediumThreshold                 *int    `json:"medium_threshold"`
 	HighThreshold                   *int    `json:"high_threshold"`
 	CurrentValue                    *int    `json:"current_value"`
-	LastReviewedDate                string  `json:"last_reviewed_date"`
+	LastReviewedDate                *string `json:"last_reviewed_date"`
 	NextReviewDate                  string  `json:"next_review_date"`
-	LastReviewNote                  string  `json:"last_review_note"`
+	LastReviewNote                  *string `json:"last_review_note"`
 	CreatedAt                       string  `json:"created_at"`
 	UpdatedAt                       string  `json:"updated_at"`
 	CreatedUserID                   uint    `json:"created_user_id"`

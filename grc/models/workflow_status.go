@@ -5,7 +5,7 @@ type WorkflowStatus struct {
 	TitleEn   string `json:"title_en" binding:"required" gorm:"type:nvarchar(100);not null"`
 	TitleAr   string `json:"title_ar" binding:"required" gorm:"type:nvarchar(100);not null"`
 	ColorCode string `json:"color_code" binding:"required" gorm:"type:varchar(25);not null"`
-	Type      string `json:"type" binding:"required,oneof=submit revert reject approve publish" gorm:"type:varchar(10);not null;check:type IN ('submit', 'revert', 'reject', 'approve', 'publish')"`
+	Type      string `json:"type" binding:"required,oneof=submit revert reject approve publish pending comment" gorm:"type:varchar(10);not null;check:type IN ('submit', 'revert', 'reject', 'approve', 'publish', 'pending','comment')"`
 	Status    string `json:"status" binding:"required,oneof=active inactive" gorm:"type:varchar(10);not null;default:'active';check:status IN ('active', 'inactive')"`
 }
 

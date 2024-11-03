@@ -54,7 +54,7 @@ func NewMeetingModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		riskModule.RiskRegisterSvc,
 		organizationModule.ProcessSvc,
 		incidentModule.IncidentRegisterSvc,
-		organizationModule.UserSettingSvc)
+		organizationModule.UserSettingSvc, commonModule.NotificationService)
 	meetingController := controllers.NewMeetingController(meetingSvc)
 
 	meetingAgendaRepo := repositories.NewMeetingAgendaRepository(db)

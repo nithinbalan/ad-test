@@ -97,7 +97,8 @@ func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*us
 		Joins("LEFT JOIN organization_units org5 ON org5.id = users.organization_unit_5_id").
 		Joins("LEFT JOIN designations ON designations.id = users.designation_id").
 		Joins("LEFT JOIN user_statuses ON user_statuses.id = users.user_status_id").
-		Joins("LEFT JOIN (SELECT user_roles.user_id, STRING_AGG(roles.title_en, ', ') AS roles_en, STRING_AGG(roles.title_ar, ', ') AS roles_ar FROM user_roles JOIN roles ON roles.id = user_roles.role_id GROUP BY user_roles.user_id) roles_agg ON roles_agg.user_id = users.id")
+		Joins("LEFT JOIN (SELECT user_roles.user_id, STRING_AGG(roles.title_en, ', ') AS roles_en, STRING_AGG(roles.title_ar, ', ') AS roles_ar FROM user_roles JOIN roles ON roles.id = user_roles.role_id GROUP BY user_roles.user_id) roles_agg ON roles_agg.user_id = users.id").
+		Joins("LEFT JOIN user_roles ON user_roles.user_id = users.id")
 
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
@@ -108,6 +109,14 @@ func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*us
 
 	if len(params.UserIDs) > 0 {
 		query = query.Where("users.id IN (?)", params.UserIDs)
+	}
+
+	if len(params.RoleIDs) > 0 {
+		query = query.Where("user_roles.role_id IN (?)", params.RoleIDs)
+	}
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("users.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 
 	for _, filter := range params.QuickFilter {
@@ -134,7 +143,6 @@ func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*us
 		}
 	}
 
-	// Apply search keyword if exists
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		query = query.Where(`

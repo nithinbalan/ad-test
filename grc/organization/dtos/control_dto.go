@@ -98,25 +98,28 @@ type ControlMinimalListDTO struct {
 }
 
 type ControlListQueryParamsDTO struct {
-	Sort               string
-	SortBy             string
-	Keyword            string
-	Status             string
-	Page               int
-	PageSize           int
-	Filters            map[string][]string
-	QuickFilter        []string
-	LastReviewDateFrom string
-	LastReviewDateTo   string
-	NextReviewDateFrom string
-	NextReviewDateTo   string
-	LastTestDateFrom   string
-	LastTestDateTo     string
-	NextTestDateFrom   string
-	NextTestDateTo     string
-	ImplementedAtFrom  string
-	ImplementedAtTo    string
-	Export             bool
+	Sort                  string
+	SortBy                string
+	Keyword               string
+	Status                string
+	Page                  int
+	PageSize              int
+	Filters               map[string][]string
+	QuickFilter           []string
+	LastReviewDateFrom    string
+	LastReviewDateTo      string
+	NextReviewDateFrom    string
+	NextReviewDateTo      string
+	LastTestDateFrom      string
+	LastTestDateTo        string
+	NextTestDateFrom      string
+	NextTestDateTo        string
+	ImplementedAtFrom     string
+	ImplementedAtTo       string
+	Export                bool
+	DateFrom              string
+	DateTo                string
+	ComplianceRegisterIDs []int
 }
 
 type ControlListResponseDTO struct {
@@ -145,7 +148,7 @@ type ControlFormDTO struct {
 	LastTestDate                  *string `json:"last_test_date" binding:"omitempty,datetime=2006-01-02"`
 	NextTestDate                  *string `json:"next_test_date" binding:"omitempty,datetime=2006-01-02"`
 	ImplementedAt                 *string `json:"implemented_at" binding:"omitempty,datetime=2006-01-02"`
-	IsApplicable                  bool    `json:"is_applicable" binding:"required"`
+	IsApplicable                  bool    `json:"is_applicable"`
 	Justification                 *string `json:"justification" binding:"omitempty"`
 	ApplicabilityChangeDate       *string `json:"applicability_change_date" binding:"omitempty,datetime=2006-01-02"`
 }

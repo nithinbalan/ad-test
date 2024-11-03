@@ -169,7 +169,7 @@ func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskA
 		return 0, err
 	}
 
-	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+	urlParam := fmt.Sprintf(`{"risk_register_id":%d, "action_plan_id":%d}`, riskID, id)
 	taskDTO := commonDTOs.TaskFormDTO{
 		ModuleIdentifier:  "risk",
 		RiskActionPlanID:  &id,
@@ -210,7 +210,8 @@ func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskA
 			utility.LogError("Failed to log activity", fields)
 		}
 		// prepare notification
-		urlParam := fmt.Sprintf(`{"id":%d}`, id)
+		urlParam := fmt.Sprintf(`{"risk_register_id":%d, "action_plan_id":%d}`, riskID, id)
+		queryParam := ""
 		entity := "risk-action-plan"
 		action := "responsible-user-assign"
 
@@ -218,13 +219,14 @@ func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskA
 			UserID:               RiskActionPlanFormDTO.ResponsibleUserID,
 			ModuleIdentifier:     "risk",
 			NotificationType:     string(commonDTOs.AssignmentType),
-			HeadingEn:            "Risk Action Plan Assignment",
-			HeadingAr:            "تعيين خطة عمل المخاطر",
+			HeadingEn:            "Risk Action Plan Responsibility Assigned",
+			HeadingAr:            "المسؤولية المعينة لخطة عمل المخاطر",
 			TitleEn:              RiskActionPlanFormDTO.Title,
 			TitleAr:              RiskActionPlanFormDTO.Title,
 			Entity:               &entity,
 			Action:               &action,
 			URLParam:             urlParam,
+			QueryParam:           queryParam,
 			IsSystemNotification: false,
 			CreatedByID:          &currentUserID,
 		}
@@ -322,7 +324,7 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 		return err
 	}
 
-	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+	urlParam := fmt.Sprintf(`{"risk_register_id":%d, "action_plan_id":%d}`, riskID, id)
 
 	taskUpdateDTO := commonDTOs.TaskFormDTO{
 		Title:             RiskActionPlanFormDTO.Title,
@@ -344,7 +346,8 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 	go func() {
 		// sends notification if responsible user has changed
 		if oldResponsibleUserID != existingRiskActionPlan.ResponsibleUserID {
-			urlParam := fmt.Sprintf(`{"id:%d"}`, id)
+			urlParam := fmt.Sprintf(`{"risk_register_id":%d, "action_plan_id":%d}`, riskID, id)
+			queryParam := ""
 			entity := "risk-action-plan"
 
 			oldResponsibleUserAction := "responsible-user-remove"
@@ -352,13 +355,14 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 				UserID:               oldResponsibleUserID,
 				ModuleIdentifier:     "risk",
 				NotificationType:     string(commonDTOs.InformationType),
-				HeadingEn:            "Risk Action Plan Removal",
-				HeadingAr:            " إزالة خطة عمل المخاطر",
+				HeadingEn:            "Risk Action Plan Responsibility Removed",
+				HeadingAr:            "تمت إزالة مسؤولية خطة عمل المخاطر",
 				TitleEn:              existingRiskActionPlan.Title,
 				TitleAr:              existingRiskActionPlan.Title,
 				Entity:               &entity,
 				Action:               &oldResponsibleUserAction,
 				URLParam:             urlParam,
+				QueryParam:           queryParam,
 				IsSystemNotification: false,
 				CreatedByID:          &currentUserID,
 			}
@@ -368,13 +372,14 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 				UserID:               RiskActionPlanFormDTO.ResponsibleUserID,
 				ModuleIdentifier:     "risk",
 				NotificationType:     string(commonDTOs.AssignmentType),
-				HeadingEn:            "Risk Action Plan Assignment",
-				HeadingAr:            "تعيين خطة عمل المخاطر",
+				HeadingEn:            "Risk Action Plan Responsibility Assigned",
+				HeadingAr:            "المسؤولية المعينة لخطة عمل المخاطر",
 				TitleEn:              existingRiskActionPlan.Title,
 				TitleAr:              existingRiskActionPlan.Title,
 				Entity:               &entity,
 				Action:               &newResponsibleUserAction,
 				URLParam:             urlParam,
+				QueryParam:           queryParam,
 				IsSystemNotification: false,
 				CreatedByID:          &currentUserID,
 			}
@@ -567,8 +572,8 @@ func (raps *RiskActionPlanService) Delete(riskID uint, ids []uint, currentUserID
 					UserID:               *notification.OwnerID,
 					ModuleIdentifier:     "risk",
 					NotificationType:     string(commonDTOs.DeletionType),
-					HeadingEn:            "Risk Action Plan Deletion",
-					HeadingAr:            "حذف خطة عمل المخاطر",
+					HeadingEn:            "Risk Action Plan Deleted",
+					HeadingAr:            "تم حذف خطة عمل المخاطر",
 					TitleEn:              notification.TitleEn,
 					TitleAr:              notification.TitleAr,
 					Entity:               &entity,

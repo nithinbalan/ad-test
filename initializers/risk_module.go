@@ -108,7 +108,7 @@ func NewRiskModule(db *gorm.DB,
 	kriRegisterController := controllers.NewKRIRegisterController(kriRegisterSvc)
 
 	kriValueUpdateRepo := repositories.NewKRIValueUpdateRepository(db)
-	kriValueUpdateSvc := services.NewKRIValueUpdateService(kriValueUpdateRepo, sharedModule.ActivityLogService, kriRegisterSvc, masterModule.ReviewFrequencySvc)
+	kriValueUpdateSvc := services.NewKRIValueUpdateService(kriValueUpdateRepo, sharedModule.ActivityLogService, kriRegisterSvc, masterModule.ReviewFrequencySvc, organizationModule.UserSvc, commonModule.NotificationService)
 	kriValueUpdateController := controllers.NewKRIValueUpdateController(kriValueUpdateSvc)
 
 	riskAppetiteStatementRepo := repositories.NewRiskAppetiteStatementRepository(db)
