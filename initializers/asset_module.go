@@ -12,6 +12,7 @@ type AssetModule struct {
 	AssetTypeController     *controllers.AssetTypeController
 	AssetCategoryController *controllers.AssetCategoryController
 	AssetStatusController   *controllers.AssetStatusController
+	AssetRegisterController *controllers.AssetRegisterController
 }
 
 func NewAssetModule(db *gorm.DB,
@@ -34,9 +35,14 @@ func NewAssetModule(db *gorm.DB,
 	assetStatusSvc := services.NewAssetStatusService(assetStatusRepo)
 	assetStatusController := controllers.NewAssetStatusController(assetStatusSvc)
 
+	assetRegisterRepo := repositories.NewAssetRegisterRepository(db)
+	assetRegisterSvc := services.NewAssetRegisterService(assetRegisterRepo, sharedModule.ActivityLogService, assetTypeSvc, assetCategorySvc, assetStatusSvc, organizationModule.UserSvc)
+	assetRegisterController := controllers.NewAssetRegisterController(assetRegisterSvc)
+
 	return &AssetModule{
 		AssetTypeController:     assetTypeController,
 		AssetCategoryController: assetCategoryController,
 		AssetStatusController:   assetStatusController,
+		AssetRegisterController: assetRegisterController,
 	}
 }

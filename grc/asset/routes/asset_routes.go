@@ -20,6 +20,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetTypeController := app.AssetModule.AssetTypeController
 	assetCategoryController := app.AssetModule.AssetCategoryController
 	assetStatusController := app.AssetModule.AssetStatusController
+	assetRegisterController := app.AssetModule.AssetRegisterController
 
 	// Asset Type
 	assetRoutes.GET("/asset-types", assetTypeController.GetAllAssetTypes)
@@ -42,5 +43,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	//asset status
 	assetRoutes.GET("/asset-statuses", assetStatusController.GetAllAssetStatuses)
 	assetRoutes.GET("/asset-statuses/:id", assetStatusController.GetAssetStatusDetails)
+
+	//asset register
+	assetRoutes.GET("/assets", middlewares.RolePermissionMiddleware(db, "assets", "view"), assetRegisterController.GetAllAssets)
+	assetRoutes.GET("/assets/:assetId", middlewares.RolePermissionMiddleware(db, "assets", "view"), assetRegisterController.GetAssetDetails)
+	assetRoutes.POST("/assets", middlewares.RolePermissionMiddleware(db, "assets", "modify"), assetRegisterController.CreateAsset)
+	assetRoutes.PUT("/assets/:assetId", middlewares.RolePermissionMiddleware(db, "assets", "modify"), assetRegisterController.UpdateAsset)
+	assetRoutes.POST("/assets/delete", middlewares.RolePermissionMiddleware(db, "assets", "modify"), assetRegisterController.DeleteAssets)
 
 }
