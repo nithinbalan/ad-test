@@ -208,6 +208,8 @@ func (repo *RiskActionPlanRepository) GetFullDetailsByID(id uint) (*models.RiskA
 		Preload("ActionPlanStatus").
 		Preload("ActionPlanStatusUpdates").
 		Preload("ReviewUser").
+		Preload("CreatedByUser").
+		Preload("UpdatedByUser").
 		First(&riskActionPlan, id)
 
 	if result.Error != nil {
