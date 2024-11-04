@@ -12,6 +12,8 @@ type AssetCriticalityMatrixFactorRatingRepositoryInterface interface {
 	Create(rating *models.AssetCriticalityMatrixFactorRating) (*models.AssetCriticalityMatrixFactorRating, error)
 	Update(id uint, rating *models.AssetCriticalityMatrixFactorRating) (*models.AssetCriticalityMatrixFactorRating, error)
 	Delete(id uint) error
+	ExistsByTitle(titleEn, titleAr string) (bool, error)
+	ExistsByTitleExcludingID(id uint, titleEn, titleAr string) (bool, error)
 }
 
 type AssetCriticalityMatrixFactorRatingRepository struct {
@@ -73,4 +75,29 @@ func (repo *AssetCriticalityMatrixFactorRatingRepository) Update(id uint, update
 func (repo *AssetCriticalityMatrixFactorRatingRepository) Delete(id uint) error {
 	result := repo.db.Delete(&models.AssetCriticalityMatrixFactorRating{}, id)
 	return result.Error
+}
+
+func (repo *AssetCriticalityMatrixFactorRatingRepository) ExistsByTitle(titleEn, titleAr string) (bool, error) {
+	var count int64
+	err := repo.db.Model(&models.AssetCriticalityMatrixFactorRating{}).
+		Where("title_en = ? OR title_ar = ?", titleEn, titleAr).
+		Count(&count).Error
+
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func (repo *AssetCriticalityMatrixFactorRatingRepository) ExistsByTitleExcludingID(id uint, titleEn, titleAr string) (bool, error) {
+	var count int64
+	err := repo.db.Model(&models.AssetCriticalityMatrixFactorRating{}).
+		Where("id <> ? AND (title_en = ? OR title_ar = ?)", id, titleEn, titleAr).
+		Count(&count).Error
+
+	if err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
 }

@@ -21,23 +21,25 @@ type AssetCriticalityMatrixRatingScaleServiceInterface interface {
 }
 
 type AssetCriticalityMatrixRatingScaleService struct {
-	repo           repositories.AssetCriticalityMatrixRatingScaleRepositoryInterface
-	activityLogSvc services.ActivityLogServiceInterface
+	repo                      repositories.AssetCriticalityMatrixRatingScaleRepositoryInterface
+	activityLogSvc            services.ActivityLogServiceInterface
+	assetCriticalityMatrixSvc AssetCriticalityMatrixServiceInterface
 }
 
-func NewAssetCriticalityMatrixRatingScaleService(repo repositories.AssetCriticalityMatrixRatingScaleRepositoryInterface, activityLogSvc services.ActivityLogServiceInterface) AssetCriticalityMatrixRatingScaleServiceInterface {
+func NewAssetCriticalityMatrixRatingScaleService(repo repositories.AssetCriticalityMatrixRatingScaleRepositoryInterface, activityLogSvc services.ActivityLogServiceInterface, assetCriticalityMatrixSvc AssetCriticalityMatrixServiceInterface) AssetCriticalityMatrixRatingScaleServiceInterface {
 	return &AssetCriticalityMatrixRatingScaleService{
-		repo:           repo,
-		activityLogSvc: activityLogSvc,
+		repo:                      repo,
+		activityLogSvc:            activityLogSvc,
+		assetCriticalityMatrixSvc: assetCriticalityMatrixSvc,
 	}
 }
 
-func (s *AssetCriticalityMatrixRatingScaleService) GetAll(sort, sortBy, keyword, status string) ([]*models.AssetCriticalityMatrixRatingScale, error) {
-	return s.repo.GetAll(sort, sortBy, keyword, status)
+func (acmrss *AssetCriticalityMatrixRatingScaleService) GetAll(sort, sortBy, keyword, status string) ([]*models.AssetCriticalityMatrixRatingScale, error) {
+	return acmrss.repo.GetAll(sort, sortBy, keyword, status)
 }
 
-func (s *AssetCriticalityMatrixRatingScaleService) GetByID(id uint) (*models.AssetCriticalityMatrixRatingScale, error) {
-	scale, err := s.repo.GetByID(id)
+func (acmrss *AssetCriticalityMatrixRatingScaleService) GetByID(id uint) (*models.AssetCriticalityMatrixRatingScale, error) {
+	scale, err := acmrss.repo.GetByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -47,14 +49,27 @@ func (s *AssetCriticalityMatrixRatingScaleService) GetByID(id uint) (*models.Ass
 	return scale, nil
 }
 
-func (s *AssetCriticalityMatrixRatingScaleService) Create(currentUserID uint, scale *models.AssetCriticalityMatrixRatingScale) (*models.AssetCriticalityMatrixRatingScale, error) {
-	createdScale, err := s.repo.Create(scale)
+func (acmrss *AssetCriticalityMatrixRatingScaleService) Create(currentUserID uint, scale *models.AssetCriticalityMatrixRatingScale) (*models.AssetCriticalityMatrixRatingScale, error) {
+	matrixID, err := acmrss.assetCriticalityMatrixSvc.GetFirstMatrixID()
+	if err != nil {
+		return nil, err
+	}
+	scale.AssetCriticalityMatrixID = matrixID
+
+	exists, err := acmrss.repo.ExistsByTitle(scale.TitleEn, scale.TitleAr)
+	if err != nil {
+		return nil, err
+	}
+	if exists {
+		return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
+	}
+	createdScale, err := acmrss.repo.Create(scale)
 	if err != nil {
 		return nil, err
 	}
 
 	go func() {
-		err := s.activityLogSvc.LogActivity(
+		err := acmrss.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.AssetCriticalityMatrixRatingScale{}.TableName(),
 			createdScale.ID,
@@ -70,13 +85,23 @@ func (s *AssetCriticalityMatrixRatingScaleService) Create(currentUserID uint, sc
 	return createdScale, nil
 }
 
-func (s *AssetCriticalityMatrixRatingScaleService) Update(id, currentUserID uint, updatedScale *models.AssetCriticalityMatrixRatingScale) (*models.AssetCriticalityMatrixRatingScale, error) {
-	existingScale, err := s.repo.GetByID(id)
+func (acmrss *AssetCriticalityMatrixRatingScaleService) Update(id, currentUserID uint, updatedScale *models.AssetCriticalityMatrixRatingScale) (*models.AssetCriticalityMatrixRatingScale, error) {
+	existingScale, err := acmrss.GetByID(id)
 	if err != nil {
 		return nil, err
 	}
 
-	result, err := s.repo.Update(id, updatedScale)
+	if updatedScale.TitleEn != existingScale.TitleEn || updatedScale.TitleAr != existingScale.TitleAr {
+		exists, err := acmrss.repo.ExistsByTitleExcludingID(id, updatedScale.TitleEn, updatedScale.TitleAr)
+		if err != nil {
+			return nil, err
+		}
+		if exists {
+			return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
+		}
+	}
+
+	result, err := acmrss.repo.Update(id, updatedScale)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +118,7 @@ func (s *AssetCriticalityMatrixRatingScaleService) Update(id, currentUserID uint
 	}
 
 	go func() {
-		err := s.activityLogSvc.LogActivity(
+		err := acmrss.activityLogSvc.LogActivity(
 			models.UpdateAction,
 			models.AssetCriticalityMatrixRatingScale{}.TableName(),
 			result.ID,
@@ -108,17 +133,17 @@ func (s *AssetCriticalityMatrixRatingScaleService) Update(id, currentUserID uint
 	return result, err
 }
 
-func (s *AssetCriticalityMatrixRatingScaleService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
+func (acmrss *AssetCriticalityMatrixRatingScaleService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
 	for _, id := range ids {
-		_, err := s.repo.GetByID(id)
+		_, err := acmrss.repo.GetByID(id)
 		if err != nil {
 			fmt.Print(err)
 			continue
 		}
 
-		err = s.repo.Delete(id)
+		err = acmrss.repo.Delete(id)
 		if err != nil {
 			failedIds = append(failedIds, id)
 		} else {
@@ -128,7 +153,7 @@ func (s *AssetCriticalityMatrixRatingScaleService) Delete(ids []uint, currentUse
 
 	if len(successfulIds) > 0 {
 		go func() {
-			err := s.activityLogSvc.LogBulkActivities(
+			err := acmrss.activityLogSvc.LogBulkActivities(
 				models.DeleteAction,
 				models.AssetCriticalityMatrixRatingScale{}.TableName(),
 				successfulIds,

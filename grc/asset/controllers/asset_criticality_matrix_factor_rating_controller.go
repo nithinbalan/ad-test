@@ -69,8 +69,17 @@ func (acmfrc *AssetCriticalityMatrixFactorRatingController) CreateRating(c *gin.
 
 	createdRating, err := acmfrc.service.Create(currentUserID, rating)
 	if err != nil {
-		utility.SendInternalErrResp(acmfrc.db, c, err.Error())
-		return
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(acmfrc.db, c, e.Error())
+			return
+		}
 	}
 
 	c.JSON(http.StatusCreated, createdRating)
@@ -97,8 +106,17 @@ func (acmfrc *AssetCriticalityMatrixFactorRatingController) UpdateRating(c *gin.
 
 	updatedRating, err = acmfrc.service.Update(uint(ratingID), currentUserID, updatedRating)
 	if err != nil {
-		utility.SendInternalErrResp(acmfrc.db, c, err.Error())
-		return
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(acmfrc.db, c, e.Error())
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, updatedRating)

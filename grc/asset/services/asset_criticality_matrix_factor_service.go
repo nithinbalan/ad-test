@@ -21,23 +21,25 @@ type AssetCriticalityMatrixFactorServiceInterface interface {
 }
 
 type AssetCriticalityMatrixFactorService struct {
-	repo           repositories.AssetCriticalityMatrixFactorRepositoryInterface
-	activityLogSvc services.ActivityLogServiceInterface
+	repo                      repositories.AssetCriticalityMatrixFactorRepositoryInterface
+	activityLogSvc            services.ActivityLogServiceInterface
+	assetCriticalityMatrixSvc AssetCriticalityMatrixServiceInterface
 }
 
-func NewAssetCriticalityMatrixFactorService(repo repositories.AssetCriticalityMatrixFactorRepositoryInterface, activityLogSvc services.ActivityLogServiceInterface) AssetCriticalityMatrixFactorServiceInterface {
+func NewAssetCriticalityMatrixFactorService(repo repositories.AssetCriticalityMatrixFactorRepositoryInterface, activityLogSvc services.ActivityLogServiceInterface, assetCriticalityMatrixSvc AssetCriticalityMatrixServiceInterface) AssetCriticalityMatrixFactorServiceInterface {
 	return &AssetCriticalityMatrixFactorService{
-		repo:           repo,
-		activityLogSvc: activityLogSvc,
+		repo:                      repo,
+		activityLogSvc:            activityLogSvc,
+		assetCriticalityMatrixSvc: assetCriticalityMatrixSvc,
 	}
 }
 
-func (s *AssetCriticalityMatrixFactorService) GetAll(sort, sortBy, keyword, status string) ([]*models.AssetCriticalityMatrixFactor, error) {
-	return s.repo.GetAll(sort, sortBy, keyword, status)
+func (acmfs *AssetCriticalityMatrixFactorService) GetAll(sort, sortBy, keyword, status string) ([]*models.AssetCriticalityMatrixFactor, error) {
+	return acmfs.repo.GetAll(sort, sortBy, keyword, status)
 }
 
-func (s *AssetCriticalityMatrixFactorService) GetByID(id uint) (*models.AssetCriticalityMatrixFactor, error) {
-	factor, err := s.repo.GetByID(id)
+func (acmfs *AssetCriticalityMatrixFactorService) GetByID(id uint) (*models.AssetCriticalityMatrixFactor, error) {
+	factor, err := acmfs.repo.GetByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -47,14 +49,26 @@ func (s *AssetCriticalityMatrixFactorService) GetByID(id uint) (*models.AssetCri
 	return factor, nil
 }
 
-func (s *AssetCriticalityMatrixFactorService) Create(currentUserID uint, factor *models.AssetCriticalityMatrixFactor) (*models.AssetCriticalityMatrixFactor, error) {
-	createdFactor, err := s.repo.Create(factor)
+func (acmfs *AssetCriticalityMatrixFactorService) Create(currentUserID uint, factor *models.AssetCriticalityMatrixFactor) (*models.AssetCriticalityMatrixFactor, error) {
+	matrixID, err := acmfs.assetCriticalityMatrixSvc.GetFirstMatrixID()
+	if err != nil {
+		return nil, err
+	}
+	factor.AssetCriticalityMatrixID = matrixID
+
+	if exists, err := acmfs.repo.ExistsByTitle(factor.TitleEn, factor.TitleAr); err != nil {
+		return nil, err
+	} else if exists {
+		return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
+	}
+
+	createdFactor, err := acmfs.repo.Create(factor)
 	if err != nil {
 		return nil, err
 	}
 
 	go func() {
-		err := s.activityLogSvc.LogActivity(
+		err := acmfs.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.AssetCriticalityMatrixFactor{}.TableName(),
 			createdFactor.ID,
@@ -70,13 +84,21 @@ func (s *AssetCriticalityMatrixFactorService) Create(currentUserID uint, factor 
 	return createdFactor, nil
 }
 
-func (s *AssetCriticalityMatrixFactorService) Update(id uint, currentUserID uint, updatedFactor *models.AssetCriticalityMatrixFactor) (*models.AssetCriticalityMatrixFactor, error) {
-	existingFactor, err := s.repo.GetByID(id)
+func (acmfs *AssetCriticalityMatrixFactorService) Update(id uint, currentUserID uint, updatedFactor *models.AssetCriticalityMatrixFactor) (*models.AssetCriticalityMatrixFactor, error) {
+	existingFactor, err := acmfs.GetByID(id)
 	if err != nil {
 		return nil, err
 	}
 
-	result, err := s.repo.Update(id, updatedFactor)
+	if updatedFactor.TitleEn != existingFactor.TitleEn || updatedFactor.TitleAr != existingFactor.TitleAr {
+		if exists, err := acmfs.repo.ExistsByTitleExcludingID(id, updatedFactor.TitleEn, updatedFactor.TitleAr); err != nil {
+			return nil, err
+		} else if exists {
+			return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
+		}
+	}
+
+	result, err := acmfs.repo.Update(id, updatedFactor)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +115,7 @@ func (s *AssetCriticalityMatrixFactorService) Update(id uint, currentUserID uint
 	}
 
 	go func() {
-		err := s.activityLogSvc.LogActivity(
+		err := acmfs.activityLogSvc.LogActivity(
 			models.UpdateAction,
 			models.AssetCriticalityMatrixFactor{}.TableName(),
 			result.ID,
@@ -108,17 +130,17 @@ func (s *AssetCriticalityMatrixFactorService) Update(id uint, currentUserID uint
 	return result, err
 }
 
-func (s *AssetCriticalityMatrixFactorService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
+func (acmfs *AssetCriticalityMatrixFactorService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
 	for _, id := range ids {
-		_, err := s.repo.GetByID(id)
+		_, err := acmfs.repo.GetByID(id)
 		if err != nil {
 			fmt.Print(err)
 			continue
 		}
 
-		err = s.repo.Delete(id)
+		err = acmfs.repo.Delete(id)
 		if err != nil {
 			failedIds = append(failedIds, id)
 		} else {
@@ -128,7 +150,7 @@ func (s *AssetCriticalityMatrixFactorService) Delete(ids []uint, currentUserID u
 
 	if len(successfulIds) > 0 {
 		go func() {
-			err := s.activityLogSvc.LogBulkActivities(
+			err := acmfs.activityLogSvc.LogBulkActivities(
 				models.DeleteAction,
 				models.AssetCriticalityMatrixFactor{}.TableName(),
 				successfulIds,

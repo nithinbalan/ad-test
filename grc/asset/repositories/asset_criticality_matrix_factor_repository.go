@@ -12,6 +12,9 @@ type AssetCriticalityMatrixFactorRepositoryInterface interface {
 	Create(factor *models.AssetCriticalityMatrixFactor) (*models.AssetCriticalityMatrixFactor, error)
 	Update(id uint, factor *models.AssetCriticalityMatrixFactor) (*models.AssetCriticalityMatrixFactor, error)
 	Delete(id uint) error
+
+	ExistsByTitle(titleEn, titleAr string) (bool, error)
+	ExistsByTitleExcludingID(id uint, titleEn, titleAr string) (bool, error)
 }
 
 type AssetCriticalityMatrixFactorRepository struct {
@@ -73,4 +76,28 @@ func (repo *AssetCriticalityMatrixFactorRepository) Update(id uint, updatedFacto
 func (repo *AssetCriticalityMatrixFactorRepository) Delete(id uint) error {
 	result := repo.db.Delete(&models.AssetCriticalityMatrixFactor{}, id)
 	return result.Error
+}
+
+func (repo *AssetCriticalityMatrixFactorRepository) ExistsByTitle(titleEn, titleAr string) (bool, error) {
+	var count int64
+	err := repo.db.Model(&models.AssetCriticalityMatrixFactor{}).
+		Where("title_en = ? OR title_ar = ?", titleEn, titleAr).
+		Count(&count).Error
+
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func (repo *AssetCriticalityMatrixFactorRepository) ExistsByTitleExcludingID(id uint, titleEn, titleAr string) (bool, error) {
+	var count int64
+	err := repo.db.Model(&models.AssetCriticalityMatrixFactor{}).
+		Where("id <> ? AND (title_en = ? OR title_ar = ?)", id, titleEn, titleAr).
+		Count(&count).Error
+
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
 }
