@@ -69,8 +69,17 @@ func (acmrs *AssetCriticalityMatrixRatingScaleController) CreateScale(c *gin.Con
 
 	createdScale, err := acmrs.service.Create(currentUserID, scale)
 	if err != nil {
-		utility.SendInternalErrResp(acmrs.db, c, err.Error())
-		return
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(acmrs.db, c, e.Error())
+			return
+		}
 	}
 
 	c.JSON(http.StatusCreated, createdScale)
@@ -97,8 +106,17 @@ func (acmrs *AssetCriticalityMatrixRatingScaleController) UpdateScale(c *gin.Con
 
 	updatedScale, err = acmrs.service.Update(uint(scaleID), currentUserID, updatedScale)
 	if err != nil {
-		utility.SendInternalErrResp(acmrs.db, c, err.Error())
-		return
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(acmrs.db, c, e.Error())
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, updatedScale)
