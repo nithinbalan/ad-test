@@ -41,7 +41,13 @@ func (repo *AssetRegisterRepository) GetAll(params *dtos.AssetRegisterListQueryP
 
 	query := repo.db.Table("asset_register").
 		Select(`
-			asset_register.*,
+			asset_register.id,
+			asset_register.reference_number,
+			asset_register.title_en,
+			asset_register.title_ar,
+			asset_register.location,
+			asset_register.description,
+			CONVERT(VARCHAR, asset_register.acquisition_date, 23) AS acquisition_date,
 			asset_types.title_en AS asset_type_title_en,
 			asset_types.title_ar AS asset_type_title_ar,
 			asset_categories.title_en AS asset_category_title_en,

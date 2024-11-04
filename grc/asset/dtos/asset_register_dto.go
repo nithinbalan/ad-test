@@ -32,7 +32,7 @@ type AssetRegisterListDTO struct {
 	ResponsibleUserProfileImagePath string     `json:"responsible_user_profile_image_path"`
 	Location                        *string    `json:"location"`
 	Description                     *string    `json:"description"`
-	AcquisitionDate                 *time.Time `json:"acquisition_date"`
+	AcquisitionDate                 string     `json:"acquisition_date"`
 	CreatedUserID                   uint       `json:"created_user_id"`
 	CreatedUserFirstNameEn          string     `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr          string     `json:"created_user_first_name_ar"`
