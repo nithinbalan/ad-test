@@ -238,7 +238,7 @@ func (repo *AssetRegisterRepository) GenerateReferenceNumber() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "CTRL", currentYear, lastReferenceID+1)
+	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "AST", currentYear, lastReferenceID+1)
 
 	return newReferenceNumber, nil
 }
