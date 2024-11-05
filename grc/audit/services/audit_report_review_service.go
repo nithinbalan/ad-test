@@ -266,9 +266,8 @@ func (arrs *AuditReportReviewService) handleApprovedCase(id uint, currentUserID 
 		if err != nil {
 			return err
 		}
-		//todo
 
-		// arrs.sendApprovalNotification(id, currentUserID, document)
+		arrs.sendApprovalNotification(id, currentUserID, auditFinalReport)
 
 		nextAuditReportWorkflowLevel, err := arrs.auditReportWorkflowSvc.GetNextLevel(auditFinalReport.ID, currentApprovalLevel)
 		if err != nil {
@@ -309,9 +308,8 @@ func (arrs *AuditReportReviewService) handleApprovedCase(id uint, currentUserID 
 			if err != nil {
 				return err
 			}
-			//todo
 
-			// arrs.notifyNextLevelUsers(auditFinalReport.ID, nextWorkflow, auditFinalReport)
+			arrs.notifyNextLevelUsers(auditFinalReport.ID, nextWorkflow, auditFinalReport)
 		}
 	case "multiple-users", "role":
 		allowed := false
@@ -337,8 +335,7 @@ func (arrs *AuditReportReviewService) handleApprovedCase(id uint, currentUserID 
 		if err != nil {
 			return err
 		}
-		//todo
-		// arrs.sendApprovalNotification(id, currentUserID, document)
+		arrs.sendApprovalNotification(id, currentUserID, auditFinalReport)
 
 		if currentAuditReportWorkflow.ApprovalType == "all" {
 			_, err := arrs.taskSvc.UpdateAuditReportTaskStatus(id, currentUserID, currentAuditReportWorkflow.ID)
@@ -403,10 +400,9 @@ func (arrs *AuditReportReviewService) handleApprovedCase(id uint, currentUserID 
 					if err != nil {
 						return err
 					}
-					//todo
 
 					// fmt.Println("124")
-					// arrs.notifyNextLevelUsers(auditFinalReport.ID, nextWorkflow, auditFinalReport)
+					arrs.notifyNextLevelUsers(auditFinalReport.ID, nextWorkflow, auditFinalReport)
 				}
 			}
 		} else {
@@ -486,8 +482,7 @@ func (arrs *AuditReportReviewService) handleApprovedCase(id uint, currentUserID 
 				if err != nil {
 					return err
 				}
-				//todo
-				// arrs.notifyNextLevelUsers(auditFinalReport.ID, nextWorkflow, auditFinalReport)
+				arrs.notifyNextLevelUsers(auditFinalReport.ID, nextWorkflow, auditFinalReport)
 			}
 		}
 	}
@@ -495,7 +490,7 @@ func (arrs *AuditReportReviewService) handleApprovedCase(id uint, currentUserID 
 	return nil
 }
 
-//not using reject api
+// not using reject api
 func (arrs *AuditReportReviewService) handleRejectedCase(id uint, currentUserID uint, auditReportReviewCommentFormDTO *auditDTOs.AuditReportReviewCommentFormDTO, auditFinalReportDetailDTO *auditDTOs.AuditFinalReportDetailDTO, currentAuditReportWorkflow *models.AuditReportWorkflow) error {
 	workflowStatus, err := arrs.workflowStatusSvc.GetByType("reject")
 	if err != nil {
@@ -684,4 +679,140 @@ func (arrs *AuditReportReviewService) CreateTasksForNextLevelUsers(auditFinalRep
 	}
 
 	return nil
+}
+
+func (arrs *AuditReportReviewService) sendApprovalNotification(id uint, currentUserID uint, auditFinalReportDetailDTO *auditDTOs.AuditFinalReportDetailDTO) {
+	go func() {
+		// Prepare URL and parameters for the notification
+		urlParam := fmt.Sprintf(`{"id":%d}`, id)
+		entity := "audit"
+		action := "approval"
+
+		// Create the database notification DTO
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserID:               uint(auditFinalReportDetailDTO.PreparedBy.ID),
+			ModuleIdentifier:     "audit",
+			NotificationType:     string(commonDTOs.ApprovalType),
+			HeadingEn:            "Audit Final Report Approval",
+			HeadingAr:            "اعتماد التقرير النهائي للتدقيق",
+			ReferenceNumber:      auditFinalReportDetailDTO.ReferenceNumber,
+			TitleEn:              auditFinalReportDetailDTO.Title,
+			TitleAr:              auditFinalReportDetailDTO.Title,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		// Get the approving user's details
+		approvedByUser, err := arrs.userSvc.GetByID(currentUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch approving user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		// Prepare email details
+		appURL := utility.GetAppURL()
+		emailTo := []string{auditFinalReportDetailDTO.PreparedBy.Email}
+		subject := fmt.Sprintf("Audit Final Report/%s: Approval Notification", auditFinalReportDetailDTO.Title)
+		urlParam = fmt.Sprintf("%s/audits/%d/final-reports/%d", appURL, auditFinalReportDetailDTO.AuditID, id)
+
+		emailData := map[string]interface{}{
+			"AuditTitle":            auditFinalReportDetailDTO.Title,
+			"Description":           auditFinalReportDetailDTO.Description,
+			"FirstNameEn":           auditFinalReportDetailDTO.PreparedBy.FirstNameEN,
+			"LastNameEn":            auditFinalReportDetailDTO.PreparedBy.LastNameEN,
+			"ApprovedByFirstNameEn": approvedByUser.FirstNameEn,
+			"ApprovedByLastNameEn":  approvedByUser.LastNameEn,
+			"ApprovedAt":            time.Now().Format("2006-01-02"),
+			"RedirectURL":           urlParam,
+		}
+
+		// Create the email notification DTO
+		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              emailTo,
+			Subject:              subject,
+			TemplateRelativePath: "audit/templates/email/audit_report_workflow_approve_user_mail.html",
+			EmailData:            emailData,
+		}
+
+		// Send the notification
+		err = arrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "audit")
+		if err != nil {
+			utility.LogError("Failed to send approval notification email", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
+	}()
+}
+
+func (arrs *AuditReportReviewService) notifyNextLevelUsers(id uint, nextDocWorkflowLevel *models.AuditReportWorkflow, auditFinalReportDetailDTO *auditDTOs.AuditFinalReportDetailDTO) {
+	go func() {
+		urlParam := fmt.Sprintf(`{"id":%d}`, id)
+		entity := "audit"
+		action := "review-user-assign"
+
+		for _, participant := range nextDocWorkflowLevel.AuditReportWorkflowParticipants {
+			responsibleUser, err := arrs.userSvc.GetByID(participant.UserID)
+			if err != nil {
+				utility.LogError("Failed to fetch review user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				continue
+			}
+
+			createdByID := uint(auditFinalReportDetailDTO.PreparedBy.ID)
+			// Prepare database notification DTO
+			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserID:               participant.UserID,
+				ModuleIdentifier:     "audit",
+				NotificationType:     string(commonDTOs.ReviewType),
+				HeadingEn:            "Audit Report Review",
+				HeadingAr:            "مراجعة الوثيقة",
+				ReferenceNumber:      auditFinalReportDetailDTO.ReferenceNumber,
+				TitleEn:              auditFinalReportDetailDTO.Title,
+				TitleAr:              auditFinalReportDetailDTO.Title,
+				Entity:               &entity,
+				Action:               &action,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &createdByID,
+			}
+
+			// Prepare email notification DTO
+			emailTo := []string{responsibleUser.Email}
+			subject := fmt.Sprintf("Document/%s: Review Assigned", auditFinalReportDetailDTO.Title)
+			appURL := utility.GetAppURL()
+			urlParam = fmt.Sprintf("%s/audits/%d/final-reports/%d", appURL, auditFinalReportDetailDTO.AuditID, id)
+
+			emailData := map[string]interface{}{
+				"FirstNameEn":           responsibleUser.FirstNameEn,
+				"LastNameEn":            responsibleUser.LastNameEn,
+				"Title":                 auditFinalReportDetailDTO.Title,
+				"Description":           auditFinalReportDetailDTO.Description,
+				"AssignedByFirstNameEn": auditFinalReportDetailDTO.PreparedBy.FirstNameEN,
+				"AssignedByLastNameEn":  auditFinalReportDetailDTO.PreparedBy.LastNameEN,
+				"AssignedOn":            time.Now().Format("2006-01-02"),
+				"RedirectURL":           urlParam,
+			}
+
+			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              emailTo,
+				Subject:              subject,
+				TemplateRelativePath: "audit/templates/email/audit_report_workflow_review_user_mail.html",
+				EmailData:            emailData,
+			}
+
+			// Send both database and email notifications
+			err = arrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "audit")
+			if err != nil {
+				utility.LogError("Failed to send next level review notification", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+		}
+	}()
 }
