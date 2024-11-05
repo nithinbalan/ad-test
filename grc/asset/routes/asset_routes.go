@@ -27,6 +27,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	vulnerabilityTypeController := app.AssetModule.VulnerabilityTypeController
 	vulnerabilityStatusController := app.AssetModule.VulnerabilityStatusController
 	vulnerabilityController := app.AssetModule.VulnerabilityController
+	threatTypeController := app.AssetModule.ThreatTypeController
+	threatStatusController := app.AssetModule.ThreatStatusController
 
 	// Asset Type
 	assetRoutes.GET("/asset-types", assetTypeController.GetAllAssetTypes)
@@ -96,5 +98,17 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("/vulnerabilities", middlewares.RolePermissionMiddleware(db, "assets", "modify"), vulnerabilityController.CreateVulnerability)
 	assetRoutes.PUT("/vulnerabilities/:id", middlewares.RolePermissionMiddleware(db, "assets", "modify"), vulnerabilityController.UpdateVulnerability)
 	assetRoutes.POST("/vulnerabilities/delete", middlewares.RolePermissionMiddleware(db, "assets", "modify"), vulnerabilityController.DeleteVulnerabilities)
+	//Threat types
+	assetRoutes.GET("/threat-types", threatTypeController.GetAllThreatTypes)
+	assetRoutes.GET("/threat-types/:id", threatTypeController.GetThreatTypeDetails)
+	assetRoutes.POST("/threat-types", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), threatTypeController.CreateThreatType)
+	assetRoutes.PUT("/threat-types/:id", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), threatTypeController.UpdateThreatType)
+	assetRoutes.POST("/threat-types/delete", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), threatTypeController.DeleteThreatTypes)
+	assetRoutes.PUT("/threat-types/activate", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), threatTypeController.ActivateThreatTypes)
+	assetRoutes.PUT("/threat-types/deactivate", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), threatTypeController.DeactivateThreatTypes)
+
+	//threat status
+	assetRoutes.GET("/threat-statuses", threatStatusController.GetAllThreatStatuses)
+	assetRoutes.GET("/threat-statuses/:id", threatStatusController.GetThreatStatusDetails)
 
 }
