@@ -187,7 +187,6 @@ func (ars *AssetRegisterService) Update(id uint, assetRegisterFormDTO *dtos.Asse
 	existingAsset.AssetCategoryID = assetRegisterFormDTO.AssetCategoryID
 	existingAsset.AssetStatusID = assetRegisterFormDTO.AssetStatusID
 	existingAsset.ResponsibleUserID = assetRegisterFormDTO.ResponsibleUserID
-	existingAsset.ResponsibleUnitID = assetRegisterFormDTO.ResponsibleUserID
 	existingAsset.Location = assetRegisterFormDTO.Location
 	existingAsset.Description = assetRegisterFormDTO.Description
 	existingAsset.AcquisitionDate = dates.AcquisitionDate
