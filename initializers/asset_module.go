@@ -18,6 +18,8 @@ type AssetModule struct {
 	AssetCriticalityMatrixRatingScaleController  *controllers.AssetCriticalityMatrixRatingScaleController
 	VulnerabilityTypeController                  *controllers.VulnerabilityTypeController
 	VulnerabilityStatusController                *controllers.VulnerabilityStatusController
+	ThreatTypeController                         *controllers.ThreatTypeController
+	ThreatStatusController                       *controllers.ThreatStatusController
 }
 
 func NewAssetModule(db *gorm.DB,
@@ -67,6 +69,14 @@ func NewAssetModule(db *gorm.DB,
 	vulnerabilityStatusSvc := services.NewVulnerabilityStatusService(vulnerabilityStatusRepo)
 	vulnerabilityStatusController := controllers.NewVulnerabilityStatusController(vulnerabilityStatusSvc)
 
+	threatTypeRepo := repositories.NewThreatTypeRepository(db)
+	threatTypeSvc := services.NewThreatTypeService(threatTypeRepo, sharedModule.ActivityLogService)
+	threatTypeController := controllers.NewThreatTypeController(threatTypeSvc)
+
+	threatStatusRepo := repositories.NewThreatStatusRepository(db)
+	threatStatusSvc := services.NewThreatStatusService(threatStatusRepo)
+	threatStatusController := controllers.NewThreatStatusController(threatStatusSvc)
+
 	return &AssetModule{
 		AssetTypeController:                          assetTypeController,
 		AssetCategoryController:                      assetCategoryController,
@@ -77,5 +87,7 @@ func NewAssetModule(db *gorm.DB,
 		AssetCriticalityMatrixRatingScaleController:  assetCriticalityMatrixRatingScaleController,
 		VulnerabilityTypeController:                  vulnerabilityTypeController,
 		VulnerabilityStatusController:                vulnerabilityStatusController,
+		ThreatTypeController:                         threatTypeController,
+		ThreatStatusController:                       threatStatusController,
 	}
 }
