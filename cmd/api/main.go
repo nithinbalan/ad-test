@@ -2,6 +2,7 @@ package main
 
 import (
 	"jethur/config"
+	assetRoutes "jethur/grc/asset/routes"
 	auditInsightsRoutes "jethur/grc/audit-insights/routes"
 	auditRoutes "jethur/grc/audit/routes"
 	authRoutes "jethur/grc/auth/routes"
@@ -66,6 +67,7 @@ func main() {
 	kpiRoutes.RegisterRoutes(app, r)
 	auditInsightsRoutes.RegisterRoutes(app, r)
 	reportRoutes.RegisterRoutes(app, r)
+	assetRoutes.RegisterRoutes(app, r)
 
 	if err := r.Run(":" + port); err != nil {
 		utility.LogFatal("Failed to run server", map[string]interface{}{

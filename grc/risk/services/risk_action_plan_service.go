@@ -115,6 +115,11 @@ func (raps RiskActionPlanService) GetFullDetailsByID(riskID uint, id uint) (*ris
 		return nil, err
 	}
 
+	if riskActionPlan.TargetDate != nil {
+		targetDate := riskActionPlan.TargetDate.Format("2006-01-02")
+		riskActionPlanDTO.TargetDateString = &targetDate
+	}
+
 	// todo :- also add extra fields which required in details screen
 
 	return &riskActionPlanDTO, nil

@@ -25,6 +25,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	rolePermissionTypeController := app.SettingsModule.RolePermissionTypeController
 	moduleController := app.SettingsModule.ModuleController
 	emailTemplateSettingsController := app.SettingsModule.EmailTemplateSettingsController
+	integrationController := app.SettingsModule.IntegrationController
 
 	//Organization Level
 	settingRoutes.GET("/organization-levels", organizationLevelController.GetAllOrganizationLevels)
@@ -76,4 +77,5 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	settingRoutes.GET("/modules", moduleController.GetAllModules)
 
+	settingRoutes.GET("/integrations", integrationController.GetAllIntegrations)
 }

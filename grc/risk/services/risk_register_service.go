@@ -142,6 +142,9 @@ func (rrs RiskRegisterService) GetFullDetailsByID(id uint, tx ...utility.Databas
 		riskDTO.NextReviewDateString = &nextReviewDate
 	}
 
+	riskDTO.CreatedAt = risk.CreatedAt
+	riskDTO.UpdatedAt = risk.UpdatedAt
+
 	return &riskDTO, nil
 }
 
