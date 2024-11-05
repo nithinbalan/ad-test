@@ -2,8 +2,8 @@ package controllers
 
 import (
 	"errors"
-	"jethur/grc/threat/dtos"
-	"jethur/grc/threat/services"
+	"jethur/grc/asset/dtos"
+	"jethur/grc/asset/services"
 	"jethur/utility"
 	"net/http"
 	"strconv"
@@ -117,8 +117,7 @@ func (tc *ThreatController) GetAllThreats(c *gin.Context) {
 	c.JSON(http.StatusOK, threats)
 }
 
-
-func (tc *ThreatController) GetAssetDetails(c *gin.Context) {
+func (tc *ThreatController) GetThreatDetails(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -135,7 +134,7 @@ func (tc *ThreatController) GetAssetDetails(c *gin.Context) {
 	c.JSON(http.StatusOK, threat)
 }
 
-func (tc *ThreatController) CreateAsset(c *gin.Context) {
+func (tc *ThreatController) CreateThreat(c *gin.Context) {
 	var threatForm dtos.ThreatFormDTO
 	if err := c.ShouldBindJSON(&threatForm); err != nil {
 		utility.SendInvalidErrResp(c, err)
@@ -162,7 +161,7 @@ func (tc *ThreatController) CreateAsset(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"id": threatID})
 }
 
-func (tc *ThreatController) UpdateAsset(c *gin.Context) {
+func (tc *ThreatController) UpdateThreat(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -200,7 +199,7 @@ func (tc *ThreatController) UpdateAsset(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-func (tc *ThreatController) DeleteAssets(c *gin.Context) {
+func (tc *ThreatController) DeleteThreats(c *gin.Context) {
 	var request struct {
 		IDs []uint `json:"ids"`
 	}
@@ -225,7 +224,7 @@ func (tc *ThreatController) DeleteAssets(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
 
-func (tc *ThreatController) GetAssetsExport(c *gin.Context) {
+func (tc *ThreatController) GetThreatsExport(c *gin.Context) {
 	c.Request.URL.RawQuery += "&export=true"
-	tc.GetAllAssets(c)
+	tc.GetAllThreats(c)
 }

@@ -83,8 +83,8 @@ func NewAssetModule(db *gorm.DB,
 		threatRepo,
 		sharedModule.ActivityLogService,
 		threatTypeSvc,
-		threatStatusSvc,
 		masterModule.SeverityLevelSvc,
+		threatStatusSvc,
 		organizationModule.UserSvc,
 	)
 	threatController := controllers.NewThreatController(threatSvc)

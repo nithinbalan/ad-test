@@ -3,12 +3,12 @@ package services
 import (
 	"errors"
 	"fmt"
+	"jethur/grc/asset/dtos"
+	"jethur/grc/asset/repositories"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
-	"jethur/grc/threat/dtos"
-	"jethur/grc/threat/repositories"
 	"jethur/utility"
 	"time"
 
@@ -28,26 +28,26 @@ type ThreatServiceInterface interface {
 type ThreatService struct {
 	repo             repositories.ThreatRepositoryInterface
 	activityLogSvc   logServices.ActivityLogServiceInterface
-	threatTypeSvc     AssetTypeServiceInterface
-	severityLevelSvc      masterServices.SeverityLevelServiceInterface
-	threatStatusSvc   AssetStatusServiceInterface
+	threatTypeSvc    ThreatTypeServiceInterface
+	severityLevelSvc masterServices.SeverityLevelServiceInterface
+	threatStatusSvc  ThreatStatusServiceInterface
 	userSvc          organizationServices.UserServiceInterface
 }
 
 func NewThreatService(
 	repo repositories.ThreatRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
-	threatTypeSvc AssetTypeServiceInterface,
-	severityLevelSvc      masterServices.SeverityLevelServiceInterface,
-	threatStatusSvc AssetStatusServiceInterface,
+	threatTypeSvc ThreatTypeServiceInterface,
+	severityLevelSvc masterServices.SeverityLevelServiceInterface,
+	threatStatusSvc ThreatStatusServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 ) ThreatServiceInterface {
 	return &ThreatService{
 		repo:             repo,
 		activityLogSvc:   activityLogSvc,
-		threatTypeSvc:     threatTypeSvc,
+		threatTypeSvc:    threatTypeSvc,
 		severityLevelSvc: severityLevelSvc,
-		threatStatusSvc:   threatStatusSvc,
+		threatStatusSvc:  threatStatusSvc,
 		userSvc:          userSvc,
 	}
 }
@@ -83,9 +83,13 @@ func (as *ThreatService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTrans
 		return nil, err
 	}
 
-	if threat.AcquisitionDate != nil {
-		acquisitionDateString := threat.AcquisitionDate.Format("2006-01-02")
-		threatDetailDTO.AcquisitionDateString = &acquisitionDateString
+	if threat.DetectionDate != nil {
+		detectionDateString := threat.DetectionDate.Format("2006-01-02")
+		threatDetailDTO.DetectionDateString = &detectionDateString
+	}
+	if threat.ResolutionDate != nil {
+		resolutionDateString := threat.ResolutionDate.Format("2006-01-02")
+		threatDetailDTO.ResolutionDateString = &resolutionDateString
 	}
 
 	// Add additional fields as necessary for the details screen
@@ -163,7 +167,6 @@ func (ts *ThreatService) Create(threatFormDTO *dtos.ThreatFormDTO, currentUserID
 	return threatID, nil
 }
 
-
 func (ts *ThreatService) Update(id uint, threatFormDTO *dtos.ThreatFormDTO, currentUserID uint) error {
 	// Retrieve the existing threat record
 	existingThreat, err := ts.repo.GetByID(id)
@@ -207,7 +210,6 @@ func (ts *ThreatService) Update(id uint, threatFormDTO *dtos.ThreatFormDTO, curr
 	// Persist the updated threat record
 	return ts.repo.Update(existingThreat)
 }
-
 
 func (as *ThreatService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
@@ -262,26 +264,24 @@ func (ts *ThreatService) validateThreatFormDTO(threatFormDTO *dtos.ThreatFormDTO
 		return utility.NewValidationError(fmt.Errorf("responsible user does not exist"), "not_exist", "responsible user")
 	}
 
-	// Optional: Validate Responsible Unit if it's explicitly provided in the DTO
-	if threatFormDTO.ResponsibleUnitID != 0 {
-		if _, err := ts.organizationUnitSvc.GetByID(threatFormDTO.ResponsibleUnitID); err != nil {
-			return utility.NewValidationError(fmt.Errorf("responsible unit does not exist"), "not_exist", "responsible unit")
-		}
-	}
-
 	return nil
 }
 
-func (ts *ThreatService) ptseThreatDates(threatRegisterFormDTO *dtos.ThreatFormDTO) (*dtos.ThreatPtsedDates, error) {
-	ptsed := &dtos.ThreatPtsedDates{}
+func (ts *ThreatService) parseThreatDates(threatRegisterFormDTO *dtos.ThreatFormDTO) (*dtos.ThreatParsedDates, error) {
+	parse := &dtos.ThreatParsedDates{}
 
 	var err error
-	if threatRegisterFormDTO.AcquisitionDate != nil {
-		ptsed.AcquisitionDate, err = utility.PtseDate(*threatRegisterFormDTO.AcquisitionDate)
+	if threatRegisterFormDTO.DetectionDate != nil {
+		parse.DetectionDate, err = utility.ParseDate(*threatRegisterFormDTO.DetectionDate)
 		if err != nil {
-			return nil, utility.NewValidationError(fmt.Errorf("invalid acquisition date"), "invalid_date", "acquisition date")
+			return nil, utility.NewValidationError(fmt.Errorf("invalid detection date"), "invalid_date", "detection date")
 		}
 	}
-
-	return ptsed, nil
+	if threatRegisterFormDTO.ResolutionDate != nil {
+		parse.ResolutionDate, err = utility.ParseDate(*threatRegisterFormDTO.ResolutionDate)
+		if err != nil {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid resolution date"), "invalid_date", "resolution date")
+		}
+	}
+	return parse, nil
 }
