@@ -1,7 +1,9 @@
 package repositories
 
 import (
+	"jethur/grc/models"
 	integrationDTOs "jethur/grc/settings/dtos"
+	"jethur/utility"
 
 	"gorm.io/gorm"
 )
@@ -9,6 +11,12 @@ import (
 // Interfaces
 type IntegrationRepositoryInterface interface {
 	GetAll(params *integrationDTOs.IntegrationListQueryParamsDTO) ([]*integrationDTOs.IntegrationDTO, error)
+	GetFullDetailsByID(id uint) (*models.Integration, error)
+	GetCredentailByID(id uint) (*models.IntegrationCredential, error)
+	GetByID(id uint) (*models.Integration, error)
+	Create(integrationCredential *models.IntegrationCredential) (uint, error)
+	Update(id uint, integrationCredential *models.IntegrationCredential) error
+	Delete(id uint, ids []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 // implementation
@@ -55,6 +63,101 @@ func (repo *IntegrationRepository) GetAll(params *integrationDTOs.IntegrationLis
 
 	result := query.Find(&integrations)
 
+	for _, integration := range integrations {
+		var credentials []*integrationDTOs.IntegrationCredentialDTO
+
+		repo.db.Model(&models.IntegrationCredential{}).Where("integration_id = ?", integration.ID).Find(&credentials)
+		integration.Credentials = credentials
+	}
+
 	return integrations, result.Error
 
+}
+
+func (repo *IntegrationRepository) GetFullDetailsByID(id uint) (*models.Integration, error) {
+	var integration *models.Integration // Declare the variable inside the function
+
+	result := repo.db.
+		Preload("Credentials").
+		Preload("CreatedByUser").
+		Preload("UpdatedByUser").
+		First(&integration, id)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return integration, nil
+}
+
+func (repo *IntegrationRepository) GetByID(id uint) (*models.Integration, error) {
+	var integration *models.Integration
+
+	result := repo.db.First(&integration, id)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return integration, result.Error
+}
+
+func (repo *IntegrationRepository) GetCredentailByID(id uint) (*models.IntegrationCredential, error) {
+	var integrationCredential *models.IntegrationCredential
+
+	result := repo.db.First(&integrationCredential, id)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return integrationCredential, result.Error
+}
+
+func (repo *IntegrationRepository) Create(integrationCredential *models.IntegrationCredential) (uint, error) {
+	db := repo.db
+	result := repo.db.Create(&integrationCredential)
+
+	err := db.Model(&models.Integration{}).
+		Where("id = ?", integrationCredential.IntegrationID).
+		UpdateColumn("is_enable", true).Error
+	if err != nil {
+		return 0, err
+	}
+
+	return integrationCredential.IntegrationID, result.Error
+}
+
+func (repo *IntegrationRepository) Update(id uint, updatedIntegrationCredential *models.IntegrationCredential) error {
+	var integrationCredential *models.IntegrationCredential
+
+	if err := repo.db.First(&integrationCredential, id).Error; err != nil {
+		return err
+	}
+
+	if err := repo.db.Model(&integrationCredential).Updates(updatedIntegrationCredential).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *IntegrationRepository) Delete(id uint, ids []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	err := db.Model(&models.Integration{}).
+		Where("id = ?", id).
+		UpdateColumn("is_enable", false).Error
+	if err != nil {
+		return err
+	}
+
+	if err := db.Where("id IN (?)", ids).Delete(&models.IntegrationCredential{}).Error; err != nil {
+		return err
+	}
+
+	return nil
 }
