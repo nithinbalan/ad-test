@@ -317,6 +317,12 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *organizationDTOs.ProcessFormDTO) error {
 	tx := ps.repo.BeginTransaction()
 
+	oldProcess, err := ps.GetFullDetailsByID(id, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	process, err := ps.GetByID(id)
 	if err != nil {
 		tx.Rollback()
@@ -449,6 +455,50 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 	tx.Commit()
 
 	go func() {
+		//log changes
+		oldData := map[string]interface{}{
+			"ProcessGroup":    oldProcess.ProcessGroup.TitleEn,
+			"OwnerUnit":       oldProcess.OwnerUnit.TitleEn,
+			"Owner":           fmt.Sprintf("%s %s", oldProcess.Owner.FirstNameEN, oldProcess.Owner.LastNameEN),
+			"LifecycleStatus": oldProcess.LifecycleStatus.TitleEn,
+			"TitleEn":         oldProcess.TitleEn,
+			"TitleAr":         oldProcess.TitleAr,
+			"Description":     oldProcess.Description,
+		}
+
+		newData := map[string]interface{}{
+			"ProcessGroup":    existingProcess.ProcessGroup.TitleEn,
+			"OwnerUnit":       existingProcess.OwnerUnit.TitleEn,
+			"Owner":           fmt.Sprintf("%s %s", existingProcess.Owner.FirstNameEN, existingProcess.Owner.LastNameEN),
+			"LifecycleStatus": existingProcess.LifecycleStatus.TitleEn,
+			"TitleEn":         existingProcess.TitleEn,
+			"TitleAr":         existingProcess.TitleAr,
+			"Description":     existingProcess.Description,
+		}
+
+		changedData := utility.CompareFieldChanges(oldData, newData)
+
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := ps.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.Process{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				utility.LogError("Failed to log activity", map[string]interface{}{
+					"action":   models.UpdateAction,
+					"error":    err.Error(),
+					"recordID": id,
+				})
+			}
+		}
+
+		//notification
 		if oldOwnerID != processFormDTO.OwnerID {
 			urlParam := fmt.Sprintf(`{"id":%d}`, id)
 			queryParam := ""
@@ -589,6 +639,7 @@ func (ps *ProcessService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 		ReferenceNumber string
 		ProcessGroup    string
 	}
+	var deletedProcesses []map[string]interface{}
 
 	for _, id := range ids {
 		process, err := ps.GetFullDetailsByID(id, tx)
@@ -610,6 +661,12 @@ func (ps *ProcessService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 			TitleAr:         process.TitleAr,
 			ReferenceNumber: process.ReferenceNumber,
 			ProcessGroup:    process.ProcessGroup.TitleEn,
+		})
+
+		deletedProcesses = append(deletedProcesses, map[string]interface{}{
+			"ID":      id,
+			"TitleEn": process.TitleEn,
+			"TitleAr": process.TitleAr,
 		})
 
 		if len(process.Controls) > 0 {
@@ -656,7 +713,7 @@ func (ps *ProcessService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 				models.DeleteAction,
 				models.Process{}.TableName(),
 				successfulIds,
-				nil,
+				deletedProcesses,
 				currentUserID,
 				nil,
 			)
