@@ -16,6 +16,8 @@ type AssetModule struct {
 	AssetCriticalityMatrixFactorController       *controllers.AssetCriticalityMatrixFactorController
 	AssetCriticalityMatrixFactorRatingController *controllers.AssetCriticalityMatrixFactorRatingController
 	AssetCriticalityMatrixRatingScaleController  *controllers.AssetCriticalityMatrixRatingScaleController
+	VulnerabilityTypeController                  *controllers.VulnerabilityTypeController
+	VulnerabilityStatusController                *controllers.VulnerabilityStatusController
 }
 
 func NewAssetModule(db *gorm.DB,
@@ -57,6 +59,14 @@ func NewAssetModule(db *gorm.DB,
 	assetCriticalityMatrixRatingScaleSvc := services.NewAssetCriticalityMatrixRatingScaleService(assetCriticalityMatrixRatingScaleRepo, sharedModule.ActivityLogService, assetCriticalityMatrixSvc)
 	assetCriticalityMatrixRatingScaleController := controllers.NewAssetCriticalityMatrixRatingScaleController(assetCriticalityMatrixRatingScaleSvc)
 
+	vulnerabilityTypeRepo := repositories.NewVulnerabilityTypeRepository(db)
+	vulnerabilityTypeSvc := services.NewVulnerabilityTypeService(vulnerabilityTypeRepo, sharedModule.ActivityLogService)
+	vulnerabilityTypeController := controllers.NewVulnerabilityTypeController(vulnerabilityTypeSvc)
+
+	vulnerabilityStatusRepo := repositories.NewVulnerabilityStatusRepository(db)
+	vulnerabilityStatusSvc := services.NewVulnerabilityStatusService(vulnerabilityStatusRepo)
+	vulnerabilityStatusController := controllers.NewVulnerabilityStatusController(vulnerabilityStatusSvc)
+
 	return &AssetModule{
 		AssetTypeController:                          assetTypeController,
 		AssetCategoryController:                      assetCategoryController,
@@ -65,5 +75,7 @@ func NewAssetModule(db *gorm.DB,
 		AssetCriticalityMatrixFactorController:       assetCriticalityMatrixFactorController,
 		AssetCriticalityMatrixFactorRatingController: assetCriticalityMatrixFactorRatingController,
 		AssetCriticalityMatrixRatingScaleController:  assetCriticalityMatrixRatingScaleController,
+		VulnerabilityTypeController:                  vulnerabilityTypeController,
+		VulnerabilityStatusController:                vulnerabilityStatusController,
 	}
 }

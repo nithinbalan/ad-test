@@ -24,6 +24,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetCriticalityMatrixFactorController := app.AssetModule.AssetCriticalityMatrixFactorController
 	assetCriticalityMatrixFactorRatingController := app.AssetModule.AssetCriticalityMatrixFactorRatingController
 	assetCriticalityMatrixRatingScaleController := app.AssetModule.AssetCriticalityMatrixRatingScaleController
+	vulnerabilityTypeController := app.AssetModule.VulnerabilityTypeController
+	vulnerabilityStatusController := app.AssetModule.VulnerabilityStatusController
 
 	// Asset Type
 	assetRoutes.GET("/asset-types", assetTypeController.GetAllAssetTypes)
@@ -53,6 +55,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("/assets", middlewares.RolePermissionMiddleware(db, "assets", "modify"), assetRegisterController.CreateAsset)
 	assetRoutes.PUT("/assets/:id", middlewares.RolePermissionMiddleware(db, "assets", "modify"), assetRegisterController.UpdateAsset)
 	assetRoutes.POST("/assets/delete", middlewares.RolePermissionMiddleware(db, "assets", "modify"), assetRegisterController.DeleteAssets)
+
 	// Asset Criticality Matrix Factors
 	assetRoutes.GET("/asset-criticality-matrix-factors", assetCriticalityMatrixFactorController.GetAllFactors)
 	assetRoutes.GET("/asset-criticality-matrix-factors/:id", assetCriticalityMatrixFactorController.GetFactorDetails)
@@ -73,5 +76,18 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("/asset-criticality-matrix-rating-scales", middlewares.RolePermissionMiddleware(db, "asset_criticality", "modify"), assetCriticalityMatrixRatingScaleController.CreateScale)
 	assetRoutes.PUT("/asset-criticality-matrix-rating-scales/:id", middlewares.RolePermissionMiddleware(db, "asset_criticality", "modify"), assetCriticalityMatrixRatingScaleController.UpdateScale)
 	assetRoutes.POST("/asset-criticality-matrix-rating-scales/delete", middlewares.RolePermissionMiddleware(db, "asset_criticality", "modify"), assetCriticalityMatrixRatingScaleController.DeleteScales)
+
+	//vulnerability types
+	assetRoutes.GET("/vulnerability-types", vulnerabilityTypeController.GetAllVulnerabilityTypes)
+	assetRoutes.GET("/vulnerability-types/:id", vulnerabilityTypeController.GetVulnerabilityTypeDetails)
+	assetRoutes.POST("/vulnerability-types", middlewares.RolePermissionMiddleware(db, "vulnerability_setting", "modify"), vulnerabilityTypeController.CreateVulnerabilityType)
+	assetRoutes.PUT("/vulnerability-types/:id", middlewares.RolePermissionMiddleware(db, "vulnerability_setting", "modify"), vulnerabilityTypeController.UpdateVulnerabilityType)
+	assetRoutes.POST("/vulnerability-types/delete", middlewares.RolePermissionMiddleware(db, "vulnerability_setting", "modify"), vulnerabilityTypeController.DeleteVulnerabilityTypes)
+	assetRoutes.PUT("/vulnerability-types/activate", middlewares.RolePermissionMiddleware(db, "vulnerability_setting", "modify"), vulnerabilityTypeController.ActivateVulnerabilityTypes)
+	assetRoutes.PUT("/vulnerability-types/deactivate", middlewares.RolePermissionMiddleware(db, "vulnerability_setting", "modify"), vulnerabilityTypeController.DeactivateVulnerabilityTypes)
+
+	//vulnerability status
+	assetRoutes.GET("/vulnerability-statuses", vulnerabilityStatusController.GetAllVulnerabilityStatuses)
+	assetRoutes.GET("/vulnerability-statuses/:id", vulnerabilityStatusController.GetVulnerabilityStatusDetails)
 
 }
