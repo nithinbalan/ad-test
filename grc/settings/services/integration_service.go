@@ -7,7 +7,6 @@ import (
 	integrationCategoryServices "jethur/grc/masters/services"
 	"jethur/grc/models"
 
-	// integrationDTOs "jethur/grc/settings/dtos"
 	settingsDTOs "jethur/grc/settings/dtos"
 	"jethur/grc/settings/repositories"
 	"jethur/utility"
@@ -55,20 +54,21 @@ func (rs IntegrationService) GetCredentailByID(id uint) (*models.IntegrationCred
 	return integrationCredential, nil
 }
 
-func (is *IntegrationService) EnableIntegration(currentUserID uint, credential *settingsDTOs.IntegrationCredentialFormDTO) (uint, error) {
+func (is *IntegrationService) EnableIntegration(currentUserID uint, credentialFormDTO *settingsDTOs.IntegrationCredentialFormDTO) (uint, error) {
 
+	isActive := true
 	integrationCredential := &models.IntegrationCredential{
-		IntegrationID:  credential.IntegrationID,
-		ApiKey:         credential.ApiKey,
-		ApiSecret:      credential.ApiSecret,
-		RedirectUrl:    credential.RedirectUrl,
-		TokenType:      credential.TokenType,
-		Scope:          credential.Scope,
-		AccessToken:    credential.AccessToken,
-		ExpireAt:       credential.ExpireAt,
-		RefreshToken:   credential.RefreshToken,
-		AdditionalInfo: credential.AdditionalInfo,
-		IsActive:       credential.IsActive,
+		IntegrationID:  credentialFormDTO.IntegrationID,
+		ApiKey:         credentialFormDTO.ApiKey,
+		ApiSecret:      credentialFormDTO.ApiSecret,
+		RedirectUrl:    credentialFormDTO.RedirectUrl,
+		TokenType:      credentialFormDTO.TokenType,
+		Scope:          credentialFormDTO.Scope,
+		AccessToken:    credentialFormDTO.AccessToken,
+		ExpireAt:       credentialFormDTO.ExpireAt,
+		RefreshToken:   credentialFormDTO.RefreshToken,
+		AdditionalInfo: credentialFormDTO.AdditionalInfo,
+		IsActive:       &isActive,
 		CreatedByID:    currentUserID,
 	}
 	id, err := is.repo.Create(integrationCredential)
