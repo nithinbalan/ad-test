@@ -85,7 +85,7 @@ func (ic *IntegrationController) UpdateCredential(c *gin.Context) {
 
 	var integrationCredentialFormDTO settingsDTOs.IntegrationCredentialFormDTO
 
-	integrationCredentialID, err := strconv.Atoi(c.Param("integrationCredentialId"))
+	integrationID, err := strconv.Atoi(c.Param("integrationId"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -101,7 +101,7 @@ func (ic *IntegrationController) UpdateCredential(c *gin.Context) {
 		return
 	}
 
-	id, err := ic.service.UpdateCredential(uint(integrationCredentialID), currentUserID, &integrationCredentialFormDTO)
+	id, err := ic.service.UpdateCredential(uint(integrationID), currentUserID, &integrationCredentialFormDTO)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -151,4 +151,28 @@ func (ic *IntegrationController) DisableIntegration(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, commonDTOs.IDResponse{ID: id})
+}
+
+func (ic *IntegrationController) GetIntegrationCredentialDetails(c *gin.Context) {
+
+	integrationIDStr := c.Param("integrationId")
+
+	integrationID, err := strconv.ParseUint(integrationIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	integrationCredential, err := ic.service.GetCredentialFullDetailsByID(uint(integrationID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(ic.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, integrationCredential)
+
 }

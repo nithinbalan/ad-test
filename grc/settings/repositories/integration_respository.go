@@ -10,12 +10,14 @@ import (
 
 // Interfaces
 type IntegrationRepositoryInterface interface {
+	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *integrationDTOs.IntegrationListQueryParamsDTO) ([]*integrationDTOs.IntegrationDTO, error)
 	GetFullDetailsByID(id uint) (*models.Integration, error)
-	GetCredentailByID(id uint) (*models.IntegrationCredential, error)
+	GetCredentialFullDetailsByID(integrationID uint, tx ...utility.DatabaseTransaction) (*models.IntegrationCredential, error)
+	GetCredentialByID(integrationID uint) (*models.IntegrationCredential, error)
 	GetByID(id uint) (*models.Integration, error)
 	Create(integrationCredential *models.IntegrationCredential) (uint, error)
-	Update(id uint, integrationCredential *models.IntegrationCredential) error
+	Update(integrationCredential *models.IntegrationCredential, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, ids []*uint, tx ...utility.DatabaseTransaction) error
 }
 
@@ -28,6 +30,11 @@ func NewIntegrationRepository(db *gorm.DB) *IntegrationRepository {
 	return &IntegrationRepository{
 		db: db,
 	}
+}
+
+// BeginTransaction starts a new transaction.
+func (repo *IntegrationRepository) BeginTransaction() utility.DatabaseTransaction {
+	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
 func (repo *IntegrationRepository) GetAll(params *integrationDTOs.IntegrationListQueryParamsDTO) ([]*integrationDTOs.IntegrationDTO, error) {
@@ -102,16 +109,34 @@ func (repo *IntegrationRepository) GetByID(id uint) (*models.Integration, error)
 	return integration, result.Error
 }
 
-func (repo *IntegrationRepository) GetCredentailByID(id uint) (*models.IntegrationCredential, error) {
+func (repo *IntegrationRepository) GetCredentialByID(id uint) (*models.IntegrationCredential, error) {
 	var integrationCredential *models.IntegrationCredential
 
-	result := repo.db.First(&integrationCredential, id)
-
+	result := repo.db.Where("integration_id = ?", id).First(&integrationCredential)
 	if result.Error != nil {
 		return nil, result.Error
 	}
 
 	return integrationCredential, result.Error
+}
+
+func (repo *IntegrationRepository) GetCredentialFullDetailsByID(integrationID uint, tx ...utility.DatabaseTransaction) (*models.IntegrationCredential, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	var integrationCredential *models.IntegrationCredential
+
+	result := db.Where("integration_id = ?", integrationID).
+		Preload("Integration").
+		Preload("CreatedByUser").
+		Preload("UpdatedByUser").
+		First(&integrationCredential)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return integrationCredential, nil
 }
 
 func (repo *IntegrationRepository) Create(integrationCredential *models.IntegrationCredential) (uint, error) {
@@ -128,14 +153,9 @@ func (repo *IntegrationRepository) Create(integrationCredential *models.Integrat
 	return integrationCredential.IntegrationID, result.Error
 }
 
-func (repo *IntegrationRepository) Update(id uint, updatedIntegrationCredential *models.IntegrationCredential) error {
-	var integrationCredential *models.IntegrationCredential
+func (repo *IntegrationRepository) Update(integrationCredential *models.IntegrationCredential, tx ...utility.DatabaseTransaction) error {
 
-	if err := repo.db.First(&integrationCredential, id).Error; err != nil {
-		return err
-	}
-
-	if err := repo.db.Model(&integrationCredential).Updates(updatedIntegrationCredential).Error; err != nil {
+	if err := repo.db.Model(&integrationCredential).Updates(integrationCredential).Error; err != nil {
 		return err
 	}
 
