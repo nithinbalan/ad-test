@@ -11,12 +11,17 @@ import (
 
 // Interfaces
 type ThreatRepositoryInterface interface {
+	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *dtos.ThreatListQueryParamsDTO) (*dtos.ThreatListResponseDTO, error)
 	GetByID(id uint) (*models.Threat, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.Threat, error)
-	Create(threat *models.Threat) (uint, error)
-	Update(threat *models.Threat) error
-	Delete(id uint) error
+	Create(threat *models.Threat, tx ...utility.DatabaseTransaction) (uint, error)
+	Update(threat *models.Threat, tx ...utility.DatabaseTransaction) error
+	Delete(id uint, tx ...utility.DatabaseTransaction) error
+
+	GetDocumentByID(id uint) (*models.ThreatDocument, error)
+	CreateDocuments(docs []*models.ThreatDocument, tx ...utility.DatabaseTransaction) error
+	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 // Implementation
@@ -28,6 +33,10 @@ func NewThreatRepository(db *gorm.DB) *ThreatRepository {
 	return &ThreatRepository{
 		db: db,
 	}
+}
+
+func (repo *ThreatRepository) BeginTransaction() utility.DatabaseTransaction {
+	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
 func (repo *ThreatRepository) GetAll(params *dtos.ThreatListQueryParamsDTO) (*dtos.ThreatListResponseDTO, error) {
@@ -48,16 +57,36 @@ func (repo *ThreatRepository) GetAll(params *dtos.ThreatListQueryParamsDTO) (*dt
 			organization_units.title_en AS responsible_unit_title_en,
 			organization_units.title_ar AS responsible_unit_title_ar,
 			responsible_user.id AS responsible_user_id,
-			responsible_user.first_name AS responsible_user_first_name,
-			responsible_user.last_name AS responsible_user_last_name,
-			threats.description_en,
-			threats.description_ar,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+			responsible_user.first_name_ar AS responsible_user_first_name_ar,
+			responsible_user.last_name_en AS responsible_user_last_name_en,
+			responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			responsible_user.initial AS responsible_user_initial,
+			responsible_user.color AS responsible_user_color,
+			responsible_user.email AS responsible_user_email,
+			responsible_user.profile_image_path AS responsible_user_profile_image_path,
+			threats.description,
+			threats.source,
 			CONVERT(VARCHAR, threats.detection_date, 23) AS detection_date,
 			CONVERT(VARCHAR, threats.resolution_date, 23) AS resolution_date,
-			threats.created_by_id,
-			threats.created_at,
-			threats.updated_by_id,
-			threats.updated_at
+			created_user.id AS created_user_id,
+			created_user.first_name_en AS created_user_first_name_en,
+			created_user.first_name_ar AS created_user_first_name_ar,
+			created_user.last_name_en AS created_user_last_name_en,
+			created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+			created_user.color AS created_user_color,
+			created_user.email AS created_user_email,
+			created_user.profile_image_path AS created_user_profile_image_path,
+			updated_user.id AS updated_user_id,
+			updated_user.first_name_en AS updated_user_first_name_en,
+			updated_user.first_name_ar AS updated_user_first_name_ar,
+			updated_user.last_name_en AS updated_user_last_name_en,
+			updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+			updated_user.color AS updated_user_color,
+			updated_user.email AS updated_user_email,
+			updated_user.profile_image_path AS updated_user_profile_image_path
 		`).
 		Joins("LEFT JOIN threat_types ON threat_types.id = threats.threat_type_id").
 		Joins("LEFT JOIN severity_levels ON severity_levels.id = threats.severity_level_id").
@@ -140,7 +169,6 @@ func (repo *ThreatRepository) GetAll(params *dtos.ThreatListQueryParamsDTO) (*dt
 	return response, nil
 }
 
-
 func (repo *ThreatRepository) GetByID(id uint) (*models.Threat, error) {
 	var threat *models.Threat
 	result := repo.db.First(&threat, id)
@@ -156,15 +184,15 @@ func (repo *ThreatRepository) GetFullDetailsByID(id uint, tx ...utility.Database
 		db = tx[0].DB()
 	}
 
-	var threat *models.Threat
+	var threat models.Threat
 
 	result := db.
 		Preload("ThreatType").
 		Preload("SeverityLevel").
 		Preload("ThreatStatus").
 		Preload("ResponsibleUser").
-		Preload("ResponsibleUser.OrganizationUnit").
 		Preload("ResponsibleUnit").
+		Preload("Documents").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&threat, id)
@@ -173,29 +201,69 @@ func (repo *ThreatRepository) GetFullDetailsByID(id uint, tx ...utility.Database
 		return nil, result.Error
 	}
 
-	return threat, nil
+	return &threat, nil
 }
 
-func (repo *ThreatRepository) Create(threat *models.Threat) (uint, error) {
-	if err := repo.db.Create(threat).Error; err != nil {
+func (repo *ThreatRepository) Create(threat *models.Threat, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(threat).Error; err != nil {
 		return 0, err
 	}
 	return threat.ID, nil
 }
 
-func (repo *ThreatRepository) Update(threat *models.Threat) error {
-	if err := repo.db.Save(threat).Error; err != nil {
+func (repo *ThreatRepository) Update(threat *models.Threat, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(threat).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
-func (repo *ThreatRepository) Delete(id uint) error {
+func (repo *ThreatRepository) Delete(id uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 	var threat *models.Threat
-	if err := repo.db.First(&threat, id).Error; err != nil {
+	if err := db.First(&threat, id).Error; err != nil {
 		return err
 	}
 	return repo.db.Delete(&models.Threat{}, id).Error
 }
 
+func (repo *ThreatRepository) GetDocumentByID(id uint) (*models.ThreatDocument, error) {
+	var document models.ThreatDocument
+	if err := repo.db.Where("id = ?", id).First(&document).Error; err != nil {
+		return nil, err
+	}
+	return &document, nil
+}
 
+func (repo *ThreatRepository) CreateDocuments(docs []*models.ThreatDocument, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&docs).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *ThreatRepository) DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Where("id IN (?)", docIds).Delete(&models.ThreatDocument{}).Error; err != nil {
+		return err
+	}
+	return nil
+}

@@ -10,6 +10,8 @@ import (
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
+	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/mitchellh/mapstructure"
@@ -67,10 +69,10 @@ func (ts *ThreatService) GetByID(id uint) (*models.Threat, error) {
 	return threat, nil
 }
 
-func (as *ThreatService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*dtos.ThreatDetailDTO, error) {
+func (ts *ThreatService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*dtos.ThreatDetailDTO, error) {
 	var threatDetailDTO dtos.ThreatDetailDTO
 
-	threat, err := as.repo.GetFullDetailsByID(id, tx...)
+	threat, err := ts.repo.GetFullDetailsByID(id, tx...)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -99,6 +101,8 @@ func (as *ThreatService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTrans
 }
 
 func (ts *ThreatService) Create(threatFormDTO *dtos.ThreatFormDTO, currentUserID uint) (uint, error) {
+	var tx = ts.repo.BeginTransaction()
+
 	// Validate the DTO
 	if err := ts.validateThreatFormDTO(threatFormDTO); err != nil {
 		return 0, err
@@ -111,12 +115,9 @@ func (ts *ThreatService) Create(threatFormDTO *dtos.ThreatFormDTO, currentUserID
 	}
 
 	// Retrieve the primary organization unit for the responsible user if not provided
-	organizationUnitID := threatFormDTO.ResponsibleUnitID
-	if organizationUnitID == 0 {
-		organizationUnitID, err = ts.userSvc.GetUserPrimaryUnitID(threatFormDTO.ResponsibleUserID)
-		if err != nil {
-			return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "responsible user unit")
-		}
+	organizationUnitID, err := ts.userSvc.GetUserPrimaryUnitID(threatFormDTO.ResponsibleUserID)
+	if err != nil {
+		return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "responsible user unit")
 	}
 
 	// Populate the Threat model with data from the DTO
@@ -128,8 +129,8 @@ func (ts *ThreatService) Create(threatFormDTO *dtos.ThreatFormDTO, currentUserID
 		ThreatStatusID:    threatFormDTO.ThreatStatusID,
 		ResponsibleUserID: threatFormDTO.ResponsibleUserID,
 		ResponsibleUnitID: organizationUnitID,
-		DescriptionEn:     threatFormDTO.DescriptionEn,
-		DescriptionAr:     threatFormDTO.DescriptionAr,
+		Description:       threatFormDTO.Description,
+		Source:            threatFormDTO.Source,
 		DetectionDate:     dates.DetectionDate,
 		ResolutionDate:    dates.ResolutionDate,
 		CreatedBYID:       currentUserID,
@@ -137,17 +138,59 @@ func (ts *ThreatService) Create(threatFormDTO *dtos.ThreatFormDTO, currentUserID
 	}
 
 	// Save the threat record in the repository
-	threatID, err := ts.repo.Create(threat)
+	id, err := ts.repo.Create(threat)
 	if err != nil {
 		return 0, err
 	}
+	var threatDocuments []*models.ThreatDocument
+
+	for _, doc := range threatFormDTO.Documents {
+		// Encrypt the document file name
+		dataToEncrypt := []byte(doc.FileName)
+		encryptedFileName, err := utility.EncryptData(dataToEncrypt)
+		if err != nil {
+			return 0, err
+		}
+
+		// Generate the document URL
+		url := utility.GenerateDocumentURL("asset", "threat", strconv.FormatUint(uint64(id), 10), "documents", encryptedFileName)
+
+		// Create a ThreatDocument model instance
+		document := &models.ThreatDocument{
+			ThreatID:     id,
+			URL:          &url,
+			Name:         &doc.FileName,
+			Size:         &doc.Size,
+			Token:        &encryptedFileName,
+			OriginalName: &doc.OriginalName,
+			Type:         &doc.Type,
+			CreatedBYID:  currentUserID,
+		}
+		threatDocuments = append(threatDocuments, document)
+	}
+
+	// Save documents to the database
+	if len(threatDocuments) > 0 {
+		if err := ts.repo.CreateDocuments(threatDocuments, tx); err != nil {
+			return 0, err
+		}
+	}
+
+	// Store files in the specified path
+	for _, doc := range threatDocuments {
+		storagePath := filepath.Join("asset", "threat", strconv.FormatUint(uint64(id), 10), "documents")
+		if err := utility.StoreFile(*doc.Name, storagePath); err != nil {
+			return 0, err
+		}
+	}
+	tx.Commit()
 
 	// Log the activity asynchronously
 	go func() {
 		err := ts.activityLogSvc.LogActivity(
 			models.CreateAction,
 			threat.TableName(),
-			threatID,
+			id,
 			threatFormDTO,
 			currentUserID,
 			nil,
@@ -156,7 +199,7 @@ func (ts *ThreatService) Create(threatFormDTO *dtos.ThreatFormDTO, currentUserID
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
 				"tableName": threat.TableName(),
-				"recordID":  threatID,
+				"recordID":  id,
 				"userID":    currentUserID,
 				"error":     err.Error(),
 			}
@@ -164,10 +207,12 @@ func (ts *ThreatService) Create(threatFormDTO *dtos.ThreatFormDTO, currentUserID
 		}
 	}()
 
-	return threatID, nil
+	return id, nil
 }
 
 func (ts *ThreatService) Update(id uint, threatFormDTO *dtos.ThreatFormDTO, currentUserID uint) error {
+	var tx = ts.repo.BeginTransaction()
+
 	// Retrieve the existing threat record
 	existingThreat, err := ts.repo.GetByID(id)
 	if err != nil {
@@ -201,22 +246,139 @@ func (ts *ThreatService) Update(id uint, threatFormDTO *dtos.ThreatFormDTO, curr
 	existingThreat.SeverityLevelID = threatFormDTO.SeverityLevelID
 	existingThreat.ThreatStatusID = threatFormDTO.ThreatStatusID
 	existingThreat.ResponsibleUserID = threatFormDTO.ResponsibleUserID
-	existingThreat.DescriptionEn = threatFormDTO.DescriptionEn
-	existingThreat.DescriptionAr = threatFormDTO.DescriptionAr
+	existingThreat.Description = threatFormDTO.Description
+	existingThreat.Source = threatFormDTO.Source
 	existingThreat.DetectionDate = dates.DetectionDate
 	existingThreat.ResolutionDate = dates.ResolutionDate
 	existingThreat.UpdatedBYID = &currentUserID
 
-	// Persist the updated threat record
-	return ts.repo.Update(existingThreat)
+	// Update
+	if err := ts.repo.Update(existingThreat, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	// Prepare slices for new and deleted documents
+	var newDocuments []*models.ThreatDocument
+	var deleteDocumentIds []*uint
+
+	// Process each document in the ThreatFormDTO
+	for _, doc := range threatFormDTO.Documents {
+		if doc.IsNewFile != nil && *doc.IsNewFile {
+			// Encrypt the filename
+			dataToEncrypt := []byte(doc.FileName)
+			encryptedFileName, err := utility.EncryptData(dataToEncrypt)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			// Generate URL for the document
+			url := utility.GenerateDocumentURL("asset", "threat", strconv.FormatUint(uint64(id), 10), "documents", encryptedFileName)
+
+			// Create a new ThreatDocument instance
+			document := &models.ThreatDocument{
+				ThreatID:     id,
+				URL:          &url,
+				Name:         &doc.FileName,
+				Size:         &doc.Size,
+				Token:        &encryptedFileName,
+				OriginalName: &doc.OriginalName,
+				Type:         &doc.Type,
+				CreatedBYID:  currentUserID,
+			}
+
+			// Append to the list of new documents
+			newDocuments = append(newDocuments, document)
+		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
+			if doc.ID != nil {
+				deleteDocumentIds = append(deleteDocumentIds, doc.ID)
+			}
+		}
+	}
+
+	// Create new documents if any
+	if len(newDocuments) > 0 {
+		if err := ts.repo.CreateDocuments(newDocuments, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// Delete documents if any
+	if len(deleteDocumentIds) > 0 {
+		if err := ts.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// Commit transaction
+	tx.Commit()
+
+	// Store new files in storage
+	for _, doc := range newDocuments {
+		storagePath := filepath.Join("asset", "threat", strconv.FormatUint(uint64(id), 10), "documents")
+		if err := utility.StoreFile(*doc.Name, storagePath); err != nil {
+			fmt.Printf("Failed to store file %s: %v\n", *doc.Name, err)
+		}
+	}
+
+	// Remove deleted files from storage
+	for _, docID := range deleteDocumentIds {
+		doc, err := ts.repo.GetDocumentByID(*docID)
+		if err == nil {
+			storagePath := filepath.Join("asset", "threat", strconv.FormatUint(uint64(id), 10), "documents")
+			if err := utility.RemoveFile(*doc.Name, storagePath); err != nil {
+				fmt.Printf("Failed to delete file %s: %v\n", *doc.Name, err)
+			}
+		}
+	}
+	go func() {
+		err := ts.activityLogSvc.LogActivity(
+			models.UpdateAction,
+			models.Threat{}.TableName(),
+			id,
+			threatFormDTO,
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			fmt.Printf("Failed to log activity: %v\n", err)
+		}
+	}()
+
+	return nil
+
 }
 
-func (as *ThreatService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
+func (ts *ThreatService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
+	tx := ts.repo.BeginTransaction()
+
 	var failedIds []uint
 	var successfulIds []uint
+	documentsToDelete := make(map[uint][]*dtos.ThreatDocumentDTO)
 
 	for _, id := range ids {
-		err := as.repo.Delete(id)
+		var deleteDocumentIds []*uint
+		existingThreatDetails, err := ts.GetFullDetailsByID(id, tx)
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+		if existingThreatDetails.Documents != nil && len(existingThreatDetails.Documents) > 0 {
+			for _, document := range existingThreatDetails.Documents {
+				documentsToDelete[id] = append(documentsToDelete[id], document)
+				deleteDocumentIds = append(deleteDocumentIds, document.ID)
+			}
+
+			if len(deleteDocumentIds) > 0 {
+				if err := ts.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
+					failedIds = append(failedIds, id)
+					continue
+				}
+			}
+		}
+		err = ts.repo.Delete(id)
 		if err != nil {
 			failedIds = append(failedIds, id)
 		} else {
@@ -225,8 +387,17 @@ func (as *ThreatService) Delete(ids []uint, currentUserID uint) ([]uint, error) 
 	}
 
 	if len(successfulIds) > 0 {
+		for threatId, documents := range documentsToDelete {
+			for _, doc := range documents {
+				storagePath := filepath.Join("asset", "threat", strconv.FormatUint(uint64(threatId), 10), "documents")
+				if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
+					tx.Rollback()
+					fmt.Printf("Failed to delete file at URL %s: %v\n", *doc.URL, err)
+				}
+			}
+		}
 		go func() {
-			err := as.activityLogSvc.LogBulkActivities(
+			err := ts.activityLogSvc.LogBulkActivities(
 				models.DeleteAction,
 				models.Threat{}.TableName(),
 				successfulIds,
@@ -239,6 +410,8 @@ func (as *ThreatService) Delete(ids []uint, currentUserID uint) ([]uint, error) 
 			}
 		}()
 	}
+
+	tx.Commit()
 
 	return failedIds, nil
 }

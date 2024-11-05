@@ -25,7 +25,7 @@ func NewThreatController(service services.ThreatServiceInterface) *ThreatControl
 
 func (tc *ThreatController) GetAllThreats(c *gin.Context) {
 	sort := c.DefaultQuery("sort_order", "asc")
-	sortBy := c.DefaultQuery("sort_by", "title")
+	sortBy := c.DefaultQuery("sort_by", "title_en")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
@@ -47,15 +47,16 @@ func (tc *ThreatController) GetAllThreats(c *gin.Context) {
 	}
 
 	validSortFields := map[string]string{
-		"id":               "threats.id",
-		"title":            "threats.title",
-		"description":      "threats.description",
-		"threat_type":      "threat_types.title_en",
-		"severity_level":   "severity_levels.title_en",
-		"threat_status":    "threat_statuses.title_en",
-		"responsible_user": "responsible_user.first_name_en",
-		"responsible_unit": "organization_units.title_en",
-		"detection_date":   "threats.detection_date",
+		"id":                             "threats.id",
+		"title_en":                       "threats.title_en",
+		"title_ar":                       "threats.title_ar",
+		"description":                    "threats.description",
+		"threat_type":                    "threat_types.title_en",
+		"severity_level":                 "severity_levels.title_en",
+		"threat_status":                  "threat_statuses.title_en",
+		"responsible_user_first_name_en": "responsible_user.first_name_en",
+		"responsible_unit":               "organization_units.title_en",
+		"detection_date":                 "threats.detection_date",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())

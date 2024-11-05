@@ -13,8 +13,8 @@ type Threat struct {
 	ThreatStatusID    uint       `json:"threat_status_id" gorm:"not null" binding:"required"`
 	ResponsibleUserID uint       `json:"responsible_user_id" gorm:"not null" binding:"required"`
 	ResponsibleUnitID uint       `json:"responsible_unit_id" gorm:"not null" binding:"required"`
-	DescriptionEn     *string    `json:"description_en,omitempty" gorm:"type:nvarchar(MAX);default:null"`
-	DescriptionAr     *string    `json:"description_ar,omitempty" gorm:"type:nvarchar(MAX);default:null"`
+	Description       *string    `json:"description,omitempty" gorm:"type:nvarchar(MAX);default:null"`
+	Source            *string    `json:"source,omitempty" gorm:"type:nvarchar(MAX);default:null"`
 	DetectionDate     *time.Time `json:"detection_date,omitempty" gorm:"type:date;default:null"`
 	ResolutionDate    *time.Time `json:"resolution_date,omitempty" gorm:"type:date;default:null"`
 	CreatedBYID       uint       `json:"created_by_id" gorm:"not null" binding:"required"`
@@ -30,6 +30,8 @@ type Threat struct {
 	ResponsibleUnit *OrganizationUnit `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	CreatedByUser   *User             `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	UpdatedByUser   *User             `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+
+	Documents []*ThreatDocument `json:"documents" gorm:"foreignKey:ThreatID"`
 }
 
 // TableName overrides the default table name.
