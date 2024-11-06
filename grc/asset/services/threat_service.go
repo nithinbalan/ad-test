@@ -260,6 +260,7 @@ func (ts *ThreatService) Update(id uint, threatFormDTO *dtos.ThreatFormDTO, curr
 	// Prepare slices for new and deleted documents
 	var newDocuments []*models.ThreatDocument
 	var deleteDocumentIds []*uint
+	var documentsToDelete []*models.ThreatDocument
 
 	// Process each document in the ThreatFormDTO
 	for _, doc := range threatFormDTO.Documents {
@@ -291,7 +292,16 @@ func (ts *ThreatService) Update(id uint, threatFormDTO *dtos.ThreatFormDTO, curr
 			newDocuments = append(newDocuments, document)
 		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
 			if doc.ID != nil {
-				deleteDocumentIds = append(deleteDocumentIds, doc.ID)
+				existingDocument, err := ts.repo.GetDocumentByID(*doc.ID)
+				if err != nil {
+					if errors.Is(err, gorm.ErrRecordNotFound) {
+						return utility.NewResourceNotFoundError(err, id)
+					}
+					return err
+				}
+
+				documentsToDelete = append(documentsToDelete, existingDocument)
+				deleteDocumentIds = append(deleteDocumentIds, &existingDocument.ID)
 			}
 		}
 	}
@@ -324,13 +334,10 @@ func (ts *ThreatService) Update(id uint, threatFormDTO *dtos.ThreatFormDTO, curr
 	}
 
 	// Remove deleted files from storage
-	for _, docID := range deleteDocumentIds {
-		doc, err := ts.repo.GetDocumentByID(*docID)
-		if err == nil {
-			storagePath := filepath.Join("asset", "threat", strconv.FormatUint(uint64(id), 10), "documents")
-			if err := utility.RemoveFile(*doc.Name, storagePath); err != nil {
-				fmt.Printf("Failed to delete file %s: %v\n", *doc.Name, err)
-			}
+	for _, doc := range documentsToDelete {
+		storagePath := filepath.Join("asset", "threat", strconv.FormatUint(uint64(id), 10), "documents")
+		if err := utility.RemoveFile(*doc.Name, storagePath); err != nil {
+			fmt.Printf("Failed to delete file %s: %v\n", *doc.Name, err)
 		}
 	}
 	go func() {
@@ -357,7 +364,6 @@ func (ts *ThreatService) Delete(ids []uint, currentUserID uint) ([]uint, error) 
 	var failedIds []uint
 	var successfulIds []uint
 	documentsToDelete := make(map[uint][]*dtos.ThreatDocumentDTO)
-
 	for _, id := range ids {
 		var deleteDocumentIds []*uint
 		existingThreatDetails, err := ts.GetFullDetailsByID(id, tx)
@@ -365,35 +371,47 @@ func (ts *ThreatService) Delete(ids []uint, currentUserID uint) ([]uint, error) 
 			tx.Rollback()
 			return nil, err
 		}
+
 		if existingThreatDetails.Documents != nil && len(existingThreatDetails.Documents) > 0 {
-			for _, document := range existingThreatDetails.Documents {
-				documentsToDelete[id] = append(documentsToDelete[id], document)
-				deleteDocumentIds = append(deleteDocumentIds, document.ID)
+			for _, doc := range existingThreatDetails.Documents {
+				documentsToDelete[id] = append(documentsToDelete[id], doc)
+				deleteDocumentIds = append(deleteDocumentIds, doc.ID)
+
+			}
+			if err := ts.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
+				tx.Rollback()
+				return nil, err
 			}
 
-			if len(deleteDocumentIds) > 0 {
-				if err := ts.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
-					failedIds = append(failedIds, id)
-					continue
-				}
-			}
 		}
-		err = ts.repo.Delete(id)
-		if err != nil {
+
+		if err := ts.repo.Delete(id, tx); err != nil {
 			failedIds = append(failedIds, id)
+			continue
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
 	}
 
+	if len(failedIds) > 0 {
+		tx.Rollback()
+		return failedIds, nil
+	}
 	if len(successfulIds) > 0 {
+		tx.Commit()
 		for threatId, documents := range documentsToDelete {
 			for _, doc := range documents {
-				storagePath := filepath.Join("asset", "threat", strconv.FormatUint(uint64(threatId), 10), "documents")
-				if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
+				// storagePath := filepath.Join("asset", "threat", strconv.FormatUint(uint64(threatId), 10), "documents")
+				// if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
+				// 	tx.Rollback()
+				// 	fmt.Printf("Failed to delete file at URL %s: %v\n", *doc.URL, err)
+				// }
+				storagePath := filepath.Join("asset", "threat", strconv.FormatUint(uint64(threatId), 10))
+				if err := utility.RemoveFolder(storagePath); err != nil {
 					tx.Rollback()
 					fmt.Printf("Failed to delete file at URL %s: %v\n", *doc.URL, err)
 				}
+
 			}
 		}
 		go func() {
@@ -410,8 +428,6 @@ func (ts *ThreatService) Delete(ids []uint, currentUserID uint) ([]uint, error) 
 			}
 		}()
 	}
-
-	tx.Commit()
 
 	return failedIds, nil
 }

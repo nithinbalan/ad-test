@@ -16,8 +16,11 @@ type ThreatListDTO struct {
 	ThreatTypeTitleAr               *string    `json:"threat_type_title_ar"`
 	SeverityLevelTitleEn            *string    `json:"severity_level_title_en"`
 	SeverityLevelTitleAr            *string    `json:"severity_level_title_ar"`
+	SeverityLevelColorCode          *string    `json:"severity_level_color_code"`
 	ThreatStatusTitleEn             string     `json:"threat_status_title_en"`
 	ThreatStatusTitleAr             string     `json:"threat_status_title_ar"`
+	ThreatStatusColorCode           string     `json:"threat_status_color_code"`
+	ThreatStatusType                string     `json:"threat_status_type"`
 	ResponsibleUnitTitleEn          string     `json:"responsible_unit_title_en"`
 	ResponsibleUnitTitleAr          string     `json:"responsible_unit_title_ar"`
 	ResponsibleUserID               uint       `json:"responsible_user_id"`

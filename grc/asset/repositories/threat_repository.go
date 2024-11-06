@@ -52,8 +52,11 @@ func (repo *ThreatRepository) GetAll(params *dtos.ThreatListQueryParamsDTO) (*dt
 			threat_types.title_ar AS threat_type_title_ar,
 			severity_levels.title_en AS severity_level_title_en,
 			severity_levels.title_ar AS severity_level_title_ar,
+			severity_levels.color_code AS severity_level_color_code,
 			threat_statuses.title_en AS threat_status_title_en,
 			threat_statuses.title_ar AS threat_status_title_ar,
+			threat_statuses.color_code AS threat_status_color_code,
+			threat_statuses.type AS threat_status_type,
 			organization_units.title_en AS responsible_unit_title_en,
 			organization_units.title_ar AS responsible_unit_title_ar,
 			responsible_user.id AS responsible_user_id,
@@ -231,11 +234,10 @@ func (repo *ThreatRepository) Delete(id uint, tx ...utility.DatabaseTransaction)
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	var threat *models.Threat
-	if err := db.First(&threat, id).Error; err != nil {
+	if err := db.Delete(&models.Threat{}, id).Error; err != nil {
 		return err
 	}
-	return repo.db.Delete(&models.Threat{}, id).Error
+	return nil
 }
 
 func (repo *ThreatRepository) GetDocumentByID(id uint) (*models.ThreatDocument, error) {
