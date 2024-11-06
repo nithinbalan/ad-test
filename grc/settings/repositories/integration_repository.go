@@ -14,10 +14,10 @@ type IntegrationRepositoryInterface interface {
 	GetAll(params *integrationDTOs.IntegrationListQueryParamsDTO) ([]*integrationDTOs.IntegrationDTO, error)
 	GetByID(id uint) (*models.Integration, error)
 	GetFullDetailsByID(id uint) (*models.Integration, error)
-	Create(integrationCredential *models.IntegrationCredential) error
-	Update(integrationCredential *models.IntegrationCredential, tx ...utility.DatabaseTransaction) error
-	Delete(id uint, tx ...utility.DatabaseTransaction) error
-	UpdateIntegration(integrationID uint, integration *models.Integration) (uint, error)
+	Update(integrationID uint, integration *models.Integration) (uint, error)
+	CreateCredential(integrationCredential *models.IntegrationCredential) error
+	UpdateCredential(integrationCredential *models.IntegrationCredential, tx ...utility.DatabaseTransaction) error
+	DeleteCredential(id uint, tx ...utility.DatabaseTransaction) error
 }
 
 // implementation
@@ -41,7 +41,10 @@ func (repo *IntegrationRepository) GetAll(params *integrationDTOs.IntegrationLis
 
 	query := repo.db.Table("integrations").
 		Select(`
-            integrations.*, integration_categories.title_en as integration_category_title_en, integration_categories.title_ar as integration_category_title_ar`).
+            integrations.*, 
+			integration_categories.title_en as integration_category_title_en,
+			integration_categories.title_ar as integration_category_title_ar
+			`).
 		Joins(`
 		    LEFT JOIN integration_categories ON integration_categories.id = integrations.integration_category_id
 		`)
@@ -68,13 +71,6 @@ func (repo *IntegrationRepository) GetAll(params *integrationDTOs.IntegrationLis
 	query = query.Order(params.SortBy + " " + params.Sort)
 
 	result := query.Find(&integrations)
-
-	for _, integration := range integrations {
-		var credentials *integrationDTOs.IntegrationCredentialDTO
-
-		repo.db.Model(&models.IntegrationCredential{}).Where("integration_id = ?", integration.ID).Find(&credentials)
-		integration.IntegrationCredential = credentials
-	}
 
 	return integrations, result.Error
 
@@ -108,14 +104,23 @@ func (repo *IntegrationRepository) GetFullDetailsByID(id uint) (*models.Integrat
 	return integration, nil
 }
 
-func (repo *IntegrationRepository) Create(integrationCredential *models.IntegrationCredential) error {
+func (repo *IntegrationRepository) Update(integrationId uint, integration *models.Integration) (uint, error) {
+	db := repo.db
+	if err := db.Save(integration).Error; err != nil {
+		return 0, err
+	}
+
+	return integrationId, nil
+}
+
+func (repo *IntegrationRepository) CreateCredential(integrationCredential *models.IntegrationCredential) error {
 
 	result := repo.db.Create(&integrationCredential)
 	return result.Error
 
 }
 
-func (repo *IntegrationRepository) Update(integrationCredential *models.IntegrationCredential, tx ...utility.DatabaseTransaction) error {
+func (repo *IntegrationRepository) UpdateCredential(integrationCredential *models.IntegrationCredential, tx ...utility.DatabaseTransaction) error {
 
 	if err := repo.db.Model(&integrationCredential).Updates(integrationCredential).Error; err != nil {
 		return err
@@ -124,7 +129,7 @@ func (repo *IntegrationRepository) Update(integrationCredential *models.Integrat
 	return nil
 }
 
-func (repo *IntegrationRepository) Delete(id uint, tx ...utility.DatabaseTransaction) error {
+func (repo *IntegrationRepository) DeleteCredential(id uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -135,13 +140,4 @@ func (repo *IntegrationRepository) Delete(id uint, tx ...utility.DatabaseTransac
 	}
 
 	return nil
-}
-
-func (repo *IntegrationRepository) UpdateIntegration(integrationId uint, integration *models.Integration) (uint, error) {
-	db := repo.db
-	if err := db.Save(integration).Error; err != nil {
-		return 0, err
-	}
-
-	return integrationId, nil
 }

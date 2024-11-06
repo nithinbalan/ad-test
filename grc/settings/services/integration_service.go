@@ -3,8 +3,8 @@ package services
 import (
 	"errors"
 	"fmt"
-	activityLogServices "jethur/grc/logs/services"
-	integrationCategoryServices "jethur/grc/masters/services"
+	logServices "jethur/grc/logs/services"
+	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
 	"log"
 
@@ -29,11 +29,11 @@ type IntegrationServiceInterface interface {
 // Service and implementations
 type IntegrationService struct {
 	repo                   repositories.IntegrationRepositoryInterface
-	activityLogSvc         activityLogServices.ActivityLogServiceInterface
-	integrationCategorySvc integrationCategoryServices.IntegrationCategoryServiceInterface
+	activityLogSvc         logServices.ActivityLogServiceInterface
+	integrationCategorySvc masterServices.IntegrationCategoryServiceInterface
 }
 
-func NewIntegrationService(repo repositories.IntegrationRepositoryInterface, activityLogSvc activityLogServices.ActivityLogServiceInterface, integrationCategorySvc integrationCategoryServices.IntegrationCategoryServiceInterface) IntegrationServiceInterface {
+func NewIntegrationService(repo repositories.IntegrationRepositoryInterface, activityLogSvc logServices.ActivityLogServiceInterface, integrationCategorySvc masterServices.IntegrationCategoryServiceInterface) IntegrationServiceInterface {
 	return &IntegrationService{
 		repo:                   repo,
 		activityLogSvc:         activityLogSvc,
@@ -79,8 +79,8 @@ func (is IntegrationService) GetFullDetailsByID(integrationId uint, tx ...utilit
 }
 
 func (is *IntegrationService) EnableIntegration(integrationID uint, currentUserID uint, credentialFormDTO *settingsDTOs.IntegrationCredentialFormDTO) (uint, error) {
-
-	existingIntegration, err := is.repo.GetByID(integrationID)
+	tx := is.repo.BeginTransaction()
+	existingIntegration, err := is.GetByID(integrationID)
 
 	if err != nil {
 		return 0, err
@@ -88,8 +88,9 @@ func (is *IntegrationService) EnableIntegration(integrationID uint, currentUserI
 
 	existingIntegration.IsEnable = true
 
-	id, err := is.repo.UpdateIntegration(integrationID, existingIntegration)
+	id, err := is.repo.Update(integrationID, existingIntegration)
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
@@ -108,8 +109,9 @@ func (is *IntegrationService) EnableIntegration(integrationID uint, currentUserI
 		IsActive:       &isActive,
 		CreatedByID:    currentUserID,
 	}
-	err = is.repo.Create(integrationCredential)
+	err = is.repo.CreateCredential(integrationCredential)
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
@@ -134,7 +136,7 @@ func (is *IntegrationService) EnableIntegration(integrationID uint, currentUserI
 
 func (is *IntegrationService) UpdateCredential(id uint, currentUserID uint, credentialFormDTO *settingsDTOs.IntegrationCredentialFormDTO) (uint, error) {
 	tx := is.repo.BeginTransaction()
-	if _, err := is.repo.GetByID(id); err != nil {
+	if _, err := is.GetByID(id); err != nil {
 		return 0, err
 	}
 
@@ -161,7 +163,7 @@ func (is *IntegrationService) UpdateCredential(id uint, currentUserID uint, cred
 	existingIntegrationCredential.IsActive = credentialFormDTO.IsActive
 	existingIntegrationCredential.UpdatedByID = &currentUserID
 
-	err = is.repo.Update(existingIntegrationCredential, tx)
+	err = is.repo.UpdateCredential(existingIntegrationCredential, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -185,9 +187,9 @@ func (is *IntegrationService) UpdateCredential(id uint, currentUserID uint, cred
 }
 
 func (is *IntegrationService) DisableIntegration(integrationID uint, currentUserID uint) (uint, error) {
-	var successfulIds uint
+	tx := is.repo.BeginTransaction()
 
-	existingIntegration, err := is.repo.GetByID(integrationID)
+	existingIntegration, err := is.GetByID(integrationID)
 
 	if err != nil {
 		return 0, err
@@ -195,8 +197,9 @@ func (is *IntegrationService) DisableIntegration(integrationID uint, currentUser
 
 	existingIntegration.IsEnable = false
 
-	id, err := is.repo.UpdateIntegration(integrationID, existingIntegration)
+	id, err := is.repo.Update(integrationID, existingIntegration)
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
@@ -207,14 +210,16 @@ func (is *IntegrationService) DisableIntegration(integrationID uint, currentUser
 
 	// Delete the integrationCredential
 
-	if err := is.repo.Delete(integration.IntegrationCredential.ID); err != nil {
-		successfulIds = id
+	err = is.repo.DeleteCredential(integration.IntegrationCredential.ID)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
 	}
 	go func() {
 		err := is.activityLogSvc.LogActivity(
 			models.DeleteAction,
 			models.IntegrationCredential{}.TableName(),
-			successfulIds,
+			id,
 			nil,
 			currentUserID,
 			nil,
