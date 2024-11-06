@@ -29,6 +29,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	vulnerabilityController := app.AssetModule.VulnerabilityController
 	threatTypeController := app.AssetModule.ThreatTypeController
 	threatStatusController := app.AssetModule.ThreatStatusController
+	threatController := app.AssetModule.ThreatController
 
 	// Asset Type
 	assetRoutes.GET("/asset-types", assetTypeController.GetAllAssetTypes)
@@ -110,5 +111,13 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	//threat status
 	assetRoutes.GET("/threat-statuses", threatStatusController.GetAllThreatStatuses)
 	assetRoutes.GET("/threat-statuses/:id", threatStatusController.GetThreatStatusDetails)
+
+	//Threat
+	assetRoutes.GET("/threats", threatController.GetAllThreats)
+	assetRoutes.GET("/threats/:id", threatController.GetThreatDetails)
+	assetRoutes.POST("/threats", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), threatController.CreateThreat)
+	assetRoutes.PUT("/threats/:id", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), threatController.UpdateThreat)
+	assetRoutes.POST("/threats/delete", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), threatController.DeleteThreats)
+	
 
 }
