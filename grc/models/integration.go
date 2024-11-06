@@ -12,10 +12,16 @@ type Integration struct {
 	LogoUrl               *string    `json:"logo_url" gorm:"type:text"`
 	ApiBaseUrl            *string    `json:"api_base_url" gorm:"type:text"`
 	IsEnable              bool       `json:"is_enable" gorm:"not null;type:tinyint;default:0" binding:"required"`
-	CreatedByID           uint       `json:"created_by_id" binding:"required"`
-	UpdatedByID           *uint      `json:"updated_by_id"`
+	CreatedBYID           uint       `json:"created_by_id" gorm:"not null"`
+	UpdatedBYID           *uint      `json:"updated_by_id"`
 	CreatedAt             time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt             *time.Time `json:"updated_at" gorm:"type:datetime"`
+
+	// Relationships
+	CreatedBYUser         *User                  `gorm:"foreignKey:CreatedBYID"`
+	UpdatedBYUser         *User                  `gorm:"foreignKey:UpdatedBYID"`
+	IntegrationCredential *IntegrationCredential `gorm:"foreignKey:IntegrationID"`
+	IntegrationCategory   *IntegrationCategory   `gorm:"foreignKey:IntegrationCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 }
 
 // TableName overrides the table name used by Integration to `integrations`
