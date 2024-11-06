@@ -18,10 +18,10 @@ type Integration struct {
 	UpdatedAt             *time.Time `json:"updated_at" gorm:"type:datetime"`
 
 	// Relationships
-	CreatedByUser       *User                    `gorm:"foreignKey:CreatedBYID"`
-	UpdatedByUser       *User                    `gorm:"foreignKey:UpdatedBYID"`
-	Credentials         []*IntegrationCredential `gorm:"foreignKey:IntegrationID"`
-	IntegrationCategory *IntegrationCategory     `gorm:"foreignKey:IntegrationCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	CreatedBYUser         *User                  `gorm:"foreignKey:CreatedBYID"`
+	UpdatedBYUser         *User                  `gorm:"foreignKey:UpdatedBYID"`
+	IntegrationCredential *IntegrationCredential `gorm:"foreignKey:IntegrationID"`
+	IntegrationCategory   *IntegrationCategory   `gorm:"foreignKey:IntegrationCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 }
 
 // TableName overrides the table name used by Integration to `integrations`

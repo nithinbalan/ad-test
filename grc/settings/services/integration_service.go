@@ -6,11 +6,11 @@ import (
 	activityLogServices "jethur/grc/logs/services"
 	integrationCategoryServices "jethur/grc/masters/services"
 	"jethur/grc/models"
+	"log"
 
 	settingsDTOs "jethur/grc/settings/dtos"
 	"jethur/grc/settings/repositories"
 	"jethur/utility"
-	"log"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -18,11 +18,12 @@ import (
 
 type IntegrationServiceInterface interface {
 	GetAll(params *settingsDTOs.IntegrationListQueryParamsDTO) ([]*settingsDTOs.IntegrationDTO, error)
-	GetCredentailByID(id uint) (*models.IntegrationCredential, error)
-	GetCredentialFullDetailsByID(integrationID uint, tx ...utility.DatabaseTransaction) (*settingsDTOs.IntegrationCredentialDetailDTO, error)
-	EnableIntegration(currentUserID uint, integrtaionCredentialFormDTO *settingsDTOs.IntegrationCredentialFormDTO) (uint, error)
+	GetByID(id uint) (*models.Integration, error)
+	GetFullDetailsByID(integrationID uint, tx ...utility.DatabaseTransaction) (*settingsDTOs.IntegrationDetailDTO, error)
+	EnableIntegration(integrationID uint, currentUserID uint, integrtaionCredentialFormDTO *settingsDTOs.IntegrationCredentialFormDTO) (uint, error)
 	UpdateCredential(id uint, currentUserID uint, integrationCredential *settingsDTOs.IntegrationCredentialFormDTO) (uint, error)
 	DisableIntegration(id uint, currentUserID uint) (uint, error)
+	// UpdateIntegration(id uint)
 }
 
 // Service and implementations
@@ -44,8 +45,8 @@ func (is *IntegrationService) GetAll(params *settingsDTOs.IntegrationListQueryPa
 	return is.repo.GetAll(params)
 }
 
-func (rs IntegrationService) GetCredentailByID(id uint) (*models.IntegrationCredential, error) {
-	integrationCredential, err := rs.repo.GetCredentialByID(id)
+func (rs IntegrationService) GetByID(id uint) (*models.Integration, error) {
+	integration, err := rs.repo.GetByID(id)
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -53,13 +54,13 @@ func (rs IntegrationService) GetCredentailByID(id uint) (*models.IntegrationCred
 		}
 		return nil, err
 	}
-	return integrationCredential, nil
+	return integration, nil
 }
-func (is IntegrationService) GetCredentialFullDetailsByID(integrationId uint, tx ...utility.DatabaseTransaction) (*settingsDTOs.IntegrationCredentialDetailDTO, error) {
+func (is IntegrationService) GetFullDetailsByID(integrationId uint, tx ...utility.DatabaseTransaction) (*settingsDTOs.IntegrationDetailDTO, error) {
 	// Initialize your DTO
-	var integrationCredentialDTO settingsDTOs.IntegrationCredentialDetailDTO
+	var integrationDTO settingsDTOs.IntegrationDetailDTO
 
-	integration, err := is.repo.GetCredentialFullDetailsByID(integrationId)
+	integration, err := is.repo.GetFullDetailsByID(integrationId)
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -69,22 +70,32 @@ func (is IntegrationService) GetCredentialFullDetailsByID(integrationId uint, tx
 	}
 
 	// Map the result to your DTO
-	err = mapstructure.Decode(integration, &integrationCredentialDTO)
+	err = mapstructure.Decode(integration, &integrationDTO)
 	if err != nil {
 		return nil, err
 	}
 
-	// integrationCredentialDTO.CreatedAt = integration.CreatedAt
-	// integrationCredentialDTO.UpdatedAt = integration.UpdatedAt
-
-	return &integrationCredentialDTO, nil
+	return &integrationDTO, nil
 }
 
-func (is *IntegrationService) EnableIntegration(currentUserID uint, credentialFormDTO *settingsDTOs.IntegrationCredentialFormDTO) (uint, error) {
+func (is *IntegrationService) EnableIntegration(integrationID uint, currentUserID uint, credentialFormDTO *settingsDTOs.IntegrationCredentialFormDTO) (uint, error) {
+
+	existingIntegration, err := is.repo.GetByID(integrationID)
+
+	if err != nil {
+		return 0, err
+	}
+
+	existingIntegration.IsEnable = true
+
+	id, err := is.repo.UpdateIntegration(integrationID, existingIntegration)
+	if err != nil {
+		return 0, err
+	}
 
 	isActive := true
 	integrationCredential := &models.IntegrationCredential{
-		IntegrationID:  credentialFormDTO.IntegrationID,
+		IntegrationID:  integrationID,
 		ApiKey:         credentialFormDTO.ApiKey,
 		ApiSecret:      credentialFormDTO.ApiSecret,
 		RedirectUrl:    credentialFormDTO.RedirectUrl,
@@ -97,7 +108,7 @@ func (is *IntegrationService) EnableIntegration(currentUserID uint, credentialFo
 		IsActive:       &isActive,
 		CreatedByID:    currentUserID,
 	}
-	id, err := is.repo.Create(integrationCredential)
+	err = is.repo.Create(integrationCredential)
 	if err != nil {
 		return 0, err
 	}
@@ -128,21 +139,16 @@ func (is *IntegrationService) UpdateCredential(id uint, currentUserID uint, cred
 	}
 
 	// Update existing Integration Credential
-	existingIntegrationCredential, err := is.repo.GetCredentialByID(id)
+	existingIntegration, err := is.repo.GetFullDetailsByID(id)
 	if err != nil {
 		return 0, err
 	}
-	if existingIntegrationCredential == nil {
-		return 0, errors.New("existing integration credential not found")
+	if existingIntegration == nil {
+		return 0, errors.New("existing integration not found")
 	}
 
-	// existingIntegrationCredential, err := is.repo.GetCredentailByID(id)
+	existingIntegrationCredential := existingIntegration.IntegrationCredential
 
-	// if err != nil {
-	// 	return 0, err
-	// }
-
-	existingIntegrationCredential.IntegrationID = credentialFormDTO.IntegrationID
 	existingIntegrationCredential.ApiKey = credentialFormDTO.ApiKey
 	existingIntegrationCredential.ApiSecret = credentialFormDTO.ApiSecret
 	existingIntegrationCredential.RedirectUrl = credentialFormDTO.RedirectUrl
@@ -178,30 +184,32 @@ func (is *IntegrationService) UpdateCredential(id uint, currentUserID uint, cred
 	return id, nil
 }
 
-func (is *IntegrationService) DisableIntegration(id uint, currentUserID uint) (uint, error) {
+func (is *IntegrationService) DisableIntegration(integrationID uint, currentUserID uint) (uint, error) {
 	var successfulIds uint
 
-	_, err := is.repo.GetByID(id)
+	existingIntegration, err := is.repo.GetByID(integrationID)
+
 	if err != nil {
 		return 0, err
 	}
-	// Delete the integrationCredential
+
+	existingIntegration.IsEnable = false
+
+	id, err := is.repo.UpdateIntegration(integrationID, existingIntegration)
+	if err != nil {
+		return 0, err
+	}
+
 	integration, err := is.repo.GetFullDetailsByID(id)
 	if err != nil {
 		return 0, err
 	}
 
-	if len(integration.Credentials) > 0 {
-		var deleteCredentialIds []*uint
-		for _, update := range integration.Credentials {
-			deleteCredentialIds = append(deleteCredentialIds, &update.ID)
-		}
-		if err := is.repo.Delete(id, deleteCredentialIds); err != nil {
-			return 0, err
-		}
-	}
-	successfulIds = id
+	// Delete the integrationCredential
 
+	if err := is.repo.Delete(integration.IntegrationCredential.ID); err != nil {
+		successfulIds = id
+	}
 	go func() {
 		err := is.activityLogSvc.LogActivity(
 			models.DeleteAction,

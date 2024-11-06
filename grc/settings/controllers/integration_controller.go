@@ -53,7 +53,39 @@ func (icc *IntegrationController) GetAllIntegrations(c *gin.Context) {
 	c.JSON(http.StatusOK, integrations)
 }
 
+func (ic *IntegrationController) GetIntegrationDetails(c *gin.Context) {
+
+	integrationIDStr := c.Param("integrationId")
+
+	integrationID, err := strconv.ParseUint(integrationIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	integrationCredential, err := ic.service.GetFullDetailsByID(uint(integrationID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(ic.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, integrationCredential)
+
+}
+
 func (ic *IntegrationController) EnableIntegration(c *gin.Context) {
+	integrationID, err := strconv.Atoi(c.Param("integrationId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
 	var integrationCredentialFormDTO settingsDTOs.IntegrationCredentialFormDTO
 
 	if err := c.ShouldBindJSON(&integrationCredentialFormDTO); err != nil {
@@ -66,9 +98,12 @@ func (ic *IntegrationController) EnableIntegration(c *gin.Context) {
 		return
 	}
 
-	id, err := ic.service.EnableIntegration(currentUserID, &integrationCredentialFormDTO)
+	id, err := ic.service.EnableIntegration(uint(integrationID), currentUserID, &integrationCredentialFormDTO)
 	if err != nil {
 		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
 			return
@@ -151,28 +186,4 @@ func (ic *IntegrationController) DisableIntegration(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, commonDTOs.IDResponse{ID: id})
-}
-
-func (ic *IntegrationController) GetIntegrationCredentialDetails(c *gin.Context) {
-
-	integrationIDStr := c.Param("integrationId")
-
-	integrationID, err := strconv.ParseUint(integrationIDStr, 10, 64)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-	integrationCredential, err := ic.service.GetCredentialFullDetailsByID(uint(integrationID))
-	if err != nil {
-		switch e := err.(type) {
-		case *utility.ResourceNotFoundError:
-			utility.SendNotFoundErrResp(c)
-			return
-		default:
-			utility.SendInternalErrResp(ic.db, c, e.Error())
-			return
-		}
-	}
-	c.JSON(http.StatusOK, integrationCredential)
-
 }

@@ -21,9 +21,9 @@ type IntegrationCredential struct {
 	UpdatedAt      *time.Time `json:"updated_at" gorm:"type:datetime"`
 
 	// Relationships
-	Integration   Integration `gorm:"foreignKey:IntegrationID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser User        `gorm:"foreignKey:CreatedByID"`
-	UpdatedByUser *User       `gorm:"foreignKey:UpdatedByID"`
+	Integration   *Integration `gorm:"foreignKey:IntegrationID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	CreatedByUser User         `gorm:"foreignKey:CreatedByID"`
+	UpdatedByUser *User        `gorm:"foreignKey:UpdatedByID"`
 }
 
 // TableName overrides the table name used by Integration to `integrations`
