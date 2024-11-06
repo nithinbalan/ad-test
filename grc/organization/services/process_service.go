@@ -453,28 +453,78 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 	tx.Commit()
 
 	go func() {
+		// Determine control and document changes
+		controlsAdded := []uint{}
+		controlsRemoved := []uint{}
+		for id := range newControlIDs {
+			if !existingControlIDs[id] {
+				controlsAdded = append(controlsAdded, id)
+			}
+		}
+		for id := range existingControlIDs {
+			if !newControlIDs[id] {
+				controlsRemoved = append(controlsRemoved, id)
+			}
+		}
+
+		documentsAdded := []uint{}
+		documentsRemoved := []uint{}
+		for id := range newDocumentIDs {
+			if !existingDocumentIDs[id] {
+				documentsAdded = append(documentsAdded, id)
+			}
+		}
+		for id := range existingDocumentIDs {
+			if !newDocumentIDs[id] {
+				documentsRemoved = append(documentsRemoved, id)
+			}
+		}
+
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		associatedItems := make(map[string]interface{})
+
+		if len(controlsAdded) > 0 || len(controlsRemoved) > 0 {
+			associatedItems["control_ids"] = map[string]interface{}{
+				"added":   controlsAdded,
+				"removed": controlsRemoved,
+			}
+		}
+		if len(documentsAdded) > 0 || len(documentsRemoved) > 0 {
+			associatedItems["document_ids"] = map[string]interface{}{
+				"added":   documentsAdded,
+				"removed": documentsRemoved,
+			}
+		}
+
+		if len(associatedItems) > 0 {
+			changedData["associated_items"] = associatedItems
+		}
 		//log changes
 		oldData := map[string]interface{}{
-			"ProcessGroup":    oldProcess.ProcessGroup.TitleEn,
-			"OwnerUnit":       oldProcess.OwnerUnit.TitleEn,
-			"Owner":           fmt.Sprintf("%s %s", oldProcess.Owner.FirstNameEN, oldProcess.Owner.LastNameEN),
-			"LifecycleStatus": oldProcess.LifecycleStatus.TitleEn,
-			"TitleEn":         oldProcess.TitleEn,
-			"TitleAr":         oldProcess.TitleAr,
-			"Description":     oldProcess.Description,
+			"process_group":    oldProcess.ProcessGroup.TitleEn,
+			"owner_unit":       oldProcess.OwnerUnit.TitleEn,
+			"owner":            fmt.Sprintf("%s %s", oldProcess.Owner.FirstNameEN, oldProcess.Owner.LastNameEN),
+			"lifecycle_status": oldProcess.LifecycleStatus.TitleEn,
+			"title_en":         oldProcess.TitleEn,
+			"title_ar":         oldProcess.TitleAr,
+			"description":      oldProcess.Description,
 		}
 
 		newData := map[string]interface{}{
-			"ProcessGroup":    existingProcess.ProcessGroup.TitleEn,
-			"OwnerUnit":       existingProcess.OwnerUnit.TitleEn,
-			"Owner":           fmt.Sprintf("%s %s", existingProcess.Owner.FirstNameEN, existingProcess.Owner.LastNameEN),
-			"LifecycleStatus": existingProcess.LifecycleStatus.TitleEn,
-			"TitleEn":         existingProcess.TitleEn,
-			"TitleAr":         existingProcess.TitleAr,
-			"Description":     existingProcess.Description,
+			"process_group":    existingProcess.ProcessGroup.TitleEn,
+			"owner_unit":       existingProcess.OwnerUnit.TitleEn,
+			"owner":            fmt.Sprintf("%s %s", existingProcess.Owner.FirstNameEN, existingProcess.Owner.LastNameEN),
+			"lifecycle_status": existingProcess.LifecycleStatus.TitleEn,
+			"title_en":         existingProcess.TitleEn,
+			"title_ar":         existingProcess.TitleAr,
+			"description":      existingProcess.Description,
 		}
-
-		changedData := utility.CompareFieldChanges(oldData, newData)
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
 
 		// Log activity if there are any changes
 		if len(changedData) > 0 {
@@ -486,7 +536,6 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 				currentUserID,
 				nil,
 			)
-
 			if err != nil {
 				utility.LogError("Failed to log activity", map[string]interface{}{
 					"action":   models.UpdateAction,
