@@ -11,7 +11,7 @@ import (
 // Interfaces
 type IntegrationRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(params *integrationDTOs.IntegrationListQueryParamsDTO) ([]*integrationDTOs.IntegrationDTO, error)
+	GetAll(params *integrationDTOs.IntegrationListQueryParamsDTO) ([]*integrationDTOs.IntegrationListDTO, error)
 	GetByID(id uint) (*models.Integration, error)
 	GetFullDetailsByID(id uint) (*models.Integration, error)
 	Update(integrationID uint, integration *models.Integration) (uint, error)
@@ -36,8 +36,8 @@ func (repo *IntegrationRepository) BeginTransaction() utility.DatabaseTransactio
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *IntegrationRepository) GetAll(params *integrationDTOs.IntegrationListQueryParamsDTO) ([]*integrationDTOs.IntegrationDTO, error) {
-	var integrations []*integrationDTOs.IntegrationDTO
+func (repo *IntegrationRepository) GetAll(params *integrationDTOs.IntegrationListQueryParamsDTO) ([]*integrationDTOs.IntegrationListDTO, error) {
+	var integrations []*integrationDTOs.IntegrationListDTO
 
 	query := repo.db.Table("integrations").
 		Select(`

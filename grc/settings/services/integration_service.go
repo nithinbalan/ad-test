@@ -17,7 +17,7 @@ import (
 )
 
 type IntegrationServiceInterface interface {
-	GetAll(params *settingsDTOs.IntegrationListQueryParamsDTO) ([]*settingsDTOs.IntegrationDTO, error)
+	GetAll(params *settingsDTOs.IntegrationListQueryParamsDTO) ([]*settingsDTOs.IntegrationListDTO, error)
 	GetByID(id uint) (*models.Integration, error)
 	GetFullDetailsByID(integrationID uint, tx ...utility.DatabaseTransaction) (*settingsDTOs.IntegrationDetailDTO, error)
 	EnableIntegration(integrationID uint, currentUserID uint, integrtaionCredentialFormDTO *settingsDTOs.IntegrationCredentialFormDTO) (uint, error)
@@ -41,7 +41,7 @@ func NewIntegrationService(repo repositories.IntegrationRepositoryInterface, act
 	}
 }
 
-func (is *IntegrationService) GetAll(params *settingsDTOs.IntegrationListQueryParamsDTO) ([]*settingsDTOs.IntegrationDTO, error) {
+func (is *IntegrationService) GetAll(params *settingsDTOs.IntegrationListQueryParamsDTO) ([]*settingsDTOs.IntegrationListDTO, error) {
 	return is.repo.GetAll(params)
 }
 
