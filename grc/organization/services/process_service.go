@@ -183,6 +183,35 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 	tx.Commit()
 
 	go func() {
+		existingProcess, err := ps.GetFullDetailsByID(process.ID)
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		//log
+		err = ps.activityLogSvc.LogActivity(
+			models.CreateAction,
+			models.Process{}.TableName(),
+			id,
+			existingProcess,
+			currentUserID,
+			nil,
+		)
+
+		if err != nil {
+			utility.LogError("Failed to log activity", map[string]interface{}{
+				"action":    models.CreateAction,
+				"tableName": models.Process{}.TableName(),
+				"recordID":  id,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			})
+		}
+
+		//notification
 		urlParam := fmt.Sprintf(`{"id":%d}`, id)
 		entity := "process"
 		action := "responsible-user-assign"
@@ -204,14 +233,6 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 		}
 
 		responsibleUser, err := ps.userSvc.GetByID(processFormDTO.OwnerID)
-		if err != nil {
-			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
-				"error": err.Error(),
-			})
-			return
-		}
-
-		existingProcess, err := ps.GetFullDetailsByID(process.ID)
 		if err != nil {
 			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
 				"error": err.Error(),
@@ -285,29 +306,6 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 				&now,
 				currentUserID,
 			)
-		}
-	}()
-
-	go func() {
-		err := ps.activityLogSvc.LogActivity(
-			models.CreateAction,
-			models.Process{}.TableName(),
-			id,
-			processFormDTO,
-			currentUserID,
-			nil,
-		)
-
-		if err != nil {
-			fields := map[string]interface{}{
-				"action":    models.CreateAction,
-				"tableName": models.Control{}.TableName(),
-				"recordID":  id,
-				"userID":    currentUserID,
-				"error":     err.Error(),
-			}
-
-			utility.LogError("Failed to log activity", fields)
 		}
 	}()
 
