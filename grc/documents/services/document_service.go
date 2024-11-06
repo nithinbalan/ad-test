@@ -916,7 +916,7 @@ func (ds *DocumentService) Delete(ids []uint, currentUserID uint) ([]uint, error
 				}
 
 			}
-			destinationPath := filepath.Join("compliance", "draft", strconv.FormatUint(uint64(documentID), 10), "document-history")
+			destinationPath := filepath.Join("document", "draft", strconv.FormatUint(uint64(documentID), 10), "document-history")
 			if err := utility.RemoveFolder(destinationPath); err != nil {
 				tx.Rollback()
 			}
