@@ -22,6 +22,7 @@ type AssetModule struct {
 	ThreatTypeController                         *controllers.ThreatTypeController
 	ThreatStatusController                       *controllers.ThreatStatusController
 	ThreatController                             *controllers.ThreatController
+	AssetCriticalityController                   *controllers.AssetCriticalityController
 }
 
 func NewAssetModule(db *gorm.DB,
@@ -94,6 +95,17 @@ func NewAssetModule(db *gorm.DB,
 	)
 	threatController := controllers.NewThreatController(threatSvc)
 
+	assetCriticalityRepo := repositories.NewAssetCriticalityRepository(db)
+	assetCriticalitySvc := services.NewAssetCriticalityService(
+		assetCriticalityRepo,
+		sharedModule.ActivityLogService,
+		assetRegisterSvc,
+		assetCriticalityMatrixSvc,
+		assetCriticalityMatrixFactorSvc,
+		assetCriticalityMatrixFactorRatingSvc,
+	)
+	assetCriticalityController := controllers.NewAssetCriticalityController(assetCriticalitySvc)
+
 	return &AssetModule{
 		AssetTypeController:                          assetTypeController,
 		AssetCategoryController:                      assetCategoryController,
@@ -108,5 +120,6 @@ func NewAssetModule(db *gorm.DB,
 		ThreatTypeController:                         threatTypeController,
 		ThreatStatusController:                       threatStatusController,
 		ThreatController:                             threatController,
+		AssetCriticalityController:                   assetCriticalityController,
 	}
 }
