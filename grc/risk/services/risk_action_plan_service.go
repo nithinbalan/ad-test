@@ -29,7 +29,7 @@ type RiskActionPlanServiceInterface interface {
 	Create(riskID uint, currentUserID uint, RiskActionPlanFormDTO *riskDTOs.RiskActionPlanFormDTO) (uint, error)
 	Update(riskID uint, id uint, currentUserID uint, risk *riskDTOs.RiskActionPlanFormDTO) error
 	Delete(riskID uint, ids []uint, currentUserID uint) ([]uint, error)
-	StatusUpdate(riskID uint, id uint, currentUserID uint, ActionPlanStatusID uint, tx utility.DatabaseTransaction) error
+	StatusUpdate(riskID uint, id uint, currentUserID uint, riskActionPlanStatusUpdateFormDTO *riskDTOs.RiskActionPlanStatusUpdateFormDTO, tx utility.DatabaseTransaction) error
 
 	ExportRiskActionPlan(data []*riskDTOs.RiskActionPlanListDTO, currentUserID uint) (*os.File, error)
 }
@@ -165,6 +165,7 @@ func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskA
 	riskActionPlanUpdate := &models.RiskActionPlanStatusUpdate{
 		RiskActionPlanID:   id,
 		ActionPlanStatusID: actionPlanStatusID,
+		Percentage:         RiskActionPlanFormDTO.Percentage,
 		Comment:            "Initial action plan status",
 		CreatedByID:        currentUserID,
 	}
@@ -631,13 +632,14 @@ func (raps *RiskActionPlanService) Delete(riskID uint, ids []uint, currentUserID
 	return failedIds, nil
 }
 
-func (raps *RiskActionPlanService) StatusUpdate(riskID uint, id uint, currentUserID uint, ActionPlanStatusID uint, tx utility.DatabaseTransaction) error {
+func (raps *RiskActionPlanService) StatusUpdate(riskID uint, id uint, currentUserID uint, riskActionPlanStatusUpdateFormDTO *riskDTOs.RiskActionPlanStatusUpdateFormDTO, tx utility.DatabaseTransaction) error {
 	existingRiskActionPlan, err := raps.GetByID(riskID, id)
 	if err != nil {
 		return err
 	}
 
-	existingRiskActionPlan.ActionPlanStatusID = ActionPlanStatusID
+	existingRiskActionPlan.ActionPlanStatusID = riskActionPlanStatusUpdateFormDTO.ActionPlanStatusID
+	existingRiskActionPlan.Percentage = riskActionPlanStatusUpdateFormDTO.Percentage
 	existingRiskActionPlan.UpdatedBYID = &currentUserID
 
 	err = raps.repo.Update(existingRiskActionPlan, tx)
@@ -652,7 +654,7 @@ func (raps *RiskActionPlanService) StatusUpdate(riskID uint, id uint, currentUse
 	if err != nil {
 		return err
 	}
-	err = raps.taskSvc.UpdateStatus(currentUserID, existingTask.ID, ActionPlanStatusID, isReviewUserNull, tx)
+	err = raps.taskSvc.UpdateStatus(currentUserID, existingTask.ID, riskActionPlanStatusUpdateFormDTO.ActionPlanStatusID, isReviewUserNull, tx)
 	if err != nil {
 		return err
 	}
