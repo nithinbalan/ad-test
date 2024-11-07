@@ -84,6 +84,7 @@ type AssetRegisterFormDTO struct {
 	Location          *string `json:"location" binding:"omitempty"`
 	Description       *string `json:"description" binding:"omitempty"`
 	AcquisitionDate   *string `json:"acquisition_date" binding:"omitempty,datetime=2006-01-02"`
+	ControlIds        []*uint `json:"control_ids"`
 }
 
 type AssetRegisterParsedDates struct {
@@ -103,8 +104,16 @@ type AssetRegisterDetailDTO struct {
 	Location              *string                          `json:"location"`
 	Description           *string                          `json:"description"`
 	AcquisitionDateString *string                          `json:"acquisition_date"`
+	Controls              []*AssetControlDTO               `json:"controls"`
 	CreatedAt             time.Time                        `json:"created_at"`
 	UpdatedAt             *time.Time                       `json:"updated_at"`
 	CreatedByUser         organizationDTOs.UserMinimalDTO  `json:"created_by"`
 	UpdatedByUser         *organizationDTOs.UserMinimalDTO `json:"updated_by"`
+}
+
+type AssetControlDTO struct {
+	ID        *uint                             `json:"id"`
+	ProcessID uint                              `json:"process_id"`
+	ControlID uint                              `json:"control_id"`
+	Control   organizationDTOs.ControlDetailDTO `json:"control"`
 }
