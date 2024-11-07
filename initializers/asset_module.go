@@ -12,9 +12,16 @@ type AssetModule struct {
 	AssetTypeController                          *controllers.AssetTypeController
 	AssetCategoryController                      *controllers.AssetCategoryController
 	AssetStatusController                        *controllers.AssetStatusController
+	AssetRegisterController                      *controllers.AssetRegisterController
 	AssetCriticalityMatrixFactorController       *controllers.AssetCriticalityMatrixFactorController
 	AssetCriticalityMatrixFactorRatingController *controllers.AssetCriticalityMatrixFactorRatingController
 	AssetCriticalityMatrixRatingScaleController  *controllers.AssetCriticalityMatrixRatingScaleController
+	VulnerabilityTypeController                  *controllers.VulnerabilityTypeController
+	VulnerabilityStatusController                *controllers.VulnerabilityStatusController
+	VulnerabilityController                      *controllers.VulnerabilityController
+	ThreatTypeController                         *controllers.ThreatTypeController
+	ThreatStatusController                       *controllers.ThreatStatusController
+	ThreatController                             *controllers.ThreatController
 }
 
 func NewAssetModule(db *gorm.DB,
@@ -37,6 +44,10 @@ func NewAssetModule(db *gorm.DB,
 	assetStatusSvc := services.NewAssetStatusService(assetStatusRepo)
 	assetStatusController := controllers.NewAssetStatusController(assetStatusSvc)
 
+	assetRegisterRepo := repositories.NewAssetRegisterRepository(db)
+	assetRegisterSvc := services.NewAssetRegisterService(assetRegisterRepo, sharedModule.ActivityLogService, assetTypeSvc, assetCategorySvc, assetStatusSvc, organizationModule.UserSvc)
+	assetRegisterController := controllers.NewAssetRegisterController(assetRegisterSvc)
+
 	assetCriticalityMatrixRepo := repositories.NewAssetCriticalityMatrixRepository(db)
 	assetCriticalityMatrixSvc := services.NewAssetCriticalityMatrixService(assetCriticalityMatrixRepo)
 
@@ -52,12 +63,50 @@ func NewAssetModule(db *gorm.DB,
 	assetCriticalityMatrixRatingScaleSvc := services.NewAssetCriticalityMatrixRatingScaleService(assetCriticalityMatrixRatingScaleRepo, sharedModule.ActivityLogService, assetCriticalityMatrixSvc)
 	assetCriticalityMatrixRatingScaleController := controllers.NewAssetCriticalityMatrixRatingScaleController(assetCriticalityMatrixRatingScaleSvc)
 
+	vulnerabilityTypeRepo := repositories.NewVulnerabilityTypeRepository(db)
+	vulnerabilityTypeSvc := services.NewVulnerabilityTypeService(vulnerabilityTypeRepo, sharedModule.ActivityLogService)
+	vulnerabilityTypeController := controllers.NewVulnerabilityTypeController(vulnerabilityTypeSvc)
+
+	vulnerabilityStatusRepo := repositories.NewVulnerabilityStatusRepository(db)
+	vulnerabilityStatusSvc := services.NewVulnerabilityStatusService(vulnerabilityStatusRepo)
+	vulnerabilityStatusController := controllers.NewVulnerabilityStatusController(vulnerabilityStatusSvc)
+
+	vulnerabilityRepo := repositories.NewVulnerabilityRepository(db)
+	vulnerabilitySvc := services.NewVulnerabilityService(vulnerabilityRepo, sharedModule.ActivityLogService, vulnerabilityTypeSvc, masterModule.SeverityLevelSvc, vulnerabilityStatusSvc, organizationModule.UserSvc)
+	vulnerabilityController := controllers.NewVulnerabilityController(vulnerabilitySvc)
+
+	threatTypeRepo := repositories.NewThreatTypeRepository(db)
+	threatTypeSvc := services.NewThreatTypeService(threatTypeRepo, sharedModule.ActivityLogService)
+	threatTypeController := controllers.NewThreatTypeController(threatTypeSvc)
+
+	threatStatusRepo := repositories.NewThreatStatusRepository(db)
+	threatStatusSvc := services.NewThreatStatusService(threatStatusRepo)
+	threatStatusController := controllers.NewThreatStatusController(threatStatusSvc)
+
+	threatRepo := repositories.NewThreatRepository(db)
+	threatSvc := services.NewThreatService(
+		threatRepo,
+		sharedModule.ActivityLogService,
+		threatTypeSvc,
+		masterModule.SeverityLevelSvc,
+		threatStatusSvc,
+		organizationModule.UserSvc,
+	)
+	threatController := controllers.NewThreatController(threatSvc)
+
 	return &AssetModule{
 		AssetTypeController:                          assetTypeController,
 		AssetCategoryController:                      assetCategoryController,
 		AssetStatusController:                        assetStatusController,
+		AssetRegisterController:                      assetRegisterController,
 		AssetCriticalityMatrixFactorController:       assetCriticalityMatrixFactorController,
 		AssetCriticalityMatrixFactorRatingController: assetCriticalityMatrixFactorRatingController,
 		AssetCriticalityMatrixRatingScaleController:  assetCriticalityMatrixRatingScaleController,
+		VulnerabilityTypeController:                  vulnerabilityTypeController,
+		VulnerabilityStatusController:                vulnerabilityStatusController,
+		VulnerabilityController:                      vulnerabilityController,
+		ThreatTypeController:                         threatTypeController,
+		ThreatStatusController:                       threatStatusController,
+		ThreatController:                             threatController,
 	}
 }
