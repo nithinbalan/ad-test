@@ -97,7 +97,7 @@ func (rasus *RiskActionPlanStatusUpdateService) Create(RiskID uint, RiskActionPl
 		return 0, err
 	}
 
-	err = rasus.riskActionPlanSvc.StatusUpdate(RiskID, RiskActionPlanID, currentUserID, riskActionPlanStatusUpdateFormDTO.ActionPlanStatusID, tx)
+	err = rasus.riskActionPlanSvc.StatusUpdate(RiskID, RiskActionPlanID, currentUserID, riskActionPlanStatusUpdateFormDTO, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err

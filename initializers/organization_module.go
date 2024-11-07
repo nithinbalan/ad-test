@@ -81,7 +81,7 @@ func NewOrganizationModule(
 	userSettingController := controllers.NewUserSettingController(userSettingSvc)
 
 	strategicProfileRepo := repositories.NewStrategicProfileRepository(db)
-	strategicProfileSvc := services.NewStrategicProfileService(strategicProfileRepo, commonModule.FileRepo)
+	strategicProfileSvc := services.NewStrategicProfileService(strategicProfileRepo, commonModule.FileRepo, sharedModule.ActivityLogService)
 	strategicProfileController := controllers.NewStrategicProfileController(strategicProfileSvc)
 
 	strategicObjectiveRepo := repositories.NewStrategicObjectiveRepository(db)

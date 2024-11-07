@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"jethur/config"
+	logServices "jethur/grc/logs/services"
 	organizationDTOs "jethur/grc/organization/dtos"
 	"jethur/utility"
 	"mime/multipart"
@@ -30,16 +31,19 @@ type StrategicProfileServiceInterface interface {
 }
 
 type StrategicProfileService struct {
-	repo     organizationRepositories.StrategicProfileRepositoryInterface
-	fileRepo commonRepositories.FileRepositoryInterface
+	repo           organizationRepositories.StrategicProfileRepositoryInterface
+	fileRepo       commonRepositories.FileRepositoryInterface
+	activityLogSvc logServices.ActivityLogServiceInterface
 }
 
 func NewStrategicProfileService(repo organizationRepositories.StrategicProfileRepositoryInterface,
-	fileRepo commonRepositories.FileRepositoryInterface) StrategicProfileServiceInterface {
+	fileRepo commonRepositories.FileRepositoryInterface,
+	activityLogSvc logServices.ActivityLogServiceInterface) StrategicProfileServiceInterface {
 
 	return &StrategicProfileService{
-		repo:     repo,
-		fileRepo: fileRepo,
+		repo:           repo,
+		fileRepo:       fileRepo,
+		activityLogSvc: activityLogSvc,
 	}
 }
 
@@ -87,6 +91,23 @@ func (sps *StrategicProfileService) Update(currentUserID uint, strategicProfileD
 		return err
 	}
 
+	oldData := map[string]interface{}{
+		"title_en":  existingStrategicProfile.TitleEn,
+		"title_ar":  existingStrategicProfile.TitleAr,
+		"address":   existingStrategicProfile.Address,
+		"location":  existingStrategicProfile.Location,
+		"email":     existingStrategicProfile.Email,
+		"industry":  existingStrategicProfile.Industry,
+		"phone":     existingStrategicProfile.Phone,
+		"linkedin":  existingStrategicProfile.Linkedin,
+		"x":         existingStrategicProfile.X,
+		"facebook":  existingStrategicProfile.Facebook,
+		"instagram": existingStrategicProfile.Instagram,
+		"youtube":   existingStrategicProfile.Youtube,
+		"about_en":  existingStrategicProfile.AboutEn,
+		"about_ar":  existingStrategicProfile.AboutAr,
+	}
+
 	existingStrategicProfile.TitleEn = strategicProfileDTO.TitleEn
 	existingStrategicProfile.TitleAr = strategicProfileDTO.TitleAr
 	existingStrategicProfile.Address = strategicProfileDTO.Address
@@ -108,15 +129,53 @@ func (sps *StrategicProfileService) Update(currentUserID uint, strategicProfileD
 		return err
 	}
 
+	newData := map[string]interface{}{
+		"title_en":  existingStrategicProfile.TitleEn,
+		"title_ar":  existingStrategicProfile.TitleAr,
+		"address":   existingStrategicProfile.Address,
+		"location":  existingStrategicProfile.Location,
+		"email":     existingStrategicProfile.Email,
+		"industry":  existingStrategicProfile.Industry,
+		"phone":     existingStrategicProfile.Phone,
+		"linkedin":  existingStrategicProfile.Linkedin,
+		"x":         existingStrategicProfile.X,
+		"facebook":  existingStrategicProfile.Facebook,
+		"instagram": existingStrategicProfile.Instagram,
+		"youtube":   existingStrategicProfile.Youtube,
+		"about_en":  existingStrategicProfile.AboutEn,
+		"about_ar":  existingStrategicProfile.AboutAr,
+	}
+
+	go func() {
+
+		changedData := utility.CompareFieldChanges(oldData, newData)
+
+		if len(changedData) > 0 {
+			err = sps.activityLogSvc.LogActivity(models.UpdateAction, models.StrategicProfile{}.TableName(), existingStrategicProfile.ID, changedData, currentUserID, nil)
+			if err != nil {
+				utility.LogError("Failed to log strategic profile update", map[string]interface{}{
+					"action":   models.UpdateAction,
+					"error":    err.Error(),
+					"recordID": existingStrategicProfile.ID,
+				})
+			}
+		}
+
+	}()
+
 	return nil
 
 }
 
 func (sps *StrategicProfileService) UpdateVision(currentUserID uint, strategicProfileVisionDTO *organizationDTOs.StrategicProfileVisionFormDTO) error {
 	existingStrategicProfile, err := sps.repo.Get()
-
 	if err != nil {
 		return utility.NewResourceNotFoundError(err, nil)
+	}
+
+	oldData := map[string]interface{}{
+		"vision_en": existingStrategicProfile.VisionEn,
+		"vision_ar": existingStrategicProfile.VisionAr,
 	}
 
 	existingStrategicProfile.VisionEn = strategicProfileVisionDTO.VisionEn
@@ -128,15 +187,40 @@ func (sps *StrategicProfileService) UpdateVision(currentUserID uint, strategicPr
 		return err
 	}
 
+	newData := map[string]interface{}{
+		"vision_en": existingStrategicProfile.VisionEn,
+		"vision_ar": existingStrategicProfile.VisionAr,
+	}
+
+	go func() {
+
+		changedData := utility.CompareFieldChanges(oldData, newData)
+
+		if len(changedData) > 0 {
+			err = sps.activityLogSvc.LogActivity(models.UpdateAction, models.StrategicProfile{}.TableName(), existingStrategicProfile.ID, changedData, currentUserID, nil)
+			if err != nil {
+				utility.LogError("Failed to log strategic profile vision update", map[string]interface{}{
+					"action":   models.UpdateAction,
+					"error":    err.Error(),
+					"recordID": existingStrategicProfile.ID,
+				})
+			}
+		}
+	}()
+
 	return nil
 
 }
 
 func (sps *StrategicProfileService) UpdateMission(currentUserID uint, strategicProfileMissionDTO *organizationDTOs.StrategicProfileMissionFormDTO) error {
 	existingStrategicProfile, err := sps.repo.Get()
-
 	if err != nil {
 		return utility.NewResourceNotFoundError(err, nil)
+	}
+
+	oldData := map[string]interface{}{
+		"mission_en": existingStrategicProfile.MissionEn,
+		"mission_ar": existingStrategicProfile.MissionAr,
 	}
 
 	existingStrategicProfile.MissionEn = strategicProfileMissionDTO.MissionEn
@@ -147,6 +231,26 @@ func (sps *StrategicProfileService) UpdateMission(currentUserID uint, strategicP
 	if err != nil {
 		return err
 	}
+
+	newData := map[string]interface{}{
+		"mission_en": existingStrategicProfile.MissionEn,
+		"mission_ar": existingStrategicProfile.MissionAr,
+	}
+
+	go func() {
+		changedData := utility.CompareFieldChanges(oldData, newData)
+
+		if len(changedData) > 0 {
+			err = sps.activityLogSvc.LogActivity(models.UpdateAction, models.StrategicProfile{}.TableName(), existingStrategicProfile.ID, changedData, currentUserID, nil)
+			if err != nil {
+				utility.LogError("Failed to log strategic profile mission update", map[string]interface{}{
+					"action":   models.UpdateAction,
+					"error":    err.Error(),
+					"recordID": existingStrategicProfile.ID,
+				})
+			}
+		}
+	}()
 
 	return nil
 

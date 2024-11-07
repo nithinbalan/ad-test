@@ -5,25 +5,25 @@ import (
 )
 
 type IncidentInvestigation struct {
-	ID                            uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
-	IncidentRegisterID            uint       `json:"incident_register_id" binding:"required" gorm:"not null"`
-	InitiatedAt                   *time.Time `json:"initiated_at" binding:"required" gorm:"type:datetime;not null"`
-	Description                   *string    `json:"description" gorm:"type:nvarchar(max)"`
-	TeamLeadID                    uint       `json:"team_lead_id" binding:"required" gorm:"not null"`
-	ActionRecommendation          *string    `json:"action_recommendation" gorm:"type:nvarchar(max)"`
-	CreatedByID                   uint       `json:"created_by_id" binding:"required"`
-	UpdatedByID                   *uint      `json:"updated_by_id"`
-	CreatedAt                     time.Time  `json:"created_at" gorm:"type:datetime;not null"`
-	UpdatedAt                     *time.Time `json:"updated_at" gorm:"type:datetime"`
+	ID                   uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
+	IncidentRegisterID   uint       `json:"incident_register_id" binding:"required" gorm:"not null"`
+	InitiatedAt          *time.Time `json:"initiated_at" binding:"required" gorm:"type:datetime;not null"`
+	Description          *string    `json:"description" gorm:"type:nvarchar(max)"`
+	TeamLeadID           uint       `json:"team_lead_id" binding:"required" gorm:"not null"`
+	ActionRecommendation *string    `json:"action_recommendation" gorm:"type:nvarchar(max)"`
+	CreatedBYID          uint       `json:"created_by_id" binding:"required"`
+	UpdatedBYID          *uint      `json:"updated_by_id"`
+	CreatedAt            time.Time  `json:"created_at" gorm:"type:datetime;not null"`
+	UpdatedAt            *time.Time `json:"updated_at" gorm:"type:datetime"`
 
 	// Relationships
-	IncidentRegister            IncidentRegister                 `gorm:"foreignKey:IncidentRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	TeamLead                    User                             `gorm:"foreignKey:TeamLeadID"`
-	Documents                   []*IncidentInvestigationDocument `gorm:"foreignKey:IncidentInvestigationID"`
-	Users                       []*IncidentInvestigationUser     `gorm:"foreignKey:IncidentInvestigationID"`
-	Findings                    []*IncidentInvestigationFinding  `gorm:"foreignKey:IncidentInvestigationID"`
-	CreatedByUser               User                             `gorm:"foreignKey:CreatedByID"`
-	UpdatedByUser               *User                            `gorm:"foreignKey:UpdatedByID"`
+	IncidentRegister IncidentRegister                 `gorm:"foreignKey:IncidentRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	TeamLead         User                             `gorm:"foreignKey:TeamLeadID"`
+	Documents        []*IncidentInvestigationDocument `gorm:"foreignKey:IncidentInvestigationID"`
+	Users            []*IncidentInvestigationUser     `gorm:"foreignKey:IncidentInvestigationID"`
+	Findings         []*IncidentInvestigationFinding  `gorm:"foreignKey:IncidentInvestigationID"`
+	CreatedByUser    User                             `gorm:"foreignKey:CreatedBYID"`
+	UpdatedByUser    *User                            `gorm:"foreignKey:UpdatedBYID"`
 }
 
 // TableName overrides the table name used by IncidentInvestigation to `incident_investigations`
