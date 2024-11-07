@@ -14,6 +14,8 @@ import (
 type SystemPreferenceServiceInterface interface {
 	GetSystemPreference() (*models.SystemPreference, error)
 	Update(id uint, currentUserID uint, systemPreferenceFormDTO *dtos.SystemPreferenceFormDTO) error
+
+	GetOrganizationPreference(params *dtos.IntegrationListQueryParamsDTO) (*dtos.OrganizationPreferenceResponseDTO, error)
 }
 
 // Service and implementations
@@ -21,13 +23,15 @@ type SystemPreferenceService struct {
 	repo           repositories.SystemPreferenceRepositoryInterface
 	activityLogSvc services.ActivityLogServiceInterface
 	currencySvc    masterServices.CurrencyServiceInterface
+	integrationSvc IntegrationServiceInterface
 }
 
-func NewSystemPreferenceService(repo repositories.SystemPreferenceRepositoryInterface, activityLogSvc services.ActivityLogServiceInterface, currencySvc masterServices.CurrencyServiceInterface) SystemPreferenceServiceInterface {
+func NewSystemPreferenceService(repo repositories.SystemPreferenceRepositoryInterface, activityLogSvc services.ActivityLogServiceInterface, currencySvc masterServices.CurrencyServiceInterface, integrationSvc IntegrationServiceInterface) SystemPreferenceServiceInterface {
 	return &SystemPreferenceService{
 		repo:           repo,
 		activityLogSvc: activityLogSvc,
 		currencySvc:    currencySvc,
+		integrationSvc: integrationSvc,
 	}
 }
 
@@ -93,4 +97,25 @@ func (sps *SystemPreferenceService) validateSystemPreferenceFormDTO(systemPrefer
 		return utility.NewValidationError(fmt.Errorf("currency does not exist"), "not_exist", "currency")
 	}
 	return nil
+}
+
+func (sps SystemPreferenceService) GetOrganizationPreference(params *dtos.IntegrationListQueryParamsDTO) (*dtos.OrganizationPreferenceResponseDTO, error) {
+	systemPreference, err := sps.repo.GetSystemPreference()
+	if err != nil {
+		return nil, err
+	}
+
+	// Call GetAll to get integrations list
+	integrations, err := sps.integrationSvc.GetAll(params)
+	if err != nil {
+		return nil, err
+	}
+
+	// Combine both responses into a single struct
+	combinedResponse := dtos.OrganizationPreferenceResponseDTO{
+		SystemPreference: systemPreference,
+		Integrations:     integrations,
+	}
+
+	return &combinedResponse, nil
 }

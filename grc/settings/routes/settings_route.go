@@ -82,4 +82,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	settingRoutes.POST("/integrations/:integrationId/credential", integrationController.EnableIntegration)
 	settingRoutes.PUT("/integrations/:integrationId/credential", integrationController.UpdateCredential)
 	settingRoutes.DELETE("/integrations/:integrationId/credential", integrationController.DisableIntegration)
+
+	settingRoutes.GET("/organization-preferences", systemPreferenceController.GetOrganizationPreference)
 }

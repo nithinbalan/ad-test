@@ -68,6 +68,11 @@ func (repo *IntegrationRepository) GetAll(params *integrationDTOs.IntegrationLis
 		params.Sort = "asc" // Default order is ascending if not specified
 	}
 
+	// Check if `is_enable` filter is provided in params.Filters
+	if enableFilter, exists := params.Filters["is_enable"]; exists && len(enableFilter) > 0 {
+		query = query.Where("integrations.is_enable = ?", true)
+	}
+
 	query = query.Order(params.SortBy + " " + params.Sort)
 
 	result := query.Find(&integrations)
