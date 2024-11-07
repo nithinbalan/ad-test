@@ -9,6 +9,8 @@ import (
 	"jethur/grc/settings/repositories"
 
 	"jethur/utility"
+
+	"github.com/mitchellh/mapstructure"
 )
 
 type SystemPreferenceServiceInterface interface {
@@ -111,9 +113,17 @@ func (sps SystemPreferenceService) GetOrganizationPreference(params *dtos.Integr
 		return nil, err
 	}
 
+	var SystemPreferenceDTO dtos.SystemPreferenceDTO
+
+	// Map the result to your DTO
+	err = mapstructure.Decode(systemPreference, &SystemPreferenceDTO)
+	if err != nil {
+		return nil, err
+	}
+
 	// Combine both responses into a single struct
 	combinedResponse := dtos.OrganizationPreferenceResponseDTO{
-		SystemPreference: systemPreference,
+		SystemPreference: SystemPreferenceDTO,
 		Integrations:     integrations,
 	}
 

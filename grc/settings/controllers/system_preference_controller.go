@@ -71,32 +71,19 @@ func (spc *SystemPreferenceController) UpdateSystemPreference(c *gin.Context) {
 }
 
 func (spc *SystemPreferenceController) GetOrganizationPreference(c *gin.Context) {
-	sort := c.Query("sort_order")
-	sortBy := c.Query("sort_by")
-	keyword := c.Query("keyword")
-	status := c.Query("status")
 
-	// Define an array of allowed parameter names
-	allowedParams := []string{
-		"integration_category_ids",
-	}
-
-	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+	filters := utility.ParseQueryFilters([]string{}, c.Request.URL.Query())
 
 	filters["is_enable"] = []string{fmt.Sprintf("%d", 1)}
 	queryParams := settingDTOs.IntegrationListQueryParamsDTO{
-		Sort:    sort,
-		SortBy:  sortBy,
-		Keyword: keyword,
-		Status:  status,
 		Filters: filters,
 	}
 
-	systemPreference, err := spc.service.GetOrganizationPreference(&queryParams)
+	organizationPreference, err := spc.service.GetOrganizationPreference(&queryParams)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
 
-	c.JSON(http.StatusOK, systemPreference)
+	c.JSON(http.StatusOK, organizationPreference)
 }
