@@ -1,6 +1,7 @@
 package dtos
 
 import (
+	assetDTOs "jethur/grc/asset/dtos"
 	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	masterDTOs "jethur/grc/masters/dtos"
@@ -98,6 +99,7 @@ type IncidentRegisterFormDTO struct {
 	ProcessIDs               []*uint                    `json:"process_ids"`
 	SLARegisterIDs           []*uint                    `json:"sla_register_ids"`
 	DocumentIds              []*uint                    `json:"document_ids"`
+	AssetIds                 []*uint                    `json:"asset_ids"`
 }
 
 type IncidentDocumentFormDTO struct {
@@ -158,6 +160,7 @@ type IncidentRegisterDetailDTO struct {
 	Controls               []*IncidentControlDTO               `json:"controls"`
 	ComplianceRequirements []*IncidentComplianceRequirementDTO `json:"compliance_requirements"`
 	Risks                  []*IncidentRiskDTO                  `json:"risks"`
+	Assets                 []*IncidentAssetDTO                 `json:"assets"`
 	Processes              []*IncidentProcessDTO               `json:"processes"`
 	ResponsibleUnit        settingsDTOs.OrganizationUnitDTO    `json:"responsible_unit"`
 	ResponsibleUser        organizationDTOs.UserMinimalDTO     `json:"responsible_user"`
@@ -214,4 +217,11 @@ type IncidentSLARegisterDTO struct {
 	IncidentRegisterID uint                                `json:"incident_register_id"`
 	SLARegisterID      uint                                `json:"sla_register_id"`
 	SLARegister        complianceDTOs.SLARegisterDetailDTO `json:"sla_register"`
+}
+
+type IncidentAssetDTO struct {
+	ID                 *uint                            `json:"id"`
+	IncidentRegisterID uint                             `json:"incident_register_id"`
+	AssetRegisterID    uint                             `json:"asset_register_id"`
+	AssetRegister      assetDTOs.AssetRegisterDetailDTO `json:"asset"`
 }

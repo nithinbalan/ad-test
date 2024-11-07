@@ -22,6 +22,8 @@ type AssetModule struct {
 	ThreatTypeController                         *controllers.ThreatTypeController
 	ThreatStatusController                       *controllers.ThreatStatusController
 	ThreatController                             *controllers.ThreatController
+
+	AssetRegisterSvc services.AssetRegisterServiceInterface
 }
 
 func NewAssetModule(db *gorm.DB,
@@ -108,5 +110,7 @@ func NewAssetModule(db *gorm.DB,
 		ThreatTypeController:                         threatTypeController,
 		ThreatStatusController:                       threatStatusController,
 		ThreatController:                             threatController,
+
+		AssetRegisterSvc: assetRegisterSvc,
 	}
 }
