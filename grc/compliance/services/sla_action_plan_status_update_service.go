@@ -97,7 +97,7 @@ func (sasus *SLAActionPlanStatusUpdateService) Create(SLAID uint, SLAActionPlanI
 		return 0, err
 	}
 
-	err = sasus.slaActionPlanSvc.StatusUpdate(SLAID, SLAActionPlanID, currentUserID, SLAActionPlanStatusUpdateFormDTO.ActionPlanStatusID, tx)
+	err = sasus.slaActionPlanSvc.StatusUpdate(SLAID, SLAActionPlanID, currentUserID, SLAActionPlanStatusUpdateFormDTO, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
