@@ -93,6 +93,8 @@ func (as *AssetRegisterService) GetFullDetailsByID(id uint, tx ...utility.Databa
 }
 
 func (ars *AssetRegisterService) Create(assetRegisterFormDTO *dtos.AssetRegisterFormDTO, currentUserID uint) (uint, error) {
+	tx := ars.repo.BeginTransaction()
+
 	if err := ars.validateAssetRegisterFormDTO(assetRegisterFormDTO); err != nil {
 		return 0, err
 	}
@@ -126,10 +128,30 @@ func (ars *AssetRegisterService) Create(assetRegisterFormDTO *dtos.AssetRegister
 		CreatedBYID:       currentUserID,
 	}
 
-	assetID, err := ars.repo.Create(asset)
+	assetID, err := ars.repo.Create(asset, tx)
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
+
+	var controls []*models.AssetControl
+	for _, controlID := range assetRegisterFormDTO.ControlIds {
+		control := &models.AssetControl{
+			AssetRegisterID: assetID,
+			ControlID:       *controlID,
+			CreatedBYID:     currentUserID,
+		}
+		controls = append(controls, control)
+	}
+
+	if len(controls) > 0 {
+		if err := ars.repo.CreateAssetControls(controls, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
+	tx.Commit()
 
 	go func() {
 		err := ars.activityLogSvc.LogActivity(
@@ -157,6 +179,7 @@ func (ars *AssetRegisterService) Create(assetRegisterFormDTO *dtos.AssetRegister
 }
 
 func (ars *AssetRegisterService) Update(id uint, assetRegisterFormDTO *dtos.AssetRegisterFormDTO, currentUserID uint) error {
+	var tx = ars.repo.BeginTransaction()
 	existingAsset, err := ars.repo.GetByID(id)
 	if err != nil {
 		return err
@@ -192,7 +215,64 @@ func (ars *AssetRegisterService) Update(id uint, assetRegisterFormDTO *dtos.Asse
 	existingAsset.AcquisitionDate = dates.AcquisitionDate
 	existingAsset.UpdatedBYID = &currentUserID
 
-	return ars.repo.Update(existingAsset)
+	err = ars.repo.Update(existingAsset, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Collect existing control IDs
+	existingAssetFullDetails, err := ars.GetFullDetailsByID(id, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	existingControlIDs := make(map[uint]bool)
+	for _, ctrl := range existingAssetFullDetails.Controls {
+		existingControlIDs[ctrl.ControlID] = true
+	}
+
+	newControlIDs := make(map[uint]bool)
+	for _, ctrl := range assetRegisterFormDTO.ControlIds {
+		newControlIDs[*ctrl] = true
+	}
+
+	var controlsToAdd []*models.AssetControl
+	for _, newControlID := range assetRegisterFormDTO.ControlIds {
+		if _, exists := existingControlIDs[*newControlID]; !exists {
+			control := &models.AssetControl{
+				AssetRegisterID: id,
+				ControlID:       *newControlID,
+				CreatedBYID:     currentUserID,
+			}
+			controlsToAdd = append(controlsToAdd, control)
+		}
+	}
+
+	if len(controlsToAdd) > 0 {
+		if err := ars.repo.CreateAssetControls(controlsToAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	var deleteControlIDs []*uint
+	for _, existingControl := range existingAssetFullDetails.Controls {
+		if _, exists := newControlIDs[existingControl.ControlID]; !exists {
+			deleteControlIDs = append(deleteControlIDs, existingControl.ID)
+		}
+	}
+
+	if len(deleteControlIDs) > 0 {
+		if err := ars.repo.DeleteAssetControls(deleteControlIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	tx.Commit()
+	return nil
 }
 
 func (as *AssetRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
