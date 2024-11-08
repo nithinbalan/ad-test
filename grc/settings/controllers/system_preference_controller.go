@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"fmt"
 	settingDTOs "jethur/grc/settings/dtos"
 	"jethur/grc/settings/services"
 	"jethur/utility"
@@ -72,11 +71,11 @@ func (spc *SystemPreferenceController) UpdateSystemPreference(c *gin.Context) {
 
 func (spc *SystemPreferenceController) GetOrganizationPreference(c *gin.Context) {
 
-	filters := utility.ParseQueryFilters([]string{}, c.Request.URL.Query())
+	quickFilter := c.QueryArray("quick_filter")
 
-	filters["is_enable"] = []string{fmt.Sprintf("%d", 1)}
+	quickFilter = append(quickFilter, "is_enable")
 	queryParams := settingDTOs.IntegrationListQueryParamsDTO{
-		Filters: filters,
+		QuickFilter: quickFilter,
 	}
 
 	organizationPreference, err := spc.service.GetOrganizationPreference(&queryParams)
