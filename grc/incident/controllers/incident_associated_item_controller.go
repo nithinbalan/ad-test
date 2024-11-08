@@ -333,3 +333,49 @@ func (ic *IncidentAssociatedItemController) GetAllIncidentDocuments(c *gin.Conte
 	}
 	c.JSON(http.StatusOK, documents)
 }
+
+func (iaic *IncidentAssociatedItemController) GetAllIncidentAssets(c *gin.Context) {
+
+	incidentIDStr := c.Param("incidentID")
+
+	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+	status := c.Query("status")
+	quickFilter := c.QueryArray("quick_filter")
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(iaic.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(iaic.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	queryParams := incidentDTOs.IncidentAssociatedItemListQueryParamsDTO{
+		Sort:        sort,
+		SortBy:      sortBy,
+		Keyword:     keyword,
+		Status:      status,
+		Page:        page,
+		PageSize:    pageSize,
+		QuickFilter: quickFilter,
+	}
+	incidents, err := iaic.service.GetAllAssets(uint(incidentID), &queryParams)
+
+	if err != nil {
+		utility.SendInternalErrResp(iaic.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, incidents)
+}

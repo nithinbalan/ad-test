@@ -13,7 +13,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	assetRoutes.Use(middlewares.AuthMiddleware())
 
-	// unauthenticatedRoutes := router.Group("/")
+	unauthenticatedRoutes := router.Group("/")
 
 	db := app.DB
 
@@ -30,6 +30,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	threatTypeController := app.AssetModule.ThreatTypeController
 	threatStatusController := app.AssetModule.ThreatStatusController
 	threatController := app.AssetModule.ThreatController
+	vulnerabilityActionPlanController := app.AssetModule.VulnerabilityActionPlanController
+	vulnerabilityActionPlanStatusUpdateController := app.AssetModule.VulnerabilityActionPlanStatusUpdateController
+	threatActionPlanController := app.AssetModule.ThreatActionPlanController
+	threatActionPlanStatusUpdateController := app.AssetModule.ThreatActionPlanStatusUpdateController
+	assetAssociatedItemController := app.AssetModule.AssetAssociatedItemController
 	assetCriticalityController := app.AssetModule.AssetCriticalityController
 
 	// Asset Type
@@ -100,6 +105,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("/vulnerabilities", middlewares.RolePermissionMiddleware(db, "assets", "modify"), vulnerabilityController.CreateVulnerability)
 	assetRoutes.PUT("/vulnerabilities/:id", middlewares.RolePermissionMiddleware(db, "assets", "modify"), vulnerabilityController.UpdateVulnerability)
 	assetRoutes.POST("/vulnerabilities/delete", middlewares.RolePermissionMiddleware(db, "assets", "modify"), vulnerabilityController.DeleteVulnerabilities)
+	assetRoutes.GET("/vulnerabilities/summary", vulnerabilityController.GetVulnerabilitySummary)
 	//Threat types
 	assetRoutes.GET("/threat-types", threatTypeController.GetAllThreatTypes)
 	assetRoutes.GET("/threat-types/:id", threatTypeController.GetThreatTypeDetails)
@@ -119,10 +125,50 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("/threats", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), threatController.CreateThreat)
 	assetRoutes.PUT("/threats/:id", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), threatController.UpdateThreat)
 	assetRoutes.POST("/threats/delete", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), threatController.DeleteThreats)
+	assetRoutes.GET("/threats/summary", threatController.GetThreatSummary)
 
-	assetRoutes.GET("assets/:assetId/criticality", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetCriticalityController.GetAssetCriticality)
-	assetRoutes.POST("assets/:assetId/criticality", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetCriticalityController.CreateAssetCriticality)
-	assetRoutes.PUT("assets/:assetId/criticality/:id", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetCriticalityController.UpdateAssetCriticality)
-	assetRoutes.DELETE("assets/:assetId/criticality", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetCriticalityController.DeleteAssetCriticality)
+	//vulnerability action plan
+	assetRoutes.GET("/vulnerability-action-plans/export", middlewares.RolePermissionMiddleware(db, "vulnerability_mitigation", "view"), vulnerabilityActionPlanController.GetVulnerabilityActionPlanExport)
+	assetRoutes.GET("/vulnerability-action-plans", middlewares.RolePermissionMiddleware(db, "vulnerability_mitigation", "view"), vulnerabilityActionPlanController.GetAllVulnerabilityActionPlans)
+	assetRoutes.GET("/vulnerabilities/:id/action-plans", middlewares.RolePermissionMiddleware(db, "vulnerability_mitigation", "view"), vulnerabilityActionPlanController.GetAllVulnerabilityActionPlans)
+	assetRoutes.GET("/vulnerabilities/:id/action-plans/:actionPlanId", middlewares.RolePermissionMiddleware(db, "vulnerability_mitigation", "view"), vulnerabilityActionPlanController.GetVulnerabilityActionPlanDetails)
+	assetRoutes.POST("/vulnerabilities/:id/action-plans", middlewares.RolePermissionMiddleware(db, "vulnerability_mitigation", "modify"), vulnerabilityActionPlanController.CreateVulnerabilityActionPlan)
+	assetRoutes.PUT("/vulnerabilities/:id/action-plans/:actionPlanId", middlewares.RolePermissionMiddleware(db, "vulnerability_mitigation", "modify"), vulnerabilityActionPlanController.UpdateVulnerabilityActionPlan)
+	assetRoutes.POST("/vulnerabilities/:id/action-plans/delete", middlewares.RolePermissionMiddleware(db, "vulnerability_mitigation", "modify"), vulnerabilityActionPlanController.DeleteVulnerabilityActionPlans)
 
+	// Document Preview and Download for Vulnerability Action Plan Status Update
+	unauthenticatedRoutes.GET("/vulnerabilities/:id/action-plans/:actionPlanId/status-updates/:statusUpdateId/document-preview", vulnerabilityActionPlanStatusUpdateController.GetDocumentPreview)
+	unauthenticatedRoutes.GET("/vulnerabilities/:id/action-plans/:actionPlanId/status-updates/:statusUpdateId/document-download", vulnerabilityActionPlanStatusUpdateController.DownloadVulnerabilityActionPlanDocument)
+
+	assetRoutes.GET("/vulnerabilities/:id/action-plans/:actionPlanId/status-updates", middlewares.RolePermissionMiddleware(db, "vulnerability_management", "view"), vulnerabilityActionPlanStatusUpdateController.GetAllVulnerabilityActionPlanStatusUpdates)
+	assetRoutes.POST("/vulnerabilities/:id/action-plans/:actionPlanId/status-updates", middlewares.RolePermissionMiddleware(db, "vulnerability_management", "modify"), vulnerabilityActionPlanStatusUpdateController.CreateVulnerabilityActionPlanStatusUpdate)
+	assetRoutes.PUT("/vulnerabilities/:id/action-plans/:actionPlanId/status-updates/:actionPlanStatusUpdateId", middlewares.RolePermissionMiddleware(db, "vulnerability_management", "modify"), vulnerabilityActionPlanStatusUpdateController.UpdateVulnerabilityActionPlanStatusUpdate)
+	assetRoutes.GET("/vulnerabilities/:id/action-plans/:actionPlanId/status-updates/latest", middlewares.RolePermissionMiddleware(db, "vulnerability_management", "view"), vulnerabilityActionPlanStatusUpdateController.GetLatestVulnerabilityActionPlanStatusUpdate)
+
+	// Threat action plan
+	assetRoutes.GET("/threat-action-plans/export", middlewares.RolePermissionMiddleware(db, "threat_mitigation", "view"), threatActionPlanController.GetThreatActionPlanExport)
+	assetRoutes.GET("/threat-action-plans", middlewares.RolePermissionMiddleware(db, "threat_mitigation", "view"), threatActionPlanController.GetAllThreatActionPlans)
+	assetRoutes.GET("/threats/:id/action-plans", middlewares.RolePermissionMiddleware(db, "threat_mitigation", "view"), threatActionPlanController.GetAllThreatActionPlans)
+	assetRoutes.GET("/threats/:id/action-plans/:actionPlanId", middlewares.RolePermissionMiddleware(db, "threat_mitigation", "view"), threatActionPlanController.GetThreatActionPlanDetails)
+	assetRoutes.POST("/threats/:id/action-plans", middlewares.RolePermissionMiddleware(db, "threat_mitigation", "modify"), threatActionPlanController.CreateThreatActionPlan)
+	assetRoutes.PUT("/threats/:id/action-plans/:actionPlanId", middlewares.RolePermissionMiddleware(db, "threat_mitigation", "modify"), threatActionPlanController.UpdateThreatActionPlan)
+	assetRoutes.POST("/threats/:id/action-plans/delete", middlewares.RolePermissionMiddleware(db, "threat_mitigation", "modify"), threatActionPlanController.DeleteThreatActionPlans)
+
+	// Document Preview and Download for Threat Action Plan Status Update
+	unauthenticatedRoutes.GET("/threats/:id/action-plans/:actionPlanId/status-updates/:statusUpdateId/document-preview", threatActionPlanStatusUpdateController.GetDocumentPreview)
+	unauthenticatedRoutes.GET("/threats/:id/action-plans/:actionPlanId/status-updates/:statusUpdateId/document-download", threatActionPlanStatusUpdateController.DownloadThreatActionPlanDocument)
+
+	assetRoutes.GET("/threats/:id/action-plans/:actionPlanId/status-updates", middlewares.RolePermissionMiddleware(db, "threat_management", "view"), threatActionPlanStatusUpdateController.GetAllThreatActionPlanStatusUpdates)
+	assetRoutes.POST("/threats/:id/action-plans/:actionPlanId/status-updates", middlewares.RolePermissionMiddleware(db, "threat_management", "modify"), threatActionPlanStatusUpdateController.CreateThreatActionPlanStatusUpdate)
+	assetRoutes.PUT("/threats/:id/action-plans/:actionPlanId/status-updates/:actionPlanStatusUpdateId", middlewares.RolePermissionMiddleware(db, "threat_management", "modify"), threatActionPlanStatusUpdateController.UpdateThreatActionPlanStatusUpdate)
+	assetRoutes.GET("/threats/:id/action-plans/:actionPlanId/status-updates/latest", middlewares.RolePermissionMiddleware(db, "threat_management", "view"), threatActionPlanStatusUpdateController.GetLatestThreatActionPlanStatusUpdate)
+
+	//asset associated item list
+	assetRoutes.GET("assets/:id/controls", middlewares.RolePermissionMiddleware(db, "asset_setting", "view"), assetAssociatedItemController.GetAllAssetControls)
+
+	//asset criticality
+	assetRoutes.GET("assets/:id/criticality", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetCriticalityController.GetAssetCriticality)
+	assetRoutes.POST("assets/:id/criticality", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetCriticalityController.CreateAssetCriticality)
+	assetRoutes.PUT("assets/:id/criticality/:criticalityId", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetCriticalityController.UpdateAssetCriticality)
+	assetRoutes.DELETE("assets/:id/criticality", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetCriticalityController.DeleteAssetCriticality)
 }

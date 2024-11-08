@@ -55,7 +55,7 @@ func (repo *AssetCriticalityRepository) GetAll(assetID uint, params *dtos.AssetC
 			asset_criticality_matrix_factor_ratings.score AS asset_criticality_matrix_factor_rating_score,
 			asset_criticality_matrix_factor_ratings.type AS asset_criticality_matrix_factor_rating_type,
 			asset_criticality_matrix_factor_ratings.color_code AS asset_criticality_matrix_factor_rating_color,
-			math.Round(asset_criticality_contributions.score*100) / 100 as score,
+			asset_criticality_contributions.score,
 			created_user.id AS created_by_id,
 			created_user.first_name_en AS created_by_first_name_en,
 			created_user.first_name_ar AS created_by_first_name_ar,

@@ -29,7 +29,7 @@ type IncidentActionPlanServiceInterface interface {
 	Create(incidentID uint, currentUserID uint, IncidentActionPlanFormDTO *incidentDTOs.IncidentActionPlanFormDTO) (uint, error)
 	Update(incidentID uint, id uint, currentUserID uint, incident *incidentDTOs.IncidentActionPlanFormDTO) error
 	Delete(incidentID uint, ids []uint, currentUserID uint) ([]uint, error)
-	StatusUpdate(incidentID uint, id uint, currentUserID uint, ActionPlanStatusID uint, tx utility.DatabaseTransaction) error
+	StatusUpdate(incidentID uint, id uint, currentUserID uint, incidentActionPlanStatusUpdateFormDTO *incidentDTOs.IncidentActionPlanStatusUpdateFormDTO, tx utility.DatabaseTransaction) error
 
 	ExportIncidentActionPlan(data []*incidentDTOs.IncidentActionPlanListDTO, currentUserID uint) (*os.File, error)
 }
@@ -170,6 +170,7 @@ func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uin
 	incidentActionPlanUpdate := &models.IncidentActionPlanStatusUpdate{
 		IncidentActionPlanID: id,
 		ActionPlanStatusID:   actionPlanStatusID,
+		Percentage:           IncidentActionPlanFormDTO.Percentage,
 		Comment:              "Initial action plan status",
 		CreatedByID:          currentUserID,
 	}
@@ -693,13 +694,14 @@ func (iaps *IncidentActionPlanService) Delete(incidentID uint, ids []uint, curre
 	return failedIds, nil
 }
 
-func (iaps *IncidentActionPlanService) StatusUpdate(incidentID uint, id uint, currentUserID uint, ActionPlanStatusID uint, tx utility.DatabaseTransaction) error {
+func (iaps *IncidentActionPlanService) StatusUpdate(incidentID uint, id uint, currentUserID uint, incidentActionPlanStatusUpdateFormDTO *incidentDTOs.IncidentActionPlanStatusUpdateFormDTO, tx utility.DatabaseTransaction) error {
 	existingIncidentActionPlan, err := iaps.GetByID(incidentID, id)
 	if err != nil {
 		return err
 	}
 
-	existingIncidentActionPlan.ActionPlanStatusID = ActionPlanStatusID
+	existingIncidentActionPlan.ActionPlanStatusID = incidentActionPlanStatusUpdateFormDTO.ActionPlanStatusID
+	existingIncidentActionPlan.Percentage = incidentActionPlanStatusUpdateFormDTO.Percentage
 	existingIncidentActionPlan.UpdatedBYID = &currentUserID
 
 	err = iaps.repo.Update(existingIncidentActionPlan, tx)
@@ -714,7 +716,7 @@ func (iaps *IncidentActionPlanService) StatusUpdate(incidentID uint, id uint, cu
 	if err != nil {
 		return err
 	}
-	err = iaps.taskSvc.UpdateStatus(currentUserID, existingTask.ID, ActionPlanStatusID, isReviewUserNull, tx)
+	err = iaps.taskSvc.UpdateStatus(currentUserID, existingTask.ID, incidentActionPlanStatusUpdateFormDTO.ActionPlanStatusID, isReviewUserNull, tx)
 	if err != nil {
 		return err
 	}

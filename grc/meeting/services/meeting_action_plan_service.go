@@ -179,6 +179,7 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 	meetingActionPlanUpdate := &models.MeetingActionPlanStatusUpdate{
 		MeetingActionPlanID: id,
 		ActionPlanStatusID:  actionPlanStatusID,
+		Percentage:          *MeetingActionPlanFormDTO.Percentage,
 		Comment:             "Initial action plan status",
 		CreatedByID:         currentUserID,
 	}

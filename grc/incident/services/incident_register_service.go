@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"jethur/config"
+	assetServices "jethur/grc/asset/services"
 	commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
 	complianceServices "jethur/grc/compliance/services"
@@ -56,6 +57,7 @@ type IncidentRegisterService struct {
 	userSvc                  organizationServices.UserServiceInterface
 	userSettingSvc           organizationServices.UserSettingServiceInterface
 	notificationSvc          commonServices.NotificationServiceInterface
+	assetRegisterSvc         assetServices.AssetRegisterServiceInterface
 }
 
 func NewIncidentRegisterService(
@@ -74,6 +76,7 @@ func NewIncidentRegisterService(
 	userSvc organizationServices.UserServiceInterface,
 	userSettingSvc organizationServices.UserSettingServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
+	assetRegisterSvc assetServices.AssetRegisterServiceInterface,
 ) IncidentRegisterServiceInterface {
 	return &IncidentRegisterService{
 		repo:                     repo,
@@ -91,6 +94,7 @@ func NewIncidentRegisterService(
 		userSvc:                  userSvc,
 		userSettingSvc:           userSettingSvc,
 		notificationSvc:          notificationSvc,
+		assetRegisterSvc:         assetRegisterSvc,
 	}
 }
 
@@ -296,7 +300,23 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 			return 0, err
 		}
 	}
+	// Save Assets
+	var assets []*models.IncidentAsset
+	for _, ast := range incidentRegisterFormDTO.AssetIds {
+		asset := &models.IncidentAsset{
+			IncidentRegisterID: id,
+			AssetRegisterID:    *ast,
+			CreatedBYID:        currentUserID,
+		}
+		assets = append(assets, asset)
+	}
 
+	if len(assets) > 0 {
+		if err := irs.repo.CreateIncidentAssets(assets, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
 	//Add timeline
 	//todo
 	timelineTypes, err := irs.incidentTimelineSvc.GetAllTypes()
@@ -850,6 +870,56 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 		}
 	}
 
+	// Collect existing asset IDs
+	existingAssetIDs := make(map[uint]bool)
+	for _, asset := range existingIncident.Assets {
+		existingAssetIDs[asset.AssetRegisterID] = true
+	}
+
+	// Collect new asset IDs
+	newAssetIDs := make(map[uint]bool)
+	for _, assetID := range incidentRegisterFormDTO.AssetIds {
+		newAssetIDs[*assetID] = true
+	}
+
+	// Add new assets
+	var assetsToAdd []*models.IncidentAsset
+	for _, newAssetID := range incidentRegisterFormDTO.AssetIds {
+		if _, exists := existingAssetIDs[*newAssetID]; !exists {
+			// Create a new incident asset record
+			asset := &models.IncidentAsset{
+				IncidentRegisterID: id,
+				AssetRegisterID:    *newAssetID,
+				CreatedBYID:        currentUserID,
+			}
+			assetsToAdd = append(assetsToAdd, asset)
+		}
+	}
+
+	// Save the new assets
+	if len(assetsToAdd) > 0 {
+		if err := irs.repo.CreateIncidentAssets(assetsToAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// Remove assets not in the new list
+	var deleteAssetIDs []*uint
+	for _, existingAsset := range existingIncident.Assets {
+		if _, exists := newAssetIDs[existingAsset.AssetRegisterID]; !exists {
+			// Append asset ID to delete list
+			deleteAssetIDs = append(deleteAssetIDs, existingAsset.ID)
+		}
+	}
+
+	// Delete assets not in the new list
+	if len(deleteAssetIDs) > 0 {
+		if err := irs.repo.DeleteIncidentAssets(deleteAssetIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
 	//Update timeline
 	//todo
 	timelineType, err := irs.incidentTimelineSvc.GetByType("reporting")
@@ -1209,6 +1279,16 @@ func (irs *IncidentRegisterService) Delete(ids []uint, currentUserID uint) ([]ui
 				return nil, err
 			}
 		}
+		if len(incident.Assets) > 0 {
+			var deleteAssetIds []*uint
+			for _, ast := range incident.Assets {
+				deleteAssetIds = append(deleteAssetIds, ast.ID)
+			}
+			if err := irs.repo.DeleteIncidentAssets(deleteAssetIds, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+		}
 
 		//Delete timeline
 		//todo
@@ -1478,6 +1558,27 @@ func (irs *IncidentRegisterService) validateIncidentRegisterFormDTO(incidentRegi
 		}
 
 		slaRegisterIDs[*slaRegisterId] = true
+	}
+	//Assets exist
+	assets := incidentRegisterFormDTO.AssetIds
+	// Create a map to store asset IDs
+	assetIDs := make(map[uint]bool)
+
+	// Check if each asset exists
+	for _, asset := range assets {
+		// Check if the asset ID already exists in the map
+		if assetIDs[*asset] {
+			// If the asset ID already exists, return a validation error
+			return utility.NewValidationError(fmt.Errorf("duplicate asset ID: %d", asset), "duplicate", "asset")
+		}
+
+		// Check if the asset exists in the database
+		if _, err := irs.assetRegisterSvc.GetByID(*asset); err != nil {
+			return utility.NewValidationError(fmt.Errorf("asset does not exist for ID: %d", asset), "not_exist", "asset")
+		}
+
+		// Add the asset ID to the map
+		assetIDs[*asset] = true
 	}
 
 	return nil

@@ -25,6 +25,8 @@ type ThreatServiceInterface interface {
 	Create(threatForm *dtos.ThreatFormDTO, currentUserID uint) (uint, error)
 	Update(id uint, threatForm *dtos.ThreatFormDTO, currentUserID uint) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+
+	GetThreatSummary() (*dtos.ThreatSummaryDTO, error)
 }
 
 type ThreatService struct {
@@ -473,4 +475,18 @@ func (ts *ThreatService) parseThreatDates(threatRegisterFormDTO *dtos.ThreatForm
 		}
 	}
 	return parse, nil
+}
+
+func (ts *ThreatService) GetThreatSummary() (*dtos.ThreatSummaryDTO, error) {
+	openCount, closedCount, err := ts.repo.GetThreatSummary()
+	if err != nil {
+		return nil, err
+	}
+
+	summary := &dtos.ThreatSummaryDTO{
+		OpenCount:   openCount,
+		ClosedCount: closedCount,
+	}
+
+	return summary, nil
 }

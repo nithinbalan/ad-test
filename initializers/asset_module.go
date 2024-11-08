@@ -9,20 +9,27 @@ import (
 )
 
 type AssetModule struct {
-	AssetTypeController                          *controllers.AssetTypeController
-	AssetCategoryController                      *controllers.AssetCategoryController
-	AssetStatusController                        *controllers.AssetStatusController
-	AssetRegisterController                      *controllers.AssetRegisterController
-	AssetCriticalityMatrixFactorController       *controllers.AssetCriticalityMatrixFactorController
-	AssetCriticalityMatrixFactorRatingController *controllers.AssetCriticalityMatrixFactorRatingController
-	AssetCriticalityMatrixRatingScaleController  *controllers.AssetCriticalityMatrixRatingScaleController
-	VulnerabilityTypeController                  *controllers.VulnerabilityTypeController
-	VulnerabilityStatusController                *controllers.VulnerabilityStatusController
-	VulnerabilityController                      *controllers.VulnerabilityController
-	ThreatTypeController                         *controllers.ThreatTypeController
-	ThreatStatusController                       *controllers.ThreatStatusController
-	ThreatController                             *controllers.ThreatController
-	AssetCriticalityController                   *controllers.AssetCriticalityController
+	AssetTypeController                           *controllers.AssetTypeController
+	AssetCategoryController                       *controllers.AssetCategoryController
+	AssetStatusController                         *controllers.AssetStatusController
+	AssetRegisterController                       *controllers.AssetRegisterController
+	AssetCriticalityMatrixFactorController        *controllers.AssetCriticalityMatrixFactorController
+	AssetCriticalityMatrixFactorRatingController  *controllers.AssetCriticalityMatrixFactorRatingController
+	AssetCriticalityMatrixRatingScaleController   *controllers.AssetCriticalityMatrixRatingScaleController
+	VulnerabilityTypeController                   *controllers.VulnerabilityTypeController
+	VulnerabilityStatusController                 *controllers.VulnerabilityStatusController
+	VulnerabilityController                       *controllers.VulnerabilityController
+	ThreatTypeController                          *controllers.ThreatTypeController
+	ThreatStatusController                        *controllers.ThreatStatusController
+	ThreatController                              *controllers.ThreatController
+	VulnerabilityActionPlanController             *controllers.VulnerabilityActionPlanController
+	VulnerabilityActionPlanStatusUpdateController *controllers.VulnerabilityActionPlanStatusUpdateController
+	ThreatActionPlanController                    *controllers.ThreatActionPlanController
+	ThreatActionPlanStatusUpdateController        *controllers.ThreatActionPlanStatusUpdateController
+	AssetAssociatedItemController                 *controllers.AssetAssociatedItemController
+	AssetCriticalityController                    *controllers.AssetCriticalityController
+
+	AssetRegisterSvc services.AssetRegisterServiceInterface
 }
 
 func NewAssetModule(db *gorm.DB,
@@ -95,6 +102,52 @@ func NewAssetModule(db *gorm.DB,
 	)
 	threatController := controllers.NewThreatController(threatSvc)
 
+	vulnerabilityActionPlanRepo := repositories.NewVulnerabilityActionPlanRepository(db)
+	vulnerabilityActionPlanSvc := services.NewVulnerabilityActionPlanService(
+		vulnerabilityActionPlanRepo,
+		sharedModule.ActivityLogService,
+		vulnerabilitySvc,
+		masterModule.ActionPlanStatusSvc,
+		masterModule.SeverityLevelSvc,
+		organizationModule.UserSettingSvc,
+		organizationModule.UserSvc,
+	)
+	vulnerabilityActionPlanController := controllers.NewVulnerabilityActionPlanController(vulnerabilityActionPlanSvc)
+
+	vulnerabilityActionPlanStatusUpdateRepo := repositories.NewVulnerabilityActionPlanStatusUpdateRepository(db)
+	vulnerabilityActionPlanStatusUpdateSvc := services.NewVulnerabilityActionPlanStatusUpdateService(
+		vulnerabilityActionPlanStatusUpdateRepo,
+		sharedModule.ActivityLogService,
+		vulnerabilityActionPlanSvc,
+		masterModule.ActionPlanStatusSvc,
+	)
+	vulnerabilityActionPlanStatusUpdateController := controllers.NewVulnerabilityActionPlanStatusUpdateController(vulnerabilityActionPlanStatusUpdateSvc)
+
+	threatActionPlanRepo := repositories.NewThreatActionPlanRepository(db)
+	threatActionPlanSvc := services.NewThreatActionPlanService(
+		threatActionPlanRepo,
+		sharedModule.ActivityLogService,
+		threatSvc,
+		masterModule.ActionPlanStatusSvc,
+		masterModule.SeverityLevelSvc,
+		organizationModule.UserSettingSvc,
+		organizationModule.UserSvc,
+	)
+	threatActionPlanController := controllers.NewThreatActionPlanController(threatActionPlanSvc)
+
+	threatActionPlanStatusUpdateRepo := repositories.NewThreatActionPlanStatusUpdateRepository(db)
+	threatActionPlanStatusUpdateSvc := services.NewThreatActionPlanStatusUpdateService(
+		threatActionPlanStatusUpdateRepo,
+		sharedModule.ActivityLogService,
+		threatActionPlanSvc,
+		masterModule.ActionPlanStatusSvc,
+	)
+	threatActionPlanStatusUpdateController := controllers.NewThreatActionPlanStatusUpdateController(threatActionPlanStatusUpdateSvc)
+
+	assetAssociatedItemRepo := repositories.NewAssetAssociatedItemRepository(db)
+	assetAssociatedItemSvc := services.NewAssetAssociatedItemService(assetAssociatedItemRepo, assetRegisterSvc)
+	assetAssociatedItemController := controllers.NewAssetAssociatedItemController(assetAssociatedItemSvc)
+
 	assetCriticalityRepo := repositories.NewAssetCriticalityRepository(db)
 	assetCriticalitySvc := services.NewAssetCriticalityService(
 		assetCriticalityRepo,
@@ -106,19 +159,26 @@ func NewAssetModule(db *gorm.DB,
 	assetCriticalityController := controllers.NewAssetCriticalityController(assetCriticalitySvc)
 
 	return &AssetModule{
-		AssetTypeController:                          assetTypeController,
-		AssetCategoryController:                      assetCategoryController,
-		AssetStatusController:                        assetStatusController,
-		AssetRegisterController:                      assetRegisterController,
-		AssetCriticalityMatrixFactorController:       assetCriticalityMatrixFactorController,
-		AssetCriticalityMatrixFactorRatingController: assetCriticalityMatrixFactorRatingController,
-		AssetCriticalityMatrixRatingScaleController:  assetCriticalityMatrixRatingScaleController,
-		VulnerabilityTypeController:                  vulnerabilityTypeController,
-		VulnerabilityStatusController:                vulnerabilityStatusController,
-		VulnerabilityController:                      vulnerabilityController,
-		ThreatTypeController:                         threatTypeController,
-		ThreatStatusController:                       threatStatusController,
-		ThreatController:                             threatController,
-		AssetCriticalityController:                   assetCriticalityController,
+		AssetTypeController:                           assetTypeController,
+		AssetCategoryController:                       assetCategoryController,
+		AssetStatusController:                         assetStatusController,
+		AssetRegisterController:                       assetRegisterController,
+		AssetCriticalityMatrixFactorController:        assetCriticalityMatrixFactorController,
+		AssetCriticalityMatrixFactorRatingController:  assetCriticalityMatrixFactorRatingController,
+		AssetCriticalityMatrixRatingScaleController:   assetCriticalityMatrixRatingScaleController,
+		VulnerabilityTypeController:                   vulnerabilityTypeController,
+		VulnerabilityStatusController:                 vulnerabilityStatusController,
+		VulnerabilityController:                       vulnerabilityController,
+		ThreatTypeController:                          threatTypeController,
+		ThreatStatusController:                        threatStatusController,
+		ThreatController:                              threatController,
+		VulnerabilityActionPlanController:             vulnerabilityActionPlanController,
+		VulnerabilityActionPlanStatusUpdateController: vulnerabilityActionPlanStatusUpdateController,
+		ThreatActionPlanController:                    threatActionPlanController,
+		ThreatActionPlanStatusUpdateController:        threatActionPlanStatusUpdateController,
+		AssetAssociatedItemController:                 assetAssociatedItemController,
+		AssetCriticalityController:                    assetCriticalityController,
+
+		AssetRegisterSvc: assetRegisterSvc,
 	}
 }

@@ -24,9 +24,8 @@ func NewAssetCriticalityController(service services.AssetCriticalityServiceInter
 }
 
 func (acc *AssetCriticalityController) GetAssetCriticality(c *gin.Context) {
-	assetIDStr := c.Param("assetId")
-
-	assetID, err := strconv.ParseUint(assetIDStr, 10, 32)
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -41,7 +40,7 @@ func (acc *AssetCriticalityController) GetAssetCriticality(c *gin.Context) {
 		SortBy:  sortBy,
 		Keyword: keyword,
 	}
-	contributions, err := acc.service.GetAll(uint(assetID), &queryParams)
+	contributions, err := acc.service.GetAll(uint(id), &queryParams)
 
 	if err != nil {
 		utility.SendInternalErrResp(acc.db, c, err.Error())
@@ -51,8 +50,8 @@ func (acc *AssetCriticalityController) GetAssetCriticality(c *gin.Context) {
 }
 
 func (acc *AssetCriticalityController) CreateAssetCriticality(c *gin.Context) {
-	assetIdStr := c.Param("assetId")
-	assetID, err := strconv.ParseUint(assetIdStr, 10, 32)
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -70,7 +69,7 @@ func (acc *AssetCriticalityController) CreateAssetCriticality(c *gin.Context) {
 		return
 	}
 
-	err = acc.service.Create(uint(assetID), contributions, currentUserID)
+	err = acc.service.Create(uint(id), contributions, currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -89,15 +88,15 @@ func (acc *AssetCriticalityController) CreateAssetCriticality(c *gin.Context) {
 }
 
 func (acc *AssetCriticalityController) UpdateAssetCriticality(c *gin.Context) {
-	assetIdStr := c.Param("assetId")
-	assetID, err := strconv.ParseUint(assetIdStr, 10, 32)
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
 
-	idStr := c.Param("id")
-	id, err := strconv.ParseUint(idStr, 10, 32)
+	criticalityIdStr := c.Param("criticalityId")
+	criticalityId, err := strconv.ParseUint(criticalityIdStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -115,7 +114,7 @@ func (acc *AssetCriticalityController) UpdateAssetCriticality(c *gin.Context) {
 		return
 	}
 
-	err = acc.service.Update(uint(assetID), uint(id), contribution, currentUserID)
+	err = acc.service.Update(uint(id), uint(criticalityId), contribution, currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -134,8 +133,8 @@ func (acc *AssetCriticalityController) UpdateAssetCriticality(c *gin.Context) {
 }
 
 func (acc *AssetCriticalityController) DeleteAssetCriticality(c *gin.Context) {
-	assetIdStr := c.Param("assetId")
-	assetID, err := strconv.ParseUint(assetIdStr, 10, 32)
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -147,7 +146,7 @@ func (acc *AssetCriticalityController) DeleteAssetCriticality(c *gin.Context) {
 		return
 	}
 
-	if err := acc.service.Delete(uint(assetID), currentUserID); err != nil {
+	if err := acc.service.Delete(uint(id), currentUserID); err != nil {
 		utility.SendInternalErrResp(acc.db, c, err.Error())
 		return
 	}
