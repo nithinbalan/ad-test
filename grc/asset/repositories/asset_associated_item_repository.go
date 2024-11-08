@@ -64,7 +64,7 @@ func (repo *AssetAssociatedItemRepository) GetAllControls(assetID uint, params *
             LEFT JOIN control_efficiency_statuses ON controls.control_efficiency_status_id = control_efficiency_statuses.id
             LEFT JOIN control_implementation_statuses ON controls.control_implementation_status_id = control_implementation_statuses.id
 			LEFT JOIN users AS owner ON controls.owner_id = owner.id
-        `).Where("asset_controls.asset_id = ?", assetID)
+        `).Where("asset_controls.asset_register_id = ?", assetID)
 
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
