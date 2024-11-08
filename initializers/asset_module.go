@@ -26,6 +26,8 @@ type AssetModule struct {
 	VulnerabilityActionPlanStatusUpdateController *controllers.VulnerabilityActionPlanStatusUpdateController
 	ThreatActionPlanController                    *controllers.ThreatActionPlanController
 	ThreatActionPlanStatusUpdateController        *controllers.ThreatActionPlanStatusUpdateController
+
+	AssetRegisterSvc services.AssetRegisterServiceInterface
 }
 
 func NewAssetModule(db *gorm.DB,
@@ -158,5 +160,7 @@ func NewAssetModule(db *gorm.DB,
 		VulnerabilityActionPlanStatusUpdateController: vulnerabilityActionPlanStatusUpdateController,
 		ThreatActionPlanController:                    threatActionPlanController,
 		ThreatActionPlanStatusUpdateController:        threatActionPlanStatusUpdateController,
+
+		AssetRegisterSvc: assetRegisterSvc,
 	}
 }
