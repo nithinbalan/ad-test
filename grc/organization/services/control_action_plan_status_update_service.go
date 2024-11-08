@@ -95,7 +95,7 @@ func (casus *ControlActionPlanStatusUpdateService) Create(controlID uint, contro
 		return 0, err
 	}
 
-	err = casus.controlActionPlanSvc.StatusUpdate(controlID, controlActionPlanID, currentUserID, controlActionPlanStatusUpdateFormDTO.ActionPlanStatusID, controlActionPlanStatusUpdateFormDTO.Percentage, tx)
+	err = casus.controlActionPlanSvc.StatusUpdate(controlID, controlActionPlanID, currentUserID, controlActionPlanStatusUpdateFormDTO, controlActionPlanStatusUpdateFormDTO.Percentage, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -178,7 +178,7 @@ func (casus *ControlActionPlanStatusUpdateService) Update(controlID uint, contro
 		return err
 	}
 
-	existingComplianceActionPlanStatusUpdate, err := casus.GetByID(controlID, controlActionPlanID, id)
+	existingControlActionPlanStatusUpdate, err := casus.GetByID(controlID, controlActionPlanID, id)
 
 	if err != nil {
 		return err
@@ -190,17 +190,11 @@ func (casus *ControlActionPlanStatusUpdateService) Update(controlID uint, contro
 
 	//@todo validate docuemnt form
 
-	existingComplianceActionPlanStatusUpdate.Comment = controlActionPlanStatusUpdateFormDTO.Comment
-	existingComplianceActionPlanStatusUpdate.Percentage = controlActionPlanStatusUpdateFormDTO.Percentage
-	existingComplianceActionPlanStatusUpdate.UpdatedByID = &currentUserID
+	existingControlActionPlanStatusUpdate.Comment = controlActionPlanStatusUpdateFormDTO.Comment
+	existingControlActionPlanStatusUpdate.Percentage = controlActionPlanStatusUpdateFormDTO.Percentage
+	existingControlActionPlanStatusUpdate.UpdatedByID = &currentUserID
 
-	err = casus.repo.Update(existingComplianceActionPlanStatusUpdate, tx)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	err = casus.controlActionPlanSvc.StatusUpdate(controlID, controlActionPlanID, currentUserID, existingComplianceActionPlanStatusUpdate.ActionPlanStatusID, controlActionPlanStatusUpdateFormDTO.Percentage, tx)
+	err = casus.repo.Update(existingControlActionPlanStatusUpdate, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
