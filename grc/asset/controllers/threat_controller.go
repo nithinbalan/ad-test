@@ -229,3 +229,22 @@ func (tc *ThreatController) GetThreatsExport(c *gin.Context) {
 	c.Request.URL.RawQuery += "&export=true"
 	tc.GetAllThreats(c)
 }
+
+func (tc *ThreatController) GetThreatSummary(c *gin.Context) {
+	summary, err := tc.service.GetThreatSummary()
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(tc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, summary)
+}
