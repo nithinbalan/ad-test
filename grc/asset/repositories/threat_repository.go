@@ -197,6 +197,7 @@ func (repo *ThreatRepository) GetFullDetailsByID(id uint, tx ...utility.Database
 		Preload("ThreatStatus").
 		Preload("ResponsibleUser").
 		Preload("ResponsibleUnit").
+		Preload("Vulnerability").
 		Preload("Documents").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
