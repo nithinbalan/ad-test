@@ -95,7 +95,7 @@ func (afs *AuditFindingActionPlanStatusUpdateService) Create(auditFindingID uint
 		return 0, err
 	}
 
-	err = afs.auditFindingActionPlanSvc.StatusUpdate(auditFindingID, auditFindingActionPlanID, currentUserID, auditFindingActionPlanStatusUpdateFormDTO.ActionPlanStatusID, tx)
+	err = afs.auditFindingActionPlanSvc.StatusUpdate(auditFindingID, auditFindingActionPlanID, currentUserID, auditFindingActionPlanStatusUpdateFormDTO, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
