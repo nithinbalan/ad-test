@@ -22,6 +22,8 @@ type ThreatRepositoryInterface interface {
 	GetDocumentByID(id uint) (*models.ThreatDocument, error)
 	CreateDocuments(docs []*models.ThreatDocument, tx ...utility.DatabaseTransaction) error
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
+
+	GetThreatSummary() (openCount int, closedCount int, err error)
 }
 
 // Implementation
@@ -268,4 +270,30 @@ func (repo *ThreatRepository) DeleteDocuments(docIds []*uint, tx ...utility.Data
 		return err
 	}
 	return nil
+}
+
+func (repo *ThreatRepository) GetThreatSummary() (openCount int, closedCount int, err error) {
+	var open int64
+	var closed int64
+
+	// Count open threats
+	err = repo.db.Model(&models.Threat{}).
+		Where("threat_status_id IN (SELECT id FROM threat_statuses WHERE type IN ('new', 'in-progress', 'active'))").
+		Count(&open).Error
+	if err != nil {
+		return 0, 0, err
+	}
+
+	// Count closed threats
+	err = repo.db.Model(&models.Threat{}).
+		Where("threat_status_id IN (SELECT id FROM threat_statuses WHERE type IN ('resolved', 'closed'))").
+		Count(&closed).Error
+	if err != nil {
+		return 0, 0, err
+	}
+
+	openCount = int(open)
+	closedCount = int(closed)
+
+	return openCount, closedCount, nil
 }
