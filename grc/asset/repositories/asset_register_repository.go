@@ -64,6 +64,10 @@ func (repo *AssetRegisterRepository) GetAll(params *dtos.AssetRegisterListQueryP
 			asset_statuses.title_en AS asset_status_title_en,
 			asset_statuses.title_ar AS asset_status_title_ar,
 			asset_statuses.color_code AS asset_status_color_code,
+			asset_register.total_score,
+			asset_criticality_matrix_rating_scales.title_en AS asset_criticality_matrix_rating_scale_title_en,
+			asset_criticality_matrix_rating_scales.title_ar AS asset_criticality_matrix_rating_scale_title_ar,
+			asset_criticality_matrix_rating_scales.color_code AS asset_criticality_matrix_rating_scale_color_code,
 			organization_units.title_en AS responsible_unit_title_en,
 			organization_units.title_ar AS responsible_unit_title_ar,
 			responsible_user.id AS responsible_user_id,
@@ -97,6 +101,7 @@ func (repo *AssetRegisterRepository) GetAll(params *dtos.AssetRegisterListQueryP
 		Joins("LEFT JOIN asset_types ON asset_types.id = asset_register.asset_type_id").
 		Joins("LEFT JOIN asset_categories ON asset_categories.id = asset_register.asset_category_id").
 		Joins("LEFT JOIN asset_statuses ON asset_statuses.id = asset_register.asset_status_id").
+		Joins("LEFT JOIN asset_criticality_matrix_rating_scales ON asset_criticality_matrix_rating_scales.id = asset_register.asset_criticality_matrix_rating_scale_id").
 		Joins("LEFT JOIN organization_units ON organization_units.id = asset_register.responsible_unit_id").
 		Joins("LEFT JOIN users AS responsible_user ON responsible_user.id = asset_register.responsible_user_id").
 		Joins("LEFT JOIN users AS created_user ON created_user.id = asset_register.created_by_id").
@@ -198,6 +203,7 @@ func (repo *AssetRegisterRepository) GetFullDetailsByID(id uint, tx ...utility.D
 		Preload("ResponsibleUser.OrganizationUnit1").
 		Preload("ResponsibleUnit").
 		Preload("Controls").
+		Preload("AssetCriticalityMatrixRatingScale").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&asset, id)

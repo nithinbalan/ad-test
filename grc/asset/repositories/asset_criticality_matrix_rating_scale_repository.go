@@ -15,6 +15,8 @@ type AssetCriticalityMatrixRatingScaleRepositoryInterface interface {
 
 	ExistsByTitle(titleEn, titleAr string) (bool, error)
 	ExistsByTitleExcludingID(id uint, titleEn, titleAr string) (bool, error)
+
+	GetRatingScaleByScore(matrixID uint, score float64) (*models.AssetCriticalityMatrixRatingScale, error)
 }
 
 type AssetCriticalityMatrixRatingScaleRepository struct {
@@ -98,4 +100,15 @@ func (repo *AssetCriticalityMatrixRatingScaleRepository) ExistsByTitleExcludingI
 		return false, err
 	}
 	return count > 0, nil
+}
+
+func (repo *AssetCriticalityMatrixRatingScaleRepository) GetRatingScaleByScore(matrixID uint, score float64) (*models.AssetCriticalityMatrixRatingScale, error) {
+	var ratingScale models.AssetCriticalityMatrixRatingScale
+	err := repo.db.
+		Where("asset_criticality_matrix_id = ? AND score_from <= ? AND score_to >= ?", matrixID, score, score).
+		First(&ratingScale).Error
+	if err != nil {
+		return nil, err
+	}
+	return &ratingScale, nil
 }

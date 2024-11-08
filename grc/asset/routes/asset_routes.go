@@ -34,7 +34,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	vulnerabilityActionPlanStatusUpdateController := app.AssetModule.VulnerabilityActionPlanStatusUpdateController
 	threatActionPlanController := app.AssetModule.ThreatActionPlanController
 	threatActionPlanStatusUpdateController := app.AssetModule.ThreatActionPlanStatusUpdateController
-	assetAssociatedItemController :=app.AssetModule.AssetAssociatedItemController
+	assetAssociatedItemController := app.AssetModule.AssetAssociatedItemController
+	assetCriticalityController := app.AssetModule.AssetCriticalityController
 
 	// Asset Type
 	assetRoutes.GET("/asset-types", assetTypeController.GetAllAssetTypes)
@@ -59,11 +60,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.GET("/asset-statuses/:id", assetStatusController.GetAssetStatusDetails)
 
 	//asset register
-	assetRoutes.GET("/assets", middlewares.RolePermissionMiddleware(db, "assets", "view"), assetRegisterController.GetAllAssets)
-	assetRoutes.GET("/assets/:id", middlewares.RolePermissionMiddleware(db, "assets", "view"), assetRegisterController.GetAssetDetails)
-	assetRoutes.POST("/assets", middlewares.RolePermissionMiddleware(db, "assets", "modify"), assetRegisterController.CreateAsset)
-	assetRoutes.PUT("/assets/:id", middlewares.RolePermissionMiddleware(db, "assets", "modify"), assetRegisterController.UpdateAsset)
-	assetRoutes.POST("/assets/delete", middlewares.RolePermissionMiddleware(db, "assets", "modify"), assetRegisterController.DeleteAssets)
+	assetRoutes.GET("/asset-register", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetRegisterController.GetAllAssets)
+	assetRoutes.GET("/asset-register/:id", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetRegisterController.GetAssetDetails)
+	assetRoutes.POST("/asset-register", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetRegisterController.CreateAsset)
+	assetRoutes.PUT("/asset-register/:id", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetRegisterController.UpdateAsset)
+	assetRoutes.POST("/asset-register/delete", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetRegisterController.DeleteAssets)
 
 	// Asset Criticality Matrix Factors
 	assetRoutes.GET("/asset-criticality-matrix-factors", assetCriticalityMatrixFactorController.GetAllFactors)
@@ -161,8 +162,13 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("/threats/:id/action-plans/:actionPlanId/status-updates", middlewares.RolePermissionMiddleware(db, "threat_management", "modify"), threatActionPlanStatusUpdateController.CreateThreatActionPlanStatusUpdate)
 	assetRoutes.PUT("/threats/:id/action-plans/:actionPlanId/status-updates/:actionPlanStatusUpdateId", middlewares.RolePermissionMiddleware(db, "threat_management", "modify"), threatActionPlanStatusUpdateController.UpdateThreatActionPlanStatusUpdate)
 	assetRoutes.GET("/threats/:id/action-plans/:actionPlanId/status-updates/latest", middlewares.RolePermissionMiddleware(db, "threat_management", "view"), threatActionPlanStatusUpdateController.GetLatestThreatActionPlanStatusUpdate)
-	
+
 	//asset associated item list
 	assetRoutes.GET("assets/:id/controls", middlewares.RolePermissionMiddleware(db, "asset_setting", "view"), assetAssociatedItemController.GetAllAssetControls)
-		
+
+	//asset criticality
+	assetRoutes.GET("assets/:id/criticality", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetCriticalityController.GetAssetCriticality)
+	assetRoutes.POST("assets/:id/criticality", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetCriticalityController.CreateAssetCriticality)
+	assetRoutes.PUT("assets/:id/criticality/:criticalityId", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetCriticalityController.UpdateAssetCriticality)
+	assetRoutes.DELETE("assets/:id/criticality", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetCriticalityController.DeleteAssetCriticality)
 }

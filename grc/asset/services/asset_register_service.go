@@ -21,15 +21,18 @@ type AssetRegisterServiceInterface interface {
 	Create(assetForm *dtos.AssetRegisterFormDTO, currentUserID uint) (uint, error)
 	Update(id uint, assetForm *dtos.AssetRegisterFormDTO, currentUserID uint) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+
+	UpdateTotalScore(assetID uint, totalScore float64, tx ...utility.DatabaseTransaction) error
 }
 
 type AssetRegisterService struct {
-	repo             repositories.AssetRegisterRepositoryInterface
-	activityLogSvc   logServices.ActivityLogServiceInterface
-	assetTypeSvc     AssetTypeServiceInterface
-	assetCategorySvc AssetCategoryServiceInterface
-	assetStatusSvc   AssetStatusServiceInterface
-	userSvc          organizationServices.UserServiceInterface
+	repo                                 repositories.AssetRegisterRepositoryInterface
+	activityLogSvc                       logServices.ActivityLogServiceInterface
+	assetTypeSvc                         AssetTypeServiceInterface
+	assetCategorySvc                     AssetCategoryServiceInterface
+	assetStatusSvc                       AssetStatusServiceInterface
+	userSvc                              organizationServices.UserServiceInterface
+	assetCriticalityMatrixRatingScaleSvc AssetCriticalityMatrixRatingScaleServiceInterface
 }
 
 func NewAssetRegisterService(
@@ -39,14 +42,16 @@ func NewAssetRegisterService(
 	assetCategorySvc AssetCategoryServiceInterface,
 	assetStatusSvc AssetStatusServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
+	assetCriticalityMatrixRatingScaleSvc AssetCriticalityMatrixRatingScaleServiceInterface,
 ) AssetRegisterServiceInterface {
 	return &AssetRegisterService{
-		repo:             repo,
-		activityLogSvc:   activityLogSvc,
-		assetTypeSvc:     assetTypeSvc,
-		assetCategorySvc: assetCategorySvc,
-		assetStatusSvc:   assetStatusSvc,
-		userSvc:          userSvc,
+		repo:                                 repo,
+		activityLogSvc:                       activityLogSvc,
+		assetTypeSvc:                         assetTypeSvc,
+		assetCategorySvc:                     assetCategorySvc,
+		assetStatusSvc:                       assetStatusSvc,
+		userSvc:                              userSvc,
+		assetCriticalityMatrixRatingScaleSvc: assetCriticalityMatrixRatingScaleSvc,
 	}
 }
 
@@ -305,6 +310,29 @@ func (as *AssetRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 	}
 
 	return failedIds, nil
+}
+
+func (ars *AssetRegisterService) UpdateTotalScore(assetID uint, totalScore float64, tx ...utility.DatabaseTransaction) error {
+
+	ratingScale, err := ars.assetCriticalityMatrixRatingScaleSvc.GetRatingScaleByScore(totalScore)
+	if err != nil {
+		return err
+	}
+
+	existingAsset, err := ars.repo.GetByID(assetID)
+	if err != nil {
+		return err
+	}
+
+	existingAsset.AssetCriticalityMatrixRatingScaleID = &ratingScale.ID
+	existingAsset.TotalScore = &totalScore
+
+	err = ars.repo.Update(existingAsset, tx...)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (ars *AssetRegisterService) validateAssetRegisterFormDTO(assetRegisterFormDTO *dtos.AssetRegisterFormDTO) error {

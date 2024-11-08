@@ -27,6 +27,7 @@ type AssetModule struct {
 	ThreatActionPlanController                    *controllers.ThreatActionPlanController
 	ThreatActionPlanStatusUpdateController        *controllers.ThreatActionPlanStatusUpdateController
 	AssetAssociatedItemController                 *controllers.AssetAssociatedItemController
+	AssetCriticalityController                    *controllers.AssetCriticalityController
 
 	AssetRegisterSvc services.AssetRegisterServiceInterface
 }
@@ -51,10 +52,6 @@ func NewAssetModule(db *gorm.DB,
 	assetStatusSvc := services.NewAssetStatusService(assetStatusRepo)
 	assetStatusController := controllers.NewAssetStatusController(assetStatusSvc)
 
-	assetRegisterRepo := repositories.NewAssetRegisterRepository(db)
-	assetRegisterSvc := services.NewAssetRegisterService(assetRegisterRepo, sharedModule.ActivityLogService, assetTypeSvc, assetCategorySvc, assetStatusSvc, organizationModule.UserSvc)
-	assetRegisterController := controllers.NewAssetRegisterController(assetRegisterSvc)
-
 	assetCriticalityMatrixRepo := repositories.NewAssetCriticalityMatrixRepository(db)
 	assetCriticalityMatrixSvc := services.NewAssetCriticalityMatrixService(assetCriticalityMatrixRepo)
 
@@ -69,6 +66,10 @@ func NewAssetModule(db *gorm.DB,
 	assetCriticalityMatrixRatingScaleRepo := repositories.NewAssetCriticalityMatrixRatingScaleRepository(db)
 	assetCriticalityMatrixRatingScaleSvc := services.NewAssetCriticalityMatrixRatingScaleService(assetCriticalityMatrixRatingScaleRepo, sharedModule.ActivityLogService, assetCriticalityMatrixSvc)
 	assetCriticalityMatrixRatingScaleController := controllers.NewAssetCriticalityMatrixRatingScaleController(assetCriticalityMatrixRatingScaleSvc)
+
+	assetRegisterRepo := repositories.NewAssetRegisterRepository(db)
+	assetRegisterSvc := services.NewAssetRegisterService(assetRegisterRepo, sharedModule.ActivityLogService, assetTypeSvc, assetCategorySvc, assetStatusSvc, organizationModule.UserSvc, assetCriticalityMatrixRatingScaleSvc)
+	assetRegisterController := controllers.NewAssetRegisterController(assetRegisterSvc)
 
 	vulnerabilityTypeRepo := repositories.NewVulnerabilityTypeRepository(db)
 	vulnerabilityTypeSvc := services.NewVulnerabilityTypeService(vulnerabilityTypeRepo, sharedModule.ActivityLogService)
@@ -147,6 +148,16 @@ func NewAssetModule(db *gorm.DB,
 	assetAssociatedItemSvc := services.NewAssetAssociatedItemService(assetAssociatedItemRepo, assetRegisterSvc)
 	assetAssociatedItemController := controllers.NewAssetAssociatedItemController(assetAssociatedItemSvc)
 
+	assetCriticalityRepo := repositories.NewAssetCriticalityRepository(db)
+	assetCriticalitySvc := services.NewAssetCriticalityService(
+		assetCriticalityRepo,
+		sharedModule.ActivityLogService,
+		assetRegisterSvc,
+		assetCriticalityMatrixFactorSvc,
+		assetCriticalityMatrixFactorRatingSvc,
+	)
+	assetCriticalityController := controllers.NewAssetCriticalityController(assetCriticalitySvc)
+
 	return &AssetModule{
 		AssetTypeController:                           assetTypeController,
 		AssetCategoryController:                       assetCategoryController,
@@ -166,6 +177,7 @@ func NewAssetModule(db *gorm.DB,
 		ThreatActionPlanController:                    threatActionPlanController,
 		ThreatActionPlanStatusUpdateController:        threatActionPlanStatusUpdateController,
 		AssetAssociatedItemController:                 assetAssociatedItemController,
+		AssetCriticalityController:                    assetCriticalityController,
 
 		AssetRegisterSvc: assetRegisterSvc,
 	}
