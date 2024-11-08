@@ -123,6 +123,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.GET("assets/:assetId/criticality", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetCriticalityController.GetAssetCriticality)
 	assetRoutes.POST("assets/:assetId/criticality", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetCriticalityController.CreateAssetCriticality)
 	assetRoutes.PUT("assets/:assetId/criticality/:id", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetCriticalityController.UpdateAssetCriticality)
-	assetRoutes.DELETE("assets/:assetId/criticality/:id", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetCriticalityController.DeleteAssetCriticality)
+	assetRoutes.DELETE("assets/:assetId/criticality", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetCriticalityController.DeleteAssetCriticality)
 
 }

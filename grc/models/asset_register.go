@@ -32,7 +32,7 @@ type AssetRegister struct {
 	ResponsibleUnit                   *OrganizationUnit                  `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	Controls                          []*AssetControl                    `gorm:"foreignKey:AssetRegisterID"`
 	AssetCriticalityMatrixRatingScale *AssetCriticalityMatrixRatingScale `gorm:"foreignKey:AssetCriticalityMatrixRatingScaleID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	AssetCriticalityContribution      []*AssetCriticalityContribution    `gorm:"foreignKey:AssetCriticalityMatrixRatingScaleID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Contributions                     []*AssetCriticalityContribution    `gorm:"foreignKey:AssetRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 
 	CreatedByUser *User `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	UpdatedByUser *User `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`

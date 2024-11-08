@@ -6,6 +6,7 @@ import (
 
 type AssetCriticalityContribution struct {
 	ID                                   uint       `json:"id" gorm:"primaryKey;autoIncrement"`
+	AssetRegisterID                      uint       `json:"asset_register_id" gorm:"not null" binding:"required"`
 	AssetCriticalityMatrixFactorID       uint       `json:"asset_criticality_matrix_factor_id" gorm:"not null" binding:"required"`
 	AssetCriticalityMatrixFactorRatingID uint       `json:"asset_criticality_matrix_factor_rating_id" gorm:"not null" binding:"required"`
 	Score                                float64    `json:"score" gorm:"not null"`
@@ -15,6 +16,7 @@ type AssetCriticalityContribution struct {
 	UpdatedAt                            *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 
 	// Relationships
+	AssetRegister                      *AssetRegister                      `gorm:"foreignKey:AssetRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	AssetCriticalityMatrixFactor       *AssetCriticalityMatrixFactor       `gorm:"foreignKey:AssetCriticalityMatrixFactorID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	AssetCriticalityMatrixFactorRating *AssetCriticalityMatrixFactorRating `gorm:"foreignKey:AssetCriticalityMatrixFactorRatingID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	CreatedByUser                      *User                               `gorm:"foreignKey:CreatedByID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`

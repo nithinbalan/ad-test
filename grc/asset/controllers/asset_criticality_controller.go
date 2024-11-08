@@ -1,12 +1,12 @@
 package controllers
 
 import (
-	assetDTOs "jethur/grc/asset/dtos"
-	"jethur/grc/asset/services"
-	commonDTOs "jethur/grc/common/dtos"
-	"jethur/utility"
 	"net/http"
 	"strconv"
+
+	"jethur/grc/asset/dtos"
+	"jethur/grc/asset/services"
+	"jethur/utility"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -26,39 +26,40 @@ func NewAssetCriticalityController(service services.AssetCriticalityServiceInter
 func (acc *AssetCriticalityController) GetAssetCriticality(c *gin.Context) {
 	assetIDStr := c.Param("assetId")
 
-	assetID, err := strconv.ParseUint(assetIDStr, 10, 64)
+	assetID, err := strconv.ParseUint(assetIDStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
 
-	assetCriticality, err := acc.service.GetFullDetailsByID(uint(assetID))
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+
+	queryParams := dtos.AssetCriticalityContributionListQueryParamsDTO{
+		Sort:    sort,
+		SortBy:  sortBy,
+		Keyword: keyword,
+	}
+	contributions, err := acc.service.GetAll(uint(assetID), &queryParams)
 
 	if err != nil {
-		switch e := err.(type) {
-		case *utility.ResourceNotFoundError:
-			utility.SendNotFoundErrResp(c)
-			return
-		default:
-			utility.SendInternalErrResp(acc.db, c, e.Error())
-			return
-		}
+		utility.SendInternalErrResp(acc.db, c, err.Error())
+		return
 	}
-	c.JSON(http.StatusOK, assetCriticality)
+	c.JSON(http.StatusOK, contributions)
 }
 
 func (acc *AssetCriticalityController) CreateAssetCriticality(c *gin.Context) {
-	var assetCriticalityFormDTO assetDTOs.AssetCriticalityFormDTO
-
-	assetIDStr := c.Param("assetId")
-
-	assetID, err := strconv.ParseUint(assetIDStr, 10, 64)
+	assetIdStr := c.Param("assetId")
+	assetID, err := strconv.ParseUint(assetIdStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
 
-	if err := c.ShouldBindJSON(&assetCriticalityFormDTO); err != nil {
+	var contributions []dtos.AssetCriticalityFormDTO
+	if err := c.ShouldBindJSON(&contributions); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
@@ -69,8 +70,7 @@ func (acc *AssetCriticalityController) CreateAssetCriticality(c *gin.Context) {
 		return
 	}
 
-	id, err := acc.service.Create(uint(assetID), currentUserID, &assetCriticalityFormDTO)
-
+	err = acc.service.Create(uint(assetID), contributions, currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -85,29 +85,26 @@ func (acc *AssetCriticalityController) CreateAssetCriticality(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusCreated, commonDTOs.IDResponse{ID: id})
+	c.Status(http.StatusCreated)
 }
 
 func (acc *AssetCriticalityController) UpdateAssetCriticality(c *gin.Context) {
-	var assetCriticalityFormDTO assetDTOs.AssetCriticalityFormDTO
-
-	assetIDStr := c.Param("assetId")
-
-	assetID, err := strconv.ParseUint(assetIDStr, 10, 64)
+	assetIdStr := c.Param("assetId")
+	assetID, err := strconv.ParseUint(assetIdStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
 
 	idStr := c.Param("id")
-
-	id, err := strconv.ParseUint(idStr, 10, 64)
+	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
 
-	if err := c.ShouldBindJSON(&assetCriticalityFormDTO); err != nil {
+	var contribution dtos.AssetCriticalityFormDTO
+	if err := c.ShouldBindJSON(&contribution); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
@@ -118,7 +115,7 @@ func (acc *AssetCriticalityController) UpdateAssetCriticality(c *gin.Context) {
 		return
 	}
 
-	err = acc.service.Update(uint(assetID), uint(id), currentUserID, &assetCriticalityFormDTO)
+	err = acc.service.Update(uint(assetID), uint(id), contribution, currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -137,17 +134,8 @@ func (acc *AssetCriticalityController) UpdateAssetCriticality(c *gin.Context) {
 }
 
 func (acc *AssetCriticalityController) DeleteAssetCriticality(c *gin.Context) {
-	assetIDStr := c.Param("assetId")
-
-	assetID, err := strconv.ParseUint(assetIDStr, 10, 64)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	idStr := c.Param("id")
-
-	id, err := strconv.ParseUint(idStr, 10, 64)
+	assetIdStr := c.Param("assetId")
+	assetID, err := strconv.ParseUint(assetIdStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -159,17 +147,10 @@ func (acc *AssetCriticalityController) DeleteAssetCriticality(c *gin.Context) {
 		return
 	}
 
-	failedID, err := acc.service.Delete(uint(assetID), uint(id), currentUserID)
-	if err != nil {
-		switch e := err.(type) {
-		case *utility.ResourceNotFoundError:
-			utility.SendNotFoundErrResp(c)
-			return
-		default:
-			utility.SendInternalErrResp(acc.db, c, e.Error())
-			return
-		}
+	if err := acc.service.Delete(uint(assetID), currentUserID); err != nil {
+		utility.SendInternalErrResp(acc.db, c, err.Error())
+		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"failed_id": failedID})
+	c.Status(http.StatusOK)
 }
