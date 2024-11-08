@@ -34,6 +34,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	vulnerabilityActionPlanStatusUpdateController := app.AssetModule.VulnerabilityActionPlanStatusUpdateController
 	threatActionPlanController := app.AssetModule.ThreatActionPlanController
 	threatActionPlanStatusUpdateController := app.AssetModule.ThreatActionPlanStatusUpdateController
+	assetAssociatedItemController :=app.AssetModule.AssetAssociatedItemController
 
 	// Asset Type
 	assetRoutes.GET("/asset-types", assetTypeController.GetAllAssetTypes)
@@ -160,5 +161,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("/threats/:id/action-plans/:actionPlanId/status-updates", middlewares.RolePermissionMiddleware(db, "threat_management", "modify"), threatActionPlanStatusUpdateController.CreateThreatActionPlanStatusUpdate)
 	assetRoutes.PUT("/threats/:id/action-plans/:actionPlanId/status-updates/:actionPlanStatusUpdateId", middlewares.RolePermissionMiddleware(db, "threat_management", "modify"), threatActionPlanStatusUpdateController.UpdateThreatActionPlanStatusUpdate)
 	assetRoutes.GET("/threats/:id/action-plans/:actionPlanId/status-updates/latest", middlewares.RolePermissionMiddleware(db, "threat_management", "view"), threatActionPlanStatusUpdateController.GetLatestThreatActionPlanStatusUpdate)
-
+	
+	//asset associated item list
+	assetRoutes.GET("assets/:id/controls", middlewares.RolePermissionMiddleware(db, "asset_setting", "view"), assetAssociatedItemController.GetAllAssetControls)
+		
 }
