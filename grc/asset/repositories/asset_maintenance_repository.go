@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"fmt"
 	"jethur/grc/asset/dtos"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
@@ -12,7 +13,7 @@ import (
 // Interfaces
 type AssetMaintenanceRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(params *dtos.AssetMaintenanceListQueryParamsDTO) (*dtos.AssetMaintenanceListResponseDTO, error)
+	GetAll(params *dtos.AssetMaintenanceListQueryParamsDTO, assetId uint) (*dtos.AssetMaintenanceListResponseDTO, error)
 	GetByID(id uint) (*models.AssetMaintenance, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.AssetMaintenance, error)
 	Create(assetMaintenance *models.AssetMaintenance, tx ...utility.DatabaseTransaction) (uint, error)
@@ -36,7 +37,7 @@ func (repo *AssetMaintenanceRepository) BeginTransaction() utility.DatabaseTrans
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *AssetMaintenanceRepository) GetAll(params *dtos.AssetMaintenanceListQueryParamsDTO) (*dtos.AssetMaintenanceListResponseDTO, error) {
+func (repo *AssetMaintenanceRepository) GetAll(params *dtos.AssetMaintenanceListQueryParamsDTO, assetId uint) (*dtos.AssetMaintenanceListResponseDTO, error) {
 	var maintenances []*dtos.AssetMaintenanceListDTO
 	var totalCount int64
 
@@ -80,7 +81,8 @@ func (repo *AssetMaintenanceRepository) GetAll(params *dtos.AssetMaintenanceList
 		Joins("LEFT JOIN asset_register ON asset_register.id = asset_maintenance.asset_register_id").
 		Joins("LEFT JOIN users AS performed_user ON performed_user.id = asset_maintenance.performed_by_id").
 		Joins("LEFT JOIN users AS created_user ON created_user.id = asset_maintenance.created_by_id").
-		Joins("LEFT JOIN users AS updated_user ON updated_user.id = asset_maintenance.updated_by_id")
+		Joins("LEFT JOIN users AS updated_user ON updated_user.id = asset_maintenance.updated_by_id").
+		Where("asset_maintenance.asset_register_id = ?", assetId)
 
 	// Apply filters
 	for columnName, values := range params.Filters {
@@ -164,16 +166,16 @@ func (repo *AssetMaintenanceRepository) GetFullDetailsByID(id uint, tx ...utilit
 	}
 
 	var maintenance *models.AssetMaintenance
-
-	result := db.
-		Preload("AssetRegister").
+	err := db.Preload("AssetRegister").
 		Preload("PerformedBy").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
-		First(&maintenance, id)
+		Where("id = ?", id).
+		First(&maintenance).Error
 
-	if result.Error != nil {
-		return nil, result.Error
+	if err != nil {
+		fmt.Printf("Error in GetFullDetailsByID for id %d: %v\n", id, err)
+		return nil, err
 	}
 
 	return maintenance, nil

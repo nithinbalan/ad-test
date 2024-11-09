@@ -64,13 +64,12 @@ type AssetMaintenanceListResponseDTO struct {
 }
 
 type AssetMaintenanceFormDTO struct {
-	AssetRegisterID uint    `json:"asset_register_id" binding:"required"`
-	Type            string  `json:"type" binding:"required"`
-	PerformedDate   string  `json:"performed_date" binding:"required,datetime=2006-01-02"`
-	Title           string  `json:"title" binding:"required"`
-	Description     *string `json:"description" binding:"omitempty"`
-	PerformedByID   uint    `json:"performed_by_id" binding:"required"`
-	Outcome         *string `json:"outcome" binding:"omitempty"`
+	Type          string  `json:"type" binding:"required"`
+	PerformedDate string  `json:"performed_date" binding:"required,datetime=2006-01-02"`
+	Title         string  `json:"title" binding:"required"`
+	Description   *string `json:"description" binding:"omitempty"`
+	PerformedByID uint    `json:"performed_by_id" binding:"required"`
+	Outcome       *string `json:"outcome" binding:"omitempty"`
 }
 
 type AssetMaintenanceParsedDates struct {
@@ -78,16 +77,16 @@ type AssetMaintenanceParsedDates struct {
 }
 
 type AssetMaintenanceDetailDTO struct {
-	ID              uint                             `json:"id"`
-	AssetRegisterID uint                             `json:"asset_register_id"`
-	Type            string                           `json:"type"`
-	PerformedDate   string                           `json:"performed_date"`
-	Title           string                           `json:"title"`
-	Description     *string                          `json:"description"`
-	PerformedBy     organizationDTOs.UserMinimalDTO  `json:"performed_by"`
-	Outcome         *string                          `json:"outcome"`
-	CreatedAt       time.Time                        `json:"created_at"`
-	UpdatedAt       *time.Time                       `json:"updated_at"`
-	CreatedBy       organizationDTOs.UserMinimalDTO  `json:"created_by"`
-	UpdatedBy       *organizationDTOs.UserMinimalDTO `json:"updated_by"`
+	ID                  uint                             `json:"id"`
+	AssetRegisterID     uint                             `json:"asset_register_id"`
+	Type                string                           `json:"type"`
+	PerformedDateString string                           `json:"performed_date"`
+	Title               string                           `json:"title"`
+	Description         *string                          `json:"description"`
+	PerformedBy         organizationDTOs.UserMinimalDTO  `json:"performed_by"`
+	Outcome             *string                          `json:"outcome"`
+	CreatedAt           time.Time                        `json:"created_at"`
+	UpdatedAt           *time.Time                       `json:"updated_at"`
+	CreatedBy           organizationDTOs.UserMinimalDTO  `json:"created_by"`
+	UpdatedBy           *organizationDTOs.UserMinimalDTO `json:"updated_by"`
 }

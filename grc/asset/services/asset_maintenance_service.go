@@ -15,10 +15,10 @@ import (
 )
 
 type AssetMaintenanceServiceInterface interface {
-	GetAll(params *dtos.AssetMaintenanceListQueryParamsDTO) (*dtos.AssetMaintenanceListResponseDTO, error)
+	GetAll(params *dtos.AssetMaintenanceListQueryParamsDTO, assetId uint) (*dtos.AssetMaintenanceListResponseDTO, error)
 	GetByID(id uint) (*models.AssetMaintenance, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*dtos.AssetMaintenanceDetailDTO, error)
-	Create(maintenanceForm *dtos.AssetMaintenanceFormDTO, currentUserID uint) (uint, error)
+	Create(maintenanceForm *dtos.AssetMaintenanceFormDTO, currentUserID uint, assetId uint) (uint, error)
 	Update(id uint, maintenanceForm *dtos.AssetMaintenanceFormDTO, currentUserID uint) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 }
@@ -44,8 +44,8 @@ func NewAssetMaintenanceService(
 	}
 }
 
-func (ams *AssetMaintenanceService) GetAll(params *dtos.AssetMaintenanceListQueryParamsDTO) (*dtos.AssetMaintenanceListResponseDTO, error) {
-	return ams.repo.GetAll(params)
+func (ams *AssetMaintenanceService) GetAll(params *dtos.AssetMaintenanceListQueryParamsDTO, assetId uint) (*dtos.AssetMaintenanceListResponseDTO, error) {
+	return ams.repo.GetAll(params, assetId)
 }
 
 func (ams *AssetMaintenanceService) GetByID(id uint) (*models.AssetMaintenance, error) {
@@ -72,16 +72,16 @@ func (ams *AssetMaintenanceService) GetFullDetailsByID(id uint, tx ...utility.Da
 
 	err = mapstructure.Decode(maintenance, &maintenanceDetailDTO)
 	if err != nil {
+		fmt.Printf("Decode error: %v\n", err)
 		return nil, err
 	}
 
 	performedDateString := maintenance.PerformedDate.Format("2006-01-02")
-	maintenanceDetailDTO.PerformedDate = performedDateString
-
+	maintenanceDetailDTO.PerformedDateString = performedDateString
 	return &maintenanceDetailDTO, nil
 }
 
-func (ams *AssetMaintenanceService) Create(maintenanceForm *dtos.AssetMaintenanceFormDTO, currentUserID uint) (uint, error) {
+func (ams *AssetMaintenanceService) Create(maintenanceForm *dtos.AssetMaintenanceFormDTO, currentUserID uint, assetId uint) (uint, error) {
 	tx := ams.repo.BeginTransaction()
 
 	if err := ams.validateAssetMaintenanceFormDTO(maintenanceForm); err != nil {
@@ -94,7 +94,7 @@ func (ams *AssetMaintenanceService) Create(maintenanceForm *dtos.AssetMaintenanc
 	}
 
 	maintenance := &models.AssetMaintenance{
-		AssetRegisterID: maintenanceForm.AssetRegisterID,
+		AssetRegisterID: assetId,
 		Type:            maintenanceForm.Type,
 		PerformedDate:   *dates.PerformedDate,
 		Title:           maintenanceForm.Title,
@@ -204,10 +204,6 @@ func (ams *AssetMaintenanceService) Delete(ids []uint, currentUserID uint) ([]ui
 }
 
 func (ams *AssetMaintenanceService) validateAssetMaintenanceFormDTO(maintenanceForm *dtos.AssetMaintenanceFormDTO) error {
-	if _, err := ams.assetRegisterSvc.GetByID(uint(maintenanceForm.AssetRegisterID)); err != nil {
-		return utility.NewValidationError(fmt.Errorf("asset register does not exist"), "not_exist", "asset register")
-	}
-
 	if _, err := ams.userSvc.GetByID(uint(maintenanceForm.PerformedByID)); err != nil {
 		return utility.NewValidationError(fmt.Errorf("performed by user does not exist"), "not_exist", "performed by user")
 	}

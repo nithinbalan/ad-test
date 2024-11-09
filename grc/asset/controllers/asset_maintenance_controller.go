@@ -82,7 +82,14 @@ func (amc *AssetMaintenanceController) GetAllMaintenances(c *gin.Context) {
 		Export:            export,
 	}
 
-	maintenances, err := amc.service.GetAll(&params)
+	assetIdStr := c.Param("id")
+	assetId, err := strconv.ParseUint(assetIdStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	maintenances, err := amc.service.GetAll(&params, uint(assetId))
 	if err != nil {
 		utility.SendInternalErrResp(amc.db, c, err.Error())
 		return
@@ -92,7 +99,7 @@ func (amc *AssetMaintenanceController) GetAllMaintenances(c *gin.Context) {
 }
 
 func (amc *AssetMaintenanceController) GetMaintenanceDetails(c *gin.Context) {
-	idStr := c.Param("id")
+	idStr := c.Param("maintenanceId")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -115,13 +122,20 @@ func (amc *AssetMaintenanceController) CreateMaintenance(c *gin.Context) {
 		return
 	}
 
+	assetIdStr := c.Param("id")
+	assetId, err := strconv.ParseUint(assetIdStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(amc.db, c, err.Error())
 		return
 	}
 
-	maintenanceID, err := amc.service.Create(&maintenanceForm, currentUserID)
+	maintenanceID, err := amc.service.Create(&maintenanceForm, currentUserID, uint(assetId))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:
@@ -137,7 +151,7 @@ func (amc *AssetMaintenanceController) CreateMaintenance(c *gin.Context) {
 }
 
 func (amc *AssetMaintenanceController) UpdateMaintenance(c *gin.Context) {
-	idStr := c.Param("id")
+	idStr := c.Param("maintenanceId")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
