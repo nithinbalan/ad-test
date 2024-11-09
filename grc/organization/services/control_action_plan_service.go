@@ -25,7 +25,7 @@ type ControlActionPlanServiceInterface interface {
 	Create(controlID uint, currentUserID uint, ControlActionPlanFormDTO *organizationDTOs.ControlActionPlanFormDTO) (uint, error)
 	Update(controlID uint, id uint, currentUserID uint, ControlActionPlanFormDTO *organizationDTOs.ControlActionPlanFormDTO) error
 	Delete(controlID uint, ids []uint, currentUserID uint) ([]uint, error)
-	StatusUpdate(controlID uint, id uint, currentUserID uint, actionPlanStatusID uint, percentage uint, tx ...utility.DatabaseTransaction) error
+	StatusUpdate(controlID uint, id uint, currentUserID uint, controlActionPlanStatusUpdateFormDTO *organizationDTOs.ControlActionPlanStatusUpdateFormDTO, percentage uint, tx ...utility.DatabaseTransaction) error
 }
 
 // Service and implementations
@@ -157,6 +157,7 @@ func (caps *ControlActionPlanService) Create(controlID uint, currentUserID uint,
 	controlActionPlanUpdate := &models.ControlActionPlanStatusUpdate{
 		ControlActionPlanID: id,
 		ActionPlanStatusID:  actionPlanStatusID,
+		Percentage:          *ControlActionPlanFormDTO.Percentage,
 		Comment:             "Initial action plan status",
 		CreatedByID:         currentUserID,
 	}
@@ -629,15 +630,15 @@ func (caps *ControlActionPlanService) Delete(controlID uint, ids []uint, current
 	return failedIds, nil
 }
 
-func (caps *ControlActionPlanService) StatusUpdate(controlID uint, id uint, currentUserID uint, actionPlanStatusID uint, percentage uint, tx ...utility.DatabaseTransaction) error {
+func (caps *ControlActionPlanService) StatusUpdate(controlID uint, id uint, currentUserID uint, controlActionPlanStatusUpdateFormDTO *organizationDTOs.ControlActionPlanStatusUpdateFormDTO, percentage uint, tx ...utility.DatabaseTransaction) error {
 	existingControlActionPlan, err := caps.GetByID(controlID, id)
 
 	if err != nil {
 		return err
 	}
 
-	existingControlActionPlan.ActionPlanStatusID = actionPlanStatusID
-	existingControlActionPlan.Percentage = percentage
+	existingControlActionPlan.ActionPlanStatusID = controlActionPlanStatusUpdateFormDTO.ActionPlanStatusID
+	existingControlActionPlan.Percentage = controlActionPlanStatusUpdateFormDTO.Percentage
 	existingControlActionPlan.UpdatedByID = &currentUserID
 
 	err = caps.repo.Update(existingControlActionPlan, tx...)
@@ -652,7 +653,7 @@ func (caps *ControlActionPlanService) StatusUpdate(controlID uint, id uint, curr
 	if err != nil {
 		return err
 	}
-	err = caps.taskSvc.UpdateStatus(currentUserID, existingTask.ID, actionPlanStatusID, isReviewUserNull, tx...)
+	err = caps.taskSvc.UpdateStatus(currentUserID, existingTask.ID, controlActionPlanStatusUpdateFormDTO.ActionPlanStatusID, isReviewUserNull, tx...)
 	if err != nil {
 		return err
 	}

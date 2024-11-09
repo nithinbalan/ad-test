@@ -35,6 +35,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	threatActionPlanController := app.AssetModule.ThreatActionPlanController
 	threatActionPlanStatusUpdateController := app.AssetModule.ThreatActionPlanStatusUpdateController
 	assetMaintenanceController := app.AssetModule.AssetMaintenanceController
+	assetAssociatedItemController := app.AssetModule.AssetAssociatedItemController
+	assetCriticalityController := app.AssetModule.AssetCriticalityController
 
 	// Asset Type
 	assetRoutes.GET("/asset-types", assetTypeController.GetAllAssetTypes)
@@ -59,11 +61,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.GET("/asset-statuses/:id", assetStatusController.GetAssetStatusDetails)
 
 	//asset register
-	assetRoutes.GET("/assets", middlewares.RolePermissionMiddleware(db, "assets", "view"), assetRegisterController.GetAllAssets)
-	assetRoutes.GET("/assets/:id", middlewares.RolePermissionMiddleware(db, "assets", "view"), assetRegisterController.GetAssetDetails)
-	assetRoutes.POST("/assets", middlewares.RolePermissionMiddleware(db, "assets", "modify"), assetRegisterController.CreateAsset)
-	assetRoutes.PUT("/assets/:id", middlewares.RolePermissionMiddleware(db, "assets", "modify"), assetRegisterController.UpdateAsset)
-	assetRoutes.POST("/assets/delete", middlewares.RolePermissionMiddleware(db, "assets", "modify"), assetRegisterController.DeleteAssets)
+	assetRoutes.GET("/asset-register", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetRegisterController.GetAllAssets)
+	assetRoutes.GET("/asset-register/:id", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetRegisterController.GetAssetDetails)
+	assetRoutes.POST("/asset-register", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetRegisterController.CreateAsset)
+	assetRoutes.PUT("/asset-register/:id", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetRegisterController.UpdateAsset)
+	assetRoutes.POST("/asset-register/delete", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetRegisterController.DeleteAssets)
 
 	// Asset Criticality Matrix Factors
 	assetRoutes.GET("/asset-criticality-matrix-factors", assetCriticalityMatrixFactorController.GetAllFactors)
@@ -162,10 +164,18 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.PUT("/threats/:id/action-plans/:actionPlanId/status-updates/:actionPlanStatusUpdateId", middlewares.RolePermissionMiddleware(db, "threat_management", "modify"), threatActionPlanStatusUpdateController.UpdateThreatActionPlanStatusUpdate)
 	assetRoutes.GET("/threats/:id/action-plans/:actionPlanId/status-updates/latest", middlewares.RolePermissionMiddleware(db, "threat_management", "view"), threatActionPlanStatusUpdateController.GetLatestThreatActionPlanStatusUpdate)
 
-	assetRoutes.GET("/asset-register/:id/maintenance", middlewares.RolePermissionMiddleware(db, "asset_maintenance", "view"), assetMaintenanceController.GetAllMaintenances)
-	assetRoutes.GET("/asset-register/:id/maintenance/:maintenanceId", middlewares.RolePermissionMiddleware(db, "asset_maintenance", "view"), assetMaintenanceController.GetMaintenanceDetails)
-	assetRoutes.POST("/asset-register/:id/maintenance", middlewares.RolePermissionMiddleware(db, "asset_maintenance", "modify"), assetMaintenanceController.CreateMaintenance)
-	assetRoutes.PUT("/asset-register/:id/maintenance/:maintenanceId", middlewares.RolePermissionMiddleware(db, "asset_maintenance", "modify"), assetMaintenanceController.UpdateMaintenance)
-	assetRoutes.POST("/asset-register/:id/maintenance/delete", middlewares.RolePermissionMiddleware(db, "asset_maintenance", "modify"), assetMaintenanceController.DeleteMaintenances)
+	assetRoutes.GET("/assets/:id/maintenance", middlewares.RolePermissionMiddleware(db, "asset_maintenance", "view"), assetMaintenanceController.GetAllMaintenances)
+	assetRoutes.GET("/assets/:id/maintenance/:maintenanceId", middlewares.RolePermissionMiddleware(db, "asset_maintenance", "view"), assetMaintenanceController.GetMaintenanceDetails)
+	assetRoutes.POST("/assets/:id/maintenance", middlewares.RolePermissionMiddleware(db, "asset_maintenance", "modify"), assetMaintenanceController.CreateMaintenance)
+	assetRoutes.PUT("/assets/:id/maintenance/:maintenanceId", middlewares.RolePermissionMiddleware(db, "asset_maintenance", "modify"), assetMaintenanceController.UpdateMaintenance)
+	assetRoutes.POST("/assets/:id/maintenance/delete", middlewares.RolePermissionMiddleware(db, "asset_maintenance", "modify"), assetMaintenanceController.DeleteMaintenances)
 
+	//asset associated item list
+	assetRoutes.GET("assets/:id/controls", middlewares.RolePermissionMiddleware(db, "asset_setting", "view"), assetAssociatedItemController.GetAllAssetControls)
+
+	//asset criticality
+	assetRoutes.GET("assets/:id/criticality", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetCriticalityController.GetAssetCriticality)
+	assetRoutes.POST("assets/:id/criticality", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetCriticalityController.CreateAssetCriticality)
+	assetRoutes.PUT("assets/:id/criticality/:criticalityId", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetCriticalityController.UpdateAssetCriticality)
+	assetRoutes.DELETE("assets/:id/criticality", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetCriticalityController.DeleteAssetCriticality)
 }

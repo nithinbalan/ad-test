@@ -28,7 +28,7 @@ type AuditFindingActionPlanServiceInterface interface {
 	Create(findingID uint, currentUserID uint, AuditFindingActionPlanFormDTO *auditFindingDTOs.AuditFindingActionPlanFormDTO) (uint, error)
 	Update(findingID uint, id uint, currentUserID uint, auditFinding *auditFindingDTOs.AuditFindingActionPlanFormDTO) error
 	Delete(findingID uint, ids []uint, currentUserID uint) ([]uint, error)
-	StatusUpdate(findingID uint, id uint, currentUserID uint, ActionPlanStatusID uint, tx utility.DatabaseTransaction) error
+	StatusUpdate(findingID uint, id uint, currentUserID uint, auditFindingActionPlanStatusUpdateFormDTO *auditFindingDTOs.AuditFindingActionPlanStatusUpdateFormDTO, tx utility.DatabaseTransaction) error
 
 	GetAuditFindingActionPlanCountByStatus(findingId uint) ([]auditFindingDTOs.AuditFindingActionPlanStatusCountResponseDTO, error)
 }
@@ -163,6 +163,7 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 	auditFindingActionPlanUpdate := &models.AuditFindingActionPlanStatusUpdate{
 		AuditFindingActionPlanID: id,
 		ActionPlanStatusID:       actionPlanStatusID,
+		Percentage:               AuditFindingActionPlanFormDTO.Percentage,
 		Comment:                  "Initial action plan status",
 		CreatedByID:              currentUserID,
 	}
@@ -638,7 +639,7 @@ func (afaps *AuditFindingActionPlanService) Delete(findingID uint, ids []uint, c
 	return failedIds, nil
 }
 
-func (afaps *AuditFindingActionPlanService) StatusUpdate(findingID uint, id uint, currentUserID uint, ActionPlanStatusID uint, tx utility.DatabaseTransaction) error {
+func (afaps *AuditFindingActionPlanService) StatusUpdate(findingID uint, id uint, currentUserID uint, auditFindingActionPlanStatusUpdateFormDTO *auditFindingDTOs.AuditFindingActionPlanStatusUpdateFormDTO, tx utility.DatabaseTransaction) error {
 
 	existingAuditFindingActionPlan, err := afaps.GetByID(findingID, id)
 
@@ -646,7 +647,8 @@ func (afaps *AuditFindingActionPlanService) StatusUpdate(findingID uint, id uint
 		return err
 	}
 
-	existingAuditFindingActionPlan.ActionPlanStatusID = ActionPlanStatusID
+	existingAuditFindingActionPlan.ActionPlanStatusID = auditFindingActionPlanStatusUpdateFormDTO.ActionPlanStatusID
+	existingAuditFindingActionPlan.Percentage = auditFindingActionPlanStatusUpdateFormDTO.Percentage
 	existingAuditFindingActionPlan.UpdatedBYID = &currentUserID
 
 	err = afaps.repo.Update(existingAuditFindingActionPlan, tx)
@@ -662,7 +664,7 @@ func (afaps *AuditFindingActionPlanService) StatusUpdate(findingID uint, id uint
 	if err != nil {
 		return err
 	}
-	err = afaps.taskSvc.UpdateStatus(currentUserID, existingTask.ID, ActionPlanStatusID, isReviewUserNull, tx)
+	err = afaps.taskSvc.UpdateStatus(currentUserID, existingTask.ID, auditFindingActionPlanStatusUpdateFormDTO.ActionPlanStatusID, isReviewUserNull, tx)
 	if err != nil {
 		return err
 	}

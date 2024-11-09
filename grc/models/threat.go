@@ -13,6 +13,7 @@ type Threat struct {
 	ThreatStatusID    uint       `json:"threat_status_id" gorm:"not null" binding:"required"`
 	ResponsibleUserID uint       `json:"responsible_user_id" gorm:"not null" binding:"required"`
 	ResponsibleUnitID uint       `json:"responsible_unit_id" gorm:"not null" binding:"required"`
+	VulnerabilityID   *uint      `json:"vulnerability_id" gorm:"null"`
 	Description       *string    `json:"description,omitempty" gorm:"type:nvarchar(MAX);default:null"`
 	Source            *string    `json:"source,omitempty" gorm:"type:nvarchar(MAX);default:null"`
 	DetectionDate     *time.Time `json:"detection_date,omitempty" gorm:"type:date;default:null"`
@@ -26,6 +27,7 @@ type Threat struct {
 	ThreatType      *ThreatType       `gorm:"foreignKey:ThreatTypeID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	SeverityLevel   *SeverityLevel    `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ThreatStatus    *ThreatStatus     `gorm:"foreignKey:ThreatStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Vulnerability   *Vulnerability    `gorm:"foreignKey:VulnerabilityID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ResponsibleUser *User             `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ResponsibleUnit *OrganizationUnit `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	CreatedByUser   *User             `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
