@@ -14,14 +14,18 @@ import (
 
 // Interfaces
 type AssetRegisterRepositoryInterface interface {
+	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *dtos.AssetRegisterListQueryParamsDTO) (*dtos.AssetRegisterListResponseDTO, error)
 	GetByID(id uint) (*models.AssetRegister, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.AssetRegister, error)
-	Create(assetRegister *models.AssetRegister) (uint, error)
-	Update(assetRegister *models.AssetRegister) error
+	Create(assetRegister *models.AssetRegister, tx ...utility.DatabaseTransaction) (uint, error)
+	Update(assetRegister *models.AssetRegister, tx ...utility.DatabaseTransaction) error
 	Delete(id uint) error
 
 	GenerateReferenceNumber() (string, error)
+
+	CreateAssetControls(controls []*models.AssetControl, tx ...utility.DatabaseTransaction) error
+	DeleteAssetControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 // Implementation
@@ -33,6 +37,11 @@ func NewAssetRegisterRepository(db *gorm.DB) *AssetRegisterRepository {
 	return &AssetRegisterRepository{
 		db: db,
 	}
+}
+
+// BeginTransaction starts a new transaction.
+func (repo *AssetRegisterRepository) BeginTransaction() utility.DatabaseTransaction {
+	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
 func (repo *AssetRegisterRepository) GetAll(params *dtos.AssetRegisterListQueryParamsDTO) (*dtos.AssetRegisterListResponseDTO, error) {
@@ -55,6 +64,10 @@ func (repo *AssetRegisterRepository) GetAll(params *dtos.AssetRegisterListQueryP
 			asset_statuses.title_en AS asset_status_title_en,
 			asset_statuses.title_ar AS asset_status_title_ar,
 			asset_statuses.color_code AS asset_status_color_code,
+			asset_register.total_score,
+			asset_criticality_matrix_rating_scales.title_en AS asset_criticality_matrix_rating_scale_title_en,
+			asset_criticality_matrix_rating_scales.title_ar AS asset_criticality_matrix_rating_scale_title_ar,
+			asset_criticality_matrix_rating_scales.color_code AS asset_criticality_matrix_rating_scale_color_code,
 			organization_units.title_en AS responsible_unit_title_en,
 			organization_units.title_ar AS responsible_unit_title_ar,
 			responsible_user.id AS responsible_user_id,
@@ -88,6 +101,7 @@ func (repo *AssetRegisterRepository) GetAll(params *dtos.AssetRegisterListQueryP
 		Joins("LEFT JOIN asset_types ON asset_types.id = asset_register.asset_type_id").
 		Joins("LEFT JOIN asset_categories ON asset_categories.id = asset_register.asset_category_id").
 		Joins("LEFT JOIN asset_statuses ON asset_statuses.id = asset_register.asset_status_id").
+		Joins("LEFT JOIN asset_criticality_matrix_rating_scales ON asset_criticality_matrix_rating_scales.id = asset_register.asset_criticality_matrix_rating_scale_id").
 		Joins("LEFT JOIN organization_units ON organization_units.id = asset_register.responsible_unit_id").
 		Joins("LEFT JOIN users AS responsible_user ON responsible_user.id = asset_register.responsible_user_id").
 		Joins("LEFT JOIN users AS created_user ON created_user.id = asset_register.created_by_id").
@@ -188,6 +202,8 @@ func (repo *AssetRegisterRepository) GetFullDetailsByID(id uint, tx ...utility.D
 		Preload("ResponsibleUser").
 		Preload("ResponsibleUser.OrganizationUnit1").
 		Preload("ResponsibleUnit").
+		Preload("Controls").
+		Preload("AssetCriticalityMatrixRatingScale").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&asset, id)
@@ -199,14 +215,14 @@ func (repo *AssetRegisterRepository) GetFullDetailsByID(id uint, tx ...utility.D
 	return asset, nil
 }
 
-func (repo *AssetRegisterRepository) Create(assetRegister *models.AssetRegister) (uint, error) {
+func (repo *AssetRegisterRepository) Create(assetRegister *models.AssetRegister, tx ...utility.DatabaseTransaction) (uint, error) {
 	if err := repo.db.Create(assetRegister).Error; err != nil {
 		return 0, err
 	}
 	return assetRegister.ID, nil
 }
 
-func (repo *AssetRegisterRepository) Update(assetRegister *models.AssetRegister) error {
+func (repo *AssetRegisterRepository) Update(assetRegister *models.AssetRegister, tx ...utility.DatabaseTransaction) error {
 	if err := repo.db.Save(assetRegister).Error; err != nil {
 		return err
 	}
@@ -247,4 +263,29 @@ func (repo *AssetRegisterRepository) GenerateReferenceNumber() (string, error) {
 	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "AST", currentYear, lastReferenceID+1)
 
 	return newReferenceNumber, nil
+}
+
+func (repo *AssetRegisterRepository) CreateAssetControls(controls []*models.AssetControl, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&controls).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *AssetRegisterRepository) DeleteAssetControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Delete controls by IDs
+	if err := db.Where("id IN (?)", controlIds).Delete(&models.AssetControl{}).Error; err != nil {
+		return err
+	}
+
+	return nil
 }

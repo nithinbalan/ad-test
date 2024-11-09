@@ -129,7 +129,7 @@ func (iis *IncidentInvestigationService) Create(incidentID uint, currentUserID u
 		InitiatedAt:          dates.InitiatedAt,
 		TeamLeadID:           incidentInvestigationFormDTO.TeamLeadID,
 		ActionRecommendation: incidentInvestigationFormDTO.ActionRecommendation,
-		CreatedByID:          currentUserID,
+		CreatedBYID:          currentUserID,
 	}
 
 	id, err := iis.repo.Create(incidentInvestigation, tx)
@@ -293,7 +293,7 @@ func (iis *IncidentInvestigationService) Update(incidentID uint, currentUserID u
 	existingIncidentInvestigation.InitiatedAt = dates.InitiatedAt
 	existingIncidentInvestigation.TeamLeadID = incidentInvestigationFormDTO.TeamLeadID
 	existingIncidentInvestigation.ActionRecommendation = incidentInvestigationFormDTO.ActionRecommendation
-	existingIncidentInvestigation.UpdatedByID = &currentUserID
+	existingIncidentInvestigation.UpdatedBYID = &currentUserID
 
 	err = iis.repo.Update(existingIncidentInvestigation, tx)
 	if err != nil {

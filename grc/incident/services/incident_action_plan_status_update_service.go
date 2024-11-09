@@ -97,7 +97,7 @@ func (iasus *IncidentActionPlanStatusUpdateService) Create(IncidentID uint, Inci
 		return 0, err
 	}
 
-	err = iasus.incidentActionPlanSvc.StatusUpdate(IncidentID, IncidentActionPlanID, currentUserID, incidentActionPlanStatusUpdateFormDTO.ActionPlanStatusID, tx)
+	err = iasus.incidentActionPlanSvc.StatusUpdate(IncidentID, IncidentActionPlanID, currentUserID, incidentActionPlanStatusUpdateFormDTO, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err

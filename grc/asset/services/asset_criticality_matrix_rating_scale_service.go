@@ -18,6 +18,8 @@ type AssetCriticalityMatrixRatingScaleServiceInterface interface {
 	Create(currentUserID uint, scale *models.AssetCriticalityMatrixRatingScale) (*models.AssetCriticalityMatrixRatingScale, error)
 	Update(id, currentUserID uint, scale *models.AssetCriticalityMatrixRatingScale) (*models.AssetCriticalityMatrixRatingScale, error)
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+
+	GetRatingScaleByScore(score float64) (*models.AssetCriticalityMatrixRatingScale, error)
 }
 
 type AssetCriticalityMatrixRatingScaleService struct {
@@ -168,4 +170,12 @@ func (acmrss *AssetCriticalityMatrixRatingScaleService) Delete(ids []uint, curre
 	}
 
 	return failedIds, nil
+}
+
+func (acmrss *AssetCriticalityMatrixRatingScaleService) GetRatingScaleByScore(score float64) (*models.AssetCriticalityMatrixRatingScale, error) {
+	matrixID, err := acmrss.assetCriticalityMatrixSvc.GetFirstMatrixID()
+	if err != nil {
+		return nil, err
+	}
+	return acmrss.repo.GetRatingScaleByScore(matrixID, score)
 }

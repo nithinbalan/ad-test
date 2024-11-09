@@ -40,6 +40,9 @@ type IncidentRegisterRepositoryInterface interface {
 
 	CreateIncidentDocuments(documents []*models.IncidentAssociatedDocument, tx ...utility.DatabaseTransaction) error
 	DeleteIncidentDocuments(documentIds []*uint, tx ...utility.DatabaseTransaction) error
+
+	CreateIncidentAssets(assets []*models.IncidentAsset, tx ...utility.DatabaseTransaction) error
+	DeleteIncidentAssets(assetIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type IncidentRegisterRepository struct {
@@ -251,6 +254,12 @@ func (repo *IncidentRegisterRepository) GetFullDetailsByID(id uint, tx ...utilit
 		Preload("Processes").
 		Preload("SLARegisters").
 		Preload("AssociatedDocuments").
+		Preload("Assets").
+		Preload("Assets.AssetRegister").
+		Preload("Assets.AssetRegister.AssetType").
+		Preload("Assets.AssetRegister.AssetCategory").
+		Preload("Assets.AssetRegister.AssetStatus").
+		Preload("Assets.AssetRegister.ResponsibleUser").
 		Preload("ResponsibleUnit.ParentUnit.ParentUnit.ParentUnit.ParentUnit.ParentUnit").
 		Preload("ResponsibleUser").
 		Preload("ResponsibleUser.OrganizationUnit1").
@@ -509,6 +518,31 @@ func (repo *IncidentRegisterRepository) DeleteIncidentDocuments(documentIds []*u
 	}
 
 	if err := db.Where("id IN (?)", documentIds).Delete(&models.IncidentAssociatedDocument{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *IncidentRegisterRepository) CreateIncidentAssets(assets []*models.IncidentAsset, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&assets).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *IncidentRegisterRepository) DeleteIncidentAssets(assetIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Delete assets by IDs
+	if err := db.Where("id IN (?)", assetIds).Delete(&models.IncidentAsset{}).Error; err != nil {
 		return err
 	}
 

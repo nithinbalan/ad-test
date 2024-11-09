@@ -28,7 +28,7 @@ type SLAActionPlanServiceInterface interface {
 	Create(slaID uint, currentUserID uint, slaActionPlanFormDTO *complianceDTOs.SLAActionPlanFormDTO) (uint, error)
 	Update(slaID uint, id uint, currentUserID uint, slaActionPlanFormDTO *complianceDTOs.SLAActionPlanFormDTO) error
 	Delete(slaID uint, ids []uint, currentUserID uint) ([]uint, error)
-	StatusUpdate(slaID uint, id uint, currentUserID uint, ActionPlanStatusID uint, tx utility.DatabaseTransaction) error
+	StatusUpdate(slaID uint, id uint, currentUserID uint, slaActionPlanStatusUpdateFormDTO *complianceDTOs.SLAActionPlanStatusUpdateFormDTO, tx utility.DatabaseTransaction) error
 	GetSLAActionPlanCountByStatus(slaID uint) ([]complianceDTOs.SLAActionPlanStatusCountResponseDTO, error)
 }
 
@@ -161,6 +161,7 @@ func (saps *SLAActionPlanService) Create(slaID uint, currentUserID uint, slaActi
 		SLAActionPlanID:    id,
 		ActionPlanStatusID: actionPlanStatusID,
 		Comment:            "Initial action plan status",
+		Percentage:         slaActionPlanFormDTO.Percentage,
 		CreatedByID:        currentUserID,
 	}
 
@@ -636,13 +637,14 @@ func (saps *SLAActionPlanService) Delete(slaID uint, ids []uint, currentUserID u
 	return failedIds, nil
 }
 
-func (saps *SLAActionPlanService) StatusUpdate(slaID uint, id uint, currentUserID uint, ActionPlanStatusID uint, tx utility.DatabaseTransaction) error {
+func (saps *SLAActionPlanService) StatusUpdate(slaID uint, id uint, currentUserID uint, slaActionPlanStatusUpdateFormDTO *complianceDTOs.SLAActionPlanStatusUpdateFormDTO, tx utility.DatabaseTransaction) error {
 	existingSLAActionPlan, err := saps.GetByID(slaID, id)
 	if err != nil {
 		return err
 	}
 
-	existingSLAActionPlan.ActionPlanStatusID = ActionPlanStatusID
+	existingSLAActionPlan.ActionPlanStatusID = slaActionPlanStatusUpdateFormDTO.ActionPlanStatusID
+	existingSLAActionPlan.Percentage = slaActionPlanStatusUpdateFormDTO.Percentage
 	existingSLAActionPlan.UpdatedByID = &currentUserID
 
 	err = saps.repo.Update(existingSLAActionPlan, tx)
@@ -657,7 +659,7 @@ func (saps *SLAActionPlanService) StatusUpdate(slaID uint, id uint, currentUserI
 	if err != nil {
 		return err
 	}
-	err = saps.taskSvc.UpdateStatus(currentUserID, existingTask.ID, ActionPlanStatusID, isReviewUserNull, tx)
+	err = saps.taskSvc.UpdateStatus(currentUserID, existingTask.ID, slaActionPlanStatusUpdateFormDTO.ActionPlanStatusID, isReviewUserNull, tx)
 	if err != nil {
 		return err
 	}

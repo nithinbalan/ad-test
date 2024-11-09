@@ -40,6 +40,7 @@ type IncidentRegister struct {
 	Processes              []*IncidentProcess               `gorm:"foreignKey:IncidentRegisterID"`
 	SLARegisters           []*IncidentSLA                   `gorm:"foreignKey:IncidentRegisterID"`
 	AssociatedDocuments    []*IncidentAssociatedDocument    `gorm:"foreignKey:IncidentRegisterID"`
+	Assets                 []*IncidentAsset                 `gorm:"foreignKey:IncidentRegisterID"`
 	ReportedByUser         *User                            `gorm:"foreignKey:ReportedBy"`
 	CreatedByUser          *User                            `gorm:"foreignKey:CreatedByID"`
 	UpdatedByUser          *User                            `gorm:"foreignKey:UpdatedByID"`

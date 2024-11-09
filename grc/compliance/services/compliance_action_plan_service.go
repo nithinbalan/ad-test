@@ -171,6 +171,7 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 	complianceActionPlanUpdate := &models.ComplianceActionPlanStatusUpdate{
 		ComplianceActionPlanID: id,
 		ActionPlanStatusID:     actionPlanStatusID,
+		Percentage:             ComplianceActionPlanFormDTO.Percentage,
 		Comment:                "Initial action plan status",
 		CreatedByID:            currentUserID,
 	}
