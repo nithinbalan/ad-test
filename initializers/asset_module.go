@@ -26,6 +26,7 @@ type AssetModule struct {
 	VulnerabilityActionPlanStatusUpdateController *controllers.VulnerabilityActionPlanStatusUpdateController
 	ThreatActionPlanController                    *controllers.ThreatActionPlanController
 	ThreatActionPlanStatusUpdateController        *controllers.ThreatActionPlanStatusUpdateController
+	AssetMaintenanceController                    *controllers.AssetMaintenanceController
 	AssetAssociatedItemController                 *controllers.AssetAssociatedItemController
 	AssetCriticalityController                    *controllers.AssetCriticalityController
 
@@ -145,6 +146,9 @@ func NewAssetModule(db *gorm.DB,
 	)
 	threatActionPlanStatusUpdateController := controllers.NewThreatActionPlanStatusUpdateController(threatActionPlanStatusUpdateSvc)
 
+	assetMaintenanceRepo := repositories.NewAssetMaintenanceRepository(db)
+	assetMaintenanceSvc := services.NewAssetMaintenanceService(assetMaintenanceRepo, sharedModule.ActivityLogService, assetRegisterSvc, organizationModule.UserSvc)
+	assetMaintenanceController := controllers.NewAssetMaintenanceController(assetMaintenanceSvc)
 	assetAssociatedItemRepo := repositories.NewAssetAssociatedItemRepository(db)
 	assetAssociatedItemSvc := services.NewAssetAssociatedItemService(assetAssociatedItemRepo, assetRegisterSvc)
 	assetAssociatedItemController := controllers.NewAssetAssociatedItemController(assetAssociatedItemSvc)
@@ -177,6 +181,7 @@ func NewAssetModule(db *gorm.DB,
 		VulnerabilityActionPlanStatusUpdateController: vulnerabilityActionPlanStatusUpdateController,
 		ThreatActionPlanController:                    threatActionPlanController,
 		ThreatActionPlanStatusUpdateController:        threatActionPlanStatusUpdateController,
+		AssetMaintenanceController:                    assetMaintenanceController,
 		AssetAssociatedItemController:                 assetAssociatedItemController,
 		AssetCriticalityController:                    assetCriticalityController,
 
