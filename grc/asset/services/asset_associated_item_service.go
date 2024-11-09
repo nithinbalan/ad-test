@@ -8,6 +8,7 @@ import (
 // Service Interface
 type AssetAssociatedItemServiceInterface interface {
 	GetAllControls(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemControlListResponseDTO, error)
+	GetAllIncidents(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemIncidentListResponseDTO, error)
 }
 
 // Service Implementation
@@ -32,4 +33,11 @@ func (aais *AssetAssociatedItemService) GetAllControls(assetID uint, params *ass
 		return nil, err
 	}
 	return aais.repo.GetAllControls(assetID, params)
+}
+
+func (aais *AssetAssociatedItemService) GetAllIncidents(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemIncidentListResponseDTO, error) {
+	if _, err := aais.assetRegisterSvc.GetByID(assetID); err != nil {
+		return nil, err
+	}
+	return aais.repo.GetAllIncidents(assetID, params)
 }

@@ -165,6 +165,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	//asset associated item list
 	assetRoutes.GET("assets/:id/controls", middlewares.RolePermissionMiddleware(db, "asset_setting", "view"), assetAssociatedItemController.GetAllAssetControls)
+	assetRoutes.GET("assets/:id/incidents", middlewares.RolePermissionMiddleware(db, "asset_setting", "view"), assetAssociatedItemController.GetAllAssetIncidents)
 
 	//asset criticality
 	assetRoutes.GET("assets/:id/criticality", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetCriticalityController.GetAssetCriticality)
