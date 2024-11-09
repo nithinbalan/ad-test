@@ -34,6 +34,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	vulnerabilityActionPlanStatusUpdateController := app.AssetModule.VulnerabilityActionPlanStatusUpdateController
 	threatActionPlanController := app.AssetModule.ThreatActionPlanController
 	threatActionPlanStatusUpdateController := app.AssetModule.ThreatActionPlanStatusUpdateController
+	assetMaintenanceController := app.AssetModule.AssetMaintenanceController
 
 	// Asset Type
 	assetRoutes.GET("/asset-types", assetTypeController.GetAllAssetTypes)
@@ -160,5 +161,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("/threats/:id/action-plans/:actionPlanId/status-updates", middlewares.RolePermissionMiddleware(db, "threat_management", "modify"), threatActionPlanStatusUpdateController.CreateThreatActionPlanStatusUpdate)
 	assetRoutes.PUT("/threats/:id/action-plans/:actionPlanId/status-updates/:actionPlanStatusUpdateId", middlewares.RolePermissionMiddleware(db, "threat_management", "modify"), threatActionPlanStatusUpdateController.UpdateThreatActionPlanStatusUpdate)
 	assetRoutes.GET("/threats/:id/action-plans/:actionPlanId/status-updates/latest", middlewares.RolePermissionMiddleware(db, "threat_management", "view"), threatActionPlanStatusUpdateController.GetLatestThreatActionPlanStatusUpdate)
+
+	assetRoutes.GET("/asset-maintenance", middlewares.RolePermissionMiddleware(db, "asset_maintenance", "view"), assetMaintenanceController.GetAllMaintenances)
+	assetRoutes.GET("/asset-maintenance/:id", middlewares.RolePermissionMiddleware(db, "asset_maintenance", "view"), assetMaintenanceController.GetMaintenanceDetails)
+	assetRoutes.POST("/asset-maintenance", middlewares.RolePermissionMiddleware(db, "asset_maintenance", "modify"), assetMaintenanceController.CreateMaintenance)
+	assetRoutes.PUT("/asset-maintenance/:id", middlewares.RolePermissionMiddleware(db, "asset_maintenance", "modify"), assetMaintenanceController.UpdateMaintenance)
+	assetRoutes.POST("/asset-maintenance/delete", middlewares.RolePermissionMiddleware(db, "asset_maintenance", "modify"), assetMaintenanceController.DeleteMaintenances)
 
 }
