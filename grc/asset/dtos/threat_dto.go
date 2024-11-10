@@ -84,6 +84,7 @@ type ThreatFormDTO struct {
 	SeverityLevelID   uint                          `json:"severity_level_id" binding:"required"`
 	ThreatStatusID    uint                          `json:"threat_status_id" binding:"required"`
 	ResponsibleUserID uint                          `json:"responsible_user_id" binding:"required"`
+	VulnerabilityID   *uint                         `json:"vulnerability_id,omitempty"`
 	Description       *string                       `json:"description,omitempty"`
 	Source            *string                       `json:"source,omitempty"`
 	DetectionDate     *string                       `json:"detection_date,omitempty" binding:"omitempty,datetime=2006-01-02"`
@@ -103,6 +104,7 @@ type ThreatDetailDTO struct {
 	ThreatType           *ThreatTypeDTO                   `json:"threat_type"`
 	SeverityLevel        masterDTOs.SeverityLevelDTO      `json:"severity_level"`
 	ThreatStatus         ThreatStatusDTO                  `json:"threat_status"`
+	Vulnerability        VulnerabilityDetailsDTO          `json:"vulnerability"`
 	ResponsibleUser      organizationDTOs.UserMinimalDTO  `json:"responsible_user"`
 	ResponsibleUnit      settingsDTOs.OrganizationUnitDTO `json:"responsible_unit"`
 	Description          *string                          `json:"description,omitempty"`

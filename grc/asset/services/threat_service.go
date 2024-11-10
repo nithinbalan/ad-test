@@ -36,6 +36,7 @@ type ThreatService struct {
 	severityLevelSvc masterServices.SeverityLevelServiceInterface
 	threatStatusSvc  ThreatStatusServiceInterface
 	userSvc          organizationServices.UserServiceInterface
+	vulnerabilitySvc    VulnerabilityServiceInterface
 }
 
 func NewThreatService(
@@ -45,6 +46,7 @@ func NewThreatService(
 	severityLevelSvc masterServices.SeverityLevelServiceInterface,
 	threatStatusSvc ThreatStatusServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
+	vulnerabilitySvc    VulnerabilityServiceInterface,
 ) ThreatServiceInterface {
 	return &ThreatService{
 		repo:             repo,
@@ -53,6 +55,7 @@ func NewThreatService(
 		severityLevelSvc: severityLevelSvc,
 		threatStatusSvc:  threatStatusSvc,
 		userSvc:          userSvc,
+		vulnerabilitySvc:          vulnerabilitySvc,
 	}
 }
 
@@ -131,6 +134,7 @@ func (ts *ThreatService) Create(threatFormDTO *dtos.ThreatFormDTO, currentUserID
 		ThreatStatusID:    threatFormDTO.ThreatStatusID,
 		ResponsibleUserID: threatFormDTO.ResponsibleUserID,
 		ResponsibleUnitID: organizationUnitID,
+		VulnerabilityID:   threatFormDTO.VulnerabilityID,
 		Description:       threatFormDTO.Description,
 		Source:            threatFormDTO.Source,
 		DetectionDate:     dates.DetectionDate,
@@ -248,6 +252,7 @@ func (ts *ThreatService) Update(id uint, threatFormDTO *dtos.ThreatFormDTO, curr
 	existingThreat.SeverityLevelID = threatFormDTO.SeverityLevelID
 	existingThreat.ThreatStatusID = threatFormDTO.ThreatStatusID
 	existingThreat.ResponsibleUserID = threatFormDTO.ResponsibleUserID
+	existingThreat.VulnerabilityID = threatFormDTO.VulnerabilityID
 	existingThreat.Description = threatFormDTO.Description
 	existingThreat.Source = threatFormDTO.Source
 	existingThreat.DetectionDate = dates.DetectionDate
@@ -454,7 +459,12 @@ func (ts *ThreatService) validateThreatFormDTO(threatFormDTO *dtos.ThreatFormDTO
 	if _, err := ts.userSvc.GetByID(threatFormDTO.ResponsibleUserID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("responsible user does not exist"), "not_exist", "responsible user")
 	}
-
+	
+	if threatFormDTO.VulnerabilityID != nil{
+		if _, err := ts.vulnerabilitySvc.GetByID(*threatFormDTO.VulnerabilityID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("vulnerability does not exist"), "not_exist", "vulnerability")
+		}
+	}
 	return nil
 }
 

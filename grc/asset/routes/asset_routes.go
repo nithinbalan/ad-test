@@ -34,6 +34,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	vulnerabilityActionPlanStatusUpdateController := app.AssetModule.VulnerabilityActionPlanStatusUpdateController
 	threatActionPlanController := app.AssetModule.ThreatActionPlanController
 	threatActionPlanStatusUpdateController := app.AssetModule.ThreatActionPlanStatusUpdateController
+	assetMaintenanceController := app.AssetModule.AssetMaintenanceController
 	assetAssociatedItemController := app.AssetModule.AssetAssociatedItemController
 	assetCriticalityController := app.AssetModule.AssetCriticalityController
 
@@ -163,8 +164,15 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.PUT("/threats/:id/action-plans/:actionPlanId/status-updates/:actionPlanStatusUpdateId", middlewares.RolePermissionMiddleware(db, "threat_management", "modify"), threatActionPlanStatusUpdateController.UpdateThreatActionPlanStatusUpdate)
 	assetRoutes.GET("/threats/:id/action-plans/:actionPlanId/status-updates/latest", middlewares.RolePermissionMiddleware(db, "threat_management", "view"), threatActionPlanStatusUpdateController.GetLatestThreatActionPlanStatusUpdate)
 
+	assetRoutes.GET("/assets/:id/maintenance", middlewares.RolePermissionMiddleware(db, "asset_maintenance", "view"), assetMaintenanceController.GetAllMaintenances)
+	assetRoutes.GET("/assets/:id/maintenance/:maintenanceId", middlewares.RolePermissionMiddleware(db, "asset_maintenance", "view"), assetMaintenanceController.GetMaintenanceDetails)
+	assetRoutes.POST("/assets/:id/maintenance", middlewares.RolePermissionMiddleware(db, "asset_maintenance", "modify"), assetMaintenanceController.CreateMaintenance)
+	assetRoutes.PUT("/assets/:id/maintenance/:maintenanceId", middlewares.RolePermissionMiddleware(db, "asset_maintenance", "modify"), assetMaintenanceController.UpdateMaintenance)
+	assetRoutes.POST("/assets/:id/maintenance/delete", middlewares.RolePermissionMiddleware(db, "asset_maintenance", "modify"), assetMaintenanceController.DeleteMaintenances)
+
 	//asset associated item list
 	assetRoutes.GET("assets/:id/controls", middlewares.RolePermissionMiddleware(db, "asset_setting", "view"), assetAssociatedItemController.GetAllAssetControls)
+	assetRoutes.GET("assets/:id/incidents", middlewares.RolePermissionMiddleware(db, "asset_setting", "view"), assetAssociatedItemController.GetAllAssetIncidents)
 
 	//asset criticality
 	assetRoutes.GET("assets/:id/criticality", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetCriticalityController.GetAssetCriticality)
