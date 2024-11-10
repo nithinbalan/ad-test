@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"jethur/config"
+	assetServices "jethur/grc/asset/services"
 	commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
 	complianceServices "jethur/grc/compliance/services"
@@ -61,6 +62,7 @@ type RiskRegisterService struct {
 	riskTimelineSvc          RiskTimelineServiceInterface
 	userSettingSvc           organizationServices.UserSettingServiceInterface
 	notificationSvc          commonServices.NotificationServiceInterface
+	assetRegisterSvc         assetServices.AssetRegisterServiceInterface
 }
 
 func NewRiskRegisterService(
@@ -80,6 +82,7 @@ func NewRiskRegisterService(
 	riskTimelineSvc RiskTimelineServiceInterface,
 	userSettingSvc organizationServices.UserSettingServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
+	assetRegisterSvc assetServices.AssetRegisterServiceInterface,
 ) RiskRegisterServiceInterface {
 	return &RiskRegisterService{
 		repo:                     repo,
@@ -98,6 +101,7 @@ func NewRiskRegisterService(
 		riskTimelineSvc:          riskTimelineSvc,
 		userSettingSvc:           userSettingSvc,
 		notificationSvc:          notificationSvc,
+		assetRegisterSvc:         assetRegisterSvc,
 	}
 }
 
@@ -309,6 +313,23 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 
 	if len(associatedDocs) > 0 {
 		if err := rrs.repo.CreateRiskDocuments(associatedDocs, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
+	var assets []*models.RiskAsset
+	for _, ast := range riskRegisterFormDTO.AssetIds {
+		asset := &models.RiskAsset{
+			RiskRegisterID:  id,
+			AssetRegisterID: *ast,
+			CreatedByID:     currentUserID,
+		}
+		assets = append(assets, asset)
+	}
+
+	if len(assets) > 0 {
+		if err := rrs.repo.CreateRiskAssets(assets, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
@@ -851,6 +872,56 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 		}
 	}
 
+	existingAssetIDs := make(map[uint]bool)
+	for _, asset := range existingRisk.Assets {
+		existingAssetIDs[asset.AssetRegisterID] = true
+	}
+
+	// Collect new asset IDs
+	newAssetIDs := make(map[uint]bool)
+	for _, assetID := range riskRegisterFormDTO.AssetIds {
+		newAssetIDs[*assetID] = true
+	}
+
+	// Add new assets
+	var assetsToAdd []*models.RiskAsset
+	for _, newAssetID := range riskRegisterFormDTO.AssetIds {
+		if _, exists := existingAssetIDs[*newAssetID]; !exists {
+			// Create a new risk asset record
+			asset := &models.RiskAsset{
+				RiskRegisterID:  id,
+				AssetRegisterID: *newAssetID,
+				CreatedByID:     currentUserID,
+			}
+			assetsToAdd = append(assetsToAdd, asset)
+		}
+	}
+
+	// Save the new assets
+	if len(assetsToAdd) > 0 {
+		if err := rrs.repo.CreateRiskAssets(assetsToAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// Remove assets not in the new list
+	var deleteAssetIDs []*uint
+	for _, existingAsset := range existingRisk.Assets {
+		if _, exists := newAssetIDs[existingAsset.AssetRegisterID]; !exists {
+			// Append asset ID to delete list
+			deleteAssetIDs = append(deleteAssetIDs, existingAsset.ID)
+		}
+	}
+
+	// Delete assets not in the new list
+	if len(deleteAssetIDs) > 0 {
+		if err := rrs.repo.DeleteRiskAssets(deleteAssetIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
 	// Save Documents
 	// documents update
 	var documents []*models.RiskDocument
@@ -1204,6 +1275,17 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 				deleteDocumentIds = append(deleteDocumentIds, document.ID)
 			}
 			if err := rrs.repo.DeleteRiskDocuments(deleteDocumentIds, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+		}
+
+		if len(risk.Assets) > 0 {
+			var deleteAssetIds []*uint
+			for _, ast := range risk.Assets {
+				deleteAssetIds = append(deleteAssetIds, ast.ID)
+			}
+			if err := rrs.repo.DeleteRiskAssets(deleteAssetIds, tx); err != nil {
 				tx.Rollback()
 				return nil, err
 			}
@@ -1765,6 +1847,22 @@ func (rrs *RiskRegisterService) validateRiskRegisterFormDTO(riskRegisterFormDTO 
 		}
 
 		strategicObjectiveIDs[*strategicObjectiveId] = true
+	}
+
+	assets := riskRegisterFormDTO.AssetIds
+	assetIDs := make(map[uint]bool)
+
+	for _, asset := range assets {
+		if assetIDs[*asset] {
+			return utility.NewValidationError(fmt.Errorf("duplicate asset ID: %d", asset), "duplicate", "asset")
+		}
+
+		if _, err := rrs.assetRegisterSvc.GetByID(*asset); err != nil {
+			return utility.NewValidationError(fmt.Errorf("asset does not exist for ID: %d", asset), "not_exist", "asset")
+		}
+
+		// Add the asset ID to the map
+		assetIDs[*asset] = true
 	}
 
 	return nil

@@ -68,6 +68,7 @@ type RiskRegister struct {
 	StrategicObjectives     []*RiskStrategicObjective    `gorm:"foreignKey:RiskRegisterID"`
 	KRIs                    []*RiskKri                   `gorm:"foreignKey:RiskRegisterID"`
 	AssociatedDocuments     []*RiskAssociatedDocument    `gorm:"foreignKey:RiskRegisterID"`
+	Assets                  []*RiskAsset                 `gorm:"foreignKey:RiskRegisterID"`
 }
 
 // TableName overrides the table name used by RiskRegister to `risk_register`
