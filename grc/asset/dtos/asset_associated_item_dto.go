@@ -2,6 +2,7 @@ package dtos
 
 import (
 	commonDTOs "jethur/grc/common/dtos"
+	"time"
 )
 
 type AssetControlListDTO struct {
@@ -64,11 +65,52 @@ type AssetIncidentListDTO struct {
 	IncidentReportedUserProfileImagePath string `json:"incident_reported_user_profile_image_path"`
 }
 
+type AssetRiskListDTO struct {
+	RiskRegisterID                  uint       `json:"risk_register_id"`
+	RiskReferenceNumber             string     `json:"risk_reference_number"`
+	RiskRegisterTitle               string     `json:"risk_register_title"`
+	RiskRegisterDescription         string     `json:"risk_register_description"`
+	RiskCategoryTitleEn             string     `json:"risk_category_title_en"`
+	RiskCategoryTitleAr             string     `json:"risk_category_title_ar"`
+	RiskSourceTitleEn               string     `json:"risk_source_title_en"`
+	RiskSourceTitleAr               string     `json:"risk_source_title_ar"`
+	ResponsibleUnitTitleEn          string     `json:"responsible_unit_title_en"`
+	ResponsibleUnitTitleAr          string     `json:"responsible_unit_title_ar"`
+	ResponsibleUserID               uint       `json:"responsible_user_id"`
+	ResponsibleUserFirstNameEn      string     `json:"responsible_user_first_name_en"`
+	ResponsibleUserFirstNameAr      string     `json:"responsible_user_first_name_ar"`
+	ResponsibleUserLastNameEn       string     `json:"responsible_user_last_name_en"`
+	ResponsibleUserLastNameAr       string     `json:"responsible_user_last_name_ar"`
+	ResponsibleUserInitial          string     `json:"responsible_user_initial"`
+	ResponsibleUserColor            string     `json:"responsible_user_color"`
+	ResponsibleUserEmail            string     `json:"responsible_user_email"`
+	ResponsibleUserProfileImagePath string     `json:"responsible_user_profile_image_path"`
+	RiskReportedAt                  *time.Time `json:"risk_reported_at"`
+	RiskReviewFrequencyTitleEn      *string    `json:"risk_review_frequency_title_en"`
+	RiskReviewFrequencyTitleAr      *string    `json:"risk_review_frequency_title_ar"`
+	RiskNextReviewDate              *string    `json:"risk_next_review_date"`
+	RiskStatusTitleEn               string     `json:"risk_status_title_en"`
+	RiskStatusTitleAr               string     `json:"risk_status_title_ar"`
+	RiskStatusColorCode             string     `json:"risk_status_color_code"`
+	RiskMatrixLikelihoodTitleEn     string     `json:"risk_matrix_likelihood_title_en"`
+	RiskMatrixLikelihoodTitleAr     string     `json:"risk_matrix_likelihood_title_ar"`
+	RiskMatrixLikelihoodColorCode   string     `json:"risk_matrix_likelihood_score"`
+	RiskMatrixImpactTitleEn         string     `json:"risk_matrix_impact_title_en"`
+	RiskMatrixImpactTitleAr         string     `json:"risk_matrix_impact_title_ar"`
+	RiskMatrixImpactColorCode       string     `json:"risk_matrix_impact_score"`
+	RiskMatrixRiskRatingTitleEn     string     `json:"risk_matrix_risk_rating_title_en"`
+	RiskMatrixRiskRatingTitleAr     string     `json:"risk_matrix_risk_rating_title_ar"`
+	RiskMatrixRiskRatingType        string     `json:"risk_matrix_risk_rating_type"`
+	RiskMatrixRiskRatingColorCode   string     `json:"risk_matrix_risk_rating_color_code"`
+	RiskMatrixRiskRatingValue       string     `json:"risk_matrix_risk_rating_value"`
+}
+
 type AssetAssociatedItemListQueryParamsDTO struct {
 	Sort        string
 	SortBy      string
 	Keyword     string
 	Status      string
+	Value       int
 	Page        int
 	PageSize    int
 	QuickFilter []string
@@ -81,5 +123,10 @@ type AssetAssociatedItemControlListResponseDTO struct {
 
 type AssetAssociatedItemIncidentListResponseDTO struct {
 	Items      []*AssetIncidentListDTO      `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
+}
+
+type AssetAssociatedItemRiskListResponseDTO struct {
+	Items      []*AssetRiskListDTO          `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }
