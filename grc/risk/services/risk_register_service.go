@@ -1161,13 +1161,13 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 		}
 
 		newData := map[string]interface{}{
-			"title":            existingRiskRegister.Title,
-			"description":      existingRiskRegister.Description,
-			"risk_categrory":   existingRiskRegister.RiskCategory.TitleEn,
-			"risk_source":      existingRiskRegister.RiskSource.TitleEn,
-			"reported_at":      existingRiskRegister.ReportedAt,
-			"next_review_date": existingRiskRegister.NextReviewDate,
-			"responsible_user": fmt.Sprintf("%s %s", existingRiskRegister.ResponsibleUser.FirstNameEn, existingRiskRegister.ResponsibleUser.LastNameEn),
+			"title":            existingRisk.Title,
+			"description":      existingRisk.Description,
+			"risk_categrory":   existingRisk.RiskCategory.TitleEn,
+			"risk_source":      existingRisk.RiskSource.TitleEn,
+			"reported_at":      existingRisk.ReportedAtString,
+			"next_review_date": existingRisk.NextReviewDateString,
+			"responsible_user": fmt.Sprintf("%s %s", existingRisk.ResponsibleUser.FirstNameEN, existingRisk.ResponsibleUser.LastNameEN),
 		}
 
 		// Compare other fields and add them to changedData
