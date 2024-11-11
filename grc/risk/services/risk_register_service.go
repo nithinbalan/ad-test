@@ -1158,7 +1158,7 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 			"risk_source":      oldRiskRegister.RiskSource.TitleEn,
 			"reported_at":      oldRiskRegister.ReportedAtString,
 			"next_review_date": oldRiskRegister.NextReviewDateString,
-			"responsible_user": oldRiskRegister.ResponsibleUser.FirstNameEN,
+			"responsible_user": fmt.Sprintf("%s %s", oldRiskRegister.ResponsibleUser.FirstNameEN, oldRiskRegister.ResponsibleUser.LastNameEN),
 		}
 
 		newData := map[string]interface{}{
