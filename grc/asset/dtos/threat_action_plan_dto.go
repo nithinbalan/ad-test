@@ -136,3 +136,8 @@ type ThreatActionPlanStatusUpdateDocumentDTO struct {
 	OriginalName string `json:"original_name"`
 	Type         string `json:"type"`
 }
+
+type ThreatActionPlanSummaryDTO struct {
+	OpenCount   int `json:"open_count"`
+	ClosedCount int `json:"closed_count"`
+}

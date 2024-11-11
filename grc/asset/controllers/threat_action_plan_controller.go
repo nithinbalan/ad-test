@@ -311,6 +311,32 @@ func (tapc *ThreatActionPlanController) DeleteThreatActionPlans(c *gin.Context) 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
 
+func (tapc *ThreatActionPlanController) GetThreatActionPlanSummary(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	summary, err := tapc.service.GetThreatActionPlanSummary(uint(id))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(tapc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, summary)
+}
+
 func (tapc *ThreatActionPlanController) GetThreatActionPlanExport(c *gin.Context) {
 	c.Request.URL.RawQuery += "&export=true"
 
