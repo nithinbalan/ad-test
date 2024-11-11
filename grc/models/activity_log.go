@@ -12,6 +12,8 @@ type ActivityLog struct {
 	ChangedData string    `json:"changed_data" gorm:"type:nvarchar(max)"`
 	UserID      uint      `json:"user_id"`
 	CreatedAt   time.Time `json:"created_at" gorm:"type:datetime;not null;default:GETDATE()"`
+
+	User *User `gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 }
 
 type Action string
