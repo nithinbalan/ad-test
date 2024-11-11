@@ -313,18 +313,21 @@ func (as *AssetRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 }
 
 func (ars *AssetRegisterService) UpdateTotalScore(assetID uint, totalScore float64, tx ...utility.DatabaseTransaction) error {
-
-	ratingScale, err := ars.assetCriticalityMatrixRatingScaleSvc.GetRatingScaleByScore(totalScore)
-	if err != nil {
-		return err
-	}
-
 	existingAsset, err := ars.repo.GetByID(assetID)
 	if err != nil {
 		return err
 	}
 
-	existingAsset.AssetCriticalityMatrixRatingScaleID = &ratingScale.ID
+	if totalScore == 0 {
+		existingAsset.AssetCriticalityMatrixRatingScaleID = nil
+	} else {
+		ratingScale, err := ars.assetCriticalityMatrixRatingScaleSvc.GetRatingScaleByScore(totalScore)
+		if err != nil {
+			return err
+		}
+		existingAsset.AssetCriticalityMatrixRatingScaleID = &ratingScale.ID
+
+	}
 	existingAsset.TotalScore = &totalScore
 
 	err = ars.repo.Update(existingAsset, tx...)

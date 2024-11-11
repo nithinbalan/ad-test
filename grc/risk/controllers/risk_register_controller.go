@@ -48,6 +48,9 @@ func (rrc *RiskRegisterController) GetAllRiskRegisters(c *gin.Context) {
 		"responsible_user_ids",
 		"risk_status_ids",
 		"review_frequency_ids",
+		"current_likelihood_ids",
+		"current_impact_ids",
+		"current_risk_rating_ids",
 	}
 
 	validSortFields := map[string]string{

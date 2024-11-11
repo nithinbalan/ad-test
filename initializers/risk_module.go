@@ -54,6 +54,7 @@ func NewRiskModule(db *gorm.DB,
 	complianceModule *ComplianceModule,
 	commonModule *CommonModule,
 	taskModule *TaskModule,
+	assetModule *AssetModule,
 ) *RiskModule {
 	riskCategoryRepo := repositories.NewRiskCategoryRepository(db)
 	riskCategorySvc := services.NewRiskCategoryService(riskCategoryRepo, sharedModule.ActivityLogService)
@@ -198,7 +199,8 @@ func NewRiskModule(db *gorm.DB,
 		riskMatrixSvc,
 		riskTimelineSvc,
 		organizationModule.UserSettingSvc,
-		commonModule.NotificationService)
+		commonModule.NotificationService,
+		assetModule.AssetRegisterSvc)
 	riskRegisterController := controllers.NewRiskRegisterController(riskRegisterSvc)
 
 	riskRootCauseAnalysisRepo := repositories.NewRiskRootCauseAnalysisRepository(db)

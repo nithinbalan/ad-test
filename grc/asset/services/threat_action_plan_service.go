@@ -27,6 +27,8 @@ type ThreatActionPlanServiceInterface interface {
 	Delete(threatID uint, ids []uint, currentUserID uint) ([]uint, error)
 	StatusUpdate(threatID uint, id uint, currentUserID uint, statusUpdateFormDTO *assetDTOs.ThreatActionPlanStatusUpdateFormDTO, tx utility.DatabaseTransaction) error
 	ExportThreatActionPlan(data []*assetDTOs.ThreatActionPlanListDTO, currentUserID uint) (*os.File, error)
+
+	GetThreatActionPlanSummary(threatID uint) (*assetDTOs.ThreatActionPlanSummaryDTO, error)
 }
 
 type ThreatActionPlanService struct {
@@ -325,6 +327,20 @@ func (taps *ThreatActionPlanService) parseActionPlanDates(dto *assetDTOs.ThreatA
 	}
 
 	return parsed, nil
+}
+
+func (taps *ThreatActionPlanService) GetThreatActionPlanSummary(threatID uint) (*assetDTOs.ThreatActionPlanSummaryDTO, error) {
+	openCount, closedCount, err := taps.repo.GetThreatActionPlanSummary(threatID)
+	if err != nil {
+		return nil, err
+	}
+
+	summary := &assetDTOs.ThreatActionPlanSummaryDTO{
+		OpenCount:   openCount,
+		ClosedCount: closedCount,
+	}
+
+	return summary, nil
 }
 
 func (taps *ThreatActionPlanService) ExportThreatActionPlan(data []*assetDTOs.ThreatActionPlanListDTO, currentUserID uint) (*os.File, error) {

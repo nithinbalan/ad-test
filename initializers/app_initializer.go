@@ -23,6 +23,7 @@ type App struct {
 	AuditInsightsModule *AuditInsightsModule
 	ReportsModule       *ReportsModule
 	AssetModule         *AssetModule
+	SharedModule        *SharedModule
 }
 
 func NewApp(db *gorm.DB) *App {
@@ -35,8 +36,8 @@ func NewApp(db *gorm.DB) *App {
 	organizationModule := NewOrganizationModule(db, sharedModule, settingsModule, masterModule, taskModule, commonModule)
 	authModule := NewAuthModule(db, organizationModule, settingsModule, commonModule)
 	complianceModule := NewComplianceModule(db, sharedModule, masterModule, organizationModule, taskModule, settingsModule, commonModule)
-	riskModule := NewRiskModule(db, sharedModule, settingsModule, masterModule, libraryModule, organizationModule, complianceModule, commonModule, taskModule)
 	assetModule := NewAssetModule(db, sharedModule, settingsModule, masterModule, organizationModule, taskModule, commonModule)
+	riskModule := NewRiskModule(db, sharedModule, settingsModule, masterModule, libraryModule, organizationModule, complianceModule, commonModule, taskModule, assetModule)
 	incidentModule := NewIncidentModule(db, sharedModule, settingsModule, masterModule, organizationModule, complianceModule, riskModule, taskModule, commonModule, assetModule)
 	documentModule := NewDocumentModule(db, sharedModule, settingsModule, masterModule, organizationModule, taskModule, commonModule)
 	meetingModule := NewMeetingModule(db, sharedModule, organizationModule, masterModule, commonModule, complianceModule, riskModule, incidentModule, taskModule)
@@ -64,5 +65,6 @@ func NewApp(db *gorm.DB) *App {
 		AuditInsightsModule: auditInsightsModule,
 		ReportsModule:       reportsModule,
 		AssetModule:         assetModule,
+		SharedModule:        sharedModule,
 	}
 }

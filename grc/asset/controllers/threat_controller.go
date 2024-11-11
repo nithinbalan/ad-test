@@ -231,7 +231,13 @@ func (tc *ThreatController) GetThreatsExport(c *gin.Context) {
 }
 
 func (tc *ThreatController) GetThreatSummary(c *gin.Context) {
-	summary, err := tc.service.GetThreatSummary()
+	idStr := c.Param("id")
+	assetId, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	summary, err := tc.service.GetThreatSummary(uint(assetId))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

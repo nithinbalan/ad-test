@@ -26,7 +26,7 @@ type ThreatServiceInterface interface {
 	Update(id uint, threatForm *dtos.ThreatFormDTO, currentUserID uint) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 
-	GetThreatSummary() (*dtos.ThreatSummaryDTO, error)
+	GetThreatSummary(assetId uint) (*dtos.ThreatSummaryDTO, error)
 }
 
 type ThreatService struct {
@@ -36,7 +36,7 @@ type ThreatService struct {
 	severityLevelSvc masterServices.SeverityLevelServiceInterface
 	threatStatusSvc  ThreatStatusServiceInterface
 	userSvc          organizationServices.UserServiceInterface
-	vulnerabilitySvc    VulnerabilityServiceInterface
+	vulnerabilitySvc VulnerabilityServiceInterface
 }
 
 func NewThreatService(
@@ -46,7 +46,7 @@ func NewThreatService(
 	severityLevelSvc masterServices.SeverityLevelServiceInterface,
 	threatStatusSvc ThreatStatusServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
-	vulnerabilitySvc    VulnerabilityServiceInterface,
+	vulnerabilitySvc VulnerabilityServiceInterface,
 ) ThreatServiceInterface {
 	return &ThreatService{
 		repo:             repo,
@@ -55,7 +55,7 @@ func NewThreatService(
 		severityLevelSvc: severityLevelSvc,
 		threatStatusSvc:  threatStatusSvc,
 		userSvc:          userSvc,
-		vulnerabilitySvc:          vulnerabilitySvc,
+		vulnerabilitySvc: vulnerabilitySvc,
 	}
 }
 
@@ -459,8 +459,8 @@ func (ts *ThreatService) validateThreatFormDTO(threatFormDTO *dtos.ThreatFormDTO
 	if _, err := ts.userSvc.GetByID(threatFormDTO.ResponsibleUserID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("responsible user does not exist"), "not_exist", "responsible user")
 	}
-	
-	if threatFormDTO.VulnerabilityID != nil{
+
+	if threatFormDTO.VulnerabilityID != nil {
 		if _, err := ts.vulnerabilitySvc.GetByID(*threatFormDTO.VulnerabilityID); err != nil {
 			return utility.NewValidationError(fmt.Errorf("vulnerability does not exist"), "not_exist", "vulnerability")
 		}
@@ -487,8 +487,8 @@ func (ts *ThreatService) parseThreatDates(threatRegisterFormDTO *dtos.ThreatForm
 	return parse, nil
 }
 
-func (ts *ThreatService) GetThreatSummary() (*dtos.ThreatSummaryDTO, error) {
-	openCount, closedCount, err := ts.repo.GetThreatSummary()
+func (ts *ThreatService) GetThreatSummary(assetId uint) (*dtos.ThreatSummaryDTO, error) {
+	openCount, closedCount, err := ts.repo.GetThreatSummary(assetId)
 	if err != nil {
 		return nil, err
 	}

@@ -1,6 +1,7 @@
 package dtos
 
 import (
+	assetDTOs "jethur/grc/asset/dtos"
 	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	masterDTOs "jethur/grc/masters/dtos"
@@ -160,6 +161,7 @@ type RiskRegisterDetailDTO struct {
 	SLARegisters            []*RiskSLARegisterDTO            `json:"sla_registers"`
 	Kris                    []*RiskKRIDTO                    `json:"kris"`
 	AssociatedDocuments     []*RiskAssociatedDocumentDTO     `json:"associated_documents"`
+	Assets                  []*RiskAssetDTO                  `json:"assets"`
 	MarkedAsAuditableItem   bool                             `json:"marked_as_auditable_item"`
 }
 
@@ -210,6 +212,13 @@ type RiskSLARegisterDTO struct {
 	SLARegisterID  uint                                `json:"sla_register_id"`
 	SLARegister    complianceDTOs.SLARegisterDetailDTO `json:"sla_register"`
 }
+
+type RiskAssetDTO struct {
+	ID              *uint                            `json:"id"`
+	RiskRegisterID  uint                             `json:"risk_register_id"`
+	AssetRegisterID uint                             `json:"asset_register_id"`
+	AssetRegister   assetDTOs.AssetRegisterDetailDTO `json:"asset"`
+}
 type RiskRegisterFormDTO struct {
 	RiskCategoryID           uint                          `json:"risk_category_id" binding:"required"`
 	RiskSourceID             *uint                         `json:"risk_source_id"`
@@ -227,6 +236,7 @@ type RiskRegisterFormDTO struct {
 	StrategicObjectiveIDs    []*uint                       `json:"strategic_objective_ids"`
 	SLARegisterIDs           []*uint                       `json:"sla_register_ids"`
 	DocumentIds              []*uint                       `json:"document_ids"`
+	AssetIds                 []*uint                       `json:"asset_ids"`
 }
 
 type RiskRegisterParsedDates struct {

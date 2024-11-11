@@ -198,13 +198,10 @@ func (acs *AssetCriticalityService) Delete(assetID uint, userID uint) error {
 		return err
 	}
 
-	// asset.AssetCriticalityMatrixRatingScaleID = nil
-	// asset.TotalScore = nil
-
-	// err = acs.assetRegisterSvc.Update(asset, tx...)
-	// if err != nil {
-	// 	return err
-	// }
+	err = acs.assetRegisterSvc.UpdateTotalScore(assetID, 0, tx)
+	if err != nil {
+		return err
+	}
 
 	tx.Commit()
 	return nil
