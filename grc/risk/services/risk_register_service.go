@@ -1151,8 +1151,7 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 		}
 		//log changes
 		oldData := map[string]interface{}{
-			"title_en":         oldRiskRegister.Title,
-			"title_ar":         oldRiskRegister.Title,
+			"title":            oldRiskRegister.Title,
 			"description":      oldRiskRegister.Description,
 			"risk_categrory":   oldRiskRegister.RiskCategory.TitleEn,
 			"risk_source":      oldRiskRegister.RiskSource.TitleEn,
@@ -1162,8 +1161,7 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 		}
 
 		newData := map[string]interface{}{
-			"title_en":         existingRiskRegister.Title,
-			"title_ar":         existingRiskRegister.Title,
+			"title":            existingRiskRegister.Title,
 			"description":      existingRiskRegister.Description,
 			"risk_categrory":   existingRiskRegister.RiskCategory.TitleEn,
 			"risk_source":      existingRiskRegister.RiskSource.TitleEn,
@@ -1390,9 +1388,8 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 		})
 
 		deletedRiskRegister = append(deletedRiskRegister, map[string]interface{}{
-			"ID":      id,
-			"TitleEn": risk.Title,
-			"TitleAr": risk.Title,
+			"ID":    id,
+			"Title": risk.Title,
 		})
 		// Check if controls exist
 		if len(risk.Controls) > 0 {

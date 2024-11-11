@@ -284,9 +284,6 @@ func (repo *RiskRegisterRepository) GetByID(id uint, tx ...utility.DatabaseTrans
 	var risk *models.RiskRegister
 
 	result := db.
-		Preload("RiskCategory").
-		Preload("RiskSource").
-		Preload("ResponsibleUser").
 		First(&risk, id)
 	if result.Error != nil {
 		return nil, result.Error
