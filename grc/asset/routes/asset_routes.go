@@ -106,7 +106,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("/vulnerabilities", middlewares.RolePermissionMiddleware(db, "assets", "modify"), vulnerabilityController.CreateVulnerability)
 	assetRoutes.PUT("/vulnerabilities/:id", middlewares.RolePermissionMiddleware(db, "assets", "modify"), vulnerabilityController.UpdateVulnerability)
 	assetRoutes.POST("/vulnerabilities/delete", middlewares.RolePermissionMiddleware(db, "assets", "modify"), vulnerabilityController.DeleteVulnerabilities)
-	assetRoutes.GET("/vulnerabilities/summary", vulnerabilityController.GetVulnerabilitySummary)
+	assetRoutes.GET("assets/:id/vulnerability-summary", vulnerabilityController.GetVulnerabilitySummary)
 	//Threat types
 	assetRoutes.GET("/threat-types", threatTypeController.GetAllThreatTypes)
 	assetRoutes.GET("/threat-types/:id", threatTypeController.GetThreatTypeDetails)
@@ -126,7 +126,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("/threats", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), threatController.CreateThreat)
 	assetRoutes.PUT("/threats/:id", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), threatController.UpdateThreat)
 	assetRoutes.POST("/threats/delete", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), threatController.DeleteThreats)
-	assetRoutes.GET("/threats/summary", threatController.GetThreatSummary)
+	assetRoutes.GET("assets/:id/threat-summary", threatController.GetThreatSummary)
 
 	//vulnerability action plan
 	assetRoutes.GET("/vulnerability-action-plans/export", middlewares.RolePermissionMiddleware(db, "vulnerability_mitigation", "view"), vulnerabilityActionPlanController.GetVulnerabilityActionPlanExport)
@@ -136,6 +136,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("/vulnerabilities/:id/action-plans", middlewares.RolePermissionMiddleware(db, "vulnerability_mitigation", "modify"), vulnerabilityActionPlanController.CreateVulnerabilityActionPlan)
 	assetRoutes.PUT("/vulnerabilities/:id/action-plans/:actionPlanId", middlewares.RolePermissionMiddleware(db, "vulnerability_mitigation", "modify"), vulnerabilityActionPlanController.UpdateVulnerabilityActionPlan)
 	assetRoutes.POST("/vulnerabilities/:id/action-plans/delete", middlewares.RolePermissionMiddleware(db, "vulnerability_mitigation", "modify"), vulnerabilityActionPlanController.DeleteVulnerabilityActionPlans)
+
+	assetRoutes.GET("/vulnerabilities/:id/action-plan-summary", middlewares.RolePermissionMiddleware(db, "vulnerability_mitigation", "view"), vulnerabilityActionPlanController.GetVulnerabilityActionPlanSummary)
 
 	// Document Preview and Download for Vulnerability Action Plan Status Update
 	unauthenticatedRoutes.GET("/vulnerabilities/:id/action-plans/:actionPlanId/status-updates/:statusUpdateId/document-preview", vulnerabilityActionPlanStatusUpdateController.GetDocumentPreview)
@@ -154,6 +156,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("/threats/:id/action-plans", middlewares.RolePermissionMiddleware(db, "threat_mitigation", "modify"), threatActionPlanController.CreateThreatActionPlan)
 	assetRoutes.PUT("/threats/:id/action-plans/:actionPlanId", middlewares.RolePermissionMiddleware(db, "threat_mitigation", "modify"), threatActionPlanController.UpdateThreatActionPlan)
 	assetRoutes.POST("/threats/:id/action-plans/delete", middlewares.RolePermissionMiddleware(db, "threat_mitigation", "modify"), threatActionPlanController.DeleteThreatActionPlans)
+
+	assetRoutes.GET("/threats/:id/action-plan-summary", middlewares.RolePermissionMiddleware(db, "threat_mitigation", "view"), threatActionPlanController.GetThreatActionPlanSummary)
 
 	// Document Preview and Download for Threat Action Plan Status Update
 	unauthenticatedRoutes.GET("/threats/:id/action-plans/:actionPlanId/status-updates/:statusUpdateId/document-preview", threatActionPlanStatusUpdateController.GetDocumentPreview)

@@ -21,6 +21,8 @@ type ThreatActionPlanRepositoryInterface interface {
 
 	CreateInitialThreatActionPlanStatusUpdate(threatActionPlanStatusUpdate *models.ThreatActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
 	DeleteThreatActionPlanStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error
+
+	GetThreatActionPlanSummary(threatID uint) (openCount int, closedCount int, err error)
 }
 
 type ThreatActionPlanRepository struct {
@@ -280,4 +282,28 @@ func (repo *ThreatActionPlanRepository) DeleteThreatActionPlanStatusUpdates(ids 
 	}
 
 	return nil
+}
+
+func (repo *ThreatActionPlanRepository) GetThreatActionPlanSummary(threatID uint) (openCount int, closedCount int, err error) {
+	var open int64
+	var closed int64
+
+	err = repo.db.Model(&models.ThreatActionPlan{}).
+		Where("threat_id = ? AND action_plan_status_id IN (SELECT id FROM action_plan_statuses WHERE type IN ('new', 'in_progress', 'on_hold'))", threatID).
+		Count(&open).Error
+	if err != nil {
+		return 0, 0, err
+	}
+
+	err = repo.db.Model(&models.ThreatActionPlan{}).
+		Where("threat_id = ? AND action_plan_status_id IN (SELECT id FROM action_plan_statuses WHERE type IN ('completed', 'terminated'))", threatID).
+		Count(&closed).Error
+	if err != nil {
+		return 0, 0, err
+	}
+
+	openCount = int(open)
+	closedCount = int(closed)
+
+	return openCount, closedCount, nil
 }

@@ -23,7 +23,7 @@ type ThreatRepositoryInterface interface {
 	CreateDocuments(docs []*models.ThreatDocument, tx ...utility.DatabaseTransaction) error
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
 
-	GetThreatSummary() (openCount int, closedCount int, err error)
+	GetThreatSummary(assetId uint) (openCount int, closedCount int, err error)
 }
 
 // Implementation
@@ -273,20 +273,24 @@ func (repo *ThreatRepository) DeleteDocuments(docIds []*uint, tx ...utility.Data
 	return nil
 }
 
-func (repo *ThreatRepository) GetThreatSummary() (openCount int, closedCount int, err error) {
+func (repo *ThreatRepository) GetThreatSummary(assetId uint) (openCount int, closedCount int, err error) {
 	var open int64
 	var closed int64
 
-	// Count open threats
+	// Count open threats associated with the specified asset through the vulnerability link
 	err = repo.db.Model(&models.Threat{}).
+		Joins("JOIN vulnerability_assets va ON threats.vulnerability_id = va.vulnerability_id").
+		Where("va.asset_register_id = ?", assetId).
 		Where("threat_status_id IN (SELECT id FROM threat_statuses WHERE type IN ('new', 'in-progress', 'active'))").
 		Count(&open).Error
 	if err != nil {
 		return 0, 0, err
 	}
 
-	// Count closed threats
+	// Count closed threats associated with the specified asset through the vulnerability link
 	err = repo.db.Model(&models.Threat{}).
+		Joins("JOIN vulnerability_assets va ON threats.vulnerability_id = va.vulnerability_id").
+		Where("va.asset_register_id = ?", assetId).
 		Where("threat_status_id IN (SELECT id FROM threat_statuses WHERE type IN ('resolved', 'closed'))").
 		Count(&closed).Error
 	if err != nil {
