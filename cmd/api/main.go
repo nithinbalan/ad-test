@@ -12,6 +12,7 @@ import (
 	incidentRoutes "jethur/grc/incident/routes"
 	kpiRoutes "jethur/grc/kpi/routes"
 	libraryRoutes "jethur/grc/library/routes"
+	logRoutes "jethur/grc/logs/routes"
 	masterRoutes "jethur/grc/masters/routes"
 	meetingRoutes "jethur/grc/meeting/routes"
 	organizationRoutes "jethur/grc/organization/routes"
@@ -52,6 +53,7 @@ func main() {
 	r.Use(middlewares.ThrottleMiddleware(10, 20))
 
 	masterRoutes.RegisterRoutes(app, r)
+	logRoutes.RegisterRoutes(app, r)
 	meetingRoutes.RegisterRoutes(app, r)
 	authRoutes.RegisterRoutes(app, r)
 	complianceRoutes.RegisterRoutes(app, r)

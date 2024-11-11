@@ -23,6 +23,7 @@ type App struct {
 	AuditInsightsModule *AuditInsightsModule
 	ReportsModule       *ReportsModule
 	AssetModule         *AssetModule
+	SharedModule        *SharedModule
 }
 
 func NewApp(db *gorm.DB) *App {
@@ -64,5 +65,6 @@ func NewApp(db *gorm.DB) *App {
 		AuditInsightsModule: auditInsightsModule,
 		ReportsModule:       reportsModule,
 		AssetModule:         assetModule,
+		SharedModule:        sharedModule,
 	}
 }
