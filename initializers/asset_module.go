@@ -150,7 +150,7 @@ func NewAssetModule(db *gorm.DB,
 	assetMaintenanceSvc := services.NewAssetMaintenanceService(assetMaintenanceRepo, sharedModule.ActivityLogService, assetRegisterSvc, organizationModule.UserSvc)
 	assetMaintenanceController := controllers.NewAssetMaintenanceController(assetMaintenanceSvc)
 	assetAssociatedItemRepo := repositories.NewAssetAssociatedItemRepository(db)
-	assetAssociatedItemSvc := services.NewAssetAssociatedItemService(assetAssociatedItemRepo, assetRegisterSvc)
+	assetAssociatedItemSvc := services.NewAssetAssociatedItemService(assetAssociatedItemRepo, assetRegisterSvc,  organizationModule.ControlImplementationStatusSvc, organizationModule.ControlEfficiencyStatusSvc)
 	assetAssociatedItemController := controllers.NewAssetAssociatedItemController(assetAssociatedItemSvc)
 
 	assetCriticalityRepo := repositories.NewAssetCriticalityRepository(db)
