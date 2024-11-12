@@ -1019,8 +1019,9 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 		}
 	}
 
-	go func() {
+	tx.Commit()
 
+	go func() {
 		// Determine control, process, compliant register, sla register, asset and document changes
 		controlsAdded := []uint{}
 		controlsRemoved := []uint{}
@@ -1320,30 +1321,6 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 					"error": err.Error(),
 				})
 			}
-		}
-	}()
-
-	tx.Commit()
-
-	go func() {
-		err := rrs.activityLogSvc.LogActivity(
-			models.UpdateAction,
-			models.RiskRegister{}.TableName(),
-			id,
-			riskRegisterFormDTO,
-			currentUserID,
-			nil,
-		)
-		if err != nil {
-			fields := map[string]interface{}{
-				"action":    models.UpdateAction,
-				"tableName": models.RiskRegister{}.TableName(),
-				"recordID":  id,
-				"userID":    currentUserID,
-				"error":     err.Error(),
-			}
-
-			utility.LogError("Failed to log activity", fields)
 		}
 	}()
 
