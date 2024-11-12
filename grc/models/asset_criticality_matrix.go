@@ -7,9 +7,10 @@ type AssetCriticalityMatrix struct {
 	Status  string `json:"status" gorm:"type:varchar(10);default:'active'" binding:"required,oneof=active inactive"`
 
 	// Relationships
-	Factors       []*AssetCriticalityMatrixFactor       `gorm:"foreignKey:AssetCriticalityMatrixID"`
-	FactorRatings []*AssetCriticalityMatrixFactorRating `gorm:"foreignKey:AssetCriticalityMatrixID"`
-	RatingScales  []*AssetCriticalityMatrixRatingScale  `gorm:"foreignKey:AssetCriticalityMatrixID"`
+	Factors         []*AssetCriticalityMatrixFactor        `gorm:"foreignKey:AssetCriticalityMatrixID"`
+	FactorRatings   []*AssetCriticalityMatrixFactorRating  `gorm:"foreignKey:AssetCriticalityMatrixID"`
+	RatingScales    []*AssetCriticalityMatrixRatingScale   `gorm:"foreignKey:AssetCriticalityMatrixID"`
+	AssetCategories []*AssetCriticalityMatrixAssetCategory `gorm:"foreignKey:AssetCriticalityMatrixID"`
 }
 
 func (AssetCriticalityMatrix) TableName() string {

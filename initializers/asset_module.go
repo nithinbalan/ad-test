@@ -55,7 +55,7 @@ func NewAssetModule(db *gorm.DB,
 	assetStatusController := controllers.NewAssetStatusController(assetStatusSvc)
 
 	assetCriticalityMatrixRepo := repositories.NewAssetCriticalityMatrixRepository(db)
-	assetCriticalityMatrixSvc := services.NewAssetCriticalityMatrixService(assetCriticalityMatrixRepo)
+	assetCriticalityMatrixSvc := services.NewAssetCriticalityMatrixService(assetCriticalityMatrixRepo, sharedModule.ActivityLogService)
 	assetCriticalityMatrixController := controllers.NewAssetCriticalityMatrixController(assetCriticalityMatrixSvc)
 
 	assetCriticalityMatrixFactorRepo := repositories.NewAssetCriticalityMatrixFactorRepository(db)

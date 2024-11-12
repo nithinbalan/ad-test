@@ -21,6 +21,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetCategoryController := app.AssetModule.AssetCategoryController
 	assetStatusController := app.AssetModule.AssetStatusController
 	assetRegisterController := app.AssetModule.AssetRegisterController
+	assetCriticalityMatrixController := app.AssetModule.AssetCriticalityMatrixController
 	assetCriticalityMatrixFactorController := app.AssetModule.AssetCriticalityMatrixFactorController
 	assetCriticalityMatrixFactorRatingController := app.AssetModule.AssetCriticalityMatrixFactorRatingController
 	assetCriticalityMatrixRatingScaleController := app.AssetModule.AssetCriticalityMatrixRatingScaleController
@@ -67,26 +68,33 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.PUT("/asset-register/:id", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetRegisterController.UpdateAsset)
 	assetRoutes.POST("/asset-register/delete", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetRegisterController.DeleteAssets)
 
+	//Asset Matrix
+	assetRoutes.GET("/asset-criticality-matrices", middlewares.RolePermissionMiddleware(db, "asset_setting", "view"), assetCriticalityMatrixController.GetAllMatrices)
+	assetRoutes.GET("/asset-criticality-matrices/:id", middlewares.RolePermissionMiddleware(db, "asset_setting", "view"), assetCriticalityMatrixController.GetMatrixDetails)
+	assetRoutes.POST("/asset-criticality-matrices", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), assetCriticalityMatrixController.CreateMatrix)
+	assetRoutes.PUT("/asset-criticality-matrices/:id", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), assetCriticalityMatrixController.UpdateMatrix)
+	assetRoutes.POST("/asset-criticality-matrices/delete", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), assetCriticalityMatrixController.DeleteMatrices)
+
 	// Asset Criticality Matrix Factors
 	assetRoutes.GET("/asset-criticality-matrix-factors", assetCriticalityMatrixFactorController.GetAllFactors)
 	assetRoutes.GET("/asset-criticality-matrix-factors/:id", assetCriticalityMatrixFactorController.GetFactorDetails)
-	assetRoutes.POST("/asset-criticality-matrix-factors", middlewares.RolePermissionMiddleware(db, "asset_criticality", "modify"), assetCriticalityMatrixFactorController.CreateFactor)
-	assetRoutes.PUT("/asset-criticality-matrix-factors/:id", middlewares.RolePermissionMiddleware(db, "asset_criticality", "modify"), assetCriticalityMatrixFactorController.UpdateFactor)
-	assetRoutes.POST("/asset-criticality-matrix-factors/delete", middlewares.RolePermissionMiddleware(db, "asset_criticality", "modify"), assetCriticalityMatrixFactorController.DeleteFactors)
+	assetRoutes.POST("/asset-criticality-matrix-factors", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), assetCriticalityMatrixFactorController.CreateFactor)
+	assetRoutes.PUT("/asset-criticality-matrix-factors/:id", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), assetCriticalityMatrixFactorController.UpdateFactor)
+	assetRoutes.POST("/asset-criticality-matrix-factors/delete", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), assetCriticalityMatrixFactorController.DeleteFactors)
 
 	// Asset Criticality Matrix Factor Ratings
 	assetRoutes.GET("/asset-criticality-matrix-factor-ratings", assetCriticalityMatrixFactorRatingController.GetAllRatings)
 	assetRoutes.GET("/asset-criticality-matrix-factor-ratings/:id", assetCriticalityMatrixFactorRatingController.GetRatingDetails)
-	assetRoutes.POST("/asset-criticality-matrix-factor-ratings", middlewares.RolePermissionMiddleware(db, "asset_criticality", "modify"), assetCriticalityMatrixFactorRatingController.CreateRating)
-	assetRoutes.PUT("/asset-criticality-matrix-factor-ratings/:id", middlewares.RolePermissionMiddleware(db, "asset_criticality", "modify"), assetCriticalityMatrixFactorRatingController.UpdateRating)
-	assetRoutes.POST("/asset-criticality-matrix-factor-ratings/delete", middlewares.RolePermissionMiddleware(db, "asset_criticality", "modify"), assetCriticalityMatrixFactorRatingController.DeleteRatings)
+	assetRoutes.POST("/asset-criticality-matrix-factor-ratings", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), assetCriticalityMatrixFactorRatingController.CreateRating)
+	assetRoutes.PUT("/asset-criticality-matrix-factor-ratings/:id", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), assetCriticalityMatrixFactorRatingController.UpdateRating)
+	assetRoutes.POST("/asset-criticality-matrix-factor-ratings/delete", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), assetCriticalityMatrixFactorRatingController.DeleteRatings)
 
 	// Asset Criticality Matrix Rating Scales
 	assetRoutes.GET("/asset-criticality-matrix-rating-scales", assetCriticalityMatrixRatingScaleController.GetAllScales)
 	assetRoutes.GET("/asset-criticality-matrix-rating-scales/:id", assetCriticalityMatrixRatingScaleController.GetScaleDetails)
-	assetRoutes.POST("/asset-criticality-matrix-rating-scales", middlewares.RolePermissionMiddleware(db, "asset_criticality", "modify"), assetCriticalityMatrixRatingScaleController.CreateScale)
-	assetRoutes.PUT("/asset-criticality-matrix-rating-scales/:id", middlewares.RolePermissionMiddleware(db, "asset_criticality", "modify"), assetCriticalityMatrixRatingScaleController.UpdateScale)
-	assetRoutes.POST("/asset-criticality-matrix-rating-scales/delete", middlewares.RolePermissionMiddleware(db, "asset_criticality", "modify"), assetCriticalityMatrixRatingScaleController.DeleteScales)
+	assetRoutes.POST("/asset-criticality-matrix-rating-scales", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), assetCriticalityMatrixRatingScaleController.CreateScale)
+	assetRoutes.PUT("/asset-criticality-matrix-rating-scales/:id", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), assetCriticalityMatrixRatingScaleController.UpdateScale)
+	assetRoutes.POST("/asset-criticality-matrix-rating-scales/delete", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), assetCriticalityMatrixRatingScaleController.DeleteScales)
 
 	//vulnerability types
 	assetRoutes.GET("/vulnerability-types", vulnerabilityTypeController.GetAllVulnerabilityTypes)
