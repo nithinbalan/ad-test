@@ -367,7 +367,6 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 	go func() {
 		existingActionPlan, err := raps.GetFullDetailsByID(riskID, id)
 		if err != nil {
-			tx.Rollback()
 			return
 		}
 
