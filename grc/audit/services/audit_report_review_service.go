@@ -202,6 +202,73 @@ func (arrs *AuditReportReviewService) Submit(auditID uint, currentUserID uint) e
 
 	// Prepare notification
 	// todo
+	go func() {
+		urlParam = fmt.Sprintf(`{"id":%d}`, auditFinalReportID)
+		entity := "audit"
+		action := "review-user-assign"
+
+		for _, participant := range auditReportWorkflowLevel.AuditReportWorkflowParticipants {
+			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserID:               participant.User.ID,
+				ModuleIdentifier:     "audit",
+				NotificationType:     string(commonDTOs.ReviewType),
+				ReferenceNumber:      existingAuditFinalReport.ReferenceNumber,
+				HeadingEn:            "Audit Final Report Review",
+				HeadingAr:            "مراجعة التقرير النهائي للتدقيق",
+				TitleEn:              existingAuditFinalReport.Audit.AuditPlan.Title,
+				TitleAr:              existingAuditFinalReport.Audit.AuditPlan.Title,
+				Entity:               &entity,
+				Action:               &action,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			responsibleUser, err := arrs.userSvc.GetByID(participant.User.ID)
+			if err != nil {
+				utility.LogError("Failed to fetch review user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			assignedBy, err := arrs.userSvc.GetByID(currentUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			emailTo := []string{responsibleUser.Email}
+			subject := fmt.Sprintf("Audit Finale Report /%s: Review Assigned", existingAuditFinalReport.Audit.AuditPlan.Title)
+			appURL := utility.GetAppURL()
+			emailData := map[string]interface{}{
+				"FirstNameEn":           responsibleUser.FirstNameEn,
+				"LastNameEn":            responsibleUser.LastNameEn,
+				"AuditTitle":            existingAuditFinalReport.Audit.AuditPlan.Title,
+				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
+				"AssignedByLastNameEn":  assignedBy.LastNameEn,
+				"AssignedOn":            time.Now().Format("2006-01-02"),
+				"RedirectURL":           fmt.Sprintf("%s/audits/%d", appURL, auditID),
+			}
+
+			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              emailTo,
+				Subject:              subject,
+				TemplateRelativePath: "audit/templates/email/audit_report_workflow_review_user_mail.html",
+				EmailData:            emailData,
+			}
+
+			// Send Notification and Email
+			err = arrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "audit")
+			if err != nil {
+				utility.LogError("Failed to send notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+		}
+	}()
 
 	return nil
 }
@@ -606,7 +673,7 @@ func (arrs *AuditReportReviewService) handleRevertedCase(id, currentUserID uint,
 	}
 	//todo
 
-	// arrs.sendRevertedNotification(id, currentUserID, auditFinalReportDetailDTO)
+	arrs.sendRevertedNotification(id, currentUserID, auditFinalReportDetailDTO)
 
 	return nil
 }
@@ -813,6 +880,74 @@ func (arrs *AuditReportReviewService) notifyNextLevelUsers(id uint, nextDocWorkf
 					"error": err.Error(),
 				})
 			}
+		}
+	}()
+}
+
+func (arrs *AuditReportReviewService) sendRevertedNotification(id uint, currentUserID uint, auditFinalReportDetailDTO *auditDTOs.AuditFinalReportDetailDTO) {
+	go func() {
+		// Prepare URL and parameters for the notification
+		urlParam := fmt.Sprintf(`{"id":%d}`, id)
+		entity := "audit"
+		action := "reverted"
+
+		// Create the database notification DTO
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserID:               uint(auditFinalReportDetailDTO.PreparedBy.ID),
+			ModuleIdentifier:     "audit",
+			NotificationType:     string(commonDTOs.ApprovalType),
+			HeadingEn:            "Audit Final Report Reverted",
+			HeadingAr:            "تم إرجاع التقرير النهائي للتدقيق",
+			ReferenceNumber:      auditFinalReportDetailDTO.ReferenceNumber,
+			TitleEn:              auditFinalReportDetailDTO.Title,
+			TitleAr:              auditFinalReportDetailDTO.Title,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		// Get the user who performed the reversion
+		approvedByUser, err := arrs.userSvc.GetByID(currentUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch reversion performed user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		// Prepare email details
+		appURL := utility.GetAppURL()
+		emailTo := []string{auditFinalReportDetailDTO.PreparedBy.Email}
+		subject := fmt.Sprintf("Audit Final Report/%s: Approval Notification", auditFinalReportDetailDTO.Title)
+		urlParam = fmt.Sprintf("%s/audits/%d/final-reports/%d", appURL, auditFinalReportDetailDTO.AuditID, id)
+
+		emailData := map[string]interface{}{
+			"AuditTitle":            auditFinalReportDetailDTO.Title,
+			"Description":           auditFinalReportDetailDTO.Description,
+			"FirstNameEn":           auditFinalReportDetailDTO.PreparedBy.FirstNameEN,
+			"LastNameEn":            auditFinalReportDetailDTO.PreparedBy.LastNameEN,
+			"ApprovedByFirstNameEn": approvedByUser.FirstNameEn,
+			"ApprovedByLastNameEn":  approvedByUser.LastNameEn,
+			"ApprovedAt":            time.Now().Format("2006-01-02"),
+			"RedirectURL":           urlParam,
+		}
+
+		// Create the email notification DTO
+		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              emailTo,
+			Subject:              subject,
+			TemplateRelativePath: "audit/templates/email/audit_report_workflow_revert_user_mail.html",
+			EmailData:            emailData,
+		}
+
+		// Send the notification
+		err = arrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "audit")
+		if err != nil {
+			utility.LogError("Failed to send reverted notification email", map[string]interface{}{
+				"error": err.Error(),
+			})
 		}
 	}()
 }
