@@ -196,11 +196,20 @@ func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskA
 	tx.Commit()
 
 	go func() {
-		err := raps.activityLogSvc.LogActivity(
+
+		existingRiskActionPlan, err := raps.GetFullDetailsByID(riskActionPlan.RiskRegisterID, riskActionPlan.ID)
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		err = raps.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.RiskActionPlan{}.TableName(),
 			id,
-			RiskActionPlanFormDTO,
+			existingRiskActionPlan,
 			currentUserID,
 			nil,
 		)
@@ -291,6 +300,12 @@ func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskA
 func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID uint, RiskActionPlanFormDTO *riskDTOs.RiskActionPlanFormDTO) error {
 	tx := raps.repo.BeginTransaction()
 
+	oldRiskActionPlan, err := raps.GetFullDetailsByID(riskID, id)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	risk, err := raps.riskRegisterSvc.GetByID(riskID)
 	if err != nil {
 		return err
@@ -350,6 +365,65 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 	tx.Commit()
 
 	go func() {
+		existingActionPlan, err := raps.GetFullDetailsByID(riskID, id)
+		if err != nil {
+			tx.Rollback()
+			return
+		}
+
+		// Prepare log data
+		changedData := make(map[string]interface{})
+
+		//log changes
+		oldData := map[string]interface{}{
+			"title":              oldRiskActionPlan.Title,
+			"description":        oldRiskActionPlan.Description,
+			"severity_level":     oldRiskActionPlan.SeverityLevel.TitleEn,
+			"responsible_user":   fmt.Sprintf("%s %s", oldRiskActionPlan.ResponsibleUser.FirstNameEN, oldRiskActionPlan.ResponsibleUser.LastNameEN),
+			"review_user":        fmt.Sprintf("%s %s", oldRiskActionPlan.ReviewUser.FirstNameEN, oldRiskActionPlan.ReviewUser.FirstNameEN),
+			"target_date":        oldRiskActionPlan.TargetDateString,
+			"percentage":         oldRiskActionPlan.Percentage,
+			"comments":           oldRiskActionPlan.Comments,
+			"action_plan_status": oldRiskActionPlan.ActionPlanStatus.TitleEn,
+		}
+
+		newData := map[string]interface{}{
+			"title":              existingActionPlan.Title,
+			"description":        existingActionPlan.Description,
+			"severity_level":     existingActionPlan.SeverityLevel.TitleEn,
+			"responsible_user":   fmt.Sprintf("%s %s", existingActionPlan.ResponsibleUser.FirstNameEN, existingActionPlan.ResponsibleUser.LastNameEN),
+			"review_user":        fmt.Sprintf("%s %s", existingActionPlan.ReviewUser.FirstNameEN, existingActionPlan.ReviewUser.FirstNameEN),
+			"target_date":        existingActionPlan.TargetDateString,
+			"percentage":         existingActionPlan.Percentage,
+			"comments":           existingActionPlan.Comments,
+			"action_plan_status": existingActionPlan.ActionPlanStatus.TitleEn,
+		}
+
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := raps.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.RiskActionPlan{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				utility.LogError("Failed to log activity", map[string]interface{}{
+					"action":   models.UpdateAction,
+					"error":    err.Error(),
+					"recordID": id,
+				})
+			}
+		}
+
 		// sends notification if responsible user has changed
 		if oldResponsibleUserID != existingRiskActionPlan.ResponsibleUserID {
 			urlParam := fmt.Sprintf(`{"risk_register_id":%d, "action_plan_id":%d}`, riskID, id)
@@ -500,6 +574,8 @@ func (raps *RiskActionPlanService) Delete(riskID uint, ids []uint, currentUserID
 		RiskTitle       string
 	}
 
+	var deletedRiskActionPlan []map[string]interface{}
+
 	for _, id := range ids {
 
 		riskActionPlan, err := raps.repo.GetFullDetailsByID(id)
@@ -522,6 +598,11 @@ func (raps *RiskActionPlanService) Delete(riskID uint, ids []uint, currentUserID
 			Description:     *riskActionPlan.Description,
 			ReferenceNumber: riskActionPlan.RiskRegister.ReferenceNumber,
 			RiskTitle:       riskActionPlan.RiskRegister.Title,
+		})
+
+		deletedRiskActionPlan = append(deletedRiskActionPlan, map[string]interface{}{
+			"ID":    id,
+			"Title": riskActionPlan.Title,
 		})
 
 		existingTask, err := raps.taskSvc.GetByFieldID("risk_action_plan_id", id)
@@ -558,9 +639,9 @@ func (raps *RiskActionPlanService) Delete(riskID uint, ids []uint, currentUserID
 		go func() {
 			err := raps.activityLogSvc.LogBulkActivities(
 				models.DeleteAction,
-				models.RiskRegister{}.TableName(),
+				models.RiskActionPlan{}.TableName(),
 				successfulIds,
-				nil,
+				deletedRiskActionPlan,
 				currentUserID,
 				nil,
 			)
