@@ -13,6 +13,7 @@ type AssetModule struct {
 	AssetCategoryController                       *controllers.AssetCategoryController
 	AssetStatusController                         *controllers.AssetStatusController
 	AssetRegisterController                       *controllers.AssetRegisterController
+	AssetCriticalityMatrixController              *controllers.AssetCriticalityMatrixController
 	AssetCriticalityMatrixFactorController        *controllers.AssetCriticalityMatrixFactorController
 	AssetCriticalityMatrixFactorRatingController  *controllers.AssetCriticalityMatrixFactorRatingController
 	AssetCriticalityMatrixRatingScaleController   *controllers.AssetCriticalityMatrixRatingScaleController
@@ -54,7 +55,8 @@ func NewAssetModule(db *gorm.DB,
 	assetStatusController := controllers.NewAssetStatusController(assetStatusSvc)
 
 	assetCriticalityMatrixRepo := repositories.NewAssetCriticalityMatrixRepository(db)
-	assetCriticalityMatrixSvc := services.NewAssetCriticalityMatrixService(assetCriticalityMatrixRepo)
+	assetCriticalityMatrixSvc := services.NewAssetCriticalityMatrixService(assetCriticalityMatrixRepo, sharedModule.ActivityLogService)
+	assetCriticalityMatrixController := controllers.NewAssetCriticalityMatrixController(assetCriticalityMatrixSvc)
 
 	assetCriticalityMatrixFactorRepo := repositories.NewAssetCriticalityMatrixFactorRepository(db)
 	assetCriticalityMatrixFactorSvc := services.NewAssetCriticalityMatrixFactorService(assetCriticalityMatrixFactorRepo, sharedModule.ActivityLogService, assetCriticalityMatrixSvc)
@@ -168,6 +170,7 @@ func NewAssetModule(db *gorm.DB,
 		AssetCategoryController:                       assetCategoryController,
 		AssetStatusController:                         assetStatusController,
 		AssetRegisterController:                       assetRegisterController,
+		AssetCriticalityMatrixController:              assetCriticalityMatrixController,
 		AssetCriticalityMatrixFactorController:        assetCriticalityMatrixFactorController,
 		AssetCriticalityMatrixFactorRatingController:  assetCriticalityMatrixFactorRatingController,
 		AssetCriticalityMatrixRatingScaleController:   assetCriticalityMatrixRatingScaleController,
