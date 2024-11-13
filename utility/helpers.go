@@ -288,3 +288,19 @@ func GetStringValue(value interface{}) string {
 	}
 	return ""
 }
+
+// retrieves a field's value from a struct if it exists and is not nil,
+func GetFieldValue(DTO interface{}) interface{} {
+	v := reflect.ValueOf(DTO)
+	fmt.Println(v)
+	if !v.IsNil() {
+		field := v.Elem()
+		if field.FieldByName("FirstNameEN").IsValid() {
+			return fmt.Sprintf("%s %s", field.FieldByName("FirstNameEN").String(), field.FieldByName("LastNameEN").String())
+		} else {
+			return field.FieldByName("TitleEn").String()
+		}
+	} else {
+		return ""
+	}
+}

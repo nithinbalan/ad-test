@@ -1155,7 +1155,7 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 			"title":            oldRiskRegister.Title,
 			"description":      oldRiskRegister.Description,
 			"risk_categrory":   oldRiskRegister.RiskCategory.TitleEn,
-			"risk_source":      oldRiskRegister.RiskSource.TitleEn,
+			"risk_source":      utility.GetFieldValue(oldRiskRegister.RiskSource).(string),
 			"reported_at":      oldRiskRegister.ReportedAtString,
 			"next_review_date": oldRiskRegister.NextReviewDateString,
 			"responsible_user": fmt.Sprintf("%s %s", oldRiskRegister.ResponsibleUser.FirstNameEN, oldRiskRegister.ResponsibleUser.LastNameEN),
@@ -1165,12 +1165,11 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 			"title":            existingRisk.Title,
 			"description":      existingRisk.Description,
 			"risk_categrory":   existingRisk.RiskCategory.TitleEn,
-			"risk_source":      existingRisk.RiskSource.TitleEn,
+			"risk_source":      utility.GetFieldValue(existingRisk.RiskSource).(string),
 			"reported_at":      existingRisk.ReportedAtString,
 			"next_review_date": existingRisk.NextReviewDateString,
 			"responsible_user": fmt.Sprintf("%s %s", existingRisk.ResponsibleUser.FirstNameEN, existingRisk.ResponsibleUser.LastNameEN),
 		}
-
 		// Compare other fields and add them to changedData
 		fieldChanges := utility.CompareFieldChanges(oldData, newData)
 		for k, v := range fieldChanges {
