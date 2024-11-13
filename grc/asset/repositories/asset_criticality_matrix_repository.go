@@ -22,7 +22,8 @@ type AssetCriticalityMatrixRepositoryInterface interface {
 	CreateCategories(categories []*models.AssetCriticalityMatrixAssetCategory, tx ...utility.DatabaseTransaction) error
 	DeleteCategories(matrixID uint, categoryIDs []uint, tx ...utility.DatabaseTransaction) error
 	DeleteCategoriesByMatrixID(matrixID uint, tx ...utility.DatabaseTransaction) error
-	GetFirstMatrixID() (uint, error)
+	// GetCriticalityMatrixByCategoryID(assetCategoryID uint) (*uint, error)
+	GetCriticalityMatrixByCategoryID(categoryID uint) (uint, error)
 }
 
 type AssetCriticalityMatrixRepository struct {
@@ -164,15 +165,6 @@ func (repo *AssetCriticalityMatrixRepository) DeleteCategoriesByMatrixID(matrixI
 	return db.Where("asset_criticality_matrix_id = ?", matrixID).Delete(&models.AssetCriticalityMatrixAssetCategory{}).Error
 }
 
-func (repo *AssetCriticalityMatrixRepository) GetFirstMatrixID() (uint, error) {
-	var matrix models.AssetCriticalityMatrix
-	err := repo.db.First(&matrix).Error
-	if err != nil {
-		return 0, err
-	}
-	return matrix.ID, nil
-}
-
 func (repo *AssetCriticalityMatrixRepository) DeleteCategories(matrixID uint, categoryIDs []uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
@@ -181,4 +173,32 @@ func (repo *AssetCriticalityMatrixRepository) DeleteCategories(matrixID uint, ca
 
 	return db.Where("asset_criticality_matrix_id = ? AND asset_category_id IN (?)", matrixID, categoryIDs).
 		Delete(&models.AssetCriticalityMatrixAssetCategory{}).Error
+}
+
+// func (repo *AssetCriticalityMatrixRepository) GetCriticalityMatrixByCategoryID(assetCategoryID uint) (*uint, error) {
+// 	var matrixID uint
+// 	err := repo.db.
+// 		Table("asset_criticality_matrix_asset_categories").
+// 		Select("asset_criticality_matrix_id").
+// 		Where("asset_category_id = ?", assetCategoryID).
+// 		First(&matrixID).Error
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return &matrixID, nil
+// }
+
+func (repo *AssetCriticalityMatrixRepository) GetCriticalityMatrixByCategoryID(categoryID uint) (uint, error) {
+	var matrixID uint
+	err := repo.db.Table("asset_criticality_matrix_asset_categories").
+		Select("asset_criticality_matrix_id").
+		Where("asset_category_id = ?", categoryID).
+		Order("id").
+		Limit(1).
+		Scan(&matrixID).Error
+
+	if err != nil {
+		return 0, err
+	}
+	return matrixID, nil
 }

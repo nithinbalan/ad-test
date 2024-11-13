@@ -19,7 +19,7 @@ type AssetCriticalityMatrixServiceInterface interface {
 	Create(matrixFormDTO *dtos.AssetCriticalityMatrixFormDTO, currentUserID uint) (uint, error)
 	Update(id uint, matrixFormDTO *dtos.AssetCriticalityMatrixFormDTO, currentUserID uint) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
-	GetFirstMatrixID() (uint, error)
+	GetCriticalityMatrixByCategoryID(assetCategoryID uint) (uint, error)
 }
 
 type AssetCriticalityMatrixService struct {
@@ -235,6 +235,6 @@ func (acms *AssetCriticalityMatrixService) Delete(ids []uint, currentUserID uint
 	return failedIds, nil
 }
 
-func (acms *AssetCriticalityMatrixService) GetFirstMatrixID() (uint, error) {
-	return acms.repo.GetFirstMatrixID()
+func (acms *AssetCriticalityMatrixService) GetCriticalityMatrixByCategoryID(assetCategoryID uint) (uint, error) {
+	return acms.repo.GetCriticalityMatrixByCategoryID(assetCategoryID)
 }

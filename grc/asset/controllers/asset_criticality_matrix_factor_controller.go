@@ -90,8 +90,17 @@ func (acmfc *AssetCriticalityMatrixFactorController) CreateFactor(c *gin.Context
 
 	createdFactor, err := acmfc.service.Create(uint(matrixID), currentUserID, factor)
 	if err != nil {
-		utility.SendInternalErrResp(acmfc.db, c, err.Error())
-		return
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(acmfc.db, c, e.Error())
+			return
+		}
 	}
 
 	c.JSON(http.StatusCreated, createdFactor)
