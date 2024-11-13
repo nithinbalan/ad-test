@@ -7,7 +7,7 @@ import (
 )
 
 type AssetCriticalityMatrixFactorRepositoryInterface interface {
-	GetAll(sort, sortBy, keyword, status string) ([]*models.AssetCriticalityMatrixFactor, error)
+	GetAll(matrixID uint, sort, sortBy, keyword, status string) ([]*models.AssetCriticalityMatrixFactor, error)
 	GetByID(id uint) (*models.AssetCriticalityMatrixFactor, error)
 	Create(factor *models.AssetCriticalityMatrixFactor) (*models.AssetCriticalityMatrixFactor, error)
 	Update(id uint, factor *models.AssetCriticalityMatrixFactor) (*models.AssetCriticalityMatrixFactor, error)
@@ -25,9 +25,10 @@ func NewAssetCriticalityMatrixFactorRepository(db *gorm.DB) *AssetCriticalityMat
 	return &AssetCriticalityMatrixFactorRepository{db: db}
 }
 
-func (repo *AssetCriticalityMatrixFactorRepository) GetAll(sort, sortBy, keyword, status string) ([]*models.AssetCriticalityMatrixFactor, error) {
+func (repo *AssetCriticalityMatrixFactorRepository) GetAll(matrixID uint, sort, sortBy, keyword, status string) ([]*models.AssetCriticalityMatrixFactor, error) {
 	var factors []*models.AssetCriticalityMatrixFactor
-	query := repo.db
+	query := repo.db.Model(&models.AssetCriticalityMatrixFactor{}).
+		Where("asset_criticality_matrix_id = ?", matrixID)
 
 	if keyword != "" {
 		query = query.Where("title_en LIKE ? OR title_ar LIKE ?", "%"+keyword+"%", "%"+keyword+"%")
