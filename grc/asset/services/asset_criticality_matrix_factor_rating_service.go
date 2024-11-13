@@ -13,11 +13,11 @@ import (
 )
 
 type AssetCriticalityMatrixFactorRatingServiceInterface interface {
-	GetAll(sort, sortBy, keyword, status string) ([]*models.AssetCriticalityMatrixFactorRating, error)
-	GetByID(id uint) (*models.AssetCriticalityMatrixFactorRating, error)
-	Create(currentUserID uint, rating *models.AssetCriticalityMatrixFactorRating) (*models.AssetCriticalityMatrixFactorRating, error)
-	Update(id, currentUserID uint, rating *models.AssetCriticalityMatrixFactorRating) (*models.AssetCriticalityMatrixFactorRating, error)
-	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	GetAll(matrixID uint, sort, sortBy, keyword, status string) ([]*models.AssetCriticalityMatrixFactorRating, error)
+	GetByID(matrixID uint, id uint) (*models.AssetCriticalityMatrixFactorRating, error)
+	Create(matrixID uint, currentUserID uint, rating *models.AssetCriticalityMatrixFactorRating) (*models.AssetCriticalityMatrixFactorRating, error)
+	Update(matrixID uint, id, currentUserID uint, rating *models.AssetCriticalityMatrixFactorRating) (*models.AssetCriticalityMatrixFactorRating, error)
+	Delete(matrixID uint, ids []uint, currentUserID uint) ([]uint, error)
 }
 
 type AssetCriticalityMatrixFactorRatingService struct {
@@ -34,11 +34,11 @@ func NewAssetCriticalityMatrixFactorRatingService(repo repositories.AssetCritica
 	}
 }
 
-func (acmfrs *AssetCriticalityMatrixFactorRatingService) GetAll(sort, sortBy, keyword, status string) ([]*models.AssetCriticalityMatrixFactorRating, error) {
-	return acmfrs.repo.GetAll(sort, sortBy, keyword, status)
+func (acmfrs *AssetCriticalityMatrixFactorRatingService) GetAll(matrixID uint, sort, sortBy, keyword, status string) ([]*models.AssetCriticalityMatrixFactorRating, error) {
+	return acmfrs.repo.GetAll(matrixID, sort, sortBy, keyword, status)
 }
 
-func (acmfrs *AssetCriticalityMatrixFactorRatingService) GetByID(id uint) (*models.AssetCriticalityMatrixFactorRating, error) {
+func (acmfrs *AssetCriticalityMatrixFactorRatingService) GetByID(matrixID uint, id uint) (*models.AssetCriticalityMatrixFactorRating, error) {
 	rating, err := acmfrs.repo.GetByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -49,11 +49,8 @@ func (acmfrs *AssetCriticalityMatrixFactorRatingService) GetByID(id uint) (*mode
 	return rating, nil
 }
 
-func (acmfrs *AssetCriticalityMatrixFactorRatingService) Create(currentUserID uint, rating *models.AssetCriticalityMatrixFactorRating) (*models.AssetCriticalityMatrixFactorRating, error) {
-	matrixID, err := acmfrs.assetCriticalityMatrixSvc.GetFirstMatrixID()
-	if err != nil {
-		return nil, err
-	}
+func (acmfrs *AssetCriticalityMatrixFactorRatingService) Create(matrixID uint, currentUserID uint, rating *models.AssetCriticalityMatrixFactorRating) (*models.AssetCriticalityMatrixFactorRating, error) {
+
 	rating.AssetCriticalityMatrixID = matrixID
 
 	// Check if title exists
@@ -85,8 +82,8 @@ func (acmfrs *AssetCriticalityMatrixFactorRatingService) Create(currentUserID ui
 	return createdRating, nil
 }
 
-func (acmfrs *AssetCriticalityMatrixFactorRatingService) Update(id, currentUserID uint, updatedRating *models.AssetCriticalityMatrixFactorRating) (*models.AssetCriticalityMatrixFactorRating, error) {
-	existingRating, err := acmfrs.GetByID(id)
+func (acmfrs *AssetCriticalityMatrixFactorRatingService) Update(matrixID uint, id, currentUserID uint, updatedRating *models.AssetCriticalityMatrixFactorRating) (*models.AssetCriticalityMatrixFactorRating, error) {
+	existingRating, err := acmfrs.GetByID(matrixID, id)
 	if err != nil {
 		return nil, err
 	}
@@ -132,7 +129,7 @@ func (acmfrs *AssetCriticalityMatrixFactorRatingService) Update(id, currentUserI
 	return result, err
 }
 
-func (acmfrs *AssetCriticalityMatrixFactorRatingService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
+func (acmfrs *AssetCriticalityMatrixFactorRatingService) Delete(matrixID uint, ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
 	for _, id := range ids {

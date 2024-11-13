@@ -7,7 +7,7 @@ import (
 )
 
 type AssetCriticalityMatrixRatingScaleRepositoryInterface interface {
-	GetAll(sort, sortBy, keyword, status string) ([]*models.AssetCriticalityMatrixRatingScale, error)
+	GetAll(matrixID uint, sort, sortBy, keyword, status string) ([]*models.AssetCriticalityMatrixRatingScale, error)
 	GetByID(id uint) (*models.AssetCriticalityMatrixRatingScale, error)
 	Create(scale *models.AssetCriticalityMatrixRatingScale) (*models.AssetCriticalityMatrixRatingScale, error)
 	Update(id uint, scale *models.AssetCriticalityMatrixRatingScale) (*models.AssetCriticalityMatrixRatingScale, error)
@@ -27,9 +27,10 @@ func NewAssetCriticalityMatrixRatingScaleRepository(db *gorm.DB) *AssetCriticali
 	return &AssetCriticalityMatrixRatingScaleRepository{db: db}
 }
 
-func (repo *AssetCriticalityMatrixRatingScaleRepository) GetAll(sort, sortBy, keyword, status string) ([]*models.AssetCriticalityMatrixRatingScale, error) {
+func (repo *AssetCriticalityMatrixRatingScaleRepository) GetAll(matrixID uint, sort, sortBy, keyword, status string) ([]*models.AssetCriticalityMatrixRatingScale, error) {
 	var scales []*models.AssetCriticalityMatrixRatingScale
-	query := repo.db
+	query := repo.db.Model(&models.AssetCriticalityMatrixRatingScale{}).
+		Where("asset_criticality_matrix_id = ?", matrixID)
 
 	if keyword != "" {
 		query = query.Where("title_en LIKE ? OR title_ar LIKE ?", "%"+keyword+"%", "%"+keyword+"%")
