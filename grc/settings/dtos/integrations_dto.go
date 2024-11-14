@@ -21,11 +21,12 @@ type IntegrationListDTO struct {
 }
 
 type IntegrationListQueryParamsDTO struct {
-	Sort    string
-	SortBy  string
-	Keyword string
-	Status  string
-	Filters map[string][]string
+	Sort        string
+	SortBy      string
+	Keyword     string
+	Status      string
+	Filters     map[string][]string
+	QuickFilter []string
 }
 
 type IntegrationDetailDTO struct {

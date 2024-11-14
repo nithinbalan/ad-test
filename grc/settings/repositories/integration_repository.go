@@ -68,6 +68,14 @@ func (repo *IntegrationRepository) GetAll(params *integrationDTOs.IntegrationLis
 		params.Sort = "asc" // Default order is ascending if not specified
 	}
 
+	// Apply quick filters
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "is_enable":
+			query = query.Where("integrations.is_enable = ?", true)
+		}
+	}
+
 	query = query.Order(params.SortBy + " " + params.Sort)
 
 	result := query.Find(&integrations)

@@ -37,8 +37,12 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 	organizationLevelSvc := services.NewOrganizationLevelService(organizationLevelRepo, sharedModule.ActivityLogService)
 	organizationLevelController := controllers.NewOrganizationLevelController(organizationLevelSvc)
 
+	integrationRepo := repositories.NewIntegrationRepository(db)
+	integrationSvc := services.NewIntegrationService(integrationRepo, sharedModule.ActivityLogService, masterModule.IntegrationCategorySvc)
+	integrationController := controllers.NewIntegrationController(integrationSvc)
+
 	systemPreferenceRepo := repositories.NewSystemPreferenceRepository(db)
-	systemPreferenceSvc := services.NewSystemPreferenceService(systemPreferenceRepo, sharedModule.ActivityLogService, masterModule.CurrencySvc)
+	systemPreferenceSvc := services.NewSystemPreferenceService(systemPreferenceRepo, sharedModule.ActivityLogService, masterModule.CurrencySvc, integrationSvc)
 	systemPreferenceController := controllers.NewSystemPreferenceController(systemPreferenceSvc)
 
 	emailTemplateSettingsRepo := repositories.NewEmailTemplateSettingsRepository(db)
@@ -72,10 +76,6 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 	workflowRepo := repositories.NewWorkflowRepository(db)
 	workflowSvc := services.NewWorkflowService(workflowRepo, sharedModule.ActivityLogService, workflowLevelTypeSvc)
 	workflowController := controllers.NewWorkflowController(workflowSvc)
-
-	integrationRepo := repositories.NewIntegrationRepository(db)
-	integrationSvc := services.NewIntegrationService(integrationRepo, sharedModule.ActivityLogService, masterModule.IntegrationCategorySvc)
-	integrationController := controllers.NewIntegrationController(integrationSvc)
 
 	return &SettingsModule{
 		OrganizationLevelController:     organizationLevelController,
