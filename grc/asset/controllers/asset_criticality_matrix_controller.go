@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"errors"
 	"jethur/grc/asset/dtos"
 	"jethur/grc/asset/services"
 	"jethur/utility"
@@ -24,31 +23,8 @@ func NewAssetCriticalityMatrixController(service services.AssetCriticalityMatrix
 }
 
 func (acmc *AssetCriticalityMatrixController) GetAllMatrices(c *gin.Context) {
-	sort := c.DefaultQuery("sort_order", "asc")
-	sortBy := c.DefaultQuery("sort_by", "title_en")
-	keyword := c.Query("keyword")
 
-	page, err := utility.ParseQueryParamToInt(c, "page", 1)
-	if err != nil {
-		utility.SendInvalidErrResp(c, errors.New("invalid page parameter"))
-		return
-	}
-
-	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
-	if err != nil {
-		utility.SendInvalidErrResp(c, errors.New("invalid page_size parameter"))
-		return
-	}
-
-	params := dtos.AssetCriticalityMatrixListQueryParamsDTO{
-		Sort:     sort,
-		SortBy:   sortBy,
-		Keyword:  keyword,
-		Page:     page,
-		PageSize: pageSize,
-	}
-
-	matrices, err := acmc.service.GetAll(&params)
+	matrices, err := acmc.service.GetAll()
 	if err != nil {
 		utility.SendInternalErrResp(acmc.db, c, err.Error())
 		return
@@ -58,7 +34,7 @@ func (acmc *AssetCriticalityMatrixController) GetAllMatrices(c *gin.Context) {
 }
 
 func (acmc *AssetCriticalityMatrixController) GetMatrixDetails(c *gin.Context) {
-	idStr := c.Param("id")
+	idStr := c.Param("matrixId")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -102,7 +78,7 @@ func (acmc *AssetCriticalityMatrixController) CreateMatrix(c *gin.Context) {
 }
 
 func (acmc *AssetCriticalityMatrixController) UpdateMatrix(c *gin.Context) {
-	idStr := c.Param("id")
+	idStr := c.Param("matrixId")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)

@@ -114,5 +114,9 @@
   {
     "id": "already_associated",
     "translation": "The '{{.Field}}' is already associated with this risk"
+  },
+  {
+    "id": "matrix_exists",
+    "translation": "The Criticality matrix already exists for '{{.Field}}'"
   }
 ]

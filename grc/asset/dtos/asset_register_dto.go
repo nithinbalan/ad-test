@@ -109,6 +109,7 @@ type AssetRegisterDetailDTO struct {
 	Description                       *string                               `json:"description"`
 	AcquisitionDateString             *string                               `json:"acquisition_date"`
 	Controls                          []*AssetControlDTO                    `json:"controls"`
+	AssetCriticalityMatrix            *AssetCriticalityMatrixDetailDTO      `json:"asset_criticality_matrix"`
 	AssetCriticalityMatrixRatingScale *AssetCriticalityMatrixRatingScaleDTO `json:"asset_criticality_matrix_rating_scale"`
 	TotalScore                        *float64                              `json:"total_score"`
 	CreatedAt                         time.Time                             `json:"created_at"`

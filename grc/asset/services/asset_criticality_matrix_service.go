@@ -14,7 +14,7 @@ import (
 )
 
 type AssetCriticalityMatrixServiceInterface interface {
-	GetAll(params *dtos.AssetCriticalityMatrixListQueryParamsDTO) (*dtos.AssetCriticalityMatrixListResponseDTO, error)
+	GetAll() ([]*dtos.AssetCriticalityMatrixResponseDTO, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*dtos.AssetCriticalityMatrixDetailDTO, error)
 	Create(matrixFormDTO *dtos.AssetCriticalityMatrixFormDTO, currentUserID uint) (uint, error)
 	Update(id uint, matrixFormDTO *dtos.AssetCriticalityMatrixFormDTO, currentUserID uint) error
@@ -37,8 +37,23 @@ func NewAssetCriticalityMatrixService(
 	}
 }
 
-func (acms *AssetCriticalityMatrixService) GetAll(params *dtos.AssetCriticalityMatrixListQueryParamsDTO) (*dtos.AssetCriticalityMatrixListResponseDTO, error) {
-	return acms.repo.GetAll(params)
+func (acms *AssetCriticalityMatrixService) GetAll() ([]*dtos.AssetCriticalityMatrixResponseDTO, error) {
+	matrices, err := acms.repo.GetAll()
+	if err != nil {
+		return nil, err
+	}
+
+	// Transform models to DTOs using mapstructure
+	var response []*dtos.AssetCriticalityMatrixResponseDTO
+	for _, matrix := range matrices {
+		var dto dtos.AssetCriticalityMatrixResponseDTO
+		if err := mapstructure.Decode(matrix, &dto); err != nil {
+			return nil, fmt.Errorf("failed to map matrix to DTO: %w", err)
+		}
+		response = append(response, &dto)
+	}
+
+	return response, nil
 }
 
 func (acms *AssetCriticalityMatrixService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*dtos.AssetCriticalityMatrixDetailDTO, error) {
@@ -60,6 +75,11 @@ func (acms *AssetCriticalityMatrixService) GetFullDetailsByID(id uint, tx ...uti
 
 func (acms *AssetCriticalityMatrixService) Create(matrixFormDTO *dtos.AssetCriticalityMatrixFormDTO, currentUserID uint) (uint, error) {
 	tx := acms.repo.BeginTransaction()
+
+	if err := acms.validateAssetCriticalityMatrixCategories(matrixFormDTO.AssetCategoryIDs, 0, tx); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
 
 	matrix := &models.AssetCriticalityMatrix{
 		TitleEn: matrixFormDTO.TitleEn,
@@ -119,6 +139,11 @@ func (acms *AssetCriticalityMatrixService) Create(matrixFormDTO *dtos.AssetCriti
 
 func (acms *AssetCriticalityMatrixService) Update(id uint, matrixFormDTO *dtos.AssetCriticalityMatrixFormDTO, currentUserID uint) error {
 	tx := acms.repo.BeginTransaction()
+
+	if err := acms.validateAssetCriticalityMatrixCategories(matrixFormDTO.AssetCategoryIDs, id, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
 
 	matrix, err := acms.repo.GetByID(id, tx)
 	if err != nil {
@@ -233,6 +258,21 @@ func (acms *AssetCriticalityMatrixService) Delete(ids []uint, currentUserID uint
 	}
 
 	return failedIds, nil
+}
+
+func (acms *AssetCriticalityMatrixService) validateAssetCriticalityMatrixCategories(categoryIDs []uint, excludeMatrixID uint, tx ...utility.DatabaseTransaction) error {
+	for _, categoryID := range categoryIDs {
+		exists, err := acms.repo.ExistsByCategoryID(categoryID, excludeMatrixID, tx...)
+		if err != nil {
+			return fmt.Errorf("failed to validate category ID %d: %w", categoryID, err)
+		}
+
+		// If a matrix exists for the category (excluding the current matrix being updated)
+		if exists {
+			return utility.NewValidationError(fmt.Errorf("a criticality matrix already exists for category"), "matrix_exists", "Asset Category")
+		}
+	}
+	return nil
 }
 
 func (acms *AssetCriticalityMatrixService) GetCriticalityMatrixByCategoryID(assetCategoryID uint) (uint, error) {
