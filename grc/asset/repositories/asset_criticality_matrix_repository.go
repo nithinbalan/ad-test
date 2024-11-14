@@ -2,8 +2,7 @@ package repositories
 
 import (
 	// "jethur/grc/asset/dtos"
-	"jethur/grc/asset/dtos"
-	commonDTOs "jethur/grc/common/dtos"
+
 	"jethur/grc/models"
 	"jethur/utility"
 
@@ -12,7 +11,7 @@ import (
 
 type AssetCriticalityMatrixRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(params *dtos.AssetCriticalityMatrixListQueryParamsDTO) (*dtos.AssetCriticalityMatrixListResponseDTO, error)
+	GetAll() ([]*models.AssetCriticalityMatrix, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.AssetCriticalityMatrix, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.AssetCriticalityMatrix, error)
 	Create(matrix *models.AssetCriticalityMatrix, tx ...utility.DatabaseTransaction) (uint, error)
@@ -22,7 +21,7 @@ type AssetCriticalityMatrixRepositoryInterface interface {
 	CreateCategories(categories []*models.AssetCriticalityMatrixAssetCategory, tx ...utility.DatabaseTransaction) error
 	DeleteCategories(matrixID uint, categoryIDs []uint, tx ...utility.DatabaseTransaction) error
 	DeleteCategoriesByMatrixID(matrixID uint, tx ...utility.DatabaseTransaction) error
-	// GetCriticalityMatrixByCategoryID(assetCategoryID uint) (*uint, error)
+	ExistsByCategoryID(categoryID uint, excludeMatrixID uint, tx ...utility.DatabaseTransaction) (bool, error)
 	GetCriticalityMatrixByCategoryID(categoryID uint) (uint, error)
 }
 
@@ -40,58 +39,21 @@ func (repo *AssetCriticalityMatrixRepository) BeginTransaction() utility.Databas
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *AssetCriticalityMatrixRepository) GetAll(params *dtos.AssetCriticalityMatrixListQueryParamsDTO) (*dtos.AssetCriticalityMatrixListResponseDTO, error) {
-	var matrices []*dtos.AssetCriticalityMatrixListDTO
-	var totalCount int64
+func (repo *AssetCriticalityMatrixRepository) GetAll() ([]*models.AssetCriticalityMatrix, error) {
+	var matrices []*models.AssetCriticalityMatrix
 
-	query := repo.db.Table("asset_criticality_matrices").
-		Select(`
-			asset_criticality_matrices.id,
-			asset_criticality_matrices.title_en,
-			asset_criticality_matrices.title_ar,
-			asset_criticality_matrices.status
-		`)
+	err := repo.db.
+		Preload("Factors").
+		Preload("FactorRatings").
+		Preload("RatingScales").
+		Preload("AssetCategories.AssetCategory").
+		Find(&matrices).Error
 
-	// Apply search filters
-	if params.Keyword != "" {
-		query = query.Where(`
-			asset_criticality_matrices.title_en LIKE ? OR
-			asset_criticality_matrices.title_ar LIKE ?`,
-			"%"+params.Keyword+"%", "%"+params.Keyword+"%")
-	}
-
-	// Apply status filter
-	if params.Status != "" {
-		query = query.Where("asset_criticality_matrices.status = ?", params.Status)
-	}
-
-	// Calculate total count for pagination
-	if err := query.Count(&totalCount).Error; err != nil {
+	if err != nil {
 		return nil, err
 	}
 
-	query = query.Order(params.SortBy + " " + params.Sort)
-
-	offset := (params.Page - 1) * params.PageSize
-	query = query.Offset(offset).Limit(params.PageSize)
-
-	if err := query.Find(&matrices).Error; err != nil {
-		return nil, err
-	}
-
-	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
-
-	response := &dtos.AssetCriticalityMatrixListResponseDTO{
-		Items: matrices,
-		Pagination: commonDTOs.PaginationInfoDTO{
-			CurrentPage: params.Page,
-			PageSize:    params.PageSize,
-			TotalPages:  totalPages,
-			TotalCount:  totalCount,
-		},
-	}
-
-	return response, nil
+	return matrices, nil
 }
 
 func (repo *AssetCriticalityMatrixRepository) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.AssetCriticalityMatrix, error) {
@@ -115,6 +77,9 @@ func (repo *AssetCriticalityMatrixRepository) GetFullDetailsByID(id uint, tx ...
 	}
 
 	if err := db.
+		Preload("Factors").
+		Preload("FactorRatings").
+		Preload("RatingScales").
 		Preload("AssetCategories.AssetCategory").
 		First(&matrix, id).Error; err != nil {
 		return nil, err
@@ -175,18 +140,24 @@ func (repo *AssetCriticalityMatrixRepository) DeleteCategories(matrixID uint, ca
 		Delete(&models.AssetCriticalityMatrixAssetCategory{}).Error
 }
 
-// func (repo *AssetCriticalityMatrixRepository) GetCriticalityMatrixByCategoryID(assetCategoryID uint) (*uint, error) {
-// 	var matrixID uint
-// 	err := repo.db.
-// 		Table("asset_criticality_matrix_asset_categories").
-// 		Select("asset_criticality_matrix_id").
-// 		Where("asset_category_id = ?", assetCategoryID).
-// 		First(&matrixID).Error
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	return &matrixID, nil
-// }
+func (repo *AssetCriticalityMatrixRepository) ExistsByCategoryID(categoryID uint, excludeMatrixID uint, tx ...utility.DatabaseTransaction) (bool, error) {
+	db := repo.db
+	if len(tx) > 0 {
+		db = tx[0].DB()
+	}
+
+	var count int64
+	query := db.Table("asset_criticality_matrix_asset_categories").
+		Where("asset_category_id = ?", categoryID)
+
+	if excludeMatrixID > 0 {
+		query = query.Where("asset_criticality_matrix_id != ?", excludeMatrixID)
+	}
+
+	err := query.Count(&count).Error
+
+	return count > 0, err
+}
 
 func (repo *AssetCriticalityMatrixRepository) GetCriticalityMatrixByCategoryID(categoryID uint) (uint, error) {
 	var matrixID uint
