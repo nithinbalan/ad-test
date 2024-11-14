@@ -70,10 +70,7 @@ func (spc *SystemPreferenceController) UpdateSystemPreference(c *gin.Context) {
 }
 
 func (spc *SystemPreferenceController) GetOrganizationPreference(c *gin.Context) {
-
 	quickFilter := c.QueryArray("quick_filter")
-
-	quickFilter = append(quickFilter, "is_enable")
 	queryParams := settingDTOs.IntegrationListQueryParamsDTO{
 		QuickFilter: quickFilter,
 	}
