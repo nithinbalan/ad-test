@@ -32,6 +32,7 @@ type UserSettingServiceInterface interface {
 	EnableMFA(userID uint) error
 	DisableMFA(userID uint) error
 	ResetPassword(userID uint) error
+	ChangePassword(userID uint, oldPassword, newPassword string) error
 
 	GetNotificationSettings(userID uint) ([]userDTOs.NotificationSettingListResponseDTO, error)
 	UpdateNotificationSetting(userID uint, notificationMasterID uint, enable bool) error
@@ -403,4 +404,30 @@ func (uss *UserSettingService) UpdateNotificationSetting(userID uint, notificati
 	// Existing setting found, update it
 	notificationSetting.IsEnable = enable
 	return uss.repo.UpdateNotificationSetting(notificationSetting)
+}
+
+func (us *UserSettingService) ChangePassword(userID uint, oldPassword, newPassword string) error {
+	currentUserSecurity, err := us.GetUserSecurityByUserID(userID)
+	if err != nil {
+		return err
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(currentUserSecurity.PasswordHash), []byte(oldPassword))
+	if err != nil {
+		return utility.NewValidationError(errors.New("incorrect old password"), "password_mismatch", "old_password")
+	}
+
+	newPasswordHash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	currentUserSecurity.PasswordHash = string(newPasswordHash)
+
+	err = us.UpdateUserSecurity(currentUserSecurity)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
