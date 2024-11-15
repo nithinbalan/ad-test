@@ -13,13 +13,13 @@ import (
 )
 
 type AssetCriticalityMatrixRatingScaleServiceInterface interface {
-	GetAll(sort, sortBy, keyword, status string) ([]*models.AssetCriticalityMatrixRatingScale, error)
-	GetByID(id uint) (*models.AssetCriticalityMatrixRatingScale, error)
-	Create(currentUserID uint, scale *models.AssetCriticalityMatrixRatingScale) (*models.AssetCriticalityMatrixRatingScale, error)
-	Update(id, currentUserID uint, scale *models.AssetCriticalityMatrixRatingScale) (*models.AssetCriticalityMatrixRatingScale, error)
-	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	GetAll(matrixID uint, sort, sortBy, keyword, status string) ([]*models.AssetCriticalityMatrixRatingScale, error)
+	GetByID(matrixID uint, id uint) (*models.AssetCriticalityMatrixRatingScale, error)
+	Create(matrixID uint, currentUserID uint, scale *models.AssetCriticalityMatrixRatingScale) (*models.AssetCriticalityMatrixRatingScale, error)
+	Update(matrixID uint, id, currentUserID uint, scale *models.AssetCriticalityMatrixRatingScale) (*models.AssetCriticalityMatrixRatingScale, error)
+	Delete(matrixID uint, ids []uint, currentUserID uint) ([]uint, error)
 
-	GetRatingScaleByScore(score float64) (*models.AssetCriticalityMatrixRatingScale, error)
+	GetRatingScaleByScore(matrixID uint, score float64) (*models.AssetCriticalityMatrixRatingScale, error)
 }
 
 type AssetCriticalityMatrixRatingScaleService struct {
@@ -36,11 +36,11 @@ func NewAssetCriticalityMatrixRatingScaleService(repo repositories.AssetCritical
 	}
 }
 
-func (acmrss *AssetCriticalityMatrixRatingScaleService) GetAll(sort, sortBy, keyword, status string) ([]*models.AssetCriticalityMatrixRatingScale, error) {
-	return acmrss.repo.GetAll(sort, sortBy, keyword, status)
+func (acmrss *AssetCriticalityMatrixRatingScaleService) GetAll(matrixID uint, sort, sortBy, keyword, status string) ([]*models.AssetCriticalityMatrixRatingScale, error) {
+	return acmrss.repo.GetAll(matrixID, sort, sortBy, keyword, status)
 }
 
-func (acmrss *AssetCriticalityMatrixRatingScaleService) GetByID(id uint) (*models.AssetCriticalityMatrixRatingScale, error) {
+func (acmrss *AssetCriticalityMatrixRatingScaleService) GetByID(matrixID uint, id uint) (*models.AssetCriticalityMatrixRatingScale, error) {
 	scale, err := acmrss.repo.GetByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -51,11 +51,7 @@ func (acmrss *AssetCriticalityMatrixRatingScaleService) GetByID(id uint) (*model
 	return scale, nil
 }
 
-func (acmrss *AssetCriticalityMatrixRatingScaleService) Create(currentUserID uint, scale *models.AssetCriticalityMatrixRatingScale) (*models.AssetCriticalityMatrixRatingScale, error) {
-	matrixID, err := acmrss.assetCriticalityMatrixSvc.GetFirstMatrixID()
-	if err != nil {
-		return nil, err
-	}
+func (acmrss *AssetCriticalityMatrixRatingScaleService) Create(matrixID uint, currentUserID uint, scale *models.AssetCriticalityMatrixRatingScale) (*models.AssetCriticalityMatrixRatingScale, error) {
 	scale.AssetCriticalityMatrixID = matrixID
 
 	exists, err := acmrss.repo.ExistsByTitle(scale.TitleEn, scale.TitleAr)
@@ -87,8 +83,8 @@ func (acmrss *AssetCriticalityMatrixRatingScaleService) Create(currentUserID uin
 	return createdScale, nil
 }
 
-func (acmrss *AssetCriticalityMatrixRatingScaleService) Update(id, currentUserID uint, updatedScale *models.AssetCriticalityMatrixRatingScale) (*models.AssetCriticalityMatrixRatingScale, error) {
-	existingScale, err := acmrss.GetByID(id)
+func (acmrss *AssetCriticalityMatrixRatingScaleService) Update(matrixID uint, id, currentUserID uint, updatedScale *models.AssetCriticalityMatrixRatingScale) (*models.AssetCriticalityMatrixRatingScale, error) {
+	existingScale, err := acmrss.GetByID(matrixID, id)
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +131,7 @@ func (acmrss *AssetCriticalityMatrixRatingScaleService) Update(id, currentUserID
 	return result, err
 }
 
-func (acmrss *AssetCriticalityMatrixRatingScaleService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
+func (acmrss *AssetCriticalityMatrixRatingScaleService) Delete(matrixID uint, ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
 	for _, id := range ids {
@@ -172,10 +168,6 @@ func (acmrss *AssetCriticalityMatrixRatingScaleService) Delete(ids []uint, curre
 	return failedIds, nil
 }
 
-func (acmrss *AssetCriticalityMatrixRatingScaleService) GetRatingScaleByScore(score float64) (*models.AssetCriticalityMatrixRatingScale, error) {
-	matrixID, err := acmrss.assetCriticalityMatrixSvc.GetFirstMatrixID()
-	if err != nil {
-		return nil, err
-	}
+func (acmrss *AssetCriticalityMatrixRatingScaleService) GetRatingScaleByScore(matrixID uint, score float64) (*models.AssetCriticalityMatrixRatingScale, error) {
 	return acmrss.repo.GetRatingScaleByScore(matrixID, score)
 }

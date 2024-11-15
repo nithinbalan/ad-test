@@ -437,11 +437,20 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 	tx.Commit()
 
 	go func() {
-		err := rrs.activityLogSvc.LogActivity(
+		existingRiskRegister, err := rrs.GetFullDetailsByID(riskRegister.ID)
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		// log
+		err = rrs.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.RiskRegister{}.TableName(),
 			id,
-			riskRegisterFormDTO,
+			existingRiskRegister,
 			currentUserID,
 			nil,
 		)
@@ -495,9 +504,9 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 		emailData := map[string]interface{}{
 			"FirstNameEn":          responsibleUser.FirstNameEn,
 			"LastNameEn":           responsibleUser.LastNameEn,
-			"RiskReferenceNumber":  riskRegister.ReferenceNumber,
-			"RiskTitle":            riskRegister.Title,
-			"RiskDescription":      riskRegister.Description,
+			"RiskReferenceNumber":  existingRiskRegister.ReferenceNumber,
+			"RiskTitle":            existingRiskRegister.Title,
+			"RiskDescription":      existingRiskRegister.Description,
 			"CreatedByFirstNameEn": createdBy.FirstNameEn,
 			"CreatedByLastNameEn":  createdBy.LastNameEn,
 			"AssignedOn":           time.Now().Format("2006-01-02"),
@@ -522,6 +531,12 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 
 func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegisterFormDTO *riskDTOs.RiskRegisterFormDTO) error {
 	tx := rrs.repo.BeginTransaction()
+
+	oldRiskRegister, err := rrs.GetFullDetailsByID(id, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
 
 	if err := rrs.validateRiskRegisterFormDTO(riskRegisterFormDTO); err != nil {
 		return err
@@ -1004,24 +1019,180 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 		}
 	}
 
+	tx.Commit()
+
 	go func() {
-		// Log the update activity
-		err := rrs.activityLogSvc.LogActivity(
-			models.UpdateAction,
-			models.RiskRegister{}.TableName(),
-			id,
-			riskRegisterFormDTO,
-			currentUserID,
-			nil,
-		)
-		if err != nil {
-			utility.LogError("Failed to log activity", map[string]interface{}{
-				"action":    models.UpdateAction,
-				"tableName": models.RiskRegister{}.TableName(),
-				"recordID":  id,
-				"userID":    currentUserID,
-				"error":     err.Error(),
-			})
+		// Determine control, process, compliant register, sla register, asset and document changes
+		controlsAdded := []uint{}
+		controlsRemoved := []uint{}
+		for id := range newControlIDs {
+			if !existingControlIDs[id] {
+				controlsAdded = append(controlsAdded, id)
+			}
+		}
+		for id := range existingControlIDs {
+			if !newControlIDs[id] {
+				controlsRemoved = append(controlsRemoved, id)
+			}
+		}
+
+		processesAdded := []uint{}
+		processesRemoved := []uint{}
+		for id := range newProcessIDs {
+			if !existingProcessIDs[id] {
+				processesAdded = append(processesAdded, id)
+			}
+		}
+		for id := range existingProcessIDs {
+			if !newProcessIDs[id] {
+				processesRemoved = append(processesRemoved, id)
+			}
+		}
+
+		compliantRequirementAdded := []uint{}
+		compliantRequirementRemoved := []uint{}
+		for id := range newComplianceRequirementIDs {
+			if !existingComplianceRequirementIDs[id] {
+				compliantRequirementAdded = append(compliantRequirementAdded, id)
+			}
+		}
+		for id := range existingComplianceRequirementIDs {
+			if !newComplianceRequirementIDs[id] {
+				compliantRequirementRemoved = append(compliantRequirementRemoved, id)
+			}
+		}
+
+		SLARegisterAdded := []uint{}
+		SLARegisterRemoved := []uint{}
+		for id := range newSLARegisterIDs {
+			if !existingSLARegisterIDs[id] {
+				SLARegisterAdded = append(SLARegisterAdded, id)
+			}
+		}
+		for id := range existingSLARegisterIDs {
+			if !newSLARegisterIDs[id] {
+				SLARegisterRemoved = append(SLARegisterRemoved, id)
+			}
+		}
+
+		AssetAdded := []uint{}
+		AssetRemoved := []uint{}
+		for id := range newAssetIDs {
+			if !existingAssetIDs[id] {
+				AssetAdded = append(AssetAdded, id)
+			}
+		}
+		for id := range existingAssetIDs {
+			if !newAssetIDs[id] {
+				AssetRemoved = append(AssetRemoved, id)
+			}
+		}
+
+		documentsAdded := []uint{}
+		documentsRemoved := []uint{}
+		for id := range newDocumentIDs {
+			if !existingDocumentIDs[id] {
+				documentsAdded = append(documentsAdded, id)
+			}
+		}
+		for id := range existingDocumentIDs {
+			if !newDocumentIDs[id] {
+				documentsRemoved = append(documentsRemoved, id)
+			}
+		}
+
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		associatedItems := make(map[string]interface{})
+
+		if len(controlsAdded) > 0 || len(controlsRemoved) > 0 {
+			associatedItems["control_ids"] = map[string]interface{}{
+				"added":   controlsAdded,
+				"removed": controlsRemoved,
+			}
+		}
+
+		if len(processesAdded) > 0 || len(processesRemoved) > 0 {
+			associatedItems["process_ids"] = map[string]interface{}{
+				"added":   processesAdded,
+				"removed": processesRemoved,
+			}
+		}
+
+		if len(compliantRequirementAdded) > 0 || len(compliantRequirementRemoved) > 0 {
+			associatedItems["compliance_requirement_ids"] = map[string]interface{}{
+				"added":   compliantRequirementAdded,
+				"removed": compliantRequirementRemoved,
+			}
+		}
+
+		if len(SLARegisterAdded) > 0 || len(SLARegisterRemoved) > 0 {
+			associatedItems["sla_register_ids"] = map[string]interface{}{
+				"added":   SLARegisterAdded,
+				"removed": SLARegisterRemoved,
+			}
+		}
+
+		if len(AssetAdded) > 0 || len(AssetRemoved) > 0 {
+			associatedItems["asset_ids"] = map[string]interface{}{
+				"added":   AssetAdded,
+				"removed": AssetRemoved,
+			}
+		}
+
+		if len(documentsAdded) > 0 || len(documentsRemoved) > 0 {
+			associatedItems["document_ids"] = map[string]interface{}{
+				"added":   documentsAdded,
+				"removed": documentsRemoved,
+			}
+		}
+
+		if len(associatedItems) > 0 {
+			changedData["associated_items"] = associatedItems
+		}
+		//log changes
+		oldData := map[string]interface{}{
+			"title":            oldRiskRegister.Title,
+			"description":      oldRiskRegister.Description,
+			"risk_categrory":   oldRiskRegister.RiskCategory.TitleEn,
+			"risk_source":      utility.GetFieldValue(oldRiskRegister.RiskSource).(string),
+			"reported_at":      oldRiskRegister.ReportedAtString,
+			"next_review_date": oldRiskRegister.NextReviewDateString,
+			"responsible_user": fmt.Sprintf("%s %s", oldRiskRegister.ResponsibleUser.FirstNameEN, oldRiskRegister.ResponsibleUser.LastNameEN),
+		}
+
+		newData := map[string]interface{}{
+			"title":            existingRisk.Title,
+			"description":      existingRisk.Description,
+			"risk_categrory":   existingRisk.RiskCategory.TitleEn,
+			"risk_source":      utility.GetFieldValue(existingRisk.RiskSource).(string),
+			"reported_at":      existingRisk.ReportedAtString,
+			"next_review_date": existingRisk.NextReviewDateString,
+			"responsible_user": fmt.Sprintf("%s %s", existingRisk.ResponsibleUser.FirstNameEN, existingRisk.ResponsibleUser.LastNameEN),
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := rrs.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.RiskRegister{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				utility.LogError("Failed to log activity", map[string]interface{}{
+					"action":   models.UpdateAction,
+					"error":    err.Error(),
+					"recordID": id,
+				})
+			}
 		}
 
 		// Send notifications to old and new responsible users if the responsible user has changed
@@ -1152,30 +1323,6 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 		}
 	}()
 
-	tx.Commit()
-
-	go func() {
-		err := rrs.activityLogSvc.LogActivity(
-			models.UpdateAction,
-			models.RiskRegister{}.TableName(),
-			id,
-			riskRegisterFormDTO,
-			currentUserID,
-			nil,
-		)
-		if err != nil {
-			fields := map[string]interface{}{
-				"action":    models.UpdateAction,
-				"tableName": models.RiskRegister{}.TableName(),
-				"recordID":  id,
-				"userID":    currentUserID,
-				"error":     err.Error(),
-			}
-
-			utility.LogError("Failed to log activity", fields)
-		}
-	}()
-
 	return nil
 }
 
@@ -1191,6 +1338,9 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 		Description     string
 		ReferenceNumber string
 	}
+
+	var deletedRiskRegister []map[string]interface{}
+
 	documentsToDelete := make(map[uint][]*riskDTOs.RiskDocumentDTO)
 
 	for _, id := range ids {
@@ -1211,6 +1361,11 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 			TitleEn:         risk.Title,
 			Description:     *risk.Description,
 			ReferenceNumber: risk.ReferenceNumber,
+		})
+
+		deletedRiskRegister = append(deletedRiskRegister, map[string]interface{}{
+			"ID":    id,
+			"Title": risk.Title,
 		})
 		// Check if controls exist
 		if len(risk.Controls) > 0 {
@@ -1350,7 +1505,7 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 				models.DeleteAction, // Make sure this action constant is defined appropriately
 				models.RiskRegister{}.TableName(),
 				successfulIds,
-				nil,
+				deletedRiskRegister,
 				currentUserID,
 				nil,
 			)

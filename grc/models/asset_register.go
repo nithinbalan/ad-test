@@ -17,12 +17,13 @@ type AssetRegister struct {
 	Location                            *string    `json:"location,omitempty" gorm:"type:nvarchar(255);default:null"`
 	Description                         *string    `json:"description,omitempty" gorm:"type:nvarchar(MAX);default:null"`
 	AcquisitionDate                     *time.Time `json:"acquisition_date,omitempty" gorm:"type:date;default:null"`
-	AssetCriticalityMatrixRatingScaleID *uint      `json:"asset_criticality_matrix_rating_scale_id" gorm:"default:null"`
-	TotalScore                          *float64   `json:"total_score" gorm:"default:null"`
+	AssetCriticalityMatrixID            uint       `json:"asset_criticality_matrix_id"`
+	AssetCriticalityMatrixRatingScaleID *uint      `json:"asset_criticality_matrix_rating_scale_id,omitempty" gorm:"default:null"`
+	TotalScore                          *float64   `json:"total_score,omitempty" gorm:"default:null"`
 	CreatedBYID                         uint       `json:"created_by_id" gorm:"not null" binding:"required"`
 	CreatedAt                           time.Time  `json:"created_at" gorm:"type:datetime;not null"`
-	UpdatedBYID                         *uint      `json:"updated_by_id" gorm:"default:null"`
-	UpdatedAt                           *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
+	UpdatedBYID                         *uint      `json:"updated_by_id,omitempty" gorm:"default:null"`
+	UpdatedAt                           *time.Time `json:"updated_at,omitempty" gorm:"type:datetime;default:null"`
 
 	// Relationships
 	AssetType                         *AssetType                         `gorm:"foreignKey:AssetTypeID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
@@ -30,8 +31,9 @@ type AssetRegister struct {
 	AssetStatus                       *AssetStatus                       `gorm:"foreignKey:AssetStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ResponsibleUser                   *User                              `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ResponsibleUnit                   *OrganizationUnit                  `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	Controls                          []*AssetControl                    `gorm:"foreignKey:AssetRegisterID"`
+	AssetCriticalityMatrix            *AssetCriticalityMatrix            `gorm:"foreignKey:AssetCriticalityMatrixID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"` // New relationship
 	AssetCriticalityMatrixRatingScale *AssetCriticalityMatrixRatingScale `gorm:"foreignKey:AssetCriticalityMatrixRatingScaleID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Controls                          []*AssetControl                    `gorm:"foreignKey:AssetRegisterID"`
 	Contributions                     []*AssetCriticalityContribution    `gorm:"foreignKey:AssetRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 
 	CreatedByUser *User `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`

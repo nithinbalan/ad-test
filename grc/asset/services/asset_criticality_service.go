@@ -62,22 +62,22 @@ func (acs *AssetCriticalityService) GetByID(id uint) (*models.AssetCriticalityCo
 func (acs *AssetCriticalityService) Create(assetID uint, assetCriticalityFormDTO []assetDTOs.AssetCriticalityFormDTO, currentUserID uint) error {
 	tx := acs.repo.BeginTransaction()
 
-	_, err := acs.assetRegisterSvc.GetByID(assetID)
+	asset, err := acs.assetRegisterSvc.GetByID(assetID)
 	if err != nil {
 		return err
 	}
 
-	if err := acs.validateAssetCriticalityFormDTO(assetCriticalityFormDTO); err != nil {
+	if err := acs.validateAssetCriticalityFormDTO(asset.AssetCriticalityMatrixID, assetCriticalityFormDTO); err != nil {
 		return err
 	}
 
 	for _, dto := range assetCriticalityFormDTO {
-		factor, err := acs.assetCriticalityMatrixFactorSvc.GetByID(dto.AssetCriticalityMatrixFactorID)
+		factor, err := acs.assetCriticalityMatrixFactorSvc.GetByID(asset.AssetCriticalityMatrixID, dto.AssetCriticalityMatrixFactorID)
 		if err != nil {
 			return err
 		}
 
-		rating, err := acs.assetCriticalityMatrixFactorRatingSvc.GetByID(dto.AssetCriticalityMatrixFactorRatingID)
+		rating, err := acs.assetCriticalityMatrixFactorRatingSvc.GetByID(asset.AssetCriticalityMatrixID, dto.AssetCriticalityMatrixFactorRatingID)
 		if err != nil {
 			return err
 		}
@@ -141,17 +141,22 @@ func (acs *AssetCriticalityService) Create(assetID uint, assetCriticalityFormDTO
 func (acs *AssetCriticalityService) Update(assetID uint, id uint, dto assetDTOs.AssetCriticalityFormDTO, userID uint) error {
 	tx := acs.repo.BeginTransaction()
 
+	asset, err := acs.assetRegisterSvc.GetByID(assetID)
+	if err != nil {
+		return err
+	}
+
 	contribution, err := acs.GetByID(id)
 	if err != nil {
 		return err
 	}
 
-	factor, err := acs.assetCriticalityMatrixFactorSvc.GetByID(dto.AssetCriticalityMatrixFactorID)
+	factor, err := acs.assetCriticalityMatrixFactorSvc.GetByID(asset.AssetCriticalityMatrixID, dto.AssetCriticalityMatrixFactorID)
 	if err != nil {
 		return err
 	}
 
-	rating, err := acs.assetCriticalityMatrixFactorRatingSvc.GetByID(dto.AssetCriticalityMatrixFactorRatingID)
+	rating, err := acs.assetCriticalityMatrixFactorRatingSvc.GetByID(asset.AssetCriticalityMatrixID, dto.AssetCriticalityMatrixFactorRatingID)
 	if err != nil {
 		return err
 	}
@@ -207,13 +212,13 @@ func (acs *AssetCriticalityService) Delete(assetID uint, userID uint) error {
 	return nil
 }
 
-func (acs *AssetCriticalityService) validateAssetCriticalityFormDTO(assetCriticalityFormDTO []assetDTOs.AssetCriticalityFormDTO) error {
+func (acs *AssetCriticalityService) validateAssetCriticalityFormDTO(matrixID uint, assetCriticalityFormDTO []assetDTOs.AssetCriticalityFormDTO) error {
 	for _, dto := range assetCriticalityFormDTO {
-		if _, err := acs.assetCriticalityMatrixFactorSvc.GetByID(dto.AssetCriticalityMatrixFactorID); err != nil {
+		if _, err := acs.assetCriticalityMatrixFactorSvc.GetByID(matrixID, dto.AssetCriticalityMatrixFactorID); err != nil {
 			return utility.NewValidationError(fmt.Errorf("asset criticality matrix factor does not exist"), "not_exist", "asset criticality matrix factor")
 		}
 
-		if _, err := acs.assetCriticalityMatrixFactorRatingSvc.GetByID(dto.AssetCriticalityMatrixFactorRatingID); err != nil {
+		if _, err := acs.assetCriticalityMatrixFactorRatingSvc.GetByID(matrixID, dto.AssetCriticalityMatrixFactorRatingID); err != nil {
 			return utility.NewValidationError(fmt.Errorf("asset criticality matrix factor rating does not exist"), "not_exist", "asset criticality matrix factor rating")
 		}
 	}

@@ -33,6 +33,7 @@ type AssetRegisterService struct {
 	assetStatusSvc                       AssetStatusServiceInterface
 	userSvc                              organizationServices.UserServiceInterface
 	assetCriticalityMatrixRatingScaleSvc AssetCriticalityMatrixRatingScaleServiceInterface
+	assetCriticalityMatrixSvc            AssetCriticalityMatrixServiceInterface
 }
 
 func NewAssetRegisterService(
@@ -43,6 +44,7 @@ func NewAssetRegisterService(
 	assetStatusSvc AssetStatusServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	assetCriticalityMatrixRatingScaleSvc AssetCriticalityMatrixRatingScaleServiceInterface,
+	assetCriticalityMatrixSvc AssetCriticalityMatrixServiceInterface,
 ) AssetRegisterServiceInterface {
 	return &AssetRegisterService{
 		repo:                                 repo,
@@ -52,6 +54,7 @@ func NewAssetRegisterService(
 		assetStatusSvc:                       assetStatusSvc,
 		userSvc:                              userSvc,
 		assetCriticalityMatrixRatingScaleSvc: assetCriticalityMatrixRatingScaleSvc,
+		assetCriticalityMatrixSvc:            assetCriticalityMatrixSvc,
 	}
 }
 
@@ -113,24 +116,35 @@ func (ars *AssetRegisterService) Create(assetRegisterFormDTO *dtos.AssetRegister
 		return 0, err
 	}
 
+	matrixID, err := ars.assetCriticalityMatrixSvc.GetCriticalityMatrixByCategoryID(assetRegisterFormDTO.AssetCategoryID)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	if matrixID == 0 {
+		return 0, utility.NewValidationError(fmt.Errorf("no criticality matrix found for asset category"), "not_exist", "criticality matrix against category")
+	}
+
 	organizationUnitID, err := ars.userSvc.GetUserPrimaryUnitID(assetRegisterFormDTO.ResponsibleUserID)
 	if err != nil {
 		return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "responsible user unit")
 	}
 
 	asset := &models.AssetRegister{
-		ReferenceNumber:   referenceNumber,
-		TitleEn:           assetRegisterFormDTO.TitleEn,
-		TitleAr:           assetRegisterFormDTO.TitleAr,
-		AssetTypeID:       assetRegisterFormDTO.AssetTypeID,
-		AssetCategoryID:   assetRegisterFormDTO.AssetCategoryID,
-		AssetStatusID:     assetRegisterFormDTO.AssetStatusID,
-		ResponsibleUserID: assetRegisterFormDTO.ResponsibleUserID,
-		ResponsibleUnitID: organizationUnitID,
-		Location:          assetRegisterFormDTO.Location,
-		Description:       assetRegisterFormDTO.Description,
-		AcquisitionDate:   dates.AcquisitionDate,
-		CreatedBYID:       currentUserID,
+		ReferenceNumber:          referenceNumber,
+		TitleEn:                  assetRegisterFormDTO.TitleEn,
+		TitleAr:                  assetRegisterFormDTO.TitleAr,
+		AssetTypeID:              assetRegisterFormDTO.AssetTypeID,
+		AssetCategoryID:          assetRegisterFormDTO.AssetCategoryID,
+		AssetStatusID:            assetRegisterFormDTO.AssetStatusID,
+		ResponsibleUserID:        assetRegisterFormDTO.ResponsibleUserID,
+		ResponsibleUnitID:        organizationUnitID,
+		Location:                 assetRegisterFormDTO.Location,
+		Description:              assetRegisterFormDTO.Description,
+		AssetCriticalityMatrixID: matrixID,
+		AcquisitionDate:          dates.AcquisitionDate,
+		CreatedBYID:              currentUserID,
 	}
 
 	assetID, err := ars.repo.Create(asset, tx)
@@ -321,7 +335,7 @@ func (ars *AssetRegisterService) UpdateTotalScore(assetID uint, totalScore float
 	if totalScore == 0 {
 		existingAsset.AssetCriticalityMatrixRatingScaleID = nil
 	} else {
-		ratingScale, err := ars.assetCriticalityMatrixRatingScaleSvc.GetRatingScaleByScore(totalScore)
+		ratingScale, err := ars.assetCriticalityMatrixRatingScaleSvc.GetRatingScaleByScore(existingAsset.AssetCriticalityMatrixID, totalScore)
 		if err != nil {
 			return err
 		}

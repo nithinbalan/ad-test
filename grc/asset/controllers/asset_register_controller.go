@@ -156,6 +156,9 @@ func (arc *AssetRegisterController) CreateAsset(c *gin.Context) {
 	assetID, err := arc.service.Create(&assetForm, currentUserID)
 	if err != nil {
 		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
 			return
