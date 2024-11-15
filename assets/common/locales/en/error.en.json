@@ -68,6 +68,10 @@
     "translation": "password does not meet the requirements."
   },
   {
+    "id": "password_mismatch",
+    "translation": "incorrect old password."
+  },
+  {
     "id": "invalid_otp",
     "translation": "Invalid OTP" 
   },

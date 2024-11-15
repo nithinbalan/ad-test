@@ -68,6 +68,10 @@
     "translation": "كلمة المرور لا تلبي المتطلبات"
   },
   {
+    "id": "password_mismatch",
+    "translation":"كلمة المرور القديمة غير صحيحة"
+  },
+  {
     "id": "invalid_otp",
     "translation": "كلمة المرور لمرة واحدة غير صالحة"
   },
