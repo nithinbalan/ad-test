@@ -304,3 +304,28 @@ func GetFieldValue(DTO interface{}) interface{} {
 		return ""
 	}
 }
+
+func IsValidPassword(password string) bool {
+	// Password should contain at least 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character
+	var (
+		hasUpperCase = false
+		hasLowerCase = false
+		hasNumber    = false
+		hasSpecial   = false
+	)
+
+	for _, char := range password {
+		switch {
+		case 'A' <= char && char <= 'Z':
+			hasUpperCase = true
+		case 'a' <= char && char <= 'z':
+			hasLowerCase = true
+		case '0' <= char && char <= '9':
+			hasNumber = true
+		case strings.ContainsAny(string(char), "!@#$%^&*()-_+=~`[]{}\\|;:'\",.<>?"):
+			hasSpecial = true
+		}
+	}
+
+	return hasUpperCase && hasLowerCase && hasNumber && hasSpecial
+}

@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	commonService "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
@@ -414,7 +415,11 @@ func (us *UserSettingService) ChangePassword(userID uint, oldPassword, newPasswo
 
 	err = bcrypt.CompareHashAndPassword([]byte(currentUserSecurity.PasswordHash), []byte(oldPassword))
 	if err != nil {
-		return utility.NewValidationError(errors.New("incorrect old password"), "password_mismatch", "old_password")
+		return utility.NewValidationError(fmt.Errorf("incorrect old password"), "password_mismatch", "old_password")
+	}
+
+	if !utility.IsValidPassword(newPassword) {
+		return utility.NewValidationError(fmt.Errorf("password does not meet the requirements"), "password_complexity", "password")
 	}
 
 	newPasswordHash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
