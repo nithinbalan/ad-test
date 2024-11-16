@@ -71,6 +71,12 @@ func (acs *AssetCriticalityService) Create(assetID uint, assetCriticalityFormDTO
 		return err
 	}
 
+	// Delete all existing contributions for this asset
+	if err := acs.repo.Delete(assetID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	for _, dto := range assetCriticalityFormDTO {
 		factor, err := acs.assetCriticalityMatrixFactorSvc.GetByID(asset.AssetCriticalityMatrixID, dto.AssetCriticalityMatrixFactorID)
 		if err != nil {
