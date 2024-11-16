@@ -14,7 +14,7 @@ import (
 )
 
 type AuditTemplateSettingServiceInterface interface {
-	GetAll(params *auditDTOs.AuditTemplateSettingListQueryParamsDTO) (*auditDTOs.AuditTemplateSettingListDTO, error)
+	GetAll(params *auditDTOs.AuditTemplateSettingListQueryParamsDTO) ([]*auditDTOs.AuditTemplateSettingListDTO, error)
 	GetByID(id uint) (*models.AuditTemplateSetting, error)
 	Update(id uint, currentUserID uint, updatedTemplateSettingDTO *auditDTOs.AuditTemplateSettingFormDTO) error
 }
@@ -32,15 +32,15 @@ func NewAuditTemplateSettingService(repo repositories.AuditTemplateSettingReposi
 	}
 }
 
-func (atss *AuditTemplateSettingService) GetAll(params *auditDTOs.AuditTemplateSettingListQueryParamsDTO) (*auditDTOs.AuditTemplateSettingListDTO, error) {
+func (atss *AuditTemplateSettingService) GetAll(params *auditDTOs.AuditTemplateSettingListQueryParamsDTO) ([]*auditDTOs.AuditTemplateSettingListDTO, error) {
 	auditTemplateSettings, err := atss.repo.GetAll(params)
 	if err != nil {
 		return nil, err
 	}
 
-	// Return the retrieved data
 	return auditTemplateSettings, nil
 }
+
 
 func (atss AuditTemplateSettingService) GetByID(id uint) (*models.AuditTemplateSetting, error) {
 	auditTemplateSetting, err := atss.repo.GetByID(id)
