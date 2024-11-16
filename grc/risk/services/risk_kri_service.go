@@ -162,7 +162,7 @@ func (rks *RiskKriService) Create(riskID uint, currentUserID uint, riskKriFormDT
 			models.CreateAction,
 			models.RiskKri{}.TableName(),
 			ids,
-			riskKriFormDTO,
+			kris,
 			currentUserID,
 			nil,
 		)
@@ -203,7 +203,6 @@ func (rks *RiskKriService) Update(riskID uint, currentUserID uint, riskKriFormDT
 	for _, kri := range riskKriFormDTO.KriIDs {
 		newKRIIDs[*kri] = true
 	}
-
 	var krisToAdd []*models.RiskKri
 	for _, newKRIID := range riskKriFormDTO.KriIDs {
 		if _, exists := existingKRIIDs[*newKRIID]; !exists {
@@ -215,7 +214,6 @@ func (rks *RiskKriService) Update(riskID uint, currentUserID uint, riskKriFormDT
 			krisToAdd = append(krisToAdd, kri)
 		}
 	}
-
 	if len(krisToAdd) > 0 {
 		_, err := rks.repo.Create(krisToAdd, tx)
 		if err != nil {
@@ -238,6 +236,52 @@ func (rks *RiskKriService) Update(riskID uint, currentUserID uint, riskKriFormDT
 	}
 
 	tx.Commit()
+	go func() {
+		krisAdded := []uint{}
+		krisRemoved := []uint{}
+		for id := range newKRIIDs {
+			if !existingKRIIDs[id] {
+				krisAdded = append(krisAdded, id)
+			}
+		}
+		for id := range existingKRIIDs {
+			if !newKRIIDs[id] {
+				krisRemoved = append(krisRemoved, id)
+			}
+		}
+		// Prepare log data
+		changedData := make(map[string]interface{})
+		associatedItems := make(map[string]interface{})
+
+		if len(krisAdded) > 0 || len(krisRemoved) > 0 {
+			associatedItems["kri_ids"] = map[string]interface{}{
+				"added":   krisAdded,
+				"removed": krisRemoved,
+			}
+		}
+		if len(associatedItems) > 0 {
+			changedData["associated_items"] = associatedItems
+		}
+
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := rks.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.RiskKri{}.TableName(),
+				riskID,
+				changedData,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				utility.LogError("Failed to log activity", map[string]interface{}{
+					"action":   models.UpdateAction,
+					"error":    err.Error(),
+					"recordID": riskID,
+				})
+			}
+		}
+	}()
 	return nil
 }
 
@@ -250,6 +294,9 @@ func (rks *RiskKriService) Delete(riskID uint, ids []uint, currentUserID uint) (
 
 	var failedIds []uint
 	var successfulIds []uint
+
+	var deletedRiskKri []map[string]interface{}
+
 	for _, id := range ids {
 
 		_, err := rks.repo.GetByID(id)
@@ -293,6 +340,10 @@ func (rks *RiskKriService) Delete(riskID uint, ids []uint, currentUserID uint) (
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+
+		deletedRiskKri = append(deletedRiskKri, map[string]interface{}{
+			"ID": id,
+		})
 	}
 	tx.Commit()
 
@@ -303,7 +354,7 @@ func (rks *RiskKriService) Delete(riskID uint, ids []uint, currentUserID uint) (
 				models.DeleteAction,
 				models.RiskKri{}.TableName(),
 				successfulIds,
-				nil,
+				deletedRiskKri,
 				currentUserID,
 				nil,
 			)

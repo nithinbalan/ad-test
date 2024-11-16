@@ -184,11 +184,19 @@ func (krs *KRIRegisterService) Create(currentUserID uint, kriRegisterFormDTO *ri
 	}
 
 	go func() {
-		err := krs.activityLogSvc.LogActivity(
+		existingKriRegister, err := krs.GetFullDetailsByID(kriRegister.ID)
+		if err != nil {
+			utility.LogError("Failed to fetch kri register", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		err = krs.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.KRIRegister{}.TableName(),
 			id,
-			kriRegisterFormDTO,
+			existingKriRegister,
 			currentUserID,
 			nil,
 		)
@@ -276,6 +284,11 @@ func (krs *KRIRegisterService) Create(currentUserID uint, kriRegisterFormDTO *ri
 }
 
 func (krs *KRIRegisterService) Update(id uint, currentUserID uint, kriRegisterFormDTO *riskDTOs.KRIRegisterFormDTO) error {
+	oldKriRegister, err := krs.GetFullDetailsByID(id)
+	if err != nil {
+		return err
+	}
+
 	existingKRIRegister, err := krs.GetByID(id)
 
 	if err != nil {
@@ -325,24 +338,70 @@ func (krs *KRIRegisterService) Update(id uint, currentUserID uint, kriRegisterFo
 		return err
 	}
 
+	existingKri, err := krs.GetFullDetailsByID(id)
+	if err != nil {
+		return err
+	}
+
 	go func() {
-		// Log the update activity
-		err := krs.activityLogSvc.LogActivity(
-			models.UpdateAction,
-			models.KRIRegister{}.TableName(),
-			id,
-			kriRegisterFormDTO,
-			currentUserID,
-			nil,
-		)
-		if err != nil {
-			utility.LogError("Failed to log activity", map[string]interface{}{
-				"action":    models.UpdateAction,
-				"tableName": models.KRIRegister{}.TableName(),
-				"recordID":  id,
-				"userID":    currentUserID,
-				"error":     err.Error(),
-			})
+		changedData := make(map[string]interface{})
+		//log changes
+		oldData := map[string]interface{}{
+			"title":            oldKriRegister.Title,
+			"description":      oldKriRegister.Description,
+			"kri_category":     oldKriRegister.KRICategory.TitleEn,
+			"responsible_user": fmt.Sprintf("%s %s", oldKriRegister.ResponsibleUser.FirstNameEN, oldKriRegister.ResponsibleUser.LastNameEN),
+			"review_frequency": oldKriRegister.ReviewFrequency.TitleEn,
+			"risk_level":       utility.GetFieldValue(oldKriRegister.RiskLevel).(string),
+			"unit":             oldKriRegister.Unit,
+			"calculation_type": oldKriRegister.CalculationType,
+			"low_threshold":    oldKriRegister.LowThreshold,
+			"medium_threshold": oldKriRegister.MediumThreshold,
+			"high_threshold":   oldKriRegister.HighThreshold,
+			"current_value":    oldKriRegister.CurrentValue,
+			"last_review_note": oldKriRegister.LastReviewNote,
+		}
+
+		newData := map[string]interface{}{
+			"title":            existingKri.Title,
+			"description":      existingKri.Description,
+			"kri_category":     existingKri.KRICategory.TitleEn,
+			"responsible_user": fmt.Sprintf("%s %s", existingKri.ResponsibleUser.FirstNameEN, existingKri.ResponsibleUser.LastNameEN),
+			"review_frequency": existingKri.ReviewFrequency.TitleEn,
+			"risk_level":       utility.GetFieldValue(existingKri.RiskLevel).(string),
+			"unit":             existingKri.Unit,
+			"calculation_type": existingKri.CalculationType,
+			"low_threshold":    existingKri.LowThreshold,
+			"medium_threshold": existingKri.MediumThreshold,
+			"high_threshold":   existingKri.HighThreshold,
+			"current_value":    existingKri.CurrentValue,
+			"last_review_note": existingKri.LastReviewNote,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			// Log the update activity
+			err := krs.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.KRIRegister{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				utility.LogError("Failed to log activity", map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.KRIRegister{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				})
+			}
 		}
 
 		// Send notifications to old and new responsible users if the responsible user has changed
@@ -497,6 +556,8 @@ func (krs *KRIRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 		ReferenceNumber string
 	}
 
+	var deletedKriRegister []map[string]interface{}
+
 	for _, id := range ids {
 
 		_, err := krs.repo.GetByID(id)
@@ -540,6 +601,11 @@ func (krs *KRIRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 			Description:     *kriRegister.Description,
 			ReferenceNumber: *kriRegister.ReferenceNumber,
 		})
+
+		deletedKriRegister = append(deletedKriRegister, map[string]interface{}{
+			"ID":    id,
+			"Title": kriRegister.Title,
+		})
 	}
 
 	if len(successfulIds) > 0 {
@@ -549,7 +615,7 @@ func (krs *KRIRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 				models.DeleteAction, // Make sure this action constant is defined appropriately
 				models.KRIRegister{}.TableName(),
 				successfulIds,
-				nil,
+				deletedKriRegister,
 				currentUserID,
 				nil,
 			)
