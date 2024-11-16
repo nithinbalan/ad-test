@@ -26,6 +26,8 @@ type AssetRegisterRepositoryInterface interface {
 
 	CreateAssetControls(controls []*models.AssetControl, tx ...utility.DatabaseTransaction) error
 	DeleteAssetControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error
+
+	GetControlSummary(assetID uint) ([]models.AssetControl, error)
 }
 
 // Implementation
@@ -289,4 +291,20 @@ func (repo *AssetRegisterRepository) DeleteAssetControls(controlIds []*uint, tx 
 	}
 
 	return nil
+}
+
+func (repo *AssetRegisterRepository) GetControlSummary(assetID uint) ([]models.AssetControl, error) {
+	var assetControls []models.AssetControl
+
+	result := repo.db.
+		Preload("Control").
+		Preload("Control.ControlImplementationStatus").
+		Preload("Control.ControlEfficiencyStatus").
+		Where("asset_register_id = ?", assetID).
+		Find(&assetControls)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return assetControls, nil
 }
