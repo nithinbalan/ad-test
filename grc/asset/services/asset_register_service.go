@@ -23,6 +23,7 @@ type AssetRegisterServiceInterface interface {
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 
 	UpdateTotalScore(assetID uint, totalScore float64, tx ...utility.DatabaseTransaction) error
+	GetControlSummary(assetID uint) (map[string]interface{}, error)
 }
 
 type AssetRegisterService struct {
@@ -384,4 +385,78 @@ func (ars *AssetRegisterService) parseAssetRegisterDates(assetRegisterFormDTO *d
 	}
 
 	return parsed, nil
+}
+
+func (ars *AssetRegisterService) GetControlSummary(assetID uint) (map[string]interface{}, error) {
+	assetControls, err := ars.repo.GetControlSummary(assetID)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(assetControls) == 0 {
+		return map[string]interface{}{
+			"total_control_score":       0,
+			"implementation_status":     []map[string]interface{}{},
+			"efficiency_percentage":     0,
+			"implementation_percentage": 0,
+			"total_efficiency":          []map[string]interface{}{},
+			"total_control_count":       0,
+		}, nil
+	}
+
+	implementationStatusCount := make(map[string]int)
+	efficiencyStatusCount := make(map[string]int)
+	implementationDetails := make(map[string]models.ControlImplementationStatus)
+	efficiencyDetails := make(map[string]models.ControlEfficiencyStatus)
+
+	for _, ac := range assetControls {
+		implStatus := ac.Control.ControlImplementationStatus.Type
+		implementationStatusCount[implStatus]++
+		implementationDetails[implStatus] = *ac.Control.ControlImplementationStatus
+
+		if ac.Control.ControlEfficiencyStatus != nil {
+			effStatus := ac.Control.ControlEfficiencyStatus.Type
+			efficiencyStatusCount[effStatus]++
+			efficiencyDetails[effStatus] = *ac.Control.ControlEfficiencyStatus
+		}
+	}
+
+	totalControls := len(assetControls)
+
+	implementationStatus := make([]map[string]interface{}, 0)
+	for status, count := range implementationStatusCount {
+		implDetail := implementationDetails[status]
+		implementationStatus = append(implementationStatus, map[string]interface{}{
+			"id":         implDetail.ID,
+			"type":       implDetail.Type,
+			"title_en":   implDetail.TitleEn,
+			"title_ar":   implDetail.TitleAr,
+			"count":      count,
+			"color_code": implDetail.ColorCode,
+		})
+	}
+
+	efficiencyStatus := make([]map[string]interface{}, 0)
+	for status, count := range efficiencyStatusCount {
+		effDetail := efficiencyDetails[status]
+		efficiencyStatus = append(efficiencyStatus, map[string]interface{}{
+			"id":         effDetail.ID,
+			"type":       effDetail.Type,
+			"title_en":   effDetail.TitleEn,
+			"title_ar":   effDetail.TitleAr,
+			"count":      count,
+			"color_code": effDetail.ColorCode,
+		})
+	}
+
+	summary := map[string]interface{}{
+		"total_control_score":       (float64(implementationStatusCount["implemented"]) / float64(totalControls)) * 100,
+		"implementation_status":     implementationStatus,
+		"efficiency_percentage":     (float64(efficiencyStatusCount["efficient"]) / float64(totalControls)) * 100,
+		"implementation_percentage": (float64(implementationStatusCount["implemented"]) / float64(totalControls)) * 100,
+		"total_efficiency":          efficiencyStatus,
+		"total_control_count":       totalControls,
+	}
+
+	return summary, nil
 }
