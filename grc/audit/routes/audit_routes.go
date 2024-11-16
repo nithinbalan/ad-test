@@ -65,6 +65,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditFinalReportSectionController := app.AuditModule.AuditFinalReportSectionController
 	auditReportWorkflowController := app.AuditModule.AuditReportWorkflowController
 	auditReportReviewController := app.AuditModule.AuditReportReviewController
+	auditTemplateSettingController := app.AuditModule.AuditTemplateSettingController
 
 	//Audit Status
 	auditRoutes.GET("/audit-statuses", auditStatusController.GetAllAuditStatuses)
@@ -377,5 +378,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.POST("/audits/:auditId/final-reports/submit", auditReportReviewController.SubmitAuditFinalReport)
 	auditRoutes.GET("/audits/:auditId/final-reports/comments", auditReportReviewController.GetComments)
 	auditRoutes.POST("/audits/:auditId/final-reports/comments", auditReportReviewController.AddComment)
+
+	auditRoutes.GET("/audit-template-settings", auditTemplateSettingController.GetAllAuditTemplateSettings)
+	auditRoutes.PUT("/audit-template-settings/:id", middlewares.RolePermissionMiddleware(db, "audit_setting", "modify"), auditTemplateSettingController.UpdateAuditTemplateSetting)
+	
 
 }
