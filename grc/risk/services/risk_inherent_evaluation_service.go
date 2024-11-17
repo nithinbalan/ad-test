@@ -74,7 +74,7 @@ func (ries RiskInherentEvaluationService) GetFullDetailsByID(riskID uint, tx ...
 	var riskInherentEvaluationDetailsDTO riskDTOs.RiskInherentEvaluationDetailsDTO
 
 	// Get full details from the repository
-	riskInherentEvaluation, err := ries.repo.GetFullDetailsByID(riskID,tx...)
+	riskInherentEvaluation, err := ries.repo.GetFullDetailsByID(riskID, tx...)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, riskID)
@@ -253,11 +253,18 @@ func (ries *RiskInherentEvaluationService) Create(riskID uint, currentUserID uin
 	tx.Commit()
 	// Perform activity logging
 	go func() {
-		err := ries.activityLogSvc.LogActivity(
+		existingRiskInherentEvaluation, err := ries.GetFullDetailsByID(riskID)
+		if err != nil {
+			utility.LogError("Failed to fetch risk evaluation", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		err = ries.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.RiskEvaluation{}.TableName(),
 			id,
-			inherentEvaluationFormDTO,
+			existingRiskInherentEvaluation,
 			currentUserID,
 			nil,
 		)
@@ -297,6 +304,26 @@ func (ries *RiskInherentEvaluationService) Update(riskID uint, id uint, currentU
 	riskMatrix, err := ries.riskMatrixSvc.GetDetailsByID(riskMatrixType.ID)
 	if err != nil {
 		return err
+	}
+	oldRiskEvaluation, err := ries.GetFullDetailsByID(riskID)
+	if err != nil {
+		return err
+	}
+
+	var existingImpactAnalysis []map[string]interface{}
+	for _, impactAnalysis := range oldRiskEvaluation.RiskImpactAnalyses {
+		existingImpactAnalysis = append(existingImpactAnalysis, map[string]interface{}{
+			"risk_impact_category_id": impactAnalysis.RiskImpactCategory.ID,
+			"risk_matrix_impact_id":   impactAnalysis.RiskMatrixImpact.ID,
+		})
+	}
+
+	var existingAppetiteAlignment []map[string]interface{}
+	for _, appetiteAlignment := range oldRiskEvaluation.RiskAppetiteAlignments {
+		existingAppetiteAlignment = append(existingAppetiteAlignment, map[string]interface{}{
+			"risk_appetite_statement_id":       appetiteAlignment.RiskAppetiteStatementID,
+			"risk_appetite_tolerance_level_id": appetiteAlignment.RiskAppetiteToleranceLevelID,
+		})
 	}
 
 	var riskRatingValueArray []*riskDTOs.RiskMatrixRiskRatingDataDTO
@@ -363,7 +390,7 @@ func (ries *RiskInherentEvaluationService) Update(riskID uint, id uint, currentU
 		tx.Rollback()
 		return err
 	}
-
+	var riskImpactAnalysis []*models.RiskImpactAnalysis
 	for _, impactEval := range inherentEvaluationFormDTO.RiskImpactAnalyses {
 		riskImpactEvaluation := &models.RiskImpactAnalysis{
 			RiskEvaluationID:     id,
@@ -371,7 +398,7 @@ func (ries *RiskInherentEvaluationService) Update(riskID uint, id uint, currentU
 			RiskMatrixImpactID:   impactEval.RiskMatrixImpactID,
 			CreatedByID:          currentUserID,
 		}
-
+		riskImpactAnalysis = append(riskImpactAnalysis, riskImpactEvaluation)
 		err := ries.repo.CreateRiskImpactAnalysis(riskImpactEvaluation, tx)
 		if err != nil {
 			tx.Rollback()
@@ -410,11 +437,82 @@ func (ries *RiskInherentEvaluationService) Update(riskID uint, id uint, currentU
 		}
 	}
 	tx.Commit()
+	go func() {
+		existingRiskEvaluation, err := ries.GetFullDetailsByID(riskID)
+		if err != nil {
+			return
+		}
+		changedData := make(map[string]interface{})
+		//log changes
+		oldData := map[string]interface{}{
+			"risk_matrix_impact":            oldRiskEvaluation.RiskMatrixImpact.TitleEn,
+			"risk_matrix_likelihood":        oldRiskEvaluation.RiskMatrixLikelihood.TitleEn,
+			"risk_matrix_risk_rating":       oldRiskEvaluation.RiskMatrixRiskRating.TitleEn,
+			"risk_matirx_risk_rating_value": oldRiskEvaluation.RiskMatrixRiskRatingValue.Value,
+		}
+
+		newData := map[string]interface{}{
+			"risk_matrix_impact":            existingRiskEvaluation.RiskMatrixImpact.TitleEn,
+			"risk_matrix_likelihood":        existingRiskEvaluation.RiskMatrixLikelihood.TitleEn,
+			"risk_matrix_risk_rating":       existingRiskEvaluation.RiskMatrixRiskRating.TitleEn,
+			"risk_matirx_risk_rating_value": existingRiskEvaluation.RiskMatrixRiskRatingValue.Value,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		associatedItems := make(map[string]interface{})
+
+		if len(riskImpactAnalysis) > 0 || len(existingImpactAnalysis) > 0 {
+			associatedItems["impact_analysis"] = map[string]interface{}{
+				"added":   riskImpactAnalysis,
+				"removed": existingImpactAnalysis,
+			}
+		}
+
+		if len(riskAppetiteAlignments) > 0 || len(existingAppetiteAlignment) > 0 {
+			associatedItems["appetite_analysis"] = map[string]interface{}{
+				"added":   riskAppetiteAlignments,
+				"removed": existingAppetiteAlignment,
+			}
+		}
+
+		if len(associatedItems) > 0 {
+			changedData["associated_items"] = associatedItems
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err = ries.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.RiskEvaluation{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.RiskEvaluation{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
+		}
+	}()
+
 	return nil
 }
 
 func (ries *RiskInherentEvaluationService) Delete(riskID uint, id uint, currentUserID uint) (uint, error) {
 	tx := ries.repo.BeginTransaction()
+
+	var deletedRiskEvaluation []map[string]interface{}
 
 	if _, err := ries.riskRegisterSvc.GetByID(riskID); err != nil {
 		return 0, err
@@ -481,11 +579,15 @@ func (ries *RiskInherentEvaluationService) Delete(riskID uint, id uint, currentU
 
 	// Log activity
 	go func() {
+		deletedRiskEvaluation = append(deletedRiskEvaluation, map[string]interface{}{
+			"ID": id,
+		})
+
 		err := ries.activityLogSvc.LogActivity(
 			models.DeleteAction,
 			models.RiskEvaluation{}.TableName(),
 			id,
-			nil,
+			deletedRiskEvaluation,
 			currentUserID,
 			nil,
 		)
