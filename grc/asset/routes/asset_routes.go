@@ -187,6 +187,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.GET("assets/:id/controls", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetAssociatedItemController.GetAllAssetControls)
 	assetRoutes.GET("assets/:id/incidents", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetAssociatedItemController.GetAllAssetIncidents)
 	assetRoutes.GET("assets/:id/risks", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetAssociatedItemController.GetAllAssetRisks)
+	assetRoutes.GET("assets/:id/vulnerabilities", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetAssociatedItemController.GetAllAssetVulnerabilities)
 
 	//asset criticality
 	assetRoutes.GET("assets/:id/criticality", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetCriticalityController.GetAssetCriticality)

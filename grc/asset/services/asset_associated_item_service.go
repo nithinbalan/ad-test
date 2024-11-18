@@ -12,6 +12,7 @@ type AssetAssociatedItemServiceInterface interface {
 	GetAllControls(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) ([]map[string]interface{}, error)
 	GetAllIncidents(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemIncidentListResponseDTO, error)
 	GetAllRisks(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemRiskListResponseDTO, error)
+	GetAllVulnerabilities(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) ([]assetDTOs.VulnerabilityDTO, error)
 }
 
 // Service Implementation
@@ -169,4 +170,69 @@ func (aais *AssetAssociatedItemService) GetAllRisks(assetID uint, params *assetD
 		return nil, err
 	}
 	return aais.repo.GetAllRisks(assetID, params)
+}
+
+func (service *AssetAssociatedItemService) GetAllVulnerabilities(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) ([]assetDTOs.VulnerabilityDTO, error) {
+	// Ensure the asset exists
+	if _, err := service.assetRegisterSvc.GetByID(assetID); err != nil {
+		return nil, err
+	}
+
+	// Fetch vulnerabilities from the repository
+	vulnerabilities, err := service.repo.GetAllVulnerabilities(assetID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Map vulnerabilities to DTOs
+	vulnerabilityDTOs := make([]assetDTOs.VulnerabilityDTO, 0, len(vulnerabilities))
+	for _, vuln := range vulnerabilities {
+		// Map threats to DTOs
+		threatDTOs := make([]assetDTOs.ThreatDTO, 0, len(vuln.Threats))
+		for _, threat := range vuln.Threats {
+			threatDTOs = append(threatDTOs, assetDTOs.ThreatDTO{
+				ID:                     threat.ID,
+				TitleEn:                threat.TitleEn,
+				TitleAr:                threat.TitleAr,
+				SeverityLevelID:        threat.SeverityLevelID,
+				SeverityLevelTitleEn:   threat.SeverityLevel.TitleEn,
+				SeverityLevelTitleAr:   threat.SeverityLevel.TitleAr,
+				SeverityLevelColorCode: threat.SeverityLevel.ColorCode,
+				ThreatStatusID:         threat.ThreatStatusID,
+				ThreatStatusTitleEn:    threat.ThreatStatus.TitleEn,
+				ThreatStatusTitleAr:    threat.ThreatStatus.TitleAr,
+				ThreatStatusColorCode:  threat.ThreatStatus.ColorCode,
+				ThreatStatusType:       threat.ThreatStatus.Type,
+				Description:            threat.Description,
+			})
+		}
+
+		var severityLevelTitleEn, severityLevelTitleAr, severityLevelColorCode *string
+		if vuln.SeverityLevel != nil {
+			severityLevelTitleEn = &vuln.SeverityLevel.TitleEn
+			severityLevelTitleAr = &vuln.SeverityLevel.TitleAr
+			severityLevelColorCode = &vuln.SeverityLevel.ColorCode
+		}
+
+		// Map vulnerability to DTO
+		vulnerabilityDTOs = append(vulnerabilityDTOs, assetDTOs.VulnerabilityDTO{
+			ID:                           vuln.ID,
+			ReferenceNumber:              vuln.ReferenceNumber,
+			TitleEn:                      vuln.TitleEn,
+			TitleAr:                      vuln.TitleAr,
+			Description:                  vuln.Description,
+			SeverityLevelID:              vuln.SeverityLevelID,
+			SeverityLevelTitleEn:         severityLevelTitleEn,
+			SeverityLevelTitleAr:         severityLevelTitleAr,
+			SeverityLevelColorCode:       severityLevelColorCode,
+			VulnerabilityStatusID:        vuln.VulnerabilityStatusID,
+			VulnerabilityStatusTitleEn:   vuln.VulnerabilityStatus.TitleEn,
+			VulnerabilityStatusTitleAr:   vuln.VulnerabilityStatus.TitleAr,
+			VulnerabilityStatusColorCode: vuln.VulnerabilityStatus.ColorCode,
+			VulnerabilityStatusType:      vuln.VulnerabilityStatus.Type,
+			Threats:                      threatDTOs,
+		})
+	}
+
+	return vulnerabilityDTOs, nil
 }

@@ -138,3 +138,41 @@ type AssetAssociatedItemRiskListResponseDTO struct {
 	Items      []*AssetRiskListDTO          `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }
+
+type VulnerabilityDTO struct {
+	ID                           uint        `json:"id"`
+	ReferenceNumber              string      `json:"reference_number"`
+	TitleEn                      string      `json:"title_en"`
+	TitleAr                      string      `json:"title_ar"`
+	Description                  *string     `json:"description,omitempty"`
+	SeverityLevelID              *uint       `json:"severity_level_id"`
+	SeverityLevelTitleEn         *string     `json:"severity_level_title_en"`
+	SeverityLevelTitleAr         *string     `json:"severity_level_title_ar"`
+	SeverityLevelColorCode       *string     `json:"severity_level_color_code"`
+	VulnerabilityStatusID        uint        `json:"vulnerability_status_id"`
+	VulnerabilityStatusTitleEn   string      `json:"vulnerability_status_title_en"`
+	VulnerabilityStatusTitleAr   string      `json:"vulnerability_status_title_ar"`
+	VulnerabilityStatusColorCode string      `json:"vulnerability_status_color_code"`
+	VulnerabilityStatusType      string      `json:"vulnerability_status_type"`
+	Threats                      []ThreatDTO `json:"threats"`
+}
+
+type ThreatDTO struct {
+	ID                     uint    `json:"id"`
+	TitleEn                string  `json:"title_en"`
+	TitleAr                string  `json:"title_ar"`
+	SeverityLevelID        uint    `json:"severity_level_id"`
+	SeverityLevelTitleEn   string  `json:"severity_level_title_en"`
+	SeverityLevelTitleAr   string  `json:"severity_level_title_ar"`
+	SeverityLevelColorCode string  `json:"severity_level_color_code"`
+	ThreatStatusID         uint    `json:"threat_status_id"`
+	ThreatStatusTitleEn    string  `json:"threat_status_title_en"`
+	ThreatStatusTitleAr    string  `json:"threat_status_title_ar"`
+	ThreatStatusColorCode  string  `json:"threat_status_color_code"`
+	ThreatStatusType       string  `json:"threat_status_type"`
+	Description            *string `json:"description,omitempty"`
+}
+type AssetVulnerabilitiesResponseDTO struct {
+	AssetID         uint               `json:"asset_id"`
+	Vulnerabilities []VulnerabilityDTO `json:"vulnerabilities"`
+}
