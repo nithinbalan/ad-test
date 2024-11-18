@@ -711,9 +711,9 @@ func (ps *ProcessService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 		})
 
 		deletedProcesses = append(deletedProcesses, map[string]interface{}{
-			"ID":      id,
-			"TitleEn": process.TitleEn,
-			"TitleAr": process.TitleAr,
+			"id":       id,
+			"title_en": process.TitleEn,
+			"title_ar": process.TitleAr,
 		})
 
 		if len(process.Controls) > 0 {

@@ -326,6 +326,7 @@ func (repo *AssetAssociatedItemRepository) GetAllVulnerabilities(assetID uint) (
 		Preload("Threats.SeverityLevel").
 		Preload("Threats.ThreatStatus").
 		Preload("SeverityLevel").
+		Preload("ResponsibleUser").
 		Preload("VulnerabilityStatus").
 		Where("id IN (SELECT vulnerability_id FROM vulnerability_assets WHERE asset_register_id = ?)", assetID).
 		Find(&vulnerabilities).Error
