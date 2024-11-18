@@ -523,11 +523,11 @@ func (repo *GRCDashboardRepository) GetTopComplianceRegisters(params *kpiDTOs.GR
 		return nil, err
 	}
 
-	var topRegisters []*kpiDTOs.GRCTopComplianceRegistersDTO
+	topRegisters := []*kpiDTOs.GRCTopComplianceRegistersDTO{}
 	for _, register := range complianceRegisters {
 		complianceRegisterDTO := &kpiDTOs.GRCTopComplianceRegistersDTO{
 			ID:                        register.ID,
-			StandardCode:              *register.StandardCode,
+			StandardCode:              register.StandardCode,
 			TitleEn:                   register.TitleEn,
 			TitleAr:                   register.TitleAr,
 			TotalScore:                register.TotalScore,
