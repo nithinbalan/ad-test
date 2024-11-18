@@ -313,6 +313,8 @@ func (ries *RiskInherentEvaluationService) Update(riskID uint, id uint, currentU
 	var existingImpactAnalysis []map[string]interface{}
 	for _, impactAnalysis := range oldRiskEvaluation.RiskImpactAnalyses {
 		existingImpactAnalysis = append(existingImpactAnalysis, map[string]interface{}{
+			"id":                      impactAnalysis.ID,
+			"risk_evaluation_id":      impactAnalysis.RiskEvaluationID,
 			"risk_impact_category_id": impactAnalysis.RiskImpactCategory.ID,
 			"risk_matrix_impact_id":   impactAnalysis.RiskMatrixImpact.ID,
 		})
@@ -321,6 +323,8 @@ func (ries *RiskInherentEvaluationService) Update(riskID uint, id uint, currentU
 	var existingAppetiteAlignment []map[string]interface{}
 	for _, appetiteAlignment := range oldRiskEvaluation.RiskAppetiteAlignments {
 		existingAppetiteAlignment = append(existingAppetiteAlignment, map[string]interface{}{
+			"id":                               appetiteAlignment.ID,
+			"risk_evaluation_id":               appetiteAlignment.RiskEvaluationID,
 			"risk_appetite_statement_id":       appetiteAlignment.RiskAppetiteStatementID,
 			"risk_appetite_tolerance_level_id": appetiteAlignment.RiskAppetiteToleranceLevelID,
 		})
@@ -462,25 +466,21 @@ func (ries *RiskInherentEvaluationService) Update(riskID uint, id uint, currentU
 		for k, v := range fieldChanges {
 			changedData[k] = v
 		}
-		associatedItems := make(map[string]interface{})
 
 		if len(riskImpactAnalysis) > 0 || len(existingImpactAnalysis) > 0 {
-			associatedItems["impact_analysis"] = map[string]interface{}{
+			changedData["impact_analysis"] = map[string]interface{}{
 				"added":   riskImpactAnalysis,
 				"removed": existingImpactAnalysis,
 			}
 		}
 
 		if len(riskAppetiteAlignments) > 0 || len(existingAppetiteAlignment) > 0 {
-			associatedItems["appetite_analysis"] = map[string]interface{}{
+			changedData["appetite_analysis"] = map[string]interface{}{
 				"added":   riskAppetiteAlignments,
 				"removed": existingAppetiteAlignment,
 			}
 		}
 
-		if len(associatedItems) > 0 {
-			changedData["associated_items"] = associatedItems
-		}
 		// Log activity if there are any changes
 		if len(changedData) > 0 {
 			err = ries.activityLogSvc.LogActivity(
