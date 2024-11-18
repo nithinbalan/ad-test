@@ -144,8 +144,9 @@ func (rics *RiskImpactCategoryService) Delete(ids []uint, currentUserID uint) ([
 		}
 
 		deletedImpactCategory = append(deletedImpactCategory, map[string]interface{}{
-			"ID":    id,
-			"Title": impactCategory.TitleEn,
+			"id":       id,
+			"title_en": impactCategory.TitleEn,
+			"title_ar": impactCategory.TitleAr,
 		})
 	}
 

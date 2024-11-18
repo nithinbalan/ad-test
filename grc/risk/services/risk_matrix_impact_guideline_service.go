@@ -117,7 +117,7 @@ func (rmigs *RiskMatrixImpactGuidelineService) Create(currentUserID uint, riskMa
 			models.CreateAction,
 			models.RiskMatrixImpactGuideline{}.TableName(),
 			ids,
-			riskMatrixImpactGuidelineFormDTO,
+			guidelinesToCreate,
 			currentUserID,
 			nil,
 		)
@@ -135,6 +135,11 @@ func (rmigs *RiskMatrixImpactGuidelineService) Update(id uint, currentUserID uin
 
 	// Retrieve existing risk matrix impact guideline by ID
 	existingRiskMatrixImpactGuideline, err := rmigs.GetByID(id)
+	if err != nil {
+		return err
+	}
+
+	oldImpactGuideline, err := rmigs.GetFullDetailsByID(id)
 	if err != nil {
 		return err
 	}
@@ -158,12 +163,58 @@ func (rmigs *RiskMatrixImpactGuidelineService) Update(id uint, currentUserID uin
 		return err
 	}
 
+	go func() {
+
+		existingImpactGuideline, err := rmigs.GetFullDetailsByID(id)
+		if err != nil {
+			return
+		}
+
+		//log changes
+		changedData := make(map[string]interface{})
+		oldData := map[string]interface{}{
+			"risk_impact_category": oldImpactGuideline.RiskImpactCategory.ID,
+			"risk_matrix_impact":   oldImpactGuideline.RiskMatrixImpact.TitleEn,
+		}
+
+		newData := map[string]interface{}{
+			"risk_impact_category": existingImpactGuideline.RiskImpactCategory.ID,
+			"risk_matrix_impact":   existingImpactGuideline.RiskMatrixImpact.TitleEn,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := rmigs.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.RiskMatrixImpactGuideline{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				utility.LogError("Failed to log activity", map[string]interface{}{
+					"action":   models.UpdateAction,
+					"error":    err.Error(),
+					"recordID": id,
+				})
+			}
+		}
+
+	}()
+
 	return nil
 }
 
 func (rmigs *RiskMatrixImpactGuidelineService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedMatrixImpactGuideline []map[string]interface{}
 	for _, id := range ids {
 
 		_, err := rmigs.repo.GetByID(id)
@@ -178,6 +229,9 @@ func (rmigs *RiskMatrixImpactGuidelineService) Delete(ids []uint, currentUserID 
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+		deletedMatrixImpactGuideline = append(deletedMatrixImpactGuideline, map[string]interface{}{
+			"id": id,
+		})
 	}
 
 	if len(successfulIds) > 0 {
@@ -187,7 +241,7 @@ func (rmigs *RiskMatrixImpactGuidelineService) Delete(ids []uint, currentUserID 
 				models.DeleteAction, // Make sure this action constant is defined appropriately
 				models.RiskMatrixImpactGuideline{}.TableName(),
 				successfulIds,
-				nil,
+				deletedMatrixImpactGuideline,
 				currentUserID,
 				nil,
 			)

@@ -593,7 +593,8 @@ func (ries *RiskResidualEvaluationService) Delete(riskID uint, id uint, currentU
 	// Log activity
 	go func() {
 		deletedResidualEvaluation = append(deletedResidualEvaluation, map[string]interface{}{
-			"ID": id,
+			"id":               id,
+			"risk_register_id": riskID,
 		})
 
 		err := ries.activityLogSvc.LogActivity(

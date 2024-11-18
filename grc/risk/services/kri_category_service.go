@@ -136,8 +136,8 @@ func (kcs *KRICategoryService) Delete(ids []uint, currentUserID uint) ([]uint, e
 		}
 
 		deletedKriCategory = append(deletedKriCategory, map[string]interface{}{
-			"ID":    id,
-			"Title": kriCategory.TitleEn,
+			"id":    id,
+			"title": kriCategory.TitleEn,
 		})
 	}
 

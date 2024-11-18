@@ -580,7 +580,8 @@ func (ries *RiskInherentEvaluationService) Delete(riskID uint, id uint, currentU
 	// Log activity
 	go func() {
 		deletedRiskEvaluation = append(deletedRiskEvaluation, map[string]interface{}{
-			"ID": id,
+			"id":               id,
+			"risk_register_id": riskID,
 		})
 
 		err := ries.activityLogSvc.LogActivity(

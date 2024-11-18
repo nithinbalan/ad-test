@@ -153,8 +153,9 @@ func (rrss *RiskResponseStrategyService) Delete(ids []uint, currentUserID uint) 
 			successfulIds = append(successfulIds, id)
 		}
 		deletedResponseStrategy = append(deletedResponseStrategy, map[string]interface{}{
-			"ID":    id,
-			"Title": responseStrategy.TitleEn,
+			"id":       id,
+			"title_en": responseStrategy.TitleEn,
+			"title_ar": responseStrategy.TitleAr,
 		})
 	}
 

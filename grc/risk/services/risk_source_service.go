@@ -153,8 +153,9 @@ func (rss *RiskSourceService) Delete(ids []uint, currentUserID uint) ([]uint, er
 			successfulIds = append(successfulIds, id)
 		}
 		deletedRiskSource = append(deletedRiskSource, map[string]interface{}{
-			"ID":    id,
-			"Title": riskSource.TitleEn,
+			"id":       id,
+			"title_en": riskSource.TitleEn,
+			"title_ar": riskSource.TitleAr,
 		})
 	}
 

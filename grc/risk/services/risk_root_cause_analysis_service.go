@@ -298,7 +298,8 @@ func (rrcas *RiskRootCauseAnalysisService) Delete(riskID uint, id uint, currentU
 	// Log successful delete activity
 	go func() {
 		deletedRooCauseAnalysis = append(deletedRooCauseAnalysis, map[string]interface{}{
-			"ID": id,
+			"id":               id,
+			"risk_register_id": riskID,
 		})
 
 		err := rrcas.activityLogSvc.LogActivity(

@@ -603,8 +603,8 @@ func (krs *KRIRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 		})
 
 		deletedKriRegister = append(deletedKriRegister, map[string]interface{}{
-			"ID":    id,
-			"Title": kriRegister.Title,
+			"id":    id,
+			"title": kriRegister.Title,
 		})
 	}
 

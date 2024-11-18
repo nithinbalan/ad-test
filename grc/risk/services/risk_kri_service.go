@@ -342,7 +342,8 @@ func (rks *RiskKriService) Delete(riskID uint, ids []uint, currentUserID uint) (
 		}
 
 		deletedRiskKri = append(deletedRiskKri, map[string]interface{}{
-			"ID": id,
+			"id":               id,
+			"risk_register_id": riskID,
 		})
 	}
 	tx.Commit()

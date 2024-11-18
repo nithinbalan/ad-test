@@ -302,7 +302,8 @@ func (rcas *RiskResidualControlAnalysisService) Delete(riskID uint, ids []uint, 
 		successfulIds = append(successfulIds, id)
 
 		deletedControlAnalysis = append(deletedControlAnalysis, map[string]interface{}{
-			"ID": id,
+			"id":               id,
+			"risk_register_id": riskID,
 		})
 	}
 

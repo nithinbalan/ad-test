@@ -75,7 +75,7 @@ func (rgs *RiskTreatmentGuidelineService) Create(currentUserID uint, guidelineDT
 	}
 
 	go func() {
-		existingRiskTreatmentGuideline, err := rgs.GetByID(guideline.ID)
+		existingRiskTreatmentGuideline, err := rgs.GetByID(id)
 		if err != nil {
 			utility.LogError("Failed to fetch risk treatment guideline", map[string]interface{}{
 				"error": err.Error(),
@@ -135,6 +135,10 @@ func (rgs *RiskTreatmentGuidelineService) Update(id uint, currentUserID uint, gu
 	}
 
 	go func() {
+		existingTreatmentGuideline, err := rgs.GetByID(id)
+		if err != nil {
+			return
+		}
 		//log changes
 		changedData := make(map[string]interface{})
 		oldData := map[string]interface{}{
@@ -145,10 +149,10 @@ func (rgs *RiskTreatmentGuidelineService) Update(id uint, currentUserID uint, gu
 		}
 
 		newData := map[string]interface{}{
-			"risk_matrix_risk_rating": existingGuideline.RiskMatrixRiskRating.ID,
-			"description_en":          existingGuideline.DescriptionEn,
-			"description_ar":          existingGuideline.DescriptionAr,
-			"status":                  existingGuideline.Status,
+			"risk_matrix_risk_rating": existingTreatmentGuideline.RiskMatrixRiskRating.ID,
+			"description_en":          existingTreatmentGuideline.DescriptionEn,
+			"description_ar":          existingTreatmentGuideline.DescriptionAr,
+			"status":                  existingTreatmentGuideline.Status,
 		}
 		// Compare other fields and add them to changedData
 		fieldChanges := utility.CompareFieldChanges(oldData, newData)
@@ -200,7 +204,7 @@ func (rgs *RiskTreatmentGuidelineService) Delete(ids []uint, currentUserID uint)
 		}
 
 		deletedRiskTreatmentGuideline = append(deletedRiskTreatmentGuideline, map[string]interface{}{
-			"ID": id,
+			"id": id,
 		})
 	}
 

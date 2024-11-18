@@ -1364,8 +1364,8 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 		})
 
 		deletedRiskRegister = append(deletedRiskRegister, map[string]interface{}{
-			"ID":    id,
-			"Title": risk.Title,
+			"id":    id,
+			"title": risk.Title,
 		})
 		// Check if controls exist
 		if len(risk.Controls) > 0 {

@@ -584,7 +584,8 @@ func (kvus *KRIValueUpdateService) Delete(kriRegisterID uint, ids []uint, curren
 		}
 
 		deletedKriValueUpdate = append(deletedKriValueUpdate, map[string]interface{}{
-			"ID": id,
+			"id":              id,
+			"kri_register_id": kriRegisterID,
 		})
 	}
 

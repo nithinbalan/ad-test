@@ -264,8 +264,8 @@ func (prs *PotentialRiskService) Delete(ids []uint, currentUserID uint) ([]uint,
 		}
 
 		deletedPotentialRisk = append(deletedPotentialRisk, map[string]interface{}{
-			"ID":    id,
-			"Title": potentialRisk.Title,
+			"id":    id,
+			"title": potentialRisk.Title,
 		})
 	}
 
