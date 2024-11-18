@@ -41,7 +41,6 @@ func (atss *AuditTemplateSettingService) GetAll(params *auditDTOs.AuditTemplateS
 	return auditTemplateSettings, nil
 }
 
-
 func (atss AuditTemplateSettingService) GetByID(id uint) (*models.AuditTemplateSetting, error) {
 	auditTemplateSetting, err := atss.repo.GetByID(id)
 	if err != nil {
@@ -64,9 +63,9 @@ func (atss *AuditTemplateSettingService) Update(id uint, currentUserID uint, upd
 		return utility.NewResourceNotFoundError(err, id)
 	}
 
-	// Helper function to handle img updates
-	handleDocumentUpdate := func(doc *auditDTOs.AuditTemplateSettingDocumentFormDTO, templateType, storageFolder string, urlField **string) error {
-		if doc.TemplateType == templateType && doc.IsNewFile != nil && *doc.IsNewFile {
+	// Helper function to handle document updates
+	handleDocumentUpdate := func(doc *auditDTOs.AuditTemplateSettingDocumentFormDTO, storageFolder string, urlField **string) error {
+		if doc != nil && doc.IsNewFile != nil && *doc.IsNewFile {
 			// Generate URL and update field in the existing template setting
 			url := utility.GenerateDocumentURL("audit", "template-settings", storageFolder, doc.FileName)
 
@@ -83,24 +82,22 @@ func (atss *AuditTemplateSettingService) Update(id uint, currentUserID uint, upd
 		return nil
 	}
 
-	// Process documents
-	for _, doc := range updatedTemplateSettingDTO.Documents {
-		if err := handleDocumentUpdate(doc, "logo", "logo", &existingTemplateSetting.LogoImagePath); err != nil {
-			tx.Rollback()
-			return err
-		}
-		if err := handleDocumentUpdate(doc, "commencement-letter", "commencement-letter-header-bg", &existingTemplateSetting.CommencementLetterHeaderBGImagePath); err != nil {
-			tx.Rollback()
-			return err
-		}
-		if err := handleDocumentUpdate(doc, "draft-report", "draft-report-cover-page-bg", &existingTemplateSetting.DraftReportCoverPageBGImagePath); err != nil {
-			tx.Rollback()
-			return err
-		}
-		if err := handleDocumentUpdate(doc, "final-report", "final-report-cover-page-bg", &existingTemplateSetting.FinalReportCoverPageBGImagePath); err != nil {
-			tx.Rollback()
-			return err
-		}
+	// Process documents for each template type
+	if err := handleDocumentUpdate(updatedTemplateSettingDTO.Logo, "logo", &existingTemplateSetting.LogoImagePath); err != nil {
+		tx.Rollback()
+		return err
+	}
+	if err := handleDocumentUpdate(updatedTemplateSettingDTO.CommencementLetter, "commencement-letter-header-bg", &existingTemplateSetting.CommencementLetterHeaderBGImagePath); err != nil {
+		tx.Rollback()
+		return err
+	}
+	if err := handleDocumentUpdate(updatedTemplateSettingDTO.DraftReport, "draft-report-cover-page-bg", &existingTemplateSetting.DraftReportCoverPageBGImagePath); err != nil {
+		tx.Rollback()
+		return err
+	}
+	if err := handleDocumentUpdate(updatedTemplateSettingDTO.FinalReport, "final-report-cover-page-bg", &existingTemplateSetting.FinalReportCoverPageBGImagePath); err != nil {
+		tx.Rollback()
+		return err
 	}
 
 	// Update the common fields
