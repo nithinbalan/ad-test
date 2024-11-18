@@ -104,7 +104,7 @@ type ThreatDetailDTO struct {
 	ThreatType           *ThreatTypeDTO                   `json:"threat_type"`
 	SeverityLevel        masterDTOs.SeverityLevelDTO      `json:"severity_level"`
 	ThreatStatus         ThreatStatusDTO                  `json:"threat_status"`
-	Vulnerability        VulnerabilityDetailsDTO          `json:"vulnerability"`
+	Vulnerability        *VulnerabilityDetailsDTO         `json:"vulnerability"`
 	ResponsibleUser      organizationDTOs.UserMinimalDTO  `json:"responsible_user"`
 	ResponsibleUnit      settingsDTOs.OrganizationUnitDTO `json:"responsible_unit"`
 	Description          *string                          `json:"description,omitempty"`
