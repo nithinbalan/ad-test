@@ -140,21 +140,31 @@ type AssetAssociatedItemRiskListResponseDTO struct {
 }
 
 type VulnerabilityDTO struct {
-	ID                           uint        `json:"id"`
-	ReferenceNumber              string      `json:"reference_number"`
-	TitleEn                      string      `json:"title_en"`
-	TitleAr                      string      `json:"title_ar"`
-	Description                  *string     `json:"description,omitempty"`
-	SeverityLevelID              *uint       `json:"severity_level_id"`
-	SeverityLevelTitleEn         *string     `json:"severity_level_title_en"`
-	SeverityLevelTitleAr         *string     `json:"severity_level_title_ar"`
-	SeverityLevelColorCode       *string     `json:"severity_level_color_code"`
-	VulnerabilityStatusID        uint        `json:"vulnerability_status_id"`
-	VulnerabilityStatusTitleEn   string      `json:"vulnerability_status_title_en"`
-	VulnerabilityStatusTitleAr   string      `json:"vulnerability_status_title_ar"`
-	VulnerabilityStatusColorCode string      `json:"vulnerability_status_color_code"`
-	VulnerabilityStatusType      string      `json:"vulnerability_status_type"`
-	Threats                      []ThreatDTO `json:"threats"`
+	ID                              uint        `json:"id"`
+	ReferenceNumber                 string      `json:"reference_number"`
+	TitleEn                         string      `json:"title_en"`
+	TitleAr                         string      `json:"title_ar"`
+	Description                     *string     `json:"description"`
+	Source                          *string     `json:"source"`
+	SeverityLevelID                 *uint       `json:"severity_level_id"`
+	SeverityLevelTitleEn            *string     `json:"severity_level_title_en"`
+	SeverityLevelTitleAr            *string     `json:"severity_level_title_ar"`
+	SeverityLevelColorCode          *string     `json:"severity_level_color_code"`
+	VulnerabilityStatusID           uint        `json:"vulnerability_status_id"`
+	VulnerabilityStatusTitleEn      string      `json:"vulnerability_status_title_en"`
+	VulnerabilityStatusTitleAr      string      `json:"vulnerability_status_title_ar"`
+	VulnerabilityStatusColorCode    string      `json:"vulnerability_status_color_code"`
+	VulnerabilityStatusType         string      `json:"vulnerability_status_type"`
+	ResponsibleUserID               uint        `json:"responsible_user_id"`
+	ResponsibleUserFirstNameEn      string      `json:"responsible_user_first_name_en"`
+	ResponsibleUserFirstNameAr      string      `json:"responsible_user_first_name_ar"`
+	ResponsibleUserLastNameEn       string      `json:"responsible_user_last_name_en"`
+	ResponsibleUserLastNameAr       string      `json:"responsible_user_last_name_ar"`
+	ResponsibleUserInitial          string      `json:"responsible_user_initial"`
+	ResponsibleUserColor            string      `json:"responsible_user_color"`
+	ResponsibleUserEmail            string      `json:"responsible_user_email"`
+	ResponsibleUserProfileImagePath *string     `json:"responsible_user_profile_image_path"`
+	Threats                         []ThreatDTO `json:"threats"`
 }
 
 type ThreatDTO struct {

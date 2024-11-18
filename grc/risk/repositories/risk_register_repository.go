@@ -45,6 +45,9 @@ type RiskRegisterRepositoryInterface interface {
 	CreateRiskAssets(assets []*models.RiskAsset, tx ...utility.DatabaseTransaction) error
 	DeleteRiskAssets(assetIds []*uint, tx ...utility.DatabaseTransaction) error
 
+	CreateRiskThreats(threats []*models.RiskThreat, tx ...utility.DatabaseTransaction) error
+	DeleteRiskThreats(threatIDs []*uint, tx ...utility.DatabaseTransaction) error
+
 	GetControlSummary(riskID uint, controlType string) ([]models.RiskControlAnalysis, error)
 }
 
@@ -319,6 +322,7 @@ func (repo *RiskRegisterRepository) GetFullDetailsByID(id uint, tx ...utility.Da
 		Preload("KRIs").
 		Preload("AssociatedDocuments").
 		Preload("Assets").
+		Preload("Threats").
 		Preload("CurrentLikelihood").
 		Preload("CurrentImpact").
 		Preload("CurrentRiskRating").
@@ -628,5 +632,27 @@ func (repo *RiskRegisterRepository) DeleteRiskAssets(assetIds []*uint, tx ...uti
 		return err
 	}
 
+	return nil
+}
+
+func (repo *RiskRegisterRepository) CreateRiskThreats(threats []*models.RiskThreat, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&threats).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *RiskRegisterRepository) DeleteRiskThreats(threatIDs []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Where("id IN ?", threatIDs).Delete(&models.RiskThreat{}).Error; err != nil {
+		return err
+	}
 	return nil
 }
