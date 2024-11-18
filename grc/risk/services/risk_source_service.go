@@ -136,9 +136,10 @@ func (rss *RiskSourceService) Update(id uint, currentUserID uint, updatedSource 
 func (rss *RiskSourceService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedRiskSource []map[string]interface{}
 	for _, id := range ids {
 
-		_, err := rss.repo.GetByID(id)
+		riskSource, err := rss.repo.GetByID(id)
 
 		if err != nil {
 			fmt.Print(err)
@@ -151,6 +152,10 @@ func (rss *RiskSourceService) Delete(ids []uint, currentUserID uint) ([]uint, er
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+		deletedRiskSource = append(deletedRiskSource, map[string]interface{}{
+			"ID":    id,
+			"Title": riskSource.TitleEn,
+		})
 	}
 
 	if len(successfulIds) > 0 {
@@ -160,7 +165,7 @@ func (rss *RiskSourceService) Delete(ids []uint, currentUserID uint) ([]uint, er
 				models.DeleteAction, // Make sure this action constant is defined appropriately
 				models.RiskSource{}.TableName(),
 				successfulIds,
-				nil,
+				deletedRiskSource,
 				currentUserID,
 				nil,
 			)

@@ -75,11 +75,19 @@ func (rgs *RiskTreatmentGuidelineService) Create(currentUserID uint, guidelineDT
 	}
 
 	go func() {
-		err := rgs.activityLogSvc.LogActivity(
+		existingRiskTreatmentGuideline, err := rgs.GetByID(guideline.ID)
+		if err != nil {
+			utility.LogError("Failed to fetch risk treatment guideline", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		err = rgs.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.RiskTreatmentGuideline{}.TableName(),
 			id,
-			guidelineDTO,
+			existingRiskTreatmentGuideline,
 			currentUserID,
 			nil,
 		)
@@ -101,6 +109,11 @@ func (rgs *RiskTreatmentGuidelineService) Create(currentUserID uint, guidelineDT
 }
 
 func (rgs *RiskTreatmentGuidelineService) Update(id uint, currentUserID uint, guidelineDTO *riskDTOs.RiskTreatmentGuidelineFormDTO) error {
+	oldGuideline, err := rgs.GetByID(id)
+	if err != nil {
+		return err
+	}
+
 	existingGuideline, err := rgs.GetByID(id)
 
 	if err != nil {
@@ -121,12 +134,56 @@ func (rgs *RiskTreatmentGuidelineService) Update(id uint, currentUserID uint, gu
 		return err
 	}
 
+	go func() {
+		//log changes
+		changedData := make(map[string]interface{})
+		oldData := map[string]interface{}{
+			"risk_matrix_risk_rating": oldGuideline.RiskMatrixRiskRating.ID,
+			"description_en":          oldGuideline.DescriptionEn,
+			"description_ar":          oldGuideline.DescriptionAr,
+			"status":                  oldGuideline.Status,
+		}
+
+		newData := map[string]interface{}{
+			"risk_matrix_risk_rating": existingGuideline.RiskMatrixRiskRating.ID,
+			"description_en":          existingGuideline.DescriptionEn,
+			"description_ar":          existingGuideline.DescriptionAr,
+			"status":                  existingGuideline.Status,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := rgs.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.RiskTreatmentGuideline{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				utility.LogError("Failed to log activity", map[string]interface{}{
+					"action":   models.UpdateAction,
+					"error":    err.Error(),
+					"recordID": id,
+				})
+			}
+		}
+
+	}()
+
 	return nil
 }
 
 func (rgs *RiskTreatmentGuidelineService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedRiskTreatmentGuideline []map[string]interface{}
 	for _, id := range ids {
 
 		_, err := rgs.repo.GetByID(id)
@@ -141,6 +198,10 @@ func (rgs *RiskTreatmentGuidelineService) Delete(ids []uint, currentUserID uint)
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+
+		deletedRiskTreatmentGuideline = append(deletedRiskTreatmentGuideline, map[string]interface{}{
+			"ID": id,
+		})
 	}
 
 	if len(successfulIds) > 0 {
@@ -150,7 +211,7 @@ func (rgs *RiskTreatmentGuidelineService) Delete(ids []uint, currentUserID uint)
 				models.DeleteAction,
 				models.RiskTreatmentGuideline{}.TableName(),
 				successfulIds,
-				nil,
+				deletedRiskTreatmentGuideline,
 				currentUserID,
 				nil,
 			)

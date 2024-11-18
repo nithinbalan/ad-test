@@ -136,9 +136,10 @@ func (rrss *RiskResponseStrategyService) Update(id uint, currentUserID uint, upd
 func (rrss *RiskResponseStrategyService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedResponseStrategy []map[string]interface{}
 	for _, id := range ids {
 
-		_, err := rrss.repo.GetByID(id)
+		responseStrategy, err := rrss.repo.GetByID(id)
 
 		if err != nil {
 			fmt.Print(err)
@@ -151,6 +152,10 @@ func (rrss *RiskResponseStrategyService) Delete(ids []uint, currentUserID uint) 
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+		deletedResponseStrategy = append(deletedResponseStrategy, map[string]interface{}{
+			"ID":    id,
+			"Title": responseStrategy.TitleEn,
+		})
 	}
 
 	if len(successfulIds) > 0 {
@@ -160,7 +165,7 @@ func (rrss *RiskResponseStrategyService) Delete(ids []uint, currentUserID uint) 
 				models.DeleteAction, // Make sure this action constant is defined appropriately
 				models.RiskResponseStrategy{}.TableName(),
 				successfulIds,
-				nil,
+				deletedResponseStrategy,
 				currentUserID,
 				nil,
 			)
