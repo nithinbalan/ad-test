@@ -3,6 +3,7 @@ package repositories
 import (
 	assetDTOs "jethur/grc/asset/dtos"
 	commonDTOs "jethur/grc/common/dtos"
+	"jethur/grc/models"
 
 	"gorm.io/gorm"
 )
@@ -11,6 +12,7 @@ type AssetAssociatedItemRepositoryInterface interface {
 	GetAllControls(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) ([]*assetDTOs.AssetControlListDTO, error)
 	GetAllIncidents(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemIncidentListResponseDTO, error)
 	GetAllRisks(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemRiskListResponseDTO, error)
+	GetAllVulnerabilities(assetID uint) ([]models.Vulnerability, error)
 }
 
 type AssetAssociatedItemRepository struct {
@@ -313,4 +315,20 @@ func (repo *AssetAssociatedItemRepository) GetAllRisks(assetID uint, params *ass
 		},
 	}
 	return response, nil
+}
+
+func (repo *AssetAssociatedItemRepository) GetAllVulnerabilities(assetID uint) ([]models.Vulnerability, error) {
+	var vulnerabilities []models.Vulnerability
+
+	// Fetch vulnerabilities with their related threats
+	err := repo.db.
+		Preload("Threats.ThreatType").
+		Preload("Threats.SeverityLevel").
+		Preload("Threats.ThreatStatus").
+		Preload("SeverityLevel").
+		Preload("VulnerabilityStatus").
+		Where("id IN (SELECT vulnerability_id FROM vulnerability_assets WHERE asset_register_id = ?)", assetID).
+		Find(&vulnerabilities).Error
+
+	return vulnerabilities, err
 }

@@ -234,6 +234,22 @@ func (arc *AssetRegisterController) DeleteAssets(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
 
+func (arc *AssetRegisterController) GetControlSummary(c *gin.Context) {
+	assetID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	controlSummary, err := arc.service.GetControlSummary(uint(assetID))
+	if err != nil {
+		utility.SendInternalErrResp(nil, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, controlSummary)
+}
+
 func (arc *AssetRegisterController) GetAssetsExport(c *gin.Context) {
 	c.Request.URL.RawQuery += "&export=true"
 	arc.GetAllAssets(c)
