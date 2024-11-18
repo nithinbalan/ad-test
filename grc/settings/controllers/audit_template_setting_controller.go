@@ -1,8 +1,8 @@
 package controllers
 
 import (
-	auditDTOs "jethur/grc/audit/dtos"
-	"jethur/grc/audit/services"
+	settingsDTOs "jethur/grc/settings/dtos"
+	"jethur/grc/settings/services"
 	"jethur/utility"
 	"net/http"
 	"strconv"
@@ -36,7 +36,7 @@ func (atsc *AuditTemplateSettingController) GetAllAuditTemplateSettings(c *gin.C
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
 	// Build the query parameters DTO
-	queryParams := auditDTOs.AuditTemplateSettingListQueryParamsDTO{
+	queryParams := settingsDTOs.AuditTemplateSettingListQueryParamsDTO{
 		Sort:    sort,
 		SortBy:  sortBy,
 		Keyword: keyword,
@@ -55,7 +55,7 @@ func (atsc *AuditTemplateSettingController) GetAllAuditTemplateSettings(c *gin.C
 }
 
 func (atsc *AuditTemplateSettingController) UpdateAuditTemplateSetting(c *gin.Context) {
-	var updatedTemplateSetting *auditDTOs.AuditTemplateSettingFormDTO
+	var updatedTemplateSetting *settingsDTOs.AuditTemplateSettingFormDTO
 
 	auditTemplateSettingID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {

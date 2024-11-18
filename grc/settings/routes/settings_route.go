@@ -26,6 +26,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	moduleController := app.SettingsModule.ModuleController
 	emailTemplateSettingsController := app.SettingsModule.EmailTemplateSettingsController
 	integrationController := app.SettingsModule.IntegrationController
+	auditTemplateSettingController := app.SettingsModule.AuditTemplateSettingController
+
 
 	//Organization Level
 	settingRoutes.GET("/organization-levels", organizationLevelController.GetAllOrganizationLevels)
@@ -84,4 +86,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	settingRoutes.DELETE("/integrations/:integrationId/credential", integrationController.DisableIntegration)
 
 	settingRoutes.GET("/organization-preferences", systemPreferenceController.GetOrganizationPreference)
+
+	settingRoutes.GET("/audit-template-settings", auditTemplateSettingController.GetAllAuditTemplateSettings)
+	settingRoutes.PUT("/audit-template-settings/:id", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), auditTemplateSettingController.UpdateAuditTemplateSetting)
+	
+
 }

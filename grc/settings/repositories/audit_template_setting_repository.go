@@ -1,8 +1,8 @@
 package repositories
 
 import (
-	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/models"
+	settingsDTOs "jethur/grc/settings/dtos"
 	"jethur/utility"
 
 	"gorm.io/gorm"
@@ -10,7 +10,7 @@ import (
 
 type AuditTemplateSettingRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(params *auditDTOs.AuditTemplateSettingListQueryParamsDTO) ([]*auditDTOs.AuditTemplateSettingListDTO, error)
+	GetAll(params *settingsDTOs.AuditTemplateSettingListQueryParamsDTO) ([]*settingsDTOs.AuditTemplateSettingListDTO, error)
 	GetByID(id uint) (*models.AuditTemplateSetting, error)
 	Update(auditInvestigation *models.AuditTemplateSetting, tx ...utility.DatabaseTransaction) error
 	
@@ -31,8 +31,8 @@ func (repo *AuditTemplateSettingRepository) BeginTransaction() utility.DatabaseT
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *AuditTemplateSettingRepository) GetAll(params *auditDTOs.AuditTemplateSettingListQueryParamsDTO) ([]*auditDTOs.AuditTemplateSettingListDTO, error) {
-	var auditTemplateSettings []*auditDTOs.AuditTemplateSettingListDTO
+func (repo *AuditTemplateSettingRepository) GetAll(params *settingsDTOs.AuditTemplateSettingListQueryParamsDTO) ([]*settingsDTOs.AuditTemplateSettingListDTO, error) {
+	var auditTemplateSettings []*settingsDTOs.AuditTemplateSettingListDTO
 
 	query := repo.db.Table("audit_template_settings").
 		Select(`

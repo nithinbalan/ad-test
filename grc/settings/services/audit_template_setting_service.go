@@ -2,10 +2,10 @@ package services
 
 import (
 	"errors"
-	auditDTOs "jethur/grc/audit/dtos"
-	"jethur/grc/audit/repositories"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
+	settingsDTOs "jethur/grc/settings/dtos"
+	"jethur/grc/settings/repositories"
 	"jethur/utility"
 	"path/filepath"
 	"time"
@@ -14,9 +14,9 @@ import (
 )
 
 type AuditTemplateSettingServiceInterface interface {
-	GetAll(params *auditDTOs.AuditTemplateSettingListQueryParamsDTO) ([]*auditDTOs.AuditTemplateSettingListDTO, error)
+	GetAll(params *settingsDTOs.AuditTemplateSettingListQueryParamsDTO) ([]*settingsDTOs.AuditTemplateSettingListDTO, error)
 	GetByID(id uint) (*models.AuditTemplateSetting, error)
-	Update(id uint, currentUserID uint, updatedTemplateSettingDTO *auditDTOs.AuditTemplateSettingFormDTO) error
+	Update(id uint, currentUserID uint, updatedTemplateSettingDTO *settingsDTOs.AuditTemplateSettingFormDTO) error
 }
 
 // Service and implementations
@@ -32,7 +32,7 @@ func NewAuditTemplateSettingService(repo repositories.AuditTemplateSettingReposi
 	}
 }
 
-func (atss *AuditTemplateSettingService) GetAll(params *auditDTOs.AuditTemplateSettingListQueryParamsDTO) ([]*auditDTOs.AuditTemplateSettingListDTO, error) {
+func (atss *AuditTemplateSettingService) GetAll(params *settingsDTOs.AuditTemplateSettingListQueryParamsDTO) ([]*settingsDTOs.AuditTemplateSettingListDTO, error) {
 	auditTemplateSettings, err := atss.repo.GetAll(params)
 	if err != nil {
 		return nil, err
@@ -52,7 +52,7 @@ func (atss AuditTemplateSettingService) GetByID(id uint) (*models.AuditTemplateS
 	return auditTemplateSetting, nil
 }
 
-func (atss *AuditTemplateSettingService) Update(id uint, currentUserID uint, updatedTemplateSettingDTO *auditDTOs.AuditTemplateSettingFormDTO) error {
+func (atss *AuditTemplateSettingService) Update(id uint, currentUserID uint, updatedTemplateSettingDTO *settingsDTOs.AuditTemplateSettingFormDTO) error {
 	// Begin a database transaction
 	tx := atss.repo.BeginTransaction()
 
@@ -64,7 +64,7 @@ func (atss *AuditTemplateSettingService) Update(id uint, currentUserID uint, upd
 	}
 
 	// Helper function to handle document updates
-	handleDocumentUpdate := func(doc *auditDTOs.AuditTemplateSettingDocumentFormDTO, storageFolder string, urlField **string) error {
+	handleDocumentUpdate := func(doc *settingsDTOs.AuditTemplateSettingDocumentFormDTO, storageFolder string, urlField **string) error {
 		if doc != nil && doc.IsNewFile != nil && *doc.IsNewFile {
 			// Generate URL and update field in the existing template setting
 			url := utility.GenerateDocumentURL("audit", "template-settings", storageFolder, doc.FileName)
