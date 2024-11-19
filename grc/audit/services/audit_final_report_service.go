@@ -403,14 +403,14 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 		tx.Rollback()
 		return 0, err
 	}
-	referenceNumber, err := afrs.repo.GenerateReferenceNumber()
-	if err != nil {
-		tx.Rollback()
-		return 0, err
-	}
+	// referenceNumber, err := afrs.repo.GenerateReferenceNumber()
+	// if err != nil {
+	// 	tx.Rollback()
+	// 	return 0, err
+	// }
 	auditFinalReport := &models.AuditFinalReport{
 		AuditID:                  auditID,
-		ReferenceNumber:          referenceNumber,
+		ReferenceNumber:          "123456",
 		AuditFinalReportStatusID: auditFinalReportStatus.ID,
 		CreatedBYID:              currentUserID,
 	}
