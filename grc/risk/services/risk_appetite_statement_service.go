@@ -146,6 +146,11 @@ func (rass *RiskAppetiteStatementService) Update(id uint, currentUserID uint, ri
 		return err
 	}
 
+	oldAppetiteStatement, err := rass.GetFullDetailsByID(id)
+	if err != nil {
+		return err
+	}
+
 	if err := rass.validateRiskAppetiteStatementFormDTO(riskAppetiteStatementFormDTO, &id); err != nil {
 		return err
 	}
@@ -162,12 +167,62 @@ func (rass *RiskAppetiteStatementService) Update(id uint, currentUserID uint, ri
 		return err
 	}
 
+	go func() {
+
+		existingAppetiteStatement, err := rass.GetFullDetailsByID(id)
+		if err != nil {
+			return
+		}
+
+		//log changes
+		changedData := make(map[string]interface{})
+		oldData := map[string]interface{}{
+			"risk_category": oldAppetiteStatement.RiskCategory.TitleEn,
+			"statement_en":  oldAppetiteStatement.StatementEn,
+			"statement_ar":  oldAppetiteStatement.StatementEn,
+			"status":        oldAppetiteStatement.Status,
+		}
+
+		newData := map[string]interface{}{
+			"risk_category": existingAppetiteStatement.RiskCategory.TitleEn,
+			"statement_en":  existingAppetiteStatement.StatementEn,
+			"statement_ar":  existingAppetiteStatement.StatementAr,
+			"status":        existingAppetiteStatement.Status,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := rass.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.RiskAppetiteStatement{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				utility.LogError("Failed to log activity", map[string]interface{}{
+					"action":   models.UpdateAction,
+					"error":    err.Error(),
+					"recordID": id,
+				})
+			}
+		}
+
+	}()
+
 	return nil
 }
 
 func (rass *RiskAppetiteStatementService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedAppetiteStatement []map[string]interface{}
 	for _, id := range ids {
 
 		_, err := rass.repo.GetByID(id)
@@ -182,6 +237,9 @@ func (rass *RiskAppetiteStatementService) Delete(ids []uint, currentUserID uint)
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+		deletedAppetiteStatement = append(deletedAppetiteStatement, map[string]interface{}{
+			"id": id,
+		})
 	}
 
 	if len(successfulIds) > 0 {
@@ -191,7 +249,7 @@ func (rass *RiskAppetiteStatementService) Delete(ids []uint, currentUserID uint)
 				models.DeleteAction, // Make sure this action constant is defined appropriately
 				models.RiskAppetiteStatement{}.TableName(),
 				successfulIds,
-				nil,
+				deletedAppetiteStatement,
 				currentUserID,
 				nil,
 			)
