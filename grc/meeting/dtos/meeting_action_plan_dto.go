@@ -90,7 +90,7 @@ type MeetingActionPlanFormDTO struct {
 	ResponsibleUserID  uint    `json:"responsible_user_id" binding:"required"`
 	ReviewUserID       *uint   `json:"review_user_id"`
 	TargetDate         *string `json:"target_date" binding:"omitempty,datetime=2006-01-02"`
-	Percentage         *uint   `json:"percentage" binding:"omitempty"`
+	Percentage         uint    `json:"percentage"`
 	Comments           *string `json:"comments" binding:"omitempty"`
 	ActionPlanStatusID uint    `json:"action_plan_status_id" binding:"required"`
 	MeetingMinuteID    *uint   `json:"meeting_minute_id"  binding:"required"`
