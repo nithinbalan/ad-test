@@ -190,6 +190,39 @@ func (service *AssetAssociatedItemService) GetAllVulnerabilities(assetID uint, p
 		// Map threats to DTOs
 		threatDTOs := make([]assetDTOs.ThreatDTO, 0, len(vuln.Threats))
 		for _, threat := range vuln.Threats {
+			// Fetch risks for the current threat
+			risks, err := service.repo.GetRisksByThreatID(threat.ID)
+			if err != nil {
+				return nil, err
+			}
+
+			// Map risks to DTOs
+			riskDTOs := make([]assetDTOs.RiskDTO, 0, len(risks))
+			for _, risk := range risks {
+				riskDTOs = append(riskDTOs, assetDTOs.RiskDTO{
+					ID:                              risk.ID,
+					RiskReferenceNumber:             risk.RiskReferenceNumber,
+					RiskTitle:                       risk.RiskTitle,
+					RiskDescription:                 risk.RiskDescription,
+					RiskCategoryTitleEn:             risk.RiskCategoryTitleEn,
+					RiskCategoryTitleAr:             risk.RiskCategoryTitleAr,
+					RiskSourceTitleEn:               risk.RiskSourceTitleEn,
+					RiskSourceTitleAr:               risk.RiskSourceTitleAr,
+					ResponsibleUnitTitleEn:          risk.ResponsibleUnitTitleEn,
+					ResponsibleUnitTitleAr:          risk.ResponsibleUnitTitleAr,
+					ResponsibleUserID:               risk.ResponsibleUserID,
+					ResponsibleUserFirstNameEn:      risk.ResponsibleUserFirstNameEn,
+					ResponsibleUserFirstNameAr:      risk.ResponsibleUserFirstNameAr,
+					ResponsibleUserLastNameEn:       risk.ResponsibleUserLastNameEn,
+					ResponsibleUserLastNameAr:       risk.ResponsibleUserLastNameAr,
+					ResponsibleUserInitial:          risk.ResponsibleUserInitial,
+					ResponsibleUserColor:            risk.ResponsibleUserColor,
+					ResponsibleUserEmail:            risk.ResponsibleUserEmail,
+					ResponsibleUserProfileImagePath: risk.ResponsibleUserProfileImagePath,
+				})
+			}
+
+			// Append threat with its risks
 			threatDTOs = append(threatDTOs, assetDTOs.ThreatDTO{
 				ID:                     threat.ID,
 				TitleEn:                threat.TitleEn,
@@ -204,6 +237,7 @@ func (service *AssetAssociatedItemService) GetAllVulnerabilities(assetID uint, p
 				ThreatStatusColorCode:  threat.ThreatStatus.ColorCode,
 				ThreatStatusType:       threat.ThreatStatus.Type,
 				Description:            threat.Description,
+				Risks:                  riskDTOs,
 			})
 		}
 

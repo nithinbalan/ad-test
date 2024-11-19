@@ -13,6 +13,7 @@ type AssetAssociatedItemRepositoryInterface interface {
 	GetAllIncidents(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemIncidentListResponseDTO, error)
 	GetAllRisks(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemRiskListResponseDTO, error)
 	GetAllVulnerabilities(assetID uint) ([]models.Vulnerability, error)
+	GetRisksByThreatID(threatID uint) ([]*assetDTOs.RiskDTO, error)
 }
 
 type AssetAssociatedItemRepository struct {
@@ -332,4 +333,46 @@ func (repo *AssetAssociatedItemRepository) GetAllVulnerabilities(assetID uint) (
 		Find(&vulnerabilities).Error
 
 	return vulnerabilities, err
+}
+
+func (repo *AssetAssociatedItemRepository) GetRisksByThreatID(threatID uint) ([]*assetDTOs.RiskDTO, error) {
+	var risks []*assetDTOs.RiskDTO
+
+	query := repo.db.Table("risk_threats").
+		Select(`
+			DISTINCT risk_threats.risk_register_id AS id,
+			risk_register.reference_number AS risk_reference_number,
+			risk_register.title AS risk_title,
+			risk_register.description AS risk_description,
+			risk_categories.title_en AS risk_category_title_en,
+			risk_categories.title_ar AS risk_category_title_ar,
+			risk_sources.title_en AS risk_source_title_en,
+			risk_sources.title_ar AS risk_source_title_ar,
+			organization_units.title_en AS responsible_unit_title_en,
+			organization_units.title_ar AS responsible_unit_title_ar,
+			users.id AS responsible_user_id,
+			users.first_name_en AS responsible_user_first_name_en,
+			users.first_name_ar AS responsible_user_first_name_ar,
+			users.last_name_en AS responsible_user_last_name_en,
+			users.last_name_ar AS responsible_user_last_name_ar,
+			users.initial AS responsible_user_initial,
+			users.color AS responsible_user_color,
+			users.email AS responsible_user_email,
+			users.profile_image_path AS responsible_user_profile_image_path
+		`).
+		Joins(`
+			LEFT JOIN risk_register ON risk_register.id = risk_threats.risk_register_id
+			LEFT JOIN risk_categories ON risk_categories.id = risk_register.risk_category_id
+			LEFT JOIN risk_sources ON risk_sources.id = risk_register.risk_source_id
+			LEFT JOIN organization_units ON organization_units.id = risk_register.responsible_unit_id
+			LEFT JOIN users ON users.id = risk_register.responsible_user_id
+		`).
+		Where("risk_threats.threat_id = ?", threatID)
+
+	// Execute query
+	if err := query.Find(&risks).Error; err != nil {
+		return nil, err
+	}
+
+	return risks, nil
 }
