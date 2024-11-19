@@ -112,7 +112,8 @@ func (rcas *RiskInherentControlAnalysisService) Create(riskID uint, currentUserI
 	if err != nil {
 		return err
 	}
-
+	var controlAnalysis []*models.RiskControlAnalysis
+	var ids []uint
 	for _, riskControl := range riskControls {
 		control, err := rcas.controlSvc.GetByID(riskControl.ControlID)
 		if err != nil {
@@ -133,6 +134,8 @@ func (rcas *RiskInherentControlAnalysisService) Create(riskID uint, currentUserI
 		if err != nil {
 			return err
 		}
+		controlAnalysis = append(controlAnalysis, riskControlAnalysis)
+		ids = append(ids, riskControlAnalysis.ID)
 	}
 	//update timeline performedAt as null
 	//todo
@@ -157,6 +160,30 @@ func (rcas *RiskInherentControlAnalysisService) Create(riskID uint, currentUserI
 		return err
 	}
 	tx.Commit()
+	go func() {
+
+		err = rcas.activityLogSvc.LogBulkActivities(
+			models.CreateAction,
+			models.RiskControlAnalysis{}.TableName(),
+			ids,
+			controlAnalysis,
+			currentUserID,
+			nil,
+		)
+
+		if err != nil {
+			fields := map[string]interface{}{
+				"action":    models.CreateAction,
+				"tableName": models.RiskControlAnalysis{}.TableName(),
+				"recordID":  ids,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			}
+
+			utility.LogError("Failed to log activity", fields)
+		}
+
+	}()
 
 	return nil
 }
@@ -169,6 +196,11 @@ func (rcas *RiskInherentControlAnalysisService) Update(riskID uint, id uint, cur
 	}
 
 	existingRiskControlAnalysis, err := rcas.GetByID(riskID, id)
+	if err != nil {
+		return err
+	}
+
+	oldControlAnalysis, err := rcas.GetFullDetailsByID(riskID, id)
 	if err != nil {
 		return err
 	}
@@ -194,6 +226,55 @@ func (rcas *RiskInherentControlAnalysisService) Update(riskID uint, id uint, cur
 
 	tx.Commit()
 
+	existingControlAnalysis, err := rcas.GetFullDetailsByID(riskID, id)
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		changedData := make(map[string]interface{})
+		//log changes
+		oldData := map[string]interface{}{
+			"control_efficiency_status":     oldControlAnalysis.ControlEfficiencyStatus.TitleEn,
+			"control_implementation_status": oldControlAnalysis.ControlImplementationStatus.TitleEn,
+			"control_test":                  oldControlAnalysis.ControlTestID,
+			"score":                         oldControlAnalysis.Score,
+		}
+
+		newData := map[string]interface{}{
+			"control_efficiency_status":     existingControlAnalysis.ControlEfficiencyStatus.TitleEn,
+			"control_implementation_status": existingControlAnalysis.ControlImplementationStatus.TitleEn,
+			"control_test":                  existingControlAnalysis.ControlTestID,
+			"score":                         existingControlAnalysis.Score,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			// Log the update activity
+			err := rcas.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.RiskControlAnalysis{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				utility.LogError("Failed to log activity", map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.RiskControlAnalysis{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				})
+			}
+		}
+	}()
+
 	return nil
 }
 
@@ -202,6 +283,7 @@ func (rcas *RiskInherentControlAnalysisService) Delete(riskID uint, ids []uint, 
 
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedControlAnalysis []map[string]interface{}
 
 	for _, id := range ids {
 		riskControlAnalysis, err := rcas.GetByID(riskID, id)
@@ -216,6 +298,11 @@ func (rcas *RiskInherentControlAnalysisService) Delete(riskID uint, ids []uint, 
 			failedIds = append(failedIds, id)
 			continue
 		}
+
+		deletedControlAnalysis = append(deletedControlAnalysis, map[string]interface{}{
+			"id":               id,
+			"risk_register_id": riskID,
+		})
 
 		successfulIds = append(successfulIds, id)
 	}
@@ -249,7 +336,7 @@ func (rcas *RiskInherentControlAnalysisService) Delete(riskID uint, ids []uint, 
 				models.DeleteAction,
 				models.RiskControlAnalysis{}.TableName(),
 				successfulIds,
-				nil,
+				deletedControlAnalysis,
 				currentUserID,
 				nil,
 			)

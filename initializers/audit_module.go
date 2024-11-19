@@ -466,6 +466,9 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		commonModule.NotificationService,
 		taskModule.TaskService)
 	auditReportReviewController := controllers.NewAuditReportReviewController(auditReportReviewSvc)
+
+
+
 	return &AuditModule{
 		AuditorRiskRatingController:                  auditorRiskRatingController,
 		AuditUniverseController:                      auditUniverseController,

@@ -15,7 +15,7 @@ type MeetingActionPlan struct {
 	ResponsibleUserID  uint       `json:"responsible_user_id" gorm:"not null" binding:"required"`
 	ReviewUserID       *uint      `json:"review_user_id" gorm:"default:null"`
 	ActionPlanStatusID uint       `json:"action_plan_status_id" gorm:"not null" binding:"required"`
-	Percentage         *uint      `json:"percentage" gorm:"default:0;not null" binding:"required"`
+	Percentage         uint       `json:"percentage" gorm:"default:0;not null" binding:"required"`
 	Comments           *string    `json:"comments" gorm:"type:nvarchar(max);null"`
 	CreatedAt          time.Time  `json:"created_at" gorm:"not null" binding:"required"`
 	UpdatedAt          *time.Time `json:"updated_at,omitempty" gorm:"default:null"`

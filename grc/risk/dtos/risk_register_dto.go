@@ -162,6 +162,7 @@ type RiskRegisterDetailDTO struct {
 	Kris                    []*RiskKRIDTO                    `json:"kris"`
 	AssociatedDocuments     []*RiskAssociatedDocumentDTO     `json:"associated_documents"`
 	Assets                  []*RiskAssetDTO                  `json:"assets"`
+	Threats                 []*RiskThreatDTO                 `json:"threats"`
 	MarkedAsAuditableItem   bool                             `json:"marked_as_auditable_item"`
 }
 
@@ -219,6 +220,14 @@ type RiskAssetDTO struct {
 	AssetRegisterID uint                             `json:"asset_register_id"`
 	AssetRegister   assetDTOs.AssetRegisterDetailDTO `json:"asset"`
 }
+
+type RiskThreatDTO struct {
+	ID             *uint                     `json:"id"`
+	RiskRegisterID uint                      `json:"risk_register_id"`
+	ThreatID       uint                      `json:"threat_id"`
+	Threat         assetDTOs.ThreatDetailDTO `json:"threat"`
+}
+
 type RiskRegisterFormDTO struct {
 	RiskCategoryID           uint                          `json:"risk_category_id" binding:"required"`
 	RiskSourceID             *uint                         `json:"risk_source_id"`
@@ -237,6 +246,7 @@ type RiskRegisterFormDTO struct {
 	SLARegisterIDs           []*uint                       `json:"sla_register_ids"`
 	DocumentIds              []*uint                       `json:"document_ids"`
 	AssetIds                 []*uint                       `json:"asset_ids"`
+	ThreatIds                []*uint                       `json:"threat_ids"`
 }
 
 type RiskRegisterParsedDates struct {
