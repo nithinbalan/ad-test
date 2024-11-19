@@ -31,7 +31,7 @@ func (rtgc *RiskTreatmentGuidelineController) GetAllRiskTreatmentGuidelines(c *g
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
-		"risk_level_ids",
+		"risk_matrix_risk_rating_ids",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
