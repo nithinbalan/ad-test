@@ -442,3 +442,49 @@ func (raic *RiskAssociatedItemController) GetAllRiskAssets(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, risks)
 }
+
+func (raic *RiskAssociatedItemController) GetAllRiskThreats(c *gin.Context) {
+
+	riskIDStr := c.Param("riskId")
+
+	riskID, err := strconv.ParseUint(riskIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+	status := c.Query("status")
+	quickFilter := c.QueryArray("quick_filter")
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(raic.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(raic.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	queryParams := riskDTOs.RiskAssociatedItemListQueryParamsDTO{
+		Sort:        sort,
+		SortBy:      sortBy,
+		Keyword:     keyword,
+		Status:      status,
+		Page:        page,
+		PageSize:    pageSize,
+		QuickFilter: quickFilter,
+	}
+	threats, err := raic.service.GetAllThreats(uint(riskID), &queryParams)
+
+	if err != nil {
+		utility.SendInternalErrResp(raic.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, threats)
+// }
