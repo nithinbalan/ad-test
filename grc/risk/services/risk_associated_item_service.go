@@ -144,9 +144,9 @@ func (rais *RiskAssociatedItemService) GetAllAssets(riskID uint, params *riskDTO
 	return rais.repo.GetAllAssets(riskID, params)
 }
 
-// func (rais *RiskAssociatedItemService) GetAllThreats(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemThreatListResponseDTO, error) {
-// 	if _, err := rais.riskRegisterSvc.GetByID(riskID); err != nil {
-// 		return nil, err
-// 	}
-// 	return rais.repo.GetAllThreats(riskID, params)
-// }
+func (rais *RiskAssociatedItemService) GetAllThreats(riskID uint, params *riskDTOs.RiskAssociatedItemListQueryParamsDTO) (*riskDTOs.RiskAssociatedItemThreatListResponseDTO, error) {
+	if _, err := rais.riskRegisterSvc.GetByID(riskID); err != nil {
+		return nil, err
+	}
+	return rais.repo.GetAllThreats(riskID, params)
+}
