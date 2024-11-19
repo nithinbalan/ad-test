@@ -407,8 +407,8 @@ func (uss *UserSettingService) UpdateNotificationSetting(userID uint, notificati
 	return uss.repo.UpdateNotificationSetting(notificationSetting)
 }
 
-func (us *UserSettingService) ChangePassword(userID uint, oldPassword, newPassword string) error {
-	currentUserSecurity, err := us.GetUserSecurityByUserID(userID)
+func (uss *UserSettingService) ChangePassword(userID uint, oldPassword, newPassword string) error {
+	currentUserSecurity, err := uss.GetUserSecurityByUserID(userID)
 	if err != nil {
 		return err
 	}
@@ -429,7 +429,50 @@ func (us *UserSettingService) ChangePassword(userID uint, oldPassword, newPasswo
 
 	currentUserSecurity.PasswordHash = string(newPasswordHash)
 
-	err = us.UpdateUserSecurity(currentUserSecurity)
+	err = uss.UpdateUserSecurity(currentUserSecurity)
+	if err != nil {
+		return err
+	}
+
+	user, err := uss.userSvc.GetByID(userID)
+	if err != nil {
+		return err
+	}
+
+	emailTemplateSettings, err := uss.emailTemplateSettingsSvc.GetEmailTemplateSettings()
+	if err != nil {
+		return err
+	}
+
+	socialLinks, err := uss.notificationSvc.GetSocialMediaLinks()
+	if err != nil {
+		return err
+	}
+
+	emailTemplateAndSocialDTO := &commonDTOs.EmailTemplateAndSocialDTO{
+		HeaderImageURL: emailTemplateSettings.HeaderImageURL,
+		SupportText:    emailTemplateSettings.SupportText,
+		ClosingText:    emailTemplateSettings.ClosingText,
+		FooterLogoURL:  emailTemplateSettings.FooterLogoURL,
+		FooterAddress:  emailTemplateSettings.FooterAddress,
+		FooterEmail:    emailTemplateSettings.FooterEmail,
+		Linkedin:       &socialLinks.Linkedin,
+		X:              &socialLinks.X,
+		Facebook:       &socialLinks.Facebook,
+	}
+
+	emailData := userDTOs.SendNewPasswordEmailDTO{
+		FirstNameEn: user.FirstNameEn,
+		LastNameEn:  user.LastNameEn,
+		Email:       user.Email,
+	}
+
+	to := []string{user.Email}
+	subject := "Important: Your Account Password Has Been Updated"
+	templateRelativePath := "organization/templates/email/change_password.html"
+
+	err = utility.SendTemplatedEmail(to, subject, templateRelativePath, emailData, emailTemplateAndSocialDTO, nil)
+
 	if err != nil {
 		return err
 	}

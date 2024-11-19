@@ -19,6 +19,7 @@ type DocumentAccessServiceInterface interface {
 	CreateSharedUsers(documentID uint, userIDs []uint, createdBy uint) error
 	CreateSharedUnits(documentID uint, unitIDs []uint, createdBy uint) error
 	DeleteSharedUsers(documentID uint, userIDs []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteAllSharedUsers(documentID uint, userIDs []*uint, tx ...utility.DatabaseTransaction) error
 	DeleteSharedUnits(documentID uint, unitIDs []*uint, tx ...utility.DatabaseTransaction) error
 
 	DeleteReviewUsers(documentID uint, userIDs []*uint, tx ...utility.DatabaseTransaction) error
@@ -189,6 +190,13 @@ func (das *DocumentAccessService) DeleteSharedUsers(documentID uint, userIDs []*
 		return nil
 	}
 	return das.repo.DeleteSharedUsers(documentID, userIDs, tx...)
+}
+
+func (das *DocumentAccessService) DeleteAllSharedUsers(documentID uint, userIDs []*uint, tx ...utility.DatabaseTransaction) error {
+	if len(userIDs) == 0 {
+		return nil
+	}
+	return das.repo.DeleteAllUsers(documentID, userIDs, tx...)
 }
 
 func (das *DocumentAccessService) DeleteSharedUnits(documentID uint, unitIDs []*uint, tx ...utility.DatabaseTransaction) error {

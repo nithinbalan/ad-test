@@ -121,11 +121,20 @@ func (prs *PotentialRiskService) Create(currentUserID uint, potentialRiskFormDTO
 	}
 
 	go func() {
-		err := prs.activityLogSvc.LogActivity(
+
+		existingPotentialRisk, err := prs.GetFullDetailsByID(potentialRisk.ID)
+		if err != nil {
+			utility.LogError("Failed to fetch potential risk", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		err = prs.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.PotentialRisk{}.TableName(),
 			id,
-			potentialRiskFormDTO,
+			existingPotentialRisk,
 			currentUserID,
 			nil,
 		)
@@ -154,6 +163,11 @@ func (prs *PotentialRiskService) Update(id uint, currentUserID uint, potentialRi
 		return err
 	}
 
+	oldPotentialRisk, err := prs.GetFullDetailsByID(id)
+	if err != nil {
+		return err
+	}
+
 	if err := prs.validatePotentialRiskFormDTO(potentialRiskFormDTO, &id); err != nil {
 		return err
 	}
@@ -170,12 +184,65 @@ func (prs *PotentialRiskService) Update(id uint, currentUserID uint, potentialRi
 		return err
 	}
 
+	go func() {
+		existingRisk, err := prs.GetFullDetailsByID(id)
+		if err != nil {
+			return
+		}
+		changedData := make(map[string]interface{})
+		//log changes
+		oldData := map[string]interface{}{
+			"title":          oldPotentialRisk.Title,
+			"description":    oldPotentialRisk.Description,
+			"risk_cateogry":  oldPotentialRisk.RiskCategory.TitleEn,
+			"severity_level": oldPotentialRisk.SeverityLevel.TitleEn,
+		}
+
+		newData := map[string]interface{}{
+			"title":          existingRisk.Title,
+			"description":    existingRisk.Description,
+			"risk_cateogry":  existingRisk.RiskCategory.TitleEn,
+			"severity_level": existingRisk.SeverityLevel.TitleEn,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err = prs.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.PotentialRisk{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.PotentialRisk{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
+		}
+	}()
+
 	return nil
 }
 
 func (prs *PotentialRiskService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
+
+	var deletedPotentialRisk []map[string]interface{}
+
 	for _, id := range ids {
 
 		_, err := prs.repo.GetByID(id)
@@ -184,12 +251,22 @@ func (prs *PotentialRiskService) Delete(ids []uint, currentUserID uint) ([]uint,
 			continue
 		}
 
+		potentialRisk, err := prs.repo.GetFullDetailsByID(id)
+		if err != nil {
+			return nil, err
+		}
+
 		err = prs.repo.Delete(id)
 		if err != nil {
 			failedIds = append(failedIds, id)
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+
+		deletedPotentialRisk = append(deletedPotentialRisk, map[string]interface{}{
+			"id":    id,
+			"title": potentialRisk.Title,
+		})
 	}
 
 	if len(successfulIds) > 0 {
@@ -199,7 +276,7 @@ func (prs *PotentialRiskService) Delete(ids []uint, currentUserID uint) ([]uint,
 				models.DeleteAction, // Make sure this action constant is defined appropriately
 				models.PotentialRisk{}.TableName(),
 				successfulIds,
-				nil,
+				deletedPotentialRisk,
 				currentUserID,
 				nil,
 			)

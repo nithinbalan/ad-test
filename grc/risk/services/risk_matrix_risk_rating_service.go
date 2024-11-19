@@ -8,6 +8,7 @@ import (
 	riskDTOs "jethur/grc/risk/dtos"
 	"jethur/grc/risk/repositories"
 	"jethur/utility"
+	"log"
 
 	"gorm.io/gorm"
 )
@@ -82,11 +83,18 @@ func (rmrrs *RiskMatrixRiskRatingService) Create(currentUserID uint, riskMatrixR
 	}
 
 	go func() {
-		err := rmrrs.activityLogSvc.LogActivity(
+		existingRiskRating, err := rmrrs.GetByID(id)
+		if err != nil {
+			utility.LogError("Failed to fetch risk matrix risk rating", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		err = rmrrs.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.RiskMatrixRiskRating{}.TableName(),
 			id,
-			riskMatrixRiskRatingFormDTO,
+			existingRiskRating,
 			currentUserID,
 			nil,
 		)
@@ -110,7 +118,10 @@ func (rmrrs *RiskMatrixRiskRatingService) Create(currentUserID uint, riskMatrixR
 
 func (rmrrs *RiskMatrixRiskRatingService) Update(id uint, currentUserID uint, riskMatrixRiskRatingFormDTO *riskDTOs.RiskMatrixRiskRatingFormDTO) error {
 	existingRiskRating, err := rmrrs.repo.GetByID(id)
-
+	if err != nil {
+		return err
+	}
+	oldRiskRating, err := rmrrs.repo.GetByID(id)
 	if err != nil {
 		return err
 	}
@@ -131,6 +142,33 @@ func (rmrrs *RiskMatrixRiskRatingService) Update(id uint, currentUserID uint, ri
 		return err
 	}
 
+	fieldsToCompare := []string{"TitleEn", "TitleAr", "Type", "ColorCode", "Status"}
+	changes, err := utility.CompareFields(oldRiskRating, existingRiskRating, fieldsToCompare)
+
+	if err != nil {
+		log.Println("error :", err.Error())
+	}
+
+	changedDataJSON, err := utility.ChangesToJSON(changes)
+	if err != nil {
+		log.Println("error :", err.Error())
+	}
+
+	go func() {
+		err := rmrrs.activityLogSvc.LogActivity(
+			models.UpdateAction,
+			models.RiskMatrixRiskRating{}.TableName(),
+			id,
+			changedDataJSON,
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			// @todo - save to log file
+			fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+		}
+	}()
+
 	return nil
 
 }
@@ -138,9 +176,10 @@ func (rmrrs *RiskMatrixRiskRatingService) Update(id uint, currentUserID uint, ri
 func (rmrrs *RiskMatrixRiskRatingService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedRiskMatrixLRiskRating []map[string]interface{}
 	for _, id := range ids {
 
-		_, err := rmrrs.repo.GetByID(id)
+		riskRating, err := rmrrs.repo.GetByID(id)
 
 		if err != nil {
 			fmt.Print(err)
@@ -153,6 +192,12 @@ func (rmrrs *RiskMatrixRiskRatingService) Delete(ids []uint, currentUserID uint)
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+
+		deletedRiskMatrixLRiskRating = append(deletedRiskMatrixLRiskRating, map[string]interface{}{
+			"id":       id,
+			"title_en": riskRating.TitleEn,
+			"title_ar": riskRating.TitleAr,
+		})
 	}
 
 	if len(successfulIds) > 0 {
@@ -162,7 +207,7 @@ func (rmrrs *RiskMatrixRiskRatingService) Delete(ids []uint, currentUserID uint)
 				models.DeleteAction, // Make sure this action constant is defined appropriately
 				models.RiskMatrixRiskRating{}.TableName(),
 				successfulIds,
-				nil,
+				deletedRiskMatrixLRiskRating,
 				currentUserID,
 				nil,
 			)

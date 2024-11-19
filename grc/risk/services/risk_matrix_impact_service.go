@@ -8,6 +8,7 @@ import (
 	riskDTOs "jethur/grc/risk/dtos"
 	"jethur/grc/risk/repositories"
 	"jethur/utility"
+	"log"
 
 	"gorm.io/gorm"
 )
@@ -78,11 +79,18 @@ func (rmis *RiskMatrixImpactService) Create(currentUserID uint, riskMatrixImpact
 	}
 
 	go func() {
-		err := rmis.activityLogSvc.LogActivity(
+		existingRiskMatrixImpact, err := rmis.GetByID(id)
+		if err != nil {
+			utility.LogError("Failed to fetch risk matrix impact", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		err = rmis.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.RiskMatrixImpact{}.TableName(),
 			id,
-			riskMatrixImpactFormDTO,
+			existingRiskMatrixImpact,
 			currentUserID,
 			nil,
 		)
@@ -111,6 +119,11 @@ func (rmis *RiskMatrixImpactService) Update(id uint, currentUserID uint, riskMat
 		return err
 	}
 
+	oldRiskMatrixImpact, err := rmis.repo.GetByID(id)
+	if err != nil {
+		return err
+	}
+
 	if err := rmis.validateRiskMatrixImpactFormDTO(riskMatrixImpactFormDTO, existingImpact.RiskMatrixID, &id); err != nil {
 		return err
 	}
@@ -128,6 +141,33 @@ func (rmis *RiskMatrixImpactService) Update(id uint, currentUserID uint, riskMat
 		return err
 	}
 
+	fieldsToCompare := []string{"TitleEn", "TitleAr", "DescriptionEn", "DescriptionAr", "Status"}
+	changes, err := utility.CompareFields(oldRiskMatrixImpact, existingImpact, fieldsToCompare)
+
+	if err != nil {
+		log.Println("error :", err.Error())
+	}
+
+	changedDataJSON, err := utility.ChangesToJSON(changes)
+	if err != nil {
+		log.Println("error :", err.Error())
+	}
+
+	go func() {
+		err := rmis.activityLogSvc.LogActivity(
+			models.UpdateAction,
+			models.RiskMatrixImpact{}.TableName(),
+			id,
+			changedDataJSON,
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			// @todo - save to log file
+			fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+		}
+	}()
+
 	return nil
 
 }
@@ -135,9 +175,10 @@ func (rmis *RiskMatrixImpactService) Update(id uint, currentUserID uint, riskMat
 func (rmis *RiskMatrixImpactService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedRiskMatrixImpact []map[string]interface{}
 	for _, id := range ids {
 
-		_, err := rmis.repo.GetByID(id)
+		matrixImpact, err := rmis.repo.GetByID(id)
 
 		if err != nil {
 			fmt.Print(err)
@@ -150,6 +191,11 @@ func (rmis *RiskMatrixImpactService) Delete(ids []uint, currentUserID uint) ([]u
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+		deletedRiskMatrixImpact = append(deletedRiskMatrixImpact, map[string]interface{}{
+			"id":       id,
+			"title_en": matrixImpact.TitleEn,
+			"title_ar": matrixImpact.TitleAr,
+		})
 	}
 
 	if len(successfulIds) > 0 {
@@ -159,7 +205,7 @@ func (rmis *RiskMatrixImpactService) Delete(ids []uint, currentUserID uint) ([]u
 				models.DeleteAction, // Make sure this action constant is defined appropriately
 				models.RiskMatrixImpact{}.TableName(),
 				successfulIds,
-				nil,
+				deletedRiskMatrixImpact,
 				currentUserID,
 				nil,
 			)
