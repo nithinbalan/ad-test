@@ -804,7 +804,7 @@ func (ds *DocumentService) Delete(ids []uint, currentUserID uint) ([]uint, error
 			for _, user := range document.DocumentSharedUsers {
 				deleteSharedUserIds = append(deleteSharedUserIds, &user.UserID)
 			}
-			if err := ds.documentAccessSvc.DeleteSharedUsers(id, deleteSharedUserIds, tx); err != nil {
+			if err := ds.documentAccessSvc.DeleteAllSharedUsers(id, deleteSharedUserIds, tx); err != nil {
 				tx.Rollback()
 				return nil, err
 			}
