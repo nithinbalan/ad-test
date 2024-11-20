@@ -40,8 +40,8 @@ func NewAssetModule(db *gorm.DB,
 	masterModule *MasterModule,
 	organizationModule *OrganizationModule,
 	taskModule *TaskModule,
-	commonModule *CommonModule) *AssetModule {
-
+	commonModule *CommonModule,
+) *AssetModule {
 	assetTypeRepo := repositories.NewAssetTypeRepository(db)
 	assetTypeSvc := services.NewAssetTypeService(assetTypeRepo, sharedModule.ActivityLogService)
 	assetTypeController := controllers.NewAssetTypeController(assetTypeSvc)
@@ -115,6 +115,7 @@ func NewAssetModule(db *gorm.DB,
 		masterModule.SeverityLevelSvc,
 		organizationModule.UserSettingSvc,
 		organizationModule.UserSvc,
+		commonModule.NotificationService,
 	)
 	vulnerabilityActionPlanController := controllers.NewVulnerabilityActionPlanController(vulnerabilityActionPlanSvc)
 
@@ -136,6 +137,7 @@ func NewAssetModule(db *gorm.DB,
 		masterModule.SeverityLevelSvc,
 		organizationModule.UserSettingSvc,
 		organizationModule.UserSvc,
+		commonModule.NotificationService,
 	)
 	threatActionPlanController := controllers.NewThreatActionPlanController(threatActionPlanSvc)
 

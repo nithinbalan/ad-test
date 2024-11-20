@@ -4,9 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"time"
 
 	assetDTOs "jethur/grc/asset/dtos"
 	assetRepositories "jethur/grc/asset/repositories"
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
 	masterRepositories "jethur/grc/masters/repositories"
 	masterServices "jethur/grc/masters/services"
@@ -39,6 +42,7 @@ type ThreatActionPlanService struct {
 	severityLevelSvc    masterServices.SeverityLevelServiceInterface
 	userSettingSvc      organizationServices.UserSettingServiceInterface
 	userSvc             organizationServices.UserServiceInterface
+	notificationSvc     commonServices.NotificationServiceInterface
 }
 
 func NewThreatActionPlanService(
@@ -49,6 +53,7 @@ func NewThreatActionPlanService(
 	severityLevelSvc masterRepositories.SeverityLevelRepositoryInterface,
 	userSettingSvc organizationServices.UserSettingServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
 ) ThreatActionPlanServiceInterface {
 	return &ThreatActionPlanService{
 		repo:                repo,
@@ -58,6 +63,7 @@ func NewThreatActionPlanService(
 		severityLevelSvc:    severityLevelSvc,
 		userSettingSvc:      userSettingSvc,
 		userSvc:             userSvc,
+		notificationSvc:     notificationSvc,
 	}
 }
 
@@ -116,7 +122,8 @@ func (taps *ThreatActionPlanService) GetFullDetailsByID(threatID uint, id uint) 
 func (taps *ThreatActionPlanService) Create(threatID uint, currentUserID uint, formDTO *assetDTOs.ThreatActionPlanFormDTO) (uint, error) {
 	tx := taps.repo.BeginTransaction()
 
-	if _, err := taps.threatSvc.GetByID(threatID); err != nil {
+	threat, err := taps.threatSvc.GetByID(threatID)
+	if err != nil {
 		return 0, err
 	}
 
@@ -182,6 +189,75 @@ func (taps *ThreatActionPlanService) Create(threatID uint, currentUserID uint, f
 			}
 			utility.LogError("Failed to log activity", fields)
 		}
+
+		responsibleUser, err := taps.userSvc.GetByID(formDTO.ResponsibleUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		assignedBy, err := taps.userSvc.GetByID(currentUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		urlParam := fmt.Sprintf(`{"threat_id":%d, "action_plan_id":%d}`, threatID, id)
+		queryParam := ""
+		entity := "threat-action-plan"
+		action := "responsible-user-assign"
+
+		// Prepare DB Notification
+		dbNotification := &commonDTOs.DBNotificationDTO{
+			UserID:               formDTO.ResponsibleUserID,
+			ModuleIdentifier:     "threat",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			HeadingEn:            "Threat Action Plan Responsibility Assigned",
+			HeadingAr:            "تم تعيين مسؤولية خطة عمل التهديد",
+			TitleEn:              formDTO.Title,
+			TitleAr:              formDTO.Title,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			QueryParam:           queryParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		// Prepare Email Notification
+		emailTo := []string{responsibleUser.Email}
+		subject := fmt.Sprintf("Threat Action Plan/%s: Responsibility Assigned", formDTO.Title)
+		appURL := utility.GetAppURL()
+		emailData := map[string]interface{}{
+			"FirstNameEn":           responsibleUser.FirstNameEn,
+			"LastNameEn":            responsibleUser.LastNameEn,
+			"ThreatTitle":           threat.TitleEn,
+			"ActionPlanTitle":       formDTO.Title,
+			"ActionPlanDescription": formDTO.Description,
+			"TargetDate":            dates.TargetDate.Format("2006-01-02"),
+			"AssignedByFirstNameEn": assignedBy.FirstNameEn,
+			"AssignedByLastNameEn":  assignedBy.LastNameEn,
+			"AssignedOn":            time.Now().Format("2006-01-02"),
+			"RedirectURL":           fmt.Sprintf("%s/risk/risk-mitigation?action_plan_id=%d", appURL, id),
+		}
+		emailNotification := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              emailTo,
+			Subject:              subject,
+			TemplateRelativePath: "asset/templates/email/threat_action_plan_create_responsible_user_mail.html",
+			EmailData:            emailData,
+		}
+
+		// Send Notification and Email
+		err = taps.notificationSvc.SendNotification(dbNotification, emailNotification, "risk")
+		if err != nil {
+			utility.LogError("Failed to send notifications", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
 	}()
 
 	return id, nil
@@ -190,7 +266,8 @@ func (taps *ThreatActionPlanService) Create(threatID uint, currentUserID uint, f
 func (taps *ThreatActionPlanService) Update(threatID uint, id uint, currentUserID uint, formDTO *assetDTOs.ThreatActionPlanFormDTO) error {
 	tx := taps.repo.BeginTransaction()
 
-	if _, err := taps.threatSvc.GetByID(threatID); err != nil {
+	threat, err := taps.threatSvc.GetByID(threatID)
+	if err != nil {
 		return err
 	}
 
@@ -198,6 +275,8 @@ func (taps *ThreatActionPlanService) Update(threatID uint, id uint, currentUserI
 	if err != nil {
 		return err
 	}
+
+	oldResponsibleUserID := existingActionPlan.ResponsibleUserID
 
 	if err := taps.validateActionPlanFormDTO(formDTO); err != nil {
 		return err
@@ -227,16 +306,156 @@ func (taps *ThreatActionPlanService) Update(threatID uint, id uint, currentUserI
 
 	tx.Commit()
 
+	go func() {
+		// send notification if responsible user changed
+		if oldResponsibleUserID != formDTO.ResponsibleUserID {
+			urlParam := fmt.Sprintf(`{"threat_id":%d, "action_plan_id":%d}`, threatID, id)
+			queryParam := ""
+			entity := "threat-action-plan"
+
+			oldResponsibleUserAction := "responsible-user-remove"
+			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserID:               oldResponsibleUserID,
+				ModuleIdentifier:     "threat",
+				NotificationType:     string(commonDTOs.AssignmentType),
+				HeadingEn:            "Threat Action Plan Responsibility Removed",
+				HeadingAr:            "تمت إزالة مسؤولية خطة عمل التهديد",
+				TitleEn:              existingActionPlan.Title,
+				TitleAr:              existingActionPlan.Title,
+				Entity:               &entity,
+				Action:               &oldResponsibleUserAction,
+				URLParam:             urlParam,
+				QueryParam:           queryParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			newResponsibleUserAction := "responsible-user-assign"
+			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserID:               formDTO.ResponsibleUserID,
+				ModuleIdentifier:     "threat",
+				NotificationType:     string(commonDTOs.AssignmentType),
+				HeadingEn:            "Threat Action Plan Responsibility Assigned",
+				HeadingAr:            "تم تعيين مسؤولية خطة عمل التهديد",
+				TitleEn:              existingActionPlan.Title,
+				TitleAr:              existingActionPlan.Title,
+				Entity:               &entity,
+				Action:               &newResponsibleUserAction,
+				URLParam:             urlParam,
+				QueryParam:           queryParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			oldResponsibleUser, err := taps.userSvc.GetByID(oldResponsibleUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch old responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			newResponsibleUser, err := taps.userSvc.GetByID(formDTO.ResponsibleUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch new responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			assignedBy, err := taps.userSvc.GetByID(currentUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			appURL := utility.GetAppURL()
+
+			oldResponsibleUserEmailTo := []string{oldResponsibleUser.Email}
+			oldResponsibleUserSubject := fmt.Sprintf("Threat Action Plan/%s: Responsibility Removed", existingActionPlan.Title)
+			oldResponsibleUserTemplateRelativePath := "asset/templates/email/threat_action_plan_remove_responsible_user_mail.html"
+			oldResponsibleUserEmailData := map[string]interface{}{
+				"FirstNameEn":           oldResponsibleUser.FirstNameEn,
+				"LastNameEn":            oldResponsibleUser.LastNameEn,
+				"ThreatTitle":           threat.TitleEn,
+				"ActionPlanTitle":       existingActionPlan.Title,
+				"ActionPlanDescription": existingActionPlan.Description,
+				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
+				"AssignedByLastNameEn":  assignedBy.LastNameEn,
+				"AssignedOn":            time.Now().Format("2006-01-02"),
+				"RedirectURL":           fmt.Sprintf("%s/risk/risk-mitigation?action_plan_id=%d", appURL, id),
+			}
+
+			oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              oldResponsibleUserEmailTo,
+				Subject:              oldResponsibleUserSubject,
+				TemplateRelativePath: oldResponsibleUserTemplateRelativePath,
+				EmailData:            oldResponsibleUserEmailData,
+			}
+
+			newResponsibleUserEmailTo := []string{newResponsibleUser.Email}
+			newResponsibleUserSubject := fmt.Sprintf("Threat Action Plan/%s: Responsibility Assigned", existingActionPlan.Title)
+			newResponsibleUserTemplateRelativePath := "asset/templates/email/threat_action_plan_change_responsible_user_mail.html"
+			newResponsibleUserEmailData := map[string]interface{}{
+				"FirstNameEn":           newResponsibleUser.FirstNameEn,
+				"LastNameEn":            newResponsibleUser.LastNameEn,
+				"ThreatTitle":           threat.TitleEn,
+				"ActionPlanTitle":       existingActionPlan.Title,
+				"ActionPlanDescription": existingActionPlan.Description,
+				"TargetDate":            existingActionPlan.TargetDate.Format("2006-01-02"),
+				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
+				"AssignedByLastNameEn":  assignedBy.LastNameEn,
+				"AssignedOn":            time.Now().Format("2006-01-02"),
+				"RedirectURL":           fmt.Sprintf("%s/risk/risk-mitigation?action_plan_id=%d", appURL, id),
+			}
+
+			newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              newResponsibleUserEmailTo,
+				Subject:              newResponsibleUserSubject,
+				TemplateRelativePath: newResponsibleUserTemplateRelativePath,
+				EmailData:            newResponsibleUserEmailData,
+			}
+
+			err = taps.notificationSvc.SendNotification(
+				newResponsibleUserNotificationDTO, newResponsibleUserEmailNotificationDTO, "risk",
+			)
+			if err != nil {
+				utility.LogError("Failed to send new responsible user notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+
+			err = taps.notificationSvc.SendNotification(
+				oldResponsibleUserNotificationDTO, oldResponsibleUserEmailNotificationDTO, "risk",
+			)
+			if err != nil {
+				utility.LogError("Failed to send old responsible user notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+		}
+	}()
+
 	return nil
 }
 
 func (taps *ThreatActionPlanService) Delete(threatID uint, ids []uint, currentUserID uint) ([]uint, error) {
-	if _, err := taps.threatSvc.GetByID(threatID); err != nil {
+	threat, err := taps.threatSvc.GetByID(threatID)
+	if err != nil {
 		return nil, err
 	}
 
 	var failedIds []uint
 	var successfulIds []uint
+	var notifications []struct {
+		UserID      uint
+		TitleEn     string
+		TitleAr     string
+		Description string
+		ThreatTitle string
+	}
 
 	for _, id := range ids {
 		actionPlan, err := taps.repo.GetFullDetailsByID(id)
@@ -244,6 +463,21 @@ func (taps *ThreatActionPlanService) Delete(threatID uint, ids []uint, currentUs
 			failedIds = append(failedIds, id)
 			continue
 		}
+
+		// Prepare notification data before deletion
+		notifications = append(notifications, struct {
+			UserID      uint
+			TitleEn     string
+			TitleAr     string
+			Description string
+			ThreatTitle string
+		}{
+			UserID:      actionPlan.ResponsibleUserID,
+			TitleEn:     actionPlan.Title,
+			TitleAr:     actionPlan.Title,
+			Description: *actionPlan.Description,
+			ThreatTitle: threat.TitleEn,
+		})
 
 		if len(actionPlan.ActionPlanStatusUpdates) > 0 {
 			var deleteStatusUpdateIds []*uint
@@ -276,6 +510,64 @@ func (taps *ThreatActionPlanService) Delete(threatID uint, ids []uint, currentUs
 			)
 			if err != nil {
 				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+			}
+
+			for _, notification := range notifications {
+				urlParam := ""
+				entity := "threat-action-plan"
+				action := "delete"
+
+				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+					UserID:               notification.UserID,
+					ModuleIdentifier:     "threat",
+					NotificationType:     string(commonDTOs.DeletionType),
+					HeadingEn:            "Threat Action Plan Deleted",
+					HeadingAr:            "تم حذف خطة عمل التهديد",
+					TitleEn:              notification.TitleEn,
+					TitleAr:              notification.TitleAr,
+					Entity:               &entity,
+					Action:               &action,
+					URLParam:             urlParam,
+					IsSystemNotification: false,
+					CreatedByID:          &currentUserID,
+				}
+
+				ownerUser, err := taps.userSvc.GetByID(notification.UserID)
+				if err != nil {
+					utility.LogError("Failed to fetch owner details for notification", map[string]interface{}{
+						"error": err.Error(),
+					})
+					continue
+				}
+
+				ownerEmailTo := []string{ownerUser.Email}
+				subject := fmt.Sprintf("Threat Action Plan/%s: Deleted", notification.TitleEn)
+				templateRelativePath := "asset/templates/email/threat_action_plan_delete_mail.html"
+
+				emailData := map[string]interface{}{
+					"FirstNameEn":           ownerUser.FirstNameEn,
+					"LastNameEn":            ownerUser.LastNameEn,
+					"ThreatTitle":           notification.ThreatTitle,
+					"ActionPlanTitle":       notification.TitleEn,
+					"ActionPlanDescription": notification.Description,
+					"AssignedOn":            time.Now().Format("2006-01-02"),
+				}
+
+				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+					EmailTo:              ownerEmailTo,
+					Subject:              subject,
+					TemplateRelativePath: templateRelativePath,
+					EmailData:            emailData,
+				}
+
+				err = taps.notificationSvc.SendNotification(
+					dbNotificationDTO, emailNotificationDTO, "risk")
+				if err != nil {
+					utility.LogError("Failed to send deletion notifications", map[string]interface{}{
+						"error": err.Error(),
+					})
+				}
+
 			}
 		}()
 	}
