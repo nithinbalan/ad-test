@@ -137,9 +137,10 @@ func (its *IncidentTypeService) Update(id uint, currentUserID uint, updatedType 
 func (its *IncidentTypeService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedIncidentType []map[string]interface{}
 	for _, id := range ids {
 
-		_, err := its.repo.GetByID(id)
+		incidentType, err := its.repo.GetByID(id)
 
 		if err != nil {
 			fmt.Print(err)
@@ -152,6 +153,11 @@ func (its *IncidentTypeService) Delete(ids []uint, currentUserID uint) ([]uint, 
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+		deletedIncidentType = append(deletedIncidentType, map[string]interface{}{
+			"id":       id,
+			"title_en": incidentType.TitleEn,
+			"title_ar": incidentType.TitleAr,
+		})
 	}
 
 	if len(successfulIds) > 0 {
@@ -161,7 +167,7 @@ func (its *IncidentTypeService) Delete(ids []uint, currentUserID uint) ([]uint, 
 				models.DeleteAction, // Make sure this action constant is defined appropriately
 				models.IncidentType{}.TableName(),
 				successfulIds,
-				nil,
+				deletedIncidentType,
 				currentUserID,
 				nil,
 			)

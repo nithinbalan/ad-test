@@ -180,6 +180,12 @@ func (iasus *IncidentActionPlanStatusUpdateService) Update(IncidentID uint, Inci
 		return err
 	}
 
+	oldIncidentActionPlanStatusUpdate, err := iasus.GetByID(IncidentID, IncidentActionPlanID, id)
+
+	if err != nil {
+		return err
+	}
+
 	existingIncidentActionPlanStatusUpdate, err := iasus.GetByID(IncidentID, IncidentActionPlanID, id)
 
 	if err != nil {
@@ -282,6 +288,52 @@ func (iasus *IncidentActionPlanStatusUpdateService) Update(IncidentID uint, Inci
 	}
 
 	tx.Commit()
+	go func() {
+		existingActionPlanstatusUpdate, err := iasus.GetByID(IncidentID, IncidentActionPlanID, id)
+		if err != nil {
+			tx.Rollback()
+			return
+		}
+		//log changes
+		changedData := make(map[string]interface{})
+		oldData := map[string]interface{}{
+			"comment":    oldIncidentActionPlanStatusUpdate.Comment,
+			"percentage": oldIncidentActionPlanStatusUpdate.Percentage,
+		}
+
+		newData := map[string]interface{}{
+			"comment":    existingActionPlanstatusUpdate.Comment,
+			"percentage": existingActionPlanstatusUpdate.Percentage,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := iasus.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.IncidentActionPlanStatusUpdate{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.IncidentActionPlan{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
+		}
+	}()
 
 	return nil
 }
