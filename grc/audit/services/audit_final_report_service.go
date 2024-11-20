@@ -360,7 +360,6 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 		tx.Rollback()
 		return 0, err
 	}
-
 	// Check if AuditDraftReportStatus is 'completed'
 	completedStatus, err := afrs.auditDraftReportStatusSvc.GetByType("completed")
 	if err != nil {
@@ -376,7 +375,6 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 		tx.Rollback()
 		return 0, err
 	}
-
 	// Check if the current user is the TeamLead
 	isAuthorizedUser := false
 	if uint(audit.AuditPlan.TeamLead.ID) == currentUserID {
@@ -392,7 +390,6 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 			}
 		}
 	}
-
 	// If the current user is not authorized, rollback and return forbidden error
 	if !isAuthorizedUser {
 		tx.Rollback()
@@ -403,14 +400,14 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 		tx.Rollback()
 		return 0, err
 	}
-	// referenceNumber, err := afrs.repo.GenerateReferenceNumber()
-	// if err != nil {
-	// 	tx.Rollback()
-	// 	return 0, err
-	// }
+	referenceNumber, err := afrs.repo.GenerateReferenceNumber()
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
 	auditFinalReport := &models.AuditFinalReport{
 		AuditID:                  auditID,
-		ReferenceNumber:          "123456",
+		ReferenceNumber:          referenceNumber,
 		AuditFinalReportStatusID: auditFinalReportStatus.ID,
 		CreatedBYID:              currentUserID,
 	}
