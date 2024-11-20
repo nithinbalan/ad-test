@@ -414,6 +414,7 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 	if err != nil {
 		return err
 	}
+	existingDocumentAccessTypeID := existingDocument.DocumentAccessTypeID
 	documentAccessType, err := ds.documentAccessTypeSvc.GetByID(documentFormDTO.DocumentAccessTypeID)
 	if err != nil {
 		return err
@@ -488,30 +489,40 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 		}
 	}
 
-	if existingDocument.DocumentAccessTypeID == documentFormDTO.DocumentAccessTypeID {
+	if existingDocumentAccessTypeID == documentFormDTO.DocumentAccessTypeID {
+		fmt.Println("0")
 		switch documentAccessType.Type {
 		case "shared":
+			// Fetch existing shared users
 			existingSharedUsers, err := ds.documentAccessSvc.GetSharedUsers(id, 1, 10000, tx)
 			if err != nil {
 				tx.Rollback()
-				return err
-			}
-			existingSharedUnits, err := ds.documentAccessSvc.GetSharedUnits(id, tx)
-			if err != nil {
-				tx.Rollback()
+				log.Printf("Error fetching shared users: %v", err)
 				return err
 			}
 
-			existingUserIDs := map[uint]bool{}
+			// Fetch existing shared units
+			existingSharedUnits, err := ds.documentAccessSvc.GetSharedUnits(id, tx)
+			if err != nil {
+				tx.Rollback()
+				log.Printf("Error fetching shared units: %v", err)
+				return err
+			}
+
+			// Map existing shared users
+			existingUserIDs := make(map[uint]bool)
 			for _, user := range existingSharedUsers.Items {
 				existingUserIDs[uint(user.ID)] = true
 			}
 
-			existingUnitIDs := map[uint]bool{}
+			// Map existing shared units
+			existingUnitIDs := make(map[uint]bool)
 			for _, unit := range existingSharedUnits {
 				existingUnitIDs[uint(unit.ID)] = true
 			}
 
+			// Add new shared users and build list to delete old users
+			userIDsToDelete := []*uint{}
 			for _, userID := range documentFormDTO.SharedUserIDs {
 				if !existingUserIDs[*userID] {
 					sharedUsers = append(sharedUsers, &models.DocumentSharedUser{
@@ -524,18 +535,22 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 					delete(existingUserIDs, *userID)
 				}
 			}
-
-			userIDsToDelete := make([]*uint, 0)
 			for userID := range existingUserIDs {
 				userIDsToDelete = append(userIDsToDelete, &userID)
 			}
 
-			err = ds.documentAccessSvc.DeleteSharedUsers(id, userIDsToDelete, tx)
-			if err != nil {
-				tx.Rollback()
-				return err
+			// Delete old shared users
+			if len(userIDsToDelete) > 0 {
+				err = ds.documentAccessSvc.DeleteSharedUsers(id, userIDsToDelete, tx)
+				if err != nil {
+					tx.Rollback()
+					log.Printf("Error deleting shared users: %v", err)
+					return err
+				}
 			}
 
+			// Add new shared units and build list to delete old units
+			unitIDsToDelete := []*uint{}
 			for _, unitID := range documentFormDTO.SharedUnitIDs {
 				if !existingUnitIDs[*unitID] {
 					sharedUnits = append(sharedUnits, &models.DocumentSharedUnit{
@@ -547,21 +562,27 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 					delete(existingUnitIDs, *unitID)
 				}
 			}
-
-			unitIDsToDelete := make([]*uint, 0)
 			for unitID := range existingUnitIDs {
 				unitIDsToDelete = append(unitIDsToDelete, &unitID)
 			}
 
-			err = ds.documentAccessSvc.DeleteSharedUnits(id, unitIDsToDelete, tx)
-			if err != nil {
-				tx.Rollback()
-				return err
+			// Delete old shared units
+			if len(unitIDsToDelete) > 0 {
+				err = ds.documentAccessSvc.DeleteSharedUnits(id, unitIDsToDelete, tx)
+				if err != nil {
+					tx.Rollback()
+					log.Printf("Error deleting shared units: %v", err)
+					return err
+				}
 			}
 		}
 	} else {
+		// Handle case when DocumentAccessTypeID changes
+		fmt.Println("1")
 		switch documentAccessType.Type {
 		case "shared":
+			fmt.Println("2")
+			// Add new shared users and units
 			for _, userID := range documentFormDTO.SharedUserIDs {
 				sharedUsers = append(sharedUsers, &models.DocumentSharedUser{
 					DocumentID:  id,
@@ -570,7 +591,6 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 					CreatedBYID: currentUserID,
 				})
 			}
-
 			for _, unitID := range documentFormDTO.SharedUnitIDs {
 				sharedUnits = append(sharedUnits, &models.DocumentSharedUnit{
 					DocumentID:         id,
@@ -580,44 +600,49 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 			}
 
 		case "public":
+			fmt.Println("3")
+			// Delete all existing shared users
 			existingSharedUsers, err := ds.documentAccessSvc.GetSharedUsers(id, 1, 10000, tx)
 			if err != nil {
 				tx.Rollback()
+				log.Printf("Error fetching shared users for deletion: %v", err)
 				return err
 			}
-
-			userIDsToDelete := make([]*uint, 0)
+			userIDsToDelete := []*uint{}
 			for _, user := range existingSharedUsers.Items {
 				userID := uint(user.ID)
 				userIDsToDelete = append(userIDsToDelete, &userID)
 			}
-
-			err = ds.documentAccessSvc.DeleteSharedUsers(id, userIDsToDelete, tx)
-			if err != nil {
-				tx.Rollback()
-				return err
+			if len(userIDsToDelete) > 0 {
+				err = ds.documentAccessSvc.DeleteSharedUsers(id, userIDsToDelete, tx)
+				if err != nil {
+					tx.Rollback()
+					log.Printf("Error deleting shared users: %v", err)
+					return err
+				}
 			}
 
+			// Delete all existing shared units
 			existingSharedUnits, err := ds.documentAccessSvc.GetSharedUnits(id, tx)
 			if err != nil {
 				tx.Rollback()
+				log.Printf("Error fetching shared units for deletion: %v", err)
 				return err
 			}
-
-			unitIDsToDelete := make([]*uint, 0)
+			unitIDsToDelete := []*uint{}
 			for _, unit := range existingSharedUnits {
 				unitID := uint(unit.ID)
 				unitIDsToDelete = append(unitIDsToDelete, &unitID)
 			}
-
-			err = ds.documentAccessSvc.DeleteSharedUnits(id, unitIDsToDelete, tx)
-			if err != nil {
-				tx.Rollback()
-				return err
+			if len(unitIDsToDelete) > 0 {
+				err = ds.documentAccessSvc.DeleteSharedUnits(id, unitIDsToDelete, tx)
+				if err != nil {
+					tx.Rollback()
+					log.Printf("Error deleting shared units: %v", err)
+					return err
+				}
 			}
-
 		}
-
 	}
 
 	// Add new shared users and units
