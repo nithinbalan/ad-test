@@ -10,7 +10,7 @@ import (
 
 type ControlAssociatedItemRepositoryInterface interface {
 	GetAllProcesses(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) (*organizationDTOs.ControlAssociatedItemProcessListResponseDTO, error)
-	GetAllComplianceRequirements(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) ([]organizationDTOs.ControlComplianceRequirementListDTO, int64, error)
+	GetAllComplianceRequirements(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) ([]organizationDTOs.ControlComplianceRequirementListDTO, error)
 	GetAllRisks(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) (*organizationDTOs.ControlAssociatedItemRiskListResponseDTO, error)
 	GetAllIncidents(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) (*organizationDTOs.ControlAssociatedItemIncidentListResponseDTO, error)
 	GetAllAssociatedCounts(controlID uint) (*organizationDTOs.ControlAssociatedItemsCountResponseDTO, error)
@@ -121,9 +121,8 @@ func (repo *ControlAssociatedItemRepository) GetAllProcesses(controlID uint, par
 	return response, nil
 }
 
-func (repo *ControlAssociatedItemRepository) GetAllComplianceRequirements(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) ([]organizationDTOs.ControlComplianceRequirementListDTO, int64, error) {
+func (repo *ControlAssociatedItemRepository) GetAllComplianceRequirements(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) ([]organizationDTOs.ControlComplianceRequirementListDTO, error) {
 	var complianceRequirementList []organizationDTOs.ControlComplianceRequirementListDTO
-	var totalCount int64
 
 	query := repo.db.Table("compliance_controls").
 		Select(`
@@ -149,11 +148,6 @@ func (repo *ControlAssociatedItemRepository) GetAllComplianceRequirements(contro
 		`).
 		Where("compliance_controls.control_id = ?", controlID)
 
-	// Calculate total count for pagination
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, 0, err
-	}
-
 	if params.Keyword != "" {
 		query = query.Where(`
 			(compliance_register.title_en LIKE ? OR
@@ -166,6 +160,7 @@ func (repo *ControlAssociatedItemRepository) GetAllComplianceRequirements(contro
 			compliance_clauses.title LIKE ? OR
 			compliance_statuses.title_en LIKE ? OR
 			compliance_statuses.title_ar LIKE ?)`,
+
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%")
@@ -180,15 +175,13 @@ func (repo *ControlAssociatedItemRepository) GetAllComplianceRequirements(contro
 
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	offset := (params.Page - 1) * params.PageSize
-
-	// Execute the query
-	err := query.Offset(offset).Limit(params.PageSize).Find(&complianceRequirementList).Error
+	// Fetch all compliance requirements
+	err := query.Find(&complianceRequirementList).Error
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
 
-	return complianceRequirementList, totalCount, nil
+	return complianceRequirementList, nil
 }
 
 func (repo *ControlAssociatedItemRepository) GetAllRisks(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) (*organizationDTOs.ControlAssociatedItemRiskListResponseDTO, error) {
