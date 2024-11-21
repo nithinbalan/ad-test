@@ -242,7 +242,7 @@ func (taps *ThreatActionPlanService) Create(threatID uint, currentUserID uint, f
 			"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 			"AssignedByLastNameEn":  assignedBy.LastNameEn,
 			"AssignedOn":            time.Now().Format("2006-01-02"),
-			"RedirectURL":           fmt.Sprintf("%s/risk/risk-mitigation?action_plan_id=%d", appURL, id),
+			"RedirectURL":           fmt.Sprintf("%s/asset/threats/%d/action-plans", appURL, id),
 		}
 		emailNotification := &commonDTOs.EmailNotificationDTO{
 			EmailTo:              emailTo,
@@ -252,7 +252,7 @@ func (taps *ThreatActionPlanService) Create(threatID uint, currentUserID uint, f
 		}
 
 		// Send Notification and Email
-		err = taps.notificationSvc.SendNotification(dbNotification, emailNotification, "risk")
+		err = taps.notificationSvc.SendNotification(dbNotification, emailNotification, "threat_action_plan")
 		if err != nil {
 			utility.LogError("Failed to send notifications", map[string]interface{}{
 				"error": err.Error(),
@@ -385,7 +385,7 @@ func (taps *ThreatActionPlanService) Update(threatID uint, id uint, currentUserI
 				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 				"AssignedByLastNameEn":  assignedBy.LastNameEn,
 				"AssignedOn":            time.Now().Format("2006-01-02"),
-				"RedirectURL":           fmt.Sprintf("%s/risk/risk-mitigation?action_plan_id=%d", appURL, id),
+				"RedirectURL":           fmt.Sprintf("%s/asset/threats/%d/action-plans", appURL, id),
 			}
 
 			oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -408,7 +408,7 @@ func (taps *ThreatActionPlanService) Update(threatID uint, id uint, currentUserI
 				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 				"AssignedByLastNameEn":  assignedBy.LastNameEn,
 				"AssignedOn":            time.Now().Format("2006-01-02"),
-				"RedirectURL":           fmt.Sprintf("%s/risk/risk-mitigation?action_plan_id=%d", appURL, id),
+				"RedirectURL":           fmt.Sprintf("%s/asset/threats/%d/action-plans", appURL, id),
 			}
 
 			newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -419,7 +419,7 @@ func (taps *ThreatActionPlanService) Update(threatID uint, id uint, currentUserI
 			}
 
 			err = taps.notificationSvc.SendNotification(
-				newResponsibleUserNotificationDTO, newResponsibleUserEmailNotificationDTO, "risk",
+				newResponsibleUserNotificationDTO, newResponsibleUserEmailNotificationDTO, "threat_action_plan",
 			)
 			if err != nil {
 				utility.LogError("Failed to send new responsible user notifications", map[string]interface{}{
@@ -428,7 +428,7 @@ func (taps *ThreatActionPlanService) Update(threatID uint, id uint, currentUserI
 			}
 
 			err = taps.notificationSvc.SendNotification(
-				oldResponsibleUserNotificationDTO, oldResponsibleUserEmailNotificationDTO, "risk",
+				oldResponsibleUserNotificationDTO, oldResponsibleUserEmailNotificationDTO, "threat_action_plan",
 			)
 			if err != nil {
 				utility.LogError("Failed to send old responsible user notifications", map[string]interface{}{
@@ -561,7 +561,7 @@ func (taps *ThreatActionPlanService) Delete(threatID uint, ids []uint, currentUs
 				}
 
 				err = taps.notificationSvc.SendNotification(
-					dbNotificationDTO, emailNotificationDTO, "risk")
+					dbNotificationDTO, emailNotificationDTO, "threat_action_plan")
 				if err != nil {
 					utility.LogError("Failed to send deletion notifications", map[string]interface{}{
 						"error": err.Error(),
