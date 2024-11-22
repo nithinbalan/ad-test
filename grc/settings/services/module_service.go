@@ -85,6 +85,38 @@ func (ms *ModuleService) EnableModule(id uint) (*models.Module, error) {
 	if err != nil {
 		return nil, err
 	}
+	if module.ModuleID == nil {
+		if len(*module.SubModules) > 0 {
+
+			// enabling all sub modules
+			for _, subModule := range *module.SubModules {
+				existingSubModule, err := ms.GetByID(subModule.ID)
+
+				if err != nil {
+					return nil, err
+				}
+				existingSubModule.IsEnable = true
+				_, err = ms.repo.Update(module.ID, existingSubModule)
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+
+	} else {
+		// enabling main module
+		existingModule, err := ms.GetByID(*module.ModuleID)
+
+		if err != nil {
+			return nil, err
+		}
+		existingModule.IsEnable = true
+		_, err = ms.repo.Update(existingModule.ID, existingModule)
+		if err != nil {
+			return nil, err
+		}
+
+	}
 	return module, nil
 }
 
@@ -101,6 +133,47 @@ func (ms *ModuleService) DisableModule(id uint) (*models.Module, error) {
 	_, err = ms.repo.Update(module.ID, module)
 	if err != nil {
 		return nil, err
+	}
+
+	if module.ModuleID == nil {
+		if len(*module.SubModules) > 0 {
+			// disabling all sub modules
+			for _, subModule := range *module.SubModules {
+				existingSubModule, err := ms.GetByID(subModule.ID)
+
+				if err != nil {
+					return nil, err
+				}
+				existingSubModule.IsEnable = false
+				_, err = ms.repo.Update(module.ID, existingSubModule)
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+	} else {
+		// disabling main module
+		allDisabled := true
+		for _, subModule := range *module.SubModules {
+			if subModule.ID != module.ID && subModule.IsEnable {
+				allDisabled = false
+				break
+			}
+		}
+
+		// Disable parent module if all sub-modules are disabled
+		if allDisabled {
+			existingModule, err := ms.GetByID(*module.ModuleID)
+
+			if err != nil {
+				return nil, err
+			}
+			existingModule.IsEnable = false
+			_, err = ms.repo.Update(existingModule.ID, existingModule)
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
 	return module, nil
 }
