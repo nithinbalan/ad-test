@@ -195,11 +195,18 @@ func (masus *MeetingActionPlanStatusUpdateService) Create(meetingID uint, meetin
 	tx.Commit()
 
 	go func() {
-		err := masus.activityLogSvc.LogActivity(
+		existingMeetingActionPlanStatusUpdate, err := masus.GetByID(meetingID, meetingActionPlanID, id)
+		if err != nil {
+			utility.LogError("Failed to fetch meeting action plan status update", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		err = masus.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.MeetingActionPlanStatusUpdate{}.TableName(),
 			id,
-			meetingActionPlanUpdate,
+			existingMeetingActionPlanStatusUpdate,
 			currentUserID,
 			nil,
 		)
@@ -223,6 +230,11 @@ func (masus *MeetingActionPlanStatusUpdateService) Update(meetingID uint, meetin
 	tx := masus.repo.BeginTransaction()
 
 	if _, err := masus.meetingActionPlanSvc.GetByID(meetingID, meetingActionPlanID); err != nil {
+		return err
+	}
+
+	oldActionPlanStatusUpdate, err := masus.GetByID(meetingID, meetingActionPlanID, id)
+	if err != nil {
 		return err
 	}
 
@@ -332,6 +344,52 @@ func (masus *MeetingActionPlanStatusUpdateService) Update(meetingID uint, meetin
 	}
 
 	tx.Commit()
+	go func() {
+		existingActionPlanStatusUpdate, err := masus.GetByID(meetingID, meetingActionPlanID, id)
+		if err != nil {
+			tx.Rollback()
+			return
+		}
+		//log changes
+		changedData := make(map[string]interface{})
+		oldData := map[string]interface{}{
+			"comment":    oldActionPlanStatusUpdate.Comment,
+			"percentage": oldActionPlanStatusUpdate.Percentage,
+		}
+
+		newData := map[string]interface{}{
+			"comment":    existingActionPlanStatusUpdate.Comment,
+			"percentage": existingActionPlanStatusUpdate.Percentage,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := masus.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.MeetingActionPlanStatusUpdate{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.MeetingActionPlanStatusUpdate{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
+		}
+	}()
 
 	return nil
 }
