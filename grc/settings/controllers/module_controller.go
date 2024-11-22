@@ -27,13 +27,14 @@ func (mc *ModuleController) GetAllModules(c *gin.Context) {
 	sort := c.DefaultQuery("sort_order", "asc")
 	sortBy := c.DefaultQuery("sort_by", "title_en")
 	keyword := c.Query("keyword")
+	quickFilter := c.QueryArray("quick_filter")
 
 	queryParams := dtos.ModuleListQueryParamsDTO{
-		Sort:    sort,
-		SortBy:  sortBy,
-		Keyword: keyword,
+		Sort:        sort,
+		SortBy:      sortBy,
+		Keyword:     keyword,
+		QuickFilter: quickFilter,
 	}
-
 	modules, err := mc.service.GetAll(&queryParams)
 
 	if err != nil {

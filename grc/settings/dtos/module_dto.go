@@ -1,9 +1,10 @@
 package dtos
 
 type ModuleListQueryParamsDTO struct {
-	SortBy  string `json:"sort_by"`
-	Sort    string `json:"sort"`
-	Keyword string `json:"keyword,omitempty"`
+	SortBy      string `json:"sort_by"`
+	Sort        string `json:"sort"`
+	Keyword     string `json:"keyword,omitempty"`
+	QuickFilter []string
 }
 
 type ModuleListDTO struct {

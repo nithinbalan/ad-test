@@ -66,6 +66,16 @@ func (repo *ModuleRepository) GetAll(params *dtos.ModuleListQueryParamsDTO) (*[]
 		query = query.Order("[modules].[order] asc")
 	}
 
+	// Apply quick filters
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "active":
+			query = query.Where("[modules].is_enable = ?", true)
+		case "inactive":
+			query = query.Where("[modules].is_enable = ?", false)
+		}
+	}
+
 	if err := query.Find(&modules).Error; err != nil {
 		return nil, err
 	}
