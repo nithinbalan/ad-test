@@ -205,11 +205,18 @@ func (iprs *IncidentPostReviewService) Create(incidentID uint, currentUserID uin
 	tx.Commit()
 
 	go func() {
-		err := iprs.activityLogSvc.LogActivity(
+		existingIncidentPostReview, err := iprs.GetFullDetailsByID(incidentID)
+		if err != nil {
+			utility.LogError("Failed to fetch incident post review", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		err = iprs.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.IncidentPostReview{}.TableName(),
 			id,
-			incidentPostReviewFormDTO,
+			existingIncidentPostReview,
 			currentUserID,
 			nil,
 		)
@@ -245,6 +252,10 @@ func (iprs *IncidentPostReviewService) Update(incidentID uint, currentUserID uin
 	}
 
 	dates, err := iprs.parseIncidentPostReviewDates(incidentPostReviewFormDTO)
+	if err != nil {
+		return err
+	}
+	oldIncidentPostReview, err := iprs.GetFullDetailsByID(incidentID)
 	if err != nil {
 		return err
 	}
@@ -419,25 +430,117 @@ func (iprs *IncidentPostReviewService) Update(incidentID uint, currentUserID uin
 	tx.Commit()
 
 	go func() {
-		err := iprs.activityLogSvc.LogActivity(
-			models.UpdateAction,
-			models.IncidentPostReview{}.TableName(),
-			existingIncidentPostReview.ID,
-			incidentPostReviewFormDTO,
-			currentUserID,
-			nil,
-		)
-
+		existingPostReview, err := iprs.GetFullDetailsByID(incidentID)
 		if err != nil {
-			fields := map[string]interface{}{
-				"action":    models.UpdateAction,
-				"tableName": models.IncidentPostReview{}.TableName(),
-				"recordID":  existingIncidentPostReview.ID,
-				"userID":    currentUserID,
-				"error":     err.Error(),
-			}
+			return
+		}
 
-			utility.LogError("Failed to log activity", fields)
+		usersAdded := []uint{}
+		usersRemoved := []uint{}
+		for id := range newUserIDs {
+			if !existingUserIDs[id] {
+				usersAdded = append(usersAdded, id)
+			}
+		}
+		for id := range existingUserIDs {
+			if !newUserIDs[id] {
+				usersRemoved = append(usersRemoved, id)
+			}
+		}
+
+		closureLessonsAdded := []string{}
+		closureLessonsRemoved := []string{}
+		for id := range newClosureLessons {
+			if !existingClosureLessons[id] {
+				closureLessonsAdded = append(closureLessonsAdded, id)
+			}
+		}
+		for id := range existingClosureLessons {
+			if !newClosureLessons[id] {
+				closureLessonsRemoved = append(closureLessonsRemoved, id)
+			}
+		}
+
+		recommendationsAdded := []string{}
+		recommendationsRemoved := []string{}
+		for id := range newRecommendations {
+			if !existingRecommendations[id] {
+				recommendationsAdded = append(recommendationsAdded, id)
+			}
+		}
+		for id := range existingRecommendations {
+			if !newRecommendations[id] {
+				recommendationsRemoved = append(recommendationsRemoved, id)
+			}
+		}
+
+		//log changes
+		changedData := make(map[string]interface{})
+		associatedItems := make(map[string]interface{})
+
+		if len(usersAdded) > 0 || len(usersRemoved) > 0 {
+			associatedItems["user_ids"] = map[string]interface{}{
+				"added":   usersAdded,
+				"removed": usersRemoved,
+			}
+		}
+
+		if len(closureLessonsAdded) > 0 || len(closureLessonsRemoved) > 0 {
+			associatedItems["closure_lessons"] = map[string]interface{}{
+				"added":   closureLessonsAdded,
+				"removed": closureLessonsRemoved,
+			}
+		}
+
+		if len(recommendationsAdded) > 0 || len(recommendationsRemoved) > 0 {
+			associatedItems["recommendations"] = map[string]interface{}{
+				"added":   recommendationsAdded,
+				"removed": recommendationsRemoved,
+			}
+		}
+
+		if len(associatedItems) > 0 {
+			changedData["associated_items"] = associatedItems
+		}
+
+		oldData := map[string]interface{}{
+			"post_review_date":            oldIncidentPostReview.PostReviewDateString,
+			"incident_post_effectiveness": oldIncidentPostReview.IncidentPostReviewEffectiveness.TitleEn,
+			"summary":                     oldIncidentPostReview.Summary,
+		}
+
+		newData := map[string]interface{}{
+			"post_review_date":            existingPostReview.PostReviewDateString,
+			"incident_post_effectiveness": existingPostReview.IncidentPostReviewEffectiveness.TitleEn,
+			"summary":                     existingPostReview.Summary,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := iprs.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.IncidentPostReview{}.TableName(),
+				existingIncidentPostReview.ID,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.IncidentPostReview{}.TableName(),
+					"recordID":  existingIncidentPostReview.ID,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
 		}
 	}()
 
@@ -447,7 +550,7 @@ func (iprs *IncidentPostReviewService) Update(incidentID uint, currentUserID uin
 func (iprs *IncidentPostReviewService) Delete(incidentID uint, currentUserID uint) (uint, error) {
 	tx := iprs.repo.BeginTransaction()
 	var failedId uint
-
+	var deletedIncidentPostReview []map[string]interface{}
 	if _, err := iprs.incidentRegisterSvc.GetByID(incidentID); err != nil {
 		return 0, err
 	}
@@ -513,6 +616,10 @@ func (iprs *IncidentPostReviewService) Delete(incidentID uint, currentUserID uin
 		tx.Rollback()
 		return 0, err
 	}
+	deletedIncidentPostReview = append(deletedIncidentPostReview, map[string]interface{}{
+		"id":                   incidentPostReview.ID,
+		"incident_register_id": incidentID,
+	})
 	tx.Commit()
 	// Log successful delete activity
 	go func() {
@@ -520,7 +627,7 @@ func (iprs *IncidentPostReviewService) Delete(incidentID uint, currentUserID uin
 			models.DeleteAction,
 			models.IncidentPostReview{}.TableName(),
 			uint(incidentPostReview.ID),
-			nil,
+			deletedIncidentPostReview,
 			currentUserID,
 			nil,
 		)

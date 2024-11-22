@@ -18,12 +18,12 @@ type DocumentAccessServiceInterface interface {
 
 	CreateSharedUsers(documentID uint, userIDs []uint, createdBy uint) error
 	CreateSharedUnits(documentID uint, unitIDs []uint, createdBy uint) error
-	DeleteSharedUsers(documentID uint, userIDs []*uint, tx ...utility.DatabaseTransaction) error
-	DeleteAllSharedUsers(documentID uint, userIDs []*uint, tx ...utility.DatabaseTransaction) error
-	DeleteSharedUnits(documentID uint, unitIDs []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteSharedUsers(documentID uint, userIDs []uint, tx ...utility.DatabaseTransaction) error
+	DeleteAllSharedUsers(documentID uint, userIDs []uint, tx ...utility.DatabaseTransaction) error
+	DeleteSharedUnits(documentID uint, unitIDs []uint, tx ...utility.DatabaseTransaction) error
 
-	DeleteReviewUsers(documentID uint, userIDs []*uint, tx ...utility.DatabaseTransaction) error
-	DeleteResponsibleUser(documentID uint, userID *uint, tx ...utility.DatabaseTransaction) error
+	DeleteReviewUsers(documentID uint, userIDs []uint, tx ...utility.DatabaseTransaction) error
+	DeleteResponsibleUser(documentID uint, userID uint, tx ...utility.DatabaseTransaction) error
 
 	CreateUsers(sharedUsers []*models.DocumentSharedUser, tx ...utility.DatabaseTransaction) error
 	CreateUnits(sharedUnits []*models.DocumentSharedUnit, tx ...utility.DatabaseTransaction) error
@@ -185,21 +185,21 @@ func (das *DocumentAccessService) CreateSharedUnits(documentID uint, unitIDs []u
 	return das.CreateUnits(newSharedUnits)
 }
 
-func (das *DocumentAccessService) DeleteSharedUsers(documentID uint, userIDs []*uint, tx ...utility.DatabaseTransaction) error {
+func (das *DocumentAccessService) DeleteSharedUsers(documentID uint, userIDs []uint, tx ...utility.DatabaseTransaction) error {
 	if len(userIDs) == 0 {
 		return nil
 	}
 	return das.repo.DeleteSharedUsers(documentID, userIDs, tx...)
 }
 
-func (das *DocumentAccessService) DeleteAllSharedUsers(documentID uint, userIDs []*uint, tx ...utility.DatabaseTransaction) error {
+func (das *DocumentAccessService) DeleteAllSharedUsers(documentID uint, userIDs []uint, tx ...utility.DatabaseTransaction) error {
 	if len(userIDs) == 0 {
 		return nil
 	}
 	return das.repo.DeleteAllUsers(documentID, userIDs, tx...)
 }
 
-func (das *DocumentAccessService) DeleteSharedUnits(documentID uint, unitIDs []*uint, tx ...utility.DatabaseTransaction) error {
+func (das *DocumentAccessService) DeleteSharedUnits(documentID uint, unitIDs []uint, tx ...utility.DatabaseTransaction) error {
 	if len(unitIDs) == 0 {
 		return nil
 	}
@@ -224,13 +224,13 @@ func (das *DocumentAccessService) CreateUnits(sharedUnits []*models.DocumentShar
 	return nil
 }
 
-func (das *DocumentAccessService) DeleteReviewUsers(documentID uint, userIDs []*uint, tx ...utility.DatabaseTransaction) error {
+func (das *DocumentAccessService) DeleteReviewUsers(documentID uint, userIDs []uint, tx ...utility.DatabaseTransaction) error {
 	if len(userIDs) == 0 {
 		return nil
 	}
 	return das.repo.DeleteReviewUsers(documentID, userIDs, tx...)
 }
 
-func (das *DocumentAccessService) DeleteResponsibleUser(documentID uint, userID *uint, tx ...utility.DatabaseTransaction) error {
+func (das *DocumentAccessService) DeleteResponsibleUser(documentID uint, userID uint, tx ...utility.DatabaseTransaction) error {
 	return das.repo.DeleteResponsibleUser(documentID, userID, tx...)
 }

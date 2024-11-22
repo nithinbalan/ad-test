@@ -8,6 +8,7 @@ import (
 	activityLogServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
+	"log"
 
 	"gorm.io/gorm"
 )
@@ -70,11 +71,15 @@ func (iscs *IncidentSubCategoryService) Create(currentUserID uint, incidentSubCa
 	}
 
 	go func() {
-		err := iscs.activityLogSvc.LogActivity(
+		createdSubCategory, err := iscs.repo.GetByID(id)
+		if err != nil {
+			return
+		}
+		err = iscs.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.IncidentSubCategory{}.TableName(),
 			id,
-			incidentSubCategoryFormDTO,
+			createdSubCategory,
 			currentUserID,
 			nil,
 		)
@@ -102,6 +107,11 @@ func (iscs *IncidentSubCategoryService) Update(id uint, currentUserID uint, inci
 		return err
 	}
 
+	incidentSubCategory, err := iscs.GetByID(id)
+	if err != nil {
+		return err
+	}
+
 	if err := iscs.validateIncidentSubCategoryFormDTO(incidentSubCategoryFormDTO, &id); err != nil {
 		return err
 	}
@@ -117,6 +127,32 @@ func (iscs *IncidentSubCategoryService) Update(id uint, currentUserID uint, inci
 		return err
 	}
 
+	fieldsToCompare := []string{"IncidentCategoryID", "TitleEn", "TitleAr", "Status"}
+	changes, err := utility.CompareFields(incidentSubCategory, existingIncidentSubCategory, fieldsToCompare)
+
+	if err != nil {
+		log.Println("error :", err.Error())
+	}
+
+	changedDataJSON, err := utility.ChangesToJSON(changes)
+	if err != nil {
+		log.Println("error :", err.Error())
+	}
+	go func() {
+		err := iscs.activityLogSvc.LogActivity(
+			models.UpdateAction,
+			models.IncidentSubCategory{}.TableName(),
+			id,
+			changedDataJSON,
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			// @todo - save to log file
+			fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+		}
+	}()
+
 	return nil
 
 }
@@ -124,9 +160,10 @@ func (iscs *IncidentSubCategoryService) Update(id uint, currentUserID uint, inci
 func (iscs *IncidentSubCategoryService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedIncidentSubCategory []map[string]interface{}
 	for _, id := range ids {
 
-		_, err := iscs.repo.GetByID(id)
+		subCategory, err := iscs.repo.GetByID(id)
 
 		if err != nil {
 			fmt.Print(err)
@@ -139,6 +176,11 @@ func (iscs *IncidentSubCategoryService) Delete(ids []uint, currentUserID uint) (
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+		deletedIncidentSubCategory = append(deletedIncidentSubCategory, map[string]interface{}{
+			"id":       id,
+			"title_en": subCategory.TitleEn,
+			"title_ar": subCategory.TitleAr,
+		})
 	}
 
 	if len(successfulIds) > 0 {
@@ -148,7 +190,7 @@ func (iscs *IncidentSubCategoryService) Delete(ids []uint, currentUserID uint) (
 				models.DeleteAction, // Make sure this action constant is defined appropriately
 				models.IncidentSubCategory{}.TableName(),
 				successfulIds,
-				nil,
+				deletedIncidentSubCategory,
 				currentUserID,
 				nil,
 			)

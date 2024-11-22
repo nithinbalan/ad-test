@@ -229,11 +229,20 @@ func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uin
 	tx.Commit()
 
 	go func() {
-		err := iaps.activityLogSvc.LogActivity(
+
+		existingIncidentActionPlan, err := iaps.GetFullDetailsByID(incidentID, id)
+		if err != nil {
+			utility.LogError("Failed to fetch incident action plan", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		err = iaps.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.IncidentActionPlan{}.TableName(),
 			id,
-			IncidentActionPlanFormDTO,
+			existingIncidentActionPlan,
 			currentUserID,
 			nil,
 		)
@@ -335,6 +344,12 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 		return err
 	}
 
+	oldIncidentActionPlan, err := iaps.GetFullDetailsByID(incidentID, id)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	oldResponsibleUserID := existingIncidentActionPlan.ResponsibleUserID
 
 	if err := iaps.validateIncidentActionPlanFormDTO(IncidentActionPlanFormDTO); err != nil {
@@ -383,6 +398,63 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 	tx.Commit()
 
 	go func() {
+		existingActionPlan, err := iaps.GetFullDetailsByID(incidentID, id)
+		if err != nil {
+			return
+		}
+		//log changes
+		changedData := make(map[string]interface{})
+		oldData := map[string]interface{}{
+			"title":              oldIncidentActionPlan.Title,
+			"description":        oldIncidentActionPlan.Description,
+			"severity_level":     oldIncidentActionPlan.SeverityLevel.TitleEn,
+			"responsible_user":   fmt.Sprintf("%s %s", oldIncidentActionPlan.ResponsibleUser.FirstNameEN, oldIncidentActionPlan.ResponsibleUser.LastNameEN),
+			"review_user":        fmt.Sprintf("%s %s", oldIncidentActionPlan.ReviewUser.FirstNameEN, oldIncidentActionPlan.ReviewUser.LastNameEN),
+			"target_date":        oldIncidentActionPlan.TargetDateString,
+			"percentage":         oldIncidentActionPlan.Percentage,
+			"comment":            oldIncidentActionPlan.Comments,
+			"action_plan_status": oldIncidentActionPlan.ActionPlanStatus.TitleEn,
+		}
+
+		newData := map[string]interface{}{
+			"title":              existingActionPlan.Title,
+			"description":        existingActionPlan.Description,
+			"severity_level":     existingActionPlan.SeverityLevel.TitleEn,
+			"responsible_user":   fmt.Sprintf("%s %s", existingActionPlan.ResponsibleUser.FirstNameEN, existingActionPlan.ResponsibleUser.LastNameEN),
+			"review_user":        fmt.Sprintf("%s %s", existingActionPlan.ReviewUser.FirstNameEN, existingActionPlan.ReviewUser.LastNameEN),
+			"target_date":        existingActionPlan.TargetDateString,
+			"percentage":         existingActionPlan.Percentage,
+			"comment":            existingActionPlan.Comments,
+			"action_plan_status": existingActionPlan.ActionPlanStatus.TitleEn,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := iaps.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.IncidentActionPlan{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.IncidentActionPlan{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
+		}
 		// sends notification if responsible user has changed
 		if oldResponsibleUserID != existingIncidentActionPlan.ResponsibleUserID {
 			urlParam := fmt.Sprintf(`{"incident_register_id":%d, "action_plan_id":%d}`, incidentID, id)
@@ -526,6 +598,7 @@ func (iaps *IncidentActionPlanService) Delete(incidentID uint, ids []uint, curre
 
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedIncidentActionPlan []map[string]interface{}
 	var notifications []struct {
 		OwnerID         *uint
 		TitleEn         string
@@ -540,6 +613,11 @@ func (iaps *IncidentActionPlanService) Delete(incidentID uint, ids []uint, curre
 		if err != nil {
 			continue
 		}
+
+		deletedIncidentActionPlan = append(deletedIncidentActionPlan, map[string]interface{}{
+			"id":    id,
+			"title": incidentActionPlan.Title,
+		})
 
 		// Prepare notification data before deletion
 		notifications = append(notifications, struct {
@@ -622,7 +700,7 @@ func (iaps *IncidentActionPlanService) Delete(incidentID uint, ids []uint, curre
 				models.DeleteAction,
 				models.IncidentRegister{}.TableName(),
 				successfulIds,
-				nil,
+				deletedIncidentActionPlan,
 				currentUserID,
 				nil,
 			)

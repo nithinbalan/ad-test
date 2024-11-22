@@ -91,6 +91,7 @@ func (repo *AuditInsightsAuditPlanRepository) GetAll(params *auditDTOs.AuditPlan
         	LEFT JOIN users AS updated_user ON updated_user.id = audit_plans.updated_by_id
 		`).
 		Where(`auditable_items.responsible_unit_id = ? AND audit_plans.id IS NOT NULL`, currentUserResponsibleUnitID).
+		Where(`audit_statuses.type = ?`, "published").
 		Group(`
 			audit_plans.id,
 			audit_plans.reference_number,

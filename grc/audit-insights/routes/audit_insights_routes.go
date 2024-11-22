@@ -23,6 +23,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditDraftFindingController := app.AuditInsightsModule.AuditInsightsDraftFindingController
 	auditInsightsDraftFindingConversationController := app.AuditInsightsModule.AuditInsightsDraftFindingConversationController
 	auditInsightsDraftFindingActionPlanController := app.AuditInsightsModule.AuditInsightsDraftFindingActionPlanController
+	auditInsightsAuditFindingController := app.AuditInsightsModule.AuditInsightsAuditFindingController
 
 	// Audit Insights Audit plans
 	auditInsightsRoutes.GET("/audit-insights/audit-plans", middlewares.RolePermissionMiddleware(db, "audit_insight_plans", "view"), auditInsightsAuditPlanController.GetAllAuditInsightsAuditPlans)
@@ -62,5 +63,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditInsightsRoutes.POST("/audit-insights/audit-draft-findings/:findingId/action-plans", middlewares.RolePermissionMiddleware(db, "draft_reports", "modify"), auditInsightsDraftFindingActionPlanController.CreateAuditInsightsDraftFindingActionPlan)
 	auditInsightsRoutes.PUT("/audit-insights/audit-draft-findings/:findingId/action-plans/:id", middlewares.RolePermissionMiddleware(db, "draft_reports", "modify"), auditInsightsDraftFindingActionPlanController.UpdateAuditInsightsDraftFindingActionPlan)
 	auditInsightsRoutes.POST("/audit-insights/audit-draft-findings/:findingId/action-plans/delete", middlewares.RolePermissionMiddleware(db, "draft_reports", "modify"), auditInsightsDraftFindingActionPlanController.DeleteAuditInsightsDraftFindingActionPlans)
+
+	//Audit Insights  Findings
+	auditInsightsRoutes.GET("/audit-insights/audit-findings", middlewares.RolePermissionMiddleware(db, "audit_insight_audits", "view"), auditInsightsAuditFindingController.GetAllAuditInsightsAuditFindings)
+	auditInsightsRoutes.GET("/audit-insights/audit-findings/:findingId", middlewares.RolePermissionMiddleware(db, "audit_insight_audits", "view"), auditInsightsAuditFindingController.GetAuditInsightsAuditFindingDetails)
 
 }
