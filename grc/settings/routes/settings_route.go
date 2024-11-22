@@ -12,7 +12,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	settingRoutes := router.Group("/")
 
 	settingRoutes.Use(middlewares.AuthMiddleware())
-
+	unauthenticatedRoutes := router.Group("/")
 	db := app.DB
 
 	organizationLevelController := app.SettingsModule.OrganizationLevelController
@@ -27,7 +27,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	emailTemplateSettingsController := app.SettingsModule.EmailTemplateSettingsController
 	integrationController := app.SettingsModule.IntegrationController
 	auditTemplateSettingController := app.SettingsModule.AuditTemplateSettingController
-
 
 	//Organization Level
 	settingRoutes.GET("/organization-levels", organizationLevelController.GetAllOrganizationLevels)
@@ -89,6 +88,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	settingRoutes.GET("/audit-template-settings", auditTemplateSettingController.GetAllAuditTemplateSettings)
 	settingRoutes.PUT("/audit-template-settings/:id", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), auditTemplateSettingController.UpdateAuditTemplateSetting)
-	
+	unauthenticatedRoutes.GET("/audit-template-settings/:id/image-preview", auditTemplateSettingController.GetAuditTemplateSettingPreview)
 
 }

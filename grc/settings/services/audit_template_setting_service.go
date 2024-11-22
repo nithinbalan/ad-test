@@ -2,11 +2,14 @@ package services
 
 import (
 	"errors"
+	"fmt"
+	"jethur/config"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
 	settingsDTOs "jethur/grc/settings/dtos"
 	"jethur/grc/settings/repositories"
 	"jethur/utility"
+	"os"
 	"path/filepath"
 	"time"
 
@@ -17,6 +20,7 @@ type AuditTemplateSettingServiceInterface interface {
 	GetAll(params *settingsDTOs.AuditTemplateSettingListQueryParamsDTO) ([]*settingsDTOs.AuditTemplateSettingListDTO, error)
 	GetByID(id uint) (*models.AuditTemplateSetting, error)
 	Update(id uint, currentUserID uint, updatedTemplateSettingDTO *settingsDTOs.AuditTemplateSettingFormDTO) error
+	GetImagePath(id uint, templateType string) (string, error)
 }
 
 // Service and implementations
@@ -139,4 +143,47 @@ func (atss *AuditTemplateSettingService) Update(id uint, currentUserID uint, upd
 	}()
 
 	return nil
+}
+
+func (atss *AuditTemplateSettingService) GetImagePath(id uint, templateType string) (string, error) {
+	// Retrieve the AuditTemplateSetting by ID
+	auditTemplateSetting, err := atss.repo.GetByID(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return "", utility.NewResourceNotFoundError(err, id)
+		}
+		return "", err
+	}
+
+	// Map templateType to the corresponding storage path
+	var storagePath *string
+	switch templateType {
+	case "logo":
+		storagePath = auditTemplateSetting.LogoImagePath
+	case "commencement_letter":
+		storagePath = auditTemplateSetting.CommencementLetterHeaderBGImagePath
+	case "draft_report":
+		storagePath = auditTemplateSetting.DraftReportCoverPageBGImagePath
+	case "final_report":
+		storagePath = auditTemplateSetting.FinalReportCoverPageBGImagePath
+	default:
+		return "", fmt.Errorf("invalid template type: %s", templateType)
+	}
+	// Check if the storagePath pointer is nil
+	if storagePath == nil || *storagePath == "" {
+		return "", fmt.Errorf("no path set for template type: %s", templateType)
+	}
+	// Build the full file path
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	fullPath := filepath.Join(baseStoragePath, *storagePath)
+
+	// Check if the file exists
+	if _, err := os.Stat(fullPath); err != nil {
+		if os.IsNotExist(err) {
+			return "", fmt.Errorf("file not found")
+		}
+		return "", fmt.Errorf("error accessing file: %w", err)
+	}
+
+	return fullPath, nil
 }

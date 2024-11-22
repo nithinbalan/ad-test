@@ -115,11 +115,18 @@ func (mms *MeetingMinuteService) Create(meetingID uint, currentUserID uint, meet
 	}
 
 	go func() {
-		err := mms.activityLogSvc.LogActivity(
+		existingMeetingMinute, err := mms.GetFullDetailsByID(meetingID, id)
+		if err != nil {
+			utility.LogError("Failed to fetch meeting minute", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		err = mms.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.MeetingMinute{}.TableName(),
 			id,
-			meetingMinuteFormDTO,
+			existingMeetingMinute,
 			currentUserID,
 			nil,
 		)
@@ -149,6 +156,10 @@ func (mms *MeetingMinuteService) Update(meetingID uint, id uint, currentUserID u
 	if err := mms.validateMeetingMinuteFormDTO(meetingMinuteFormDTO); err != nil {
 		return err
 	}
+	oldMeetingMinute, err := mms.GetByID(id)
+	if err != nil {
+		return err
+	}
 	existingMeetingMinute, err := mms.GetByID(id)
 	if err != nil {
 		return err
@@ -164,25 +175,50 @@ func (mms *MeetingMinuteService) Update(meetingID uint, id uint, currentUserID u
 	tx.Commit()
 
 	go func() {
-		err := mms.activityLogSvc.LogActivity(
-			models.UpdateAction,
-			models.MeetingMinute{}.TableName(),
-			id,
-			meetingMinuteFormDTO,
-			currentUserID,
-			nil,
-		)
-
+		existingMinute, err := mms.GetFullDetailsByID(meetingID, id)
 		if err != nil {
-			fields := map[string]interface{}{
-				"action":    models.UpdateAction,
-				"tableName": models.MeetingMinute{}.TableName(),
-				"recordID":  id,
-				"userID":    currentUserID,
-				"error":     err.Error(),
-			}
+			return
+		}
+		//log changes
+		changedData := make(map[string]interface{})
+		oldData := map[string]interface{}{
+			"meeting_agenda": utility.GetFieldValue(oldMeetingMinute.MeetingAgenda).(string),
+			"minutes":        oldMeetingMinute.Minutes,
+		}
 
-			utility.LogError("Failed to log activity", fields)
+		newData := map[string]interface{}{
+			"meeting_agenda": utility.GetFieldValue(existingMinute.MeetingAgenda).(string),
+			"minutes":        existingMinute.Minutes,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+
+			err := mms.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.MeetingMinute{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.MeetingMinute{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
 		}
 	}()
 
@@ -195,6 +231,7 @@ func (mms *MeetingMinuteService) Delete(meetingID uint, ids []uint, currentUserI
 	}
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedMeetingMinute []map[string]interface{}
 
 	for _, id := range ids {
 		// Fetch meeting details including participants
@@ -211,6 +248,10 @@ func (mms *MeetingMinuteService) Delete(meetingID uint, ids []uint, currentUserI
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+		deletedMeetingMinute = append(deletedMeetingMinute, map[string]interface{}{
+			"id":         id,
+			"meeting_id": meetingID,
+		})
 	}
 
 	if len(failedIds) > 0 {
@@ -223,7 +264,7 @@ func (mms *MeetingMinuteService) Delete(meetingID uint, ids []uint, currentUserI
 				models.DeleteAction,
 				models.MeetingMinute{}.TableName(),
 				successfulIds,
-				nil,
+				deletedMeetingMinute,
 				currentUserID,
 				nil,
 			)

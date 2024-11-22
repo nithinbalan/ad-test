@@ -98,11 +98,18 @@ func (mas *MeetingAgendaService) Create(meetingID uint, currentUserID uint, meet
 	}
 
 	go func() {
-		err := mas.activityLogSvc.LogActivity(
+		existingMeetingAgenda, err := mas.GetFullDetailsByID(meetingID, id)
+		if err != nil {
+			utility.LogError("Failed to fetch meeting minute", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		err = mas.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.MeetingAgenda{}.TableName(),
 			id,
-			meetingAgendaFormDTO,
+			existingMeetingAgenda,
 			currentUserID,
 			nil,
 		)
@@ -128,6 +135,11 @@ func (mas *MeetingAgendaService) Update(meetingID uint, id uint, currentUserID u
 		return err
 	}
 
+	oldMeetingAgenda, err := mas.GetFullDetailsByID(meetingID, id)
+	if err != nil {
+		return err
+	}
+
 	existingMeetingAgenda, err := mas.GetByID(id)
 	if err != nil {
 		return err
@@ -142,25 +154,48 @@ func (mas *MeetingAgendaService) Update(meetingID uint, id uint, currentUserID u
 	}
 
 	go func() {
-		err := mas.activityLogSvc.LogActivity(
-			models.UpdateAction,
-			models.MeetingAgenda{}.TableName(),
-			id,
-			meetingAgendaFormDTO,
-			currentUserID,
-			nil,
-		)
-
+		existingAgenda, err := mas.GetFullDetailsByID(meetingID, id)
 		if err != nil {
-			fields := map[string]interface{}{
-				"action":    models.UpdateAction,
-				"tableName": models.MeetingAgenda{}.TableName(),
-				"recordID":  id,
-				"userID":    currentUserID,
-				"error":     err.Error(),
-			}
+			return
+		}
+		//log changes
+		changedData := make(map[string]interface{})
+		oldData := map[string]interface{}{
+			"title": oldMeetingAgenda.Title,
+		}
 
-			utility.LogError("Failed to log activity", fields)
+		newData := map[string]interface{}{
+			"title": existingAgenda.Title,
+		}
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+
+			err := mas.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.MeetingAgenda{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.MeetingAgenda{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+
+				utility.LogError("Failed to log activity", fields)
+			}
 		}
 	}()
 
@@ -173,10 +208,11 @@ func (mas *MeetingAgendaService) Delete(meetingID uint, ids []uint, currentUserI
 	}
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedMeetingAgenda []map[string]interface{}
 
 	for _, id := range ids {
 		// Fetch meeting details including participants
-		_, err := mas.repo.GetFullDetailsByID(id)
+		meetingAgenda, err := mas.repo.GetFullDetailsByID(id)
 		if err != nil {
 			failedIds = append(failedIds, id)
 			continue
@@ -189,6 +225,11 @@ func (mas *MeetingAgendaService) Delete(meetingID uint, ids []uint, currentUserI
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+		deletedMeetingAgenda = append(deletedMeetingAgenda, map[string]interface{}{
+			"id":         id,
+			"title":      meetingAgenda.Title,
+			"meeting_id": meetingID,
+		})
 	}
 
 	if len(failedIds) > 0 {
@@ -201,7 +242,7 @@ func (mas *MeetingAgendaService) Delete(meetingID uint, ids []uint, currentUserI
 				models.DeleteAction,
 				models.MeetingAgenda{}.TableName(),
 				successfulIds,
-				nil,
+				deletedMeetingAgenda,
 				currentUserID,
 				nil,
 			)

@@ -46,9 +46,9 @@ type AuditTemplateSettingDetailDTO struct {
 
 type AuditTemplateSettingFormDTO struct {
 	Logo                *AuditTemplateSettingDocumentFormDTO `json:"logo,omitempty"`
-	CommencementLetter  *AuditTemplateSettingDocumentFormDTO `json:"commencement-letter,omitempty"`
-	DraftReport         *AuditTemplateSettingDocumentFormDTO `json:"draft-report,omitempty"`
-	FinalReport         *AuditTemplateSettingDocumentFormDTO `json:"final-report,omitempty"`
+	CommencementLetter  *AuditTemplateSettingDocumentFormDTO `json:"commencement_letter,omitempty"`
+	DraftReport         *AuditTemplateSettingDocumentFormDTO `json:"draft_report,omitempty"`
+	FinalReport         *AuditTemplateSettingDocumentFormDTO `json:"final_report,omitempty"`
 }
 
 type AuditTemplateSettingDocumentFormDTO struct {

@@ -91,3 +91,28 @@ func (atsc *AuditTemplateSettingController) UpdateAuditTemplateSetting(c *gin.Co
 
 	c.JSON(http.StatusOK, nil)
 }
+
+func (atsc *AuditTemplateSettingController) GetAuditTemplateSettingPreview(c *gin.Context) {
+	auditTemplateSettingID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	templateType := c.Query("type")
+	if templateType == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	auditTemplateSettingImagePath, err := atsc.service.GetImagePath(uint(auditTemplateSettingID), templateType)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(atsc.db, c, err.Error())
+		}
+		return
+	}
+	c.File(auditTemplateSettingImagePath)
+}
