@@ -3,6 +3,7 @@ package controllers
 import (
 	"jethur/grc/settings/dtos"
 	"jethur/grc/settings/services"
+	"strconv"
 
 	"jethur/utility"
 	"net/http"
@@ -40,4 +41,48 @@ func (mc *ModuleController) GetAllModules(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, modules)
+}
+
+func (mc *ModuleController) EnableModule(c *gin.Context) {
+	moduleId, err := strconv.Atoi(c.Param("moduleId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	_, err = mc.service.EnableModule(uint(moduleId))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(mc.db, c, e.Error())
+			return
+		}
+	}
+}
+
+func (mc *ModuleController) DisableModule(c *gin.Context) {
+	moduleId, err := strconv.Atoi(c.Param("moduleId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	_, err = mc.service.DisableModule(uint(moduleId))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(mc.db, c, e.Error())
+			return
+		}
+	}
 }
