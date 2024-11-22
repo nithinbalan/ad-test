@@ -340,11 +340,6 @@ func (us *UserService) Update(id uint, currentUserID uint, userFormDTO *userDTOs
 		initial = generateInitial(userFormDTO.FirstNameEn, userFormDTO.LastNameEn)
 	}
 
-	existingUser.OrganizationUnit1ID = userFormDTO.OrganizationUnit1ID
-	existingUser.OrganizationUnit2ID = userFormDTO.OrganizationUnit2ID
-	existingUser.OrganizationUnit3ID = userFormDTO.OrganizationUnit3ID
-	existingUser.OrganizationUnit4ID = userFormDTO.OrganizationUnit4ID
-	existingUser.OrganizationUnit5ID = userFormDTO.OrganizationUnit5ID
 	existingUser.DesignationID = userFormDTO.DesignationID
 	existingUser.FirstNameEn = userFormDTO.FirstNameEn
 	existingUser.LastNameEn = userFormDTO.LastNameEn
