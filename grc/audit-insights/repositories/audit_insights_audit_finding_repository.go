@@ -25,8 +25,8 @@ func (repo *AuditInsightsAuditFindingRepository) GetAll(params *auditDTOs.AuditF
 	var auditFindings []*auditDTOs.AuditFindingListDTO
 	var totalCount int64
 
-    query := repo.db.Table("audit_findings").
-	Select(`
+	query := repo.db.Table("audit_findings").
+		Select(`
 		audit_findings.id,
 		audit_findings.audit_id,
 		audit_findings.title,
@@ -72,7 +72,7 @@ func (repo *AuditInsightsAuditFindingRepository) GetAll(params *auditDTOs.AuditF
 		updated_user.email AS updated_user_email,
 		updated_user.profile_image_path AS updated_user_profile_image_path
 	`).
-	Joins(`
+		Joins(`
 		LEFT JOIN audits ON audits.id = audit_findings.audit_id
 		LEFT JOIN audit_plans ON audit_plans.id = audits.audit_plan_id
 		LEFT JOIN auditable_items ON auditable_items.id = audit_findings.auditable_item_id
@@ -82,8 +82,8 @@ func (repo *AuditInsightsAuditFindingRepository) GetAll(params *auditDTOs.AuditF
 		LEFT JOIN users AS created_user ON created_user.id = audit_findings.created_by_id
 		LEFT JOIN users AS updated_user ON updated_user.id = audit_findings.updated_by_id
 	`).
-	Where(`auditable_items.responsible_unit_id = ?`, currentUserResponsibleUnitID).
-	Group(`
+		Where(`auditable_items.responsible_unit_id = ?`, currentUserResponsibleUnitID).
+		Group(`
 		audit_findings.id,
 		audit_findings.audit_id,
         audit_findings.title,
@@ -137,6 +137,27 @@ func (repo *AuditInsightsAuditFindingRepository) GetAll(params *auditDTOs.AuditF
 		}
 	}
 
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "new":
+			query = query.Where("audit_finding_statuses.type = ?", "new")
+		case "in_progress":
+			query = query.Where("audit_finding_statuses.type = ?", "in-progress")
+		case "resolved":
+			query = query.Where("audit_finding_statuses.type = ?", "resolved")
+		case "reopened":
+			query = query.Where("audit_finding_statuses.type = ?", "reopened")
+		case "closed":
+			query = query.Where("audit_finding_statuses.type = ?", "closed")
+		case "deferred":
+			query = query.Where("audit_finding_statuses.type = ?", "deferred")
+		case "is_closed":
+			query = query.Where("audit_finding_statuses.flag = ?", 1) // Example flag-based filter
+		default:
+			// Optional: Add a default filter or ignore unknown filters
+		}
+	}
+
 	// Calculate total count for pagination
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
@@ -147,12 +168,15 @@ func (repo *AuditInsightsAuditFindingRepository) GetAll(params *auditDTOs.AuditF
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
 			(auditable_items.title_en LIKE ? OR
+			audit_findings.title LIKE ? OR
+			audit_findings.reference_number LIKE ? OR
 			audit_finding_categories.title_en LIKE ? OR
 			severity_levels.title_en LIKE ? OR
 			audit_finding_statuses.title_en LIKE ? OR
+			audit_finding_statuses.title_ar LIKE ? OR
 			created_user.first_name_en LIKE ? OR
 			updated_user.first_name_en LIKE ?)`,
-			keyword, keyword, keyword, keyword, keyword, keyword)
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
 	// Sort by the specified column and order

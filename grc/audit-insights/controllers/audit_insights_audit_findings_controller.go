@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	"jethur/grc/audit-insights/services"
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/utility"
@@ -24,7 +25,7 @@ func NewAuditInsightsAuditFindingController(service services.AuditInsightsAuditF
 
 func (aiafc *AuditInsightsAuditFindingController) GetAllAuditInsightsAuditFindings(c *gin.Context) {
 	sort := c.Query("sort_order")
-	sortBy := c.Query("sort_by")
+	sortBy := c.DefaultQuery("sort_by", "title")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
@@ -39,7 +40,7 @@ func (aiafc *AuditInsightsAuditFindingController) GetAllAuditInsightsAuditFindin
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
-
+	
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
 		utility.SendInternalErrResp(aiafc.db, c, "Invalid page parameter")
@@ -52,9 +53,20 @@ func (aiafc *AuditInsightsAuditFindingController) GetAllAuditInsightsAuditFindin
 		return
 	}
 
+	validSortFields := map[string]string{
+		"reference_number": "audit_findings.reference_number",
+		"title":            "audit_findings.title",
+	}
+
+	sortField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
 	queryParams := auditDTOs.AuditFindingListQueryParamsDTO{
 		Sort:        sort,
-		SortBy:      sortBy,
+		SortBy:      sortField,
 		Keyword:     keyword,
 		Status:      status,
 		Page:        page,
