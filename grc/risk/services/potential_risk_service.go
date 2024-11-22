@@ -88,6 +88,9 @@ func (prs PotentialRiskService) GetFullDetailsByID(id uint) (*riskDTOs.Potential
 		return nil, err
 	}
 
+	potentialRiskDTO.CreatedAt = potentialRisk.CreatedAt
+	potentialRiskDTO.UpdatedAt = potentialRisk.UpdatedAt
+
 	//todo :- also add extra fields which required in details screen
 
 	return &potentialRiskDTO, nil
