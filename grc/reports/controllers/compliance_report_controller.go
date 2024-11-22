@@ -17,14 +17,17 @@ import (
 type ComplianceReportController struct {
 	service               services.ComplianceReportServiceInterface
 	complianceRegisterSvc complianceServices.ComplianceRegisterServiceInterface
+	slaRegisterSvc        complianceServices.SLARegisterServiceInterface
 	db                    *gorm.DB
 }
 
 func NewComplianceReportController(service services.ComplianceReportServiceInterface,
-	complianceRegisterSvc complianceServices.ComplianceRegisterServiceInterface) *ComplianceReportController {
+	complianceRegisterSvc complianceServices.ComplianceRegisterServiceInterface,
+	slaRegisterSvc complianceServices.SLARegisterServiceInterface) *ComplianceReportController {
 	return &ComplianceReportController{
 		service:               service,
 		complianceRegisterSvc: complianceRegisterSvc,
+		slaRegisterSvc:        slaRegisterSvc,
 	}
 }
 
@@ -390,6 +393,136 @@ func (crc *ComplianceReportController) GetComplianceActionPlanByResponsibleUser(
 	}
 	c.JSON(http.StatusOK, results)
 }
+
+func (crc *ComplianceReportController) GetAllSLARegisters(c *gin.Context) {
+	sort := c.DefaultQuery("sort_order", "asc")
+	sortBy := c.DefaultQuery("sort_by", "title_en")
+	status := c.Query("status")
+	keyword := c.Query("keyword")
+	quickFilter := c.QueryArray("quick_filter")
+
+	// Convert the export parameter to a boolean
+	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, "Invalid export parameter")
+		return
+	}
+	// Define an array of allowed parameter names
+	allowedParams := []string{
+		"sla_category_ids",
+		"severity_level_ids",
+		"responsible_unit_ids",
+		"lifecycle_status_ids",
+		"compliance_status_ids",
+	}
+
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+
+	// Parse  issue_date_from, issue_date_to, expiry_date_from, expiry_date_to parameters
+	issueDateFrom := c.Query("issue_date_from")
+	issueDateTo := c.Query("issue_date_to")
+	expiryDateFrom := c.Query("expiry_date_from")
+	expiryDateTo := c.Query("expiry_date_to")
+
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, "Invalid page_size parameter")
+		return
+	}
+	validSortFields := map[string]string{
+		"reference_number":     "sla_register.reference_number",
+		"title_en":             "sla_register.title_en",
+		"title_ar":             "sla_register.title_ar",
+		"description":          "sla_register.description",
+		"client":               "sla_register.client",
+		"sa1":                  "sla_documents.sa1_date",
+		"sa2":                  "sla_documents.sa2_date",
+		"sla_category_en":      "sla_categories.title_en",
+		"sla_category_ar":      "sla_categories.title_ar",
+		"severity_level_en":    "severity_levels.title_en",
+		"severity_level_ar":    "severity_levels.title_ar",
+		"responsible_unit_en":  "organization_units.title_en",
+		"responsible_unit_ar":  "organization_units.title_ar",
+		"responsible_user_en":  "responsible_user.first_name_en",
+		"responsible_user_ar":  "responsible_user.first_name_ar",
+		"status_en":            "lifecycle_statuses.title_en",
+		"status_ar":            "lifecycle_statuses.title_ar",
+		"compliance_status_en": "compliance_statuses.title_en",
+		"compliance_status_ar": "compliance_statuses.title_ar",
+	}
+
+	sortField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+	queryParams := complianceDTOs.SLARegisterListQueryParamsDTO{
+		Sort:           sort,
+		SortBy:         sortField,
+		Keyword:        keyword,
+		Status:         status,
+		Page:           page,
+		PageSize:       pageSize,
+		Filters:        filters,
+		QuickFilter:    quickFilter,
+		IssueDateFrom:  issueDateFrom,
+		IssueDateTo:    issueDateTo,
+		ExpiryDateFrom: expiryDateFrom,
+		ExpiryDateTo:   expiryDateTo,
+		DateFrom:       dateFrom,
+		DateTo:         dateTo,
+		Export:         export,
+	}
+	slaRegisters, err := crc.slaRegisterSvc.GetAll(&queryParams)
+
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, err.Error())
+		return
+	}
+	// If export is true, generate and return the Excel file
+	if export {
+
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(crc.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := crc.slaRegisterSvc.ExportSLARegisters(slaRegisters.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(crc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="SLARegister.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
+		return
+	}
+
+	c.JSON(http.StatusOK, slaRegisters)
+
+}
+
+func (crc *ComplianceReportController) GetSLARegisterExport(c *gin.Context) {
+	c.Request.URL.RawQuery += "&export=true"
+
+	crc.GetAllSLARegisters(c)
+}
+
 func (crc *ComplianceReportController) GetSLAByCategory(c *gin.Context) {
 	dateFrom := c.Query("date_from")
 	dateTo := c.Query("date_to")

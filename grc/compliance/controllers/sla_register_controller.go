@@ -32,6 +32,9 @@ func (src *SLARegisterController) GetAllSLARegisters(c *gin.Context) {
 	keyword := c.Query("keyword")
 	quickFilter := c.QueryArray("quick_filter")
 
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
 	// Convert the export parameter to a boolean
 	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
 	if err != nil {
@@ -107,6 +110,8 @@ func (src *SLARegisterController) GetAllSLARegisters(c *gin.Context) {
 		IssueDateTo:    issueDateTo,
 		ExpiryDateFrom: expiryDateFrom,
 		ExpiryDateTo:   expiryDateTo,
+		DateFrom:       dateFrom,
+		DateTo:         dateTo,
 		Export:         export,
 	}
 	slaRegisters, err := src.service.GetAll(&queryParams)

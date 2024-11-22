@@ -32,6 +32,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	reportsRoutes.GET("/reports/compliance-action-plan-by-status", complianceReportController.GetComplianceActionPlanByStatus)
 	reportsRoutes.GET("/reports/compliance-action-plan-by-responsible-user", complianceReportController.GetComplianceActionPlanByResponsibleUser)
 
+	reportsRoutes.GET("/reports/slas", complianceReportController.GetAllSLARegisters)
+	reportsRoutes.GET("/reports/slas/export", complianceReportController.GetSLARegisterExport)
 	reportsRoutes.GET("/reports/sla-by-category", complianceReportController.GetSLAByCategory)
 	reportsRoutes.GET("/reports/sla-by-severity-level", complianceReportController.GetSLABySeverityLevel)
 	reportsRoutes.GET("/reports/sla-by-compliance-status", complianceReportController.GetSLAByComplianceStatus)
