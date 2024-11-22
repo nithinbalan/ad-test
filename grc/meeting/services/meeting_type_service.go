@@ -137,9 +137,10 @@ func (its *MeetingTypeService) Update(id uint, currentUserID uint, updatedType *
 func (its *MeetingTypeService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedMeetingType []map[string]interface{}
 	for _, id := range ids {
 
-		_, err := its.repo.GetByID(id)
+		meetingType, err := its.repo.GetByID(id)
 
 		if err != nil {
 			fmt.Print(err)
@@ -152,6 +153,11 @@ func (its *MeetingTypeService) Delete(ids []uint, currentUserID uint) ([]uint, e
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+		deletedMeetingType = append(deletedMeetingType, map[string]interface{}{
+			"id":       id,
+			"title_en": meetingType.TitleEn,
+			"title_ar": meetingType.TitleAr,
+		})
 	}
 
 	if len(successfulIds) > 0 {
@@ -161,7 +167,7 @@ func (its *MeetingTypeService) Delete(ids []uint, currentUserID uint) ([]uint, e
 				models.DeleteAction, // Make sure this action constant is defined appropriately
 				models.MeetingType{}.TableName(),
 				successfulIds,
-				nil,
+				deletedMeetingType,
 				currentUserID,
 				nil,
 			)
