@@ -52,6 +52,9 @@ func (capc *ComplianceActionPlanController) GetAllComplianceActionPlans(c *gin.C
 	targetDateFrom := c.Query("target_date_from")
 	targetDateTo := c.Query("target_date_to")
 
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
 		utility.SendInternalErrResp(capc.db, c, "Invalid page parameter")
@@ -75,6 +78,8 @@ func (capc *ComplianceActionPlanController) GetAllComplianceActionPlans(c *gin.C
 		QuickFilter:    quickFilter,
 		TargetDateFrom: targetDateFrom,
 		TargetDateTo:   targetDateTo,
+		DateFrom:       dateFrom,
+		DateTo:         dateTo,
 	}
 	complianceActionPlans, err := capc.service.GetAll(uint(complianceID), &queryParams)
 

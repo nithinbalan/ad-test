@@ -19,18 +19,21 @@ type ComplianceReportController struct {
 	complianceRegisterSvc    complianceServices.ComplianceRegisterServiceInterface
 	slaRegisterSvc           complianceServices.SLARegisterServiceInterface
 	complianceRequirementSvc complianceServices.ComplianceRequirementServiceInterface
+	complianceActionPlanSvc  complianceServices.ComplianceActionPlanServiceInterface
 	db                       *gorm.DB
 }
 
 func NewComplianceReportController(service services.ComplianceReportServiceInterface,
 	complianceRegisterSvc complianceServices.ComplianceRegisterServiceInterface,
 	slaRegisterSvc complianceServices.SLARegisterServiceInterface,
-	complianceRequirementSvc complianceServices.ComplianceRequirementServiceInterface) *ComplianceReportController {
+	complianceRequirementSvc complianceServices.ComplianceRequirementServiceInterface,
+	complianceActionPlanSvc complianceServices.ComplianceActionPlanServiceInterface) *ComplianceReportController {
 	return &ComplianceReportController{
 		service:                  service,
 		complianceRegisterSvc:    complianceRegisterSvc,
 		slaRegisterSvc:           slaRegisterSvc,
 		complianceRequirementSvc: complianceRequirementSvc,
+		complianceActionPlanSvc:  complianceActionPlanSvc,
 	}
 }
 
@@ -418,6 +421,87 @@ func (crc *ComplianceReportController) GetComplianceRequirementByResponsibleUser
 		}
 	}
 	c.JSON(http.StatusOK, results)
+}
+
+func (crc *ComplianceReportController) GetAllComplianceActionPlans(c *gin.Context) {
+	complianceIDStr := c.Param("complianceId")
+
+	var complianceID uint64
+	var err error
+
+	// Check if complianceID is provided in the URL
+	if complianceIDStr != "" {
+		complianceID, err = strconv.ParseUint(complianceIDStr, 10, 64)
+		if err != nil {
+			utility.SendNotFoundErrResp(c)
+			return
+		}
+	} else {
+		complianceID = 0
+	}
+
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+	status := c.Query("status")
+	quickFilter := c.QueryArray("quick_filter")
+
+	// Define an array of allowed parameter names
+	allowedParams := []string{
+		"compliance_requirement_ids",
+		"severity_level_ids",
+		"responsible_user_ids",
+		"action_plan_status_ids",
+	}
+
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+
+	// Parse target_date_from, target_date_to
+	targetDateFrom := c.Query("target_date_from")
+	targetDateTo := c.Query("target_date_to")
+
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	queryParams := complianceDTOs.ComplianceActionPlanListQueryParamsDTO{
+		Sort:           sort,
+		SortBy:         sortBy,
+		Keyword:        keyword,
+		Status:         status,
+		Page:           page,
+		PageSize:       pageSize,
+		Filters:        filters,
+		QuickFilter:    quickFilter,
+		TargetDateFrom: targetDateFrom,
+		TargetDateTo:   targetDateTo,
+		DateFrom:       dateFrom,
+		DateTo:         dateTo,
+	}
+	complianceActionPlans, err := crc.complianceActionPlanSvc.GetAll(uint(complianceID), &queryParams)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(crc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, complianceActionPlans)
 }
 
 func (crc *ComplianceReportController) GetComplianceActionPlanByStatus(c *gin.Context) {
