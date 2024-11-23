@@ -53,7 +53,7 @@ func (ms ModuleService) GetFullDetailsByID(moduleId uint) (*dtos.ModuleDetailDTO
 	// Initialize your DTO
 	var moduleDTO dtos.ModuleDetailDTO
 
-	integration, err := ms.repo.GetFullDetailsByID(moduleId)
+	module, err := ms.repo.GetFullDetailsByID(moduleId)
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -63,7 +63,7 @@ func (ms ModuleService) GetFullDetailsByID(moduleId uint) (*dtos.ModuleDetailDTO
 	}
 
 	// Map the result to your DTO
-	err = mapstructure.Decode(integration, &moduleDTO)
+	err = mapstructure.Decode(module, &moduleDTO)
 	if err != nil {
 		return nil, err
 	}
@@ -72,24 +72,25 @@ func (ms ModuleService) GetFullDetailsByID(moduleId uint) (*dtos.ModuleDetailDTO
 }
 
 func (ms *ModuleService) EnableModule(id uint) (*models.Module, error) {
-	module, err := ms.repo.GetFullDetailsByID(id)
+	moduleDetail, err := ms.GetFullDetailsByID(id)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, utility.NewResourceNotFoundError(err, id)
-		}
 		return nil, err
 	}
 
+	module, err := ms.GetByID(id)
+	if err != nil {
+		return nil, err
+	}
 	module.IsEnable = true
 	_, err = ms.repo.Update(module.ID, module)
 	if err != nil {
 		return nil, err
 	}
 	if module.ModuleID == nil {
-		if len(*module.SubModules) > 0 {
+		if len(moduleDetail.SubModules) > 0 {
 
 			// enabling all sub modules
-			for _, subModule := range *module.SubModules {
+			for _, subModule := range moduleDetail.SubModules {
 				existingSubModule, err := ms.GetByID(subModule.ID)
 
 				if err != nil {
@@ -121,11 +122,13 @@ func (ms *ModuleService) EnableModule(id uint) (*models.Module, error) {
 }
 
 func (ms *ModuleService) DisableModule(id uint) (*models.Module, error) {
-	module, err := ms.repo.GetFullDetailsByID(id)
+	moduleDetail, err := ms.GetFullDetailsByID(id)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, utility.NewResourceNotFoundError(err, id)
-		}
+		return nil, err
+	}
+
+	module, err := ms.GetByID(id)
+	if err != nil {
 		return nil, err
 	}
 
@@ -136,9 +139,9 @@ func (ms *ModuleService) DisableModule(id uint) (*models.Module, error) {
 	}
 
 	if module.ModuleID == nil {
-		if len(*module.SubModules) > 0 {
+		if len(moduleDetail.SubModules) > 0 {
 			// disabling all sub modules
-			for _, subModule := range *module.SubModules {
+			for _, subModule := range moduleDetail.SubModules {
 				existingSubModule, err := ms.GetByID(subModule.ID)
 
 				if err != nil {
@@ -154,7 +157,7 @@ func (ms *ModuleService) DisableModule(id uint) (*models.Module, error) {
 	} else {
 		// disabling main module
 		allDisabled := true
-		for _, subModule := range *module.SubModules {
+		for _, subModule := range moduleDetail.SubModules {
 			if subModule.ID != module.ID && subModule.IsEnable {
 				allDisabled = false
 				break
