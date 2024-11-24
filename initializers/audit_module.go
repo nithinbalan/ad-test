@@ -72,7 +72,6 @@ type AuditModule struct {
 }
 
 func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, complianceModule *ComplianceModule, riskModule *RiskModule, incidentModule *IncidentModule, documentModule *DocumentModule, settingModule *SettingsModule, masterModule *MasterModule, taskModule *TaskModule, commonModule *CommonModule) *AuditModule {
-
 	auditStatusRepo := repositories.NewAuditStatusRepository(db)
 	auditStatusSvc := services.NewAuditStatusService(auditStatusRepo)
 	auditStatusController := controllers.NewAuditStatusController(auditStatusSvc)
@@ -127,6 +126,7 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		auditTeamSvc,
 		organizationModule.UserSvc,
 		auditableItemSvc,
+		commonModule.NotificationService,
 	)
 	auditPlanController := controllers.NewAuditPlanController(auditPlanSvc)
 
