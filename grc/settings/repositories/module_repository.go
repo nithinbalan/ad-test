@@ -13,6 +13,8 @@ type ModuleRepositoryInterface interface {
 	GetModuleIDByIdentifier(identifier string) (uint, error)
 	GetByID(id uint) (*models.Module, error)
 	GetAll(params *dtos.ModuleListQueryParamsDTO) (*[]dtos.ModuleListDTO, error)
+	GetFullDetailsByID(id uint) (*models.Module, error)
+	Update(moduleId uint, module *models.Module) (uint, error)
 }
 
 // Implementation
@@ -40,6 +42,7 @@ func (repo *ModuleRepository) GetAll(params *dtos.ModuleListQueryParamsDTO) (*[]
 			modules.title_ar,
 			modules.icon,
 			modules.route,
+			modules.is_enable,
 			[modules].[order]  -- Escape the 'order' column
 		`)
 
@@ -63,6 +66,16 @@ func (repo *ModuleRepository) GetAll(params *dtos.ModuleListQueryParamsDTO) (*[]
 		query = query.Order("[modules].[order] asc")
 	}
 
+	// Apply quick filters
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "active":
+			query = query.Where("[modules].is_enable = ?", true)
+		case "inactive":
+			query = query.Where("[modules].is_enable = ?", false)
+		}
+	}
+
 	if err := query.Find(&modules).Error; err != nil {
 		return nil, err
 	}
@@ -80,6 +93,7 @@ func (repo *ModuleRepository) GetAll(params *dtos.ModuleListQueryParamsDTO) (*[]
 					Order:      submodule.Order,
 					Icon:       submodule.Icon,
 					Route:      submodule.Route,
+					IsEnable:   submodule.IsEnable,
 				}
 				submoduleDTOs = append(submoduleDTOs, submoduleDTO)
 			}
@@ -97,6 +111,7 @@ func (repo *ModuleRepository) GetAll(params *dtos.ModuleListQueryParamsDTO) (*[]
 			Order:      module.Order,
 			Icon:       module.Icon,
 			Route:      module.Route,
+			IsEnable:   module.IsEnable,
 			SubModules: submoduleDTOs,
 		}
 
@@ -127,4 +142,27 @@ func (repo *ModuleRepository) GetByID(id uint) (*models.Module, error) {
 	}
 
 	return module, nil
+}
+
+func (repo *ModuleRepository) GetFullDetailsByID(id uint) (*models.Module, error) {
+	var module *models.Module // Declare the variable inside the function
+
+	result := repo.db.
+		Preload("SubModules").
+		First(&module, id)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return module, nil
+}
+
+func (repo *ModuleRepository) Update(moduleId uint, module *models.Module) (uint, error) {
+	db := repo.db
+	if err := db.Save(module).Error; err != nil {
+		return 0, err
+	}
+
+	return moduleId, nil
 }
