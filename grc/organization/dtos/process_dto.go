@@ -109,8 +109,35 @@ type ProcessDetailDTO struct {
 	MarkedAsAuditableItem bool                              `json:"marked_as_auditable_item"`
 	RiskMatrixRating      *RiskMatrixRiskRatingDTO          `json:"risk_matrix_risk_rating"`
 	RiskMatrixRatingValue *RiskMatrixRiskRatingValueDTO     `json:"risk_matrix_rating_value"`
+	AuditableItem         *AuditableItemMinimalDetailDTO    `json:"auditable_item"`
 }
-
+type AuditableItemMinimalDetailDTO struct {
+	ID                  uint                             `json:"id"`
+	Type                string                           `json:"type"`
+	TitleEn             *string                          `json:"title_en"`
+	TitleAr             *string                          `json:"title_ar"`
+	Comment             *string                          `json:"comment"`
+	ResponsibleUnitID   uint                             `json:"responsible_unit_id"`
+	ResponsibleUserID   uint                             `json:"responsible_user_id"`
+	CreatedByID         uint                             `json:"created_by_id"`
+	UpdatedByID         *uint                            `json:"updated_by_id"`
+	AuditorRiskRatingID uint                             `json:"auditor_risk_rating_id"`
+	AuditorRiskRating   *AuditorRiskRatingMinimalDTO     `json:"auditor_risk_rating"`
+	ResponsibleUnit     settingsDTOs.OrganizationUnitDTO `json:"responsible_unit"`
+	CreatedAt           time.Time                        `json:"created_at"`
+	UpdatedAt           *time.Time                       `json:"updated_at"`
+	ResponsibleUser     *UserMinimalDTO                  `json:"responsible_user"`
+	CreatedByUser       *UserMinimalDTO                  `json:"created_by_user"`
+	UpdatedByUser       *UserMinimalDTO                  `json:"updated_by_user"`
+}
+type AuditorRiskRatingMinimalDTO struct {
+	ID        uint   `json:"id"`
+	TitleEn   string `json:"title_en"`
+	TitleAr   string `json:"title_ar"`
+	ColorCode string `json:"color_code"`
+	Type      string `json:"type"`
+	Status    string `json:"status"`
+}
 type RiskMatrixRiskRatingDTO struct {
 	ID           uint   `json:"id"`
 	RiskMatrixID uint   `json:"risk_matrix_id"`

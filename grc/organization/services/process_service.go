@@ -103,7 +103,19 @@ func (ps *ProcessService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTran
 
 	processDetailDTO.CreatedAt = process.CreatedAt
 	processDetailDTO.UpdatedAt = process.UpdatedAt
-
+	// Map the latest auditable item
+	if len(process.AuditableItems) > 0 {
+		latestAuditableItem := process.AuditableItems[0]
+		var auditableItemDTO organizationDTOs.AuditableItemMinimalDetailDTO
+		err := mapstructure.Decode(latestAuditableItem, &auditableItemDTO)
+		if err != nil {
+			return nil, err
+		}
+		processDetailDTO.AuditableItem = &auditableItemDTO
+		processDetailDTO.AuditableItem.CreatedAt = latestAuditableItem.CreatedAt
+		processDetailDTO.AuditableItem.UpdatedAt = latestAuditableItem.UpdatedAt
+	}
+	
 	return &processDetailDTO, nil
 }
 

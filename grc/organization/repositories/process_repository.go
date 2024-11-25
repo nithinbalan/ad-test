@@ -225,6 +225,13 @@ func (repo *ProcessRepository) GetFullDetailsByID(id uint, tx ...utility.Databas
 		Preload("CreatedByUser.OrganizationUnit1").
 		Preload("UpdatedByUser").
 		Preload("UpdatedByUser.OrganizationUnit1").
+		Preload("AuditableItems", func(db *gorm.DB) *gorm.DB {
+            return db.Order("created_at DESC").Limit(5) // Fetch the latest 5 auditable items
+        }).
+		Preload("AuditableItems.ResponsibleUser").
+		Preload("AuditableItems.ResponsibleUnit").
+		Preload("AuditableItems.AuditorRiskRating").
+		Preload("AuditableItems.CreatedByUser").
 		First(&process, id)
 
 	if result.Error != nil {
