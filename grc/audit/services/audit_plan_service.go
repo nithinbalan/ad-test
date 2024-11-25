@@ -530,44 +530,25 @@ func (aps *AuditPlanService) Publish(id uint, currentUserID uint) error {
 		}
 
 		uniqueUserIDs := make(map[uint]bool)
+
+		teamLeadDetails := "None"
+		if existingAuditPlan.TeamLead != nil {
+			uniqueUserIDs[existingAuditPlan.TeamLead.ID] = true
+			teamLeadDetails = fmt.Sprintf("%s %s", existingAuditPlan.TeamLead.FirstNameEn, existingAuditPlan.TeamLead.LastNameEn)
+		} else {
+			utility.LogError("TeamLead is nil", nil)
+		}
+
 		auditMembers := []string{}
-		teamLeadDetails := ""
-
-		// Fetch Team Lead
-		if existingAuditPlan.TeamLeadID != nil {
-			teamLead, err := aps.userSvc.GetByID(*existingAuditPlan.TeamLeadID)
-			if err == nil {
-				uniqueUserIDs[*existingAuditPlan.TeamLeadID] = true
-				teamLeadDetails = fmt.Sprintf("%s %s", teamLead.FirstNameEn, teamLead.LastNameEn)
-			} else {
-				utility.LogError("Failed to fetch team lead", map[string]interface{}{
-					"userID": *existingAuditPlan.TeamLeadID,
-					"error":  err.Error(),
-				})
-			}
-		}
-
-		// Fetch Audit Members
 		for _, member := range existingAuditPlan.Members {
-			user, err := aps.userSvc.GetByID(member.UserID)
-			if err == nil {
-				uniqueUserIDs[member.UserID] = true
-				auditMembers = append(auditMembers, fmt.Sprintf("%s %s", user.FirstNameEn, user.LastNameEn))
+			if member.User != nil {
+				uniqueUserIDs[member.User.ID] = true
+				auditMembers = append(auditMembers, fmt.Sprintf("%s %s", member.User.FirstNameEn, member.User.LastNameEn))
 			} else {
-				utility.LogError("Failed to fetch audit member", map[string]interface{}{
-					"userID": member.UserID,
-					"error":  err.Error(),
+				utility.LogError("Member User is nil", map[string]interface{}{
+					"memberID": member.ID,
 				})
 			}
-		}
-
-		auditCategory, err := aps.auditCategorySvc.GetByID(existingAuditPlan.AuditCategoryID)
-		if err != nil {
-			utility.LogError("Failed to fetch audit category", map[string]interface{}{
-				"auditCategoryID": existingAuditPlan.AuditCategoryID,
-				"error":           err.Error(),
-			})
-			return
 		}
 
 		assignedBy, err := aps.userSvc.GetByID(currentUserID)
@@ -578,10 +559,9 @@ func (aps *AuditPlanService) Publish(id uint, currentUserID uint) error {
 			return
 		}
 
-		// Convert audit members list to a formatted string
 		auditMembersDetails := "None"
 		if len(auditMembers) > 0 {
-			auditMembersDetails = fmt.Sprintf("- %s", strings.Join(auditMembers, "\n- "))
+			auditMembersDetails = strings.Join(auditMembers, "\n- ")
 		}
 
 		// Send notifications
@@ -598,6 +578,7 @@ func (aps *AuditPlanService) Publish(id uint, currentUserID uint) error {
 			urlParam := fmt.Sprintf(`{"audit_plan_id":%d}`, id)
 			entity := "audit-plan-publish"
 			action := "responsible-user-assign"
+			appURL := utility.GetAppURL()
 
 			// DB Notification
 			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
@@ -620,14 +601,14 @@ func (aps *AuditPlanService) Publish(id uint, currentUserID uint) error {
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 				EmailTo:              []string{user.Email},
 				Subject:              fmt.Sprintf("Audit Plan Published: %s", existingAuditPlan.Title),
-				TemplateRelativePath: "audit/templates/email/audit_plan_publish_create_responsible_user_mail .html",
+				TemplateRelativePath: "audit/templates/email/audit_plan_publish_create_responsible_user_mail.html",
 				EmailData: map[string]interface{}{
 					"FirstNameEn":           user.FirstNameEn,
 					"LastNameEn":            user.LastNameEn,
 					"ReferenceNumber":       existingAuditPlan.ReferenceNumber,
 					"Title":                 existingAuditPlan.Title,
 					"Description":           existingAuditPlan.Description,
-					"Category":              auditCategory.TitleEn,
+					"Category":              existingAuditPlan.AuditCategory.TitleEn,
 					"StartDate":             existingAuditPlan.StartDate.Format("2006-01-02"),
 					"TargetDate":            existingAuditPlan.TargetDate.Format("2006-01-02"),
 					"AssignedByFirstNameEn": assignedBy.FirstNameEn,
@@ -635,6 +616,7 @@ func (aps *AuditPlanService) Publish(id uint, currentUserID uint) error {
 					"AssignedOn":            time.Now().Format("2006-01-02"),
 					"TeamLead":              teamLeadDetails,
 					"AuditMembers":          auditMembersDetails,
+					"RedirectURL":           fmt.Sprintf("%s/audit/audit-plans/%d/overview", appURL, id),
 				},
 			}
 
