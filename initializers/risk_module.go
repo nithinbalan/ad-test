@@ -68,25 +68,6 @@ func NewRiskModule(db *gorm.DB,
 	riskLevelSvc := services.NewRiskLevelService(riskLevelRepo)
 	riskLevelController := controllers.NewRiskLevelController(riskLevelSvc)
 
-	potentialRiskRepo := repositories.NewPotentialRiskRepository(db)
-	potentialRiskSvc := services.NewPotentialRiskService(
-		potentialRiskRepo,
-		sharedModule.ActivityLogService,
-		masterModule.SeverityLevelSvc,
-		riskCategorySvc,
-		potentialRiskStatusSvc,
-		organizationModule.UserSettingSvc,
-	)
-	potentialRiskController := controllers.NewPotentialRiskController(potentialRiskSvc)
-
-	potentialRiskStatusUpdateRepo := repositories.NewPotentialRiskStatusUpdateRepository(db)
-	potentialRiskStatusUpdateSvc := services.NewPotentialRiskStatusUpdateService(
-		potentialRiskStatusUpdateRepo,
-		sharedModule.ActivityLogService,
-		potentialRiskSvc,
-		potentialRiskStatusSvc)
-	potentialRiskStatusUpdateController := controllers.NewPotentialRiskStatusUpdateController(potentialRiskStatusUpdateSvc)
-
 	kriCategoryRepository := repositories.NewKRICategoryRepository(db)
 	kriCategorySvc := services.NewKRICategoryService(kriCategoryRepository, sharedModule.ActivityLogService)
 	kriCategoryController := controllers.NewKRICategoryController(kriCategorySvc)
@@ -202,6 +183,26 @@ func NewRiskModule(db *gorm.DB,
 		commonModule.NotificationService,
 		assetModule.AssetRegisterSvc)
 	riskRegisterController := controllers.NewRiskRegisterController(riskRegisterSvc)
+
+	potentialRiskRepo := repositories.NewPotentialRiskRepository(db)
+	potentialRiskSvc := services.NewPotentialRiskService(
+		potentialRiskRepo,
+		sharedModule.ActivityLogService,
+		masterModule.SeverityLevelSvc,
+		riskCategorySvc,
+		potentialRiskStatusSvc,
+		organizationModule.UserSettingSvc,
+		riskRegisterSvc,
+	)
+	potentialRiskController := controllers.NewPotentialRiskController(potentialRiskSvc)
+
+	potentialRiskStatusUpdateRepo := repositories.NewPotentialRiskStatusUpdateRepository(db)
+	potentialRiskStatusUpdateSvc := services.NewPotentialRiskStatusUpdateService(
+		potentialRiskStatusUpdateRepo,
+		sharedModule.ActivityLogService,
+		potentialRiskSvc,
+		potentialRiskStatusSvc)
+	potentialRiskStatusUpdateController := controllers.NewPotentialRiskStatusUpdateController(potentialRiskStatusUpdateSvc)
 
 	riskRootCauseAnalysisRepo := repositories.NewRiskRootCauseAnalysisRepository(db)
 	riskRootCauseAnalysisSvc := services.NewRiskRootCauseAnalysisService(riskRootCauseAnalysisRepo, sharedModule.ActivityLogService, riskRegisterSvc, riskTimelineSvc)

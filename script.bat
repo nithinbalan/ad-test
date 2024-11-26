@@ -5,7 +5,7 @@ REM Define the path to the Goose executable if it's not in PATH
 set "goosePath=goose.exe"
 
 REM Define the connection string and migration directory
-set "connectionString=sqlserver://@localhost:1433?database=jethur_GRC&trustServerCertificate=true"
+set "connectionString=sqlserver://@localhost:1433?database=jethur_test&trustServerCertificate=true"
 set "migrationDir=migrations"
 set "seederDir=seeders"
 
