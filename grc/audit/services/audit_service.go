@@ -301,7 +301,7 @@ func (as *AuditService) Create(currentUserID uint, auditFormDTO *auditDTOs.Audit
 			}
 
 			urlParam := fmt.Sprintf(`{"audit_plan_id":%d}`, auditPlan.ID)
-			entity := "audit-plan-publish"
+			entity := "audit-created"
 			action := "responsible-user-assign"
 			appURL := utility.GetAppURL()
 
