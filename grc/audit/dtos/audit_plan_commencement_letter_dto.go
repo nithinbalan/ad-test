@@ -13,6 +13,7 @@ type AuditPlanCommencementLetterListDTO struct {
 	StatusColorCode             string  `json:"status_color_code"`
 	StatusType                  string  `json:"status_type"`
 	SentAt                      *string `json:"sent_at,omitempty"`
+	ResponsibleUnitID           uint    `json:"responsible_unit_id"`
 	ResponsibleUnitTitleEn      string  `json:"responsible_unit_title_en"`
 	ResponsibleUnitTitleAr      string  `json:"responsible_unit_title_ar"`
 	ToEmailIDs                  *string `json:"to_email_ids"`
