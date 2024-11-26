@@ -48,3 +48,14 @@ type ModuleReorderDTO struct {
 	Identifier string `json:"identifier"`
 	Order      int    `json:"order"`
 }
+
+type ModuleFormDTO struct {
+	TitleEn string `json:"title_en"`
+	TitleAr string `json:"title_ar"`
+	Icon    string `json:"icon"`
+}
+
+type SubModuleFormDTO struct {
+	TitleEn string `json:"title_en"`
+	TitleAr string `json:"title_ar"`
+}

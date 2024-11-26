@@ -20,6 +20,8 @@ type ModuleServiceInterface interface {
 	DisableModule(id uint) (*models.Module, error)
 	ReorderModule(modules []dtos.ModuleReorderDTO) error
 	ReorderSubModule(modules []dtos.ModuleReorderDTO) error
+	UpdateModule(id uint, moduleFormDTO dtos.ModuleFormDTO) error
+	UpdateSubModule(id uint, subModuleFormDTO dtos.SubModuleFormDTO) error
 }
 
 type ModuleService struct {
@@ -231,5 +233,36 @@ func (ms *ModuleService) ReorderSubModule(modules []dtos.ModuleReorderDTO) error
 
 	}
 
+	return nil
+}
+
+func (ms *ModuleService) UpdateModule(id uint, moduleFormDTO dtos.ModuleFormDTO) error {
+	existingModule, err := ms.GetByID(id)
+
+	if err != nil {
+		return nil
+	}
+	existingModule.TitleEn = moduleFormDTO.TitleEn
+	existingModule.TitleAr = moduleFormDTO.TitleAr
+	existingModule.Icon = moduleFormDTO.Icon
+	_, err = ms.repo.Update(existingModule.ID, existingModule)
+	if err != nil {
+		return nil
+	}
+	return nil
+}
+
+func (ms *ModuleService) UpdateSubModule(id uint, subModuleFormDTO dtos.SubModuleFormDTO) error {
+	existingModule, err := ms.GetByID(id)
+
+	if err != nil {
+		return nil
+	}
+	existingModule.TitleEn = subModuleFormDTO.TitleEn
+	existingModule.TitleAr = subModuleFormDTO.TitleAr
+	_, err = ms.repo.Update(existingModule.ID, existingModule)
+	if err != nil {
+		return nil
+	}
 	return nil
 }

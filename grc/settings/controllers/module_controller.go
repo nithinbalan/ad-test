@@ -132,3 +132,65 @@ func (mc *ModuleController) ReorderSubModule(c *gin.Context) {
 		}
 	}
 }
+
+func (mc *ModuleController) UpdateModule(c *gin.Context) {
+
+	var moduleFormDTO dtos.ModuleFormDTO
+
+	moduleId, err := strconv.Atoi(c.Param("moduleId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&moduleFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	err = mc.service.UpdateModule(uint(moduleId), moduleFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(mc.db, c, e.Error())
+			return
+		}
+	}
+}
+
+func (mc *ModuleController) UpdateSubModule(c *gin.Context) {
+
+	var subModuleFormDTO dtos.SubModuleFormDTO
+
+	moduleId, err := strconv.Atoi(c.Param("subModuleId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&subModuleFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	err = mc.service.UpdateSubModule(uint(moduleId), subModuleFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(mc.db, c, e.Error())
+			return
+		}
+	}
+}
