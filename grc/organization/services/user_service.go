@@ -97,6 +97,37 @@ func (us *UserService) SetUserSettingService(svc UserSettingServiceInterface) {
 }
 
 func (us *UserService) GetAll(params *userDTOs.UserListQueryParamsDTO) (*userDTOs.UserListResponseDTO, error) {
+	// Check if `organization_unit_ids` exists in the filters
+	orgUnitIDs, ok := params.Filters["organization_unit_id"]
+	if ok && len(orgUnitIDs) > 0 {
+		// Get the primary organization level
+		primaryLevel, err := us.organizationLevelSvc.GetPrimaryLevel()
+		if err != nil {
+			return nil, err
+		}
+
+		// Determine the field name based on the primary level
+		var primaryOrgUnitField string
+		switch primaryLevel.Level {
+		case 1:
+			primaryOrgUnitField = "organization_unit_1_id"
+		case 2:
+			primaryOrgUnitField = "organization_unit_2_id"
+		case 3:
+			primaryOrgUnitField = "organization_unit_3_id"
+		case 4:
+			primaryOrgUnitField = "organization_unit_4_id"
+		case 5:
+			primaryOrgUnitField = "organization_unit_5_id"
+		default:
+			return nil, fmt.Errorf("unsupported primary level")
+		}
+
+		// Add the resolved column name and value to the filters
+		params.Filters[primaryOrgUnitField] = orgUnitIDs
+		delete(params.Filters, "organization_unit_id") // Clean up the generic filter key
+	}
+
 	return us.repo.GetAll(params)
 }
 
