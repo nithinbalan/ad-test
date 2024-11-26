@@ -87,3 +87,48 @@ func (mc *ModuleController) DisableModule(c *gin.Context) {
 		}
 	}
 }
+
+func (mc *ModuleController) ReorderModule(c *gin.Context) {
+
+	var modules []dtos.ModuleReorderDTO
+	if err := c.ShouldBindJSON(&modules); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+	err := mc.service.ReorderModule(modules)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(mc.db, c, e.Error())
+			return
+		}
+	}
+}
+
+func (mc *ModuleController) ReorderSubModule(c *gin.Context) {
+	var modules []dtos.ModuleReorderDTO
+	if err := c.ShouldBindJSON(&modules); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+	err := mc.service.ReorderSubModule(modules)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(mc.db, c, e.Error())
+			return
+		}
+	}
+}
