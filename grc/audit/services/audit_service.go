@@ -324,7 +324,7 @@ func (as *AuditService) Create(currentUserID uint, auditFormDTO *auditDTOs.Audit
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 				EmailTo:              []string{user.Email},
 				Subject:              fmt.Sprintf("New Audit Created: %s", auditPlan.Title),
-				TemplateRelativePath: "audit/templates/email/audit_plan_publish_create_responsible_user_mail copy.html",
+				TemplateRelativePath: "audit/templates/email/audit_create_responsible_user_mail.html",
 				EmailData: map[string]interface{}{
 					"FirstNameEn":           user.FirstNameEn,
 					"LastNameEn":            user.LastNameEn,
