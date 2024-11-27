@@ -62,6 +62,7 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 		processes.title_en,
 		processes.title_ar,
 		processes.description,
+		processes.marked_as_auditable_item,
 		process_groups.title_en AS process_group_title_en,
 		process_groups.title_ar AS process_group_title_ar,
 		organization_units.title_en AS owner_unit_title_en,

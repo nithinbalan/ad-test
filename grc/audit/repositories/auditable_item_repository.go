@@ -149,6 +149,8 @@ func (repo *AuditableItemRepository) GetAll(params *auditDTOs.AuditableItemListQ
             auditable_items.title_ar LIKE ? OR
             auditor_risk_ratings.title_en LIKE ? OR
             auditor_risk_ratings.title_ar LIKE ? OR
+			responsible_user.first_name_en LIKE ? OR
+            responsible_user.first_name_ar LIKE ? OR
             users.first_name_en LIKE ? OR
             users.first_name_ar LIKE ? OR
             users.last_name_en LIKE ? OR
@@ -164,7 +166,7 @@ func (repo *AuditableItemRepository) GetAll(params *auditDTOs.AuditableItemListQ
 			keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword, keyword)
+			keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
 	// Sort by the specified column and order
