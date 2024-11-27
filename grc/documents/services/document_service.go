@@ -1385,7 +1385,7 @@ func (ds *DocumentService) GetDocumentPath(id uint, token string, fileType strin
 
 func (ds *DocumentService) SubmitDocument(id uint, currentUserID uint) error {
 	tx := ds.repo.BeginTransaction()
-	document, err := ds.GetFullDetailsByID(id, nil, tx)
+	document, err := ds.GetFullDetailsByID(id, nil)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -1417,6 +1417,20 @@ func (ds *DocumentService) SubmitDocument(id uint, currentUserID uint) error {
 		return err
 	}
 
+	var level int
+	if document.DocumentStatus.Type == "reverted" {
+		// If status is "reverted", use the NextReviewLevel for resubmission
+		if document.LatestDocumentVersion.NextReviewLevel != nil {
+			level = *document.LatestDocumentVersion.NextReviewLevel
+		} else {
+			tx.Rollback()
+			return fmt.Errorf("next review level is not set for reverted document")
+		}
+	} else {
+		// For non-reverted documents, start from level 1
+		level = 1
+	}
+
 	currentDateStr := time.Now().Format("2006-01-02")
 	submittedAt, err := utility.ParseDate(currentDateStr)
 	if err != nil {
@@ -1424,16 +1438,16 @@ func (ds *DocumentService) SubmitDocument(id uint, currentUserID uint) error {
 		return fmt.Errorf("error parsing current date: %w", err)
 	}
 
-	var level int = 1
+	if document.DocumentStatus.Type != "reverted" {
+		documentVersion.SubmittedBYID = &currentUserID
+		documentVersion.SubmittedAt = submittedAt
+		documentVersion.NextReviewLevel = &level
 
-	documentVersion.SubmittedBYID = &currentUserID
-	documentVersion.SubmittedAt = submittedAt
-	documentVersion.NextReviewLevel = &level
-
-	err = ds.repo.UpdateDocumentVersion(documentVersion, tx)
-	if err != nil {
-		tx.Rollback()
-		return err
+		err = ds.repo.UpdateDocumentVersion(documentVersion, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
 	}
 
 	// Fetch the workflow level details, including participants (review users)
@@ -1442,6 +1456,28 @@ func (ds *DocumentService) SubmitDocument(id uint, currentUserID uint) error {
 		tx.Rollback()
 		return err
 	}
+
+	if document.DocumentStatus.Type == "reverted" {
+		documentWorkflowStatus, err := ds.documentWorkflowStatusSvc.GetByType("resubmit")
+		if err != nil {
+			return err
+		}
+		documentWorkflowReview := &models.DocumentWorkflowReview{
+			DocumentWorkflowID:       docWorkflowLevel.ID,
+			DocumentWorkflowStatusID: documentWorkflowStatus.ID,
+			Comment:                  "Resubmitted",
+			CreatedBYID:              currentUserID,
+		}
+
+		err = ds.repo.CreateDocumentWorkflowReview(documentWorkflowReview, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	tx.Commit()
+
 	urlParam := fmt.Sprintf(`{"id":%d}`, id)
 	var taskIDs []uint
 
@@ -1457,9 +1493,8 @@ func (ds *DocumentService) SubmitDocument(id uint, currentUserID uint) error {
 			ResponsibleUserID:  participant.User.ID,
 		}
 
-		taskID, err := ds.taskSvc.Create(taskDTO, currentUserID, tx)
+		taskID, err := ds.taskSvc.Create(taskDTO, currentUserID)
 		if err != nil {
-			tx.Rollback()
 			return err
 		}
 		taskIDs = append(taskIDs, taskID)
@@ -1476,17 +1511,14 @@ func (ds *DocumentService) SubmitDocument(id uint, currentUserID uint) error {
 
 		relatedTaskIDsJSON, err := json.Marshal(relatedTaskIDs)
 		if err != nil {
-			tx.Rollback()
 			return err
 		}
 
-		err = ds.taskSvc.UpdateTaskWithRelatedIDs(taskID, string(relatedTaskIDsJSON), tx)
+		err = ds.taskSvc.UpdateTaskWithRelatedIDs(taskID, string(relatedTaskIDsJSON))
 		if err != nil {
-			tx.Rollback()
 			return err
 		}
 	}
-	tx.Commit()
 
 	//to do
 	//activity log

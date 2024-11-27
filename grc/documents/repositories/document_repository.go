@@ -33,6 +33,8 @@ type DocumentRepositoryInterface interface {
 
 	GetDocumentLatestEditHistory(documentVersionID uint) (*models.DocumentEditHistory, error)
 	GetDocumentEditHistories(documentVersionID uint) ([]*models.DocumentEditHistory, error)
+
+	CreateDocumentWorkflowReview(documentWorkflowReview *models.DocumentWorkflowReview, tx ...utility.DatabaseTransaction) error
 }
 
 // Implementation
@@ -474,4 +476,15 @@ func (repo *DocumentRepository) GetDocumentEditHistories(documentVersionID uint)
 		return nil, err
 	}
 	return histories, nil
+}
+
+func (repo *DocumentRepository) CreateDocumentWorkflowReview(documentWorkflowReview *models.DocumentWorkflowReview, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(documentWorkflowReview).Error; err != nil {
+		return err
+	}
+	return nil
 }

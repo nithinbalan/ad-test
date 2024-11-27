@@ -146,17 +146,54 @@ func (repo *DocumentWorkflowRepository) GetNextLevel(documentVersionID uint, cur
 	return &nextWorkflow, nil
 }
 
+// func (repo *DocumentWorkflowRepository) CountApprovedParticipants(workflowID uint, tx ...utility.DatabaseTransaction) (int, error) {
+// 	db := repo.db
+// 	if len(tx) > 0 && tx[0] != nil {
+// 		db = tx[0].DB()
+// 	}
+// 	var count int64
+// 	err := db.Model(&models.DocumentWorkflowReview{}).
+// 		Where("document_workflow_id = ? AND document_workflow_status_id = (SELECT id FROM document_workflow_statuses WHERE type = 'approve')", workflowID).
+// 		Distinct("created_by_id").
+// 		Count(&count).Error
+
+// 	if err != nil {
+// 		return 0, err
+// 	}
+
+//		return int(count), nil
+//	}
 func (repo *DocumentWorkflowRepository) CountApprovedParticipants(workflowID uint, tx ...utility.DatabaseTransaction) (int, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	var count int64
-	err := db.Model(&models.DocumentWorkflowReview{}).
-		Where("document_workflow_id = ? AND document_workflow_status_id = (SELECT id FROM document_workflow_statuses WHERE type = 'approve')", workflowID).
-		Distinct("created_by_id").
-		Count(&count).Error
 
+	// Get the maximum `id` for the resubmit entry
+	var resubmitID uint
+	err := db.Raw(`
+		SELECT MAX(id) 
+		FROM document_workflow_reviews 
+		WHERE document_workflow_id = ? 
+		  AND document_workflow_status_id = (SELECT id FROM document_workflow_statuses WHERE type = 'resubmit')
+	`, workflowID).Scan(&resubmitID).Error
+
+	if err != nil {
+		return 0, err
+	}
+
+	// Count distinct approved participants
+	var count int64
+	query := db.Model(&models.DocumentWorkflowReview{}).
+		Where("document_workflow_id = ? AND document_workflow_status_id = (SELECT id FROM document_workflow_statuses WHERE type = 'approve')", workflowID).
+		Distinct("created_by_id")
+
+	// Apply the filter only if a valid resubmitID is found
+	if resubmitID > 0 {
+		query = query.Where("id > ?", resubmitID)
+	}
+
+	err = query.Count(&count).Error
 	if err != nil {
 		return 0, err
 	}
