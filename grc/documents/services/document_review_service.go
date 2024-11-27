@@ -466,6 +466,32 @@ func (drs *DocumentReviewService) handleRevertedCase(id, currentUserID uint, doc
 		return err
 	}
 
+	documentWorkflow, err := drs.documentWorkflowSvc.GetDocumentWorkflowByID(currentDocumentWorkflow.ID)
+	if err != nil {
+		return err
+	}
+
+	documentWorkflow.DocumentWorkflowStatusID = documentWorkflowStatus.ID
+	err = drs.documentWorkflowSvc.UpdateDocumentWorkflow(documentWorkflow)
+	if err != nil {
+		return err
+	}
+
+	documentStatus, err := drs.documentStatusSvc.GetByType("reverted")
+	if err != nil {
+		return err
+	}
+	existingDocument, err := drs.documentSvc.GetByID(id)
+	if err != nil {
+		return err
+	}
+
+	existingDocument.DocumentStatusID = documentStatus.ID
+	err = drs.documentSvc.UpdateDocument(existingDocument)
+	if err != nil {
+		return err
+	}
+
 	task, err := drs.taskSvc.UpdateDocumentTaskStatus(id, currentUserID, currentDocumentWorkflow.ID)
 	if err != nil {
 		return err
