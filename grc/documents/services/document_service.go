@@ -1382,7 +1382,7 @@ func (ds *DocumentService) GetDocumentPath(id uint, token string, fileType strin
 
 func (ds *DocumentService) SubmitDocument(id uint, currentUserID uint) error {
 	tx := ds.repo.BeginTransaction()
-	document, err := ds.GetFullDetailsByID(id, nil, tx)
+	document, err := ds.GetFullDetailsByID(id, nil)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -1415,7 +1415,7 @@ func (ds *DocumentService) SubmitDocument(id uint, currentUserID uint) error {
 	}
 
 	var level int
-	if existingDocument.DocumentStatus.Type == "reverted" {
+	if document.DocumentStatus.Type == "reverted" {
 		// If status is "reverted", use the NextReviewLevel for resubmission
 		if document.LatestDocumentVersion.NextReviewLevel != nil {
 			level = *document.LatestDocumentVersion.NextReviewLevel
@@ -1435,7 +1435,7 @@ func (ds *DocumentService) SubmitDocument(id uint, currentUserID uint) error {
 		return fmt.Errorf("error parsing current date: %w", err)
 	}
 
-	if existingDocument.DocumentStatus.Type != "reverted" {
+	if document.DocumentStatus.Type != "reverted" {
 		documentVersion.SubmittedBYID = &currentUserID
 		documentVersion.SubmittedAt = submittedAt
 		documentVersion.NextReviewLevel = &level
@@ -1454,7 +1454,7 @@ func (ds *DocumentService) SubmitDocument(id uint, currentUserID uint) error {
 		return err
 	}
 
-	if existingDocument.DocumentStatus.Type == "reverted" {
+	if document.DocumentStatus.Type == "reverted" {
 		documentWorkflowStatus, err := ds.documentWorkflowStatusSvc.GetByType("resubmit")
 		if err != nil {
 			return err
@@ -1466,11 +1466,14 @@ func (ds *DocumentService) SubmitDocument(id uint, currentUserID uint) error {
 			CreatedBYID:              currentUserID,
 		}
 
-		err = ds.repo.CreateDocumentWorkflowReview(documentWorkflowReview)
+		err = ds.repo.CreateDocumentWorkflowReview(documentWorkflowReview, tx)
 		if err != nil {
+			tx.Rollback()
 			return err
 		}
 	}
+
+	tx.Commit()
 
 	urlParam := fmt.Sprintf(`{"id":%d}`, id)
 	var taskIDs []uint
@@ -1487,9 +1490,8 @@ func (ds *DocumentService) SubmitDocument(id uint, currentUserID uint) error {
 			ResponsibleUserID:  participant.User.ID,
 		}
 
-		taskID, err := ds.taskSvc.Create(taskDTO, currentUserID, tx)
+		taskID, err := ds.taskSvc.Create(taskDTO, currentUserID)
 		if err != nil {
-			tx.Rollback()
 			return err
 		}
 		taskIDs = append(taskIDs, taskID)
@@ -1506,17 +1508,14 @@ func (ds *DocumentService) SubmitDocument(id uint, currentUserID uint) error {
 
 		relatedTaskIDsJSON, err := json.Marshal(relatedTaskIDs)
 		if err != nil {
-			tx.Rollback()
 			return err
 		}
 
-		err = ds.taskSvc.UpdateTaskWithRelatedIDs(taskID, string(relatedTaskIDsJSON), tx)
+		err = ds.taskSvc.UpdateTaskWithRelatedIDs(taskID, string(relatedTaskIDsJSON))
 		if err != nil {
-			tx.Rollback()
 			return err
 		}
 	}
-	tx.Commit()
 
 	//to do
 	//activity log
