@@ -24,6 +24,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditInsightsDraftFindingConversationController := app.AuditInsightsModule.AuditInsightsDraftFindingConversationController
 	auditInsightsDraftFindingActionPlanController := app.AuditInsightsModule.AuditInsightsDraftFindingActionPlanController
 	auditInsightsAuditFindingController := app.AuditInsightsModule.AuditInsightsAuditFindingController
+	auditInsightsFindingRootCauseAnalysisController := app.AuditInsightsModule.AuditInsightsFindingRootCauseAnalysisController
+	
 
 	// Audit Insights Audit plans
 	auditInsightsRoutes.GET("/audit-insights/audit-plans", middlewares.RolePermissionMiddleware(db, "audit_insight_plans", "view"), auditInsightsAuditPlanController.GetAllAuditInsightsAuditPlans)
@@ -67,5 +69,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	//Audit Insights  Findings
 	auditInsightsRoutes.GET("/audit-insights/audit-findings", middlewares.RolePermissionMiddleware(db, "audit_insight_audits", "view"), auditInsightsAuditFindingController.GetAllAuditInsightsAuditFindings)
 	auditInsightsRoutes.GET("/audit-insights/audit-findings/:findingId", middlewares.RolePermissionMiddleware(db, "audit_insight_audits", "view"), auditInsightsAuditFindingController.GetAuditInsightsAuditFindingDetails)
+
+	auditInsightsRoutes.GET("/audit-insights/audit-findings/:findingId/root-cause-analysis", middlewares.RolePermissionMiddleware(db, "audit_insight_audits", "view"), auditInsightsFindingRootCauseAnalysisController.GetAllAuditInsightsFindingRootCauseAnalyses)
+	auditInsightsRoutes.POST("/audit-insights/audit-findings/:findingId/root-cause-analysis", middlewares.RolePermissionMiddleware(db, "audit_insight_audits", "modify"), auditInsightsFindingRootCauseAnalysisController.CreateAuditInsightsFindingRootCauseAnalysis)
+	auditInsightsRoutes.PUT("/audit-insights/audit-findings/:findingId/root-cause-analysis/:analysisId", middlewares.RolePermissionMiddleware(db, "audit_insight_audits", "modify"), auditInsightsFindingRootCauseAnalysisController.UpdateAuditInsightsFindingRootCauseAnalysis)
+	auditInsightsRoutes.DELETE("/audit-insights/audit-findings/:findingId/root-cause-analysis/:analysisId", middlewares.RolePermissionMiddleware(db, "audit_insight_audits", "modify"), auditInsightsFindingRootCauseAnalysisController.DeleteAuditInsightsFindingRootCauseAnalyses)
 
 }
