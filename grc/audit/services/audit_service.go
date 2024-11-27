@@ -333,6 +333,8 @@ func (as *AuditService) Create(currentUserID uint, auditFormDTO *auditDTOs.Audit
 					"TeamLead":              fmt.Sprintf("%s %s", auditPlan.TeamLead.FirstNameEN, auditPlan.TeamLead.LastNameEN),
 					"AuditMembers":          auditMembersDetails,
 					"ReferenceNumber":       auditPlan.ReferenceNumber,
+					"AuditStartDate":        auditFormDTO.StartDate,
+					"AuditEndDate":          auditFormDTO.EndDate,
 					"AuditPlanStartDate":    auditPlan.StartDateString,
 					"AuditPlanEndDate":      auditPlan.TargetDateString,
 					"AssignedByFirstNameEn": assignedBy.FirstNameEn,
