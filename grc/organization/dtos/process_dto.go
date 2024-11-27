@@ -128,8 +128,8 @@ type AuditableItemMinimalDetailDTO struct {
 	CreatedAt           time.Time                        `json:"created_at"`
 	UpdatedAt           *time.Time                       `json:"updated_at"`
 	ResponsibleUser     *UserMinimalDTO                  `json:"responsible_user"`
-	CreatedByUser       *UserMinimalDTO                  `json:"created_by_user"`
-	UpdatedByUser       *UserMinimalDTO                  `json:"updated_by_user"`
+	CreatedByUser       *UserMinimalDTO                  `json:"created_by"`
+	UpdatedByUser       *UserMinimalDTO                  `json:"updated_by"`
 }
 type AuditorRiskRatingMinimalDTO struct {
 	ID        uint   `json:"id"`
