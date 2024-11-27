@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	"jethur/grc/audit/dtos"
 	"jethur/grc/audit/services"
 	"jethur/utility"
@@ -28,15 +29,16 @@ func (adrc *AuditDocumentRequestController) GetAllAuditDocumentRequests(c *gin.C
 		utility.SendNotFoundErrResp(c)
 		return
 	}
-
 	sort := c.Query("sort_order")
-	sortBy := c.Query("sort_by")
+	sortBy := c.DefaultQuery("sort_by", "title")
 	keyword := c.Query("keyword")
 	quickFilter := c.QueryArray("quick_filter")
 	requestedAt := c.Query("requested_at")
 
 	allowedParams := []string{
 		"audit_ids",
+		"responsible_user_ids",
+		"responsible_unit_ids",
 		"requested_by_ids",
 		"audit_document_request_status_ids",
 	}
@@ -54,10 +56,32 @@ func (adrc *AuditDocumentRequestController) GetAllAuditDocumentRequests(c *gin.C
 		utility.SendInternalErrResp(adrc.db, c, "Invalid page_size parameter")
 		return
 	}
+	validSortFields := map[string]string{
+		"title":                                  "audit_document_requests.title",
+		"requested_at":                           "audit_document_requests.requested_at",
+		"responsible_unit_en":                    "organization_units.title_en",
+		"responsible_unit_ar":                    "organization_units.title_ar",
+		"responsible_user_first_name_en":         "responsible_user.first_name_en",
+		"responsible_user_first_name_ar":         "responsible_user.first_name_ar",
+		"responsible_user_last_name_en":          "responsible_user.last_name_en",
+		"responsible_user_last_name_ar":          "responsible_user.last_name_ar",
+		"requested_user_first_name_en":           "requested_user.first_name_en",
+		"requested_user_first_name_ar":           "requested_user.first_name_ar",
+		"requested_user_last_name_en":            "requested_user.last_name_en",
+		"requested_user_last_name_ar":            "requested_user.last_name_ar",
+		"audit_document_request_status_title_en": "audit_document_request_statuses.title_en",
+		"audit_document_request_status_title_ar": "audit_document_request_statuses.title_ar",
+	}
 
+	sortField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
 	queryParams := dtos.AuditDocumentRequestListQueryParamsDTO{
 		Sort:        sort,
-		SortBy:      sortBy,
+		SortBy:      sortField,
 		Keyword:     keyword,
 		Page:        page,
 		PageSize:    pageSize,

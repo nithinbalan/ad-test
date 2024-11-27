@@ -44,6 +44,8 @@ func (repo *AuditMeetingRepository) GetAll(auditID uint, params *auditDTOs.Audit
 
 	// Set the model for the query
 	query := repo.db.Model(&models.AuditMeeting{}).
+		Joins("LEFT JOIN users AS created_user ON created_user.id = audit_meetings.created_by_id").
+		Joins("LEFT JOIN users AS updated_user ON updated_user.id = audit_meetings.updated_by_id").
 		Preload("Participants").
 		Preload("Participants.User").
 		Preload("CreatedByUser").
@@ -73,7 +75,6 @@ func (repo *AuditMeetingRepository) GetAll(auditID uint, params *auditDTOs.Audit
 			updated_user.last_name_ar LIKE ?)`,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
-
 	// Calculate total count for pagination
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, nil, err

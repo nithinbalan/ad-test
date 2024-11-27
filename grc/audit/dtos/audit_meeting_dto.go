@@ -75,6 +75,7 @@ type AuditMeetingListQueryParamsDTO struct {
 	QuickFilter []string
 	StartDate   string
 	EndDate     string
+	Date        string
 }
 
 type AuditMeetingListResponseDTO struct {
