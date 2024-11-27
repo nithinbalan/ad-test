@@ -1872,8 +1872,6 @@ func (is *IncidentRegisterService) ExportIncidentRegister(data []*incidentDTOs.I
 			"Action Taken",
 			"Investigation Date & Time",
 			"Investigation Details",
-			"Communicated By",
-			"Communicated To",
 		}
 	} else {
 		headers = []string{
@@ -1891,8 +1889,6 @@ func (is *IncidentRegisterService) ExportIncidentRegister(data []*incidentDTOs.I
 			"Action Taken",
 			"Investigation Date & Time",
 			"Investigation Details",
-			"Communicated By",
-			"Communicated To",
 		}
 	}
 	// Convert the incident register data to [][]interface{} based on language setting
@@ -1907,16 +1903,14 @@ func (is *IncidentRegisterService) ExportIncidentRegister(data []*incidentDTOs.I
 				incident.IncidentAt,
 				incident.IncidentCategoryTitleAr,
 				incident.SeverityLevelTitleAr,
-				incident.Location,
+				utility.GetStringValue(incident.Location),
 				incident.ReportedUserFirstNameAr + " " + incident.ReportedUserLastNameAr,
 				incident.ResponsibleUserFirstNameAr + " " + incident.ResponsibleUserLastNameAr,
 				incident.ReportedAt,
 				incident.IncidentStatusTitleAr,
-				incident.QuickAction,
-				// incident.InvestigationInitiatedAt,
-				// incident.InvestigationDescription,
-				// *incident.CommunicatedByFirstNameAr + " " + *incident.CommunicatedByLastNameAr,
-				// incident.CommunicatedViaAr,
+				utility.GetStringValue(incident.QuickAction),
+				utility.GetStringValue(incident.InvestigationInitiatedAt),
+				utility.GetStringValue(incident.InvestigationDescription),
 			}
 		} else {
 			// Populate row data in English
@@ -1927,16 +1921,14 @@ func (is *IncidentRegisterService) ExportIncidentRegister(data []*incidentDTOs.I
 				incident.IncidentAt,
 				incident.IncidentCategoryTitleEn,
 				incident.SeverityLevelTitleEn,
-				incident.Location,
-				incident.ReportedUserFirstNameEn + " " + incident.ReportedUserFirstNameEn,
+				utility.GetStringValue(incident.Location),
+				incident.ReportedUserFirstNameEn + " " + incident.ReportedUserLastNameEn,
 				incident.ResponsibleUserFirstNameEn + " " + incident.ResponsibleUserLastNameEn,
 				incident.ReportedAt,
 				incident.IncidentStatusTitleEn,
-				incident.QuickAction,
-				// incident.InvestigationInitiatedAt,
-				// incident.InvestigationDescription,
-				// incident.CommunicatedByFirstNameEn + " " + *incident.CommunicatedByLastNameEn,
-				// incident.CommunicatedViaEn,
+				utility.GetStringValue(incident.QuickAction),
+				utility.GetStringValue(incident.InvestigationInitiatedAt),
+				utility.GetStringValue(incident.InvestigationDescription),
 			}
 		}
 	}

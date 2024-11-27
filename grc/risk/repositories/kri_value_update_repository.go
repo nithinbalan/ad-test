@@ -48,6 +48,7 @@ func (repo *KRIValueUpdateRepository) GetAll(kriRegisterID uint, params *riskDTO
 	query := repo.db.Table("kri_value_updates").
 		Select(`
             kri_value_updates.*,
+			CONVERT(VARCHAR, kri_value_updates.reviewed_date, 23) AS reviewed_date,
 			kri_register.title AS kri_register,
 			risk_levels.title_en AS risk_level_title_en,
 			risk_levels.title_ar AS risk_level_title_ar,
